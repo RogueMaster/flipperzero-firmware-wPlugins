@@ -41,7 +41,6 @@ CalendarApp* calendar_app_alloc() {
     // Scene manager
     app->scene_manager = scene_manager_alloc(&calendar_scene_handlers, app);
 
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, calendar_app_custom_event_callback);

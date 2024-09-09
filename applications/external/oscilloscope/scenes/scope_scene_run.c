@@ -295,7 +295,7 @@ void AdcDmaTransferHalf_Callback() {
 
 void Activate_ADC(void) {
     __IO uint32_t wait_loop_index = 0U;
-#if defined(USE_TIMEOUT) && (USE_TIMEOUT == 1)
+#if(USE_TIMEOUT == 1)
     uint32_t Timeout = 0U; /* Variable used for timeout management */
 #endif /* USE_TIMEOUT */
     if(LL_ADC_IsEnabled(ADC1) == 0) {
@@ -308,12 +308,12 @@ void Activate_ADC(void) {
         }
         LL_ADC_StartCalibration(ADC1, LL_ADC_SINGLE_ENDED);
 
-#if defined(USE_TIMEOUT) && (USE_TIMEOUT == 1)
+#if(USE_TIMEOUT == 1)
         Timeout = ADC_CALIBRATION_TIMEOUT_MS;
 #endif /* USE_TIMEOUT */
 
         while(LL_ADC_IsCalibrationOnGoing(ADC1) != 0) {
-#if defined(USE_TIMEOUT) && (USE_TIMEOUT == 1)
+#if(USE_TIMEOUT == 1)
             if(LL_SYSTICK_IsActiveCounterFlag()) {
                 if(Timeout-- == 0) {
                 }
@@ -325,11 +325,11 @@ void Activate_ADC(void) {
             wait_loop_index--;
         }
         LL_ADC_Enable(ADC1);
-#if defined(USE_TIMEOUT) && (USE_TIMEOUT == 1)
+#if(USE_TIMEOUT == 1)
         Timeout = ADC_ENABLE_TIMEOUT_MS;
 #endif /* USE_TIMEOUT */
         while(LL_ADC_IsActiveFlag_ADRDY(ADC1) == 0) {
-#if defined(USE_TIMEOUT) && (USE_TIMEOUT == 1)
+#if(USE_TIMEOUT == 1)
             /* Check Systick counter flag to decrement the time-out value */
             if(LL_SYSTICK_IsActiveCounterFlag()) {
                 if(Timeout-- == 0) {

@@ -8,6 +8,7 @@
 #include <loader/loader.h>
 #include <storage/filesystem_api_defines.h>
 
+#include <lib/toolbox/api_lock.h>
 #include <lib/toolbox/md5_calc.h>
 #include <lib/toolbox/path.h>
 
@@ -35,8 +36,8 @@ static uint32_t command_id = 0;
 typedef struct {
     RpcSession* session;
     FuriStreamBuffer* output_stream;
-    FuriSemaphore* close_session_semaphore;
-    FuriSemaphore* terminate_semaphore;
+    FuriApiLock session_close_lock;
+    FuriApiLock session_terminate_lock;
     uint32_t timeout;
 } RpcSessionContext;
 
@@ -45,7 +46,7 @@ static RpcSessionContext rpc_session[TEST_RPC_SESSIONS];
 #define TAG "UnitTestsRpc"
 
 #define MAX_RECEIVE_OUTPUT_TIMEOUT 3000
-#define MAX_NAME_LENGTH            255
+#define MAX_NAME_LENGTH            254
 #define MAX_DATA_SIZE              512u // have to be exact as in rpc_storage.c
 #define TEST_DIR_NAME              EXT_PATH(".tmp/unit_tests/rpc")
 #define TEST_DIR                   TEST_DIR_NAME "/"
@@ -92,8 +93,8 @@ static void test_rpc_setup(void) {
 
     rpc_session[0].output_stream = furi_stream_buffer_alloc(4096, 1);
     rpc_session_set_send_bytes_callback(rpc_session[0].session, output_bytes_callback);
-    rpc_session[0].close_session_semaphore = furi_semaphore_alloc(1, 0);
-    rpc_session[0].terminate_semaphore = furi_semaphore_alloc(1, 0);
+    rpc_session[0].session_close_lock = api_lock_alloc_locked();
+    rpc_session[0].session_terminate_lock = api_lock_alloc_locked();
     rpc_session_set_close_callback(rpc_session[0].session, test_rpc_session_close_callback);
     rpc_session_set_terminated_callback(
         rpc_session[0].session, test_rpc_session_terminated_callback);
@@ -112,8 +113,8 @@ static void test_rpc_setup_second_session(void) {
 
     rpc_session[1].output_stream = furi_stream_buffer_alloc(1000, 1);
     rpc_session_set_send_bytes_callback(rpc_session[1].session, output_bytes_callback);
-    rpc_session[1].close_session_semaphore = furi_semaphore_alloc(1, 0);
-    rpc_session[1].terminate_semaphore = furi_semaphore_alloc(1, 0);
+    rpc_session[1].session_close_lock = api_lock_alloc_locked();
+    rpc_session[1].session_terminate_lock = api_lock_alloc_locked();
     rpc_session_set_close_callback(rpc_session[1].session, test_rpc_session_close_callback);
     rpc_session_set_terminated_callback(
         rpc_session[1].session, test_rpc_session_terminated_callback);
@@ -121,36 +122,32 @@ static void test_rpc_setup_second_session(void) {
 }
 
 static void test_rpc_teardown(void) {
-    furi_check(rpc_session[0].close_session_semaphore);
-    furi_semaphore_acquire(rpc_session[0].terminate_semaphore, 0);
+    furi_check(rpc_session[0].session_close_lock);
+    api_lock_relock(rpc_session[0].session_terminate_lock);
     rpc_session_close(rpc_session[0].session);
-    furi_check(
-        furi_semaphore_acquire(rpc_session[0].terminate_semaphore, FuriWaitForever) ==
-        FuriStatusOk);
+    api_lock_wait_unlock(rpc_session[0].session_terminate_lock);
     furi_record_close(RECORD_RPC);
     furi_stream_buffer_free(rpc_session[0].output_stream);
-    furi_semaphore_free(rpc_session[0].close_session_semaphore);
-    furi_semaphore_free(rpc_session[0].terminate_semaphore);
+    api_lock_free(rpc_session[0].session_close_lock);
+    api_lock_free(rpc_session[0].session_terminate_lock);
     ++command_id;
     rpc_session[0].output_stream = NULL;
-    rpc_session[0].close_session_semaphore = NULL;
+    rpc_session[0].session_close_lock = NULL;
     rpc = NULL;
     rpc_session[0].session = NULL;
 }
 
 static void test_rpc_teardown_second_session(void) {
-    furi_check(rpc_session[1].close_session_semaphore);
-    furi_semaphore_acquire(rpc_session[1].terminate_semaphore, 0);
+    furi_check(rpc_session[1].session_close_lock);
+    api_lock_relock(rpc_session[1].session_terminate_lock);
     rpc_session_close(rpc_session[1].session);
-    furi_check(
-        furi_semaphore_acquire(rpc_session[1].terminate_semaphore, FuriWaitForever) ==
-        FuriStatusOk);
+    api_lock_wait_unlock(rpc_session[1].session_terminate_lock);
     furi_stream_buffer_free(rpc_session[1].output_stream);
-    furi_semaphore_free(rpc_session[1].close_session_semaphore);
-    furi_semaphore_free(rpc_session[1].terminate_semaphore);
+    api_lock_free(rpc_session[1].session_close_lock);
+    api_lock_free(rpc_session[1].session_terminate_lock);
     ++command_id;
     rpc_session[1].output_stream = NULL;
-    rpc_session[1].close_session_semaphore = NULL;
+    rpc_session[1].session_close_lock = NULL;
     rpc_session[1].session = NULL;
 }
 
@@ -204,14 +201,14 @@ static void test_rpc_session_close_callback(void* context) {
     furi_check(context);
     RpcSessionContext* callbacks_context = context;
 
-    furi_check(furi_semaphore_release(callbacks_context->close_session_semaphore) == FuriStatusOk);
+    api_lock_unlock(callbacks_context->session_close_lock);
 }
 
 static void test_rpc_session_terminated_callback(void* context) {
     furi_check(context);
     RpcSessionContext* callbacks_context = context;
 
-    furi_check(furi_semaphore_release(callbacks_context->terminate_semaphore) == FuriStatusOk);
+    api_lock_unlock(callbacks_context->session_terminate_lock);
 }
 
 static void test_rpc_print_message_list(MsgList_t msg_list) {
@@ -641,7 +638,7 @@ static void test_rpc_storage_list_create_expected_list(
 
     while(!finish) {
         FileInfo fileinfo;
-        char* name = malloc(MAX_NAME_LENGTH + 1);
+        char* name = malloc(MAX_NAME_LENGTH);
         if(storage_dir_read(dir, &fileinfo, name, MAX_NAME_LENGTH)) {
             if(i == COUNT_OF(list->file)) {
                 list->file_count = i;
@@ -1645,7 +1642,7 @@ static void test_rpc_feed_rubbish_run(
 
     test_rpc_add_empty_to_list(expected, PB_CommandStatus_ERROR_DECODE, 0);
 
-    furi_check(furi_semaphore_acquire(rpc_session[0].close_session_semaphore, 0) != FuriStatusOk);
+    furi_check(api_lock_is_locked(rpc_session[0].session_close_lock));
     test_rpc_encode_and_feed(input_before, 0);
     test_send_rubbish(rpc_session[0].session, pattern, pattern_size, size);
     test_rpc_encode_and_feed(input_after, 0);

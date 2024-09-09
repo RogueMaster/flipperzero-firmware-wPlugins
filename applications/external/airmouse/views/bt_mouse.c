@@ -150,7 +150,6 @@ void bt_mouse_connection_status_changed_callback(BtStatus status, void* context)
     if(bt_mouse->connected) {
         notification_internal_message(bt_mouse->notifications, &sequence_set_blue_255);
         tracking_begin();
-        view_dispatcher_send_custom_event(bt_mouse->view_dispatcher, 0);
     } else {
         tracking_end();
         notification_internal_message(bt_mouse->notifications, &sequence_reset_blue);
@@ -255,6 +254,11 @@ void bt_mouse_thread_stop(BtMouse* bt_mouse) {
     bt_mouse->thread = NULL;
 }
 
+void bt_mouse_tick_event_callback(void* context) {
+    furi_assert(context);
+    tracking_step(bt_mouse_move, context);
+}
+
 void bt_mouse_enter_callback(void* context) {
     furi_assert(context);
     BtMouse* bt_mouse = context;
@@ -272,6 +276,10 @@ void bt_mouse_enter_callback(void* context) {
     furi_assert(bt_mouse->hid);
     furi_hal_bt_start_advertising();
     bt_mouse_thread_start(bt_mouse);
+
+    view_dispatcher_set_event_callback_context(bt_mouse->view_dispatcher, bt_mouse);
+    view_dispatcher_set_tick_event_callback(
+        bt_mouse->view_dispatcher, bt_mouse_tick_event_callback, furi_ms_to_ticks(10));
 }
 
 void bt_mouse_remove_pairing(void) {
@@ -291,21 +299,11 @@ void bt_mouse_remove_pairing(void) {
     furi_record_close(RECORD_BT);
 }
 
-bool bt_mouse_custom_callback(uint32_t event, void* context) {
-    UNUSED(event);
-    furi_assert(context);
-    BtMouse* bt_mouse = context;
-
-    tracking_step(bt_mouse_move, context);
-    furi_delay_ms(3); // Magic! Removing this will break the buttons
-
-    view_dispatcher_send_custom_event(bt_mouse->view_dispatcher, 0);
-    return true;
-}
-
 void bt_mouse_exit_callback(void* context) {
     furi_assert(context);
     BtMouse* bt_mouse = context;
+
+    view_dispatcher_set_tick_event_callback(bt_mouse->view_dispatcher, NULL, FuriWaitForever);
 
     bt_mouse_thread_stop(bt_mouse);
     tracking_end();
@@ -336,7 +334,6 @@ BtMouse* bt_mouse_alloc(ViewDispatcher* view_dispatcher) {
     view_set_draw_callback(bt_mouse->view, bt_mouse_draw_callback);
     view_set_input_callback(bt_mouse->view, bt_mouse_input_callback);
     view_set_enter_callback(bt_mouse->view, bt_mouse_enter_callback);
-    view_set_custom_callback(bt_mouse->view, bt_mouse_custom_callback);
     view_set_exit_callback(bt_mouse->view, bt_mouse_exit_callback);
     return bt_mouse;
 }

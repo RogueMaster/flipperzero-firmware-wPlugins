@@ -113,7 +113,7 @@ static App* modbus_app_alloc() {
     app->LOGfile = storage_file_alloc(app->storage);
     app->sceneManager = scene_manager_alloc(&app_scene_handlers, app);
     app->viewDispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->viewDispatcher);
+
     view_dispatcher_set_event_callback_context(app->viewDispatcher, app);
     view_dispatcher_set_custom_event_callback(app->viewDispatcher, CustomEventCB);
     view_dispatcher_set_navigation_event_callback(app->viewDispatcher, BackEventCB);

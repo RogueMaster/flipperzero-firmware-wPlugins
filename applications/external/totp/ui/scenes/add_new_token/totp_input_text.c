@@ -36,7 +36,6 @@ void totp_input_text(Gui* gui, const char* header_text, InputTextResult* result)
         INPUT_BUFFER_SIZE,
         true);
 
-    view_dispatcher_enable_queue(view_dispatcher);
     view_dispatcher_add_view(view_dispatcher, 0, text_input_get_view(text_input));
 
     view_dispatcher_attach_to_gui(view_dispatcher, gui, ViewDispatcherTypeFullscreen);

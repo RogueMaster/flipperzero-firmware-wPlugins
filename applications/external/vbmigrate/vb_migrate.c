@@ -182,7 +182,6 @@ VbMigrate* vb_migrate_alloc() {
 
     inst->view_dispatcher = view_dispatcher_alloc();
     inst->scene_manager = scene_manager_alloc(&vb_migrate_scene_handlers, inst);
-    view_dispatcher_enable_queue(inst->view_dispatcher);
     view_dispatcher_set_event_callback_context(inst->view_dispatcher, inst);
     view_dispatcher_set_custom_event_callback(
         inst->view_dispatcher, vb_migrate_custom_event_callback);

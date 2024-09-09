@@ -39,7 +39,6 @@ AppContextStatus initializeAppContext(
     // Now setup our view dispatchers
     FURI_LOG_I(TAG, "Setting up the view dispatcher");
     (*context)->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue((*context)->view_dispatcher);
 
     FURI_LOG_I(TAG, "Setting view dispatcher callbacks");
     view_dispatcher_set_event_callback_context((*context)->view_dispatcher, (*context));

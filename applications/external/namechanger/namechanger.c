@@ -22,7 +22,7 @@ NameChanger* namechanger_alloc() {
     namechanger->scene_manager = scene_manager_alloc(&namechanger_scene_handlers, namechanger);
 
     namechanger->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(namechanger->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(namechanger->view_dispatcher, namechanger);
     view_dispatcher_set_custom_event_callback(
         namechanger->view_dispatcher, namechanger_custom_event_callback);

@@ -726,7 +726,6 @@ bleScanCtx* ble_init() {
 
     bleCtx->view_dispatcher = view_dispatcher_alloc();
 
-    view_dispatcher_enable_queue(bleCtx->view_dispatcher);
     view_dispatcher_attach_to_gui(bleCtx->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(bleCtx->view_dispatcher, bleCtx);
 

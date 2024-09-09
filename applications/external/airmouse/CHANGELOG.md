@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3 (2024-08-15)
+
+**Fix new firmwares compatibility**
+
 ## v1.2 (2024-06-05)
 
 **Support multiple IMU models**

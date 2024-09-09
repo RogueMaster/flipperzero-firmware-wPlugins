@@ -1,24 +1,7 @@
 #pragma once
 
-#include <furi_hal.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <toolbox/saved_struct.h>
-#include <storage/storage.h>
-#include "desktop_settings_filename.h"
-
-#define DESKTOP_SETTINGS_VER (13)
-
-#define DESKTOP_SETTINGS_OLD_PATH CFG_PATH(DESKTOP_SETTINGS_FILE_NAME)
-#define DESKTOP_SETTINGS_PATH     INT_PATH(DESKTOP_SETTINGS_FILE_NAME)
-#define DESKTOP_SETTINGS_MAGIC    (0x17)
-#define PIN_MAX_LENGTH            12
-
-#define DESKTOP_SETTINGS_RUN_PIN_SETUP_ARG "run_pin_setup"
-
-#define MAX_PIN_SIZE   10
-#define MIN_PIN_SIZE   4
-#define MAX_APP_LENGTH 128
 
 #define DISPLAY_BATTERY_BAR              0
 #define DISPLAY_BATTERY_PERCENT          1
@@ -43,30 +26,24 @@ typedef enum {
 } FavoriteAppShortcut;
 
 typedef enum {
-    DummyAppLeft = 0,
+    DummyAppLeftShort = 0,
     DummyAppLeftLong,
-    DummyAppRight,
+    DummyAppRightShort,
     DummyAppRightLong,
     DummyAppUpLong,
-    DummyAppDown,
+    DummyAppDownShort,
     DummyAppDownLong,
-    DummyAppOk,
+    DummyAppOkShort,
     DummyAppOkLong,
 
     DummyAppNumber,
 } DummyAppShortcut;
 
 typedef struct {
-    InputKey data[MAX_PIN_SIZE];
-    uint8_t length;
-} PinCode;
-
-typedef struct {
-    char name_or_path[MAX_APP_LENGTH];
+    char name_or_path[128];
 } FavoriteApp;
 
 typedef struct {
-    PinCode pin_code;
     uint32_t auto_lock_delay_ms;
     uint8_t displayBatteryPercentage;
     bool is_dumbmode;
@@ -85,14 +62,5 @@ typedef struct {
     FavoriteApp dummy_apps[DummyAppNumber];
 } DesktopSettings;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-bool DESKTOP_SETTINGS_SAVE(DesktopSettings* x);
-
-bool DESKTOP_SETTINGS_LOAD(DesktopSettings* x);
-
-#ifdef __cplusplus
-}
-#endif
+void desktop_settings_load(DesktopSettings* settings);
+void desktop_settings_save(const DesktopSettings* settings);

@@ -1,17 +1,17 @@
 #include <furi.h>
 
 #include <gui/gui.h>
+#include <gui/modules/loading.h>
+#include <gui/modules/popup.h>
+#include <gui/modules/text_input.h>
+#include <gui/modules/widget.h>
 #include <gui/view_dispatcher.h>
 #include <gui/view_stack.h>
-#include <gui/modules/text_input.h>
-#include <gui/modules/popup.h>
-#include <gui/modules/widget.h>
-#include <gui/modules/loading.h>
 
 #include <dialogs/dialogs.h>
 
-#include "shapshup_i.h"
 #include "shapshup_custom_event.h"
+#include "shapshup_i.h"
 
 #define TAG         "ShapShupApp"
 #define TICK_PERIOD 500
@@ -44,7 +44,6 @@ ShapShupState* shapshup_alloc() {
     instance->gui = furi_record_open(RECORD_GUI);
     instance->storage = furi_record_open(RECORD_STORAGE);
 
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
     view_dispatcher_set_custom_event_callback(
         instance->view_dispatcher, shapshup_custom_event_callback);
@@ -53,7 +52,7 @@ ShapShupState* shapshup_alloc() {
     view_dispatcher_set_tick_event_callback(
         instance->view_dispatcher, shapshup_tick_event_callback, TICK_PERIOD);
 
-    //Dialog
+    // Dialog
     instance->dialogs = furi_record_open(RECORD_DIALOGS);
 
     // Notifications
@@ -134,7 +133,7 @@ void shapshup_free(ShapShupState* instance) {
     view_dispatcher_remove_view(instance->view_dispatcher, ShapShupViewStack);
     view_stack_free(instance->view_stack);
 
-    //Dialog
+    // Dialog
     furi_record_close(RECORD_DIALOGS);
     instance->dialogs = NULL;
 
@@ -188,9 +187,9 @@ void shapshup_popup_closed_callback(void* context) {
 
 /**
  * @brief Entrypoint
- * 
- * @param p 
- * @return int32_t 
+ *
+ * @param p
+ * @return int32_t
  */
 int32_t shapshup_app(void* p) {
     UNUSED(p);

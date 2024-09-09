@@ -1,6 +1,8 @@
 #pragma once
 
 #include "desktop.h"
+#include "desktop_settings.h"
+
 #include "animations/animation_manager.h"
 #include "views/desktop_view_pin_timeout.h"
 #include "views/desktop_view_pin_input.h"
@@ -12,7 +14,6 @@
 #include <desktop/desktop_settings.h>
 #include <bt/bt_settings.h>
 
-#include <furi.h>
 #include <gui/gui.h>
 #include <gui/view_stack.h>
 #include <gui/view_dispatcher.h>
@@ -44,9 +45,8 @@ typedef struct {
 } DesktopClock;
 
 struct Desktop {
-    // Scene
     FuriThread* scene_thread;
-    // GUI
+
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     SceneManager* scene_manager;
@@ -58,12 +58,10 @@ struct Desktop {
     DesktopMainView* main_view;
     DesktopViewPinTimeout* pin_timeout_view;
     DesktopSlideshowView* slideshow_view;
+    DesktopViewPinInput* pin_input_view;
 
     ViewStack* main_view_stack;
     ViewStack* locked_view_stack;
-
-    DesktopSettings settings;
-    DesktopViewPinInput* pin_input_view;
 
     ViewPort* lock_icon_viewport;
     ViewPort* dummy_mode_icon_viewport;
@@ -84,31 +82,31 @@ struct Desktop {
     AnimationManager* animation_manager;
 
     Loader* loader;
+    Storage* storage;
     NotificationApp* notification;
 
-    FuriPubSubSubscription* app_start_stop_subscription;
+    FuriPubSub* status_pubsub;
     FuriPubSub* input_events_pubsub;
     FuriPubSubSubscription* input_events_subscription;
-    FuriPubSubSubscription* storage_sub;
+    Bt* bt;
+
     FuriTimer* auto_lock_timer;
     FuriTimer* update_clock_timer;
 
-    Bt* bt;
+    AnimationManager* animation_manager;
+    FuriSemaphore* animation_semaphore;
 
     bool sdcard_status;
 
     FuriPubSub* status_pubsub;
     DesktopClock clock;
+    DesktopSettings settings;
 
-    bool in_transition : 1;
-    bool locked        : 1;
-
-    FuriSemaphore* animation_semaphore;
+    bool in_transition;
+    bool app_running;
+    bool locked;
 };
 
-Desktop* desktop_alloc(void);
-
-void desktop_free(Desktop* desktop);
 void desktop_lock(Desktop* desktop);
 void desktop_unlock(Desktop* desktop);
 void desktop_set_dummy_mode_state(Desktop* desktop, bool enabled);

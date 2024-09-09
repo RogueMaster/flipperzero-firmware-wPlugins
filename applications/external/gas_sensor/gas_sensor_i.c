@@ -65,7 +65,7 @@ GasSensorApp* gas_sensor_app_alloc() {
     gsa->gui = furi_record_open(RECORD_GUI);
     gsa->view_dispatcher = view_dispatcher_alloc();
     gsa->scene_manager = scene_manager_alloc(&gas_sensor_scene_handlers, gsa);
-    view_dispatcher_enable_queue(gsa->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(gsa->view_dispatcher, gsa);
 
     view_dispatcher_set_custom_event_callback(

@@ -17,7 +17,6 @@ static NfcPlaylist* nfc_playlist_alloc() {
     furi_assert(nfc_playlist);
     nfc_playlist->scene_manager = scene_manager_alloc(&nfc_playlist_scene_handlers, nfc_playlist);
     nfc_playlist->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(nfc_playlist->view_dispatcher);
     nfc_playlist->variable_item_list = variable_item_list_alloc();
     nfc_playlist->submenu = submenu_alloc();
     nfc_playlist->widget = widget_alloc();

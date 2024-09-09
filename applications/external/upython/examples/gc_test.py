@@ -1,0 +1,3 @@
+import gc
+
+gc.collect()

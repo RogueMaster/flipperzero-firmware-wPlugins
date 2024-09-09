@@ -40,7 +40,6 @@ SPIMemApp* spi_mem_alloc(void) {
     // Migrate data from old sd-card folder
     storage_common_migrate(instance->storage, EXT_PATH("spimem"), STORAGE_APP_DATA_PATH_PREFIX);
 
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
     view_dispatcher_set_custom_event_callback(
         instance->view_dispatcher, spi_mem_custom_event_callback);

@@ -34,7 +34,6 @@ static struct fgp_app* fgp_alloc(void) {
 
     // View Dispatcher
     fgp->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(fgp->view_dispatcher);
     view_dispatcher_set_event_callback_context(fgp->view_dispatcher, fgp);
     view_dispatcher_set_custom_event_callback(fgp->view_dispatcher, fgp_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(fgp->view_dispatcher, fgp_back_event_callback);

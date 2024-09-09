@@ -87,7 +87,6 @@ Pomodoro* pomodoro_app_alloc() {
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_tick_event_callback(
         app->view_dispatcher, pomodoro_view_dispatcher_update_callback, 1000);
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     // Submenu view

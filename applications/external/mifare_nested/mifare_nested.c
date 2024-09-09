@@ -216,7 +216,6 @@ MifareNested* mifare_nested_alloc() {
     mifare_nested->view_dispatcher = view_dispatcher_alloc();
     mifare_nested->scene_manager =
         scene_manager_alloc(&mifare_nested_scene_handlers, mifare_nested);
-    view_dispatcher_enable_queue(mifare_nested->view_dispatcher);
     view_dispatcher_set_event_callback_context(mifare_nested->view_dispatcher, mifare_nested);
     view_dispatcher_set_custom_event_callback(
         mifare_nested->view_dispatcher, mifare_nested_custom_event_callback);

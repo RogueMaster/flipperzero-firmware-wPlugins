@@ -19,7 +19,7 @@ bool shapshup_scene_load_failed_on_event(void* context, SceneManagerEvent event)
     furi_assert(context);
 
     ShapShupState* instance = (ShapShupState*)context;
-    //ShapShupMainView* view = instance->view_main;
+    // ShapShupMainView* view = instance->view_main;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == ShapShupCustomEventTypePopupClosed) {

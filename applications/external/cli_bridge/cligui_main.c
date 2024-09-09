@@ -78,7 +78,7 @@ int32_t cligui_main(void* p) {
     prev_input_callback = cligui->view_dispatcher->view_port->input_callback;
     view_port_input_callback_set(
         cligui->view_dispatcher->view_port, input_callback_wrapper, cligui);
-    view_dispatcher_enable_queue(cligui->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(cligui->view_dispatcher, cligui);
     view_dispatcher_set_custom_event_callback(cligui->view_dispatcher, cligui_custom_event_cb);
     view_dispatcher_set_navigation_event_callback(cligui->view_dispatcher, cligui_back_event_cb);

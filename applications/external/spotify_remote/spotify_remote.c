@@ -77,7 +77,6 @@ static SpotifyRemoteApp* spotify_remote_app_alloc() {
     app->view_dispatcher = view_dispatcher_alloc();
 
     // enable view dispatcher queue to handle events
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     // set callbacks and context for view dispacher
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

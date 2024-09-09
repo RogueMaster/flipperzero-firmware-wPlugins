@@ -55,7 +55,7 @@ bool desktop_main_input_callback(InputEvent* event, void* context) {
     if(event->type == InputTypeShort || event->type == InputTypeLong) {
         main_view->is_gamemode = false;
         DesktopSettings* desktop_settings = malloc(sizeof(DesktopSettings));
-        DESKTOP_SETTINGS_LOAD(desktop_settings);
+        desktop_settings_load(desktop_settings);
         if(desktop_settings->is_dumbmode) main_view->is_gamemode = true;
         free(desktop_settings);
     }
@@ -153,7 +153,7 @@ DesktopMainView* desktop_main_alloc(void) {
     DesktopMainView* main_view = malloc(sizeof(DesktopMainView));
     main_view->is_gamemode = false;
     DesktopSettings* desktop_settings = malloc(sizeof(DesktopSettings));
-    DESKTOP_SETTINGS_LOAD(desktop_settings);
+    desktop_settings_load(desktop_settings);
     if(desktop_settings->is_dumbmode) main_view->is_gamemode = true;
     free(desktop_settings);
 

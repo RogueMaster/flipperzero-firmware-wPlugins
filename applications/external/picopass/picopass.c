@@ -25,7 +25,6 @@ Picopass* picopass_alloc() {
 
     picopass->view_dispatcher = view_dispatcher_alloc();
     picopass->scene_manager = scene_manager_alloc(&picopass_scene_handlers, picopass);
-    view_dispatcher_enable_queue(picopass->view_dispatcher);
     view_dispatcher_set_event_callback_context(picopass->view_dispatcher, picopass);
     view_dispatcher_set_custom_event_callback(
         picopass->view_dispatcher, picopass_custom_event_callback);

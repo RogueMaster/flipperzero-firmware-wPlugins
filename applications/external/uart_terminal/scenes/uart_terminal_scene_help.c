@@ -14,7 +14,7 @@ void uart_terminal_scene_help_on_enter(void* context) {
     temp_str = furi_string_alloc();
     furi_string_printf(
         temp_str,
-        "\nUART terminal for Flipper\n\nI'm in github: cool4uma\n\nThis app is a modified\nWiFi Marauder companion,\nThanks 0xchocolate(github)\nfor great code and app.\n\n");
+        "\nUART terminal for Flipper\n\nAT Command is using CR+LF\nSend command is using CR\nmode from Setup\n\nI'm in github: cool4uma\n\nThis app is a modified\nWiFi Marauder companion,\nThanks 0xchocolate(github)\nfor great code and app.\n\n");
     furi_string_cat_printf(temp_str, "Press BACK to return\n");
 
     widget_add_text_box_element(

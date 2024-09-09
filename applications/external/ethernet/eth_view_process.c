@@ -2,14 +2,14 @@
 
 #include "eth_worker.h"
 #include "eth_worker_i.h"
-#include "finik_eth_icons.h"
+#include "eth_troubleshooter_icons.h"
+
+#include <u8g2.h>
 
 #include <furi_hal.h>
 #include <gui/gui.h>
 #include <gui/canvas.h>
 #include <string.h>
-
-#include <u8g2.h>
 
 #define TAG "EthView"
 

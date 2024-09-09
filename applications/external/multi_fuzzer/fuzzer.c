@@ -69,7 +69,6 @@ PacsFuzzerApp* fuzzer_app_alloc() {
         fuzzer_view_field_editor_get_view(app->field_editor_view));
 
     app->scene_manager = scene_manager_alloc(&fuzzer_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(

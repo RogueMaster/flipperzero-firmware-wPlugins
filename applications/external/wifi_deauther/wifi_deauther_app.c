@@ -30,7 +30,7 @@ WifideautherApp* wifi_deauther_app_alloc() {
 
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&wifi_deauther_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
     view_dispatcher_set_custom_event_callback(

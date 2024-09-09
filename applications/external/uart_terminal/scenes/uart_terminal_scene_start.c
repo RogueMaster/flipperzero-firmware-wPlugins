@@ -112,6 +112,13 @@ static void uart_terminal_scene_start_var_list_change_callback(VariableItem* ite
 
 void uart_terminal_scene_start_on_enter(void* context) {
     UART_TerminalApp* app = context;
+
+    // Restore terminal mode
+    if(app->atmode_was_set == true) {
+        app->TERMINAL_MODE = app->old_term_mode;
+        app->atmode_was_set = false;
+    }
+
     VariableItemList* var_item_list = app->var_item_list;
 
     for(int i = 0; i < START_MENU_ITEMS; ++i) {

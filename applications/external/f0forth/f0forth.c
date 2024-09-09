@@ -134,8 +134,6 @@ int32_t f0forth(const char* args) {
     view_port_input_callback_set(
         f0f_state->view_dispatcher->view_port, f0forth_hooked_input_callback, f0f_state);
 
-    view_dispatcher_enable_queue(f0f_state->view_dispatcher);
-
     view_dispatcher_set_event_callback_context(f0f_state->view_dispatcher, f0f_state);
     view_dispatcher_set_navigation_event_callback(
         f0f_state->view_dispatcher, f0forth_navigation_event_callback);

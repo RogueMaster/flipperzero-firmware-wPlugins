@@ -45,7 +45,7 @@ NfcMaker* nfc_maker_alloc() {
     // View Dispatcher and Scene Manager
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&nfc_maker_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
     view_dispatcher_set_custom_event_callback(

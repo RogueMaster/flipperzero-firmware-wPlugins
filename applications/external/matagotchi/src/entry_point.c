@@ -37,7 +37,7 @@ static void init_gui(struct ApplicationContext* context) {
 
     // Init ViewDispatcher
     context->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(context->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(context->view_dispatcher, context);
     view_dispatcher_set_custom_event_callback(
         context->view_dispatcher, view_dispatcher_custom_event_callback);

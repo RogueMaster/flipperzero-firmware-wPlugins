@@ -32,8 +32,7 @@ static MineSweeperApp* app_alloc() {
 
     // Alloc View Dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
-    //
+
     // Set View Dispatcher event callback context and callbacks
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(

@@ -16,6 +16,7 @@ static const UART_Terminal_Setup_Item items[SETUP_MENU_ITEMS] = {
                       "38400",  "56000",  "57600",  "76800", "115200", "128000", "230400",
                       "250000", "256000", "460800", "921600"}},
     {"HEX mode", 2, {"OFF", "ON"}},
+    {"CR mode", 2, {"Newline", "CR+LF"}},
 };
 
 static void uart_terminal_scene_setup_var_list_enter_callback(void* context, uint32_t index) {
@@ -64,6 +65,11 @@ static void uart_terminal_scene_setup_var_list_change_callback(VariableItem* ite
             }
         }
     }
+
+    // CR mode
+    if(app->setup_selected_menu_index == CR_MODE_ITEM_IDX) {
+        app->TERMINAL_MODE = item_index;
+    }
 }
 
 void uart_terminal_scene_setup_on_enter(void* context) {
@@ -81,7 +87,12 @@ void uart_terminal_scene_setup_on_enter(void* context) {
             items[i].num_options_menu,
             uart_terminal_scene_setup_var_list_change_callback,
             app);
-        variable_item_set_current_value_index(item, app->setup_selected_option_index[i]);
+        if(i == CR_MODE_ITEM_IDX) {
+            app->setup_selected_option_index[CR_MODE_ITEM_IDX] = app->TERMINAL_MODE;
+            variable_item_set_current_value_index(item, app->setup_selected_option_index[i]);
+        } else {
+            variable_item_set_current_value_index(item, app->setup_selected_option_index[i]);
+        }
         variable_item_set_current_value_text(
             item, items[i].options_menu[app->setup_selected_option_index[i]]);
     }

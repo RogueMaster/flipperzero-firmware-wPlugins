@@ -88,7 +88,9 @@ bool input_callback(InputEvent* input_event, void* ctx) {
         .type = EventTypeInput, .input = *input_event, .period = final_period};
 
     if(!(tracker->is_loading) && !(tracker->is_saving)) {
-        furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
+        if(event.type == EventTypeInput) {
+            process_input_event(tracker, &event);
+        }
     }
 
     consumed = true;
@@ -107,106 +109,10 @@ int32_t flizzer_tracker_app(void* p) {
 
     FlizzerTrackerApp* tracker = init_tracker(44100, 50, true, 1024);
 
-    // Текущее событие типа кастомного типа FlizzerTrackerEvent
-    FlizzerTrackerEvent event;
-
     view_dispatcher_switch_to_view(tracker->view_dispatcher, VIEW_TRACKER);
+    view_dispatcher_run(tracker->view_dispatcher);
 
-    // Бесконечный цикл обработки очереди событий
-    while(!(tracker->quit)) {
-        // Выбираем событие из очереди в переменную event (ждём бесконечно долго, если очередь пуста)
-        // и проверяем, что у нас получилось это сделать
-        furi_check(
-            furi_message_queue_get(tracker->event_queue, &event, FuriWaitForever) == FuriStatusOk);
-
-        // Наше событие — это нажатие кнопки
-        if(event.type == EventTypeInput) {
-            process_input_event(tracker, &event);
-        }
-
-        if(event.type == EventTypeSaveSong) {
-            save_song(tracker, tracker->filepath);
-        }
-
-        if(event.type == EventTypeSaveInstrument) {
-            save_instrument(tracker, tracker->filepath);
-        }
-
-        if(event.type == EventTypeLoadSong) {
-            stop_song(tracker);
-
-            tracker->tracker_engine.sequence_position = tracker->tracker_engine.pattern_position =
-                tracker->current_instrument = 0;
-
-            tracker->dialogs = furi_record_open(RECORD_DIALOGS);
-            tracker->is_loading = true;
-
-            FuriString* path;
-            path = furi_string_alloc();
-            furi_string_set(path, FLIZZER_TRACKER_FOLDER);
-
-            DialogsFileBrowserOptions browser_options;
-            dialog_file_browser_set_basic_options(
-                &browser_options, SONG_FILE_EXT, &I_flizzer_tracker_module);
-            browser_options.base_path = FLIZZER_TRACKER_FOLDER;
-            browser_options.hide_ext = false;
-
-            bool ret = dialog_file_browser_show(tracker->dialogs, path, path, &browser_options);
-
-            furi_record_close(RECORD_DIALOGS);
-
-            const char* cpath = furi_string_get_cstr(path);
-
-            if(ret && strcmp(&cpath[strlen(cpath) - 4], SONG_FILE_EXT) == 0) {
-                bool result = load_song_util(tracker, path);
-                UNUSED(result);
-            }
-
-            else {
-                furi_string_free(path);
-                tracker->is_loading = false;
-            }
-        }
-
-        if(event.type == EventTypeLoadInstrument) {
-            stop_song(tracker);
-
-            tracker->dialogs = furi_record_open(RECORD_DIALOGS);
-            tracker->is_loading_instrument = true;
-
-            FuriString* path;
-            path = furi_string_alloc();
-            furi_string_set(path, FLIZZER_TRACKER_INSTRUMENTS_FOLDER);
-
-            DialogsFileBrowserOptions browser_options;
-            dialog_file_browser_set_basic_options(
-                &browser_options, INST_FILE_EXT, &I_flizzer_tracker_instrument);
-            browser_options.base_path = FLIZZER_TRACKER_FOLDER;
-            browser_options.hide_ext = false;
-
-            bool ret = dialog_file_browser_show(tracker->dialogs, path, path, &browser_options);
-
-            furi_record_close(RECORD_DIALOGS);
-
-            const char* cpath = furi_string_get_cstr(path);
-
-            if(ret && strcmp(&cpath[strlen(cpath) - 4], INST_FILE_EXT) == 0) {
-                bool result = load_instrument_util(tracker, path);
-                UNUSED(result);
-            }
-
-            else {
-                furi_string_free(path);
-                tracker->is_loading = false;
-            }
-        }
-
-        if(event.type == EventTypeSetAudioMode) {
-            sound_engine_PWM_timer_init(tracker->external_audio);
-
-            tracker->sound_engine.external_audio_output = tracker->external_audio;
-        }
-    }
+    //here program hangs until view_dispatcher_stop() is called!
 
     stop();
 

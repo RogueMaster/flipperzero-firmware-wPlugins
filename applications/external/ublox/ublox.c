@@ -26,7 +26,6 @@ Ublox* ublox_alloc() {
 
     ublox->view_dispatcher = view_dispatcher_alloc();
     ublox->scene_manager = scene_manager_alloc(&ublox_scene_handlers, ublox);
-    view_dispatcher_enable_queue(ublox->view_dispatcher);
     view_dispatcher_set_event_callback_context(ublox->view_dispatcher, ublox);
     view_dispatcher_set_custom_event_callback(ublox->view_dispatcher, ublox_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(

@@ -34,7 +34,6 @@ Seader* seader_alloc() {
     seader->worker = seader_worker_alloc();
     seader->view_dispatcher = view_dispatcher_alloc();
     seader->scene_manager = scene_manager_alloc(&seader_scene_handlers, seader);
-    view_dispatcher_enable_queue(seader->view_dispatcher);
     view_dispatcher_set_event_callback_context(seader->view_dispatcher, seader);
     view_dispatcher_set_custom_event_callback(
         seader->view_dispatcher, seader_custom_event_callback);

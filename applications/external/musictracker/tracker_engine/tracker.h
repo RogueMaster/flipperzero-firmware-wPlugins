@@ -5,6 +5,7 @@
 typedef enum {
     TrackerPositionChanged,
     TrackerEndOfSong,
+    TrackerShutDown,
 } TrackerMessageType;
 
 typedef struct {
@@ -17,7 +18,7 @@ typedef struct {
     } data;
 } TrackerMessage;
 
-typedef void (*TrackerMessageCallback)(TrackerMessage message, void* context);
+typedef void (*TrackerMessageCallback)(const TrackerMessage* message, void* context);
 
 typedef struct Tracker Tracker;
 

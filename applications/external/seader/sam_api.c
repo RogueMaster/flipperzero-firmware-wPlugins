@@ -1,20 +1,23 @@
-
 #include "sam_api.h"
 #include <toolbox/path.h>
 #include <toolbox/version.h>
 #include <bit_lib/bit_lib.h>
 
+//#define ASN1_DEBUG                      true
+
 #define TAG "SAMAPI"
 
 #define ASN1_PREFIX                     6
-#define ASN1_DEBUG                      true
 #define SEADER_ICLASS_SR_SIO_BASE_BLOCK 10
 #define SEADER_SERIAL_FILE_NAME         "sam_serial"
 
 const uint8_t picopass_iclass_key[] = {0xaf, 0xa7, 0x85, 0xa7, 0xda, 0xb3, 0x33, 0x78};
 
 static char display[SEADER_UART_RX_BUF_SIZE * 2 + 1] = {0};
+
+#ifdef ASN1_DEBUG
 char asn1_log[SEADER_UART_RX_BUF_SIZE] = {0};
+#endif
 
 uint8_t read4Block6[] = {RFAL_PICOPASS_CMD_READ4, 0x06, 0x45, 0x56};
 uint8_t read4Block9[] = {RFAL_PICOPASS_CMD_READ4, 0x09, 0xB2, 0xAE};
@@ -195,6 +198,7 @@ bool seader_send_apdu(
     return true;
 }
 
+#ifdef ASN1_DEBUG
 static int seader_print_struct_callback(const void* buffer, size_t size, void* app_key) {
     if(app_key) {
         char* str = (char*)app_key;
@@ -206,6 +210,14 @@ static int seader_print_struct_callback(const void* buffer, size_t size, void* a
     }
     return 0;
 }
+#else
+static int seader_print_struct_callback(const void* buffer, size_t size, void* app_key) {
+    UNUSED(buffer);
+    UNUSED(size);
+    UNUSED(app_key);
+    return 0;
+}
+#endif
 
 void seader_send_payload(
     Seader* seader,

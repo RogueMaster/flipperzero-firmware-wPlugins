@@ -29,7 +29,6 @@ CountDownTimerApp* countdown_app_new(void) {
 
     // 2.1 setup view dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     // 2.2 attach view dispatcher to gui
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);

@@ -23,31 +23,32 @@ static bool stream_read_valid_key_shapshup(Stream* stream, FuriString* key) {
         for(size_t i = 0; i < was_read; i++) {
             uint8_t data = buffer[i];
             if(data == flipper_format_eoln) {
-                // EOL found, clean data, start accumulating data and set the new_line flag
+                // EOL found, clean data, start accumulating data and set the new_line
+                // flag
                 furi_string_reset(key);
                 accumulate = true;
                 new_line = true;
             } else if(data == flipper_format_eolr) {
                 // ignore
             } else if(data == flipper_format_comment && new_line) {
-                // if there is a comment character and we are at the beginning of a new line
-                // do not accumulate comment data and reset the new_line flag
+                // if there is a comment character and we are at the beginning of a new
+                // line do not accumulate comment data and reset the new_line flag
                 accumulate = false;
                 new_line = false;
             } else if(data == flipper_format_delimiter) {
                 if(new_line) {
                     // we are on a "new line" and found the delimiter
                     // this can only be if we have previously found some kind of key, so
-                    // clear the data, set the flag that we no longer want to accumulate data
-                    // and reset the new_line flag
+                    // clear the data, set the flag that we no longer want to accumulate
+                    // data and reset the new_line flag
                     furi_string_reset(key);
                     accumulate = false;
                     new_line = false;
                 } else {
                     // parse the delimiter only if we are accumulating data
                     if(accumulate) {
-                        // we found the delimiter, move the rw pointer to the delimiter location
-                        // and signal that we have found something
+                        // we found the delimiter, move the rw pointer to the delimiter
+                        // location and signal that we have found something
                         if(!stream_seek(stream, i - was_read, StreamOffsetFromCurrent)) {
                             error = true;
                             break;

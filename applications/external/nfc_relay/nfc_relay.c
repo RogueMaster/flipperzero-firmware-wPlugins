@@ -37,7 +37,7 @@ NfcRelay* nfc_relay_alloc() {
     NfcRelay* nfc_relay = malloc(sizeof(NfcRelay));
     nfc_relay->view_dispatcher = view_dispatcher_alloc();
     nfc_relay->scene_manager = scene_manager_alloc(&nfc_relay_scene_handlers, nfc_relay);
-    view_dispatcher_enable_queue(nfc_relay->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(nfc_relay->view_dispatcher, nfc_relay);
     view_dispatcher_set_custom_event_callback(
         nfc_relay->view_dispatcher, nfc_relay_custom_event_callback);

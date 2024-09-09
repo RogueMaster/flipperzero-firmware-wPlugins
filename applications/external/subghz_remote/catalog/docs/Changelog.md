@@ -1,3 +1,9 @@
+## v1.5
+- Fixes for new API
+
+## v1.4
+- Various fixes
+
 ## v1.3
 - **New UI design**
 - New remote design by @Svaarich

@@ -510,18 +510,18 @@ void archive_favorites_move_mode(ArchiveBrowserView* browser, bool active) {
 }
 
 static bool archive_is_dir_exists(FuriString* path) {
-    if(furi_string_equal(path, STORAGE_INT_PATH_PREFIX) ||
-       furi_string_equal(path, STORAGE_EXT_PATH_PREFIX) ||
+    if(furi_string_equal(path, STORAGE_EXT_PATH_PREFIX) ||
        furi_string_equal(path, STORAGE_MNT_PATH_PREFIX)) {
         return true;
     }
     bool state = false;
     FileInfo file_info;
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    if(storage_common_stat(storage, furi_string_get_cstr(path), &file_info) == FSE_OK) {
-        if(file_info_is_dir(&file_info)) {
-            state = true;
-        }
+
+    if(furi_string_equal(path, STORAGE_EXT_PATH_PREFIX)) {
+        state = storage_sd_status(storage) == FSE_OK;
+    } else if(storage_common_stat(storage, furi_string_get_cstr(path), &file_info) == FSE_OK) {
+        state = file_info_is_dir(&file_info);
     }
     furi_record_close(RECORD_STORAGE);
     return state;
@@ -551,7 +551,6 @@ void archive_switch_tab(ArchiveBrowserView* browser, InputKey key) {
         } else {
             tab = (tab + 1) % ArchiveTabTotal;
         }
-        if(tab == ArchiveTabInternal && !cfw_settings.show_internal_tab) continue;
         break;
     }
 
@@ -583,16 +582,14 @@ void archive_switch_tab(ArchiveBrowserView* browser, InputKey key) {
             bool is_browser = !strcmp(archive_get_tab_ext(tab), "*");
             bool skip_assets = !is_browser;
             // Hide dot files everywhere except Browser if in debug mode
-            bool hide_dot_files = !is_browser               ? true :
-                                  tab == ArchiveTabInternal ? false :
-                                                              !cfw_settings.show_hidden_files;
+            bool hide_dot_files = !is_browser ? true : !cfw_settings.show_hidden_files;
             archive_file_browser_set_path(
                 browser, browser->path, archive_get_tab_ext(tab), skip_assets, hide_dot_files);
             tab_empty = false; // Empty check will be performed later
         }
     }
 
-    if(tab_empty && tab != ArchiveTabBrowser && tab != ArchiveTabInternal &&
+    if(tab_empty && tab != ArchiveTabBrowser &&
        (tab != ArchiveTabDiskImage || !browser->disk_image)) {
         archive_switch_tab(browser, key);
     } else {

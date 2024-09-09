@@ -123,8 +123,6 @@ extern "C" int32_t sam_app(void* p) {
 
     Gui* gui = (Gui*)furi_record_open(RECORD_GUI);
 
-    view_dispatcher_enable_queue(app_state->view_dispatcher);
-
     FURI_LOG_D(TAG, "Adding text input view to dispatcher");
     view_dispatcher_add_view(
         app_state->view_dispatcher, 0, text_input_get_view(app_state->text_input));

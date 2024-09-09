@@ -3,8 +3,8 @@
 #include <storage/storage.h>
 
 #define ARCHIVE_FAV_OLD_PATH  EXT_PATH("favorites.txt")
-#define ARCHIVE_FAV_PATH      CFG_PATH("favorites.txt")
-#define ARCHIVE_FAV_TEMP_PATH CFG_PATH("favorites.tmp")
+#define ARCHIVE_FAV_PATH      EXT_PATH(".config/favorites.txt")
+#define ARCHIVE_FAV_TEMP_PATH EXT_PATH(".config/favorites.tmp")
 
 uint16_t archive_favorites_count(void);
 bool archive_favorites_read(void* context);

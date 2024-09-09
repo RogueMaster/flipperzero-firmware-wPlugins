@@ -30,7 +30,6 @@ PokemonFap* pokemon_alloc() {
     view_dispatcher = view_dispatcher_alloc();
     pokemon_fap->view_dispatcher = view_dispatcher;
 
-    view_dispatcher_enable_queue(view_dispatcher);
     view_dispatcher_set_event_callback_context(view_dispatcher, pokemon_fap);
     view_dispatcher_set_custom_event_callback(view_dispatcher, pokemon_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(view_dispatcher, pokemon_back_event_callback);

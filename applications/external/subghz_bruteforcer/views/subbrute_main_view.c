@@ -126,9 +126,9 @@ void subbrute_main_view_draw_is_byte_selected(Canvas* canvas, SubBruteMainViewMo
 
     // Switch to another mode
     if(model->two_bytes) {
-        elements_button_top_left(canvas, "Two bytes");
-    } else {
         elements_button_top_left(canvas, "One byte");
+    } else {
+        elements_button_top_left(canvas, "Two bytes");
     }
 }
 

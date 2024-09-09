@@ -26,7 +26,7 @@ static NfcUrlApp* nfcurl_alloc() {
     nfcurl->scene_manager = scene_manager_alloc(&nfcurl_scene_handlers, nfcurl);
 
     nfcurl->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(nfcurl->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(nfcurl->view_dispatcher, nfcurl);
     view_dispatcher_set_custom_event_callback(
         nfcurl->view_dispatcher, nfcurl_custom_event_callback);

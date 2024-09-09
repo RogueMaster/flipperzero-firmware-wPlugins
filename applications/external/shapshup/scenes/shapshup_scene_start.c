@@ -40,18 +40,20 @@ bool shapshup_scene_start_on_event(void* context, SceneManagerEvent event) {
 #endif
             // FuriString* value;
             // value = furi_string_alloc_printf("%ld", rand_range(100, 600));
-            // shapshup_main_view_add_item(instance->view_main, furi_string_get_cstr(value), 0);
-            // furi_string_free(value);
+            // shapshup_main_view_add_item(instance->view_main,
+            // furi_string_get_cstr(value), 0); furi_string_free(value);
 
             // FlipperFormat* flipper_format = flipper_format_string_alloc();
             // Stream* stream = flipper_format_get_raw_stream(flipper_format);
             // if(stream_load_from_file(
-            //        stream, instance->storage, EXT_PATH("subghz/temp/split.sub")) <= 0) {
+            //        stream, instance->storage, EXT_PATH("subghz/temp/split.sub")) <=
+            //        0) {
             //     FURI_LOG_E(TAG, "Error loading file");
             // }
 
             // write_file_split_shapshup(
-            //     instance->storage, flipper_format, EXT_PATH("subghz/temp/split_proc.sub"));
+            //     instance->storage, flipper_format,
+            //     EXT_PATH("subghz/temp/split_proc.sub"));
 
             // flipper_format_free(flipper_format);
 
@@ -64,7 +66,7 @@ bool shapshup_scene_start_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        //exit app
+        // exit app
         scene_manager_stop(instance->scene_manager);
         view_dispatcher_stop(instance->view_dispatcher);
         consumed = true;

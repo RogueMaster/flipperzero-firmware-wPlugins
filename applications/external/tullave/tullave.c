@@ -37,8 +37,6 @@ TuLlaveApp* tullave_alloc() {
     instance->view_dispatcher = view_dispatcher_alloc();
     instance->scene_manager = scene_manager_alloc(&tullave_scene_handlers, instance);
 
-    view_dispatcher_enable_queue(instance->view_dispatcher);
-
     //Set the events handler for GUI
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
 

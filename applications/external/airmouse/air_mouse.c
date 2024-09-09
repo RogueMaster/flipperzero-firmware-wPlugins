@@ -66,7 +66,6 @@ AirMouse* air_mouse_app_alloc() {
 
     // View dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     // Submenu view
@@ -131,6 +130,8 @@ AirMouse* air_mouse_app_alloc() {
 
     app->view_id = AirMouseViewSubmenu;
     view_dispatcher_switch_to_view(app->view_dispatcher, app->view_id);
+
+    view_dispatcher_set_tick_event_callback(app->view_dispatcher, NULL, furi_ms_to_ticks(10));
 
     return app;
 }

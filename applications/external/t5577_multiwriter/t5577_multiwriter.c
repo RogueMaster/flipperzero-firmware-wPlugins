@@ -34,7 +34,6 @@ static LfRfid* t5577_multiwriter_alloc() {
     t5577_multiwriter->view_dispatcher = view_dispatcher_alloc();
     t5577_multiwriter->scene_manager =
         scene_manager_alloc(&t5577_multiwriter_scene_handlers, t5577_multiwriter);
-    view_dispatcher_enable_queue(t5577_multiwriter->view_dispatcher);
     view_dispatcher_set_event_callback_context(
         t5577_multiwriter->view_dispatcher, t5577_multiwriter);
     view_dispatcher_set_custom_event_callback(

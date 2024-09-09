@@ -2,30 +2,30 @@
 
 #include "../helpers/shapshup_files.h"
 #include "../shapshup_custom_event.h"
-#include <gui/view.h>
-#include <shapshup_icons.h>
-#include <input/input.h>
+#include "shapshup_icons.h"
 #include <gui/elements.h>
 #include <gui/icon.h>
+#include <gui/view.h>
+#include <input/input.h>
 
 /**
  * @brief ShapShupMainViewCallback
- * 
+ *
  */
 typedef void (*ShapShupMainViewCallback)(ShapshupCustomEvent event, void* context);
 
 /**
  * @brief ShapShupMainView
- * 
+ *
  */
 typedef struct ShapShupMainView ShapShupMainView;
 
 /**
  * @brief shapshup_main_view_set_callback
- * 
+ *
  * @param instance ShapShupMainView*
- * @param callback 
- * @param context 
+ * @param callback
+ * @param context
  */
 void shapshup_main_view_set_callback(
     ShapShupMainView* instance,
@@ -34,47 +34,47 @@ void shapshup_main_view_set_callback(
 
 /**
  * @brief shapshup_main_view_alloc
- * 
- * @return ShapShupMainView* 
+ *
+ * @return ShapShupMainView*
  */
 ShapShupMainView* shapshup_main_view_alloc();
 
 /**
  * @brief shapshup_main_view_free
- * 
- * @param instance 
+ *
+ * @param instance
  */
 void shapshup_main_view_free(ShapShupMainView* instance);
 
 /**
  * @brief shapshup_main_view_get_view
- * 
+ *
  * @param instance ShapShupMainView*
- * @return View* 
+ * @return View*
  */
 View* shapshup_main_view_get_view(ShapShupMainView* instance);
 
 /**
  * @brief shapshup_main_view_check_alert
- * 
- * @param instance 
+ *
+ * @param instance
  */
 void shapshup_main_view_check_alert(ShapShupMainView* instance);
 
 /**
  * @brief shapshup_main_view_load_file
- * 
+ *
  * @param instance ShapShupMainView*
  * @param name const char*
- * @return ShapShupFileResults 
+ * @return ShapShupFileResults
  */
 ShapShupFileResults shapshup_main_view_load_file(ShapShupMainView* instance, const char* name);
 
 /**
  * @brief shapshup_main_view_no_file
- * 
+ *
  * @param instance ShapShupMainView*
- * @return true 
- * @return false 
+ * @return true
+ * @return false
  */
 bool shapshup_main_view_no_file(ShapShupMainView* instance);

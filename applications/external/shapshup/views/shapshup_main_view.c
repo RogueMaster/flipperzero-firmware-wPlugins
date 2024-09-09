@@ -1,8 +1,8 @@
-#include "shapshup_main_view_private.h"
 #include "shapshup_main_view.h"
 #include "../shapshup_i.h"
-#include <input/input.h>
+#include "shapshup_main_view_private.h"
 #include <gui/elements.h>
+#include <input/input.h>
 #include <m-array.h>
 
 #define TAG "ShapShupMainView"
@@ -90,8 +90,8 @@ void shapshup_main_view_draw(Canvas* canvas, ShapShupMainViewModel* model) {
         canvas_draw_str(canvas, 2, STATUS_BAR_INFO_SHIFT, buffer);
 
         memset(buffer, 0, sizeof(buffer));
-        //char format_buffer[32];
-        //format_number(model->calc_total_len, format_buffer);
+        // char format_buffer[32];
+        // format_number(model->calc_total_len, format_buffer);
         snprintf(
             buffer, sizeof(buffer), "%lld %s", model->calc_total_len, model->is_ms ? "ms" : "us");
 
@@ -113,8 +113,8 @@ void shapshup_main_view_draw(Canvas* canvas, ShapShupMainViewModel* model) {
         // canvas_set_font(canvas, FontPrimary);
         // canvas_draw_box(canvas, 0, 0, canvas_width(canvas), STATUS_BAR_Y_SHIFT);
         // canvas_invert_color(canvas);
-        // canvas_draw_str_aligned(canvas, 64, 3, AlignCenter, AlignTop, "Shap-Shup");
-        // canvas_invert_color(canvas);
+        // canvas_draw_str_aligned(canvas, 64, 3, AlignCenter, AlignTop,
+        // "Shap-Shup"); canvas_invert_color(canvas);
     }
     shapshup_main_view_draw_scale(canvas, model);
 
@@ -161,7 +161,8 @@ bool shapshup_main_view_input(InputEvent* event, void* context) {
 #ifdef FURI_DEBUG
             FURI_LOG_D(
                 TAG,
-                "L offset: %lld, offset_per_page: %lld, offset: %lld, total_len: %lld",
+                "L offset: %lld, offset_per_page: %lld, offset: %lld, "
+                "total_len: %lld",
                 instance->offset,
                 offset_per_page,
                 instance->offset,
@@ -407,7 +408,7 @@ void shapshup_main_view_create_shapes(ShapShupMainView* instance, uint64_t offse
     for(uint64_t i = 0; i < instance->raw_file->total_count && !last; i++) {
         int32_t value = *array_raw_get(instance->raw_file->values, i);
 #ifdef FURI_DEBUG
-        //FURI_LOG_D(TAG, "value: %ld, step: %lld", value, i);
+        // FURI_LOG_D(TAG, "value: %ld, step: %lld", value, i);
 #endif
         uint64_t current_value;
 
@@ -429,22 +430,23 @@ void shapshup_main_view_create_shapes(ShapShupMainView* instance, uint64_t offse
 #endif
             continue;
             /*} else if(model->offset > current_offset) {
-                skip_value = model->offset - current_offset;*/
+              skip_value = model->offset - current_offset;*/
         } else {
             skip_value = 0;
         }
 
         current_value = skip_value + current_value;
 #ifdef FURI_DEBUG
-        // FURI_LOG_D(TAG, "skip_value: %lld, current_value: %lld", skip_value, current_value);
+        // FURI_LOG_D(TAG, "skip_value: %lld, current_value: %lld", skip_value,
+        // current_value);
 #endif
         if(current_value > offset_per_page) {
             last = true;
             current_value = current_value - (current_value - offset_per_page);
             // FURI_LOG_I(
             //     TAG,
-            //     "current_value > model->offset_per_page: %lld, model->offset_per_page: %lld",
-            //     current_value,
+            //     "current_value > model->offset_per_page: %lld,
+            //     model->offset_per_page: %lld", current_value,
             //     model->offset_per_page);
         } else if(current_offset + current_value > instance->offset + offset_per_page) {
             last = true;
@@ -452,7 +454,8 @@ void shapshup_main_view_create_shapes(ShapShupMainView* instance, uint64_t offse
                                              (instance->offset + offset_per_page));
             // FURI_LOG_I(
             //     TAG,
-            //     "current_offset + current_value > current_offset + model->offset_per_page: %lld, model->offset_per_page: %lld",
+            //     "current_offset + current_value > current_offset +
+            //     model->offset_per_page: %lld, model->offset_per_page: %lld",
             //     current_value,
             //     model->offset_per_page);
         }
@@ -530,7 +533,8 @@ void shapshup_main_view_draw_scale(Canvas* canvas, ShapShupMainViewModel* model)
     // #ifdef FURI_DEBUG
     //         for(uint64_t i = 0; i < 1000 && !last; i++) {
     // #else
-    //         for(uint64_t i = 0; i < model->raw_file->total_count && !last; i++) {
+    //         for(uint64_t i = 0; i < model->raw_file->total_count && !last; i++)
+    //         {
     // #endif
     //             int32_t value = *array_raw_get(model->raw_file->values, i);
     // #ifdef FURI_DEBUG
@@ -555,7 +559,8 @@ void shapshup_main_view_draw_scale(Canvas* canvas, ShapShupMainViewModel* model)
     // #ifdef FURI_DEBUG
     //                 // FURI_LOG_I(
     //                 //     TAG,
-    //                 //     "continue current_offset: %lld, current_value: %lld",
+    //                 //     "continue current_offset: %lld, current_value:
+    //                 %lld",
     //                 //     current_offset,
     //                 //     current_value);
     // #endif
@@ -568,23 +573,31 @@ void shapshup_main_view_draw_scale(Canvas* canvas, ShapShupMainViewModel* model)
 
     //             current_value = skip_value + current_value;
     // #ifdef FURI_DEBUG
-    //             // FURI_LOG_D(TAG, "skip_value: %lld, current_value: %lld", skip_value, current_value);
+    //             // FURI_LOG_D(TAG, "skip_value: %lld, current_value: %lld",
+    //             skip_value, current_value);
     // #endif
     //             if(current_value > model->offset_per_page) {
     //                 last = true;
-    //                 current_value = current_value - (current_value - model->offset_per_page);
+    //                 current_value = current_value - (current_value -
+    //                 model->offset_per_page);
     //                 // FURI_LOG_I(
     //                 //     TAG,
-    //                 //     "current_value > model->offset_per_page: %lld, model->offset_per_page: %lld",
+    //                 //     "current_value > model->offset_per_page: %lld,
+    //                 model->offset_per_page: %lld",
     //                 //     current_value,
     //                 //     model->offset_per_page);
-    //             } else if(current_offset + current_value > model->offset + model->offset_per_page) {
+    //             } else if(current_offset + current_value > model->offset +
+    //             model->offset_per_page) {
     //                 last = true;
-    //                 current_value = current_value - ((current_offset + current_value) -
-    //                                                  (model->offset + model->offset_per_page));
+    //                 current_value = current_value - ((current_offset +
+    //                 current_value) -
+    //                                                  (model->offset +
+    //                                                  model->offset_per_page));
     //                 // FURI_LOG_I(
     //                 //     TAG,
-    //                 //     "current_offset + current_value > current_offset + model->offset_per_page: %lld, model->offset_per_page: %lld",
+    //                 //     "current_offset + current_value > current_offset +
+    //                 model->offset_per_page: %lld, model->offset_per_page:
+    //                 %lld",
     //                 //     current_value,
     //                 //     model->offset_per_page);
     //             }
@@ -593,9 +606,11 @@ void shapshup_main_view_draw_scale(Canvas* canvas, ShapShupMainViewModel* model)
     //             current_value = (uint64_t)(current_value / chunk);
 
     //             if(is_negative) {
-    //                 canvas_draw_box(canvas, current_x, CHART_LOWEST_POINT - 2, current_value + 1, 2);
+    //                 canvas_draw_box(canvas, current_x, CHART_LOWEST_POINT - 2,
+    //                 current_value + 1, 2);
     //                 // canvas_draw_line(
-    //                 //     canvas, current_x, SHAPSHUP_CHART_HIGHTEST_POINT, current_x, CHART_LOWEST_POINT);
+    //                 //     canvas, current_x, SHAPSHUP_CHART_HIGHTEST_POINT,
+    //                 current_x, CHART_LOWEST_POINT);
     //             } else {
     //                 canvas_draw_box(
     //                     canvas,
@@ -604,9 +619,11 @@ void shapshup_main_view_draw_scale(Canvas* canvas, ShapShupMainViewModel* model)
     //                     current_value + 1,
     //                     CHART_LOWEST_POINT - SHAPSHUP_CHART_HIGHTEST_POINT);
     //                 // canvas_draw_line(
-    //                 //     canvas, current_x, CHART_LOWEST_POINT, current_x, SHAPSHUP_CHART_HIGHTEST_POINT);
+    //                 //     canvas, current_x, CHART_LOWEST_POINT, current_x,
+    //                 SHAPSHUP_CHART_HIGHTEST_POINT);
     //             }
-    //             // canvas_draw_line(canvas, current_x, y, current_x + current_value, y);
+    //             // canvas_draw_line(canvas, current_x, y, current_x +
+    //             current_value, y);
 
     //             current_x += current_value == 0 ? 1 : current_value;
     //             current_x++;
@@ -614,7 +631,8 @@ void shapshup_main_view_draw_scale(Canvas* canvas, ShapShupMainViewModel* model)
     // #ifdef FURI_DEBUG
     //             // FURI_LOG_D(
     //             //     TAG,
-    //             //     "current_value: %lld, current_offset: %lld, current_x: %lld",
+    //             //     "current_value: %lld, current_offset: %lld, current_x:
+    //             %lld",
     //             //     current_value,
     //             //     current_offset,
     //             //     current_x);

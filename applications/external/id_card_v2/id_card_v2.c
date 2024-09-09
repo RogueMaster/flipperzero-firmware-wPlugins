@@ -462,7 +462,7 @@ static App* app_alloc() {
     app->user_input = malloc(app->user_input_size);
     app->scene_manager = scene_manager_alloc(&id_scene_manager_handlers, app);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, id_scene_custom_callback);
     view_dispatcher_set_navigation_event_callback(

@@ -32,7 +32,6 @@ SubBruteState* subbrute_alloc() {
 
     instance->gui = furi_record_open(RECORD_GUI);
 
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
     view_dispatcher_set_custom_event_callback(
         instance->view_dispatcher, subbrute_custom_event_callback);

@@ -66,7 +66,6 @@ MassStorageApp* mass_storage_app_alloc(char* arg) {
     }
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     app->scene_manager = scene_manager_alloc(&mass_storage_scene_handlers, app);
 

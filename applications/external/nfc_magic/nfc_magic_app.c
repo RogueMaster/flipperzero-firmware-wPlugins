@@ -40,7 +40,6 @@ NfcMagicApp* nfc_magic_app_alloc() {
 
     instance->view_dispatcher = view_dispatcher_alloc();
     instance->scene_manager = scene_manager_alloc(&nfc_magic_scene_handlers, instance);
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
     view_dispatcher_set_custom_event_callback(
         instance->view_dispatcher, nfc_magic_app_custom_event_callback);
