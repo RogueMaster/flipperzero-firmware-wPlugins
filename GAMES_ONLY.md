@@ -8,7 +8,7 @@
 
 # KEY MAPS FOR GAMES ONLY MODE 
 <pre>
-Long  OK:    Clock
+Long  LEFT:  Clock
 Short UP:    Game Menu
 </pre>
 
