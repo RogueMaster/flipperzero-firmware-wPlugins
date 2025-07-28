@@ -238,53 +238,20 @@ static uint8_t fourkind() {
 }
 
 static uint8_t fullhouse() {
+  int8_t counts[7] = {0};
+  bool has_three = false;
+  bool has_two = false;
 
-  bool check1 = false;
-  bool check2 = false;
-  int8_t val1 = 0;
-  int8_t val2 = 0;
-  UNUSED(val2);
-  UNUSED(val1);
-
-  //check 1 for three of a kind
-  for (int8_t num=1; num<7; num++) {
-    int8_t sum = 0;
-
-    for (int8_t i=0; i<MAX_DICE; i++) {
-      if (die[i].value == num) {
-        sum++;
-      }
-      if (sum > 2) {
-        val1 = die[i].value;
-        check1 = true;
-      }
-    }
+  for (int8_t i = 0; i < MAX_DICE; i++) {
+    counts[die[i].value]++;
   }
 
-  // return if check 1 failed
-  if (check1 == false) {
-    return 0;
+  for (int8_t i = 1; i <= 6; i++) {
+    if (counts[i] == 3) has_three = true;
+    else if (counts[i] == 2) has_two = true;
   }
 
-  // check 2 for two of a kind.
-  for (int8_t num=1; num<7; num++) {
-    if (num==val1) {continue;}
-    int8_t sum = 0;
-
-    for (int8_t i=0; i<MAX_DICE; i++) {
-      if (die[i].value == num) {
-        sum++;
-      }
-      if (sum > 1) {
-        val2 = die[i].value;
-        check2 = true;
-      }
-    }
-    if (check1 && check2) {
-      return 25;
-    }
-  }
-  return 0;
+  return (has_three && has_two) ? 25 : 0;
 }
 
 // # # # # # # # # # # # # # # # # # # # # # # # # # # #
