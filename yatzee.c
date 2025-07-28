@@ -17,6 +17,20 @@
 #define MAX_DICE 5
 #define NUM_SCORES 13
 
+#define SCORE_1 0
+#define SCORE_2 1
+#define SCORE_3 2
+#define SCORE_4 3
+#define SCORE_5 4
+#define SCORE_6 5
+#define SCORE_3_OF_A_KIND 6
+#define SCORE_4_OF_A_KIND 7
+#define SCORE_FULL_HOUSE 8
+#define SCORE_SMALL_STRAIGHT 9
+#define SCORE_LARGE_STRAIGHT 10
+#define SCORE_CHANCE 11
+#define SCORE_YATZEE 12
+
 bool new_game = true;
 bool game_over = false;
 bool bonus_added = false;
@@ -347,19 +361,19 @@ static uint8_t yatzee() {
 // Scorecard defined here so that we can use pointers to the functions
 // defined above
 Score scorecard[13] = {
-  {.name = "1", .value = 0, .used = false,  .row=0, .col=0, .fn = &ones},
-  {.name = "2", .value = 0, .used = false,  .row=1, .col=0, .fn = &twos},
-  {.name = "3", .value = 0, .used = false,.row=2, .col=0, .fn = &threes},
-  {.name = "4", .value = 0, .used = false, .row=3, .col=0, .fn = &fours},
-  {.name = "5", .value = 0, .used = false, .row=0, .col=1, .fn = &fives},
-  {.name = "6", .value = 0, .used = false, .row=1, .col=1, .fn = &sixes},
+  {.name = "1",  .value = 0, .used = false, .row=0, .col=0, .fn = &ones},
+  {.name = "2",  .value = 0, .used = false, .row=1, .col=0, .fn = &twos},
+  {.name = "3",  .value = 0, .used = false, .row=2, .col=0, .fn = &threes},
+  {.name = "4",  .value = 0, .used = false, .row=3, .col=0, .fn = &fours},
+  {.name = "5",  .value = 0, .used = false, .row=0, .col=1, .fn = &fives},
+  {.name = "6",  .value = 0, .used = false, .row=1, .col=1, .fn = &sixes},
   {.name = "3k", .value = 0, .used = false, .row=2, .col=1, .fn = &threekind},
   {.name = "4k", .value = 0, .used = false, .row=3, .col=1, .fn = &fourkind},
   {.name = "Fh", .value = 0, .used = false, .row=0, .col=2, .fn = &fullhouse},
   {.name = "Sm", .value = 0, .used = false, .row=1, .col=2, .fn = &smallstraight},
   {.name = "Lg", .value = 0, .used = false, .row=2, .col=2, .fn = &largestraight},
   {.name = "Ch", .value = 0, .used = false, .row=3, .col=2, .fn = &chance},
-  {.name = "Yz", .value = 0, .used = false, .row = 2, .col = 3, .fn = &yatzee},
+  {.name = "Yz", .value = 0, .used = false, .row=2, .col=3, .fn = &yatzee},
 };
 
 
@@ -485,13 +499,13 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
       }
 
       // update yatzee score
-      if (scoreCursor.index == 12 && scorecard[12].used == false) {
-          int possiblescore = (int)(*scorecard[12].fn)();
+      if (scoreCursor.index == SCORE_YATZEE && scorecard[SCORE_YATZEE].used == false) {
+          int possiblescore = (int)(*scorecard[SCORE_YATZEE].fn)();
 
           snprintf(buffer, sizeof(buffer), "Yz\n%u", possiblescore);
           elements_multiline_text_aligned(canvas, 93, 10, AlignCenter, AlignTop, buffer);
       } else {
-          snprintf(buffer, sizeof(buffer), "Yz\n%ld", scorecard[12].value);
+          snprintf(buffer, sizeof(buffer), "Yz\n%ld", scorecard[SCORE_YATZEE].value);
           elements_multiline_text_aligned(canvas, 93, 10, AlignCenter, AlignTop, buffer);
       }
 
@@ -579,41 +593,40 @@ static void clear_board() {
 }
 
 static void add_score() {
-    // return when scoring is not possible
-    if (cursor.index != -1 || totalrolls == 0 || (scorecard[scoreCursor.index].used && strcmp(scorecard[scoreCursor.index].name,"Yz")!=0)){
-        return;
+  // return when scoring is not possible
+  if (cursor.index != -1 || totalrolls == 0 || (scoreCursor.index != SCORE_YATZEE && scorecard[scoreCursor.index].used)){
+    return;
+  }
+
+  // extra yatzee scores
+  if (scoreCursor.index == SCORE_YATZEE && scorecard[scoreCursor.index].used) {
+    uint8_t yatzee_score = (*scorecard[SCORE_YATZEE].fn)();
+    scorecard[SCORE_YATZEE].value += 2*yatzee_score;
+    lowerScore+=100;
+    num_bonus_yatzees++;
+  }
+
+  // upper score
+  for (int8_t i = SCORE_1; i <= SCORE_6; i++) {
+    if (scoreCursor.index == i && scorecard[scoreCursor.index].used == false) {
+      scorecard[i].value =(*scorecard[i].fn)();
+      upperScore+=scorecard[i].value;
+      scorecard[i].used = true;
     }
+  }
 
-    // extra yatzee scores
-    if (scoreCursor.index == 12 && scorecard[scoreCursor.index].used) {
-              uint8_t yatzee_score = (*scorecard[12].fn)();
-              scorecard[12].value += 2*yatzee_score;
-              lowerScore+=100;
-              num_bonus_yatzees++;
-      }
-
-
-    // upper score
-    for (int8_t i = 0; i < 6; i++) {
-        if (scoreCursor.index == i && scorecard[scoreCursor.index].used == false) {
-            scorecard[i].value =(*scorecard[i].fn)();
-            upperScore+=scorecard[i].value;
-            scorecard[i].used = true;
-        }
+  // lower score
+  for (int8_t i = SCORE_3_OF_A_KIND; i <= SCORE_YATZEE; i++) {
+    if (scoreCursor.index == i && scorecard[scoreCursor.index].used == false) {
+      scorecard[i].value = (*scorecard[i].fn)();
+      lowerScore+=scorecard[i].value;
+      scorecard[i].used = true;
     }
+  }
 
-    // lower score
-    for (int8_t i = 6; i < 13; i++) {
-        if (scoreCursor.index == i && scorecard[scoreCursor.index].used == false) {
-            scorecard[i].value = (*scorecard[i].fn)();
-            lowerScore+=scorecard[i].value;
-            scorecard[i].used = true;
-      }
-    }
-
-    // recalculate total score
-    totalScore = lowerScore + upperScore;
-    clear_board();
+  // recalculate total score
+  totalScore = lowerScore + upperScore;
+  clear_board();
 }
 
 
