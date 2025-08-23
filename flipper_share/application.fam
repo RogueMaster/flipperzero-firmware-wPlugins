@@ -1,0 +1,17 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="flipper_share",
+    name="Flipper Share",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_share_app",
+    stack_size=2 * 1024,
+    fap_category="Sub-GHz",
+    # Optional values
+    fap_version="1.0",
+    fap_icon="flipper_share.png",  # 10x10 1-bit PNG
+    fap_description="Direct file transfer between flippers via Sub-GHz",
+    fap_author="@lomalkin",
+    fap_weburl="https://github.com/lomalkin/flipper-zero-apps/flipper_share",
+    # fap_icon_assets="images",  # Image assets to compile for this application
+)

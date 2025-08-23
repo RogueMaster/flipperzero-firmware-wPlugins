@@ -1,0 +1,15 @@
+dist/*
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+
+
+# OS crap
+.DS_Store
+
+.vscode/
+
+_old
