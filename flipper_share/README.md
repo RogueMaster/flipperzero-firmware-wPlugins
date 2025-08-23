@@ -32,24 +32,24 @@ Packet is 60 bytes long, due to Flipper CC1101 limitations.
 - **version**: 1 byte
 - **tx_id**: 1 byte
 - **packet_type**: 1 byte
-- **payload**: [56] bytes
+- **payload**: 56 bytes
 - **crc**: 1 byte
 
 Payloads for different types of packets:
 
 - 0x01: **announce**
     - **file_name**         # 36 bytes, zero-padded string
-    - **file_size** [4]     # uint32_t
-    - **file_hash** [16]    # md5
+    - **file_size** 4     # uint32_t
+    - **file_hash** 16    # md5
 
 - 0x02: **request range**
-    - **start** [4]         # uint32_t
-    - **end** [4]           # uint32_t
-    - zero padding [48]
+    - **start** 4         # uint32_t
+    - **end** 4           # uint32_t
+    - zero padding 48
 
 - 0x03: **data**
-    - **block_num** [4]    # uint32_t
-    - **block_data** [52]  # 48 bytes of data
+    - **block_num** 4    # uint32_t
+    - **block_data** 52  # 48 bytes of data
 
 ## Example session
 
