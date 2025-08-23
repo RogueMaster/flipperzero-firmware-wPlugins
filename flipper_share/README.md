@@ -22,7 +22,6 @@ Please feel free to open an issues and PRs if you have any ideas or found bugs.
 
 Source code: https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share
 
----
 
 # Flipper Share protocol
 
