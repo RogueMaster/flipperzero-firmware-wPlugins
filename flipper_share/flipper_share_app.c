@@ -61,7 +61,26 @@ static void submenu_callback(void* context, uint32_t index) {
         scene_manager_next_scene(app->scene_manager, FlipperShareSceneFileBrowser);
     } else if(index == 1) { // Receive
         scene_manager_next_scene(app->scene_manager, FlipperShareSceneReceive);
+    } else if(index == 2) { // About
+        dialog_ex_set_header(app->dialog_about, "About", 64, 0, AlignCenter, AlignTop);
+        dialog_ex_set_text(
+            app->dialog_about,
+            "\nFlipper Share (flipper_share)\n"
+            "A file sharing app via Sub-GHz\n"
+            "Developed by @lomalkin\n"
+            "github.com/lomalkin",
+            0,
+            0,
+            AlignLeft,
+            AlignTop);
+        view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdAbout);
     }
+}
+
+// Return to main menu when pressing Back on About
+static uint32_t flipper_share_about_previous(void* context) {
+    UNUSED(context);
+    return FlipperShareViewIdMenu;
 }
 
 // TODO: check / cleanup
@@ -154,15 +173,16 @@ static FlipperShareApp* flipper_share_alloc() {
     app->submenu = submenu_alloc();
     submenu_add_item(app->submenu, "Send", 0, submenu_callback, app);
     submenu_add_item(app->submenu, "Receive", 1, submenu_callback, app);
+    submenu_add_item(app->submenu, "About", 2, submenu_callback, app);
     view_dispatcher_add_view(
         app->view_dispatcher, FlipperShareViewIdMenu, submenu_get_view(app->submenu));
 
     // Create file browser with result_path for selected file retrieval
     FuriString* result_path = furi_string_alloc();
+    // Allocate file browser once
     app->file_browser = file_browser_alloc(result_path);
 
     // Configure file browser
-    app->file_browser = file_browser_alloc(result_path);
     file_browser_configure(
         app->file_browser,
         "*", // all extensions
@@ -203,6 +223,13 @@ static FlipperShareApp* flipper_share_alloc() {
     app->file_reading_state = NULL;
     app->timer = NULL;
 
+    // Create dialog for About
+    app->dialog_about = dialog_ex_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, FlipperShareViewIdAbout, dialog_ex_get_view(app->dialog_about));
+    // Ensure Back from About returns to Menu
+    view_set_previous_callback(dialog_ex_get_view(app->dialog_about), flipper_share_about_previous);
+
     return app;
 }
 
@@ -213,9 +240,13 @@ static void flipper_share_free(FlipperShareApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdShowFile);
     view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdFileBrowser);
     view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdMenu);
+    // Also remove the About view to avoid leaving a dangling view pointer
+    view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdAbout);
 
     dialog_ex_free(app->dialog_show_file);
     dialog_ex_free(app->dialog_receive);
+    dialog_ex_free(app->dialog_about);
+
     file_browser_free(app->file_browser);
     if(app->result_path) {
         furi_string_free(app->result_path);

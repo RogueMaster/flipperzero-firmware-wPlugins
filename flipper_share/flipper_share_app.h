@@ -25,6 +25,7 @@ typedef enum {
     FlipperShareViewIdFileBrowser,
     FlipperShareViewIdShowFile,
     FlipperShareViewIdReceive,
+    FlipperShareViewIdAbout,
 } FlipperShareViewId;
 
 struct FlipperShareApp {
@@ -36,6 +37,7 @@ struct FlipperShareApp {
     FileBrowser* file_browser;
     DialogEx* dialog_show_file;
     DialogEx* dialog_receive;
+    DialogEx* dialog_about;
 
     FuriString* result_path;
     char selected_file_path[256];
