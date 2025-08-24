@@ -9,6 +9,8 @@
 #include <furi_hal.h>
 #include <storage/storage.h>
 
+#include <toolbox/md5_calc.h>
+
 #include <applications/services/notification/notification.h>    // NotificationApp
 #include <notification/notification_messages.h>
 
@@ -32,10 +34,16 @@ enum {
 
 fs_ctx_t g; //static, extern in .h
 
-void fs_notify_vibro(void) {    //TODO: rename to fs_notify_vibro_success
+void fs_notify_success(void) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     // notification_message(notification, &sequence_single_vibro);
     notification_message(notification, &sequence_success);
+    furi_record_close(RECORD_NOTIFICATION);
+}
+
+void fs_notify_error(void) {
+    NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
+    notification_message(notification, &sequence_error);
     furi_record_close(RECORD_NOTIFICATION);
 }
 
@@ -521,12 +529,21 @@ bool fs_init(const fs_init_params_t* p) {
         }
         if (g.storage) {
             storage_file_close(g.file);
+            // storage_file_free(g.file);
+            // furi_record_close(RECORD_STORAGE);
+            // g.storage = NULL; // storage is not needed after file open
+        }
+        
+        g.s_md5[0] = 0; // Zero-initialize MD5
+        FS_Error err = 0;
+        md5_calc_file(g.file, g.s_file_path, g.s_md5, &err);
+
+        if (g.storage) {
             storage_file_free(g.file);
             furi_record_close(RECORD_STORAGE);
-            g.storage = NULL; // storage is not needed after file open
+            g.storage = NULL;
         }
 
-        g.s_md5[0] = 0; // Zero-initialize MD5, TODO: calculate MD5 here
 
         if (!p->s_read_block) return false;
         g.cb_read_block = p->s_read_block;
@@ -537,11 +554,18 @@ bool fs_init(const fs_init_params_t* p) {
 
         FURI_LOG_I(TAG, "fs_init: SENDER, file_path='%s', file_name='%s', file_size=%lu, mode=%d, tx_id=%d",
             g.s_file_path, g.s_file_name, g.s_file_size, g.mode, g.tx_id);
+        FURI_LOG_I(TAG, "fs_init: md5=%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+            g.s_md5[0], g.s_md5[1], g.s_md5[2], g.s_md5[3],
+            g.s_md5[4], g.s_md5[5], g.s_md5[6], g.s_md5[7],
+            g.s_md5[8], g.s_md5[9], g.s_md5[10], g.s_md5[11],
+            g.s_md5[12], g.s_md5[13], g.s_md5[14], g.s_md5[15]);
+        
     } else { // RECEIVER:
         if (!p->r_write_block) return false;
         g.cb_write_block = p->r_write_block;
         g.r_locked = false;
         g.r_is_finished = false;
+        g.r_is_success = false;
         g.tx_id = 0; // will be set from ANNOUNCE
         FURI_LOG_I(TAG, "fs_init: RECEIVER");
     }
@@ -710,12 +734,54 @@ void fs_idle(void) {
         }
         if (g.r_locked && g.r_blocks_received == g.r_blocks_needed) {
             FURI_LOG_I(TAG, "fs_idle: ALL THE BLOCKS RECEIVED, resetting state?");
-            g.r_is_finished = true; // reception finished flag
+
             g.r_locked = false; // release session lock
             g.r_locked_tx_id = 0;
             g.r_blocks_received = 0;
             fs_map_deinit(); // reset block map
-            fs_notify_vibro();
+
+            // Calculate MD5 and compare with announced
+            g.storage = furi_record_open(RECORD_STORAGE);
+            g.file = storage_file_alloc(g.storage);
+            
+            g.r_md5[0] = 0; // Zero-initialize MD5
+            FS_Error err = 0;
+            md5_calc_file(g.file, g.r_file_path, g.r_md5, &err);
+
+            if (err != 0) {
+                FURI_LOG_E(TAG, "fs_idle: md5_calc_file error %d", err);
+            } else {
+                g.r_is_success = true;
+                FURI_LOG_I(TAG, "fs_idle: Received file md5=%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+                    g.r_md5[0], g.r_md5[1], g.r_md5[2], g.r_md5[3],
+                    g.r_md5[4], g.r_md5[5], g.r_md5[6], g.r_md5[7],
+                    g.r_md5[8], g.r_md5[9], g.r_md5[10], g.r_md5[11],
+                    g.r_md5[12], g.r_md5[13], g.r_md5[14], g.r_md5[15]);
+            }
+
+            storage_file_free(g.file);
+            furi_record_close(RECORD_STORAGE);
+            g.storage = NULL;
+
+            // compare g.r_md5 with g.r_md5 from ANNOUNCE
+            if (memcmp(g.r_md5, g.r_md5, 16) == 0) {
+                FURI_LOG_I(TAG, "fs_idle: MD5 match, file received successfully");
+                g.r_is_success = true;
+            } else {
+                FURI_LOG_W(TAG, "fs_idle: MD5 mismatch, file may be corrupted");
+                g.r_is_success = false;
+            }
+
+            g.r_is_finished = true; // reception finished flag
+
+            // g.r_is_success = false; // For testing negative case
+
+            if (g.r_is_success) {
+                fs_notify_success();
+            } else {
+                fs_notify_error();
+            }
+
         }
     }
     g.last_tick_ms = now;
@@ -870,7 +936,7 @@ void fs_receive_callback(const uint8_t* buf, size_t size) {
             fs_handle_request(pkt.tx_id, &rq);
         } break;
         case FS_PKT_DATA: {
-            FURI_LOG_I(TAG, "Received DATA, tx_id %d", pkt.tx_id);
+            // FURI_LOG_I(TAG, "Received DATA, tx_id %d", pkt.tx_id);
             fs_notify_led_green();
             FS_pl_data_t d;
             fs_pl_data_unpack(pkt.payload, &d);

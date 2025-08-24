@@ -75,7 +75,7 @@ typedef struct {
     char       s_file_path[256];
     char       s_file_name[FS_FILENAME_LENGTH];
     uint32_t   s_file_size;
-    uint8_t    s_md5[16];
+    unsigned char    s_md5[16];
 
     Storage*   storage; // Storage record for file operations
     File*      file; // File handle for reading the file
@@ -99,8 +99,9 @@ typedef struct {
     uint32_t   r_file_size;
     uint32_t   r_blocks_needed; // blocks total needed, calculated from file_size during announce handling
     uint32_t   r_blocks_received; // how many have been received
-    uint8_t    r_md5[16];
+    unsigned char    r_md5[16];
     bool       r_is_finished;
+    bool       r_is_success;
 
     // Callback for writing a received block data by number to real storage.
     // in52 is always 52 bytes, but must write min(52, remainder).

@@ -11,7 +11,8 @@ Features:
 - Works from out of the box on any Flipper Zero, the simplest possible way to transfer files directly
 - Multiple receivers supported simultaneously and works just fine (broadcast)
 - Continuation of download / auto retries in case of packet loss is guaranteed at the protocol level
-- File size tested is up to 1 MB transfered successfully, without corruption
+- Integrity check with MD5 hash after file reception
+- File size tested is up to 1.6 MB transferred successfully, without corruption (update bundle)
 - Actual speed is around 800 bytes/sec, that allows to send average **.fap** file less than in 1 minute
 - No pairing or session establishment needed
 - No encryption, anyone nearby can receive the file, please don't send sensitive data

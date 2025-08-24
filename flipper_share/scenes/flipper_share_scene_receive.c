@@ -81,7 +81,7 @@ void flipper_share_scene_receive_on_enter(void* context) {
     // Setup dialog to show progress
     dialog_ex_set_header(app->dialog_show_file, "Receiving...", 64, 10, AlignCenter, AlignCenter);
     dialog_ex_set_text(app->dialog_show_file, "Starting...", 64, 32, AlignCenter, AlignCenter);
-    dialog_ex_set_left_button_text(app->dialog_show_file, "Cancel");
+    dialog_ex_set_left_button_text(app->dialog_show_file, "Back");
     dialog_ex_set_right_button_text(app->dialog_show_file, NULL); // Skip right button
 
     // Setup callback for dialog buttons
@@ -123,16 +123,22 @@ static void update_timer_callback(void* context) {
         // char progress_text[64];
         char progress_text[255];
         if(state->reading_complete) {
-            const char* prefix = "Done! File saved to:\n";
+            if (g.r_is_success) {
+                dialog_ex_set_header(app->dialog_show_file, "Success!", 64, 10, AlignCenter, AlignCenter);
+            } else {
+                dialog_ex_set_header(app->dialog_show_file, "Hash failed", 64, 10, AlignCenter, AlignCenter);
+            }
+            const char* prefix = "Saved to:\n";
             // print prefix, then append path with limit
             int pref_len = snprintf(progress_text, sizeof(progress_text), "%s", prefix);
             if(pref_len < 0) pref_len = 0;
             int avail = (int)sizeof(progress_text) - pref_len - 1;
             if(avail < 0) avail = 0;
             snprintf(progress_text + pref_len, (size_t)avail + 1, "%.*s", avail, g.r_file_path);
-             // "Done! %lu bytes received", g.r_file_size);
+
             
-             dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
+            // dialog_ex_set_left_button_text(app->dialog_show_file, NULL); // Disable Cancel
+            //  dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
         } else {
             snprintf(progress_text, sizeof(progress_text), " %lu%%", state->counter);
         }
