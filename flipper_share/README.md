@@ -30,27 +30,27 @@ Source code: https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_shar
 
 Packet is 60 bytes long, due to Flipper CC1101 limitations.
 
-- **version**: 1 byte
-- **tx_id**: 1 byte
-- **packet_type**: 1 byte
-- **payload**: 56 bytes
-- **crc**: 1 byte
+- **version**:         # 1 byte, uint8_t
+- **tx_id**:           # 1 byte, uint8_t
+- **packet_type**:     # 1 byte, uint8_t
+- **payload**:         # 56 bytes (variable content, see below)
+- **crc**:             # 1 byte, uint8_t
 
 Payloads for different types of packets:
 
 - 0x01: **announce**
-    - **file_name**         # 36 bytes, zero-padded string
-    - **file_size** 4     # uint32_t
-    - **file_hash** 16    # md5
+    - **file_name**    # 36 bytes, zero-padded string, char[36]
+    - **file_size**    # 4 bytes, uint32_t
+    - **file_hash**    # 16 bytes MD5, char[16]
 
 - 0x02: **request range**
-    - **start** 4         # uint32_t
-    - **end** 4           # uint32_t
-    - zero padding 48
+    - **start**        # 4 bytes, uint32_t
+    - **end**          # 4 bytes, uint32_t
+    - zero padding     # 48 bytes
 
 - 0x03: **data**
-    - **block_num** 4    # uint32_t
-    - **block_data** 52  # 48 bytes of data
+    - **block_num**    # 4 bytes, uint32_t
+    - **block_data**   # 52 bytes of data
 
 ## Example session
 
