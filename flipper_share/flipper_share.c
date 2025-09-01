@@ -207,6 +207,143 @@ static uint8_t fs_crc8(const uint8_t* data, size_t len) {   // CRC-8-ATM, polyno
     return crc;
 }
 
+typedef enum {
+    FS_PARTS_MODE_NONE = 0,
+    FS_PARTS_MODE_BLOCKS_PER_PART, // B >= N
+    FS_PARTS_MODE_PARTS_PER_BLOCK  // B <  N
+} fs_parts_mode_t;
+
+static struct {
+    uint32_t         B;     // block_count
+    uint32_t         N;     // parts count (= FS_PARTS_COUNT)
+    fs_parts_mode_t  mode;
+    // Bitmap of parts received, 1 bit = part full
+    uint8_t          bits[FS_PARTS_BYTES];
+
+    // If B>=N, then each part has at least 1 block, so missing[] >= 1 always
+    uint32_t         seg_start[FS_PARTS_COUNT];
+    uint32_t         seg_end  [FS_PARTS_COUNT];
+    uint32_t         missing  [FS_PARTS_COUNT]; // >=1, monotonically decrease to 0
+} fs_parts;
+
+static inline void _parts_bit_set(uint32_t s) {
+    fs_parts.bits[s >> 3] |= (uint8_t)(1u << (s & 7u));
+}
+static inline uint8_t _parts_bit_get(uint32_t s) {
+    return (fs_parts.bits[s >> 3] >> (s & 7u)) & 1u;
+}
+
+static inline uint32_t _scale_floor_u32(uint32_t x, uint32_t mul, uint32_t den) {
+    return (uint32_t)(((uint64_t)x * (uint64_t)mul) / (uint64_t)den);
+}
+
+// Init pre-calculated if B>=N
+static void _init_blocks_per_part(void) {
+    const uint32_t B = fs_parts.B;
+    const uint32_t N = fs_parts.N;
+
+    for (uint32_t s = 0; s < N; ++s) {
+        uint32_t start = _scale_floor_u32(s,     B, N);
+        uint32_t end   = _scale_floor_u32(s + 1, B, N) - 1u;
+        fs_parts.seg_start[s] = start;
+        fs_parts.seg_end[s]   = end;
+        fs_parts.missing[s]   = (end >= start) ? (end - start + 1u) : 0u; // if B>=N, then always >=1
+    }
+}
+
+bool fs_parts_init(uint32_t block_count) {
+    memset(&fs_parts, 0, sizeof(g));
+    fs_parts.N = FS_PARTS_COUNT;
+    fs_parts.B = block_count;
+
+    if (fs_parts.N == 0) {
+        fs_parts.mode = FS_PARTS_MODE_NONE;
+        return false;
+    }
+
+    memset(fs_parts.bits, 0, sizeof(fs_parts.bits));
+
+    if (fs_parts.B == 0) {
+        fs_parts.mode = FS_PARTS_MODE_NONE;
+        return true;
+    }
+
+    if (fs_parts.B >= fs_parts.N) {
+        fs_parts.mode = FS_PARTS_MODE_BLOCKS_PER_PART;
+        _init_blocks_per_part();
+    } else {
+        fs_parts.mode = FS_PARTS_MODE_PARTS_PER_BLOCK;  // no need to pre-calculate anything
+    }
+    return true;
+}
+
+void fs_parts_reset(void) {
+    memset(&fs_parts, 0, sizeof(g));
+}
+
+void fs_parts_on_block_set(uint32_t i) {
+    if (fs_parts.B == 0 || fs_parts.N == 0 || fs_parts.mode == FS_PARTS_MODE_NONE) return;
+    if (i >= fs_parts.B) return; // out of range
+
+    if (fs_parts.mode == FS_PARTS_MODE_BLOCKS_PER_PART) {
+        // Find part that block i belongs to
+        uint32_t s = _scale_floor_u32(i, fs_parts.N, fs_parts.B);
+        if (s >= fs_parts.N) return; // bounds check
+
+        // If already set, do nothing
+        if (_parts_bit_get(s)) return;
+
+        // Decrement "how many still not received"
+        if (fs_parts.missing[s] > 0) {
+            fs_parts.missing[s]--;
+            if (fs_parts.missing[s] == 0) {
+                _parts_bit_set(s);
+            }
+        }
+    } else {
+        // FS_PARTS_MODE_PARTS_PER_BLOCK: block covers range of parts [sf .. sl]
+        // sf = floor(i*N/B), sl = floor((i+1)*N/B) - 1
+        uint32_t sf = _scale_floor_u32(i,     fs_parts.N, fs_parts.B);
+        uint32_t sl = _scale_floor_u32(i + 1, fs_parts.N, fs_parts.B);
+        if (sl > 0) sl -= 1u;
+
+        if (sf >= fs_parts.N) return;
+        if (sl >= fs_parts.N) sl = fs_parts.N - 1u;
+        if (sf >  sl)  return;
+
+        // Set bits. This is idempotent, each bit is set at most once per session.
+        for (uint32_t s = sf; s <= sl; ++s) {
+            _parts_bit_set(s);
+        }
+    }
+}
+
+int fs_parts_get(uint32_t part_index) {
+    if (part_index >= fs_parts.N || fs_parts.N == 0) return -1;
+    return _parts_bit_get(part_index) ? 1 : 0;
+}
+
+void fs_parts_bitmap_copy(uint8_t* dst) {
+    if (!dst) return;
+    memcpy(dst, fs_parts.bits, FS_PARTS_BYTES);
+}
+
+uint32_t fs_parts_count(void) {
+    return fs_parts.N;
+}
+
+uint32_t fs_parts_block_count(void) {
+    return fs_parts.B;
+}
+
+bool fs_parts_is_ready(void) {
+    // Assume "ready" if N>0 and (B==0 or some mode selected)
+    if (fs_parts.N == 0) return false;
+    if (fs_parts.B == 0) return true;
+    return fs_parts.mode == FS_PARTS_MODE_BLOCKS_PER_PART || fs_parts.mode == FS_PARTS_MODE_PARTS_PER_BLOCK;
+}
+
+
 // ===== Helpers =====
 
 const char* fs_basename(const char* path) {
@@ -827,7 +964,12 @@ static void fs_handle_announce(uint8_t tx_id, const FS_pl_announce_t* ann) {
             g.r_locked_tx_id = 0;
             return;
         }
-        return;
+        // Init parts for GUI progress bar
+        FURI_LOG_I(TAG, "fs_handle_announce: Init fs_parts for %lu blocks...", g.r_blocks_needed);
+        if (!fs_parts_init(g.r_blocks_needed)) {
+            FURI_LOG_E(TAG, "fs_handle_announce: Failed to init parts");
+            return;
+        }
     }
 
     // If already locked on another sender — ignore
@@ -904,6 +1046,7 @@ static void fs_handle_data(uint8_t tx_id, const FS_pl_data_t* d) {
     g.cb_write_block(d->block_number, d->data, valid_len);
 
     fs_map_set(d->block_number, 1); // mark block as received
+    fs_parts_on_block_set(d->block_number); // handle parts
     g.r_blocks_received++;
 
     FURI_LOG_I(TAG, "fs_handle_data[txid=%d]: block %lu written, valid_len=%lu, "

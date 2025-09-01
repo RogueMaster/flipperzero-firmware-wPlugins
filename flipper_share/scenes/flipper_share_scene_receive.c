@@ -120,6 +120,10 @@ static void update_timer_callback(void* context) {
 
     FileReadingState* state = (FileReadingState*)app->file_reading_state;
 
+    uint8_t parts_bits[FS_PARTS_BYTES];
+    char bits_s[FS_PARTS_COUNT];    // debug
+    uint32_t parts_total = fs_parts_count();
+
     if(state) {
         // char progress_text[64];
         char progress_text[255];
@@ -143,6 +147,26 @@ static void update_timer_callback(void* context) {
             //  dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
         } else {
             if(g.r_locked == true) { // show filename
+
+                fs_parts_bitmap_copy(parts_bits);
+                // uint32_t parts_full = 0;
+                // for (uint32_t i = 0; i < parts_total; ++i) {
+                //     uint8_t bit = (parts_bits[i >> 3] >> (i & 7u)) & 1u;
+                //     parts_full += bit;
+                // }
+
+                // print to CLI all the bits 1 or 0 in one line for debug:                
+                for (uint32_t i = 0; i < parts_total; ++i) {
+                    uint8_t bit = (parts_bits[i >> 3] >> (i & 7u)) & 1u;
+                    if (bit) {
+                        bits_s[i] = '@';
+                    } else {
+                        bits_s[i] = '.';
+                    }
+                }
+                bits_s[parts_total] = 0; // null-terminate
+                FURI_LOG_I(TAG, "Parts: %s", bits_s);
+                
                 snprintf(
                     progress_text,
                     sizeof(progress_text),

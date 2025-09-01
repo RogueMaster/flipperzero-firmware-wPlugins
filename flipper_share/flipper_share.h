@@ -14,6 +14,10 @@
 
 #define FS_SUBGHZ_RETRY_DELAY_MS 1000                       // For Retry On error
 
+#define FS_PARTS_COUNT 100u                                 // For progress bar in GUI
+
+#define FS_PARTS_BYTES ((uint32_t)((FS_PARTS_COUNT + 7u) / 8u))
+
 // Packet structure:
 typedef struct {
     uint8_t version;
@@ -144,3 +148,14 @@ void fs_send_data(void);
 // External callback for receiving "raw" 60 bytes from radio:
 void fs_receive_callback(const uint8_t* buf, size_t size);
 
+// Parts for progress bar in GUI
+
+bool     fs_parts_init(uint32_t block_count);
+void     fs_parts_reset(void);
+void     fs_parts_on_block_set(uint32_t block_index);
+int      fs_parts_get(uint32_t part_index);
+void     fs_parts_bitmap_copy(uint8_t* dst);
+
+uint32_t fs_parts_count(void);
+uint32_t fs_parts_block_count(void);
+bool     fs_parts_is_ready(void);
