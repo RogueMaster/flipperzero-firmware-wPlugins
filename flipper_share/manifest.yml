@@ -10,9 +10,13 @@ sourcecode:
     commit_sha: 14deab6409df2d0dc3dfc245b2c140ea1d46204b
     subdir: flipper_share
 description: "@README.md"
+description: "@README_catalog.md"
 changelog: "@CHANGELOG.md"
 screenshots:
   - screenshots/1.png
   - screenshots/2.png
   - screenshots/3.png
   - screenshots/4.png
+  - screenshots/5.png
+  - screenshots/6.png
+  - screenshots/7.png

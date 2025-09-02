@@ -2,9 +2,9 @@
 
 ## Overview
 
-Flipper Share is a file sharing app for Flipper Zero.
+Flipper Share is a wireless-enabled file sharing application for Flipper Zero.
 
-It allows to send any file over a Sub-GHz directly from one Flipper Zero to another without any additional hardware, cables, smartphones, computers, internet connection and magic needed.
+It allows to send any file over a Sub-GHz via internal transmitter directly from one Flipper Zero to another without any additional hardware, cables, smartphones, computers, internet connection and magic needed.
 
 Features:
 
@@ -13,52 +13,64 @@ Features:
 - Continuation of download / auto retries in case of packet loss is guaranteed at the protocol level
 - Integrity check with MD5 hash after file reception
 - File size tested is up to 1.6 MB transferred successfully, without corruption (update bundle)
-- Actual speed is around 800 bytes/sec, that allows to send average **.fap** file less than in 1 minute
-- No pairing or session establishment needed
+- Actual speed is around 800 bytes/sec, that allows to transfer average `.fap` file from one flipper to another in less than 1 minute
+- No pairing or explicit session establishment needed
 - No encryption, anyone nearby can receive the file, please don't send sensitive data
-
-## Notes
+- Fun torrent-like progress bar showing received parts of the file instead of boring usual percentage scale
 
 Please feel free to open an issues and PRs if you have any ideas or found bugs.
 
-Source code: https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share
+# Credits
 
+Special thanks to [@Skorpionm](https://github.com/Skorpionm/) for building a solid foundation with the Sub-GHz packet abstraction layer API — it made this app possible, convenient, and reliable.
+
+---
 
 # Flipper Share protocol
 
 ## Packet structure
 
-Packet is 60 bytes long, due to Flipper CC1101 limitations.
+Each packet is **60 bytes long** (due to Flipper CC1101 limitations).
 
-- **version**:         # 1 byte, uint8_t
-- **tx_id**:           # 1 byte, uint8_t
-- **packet_type**:     # 1 byte, uint8_t
-- **payload**:         # 56 bytes (variable content, see below)
-- **crc**:             # 1 byte, uint8_t
+| Field         | Size     | Type                 |
+|---------------|----------|----------------------|
+| `version`     | 1 byte   | uint8_t              |
+| `tx_id`       | 1 byte   | uint8_t              |
+| `packet_type` | 1 byte   | uint8_t              |
+| `payload`     | 56 bytes | variable (see below) |
+| `crc`         | 1 byte   | uint8_t              |
 
-Payloads for different types of packets:
+## Payloads by `packet_type`
 
-- 0x01: **announce**
-    - **file_name**    # 36 bytes, zero-padded string, char[36]
-    - **file_size**    # 4 bytes, uint32_t
-    - **file_hash**    # 16 bytes MD5, char[16]
+### `0x01` — Announce
 
-- 0x02: **request range**
-    - **start**        # 4 bytes, uint32_t
-    - **end**          # 4 bytes, uint32_t
-    - zero padding     # 48 bytes
+| Field        | Size     | Type                  |
+|--------------|----------|-----------------------|
+| `file_name`  | 36 bytes | char[36], zero-padded |
+| `file_size`  | 4 bytes  | uint32_t              |
+| `file_hash`  | 16 bytes | char[16], MD5         |
 
-- 0x03: **data**
-    - **block_num**    # 4 bytes, uint32_t
-    - **block_data**   # 52 bytes of data
+### `0x02` — Request range
+
+| Field      | Size     | Type     |
+|------------|----------|----------|
+| `start`    | 4 bytes  | uint32_t |
+| `end`      | 4 bytes  | uint32_t |
+| `padding`  | 48 bytes | zero     |
+
+### `0x03` — Data
+
+| Field        | Size     | Type     |
+|------------- |----------|----------|
+| `block_num`  | 4 bytes  | uint32_t |
+| `block_data` | 52 bytes | raw data |
 
 ## Example session
 
 **Sender:**
 - User selects a file to share.
 - The sender prepares the **announce** packet with file metadata and random **tx_id**.
-- If there are no other communications:
-    - The sender sends the **announce** packet periodically (every 3 sec)
+- The sender sends the **announce** packet periodically (every 3 sec)
 - When received a **request range** packet, the sender:
     - Checks if the **tx_id** matches the expected one.
     - Checks if the **start** and **end** are within the file size.
@@ -81,3 +93,4 @@ Payloads for different types of packets:
     - Checks if the **block_num** is in range.
     - Saves the block data to the file.
 
+If you implement this protocol or similar in other applications or devices, I’d be happy to hear about it — please let me know!
