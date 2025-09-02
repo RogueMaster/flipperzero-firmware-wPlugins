@@ -105,25 +105,26 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     elements_multiline_text_aligned(canvas, 64, 36, AlignCenter, AlignTop, name_line);
 
     // Progress bar frame and fill
-    const int x = 12;
+    const int x = 13;
     const int y = 50;
-    const int w = 104; // frame width
+    const int w = 101; // frame width
     const int h = 12;
     
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_frame(canvas, x, y, w, h);
+
+    uint8_t parts_bits[FS_PARTS_BYTES];
+    fs_parts_bitmap_copy(parts_bits);
     
-    int fill_w = (percent * (w - 4)) / 100; // leave 2px padding
-    if(fill_w > 0) {
-        // Fill bar in black as well
-        canvas_draw_box(canvas, x + 2, y + 2, fill_w, h - 4);
+    for (uint32_t i = 0; i < FS_PARTS_COUNT; ++i) {
+        if ((parts_bits[i >> 3] >> (i & 7u)) & 1u) {    // bit value by number
+            canvas_draw_line(canvas, x + i + 1, y, x + i + 1, y + h - 1);
+        }
     }
 
     // Percent text below
     char pct[16];
     snprintf(pct, sizeof(pct), "%u%%", (unsigned int)percent);
-    // ensure percent text is black
-    canvas_set_color(canvas, ColorBlack);
     elements_multiline_text_aligned(canvas, 64, y + h + 8, AlignCenter, AlignTop, pct);
 }
 
@@ -220,15 +221,20 @@ static void update_timer_callback(void* context) {
     char progress_text[256];
     
     if(state) {
-        FURI_LOG_I(
-            TAG, 
-            "Timer: counter=%u, complete=%d, locked=%d, finished=%d", 
-            (unsigned int)state->counter, 
-            state->reading_complete,
-            g.r_locked,
-            g.r_is_finished);
+        // FURI_LOG_I(
+        //     TAG, 
+        //     "Timer: counter=%u, complete=%d, locked=%d, finished=%d", 
+        //     (unsigned int)state->counter, 
+        //     state->reading_complete,
+        //     g.r_locked,
+        //     g.r_is_finished);
             
         if(state->reading_complete) {
+            if (g.r_is_success) {
+                dialog_ex_set_header(app->dialog_show_file, "Success!", 64, 10, AlignCenter, AlignCenter);
+            } else {
+                dialog_ex_set_header(app->dialog_show_file, "Hash failed", 64, 10, AlignCenter, AlignCenter);
+            }
             snprintf(progress_text, sizeof(progress_text), "Saved to:\n%.*s", 64, g.r_file_path);
             // dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
             
