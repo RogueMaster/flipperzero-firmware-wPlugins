@@ -24,6 +24,7 @@ typedef enum {
     FlipperShareViewIdMenu,
     FlipperShareViewIdFileBrowser,
     FlipperShareViewIdShowFile,
+    FlipperShareViewIdProgress,
     FlipperShareViewIdReceive,
     FlipperShareViewIdAbout,
 } FlipperShareViewId;
