@@ -1,13 +1,16 @@
 # PR this file to: https://github.com/flipperdevices/flipper-application-catalog/
 # applications/Sub-GHz/flipper_share/manifest.yml
 
-# Check: python3 tools/bundle.py --nolint applications/Sub-GHz/flipper_share/manifest.yml bundle.zip
+# Check:
+# python3 -m venv venv
+# pip install -r tools/requirements.txt
+# python3 tools/bundle.py --nolint applications/Sub-GHz/flipper_share/manifest.yml bundle.zip
 
 sourcecode:
   type: git
   location:
     origin: https://github.com/lomalkin/flipper-zero-apps.git
-    commit_sha: 14deab6409df2d0dc3dfc245b2c140ea1d46204b
+    commit_sha: 2926d96c0cd74e7b1712bc669c0c451b63d3d37c
     subdir: flipper_share
 description: "@README.md"
 description: "@README_catalog.md"
