@@ -85,12 +85,16 @@ Each packet is **60 bytes long** (due to Flipper CC1101 limitations).
     - Saves **file_name**, **file_size**, and **file_hash** to internal state.
     - Allocates file **file_name** in output directory.
     - Creates map of received blocks (count calculated from **file_size** and actual block size).
-- If there are no other communications
-    - The receiver sends a **request range** packet to the sender.
-        - Default range is from 0  to **file_size** bytes (full file).
-- When received a **data** packet, the receiver:
+    - The receiver sends a one-time **request range** packet with full file range to start a transfer.
+- On received a **data** packet, the receiver:
     - Checks if the **tx_id** matches the expected one.
     - Checks if the **block_num** is in range.
     - Saves the block data to the file.
+- If there are no other communications:
+    - The receiver waits for some timeout and sending **request range** for the first missing blocks region. It can be optimized better in future without breaking compatibility with old versions.
+- If all blocks are received, the receiver:
+    - Calculates MD5 hash of the received file.
+    - Compares it with the announced **file_hash**.
+    - Receiving if finished successfully or with errors (if hash mismatch).
 
 If you implement this protocol or similar in other applications or devices, I’d be happy to hear about it — please let me know!

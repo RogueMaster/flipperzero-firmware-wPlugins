@@ -36,7 +36,6 @@ fs_ctx_t g; //static, extern in .h
 
 void fs_notify_success(void) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
-    // notification_message(notification, &sequence_single_vibro);
     notification_message(notification, &sequence_success);
     furi_record_close(RECORD_NOTIFICATION);
 }
@@ -44,6 +43,12 @@ void fs_notify_success(void) {
 void fs_notify_error(void) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     notification_message(notification, &sequence_error);
+    furi_record_close(RECORD_NOTIFICATION);
+}
+
+void fs_notify_vibro(void) {
+    NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
+    notification_message(notification, &sequence_single_vibro);
     furi_record_close(RECORD_NOTIFICATION);
 }
 
@@ -62,6 +67,12 @@ void fs_notify_led_green(void) {
 void fs_notify_led_blue(void) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     notification_message(notification, &sequence_blink_blue_10);
+    furi_record_close(RECORD_NOTIFICATION);
+}
+
+void fs_notify_led_cyan(void) {
+    NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
+    notification_message(notification, &sequence_blink_cyan_10);
     furi_record_close(RECORD_NOTIFICATION);
 }
 
@@ -252,7 +263,7 @@ static void _init_blocks_per_part(void) {
 }
 
 bool fs_parts_init(uint32_t block_count) {
-    memset(&fs_parts, 0, sizeof(g));
+    memset(&fs_parts, 0, sizeof(fs_parts));
     fs_parts.N = FS_PARTS_COUNT;
     fs_parts.B = block_count;
 
@@ -277,8 +288,8 @@ bool fs_parts_init(uint32_t block_count) {
     return true;
 }
 
-void fs_parts_reset(void) {
-    memset(&fs_parts, 0, sizeof(g));
+void fs_parts_deinit(void) {
+    memset(&fs_parts, 0, sizeof(fs_parts));
 }
 
 void fs_parts_on_block_set(uint32_t i) {
@@ -471,7 +482,7 @@ void fs_ensure_inbox_dir(void) {
     furi_record_close(RECORD_STORAGE);
 }
 
-uint8_t fs_file_create_truncate() {
+uint8_t fs_file_create_truncate(uint32_t file_size) {
     FURI_LOG_I(TAG, "fs_file_create_truncate: Creating and truncating file '%s'", g.r_file_path);
     if (g.mode != FS_MODE_RECEIVER) {
         FURI_LOG_E(TAG, "fs_file_create_truncate: Not available in SENDER mode");
@@ -490,6 +501,15 @@ uint8_t fs_file_create_truncate() {
         storage_file_free(g.file);
         furi_record_close(RECORD_STORAGE);
         return 3;
+    }
+
+    // UNUSED(file_size);
+    if(!storage_file_seek(g.file, file_size, true)) {
+        FURI_LOG_E(TAG, "fs_file_create_truncate: Failed to seek to offset %lu", file_size);
+        storage_file_close(g.file);
+        storage_file_free(g.file);
+        furi_record_close(RECORD_STORAGE);
+        return 4;
     }
 
     storage_file_close(g.file);
@@ -723,6 +743,7 @@ void fs_deinit(void) {
 
     // free block map
     fs_map_deinit();
+    fs_parts_deinit();
 
     // clear callbacks and other pointers to avoid use-after-free
     g.cb_send_bytes = NULL;
@@ -865,6 +886,7 @@ void fs_idle(void) {
                     furi_delay_ms((uint8_t)((furi_get_tick() % 30))); // Random jitter, ms
 
                     fs_send_request(nbyte_start, nbyte_end);
+                    fs_notify_led_cyan();
                 }
             }
             g.last_rx_ms = now; // debounce timer
@@ -875,33 +897,38 @@ void fs_idle(void) {
             g.r_locked = false; // release session lock
             g.r_locked_tx_id = 0;
             g.r_blocks_received = 0;
+
             fs_map_deinit(); // reset block map
+            fs_parts_deinit(); // reset parts map
 
             // Calculate MD5 and compare with announced
             g.storage = furi_record_open(RECORD_STORAGE);
             g.file = storage_file_alloc(g.storage);
             
-            g.r_md5[0] = 0; // Zero-initialize MD5
+            unsigned char real_md5[16];
+            real_md5[0] = 0; // Zero-initialize MD5
             FS_Error err = 0;
-            md5_calc_file(g.file, g.r_file_path, g.r_md5, &err);
+            md5_calc_file(g.file, g.r_file_path, real_md5, &err);
 
             if (err != 0) {
                 FURI_LOG_E(TAG, "fs_idle: md5_calc_file error %d", err);
             } else {
                 g.r_is_success = true;
                 FURI_LOG_I(TAG, "fs_idle: Received file md5=%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                    g.r_md5[0], g.r_md5[1], g.r_md5[2], g.r_md5[3],
-                    g.r_md5[4], g.r_md5[5], g.r_md5[6], g.r_md5[7],
-                    g.r_md5[8], g.r_md5[9], g.r_md5[10], g.r_md5[11],
-                    g.r_md5[12], g.r_md5[13], g.r_md5[14], g.r_md5[15]);
+                    real_md5[0], real_md5[1], real_md5[2], real_md5[3],
+                    real_md5[4], real_md5[5], real_md5[6], real_md5[7],
+                    real_md5[8], real_md5[9], real_md5[10], real_md5[11],
+                    real_md5[12], real_md5[13], real_md5[14], real_md5[15]);
             }
+
+            // real_md5[12] = 1;    // Uncomment to test negative case, force corrupt hash
 
             storage_file_free(g.file);
             furi_record_close(RECORD_STORAGE);
             g.storage = NULL;
 
-            // compare g.r_md5 with g.r_md5 from ANNOUNCE
-            if (memcmp(g.r_md5, g.r_md5, 16) == 0) {
+            // compare real_md5 with g.r_md5 from ANNOUNCE TODO fix
+            if (memcmp(real_md5, g.r_md5, 16) == 0) {
                 FURI_LOG_I(TAG, "fs_idle: MD5 match, file received successfully");
                 g.r_is_success = true;
             } else {
@@ -950,7 +977,7 @@ static void fs_handle_announce(uint8_t tx_id, const FS_pl_announce_t* ann) {
         FURI_LOG_I(TAG, "fs_handle_announce: r_file_path='%s'", g.r_file_path);
 
         fs_ensure_inbox_dir();
-        if (fs_file_create_truncate()!= 0) {
+        if (fs_file_create_truncate(g.r_file_size)!= 0) {
             FURI_LOG_E(TAG, "fs_handle_announce: Failed to create/truncate file");
             g.r_locked = false; // release lock if failed to create file
             g.r_locked_tx_id = 0;
@@ -970,6 +997,8 @@ static void fs_handle_announce(uint8_t tx_id, const FS_pl_announce_t* ann) {
             FURI_LOG_E(TAG, "fs_handle_announce: Failed to init parts");
             return;
         }
+
+        fs_notify_vibro();
     }
 
     // If already locked on another sender — ignore
@@ -977,6 +1006,8 @@ static void fs_handle_announce(uint8_t tx_id, const FS_pl_announce_t* ann) {
         fs_notify_led_red();
         return;
     }
+
+    fs_notify_led_blue();
 
     // You may update metadata / resend REQUEST if needed
 }
@@ -998,7 +1029,7 @@ static void fs_handle_request(uint8_t tx_id, const FS_pl_request_t* rq) {
         FURI_LOG_W(TAG, "fs_handle_request: tx_id=%d, already have blocks requested", tx_id);
         return;
     }
-    fs_notify_led_green();
+    fs_notify_led_cyan();
 
     // Normalize to blocks (uneven tail == file_size allowed)
     uint32_t start = rq->range_start;
@@ -1049,6 +1080,8 @@ static void fs_handle_data(uint8_t tx_id, const FS_pl_data_t* d) {
     fs_parts_on_block_set(d->block_number); // handle parts
     g.r_blocks_received++;
 
+    fs_notify_led_green();
+
     FURI_LOG_I(TAG, "fs_handle_data[txid=%d]: block %lu written, valid_len=%lu, "
              "blocks_received: %lu/%lu", tx_id,
              d->block_number, valid_len, g.r_blocks_received, g.r_blocks_needed);
@@ -1066,7 +1099,7 @@ void fs_receive_callback(const uint8_t* buf, size_t size) {
     switch ((fs_pkt_type_t)pkt.packet_type) {
         case FS_PKT_ANNOUNCE: {
             FURI_LOG_I(TAG, "Received ANNOUNCE, tx_id %d", pkt.tx_id);
-            fs_notify_led_blue();
+            // fs_notify_led_blue();
             FS_pl_announce_t ann;
             fs_pl_announce_unpack(pkt.payload, &ann);
             fs_handle_announce(pkt.tx_id, &ann);
@@ -1080,7 +1113,7 @@ void fs_receive_callback(const uint8_t* buf, size_t size) {
         } break;
         case FS_PKT_DATA: {
             // FURI_LOG_I(TAG, "Received DATA, tx_id %d", pkt.tx_id);
-            fs_notify_led_green();
+            // fs_notify_led_green();
             FS_pl_data_t d;
             fs_pl_data_unpack(pkt.payload, &d);
             fs_handle_data(pkt.tx_id, &d);
