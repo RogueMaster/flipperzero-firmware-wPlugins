@@ -84,6 +84,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v1.0 (By luu176)](https://github.com/luu176/Metroflip) (Felica Updates)
 - Updated: [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d) (NTAG4 Support)
 - OFW: PR: [Add date/time input module #4261 (By aaronjamt)](https://github.com/flipperdevices/flipperzero-firmware/pull/4261)
+- Added: [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
 
 <a name="release"></a>
 
@@ -800,8 +801,8 @@ $ ./fbt dolphin_ext
 - [Roman Decoder v0.2 (By evillero)](https://github.com/evillero/roman_decoder)
 - [ROT13 v0.1 (By nothingbutlucas)](https://codeberg.org/nothingbutlucas/flipperzero_rot13)
 - [Rubiks Cube Timer v0.0.2 (By KHOPAN)](https://github.com/KHOPAN/Cuber-Zero)
+- [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
 - [SAM (By Unknown)][Original?](https://github.com/ctoth/SAM)
-- [SD Card Mounter v0.1 (By aaronjamt)](https://github.com/aaronjamt/flipper_sd_mounters)
 - [SD Info v0.1 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/SD-Info-For-Flipper-Zero)
 - [SD SPI v0.5 (By Gl1tchub)](https://github.com/Gl1tchub/Flipperzero-SD-SPI) `Req: External SD Board`
 - [Segment Clock v1.1 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/Segment-Clock-For-Flipper-Zero)

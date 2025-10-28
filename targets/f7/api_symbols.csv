@@ -22,6 +22,7 @@ Header,+,applications/services/gui/icon_i.h,,
 Header,+,applications/services/gui/modules/button_menu.h,,
 Header,+,applications/services/gui/modules/button_panel.h,,
 Header,+,applications/services/gui/modules/byte_input.h,,
+Header,+,applications/services/gui/modules/date_time_input.h,,
 Header,+,applications/services/gui/modules/dialog_ex.h,,
 Header,+,applications/services/gui/modules/empty_screen.h,,
 Header,+,applications/services/gui/modules/file_browser.h,,
@@ -3640,6 +3641,7 @@ Function,+,subghz_worker_set_pair_callback,void,"SubGhzWorker*, SubGhzWorkerPair
 Function,+,subghz_worker_start,void,SubGhzWorker*
 Function,+,subghz_worker_stop,void,SubGhzWorker*
 Function,+,submenu_add_item,void,"Submenu*, const char*, uint32_t, SubmenuItemCallback, void*"
+Function,+,submenu_add_item_ex,void,"Submenu*, const char*, uint32_t, SubmenuItemCallbackEx, void*"
 Function,+,submenu_add_lockable_item,void,"Submenu*, const char*, uint32_t, SubmenuItemCallback, void*, _Bool, const char*"
 Function,+,submenu_alloc,Submenu*,
 Function,+,submenu_change_item_label,void,"Submenu*, uint32_t, const char*"
