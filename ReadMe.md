@@ -83,6 +83,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Reverted: NFC: [ADD: Ventra parsing plugin to Metroflip. Updated: NFC ventra_parser.fal. #1164 (By FatherDivine)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1164)
 - Updated: [Metroflip v1.0 (By luu176)](https://github.com/luu176/Metroflip) (Felica Updates)
 - Updated: [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d) (NTAG4 Support)
+- OFW: PR: [Add date/time input module #4261 (By aaronjamt)](https://github.com/flipperdevices/flipperzero-firmware/pull/4261)
 
 <a name="release"></a>
 
