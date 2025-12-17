@@ -1,0 +1,14 @@
+App(
+    appid="pc_monitor_usb",
+    name="PC Monitor USB",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pc_monitor_app",
+    requires=["gui"],
+    stack_size=1 * 1024,
+    fap_description="Application for monitoring PC resources via USB",
+    fap_category="USB",
+    fap_icon_assets="assets",
+    fap_icon="assets/icon_10px.png",
+    fap_version="1.0",
+    fap_author="DonJulve",
+)
