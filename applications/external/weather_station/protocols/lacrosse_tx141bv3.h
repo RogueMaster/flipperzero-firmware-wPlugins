@@ -8,7 +8,7 @@
 #include "ws_generic.h"
 #include <lib/subghz/blocks/math.h>
 
-#define WS_PROTOCOL_LACROSSE_TX141BV3_NAME "LaCrosse_TX141Bv3"
+#define WS_PROTOCOL_LACROSSE_TX141BV3_NAME "LC_TX141Bv3"
 
 typedef struct WSProtocolDecoderLaCrosse_TX141BV3 WSProtocolDecoderLaCrosse_TX141BV3;
 typedef struct WSProtocolEncoderLaCrosse_TX141BV3 WSProtocolEncoderLaCrosse_TX141BV3;
