@@ -2,14 +2,42 @@
 // Made by @hazardousvoltage
 // Based on my own research, with...
 // Credit to https://www.lenrek.net/experiments/compass-tickets/ & MetroDroid project for underlying info
+// Credit to FatherDivine (Github) for adding the "stop IDs & stop names" database (& code tweaks).
 //
 // This parser can decode the paper single-use and single/multi-day paper passes using Ultralight EV1
 // The plastic cards are DESFire and fully locked down, not much useful info extractable
 // TODO:
 // - Sort the duplicate/rare ticket types
-// - Database of stop IDs for trains?  Buses there's just too damn many, but you can find them here:
+// - (WIP) Database of stop IDs for trains, buses. There's just too damn many, but you can find them here:
 //   https://data.cityofchicago.org/Transportation/CTA-Bus-Stops-kml/84eu-buny/about_data
+//   Currently the database is cta_stops.csv in /ext/apps_data/ventra/cta_stops.csv (see below).
+//   Seems Ventra uses it's own "Cubic ID" in it's backend and matches w/ CTA's stop IDs.
+//   If true, will need to gather from Ventra or manually get enough tags/stops on a tag to decipher.
+//   For manual adding to the CSV, you have to just know where the stop was when it was scanned and lookup on google maps.
+// - Speedup the csv process so it doesn't take so long to check the entire list. But may remove the list for now given CTA stop IDs != what's read on Ventra passes.
 // - Generalize to handle all known Cubic Nextfare Ultralight systems?  Anyone wants to send me specimen dumps, hit me up on Discord.
+
+/* 
+ * CSV STOP DATABASE FORMAT (IMPORTANT)
+ *
+ * This parser supports unified lookup for BOTH bus and train stops.
+ *
+ * Store IDs EXACTLY as strings:
+ *
+ *   Bus stops  → decimal Cubic stop IDs
+ *       Example: 16959,Harlem & Addison
+ *
+ *   Train stops → 4‑digit uppercase hex Cubic station IDs
+ *       Example: 003B,Jefferson Park
+ *
+ * The parser will:
+ *   - Convert bus locus → decimal string
+ *   - Convert train locus → 4‑digit uppercase hex
+ *   - Look up both in the same CSV
+ *
+ * CSV path:
+ *   /ext/apps_data/ventra/cta_stops.csv
+ */
 
 #include "nfc_supported_card_plugin.h"
 
@@ -18,7 +46,15 @@
 #include "datetime.h"
 #include <furi_hal.h>
 
+// Added for stop database lookup
+#include <storage/storage.h>
+#include <stdio.h>
+#include <string.h>
+
 #define TAG "Ventra"
+
+// Path to the CSV stop database on SD card
+#define VENTRA_STOP_DB_PATH "/ext/apps_data/ventra/cta_stops.csv"
 
 DateTime ventra_exp_date = {0}, ventra_validity_date = {0};
 uint8_t ventra_high_seq = 0, ventra_cur_blk = 0, ventra_mins_active = 0;
@@ -55,6 +91,120 @@ bool isExpired(void) {
     uint32_t ts_soft_exp = datetime_datetime_to_timestamp(&ventra_validity_date);
     uint32_t ts_now = time_now();
     return (ts_now >= ts_hard_exp || ts_now > ts_soft_exp);
+}
+
+/********************************************************************
+ * Stop database: CSV-on-demand lookup
+ ********************************************************************/
+
+// Simple line reader for Storage File API.
+// Reads until newline or EOF, null-terminates buffer.
+// Returns true if a line was read, false on EOF/no data.
+static bool ventra_read_line(File* file, char* buf, size_t buf_size) {
+    if(buf_size == 0) return false;
+
+    size_t pos = 0;
+    char ch;
+    size_t read_len = 0;
+
+    while(true) {
+        read_len = storage_file_read(file, &ch, 1);
+        if(read_len == 0) {
+            // EOF
+            break;
+        }
+
+        if(ch == '\r') {
+            // ignore CR, but keep going (handle CRLF)
+            continue;
+        }
+
+        if(ch == '\n') {
+            // end of line
+            break;
+        }
+
+        if(pos < buf_size - 1) {
+            buf[pos++] = ch;
+        } else {
+            // line too long, keep consuming but don't overflow
+        }
+    }
+
+    if(pos == 0 && read_len == 0) {
+        // nothing read and EOF
+        return false;
+    }
+
+    buf[pos] = '\0';
+    return true;
+}
+
+/* Unified CSV lookup for bus (decimal) and train (hex) IDs.
+ *
+ * CSV format (IDs stored as exact strings):
+ *   Bus:   16959,Harlem & Addison
+ *   Train: 003B,Jefferson Park
+ */
+static bool ventra_lookup_stop_name_str(const char* id_str, char* out_name, size_t out_size) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return false;
+
+    File* file = storage_file_alloc(storage);
+    if(!storage_file_open(file, VENTRA_STOP_DB_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_close(file);
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+
+    char line[256];
+    bool found = false;
+
+    while(ventra_read_line(file, line, sizeof(line))) {
+        char* comma = strchr(line, ',');
+        if(!comma) continue;
+
+        *comma = '\0';
+        const char* csv_id = line;
+        const char* csv_name = comma + 1;
+
+        while(*csv_name == ' ' || *csv_name == '\t') csv_name++;
+
+        if(strcmp(csv_id, id_str) == 0) {
+            strncpy(out_name, csv_name, out_size);
+            out_name[out_size - 1] = '\0';
+            found = true;
+            break;
+        }
+    }
+
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+
+    return found;
+}
+
+/********************************************************************
+ * Original Ventra transaction parsing, with stop-name injection
+ ********************************************************************/
+
+/* Format Cubic stop IDs into lookup keys:
+ *   Bus   → decimal string
+ *   Train → 4‑digit uppercase hex
+ */
+static void ventra_format_id(uint16_t locus, uint8_t line, char* out, size_t out_size) {
+    if(line == 2) {
+        // Bus → decimal
+        snprintf(out, out_size, "%u", (unsigned int)locus);
+    } else if(line == 1) {
+        // Train → 4‑digit uppercase hex
+        snprintf(out, out_size, "%04X", (unsigned int)locus);
+    } else {
+        // Purchases or unknown → fallback decimal
+        snprintf(out, out_size, "%u", (unsigned int)locus);
+    }
 }
 
 static FuriString* ventra_parse_xact(const MfUltralightData* data, uint8_t blk, bool is_pass) {
@@ -107,21 +257,59 @@ static FuriString* ventra_parse_xact(const MfUltralightData* data, uint8_t blk, 
     // Type 0 = Purchase, 1 = Train ride, 2 = Bus ride
     // TODO: Check PACE and see if it uses a different line code
     char linemap[3] = "PTB";
-    char* xact_fmt = (line == 2) ? "%c %5d %04d-%02d-%02d %02d:%02d" :
-                                   "%c %04X %04d-%02d-%02d %02d:%02d";
-    // I like a nice concise display showing all the relevant infos without having to scroll...
-    // Line   StopID   DateTime
-    furi_string_printf(
-        ventra_xact_str,
-        xact_fmt,
-        (line < 3) ? linemap[line] : '?',
-        locus,
-        dt.year,
-        dt.month,
-        dt.day,
-        dt.hour,
-        dt.minute);
-    return (ventra_xact_str);
+
+    // Original format strings:
+    // For bus (line == 2): "%c %5d %04d-%02d-%02d %02d:%02d"
+    // Else:                "%c %04X %04d-%02d-%02d %02d:%02d"
+
+	// Unified bus/train stop lookup
+	char stop_name[128];
+	bool have_name = false;
+	char id_key[16];
+
+	// Convert locus → lookup key (decimal for bus, hex for train)
+	ventra_format_id(locus, line, id_key, sizeof(id_key));
+
+	// Look up the formatted key in the CSV
+	have_name = ventra_lookup_stop_name_str(id_key, stop_name, sizeof(stop_name));
+
+    if(have_name) {
+        // Use the CSV name + the exact ID key used for lookup
+        // The (V %s) puts a V for Ventra as we're using Ventra IDs in the dabatase (least first 2 entries for now)
+        // And the other ones in the database csv are actual CTA stops, but Ventra seems to not use those.
+        furi_string_printf(
+            ventra_xact_str,
+            "%c %s (V %s) %04d-%02d-%02d %02d:%02d",
+            (line < 3) ? linemap[line] : '?',
+            stop_name,
+            id_key,
+            dt.year, dt.month, dt.day,
+            dt.hour, dt.minute
+        );
+    } else {
+        // Fallback to original formatting
+        if(line == 2) {
+            furi_string_printf(
+                ventra_xact_str,
+                "%c %u %04d-%02d-%02d %02d:%02d",
+                (line < 3) ? linemap[line] : '?',
+                (unsigned int)locus,
+                dt.year, dt.month, dt.day,
+                dt.hour, dt.minute
+            );
+        } else {
+            furi_string_printf(
+                ventra_xact_str,
+                "%c %04X %04d-%02d-%02d %02d:%02d",
+                (line < 3) ? linemap[line] : '?',
+                (unsigned int)locus,
+                dt.year, dt.month, dt.day,
+                dt.hour, dt.minute
+            );
+        }
+    }
+
+        return (ventra_xact_str);
 }
 
 static bool ventra_parse(const NfcDevice* device, FuriString* parsed_data) {
@@ -153,6 +341,9 @@ static bool ventra_parse(const NfcDevice* device, FuriString* parsed_data) {
         case 0x1F: // Only ever seen one of these, it parses like a Single
             furi_string_cat_printf(ventra_prod_str, "Single");
             break;
+        case 0x01: // gleamed from a single-use ticket purchased 12-06-2025 (FatherDivine)
+            furi_string_cat_printf(ventra_prod_str, "Single");
+            break;    
         case 3:
         case 0x3F:
             is_pass = true;
