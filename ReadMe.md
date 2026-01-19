@@ -42,6 +42,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Swimmy Fish v2.0 (By Invizabel)](https://github.com/Invizabel/fish)
 - Added: [ArduGolf v1.0 (By apfxtech)](https://github.com/apfxtech/FlipperGolf)
 - Sub-GHz: [Removed car protocols from internal compile, now handled by ProtoPirate. Removed: Kia, ScherKahn and StarLine (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/cdd4f4d8430e311c9a745a5b953012cdd00c448b)
+- [NFC: Type 4 Support (NTAG4xx/DESFire) + Many Improvements #4242 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4242)
+- [Felica standard loading fix #4311 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4311)
+- [NFC FeliCa Improvement: Dump All Systems #4293 (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4293)
+- [NFC: Add Saflok MFUL Parser Support (By aaronjamt)](https://github.com/Next-Flip/Momentum-Firmware/pull/474)
+- Reverted: NFC: [ADD: Ventra parsing plugin to Metroflip. Updated: NFC ventra_parser.fal. #1164 (By FatherDivine)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1164)
+- Updated: [Metroflip v1.0 (By luu176)](https://github.com/luu176/Metroflip) (Felica Updates)
+- Updated: [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d) (NTAG4 Support)
 
 <a name="release">
 
@@ -661,7 +668,7 @@ $ ./fbt dolphin_ext
 - [NFC E-Ink Tags v1.0.4 (By RebornedBrain)](https://github.com/flipperdevices/flipperzero-good-faps/pull/245)
 - [NFC Keyboard v1.0 (By Patrick762)](https://github.com/Patrick762/flipper-nfc-keyboard)
 - [NFC Magic v1.15.1 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966)
-- [NFC Maker v2.0 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
+- [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
 - [NFC Playlist v3.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Playlist/tree/main)
 - [NFC Relay v0.2 (By leommxj)](https://github.com/leommxj/nfc_relay)
 - [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)

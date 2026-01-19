@@ -1,3 +1,6 @@
+v2.1:
+- Added support for Empty record type to make blank NDEF tags
+
 v2.0:
 - Added support for creating more types of tags:
   - MIFARE Classic Mini 0.3K

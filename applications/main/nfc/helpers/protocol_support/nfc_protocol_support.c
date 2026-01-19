@@ -115,6 +115,8 @@ const char* nfc_protocol_support_plugin_names[NfcProtocolNum] = {
     [NfcProtocolMfDesfire] = "mf_desfire",
     [NfcProtocolSlix] = "slix",
     [NfcProtocolSt25tb] = "st25tb",
+    [NfcProtocolNtag4xx] = "ntag4xx",
+    [NfcProtocolType4Tag] = "type_4_tag",
     [NfcProtocolEmv] = "emv",
     /* Add new protocol support plugin names here */
 };

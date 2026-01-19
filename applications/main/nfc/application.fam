@@ -179,6 +179,34 @@ App(
 )
 
 App(
+    appid="nfc_ntag4xx",
+    targets=["f7"],
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="nfc_ntag4xx_ep",
+    requires=["nfc"],
+    sources=[
+        "helpers/protocol_support/ntag4xx/*.c",
+        "helpers/protocol_support/iso14443_4a/*.c",
+        "helpers/protocol_support/iso14443_3a/*.c",
+    ],
+    fal_embedded=True,
+)
+
+App(
+    appid="nfc_type_4_tag",
+    targets=["f7"],
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="nfc_type_4_tag_ep",
+    requires=["nfc"],
+    sources=[
+        "helpers/protocol_support/type_4_tag/*.c",
+        "helpers/protocol_support/iso14443_4a/*.c",
+        "helpers/protocol_support/iso14443_3a/*.c",
+    ],
+    fal_embedded=True,
+)
+
+App(
     appid="nfc_emv",
     targets=["f7"],
     apptype=FlipperAppType.PLUGIN,
@@ -364,8 +392,19 @@ App(
 )
 
 App(
-    appid="saflok_parser",
+    appid="saflok_mfc_parser",
     apptype=FlipperAppType.PLUGIN,
+    cdefines=[("SL_PROTO", "SL_PROTO_MFC")],
+    entry_point="saflok_plugin_ep",
+    targets=["f7"],
+    requires=["nfc"],
+    sources=["plugins/supported_cards/saflok.c"],
+)
+
+App(
+    appid="saflok_ul_parser",
+    apptype=FlipperAppType.PLUGIN,
+    cdefines=[("SL_PROTO", "SL_PROTO_UL")],
     entry_point="saflok_plugin_ep",
     targets=["f7"],
     requires=["nfc"],
@@ -468,6 +507,16 @@ App(
     appid="ndef_slix_parser",
     apptype=FlipperAppType.PLUGIN,
     cdefines=[("NDEF_PROTO", "NDEF_PROTO_SLIX")],
+    entry_point="ndef_plugin_ep",
+    targets=["f7"],
+    requires=["nfc"],
+    sources=["plugins/supported_cards/ndef.c"],
+)
+
+App(
+    appid="ndef_t4t_parser",
+    apptype=FlipperAppType.PLUGIN,
+    cdefines=[("NDEF_PROTO", "NDEF_PROTO_T4T")],
     entry_point="ndef_plugin_ep",
     targets=["f7"],
     requires=["nfc"],

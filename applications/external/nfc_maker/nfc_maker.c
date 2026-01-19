@@ -45,6 +45,32 @@ const CardDef cards[CardMAX] = {
             .generator = NfcDataGeneratorTypeNTAGI2C2k,
         },
 
+    // Type4Tag (no TLV, so +3 for < 255b message or +5 for larger messages)
+    [CardNtag413DNA] =
+        {
+            .name = "NTAG 413 DNA (126B)",
+            .size = 126 + 3,
+            .protocol = NfcProtocolType4Tag,
+        },
+    [CardNtag424DNA] =
+        {
+            .name = "NTAG 424 DNA (254B)",
+            .size = 254 + 3,
+            .protocol = NfcProtocolType4Tag,
+        },
+    [CardMfDesfire] =
+        {
+            .name = "MIFARE DESFire (2046B)",
+            .size = TYPE_4_TAG_MF_DESFIRE_NDEF_SIZE + 5,
+            .protocol = NfcProtocolType4Tag,
+        },
+    [CardType4Generic] =
+        {
+            .name = "Generic Type 4 Tag",
+            .size = -1,
+            .protocol = NfcProtocolType4Tag,
+        },
+
     // MfClassic (size excludes sector trailers and MAD1/2 sectors)
     [CardMfClassicMini] =
         {

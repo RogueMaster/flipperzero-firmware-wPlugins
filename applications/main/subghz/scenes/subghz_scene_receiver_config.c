@@ -410,7 +410,7 @@ static inline bool subghz_scene_receiver_config_ignore_filter_get_index(
 }
 
 // static void subghz_scene_receiver_config_set_cars(VariableItem* item) {
-    // subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_Cars);
+// subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_Cars);
 // }
 
 static void subghz_scene_receiver_config_set_alarms(VariableItem* item) {
@@ -596,14 +596,14 @@ void subghz_scene_receiver_config_on_enter(void* context) {
         variable_item_set_current_value_text(item, combobox_text[value_index]);
 
         // item = variable_item_list_add(
-            // subghz->variable_item_list,
-            // "Ignore Cars",
-            // COMBO_BOX_COUNT,
-            // subghz_scene_receiver_config_set_cars,
-            // subghz);
+        // subghz->variable_item_list,
+        // "Ignore Cars",
+        // COMBO_BOX_COUNT,
+        // subghz_scene_receiver_config_set_cars,
+        // subghz);
 
         // value_index = subghz_scene_receiver_config_ignore_filter_get_index(
-            // subghz->ignore_filter, SubGhzProtocolFilter_Cars);
+        // subghz->ignore_filter, SubGhzProtocolFilter_Cars);
         // variable_item_set_current_value_index(item, value_index);
         // variable_item_set_current_value_text(item, combobox_text[value_index]);
 
