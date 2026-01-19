@@ -1,23 +1,8 @@
 #include "../nfc_maker.h"
-#include <nfc_device_i.h>
-#include <core/string.h>
 
 enum TextInputResult {
     TextInputResultOk,
 };
-
-void nfc_maker_get_abbreviated_name(const NfcDevice* instance, FuriString* name) {
-    furi_assert(instance);
-    furi_assert(instance->protocol < NfcProtocolNum);
-
-    furi_string_set(name, nfc_device_get_name(instance, NfcDeviceNameTypeFull));
-    furi_string_replace(name, "Mifare", "MF");
-    furi_string_replace(name, " Classic", "C"); // MFC
-    furi_string_replace(name, "Desfire", "Des"); // MF Des
-    furi_string_replace(name, "Ultralight", "UL"); // MF UL
-    furi_string_replace(name, " Plus", "+"); // NTAG I2C+
-    furi_string_replace(name, " (Unknown)", "");
-}
 
 static void nfc_maker_scene_save_name_text_input_callback(void* context) {
     NfcMaker* app = context;
@@ -32,7 +17,7 @@ void nfc_maker_scene_save_name_on_enter(void* context) {
     nfc_maker_text_input_set_header_text(text_input, "Save the NFC tag:");
 
     FuriString* prefix = furi_string_alloc();
-    nfc_maker_get_abbreviated_name(app->nfc_device, prefix);
+    furi_string_set(prefix, nfc_device_get_name(app->nfc_device, NfcDeviceNameTypeFull));
     furi_string_replace(prefix, "Mifare", "MF");
     furi_string_replace(prefix, " Classic", "C"); // MFC
     furi_string_replace(prefix, "Desfire", "Des"); // MF Des
@@ -40,6 +25,7 @@ void nfc_maker_scene_save_name_on_enter(void* context) {
     furi_string_replace(prefix, " Plus", "+"); // NTAG I2C+
     furi_string_replace(prefix, " (Unknown)", "");
     furi_string_replace_all(prefix, " ", "_");
+    furi_string_replace_all(prefix, "/", "_");
     name_generator_make_auto(app->save_buf, sizeof(app->save_buf), furi_string_get_cstr(prefix));
     furi_string_free(prefix);
 

@@ -56,6 +56,14 @@ static void nfc_maker_scene_save_generate_populate_ndef_buffer(NfcMaker* app) {
         furi_string_free(vcard);
         break;
     }
+    case NfcMakerSceneSaveGenerate: { // Empty
+        tnf = 0x00; // Empty
+        type = "";
+
+        payload_len = 0;
+        payload = payload_it = NULL;
+        break;
+    }
     case NfcMakerSceneHttps: {
         tnf = 0x01; // NFC Forum well-known type [NFC RTD]
         type = "U";
@@ -269,7 +277,9 @@ static void nfc_maker_scene_save_generate_populate_ndef_buffer(NfcMaker* app) {
     // Record payload
     memcpy(buf, payload, payload_len);
     buf += payload_len;
-    free(payload);
+    if(payload) {
+        free(payload);
+    }
 
     // Record terminator
     *buf++ = 0xFE;
@@ -296,6 +306,42 @@ static void nfc_maker_scene_save_generate_populate_device_mful(NfcMaker* app, Ca
 
     nfc_device_set_data(app->nfc_device, NfcProtocolMfUltralight, data);
     mf_ultralight_free(data);
+}
+
+static void nfc_maker_scene_save_generate_populate_device_t4t(NfcMaker* app, Card card_type) {
+    Type4TagData* data = type_4_tag_alloc();
+
+    uint8_t uid[7];
+    data->iso14443_4a_data->iso14443_3a_data->uid_len = sizeof(uid);
+    furi_hal_random_fill_buf(uid, sizeof(uid));
+    if(card_type != CardType4Generic) {
+        uid[0] = 0x04; // NXP manufacturer code
+    }
+    type_4_tag_set_uid(data, uid, sizeof(uid));
+
+    data->iso14443_4a_data->iso14443_3a_data->atqa[0] = 0x44;
+    data->iso14443_4a_data->iso14443_3a_data->atqa[1] = 0x03;
+    data->iso14443_4a_data->iso14443_3a_data->sak = 0x20;
+
+    data->iso14443_4a_data->ats_data.tl = 6;
+    data->iso14443_4a_data->ats_data.t0 = 0x77;
+    data->iso14443_4a_data->ats_data.ta_1 = 0x77;
+    data->iso14443_4a_data->ats_data.tb_1 = 0x71;
+    data->iso14443_4a_data->ats_data.tc_1 = 0x02;
+    simple_array_init(data->iso14443_4a_data->ats_data.t1_tk, 1);
+    uint8_t* historical_bytes = simple_array_get_data(data->iso14443_4a_data->ats_data.t1_tk);
+    historical_bytes[0] = 0x80;
+
+    const bool is_short_record = app->ndef_buffer[1] < 0xFF;
+    const size_t ndef_message_size = app->ndef_size - (is_short_record ? 3 : 5);
+    const uint8_t* ndef_message = &app->ndef_buffer[is_short_record ? 2 : 4];
+    simple_array_init(data->ndef_data, ndef_message_size);
+    memcpy(simple_array_get_data(data->ndef_data), ndef_message, ndef_message_size);
+    free(app->ndef_buffer);
+    app->ndef_buffer = NULL;
+
+    nfc_device_set_data(app->nfc_device, NfcProtocolType4Tag, data);
+    type_4_tag_free(data);
 }
 
 static void nfc_maker_scene_save_generate_populate_device_mfc(NfcMaker* app, Card card_type) {
@@ -476,6 +522,9 @@ bool nfc_maker_scene_save_generate_on_event(void* context, SceneManagerEvent eve
         switch(cards[event.event].protocol) {
         case NfcProtocolMfUltralight:
             nfc_maker_scene_save_generate_populate_device_mful(app, event.event);
+            break;
+        case NfcProtocolType4Tag:
+            nfc_maker_scene_save_generate_populate_device_t4t(app, event.event);
             break;
         case NfcProtocolMfClassic:
             nfc_maker_scene_save_generate_populate_device_mfc(app, event.event);

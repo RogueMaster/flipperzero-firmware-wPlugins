@@ -34,7 +34,6 @@ void metroflip_scene_supported_on_enter(void* context) {
     furi_string_cat_printf(str, " - Troika:\nMoscow, Russia\nProtocol: MIFARE Classic\n\n");
     furi_string_cat_printf(str, " - TRT:\nTianjin, China\nProtocol: MIFARE Ultralight\n\n");
     furi_string_cat_printf(str, " - Suica:\nJapan\nProtocol: FeliCa\n\n");
-    furi_string_cat_printf(str, " - Ventra:\nChicago, IL, USA\nProtocol: MIFARE Ultralight\n\n");
 
     widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(str));
 

@@ -74,6 +74,15 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage) Added Missing API files for strnlen (By xMasterX)
 - Updated: [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer) Added Missing API files for strnlen (By xMasterX)
 - Updated: [Wendigo Bluetooth Tracker WIP v0.5.1 (By chris-bc)](https://github.com/chris-bc/wendigo) `WIP Req: ESP32` Added Missing API files for strnlen (By xMasterX)
+- Removed: [FastJS v1.2 (By jblanked)](https://github.com/jblanked/FastJS-FlipperZero) To make room for more protocols.
+- Removed: [JS Runner v1.0 (By nminaylov & DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/3286) To make room for more protocols.
+- [NFC: Type 4 Support (NTAG4xx/DESFire) + Many Improvements #4242 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4242)
+- [Felica standard loading fix #4311 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4311)
+- [NFC FeliCa Improvement: Dump All Systems #4293 (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4293)
+- [NFC: Add Saflok MFUL Parser Support (By aaronjamt)](https://github.com/Next-Flip/Momentum-Firmware/pull/474)
+- Reverted: NFC: [ADD: Ventra parsing plugin to Metroflip. Updated: NFC ventra_parser.fal. #1164 (By FatherDivine)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1164)
+- Updated: [Metroflip v1.0 (By luu176)](https://github.com/luu176/Metroflip) (Felica Updates)
+- Updated: [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d) (NTAG4 Support)
 
 <a name="release"></a>
 
@@ -216,9 +225,6 @@ $ ./fbt dolphin_ext
 - Infrared: Assets for Toto and BioBidet bidets.
 - Infrared: [Easy Learn (By jaylikesbunda & WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/pull/350)
 - Infrared: Universal AC, Audio, Fans & Projectors from [amec0e / Unleashed](https://github.com/DarkFlippers/unleashed-firmware)
-- JS: [Added ble beacon, math and keyboard to JavaScript API (By Spooks4576)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/41bb09492400026be66ef5f8b78f506f21361f1d) & [Submenu support (By Spooks4576)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/6335d14c7498ab4b2e4b28fa707fe7f68d3843b5)
-- JS: Added support for and improvements on BadUSB, BLE Beacon, GPIO, Storage & Sub-GHz (By WillyJL & Sil333033)
-- JS: Script Asset for RogueMaster Home & [JS Script: BadUSB_Win_Exfil-GSHD.js (By Gas Station Hot Dog)](https://github.com/User84User/User84PublicUser/blob/main/Windows_Exfil-GSHD.js)
 - NFC: [Added additional aid GeldKarte (for emv) (thanks to haisenteck) (From Korai-Labs / ankris812)](https://github.com/Korai-Labs/Korai)
 - NFC: [Extra NFC Mifare Keys (By Korai-Labs / ankris812)](https://github.com/Korai-Labs/Korai)
 - NFC: [Parser / KDF for mizip and mykey updated & addition of hi and microel (By zProAle)](https://github.com/zProAle/my_flipper_kdf)
@@ -554,7 +560,6 @@ $ ./fbt dolphin_ext
 - [Eye Saver v0.1 (By paul-sopin)](https://github.com/paul-sopin/flipper-eye-saver)
 - [EXTRA Demo v0.4 (By Milk-Cool)](https://github.com/Milk-Cool/EXTRA-demo) (This app has VERY useful functions!)
 - [FAP Boilerplate v1.3 (By leedave)](https://github.com/leedave/flipper-zero-fap-boilerplate)
-- [FastJS v1.2 (By jblanked)](https://github.com/jblanked/FastJS-FlipperZero)
 - [FDX-B Maker v1.0 (By snowsign)](https://github.com/snowsign/fdxb-maker)
 - [Fencing Test Box v0.1 (By aarjaneiro)](https://www.github.com/aarjaneiro/fencing_testbox)
 - [Financial Calculator v1.0 (By schaene)](https://github.com/schaene/Flipper-Financial-Calculator)
@@ -651,7 +656,6 @@ $ ./fbt dolphin_ext
 - [ISO15693-3 NFC Writer v1.0 (By ch4istO)](https://github.com/ch4istO/unleashed-firmware/tree/dev/applications_user/iso15693_nfc_writer)
 - [J305 Geiger Counter v1.4 (By nmrr)](https://github.com/nmrr/flipperzero-geigercounter)
 - [Joycon v1.0 (By ccyyturralde)](https://github.com/ccyyturralde/Flipper-Zero-Joycon)
-- [JS Runner v1.0 (By nminaylov & DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/3286)
 - [Karl Eido v0.1 (By fgreil)](https://github.com/fgreil/mitzi-karl-eido)
 - [Key Copier v1.5 (By zinongli)](https://github.com/zinongli/KeyCopier)
 - [Lab401/DigiLab v1.1.1 (By lab-401 & tixlegeek)](https://github.com/lab-401/fzDigiLab)
@@ -728,7 +732,7 @@ $ ./fbt dolphin_ext
 - [NFC Keyboard v1.0 (By Patrick762)](https://github.com/Patrick762/flipper-nfc-keyboard)
 - [NFC Login v1.1.2 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
 - [NFC Magic v1.15.1 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966)
-- [NFC Maker v2.0 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
+- [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
 - [NFC Playlist v3.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Playlist/tree/main)
 - [NFC Relay v0.2 (By leommxj)](https://github.com/leommxj/nfc_relay)
 - [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)

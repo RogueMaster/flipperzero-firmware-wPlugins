@@ -5,6 +5,7 @@ After saving in NFC Maker, you can find and emulate the file in NFC app > Saved.
 Supported data types:
   - Bluetooth MAC
   - Contact Vcard
+  - Empty
   - HTTPS Link
   - Mail Address
   - Text Note

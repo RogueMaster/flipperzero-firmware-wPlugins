@@ -14,7 +14,7 @@ enum SubGhzSettingIndex {
     SubGhzSettingIndexRemoveDuplicates,
     SubGhzSettingIndexDeleteOldSignals,
     SubGhzSettingIndexAutosave,
-    SubGhzSettingIndexIgnoreReversRB2,
+    // SubGhzSettingIndexIgnoreCars,
     SubGhzSettingIndexIgnoreAlarms,
     SubGhzSettingIndexIgnoreSensors,
     SubGhzSettingIndexIgnorePrinceton,
@@ -409,9 +409,9 @@ static inline bool subghz_scene_receiver_config_ignore_filter_get_index(
     return READ_BIT(filter, flag) > 0;
 }
 
-static void subghz_scene_receiver_config_set_reversrb2(VariableItem* item) {
-    subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_ReversRB2);
-}
+// static void subghz_scene_receiver_config_set_cars(VariableItem* item) {
+// subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_Cars);
+// }
 
 static void subghz_scene_receiver_config_set_alarms(VariableItem* item) {
     subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_Alarms);
@@ -595,17 +595,17 @@ void subghz_scene_receiver_config_on_enter(void* context) {
         variable_item_set_current_value_index(item, value_index);
         variable_item_set_current_value_text(item, combobox_text[value_index]);
 
-        item = variable_item_list_add(
-            subghz->variable_item_list,
-            "Ignore ReversRB2",
-            COMBO_BOX_COUNT,
-            subghz_scene_receiver_config_set_reversrb2,
-            subghz);
+        // item = variable_item_list_add(
+        // subghz->variable_item_list,
+        // "Ignore Cars",
+        // COMBO_BOX_COUNT,
+        // subghz_scene_receiver_config_set_cars,
+        // subghz);
 
-        value_index = subghz_scene_receiver_config_ignore_filter_get_index(
-            subghz->ignore_filter, SubGhzProtocolFilter_ReversRB2);
-        variable_item_set_current_value_index(item, value_index);
-        variable_item_set_current_value_text(item, combobox_text[value_index]);
+        // value_index = subghz_scene_receiver_config_ignore_filter_get_index(
+        // subghz->ignore_filter, SubGhzProtocolFilter_Cars);
+        // variable_item_set_current_value_index(item, value_index);
+        // variable_item_set_current_value_text(item, combobox_text[value_index]);
 
         item = variable_item_list_add(
             subghz->variable_item_list,

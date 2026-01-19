@@ -10,75 +10,8 @@
 #include "desfire.h"
 #include <nfc/protocols/mf_desfire/mf_desfire_poller.h>
 #include <lib/nfc/protocols/mf_desfire/mf_desfire.h>
-#include <nfc/protocols/mf_ultralight/mf_ultralight_poller.h>
 #include "../api/metroflip/metroflip_api.h"
 #define TAG "Metroflip:Scene:Auto"
-
-// Detection constants for Ventra
-#define VENTRA_MIN_PAGES_REQUIRED 7 // Need pages 0-6
-
-// Detection constants for TRT (Tianjin Railway Transit)
-#define TRT_MIN_PAGES_REQUIRED        15 // Need pages 0-14 (0x0E)
-#define TRT_LATEST_SALE_MARKER        0x02
-#define TRT_SALE_RECORD_TIME_STAMP_A  0x0C
-#define TRT_SALE_RECORD_TIME_STAMP_B  0x0E
-#define TRT_FULL_SALE_TIME_STAMP_PAGE 0x09
-
-// Helper function to determine if MfUltralight card is Ventra
-static bool is_ventra_card(const MfUltralightData* data) {
-    // Ventra detection requires pages 4 and 6
-    if(data->pages_read < VENTRA_MIN_PAGES_REQUIRED) return false;
-
-    // Ventra detection signature from ventra.c
-    return (
-        data->page[4].data[0] == 0x0A && data->page[4].data[1] == 4 &&
-        data->page[4].data[2] == 0 && data->page[6].data[0] == 0 && data->page[6].data[1] == 0 &&
-        data->page[6].data[2] == 0);
-}
-
-// Helper function to determine if MfUltralight card is TRT
-static bool is_trt_card(const MfUltralightData* data) {
-    // TRT detection requires pages up to 0x0E (14)
-    if(data->pages_read < TRT_MIN_PAGES_REQUIRED) return false;
-
-    // TRT detection logic from trt.c
-    uint8_t latest_sale_page = 0;
-
-    if(data->page[TRT_SALE_RECORD_TIME_STAMP_A].data[0] == TRT_LATEST_SALE_MARKER) {
-        latest_sale_page = TRT_SALE_RECORD_TIME_STAMP_A;
-    } else if(data->page[TRT_SALE_RECORD_TIME_STAMP_B].data[0] == TRT_LATEST_SALE_MARKER) {
-        latest_sale_page = TRT_SALE_RECORD_TIME_STAMP_B;
-    } else {
-        return false;
-    }
-
-    // Check if the sale record was backed up
-    // Note: latest_sale_page is guaranteed to be either 0x0C (12) or 0x0E (14) here,
-    // so latest_sale_page - 1 will be 11 or 13, safely within bounds
-    const uint8_t* partial_record_pointer = &data->page[latest_sale_page - 1].data[0];
-    const uint8_t* full_record_pointer = &data->page[TRT_FULL_SALE_TIME_STAMP_PAGE].data[0];
-    uint32_t latest_sale_record = bit_lib_get_bits_32(partial_record_pointer, 3, 20);
-    uint32_t latest_sale_full_record = bit_lib_get_bits_32(full_record_pointer, 0, 27);
-
-    if(latest_sale_record != (latest_sale_full_record & 0xFFFFF)) return false;
-    if((latest_sale_record == 0) || (latest_sale_full_record == 0)) return false;
-
-    return true;
-}
-
-// Determine card type for MfUltralight cards
-static const char* determine_mf_ultralight_type(const MfUltralightData* data) {
-    if(is_ventra_card(data)) {
-        FURI_LOG_I(TAG, "Detected: Ventra");
-        return "ventra";
-    }
-    if(is_trt_card(data)) {
-        FURI_LOG_I(TAG, "Detected: TRT");
-        return "trt";
-    }
-    FURI_LOG_I(TAG, "Unknown MfUltralight card");
-    return "Unknown Card";
-}
 
 static NfcCommand
     metroflip_scene_detect_desfire_poller_callback(NfcGenericEvent event, void* context) {
@@ -100,34 +33,6 @@ static NfcCommand
     } else if(mf_desfire_event->type == MfDesfirePollerEventTypeReadFailed) {
         view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandContinue;
-    }
-
-    return command;
-}
-
-static NfcCommand
-    metroflip_scene_detect_mf_ultralight_poller_callback(NfcGenericEvent event, void* context) {
-    furi_assert(event.protocol == NfcProtocolMfUltralight);
-
-    Metroflip* app = context;
-    NfcCommand command = NfcCommandContinue;
-
-    const MfUltralightPollerEvent* mf_ultralight_event = event.event_data;
-    if(mf_ultralight_event->type == MfUltralightPollerEventTypeReadSuccess) {
-        nfc_device_set_data(
-            app->nfc_device, NfcProtocolMfUltralight, nfc_poller_get_data(app->poller));
-        const MfUltralightData* data =
-            nfc_device_get_data(app->nfc_device, NfcProtocolMfUltralight);
-        furi_string_reset(app->text_box_store);
-        app->card_type = determine_mf_ultralight_type(data);
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
-
-        command = NfcCommandStop;
-    } else if(mf_ultralight_event->type == MfUltralightPollerEventTypeReadFailed) {
-        // If read failed, still try to proceed with unknown type
-        app->card_type = "Unknown Card";
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
-        command = NfcCommandStop;
     }
 
     return command;
@@ -323,10 +228,9 @@ bool metroflip_scene_auto_on_event(void* context, SceneManagerEvent event) {
                 nfc_detected_protocols_get_protocol(app->detected_protocols, 0) ==
                 NfcProtocolMfUltralight) {
                 FURI_LOG_I(TAG, "Protocol is MfUl");
+                app->card_type = "trt"; // place holder for now
                 app->is_desfire = false;
-                app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfUltralight);
-                nfc_poller_start(
-                    app->poller, metroflip_scene_detect_mf_ultralight_poller_callback, app);
+                scene_manager_next_scene(app->scene_manager, MetroflipSceneParse);
                 consumed = true;
             } else if(
                 nfc_detected_protocols_get_protocol(app->detected_protocols, 0) ==
