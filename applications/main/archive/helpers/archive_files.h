@@ -30,6 +30,7 @@ typedef enum {
     ArchiveFileTypeUpdateManifest,
     ArchiveFileTypeDiskImage,
     ArchiveFileTypeFolder,
+    ArchiveFileTypeProtoPirate,
     ArchiveFileTypeUnknown,
     ArchiveFileTypeAppOrJs,
     ArchiveFileTypeLoading,

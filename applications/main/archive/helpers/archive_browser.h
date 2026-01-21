@@ -46,6 +46,7 @@ static const char* known_ext[] = {
     [ArchiveFileTypeUpdateManifest] = ".fuf",
     [ArchiveFileTypeDiskImage] = ".img",
     [ArchiveFileTypeFolder] = "?",
+    [ArchiveFileTypeProtoPirate] = ".psf",
     [ArchiveFileTypeUnknown] = "*",
     [ArchiveFileTypeAppOrJs] = ".fap|.js",
     // clang-format on

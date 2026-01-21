@@ -29,6 +29,8 @@ const char* archive_get_flipper_app_name(ArchiveFileTypeEnum file_type) {
         return EXT_PATH("apps/Sub-GHz/subghz_playlist.fap");
     case ArchiveFileTypeSubghzRemote:
         return EXT_PATH("apps/Sub-GHz/subghz_remote_refactored.fap");
+    case ArchiveFileTypeProtoPirate:
+        return EXT_PATH("apps/Sub-Ghz/proto_pirate.fap");
     case ArchiveFileTypeInfraredRemote:
         return EXT_PATH("apps/Infrared/ir_remote.fap");
     case ArchiveFileTypeBadUsb:
