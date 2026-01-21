@@ -1,0 +1,18 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="uk_mbirth_sonicare",  # Must be unique
+    name="Sonicare Head ID",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="uk_mbirth_sonicare_app",
+    stack_size=2 * 1024,
+    fap_category="RFID",
+    # Optional values
+    requires=["gui"],
+    # fap_version="0.1",
+    fap_icon="uk_mbirth_sonicare.png",  # 10x10 1-bit PNG
+    # fap_description="A simple app",
+    # fap_author="J. Doe",
+    # fap_weburl="https://github.com/user/uk_mbirth_sonicare",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)
