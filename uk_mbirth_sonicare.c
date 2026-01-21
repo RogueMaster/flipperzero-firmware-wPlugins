@@ -25,6 +25,8 @@ void draw_callback(Canvas* canvas, void* context) {
     
     canvas_set_font(canvas, FontKeyboard);
     canvas_draw_str_aligned(canvas, 1, 28, AlignLeft, AlignTop, "by mbirth.uk");
+    
+    canvas_draw_icon(canvas, 50, 0, &I_brush_10px);
 }
 
 void input_callback(InputEvent* event, void* context) {
