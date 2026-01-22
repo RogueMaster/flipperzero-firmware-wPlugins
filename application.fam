@@ -9,10 +9,10 @@ App(
     fap_category="RFID",
     # Optional values
     requires=["gui"],
-    # fap_version="0.1",
+    fap_version="0.1",
     fap_icon="uk_mbirth_sonicare.png",  # 10x10 1-bit PNG
-    # fap_description="A simple app",
-    # fap_author="J. Doe",
-    # fap_weburl="https://github.com/user/uk_mbirth_sonicare",
+    fap_description="Philips Sonicare brush head reader",
+    fap_author="mbirth.uk",
+    fap_weburl="https://git.mbirth.uk/",
     fap_icon_assets="images",  # Image assets to compile for this application
 )
