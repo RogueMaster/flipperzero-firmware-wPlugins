@@ -1,5 +1,5 @@
 {
-  "editor.default_syntax" : "cpp",
+  "editor.default_syntax" : "c",
   "index.ignored_file_patterns" : [
     "dist\/*"
   ]
