@@ -39,11 +39,19 @@ static Sonicare* sonicare_alloc(void) {
     sonicare->submenu = submenu_alloc();
     view_dispatcher_add_view(sonicare->view_dispatcher, SonicareViewSubmenu, submenu_get_view(sonicare->submenu));
     
+    // Widget
+    sonicare->widget = widget_alloc();
+    view_dispatcher_add_view(sonicare->view_dispatcher, SonicareViewWidget, widget_get_view(sonicare->widget));
+
     return sonicare;
 }
 
 static void sonicare_free(Sonicare* sonicare) {
     furi_assert(sonicare);
+    
+    // Widget
+    view_dispatcher_remove_view(sonicare->view_dispatcher, SonicareViewWidget);
+    widget_free(sonicare->widget);
     
     // Submenu
     view_dispatcher_remove_view(sonicare->view_dispatcher, SonicareViewSubmenu);
@@ -79,4 +87,11 @@ int32_t sonicare_app(void* p) {
     sonicare_free(app);
     
     return 0;
+}
+
+void sonicare_widget_callback(GuiButtonType result, InputType type, void* context) {
+    Sonicare* app = context;
+    if (type == InputTypeShort) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, result);
+    }
 }

@@ -60,3 +60,5 @@ typedef enum {
     SonicareMenuIndexAddManually,
     SonicareMenuIndexExtraActions,
 } SonicareMenuIndex;
+
+void sonicare_widget_callback(GuiButtonType result, InputType type, void* context);
