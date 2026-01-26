@@ -4,7 +4,7 @@ App(
     appid="uk_mbirth_sonicare",  # Must be unique
     name="Sonicare Head ID",  # Displayed in menus
     apptype=FlipperAppType.EXTERNAL,
-    entry_point="uk_mbirth_sonicare_app",
+    entry_point="sonicare_app",
     stack_size=2 * 1024,
     fap_category="RFID",
     # Optional values
