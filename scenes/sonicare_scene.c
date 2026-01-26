@@ -21,7 +21,7 @@ void (*const sonicare_on_exit_handlers[])(void* context) = {
 };
 #undef ADD_SCENE
 
-// Initialize scene handlers configuration structure
+// Initialise scene handlers configuration structure
 const SceneManagerHandlers sonicare_scene_handlers = {
     .on_enter_handlers = sonicare_on_enter_handlers,
     .on_event_handlers = sonicare_on_event_handlers,

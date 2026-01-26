@@ -37,8 +37,7 @@ static Sonicare* sonicare_alloc(void) {
     
     // Submenu
     sonicare->submenu = submenu_alloc();
-    view_dispatcher_add_view(
-        sonicare->view_dispatcher, SonicareViewSubmenu, submenu_get_view(sonicare->submenu));
+    view_dispatcher_add_view(sonicare->view_dispatcher, SonicareViewSubmenu, submenu_get_view(sonicare->submenu));
     
     return sonicare;
 }
