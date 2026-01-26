@@ -56,6 +56,7 @@ typedef enum {
 
 typedef enum {
     SonicareMenuIndexRead,
+    SonicareMenuIndexAbout,
     SonicareMenuIndexSaved,
     SonicareMenuIndexAddManually,
     SonicareMenuIndexExtraActions,
