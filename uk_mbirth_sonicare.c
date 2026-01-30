@@ -43,11 +43,19 @@ static Sonicare* sonicare_alloc(void) {
     sonicare->widget = widget_alloc();
     view_dispatcher_add_view(sonicare->view_dispatcher, SonicareViewWidget, widget_get_view(sonicare->widget));
 
+    // Popup
+    sonicare->popup = popup_alloc();
+    view_dispatcher_add_view(sonicare->view_dispatcher, SonicareViewPopup, popup_get_view(sonicare->popup));
+
     return sonicare;
 }
 
 static void sonicare_free(Sonicare* sonicare) {
     furi_assert(sonicare);
+    
+    // Popup
+    view_dispatcher_remove_view(sonicare->view_dispatcher, SonicareViewPopup);
+    popup_free(sonicare->popup);
     
     // Widget
     view_dispatcher_remove_view(sonicare->view_dispatcher, SonicareViewWidget);
