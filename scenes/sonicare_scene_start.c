@@ -11,6 +11,7 @@ void sonicare_scene_start_on_enter(void* context) {
     Sonicare* app = context;
     Submenu* submenu = app->submenu;
 
+    submenu_set_header(submenu, "Sonicare");
     submenu_add_item(submenu, "Read Brush Head", SonicareMenuIndexRead, sonicare_scene_start_submenu_callback, app);
     submenu_add_item(submenu, "Write Brush Head", SonicareMenuIndexSaved, sonicare_scene_start_submenu_callback, app);
     submenu_add_item(submenu, "Add Manually", SonicareMenuIndexAddManually, sonicare_scene_start_submenu_callback, app);
@@ -29,7 +30,7 @@ bool sonicare_scene_start_on_event(void* context, SceneManagerEvent event) {
         if (event.event == SonicareMenuIndexRead) {
             scene_manager_set_scene_state(app->scene_manager, SonicareSceneStart, SonicareMenuIndexRead);
             scene_manager_next_scene(app->scene_manager, SonicareSceneRead);
-            dolphin_deed(DolphinDeedNfcRead);
+            //dolphin_deed(DolphinDeedNfcRead);
             consumed = true;
         } else if (event.event == SonicareMenuIndexAbout) {
             scene_manager_set_scene_state(app->scene_manager, SonicareSceneStart, SonicareMenuIndexAbout);
