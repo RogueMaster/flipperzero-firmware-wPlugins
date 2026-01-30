@@ -18,67 +18,67 @@ static bool sonicare_debug_back_event_callback(void* context) {
 }
 
 static Sonicare* sonicare_alloc(void) {
-    Sonicare* sonicare = malloc(sizeof(Sonicare));
+    Sonicare* app = malloc(sizeof(Sonicare));
     
-    sonicare->storage = furi_record_open(RECORD_STORAGE);
-    sonicare->dialogs = furi_record_open(RECORD_DIALOGS);
+    app->storage = furi_record_open(RECORD_STORAGE);
+    app->dialogs = furi_record_open(RECORD_DIALOGS);
     
-    sonicare->view_dispatcher = view_dispatcher_alloc();
-    sonicare->scene_manager = scene_manager_alloc(&sonicare_scene_handlers, sonicare);
-    view_dispatcher_set_event_callback_context(sonicare->view_dispatcher, sonicare);
-    view_dispatcher_set_custom_event_callback(sonicare->view_dispatcher, sonicare_debug_custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(sonicare->view_dispatcher, sonicare_debug_back_event_callback);
+    app->view_dispatcher = view_dispatcher_alloc();
+    app->scene_manager = scene_manager_alloc(&sonicare_scene_handlers, app);
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, sonicare_debug_custom_event_callback);
+    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, sonicare_debug_back_event_callback);
     
     // Open GUI record
-    sonicare->gui = furi_record_open(RECORD_GUI);
+    app->gui = furi_record_open(RECORD_GUI);
     
     // Open Notification record
-    sonicare->notifications = furi_record_open(RECORD_NOTIFICATION);
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
     
     // Submenu
-    sonicare->submenu = submenu_alloc();
-    view_dispatcher_add_view(sonicare->view_dispatcher, SonicareViewSubmenu, submenu_get_view(sonicare->submenu));
+    app->submenu = submenu_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, SonicareViewSubmenu, submenu_get_view(app->submenu));
     
     // Widget
-    sonicare->widget = widget_alloc();
-    view_dispatcher_add_view(sonicare->view_dispatcher, SonicareViewWidget, widget_get_view(sonicare->widget));
+    app->widget = widget_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, SonicareViewWidget, widget_get_view(app->widget));
 
     // Popup
-    sonicare->popup = popup_alloc();
-    view_dispatcher_add_view(sonicare->view_dispatcher, SonicareViewPopup, popup_get_view(sonicare->popup));
+    app->popup = popup_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, SonicareViewPopup, popup_get_view(app->popup));
 
-    return sonicare;
+    return app;
 }
 
-static void sonicare_free(Sonicare* sonicare) {
-    furi_assert(sonicare);
+static void sonicare_free(Sonicare* app) {
+    furi_assert(app);
     
     // Popup
-    view_dispatcher_remove_view(sonicare->view_dispatcher, SonicareViewPopup);
-    popup_free(sonicare->popup);
+    view_dispatcher_remove_view(app->view_dispatcher, SonicareViewPopup);
+    popup_free(app->popup);
     
     // Widget
-    view_dispatcher_remove_view(sonicare->view_dispatcher, SonicareViewWidget);
-    widget_free(sonicare->widget);
+    view_dispatcher_remove_view(app->view_dispatcher, SonicareViewWidget);
+    widget_free(app->widget);
     
     // Submenu
-    view_dispatcher_remove_view(sonicare->view_dispatcher, SonicareViewSubmenu);
-    submenu_free(sonicare->submenu);
+    view_dispatcher_remove_view(app->view_dispatcher, SonicareViewSubmenu);
+    submenu_free(app->submenu);
     
-    view_dispatcher_free(sonicare->view_dispatcher);
+    view_dispatcher_free(app->view_dispatcher);
     
-    scene_manager_free(sonicare->scene_manager);
+    scene_manager_free(app->scene_manager);
     
     furi_record_close(RECORD_GUI);
-    sonicare->gui = NULL;
+    app->gui = NULL;
     
     furi_record_close(RECORD_NOTIFICATION);
-    sonicare->notifications = NULL;
+    app->notifications = NULL;
     
     furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_DIALOGS);
     
-    free(sonicare);
+    free(app);
 }
 
 int32_t sonicare_app(void* p) {
