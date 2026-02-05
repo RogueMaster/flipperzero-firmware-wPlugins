@@ -301,6 +301,14 @@ static void subghz_scene_receiver_config_set_speaker(VariableItem* item) {
     subghz->last_settings->enable_sound = (speaker_value[index] == SubGhzSpeakerStateEnable);
 }
 
+static void subghz_scene_receiver_config_set_silent(VariableItem* item) {
+    SubGhz* subghz = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+
+    variable_item_set_current_value_text(item, combobox_text[index]);
+    subghz->last_settings->silent = (index == 1);
+}
+
 static void subghz_scene_receiver_config_set_bin_raw(VariableItem* item) {
     SubGhz* subghz = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
@@ -470,6 +478,7 @@ static void subghz_scene_receiver_config_var_list_enter_callback(void* context, 
 
         subghz_txrx_speaker_set_state(subghz->txrx, speaker_value[default_index]);
         subghz->last_settings->enable_sound = false;
+        subghz->last_settings->silent = false;
 
         subghz_txrx_hopper_set_state(subghz->txrx, hopping_value[default_index]);
         subghz->last_settings->enable_hopping = hopping_value[default_index];
@@ -665,6 +674,17 @@ void subghz_scene_receiver_config_on_enter(void* context) {
         subghz);
     value_index = value_index_uint32(
         subghz_txrx_speaker_get_state(subghz->txrx), speaker_value, COMBO_BOX_COUNT);
+    variable_item_set_current_value_index(item, value_index);
+    variable_item_set_current_value_text(item, combobox_text[value_index]);
+
+    // Silent: disable confirmation tone on successful decode
+    item = variable_item_list_add(
+        subghz->variable_item_list,
+        "Silent",
+        COMBO_BOX_COUNT,
+        subghz_scene_receiver_config_set_silent,
+        subghz);
+    value_index = subghz->last_settings->silent ? 1 : 0;
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, combobox_text[value_index]);
 

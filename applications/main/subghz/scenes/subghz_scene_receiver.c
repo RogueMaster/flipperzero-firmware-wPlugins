@@ -47,6 +47,34 @@ const NotificationSequence subghz_sequence_tx_beep = {
     NULL,
 };
 
+const NotificationSequence subghz_sequence_rx_silent = {
+    &message_green_255,
+
+    &message_display_backlight_on,
+
+    &message_vibro_on,
+    &message_delay_50,
+    &message_vibro_off,
+
+    &message_delay_50,
+    NULL,
+};
+
+const NotificationSequence subghz_sequence_rx_locked_silent = {
+    &message_green_255,
+
+    &message_display_backlight_on,
+
+    &message_vibro_on,
+    &message_delay_50,
+    &message_vibro_off,
+
+    &message_delay_500,
+
+    &message_display_backlight_off,
+    NULL,
+};
+
 static void subghz_scene_receiver_update_statusbar(void* context) {
     SubGhz* subghz = context;
     FuriString* history_stat_str = furi_string_alloc();
@@ -522,10 +550,18 @@ bool subghz_scene_receiver_on_event(void* context, SceneManagerEvent event) {
             }
             break;
         case SubGhzNotificationStateRxDone:
-            if(!subghz_is_locked(subghz)) {
-                notification_message(subghz->notifications, &subghz_sequence_rx);
+            if(subghz->last_settings && subghz->last_settings->silent) {
+                if(!subghz_is_locked(subghz)) {
+                    notification_message(subghz->notifications, &subghz_sequence_rx_silent);
+                } else {
+                    notification_message(subghz->notifications, &subghz_sequence_rx_locked_silent);
+                }
             } else {
-                notification_message(subghz->notifications, &subghz_sequence_rx_locked);
+                if(!subghz_is_locked(subghz)) {
+                    notification_message(subghz->notifications, &subghz_sequence_rx);
+                } else {
+                    notification_message(subghz->notifications, &subghz_sequence_rx_locked);
+                }
             }
             subghz->state_notifications = SubGhzNotificationStateRx;
             break;

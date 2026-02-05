@@ -29,6 +29,7 @@ typedef struct {
     bool remove_duplicates;
     uint32_t repeater_state;
     bool enable_sound;
+    bool silent;
     bool autosave;
     float hopping_threshold;
     bool leds_and_amp;

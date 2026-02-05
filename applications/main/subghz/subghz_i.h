@@ -135,3 +135,5 @@ SubGhzRxKeyState subghz_rx_key_state_get(SubGhz* subghz);
 
 extern const NotificationSequence subghz_sequence_rx;
 extern const NotificationSequence subghz_sequence_rx_locked;
+extern const NotificationSequence subghz_sequence_rx_silent;
+extern const NotificationSequence subghz_sequence_rx_locked_silent;
