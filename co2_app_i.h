@@ -7,6 +7,7 @@
 #include "sensors/mhz19_pwm.h"
 
 #define APP_TAG "CO2App"
+#define CO2_BUF_SIZE 5
 
 // Shared sensor data (protected by mutex)
 typedef struct {
@@ -25,6 +26,11 @@ typedef struct {
     FuriMessageQueue* event_queue;
     FuriMutex*        mutex;
     AppData           data;
+
+    // CO2 filter buffer (trimmed mean)
+    int32_t co2_buf[CO2_BUF_SIZE];
+    uint8_t co2_buf_idx;
+    uint8_t co2_buf_count;
 
     // MH-Z19 PWM (GPIO PA6)
     const GpioPin* co2_pin;

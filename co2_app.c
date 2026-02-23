@@ -1,4 +1,5 @@
 #include "co2_app_i.h"
+#include <string.h>
 
 static void draw_callback(Canvas* canvas, void* ctx) {
     App* app = ctx;
@@ -102,7 +103,29 @@ int32_t co2_app_main(void* p) {
         // Update shared data atomically
         furi_mutex_acquire(app.mutex, FuriWaitForever);
         if(ppm > 0) {
-            app.data.co2_ppm       = ppm;
+            app.co2_buf[app.co2_buf_idx] = ppm;
+            app.co2_buf_idx = (app.co2_buf_idx + 1) % CO2_BUF_SIZE;
+            if(app.co2_buf_count < CO2_BUF_SIZE) app.co2_buf_count++;
+
+            // trimmed mean: sort copy, drop min+max, average rest
+            int32_t sorted[CO2_BUF_SIZE];
+            memcpy(sorted, app.co2_buf, app.co2_buf_count * sizeof(int32_t));
+            for(uint8_t i = 1; i < app.co2_buf_count; i++) {
+                int32_t key = sorted[i];
+                int8_t j = (int8_t)i - 1;
+                while(j >= 0 && sorted[j] > key) { sorted[j + 1] = sorted[j]; j--; }
+                sorted[j + 1] = key;
+            }
+            int32_t filtered;
+            if(app.co2_buf_count < 3) {
+                filtered = sorted[app.co2_buf_count / 2];
+            } else {
+                int32_t sum = 0;
+                for(uint8_t i = 1; i < app.co2_buf_count - 1; i++) sum += sorted[i];
+                filtered = sum / (int32_t)(app.co2_buf_count - 2);
+            }
+
+            app.data.co2_ppm       = filtered;
             app.data.co2_connected = true;
         }
         if(bme_tick == 0) {
