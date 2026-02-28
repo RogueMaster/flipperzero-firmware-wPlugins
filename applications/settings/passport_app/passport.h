@@ -70,6 +70,15 @@ static const Icon* const portrait_bad[3] = {
     &I_passport_bad1_46x49,
     &I_passport_bad2_46x49,
     &I_passport_bad3_46x49};
+static const Icon* portrait_Otacon[8] = {
+    &I_Otacon_Joyful_46x49,
+    &I_Otacon_Happy_46x49,
+    &I_Otacon_Dreaming_46x49,
+    &I_Otacon_Okay_46x49,
+    &I_Otacon_Bored_46x49,
+    &I_Otacon_Sad_46x49,
+    &I_Otacon_Annoyed_46x49,
+    &I_Otacon_Angry_46x49};
 
 static const Icon* const* portraitsMoody[3] = {portrait_happy, portrait_ok, portrait_bad};
 

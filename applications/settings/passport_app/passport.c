@@ -86,6 +86,15 @@ void passport_alloc(Passport* passport) {
         passport->tmpMood = 2;
         if(stats->butthurt <= 9) passport->tmpMood = 1;
         if(stats->butthurt <= 4) passport->tmpMood = 0;
+    } else if(passport->settings.image == PIMG_OTACON) {
+        passport->tmpMood = 7;
+        if (stats->butthurt <= 13) passport->tmpMood = 6;
+        if (stats->butthurt <= 10) passport->tmpMood = 5;
+        if (stats->butthurt <= 8) passport->tmpMood = 4;
+        if (stats->butthurt <= 6) passport->tmpMood = 3;
+        if (stats->butthurt <= 4) passport->tmpMood = 2;
+        if (stats->butthurt <= 3) passport->tmpMood = 1;
+        if (stats->butthurt <= 1) passport->tmpMood = 0;
     }
 
     //start animation for sonic passport image if selected
@@ -447,6 +456,9 @@ static void render_callback(Canvas* const canvas, void* ctx) {
             break;
         case PIMG_WRENCH:
             canvas_draw_icon(canvas, 11, 2, portrait_wrench[passport->tmpMood]);
+            break;
+        case PIMG_OTACON:
+            canvas_draw_icon(canvas, 11, 2, portrait_Otacon[passport->tmpMood]);
             break;
         }
 
