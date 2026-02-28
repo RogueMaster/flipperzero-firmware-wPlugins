@@ -212,6 +212,14 @@ static void render_callback(Canvas* const canvas, void* ctx) {
         case BG_SLUT:
             canvas_draw_icon(canvas, 0, 0, &I_passport_SlutPass);
             break;
+        case BG_CCARD:
+            canvas_draw_icon(canvas, 0, 0, &I_passport_CreditCard);
+            if (passport->settings.name) {
+                canvas_set_color(canvas, ColorWhite);
+                canvas_draw_box(canvas, 58, 2, 47, 8);
+                canvas_set_color(canvas, ColorBlack);
+            }
+            break;
         case BG_STOCK:
             canvas_draw_icon(canvas, 0, 0, &I_passport_FlipperClassic);
             break;
