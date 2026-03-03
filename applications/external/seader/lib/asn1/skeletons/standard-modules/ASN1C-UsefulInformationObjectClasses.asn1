@@ -1,0 +1,31 @@
+/*
+ * This specification contains pervasive ASN.1 information object classes.
+ * These classes are defined as "useful", and are available in any module
+ * without the necessity for explicit import.
+ */
+ASN1C-UsefulInformationObjectClasses
+	{ iso(1) org(3) dod(6) internet (1) private(4) enterprise(1)
+		spelio(9363) software(1) asn1c(5)
+		standard-modules(3) auto-imported(0) 1 }
+DEFINITIONS ::= BEGIN
+
+	/*
+	 * X.681-0207, Annex A
+	 * The TYPE-IDENTIFIER information object class
+	 */
+	TYPE-IDENTIFIER ::= CLASS {
+	    &id		OBJECT IDENTIFIER UNIQUE,
+	    &Type
+	} WITH SYNTAX { &Type IDENTIFIED BY &id }
+
+	/*
+	 * X.681-0207, Annex B
+	 * The ABSTRACT-SYNTAX information object class
+	 */
+	ABSTRACT-SYNTAX ::= CLASS {
+	    &id		OBJECT IDENTIFIER UNIQUE,
+	    &Type,
+	    &property	BIT STRING { handles-invalid-encodings(0) } DEFAULT {}
+	} WITH SYNTAX { &Type IDENTIFIED BY &id [HAS PROPERTY &property] }
+
+END

@@ -1,0 +1,4 @@
+This directory contains encoder/decoder code for various encoding rules
+(OER, PER, DER, BER, XER) that work with the tables constructed by the compiler.
+The compiler itself does not generate much code. It creates parsing tables
+and then copies (or links) over these files which contain generic codecs.

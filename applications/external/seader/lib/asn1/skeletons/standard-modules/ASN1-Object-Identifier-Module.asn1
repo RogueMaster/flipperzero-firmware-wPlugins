@@ -1,0 +1,43 @@
+ASN1-Object-Identifier-Module { joint-iso-itu-t asn1(1) specification(0) modules(0) object-identifiers(1) }  
+DEFINITIONS ::= BEGIN 
+
+ -- NumericString ASN.1 type (see 37.3) -- 
+ numericString OBJECT IDENTIFIER ::=  { joint-iso-itu-t asn1(1) specification(0) characterStrings(1) numericString(0) } 
+
+ -- PrintableString ASN.1 type (see 37.5) -- 
+ printableString OBJECT IDENTIFIER ::= { joint-iso-itu-t asn1(1) specification(0) characterStrings(1) printableString(1) } 
+
+ -- ASN.1 Character Module (see 38.1) -- 
+ asn1CharacterModule OBJECT IDENTIFIER ::= { joint-iso-itu-t asn1(1) specification(0) modules(0) iso10646(0) } 
+
+ -- ASN.1 Object Identifier Module (this module) -- 
+ asn1ObjectIdentifierModule OBJECT IDENTIFIER ::= { joint-iso-itu-t asn1(1) specification(0) modules(0) object-identifiers(1) } 
+
+ -- BER encoding of a single ASN.1 type -- 
+ ber OBJECT IDENTIFIER ::=  { joint-iso-itu-t asn1(1) basic-encoding(1) } 
+
+ -- CER encoding of a single ASN.1 type -- 
+ cer OBJECT IDENTIFIER ::=  { joint-iso-itu-t asn1(1) ber-derived(2) canonical-encoding(0) } 
+
+ -- DER encoding of a single ASN.1 type -- 
+ der OBJECT IDENTIFIER ::=  { joint-iso-itu-t asn1(1) ber-derived(2) distinguished-encoding(1) } 
+
+ -- PER encoding of a single ASN.1 type (basic aligned) -- 
+ perBasicAligned OBJECT IDENTIFIER ::=  { joint-iso-itu-t asn1(1) packed-encoding(3) basic(0) aligned(0) } 
+
+ -- PER encoding of a single ASN.1 type (basic unaligned) -- 
+ perBasicUnaligned OBJECT IDENTIFIER ::=  { joint-iso-itu-t asn1(1) packed-encoding(3) basic(0) unaligned(1) } 
+
+ -- PER encoding of a single ASN.1 type (canonical aligned) -- 
+ perCanonicalAligned OBJECT IDENTIFIER ::= { joint-iso-itu-t asn1(1) packed-encoding(3) canonical(1) aligned(0) } 
+
+ -- PER encoding of a single ASN.1 type (canonical unaligned) -- 
+ perCanonicalUnaligned OBJECT IDENTIFIER ::= { joint-iso-itu-t asn1(1) packed-encoding(3) canonical(1) unaligned(1) } 
+
+ -- XER encoding of a single ASN.1 type (basic) -- 
+ xerBasic OBJECT IDENTIFIER ::=  {joint-iso-itu-t asn1(1) xml-encoding(5) basic(0) } 
+
+ -- XER encoding of a single ASN.1 type (canonical) -- 
+ xerCanonical OBJECT IDENTIFIER ::=  {joint-iso-itu-t asn1(1) xml-encoding(5) canonical(1) } 
+
+END -- ASN1-Object-Identifier-Module --

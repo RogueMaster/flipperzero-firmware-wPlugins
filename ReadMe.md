@@ -44,10 +44,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Prince Of Arabia v1.0.12 (By apfxtech)](https://github.com/apfxtech/FlipperPrinceOfArabia)
 - [Update CFW Settings Fix background setter to use the order list rather than the constant values (By otac0n)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1171)
 - Added: [FlipperPwn v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 - [Otacon passport #1172 (By otac0n)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1172)
 - Updated: [Theme Manager v1.3 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
 - Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
+- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 
 <a name="release"></a>
 
