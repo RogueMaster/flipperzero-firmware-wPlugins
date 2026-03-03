@@ -33,6 +33,7 @@ const char* const background_text[PASSPORT_BG_COUNT] = {
     "None",
     "AD Police",
     "Circuit",
+    "Credit Card",
     "DB",
     "DedSec",
     "Flipper",
@@ -50,6 +51,7 @@ const uint32_t background_value[PASSPORT_BG_COUNT] = {
     BG_NONE,
     BG_ADPOLICE,
     BG_CIRCUIT,
+    BG_CCARD,
     BG_DB,
     BG_DEDSEC,
     BG_STOCK,
@@ -116,6 +118,7 @@ const char* const image_text[PROFILE_IMG_COUNT] = {
     "Oedo 808 Benten",
     "Oedo 808 Gogul",
     "Oedo 808 Sengoku",
+    "Otacon",
     "Pikachu (Sleepy)",
     "Pirate",
     "Pokemon Trainer",
@@ -150,11 +153,11 @@ const uint32_t image_value[PROFILE_IMG_COUNT] = {
     PIMG_GOKUSSJ,    PIMG_GOKUSSJ3,    PIMG_GTAVFRANKLIN, PIMG_GTAVMICHAEL,  PIMG_GTAVTREVOR,
     PIMG_GUNNMGALLY, PIMG_GUYFAWKES,   PIMG_HAUNTER,      PIMG_LAIN,         PIMG_LEEROY,
     PIMG_MARIO,      PIMG_MARVIN,      PIMG_MORELEELLOO,  PIMG_NEUROMANCER,  PIMG_O808Benten,
-    PIMG_O808Gogul,  PIMG_O808Sengoku, PIMG_PIKASLEEPY,   PIMG_PIRATE,       PIMG_PKMNTR,
-    PIMG_PSYDUCK,    PIMG_RABBIT,      PIMG_SCARMLA,      PIMG_SCCOBRA,      PIMG_SCCRYBO,
-    PIMG_SCDOMRO,    PIMG_SCSANDRA,    PIMG_SCTARBEIGE,   PIMG_SHINKAI,      PIMG_SKULL,
-    PIMG_SLIME,      PIMG_SONIC,       PIMG_SPIDER,       PIMG_TANKGIRL,     PIMG_TOTORO,
-    PIMG_WAIFU1,     PIMG_WAIFU2,      PIMG_WAIFU3,       PIMG_WRENCH};
+    PIMG_O808Gogul,  PIMG_O808Sengoku, PIMG_OTACON,       PIMG_PIKASLEEPY,   PIMG_PIRATE,
+    PIMG_PKMNTR,     PIMG_PSYDUCK,     PIMG_RABBIT,       PIMG_SCARMLA,      PIMG_SCCOBRA,
+    PIMG_SCCRYBO,    PIMG_SCDOMRO,     PIMG_SCSANDRA,     PIMG_SCTARBEIGE,   PIMG_SHINKAI,
+    PIMG_SKULL,      PIMG_SLIME,       PIMG_SONIC,        PIMG_SPIDER,       PIMG_TANKGIRL,
+    PIMG_TOTORO,     PIMG_WAIFU1,      PIMG_WAIFU2,       PIMG_WAIFU3,       PIMG_WRENCH};
 
 const uint32_t name_value[PASSPORT_ON_OFF_COUNT] = {false, true};
 

@@ -25,7 +25,7 @@ extern "C" {
 #define MOOD_SET_REGULAR 1
 #define MOOD_SET_420     2
 
-#define PASSPORT_BG_COUNT 15
+#define PASSPORT_BG_COUNT 16
 
 #define BG_NONE      0
 #define BG_ADPOLICE  1
@@ -42,8 +42,9 @@ extern "C" {
 #define BG_MULTI     12
 #define BG_SCROLL    13
 #define BG_SLUT      14
+#define BG_CCARD     15 // (By otac0n)
 
-#define PROFILE_IMG_COUNT 74
+#define PROFILE_IMG_COUNT 75
 
 #define PIMG_NONE         0
 #define PIMG_ADPOLICE     1
@@ -119,6 +120,7 @@ extern "C" {
 #define PIMG_WAIFU2       71
 #define PIMG_WAIFU3       72
 #define PIMG_WRENCH       73
+#define PIMG_OTACON       74 // (By otac0n)
 
 typedef struct {
     uint8_t background;

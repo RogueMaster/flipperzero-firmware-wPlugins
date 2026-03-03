@@ -86,6 +86,15 @@ void passport_alloc(Passport* passport) {
         passport->tmpMood = 2;
         if(stats->butthurt <= 9) passport->tmpMood = 1;
         if(stats->butthurt <= 4) passport->tmpMood = 0;
+    } else if(passport->settings.image == PIMG_OTACON) {
+        passport->tmpMood = 7;
+        if (stats->butthurt <= 13) passport->tmpMood = 6;
+        if (stats->butthurt <= 10) passport->tmpMood = 5;
+        if (stats->butthurt <= 8) passport->tmpMood = 4;
+        if (stats->butthurt <= 6) passport->tmpMood = 3;
+        if (stats->butthurt <= 4) passport->tmpMood = 2;
+        if (stats->butthurt <= 3) passport->tmpMood = 1;
+        if (stats->butthurt <= 1) passport->tmpMood = 0;
     }
 
     //start animation for sonic passport image if selected
@@ -211,6 +220,14 @@ static void render_callback(Canvas* const canvas, void* ctx) {
             break;
         case BG_SLUT:
             canvas_draw_icon(canvas, 0, 0, &I_passport_SlutPass);
+            break;
+        case BG_CCARD:
+            canvas_draw_icon(canvas, 0, 0, &I_passport_CreditCard);
+            if (passport->settings.name) {
+                canvas_set_color(canvas, ColorWhite);
+                canvas_draw_box(canvas, 58, 2, 47, 8);
+                canvas_set_color(canvas, ColorBlack);
+            }
             break;
         case BG_STOCK:
             canvas_draw_icon(canvas, 0, 0, &I_passport_FlipperClassic);
@@ -439,6 +456,9 @@ static void render_callback(Canvas* const canvas, void* ctx) {
             break;
         case PIMG_WRENCH:
             canvas_draw_icon(canvas, 11, 2, portrait_wrench[passport->tmpMood]);
+            break;
+        case PIMG_OTACON:
+            canvas_draw_icon(canvas, 11, 2, portrait_Otacon[passport->tmpMood]);
             break;
         }
 
