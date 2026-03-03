@@ -33,7 +33,7 @@
 #define DOLPHIN_BACKUP_PATH EXT_PATH("dolphin_backup")
 #define MANIFEST_HEADER     "Filetype: Flipper Animation Manifest"
 
-#define MAX_THEMES    64
+#define MAX_THEMES    128
 #define MAX_NAME_LEN  64
 #define MAX_LABEL_LEN 32
 
@@ -44,6 +44,16 @@
 #define PREVIEW_DRAW_Y      2
 #define PREVIEW_DRAW_W      48
 #define PREVIEW_DRAW_H      32
+
+/* Y-offsets for info text (relative to PREVIEW_DRAW_Y) */
+#define INFO_TEXT_Y_NAME  8
+#define INFO_TEXT_Y_TYPE  18
+#define INFO_TEXT_Y_ANIMS 27
+#define INFO_TEXT_Y_SIZE  36
+#define INFO_TEXT_Y_BTN   63
+
+#define INFO_NAME_MAX_LEN      13 /* max visible chars for theme name in Info view */
+#define MENU_LABEL_MAX_VISIBLE 26 /* max visible chars in submenu label */
 
 typedef enum {
     ThemeTypePack,
@@ -75,6 +85,15 @@ typedef struct {
 } InfoViewModel;
 
 typedef struct {
+    char name[MAX_NAME_LEN];
+    char label[MAX_LABEL_LEN];
+    ThemeType type;
+    uint32_t anim_count;
+    uint32_t cached_size;
+    bool meta_cached;
+} ThemeEntry;
+
+typedef struct {
     Storage* storage;
     Gui* gui;
 
@@ -87,12 +106,11 @@ typedef struct {
     Popup* popup;
     Loading* loading;
 
-    char theme_names[MAX_THEMES][MAX_NAME_LEN];
-    char menu_labels[MAX_THEMES][MAX_LABEL_LEN];
-    ThemeType theme_types[MAX_THEMES];
+    ThemeEntry themes[MAX_THEMES];
     uint32_t theme_count;
     uint32_t selected_index;
     bool has_backup;
+    char submenu_header[32];
 
     FuriString* dialog_text;
 } ThemeManagerApp;
@@ -122,22 +140,19 @@ static uint32_t theme_manager_nav_exit(void* context);
 static uint32_t theme_manager_nav_submenu(void* context);
 
 // -------------------------------------------------------------------
-// Parse manifest.txt — validate header and count "Name:" entries
-// Returns true if manifest is valid, writes animation count to *out_count
+// Read entire file into FuriString. Returns NULL on error.
+// Caller must free the returned string with furi_string_free().
 // -------------------------------------------------------------------
-static bool
-    theme_manager_parse_manifest(ThemeManagerApp* app, const char* path, uint32_t* out_count) {
-    *out_count = 0;
-
+static FuriString* theme_manager_read_file(ThemeManagerApp* app, const char* path) {
     File* file = storage_file_alloc(app->storage);
     if(!storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         storage_file_free(file);
-        return false;
+        return NULL;
     }
 
     FuriString* accum = furi_string_alloc();
     char buf[128];
-    uint16_t bytes_read;
+    size_t bytes_read;
 
     while((bytes_read = storage_file_read(file, buf, sizeof(buf) - 1)) > 0) {
         buf[bytes_read] = '\0';
@@ -146,11 +161,23 @@ static bool
 
     storage_file_close(file);
     storage_file_free(file);
+    return accum;
+}
 
-    const char* str = furi_string_get_cstr(accum);
+// -------------------------------------------------------------------
+// Parse manifest.txt — validate header and count "Name:" entries
+// -------------------------------------------------------------------
+static bool
+    theme_manager_parse_manifest(ThemeManagerApp* app, const char* path, uint32_t* out_count) {
+    *out_count = 0;
+
+    FuriString* content = theme_manager_read_file(app, path);
+    if(!content) return false;
+
+    const char* str = furi_string_get_cstr(content);
 
     if(strstr(str, MANIFEST_HEADER) == NULL) {
-        furi_string_free(accum);
+        furi_string_free(content);
         return false;
     }
 
@@ -162,13 +189,12 @@ static bool
         ptr += 5;
     }
 
-    furi_string_free(accum);
+    furi_string_free(content);
     return true;
 }
 
 // -------------------------------------------------------------------
 // Parse meta.txt — extract Width and Height values
-// Returns true if both dimensions found
 // -------------------------------------------------------------------
 static bool theme_manager_parse_meta_dimensions(
     ThemeManagerApp* app,
@@ -178,25 +204,10 @@ static bool theme_manager_parse_meta_dimensions(
     *out_w = 0;
     *out_h = 0;
 
-    File* file = storage_file_alloc(app->storage);
-    if(!storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        storage_file_free(file);
-        return false;
-    }
+    FuriString* content = theme_manager_read_file(app, path);
+    if(!content) return false;
 
-    FuriString* accum = furi_string_alloc();
-    char buf[128];
-    uint16_t bytes_read;
-
-    while((bytes_read = storage_file_read(file, buf, sizeof(buf) - 1)) > 0) {
-        buf[bytes_read] = '\0';
-        furi_string_cat_str(accum, buf);
-    }
-
-    storage_file_close(file);
-    storage_file_free(file);
-
-    const char* text = furi_string_get_cstr(accum);
+    const char* text = furi_string_get_cstr(content);
     bool found_w = false;
     bool found_h = false;
 
@@ -218,38 +229,22 @@ static bool theme_manager_parse_meta_dimensions(
         }
     }
 
-    furi_string_free(accum);
+    furi_string_free(content);
     return found_w && found_h;
 }
 
 // -------------------------------------------------------------------
 // Get the first animation name from manifest.txt
-// Returns true if found, writes name to out_name
 // -------------------------------------------------------------------
 static bool theme_manager_get_first_anim_name(
     ThemeManagerApp* app,
     const char* manifest_path,
     char* out_name,
     size_t out_name_size) {
-    File* file = storage_file_alloc(app->storage);
-    if(!storage_file_open(file, manifest_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        storage_file_free(file);
-        return false;
-    }
+    FuriString* content = theme_manager_read_file(app, manifest_path);
+    if(!content) return false;
 
-    FuriString* accum = furi_string_alloc();
-    char buf[128];
-    uint16_t bytes_read;
-
-    while((bytes_read = storage_file_read(file, buf, sizeof(buf) - 1)) > 0) {
-        buf[bytes_read] = '\0';
-        furi_string_cat_str(accum, buf);
-    }
-
-    storage_file_close(file);
-    storage_file_free(file);
-
-    const char* text = furi_string_get_cstr(accum);
+    const char* text = furi_string_get_cstr(content);
     const char* name_ptr = strstr(text, "Name:");
     bool found = false;
 
@@ -268,7 +263,7 @@ static bool theme_manager_get_first_anim_name(
         if(i > 0) found = true;
     }
 
-    furi_string_free(accum);
+    furi_string_free(content);
     return found;
 }
 
@@ -294,11 +289,14 @@ static void theme_manager_load_preview(ThemeManagerApp* app, uint32_t index) {
 
     if(index >= app->theme_count) return;
 
-    const char* name = app->theme_names[index];
-    ThemeType type = app->theme_types[index];
+    const char* name = app->themes[index].name;
+    ThemeType type = app->themes[index].type;
 
     FuriString* meta_path = furi_string_alloc();
     FuriString* frame_path = furi_string_alloc();
+    uint8_t* raw = NULL;
+    uint8_t* xbm_data = NULL;
+    CompressIcon* compress = NULL;
 
     switch(type) {
     case ThemeTypeSingle:
@@ -352,18 +350,14 @@ static void theme_manager_load_preview(ThemeManagerApp* app, uint32_t index) {
     if(furi_string_size(meta_path) == 0 ||
        !theme_manager_parse_meta_dimensions(app, furi_string_get_cstr(meta_path), &w, &h)) {
         FURI_LOG_W(TAG, "Preview: can't parse meta for %s", name);
-        furi_string_free(meta_path);
-        furi_string_free(frame_path);
-        return;
+        goto cleanup;
     }
 
     File* file = storage_file_alloc(app->storage);
     if(!storage_file_open(file, furi_string_get_cstr(frame_path), FSAM_READ, FSOM_OPEN_EXISTING)) {
         FURI_LOG_W(TAG, "Preview: can't open %s", furi_string_get_cstr(frame_path));
         storage_file_free(file);
-        furi_string_free(meta_path);
-        furi_string_free(frame_path);
-        return;
+        goto cleanup;
     }
 
     FileInfo file_info;
@@ -373,42 +367,34 @@ static void theme_manager_load_preview(ThemeManagerApp* app, uint32_t index) {
         FURI_LOG_W(TAG, "Preview: bad size %llu", file_info.size);
         storage_file_close(file);
         storage_file_free(file);
-        furi_string_free(meta_path);
-        furi_string_free(frame_path);
-        return;
+        goto cleanup;
     }
 
-    uint8_t* raw = malloc(file_info.size);
-    uint16_t read_bytes = storage_file_read(file, raw, file_info.size);
+    raw = malloc(file_info.size);
+    size_t read_bytes = storage_file_read(file, raw, file_info.size);
     storage_file_close(file);
     storage_file_free(file);
 
     if(read_bytes != file_info.size) {
         FURI_LOG_E(TAG, "Preview: read failed");
-        free(raw);
-        furi_string_free(meta_path);
-        furi_string_free(frame_path);
-        return;
+        goto cleanup;
     }
 
     uint32_t decoded_size = ((uint32_t)((w + 7) / 8)) * h;
-    CompressIcon* compress = compress_icon_alloc(decoded_size);
+    compress = compress_icon_alloc(decoded_size);
 
     uint8_t* decoded = NULL;
     compress_icon_decode(compress, raw, &decoded);
     free(raw);
+    raw = NULL;
 
     if(!decoded) {
         FURI_LOG_W(TAG, "Preview: decompress failed for %s", name);
-        compress_icon_free(compress);
-        furi_string_free(meta_path);
-        furi_string_free(frame_path);
-        return;
+        goto cleanup;
     }
 
-    uint8_t* xbm_data = malloc(decoded_size);
+    xbm_data = malloc(decoded_size);
     memcpy(xbm_data, decoded, decoded_size);
-    compress_icon_free(compress);
 
     with_view_model(
         app->info_view,
@@ -422,8 +408,13 @@ static void theme_manager_load_preview(ThemeManagerApp* app, uint32_t index) {
         },
         false);
 
+    xbm_data = NULL; /* ownership transferred to model */
     FURI_LOG_I(TAG, "Preview loaded: %s (%ux%u, %lu bytes)", name, w, h, decoded_size);
 
+cleanup:
+    if(raw) free(raw);
+    if(xbm_data) free(xbm_data);
+    if(compress) compress_icon_free(compress);
     furi_string_free(meta_path);
     furi_string_free(frame_path);
 }
@@ -463,6 +454,31 @@ static uint64_t theme_manager_get_dir_size(ThemeManagerApp* app, const char* pat
 // -------------------------------------------------------------------
 // Scan /ext/animation_packs/ for all 3 formats
 // -------------------------------------------------------------------
+/* Case-insensitive string compare (ASCII only) */
+static int theme_name_cmp(const char* a, const char* b) {
+    while(*a && *b) {
+        char ca = (*a >= 'A' && *a <= 'Z') ? (*a + 32) : *a;
+        char cb = (*b >= 'A' && *b <= 'Z') ? (*b + 32) : *b;
+        if(ca != cb) return ca - cb;
+        a++;
+        b++;
+    }
+    return *a - *b;
+}
+
+/* Insertion sort for ThemeEntry array (qsort unavailable in Flipper API) */
+static void theme_entries_sort(ThemeEntry* arr, uint32_t count) {
+    for(uint32_t i = 1; i < count; i++) {
+        ThemeEntry tmp = arr[i];
+        uint32_t j = i;
+        while(j > 0 && theme_name_cmp(arr[j - 1].name, tmp.name) > 0) {
+            arr[j] = arr[j - 1];
+            j--;
+        }
+        arr[j] = tmp;
+    }
+}
+
 static void theme_manager_scan_themes(ThemeManagerApp* app) {
     app->theme_count = 0;
     app->has_backup = storage_dir_exists(app->storage, DOLPHIN_BACKUP_PATH);
@@ -523,9 +539,13 @@ static void theme_manager_scan_themes(ThemeManagerApp* app) {
         }
 
         if(found) {
-            strncpy(app->theme_names[app->theme_count], name, MAX_NAME_LEN - 1);
-            app->theme_names[app->theme_count][MAX_NAME_LEN - 1] = '\0';
-            app->theme_types[app->theme_count] = detected_type;
+            ThemeEntry* entry = &app->themes[app->theme_count];
+            strncpy(entry->name, name, MAX_NAME_LEN - 1);
+            entry->name[MAX_NAME_LEN - 1] = '\0';
+            entry->type = detected_type;
+            entry->meta_cached = false;
+            entry->anim_count = 0;
+            entry->cached_size = 0;
             app->theme_count++;
         } else {
             FURI_LOG_W(TAG, "Skipping %s (unknown format)", name);
@@ -533,9 +553,13 @@ static void theme_manager_scan_themes(ThemeManagerApp* app) {
     }
 
     furi_string_free(check_path);
-
     storage_dir_close(dir);
     storage_file_free(dir);
+
+    /* Sort alphabetically by name */
+    if(app->theme_count > 1) {
+        theme_entries_sort(app->themes, app->theme_count);
+    }
 
     FURI_LOG_I(
         TAG, "Total: %lu themes, backup: %s", app->theme_count, app->has_backup ? "yes" : "no");
@@ -589,7 +613,10 @@ static bool theme_manager_apply_single(ThemeManagerApp* app, const char* theme_n
     FuriString* src_dir = furi_string_alloc_printf("%s/%s", ANIMATION_PACKS_PATH, theme_name);
     FuriString* dst_dir = furi_string_alloc_printf("%s/%s", DOLPHIN_PATH, theme_name);
 
-    storage_common_mkdir(app->storage, furi_string_get_cstr(dst_dir));
+    FS_Error mkdir_err = storage_common_mkdir(app->storage, furi_string_get_cstr(dst_dir));
+    if(mkdir_err != FSE_OK && mkdir_err != FSE_EXIST) {
+        FURI_LOG_E(TAG, "mkdir failed for %s (err %d)", furi_string_get_cstr(dst_dir), mkdir_err);
+    }
 
     FS_Error err = storage_common_merge(
         app->storage, furi_string_get_cstr(src_dir), furi_string_get_cstr(dst_dir));
@@ -622,11 +649,11 @@ static bool theme_manager_apply_single(ThemeManagerApp* app, const char* theme_n
         theme_name);
 
     const char* str = furi_string_get_cstr(content);
-    uint16_t len = strlen(str);
-    uint16_t written = storage_file_write(manifest, str, len);
+    size_t len = strlen(str);
+    size_t written = storage_file_write(manifest, str, len);
 
     if(written != len) {
-        FURI_LOG_E(TAG, "Manifest write incomplete (%u/%u bytes)", written, len);
+        FURI_LOG_E(TAG, "Manifest write incomplete (%zu/%zu bytes)", written, len);
         furi_string_free(content);
         storage_file_close(manifest);
         storage_file_free(manifest);
@@ -652,10 +679,13 @@ static bool theme_manager_apply_theme(ThemeManagerApp* app, uint32_t index) {
         return false;
     }
 
-    storage_common_mkdir(app->storage, DOLPHIN_PATH);
+    FS_Error mkdir_err = storage_common_mkdir(app->storage, DOLPHIN_PATH);
+    if(mkdir_err != FSE_OK && mkdir_err != FSE_EXIST) {
+        FURI_LOG_E(TAG, "mkdir failed for dolphin dir (err %d)", mkdir_err);
+    }
 
-    const char* name = app->theme_names[index];
-    ThemeType type = app->theme_types[index];
+    const char* name = app->themes[index].name;
+    ThemeType type = app->themes[index].type;
 
     FuriString* src = furi_string_alloc();
     bool success = false;
@@ -710,14 +740,14 @@ static bool theme_manager_delete_theme(ThemeManagerApp* app, uint32_t index) {
     if(index >= app->theme_count) return false;
 
     FuriString* theme_path =
-        furi_string_alloc_printf("%s/%s", ANIMATION_PACKS_PATH, app->theme_names[index]);
+        furi_string_alloc_printf("%s/%s", ANIMATION_PACKS_PATH, app->themes[index].name);
 
     bool success = storage_simply_remove_recursive(app->storage, furi_string_get_cstr(theme_path));
 
     if(success) {
-        FURI_LOG_I(TAG, "Deleted theme: %s", app->theme_names[index]);
+        FURI_LOG_I(TAG, "Deleted theme: %s", app->themes[index].name);
     } else {
-        FURI_LOG_E(TAG, "Failed to delete: %s", app->theme_names[index]);
+        FURI_LOG_E(TAG, "Failed to delete: %s", app->themes[index].name);
     }
 
     furi_string_free(theme_path);
@@ -780,35 +810,32 @@ static void theme_manager_info_draw(Canvas* canvas, void* _model) {
     uint8_t text_x = PREVIEW_DRAW_X + PREVIEW_DRAW_W + 4;
 
     canvas_set_font(canvas, FontPrimary);
-    char display_name[18];
+    char display_name[INFO_NAME_MAX_LEN];
     strncpy(display_name, model->name, sizeof(display_name) - 1);
     display_name[sizeof(display_name) - 1] = '\0';
-    if(strlen(model->name) > sizeof(display_name) - 1) {
-        display_name[sizeof(display_name) - 4] = '.';
+    if(strlen(model->name) >= sizeof(display_name)) {
+        /* Name was truncated — add ellipsis */
         display_name[sizeof(display_name) - 3] = '.';
-        display_name[sizeof(display_name) - 2] = '\0';
+        display_name[sizeof(display_name) - 2] = '.';
     }
-    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + 8, display_name);
+    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + INFO_TEXT_Y_NAME, display_name);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + 18, model->type_label);
+    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + INFO_TEXT_Y_TYPE, model->type_label);
 
     char anim_str[20];
     snprintf(anim_str, sizeof(anim_str), "Anims: %lu", model->anim_count);
-    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + 27, anim_str);
+    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + INFO_TEXT_Y_ANIMS, anim_str);
 
     char size_line[24];
     snprintf(size_line, sizeof(size_line), "Size: %s", model->size_str);
-    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + 36, size_line);
+    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + INFO_TEXT_Y_SIZE, size_line);
 
     /* Bottom buttons */
     canvas_set_font(canvas, FontSecondary);
-
-    canvas_draw_str_aligned(canvas, 2, 63, AlignLeft, AlignBottom, "<Back");
-
-    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Del[OK]");
-
-    canvas_draw_str_aligned(canvas, 126, 63, AlignRight, AlignBottom, "Apply>");
+    canvas_draw_str_aligned(canvas, 2, INFO_TEXT_Y_BTN, AlignLeft, AlignBottom, "<Back");
+    canvas_draw_str_aligned(canvas, 64, INFO_TEXT_Y_BTN, AlignCenter, AlignBottom, "Del[OK]");
+    canvas_draw_str_aligned(canvas, 126, INFO_TEXT_Y_BTN, AlignRight, AlignBottom, "Apply>");
 }
 
 // -------------------------------------------------------------------
@@ -829,7 +856,7 @@ static bool theme_manager_info_input(InputEvent* event, void* context) {
         if(index >= app->theme_count) return true;
 
         dialog_ex_set_header(
-            app->confirm_dialog, app->theme_names[index], 64, 0, AlignCenter, AlignTop);
+            app->confirm_dialog, app->themes[index].name, 64, 0, AlignCenter, AlignTop);
 
         furi_string_printf(app->dialog_text, "Apply this theme?\nBackup will be created.");
         dialog_ex_set_text(
@@ -853,7 +880,7 @@ static bool theme_manager_info_input(InputEvent* event, void* context) {
         dialog_ex_set_header(app->delete_dialog, "Delete Theme?", 64, 0, AlignCenter, AlignTop);
 
         furi_string_printf(
-            app->dialog_text, "%s\nThis cannot be undone!", app->theme_names[index]);
+            app->dialog_text, "%s\nThis cannot be undone!", app->themes[index].name);
         dialog_ex_set_text(
             app->delete_dialog,
             furi_string_get_cstr(app->dialog_text),
@@ -880,41 +907,67 @@ static void theme_manager_show_info(ThemeManagerApp* app, uint32_t index) {
 
     app->selected_index = index;
 
-    const char* name = app->theme_names[index];
-    ThemeType type = app->theme_types[index];
+    ThemeEntry* entry = &app->themes[index];
+    const char* name = entry->name;
+    ThemeType type = entry->type;
 
     const char* type_label;
     uint32_t anim_count = 0;
 
+    /* Use cached metadata if available */
+    if(entry->meta_cached) {
+        anim_count = entry->anim_count;
+    } else {
+        switch(type) {
+        case ThemeTypePack: {
+            FuriString* mpath = furi_string_alloc_printf(
+                "%s/%s/%s", ANIMATION_PACKS_PATH, name, MANIFEST_FILENAME);
+            theme_manager_parse_manifest(app, furi_string_get_cstr(mpath), &anim_count);
+            furi_string_free(mpath);
+            break;
+        }
+        case ThemeTypeAnimsPack: {
+            FuriString* mpath = furi_string_alloc_printf(
+                "%s/%s/%s/%s", ANIMATION_PACKS_PATH, name, ANIMS_DIRNAME, MANIFEST_FILENAME);
+            theme_manager_parse_manifest(app, furi_string_get_cstr(mpath), &anim_count);
+            furi_string_free(mpath);
+            break;
+        }
+        case ThemeTypeSingle:
+            anim_count = 1;
+            break;
+        default:
+            break;
+        }
+        entry->anim_count = anim_count;
+    }
+
     switch(type) {
-    case ThemeTypePack: {
+    case ThemeTypePack:
         type_label = "Pack";
-        FuriString* mpath =
-            furi_string_alloc_printf("%s/%s/%s", ANIMATION_PACKS_PATH, name, MANIFEST_FILENAME);
-        theme_manager_parse_manifest(app, furi_string_get_cstr(mpath), &anim_count);
-        furi_string_free(mpath);
         break;
-    }
-    case ThemeTypeAnimsPack: {
+    case ThemeTypeAnimsPack:
         type_label = "Anim Pack";
-        FuriString* mpath = furi_string_alloc_printf(
-            "%s/%s/%s/%s", ANIMATION_PACKS_PATH, name, ANIMS_DIRNAME, MANIFEST_FILENAME);
-        theme_manager_parse_manifest(app, furi_string_get_cstr(mpath), &anim_count);
-        furi_string_free(mpath);
         break;
-    }
     case ThemeTypeSingle:
         type_label = "Single";
-        anim_count = 1;
         break;
     default:
         type_label = "Unknown";
         break;
     }
 
-    FuriString* theme_dir = furi_string_alloc_printf("%s/%s", ANIMATION_PACKS_PATH, name);
-    uint64_t size_bytes = theme_manager_get_dir_size(app, furi_string_get_cstr(theme_dir));
-    furi_string_free(theme_dir);
+    /* Use cached size or calculate and cache */
+    uint64_t size_bytes;
+    if(entry->meta_cached) {
+        size_bytes = entry->cached_size;
+    } else {
+        FuriString* theme_dir = furi_string_alloc_printf("%s/%s", ANIMATION_PACKS_PATH, name);
+        size_bytes = theme_manager_get_dir_size(app, furi_string_get_cstr(theme_dir));
+        furi_string_free(theme_dir);
+        entry->cached_size = (uint32_t)size_bytes;
+        entry->meta_cached = true;
+    }
 
     char size_str[16];
     if(size_bytes >= 1024 * 1024) {
@@ -990,7 +1043,7 @@ static void theme_manager_confirm_callback(DialogExResult result, void* context)
 
         if(theme_manager_apply_theme(app, app->selected_index)) {
             const char* type_str = "";
-            switch(app->theme_types[app->selected_index]) {
+            switch(app->themes[app->selected_index].type) {
             case ThemeTypePack:
                 type_str = "Pack merged";
                 break;
@@ -1008,7 +1061,7 @@ static void theme_manager_confirm_callback(DialogExResult result, void* context)
             furi_string_printf(
                 app->dialog_text,
                 "%s\n%s. Reboot now?",
-                app->theme_names[app->selected_index],
+                app->themes[app->selected_index].name,
                 type_str);
             dialog_ex_set_text(
                 app->reboot_dialog,
@@ -1097,6 +1150,10 @@ static void theme_manager_show_error(ThemeManagerApp* app, const char* message) 
 static void theme_manager_populate_submenu(ThemeManagerApp* app) {
     submenu_reset(app->submenu);
 
+    /* Submenu header with theme count */
+    snprintf(app->submenu_header, sizeof(app->submenu_header), "Themes (%lu)", app->theme_count);
+    submenu_set_header(app->submenu, app->submenu_header);
+
     if(app->theme_count == 0) {
         if(!storage_dir_exists(app->storage, ANIMATION_PACKS_PATH)) {
             submenu_add_item(app->submenu, "[No SD / No folder]", 0, NULL, NULL);
@@ -1105,8 +1162,9 @@ static void theme_manager_populate_submenu(ThemeManagerApp* app) {
         }
     } else {
         for(uint32_t i = 0; i < app->theme_count; i++) {
+            ThemeEntry* entry = &app->themes[i];
             const char* prefix;
-            switch(app->theme_types[i]) {
+            switch(entry->type) {
             case ThemeTypePack:
                 prefix = "[P] ";
                 break;
@@ -1121,17 +1179,16 @@ static void theme_manager_populate_submenu(ThemeManagerApp* app) {
                 break;
             }
 
-            snprintf(app->menu_labels[i], MAX_LABEL_LEN, "%s%s", prefix, app->theme_names[i]);
+            snprintf(entry->label, MAX_LABEL_LEN, "%s%s", prefix, entry->name);
 
-            if(strlen(app->menu_labels[i]) > 26) {
-                app->menu_labels[i][23] = '.';
-                app->menu_labels[i][24] = '.';
-                app->menu_labels[i][25] = '.';
-                app->menu_labels[i][26] = '\0';
+            if(strlen(entry->label) > MENU_LABEL_MAX_VISIBLE) {
+                entry->label[MENU_LABEL_MAX_VISIBLE - 3] = '.';
+                entry->label[MENU_LABEL_MAX_VISIBLE - 2] = '.';
+                entry->label[MENU_LABEL_MAX_VISIBLE - 1] = '.';
+                entry->label[MENU_LABEL_MAX_VISIBLE] = '\0';
             }
 
-            submenu_add_item(
-                app->submenu, app->menu_labels[i], i, theme_manager_submenu_callback, app);
+            submenu_add_item(app->submenu, entry->label, i, theme_manager_submenu_callback, app);
         }
     }
 

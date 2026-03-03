@@ -46,6 +46,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FlipperPwn v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 - [Otacon passport #1172 (By otac0n)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1172)
+- Updated: [Theme Manager v1.3 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
 
 <a name="release"></a>
 
@@ -807,7 +808,7 @@ $ ./fbt dolphin_ext
 - [Text To SAM v1.4 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)
 - [Text Viewer v1.6 (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ae4fc4a54febccb44b010c4025a99c2edef9a7f0)
 - [The C Prog. Language v0.2 (By armixz)](https://github.com/armixz/Flipper-Zero-The-C-Programming-Language)
-- [Theme Manager v1.1 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
+- [Theme Manager v1.3 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
 - [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - [Time Tracker v1.0.3 (By MassivDash)](https://github.com/MassivDash/flipper-tracker)
 - [Timed Remote v0.1 (By anders-dc)](https://github.com/anders-dc/timed-remote)

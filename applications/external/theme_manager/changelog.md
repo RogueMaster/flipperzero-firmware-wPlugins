@@ -1,3 +1,20 @@
+v1.3:
+- Refactor: unified ThemeEntry struct (replaces 3 separate arrays)
+- Feature: themes sorted alphabetically (case-insensitive)
+- Feature: submenu header shows theme count "Themes (N)"
+- Improve: cached theme metadata (anim count, size) — Info screen loads instantly on repeat
+- Improve: insertion sort for consistent alphabetical ordering
+
+v1.2:
+- Refactor: shared file-reading utility (removed ~80 lines of code duplication)
+- Fix: memory management in preview loader (goto cleanup pattern)
+- Fix: buffer truncation uses named constant instead of magic number
+- Fix: display name length adjusted to actual screen space (13 chars)
+- Fix: uint16_t → size_t for storage read/write return values
+- Fix: storage_common_mkdir return value now checked and logged
+- Improve: named Y-coordinate constants for Info screen layout
+- Improve: smarter name truncation avoids redundant strlen call
+
 v1.1:
 - Animation preview on theme info screen (first frame thumbnail)
 - LZSS/heatshrink decompression for compressed .bm frames

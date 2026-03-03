@@ -17,7 +17,7 @@ Manage dolphin animation themes directly from your Flipper Zero — no PC requir
 
 | Confirm | Reboot | Delete |
 |:---:|:---:|:---:|
-| ![Confirm](screenshots/5.png) | ![Reboot](screenshots/6.png) | ![Delete](screenshots/8.png) |
+| ![Confirm](screenshots/5.png) | ![Reboot](screenshots/7.png) | ![Delete](screenshots/11.png) |
 
 ![Full workflow](screenshots/all_process.gif)
 
