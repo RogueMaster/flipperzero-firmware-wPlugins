@@ -21,7 +21,7 @@ void slix_compare_cards(
    checks->diff.total = card1_block_count;
    simple_array_init(checks->diff.indices, card1_block_count);
 
-   for(size_t i = 0; i < card1_block_count && i < 80; i++) {
+   for(size_t i = 0; i < card1_block_count && i < SLIX_MAX_BLOCK_COUNT; i++) {
       const uint8_t* block1 = (const uint8_t*)simple_array_cget(
          card1_data->iso15693_3_data->block_data, i * card1_block_size);
       const uint8_t* block2 = (const uint8_t*)simple_array_cget(

@@ -11,24 +11,8 @@ void nfc_comparator_data_breakdown_scene_on_enter(void* context) {
     uint16_t similar = total - diff;
     uint8_t percentage = (similar * 100) / total;
 
-    const char* unit_name;
-    switch(nfc_comparator->workers.compare_checks->diff.unit) {
-    case NfcCompareChecksComparedDataType_Blocks:
-        unit_name = "blocks";
-        break;
-    case NfcCompareChecksComparedDataType_Pages:
-        unit_name = "pages";
-        break;
-    case NfcCompareChecksComparedDataType_Bytes:
-        unit_name = "bytes";
-        break;
-    case NfcCompareChecksComparedDataType_EmvFields:
-        unit_name = "fields";
-        break;
-    default:
-        unit_name = "units";
-        break;
-    }
+    const char* unit_name =
+        nfc_compare_checks_diff_unit_strings[nfc_comparator->workers.compare_checks->diff.unit];
 
     furi_string_cat_printf(
         nfc_comparator->views.text_box.store,
@@ -40,29 +24,53 @@ void nfc_comparator_data_breakdown_scene_on_enter(void* context) {
         unit_name,
         diff);
 
-    for(int i = 0; i < diff; i++) {
-        const uint16_t* idx =
-            simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
-
-        if(nfc_comparator->workers.compare_checks->diff.unit ==
-           NfcCompareChecksComparedDataType_EmvFields) {
+    switch(nfc_comparator->workers.compare_checks->diff.unit) {
+    case NfcCompareChecksComparedDataType_EmvFields:
+        for(int i = 0; i < diff; i++) {
+            const uint16_t* idx =
+                simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
             furi_string_cat_printf(
                 nfc_comparator->views.text_box.store, "%s", EmvFieldNames[*idx]);
-
             if(i < diff - 1) {
                 furi_string_cat(nfc_comparator->views.text_box.store, ",\n");
             }
-        } else {
+        }
+        break;
+    case NfcCompareChecksComparedDataType_MFPlusFields:
+        for(int i = 0; i < diff; i++) {
+            const uint16_t* idx =
+                simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
+            furi_string_cat_printf(
+                nfc_comparator->views.text_box.store, "%s", MFPlusFieldNames[*idx]);
+            if(i < diff - 1) {
+                furi_string_cat(nfc_comparator->views.text_box.store, ",\n");
+            }
+        }
+        break;
+    case NfcCompareChecksComparedDataType_MFDesfireFields:
+        for(int i = 0; i < diff; i++) {
+            const uint16_t* idx =
+                simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
+            furi_string_cat_printf(
+                nfc_comparator->views.text_box.store, "%s", MFDesfireFieldNames[*idx]);
+            if(i < diff - 1) {
+                furi_string_cat(nfc_comparator->views.text_box.store, ",\n");
+            }
+        }
+        break;
+    default:
+        for(int i = 0; i < diff; i++) {
+            const uint16_t* idx =
+                simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
             furi_string_cat_printf(nfc_comparator->views.text_box.store, "%d", *idx);
-
             if(i < diff - 1) {
                 furi_string_cat(nfc_comparator->views.text_box.store, ", ");
-                if((i + 1) % 5 == 0 && nfc_comparator->workers.compare_checks->diff.unit !=
-                                           NfcCompareChecksComparedDataType_EmvFields) {
+                if((i + 1) % 5 == 0) {
                     furi_string_cat(nfc_comparator->views.text_box.store, "\n");
                 }
             }
         }
+        break;
     }
 
     text_box_reset(nfc_comparator->views.text_box.view);

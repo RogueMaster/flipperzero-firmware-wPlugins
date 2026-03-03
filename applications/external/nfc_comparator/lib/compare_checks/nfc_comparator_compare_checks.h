@@ -10,6 +10,8 @@
 #include "protocols/mf_ultralight/mf_ultralight.h"
 #include "protocols/st25tb/st25tb.h"
 #include "protocols/iso15693_3/iso15693_3.h"
+#include "protocols/mf_plus/mf_plus.h"
+#include "protocols/mf_desfire/mf_desfire.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,8 +40,22 @@ typedef enum {
    NfcCompareChecksComparedDataType_Pages,
    NfcCompareChecksComparedDataType_Bytes,
    NfcCompareChecksComparedDataType_EmvFields,
-   NfcCompareChecksComparedDataType_Unkown
+   NfcCompareChecksComparedDataType_MFPlusFields,
+   NfcCompareChecksComparedDataType_MFDesfireFields,
+   NfcCompareChecksComparedDataType_Unknown
 } NfcCompareChecksDiffUnit;
+
+/**
+ * @brief The unit names
+ */
+static const char* const nfc_compare_checks_diff_unit_strings[] = {
+   [NfcCompareChecksComparedDataType_Blocks] = "blocks",
+   [NfcCompareChecksComparedDataType_Pages] = "pages",
+   [NfcCompareChecksComparedDataType_Bytes] = "bytes",
+   [NfcCompareChecksComparedDataType_EmvFields] = "fields",
+   [NfcCompareChecksComparedDataType_MFPlusFields] = "fields",
+   [NfcCompareChecksComparedDataType_MFDesfireFields] = "fields",
+   [NfcCompareChecksComparedDataType_Unknown] = "unknown"};
 
 /**
  * @struct NfcComparatorCompareChecks

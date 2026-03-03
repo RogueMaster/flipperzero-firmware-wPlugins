@@ -10,7 +10,7 @@ NfcComparatorCompareChecks* nfc_comparator_compare_checks_alloc() {
    checks->results.uid_length = false;
    checks->results.protocol = false;
    checks->results.nfc_data = false;
-   checks->diff.unit = NfcCompareChecksComparedDataType_Unkown;
+   checks->diff.unit = NfcCompareChecksComparedDataType_Unknown;
    checks->diff.indices = simple_array_alloc(&simple_array_config_uint16_t);
    checks->diff.count = 0;
    checks->diff.total = 0;
@@ -51,7 +51,7 @@ void nfc_comparator_compare_checks_reset(NfcComparatorCompareChecks* checks) {
    checks->results.uid_length = false;
    checks->results.protocol = false;
    checks->results.nfc_data = false;
-   checks->diff.unit = NfcCompareChecksComparedDataType_Unkown;
+   checks->diff.unit = NfcCompareChecksComparedDataType_Unknown;
    simple_array_reset(checks->diff.indices);
    checks->diff.count = 0;
    checks->diff.total = 0;
@@ -127,6 +127,16 @@ void nfc_comparator_compare_checks_compare_cards(
          // EMV
          case NfcProtocolEmv:
             emv_compare_cards(checks, card1, card2);
+            break;
+
+         // MF Plus
+         case NfcProtocolMfPlus:
+            mf_plus_compare_cards(checks, card1, card2);
+            break;
+
+         // MF Desfire
+         case NfcProtocolMfDesfire:
+            mf_desfire_compare_cards(checks, card1, card2);
             break;
 
          default:
