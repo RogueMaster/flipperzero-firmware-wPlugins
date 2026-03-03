@@ -293,7 +293,7 @@ static bool custom_event_callback(void* context, uint32_t event) {
             "GitHub:\n"
             "github.com/DonJulve\n\n"
             "LinkedIn:\n"
-            "linkedin.com/in/\njavier-julve-yubero-\n188203384/");
+            "linkedin.com/in/\njavier-julve-yubero/");
 
         app->current_view = NfcQrAppViewCredits;
         view_dispatcher_switch_to_view(app->view_dispatcher, NfcQrAppViewCredits);
