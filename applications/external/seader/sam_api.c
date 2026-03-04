@@ -1266,11 +1266,9 @@ NfcCommand seader_worker_card_detect(
     UNUSED(atqa);
     SeaderCredential* credential = seader->credential;
 
-    CardDetails_t* cardDetails = 0;
-    cardDetails = calloc(1, sizeof *cardDetails);
-    assert(cardDetails);
+    CardDetails_t cardDetails = {0};
 
-    OCTET_STRING_fromBuf(&cardDetails->csn, (const char*)uid, uid_len);
+    OCTET_STRING_fromBuf(&cardDetails.csn, (const char*)uid, uid_len);
     OCTET_STRING_t sak_string = {.buf = &sak, .size = 1};
     OCTET_STRING_t ats_string = {.buf = ats, .size = ats_len};
     uint8_t protocol_bytes[] = {0x00, 0x00};
@@ -1283,22 +1281,22 @@ NfcCommand seader_worker_card_detect(
     if(ats != NULL) { // type 4
         protocol_bytes[1] = FrameProtocol_nfc;
         OCTET_STRING_fromBuf(
-            &cardDetails->protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
-        cardDetails->sak = &sak_string;
+            &cardDetails.protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
+        cardDetails.sak = &sak_string;
         // TODO: Update asn1 to change atqa to ats
-        cardDetails->atsOrAtqbOrAtr = &ats_string;
+        cardDetails.atsOrAtqbOrAtr = &ats_string;
     } else if(uid_len == 8) { // picopass
         protocol_bytes[1] = FrameProtocol_iclass;
         OCTET_STRING_fromBuf(
-            &cardDetails->protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
+            &cardDetails.protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
     } else { // MFC
         protocol_bytes[1] = FrameProtocol_nfc;
         OCTET_STRING_fromBuf(
-            &cardDetails->protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
-        cardDetails->sak = &sak_string;
+            &cardDetails.protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
+        cardDetails.sak = &sak_string;
     }
 
-    seader_send_card_detected(seader, cardDetails);
+    seader_send_card_detected(seader, &cardDetails);
     // Print version information for app and firmware for later review in log
     const Version* version = version_get();
     FURI_LOG_I(
@@ -1308,6 +1306,6 @@ NfcCommand seader_worker_card_detect(
         version_get_version(version),
         FAP_VERSION);
 
-    free(cardDetails);
+    ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_CardDetails, &cardDetails);
     return NfcCommandContinue;
 }
