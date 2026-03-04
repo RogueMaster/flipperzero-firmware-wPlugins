@@ -1,0 +1,14 @@
+App(
+    appid="spindle_calc",
+    name="Spindle Calculator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="spindle_calc_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    fap_icon="spindle_10px.png",
+    fap_category="Tools",
+    fap_version=(1, 0),
+    fap_description="Spindle spacing calculator for stairs and straight runs. Uses IMU for stair angle.",
+    fap_author="Jordan M",
+    fap_weburl="https://github.com/Minto97/spindle-calc-flipper",
+)
