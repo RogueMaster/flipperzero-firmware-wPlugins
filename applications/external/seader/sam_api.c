@@ -59,7 +59,11 @@ uint8_t select_desfire_app_no_le[] =
 uint8_t FILE_NOT_FOUND[] = {0x6a, 0x82};
 
 void* calloc(size_t count, size_t size) {
-    return malloc(count * size);
+    void* ptr = malloc(count * size);
+    if(ptr) {
+        memset(ptr, 0, count * size);
+    }
+    return ptr;
 }
 
 // Forward declarations

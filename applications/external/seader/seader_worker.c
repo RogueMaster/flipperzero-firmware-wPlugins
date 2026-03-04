@@ -19,7 +19,7 @@ void seader_send_card_detected(SeaderUartBridge* seader_uart, CardDetails_t* car
 /***************************** Seader Worker API *******************************/
 
 SeaderWorker* seader_worker_alloc() {
-    SeaderWorker* seader_worker = malloc(sizeof(SeaderWorker));
+    SeaderWorker* seader_worker = calloc(1, sizeof(SeaderWorker));
 
     // Worker thread attributes
     seader_worker->thread =

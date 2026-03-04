@@ -112,8 +112,25 @@ void seader_send_t1_chunk(SeaderUartBridge* seader_uart, uint8_t PCB, uint8_t* c
     free(frame);
 }
 
+void seader_send_t1_scratchpad(
+    SeaderUartBridge* seader_uart,
+    uint8_t PCB,
+    uint8_t* apdu,
+    size_t len) {
+    uint8_t* frame = apdu - 3;
+    frame[0] = NAD;
+    frame[1] = PCB;
+    frame[2] = (uint8_t)len;
+
+    size_t frame_len = seader_add_lrc(frame, 3 + len);
+    seader_ccid_XfrBlock(seader_uart, frame, frame_len);
+}
+
 void seader_send_t1(SeaderUartBridge* seader_uart, uint8_t* apdu, size_t len) {
     uint8_t ifsc = seader_uart->IFSC;
+
+    bool in_scratchpad =
+        (apdu >= seader_uart->tx_buf + 3 && apdu < seader_uart->tx_buf + SEADER_UART_RX_BUF_SIZE);
 
     if(len > ifsc) {
         if(seader_t_1_tx_buffer == NULL) {
@@ -144,7 +161,11 @@ void seader_send_t1(SeaderUartBridge* seader_uart, uint8_t* apdu, size_t len) {
         return;
     }
 
-    seader_send_t1_chunk(seader_uart, seader_next_dpcb(), apdu, len);
+    if(in_scratchpad) {
+        seader_send_t1_scratchpad(seader_uart, seader_next_dpcb(), apdu, len);
+    } else {
+        seader_send_t1_chunk(seader_uart, seader_next_dpcb(), apdu, len);
+    }
 }
 
 BitBuffer* seader_t_1_rx_buffer;

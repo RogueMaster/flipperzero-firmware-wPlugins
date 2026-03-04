@@ -64,6 +64,7 @@
 
 #define SEADER_TEXT_STORE_SIZE 128
 #define SEADER_MAX_ATR_SIZE    33
+#define MAX_FRAME_HEADERS      32
 
 enum SeaderCustomEvent {
     // Reserve first 100 events for button types and indexes, starting from 0
