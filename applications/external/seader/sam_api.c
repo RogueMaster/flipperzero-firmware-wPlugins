@@ -1219,13 +1219,12 @@ bool seader_process_success_response_i(
     size_t len,
     bool online,
     SeaderPollerContainer* spc) {
-    Payload_t* payload = 0;
-    payload = calloc(1, sizeof *payload);
-    assert(payload);
+    Payload_t payload = {0};
+    Payload_t* payload_p = &payload;
     bool processed = false;
 
     asn_dec_rval_t rval =
-        asn_decode(0, ATS_DER, &asn_DEF_Payload, (void**)&payload, apdu + 6, len - 6);
+        asn_decode(0, ATS_DER, &asn_DEF_Payload, (void**)&payload_p, apdu + 6, len - 6);
     if(rval.code == RC_OK) {
 #ifdef ASN1_DEBUG
         if(online == false) {
@@ -1235,7 +1234,7 @@ bool seader_process_success_response_i(
             memset(payloadDebug, 0, sizeof(payloadDebug));
             (&asn_DEF_Payload)
                 ->op->print_struct(
-                    &asn_DEF_Payload, payload, 1, seader_print_struct_callback, payloadDebug);
+                    &asn_DEF_Payload, &payload, 1, seader_print_struct_callback, payloadDebug);
             if(strlen(payloadDebug) > 0) {
                 FURI_LOG_D(TAG, "Received Payload: %s", payloadDebug);
             } else {
@@ -1246,12 +1245,12 @@ bool seader_process_success_response_i(
         }
 #endif
 
-        processed = seader_worker_state_machine(seader, payload, online, spc);
+        processed = seader_worker_state_machine(seader, &payload, online, spc);
     } else {
         seader_log_hex_data(TAG, "Failed to decode APDU payload", apdu, len);
     }
 
-    ASN_STRUCT_FREE(asn_DEF_Payload, payload);
+    ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_Payload, &payload);
     return processed;
 }
 
