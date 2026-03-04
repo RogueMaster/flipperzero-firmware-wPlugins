@@ -49,16 +49,7 @@ void seader_uart_serial_deinit(SeaderUartBridge* seader_uart) {
     seader_uart->serial_handle = NULL;
 }
 
-void seader_uart_set_baudrate(SeaderUartBridge* seader_uart, uint32_t baudrate) {
-    if(baudrate != 0) {
-        furi_hal_serial_set_br(seader_uart->serial_handle, baudrate);
-    } else {
-        FURI_LOG_I(TAG, "No baudrate specified");
-    }
-}
-
 size_t seader_uart_process_buffer(Seader* seader, uint8_t* cmd, size_t cmd_len) {
-    SeaderUartBridge* seader_uart = seader->uart;
     if(cmd_len < 2) {
         return cmd_len;
     }
@@ -73,7 +64,6 @@ size_t seader_uart_process_buffer(Seader* seader, uint8_t* cmd, size_t cmd_len) 
             if(cmd_len > 0) {
                 memmove(cmd, cmd + consumed, cmd_len);
             }
-            seader_uart->st.rx_cnt += consumed;
 
             /*
             memset(display, 0, SEADER_UART_RX_BUF_SIZE);
@@ -102,7 +92,7 @@ int32_t seader_uart_worker(void* context) {
         furi_thread_alloc_ex("SeaderUartTxWorker", 1.5 * 1024, seader_uart_tx_thread, seader);
 
     seader_uart_serial_init(seader_uart, seader_uart->cfg.uart_ch);
-    seader_uart_set_baudrate(seader_uart, seader_uart->cfg.baudrate);
+    furi_hal_serial_set_br(seader_uart->serial_handle, seader_uart->cfg.baudrate);
 
     furi_thread_flags_set(furi_thread_get_id(seader_uart->tx_thread), WorkerEvtSamRx);
 
@@ -188,7 +178,6 @@ int32_t seader_uart_tx_thread(void* context) {
                     snprintf(display + (i * 2), sizeof(display), "%02x", seader_uart->tx_buf[i]);
                 }
                 // FURI_LOG_I(TAG, "SEND %d bytes: %s", seader_uart->tx_len, display);
-                seader_uart->st.tx_cnt += seader_uart->tx_len;
                 furi_hal_serial_tx(
                     seader_uart->serial_handle, seader_uart->tx_buf, seader_uart->tx_len);
             }

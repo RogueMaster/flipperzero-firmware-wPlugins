@@ -20,8 +20,6 @@ typedef struct {
 } SeaderUartConfig;
 
 typedef struct {
-    uint32_t rx_cnt;
-    uint32_t tx_cnt;
     uint8_t protocol;
 } SeaderUartState;
 

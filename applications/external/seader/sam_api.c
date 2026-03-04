@@ -170,7 +170,6 @@ void seader_virtual_picopass_state_machine(Seader* seader, uint8_t* buffer, size
     bit_buffer_free(rx_buffer);
 }
 
-uint8_t APDU_HEADER_LEN = 5;
 bool seader_send_apdu(
     Seader* seader,
     uint8_t CLA,
@@ -178,26 +177,44 @@ bool seader_send_apdu(
     uint8_t P1,
     uint8_t P2,
     uint8_t* payload,
-    uint8_t payloadLen) {
+    uint8_t payloadLen,
+    bool in_scratchpad) {
     SeaderWorker* seader_worker = seader->worker;
     SeaderUartBridge* seader_uart = seader_worker->uart;
 
     bool extended = seader_uart->T == 1;
+    uint8_t header_len = extended ? 7 : 5;
 
-    if(extended) {
-        APDU_HEADER_LEN = 7;
-    }
-
-    if(APDU_HEADER_LEN + payloadLen > SEADER_UART_RX_BUF_SIZE) {
-        FURI_LOG_E(TAG, "Cannot send message, too long: %d", APDU_HEADER_LEN + payloadLen);
+    // Must account for MAX_FRAME_HEADERS headroom in scratchpad mode
+    if(MAX_FRAME_HEADERS + header_len + payloadLen > SEADER_UART_RX_BUF_SIZE) {
+        FURI_LOG_E(TAG, "Cannot send message, too long: %d", header_len + payloadLen);
         return false;
     }
 
-    uint8_t length = APDU_HEADER_LEN + payloadLen;
-    uint8_t* apdu = malloc(length);
-    if(!apdu) {
-        FURI_LOG_E(TAG, "Failed to allocate memory for apdu in seader_send_apdu");
-        return false;
+    uint8_t length = header_len + payloadLen;
+    uint8_t* apdu;
+    bool must_free = false;
+    uintptr_t tx_start = (uintptr_t)seader_uart->tx_buf;
+    uintptr_t tx_end = tx_start + SEADER_UART_RX_BUF_SIZE;
+    uintptr_t payload_addr = (uintptr_t)payload;
+    bool scratchpad_payload = false;
+
+    // in_scratchpad is only valid when the full payload range is inside tx_buf.
+    if(in_scratchpad && payload_addr >= tx_start + header_len && payload_addr <= tx_end) {
+        size_t available = (size_t)(tx_end - payload_addr);
+        scratchpad_payload = payloadLen <= available;
+    }
+
+    if(scratchpad_payload) {
+        apdu = (uint8_t*)(payload_addr - header_len);
+    } else {
+        apdu = malloc(length);
+        if(!apdu) {
+            FURI_LOG_E(TAG, "Failed to allocate memory for apdu in seader_send_apdu");
+            return false;
+        }
+        memcpy(apdu + header_len, payload, payloadLen);
+        must_free = true;
     }
 
     apdu[0] = CLA;
@@ -213,8 +230,6 @@ bool seader_send_apdu(
         apdu[4] = payloadLen;
     }
 
-    memcpy(apdu + APDU_HEADER_LEN, payload, payloadLen);
-
     seader_log_hex_data(TAG, "seader_send_apdu", apdu, length);
 
     if(seader_uart->T == 1) {
@@ -222,7 +237,10 @@ bool seader_send_apdu(
     } else {
         seader_ccid_XfrBlock(seader_uart, apdu, length);
     }
-    free(apdu);
+
+    if(must_free) {
+        free(apdu);
+    }
 
     return true;
 }
@@ -247,14 +265,50 @@ void seader_send_payload(
     uint8_t from,
     uint8_t to,
     uint8_t replyTo) {
-    uint8_t rBuffer[SEADER_UART_RX_BUF_SIZE] = {0};
+    SeaderWorker* seader_worker = seader->worker;
+    SeaderUartBridge* seader_uart = seader_worker->uart;
+
+    uint8_t* scratchpad = seader_uart->tx_buf + MAX_FRAME_HEADERS;
+    size_t scratchpad_size = SEADER_UART_RX_BUF_SIZE - MAX_FRAME_HEADERS;
+    size_t max_der_len = UINT8_MAX - ASN1_PREFIX;
+    uint8_t* payload_buf = scratchpad;
+    bool payload_in_scratchpad = true;
 
     asn_enc_rval_t er = der_encode_to_buffer(
-        &asn_DEF_Payload, payload, rBuffer + ASN1_PREFIX, sizeof(rBuffer) - ASN1_PREFIX);
+        &asn_DEF_Payload, payload, scratchpad + ASN1_PREFIX, scratchpad_size - ASN1_PREFIX);
+
+    if(er.encoded < 0 || ((size_t)er.encoded + ASN1_PREFIX) > UINT8_MAX) {
+        payload_buf = malloc(ASN1_PREFIX + max_der_len);
+        if(!payload_buf) {
+            FURI_LOG_E(TAG, "Failed to allocate DER fallback buffer");
+            return;
+        }
+        payload_in_scratchpad = false;
+
+        er = der_encode_to_buffer(
+            &asn_DEF_Payload, payload, payload_buf + ASN1_PREFIX, max_der_len);
+    }
+
+    if(er.encoded < 0) {
+        FURI_LOG_E(TAG, "Failed to encode payload");
+        if(!payload_in_scratchpad) {
+            free(payload_buf);
+        }
+        return;
+    }
+
+    size_t apdu_payload_len = ASN1_PREFIX + (size_t)er.encoded;
+    if(apdu_payload_len > UINT8_MAX) {
+        FURI_LOG_E(TAG, "Encoded payload too large for APDU: %d", (int)apdu_payload_len);
+        if(!payload_in_scratchpad) {
+            free(payload_buf);
+        }
+        return;
+    }
 
 #ifdef ASN1_DEBUG
     if(er.encoded > -1) {
-        char payloadDebug[1024] = {0};
+        char payloadDebug[384] = {0};
         memset(payloadDebug, 0, sizeof(payloadDebug));
         (&asn_DEF_Payload)
             ->op->print_struct(
@@ -268,32 +322,39 @@ void seader_send_payload(
 #endif
     //0xa0, 0xda, 0x02, 0x63, 0x00, 0x00, 0x0a,
     //0x44, 0x0a, 0x44, 0x00, 0x00, 0x00, 0xa0, 0x02, 0x96, 0x00
-    rBuffer[0] = from;
-    rBuffer[1] = to;
-    rBuffer[2] = replyTo;
+    payload_buf[0] = from;
+    payload_buf[1] = to;
+    payload_buf[2] = replyTo;
+    payload_buf[3] = 0x00;
+    payload_buf[4] = 0x00;
+    payload_buf[5] = 0x00;
 
-    seader_send_apdu(seader, 0xA0, 0xDA, 0x02, 0x63, rBuffer, 6 + er.encoded);
+    seader_send_apdu(
+        seader,
+        0xA0,
+        0xDA,
+        0x02,
+        0x63,
+        payload_buf,
+        (uint8_t)apdu_payload_len,
+        payload_in_scratchpad);
+
+    if(!payload_in_scratchpad) {
+        free(payload_buf);
+    }
 }
 
 void seader_send_process_config_card(Seader* seader) {
-    SamCommand_t* samCommand = 0;
-    samCommand = calloc(1, sizeof *samCommand);
-    assert(samCommand);
+    SamCommand_t samCommand = {0};
+    Payload_t payload = {0};
 
-    samCommand->present = SamCommand_PR_processConfigCard;
-    seader->samCommand = samCommand->present;
+    samCommand.present = SamCommand_PR_processConfigCard;
+    seader->samCommand = samCommand.present;
 
-    Payload_t* payload = 0;
-    payload = calloc(1, sizeof *payload);
-    assert(payload);
+    payload.present = Payload_PR_samCommand;
+    payload.choice.samCommand = samCommand;
 
-    payload->present = Payload_PR_samCommand;
-    payload->choice.samCommand = *samCommand;
-
-    seader_send_payload(seader, payload, 0x44, 0x0a, 0x44);
-
-    ASN_STRUCT_FREE(asn_DEF_SamCommand, samCommand);
-    ASN_STRUCT_FREE(asn_DEF_Payload, payload);
+    seader_send_payload(seader, &payload, 0x44, 0x0a, 0x44);
 }
 
 void seader_send_response(
@@ -302,169 +363,111 @@ void seader_send_response(
     uint8_t from,
     uint8_t to,
     uint8_t replyTo) {
-    Payload_t* payload = 0;
-    payload = calloc(1, sizeof *payload);
-    assert(payload);
+    Payload_t payload = {0};
 
-    payload->present = Payload_PR_response;
-    payload->choice.response = *response;
+    payload.present = Payload_PR_response;
+    payload.choice.response = *response;
 
-    seader_send_payload(seader, payload, from, to, replyTo);
-
-    ASN_STRUCT_FREE(asn_DEF_Payload, payload);
+    seader_send_payload(seader, &payload, from, to, replyTo);
 }
 
 void seader_send_request_pacs(Seader* seader) {
-    RequestPacs_t* requestPacs = 0;
-    requestPacs = calloc(1, sizeof *requestPacs);
-    assert(requestPacs);
+    RequestPacs_t requestPacs = {0};
+    requestPacs.contentElementTag = ContentElementTag_implicitFormatPhysicalAccessBits;
 
-    requestPacs->contentElementTag = ContentElementTag_implicitFormatPhysicalAccessBits;
+    SamCommand_t samCommand = {0};
+    samCommand.present = SamCommand_PR_requestPacs;
+    seader->samCommand = samCommand.present;
+    samCommand.choice.requestPacs = requestPacs;
 
-    SamCommand_t* samCommand = 0;
-    samCommand = calloc(1, sizeof *samCommand);
-    assert(samCommand);
+    Payload_t payload = {0};
+    payload.present = Payload_PR_samCommand;
+    payload.choice.samCommand = samCommand;
 
-    samCommand->present = SamCommand_PR_requestPacs;
-    seader->samCommand = samCommand->present;
-
-    samCommand->choice.requestPacs = *requestPacs;
-
-    Payload_t* payload = 0;
-    payload = calloc(1, sizeof *payload);
-    assert(payload);
-
-    payload->present = Payload_PR_samCommand;
-    payload->choice.samCommand = *samCommand;
-
-    seader_send_payload(seader, payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
-
-    ASN_STRUCT_FREE(asn_DEF_Payload, payload);
-    ASN_STRUCT_FREE(asn_DEF_SamCommand, samCommand);
-    ASN_STRUCT_FREE(asn_DEF_RequestPacs, requestPacs);
+    seader_send_payload(
+        seader, &payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
 }
 
 void seader_send_request_pacs2(Seader* seader) {
-    RequestPacs_t* requestPacs = 0;
-    requestPacs = calloc(1, sizeof *requestPacs);
-    assert(requestPacs);
-
     OCTET_STRING_t oid = {
         .buf = (uint8_t*)seader_oid,
         .size = sizeof(seader_oid),
     };
 
-    requestPacs->contentElementTag = ContentElementTag_implicitFormatPhysicalAccessBits;
-    requestPacs->oid = &oid;
+    RequestPacs_t requestPacs = {0};
+    requestPacs.contentElementTag = ContentElementTag_implicitFormatPhysicalAccessBits;
+    requestPacs.oid = &oid;
 
-    SamCommand_t* samCommand = 0;
-    samCommand = calloc(1, sizeof *samCommand);
-    assert(samCommand);
+    SamCommand_t samCommand = {0};
+    samCommand.present = SamCommand_PR_requestPacs2;
+    seader->samCommand = samCommand.present;
+    samCommand.choice.requestPacs2 = requestPacs;
 
-    samCommand->present = SamCommand_PR_requestPacs2;
-    seader->samCommand = samCommand->present;
+    Payload_t payload = {0};
+    payload.present = Payload_PR_samCommand;
+    payload.choice.samCommand = samCommand;
 
-    samCommand->choice.requestPacs2 = *requestPacs;
-
-    Payload_t* payload = 0;
-    payload = calloc(1, sizeof *payload);
-    assert(payload);
-
-    payload->present = Payload_PR_samCommand;
-    payload->choice.samCommand = *samCommand;
-
-    seader_send_payload(seader, payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
-
-    ASN_STRUCT_FREE(asn_DEF_Payload, payload);
-    ASN_STRUCT_FREE(asn_DEF_SamCommand, samCommand);
-    ASN_STRUCT_FREE(asn_DEF_RequestPacs, requestPacs);
+    seader_send_payload(
+        seader, &payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
 }
 
 void seader_worker_send_serial_number(Seader* seader) {
-    SamCommand_t* samCommand = 0;
-    samCommand = calloc(1, sizeof *samCommand);
-    assert(samCommand);
+    SamCommand_t samCommand = {0};
+    samCommand.present = SamCommand_PR_serialNumber;
+    seader->samCommand = samCommand.present;
 
-    samCommand->present = SamCommand_PR_serialNumber;
-    seader->samCommand = samCommand->present;
+    Payload_t payload = {0};
+    payload.present = Payload_PR_samCommand;
+    payload.choice.samCommand = samCommand;
 
-    Payload_t* payload = 0;
-    payload = calloc(1, sizeof *payload);
-    assert(payload);
-
-    payload->present = Payload_PR_samCommand;
-    payload->choice.samCommand = *samCommand;
-
-    seader_send_payload(seader, payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
-
-    ASN_STRUCT_FREE(asn_DEF_Payload, payload);
-    ASN_STRUCT_FREE(asn_DEF_SamCommand, samCommand);
+    seader_send_payload(
+        seader, &payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
 }
 
 void seader_worker_send_version(Seader* seader) {
-    SamCommand_t* samCommand = 0;
-    samCommand = calloc(1, sizeof *samCommand);
-    assert(samCommand);
+    SamCommand_t samCommand = {0};
+    samCommand.present = SamCommand_PR_version;
+    seader->samCommand = samCommand.present;
 
-    samCommand->present = SamCommand_PR_version;
-    seader->samCommand = samCommand->present;
+    Payload_t payload = {0};
+    payload.present = Payload_PR_samCommand;
+    payload.choice.samCommand = samCommand;
 
-    Payload_t* payload = 0;
-    payload = calloc(1, sizeof *payload);
-    assert(payload);
-
-    payload->present = Payload_PR_samCommand;
-    payload->choice.samCommand = *samCommand;
-
-    seader_send_payload(seader, payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
-
-    ASN_STRUCT_FREE(asn_DEF_Payload, payload);
-    ASN_STRUCT_FREE(asn_DEF_SamCommand, samCommand);
+    seader_send_payload(
+        seader, &payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
 }
 
 void seader_send_card_detected(Seader* seader, CardDetails_t* cardDetails) {
-    CardDetected_t* cardDetected = 0;
-    cardDetected = calloc(1, sizeof *cardDetected);
-    assert(cardDetected);
+    CardDetected_t cardDetected = {
+        .detectedCardDetails = *cardDetails,
+    };
 
-    cardDetected->detectedCardDetails = *cardDetails;
+    SamCommand_t samCommand = {0};
+    samCommand.present = SamCommand_PR_cardDetected;
+    seader->samCommand = samCommand.present;
+    samCommand.choice.cardDetected = cardDetected;
 
-    SamCommand_t* samCommand = 0;
-    samCommand = calloc(1, sizeof *samCommand);
-    assert(samCommand);
+    Payload_t payload = {0};
+    payload.present = Payload_PR_samCommand;
+    payload.choice.samCommand = samCommand;
 
-    samCommand->present = SamCommand_PR_cardDetected;
-    seader->samCommand = samCommand->present;
-    samCommand->choice.cardDetected = *cardDetected;
-
-    Payload_t* payload = 0;
-    payload = calloc(1, sizeof *payload);
-    assert(payload);
-
-    payload->present = Payload_PR_samCommand;
-    payload->choice.samCommand = *samCommand;
-
-    seader_send_payload(seader, payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
-
-    ASN_STRUCT_FREE(asn_DEF_Payload, payload);
-    ASN_STRUCT_FREE(asn_DEF_SamCommand, samCommand);
-    ASN_STRUCT_FREE(asn_DEF_CardDetected, cardDetected);
+    seader_send_payload(
+        seader, &payload, ExternalApplicationA, SAMInterface, ExternalApplicationA);
 }
 
 bool seader_unpack_pacs(Seader* seader, uint8_t* buf, size_t size) {
     SeaderCredential* seader_credential = seader->credential;
-    PAC_t* pac = 0;
-    pac = calloc(1, sizeof *pac);
-    assert(pac);
+    PAC_t pac = {0};
+    PAC_t* pac_p = &pac;
     bool rtn = false;
 
-    asn_dec_rval_t rval = asn_decode(0, ATS_DER, &asn_DEF_PAC, (void**)&pac, buf, size);
+    asn_dec_rval_t rval = asn_decode(0, ATS_DER, &asn_DEF_PAC, (void**)&pac_p, buf, size);
 
     if(rval.code == RC_OK) {
 #ifdef ASN1_DEBUG
         char pacDebug[384] = {0};
         (&asn_DEF_PAC)
-            ->op->print_struct(&asn_DEF_PAC, pac, 1, seader_print_struct_callback, pacDebug);
+            ->op->print_struct(&asn_DEF_PAC, &pac, 1, seader_print_struct_callback, pacDebug);
         if(strlen(pacDebug) > 0) {
             FURI_LOG_D(TAG, "Received pac: %s", pacDebug);
         }
@@ -474,14 +477,13 @@ bool seader_unpack_pacs(Seader* seader, uint8_t* buf, size_t size) {
             seader_log_hex_data(TAG, "SIO", seader_credential->sio, seader_credential->sio_len);
 
 #ifdef ASN1_DEBUG
-            SIO_t* sio = 0;
-            sio = calloc(1, sizeof *sio);
-            assert(sio);
+            SIO_t sio = {0};
+            SIO_t* sio_p = &sio;
             rval = asn_decode(
                 0,
                 ATS_DER,
                 &asn_DEF_SIO,
-                (void**)&sio,
+                (void**)&sio_p,
                 seader_credential->sio,
                 seader_credential->sio_len);
 
@@ -490,7 +492,7 @@ bool seader_unpack_pacs(Seader* seader, uint8_t* buf, size_t size) {
                 char sioDebug[384] = {0};
                 (&asn_DEF_SIO)
                     ->op->print_struct(
-                        &asn_DEF_SIO, sio, 1, seader_print_struct_callback, sioDebug);
+                        &asn_DEF_SIO, &sio, 1, seader_print_struct_callback, sioDebug);
                 if(strlen(sioDebug) > 0) {
                     FURI_LOG_D(TAG, "SIO: %s", sioDebug);
                 }
@@ -498,14 +500,14 @@ bool seader_unpack_pacs(Seader* seader, uint8_t* buf, size_t size) {
                 FURI_LOG_W(TAG, "Failed to decode SIO %d consumed", rval.consumed);
             }
 
-            ASN_STRUCT_FREE(asn_DEF_SIO, sio);
+            ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_SIO, &sio);
 #endif
         }
 
-        if(pac->size <= sizeof(seader_credential->credential)) {
+        if(pac.size <= sizeof(seader_credential->credential)) {
             // TODO: make credential into a 12 byte array
-            seader_credential->bit_length = pac->size * 8 - pac->bits_unused;
-            memcpy(&seader_credential->credential, pac->buf, pac->size);
+            seader_credential->bit_length = pac.size * 8 - pac.bits_unused;
+            memcpy(&seader_credential->credential, pac.buf, pac.size);
             seader_credential->credential = __builtin_bswap64(seader_credential->credential);
             seader_credential->credential = seader_credential->credential >>
                                             (64 - seader_credential->bit_length);
@@ -526,7 +528,7 @@ bool seader_unpack_pacs(Seader* seader, uint8_t* buf, size_t size) {
         FURI_LOG_W(TAG, "Failed to decode PAC %d consumed, size %d", rval.consumed, size);
     }
 
-    ASN_STRUCT_FREE(asn_DEF_PAC, pac);
+    ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_PAC, &pac);
     return rtn;
 }
 
@@ -542,9 +544,8 @@ bool seader_parse_version(SeaderWorker* seader_worker, uint8_t* buf, size_t size
         FURI_LOG_W(TAG, "Version of %d is too long to parse", size);
         return false;
     }
-    SamVersion_t* version = 0;
-    version = calloc(1, sizeof *version);
-    assert(version);
+    SamVersion_t version = {0};
+    SamVersion_t* version_p = &version;
 
     // Add sequence prefix
     uint8_t seq[MAX_VERSION_SIZE + 2] = {0x30};
@@ -552,20 +553,20 @@ bool seader_parse_version(SeaderWorker* seader_worker, uint8_t* buf, size_t size
     memcpy(seq + 2, buf, size);
 
     asn_dec_rval_t rval =
-        asn_decode(0, ATS_DER, &asn_DEF_SamVersion, (void**)&version, seq, size + 2);
+        asn_decode(0, ATS_DER, &asn_DEF_SamVersion, (void**)&version_p, seq, size + 2);
 
     if(rval.code == RC_OK) {
 #ifdef ASN1_DEBUG
         char versionDebug[128] = {0};
         (&asn_DEF_SamVersion)
             ->op->print_struct(
-                &asn_DEF_SamVersion, version, 1, seader_print_struct_callback, versionDebug);
+                &asn_DEF_SamVersion, &version, 1, seader_print_struct_callback, versionDebug);
         if(strlen(versionDebug) > 0) {
             FURI_LOG_D(TAG, "Received version: %s", versionDebug);
         }
 #endif
-        if(version->version.size == 2) {
-            memcpy(seader_worker->sam_version, version->version.buf, version->version.size);
+        if(version.version.size == 2) {
+            memcpy(seader_worker->sam_version, version.version.buf, version.version.size);
             FURI_LOG_I(
                 TAG,
                 "SAM Version: %d.%d",
@@ -578,7 +579,7 @@ bool seader_parse_version(SeaderWorker* seader_worker, uint8_t* buf, size_t size
         FURI_LOG_W(TAG, "Failed to decode SamVersion %d consumed, size %d", rval.consumed, size);
     }
 
-    ASN_STRUCT_FREE(asn_DEF_SamVersion, version);
+    ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_SamVersion, &version);
     return rtn;
 }
 
@@ -768,32 +769,19 @@ void seader_send_nfc_rx(Seader* seader, uint8_t* buffer, size_t len) {
     uint8_t status[] = {0x00, 0x00};
     RfStatus_t rfStatus = {.buf = status, .size = 2};
 
-    NFCRx_t* nfcRx = 0;
-    nfcRx = calloc(1, sizeof *nfcRx);
-    assert(nfcRx);
+    NFCRx_t nfcRx = {0};
+    nfcRx.rfStatus = rfStatus;
+    nfcRx.data = &rxData;
 
-    nfcRx->rfStatus = rfStatus;
-    nfcRx->data = &rxData;
+    NFCResponse_t nfcResponse = {0};
+    nfcResponse.present = NFCResponse_PR_nfcRx;
+    nfcResponse.choice.nfcRx = nfcRx;
 
-    NFCResponse_t* nfcResponse = 0;
-    nfcResponse = calloc(1, sizeof *nfcResponse);
-    assert(nfcResponse);
+    Response_t response = {0};
+    response.present = Response_PR_nfcResponse;
+    response.choice.nfcResponse = nfcResponse;
 
-    nfcResponse->present = NFCResponse_PR_nfcRx;
-    nfcResponse->choice.nfcRx = *nfcRx;
-
-    Response_t* response = 0;
-    response = calloc(1, sizeof *response);
-    assert(response);
-
-    response->present = Response_PR_nfcResponse;
-    response->choice.nfcResponse = *nfcResponse;
-
-    seader_send_response(seader, response, NFCInterface, SAMInterface, 0x0);
-
-    ASN_STRUCT_FREE(asn_DEF_NFCRx, nfcRx);
-    ASN_STRUCT_FREE(asn_DEF_NFCResponse, nfcResponse);
-    ASN_STRUCT_FREE(asn_DEF_Response, response);
+    seader_send_response(seader, &response, NFCInterface, SAMInterface, 0x0);
 }
 
 void seader_capture_sio(BitBuffer* tx_buffer, BitBuffer* rx_buffer, SeaderCredential* credential) {
@@ -1146,23 +1134,14 @@ void seader_parse_nfc_command_transmit(
 
 void seader_parse_nfc_off(Seader* seader) {
     FURI_LOG_D(TAG, "Set Field Off");
-    NFCResponse_t* nfcResponse = 0;
-    nfcResponse = calloc(1, sizeof *nfcResponse);
-    assert(nfcResponse);
+    NFCResponse_t nfcResponse = {0};
+    nfcResponse.present = NFCResponse_PR_nfcAck;
 
-    nfcResponse->present = NFCResponse_PR_nfcAck;
+    Response_t response = {0};
+    response.present = Response_PR_nfcResponse;
+    response.choice.nfcResponse = nfcResponse;
 
-    Response_t* response = 0;
-    response = calloc(1, sizeof *response);
-    assert(response);
-
-    response->present = Response_PR_nfcResponse;
-    response->choice.nfcResponse = *nfcResponse;
-
-    seader_send_response(seader, response, ExternalApplicationA, SAMInterface, 0);
-
-    free(response);
-    free(nfcResponse);
+    seader_send_response(seader, &response, ExternalApplicationA, SAMInterface, 0);
 }
 
 void seader_parse_nfc_command(Seader* seader, NFCCommand_t* nfcCommand, SeaderPollerContainer* spc) {
