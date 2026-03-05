@@ -1,6 +1,7 @@
 #include "minesweeper.h"
 #include "scenes/minesweeper_scene.h"
 #include "helpers/mine_sweeper_config.h"
+#include "helpers/mine_sweeper_led.h"
 
 #include <furi.h>
 
@@ -51,6 +52,7 @@ static void minesweeper_scene_generating_try_switch_to_game(
         return;
     }
 
+    mine_sweeper_game_screen_set_context(app->game_screen, &app->game_state);
     mine_sweeper_game_screen_reset_clock(app->game_screen);
     scene_manager_next_scene(app->scene_manager, MineSweeperSceneGameScreen);
 }
@@ -77,6 +79,8 @@ static void minesweeper_scene_generating_cancel_and_return(MineSweeperApp* app) 
 void minesweeper_scene_generating_on_enter(void* context) {
     furi_assert(context);
     MineSweeperApp* app = context;
+
+    mine_sweeper_led_reset(app);
 
     MineSweeperConfig config = minesweeper_scene_generating_build_config(app);
     if(minesweeper_engine_generation_begin(&app->generation_job, &config) ==

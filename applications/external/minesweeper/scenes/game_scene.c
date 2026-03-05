@@ -217,8 +217,8 @@ void minesweeper_scene_game_screen_on_enter(void* context) {
 
     furi_assert(app->game_screen);
 
-    // Set to game state struct
-    mine_sweeper_game_screen_set_context(app->game_screen, &app->game_state);
+    // Keep existing view projection across transient scene hops (e.g. menu back).
+    // Context is bound when a new board is committed in the generating scene.
     mine_sweeper_game_screen_set_input_callback(
         app->game_screen, mine_sweeper_game_screen_action_callback, app);
 
