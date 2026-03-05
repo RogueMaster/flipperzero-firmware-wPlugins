@@ -18,7 +18,7 @@ Given a length and spindle size, it calculates:
 There are two modes:
 
 ### Stair mode
-Enter the **diagonal (rake) length** between posts and the **stair angle**. The app converts the diagonal to a horizontal run using `horiz = diagonal × cos(angle)`, then calculates all spacings from that. Results include both the horizontal gap and the rake gap (measured along the slope).
+Enter the **diagonal (rake) length** between posts and the **stair angle**. The app converts the diagonal to a horizontal run using `horiz = diagonal × cos(angle)`, then calculates all spacings from that. Results include both the horizontal gap and the rake length.
 
 The built-in accelerometer can read the stair angle automatically — just lay the Flipper flat on a tread and press OK.
 
