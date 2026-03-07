@@ -24,8 +24,8 @@
 #define NFC_FUZZER_LOG_DIR                 "/ext/nfc_fuzzer"
 #define NFC_FUZZER_CUSTOM_DIR              "/ext/nfc_fuzzer/custom"
 #define NFC_FUZZER_MAX_PAYLOAD_LEN         255
-#define NFC_FUZZER_MAX_RESULTS             256
-#define NFC_FUZZER_INITIAL_RESULT_CAPACITY 32
+#define NFC_FUZZER_MAX_RESULTS             64 /* 256×520 B = 133 KB OOM; cap at 64×520 B = 33 KB */
+#define NFC_FUZZER_INITIAL_RESULT_CAPACITY 8
 #define NFC_FUZZER_HEX_STR_LEN             (NFC_FUZZER_MAX_PAYLOAD_LEN * 3 + 1)
 #define NFC_FUZZER_RESULT_DETAIL_LEN       2048
 

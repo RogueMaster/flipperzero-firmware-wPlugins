@@ -50,6 +50,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 - Added: [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - Updated: [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
+- Updated: [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [FlipperPwn v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [HID Exfil v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [NFC Fuzzer v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [SubGHz Spectrum v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 
 <a name="release"></a>
 

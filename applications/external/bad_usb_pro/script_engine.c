@@ -305,12 +305,11 @@ static void type_char(char ch) {
     uint16_t keycode = mapped & 0x7FFF;
 
     if(need_shift) {
-        furi_hal_hid_kb_press(HID_KEYBOARD_L_SHIFT);
-    }
-    furi_hal_hid_kb_press(keycode);
-    furi_hal_hid_kb_release(keycode);
-    if(need_shift) {
-        furi_hal_hid_kb_release(HID_KEYBOARD_L_SHIFT);
+        furi_hal_hid_kb_press(KEY_MOD_LEFT_SHIFT | keycode);
+        furi_hal_hid_kb_release(KEY_MOD_LEFT_SHIFT | keycode);
+    } else {
+        furi_hal_hid_kb_press(keycode);
+        furi_hal_hid_kb_release(keycode);
     }
 }
 
@@ -324,17 +323,17 @@ static void type_string(ScriptEngine* engine, const char* str) {
     }
 }
 
-/** Press a key combo (array of keycodes — modifiers first, regular key last) */
+/** Press a key combo (array of KEY_MOD_* modifier bits + regular key).
+ *  OR all entries together into one combined 16-bit value so the modifier
+ *  byte and keycode byte are both set in a single HID report. */
 static void press_key_combo(const uint16_t* keycodes, uint8_t count) {
-    /* Press all keys */
+    uint16_t combo = 0;
     for(uint8_t i = 0; i < count; i++) {
-        furi_hal_hid_kb_press(keycodes[i]);
+        combo |= keycodes[i];
     }
-    furi_delay_ms(10); /* brief hold */
-    /* Release in reverse */
-    for(int8_t i = (int8_t)(count - 1); i >= 0; i--) {
-        furi_hal_hid_kb_release(keycodes[i]);
-    }
+    furi_hal_hid_kb_press(combo);
+    furi_delay_ms(30);
+    furi_hal_hid_kb_release(combo);
 }
 
 /** Press and release a single HID key */

@@ -13,16 +13,17 @@
 #include <stdint.h>
 
 #define BADUSB_PRO_SCRIPTS_PATH   EXT_PATH("badusb_pro")
-#define BADUSB_PRO_INITIAL_TOKENS 256
-#define BADUSB_PRO_MAX_TOKENS     1024
-#define BADUSB_PRO_MAX_LINE_LEN   512
+#define BADUSB_PRO_INITIAL_TOKENS 64 /* was 256; 64×160B=10KB fits in RAM  */
+#define BADUSB_PRO_MAX_TOKENS     256 /* hard cap on token count             */
+#define BADUSB_PRO_MAX_LINE_LEN   256 /* was 512; for stack read buffers     */
+#define BADUSB_PRO_TOKEN_STR_LEN  128 /* str_value field in ScriptToken      */
 #define BADUSB_PRO_MAX_VARS       16
 #define BADUSB_PRO_MAX_FUNCS      16
 #define BADUSB_PRO_MAX_STACK      32
 #define BADUSB_PRO_VAR_NAME_LEN   32
-#define BADUSB_PRO_VAR_VAL_LEN    128
+#define BADUSB_PRO_VAR_VAL_LEN    64 /* was 128                             */
 #define BADUSB_PRO_FUNC_NAME_LEN  32
-#define BADUSB_PRO_MAX_FILES      64
+#define BADUSB_PRO_MAX_FILES      32 /* was 64                              */
 
 /* ────────────────────────────────────────────
  *  Token types — every DuckyScript 3.0 command
@@ -129,7 +130,7 @@ typedef enum {
  * ──────────────────────────────────────────── */
 typedef struct {
     BadUsbTokenType type;
-    char str_value[BADUSB_PRO_MAX_LINE_LEN];
+    char str_value[BADUSB_PRO_TOKEN_STR_LEN];
     int32_t int_value;
     int32_t int_value2; /* second param, e.g. mouse y */
     uint16_t keycodes[8]; /* for key combos */
@@ -273,4 +274,5 @@ typedef struct {
     uint8_t led_scroll;
     ScriptState state;
     char error_msg[64];
+    char detected_os[8]; /* set when OS_DETECT token completes: "WIN", "MAC", "LINUX" */
 } ExecutionViewModel;

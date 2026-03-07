@@ -20,16 +20,16 @@
  * Constants
  * ========================================================================= */
 
-#define FPWN_MODULES_DIR   APP_ASSETS_PATH("")
-#define FPWN_MAX_MODULES   64
+#define FPWN_MODULES_DIR   EXT_PATH("flipperpwn/modules")
+#define FPWN_MAX_MODULES   32
 #define FPWN_MAX_OPTIONS   8
 #define FPWN_MAX_LINE_LEN  512
 #define FPWN_OPT_NAME_LEN  32
-#define FPWN_OPT_VALUE_LEN 128
-#define FPWN_OPT_DESC_LEN  64
+#define FPWN_OPT_VALUE_LEN 64
+#define FPWN_OPT_DESC_LEN  32
 #define FPWN_NAME_LEN      64
-#define FPWN_DESC_LEN      256
-#define FPWN_PATH_LEN      256
+#define FPWN_DESC_LEN      128
+#define FPWN_PATH_LEN      128
 
 /* =========================================================================
  * Enums
@@ -143,6 +143,7 @@ typedef struct {
     /* WiFi Dev Board */
     FPwnWifiUart* wifi_uart;
     FPwnMarauder* marauder;
+    FuriTimer* wifi_scan_timer; /* polls marauder → refreshes scan view models */
     Submenu* wifi_menu;
     View* wifi_scan_view;
     TextInput* wifi_text_input;
@@ -158,6 +159,10 @@ typedef struct {
 /* =========================================================================
  * Payload engine (payload_engine.c)
  * ========================================================================= */
+
+/* Write built-in sample .fpwn files to FPWN_MODULES_DIR if none exist yet.
+ * Call once at startup before fpwn_modules_scan(). */
+void fpwn_modules_write_samples(FPwnApp* app);
 
 /* Scan FPWN_MODULES_DIR for .fpwn files, populate app->modules[].
  * Only reads metadata headers (NAME, CATEGORY, etc.) — not full payloads. */
@@ -207,6 +212,12 @@ void fpwn_wifi_views_free(FPwnApp* app);
 
 /* Populate the WiFi submenu items. */
 void fpwn_wifi_menu_setup(FPwnApp* app);
+
+/* =========================================================================
+ * Custom event IDs (sent via view_dispatcher_send_custom_event)
+ * Matches FPwnCustomEvent enum in flipperpwn.c — keep in sync.
+ * ========================================================================= */
+#define FPWN_CUSTOM_EVENT_WIFI_CONNECTED 2
 
 /* =========================================================================
  * Entry point

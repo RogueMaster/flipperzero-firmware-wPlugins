@@ -202,6 +202,7 @@ CcidCard* ccid_card_load(Storage* storage, const char* path) {
     furi_assert(path);
 
     CcidCard* card = malloc(sizeof(CcidCard));
+    furi_assert(card);
     memset(card, 0, sizeof(CcidCard));
 
     /* Set built-in default response: 6A 82 (file/application not found) */

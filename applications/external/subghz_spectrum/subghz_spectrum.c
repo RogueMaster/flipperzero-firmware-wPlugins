@@ -283,16 +283,18 @@ static bool spectrum_view_input_callback(InputEvent* event, void* context) {
     }
 
     if(consumed) {
-        /* Copy updated data into the view model to trigger a redraw */
+        /* Copy updated data into the view model to trigger a redraw.
+         * Hold the mutex across with_view_model to avoid the 7 KB
+         * SpectrumData stack allocation that would overflow the FAP
+         * main-thread stack (~4 KB). with_view_model only holds the
+         * view lock briefly, so this is safe. */
         if(furi_mutex_acquire(app->data_mutex, 50) == FuriStatusOk) {
-            SpectrumData snapshot;
-            memcpy(&snapshot, &app->spectrum_data, sizeof(SpectrumData));
-            furi_mutex_release(app->data_mutex);
             with_view_model(
                 app->spectrum_view,
                 SpectrumData * model,
-                { memcpy(model, &snapshot, sizeof(SpectrumData)); },
+                { memcpy(model, &app->spectrum_data, sizeof(SpectrumData)); },
                 true);
+            furi_mutex_release(app->data_mutex);
         }
     }
     return consumed;

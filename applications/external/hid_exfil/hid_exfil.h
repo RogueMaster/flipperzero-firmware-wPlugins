@@ -14,7 +14,10 @@
 
 #define HID_EXFIL_VERSION                 "1.0"
 #define HID_EXFIL_DATA_DIR                EXT_PATH("hid_exfil")
-#define HID_EXFIL_RECV_BUF_SIZE           (64 * 1024)
+/* 4 KB is ample for the LED channel (~25 B/s max = 160 s to fill).
+ * The previous 64 KB value consumed half the Flipper's available heap
+ * on startup, guaranteeing an OOM reboot before the user did anything. */
+#define HID_EXFIL_RECV_BUF_SIZE           (4 * 1024)
 #define HID_EXFIL_LED_POLL_INTERVAL_MS    1
 #define HID_EXFIL_CLOCK_TIMEOUT_MS        1000
 #define HID_EXFIL_SYNC_TOGGLES            3

@@ -16,10 +16,14 @@
  */
 
 #include "flipperpwn.h"
+#include "wifi_uart.h"
 #include <string.h>
 #include <stdio.h>
 
 #define TAG "FPwn"
+
+/* Set once when the first UART line arrives; reset when wifi views are freed. */
+static bool s_wifi_first_connect_notified = false;
 
 /* =========================================================================
  * WiFi menu — item indices
@@ -498,20 +502,79 @@ static bool fpwn_port_scan_input(InputEvent* event, void* ctx) {
 }
 
 /* =========================================================================
- * Marauder RX callback — appends received lines to the status TextBox.
+ * Scan timer callback — fires every 500 ms on the timer service thread.
  *
- * Fired on the UART worker thread.  TextBox does not require a mutex for
- * string appends since we fully rebuild the text each call, but we must
- * stay within the FuriString API and not call view_dispatcher from this
- * thread — we only update wifi_status_text and set the TextBox text.
+ * Polls the marauder for fresh results and pushes them into the appropriate
+ * view model, triggering a canvas redraw.  Safe to call from timer thread
+ * because with_view_model uses an internal mutex.
+ * ========================================================================= */
+static void fpwn_scan_timer_cb(void* ctx) {
+    FPwnApp* app = (FPwnApp*)ctx;
+    if(!app->marauder) return;
+
+    FPwnMarauderState state = fpwn_marauder_get_state(app->marauder);
+
+    if(state == FPwnMarauderStateScanning) {
+        uint32_t count = 0;
+        FPwnWifiAP* aps = fpwn_marauder_get_aps(app->marauder, &count);
+        if(count > FPWN_MAX_APS) count = FPWN_MAX_APS;
+        with_view_model(
+            app->wifi_scan_view,
+            FPwnWifiScanModel * m,
+            {
+                memcpy(m->aps, aps, count * sizeof(FPwnWifiAP));
+                m->ap_count = count;
+                m->scanning = true;
+            },
+            true);
+    } else if(state == FPwnMarauderStatePingScan) {
+        uint32_t count = 0;
+        FPwnNetHost* hosts = fpwn_marauder_get_hosts(app->marauder, &count);
+        if(count > FPWN_MAX_HOSTS) count = FPWN_MAX_HOSTS;
+        with_view_model(
+            app->ping_scan_view,
+            FPwnPingScanModel * m,
+            {
+                memcpy(m->hosts, hosts, count * sizeof(FPwnNetHost));
+                m->host_count = count;
+                m->scanning = true;
+            },
+            true);
+    } else if(state == FPwnMarauderStatePortScan) {
+        uint32_t count = 0;
+        FPwnPortResult* ports = fpwn_marauder_get_ports(app->marauder, &count);
+        if(count > FPWN_MAX_PORTS) count = FPWN_MAX_PORTS;
+        with_view_model(
+            app->port_scan_view,
+            FPwnPortScanModel * m,
+            {
+                memcpy(m->ports, ports, count * sizeof(FPwnPortResult));
+                m->port_count = count;
+            },
+            true);
+    }
+}
+
+/* =========================================================================
+ * Marauder RX callback — appends received lines to the status TextBox and
+ * notifies the main thread on first UART connection so the menu label
+ * ("WiFi Tools (No ESP32)") can be updated.
+ *
+ * Fired on the UART worker thread.  We must not call view_dispatcher
+ * functions that are NOT thread-safe.  send_custom_event IS safe from any
+ * thread.
  * ========================================================================= */
 static void fpwn_wifi_rx_callback(const char* line, void* ctx) {
     FPwnApp* app = (FPwnApp*)ctx;
 
     furi_string_cat_printf(app->wifi_status_text, "%s\n", line);
-
-    /* TextBox::set_text operates on the GUI thread safely via the SDK. */
     text_box_set_text(app->wifi_status, furi_string_get_cstr(app->wifi_status_text));
+
+    /* Rebuild the main menu once when ESP32 first responds. */
+    if(!s_wifi_first_connect_notified && fpwn_wifi_uart_is_connected(app->wifi_uart)) {
+        s_wifi_first_connect_notified = true;
+        view_dispatcher_send_custom_event(app->view_dispatcher, FPWN_CUSTOM_EVENT_WIFI_CONNECTED);
+    }
 }
 
 /* =========================================================================
@@ -632,6 +695,9 @@ void fpwn_wifi_menu_setup(FPwnApp* app) {
  * fpwn_wifi_views_alloc — allocate and register all WiFi views
  * ========================================================================= */
 void fpwn_wifi_views_alloc(FPwnApp* app) {
+    /* Reset first-connect flag for a fresh session. */
+    s_wifi_first_connect_notified = false;
+
     /* ---- UART + Marauder layer ---- */
     app->wifi_uart = fpwn_wifi_uart_alloc();
     app->marauder = fpwn_marauder_alloc(app->wifi_uart);
@@ -679,7 +745,10 @@ void fpwn_wifi_views_alloc(FPwnApp* app) {
     /* ---- Status TextBox ---- */
     app->wifi_status = text_box_alloc();
     text_box_set_font(app->wifi_status, TextBoxFontText);
-    text_box_set_focus(app->wifi_status, TextBoxFocusEnd);
+    /* TextBoxFocusStart lets the user scroll up through history.
+     * New lines accumulate but the view position is not force-jumped
+     * to the end on every update. */
+    text_box_set_focus(app->wifi_status, TextBoxFocusStart);
     view_dispatcher_add_view(
         app->view_dispatcher, FPwnViewWifiStatus, text_box_get_view(app->wifi_status));
 
@@ -708,12 +777,23 @@ void fpwn_wifi_views_alloc(FPwnApp* app) {
         { memset(m, 0, sizeof(FPwnPortScanModel)); },
         false);
     view_dispatcher_add_view(app->view_dispatcher, FPwnViewPortScan, app->port_scan_view);
+
+    /* ---- Scan refresh timer (500 ms) ---- */
+    app->wifi_scan_timer = furi_timer_alloc(fpwn_scan_timer_cb, FuriTimerTypePeriodic, app);
+    furi_timer_start(app->wifi_scan_timer, 500);
 }
 
 /* =========================================================================
  * fpwn_wifi_views_free — remove views and release all WiFi resources
  * ========================================================================= */
 void fpwn_wifi_views_free(FPwnApp* app) {
+    /* Stop and free the scan refresh timer first. */
+    if(app->wifi_scan_timer) {
+        furi_timer_stop(app->wifi_scan_timer);
+        furi_timer_free(app->wifi_scan_timer);
+        app->wifi_scan_timer = NULL;
+    }
+
     /* Stop any active Marauder operation before tearing down */
     if(fpwn_marauder_get_state(app->marauder) != FPwnMarauderStateIdle) {
         fpwn_marauder_stop(app->marauder);

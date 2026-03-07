@@ -28,7 +28,9 @@
 typedef enum {
     FPwnCustomEventRunModule = 0, /* "Run" button pressed on module info widget */
     FPwnCustomEventExecDone = 1, /* execution thread signalled completion       */
+    FPwnCustomEventWifiConnected = 2, /* ESP32 first UART line received          */
 } FPwnCustomEvent;
+/* NOTE: FPWN_CUSTOM_EVENT_WIFI_CONNECTED in flipperpwn.h must equal 2 */
 
 /* View-stack tracker shared with wifi_views.c via fpwn_set_current_view().
  * Reset to the main menu at each app start. */
@@ -68,6 +70,20 @@ static void fpwn_populate_options_list(FPwnApp* app);
  * Called from payload_engine.c via the app pointer — not directly from this TU. */
 FPwnOS fpwn_effective_os(const FPwnApp* app) {
     return (app->manual_os != FPwnOSUnknown) ? app->manual_os : app->detected_os;
+}
+
+/* Label for the "Detect OS" main-menu item — shows last result. */
+static const char* fpwn_detect_os_label(FPwnOS os) {
+    switch(os) {
+    case FPwnOSWindows:
+        return "Detected: Windows";
+    case FPwnOSMac:
+        return "Detected: macOS";
+    case FPwnOSLinux:
+        return "Detected: Linux";
+    default:
+        return "Detect OS";
+    }
 }
 
 /* Cycling label for the "Set OS" main-menu item. */
@@ -296,6 +312,11 @@ static bool fpwn_custom_event_callback(void* ctx, uint32_t event) {
         with_view_model(app->execute_view, FPwnExecModel * m, { (void)m; }, true);
         return true;
     }
+
+    case FPwnCustomEventWifiConnected:
+        /* ESP32 responded on UART — update the main menu label. */
+        fpwn_rebuild_main_menu(app);
+        return true;
     }
 
     return false;
@@ -317,7 +338,11 @@ static void fpwn_rebuild_main_menu(FPwnApp* app) {
     submenu_add_item(
         app->main_menu, "Browse Modules", FPwnMainMenuBrowse, fpwn_main_menu_callback, app);
     submenu_add_item(
-        app->main_menu, "Detect OS", FPwnMainMenuDetectOS, fpwn_main_menu_callback, app);
+        app->main_menu,
+        fpwn_detect_os_label(app->detected_os),
+        FPwnMainMenuDetectOS,
+        fpwn_main_menu_callback,
+        app);
     submenu_add_item(
         app->main_menu,
         fpwn_manual_os_label(app->manual_os),
@@ -346,7 +371,10 @@ static void fpwn_main_menu_callback(void* ctx, uint32_t index) {
         app->detected_os = fpwn_os_detect();
         FURI_LOG_I(TAG, "Detected OS: %s", fpwn_os_name(app->detected_os));
         notification_message(app->notifications, &sequence_success);
-        /* No view switch — stay on main menu; the user sees the LED flash. */
+        /* Rebuild the menu so the "Detect OS" item shows the result label. */
+        fpwn_rebuild_main_menu(app);
+        /* Keep cursor on the Detect OS item so the user sees the result. */
+        submenu_set_selected_item(app->main_menu, FPwnMainMenuDetectOS);
         break;
 
     case FPwnMainMenuSetOS:
@@ -646,6 +674,9 @@ static FPwnApp* flipperpwn_app_alloc(void) {
     storage_simply_mkdir(app->storage, EXT_PATH("flipperpwn"));
     storage_simply_mkdir(app->storage, FPWN_MODULES_DIR);
 
+    /* ---- Write sample modules on first launch (no-op if any exist) ---- */
+    fpwn_modules_write_samples(app);
+
     /* ---- Scan for .fpwn files (metadata only) ---- */
     fpwn_modules_scan(app);
 
@@ -766,11 +797,16 @@ int32_t flipperpwn_app(void* p) {
     /* Save current USB config so we can restore it on exit. */
     FuriHalUsbInterface* prev_usb = furi_hal_usb_get_config();
 
-    /* Switch to USB HID keyboard mode.
-     * The 500 ms delay allows the host OS to fully enumerate the device
-     * before we attempt any keystroke injection or LED probing. */
+    /* Switch to USB HID keyboard mode and wait for the host to enumerate. */
+    furi_hal_usb_unlock();
     furi_hal_usb_set_config(&usb_hid, NULL);
-    furi_delay_ms(500);
+    {
+        uint32_t t = furi_get_tick();
+        while(!furi_hal_hid_is_connected() && (furi_get_tick() - t) < furi_ms_to_ticks(5000)) {
+            furi_delay_ms(50);
+        }
+        if(furi_hal_hid_is_connected()) furi_delay_ms(1500);
+    }
 
     /* Reset the view-stack tracker for a clean session. */
     g_current_view = FPwnViewMainMenu;

@@ -30,9 +30,12 @@ void hid_exfil_worker_configure(
     ExfilConfig* config);
 
 /**
- * Start the worker thread. Returns immediately.
+ * Allocate the receive buffer and start the worker thread.
+ * Returns false (without starting) if the heap allocation fails.
+ * The buffer is intentionally deferred here — not in worker_alloc —
+ * so memory is only consumed when a run actually begins.
  */
-void hid_exfil_worker_start(HidExfilWorker* worker);
+bool hid_exfil_worker_start(HidExfilWorker* worker);
 
 /**
  * Request the worker to stop (non-blocking).

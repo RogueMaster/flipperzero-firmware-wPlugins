@@ -88,14 +88,14 @@ static const KeyMapping key_map[] = {
     {"F11", HID_KEYBOARD_F11},
     {"F12", HID_KEYBOARD_F12},
 
-    /* Modifiers as standalone keys */
-    {"GUI", HID_KEYBOARD_L_GUI},
-    {"WINDOWS", HID_KEYBOARD_L_GUI},
-    {"COMMAND", HID_KEYBOARD_L_GUI},
-    {"ALT", HID_KEYBOARD_L_ALT},
-    {"CTRL", HID_KEYBOARD_L_CTRL},
-    {"CONTROL", HID_KEYBOARD_L_CTRL},
-    {"SHIFT", HID_KEYBOARD_L_SHIFT},
+    /* Modifiers as standalone keys — use KEY_MOD_* so the modifier byte is set */
+    {"GUI", KEY_MOD_LEFT_GUI},
+    {"WINDOWS", KEY_MOD_LEFT_GUI},
+    {"COMMAND", KEY_MOD_LEFT_GUI},
+    {"ALT", KEY_MOD_LEFT_ALT},
+    {"CTRL", KEY_MOD_LEFT_CTRL},
+    {"CONTROL", KEY_MOD_LEFT_CTRL},
+    {"SHIFT", KEY_MOD_LEFT_SHIFT},
 };
 
 static const size_t key_map_size = sizeof(key_map) / sizeof(key_map[0]);
@@ -107,13 +107,13 @@ typedef struct {
 } ModMapping;
 
 static const ModMapping mod_map[] = {
-    {"CTRL", HID_KEYBOARD_L_CTRL},
-    {"CONTROL", HID_KEYBOARD_L_CTRL},
-    {"ALT", HID_KEYBOARD_L_ALT},
-    {"SHIFT", HID_KEYBOARD_L_SHIFT},
-    {"GUI", HID_KEYBOARD_L_GUI},
-    {"WINDOWS", HID_KEYBOARD_L_GUI},
-    {"COMMAND", HID_KEYBOARD_L_GUI},
+    {"CTRL", KEY_MOD_LEFT_CTRL},
+    {"CONTROL", KEY_MOD_LEFT_CTRL},
+    {"ALT", KEY_MOD_LEFT_ALT},
+    {"SHIFT", KEY_MOD_LEFT_SHIFT},
+    {"GUI", KEY_MOD_LEFT_GUI},
+    {"WINDOWS", KEY_MOD_LEFT_GUI},
+    {"COMMAND", KEY_MOD_LEFT_GUI},
 };
 static const size_t mod_map_size = sizeof(mod_map) / sizeof(mod_map[0]);
 

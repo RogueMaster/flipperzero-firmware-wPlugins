@@ -24,7 +24,7 @@ static void spectrum_worker_sweep(SpectrumWorker* worker, SpectrumData* data) {
 
     while(freq <= worker->freq_end && bin < SPECTRUM_NUM_BINS && worker->running) {
         furi_hal_subghz_idle();
-        furi_hal_subghz_set_frequency(freq);
+        furi_hal_subghz_set_frequency_and_path(freq);
         furi_hal_subghz_rx();
 
         /* Brief settling time for the CC1101 RSSI to stabilize */
