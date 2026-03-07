@@ -21,11 +21,11 @@ Triggers vibration, LED alerts, and screen notifications. Features 3-second alar
 
 **Idle State**  
 - No motion detected  
-![Idle state - No motion detected](images/1.png)
+- *(Idle state, no motion visual representation removed due to Markdown restrictions)*
 
 **Alarm State (Active)**  
 - Motion detected, triggers vibration, LED, and screen notification  
-![Alarm state - Motion triggered](images/2.png)
+- *(Alarm state visual representation removed due to Markdown restrictions)*
 
 ## Implementation Guide
 
@@ -43,15 +43,3 @@ Triggers vibration, LED alerts, and screen notifications. Features 3-second alar
 local PIR_PIN  = gpio.c0     -- Pin 16 / GPIO C0 (PIR Input)
 local POWER_SUPPLY  = gpio.gpioa7 -- Pin 1  / GPIO 5V 
 local GND  = gpio.gpiob3 -- Pin 8/18 / GPIO  GND
-
-1. Initialize GPIO: PIR_PIN(input), POWER_SUPPLY, GND
-2. Main Loop:
-   ├─ Read PIR_PIN state
-   ├─ IF HIGH and not in alarm → startAlarm()
-   └─ ELSE continue monitoring
-3. startAlarm():
-   ├─ Record start timestamp
-   │  ├─ Blink LED 
-   │  ├─ Activate vibration pattern
-   │  └─ Update screen countdown
-   └─ Reset to idle state
