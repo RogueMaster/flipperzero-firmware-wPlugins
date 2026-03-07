@@ -3,7 +3,7 @@ App(
     name="LIDAR Emulator",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="lidar_emulator_app",
-    requires=["gui"],
+    requires=["gui", "storage", "power"],
     stack_size=4 * 1024,
     fap_icon="icon.png",
     fap_category="Infrared",

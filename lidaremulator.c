@@ -1,15 +1,13 @@
 #include <furi.h>
 #include <gui/gui.h>
 #include <gui/modules/submenu.h>
+#include <gui/modules/variable_item_list.h>
 #include <gui/scene_manager.h>
 #include <gui/view_dispatcher.h>
 
 #include "lidaremulator_app_i.h"
 
 #include "scenes/lidaremulator_scene.h"
-
-const GpioPin* const pin_led = &gpio_infrared_tx;
-const GpioPin* const pin_back = &gpio_button_back;
 
 static bool lidaremulator_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -45,12 +43,26 @@ static LidarEmulatorApp* LidarEmulatorApp_alloc() {
     view_dispatcher_add_view(
         lidaremulator->view_dispatcher, LidarEmulatorViewSubmenu, submenu_get_view(lidaremulator->submenu));
 
+    lidaremulator->variable_item_list = variable_item_list_alloc();
+    view_dispatcher_add_view(
+        lidaremulator->view_dispatcher,
+        LidarEmulatorViewVariableList,
+        variable_item_list_get_view(lidaremulator->variable_item_list));
+
     lidaremulator->view_hijacker = alloc_view_hijacker();
+
+    lidaremulator->ir_output = LidarEmulatorIrOutputInternal;
+    lidaremulator->ir_ext_5v_enabled = true;
+    lidaremulator->transmit_thread = NULL;
+    lidaremulator_load_settings(lidaremulator);
 
     return lidaremulator;
 }
 
 static void LidarEmulatorApp_free(LidarEmulatorApp* lidaremulator) {
+
+    view_dispatcher_remove_view(lidaremulator->view_dispatcher, LidarEmulatorViewVariableList);
+    variable_item_list_free(lidaremulator->variable_item_list);
 
     view_dispatcher_remove_view(lidaremulator->view_dispatcher, LidarEmulatorViewSubmenu);
     submenu_free(lidaremulator->submenu);

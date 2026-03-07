@@ -1,6 +1,8 @@
 #include "../lidaremulator_app_i.h"
 #include <furi.h>
+#include <furi_hal_light.h>
 #include <gui/gui.h>
+#include <power/power_service/power.h>
 #include <gui/modules/submenu.h>
 #include <gui/scene_manager.h>
 #include <gui/view_dispatcher.h>
@@ -9,6 +11,56 @@
 #include "../view_hijacker.h"
 
 #define ARRAY_SIZE(x)  ((int)(sizeof(x) / sizeof(0[x])))
+
+typedef struct {
+    const GpioPin* pin_led;
+    const GpioPin* pin_ok;
+    uint32_t timing;
+    uint32_t idx;
+    bool use_external_5v;
+} TransmitContext;
+
+static int32_t transmit_thread(void* context) {
+    TransmitContext* ctx = context;
+    const GpioPin* pin_led = ctx->pin_led;
+    const GpioPin* pin_ok = ctx->pin_ok;
+    uint32_t timing = ctx->timing;
+    uint32_t idx = ctx->idx;
+
+    furi_hal_gpio_init(pin_led, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
+
+    if(idx == 1) {
+        uint32_t timing2 = (timing + 1) * 6 - 1;
+        do {
+            furi_hal_gpio_write(pin_led, true);
+            furi_delay_us(1);
+            furi_hal_gpio_write(pin_led, false);
+            furi_delay_us(timing);
+            furi_hal_gpio_write(pin_led, true);
+            furi_delay_us(1);
+            furi_hal_gpio_write(pin_led, false);
+            furi_delay_us(timing2);
+        } while(furi_hal_gpio_read(pin_ok));
+    } else {
+        do {
+            furi_hal_gpio_write(pin_led, true);
+            furi_delay_us(1);
+            furi_hal_gpio_write(pin_led, false);
+            furi_delay_us(timing);
+        } while(furi_hal_gpio_read(pin_ok));
+    }
+
+    furi_hal_gpio_init_simple(pin_led, GpioModeAnalog);
+
+    if(ctx->use_external_5v) {
+        Power* power = furi_record_open(RECORD_POWER);
+        power_enable_otg(power, false);
+        furi_record_close(RECORD_POWER);
+    }
+
+    free(ctx);
+    return 0;
+}
 
 enum SubmenuIndex {
     SubmenuIndexPredefinedGUNs,
@@ -72,61 +124,52 @@ bool lidaremulator_scene_predefined_guns_view_on_event(InputEvent* event, void* 
     }
 
     if (event->type == InputTypePress && event->key == InputKeyOk) {
-        static uint32_t timing;
-
         uint32_t idx = submenu_get_selected_item(submenu);
-        furi_check( idx < (uint32_t)ARRAY_SIZE(guns) );
+        furi_check(idx < (uint32_t)ARRAY_SIZE(guns));
 
-        furi_hal_light_set(LightRed,0);
-        furi_hal_light_set(LightGreen,0);
-        furi_hal_light_set(LightBlue,255);
-
-        const GpioPin* const pin_led = &gpio_infrared_tx;
-        const GpioPin* const pin_ok = &gpio_button_ok;
-
-        timing = guns[idx].timing-1;
-        furi_hal_gpio_init(pin_led, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
-        if (idx==1) {
-            // laser atlanta stealth mode
-
-            uint32_t timing2=(timing+1)*6-1;
-            do {
-                furi_hal_gpio_write(pin_led, true);
-                furi_delay_us(1);
-                furi_hal_gpio_write(pin_led, false);
-                furi_delay_us(timing);
-                furi_hal_gpio_write(pin_led, true);
-                furi_delay_us(1);
-                furi_hal_gpio_write(pin_led, false);
-                furi_delay_us(timing2);
-
-                // Do until button is down
-            } while(  furi_hal_gpio_read(pin_ok));
-
-        } else {
-            // common gun pattern
-
-            do {
-                furi_hal_gpio_write(pin_led, true);
-                furi_delay_us(1);
-                furi_hal_gpio_write(pin_led, false);
-                furi_delay_us(timing);
-
-                // Do until button is down
-            } while(  furi_hal_gpio_read(pin_ok));
+        if(lidaremulator->transmit_thread) {
+            furi_thread_join(lidaremulator->transmit_thread);
+            furi_thread_free(lidaremulator->transmit_thread);
+            lidaremulator->transmit_thread = NULL;
         }
 
-        furi_hal_gpio_init_simple(pin_led, GpioModeAnalog);
+        TransmitContext* ctx = malloc(sizeof(TransmitContext));
+        ctx->pin_led = (lidaremulator->ir_output == LidarEmulatorIrOutputExternal)
+                           ? &gpio_ext_pa7
+                           : &gpio_infrared_tx;
+        ctx->pin_ok = &gpio_button_ok;
+        ctx->timing = guns[idx].timing - 1;
+        ctx->idx = idx;
+        ctx->use_external_5v = (lidaremulator->ir_output == LidarEmulatorIrOutputExternal &&
+                                lidaremulator->ir_ext_5v_enabled);
+
+        if(ctx->use_external_5v) {
+            Power* power = furi_record_open(RECORD_POWER);
+            power_enable_otg(power, true);
+            furi_record_close(RECORD_POWER);
+        }
+
+        furi_hal_light_set(LightRed, 0);
+        furi_hal_light_set(LightGreen, 0);
+        furi_hal_light_set(LightBlue, 255);
+
+        lidaremulator->transmit_thread =
+            furi_thread_alloc_ex("LidarTx", 1024, transmit_thread, ctx);
+
+        furi_thread_start(lidaremulator->transmit_thread);
 
         consumed = true;
     }
 
-    if (event->type == InputTypeRelease && event->key == InputKeyOk) {
-        
-        furi_hal_light_set(LightRed,0);
-        furi_hal_light_set(LightGreen,0);
-        furi_hal_light_set(LightBlue,0);
-
+    if(event->type == InputTypeRelease && event->key == InputKeyOk) {
+        if(lidaremulator->transmit_thread) {
+            furi_thread_join(lidaremulator->transmit_thread);
+            furi_thread_free(lidaremulator->transmit_thread);
+            lidaremulator->transmit_thread = NULL;
+        }
+        furi_hal_light_set(LightRed, 0);
+        furi_hal_light_set(LightGreen, 0);
+        furi_hal_light_set(LightBlue, 0);
         consumed = true;
     }
 
@@ -190,6 +233,15 @@ bool lidaremulator_scene_predefined_guns_on_event(void* context, SceneManagerEve
 void lidaremulator_scene_predefined_guns_on_exit(void* context) {
     LidarEmulatorApp* lidaremulator = context;
     furi_check(lidaremulator);
+
+    if(lidaremulator->transmit_thread) {
+        furi_thread_join(lidaremulator->transmit_thread);
+        furi_thread_free(lidaremulator->transmit_thread);
+        lidaremulator->transmit_thread = NULL;
+        furi_hal_light_set(LightRed, 0);
+        furi_hal_light_set(LightGreen, 0);
+        furi_hal_light_set(LightBlue, 0);
+    }
 
     view_hijacker_detach_from_view(lidaremulator->view_hijacker);
 

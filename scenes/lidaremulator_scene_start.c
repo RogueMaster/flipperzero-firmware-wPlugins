@@ -2,6 +2,7 @@
 
 enum SubmenuIndex {
     SubmenuIndexPredefinedGUNs,
+    SubmenuIndexSettings,
 };
 
 static void lidaremulator_scene_start_submenu_callback(void* context, uint32_t index) {
@@ -22,6 +23,7 @@ void lidaremulator_scene_start_on_enter(void* context) {
     furi_check(scene_manager);
 
     submenu_add_item(submenu, "Predefined GUNs", SubmenuIndexPredefinedGUNs, lidaremulator_scene_start_submenu_callback, lidaremulator);
+    submenu_add_item(submenu, "Settings", SubmenuIndexSettings, lidaremulator_scene_start_submenu_callback, lidaremulator);
 
     uint32_t submenu_index = scene_manager_get_scene_state(scene_manager, LidarEmulatorSceneStart);
     submenu_set_selected_item(submenu, submenu_index);
@@ -42,7 +44,9 @@ bool lidaremulator_scene_start_on_event(void* context, SceneManagerEvent event) 
     if(event.type == SceneManagerEventTypeCustom) {
         const uint32_t submenu_index = event.event;
         scene_manager_set_scene_state(scene_manager, LidarEmulatorSceneStart, submenu_index);
-        if(submenu_index == SubmenuIndexPredefinedGUNs) {
+        if(submenu_index == SubmenuIndexSettings) {
+            scene_manager_next_scene(scene_manager, LidarEmulatorSceneSettings);
+        } else if(submenu_index == SubmenuIndexPredefinedGUNs) {
             scene_manager_next_scene(scene_manager, LidarEmulatorScenePredefinedGUNs);
         } 
 
