@@ -1284,6 +1284,190 @@ static uint32_t rats_profile_total(NfcFuzzerStrategy strategy) {
 }
 
 /* ═════════════════════════════════════════════════
+ * NFC-B PUPI PROFILE (Listener mode)
+ * Fuzz the 4-byte PUPI in the ATQB response.
+ * The worker restarts the ISO 14443-3b listener with
+ * each new PUPI to test reader collision-resolution.
+ * ═════════════════════════════════════════════════ */
+
+#define NFCB_PUPI_LEN     4
+#define NFCB_SEQ_TOTAL    256 /* vary low byte across 0x00..0xFF */
+#define NFCB_BITFLIP_BITS (NFCB_PUPI_LEN * 8) /* 32 bits */
+
+/* Baseline PUPI: 0x01 0x02 0x03 0x00 (last byte varied) */
+static const uint8_t nfcb_pupi_baseline[NFCB_PUPI_LEN] = {0x01, 0x02, 0x03, 0x00};
+
+static bool nfcb_profile_sequential(uint32_t index, NfcFuzzerTestCase* out) {
+    if(index >= NFCB_SEQ_TOTAL) return false;
+    memcpy(out->data, nfcb_pupi_baseline, NFCB_PUPI_LEN);
+    out->data[NFCB_PUPI_LEN - 1] = (uint8_t)(index & 0xFF);
+    out->data_len = NFCB_PUPI_LEN;
+    return true;
+}
+
+static bool nfcb_profile_random(uint32_t index, NfcFuzzerTestCase* out) {
+    (void)index;
+    fill_random(out->data, NFCB_PUPI_LEN);
+    out->data_len = NFCB_PUPI_LEN;
+    return true;
+}
+
+static bool nfcb_profile_bitflip(uint32_t index, NfcFuzzerTestCase* out) {
+    if(index >= NFCB_BITFLIP_BITS) return false;
+    memcpy(out->data, nfcb_pupi_baseline, NFCB_PUPI_LEN);
+    apply_bitflip(out->data, NFCB_PUPI_LEN, index);
+    out->data_len = NFCB_PUPI_LEN;
+    return true;
+}
+
+static bool nfcb_profile_boundary(uint32_t index, NfcFuzzerTestCase* out) {
+    if(index >= BOUNDARY_BYTE_COUNT) return false;
+    memset(out->data, boundary_bytes[index], NFCB_PUPI_LEN);
+    out->data_len = NFCB_PUPI_LEN;
+    return true;
+}
+
+static bool nfcb_profile_next(NfcFuzzerStrategy strategy, uint32_t index, NfcFuzzerTestCase* out) {
+    switch(strategy) {
+    case NfcFuzzerStrategySequential:
+        return nfcb_profile_sequential(index, out);
+    case NfcFuzzerStrategyRandom:
+        return nfcb_profile_random(index, out);
+    case NfcFuzzerStrategyBitflip:
+        return nfcb_profile_bitflip(index, out);
+    case NfcFuzzerStrategyBoundary:
+        return nfcb_profile_boundary(index, out);
+    default:
+        return false;
+    }
+}
+
+static uint32_t nfcb_profile_total(NfcFuzzerStrategy strategy) {
+    switch(strategy) {
+    case NfcFuzzerStrategySequential:
+        return NFCB_SEQ_TOTAL;
+    case NfcFuzzerStrategyRandom:
+        return UINT32_MAX;
+    case NfcFuzzerStrategyBitflip:
+        return NFCB_BITFLIP_BITS;
+    case NfcFuzzerStrategyBoundary:
+        return BOUNDARY_BYTE_COUNT;
+    default:
+        return 0;
+    }
+}
+
+/* ═════════════════════════════════════════════════
+ * FELICA IDm PROFILE (Listener mode)
+ * Fuzz the 8-byte IDm (Manufacture ID) in the FeliCa
+ * polling response. Targets ISO 18092 / JIS X6319-4
+ * readers such as transit gate controllers.
+ *
+ * IDm layout: [Manufacturer code 2B][Card ID 6B]
+ * Common Sony manufacturer codes:
+ *   0x0120 (Mobile Suica), 0x0130, 0x0428 (PASMO),
+ *   0x012F (Lite-S), 0x88B4 (NFC-F test)
+ * ═════════════════════════════════════════════════ */
+
+#define FELICA_IDM_LEN      8
+#define FELICA_BITFLIP_BITS (FELICA_IDM_LEN * 8) /* 64 bits */
+#define FELICA_SEQ_TOTAL    256 /* vary low byte of card-ID section */
+
+/* Common FeliCa manufacturer codes (big-endian) */
+static const uint8_t felica_manufacturer_codes[][2] = {
+    {0x01, 0x20}, /* Mobile Suica */
+    {0x01, 0x30}, /* RC-S730/S728 */
+    {0x04, 0x28}, /* PASMO */
+    {0x01, 0x2F}, /* FeliCa Lite-S */
+    {0x88, 0xB4}, /* NFC-F test card */
+};
+#define FELICA_MFR_CODE_COUNT \
+    (sizeof(felica_manufacturer_codes) / sizeof(felica_manufacturer_codes[0]))
+
+/* Baseline IDm: 0x0120 + sequential card-ID */
+static const uint8_t felica_idm_baseline[FELICA_IDM_LEN] =
+    {0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+static bool felica_profile_sequential(uint32_t index, NfcFuzzerTestCase* out) {
+    if(index >= FELICA_SEQ_TOTAL) return false;
+    memcpy(out->data, felica_idm_baseline, FELICA_IDM_LEN);
+    out->data[FELICA_IDM_LEN - 1] = (uint8_t)(index & 0xFF);
+    out->data_len = FELICA_IDM_LEN;
+    return true;
+}
+
+static bool felica_profile_random(uint32_t index, NfcFuzzerTestCase* out) {
+    (void)index;
+    /* Pick a random (but realistic) manufacturer code then random card-ID */
+    uint32_t mfr = prng_next() % FELICA_MFR_CODE_COUNT;
+    out->data[0] = felica_manufacturer_codes[mfr][0];
+    out->data[1] = felica_manufacturer_codes[mfr][1];
+    fill_random(out->data + 2, FELICA_IDM_LEN - 2);
+    out->data_len = FELICA_IDM_LEN;
+    return true;
+}
+
+static bool felica_profile_bitflip(uint32_t index, NfcFuzzerTestCase* out) {
+    if(index >= FELICA_BITFLIP_BITS) return false;
+    memcpy(out->data, felica_idm_baseline, FELICA_IDM_LEN);
+    apply_bitflip(out->data, FELICA_IDM_LEN, index);
+    out->data_len = FELICA_IDM_LEN;
+    return true;
+}
+
+static bool felica_profile_boundary(uint32_t index, NfcFuzzerTestCase* out) {
+    /* Boundary: try all boundary bytes as manufacturer code + all-zero card ID,
+     * then all boundary bytes as card ID (2 × BOUNDARY_BYTE_COUNT cases). */
+    uint32_t total = 2 * BOUNDARY_BYTE_COUNT;
+    if(index >= total) return false;
+    memset(out->data, 0, FELICA_IDM_LEN);
+    if(index < BOUNDARY_BYTE_COUNT) {
+        /* Vary the manufacturer code first byte */
+        out->data[0] = boundary_bytes[index];
+        out->data[1] = boundary_bytes[index];
+    } else {
+        /* Vary all card-ID bytes with one boundary value */
+        uint32_t sub = index - BOUNDARY_BYTE_COUNT;
+        out->data[0] = felica_idm_baseline[0];
+        out->data[1] = felica_idm_baseline[1];
+        memset(out->data + 2, boundary_bytes[sub], FELICA_IDM_LEN - 2);
+    }
+    out->data_len = FELICA_IDM_LEN;
+    return true;
+}
+
+static bool
+    felica_profile_next(NfcFuzzerStrategy strategy, uint32_t index, NfcFuzzerTestCase* out) {
+    switch(strategy) {
+    case NfcFuzzerStrategySequential:
+        return felica_profile_sequential(index, out);
+    case NfcFuzzerStrategyRandom:
+        return felica_profile_random(index, out);
+    case NfcFuzzerStrategyBitflip:
+        return felica_profile_bitflip(index, out);
+    case NfcFuzzerStrategyBoundary:
+        return felica_profile_boundary(index, out);
+    default:
+        return false;
+    }
+}
+
+static uint32_t felica_profile_total(NfcFuzzerStrategy strategy) {
+    switch(strategy) {
+    case NfcFuzzerStrategySequential:
+        return FELICA_SEQ_TOTAL;
+    case NfcFuzzerStrategyRandom:
+        return UINT32_MAX;
+    case NfcFuzzerStrategyBitflip:
+        return FELICA_BITFLIP_BITS;
+    case NfcFuzzerStrategyBoundary:
+        return 2 * BOUNDARY_BYTE_COUNT;
+    default:
+        return 0;
+    }
+}
+
+/* ═════════════════════════════════════════════════
  * Public dispatch API
  * ═════════════════════════════════════════════════ */
 
@@ -1322,6 +1506,10 @@ bool nfc_fuzzer_profile_next(
         return mifare_read_profile_next(strategy, index, out);
     case NfcFuzzerProfileRats:
         return rats_profile_next(strategy, index, out);
+    case NfcFuzzerProfileNfcB:
+        return nfcb_profile_next(strategy, index, out);
+    case NfcFuzzerProfileFelica:
+        return felica_profile_next(strategy, index, out);
     default:
         FURI_LOG_E(PROFILES_TAG, "Unknown profile: %d", profile);
         return false;
@@ -1348,6 +1536,10 @@ uint32_t nfc_fuzzer_profile_total_cases(NfcFuzzerProfile profile, NfcFuzzerStrat
         return mifare_read_profile_total(strategy);
     case NfcFuzzerProfileRats:
         return rats_profile_total(strategy);
+    case NfcFuzzerProfileNfcB:
+        return nfcb_profile_total(strategy);
+    case NfcFuzzerProfileFelica:
+        return felica_profile_total(strategy);
     default:
         return 0;
     }

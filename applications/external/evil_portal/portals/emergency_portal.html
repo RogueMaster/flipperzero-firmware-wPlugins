@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Alert — Identity Verification Required</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: #1a0000;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .card {
+    background: #fff;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 3px #dc2626, 0 8px 40px rgba(220,38,38,0.3);
+    overflow: hidden;
+  }
+  .alert-bar {
+    background: #dc2626;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: pulse-bg 2s ease-in-out infinite;
+  }
+  @keyframes pulse-bg {
+    0%, 100% { background: #dc2626; }
+    50% { background: #b91c1c; }
+  }
+  .alert-icon { font-size: 26px; flex-shrink: 0; }
+  .alert-text h1 { color: #fff; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+  .alert-text p { color: rgba(255,255,255,0.85); font-size: 11px; margin-top: 2px; }
+  .timestamp {
+    background: #1f2937;
+    padding: 8px 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #9ca3af;
+    font-family: monospace;
+  }
+  .ts-live { color: #ef4444; font-weight: 700; }
+  .body { padding: 22px 22px 18px; }
+  .detail-box {
+    border: 1px solid #fca5a5;
+    border-radius: 4px;
+    padding: 14px;
+    margin-bottom: 20px;
+    background: #fef2f2;
+  }
+  .detail-box h3 { color: #991b1b; font-size: 13px; margin-bottom: 8px; }
+  .detail-row { display: flex; font-size: 12px; margin-bottom: 4px; }
+  .detail-row .key { color: #6b7280; width: 110px; flex-shrink: 0; }
+  .detail-row .val { color: #111; font-family: monospace; font-weight: 600; }
+  .detail-row .val.red { color: #dc2626; }
+  .action-desc {
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 4px;
+    border-left: 3px solid #dc2626;
+  }
+  label { display: block; font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type=text], input[type=password], input[type=email] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    outline: none;
+    color: #111;
+  }
+  input:focus { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+  .btn {
+    width: 100%;
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 800;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .btn:hover { background: #b91c1c; }
+  .secure-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .footer {
+    background: #f9fafb;
+    padding: 12px 20px;
+    font-size: 11px;
+    color: #9ca3af;
+    text-align: center;
+    border-top: 1px solid #f3f4f6;
+  }
+  .badge {
+    display: inline-block;
+    background: #dc2626;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-right: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="alert-bar">
+    <div class="alert-icon">&#x1F6A8;</div>
+    <div class="alert-text">
+      <h1>Security Alert — Action Required</h1>
+      <p>Unusual activity detected on your account. Immediate verification needed.</p>
+    </div>
+  </div>
+  <div class="timestamp">
+    <span>Threat ID: THR-2026-44891-A</span>
+    <span class="ts-live">&#x25CF; LIVE</span>
+  </div>
+  <div class="body">
+    <div class="detail-box">
+      <h3>&#x26A0; Suspicious Activity Detected</h3>
+      <div class="detail-row"><span class="key">Event Type:</span><span class="val red">Unauthorized Access Attempt</span></div>
+      <div class="detail-row"><span class="key">Location:</span><span class="val">Foreign IP (195.xxx.xx.xx)</span></div>
+      <div class="detail-row"><span class="key">Time:</span><span class="val">Today, 09:14 AM UTC</span></div>
+      <div class="detail-row"><span class="key">Attempts:</span><span class="val red">7 failed logins</span></div>
+      <div class="detail-row"><span class="key">Status:</span><span class="val red">Account temporarily restricted</span></div>
+    </div>
+    <div class="action-desc">
+      Your account has been temporarily restricted as a precaution. To restore access and confirm your identity, please verify your credentials. This will take less than 60 seconds.
+    </div>
+    <form method="POST" action="/">
+      <label for="email">Account Email</label>
+      <input type="email" id="email" name="email" placeholder="your@email.com" autocomplete="email">
+
+      <label for="empid">Employee / Account ID</label>
+      <input type="text" id="empid" name="empid" placeholder="e.g. EMP-00412 or ACC-91234">
+
+      <label for="password">Current Password</label>
+      <input type="password" id="password" name="password" placeholder="Current account password" autocomplete="current-password">
+
+      <button type="submit" class="btn">&#x2714; Verify My Identity Now</button>
+    </form>
+    <div class="secure-note">&#x1F512; AES-256 Encrypted &bull; Zero-knowledge verification</div>
+  </div>
+  <div class="footer">
+    <span class="badge">SOC</span>Security Operations Center &bull; Automated threat response &bull; Case #THR-44891
+  </div>
+</div>
+</body>
+</html>

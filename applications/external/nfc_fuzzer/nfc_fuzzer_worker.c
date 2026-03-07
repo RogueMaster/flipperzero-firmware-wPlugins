@@ -2,6 +2,8 @@
 #include "nfc_fuzzer_profiles.h"
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_listener.h>
+#include <nfc/protocols/iso14443_3b/iso14443_3b.h>
+#include <nfc/protocols/felica/felica.h>
 #include <nfc/nfc_listener.h>
 #include <nfc/nfc_poller.h>
 
@@ -386,6 +388,158 @@ static void nfc_fuzzer_worker_run_poller(NfcFuzzerWorker* worker) {
     nfc_free(nfc);
 }
 
+/* ───── NFC-B listener fuzz loop ───── */
+/*
+ * Each test case provides a 4-byte PUPI (Pseudo-Unique PICC Identifier).
+ * The listener is restarted with each new PUPI so the reader sees a
+ * different tag identity on every poll. Tests reader collision-resolution
+ * robustness for ISO 14443-B devices (e-passports, transit cards, etc.).
+ */
+static void nfc_fuzzer_worker_run_listener_nfcb(NfcFuzzerWorker* worker) {
+    Nfc* nfc = nfc_alloc();
+    furi_assert(nfc);
+
+    NfcFuzzerTestCase* test_case = malloc(sizeof(NfcFuzzerTestCase));
+    NfcFuzzerResult* result = malloc(sizeof(NfcFuzzerResult));
+    if(!test_case || !result) {
+        FURI_LOG_E(WORKER_TAG, "NFC-B: OOM allocating test buffers");
+        free(test_case);
+        free(result);
+        nfc_free(nfc);
+        return;
+    }
+
+    nfc_fuzzer_profile_init(worker->profile, worker->strategy);
+
+    uint32_t max = nfc_fuzzer_max_cases(worker->settings.max_cases_index);
+    uint32_t total = nfc_fuzzer_profile_total_cases(worker->profile, worker->strategy);
+    if(total > max) total = max;
+
+    uint32_t timeout_ms = nfc_fuzzer_timeout_ms(worker->settings.timeout_index);
+    uint32_t delay_ms = nfc_fuzzer_delay_ms(worker->settings.delay_index);
+
+    /* Build an initial ISO 14443-3B data block with a placeholder PUPI. */
+    uint8_t default_pupi[4] = {0x01, 0x02, 0x03, 0x04};
+    Iso14443_3bData* nfc_data = iso14443_3b_alloc();
+    iso14443_3b_set_uid(nfc_data, default_pupi, sizeof(default_pupi));
+
+    NfcListener* listener = nfc_listener_alloc(nfc, NfcProtocolIso14443_3b, nfc_data);
+    nfc_listener_start(listener, NULL, NULL);
+
+    for(uint32_t i = 0; i < total && !worker->stop_requested; i++) {
+        bool has_case = nfc_fuzzer_profile_next(worker->profile, worker->strategy, i, test_case);
+        if(!has_case) break;
+
+        /* Restart the listener with the fuzzed PUPI. */
+        nfc_listener_stop(listener);
+        nfc_listener_free(listener);
+        iso14443_3b_free(nfc_data);
+
+        nfc_data = iso14443_3b_alloc();
+        iso14443_3b_set_uid(nfc_data, test_case->data, test_case->data_len);
+        listener = nfc_listener_alloc(nfc, NfcProtocolIso14443_3b, nfc_data);
+        nfc_listener_start(listener, NULL, NULL);
+
+        /* Brief exposure window per test case */
+        uint32_t start_tick = furi_get_tick();
+        while(!worker->stop_requested &&
+              (furi_get_tick() - start_tick) < furi_ms_to_ticks(timeout_ms)) {
+            furi_delay_ms(10);
+        }
+
+        /* Report progress */
+        if(worker->callback) {
+            worker->callback(
+                NULL, i + 1, total, test_case->data, test_case->data_len, worker->cb_context);
+        }
+
+        if(delay_ms > 0) furi_delay_ms(delay_ms);
+    }
+
+    nfc_listener_stop(listener);
+    nfc_listener_free(listener);
+    iso14443_3b_free(nfc_data);
+    free(result);
+    free(test_case);
+    nfc_free(nfc);
+}
+
+/* ───── FeliCa listener fuzz loop ───── */
+/*
+ * Each test case provides an 8-byte IDm (Manufacture ID).
+ * The listener is restarted with each new IDm so the reader sees a
+ * different FeliCa tag identity. Tests reader robustness for FeliCa /
+ * ISO 18092 readers (transit gates, mobile payment terminals, etc.).
+ */
+static void nfc_fuzzer_worker_run_listener_felica(NfcFuzzerWorker* worker) {
+    Nfc* nfc = nfc_alloc();
+    furi_assert(nfc);
+
+    NfcFuzzerTestCase* test_case = malloc(sizeof(NfcFuzzerTestCase));
+    NfcFuzzerResult* result = malloc(sizeof(NfcFuzzerResult));
+    if(!test_case || !result) {
+        FURI_LOG_E(WORKER_TAG, "FeliCa: OOM allocating test buffers");
+        free(test_case);
+        free(result);
+        nfc_free(nfc);
+        return;
+    }
+
+    nfc_fuzzer_profile_init(worker->profile, worker->strategy);
+
+    uint32_t max = nfc_fuzzer_max_cases(worker->settings.max_cases_index);
+    uint32_t total = nfc_fuzzer_profile_total_cases(worker->profile, worker->strategy);
+    if(total > max) total = max;
+
+    uint32_t timeout_ms = nfc_fuzzer_timeout_ms(worker->settings.timeout_index);
+    uint32_t delay_ms = nfc_fuzzer_delay_ms(worker->settings.delay_index);
+
+    /* Build an initial FeliCa data block with a placeholder IDm. */
+    uint8_t default_idm[8] = {0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    FelicaData* felica_data = felica_alloc();
+    felica_set_uid(felica_data, default_idm, sizeof(default_idm));
+
+    NfcListener* listener = nfc_listener_alloc(nfc, NfcProtocolFelica, felica_data);
+    nfc_listener_start(listener, NULL, NULL);
+
+    for(uint32_t i = 0; i < total && !worker->stop_requested; i++) {
+        bool has_case = nfc_fuzzer_profile_next(worker->profile, worker->strategy, i, test_case);
+        if(!has_case) break;
+
+        /* Restart the listener with the fuzzed IDm. */
+        nfc_listener_stop(listener);
+        nfc_listener_free(listener);
+        felica_free(felica_data);
+
+        felica_data = felica_alloc();
+        felica_set_uid(felica_data, test_case->data, test_case->data_len);
+        listener = nfc_listener_alloc(nfc, NfcProtocolFelica, felica_data);
+        nfc_listener_start(listener, NULL, NULL);
+
+        /* Brief exposure window per test case */
+        uint32_t start_tick = furi_get_tick();
+        while(!worker->stop_requested &&
+              (furi_get_tick() - start_tick) < furi_ms_to_ticks(timeout_ms)) {
+            furi_delay_ms(10);
+        }
+
+        /* Report progress */
+        if(worker->callback) {
+            worker->callback(
+                NULL, i + 1, total, test_case->data, test_case->data_len, worker->cb_context);
+        }
+
+        if(delay_ms > 0) furi_delay_ms(delay_ms);
+    }
+
+    nfc_listener_stop(listener);
+    nfc_listener_free(listener);
+    felica_free(felica_data);
+    free(result);
+    free(test_case);
+    nfc_free(nfc);
+}
+
 /* ───── Thread entry point ───── */
 
 static int32_t nfc_fuzzer_worker_thread(void* context) {
@@ -395,9 +549,14 @@ static int32_t nfc_fuzzer_worker_thread(void* context) {
     FURI_LOG_I(
         WORKER_TAG, "Worker started: profile=%d strategy=%d", worker->profile, worker->strategy);
 
-    if(worker->profile == NfcFuzzerProfileReaderCommands ||
-       worker->profile == NfcFuzzerProfileMifareAuth ||
-       worker->profile == NfcFuzzerProfileMifareRead || worker->profile == NfcFuzzerProfileRats) {
+    if(worker->profile == NfcFuzzerProfileNfcB) {
+        nfc_fuzzer_worker_run_listener_nfcb(worker);
+    } else if(worker->profile == NfcFuzzerProfileFelica) {
+        nfc_fuzzer_worker_run_listener_felica(worker);
+    } else if(
+        worker->profile == NfcFuzzerProfileReaderCommands ||
+        worker->profile == NfcFuzzerProfileMifareAuth ||
+        worker->profile == NfcFuzzerProfileMifareRead || worker->profile == NfcFuzzerProfileRats) {
         nfc_fuzzer_worker_run_poller(worker);
     } else {
         nfc_fuzzer_worker_run_listener(worker);

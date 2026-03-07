@@ -41,6 +41,8 @@ typedef enum {
     NfcFuzzerProfileMifareAuth,
     NfcFuzzerProfileMifareRead,
     NfcFuzzerProfileRats,
+    NfcFuzzerProfileNfcB, /* ISO 14443-B PUPI fuzzer (listener mode) */
+    NfcFuzzerProfileFelica, /* FeliCa IDm fuzzer (listener mode) */
     NfcFuzzerProfileCOUNT,
 } NfcFuzzerProfile;
 
@@ -197,6 +199,8 @@ static inline const char* nfc_fuzzer_profile_name(NfcFuzzerProfile p) {
         "MIFARE Auth",
         "MIFARE Read/Write",
         "RATS/ATS Fuzzing",
+        "NFC-B PUPI",
+        "FeliCa IDm",
     };
     return (p < NfcFuzzerProfileCOUNT) ? names[p] : "Unknown";
 }

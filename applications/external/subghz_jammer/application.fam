@@ -1,0 +1,11 @@
+App(
+    appid="subghz_jammer",
+    name="SubGHz Jammer Detect",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="subghz_jammer_app",
+    stack_size=4 * 1024,
+    fap_category="Sub-GHz",
+    fap_version=(1, 0),
+    fap_description="Detects sustained RF carrier waves indicating SubGHz jamming attacks",
+    fap_author="PentestSuite",
+)

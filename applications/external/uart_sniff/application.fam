@@ -1,0 +1,11 @@
+App(
+    appid="uart_sniff",
+    name="UART Sniff",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="uart_sniff_app",
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_version=(1, 0),
+    fap_description="UART protocol sniffer — captures bytes on GPIO pins 13/14",
+    fap_author="PentestSuite",
+)

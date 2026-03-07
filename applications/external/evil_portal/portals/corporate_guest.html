@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Corp — Guest Network Access</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: #0a2240;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .card {
+    background: #fff;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 4px;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .topbar {
+    background: #0a2240;
+    height: 4px;
+    background: linear-gradient(90deg, #005aab, #00b4d8);
+  }
+  .header {
+    padding: 24px 28px 18px;
+    border-bottom: 1px solid #eaecf0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .corp-logo {
+    width: 48px;
+    height: 48px;
+    background: #0a2240;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .corp-logo svg { width: 30px; height: 30px; }
+  .header-text h1 { font-size: 16px; color: #0a2240; font-weight: 700; }
+  .header-text p { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .body { padding: 24px 28px 20px; }
+  .notice {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: #1e40af;
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+  .notice strong { display: block; margin-bottom: 3px; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 5px;
+  }
+  input[type=text], input[type=password], input[type=email] {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    outline: none;
+    color: #111;
+    background: #f9fafb;
+  }
+  input:focus { border-color: #005aab; background: #fff; box-shadow: 0 0 0 3px rgba(0,90,171,0.1); }
+  select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    outline: none;
+    color: #374151;
+    background: #f9fafb;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  select:focus { border-color: #005aab; background-color: #fff; }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .btn {
+    width: 100%;
+    background: #005aab;
+    color: #fff;
+    border: none;
+    padding: 11px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .btn:hover { background: #004080; }
+  .footer {
+    padding: 14px 28px;
+    font-size: 11px;
+    color: #9ca3af;
+    text-align: center;
+    border-top: 1px solid #f3f4f6;
+    line-height: 1.6;
+  }
+  .it-contact { font-weight: 600; color: #005aab; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="topbar"></div>
+  <div class="header">
+    <div class="corp-logo">
+      <svg viewBox="0 0 30 30" fill="none">
+        <rect width="13" height="13" rx="2" fill="#00b4d8"/>
+        <rect x="17" y="0" width="13" height="13" rx="2" fill="#fff" opacity="0.8"/>
+        <rect x="0" y="17" width="13" height="13" rx="2" fill="#fff" opacity="0.6"/>
+        <rect x="17" y="17" width="13" height="13" rx="2" fill="#00b4d8" opacity="0.7"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>Nexus Corp — Guest Network</h1>
+      <p>Secure visitor internet access</p>
+    </div>
+  </div>
+  <div class="body">
+    <div class="notice">
+      <strong>&#128274; Monitored Network</strong>
+      This guest network is monitored and subject to acceptable use policies. All activity is logged.
+    </div>
+    <form method="POST" action="/">
+      <label for="email">Work / Visitor Email</label>
+      <input type="email" id="email" name="email" placeholder="name@company.com" autocomplete="email">
+
+      <label for="password">Network Access Code</label>
+      <input type="password" id="password" name="password" placeholder="Provided by reception" autocomplete="current-password">
+
+      <div class="row">
+        <div class="field">
+          <label for="host">Your Host</label>
+          <input type="text" id="host" name="host" placeholder="Employee name">
+        </div>
+        <div class="field">
+          <label for="purpose">Visit Purpose</label>
+          <select id="purpose" name="purpose">
+            <option>Meeting</option>
+            <option>Interview</option>
+            <option>Contractor</option>
+            <option>Delivery</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn">Request Access</button>
+    </form>
+  </div>
+  <div class="footer">
+    Authorized users only. Misuse is subject to legal action.<br>
+    IT Support: <span class="it-contact">helpdesk@nexuscorp.internal | Ext. 5500</span>
+  </div>
+</div>
+</body>
+</html>

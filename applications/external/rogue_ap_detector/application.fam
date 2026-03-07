@@ -1,0 +1,11 @@
+App(
+    appid="rogue_ap_detector",
+    name="Rogue AP Detector",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="rogue_ap_app",
+    stack_size=4 * 1024,
+    fap_category="WiFi",
+    fap_version=(1, 0),
+    fap_description="Detects evil twin / rogue WiFi access points via ESP32 Dev Board",
+    fap_author="PentestSuite",
+)
