@@ -661,6 +661,11 @@ static FPwnApp* flipperpwn_app_alloc(void) {
     app->selected_module_index = -1;
     /* detected_os and manual_os default to FPwnOSUnknown (0) via memset. */
 
+    /* ---- Module catalog (heap-allocated to avoid ~44 KB in struct) ---- */
+    app->modules = malloc(FPWN_MAX_MODULES * sizeof(FPwnModule));
+    furi_assert(app->modules);
+    memset(app->modules, 0, FPWN_MAX_MODULES * sizeof(FPwnModule));
+
     /* ---- Service records ---- */
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);
@@ -780,6 +785,9 @@ static void flipperpwn_app_free(FPwnApp* app) {
     view_free(app->execute_view);
 
     furi_mutex_free(app->mutex);
+
+    free(app->modules);
+    app->modules = NULL;
 
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_STORAGE);

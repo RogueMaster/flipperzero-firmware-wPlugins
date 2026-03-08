@@ -385,7 +385,7 @@ static void start_script_execution(BadUsbProApp* app) {
     }
 
     /* Start worker thread */
-    app->worker_thread = furi_thread_alloc_ex("BadUSBWorker", 2048, worker_thread_cb, app);
+    app->worker_thread = furi_thread_alloc_ex("BadUSBWorker", 4096, worker_thread_cb, app);
     app->worker_running = true;
     furi_thread_start(app->worker_thread);
 

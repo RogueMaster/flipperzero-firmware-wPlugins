@@ -21,8 +21,8 @@
  * ========================================================================= */
 
 #define FPWN_MODULES_DIR   EXT_PATH("flipperpwn/modules")
-#define FPWN_MAX_MODULES   32
-#define FPWN_MAX_OPTIONS   8
+#define FPWN_MAX_MODULES   16
+#define FPWN_MAX_OPTIONS   4
 #define FPWN_MAX_LINE_LEN  512
 #define FPWN_OPT_NAME_LEN  32
 #define FPWN_OPT_VALUE_LEN 64
@@ -125,8 +125,8 @@ typedef struct {
     Storage* storage;
     NotificationApp* notifications;
 
-    /* Module catalog */
-    FPwnModule modules[FPWN_MAX_MODULES];
+    /* Module catalog — heap-allocated to avoid ~44 KB in the main struct */
+    FPwnModule* modules;
     uint32_t module_count;
 
     /* State */

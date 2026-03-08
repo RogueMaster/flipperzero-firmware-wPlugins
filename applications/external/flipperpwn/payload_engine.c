@@ -1074,7 +1074,7 @@ int32_t fpwn_payload_execute_thread(void* ctx) {
         const char* guide_path = EXT_PATH("flipperpwn/last_run.txt");
         File* gf = storage_file_alloc(app->storage);
         if(storage_file_open(gf, guide_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-            char buf[256];
+            char buf[320];
             snprintf(
                 buf,
                 sizeof(buf),

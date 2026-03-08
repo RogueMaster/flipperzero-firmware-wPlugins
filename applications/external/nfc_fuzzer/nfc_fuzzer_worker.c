@@ -43,6 +43,9 @@ static NfcCommand nfc_fuzzer_listener_callback(NfcGenericEvent event, void* cont
     NfcFuzzerListenerCtx* ctx = context;
     furi_assert(ctx);
 
+    /* event_data may be NULL for field-on/off events — guard before deref. */
+    if(!event.event_data) return NfcCommandContinue;
+
     Iso14443_3aListenerEvent* iso_event = event.event_data;
     if(iso_event->type == Iso14443_3aListenerEventTypeReceivedData) {
         ctx->response_received = true;
@@ -54,6 +57,15 @@ static NfcCommand nfc_fuzzer_listener_callback(NfcGenericEvent event, void* cont
                 bit_buffer_get_size_bytes(iso_event->data->buffer));
         }
     }
+    return NfcCommandContinue;
+}
+
+/* No-op poller callback: nfc_poller_start requires a non-NULL callback but
+ * our poller mode drives the exchange directly via nfc_poller_trx(), so we
+ * just return NfcCommandContinue from the event handler. */
+static NfcCommand nfc_fuzzer_poller_noop(NfcGenericEvent event, void* context) {
+    UNUSED(event);
+    UNUSED(context);
     return NfcCommandContinue;
 }
 
@@ -317,9 +329,11 @@ static void nfc_fuzzer_worker_run_poller(NfcFuzzerWorker* worker) {
     TimingTracker timing;
     timing_tracker_init(&timing);
 
-    /* Use the correct poller API: allocate then start */
+    /* Use the correct poller API: allocate then start.
+     * The NFC SDK requires a non-NULL callback; use the no-op so
+     * nfc_poller_trx() drives the exchange directly. */
     NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
-    nfc_poller_start(poller, NULL, NULL);
+    nfc_poller_start(poller, nfc_fuzzer_poller_noop, NULL);
 
     for(uint32_t i = 0; i < total && !worker->stop_requested; i++) {
         bool has_case = nfc_fuzzer_profile_next(worker->profile, worker->strategy, i, test_case);

@@ -85,19 +85,23 @@ static void jammer_main_draw_callback(Canvas* canvas, void* model) {
     canvas_draw_line(canvas, 0, 11, 127, 11);
 
     /* ── Frequency rows ──
-   * Layout per row (row height = 10 px, starting at y=12):
-   *   col 0..28  : frequency name (FontSecondary)
-   *   col 30..85 : RSSI bar (55 px wide)
-   *   col 88..109: RSSI value
-   *   col 111..127: status label
+   * Layout per row (row height = 10 px, starting at y=21):
+   *   col 0..34  : frequency name (FontSecondary, ~6 chars)
+   *   col 36..81 : RSSI bar (46 px wide)
+   *   col 84..106: RSSI value
+   *   col 108..127: status label (3 chars max)
+   *
+   * Rows: y=21, 31, 41, 51 — all clear of the separator at y=53.
+   * CC1101 is single-channel: each band is scanned sequentially (200 ms
+   * dwell each), not simultaneously.
    */
     canvas_set_font(canvas, FontSecondary);
 
-    const uint8_t ROW_START_Y = 22;
-    const uint8_t ROW_STEP = 11;
-    const uint8_t BAR_X = 30;
-    const uint8_t BAR_W = 55;
-    const uint8_t BAR_H = 7;
+    const uint8_t ROW_START_Y = 21;
+    const uint8_t ROW_STEP = 10;
+    const uint8_t BAR_X = 36;
+    const uint8_t BAR_W = 46;
+    const uint8_t BAR_H = 6;
 
     for(uint8_t i = 0; i < MONITOR_FREQ_COUNT; i++) {
         uint8_t row_y = ROW_START_Y + i * ROW_STEP;
@@ -119,26 +123,26 @@ static void jammer_main_draw_callback(Canvas* canvas, void* model) {
         int32_t rssi_i = (int32_t)vm->rssi[i];
         int ret = snprintf(rssi_str, sizeof(rssi_str), "%ld", (long)rssi_i);
         if(ret < 0 || (size_t)ret >= sizeof(rssi_str)) rssi_str[sizeof(rssi_str) - 1] = '\0';
-        canvas_draw_str(canvas, 87, row_y, rssi_str);
+        canvas_draw_str(canvas, 84, row_y, rssi_str);
 
-        /* Status label */
+        /* Status label (max 3 chars to fit within 128-px screen) */
         const char* status_str;
         switch(vm->status[i]) {
         case FreqStatusJammer:
-            status_str = "JAM!";
+            status_str = "JAM";
             break;
         case FreqStatusSuspicious:
-            status_str = "WARN";
+            status_str = "SUS";
             break;
         default:
-            status_str = "OK";
+            status_str = "ok";
             break;
         }
-        canvas_draw_str(canvas, 112, row_y, status_str);
+        canvas_draw_str(canvas, 108, row_y, status_str);
     }
 
     /* ── Bottom status bar ── */
-    canvas_draw_line(canvas, 0, 54, 127, 54);
+    canvas_draw_line(canvas, 0, 53, 127, 53);
     canvas_set_font(canvas, FontSecondary);
 
     if(vm->alert_freq_idx >= 0 && vm->alert_freq_idx < MONITOR_FREQ_COUNT) {

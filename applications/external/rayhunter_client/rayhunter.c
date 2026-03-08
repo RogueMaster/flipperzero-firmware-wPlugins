@@ -96,11 +96,11 @@ static const char* rh_threat_label(RhThreatLevel t) {
  * Layout (128 x 64):
  *   y=0-10:  title bar  "Ray Hunter"  [connected indicator right-aligned]
  *   y=11:    separator line
- *   y=12-20: status row  "Status: CONNECTED" or "Waiting for ESP32..."
- *   y=21-35: threat box  (inverted when High/Medium, shaded when Low/Clean)
- *   y=36-44: last alert message (if any)
- *   y=45-53: packet/warning counters
- *   y=54-63: host:port footer
+ *   y=12-22: status row  "Status: CONNECTED" or "Waiting for ESP32..."
+ *   y=25-38: threat box  (inverted when High/Medium)
+ *   y=47:    last alert message (if any)
+ *   y=55:    packet/warning counters
+ *   y=63:    host:port footer
  * -------------------------------------------------------------------------- */
 static void rh_main_draw_cb(Canvas* canvas, void* model) {
     const RhMainModel* mm = (const RhMainModel*)model;
@@ -184,14 +184,14 @@ static void rh_main_draw_cb(Canvas* canvas, void* model) {
         "Pkts:%lu Warn:%lu",
         (unsigned long)s->packet_count,
         (unsigned long)s->warning_count);
-    canvas_draw_str(canvas, 2, 56, counters);
+    canvas_draw_str(canvas, 2, 55, counters);
 
     /* ---- Footer: host:port ---- */
     char footer[48];
     snprintf(footer, sizeof(footer), "%s:%u", c->host, (unsigned)c->port);
     int16_t fx = (int16_t)(128 - (int16_t)(strlen(footer) * 5));
     if(fx < 2) fx = 2;
-    canvas_draw_str(canvas, fx, 56, footer);
+    canvas_draw_str(canvas, fx, 63, footer);
 }
 
 /* --------------------------------------------------------------------------

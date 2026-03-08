@@ -304,77 +304,73 @@ static bool spectrum_view_input_callback(InputEvent* event, void* context) {
 
 static void spectrum_worker_callback(SpectrumData* sweep_data, void* context) {
     SpectrumApp* app = context;
-    SpectrumData snapshot;
 
-    if(furi_mutex_acquire(app->data_mutex, 50) == FuriStatusOk) {
-        SpectrumData* data = &app->spectrum_data;
-        /* Copy sweep results */
-        memcpy(data->rssi, sweep_data->rssi, sizeof(float) * sweep_data->num_bins);
-        data->num_bins = sweep_data->num_bins;
-        data->freq_start = sweep_data->freq_start;
-        data->freq_step = sweep_data->freq_step;
-        data->max_rssi = sweep_data->max_rssi;
-        data->max_rssi_freq = sweep_data->max_rssi_freq;
+    if(furi_mutex_acquire(app->data_mutex, 50) != FuriStatusOk) return;
 
-        /* Update peak hold */
-        if(data->peak_hold) {
-            for(uint8_t i = 0; i < data->num_bins; i++) {
-                if(data->rssi[i] > data->peak_rssi[i]) {
-                    data->peak_rssi[i] = data->rssi[i];
-                } else {
-                    /* Slow decay */
-                    data->peak_rssi[i] -= 0.5f;
-                    if(data->peak_rssi[i] < SPECTRUM_RSSI_MIN) {
-                        data->peak_rssi[i] = SPECTRUM_RSSI_MIN;
-                    }
-                }
-            }
-        }
+    SpectrumData* data = &app->spectrum_data;
+    /* Copy sweep results */
+    memcpy(data->rssi, sweep_data->rssi, sizeof(float) * sweep_data->num_bins);
+    data->num_bins = sweep_data->num_bins;
+    data->freq_start = sweep_data->freq_start;
+    data->freq_step = sweep_data->freq_step;
+    data->max_rssi = sweep_data->max_rssi;
+    data->max_rssi_freq = sweep_data->max_rssi_freq;
 
-        /* Update waterfall */
-        data->waterfall_row = (data->waterfall_row + 1) % SPECTRUM_WATERFALL_ROWS;
+    /* Update peak hold */
+    if(data->peak_hold) {
         for(uint8_t i = 0; i < data->num_bins; i++) {
-            float norm =
-                (data->rssi[i] - SPECTRUM_RSSI_MIN) / (SPECTRUM_RSSI_MAX - SPECTRUM_RSSI_MIN);
-            if(norm < 0.0f) norm = 0.0f;
-            if(norm > 1.0f) norm = 1.0f;
-            data->waterfall[data->waterfall_row][i] = (uint8_t)(norm * 255.0f);
-        }
-
-        /* Log to CSV if enabled */
-        if(app->logging && app->log_file) {
-            uint32_t ts = furi_get_tick();
-            char line[64];
-            for(uint8_t i = 0; i < data->num_bins; i++) {
-                uint32_t freq = data->freq_start + (uint32_t)i * data->freq_step;
-                int32_t rssi_i = (int32_t)data->rssi[i];
-                int ret = snprintf(
-                    line,
-                    sizeof(line),
-                    "%lu,%lu,%ld\n",
-                    (unsigned long)ts,
-                    (unsigned long)freq,
-                    (long)rssi_i);
-                if(ret > 0) {
-                    size_t len = ((size_t)ret >= sizeof(line)) ? sizeof(line) - 1 : (size_t)ret;
-                    storage_file_write(app->log_file, line, len);
+            if(data->rssi[i] > data->peak_rssi[i]) {
+                data->peak_rssi[i] = data->rssi[i];
+            } else {
+                /* Slow decay */
+                data->peak_rssi[i] -= 0.5f;
+                if(data->peak_rssi[i] < SPECTRUM_RSSI_MIN) {
+                    data->peak_rssi[i] = SPECTRUM_RSSI_MIN;
                 }
             }
         }
-
-        /* Take a snapshot while holding the mutex */
-        memcpy(&snapshot, data, sizeof(SpectrumData));
-        furi_mutex_release(app->data_mutex);
-    } else {
-        return;
     }
 
-    /* Update the view model to trigger redraw -- no data_mutex held here */
+    /* Update waterfall */
+    data->waterfall_row = (data->waterfall_row + 1) % SPECTRUM_WATERFALL_ROWS;
+    for(uint8_t i = 0; i < data->num_bins; i++) {
+        float norm = (data->rssi[i] - SPECTRUM_RSSI_MIN) / (SPECTRUM_RSSI_MAX - SPECTRUM_RSSI_MIN);
+        if(norm < 0.0f) norm = 0.0f;
+        if(norm > 1.0f) norm = 1.0f;
+        data->waterfall[data->waterfall_row][i] = (uint8_t)(norm * 255.0f);
+    }
+
+    /* Log to CSV if enabled */
+    if(app->logging && app->log_file) {
+        uint32_t ts = furi_get_tick();
+        char line[64];
+        for(uint8_t i = 0; i < data->num_bins; i++) {
+            uint32_t freq = data->freq_start + (uint32_t)i * data->freq_step;
+            int32_t rssi_i = (int32_t)data->rssi[i];
+            int ret = snprintf(
+                line,
+                sizeof(line),
+                "%lu,%lu,%ld\n",
+                (unsigned long)ts,
+                (unsigned long)freq,
+                (long)rssi_i);
+            if(ret > 0) {
+                size_t len = ((size_t)ret >= sizeof(line)) ? sizeof(line) - 1 : (size_t)ret;
+                storage_file_write(app->log_file, line, len);
+            }
+        }
+    }
+
+    /* Update view model while still holding data_mutex — same lock ordering
+     * as spectrum_view_input_callback, so no deadlock risk. Avoids a
+     * stack-local SpectrumData copy that would overflow the worker stack. */
     with_view_model(
         app->spectrum_view,
         SpectrumData * model,
-        { memcpy(model, &snapshot, sizeof(SpectrumData)); },
+        { memcpy(model, &app->spectrum_data, sizeof(SpectrumData)); },
         true);
+
+    furi_mutex_release(app->data_mutex);
 }
 
 /* ─── Band Selection ─── */

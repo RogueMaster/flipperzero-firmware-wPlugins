@@ -182,7 +182,17 @@ static void ble_scan_draw(Canvas* canvas, void* model_ptr) {
     canvas_draw_line(canvas, 0, 12, 127, 12);
 
     if(m->count == 0) {
-        canvas_draw_str(canvas, 6, 38, m->scanning ? "Scanning..." : "No devices");
+        if(m->no_esp32) {
+            /* Explain the hardware requirement clearly.
+             * Flipper's built-in nRF52840 BT is NOT used by this app — it
+             * requires an ESP32 Marauder dev board on the GPIO UART. */
+            canvas_draw_str(canvas, 2, 26, "Needs ESP32 Marauder board");
+            canvas_draw_str(canvas, 2, 36, "GPIO: TX->14 RX->13 GND");
+            canvas_draw_str(canvas, 2, 46, "115200 baud, run scanbt");
+            canvas_draw_str(canvas, 2, 56, "Flipper BT cannot scan");
+        } else {
+            canvas_draw_str(canvas, 6, 38, m->scanning ? "Scanning..." : "No devices");
+        }
         return;
     }
 
