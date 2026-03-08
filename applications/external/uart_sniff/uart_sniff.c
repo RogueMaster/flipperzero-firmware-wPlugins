@@ -149,16 +149,29 @@ done:
 }
 
 /* -----------------------------------------------------------------------
- * Refresh timer callback — fires every 100 ms while sniffing.
+ * Refresh timer callback — fires every 100 ms on the timer service thread.
+ * Must not call GUI APIs directly; posts an event to the GUI thread instead.
  * ----------------------------------------------------------------------- */
 static void uart_sniff_refresh_cb(void* context) {
     UartSniffApp* app = (UartSniffApp*)context;
     if(!app->sniffing || !app->worker) return;
+    view_dispatcher_send_custom_event(app->view_dispatcher, UartSniffEventRefresh);
+}
 
-    uart_sniff_format_display(app);
-
-    text_box_set_text(app->text_box, app->display_buf);
-    text_box_set_focus(app->text_box, TextBoxFocusEnd);
+/* -----------------------------------------------------------------------
+ * Custom event callback — runs on the GUI thread (view_dispatcher_run loop).
+ * Safe to call TextBox and other GUI APIs here.
+ * ----------------------------------------------------------------------- */
+static bool uart_sniff_custom_event_cb(void* context, uint32_t event) {
+    UartSniffApp* app = (UartSniffApp*)context;
+    switch((UartSniffEvent)event) {
+    case UartSniffEventRefresh:
+        uart_sniff_format_display(app);
+        text_box_set_text(app->text_box, app->display_buf);
+        text_box_set_focus(app->text_box, TextBoxFocusEnd);
+        return true;
+    }
+    return false;
 }
 
 /* -----------------------------------------------------------------------
@@ -311,6 +324,7 @@ static UartSniffApp* uart_sniff_app_alloc(void) {
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, app_navigation_cb);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, uart_sniff_custom_event_cb);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     /* ---- Main Menu ---- */

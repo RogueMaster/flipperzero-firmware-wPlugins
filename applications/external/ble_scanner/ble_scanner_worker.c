@@ -288,11 +288,10 @@ static void worker_rx_line(const char* line, void* ctx) {
 
                 /* AirTag heuristic: name contains "AirTag" */
                 /* Case-insensitive check: Marauder may capitalise differently */
-                char lower_name[BLE_SCANNER_NAME_LEN];
-                for(int i = 0; i < BLE_SCANNER_NAME_LEN && dev->name[i]; i++) {
+                char lower_name[BLE_SCANNER_NAME_LEN] = {0};
+                for(int i = 0; i < BLE_SCANNER_NAME_LEN - 1 && dev->name[i]; i++) {
                     lower_name[i] = (char)tolower((unsigned char)dev->name[i]);
                 }
-                lower_name[BLE_SCANNER_NAME_LEN - 1] = '\0';
                 if(strstr(lower_name, "airtag") != NULL) {
                     dev->is_airtag = true;
                 }

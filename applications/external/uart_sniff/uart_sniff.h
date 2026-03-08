@@ -59,6 +59,13 @@ typedef enum {
 } UartSniffMenuItem;
 
 /* -----------------------------------------------------------------------
+ * Custom events dispatched via view_dispatcher_send_custom_event()
+ * ----------------------------------------------------------------------- */
+typedef enum {
+    UartSniffEventRefresh = 0,
+} UartSniffEvent;
+
+/* -----------------------------------------------------------------------
  * Application state — heap-allocated to keep off the FAP stack.
  * ----------------------------------------------------------------------- */
 typedef struct {

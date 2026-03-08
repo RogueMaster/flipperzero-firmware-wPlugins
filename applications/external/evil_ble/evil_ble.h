@@ -49,10 +49,9 @@ typedef struct EvilBleApp {
     EvilBleUart* uart;
     EvilBleScanner* scanner;
 
-    /* Scanned device list (protected by mutex) */
+    /* Scanned device list (scanner manages its own internal mutex) */
     EvilBleDevice devices[EVIL_BLE_MAX_DEVICES];
     uint32_t device_count;
-    FuriMutex* mutex;
 
     /* Clone state */
     uint32_t selected_device_idx;

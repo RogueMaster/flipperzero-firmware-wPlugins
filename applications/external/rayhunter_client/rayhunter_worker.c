@@ -204,10 +204,7 @@ void rh_worker_poll(RhApp* app) {
         RhMainModel * m,
         {
             m->status.threat = RhThreatNone;
-            /* Clear last_message so "clean" polls show nothing. */
-            if(m->status.threat == RhThreatNone) {
-                m->status.last_message[0] = '\0';
-            }
+            m->status.last_message[0] = '\0';
         },
         false /* no redraw needed for the reset itself */
     );

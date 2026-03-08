@@ -160,17 +160,10 @@ static void evil_ble_main_menu_callback(void* ctx, uint32_t index) {
         break;
 
     case EvilBleMainMenuClone:
-        if(evil_ble_scanner_get_count(app->scanner) == 0) {
-            /* Nothing to clone — show device list (will be empty) as feedback. */
-            evil_ble_rebuild_device_list(app);
-            app->current_view = EvilBleViewDeviceList;
-            view_dispatcher_switch_to_view(app->view_dispatcher, EvilBleViewDeviceList);
-        } else {
-            /* Show device list so the user can pick a target. */
-            evil_ble_rebuild_device_list(app);
-            app->current_view = EvilBleViewDeviceList;
-            view_dispatcher_switch_to_view(app->view_dispatcher, EvilBleViewDeviceList);
-        }
+        /* Show device list. Shows "Scanning..." when empty, hinting user to scan first. */
+        evil_ble_rebuild_device_list(app);
+        app->current_view = EvilBleViewDeviceList;
+        view_dispatcher_switch_to_view(app->view_dispatcher, EvilBleViewDeviceList);
         break;
 
     case EvilBleMainMenuStop:
@@ -341,10 +334,6 @@ static EvilBleApp* evil_ble_app_alloc(void) {
     /* ---- Service records ---- */
     app->gui = furi_record_open(RECORD_GUI);
 
-    /* ---- Mutex ---- */
-    app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
-    furi_assert(app->mutex);
-
     /* ---- UART + scanner ---- */
     app->uart = evil_ble_uart_alloc();
     furi_assert(app->uart);
@@ -415,8 +404,6 @@ static void evil_ble_app_free(EvilBleApp* app) {
     submenu_free(app->main_menu);
     submenu_free(app->device_list);
     text_box_free(app->clone_status);
-
-    furi_mutex_free(app->mutex);
 
     furi_record_close(RECORD_GUI);
 
