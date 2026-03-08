@@ -1,0 +1,12 @@
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+
+# Ignore the makefile
+Makefile
+
+#ignore folder
+/dist

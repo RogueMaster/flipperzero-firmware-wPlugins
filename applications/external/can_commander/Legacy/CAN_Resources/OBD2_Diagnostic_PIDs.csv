@@ -1,0 +1,206 @@
+PID (dec),PID (hex),Name (short),Name,Bit start,Bit length,Scale,Offset,Min,Max,Unit,Scale (short),Min | Max,Bit start | length
+0,00,PIDsSupported_01_20,PIDs supported [01 - 20],31,32,1,0,,,Encoded,1,,31 | 32
+1,01,MonitorStatus,Monitor status since DTCs cleared,31,32,1,0,,,Encoded,1,,31 | 32
+2,02,FreezeDTC,Freeze DTC,31,16,1,0,,,Encoded,1,,31 | 16
+3,03,FuelSystemStatus,Fuel system status,31,16,1,0,,,Encoded,1,,31 | 16
+4,04,CalcEngineLoad,Calculated engine load,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+5,05,EngineCoolantTemp,Engine coolant temperature,31,8,1,-40,-40,215,degC,1,-40 | 215,31 | 8
+6,06,ShortFuelTrimBank1,Short term fuel trim (bank 1),31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+7,07,LongFuelTrimBank1,Long term fuel trim (bank 1),31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+8,08,ShortFuelTrimBank2,Short term fuel trim (bank 2),31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+9,09,LongFuelTrimBank2,Long term fuel trim (bank 2),31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+10,0A,FuelPressure,Fuel pressure (gauge pressure),31,8,3,0,0,765,kPa,3,0 | 765,31 | 8
+11,0B,IntakeManiAbsPress,Intake manifold absolute pressure,31,8,1,0,0,255,kPa,1,0 | 255,31 | 8
+12,0C,EngineRPM,Engine speed,31,16,0.25,0,0,16384,rpm,0.25,0 | 16384,31 | 16
+13,0D,VehicleSpeed,Vehicle speed,31,8,1,0,0,255,km/h,1,0 | 255,31 | 8
+14,0E,TimingAdvance,Timing advance,31,8,0.5,-64,-64,64,deg,0.5,-64 | 64,31 | 8
+15,0F,IntakeAirTemperature,Intake air temperature,31,8,1,-40,-40,215,degC,1,-40 | 215,31 | 8
+16,10,MAFAirFlowRate,Mass air flow sensor air flow rate,31,16,0.01,0,0,655,grams/sec,0.01,0 | 655,31 | 16
+17,11,ThrottlePosition,Throttle position,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+18,12,CmdSecAirStatus,Commanded secondary air status,31,8,1,0,,,Encoded,1,,31 | 8
+19,13,OxySensorsPresent_2Banks,Oxygen sensors present (2 banks),,,,,,,,,,
+20,14,OxySensor1_Volt,Oxygen sensor 1 (voltage),31,8,0.005,0,0,1,volts,0.005,0 | 1,31 | 8
+,,OxySensor1_STFT,Oxygen sensor 1 (short term fuel trim),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+21,15,OxySensor2_Volt,Oxygen sensor 2 (voltage),31,8,0.005,0,0,1,volts,0.005,0 | 1,31 | 8
+,,OxySensor2_STFT,Oxygen sensor 2 (short term fuel trim),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+22,16,OxySensor3_Volt,Oxygen sensor 3 (voltage),31,8,0.005,0,0,1,volts,0.005,0 | 1,31 | 8
+,,OxySensor3_STFT,Oxygen sensor 3 (short term fuel trim),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+23,17,OxySensor4_Volt,Oxygen sensor 4 (voltage),31,8,0.005,0,0,1,volts,0.005,0 | 1,31 | 8
+,,OxySensor4_STFT,Oxygen sensor 4 (short term fuel trim),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+24,18,OxySensor5_Volt,Oxygen sensor 5 (voltage),31,8,0.005,0,0,1,volts,0.005,0 | 1,31 | 8
+,,OxySensor5_STFT,Oxygen sensor 5 (short term fuel trim),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+25,19,OxySensor6_Volt,Oxygen sensor 6 (voltage),31,8,0.005,0,0,1,volts,0.005,0 | 1,31 | 8
+,,OxySensor6_STFT,Oxygen sensor 6 (short term fuel trim),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+26,1A,OxySensor7_Volt,Oxygen sensor 7 (voltage),31,8,0.005,0,0,1,volts,0.005,0 | 1,31 | 8
+,,OxySensor7_STFT,Oxygen sensor 7 (short term fuel trim),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+27,1B,OxySensor8_Volt,Oxygen sensor 8 (voltage),31,8,0.005,0,0,1,volts,0.005,0 | 1,31 | 8
+,,OxySensor8_STFT,Oxygen sensor 9 (short term fuel trim),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+28,1C,OBDStandard,OBD standards the vehicle conforms to,31,8,1,0,,,Encoded,1,,31 | 8
+29,1D,OxySensorsPresent_4Banks,Oxygen sensors present (4 banks),,,,,,,,,,
+30,1E,AuxiliaryInputStatus,Auxiliary input status,,,,,,,,,,
+31,1F,TimeSinceEngStart,Run time since engine start,31,16,1,0,0,65535,seconds,1,0 | 65535,31 | 16
+32,20,PIDsSupported_21_40,PIDs supported [21 - 40],31,32,1,0,,,Encoded,1,,31 | 32
+33,21,DistanceMILOn,Distance traveled with MIL on,31,16,1,0,0,65535,km,1,0 | 65535,31 | 16
+34,22,FuelRailPres,Fuel rail pres. (rel. to manifold vacuum),31,16,0.079,0,0,5177,kPa,0.079,0 | 5177,31 | 16
+35,23,FuelRailGaug,"Fuel rail gauge pres. (diesel, gas inject)",31,16,10,0,0,655350,kPa,10,0 | 655350,31 | 16
+36,24,OxySensor1_FAER,Oxygen sensor 1 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor1_Volt,Oxygen sensor 1 (voltage),47,16,0.0001220703125,0,0,2,volts,1/8192,0 | 2,47 | 16
+37,25,OxySensor2_FAER,Oxygen sensor 2 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor2_Volt,Oxygen sensor 2 (voltage),47,16,0.0001220703125,0,0,8,volts,1/8192,0 | 8,47 | 16
+38,26,OxySensor3_FAER,Oxygen sensor 3 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor3_Volt,Oxygen sensor 3 (voltage),47,16,0.0001220703125,0,0,8,volts,1/8192,0 | 8,47 | 16
+39,27,OxySensor4_FAER,Oxygen sensor 4 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor4_Volt,Oxygen sensor 4 (voltage),47,16,0.0001220703125,0,0,8,volts,1/8192,0 | 8,47 | 16
+40,28,OxySensor5_FAER,Oxygen sensor 5 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor5_Volt,Oxygen sensor 5 (voltage),47,16,0.0001220703125,0,0,8,volts,1/8192,0 | 8,47 | 16
+41,29,OxySensor6_FAER,Oxygen sensor 6 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor6_Volt,Oxygen sensor 6 (voltage),47,16,0.0001220703125,0,0,8,volts,1/8192,0 | 8,47 | 16
+42,2A,OxySensor7_FAER,Oxygen sensor 7 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor7_Volt,Oxygen sensor 7 (voltage),47,16,0.0001220703125,0,0,8,volts,1/8192,0 | 8,47 | 16
+43,2B,OxySensor8_FAER,Oxygen sensor 8 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor8_Volt,Oxygen sensor 8 (voltage),47,16,0.0001220703125,0,0,8,volts,1/8192,0 | 8,47 | 16
+44,2C,CmdEGR,Commanded EGR,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+45,2D,EGRError,EGR Error,31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+46,2E,CmdEvapPurge,Commanded evaporative purge,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+47,2F,FuelTankLevel,Fuel tank level input,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+48,30,WarmUpsSinceCodeClear,Warmups since DTCs cleared,31,8,1,0,0,255,count,1,0 | 255,31 | 8
+49,31,DistanceSinceCodeClear,Distance traveled since DTCs cleared,31,16,1,0,0,65535,km,1,0 | 65535,31 | 16
+50,32,EvapSysVaporPres,Evap. system vapor pressure,31,16,0.25,0,-8192,8192,Pa,0.25,-8192 | 8192,31 | 16
+51,33,AbsBaroPres,Absolute barometric pressure,31,8,1,0,0,255,kPa,1,0 | 255,31 | 8
+52,34,OxySensor1_FAER,Oxygen sensor 1 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor1_Crnt,Oxygen sensor 1 (current),47,16,0.00390625,-128,-128,128,mA,1/256,-128 | 128,47 | 16
+53,35,OxySensor2_FAER,Oxygen sensor 2 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor2_Crnt,Oxygen sensor 2 (current),47,16,0.00390625,-128,-128,128,mA,1/256,-128 | 128,47 | 16
+54,36,OxySensor3_FAER,Oxygen sensor 3 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor3_Crnt,Oxygen sensor 3 (current),47,16,0.00390625,-128,-128,128,mA,1/256,-128 | 128,47 | 16
+55,37,OxySensor4_FAER,Oxygen sensor 4 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor4_Crnt,Oxygen sensor 4 (current),47,16,0.00390625,-128,-128,128,mA,1/256,-128 | 128,47 | 16
+56,38,OxySensor5_FAER,Oxygen sensor 5 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor5_Crnt,Oxygen sensor 5 (current),47,16,0.00390625,-128,-128,128,mA,1/256,-128 | 128,47 | 16
+57,39,OxySensor6_FAER,Oxygen sensor 6 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor6_Crnt,Oxygen sensor 6 (current),47,16,0.00390625,-128,-128,128,mA,1/256,-128 | 128,47 | 16
+58,3A,OxySensor7_FAER,Oxygen sensor 7 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor7_Crnt,Oxygen sensor 7 (current),47,16,0.00390625,-128,-128,128,mA,1/256,-128 | 128,47 | 16
+59,3B,OxySensor8_FAER,Oxygen sensor 8 (air-fuel equiv. ratio),31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+,,OxySensor8_Crnt,Oxygen sensor 8 (current),47,16,0.00390625,-128,-128,128,mA,1/256,-128 | 128,47 | 16
+60,3C,CatTempBank1Sens1,"Catalyst temperature (bank 1, sensor 1)",31,16,0.1,-40,-40,6514,degC,0.1,-40 | 6514,31 | 16
+61,3D,CatTempBank2Sens1,"Catalyst temperature (bank 2, sensor 1)",31,16,0.1,-40,-40,6514,degC,0.1,-40 | 6514,31 | 16
+62,3E,CatTempBank1Sens2,"Catalyst temperature (bank 1, sensor 2)",31,16,0.1,-40,-40,6514,degC,0.1,-40 | 6514,31 | 16
+63,3F,CatTempBank2Sens2,"Catalyst temperature (bank 2, sensor 2)",31,16,0.1,-40,-40,6514,degC,0.1,-40 | 6514,31 | 16
+64,40,PIDsSupported_41_60,PIDs supported [41 - 60],31,32,1,0,,,Encoded,1,,31 | 32
+65,41,MonStatusDriveCycle,Monitor status this drive cycle,31,32,1,0,,,Encoded,1,,31 | 32
+66,42,ControlModuleVolt,Control module voltage,31,16,0.001,0,0,66,V,0.001,0 | 66,31 | 16
+67,43,AbsLoadValue,Absolute load value,31,16,0.3921568627,0,0,25700,%,1/2.55,0 | 25700,31 | 16
+68,44,FuelAirCmdEquiv,Commanded air-fuel equiv. ratio ,31,16,0.00003051757813,0,0,2,ratio,1/32768,0 | 2,31 | 16
+69,45,RelThrottlePos,Relative throttle position,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+70,46,AmbientAirTemp,Ambient air temperature,31,8,1,-40,-40,215,degC,1,-40 | 215,31 | 8
+71,47,AbsThrottlePosB,Absolute throttle position B,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+72,48,AbsThrottlePosC,Absolute throttle position C,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+73,49,AbsThrottlePosD,Accelerator pedal position D,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+74,4A,AbsThrottlePosE,Accelerator pedal position E,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+75,4B,AbsThrottlePosF,Accelerator pedal position F,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+76,4C,CmdThrottleAct,Commanded throttle actuator,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+77,4D,TimeRunMILOn,Time run with MIL on,31,16,1,0,0,65535,minutes,1,0 | 65535,31 | 16
+78,4E,TimeSinceCodeClear,Time since DTCs cleared,31,16,1,0,0,65535,minutes,1,0 | 65535,31 | 16
+79,4F,Max_FAER,Max fuel-air equiv. ratio,31,8,1,0,0,255,ratio,1,0 | 255,31 | 8
+,,Max_OxySensVol,Max oxygen sensor voltage,39,8,1,0,0,255,V,1,0 | 255,39 | 8
+,,Max_OxySensCrnt,Max oxygen sensor current,47,8,1,0,0,255,mA,1,0 | 255,47 | 8
+,,Max_IntManiAbsPres,Max intake manifold absolute pressure,55,8,10,0,0,2550,kPa,10,0 | 2550,55 | 8
+80,50,Max_AirFlowMAF,Max air flow rate from MAF sensor,31,8,10,0,0,2550,g/s,10,0 | 2550,31 | 8
+81,51,FuelType,Fuel type,31,8,1,0,,,Encoded,1,,31 | 8
+82,52,EthanolFuelPct,Ethanol fuel percentage,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+83,53,AbsEvapSysVapPres,Absolute evap system vapor pressure,31,16,0.005,0,0,328,kPa,0.005,0 | 328,31 | 16
+84,54,EvapSysVapPres,Evap system vapor pressure,31,16,1,-32767,-32767,32768,Pa,1,-32767 | 32768,31 | 16
+85,55,ShortSecOxyTrimBank1,Short term sec. oxygen trim (bank 1),31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+,,ShortSecOxyTrimBank3,Short term sec. oxygen trim (bank 3),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+86,56,LongSecOxyTrimBank1,Long term sec. oxygen trim (bank 1),31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+,,LongSecOxyTrimBank3,Long term sec. oxygen trim (bank 3),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+87,57,ShortSecOxyTrimBank2,Short term sec. oxygen trim (bank 2),31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+,,ShortSecOxyTrimBank4,Short term sec. oxygen trim (bank 4),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+88,58,LongSecOxyTrimBank2,Long term sec. oxygen trim (bank 2),31,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,31 | 8
+,,LongSecOxyTrimBank4,Long term sec. oxygen trim (bank 4),39,8,0.78125,-100,-100,99,%,1/1.28,-100 | 99,39 | 8
+89,59,FuelRailAbsPres,Fuel rail absolute pressure,31,16,10,0,0,655350,kPa,10,0 | 655350,31 | 16
+90,5A,RelAccelPedalPos,Relative accelerator pedal position,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+91,5B,HybrBatPackRemLife,Hybrid battery pack remaining life,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+92,5C,EngineOilTemp,Engine oil temperature,31,8,1,-40,-40,215,degC,1,-40 | 215,31 | 8
+93,5D,FuelInjectionTiming,Fuel injection timing,31,16,0.0078125,-210,-210,302,deg,1/128,-210 | 302,31 | 16
+94,5E,EngineFuelRate,Engine fuel rate,31,16,0.05,0,0,3277,L/h,0.05,0 | 3277,31 | 16
+95,5F,EmissionReq,Emission requirements,31,8,1,0,,,Encoded,1,,31 | 8
+96,60,PIDsSupported_61_80,PIDs supported [61 - 80],31,32,1,0,,,Encoded,1,,31 | 32
+97,61,DemandEngTorqPct,Demanded engine percent torque,31,8,1,-125,-125,130,%,1,-125 | 130,31 | 8
+98,62,ActualEngTorqPct,Actual engine percent torque,31,8,1,-125,-125,130,%,1,-125 | 130,31 | 8
+99,63,EngRefTorq,Engine reference torque,31,16,1,0,0,65535,Nm,1,0 | 65535,31 | 16
+100,64,EngPctTorq_Idle,Engine pct. torque (idle),31,8,1,-125,-125,130,%,1,-125 | 130,31 | 8
+,,EngPctTorq_EP1,Engine pct. torque (engine point 1),39,8,1,-125,-125,130,%,1,-125 | 130,39 | 8
+,,EngPctTorq_EP2,Engine pct. torque (engine point 2),47,8,1,-125,-125,130,%,1,-125 | 130,47 | 8
+,,EngPctTorq_EP3,Engine pct. torque (engine point 3),55,8,1,-125,-125,130,%,1,-125 | 130,55 | 8
+,,EngPctTorq_EP4,Engine pct. torque (engine point 4),63,8,1,-125,-125,130,%,1,-125 | 130,63 | 8
+101,65,AuxInputOutput,Auxiliary input/output supported,31,8,1,0,,,Encoded,1,,31 | 8
+102,66,MAFSensorA,Mass air flow sensor (A),39,16,0.03125,0,0,2048,grams/sec,1/32,0 | 2048,39 | 16
+,,MAFSensorB,Mass air flow sensor (B),55,16,0.03125,0,0,2048,grams/sec,1/32,0 | 2048,55 | 16
+103,67,EngineCoolantTemp1,Engine coolant temperature (sensor 1),39,8,1,-40,-40,215,degC,1,-40 | 215,39 | 8
+,,EngineCoolantTemp2,Engine coolant temperature (sensor 2),47,8,1,-40,-40,215,degC,1,-40 | 215,47 | 8
+104,68,IntakeAirTempSens1,Intake air temperature (sensor 1),39,8,1,-40,-40,215,degC,1,-40 | 215,39 | 8
+,,IntakeAirTempSens2,Intake air temperature (sensor 2),47,8,1,-40,-40,215,degC,1,-40 | 215,47 | 8
+105,69,CmdEGR_EGRError,Commanded EGR and EGR error,,,,,,,,,,
+106,6A,CmdDieselIntAir,Com. diesel intake air flow ctr/position,,,,,,,,,,
+107,6B,ExhaustGasTemp,Exhaust gas recirculation temperature,,,,,,,,,,
+108,6C,CmdThrottleActRel,Com. throttle actuator ctr./position,,,,,,,,,,
+109,6D,FuelPresContrSys,Fuel pressure control system,,,,,,,,,,
+110,6E,InjPresContrSys,Injection pressure control system,,,,,,,,,,
+111,6F,TurboComprPres,Turbocharger compressor inlet pres.,,,,,,,,,,
+112,70,BoostPresCntrl,Boost pressure control,,,,,,,,,,
+113,71,VariableGeoTurboVGTCtr,Variable geometry turbo control,,,,,,,,,,
+114,72,WastegateControl,Wastegate control,,,,,,,,,,
+115,73,ExhaustPressure,Exhaust pressure,,,,,,,,,,
+116,74,TurbochargerRpm,Turbocharger RPM,,,,,,,,,,
+117,75,TurbochargerTemperature,Turbocharger temperature,,,,,,,,,,
+118,76,TurbochargerTemperature,Turbocharger temperature,,,,,,,,,,
+119,77,ChargeAirCoolerTemperature,Charge air cooler temperature,,,,,,,,,,
+120,78,EGT_Bank1,EGT (bank 1),,,,,,,,,,
+121,79,EGT_Bank2,EGT (bank 2),,,,,,,,,,
+122,7A,DPF_DifferentialPressure,Diesel particulate filter - diff. pressure,,,,,,,,,,
+123,7B,DPF,Diesel particulate filter,,,,,,,,,,
+124,7C,DPF_Temperature,Diesel particulate filter - temperature,31,16,0.1,-40,-40,6514,degC,0.1,-40 | 6514,31 | 16
+125,7D,NOx_NTE_ControlAreaStatus,NOx NTE control area status,,,,,,,,,,
+126,7E,PM_NTE_ControlAreaStatus,PM NTE control area status,,,,,,,,,,
+127,7F,EngineRunTime,Engine run time,,,,,,,seconds,,,
+128,80,PIDsSupported_81_A0,PIDs supported [81 - A0],31,32,1,0,,,Encoded,1,,31 | 32
+129,81,EngineRunTime_AECD,Engine run time for AECD,,,,,,,,,,
+130,82,EngineRunTime_AECD,Engine run time for AECD,,,,,,,,,,
+131,83,NOxSensor,NOx sensor,,,,,,,,,,
+132,84,ManifoldSurfaceTemperature,Manifold surface temperature,,,,,,,,,,
+133,85,NOxReagentSystem,NOx reagent system,,,,,,,,,,
+134,86,PM_Sensor,Particulate matter sensor,,,,,,,,,,
+135,87,IntakeManifoldAbsolutePressure,Intake manifold absolute pressure,,,,,,,,,,
+136,88,SCR_InduceSystem,SCR induce system,,,,,,,,,,
+137,89,RunTimeForAECD_11_15,Run time for AECD #11-#15,,,,,,,,,,
+138,8A,RunTimeForAECD_16_20,Run time for AECD #16-#20,,,,,,,,,,
+139,8B,DieselAftertreatment,Diesel aftertreatment,,,,,,,,,,
+140,8C,O2Sensor_WideRange,O2 sensor (wide range),,,,,,,,,,
+141,8D,ThrottlePositionG,Throttle position G,31,8,0.3921568627,0,0,100,%,1/2.55,0 | 100,31 | 8
+142,8E,EngineFrictionPercentTorque,Engine friction percent torque,31,8,1,-125,-125,130,%,1,-125 | 130,31 | 8
+143,8F,PMSensorBank1_2,Particulate matter sensor (bank 1 & 2),,,,,,,,,,
+144,90,WWH_OBD_SysInfo,WWH-OBD vehicle OBD system Info,,,,,,,hours,,,
+145,91,WWH_OBD_SysInfo,WWH-OBD vehicle OBD system Info,,,,,,,hours,,,
+146,92,FuelSystemControl,Fuel system control,,,,,,,,,,
+147,93,WWH_OBD_CtrSupport,WWH-OBD counters support,,,,,,,hours,,,
+148,94,NOxWarningInducementSys,NOx warning and inducement system,,,,,,,,,,
+152,98,EGT_Sensor,EGT sensor,,,,,,,,,,
+153,99,EGT_Sensor,EGT sensor,,,,,,,,,,
+154,9A,Hybrid_EV_System,"Hybrid/EV sys. data, battery, voltage",,,,,,,,,,
+155,9B,DieselExhaustFluidSensorData,Diesel exhaust fluid sensor data,,,,,,,,,,
+156,9C,O2SensorData,O2 sensor data,,,,,,,,,,
+157,9D,EngineFuelRate,Engine fuel rate,,,,,,,g/s,,,
+158,9E,EngineExhaustFlowRate,Engine exhaust flow rate,,,,,,,kg/h,,,
+159,9F,FuelSystemPercentageUse,Fuel system percentage use,,,,,,,,,,
+160,A0,PIDsSupported_A1_C0,PIDs supported [A1 - C0],31,32,1,0,,,Encoded,1,,31 | 32
+161,A1,NOxSensorCorrectedData,NOx sensor corrected data,,,,,,,ppm,,,
+162,A2,CylinderFuelRate,Cylinder fuel rate,31,16,0.03125,0,0,2048,mg/stroke,1/32,0 | 2048,31 | 16
+163,A3,EvapSystemVaporPressure,Evap system vapor pressure,,,,,,,,,,
+164,A4,TransmissionActualGear,Transmission actual gear,47,16,0.001,0,0,66,ratio,0.001,0 | 66,47 | 16
+165,A5,ComDieselExhaustFluidDosing,Cmd. diesel exhaust fluid dosing,39,8,0.5,0,0,128,%,0.5,0 | 128,39 | 8
+166,A6,Odometer,Odometer,31,32,0.1,0,0,4.29E+08,km,0.1,0 | 429496730,31 | 32
+167,A7,NOxSensorConc3_4,"NOx concentration 3, 4",,,,,,,,,,
+168,A8,NOxSensorCorrectConc3_4,"NOx corrected concentration (3, 4)",,,,,,,,,,
+192,C0,PIDsSupported_C1_E0,PIDs supported [C1 - E0],31,32,1,0,,,Encoded,1,,31 | 32
