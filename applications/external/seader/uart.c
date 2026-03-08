@@ -148,9 +148,11 @@ int32_t seader_uart_worker(void* context) {
 }
 
 SeaderUartBridge* seader_uart_enable(SeaderUartConfig* cfg, Seader* seader) {
-    SeaderUartBridge* seader_uart = malloc(sizeof(SeaderUartBridge));
+    SeaderUartBridge* seader_uart = calloc(1, sizeof(SeaderUartBridge));
 
     seader_uart->T = 1;
+    seader_t_1_reset(seader_uart);
+    seader_uart->ccid.retries = 3;
 
     memcpy(&(seader_uart->cfg_new), cfg, sizeof(SeaderUartConfig));
 

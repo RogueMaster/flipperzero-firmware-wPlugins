@@ -46,7 +46,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Otacon passport #1172 (By otac0n)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1172)
 - Updated: [Theme Manager v1.3 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
 - Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
-- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 - Added: [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - Updated: [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
 - Updated: [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
@@ -64,6 +63,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Sub-GHz Jammer Detect v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Added: [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [AmiiTool v0.2.1 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets` (Name & Version Only)
+- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 
 <a name="release"></a>
 

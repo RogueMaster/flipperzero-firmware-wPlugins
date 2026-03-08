@@ -1,5 +1,6 @@
 #include "seader_i.h"
 #include <expansion/expansion.h>
+#include "trace_log.h"
 
 #define TAG "Seader"
 
@@ -23,6 +24,7 @@ void seader_tick_event_callback(void* context) {
 
 Seader* seader_alloc() {
     Seader* seader = malloc(sizeof(Seader));
+    seader_trace_reset();
 
     seader->revert_power = !furi_hal_power_is_otg_enabled();
     if(seader->revert_power) {
@@ -30,6 +32,8 @@ Seader* seader_alloc() {
     }
     seader->is_debug_enabled = furi_hal_rtc_is_flag_set(FuriHalRtcFlagDebug);
     seader->samCommand = SamCommand_PR_NOTHING;
+    seader->sam_state = SeaderSamStateIdle;
+    seader->sam_intent = SeaderSamIntentNone;
 
     seader->worker = seader_worker_alloc();
     seader->view_dispatcher = view_dispatcher_alloc();

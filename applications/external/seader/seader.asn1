@@ -87,6 +87,7 @@ ContentElementTag ::= ENUMERATED {
 }
 
 FrameProtocol ::= ENUMERATED {
+  none (0),
   nfc (2),
   iclass (4)
 }

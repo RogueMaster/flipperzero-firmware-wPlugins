@@ -1,4 +1,5 @@
 #include "../seader_i.h"
+#include "seader_scene_read_common.h"
 #include <dolphin/dolphin.h>
 
 void seader_scene_read_14a_on_enter(void* context) {
@@ -13,9 +14,8 @@ void seader_scene_read_14a_on_enter(void* context) {
     // Start worker
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewPopup);
 
+    seader_scene_read_prepare(seader);
     seader->poller = nfc_poller_alloc(seader->nfc, NfcProtocolIso14443_4a);
-
-    seader->worker->stage = SeaderPollerEventTypeCardDetect;
     seader_credential_clear(seader->credential);
     seader->credential->type = SeaderCredentialType14A;
     nfc_poller_start(seader->poller, seader_worker_poller_callback_iso14443_4a, seader);
@@ -50,15 +50,5 @@ bool seader_scene_read_14a_on_event(void* context, SceneManagerEvent event) {
 
 void seader_scene_read_14a_on_exit(void* context) {
     Seader* seader = context;
-
-    if(seader->poller) {
-        nfc_poller_stop(seader->poller);
-        nfc_poller_free(seader->poller);
-        seader->poller = NULL;
-    }
-
-    // Clear view
-    popup_reset(seader->popup);
-
-    seader_blink_stop(seader);
+    seader_scene_read_cleanup(seader);
 }

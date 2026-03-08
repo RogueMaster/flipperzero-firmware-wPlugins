@@ -6,47 +6,53 @@
 
 /* I know my T=1 is terrible, but I'm also only targetting one specific 'card' */
 
-#define MORE_BIT               0x20
-#define R_BLOCK                0x80
-#define S_BLOCK                0xC0
-#define R_SEQUENCE_NUMBER_MASK 0x10
-#define T1_S_IFS               0x01
+static SeaderT1State* seader_t1_state(SeaderUartBridge* seader_uart) {
+    return &seader_uart->t1;
+}
 
-// TODO: T1 struct
-uint8_t NAD = 0x00;
-uint8_t dPCB = 0x40; // Init to 0x40 so first call to next_pcb will return 0x00
-uint8_t cPCB = 0x00; // Init to 0x40 so first call to next_pcb will return 0x00
-
-uint8_t seader_next_dpcb() {
-    uint8_t next_pcb = dPCB ^ 0x40;
+static uint8_t seader_next_dpcb(SeaderUartBridge* seader_uart) {
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
+    uint8_t next_pcb = t1->send_pcb ^ SEADER_T1_PCB_SEQUENCE_BIT;
     //FURI_LOG_D(TAG, "dPCB was: %02X, current dPCB: %02X", dPCB, next_pcb);
-    dPCB = next_pcb;
-    return dPCB;
+    t1->send_pcb = next_pcb;
+    return t1->send_pcb;
 }
 
-uint8_t seader_next_cpcb() {
-    uint8_t next_pcb = cPCB ^ 0x40;
+static uint8_t seader_next_cpcb(SeaderUartBridge* seader_uart) {
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
+    uint8_t next_pcb = t1->recv_pcb ^ SEADER_T1_PCB_SEQUENCE_BIT;
     //FURI_LOG_D(TAG, "cPCB was: %02X, current cPCB: %02X", cPCB, next_pcb);
-    cPCB = next_pcb;
-    return cPCB;
+    t1->recv_pcb = next_pcb;
+    return t1->recv_pcb;
 }
 
-void seader_t_1_reset() {
-    NAD = 0x00;
-    dPCB = 0x40;
-    cPCB = 0x00;
+void seader_t_1_reset(SeaderUartBridge* seader_uart) {
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
+    t1->nad = 0x00;
+    t1->send_pcb = SEADER_T1_PCB_SEQUENCE_BIT;
+    t1->recv_pcb = 0x00;
+    if(t1->tx_buffer != NULL) {
+        bit_buffer_free(t1->tx_buffer);
+    }
+    t1->tx_buffer = NULL;
+    t1->tx_buffer_offset = 0;
+    if(t1->rx_buffer != NULL) {
+        bit_buffer_free(t1->rx_buffer);
+    }
+    t1->rx_buffer = NULL;
 }
 
 void seader_t_1_set_IFSD(Seader* seader) {
     SeaderWorker* seader_worker = seader->worker;
     SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[5];
     uint8_t frame_len = 0;
 
-    frame[0] = NAD;
-    frame[1] = S_BLOCK | T1_S_IFS; // S(IFS request)
+    frame[0] = t1->nad;
+    frame[1] = SEADER_T1_PCB_S_BLOCK | SEADER_T1_S_BLOCK_IFS; // S(IFS request)
     frame[2] = 0x01;
-    frame[3] = seader_uart->IFSC;
+    frame[3] = t1->ifsc;
     frame_len = 4;
 
     frame_len = seader_add_lrc(frame, frame_len);
@@ -57,13 +63,14 @@ void seader_t_1_set_IFSD(Seader* seader) {
 void seader_t_1_IFSD_response(Seader* seader) {
     SeaderWorker* seader_worker = seader->worker;
     SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[5];
     uint8_t frame_len = 0;
 
-    frame[0] = NAD;
+    frame[0] = t1->nad;
     frame[1] = 0xE0 | 0x01; // S(IFS response)
     frame[2] = 0x01;
-    frame[3] = seader_uart->IFSC;
+    frame[3] = t1->ifsc;
     frame_len = 4;
 
     frame_len = seader_add_lrc(frame, frame_len);
@@ -74,11 +81,12 @@ void seader_t_1_IFSD_response(Seader* seader) {
 void seader_t_1_send_ack(Seader* seader) {
     SeaderWorker* seader_worker = seader->worker;
     SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[4];
     uint8_t frame_len = 0;
 
-    frame[0] = NAD;
-    frame[1] = R_BLOCK | (seader_next_cpcb() >> 2);
+    frame[0] = t1->nad;
+    frame[1] = SEADER_T1_PCB_R_BLOCK | (seader_next_cpcb(seader_uart) >> 2);
     frame[2] = 0x00;
     frame_len = 3;
 
@@ -89,14 +97,12 @@ void seader_t_1_send_ack(Seader* seader) {
     seader_ccid_XfrBlock(seader_uart, frame, frame_len);
 }
 
-BitBuffer* seader_t_1_tx_buffer;
-size_t seader_t_1_tx_buffer_offset = 0;
-
 void seader_send_t1_chunk(SeaderUartBridge* seader_uart, uint8_t PCB, uint8_t* chunk, size_t len) {
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t* frame = malloc(3 + len + 1);
     uint8_t frame_len = 0;
 
-    frame[0] = NAD;
+    frame[0] = t1->nad;
     frame[1] = PCB;
     frame[2] = len;
     frame_len = 3;
@@ -117,8 +123,9 @@ void seader_send_t1_scratchpad(
     uint8_t PCB,
     uint8_t* apdu,
     size_t len) {
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t* frame = apdu - 3;
-    frame[0] = NAD;
+    frame[0] = t1->nad;
     frame[1] = PCB;
     frame[2] = (uint8_t)len;
 
@@ -127,50 +134,50 @@ void seader_send_t1_scratchpad(
 }
 
 void seader_send_t1(SeaderUartBridge* seader_uart, uint8_t* apdu, size_t len) {
-    uint8_t ifsc = seader_uart->IFSC;
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
+    uint8_t ifsc = t1->ifsc;
 
     bool in_scratchpad =
         (apdu >= seader_uart->tx_buf + 3 && apdu < seader_uart->tx_buf + SEADER_UART_RX_BUF_SIZE);
 
     if(len > ifsc) {
-        if(seader_t_1_tx_buffer == NULL) {
-            seader_t_1_tx_buffer = bit_buffer_alloc(768);
-            bit_buffer_copy_bytes(seader_t_1_tx_buffer, apdu, len);
+        if(t1->tx_buffer == NULL) {
+            t1->tx_buffer = bit_buffer_alloc(768);
+            bit_buffer_copy_bytes(t1->tx_buffer, apdu, len);
         }
-        size_t remaining =
-            (bit_buffer_get_size_bytes(seader_t_1_tx_buffer) - seader_t_1_tx_buffer_offset);
+        size_t remaining = (bit_buffer_get_size_bytes(t1->tx_buffer) - t1->tx_buffer_offset);
         size_t copy_length = remaining > ifsc ? ifsc : remaining;
 
-        uint8_t* chunk =
-            (uint8_t*)bit_buffer_get_data(seader_t_1_tx_buffer) + seader_t_1_tx_buffer_offset;
+        uint8_t* chunk = (uint8_t*)bit_buffer_get_data(t1->tx_buffer) + t1->tx_buffer_offset;
 
         if(remaining > ifsc) {
-            uint8_t PCB = seader_next_dpcb() | MORE_BIT;
+            uint8_t PCB = seader_next_dpcb(seader_uart) | SEADER_T1_PCB_I_BLOCK_MORE;
             seader_send_t1_chunk(seader_uart, PCB, chunk, copy_length);
         } else {
-            uint8_t PCB = seader_next_dpcb();
+            uint8_t PCB = seader_next_dpcb(seader_uart);
             seader_send_t1_chunk(seader_uart, PCB, chunk, copy_length);
         }
 
-        seader_t_1_tx_buffer_offset += copy_length;
-        if(seader_t_1_tx_buffer_offset >= bit_buffer_get_size_bytes(seader_t_1_tx_buffer)) {
-            bit_buffer_free(seader_t_1_tx_buffer);
-            seader_t_1_tx_buffer = NULL;
-            seader_t_1_tx_buffer_offset = 0;
+        t1->tx_buffer_offset += copy_length;
+        if(t1->tx_buffer_offset >= bit_buffer_get_size_bytes(t1->tx_buffer)) {
+            bit_buffer_free(t1->tx_buffer);
+            t1->tx_buffer = NULL;
+            t1->tx_buffer_offset = 0;
         }
         return;
     }
 
     if(in_scratchpad) {
-        seader_send_t1_scratchpad(seader_uart, seader_next_dpcb(), apdu, len);
+        seader_send_t1_scratchpad(seader_uart, seader_next_dpcb(seader_uart), apdu, len);
     } else {
-        seader_send_t1_chunk(seader_uart, seader_next_dpcb(), apdu, len);
+        seader_send_t1_chunk(seader_uart, seader_next_dpcb(seader_uart), apdu, len);
     }
 }
 
-BitBuffer* seader_t_1_rx_buffer;
-
 bool seader_recv_t1(Seader* seader, CCID_Message* message) {
+    SeaderWorker* seader_worker = seader->worker;
+    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
     // remove/validate NAD, PCB, LEN, LRC
     if(message->dwLength < 4) {
         FURI_LOG_W(TAG, "Invalid T=1 frame: too short");
@@ -193,20 +200,20 @@ bool seader_recv_t1(Seader* seader, CCID_Message* message) {
         return false;
     }
 
-    if(rPCB == cPCB) {
-        seader_next_cpcb();
-        if(seader_t_1_rx_buffer != NULL) {
-            bit_buffer_append_bytes(seader_t_1_rx_buffer, message->payload + 3, LEN);
+    if(rPCB == t1->recv_pcb) {
+        seader_next_cpcb(seader_uart);
+        if(t1->rx_buffer != NULL) {
+            bit_buffer_append_bytes(t1->rx_buffer, message->payload + 3, LEN);
 
             // TODO: validate LRC
 
             seader_worker_process_sam_message(
                 seader,
-                (uint8_t*)bit_buffer_get_data(seader_t_1_rx_buffer),
-                bit_buffer_get_size_bytes(seader_t_1_rx_buffer));
+                (uint8_t*)bit_buffer_get_data(t1->rx_buffer),
+                bit_buffer_get_size_bytes(t1->rx_buffer));
 
-            bit_buffer_free(seader_t_1_rx_buffer);
-            seader_t_1_rx_buffer = NULL;
+            bit_buffer_free(t1->rx_buffer);
+            t1->rx_buffer = NULL;
             return true;
         }
 
@@ -223,24 +230,24 @@ bool seader_recv_t1(Seader* seader, CCID_Message* message) {
             return true;
         }
         return seader_worker_process_sam_message(seader, message->payload, message->dwLength);
-    } else if(rPCB == (cPCB | MORE_BIT)) {
+    } else if(rPCB == (t1->recv_pcb | SEADER_T1_PCB_I_BLOCK_MORE)) {
         //FURI_LOG_D(TAG, "Received T=1 frame with more bit set");
-        if(seader_t_1_rx_buffer == NULL) {
-            seader_t_1_rx_buffer = bit_buffer_alloc(512);
+        if(t1->rx_buffer == NULL) {
+            t1->rx_buffer = bit_buffer_alloc(512);
         }
-        bit_buffer_append_bytes(seader_t_1_rx_buffer, message->payload + 3, LEN);
+        bit_buffer_append_bytes(t1->rx_buffer, message->payload + 3, LEN);
         seader_t_1_send_ack(seader);
         return false;
-    } else if((rPCB & S_BLOCK) == S_BLOCK) {
+    } else if((rPCB & SEADER_T1_PCB_S_BLOCK) == SEADER_T1_PCB_S_BLOCK) {
         //FURI_LOG_D(TAG, "Received S-Block");
-        if((rPCB & 0x0F) == T1_S_IFS) {
+        if((rPCB & 0x0F) == SEADER_T1_S_BLOCK_IFS) {
             seader_t_1_IFSD_response(seader);
             return false;
         }
 
-    } else if((rPCB & R_BLOCK) == R_BLOCK) {
-        uint8_t R_SEQ = (rPCB & R_SEQUENCE_NUMBER_MASK) >> 4;
-        uint8_t I_SEQ = (dPCB ^ 0x40) >> 6;
+    } else if((rPCB & SEADER_T1_PCB_R_BLOCK) == SEADER_T1_PCB_R_BLOCK) {
+        uint8_t R_SEQ = (rPCB & SEADER_T1_R_BLOCK_SEQUENCE_MASK) >> 4;
+        uint8_t I_SEQ = (t1->send_pcb ^ SEADER_T1_PCB_SEQUENCE_BIT) >> 6;
         if(R_SEQ != I_SEQ) {
             /*
             FURI_LOG_D(
@@ -254,19 +261,20 @@ bool seader_recv_t1(Seader* seader, CCID_Message* message) {
             return false;
         }
 
-        if(seader_t_1_tx_buffer != NULL) {
+        if(t1->tx_buffer != NULL) {
             // Send more data, re-using the buffer to trigger the code path that sends the next block
-            SeaderWorker* seader_worker = seader->worker;
-            SeaderUartBridge* seader_uart = seader_worker->uart;
             seader_send_t1(
                 seader_uart,
-                (uint8_t*)bit_buffer_get_data(seader_t_1_tx_buffer),
-                bit_buffer_get_size_bytes(seader_t_1_tx_buffer));
+                (uint8_t*)bit_buffer_get_data(t1->tx_buffer),
+                bit_buffer_get_size_bytes(t1->tx_buffer));
             return false;
         }
     } else {
         FURI_LOG_W(
-            TAG, "Invalid T=1 frame: PCB mismatch.  Expected: %02X, Received: %02X", cPCB, rPCB);
+            TAG,
+            "Invalid T=1 frame: PCB mismatch.  Expected: %02X, Received: %02X",
+            t1->recv_pcb,
+            rPCB);
     }
 
     return false;

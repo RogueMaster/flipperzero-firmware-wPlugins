@@ -1,4 +1,5 @@
 #include "seader_worker_i.h"
+#include "trace_log.h"
 
 #include <flipper_format/flipper_format.h>
 #include <lib/bit_lib/bit_lib.h>
@@ -85,6 +86,42 @@ void seader_worker_change_state(SeaderWorker* seader_worker, SeaderWorkerState s
     seader_worker->state = state;
 }
 
+void seader_worker_cancel_poller_session(SeaderWorker* seader_worker) {
+    furi_assert(seader_worker);
+    FURI_LOG_D(
+        TAG,
+        "Cancel poller session stage=%d queued=%ld",
+        seader_worker->stage,
+        furi_message_queue_get_count(seader_worker->messages));
+    seader_trace(
+        TAG,
+        "cancel stage=%d queued=%ld",
+        seader_worker->stage,
+        furi_message_queue_get_count(seader_worker->messages));
+    seader_worker->stage = SeaderPollerEventTypeComplete;
+}
+
+void seader_worker_reset_poller_session(SeaderWorker* seader_worker) {
+    furi_assert(seader_worker);
+    FURI_LOG_D(
+        TAG,
+        "Reset poller session stage=%d queued=%ld",
+        seader_worker->stage,
+        furi_message_queue_get_count(seader_worker->messages));
+    seader_trace(
+        TAG,
+        "reset stage=%d queued=%ld",
+        seader_worker->stage,
+        furi_message_queue_get_count(seader_worker->messages));
+
+    if(furi_mutex_acquire(seader_worker->mq_mutex, FuriWaitForever) == FuriStatusOk) {
+        furi_message_queue_reset(seader_worker->messages);
+        furi_mutex_release(seader_worker->mq_mutex);
+    }
+
+    seader_worker->stage = SeaderPollerEventTypeCardDetect;
+}
+
 /***************************** Seader Worker Thread *******************************/
 
 bool seader_process_success_response(Seader* seader, uint8_t* apdu, size_t len) {
@@ -93,7 +130,33 @@ bool seader_process_success_response(Seader* seader, uint8_t* apdu, size_t len) 
     if(seader_process_success_response_i(seader, apdu, len, false, NULL)) {
         // no-op, message was processed
     } else {
-        FURI_LOG_I(TAG, "Enqueue SAM message, %d bytes", len);
+        if(seader_worker->state != SeaderWorkerStateVirtualCredential &&
+           seader_worker->stage != SeaderPollerEventTypeConversation) {
+            FURI_LOG_I(
+                TAG,
+                "Discard stale SAM message outside active conversation, %d bytes, stage=%d, sam=%d",
+                len,
+                seader_worker->stage,
+                seader->samCommand);
+            seader_trace(
+                TAG,
+                "discard len=%d stage=%d sam=%d state=%d intent=%d",
+                len,
+                seader_worker->stage,
+                seader->samCommand,
+                seader->sam_state,
+                seader->sam_intent);
+            return true;
+        }
+
+        FURI_LOG_I(
+            TAG,
+            "Enqueue SAM message, %d bytes, stage=%d, sam=%d",
+            len,
+            seader_worker->stage,
+            seader->samCommand);
+        seader_trace(
+            TAG, "enqueue len=%d stage=%d sam=%d", len, seader_worker->stage, seader->samCommand);
         uint32_t space = furi_message_queue_get_space(seader_worker->messages);
         if(space > 0) {
             SeaderAPDU seaderApdu = {};
@@ -126,6 +189,16 @@ bool seader_worker_process_sam_message(Seader* seader, uint8_t* apdu, uint32_t l
         snprintf(display + (i * 2), sizeof(display), "%02x", apdu[i]);
     }
     FURI_LOG_I(TAG, "APDU: %s", display);
+    seader_trace(
+        TAG,
+        "sam apdu len=%lu stage=%d sam=%d state=%d intent=%d sw=%02x%02x",
+        len,
+        seader_worker->stage,
+        seader->samCommand,
+        seader->sam_state,
+        seader->sam_intent,
+        apdu[len - 2],
+        apdu[len - 1]);
     free(display);
 
     uint8_t SW1 = apdu[len - 2];
@@ -227,12 +300,18 @@ int32_t seader_worker_task(void* context) {
 
 void seader_worker_poller_conversation(Seader* seader, SeaderPollerContainer* spc) {
     SeaderWorker* seader_worker = seader->worker;
+    seader_trace(
+        TAG,
+        "conversation stage=%d queued=%ld",
+        seader_worker->stage,
+        furi_message_queue_get_count(seader_worker->messages));
 
     if(furi_mutex_acquire(seader_worker->mq_mutex, 0) == FuriStatusOk) {
         furi_thread_set_current_priority(FuriThreadPriorityHighest);
         uint32_t count = furi_message_queue_get_count(seader_worker->messages);
         if(count > 0) {
             FURI_LOG_I(TAG, "Dequeue SAM message [%ld messages]", count);
+            seader_trace(TAG, "dequeue count=%ld", count);
 
             SeaderAPDU seaderApdu = {};
             FuriStatus status =
@@ -272,8 +351,19 @@ NfcCommand seader_worker_poller_callback_iso14443_4a(NfcGenericEvent event, void
 
     if(iso14443_4a_event->type == Iso14443_4aPollerEventTypeReady) {
         if(seader_worker->stage == SeaderPollerEventTypeCardDetect) {
+            FURI_LOG_D(TAG, "14a stage CardDetect -> Conversation");
+            seader_trace(TAG, "14a CardDetect->Conversation");
             view_dispatcher_send_custom_event(
                 seader->view_dispatcher, SeaderCustomEventPollerDetect);
+
+            if(!seader_sam_can_accept_card(seader)) {
+                seader_trace(
+                    TAG,
+                    "14a defer detect sam_state=%d intent=%d",
+                    seader->sam_state,
+                    seader->sam_intent);
+                return NfcCommandContinue;
+            }
 
             nfc_device_set_data(
                 seader->nfc_device, NfcProtocolIso14443_4a, nfc_poller_get_data(seader->poller));
@@ -322,6 +412,7 @@ NfcCommand seader_worker_poller_callback_iso14443_4a(NfcGenericEvent event, void
 
             seader_worker_card_detect(
                 seader, sak, (uint8_t*)iso14443_3a_data->atqa, uid, uid_len, ats, ats_len);
+            seader_trace(TAG, "14a card_detect sent uid_len=%d sak=%d", uid_len, sak);
 
             free(ats);
 
@@ -329,10 +420,13 @@ NfcCommand seader_worker_poller_callback_iso14443_4a(NfcGenericEvent event, void
             furi_thread_set_current_priority(FuriThreadPriorityLowest);
             seader_worker->stage = SeaderPollerEventTypeConversation;
         } else if(seader_worker->stage == SeaderPollerEventTypeConversation) {
+            seader_trace(TAG, "14a ready in Conversation");
             seader_worker_poller_conversation(seader, &spc);
         } else if(seader_worker->stage == SeaderPollerEventTypeComplete) {
+            seader_trace(TAG, "14a ready in Complete");
             ret = NfcCommandStop;
         } else if(seader_worker->stage == SeaderPollerEventTypeFail) {
+            seader_trace(TAG, "14a ready in Fail");
             ret = NfcCommandStop;
             view_dispatcher_send_custom_event(
                 seader->view_dispatcher, SeaderCustomEventWorkerExit);
@@ -342,6 +436,7 @@ NfcCommand seader_worker_poller_callback_iso14443_4a(NfcGenericEvent event, void
         Iso14443_4aPollerEventData* data = iso14443_4a_event->data;
         Iso14443_4aError error = data->error;
         FURI_LOG_W(TAG, "Iso14443_4aError %i", error);
+        seader_trace(TAG, "14a error=%d stage=%d", error, seader_worker->stage);
         // I was hoping to catch MFC here, but it seems to be treated the same (None) as no card being present.
         switch(error) {
         case Iso14443_4aErrorNone:
@@ -373,8 +468,19 @@ NfcCommand seader_worker_poller_callback_mfc(NfcGenericEvent event, void* contex
 
     if(mfc_event->type == MfClassicPollerEventTypeSuccess) {
         if(seader_worker->stage == SeaderPollerEventTypeCardDetect) {
+            FURI_LOG_D(TAG, "MFC stage CardDetect -> Conversation");
+            seader_trace(TAG, "mfc CardDetect->Conversation");
             view_dispatcher_send_custom_event(
                 seader->view_dispatcher, SeaderCustomEventPollerDetect);
+
+            if(!seader_sam_can_accept_card(seader)) {
+                seader_trace(
+                    TAG,
+                    "mfc defer detect sam_state=%d intent=%d",
+                    seader->sam_state,
+                    seader->sam_intent);
+                return NfcCommandContinue;
+            }
 
             const MfClassicData* mfc_data = nfc_poller_get_data(seader->poller);
             uint8_t sak = iso14443_3a_get_sak(mfc_data->iso14443_3a_data);
@@ -388,9 +494,14 @@ NfcCommand seader_worker_poller_callback_mfc(NfcGenericEvent event, void* contex
         } else if(seader_worker->stage == SeaderPollerEventTypeComplete) {
             ret = NfcCommandStop;
         } else if(seader_worker->stage == SeaderPollerEventTypeFail) {
+            seader_trace(TAG, "mfc ready in Fail");
+            view_dispatcher_send_custom_event(
+                seader->view_dispatcher, SeaderCustomEventWorkerExit);
             ret = NfcCommandStop;
         }
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
+        seader_trace(TAG, "mfc poller event fail");
+        view_dispatcher_send_custom_event(seader->view_dispatcher, SeaderCustomEventWorkerExit);
         ret = NfcCommandStop;
     }
 
@@ -411,8 +522,18 @@ NfcCommand seader_worker_poller_callback_picopass(PicopassPollerEvent event, voi
         seader_worker->stage = SeaderPollerEventTypeCardDetect;
     } else if(event.type == PicopassPollerEventTypeSuccess) {
         if(seader_worker->stage == SeaderPollerEventTypeCardDetect) {
+            FURI_LOG_D(TAG, "Picopass stage CardDetect -> Conversation");
+            seader_trace(TAG, "picopass CardDetect->Conversation");
             view_dispatcher_send_custom_event(
                 seader->view_dispatcher, SeaderCustomEventPollerDetect);
+            if(!seader_sam_can_accept_card(seader)) {
+                seader_trace(
+                    TAG,
+                    "picopass defer detect sam_state=%d intent=%d",
+                    seader->sam_state,
+                    seader->sam_intent);
+                return NfcCommandContinue;
+            }
             uint8_t* csn = picopass_poller_get_csn(instance);
             seader_worker_card_detect(seader, 0, NULL, csn, sizeof(PicopassSerialNum), NULL, 0);
             furi_thread_set_current_priority(FuriThreadPriorityLowest);

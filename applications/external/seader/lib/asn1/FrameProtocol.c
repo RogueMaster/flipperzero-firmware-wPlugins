@@ -12,17 +12,19 @@
  * so here we adjust the DEF accordingly.
  */
 static const asn_INTEGER_enum_map_t asn_MAP_FrameProtocol_value2enum_1[] = {
+	{ 0,	4,	"none" },
 	{ 2,	3,	"nfc" },
 	{ 4,	6,	"iclass" }
 };
 static const unsigned int asn_MAP_FrameProtocol_enum2value_1[] = {
-	1,	/* iclass(4) */
-	0	/* nfc(2) */
+	0,	/* none(0) */
+	2,	/* iclass(4) */
+	1	/* nfc(2) */
 };
 static const asn_INTEGER_specifics_t asn_SPC_FrameProtocol_specs_1 = {
 	asn_MAP_FrameProtocol_value2enum_1,	/* "tag" => N; sorted by tag */
 	asn_MAP_FrameProtocol_enum2value_1,	/* N => "tag"; sorted by N */
-	2,	/* Number of elements in the maps */
+	3,	/* Number of elements in the maps */
 	0,	/* Enumeration is not extensible */
 	1,	/* Strict enumeration */
 	0,	/* Native long size */
@@ -45,4 +47,3 @@ asn_TYPE_descriptor_t asn_DEF_FrameProtocol = {
 	0, 0,	/* Defined elsewhere */
 	&asn_SPC_FrameProtocol_specs_1	/* Additional specs */
 };
-

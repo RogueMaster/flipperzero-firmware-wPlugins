@@ -1,4 +1,5 @@
 #include "../seader_i.h"
+#include "seader_scene_read_common.h"
 #include <dolphin/dolphin.h>
 
 void seader_scene_read_picopass_on_enter(void* context) {
@@ -13,7 +14,7 @@ void seader_scene_read_picopass_on_enter(void* context) {
     // Start worker
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewPopup);
 
-    seader->worker->stage = SeaderPollerEventTypeCardDetect;
+    seader_scene_read_prepare(seader);
     seader_credential_clear(seader->credential);
     seader->credential->type = SeaderCredentialTypePicopass;
     seader->picopass_poller = picopass_poller_alloc(seader->nfc);
@@ -49,15 +50,5 @@ bool seader_scene_read_picopass_on_event(void* context, SceneManagerEvent event)
 
 void seader_scene_read_picopass_on_exit(void* context) {
     Seader* seader = context;
-
-    if(seader->picopass_poller) {
-        picopass_poller_stop(seader->picopass_poller);
-        picopass_poller_free(seader->picopass_poller);
-        seader->picopass_poller = NULL;
-    }
-
-    // Clear view
-    popup_reset(seader->popup);
-
-    seader_blink_stop(seader);
+    seader_scene_read_cleanup(seader);
 }

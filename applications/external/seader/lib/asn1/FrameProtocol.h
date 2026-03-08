@@ -20,6 +20,7 @@ extern "C" {
 
 /* Dependencies */
 typedef enum FrameProtocol {
+	FrameProtocol_none	= 0,
 	FrameProtocol_nfc	= 2,
 	FrameProtocol_iclass	= 4
 } e_FrameProtocol;
