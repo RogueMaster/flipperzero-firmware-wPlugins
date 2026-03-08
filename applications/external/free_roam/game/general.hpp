@@ -8,8 +8,9 @@ typedef enum {
 
 typedef enum {
     MenuIndexProfile = 0, // profile
-    MenuIndexSettings = 1, // settings
-    MenuIndexAbout = 2, // about
+    MenuIndexMap = 1, // map
+    MenuIndexSettings = 2, // settings
+    MenuIndexAbout = 3, // about
 } MenuIndex;
 
 typedef enum {

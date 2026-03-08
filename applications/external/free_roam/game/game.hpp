@@ -13,10 +13,8 @@ private:
     int currentLevelIndex = 0; // Current level index
     std::unique_ptr<Draw> draw; // Draw instance
     std::unique_ptr<GameEngine> engine; // Engine instance
-    bool inputHeld = false; // Flag to check if input is held
     bool isGameRunning = false; // Flag to check if the game is running
     InputKey lastInput = InputKeyMAX; // Last input key pressed
-    const char* levelNames[3] = {"Tutorial", "First", "Second"}; // Level names for display
     std::unique_ptr<Player> player; // Player instance
     ToggleState soundToggle = ToggleOn; // sound toggle state
     const int totalLevels = 3; // Total number of levels available
@@ -25,7 +23,6 @@ private:
     int atoi(const char* nptr) {
         return (int)strtol(nptr, NULL, 10);
     } // convert string to integer
-    void debounceInput(); // debounce input to prevent multiple actions from a single press
     void inputManager(); // manage input for the game, called from updateInput
     void switchToNextLevel(); // switch to the next level in the game
     void switchToLevel(int levelIndex); // switch to a specific level by index
@@ -37,7 +34,6 @@ public:
     void* appContext =
         nullptr; // Pointer to the application context for accessing app-specific functionality
     bool shouldReturnToMenu = false; // Flag to signal return to menu
-    bool shouldDebounce = false; // Make shouldDebounce public for Player access
     ViewDispatcher** viewDispatcherRef =
         nullptr; // Reference to the view dispatcher for navigation
     //

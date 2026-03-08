@@ -1,104 +1,148 @@
-#include "engine/draw.hpp"
+#include "draw.hpp"
+#include ENGINE_LCD_INCLUDE
 
-Draw::Draw(Canvas* canvas)
-    : display(canvas) {
-    canvas_reset(display);
-    canvas_clear(display);
+Draw::Draw()
+    : currentFontSize(ENGINE_FONT_DEFAULT)
+    , currentTextColor(0x0000) {
+#ifdef ENGINE_LCD_INIT
+    ENGINE_LCD_INIT();
+#endif
 }
 
-void Draw::clear(Vector position, Vector size, Color color) {
-    canvas_set_color(display, color);
-    canvas_draw_box(display, position.x, position.y, size.x, size.y);
+Draw::~Draw() {
+#ifdef ENGINE_LCD_DEINIT
+    ENGINE_LCD_DEINIT();
+#endif
 }
 
-void Draw::color(Color color) {
-    canvas_set_color(display, color);
+void Draw::circle(Vector position, int16_t r, uint16_t color) {
+    ENGINE_LCD_CIRCLE(position.x, position.y, r, color);
 }
 
-void Draw::drawCircle(Vector position, int16_t r, Color color) {
-    canvas_set_color(display, color);
-    canvas_draw_circle(display, position.x, position.y, r);
+void Draw::circle(int16_t x, int16_t y, int16_t r, uint16_t color) {
+    ENGINE_LCD_CIRCLE(x, y, r, color);
 }
 
-void Draw::drawLine(Vector position, Vector size, Color color) {
-    canvas_set_color(display, color);
-    canvas_draw_line(display, position.x, position.y, size.x, size.y);
+void Draw::fillCircle(Vector position, int16_t r, uint16_t color) {
+    ENGINE_LCD_FILL_CIRCLE(position.x, position.y, r, color);
 }
 
-void Draw::drawPixel(Vector position, Color color) {
-    canvas_set_color(display, color);
-    canvas_draw_dot(display, position.x, position.y);
+void Draw::fillCircle(int16_t x, int16_t y, int16_t r, uint16_t color) {
+    ENGINE_LCD_FILL_CIRCLE(x, y, r, color);
 }
 
-void Draw::drawRect(Vector position, Vector size, Color color) {
-    canvas_set_color(display, color);
-    canvas_draw_frame(display, position.x, position.y, size.x, size.y);
+void Draw::fillRectangle(Vector position, Vector size, uint16_t color) {
+    ENGINE_LCD_FILL_RECTANGLE(position.x, position.y, size.x, size.y, color);
 }
 
-void Draw::fillCircle(int16_t x, int16_t y, int16_t r, Color color) {
-    canvas_set_color(display, color);
-
-    for(int16_t dy = -r; dy <= r; dy++) {
-        for(int16_t dx = -r; dx <= r; dx++) {
-            if(dx * dx + dy * dy <= r * r) {
-                canvas_draw_dot(display, x + dx, y + dy);
-            }
-        }
-    }
+void Draw::fillRectangle(int16_t x, int16_t y, int16_t width, int16_t height, uint16_t color) {
+    ENGINE_LCD_FILL_RECTANGLE(x, y, width, height, color);
 }
 
-void Draw::fillRect(Vector position, Vector size, Color color) {
-    canvas_set_color(display, color);
-    canvas_draw_box(display, position.x, position.y, size.x, size.y);
+Vector Draw::getDisplaySize() const noexcept {
+    return Vector(ENGINE_LCD_WIDTH, ENGINE_LCD_HEIGHT);
 }
 
-void Draw::fillScreen(Color color) {
-    canvas_set_color(display, color);
-    canvas_clear(display);
+void Draw::fillScreen(uint16_t color) {
+    ENGINE_LCD_CLEAR(color);
 }
 
-void Draw::icon(Vector position, const Icon* icon) {
-    if(icon == nullptr) {
-        return;
-    }
-    canvas_draw_icon(display, position.x, position.y, icon);
+void Draw::fillTriangle(Vector p1, Vector p2, Vector p3, uint16_t color) {
+    ENGINE_LCD_FILL_TRIANGLE(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, color);
+}
+
+void Draw::fillTriangle(
+    int16_t x1,
+    int16_t y1,
+    int16_t x2,
+    int16_t y2,
+    int16_t x3,
+    int16_t y3,
+    uint16_t color) {
+    ENGINE_LCD_FILL_TRIANGLE(x1, y1, x2, y2, x3, y3, color);
 }
 
 void Draw::image(Vector position, const uint8_t* bitmap, Vector size) {
-    if(bitmap == nullptr) {
-        return;
-    }
-    // canvas_draw_bitmap(display, position.x, position.y, size.x, size.y, bitmap);
-    // draw pixel by pixel instead
-    uint8_t pixel;
-    for(int y = 0; y < size.y; y++) {
-        for(int x = 0; x < size.x; x++) {
-            pixel = bitmap[y * (int)size.x + x];
-            canvas_set_color(display, (pixel == 0xFF) ? ColorWhite : ColorBlack);
-            canvas_draw_dot(display, position.x + x, position.y + y);
-        }
-    }
+    ENGINE_LCD_BLIT(position.x, position.y, size.x, size.y, bitmap);
 }
 
-void Draw::setFontCustom(FontSize fontSize) {
-    canvas_set_font_custom(display, fontSize);
+void Draw::image(Vector position, const uint16_t* bitmap, Vector size) {
+    ENGINE_LCD_BLIT_16BIT(position.x, position.y, size.x, size.y, bitmap);
 }
 
-void Draw::setFont(Font font) {
-    canvas_set_font(display, font);
+void Draw::image(int16_t x, int16_t y, const uint8_t* bitmap, int16_t width, int16_t height) {
+    ENGINE_LCD_BLIT(x, y, width, height, bitmap);
+}
+
+void Draw::image(int16_t x, int16_t y, const uint16_t* bitmap, int16_t width, int16_t height) {
+    ENGINE_LCD_BLIT_16BIT(x, y, width, height, bitmap);
+}
+
+void Draw::line(Vector position, Vector size, uint16_t color) {
+    ENGINE_LCD_LINE(position.x, position.y, size.x, size.y, color);
+}
+
+void Draw::line(int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color) {
+    ENGINE_LCD_LINE(x1, y1, x2, y2, color);
+}
+
+void Draw::pixel(Vector position, uint16_t color) {
+    ENGINE_LCD_PIXEL(position.x, position.y, color);
+}
+
+void Draw::pixel(int16_t x, int16_t y, uint16_t color) {
+    ENGINE_LCD_PIXEL(x, y, color);
+}
+
+void Draw::rectangle(Vector position, Vector size, uint16_t color) {
+    ENGINE_LCD_RECTANGLE(position.x, position.y, size.x, size.y, color);
+}
+
+void Draw::rectangle(int16_t x, int16_t y, int16_t width, int16_t height, uint16_t color) {
+    ENGINE_LCD_RECTANGLE(x, y, width, height, color);
+}
+
+void Draw::setColor(uint16_t color) {
+    currentTextColor = color;
+}
+
+void Draw::setFont(ENGINE_FONT_SIZE size) {
+    currentFontSize = size;
+}
+
+void Draw::swap() {
+#ifdef ENGINE_LCD_SWAP
+    ENGINE_LCD_SWAP();
+#endif
 }
 
 void Draw::text(Vector position, const char* text) {
-    canvas_draw_str(display, position.x, position.y, text);
+    ENGINE_LCD_TEXT(position.x, position.y, text, currentTextColor, currentFontSize);
 }
 
-void Draw::text(Vector position, const char* text, Color color) {
-    canvas_set_color(display, color);
-    canvas_draw_str(display, position.x, position.y, text);
+void Draw::text(int16_t x, int16_t y, const char* text) {
+    ENGINE_LCD_TEXT(x, y, text, currentTextColor, currentFontSize);
 }
 
-void Draw::text(Vector position, const char* text, Color color, Font font) {
-    canvas_set_font(display, font);
-    canvas_set_color(display, color);
-    canvas_draw_str(display, position.x, position.y, text);
+void Draw::text(Vector position, const char* text, uint16_t color, ENGINE_FONT_SIZE font) {
+    ENGINE_LCD_TEXT(position.x, position.y, text, color, font);
+}
+
+void Draw::text(int16_t x, int16_t y, const char* text, uint16_t color, ENGINE_FONT_SIZE font) {
+    ENGINE_LCD_TEXT(x, y, text, color, font);
+}
+
+void Draw::triangle(Vector p1, Vector p2, Vector p3, uint16_t color) {
+    ENGINE_LCD_TRIANGLE(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, color);
+}
+
+void Draw::triangle(
+    int16_t x1,
+    int16_t y1,
+    int16_t x2,
+    int16_t y2,
+    int16_t x3,
+    int16_t y3,
+    uint16_t color) {
+    ENGINE_LCD_TRIANGLE(x1, y1, x2, y2, x3, y3, color);
 }

@@ -47,6 +47,10 @@ void FreeRoamApp::viewPortDraw(Canvas* canvas, void* context) {
     }
 }
 void FreeRoamApp::viewPortInput(InputEvent* event, void* context) {
+    if(event->type != InputTypeShort && event->type != InputTypeLong &&
+       event->type != InputTypeRepeat) {
+        return;
+    }
     FreeRoamApp* app = static_cast<FreeRoamApp*>(context);
     furi_check(app);
     auto game = app->game.get();

@@ -18,7 +18,7 @@
 #include "game/game.hpp"
 
 #define TAG         "Free Roam"
-#define VERSION     "0.4"
+#define VERSION     "0.5"
 #define VERSION_TAG TAG " " VERSION
 #define APP_ID      "free_roam"
 

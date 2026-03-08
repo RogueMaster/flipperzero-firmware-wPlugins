@@ -10,29 +10,31 @@ Player::Player()
     : Entity(
           "Player",
           ENTITY_PLAYER,
-          Vector(6, 6),
           Vector(10, 10),
-          NULL,
-          NULL,
-          NULL,
-          NULL,
-          NULL,
-          NULL,
-          NULL,
-          NULL,
-          SPRITE_3D_HUMANOID) {
+          Vector(1.0f, 2.0f),
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          false,
+          SPRITE_3D_HUMANOID,
+          0x0000) {
     direction = Vector(1, 0); // facing east initially (better for 3rd person view)
     plane = Vector(0, 0.66); // camera plane perpendicular to direction
     is_player = true; // Mark this entity as a player (so level doesn't delete it)
-    end_position = Vector(6, 6); // Initialize end position
-    start_position = Vector(6, 6); // Initialize start position
+    end_position = Vector(10, 10); // Initialize end position
+    start_position = Vector(10, 10); // Initialize start position
     strncpy(player_name, "Player", sizeof(player_name) - 1); // Copy default player name
     player_name[sizeof(player_name) - 1] = '\0'; // Ensure null termination
     name = player_name; // Point Entity's name to our writable buffer
 }
 
 Player::~Player() {
-    // nothing to clean up for now
+    // nothing to clean up
 }
 
 bool Player::collisionMapCheck(Vector new_position) {
@@ -74,20 +76,6 @@ bool Player::collisionMapCheck(Vector new_position) {
     return false; // No collision detected
 }
 
-void Player::debounceInput(Game* game) {
-    static uint8_t debounceCounter = 0;
-    if(shouldDebounce) {
-        game->input = InputKeyMAX;
-        debounceCounter++;
-        if(debounceCounter < 4) {
-            return;
-        }
-        debounceCounter = 0;
-        shouldDebounce = false;
-        inputHeld = false;
-    }
-}
-
 void Player::drawCurrentView(Draw* canvas) {
     if(!canvas) return;
 
@@ -120,8 +108,8 @@ void Player::drawCurrentView(Draw* canvas) {
         drawUserInfoView(canvas);
         break;
     default:
-        canvas->fillScreen(ColorWhite);
-        canvas->text(Vector(0, 10), "Unknown View", ColorBlack);
+        canvas->fillScreen(0xFFFF);
+        canvas->text(Vector(0, 10), "Unknown View", 0x0000);
         break;
     }
 }
@@ -140,9 +128,9 @@ void Player::drawGameLocalView(Draw* canvas) {
         }
         return;
     } else {
-        canvas->fillScreen(ColorWhite);
-        canvas->setFont(FontPrimary);
-        canvas->text(Vector(25, 32), "Starting Game...", ColorBlack);
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(25, 32), "Starting Game...", 0x0000);
         bool gameStarted = freeRoamGame->startGame();
         if(gameStarted && freeRoamGame->getEngine()) {
             freeRoamGame->getEngine()->runAsync(false); // Run the game engine immediately
@@ -151,9 +139,9 @@ void Player::drawGameLocalView(Draw* canvas) {
 }
 
 void Player::drawGameOnlineView(Draw* canvas) {
-    canvas->fillScreen(ColorWhite);
-    canvas->setFont(FontPrimary);
-    canvas->text(Vector(0, 10), "Not available yet", ColorBlack);
+    canvas->fillScreen(0xFFFF);
+    canvas->setFont(FONT_SIZE_PRIMARY);
+    canvas->text(Vector(0, 10), "Not available yet", 0x0000);
 }
 
 void Player::drawLobbyMenuView(Draw* canvas) {
@@ -162,8 +150,8 @@ void Player::drawLobbyMenuView(Draw* canvas) {
 }
 
 void Player::drawLoginView(Draw* canvas) {
-    canvas->fillScreen(ColorWhite);
-    canvas->setFont(FontPrimary);
+    canvas->fillScreen(0xFFFF);
+    canvas->setFont(FONT_SIZE_PRIMARY);
     static bool loadingStarted = false;
     switch(loginStatus) {
     case LoginWaiting:
@@ -205,21 +193,21 @@ void Player::drawLoginView(Draw* canvas) {
         }
         break;
     case LoginSuccess:
-        canvas->text(Vector(0, 10), "Login successful!", ColorBlack);
-        canvas->text(Vector(0, 20), "Press OK to continue.", ColorBlack);
+        canvas->text(Vector(0, 10), "Login successful!", 0x0000);
+        canvas->text(Vector(0, 20), "Press OK to continue.", 0x0000);
         break;
     case LoginCredentialsMissing:
-        canvas->text(Vector(0, 10), "Missing credentials!", ColorBlack);
-        canvas->text(Vector(0, 20), "Please set your username", ColorBlack);
-        canvas->text(Vector(0, 30), "and password in the app.", ColorBlack);
+        canvas->text(Vector(0, 10), "Missing credentials!", 0x0000);
+        canvas->text(Vector(0, 20), "Please set your username", 0x0000);
+        canvas->text(Vector(0, 30), "and password in the app.", 0x0000);
         break;
     case LoginRequestError:
-        canvas->text(Vector(0, 10), "Login request failed!", ColorBlack);
-        canvas->text(Vector(0, 20), "Check your network and", ColorBlack);
-        canvas->text(Vector(0, 30), "try again later.", ColorBlack);
+        canvas->text(Vector(0, 10), "Login request failed!", 0x0000);
+        canvas->text(Vector(0, 20), "Check your network and", 0x0000);
+        canvas->text(Vector(0, 30), "try again later.", 0x0000);
         break;
     default:
-        canvas->text(Vector(0, 10), "Logging in...", ColorBlack);
+        canvas->text(Vector(0, 10), "Logging in...", 0x0000);
         break;
     }
 }
@@ -229,35 +217,35 @@ void Player::drawMenuType1(
     uint8_t selectedIndex,
     const char* option1,
     const char* option2) {
-    canvas->fillScreen(ColorWhite);
+    canvas->fillScreen(0xFFFF);
+    canvas->setFont(FONT_SIZE_SECONDARY);
 
     // rain effect
     drawRainEffect(canvas);
 
     // draw lobby text
     if(selectedIndex == 0) {
-        canvas->fillRect(Vector(36, 16), Vector(56, 16), ColorBlack);
-        canvas->color(ColorWhite);
+        canvas->fillRectangle(Vector(36, 16), Vector(56, 16), 0x0000);
+        canvas->setColor(0xFFFF);
         canvas->text(Vector(54, 27), option1);
-        canvas->fillRect(Vector(36, 32), Vector(56, 16), ColorWhite);
-        canvas->color(ColorBlack);
+        canvas->fillRectangle(Vector(36, 32), Vector(56, 16), 0xFFFF);
+        canvas->setColor(0x0000);
         canvas->text(Vector(54, 42), option2);
     } else if(selectedIndex == 1) {
-        canvas->color(ColorWhite);
-        canvas->fillRect(Vector(36, 16), Vector(56, 16), ColorWhite);
-        canvas->color(ColorBlack);
+        canvas->setColor(0xFFFF);
+        canvas->fillRectangle(Vector(36, 16), Vector(56, 16), 0xFFFF);
+        canvas->setColor(0x0000);
         canvas->text(Vector(54, 27), option1);
-        canvas->fillRect(Vector(36, 32), Vector(56, 16), ColorBlack);
-        canvas->color(ColorWhite);
+        canvas->fillRectangle(Vector(36, 32), Vector(56, 16), 0x0000);
+        canvas->setColor(0xFFFF);
         canvas->text(Vector(54, 42), option2);
-        canvas->color(ColorBlack);
+        canvas->setColor(0x0000);
     }
 }
 
 void Player::drawMenuType2(Draw* canvas, uint8_t selectedIndexMain, uint8_t selectedIndexSettings) {
-    canvas->fillScreen(ColorWhite);
-    canvas->color(ColorBlack);
-    canvas->icon(Vector(0, 0), &I_icon_menu_128x64px);
+    canvas->fillScreen(0xFFFF);
+    canvas->setColor(0x0000);
 
     switch(selectedIndexMain) {
     case 0: // profile
@@ -273,28 +261,48 @@ void Player::drawMenuType2(Draw* canvas, uint8_t selectedIndexMain, uint8_t sele
         snprintf(xp, sizeof(xp), "XP      : %d", (int)this->xp);
         snprintf(strength, sizeof(strength), "Strength: %d", (int)this->strength);
 
-        canvas->setFont(FontPrimary);
+        canvas->setFont(FONT_SIZE_PRIMARY);
         if(this->name == nullptr || strlen(this->name) == 0) {
             canvas->text(Vector(6, 16), "Unknown");
         } else {
             canvas->text(Vector(6, 16), this->name);
         }
 
-        canvas->setFontCustom(FONT_SIZE_SMALL);
+        canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(Vector(6, 30), level);
         canvas->text(Vector(6, 37), health);
         canvas->text(Vector(6, 44), xp);
         canvas->text(Vector(6, 51), strength);
 
         // draw a box around the selected option
-        canvas->drawRect(Vector(76, 6), Vector(46, 46), ColorBlack);
-        canvas->setFont(FontPrimary);
-        canvas->text(Vector(80, 18), "Profile");
-        canvas->setFont(FontSecondary);
-        canvas->text(Vector(80, 32), "Settings");
+        canvas->rectangle(Vector(76, 6), Vector(46, 46), 0x0000);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(80, 16), "Profile");
+        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->text(Vector(80, 26), "Map");
+        canvas->text(Vector(80, 36), "Settings");
         canvas->text(Vector(80, 46), "About");
     } break;
-    case 1: // settings (sound on/off, vibration on/off, and leave game)
+    case 1: // map
+    {
+        if(currentDynamicMap != nullptr) {
+            currentDynamicMap->renderMiniMap(
+                canvas, Vector(3, 3), Vector(70, 57), position, direction);
+        } else {
+            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->text(Vector(6, 32), "No map loaded", 0x0000);
+        }
+
+        canvas->rectangle(Vector(76, 6), Vector(46, 46), 0x0000);
+        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->text(Vector(80, 16), "Profile");
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(80, 26), "Map");
+        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->text(Vector(80, 36), "Settings");
+        canvas->text(Vector(80, 46), "About");
+    } break;
+    case 2: // settings (sound on/off, vibration on/off, and leave game)
     {
         char soundStatus[16];
         char vibrationStatus[16];
@@ -307,77 +315,80 @@ void Player::drawMenuType2(Draw* canvas, uint8_t selectedIndexMain, uint8_t sele
         // draw settings info
         switch(selectedIndexSettings) {
         case 0: // none/default
-            canvas->setFont(FontPrimary);
+            canvas->setFont(FONT_SIZE_PRIMARY);
             canvas->text(Vector(6, 16), "Settings");
-            canvas->setFontCustom(FONT_SIZE_SMALL);
+            canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(Vector(6, 30), soundStatus);
             canvas->text(Vector(6, 40), vibrationStatus);
             canvas->text(Vector(6, 50), "Leave Game");
             break;
         case 1: // sound
-            canvas->setFont(FontPrimary);
+            canvas->setFont(FONT_SIZE_PRIMARY);
             canvas->text(Vector(6, 16), "Settings");
-            canvas->setFontCustom(FONT_SIZE_LARGE);
+            canvas->setFont(FONT_SIZE_LARGE);
             canvas->text(Vector(6, 30), soundStatus);
-            canvas->setFontCustom(FONT_SIZE_SMALL);
+            canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(Vector(6, 40), vibrationStatus);
             canvas->text(Vector(6, 50), "Leave Game");
             break;
         case 2: // vibration
-            canvas->setFont(FontPrimary);
+            canvas->setFont(FONT_SIZE_PRIMARY);
             canvas->text(Vector(6, 16), "Settings");
-            canvas->setFontCustom(FONT_SIZE_SMALL);
+            canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(Vector(6, 30), soundStatus);
-            canvas->setFontCustom(FONT_SIZE_LARGE);
+            canvas->setFont(FONT_SIZE_LARGE);
             canvas->text(Vector(6, 40), vibrationStatus);
-            canvas->setFontCustom(FONT_SIZE_SMALL);
+            canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(Vector(6, 50), "Leave Game");
             break;
         case 3: // leave game
-            canvas->setFont(FontPrimary);
+            canvas->setFont(FONT_SIZE_PRIMARY);
             canvas->text(Vector(6, 16), "Settings");
-            canvas->setFontCustom(FONT_SIZE_SMALL);
+            canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(Vector(6, 30), soundStatus);
             canvas->text(Vector(6, 40), vibrationStatus);
-            canvas->setFontCustom(FONT_SIZE_LARGE);
+            canvas->setFont(FONT_SIZE_LARGE);
             canvas->text(Vector(6, 50), "Leave Game");
             break;
         default:
             break;
         };
-        canvas->drawRect(Vector(76, 6), Vector(46, 46), ColorBlack);
-        canvas->setFont(FontSecondary);
-        canvas->text(Vector(80, 18), "Profile");
-        canvas->setFont(FontPrimary);
-        canvas->text(Vector(79, 32), "Settings");
-        canvas->setFont(FontSecondary);
+        canvas->rectangle(Vector(76, 6), Vector(46, 46), 0x0000);
+        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->text(Vector(80, 16), "Profile");
+        canvas->text(Vector(80, 26), "Map");
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(79, 36), "Settings");
+        canvas->setFont(FONT_SIZE_SECONDARY);
         canvas->text(Vector(80, 46), "About");
     } break;
-    case 2: // about
+    case 3: // about
     {
-        canvas->setFont(FontPrimary);
+        canvas->setFont(FONT_SIZE_PRIMARY);
         canvas->text(Vector(6, 16), "Free Roam");
-        canvas->setFontCustom(FONT_SIZE_SMALL);
+        canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(Vector(6, 25), "Creator: JBlanked");
         canvas->text(Vector(6, 59), "www.github.com/jblanked");
 
         // draw a box around the selected option
-        canvas->drawRect(Vector(76, 6), Vector(46, 46), ColorBlack);
-        canvas->setFont(FontSecondary);
-        canvas->text(Vector(80, 18), "Profile");
-        canvas->text(Vector(80, 32), "Settings");
-        canvas->setFont(FontPrimary);
+        canvas->rectangle(Vector(76, 6), Vector(46, 46), 0x0000);
+        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->text(Vector(80, 16), "Profile");
+        canvas->text(Vector(80, 26), "Map");
+        canvas->text(Vector(80, 36), "Settings");
+        canvas->setFont(FONT_SIZE_PRIMARY);
         canvas->text(Vector(80, 46), "About");
     } break;
     default:
-        canvas->fillScreen(ColorWhite);
-        canvas->text(Vector(0, 10), "Unknown Menu", ColorBlack);
+        canvas->fillScreen(0xFFFF);
+        canvas->text(Vector(0, 10), "Unknown Menu", 0x0000);
         break;
     };
 }
 
 void Player::drawRainEffect(Draw* canvas) {
     // rain droplets/star droplets effect
+    Vector _pixel = Vector(0, 0);
     for(int i = 0; i < 8; i++) {
         // Use pseudo-random offsets based on frame and droplet index
         uint8_t seed = (rainFrame + i * 37) & 0xFF;
@@ -385,11 +396,18 @@ void Player::drawRainEffect(Draw* canvas) {
         uint8_t y = (rainFrame * 2 + seed * 7 + i * 23) & 0x3F;
 
         // Draw star-like droplet
-        canvas->drawPixel(Vector(x, y), ColorBlack);
-        canvas->drawPixel(Vector(x - 1, y), ColorBlack);
-        canvas->drawPixel(Vector(x + 1, y), ColorBlack);
-        canvas->drawPixel(Vector(x, y - 1), ColorBlack);
-        canvas->drawPixel(Vector(x, y + 1), ColorBlack);
+        _pixel.x = x;
+        _pixel.y = y;
+        canvas->pixel(_pixel, 0x0000);
+        _pixel.x = x - 1;
+        canvas->pixel(_pixel, 0x0000);
+        _pixel.x = x + 1;
+        canvas->pixel(_pixel, 0x0000);
+        _pixel.x = x;
+        _pixel.y = y - 1;
+        canvas->pixel(_pixel, 0x0000);
+        _pixel.y = y + 1;
+        canvas->pixel(_pixel, 0x0000);
     }
 
     rainFrame += 1;
@@ -399,8 +417,8 @@ void Player::drawRainEffect(Draw* canvas) {
 }
 
 void Player::drawRegistrationView(Draw* canvas) {
-    canvas->fillScreen(ColorWhite);
-    canvas->setFont(FontPrimary);
+    canvas->fillScreen(0xFFFF);
+    canvas->setFont(FONT_SIZE_PRIMARY);
     static bool loadingStarted = false;
     switch(registrationStatus) {
     case RegistrationWaiting:
@@ -441,29 +459,28 @@ void Player::drawRegistrationView(Draw* canvas) {
         }
         break;
     case RegistrationSuccess:
-        canvas->text(Vector(0, 10), "Registration successful!", ColorBlack);
-        canvas->text(Vector(0, 20), "Press OK to continue.", ColorBlack);
+        canvas->text(Vector(0, 10), "Registration successful!", 0x0000);
+        canvas->text(Vector(0, 20), "Press OK to continue.", 0x0000);
         break;
     case RegistrationCredentialsMissing:
-        canvas->text(Vector(0, 10), "Missing credentials!", ColorBlack);
-        canvas->text(Vector(0, 20), "Please update your username", ColorBlack);
-        canvas->text(Vector(0, 30), "and password in the settings.", ColorBlack);
+        canvas->text(Vector(0, 10), "Missing credentials!", 0x0000);
+        canvas->text(Vector(0, 20), "Please update your username", 0x0000);
+        canvas->text(Vector(0, 30), "and password in the settings.", 0x0000);
         break;
     case RegistrationRequestError:
-        canvas->text(Vector(0, 10), "Registration request failed!", ColorBlack);
-        canvas->text(Vector(0, 20), "Check your network and", ColorBlack);
-        canvas->text(Vector(0, 30), "try again later.", ColorBlack);
+        canvas->text(Vector(0, 10), "Registration request failed!", 0x0000);
+        canvas->text(Vector(0, 20), "Check your network and", 0x0000);
+        canvas->text(Vector(0, 30), "try again later.", 0x0000);
         break;
     default:
-        canvas->text(Vector(0, 10), "Registering...", ColorBlack);
+        canvas->text(Vector(0, 10), "Registering...", 0x0000);
         break;
     }
 }
 
 void Player::drawSystemMenuView(Draw* canvas) {
-    canvas->fillScreen(ColorWhite);
-    canvas->color(ColorBlack);
-    canvas->icon(Vector(0, 0), &I_icon_menu_128x64px);
+    canvas->fillScreen(0xFFFF);
+    canvas->setColor(0x0000);
 
     drawMenuType2(canvas, currentMenuIndex, currentSettingsIndex);
 }
@@ -491,9 +508,9 @@ void Player::drawUserInfoView(Draw* canvas) {
                 loading->animate();
             }
         } else {
-            canvas->text(Vector(0, 10), "Loading user info...", ColorBlack);
-            canvas->text(Vector(0, 20), "Please wait...", ColorBlack);
-            canvas->text(Vector(0, 30), "It may take up to 15 seconds.", ColorBlack);
+            canvas->text(Vector(0, 10), "Loading user info...", 0x0000);
+            canvas->text(Vector(0, 20), "Please wait...", 0x0000);
+            canvas->text(Vector(0, 30), "It may take up to 15 seconds.", 0x0000);
             char response[512];
             FreeRoamApp* app = static_cast<FreeRoamApp*>(freeRoamGame->appContext);
             if(app && app->load_char("user_info", response, sizeof(response))) {
@@ -509,8 +526,8 @@ void Player::drawUserInfoView(Draw* canvas) {
                     loadingStarted = false;
                     return;
                 }
-                canvas->fillScreen(ColorWhite);
-                canvas->text(Vector(0, 10), "User info loaded!", ColorBlack);
+                canvas->fillScreen(0xFFFF);
+                canvas->text(Vector(0, 10), "User info loaded!", 0x0000);
                 char* username = get_json_value("username", game_stats);
                 char* level = get_json_value("level", game_stats);
                 char* xp = get_json_value("xp", game_stats);
@@ -534,8 +551,8 @@ void Player::drawUserInfoView(Draw* canvas) {
                     return;
                 }
 
-                canvas->fillScreen(ColorWhite);
-                canvas->text(Vector(0, 10), "User data found!", ColorBlack);
+                canvas->fillScreen(0xFFFF);
+                canvas->text(Vector(0, 10), "User data found!", 0x0000);
 
                 // Update player info
                 snprintf(player_name, sizeof(player_name), "%s", username);
@@ -546,8 +563,8 @@ void Player::drawUserInfoView(Draw* canvas) {
                 this->strength = atoi(strength);
                 this->max_health = atoi(max_health);
 
-                canvas->fillScreen(ColorWhite);
-                canvas->text(Vector(0, 10), "Player info updated!", ColorBlack);
+                canvas->fillScreen(0xFFFF);
+                canvas->text(Vector(0, 10), "Player info updated!", 0x0000);
 
                 // clean em up gang
                 ::free(username);
@@ -558,8 +575,8 @@ void Player::drawUserInfoView(Draw* canvas) {
                 ::free(max_health);
                 ::free(game_stats);
 
-                canvas->fillScreen(ColorWhite);
-                canvas->text(Vector(0, 10), "Memory freed!", ColorBlack);
+                canvas->fillScreen(0xFFFF);
+                canvas->text(Vector(0, 10), "Memory freed!", 0x0000);
 
                 if(currentLobbyMenuIndex == LobbyMenuLocal) {
                     currentMainView = GameViewGameLocal; // Switch to local game view
@@ -571,11 +588,11 @@ void Player::drawUserInfoView(Draw* canvas) {
                 }
                 loadingStarted = false;
 
-                canvas->fillScreen(ColorWhite);
-                canvas->text(Vector(0, 10), "User info loaded successfully!", ColorBlack);
-                canvas->text(Vector(0, 20), "Please wait...", ColorBlack);
-                canvas->text(Vector(0, 30), "Starting game...", ColorBlack);
-                canvas->text(Vector(0, 40), "It may take up to 15 seconds.", ColorBlack);
+                canvas->fillScreen(0xFFFF);
+                canvas->text(Vector(0, 10), "User info loaded successfully!", 0x0000);
+                canvas->text(Vector(0, 20), "Please wait...", 0x0000);
+                canvas->text(Vector(0, 30), "Starting game...", 0x0000);
+                canvas->text(Vector(0, 40), "It may take up to 15 seconds.", 0x0000);
 
                 freeRoamGame->startGame();
                 return;
@@ -585,50 +602,50 @@ void Player::drawUserInfoView(Draw* canvas) {
         }
         break;
     case UserInfoSuccess:
-        canvas->fillScreen(ColorWhite);
-        canvas->setFont(FontPrimary);
-        canvas->text(Vector(0, 10), "User info loaded successfully!", ColorBlack);
-        canvas->text(Vector(0, 20), "Press OK to continue.", ColorBlack);
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(0, 10), "User info loaded successfully!", 0x0000);
+        canvas->text(Vector(0, 20), "Press OK to continue.", 0x0000);
         break;
     case UserInfoCredentialsMissing:
-        canvas->fillScreen(ColorWhite);
-        canvas->setFont(FontPrimary);
-        canvas->text(Vector(0, 10), "Missing credentials!", ColorBlack);
-        canvas->text(Vector(0, 20), "Please update your username", ColorBlack);
-        canvas->text(Vector(0, 30), "and password in the settings.", ColorBlack);
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(0, 10), "Missing credentials!", 0x0000);
+        canvas->text(Vector(0, 20), "Please update your username", 0x0000);
+        canvas->text(Vector(0, 30), "and password in the settings.", 0x0000);
         break;
     case UserInfoRequestError:
-        canvas->fillScreen(ColorWhite);
-        canvas->setFont(FontPrimary);
-        canvas->text(Vector(0, 10), "User info request failed!", ColorBlack);
-        canvas->text(Vector(0, 20), "Check your network and", ColorBlack);
-        canvas->text(Vector(0, 30), "try again later.", ColorBlack);
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(0, 10), "User info request failed!", 0x0000);
+        canvas->text(Vector(0, 20), "Check your network and", 0x0000);
+        canvas->text(Vector(0, 30), "try again later.", 0x0000);
         break;
     case UserInfoParseError:
-        canvas->fillScreen(ColorWhite);
-        canvas->setFont(FontPrimary);
-        canvas->text(Vector(0, 10), "Failed to parse user info!", ColorBlack);
-        canvas->text(Vector(0, 20), "Try again...", ColorBlack);
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(0, 10), "Failed to parse user info!", 0x0000);
+        canvas->text(Vector(0, 20), "Try again...", 0x0000);
         break;
     default:
-        canvas->fillScreen(ColorWhite);
-        canvas->setFont(FontPrimary);
-        canvas->text(Vector(0, 10), "Loading user info...", ColorBlack);
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(Vector(0, 10), "Loading user info...", 0x0000);
         break;
     }
 }
 
 void Player::drawWelcomeView(Draw* canvas) {
-    canvas->fillScreen(ColorWhite);
+    canvas->fillScreen(0xFFFF);
 
     // rain effect
     drawRainEffect(canvas);
 
     // Draw welcome text with blinking effect
     // Blink every 15 frames (show for 15, hide for 15)
-    canvas->setFontCustom(FONT_SIZE_SMALL);
+    canvas->setFont(FONT_SIZE_SMALL);
     if((welcomeFrame / 15) % 2 == 0) {
-        canvas->text(Vector(34, 60), "Press OK to start", ColorBlack);
+        canvas->text(Vector(34, 60), "Press OK to start", 0x0000);
     }
     welcomeFrame++;
 
@@ -638,17 +655,17 @@ void Player::drawWelcomeView(Draw* canvas) {
     }
 
     // Draw a box around the OK button
-    canvas->fillRect(Vector(40, 25), Vector(56, 16), ColorBlack);
-    canvas->color(ColorWhite);
+    canvas->fillRectangle(Vector(40, 25), Vector(56, 16), 0x0000);
+    canvas->setColor(0xFFFF);
     canvas->text(Vector(56, 35), "Welcome");
-    canvas->color(ColorBlack);
+    canvas->setColor(0x0000);
 }
 
 Vector Player::findSafeSpawnPosition(const char* levelName) {
     Vector defaultPos = start_position;
 
     if(strcmp(levelName, "Tutorial") == 0) {
-        defaultPos = Vector(6, 6); // Center of tutorial room
+        defaultPos = Vector(10, 10); // Center of 20x20 tutorial map
     } else if(strcmp(levelName, "First") == 0) {
         // Try several safe positions in the First level
         Vector candidates[] = {
@@ -697,13 +714,13 @@ void Player::handleMenu(Draw* draw, Game* game) {
             if(currentMenuIndex > MenuIndexProfile) {
                 currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
             }
-            shouldDebounce = true;
+
             break;
         case InputKeyDown:
             if(currentMenuIndex < MenuIndexAbout) {
                 currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
             }
-            shouldDebounce = true;
+
             break;
         default:
             break;
@@ -717,17 +734,17 @@ void Player::handleMenu(Draw* draw, Game* game) {
                 if(currentMenuIndex > MenuIndexProfile) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                 }
-                shouldDebounce = true;
+
                 break;
             case InputKeyDown:
                 if(currentMenuIndex < MenuIndexAbout) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                 }
-                shouldDebounce = true;
+
                 break;
             case InputKeyLeft:
                 currentSettingsIndex = MenuSettingsSound; // Switch to sound settings
-                shouldDebounce = true;
+
                 break;
             default:
                 break;
@@ -739,16 +756,16 @@ void Player::handleMenu(Draw* draw, Game* game) {
             case InputKeyOk: {
                 // Toggle sound on/off
                 soundToggle = soundToggle == ToggleOn ? ToggleOff : ToggleOn;
-                shouldDebounce = true;
+
                 // let's just make the game check if state has changed and save it
             } break;
             case InputKeyRight:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
-                shouldDebounce = true;
+
                 break;
             case InputKeyDown:
                 currentSettingsIndex = MenuSettingsVibration; // Switch to vibration settings
-                shouldDebounce = true;
+
                 break;
             default:
                 break;
@@ -760,20 +777,20 @@ void Player::handleMenu(Draw* draw, Game* game) {
             case InputKeyOk: {
                 // Toggle vibration on/off
                 vibrationToggle = vibrationToggle == ToggleOn ? ToggleOff : ToggleOn;
-                shouldDebounce = true;
+
                 // let's just make the game check if state has changed and save it
             } break;
             case InputKeyRight:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
-                shouldDebounce = true;
+
                 break;
             case InputKeyUp:
                 currentSettingsIndex = MenuSettingsSound; // Switch to sound settings
-                shouldDebounce = true;
+
                 break;
             case InputKeyDown:
                 currentSettingsIndex = MenuSettingsLeave; // Switch to leave game settings
-                shouldDebounce = true;
+
                 break;
             default:
                 break;
@@ -785,15 +802,15 @@ void Player::handleMenu(Draw* draw, Game* game) {
             case InputKeyOk:
                 // Leave game
                 leaveGame = ToggleOn;
-                shouldDebounce = true;
+
                 break;
             case InputKeyRight:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
-                shouldDebounce = true;
+
                 break;
             case InputKeyUp:
                 currentSettingsIndex = MenuSettingsVibration; // Switch to vibration settings
-                shouldDebounce = true;
+
                 break;
             default:
                 break;
@@ -809,27 +826,26 @@ void Player::handleMenu(Draw* draw, Game* game) {
         case MenuSettingsSound:
             // Toggle sound on/off
             soundToggle = soundToggle == ToggleOn ? ToggleOff : ToggleOn;
-            shouldDebounce = true;
+
             // let's just make the game check if state has changed and save it
             break;
         case MenuSettingsVibration:
             // Toggle vibration on/off
             vibrationToggle = vibrationToggle == ToggleOn ? ToggleOff : ToggleOn;
-            shouldDebounce = true;
+
             // let's just make the game check if state has changed and save it
             break;
         case MenuSettingsLeave:
             leaveGame = ToggleOn;
-            shouldDebounce = true;
+
             break;
         default:
             break;
         }
     }
 
-    draw->fillScreen(ColorWhite);
-    draw->color(ColorBlack);
-    draw->icon(Vector(0, 0), &I_icon_menu_128x64px);
+    draw->fillScreen(0xFFFF);
+    draw->setColor(0x0000);
 
     drawMenuType2(draw, currentMenuIndex, currentSettingsIndex);
 }
@@ -872,13 +888,11 @@ void Player::processInput() {
                 // Already logged in, go to title
                 currentMainView = GameViewTitle;
             }
-            freeRoamGame->shouldDebounce = true;
         } else if(currentInput == InputKeyBack) {
             // Allow exit from welcome screen
             if(freeRoamGame) {
                 freeRoamGame->endGame(); // This will set shouldReturnToMenu
             }
-            freeRoamGame->shouldDebounce = true;
         }
         break;
 
@@ -887,23 +901,23 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyUp:
             currentTitleIndex = TitleIndexStart;
-            freeRoamGame->shouldDebounce = true;
+
             break;
         case InputKeyDown:
             currentTitleIndex = TitleIndexMenu;
-            freeRoamGame->shouldDebounce = true;
+
             break;
         case InputKeyOk:
             switch(currentTitleIndex) {
             case TitleIndexStart:
                 // Start button pressed - go to lobby menu
                 currentMainView = GameViewLobbyMenu;
-                freeRoamGame->shouldDebounce = true;
+
                 break;
             case TitleIndexMenu:
                 // Menu button pressed - go to system menu
                 currentMainView = GameViewSystemMenu;
-                freeRoamGame->shouldDebounce = true;
+
                 break;
             default:
                 break;
@@ -911,7 +925,7 @@ void Player::processInput() {
             break;
         case InputKeyBack:
             freeRoamGame->endGame();
-            freeRoamGame->shouldDebounce = true;
+
             break;
         default:
             break;
@@ -923,11 +937,11 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyUp:
             currentLobbyMenuIndex = LobbyMenuLocal; // Switch to local menu
-            freeRoamGame->shouldDebounce = true;
+
             break;
         case InputKeyDown:
             currentLobbyMenuIndex = LobbyMenuOnline; // Switch to online menu
-            freeRoamGame->shouldDebounce = true;
+
             break;
         case InputKeyOk:
             // 1. Switch to GameViewUserInfo
@@ -937,11 +951,11 @@ void Player::processInput() {
             currentMainView = GameViewUserInfo;
             userInfoStatus = UserInfoWaiting;
             userRequest(RequestTypeUserInfo);
-            freeRoamGame->shouldDebounce = true;
+
             break;
         case InputKeyBack:
             currentMainView = GameViewTitle;
-            freeRoamGame->shouldDebounce = true;
+
             break;
         default:
             break;
@@ -954,19 +968,19 @@ void Player::processInput() {
             switch(currentInput) {
             case InputKeyBack:
                 currentMainView = GameViewTitle;
-                freeRoamGame->shouldDebounce = true;
+
                 break;
             case InputKeyUp:
                 if(currentMenuIndex > MenuIndexProfile) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                 }
-                freeRoamGame->shouldDebounce = true;
+
                 break;
             case InputKeyDown:
                 if(currentMenuIndex < MenuIndexAbout) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                 }
-                freeRoamGame->shouldDebounce = true;
+
                 break;
             case InputKeyOk:
                 // Enter the selected menu item
@@ -974,7 +988,7 @@ void Player::processInput() {
                     // Entering settings - this doesn't change the main menu, just shows settings details
                     currentSettingsIndex = MenuSettingsMain;
                 }
-                freeRoamGame->shouldDebounce = true;
+
                 break;
             default:
                 break;
@@ -986,23 +1000,23 @@ void Player::processInput() {
                 switch(currentInput) {
                 case InputKeyBack:
                     currentMainView = GameViewTitle;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyUp:
                     if(currentMenuIndex > MenuIndexProfile) {
                         currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                     }
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyDown:
                     if(currentMenuIndex < MenuIndexAbout) {
                         currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                     }
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyLeft:
                     currentSettingsIndex = MenuSettingsSound;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 default:
                     break;
@@ -1016,15 +1030,15 @@ void Player::processInput() {
                     if(freeRoamGame) {
                         freeRoamGame->updateSoundToggle();
                     }
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyRight:
                     currentSettingsIndex = MenuSettingsMain;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyDown:
                     currentSettingsIndex = MenuSettingsVibration;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 default:
                     break;
@@ -1038,19 +1052,19 @@ void Player::processInput() {
                     if(freeRoamGame) {
                         freeRoamGame->updateVibrationToggle();
                     }
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyRight:
                     currentSettingsIndex = MenuSettingsMain;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyUp:
                     currentSettingsIndex = MenuSettingsSound;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyDown:
                     currentSettingsIndex = MenuSettingsLeave;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 default:
                     break;
@@ -1060,15 +1074,15 @@ void Player::processInput() {
                 switch(currentInput) {
                 case InputKeyOk:
                     leaveGame = ToggleOn;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyRight:
                     currentSettingsIndex = MenuSettingsMain;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 case InputKeyUp:
                     currentSettingsIndex = MenuSettingsVibration;
-                    freeRoamGame->shouldDebounce = true;
+
                     break;
                 default:
                     break;
@@ -1084,12 +1098,11 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyBack:
             currentMainView = GameViewWelcome;
-            freeRoamGame->shouldDebounce = true;
+
             break;
         case InputKeyOk:
             if(loginStatus == LoginSuccess) {
                 currentMainView = GameViewTitle;
-                freeRoamGame->shouldDebounce = true;
             }
             break;
         default:
@@ -1101,12 +1114,11 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyBack:
             currentMainView = GameViewWelcome;
-            freeRoamGame->shouldDebounce = true;
+
             break;
         case InputKeyOk:
             if(registrationStatus == RegistrationSuccess) {
                 currentMainView = GameViewTitle;
-                freeRoamGame->shouldDebounce = true;
             }
             break;
         default:
@@ -1118,7 +1130,7 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyBack:
             currentMainView = GameViewTitle;
-            freeRoamGame->shouldDebounce = true;
+
             break;
         default:
             break;
@@ -1130,7 +1142,7 @@ void Player::processInput() {
         // In game views, we need to handle input differently
         // The game engine itself will handle input through its update() method
         // We don't intercept input here to avoid conflicts with the in-game menu system
-        // The original handleMenu() and debounceInput() methods in the Player::render()
+        // The original handleMenu() method in the Player::render()
         // and Player::update() methods will handle the in-game system menu correctly
         break;
 
@@ -1172,6 +1184,48 @@ void Player::switchLevels(Game* game) {
                 set3DSpriteScale(1.0f); // Normal scale
             }
 
+            // Register wall Sprite3Ds as Entity objects so Level renders them automatically.
+            // Only do this once per level – if any "Wall" entities already exist, skip.
+            bool wallsAlreadyRegistered = false;
+            for(int i = 0; i < game->current_level->getEntityCount(); i++) {
+                Entity* e = game->current_level->getEntity(i);
+                if(e && e->name && strcmp(e->name, "Wall") == 0 && e->type == ENTITY_3D_SPRITE) {
+                    wallsAlreadyRegistered = true;
+                    break;
+                }
+            }
+
+            if(!wallsAlreadyRegistered) {
+                // Transfer Sprite3D ownership from DynamicMap to new Entity objects
+                Sprite3D* walls[MAX_RENDER_WALLS];
+                uint8_t wallCount = currentDynamicMap->releaseRenderWalls(walls, MAX_RENDER_WALLS);
+                for(uint8_t i = 0; i < wallCount; i++) {
+                    if(walls[i] == nullptr) continue;
+                    Entity* wallEntity = new Entity(
+                        "Wall",
+                        ENTITY_3D_SPRITE,
+                        walls[i]->getPosition(),
+                        Vector(1, 1),
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        false,
+                        SPRITE_3D_NONE,
+                        0x0000);
+                    // Assign the Sprite3D directly – entity now owns it
+                    wallEntity->sprite_3d = walls[i];
+                    wallEntity->sprite_3d_type =
+                        SPRITE_3D_CUSTOM; // makes has3DSprite() return true
+                    wallEntity->is_visible = true;
+                    game->current_level->entity_add(wallEntity);
+                }
+            }
+
             justSwitchedLevels = true; // Indicate that we just switched levels
             levelSwitchCounter = 0; // Reset counter for level switch delay
         }
@@ -1179,11 +1233,8 @@ void Player::switchLevels(Game* game) {
 }
 
 void Player::update(Game* game) {
-    debounceInput(game);
-
     if(game->input == InputKeyBack) {
         gameState = gameState == GameStateMenu ? GameStatePlaying : GameStateMenu;
-        shouldDebounce = true;
     }
 
     if(gameState == GameStateMenu) {
@@ -1307,12 +1358,11 @@ void Player::render(Draw* canvas, Game* game) {
     static uint8_t _state = GameStatePlaying;
     if(justSwitchedLevels && !justStarted) {
         // show message after switching levels
-        game->draw->fillScreen(ColorWhite);
-        game->draw->color(ColorBlack);
-        game->draw->icon(Vector(0, 0), &I_icon_menu_128x64px);
-        game->draw->setFont(FontPrimary);
+        game->draw->fillScreen(0xFFFF);
+        game->draw->setColor(0x0000);
+        game->draw->setFont(FONT_SIZE_PRIMARY);
         game->draw->text(Vector(5, 15), "New Level");
-        game->draw->setFontCustom(FONT_SIZE_SMALL);
+        game->draw->setFont(FONT_SIZE_SMALL);
         game->draw->text(Vector(5, 30), game->current_level->name);
         game->draw->text(Vector(5, 58), "Tip: BACK opens the menu.");
         is_visible = false; // hide player entity during level switch
@@ -1341,36 +1391,17 @@ void Player::render(Draw* canvas, Game* game) {
             _state = GameStatePlaying;
         }
         if(currentDynamicMap != nullptr) {
-            float camera_height = 1.6f;
-
-            // Check if the game is using 3rd person perspective
-            if(game->getPerspective() == CAMERA_THIRD_PERSON) {
-                // Calculate 3rd person camera position for map rendering
-                // Normalize direction vector to ensure consistent behavior
+            // Update player 3D sprite orientation for 3rd person perspective
+            if(game->getCamera()->perspective == CAMERA_THIRD_PERSON) {
                 float dir_length = sqrtf(direction.x * direction.x + direction.y * direction.y);
                 Vector normalized_dir = Vector(direction.x / dir_length, direction.y / dir_length);
 
-                Vector camera_pos = Vector(
-                    position.x - 1.5f, // Fixed offset instead of direction-based
-                    position.y - 1.5f);
-
                 if(has3DSprite()) {
-                    // Use Entity's methods instead of direct Sprite3D access
                     update3DSpritePosition();
-
-                    // Make sprite face the same direction as the camera (forward)
-                    // Add π/2 offset to correct sprite orientation (was facing left, now faces forward)
                     float camera_direction_angle =
                         atan2f(normalized_dir.y, normalized_dir.x) + M_PI_2;
                     set3DSpriteRotation(camera_direction_angle);
                 }
-
-                // Render map from 3rd person camera position
-                currentDynamicMap->render(
-                    camera_height, canvas, camera_pos, normalized_dir, plane);
-            } else {
-                // Default 1st person rendering
-                currentDynamicMap->render(camera_height, canvas, position, direction, plane);
             }
         }
     } else if(gameState == GameStateMenu) {

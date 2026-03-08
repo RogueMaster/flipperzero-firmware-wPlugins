@@ -22,7 +22,9 @@ Sprite::Sprite(
           nullptr,
           nullptr,
           nullptr,
-          spriteType) {
+          false,
+          spriteType,
+          0x0000) {
     set3DSpriteRotation(rotation);
     start_position = position;
     end_position = endPosition == Vector(-1, -1) ? position : endPosition;
@@ -68,12 +70,10 @@ void Sprite::update(Game* game) {
                 move_y = dy;
             }
 
-            position_set(Vector(position.x + move_x, position.y + move_y));
-            position_changed = true;
+            position_set(position.x + move_x, position.y + move_y);
         } else {
             // Snap to exact position when close enough
             position_set(end_position);
-            position_changed = true;
             state = ENTITY_MOVING_TO_START;
         }
     } else if(state == ENTITY_MOVING_TO_START) {
@@ -92,12 +92,10 @@ void Sprite::update(Game* game) {
                 move_y = dy;
             }
 
-            position_set(Vector(position.x + move_x, position.y + move_y));
-            position_changed = true;
+            position_set(position.x + move_x, position.y + move_y);
         } else {
             // Snap to exact position when close enough
             position_set(start_position);
-            position_changed = true;
             state = ENTITY_MOVING_TO_END;
         }
     }

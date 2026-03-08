@@ -6,28 +6,14 @@
 #include "engine/engine.hpp"
 #include "game/sprites.hpp"
 #include <math.h>
+#include "lcd.hpp"
 
 FreeRoamGame::FreeRoamGame() {
     // nothing to do
 }
 
 FreeRoamGame::~FreeRoamGame() {
-    // also nothing to do anymore since I moved the view/timer to the app
-}
-
-void FreeRoamGame::debounceInput() {
-    static uint8_t debounceCounter = 0;
-    if(shouldDebounce) {
-        lastInput = InputKeyMAX;
-        debounceCounter++;
-        if(debounceCounter < 2) // Reduced from 4 to 2 for faster menu response
-        {
-            return;
-        }
-        debounceCounter = 0;
-        shouldDebounce = false;
-        inputHeld = false;
-    }
+    lcd_deinit();
 }
 
 void FreeRoamGame::endGame() {
@@ -74,38 +60,6 @@ bool FreeRoamGame::init(ViewDispatcher** viewDispatcher, void* appContext) {
 }
 
 void FreeRoamGame::inputManager() {
-    static int inputHeldCounter = 0;
-
-    // Track input held state
-    if(lastInput != InputKeyMAX) {
-        inputHeldCounter++;
-        if(inputHeldCounter > 10) {
-            this->inputHeld = true;
-        }
-    } else {
-        inputHeldCounter = 0;
-        this->inputHeld = false;
-    }
-
-    // Handle input for all views, but don't debounce when game engine is running
-    if(player && (player->getCurrentMainView() == GameViewGameLocal ||
-                  player->getCurrentMainView() == GameViewGameOnline)) {
-        // When game is running, completely skip debouncing to avoid interference
-        if(!isGameRunning) {
-            // Only debounce if game is not actually running (e.g., during startup)
-            if(lastInput == InputKeyBack) {
-                debounceInput();
-            }
-        }
-        // When game is running, let all inputs pass through without any debouncing
-    } else {
-        // For menu views, use fast debouncing (much faster than original but prevents menu skipping)
-        // Only debounce when shouldDebounce is explicitly set, skip the inputHeld check for speed
-        if(shouldDebounce) {
-            debounceInput();
-        }
-    }
-
     // Pass input to player for processing
     if(player) {
         player->setInputKey(lastInput);
@@ -114,8 +68,8 @@ void FreeRoamGame::inputManager() {
 }
 
 bool FreeRoamGame::startGame() {
-    draw->fillScreen(ColorWhite);
-    draw->text(Vector(0, 10), "Initializing game...", ColorBlack);
+    draw->fillScreen(0xFFFF);
+    draw->text(Vector(0, 10), "Initializing game...", 0x0000);
 
     if(isGameRunning || engine) {
         FURI_LOG_E("FreeRoamGame", "Game already running, skipping start");
@@ -123,8 +77,11 @@ bool FreeRoamGame::startGame() {
     }
 
     // Create the game instance with 3rd person perspective
+    // camera.release() transfers ownership to Game so it isn't deleted when startGame() returns
+    auto camera = std::make_unique<Camera>(
+        Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 0.66f, 0), 1.6f, 2.0f, CAMERA_THIRD_PERSON);
     auto game = std::make_unique<Game>(
-        "Free Roam", Vector(128, 64), draw.get(), ColorBlack, ColorWhite, CAMERA_THIRD_PERSON);
+        "Free Roam", draw->getDisplaySize(), draw.get(), 0x0000, 0xFFFF, camera.release());
     if(!game) {
         FURI_LOG_E("FreeRoamGame", "Failed to create Game object");
         return false;
@@ -143,14 +100,16 @@ bool FreeRoamGame::startGame() {
     player->setSoundToggle(soundToggle);
     player->setVibrationToggle(vibrationToggle);
 
-    draw->fillScreen(ColorWhite);
-    draw->text(Vector(0, 10), "Adding levels and player...", ColorBlack);
+    draw->fillScreen(0xFFFF);
+    draw->text(Vector(0, 10), "Adding levels and player...", 0x0000);
 
     // add levels and player to the game
     std::unique_ptr<Level> level1 =
-        std::make_unique<Level>("Tutorial", Vector(128, 64), game.get());
-    std::unique_ptr<Level> level2 = std::make_unique<Level>("First", Vector(128, 64), game.get());
-    std::unique_ptr<Level> level3 = std::make_unique<Level>("Second", Vector(128, 64), game.get());
+        std::make_unique<Level>("Tutorial", draw->getDisplaySize(), game.get());
+    std::unique_ptr<Level> level2 =
+        std::make_unique<Level>("First", draw->getDisplaySize(), game.get());
+    std::unique_ptr<Level> level3 =
+        std::make_unique<Level>("Second", draw->getDisplaySize(), game.get());
 
     level1->entity_add(player.get());
     level2->entity_add(player.get());
@@ -164,6 +123,62 @@ bool FreeRoamGame::startGame() {
     level1->entity_add(tutorialGuard1.release());
     level1->entity_add(tutorialGuard2.release());
 
+    // Town (level 2) - 4 houses spread across the open map
+    std::unique_ptr<Entity> house1 =
+        std::make_unique<Sprite>("House 1", Vector(14, 13), SPRITE_3D_HOUSE, 10.0f, 10.0f, 0.0f);
+    std::unique_ptr<Entity> house2 = std::make_unique<Sprite>(
+        "House 2", Vector(48, 13), SPRITE_3D_HOUSE, 10.0f, 10.0f, (float)(M_PI / 2.0));
+    std::unique_ptr<Entity> house3 = std::make_unique<Sprite>(
+        "House 3", Vector(14, 43), SPRITE_3D_HOUSE, 10.0f, 10.0f, (float)(M_PI));
+    std::unique_ptr<Entity> house4 = std::make_unique<Sprite>(
+        "House 4", Vector(48, 43), SPRITE_3D_HOUSE, 10.0f, 10.0f, (float)(M_PI * 1.5));
+    level2->entity_add(house1.release());
+    level2->entity_add(house2.release());
+    level2->entity_add(house3.release());
+    level2->entity_add(house4.release());
+
+    // Forest (level 3) - trees scattered throughout the open map
+    const Vector treePositions[] = {
+        Vector(8, 8),
+        Vector(20, 6),
+        Vector(35, 9),
+        Vector(50, 7),
+        Vector(6, 20),
+        Vector(18, 22),
+        Vector(30, 18),
+        Vector(44, 24),
+        Vector(55, 15),
+        Vector(10, 35),
+        Vector(25, 40),
+        Vector(40, 36),
+        Vector(52, 42),
+        Vector(8, 48),
+        Vector(22, 50),
+        Vector(38, 48),
+    };
+    static const char* treeNames[] = {
+        "Tree 1",
+        "Tree 2",
+        "Tree 3",
+        "Tree 4",
+        "Tree 5",
+        "Tree 6",
+        "Tree 7",
+        "Tree 8",
+        "Tree 9",
+        "Tree 10",
+        "Tree 11",
+        "Tree 12",
+        "Tree 13",
+        "Tree 14",
+        "Tree 15",
+        "Tree 16",
+    };
+    for(uint8_t i = 0; i < 16; i++) {
+        level3->entity_add(
+            new Sprite(treeNames[i], treePositions[i], SPRITE_3D_TREE, 3.0f, 1.0f, 0.0f));
+    }
+
     game->level_add(level1.release());
     game->level_add(level2.release());
     game->level_add(level3.release());
@@ -174,8 +189,8 @@ bool FreeRoamGame::startGame() {
         return false;
     }
 
-    draw->fillScreen(ColorWhite);
-    draw->text(Vector(0, 10), "Starting game engine...", ColorBlack);
+    draw->fillScreen(0xFFFF);
+    draw->text(Vector(0, 10), "Starting game engine...", 0x0000);
 
     isGameRunning = true; // Set the flag to indicate game is running
     return true;
@@ -222,7 +237,8 @@ void FreeRoamGame::switchToNextLevel() {
 void FreeRoamGame::updateDraw(Canvas* canvas) {
     // set Draw instance
     if(!draw) {
-        draw = std::make_unique<Draw>(canvas);
+        lcd_init_canvas(canvas);
+        draw = std::make_unique<Draw>();
     }
 
     // Initialize player if not already done

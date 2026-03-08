@@ -10,6 +10,12 @@ bool canvas_set_font_custom(Canvas* canvas, FontSize font_size) {
         return false;
     }
     switch(font_size) {
+    case FONT_SIZE_SECONDARY:
+        canvas_set_font(canvas, FontSecondary);
+        break;
+    case FONT_SIZE_PRIMARY:
+        canvas_set_font(canvas, FontPrimary);
+        break;
     case FONT_SIZE_SMALL:
         canvas_set_custom_u8g2_font(canvas, u8g2_font_4x6_tf);
         break;

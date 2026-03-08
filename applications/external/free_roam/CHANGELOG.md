@@ -1,5 +1,14 @@
+## v0.5
+- Added a mini map with player position and direction indicators
+- Optimized Vector usage in the rendering code to improve performance and reduce memory usage
+- Updated input handling to only parse short and long presses
+- Updated wall rendering to use 3D sprites
+- Updated the engine with various optimizations, bug fixes, and improvements to the rendering pipeline
+- Updated maps with new elements and layouts
+
 ## v0.4
 - Updated the settings with a connect to WiFi button and conditional compilation for Momentum support
+- Updated the engine to use floats for triangle vertices
 
 ## v0.3.2
 - Updated to use the flipper_http folder as intended

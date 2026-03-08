@@ -6,6 +6,8 @@
 extern "C" {
 #endif
 typedef enum {
+    FONT_SIZE_SECONDARY = -2,
+    FONT_SIZE_PRIMARY = -1,
     FONT_SIZE_SMALL = 1,
     FONT_SIZE_MEDIUM = 2,
     FONT_SIZE_LARGE = 3,

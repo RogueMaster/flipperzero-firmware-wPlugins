@@ -1,5 +1,5 @@
 #pragma once
-#include "engine/game.hpp"
+#include "game.hpp"
 
 class GameEngine {
 private:
@@ -54,7 +54,7 @@ public:
         game->stop();
 
         // clear the screen
-        game->draw->clear(Vector(0, 0), game->size, game->bg_color);
+        game->draw->fillScreen(game->bg_color);
 
         delete game;
         game = nullptr;
