@@ -67,6 +67,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Free Roam v0.5 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - Updated: [CAN Commander v1.0 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
 - Updated: [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
+- Added: [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 
 <a name="release"></a>
 
@@ -494,6 +495,7 @@ $ ./fbt dolphin_ext
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
 - [Chief Cooker v1.0 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)
 - [Chronometer (By nmrr)](https://github.com/nmrr/flipperzero-chronometer)
+- [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - [CLI Bridge v1.6 (By ranchordo)](https://github.com/ranchordo/flipperzero-cli-bridge)
 - [Clippy v0.1 (By mtormento)](https://github.com/mtormento/clippy)
 - [Clock v1.2 (By kowalski7cc)](https://github.com/kowalski7cc/flipperzero-firmware/tree/clock-v1)

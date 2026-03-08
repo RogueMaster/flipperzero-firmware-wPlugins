@@ -91,9 +91,9 @@
 
 /** Application screens */
 typedef enum {
-    ScreenDelay,        /**< Initial delay selection screen (shown first) */
-    ScreenSetup,        /**< Repeat/file count configuration screen */
-    ScreenControl,      /**< Playback control screen */
+    ScreenDelay, /**< Initial delay selection screen (shown first) */
+    ScreenSetup, /**< Repeat/file count configuration screen */
+    ScreenControl, /**< Playback control screen */
     ScreenResetConfirm, /**< Reset-to-defaults confirmation overlay */
 } AppScreen;
 
@@ -308,14 +308,14 @@ static bool app_countdown_gap(ClayLoopApp* app, uint32_t gap_ms) {
     while(remaining > 0) {
         uint32_t slice = remaining < 20 ? remaining : 20;
         AppEvent ev;
-        if(furi_message_queue_get(app->event_queue, &ev, furi_ms_to_ticks(slice)) == FuriStatusOk) {
-            if(ev.type == EventTypeInput &&
-               ev.input.key == InputKeyOk &&
+        if(furi_message_queue_get(app->event_queue, &ev, furi_ms_to_ticks(slice)) ==
+           FuriStatusOk) {
+            if(ev.type == EventTypeInput && ev.input.key == InputKeyOk &&
                ev.input.type == InputTypeShort) {
                 /* User cancelled mid-countdown — clear all LEDs/vibration */
-                furi_hal_light_set(LightRed,   0x00);
+                furi_hal_light_set(LightRed, 0x00);
                 furi_hal_light_set(LightGreen, 0x00);
-                furi_hal_light_set(LightBlue,  0x00);
+                furi_hal_light_set(LightBlue, 0x00);
                 furi_hal_vibro_on(false);
                 return false;
             }
@@ -348,14 +348,17 @@ static bool app_led_flash_countdown(ClayLoopApp* app, uint32_t delay_ms) {
 
     /* Flash 1: Red + 440 Hz + vibration */
     furi_hal_vibro_on(true);
-    furi_hal_light_set(LightRed,   0xFF);
+    furi_hal_light_set(LightRed, 0xFF);
     furi_hal_light_set(LightGreen, 0x00);
-    furi_hal_light_set(LightBlue,  0x00);
+    furi_hal_light_set(LightBlue, 0x00);
     {
         bool beep = furi_hal_speaker_acquire(500);
         if(beep) furi_hal_speaker_start(440.0f, 1.0f);
         furi_delay_ms(80);
-        if(beep) { furi_hal_speaker_stop(); furi_hal_speaker_release(); }
+        if(beep) {
+            furi_hal_speaker_stop();
+            furi_hal_speaker_release();
+        }
     }
     furi_hal_light_set(LightRed, 0x00);
     furi_hal_vibro_on(false);
@@ -364,30 +367,36 @@ static bool app_led_flash_countdown(ClayLoopApp* app, uint32_t delay_ms) {
     if(!app_countdown_gap(app, gap_ms)) return false;
 
     /* Flash 2: Yellow + 660 Hz */
-    furi_hal_light_set(LightRed,   0xFF);
+    furi_hal_light_set(LightRed, 0xFF);
     furi_hal_light_set(LightGreen, 0xFF);
-    furi_hal_light_set(LightBlue,  0x00);
+    furi_hal_light_set(LightBlue, 0x00);
     {
         bool beep = furi_hal_speaker_acquire(500);
         if(beep) furi_hal_speaker_start(660.0f, 1.0f);
         furi_delay_ms(80);
-        if(beep) { furi_hal_speaker_stop(); furi_hal_speaker_release(); }
+        if(beep) {
+            furi_hal_speaker_stop();
+            furi_hal_speaker_release();
+        }
     }
-    furi_hal_light_set(LightRed,   0x00);
+    furi_hal_light_set(LightRed, 0x00);
     furi_hal_light_set(LightGreen, 0x00);
 
     /* Gap 2 — cancellable */
     if(!app_countdown_gap(app, gap_ms)) return false;
 
     /* Flash 3: Green + 880 Hz */
-    furi_hal_light_set(LightRed,   0x00);
+    furi_hal_light_set(LightRed, 0x00);
     furi_hal_light_set(LightGreen, 0xFF);
-    furi_hal_light_set(LightBlue,  0x00);
+    furi_hal_light_set(LightBlue, 0x00);
     {
         bool beep = furi_hal_speaker_acquire(500);
         if(beep) furi_hal_speaker_start(880.0f, 1.0f);
         furi_delay_ms(80);
-        if(beep) { furi_hal_speaker_stop(); furi_hal_speaker_release(); }
+        if(beep) {
+            furi_hal_speaker_stop();
+            furi_hal_speaker_release();
+        }
     }
     furi_hal_light_set(LightGreen, 0x00);
 
@@ -403,9 +412,9 @@ static bool app_led_flash_countdown(ClayLoopApp* app, uint32_t delay_ms) {
  * just confirms the button was registered.
  */
 static void app_led_flash_green_single(void) {
-    furi_hal_light_set(LightRed,   0x00);
+    furi_hal_light_set(LightRed, 0x00);
     furi_hal_light_set(LightGreen, 0xFF);
-    furi_hal_light_set(LightBlue,  0x00);
+    furi_hal_light_set(LightBlue, 0x00);
     furi_delay_ms(80);
     furi_hal_light_set(LightGreen, 0x00);
 }
@@ -422,9 +431,19 @@ static void app_led_flash_green_single(void) {
 #define ANIM_FRAME_MS    150
 
 static const Icon* const anim_frames[ANIM_FRAME_COUNT] = {
-    &I_frame_0,  &I_frame_1,  &I_frame_2,  &I_frame_3,  &I_frame_4,
-    &I_frame_5,  &I_frame_6,  &I_frame_7,  &I_frame_8,  &I_frame_9,
-    &I_frame_10, &I_frame_11, &I_frame_12,
+    &I_frame_0,
+    &I_frame_1,
+    &I_frame_2,
+    &I_frame_3,
+    &I_frame_4,
+    &I_frame_5,
+    &I_frame_6,
+    &I_frame_7,
+    &I_frame_8,
+    &I_frame_9,
+    &I_frame_10,
+    &I_frame_11,
+    &I_frame_12,
 };
 
 /**
@@ -489,7 +508,7 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
     if(app->current_screen == ScreenResetConfirm) {
         /* Full-screen confirmation overlay (canvas already cleared at top of draw_callback) */
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 8,  AlignCenter, AlignTop, "Reset all");
+        canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignTop, "Reset all");
         canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignTop, "defaults?");
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignTop, "[OK]  Yes");
@@ -617,12 +636,7 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
         if(app->max_repeats == 0) {
             snprintf(status, sizeof(status), "[OK]Inf x%lu", app->files_loaded);
         } else {
-            snprintf(
-                status,
-                sizeof(status),
-                "[OK]%lux x%lu",
-                app->max_repeats,
-                app->files_loaded);
+            snprintf(status, sizeof(status), "[OK]%lux x%lu", app->max_repeats, app->files_loaded);
         }
     } else if(app->tx_state == TxTransmitting) {
         if(app->max_repeats == 0) {
@@ -907,9 +921,11 @@ static FuriHalSubGhzPreset app_get_preset(const char* preset_name) {
         return FuriHalSubGhzPresetOok650Async;
     if(strstr(preset_name, "OOK_270") || strstr(preset_name, "Ook270"))
         return FuriHalSubGhzPresetOok270Async;
-    if(strstr(preset_name, "2FSKDev476") || strstr(preset_name, "2FSK_Dev47") || strstr(preset_name, "2FskDev476"))
+    if(strstr(preset_name, "2FSKDev476") || strstr(preset_name, "2FSK_Dev47") ||
+       strstr(preset_name, "2FskDev476"))
         return FuriHalSubGhzPreset2FSKDev476Async;
-    if(strstr(preset_name, "2FSKDev238") || strstr(preset_name, "2FSK_Dev2") || strstr(preset_name, "2FskDev238"))
+    if(strstr(preset_name, "2FSKDev238") || strstr(preset_name, "2FSK_Dev2") ||
+       strstr(preset_name, "2FskDev238"))
         return FuriHalSubGhzPreset2FSKDev238Async;
     if(strstr(preset_name, "MSK") || strstr(preset_name, "GFSK"))
         return FuriHalSubGhzPresetMSK99_97KbAsync;
@@ -1004,8 +1020,7 @@ static void app_start_transmit_file(ClayLoopApp* app) {
             return;
         }
 
-        app->transmitter = subghz_transmitter_alloc_init(
-            app->environment, fi->protocol_name);
+        app->transmitter = subghz_transmitter_alloc_init(app->environment, fi->protocol_name);
         if(!app->transmitter) {
             FURI_LOG_E(TAG, "Failed to alloc transmitter for %s", fi->protocol_name);
             flipper_format_file_close(fff);
@@ -1018,7 +1033,8 @@ static void app_start_transmit_file(ClayLoopApp* app) {
         }
 
         if(subghz_transmitter_deserialize(app->transmitter, fff) != SubGhzProtocolStatusOk) {
-            FURI_LOG_E(TAG, "Failed to deserialize protocol file slot %lu", app->current_file_index);
+            FURI_LOG_E(
+                TAG, "Failed to deserialize protocol file slot %lu", app->current_file_index);
             subghz_transmitter_free(app->transmitter);
             app->transmitter = NULL;
             flipper_format_file_close(fff);
@@ -1050,8 +1066,7 @@ static void app_start_transmit_file(ClayLoopApp* app) {
      * strobe internally.
      */
     subghz_devices_idle(app->radio_device);
-    subghz_devices_load_preset(
-        app->radio_device, app_get_preset(fi->preset_name), NULL);
+    subghz_devices_load_preset(app->radio_device, app_get_preset(fi->preset_name), NULL);
     subghz_devices_set_frequency(app->radio_device, fi->frequency);
 
     FURI_LOG_I(TAG, "Radio: preset=%s freq=%lu", fi->preset_name, fi->frequency);
@@ -1060,7 +1075,8 @@ static void app_start_transmit_file(ClayLoopApp* app) {
     if(fi->is_raw) {
         tx_started = subghz_devices_start_async_tx(app->radio_device, app_radio_tx_feed_raw, app);
     } else {
-        tx_started = subghz_devices_start_async_tx(app->radio_device, app_radio_tx_feed_protocol, app);
+        tx_started =
+            subghz_devices_start_async_tx(app->radio_device, app_radio_tx_feed_protocol, app);
     }
 
     if(!tx_started) {
@@ -1266,15 +1282,15 @@ static void app_restart_current_tx(ClayLoopApp* app) {
         Storage* storage = furi_record_open(RECORD_STORAGE);
         FlipperFormat* fff = flipper_format_file_alloc(storage);
         if(!flipper_format_file_open_existing(fff, furi_string_get_cstr(fi->file_path))) {
-            FURI_LOG_E(TAG, "Restart: cannot open protocol file slot %lu", app->current_file_index);
+            FURI_LOG_E(
+                TAG, "Restart: cannot open protocol file slot %lu", app->current_file_index);
             flipper_format_free(fff);
             furi_record_close(RECORD_STORAGE);
             app->tx_state = TxIdle;
             app->repeat_enabled = false;
             return;
         }
-        app->transmitter = subghz_transmitter_alloc_init(
-            app->environment, fi->protocol_name);
+        app->transmitter = subghz_transmitter_alloc_init(app->environment, fi->protocol_name);
         if(!app->transmitter) {
             FURI_LOG_E(TAG, "Restart: failed to alloc transmitter for %s", fi->protocol_name);
             flipper_format_file_close(fff);
@@ -1285,7 +1301,10 @@ static void app_restart_current_tx(ClayLoopApp* app) {
             return;
         }
         if(subghz_transmitter_deserialize(app->transmitter, fff) != SubGhzProtocolStatusOk) {
-            FURI_LOG_E(TAG, "Restart: failed to deserialize protocol file slot %lu", app->current_file_index);
+            FURI_LOG_E(
+                TAG,
+                "Restart: failed to deserialize protocol file slot %lu",
+                app->current_file_index);
             subghz_transmitter_free(app->transmitter);
             app->transmitter = NULL;
             flipper_format_file_close(fff);
@@ -1310,7 +1329,8 @@ static void app_restart_current_tx(ClayLoopApp* app) {
     if(fi->is_raw) {
         tx_started = subghz_devices_start_async_tx(app->radio_device, app_radio_tx_feed_raw, app);
     } else {
-        tx_started = subghz_devices_start_async_tx(app->radio_device, app_radio_tx_feed_protocol, app);
+        tx_started =
+            subghz_devices_start_async_tx(app->radio_device, app_radio_tx_feed_protocol, app);
     }
     if(!tx_started) {
         FURI_LOG_E(TAG, "Restart: async TX failed!");
@@ -1357,11 +1377,11 @@ static void app_save_settings(ClayLoopApp* app) {
         uint32_t dur_x10 = (uint32_t)(app->duration * 10.0f + 0.5f);
         uint32_t int_x10 = (uint32_t)(app->interval * 10.0f + 0.5f);
 
-        flipper_format_write_uint32(ff, "Duration_x10",  &dur_x10,                  1);
-        flipper_format_write_uint32(ff, "Interval_x10",  &int_x10,                  1);
-        flipper_format_write_uint32(ff, "RepeatSelect",  &app->repeat_select,        1);
-        flipper_format_write_uint32(ff, "DelaySelect",   &app->delay_select,         1);
-        flipper_format_write_uint32(ff, "FileCount",     &app->file_count_setting,   1);
+        flipper_format_write_uint32(ff, "Duration_x10", &dur_x10, 1);
+        flipper_format_write_uint32(ff, "Interval_x10", &int_x10, 1);
+        flipper_format_write_uint32(ff, "RepeatSelect", &app->repeat_select, 1);
+        flipper_format_write_uint32(ff, "DelaySelect", &app->delay_select, 1);
+        flipper_format_write_uint32(ff, "FileCount", &app->file_count_setting, 1);
 
         /* BUGFIX: Save file paths for every count/slot group (Path_<count>_<slot>).
          * Always write ALL keys even when empty — FlipperFormat reads sequentially,
@@ -1374,8 +1394,14 @@ static void app_save_settings(ClayLoopApp* app) {
             }
         }
 
-        FURI_LOG_I(TAG, "Settings saved (dur=%lu/10 int=%lu/10 rpt=%lu dly=%lu fc=%lu)",
-            dur_x10, int_x10, app->repeat_select, app->delay_select, app->file_count_setting);
+        FURI_LOG_I(
+            TAG,
+            "Settings saved (dur=%lu/10 int=%lu/10 rpt=%lu dly=%lu fc=%lu)",
+            dur_x10,
+            int_x10,
+            app->repeat_select,
+            app->delay_select,
+            app->file_count_setting);
     } else {
         FURI_LOG_E(TAG, "Failed to open config file for writing");
     }
@@ -1410,25 +1436,20 @@ static void app_load_settings(ClayLoopApp* app) {
 
         if(flipper_format_read_uint32(ff, "Duration_x10", &val, 1)) {
             float dur = (float)val / 10.0f;
-            if(dur >= DURATION_MIN && dur <= DURATION_MAX)
-                app->duration = dur;
+            if(dur >= DURATION_MIN && dur <= DURATION_MAX) app->duration = dur;
         }
         if(flipper_format_read_uint32(ff, "Interval_x10", &val, 1)) {
             float intv = (float)val / 10.0f;
-            if(intv >= INTERVAL_MIN && intv <= INTERVAL_MAX)
-                app->interval = intv;
+            if(intv >= INTERVAL_MIN && intv <= INTERVAL_MAX) app->interval = intv;
         }
         if(flipper_format_read_uint32(ff, "RepeatSelect", &val, 1)) {
-            if(val < REPEAT_OPTIONS_COUNT)
-                app->repeat_select = val;
+            if(val < REPEAT_OPTIONS_COUNT) app->repeat_select = val;
         }
         if(flipper_format_read_uint32(ff, "DelaySelect", &val, 1)) {
-            if(val < DELAY_OPTIONS_COUNT)
-                app->delay_select = val;
+            if(val < DELAY_OPTIONS_COUNT) app->delay_select = val;
         }
         if(flipper_format_read_uint32(ff, "FileCount", &val, 1)) {
-            if(val >= 1 && val <= MAX_FILES)
-                app->file_count_setting = val;
+            if(val >= 1 && val <= MAX_FILES) app->file_count_setting = val;
         }
 
         /* Restore file paths for all count/slot groups */
@@ -1441,9 +1462,14 @@ static void app_load_settings(ClayLoopApp* app) {
             }
         }
 
-        FURI_LOG_I(TAG, "Settings loaded (dur=%.1f int=%.1f rpt=%lu dly=%lu fc=%lu)",
-            (double)app->duration, (double)app->interval,
-            app->repeat_select, app->delay_select, app->file_count_setting);
+        FURI_LOG_I(
+            TAG,
+            "Settings loaded (dur=%.1f int=%.1f rpt=%lu dly=%lu fc=%lu)",
+            (double)app->duration,
+            (double)app->interval,
+            app->repeat_select,
+            app->delay_select,
+            app->file_count_setting);
     } while(false);
 
     flipper_format_free(ff);
@@ -1586,7 +1612,8 @@ int32_t clayloop_app(void* p) {
                     bool do_reset = false;
                     while(app->running && !confirm_done) {
                         AppEvent rev;
-                        if(furi_message_queue_get(app->event_queue, &rev, furi_ms_to_ticks(200)) != FuriStatusOk)
+                        if(furi_message_queue_get(app->event_queue, &rev, furi_ms_to_ticks(200)) !=
+                           FuriStatusOk)
                             continue;
                         if(rev.type != EventTypeInput) continue;
                         InputEvent* ri = &rev.input;
@@ -1601,10 +1628,10 @@ int32_t clayloop_app(void* p) {
                     }
 
                     if(do_reset) {
-                        app->duration           = DURATION_DEFAULT;
-                        app->interval           = INTERVAL_DEFAULT;
-                        app->repeat_select      = 0;
-                        app->delay_select       = 0;
+                        app->duration = DURATION_DEFAULT;
+                        app->interval = INTERVAL_DEFAULT;
+                        app->repeat_select = 0;
+                        app->delay_select = 0;
                         app->file_count_setting = 1;
                         /* Clear all saved file paths */
                         for(uint32_t c = 0; c < MAX_FILES; c++) {
@@ -1778,8 +1805,7 @@ int32_t clayloop_app(void* p) {
             app->files_loaded = i + 1;
             /* Remember this path for this count/slot group */
             furi_string_set(
-                app->saved_paths[app->file_count_setting - 1][i],
-                app->files[i].file_path);
+                app->saved_paths[app->file_count_setting - 1][i], app->files[i].file_path);
         }
 
         /* If cancelled, loop back to setup screen */
@@ -1790,7 +1816,8 @@ int32_t clayloop_app(void* p) {
          * file browser, so they don't rapid-fire on the control screen. */
         {
             AppEvent discard;
-            while(furi_message_queue_get(app->event_queue, &discard, 0) == FuriStatusOk) {}
+            while(furi_message_queue_get(app->event_queue, &discard, 0) == FuriStatusOk) {
+            }
         }
 
         /* ── PHASE 3: CONTROL SCREEN ──
