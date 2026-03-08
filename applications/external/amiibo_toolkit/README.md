@@ -1,21 +1,21 @@
-# Flippper Amiibo Toolkit
+# AmiTool
 
-An Amiibo toolkit app for Flipper Zero.
+An Flipper Zero toolkit to work with NTAG215 tags with gaming consoles.
 
-This project is usable but still in development. Ensure you back up all important data and avoid using it with another experimental setup, like Amiibo Link writing, to prevent damage or data loss.
+This project is usable but still in development. Ensure you back up all important data and avoid using it with another experimental setup to prevent damage or data loss.
 
 ## Features
 
-Designed as a general-purpose Amiibo toolkit for Flipper Zero, this app aims to provide the following features:
+Designed as a general-purpose toolkit for Flipper Zero to work with NTAG215 figures/cards for gaming consoles, this app aims to provide the following features:
 
-- **Reading Amiibo NFC tags**: Read data from physical Amiibo NFC tags and store it on the Flipper Zero.
-- **Displaying Amiibo information**: Show detailed information about the Amiibo, including character name, series, type, usage, and other metadata. This information is sourced from the AmiiboAPI (https://amiiboapi.com/).
-- **Emulating Amiibo NFC tags**: Emulate the loaded Amiibo data, allowing the Flipper Zero to function as the corresponding Amiibo NFC tag.
-- **Writing Amiibo data to NFC tags**: Write currently loaded Amiibo data to blank NTAG 215 tags compatible with Amiibo.
-- **Generating Amiibo data**: Create a synthetic Amiibo data structure based on selected character.  The result would be a blank Amiibo data file that can be written to a blank NTAG 215 tag.
-- **Randomising the unique identifier (UID)**: Modify the UID of the loaded Amiibo data to a random valid value, allowing one tag to be used as multiple different Amiibo.
+- **Reading NTAG215 character NFC tags**: Read data from physical NTAG215 gaming tags and store it on the Flipper Zero.
+- **Displaying character information**: Show detailed information about the tag, including character name, series, type, usage, and other metadata. This information is sourced from the AmiiboAPI (https://amiiboapi.com/).
+- **Emulating NTAG215 gaming NFC tags**: Emulate the loaded data, allowing the Flipper Zero to function as the corresponding character tag.
+- **Writing game data to NFC tags**: Write currently loaded tag data to blank NTAG 215 tags, or a compatible device.
+- **Generating character data**: Create a synthetic character data structure based on selected character.  The result would be a blank data file that can be written to a blank NTAG 215 tag, with no owner or game information.
+- **Randomising the unique identifier (UID)**: Modify the UID of the loaded character data to a random valid value, allowing one tag to be used as multiple different tags.
 - **Emulating a blank tag**: Emulate a blank NTAG 215 tag that can be written into with other devices.
-- **Saving and loading Amiibo data files**: Store generated or read Amiibo data files on the Flipper Zero's storage for later use.
+- **Saving and loading character data files**: Store generated or read data files on the Flipper Zero's storage for later use.
 
 And other combinations of the above features.
 
@@ -29,7 +29,7 @@ This app is not yet available in the official Flipper Zero app store. Instead, y
 
 ## Usage
 
-To use the generation and UID randomisation features, you will need to have a `key_retail.bin` file available in the app data directory (`/apps_data/ami_tool`). This file contains the necessary cryptographic keys to encrypt/decrypt and sign Amiibo data. It is legally Nintendo's intellectual property, and cannot be distributed with this project. You will need to obtain it yourself, for example by dumping it from a console you own that supports Amiibo functionality, or by finding it from other sources. We will not provide instructions on how to obtain this file, as doing so may violate Nintendo's terms of service or local laws.
+To use the generation and UID randomisation features, you will need to have a `key_retail.bin` file available in the app data directory (`/apps_data/ami_tool`). This file contains the necessary cryptographic keys to encrypt/decrypt and sign character data. It is legally Nintendo's intellectual property, and cannot be distributed with this project. You will need to obtain it yourself, for example by dumping it from a console you own that supports such functionality, or by finding it from other sources. We will not provide instructions on how to obtain this file, as doing so may violate Nintendo's terms of service or local laws, but there are plenty of guides online.
 
 Following are some screenshots of the app in action, all the steps of usage are guided within the app itself.
 
@@ -81,10 +81,10 @@ Following are some screenshots of the app in action, all the steps of usage are 
 
 - Thanks to the Flipper Zero community and developers for their continuous support and inspiration.
 - The data used in this project comes from AmiiboAPI (https://amiiboapi.com/).
-- The algorighms and methods for Amiibo data manipulation are based on research and contributions from various online communities dedicated to Amiibo reverse engineering. Including but not limited to:
-  * [Reverse Engineering Nintendo Amiibo (NFC Toy)](https://kevinbrewster.github.io/Amiibo-Reverse-Engineering/), containing a very detailed analysis of the Amiibo data structure.
-  * [amiitool](https://github.com/socram8888/amiitool), a command-line tool for manipulating Amiibo data.
-  * [weebo](https://github.com/bettse/weebo), another flipper zero amiibo tool, which uses amiitool, confirming (for me personally) that the flipper zero can handle the cryptography involved in Amiibo data manipulation.
+- The algorighms and methods for character data manipulation are based on research and contributions from various online communities dedicated to Amiibo reverse engineering. Including but not limited to:
+  * [Reverse Engineering Nintendo Amiibo (NFC Toy)](https://kevinbrewster.github.io/Amiibo-Reverse-Engineering/), containing a very detailed analysis of the data structure.
+  * [amiitool](https://github.com/socram8888/amiitool), a command-line tool for manipulating dumped data. Note that the data is in a different format of what this project uses, and it won't work with the data stored with this app.
+  * [weebo](https://github.com/bettse/weebo), another flipper zero NTAG215 tool, which uses amiitool, confirming (for me personally) that the flipper zero can handle the cryptography involved in data manipulation.
 
 ## License and Disclaimer
 
@@ -92,6 +92,6 @@ This project and its source code is licensed under the GNU General Public Licens
 
 The data files used in this project are sourced from AmiiboAPI (https://amiiboapi.com/), which is licensed under the [MIT License](https://github.com/N3evin/AmiiboAPI/blob/master/LICENSE). A copy of it is included in the files directory for inclusion in the release package.
 
-This project is not affiliated with or endorsed by Nintendo, AmiiboAPI, or any other tools or libraries used or mentioned herein. The developers of this project do not encourage or condone the use of this project for any illegal activities, including but not limited to copyright infringement or unauthorized duplication of Amiibo data. This project is intended for educational, research, and personal use only. Users are responsible for ensuring that their use of this project complies with all applicable laws and regulations.
+This project is not affiliated with or endorsed by Nintendo, AmiiboAPI, or any other tools or libraries used or mentioned herein. The developers of this project do not encourage or condone the use of this project for any illegal activities, including but not limited to copyright infringement or unauthorized duplication of proprietary data. This project is intended for educational, research, and personal use only. Users are responsible for ensuring that their use of this project complies with all applicable laws and regulations.
 
 In some jurisdictions, the use of radio equipment like the Flipper Zero may be subject to specific regulations. Users are responsible for ensuring that their use of the Flipper Zero and this project complies with all applicable laws and regulations in their jurisdiction.

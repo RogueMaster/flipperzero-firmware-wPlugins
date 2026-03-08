@@ -1,6 +1,6 @@
 App(
     appid="ami_tool",
-    name="Amiibo Toolkit",
+    name="AmiTool",
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
     entry_point="ami_tool_app",
@@ -11,6 +11,6 @@ App(
     fap_category="NFC",
     fap_author="Firefox2100",
     fap_weburl="https://github.com/Firefox2100/flipper-amiibo-toolkit",
-    fap_version="0.2",
-    fap_description="An Amiibo toolkit for Flipper Zero",
+    fap_version="0.2.1",
+    fap_description="An NTAG215 toolkit for Flipper Zero to work with tags used with gaming consoles.",
 )
