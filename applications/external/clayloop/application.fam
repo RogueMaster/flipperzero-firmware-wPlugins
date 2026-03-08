@@ -1,0 +1,14 @@
+App(
+    appid="clayloop",
+    name="ClayLoop",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="clayloop_app",
+    stack_size=10 * 1024,
+    fap_version=(1, 0),
+    fap_category="Sub-GHz",
+    fap_icon="clayloop.png",
+    fap_icon_assets="images",
+    fap_author="Bobby Gibbs",
+    fap_weburl="https://github.com/b0bby225/ClayLoop",
+    fap_description="Clay pigeon/skeet shooting controller. Transmits Sub-GHz .sub files repeatedly with configurable delay, duration, interval, repeats (1-Inf), and 1-4 file groups. LED/beep countdown, vibration, mid-cancel, persistent settings/paths, reset combo.",
+)

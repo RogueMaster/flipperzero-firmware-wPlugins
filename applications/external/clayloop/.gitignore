@@ -1,0 +1,27 @@
+# Flipper Zero build artifacts
+build/
+dist/
+*.o
+*.elf
+*.map
+*.fap
+*.d
+
+# ufbt SDK cache
+.ufbt/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Auto-generated icon headers
+*_icons.h
+*_icons.c
