@@ -11,5 +11,4 @@ App(
     fap_weburl="https://github.com/regaly/flipperzero-lidar_emulator",
     fap_version="0.2",
     fap_description="This app can be used to emulate infrared signals of different LIDARs.",
-    #  [v0.2 Updates: External GPIO IR device support (By mistrustt)](https://github.com/mistrustt/flipperzero-lidar_emulator)
 )

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <furi.h>
 #include <gui/gui.h>
 #include <gui/view.h>
 #include <gui/view_dispatcher.h>
@@ -9,20 +10,21 @@
 #include <gui/modules/variable_item_list.h>
 
 #include <notification/notification_messages.h>
-#include <infrared/worker/infrared_worker.h>
-#include <power/power_service/power.h>
 #include <expansion/expansion.h>
 #include <furi_hal.h>
-#include <furi_hal_infrared.h>
+#include <furi_hal_gpio.h>
+#include <furi_hal_resources.h>
 
 #include "scenes/lidaremulator_scene.h"
 
 #include "view_hijacker.h"
 
-typedef struct {
-    FuriHalInfraredTxPin tx_pin;
-    bool is_otg_enabled;
-} LidarEmulatorAppState;
+/** IR output selection: internal LED or external via extension header A7 */
+typedef enum {
+    LidarEmulatorIrOutputInternal,
+    LidarEmulatorIrOutputExternal,
+    LidarEmulatorIrOutputNum,
+} LidarEmulatorIrOutput;
 
 struct LidarEmulatorApp {
     SceneManager* scene_manager;
@@ -31,25 +33,29 @@ struct LidarEmulatorApp {
     Gui* gui;
 
     Submenu* submenu;
-    VariableItemList* var_item_list;
+    VariableItemList* variable_item_list;
 
     ViewInputCallback tmp_input_callback;
 
     ViewHijacker* view_hijacker;
 
-    LidarEmulatorAppState app_state;
+    /** Selected IR output pin (internal vs external A7) */
+    LidarEmulatorIrOutput ir_output;
+
+    /** Enable 5V on extension header when using external IR */
+    bool ir_ext_5v_enabled;
+
+    /** Transmit worker thread (non-null while transmitting) */
+    FuriThread* transmit_thread;
 };
 
 typedef struct LidarEmulatorApp LidarEmulatorApp;
 
-//Enumeration of all used view types.
+/** Load settings from storage into app state. */
+void lidaremulator_load_settings(LidarEmulatorApp* app);
+
+/** Enumeration of all used view types. */
 typedef enum {
     LidarEmulatorViewSubmenu,
     LidarEmulatorViewVariableList,
 } LidarEmulatorView;
-
-// GPIO Settings functions
-void lidaremulator_set_tx_pin(LidarEmulatorApp* app, FuriHalInfraredTxPin tx_pin);
-void lidaremulator_enable_otg(LidarEmulatorApp* app, bool enable);
-void lidaremulator_load_settings(LidarEmulatorApp* app);
-void lidaremulator_save_settings(LidarEmulatorApp* app);
