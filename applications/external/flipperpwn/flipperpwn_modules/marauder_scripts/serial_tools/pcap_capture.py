@@ -43,57 +43,62 @@ import serial.tools.list_ports
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-BAUD_RATE   = 115200
+BAUD_RATE = 115200
 TIMEOUT_SEC = 1.0
 
-PCAP_BEGIN  = b"[BUF/BEGIN]"
-PCAP_CLOSE  = b"[BUF/CLOSE]"
+PCAP_BEGIN = b"[BUF/BEGIN]"
+PCAP_CLOSE = b"[BUF/CLOSE]"
 
-ANSI_RE = re.compile(rb'\x1b\[[0-9;]*[mGKHF]')
+ANSI_RE = re.compile(rb"\x1b\[[0-9;]*[mGKHF]")
 
 # libpcap global header (little-endian, 802.11 link type = 105)
 PCAP_GLOBAL_HEADER = struct.pack(
     "<IHHiIII",
     0xA1B2C3D4,  # magic number
-    2,           # major version
-    4,           # minor version
-    0,           # thiszone (UTC)
-    0,           # sigfigs
-    65535,       # snaplen
-    105,         # network (LINKTYPE_IEEE802_11)
+    2,  # major version
+    4,  # minor version
+    0,  # thiszone (UTC)
+    0,  # sigfigs
+    65535,  # snaplen
+    105,  # network (LINKTYPE_IEEE802_11)
 )
 
 SNIFFER_COMMANDS = {
-    "sniffraw":    "sniffraw",
+    "sniffraw": "sniffraw",
     "sniffbeacon": "sniffbeacon",
     "sniffdeauth": "sniffdeauth",
-    "sniffpmkid":  None,  # built dynamically
-    "sniffprobe":  "sniffprobe",
+    "sniffpmkid": None,  # built dynamically
+    "sniffprobe": "sniffprobe",
 }
 
 FLIPPER_VIDS = {0x0483, 0x303A, 0x10C4, 0x1A86}
 
 # ── Port Detection ───────────────────────────────────────────────────────────
 
+
 def find_port():
     for p in serial.tools.list_ports.comports():
         if p.vid in FLIPPER_VIDS:
             return p.device
-        if any(k in (p.description or "").lower()
-               for k in ["flipper", "esp32", "cp210", "ch340", "ft232", "cdc"]):
+        if any(
+            k in (p.description or "").lower()
+            for k in ["flipper", "esp32", "cp210", "ch340", "ft232", "cdc"]
+        ):
             return p.device
     ports = list(serial.tools.list_ports.comports())
     return ports[0].device if ports else None
 
+
 # ── Statistics ───────────────────────────────────────────────────────────────
+
 
 class Stats:
     def __init__(self):
         self.frames_received = 0
-        self.bytes_received  = 0
-        self.files_written   = 0
-        self.text_lines      = 0
-        self.start_time      = time.time()
+        self.bytes_received = 0
+        self.files_written = 0
+        self.text_lines = 0
+        self.start_time = time.time()
 
     def elapsed(self) -> str:
         e = int(time.time() - self.start_time)
@@ -107,18 +112,20 @@ class Stats:
             f"Files: {self.files_written}"
         )
 
+
 # ── PCAP Capture Engine ──────────────────────────────────────────────────────
+
 
 class PcapEngine:
     """Handles the [BUF/BEGIN]..[BUF/CLOSE] PCAP stream from Marauder."""
 
     def __init__(self, output_dir: str, stats: Stats, verbose: bool = False):
         os.makedirs(output_dir, exist_ok=True)
-        self.output_dir  = output_dir
-        self.stats       = stats
-        self.verbose     = verbose
-        self._buf        = bytearray()
-        self._capturing  = False
+        self.output_dir = output_dir
+        self.stats = stats
+        self.verbose = verbose
+        self._buf = bytearray()
+        self._capturing = False
         self._file_count = 0
         self._current_file = None
         self._current_path = None
@@ -167,8 +174,8 @@ class PcapEngine:
             self._current_file = None
             size = len(PCAP_GLOBAL_HEADER) + len(self._buf)
             self.stats.frames_received += 1
-            self.stats.bytes_received  += size
-            self.stats.files_written   += 1
+            self.stats.bytes_received += size
+            self.stats.files_written += 1
             print(
                 f"\n\033[32m[pcap]\033[0m Saved "
                 f"\033[1m{os.path.basename(self._current_path)}\033[0m "
@@ -190,14 +197,16 @@ class PcapEngine:
                 self.stats.text_lines += 1
                 print(f"\033[90m  {line}\033[0m")
 
+
 # ── Serial Reader Thread ──────────────────────────────────────────────────────
+
 
 class ReaderThread(threading.Thread):
     def __init__(self, ser: serial.Serial, engine: PcapEngine):
         super().__init__(daemon=True)
-        self.ser    = ser
+        self.ser = ser
         self.engine = engine
-        self._stop  = threading.Event()
+        self._stop = threading.Event()
 
     def stop(self):
         self._stop.set()
@@ -211,14 +220,16 @@ class ReaderThread(threading.Thread):
             if chunk:
                 self.engine.feed(chunk)
 
+
 # ── Progress Printer ──────────────────────────────────────────────────────────
+
 
 class ProgressThread(threading.Thread):
     def __init__(self, stats: Stats, duration: int | None):
         super().__init__(daemon=True)
-        self.stats    = stats
+        self.stats = stats
         self.duration = duration
-        self._stop    = threading.Event()
+        self._stop = threading.Event()
 
     def stop(self):
         self._stop.set()
@@ -249,7 +260,9 @@ class ProgressThread(threading.Thread):
             sys.stdout.flush()
             self._stop.wait(1.0)
 
+
 # ── Main ─────────────────────────────────────────────────────────────────────
+
 
 def build_sniffer_command(args) -> str:
     mode = args.mode
@@ -266,24 +279,44 @@ def build_sniffer_command(args) -> str:
         base += f" -c {args.channel}"
     return base
 
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="PCAP capture tool for WiFi Marauder"
+    parser = argparse.ArgumentParser(description="PCAP capture tool for WiFi Marauder")
+    parser.add_argument("--port", "-p", help="Serial port (auto-detects if omitted)")
+    parser.add_argument("--baud", "-b", type=int, default=BAUD_RATE)
+    parser.add_argument(
+        "--mode",
+        "-m",
+        default="sniffraw",
+        choices=list(SNIFFER_COMMANDS.keys()),
+        help="Sniffer mode (default: sniffraw)",
     )
-    parser.add_argument("--port",     "-p", help="Serial port (auto-detects if omitted)")
-    parser.add_argument("--baud",     "-b", type=int, default=BAUD_RATE)
-    parser.add_argument("--mode",     "-m", default="sniffraw",
-                        choices=list(SNIFFER_COMMANDS.keys()),
-                        help="Sniffer mode (default: sniffraw)")
-    parser.add_argument("--duration", "-d", type=int, default=None,
-                        help="Capture duration in seconds (default: run until Ctrl+C)")
-    parser.add_argument("--channel",  "-c", type=int, default=None,
-                        help="WiFi channel to capture on (default: all channels)")
-    parser.add_argument("--deauth",         action="store_true",
-                        help="Send deauth frames during PMKID capture (-d flag)")
-    parser.add_argument("--out",      "-o", default="./pcap_captures",
-                        help="Output directory for .pcap files (default: ./pcap_captures)")
-    parser.add_argument("--verbose",  "-v", action="store_true")
+    parser.add_argument(
+        "--duration",
+        "-d",
+        type=int,
+        default=None,
+        help="Capture duration in seconds (default: run until Ctrl+C)",
+    )
+    parser.add_argument(
+        "--channel",
+        "-c",
+        type=int,
+        default=None,
+        help="WiFi channel to capture on (default: all channels)",
+    )
+    parser.add_argument(
+        "--deauth",
+        action="store_true",
+        help="Send deauth frames during PMKID capture (-d flag)",
+    )
+    parser.add_argument(
+        "--out",
+        "-o",
+        default="./pcap_captures",
+        help="Output directory for .pcap files (default: ./pcap_captures)",
+    )
+    parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
     port = args.port or find_port()
@@ -296,7 +329,9 @@ def main():
     print(f"\033[1mMarauder PCAP Capture\033[0m  —  Authorized testing only")
     print(f"Port:     {port} @ {args.baud} baud")
     print(f"Mode:     {sniffer_cmd}")
-    print(f"Duration: {'∞ (Ctrl+C to stop)' if not args.duration else f'{args.duration}s'}")
+    print(
+        f"Duration: {'∞ (Ctrl+C to stop)' if not args.duration else f'{args.duration}s'}"
+    )
     print(f"Output:   {os.path.abspath(args.out)}")
     print()
 
@@ -306,9 +341,9 @@ def main():
         print(f"Failed to open {port}: {e}")
         sys.exit(1)
 
-    stats    = Stats()
-    engine   = PcapEngine(args.out, stats, verbose=args.verbose)
-    reader   = ReaderThread(ser, engine)
+    stats = Stats()
+    engine = PcapEngine(args.out, stats, verbose=args.verbose)
+    reader = ReaderThread(ser, engine)
     progress = ProgressThread(stats, args.duration)
 
     # Graceful shutdown on SIGINT
@@ -341,6 +376,7 @@ def main():
         # Run until Ctrl+C
         while True:
             time.sleep(1)
+
 
 if __name__ == "__main__":
     main()

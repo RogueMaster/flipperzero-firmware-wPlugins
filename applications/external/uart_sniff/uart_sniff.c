@@ -322,6 +322,7 @@ static UartSniffApp* uart_sniff_app_alloc(void) {
 
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, app_navigation_cb);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, uart_sniff_custom_event_cb);

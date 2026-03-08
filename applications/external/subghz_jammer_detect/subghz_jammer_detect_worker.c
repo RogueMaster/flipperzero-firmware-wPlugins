@@ -1,5 +1,5 @@
-#include "subghz_jammer_worker.h"
-#include "subghz_jammer.h"
+#include "subghz_jammer_detect_worker.h"
+#include "subghz_jammer_detect.h"
 
 #include <furi.h>
 #include <furi_hal.h>

@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "subghz_jammer.h"
-#include "subghz_jammer_worker.h"
+#include "subghz_jammer_detect.h"
+#include "subghz_jammer_detect_worker.h"
 
 #define TAG "SubGhzJammer"
 
@@ -287,6 +287,7 @@ static JammerApp* jammer_app_alloc(void) {
 
     /* View dispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
@@ -389,7 +390,7 @@ static void jammer_app_free(JammerApp* app) {
 
 /* ── Entry point ── */
 
-int32_t subghz_jammer_app(void* p) {
+int32_t subghz_jammer_detect_app(void* p) {
     UNUSED(p);
 
     JammerApp* app = jammer_app_alloc();

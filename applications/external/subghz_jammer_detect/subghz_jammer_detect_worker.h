@@ -1,6 +1,6 @@
 #pragma once
 
-#include "subghz_jammer.h"
+#include "subghz_jammer_detect.h"
 #include <furi.h>
 
 typedef struct JammerWorker JammerWorker;

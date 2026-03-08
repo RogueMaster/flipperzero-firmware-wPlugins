@@ -38,17 +38,17 @@ import serial.tools.list_ports
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
-BAUD_RATE    = 115200
-PCAP_DIR     = "./pcap_captures"
+BAUD_RATE = 115200
+PCAP_DIR = "./pcap_captures"
 HISTORY_FILE = os.path.expanduser("~/.marauder_history")
-TIMEOUT      = 1.0
+TIMEOUT = 1.0
 
 # PCAP frame markers (11 bytes each, from WiFi Marauder source)
-PCAP_BEGIN   = b"[BUF/BEGIN]"
-PCAP_CLOSE   = b"[BUF/CLOSE]"
+PCAP_BEGIN = b"[BUF/BEGIN]"
+PCAP_CLOSE = b"[BUF/CLOSE]"
 
 # ANSI escape sequence pattern
-ANSI_RE = re.compile(rb'\x1b\[[0-9;]*[mGKHF]')
+ANSI_RE = re.compile(rb"\x1b\[[0-9;]*[mGKHF]")
 
 # Known VID/PID for Flipper Zero USB and ESP32 boards
 FLIPPER_VIDS = {0x0483, 0x303A, 0x10C4, 0x1A86}
@@ -95,6 +95,7 @@ MACROS = {
 
 # ── Port Detection ───────────────────────────────────────────────────────────
 
+
 def find_marauder_port():
     """Auto-detect the most likely Flipper/ESP32 serial port."""
     ports = list(serial.tools.list_ports.comports())
@@ -103,8 +104,10 @@ def find_marauder_port():
     for p in ports:
         if p.vid in FLIPPER_VIDS:
             candidates.append((0, p.device))  # high priority
-        elif any(kw in (p.description or "").lower()
-                 for kw in ["flipper", "esp32", "cp210", "ch340", "ft232", "cdc"]):
+        elif any(
+            kw in (p.description or "").lower()
+            for kw in ["flipper", "esp32", "cp210", "ch340", "ft232", "cdc"]
+        ):
             candidates.append((1, p.device))
         elif p.device:
             candidates.append((2, p.device))
@@ -115,7 +118,9 @@ def find_marauder_port():
     candidates.sort()
     return candidates[0][1]
 
+
 # ── PCAP Handler ─────────────────────────────────────────────────────────────
+
 
 class PcapCapture:
     """Buffers raw PCAP data between [BUF/BEGIN] and [BUF/CLOSE] markers
@@ -167,7 +172,9 @@ class PcapCapture:
         print(f"\n\033[32m[pcap]\033[0m Saved {len(self._buf)} bytes → {fname}")
         self._buf = bytearray()
 
+
 # ── Reader Thread ─────────────────────────────────────────────────────────────
+
 
 class SerialReader(threading.Thread):
     """Reads from serial port in background, handles PCAP framing, prints output."""
@@ -199,25 +206,28 @@ class SerialReader(threading.Thread):
 
             # Print text output
             for byte in text:
-                if byte == ord('\n'):
+                if byte == ord("\n"):
                     line = line_buf.decode("utf-8", errors="replace").rstrip()
                     if line:
                         # Print on its own line (clear current input line first)
                         sys.stdout.write(f"\r\033[K\033[90m> {line}\033[0m\n")
                         sys.stdout.flush()
                     line_buf.clear()
-                elif byte == ord('\r'):
+                elif byte == ord("\r"):
                     pass
                 else:
                     line_buf.append(byte)
 
+
 # ── Command Dispatch ──────────────────────────────────────────────────────────
+
 
 def send_command(ser: serial.Serial, cmd: str):
     """Send a single command to Marauder."""
     payload = (cmd.strip() + "\n").encode("utf-8")
     ser.write(payload)
     ser.flush()
+
 
 def run_macro(ser: serial.Serial, name: str):
     """Execute a named macro sequence."""
@@ -228,14 +238,18 @@ def run_macro(ser: serial.Serial, name: str):
     steps = MACROS[name]
     print(f"\033[33m[macro]\033[0m Running '{name}' ({len(steps)} steps)...")
     for cmd, delay in steps:
-        print(f"\033[33m[macro]\033[0m  → {cmd}" + (f"  (wait {delay}s)" if delay else ""))
+        print(
+            f"\033[33m[macro]\033[0m  → {cmd}" + (f"  (wait {delay}s)" if delay else "")
+        )
         send_command(ser, cmd)
         if delay:
             time.sleep(delay)
     print(f"\033[33m[macro]\033[0m '{name}' complete.")
 
+
 def print_help():
-    print("""
+    print(
+        """
 \033[1mMarauder Serial Shell\033[0m
 
 Built-in commands:
@@ -266,20 +280,29 @@ Marauder quick reference:
   reboot                          Reboot ESP32
 
 Macros:
-""")
+"""
+    )
     for name, steps in MACROS.items():
         cmds = " → ".join(s[0] for s in steps)
         print(f"  {name:<22} {cmds}")
     print()
 
+
 # ── Main ─────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="Interactive CLI for WiFi Marauder over serial"
     )
     parser.add_argument("port", nargs="?", help="Serial port (auto-detects if omitted)")
-    parser.add_argument("baud", nargs="?", type=int, default=BAUD_RATE, help="Baud rate (default: 115200)")
+    parser.add_argument(
+        "baud",
+        nargs="?",
+        type=int,
+        default=BAUD_RATE,
+        help="Baud rate (default: 115200)",
+    )
     parser.add_argument("--pcap-dir", default=PCAP_DIR, help="PCAP output directory")
     args = parser.parse_args()
 
@@ -348,6 +371,7 @@ def main():
         reader.stop()
         ser.close()
         print("Disconnected.")
+
 
 if __name__ == "__main__":
     main()
