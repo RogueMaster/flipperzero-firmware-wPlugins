@@ -13,7 +13,7 @@
 
 /* Including external dependencies */
 #include <OCTET_STRING.h>
-#include <NativeInteger.h>
+#include "SoMediaEdgeType.h"
 #include <constr_SEQUENCE.h>
 
 #ifdef __cplusplus
@@ -24,7 +24,7 @@ extern "C" {
 typedef struct Pacs2 {
 	OCTET_STRING_t	*bits	/* OPTIONAL */;
 	OCTET_STRING_t	*oid	/* OPTIONAL */;
-	long	*type	/* OPTIONAL */;
+	SoMediaEdgeType_t	*type	/* OPTIONAL */;
 	
 	/* Context for parsing across buffer boundaries */
 	asn_struct_ctx_t _asn_ctx;

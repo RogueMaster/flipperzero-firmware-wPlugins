@@ -5,7 +5,7 @@
 
 char seader_scene_apdu_runner_update_text[24];
 
-void seader_apdu_runner_worker_callback(SeaderWorkerEvent event, void* context) {
+void seader_apdu_runner_worker_callback(uint32_t event, void* context) {
     Seader* seader = context;
     view_dispatcher_send_custom_event(seader->view_dispatcher, event);
 }

@@ -3,6 +3,11 @@
 #include "../seader_i.h"
 #include "../trace_log.h"
 
+void seader_sam_check_worker_callback(uint32_t event, void* context) {
+    Seader* seader = context;
+    view_dispatcher_send_custom_event(seader->view_dispatcher, event);
+}
+
 void seader_scene_read_prepare(Seader* seader) {
     furi_assert(seader);
     FURI_LOG_D("SceneRead", "Prepare session sam=%d", seader->samCommand);
@@ -32,18 +37,6 @@ void seader_scene_read_cleanup(Seader* seader) {
 
     if(seader_sam_has_active_card(seader)) {
         seader_send_no_card_detected(seader);
-    }
-
-    if(seader->poller) {
-        nfc_poller_stop(seader->poller);
-        nfc_poller_free(seader->poller);
-        seader->poller = NULL;
-    }
-
-    if(seader->picopass_poller) {
-        picopass_poller_stop(seader->picopass_poller);
-        picopass_poller_free(seader->picopass_poller);
-        seader->picopass_poller = NULL;
     }
 
     popup_reset(seader->popup);

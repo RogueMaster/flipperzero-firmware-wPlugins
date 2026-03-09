@@ -62,9 +62,10 @@
      WorkerEvtCtrlLineSet | WorkerEvtSamTxComplete)
 #define WORKER_ALL_TX_EVENTS (WorkerEvtTxStop | WorkerEvtSamRx)
 
-#define SEADER_TEXT_STORE_SIZE 128
-#define SEADER_MAX_ATR_SIZE    33
-#define MAX_FRAME_HEADERS      32
+#define SEADER_TEXT_STORE_SIZE         128
+#define SEADER_MAX_ATR_SIZE            33
+#define MAX_FRAME_HEADERS              32
+#define SEADER_MAX_DETECTED_CARD_TYPES 3
 
 enum SeaderCustomEvent {
     // Reserve first 100 events for button types and indexes, starting from 0
@@ -110,7 +111,6 @@ typedef enum {
 
 typedef enum {
     SeaderSamIntentNone,
-    SeaderSamIntentReadPacs,
     SeaderSamIntentReadPacs2,
     SeaderSamIntentConfig,
     SeaderSamIntentMaintenance,
@@ -155,6 +155,9 @@ struct Seader {
     PicopassPoller* picopass_poller;
 
     NfcDevice* nfc_device;
+    SeaderCredentialType detected_card_types[SEADER_MAX_DETECTED_CARD_TYPES];
+    size_t detected_card_type_count;
+    SeaderCredentialType selected_read_type;
 
     PluginManager* plugin_manager;
     PluginWiegand* plugin_wiegand;

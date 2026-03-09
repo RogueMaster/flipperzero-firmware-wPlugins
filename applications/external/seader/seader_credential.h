@@ -26,6 +26,15 @@ typedef enum {
 } SeaderCredentialType;
 
 typedef enum {
+    SeaderPacsMediaTypeUnknown = 0,
+    SeaderPacsMediaTypeDesfire = 1,
+    SeaderPacsMediaTypeMifare = 2,
+    SeaderPacsMediaTypePicopass = 3,
+    SeaderPacsMediaTypeMifarePlus = 6,
+    SeaderPacsMediaTypeSeos = 7,
+} SeaderPacsMediaType;
+
+typedef enum {
     SeaderCredentialSaveFormatAgnostic,
     SeaderCredentialSaveFormatPicopass,
     SeaderCredentialSaveFormatRFID,
@@ -44,6 +53,8 @@ typedef struct {
     uint8_t diversifier_len;
     uint8_t sio_start_block; // for iClass SE vs iClass SR
     bool isDesfireEV2;
+    bool has_pacs_media_type;
+    SeaderPacsMediaType pacs_media_type;
     SeaderCredentialType type;
     SeaderCredentialSaveFormat save_format;
     char name[SEADER_CRED_NAME_MAX_LEN + 1];
@@ -70,3 +81,5 @@ bool seader_file_select(SeaderCredential* cred);
 void seader_credential_clear(SeaderCredential* cred);
 
 bool seader_credential_delete(SeaderCredential* cred, bool use_load_path);
+
+const char* seader_credential_get_type_label(const SeaderCredential* cred);

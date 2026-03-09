@@ -51,8 +51,7 @@ static const uint8_t seader_picopass_zero[PICOPASS_BLOCK_LEN] =
 
 SeaderCredential* seader_credential_alloc() {
     SeaderCredential* seader_dev = malloc(sizeof(SeaderCredential));
-    seader_dev->credential = 0;
-    seader_dev->bit_length = 0;
+    memset(seader_dev, 0, sizeof(SeaderCredential));
     memset(seader_dev->sio, 0xff, sizeof(seader_dev->sio));
     seader_dev->storage = furi_record_open(RECORD_STORAGE);
     seader_dev->dialogs = furi_record_open(RECORD_DIALOGS);
@@ -74,6 +73,44 @@ void seader_credential_set_name(SeaderCredential* cred, const char* name) {
     strlcpy(cred->name, name, SEADER_CRED_NAME_MAX_LEN);
 }
 
+const char* seader_credential_get_type_label(const SeaderCredential* cred) {
+    furi_assert(cred);
+
+    if(cred->has_pacs_media_type) {
+        switch(cred->pacs_media_type) {
+        case SeaderPacsMediaTypeUnknown:
+            return "Unknown";
+        case SeaderPacsMediaTypeDesfire:
+            return "DESFire";
+        case SeaderPacsMediaTypeMifare:
+            return "MIFARE";
+        case SeaderPacsMediaTypePicopass:
+            return "PicoPass";
+        case SeaderPacsMediaTypeMifarePlus:
+            return "MIFARE Plus";
+        case SeaderPacsMediaTypeSeos:
+            return "Seos";
+        }
+    }
+
+    switch(cred->type) {
+    case SeaderCredentialTypeNone:
+        return "Unknown";
+    case SeaderCredentialTypePicopass:
+        return "Picopass";
+    case SeaderCredentialType14A:
+        return "14443A";
+    case SeaderCredentialTypeMifareClassic:
+        return "Mifare Classic";
+    case SeaderCredentialTypeVirtual:
+        return "Virtual";
+    case SeaderCredentialTypeConfig:
+        return "Config";
+    }
+
+    return "";
+}
+
 static bool seader_credential_load(SeaderCredential* cred, FuriString* path, bool show_dialog) {
     bool parsed = false;
     FlipperFormat* file = flipper_format_file_alloc(cred->storage);
@@ -81,6 +118,8 @@ static bool seader_credential_load(SeaderCredential* cred, FuriString* path, boo
     temp_str = furi_string_alloc();
     bool deprecated_version = false;
     cred->type = SeaderCredentialTypeNone;
+    cred->has_pacs_media_type = false;
+    cred->pacs_media_type = SeaderPacsMediaTypeUnknown;
 
     if(cred->loading_cb) {
         cred->loading_cb(cred->loading_cb_ctx, true);
@@ -610,6 +649,8 @@ void seader_credential_clear(SeaderCredential* cred) {
     cred->credential = 0;
     cred->bit_length = 0;
     cred->type = SeaderCredentialTypeNone;
+    cred->has_pacs_media_type = false;
+    cred->pacs_media_type = SeaderPacsMediaTypeUnknown;
     memset(cred->sio, 0, sizeof(cred->sio));
     cred->sio_len = 0;
     cred->sio_start_block = 0;

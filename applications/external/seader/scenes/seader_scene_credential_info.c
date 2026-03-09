@@ -31,16 +31,7 @@ void seader_scene_credential_info_on_enter(void* context) {
     if(credential->bit_length > 0) {
         furi_string_cat_printf(bitlength_str, "%d bit", credential->bit_length);
         furi_string_cat_printf(credential_str, "0x%llX", credential->credential);
-
-        if(credential->type == SeaderCredentialTypeNone) {
-            furi_string_set(type_str, "Unknown");
-        } else if(credential->type == SeaderCredentialType14A) {
-            furi_string_set(type_str, "14443A");
-        } else if(credential->type == SeaderCredentialTypePicopass) {
-            furi_string_set(type_str, "Picopass");
-        } else {
-            furi_string_set(type_str, "");
-        }
+        furi_string_set(type_str, seader_credential_get_type_label(credential));
     }
 
     widget_add_button_element(

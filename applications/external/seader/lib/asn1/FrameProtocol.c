@@ -17,9 +17,9 @@ static const asn_INTEGER_enum_map_t asn_MAP_FrameProtocol_value2enum_1[] = {
 	{ 4,	6,	"iclass" }
 };
 static const unsigned int asn_MAP_FrameProtocol_enum2value_1[] = {
-	0,	/* none(0) */
 	2,	/* iclass(4) */
-	1	/* nfc(2) */
+	1,	/* nfc(2) */
+	0	/* none(0) */
 };
 static const asn_INTEGER_specifics_t asn_SPC_FrameProtocol_specs_1 = {
 	asn_MAP_FrameProtocol_value2enum_1,	/* "tag" => N; sorted by tag */
@@ -47,3 +47,4 @@ asn_TYPE_descriptor_t asn_DEF_FrameProtocol = {
 	0, 0,	/* Defined elsewhere */
 	&asn_SPC_FrameProtocol_specs_1	/* Additional specs */
 };
+

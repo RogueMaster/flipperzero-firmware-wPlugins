@@ -12,11 +12,11 @@
 #include <asn_application.h>
 
 /* Including external dependencies */
-#include "RequestPacs.h"
 #include <NULL.h>
 #include "CardDetected.h"
 #include <OCTET_STRING.h>
 #include "NoArguments.h"
+#include "RequestPacs.h"
 #include <constr_CHOICE.h>
 
 #ifdef __cplusplus
@@ -26,7 +26,6 @@ extern "C" {
 /* Dependencies */
 typedef enum SamCommand_PR {
 	SamCommand_PR_NOTHING,	/* No components present */
-	SamCommand_PR_requestPacs,
 	SamCommand_PR_version,
 	SamCommand_PR_cardDetected,
 	SamCommand_PR_processSNMPMessage,
@@ -40,7 +39,6 @@ typedef enum SamCommand_PR {
 typedef struct SamCommand {
 	SamCommand_PR present;
 	union SamCommand_u {
-		RequestPacs_t	 requestPacs;
 		NULL_t	 version;
 		CardDetected_t	 cardDetected;
 		OCTET_STRING_t	 processSNMPMessage;
@@ -57,7 +55,7 @@ typedef struct SamCommand {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_SamCommand;
 extern asn_CHOICE_specifics_t asn_SPC_SamCommand_specs_1;
-extern asn_TYPE_member_t asn_MBR_SamCommand_1[8];
+extern asn_TYPE_member_t asn_MBR_SamCommand_1[7];
 
 #ifdef __cplusplus
 }

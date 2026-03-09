@@ -29,7 +29,7 @@ asn_TYPE_member_t asn_MBR_Pacs2_1[] = {
 	{ ATF_POINTER, 1, offsetof(struct Pacs2, type),
 		(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
 		-1,	/* IMPLICIT tag at current level */
-		&asn_DEF_NativeInteger,
+		&asn_DEF_SoMediaEdgeType,
 		0,
 		{ 0, 0, 0 },
 		0, 0, /* No default value */

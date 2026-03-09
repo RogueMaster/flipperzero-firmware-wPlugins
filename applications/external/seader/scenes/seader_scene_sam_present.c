@@ -1,13 +1,11 @@
 #include "../seader_i.h"
 enum SubmenuIndex {
-    SubmenuIndexReadPicopass,
-    SubmenuIndexRead14a,
-    SubmenuIndexReadMfc,
-    SubmenuIndexReadConfigCard,
+    SubmenuIndexRead,
     SubmenuIndexSaved,
     SubmenuIndexAPDURunner,
     SubmenuIndexSamInfo,
     SubmenuIndexFwVersion,
+    SubmenuIndexReadConfigCard,
 };
 
 static uint8_t fwChecks = 3;
@@ -25,23 +23,7 @@ void seader_scene_sam_present_on_update(void* context) {
     submenu_reset(submenu);
 
     submenu_add_item(
-        submenu,
-        "Read Picopass",
-        SubmenuIndexReadPicopass,
-        seader_scene_sam_present_submenu_callback,
-        seader);
-    submenu_add_item(
-        submenu,
-        "Read 14443A",
-        SubmenuIndexRead14a,
-        seader_scene_sam_present_submenu_callback,
-        seader);
-    submenu_add_item(
-        submenu,
-        "Read MFC",
-        SubmenuIndexReadMfc,
-        seader_scene_sam_present_submenu_callback,
-        seader);
+        submenu, "Read HF", SubmenuIndexRead, seader_scene_sam_present_submenu_callback, seader);
     submenu_add_item(
         submenu, "Saved", SubmenuIndexSaved, seader_scene_sam_present_submenu_callback, seader);
 
@@ -95,14 +77,9 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(seader->scene_manager, SeaderSceneSamPresent, event.event);
 
-        if(event.event == SubmenuIndexReadPicopass) {
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneReadPicopass);
+        if(event.event == SubmenuIndexRead) {
+            scene_manager_next_scene(seader->scene_manager, SeaderSceneRead);
             consumed = true;
-        } else if(event.event == SubmenuIndexRead14a) {
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneRead14a);
-            consumed = true;
-        } else if(event.event == SubmenuIndexReadMfc) {
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneReadMfc);
         } else if(event.event == SubmenuIndexReadConfigCard) {
             scene_manager_set_scene_state(
                 seader->scene_manager, SeaderSceneSamPresent, SubmenuIndexReadConfigCard);

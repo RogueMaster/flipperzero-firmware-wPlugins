@@ -34,6 +34,9 @@ Seader* seader_alloc() {
     seader->samCommand = SamCommand_PR_NOTHING;
     seader->sam_state = SeaderSamStateIdle;
     seader->sam_intent = SeaderSamIntentNone;
+    memset(seader->detected_card_types, 0, sizeof(seader->detected_card_types));
+    seader->detected_card_type_count = 0;
+    seader->selected_read_type = SeaderCredentialTypeNone;
 
     seader->worker = seader_worker_alloc();
     seader->view_dispatcher = view_dispatcher_alloc();
@@ -51,11 +54,8 @@ Seader* seader_alloc() {
 
     seader->credential = seader_credential_alloc();
 
-    seader->nfc = nfc_alloc();
-
-    // Nfc device
-    seader->nfc_device = nfc_device_alloc();
-    nfc_device_set_loading_callback(seader->nfc_device, seader_show_loading_popup, seader);
+    seader->nfc = NULL;
+    seader->nfc_device = NULL;
 
     // Open GUI record
     seader->gui = furi_record_open(RECORD_GUI);
@@ -106,6 +106,7 @@ Seader* seader_alloc() {
         plugin_manager_alloc(PLUGIN_APP_ID, PLUGIN_API_VERSION, firmware_api_interface);
 
     seader->plugin_wiegand = NULL;
+    FURI_LOG_I(TAG, "Loading plugins from %s", APP_ASSETS_PATH("plugins"));
     if(plugin_manager_load_all(seader->plugin_manager, APP_ASSETS_PATH("plugins")) !=
        PluginManagerErrorNone) {
         FURI_LOG_E(TAG, "Failed to load all libs");
@@ -115,8 +116,9 @@ Seader* seader_alloc() {
 
         for(uint32_t i = 0; i < plugin_count; i++) {
             const PluginWiegand* plugin = plugin_manager_get_ep(seader->plugin_manager, i);
-            FURI_LOG_I(TAG, "plugin name: %s", plugin->name);
+            FURI_LOG_I(TAG, "plugin index %lu, name: %s", i, plugin->name);
             if(strcmp(plugin->name, "Plugin Wiegand") == 0) {
+                FURI_LOG_I(TAG, "Wiegand plugin found and assigned");
                 // Have to cast to drop "const" qualifier
                 seader->plugin_wiegand = (PluginWiegand*)plugin;
             }
@@ -139,10 +141,15 @@ void seader_free(Seader* seader) {
     seader_credential_free(seader->credential);
     seader->credential = NULL;
 
-    nfc_free(seader->nfc);
+    if(seader->nfc) {
+        nfc_free(seader->nfc);
+        seader->nfc = NULL;
+    }
 
-    // Nfc device
-    nfc_device_free(seader->nfc_device);
+    if(seader->nfc_device) {
+        nfc_device_free(seader->nfc_device);
+        seader->nfc_device = NULL;
+    }
 
     // Submenu
     view_dispatcher_remove_view(seader->view_dispatcher, SeaderViewMenu);

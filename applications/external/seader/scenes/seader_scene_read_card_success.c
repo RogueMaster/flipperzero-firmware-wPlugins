@@ -20,6 +20,9 @@ void seader_scene_read_card_success_on_enter(void* context) {
     SeaderCredential* credential = seader->credential;
     PluginWiegand* plugin = seader->plugin_wiegand;
     Widget* widget = seader->widget;
+    seader->selected_read_type = SeaderCredentialTypeNone;
+    seader->detected_card_type_count = 0;
+    memset(seader->detected_card_types, 0, sizeof(seader->detected_card_types));
 
     // Use reusable strings instead of allocating new ones
     FuriString* type_str = seader->temp_string1;
@@ -38,20 +41,7 @@ void seader_scene_read_card_success_on_enter(void* context) {
     if(credential->bit_length > 0) {
         furi_string_cat_printf(bitlength_str, "%d bit", credential->bit_length);
         furi_string_cat_printf(credential_str, "0x%llX", credential->credential);
-
-        if(credential->type == SeaderCredentialTypeNone) {
-            furi_string_set(type_str, "Unknown");
-        } else if(credential->type == SeaderCredentialTypeVirtual) {
-            furi_string_set(type_str, "Virtual");
-        } else if(credential->type == SeaderCredentialType14A) {
-            furi_string_set(type_str, "14443A");
-        } else if(credential->type == SeaderCredentialTypePicopass) {
-            furi_string_set(type_str, "Picopass");
-        } else if(credential->type == SeaderCredentialTypeMifareClassic) {
-            furi_string_set(type_str, "Mifare Classic");
-        } else {
-            furi_string_set(type_str, "");
-        }
+        furi_string_set(type_str, seader_credential_get_type_label(credential));
     } else {
         furi_string_set(type_str, "Read error");
         furi_string_set(bitlength_str, seader->read_error[0] ? seader->read_error : "Read failed");
@@ -83,6 +73,11 @@ void seader_scene_read_card_success_on_enter(void* context) {
 
     if(plugin && credential->bit_length > 0) {
         size_t format_count = plugin->count(credential->bit_length, credential->credential);
+        FURI_LOG_D(
+            TAG,
+            "Plugin present, bit_length=%d, format_count=%zu",
+            credential->bit_length,
+            format_count);
         if(format_count > 0) {
             widget_add_button_element(
                 seader->widget,
@@ -91,6 +86,8 @@ void seader_scene_read_card_success_on_enter(void* context) {
                 seader_scene_read_card_success_widget_callback,
                 seader);
         }
+    } else {
+        FURI_LOG_D(TAG, "Plugin=%p, bit_length=%d", plugin, credential->bit_length);
     }
 
     widget_add_string_element(

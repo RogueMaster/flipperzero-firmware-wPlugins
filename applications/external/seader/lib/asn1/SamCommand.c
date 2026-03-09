@@ -8,15 +8,6 @@
 #include "SamCommand.h"
 
 asn_TYPE_member_t asn_MBR_SamCommand_1[] = {
-	{ ATF_NOFLAGS, 0, offsetof(struct SamCommand, choice.requestPacs),
-		(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
-		-1,	/* IMPLICIT tag at current level */
-		&asn_DEF_RequestPacs,
-		0,
-		{ 0, 0, 0 },
-		0, 0, /* No default value */
-		"requestPacs"
-		},
 	{ ATF_NOFLAGS, 0, offsetof(struct SamCommand, choice.version),
 		(ASN_TAG_CLASS_CONTEXT | (2 << 2)),
 		-1,	/* IMPLICIT tag at current level */
@@ -82,14 +73,13 @@ asn_TYPE_member_t asn_MBR_SamCommand_1[] = {
 		},
 };
 static const asn_TYPE_tag2member_t asn_MAP_SamCommand_tag2el_1[] = {
-    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 0, 0, 0 }, /* requestPacs */
-    { (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 1, 0, 0 }, /* version */
-    { (ASN_TAG_CLASS_CONTEXT | (13 << 2)), 2, 0, 0 }, /* cardDetected */
-    { (ASN_TAG_CLASS_CONTEXT | (20 << 2)), 3, 0, 0 }, /* processSNMPMessage */
-    { (ASN_TAG_CLASS_CONTEXT | (22 << 2)), 4, 0, 0 }, /* serialNumber */
-    { (ASN_TAG_CLASS_CONTEXT | (26 << 2)), 7, 0, 0 }, /* processConfigCard */
-    { (ASN_TAG_CLASS_CONTEXT | (30 << 2)), 6, 0, 0 }, /* requestPacs2 */
-    { (ASN_TAG_CLASS_CONTEXT | (43 << 2)), 5, 0, 0 } /* getItemKCV */
+    { (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 0, 0, 0 }, /* version */
+    { (ASN_TAG_CLASS_CONTEXT | (13 << 2)), 1, 0, 0 }, /* cardDetected */
+    { (ASN_TAG_CLASS_CONTEXT | (20 << 2)), 2, 0, 0 }, /* processSNMPMessage */
+    { (ASN_TAG_CLASS_CONTEXT | (22 << 2)), 3, 0, 0 }, /* serialNumber */
+    { (ASN_TAG_CLASS_CONTEXT | (26 << 2)), 6, 0, 0 }, /* processConfigCard */
+    { (ASN_TAG_CLASS_CONTEXT | (30 << 2)), 5, 0, 0 }, /* requestPacs2 */
+    { (ASN_TAG_CLASS_CONTEXT | (43 << 2)), 4, 0, 0 } /* getItemKCV */
 };
 asn_CHOICE_specifics_t asn_SPC_SamCommand_specs_1 = {
 	sizeof(struct SamCommand),
@@ -97,7 +87,7 @@ asn_CHOICE_specifics_t asn_SPC_SamCommand_specs_1 = {
 	offsetof(struct SamCommand, present),
 	sizeof(((struct SamCommand *)0)->present),
 	asn_MAP_SamCommand_tag2el_1,
-	8,	/* Count of tags in the map */
+	7,	/* Count of tags in the map */
 	0, 0,
 	-1	/* Extensions start */
 };
@@ -111,7 +101,7 @@ asn_TYPE_descriptor_t asn_DEF_SamCommand = {
 	0,	/* No tags (count) */
 	{ 0, 0, CHOICE_constraint },
 	asn_MBR_SamCommand_1,
-	8,	/* Elements count */
+	7,	/* Elements count */
 	&asn_SPC_SamCommand_specs_1	/* Additional specs */
 };
 

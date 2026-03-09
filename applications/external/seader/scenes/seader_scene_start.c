@@ -1,4 +1,6 @@
 #include "../seader_i.h"
+#include "seader_scene_read_common.h"
+
 enum SubmenuIndex {
     SubmenuIndexSamPresent,
     SubmenuIndexSamMissing,
@@ -7,11 +9,6 @@ enum SubmenuIndex {
 static void seader_scene_start_detect_callback(void* context) {
     Seader* seader = context;
     view_dispatcher_send_custom_event(seader->view_dispatcher, SeaderWorkerEventSamMissing);
-}
-
-void seader_sam_check_worker_callback(SeaderWorkerEvent event, void* context) {
-    Seader* seader = context;
-    view_dispatcher_send_custom_event(seader->view_dispatcher, event);
 }
 
 void seader_scene_start_submenu_callback(void* context, uint32_t index) {

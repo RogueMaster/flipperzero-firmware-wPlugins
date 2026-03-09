@@ -22,7 +22,6 @@ ErrorResponse ::= SEQUENCE {
 }
 
 SamCommand ::= CHOICE {
-  requestPacs [1] RequestPacs,
   version [2] NULL,
   cardDetected [13] CardDetected,
   processSNMPMessage [20] OCTET STRING,
@@ -39,7 +38,7 @@ CardDetected ::= SEQUENCE {
 Pacs2 ::= SEQUENCE {
   bits [0] OCTET STRING OPTIONAL,
   oid [1] OCTET STRING OPTIONAL,
-  type [2] INTEGER OPTIONAL
+  type [2] SoMediaEdgeType OPTIONAL
 }
 
 SamResponse2 ::= CHOICE {
@@ -90,6 +89,15 @@ FrameProtocol ::= ENUMERATED {
   none (0),
   nfc (2),
   iclass (4)
+}
+
+SoMediaEdgeType ::= ENUMERATED {
+  unknown (0),
+  desfire (1),
+  mifare (2),
+  picoPass (3),
+  mifarePlus (6),
+  seos (7)
 }
 
 SamVerionDetails ::= SEQUENCE {

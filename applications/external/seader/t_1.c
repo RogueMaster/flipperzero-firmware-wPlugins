@@ -1,4 +1,8 @@
+#ifdef SEADER_HOST_TEST
+#include "lib/host_tests/t_1_host_env.h"
+#else
 #include "t_1.h"
+#endif
 
 #define TAG "Seader:T=1"
 

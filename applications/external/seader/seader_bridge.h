@@ -14,6 +14,7 @@
 #define SEADER_CCID_SLOT_COUNT  (2U)
 
 typedef struct BitBuffer BitBuffer;
+typedef struct SeaderWorker SeaderWorker;
 
 typedef struct {
     uint8_t uart_ch;

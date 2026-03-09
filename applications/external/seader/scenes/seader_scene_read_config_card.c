@@ -2,7 +2,7 @@
 #include "seader_scene_read_common.h"
 #include <dolphin/dolphin.h>
 
-void seader_read_config_card_worker_callback(SeaderWorkerEvent event, void* context) {
+void seader_read_config_card_worker_callback(uint32_t event, void* context) {
     UNUSED(event);
     Seader* seader = context;
     view_dispatcher_send_custom_event(seader->view_dispatcher, SeaderCustomEventWorkerExit);
@@ -20,10 +20,15 @@ void seader_scene_read_config_card_on_enter(void* context) {
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewPopup);
 
     seader_scene_read_prepare(seader);
-    seader->poller = nfc_poller_alloc(seader->nfc, NfcProtocolIso14443_4a);
     seader_credential_clear(seader->credential);
     seader->credential->type = SeaderCredentialTypeConfig;
-    nfc_poller_start(seader->poller, seader_worker_poller_callback_iso14443_4a, seader);
+
+    seader_worker_start(
+        seader->worker,
+        SeaderWorkerStateReading,
+        seader->uart,
+        seader_sam_check_worker_callback,
+        seader);
 
     seader_blink_start(seader);
 }
@@ -33,10 +38,7 @@ bool seader_scene_read_config_card_on_event(void* context, SceneManagerEvent eve
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == SeaderCustomEventWorkerExit) {
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneReadConfigCardSuccess);
-            consumed = true;
-        } else if(event.event == SeaderCustomEventPollerSuccess) {
+        if(event.event == SeaderCustomEventWorkerExit || event.event == SeaderWorkerEventSuccess) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneReadConfigCardSuccess);
             consumed = true;
         }
@@ -51,5 +53,6 @@ bool seader_scene_read_config_card_on_event(void* context, SceneManagerEvent eve
 
 void seader_scene_read_config_card_on_exit(void* context) {
     Seader* seader = context;
+    seader_worker_stop(seader->worker);
     seader_scene_read_cleanup(seader);
 }

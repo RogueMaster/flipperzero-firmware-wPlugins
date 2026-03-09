@@ -28,8 +28,6 @@ struct SeaderWorker {
     Storage* storage;
     uint8_t sam_version[2];
     FuriMessageQueue* messages;
-    FuriMutex* mq_mutex;
-
     SeaderUartBridge* uart;
     SeaderWorkerCallback callback;
     void* context;
