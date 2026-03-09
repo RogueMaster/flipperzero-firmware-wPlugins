@@ -15,6 +15,9 @@ static Seader make_test_seader(SeaderUartBridge* uart, SeaderWorker* worker) {
     memset(worker, 0, sizeof(*worker));
     worker->uart = uart;
     worker->callback = test_callback;
+    uart->t1.ifsc = SEADER_T1_IFS_DEFAULT;
+    uart->t1.ifsd = SEADER_T1_IFS_DEFAULT;
+    uart->t1.send_pcb = SEADER_T1_PCB_SEQUENCE_BIT;
 
     Seader seader = {.worker = worker};
     return seader;
@@ -34,6 +37,7 @@ static MunitResult test_send_ifs_request(const MunitParameter params[], void* fi
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says "The interface device transmits S(IFS request) to indicate a new IFSD it can support." */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     Seader seader = make_test_seader(&uart, &worker);
@@ -44,9 +48,10 @@ static MunitResult test_send_ifs_request(const MunitParameter params[], void* fi
     uart.t1.send_pcb = SEADER_T1_PCB_SEQUENCE_BIT;
 
     seader_t_1_set_IFSD(&seader);
+    /* ISO 7816-3 says "The values '01' to 'FE' encode the numbers 1 to 254", so the request uses 0xFE. */
     munit_assert_size(g_t1_host_test_state.xfrblock_call_count, ==, 1);
     munit_assert_size(g_t1_host_test_state.last_frame_len, ==, 5);
-    munit_assert_true(last_frame_prefix_matches((const uint8_t*)"\x00\xC1\x01\x20", 4));
+    munit_assert_true(last_frame_prefix_matches((const uint8_t*)"\x00\xC1\x01\xFE", 4));
     munit_assert_true(
         seader_validate_lrc(g_t1_host_test_state.last_frame, g_t1_host_test_state.last_frame_len));
     return MUNIT_OK;
@@ -56,6 +61,7 @@ static MunitResult test_send_single_block(const MunitParameter params[], void* f
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says "The command APDU is mapped onto the information field of an I-block without any change." */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     make_test_seader(&uart, &worker);
@@ -78,6 +84,7 @@ static MunitResult test_send_scratchpad_block(const MunitParameter params[], voi
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 still requires the same I-block image even when the payload already sits in our scratchpad. */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     make_test_seader(&uart, &worker);
@@ -99,6 +106,7 @@ static MunitResult test_send_chained_block(const MunitParameter params[], void* 
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says information longer than IFSC/IFSD "should divide the information into pieces". */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     make_test_seader(&uart, &worker);
@@ -109,6 +117,7 @@ static MunitResult test_send_chained_block(const MunitParameter params[], void* 
     uint8_t apdu_long[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
 
     seader_send_t1(&uart, apdu_long, sizeof(apdu_long));
+    /* ISO 7816-3 says "I(N(S), 1) is a part of a chain and shall be followed by at least one chained block." */
     munit_assert_size(g_t1_host_test_state.xfrblock_call_count, ==, 1);
     munit_assert_uint8(
         g_t1_host_test_state.last_frame[1], ==, (SEADER_T1_PCB_I_BLOCK_MORE | 0x00));
@@ -124,6 +133,7 @@ static MunitResult test_recv_ifs_response(const MunitParameter params[], void* f
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says "The card shall acknowledge by S(IFS response) with the same INF." */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     Seader seader = make_test_seader(&uart, &worker);
@@ -144,17 +154,20 @@ static MunitResult test_recv_single_i_block(const MunitParameter params[], void*
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says "The information field of the I-block in response is mapped onto the response APDU without any change." */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     Seader seader = make_test_seader(&uart, &worker);
 
     t1_host_test_reset();
     uart.t1.recv_pcb = 0x00;
+    uart.t1.ifsd = SEADER_T1_IFS_DEFAULT;
     uint8_t i_block[] = {0x00, 0x00, 0x03, 0x11, 0x22, 0x33, 0x00};
     seader_add_lrc(i_block, 6);
     CCID_Message i_message = {.payload = i_block, .dwLength = 7};
 
     munit_assert_true(seader_recv_t1(&seader, &i_message));
+    /* ISO 7816-3 says "the initial value is N(S) = 0; then the value alternates after transmitting each I-block." */
     munit_assert_size(g_t1_host_test_state.process_call_count, ==, 1);
     munit_assert_true(last_apdu_matches((const uint8_t*)"\x11\x22\x33", 3));
     munit_assert_uint8(uart.t1.recv_pcb, ==, 0x40);
@@ -165,17 +178,20 @@ static MunitResult test_recv_chained_i_blocks(const MunitParameter params[], voi
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says successive chained I-block information fields are concatenated into one APDU. */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     Seader seader = make_test_seader(&uart, &worker);
 
     t1_host_test_reset();
     uart.t1.recv_pcb = 0x00;
+    uart.t1.ifsd = SEADER_T1_IFS_DEFAULT;
     uint8_t i_more[] = {0x00, 0x20, 0x03, 0x44, 0x55, 0x66, 0x00};
     seader_add_lrc(i_more, 6);
     CCID_Message more_message = {.payload = i_more, .dwLength = 7};
 
     munit_assert_false(seader_recv_t1(&seader, &more_message));
+    /* ISO 7816-3 says "R(N(R)) requests transmission of the next chained I-block". */
     munit_assert_size(g_t1_host_test_state.xfrblock_call_count, ==, 1);
     munit_assert_not_null(uart.t1.rx_buffer);
     munit_assert_uint8(uart.t1.recv_pcb, ==, 0x40);
@@ -196,6 +212,7 @@ static MunitResult test_recv_ifs_request(const MunitParameter params[], void* fi
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says "The card transmits S(IFS request) to indicate a new IFSC it can support." */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     Seader seader = make_test_seader(&uart, &worker);
@@ -207,8 +224,10 @@ static MunitResult test_recv_ifs_request(const MunitParameter params[], void* fi
     CCID_Message ifs_request_message = {.payload = ifs_request, .dwLength = 5};
 
     munit_assert_false(seader_recv_t1(&seader, &ifs_request_message));
+    /* ISO 7816-3 says "The interface device shall acknowledge by S(IFS response) with the same INF." */
     munit_assert_size(g_t1_host_test_state.xfrblock_call_count, ==, 1);
-    munit_assert_true(last_frame_prefix_matches((const uint8_t*)"\x00\xE1\x01\x33", 4));
+    munit_assert_true(last_frame_prefix_matches((const uint8_t*)"\x00\xE1\x01\x20", 4));
+    munit_assert_uint8(uart.t1.ifsc, ==, 0x20);
     return MUNIT_OK;
 }
 
@@ -216,6 +235,7 @@ static MunitResult test_recv_r_block_resends_buffer(const MunitParameter params[
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says "Every R-block carries N(R) which is the send-sequence number N(S) of the expected I-block." */
     SeaderUartBridge uart = {0};
     SeaderWorker worker = {0};
     Seader seader = make_test_seader(&uart, &worker);
@@ -231,6 +251,7 @@ static MunitResult test_recv_r_block_resends_buffer(const MunitParameter params[
     CCID_Message r_message = {.payload = r_block, .dwLength = 4};
 
     munit_assert_false(seader_recv_t1(&seader, &r_message));
+    /* ISO 7816-3 says "R(N(R)) requests transmission of the next chained I-block". */
     munit_assert_size(g_t1_host_test_state.xfrblock_call_count, ==, 1);
     munit_assert_not_null(uart.t1.tx_buffer);
     bit_buffer_free(uart.t1.tx_buffer);
@@ -241,6 +262,7 @@ static MunitResult test_reset_clears_state(const MunitParameter params[], void* 
     (void)params;
     (void)fixture;
 
+    /* ISO 7816-3 says "At the start of the transmission protocol ... IFSC and IFSD are initialized." */
     SeaderUartBridge uart = {0};
     uart.t1.nad = 0x77;
     uart.t1.send_pcb = 0x00;

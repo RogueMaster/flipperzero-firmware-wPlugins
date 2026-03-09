@@ -4,11 +4,9 @@
 #include "t_1.h"
 #endif
 
+#include "t_1_logic.h"
+
 #define TAG "Seader:T=1"
-
-// http://www.sat-digest.com/SatXpress/SmartCard/ISO7816-4.htm
-
-/* I know my T=1 is terrible, but I'm also only targetting one specific 'card' */
 
 static SeaderT1State* seader_t1_state(SeaderUartBridge* seader_uart) {
     return &seader_uart->t1;
@@ -16,34 +14,20 @@ static SeaderT1State* seader_t1_state(SeaderUartBridge* seader_uart) {
 
 static uint8_t seader_next_dpcb(SeaderUartBridge* seader_uart) {
     SeaderT1State* t1 = seader_t1_state(seader_uart);
-    uint8_t next_pcb = t1->send_pcb ^ SEADER_T1_PCB_SEQUENCE_BIT;
-    //FURI_LOG_D(TAG, "dPCB was: %02X, current dPCB: %02X", dPCB, next_pcb);
+    uint8_t next_pcb = seader_t1_next_pcb(t1->send_pcb);
     t1->send_pcb = next_pcb;
     return t1->send_pcb;
-}
-
-static uint8_t seader_next_cpcb(SeaderUartBridge* seader_uart) {
-    SeaderT1State* t1 = seader_t1_state(seader_uart);
-    uint8_t next_pcb = t1->recv_pcb ^ SEADER_T1_PCB_SEQUENCE_BIT;
-    //FURI_LOG_D(TAG, "cPCB was: %02X, current cPCB: %02X", cPCB, next_pcb);
-    t1->recv_pcb = next_pcb;
-    return t1->recv_pcb;
 }
 
 void seader_t_1_reset(SeaderUartBridge* seader_uart) {
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     t1->nad = 0x00;
-    t1->send_pcb = SEADER_T1_PCB_SEQUENCE_BIT;
-    t1->recv_pcb = 0x00;
-    if(t1->tx_buffer != NULL) {
-        bit_buffer_free(t1->tx_buffer);
+    if(t1->ifsc == 0 || t1->ifsc > SEADER_T1_IFS_MAX) {
+        t1->ifsc = SEADER_T1_IFS_DEFAULT;
     }
-    t1->tx_buffer = NULL;
-    t1->tx_buffer_offset = 0;
-    if(t1->rx_buffer != NULL) {
-        bit_buffer_free(t1->rx_buffer);
-    }
-    t1->rx_buffer = NULL;
+    t1->ifsd = SEADER_T1_IFS_DEFAULT;
+    t1->ifsd_pending = 0;
+    seader_t1_reset_link_state(t1);
 }
 
 void seader_t_1_set_IFSD(Seader* seader) {
@@ -52,19 +36,21 @@ void seader_t_1_set_IFSD(Seader* seader) {
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[5];
     uint8_t frame_len = 0;
+    /* Negotiate the largest host receive size we support so chained responses stay predictable. */
+    uint8_t requested_ifsd = SEADER_T1_IFS_MAX;
 
     frame[0] = t1->nad;
-    frame[1] = SEADER_T1_PCB_S_BLOCK | SEADER_T1_S_BLOCK_IFS; // S(IFS request)
+    frame[1] = SEADER_T1_PCB_S_BLOCK | SEADER_T1_S_BLOCK_IFS;
     frame[2] = 0x01;
-    frame[3] = t1->ifsc;
+    t1->ifsd_pending = requested_ifsd;
+    frame[3] = requested_ifsd;
     frame_len = 4;
 
     frame_len = seader_add_lrc(frame, frame_len);
-
     seader_ccid_XfrBlock(seader_uart, frame, frame_len);
 }
 
-void seader_t_1_IFSD_response(Seader* seader) {
+static void seader_t_1_IFSD_response(Seader* seader, uint8_t ifs_value) {
     SeaderWorker* seader_worker = seader->worker;
     SeaderUartBridge* seader_uart = seader_worker->uart;
     SeaderT1State* t1 = seader_t1_state(seader_uart);
@@ -72,13 +58,45 @@ void seader_t_1_IFSD_response(Seader* seader) {
     uint8_t frame_len = 0;
 
     frame[0] = t1->nad;
-    frame[1] = 0xE0 | 0x01; // S(IFS response)
+    frame[1] = 0xE0 | SEADER_T1_S_BLOCK_IFS;
     frame[2] = 0x01;
-    frame[3] = t1->ifsc;
+    frame[3] = ifs_value;
     frame_len = 4;
 
     frame_len = seader_add_lrc(frame, frame_len);
+    seader_ccid_XfrBlock(seader_uart, frame, frame_len);
+}
 
+static void seader_t_1_WTX_response(Seader* seader, uint8_t multiplier) {
+    SeaderWorker* seader_worker = seader->worker;
+    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
+    uint8_t frame[5];
+    uint8_t frame_len = 0;
+
+    frame[0] = t1->nad;
+    frame[1] = 0xE0 | SEADER_T1_S_BLOCK_WTX;
+    frame[2] = 0x01;
+    frame[3] = multiplier;
+    frame_len = 4;
+
+    frame_len = seader_add_lrc(frame, frame_len);
+    seader_ccid_XfrBlock(seader_uart, frame, frame_len);
+}
+
+static void seader_t_1_resynch_response(Seader* seader) {
+    SeaderWorker* seader_worker = seader->worker;
+    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
+    uint8_t frame[4];
+    uint8_t frame_len = 0;
+
+    frame[0] = t1->nad;
+    frame[1] = 0xE0 | SEADER_T1_S_BLOCK_RESYNCH;
+    frame[2] = 0x00;
+    frame_len = 3;
+
+    frame_len = seader_add_lrc(frame, frame_len);
     seader_ccid_XfrBlock(seader_uart, frame, frame_len);
 }
 
@@ -90,24 +108,38 @@ void seader_t_1_send_ack(Seader* seader) {
     uint8_t frame_len = 0;
 
     frame[0] = t1->nad;
-    frame[1] = SEADER_T1_PCB_R_BLOCK | (seader_next_cpcb(seader_uart) >> 2);
+    frame[1] = SEADER_T1_PCB_R_BLOCK | (t1->recv_pcb >> 2);
     frame[2] = 0x00;
     frame_len = 3;
 
     frame_len = seader_add_lrc(frame, frame_len);
-
-    //FURI_LOG_D(TAG, "Sending R-Block ACK: PCB: %02x", frame[1]);
-
     seader_ccid_XfrBlock(seader_uart, frame, frame_len);
 }
 
-void seader_send_t1_chunk(SeaderUartBridge* seader_uart, uint8_t PCB, uint8_t* chunk, size_t len) {
+static void seader_t_1_send_nak(Seader* seader) {
+    SeaderWorker* seader_worker = seader->worker;
+    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderT1State* t1 = seader_t1_state(seader_uart);
+    uint8_t frame[4];
+    uint8_t frame_len = 0;
+
+    frame[0] = t1->nad;
+    frame[1] = SEADER_T1_PCB_R_BLOCK | (t1->recv_pcb >> 2) | 0x01;
+    frame[2] = 0x00;
+    frame_len = 3;
+
+    frame_len = seader_add_lrc(frame, frame_len);
+    FURI_LOG_W(TAG, "Sending R-Block NACK: PCB: %02x", frame[1]);
+    seader_ccid_XfrBlock(seader_uart, frame, frame_len);
+}
+
+void seader_send_t1_chunk(SeaderUartBridge* seader_uart, uint8_t pcb, uint8_t* chunk, size_t len) {
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t* frame = malloc(3 + len + 1);
     uint8_t frame_len = 0;
 
     frame[0] = t1->nad;
-    frame[1] = PCB;
+    frame[1] = pcb;
     frame[2] = len;
     frame_len = 3;
 
@@ -117,20 +149,20 @@ void seader_send_t1_chunk(SeaderUartBridge* seader_uart, uint8_t PCB, uint8_t* c
     }
 
     frame_len = seader_add_lrc(frame, frame_len);
-
     seader_ccid_XfrBlock(seader_uart, frame, frame_len);
     free(frame);
 }
 
 void seader_send_t1_scratchpad(
     SeaderUartBridge* seader_uart,
-    uint8_t PCB,
+    uint8_t pcb,
     uint8_t* apdu,
     size_t len) {
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t* frame = apdu - 3;
+
     frame[0] = t1->nad;
-    frame[1] = PCB;
+    frame[1] = pcb;
     frame[2] = (uint8_t)len;
 
     size_t frame_len = seader_add_lrc(frame, 3 + len);
@@ -141,145 +173,113 @@ void seader_send_t1(SeaderUartBridge* seader_uart, uint8_t* apdu, size_t len) {
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t ifsc = t1->ifsc;
 
-    bool in_scratchpad =
-        (apdu >= seader_uart->tx_buf + 3 && apdu < seader_uart->tx_buf + SEADER_UART_RX_BUF_SIZE);
-
-    if(len > ifsc) {
-        if(t1->tx_buffer == NULL) {
-            t1->tx_buffer = bit_buffer_alloc(768);
-            bit_buffer_copy_bytes(t1->tx_buffer, apdu, len);
-        }
-        size_t remaining = (bit_buffer_get_size_bytes(t1->tx_buffer) - t1->tx_buffer_offset);
-        size_t copy_length = remaining > ifsc ? ifsc : remaining;
-
-        uint8_t* chunk = (uint8_t*)bit_buffer_get_data(t1->tx_buffer) + t1->tx_buffer_offset;
-
-        if(remaining > ifsc) {
-            uint8_t PCB = seader_next_dpcb(seader_uart) | SEADER_T1_PCB_I_BLOCK_MORE;
-            seader_send_t1_chunk(seader_uart, PCB, chunk, copy_length);
-        } else {
-            uint8_t PCB = seader_next_dpcb(seader_uart);
-            seader_send_t1_chunk(seader_uart, PCB, chunk, copy_length);
-        }
-
-        t1->tx_buffer_offset += copy_length;
-        if(t1->tx_buffer_offset >= bit_buffer_get_size_bytes(t1->tx_buffer)) {
-            bit_buffer_free(t1->tx_buffer);
-            t1->tx_buffer = NULL;
-            t1->tx_buffer_offset = 0;
-        }
-        return;
+    if(ifsc == 0 || ifsc > SEADER_T1_IFS_MAX) {
+        ifsc = SEADER_T1_IFS_DEFAULT;
     }
 
-    if(in_scratchpad) {
-        seader_send_t1_scratchpad(seader_uart, seader_next_dpcb(seader_uart), apdu, len);
+    if(t1->tx_buffer == NULL) {
+        bool in_scratchpad =
+            apdu != NULL &&
+            seader_t1_apdu_in_scratchpad(seader_uart->tx_buf, SEADER_UART_RX_BUF_SIZE, apdu);
+
+        if(in_scratchpad && len <= ifsc) {
+            seader_send_t1_scratchpad(seader_uart, seader_next_dpcb(seader_uart), apdu, len);
+            t1->last_tx_len = len;
+            return;
+        }
+
+        t1->tx_buffer = bit_buffer_alloc(768);
+        bit_buffer_copy_bytes(t1->tx_buffer, apdu, len);
+        t1->tx_buffer_offset = 0;
+    }
+
+    size_t total_len = bit_buffer_get_size_bytes(t1->tx_buffer);
+    size_t remaining = total_len - t1->tx_buffer_offset;
+    size_t copy_length = seader_t1_chunk_length(total_len, t1->tx_buffer_offset, ifsc);
+    uint8_t* chunk = (uint8_t*)bit_buffer_get_data(t1->tx_buffer) + t1->tx_buffer_offset;
+
+    uint8_t pcb;
+    if(remaining > ifsc) {
+        pcb = seader_next_dpcb(seader_uart) | SEADER_T1_PCB_I_BLOCK_MORE;
     } else {
-        seader_send_t1_chunk(seader_uart, seader_next_dpcb(seader_uart), apdu, len);
+        pcb = seader_next_dpcb(seader_uart);
     }
+
+    seader_send_t1_chunk(seader_uart, pcb, chunk, copy_length);
+    t1->last_tx_len = copy_length;
+    t1->tx_buffer_offset += copy_length;
 }
 
 bool seader_recv_t1(Seader* seader, CCID_Message* message) {
     SeaderWorker* seader_worker = seader->worker;
     SeaderUartBridge* seader_uart = seader_worker->uart;
     SeaderT1State* t1 = seader_t1_state(seader_uart);
-    // remove/validate NAD, PCB, LEN, LRC
-    if(message->dwLength < 4) {
-        FURI_LOG_W(TAG, "Invalid T=1 frame: too short");
-        return false;
-    }
-    //uint8_t NAD = message->payload[0];
-    uint8_t rPCB = message->payload[1];
-    uint8_t LEN = message->payload[2];
-    //uint8_t LRC = message->payload[3 + LEN];
-    //FURI_LOG_D(TAG, "NAD: %02X, rPCB: %02X, LEN: %02X, LRC: %02X", NAD, rPCB, LEN, LRC);
+    uint8_t* apdu = NULL;
+    size_t apdu_len = 0;
 
-    if(rPCB == 0xE1) {
-        // S(IFS response)
-        //FURI_LOG_D(TAG, "Received IFS Response");
-        seader_worker_send_version(seader);
-        SeaderWorker* seader_worker = seader->worker;
-        if(seader_worker->callback) {
-            seader_worker->callback(SeaderWorkerEventSamPresent, seader_worker->context);
-        }
-        return false;
-    }
+    SeaderT1Action action =
+        seader_t1_handle_block(t1, message->payload, message->dwLength, &apdu, &apdu_len);
 
-    if(rPCB == t1->recv_pcb) {
-        seader_next_cpcb(seader_uart);
+    /* Keep transport decisions here so host tests exercise the same action-to-wire mapping. */
+    switch(action) {
+    case SeaderT1ActionDeliverAPDU:
         if(t1->rx_buffer != NULL) {
-            bit_buffer_append_bytes(t1->rx_buffer, message->payload + 3, LEN);
-
-            // TODO: validate LRC
-
-            seader_worker_process_sam_message(
-                seader,
-                (uint8_t*)bit_buffer_get_data(t1->rx_buffer),
-                bit_buffer_get_size_bytes(t1->rx_buffer));
-
+            seader_worker_process_sam_message(seader, apdu, apdu_len);
             bit_buffer_free(t1->rx_buffer);
             t1->rx_buffer = NULL;
             return true;
         }
+        return seader_worker_process_sam_message(seader, apdu, apdu_len);
 
-        if(seader_validate_lrc(message->payload, message->dwLength) == false) {
-            return false;
-        }
-
-        // Skip NAD, PCB, LEN
-        message->payload = message->payload + 3;
-        message->dwLength = LEN;
-
-        if(message->dwLength == 0) {
-            //FURI_LOG_D(TAG, "Received T=1 frame with no data");
-            return true;
-        }
-        return seader_worker_process_sam_message(seader, message->payload, message->dwLength);
-    } else if(rPCB == (t1->recv_pcb | SEADER_T1_PCB_I_BLOCK_MORE)) {
-        //FURI_LOG_D(TAG, "Received T=1 frame with more bit set");
-        if(t1->rx_buffer == NULL) {
-            t1->rx_buffer = bit_buffer_alloc(512);
-        }
-        bit_buffer_append_bytes(t1->rx_buffer, message->payload + 3, LEN);
+    case SeaderT1ActionSendAck:
         seader_t_1_send_ack(seader);
         return false;
-    } else if((rPCB & SEADER_T1_PCB_S_BLOCK) == SEADER_T1_PCB_S_BLOCK) {
-        //FURI_LOG_D(TAG, "Received S-Block");
-        if((rPCB & 0x0F) == SEADER_T1_S_BLOCK_IFS) {
-            seader_t_1_IFSD_response(seader);
-            return false;
-        }
 
-    } else if((rPCB & SEADER_T1_PCB_R_BLOCK) == SEADER_T1_PCB_R_BLOCK) {
-        uint8_t R_SEQ = (rPCB & SEADER_T1_R_BLOCK_SEQUENCE_MASK) >> 4;
-        uint8_t I_SEQ = (t1->send_pcb ^ SEADER_T1_PCB_SEQUENCE_BIT) >> 6;
-        if(R_SEQ != I_SEQ) {
-            /*
-            FURI_LOG_D(
-                TAG,
-                "Received R-Block: Incorrect sequence.  Expected: %02X, Received: %02X",
-                I_SEQ,
-                R_SEQ);
+    case SeaderT1ActionSendNak:
+        seader_t_1_send_nak(seader);
+        return false;
 
-            */
-            // When this happens, the flipper freezes if it is doing NFC and my attempts to do events to stop that have failed
-            return false;
+    case SeaderT1ActionSendIFSResponse:
+        if(apdu_len == 1 && apdu != NULL) {
+            seader_t_1_IFSD_response(seader, apdu[0]);
+        } else {
+            seader_t_1_send_nak(seader);
         }
+        return false;
 
-        if(t1->tx_buffer != NULL) {
-            // Send more data, re-using the buffer to trigger the code path that sends the next block
-            seader_send_t1(
-                seader_uart,
-                (uint8_t*)bit_buffer_get_data(t1->tx_buffer),
-                bit_buffer_get_size_bytes(t1->tx_buffer));
-            return false;
+    case SeaderT1ActionSendWTXResponse:
+        seader_t_1_WTX_response(seader, apdu[0]);
+        return false;
+
+    case SeaderT1ActionSendResynchResponse:
+        seader_t1_reset_link_state(t1);
+        seader_t_1_resynch_response(seader);
+        return false;
+
+    case SeaderT1ActionSendVersion:
+        seader_worker_send_version(seader);
+        if(seader_worker->callback) {
+            seader_worker->callback(SeaderWorkerEventSamPresent, seader_worker->context);
         }
-    } else {
-        FURI_LOG_W(
-            TAG,
-            "Invalid T=1 frame: PCB mismatch.  Expected: %02X, Received: %02X",
-            t1->recv_pcb,
-            rPCB);
+        return false;
+
+    case SeaderT1ActionSendMoreData:
+        seader_send_t1(
+            seader_uart,
+            (uint8_t*)bit_buffer_get_data(t1->tx_buffer),
+            bit_buffer_get_size_bytes(t1->tx_buffer));
+        return false;
+
+    case SeaderT1ActionRetransmit:
+        seader_send_t1(seader_uart, NULL, 0);
+        return false;
+
+    case SeaderT1ActionNone:
+        return true;
+
+    case SeaderT1ActionError:
+    default:
+        FURI_LOG_W(TAG, "T=1 error or unhandled action %d", action);
+        return false;
     }
-
-    return false;
 }

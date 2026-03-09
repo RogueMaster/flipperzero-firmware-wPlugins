@@ -1,12 +1,16 @@
 #include "munit.h"
 
 extern MunitSuite test_lrc_suite;
+extern MunitSuite test_ccid_logic_suite;
 extern MunitSuite test_t1_existing_suite;
+extern MunitSuite test_t1_protocol_suite;
 
 int main(int argc, char* argv[]) {
     MunitSuite child_suites[] = {
         {"/lrc", test_lrc_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
         {"/t1", test_t1_existing_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
+        {"/t1", test_t1_protocol_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
+        {"/ccid", test_ccid_logic_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
         {NULL, NULL, NULL, 0, 0},
     };
     MunitSuite main_suite = {

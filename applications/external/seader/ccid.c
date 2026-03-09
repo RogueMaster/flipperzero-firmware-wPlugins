@@ -1,4 +1,5 @@
 #include "seader_i.h"
+#include "ccid_logic.h"
 
 #define TAG "SeaderCCID"
 const uint8_t SAM_ATR[] =
@@ -26,10 +27,7 @@ static void seader_ccid_reset_slot_sequence(SeaderUartBridge* seader_uart, uint8
 
 static uint8_t seader_ccid_next_sequence(SeaderUartBridge* seader_uart, uint8_t slot) {
     SeaderCcidSlotState* slot_state = seader_ccid_slot_state(seader_uart, slot);
-    if(slot_state->sequence > 254) {
-        slot_state->sequence = 0;
-    }
-    return slot_state->sequence++;
+    return seader_ccid_sequence_advance(&slot_state->sequence);
 }
 
 void seader_ccid_IccPowerOn(SeaderUartBridge* seader_uart, uint8_t slot) {
@@ -175,19 +173,15 @@ void seader_ccid_XfrBlockToSlot(
     uint8_t* data,
     size_t len) {
     uint8_t header_len = 2 + 10;
-    if(len > ((size_t)SEADER_UART_RX_BUF_SIZE - header_len)) {
+    if(!seader_ccid_payload_fits_frame(len, SEADER_UART_RX_BUF_SIZE, header_len)) {
         FURI_LOG_E(TAG, "CCID frame too long: %d", (int)(header_len + len));
         return;
     }
 
     uint8_t* tx_start = (uint8_t*)seader_uart->tx_buf;
-    uint8_t* tx_end = tx_start + SEADER_UART_RX_BUF_SIZE;
     uint8_t* data_addr = (uint8_t*)data;
-    bool in_scratchpad = false;
-    if(data_addr >= tx_start + header_len && data_addr <= tx_end) {
-        size_t available = (size_t)(tx_end - data_addr);
-        in_scratchpad = len <= available;
-    }
+    bool in_scratchpad = seader_ccid_data_in_scratchpad(
+        tx_start, SEADER_UART_RX_BUF_SIZE, header_len, data_addr, len);
     uint8_t* frame;
 
     if(in_scratchpad) {

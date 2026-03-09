@@ -9,6 +9,7 @@
 
 #include "bit_buffer.h"
 #include "lrc.h"
+#include "t_1_logic.h"
 
 /* Keep the host harness aligned with the production UART scratchpad size. */
 #define SEADER_UART_RX_BUF_SIZE   (300)
@@ -19,30 +20,9 @@ typedef struct Seader Seader;
 typedef struct SeaderWorker SeaderWorker;
 typedef struct SeaderUartBridge SeaderUartBridge;
 
-typedef enum {
-    SeaderWorkerEventSamPresent = 53,
-} SeaderWorkerEvent;
+typedef enum { SeaderWorkerEventSamPresent = 53 } SeaderWorkerEvent;
 
 typedef void (*SeaderWorkerCallback)(uint32_t event, void* context);
-
-typedef enum {
-    SEADER_T1_PCB_I_BLOCK_MORE = 0x20,
-    SEADER_T1_PCB_SEQUENCE_BIT = 0x40,
-    SEADER_T1_PCB_R_BLOCK = 0x80,
-    SEADER_T1_PCB_S_BLOCK = 0xC0,
-    SEADER_T1_R_BLOCK_SEQUENCE_MASK = 0x10,
-    SEADER_T1_S_BLOCK_IFS = 0x01,
-} SeaderT1Constant;
-
-typedef struct {
-    uint8_t ifsc;
-    uint8_t nad;
-    uint8_t send_pcb;
-    uint8_t recv_pcb;
-    BitBuffer* tx_buffer;
-    size_t tx_buffer_offset;
-    BitBuffer* rx_buffer;
-} SeaderT1State;
 
 struct SeaderUartBridge {
     uint8_t rx_buf[SEADER_UART_RX_BUF_SIZE];
