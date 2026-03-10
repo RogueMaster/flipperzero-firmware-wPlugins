@@ -46,9 +46,15 @@ bool seader_scene_start_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamPresent);
             consumed = true;
         } else if(event.event == SeaderWorkerEventSamMissing) {
+            seader->sam_present = false;
+            seader_sam_key_label_format(
+                false, NULL, 0U, seader->sam_key_label, sizeof(seader->sam_key_label));
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamMissing);
             consumed = true;
         } else if(event.event == SeaderWorkerEventSamWrong) {
+            seader->sam_present = false;
+            seader_sam_key_label_format(
+                false, NULL, 0U, seader->sam_key_label, sizeof(seader->sam_key_label));
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamWrong);
             consumed = true;
         }

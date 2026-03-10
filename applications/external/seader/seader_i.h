@@ -56,6 +56,9 @@
 #include "seader_worker.h"
 #include "seader_credential.h"
 #include "apdu_log.h"
+#include "sam_key_label.h"
+#include "uhf_snmp_probe.h"
+#include "uhf_status_label.h"
 
 #define WORKER_ALL_RX_EVENTS                                                      \
     (WorkerEvtStop | WorkerEvtRxDone | WorkerEvtCfgChange | WorkerEvtLineCfgSet | \
@@ -78,6 +81,7 @@ enum SeaderCustomEvent {
 
     SeaderCustomEventPollerDetect,
     SeaderCustomEventPollerSuccess,
+    SeaderCustomEventSamStatusUpdated,
 };
 
 typedef enum {
@@ -107,6 +111,7 @@ typedef enum {
     SeaderSamStateClearPending,
     SeaderSamStateVersionPending,
     SeaderSamStateSerialPending,
+    SeaderSamStateCapabilityPending,
 } SeaderSamState;
 
 typedef enum {
@@ -129,8 +134,12 @@ struct Seader {
     SamCommand_PR samCommand;
     SeaderSamState sam_state;
     SeaderSamIntent sam_intent;
+    bool sam_present;
     uint8_t ATR[SEADER_MAX_ATR_SIZE];
     size_t ATR_len;
+    char sam_key_label[SEADER_SAM_KEY_LABEL_MAX_LEN];
+    char uhf_status_label[SEADER_UHF_STATUS_LABEL_MAX_LEN];
+    SeaderUhfSnmpProbe snmp_probe;
 
     char text_store[SEADER_TEXT_STORE_SIZE + 1];
     char read_error[SEADER_TEXT_STORE_SIZE + 1];

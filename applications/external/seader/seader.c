@@ -34,9 +34,15 @@ Seader* seader_alloc() {
     seader->samCommand = SamCommand_PR_NOTHING;
     seader->sam_state = SeaderSamStateIdle;
     seader->sam_intent = SeaderSamIntentNone;
+    seader->sam_present = false;
+    seader_sam_key_label_format(
+        false, NULL, 0U, seader->sam_key_label, sizeof(seader->sam_key_label));
+    seader_uhf_status_label_format(
+        false, false, false, false, seader->uhf_status_label, sizeof(seader->uhf_status_label));
     memset(seader->detected_card_types, 0, sizeof(seader->detected_card_types));
     seader->detected_card_type_count = 0;
     seader->selected_read_type = SeaderCredentialTypeNone;
+    seader_uhf_snmp_probe_init(&seader->snmp_probe);
 
     seader->worker = seader_worker_alloc();
     seader->view_dispatcher = view_dispatcher_alloc();

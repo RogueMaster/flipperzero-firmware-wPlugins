@@ -188,7 +188,7 @@ void seader_send_t1(SeaderUartBridge* seader_uart, uint8_t* apdu, size_t len) {
             return;
         }
 
-        t1->tx_buffer = bit_buffer_alloc(768);
+        t1->tx_buffer = bit_buffer_alloc(len);
         bit_buffer_copy_bytes(t1->tx_buffer, apdu, len);
         t1->tx_buffer_offset = 0;
     }

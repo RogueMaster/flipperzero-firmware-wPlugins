@@ -311,7 +311,7 @@ bool seader_worker_process_sam_message(Seader* seader, uint8_t* apdu, uint32_t l
 
     char* display = malloc(len * 2 + 1);
     memset(display, 0, len * 2 + 1);
-    for(uint8_t i = 0; i < len; i++) {
+    for(size_t i = 0; i < len; i++) {
         snprintf(display + (i * 2), sizeof(display), "%02x", apdu[i]);
     }
     FURI_LOG_I(TAG, "APDU: %s", display);

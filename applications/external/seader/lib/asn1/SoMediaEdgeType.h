@@ -25,7 +25,8 @@ typedef enum SoMediaEdgeType {
 	SoMediaEdgeType_mifare	= 2,
 	SoMediaEdgeType_picoPass	= 3,
 	SoMediaEdgeType_mifarePlus	= 6,
-	SoMediaEdgeType_seos	= 7
+	SoMediaEdgeType_seos	= 7,
+	SoMediaEdgeType_uhf	= 10
 } e_SoMediaEdgeType;
 
 /* SoMediaEdgeType */

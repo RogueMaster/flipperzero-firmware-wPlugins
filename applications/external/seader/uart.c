@@ -176,7 +176,7 @@ int32_t seader_uart_tx_thread(void* context) {
         if(events & WorkerEvtSamRx) {
             if(seader_uart->tx_len > 0) {
                 char display[SEADER_UART_RX_BUF_SIZE * 2 + 1] = {0};
-                for(uint8_t i = 0; i < seader_uart->tx_len; i++) {
+                for(size_t i = 0; i < seader_uart->tx_len; i++) {
                     snprintf(display + (i * 2), sizeof(display), "%02x", seader_uart->tx_buf[i]);
                 }
                 // FURI_LOG_I(TAG, "SEND %d bytes: %s", seader_uart->tx_len, display);

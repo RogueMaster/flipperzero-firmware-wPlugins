@@ -14,6 +14,7 @@
 /* Including external dependencies */
 #include "SamCommand.h"
 #include "NFCCommand.h"
+#include "I2CCommand.h"
 #include "Response.h"
 #include "ErrorResponse.h"
 #include <constr_CHOICE.h>
@@ -27,6 +28,7 @@ typedef enum Payload_PR {
 	Payload_PR_NOTHING,	/* No components present */
 	Payload_PR_samCommand,
 	Payload_PR_nfcCommand,
+	Payload_PR_i2cCommand,
 	Payload_PR_response,
 	Payload_PR_errorResponse
 } Payload_PR;
@@ -37,6 +39,7 @@ typedef struct Payload {
 	union Payload_u {
 		SamCommand_t	 samCommand;
 		NFCCommand_t	 nfcCommand;
+		I2CCommand_t	 i2cCommand;
 		Response_t	 response;
 		ErrorResponse_t	 errorResponse;
 	} choice;

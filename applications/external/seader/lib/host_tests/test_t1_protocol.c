@@ -3,6 +3,30 @@
 #include "munit.h"
 #include "t_1_host_env.h"
 
+static size_t test_hex_to_bytes(const char* hex, uint8_t* out, size_t out_size) {
+    size_t len = 0U;
+    int high_nibble = -1;
+
+    for(const char* p = hex; *p; ++p) {
+        int value = -1;
+        if(*p >= '0' && *p <= '9') value = *p - '0';
+        else if(*p >= 'A' && *p <= 'F') value = *p - 'A' + 10;
+        else if(*p >= 'a' && *p <= 'f') value = *p - 'a' + 10;
+        else continue;
+
+        if(high_nibble < 0) {
+            high_nibble = value;
+        } else {
+            munit_assert_size(len, <, out_size);
+            out[len++] = (uint8_t)((high_nibble << 4) | value);
+            high_nibble = -1;
+        }
+    }
+
+    munit_assert_int(high_nibble, ==, -1);
+    return len;
+}
+
 static void test_callback(uint32_t event, void* context) {
     (void)context;
     g_t1_host_test_state.callback_call_count++;
@@ -225,6 +249,65 @@ static MunitResult test_recv_r_block_invalid_retransmit_state_errors(
     return MUNIT_OK;
 }
 
+static MunitResult test_recv_live_uhf_config_chained_blocks(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    static const char* expected_apdu_hex =
+        "0A4400000000BD81FB8A81F8308200F40201033082000E02010002010004020000020201010482003A30820036041B2B0601040181E438010103050F8C9088CDA2A8D885C0B298D7FF7F020105020103040D2B0601040181E438010104080F040004003082009D041B2B0601040181E438010103050F8C9088CDA2A8D885C0B298D7FF7F040D2B0601040181E438010104080FA282006D020100020100020100308200603082005C0606030107030B00045204E2003412112B0601040181E438010102012201010101112B0601040181E43801010201220101020104E2801105112B0601040181E438010102011E01010101112B0601040181E438010102011E010102019000";
+
+    SeaderUartBridge uart = {0};
+    SeaderWorker worker = {0};
+    Seader seader = make_test_seader(&uart, &worker);
+    uint8_t first_block[300] = {0};
+    uint8_t final_block[64] = {0};
+    uint8_t expected_apdu[300] = {0};
+    CCID_Message first_message = {0};
+    CCID_Message final_message = {0};
+    size_t expected_apdu_len = 0U;
+    const size_t first_inf_len = 0xECU;
+    const size_t final_inf_len = 0x1AU;
+
+    t1_host_test_reset();
+    uart.t1.ifsd = 0xFE;
+    uart.t1.recv_pcb = 0x00;
+
+    expected_apdu_len =
+        test_hex_to_bytes(expected_apdu_hex, expected_apdu, sizeof(expected_apdu));
+    munit_assert_size(expected_apdu_len, ==, first_inf_len + final_inf_len);
+
+    first_block[0] = 0x00;
+    first_block[1] = 0x20;
+    first_block[2] = (uint8_t)first_inf_len;
+    memcpy(first_block + 3, expected_apdu, first_inf_len);
+    seader_add_lrc(first_block, 3 + first_inf_len);
+
+    final_block[0] = 0x00;
+    final_block[1] = 0x40;
+    final_block[2] = (uint8_t)final_inf_len;
+    memcpy(final_block + 3, expected_apdu + first_inf_len, final_inf_len);
+    seader_add_lrc(final_block, 3 + final_inf_len);
+
+    first_message.payload = first_block;
+    first_message.dwLength = 3 + first_inf_len + 1;
+    munit_assert_false(seader_recv_t1(&seader, &first_message));
+    munit_assert_size(g_t1_host_test_state.xfrblock_call_count, ==, 1);
+    munit_assert_uint8(g_t1_host_test_state.last_frame[0], ==, 0x00);
+    munit_assert_uint8(g_t1_host_test_state.last_frame[1], ==, 0x90);
+    munit_assert_uint8(g_t1_host_test_state.last_frame[2], ==, 0x00);
+
+    final_message.payload = final_block;
+    final_message.dwLength = 3 + final_inf_len + 1;
+    munit_assert_true(seader_recv_t1(&seader, &final_message));
+    munit_assert_size(g_t1_host_test_state.process_call_count, ==, 1);
+    munit_assert_size(g_t1_host_test_state.last_apdu_len, ==, expected_apdu_len);
+    munit_assert_memory_equal(
+        expected_apdu_len, g_t1_host_test_state.last_apdu, expected_apdu);
+    return MUNIT_OK;
+}
+
 static MunitTest test_t1_regression_cases[] = {
     {(char*)"/recv/wtx-request-responds",
      test_recv_wtx_request_responds,
@@ -276,6 +359,12 @@ static MunitTest test_t1_regression_cases[] = {
      NULL},
     {(char*)"/recv/r-block-invalid-retransmit-state-errors",
      test_recv_r_block_invalid_retransmit_state_errors,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {(char*)"/recv/live-uhf-config-chained-blocks",
+     test_recv_live_uhf_config_chained_blocks,
      NULL,
      NULL,
      MUNIT_TEST_OPTION_NONE,

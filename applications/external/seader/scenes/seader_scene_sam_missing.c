@@ -1,5 +1,6 @@
 #include "../seader_i.h"
 enum SubmenuIndex {
+    SubmenuIndexNoSam,
     SubmenuIndexDetectSam,
     SubmenuIndexSaved,
 };
@@ -15,11 +16,9 @@ void seader_scene_sam_missing_on_enter(void* context) {
     Submenu* submenu = seader->submenu;
 
     submenu_add_item(
-        submenu,
-        "No SAM: Retry",
-        SubmenuIndexDetectSam,
-        seader_scene_sam_missing_submenu_callback,
-        seader);
+        submenu, "NO SAM", SubmenuIndexNoSam, seader_scene_sam_missing_submenu_callback, seader);
+    submenu_add_item(
+        submenu, "Retry", SubmenuIndexDetectSam, seader_scene_sam_missing_submenu_callback, seader);
     submenu_add_item(
         submenu, "Saved", SubmenuIndexSaved, seader_scene_sam_missing_submenu_callback, seader);
 
@@ -36,6 +35,8 @@ bool seader_scene_sam_missing_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == SubmenuIndexDetectSam) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneStart);
+            consumed = true;
+        } else if(event.event == SubmenuIndexNoSam) {
             consumed = true;
         } else if(event.event == SubmenuIndexSaved) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneFileSelect);

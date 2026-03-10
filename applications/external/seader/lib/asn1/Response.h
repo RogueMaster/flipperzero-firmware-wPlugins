@@ -14,6 +14,7 @@
 /* Including external dependencies */
 #include "NFCResponse.h"
 #include "SamResponse.h"
+#include "UHFModuleResponse.h"
 #include "SamResponse2.h"
 #include <constr_CHOICE.h>
 
@@ -26,6 +27,7 @@ typedef enum Response_PR {
 	Response_PR_NOTHING,	/* No components present */
 	Response_PR_nfcResponse,
 	Response_PR_samResponse,
+	Response_PR_uhfModuleResponse,
 	Response_PR_samResponse2
 } Response_PR;
 
@@ -35,6 +37,7 @@ typedef struct Response {
 	union Response_u {
 		NFCResponse_t	 nfcResponse;
 		SamResponse_t	 samResponse;
+		UHFModuleResponse_t	 uhfModuleResponse;
 		SamResponse2_t	 samResponse2;
 	} choice;
 	
@@ -45,7 +48,7 @@ typedef struct Response {
 /* Implementation */
 extern asn_TYPE_descriptor_t asn_DEF_Response;
 extern asn_CHOICE_specifics_t asn_SPC_Response_specs_1;
-extern asn_TYPE_member_t asn_MBR_Response_1[3];
+extern asn_TYPE_member_t asn_MBR_Response_1[4];
 
 #ifdef __cplusplus
 }

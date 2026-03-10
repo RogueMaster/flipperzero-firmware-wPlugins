@@ -26,6 +26,15 @@ static asn_TYPE_member_t asn_MBR_Payload_1[] = {
 		0, 0, /* No default value */
 		"nfcCommand"
 		},
+	{ ATF_NOFLAGS, 0, offsetof(struct Payload, choice.i2cCommand),
+		(ASN_TAG_CLASS_CONTEXT | (10 << 2)),
+		-1,	/* IMPLICIT tag at current level */
+		&asn_DEF_I2CCommand,
+		0,
+		{ 0, 0, 0 },
+		0, 0, /* No default value */
+		"i2cCommand"
+		},
 	{ ATF_NOFLAGS, 0, offsetof(struct Payload, choice.response),
 		(ASN_TAG_CLASS_CONTEXT | (29 << 2)),
 		+1,	/* EXPLICIT tag at current level */
@@ -48,8 +57,9 @@ static asn_TYPE_member_t asn_MBR_Payload_1[] = {
 static const asn_TYPE_tag2member_t asn_MAP_Payload_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 }, /* samCommand */
     { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 }, /* nfcCommand */
-    { (ASN_TAG_CLASS_CONTEXT | (29 << 2)), 2, 0, 0 }, /* response */
-    { (ASN_TAG_CLASS_CONTEXT | (30 << 2)), 3, 0, 0 } /* errorResponse */
+    { (ASN_TAG_CLASS_CONTEXT | (10 << 2)), 2, 0, 0 }, /* i2cCommand */
+    { (ASN_TAG_CLASS_CONTEXT | (29 << 2)), 3, 0, 0 }, /* response */
+    { (ASN_TAG_CLASS_CONTEXT | (30 << 2)), 4, 0, 0 } /* errorResponse */
 };
 static asn_CHOICE_specifics_t asn_SPC_Payload_specs_1 = {
 	sizeof(struct Payload),
@@ -57,7 +67,7 @@ static asn_CHOICE_specifics_t asn_SPC_Payload_specs_1 = {
 	offsetof(struct Payload, present),
 	sizeof(((struct Payload *)0)->present),
 	asn_MAP_Payload_tag2el_1,
-	4,	/* Count of tags in the map */
+	5,	/* Count of tags in the map */
 	0, 0,
 	-1	/* Extensions start */
 };
@@ -71,7 +81,7 @@ asn_TYPE_descriptor_t asn_DEF_Payload = {
 	0,	/* No tags (count) */
 	{ 0, 0, CHOICE_constraint },
 	asn_MBR_Payload_1,
-	4,	/* Elements count */
+	5,	/* Elements count */
 	&asn_SPC_Payload_specs_1	/* Additional specs */
 };
 

@@ -234,7 +234,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
     SeaderCcidState* ccid_state = seader_ccid_state(seader_uart);
 
     char* display = malloc(cmd_len * 2 + 1);
-    for(uint8_t i = 0; i < cmd_len; i++) {
+    for(size_t i = 0; i < cmd_len; i++) {
         snprintf(display + (i * 2), sizeof(display), "%02x", cmd[i]);
     }
     FURI_LOG_D(TAG, "seader_ccid_process %d: %s", cmd_len, display);

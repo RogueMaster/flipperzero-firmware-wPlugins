@@ -7,7 +7,7 @@
 
 #include "UHFModuleCommand.h"
 
-static asn_TYPE_member_t asn_MBR_UHFModuleCommand_1[] = {
+asn_TYPE_member_t asn_MBR_UHFModuleCommand_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct UHFModuleCommand, choice.uhfModuleCommandGetVersion),
 		(ASN_TAG_CLASS_CONTEXT | (0 << 2)),
 		-1,	/* IMPLICIT tag at current level */
@@ -91,7 +91,7 @@ static const asn_TYPE_tag2member_t asn_MAP_UHFModuleCommand_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (6 << 2)), 6, 0, 0 }, /* uhfModuleCommandSetAccessPassword */
     { (ASN_TAG_CLASS_CONTEXT | (7 << 2)), 7, 0, 0 } /* uhfModuleCommandGetPrivateData */
 };
-static asn_CHOICE_specifics_t asn_SPC_UHFModuleCommand_specs_1 = {
+asn_CHOICE_specifics_t asn_SPC_UHFModuleCommand_specs_1 = {
 	sizeof(struct UHFModuleCommand),
 	offsetof(struct UHFModuleCommand, _asn_ctx),
 	offsetof(struct UHFModuleCommand, present),

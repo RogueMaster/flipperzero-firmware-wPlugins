@@ -1,10 +1,9 @@
 #include "../seader_i.h"
 enum SubmenuIndex {
+    SubmenuIndexSamInfo,
     SubmenuIndexRead,
     SubmenuIndexSaved,
     SubmenuIndexAPDURunner,
-    SubmenuIndexSamInfo,
-    SubmenuIndexFwVersion,
     SubmenuIndexReadConfigCard,
 };
 
@@ -45,19 +44,20 @@ void seader_scene_sam_present_on_update(void* context) {
             seader);
     }
     if(seader_worker->sam_version[0] != 0 && seader_worker->sam_version[1] != 0) {
-        // Use reusable string instead of allocating new one
-        FuriString* fw_str = seader->temp_string1;
-        furi_string_reset(fw_str);
-        furi_string_cat_printf(
-            fw_str, "FW %d.%d", seader_worker->sam_version[0], seader_worker->sam_version[1]);
         submenu_add_item(
             submenu,
-            furi_string_get_cstr(fw_str),
-            SubmenuIndexFwVersion,
+            seader->sam_key_label,
+            SubmenuIndexSamInfo,
             seader_scene_sam_present_submenu_callback,
             seader);
-        // No need to free fw_str as it's reused from seader struct
         fwChecks = 0;
+    } else {
+        submenu_add_item(
+            submenu,
+            seader->sam_key_label,
+            SubmenuIndexSamInfo,
+            seader_scene_sam_present_submenu_callback,
+            seader);
     }
 
     submenu_set_selected_item(
@@ -75,9 +75,9 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        scene_manager_set_scene_state(seader->scene_manager, SeaderSceneSamPresent, event.event);
-
         if(event.event == SubmenuIndexRead) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, event.event);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneRead);
             consumed = true;
         } else if(event.event == SubmenuIndexReadConfigCard) {
@@ -86,18 +86,25 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneReadConfigCard);
             consumed = true;
         } else if(event.event == SubmenuIndexSamInfo) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, event.event);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamInfo);
             consumed = true;
         } else if(event.event == SubmenuIndexSaved) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, event.event);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneFileSelect);
-            consumed = true;
-        } else if(event.event == SubmenuIndexFwVersion) {
             consumed = true;
         } else if(event.event == SeaderWorkerEventSamMissing) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamMissing);
             consumed = true;
         } else if(event.event == SubmenuIndexAPDURunner) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, event.event);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneAPDURunner);
+            consumed = true;
+        } else if(event.event == SeaderCustomEventSamStatusUpdated) {
+            seader_scene_sam_present_on_update(context);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {

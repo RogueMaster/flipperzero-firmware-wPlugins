@@ -26,6 +26,15 @@ asn_TYPE_member_t asn_MBR_Response_1[] = {
 		0, 0, /* No default value */
 		"samResponse"
 		},
+	{ ATF_NOFLAGS, 0, offsetof(struct Response, choice.uhfModuleResponse),
+		(ASN_TAG_CLASS_CONTEXT | (23 << 2)),
+		+1,	/* EXPLICIT tag at current level */
+		&asn_DEF_UHFModuleResponse,
+		0,
+		{ 0, 0, 0 },
+		0, 0, /* No default value */
+		"uhfModuleResponse"
+		},
 	{ ATF_NOFLAGS, 0, offsetof(struct Response, choice.samResponse2),
 		(ASN_TAG_CLASS_CONTEXT | (19 << 2)),
 		+1,	/* EXPLICIT tag at current level */
@@ -39,7 +48,8 @@ asn_TYPE_member_t asn_MBR_Response_1[] = {
 static const asn_TYPE_tag2member_t asn_MAP_Response_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 }, /* nfcResponse */
     { (ASN_TAG_CLASS_CONTEXT | (10 << 2)), 1, 0, 0 }, /* samResponse */
-    { (ASN_TAG_CLASS_CONTEXT | (19 << 2)), 2, 0, 0 } /* samResponse2 */
+    { (ASN_TAG_CLASS_CONTEXT | (19 << 2)), 3, 0, 0 }, /* samResponse2 */
+    { (ASN_TAG_CLASS_CONTEXT | (23 << 2)), 2, 0, 0 } /* uhfModuleResponse */
 };
 asn_CHOICE_specifics_t asn_SPC_Response_specs_1 = {
 	sizeof(struct Response),
@@ -47,7 +57,7 @@ asn_CHOICE_specifics_t asn_SPC_Response_specs_1 = {
 	offsetof(struct Response, present),
 	sizeof(((struct Response *)0)->present),
 	asn_MAP_Response_tag2el_1,
-	3,	/* Count of tags in the map */
+	4,	/* Count of tags in the map */
 	0, 0,
 	-1	/* Extensions start */
 };
@@ -61,7 +71,7 @@ asn_TYPE_descriptor_t asn_DEF_Response = {
 	0,	/* No tags (count) */
 	{ 0, 0, CHOICE_constraint },
 	asn_MBR_Response_1,
-	3,	/* Elements count */
+	4,	/* Elements count */
 	&asn_SPC_Response_specs_1	/* Additional specs */
 };
 

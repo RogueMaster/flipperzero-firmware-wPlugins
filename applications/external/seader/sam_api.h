@@ -36,3 +36,8 @@ bool seader_process_success_response_i(
     size_t len,
     bool online,
     SeaderPollerContainer* spc);
+
+bool seader_worker_send_process_snmp_message(
+    Seader* seader,
+    const uint8_t* message,
+    size_t message_len);

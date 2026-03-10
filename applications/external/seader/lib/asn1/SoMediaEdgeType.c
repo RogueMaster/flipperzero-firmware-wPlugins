@@ -17,7 +17,8 @@ static const asn_INTEGER_enum_map_t asn_MAP_SoMediaEdgeType_value2enum_1[] = {
 	{ 2,	6,	"mifare" },
 	{ 3,	8,	"picoPass" },
 	{ 6,	10,	"mifarePlus" },
-	{ 7,	4,	"seos" }
+	{ 7,	4,	"seos" },
+	{ 10,	3,	"uhf" }
 };
 static const unsigned int asn_MAP_SoMediaEdgeType_enum2value_1[] = {
 	1,	/* desfire(1) */
@@ -25,12 +26,13 @@ static const unsigned int asn_MAP_SoMediaEdgeType_enum2value_1[] = {
 	4,	/* mifarePlus(6) */
 	3,	/* picoPass(3) */
 	5,	/* seos(7) */
+	6,	/* uhf(10) */
 	0	/* unknown(0) */
 };
 const asn_INTEGER_specifics_t asn_SPC_SoMediaEdgeType_specs_1 = {
 	asn_MAP_SoMediaEdgeType_value2enum_1,	/* "tag" => N; sorted by tag */
 	asn_MAP_SoMediaEdgeType_enum2value_1,	/* N => "tag"; sorted by N */
-	6,	/* Number of elements in the maps */
+	7,	/* Number of elements in the maps */
 	0,	/* Enumeration is not extensible */
 	1,	/* Strict enumeration */
 	0,	/* Native long size */

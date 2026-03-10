@@ -12,8 +12,15 @@ NoArguments ::= NULL
 Payload ::= CHOICE {
   samCommand [0] SamCommand, --aka SioAPI
   nfcCommand [1] NFCCommand,
+  i2cCommand [10] I2CCommand,
   response [29] Response,
   errorResponse [30] ErrorResponse
+}
+
+I2CCommand ::= SEQUENCE {
+  header [0] OCTET STRING,
+  busAddress [1] INTEGER,
+  uhfModuleCommand [22] UHFModuleCommand
 }
 
 ErrorResponse ::= SEQUENCE {
@@ -48,6 +55,7 @@ SamResponse2 ::= CHOICE {
 Response ::= CHOICE {
   nfcResponse [0] NFCResponse,
   samResponse [10] SamResponse,
+  uhfModuleResponse [23] UHFModuleResponse,
   samResponse2 [19] SamResponse2
 }
 
@@ -97,7 +105,8 @@ SoMediaEdgeType ::= ENUMERATED {
   mifare (2),
   picoPass (3),
   mifarePlus (6),
-  seos (7)
+  seos (7),
+  uhf (10)
 }
 
 SamVerionDetails ::= SEQUENCE {
