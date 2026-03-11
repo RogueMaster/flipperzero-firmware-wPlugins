@@ -1,0 +1,14 @@
+NAME Screen Grab
+DESCRIPTION Minimize windows, screenshot desktop, restore
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+PLATFORM ALL
+DELAY 500
+PRINT Capturing desktop...
+LED_COLOR BLUE
+MINIMIZE_ALL
+DELAY 1000
+SCREENSHOT
+DELAY 500
+PRINT Screenshot captured
+LED_COLOR GREEN

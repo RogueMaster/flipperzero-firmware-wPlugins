@@ -1,0 +1,14 @@
+NAME Phish Redirect
+DESCRIPTION Opens a phishing URL in the target's browser
+CATEGORY exploit
+PLATFORMS WIN,MAC,LINUX
+OPTION URL https://example.com "Phishing page URL"
+PLATFORM ALL
+DELAY 500
+LED_COLOR RED
+PRINT Opening phishing URL...
+BROWSE_URL {{URL}}
+DELAY 3000
+MINIMIZE_ALL
+LED_COLOR GREEN
+PRINT Payload delivered

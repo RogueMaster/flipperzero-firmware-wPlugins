@@ -1,0 +1,20 @@
+NAME Mouse Jiggler
+DESCRIPTION Keeps screen awake by jiggling the mouse at random intervals
+CATEGORY post
+PLATFORMS WIN,MAC,LINUX
+OPTION DURATION 60 "Jiggle duration in seconds (approx)"
+OPTION INTERVAL 5000 "Interval between jiggles (ms)"
+PLATFORM ALL
+REM Platform-independent mouse jiggler using PLATFORM ALL
+VAR $count = 0
+REPEAT_BLOCK {{DURATION}}
+MOUSE_MOVE 3 0
+DELAY 50
+MOUSE_MOVE -3 0
+DELAY 50
+MOUSE_MOVE 0 3
+DELAY 50
+MOUSE_MOVE 0 -3
+DELAY {{INTERVAL}}
+END_REPEAT
+LED_COLOR GREEN

@@ -73,7 +73,7 @@ FPwnOS fpwn_effective_os(const FPwnApp* app) {
 }
 
 /* Label for the "Detect OS" main-menu item — shows last result. */
-static const char* fpwn_detect_os_label(FPwnOS os) {
+static const char* fpwn_detect_os_label(FPwnOS os, bool tried) {
     switch(os) {
     case FPwnOSWindows:
         return "Detected: Windows";
@@ -82,7 +82,7 @@ static const char* fpwn_detect_os_label(FPwnOS os) {
     case FPwnOSLinux:
         return "Detected: Linux";
     default:
-        return "Detect OS";
+        return tried ? "OS: Not detected" : "Detect OS";
     }
 }
 
@@ -110,26 +110,68 @@ static void fpwn_execute_draw_callback(Canvas* canvas, void* model) {
 
     canvas_clear(canvas);
 
+    /* Header — module name (left) + OS label (right) */
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 12, "FlipperPwn — Executing");
+    if(m->module_name[0]) {
+        canvas_draw_str(canvas, 2, 10, m->module_name);
+    } else {
+        canvas_draw_str(canvas, 2, 10, "FlipperPwn");
+    }
+    if(m->os_label[0]) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 126, 2, AlignRight, AlignTop, m->os_label);
+    }
 
     canvas_set_font(canvas, FontSecondary);
 
     if(m->finished) {
-        canvas_draw_str(canvas, 2, 26, m->error ? "Status: ERROR" : "Status: Done!");
-        canvas_draw_str(canvas, 2, 38, m->status);
-        canvas_draw_str(canvas, 2, 56, "Press Back to return");
+        canvas_draw_str(canvas, 2, 22, m->error ? "Status: ERROR" : "Status: Done!");
+
+        /* Elapsed time */
+        if(m->start_tick) {
+            uint32_t elapsed_s = (furi_get_tick() - m->start_tick) / furi_ms_to_ticks(1000);
+            char elapsed_str[24];
+            snprintf(elapsed_str, sizeof(elapsed_str), "Time: %lus", (unsigned long)elapsed_s);
+            canvas_draw_str_aligned(canvas, 126, 14, AlignRight, AlignTop, elapsed_str);
+        }
+
+        canvas_draw_str(canvas, 2, 34, m->status);
+        /* If exfil data was captured, hint that OK shows it */
+        if(strncmp(m->status, "Exfil:", 6) == 0 && !m->error) {
+            canvas_draw_str(canvas, 2, 50, "OK = View data");
+            canvas_draw_str(canvas, 2, 60, "Back = return");
+        } else {
+            canvas_draw_str(canvas, 2, 56, "Press Back to return");
+        }
     } else {
-        char prog[40];
+        /* Progress bar (120 px wide at y=14) */
+        canvas_draw_frame(canvas, 2, 14, 124, 8);
+        if(m->lines_total > 0) {
+            uint32_t fill = (m->lines_done * 120) / m->lines_total;
+            if(fill > 120) fill = 120;
+            canvas_draw_box(canvas, 4, 16, (uint8_t)fill, 4);
+        }
+
+        /* Line count + percentage + elapsed time */
+        char prog[64];
+        uint32_t pct = m->lines_total > 0 ? (m->lines_done * 100 / m->lines_total) : 0;
+        uint32_t elapsed_s = 0;
+        if(m->start_tick) {
+            elapsed_s = (furi_get_tick() - m->start_tick) / furi_ms_to_ticks(1000);
+        }
         snprintf(
             prog,
             sizeof(prog),
-            "Line %lu / %lu",
+            "%lu/%lu (%lu%%) %lus",
             (unsigned long)m->lines_done,
-            (unsigned long)m->lines_total);
-        canvas_draw_str(canvas, 2, 26, prog);
-        canvas_draw_str(canvas, 2, 38, m->status);
-        canvas_draw_str(canvas, 2, 56, "Back = abort");
+            (unsigned long)m->lines_total,
+            (unsigned long)pct,
+            (unsigned long)elapsed_s);
+        canvas_draw_str(canvas, 2, 34, prog);
+
+        /* Current command preview */
+        canvas_draw_str(canvas, 2, 46, m->status);
+        canvas_draw_str(canvas, 2, 60, "Back = abort");
     }
 }
 
@@ -143,24 +185,56 @@ static void fpwn_execute_draw_callback(Canvas* canvas, void* model) {
 static bool fpwn_execute_input_callback(InputEvent* event, void* ctx) {
     FPwnApp* app = (FPwnApp*)ctx;
 
-    if(event->type != InputTypeShort || event->key != InputKeyBack) {
-        return false;
-    }
+    if(event->type != InputTypeShort) return false;
 
     /* Check if execution has already finished (model read under lock). */
     bool finished = false;
     with_view_model(app->execute_view, FPwnExecModel * m, { finished = m->finished; }, false);
 
-    if(finished) {
-        /* Let the navigation_callback pop back to the module list. */
-        return false;
+    /* During execution (not finished), OK signals WAIT_BUTTON to continue */
+    if(event->key == InputKeyOk && !finished) {
+        app->wait_button_ok = true;
+        return true;
     }
 
-    /* Execution in progress — request abort and consume the key press. */
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->abort_requested = true;
-    furi_mutex_release(app->mutex);
-    return true;
+    if(event->key == InputKeyOk && finished && app->exfil_buffer && app->exfil_len > 0) {
+        /* Show exfil data in the results TextBox */
+        furi_string_reset(app->exfil_display_text);
+        furi_string_cat_printf(
+            app->exfil_display_text,
+            "=== Exfil Data (%lu B) ===\n",
+            (unsigned long)app->exfil_len);
+        /* Append the buffer — cap at 2KB for display sanity */
+        uint32_t show_len = app->exfil_len > 2048 ? 2048 : app->exfil_len;
+        for(uint32_t i = 0; i < show_len; i++) {
+            furi_string_push_back(app->exfil_display_text, app->exfil_buffer[i]);
+        }
+        if(app->exfil_len > 2048) {
+            furi_string_cat_printf(
+                app->exfil_display_text,
+                "\n... (%lu more bytes)",
+                (unsigned long)(app->exfil_len - 2048));
+        }
+        text_box_set_text(app->exfil_results, furi_string_get_cstr(app->exfil_display_text));
+        g_current_view = FPwnViewExfilResults;
+        view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewExfilResults);
+        return true;
+    }
+
+    if(event->key == InputKeyBack) {
+        if(finished) {
+            /* Let the navigation_callback pop back to the module list. */
+            return false;
+        }
+
+        /* Execution in progress — request abort and consume the key press. */
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->abort_requested = true;
+        furi_mutex_release(app->mutex);
+        return true;
+    }
+
+    return false;
 }
 
 /* --------------------------------------------------------------------------
@@ -211,14 +285,17 @@ static bool fpwn_navigation_callback(void* ctx) {
         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewMainMenu);
         return true;
 
-    case FPwnViewWifiScan:
+    case FPwnViewWifiScan: {
         /* Stop any active scan before leaving */
-        if(fpwn_marauder_get_state(app->marauder) == FPwnMarauderStateScanning) {
-            fpwn_marauder_stop_scan(app->marauder);
+        FPwnMarauderState scan_state = fpwn_marauder_get_state(app->marauder);
+        if(scan_state == FPwnMarauderStateScanning ||
+           scan_state == FPwnMarauderStateScanStopping) {
+            fpwn_marauder_stop(app->marauder);
         }
         g_current_view = FPwnViewWifiMenu;
         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiMenu);
         return true;
+    }
 
     case FPwnViewWifiPassword:
         g_current_view = FPwnViewWifiScan;
@@ -235,6 +312,11 @@ static bool fpwn_navigation_callback(void* ctx) {
         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewPingScan);
         return true;
 
+    case FPwnViewStationScan:
+        g_current_view = FPwnViewWifiMenu;
+        view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiMenu);
+        return true;
+
     case FPwnViewWifiStatus:
         /* Stop any active operation when dismissing the status log */
         if(fpwn_marauder_get_state(app->marauder) != FPwnMarauderStateIdle) {
@@ -242,6 +324,21 @@ static bool fpwn_navigation_callback(void* ctx) {
         }
         g_current_view = FPwnViewWifiMenu;
         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiMenu);
+        return true;
+
+    case FPwnViewCredentials:
+        g_current_view = FPwnViewWifiMenu;
+        view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiMenu);
+        return true;
+
+    case FPwnViewExfilResults:
+        g_current_view = FPwnViewExecute;
+        view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewExecute);
+        return true;
+
+    case FPwnViewAbout:
+        g_current_view = FPwnViewMainMenu;
+        view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewMainMenu);
         return true;
 
     case FPwnViewMainMenu:
@@ -264,7 +361,7 @@ static bool fpwn_custom_event_callback(void* ctx, uint32_t event) {
         if(idx >= app->module_count) return false;
 
         /* Lazily load full module details (options). */
-        if(!app->modules[idx].options_loaded) {
+        if(app->options_loaded_for != (int32_t)idx) {
             fpwn_module_load_full(app, idx);
         }
 
@@ -273,15 +370,26 @@ static bool fpwn_custom_event_callback(void* ctx, uint32_t event) {
         app->abort_requested = false;
         furi_mutex_release(app->mutex);
 
-        /* Seed the execute-view model. */
-        with_view_model(
-            app->execute_view,
-            FPwnExecModel * m,
-            {
-                memset(m, 0, sizeof(FPwnExecModel));
-                strncpy(m->status, "Starting...", sizeof(m->status) - 1);
-            },
-            true);
+        /* Seed the execute-view model with module name + OS. */
+        {
+            const FPwnModule* run_mod = &app->modules[idx];
+            FPwnOS eff_os = fpwn_effective_os(app);
+            const char* os_str = (eff_os == FPwnOSWindows) ? "WIN" :
+                                 (eff_os == FPwnOSMac)     ? "MAC" :
+                                 (eff_os == FPwnOSLinux)   ? "LNX" :
+                                                             "???";
+            with_view_model(
+                app->execute_view,
+                FPwnExecModel * m,
+                {
+                    memset(m, 0, sizeof(FPwnExecModel));
+                    strncpy(m->module_name, run_mod->name, FPWN_NAME_LEN - 1);
+                    strncpy(m->os_label, os_str, sizeof(m->os_label) - 1);
+                    m->start_tick = furi_get_tick();
+                    strncpy(m->status, "Starting...", sizeof(m->status) - 1);
+                },
+                true);
+        }
 
         /* Switch to the execute view before starting the thread so the
          * display is live from the very first keystroke. */
@@ -296,7 +404,7 @@ static bool fpwn_custom_event_callback(void* ctx, uint32_t event) {
         }
 
         app->exec_thread =
-            furi_thread_alloc_ex("FPwnExec", 4096, fpwn_payload_execute_thread, app);
+            furi_thread_alloc_ex("FPwnExec", 6144, fpwn_payload_execute_thread, app);
         furi_thread_start(app->exec_thread);
         return true;
     }
@@ -310,6 +418,8 @@ static bool fpwn_custom_event_callback(void* ctx, uint32_t event) {
         }
         /* Touch the model with update=true to trigger a canvas redraw. */
         with_view_model(app->execute_view, FPwnExecModel * m, { (void)m; }, true);
+        /* Rebuild main menu so "Run Last" appears/updates. */
+        fpwn_rebuild_main_menu(app);
         return true;
     }
 
@@ -327,19 +437,43 @@ static bool fpwn_custom_event_callback(void* ctx, uint32_t event) {
  * -------------------------------------------------------------------------- */
 typedef enum {
     FPwnMainMenuBrowse = 0,
-    FPwnMainMenuDetectOS = 1,
-    FPwnMainMenuSetOS = 2,
-    FPwnMainMenuWifi = 3,
+    FPwnMainMenuRunLast = 1,
+    FPwnMainMenuDetectOS = 2,
+    FPwnMainMenuSetOS = 3,
+    FPwnMainMenuWifi = 4,
+    FPwnMainMenuAbout = 5,
 } FPwnMainMenuItem;
+
+/* Static storage for main menu labels that need to survive submenu_add_item */
+static char s_browse_label[32];
+static char s_runlast_label[FPWN_NAME_LEN + 8]; /* "Run: " + name */
 
 static void fpwn_rebuild_main_menu(FPwnApp* app) {
     submenu_reset(app->main_menu);
     submenu_set_header(app->main_menu, "FlipperPwn");
+    snprintf(
+        s_browse_label,
+        sizeof(s_browse_label),
+        "Browse Modules (%lu)",
+        (unsigned long)app->module_count);
     submenu_add_item(
-        app->main_menu, "Browse Modules", FPwnMainMenuBrowse, fpwn_main_menu_callback, app);
+        app->main_menu, s_browse_label, FPwnMainMenuBrowse, fpwn_main_menu_callback, app);
+
+    /* "Run Last" — quick re-run of the last selected module */
+    if(app->selected_module_index >= 0 &&
+       (uint32_t)app->selected_module_index < app->module_count) {
+        snprintf(
+            s_runlast_label,
+            sizeof(s_runlast_label),
+            "Run: %s",
+            app->modules[app->selected_module_index].name);
+        submenu_add_item(
+            app->main_menu, s_runlast_label, FPwnMainMenuRunLast, fpwn_main_menu_callback, app);
+    }
+
     submenu_add_item(
         app->main_menu,
-        fpwn_detect_os_label(app->detected_os),
+        fpwn_detect_os_label(app->detected_os, app->os_detect_tried),
         FPwnMainMenuDetectOS,
         fpwn_main_menu_callback,
         app);
@@ -355,6 +489,7 @@ static void fpwn_rebuild_main_menu(FPwnApp* app) {
                                  "WiFi Tools" :
                                  "WiFi Tools (No ESP32)";
     submenu_add_item(app->main_menu, wifi_label, FPwnMainMenuWifi, fpwn_main_menu_callback, app);
+    submenu_add_item(app->main_menu, "About", FPwnMainMenuAbout, fpwn_main_menu_callback, app);
 }
 
 static void fpwn_main_menu_callback(void* ctx, uint32_t index) {
@@ -366,11 +501,23 @@ static void fpwn_main_menu_callback(void* ctx, uint32_t index) {
         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewCategoryMenu);
         break;
 
+    case FPwnMainMenuRunLast:
+        /* Quick re-run of the last selected module via the same custom event */
+        if(app->selected_module_index >= 0 &&
+           (uint32_t)app->selected_module_index < app->module_count) {
+            view_dispatcher_send_custom_event(app->view_dispatcher, FPwnCustomEventRunModule);
+        }
+        break;
+
     case FPwnMainMenuDetectOS:
-        /* Detection is fast (< 400 ms) so blocking the GUI thread is fine. */
         app->detected_os = fpwn_os_detect();
+        app->os_detect_tried = true;
         FURI_LOG_I(TAG, "Detected OS: %s", fpwn_os_name(app->detected_os));
-        notification_message(app->notifications, &sequence_success);
+        if(app->detected_os != FPwnOSUnknown) {
+            notification_message(app->notifications, &sequence_success);
+        } else {
+            notification_message(app->notifications, &sequence_error);
+        }
         /* Rebuild the menu so the "Detect OS" item shows the result label. */
         fpwn_rebuild_main_menu(app);
         /* Keep cursor on the Detect OS item so the user sees the result. */
@@ -402,27 +549,88 @@ static void fpwn_main_menu_callback(void* ctx, uint32_t index) {
         g_current_view = FPwnViewWifiMenu;
         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiMenu);
         break;
+
+    case FPwnMainMenuAbout:
+        widget_reset(app->about);
+        widget_add_string_element(
+            app->about, 64, 2, AlignCenter, AlignTop, FontPrimary, "FlipperPwn v1.5");
+        widget_add_string_element(
+            app->about, 64, 16, AlignCenter, AlignTop, FontSecondary, "Modular Pentest Framework");
+        {
+            char about_info[48];
+            bool esp = app->wifi_uart && fpwn_wifi_uart_is_connected(app->wifi_uart);
+            snprintf(
+                about_info,
+                sizeof(about_info),
+                "%lu modules | ESP32: %s",
+                (unsigned long)app->module_count,
+                esp ? "OK" : "N/A");
+            widget_add_string_element(
+                app->about, 64, 28, AlignCenter, AlignTop, FontSecondary, about_info);
+        }
+        widget_add_string_element(
+            app->about, 64, 40, AlignCenter, AlignTop, FontSecondary, "HID+Mouse+WiFi+CDC Exfil");
+        widget_add_string_element(
+            app->about, 64, 52, AlignCenter, AlignTop, FontSecondary, "github.com/barkandbite");
+        g_current_view = FPwnViewAbout;
+        view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewAbout);
+        break;
     }
 }
 
 /* --------------------------------------------------------------------------
  * Category menu
  * -------------------------------------------------------------------------- */
+/* Static label storage for category menu items — must outlive the submenu. */
+static char s_cat_labels[FPwnCategoryCount][32];
+
 static void fpwn_setup_category_menu(FPwnApp* app) {
     submenu_reset(app->category_menu);
     submenu_set_header(app->category_menu, "Category");
+
+    /* Count modules per category for richer labels */
+    uint32_t counts[FPwnCategoryCount] = {0};
+    for(uint32_t i = 0; i < app->module_count; i++) {
+        if(app->modules[i].category < FPwnCategoryCount) {
+            counts[app->modules[i].category]++;
+        }
+    }
+
+    snprintf(
+        s_cat_labels[0],
+        sizeof(s_cat_labels[0]),
+        "Recon (%lu)",
+        (unsigned long)counts[FPwnCategoryRecon]);
     submenu_add_item(
-        app->category_menu, "Recon", FPwnCategoryRecon, fpwn_category_menu_callback, app);
+        app->category_menu, s_cat_labels[0], FPwnCategoryRecon, fpwn_category_menu_callback, app);
+
+    snprintf(
+        s_cat_labels[1],
+        sizeof(s_cat_labels[1]),
+        "Credentials (%lu)",
+        (unsigned long)counts[FPwnCategoryCredential]);
     submenu_add_item(
         app->category_menu,
-        "Credentials",
+        s_cat_labels[1],
         FPwnCategoryCredential,
         fpwn_category_menu_callback,
         app);
+
+    snprintf(
+        s_cat_labels[2],
+        sizeof(s_cat_labels[2]),
+        "Exploit (%lu)",
+        (unsigned long)counts[FPwnCategoryExploit]);
     submenu_add_item(
-        app->category_menu, "Exploit", FPwnCategoryExploit, fpwn_category_menu_callback, app);
+        app->category_menu, s_cat_labels[2], FPwnCategoryExploit, fpwn_category_menu_callback, app);
+
+    snprintf(
+        s_cat_labels[3],
+        sizeof(s_cat_labels[3]),
+        "Post-Exploit (%lu)",
+        (unsigned long)counts[FPwnCategoryPost]);
     submenu_add_item(
-        app->category_menu, "Post-Exploit", FPwnCategoryPost, fpwn_category_menu_callback, app);
+        app->category_menu, s_cat_labels[3], FPwnCategoryPost, fpwn_category_menu_callback, app);
 }
 
 static void fpwn_category_menu_callback(void* ctx, uint32_t index) {
@@ -471,7 +679,7 @@ static void fpwn_module_list_callback(void* ctx, uint32_t index) {
 
     app->selected_module_index = (int32_t)index;
 
-    if(!app->modules[index].options_loaded) {
+    if(app->options_loaded_for != (int32_t)index) {
         fpwn_module_load_full(app, index);
     }
 
@@ -523,27 +731,39 @@ static void fpwn_populate_module_info(FPwnApp* app) {
     /* Line 0 — module name (bold) */
     widget_add_string_element(app->module_info, 0, 0, AlignLeft, AlignTop, FontPrimary, mod->name);
 
-    /* Line 1 — platform bitmask */
+    /* Line 1 — category + platforms + effective OS */
+    static const char* const cat_short[FPwnCategoryCount] = {
+        [FPwnCategoryRecon] = "RCN",
+        [FPwnCategoryCredential] = "CRD",
+        [FPwnCategoryExploit] = "EXP",
+        [FPwnCategoryPost] = "PST",
+    };
     char plat[24];
     fpwn_format_platforms(mod->platforms, plat, sizeof(plat));
-    char plat_line[48];
-    snprintf(plat_line, sizeof(plat_line), "Platforms: %s", plat);
+    FPwnOS eff = fpwn_effective_os(app);
+    const char* eff_str = (eff == FPwnOSWindows) ? "WIN" :
+                          (eff == FPwnOSMac)     ? "MAC" :
+                          (eff == FPwnOSLinux)   ? "LNX" :
+                                                   "???";
+    char info_line[64];
+    snprintf(
+        info_line,
+        sizeof(info_line),
+        "[%s] %s | OS:%s | Opts:%u",
+        ((uint32_t)mod->category < FPwnCategoryCount) ? cat_short[mod->category] : "???",
+        plat,
+        eff_str,
+        (unsigned)app->active_option_count);
     widget_add_string_element(
-        app->module_info, 0, 14, AlignLeft, AlignTop, FontSecondary, plat_line);
+        app->module_info, 0, 14, AlignLeft, AlignTop, FontSecondary, info_line);
 
     /* Lines 2-4 — scrollable description (y=24, height=28) */
     widget_add_text_scroll_element(app->module_info, 0, 24, 128, 28, mod->description);
 
-    /* Line 5 — option count hint */
-    char opt_hint[24];
-    snprintf(opt_hint, sizeof(opt_hint), "Opts: %u", (unsigned)mod->option_count);
-    widget_add_string_element(
-        app->module_info, 0, 54, AlignLeft, AlignTop, FontSecondary, opt_hint);
-
     /* Buttons */
     widget_add_button_element(
         app->module_info, GuiButtonTypeLeft, "Back", fpwn_widget_back_callback, app);
-    if(mod->option_count > 0) {
+    if(app->active_option_count > 0) {
         widget_add_button_element(
             app->module_info, GuiButtonTypeCenter, "Options", fpwn_widget_options_callback, app);
     }
@@ -587,16 +807,14 @@ static void fpwn_populate_options_list(FPwnApp* app) {
         return;
     }
 
-    FPwnModule* mod = &app->modules[app->selected_module_index];
-
-    for(uint8_t i = 0; i < mod->option_count; i++) {
+    for(uint8_t i = 0; i < app->active_option_count; i++) {
         VariableItem* item = variable_item_list_add(
             app->options_list,
-            mod->options[i].name,
+            app->active_options[i].name,
             0, /* no cycling values */
             NULL,
             app);
-        variable_item_set_current_value_text(item, mod->options[i].value);
+        variable_item_set_current_value_text(item, app->active_options[i].value);
     }
 
     variable_item_list_set_enter_callback(app->options_list, fpwn_options_enter_callback, app);
@@ -606,17 +824,16 @@ static void fpwn_options_enter_callback(void* ctx, uint32_t index) {
     FPwnApp* app = (FPwnApp*)ctx;
 
     if(app->selected_module_index < 0) return;
-    FPwnModule* mod = &app->modules[app->selected_module_index];
-    if(index >= mod->option_count) return;
+    if(index >= app->active_option_count) return;
 
     app->editing_option_index = (uint8_t)index;
 
     /* Copy current value into edit buffer */
-    strncpy(app->option_edit_buf, mod->options[index].value, FPWN_OPT_VALUE_LEN - 1);
+    strncpy(app->option_edit_buf, app->active_options[index].value, FPWN_OPT_VALUE_LEN - 1);
     app->option_edit_buf[FPWN_OPT_VALUE_LEN - 1] = '\0';
 
     text_input_reset(app->option_edit_input);
-    text_input_set_header_text(app->option_edit_input, mod->options[index].name);
+    text_input_set_header_text(app->option_edit_input, app->active_options[index].name);
     text_input_set_result_callback(
         app->option_edit_input,
         fpwn_option_edit_done_callback,
@@ -633,14 +850,13 @@ static void fpwn_option_edit_done_callback(void* ctx) {
     FPwnApp* app = (FPwnApp*)ctx;
 
     if(app->selected_module_index < 0) return;
-    FPwnModule* mod = &app->modules[app->selected_module_index];
 
-    if(app->editing_option_index < mod->option_count) {
+    if(app->editing_option_index < app->active_option_count) {
         strncpy(
-            mod->options[app->editing_option_index].value,
+            app->active_options[app->editing_option_index].value,
             app->option_edit_buf,
             FPWN_OPT_VALUE_LEN - 1);
-        mod->options[app->editing_option_index].value[FPWN_OPT_VALUE_LEN - 1] = '\0';
+        app->active_options[app->editing_option_index].value[FPWN_OPT_VALUE_LEN - 1] = '\0';
     }
 
     /* Refresh the options list to show the new value */
@@ -659,9 +875,10 @@ static FPwnApp* flipperpwn_app_alloc(void) {
     memset(app, 0, sizeof(FPwnApp));
 
     app->selected_module_index = -1;
+    app->options_loaded_for = -1;
     /* detected_os and manual_os default to FPwnOSUnknown (0) via memset. */
 
-    /* ---- Module catalog (heap-allocated to avoid ~44 KB in struct) ---- */
+    /* ---- Module catalog (heap-allocated) ---- */
     app->modules = malloc(FPWN_MAX_MODULES * sizeof(FPwnModule));
     furi_assert(app->modules);
     memset(app->modules, 0, FPWN_MAX_MODULES * sizeof(FPwnModule));
@@ -735,6 +952,18 @@ static FPwnApp* flipperpwn_app_alloc(void) {
         app->execute_view, FPwnExecModel * m, { memset(m, 0, sizeof(FPwnExecModel)); }, false);
     view_dispatcher_add_view(app->view_dispatcher, FPwnViewExecute, app->execute_view);
 
+    /* ---- Exfil results TextBox ---- */
+    app->exfil_display_text = furi_string_alloc();
+    app->exfil_results = text_box_alloc();
+    text_box_set_font(app->exfil_results, TextBoxFontText);
+    text_box_set_focus(app->exfil_results, TextBoxFocusStart);
+    view_dispatcher_add_view(
+        app->view_dispatcher, FPwnViewExfilResults, text_box_get_view(app->exfil_results));
+
+    /* ---- About widget ---- */
+    app->about = widget_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, FPwnViewAbout, widget_get_view(app->about));
+
     /* ---- WiFi Dev Board views ---- */
     fpwn_wifi_views_alloc(app);
 
@@ -773,6 +1002,8 @@ static void flipperpwn_app_free(FPwnApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FPwnViewOptions);
     view_dispatcher_remove_view(app->view_dispatcher, FPwnViewOptionEdit);
     view_dispatcher_remove_view(app->view_dispatcher, FPwnViewExecute);
+    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewExfilResults);
+    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewAbout);
 
     view_dispatcher_free(app->view_dispatcher);
 
@@ -783,11 +1014,19 @@ static void flipperpwn_app_free(FPwnApp* app) {
     variable_item_list_free(app->options_list);
     text_input_free(app->option_edit_input);
     view_free(app->execute_view);
+    text_box_free(app->exfil_results);
+    furi_string_free(app->exfil_display_text);
+    widget_free(app->about);
 
     furi_mutex_free(app->mutex);
 
     free(app->modules);
     app->modules = NULL;
+
+    if(app->exfil_buffer) {
+        free(app->exfil_buffer);
+        app->exfil_buffer = NULL;
+    }
 
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_STORAGE);
@@ -829,8 +1068,10 @@ int32_t flipperpwn_app(void* p) {
 
     flipperpwn_app_free(app);
 
-    /* Restore prior USB personality. */
-    furi_hal_usb_set_config(prev_usb, NULL);
+    /* Restore prior USB personality (may be NULL if no USB was active). */
+    if(prev_usb) {
+        furi_hal_usb_set_config(prev_usb, NULL);
+    }
 
     return 0;
 }

@@ -306,9 +306,11 @@ static void type_char(char ch) {
 
     if(need_shift) {
         furi_hal_hid_kb_press(KEY_MOD_LEFT_SHIFT | keycode);
+        furi_delay_ms(2);
         furi_hal_hid_kb_release(KEY_MOD_LEFT_SHIFT | keycode);
     } else {
         furi_hal_hid_kb_press(keycode);
+        furi_delay_ms(2);
         furi_hal_hid_kb_release(keycode);
     }
 }

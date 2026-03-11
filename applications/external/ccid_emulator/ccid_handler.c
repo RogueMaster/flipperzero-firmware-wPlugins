@@ -161,10 +161,17 @@ static void ccid_xfr_datablock(
         FURI_LOG_D("CcidHandler", "Rule %d matched", rule_idx);
     } else {
         /* No rule matched -- send default response */
-        uint32_t copy_len = app->card->default_response_len;
-        if(copy_len > CCID_MAX_DATA_BLOCK_LEN) copy_len = CCID_MAX_DATA_BLOCK_LEN;
-        memcpy(readerToPcDataBlock, app->card->default_response, copy_len);
-        *readerToPcDataBlockLen = copy_len;
+        if(app->card->default_response_len > 0) {
+            uint32_t copy_len = app->card->default_response_len;
+            if(copy_len > CCID_MAX_DATA_BLOCK_LEN) copy_len = CCID_MAX_DATA_BLOCK_LEN;
+            memcpy(readerToPcDataBlock, app->card->default_response, copy_len);
+            *readerToPcDataBlockLen = copy_len;
+        } else {
+            /* Fallback: SW 6D00 = Instruction not supported */
+            readerToPcDataBlock[0] = 0x6D;
+            readerToPcDataBlock[1] = 0x00;
+            *readerToPcDataBlockLen = 2;
+        }
         matched = false;
 
         FURI_LOG_D("CcidHandler", "No rule matched, sending default response");

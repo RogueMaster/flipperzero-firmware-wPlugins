@@ -222,7 +222,7 @@ CcidCard* ccid_card_load(Storage* storage, const char* path) {
     Section section = SectionNone;
 
     while(stream_read_line(stream, line_buf)) {
-        char line[1024];
+        char line[256];
         size_t line_len = furi_string_size(line_buf);
         if(line_len >= sizeof(line)) line_len = sizeof(line) - 1;
         memcpy(line, furi_string_get_cstr(line_buf), line_len);

@@ -2,124 +2,120 @@
 
 #define TAG "FPwn"
 
+/* Poll timeout in ms — how long to wait for the host to echo an LED change. */
+#define LED_POLL_TIMEOUT_MS 500
+
+/* ----------------------------------------------------------------------------
+ * wait_for_led_change()
+ *
+ * Polls furi_hal_hid_get_led_state() at 2 ms intervals until the masked bits
+ * differ from `before`, or `timeout_ms` elapses.
+ *
+ * Returns the new LED state, or `before` unchanged if the timeout expired.
+ * --------------------------------------------------------------------------*/
+static uint8_t wait_for_led_change(uint8_t before, uint8_t mask, uint32_t timeout_ms) {
+    uint32_t start = furi_get_tick();
+    while((furi_get_tick() - start) < furi_ms_to_ticks(timeout_ms)) {
+        uint8_t now = furi_hal_hid_get_led_state();
+        if((now ^ before) & mask) {
+            return now;
+        }
+        furi_delay_ms(2);
+    }
+    return before; /* unchanged */
+}
+
+/* ----------------------------------------------------------------------------
+ * toggle_key()
+ *
+ * Press and release a HID key, then poll for the given LED mask to change.
+ * Returns true if the LED bit changed within the timeout.
+ * --------------------------------------------------------------------------*/
+static bool toggle_key_and_check(uint16_t key, uint8_t led_mask) {
+    uint8_t before = furi_hal_hid_get_led_state();
+
+    furi_hal_hid_kb_press(key);
+    furi_hal_hid_kb_release(key);
+
+    uint8_t after = wait_for_led_change(before, led_mask, LED_POLL_TIMEOUT_MS);
+    return ((after ^ before) & led_mask) != 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * restore_key()
+ *
+ * Toggle a key back and wait for the LED to return to its original state.
+ * --------------------------------------------------------------------------*/
+static void restore_key(uint16_t key, uint8_t led_mask) {
+    uint8_t before = furi_hal_hid_get_led_state();
+
+    furi_hal_hid_kb_press(key);
+    furi_hal_hid_kb_release(key);
+
+    /* Wait for the restore to be acknowledged; ignore if it times out. */
+    wait_for_led_change(before, led_mask, LED_POLL_TIMEOUT_MS);
+}
+
 /* ----------------------------------------------------------------------------
  * fpwn_os_detect()
  *
- * Heuristic: probe USB HID LED feedback to fingerprint the host OS.
- *
- * Phase 0 — Connectivity check (CapsLock probe)
- *   Toggle CapsLock and verify the host echoes an LED update within 50 ms.
- *   If no echo arrives the USB HID stack is not yet active or the host is
- *   unresponsive — return FPwnOSUnknown immediately and skip all further
- *   probing to avoid leaving the host in a dirty keyboard state.
+ * Phase 0 — CapsLock probe (connectivity check)
+ *   If the host does not echo a CapsLock LED change within 500 ms the USB
+ *   HID stack is not active.  Return FPwnOSUnknown.
  *
  * Phase 1 — NumLock probe (macOS discriminator)
- *   macOS treats external USB keyboards as if they have no NumLock key; the
- *   host OS simply does not reflect NumLock LED changes back to the device.
- *   Windows and Linux both acknowledge NumLock toggles via the LED report.
+ *   macOS ignores NumLock on external keyboards.  No LED echo → macOS.
  *
- * Phase 2 — ScrollLock probe (Windows vs. Linux discriminator)
- *   Modern Linux desktop environments (X11/Wayland) do not maintain a
- *   ScrollLock LED state; Windows does.  If the ScrollLock bit changes in the
- *   LED report after a toggle, the host is Windows; otherwise it is Linux.
+ * Phase 2 — ScrollLock probe (Windows vs Linux)
+ *   Windows reflects ScrollLock LED; Linux desktop environments do not.
  *
- * After all probing, any LEDs that were changed are toggled back to their
- * original state so the user's keyboard LEDs are restored.
+ * All toggled keys are restored before returning.
  * --------------------------------------------------------------------------*/
-
 FPwnOS fpwn_os_detect(void) {
-    /* -------------------------------------------------------------------------
-     * Phase 0: connectivity / CapsLock pre-flight
-     * ---------------------------------------------------------------------- */
-    uint8_t led_initial = furi_hal_hid_get_led_state();
+    /* Phase 0: CapsLock connectivity check */
+    bool caps_ok = toggle_key_and_check(HID_KEYBOARD_CAPS_LOCK, HID_KB_LED_CAPS);
 
-    furi_hal_hid_kb_press(HID_KEYBOARD_CAPS_LOCK);
-    furi_hal_hid_kb_release(HID_KEYBOARD_CAPS_LOCK);
-    furi_delay_ms(50);
-
-    uint8_t led_after_caps = furi_hal_hid_get_led_state();
-
-    bool caps_changed = ((led_after_caps ^ led_initial) & HID_KB_LED_CAPS) != 0;
-
-    if(!caps_changed) {
-        /*
-         * Host did not echo a CapsLock LED update.  Either USB HID is not
-         * active yet, or this is a host configuration that suppresses LED
-         * feedback entirely.  Bail out without further probing.
-         */
-        FURI_LOG_I(
-            TAG, "OS detect: no CapsLock LED response — USB HID inactive or host unresponsive");
+    if(!caps_ok) {
+        FURI_LOG_I(TAG, "OS detect: no CapsLock echo — USB HID not active");
+        /* CapsLock was sent but host didn't echo.  Toggle it back so the
+         * host state is restored even if the LED report was simply slow. */
+        furi_hal_hid_kb_press(HID_KEYBOARD_CAPS_LOCK);
+        furi_hal_hid_kb_release(HID_KEYBOARD_CAPS_LOCK);
+        furi_delay_ms(50);
         return FPwnOSUnknown;
     }
 
-    /* Restore CapsLock to its original state before continuing. */
-    furi_hal_hid_kb_press(HID_KEYBOARD_CAPS_LOCK);
-    furi_hal_hid_kb_release(HID_KEYBOARD_CAPS_LOCK);
-    furi_delay_ms(50);
+    /* Restore CapsLock */
+    restore_key(HID_KEYBOARD_CAPS_LOCK, HID_KB_LED_CAPS);
 
-    /* -------------------------------------------------------------------------
-     * Phase 1: NumLock probe — distinguish macOS from Windows/Linux
-     * ---------------------------------------------------------------------- */
-    uint8_t led_before_num = furi_hal_hid_get_led_state();
+    /* Phase 1: NumLock probe */
+    bool num_ok = toggle_key_and_check(HID_KEYPAD_NUMLOCK, HID_KB_LED_NUM);
 
-    furi_hal_hid_kb_press(HID_KEYPAD_NUMLOCK);
-    furi_hal_hid_kb_release(HID_KEYPAD_NUMLOCK);
-    furi_delay_ms(100);
-
-    uint8_t led_after_num = furi_hal_hid_get_led_state();
-
-    bool num_changed = ((led_after_num ^ led_before_num) & HID_KB_LED_NUM) != 0;
-
-    if(!num_changed) {
-        /*
-         * Host ignored the NumLock toggle — characteristic of macOS, which
-         * does not maintain a NumLock LED for external keyboards.
-         */
-        FURI_LOG_I(TAG, "OS detect: NumLock LED unchanged → macOS");
+    if(!num_ok) {
+        /* macOS does not reflect NumLock — no restore needed. */
+        FURI_LOG_I(TAG, "OS detect: NumLock unchanged → macOS");
         return FPwnOSMac;
     }
 
-    /* NumLock changed — restore it before moving to Phase 2. */
-    furi_hal_hid_kb_press(HID_KEYPAD_NUMLOCK);
-    furi_hal_hid_kb_release(HID_KEYPAD_NUMLOCK);
-    furi_delay_ms(50);
+    /* Restore NumLock */
+    restore_key(HID_KEYPAD_NUMLOCK, HID_KB_LED_NUM);
 
-    /* -------------------------------------------------------------------------
-     * Phase 2: ScrollLock probe — distinguish Windows from Linux
-     * ---------------------------------------------------------------------- */
-    uint8_t led_before_scroll = furi_hal_hid_get_led_state();
+    /* Phase 2: ScrollLock probe */
+    bool scroll_ok = toggle_key_and_check(HID_KEYBOARD_SCROLL_LOCK, HID_KB_LED_SCROLL);
 
-    furi_hal_hid_kb_press(HID_KEYBOARD_SCROLL_LOCK);
-    furi_hal_hid_kb_release(HID_KEYBOARD_SCROLL_LOCK);
-    furi_delay_ms(100);
-
-    uint8_t led_after_scroll = furi_hal_hid_get_led_state();
-
-    bool scroll_changed = ((led_after_scroll ^ led_before_scroll) & HID_KB_LED_SCROLL) != 0;
-
-    if(scroll_changed) {
-        /* Restore ScrollLock before returning. */
-        furi_hal_hid_kb_press(HID_KEYBOARD_SCROLL_LOCK);
-        furi_hal_hid_kb_release(HID_KEYBOARD_SCROLL_LOCK);
-        furi_delay_ms(50);
-
-        FURI_LOG_I(TAG, "OS detect: ScrollLock LED toggled → Windows");
+    if(scroll_ok) {
+        restore_key(HID_KEYBOARD_SCROLL_LOCK, HID_KB_LED_SCROLL);
+        FURI_LOG_I(TAG, "OS detect: ScrollLock echoed → Windows");
         return FPwnOSWindows;
     }
 
-    /*
-     * ScrollLock LED did not change — Linux desktop environments (both X11
-     * and Wayland compositors) typically do not propagate ScrollLock LED
-     * state back to USB HID devices.
-     */
-    FURI_LOG_I(TAG, "OS detect: ScrollLock LED unchanged → Linux");
+    FURI_LOG_I(TAG, "OS detect: ScrollLock unchanged → Linux");
     return FPwnOSLinux;
 }
 
 /* ----------------------------------------------------------------------------
  * fpwn_os_name()
  * --------------------------------------------------------------------------*/
-
 const char* fpwn_os_name(FPwnOS os) {
     switch(os) {
     case FPwnOSWindows:

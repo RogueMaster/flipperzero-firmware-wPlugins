@@ -1,0 +1,35 @@
+NAME System Info Recon
+DESCRIPTION Opens terminal, dumps hostname, username, and IP address
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass
+ENTER
+DELAY 1200
+STRING Write-Host "HOST:$env:COMPUTERNAME USER:$env:USERNAME"
+ENTER
+DELAY 200
+STRING ipconfig | Select-String IPv4
+ENTER
+DELAY 200
+STRING $PSVersionTable.PSVersion
+ENTER
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+STRING echo HOST:$(hostname) USER:$(whoami) && ifconfig | grep 'inet ' | grep -v 127 && sw_vers
+ENTER
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+STRING echo HOST:$(hostname) USER:$(whoami) && ip addr | grep 'inet ' | grep -v 127 && uname -a
+ENTER

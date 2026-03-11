@@ -21,7 +21,9 @@
  * ========================================================================= */
 
 #define FPWN_MODULES_DIR   EXT_PATH("flipperpwn/modules")
-#define FPWN_MAX_MODULES   16
+#define FPWN_EXFIL_DIR     EXT_PATH("flipperpwn/exfil")
+#define FPWN_EXFIL_MAX     4096 /* max exfil data size */
+#define FPWN_MAX_MODULES   32
 #define FPWN_MAX_OPTIONS   4
 #define FPWN_MAX_LINE_LEN  512
 #define FPWN_OPT_NAME_LEN  32
@@ -48,7 +50,11 @@ typedef enum {
     FPwnViewWifiPassword,
     FPwnViewPingScan,
     FPwnViewPortScan,
+    FPwnViewStationScan,
     FPwnViewWifiStatus,
+    FPwnViewCredentials,
+    FPwnViewExfilResults,
+    FPwnViewAbout,
 } FPwnView;
 
 typedef enum {
@@ -83,25 +89,25 @@ typedef struct {
     char description[FPWN_OPT_DESC_LEN];
 } FPwnOption;
 
-/* Lightweight module metadata — loaded from scanning .fpwn headers */
+/* Lightweight module metadata — loaded from scanning .fpwn headers.
+ * Options are NOT stored here — they live in FPwnApp as a single active set
+ * to avoid allocating 512 bytes per module slot. */
 typedef struct {
     char name[FPWN_NAME_LEN];
     char description[FPWN_DESC_LEN];
     FPwnCategory category;
     uint8_t platforms; /* bitmask of FPwnPlatform */
     char file_path[FPWN_PATH_LEN];
-
-    /* Options (populated when module is selected) */
-    FPwnOption options[FPWN_MAX_OPTIONS];
-    uint8_t option_count;
-    bool options_loaded;
 } FPwnModule;
 
 /* Execution status passed to the execute view */
 typedef struct {
     char status[128];
+    char module_name[FPWN_NAME_LEN];
+    char os_label[12]; /* "WIN"/"MAC"/"LNX"/"???" */
     uint32_t lines_done;
     uint32_t lines_total;
+    uint32_t start_tick; /* furi_get_tick() when execution started */
     bool finished;
     bool error;
 } FPwnExecModel;
@@ -120,6 +126,7 @@ typedef struct {
     char option_edit_buf[FPWN_OPT_VALUE_LEN];
     uint8_t editing_option_index;
     View* execute_view;
+    Widget* about;
 
     /* Services */
     Storage* storage;
@@ -134,11 +141,25 @@ typedef struct {
     int32_t selected_module_index;
     FPwnOS detected_os;
     FPwnOS manual_os; /* 0 = auto-detect */
+    bool os_detect_tried;
+
+    /* Active module options — only one module's options loaded at a time */
+    FPwnOption active_options[FPWN_MAX_OPTIONS];
+    uint8_t active_option_count;
+    int32_t options_loaded_for; /* module index, or -1 if none */
 
     /* Execution */
     FuriThread* exec_thread;
-    bool abort_requested;
+    volatile bool abort_requested;
+    volatile bool wait_button_ok; /* set by input callback when OK pressed during WAIT_BUTTON */
     FuriMutex* mutex;
+
+    /* Exfiltration */
+    char* exfil_buffer; /* heap-allocated received data (NULL when unused) */
+    uint32_t exfil_len; /* bytes received so far */
+    uint32_t exfil_capacity; /* allocated size */
+    TextBox* exfil_results; /* scrollable exfil data viewer */
+    FuriString* exfil_display_text; /* string backing the TextBox */
 
     /* WiFi Dev Board */
     FPwnWifiUart* wifi_uart;
@@ -150,10 +171,15 @@ typedef struct {
     char wifi_text_buf[128];
     TextBox* wifi_status;
     FuriString* wifi_status_text;
+    FuriMutex* wifi_status_mutex; /* protects wifi_status_text from concurrent access */
     View* ping_scan_view;
     View* port_scan_view;
+    View* station_scan_view;
+    View* cred_view;
     uint8_t wifi_selected_ap;
     uint8_t wifi_selected_host;
+    bool wifi_deauth_mode; /* true = AP list OK → targeted deauth */
+    bool wifi_portal_mode; /* true = text input → evil portal SSID */
 } FPwnApp;
 
 /* =========================================================================
@@ -168,8 +194,8 @@ void fpwn_modules_write_samples(FPwnApp* app);
  * Only reads metadata headers (NAME, CATEGORY, etc.) — not full payloads. */
 void fpwn_modules_scan(FPwnApp* app);
 
-/* Load full module details (options, payload sections) for the given index.
- * Populates module->options[] and sets module->options_loaded. */
+/* Load full module details (options) for the given index.
+ * Populates app->active_options[] and sets app->options_loaded_for. */
 bool fpwn_module_load_full(FPwnApp* app, uint32_t index);
 
 /* Execute the selected module's payload on a background thread.

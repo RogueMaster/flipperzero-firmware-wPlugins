@@ -66,7 +66,7 @@ static void app_alloc(BadUsbProApp* app) {
     memset(app, 0, sizeof(*app));
     app->speed_setting = SpeedNormal;
     app->injection_mode = InjectionModeUSB;
-    app->settings_default_delay = 0;
+    app->settings_default_delay = 100; /* 100 ms between commands — sane default */
     app->usb_restored = false;
 
     script_engine_init(&app->engine);
@@ -121,8 +121,8 @@ static void app_alloc(BadUsbProApp* app) {
     /* Default delay item */
     VariableItem* delay_item =
         variable_item_list_add(app->settings, "Default Delay", 6, settings_delay_change_cb, app);
-    variable_item_set_current_value_index(delay_item, 0);
-    variable_item_set_current_value_text(delay_item, "0ms");
+    variable_item_set_current_value_index(delay_item, 2); /* 100ms default */
+    variable_item_set_current_value_text(delay_item, "100ms");
 }
 
 static void app_free(BadUsbProApp* app) {
@@ -343,6 +343,7 @@ static void start_script_execution(BadUsbProApp* app) {
     /* Apply settings */
     script_engine_set_speed(&app->engine, speed_values[app->speed_setting]);
     app->engine.default_delay = app->settings_default_delay;
+    app->engine.default_string_delay = 10; /* 10 ms between characters — prevents drops */
 
     /* Set UI update callback */
     script_engine_set_callback(&app->engine, engine_status_cb, app);

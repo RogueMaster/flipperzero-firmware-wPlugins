@@ -23,12 +23,12 @@
  * --------------------------------------------------------------------------- */
 
 #define CCID_EMU_MAX_ATR_LEN     33
-#define CCID_EMU_MAX_RULES       64
-#define CCID_EMU_MAX_APDU_LEN    64
+#define CCID_EMU_MAX_RULES       24 /* was 64; 24 × ~100 B = 2.4 KB    */
+#define CCID_EMU_MAX_APDU_LEN    32 /* was 64; covers most smart-card   */
 #define CCID_EMU_MAX_NAME_LEN    64
 #define CCID_EMU_MAX_DESC_LEN    128
 #define CCID_EMU_MAX_HEX_STR     (CCID_EMU_MAX_APDU_LEN * 3)
-#define CCID_EMU_LOG_MAX_ENTRIES 20
+#define CCID_EMU_LOG_MAX_ENTRIES 10 /* was 20; ring buffer for monitor  */
 #define CCID_EMU_CARDS_DIR       EXT_PATH("ccid_emulator/cards")
 #define CCID_EMU_LOGS_DIR        EXT_PATH("ccid_emulator/logs")
 #define CCID_EMU_SAMPLE_FILE     EXT_PATH("ccid_emulator/cards/test_card.ccid")

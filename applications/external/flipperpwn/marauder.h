@@ -12,12 +12,17 @@ typedef struct FPwnMarauder FPwnMarauder;
 typedef enum {
     FPwnMarauderStateIdle,
     FPwnMarauderStateScanning,
+    FPwnMarauderStateScanStopping, /* stopscan sent; still draining AP results */
     FPwnMarauderStateJoined,
     FPwnMarauderStatePingScan,
     FPwnMarauderStatePortScan,
     FPwnMarauderStateDeauth,
     FPwnMarauderStateSniffPmkid,
     FPwnMarauderStateEvilPortal,
+    FPwnMarauderStateBeaconSpam,
+    FPwnMarauderStateStationScan, /* scanning client stations */
+    FPwnMarauderStateSniffDeauth, /* WPA handshake capture via deauth */
+    FPwnMarauderStateSniffProbe, /* sniffing probe requests */
 } FPwnMarauderState;
 
 /* --------------------------------------------------------------------------
@@ -46,12 +51,26 @@ typedef struct {
     char service[16];
 } FPwnPortResult;
 
+/* A discovered WiFi client station. */
+typedef struct {
+    char mac[18]; /* "AA:BB:CC:DD:EE:FF" + NUL */
+    char ap_ssid[33]; /* associated AP SSID + NUL */
+    int8_t rssi;
+} FPwnStation;
+
+/* A captured credential (from evil portal POST data, etc.). */
+typedef struct {
+    char data[128]; /* raw POST data or credential line */
+} FPwnCapturedCred;
+
 /* --------------------------------------------------------------------------
  * Capacity limits
  * -------------------------------------------------------------------------- */
-#define FPWN_MAX_APS   64
-#define FPWN_MAX_HOSTS 64
-#define FPWN_MAX_PORTS 128
+#define FPWN_MAX_APS      64
+#define FPWN_MAX_HOSTS    64
+#define FPWN_MAX_PORTS    128
+#define FPWN_MAX_STATIONS 64
+#define FPWN_MAX_CREDS    32
 
 /* --------------------------------------------------------------------------
  * Lifecycle
@@ -92,6 +111,27 @@ void fpwn_marauder_sniff_pmkid(FPwnMarauder* m);
 /* Stop any active operation and return to Idle. */
 void fpwn_marauder_stop(FPwnMarauder* m);
 
+/* Start an evil portal with the given SSID. Marauder serves a captive portal. */
+void fpwn_marauder_evil_portal(FPwnMarauder* m, const char* ssid);
+
+/* Start beacon spam — floods area with fake SSIDs. */
+void fpwn_marauder_beacon_spam(FPwnMarauder* m);
+
+/* Scan for associated client stations.  Clears the station list first. */
+void fpwn_marauder_scan_sta(FPwnMarauder* m);
+
+/* Sniff for WPA handshakes via deauth injection (raw output to log). */
+void fpwn_marauder_sniff_deauth(FPwnMarauder* m);
+
+/* Sniff for 802.11 probe requests (raw output to log). */
+void fpwn_marauder_sniff_probe(FPwnMarauder* m);
+
+/* Select a specific AP by index for targeted attacks. */
+void fpwn_marauder_select_ap(FPwnMarauder* m, uint8_t ap_idx);
+
+/* Deauth a specific AP (must call select_ap first, or select -a for all). */
+void fpwn_marauder_deauth_targeted(FPwnMarauder* m, uint8_t ap_idx);
+
 /* --------------------------------------------------------------------------
  * Accessors — all thread-safe via internal mutex
  * -------------------------------------------------------------------------- */
@@ -112,3 +152,15 @@ FPwnNetHost* fpwn_marauder_get_hosts(FPwnMarauder* m, uint32_t* count);
 
 /* Returns a pointer to the internal port array and sets *count. */
 FPwnPortResult* fpwn_marauder_get_ports(FPwnMarauder* m, uint32_t* count);
+
+/* Returns a pointer to the internal station array and sets *count.
+ * Valid until the next scan_sta() call. */
+FPwnStation* fpwn_marauder_get_stations(FPwnMarauder* m, uint32_t* count);
+
+/* Returns a pointer to the captured credentials array and sets *count.
+ * Populated by evil portal POST data and similar captures. */
+FPwnCapturedCred* fpwn_marauder_get_creds(FPwnMarauder* m, uint32_t* count);
+
+/* Returns the furi_get_tick() value from when the current AP scan started.
+ * Used by the timer callback to implement auto-stop after 8 seconds. */
+uint32_t fpwn_marauder_get_scan_start(FPwnMarauder* m);

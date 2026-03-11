@@ -1,0 +1,13 @@
+NAME Quick Terminal Recon
+DESCRIPTION Opens a terminal on any OS and runs a command
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+OPTION COMMAND whoami "Command to execute"
+OPTION DELAY 2000 "Initial HID delay (ms)"
+PLATFORM ALL
+DELAY {{DELAY}}
+LED_COLOR BLUE
+OPEN_TERMINAL
+STRINGLN {{COMMAND}}
+DELAY 1000
+LED_COLOR GREEN

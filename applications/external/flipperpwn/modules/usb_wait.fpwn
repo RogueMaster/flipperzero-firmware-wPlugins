@@ -1,0 +1,13 @@
+NAME USB Wait Deploy
+DESCRIPTION Waits for USB connection then runs a command (dead drop style)
+CATEGORY exploit
+PLATFORMS WIN,MAC,LINUX
+OPTION COMMAND whoami "Command to run after connection"
+PLATFORM ALL
+LED_COLOR RED
+REM Wait for target to plug in USB
+WAIT_FOR_USB
+DELAY 2000
+LED_COLOR GREEN
+STRING {{COMMAND}}
+ENTER

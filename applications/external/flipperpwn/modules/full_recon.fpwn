@@ -1,0 +1,89 @@
+NAME Full Recon Suite
+DESCRIPTION Comprehensive recon: local system + WiFi + network
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 500 "Initial delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+VAR $SEP = ========================================
+REM Open PowerShell
+GUI r
+DELAY 500
+STRING powershell
+ENTER
+DELAY 1500
+STRINGLN echo $SEP
+STRINGLN echo '== SYSTEM INFO =='
+STRINGLN echo $SEP
+STRINGLN hostname; whoami; systeminfo | Select-String 'OS'
+STRINGLN echo $SEP
+STRINGLN echo '== NETWORK CONFIG =='
+STRINGLN echo $SEP
+STRINGLN ipconfig | Select-String 'IPv4|Gateway|DNS'
+STRINGLN echo $SEP
+STRINGLN echo '== ACTIVE CONNECTIONS =='
+STRINGLN echo $SEP
+STRINGLN netstat -an | Select-String 'ESTABLISHED|LISTENING' | Select-Object -First 20
+STRINGLN echo $SEP
+STRINGLN echo '== WIFI PROFILES =='
+STRINGLN echo $SEP
+STRINGLN netsh wlan show profiles | Select-String 'All User'
+IF_CONNECTED
+REM ESP32 WiFi recon
+WIFI_SCAN
+STRINGLN echo $SEP
+STRINGLN echo '== NEARBY APs (ESP32) =='
+STRINGLN echo $SEP
+WIFI_RESULT
+END_IF
+PLATFORM MAC
+DELAY {{DELAY}}
+VAR $SEP = ========================================
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+STRINGLN echo $SEP
+STRINGLN echo '== SYSTEM INFO =='
+STRINGLN echo $SEP
+STRINGLN hostname; whoami; sw_vers
+STRINGLN echo $SEP
+STRINGLN echo '== NETWORK CONFIG =='
+STRINGLN echo $SEP
+STRINGLN ifconfig | grep 'inet '
+STRINGLN echo $SEP
+STRINGLN echo '== ACTIVE CONNECTIONS =='
+STRINGLN echo $SEP
+STRINGLN netstat -an | grep ESTABLISHED | head -20
+IF_CONNECTED
+WIFI_SCAN
+STRINGLN echo $SEP
+STRINGLN echo '== NEARBY APs (ESP32) =='
+STRINGLN echo $SEP
+WIFI_RESULT
+END_IF
+PLATFORM LINUX
+DELAY {{DELAY}}
+VAR $SEP = ========================================
+CTRL ALT t
+DELAY 1400
+STRINGLN echo $SEP
+STRINGLN echo '== SYSTEM INFO =='
+STRINGLN echo $SEP
+STRINGLN hostname; whoami; uname -a
+STRINGLN echo $SEP
+STRINGLN echo '== NETWORK CONFIG =='
+STRINGLN echo $SEP
+STRINGLN ip addr | grep 'inet '
+STRINGLN echo $SEP
+STRINGLN echo '== ACTIVE CONNECTIONS =='
+STRINGLN echo $SEP
+STRINGLN ss -tunp | head -20
+IF_CONNECTED
+WIFI_SCAN
+STRINGLN echo $SEP
+STRINGLN echo '== NEARBY APs (ESP32) =='
+STRINGLN echo $SEP
+WIFI_RESULT
+END_IF

