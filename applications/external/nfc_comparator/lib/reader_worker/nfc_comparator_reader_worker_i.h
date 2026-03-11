@@ -8,7 +8,7 @@
 
 #include "nfc_comparator_reader_worker.h"
 
-#include "../compare_checks/nfc_comparator_compare_checks.h"
+#include "../compare_worker/nfc_comparator_compare_worker.h"
 
 /** Holds all state for the NFC Comparator Reader Worker */
 typedef struct NfcComparatorReaderWorker {
@@ -20,5 +20,5 @@ typedef struct NfcComparatorReaderWorker {
    NfcDevice* scanned_nfc_card;
    NfcPoller* nfc_poller;
    NfcScanner* nfc_scanner;
-   NfcComparatorCompareChecks* compare_checks;
+   NfcComparatorCompareWorker* compare_worker;
 } NfcComparatorReaderWorker;

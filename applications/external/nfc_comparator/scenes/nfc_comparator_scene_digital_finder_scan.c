@@ -15,12 +15,12 @@ static void nfc_comparator_digital_finder_scan_menu_callback(void* context) {
         return;
     }
 
-    nfc_comparator->workers.compare_checks->compare_type = NfcCompareChecksType_Deep;
+    nfc_comparator->workers.compare->compare_type = NfcCompareWorkerType_Deep;
 
     nfc_comparator_finder_worker_compare_cards(
-        nfc_comparator->workers.compare_checks,
+        nfc_comparator->workers.compare,
         nfc_card_1,
-        &nfc_comparator->workers.finder_settings,
+        &nfc_comparator->workers.finder.settings,
         nfc_comparator->views.file_browser.output);
 
     nfc_comparator_led_worker_stop(nfc_comparator->notification_app);

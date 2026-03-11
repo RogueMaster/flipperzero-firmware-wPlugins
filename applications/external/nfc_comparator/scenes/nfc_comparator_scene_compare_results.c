@@ -21,26 +21,26 @@ void nfc_comparator_compare_results_scene_on_enter(void* context) {
 
     FuriString* temp_str = furi_string_alloc();
 
-    switch(nfc_comparator->workers.compare_checks->compare_type) {
-    case NfcCompareChecksType_Shallow:
+    switch(nfc_comparator->workers.compare->compare_type) {
+    case NfcCompareWorkerType_Shallow:
         furi_string_printf(
             temp_str,
             "\e#UID:\e# %s\n\e#UID length:\e# %s\n\e#Protocol:\e# %s",
-            match_str(nfc_comparator->workers.compare_checks->results.uid),
-            match_str(nfc_comparator->workers.compare_checks->results.uid_length),
-            match_str(nfc_comparator->workers.compare_checks->results.protocol));
+            match_str(nfc_comparator->workers.compare->results.uid),
+            match_str(nfc_comparator->workers.compare->results.uid_length),
+            match_str(nfc_comparator->workers.compare->results.protocol));
         break;
-    case NfcCompareChecksType_Deep:
+    case NfcCompareWorkerType_Deep:
         furi_string_printf(
             temp_str,
             "\e#UID:\e# %s\n\e#UID length:\e# %s\n\e#Protocol:\e# %s\n\e#NFC Data:\e# %s",
-            match_str(nfc_comparator->workers.compare_checks->results.uid),
-            match_str(nfc_comparator->workers.compare_checks->results.uid_length),
-            match_str(nfc_comparator->workers.compare_checks->results.protocol),
-            match_str(nfc_comparator->workers.compare_checks->results.nfc_data));
+            match_str(nfc_comparator->workers.compare->results.uid),
+            match_str(nfc_comparator->workers.compare->results.uid_length),
+            match_str(nfc_comparator->workers.compare->results.protocol),
+            match_str(nfc_comparator->workers.compare->results.nfc_data));
 
-        if(!nfc_comparator->workers.compare_checks->results.nfc_data &&
-           nfc_comparator->workers.compare_checks->diff.count > 0) {
+        if(!nfc_comparator->workers.compare->results.nfc_data &&
+           nfc_comparator->workers.compare->diff.count > 0) {
             widget_add_button_element(
                 nfc_comparator->views.widget,
                 GuiButtonTypeCenter,
@@ -118,6 +118,6 @@ void nfc_comparator_compare_results_scene_on_exit(void* context) {
     NfcComparator* nfc_comparator = context;
     widget_reset(nfc_comparator->views.widget);
     if(reset_exit) {
-        nfc_comparator_compare_checks_reset(nfc_comparator->workers.compare_checks);
+        nfc_comparator_compare_worker_reset(nfc_comparator->workers.compare);
     }
 }

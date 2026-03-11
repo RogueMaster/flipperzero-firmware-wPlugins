@@ -28,16 +28,16 @@ static void nfc_comparator_digital_compare_scan_menu_callback(void* context) {
         return;
     }
 
-    nfc_comparator->workers.compare_checks->compare_type = NfcCompareChecksType_Deep;
+    nfc_comparator->workers.compare->compare_type = NfcCompareWorkerType_Deep;
 
-    nfc_comparator_compare_checks_compare_cards(
-        nfc_comparator->workers.compare_checks, nfc_card_1, nfc_card_2);
+    nfc_comparator_compare_worker_compare_cards(
+        nfc_comparator->workers.compare, nfc_card_1, nfc_card_2);
 
     nfc_comparator_led_worker_stop(nfc_comparator->notification_app);
 
-    if(nfc_comparator->workers.compare_checks->diff.total > 0) {
-        uint16_t total = nfc_comparator->workers.compare_checks->diff.total;
-        uint16_t diff = nfc_comparator->workers.compare_checks->diff.count;
+    if(nfc_comparator->workers.compare->diff.total > 0) {
+        uint16_t total = nfc_comparator->workers.compare->diff.total;
+        uint16_t diff = nfc_comparator->workers.compare->diff.count;
         uint8_t percentage = ((total - diff) * 100) / total;
 
         if(percentage == 100) {
@@ -48,7 +48,7 @@ static void nfc_comparator_digital_compare_scan_menu_callback(void* context) {
         } else if(percentage >= 80) {
             dolphin_deed(DolphinDeedNfcRead);
         }
-    } else if(nfc_comparator->workers.compare_checks->results.nfc_data) {
+    } else if(nfc_comparator->workers.compare->results.nfc_data) {
         dolphin_deed(DolphinDeedNfcReadSuccess);
         dolphin_deed(DolphinDeedNfcSave);
     } else {

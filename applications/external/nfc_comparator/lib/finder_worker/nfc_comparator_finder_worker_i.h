@@ -12,7 +12,7 @@
 #include <nfc/nfc_poller.h>
 
 #include "nfc_comparator_finder_worker.h"
-#include "../compare_checks/nfc_comparator_compare_checks.h"
+#include "../compare_worker/nfc_comparator_compare_worker.h"
 
 /**
  * @struct NfcComparatorFinderWorker
@@ -27,6 +27,6 @@ typedef struct NfcComparatorFinderWorker {
    NfcDevice* scanned_nfc_card; /**< NFC card scanned from reader */
    NfcPoller* nfc_poller; /**< NFC poller instance */
    DirWalk* dir_walk; /**< Directory walker for file search */
-   NfcComparatorCompareChecks* compare_checks; /**< Comparison results structure */
+   NfcComparatorCompareWorker* compare_worker; /**< Comparison results structure */
    NfcComparatorFinderWorkerSettings* settings; /**< Worker settings */
 } NfcComparatorFinderWorker;

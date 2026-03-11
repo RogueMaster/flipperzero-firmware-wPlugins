@@ -18,36 +18,36 @@ void nfc_comparator_finder_results_scene_on_enter(void* context) {
     FuriString* temp_str = furi_string_alloc();
 
     bool match = false;
-    switch(nfc_comparator->workers.compare_checks->compare_type) {
-    case NfcCompareChecksType_Deep:
-        match = nfc_comparator->workers.compare_checks->results.uid &&
-                nfc_comparator->workers.compare_checks->results.uid_length &&
-                nfc_comparator->workers.compare_checks->results.protocol &&
-                nfc_comparator->workers.compare_checks->results.nfc_data;
+    switch(nfc_comparator->workers.compare->compare_type) {
+    case NfcCompareWorkerType_Deep:
+        match = nfc_comparator->workers.compare->results.uid &&
+                nfc_comparator->workers.compare->results.uid_length &&
+                nfc_comparator->workers.compare->results.protocol &&
+                nfc_comparator->workers.compare->results.nfc_data;
         break;
-    case NfcCompareChecksType_Shallow:
-        match = nfc_comparator->workers.compare_checks->results.uid &&
-                nfc_comparator->workers.compare_checks->results.uid_length &&
-                nfc_comparator->workers.compare_checks->results.protocol;
+    case NfcCompareWorkerType_Shallow:
+        match = nfc_comparator->workers.compare->results.uid &&
+                nfc_comparator->workers.compare->results.uid_length &&
+                nfc_comparator->workers.compare->results.protocol;
         break;
     default:
         furi_string_set(temp_str, "Unknown comparison type.");
         break;
     }
 
-    if(nfc_comparator->workers.compare_checks->compare_type != NfcCompareChecksType_Undefined) {
+    if(nfc_comparator->workers.compare->compare_type != NfcCompareWorkerType_Undefined) {
         if(match) {
             furi_string_printf(
                 temp_str,
                 "\e#Match found!\e#\n%s",
-                furi_string_get_cstr(nfc_comparator->workers.compare_checks->nfc_card_path));
+                furi_string_get_cstr(nfc_comparator->workers.compare->nfc_card_path));
         } else {
-            if(nfc_comparator->workers.compare_checks->diff.count <
-               (nfc_comparator->workers.compare_checks->diff.total * 0.20)) {
+            if(nfc_comparator->workers.compare->diff.count <
+               (nfc_comparator->workers.compare->diff.total * 0.20)) {
                 furi_string_printf(
                     temp_str,
                     "\e#Partial match found!\e#\n%s",
-                    furi_string_get_cstr(nfc_comparator->workers.compare_checks->nfc_card_path));
+                    furi_string_get_cstr(nfc_comparator->workers.compare->nfc_card_path));
 
                 widget_add_button_element(
                     nfc_comparator->views.widget,
@@ -125,6 +125,6 @@ void nfc_comparator_finder_results_scene_on_exit(void* context) {
     NfcComparator* nfc_comparator = context;
     widget_reset(nfc_comparator->views.widget);
     if(reset_exit) {
-        nfc_comparator_compare_checks_reset(nfc_comparator->workers.compare_checks);
+        nfc_comparator_compare_worker_reset(nfc_comparator->workers.compare);
     }
 }

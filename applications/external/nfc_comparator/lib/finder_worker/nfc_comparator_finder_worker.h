@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 typedef struct NfcComparatorFinderWorker NfcComparatorFinderWorker;
-typedef struct NfcComparatorCompareChecks NfcComparatorCompareChecks;
+typedef struct NfcComparatorCompareWorker NfcComparatorCompareWorker;
 typedef struct NfcDevice NfcDevice;
 typedef struct FuriString FuriString;
 
@@ -32,12 +32,12 @@ typedef struct {
 
 /**
  * @brief Allocate and initialize a new NfcComparatorFinderWorker.
- * @param compare_checks Pointer to a NfcComparatorCompareChecks structure for comparison results.
+ * @param compare_worker Pointer to a NfcComparatorCompareWorker structure for comparison results.
  * @param settings Pointer to a NfcComparatorFinderWorkerSettings structure for configuration.
  * @return Pointer to the allocated NfcComparatorFinderWorker, or NULL on failure.
  */
 NfcComparatorFinderWorker* nfc_comparator_finder_worker_alloc(
-   NfcComparatorCompareChecks* compare_checks,
+   NfcComparatorCompareWorker* compare_worker,
    NfcComparatorFinderWorkerSettings* settings);
 
 /**
@@ -69,15 +69,15 @@ NfcComparatorFinderWorkerState*
 /**
  * @brief Compare a given NFC card against all stored NFC cards.
  * Iterates through stored NFC card files and compares each to the provided card.
- * Updates the compare_checks structure with the results.
- * @param compare_checks Pointer to the comparison results structure.
+ * Updates the compare_worker structure with the results.
+ * @param compare_worker Pointer to the comparison results structure.
  * @param nfc_card_1 Pointer to the NFC card to compare.
  * @param check_data Whether to compare full NFC data in addition to UID/protocol.
  * @param settings Pointer to the finder worker settings.
  * @param nfc_card_path Optional: path to skip during comparison (can be NULL).
  */
 void nfc_comparator_finder_worker_compare_cards(
-   NfcComparatorCompareChecks* compare_checks,
+   NfcComparatorCompareWorker* compare_worker,
    NfcDevice* nfc_card_1,
    NfcComparatorFinderWorkerSettings* settings,
    FuriString* nfc_card_path);

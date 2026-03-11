@@ -57,8 +57,8 @@ static int32_t nfc_comparator_reader_worker_task(void* context) {
          break;
       }
       case NfcComparatorReaderWorkerState_Comparing: {
-         nfc_comparator_compare_checks_compare_cards(
-            worker->compare_checks, worker->scanned_nfc_card, worker->loaded_nfc_card);
+         nfc_comparator_compare_worker_compare_cards(
+            worker->compare_worker, worker->scanned_nfc_card, worker->loaded_nfc_card);
 
          nfc_device_free(worker->scanned_nfc_card);
          worker->scanned_nfc_card = NULL;
@@ -76,7 +76,7 @@ static int32_t nfc_comparator_reader_worker_task(void* context) {
 }
 
 NfcComparatorReaderWorker*
-   nfc_comparator_reader_worker_alloc(NfcComparatorCompareChecks* compare_checks) {
+   nfc_comparator_reader_worker_alloc(NfcComparatorCompareWorker* compare_worker) {
    NfcComparatorReaderWorker* worker = calloc(1, sizeof(NfcComparatorReaderWorker));
    if(!worker) {
       return NULL;
@@ -87,7 +87,7 @@ NfcComparatorReaderWorker*
       return NULL;
    }
 
-   worker->compare_checks = compare_checks;
+   worker->compare_worker = compare_worker;
 
    worker->thread = furi_thread_alloc();
    furi_thread_set_name(worker->thread, "NfcComparatorReaderWorker");

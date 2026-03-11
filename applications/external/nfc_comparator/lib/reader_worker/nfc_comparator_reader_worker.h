@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-typedef struct NfcComparatorCompareChecks NfcComparatorCompareChecks;
+typedef struct NfcComparatorCompareWorker NfcComparatorCompareWorker;
 typedef struct NfcComparatorReaderWorker NfcComparatorReaderWorker;
 
 /** Possible states for the NFC Comparator Reader Worker */
@@ -19,7 +19,7 @@ typedef enum {
 
 /** Allocates and initializes a new NFC Comparator Reader Worker */
 NfcComparatorReaderWorker*
-   nfc_comparator_reader_worker_alloc(NfcComparatorCompareChecks* compare_checks);
+   nfc_comparator_reader_worker_alloc(NfcComparatorCompareWorker* compare_worker);
 
 /** Frees the resources used by the worker */
 void nfc_comparator_reader_worker_free(NfcComparatorReaderWorker* worker);

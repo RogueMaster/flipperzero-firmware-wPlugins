@@ -6,13 +6,13 @@ void nfc_comparator_data_breakdown_scene_on_enter(void* context) {
 
     furi_string_reset(nfc_comparator->views.text_box.store);
 
-    uint16_t total = nfc_comparator->workers.compare_checks->diff.total;
-    uint16_t diff = nfc_comparator->workers.compare_checks->diff.count;
+    uint16_t total = nfc_comparator->workers.compare->diff.total;
+    uint16_t diff = nfc_comparator->workers.compare->diff.count;
     uint16_t similar = total - diff;
     uint8_t percentage = (similar * 100) / total;
 
     const char* unit_name =
-        nfc_compare_checks_diff_unit_strings[nfc_comparator->workers.compare_checks->diff.unit];
+        nfc_compare_worker_diff_unit_strings[nfc_comparator->workers.compare->diff.unit];
 
     furi_string_cat_printf(
         nfc_comparator->views.text_box.store,
@@ -24,11 +24,11 @@ void nfc_comparator_data_breakdown_scene_on_enter(void* context) {
         unit_name,
         diff);
 
-    switch(nfc_comparator->workers.compare_checks->diff.unit) {
-    case NfcCompareChecksComparedDataType_EmvFields:
+    switch(nfc_comparator->workers.compare->diff.unit) {
+    case NfcCompareWorkerComparedDataType_EmvFields:
         for(int i = 0; i < diff; i++) {
             const uint16_t* idx =
-                simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
+                simple_array_cget(nfc_comparator->workers.compare->diff.indices, i);
             furi_string_cat_printf(
                 nfc_comparator->views.text_box.store, "%s", EmvFieldNames[*idx]);
             if(i < diff - 1) {
@@ -36,10 +36,10 @@ void nfc_comparator_data_breakdown_scene_on_enter(void* context) {
             }
         }
         break;
-    case NfcCompareChecksComparedDataType_MFPlusFields:
+    case NfcCompareWorkerComparedDataType_MFPlusFields:
         for(int i = 0; i < diff; i++) {
             const uint16_t* idx =
-                simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
+                simple_array_cget(nfc_comparator->workers.compare->diff.indices, i);
             furi_string_cat_printf(
                 nfc_comparator->views.text_box.store, "%s", MFPlusFieldNames[*idx]);
             if(i < diff - 1) {
@@ -47,10 +47,10 @@ void nfc_comparator_data_breakdown_scene_on_enter(void* context) {
             }
         }
         break;
-    case NfcCompareChecksComparedDataType_MFDesfireFields:
+    case NfcCompareWorkerComparedDataType_MFDesfireFields:
         for(int i = 0; i < diff; i++) {
             const uint16_t* idx =
-                simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
+                simple_array_cget(nfc_comparator->workers.compare->diff.indices, i);
             furi_string_cat_printf(
                 nfc_comparator->views.text_box.store, "%s", MFDesfireFieldNames[*idx]);
             if(i < diff - 1) {
@@ -61,7 +61,7 @@ void nfc_comparator_data_breakdown_scene_on_enter(void* context) {
     default:
         for(int i = 0; i < diff; i++) {
             const uint16_t* idx =
-                simple_array_cget(nfc_comparator->workers.compare_checks->diff.indices, i);
+                simple_array_cget(nfc_comparator->workers.compare->diff.indices, i);
             furi_string_cat_printf(nfc_comparator->views.text_box.store, "%d", *idx);
             if(i < diff - 1) {
                 furi_string_cat(nfc_comparator->views.text_box.store, ", ");
