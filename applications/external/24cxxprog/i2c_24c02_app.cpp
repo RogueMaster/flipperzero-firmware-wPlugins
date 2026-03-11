@@ -106,15 +106,16 @@ typedef struct {
     bool eeprom_connected;
     EEPROMType chip_type; // New field for chip type selection
 
-    // Memory data
-    uint8_t memory_data[256];
-    uint8_t current_address;
+    // Memory data (dynamically allocated based on chip type)
+    uint8_t* memory_data;
+    uint32_t memory_size; // Current memory size in bytes
+    uint32_t current_address;
     uint8_t view_mode;
 
     // Read/Write operations
     uint8_t read_start_addr;
     uint8_t read_length;
-    uint8_t write_start_addr;
+    uint32_t write_start_addr;
     uint8_t write_data[16];
     uint8_t write_length;
     uint8_t write_cursor;
@@ -127,39 +128,39 @@ typedef struct {
 
     // Progress bar for erase operation
     bool show_progress;
-    uint8_t progress_value;
+    uint32_t progress_value;
     uint32_t progress_timer;
 
     // Async erase operation
     bool erasing;
-    uint8_t erase_current_addr;
+    uint32_t erase_current_addr;
     uint32_t erase_last_update;
 
     // Async read operation
     bool reading;
-    uint8_t read_current_addr;
+    uint32_t read_current_addr;
     uint32_t read_last_update;
-    uint8_t read_total_bytes;
+    uint32_t read_total_bytes;
     bool read_completed; // Flag to indicate read operation finished
 
     // Async write operation (for loading files to EEPROM)
     bool writing;
-    uint8_t write_current_addr_async;
+    uint32_t write_current_addr_async;
     uint32_t write_last_update;
-    uint8_t write_total_bytes_async;
+    uint32_t write_total_bytes_async;
 
     // Async verify operation (after write)
     bool verifying;
-    uint8_t verify_current_addr;
+    uint32_t verify_current_addr;
     uint32_t verify_last_update;
-    uint8_t verify_total_bytes;
-    uint8_t verify_buffer[256];
+    uint32_t verify_total_bytes;
+    uint8_t* verify_buffer; // Dynamically allocated
 
     // File operations
     char file_path[256];
     bool file_loaded;
-    uint8_t file_data[256];
-    uint8_t file_size;
+    uint8_t* file_data; // Dynamically allocated
+    uint32_t file_size;
 
     // Load confirmation dialog
     bool confirm_load_yes; // For Yes/No selection in confirmation dialog
@@ -191,6 +192,55 @@ typedef struct {
     bool running;
     bool dark_mode;
 } EEPROMApp;
+
+// Helper function to get EEPROM size in bytes
+static uint32_t get_eeprom_size(EEPROMType type) {
+    switch(type) {
+    case EEPROMType_24C01:
+        return 128;
+    case EEPROMType_24C02:
+        return 256;
+    case EEPROMType_24C04:
+        return 512;
+    case EEPROMType_24C08:
+        return 1024;
+    case EEPROMType_24C16:
+        return 2048;
+    case EEPROMType_24C32:
+        return 4096;
+    case EEPROMType_24C64:
+        return 8192;
+    case EEPROMType_24C128:
+        return 16384;
+    case EEPROMType_24C256:
+        return 32768;
+    case EEPROMType_24C512:
+        return 65536;
+    default:
+        return 256;
+    }
+}
+
+// Reallocate buffers when chip type changes
+static void reallocate_buffers(EEPROMApp* app) {
+    uint32_t new_size = get_eeprom_size(app->chip_type);
+
+    // Free old buffers if they exist
+    if(app->memory_data) free(app->memory_data);
+    if(app->file_data) free(app->file_data);
+    if(app->verify_buffer) free(app->verify_buffer);
+
+    // Allocate new buffers
+    app->memory_size = new_size;
+    app->memory_data = (uint8_t*)malloc(new_size);
+    app->file_data = (uint8_t*)malloc(new_size);
+    app->verify_buffer = (uint8_t*)malloc(new_size);
+
+    // Initialize memory_data to 0xFF
+    if(app->memory_data) {
+        memset(app->memory_data, 0xFF, new_size);
+    }
+}
 
 // Function prototypes
 static void draw_main_screen(Canvas* canvas, EEPROMApp* app);
@@ -311,24 +361,37 @@ static void draw_read_screen(Canvas* canvas, EEPROMApp* app) {
         snprintf(
             progress_text,
             sizeof(progress_text),
-            "%d%%",
+            "%lu%%",
             (app->progress_value * 100) / app->read_total_bytes);
         canvas_draw_str(canvas, 54, 48, progress_text);
     } else {
         // Display memory data - HEX dump (max 3 lines)
         char display_line[32];
 
-        for(uint8_t i = 0; i < 3 && (app->current_address + i * 4) < 256; i++) {
-            uint8_t addr = app->current_address + i * 4;
-            snprintf(
-                display_line,
-                sizeof(display_line),
-                "0x%02X: %02X %02X %02X %02X",
-                addr,
-                app->memory_data[addr],
-                app->memory_data[addr + 1],
-                app->memory_data[addr + 2],
-                app->memory_data[addr + 3]);
+        for(uint8_t i = 0; i < 3 && (app->current_address + i * 4) < app->memory_size; i++) {
+            uint32_t addr = app->current_address + i * 4;
+            // Format address based on memory size
+            if(app->memory_size <= 256) {
+                snprintf(
+                    display_line,
+                    sizeof(display_line),
+                    "0x%02lX: %02X %02X %02X %02X",
+                    addr,
+                    app->memory_data[addr],
+                    app->memory_data[addr + 1],
+                    app->memory_data[addr + 2],
+                    app->memory_data[addr + 3]);
+            } else {
+                snprintf(
+                    display_line,
+                    sizeof(display_line),
+                    "%04lX:%02X %02X %02X %02X",
+                    addr,
+                    app->memory_data[addr],
+                    app->memory_data[addr + 1],
+                    app->memory_data[addr + 2],
+                    app->memory_data[addr + 3]);
+            }
             canvas_draw_str(canvas, 2, 22 + i * 9, display_line);
         }
 
@@ -359,9 +422,17 @@ static void draw_write_screen(Canvas* canvas, EEPROMApp* app) {
     // Show write address with selection indicator
     char addr_line[32];
     if(app->write_cursor == 0) {
-        snprintf(addr_line, sizeof(addr_line), "> Address: 0x%02X", app->write_start_addr);
+        if(app->memory_size <= 256) {
+            snprintf(addr_line, sizeof(addr_line), "> Address: 0x%02lX", app->write_start_addr);
+        } else {
+            snprintf(addr_line, sizeof(addr_line), "> Addr: 0x%04lX", app->write_start_addr);
+        }
     } else {
-        snprintf(addr_line, sizeof(addr_line), "  Address: 0x%02X", app->write_start_addr);
+        if(app->memory_size <= 256) {
+            snprintf(addr_line, sizeof(addr_line), "  Address: 0x%02lX", app->write_start_addr);
+        } else {
+            snprintf(addr_line, sizeof(addr_line), "  Addr: 0x%04lX", app->write_start_addr);
+        }
     }
     canvas_draw_str(canvas, 2, 24, addr_line);
 
@@ -375,7 +446,7 @@ static void draw_write_screen(Canvas* canvas, EEPROMApp* app) {
     canvas_draw_str(canvas, 2, 34, data_line);
 
     // Instructions
-    canvas_draw_str(canvas, 2, 46, "Up/Down: Change value");
+    canvas_draw_str(canvas, 2, 46, "U/D: Select  L/R: Change");
 
     // Buttons
     elements_button_left(canvas, "Back");
@@ -480,7 +551,7 @@ static void draw_load_file_screen(Canvas* canvas, EEPROMApp* app) {
         // Show file status
         if(app->file_loaded) {
             char size_info[32];
-            snprintf(size_info, sizeof(size_info), "Size: %d bytes", app->file_size);
+            snprintf(size_info, sizeof(size_info), "Size: %lu bytes", app->file_size);
             canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignTop, size_info);
         }
     }
@@ -533,14 +604,18 @@ static void draw_erase_screen(Canvas* canvas, EEPROMApp* app) {
     if(app->show_progress) {
         // Progress bar
         canvas_draw_frame(canvas, 12, 34, 100, 7);
-        uint8_t fill_width = (app->progress_value * 98) / 255;
+        uint8_t fill_width = (app->progress_value * 98) / app->memory_size;
         if(fill_width > 0) {
             canvas_draw_box(canvas, 13, 35, fill_width, 5);
         }
 
         // Progress percentage
         char progress_text[16];
-        snprintf(progress_text, sizeof(progress_text), "%d%%", (app->progress_value * 100) / 255);
+        snprintf(
+            progress_text,
+            sizeof(progress_text),
+            "%lu%%",
+            (app->progress_value * 100) / app->memory_size);
         canvas_draw_str(canvas, 54, 46, progress_text);
     } else {
         // Show message if needed
@@ -856,13 +931,13 @@ static void draw_about_screen(Canvas* canvas, EEPROMApp* app) {
     canvas_clear(canvas);
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "About");
+    canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "24cxxprog v2.0");
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, "24C02 EEPROM");
-    canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignTop, "Programmer");
-    canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignTop, "Author: Dr Mosfet");
-    canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignTop, "I2C Memory Tool");
+    canvas_draw_str_aligned(canvas, 64, 18, AlignCenter, AlignTop, "EEPROM Programmer");
+    canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignTop, "24C01-24C512 (128B-64KB)");
+    canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignTop, "I2C Memory Tool");
+    canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignTop, "Author: @Dr.Mosfet");
 
     elements_button_left(canvas, "Back");
 }
@@ -976,9 +1051,9 @@ static void eeprom_input_callback(InputEvent* input_event, void* context) {
 
         case AppState_Read:
             if(input_event->key == InputKeyUp) {
-                if(app->current_address > 0) app->current_address -= 4;
+                if(app->current_address >= 4) app->current_address -= 4;
             } else if(input_event->key == InputKeyDown) {
-                if(app->current_address < 252) app->current_address += 4;
+                if(app->current_address + 4 < app->memory_size) app->current_address += 4;
             } else if(input_event->key == InputKeyOk) {
                 if(app->read_completed) {
                     // Data has been read, save immediately with auto-generated filename
@@ -1002,7 +1077,9 @@ static void eeprom_input_callback(InputEvent* input_event, void* context) {
                         storage_file_open(file, app->save_path, FSAM_WRITE, FSOM_CREATE_ALWAYS);
 
                     if(success) {
-                        success = (storage_file_write(file, app->memory_data, 255) == 255);
+                        success =
+                            (storage_file_write(file, app->memory_data, app->memory_size) ==
+                             app->memory_size);
 
                         if(success) {
                             show_message(app, "File saved!", true);
@@ -1030,24 +1107,28 @@ static void eeprom_input_callback(InputEvent* input_event, void* context) {
             break;
 
         case AppState_Write:
-            if(input_event->key == InputKeyLeft) {
+            if(input_event->key == InputKeyUp) {
                 // Switch to address editing
                 app->write_cursor = 0;
-            } else if(input_event->key == InputKeyRight) {
+            } else if(input_event->key == InputKeyDown) {
                 // Switch to data editing
                 app->write_cursor = 1;
-            } else if(input_event->key == InputKeyUp) {
+            } else if(input_event->key == InputKeyRight) {
                 if(app->write_cursor == 0) {
                     // Increase address
-                    app->write_start_addr++;
+                    if(app->write_start_addr < app->memory_size - 1) {
+                        app->write_start_addr++;
+                    }
                 } else {
                     // Increase data byte
                     app->write_data[0]++;
                 }
-            } else if(input_event->key == InputKeyDown) {
+            } else if(input_event->key == InputKeyLeft) {
                 if(app->write_cursor == 0) {
                     // Decrease address
-                    app->write_start_addr--;
+                    if(app->write_start_addr > 0) {
+                        app->write_start_addr--;
+                    }
                 } else {
                     // Decrease data byte
                     app->write_data[0]--;
@@ -1354,7 +1435,7 @@ static void eeprom_input_callback(InputEvent* input_event, void* context) {
 
         case AppState_Erase:
             if(input_event->key == InputKeyOk) {
-                erase_memory_range(app, 0, 255);
+                erase_memory_range(app, 0, app->memory_size);
             } else if(input_event->key == InputKeyBack) {
                 app->current_state = AppState_Main;
             }
@@ -1381,7 +1462,12 @@ static void eeprom_input_callback(InputEvent* input_event, void* context) {
                         if(app->chip_type < (EEPROMType)(EEPROMType_Count - 1))
                             app->chip_type = (EEPROMType)(app->chip_type + 1);
                     }
-                    // TODO: Reinitialize EEPROM with new chip type
+                    // Reallocate buffers for new chip size
+                    reallocate_buffers(app);
+                    // Reset current address if it's beyond new size
+                    if(app->current_address >= app->memory_size) {
+                        app->current_address = 0;
+                    }
                 }
             } else if(input_event->key == InputKeyOk) {
                 if(app->settings_cursor == SettingsItem_I2CScanner) {
@@ -1435,12 +1521,41 @@ static void generate_filename(EEPROMApp* app, char* buffer, size_t buffer_size) 
     furi_hal_rtc_get_datetime(&datetime);
 
     const char* chip_name = "24C02";
-    if(app->chip_type == EEPROMType_24C04)
+    switch(app->chip_type) {
+    case EEPROMType_24C01:
+        chip_name = "24C01";
+        break;
+    case EEPROMType_24C02:
+        chip_name = "24C02";
+        break;
+    case EEPROMType_24C04:
         chip_name = "24C04";
-    else if(app->chip_type == EEPROMType_24C08)
+        break;
+    case EEPROMType_24C08:
         chip_name = "24C08";
-    else if(app->chip_type == EEPROMType_24C16)
+        break;
+    case EEPROMType_24C16:
         chip_name = "24C16";
+        break;
+    case EEPROMType_24C32:
+        chip_name = "24C32";
+        break;
+    case EEPROMType_24C64:
+        chip_name = "24C64";
+        break;
+    case EEPROMType_24C128:
+        chip_name = "24C128";
+        break;
+    case EEPROMType_24C256:
+        chip_name = "24C256";
+        break;
+    case EEPROMType_24C512:
+        chip_name = "24C512";
+        break;
+    default:
+        chip_name = "24C02";
+        break;
+    }
 
     snprintf(
         buffer,
@@ -1460,14 +1575,14 @@ static void process_erase_step(EEPROMApp* app) {
 
     // Process one chunk every 50ms to show progress
     if(current_time - app->erase_last_update >= 50) {
-        if(app->erase_current_addr >= 255) {
+        if(app->erase_current_addr >= app->memory_size) {
             // Erase completed
             app->erasing = false;
             app->show_progress = false;
             show_message(app, "Erase Success!", true);
             return;
         }
-        if(app->erase_current_addr >= 255) {
+        if(app->erase_current_addr >= app->memory_size) {
             // Erase completed
             app->erasing = false;
             app->show_progress = false;
@@ -1476,8 +1591,9 @@ static void process_erase_step(EEPROMApp* app) {
         }
 
         // Erase one chunk
-        uint8_t chunk_size =
-            (app->erase_current_addr + 8 <= 255) ? 8 : (255 - app->erase_current_addr);
+        uint8_t chunk_size = (app->erase_current_addr + 8 <= app->memory_size) ?
+                                 8 :
+                                 (app->memory_size - app->erase_current_addr);
         uint8_t erase_data[8];
 
         for(uint8_t j = 0; j < chunk_size; j++) {
@@ -1544,7 +1660,7 @@ static bool read_memory_range(EEPROMApp* app) {
     app->read_last_update = furi_get_tick();
     app->show_progress = true;
     app->progress_value = 0;
-    app->read_total_bytes = 255; // Read entire EEPROM
+    app->read_total_bytes = app->memory_size; // Read entire EEPROM based on chip type
 
     return true;
 }
@@ -1569,7 +1685,7 @@ static void process_write_step(EEPROMApp* app) {
                 if(verified) {
                     show_message(app, "Success!", true);
                     // Copy file data to memory display
-                    memcpy(app->memory_data, app->file_data, sizeof(app->memory_data));
+                    memcpy(app->memory_data, app->file_data, app->verify_total_bytes);
                 } else {
                     show_message(app, "Verify Failed!", false);
                 }
@@ -1647,13 +1763,23 @@ static bool write_memory_data(EEPROMApp* app) {
     // Write single byte to selected address
     bool success = app->eeprom->writeBytes(app->write_start_addr, app->write_data, 1);
     char msg[64];
-    snprintf(
-        msg,
-        sizeof(msg),
-        "Write 0x%02X to 0x%02X %s",
-        app->write_data[0],
-        app->write_start_addr,
-        success ? "OK" : "FAIL");
+    if(app->memory_size <= 256) {
+        snprintf(
+            msg,
+            sizeof(msg),
+            "Write 0x%02X to 0x%02lX %s",
+            app->write_data[0],
+            app->write_start_addr,
+            success ? "OK" : "FAIL");
+    } else {
+        snprintf(
+            msg,
+            sizeof(msg),
+            "Write 0x%02X->%04lX %s",
+            app->write_data[0],
+            app->write_start_addr,
+            success ? "OK" : "FAIL");
+    }
     show_message(app, msg, success);
     return success;
 }
@@ -1707,7 +1833,7 @@ static bool save_memory_to_file(EEPROMApp* app) {
     File* file = storage_file_alloc(storage);
 
     // Read entire EEPROM memory
-    bool success = app->eeprom->readBytes(0, app->memory_data, 255);
+    bool success = app->eeprom->readBytes(0, app->memory_data, app->memory_size);
 
     if(success) {
         ensure_app_directory(app);
@@ -1728,7 +1854,8 @@ static bool save_memory_to_file(EEPROMApp* app) {
         success = storage_file_open(file, save_path, FSAM_WRITE, FSOM_CREATE_ALWAYS);
 
         if(success) {
-            success = (storage_file_write(file, app->memory_data, 255) == 255);
+            success =
+                (storage_file_write(file, app->memory_data, app->memory_size) == app->memory_size);
 
             if(success) {
                 show_message(app, "Memory saved!", true);
@@ -1759,11 +1886,11 @@ static bool load_file_from_sd(EEPROMApp* app) {
 
     if(success) {
         uint64_t size = storage_file_size(file);
-        if(size > 256) {
-            size = 256; // Limit to EEPROM size
+        if(size > app->memory_size) {
+            size = app->memory_size; // Limit to EEPROM size
         }
 
-        app->file_size = (uint8_t)size;
+        app->file_size = (uint32_t)size;
         success = (storage_file_read(file, app->file_data, app->file_size) == app->file_size);
 
         if(success) {
@@ -1882,6 +2009,14 @@ static EEPROMApp* eeprom_app_alloc() {
     app->eeprom = new EEPROM24C02(app->i2c_address);
     app->eeprom_connected = app->eeprom->isAvailable();
 
+    // Initialize buffers (NULL first, will be allocated by reallocate_buffers)
+    app->memory_data = nullptr;
+    app->file_data = nullptr;
+    app->verify_buffer = nullptr;
+
+    // Allocate buffers for default chip type
+    reallocate_buffers(app);
+
     // Initialize state
     app->running = true;
     app->current_state = AppState_Main;
@@ -1957,10 +2092,7 @@ static EEPROMApp* eeprom_app_alloc() {
         app->write_data[i] = 0x00;
     }
 
-    // Clear memory buffer
-    for(uint16_t i = 0; i < 255; i++) {
-        app->memory_data[i] = 0xFF;
-    }
+    // Memory data is initialized by reallocate_buffers()
 
     // Initialize I2C Scanner
     app->i2c_device_count = 0;
@@ -1983,6 +2115,11 @@ static void eeprom_app_free(EEPROMApp* app) {
 
     // Free file list
     free_file_list(app);
+
+    // Free dynamically allocated buffers
+    if(app->memory_data) free(app->memory_data);
+    if(app->file_data) free(app->file_data);
+    if(app->verify_buffer) free(app->verify_buffer);
 
     delete app->eeprom;
     free(app);
