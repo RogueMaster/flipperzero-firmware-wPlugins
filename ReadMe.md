@@ -36,10 +36,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [BTHome v0.1 (By ghedo)](https://github.com/ghedo/flipper-bthome)
 - [ESP Flasher: Bump Marauder v1.11.0 Beta 2/27 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/nightly_cb1e490)
 - Updated: [Arduventure v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperArduventure)
-- Updated: [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
-- Updated: [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [HID Exfil v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [SubGHz Spectrum v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [Prince Of Arabia v1.0.12 (By apfxtech)](https://github.com/apfxtech/FlipperPrinceOfArabia)
 - [Update CFW Settings Fix background setter to use the order list rather than the constant values (By otac0n)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1171)
 - Added: [FlipperPwn v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
@@ -48,9 +44,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 - Added: [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - Updated: [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
-- Updated: [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [FlipperPwn v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [HID Exfil v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [SubGHz Spectrum v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
@@ -67,6 +60,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
 - Added: [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
+- Updated: [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [FlipperPwn v1.5 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Added: [Hold em v1.0 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
 
 <a name="release"></a>
 
@@ -351,6 +348,7 @@ $ ./fbt dolphin_ext
 - [Hanoi Towers v1.0 (By AlexTaran)](https://github.com/AlexTaran/flipperzero)
 - [Heap Defence v1.3 (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fc776446de9fdd553b221c02668b925b689378d8)
 - [Hirn - Crack Color Codes v0.2 (By fgreil)](https://github.com/fgreil/mitzi-hirn)
+- [Hold em v1.0 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
 - [Hunter Killer v1.0 (By josephburnett)](https://github.com/josephburnett/hunter-flipper)
 - [Infinite Tic Tac Toe v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/infinite_tic_tac_toe)
 - [Insults v1.0 (By ERSUCC)](https://github.com/ERSUCC/Flipper-Insults)
@@ -561,7 +559,7 @@ $ ./fbt dolphin_ext
 - [FlipMap v0.2.2 (By jblanked)](https://github.com/jblanked/FlipMap) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
-- [FlipperPwn v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- [FlipperPwn v1.5 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [FlipRPI v1.0 (By jblanked)](https://github.com/jblanked/FlipRPI) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipSocial v2.0.9 (By jblanked)](https://github.com/jblanked/FlipSocial) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipTelegram v1.0.1 (By jblanked)](https://github.com/jblanked/FlipTelegram) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)

@@ -26,5 +26,3 @@ void init_game(HoldemGame* game);
 void init_game_with_player_count(HoldemGame* game, size_t player_count);
 
 #endif
-
-

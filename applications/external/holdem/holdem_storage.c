@@ -106,7 +106,8 @@ static bool load_legacy_v2_save(File* file, HoldemGame* game) {
     memset(&legacy_save, 0, sizeof(legacy_save));
     storage_file_seek(file, 0, true);
 
-    if(storage_file_read(file, &legacy_save, sizeof(legacy_save)) != sizeof(legacy_save)) return false;
+    if(storage_file_read(file, &legacy_save, sizeof(legacy_save)) != sizeof(legacy_save))
+        return false;
     if(legacy_save.magic != HOLDEM_SAVE_MAGIC || legacy_save.version != 2) return false;
 
     init_game(game);
@@ -157,12 +158,10 @@ bool load_progress(HoldemGame* game) {
 
         if(read == sizeof(save) && save.magic == HOLDEM_SAVE_MAGIC && save.version == 3) {
             // Validate the persisted snapshot before trusting it. A corrupt save should fail closed.
-            if(
-                save.game.player_count >= HOLDEM_MIN_PLAYERS &&
-                save.game.player_count <= HOLDEM_MAX_PLAYERS &&
-                save.game.deck_pos <= HOLDEM_DECK_SIZE &&
-                save.game.board_count <= HOLDEM_BOARD_MAX &&
-                save.game.stage <= StageShowdown) {
+            if(save.game.player_count >= HOLDEM_MIN_PLAYERS &&
+               save.game.player_count <= HOLDEM_MAX_PLAYERS &&
+               save.game.deck_pos <= HOLDEM_DECK_SIZE &&
+               save.game.board_count <= HOLDEM_BOARD_MAX && save.game.stage <= StageShowdown) {
                 *game = save.game;
                 ok = true;
             }
@@ -176,7 +175,8 @@ bool load_progress(HoldemGame* game) {
             if(storage_file_read(file, &legacy, sizeof(legacy)) == sizeof(legacy)) {
                 if(legacy.magic == HOLDEM_SAVE_MAGIC && legacy.version == 1) {
                     // Version 1 only stored coarse table state, so we recover what we can and restart cleanly.
-                    for(size_t player_index = 0; player_index < HOLDEM_LEGACY_V1_PLAYERS; player_index++) {
+                    for(size_t player_index = 0; player_index < HOLDEM_LEGACY_V1_PLAYERS;
+                        player_index++) {
                         if(legacy.stack[player_index] > 0) {
                             game->players[player_index].stack = legacy.stack[player_index];
                         }
@@ -199,4 +199,3 @@ bool load_progress(HoldemGame* game) {
     furi_record_close(RECORD_STORAGE);
     return ok;
 }
-

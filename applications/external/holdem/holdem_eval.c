@@ -17,15 +17,15 @@ static const uint8_t k_combo_7c5[21][5] = {
 
 static int straight_high(const uint8_t rank_counts[13]) {
     for(int high_rank = 12; high_rank >= 4; high_rank--) {
-        if(
-            rank_counts[high_rank] && rank_counts[high_rank - 1] && rank_counts[high_rank - 2] &&
-            rank_counts[high_rank - 3] && rank_counts[high_rank - 4]) {
+        if(rank_counts[high_rank] && rank_counts[high_rank - 1] && rank_counts[high_rank - 2] &&
+           rank_counts[high_rank - 3] && rank_counts[high_rank - 4]) {
             return high_rank;
         }
     }
 
     // Wheel straight: A-2-3-4-5.
-    if(rank_counts[12] && rank_counts[0] && rank_counts[1] && rank_counts[2] && rank_counts[3]) return 3;
+    if(rank_counts[12] && rank_counts[0] && rank_counts[1] && rank_counts[2] && rank_counts[3])
+        return 3;
     return -1;
 }
 
@@ -76,8 +76,11 @@ Score eval5(const Card cards[5]) {
     for(int left = 0; left < group_count; left++) {
         for(int right = left + 1; right < group_count; right++) {
             bool should_swap = false;
-            if(group_counts[right] > group_counts[left]) should_swap = true;
-            else if(group_counts[right] == group_counts[left] && group_ranks[right] > group_ranks[left])
+            if(group_counts[right] > group_counts[left])
+                should_swap = true;
+            else if(
+                group_counts[right] == group_counts[left] &&
+                group_ranks[right] > group_ranks[left])
                 should_swap = true;
 
             if(should_swap) {
@@ -126,7 +129,8 @@ Score eval5(const Card cards[5]) {
         }
 
         score.v[0] = 5;
-        for(int index = 0; index < 5; index++) score.v[index + 1] = ordered_ranks[index];
+        for(int index = 0; index < 5; index++)
+            score.v[index + 1] = ordered_ranks[index];
         return score;
     }
 
@@ -185,7 +189,8 @@ Score eval5(const Card cards[5]) {
         }
     }
 
-    for(int index = 0; index < 5; index++) score.v[index + 1] = ordered_ranks[index];
+    for(int index = 0; index < 5; index++)
+        score.v[index + 1] = ordered_ranks[index];
     return score;
 }
 
@@ -230,7 +235,8 @@ Score best_five_from_seven_with_cards(const Card cards[7], Card best_five[5]) {
 
 void sort_five_for_display(Card cards[5]) {
     uint8_t rank_counts[13] = {0};
-    for(size_t card_index = 0; card_index < 5; card_index++) rank_counts[cards[card_index].rank]++;
+    for(size_t card_index = 0; card_index < 5; card_index++)
+        rank_counts[cards[card_index].rank]++;
 
     for(size_t left = 0; left < 5; left++) {
         for(size_t right = left + 1; right < 5; right++) {
@@ -238,7 +244,8 @@ void sort_five_for_display(Card cards[5]) {
             uint8_t right_rank_count = rank_counts[cards[right].rank];
             bool should_swap = false;
 
-            if(right_rank_count > left_rank_count) should_swap = true;
+            if(right_rank_count > left_rank_count)
+                should_swap = true;
             else if(right_rank_count == left_rank_count && cards[right].rank > cards[left].rank)
                 should_swap = true;
             else if(
@@ -257,7 +264,8 @@ void sort_five_for_display(Card cards[5]) {
 
 void format_five_cards(const Card cards[5], char* out, size_t out_size) {
     Card ordered_cards[5];
-    for(size_t card_index = 0; card_index < 5; card_index++) ordered_cards[card_index] = cards[card_index];
+    for(size_t card_index = 0; card_index < 5; card_index++)
+        ordered_cards[card_index] = cards[card_index];
     sort_five_for_display(ordered_cards);
 
     size_t write_index = 0;
@@ -287,4 +295,3 @@ const char* hand_rank_label(int category) {
     if(category < 0 || category > 8) return "Unknown";
     return k_labels[category];
 }
-

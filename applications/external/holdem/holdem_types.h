@@ -11,21 +11,21 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define HOLDEM_MAX_PLAYERS 4
-#define HOLDEM_MIN_PLAYERS 2
-#define HOLDEM_DEFAULT_PLAYERS HOLDEM_MAX_PLAYERS
+#define HOLDEM_MAX_PLAYERS       4
+#define HOLDEM_MIN_PLAYERS       2
+#define HOLDEM_DEFAULT_PLAYERS   HOLDEM_MAX_PLAYERS
 #define HOLDEM_LEGACY_V1_PLAYERS 3
-#define HOLDEM_BOARD_MAX 5
-#define HOLDEM_DECK_SIZE 52
-#define HOLDEM_MAX_WINNERS HOLDEM_MAX_PLAYERS
+#define HOLDEM_BOARD_MAX         5
+#define HOLDEM_DECK_SIZE         52
+#define HOLDEM_MAX_WINNERS       HOLDEM_MAX_PLAYERS
 
-#define HOLDEM_SAVE_PATH "/ext/apps_data/holdem/save.bin"
-#define HOLDEM_SAVE_DIR "/ext/apps_data/holdem"
-#define HOLDEM_SAVE_MAGIC 0x48444D31u
-#define HOLDEM_BACK_HOLD_MS 1500u
+#define HOLDEM_SAVE_PATH        "/ext/apps_data/holdem/save.bin"
+#define HOLDEM_SAVE_DIR         "/ext/apps_data/holdem"
+#define HOLDEM_SAVE_MAGIC       0x48444D31u
+#define HOLDEM_BACK_HOLD_MS     1500u
 #define HOLDEM_AI_DEFAULT_LEVEL 50u
-#define HOLDEM_BOT_DELAY_MS 1600u
-#define HOLDEM_BLIND_STEP_SB 5
+#define HOLDEM_BOT_DELAY_MS     1600u
+#define HOLDEM_BLIND_STEP_SB    5
 #define HOLDEM_ENDTURN_PAUSE_MS 500u
 
 typedef enum {
@@ -173,4 +173,3 @@ typedef struct {
 } Score;
 
 #endif
-

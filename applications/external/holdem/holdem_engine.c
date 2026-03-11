@@ -44,7 +44,8 @@ size_t active_in_hand_count(HoldemGame* game) {
 size_t active_can_bet_count(HoldemGame* game) {
     size_t can_bet_players = 0;
     for(size_t player_index = 0; player_index < game->player_count; player_index++) {
-        if(game->players[player_index].in_hand && !game->players[player_index].all_in) can_bet_players++;
+        if(game->players[player_index].in_hand && !game->players[player_index].all_in)
+            can_bet_players++;
     }
     return can_bet_players;
 }
@@ -340,4 +341,3 @@ void init_game_with_player_count(HoldemGame* game, size_t player_count) {
     if(player_count > HOLDEM_MAX_PLAYERS) player_count = HOLDEM_MAX_PLAYERS;
     game->player_count = player_count;
 }
-

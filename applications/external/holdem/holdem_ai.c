@@ -35,7 +35,8 @@ static Score best_from_n(const Card* cards, size_t card_count) {
                         Card five_cards[5] = {
                             cards[first], cards[second], cards[third], cards[fourth], cards[fifth]};
                         Score candidate_score = eval5(five_cards);
-                        if(score_cmp(&candidate_score, &best_score) > 0) best_score = candidate_score;
+                        if(score_cmp(&candidate_score, &best_score) > 0)
+                            best_score = candidate_score;
                     }
                 }
             }
@@ -53,20 +54,27 @@ static int preflop_strength(const HoldemGame* game, int player_index, uint8_t ai
     int lower_rank = (hole_rank_a > hole_rank_b) ? hole_rank_b : hole_rank_a;
 
     int strength_score = 0;
-    if(hole_rank_a == hole_rank_b) strength_score += 55 + (higher_rank * 3);
-    else strength_score += (higher_rank + 2) * 3 + (lower_rank + 2) * 2;
+    if(hole_rank_a == hole_rank_b)
+        strength_score += 55 + (higher_rank * 3);
+    else
+        strength_score += (higher_rank + 2) * 3 + (lower_rank + 2) * 2;
 
     if(player->hole[0].suit == player->hole[1].suit) strength_score += 6;
 
     int rank_gap = higher_rank - lower_rank;
-    if(rank_gap == 1) strength_score += 5;
-    else if(rank_gap == 2) strength_score += 2;
-    else if(rank_gap >= 5) strength_score -= 8;
+    if(rank_gap == 1)
+        strength_score += 5;
+    else if(rank_gap == 2)
+        strength_score += 2;
+    else if(rank_gap >= 5)
+        strength_score -= 8;
 
     if(higher_rank >= 9) strength_score += 6;
 
-    if(player_index == game->button) strength_score += 8;
-    else if(player_index == game->sb_idx || player_index == game->bb_idx) strength_score -= 3;
+    if(player_index == game->button)
+        strength_score += 8;
+    else if(player_index == game->sb_idx || player_index == game->bb_idx)
+        strength_score -= 3;
 
     strength_score += ((int)ai_level_pct - 50) / 2;
     return (int)clamp_i32(strength_score, 0, 100);
@@ -88,11 +96,14 @@ static int board_wetness(const HoldemGame* game) {
     for(size_t suit = 0; suit < 4; suit++) {
         if(suit_counts[suit] > max_suit_count) max_suit_count = suit_counts[suit];
     }
-    if(max_suit_count >= 3) wetness_score += 20;
-    else if(max_suit_count == 2) wetness_score += 10;
+    if(max_suit_count >= 3)
+        wetness_score += 20;
+    else if(max_suit_count == 2)
+        wetness_score += 10;
 
     int pair_group_count = 0;
-    for(size_t rank = 0; rank < 13; rank++) if(rank_counts[rank] >= 2) pair_group_count++;
+    for(size_t rank = 0; rank < 13; rank++)
+        if(rank_counts[rank] >= 2) pair_group_count++;
     wetness_score += pair_group_count * 8;
 
     int min_rank_seen = 12;
@@ -104,8 +115,10 @@ static int board_wetness(const HoldemGame* game) {
         }
     }
 
-    if((max_rank_seen - min_rank_seen) <= 4) wetness_score += 16;
-    else if((max_rank_seen - min_rank_seen) <= 6) wetness_score += 8;
+    if((max_rank_seen - min_rank_seen) <= 4)
+        wetness_score += 16;
+    else if((max_rank_seen - min_rank_seen) <= 6)
+        wetness_score += 8;
 
     return (int)clamp_i32(wetness_score, 0, 100);
 }
@@ -115,14 +128,16 @@ static int postflop_strength(const HoldemGame* game, int player_index, uint8_t a
     Card seven_cards[7];
     seven_cards[0] = game->players[player_index].hole[0];
     seven_cards[1] = game->players[player_index].hole[1];
-    for(size_t board_index = 0; board_index < game->board_count && board_index < 5; board_index++) {
+    for(size_t board_index = 0; board_index < game->board_count && board_index < 5;
+        board_index++) {
         seven_cards[2 + board_index] = game->board[board_index];
     }
 
     size_t visible_card_count = 2 + game->board_count;
     Score best_score = best_from_n(seven_cards, visible_card_count);
 
-    int made_hand_score = best_score.v[0] * 12 + ((best_score.v[1] >= 0) ? (best_score.v[1] / 2) : 0);
+    int made_hand_score =
+        best_score.v[0] * 12 + ((best_score.v[1] >= 0) ? (best_score.v[1] / 2) : 0);
     int board_wetness_score = board_wetness(game);
 
     int strength_score = 20 + made_hand_score;
@@ -142,8 +157,10 @@ static int32_t choose_raise_by(
     int32_t min_raise,
     int strength) {
     int pot_percent = 50;
-    if(strength >= 78) pot_percent = 100;
-    else if(strength >= 62) pot_percent = 75;
+    if(strength >= 78)
+        pot_percent = 100;
+    else if(strength >= 62)
+        pot_percent = 75;
 
     int32_t raise_from_pot = (game->pot * pot_percent) / 100;
     int32_t max_raise = player->stack - to_call;
@@ -169,10 +186,9 @@ void bot_action(
 
     // Preflop and postflop use different heuristics, but both collapse to the same 0..100 scale
     // so downstream action thresholds stay easy to tune.
-    int strength =
-        (game->stage == StagePreflop) ?
-            preflop_strength(game, acting_player_index, app->ai_level_pct) :
-            postflop_strength(game, acting_player_index, app->ai_level_pct);
+    int strength = (game->stage == StagePreflop) ?
+                       preflop_strength(game, acting_player_index, app->ai_level_pct) :
+                       postflop_strength(game, acting_player_index, app->ai_level_pct);
 
     int32_t denominator = game->pot + to_call;
     int pot_odds_percent = (denominator > 0) ? (int)((to_call * 100) / denominator) : 0;
@@ -183,8 +199,10 @@ void bot_action(
 
     if(to_call <= 0) {
         int32_t raise_by = choose_raise_by(game, player, 0, min_raise, strength);
-        bool raise_for_value = (strength >= 78 && random_roll < 55) || (strength >= 62 && random_roll < 22);
-        bool light_bluff = (strength < 55 && random_roll < bluff_window && board_wetness(game) < 70);
+        bool raise_for_value = (strength >= 78 && random_roll < 55) ||
+                               (strength >= 62 && random_roll < 22);
+        bool light_bluff =
+            (strength < 55 && random_roll < bluff_window && board_wetness(game) < 70);
 
         if(raise_by > 0 && (raise_for_value || light_bluff)) {
             *action = ActRaise;
@@ -216,4 +234,3 @@ void bot_action(
     *action = ActCall;
     *amount = 0;
 }
-
