@@ -169,6 +169,17 @@ typedef enum {
     AmiToolRetailKeyStatusStorageError,
 } AmiToolRetailKeyStatus;
 
+typedef enum {
+    AmiToolWriteStatusOk,
+    AmiToolWriteStatusInvalidArgs,
+    AmiToolWriteStatusNoTagData,
+    AmiToolWriteStatusNoUid,
+    AmiToolWriteStatusOutOfRange,
+    AmiToolWriteStatusNotNtag215,
+    AmiToolWriteStatusUidMismatch,
+    AmiToolWriteStatusIoError,
+} AmiToolWriteStatus;
+
 struct AmiToolApp {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
@@ -288,6 +299,11 @@ void ami_tool_clear_cached_tag(AmiToolApp* app);
 AmiToolRetailKeyStatus ami_tool_load_retail_key(AmiToolApp* app);
 bool ami_tool_has_retail_key(const AmiToolApp* app);
 bool ami_tool_extract_amiibo_id(const MfUltralightData* tag_data, char* buffer, size_t buffer_size);
+const char* ami_tool_write_status_to_string(AmiToolWriteStatus status);
+AmiToolWriteStatus ami_tool_write_custom_sequence(
+    AmiToolApp* app,
+    MfUltralightError* io_error,
+    uint16_t* failed_page);
 
 RfidxStatus amiibo_derive_key(
     const DumpedKeySingle* input_key,

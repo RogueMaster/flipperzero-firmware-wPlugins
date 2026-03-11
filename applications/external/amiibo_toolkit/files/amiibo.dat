@@ -1,6 +1,6 @@
 Filetype: AmiTool Amiibo DB
 Version: 1
-AmiiboCount: 932
+AmiiboCount: 933
 
 0000000000000002: Mario|Mario|Super Smash Bros.|Super Mario|Figure|au.2014-11-29,na.2014-11-21,eu.2014-11-28,jp.2014-12-06
 0000000000340102: Mario|Mario|Super Mario Bros.|Super Mario|Figure|au.2015-03-21,na.2015-03-20,eu.2015-03-20,jp.2015-03-12
@@ -783,13 +783,14 @@ AmiiboCount: 932
 1d40000003870002: Pokemon Trainer|Pokemon Trainer|Super Smash Bros.|Pokemon|Figure|au.2019-07-19,na.2019-07-26,eu.2019-07-19,jp.2019-07-19
 1f000000000a0002: Kirby|Kirby|Super Smash Bros.|Kirby|Figure|au.2014-11-29,na.2014-11-21,eu.2014-11-28,jp.2014-12-06
 1f00000002540c02: Kirby|Kirby|Kirby|Kirby|Figure|au.2016-06-11,na.2016-06-10,eu.2016-06-10,jp.2016-04-28
-1f00000004c41e03: Kirby|Kirby|Kirby Air Riders|Kirby|Figure|au.2025-11-20,eu.2025-11-20,jp.2025-11-20,na.2025-11-20
+1f00000004c41e03: Kirby (& Warp Star)|Kirby|Kirby Air Riders|Kirby|Figure|au.2025-11-20,eu.2025-11-20,jp.2025-11-20,na.2025-11-20
 1f01000000270002: Meta Knight|Meta Knight|Super Smash Bros.|Kirby|Figure|au.2015-01-29,na.2015-02-01,eu.2015-02-20,jp.2015-01-22
 1f01000002550c02: Meta Knight|Meta Knight|Kirby|Kirby|Figure|au.2016-06-11,na.2016-06-10,eu.2016-06-10,jp.2016-04-28
+1f01000004c61e03: Meta Knight (& Shadow Star)|Meta Knight|Kirby Air Riders|Kirby|Figure|au.2026-03-05,na.2026-03-05,eu.2026-03-05,jp.2026-03-05
 1f02000000280002: King Dedede|King Dedede|Super Smash Bros.|Kirby|Figure|au.2015-01-29,na.2015-02-01,eu.2015-02-20,jp.2015-01-22
 1f02000002560c02: King Dedede|King Dedede|Kirby|Kirby|Figure|au.2016-06-11,na.2016-06-10,eu.2016-06-10,jp.2016-04-28
 1f03000002570c02: Waddle Dee|Waddle Dee|Kirby|Kirby|Figure|au.2016-06-11,na.2016-06-10,eu.2016-06-10,jp.2016-04-28
-1f03010004c91e03: Bandana Waddle Dee|Waddle Dee|Kirby Air Riders|Kirby|Figure|au.2025-11-20,eu.2025-11-20,jp.2025-11-20,na.2025-11-20
+1f03010004c91e03: Bandana Waddle Dee (& Winged Star)|Waddle Dee|Kirby Air Riders|Kirby|Figure|au.2025-11-20,eu.2025-11-20,jp.2025-11-20,na.2025-11-20
 1f400000035e1002: Qbby|Qbby|BoxBoy!|BoxBoy!|Figure|au.None,na.None,eu.None,jp.2017-02-02
 21000000000b0002: Marth|Marth|Super Smash Bros.|Fire Emblem|Figure|au.2014-11-29,na.2014-11-21,eu.2014-11-28,jp.2014-12-06
 2101000000180002: Ike|Ike|Super Smash Bros.|Fire Emblem|Figure|au.2015-01-29,na.2015-02-01,eu.2015-01-23,jp.2015-01-22

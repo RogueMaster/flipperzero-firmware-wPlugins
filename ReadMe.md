@@ -54,7 +54,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Rogue AP Detector v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 - Added: [Sub-GHz Jammer Detect v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Added: [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [AmiiTool v0.2.1 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets` (Name & Version Only)
 - Updated: [Free Roam v0.5 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - Updated: [CAN Commander v1.0 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
 - Updated: [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
@@ -64,6 +63,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [FlipperPwn v1.5 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Added: [Hold em v1.0 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
+- Updated: [AmiiTool v0.2.1 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 
 <a name="release"></a>
 

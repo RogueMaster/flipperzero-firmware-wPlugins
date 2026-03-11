@@ -9,8 +9,8 @@ to look up multiple files to get all the information about a single Amiibo.
 import requests
 
 
-AMIIBO_JSON_URL = "https://raw.githubusercontent.com/N3evin/AmiiboAPI/refs/heads/master/database/amiibo.json"
-GAMES_INFO_JSON_URL = "https://raw.githubusercontent.com/N3evin/AmiiboAPI/refs/heads/master/database/games_info.json"
+AMIIBO_JSON_URL = "https://raw.githubusercontent.com/8bitDream/AmiiboAPI/refs/heads/master/database/amiibo.json"
+GAMES_INFO_JSON_URL = "https://raw.githubusercontent.com/8bitDream/AmiiboAPI/refs/heads/master/database/games_info.json"
 
 
 def fetch_json(url: str) -> dict:

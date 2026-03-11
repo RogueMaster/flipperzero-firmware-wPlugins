@@ -9,7 +9,7 @@ This project is usable but still in development. Ensure you back up all importan
 Designed as a general-purpose toolkit for Flipper Zero to work with NTAG215 figures/cards for gaming consoles, this app aims to provide the following features:
 
 - **Reading NTAG215 character NFC tags**: Read data from physical NTAG215 gaming tags and store it on the Flipper Zero.
-- **Displaying character information**: Show detailed information about the tag, including character name, series, type, usage, and other metadata. This information is sourced from the AmiiboAPI (https://amiiboapi.com/).
+- **Displaying character information**: Show detailed information about the tag, including character name, series, type, usage, and other metadata. This information is sourced from the AmiiboAPI (https://amiiboapi.org/).
 - **Emulating NTAG215 gaming NFC tags**: Emulate the loaded data, allowing the Flipper Zero to function as the corresponding character tag.
 - **Writing game data to NFC tags**: Write currently loaded tag data to blank NTAG 215 tags, or a compatible device.
 - **Generating character data**: Create a synthetic character data structure based on selected character.  The result would be a blank data file that can be written to a blank NTAG 215 tag, with no owner or game information.
@@ -80,7 +80,7 @@ Following are some screenshots of the app in action, all the steps of usage are 
 ## Acknowledgments
 
 - Thanks to the Flipper Zero community and developers for their continuous support and inspiration.
-- The data used in this project comes from AmiiboAPI (https://amiiboapi.com/).
+- The data used in this project comes from AmiiboAPI (https://amiiboapi.org/).
 - The algorighms and methods for character data manipulation are based on research and contributions from various online communities dedicated to Amiibo reverse engineering. Including but not limited to:
   * [Reverse Engineering Nintendo Amiibo (NFC Toy)](https://kevinbrewster.github.io/Amiibo-Reverse-Engineering/), containing a very detailed analysis of the data structure.
   * [amiitool](https://github.com/socram8888/amiitool), a command-line tool for manipulating dumped data. Note that the data is in a different format of what this project uses, and it won't work with the data stored with this app.

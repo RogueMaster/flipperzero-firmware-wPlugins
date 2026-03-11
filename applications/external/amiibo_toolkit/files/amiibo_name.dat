@@ -1,6 +1,6 @@
 Filetype: AmiTool Amiibo Name DB
 Version: 1
-AmiiboCount: 932
+AmiiboCount: 933
 
 8-Bit Link: 01000000034f0902
 8-Bit Mario Classic Color: 0000000002380602
@@ -48,7 +48,7 @@ Baby Mario - Horse Racing: 09cc050102a90e02
 Baby Mario - Soccer: 09cc010102a50e02
 Baby Mario - Tennis: 09cc030102a70e02
 Bam: 02d7000101300502
-Bandana Waddle Dee: 1f03010004c91e03
+Bandana Waddle Dee (& Winged Star): 1f03010004c91e03
 Bangle: 04fd0001007b0502
 Banjo & Kazooie: 3b40000003a30002
 Barioth and Ayuria: 3503010002e50f02
@@ -392,7 +392,8 @@ Kimberly: 34c4000104cf1d02
 King Dedede: 1f02000002560c02
 King K. Rool: 00c00000037b0002
 King Knight: 35c30000036e0a02
-Kirby: 1f00000004c41e03
+Kirby: 1f00000002540c02
+Kirby (& Warp Star): 1f00000004c41e03
 Kitt: 03d1000100c20502
 Kitty: 026b000100e90502
 Klaus: 0222000101440502
@@ -492,6 +493,7 @@ Melba: 03be000101980502
 Merengue: 04b9000101600502
 Merry: 026d0001013f0502
 Meta Knight: 1f01000002550c02
+Meta Knight (& Shadow Star): 1f01000004c61e03
 Metal Mario - Baseball: 09d0020102ba0e02
 Metal Mario - Golf: 09d0040102bc0e02
 Metal Mario - Horse Racing: 09d0050102bd0e02

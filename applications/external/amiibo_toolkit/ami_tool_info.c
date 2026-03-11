@@ -1058,6 +1058,11 @@ bool ami_tool_info_change_uid(AmiToolApp* app) {
 
 static int32_t ami_tool_info_write_worker(void* context) {
     AmiToolApp* app = context;
+    if(app->write_cancel_requested) {
+        ami_tool_info_write_send_event(app, AmiToolEventInfoWriteCancelled, "Write cancelled.");
+        return 0;
+    }
+
     MfUltralightData* target = mf_ultralight_alloc();
     if(!target) {
         ami_tool_info_write_send_event(
@@ -1091,11 +1096,6 @@ static int32_t ami_tool_info_write_worker(void* context) {
         goto cleanup;
     }
 
-    if(app->write_cancel_requested) {
-        ami_tool_info_write_send_event(app, AmiToolEventInfoWriteCancelled, "Write cancelled.");
-        goto cleanup;
-    }
-
     if(target->type != MfUltralightTypeNTAG215) {
         ami_tool_info_write_send_event(
             app, AmiToolEventInfoWriteFailed, "Detected tag is not an NTAG215.");
@@ -1110,77 +1110,50 @@ static int32_t ami_tool_info_write_worker(void* context) {
         goto cleanup;
     }
 
-    if(!ami_tool_info_rebuild_dump_for_uid(app, target_uid, target_uid_len)) {
-        ami_tool_info_write_send_event(
-            app,
-            AmiToolEventInfoWriteFailed,
-            "Failed to prepare Amiibo data. Install key_retail.bin and try again.");
+    bool uid_matches = app->last_uid_valid && (app->last_uid_len >= 7) &&
+                       (memcmp(app->last_uid, target_uid, 7) == 0);
+    if(!uid_matches) {
+        if(!ami_tool_info_rebuild_dump_for_uid(app, target_uid, target_uid_len)) {
+            ami_tool_info_write_send_event(
+                app,
+                AmiToolEventInfoWriteFailed,
+                "Failed to prepare Amiibo data. Install key_retail.bin and try again.");
+            goto cleanup;
+        }
+    }
+
+    MfUltralightError io_error = MfUltralightErrorNone;
+    uint16_t failed_page = UINT16_MAX;
+    AmiToolWriteStatus status = ami_tool_write_custom_sequence(app, &io_error, &failed_page);
+
+    if(app->write_cancel_requested) {
+        ami_tool_info_write_send_event(app, AmiToolEventInfoWriteCancelled, "Write cancelled.");
         goto cleanup;
     }
 
-    app->write_waiting_for_tag = false;
-    ami_tool_info_write_send_event(app, AmiToolEventInfoWriteStarted, NULL);
-
-    size_t total_pages = app->tag_data->pages_total;
-    if(target->pages_total < total_pages) {
-        total_pages = target->pages_total;
-    }
-    if(total_pages <= 4) {
-        ami_tool_info_write_send_event(
-            app, AmiToolEventInfoWriteFailed, "Detected tag does not have enough pages.");
-        goto cleanup;
-    }
-
-    const uint16_t first_data_page = 4;
-    const uint16_t tail_start_page = (total_pages > 5) ? (total_pages - 5) : total_pages;
-    MfUltralightError write_error = MfUltralightErrorNone;
-
-    for(uint16_t page = first_data_page; page < tail_start_page; page++) {
-        write_error =
-            mf_ultralight_poller_sync_write_page(app->nfc, page, &app->tag_data->page[page]);
-        if(write_error != MfUltralightErrorNone) {
-            char message[96];
+    if(status != AmiToolWriteStatusOk) {
+        char message[96];
+        if((status == AmiToolWriteStatusIoError) && (failed_page != UINT16_MAX)) {
             snprintf(
                 message,
                 sizeof(message),
                 "Write failed at page %u: %s",
-                page,
-                ami_tool_info_error_to_string(write_error));
-            ami_tool_info_write_send_event(app, AmiToolEventInfoWriteFailed, message);
-            goto cleanup;
-        }
-    }
-
-    for(uint16_t page = tail_start_page; page < total_pages; page++) {
-        write_error =
-            mf_ultralight_poller_sync_write_page(app->nfc, page, &app->tag_data->page[page]);
-        if(write_error != MfUltralightErrorNone) {
-            char message[96];
+                failed_page,
+                ami_tool_info_error_to_string(io_error));
+        } else if(status == AmiToolWriteStatusIoError) {
             snprintf(
                 message,
                 sizeof(message),
-                "Config write failed (%u): %s",
-                page,
-                ami_tool_info_error_to_string(write_error));
-            ami_tool_info_write_send_event(app, AmiToolEventInfoWriteFailed, message);
-            goto cleanup;
+                "Write failed: %s",
+                ami_tool_info_error_to_string(io_error));
+        } else {
+            snprintf(message, sizeof(message), "%s", ami_tool_write_status_to_string(status));
         }
-    }
-
-    write_error = mf_ultralight_poller_sync_write_page(app->nfc, 3, &app->tag_data->page[3]);
-    if(write_error != MfUltralightErrorNone) {
-        char message[96];
-        snprintf(
-            message,
-            sizeof(message),
-            "Lock bits write failed: %s",
-            ami_tool_info_error_to_string(write_error));
         ami_tool_info_write_send_event(app, AmiToolEventInfoWriteFailed, message);
         goto cleanup;
     }
 
     ami_tool_info_write_send_event(app, AmiToolEventInfoWriteSuccess, NULL);
-
 cleanup:
     mf_ultralight_free(target);
     return 0;
