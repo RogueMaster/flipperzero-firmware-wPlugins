@@ -27,6 +27,11 @@
 
 #define TAG "FPwn"
 
+typedef enum {
+    CdcStateDisconnected,
+    CdcStateConnected,
+} CdcState;
+
 /* =========================================================================
  * USB CDC exfiltration — ISR-safe flags for the rx_ep_callback
  * ========================================================================= */
