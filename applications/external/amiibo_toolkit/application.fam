@@ -11,6 +11,6 @@ App(
     fap_category="NFC",
     fap_author="Firefox2100",
     fap_weburl="https://github.com/Firefox2100/flipper-amiibo-toolkit",
-    fap_version="0.2.1",
+    fap_version="0.3",
     fap_description="An NTAG215 toolkit for Flipper Zero to work with tags used with gaming consoles.",
 )

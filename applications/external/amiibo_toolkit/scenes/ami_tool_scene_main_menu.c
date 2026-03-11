@@ -90,7 +90,7 @@ void ami_tool_scene_main_menu_on_enter(void* context) {
 
     submenu_add_item(
         app->submenu,
-        "Amiibo Link",
+        "Blank Tag Emulation",
         AmiToolMainMenuIndexAmiiboLink,
         ami_tool_scene_main_menu_submenu_callback,
         app);
