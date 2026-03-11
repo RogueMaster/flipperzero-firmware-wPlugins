@@ -19,16 +19,16 @@ void cancommander_scene_custom_inject_save_slots_menu_on_enter(void* context) {
     App* app = context;
 
     if(app->custom_inject_set_name[0] == '\0') {
-        snprintf(app->custom_inject_set_name, sizeof(app->custom_inject_set_name), "slot_set");
+        snprintf(app->custom_inject_set_name, sizeof(app->custom_inject_set_name), "inj_profile");
     }
 
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Save Slots");
+    submenu_set_header(app->submenu, "Save Injection Profile");
 
     snprintf(
         cancommander_custom_inject_save_name_item,
         sizeof(cancommander_custom_inject_save_name_item),
-        "Set Name: %s",
+        "Profile Name: %s",
         app->custom_inject_set_name);
 
     submenu_add_item(

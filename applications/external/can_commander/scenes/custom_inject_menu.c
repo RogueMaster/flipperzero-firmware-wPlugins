@@ -169,13 +169,13 @@ void cancommander_scene_custom_inject_menu_on_enter(void* context) {
         app);
     submenu_add_item(
         app->submenu,
-        "Save Slots",
+        "Save Profile",
         CustomInjectSaveSlots,
         cancommander_scene_custom_inject_menu_callback,
         app);
     submenu_add_item(
         app->submenu,
-        "Load Slots",
+        "Load Profile",
         CustomInjectLoadSlots,
         cancommander_scene_custom_inject_menu_callback,
         app);

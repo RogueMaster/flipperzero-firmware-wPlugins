@@ -1,7 +1,7 @@
-# CAN Commander DBC Config Format (`.dcfg`)
+# CAN Commander DBC Decoding Profile Format (`.dbcprof`)
 
 ## Purpose
-`.dcfg` is a CAN Commander custom config format for storing a curated DBC subset on Flipper.
+`.dbcprof` is a CAN Commander custom profile format for storing a curated DBC subset on Flipper.
 
 Each file stores:
 - up to 16 signal definitions
@@ -10,21 +10,21 @@ Each file stores:
 This is not a raw `.dbc` file. It is an app-native profile format.
 
 ## Storage Location
-- Directory: `apps_data/can_commander/dbc_configs`
-- Extension: `.dcfg`
+- Directory: `apps_data/can_commander/dbc_profiles`
+- Extension: `.dbcprof`
 
 ## File Header
 Every file must start with:
 
 ```text
-Filetype: CANCommanderDbcConfig
+Filetype: CANCommanderDbcProfile
 Version: 1
 ```
 
 If filetype/version do not match, load is rejected.
 
 ## Top-Level Keys
-- `name`: user-facing config name
+- `name`: user-facing profile name
 - `signal_count`: number of defined signals in this file (0..16)
 
 ## Per-Signal Keys
@@ -72,9 +72,14 @@ Example meaning:
   - load fails safely
   - no crash
 
+## Backward Compatibility
+- Legacy `.dcfg` files are still loadable.
+- Legacy folder `apps_data/can_commander/dbc_configs/` is still scanned.
+- Legacy filetype `CANCommanderDbcConfig` is still accepted.
+
 ## Example 1: Single Boolean Signal (Off/On)
 ```text
-Filetype: CANCommanderDbcConfig
+Filetype: CANCommanderDbcProfile
 Version: 1
 name: Door_Status
 signal_count: 1
@@ -101,7 +106,7 @@ signal1_map2_label: On
 
 ## Example 2: Multi-Signal Config
 ```text
-Filetype: CANCommanderDbcConfig
+Filetype: CANCommanderDbcProfile
 Version: 1
 name: Powertrain_Core
 signal_count: 2

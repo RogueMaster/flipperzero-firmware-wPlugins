@@ -33,7 +33,7 @@ void cancommander_scene_dbc_menu_on_enter(void* context) {
         app->submenu, "DBC Remove", DbcRemove, cancommander_scene_dbc_menu_callback, app);
     submenu_add_item(app->submenu, "DBC List", DbcList, cancommander_scene_dbc_menu_callback, app);
     submenu_add_item(
-        app->submenu, "Save DBC Config", DbcSaveConfig, cancommander_scene_dbc_menu_callback, app);
+        app->submenu, "Save DBC Profile", DbcSaveConfig, cancommander_scene_dbc_menu_callback, app);
 
     submenu_set_selected_item(
         app->submenu,

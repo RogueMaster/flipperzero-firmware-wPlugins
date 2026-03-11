@@ -42,7 +42,7 @@ App(
     fap_category="GPIO",
     fap_author="MatthewKuKanich",
     fap_weburl="https://github.com/MatthewKuKanich/CAN_Commander",
-    fap_version="1.0",
+    fap_version="2.1.1",
     fap_description="CAN Commander is a comprehensive tool designed for the reverse engineering of CAN (Controller Area Network) bus systems. This project aims to provide a robust platform for automotive enthusiasts, engineers, and security researchers to interact with and analyze CAN networks, facilitating a deeper understanding and manipulation of communication.",
     #  REQUIRED CAN COMMANDER GPIO BOARD
 )

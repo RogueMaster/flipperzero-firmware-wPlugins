@@ -25,7 +25,7 @@ void cancommander_scene_tools_dbc_menu_on_enter(void* context) {
         app);
     submenu_add_item(
         app->submenu,
-        "Load DBC Config",
+        "Load DBC Profile",
         ToolsDbcLoadConfig,
         cancommander_scene_tools_dbc_menu_callback,
         app);

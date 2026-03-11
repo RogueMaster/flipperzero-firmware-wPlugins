@@ -18,16 +18,16 @@ void cancommander_scene_dbc_save_config_menu_on_enter(void* context) {
     App* app = context;
 
     if(app->dbc_config_save_name[0] == '\0') {
-        snprintf(app->dbc_config_save_name, sizeof(app->dbc_config_save_name), "dbc_config");
+        snprintf(app->dbc_config_save_name, sizeof(app->dbc_config_save_name), "dbc_profile");
     }
 
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Save DBC Config");
+    submenu_set_header(app->submenu, "Save DBC Profile");
 
     snprintf(
         cancommander_dbc_save_name_item,
         sizeof(cancommander_dbc_save_name_item),
-        "Config Name: %s",
+        "Profile Name: %s",
         app->dbc_config_save_name);
 
     submenu_add_item(

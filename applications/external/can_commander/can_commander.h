@@ -16,12 +16,26 @@
 #include "libraries/can_commander_uart.h"
 #include "scenes_config/scene_functions.h"
 
-#define PROGRAM_VERSION                 "v2.1.0"
-#define APP_DBC_CFG_MAX_SIGNALS         16U
-#define APP_DBC_CFG_MAX_MAPS            16U
-#define APP_DBC_CFG_LABEL_MAX           16U
-#define APP_DBC_CFG_SIGNAL_NAME_MAX     18U
-#define APP_CUSTOM_INJECT_SLOT_ARGS_MAX 320U
+#define PROGRAM_VERSION                          "v2.1.1"
+#define APP_DBC_CFG_MAX_SIGNALS                  16U
+#define APP_DBC_CFG_MAX_MAPS                     16U
+#define APP_DBC_CFG_LABEL_MAX                    16U
+#define APP_DBC_CFG_SIGNAL_NAME_MAX              18U
+#define APP_CUSTOM_INJECT_SLOT_ARGS_MAX          320U
+#define APP_SMART_INJECT_PROFILE_EXT             ".injprof"
+#define APP_SMART_INJECT_PROFILE_LEGACY_EXT      ".cfg"
+#define APP_DBC_DECODE_PROFILE_EXT               ".dbcprof"
+#define APP_DBC_DECODE_PROFILE_LEGACY_EXT        ".dcfg"
+#define APP_SMART_INJECT_PROFILE_DIR             APP_DATA_PATH("injection_profiles")
+#define APP_SMART_INJECT_PROFILE_LEGACY_DIR      APP_DATA_PATH("slot_sets")
+#define APP_DBC_DECODE_PROFILE_DIR               APP_DATA_PATH("dbc_profiles")
+#define APP_DBC_DECODE_PROFILE_LEGACY_DIR        APP_DATA_PATH("dbc_configs")
+#define APP_SMART_INJECT_PROFILE_FILETYPE        "CANCommanderInjectionProfile"
+#define APP_SMART_INJECT_PROFILE_LEGACY_FILETYPE "CANCommanderSlotSet"
+#define APP_DBC_DECODE_PROFILE_FILETYPE          "CANCommanderDbcProfile"
+#define APP_DBC_DECODE_PROFILE_LEGACY_FILETYPE   "CANCommanderDbcConfig"
+#define APP_SMART_INJECT_PROFILE_VER             1U
+#define APP_DBC_DECODE_PROFILE_VER               1U
 
 typedef enum {
     AppViewSubmenu = 0,

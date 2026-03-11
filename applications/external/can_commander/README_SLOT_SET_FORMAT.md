@@ -1,10 +1,10 @@
-# CAN Commander Smart Injection Slot Set File Format
+# CAN Commander Smart Injection Profile Format (`.injprof`)
 
-This document describes the on-disk format used by the Flipper app to save and load Smart Injection slot sets.
+This document describes the on-disk format used by the Flipper app to save and load Smart Injection Profiles.
 
-## What a slot set is
+## What a Smart Injection profile is
 
-A slot set is a saved preset containing:
+A Smart Injection profile is a saved preset containing:
 - A human-readable set name.
 - All 5 Smart Injection slot configurations.
 - The currently selected slot index.
@@ -13,37 +13,37 @@ This is Flipper-side UI/config persistence. Firmware runtime state is separate.
 
 ## File location and naming
 
-Saved slot sets are stored in:
+Saved Smart Injection profiles are stored in:
 
-`apps_data/can_commander/slot_sets/`
+`apps_data/can_commander/injection_profiles/`
 
-Each set is saved as:
+Each profile is saved as:
 
-`<safe_name>.cfg`
+`<safe_name>.injprof`
 
 Where `safe_name` is generated from the entered set name:
 - letters/digits are kept (letters lowercased)
 - spaces, `_`, `-`, `.` become `_`
 - repeated separators collapse to one `_`
 - trailing `_` is removed
-- if empty after sanitization, fallback name is `slot_set`
+- if empty after sanitization, fallback name is `profile`
 
 Examples:
-- `My Horn Set` -> `my_horn_set.cfg`
-- `Seat-Heat.v1` -> `seat_heat_v1.cfg`
+- `My Horn Set` -> `my_horn_set.injprof`
+- `Seat-Heat.v1` -> `seat_heat_v1.injprof`
 
 ## Container format
 
 Files use FlipperFormat with this header:
 
-- `Filetype: CANCommanderSlotSet`
+- `Filetype: CANCommanderInjectionProfile`
 - `Version: 1`
 
 If header type/version does not match, load fails.
 
 ## Top-level keys
 
-- `name` (string): display name for the slot set.
+- `name` (string): display name for the Smart Injection profile.
 - `active_slot` (uint32): selected slot index, `0..4`.
 
 ## Per-slot keys
@@ -109,7 +109,7 @@ Default slot values are effectively:
 ## Example file
 
 ```ini
-Filetype: CANCommanderSlotSet
+Filetype: CANCommanderInjectionProfile
 Version: 1
 name: track_day
 slot1_name: Horn
@@ -207,5 +207,9 @@ active_slot: 0
 
 ## Notes
 
+- Backward compatibility:
+- Legacy `.cfg` files are still loadable.
+- Legacy folder `apps_data/can_commander/slot_sets/` is still scanned.
+- Legacy filetype `CANCommanderSlotSet` is still accepted.
 - Editing these files manually is supported, but malformed values may be clamped/fallback-filled when loaded.
 - The app rewrites normalized slot args on load/save, so formatting/order may change.
