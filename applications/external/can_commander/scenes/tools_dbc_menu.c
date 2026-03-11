@@ -1,50 +1,14 @@
 #include "../can_commander.h"
 
-#include <string.h>
-
 typedef enum {
     ToolsDbcDecode = 0,
+    ToolsDbcLoadConfig,
     ToolsDbcDatabaseManager,
 } ToolsDbcMenuIndex;
 
 static void cancommander_scene_tools_dbc_menu_callback(void* context, uint32_t index) {
     App* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
-}
-
-static void cancommander_scene_tools_dbc_start_pending(App* app) {
-    app->args_editor_apply_next_scene = cancommander_scene_monitor;
-    app_action_tool_start(
-        app,
-        app->pending_tool_start_id,
-        app->args_editor_target,
-        app->pending_tool_start_name[0] ? app->pending_tool_start_name : "tool");
-    if(!app->connected) {
-        app->args_editor_apply_next_scene = cancommander_scene_status;
-    }
-}
-
-static void cancommander_scene_tools_dbc_open_tool_args(
-    App* app,
-    CcToolId tool_id,
-    const char* tool_name,
-    char* args,
-    size_t args_size,
-    const char* title) {
-    app->pending_tool_start_id = tool_id;
-    strncpy(app->pending_tool_start_name, tool_name, sizeof(app->pending_tool_start_name) - 1U);
-    app->pending_tool_start_name[sizeof(app->pending_tool_start_name) - 1U] = '\0';
-
-    app_begin_args_editor_apply(
-        app,
-        args,
-        args_size,
-        title,
-        "Start",
-        cancommander_scene_tools_dbc_start_pending,
-        cancommander_scene_monitor);
-
-    scene_manager_next_scene(app->scene_manager, cancommander_scene_args_editor);
 }
 
 void cancommander_scene_tools_dbc_menu_on_enter(void* context) {
@@ -57,6 +21,12 @@ void cancommander_scene_tools_dbc_menu_on_enter(void* context) {
         app->submenu,
         "DBC Decode",
         ToolsDbcDecode,
+        cancommander_scene_tools_dbc_menu_callback,
+        app);
+    submenu_add_item(
+        app->submenu,
+        "Load DBC Config",
+        ToolsDbcLoadConfig,
         cancommander_scene_tools_dbc_menu_callback,
         app);
     submenu_add_item(
@@ -85,13 +55,14 @@ bool cancommander_scene_tools_dbc_menu_on_event(void* context, SceneManagerEvent
 
     switch(event.event) {
     case ToolsDbcDecode:
-        cancommander_scene_tools_dbc_open_tool_args(
-            app,
-            CcToolDbcDecode,
-            "dbc_decode",
-            app->args_dbc_decode,
-            sizeof(app->args_dbc_decode),
-            "DBC Decode Tool");
+        app_action_tool_start(app, CcToolDbcDecode, app->args_dbc_decode, "dbc_decode");
+        scene_manager_next_scene(
+            app->scene_manager,
+            app->connected ? cancommander_scene_monitor : cancommander_scene_status);
+        return true;
+
+    case ToolsDbcLoadConfig:
+        scene_manager_next_scene(app->scene_manager, cancommander_scene_dbc_load_config_menu);
         return true;
 
     case ToolsDbcDatabaseManager:

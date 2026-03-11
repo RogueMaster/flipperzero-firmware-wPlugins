@@ -16,7 +16,12 @@
 #include "libraries/can_commander_uart.h"
 #include "scenes_config/scene_functions.h"
 
-#define PROGRAM_VERSION "v2.0.0"
+#define PROGRAM_VERSION                 "v2.1.0"
+#define APP_DBC_CFG_MAX_SIGNALS         16U
+#define APP_DBC_CFG_MAX_MAPS            16U
+#define APP_DBC_CFG_LABEL_MAX           16U
+#define APP_DBC_CFG_SIGNAL_NAME_MAX     18U
+#define APP_CUSTOM_INJECT_SLOT_ARGS_MAX 320U
 
 typedef enum {
     AppViewSubmenu = 0,
@@ -75,6 +80,20 @@ typedef struct App App;
 typedef void (*AppArgsApplyCallback)(App* app);
 
 typedef struct {
+    bool used;
+    int64_t raw;
+    char label[APP_DBC_CFG_LABEL_MAX];
+} AppDbcValueMap;
+
+typedef struct {
+    bool used;
+    CcDbcSignalDef def;
+    char signal_name[APP_DBC_CFG_SIGNAL_NAME_MAX];
+    uint8_t map_count;
+    AppDbcValueMap maps[APP_DBC_CFG_MAX_MAPS];
+} AppDbcSignalCache;
+
+typedef struct {
     char key[APP_ARGS_EDITOR_KEY_MAX];
     char value[APP_ARGS_EDITOR_VALUE_MAX];
     AppArgValueType type;
@@ -95,11 +114,14 @@ struct App {
     FuriMutex* mutex;
     FuriThread* rx_worker;
     bool rx_worker_stop;
+    bool app_ready;
 
     CcClient* client;
     bool connected;
     bool tool_active;
     bool monitor_scene_active;
+    bool monitor_update_pending;
+    uint32_t monitor_last_update_ms;
     AppDashboardMode dashboard_mode;
 
     FuriString* monitor_text;
@@ -122,7 +144,7 @@ struct App {
     char args_obd_pid[96];
     char args_dbc_decode[64];
     char args_custom_inject_start[64];
-    char args_custom_inject_slots[5][220];
+    char args_custom_inject_slots[5][APP_CUSTOM_INJECT_SLOT_ARGS_MAX];
     char args_custom_inject_bit[64];
     char args_custom_inject_clearbit[48];
     char args_custom_inject_field[80];
@@ -172,6 +194,10 @@ struct App {
     char custom_inject_edit_mux_len[24];
     char custom_inject_edit_mux_value[24];
     char custom_inject_set_name[32];
+    char dbc_config_name[32];
+    char dbc_config_save_name[32];
+    AppDbcSignalCache dbc_config_signals[APP_DBC_CFG_MAX_SIGNALS];
+    uint8_t dbc_config_signal_count;
 
     CcToolId pending_tool_start_id;
     char pending_tool_start_name[24];
@@ -244,5 +270,10 @@ void app_action_dbc_clear(App* app);
 void app_action_dbc_add(App* app, const char* args);
 void app_action_dbc_remove(App* app, const char* args);
 void app_action_dbc_list(App* app);
+void app_dbc_config_reset(App* app);
+bool app_dbc_config_save_file(App* app, const char* config_name);
+bool app_dbc_config_load_file(App* app, const char* file_path, bool apply_to_firmware);
+const char* app_dbc_config_lookup_label(const App* app, uint16_t sid, int64_t raw);
+const char* app_dbc_config_lookup_signal_name(const App* app, uint16_t sid);
 
 int32_t cancommander_main(void* p);

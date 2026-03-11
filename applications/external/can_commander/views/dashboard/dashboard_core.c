@@ -105,6 +105,10 @@ void dashboard_apply_template(
             model->read_bus1 = 0U;
             model->read_std = 0U;
             model->read_ext = 0U;
+            model->read_rate_window_start_ms = 0U;
+            model->read_rate_window_count = 0U;
+            model->read_rate_fps = 0U;
+            model->read_overload = false;
             model->input_hold_mask = 0U;
             model->reverse_phase = 0U;
             model->reverse_count = 0U;
@@ -151,8 +155,11 @@ void dashboard_apply_template(
             model->dbc_head = 0U;
             model->dbc_count = 0U;
             model->dbc_selected = 0U;
+            model->dbc_signal_count = 0U;
+            model->dbc_signal_selected = 0U;
             memset(&model->dbc_latest, 0, sizeof(model->dbc_latest));
             memset(model->dbc_entries, 0, sizeof(model->dbc_entries));
+            memset(model->dbc_signals, 0, sizeof(model->dbc_signals));
             model->obd_dtc_active = false;
             model->obd_dtc_complete = false;
             model->obd_dtc_page = 0U;
@@ -299,7 +306,53 @@ void dashboard_set_mode(App* app, AppDashboardMode mode) {
     }
 
     dashboard_init_mode(app, mode);
-    with_view_model(app->dashboard_view, AppDashboardModel * model, { model->mode = mode; }, true);
+    with_view_model(
+        app->dashboard_view,
+        AppDashboardModel * model,
+        {
+            model->mode = mode;
+            if(mode == AppDashboardDbcDecode) {
+                model->dbc_signal_count = 0U;
+                model->dbc_signal_selected = 0U;
+                model->mode_page = 0U;
+                memset(model->dbc_signals, 0, sizeof(model->dbc_signals));
+
+                uint8_t count = 0U;
+                for(uint8_t i = 0U; i < APP_DBC_CFG_MAX_SIGNALS; i++) {
+                    const AppDbcSignalCache* signal = &app->dbc_config_signals[i];
+                    if(!signal->used || count >= APP_DBC_CFG_MAX_SIGNALS) {
+                        continue;
+                    }
+
+                    DashboardDbcEntry* slot = &model->dbc_signals[count];
+                    memset(slot, 0, sizeof(DashboardDbcEntry));
+                    slot->sid = signal->def.sid;
+                    slot->bus = signal->def.bus;
+                    slot->frame_id = signal->def.id;
+                    slot->in_range = true;
+                    if(signal->signal_name[0] != '\0') {
+                        strncpy(
+                            slot->signal_name,
+                            signal->signal_name,
+                            sizeof(slot->signal_name) - 1U);
+                        slot->signal_name[sizeof(slot->signal_name) - 1U] = '\0';
+                    } else {
+                        snprintf(
+                            slot->signal_name,
+                            sizeof(slot->signal_name),
+                            "SID%u",
+                            (unsigned)signal->def.sid);
+                        slot->signal_name[sizeof(slot->signal_name) - 1U] = '\0';
+                    }
+                    strncpy(slot->unit, signal->def.unit, sizeof(slot->unit) - 1U);
+                    slot->unit[sizeof(slot->unit) - 1U] = '\0';
+                    count++;
+                }
+
+                model->dbc_signal_count = count;
+            }
+        },
+        true);
 }
 
 bool dashboard_handle_event(App* app, const CcEvent* event) {

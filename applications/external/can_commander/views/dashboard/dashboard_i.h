@@ -2,13 +2,13 @@
 
 #include "dashboard.h"
 
-#define APP_DASH_READ_HISTORY 24U
-#define DASH_SPEED_HISTORY    12U
-#define DASH_VAL_HISTORY      16U
-#define DASH_UNIQUE_HISTORY   16U
-#define DASH_DBC_HISTORY      16U
+#define APP_DASH_READ_HISTORY 16U
+#define DASH_SPEED_HISTORY    10U
+#define DASH_VAL_HISTORY      12U
+#define DASH_UNIQUE_HISTORY   12U
+#define DASH_DBC_HISTORY      10U
 #define DASH_CUSTOM_HISTORY   8U
-#define DASH_OBD_DTC_MAX      24U
+#define DASH_OBD_DTC_MAX      20U
 #define DASH_REVERSE_MAX_IDS  10U
 
 typedef struct {
@@ -44,10 +44,14 @@ typedef struct {
 typedef struct {
     bool valid;
     uint16_t sid;
+    char signal_name[APP_DBC_CFG_SIGNAL_NAME_MAX];
     CcBus bus;
     uint32_t frame_id;
+    int64_t raw;
     float value;
     bool in_range;
+    bool mapped;
+    char mapped_label[APP_DBC_CFG_LABEL_MAX];
     char unit[CC_UNIT_TEXT_LEN + 1U];
 } DashboardDbcEntry;
 
@@ -85,6 +89,10 @@ typedef struct {
     uint32_t read_bus1;
     uint32_t read_std;
     uint32_t read_ext;
+    uint32_t read_rate_window_start_ms;
+    uint16_t read_rate_window_count;
+    uint32_t read_rate_fps;
+    bool read_overload;
     uint8_t input_hold_mask;
     uint8_t reverse_phase;
     uint8_t reverse_count;
@@ -133,6 +141,9 @@ typedef struct {
     uint8_t dbc_head;
     uint8_t dbc_count;
     uint8_t dbc_selected;
+    DashboardDbcEntry dbc_signals[APP_DBC_CFG_MAX_SIGNALS];
+    uint8_t dbc_signal_count;
+    uint8_t dbc_signal_selected;
 
     bool obd_dtc_active;
     bool obd_dtc_complete;

@@ -270,5 +270,5 @@ void dashboard_bittrack_update(App* app, const CcEvent* event) {
                 model->bit_id_line[sizeof(model->bit_id_line) - 1U] = '\0';
             }
         },
-        true);
+        false);
 }

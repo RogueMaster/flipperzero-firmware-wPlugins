@@ -152,6 +152,23 @@ bool dashboard_read_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
     if(page == 0U) {
         canvas_draw_str_aligned(
             canvas, 64, 2, AlignCenter, AlignTop, filtered ? "Filtered" : "Read All");
+        if(dashboard->read_overload) {
+            char fps_text[24] = {0};
+            snprintf(
+                fps_text,
+                sizeof(fps_text),
+                "Rate: %lu fps",
+                (unsigned long)dashboard->read_rate_fps);
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "Input overload");
+            canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, fps_text);
+            canvas_draw_str_aligned(
+                canvas, 64, 45, AlignCenter, AlignCenter, "Rendering paused >1000");
+            canvas_draw_str_aligned(
+                canvas, 64, 63, AlignCenter, AlignBottom, "Narrow filter scope");
+            return true;
+        }
+
         const AppDashFrameEntry* entry = dashboard_read_get_selected(dashboard);
         if(!entry) {
             canvas_set_font(canvas, FontSecondary);
@@ -248,7 +265,12 @@ bool dashboard_read_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
             "STD:%lu EXT:%lu",
             (unsigned long)dashboard->read_std,
             (unsigned long)dashboard->read_ext);
-        snprintf(line4, sizeof(line4), "Feed:%s", dashboard->read_hold ? "Hold" : "Live");
+        if(dashboard->read_overload) {
+            snprintf(
+                line4, sizeof(line4), "Feed:Paused %lu/s", (unsigned long)dashboard->read_rate_fps);
+        } else {
+            snprintf(line4, sizeof(line4), "Feed:%s", dashboard->read_hold ? "Hold" : "Live");
+        }
 
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 20, line1);
@@ -355,7 +377,41 @@ void dashboard_read_update(App* app, const CcEvent* event, const char* title) {
                 model->read_std++;
             }
 
+            if(model->mode == AppDashboardReadAll || model->mode == AppDashboardFiltered) {
+                const uint32_t ts = event->data.can_frame.ts_ms;
+                if(model->read_rate_window_start_ms == 0U) {
+                    model->read_rate_window_start_ms = ts;
+                    model->read_rate_window_count = 0U;
+                    model->read_rate_fps = 0U;
+                    model->read_overload = false;
+                }
+
+                const uint32_t elapsed = ts - model->read_rate_window_start_ms;
+                if(elapsed >= 1000U) {
+                    const uint32_t sample_ms = (elapsed == 0U) ? 1U : elapsed;
+                    model->read_rate_fps =
+                        ((uint32_t)model->read_rate_window_count * 1000U) / sample_ms;
+                    model->read_rate_window_start_ms = ts;
+                    model->read_rate_window_count = 0U;
+                    model->read_overload = (model->read_rate_fps > 1000U);
+                }
+
+                if(model->read_rate_window_count < 0xFFFFU) {
+                    model->read_rate_window_count++;
+                }
+            } else {
+                model->read_overload = false;
+                model->read_rate_window_start_ms = 0U;
+                model->read_rate_window_count = 0U;
+                model->read_rate_fps = 0U;
+            }
+
             if(model->read_hold) {
+                return;
+            }
+
+            if((model->mode == AppDashboardReadAll || model->mode == AppDashboardFiltered) &&
+               model->read_overload) {
                 return;
             }
 
@@ -375,5 +431,5 @@ void dashboard_read_update(App* app, const CcEvent* event, const char* title) {
             }
             model->read_selected = 0U;
         },
-        true);
+        false);
 }

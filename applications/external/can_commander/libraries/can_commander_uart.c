@@ -6,11 +6,13 @@
 
 #include <string.h>
 
-#define CC_PACKET_RAW_MAX  (CC_MAX_PAYLOAD + 32U)
-#define CC_PACKET_ENC_MAX  (CC_MAX_PAYLOAD + 40U)
-#define CC_RX_STREAM_SIZE  2048U
-#define CC_EVENT_QUEUE_LEN 48U
-#define CC_WAIT_SLICE_MS   20U
+#define CC_PACKET_RAW_MAX        (CC_MAX_PAYLOAD + 32U)
+#define CC_PACKET_ENC_MAX        (CC_MAX_PAYLOAD + 40U)
+#define CC_RX_STREAM_SIZE        1024U
+#define CC_EVENT_QUEUE_LEN       24U
+#define CC_WAIT_SLICE_MS         20U
+#define CC_DRAIN_MAX_BYTES_POLL  1024U
+#define CC_DRAIN_MAX_CHUNKS_POLL 16U
 
 typedef enum {
     CcKindCmd = 0x01,
@@ -487,6 +489,8 @@ static void cc_parse_bytes(CcClient* client, const uint8_t* data, size_t len, Cc
 static void cc_drain_stream_locked(CcClient* client, CcWaiter* waiter, uint32_t first_timeout_ms) {
     uint8_t buffer[64] = {0};
     bool first = true;
+    uint32_t drained_bytes = 0U;
+    uint16_t drained_chunks = 0U;
 
     while(true) {
         const uint32_t timeout = first ? first_timeout_ms : 0;
@@ -499,9 +503,19 @@ static void cc_drain_stream_locked(CcClient* client, CcWaiter* waiter, uint32_t 
         }
 
         cc_parse_bytes(client, buffer, rx, waiter);
+        drained_bytes += (uint32_t)rx;
+        drained_chunks++;
 
         if(waiter && waiter->matched) {
             break;
+        }
+
+        if(!waiter) {
+            // Keep poll bounded under continuous traffic so app/UI threads stay responsive.
+            if(drained_bytes >= CC_DRAIN_MAX_BYTES_POLL ||
+               drained_chunks >= CC_DRAIN_MAX_CHUNKS_POLL) {
+                break;
+            }
         }
     }
 }
