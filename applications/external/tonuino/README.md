@@ -71,8 +71,6 @@ Each TonUINO card contains 16 bytes:
 
 ## Usage
 
-### Main Menu
-
 Launch from Apps → NFC → TonUINO Writer. The main menu offers:
 
 - **Set Folder** - Choose folder number (1-99)
@@ -85,7 +83,7 @@ Launch from Apps → NFC → TonUINO Writer. The main menu offers:
 - **Rapid Write** - Quick multi-card writing mode
 - **About** - App version and information
 
-### Writing a Card
+**Writing a Card**
 
 1. Configure your card using Set Folder, Set Mode, and optional Special values
 2. Select "View Card" to preview (optional)
@@ -94,14 +92,14 @@ Launch from Apps → NFC → TonUINO Writer. The main menu offers:
 5. Press "Cancel" button (left) to abort at any time
 6. Wait for success confirmation
 
-### Reading a Card
+**Reading a Card**
 
 1. Select "Read Card" from main menu
 2. Place TonUINO card on back of Flipper
 3. Press "Cancel" button (left) to abort
 4. View the card configuration on screen
 
-### Rapid Write Mode
+**Rapid Write Mode**
 
 Perfect for creating multiple cards with the same base configuration:
 
@@ -140,13 +138,13 @@ Example: To play tracks 5-10 in Album Von-Bis mode, set Special 1 to 5 and Speci
 
 ## Installation
 
-### From Flipper Lab (Recommended)
+**From Flipper Lab (Recommended)**
 
 1. Visit [Flipper Lab](https://lab.flipper.net)
 2. Search for "TonUINO Writer"
 3. Click Install
 
-### Manual Installation
+**Manual Installation**
 
 Copy `tonuino_writer.fap` to `/ext/apps/NFC/` on your Flipper Zero SD card.
 

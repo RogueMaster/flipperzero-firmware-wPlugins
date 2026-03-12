@@ -4,7 +4,7 @@ All notable changes to TonUINO Writer will be documented in this file.
 
 ## [2.0.0] - 2025-12-31
 
-### Added
+**Added**
 - Complete SceneManager refactoring for stable navigation
 - Cancelable READ and WRITE operations with dedicated Cancel button
 - Non-blocking NFC operations using FuriThread
@@ -17,14 +17,14 @@ All notable changes to TonUINO Writer will be documented in this file.
 - Read existing TonUINO cards
 - About screen with version information
 
-### Changed
+**Changed**
 - Migrated from ViewDispatcher-only to SceneManager + ViewDispatcher pattern
 - NFC operations now non-blocking with 100ms tick polling
 - Widget views properly reset in each scene
 - Improved error handling and user feedback
 - Better visual feedback during NFC operations
 
-### Fixed
+**Fixed**
 - Global state elimination (removed g_mode_selection_app)
 - Widget view reuse conflicts
 - Back button stability across all scenes
@@ -33,7 +33,7 @@ All notable changes to TonUINO Writer will be documented in this file.
 - Inconsistent back button handling
 - Magic number view IDs replaced with semantic enums
 
-### Technical
+**Technical**
 - Version: 2.0.0
 - Build: 79
 - Stack size: 2KB
@@ -42,7 +42,7 @@ All notable changes to TonUINO Writer will be documented in this file.
 
 ## [1.0.0] - Initial Release
 
-### Added
+**Added**
 - Basic TonUINO card writing functionality
 - Folder and mode selection
 - Special values configuration
