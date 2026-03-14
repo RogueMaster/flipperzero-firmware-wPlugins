@@ -428,15 +428,134 @@ void unitemp_sensors_updateValues(void) {
     }
 }
 
-/* ---- SD card load/save (kept but not used in this app) ---- */
+/* ---- SD card load/save ---- */
 
 bool unitemp_sensors_load(void) {
-    FURI_LOG_W(APP_NAME, "sensors_load: using hardcoded sensors, skipping SD load");
-    return false;
+    app->file_stream = file_stream_alloc(app->storage);
+    FuriString* filepath = furi_string_alloc();
+    furi_string_printf(filepath, "%s/%s", APP_PATH_FOLDER, APP_FILENAME_SENSORS);
+
+    if(!file_stream_open(
+           app->file_stream, furi_string_get_cstr(filepath), FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) {
+        if(file_stream_get_error(app->file_stream) == FSE_NOT_EXIST) {
+            FURI_LOG_W(APP_NAME, "Missing sensors file");
+        } else {
+            FURI_LOG_E(APP_NAME, "Sensors load error: %d", file_stream_get_error(app->file_stream));
+        }
+        file_stream_close(app->file_stream);
+        stream_free(app->file_stream);
+        furi_string_free(filepath);
+        return false;
+    }
+
+    uint16_t file_size = stream_size(app->file_stream);
+    if(file_size == 0) {
+        FURI_LOG_W(APP_NAME, "Sensors file is empty");
+        file_stream_close(app->file_stream);
+        stream_free(app->file_stream);
+        furi_string_free(filepath);
+        return false;
+    }
+
+    uint8_t* file_buf = malloc(file_size);
+    memset(file_buf, 0, file_size);
+    if(stream_read(app->file_stream, file_buf, file_size) != file_size) {
+        FURI_LOG_E(APP_NAME, "Error reading sensors file");
+        file_stream_close(app->file_stream);
+        stream_free(app->file_stream);
+        furi_string_free(filepath);
+        free(file_buf);
+        return false;
+    }
+
+    FuriString* file = furi_string_alloc_set_str((char*)file_buf);
+    size_t line_end = 0;
+    while(line_end != (size_t)-1 && line_end != (size_t)(file_size - 1)) {
+        char name[11] = {0};
+        char type[11] = {0};
+        int temp_offset = 0;
+        int offset = 0;
+        sscanf((char*)(file_buf + line_end), "%10s %10s %d %n", name, type, &temp_offset, &offset);
+        name[10] = '\0';
+        for(uint8_t i = 0; i < 10; i++) {
+            if(name[i] == '?') name[i] = ' ';
+        }
+        char* args = (char*)(file_buf + line_end + offset);
+        const SensorType* stype = unitemp_sensors_getTypeFromStr(type);
+        if(stype != NULL && strlen(name) > 0) {
+            Sensor* sensor = unitemp_sensor_alloc(name, stype, args);
+            if(sensor != NULL) {
+                sensor->temp_offset = temp_offset;
+                unitemp_sensors_add(sensor);
+            }
+        }
+        line_end = furi_string_search_char(file, '\n', line_end + 1);
+    }
+    furi_string_free(file);
+    free(file_buf);
+    file_stream_close(app->file_stream);
+    stream_free(app->file_stream);
+    furi_string_free(filepath);
+    FURI_LOG_I(APP_NAME, "Sensors loaded: %d", app->sensors_count);
+    return true;
 }
 
 bool unitemp_sensors_save(void) {
-    return false;
+    app->file_stream = file_stream_alloc(app->storage);
+    FuriString* filepath = furi_string_alloc();
+    furi_string_printf(filepath, "%s/%s", APP_PATH_FOLDER, APP_FILENAME_SENSORS);
+    storage_common_mkdir(app->storage, APP_PATH_FOLDER);
+
+    if(!file_stream_open(
+           app->file_stream, furi_string_get_cstr(filepath), FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
+        FURI_LOG_E(APP_NAME, "Sensors save error: %d", file_stream_get_error(app->file_stream));
+        file_stream_close(app->file_stream);
+        stream_free(app->file_stream);
+        furi_string_free(filepath);
+        return false;
+    }
+
+    for(uint8_t i = 0; i < unitemp_sensors_getActiveCount(); i++) {
+        Sensor* sensor = unitemp_sensor_getActive(i);
+        for(uint8_t j = 0; j < 10; j++) {
+            if(sensor->name[j] == ' ') sensor->name[j] = '?';
+        }
+        stream_write_format(
+            app->file_stream, "%s %s %d ", sensor->name, sensor->type->typename, sensor->temp_offset);
+
+        if(sensor->type->interface == &SINGLE_WIRE) {
+            stream_write_format(
+                app->file_stream, "%d\n", unitemp_singlewire_sensorGetGPIO(sensor)->num);
+        } else if(sensor->type->interface == &SPI) {
+            stream_write_format(
+                app->file_stream, "%d\n", ((SPISensor*)sensor->instance)->CS_pin->num);
+        } else if(sensor->type->interface == &I2C) {
+            stream_write_format(
+                app->file_stream, "%X\n", ((I2CSensor*)sensor->instance)->currentI2CAdr);
+        } else if(sensor->type->interface == &ONE_WIRE) {
+            stream_write_format(
+                app->file_stream,
+                "%d %02X%02X%02X%02X%02X%02X%02X%02X\n",
+                ((OneWireSensor*)sensor->instance)->bus->gpio->num,
+                ((OneWireSensor*)sensor->instance)->deviceID[0],
+                ((OneWireSensor*)sensor->instance)->deviceID[1],
+                ((OneWireSensor*)sensor->instance)->deviceID[2],
+                ((OneWireSensor*)sensor->instance)->deviceID[3],
+                ((OneWireSensor*)sensor->instance)->deviceID[4],
+                ((OneWireSensor*)sensor->instance)->deviceID[5],
+                ((OneWireSensor*)sensor->instance)->deviceID[6],
+                ((OneWireSensor*)sensor->instance)->deviceID[7]);
+        } else {
+            /* Custom interface (e.g. MHZ19C DIRECT_GPIO) — no extra args */
+            stream_write_format(app->file_stream, "\n");
+        }
+    }
+
+    file_stream_close(app->file_stream);
+    stream_free(app->file_stream);
+    furi_string_free(filepath);
+    FURI_LOG_I(APP_NAME, "Sensors saved: %d", unitemp_sensors_getActiveCount());
+    return true;
 }
 
 void unitemp_sensors_reload(void) {

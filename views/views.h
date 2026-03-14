@@ -5,6 +5,12 @@ typedef enum {
     ViewMain,
     ViewMainMenu,
     ViewSettings,
+    ViewSensorsList,
+    ViewSensorEdit,
+    ViewSensorNameEdit,
+    ViewSensorActions,
+    ViewWidget,
+    ViewPopup,
     ViewsCount
 } AppViews;
 
@@ -22,3 +28,33 @@ void view_main_menu_free(void);
 void view_settings_alloc(void);
 void view_settings_switch(void);
 void view_settings_free(void);
+
+/* Sensors list (add new sensor) */
+void view_sensors_list_alloc(void);
+void view_sensors_list_switch(void);
+void view_sensors_list_free(void);
+
+/* Sensor editor (offset, name, GPIO, save) */
+void view_sensor_edit_alloc(void);
+void view_sensor_edit_switch(Sensor* sensor);
+void view_sensor_edit_free(void);
+
+/* Sensor name text input */
+void view_sensor_name_edit_alloc(void);
+void view_sensor_name_edit_switch(Sensor* sensor);
+void view_sensor_name_edit_free(void);
+
+/* Sensor actions (info, edit, delete, add) */
+void view_sensor_actions_alloc(void);
+void view_sensor_actions_switch(Sensor* sensor);
+void view_sensor_actions_free(void);
+
+/* Widget (delete confirmation, help, about) */
+void view_widgets_alloc(void);
+void view_widgets_free(void);
+void view_widget_delete_switch(Sensor* sensor);
+void view_widget_help_switch(void);
+void view_widget_about_switch(void);
+
+/* Popup */
+void view_popup(const Icon* icon, char* header, char* message, uint32_t prev_view_id);

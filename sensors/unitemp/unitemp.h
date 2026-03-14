@@ -10,6 +10,8 @@
 #include <furi_hal.h>
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
+#include <gui/modules/widget.h>
+#include <gui/modules/popup.h>
 #include <toolbox/stream/file_stream.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
@@ -19,6 +21,7 @@
 #define APP_NAME              "CO2App"
 #define APP_PATH_FOLDER       "/ext/unitemp"
 #define APP_FILENAME_SETTINGS "settings.cfg"
+#define APP_FILENAME_SENSORS  "sensors.cfg"
 #define BUFF_SIZE             32
 
 /* ---- Debug macro ---- */
@@ -69,6 +72,8 @@ typedef struct App {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     NotificationApp* notifications;
+    Widget* widget;
+    Popup* popup;
     /* Storage */
     Storage* storage;
     Stream* file_stream;
@@ -78,6 +83,7 @@ typedef struct App {
     Sensor** sensors;
     uint8_t sensors_count;
     bool sensors_ready;
+    bool sensors_update;
     /* Settings */
     AppSettings settings;
 } App;

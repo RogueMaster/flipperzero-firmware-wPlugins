@@ -196,23 +196,35 @@ int32_t co2_app_main(void* p) {
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
 
+    /* Popup (registered as ViewPopup in dispatcher) */
+    app->popup = popup_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, ViewPopup, popup_get_view(app->popup));
+
     /* Allocate views (need app->view_dispatcher already set) */
     view_main_alloc();
     view_main_menu_alloc();
     view_settings_alloc();
+    view_sensors_list_alloc();
+    view_sensor_edit_alloc();
+    view_sensor_name_edit_alloc();
+    view_sensor_actions_alloc();
+    view_widgets_alloc();
 
-    /* Hardcode sensors: BME280 (I2C addr 0xEC = 0x76<<1) + MH-Z19C (PWM PA6) */
+    /* Sensors: load from SD card, fallback to hardcoded defaults */
     app->sensors       = NULL;
     app->sensors_count = 0;
 
-    Sensor* bme = unitemp_sensor_alloc("BME280", &BME280, "EC");
-    if(bme) {
-        bme->temp_offset = -20; /* -2.0°C: compensate OTG/MH-Z19C self-heating near BME280 */
-        unitemp_sensors_add(bme);
+    if(!unitemp_sensors_load() || app->sensors_count == 0) {
+        /* Default: BME280 (I2C addr 0xEC = 0x76<<1) + MH-Z19C (PWM PA6) */
+        Sensor* bme = unitemp_sensor_alloc("BME280", &BME280, "EC");
+        if(bme) {
+            bme->temp_offset = -20; /* -2.0°C: compensate self-heating */
+            unitemp_sensors_add(bme);
+        }
+        Sensor* co2 = unitemp_sensor_alloc("MH-Z19C", &MHZ19C, "");
+        if(co2) unitemp_sensors_add(co2);
+        unitemp_sensors_save(); /* persist defaults */
     }
-
-    Sensor* co2 = unitemp_sensor_alloc("MH-Z19C", &MHZ19C, "");
-    if(co2) unitemp_sensors_add(co2);
 
     /* Initialize sensors (enables OTG power, sets up GPIO) */
     unitemp_sensors_init();
@@ -236,9 +248,17 @@ int32_t co2_app_main(void* p) {
     unitemp_sensors_deInit();
     unitemp_sensors_free();
 
+    view_widgets_free();
+    view_sensor_actions_free();
+    view_sensor_name_edit_free();
+    view_sensor_edit_free();
+    view_sensors_list_free();
     view_settings_free();
     view_main_menu_free();
     view_main_free();
+
+    view_dispatcher_remove_view(app->view_dispatcher, ViewPopup);
+    popup_free(app->popup);
 
     view_dispatcher_free(app->view_dispatcher);
 
