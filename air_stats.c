@@ -223,7 +223,6 @@ int32_t air_stats_main(void* p) {
     view_climate_settings_alloc();
     view_sensors_list_alloc();
     view_sensor_edit_alloc();
-    view_sensor_name_edit_alloc();
     view_sensor_actions_alloc();
     view_sensor_info_alloc();
     view_widgets_alloc();
@@ -269,7 +268,6 @@ int32_t air_stats_main(void* p) {
     view_widgets_free();
     view_sensor_info_free();
     view_sensor_actions_free();
-    view_sensor_name_edit_free();
     view_sensor_edit_free();
     view_sensors_list_free();
     view_climate_settings_free();

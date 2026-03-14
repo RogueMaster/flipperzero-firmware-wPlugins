@@ -13,7 +13,6 @@ static VariableItemList* variable_item_list;
 static Sensor* editable_sensor;
 static const GPIO* initial_gpio = NULL;
 
-static VariableItem* sensor_name_item;
 static VariableItem* onewire_addr_item;
 static VariableItem* onewire_type_item;
 VariableItem* temp_offset_item;
@@ -108,9 +107,6 @@ static uint32_t _exit_callback(void* context) {
 
 static void _enter_callback(void* context, uint32_t index) {
     UNUSED(context);
-    if(index == 0) {
-        view_sensor_name_edit_switch(editable_sensor);
-    }
     if(editable_sensor->type->interface == &ONE_WIRE && index == onewire_scan_item_index) {
         _onewire_scan();
     }
@@ -145,11 +141,6 @@ static void _i2caddr_change_callback(VariableItem* item) {
     char buff[5];
     snprintf(buff, 5, "0x%2X", ((I2CSensor*)editable_sensor->instance)->currentI2CAdr >> 1);
     variable_item_set_current_value_text(item, buff);
-}
-
-static void _name_change_callback(VariableItem* item) {
-    variable_item_set_current_value_index(item, 0);
-    view_sensor_name_edit_switch(editable_sensor);
 }
 
 static void _calibrate_callback(VariableItem* item) {
@@ -190,14 +181,7 @@ void view_sensor_edit_switch(Sensor* sensor) {
 
     uint8_t idx = 0;
 
-    /* Name — always index 0 */
-    sensor_name_item = variable_item_list_add(
-        variable_item_list, "Name", strlen(sensor->name) > 7 ? 1 : 2, _name_change_callback, NULL);
-    variable_item_set_current_value_index(sensor_name_item, 0);
-    variable_item_set_current_value_text(sensor_name_item, sensor->name);
-    idx++;
-
-    /* Type — always index 1 */
+    /* Type — always index 0 */
     onewire_type_item = variable_item_list_add(variable_item_list, "Type", 1, NULL, NULL);
     variable_item_set_current_value_index(onewire_type_item, 0);
     variable_item_set_current_value_text(
