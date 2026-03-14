@@ -1,0 +1,8 @@
+# Compiled files
+test_logic
+*.o
+
+# Editor files
+.DS_Store
+*.swp
+*~
