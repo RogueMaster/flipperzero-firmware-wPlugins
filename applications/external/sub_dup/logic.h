@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAX_FILES 128
+#define MAX_FILES        128
 #define APP_MAX_PATH_LEN 64
 
 typedef struct {
@@ -25,7 +25,7 @@ typedef struct {
     size_t num_groups;
 } HashDatabase;
 
-uint32_t calculate_crc32(uint32_t crc, const uint8_t *data, size_t size);
-void process_duplicates(HashDatabase *db);
+uint32_t calculate_crc32(uint32_t crc, const uint8_t* data, size_t size);
+void process_duplicates(HashDatabase* db);
 
 #endif
