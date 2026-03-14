@@ -4,6 +4,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "../libraries/missing_api.h"
+
 typedef enum {
     CustomInjectBytesToInject = 0,
     CustomInjectBytesValue,
@@ -76,7 +78,7 @@ static bool cancommander_scene_custom_inject_parse_bytes_list(const char* list, 
     strncpy(scratch, list, sizeof(scratch) - 1U);
 
     char* save_ptr = NULL;
-    char* token = strtok_r(scratch, ",", &save_ptr);
+    char* token = local_strtok_r(scratch, ",", &save_ptr);
     bool any = false;
     while(token) {
         while(*token == ' ' || *token == '\t') {
@@ -99,7 +101,7 @@ static bool cancommander_scene_custom_inject_parse_bytes_list(const char* list, 
             any = true;
         }
 
-        token = strtok_r(NULL, ",", &save_ptr);
+        token = local_strtok_r(NULL, ",", &save_ptr);
     }
 
     return any;

@@ -6,6 +6,8 @@
 
 #include <string.h>
 
+#include "missing_api.h"
+
 #define CC_PACKET_RAW_MAX        (CC_MAX_PAYLOAD + 32U)
 #define CC_PACKET_ENC_MAX        (CC_MAX_PAYLOAD + 40U)
 #define CC_RX_STREAM_SIZE        1024U
@@ -914,7 +916,7 @@ bool cc_client_tool_start(
         return false;
     }
 
-    const uint16_t args_len = args ? (uint16_t)strnlen(args, CC_MAX_PAYLOAD - 1U) : 0;
+    const uint16_t args_len = args ? (uint16_t)local_strnlen(args, CC_MAX_PAYLOAD - 1U) : 0;
 
     if(args && args[args_len] != '\0') {
         return false;
@@ -939,7 +941,7 @@ bool cc_client_tool_status(CcClient* client, CcStatusCode* out_status) {
 }
 
 bool cc_client_tool_config(CcClient* client, const char* args, CcStatusCode* out_status) {
-    const uint16_t args_len = args ? (uint16_t)strnlen(args, CC_MAX_PAYLOAD) : 0;
+    const uint16_t args_len = args ? (uint16_t)local_strnlen(args, CC_MAX_PAYLOAD) : 0;
     if(args && args[args_len] != '\0') {
         return false;
     }
@@ -975,7 +977,7 @@ bool cc_client_dbc_add_signal(
 
     memset(&payload[26], 0, CC_UNIT_TEXT_LEN);
     if(def->unit[0]) {
-        memcpy(&payload[26], def->unit, strnlen(def->unit, CC_UNIT_TEXT_LEN));
+        memcpy(&payload[26], def->unit, local_strnlen(def->unit, CC_UNIT_TEXT_LEN));
     }
 
     cc_write_u16_le(&payload[38], def->sid);

@@ -8,6 +8,7 @@ App(
     sources=[
         "can_commander.c",
         "libraries/can_commander_uart.c",
+        "libraries/missing_api.c",
         "views/dashboard/dashboard_core.c",
         "views/dashboard/dashboard_read.c",
         "views/dashboard/dashboard_bittrack.c",

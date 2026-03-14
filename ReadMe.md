@@ -62,7 +62,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FlipperPwn v1.5 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Added: [Hold em v1.0 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
 - Updated: [NFC Comparator v2.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
-- Updated: [CAN Commander v2.1.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
 - Updated: [24Cxx Programmer v2.0 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
 - Updated: [ProtoPirate v2.5 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
@@ -70,6 +69,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Sub Duplicate Finder v1.0 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - Updated: [FlipWeather v1.4 (By jblanked)](https://github.com/jblanked/FlipWeather) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - Updated: [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) `Req: BMP180/BMP280/BME280/BME680/DHT11/DHT22(AM2302)/AM2301/AM2320/HTU2XD/HTU21x/HDC1080/MAX31725/MAX31855/MAX6675/SCD30`
+- Updated: [CAN Commander v2.1.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
 
 <a name="release"></a>
 
