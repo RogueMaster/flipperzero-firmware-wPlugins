@@ -1,153 +1,253 @@
+/*
+ * co2_app.c — entry point for CO2-monitor FAP.
+ *
+ * Architecture:
+ *   ViewDispatcher with 3 views: Main, MainMenu, Settings.
+ *   100 ms tick polls all sensors via unitemp_sensors_updateValues().
+ *   Two hardcoded sensors: BME280 (I2C 0xEC) + MH-Z19C (PWM PA6).
+ */
 #include "co2_app_i.h"
-#include <string.h>
+#include <furi_hal_power.h>
+#include <math.h>
 
-static void draw_callback(Canvas* canvas, void* ctx) {
-    App* app = ctx;
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    AppData d = app->data;
-    furi_mutex_release(app->mutex);
+/* ---- Global app pointer (extern declared in sensors/unitemp/unitemp.h) ---- */
+App* app = NULL;
 
-    canvas_clear(canvas);
-    char buf[48];
+/* ---- Sensor value conversions (declared in unitemp.h) ---- */
 
-    // CO2 — large font
-    canvas_set_font(canvas, FontPrimary);
-    if(d.co2_connected) {
-        snprintf(buf, sizeof(buf), "CO2: %d ppm", (int)d.co2_ppm);
-    } else {
-        snprintf(buf, sizeof(buf), "CO2: --");
-    }
-    canvas_draw_str(canvas, 0, 12, buf);
-
-    // CO2 bar graph (0..2000 ppm)
-    canvas_draw_frame(canvas, 0, 15, 128, 7);
-    if(d.co2_connected) {
-        int32_t clamped = d.co2_ppm > 2000 ? 2000 : d.co2_ppm;
-        uint8_t fill = (uint8_t)(clamped * 126 / 2000);
-        if(fill > 0) canvas_draw_box(canvas, 1, 16, fill, 5);
-    }
-
-    // BME280 — small font
-    canvas_set_font(canvas, FontSecondary);
-    if(d.bme280_valid) {
-        snprintf(
-            buf,
-            sizeof(buf),
-            "T:%.1fC H:%.0f%% P:%.0fhPa",
-            (double)d.temperature,
-            (double)d.humidity,
-            (double)d.pressure);
-        canvas_draw_str(canvas, 0, 36, buf);
-    } else {
-        canvas_draw_str(canvas, 0, 36, "BME280: not found");
-    }
-
-    canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, "[back]");
+void unitemp_celsiusToFahrenheit(Sensor* sensor) {
+    sensor->temp       = sensor->temp * (9.0f / 5.0f) + 32.0f;
+    sensor->heat_index = sensor->heat_index * (9.0f / 5.0f) + 32.0f;
 }
 
-static void input_callback(InputEvent* event, void* ctx) {
-    furi_message_queue_put((FuriMessageQueue*)ctx, event, 0);
+static const float heat_index_consts[9] = {
+    -42.379f,     2.04901523f,  10.14333127f, -0.22475541f, -0.00683783f,
+    -0.05481717f, 0.00122874f,  0.00085282f,  -0.00000199f};
+
+void unitemp_calculate_heat_index(Sensor* sensor) {
+    float t = sensor->temp * (9.0f / 5.0f) + 32.0f;
+    float h = sensor->hum;
+    sensor->heat_index =
+        (heat_index_consts[0] + heat_index_consts[1] * t + heat_index_consts[2] * h +
+         heat_index_consts[3] * t * h + heat_index_consts[4] * t * t +
+         heat_index_consts[5] * h * h + heat_index_consts[6] * t * t * h +
+         heat_index_consts[7] * t * h * h + heat_index_consts[8] * t * t * h * h - 32.0f) *
+        (5.0f / 9.0f);
 }
+
+static float calculateDewPoint(float temperature, float relativeHumidity) {
+    float a = 17.27f, b = 237.7f;
+    float tmp = (a * temperature) / (b + temperature) + logf(relativeHumidity / 100.0f);
+    return (b * tmp) / (a - tmp);
+}
+void unitemp_rhToDewpointC(Sensor* sensor) {
+    sensor->hum = calculateDewPoint(sensor->temp, sensor->hum);
+}
+void unitemp_rhToDewpointF(Sensor* sensor) {
+    sensor->hum = calculateDewPoint(sensor->temp, sensor->hum) * (9.0f / 5.0f) + 32.0f;
+}
+
+void unitemp_pascalToMmHg(Sensor* sensor) { sensor->pressure *= 0.007500638f; }
+void unitemp_pascalToKPa(Sensor* sensor)  { sensor->pressure /= 1000.0f; }
+void unitemp_pascalToHPa(Sensor* sensor)  { sensor->pressure /= 100.0f; }
+void unitemp_pascalToInHg(Sensor* sensor) { sensor->pressure *= 0.0002953007f; }
+
+/* ---- Settings persistence ---- */
+
+bool unitemp_saveSettings(void) {
+    app->file_stream = file_stream_alloc(app->storage);
+    FuriString* filepath = furi_string_alloc();
+    furi_string_printf(filepath, "%s/%s", APP_PATH_FOLDER, APP_FILENAME_SETTINGS);
+    storage_common_mkdir(app->storage, APP_PATH_FOLDER);
+    if(!file_stream_open(
+           app->file_stream,
+           furi_string_get_cstr(filepath),
+           FSAM_READ_WRITE,
+           FSOM_CREATE_ALWAYS)) {
+        FURI_LOG_E(APP_NAME, "Settings save error: %d", file_stream_get_error(app->file_stream));
+        file_stream_close(app->file_stream);
+        stream_free(app->file_stream);
+        furi_string_free(filepath);
+        return false;
+    }
+    stream_write_format(app->file_stream, "INFINITY_BACKLIGHT %d\n", app->settings.infinityBacklight);
+    stream_write_format(app->file_stream, "TEMP_UNIT %d\n",     app->settings.temp_unit);
+    stream_write_format(app->file_stream, "HUMIDITY_UNIT %d\n", app->settings.humidity_unit);
+    stream_write_format(app->file_stream, "PRESSURE_UNIT %d\n", app->settings.pressure_unit);
+    stream_write_format(app->file_stream, "HEAT_INDEX %d\n",    app->settings.heat_index);
+    file_stream_close(app->file_stream);
+    stream_free(app->file_stream);
+    furi_string_free(filepath);
+    FURI_LOG_I(APP_NAME, "Settings saved");
+    return true;
+}
+
+bool unitemp_loadSettings(void) {
+    app->file_stream = file_stream_alloc(app->storage);
+    FuriString* filepath = furi_string_alloc();
+    furi_string_printf(filepath, "%s/%s", APP_PATH_FOLDER, APP_FILENAME_SETTINGS);
+    if(!file_stream_open(
+           app->file_stream,
+           furi_string_get_cstr(filepath),
+           FSAM_READ_WRITE,
+           FSOM_OPEN_EXISTING)) {
+        if(file_stream_get_error(app->file_stream) == FSE_NOT_EXIST) {
+            FURI_LOG_W(APP_NAME, "No settings file, saving defaults");
+        }
+        file_stream_close(app->file_stream);
+        stream_free(app->file_stream);
+        furi_string_free(filepath);
+        unitemp_saveSettings();
+        return false;
+    }
+
+    uint8_t file_size = (uint8_t)stream_size(app->file_stream);
+    if(file_size == 0) {
+        file_stream_close(app->file_stream);
+        stream_free(app->file_stream);
+        furi_string_free(filepath);
+        unitemp_saveSettings();
+        return false;
+    }
+
+    uint8_t* file_buf = malloc(file_size);
+    memset(file_buf, 0, file_size);
+    if(stream_read(app->file_stream, file_buf, file_size) != file_size) {
+        free(file_buf);
+        file_stream_close(app->file_stream);
+        stream_free(app->file_stream);
+        furi_string_free(filepath);
+        return false;
+    }
+
+    FuriString* file = furi_string_alloc_set_str((char*)file_buf);
+    size_t line_end = 0;
+    while(line_end != (size_t)-1 && line_end != (size_t)(file_size - 1)) {
+        char key[24] = {0};
+        sscanf((char*)(file_buf + line_end), "%s", key);
+        int p = 0;
+        if(!strcmp(key, "INFINITY_BACKLIGHT")) {
+            sscanf((char*)(file_buf + line_end), "INFINITY_BACKLIGHT %d", &p);
+            app->settings.infinityBacklight = (bool)p;
+        } else if(!strcmp(key, "TEMP_UNIT")) {
+            sscanf((char*)(file_buf + line_end), "\nTEMP_UNIT %d", &p);
+            app->settings.temp_unit = (tempMeasureUnit)p;
+        } else if(!strcmp(key, "HUMIDITY_UNIT")) {
+            sscanf((char*)(file_buf + line_end), "\nHUMIDITY_UNIT %d", &p);
+            app->settings.humidity_unit = (humidityUnit)p;
+        } else if(!strcmp(key, "PRESSURE_UNIT")) {
+            sscanf((char*)(file_buf + line_end), "\nPRESSURE_UNIT %d", &p);
+            app->settings.pressure_unit = (pressureMeasureUnit)p;
+        } else if(!strcmp(key, "HEAT_INDEX")) {
+            sscanf((char*)(file_buf + line_end), "\nHEAT_INDEX %d", &p);
+            app->settings.heat_index = (bool)p;
+        }
+        line_end = furi_string_search_char(file, '\n', line_end + 1);
+    }
+    furi_string_free(file);
+    free(file_buf);
+    file_stream_close(app->file_stream);
+    stream_free(app->file_stream);
+    furi_string_free(filepath);
+    FURI_LOG_I(APP_NAME, "Settings loaded");
+    return true;
+}
+
+/* ---- Tick callback: poll all sensors ---- */
+
+static void tick_callback(void* context) {
+    UNUSED(context);
+    if(app->sensors_ready) {
+        unitemp_sensors_updateValues();
+    }
+}
+
+/* ---- Application entry point ---- */
 
 int32_t co2_app_main(void* p) {
     UNUSED(p);
 
-    App app = {0};
-    app.gui         = furi_record_open(RECORD_GUI);
-    app.event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
-    app.mutex       = furi_mutex_alloc(FuriMutexTypeNormal);
-    app.view_port   = view_port_alloc();
+    /* Allocate and zero-init app struct */
+    app = malloc(sizeof(App));
+    furi_check(app != NULL);
+    memset(app, 0, sizeof(App));
 
-    view_port_draw_callback_set(app.view_port, draw_callback, &app);
-    view_port_input_callback_set(app.view_port, input_callback, app.event_queue);
-    gui_add_view_port(app.gui, app.view_port, GuiLayerFullscreen);
+    /* Open system records */
+    app->gui           = furi_record_open(RECORD_GUI);
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
+    app->storage       = furi_record_open(RECORD_STORAGE);
 
-    // MH-Z19 PWM init (verbatim from flipper-zero-mh-z19)
-    app.co2_pin = &gpio_ext_pa6;
-    furi_hal_gpio_init(app.co2_pin, GpioModeInput, GpioPullUp, GpioSpeedVeryHigh);
-    app.co2_range = RANGE_2000;
+    /* Default settings */
+    app->settings.infinityBacklight = true;
+    app->settings.temp_unit         = UT_TEMP_CELSIUS;
+    app->settings.humidity_unit     = UT_HUMIDITY_RELATIVE;
+    app->settings.pressure_unit     = UT_PRESSURE_HPA;
+    app->settings.heat_index        = false;
+    app->settings.lastOTGState      = furi_hal_power_is_otg_enabled();
 
-    furi_delay_ms(50); // let power rail stabilize before BME280 probe
-    bme280_init(&app);
+    /* Load settings from SD (creates defaults if missing) */
+    unitemp_loadSettings();
 
-    InputEvent event;
-    uint32_t bme_tick = 0;
-
-    while(true) {
-        // Poll GPIO and calculate CO2 PPM (100ms interval, verbatim algorithm)
-        bool quit = furi_message_queue_get(app.event_queue, &event, 100) == FuriStatusOk;
-        if(quit) {
-            if(event.type == InputTypeShort && event.key == InputKeyBack) break;
-        }
-
-        int32_t gpio_val = furi_hal_gpio_read(app.co2_pin) ? 1 : 0;
-        int32_t ppm = calculate_ppm(
-            &app.co2_prevVal,
-            gpio_val,
-            &app.co2_th,
-            &app.co2_tl,
-            &app.co2_h,
-            &app.co2_l,
-            app.co2_range);
-
-        // Read BME280 every ~5 seconds (50 × 100ms)
-        bme_tick++;
-        float temp = 0, hum = 0, press = 0;
-        bool bme_ok = false;
-        if(bme_tick >= 50) {
-            bme_tick = 0;
-            if(!app.bme280_found) bme280_init(&app);
-            bme_ok = bme280_read(&app, &temp, &hum, &press);
-        }
-
-        // Update shared data atomically
-        furi_mutex_acquire(app.mutex, FuriWaitForever);
-        if(ppm > 0) {
-            app.co2_buf[app.co2_buf_idx] = ppm;
-            app.co2_buf_idx = (app.co2_buf_idx + 1) % CO2_BUF_SIZE;
-            if(app.co2_buf_count < CO2_BUF_SIZE) app.co2_buf_count++;
-
-            // trimmed mean: sort copy, drop min+max, average rest
-            int32_t sorted[CO2_BUF_SIZE];
-            memcpy(sorted, app.co2_buf, app.co2_buf_count * sizeof(int32_t));
-            for(uint8_t i = 1; i < app.co2_buf_count; i++) {
-                int32_t key = sorted[i];
-                int8_t j = (int8_t)i - 1;
-                while(j >= 0 && sorted[j] > key) { sorted[j + 1] = sorted[j]; j--; }
-                sorted[j + 1] = key;
-            }
-            int32_t filtered;
-            if(app.co2_buf_count < 3) {
-                filtered = sorted[app.co2_buf_count / 2];
-            } else {
-                int32_t sum = 0;
-                for(uint8_t i = 1; i < app.co2_buf_count - 1; i++) sum += sorted[i];
-                filtered = sum / (int32_t)(app.co2_buf_count - 2);
-            }
-
-            app.data.co2_ppm       = filtered;
-            app.data.co2_connected = true;
-        }
-        if(bme_tick == 0) {
-            app.data.bme280_valid = bme_ok;
-            if(bme_ok) {
-                app.data.temperature = temp;
-                app.data.humidity    = hum;
-                app.data.pressure    = press;
-            }
-        }
-        furi_mutex_release(app.mutex);
-
-        view_port_update(app.view_port);
+    /* Apply backlight setting */
+    if(app->settings.infinityBacklight) {
+        notification_message(app->notifications, &sequence_display_backlight_enforce_on);
     }
 
-    bme280_deinit(&app);
+    /* ViewDispatcher */
+    app->view_dispatcher = view_dispatcher_alloc();
 
-    gui_remove_view_port(app.gui, app.view_port);
-    view_port_free(app.view_port);
-    furi_mutex_free(app.mutex);
-    furi_message_queue_free(app.event_queue);
+    /* Allocate views (need app->view_dispatcher already set) */
+    view_main_alloc();
+    view_main_menu_alloc();
+    view_settings_alloc();
+
+    /* Hardcode sensors: BME280 (I2C addr 0xEC = 0x76<<1) + MH-Z19C (PWM PA6) */
+    app->sensors       = NULL;
+    app->sensors_count = 0;
+
+    Sensor* bme = unitemp_sensor_alloc("BME280", &BME280, "EC");
+    if(bme) {
+        bme->temp_offset = -20; /* -2.0°C: compensate OTG/MH-Z19C self-heating near BME280 */
+        unitemp_sensors_add(bme);
+    }
+
+    Sensor* co2 = unitemp_sensor_alloc("MH-Z19C", &MHZ19C, "");
+    if(co2) unitemp_sensors_add(co2);
+
+    /* Initialize sensors (enables OTG power, sets up GPIO) */
+    unitemp_sensors_init();
+
+    /* Set up 100 ms polling tick */
+    view_dispatcher_set_tick_event_callback(
+        app->view_dispatcher, tick_callback, furi_ms_to_ticks(100));
+
+    /* Attach dispatcher to GUI and run */
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_main_switch();
+    view_dispatcher_run(app->view_dispatcher);
+
+    /* --- Cleanup --- */
+
+    /* Restore backlight */
+    if(app->settings.infinityBacklight) {
+        notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
+    }
+
+    unitemp_sensors_deInit();
+    unitemp_sensors_free();
+
+    view_settings_free();
+    view_main_menu_free();
+    view_main_free();
+
+    view_dispatcher_free(app->view_dispatcher);
+
+    furi_record_close(RECORD_STORAGE);
+    furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);
+
+    free(app);
+    app = NULL;
 
     return 0;
 }

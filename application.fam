@@ -4,7 +4,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="co2_app_main",
     requires=["gui", "notification"],
-    stack_size=2 * 1024,
+    stack_size=4 * 1024,
     fap_category="GPIO",
     fap_icon="co2_app_10.png",
     fap_icon_assets="images",

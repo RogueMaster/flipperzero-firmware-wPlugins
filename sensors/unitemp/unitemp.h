@@ -1,23 +1,102 @@
 /*
- * Minimal stub of unitemp.h for standalone BME280 use.
- * Provides APP_NAME and UNITEMP_DEBUG macro required by BMx280.c / I2CSensor.c.
+ * unitemp.h — master header for CO2-monitor app.
+ * Replaces the original Unitemp plugin header.
+ * Sensor drivers include this via "../unitemp.h".
  */
 #ifndef UNITEMP
 #define UNITEMP
 
 #include <furi.h>
-#include "Sensors.h"
+#include <furi_hal.h>
+#include <gui/gui.h>
+#include <gui/view_dispatcher.h>
+#include <toolbox/stream/file_stream.h>
+#include <notification/notification.h>
+#include <notification/notification_messages.h>
+#include <storage/storage.h>
 
-/* Application name used in FURI_LOG_* calls inside unitemp sources */
-#ifndef APP_NAME
-#define APP_NAME "CO2App"
-#endif
+/* ---- Application constants ---- */
+#define APP_NAME              "CO2App"
+#define APP_PATH_FOLDER       "/ext/unitemp"
+#define APP_FILENAME_SETTINGS "settings.cfg"
+#define BUFF_SIZE             32
 
-/* Debug logging — active only when FURI_DEBUG is defined */
+/* ---- Debug macro ---- */
+#define UNITEMP_D
 #ifdef FURI_DEBUG
 #define UNITEMP_DEBUG(msg, ...) FURI_LOG_D(APP_NAME, msg, ##__VA_ARGS__)
 #else
 #define UNITEMP_DEBUG(msg, ...)
 #endif
+
+/* ---- Settings enums (from original unitemp.h) ---- */
+typedef enum {
+    UT_TEMP_CELSIUS,
+    UT_TEMP_FAHRENHEIT,
+    UT_TEMP_COUNT
+} tempMeasureUnit;
+
+typedef enum {
+    UT_PRESSURE_MM_HG,
+    UT_PRESSURE_IN_HG,
+    UT_PRESSURE_KPA,
+    UT_PRESSURE_HPA,
+    UT_PRESSURE_COUNT
+} pressureMeasureUnit;
+
+typedef enum {
+    UT_HUMIDITY_RELATIVE,
+    UT_HUMIDITY_DEWPOINT,
+    UT_HUMIDITY_COUNT
+} humidityUnit;
+
+typedef struct {
+    bool infinityBacklight;
+    tempMeasureUnit temp_unit;
+    humidityUnit humidity_unit;
+    pressureMeasureUnit pressure_unit;
+    bool heat_index;
+    bool lastOTGState;
+} AppSettings;
+
+/* ---- Sensor types and interfaces (provides Sensor, SensorType, GPIO etc.) ---- */
+/* Interface headers include "../unitemp.h" → guard fires safely.            */
+#include "Sensors.h"
+
+/* ---- Application struct ---- */
+typedef struct App {
+    /* GUI */
+    Gui* gui;
+    ViewDispatcher* view_dispatcher;
+    NotificationApp* notifications;
+    /* Storage */
+    Storage* storage;
+    Stream* file_stream;
+    /* Misc buffer */
+    char buff[BUFF_SIZE];
+    /* Sensors */
+    Sensor** sensors;
+    uint8_t sensors_count;
+    bool sensors_ready;
+    /* Settings */
+    AppSettings settings;
+} App;
+
+/* ---- Global app pointer ---- */
+extern App* app;
+
+/* ---- Sensor value conversion prototypes ---- */
+void unitemp_celsiusToFahrenheit(Sensor* sensor);
+void unitemp_calculate_heat_index(Sensor* sensor);
+void unitemp_rhToDewpointC(Sensor* sensor);
+void unitemp_rhToDewpointF(Sensor* sensor);
+void unitemp_pascalToMmHg(Sensor* sensor);
+void unitemp_pascalToKPa(Sensor* sensor);
+void unitemp_pascalToHPa(Sensor* sensor);
+void unitemp_pascalToInHg(Sensor* sensor);
+
+/* ---- Settings persistence ---- */
+bool unitemp_saveSettings(void);
+bool unitemp_loadSettings(void);
 
 #endif /* UNITEMP */

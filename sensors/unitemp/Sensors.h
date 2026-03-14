@@ -1,18 +1,30 @@
 /*
- * Minimal stub of unitemp Sensors.h for standalone BME280 use.
- * Contains only the types needed by I2CSensor.c and BMx280.c.
- */
+    Unitemp - Universal temperature reader
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
+    Adapted for flipper-air-stats CO2 monitor.
+*/
 #ifndef UNITEMP_SENSORS
 #define UNITEMP_SENSORS
 
 #include <furi.h>
-#include <furi_hal.h>
+#include <input/input.h>
 
-/* Data type bitmasks */
+/* Bit masks to define return types */
 #define UT_TEMPERATURE 0b00000001
 #define UT_HUMIDITY    0b00000010
 #define UT_PRESSURE    0b00000100
 #define UT_CO2         0b00001000
+#define UT_CALIBRATION 0b10000000
+
+/* Sensor data types */
+typedef enum {
+    UT_DATA_TYPE_TEMP          = UT_TEMPERATURE,
+    UT_DATA_TYPE_TEMP_HUM      = UT_TEMPERATURE | UT_HUMIDITY,
+    UT_DATA_TYPE_TEMP_PRESS    = UT_TEMPERATURE | UT_PRESSURE,
+    UT_DATA_TYPE_TEMP_HUM_PRESS = UT_TEMPERATURE | UT_HUMIDITY | UT_PRESSURE,
+    UT_DATA_TYPE_TEMP_HUM_CO2  = UT_TEMPERATURE | UT_HUMIDITY | UT_CO2,
+    UT_DATA_TYPE_CO2           = UT_CO2,
+} SensorDataType;
 
 /* Sensor poll statuses */
 typedef enum {
@@ -25,10 +37,10 @@ typedef enum {
     UT_SENSORSTATUS_INACTIVE,
 } UnitempStatus;
 
-/* Flipper Zero GPIO port descriptor */
+/* Flipper Zero I/O port descriptor */
 typedef struct GPIO {
     const uint8_t num;
-    const char*   name;
+    const char* name;
     const GpioPin* pin;
 } GPIO;
 
@@ -40,53 +52,106 @@ typedef bool(SensorFree)(Sensor* sensor);
 typedef bool(SensorInitializer)(Sensor* sensor);
 typedef bool(SensorDeinitializer)(Sensor* sensor);
 typedef UnitempStatus(SensorUpdater)(Sensor* sensor);
+typedef UnitempStatus(Calibrate)(Sensor*, float);
 
 /* Connection interface descriptor */
 typedef struct Interface {
-    const char*      name;
+    const char* name;
     SensorAllocator* allocator;
-    SensorFree*      mem_releaser;
-    SensorUpdater*   updater;
+    SensorFree* mem_releaser;
+    SensorUpdater* updater;
 } Interface;
 
 /* Sensor type descriptor */
 typedef struct {
-    const char*        typename;
-    const char*        altname;
-    uint8_t            datatype; /* bitmask: UT_TEMPERATURE | UT_HUMIDITY | UT_PRESSURE */
-    const Interface*   interface;
-    uint16_t           pollingInterval;
-    SensorAllocator*   allocator;
-    SensorFree*        mem_releaser;
+    const char* typename;
+    const char* altname;
+    SensorDataType datatype;
+    const Interface* interface;
+    uint16_t pollingInterval;
+    SensorAllocator* allocator;
+    SensorFree* mem_releaser;
     SensorInitializer* initializer;
     SensorDeinitializer* deinitializer;
-    SensorUpdater*     updater;
+    SensorUpdater* updater;
 } SensorType;
+
+/* Sensor type with calibration support */
+typedef struct {
+    SensorType super;
+    Calibrate* calibrate;
+} SensorTypeWithCalibration;
 
 /* Sensor instance */
 typedef struct Sensor {
-    char*            name;
-    float            temp;
-    float            heat_index;
-    float            hum;
-    float            pressure;
-    float            co2;
+    char* name;
+    float temp;
+    float heat_index;
+    float hum;
+    float pressure;
+    float co2;
     const SensorType* type;
-    UnitempStatus    status;
-    uint32_t         lastPollingTime;
-    int8_t           temp_offset;
-    void*            instance;
+    UnitempStatus status;
+    uint32_t lastPollingTime;
+    int8_t temp_offset;
+    void* instance;
 } Sensor;
 
-/* I2C interface constant — defined in gpio_stub.c */
+/* Interface constants */
+extern const Interface SINGLE_WIRE;
+extern const Interface ONE_WIRE;
 extern const Interface I2C;
+extern const Interface SPI;
 
-/* GPIO helpers — stubs in gpio_stub.c */
+/* ===== Sensor management API ===== */
+Sensor* unitemp_sensor_alloc(char* name, const SensorType* type, char* args);
+void unitemp_sensor_free(Sensor* sensor);
+UnitempStatus unitemp_sensor_updateData(Sensor* sensor);
+bool unitemp_sensor_isContains(Sensor* sensor);
+Sensor* unitemp_sensor_getActive(uint8_t index);
+
+bool unitemp_sensors_load(void);
+void unitemp_sensors_reload(void);
+bool unitemp_sensors_save(void);
+void unitemp_sensor_delete(Sensor* sensor);
+bool unitemp_sensors_init(void);
+bool unitemp_sensors_deInit(void);
+void unitemp_sensors_free(void);
+void unitemp_sensors_updateValues(void);
+uint8_t unitemp_sensors_getCount(void);
+void unitemp_sensors_add(Sensor* sensor);
+const SensorType** unitemp_sensors_getTypes(void);
+uint8_t unitemp_sensors_getTypesCount(void);
+const SensorType* unitemp_sensors_getTypeFromInt(uint8_t index);
+const SensorType* unitemp_sensors_getTypeFromStr(char* str);
+uint8_t unitemp_sensors_getActiveCount(void);
+
+/* ===== GPIO management API ===== */
 const GPIO* unitemp_gpio_getFromInt(uint8_t name);
-void        unitemp_gpio_lock(const GPIO* gpio, const Interface* interface);
-void        unitemp_gpio_unlock(const GPIO* gpio);
+const GPIO* unitemp_gpio_getFromIndex(uint8_t index);
+uint8_t unitemp_gpio_toInt(const GPIO* gpio);
+void unitemp_gpio_lock(const GPIO* gpio, const Interface* interface);
+void unitemp_gpio_unlock(const GPIO* gpio);
+uint8_t unitemp_gpio_getAviablePortsCount(const Interface* interface, const GPIO* extraport);
+const GPIO* unitemp_gpio_getAviablePort(const Interface* interface, uint8_t index, const GPIO* extraport);
 
-/* NOTE: unitemp_I2C_sensor_* are declared in interfaces/I2CSensor.h — not here
- * to avoid -Wredundant-decls errors when I2CSensor.h is included after Sensors.h. */
+/* ===== Sensor driver headers ===== */
+#include "./interfaces/SingleWireSensor.h"
+#include "./interfaces/OneWireSensor.h"
+#include "./interfaces/SPISensor.h"
+#include "./sensors/LM75.h"
+#include "./sensors/BMx280.h"
+#include "./sensors/BME680.h"
+#include "./sensors/AM2320.h"
+#include "./sensors/DHT20.h"
+#include "./sensors/SHT30.h"
+#include "./sensors/BMP180.h"
+#include "./sensors/HTU21x.h"
+#include "./sensors/HDC1080.h"
+#include "./sensors/MAX31855.h"
+#include "./sensors/MAX31725.h"
+#include "./sensors/MAX6675.h"
+#include "./sensors/SCD30.h"
+#include "./sensors/SCD40.h"
 
 #endif /* UNITEMP_SENSORS */
