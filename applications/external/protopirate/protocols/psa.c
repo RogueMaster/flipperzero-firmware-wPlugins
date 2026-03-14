@@ -22,9 +22,33 @@ static const SubGhzBlockConst subghz_protocol_psa_const = {
 #define PSA_MAX_BITS            0x79
 #define PSA_KEY1_BITS           0x40
 #define PSA_KEY2_BITS           0x50
+#define PSA_BUFFER_SIZE         48
+#define PSA_TE_LONG_300         0x12c
 
 #define TEA_DELTA  0x9E3779B9U
 #define TEA_ROUNDS 32
+
+typedef struct {
+    uint32_t s0[TEA_ROUNDS];
+    uint32_t s1[TEA_ROUNDS];
+} PsaTeaSchedule;
+
+static void psa_tea_build_schedule(const uint32_t* key, PsaTeaSchedule* out) {
+    for(int i = 0; i < TEA_ROUNDS; i++) {
+        uint32_t sum0 = (uint32_t)((uint64_t)i * TEA_DELTA);
+        uint32_t sum1 = (uint32_t)((uint64_t)(i + 1) * TEA_DELTA);
+        out->s0[i] = key[sum0 & 3] + sum0;
+        out->s1[i] = key[(sum1 >> 11) & 3] + sum1;
+    }
+}
+
+static inline void
+    psa_tea_encrypt_with_schedule(uint32_t* v0, uint32_t* v1, const PsaTeaSchedule* sched) {
+    for(int i = 0; i < TEA_ROUNDS; i++) {
+        *v0 += (sched->s0[i] ^ (((*v1 >> 5) ^ (*v1 << 4)) + *v1));
+        *v1 += (sched->s1[i] ^ (((*v0 >> 5) ^ (*v0 << 4)) + *v0));
+    }
+}
 
 #define PSA_BF1_CONST_U4 0x0E0F5C41U
 #define PSA_BF1_CONST_U5 0x0F5C4123U
@@ -152,8 +176,11 @@ static void psa_setup_byte_buffer(
     uint32_t key2_low);
 static void psa_calculate_checksum(uint8_t* buffer);
 static uint8_t psa_calculate_tea_crc(uint32_t v0, uint32_t v1);
+#ifdef ENABLE_EMULATE_FEATURE
 static void psa_tea_encrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key);
+#endif
 static void psa_unpack_tea_result_to_buffer(uint8_t* buffer, uint32_t v0, uint32_t v1);
+static bool parse_hex_key_str(const char* str, uint64_t* out);
 
 #ifdef ENABLE_EMULATE_FEATURE
 static void psa_second_stage_xor_encrypt(uint8_t* buffer) {
@@ -196,7 +223,7 @@ static void psa_build_buffer_mode23(
         (unsigned int)instance->crc,
         (unsigned int)instance->button);
 
-    memset(buffer, 0, 48);
+    memset(buffer, 0, PSA_BUFFER_SIZE);
 
     buffer[2] = (uint8_t)((instance->serial >> 16) & 0xFF);
     buffer[3] = (uint8_t)((instance->serial >> 8) & 0xFF);
@@ -342,7 +369,7 @@ static void psa_build_buffer_mode36(
         (unsigned int)instance->crc,
         (unsigned int)instance->button);
 
-    memset(buffer, 0, 48);
+    memset(buffer, 0, PSA_BUFFER_SIZE);
 
     uint32_t v0 = ((instance->serial & 0xFFFFFF) << 8) | ((instance->counter >> 24) & 0xFF);
     uint32_t v1 = ((instance->counter & 0xFFFFFF) << 8) | ((instance->button & 0xF) << 4) |
@@ -427,13 +454,13 @@ static void psa_encoder_build_upload(SubGhzProtocolEncoderPSA* instance) {
         (unsigned int)instance->crc,
         (unsigned int)instance->button);
 
-    uint8_t buffer[48] = {0};
+    uint8_t buffer[PSA_BUFFER_SIZE] = {0};
 
     uint8_t preserve_buffer01[2] = {0};
     uint8_t* preserve_ptr = NULL;
 
     if(instance->key1_low != 0 || instance->key1_high != 0) {
-        uint8_t orig_buffer[48] = {0};
+        uint8_t orig_buffer[PSA_BUFFER_SIZE] = {0};
         psa_setup_byte_buffer(
             orig_buffer, instance->key1_low, instance->key1_high, instance->key2_low);
         preserve_buffer01[0] = orig_buffer[0];
@@ -792,6 +819,13 @@ static void psa_setup_byte_buffer(
     buffer[8] = (uint8_t)((key2_low >> 8) & 0xFF);
 }
 
+static bool psa_direct_xor_allowed_by_key2(uint8_t key2_high_byte) {
+    uint8_t lo = key2_high_byte & 0xf;
+    if(lo < 3) return true;
+    if(lo < 7 && (key2_high_byte & 0xc) != 0) return true;
+    return false;
+}
+
 static void psa_calculate_checksum(uint8_t* buffer) {
     uint32_t checksum = 0;
     for(int i = 2; i < 8; i++) {
@@ -822,6 +856,7 @@ static void psa_second_stage_xor_decrypt(uint8_t* buffer) {
     buffer[7] = temp[6] ^ temp[4] ^ temp[5];
 }
 
+#ifdef ENABLE_EMULATE_FEATURE
 static void psa_tea_encrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key) {
     uint32_t sum = 0;
     for(int i = 0; i < TEA_ROUNDS; i++) {
@@ -834,8 +869,9 @@ static void psa_tea_encrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key) {
         *v1 = *v1 + (temp ^ (((*v0 >> 5) ^ (*v0 << 4)) + *v0));
     }
 }
+#endif
 
-static void psa_tea_decrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key) {
+static inline void psa_tea_decrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key) {
     uint32_t sum = TEA_DELTA * TEA_ROUNDS;
     for(int i = 0; i < TEA_ROUNDS; i++) {
         uint32_t k_idx2 = (sum >> 11) & 3;
@@ -914,14 +950,17 @@ static bool psa_brute_force_decrypt_bf1(
     uint8_t* buffer,
     uint32_t w0,
     uint32_t w1) {
+    PsaTeaSchedule bf1_sched;
+    psa_tea_build_schedule(PSA_BF1_KEY_SCHEDULE, &bf1_sched);
+
     for(uint32_t counter = PSA_BF1_START; counter < PSA_BF1_END; counter++) {
         uint32_t wk2 = PSA_BF1_CONST_U4;
         uint32_t wk3 = counter;
-        psa_tea_encrypt(&wk2, &wk3, PSA_BF1_KEY_SCHEDULE);
+        psa_tea_encrypt_with_schedule(&wk2, &wk3, &bf1_sched);
 
         uint32_t wk0 = (counter << 8) | 0x0E;
         uint32_t wk1 = PSA_BF1_CONST_U5;
-        psa_tea_encrypt(&wk0, &wk1, PSA_BF1_KEY_SCHEDULE);
+        psa_tea_encrypt_with_schedule(&wk0, &wk1, &bf1_sched);
 
         uint32_t working_key[4] = {wk0, wk1, wk2, wk3};
 
@@ -970,7 +1009,8 @@ static bool psa_brute_force_decrypt_bf2(
                 (uint8_t)((dec_v1 >> 16) & 0xFF),
             };
             uint16_t crc16 = psa_calculate_crc16_bf2(crc_buffer, 6);
-            uint16_t expected_crc = (((dec_v1 >> 16) & 0xFF) << 8) | (dec_v1 & 0xFF);
+
+            uint16_t expected_crc = (uint16_t)(dec_v1 & 0xFFFF);
 
             if(crc16 == expected_crc) {
                 psa_extract_fields_mode36(buffer, instance);
@@ -979,6 +1019,172 @@ static bool psa_brute_force_decrypt_bf2(
         }
     }
     return false;
+}
+
+static void psa_fill_bf_state_from_buffer(PsaBfState* state, uint8_t* buffer) {
+    state->decrypted_button = (buffer[5] >> 4) & 0xF;
+    state->decrypted_serial = ((uint32_t)buffer[3] << 8) | ((uint32_t)buffer[2] << 16) |
+                              (uint32_t)buffer[4];
+    state->decrypted_counter = ((uint32_t)buffer[7] << 8) | ((uint32_t)buffer[6] << 16) |
+                               (uint32_t)buffer[8] | (((uint32_t)buffer[5] & 0xF) << 24);
+    state->decrypted_crc = (uint16_t)buffer[9];
+    state->decrypted_seed = state->decrypted_serial;
+    state->decrypted_type = 0x36;
+}
+
+#define PSA_BF_PROGRESS_INTERVAL 4096U
+
+void psa_brute_force_run(PsaBfState* state) {
+    uint8_t buffer[48] = {0};
+    psa_setup_byte_buffer(buffer, state->key1_low, state->key1_high, state->key2_low);
+    uint32_t w0, w1;
+    psa_prepare_tea_data(buffer, &w0, &w1);
+
+    state->progress_current = 0;
+    state->progress_total = (PSA_BF1_END - PSA_BF1_START) + (PSA_BF2_END - PSA_BF2_START);
+    state->status = PSA_BF_STATUS_RUNNING;
+
+    PsaTeaSchedule bf1_sched;
+    psa_tea_build_schedule(PSA_BF1_KEY_SCHEDULE, &bf1_sched);
+
+    for(uint32_t counter = PSA_BF1_START; counter < PSA_BF1_END; counter++) {
+        if(state->cancel) {
+            state->status = PSA_BF_STATUS_CANCELLED;
+            return;
+        }
+        if((counter & (PSA_BF_PROGRESS_INTERVAL - 1)) == 0) {
+            state->progress_current = counter - PSA_BF1_START;
+        }
+
+        uint32_t wk2 = PSA_BF1_CONST_U4;
+        uint32_t wk3 = counter;
+        psa_tea_encrypt_with_schedule(&wk2, &wk3, &bf1_sched);
+        uint32_t wk0 = (counter << 8) | 0x0E;
+        uint32_t wk1 = PSA_BF1_CONST_U5;
+        psa_tea_encrypt_with_schedule(&wk0, &wk1, &bf1_sched);
+        uint32_t working_key[4] = {wk0, wk1, wk2, wk3};
+
+        uint32_t dec_v0 = w0;
+        uint32_t dec_v1 = w1;
+        psa_tea_decrypt(&dec_v0, &dec_v1, working_key);
+
+        if((counter & 0xFFFFFF) == (dec_v0 >> 8)) {
+            uint8_t crc = psa_calculate_tea_crc(dec_v0, dec_v1);
+            if(crc == (dec_v1 & 0xFF)) {
+                psa_unpack_tea_result_to_buffer(buffer, dec_v0, dec_v1);
+                psa_fill_bf_state_from_buffer(state, buffer);
+                state->progress_current = counter - PSA_BF1_START;
+                state->status = PSA_BF_STATUS_FOUND;
+                return;
+            }
+        }
+    }
+
+    state->progress_current = PSA_BF1_END - PSA_BF1_START;
+
+    for(uint32_t counter = PSA_BF2_START; counter < PSA_BF2_END; counter++) {
+        if(state->cancel) {
+            state->status = PSA_BF_STATUS_CANCELLED;
+            return;
+        }
+        if((counter & (PSA_BF_PROGRESS_INTERVAL - 1)) == 0) {
+            state->progress_current = (PSA_BF1_END - PSA_BF1_START) + (counter - PSA_BF2_START);
+        }
+
+        uint32_t working_key[4] = {
+            PSA_BF2_KEY_SCHEDULE[0] ^ counter,
+            PSA_BF2_KEY_SCHEDULE[1] ^ counter,
+            PSA_BF2_KEY_SCHEDULE[2] ^ counter,
+            PSA_BF2_KEY_SCHEDULE[3] ^ counter,
+        };
+        uint32_t dec_v0 = w0;
+        uint32_t dec_v1 = w1;
+        psa_tea_decrypt(&dec_v0, &dec_v1, working_key);
+
+        if((counter & 0xFFFFFF) == (dec_v0 >> 8)) {
+            psa_unpack_tea_result_to_buffer(buffer, dec_v0, dec_v1);
+            uint8_t crc_buffer[6] = {
+                (uint8_t)((dec_v0 >> 24) & 0xFF),
+                (uint8_t)((dec_v0 >> 8) & 0xFF),
+                (uint8_t)((dec_v0 >> 16) & 0xFF),
+                (uint8_t)(dec_v0 & 0xFF),
+                (uint8_t)((dec_v1 >> 24) & 0xFF),
+                (uint8_t)((dec_v1 >> 16) & 0xFF),
+            };
+            uint16_t crc16 = psa_calculate_crc16_bf2(crc_buffer, 6);
+            uint16_t expected_crc = (uint16_t)(dec_v1 & 0xFFFF);
+            if(crc16 == expected_crc) {
+                psa_fill_bf_state_from_buffer(state, buffer);
+                state->progress_current =
+                    (PSA_BF1_END - PSA_BF1_START) + (counter - PSA_BF2_START);
+                state->status = PSA_BF_STATUS_FOUND;
+                return;
+            }
+        }
+    }
+
+    state->status = PSA_BF_STATUS_NOT_FOUND;
+}
+
+int32_t psa_brute_force_thread_entry(void* arg) {
+    PsaBfState* state = arg;
+    psa_brute_force_run(state);
+
+    if(state->on_done) {
+        state->on_done(state->on_done_ctx);
+    }
+    return 0;
+}
+
+static bool parse_hex_key_str(const char* str, uint64_t* out) {
+    *out = 0;
+    size_t len = str ? strlen(str) : 0;
+    if(len > 16) len = 16;
+    for(size_t i = 0; i < len; i++) {
+        char c = str[i];
+        if(c == ' ') continue;
+        uint8_t nibble;
+        if(c >= '0' && c <= '9')
+            nibble = c - '0';
+        else if(c >= 'A' && c <= 'F')
+            nibble = c - 'A' + 10;
+        else if(c >= 'a' && c <= 'f')
+            nibble = c - 'a' + 10;
+        else
+            return false;
+        *out = (*out << 4) | nibble;
+    }
+    return true;
+}
+
+bool psa_bf_state_from_flipper_format(PsaBfState* state, FlipperFormat* ff) {
+    furi_check(state);
+    furi_check(ff);
+    FuriString* temp = furi_string_alloc();
+    bool ok = false;
+    do {
+        flipper_format_rewind(ff);
+        if(!flipper_format_read_string(ff, "Key", temp)) break;
+        uint64_t key1 = 0;
+        if(!parse_hex_key_str(furi_string_get_cstr(temp), &key1)) break;
+        state->key1_low = (uint32_t)(key1 & 0xFFFFFFFF);
+        state->key1_high = (uint32_t)((key1 >> 32) & 0xFFFFFFFF);
+
+        if(!flipper_format_read_string(ff, "Key_2", temp)) break;
+        uint64_t key2 = 0;
+        if(!parse_hex_key_str(furi_string_get_cstr(temp), &key2)) break;
+        state->key2_low = (uint16_t)(key2 & 0xFFFF);
+
+        state->cancel = 0;
+        state->progress_current = 0;
+        state->progress_total = 0;
+        state->status = PSA_BF_STATUS_IDLE;
+        state->on_done = NULL;
+        state->on_done_ctx = NULL;
+        ok = true;
+    } while(false);
+    furi_string_free(temp);
+    return ok;
 }
 
 static bool psa_direct_xor_decrypt(SubGhzProtocolDecoderPSA* instance, uint8_t* buffer) {
@@ -1008,6 +1214,56 @@ static bool psa_direct_xor_decrypt(SubGhzProtocolDecoderPSA* instance, uint8_t* 
     return false;
 }
 
+static void psa_handle_decoded_frame(SubGhzProtocolDecoderPSA* instance, uint8_t direct_xor_mode) {
+    instance->key2_low = instance->decode_data_low;
+    instance->key2_high = instance->decode_data_high;
+    instance->validation_field = (uint16_t)(instance->decode_data_low & 0xFFFF);
+    instance->decrypted_type = 0;
+    instance->decrypted_button = 0;
+    instance->decrypted_serial = 0;
+    instance->decrypted_counter = 0;
+    instance->decrypted_crc = 0;
+    instance->decrypted_seed = 0;
+    instance->decrypted = 0x00;
+    instance->mode_serialize = psa_direct_xor_allowed_by_key2((uint8_t)(instance->key2_low >> 8)) ?
+                                   direct_xor_mode :
+                                   0x36;
+    instance->status_flag = 0x80;
+
+    FURI_LOG_I(
+        TAG,
+        "Signal decoded - Key1:%08lX%08lX Key2:%04X ValField:%04X",
+        (unsigned long)instance->key1_high,
+        (unsigned long)instance->key1_low,
+        (unsigned int)(instance->key2_low & 0xFFFF),
+        (unsigned int)instance->validation_field);
+
+    uint8_t buffer[PSA_BUFFER_SIZE] = {0};
+    psa_setup_byte_buffer(buffer, instance->key1_low, instance->key1_high, instance->key2_low);
+    if(instance->mode_serialize != 0x36 && psa_direct_xor_decrypt(instance, buffer)) {
+        instance->mode_serialize = 0x23;
+        instance->decrypted = 0x50;
+        FURI_LOG_I(
+            TAG,
+            "Direct XOR decryption SUCCESS - Type:0x23 Btn:%02X Ser:%06lX Cnt:%08lX",
+            (unsigned int)instance->decrypted_button,
+            (unsigned long)instance->decrypted_serial,
+            (unsigned long)instance->decrypted_counter);
+    } else {
+        instance->decrypted = 0x00;
+        instance->mode_serialize = 0x36;
+        FURI_LOG_I(
+            TAG,
+            "Direct XOR decryption FAILED - marked for brute force (Type:0x36) - deferred to get_string");
+    }
+    if(instance->base.callback) {
+        instance->base.callback(&instance->base, instance->base.context);
+    }
+    instance->decode_data_low = 0;
+    instance->decode_data_high = 0;
+    instance->decode_count_bit = 0;
+}
+
 static void psa_decrypt_router(SubGhzProtocolDecoderPSA* instance) {
     FURI_LOG_I(TAG, "=== DECRYPTION ROUTER CALLED ===");
     FURI_LOG_I(
@@ -1019,14 +1275,21 @@ static void psa_decrypt_router(SubGhzProtocolDecoderPSA* instance) {
         (unsigned int)instance->mode_serialize,
         (unsigned int)instance->decrypted);
 
-    uint8_t buffer[48] = {0};
+    uint8_t buffer[PSA_BUFFER_SIZE] = {0};
 
     psa_setup_byte_buffer(buffer, instance->key1_low, instance->key1_high, instance->key2_low);
 
+    uint8_t key2_high_byte = buffer[8];
     uint8_t mode = instance->mode_serialize;
 
     if(mode == 1 || mode == 2) {
-        if(psa_direct_xor_decrypt(instance, buffer)) {
+        if(!psa_direct_xor_allowed_by_key2(key2_high_byte)) {
+            mode = 0x36;
+            FURI_LOG_I(
+                TAG,
+                "Key2 high byte 0x%02X fails OG direct-XOR filter -> 0x36 (TEA BF)",
+                key2_high_byte);
+        } else if(psa_direct_xor_decrypt(instance, buffer)) {
             mode = 0x23;
             FURI_LOG_I(TAG, "Converted mode %d -> 0x23 (Direct XOR)", instance->mode_serialize);
         } else {
@@ -1046,48 +1309,19 @@ static void psa_decrypt_router(SubGhzProtocolDecoderPSA* instance) {
         }
         FURI_LOG_W(TAG, "Direct XOR decryption FAILED");
     } else if(mode == 0x36) {
-        FURI_LOG_I(TAG, "Attempting TEA brute force decryption (Type 0x36)");
-
-        uint32_t w0, w1;
-        psa_prepare_tea_data(buffer, &w0, &w1);
-        FURI_LOG_D(
-            TAG, "Prepared TEA data: w0=0x%08lX w1=0x%08lX", (unsigned long)w0, (unsigned long)w1);
-
-        FURI_LOG_I(TAG, "Starting BF1 brute force...");
-        if(psa_brute_force_decrypt_bf1(instance, buffer, w0, w1)) {
-            instance->mode_serialize = 0x36;
-            instance->decrypted = 0x50;
-            FURI_LOG_I(
-                TAG,
-                "BF1 brute force SUCCESS - Btn:%02X Ser:%06lX Cnt:%08lX",
-                (unsigned int)instance->decrypted_button,
-                (unsigned long)instance->decrypted_serial,
-                (unsigned long)instance->decrypted_counter);
-            return;
-        }
-        FURI_LOG_W(TAG, "BF1 brute force FAILED - trying BF2...");
-        if(psa_brute_force_decrypt_bf2(instance, buffer, w0, w1)) {
-            instance->mode_serialize = 0x36;
-            instance->decrypted = 0x50;
-            FURI_LOG_I(
-                TAG,
-                "BF2 brute force SUCCESS - Btn:%02X Ser:%06lX Cnt:%08lX",
-                (unsigned int)instance->decrypted_button,
-                (unsigned long)instance->decrypted_serial,
-                (unsigned long)instance->decrypted_counter);
-            return;
-        }
-        FURI_LOG_E(TAG, "Both BF1 and BF2 brute force FAILED");
+        FURI_LOG_I(TAG, "TEA BF deferred - use Brute force in receiver info");
+        return;
     } else {
-        FURI_LOG_I(TAG, "Mode uninitialized (0x00) - trying direct XOR first");
-        if(psa_direct_xor_decrypt(instance, buffer)) {
+        FURI_LOG_I(TAG, "Mode uninitialized (0x00) - trying direct XOR or BF");
+        if(psa_direct_xor_allowed_by_key2(key2_high_byte) &&
+           psa_direct_xor_decrypt(instance, buffer)) {
             instance->mode_serialize = 0x23;
             instance->decrypted = 0x50;
             FURI_LOG_I(TAG, "Direct XOR decryption SUCCESS");
             return;
         }
 
-        FURI_LOG_I(TAG, "Direct XOR failed - trying brute force...");
+        FURI_LOG_I(TAG, "Direct XOR skipped or failed - trying brute force...");
         uint32_t w0, w1;
         psa_prepare_tea_data(buffer, &w0, &w1);
 
@@ -1290,58 +1524,7 @@ void subghz_protocol_decoder_psa_feed(void* context, bool level, uint32_t durati
                         instance->state = new_state;
                         return;
                     }
-
-                    uint32_t new_key2_low = instance->decode_data_low;
-                    instance->validation_field = (uint16_t)(instance->decode_data_low & 0xFFFF);
-
-                    instance->decrypted_type = 0;
-                    instance->decrypted_button = 0;
-                    instance->decrypted_serial = 0;
-                    instance->decrypted_counter = 0;
-                    instance->decrypted_crc = 0;
-                    instance->decrypted_seed = 0;
-                    instance->decrypted = 0x00;
-
-                    instance->key2_low = new_key2_low;
-                    instance->key2_high = instance->decode_data_high;
-                    instance->mode_serialize = 1;
-                    instance->status_flag = 0x80;
-
-                    FURI_LOG_I(
-                        TAG,
-                        "Signal decoded - Key1:%08lX%08lX Key2:%04X ValField:%04X",
-                        (unsigned long)instance->key1_high,
-                        (unsigned long)instance->key1_low,
-                        (unsigned int)(instance->key2_low & 0xFFFF),
-                        (unsigned int)instance->validation_field);
-
-                    uint8_t buffer[48] = {0};
-                    psa_setup_byte_buffer(
-                        buffer, instance->key1_low, instance->key1_high, instance->key2_low);
-                    if(psa_direct_xor_decrypt(instance, buffer)) {
-                        instance->mode_serialize = 0x23;
-                        instance->decrypted = 0x50;
-                        FURI_LOG_I(
-                            TAG,
-                            "Direct XOR decryption SUCCESS - Type:0x23 Btn:%02X Ser:%06lX Cnt:%08lX",
-                            (unsigned int)instance->decrypted_button,
-                            (unsigned long)instance->decrypted_serial,
-                            (unsigned long)instance->decrypted_counter);
-                    } else {
-                        instance->decrypted = 0x00;
-                        instance->mode_serialize = 0x36;
-                        FURI_LOG_I(
-                            TAG,
-                            "Direct XOR decryption FAILED - marked for brute force (Type:0x36) - deferred to get_string");
-                    }
-
-                    if(instance->base.callback) {
-                        instance->base.callback(&instance->base, instance->base.context);
-                    }
-
-                    instance->decode_data_low = 0;
-                    instance->decode_data_high = 0;
-                    instance->decode_count_bit = 0;
+                    psa_handle_decoded_frame(instance, 1);
                     new_state = PSADecoderState0;
                     instance->state = new_state;
                     return;
@@ -1458,57 +1641,10 @@ void subghz_protocol_decoder_psa_feed(void* context, bool level, uint32_t durati
                 }
 
                 if(((instance->key1_high >> 16) & 0xF) == 0xA) {
-                    uint32_t new_key2_low = instance->decode_data_low;
-                    instance->validation_field = (uint16_t)(instance->decode_data_low & 0xFFFF);
-
-                    instance->decrypted_type = 0;
-                    instance->decrypted_button = 0;
-                    instance->decrypted_serial = 0;
-                    instance->decrypted_counter = 0;
-                    instance->decrypted_crc = 0;
-                    instance->decrypted_seed = 0;
-                    instance->decrypted = 0x00;
-
-                    instance->key2_low = new_key2_low;
-                    instance->key2_high = instance->decode_data_high;
-                    instance->status_flag = 0x80;
-
-                    FURI_LOG_I(
-                        TAG,
-                        "Signal decoded (alt path) - Key1:%08lX%08lX Key2:%04X ValField:%04X",
-                        (unsigned long)instance->key1_high,
-                        (unsigned long)instance->key1_low,
-                        (unsigned int)(instance->key2_low & 0xFFFF),
-                        (unsigned int)instance->validation_field);
-
-                    uint8_t buffer[48] = {0};
-                    psa_setup_byte_buffer(
-                        buffer, instance->key1_low, instance->key1_high, instance->key2_low);
-                    if(psa_direct_xor_decrypt(instance, buffer)) {
-                        instance->mode_serialize = 0x23;
-                        instance->decrypted = 0x50;
-                        FURI_LOG_I(
-                            TAG,
-                            "Direct XOR decryption SUCCESS - Type:0x23 Btn:%02X Ser:%06lX Cnt:%08lX",
-                            (unsigned int)instance->decrypted_button,
-                            (unsigned long)instance->decrypted_serial,
-                            (unsigned long)instance->decrypted_counter);
-                    } else {
-                        instance->decrypted = 0x00;
-                        FURI_LOG_I(
-                            TAG,
-                            "Direct XOR decryption FAILED - marked for brute force (Type:0x36) - deferred to get_string");
-                        instance->mode_serialize = 0x36;
-                    }
-
-                    if(instance->base.callback) {
-                        instance->base.callback(&instance->base, instance->base.context);
-                    }
-
-                    instance->decode_data_low = 0;
-                    instance->decode_data_high = 0;
-                    instance->decode_count_bit = 0;
+                    psa_handle_decoded_frame(instance, 1);
                     new_state = PSADecoderState0;
+                    instance->state = new_state;
+                    return;
                 } else {
                     return;
                 }
@@ -1520,7 +1656,7 @@ void subghz_protocol_decoder_psa_feed(void* context, bool level, uint32_t durati
 
     case PSADecoderState3:
         if(duration >= 250) {
-            if(duration >= PSA_TE_LONG_250 && duration < 0x12c) {
+            if(duration >= PSA_TE_LONG_250 && duration < PSA_TE_LONG_300) {
                 if(instance->pattern_counter > PSA_PATTERN_THRESHOLD_2) {
                     FURI_LOG_I(
                         TAG,
@@ -1587,7 +1723,7 @@ void subghz_protocol_decoder_psa_feed(void* context, bool level, uint32_t durati
                 tolerance = duration - PSA_TE_SHORT_125;
                 if(tolerance < PSA_TOLERANCE_50) {
                     manchester_input = ((level ^ 1) & 0x7f) << 1;
-                } else if(duration >= PSA_TE_LONG_250 && duration < 0x12c) {
+                } else if(duration >= PSA_TE_LONG_250 && duration < PSA_TE_LONG_300) {
                     if(level == 0) {
                         manchester_input = 6;
                     } else {
@@ -1636,58 +1772,7 @@ void subghz_protocol_decoder_psa_feed(void* context, bool level, uint32_t durati
                     instance->state = new_state;
                     return;
                 }
-
-                uint32_t new_key2_low = instance->decode_data_low;
-                instance->validation_field = (uint16_t)(instance->decode_data_low & 0xFFFF);
-
-                instance->decrypted_type = 0;
-                instance->decrypted_button = 0;
-                instance->decrypted_serial = 0;
-                instance->decrypted_counter = 0;
-                instance->decrypted_crc = 0;
-                instance->decrypted_seed = 0;
-                instance->decrypted = 0x00;
-
-                instance->key2_low = new_key2_low;
-                instance->key2_high = instance->decode_data_high;
-                instance->mode_serialize = 2;
-                instance->status_flag = 0x80;
-
-                FURI_LOG_I(
-                    TAG,
-                    "Signal decoded (state4) - Key1:%08lX%08lX Key2:%04X ValField:%04X",
-                    (unsigned long)instance->key1_high,
-                    (unsigned long)instance->key1_low,
-                    (unsigned int)(instance->key2_low & 0xFFFF),
-                    (unsigned int)instance->validation_field);
-
-                uint8_t buffer[48] = {0};
-                psa_setup_byte_buffer(
-                    buffer, instance->key1_low, instance->key1_high, instance->key2_low);
-                if(psa_direct_xor_decrypt(instance, buffer)) {
-                    instance->mode_serialize = 0x23;
-                    instance->decrypted = 0x50;
-                    FURI_LOG_I(
-                        TAG,
-                        "Direct XOR decryption SUCCESS - Type:0x23 Btn:%02X Ser:%06lX Cnt:%08lX",
-                        (unsigned int)instance->decrypted_button,
-                        (unsigned long)instance->decrypted_serial,
-                        (unsigned long)instance->decrypted_counter);
-                } else {
-                    instance->decrypted = 0x00;
-                    instance->mode_serialize = 0x36;
-                    FURI_LOG_I(
-                        TAG,
-                        "Direct XOR decryption FAILED - marked for brute force (Type:0x36) - deferred to get_string");
-                }
-
-                if(instance->base.callback) {
-                    instance->base.callback(&instance->base, instance->base.context);
-                }
-
-                instance->decode_data_low = 0;
-                instance->decode_data_high = 0;
-                instance->decode_count_bit = 0;
+                psa_handle_decoded_frame(instance, 2);
                 new_state = PSADecoderState0;
                 instance->state = new_state;
                 return;
@@ -1777,55 +1862,15 @@ SubGhzProtocolStatus
     FuriString* temp_str = furi_string_alloc();
 
     do {
-        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) {
-            break;
-        }
-
-        const char* key1_str = furi_string_get_cstr(temp_str);
+        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) break;
         uint64_t key1 = 0;
-        size_t str_len = strlen(key1_str);
-        for(size_t i = 0; i < str_len && i < 16; i++) {
-            char c = key1_str[i];
-            if(c == ' ') continue;
-
-            uint8_t nibble;
-            if(c >= '0' && c <= '9') {
-                nibble = c - '0';
-            } else if(c >= 'A' && c <= 'F') {
-                nibble = c - 'A' + 10;
-            } else if(c >= 'a' && c <= 'f') {
-                nibble = c - 'a' + 10;
-            } else {
-                break;
-            }
-            key1 = (key1 << 4) | nibble;
-        }
+        if(!parse_hex_key_str(furi_string_get_cstr(temp_str), &key1)) break;
         instance->key1_low = (uint32_t)(key1 & 0xFFFFFFFF);
         instance->key1_high = (uint32_t)((key1 >> 32) & 0xFFFFFFFF);
 
-        if(!flipper_format_read_string(flipper_format, "Key_2", temp_str)) {
-            break;
-        }
-
-        const char* key2_str = furi_string_get_cstr(temp_str);
+        if(!flipper_format_read_string(flipper_format, "Key_2", temp_str)) break;
         uint64_t key2 = 0;
-        str_len = strlen(key2_str);
-        for(size_t i = 0; i < str_len && i < 16; i++) {
-            char c = key2_str[i];
-            if(c == ' ') continue;
-
-            uint8_t nibble;
-            if(c >= '0' && c <= '9') {
-                nibble = c - '0';
-            } else if(c >= 'A' && c <= 'F') {
-                nibble = c - 'A' + 10;
-            } else if(c >= 'a' && c <= 'f') {
-                nibble = c - 'a' + 10;
-            } else {
-                break;
-            }
-            key2 = (key2 << 4) | nibble;
-        }
+        if(!parse_hex_key_str(furi_string_get_cstr(temp_str), &key2)) break;
         instance->key2_low = (uint32_t)(key2 & 0xFFFFFFFF);
         instance->key2_high = (uint32_t)((key2 >> 32) & 0xFFFFFFFF);
 
@@ -1890,7 +1935,7 @@ void subghz_protocol_decoder_psa_get_string(void* context, FuriString* output) {
                 "Key2:%04X\r\n"
                 "Btn:%02X\r\n"
                 "Ser:%06lX\r\n"
-                "Cnt:%08lX\r\n"
+                "Cnt:%lX\r\n"
                 "CRC:%02X\r\n"
                 "Type:%02X\r\n"
                 "Sd:%06lX",

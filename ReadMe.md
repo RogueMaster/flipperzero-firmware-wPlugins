@@ -66,6 +66,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CAN Commander v2.1.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
 - Updated: [24Cxx Programmer v2.0 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
 - Updated: [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
+- Updated: [ProtoPirate v2.5 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 
@@ -764,7 +765,7 @@ $ ./fbt dolphin_ext
 - [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
 - [Protocol Visualizer v1.3 (By antirez)](https://github.com/antirez/protoview)
-- [ProtoPirate v2.3.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- [ProtoPirate v2.5 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)
 - [Quac! v0.9.1 (By rdefeo)](https://github.com/rdefeo/quac)

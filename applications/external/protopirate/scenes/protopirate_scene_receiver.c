@@ -3,6 +3,7 @@
 #include "../helpers/protopirate_storage.h"
 #include "views/protopirate_receiver.h"
 #include <notification/notification_messages.h>
+#include "proto_pirate_icons.h"
 
 #define TAG                             "ProtoPirateSceneRx"
 #define PROTOPIRATE_DISPLAY_HISTORY_MAX 20 // Reduced from 50 to save memory
@@ -288,12 +289,43 @@ bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event)
             break;
 
         case ProtoPirateCustomEventViewReceiverBack:
-            if(app->txrx->txrx_state == ProtoPirateTxRxStateRx) {
-                protopirate_rx_end(app);
+            bool confirmed_exit = false;
+
+            if(protopirate_history_get_item(app->txrx->history)) {
+                scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneReceiver, 1);
+                //app->option_flags += FLAG_RECEIVER_DIRTY_DIALOG;
+                app->dialogs = furi_record_open(RECORD_DIALOGS);
+                DialogMessage* message = dialog_message_alloc();
+                dialog_message_set_buttons(message, "Back", NULL, "Continue");
+                dialog_message_set_icon(message, &I_WarningDolphin_45x42, 0, 12);
+                dialog_message_set_header(
+                    message, "Exit Confirmation", 64, 0, AlignCenter, AlignTop);
+                dialog_message_set_text(
+                    message, "You will lose\nany unsaved\nsignals.", 50, 14, AlignLeft, AlignTop);
+                DialogMessageButton dialog_result = dialog_message_show(app->dialogs, message);
+                dialog_message_free(message);
+                furi_record_close(RECORD_DIALOGS);
+                app->dialogs = NULL;
+
+                //Exit if the user said yes.
+                if(dialog_result == DialogMessageButtonRight) {
+                    confirmed_exit = true;
+                    scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneReceiver, 0);
+                }
+            } else {
+                //Dont need to confirm.
+                confirmed_exit = true;
             }
-            protopirate_sleep(app);
-            scene_manager_search_and_switch_to_previous_scene(
-                app->scene_manager, ProtoPirateSceneStart);
+
+            //If the user confirmed, or we arent dirty we can exit now.
+            if(confirmed_exit) {
+                if(app->txrx->txrx_state == ProtoPirateTxRxStateRx) {
+                    protopirate_rx_end(app);
+                }
+                protopirate_sleep(app);
+                scene_manager_search_and_switch_to_previous_scene(
+                    app->scene_manager, ProtoPirateSceneStart);
+            }
             consumed = true;
             break;
 

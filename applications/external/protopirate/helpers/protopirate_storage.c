@@ -212,6 +212,10 @@ static bool protopirate_storage_write_capture_data(
 
     /* Key_2 */
     PROTOPIRATE_COPY_STRING_OPTIONAL("Key_2");
+    PROTOPIRATE_COPY_U32_OPTIONAL("Key_2");
+    PROTOPIRATE_COPY_U32_OPTIONAL("Key_3");
+    PROTOPIRATE_COPY_U32_OPTIONAL("Key_4");
+    PROTOPIRATE_COPY_U32_OPTIONAL("Fx");
 
     /* Key1 */
     uint8_t key1_buf[8];

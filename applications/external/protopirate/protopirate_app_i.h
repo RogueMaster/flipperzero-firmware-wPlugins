@@ -24,6 +24,7 @@
 #include <lib/subghz/subghz_file_encoder_worker.h>
 #include <dialogs/dialogs.h>
 #include "defines.h"
+#include "protocols/psa.h"
 
 #define PROTOPIRATE_KEYSTORE_DIR_NAME APP_ASSETS_PATH("encrypted")
 
@@ -66,6 +67,8 @@ struct ProtoPirateApp {
     ProtoPirateSettings settings;
     uint32_t start_tx_time;
     uint8_t tx_power;
+    PsaBfState* psa_bf_state;
+    FuriThread* psa_bf_thread;
 };
 
 typedef enum {

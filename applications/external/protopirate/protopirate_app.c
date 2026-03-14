@@ -123,6 +123,8 @@ ProtoPirateApp* protopirate_app_alloc() {
     app->setting = subghz_setting_alloc();
     app->loaded_file_path = NULL;
     app->start_tx_time = 0;
+    app->psa_bf_state = NULL;
+    app->psa_bf_thread = NULL;
     subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user"));
 
     LOG_HEAP("After subghz_setting");
@@ -444,6 +446,17 @@ void protopirate_app_free(ProtoPirateApp* app) {
     FURI_LOG_D(TAG, "Removing receiver view");
     view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewReceiver);
     protopirate_view_receiver_free(app->protopirate_receiver);
+
+    if(app->psa_bf_thread) {
+        if(app->psa_bf_state) app->psa_bf_state->cancel = 1;
+        furi_thread_join(app->psa_bf_thread);
+        furi_thread_free(app->psa_bf_thread);
+        app->psa_bf_thread = NULL;
+    }
+    if(app->psa_bf_state) {
+        free(app->psa_bf_state);
+        app->psa_bf_state = NULL;
+    }
 
     // Receiver Info
     FURI_LOG_D(TAG, "Removing receiver_info view");

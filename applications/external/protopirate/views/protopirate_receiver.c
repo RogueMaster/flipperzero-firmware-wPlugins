@@ -512,6 +512,13 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
 
             consumed = true;
             break;
+        case InputKeyBack:
+            //We need the back event for dirty exit confirmation.
+            if(receiver->callback) {
+                receiver->callback(ProtoPirateCustomEventViewReceiverBack, receiver->context);
+            }
+            consumed = true;
+            break;
         default:
             break;
         }

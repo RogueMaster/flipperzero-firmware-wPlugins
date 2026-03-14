@@ -28,3 +28,5 @@ void protopirate_history_get_text_item(
 SubGhzProtocolDecoderBase*
     protopirate_history_get_decoder_base(ProtoPirateHistory* instance, uint16_t idx);
 FlipperFormat* protopirate_history_get_raw_data(ProtoPirateHistory* instance, uint16_t idx);
+
+void protopirate_history_set_item_str(ProtoPirateHistory* instance, uint16_t idx, const char* str);

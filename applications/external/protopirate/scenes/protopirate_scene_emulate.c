@@ -735,7 +735,14 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                 emulate_context->is_transmitting = false;
                 emulate_context->flag_stop_called = false;
             }
-            scene_manager_previous_scene(app->scene_manager);
+
+            //If we came in from emulate, exit the app, otherwise go back to Saved or Received Info
+            if(scene_manager_has_previous_scene(app->scene_manager, ProtoPirateSceneStart))
+                scene_manager_previous_scene(app->scene_manager);
+            else {
+                scene_manager_stop(app->scene_manager);
+                view_dispatcher_stop(app->view_dispatcher);
+            }
             consumed = true;
             break;
         }

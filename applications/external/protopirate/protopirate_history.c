@@ -243,3 +243,15 @@ FlipperFormat* protopirate_history_get_raw_data(ProtoPirateHistory* instance, ui
     ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
     return item->flipper_format;
 }
+
+void protopirate_history_set_item_str(ProtoPirateHistory* instance, uint16_t idx, const char* str) {
+    furi_check(instance);
+    furi_check(str);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    furi_string_set(item->item_str, str);
+}
