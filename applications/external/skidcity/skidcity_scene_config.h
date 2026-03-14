@@ -1,0 +1,8 @@
+ADD_SCENE(skidcity, main_menu,     MainMenu)
+ADD_SCENE(skidcity, feature_menu,  FeatureMenu)
+ADD_SCENE(skidcity, traffic_demo,  TrafficDemo)
+ADD_SCENE(skidcity, generic_demo,  GenericDemo)
+ADD_SCENE(skidcity, feature_about, FeatureAbout)
+ADD_SCENE(skidcity, banned,        Banned)
+ADD_SCENE(skidcity, cfaa_info,     CfaaInfo)
+ADD_SCENE(skidcity, app_about,     AppAbout)

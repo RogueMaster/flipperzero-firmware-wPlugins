@@ -1,0 +1,133 @@
+name: "FAP Build & Release"
+
+on:
+  workflow_dispatch:
+  #push:
+    tags:
+      - 'v*'
+
+jobs:
+  ufbt-build-action:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: dev channel
+            sdk-channel: dev
+          - name: release channel
+            sdk-channel: release
+          - name: Unleashed dev
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            sdk-channel: dev
+          - name: Unleashed release
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            sdk-channel: release
+
+    name: 'ufbt: Build for ${{ matrix.name }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.2
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url }}
+
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: skidcity-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+
+  create-draft-release:
+    runs-on: ubuntu-latest
+    needs: ufbt-build-action
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from application.fam
+        id: get-version
+        run: |
+          echo "=== application.fam contents ==="
+          cat application.fam
+          echo "================================"
+
+          VERSION=$(python3 -c "
+          import re, sys
+          content = open('application.fam').read()
+          match = re.search(r'fap_version\s*=\s*[\"\']([\d.]+)[\"\']', content) or \
+                  re.search(r'fap_version\s*=\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)', content)
+          if not match:
+              print('Could not find fap_version', file=sys.stderr)
+              sys.exit(1)
+          if match.lastindex == 1:
+              print(match.group(1))
+          else:
+              print(f'{match.group(1)}.{match.group(2)}')
+          ")
+
+          echo "Extracted version: ${VERSION}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Delete existing release and tag if present
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.get-version.outputs.version }}"
+          gh release delete "$TAG" --repo ${{ github.repository }} --yes 2>/dev/null || true
+          git push origin ":refs/tags/$TAG" 2>/dev/null || true
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Rename artifacts to avoid filename conflicts
+        run: |
+          find artifacts/ -name "*.fap" | while read fap; do
+            dir=$(basename $(dirname "$fap"))
+            mv "$fap" "artifacts/${dir}.fap"
+          done
+          find artifacts/ -type d -empty -delete
+          echo "Release assets:"
+          ls artifacts/*.fap
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: "SKIDcity v${{ steps.get-version.outputs.version }}"
+          tag_name: "v${{ steps.get-version.outputs.version }}"
+          files: artifacts/*.fap
+          fail_on_unmatched_files: false
+          body: |
+            ## SKIDcity v${{ steps.get-version.outputs.version }}
+            > *"Don't be a SKID!"*
+
+            Built from commit ${{ github.sha }}.
+
+            ### What is SKIDcity?
+            An educational Flipper Zero app that shows you what you **cannot** and **should not** try to do with your Flipper — and exactly why. Every fake "hack" either runs a harmless demo or shows the relevant law and a legal path forward.
+
+            ### Firmware builds included
+            | Build | Channel |
+            |---|---|
+            | 🐬 Official firmware | dev |
+            | 🐬 Official firmware | release |
+            | 🔓 Unleashed firmware | dev |
+            | 🔓 Unleashed firmware | release |
+
+            ### Installation
+            1. Download the `.fap` file that matches your firmware channel.
+            2. Copy it to `SD Card/apps/Tools/` on your Flipper Zero.
+            3. Launch **SKIDcity** from the **Tools** app menu.
+
+            No extra files, no SD card setup, no WiFi dev board needed.
