@@ -77,6 +77,13 @@ void* uart_text_input_get_validator_callback_context(UART_TextInput* uart_text_i
      */
 void uart_text_input_set_header_text(UART_TextInput* uart_text_input, const char* text);
 
+/** Allow saving an empty string
+     *
+     * @param      uart_text_input  UART_TextInput instance
+     * @param      allow_empty      true to allow saving with no text entered
+     */
+void uart_text_input_set_allow_empty(UART_TextInput* uart_text_input, bool allow_empty);
+
 #ifdef __cplusplus
 }
 #endif

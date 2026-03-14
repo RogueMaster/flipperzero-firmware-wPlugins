@@ -7,8 +7,6 @@
  */
 
 #include <jsmn/jsmn.h>
-#include <stdlib.h>
-#include <string.h>
 
 /**
  * Allocates a fresh unused token from the token pool.
@@ -381,7 +379,7 @@ int jsmn_parse(
 }
 
 // Helper function to create a JSON object
-char* jsmn(const char* key, const char* value) {
+char* get_json(const char* key, const char* value) {
     int length = strlen(key) + strlen(value) + 8; // Calculate required length
     char* result = (char*)malloc(length * sizeof(char)); // Allocate memory
     if(result == NULL) {
@@ -401,12 +399,16 @@ int jsoneq(const char* json, jsmntok_t* tok, const char* s) {
 }
 
 // Return the value of the key in the JSON data
-char* get_json_value(char* key, char* json_data, uint32_t max_tokens) {
+char* get_json_value(const char* key, const char* json_data) {
     // Parse the JSON feed
     if(json_data != NULL) {
         jsmn_parser parser;
         jsmn_init(&parser);
-
+        uint32_t max_tokens = json_token_count(json_data);
+        if(!jsmn_memory_check(max_tokens)) {
+            FURI_LOG_E("JSMM.H", "Insufficient memory for JSON tokens.");
+            return NULL;
+        }
         // Allocate tokens array on the heap
         jsmntok_t* tokens = malloc(sizeof(jsmntok_t) * max_tokens);
         if(tokens == NULL) {
@@ -453,24 +455,64 @@ char* get_json_value(char* key, char* json_data, uint32_t max_tokens) {
     } else {
         FURI_LOG_E("JSMM.H", "JSON data is NULL");
     }
-    FURI_LOG_E("JSMM.H", "Failed to find the key in the JSON.");
+    char warning[128];
+    snprintf(warning, sizeof(warning), "Failed to find the key \"%s\" in the JSON.", key);
+    FURI_LOG_E("JSMM.H", warning);
     return NULL; // Return NULL if something goes wrong
 }
 
-// Revised get_json_array_value function
-char* get_json_array_value(char* key, uint32_t index, char* json_data, uint32_t max_tokens) {
-    // Retrieve the array string for the given key
-    char* array_str = get_json_value(key, json_data, max_tokens);
+// Helper function to skip a token and all its descendants.
+// Returns the index of the next token after skipping this one.
+// On error or out of bounds, returns -1.
+static int skip_token(const jsmntok_t* tokens, int start, int total) {
+    if(start < 0 || start >= total) return -1;
+
+    int i = start;
+    if(tokens[i].type == JSMN_OBJECT) {
+        // For an object: size is number of key-value pairs
+        int pairs = tokens[i].size;
+        i++; // move to first key-value pair
+        for(int p = 0; p < pairs; p++) {
+            // skip key (primitive/string)
+            i++;
+            if(i >= total) return -1;
+            // skip value (which could be object/array and must be skipped recursively)
+            i = skip_token(tokens, i, total);
+            if(i == -1) return -1;
+        }
+        return i; // i is now just past the object
+    } else if(tokens[i].type == JSMN_ARRAY) {
+        // For an array: size is number of elements
+        int elems = tokens[i].size;
+        i++; // move to first element
+        for(int e = 0; e < elems; e++) {
+            i = skip_token(tokens, i, total);
+            if(i == -1) return -1;
+        }
+        return i; // i is now just past the array
+    } else {
+        // Primitive or string token, just skip it
+        return i + 1;
+    }
+}
+
+// Revised get_json_array_value
+char* get_json_array_value(const char* key, uint32_t index, const char* json_data) {
+    // Always extract the full array each time from the original json_data
+    char* array_str = get_json_value(key, json_data);
     if(array_str == NULL) {
         FURI_LOG_E("JSMM.H", "Failed to get array for key: %s", key);
         return NULL;
     }
+    uint32_t max_tokens = json_token_count(array_str);
+    if(!jsmn_memory_check(max_tokens)) {
+        FURI_LOG_E("JSMM.H", "Insufficient memory for JSON tokens.");
+        free(array_str);
+        return NULL;
+    }
 
-    // Initialize the JSON parser
     jsmn_parser parser;
     jsmn_init(&parser);
-
-    // Allocate memory for JSON tokens
     jsmntok_t* tokens = malloc(sizeof(jsmntok_t) * max_tokens);
     if(tokens == NULL) {
         FURI_LOG_E("JSMM.H", "Failed to allocate memory for JSON tokens.");
@@ -478,7 +520,6 @@ char* get_json_array_value(char* key, uint32_t index, char* json_data, uint32_t 
         return NULL;
     }
 
-    // Parse the JSON array
     int ret = jsmn_parse(&parser, array_str, strlen(array_str), tokens, max_tokens);
     if(ret < 0) {
         FURI_LOG_E("JSMM.H", "Failed to parse JSON array: %d", ret);
@@ -487,7 +528,6 @@ char* get_json_array_value(char* key, uint32_t index, char* json_data, uint32_t 
         return NULL;
     }
 
-    // Ensure the root element is an array
     if(ret < 1 || tokens[0].type != JSMN_ARRAY) {
         FURI_LOG_E("JSMM.H", "Value for key '%s' is not an array.", key);
         free(tokens);
@@ -495,57 +535,39 @@ char* get_json_array_value(char* key, uint32_t index, char* json_data, uint32_t 
         return NULL;
     }
 
-    // Check if the index is within bounds
     if(index >= (uint32_t)tokens[0].size) {
-        FURI_LOG_E(
-            "JSMM.H",
-            "Index %lu out of bounds for array with size %d.",
-            (unsigned long)index,
-            tokens[0].size);
+        // FURI_LOG_E("JSMM.H", "Index %lu out of bounds for array with size %u.", index, tokens[0].size);
         free(tokens);
         free(array_str);
         return NULL;
     }
 
-    // Locate the token corresponding to the desired array element
-    int current_token = 1; // Start after the array token
+    // Find the index-th element: start from token[1], which is the first element
+    int elem_token = 1;
     for(uint32_t i = 0; i < index; i++) {
-        if(tokens[current_token].type == JSMN_OBJECT) {
-            // For objects, skip all key-value pairs
-            current_token += 1 + 2 * tokens[current_token].size;
-        } else if(tokens[current_token].type == JSMN_ARRAY) {
-            // For nested arrays, skip all elements
-            current_token += 1 + tokens[current_token].size;
-        } else {
-            // For primitive types, simply move to the next token
-            current_token += 1;
-        }
-
-        // Safety check to prevent out-of-bounds
-        if(current_token >= ret) {
-            FURI_LOG_E("JSMM.H", "Unexpected end of tokens while traversing array.");
+        elem_token = skip_token(tokens, elem_token, ret);
+        if(elem_token == -1 || elem_token >= ret) {
+            FURI_LOG_E("JSMM.H", "Error skipping tokens to reach element %lu.", i);
             free(tokens);
             free(array_str);
             return NULL;
         }
     }
 
-    // Extract the array element
-    jsmntok_t element = tokens[current_token];
+    // Now elem_token should point to the token of the requested element
+    jsmntok_t element = tokens[elem_token];
     int length = element.end - element.start;
     char* value = malloc(length + 1);
-    if(value == NULL) {
+    if(!value) {
         FURI_LOG_E("JSMM.H", "Failed to allocate memory for array element.");
         free(tokens);
         free(array_str);
         return NULL;
     }
 
-    // Copy the element value to a new string
     strncpy(value, array_str + element.start, length);
-    value[length] = '\0'; // Null-terminate the string
+    value[length] = '\0';
 
-    // Clean up
     free(tokens);
     free(array_str);
 
@@ -553,14 +575,19 @@ char* get_json_array_value(char* key, uint32_t index, char* json_data, uint32_t 
 }
 
 // Revised get_json_array_values function with correct token skipping
-char** get_json_array_values(char* key, char* json_data, uint32_t max_tokens, int* num_values) {
+char** get_json_array_values(const char* key, const char* json_data, int* num_values) {
     // Retrieve the array string for the given key
-    char* array_str = get_json_value(key, json_data, max_tokens);
+    char* array_str = get_json_value(key, json_data);
     if(array_str == NULL) {
         FURI_LOG_E("JSMM.H", "Failed to get array for key: %s", key);
         return NULL;
     }
-
+    uint32_t max_tokens = json_token_count(array_str);
+    if(!jsmn_memory_check(max_tokens)) {
+        FURI_LOG_E("JSMM.H", "Insufficient memory for JSON tokens.");
+        free(array_str);
+        return NULL;
+    }
     // Initialize the JSON parser
     jsmn_parser parser;
     jsmn_init(&parser);
@@ -663,4 +690,17 @@ char** get_json_array_values(char* key, char* json_data, uint32_t max_tokens, in
     free(tokens);
     free(array_str);
     return values;
+}
+
+int json_token_count(const char* json) {
+    if(json == NULL) {
+        return JSMN_ERROR_INVAL;
+    }
+
+    jsmn_parser parser;
+    jsmn_init(&parser);
+
+    // Pass NULL for tokens and 0 for num_tokens to get the token count only
+    int ret = jsmn_parse(&parser, json, strlen(json), NULL, 0);
+    return ret; // If ret >= 0, it represents the number of tokens needed.
 }

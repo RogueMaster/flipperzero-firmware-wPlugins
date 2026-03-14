@@ -83,8 +83,30 @@ bool send_geo_location_request() {
         fhttp.state = ISSUE;
         return false;
     }
-    if(!flipper_http_get_request_with_headers(
-           "https://ipwhois.app/json/", "{\"Content-Type\": \"application/json\"}")) {
+    char url[512];
+    if(strlen(custom_location) > 0) {
+        // URL-encode custom_location (replace spaces with %20)
+        char encoded_location[192];
+        size_t j = 0;
+        for(size_t i = 0; i < strlen(custom_location) && j < sizeof(encoded_location) - 3; i++) {
+            if(custom_location[i] == ' ') {
+                encoded_location[j++] = '%';
+                encoded_location[j++] = '2';
+                encoded_location[j++] = '0';
+            } else {
+                encoded_location[j++] = custom_location[i];
+            }
+        }
+        encoded_location[j] = '\0';
+        snprintf(
+            url,
+            sizeof(url),
+            "https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json",
+            encoded_location);
+    } else {
+        snprintf(url, sizeof(url), "https://ipwhois.app/json/");
+    }
+    if(!flipper_http_get_request_with_headers(url, "{\"Content-Type\": \"application/json\"}")) {
         FURI_LOG_E(TAG, "Failed to send GET request");
         fhttp.state = ISSUE;
         return false;
@@ -115,17 +137,49 @@ bool send_geo_weather_request(DataLoaderModel* model) {
 }
 char* process_geo_location(DataLoaderModel* model) {
     UNUSED(model);
-    if(fhttp.last_response != NULL) {
-        char* city = get_json_value("city", fhttp.last_response, MAX_TOKENS);
-        char* region = get_json_value("region", fhttp.last_response, MAX_TOKENS);
-        char* country = get_json_value("country", fhttp.last_response, MAX_TOKENS);
-        char* latitude = get_json_value("latitude", fhttp.last_response, MAX_TOKENS);
-        char* longitude = get_json_value("longitude", fhttp.last_response, MAX_TOKENS);
+    if(fhttp.last_response == NULL) {
+        FURI_LOG_E(TAG, "last_response is NULL in process_geo_location");
+        fhttp.state = ISSUE;
+        return NULL;
+    }
+    {
+        char* latitude = NULL;
+        char* longitude = NULL;
+        char* city = NULL;
+        char* region = NULL;
+        char* country = NULL;
+
+        if(strlen(custom_location) > 0) {
+            // Parse open-meteo geocoding API response: {"results":[{"latitude":...,"longitude":...,"name":...,"admin1":...,"country":...}]}
+            char* result = get_json_array_value("results", 0, fhttp.last_response);
+            if(result == NULL) {
+                FURI_LOG_E(TAG, "Failed to get geocoding results");
+                fhttp.state = ISSUE;
+                return NULL;
+            }
+            latitude = get_json_value("latitude", result);
+            longitude = get_json_value("longitude", result);
+            city = get_json_value("name", result);
+            region = get_json_value("admin1", result);
+            country = get_json_value("country", result);
+            free(result);
+        } else {
+            city = get_json_value("city", fhttp.last_response);
+            region = get_json_value("region", fhttp.last_response);
+            country = get_json_value("country", fhttp.last_response);
+            latitude = get_json_value("latitude", fhttp.last_response);
+            longitude = get_json_value("longitude", fhttp.last_response);
+        }
 
         if(city == NULL || region == NULL || country == NULL || latitude == NULL ||
            longitude == NULL) {
             FURI_LOG_E(TAG, "Failed to get geo location data");
             fhttp.state = ISSUE;
+            if(city) free(city);
+            if(region) free(region);
+            if(country) free(country);
+            if(latitude) free(latitude);
+            if(longitude) free(longitude);
             return NULL;
         }
 
@@ -161,17 +215,36 @@ char* process_geo_location(DataLoaderModel* model) {
 }
 
 bool process_geo_location_2() {
-    if(fhttp.last_response != NULL) {
-        char* city = get_json_value("city", fhttp.last_response, MAX_TOKENS);
-        char* region = get_json_value("region", fhttp.last_response, MAX_TOKENS);
-        char* country = get_json_value("country", fhttp.last_response, MAX_TOKENS);
-        char* latitude = get_json_value("latitude", fhttp.last_response, MAX_TOKENS);
-        char* longitude = get_json_value("longitude", fhttp.last_response, MAX_TOKENS);
+    if(fhttp.last_response == NULL) {
+        FURI_LOG_E(TAG, "last_response is NULL in process_geo_location_2");
+        fhttp.state = ISSUE;
+        return false;
+    }
+    {
+        char* latitude = NULL;
+        char* longitude = NULL;
 
-        if(city == NULL || region == NULL || country == NULL || latitude == NULL ||
-           longitude == NULL) {
+        if(strlen(custom_location) > 0) {
+            // Parse open-meteo geocoding API response
+            char* result = get_json_array_value("results", 0, fhttp.last_response);
+            if(result == NULL) {
+                FURI_LOG_E(TAG, "Failed to get geocoding results");
+                fhttp.state = ISSUE;
+                return false;
+            }
+            latitude = get_json_value("latitude", result);
+            longitude = get_json_value("longitude", result);
+            free(result);
+        } else {
+            latitude = get_json_value("latitude", fhttp.last_response);
+            longitude = get_json_value("longitude", fhttp.last_response);
+        }
+
+        if(latitude == NULL || longitude == NULL) {
             FURI_LOG_E(TAG, "Failed to get geo location data");
             fhttp.state = ISSUE;
+            if(latitude) free(latitude);
+            if(longitude) free(longitude);
             return false;
         }
 
@@ -179,35 +252,51 @@ bool process_geo_location_2() {
         snprintf(lon_data, sizeof(lon_data), "Longitude: %s", longitude);
 
         fhttp.state = IDLE;
-        free(city);
-        free(region);
-        free(country);
         free(latitude);
         free(longitude);
         return true;
     }
-    return false;
 }
 
 char* process_weather(DataLoaderModel* model) {
     UNUSED(model);
-    if(fhttp.last_response != NULL) {
-        char* current_data = get_json_value("current", fhttp.last_response, MAX_TOKENS);
-        char* temperature = get_json_value("temperature_2m", current_data, MAX_TOKENS);
-        char* precipitation = get_json_value("precipitation", current_data, MAX_TOKENS);
-        char* rain = get_json_value("rain", current_data, MAX_TOKENS);
-        char* showers = get_json_value("showers", current_data, MAX_TOKENS);
-        char* snowfall = get_json_value("snowfall", current_data, MAX_TOKENS);
-        char* wind_speed = get_json_value("wind_speed_10m", current_data, MAX_TOKENS);
-        char* wind_direction = get_json_value("wind_direction_10m", current_data, MAX_TOKENS);
-        char* weather_code = get_json_value("weather_code", current_data, MAX_TOKENS);
-        char* time = get_json_value("time", current_data, MAX_TOKENS);
-
-        if(current_data == NULL || temperature == NULL || precipitation == NULL || rain == NULL ||
-           showers == NULL || snowfall == NULL || wind_speed == NULL || wind_direction == NULL ||
-           weather_code == NULL || time == NULL) {
-            FURI_LOG_E(TAG, "Failed to get weather data");
+    if(fhttp.last_response == NULL) {
+        FURI_LOG_E(TAG, "last_response is NULL in process_weather");
+        fhttp.state = ISSUE;
+        return NULL;
+    }
+    {
+        char* current_data = get_json_value("current", fhttp.last_response);
+        if(current_data == NULL) {
+            FURI_LOG_E(TAG, "Failed to get 'current' object from weather response");
             fhttp.state = ISSUE;
+            return NULL;
+        }
+        char* temperature = get_json_value("temperature_2m", current_data);
+        char* precipitation = get_json_value("precipitation", current_data);
+        char* rain = get_json_value("rain", current_data);
+        char* showers = get_json_value("showers", current_data);
+        char* snowfall = get_json_value("snowfall", current_data);
+        char* wind_speed = get_json_value("wind_speed_10m", current_data);
+        char* wind_direction = get_json_value("wind_direction_10m", current_data);
+        char* weather_code = get_json_value("weather_code", current_data);
+        char* time = get_json_value("time", current_data);
+
+        if(temperature == NULL || precipitation == NULL || rain == NULL || showers == NULL ||
+           snowfall == NULL || wind_speed == NULL || wind_direction == NULL ||
+           weather_code == NULL || time == NULL) {
+            FURI_LOG_E(TAG, "Failed to get weather data fields");
+            fhttp.state = ISSUE;
+            free(current_data);
+            if(temperature) free(temperature);
+            if(precipitation) free(precipitation);
+            if(rain) free(rain);
+            if(showers) free(showers);
+            if(snowfall) free(snowfall);
+            if(wind_speed) free(wind_speed);
+            if(wind_direction) free(wind_direction);
+            if(weather_code) free(weather_code);
+            if(time) free(time);
             return NULL;
         }
 
@@ -254,6 +343,6 @@ char* process_weather(DataLoaderModel* model) {
         free(wind_direction);
         free(weather_code);
         free(time);
+        return weather_data;
     }
-    return weather_data;
 }

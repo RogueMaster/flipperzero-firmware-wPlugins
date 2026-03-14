@@ -1,3 +1,7 @@
+## v1.4
+Updates from H4W9:
+- Added an option in the Settings to use a custom location for weather updates.
+
 ## v1.3
 Updates from H4W9:
 - Added option in the Settings to change the temperature unit to Celsius or Fahrenheit.

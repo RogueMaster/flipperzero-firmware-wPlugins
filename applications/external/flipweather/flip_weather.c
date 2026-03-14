@@ -6,6 +6,7 @@ char lon_data[32];
 char* total_data = NULL;
 char* weather_data = NULL;
 bool use_fahrenheit = false;
+char custom_location[64] = "";
 
 FlipWeatherApp* app_instance = NULL;
 void flip_weather_loader_free_model(View* view);
@@ -55,12 +56,18 @@ void flip_weather_app_free(FlipWeatherApp* app) {
         view_dispatcher_remove_view(app->view_dispatcher, FlipWeatherViewTextInputPassword);
         uart_text_input_free(app->uart_text_input_password);
     }
+    if(app->uart_text_input_location) {
+        view_dispatcher_remove_view(app->view_dispatcher, FlipWeatherViewTextInputLocation);
+        uart_text_input_free(app->uart_text_input_location);
+    }
 
     // Free the text input buffer
     if(app->uart_text_input_buffer_ssid) free(app->uart_text_input_buffer_ssid);
     if(app->uart_text_input_temp_buffer_ssid) free(app->uart_text_input_temp_buffer_ssid);
     if(app->uart_text_input_buffer_password) free(app->uart_text_input_buffer_password);
     if(app->uart_text_input_temp_buffer_password) free(app->uart_text_input_temp_buffer_password);
+    if(app->uart_text_input_buffer_location) free(app->uart_text_input_buffer_location);
+    if(app->uart_text_input_temp_buffer_location) free(app->uart_text_input_temp_buffer_location);
 
     // deinitalize flipper http
     flipper_http_deinit();
