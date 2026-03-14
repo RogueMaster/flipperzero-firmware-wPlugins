@@ -76,12 +76,12 @@ typedef enum {
 
 /* Per-feature data record */
 typedef struct {
-    const char*      menu_label;
-    const char*      submenu_header;
-    const char*      demo_item;
-    const char*      about_label;  /* sub-menu item text for "about" */
-    const char*      about_title;
-    const char*      about_body;
+    const char* menu_label;
+    const char* submenu_header;
+    const char* demo_item;
+    const char* about_label; /* sub-menu item text for "about" */
+    const char* about_title;
+    const char* about_body;
     SkidCityDemoType demo_type;
 } SkidCityFeatureInfo;
 
@@ -102,21 +102,21 @@ typedef struct {
 
 /* Application context */
 typedef struct {
-    Gui*             gui;
-    ViewDispatcher*  view_dispatcher;
-    SceneManager*    scene_manager;
-    Submenu*         submenu;
-    Widget*          widget;
+    Gui* gui;
+    ViewDispatcher* view_dispatcher;
+    SceneManager* scene_manager;
+    Submenu* submenu;
+    Widget* widget;
     NotificationApp* notifications;
-    View*            traffic_view;
-    View*            banned_view;
-    View*            ir_view;
-    SkidCityFeature  current_feature;
-    FuriTimer*       header_timer;
-    uint8_t          header_offset;
-    char             header_buf[32];
-    FuriTimer*       ir_blink_timer;
-    bool             ir_tx_active;
-    uint32_t         main_menu_selected_index;
-    uint32_t         feature_menu_selected_index;
+    View* traffic_view;
+    View* banned_view;
+    View* ir_view;
+    SkidCityFeature current_feature;
+    FuriTimer* header_timer;
+    uint8_t header_offset;
+    char header_buf[32];
+    FuriTimer* ir_blink_timer;
+    bool ir_tx_active;
+    uint32_t main_menu_selected_index;
+    uint32_t feature_menu_selected_index;
 } SkidCityApp;

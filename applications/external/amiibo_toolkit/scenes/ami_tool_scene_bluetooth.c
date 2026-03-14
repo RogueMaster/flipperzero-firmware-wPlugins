@@ -6,10 +6,10 @@
 
 #include <furi_hal_bt.h>
 
-#define AMI_TOOL_BT_SERIAL_BUFFER_SIZE (128U)
-#define AMI_TOOL_BT_DISPLAY_SIZE (sizeof(((AmiToolApp*)0)->bt_display_text))
-#define AMI_TOOL_BT_MAX_DISPLAY_BYTES (40U)
-#define AMI_TOOL_BT_AMIIBO_ID_LEN (8U)
+#define AMI_TOOL_BT_SERIAL_BUFFER_SIZE    (128U)
+#define AMI_TOOL_BT_DISPLAY_SIZE          (sizeof(((AmiToolApp*)0)->bt_display_text))
+#define AMI_TOOL_BT_MAX_DISPLAY_BYTES     (40U)
+#define AMI_TOOL_BT_AMIIBO_ID_LEN         (8U)
 #define AMI_TOOL_BT_GENERATE_COMMAND_SIZE (2U + AMI_TOOL_BT_AMIIBO_ID_LEN)
 
 static const uint8_t ami_tool_scene_bluetooth_generate_ack[] = {0xB0, 0xA2};
@@ -63,7 +63,8 @@ static void ami_tool_scene_bluetooth_send_uid_response(AmiToolApp* app) {
         return;
     }
 
-    uint8_t response[sizeof(ami_tool_scene_bluetooth_uid_reply_prefix) + sizeof(app->last_uid)] = {0};
+    uint8_t response[sizeof(ami_tool_scene_bluetooth_uid_reply_prefix) + sizeof(app->last_uid)] = {
+        0};
     size_t response_size = sizeof(ami_tool_scene_bluetooth_uid_reply_prefix) + 1;
 
     memcpy(
@@ -101,8 +102,7 @@ static int8_t ami_tool_scene_bluetooth_hex_value(char ch) {
     return -1;
 }
 
-static bool
-    ami_tool_scene_bluetooth_parse_uuid(const char* hex, uint8_t* out, size_t out_len) {
+static bool ami_tool_scene_bluetooth_parse_uuid(const char* hex, uint8_t* out, size_t out_len) {
     if(!hex || !out || out_len == 0) {
         return false;
     }
@@ -129,7 +129,8 @@ static bool ami_tool_scene_bluetooth_prepare_dump(AmiToolApp* app, const char* i
         return false;
     }
 
-    if(!ami_tool_has_retail_key(app) && ami_tool_load_retail_key(app) != AmiToolRetailKeyStatusOk) {
+    if(!ami_tool_has_retail_key(app) &&
+       ami_tool_load_retail_key(app) != AmiToolRetailKeyStatusOk) {
         return false;
     }
 
@@ -295,14 +296,14 @@ static void ami_tool_scene_bluetooth_bt_status_changed_callback(BtStatus status,
     ami_tool_scene_bluetooth_notify_update(app);
 }
 
-static uint16_t ami_tool_scene_bluetooth_serial_event_callback(
-    SerialServiceEvent event,
-    void* context) {
+static uint16_t
+    ami_tool_scene_bluetooth_serial_event_callback(SerialServiceEvent event, void* context) {
     AmiToolApp* app = context;
     furi_assert(app);
 
     if(event.event == SerialServiceEventTypeDataReceived) {
-        if(ami_tool_scene_bluetooth_queue_generate_command(app, event.data.buffer, event.data.size)) {
+        if(ami_tool_scene_bluetooth_queue_generate_command(
+               app, event.data.buffer, event.data.size)) {
             view_dispatcher_send_custom_event(app->view_dispatcher, AmiToolEventBluetoothGenerate);
         } else if(
             event.data.size >= 2 && event.data.buffer[0] == 0xA2 && event.data.buffer[1] == 0xB1) {
@@ -345,7 +346,8 @@ void ami_tool_scene_bluetooth_on_enter(void* context) {
 
     app->bt_serial_profile = bt_profile_start(app->bt, ble_profile_serial, NULL);
     if(app->bt_serial_profile) {
-        bt_set_status_changed_callback(app->bt, ami_tool_scene_bluetooth_bt_status_changed_callback, app);
+        bt_set_status_changed_callback(
+            app->bt, ami_tool_scene_bluetooth_bt_status_changed_callback, app);
         ble_profile_serial_set_event_callback(
             app->bt_serial_profile,
             AMI_TOOL_BT_SERIAL_BUFFER_SIZE,
