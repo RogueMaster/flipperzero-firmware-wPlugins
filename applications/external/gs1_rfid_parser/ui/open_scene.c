@@ -1,5 +1,6 @@
 
 #include "ui.h"
+#include "missing_api.h"
 
 #include <notification/notification_messages.h>
 
@@ -36,13 +37,13 @@ static void update_widget_display(UI* ui) {
     widget_reset(ui->open_scene->open_widget);
 
     char hw_version[64] = "HW: ";
-    size_t hw_version_prefix_len = strnlen(hw_version, 64);
+    size_t hw_version_prefix_len = local_strnlen(hw_version, 64);
 
     char sw_version[64] = "SW: ";
-    size_t sw_version_prefix_len = strnlen(sw_version, 64);
+    size_t sw_version_prefix_len = local_strnlen(sw_version, 64);
 
     char manufacturer[64] = "Manufacturer: ";
-    size_t manufacturer_len = strnlen(manufacturer, 64);
+    size_t manufacturer_len = local_strnlen(manufacturer, 64);
 
     int32_t result = uhf_u107_get_hw_version(
         ui->uhf_device, &hw_version[hw_version_prefix_len], 64 - hw_version_prefix_len);

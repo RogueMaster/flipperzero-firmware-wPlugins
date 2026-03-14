@@ -1,6 +1,7 @@
 #include "wendigo_scan.h"
 #include "wendigo_app_i.h"
 #include "wendigo_common_defs.h"
+#include "missing_api.h"
 
 uint8_t* buffer = NULL;
 uint16_t bufferLen = 0; // 65535 should be plenty of length
@@ -577,7 +578,7 @@ bool wendigo_update_device(WendigoApp* app, wendigo_device* dev) {
         if(dev->radio.ap.authmode != WIFI_AUTH_MAX) {
             target->radio.ap.authmode = dev->radio.ap.authmode;
         }
-        uint8_t ssid_len = strnlen((char*)dev->radio.ap.ssid, MAX_SSID_LEN);
+        uint8_t ssid_len = local_strnlen((char*)dev->radio.ap.ssid, MAX_SSID_LEN);
         if(ssid_len > 0) {
             memcpy(target->radio.ap.ssid, dev->radio.ap.ssid, ssid_len + 1);
             target->radio.ap.ssid[ssid_len] = '\0';

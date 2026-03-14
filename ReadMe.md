@@ -69,7 +69,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Sub Duplicate Finder v1.0 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - Updated: [FlipWeather v1.4 (By jblanked)](https://github.com/jblanked/FlipWeather) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - Updated: [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) `Req: BMP180/BMP280/BME280/BME680/DHT11/DHT22(AM2302)/AM2301/AM2320/HTU2XD/HTU21x/HDC1080/MAX31725/MAX31855/MAX6675/SCD30`
-- Updated: [CAN Commander v2.1.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
+- Updated: [CAN Commander v2.1.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board` Added Missing API files for strnlen and strtok_r (By xMasterX)
+- Updated: [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100` Added Missing API files for strnlen (By xMasterX)
+- Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage) Added Missing API files for strnlen (By xMasterX)
+- Updated: [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer) Added Missing API files for strnlen (By xMasterX)
+- Updated: [Wendigo Bluetooth Tracker WIP v0.5.1 (By chris-bc)](https://github.com/chris-bc/wendigo) `WIP Req: ESP32` Added Missing API files for strnlen (By xMasterX)
 
 <a name="release"></a>
 

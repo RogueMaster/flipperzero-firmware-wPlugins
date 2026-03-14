@@ -1,5 +1,6 @@
 
 #include "ui_i.h"
+#include "missing_api.h"
 
 #include <notification/notification_messages.h>
 
@@ -77,7 +78,7 @@ void log_scene_on_enter(void* context) {
 
     char title[25];
     snprintf(title, 25, "%s Commands:", PROTOCOL_NAMES[ui->nfc_protocol]);
-    append_text(title, strnlen(title, 25), ui);
+    append_text(title, local_strnlen(title, 25), ui);
 
     view_dispatcher_switch_to_view(ui->view_dispatcher, View_LogDisplay);
 }
