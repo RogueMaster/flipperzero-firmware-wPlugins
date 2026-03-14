@@ -16,25 +16,25 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "SHT30.h"
-#include "../interfaces/I2CSensor.h"
+#include "../interfaces/i2c_sensor.h"
 
-const SensorType SHT30 = {
-    .typename = "SHT30",
+const SensorModel SHT30 = {
+    .modelname = "SHT3x",
     .altname = "SHT30/31/35",
-    .interface = &I2C,
-    .datatype = UT_TEMPERATURE | UT_HUMIDITY,
-    .pollingInterval = 1000,
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_HUM,
+    .polling_interval = 1000,
     .allocator = unitemp_SHT30_I2C_alloc,
     .mem_releaser = unitemp_SHT30_I2C_free,
     .initializer = unitemp_SHT30_init,
     .deinitializer = unitemp_SHT30_I2C_deinit,
     .updater = unitemp_SHT30_I2C_update};
-const SensorType GXHT30 = {
-    .typename = "GXHT30",
+const SensorModel GXHT30 = {
+    .modelname = "GXHT3x",
     .altname = "GXHT30/31/35",
-    .interface = &I2C,
-    .datatype = UT_TEMPERATURE | UT_HUMIDITY,
-    .pollingInterval = 1000,
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_HUM,
+    .polling_interval = 1000,
     .allocator = unitemp_SHT30_I2C_alloc,
     .mem_releaser = unitemp_SHT30_I2C_free,
     .initializer = unitemp_GXHT30_init,
@@ -46,8 +46,8 @@ bool unitemp_SHT30_I2C_alloc(Sensor* sensor, char* args) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
     //Addresses on the I2C bus (7 bits)
-    i2c_sensor->minI2CAdr = 0x44 << 1;
-    i2c_sensor->maxI2CAdr = 0x45 << 1;
+    i2c_sensor->min_i2c_adress = 0x44 << 1;
+    i2c_sensor->max_i2c_adress = 0x45 << 1;
     return true;
 }
 
@@ -80,9 +80,9 @@ static bool unitemp_SHT30_readSerial(I2CSensor* i2c_sensor, uint32_t* serial) {
     uint8_t command[2] = {0x37, 0x80};
     uint8_t response[6] = {0};
 
-    if(!unitemp_i2c_writeArray(i2c_sensor, 2, command)) return false;
+    if(!unitemp_i2c_write_array(i2c_sensor, 2, command)) return false;
     furi_delay_ms(1);
-    if(!unitemp_i2c_readArray(i2c_sensor, 6, response)) return false;
+    if(!unitemp_i2c_read_array(i2c_sensor, 6, response)) return false;
 
     if(unitemp_SHT30_crc8(response, 2) != response[2]) return false;
     if(unitemp_SHT30_crc8(&response[3], 2) != response[5]) return false;
@@ -107,7 +107,7 @@ static bool unitemp_SHT30_startPeriodicMeasurements(I2CSensor* i2c_sensor) {
      */
     //Enable automatic conversion mode 2 times per second
     uint8_t data[2] = {0x22, 0x36};
-    return unitemp_i2c_writeArray(i2c_sensor, 2, data);
+    return unitemp_i2c_write_array(i2c_sensor, 2, data);
 }
 
 bool unitemp_SHT30_init(Sensor* sensor) {
@@ -125,10 +125,10 @@ bool unitemp_SHT30_init(Sensor* sensor) {
         FURI_LOG_I(
             APP_NAME,
             "SHT3x detected at 0x%02X (serial 0x%08lX)",
-            i2c_sensor->currentI2CAdr,
+            i2c_sensor->current_i2c_adress,
             (unsigned long)serial);
     } else {
-        FURI_LOG_W(APP_NAME, "SHT3x serial read failed at 0x%02X", i2c_sensor->currentI2CAdr);
+        FURI_LOG_W(APP_NAME, "SHT3x serial read failed at 0x%02X", i2c_sensor->current_i2c_adress);
     }
 
     return true;
@@ -145,12 +145,12 @@ bool unitemp_SHT30_I2C_deinit(Sensor* sensor) {
     return true;
 }
 
-UnitempStatus unitemp_SHT30_I2C_update(Sensor* sensor) {
+SensorStatus unitemp_SHT30_I2C_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     //Receiving data
     uint8_t data[6] = {0xE0, 0x00};
-    if(!unitemp_i2c_writeArray(i2c_sensor, 2, data) ||
-       !unitemp_i2c_readArray(i2c_sensor, 6, data)) {
+    if(!unitemp_i2c_write_array(i2c_sensor, 2, data) ||
+       !unitemp_i2c_read_array(i2c_sensor, 6, data)) {
         /*
          * Reading the "fetch data" command (0xE000) returns a NACK if the sensor was
          * never switched into periodic measurement mode. Trigger periodic
@@ -161,12 +161,12 @@ UnitempStatus unitemp_SHT30_I2C_update(Sensor* sensor) {
         furi_delay_ms(10);
         data[0] = 0xE0;
         data[1] = 0x00;
-        if(!unitemp_i2c_writeArray(i2c_sensor, 2, data)) return UT_SENSORSTATUS_TIMEOUT;
-        if(!unitemp_i2c_readArray(i2c_sensor, 6, data)) return UT_SENSORSTATUS_TIMEOUT;
+        if(!unitemp_i2c_write_array(i2c_sensor, 2, data)) return UT_SENSORSTATUS_TIMEOUT;
+        if(!unitemp_i2c_read_array(i2c_sensor, 6, data)) return UT_SENSORSTATUS_TIMEOUT;
     }
 
-    sensor->temp = -45 + 175 * (((uint16_t)(data[0] << 8) | data[1]) / 65535.0f);
-    sensor->hum = 100 * (((uint16_t)(data[3] << 8) | data[4]) / 65535.0f);
+    sensor->temperature = -45 + 175 * (((uint16_t)(data[0] << 8) | data[1]) / 65535.0f);
+    sensor->humidity = 100 * (((uint16_t)(data[3] << 8) | data[4]) / 65535.0f);
 
     return UT_SENSORSTATUS_OK;
 }

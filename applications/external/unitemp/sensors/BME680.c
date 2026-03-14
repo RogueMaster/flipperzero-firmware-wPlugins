@@ -18,11 +18,11 @@
 */
 #include "BME680.h"
 
-const SensorType BME680 = {
-    .typename = "BME680",
-    .interface = &I2C,
-    .datatype = UT_TEMPERATURE | UT_HUMIDITY | UT_PRESSURE,
-    .pollingInterval = 500,
+const SensorModel BME680 = {
+    .modelname = "BME680",
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_HUM_PRESS,
+    .polling_interval = 500,
     .allocator = unitemp_BME680_alloc,
     .mem_releaser = unitemp_BME680_free,
     .initializer = unitemp_BME680_init,
@@ -78,7 +78,7 @@ const SensorType BME680 = {
 /* https://github.com/boschsensortec/BME680_driver/blob/master/bme680.c or
    https://github.com/boschsensortec/BME68x-Sensor-API */
 static float BME680_compensate_temperature(I2CSensor* i2c_sensor, int32_t temp_adc) {
-    BME680_instance* bme680_instance = (BME680_instance*)i2c_sensor->sensorInstance;
+    BME680_instance* bme680_instance = (BME680_instance*)i2c_sensor->sensor_instance;
     float var1 = 0;
     float var2 = 0;
     float calc_temp = 0;
@@ -104,7 +104,7 @@ static float BME680_compensate_temperature(I2CSensor* i2c_sensor, int32_t temp_a
 }
 
 static float BME680_compensate_pressure(I2CSensor* i2c_sensor, int32_t pres_adc) {
-    BME680_instance* bme680_instance = (BME680_instance*)i2c_sensor->sensorInstance;
+    BME680_instance* bme680_instance = (BME680_instance*)i2c_sensor->sensor_instance;
 
     float var1;
     float var2;
@@ -142,7 +142,7 @@ static float BME680_compensate_pressure(I2CSensor* i2c_sensor, int32_t pres_adc)
 }
 
 static float BME680_compensate_humidity(I2CSensor* i2c_sensor, int32_t hum_adc) {
-    BME680_instance* bme680_instance = (BME680_instance*)i2c_sensor->sensorInstance;
+    BME680_instance* bme680_instance = (BME680_instance*)i2c_sensor->sensor_instance;
     float calc_hum;
     float var1;
     float var2;
@@ -217,13 +217,13 @@ static float BME680_compensate_humidity(I2CSensor* i2c_sensor, int32_t hum_adc) 
 #define BME680_BIT_H1_DATA_MSK        UINT8_C(0x0F)
 
 static bool BME680_readCalValues(I2CSensor* i2c_sensor) {
-    BME680_instance* bme680_instance = (BME680_instance*)i2c_sensor->sensorInstance;
+    BME680_instance* bme680_instance = (BME680_instance*)i2c_sensor->sensor_instance;
     uint8_t coeff_array[BME680_COEFF_SIZE] = {0};
 
-    if(!unitemp_i2c_readRegArray(
+    if(!unitemp_i2c_read_reg_array(
            i2c_sensor, BME680_COEFF_ADDR1, BME680_COEFF_ADDR1_LEN, &coeff_array[0]))
         return false;
-    if(!unitemp_i2c_readRegArray(
+    if(!unitemp_i2c_read_reg_array(
            i2c_sensor,
            BME680_COEFF_ADDR2,
            BME680_COEFF_ADDR2_LEN,
@@ -321,7 +321,7 @@ static bool BME680_readCalValues(I2CSensor* i2c_sensor) {
 }
 static bool BME680_isMeasuring(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    return (bool)(unitemp_i2c_readReg(i2c_sensor, BME680_REG_STATUS) & 0x20);
+    return (bool)(unitemp_i2c_read_reg(i2c_sensor, BME680_REG_STATUS) & 0x20);
 }
 
 bool unitemp_BME680_alloc(Sensor* sensor, char* args) {
@@ -333,21 +333,21 @@ bool unitemp_BME680_alloc(Sensor* sensor, char* args) {
         return false;
     }
 
-    if(sensor->type == &BME680) bme680_instance->chip_id = BME680_ID;
+    if(sensor->model == &BME680) bme680_instance->chip_id = BME680_ID;
 
-    i2c_sensor->sensorInstance = bme680_instance;
+    i2c_sensor->sensor_instance = bme680_instance;
 
-    i2c_sensor->minI2CAdr = BME680_I2C_ADDR_MIN;
-    i2c_sensor->maxI2CAdr = BME680_I2C_ADDR_MAX;
+    i2c_sensor->min_i2c_adress = BME680_I2C_ADDR_MIN;
+    i2c_sensor->max_i2c_adress = BME680_I2C_ADDR_MAX;
     return true;
 }
 
 bool unitemp_BME680_init(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     //Reboot
-    unitemp_i2c_writeReg(i2c_sensor, 0xE0, 0xB6);
+    unitemp_i2c_write_reg(i2c_sensor, 0xE0, 0xB6);
     //Reading Sensor ID
-    uint8_t id = unitemp_i2c_readReg(i2c_sensor, 0xD0);
+    uint8_t id = unitemp_i2c_read_reg(i2c_sensor, 0xD0);
     if(id != BME680_ID) {
         FURI_LOG_E(
             APP_NAME,
@@ -358,16 +358,16 @@ bool unitemp_BME680_init(Sensor* sensor) {
         return false;
     }
 
-    unitemp_i2c_writeReg(
+    unitemp_i2c_write_reg(
         i2c_sensor,
         BME680_REG_CTRL_HUM,
-        (unitemp_i2c_readReg(i2c_sensor, BME680_REG_CTRL_HUM) & ~7) | BME680_HUM_OVERSAMPLING_1);
-    unitemp_i2c_writeReg(
+        (unitemp_i2c_read_reg(i2c_sensor, BME680_REG_CTRL_HUM) & ~7) | BME680_HUM_OVERSAMPLING_1);
+    unitemp_i2c_write_reg(
         i2c_sensor,
         BME680_REG_CTRL_MEAS,
         BME680_TEMP_OVERSAMPLING_2 | BME680_PRESS_OVERSAMPLING_4 | BME680_MODE_FORCED);
     //Setting the polling period and filtering values
-    unitemp_i2c_writeReg(
+    unitemp_i2c_write_reg(
         i2c_sensor, BME680_REG_CONFIG, BME680_FILTER_COEFF_16 | BME680_SPI_3W_DISABLE);
     //Reading calibration values
     if(!BME680_readCalValues(i2c_sensor)) {
@@ -380,28 +380,28 @@ bool unitemp_BME680_init(Sensor* sensor) {
 bool unitemp_BME680_deinit(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     //Transfer to sleep
-    unitemp_i2c_writeReg(i2c_sensor, BME680_REG_CTRL_MEAS, BME680_MODE_SLEEP);
+    unitemp_i2c_write_reg(i2c_sensor, BME680_REG_CTRL_MEAS, BME680_MODE_SLEEP);
     return true;
 }
 
-UnitempStatus unitemp_BME680_update(Sensor* sensor) {
+SensorStatus unitemp_BME680_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    BME680_instance* instance = i2c_sensor->sensorInstance;
+    BME680_instance* instance = i2c_sensor->sensor_instance;
 
     uint32_t t = furi_get_tick();
 
     uint8_t buff[3];
     //Checking the initialization of the sensor
-    unitemp_i2c_readRegArray(i2c_sensor, 0xF4, 2, buff);
+    unitemp_i2c_read_reg_array(i2c_sensor, 0xF4, 2, buff);
     if(buff[0] == 0) {
         FURI_LOG_W(APP_NAME, "Sensor %s is not initialized!", sensor->name);
-        return UT_SENSORSTATUS_ERROR;
+        return UT_SENSORSTATUS_UNINITIALIZED;
     }
 
-    unitemp_i2c_writeReg(
+    unitemp_i2c_write_reg(
         i2c_sensor,
         BME680_REG_CTRL_MEAS,
-        unitemp_i2c_readReg(i2c_sensor, BME680_REG_CTRL_MEAS) | 1);
+        unitemp_i2c_read_reg(i2c_sensor, BME680_REG_CTRL_MEAS) | 1);
 
     while(BME680_isMeasuring(sensor)) {
         if(furi_get_tick() - t > 100) {
@@ -413,22 +413,22 @@ UnitempStatus unitemp_BME680_update(Sensor* sensor) {
         BME680_readCalValues(i2c_sensor);
     }
 
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0x1F, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0x1F, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
     int32_t adc_P = ((int32_t)buff[0] << 12) | ((int32_t)buff[1] << 4) | ((int32_t)buff[2] >> 4);
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0x22, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0x22, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
     int32_t adc_T = ((int32_t)buff[0] << 12) | ((int32_t)buff[1] << 4) | ((int32_t)buff[2] >> 4);
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0x25, 2, buff)) return UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0x25, 2, buff)) return UT_SENSORSTATUS_TIMEOUT;
     int32_t adc_H = ((uint16_t)buff[0] << 8) | buff[1];
 
-    sensor->temp = BME680_compensate_temperature(i2c_sensor, adc_T);
+    sensor->temperature = BME680_compensate_temperature(i2c_sensor, adc_T);
     sensor->pressure = BME680_compensate_pressure(i2c_sensor, adc_P);
-    sensor->hum = BME680_compensate_humidity(i2c_sensor, adc_H);
+    sensor->humidity = BME680_compensate_humidity(i2c_sensor, adc_H);
 
     return UT_SENSORSTATUS_OK;
 }
 
 bool unitemp_BME680_free(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    free(i2c_sensor->sensorInstance);
+    free(i2c_sensor->sensor_instance);
     return true;
 }

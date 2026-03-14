@@ -17,12 +17,12 @@
 */
 #include "MAX6675.h"
 
-const SensorType MAX6675 = {
-    .typename = "MAX6675",
+const SensorModel MAX6675 = {
+    .modelname = "MAX6675",
     .altname = "MAX6675 (Thermocouple)",
-    .interface = &SPI,
-    .datatype = UT_TEMPERATURE,
-    .pollingInterval = 500,
+    .interface = &unitemp_spi,
+    .data_type = UT_DATA_TYPE_TEMP,
+    .polling_interval = 500,
     .allocator = unitemp_MAX6675_alloc,
     .mem_releaser = unitemp_MAX6675_free,
     .initializer = unitemp_MAX6675_init,
@@ -52,30 +52,31 @@ bool unitemp_MAX6675_deinit(Sensor* sensor) {
     return true;
 }
 
-UnitempStatus unitemp_MAX6675_update(Sensor* sensor) {
+SensorStatus unitemp_MAX6675_update(Sensor* sensor) {
     SPISensor* instance = sensor->instance;
 
     furi_hal_spi_acquire(instance->spi);
-    furi_hal_gpio_write(instance->CS_pin->pin, false);
+    furi_hal_gpio_write(instance->cs_pin->pin, false);
 
     uint8_t buff[2] = {0};
-
     furi_hal_spi_bus_rx(instance->spi, buff, 2, 0xFF);
+
+    furi_hal_gpio_write(instance->cs_pin->pin, true);
     furi_hal_spi_release(instance->spi);
 
-    uint32_t raw = (buff[0] << 8) | buff[1];
+    uint16_t raw = (buff[0] << 8) | buff[1];
 
-    if(raw == 0xFFFFFFFF || raw == 0) return UT_SENSORSTATUS_TIMEOUT;
+    if(raw == 0xFFFF || raw == 0) return UT_SENSORSTATUS_TIMEOUT;
 
     //Determining the status of the thermocouple
     uint8_t state = raw & 0b100;
     //Break
     if(state == 0b100) {
-        UNITEMP_DEBUG("%s has thermocouple open circuit", sensor->name);
+        FURI_LOG_E(APP_NAME, "%s has thermocouple open circuit", sensor->name);
         return UT_SENSORSTATUS_ERROR;
     }
 
-    sensor->temp = (int16_t)(raw) / 32.0f;
+    sensor->temperature = ((int16_t)(raw >> 3)) / 4.0f;
 
     return UT_SENSORSTATUS_OK;
 }

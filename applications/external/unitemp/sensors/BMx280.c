@@ -17,22 +17,22 @@
 */
 #include "BMx280.h"
 
-const SensorType BMP280 = {
-    .typename = "BMP280",
-    .interface = &I2C,
-    .datatype = UT_TEMPERATURE | UT_PRESSURE,
-    .pollingInterval = 500,
+const SensorModel BMP280 = {
+    .modelname = "BMP280",
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_PRESS,
+    .polling_interval = 500,
     .allocator = unitemp_BMx280_alloc,
     .mem_releaser = unitemp_BMx280_free,
     .initializer = unitemp_BMx280_init,
     .deinitializer = unitemp_BMx280_deinit,
     .updater = unitemp_BMx280_update};
-const SensorType BME280 = {
-    .typename = "BME280",
-    .interface = &I2C,
-    .datatype = UT_TEMPERATURE | UT_HUMIDITY | UT_PRESSURE,
+const SensorModel BME280 = {
+    .modelname = "BME280",
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_HUM_PRESS,
 
-    .pollingInterval = 500,
+    .polling_interval = 500,
     .allocator = unitemp_BMx280_alloc,
     .mem_releaser = unitemp_BMx280_free,
     .initializer = unitemp_BMx280_init,
@@ -102,7 +102,7 @@ const SensorType BME280 = {
 #define BMx280_SPI_3W_DISABLE          0b00000000
 
 static float BMx280_compensate_temperature(I2CSensor* i2c_sensor, int32_t adc_T) {
-    BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensorInstance;
+    BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensor_instance;
     int32_t var1, var2;
     var1 = ((((adc_T >> 3) - ((int32_t)bmx280_instance->temp_cal.dig_T1 << 1))) *
             ((int32_t)bmx280_instance->temp_cal.dig_T2)) >>
@@ -117,7 +117,7 @@ static float BMx280_compensate_temperature(I2CSensor* i2c_sensor, int32_t adc_T)
 }
 
 static float BMx280_compensate_pressure(I2CSensor* i2c_sensor, int32_t adc_P) {
-    BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensorInstance;
+    BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensor_instance;
 
     int32_t var1, var2;
     uint32_t p;
@@ -147,7 +147,7 @@ static float BMx280_compensate_pressure(I2CSensor* i2c_sensor, int32_t adc_P) {
 }
 
 static float BMx280_compensate_humidity(I2CSensor* i2c_sensor, int32_t adc_H) {
-    BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensorInstance;
+    BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensor_instance;
     int32_t v_x1_u32r;
     v_x1_u32r = (bmx280_instance->t_fine - ((int32_t)76800));
 
@@ -176,25 +176,25 @@ static float BMx280_compensate_humidity(I2CSensor* i2c_sensor, int32_t adc_H) {
 }
 
 static bool bmx280_readCalValues(I2CSensor* i2c_sensor) {
-    BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensorInstance;
-    if(!unitemp_i2c_readRegArray(
+    BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensor_instance;
+    if(!unitemp_i2c_read_reg_array(
            i2c_sensor, TEMP_CAL_START_ADDR, 6, (uint8_t*)&bmx280_instance->temp_cal))
         return false;
 
     UNITEMP_DEBUG(
         "Sensor BMx280 (0x%02X) T1-T3: %d, %d, %d",
-        i2c_sensor->currentI2CAdr,
+        i2c_sensor->current_i2c_adress,
         bmx280_instance->temp_cal.dig_T1,
         bmx280_instance->temp_cal.dig_T2,
         bmx280_instance->temp_cal.dig_T3);
 
-    if(!unitemp_i2c_readRegArray(
+    if(!unitemp_i2c_read_reg_array(
            i2c_sensor, PRESS_CAL_START_ADDR, 18, (uint8_t*)&bmx280_instance->press_cal))
         return false;
 
     UNITEMP_DEBUG(
         "Sensor BMx280 (0x%02X): P1-P9: %d, %d, %d, %d, %d, %d, %d, %d, %d",
-        i2c_sensor->currentI2CAdr,
+        i2c_sensor->current_i2c_adress,
         bmx280_instance->press_cal.dig_P1,
         bmx280_instance->press_cal.dig_P2,
         bmx280_instance->press_cal.dig_P3,
@@ -207,10 +207,10 @@ static bool bmx280_readCalValues(I2CSensor* i2c_sensor) {
 
     if(bmx280_instance->chip_id == BME280_ID) {
         uint8_t buff[7] = {0};
-        if(!unitemp_i2c_readRegArray(i2c_sensor, HUM_CAL_H1_ADDR, 1, buff)) return false;
+        if(!unitemp_i2c_read_reg_array(i2c_sensor, HUM_CAL_H1_ADDR, 1, buff)) return false;
         bmx280_instance->hum_cal.dig_H1 = buff[0];
 
-        if(!unitemp_i2c_readRegArray(i2c_sensor, HUM_CAL_H2_ADDR, 7, buff)) return false;
+        if(!unitemp_i2c_read_reg_array(i2c_sensor, HUM_CAL_H2_ADDR, 7, buff)) return false;
         bmx280_instance->hum_cal.dig_H2 = (uint16_t)(buff[0] | ((uint16_t)buff[1] << 8));
         bmx280_instance->hum_cal.dig_H3 = buff[2];
         bmx280_instance->hum_cal.dig_H4 = ((int16_t)buff[3] << 4) | (buff[4] & 0x0F);
@@ -219,7 +219,7 @@ static bool bmx280_readCalValues(I2CSensor* i2c_sensor) {
 
         UNITEMP_DEBUG(
             "Sensor BMx280 (0x%02X): H1-H6: %d, %d, %d, %d, %d, %d",
-            i2c_sensor->currentI2CAdr,
+            i2c_sensor->current_i2c_adress,
             bmx280_instance->hum_cal.dig_H1,
             bmx280_instance->hum_cal.dig_H2,
             bmx280_instance->hum_cal.dig_H3,
@@ -233,7 +233,7 @@ static bool bmx280_readCalValues(I2CSensor* i2c_sensor) {
 }
 static bool bmp280_isMeasuring(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    return (bool)((unitemp_i2c_readReg(i2c_sensor, BMx280_REG_STATUS) & 0x08) >> 3);
+    return (bool)((unitemp_i2c_read_reg(i2c_sensor, BMx280_REG_STATUS) & 0x08) >> 3);
 }
 
 bool unitemp_BMx280_alloc(Sensor* sensor, char* args) {
@@ -245,22 +245,22 @@ bool unitemp_BMx280_alloc(Sensor* sensor, char* args) {
         return false;
     }
 
-    if(sensor->type == &BMP280) bmx280_instance->chip_id = BMP280_ID;
-    if(sensor->type == &BME280) bmx280_instance->chip_id = BME280_ID;
+    if(sensor->model == &BMP280) bmx280_instance->chip_id = BMP280_ID;
+    if(sensor->model == &BME280) bmx280_instance->chip_id = BME280_ID;
 
-    i2c_sensor->sensorInstance = bmx280_instance;
+    i2c_sensor->sensor_instance = bmx280_instance;
 
-    i2c_sensor->minI2CAdr = BMx280_I2C_ADDR_MIN;
-    i2c_sensor->maxI2CAdr = BMx280_I2C_ADDR_MAX;
+    i2c_sensor->min_i2c_adress = BMx280_I2C_ADDR_MIN;
+    i2c_sensor->max_i2c_adress = BMx280_I2C_ADDR_MAX;
     return true;
 }
 
 bool unitemp_BMx280_init(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     //Reboot
-    unitemp_i2c_writeReg(i2c_sensor, 0xE0, 0xB6);
+    unitemp_i2c_write_reg(i2c_sensor, 0xE0, 0xB6);
     //Reading Sensor ID
-    uint8_t id = unitemp_i2c_readReg(i2c_sensor, 0xD0);
+    uint8_t id = unitemp_i2c_read_reg(i2c_sensor, 0xD0);
     if(id != BMP280_ID && id != BME280_ID) {
         FURI_LOG_E(
             APP_NAME,
@@ -274,16 +274,18 @@ bool unitemp_BMx280_init(Sensor* sensor) {
 
     //Setting up operating modes
     if(id == BME280_ID) {
-        unitemp_i2c_writeReg(i2c_sensor, BME280_REG_CTRL_HUM, BME280_HUM_OVERSAMPLING_1);
-        unitemp_i2c_writeReg(
-            i2c_sensor, BME280_REG_CTRL_HUM, unitemp_i2c_readReg(i2c_sensor, BME280_REG_CTRL_HUM));
+        unitemp_i2c_write_reg(i2c_sensor, BME280_REG_CTRL_HUM, BME280_HUM_OVERSAMPLING_1);
+        unitemp_i2c_write_reg(
+            i2c_sensor,
+            BME280_REG_CTRL_HUM,
+            unitemp_i2c_read_reg(i2c_sensor, BME280_REG_CTRL_HUM));
     }
-    unitemp_i2c_writeReg(
+    unitemp_i2c_write_reg(
         i2c_sensor,
         BMx280_REG_CTRL_MEAS,
         BMx280_TEMP_OVERSAMPLING_2 | BMx280_PRESS_OVERSAMPLING_4 | BMx280_MODE_NORMAL);
     //Setting the polling period and filtering values
-    unitemp_i2c_writeReg(
+    unitemp_i2c_write_reg(
         i2c_sensor,
         BMx280_REG_CONFIG,
         BMx280_STANDBY_TIME_500 | BMx280_FILTER_COEFF_16 | BMx280_SPI_3W_DISABLE);
@@ -298,22 +300,22 @@ bool unitemp_BMx280_init(Sensor* sensor) {
 bool unitemp_BMx280_deinit(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     //Transfer to sleep
-    unitemp_i2c_writeReg(i2c_sensor, BMx280_REG_CTRL_MEAS, BMx280_MODE_SLEEP);
+    unitemp_i2c_write_reg(i2c_sensor, BMx280_REG_CTRL_MEAS, BMx280_MODE_SLEEP);
     return true;
 }
 
-UnitempStatus unitemp_BMx280_update(Sensor* sensor) {
+SensorStatus unitemp_BMx280_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    BMx280_instance* instance = i2c_sensor->sensorInstance;
+    BMx280_instance* instance = i2c_sensor->sensor_instance;
 
     uint32_t t = furi_get_tick();
 
     uint8_t buff[3];
     //Checking the initialization of the sensor
-    unitemp_i2c_readRegArray(i2c_sensor, 0xF4, 2, buff);
+    unitemp_i2c_read_reg_array(i2c_sensor, 0xF4, 2, buff);
     if(buff[0] == 0) {
         FURI_LOG_W(APP_NAME, "Sensor %s is not initialized!", sensor->name);
-        return UT_SENSORSTATUS_ERROR;
+        return UT_SENSORSTATUS_UNINITIALIZED;
     }
 
     while(bmp280_isMeasuring(sensor)) {
@@ -326,20 +328,20 @@ UnitempStatus unitemp_BMx280_update(Sensor* sensor) {
         bmx280_readCalValues(i2c_sensor);
     }
 
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0xFA, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0xFA, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
     int32_t adc_T = ((int32_t)buff[0] << 12) | ((int32_t)buff[1] << 4) | ((int32_t)buff[2] >> 4);
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0xF7, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0xF7, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
     int32_t adc_P = ((int32_t)buff[0] << 12) | ((int32_t)buff[1] << 4) | ((int32_t)buff[2] >> 4);
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0xFD, 2, buff)) return UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0xFD, 2, buff)) return UT_SENSORSTATUS_TIMEOUT;
     int32_t adc_H = ((uint16_t)buff[0] << 8) | buff[1];
-    sensor->temp = BMx280_compensate_temperature(i2c_sensor, adc_T);
+    sensor->temperature = BMx280_compensate_temperature(i2c_sensor, adc_T);
     sensor->pressure = BMx280_compensate_pressure(i2c_sensor, adc_P);
-    sensor->hum = BMx280_compensate_humidity(i2c_sensor, adc_H);
+    sensor->humidity = BMx280_compensate_humidity(i2c_sensor, adc_H);
     return UT_SENSORSTATUS_OK;
 }
 
 bool unitemp_BMx280_free(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    free(i2c_sensor->sensorInstance);
+    free(i2c_sensor->sensor_instance);
     return true;
 }

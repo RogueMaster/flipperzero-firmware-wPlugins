@@ -19,10 +19,10 @@
 #define UNITEMP_MAX6675
 
 #include "../unitemp.h"
-#include "../Sensors.h"
-#include "../interfaces/SPISensor.h"
+#include "../sensors.h"
+#include "../interfaces/spi_sensor.h"
 
-extern const SensorType MAX6675;
+extern const SensorModel MAX6675;
 
 /**
  * @brief Allocating memory and setting initial values ​​for the MAX6675 sensor
@@ -53,7 +53,7 @@ bool unitemp_MAX6675_deinit(Sensor* sensor);
  * @param sensor Pointer to sensor
  * @return Update status
  */
-UnitempStatus unitemp_MAX6675_update(Sensor* sensor);
+SensorStatus unitemp_MAX6675_update(Sensor* sensor);
 
 /**
  * @brief Free up sensor memory

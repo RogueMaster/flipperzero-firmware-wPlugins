@@ -15,57 +15,80 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#ifndef UNITEMP
-#define UNITEMP
+#ifndef UNITEMP_H_
+#define UNITEMP_H_
 
-/* Connecting standard libraries */
-
-/* Flipper Zero API connection */
-//File stream
-#include <toolbox/stream/file_stream.h>
-//Screen
 #include <gui/gui.h>
+#include <gui/view.h>
+#include <gui/scene_manager.h>
 #include <gui/view_dispatcher.h>
-#include <gui/modules/widget.h>
+#include <gui/modules/submenu.h>
 #include <gui/modules/popup.h>
-//Notifications
+#include <gui/modules/widget.h>
+#include <gui/modules/variable_item_list.h>
+#include <gui/modules/text_input.h>
+#include <dialogs/dialogs.h>
+
+#include "scenes/unitemp_scene.h"
+#include "helpers/unitemp_utils.h"
+
+#include "views/view_no_sensors.h"
+#include "views/view_single_sensor.h"
+#include "views/view_temp_overview.h"
+#include "views/view_sensor_info.h"
+
+#include <power/power_service/power.h>
+
+#include <storage/storage.h>
+
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
+#include <toolbox/stream/file_stream.h>
 
-/* Internal libraries */
-//Sensor connection interfaces
-#include "Sensors.h"
+#include "sensors.h"
 
 /* Declaring Macro Substitutions */
 //Application name
-#define APP_NAME              "Unitemp"
+#define APP_NAME        "Unitemp"
 //Application version
-#define UNITEMP_APP_VER       FAP_VERSION
-//Plugin file storage path
-#define APP_PATH_FOLDER       "/ext/unitemp"
+#define UNITEMP_APP_VER "2.0.2-dev"
+
 //Settings file name
-#define APP_FILENAME_SETTINGS "settings.cfg"
-//Sensor file name
-#define APP_FILENAME_SENSORS  "sensors.cfg"
+#define APP_SETTINGS_FILENAME "unitemp.settings"
+#define APP_SETTINGS_VERSION  (1)
 
 //Text buffer size
-#define BUFF_SIZE 32
+#define TEXT_STORE_SIZE 32
 
-#define UNITEMP_D
-
+//Debug macro (only if app builded in debug mode)
 #ifdef FURI_DEBUG
 #define UNITEMP_DEBUG(msg, ...) FURI_LOG_D(APP_NAME, msg, ##__VA_ARGS__)
 #else
 #define UNITEMP_DEBUG(msg, ...)
 #endif
 
-/* Declaration of transfers */
+typedef enum {
+    UnitempViewSubmenu,
+    UnitempViewPopup,
+    UnitempViewWidget,
+    UnitempViewVariableList,
+    UnitempViewNoSensors,
+    UnitempViewSingleSensor,
+    UnitempViewTempOverview,
+    UnitempViewSensorInfo,
+    UnitempViewTextInput,
+
+    UnitempViewsCount
+} UnitempView;
+
 //Temperature units
 typedef enum {
     UT_TEMP_CELSIUS,
     UT_TEMP_FAHRENHEIT,
+
     UT_TEMP_COUNT
-} tempMeasureUnit;
+} TempMeasureUnit;
+
 //Pressure units
 typedef enum {
     UT_PRESSURE_MM_HG,
@@ -74,123 +97,88 @@ typedef enum {
     UT_PRESSURE_HPA,
 
     UT_PRESSURE_COUNT
-} pressureMeasureUnit;
+} PressureMeasureUnit;
+
 // Humidity units
 typedef enum {
     UT_HUMIDITY_RELATIVE, // Relative humidity
-    UT_HUMIDITY_DEWPOINT, // Dewpoint
+    UT_HUMIDITY_DEW_POINT, // Dew point
+
     UT_HUMIDITY_COUNT // Number of humidity modes
-} humidityUnit;
+} HumidityMeausureUnit;
+
+typedef enum {
+    CustomEventSwitchToSingleSensorView,
+    CustomEventSwitchToTempOverviewView,
+    CustomEventSwitchToSensorInfoView,
+    CustomEventTextEditResult,
+    CustomEventBack,
+    CustomEventOneWireScan,
+    CustomEventGPIOChanged,
+    CustomEventI2CScan,
+} UnitempCustomEventEnum;
+
 /* Declaration of structures */
 //Plugin settings
 typedef struct {
     //Endless backlight operation
-    bool infinityBacklight;
+    bool infinity_backlight;
     //Temperature unit
-    tempMeasureUnit temp_unit;
+    TempMeasureUnit temperature_unit;
     // Humidity units
-    humidityUnit humidity_unit;
+    HumidityMeausureUnit humidity_unit;
     //Pressure unit
-    pressureMeasureUnit pressure_unit;
+    PressureMeasureUnit pressure_unit;
     // Do calculate and show heat index
     bool heat_index;
-    //Latest OTG status
-    bool lastOTGState;
+    // Automatic 5V power supply
+    bool otg_auto_on;
+    // Latest OTG status
+    bool otg_latest_state;
+    // Light indication of the environment state
+    bool environment_state_led_indication;
+    // Sound and vibro indication of the environment state
+    bool environment_state_sound_and_vibro_indication;
 } UnitempSettings;
 
-//Basic plugin structure
 typedef struct {
-    //System
-    bool sensors_ready; //Sensor readiness flag for polling
-    bool sensors_update; //Sensor polling permissibility flag
-    //Basic settings
-    UnitempSettings settings;
-    //Array of pointers to sensors
-    Sensor** sensors;
-    //Number of loaded sensors
-    uint8_t sensors_count;
-    //SD card
-    Storage* storage; //Storage
-    Stream* file_stream; //File stream
-
-    //Screen
-    Gui* gui;
+    SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
-    NotificationApp* notifications;
-    Widget* widget;
     Popup* popup;
-    //Buffer for various text
-    char* buff;
-} Unitemp;
+    Widget* widget;
+    Submenu* submenu;
+    VariableItemList* var_item_list;
+    TextInput* text_input;
+    DialogsApp* dialogs;
 
-/* Declaring Function Prototypes */
+    NoSensors* no_sensors;
+    SingleSensor* single_sensor;
+    TempOverview* temp_overview;
+    SensorInfo* sensor_info;
+    Gui* gui;
 
-/**
- * @brief Converting sensor temperature value from Celsius to Fahrenheit
- * 
- * @param sensor Pointer to sensor
- */
-void unitemp_celsiusToFahrenheit(Sensor* sensor);
+    Storage* storage;
+    Stream* file_stream;
+    NotificationApp* notifications;
 
-/**
- * @brief Calculates the heat index in Celsius from the temperature and humidity and stores it in the sensor heat_index field
- *
- * @param sensor The sensor struct, with temperature in Celcius and humidity in percent
- */
-void unitemp_calculate_heat_index(Sensor* sensor);
+    FuriThread* reader_thread;
 
-/**
- * @brief Calculate dewpoint in C from relative humidity
- * 
- * @param sensor Pointer to sensor
- */
-void unitemp_rhToDewpointC(Sensor* sensor);
+    UnitempSettings* settings;
+    Sensor* editable_sensor;
+    EnvironmentState environment_state;
 
-/**
- * @brief Calculate dewpoint in F from relative humidity
- * 
- * @param sensor Pointer to sensor
- */
-void unitemp_rhToDewpointF(Sensor* sensor);
+    char* txt_buff;
+} UnitempApp;
 
-/**
- * @brief Converting pressure from pascals to mmHg.
- * 
- * @param sensor Pointer to sensor
- */
-void unitemp_pascalToMmHg(Sensor* sensor);
+/* Flags which the reader thread responds to */
+typedef enum {
+    UnitempThreadFlagExit = 1,
+} UnitempThreadFlag;
 
-/**
- * @brief Converting pressure from pascals to kilopascals
- * 
- * @param sensor Pointer to sensor
- */
-void unitemp_pascalToKPa(Sensor* sensor);
-/**
- * @brief Convert pressure from Pa to hPa
- * 
- * @param sensor Pointer to sensor
- */
-void unitemp_pascalToHPa(Sensor* sensor);
-/**
- * @brief Converting pressure from pascals to inHg.
- * 
- * @param sensor Pointer to sensor
- */
-void unitemp_pascalToInHg(Sensor* sensor);
+void unitemp_submenu_callback(void* context, uint32_t index);
+void unitemp_widget_callback(GuiButtonType result, InputType type, void* context);
 
-/**
- * @brief Saving settings to SD card
- * 
- * @return True if save is successful
- */
-bool unitemp_saveSettings(void);
-/**
- * @brief Loading settings from SD card
- * 
- * @return True if upload is successful
- */
-bool unitemp_loadSettings(void);
+bool unitemp_settings_load(void* context);
+bool unitemp_settings_save(void* context);
 
-extern Unitemp* app;
-#endif
+#endif //UNITEMP_H_

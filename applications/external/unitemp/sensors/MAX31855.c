@@ -17,12 +17,12 @@
 */
 #include "MAX31855.h"
 
-const SensorType MAX31855 = {
-    .typename = "MAX31855",
+const SensorModel MAX31855 = {
+    .modelname = "MAX31855",
     .altname = "MAX31855 (Thermocouple)",
-    .interface = &SPI,
-    .datatype = UT_TEMPERATURE,
-    .pollingInterval = 500,
+    .interface = &unitemp_spi,
+    .data_type = UT_DATA_TYPE_TEMP,
+    .polling_interval = 500,
     .allocator = unitemp_MAX31855_alloc,
     .mem_releaser = unitemp_MAX31855_free,
     .initializer = unitemp_MAX31855_init,
@@ -52,15 +52,16 @@ bool unitemp_MAX31855_deinit(Sensor* sensor) {
     return true;
 }
 
-UnitempStatus unitemp_MAX31855_update(Sensor* sensor) {
+SensorStatus unitemp_MAX31855_update(Sensor* sensor) {
     SPISensor* instance = sensor->instance;
 
     furi_hal_spi_acquire(instance->spi);
-    furi_hal_gpio_write(instance->CS_pin->pin, false);
+    furi_hal_gpio_write(instance->cs_pin->pin, false);
 
     uint8_t buff[4] = {0};
 
     furi_hal_spi_bus_rx(instance->spi, buff, 4, 0xFF);
+    furi_hal_gpio_write(instance->cs_pin->pin, true);
     furi_hal_spi_release(instance->spi);
 
     uint32_t raw = (buff[0] << 24) | (buff[1] << 16) | (buff[2] << 8) | buff[3];
@@ -85,9 +86,10 @@ UnitempStatus unitemp_MAX31855_update(Sensor* sensor) {
         return UT_SENSORSTATUS_ERROR;
     }
 
-    raw = (raw >> 16) & 0xFFFC;
+    uint16_t temp_raw = (raw >> 16) & 0xFFFC;
+    int16_t signed_temp_raw = (int16_t)temp_raw;
 
-    sensor->temp = (int16_t)(raw) / 16.0f;
+    sensor->temperature = (float)signed_temp_raw / 16.0f;
 
     return UT_SENSORSTATUS_OK;
 }

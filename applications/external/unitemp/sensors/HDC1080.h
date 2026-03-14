@@ -19,8 +19,8 @@
 #define UNITEMP_HDC1080
 
 #include "../unitemp.h"
-#include "../Sensors.h"
-extern const SensorType HDC1080;
+#include "../sensors.h"
+extern const SensorModel HDC1080;
 /**
  * @brief Allocating memory and setting initial values ​​for the HDC1080 sensor
  *
@@ -50,7 +50,7 @@ bool unitemp_HDC1080_deinit(Sensor* sensor);
  * @param sensor Pointer to sensor
  * @return Update status
  */
-UnitempStatus unitemp_HDC1080_update(Sensor* sensor);
+SensorStatus unitemp_HDC1080_update(Sensor* sensor);
 
 /**
  * @brief Free up sensor memory

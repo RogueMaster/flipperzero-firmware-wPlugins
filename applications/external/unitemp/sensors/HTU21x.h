@@ -19,8 +19,10 @@
 #define UNITEMP_HTU21x
 
 #include "../unitemp.h"
-#include "../Sensors.h"
-extern const SensorType HTU21x;
+#include "../sensors.h"
+extern const SensorModel HTU21x;
+extern const SensorModel SI7021;
+extern const SensorModel SHT2x;
 /**
  * @brief Allocating memory and setting initial values ​​for the HTU21x sensor
  *
@@ -50,7 +52,7 @@ bool unitemp_HTU21x_deinit(Sensor* sensor);
  * @param sensor Pointer to sensor
  * @return Update status
  */
-UnitempStatus unitemp_HTU21x_update(Sensor* sensor);
+SensorStatus unitemp_HTU21x_update(Sensor* sensor);
 
 /**
  * @brief Free up sensor memory

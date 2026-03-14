@@ -19,8 +19,8 @@
 #define UNITEMP_BMx280
 
 #include "../unitemp.h"
-#include "../Sensors.h"
-#include "../interfaces/I2CSensor.h"
+#include "../sensors.h"
+#include "../interfaces/i2c_sensor.h"
 
 typedef struct {
     uint16_t dig_T1;
@@ -64,8 +64,8 @@ typedef struct {
     int32_t t_fine;
 } BMx280_instance;
 
-extern const SensorType BMP280;
-extern const SensorType BME280;
+extern const SensorModel BMP280;
+extern const SensorModel BME280;
 /**
  * @brief Allocating memory and setting initial values ​​for the BMP280 sensor
  * @param sensor Pointer to the sensor to create
@@ -91,7 +91,7 @@ bool unitemp_BMx280_deinit(Sensor* sensor);
  * @param sensor Pointer to sensor
  * @return Sensor poll status
  */
-UnitempStatus unitemp_BMx280_update(Sensor* sensor);
+SensorStatus unitemp_BMx280_update(Sensor* sensor);
 
 /**
  * @brief Free up sensor memory

@@ -1,14 +1,8 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2025  Jakub Kakona (https://github.com/kaklik)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
+    Contributed by 2025  Jakub Kakona (https://github.com/kaklik)
 
-    This file declares the interfaces for using the Maxim Integrated
-    MAX31725 temperature sensor over I2C. The sensor provides high
-    resolution (0.00390625 °C, Q8.8 format) local temperature measurement,
-    overtemperature alarm, and low-power shutdown modes.
-  
-    Datasheet: https://datasheets.maximintegrated.com/en/ds/MAX31725-MAX31726.pdf
- 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -23,8 +17,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef UNITEMP_MAX31725
-#define UNITEMP_MAX31725
+#ifndef MAX31725_H_
+#define MAX31725_H_
 
 /**
  * @file MAX31725.h
@@ -35,15 +29,15 @@
  */
 
 #include "../unitemp.h"
-#include "../Sensors.h"
+#include "../sensors.h"
 
 /**
- * @brief SensorType instance for the MAX31725 sensor
+ * @brief SensorModel instance for the MAX31725 sensor
  *
  * Registers the MAX31725 with Unitemp, specifying the I2C interface,
  * data type (temperature), and associated callbacks.
  */
-extern const SensorType MAX31725;
+extern const SensorModel MAX31725;
 
 /**
  * @brief Allocate and configure MAX31725 sensor instance
@@ -97,6 +91,6 @@ bool unitemp_MAX31725_deinit(Sensor* sensor);
  * @return UT_SENSORSTATUS_OK on success,
  *         UT_SENSORSTATUS_TIMEOUT on I2C read failure
  */
-UnitempStatus unitemp_MAX31725_update(Sensor* sensor);
+SensorStatus unitemp_MAX31725_update(Sensor* sensor);
 
-#endif // UNITEMP_MAX31725
+#endif // MAX31725_H_
