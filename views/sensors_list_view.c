@@ -62,7 +62,9 @@ static void _enter_callback(void* context, uint32_t index) {
             0, 0, 0, 0, 0, 0, 0, 0);
     }
 
-    view_sensor_edit_switch(unitemp_sensor_alloc(sensor_name, type, args));
+    Sensor* new_sensor = unitemp_sensor_alloc(sensor_name, type, args);
+    if(!new_sensor) return;
+    view_sensor_edit_switch(new_sensor);
 }
 
 void view_sensors_list_alloc(void) {
@@ -92,7 +94,6 @@ void view_sensors_list_switch(void) {
 }
 
 void view_sensors_list_free(void) {
-    variable_item_list_free(variable_item_list);
-    view_free(view);
     view_dispatcher_remove_view(app->view_dispatcher, VIEW_ID);
+    variable_item_list_free(variable_item_list);
 }

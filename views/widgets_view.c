@@ -26,6 +26,7 @@ static uint32_t _delete_exit_callback(void* context) {
 
 static void _delete_click_callback(GuiButtonType result, InputType type, void* context) {
     UNUSED(context);
+    if(!widget_current_sensor) return;
     if(result == GuiButtonTypeLeft && type == InputTypeShort) {
         view_sensor_actions_switch(widget_current_sensor);
     }
@@ -37,6 +38,7 @@ static void _delete_click_callback(GuiButtonType result, InputType type, void* c
 }
 
 void view_widget_delete_switch(Sensor* sensor) {
+    if(!sensor) return;
     widget_current_sensor = sensor;
     widget_reset(app->widget);
     widget_add_button_element(

@@ -1,25 +1,13 @@
 /*
  * main_view.c — main sensor display screen.
- * Shows CO2 ppm (MH-Z19C) + temperature/humidity/pressure (BME280).
+ * Shows CO2 ppm (any CO2 sensor) + readings from all other active sensors.
  * OK button → main menu.  Back → exit app.
  */
 #include "../co2_app_i.h"
-#include <string.h>
 
 static View* view;
 
 #define VIEW_ID ViewMain
-
-/* ---- Helpers to find sensors by typename ---- */
-
-static Sensor* find_sensor(const char* typename) {
-    for(uint8_t i = 0; i < app->sensors_count; i++) {
-        if(app->sensors[i] && strcmp(app->sensors[i]->type->typename, typename) == 0) {
-            return app->sensors[i];
-        }
-    }
-    return NULL;
-}
 
 /* ---- Draw callback ---- */
 
@@ -27,16 +15,23 @@ static void draw_callback(Canvas* canvas, void* context) {
     UNUSED(context);
 
     canvas_clear(canvas);
+    if(!app->sensors_ready || !app->sensors) return;
     char buf[48];
 
-    Sensor* co2_sensor = find_sensor("MHZ19C");
-    Sensor* bme_sensor = find_sensor("BME280");
+    /* Find first CO2 sensor */
+    Sensor* co2_sensor = NULL;
+    for(uint8_t i = 0; i < app->sensors_count; i++) {
+        Sensor* s = app->sensors[i];
+        if(s && s->status != UT_SENSORSTATUS_INACTIVE &&
+           (s->type->datatype & UT_CO2)) {
+            co2_sensor = s;
+            break;
+        }
+    }
 
     /* CO2 — large font.
-     * MH-Z19C works via PWM edge detection: status flips between OK (edge caught)
-     * and POLLING (waiting for next edge, ~900ms/cycle). We must NOT gate on
-     * status == OK or the display blinks. Instead check co2 > 0 which preserves
-     * the last valid reading between edge detections. */
+     * MH-Z19C uses PWM edge detection: co2 > 0 preserves last valid reading
+     * between edges so the display doesn't blink. */
     bool co2_valid = co2_sensor && co2_sensor->co2 > 0.0f;
     canvas_set_font(canvas, FontPrimary);
     if(co2_valid) {
@@ -54,37 +49,50 @@ static void draw_callback(Canvas* canvas, void* context) {
         if(fill > 0) canvas_draw_box(canvas, 1, 16, fill, 5);
     }
 
-    /* BME280 — small font */
+    /* All other active sensors — small font, one line each */
     canvas_set_font(canvas, FontSecondary);
-    if(bme_sensor && bme_sensor->status == UT_SENSORSTATUS_OK) {
-        const char* temp_unit_str = (app->settings.temp_unit == UT_TEMP_FAHRENHEIT) ? "F" : "C";
-        const char* press_unit_str;
-        switch(app->settings.pressure_unit) {
-        case UT_PRESSURE_IN_HG:
-            press_unit_str = "inHg";
-            break;
-        case UT_PRESSURE_KPA:
-            press_unit_str = "kPa";
-            break;
-        case UT_PRESSURE_HPA:
-            press_unit_str = "hPa";
-            break;
-        default:
-            press_unit_str = "mmHg";
-            break;
+    uint8_t y = 34;
+
+    const char* temp_unit_str = (app->settings.temp_unit == UT_TEMP_FAHRENHEIT) ? "F" : "C";
+    const char* press_unit_str;
+    switch(app->settings.pressure_unit) {
+    case UT_PRESSURE_IN_HG: press_unit_str = "inHg"; break;
+    case UT_PRESSURE_KPA:   press_unit_str = "kPa";  break;
+    case UT_PRESSURE_HPA:   press_unit_str = "hPa";  break;
+    default:                press_unit_str = "mmHg"; break;
+    }
+
+    for(uint8_t i = 0; i < app->sensors_count && y <= 54; i++) {
+        Sensor* s = app->sensors[i];
+        if(!s || s->status == UT_SENSORSTATUS_INACTIVE || s == co2_sensor) continue;
+
+        if(s->status == UT_SENSORSTATUS_OK) {
+            int pos = 0;
+            if(s->type->datatype & UT_TEMPERATURE) {
+                pos += snprintf(buf + pos, sizeof(buf) - pos,
+                    "T:%.1f%s", (double)s->temp, temp_unit_str);
+            }
+            if(s->type->datatype & UT_HUMIDITY) {
+                pos += snprintf(buf + pos, sizeof(buf) - pos,
+                    " H:%.0f%%", (double)s->hum);
+            }
+            if(s->type->datatype & UT_PRESSURE) {
+                pos += snprintf(buf + pos, sizeof(buf) - pos,
+                    " P:%.0f%s", (double)s->pressure, press_unit_str);
+            }
+            if((s->type->datatype & UT_CO2) && s->co2 > 0.0f) {
+                pos += snprintf(buf + pos, sizeof(buf) - pos,
+                    " CO2:%d", (int)s->co2);
+            }
+            if(pos == 0) buf[0] = '\0';
+        } else {
+            snprintf(buf, sizeof(buf), "%s: --", s->name);
         }
-        snprintf(
-            buf,
-            sizeof(buf),
-            "T:%.1f%s H:%.0f%% P:%.0f%s",
-            (double)bme_sensor->temp,
-            temp_unit_str,
-            (double)bme_sensor->hum,
-            (double)bme_sensor->pressure,
-            press_unit_str);
-        canvas_draw_str(canvas, 0, 36, buf);
-    } else {
-        canvas_draw_str(canvas, 0, 36, "BME280: not found");
+
+        if(buf[0]) {
+            canvas_draw_str(canvas, 0, y, buf);
+            y += 11;
+        }
     }
 
     canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, "[OK=menu]");

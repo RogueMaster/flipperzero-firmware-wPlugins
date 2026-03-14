@@ -424,7 +424,9 @@ UnitempStatus unitemp_sensor_updateData(Sensor* sensor) {
 
 void unitemp_sensors_updateValues(void) {
     for(uint8_t i = 0; i < unitemp_sensors_getCount(); i++) {
-        unitemp_sensor_updateData(unitemp_sensor_getActive(i));
+        Sensor* s = unitemp_sensor_getActive(i);
+        if(!s) continue;
+        unitemp_sensor_updateData(s);
     }
 }
 
@@ -559,6 +561,7 @@ bool unitemp_sensors_save(void) {
 }
 
 void unitemp_sensors_reload(void) {
+    app->sensors_ready = false;
     unitemp_sensors_deInit();
     unitemp_sensors_free();
     unitemp_sensors_load();

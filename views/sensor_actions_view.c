@@ -19,8 +19,8 @@ static uint32_t _exit_callback(void* context) {
 static void _enter_callback(void* context, uint32_t index) {
     UNUSED(context);
     switch(index) {
-    case 0: /* Info — go to main to see readings */
-        view_main_switch();
+    case 0: /* Info — detailed sensor readings */
+        view_sensor_info_switch(current_sensor);
         return;
     case 1: /* Edit */
         view_sensor_edit_switch(current_sensor);
@@ -64,7 +64,6 @@ void view_sensor_actions_switch(Sensor* sensor) {
 }
 
 void view_sensor_actions_free(void) {
-    variable_item_list_free(variable_item_list);
-    view_free(view);
     view_dispatcher_remove_view(app->view_dispatcher, VIEW_ID);
+    variable_item_list_free(variable_item_list);
 }

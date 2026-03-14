@@ -157,7 +157,12 @@ bool unitemp_loadSettings(void) {
 
 static void tick_callback(void* context) {
     UNUSED(context);
-    if(app->sensors_ready) {
+    if(app->sensors_update) {
+        app->sensors_update = false;
+        unitemp_sensors_deInit();
+        unitemp_sensors_init();
+        app->sensors_ready = true;
+    } else if(app->sensors_ready) {
         unitemp_sensors_updateValues();
     }
 }
@@ -208,6 +213,7 @@ int32_t co2_app_main(void* p) {
     view_sensor_edit_alloc();
     view_sensor_name_edit_alloc();
     view_sensor_actions_alloc();
+    view_sensor_info_alloc();
     view_widgets_alloc();
 
     /* Sensors: load from SD card, fallback to hardcoded defaults */
@@ -249,6 +255,7 @@ int32_t co2_app_main(void* p) {
     unitemp_sensors_free();
 
     view_widgets_free();
+    view_sensor_info_free();
     view_sensor_actions_free();
     view_sensor_name_edit_free();
     view_sensor_edit_free();

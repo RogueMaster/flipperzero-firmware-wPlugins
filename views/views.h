@@ -9,6 +9,7 @@ typedef enum {
     ViewSensorEdit,
     ViewSensorNameEdit,
     ViewSensorActions,
+    ViewSensorInfo,
     ViewWidget,
     ViewPopup,
     ViewsCount
@@ -48,6 +49,11 @@ void view_sensor_name_edit_free(void);
 void view_sensor_actions_alloc(void);
 void view_sensor_actions_switch(Sensor* sensor);
 void view_sensor_actions_free(void);
+
+/* Sensor info (live readings for selected sensor) */
+void view_sensor_info_alloc(void);
+void view_sensor_info_switch(Sensor* sensor);
+void view_sensor_info_free(void);
 
 /* Widget (delete confirmation, help, about) */
 void view_widgets_alloc(void);

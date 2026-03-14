@@ -82,6 +82,7 @@ static void _onewire_scan(void) {
 
 static uint32_t _exit_callback(void* context) {
     UNUSED(context);
+    if(!editable_sensor) return ViewMain;
     editable_sensor->status = UT_SENSORSTATUS_TIMEOUT;
     if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensor_free(editable_sensor);
     unitemp_sensors_reload();
@@ -106,7 +107,8 @@ static void _enter_callback(void* context, uint32_t index) {
         editable_sensor->status = UT_SENSORSTATUS_TIMEOUT;
         if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensors_add(editable_sensor);
         unitemp_sensors_save();
-        unitemp_sensors_reload();
+        app->sensors_ready = false;
+        app->sensors_update = true;
         view_main_switch();
     }
     if(index == 4 && editable_sensor->type->interface == &ONE_WIRE) {
@@ -163,7 +165,7 @@ static void _onwire_addr_change_callback(VariableItem* item) {
 }
 
 static void _offset_change_callback(VariableItem* item) {
-    editable_sensor->temp_offset = variable_item_get_current_value_index(item) - 20;
+    editable_sensor->temp_offset = variable_item_get_current_value_index(item) - 100;
     snprintf(
         offset_buff, OFFSET_BUFF_SIZE, "%+1.1f", (double)(editable_sensor->temp_offset / 10.0));
     variable_item_set_current_value_text(item, offset_buff);
@@ -200,8 +202,8 @@ void view_sensor_edit_switch(Sensor* sensor) {
              sensor->type->typename));
 
     temp_offset_item = variable_item_list_add(
-        variable_item_list, "Temp. offset", 41, _offset_change_callback, NULL);
-    variable_item_set_current_value_index(temp_offset_item, sensor->temp_offset + 20);
+        variable_item_list, "Temp. offset", 201, _offset_change_callback, NULL);
+    variable_item_set_current_value_index(temp_offset_item, sensor->temp_offset + 100);
     snprintf(offset_buff, OFFSET_BUFF_SIZE, "%+1.1f", (double)(editable_sensor->temp_offset / 10.0));
     variable_item_set_current_value_text(temp_offset_item, offset_buff);
 
@@ -275,8 +277,7 @@ void view_sensor_edit_switch(Sensor* sensor) {
 }
 
 void view_sensor_edit_free(void) {
-    variable_item_list_free(variable_item_list);
-    view_free(view);
     view_dispatcher_remove_view(app->view_dispatcher, VIEW_ID);
+    variable_item_list_free(variable_item_list);
     free(offset_buff);
 }
