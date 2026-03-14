@@ -1,4 +1,4 @@
-#include "ami_tool_i.h"
+#include "../ami_tool_i.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>

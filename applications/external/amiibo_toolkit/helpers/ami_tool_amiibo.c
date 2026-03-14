@@ -1,4 +1,4 @@
-#include "ami_tool_i.h"
+#include "../ami_tool_i.h"
 
 #include <stdbool.h>
 #include <mbedtls/md.h>

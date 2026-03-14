@@ -1,4 +1,5 @@
 #include "ami_tool_i.h"
+#include <stdio.h>
 #include <string.h>
 
 static void ami_tool_reset_retail_key(AmiToolApp* app) {
@@ -69,6 +70,13 @@ AmiToolApp* ami_tool_alloc(void) {
     /* Storage (for assets) */
     app->storage = furi_record_open(RECORD_STORAGE);
     ami_tool_reset_retail_key(app);
+    app->bt = furi_record_open(RECORD_BT);
+    app->bt_serial_profile = NULL;
+    app->bt_connected = false;
+    app->bt_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    snprintf(app->bt_display_text, sizeof(app->bt_display_text), "Awaiting connections");
+    app->bt_pending_generate = false;
+    memset(app->bt_pending_generate_id, 0, sizeof(app->bt_pending_generate_id));
 
     /* NFC resources */
     app->nfc = nfc_alloc();
@@ -217,6 +225,16 @@ void ami_tool_free(AmiToolApp* app) {
     if(app->storage) {
         furi_record_close(RECORD_STORAGE);
         app->storage = NULL;
+    }
+
+    if(app->bt_mutex) {
+        furi_mutex_free(app->bt_mutex);
+        app->bt_mutex = NULL;
+    }
+
+    if(app->bt) {
+        furi_record_close(RECORD_BT);
+        app->bt = NULL;
     }
 
     /* GUI record */

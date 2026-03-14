@@ -1,4 +1,4 @@
-#include "ami_tool_i.h"
+#include "../ami_tool_i.h"
 
 #include <nfc/nfc_poller.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>

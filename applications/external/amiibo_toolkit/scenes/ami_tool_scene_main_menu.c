@@ -6,6 +6,7 @@ typedef enum {
     AmiToolMainMenuIndexGenerate,
     AmiToolMainMenuIndexAmiiboLink,
     AmiToolMainMenuIndexSaved,
+    AmiToolMainMenuIndexBluetooth,
     AmiToolMainMenuIndexExit,
 } AmiToolMainMenuIndex;
 
@@ -60,6 +61,9 @@ static void ami_tool_scene_main_menu_submenu_callback(void* context, uint32_t in
     case AmiToolMainMenuIndexSaved:
         view_dispatcher_send_custom_event(app->view_dispatcher, AmiToolEventMainMenuSaved);
         break;
+    case AmiToolMainMenuIndexBluetooth:
+        view_dispatcher_send_custom_event(app->view_dispatcher, AmiToolEventMainMenuBluetooth);
+        break;
     case AmiToolMainMenuIndexExit:
         view_dispatcher_send_custom_event(app->view_dispatcher, AmiToolEventMainMenuExit);
         break;
@@ -104,6 +108,13 @@ void ami_tool_scene_main_menu_on_enter(void* context) {
 
     submenu_add_item(
         app->submenu,
+        "Bluetooth Connection",
+        AmiToolMainMenuIndexBluetooth,
+        ami_tool_scene_main_menu_submenu_callback,
+        app);
+
+    submenu_add_item(
+        app->submenu,
         "Exit",
         AmiToolMainMenuIndexExit,
         ami_tool_scene_main_menu_submenu_callback,
@@ -130,6 +141,9 @@ bool ami_tool_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
             return true;
         case AmiToolEventMainMenuAmiiboLink:
             scene_manager_next_scene(app->scene_manager, AmiToolSceneAmiiboLink);
+            return true;
+        case AmiToolEventMainMenuBluetooth:
+            scene_manager_next_scene(app->scene_manager, AmiToolSceneBluetooth);
             return true;
         case AmiToolEventMainMenuExit:
             scene_manager_stop(app->scene_manager);
