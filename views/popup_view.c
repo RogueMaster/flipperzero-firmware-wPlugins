@@ -3,7 +3,7 @@
  * Adapted from _ref_unitemp/views/Popup_view.c
  * Note: app->popup is allocated in co2_app.c and registered as ViewPopup.
  */
-#include "../co2_app_i.h"
+#include "../air_stats_i.h"
 
 static uint32_t _prev_view_id;
 

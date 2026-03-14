@@ -2,7 +2,7 @@
  * sensor_edit_view.c — sensor configuration editor (name, offset, GPIO, save).
  * Adapted from _ref_unitemp/views/SensorEdit_view.c
  */
-#include "../co2_app_i.h"
+#include "../air_stats_i.h"
 #include <gui/modules/variable_item_list.h>
 #include "../sensors/unitemp/interfaces/SingleWireSensor.h"
 #include "../sensors/unitemp/interfaces/OneWireSensor.h"

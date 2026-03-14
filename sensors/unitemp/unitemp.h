@@ -18,8 +18,8 @@
 #include <storage/storage.h>
 
 /* ---- Application constants ---- */
-#define APP_NAME              "CO2App"
-#define APP_PATH_FOLDER       "/ext/unitemp"
+#define APP_NAME              "AirStats"
+#define APP_PATH_FOLDER       "/ext/apps_data/air_stats"
 #define APP_FILENAME_SETTINGS "settings.cfg"
 #define APP_FILENAME_SENSORS  "sensors.cfg"
 #define BUFF_SIZE             32
@@ -53,6 +53,8 @@ typedef enum {
     UT_HUMIDITY_COUNT
 } humidityUnit;
 
+typedef enum { CO2_TYPE_PWM = 0, CO2_TYPE_UART = 1 } Co2SensorType;
+
 typedef struct {
     bool infinityBacklight;
     tempMeasureUnit temp_unit;
@@ -60,6 +62,8 @@ typedef struct {
     pressureMeasureUnit pressure_unit;
     bool heat_index;
     bool lastOTGState;
+    Co2SensorType co2_type;
+    uint8_t climate_type_idx;
 } AppSettings;
 
 /* ---- Sensor types and interfaces (provides Sensor, SensorType, GPIO etc.) ---- */

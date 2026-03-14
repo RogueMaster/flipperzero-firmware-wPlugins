@@ -3,7 +3,7 @@
  * Shows sensor type, interface and address/GPIO — same as unitemp CAROUSEL_INFO.
  * NOT readings — use the main screen for live data.
  */
-#include "../co2_app_i.h"
+#include "../air_stats_i.h"
 #include "../sensors/unitemp/interfaces/SingleWireSensor.h"
 #include "../sensors/unitemp/interfaces/OneWireSensor.h"
 #include "../sensors/unitemp/interfaces/I2CSensor.h"
@@ -69,19 +69,38 @@ static void draw_callback(Canvas* canvas, void* context) {
 
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 36, 36, ow->bus->gpio->name);
-        snprintf(app->buff, BUFF_SIZE, "%02X%02X%02X%02X",
-            ow->deviceID[0], ow->deviceID[1], ow->deviceID[2], ow->deviceID[3]);
+        snprintf(app->buff, BUFF_SIZE, "%02X%02X%02X%02X%02X%02X%02X%02X",
+            ow->deviceID[0], ow->deviceID[1], ow->deviceID[2], ow->deviceID[3],
+            ow->deviceID[4], ow->deviceID[5], ow->deviceID[6], ow->deviceID[7]);
         canvas_draw_str(canvas, 18, 47, app->buff);
 
-    } else {
-        /* Custom interface (e.g. MHZ19C PWM) */
-        canvas_draw_str(canvas, 36, 24, info_sensor->type->typename);
+    } else if(info_sensor->type == &MHZ19C_UART) {
+        /* MHZ19C UART pinout */
+        canvas_draw_str(canvas, 36, 24, "MHZ19C UART");
 
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str(canvas, 0, 36, "Interface:");
+        canvas_draw_str(canvas, 0, 36, "TX->:");
+        canvas_draw_str(canvas, 0, 47, "RX<-:");
+        canvas_draw_str(canvas, 0, 58, "5V/GND:");
 
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 0, 47, info_sensor->type->interface->name);
+        canvas_draw_str(canvas, 36, 36, "pin 13");
+        canvas_draw_str(canvas, 36, 47, "pin 14");
+        canvas_draw_str(canvas, 50, 58, "pin1/pin8  9600 8N1");
+
+    } else {
+        /* MHZ19C PWM pinout */
+        canvas_draw_str(canvas, 36, 24, "MHZ19C PWM");
+
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 0, 36, "PWM:");
+        canvas_draw_str(canvas, 0, 47, "5V:");
+        canvas_draw_str(canvas, 0, 58, "GND:");
+
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 36, 36, "pin 3 (A6)");
+        canvas_draw_str(canvas, 36, 47, "pin 1");
+        canvas_draw_str(canvas, 36, 58, "pin 8");
     }
 }
 

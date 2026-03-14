@@ -1,12 +1,12 @@
 /*
- * co2_app.c — entry point for CO2-monitor FAP.
+ * air_stats.c — entry point for Air Stats FAP.
  *
  * Architecture:
  *   ViewDispatcher with 3 views: Main, MainMenu, Settings.
  *   100 ms tick polls all sensors via unitemp_sensors_updateValues().
  *   Two hardcoded sensors: BME280 (I2C 0xEC) + MH-Z19C (PWM PA6).
  */
-#include "co2_app_i.h"
+#include "air_stats_i.h"
 #include <furi_hal_power.h>
 #include <math.h>
 
@@ -71,10 +71,12 @@ bool unitemp_saveSettings(void) {
         return false;
     }
     stream_write_format(app->file_stream, "INFINITY_BACKLIGHT %d\n", app->settings.infinityBacklight);
-    stream_write_format(app->file_stream, "TEMP_UNIT %d\n",     app->settings.temp_unit);
-    stream_write_format(app->file_stream, "HUMIDITY_UNIT %d\n", app->settings.humidity_unit);
-    stream_write_format(app->file_stream, "PRESSURE_UNIT %d\n", app->settings.pressure_unit);
-    stream_write_format(app->file_stream, "HEAT_INDEX %d\n",    app->settings.heat_index);
+    stream_write_format(app->file_stream, "TEMP_UNIT %d\n",         app->settings.temp_unit);
+    stream_write_format(app->file_stream, "HUMIDITY_UNIT %d\n",     app->settings.humidity_unit);
+    stream_write_format(app->file_stream, "PRESSURE_UNIT %d\n",     app->settings.pressure_unit);
+    stream_write_format(app->file_stream, "HEAT_INDEX %d\n",        app->settings.heat_index);
+    stream_write_format(app->file_stream, "CO2_TYPE %d\n",          (int)app->settings.co2_type);
+    stream_write_format(app->file_stream, "CLIMATE_TYPE_IDX %d\n",  (int)app->settings.climate_type_idx);
     file_stream_close(app->file_stream);
     stream_free(app->file_stream);
     furi_string_free(filepath);
@@ -141,6 +143,12 @@ bool unitemp_loadSettings(void) {
         } else if(!strcmp(key, "HEAT_INDEX")) {
             sscanf((char*)(file_buf + line_end), "\nHEAT_INDEX %d", &p);
             app->settings.heat_index = (bool)p;
+        } else if(!strcmp(key, "CO2_TYPE")) {
+            sscanf((char*)(file_buf + line_end), "\nCO2_TYPE %d", &p);
+            app->settings.co2_type = (Co2SensorType)p;
+        } else if(!strcmp(key, "CLIMATE_TYPE_IDX")) {
+            sscanf((char*)(file_buf + line_end), "\nCLIMATE_TYPE_IDX %d", &p);
+            app->settings.climate_type_idx = (uint8_t)p;
         }
         line_end = furi_string_search_char(file, '\n', line_end + 1);
     }
@@ -169,7 +177,7 @@ static void tick_callback(void* context) {
 
 /* ---- Application entry point ---- */
 
-int32_t co2_app_main(void* p) {
+int32_t air_stats_main(void* p) {
     UNUSED(p);
 
     /* Allocate and zero-init app struct */
@@ -182,13 +190,15 @@ int32_t co2_app_main(void* p) {
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->storage       = furi_record_open(RECORD_STORAGE);
 
-    /* Default settings */
+    /* Default settings (applied before loadSettings; loadSettings overwrites from file) */
     app->settings.infinityBacklight = true;
     app->settings.temp_unit         = UT_TEMP_CELSIUS;
     app->settings.humidity_unit     = UT_HUMIDITY_RELATIVE;
-    app->settings.pressure_unit     = UT_PRESSURE_HPA;
+    app->settings.pressure_unit     = UT_PRESSURE_MM_HG;
     app->settings.heat_index        = false;
     app->settings.lastOTGState      = furi_hal_power_is_otg_enabled();
+    app->settings.co2_type          = CO2_TYPE_PWM;
+    app->settings.climate_type_idx  = 0;
 
     /* Load settings from SD (creates defaults if missing) */
     unitemp_loadSettings();
@@ -209,6 +219,8 @@ int32_t co2_app_main(void* p) {
     view_main_alloc();
     view_main_menu_alloc();
     view_settings_alloc();
+    view_co2_settings_alloc();
+    view_climate_settings_alloc();
     view_sensors_list_alloc();
     view_sensor_edit_alloc();
     view_sensor_name_edit_alloc();
@@ -260,6 +272,8 @@ int32_t co2_app_main(void* p) {
     view_sensor_name_edit_free();
     view_sensor_edit_free();
     view_sensors_list_free();
+    view_climate_settings_free();
+    view_co2_settings_free();
     view_settings_free();
     view_main_menu_free();
     view_main_free();

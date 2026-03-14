@@ -3,7 +3,7 @@
  * Shows CO2 ppm (any CO2 sensor) + readings from all other active sensors.
  * OK button → main menu.  Back → exit app.
  */
-#include "../co2_app_i.h"
+#include "../air_stats_i.h"
 
 static View* view;
 

@@ -1,7 +1,7 @@
 /*
  * main_menu_view.c — main menu with dynamic sensor list + add + settings.
  */
-#include "../co2_app_i.h"
+#include "../air_stats_i.h"
 #include <gui/modules/variable_item_list.h>
 
 static View* view;
@@ -16,18 +16,29 @@ static uint32_t _exit_callback(void* context) {
 
 static void _enter_callback(void* context, uint32_t index) {
     UNUSED(context);
-    /* First sensors_count items → SensorActions for that sensor */
-    if(index < app->sensors_count) {
-        if(app->sensors[index]) {
-            view_sensor_actions_switch(app->sensors[index]);
+    if(index == 0) {
+        /* CO2 Sensor: first MHZ19C or MHZ19C_UART */
+        for(uint8_t i = 0; i < app->sensors_count; i++) {
+            if(app->sensors[i] &&
+               (app->sensors[i]->type == &MHZ19C ||
+                app->sensors[i]->type == &MHZ19C_UART)) {
+                view_sensor_actions_switch(app->sensors[i]);
+                return;
+            }
         }
-        return;
-    }
-    uint32_t extra = index - app->sensors_count;
-    if(extra == 0) {
-        view_sensors_list_switch();   /* Add sensor */
-    } else if(extra == 1) {
-        view_settings_switch();       /* Settings */
+    } else if(index == 1) {
+        /* Climate Sensor: first non-CO2 sensor */
+        for(uint8_t i = 0; i < app->sensors_count; i++) {
+            if(app->sensors[i] &&
+               !(app->sensors[i]->type->datatype & UT_CO2)) {
+                view_sensor_actions_switch(app->sensors[i]);
+                return;
+            }
+        }
+    } else if(index == 2) {
+        view_settings_switch();
+    } else if(index == 3) {
+        view_widget_about_switch();
     }
 }
 
@@ -40,16 +51,11 @@ void view_main_menu_alloc(void) {
 }
 
 void view_main_menu_switch(void) {
-    /* Rebuild list with current active sensors each time */
     variable_item_list_reset(variable_item_list);
-    for(uint8_t i = 0; i < app->sensors_count; i++) {
-        if(app->sensors[i]) {
-            variable_item_list_add(
-                variable_item_list, app->sensors[i]->name, 1, NULL, NULL);
-        }
-    }
-    variable_item_list_add(variable_item_list, "Add sensor", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Settings", 1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "CO2 Sensor",     1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Climate Sensor", 1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Settings",       1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "About",          1, NULL, NULL);
 
     variable_item_list_set_selected_item(variable_item_list, 0);
     view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID);

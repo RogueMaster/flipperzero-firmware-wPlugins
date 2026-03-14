@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- * co2_app_i.h — internal header for CO2-monitor FAP.
+ * air_stats_i.h — internal header for Air Stats FAP.
  *
  * App struct and extern App* app are defined in sensors/unitemp/unitemp.h
  * (so sensor drivers can include that header without depending on this file).
@@ -20,4 +20,4 @@
 #include "views/views.h"
 
 /* Entry point */
-int32_t co2_app_main(void* p);
+int32_t air_stats_main(void* p);

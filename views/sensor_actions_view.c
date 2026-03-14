@@ -2,7 +2,7 @@
  * sensor_actions_view.c — actions for a selected sensor.
  * Adapted from _ref_unitemp/views/SensorActions_view.c
  */
-#include "../co2_app_i.h"
+#include "../air_stats_i.h"
 #include <gui/modules/variable_item_list.h>
 
 static View* view;
@@ -19,23 +19,18 @@ static uint32_t _exit_callback(void* context) {
 static void _enter_callback(void* context, uint32_t index) {
     UNUSED(context);
     switch(index) {
-    case 0: /* Info — detailed sensor readings */
+    case 0: /* Info */
         view_sensor_info_switch(current_sensor);
         return;
     case 1: /* Edit */
         view_sensor_edit_switch(current_sensor);
         break;
-    case 2: /* Delete */
-        view_widget_delete_switch(current_sensor);
-        break;
-    case 3: /* Add new sensor */
-        view_sensors_list_switch();
-        break;
-    case 4: /* Settings */
-        view_settings_switch();
-        break;
-    case 5: /* About */
-        view_widget_about_switch();
+    case 2: /* Change sensor */
+        if(current_sensor->type == &MHZ19C || current_sensor->type == &MHZ19C_UART) {
+            view_co2_settings_switch();
+        } else {
+            view_climate_settings_switch();
+        }
         break;
     }
 }
@@ -44,12 +39,9 @@ void view_sensor_actions_alloc(void) {
     variable_item_list = variable_item_list_alloc();
     variable_item_list_reset(variable_item_list);
 
-    variable_item_list_add(variable_item_list, "Info", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Edit", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Delete", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Add new sensor", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Settings", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "About", 1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Info",          1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Edit",          1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Change sensor", 1, NULL, NULL);
 
     variable_item_list_set_enter_callback(variable_item_list, _enter_callback, app);
     view = variable_item_list_get_view(variable_item_list);

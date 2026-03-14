@@ -4,7 +4,7 @@
     Adapted for flipper-air-stats CO2 monitor.
 */
 #include "Sensors.h"
-#include "../../co2_app_i.h"
+#include "../../air_stats_i.h"
 #include <furi_hal_power.h>
 #include <string.h>
 
@@ -476,10 +476,10 @@ bool unitemp_sensors_load(void) {
     size_t line_end = 0;
     while(line_end != (size_t)-1 && line_end != (size_t)(file_size - 1)) {
         char name[11] = {0};
-        char type[11] = {0};
+        char type[16] = {0};
         int temp_offset = 0;
         int offset = 0;
-        sscanf((char*)(file_buf + line_end), "%10s %10s %d %n", name, type, &temp_offset, &offset);
+        sscanf((char*)(file_buf + line_end), "%10s %15s %d %n", name, type, &temp_offset, &offset);
         name[10] = '\0';
         for(uint8_t i = 0; i < 10; i++) {
             if(name[i] == '?') name[i] = ' ';

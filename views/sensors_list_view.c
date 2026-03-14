@@ -2,7 +2,7 @@
  * sensors_list_view.c — list of sensor types to add.
  * Adapted from _ref_unitemp/views/SensorsList_view.c
  */
-#include "../co2_app_i.h"
+#include "../air_stats_i.h"
 #include <gui/modules/variable_item_list.h>
 #include <stdio.h>
 

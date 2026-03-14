@@ -2,7 +2,7 @@
  * sensor_name_edit_view.c — text input for sensor name.
  * Adapted from _ref_unitemp/views/SensorNameEdit_view.c
  */
-#include "../co2_app_i.h"
+#include "../air_stats_i.h"
 #include <gui/modules/text_input.h>
 
 static TextInput* text_input;

@@ -12,6 +12,9 @@ typedef enum {
     ViewSensorInfo,
     ViewWidget,
     ViewPopup,
+    ViewSettingsMenu,
+    ViewCO2Settings,
+    ViewClimateSettings,
     ViewsCount
 } AppViews;
 
@@ -61,6 +64,23 @@ void view_widgets_free(void);
 void view_widget_delete_switch(Sensor* sensor);
 void view_widget_help_switch(void);
 void view_widget_about_switch(void);
+void view_widget_help_from_settings_switch(void);
+void view_widget_about_from_settings_switch(void);
+
+/* Settings menu (top-level submenu) */
+void view_settings_menu_alloc(void);
+void view_settings_menu_switch(void);
+void view_settings_menu_free(void);
+
+/* CO2 sensor settings */
+void view_co2_settings_alloc(void);
+void view_co2_settings_switch(void);
+void view_co2_settings_free(void);
+
+/* Climate sensor settings */
+void view_climate_settings_alloc(void);
+void view_climate_settings_switch(void);
+void view_climate_settings_free(void);
 
 /* Popup */
 void view_popup(const Icon* icon, char* header, char* message, uint32_t prev_view_id);
