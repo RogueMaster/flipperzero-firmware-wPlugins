@@ -13,7 +13,7 @@ static Sensor* current_sensor;
 
 static uint32_t _exit_callback(void* context) {
     UNUSED(context);
-    return ViewMain;
+    return ViewMainMenu;
 }
 
 static void _enter_callback(void* context, uint32_t index) {

@@ -23,7 +23,6 @@ VariableItem* calibration_item;
 static char* offset_buff;
 
 /* Computed in view_sensor_edit_switch, used in _enter_callback */
-static uint8_t save_item_index = 4;
 static uint8_t onewire_scan_item_index = 4;
 
 #define VIEW_ID ViewSensorEdit
@@ -86,33 +85,31 @@ static void _onewire_scan(void) {
 
 static uint32_t _exit_callback(void* context) {
     UNUSED(context);
-    if(!editable_sensor) return ViewMain;
+    if(!editable_sensor) return ViewSensorActions;
+
+    /* ONE_WIRE without address — discard */
+    if(editable_sensor->type->interface == &ONE_WIRE &&
+       ((OneWireSensor*)(editable_sensor->instance))->familyCode == 0) {
+        if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensor_free(editable_sensor);
+        return ViewSensorActions;
+    }
+
+    if(initial_gpio != NULL) {
+        unitemp_gpio_unlock(initial_gpio);
+        initial_gpio = NULL;
+    }
     editable_sensor->status = UT_SENSORSTATUS_TIMEOUT;
-    if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensor_free(editable_sensor);
-    unitemp_sensors_reload();
-    return ViewMain;
+    if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensors_add(editable_sensor);
+    unitemp_sensors_save();
+    app->sensors_ready = false;
+    app->sensors_update = true;
+    return ViewSensorActions;
 }
 
 static void _enter_callback(void* context, uint32_t index) {
     UNUSED(context);
     if(index == 0) {
         view_sensor_name_edit_switch(editable_sensor);
-    }
-    if(index == save_item_index) {
-        if(editable_sensor->type->interface == &ONE_WIRE &&
-           ((OneWireSensor*)(editable_sensor->instance))->familyCode == 0) {
-            return;
-        }
-        if(initial_gpio != NULL) {
-            unitemp_gpio_unlock(initial_gpio);
-            initial_gpio = NULL;
-        }
-        editable_sensor->status = UT_SENSORSTATUS_TIMEOUT;
-        if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensors_add(editable_sensor);
-        unitemp_sensors_save();
-        app->sensors_ready = false;
-        app->sensors_update = true;
-        view_main_switch();
     }
     if(editable_sensor->type->interface == &ONE_WIRE && index == onewire_scan_item_index) {
         _onewire_scan();
@@ -292,8 +289,6 @@ void view_sensor_edit_switch(Sensor* sensor) {
         idx++;
     }
 
-    save_item_index = idx;
-    variable_item_list_add(variable_item_list, "Save", 1, NULL, NULL);
     view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID);
 }
 
