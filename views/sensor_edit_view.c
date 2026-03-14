@@ -22,6 +22,10 @@ VariableItem* calibration_item;
 #define OFFSET_BUFF_SIZE 5
 static char* offset_buff;
 
+/* Computed in view_sensor_edit_switch, used in _enter_callback */
+static uint8_t save_item_index = 4;
+static uint8_t onewire_scan_item_index = 4;
+
 #define VIEW_ID ViewSensorEdit
 
 bool _onewire_id_exist(uint8_t* id) {
@@ -94,8 +98,7 @@ static void _enter_callback(void* context, uint32_t index) {
     if(index == 0) {
         view_sensor_name_edit_switch(editable_sensor);
     }
-    if((index == 4 && editable_sensor->type->interface != &ONE_WIRE) ||
-       (index == 5 && editable_sensor->type->interface == &ONE_WIRE)) {
+    if(index == save_item_index) {
         if(editable_sensor->type->interface == &ONE_WIRE &&
            ((OneWireSensor*)(editable_sensor->instance))->familyCode == 0) {
             return;
@@ -111,7 +114,7 @@ static void _enter_callback(void* context, uint32_t index) {
         app->sensors_update = true;
         view_main_switch();
     }
-    if(index == 4 && editable_sensor->type->interface == &ONE_WIRE) {
+    if(editable_sensor->type->interface == &ONE_WIRE && index == onewire_scan_item_index) {
         _onewire_scan();
     }
 }
@@ -188,11 +191,16 @@ void view_sensor_edit_switch(Sensor* sensor) {
     variable_item_list_reset(variable_item_list);
     variable_item_list_set_selected_item(variable_item_list, 0);
 
+    uint8_t idx = 0;
+
+    /* Name — always index 0 */
     sensor_name_item = variable_item_list_add(
         variable_item_list, "Name", strlen(sensor->name) > 7 ? 1 : 2, _name_change_callback, NULL);
     variable_item_set_current_value_index(sensor_name_item, 0);
     variable_item_set_current_value_text(sensor_name_item, sensor->name);
+    idx++;
 
+    /* Type — always index 1 */
     onewire_type_item = variable_item_list_add(variable_item_list, "Type", 1, NULL, NULL);
     variable_item_set_current_value_index(onewire_type_item, 0);
     variable_item_set_current_value_text(
@@ -200,12 +208,18 @@ void view_sensor_edit_switch(Sensor* sensor) {
         (sensor->type->interface == &ONE_WIRE ?
              unitemp_onewire_sensor_getModel(editable_sensor) :
              sensor->type->typename));
+    idx++;
 
-    temp_offset_item = variable_item_list_add(
-        variable_item_list, "Temp. offset", 201, _offset_change_callback, NULL);
-    variable_item_set_current_value_index(temp_offset_item, sensor->temp_offset + 100);
-    snprintf(offset_buff, OFFSET_BUFF_SIZE, "%+1.1f", (double)(editable_sensor->temp_offset / 10.0));
-    variable_item_set_current_value_text(temp_offset_item, offset_buff);
+    /* Temp. offset — only for sensors that measure temperature */
+    if(sensor->type->datatype & UT_TEMPERATURE) {
+        temp_offset_item = variable_item_list_add(
+            variable_item_list, "Temp. offset", 201, _offset_change_callback, NULL);
+        variable_item_set_current_value_index(temp_offset_item, sensor->temp_offset + 100);
+        snprintf(
+            offset_buff, OFFSET_BUFF_SIZE, "%+1.1f", (double)(editable_sensor->temp_offset / 10.0));
+        variable_item_set_current_value_text(temp_offset_item, offset_buff);
+        idx++;
+    }
 
     if(sensor->type->interface == &ONE_WIRE || sensor->type->interface == &SINGLE_WIRE ||
        sensor->type->interface == &SPI) {
@@ -236,6 +250,7 @@ void view_sensor_edit_switch(Sensor* sensor) {
         variable_item_set_current_value_text(
             item,
             unitemp_gpio_getAviablePort(sensor->type->interface, gpio_index, initial_gpio)->name);
+        idx++;
     }
 
     if(sensor->type->interface == &I2C) {
@@ -252,26 +267,32 @@ void view_sensor_edit_switch(Sensor* sensor) {
             (((I2CSensor*)sensor->instance)->currentI2CAdr >> 1) -
                 (((I2CSensor*)sensor->instance)->minI2CAdr >> 1));
         variable_item_set_current_value_text(item, app->buff);
+        idx++;
     }
 
     if(sensor->type->interface == &ONE_WIRE) {
+        onewire_scan_item_index = idx;
         onewire_addr_item = variable_item_list_add(
             variable_item_list, "Address", 2, _onwire_addr_change_callback, NULL);
         OneWireSensor* ow_sensor = sensor->instance;
         if(ow_sensor->familyCode == 0) {
             variable_item_set_current_value_text(onewire_addr_item, "Scan");
         } else {
-            snprintf(app->buff, 10, "%02X%02X%02X",
+            snprintf(
+                app->buff, 10, "%02X%02X%02X",
                 ow_sensor->deviceID[1], ow_sensor->deviceID[2], ow_sensor->deviceID[3]);
             variable_item_set_current_value_text(onewire_addr_item, app->buff);
         }
+        idx++;
     }
 
     if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
         calibration_item =
             variable_item_list_add(variable_item_list, "Calibrate", 1, _calibrate_callback, NULL);
+        idx++;
     }
 
+    save_item_index = idx;
     variable_item_list_add(variable_item_list, "Save", 1, NULL, NULL);
     view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID);
 }

@@ -12,8 +12,9 @@
 /* Bring in App struct + settings enums + extern app + all sensor types */
 #include "sensors/unitemp/Sensors.h"
 
-/* MH-Z19C PWM sensor type (hardcoded sensor) */
+/* MH-Z19C sensor types: PWM and UART */
 #include "sensors/mhz19c_sensor.h"
+#include "sensors/mhz19c_uart_sensor.h"
 
 /* View declarations — implemented in views/ */
 #include "views/views.h"

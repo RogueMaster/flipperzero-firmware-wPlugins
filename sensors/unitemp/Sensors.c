@@ -8,8 +8,9 @@
 #include <furi_hal_power.h>
 #include <string.h>
 
-/* MH-Z19C sensor type — defined in sensors/mhz19c_sensor.c */
+/* MH-Z19C sensor types — PWM and UART variants */
 #include "../../sensors/mhz19c_sensor.h"
+#include "../../sensors/mhz19c_uart_sensor.h"
 
 /* Extra GPIO pins not in the standard list */
 const GpioPin SWC_10      = {.pin = LL_GPIO_PIN_14, .port = GPIOA};
@@ -73,7 +74,8 @@ static const SensorType* sensorTypes[] = {
     &SHT30,      &GXHT30,     &LM75,       &HDC1080,    &BMP180,
     &BMP280,     &BME280,     &BME680,     &MAX31855,   &MAX6675,
     &SCD30,      &SCD40.super,
-    &MHZ19C  /* our PWM CO2 sensor */
+    &MHZ19C,      /* PWM CO2 sensor */
+    &MHZ19C_UART  /* UART CO2 sensor */
 };
 
 /* ---- Type registry functions ---- */

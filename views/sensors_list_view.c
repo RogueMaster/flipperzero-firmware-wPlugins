@@ -36,14 +36,17 @@ static void _enter_callback(void* context, uint32_t index) {
 
     char args[22] = {0};
 
-    if(unitemp_gpio_getAviablePort(type->interface, 0, NULL) == NULL) {
-        if(type->interface == &SINGLE_WIRE || type->interface == &ONE_WIRE) {
-            view_popup(NULL, "Unavailable", "All GPIOs\nare busy", VIEW_ID);
+    if(type->interface == &SINGLE_WIRE || type->interface == &ONE_WIRE ||
+       type->interface == &I2C || type->interface == &SPI) {
+        if(unitemp_gpio_getAviablePort(type->interface, 0, NULL) == NULL) {
+            if(type->interface == &SINGLE_WIRE || type->interface == &ONE_WIRE) {
+                view_popup(NULL, "Unavailable", "All GPIOs\nare busy", VIEW_ID);
+            }
+            if(type->interface == &I2C) {
+                view_popup(NULL, "Unavailable", "GPIOs 15/16\nare busy", VIEW_ID);
+            }
+            return;
         }
-        if(type->interface == &I2C) {
-            view_popup(NULL, "Unavailable", "GPIOs 15/16\nare busy", VIEW_ID);
-        }
-        return;
     }
 
     if(type->interface == &SINGLE_WIRE || type->interface == &SPI) {
