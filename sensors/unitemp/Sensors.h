@@ -113,7 +113,6 @@ Sensor* unitemp_sensor_getActive(uint8_t index);
 bool unitemp_sensors_load(void);
 void unitemp_sensors_reload(void);
 bool unitemp_sensors_save(void);
-void unitemp_sensor_delete(Sensor* sensor);
 bool unitemp_sensors_init(void);
 bool unitemp_sensors_deInit(void);
 void unitemp_sensors_free(void);
@@ -122,7 +121,6 @@ uint8_t unitemp_sensors_getCount(void);
 void unitemp_sensors_add(Sensor* sensor);
 const SensorType** unitemp_sensors_getTypes(void);
 uint8_t unitemp_sensors_getTypesCount(void);
-const SensorType* unitemp_sensors_getTypeFromInt(uint8_t index);
 const SensorType* unitemp_sensors_getTypeFromStr(char* str);
 uint8_t unitemp_sensors_getActiveCount(void);
 

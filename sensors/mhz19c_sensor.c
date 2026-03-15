@@ -9,6 +9,9 @@
 #define MHZ19C_CO2_BUF_SIZE 5
 
 /* ---- Instance struct ---- */
+/* No edge for this many ms → sensor considered disconnected */
+#define MHZ19C_DISCONNECT_TIMEOUT_MS 3000
+
 typedef struct {
     int32_t prevVal;
     int32_t th;
@@ -18,6 +21,8 @@ typedef struct {
     int32_t co2_buf[MHZ19C_CO2_BUF_SIZE];
     uint8_t buf_idx;
     uint8_t buf_count;
+    uint32_t last_edge_tick;
+    bool disconnected;
 } MHZ19CInstance;
 
 /* ---- Custom "direct GPIO" interface ---- */
@@ -65,7 +70,9 @@ static bool mhz19c_free(Sensor* sensor) {
 }
 
 static bool mhz19c_init(Sensor* sensor) {
-    UNUSED(sensor);
+    MHZ19CInstance* inst = sensor->instance;
+    inst->last_edge_tick = furi_get_tick();
+    inst->disconnected = false;
     if(!furi_hal_power_is_otg_enabled()) {
         furi_hal_power_enable_otg();
     }
@@ -86,6 +93,8 @@ static UnitempStatus mhz19c_update(Sensor* sensor) {
     MHZ19CInstance* inst = sensor->instance;
 
     int32_t gpio_val = furi_hal_gpio_read(&gpio_ext_pa6) ? 1 : 0;
+
+    int32_t old_prev = inst->prevVal;
     int32_t ppm = calculate_ppm(
         &inst->prevVal,
         gpio_val,
@@ -94,6 +103,31 @@ static UnitempStatus mhz19c_update(Sensor* sensor) {
         &inst->h,
         &inst->l,
         RANGE_2000);
+
+    bool edge_detected = (inst->prevVal != old_prev);
+
+    if(edge_detected) {
+        inst->last_edge_tick = furi_get_tick();
+        if(inst->disconnected) {
+            /* First edge after disconnect — reset state machine, skip stale ppm */
+            inst->disconnected = false;
+            inst->th = 0;
+            inst->tl = 0;
+            inst->h = 0;
+            inst->l = 0;
+            memset(inst->co2_buf, 0, sizeof(inst->co2_buf));
+            inst->buf_idx = 0;
+            inst->buf_count = 0;
+            return UT_SENSORSTATUS_POLLING;
+        }
+    } else {
+        /* No edge — check for disconnect timeout */
+        if(!inst->disconnected && inst->last_edge_tick > 0 &&
+           (furi_get_tick() - inst->last_edge_tick) > MHZ19C_DISCONNECT_TIMEOUT_MS) {
+            inst->disconnected = true;
+            sensor->co2 = -1.0f;
+        }
+    }
 
     if(ppm > 0) {
         inst->co2_buf[inst->buf_idx] = ppm;

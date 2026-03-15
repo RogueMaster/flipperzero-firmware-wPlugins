@@ -103,15 +103,6 @@ const SensorType** unitemp_sensors_getTypes(void) {
     return sensorTypes;
 }
 
-int unitemp_getIntFromType(const SensorType* type) {
-    for(int i = 0; i < SENSOR_TYPES_COUNT; i++) {
-        if(!strcmp(type->typename, sensorTypes[i]->typename)) {
-            return i;
-        }
-    }
-    return 255;
-}
-
 /* ---- GPIO helpers ---- */
 
 const GPIO* unitemp_gpio_getFromInt(uint8_t name) {
@@ -226,15 +217,6 @@ const GPIO*
 }
 
 /* ---- Sensor list management ---- */
-
-void unitemp_sensor_delete(Sensor* sensor) {
-    for(uint8_t i = 0; i < app->sensors_count; i++) {
-        if(app->sensors[i] == sensor) {
-            app->sensors[i]->status = UT_SENSORSTATUS_INACTIVE;
-            return;
-        }
-    }
-}
 
 Sensor* unitemp_sensor_getActive(uint8_t index) {
     uint8_t aviable_index = 0;
