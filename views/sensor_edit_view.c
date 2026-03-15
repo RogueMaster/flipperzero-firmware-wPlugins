@@ -1,7 +1,7 @@
 /*
  * sensor_edit_view.c — sensor configuration editor.
- * CO2 sensors: type selector (PWM/UART) + calibration.
- * Climate sensors: sensor selector + offset + GPIO/I2C + unit settings.
+ * CO2 sensors: type selector (PWM/UART) + CO2 offset + calibration.
+ * Climate sensors: sensor selector + temp offset + GPIO/I2C + unit settings.
  */
 #include "../air_stats_i.h"
 #include <gui/modules/variable_item_list.h>
@@ -15,12 +15,14 @@ static Sensor* editable_sensor;
 static const GPIO* initial_gpio = NULL;
 
 static VariableItem* onewire_addr_item;
-VariableItem* temp_offset_item;
-VariableItem* calibration_item;
 
 /* CO2 */
 static VariableItem* co2_type_item;
 static const char co2_type_names[2][5] = {"PWM", "UART"};
+#define CO2_OFFSET_STEPS    41   /* -1000..+1000 с шагом 50 */
+#define CO2_OFFSET_CENTER   20   /* индекс 20 = 0 ppm */
+#define CO2_OFFSET_STEP_PPM 50
+static char co2_offset_buff[8];
 
 /* Climate — sensor selector */
 static VariableItem* climate_sensor_item;
@@ -48,7 +50,7 @@ static uint8_t onewire_scan_item_index = 4;
 
 /* --- OneWire helpers --- */
 
-bool _onewire_id_exist(uint8_t* id) {
+static bool _onewire_id_exist(uint8_t* id) {
     if(id == NULL) return false;
     for(uint8_t i = 0; i < unitemp_sensors_getActiveCount(); i++) {
         if(unitemp_sensor_getActive(i)->type == &Dallas) {
@@ -100,9 +102,8 @@ static void _onewire_scan(void) {
     }
 }
 
-/* --- CO2 hotswap (verbatim from co2_settings_view.c) --- */
+/* --- CO2 hotswap --- */
 
-/* Forward declaration — defined below */
 static void _climate_hotswap(uint8_t new_idx, uint8_t old_idx);
 
 static void _co2_hotswap(Co2SensorType new_type) {
@@ -133,7 +134,7 @@ static void _co2_hotswap(Co2SensorType new_type) {
     unitemp_sensors_reload();
 }
 
-/* --- Climate hotswap (verbatim from climate_settings_view.c) --- */
+/* --- Climate hotswap --- */
 
 static void _climate_hotswap(uint8_t new_idx, uint8_t old_idx) {
     if(new_idx >= climate_types_count) return;
@@ -176,6 +177,14 @@ static void _climate_hotswap(uint8_t new_idx, uint8_t old_idx) {
 static void _co2_type_change(VariableItem* item) {
     variable_item_set_current_value_text(
         item, co2_type_names[variable_item_get_current_value_index(item)]);
+}
+
+static void _co2_offset_change_callback(VariableItem* item) {
+    int16_t val = ((int16_t)variable_item_get_current_value_index(item) - CO2_OFFSET_CENTER)
+                  * CO2_OFFSET_STEP_PPM;
+    editable_sensor->co2_offset = val;
+    snprintf(co2_offset_buff, sizeof(co2_offset_buff), "%+d", (int)val);
+    variable_item_set_current_value_text(item, co2_offset_buff);
 }
 
 static void _climate_sensor_change(VariableItem* item) {
@@ -273,6 +282,8 @@ static uint32_t _exit_callback(void* context) {
             _co2_hotswap(selected);
             return ViewMainMenu;
         }
+        editable_sensor->status = UT_SENSORSTATUS_TIMEOUT;
+        unitemp_sensors_save();
         return ViewSensorActions;
     }
 
@@ -371,9 +382,18 @@ void view_sensor_edit_switch(Sensor* sensor) {
         variable_item_set_current_value_text(co2_type_item, co2_type_names[actual_co2_type]);
         idx++;
 
+        VariableItem* co2_offset_item = variable_item_list_add(
+            variable_item_list, "CO2 offset", CO2_OFFSET_STEPS, _co2_offset_change_callback, NULL);
+        uint8_t co2_idx = (uint8_t)(sensor->co2_offset / CO2_OFFSET_STEP_PPM + CO2_OFFSET_CENTER);
+        variable_item_set_current_value_index(co2_offset_item, co2_idx);
+        snprintf(co2_offset_buff, sizeof(co2_offset_buff), "%+d", (int)sensor->co2_offset);
+        variable_item_set_current_value_text(co2_offset_item, co2_offset_buff);
+        idx++;
+
         if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
-            calibration_item = variable_item_list_add(
+            VariableItem* calibration_item = variable_item_list_add(
                 variable_item_list, "Calibrate", 1, _calibrate_callback, NULL);
+            (void)calibration_item;
             idx++;
         }
     } else {
@@ -404,7 +424,7 @@ void view_sensor_edit_switch(Sensor* sensor) {
 
         /* Temp offset */
         if(sensor->type->datatype & UT_TEMPERATURE) {
-            temp_offset_item = variable_item_list_add(
+            VariableItem* temp_offset_item = variable_item_list_add(
                 variable_item_list, "Temp. offset", 201, _offset_change_callback, NULL);
             variable_item_set_current_value_index(temp_offset_item, sensor->temp_offset + 100);
             snprintf(
@@ -485,8 +505,9 @@ void view_sensor_edit_switch(Sensor* sensor) {
 
         /* Calibrate */
         if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
-            calibration_item = variable_item_list_add(
+            VariableItem* calibration_item = variable_item_list_add(
                 variable_item_list, "Calibrate", 1, _calibrate_callback, NULL);
+            (void)calibration_item;
             idx++;
         }
 

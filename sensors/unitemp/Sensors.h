@@ -94,6 +94,7 @@ typedef struct Sensor {
     UnitempStatus status;
     uint32_t lastPollingTime;
     int8_t temp_offset;
+    int16_t co2_offset;   /* CO2 correction, ppm; step 50 */
     void* instance;
 } Sensor;
 
