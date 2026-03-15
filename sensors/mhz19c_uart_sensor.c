@@ -116,7 +116,10 @@ static UnitempStatus mhz19c_uart_update(Sensor* sensor) {
     furi_hal_serial_tx(inst->serial, buf, sizeof(buf));
 
     size_t read = furi_stream_buffer_receive(inst->stream, buf, sizeof(buf), 50);
-    if(read != MHZ19_UART_BUF_SIZE) return UT_SENSORSTATUS_TIMEOUT;
+    if(read != MHZ19_UART_BUF_SIZE) {
+        sensor->co2 = -1.0f;
+        return UT_SENSORSTATUS_TIMEOUT;
+    }
     if(buf[8] != mhz19c_uart_checksum(buf)) return UT_SENSORSTATUS_BADCRC;
 
     sensor->co2 = (float)((uint32_t)buf[2] * 256 + buf[3]);
