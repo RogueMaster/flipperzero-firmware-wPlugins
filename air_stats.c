@@ -240,6 +240,26 @@ int32_t air_stats_main(void* p) {
         unitemp_sensors_save(); /* persist defaults */
     }
 
+    /* Sync CO2 sensor type: settings.co2_type must match the actual loaded sensor.
+     * If they diverge (e.g. save was interrupted last session), fix silently. */
+    {
+        const SensorType* expected = (app->settings.co2_type == CO2_TYPE_UART) ?
+                                     &MHZ19C_UART : &MHZ19C;
+        bool ok = false;
+        for(uint8_t i = 0; i < app->sensors_count; i++) {
+            if(app->sensors[i]->type == expected) { ok = true; break; }
+        }
+        if(!ok) {
+            for(uint8_t i = 0; i < app->sensors_count; i++) {
+                if(app->sensors[i]->type->datatype & UT_CO2)
+                    app->sensors[i]->status = UT_SENSORSTATUS_INACTIVE;
+            }
+            Sensor* co2 = unitemp_sensor_alloc("MH-Z19C", expected, "");
+            if(co2) unitemp_sensors_add(co2);
+            unitemp_sensors_save();
+        }
+    }
+
     /* Initialize sensors (enables OTG power, sets up GPIO) */
     unitemp_sensors_init();
 

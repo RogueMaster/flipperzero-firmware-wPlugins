@@ -102,18 +102,32 @@ static void _onewire_scan(void) {
 
 /* --- CO2 hotswap (verbatim from co2_settings_view.c) --- */
 
+/* Forward declaration — defined below */
+static void _climate_hotswap(uint8_t new_idx, uint8_t old_idx);
+
 static void _co2_hotswap(Co2SensorType new_type) {
     for(uint8_t i = 0; i < app->sensors_count; i++) {
-        if(app->sensors[i]->type == &MHZ19C || app->sensors[i]->type == &MHZ19C_UART) {
-            app->sensors[i]->status = UT_SENSORSTATUS_INACTIVE;
+        Sensor* si = app->sensors[i];
+        if(si->type == &MHZ19C || si->type == &MHZ19C_UART) {
+            si->status = UT_SENSORSTATUS_INACTIVE;
+        }
+        /* UART uses pins 15/16 (same as I2C) — silently disable I2C climate sensors */
+        if(new_type == CO2_TYPE_UART &&
+           !(si->type->datatype & UT_CO2) &&
+           si->type->interface == &I2C) {
+            si->status = UT_SENSORSTATUS_INACTIVE;
         }
     }
     const SensorType* stype = (new_type == CO2_TYPE_UART) ? &MHZ19C_UART : &MHZ19C;
     char sname[11];
     snprintf(sname, sizeof(sname), "MH-Z19C");
-    Sensor* s = unitemp_sensor_alloc(sname, stype, "");
-    if(s) {
-        unitemp_sensors_add(s);
+    Sensor* new_co2 = unitemp_sensor_alloc(sname, stype, "");
+    if(new_co2) unitemp_sensors_add(new_co2);
+
+    if(new_type == CO2_TYPE_PWM) {
+        /* Pins 15/16 now free — restore climate sensor */
+        _climate_hotswap(app->settings.climate_type_idx, app->settings.climate_type_idx);
+        return;
     }
     unitemp_sensors_save();
     unitemp_sensors_reload();

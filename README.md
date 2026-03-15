@@ -1,54 +1,61 @@
 # flipper-air-stats
 
-> **⚠️ ALPHA — work in progress.**
-> Only tested with Unleashed firmware. Currently supports two sensors (MH-Z19C and BME280) — both require manual calibration/tuning. Expect bugs and breaking changes.
-
-Flipper Zero app for monitoring CO2 (PWM/UART), temperature, humidity and pressure via GPIO.
+Flipper Zero app for monitoring CO2, temperature, humidity and pressure via GPIO.
 
 ## Sensors
 
-| Sensor | Interface | Pin | Measures |
-|--------|-----------|-----|----------|
-| MH-Z19C | PWM | PA6 (pin 3) | CO2 (ppm) |
-| BME280 | I2C | SDA/SCL | Temperature, humidity, pressure |
+| Sensor | Interface | Measures |
+|--------|-----------|----------|
+| MH-Z19C | PWM (pin 3, PA6) | CO2 ppm |
+| MH-Z19C | UART LPUART1 (pins 15/16) | CO2 ppm |
+| BME280/BME680/etc | I2C | Temperature, humidity, pressure |
 
-## Hardware
+CO2 sensor type (PWM or UART) is switchable in the sensor edit screen.
 
-Tested with "FlipperZero CO2 Sensor" MH-Z19C module:
+## Wiring
+
+### MH-Z19C — PWM mode
+
 ```
-5V  → pin 1
-PWM → pin 3 (PA6)
-GND → pin 8
+Flipper pin 1  (5V)  → sensor Vin
+Flipper pin 3  (PA6) ← sensor PWM out
+Flipper pin 8  (GND) → sensor GND
 ```
 
-BME280 on external I2C bus (0x76 or 0x77).
+### MH-Z19C — UART mode (LPUART1)
+
+```
+Flipper pin 1  (5V)  → sensor Vin
+Flipper pin 15 (C1)  → sensor RX   [TX from Flipper]
+Flipper pin 16 (C0)  ← sensor TX   [RX to Flipper]
+Flipper pin 8  (GND) → sensor GND
+```
+
+### BME280 (I2C, default addr 0x76)
+
+```
+Flipper pin 9  (3.3V) → VCC
+Flipper pin 15 (SCL)  → SCL    ← note: shared with UART if both used
+Flipper pin 16 (SDA)  → SDA
+Flipper pin 8  (GND)  → GND
+```
+
+> BME280 and UART CO2 cannot be used simultaneously — both use pins 15/16.
+> Default config: BME280 (I2C) + MH-Z19C (PWM). UART mode replaces PWM.
 
 ## Build
 
 ```bash
-# Unleashed firmware (default)
-bash tools/build.sh
-
-# Install on device
-bash tools/build.sh -i
-
-# Standard firmware
-bash tools/build.sh -f standard
+ufbt fap_air_stats
 ```
 
-Requires `.unleashed-firmware` submodule:
-```bash
-git submodule update --init
+Deploy to device:
 ```
-
-## Display
-
-- CO2 value + bar graph (0–2000 ppm)
-- Temperature (°C), humidity (%), pressure (hPa)
-- Back button to exit
+/ext/apps/air_stats.fap
+```
 
 ## Notes
 
-- CO2 PWM algorithm verbatim from [flipper-zero-mh-z19](https://github.com/meshchaninov/flipper-zero-mh-z19)
+- PWM CO2 algorithm from [flipper-zero-mh-z19](https://github.com/meshchaninov/flipper-zero-mh-z19)
 - PWM accuracy: ±(40 ppm + 3%) per MH-Z19C datasheet
-- BME280 uses Bosch compensation formulas
+- Disconnect detection: PWM — no edge for 3 s clears CO2 reading; UART — no response clears CO2 reading

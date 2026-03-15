@@ -1,6 +1,6 @@
 /*
  * mhz19c_uart_sensor.c — MH-Z19C CO2 sensor via UART (LPUART1, 9600 baud).
- * Pin 13 (TX) → sensor RX, Pin 14 (RX) ← sensor TX.
+ * Pin 15 (C1, TX) → sensor RX, Pin 16 (C0, RX) ← sensor TX.
  * Protocol: 9-byte request/response, checksum = 0xFF - sum(bytes[1..7]) + 1.
  */
 #include "mhz19c_uart_sensor.h"
@@ -120,7 +120,10 @@ static UnitempStatus mhz19c_uart_update(Sensor* sensor) {
         sensor->co2 = -1.0f;
         return UT_SENSORSTATUS_TIMEOUT;
     }
-    if(buf[8] != mhz19c_uart_checksum(buf)) return UT_SENSORSTATUS_BADCRC;
+    if(buf[8] != mhz19c_uart_checksum(buf)) {
+        sensor->co2 = -1.0f;
+        return UT_SENSORSTATUS_BADCRC;
+    }
 
     sensor->co2 = (float)((uint32_t)buf[2] * 256 + buf[3]);
     return UT_SENSORSTATUS_OK;
