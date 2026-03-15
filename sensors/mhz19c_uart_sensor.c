@@ -115,7 +115,7 @@ static UnitempStatus mhz19c_uart_update(Sensor* sensor) {
     buf[8] = mhz19c_uart_checksum(buf);
     furi_hal_serial_tx(inst->serial, buf, sizeof(buf));
 
-    size_t read = furi_stream_buffer_receive(inst->stream, buf, sizeof(buf), 100);
+    size_t read = furi_stream_buffer_receive(inst->stream, buf, sizeof(buf), 50);
     if(read != MHZ19_UART_BUF_SIZE) return UT_SENSORSTATUS_TIMEOUT;
     if(buf[8] != mhz19c_uart_checksum(buf)) return UT_SENSORSTATUS_BADCRC;
 

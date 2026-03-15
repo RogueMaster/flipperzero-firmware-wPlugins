@@ -249,9 +249,11 @@ static uint32_t _exit_callback(void* context) {
     bool is_co2 = (editable_sensor->type->datatype & UT_CO2) != 0;
 
     if(is_co2) {
+        Co2SensorType actual_type =
+            (editable_sensor->type == &MHZ19C_UART) ? CO2_TYPE_UART : CO2_TYPE_PWM;
         Co2SensorType selected =
             (Co2SensorType)variable_item_get_current_value_index(co2_type_item);
-        if(selected != app->settings.co2_type) {
+        if(selected != actual_type) {
             app->settings.co2_type = selected;
             unitemp_saveSettings();
             _co2_hotswap(selected);
@@ -346,12 +348,13 @@ void view_sensor_edit_switch(Sensor* sensor) {
     bool is_co2 = (sensor->type->datatype & UT_CO2) != 0;
 
     if(is_co2) {
-        /* CO2 Type selector */
+        /* CO2 Type selector — show actual running type, not settings */
+        Co2SensorType actual_co2_type =
+            (sensor->type == &MHZ19C_UART) ? CO2_TYPE_UART : CO2_TYPE_PWM;
         co2_type_item = variable_item_list_add(
             variable_item_list, "CO2 Type", 2, _co2_type_change, app);
-        variable_item_set_current_value_index(co2_type_item, (uint8_t)app->settings.co2_type);
-        variable_item_set_current_value_text(
-            co2_type_item, co2_type_names[app->settings.co2_type]);
+        variable_item_set_current_value_index(co2_type_item, (uint8_t)actual_co2_type);
+        variable_item_set_current_value_text(co2_type_item, co2_type_names[actual_co2_type]);
         idx++;
 
         if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
