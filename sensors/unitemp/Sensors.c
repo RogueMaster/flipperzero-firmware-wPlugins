@@ -286,6 +286,7 @@ Sensor* unitemp_sensor_alloc(char* name, const SensorType* type, char* args) {
     sensor->co2 = -1.0f;
     sensor->temp_offset = 0;
     sensor->co2_offset = 0;
+    sensor->co2_avg = 5;
 
     status = sensor->type->interface->allocator(sensor, args);
 
@@ -464,17 +465,24 @@ bool unitemp_sensors_load(void) {
     while(line_end != (size_t)-1 && line_end != (size_t)(file_size - 1)) {
         char name[11] = {0};
         char type[16] = {0};
-        int temp_offset = 0;
-        int co2_offset_val = 0;
-        int offset = 0;
+        int temp_offset = 0, co2_offset_val = 0, co2_avg_val = 5, offset = 0;
         int parsed = sscanf(
             (char*)(file_buf + line_end),
-            "%10s %15s %d %d %n",
-            name, type, &temp_offset, &co2_offset_val, &offset);
+            "%10s %15s %d %d %d %n",
+            name, type, &temp_offset, &co2_offset_val, &co2_avg_val, &offset);
+        if(parsed < 5) {
+            offset = 0;
+            parsed = sscanf(
+                (char*)(file_buf + line_end),
+                "%10s %15s %d %d %n",
+                name, type, &temp_offset, &co2_offset_val, &offset);
+            co2_avg_val = 5;
+        }
         if(parsed < 4) {
             offset = 0;
             sscanf((char*)(file_buf + line_end), "%10s %15s %d %n", name, type, &temp_offset, &offset);
             co2_offset_val = 0;
+            co2_avg_val = 5;
         }
         name[10] = '\0';
         for(uint8_t i = 0; i < 10; i++) {
@@ -486,7 +494,8 @@ bool unitemp_sensors_load(void) {
             Sensor* sensor = unitemp_sensor_alloc(name, stype, args);
             if(sensor != NULL) {
                 sensor->temp_offset = temp_offset;
-                sensor->co2_offset = (int16_t)co2_offset_val;
+                sensor->co2_offset  = (int16_t)co2_offset_val;
+                sensor->co2_avg     = (uint8_t)(co2_avg_val < 1 ? 1 : co2_avg_val > 30 ? 30 : co2_avg_val);
                 unitemp_sensors_add(sensor);
             }
         }
@@ -522,9 +531,9 @@ bool unitemp_sensors_save(void) {
             if(sensor->name[j] == ' ') sensor->name[j] = '?';
         }
         stream_write_format(
-            app->file_stream, "%s %s %d %d ",
+            app->file_stream, "%s %s %d %d %d ",
             sensor->name, sensor->type->typename,
-            sensor->temp_offset, sensor->co2_offset);
+            sensor->temp_offset, sensor->co2_offset, sensor->co2_avg);
 
         if(sensor->type->interface == &SINGLE_WIRE) {
             stream_write_format(

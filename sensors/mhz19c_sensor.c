@@ -6,7 +6,7 @@
 #include <furi_hal_power.h>
 #include <string.h>
 
-#define MHZ19C_CO2_BUF_SIZE 5
+#define MHZ19C_CO2_BUF_MAX 30
 
 /* ---- Instance struct ---- */
 /* No edge for this many ms → sensor considered disconnected */
@@ -18,7 +18,7 @@ typedef struct {
     int32_t tl;
     int32_t h;
     int32_t l;
-    int32_t co2_buf[MHZ19C_CO2_BUF_SIZE];
+    int32_t co2_buf[MHZ19C_CO2_BUF_MAX];
     uint8_t buf_idx;
     uint8_t buf_count;
     uint32_t last_edge_tick;
@@ -141,12 +141,22 @@ static UnitempStatus mhz19c_update(Sensor* sensor) {
     }
 
     if(ppm > 0) {
+        uint8_t win = sensor->co2_avg;
+        if(win < 1) win = 1;
+        if(win > MHZ19C_CO2_BUF_MAX) win = MHZ19C_CO2_BUF_MAX;  /* clamp to 30 */
+
+        if(win == 1) {
+            /* Raw mode — no buffering */
+            sensor->co2 = (float)ppm;
+            return UT_SENSORSTATUS_OK;
+        }
+
         inst->co2_buf[inst->buf_idx] = ppm;
-        inst->buf_idx = (inst->buf_idx + 1) % MHZ19C_CO2_BUF_SIZE;
-        if(inst->buf_count < MHZ19C_CO2_BUF_SIZE) inst->buf_count++;
+        inst->buf_idx = (inst->buf_idx + 1) % win;
+        if(inst->buf_count < win) inst->buf_count++;
 
         /* Trimmed mean: sort, drop min+max, average the rest */
-        int32_t sorted[MHZ19C_CO2_BUF_SIZE];
+        int32_t sorted[MHZ19C_CO2_BUF_MAX];
         memcpy(sorted, inst->co2_buf, inst->buf_count * sizeof(int32_t));
         for(uint8_t i = 1; i < inst->buf_count; i++) {
             int32_t key = sorted[i];

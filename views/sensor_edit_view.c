@@ -179,6 +179,14 @@ static void _co2_type_change(VariableItem* item) {
         item, co2_type_names[variable_item_get_current_value_index(item)]);
 }
 
+static void _co2_avg_change_callback(VariableItem* item) {
+    uint8_t val = (uint8_t)variable_item_get_current_value_index(item) + 1;
+    editable_sensor->co2_avg = val;
+    char buf[4];
+    snprintf(buf, sizeof(buf), "%d", val);
+    variable_item_set_current_value_text(item, buf);
+}
+
 static void _co2_offset_change_callback(VariableItem* item) {
     int16_t val = ((int16_t)variable_item_get_current_value_index(item) - CO2_OFFSET_CENTER)
                   * CO2_OFFSET_STEP_PPM;
@@ -389,6 +397,16 @@ void view_sensor_edit_switch(Sensor* sensor) {
         snprintf(co2_offset_buff, sizeof(co2_offset_buff), "%+d", (int)sensor->co2_offset);
         variable_item_set_current_value_text(co2_offset_item, co2_offset_buff);
         idx++;
+
+        if(actual_co2_type == CO2_TYPE_PWM) {
+            VariableItem* avg_item = variable_item_list_add(
+                variable_item_list, "Avg points", 30, _co2_avg_change_callback, NULL);
+            variable_item_set_current_value_index(avg_item, sensor->co2_avg - 1);
+            char avg_buf[4];
+            snprintf(avg_buf, sizeof(avg_buf), "%d", sensor->co2_avg);
+            variable_item_set_current_value_text(avg_item, avg_buf);
+            idx++;
+        }
 
         if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
             VariableItem* calibration_item = variable_item_list_add(
