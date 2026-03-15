@@ -39,7 +39,7 @@ libs = env.BuildModules(
         "flipper_application",
         "music_worker",
         "uzlib",
-        "mjs",
+        # "mjs",
         "nanopb",
         "update_util",
         "heatshrink",
