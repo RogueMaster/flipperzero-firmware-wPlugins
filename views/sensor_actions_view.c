@@ -25,13 +25,6 @@ static void _enter_callback(void* context, uint32_t index) {
     case 1: /* Edit */
         view_sensor_edit_switch(current_sensor);
         break;
-    case 2: /* Change sensor */
-        if(current_sensor->type == &MHZ19C || current_sensor->type == &MHZ19C_UART) {
-            view_co2_settings_switch();
-        } else {
-            view_climate_settings_switch();
-        }
-        break;
     }
 }
 
@@ -39,9 +32,8 @@ void view_sensor_actions_alloc(void) {
     variable_item_list = variable_item_list_alloc();
     variable_item_list_reset(variable_item_list);
 
-    variable_item_list_add(variable_item_list, "Info",          1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Edit",          1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Change sensor", 1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Info", 1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Edit", 1, NULL, NULL);
 
     variable_item_list_set_enter_callback(variable_item_list, _enter_callback, app);
     view = variable_item_list_get_view(variable_item_list);

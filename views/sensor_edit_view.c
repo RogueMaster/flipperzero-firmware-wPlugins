@@ -1,6 +1,7 @@
 /*
- * sensor_edit_view.c — sensor configuration editor (name, offset, GPIO, save).
- * Adapted from _ref_unitemp/views/SensorEdit_view.c
+ * sensor_edit_view.c — sensor configuration editor.
+ * CO2 sensors: type selector (PWM/UART) + calibration.
+ * Climate sensors: sensor selector + offset + GPIO/I2C + unit settings.
  */
 #include "../air_stats_i.h"
 #include <gui/modules/variable_item_list.h>
@@ -14,9 +15,28 @@ static Sensor* editable_sensor;
 static const GPIO* initial_gpio = NULL;
 
 static VariableItem* onewire_addr_item;
-static VariableItem* onewire_type_item;
 VariableItem* temp_offset_item;
 VariableItem* calibration_item;
+
+/* CO2 */
+static VariableItem* co2_type_item;
+static const char co2_type_names[2][5] = {"PWM", "UART"};
+
+/* Climate — sensor selector */
+static VariableItem* climate_sensor_item;
+#define MAX_CLIMATE_TYPES 32
+static const SensorType* climate_types[MAX_CLIMATE_TYPES];
+static uint8_t climate_types_count = 0;
+
+/* Climate — units */
+static VariableItem* temp_unit_item;
+static VariableItem* pressure_unit_item;
+static VariableItem* humidity_unit_item;
+static VariableItem* heat_index_item;
+static const char temp_units[UT_TEMP_COUNT][3]          = {"*C", "*F"};
+static const char humidity_units[UT_HUMIDITY_COUNT][12] = {"Relative", "Dewpoint"};
+static const char pressure_units[UT_PRESSURE_COUNT][6]  = {"mmHg", "inHg", "kPa", "hPa"};
+static const char heat_index_bool[2][4]                 = {"OFF", "ON"};
 
 #define OFFSET_BUFF_SIZE 5
 static char* offset_buff;
@@ -25,6 +45,8 @@ static char* offset_buff;
 static uint8_t onewire_scan_item_index = 4;
 
 #define VIEW_ID ViewSensorEdit
+
+/* --- OneWire helpers --- */
 
 bool _onewire_id_exist(uint8_t* id) {
     if(id == NULL) return false;
@@ -60,8 +82,6 @@ static void _onewire_scan(void) {
             ow_sensor->familyCode = 0;
             unitemp_onewire_bus_deinit(ow_sensor->bus);
             variable_item_set_current_value_text(onewire_addr_item, "empty");
-            variable_item_set_current_value_text(
-                onewire_type_item, unitemp_onewire_sensor_getModel(editable_sensor));
             return;
         }
     }
@@ -78,37 +98,95 @@ static void _onewire_scan(void) {
     } else {
         variable_item_set_current_value_text(onewire_addr_item, "empty");
     }
-    variable_item_set_current_value_text(
-        onewire_type_item, unitemp_onewire_sensor_getModel(editable_sensor));
 }
 
-static uint32_t _exit_callback(void* context) {
-    UNUSED(context);
-    if(!editable_sensor) return ViewSensorActions;
+/* --- CO2 hotswap (verbatim from co2_settings_view.c) --- */
 
-    /* ONE_WIRE without address — discard */
-    if(editable_sensor->type->interface == &ONE_WIRE &&
-       ((OneWireSensor*)(editable_sensor->instance))->familyCode == 0) {
-        if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensor_free(editable_sensor);
-        return ViewSensorActions;
+static void _co2_hotswap(Co2SensorType new_type) {
+    for(uint8_t i = 0; i < app->sensors_count; i++) {
+        if(app->sensors[i]->type == &MHZ19C || app->sensors[i]->type == &MHZ19C_UART) {
+            app->sensors[i]->status = UT_SENSORSTATUS_INACTIVE;
+        }
     }
-
-    if(initial_gpio != NULL) {
-        unitemp_gpio_unlock(initial_gpio);
-        initial_gpio = NULL;
+    const SensorType* stype = (new_type == CO2_TYPE_UART) ? &MHZ19C_UART : &MHZ19C;
+    char sname[11];
+    snprintf(sname, sizeof(sname), "MH-Z19C");
+    Sensor* s = unitemp_sensor_alloc(sname, stype, "");
+    if(s) {
+        unitemp_sensors_add(s);
     }
-    editable_sensor->status = UT_SENSORSTATUS_TIMEOUT;
-    if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensors_add(editable_sensor);
     unitemp_sensors_save();
-    app->sensors_ready = false;
-    app->sensors_update = true;
-    return ViewSensorActions;
+    unitemp_sensors_reload();
 }
 
-static void _enter_callback(void* context, uint32_t index) {
-    UNUSED(context);
-    if(editable_sensor->type->interface == &ONE_WIRE && index == onewire_scan_item_index) {
-        _onewire_scan();
+/* --- Climate hotswap (verbatim from climate_settings_view.c) --- */
+
+static void _climate_hotswap(uint8_t new_idx, uint8_t old_idx) {
+    if(new_idx >= climate_types_count) return;
+    const SensorType* new_type = climate_types[new_idx];
+
+    for(uint8_t i = 0; i < app->sensors_count; i++) {
+        if(!(app->sensors[i]->type->datatype & UT_CO2)) {
+            app->sensors[i]->status = UT_SENSORSTATUS_INACTIVE;
+        }
+    }
+
+    char args[22] = {0};
+    if(new_type->interface == &SINGLE_WIRE || new_type->interface == &SPI) {
+        const GPIO* gpio = unitemp_gpio_getAviablePort(new_type->interface, 0, NULL);
+        if(gpio) snprintf(args, sizeof(args), "%d", unitemp_gpio_toInt(gpio));
+    }
+
+    char sname[11];
+    snprintf(sname, sizeof(sname), "%s", new_type->typename);
+    Sensor* s = unitemp_sensor_alloc(sname, new_type, args);
+    if(!s) {
+        for(uint8_t i = 0; i < app->sensors_count; i++) {
+            if(!(app->sensors[i]->type->datatype & UT_CO2)) {
+                app->sensors[i]->status = UT_SENSORSTATUS_ERROR;
+            }
+        }
+        app->settings.climate_type_idx = old_idx;
+        unitemp_saveSettings();
+        return;
+    }
+
+    app->settings.climate_type_idx = new_idx;
+    unitemp_sensors_add(s);
+    unitemp_sensors_save();
+    unitemp_sensors_reload();
+}
+
+/* --- Callbacks --- */
+
+static void _co2_type_change(VariableItem* item) {
+    variable_item_set_current_value_text(
+        item, co2_type_names[variable_item_get_current_value_index(item)]);
+}
+
+static void _climate_sensor_change(VariableItem* item) {
+    uint8_t idx = variable_item_get_current_value_index(item);
+    if(idx < climate_types_count) {
+        const char* name = climate_types[idx]->altname
+                               ? climate_types[idx]->altname
+                               : climate_types[idx]->typename;
+        variable_item_set_current_value_text(item, name);
+    }
+}
+
+static void _unit_change(VariableItem* item) {
+    if(item == temp_unit_item) {
+        variable_item_set_current_value_text(
+            item, temp_units[variable_item_get_current_value_index(item)]);
+    } else if(item == pressure_unit_item) {
+        variable_item_set_current_value_text(
+            item, pressure_units[variable_item_get_current_value_index(item)]);
+    } else if(item == humidity_unit_item) {
+        variable_item_set_current_value_text(
+            item, humidity_units[variable_item_get_current_value_index(item)]);
+    } else if(item == heat_index_item) {
+        variable_item_set_current_value_text(
+            item, heat_index_bool[variable_item_get_current_value_index(item)]);
     }
 }
 
@@ -162,7 +240,89 @@ static void _offset_change_callback(VariableItem* item) {
     variable_item_set_current_value_text(item, offset_buff);
 }
 
+/* --- Exit callback --- */
+
+static uint32_t _exit_callback(void* context) {
+    UNUSED(context);
+    if(!editable_sensor) return ViewSensorActions;
+
+    bool is_co2 = (editable_sensor->type->datatype & UT_CO2) != 0;
+
+    if(is_co2) {
+        Co2SensorType selected =
+            (Co2SensorType)variable_item_get_current_value_index(co2_type_item);
+        if(selected != app->settings.co2_type) {
+            app->settings.co2_type = selected;
+            unitemp_saveSettings();
+            _co2_hotswap(selected);
+            return ViewMainMenu;
+        }
+        return ViewSensorActions;
+    }
+
+    /* Climate branch */
+
+    /* ONE_WIRE without address — discard */
+    if(editable_sensor->type->interface == &ONE_WIRE &&
+       ((OneWireSensor*)(editable_sensor->instance))->familyCode == 0) {
+        if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensor_free(editable_sensor);
+        return ViewSensorActions;
+    }
+
+    if(initial_gpio != NULL) {
+        unitemp_gpio_unlock(initial_gpio);
+        initial_gpio = NULL;
+    }
+
+    /* Save unit settings */
+    app->settings.temp_unit =
+        (tempMeasureUnit)variable_item_get_current_value_index(temp_unit_item);
+    app->settings.pressure_unit =
+        (pressureMeasureUnit)variable_item_get_current_value_index(pressure_unit_item);
+    app->settings.humidity_unit =
+        (humidityUnit)variable_item_get_current_value_index(humidity_unit_item);
+    app->settings.heat_index = (bool)variable_item_get_current_value_index(heat_index_item);
+
+    uint8_t new_idx = (uint8_t)variable_item_get_current_value_index(climate_sensor_item);
+    uint8_t old_idx = app->settings.climate_type_idx;
+
+    if(new_idx != old_idx) {
+        unitemp_saveSettings();
+        unitemp_loadSettings();
+        _climate_hotswap(new_idx, old_idx);
+        return ViewMainMenu;
+    }
+
+    editable_sensor->status = UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_sensor_isContains(editable_sensor)) unitemp_sensors_add(editable_sensor);
+    unitemp_saveSettings();
+    unitemp_loadSettings();
+    unitemp_sensors_save();
+    app->sensors_ready = false;
+    app->sensors_update = true;
+    return ViewSensorActions;
+}
+
+/* --- Enter callback --- */
+
+static void _enter_callback(void* context, uint32_t index) {
+    UNUSED(context);
+    if(editable_sensor->type->interface == &ONE_WIRE && index == onewire_scan_item_index) {
+        _onewire_scan();
+    }
+}
+
+/* --- Alloc --- */
+
 void view_sensor_edit_alloc(void) {
+    /* Build filtered list: all sensor types without CO2 data */
+    climate_types_count = 0;
+    uint8_t total          = unitemp_sensors_getTypesCount();
+    const SensorType** all = unitemp_sensors_getTypes();
+    for(uint8_t i = 0; i < total && climate_types_count < MAX_CLIMATE_TYPES; i++) {
+        if(!(all[i]->datatype & UT_CO2)) climate_types[climate_types_count++] = all[i];
+    }
+
     variable_item_list = variable_item_list_alloc();
     variable_item_list_reset(variable_item_list);
     variable_item_list_set_enter_callback(variable_item_list, _enter_callback, app);
@@ -172,109 +332,183 @@ void view_sensor_edit_alloc(void) {
     offset_buff = malloc(OFFSET_BUFF_SIZE);
 }
 
+/* --- Switch --- */
+
 void view_sensor_edit_switch(Sensor* sensor) {
     editable_sensor = sensor;
     editable_sensor->status = UT_SENSORSTATUS_INACTIVE;
+    initial_gpio = NULL;
 
     variable_item_list_reset(variable_item_list);
     variable_item_list_set_selected_item(variable_item_list, 0);
 
     uint8_t idx = 0;
+    bool is_co2 = (sensor->type->datatype & UT_CO2) != 0;
 
-    /* Type — always index 0 */
-    onewire_type_item = variable_item_list_add(variable_item_list, "Type", 1, NULL, NULL);
-    variable_item_set_current_value_index(onewire_type_item, 0);
-    variable_item_set_current_value_text(
-        onewire_type_item,
-        (sensor->type->interface == &ONE_WIRE ?
-             unitemp_onewire_sensor_getModel(editable_sensor) :
-             sensor->type->typename));
-    idx++;
-
-    /* Temp. offset — only for sensors that measure temperature */
-    if(sensor->type->datatype & UT_TEMPERATURE) {
-        temp_offset_item = variable_item_list_add(
-            variable_item_list, "Temp. offset", 201, _offset_change_callback, NULL);
-        variable_item_set_current_value_index(temp_offset_item, sensor->temp_offset + 100);
-        snprintf(
-            offset_buff, OFFSET_BUFF_SIZE, "%+1.1f", (double)(editable_sensor->temp_offset / 10.0));
-        variable_item_set_current_value_text(temp_offset_item, offset_buff);
+    if(is_co2) {
+        /* CO2 Type selector */
+        co2_type_item = variable_item_list_add(
+            variable_item_list, "CO2 Type", 2, _co2_type_change, app);
+        variable_item_set_current_value_index(co2_type_item, (uint8_t)app->settings.co2_type);
+        variable_item_set_current_value_text(
+            co2_type_item, co2_type_names[app->settings.co2_type]);
         idx++;
-    }
 
-    if(sensor->type->interface == &ONE_WIRE || sensor->type->interface == &SINGLE_WIRE ||
-       sensor->type->interface == &SPI) {
-        if(sensor->type->interface == &ONE_WIRE) {
-            initial_gpio = ((OneWireSensor*)editable_sensor->instance)->bus->gpio;
-        } else if(sensor->type->interface == &SINGLE_WIRE) {
-            initial_gpio = ((SingleWireSensor*)editable_sensor->instance)->gpio;
-        } else if(sensor->type->interface == &SPI) {
-            initial_gpio = ((SPISensor*)editable_sensor->instance)->CS_pin;
+        if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
+            calibration_item = variable_item_list_add(
+                variable_item_list, "Calibrate", 1, _calibrate_callback, NULL);
+            idx++;
         }
-
-        uint8_t aviable_gpio_count =
-            unitemp_gpio_getAviablePortsCount(sensor->type->interface, initial_gpio);
-        VariableItem* item = variable_item_list_add(
-            variable_item_list, "GPIO", aviable_gpio_count, _gpio_change_callback, app);
-
-        uint8_t gpio_index = 0;
-        if(unitemp_sensor_isContains(editable_sensor)) {
-            for(uint8_t i = 0; i < aviable_gpio_count; i++) {
-                if(unitemp_gpio_getAviablePort(sensor->type->interface, i, initial_gpio) ==
-                   initial_gpio) {
-                    gpio_index = i;
-                    break;
+    } else {
+        /* Climate: sensor selector with sync to active sensor */
+        uint8_t cur_idx = app->settings.climate_type_idx;
+        for(uint8_t i = 0; i < app->sensors_count; i++) {
+            if(app->sensors[i] && !(app->sensors[i]->type->datatype & UT_CO2)) {
+                for(uint8_t j = 0; j < climate_types_count; j++) {
+                    if(climate_types[j] == app->sensors[i]->type) {
+                        cur_idx = j;
+                        break;
+                    }
                 }
+                break;
             }
         }
-        variable_item_set_current_value_index(item, gpio_index);
-        variable_item_set_current_value_text(
-            item,
-            unitemp_gpio_getAviablePort(sensor->type->interface, gpio_index, initial_gpio)->name);
-        idx++;
-    }
+        if(cur_idx >= climate_types_count) cur_idx = 0;
+        app->settings.climate_type_idx = cur_idx;
 
-    if(sensor->type->interface == &I2C) {
-        VariableItem* item = variable_item_list_add(
-            variable_item_list,
-            "I2C address",
-            (((I2CSensor*)sensor->instance)->maxI2CAdr >> 1) -
-                (((I2CSensor*)sensor->instance)->minI2CAdr >> 1) + 1,
-            _i2caddr_change_callback,
-            app);
-        snprintf(app->buff, 5, "0x%2X", ((I2CSensor*)sensor->instance)->currentI2CAdr >> 1);
-        variable_item_set_current_value_index(
-            item,
-            (((I2CSensor*)sensor->instance)->currentI2CAdr >> 1) -
-                (((I2CSensor*)sensor->instance)->minI2CAdr >> 1));
-        variable_item_set_current_value_text(item, app->buff);
+        climate_sensor_item = variable_item_list_add(
+            variable_item_list, "Sensor", climate_types_count, _climate_sensor_change, app);
+        variable_item_set_current_value_index(climate_sensor_item, cur_idx);
+        const char* sname = climate_types[cur_idx]->altname
+                                ? climate_types[cur_idx]->altname
+                                : climate_types[cur_idx]->typename;
+        variable_item_set_current_value_text(climate_sensor_item, sname);
         idx++;
-    }
 
-    if(sensor->type->interface == &ONE_WIRE) {
-        onewire_scan_item_index = idx;
-        onewire_addr_item = variable_item_list_add(
-            variable_item_list, "Address", 2, _onwire_addr_change_callback, NULL);
-        OneWireSensor* ow_sensor = sensor->instance;
-        if(ow_sensor->familyCode == 0) {
-            variable_item_set_current_value_text(onewire_addr_item, "Scan");
-        } else {
+        /* Temp offset */
+        if(sensor->type->datatype & UT_TEMPERATURE) {
+            temp_offset_item = variable_item_list_add(
+                variable_item_list, "Temp. offset", 201, _offset_change_callback, NULL);
+            variable_item_set_current_value_index(temp_offset_item, sensor->temp_offset + 100);
             snprintf(
-                app->buff, 10, "%02X%02X%02X",
-                ow_sensor->deviceID[1], ow_sensor->deviceID[2], ow_sensor->deviceID[3]);
-            variable_item_set_current_value_text(onewire_addr_item, app->buff);
+                offset_buff, OFFSET_BUFF_SIZE, "%+1.1f",
+                (double)(editable_sensor->temp_offset / 10.0));
+            variable_item_set_current_value_text(temp_offset_item, offset_buff);
+            idx++;
         }
-        idx++;
+
+        /* GPIO for SingleWire, SPI, OneWire */
+        if(sensor->type->interface == &ONE_WIRE || sensor->type->interface == &SINGLE_WIRE ||
+           sensor->type->interface == &SPI) {
+            if(sensor->type->interface == &ONE_WIRE) {
+                initial_gpio = ((OneWireSensor*)editable_sensor->instance)->bus->gpio;
+            } else if(sensor->type->interface == &SINGLE_WIRE) {
+                initial_gpio = ((SingleWireSensor*)editable_sensor->instance)->gpio;
+            } else if(sensor->type->interface == &SPI) {
+                initial_gpio = ((SPISensor*)editable_sensor->instance)->CS_pin;
+            }
+
+            uint8_t aviable_gpio_count =
+                unitemp_gpio_getAviablePortsCount(sensor->type->interface, initial_gpio);
+            VariableItem* item = variable_item_list_add(
+                variable_item_list, "GPIO", aviable_gpio_count, _gpio_change_callback, app);
+
+            uint8_t gpio_index = 0;
+            if(unitemp_sensor_isContains(editable_sensor)) {
+                for(uint8_t i = 0; i < aviable_gpio_count; i++) {
+                    if(unitemp_gpio_getAviablePort(sensor->type->interface, i, initial_gpio) ==
+                       initial_gpio) {
+                        gpio_index = i;
+                        break;
+                    }
+                }
+            }
+            variable_item_set_current_value_index(item, gpio_index);
+            variable_item_set_current_value_text(
+                item,
+                unitemp_gpio_getAviablePort(
+                    sensor->type->interface, gpio_index, initial_gpio)->name);
+            idx++;
+        }
+
+        /* I2C address */
+        if(sensor->type->interface == &I2C) {
+            VariableItem* item = variable_item_list_add(
+                variable_item_list,
+                "I2C address",
+                (((I2CSensor*)sensor->instance)->maxI2CAdr >> 1) -
+                    (((I2CSensor*)sensor->instance)->minI2CAdr >> 1) + 1,
+                _i2caddr_change_callback,
+                app);
+            snprintf(app->buff, 5, "0x%2X", ((I2CSensor*)sensor->instance)->currentI2CAdr >> 1);
+            variable_item_set_current_value_index(
+                item,
+                (((I2CSensor*)sensor->instance)->currentI2CAdr >> 1) -
+                    (((I2CSensor*)sensor->instance)->minI2CAdr >> 1));
+            variable_item_set_current_value_text(item, app->buff);
+            idx++;
+        }
+
+        /* OneWire address scan */
+        if(sensor->type->interface == &ONE_WIRE) {
+            onewire_scan_item_index = idx;
+            onewire_addr_item = variable_item_list_add(
+                variable_item_list, "Address", 2, _onwire_addr_change_callback, NULL);
+            OneWireSensor* ow_sensor = sensor->instance;
+            if(ow_sensor->familyCode == 0) {
+                variable_item_set_current_value_text(onewire_addr_item, "Scan");
+            } else {
+                snprintf(
+                    app->buff, 10, "%02X%02X%02X",
+                    ow_sensor->deviceID[1], ow_sensor->deviceID[2], ow_sensor->deviceID[3]);
+                variable_item_set_current_value_text(onewire_addr_item, app->buff);
+            }
+            idx++;
+        }
+
+        /* Calibrate */
+        if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
+            calibration_item = variable_item_list_add(
+                variable_item_list, "Calibrate", 1, _calibrate_callback, NULL);
+            idx++;
+        }
+
+        /* Unit settings */
+        temp_unit_item = variable_item_list_add(
+            variable_item_list, "Temperature", UT_TEMP_COUNT, _unit_change, app);
+        variable_item_set_current_value_index(temp_unit_item, (uint8_t)app->settings.temp_unit);
+        variable_item_set_current_value_text(
+            temp_unit_item, temp_units[app->settings.temp_unit]);
+
+        pressure_unit_item = variable_item_list_add(
+            variable_item_list, "Pressure", UT_PRESSURE_COUNT, _unit_change, app);
+        variable_item_set_current_value_index(
+            pressure_unit_item, (uint8_t)app->settings.pressure_unit);
+        variable_item_set_current_value_text(
+            pressure_unit_item, pressure_units[app->settings.pressure_unit]);
+
+        humidity_unit_item = variable_item_list_add(
+            variable_item_list, "Humidity", UT_HUMIDITY_COUNT, _unit_change, app);
+        variable_item_set_current_value_index(
+            humidity_unit_item, (uint8_t)app->settings.humidity_unit);
+        variable_item_set_current_value_text(
+            humidity_unit_item, humidity_units[app->settings.humidity_unit]);
+
+        heat_index_item = variable_item_list_add(
+            variable_item_list, "Heat index", 2, _unit_change, app);
+        variable_item_set_current_value_index(
+            heat_index_item, app->settings.heat_index ? 1 : 0);
+        variable_item_set_current_value_text(
+            heat_index_item, heat_index_bool[app->settings.heat_index ? 1 : 0]);
+
+        idx += 4;
     }
 
-    if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
-        calibration_item =
-            variable_item_list_add(variable_item_list, "Calibrate", 1, _calibrate_callback, NULL);
-        idx++;
-    }
-
+    (void)idx;
     view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID);
 }
+
+/* --- Free --- */
 
 void view_sensor_edit_free(void) {
     view_dispatcher_remove_view(app->view_dispatcher, VIEW_ID);

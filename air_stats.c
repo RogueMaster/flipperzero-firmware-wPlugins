@@ -219,8 +219,6 @@ int32_t air_stats_main(void* p) {
     view_main_alloc();
     view_main_menu_alloc();
     view_settings_alloc();
-    view_co2_settings_alloc();
-    view_climate_settings_alloc();
     view_sensor_edit_alloc();
     view_sensor_actions_alloc();
     view_sensor_info_alloc();
@@ -268,8 +266,6 @@ int32_t air_stats_main(void* p) {
     view_sensor_info_free();
     view_sensor_actions_free();
     view_sensor_edit_free();
-    view_climate_settings_free();
-    view_co2_settings_free();
     view_settings_free();
     view_main_menu_free();
     view_main_free();
