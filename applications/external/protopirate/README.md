@@ -20,22 +20,22 @@ App is intended for educational and security purposes only, and has no signal tr
 
 ## **Supported Protocols**
 
-| Protocol                      | Decoder | Encoder | Signal Encoding | Modulation | Encryption | Frequency |
-|:------------------------------|:--------|:--------|:--------|:--------|:--------|:--------|
-| Fiat V0                       | ✅ | ✅ | Manchester  | FM    | Rolling Code (Static Emu only) | 433.92            |
-| Ford V0                       | ✅ | ✅ | Manchester  | FM    | Rolling Code (+CRC & BS)       | 433.92            |
-| Kia V0                        | ✅ | ✅ | PWM         | FM    | Rolling Code (+CRC)            | 433.92            |
-| Kia V1                        | ✅ | ✅ | Manchester  | AM    | Rolling Code (+CRC)            | 315.00 / 433.92   |
-| Kia V2                        | ✅ | ✅ | Manchester  | FM    | Rolling Code (+CRC)            | 315.00 / 433.92   |
-| Kia V3 / V4                   | ✅ | ✅ | PWM         | AM/FM | KeeLoq                         | 315.00 / 433.92   |
-| Kia V5                        | ✅ | ❌ | Manchester  | FM    | Rolling Code                   | 433.92            |
-| Kia V6                        | ✅ | ✅ | Manchester  | FM    | AES128                         | 433.92            |
-| PSA (Peugeot/Citroen)         | ✅ | ✅ | Manchester  | FM    | XTEA/XOR                       | 433.92            |
-| Scher-Khan                    | ✅ | ❌ | PWM         | FM    | Magic Code                     | 433.92            |
-| StarLine                      | ✅ | ✅ | PWM         | AM    | KeeLoq                         | 433.92            |
-| Subaru                        | ✅ | ✅ | PWM         | AM    | Rolling Code                   | 433.92            |
-| Suzuki                        | ✅ | ✅ | PWM         | AM    | Rolling Code (+CRC)            | 433.92            |
-| VAG (VW/Audi/Seat/Skoda)      | ✅ | ✅ | Manchester  | AM    | AUT64/XTEA                     | 433.92 / 434.42   |
+| Protocol                      | Decoder | Encoder | Signal Encoding | Modulation | Encryption | CRC | Frequency |
+|:------------------------------|:--------|:--------|:--------|:--------|:--------|:--------|:--------|
+| Fiat V0                       | ✅ | ✅ | Manchester  | AM    | Rolling Code (Static Emu only) | ❌      | 433.92            |
+| Ford V0                       | ✅ | ✅ | Manchester  | AM    | Rolling Code                   | ✅ + BS | 315.00 / 433.92   |
+| Kia V0                        | ✅ | ✅ | PWM         | FM    | Rolling Code                   | CRC8    | 433.92            |
+| Kia V1                        | ✅ | ✅ | Manchester  | AM    | Rolling Code                   | CRC4    | 315.00 / 433.92   |
+| Kia V2                        | ✅ | ✅ | Manchester  | AM/FM | Rolling Code                   | CRC4    | 315.00 / 433.92   |
+| Kia V3 / V4                   | ✅ | ✅ | PWM         | AM/FM | KeeLoq                         | CRC4    | 315.00 / 433.92   |
+| Kia V5                        | ✅ | ❌ | Manchester  | FM    | Rolling Code                   | ✅      | 433.92            |
+| Kia V6                        | ✅ | ✅ | Manchester  | FM    | AES128                         | CRC8    | 433.92            |
+| PSA (Peugeot/Citroen)         | ✅ | ✅ | Manchester  | AM/FM | XTEA/XOR                       | ✅      | 433.92            |
+| Scher-Khan                    | ✅ | ❌ | PWM         | FM    | Magic Code                     | ❌      | 433.92            |
+| StarLine                      | ✅ | ✅ | PWM         | AM    | KeeLoq                         | ❌      | 433.92            |
+| Subaru                        | ✅ | ✅ | PWM         | AM    | Rolling Code                   | ❌      | 433.92            |
+| Suzuki                        | ✅ | ✅ | PWM         | FM    | Rolling Code                   | CRC8    | 433.92            |
+| VAG (VW/Audi/Seat/Skoda)      | ✅ | ✅ | Manchester  | AM    | AUT64/XTEA                     | ❌      | 434.42            |
 
 _More Coming Soon_
 
