@@ -1,107 +1,122 @@
 /*
  * main_view.c — main sensor display screen.
- * Shows CO2 ppm (any CO2 sensor) + readings from all other active sensors.
+ * Sections are shown only when data is valid (collapsed otherwise).
  * OK button → main menu.  Back → exit app.
  */
 #include "../air_stats_i.h"
+#include <gui/elements.h>
 
 static View* view;
 
-#define VIEW_ID ViewMain
+#define VIEW_ID    ViewMain
+#define SCREEN_W   128
+#define CONTENT_H  52    /* 64px screen - 12px elements_button_center */
 
-/* ---- Draw callback ---- */
+/* CO2 block: big number row + separator */
+#define CO2_NUM_H  18    /* FontBigNumbers leading */
+#define CO2_SEP_H   2    /* separator line + gap */
+#define CO2_BLOCK_H (CO2_NUM_H + CO2_SEP_H)
+
+/* Climate: one FontPrimary line */
+#define CLIM_LINE_H 12
+
+static const char* co2_quality(float co2) {
+    if(co2 < 800.0f)  return "GOOD";
+    if(co2 < 1200.0f) return "OK";
+    if(co2 < 1600.0f) return "POOR";
+    return "BAD";
+}
 
 static void draw_callback(Canvas* canvas, void* context) {
     UNUSED(context);
-
     canvas_clear(canvas);
-    if(!app->sensors_ready || !app->sensors) return;
-    char buf[48];
+    elements_button_center(canvas, "Menu");
 
-    /* Find first CO2 sensor */
-    Sensor* co2_sensor = NULL;
+    if(!app->sensors_ready || !app->sensors) return;
+
+    /* Find first CO2 and first climate sensor */
+    Sensor* co2_sensor  = NULL;
+    Sensor* clim_sensor = NULL;
     for(uint8_t i = 0; i < app->sensors_count; i++) {
         Sensor* s = app->sensors[i];
-        if(s && s->status != UT_SENSORSTATUS_INACTIVE &&
-           (s->type->datatype & UT_CO2)) {
-            co2_sensor = s;
-            break;
-        }
+        if(!s || s->status == UT_SENSORSTATUS_INACTIVE) continue;
+        if((s->type->datatype & UT_CO2)  && !co2_sensor)  co2_sensor  = s;
+        if(!(s->type->datatype & UT_CO2) && !clim_sensor) clim_sensor = s;
     }
 
-    /* CO2 — large font.
-     * MH-Z19C uses PWM edge detection: co2 > 0 preserves last valid reading
-     * between edges so the display doesn't blink. */
-    bool co2_valid = co2_sensor && co2_sensor->co2 > 0.0f;
-    canvas_set_font(canvas, FontPrimary);
+    bool co2_valid = co2_sensor  && co2_sensor->co2 > 0.0f;
+    bool clim_ok   = clim_sensor && clim_sensor->status == UT_SENSORSTATUS_OK;
+    bool has_th    = clim_ok && (clim_sensor->type->datatype & (UT_TEMPERATURE | UT_HUMIDITY));
+    bool has_press = clim_ok && (clim_sensor->type->datatype & UT_PRESSURE);
+
+    /* Nothing valid — show placeholder */
+    if(!co2_valid && !has_th && !has_press) {
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, SCREEN_W / 2, 22, AlignCenter, AlignBottom, "No sensors");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, SCREEN_W / 2, 33, AlignCenter, AlignBottom, "Add via menu");
+        return;
+    }
+
+    /* Vertical centering: measure total content height */
+    uint8_t total_h = 0;
+    if(co2_valid)  total_h += CO2_BLOCK_H;
+    if(has_th)     total_h += CLIM_LINE_H;
+    if(has_press)  total_h += CLIM_LINE_H;
+
+    int16_t y = ((int16_t)CONTENT_H - total_h) / 2;
+    if(y < 0) y = 0;
+
+    char buf[32];
+
+    /* CO2 block */
     if(co2_valid) {
-        snprintf(buf, sizeof(buf), "CO2: %d ppm", (int)co2_sensor->co2);
-    } else {
-        snprintf(buf, sizeof(buf), "CO2: --");
+        /* Number — FontBigNumbers, slightly left of center */
+        canvas_set_font(canvas, FontBigNumbers);
+        snprintf(buf, sizeof(buf), "%d", (int)co2_sensor->co2);
+        canvas_draw_str_aligned(canvas, 54, y + CO2_NUM_H, AlignCenter, AlignBottom, buf);
+
+        /* Quality label — FontPrimary, right edge, same baseline */
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, SCREEN_W - 1, y + CO2_NUM_H, AlignRight, AlignBottom,
+            co2_quality(co2_sensor->co2));
+
+        y += CO2_NUM_H;
+        canvas_draw_line(canvas, 0, (uint8_t)y, SCREEN_W - 1, (uint8_t)y);
+        y += CO2_SEP_H;
     }
-    canvas_draw_str(canvas, 0, 12, buf);
 
-    /* CO2 bar graph (0..2000 ppm) */
-    canvas_draw_frame(canvas, 0, 15, 128, 7);
-    if(co2_valid) {
-        int32_t clamped = (int32_t)co2_sensor->co2 > 2000 ? 2000 : (int32_t)co2_sensor->co2;
-        uint8_t fill = (uint8_t)(clamped * 126 / 2000);
-        if(fill > 0) canvas_draw_box(canvas, 1, 16, fill, 5);
-    }
-
-    /* All other active sensors — small font, one line each */
-    canvas_set_font(canvas, FontSecondary);
-    uint8_t y = 34;
-
+    /* Unit strings */
     const char* temp_unit_str = (app->settings.temp_unit == UT_TEMP_FAHRENHEIT) ? "F" : "C";
     const char* press_unit_str;
     switch(app->settings.pressure_unit) {
     case UT_PRESSURE_IN_HG: press_unit_str = "inHg"; break;
     case UT_PRESSURE_KPA:   press_unit_str = "kPa";  break;
     case UT_PRESSURE_HPA:   press_unit_str = "hPa";  break;
-    default:                press_unit_str = "mmHg"; break;
+    default:                press_unit_str = "mmHg";  break;
     }
 
-    /* In UART CO2 mode climate sensors are disabled — show notice */
-    if(app->settings.co2_type == CO2_TYPE_UART) {
-        canvas_draw_str(canvas, 0, y, "Climate: N/A (UART mode)");
-        y += 11;
-    }
+    canvas_set_font(canvas, FontPrimary);
 
-    for(uint8_t i = 0; i < app->sensors_count && y <= 54; i++) {
-        Sensor* s = app->sensors[i];
-        if(!s || s->status == UT_SENSORSTATUS_INACTIVE || s == co2_sensor) continue;
-
-        if(s->status == UT_SENSORSTATUS_OK) {
-            int pos = 0;
-            if(s->type->datatype & UT_TEMPERATURE) {
-                pos += snprintf(buf + pos, sizeof(buf) - pos,
-                    "T:%.1f%s", (double)s->temp, temp_unit_str);
-            }
-            if(s->type->datatype & UT_HUMIDITY) {
-                pos += snprintf(buf + pos, sizeof(buf) - pos,
-                    " H:%.0f%%", (double)s->hum);
-            }
-            if(s->type->datatype & UT_PRESSURE) {
-                pos += snprintf(buf + pos, sizeof(buf) - pos,
-                    " P:%.0f%s", (double)s->pressure, press_unit_str);
-            }
-            if((s->type->datatype & UT_CO2) && s->co2 > 0.0f) {
-                pos += snprintf(buf + pos, sizeof(buf) - pos,
-                    " CO2:%d", (int)s->co2);
-            }
-            if(pos == 0) buf[0] = '\0';
-        } else {
-            snprintf(buf, sizeof(buf), "%s: --", s->name);
+    /* Temperature + humidity row */
+    if(has_th) {
+        int pos = 0;
+        if(clim_sensor->type->datatype & UT_TEMPERATURE)
+            pos += snprintf(buf + pos, sizeof(buf) - pos,
+                "%.1f*%s", (double)clim_sensor->temp, temp_unit_str);
+        if(clim_sensor->type->datatype & UT_HUMIDITY) {
+            if(pos) pos += snprintf(buf + pos, sizeof(buf) - pos, "   ");
+            snprintf(buf + pos, sizeof(buf) - pos, "%.0f%%", (double)clim_sensor->hum);
         }
-
-        if(buf[0]) {
-            canvas_draw_str(canvas, 0, y, buf);
-            y += 11;
-        }
+        canvas_draw_str_aligned(canvas, SCREEN_W / 2, y + CLIM_LINE_H, AlignCenter, AlignBottom, buf);
+        y += CLIM_LINE_H;
     }
 
-    canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, "[OK=menu]");
+    /* Pressure row */
+    if(has_press) {
+        snprintf(buf, sizeof(buf), "%.0f %s", (double)clim_sensor->pressure, press_unit_str);
+        canvas_draw_str_aligned(canvas, SCREEN_W / 2, y + CLIM_LINE_H, AlignCenter, AlignBottom, buf);
+    }
 }
 
 /* ---- Input callback ---- */
