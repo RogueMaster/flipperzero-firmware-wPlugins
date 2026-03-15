@@ -1,3 +1,15 @@
+## 1.22
+ - Create credential flow
+ - Improve the look of the info screen, more like the read screen
+ - Support to change FC during emulation for some formats
+ - Add support for emulating NRMAC dumped cards without save
+## 1.21
+ - Removed wiegand plugin
+ - Support for changing CN during emulation for some formats
+## 1.20
+ - Parse SIO
+ - Move to GitHub
+ - Auto NR-MAC read for iClass SE
 ## 1.19
  - Capture longer SIO
  - 'Save as Seader' for iClass SE Captured with NR-MAC

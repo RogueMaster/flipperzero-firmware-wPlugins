@@ -465,14 +465,6 @@ NfcCommand picopass_poller_parse_credential_handler(PicopassPoller* instance) {
     NfcCommand command = NfcCommandContinue;
 
     picopass_device_parse_credential(instance->data->card_data, &instance->data->pacs);
-    instance->state = PicopassPollerStateParseWiegand;
-    return command;
-}
-
-NfcCommand picopass_poller_parse_wiegand_handler(PicopassPoller* instance) {
-    NfcCommand command = NfcCommandContinue;
-
-    picopass_device_parse_wiegand(&instance->data->pacs);
     instance->state = PicopassPollerStateSuccess;
     return command;
 }
@@ -637,7 +629,6 @@ static const PicopassPollerStateHandler picopass_poller_state_handler[PicopassPo
     [PicopassPollerStateWriteBlock] = picopass_poller_write_block_handler,
     [PicopassPollerStateWriteKey] = picopass_poller_write_key_handler,
     [PicopassPollerStateParseCredential] = picopass_poller_parse_credential_handler,
-    [PicopassPollerStateParseWiegand] = picopass_poller_parse_wiegand_handler,
     [PicopassPollerStateSuccess] = picopass_poller_success_handler,
     [PicopassPollerStateFail] = picopass_poller_fail_handler,
     [PicopassPollerStateAuthFail] = picopass_poller_auth_fail_handler,

@@ -81,10 +81,17 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NFC FeliCa Improvement: Dump All Systems #4293 (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4293)
 - [NFC: Add Saflok MFUL Parser Support (By aaronjamt)](https://github.com/Next-Flip/Momentum-Firmware/pull/474)
 - Reverted: NFC: [ADD: Ventra parsing plugin to Metroflip. Updated: NFC ventra_parser.fal. #1164 (By FatherDivine)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1164)
-- Updated: [Metroflip v1.0 (By luu176)](https://github.com/luu176/Metroflip) (Felica Updates)
+- Updated: [Metroflip v1.1 (By luu176)](https://github.com/luu176/Metroflip) (Felica Updates)
 - Updated: [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d) (NTAG4 Support)
+- NFC: [Add Mifare Ultralight C Write Support (By haw8411)](https://github.com/Next-Flip/Momentum-Firmware/pull/524)
+- UL: [KeyFinder protocol (24bit static) (By xMasterX & mishamyte)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/10ebf9addeb9458150a451965341e9d26e3c8cfe)
+- OFW: RFID: [Add Indala 224-bit (long format) protocol support (By kuzaxak)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/10ebf9addeb9458150a451965341e9d26e3c8cfe)
+- OFW: RFID: [Make FDX-B readout more descriptive (By snowsign)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/10ebf9addeb9458150a451965341e9d26e3c8cfe)
+- Sub-GHz: [Beninca ARC AES128 protocol full support (128bit dynamic) (with Add manually, and 2 button codes) (resolves issue #596) (By xMasterX and zero-mega)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1e45ea4db5bc4ceba71665206f57113ef867b8de)
+- Sub-GHz: [Jarolift protocol full support (72bit dynamic) (with Add manually, and all button codes) (By xMasterX & d82k & Steffen (bastelbudenbuben de))](https://github.com/DarkFlippers/unleashed-firmware/commit/271c65a969e20a7194b716b23d19fc23a9ce3fa0)
 - OFW: PR: [Add date/time input module #4261 (By aaronjamt)](https://github.com/flipperdevices/flipperzero-firmware/pull/4261)
 - Added: [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
+- Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
 
 <a name="release"></a>
 
@@ -766,7 +773,7 @@ $ ./fbt dolphin_ext
 - [Pet Your Dolphin v0.1 (By dwight9339)](https://github.com/dwight9339/pet_your_dolphin)
 - [pForth (By twisted-pear)](https://github.com/twisted-pear/f0forth)
 - [Pi Terminal v1.0 (By dagnazty & InfoSecREDD)](https://github.com/InfoSecREDD/Flip-pi)
-- [PicoPass (iClass) v1.19 (By Bettse)](https://gitlab.com/bettse/picopass)
+- [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
 - [PIR HC-SR501 Alarm v1.0 (By ku6a-cj)](https://github.com/ku6a-cj/-PIR-HC-SR501-Proximity-alarm-Flipper-zero) `Req: PIR HC-SR501`
 - [Plantower PMSx003 sensor reader v1.3 (By 3cky)](https://github.com/3cky/flipperzero-airmon) `Req: Plantower PMS5003/PMS7003/PMS9003`
 - [Plugin Demo v1.0 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_plugin_howto)

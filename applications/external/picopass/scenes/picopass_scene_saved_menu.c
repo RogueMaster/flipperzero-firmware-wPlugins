@@ -4,6 +4,7 @@ enum SubmenuIndex {
     SubmenuIndexInfo,
     SubmenuIndexWrite,
     SubmenuIndexEmulate,
+    SubmenuIndexSave,
     SubmenuIndexRename,
     SubmenuIndexDelete,
     SubmenuIndexSaveAsLF,
@@ -24,6 +25,7 @@ void picopass_scene_saved_menu_on_enter(void* context) {
     PicopassPacs* pacs = &picopass->dev->dev_data.pacs;
     PicopassBlock* card_data = picopass->dev->dev_data.card_data;
 
+    bool is_saved = picopass->dev->dev_name[0] != '\0';
     bool secured = (card_data[PICOPASS_CONFIG_BLOCK_INDEX].data[7] & PICOPASS_FUSE_CRYPT10) !=
                    PICOPASS_FUSE_CRYPT0;
     bool no_credential = picopass_is_memset(pacs->credential, 0x00, sizeof(pacs->credential));
@@ -43,6 +45,15 @@ void picopass_scene_saved_menu_on_enter(void* context) {
         SubmenuIndexEmulate,
         picopass_scene_saved_menu_submenu_callback,
         picopass);
+
+    if(!is_saved) {
+        submenu_add_item(
+            submenu,
+            "Save",
+            SubmenuIndexSave,
+            picopass_scene_saved_menu_submenu_callback,
+            picopass);
+    }
 
     if(secured && has_sio) {
         submenu_add_item(
@@ -71,18 +82,20 @@ void picopass_scene_saved_menu_on_enter(void* context) {
         }
     }
 
-    submenu_add_item(
-        submenu,
-        "Rename",
-        SubmenuIndexRename,
-        picopass_scene_saved_menu_submenu_callback,
-        picopass);
-    submenu_add_item(
-        submenu,
-        "Delete",
-        SubmenuIndexDelete,
-        picopass_scene_saved_menu_submenu_callback,
-        picopass);
+    if(is_saved) {
+        submenu_add_item(
+            submenu,
+            "Rename",
+            SubmenuIndexRename,
+            picopass_scene_saved_menu_submenu_callback,
+            picopass);
+        submenu_add_item(
+            submenu,
+            "Delete",
+            SubmenuIndexDelete,
+            picopass_scene_saved_menu_submenu_callback,
+            picopass);
+    }
 
     submenu_set_selected_item(
         picopass->submenu,
@@ -110,6 +123,12 @@ bool picopass_scene_saved_menu_on_event(void* context, SceneManagerEvent event) 
             consumed = true;
         } else if(event.event == SubmenuIndexEmulate) {
             scene_manager_next_scene(picopass->scene_manager, PicopassSceneEmulate);
+            consumed = true;
+        } else if(event.event == SubmenuIndexSave) {
+            scene_manager_set_scene_state(
+                picopass->scene_manager, PicopassSceneSavedMenu, SubmenuIndexSave);
+            picopass->dev->format = PicopassDeviceSaveFormatOriginal;
+            scene_manager_next_scene(picopass->scene_manager, PicopassSceneSaveName);
             consumed = true;
         } else if(event.event == SubmenuIndexRename) {
             scene_manager_next_scene(picopass->scene_manager, PicopassSceneSaveName);

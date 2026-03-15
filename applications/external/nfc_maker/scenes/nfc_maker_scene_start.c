@@ -26,11 +26,7 @@ void nfc_maker_scene_start_on_enter(void* context) {
         app);
 
     submenu_add_item(
-        submenu,
-        "Empty",
-        NfcMakerSceneSaveGenerate,
-        nfc_maker_scene_start_submenu_callback,
-        app);
+        submenu, "Empty", NfcMakerSceneSaveGenerate, nfc_maker_scene_start_submenu_callback, app);
 
     submenu_add_item(
         submenu, "HTTPS Link", NfcMakerSceneHttps, nfc_maker_scene_start_submenu_callback, app);

@@ -5,7 +5,7 @@ See readme: [https://lab.flipper.net/apps/picopass/](https://lab.flipper.net/app
 ## Build
 
 ```bash
-git clone https://gitlab.com/bettse/picopass.git
+git clone https://github.com/bettse/picopass.git
 cd picopass
 git submodule init && git submodule update
 ufbt
