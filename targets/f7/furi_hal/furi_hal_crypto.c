@@ -21,9 +21,11 @@
 #define CRYPTO_MODE_DECRYPT      (AES_CR_MODE_1)
 #define CRYPTO_MODE_DECRYPT_INIT (AES_CR_MODE_0 | AES_CR_MODE_1)
 
-#define CRYPTO_DATATYPE_32B 0U
-#define CRYPTO_KEYSIZE_256B (AES_CR_KEYSIZE)
-#define CRYPTO_AES_CBC      (AES_CR_CHMOD_0)
+#define CRYPTO_DATATYPE_32B  0U
+#define CRYPTO_DATATYPE_8B   (AES_CR_DATATYPE_1)
+#define CRYPTO_KEYSIZE_256B  (AES_CR_KEYSIZE)
+#define CRYPTO_AES_ECB       0U
+#define CRYPTO_AES_CBC       (AES_CR_CHMOD_0)
 
 #define CRYPTO_AES_CTR     (AES_CR_CHMOD_1)
 #define CRYPTO_CTR_IV_LEN  (12U)
@@ -729,4 +731,73 @@ FuriHalCryptoGCMState furi_hal_crypto_gcm_decrypt_and_verify(
     }
 
     return FuriHalCryptoGCMStateOk;
+}
+
+static void crypto_key_init_ecb128(const uint8_t* key) {
+    CLEAR_BIT(AES1->CR, AES_CR_EN);
+    MODIFY_REG(
+        AES1->CR,
+        AES_CR_DATATYPE | AES_CR_KEYSIZE | AES_CR_CHMOD,
+        CRYPTO_DATATYPE_8B | CRYPTO_AES_ECB);
+
+    AES1->KEYR3 = ((uint32_t*)key)[0];
+    AES1->KEYR2 = ((uint32_t*)key)[1];
+    AES1->KEYR1 = ((uint32_t*)key)[2];
+    AES1->KEYR0 = ((uint32_t*)key)[3];
+}
+
+bool furi_hal_crypto_aes128_ecb_encrypt(
+    const uint8_t* key,
+    const uint8_t* input,
+    uint8_t* output) {
+    furi_check(furi_hal_crypto_mutex);
+    furi_check(furi_mutex_acquire(furi_hal_crypto_mutex, FuriWaitForever) == FuriStatusOk);
+
+    furi_hal_bus_enable(FuriHalBusAES1);
+    crypto_key_init_ecb128(key);
+
+    MODIFY_REG(AES1->CR, AES_CR_MODE, CRYPTO_MODE_ENCRYPT);
+    SET_BIT(AES1->CR, AES_CR_EN);
+
+    bool state = crypto_process_block((uint32_t*)input, (uint32_t*)output, 4);
+
+    CLEAR_BIT(AES1->CR, AES_CR_EN);
+    furi_hal_bus_disable(FuriHalBusAES1);
+    furi_check(furi_mutex_release(furi_hal_crypto_mutex) == FuriStatusOk);
+
+    return state;
+}
+
+bool furi_hal_crypto_aes128_ecb_decrypt(
+    const uint8_t* key,
+    const uint8_t* input,
+    uint8_t* output) {
+    furi_check(furi_hal_crypto_mutex);
+    furi_check(furi_mutex_acquire(furi_hal_crypto_mutex, FuriWaitForever) == FuriStatusOk);
+
+    furi_hal_bus_enable(FuriHalBusAES1);
+    crypto_key_init_ecb128(key);
+
+    MODIFY_REG(AES1->CR, AES_CR_MODE, CRYPTO_MODE_DECRYPT_INIT);
+    SET_BIT(AES1->CR, AES_CR_EN);
+
+    if(!furi_hal_crypto_wait_flag(AES_SR_CCF)) {
+        CLEAR_BIT(AES1->CR, AES_CR_EN);
+        furi_hal_bus_disable(FuriHalBusAES1);
+        furi_check(furi_mutex_release(furi_hal_crypto_mutex) == FuriStatusOk);
+        return false;
+    }
+
+    SET_BIT(AES1->CR, AES_CR_CCFC);
+
+    MODIFY_REG(AES1->CR, AES_CR_MODE, CRYPTO_MODE_DECRYPT);
+    SET_BIT(AES1->CR, AES_CR_EN);
+
+    bool state = crypto_process_block((uint32_t*)input, (uint32_t*)output, 4);
+
+    CLEAR_BIT(AES1->CR, AES_CR_EN);
+    furi_hal_bus_disable(FuriHalBusAES1);
+    furi_check(furi_mutex_release(furi_hal_crypto_mutex) == FuriStatusOk);
+
+    return state;
 }

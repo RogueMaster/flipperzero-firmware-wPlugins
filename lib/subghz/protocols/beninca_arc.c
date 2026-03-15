@@ -7,7 +7,7 @@
 #include "core/log.h"
 #include <stddef.h>
 #include <stdint.h>
-#include "aes_common.h"
+#include <furi_hal_crypto.h>
 
 #include "../blocks/custom_btn_i.h"
 
@@ -154,6 +154,15 @@ static void get_subghz_protocol_beninca_arc_aes_key(SubGhzKeystore* keystore, ui
     }
 }
 
+static void reverse_bits_in_bytes(uint8_t* data, uint8_t len) {
+    for(uint8_t i = 0; i < len; i++) {
+        uint8_t byte = data[i];
+        uint8_t step1 = ((byte & 0x55) << 1) | ((byte >> 1) & 0x55);
+        uint8_t step2 = ((step1 & 0x33) << 2) | ((step1 >> 2) & 0x33);
+        data[i] = ((step2 & 0x0F) << 4) | (step2 >> 4);
+    }
+}
+
 static uint64_t
     subghz_protocol_beninca_arc_decrypt(SubGhzBlockGeneric* generic, SubGhzKeystore* keystore) {
     // Beninca ARC Decoder
@@ -172,10 +181,9 @@ static uint64_t
     uint8_t aes_key[16];
     get_subghz_protocol_beninca_arc_aes_key(keystore, aes_key);
 
-    uint8_t expanded_key[176];
-    aes_key_expansion(aes_key, expanded_key);
-
-    aes128_decrypt(expanded_key, encrypted_data);
+    uint8_t decrypted[16];
+    furi_hal_crypto_aes128_ecb_decrypt(aes_key, encrypted_data, decrypted);
+    memcpy(encrypted_data, decrypted, 16);
 
     // Serial number of remote
     generic->serial = ((uint32_t)encrypted_data[0] << 24) | ((uint32_t)encrypted_data[1] << 16) |
@@ -237,10 +245,9 @@ static void subghz_protocol_beninca_arc_encrypt(
     uint8_t aes_key[16];
     get_subghz_protocol_beninca_arc_aes_key(keystore, aes_key);
 
-    uint8_t expanded_key[176];
-    aes_key_expansion(aes_key, expanded_key);
-
-    aes128_encrypt(expanded_key, plaintext);
+    uint8_t encrypted[16];
+    furi_hal_crypto_aes128_ecb_encrypt(aes_key, plaintext, encrypted);
+    memcpy(plaintext, encrypted, 16);
 
     reverse_bits_in_bytes(plaintext, 16);
 

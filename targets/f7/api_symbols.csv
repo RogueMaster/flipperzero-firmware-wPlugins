@@ -1420,6 +1420,8 @@ Function,+,furi_hal_crypto_enclave_load_key,_Bool,"uint8_t, const uint8_t*"
 Function,+,furi_hal_crypto_enclave_store_key,_Bool,"FuriHalCryptoKey*, uint8_t*"
 Function,+,furi_hal_crypto_enclave_unload_key,_Bool,uint8_t
 Function,+,furi_hal_crypto_enclave_verify,_Bool,"uint8_t*, uint8_t*"
+Function,+,furi_hal_crypto_aes128_ecb_decrypt,_Bool,"const uint8_t*, const uint8_t*, uint8_t*"
+Function,+,furi_hal_crypto_aes128_ecb_encrypt,_Bool,"const uint8_t*, const uint8_t*, uint8_t*"
 Function,+,furi_hal_crypto_encrypt,_Bool,"const uint8_t*, uint8_t*, size_t"
 Function,+,furi_hal_crypto_gcm,_Bool,"const uint8_t*, const uint8_t*, const uint8_t*, size_t, const uint8_t*, uint8_t*, size_t, uint8_t*, _Bool"
 Function,+,furi_hal_crypto_gcm_decrypt_and_verify,FuriHalCryptoGCMState,"const uint8_t*, const uint8_t*, const uint8_t*, size_t, const uint8_t*, uint8_t*, size_t, const uint8_t*"
