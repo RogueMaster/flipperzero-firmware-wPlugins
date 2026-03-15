@@ -22,6 +22,7 @@ typedef struct {
     uint8_t buf_idx;
     uint8_t buf_count;
     uint32_t last_edge_tick;
+    uint32_t last_update_tick;
     bool disconnected;
 } MHZ19CInstance;
 
@@ -72,6 +73,7 @@ static bool mhz19c_free(Sensor* sensor) {
 static bool mhz19c_init(Sensor* sensor) {
     MHZ19CInstance* inst = sensor->instance;
     inst->last_edge_tick = furi_get_tick();
+    inst->last_update_tick = furi_get_tick();
     inst->disconnected = false;
     if(!furi_hal_power_is_otg_enabled()) {
         furi_hal_power_enable_otg();
@@ -91,6 +93,15 @@ static bool mhz19c_deinit(Sensor* sensor) {
 
 static UnitempStatus mhz19c_update(Sensor* sensor) {
     MHZ19CInstance* inst = sensor->instance;
+
+    /* If polling was suspended (sensor was INACTIVE) for longer than 2 poll intervals,
+     * reset the disconnect timer — stale elapsed time is not a real disconnect. */
+    uint32_t now = furi_get_tick();
+    if(inst->last_update_tick > 0 && (now - inst->last_update_tick) > 300) {
+        inst->last_edge_tick = now;
+        inst->disconnected = false;
+    }
+    inst->last_update_tick = now;
 
     int32_t gpio_val = furi_hal_gpio_read(&gpio_ext_pa6) ? 1 : 0;
 

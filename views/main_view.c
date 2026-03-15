@@ -62,6 +62,12 @@ static void draw_callback(Canvas* canvas, void* context) {
     default:                press_unit_str = "mmHg"; break;
     }
 
+    /* In UART CO2 mode climate sensors are disabled — show notice */
+    if(app->settings.co2_type == CO2_TYPE_UART) {
+        canvas_draw_str(canvas, 0, y, "Climate: N/A (UART mode)");
+        y += 11;
+    }
+
     for(uint8_t i = 0; i < app->sensors_count && y <= 54; i++) {
         Sensor* s = app->sensors[i];
         if(!s || s->status == UT_SENSORSTATUS_INACTIVE || s == co2_sensor) continue;
