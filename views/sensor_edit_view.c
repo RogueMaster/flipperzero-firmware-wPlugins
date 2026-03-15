@@ -19,8 +19,8 @@ static VariableItem* onewire_addr_item;
 /* CO2 */
 static VariableItem* co2_type_item;
 static const char co2_type_names[2][5] = {"PWM", "UART"};
-#define CO2_OFFSET_STEPS    41   /* -1000..+1000 с шагом 50 */
-#define CO2_OFFSET_CENTER   20   /* индекс 20 = 0 ppm */
+#define CO2_OFFSET_STEPS    41   /* -1000..+1000 ppm, step 50 */
+#define CO2_OFFSET_CENTER   20   /* index 20 = 0 ppm */
 #define CO2_OFFSET_STEP_PPM 50
 static char co2_offset_buff[8];
 
