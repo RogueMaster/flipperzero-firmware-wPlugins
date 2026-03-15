@@ -78,7 +78,7 @@ void subghz_protocol_decoder_revers_rb2_feed(void* context, bool level, uint32_t
  * @param context Pointer to a SubGhzProtocolDecoderRevers_RB2 instance
  * @return hash Hash sum
  */
-uint32_t subghz_protocol_decoder_revers_rb2_get_hash_data(void* context);
+uint8_t subghz_protocol_decoder_revers_rb2_get_hash_data(void* context);
 
 /**
  * Serialize data SubGhzProtocolDecoderRevers_RB2.

@@ -77,10 +77,10 @@ const SubGhzProtocol subghz_protocol_honeywell = {
     .type = SubGhzProtocolTypeStatic,
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_AM | SubGhzProtocolFlag_Decodable |
             SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Send,
-    .decoder = &subghz_protocol_honeywell_decoder,
     .encoder = &subghz_protocol_honeywell_encoder,
-
+    .decoder = &subghz_protocol_honeywell_decoder,
     .filter = SubGhzProtocolFilter_Sensors,
+
 };
 
 static void subghz_protocol_decoder_honeywell_addbit(void* context, bool data);
@@ -246,7 +246,7 @@ LevelDuration subghz_protocol_encoder_honeywell_yield(void* context) {
     }
     LevelDuration ret = instance->encoder.upload[instance->encoder.front];
     if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
+        if(!subghz_block_generic_global.endless_tx) instance->encoder.repeat--;
         instance->encoder.front = 0;
     }
     return ret;

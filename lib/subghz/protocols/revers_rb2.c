@@ -45,12 +45,10 @@ const SubGhzProtocolDecoder subghz_protocol_revers_rb2_decoder = {
     .feed = subghz_protocol_decoder_revers_rb2_feed,
     .reset = subghz_protocol_decoder_revers_rb2_reset,
 
-    .get_hash_data = NULL,
-    .get_hash_data_long = subghz_protocol_decoder_revers_rb2_get_hash_data,
+    .get_hash_data = subghz_protocol_decoder_revers_rb2_get_hash_data,
     .serialize = subghz_protocol_decoder_revers_rb2_serialize,
     .deserialize = subghz_protocol_decoder_revers_rb2_deserialize,
     .get_string = subghz_protocol_decoder_revers_rb2_get_string,
-    .get_string_brief = NULL,
 };
 
 const SubGhzProtocolEncoder subghz_protocol_revers_rb2_encoder = {
@@ -81,8 +79,8 @@ void* subghz_protocol_encoder_revers_rb2_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &subghz_protocol_revers_rb2;
     instance->generic.protocol_name = instance->base.protocol->name;
 
-    instance->encoder.repeat = 10;
-    instance->encoder.size_upload = 256;
+    instance->encoder.repeat = 3;
+    instance->encoder.size_upload = 1768;
     instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
     instance->encoder.is_running = false;
     return instance;
@@ -212,7 +210,7 @@ LevelDuration subghz_protocol_encoder_revers_rb2_yield(void* context) {
     LevelDuration ret = instance->encoder.upload[instance->encoder.front];
 
     if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
+        if(!subghz_block_generic_global.endless_tx) instance->encoder.repeat--;
         instance->encoder.front = 0;
     }
 
@@ -375,10 +373,10 @@ void subghz_protocol_decoder_revers_rb2_feed(void* context, bool level, volatile
     }
 }
 
-uint32_t subghz_protocol_decoder_revers_rb2_get_hash_data(void* context) {
+uint8_t subghz_protocol_decoder_revers_rb2_get_hash_data(void* context) {
     furi_assert(context);
     SubGhzProtocolDecoderRevers_RB2* instance = context;
-    return subghz_protocol_blocks_get_hash_data_long(
+    return subghz_protocol_blocks_get_hash_data(
         &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
 }
 

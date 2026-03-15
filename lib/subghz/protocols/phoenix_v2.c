@@ -10,6 +10,9 @@
 
 #define TAG "SubGhzProtocolPhoenixV2"
 
+//variable used to bypass CounterMode settings if user just change Counter or Button
+static bool bypass = false;
+
 static const SubGhzBlockConst subghz_protocol_phoenix_v2_const = {
     .te_short = 427,
     .te_long = 853,
@@ -79,7 +82,7 @@ void* subghz_protocol_encoder_phoenix_v2_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &subghz_protocol_phoenix_v2;
     instance->generic.protocol_name = instance->base.protocol->name;
 
-    instance->encoder.repeat = 10;
+    instance->encoder.repeat = 3;
     instance->encoder.size_upload = 128;
     instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
     instance->encoder.is_running = false;
@@ -257,10 +260,20 @@ static bool
     // This will override the btn variable if a custom button is set
     btn = subghz_protocol_phoenix_v2_get_btn_code();
 
+    // override button if we change it with signal settings button editor
+    if(subghz_block_generic_global_button_override_get(&btn)) {
+        bypass = true;
+        FURI_LOG_D(TAG, "Button sucessfully changed to 0x%X", btn);
+    }
+
     // Reconstruction of the data
-    if(v2_phoenix_counter_mode == 0) {
+    // if we change counter/button in SignalSettings menu then we must bypass counter_modes, just gen and save signal file.
+    if(subghz_block_generic_global.cnt_need_override) bypass = true;
+
+    if(v2_phoenix_counter_mode == 0 || bypass) {
         // Check for OFEX (overflow experimental) mode
-        if(furi_hal_subghz_get_rolling_counter_mult() != -0x7FFFFFFF) {
+        if(furi_hal_subghz_get_rolling_counter_mult() != -0x7FFFFFFF || bypass) {
+            bypass = false;
             // standart counter mode. PULL data from subghz_block_generic_global variables
             if(!subghz_block_generic_global_counter_override_get(&instance->generic.cnt)) {
                 // if counter_override_get return FALSE then counter was not changed and we increase counter by standart mult value
@@ -407,7 +420,7 @@ LevelDuration subghz_protocol_encoder_phoenix_v2_yield(void* context) {
     LevelDuration ret = instance->encoder.upload[instance->encoder.front];
 
     if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
+        if(!subghz_block_generic_global.endless_tx) instance->encoder.repeat--;
         instance->encoder.front = 0;
     }
 
@@ -655,6 +668,11 @@ void subghz_protocol_decoder_phoenix_v2_get_string(void* context, FuriString* ou
     subghz_block_generic_global.cnt_is_available = true;
     subghz_block_generic_global.cnt_length_bit = 16;
     subghz_block_generic_global.current_cnt = instance->generic.cnt;
+
+    subghz_block_generic_global.btn_is_available = true;
+    subghz_block_generic_global.current_btn = instance->generic.btn;
+    subghz_block_generic_global.btn_length_bit = 4;
+    //
 
     furi_string_cat_printf(
         output,
