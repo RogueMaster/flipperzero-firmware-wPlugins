@@ -1,0 +1,17 @@
+App(
+    appid="gatekeeper",
+    name="Gatekeeper",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gatekeeper_app",
+    requires=[
+        "gui",
+        "storage",
+    ],
+    stack_size=2 * 1024,
+    fap_icon="gatekeeper_icon.png",
+    fap_icon_assets="assets",
+    fap_category="Tools",
+    fap_description="Secure BadUSB password launcher with combo lock",
+    fap_author="YourName",
+    fap_version="1.0",
+)
