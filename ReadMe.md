@@ -92,7 +92,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: PR: [Add date/time input module #4261 (By aaronjamt)](https://github.com/flipperdevices/flipperzero-firmware/pull/4261)
 - Added: [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
 - Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
-- Firmware compilation updates for optimizations and LTO usage (By Willy-JL)
+- [Firmware compilation updates for optimizations and LTO usage (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/c98fa215da6d824462017c9bd2c4cd67be2adffb)
+- [FBT: Allow apps to specify custom cflags (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/514f88983f08c742fefee174ccd4988731dd21ff#diff-06572a96a58dc510037d5efa622f9bec8519bc1beab13c9f251e97e657a9d4ed)
+- Credit to [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware) team for documentation and Sub-GHz upgrades.
+- Credit to [Momentum Firmware](https://github.com/Next-Flip/Momentum-Firmware) team for NFC & firmware compilation upgrades.
 
 <a name="release"></a>
 

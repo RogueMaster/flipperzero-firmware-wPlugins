@@ -1,5 +1,7 @@
 # SubGHz Counter Experimental Mode
 
+Credit to [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware) team for documentation and the feature itself
+
 ## Overview
 
 Experimental Counter Mode is an advanced feature that allows you to customize how rolling codes increment when transmitting SubGHz signals. Different protocols support different counter modes, which can be useful for specific cases, main purpose is to make clone of the original remote that will not conflict with original remote, so both Flipper and original remote can be used at same time in rolling code systems without desync or other issues.
@@ -126,6 +128,12 @@ CounterMode: 1
 
 **Mode 6:**
 - Counter freeze - do not increment
+
+**Mode 7:**
+- Incremental mode: `+0x3333` 5 times to current counter and return original value back adding +1 - 2 times - 7 signals in pack total
+- Might work with Doorhan, seen in some "universal remotes"
+- One click of Send button on flipper may bypass receiver counter, wait for full transmission
+
 
 ---
 

@@ -2,6 +2,8 @@
 
 #### CC1101 Frequency range specs: 300-348 MHz, 386-464 MHz, and 778-928 MHz  (+ 350MHz and 467MHz was added to default range)
 
+### From config file
+
 Edit user settings file located on your microSD card - `subghz/assets/setting_user.txt` (remove .example from name to use config)
 
 in this file you will find we already have extra frequencies added

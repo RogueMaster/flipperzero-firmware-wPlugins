@@ -1,5 +1,7 @@
 # How to use Flipper as a new SubGHz remote (not clone of original remote)
 
+Many rolling codes support, and this guide, comes from [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware). Go show them some love and maybe donate to them too!
+
 ### If your system is not added here that doesn't mean flipper don't support it! Look into add manually menu, and search for your manufacturers inscturctions!
 ### Also many supported systems can be used only from `Read` mode, `Add Manually` is used only to make new remotes that can be binded with receiver
 
