@@ -78,7 +78,7 @@ void subghz_protocol_decoder_nord_ice_feed(void* context, bool level, uint32_t d
  * @param context Pointer to a SubGhzProtocolDecoderNord_Ice instance
  * @return hash Hash sum
  */
-uint8_t subghz_protocol_decoder_nord_ice_get_hash_data(void* context);
+uint32_t subghz_protocol_decoder_nord_ice_get_hash_data(void* context);
 
 /**
  * Serialize data SubGhzProtocolDecoderNord_Ice.

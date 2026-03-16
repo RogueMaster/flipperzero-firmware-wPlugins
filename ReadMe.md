@@ -100,6 +100,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - Updated: [Metroflip v1.1 (By luu176)](https://github.com/luu176/Metroflip) [Re-applied stability improvements (By baalpeteor2)](https://github.com/luu176/Metroflip/pull/89)
 - Updated: [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
+- UL: [Display: Extend lcd contrast range to full ST756x 6-bit range (By ShaTie) (reduced to -10 to +18 to avoid fully unreadable state)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9792b05ec415cde798a4bd54dd27588ed101ec19)
+- SubGHz: [Add CAME TOP44FGN support in CAME TWEE protocol &  Nord ICE protocol (33 bits, Static) & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9792b05ec415cde798a4bd54dd27588ed101ec19)
+- Updated: [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
 
 <a name="release"></a>
 
@@ -884,7 +887,7 @@ $ ./fbt dolphin_ext
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.5 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - [UDECard v1.0.4 (By hahnworks](https://github.com/hahnworks/UDECard)
-- [UHF RFID WIP v1.1 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
+- [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
 - [UL-C Bruteforce v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [UL-C Bruteforce Optimized v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)

@@ -41,10 +41,12 @@ const SubGhzProtocolDecoder subghz_protocol_nord_ice_decoder = {
     .feed = subghz_protocol_decoder_nord_ice_feed,
     .reset = subghz_protocol_decoder_nord_ice_reset,
 
-    .get_hash_data = subghz_protocol_decoder_nord_ice_get_hash_data,
+    .get_hash_data = NULL,
+    .get_hash_data_long = subghz_protocol_decoder_nord_ice_get_hash_data,
     .serialize = subghz_protocol_decoder_nord_ice_serialize,
     .deserialize = subghz_protocol_decoder_nord_ice_deserialize,
     .get_string = subghz_protocol_decoder_nord_ice_get_string,
+    .get_string_brief = NULL,
 };
 
 const SubGhzProtocolEncoder subghz_protocol_nord_ice_encoder = {
@@ -292,10 +294,10 @@ void subghz_protocol_decoder_nord_ice_feed(void* context, bool level, volatile u
     }
 }
 
-uint8_t subghz_protocol_decoder_nord_ice_get_hash_data(void* context) {
+uint32_t subghz_protocol_decoder_nord_ice_get_hash_data(void* context) {
     furi_assert(context);
     SubGhzProtocolDecoderNord_Ice* instance = context;
-    return subghz_protocol_blocks_get_hash_data(
+    return subghz_protocol_blocks_get_hash_data_long(
         &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
 }
 
