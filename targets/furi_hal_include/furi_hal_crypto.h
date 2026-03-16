@@ -298,10 +298,7 @@ FuriHalCryptoGCMState furi_hal_crypto_gcm_decrypt_and_verify(
  *
  * @return     true on success
  */
-bool furi_hal_crypto_aes128_ecb_encrypt(
-    const uint8_t* key,
-    const uint8_t* input,
-    uint8_t* output);
+bool furi_hal_crypto_aes128_ecb_encrypt(const uint8_t* key, const uint8_t* input, uint8_t* output);
 
 /** Decrypt a single 16-byte block using AES-128-ECB
  *
@@ -311,10 +308,7 @@ bool furi_hal_crypto_aes128_ecb_encrypt(
  *
  * @return     true on success
  */
-bool furi_hal_crypto_aes128_ecb_decrypt(
-    const uint8_t* key,
-    const uint8_t* input,
-    uint8_t* output);
+bool furi_hal_crypto_aes128_ecb_decrypt(const uint8_t* key, const uint8_t* input, uint8_t* output);
 
 #ifdef __cplusplus
 }

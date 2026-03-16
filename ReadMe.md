@@ -40,7 +40,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FlipperPwn v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Otacon passport #1172 (By otac0n)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1172)
 - Updated: [Theme Manager v1.3 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
-- Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 - Added: [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - Updated: [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
 - Updated: [HID Exfil v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
@@ -95,7 +94,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FBT: Allow apps to specify custom cflags (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/514f88983f08c742fefee174ccd4988731dd21ff#diff-06572a96a58dc510037d5efa622f9bec8519bc1beab13c9f251e97e657a9d4ed)
 - Credit to [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware) team for documentation and Sub-GHz upgrades.
 - Credit to [Momentum Firmware](https://github.com/Next-Flip/Momentum-Firmware) team for IR remote codes, NFC & firmware compilation upgrades.
-- OFW: [LFRFID: Noralsy Format/Brand (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4090)
+- OFW: RFID: [Noralsy Format/Brand (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4090)
+- Sub-GHz: [Use Native chip AES for Benica (By lupettohf with thanks to carphreak)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a2cf8be1046f0f8662d5b7a249db157ece15500c)
+- Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 
 <a name="release"></a>
 

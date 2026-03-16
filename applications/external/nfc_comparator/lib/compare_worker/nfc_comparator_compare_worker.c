@@ -114,6 +114,11 @@ void nfc_comparator_compare_worker_compare_cards(
             st25tb_compare_cards(checks, card1, card2);
             break;
 
+         // Type 4 Tag
+         case NfcProtocolType4Tag:
+            type_4_tag_compare_cards(checks, card1, card2);
+            break;
+
          // ISO15693-3
          case NfcProtocolIso15693_3:
             iso15693_3_compare_cards(checks, card1, card2);

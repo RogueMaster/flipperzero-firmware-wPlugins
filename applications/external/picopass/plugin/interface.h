@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include <furi.h>
 
-#define PLUGIN_APP_ID "plugin_wiegand"
+#define PLUGIN_APP_ID      "plugin_wiegand"
 #define PLUGIN_API_VERSION 1
 
 typedef struct {

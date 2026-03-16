@@ -21,11 +21,11 @@
 #define CRYPTO_MODE_DECRYPT      (AES_CR_MODE_1)
 #define CRYPTO_MODE_DECRYPT_INIT (AES_CR_MODE_0 | AES_CR_MODE_1)
 
-#define CRYPTO_DATATYPE_32B  0U
-#define CRYPTO_DATATYPE_8B   (AES_CR_DATATYPE_1)
-#define CRYPTO_KEYSIZE_256B  (AES_CR_KEYSIZE)
-#define CRYPTO_AES_ECB       0U
-#define CRYPTO_AES_CBC       (AES_CR_CHMOD_0)
+#define CRYPTO_DATATYPE_32B 0U
+#define CRYPTO_DATATYPE_8B  (AES_CR_DATATYPE_1)
+#define CRYPTO_KEYSIZE_256B (AES_CR_KEYSIZE)
+#define CRYPTO_AES_ECB      0U
+#define CRYPTO_AES_CBC      (AES_CR_CHMOD_0)
 
 #define CRYPTO_AES_CTR     (AES_CR_CHMOD_1)
 #define CRYPTO_CTR_IV_LEN  (12U)
@@ -746,10 +746,7 @@ static void crypto_key_init_ecb128(const uint8_t* key) {
     AES1->KEYR0 = ((uint32_t*)key)[3];
 }
 
-bool furi_hal_crypto_aes128_ecb_encrypt(
-    const uint8_t* key,
-    const uint8_t* input,
-    uint8_t* output) {
+bool furi_hal_crypto_aes128_ecb_encrypt(const uint8_t* key, const uint8_t* input, uint8_t* output) {
     furi_check(furi_hal_crypto_mutex);
     furi_check(furi_mutex_acquire(furi_hal_crypto_mutex, FuriWaitForever) == FuriStatusOk);
 
@@ -768,10 +765,7 @@ bool furi_hal_crypto_aes128_ecb_encrypt(
     return state;
 }
 
-bool furi_hal_crypto_aes128_ecb_decrypt(
-    const uint8_t* key,
-    const uint8_t* input,
-    uint8_t* output) {
+bool furi_hal_crypto_aes128_ecb_decrypt(const uint8_t* key, const uint8_t* input, uint8_t* output) {
     furi_check(furi_hal_crypto_mutex);
     furi_check(furi_mutex_acquire(furi_hal_crypto_mutex, FuriWaitForever) == FuriStatusOk);
 
