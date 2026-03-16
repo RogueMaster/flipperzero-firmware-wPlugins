@@ -41,14 +41,12 @@ static const char* known_ext[] = {
     [ArchiveFileTypePicopass] = ".picopass",
     [ArchiveFileTypeU2f] = "?",
     [ArchiveFileTypeApplication] = ".fap",
-    [ArchiveFileTypeJS] = ".js",
     [ArchiveFileTypeSearch] = "*",
     [ArchiveFileTypeUpdateManifest] = ".fuf",
     [ArchiveFileTypeDiskImage] = ".img",
     [ArchiveFileTypeProtoPirate] = ".psf",
     [ArchiveFileTypeFolder] = "?",
     [ArchiveFileTypeUnknown] = "*",
-    [ArchiveFileTypeAppOrJs] = ".fap|.js",
     // clang-format on
 };
 
@@ -62,7 +60,7 @@ static const ArchiveFileTypeEnum known_type[] = {
     [ArchiveTabInfrared] = ArchiveFileTypeInfrared,
     [ArchiveTabBadUsb] = ArchiveFileTypeBadUsb,
     [ArchiveTabU2f] = ArchiveFileTypeU2f,
-    [ArchiveTabApplications] = ArchiveFileTypeAppOrJs,
+    [ArchiveTabApplications] = ArchiveFileTypeApplication,
     [ArchiveTabSearch] = ArchiveFileTypeSearch,
     [ArchiveTabDiskImage] = ArchiveFileTypeUnknown,
     [ArchiveTabInternal] = ArchiveFileTypeUnknown,

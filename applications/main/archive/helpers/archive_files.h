@@ -25,14 +25,12 @@ typedef enum {
     ArchiveFileTypePicopass,
     ArchiveFileTypeU2f,
     ArchiveFileTypeApplication,
-    ArchiveFileTypeJS,
     ArchiveFileTypeSearch,
     ArchiveFileTypeUpdateManifest,
     ArchiveFileTypeDiskImage,
     ArchiveFileTypeProtoPirate,
     ArchiveFileTypeFolder,
     ArchiveFileTypeUnknown,
-    ArchiveFileTypeAppOrJs,
     ArchiveFileTypeLoading,
 } ArchiveFileTypeEnum;
 

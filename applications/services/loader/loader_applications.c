@@ -11,8 +11,6 @@
 
 #define TAG "LoaderApplications"
 
-#define JS_RUNNER_APP EXT_PATH("apps/Main/js_app.fap")
-
 struct LoaderApplications {
     FuriThread* thread;
     void (*closed_cb)(void*);
@@ -87,19 +85,13 @@ static bool loader_applications_item_callback(
     FuriString* item_name) {
     LoaderApplicationsApp* loader_applications_app = context;
     furi_assert(loader_applications_app);
-    if(furi_string_end_with(path, ".fap")) {
-        return flipper_application_load_name_and_icon(
-            path, loader_applications_app->storage, icon_ptr, item_name);
-    } else {
-        path_extract_filename(path, item_name, false);
-        memcpy(*icon_ptr, icon_get_frame_data(&I_js_script_10px, 0), FAP_MANIFEST_MAX_ICON_SIZE);
-        return true;
-    }
+    return flipper_application_load_name_and_icon(
+        path, loader_applications_app->storage, icon_ptr, item_name);
 }
 
 static bool loader_applications_select_app(LoaderApplicationsApp* loader_applications_app) {
     const DialogsFileBrowserOptions browser_options = {
-        .extension = ".fap|.js",
+        .extension = ".fap",
         .skip_assets = true,
         .icon = &I_unknown_10px,
         .hide_ext = true,
@@ -152,12 +144,7 @@ static int32_t loader_applications_thread(void* p) {
     view_holder_start(app->view_holder);
 
     while(loader_applications_select_app(app)) {
-        if(!furi_string_end_with(app->file_path, ".js")) {
-            loader_applications_start_app(app, furi_string_get_cstr(app->file_path), NULL);
-        } else {
-            loader_applications_start_app(
-                app, JS_RUNNER_APP, furi_string_get_cstr(app->file_path));
-        }
+        loader_applications_start_app(app, furi_string_get_cstr(app->file_path), NULL);
     }
 
     // stop loading animation
