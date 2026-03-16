@@ -569,7 +569,6 @@ static void suica_on_enter(Metroflip* app) {
         popup_set_icon(app->popup, 0, 3, &I_RFIDDolphinReceive_97x61);
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
 
-        nfc_scanner_alloc(app->nfc);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolFelica);
         nfc_poller_start(app->poller, suica_poller_callback, app);
         FURI_LOG_I(TAG, "Poller started");

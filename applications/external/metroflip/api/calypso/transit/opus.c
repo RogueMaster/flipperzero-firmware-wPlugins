@@ -22,11 +22,9 @@ const char* get_opus_service_provider(int provider) {
     case 0x20:
         return "Chrono";
     default: {
-        char* provider_str = malloc(10 * sizeof(char));
-        if(!provider_str) {
-            return "Unknown";
-        }
-        snprintf(provider_str, 10, "0x%02X", provider);
+        // Use static buffer to avoid memory leak
+        static char provider_str[12];
+        snprintf(provider_str, sizeof(provider_str), "0x%02X", provider);
         return provider_str;
     }
     }
@@ -39,11 +37,9 @@ const char* get_opus_transport_type(int location_id) {
     case 0xc9:
         return "Metro";
     default: {
-        char* location_str = malloc(9 * sizeof(char));
-        if(!location_str) {
-            return "Unknown";
-        }
-        snprintf(location_str, 9, "0x%02X", location_id);
+        // Use static buffer to avoid memory leak
+        static char location_str[12];
+        snprintf(location_str, sizeof(location_str), "0x%02X", location_id);
         return location_str;
     }
     }
@@ -53,12 +49,9 @@ const char* get_opus_transport_line(int route_number) {
     if(OPUS_LINES_LIST[route_number]) {
         return OPUS_LINES_LIST[route_number];
     } else {
-        // Return hex
-        char* route_str = malloc(9 * sizeof(char));
-        if(!route_str) {
-            return "Unknown";
-        }
-        snprintf(route_str, 9, "0x%02X", route_number);
+        // Use static buffer to avoid memory leak
+        static char route_str[12];
+        snprintf(route_str, sizeof(route_str), "0x%02X", route_number);
         return route_str;
     }
 }
@@ -77,11 +70,9 @@ const char* get_opus_tariff(int tariff) {
     case 0xa3e:
         return "Weekly";
     default: {
-        char* tariff_str = malloc(9 * sizeof(char));
-        if(!tariff_str) {
-            return "Unknown";
-        }
-        snprintf(tariff_str, 9, "0x%02X", tariff);
+        // Use static buffer to avoid memory leak
+        static char tariff_str[12];
+        snprintf(tariff_str, sizeof(tariff_str), "0x%02X", tariff);
         return tariff_str;
     }
     }

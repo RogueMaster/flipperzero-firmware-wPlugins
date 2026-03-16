@@ -23,8 +23,10 @@ const char* get_navigo_service_provider(int provider) {
     case NAVIGO_PROVIDER_RATP_VEOLIA_NANTERRE:
         return "RATP (Veolia Transport Nanterre)";
     default: {
-        char* provider_str = malloc(6 * sizeof(char));
-        snprintf(provider_str, 6, "%d", provider);
+        // Use static buffer to avoid memory leak
+        // Buffer sized for max int value (10 digits) + null terminator
+        static char provider_str[12];
+        snprintf(provider_str, sizeof(provider_str), "%d", provider);
         return provider_str;
     }
     }
@@ -79,8 +81,9 @@ const char* get_navigo_tariff(int tariff) {
     case 0x8003:
         return "Navigo Solidarite Gratuit";
     default: {
-        char* tariff_str = malloc(6 * sizeof(char));
-        snprintf(tariff_str, 6, "%d", tariff);
+        // Use static buffer to avoid memory leak
+        static char tariff_str[12];
+        snprintf(tariff_str, sizeof(tariff_str), "0x%04X", tariff);
         return tariff_str;
     }
     }
@@ -380,11 +383,9 @@ const char* get_navigo_tram_line(int route_number) {
     case 18:
         return "T8";
     default: {
-        char* line = malloc(5 * sizeof(char));
-        if(!line) {
-            return "Unknown";
-        }
-        snprintf(line, 5, "?%d?", route_number);
+        // Use static buffer to avoid memory leak
+        static char line[8];
+        snprintf(line, sizeof(line), "?%d?", route_number);
         return line;
     }
     }

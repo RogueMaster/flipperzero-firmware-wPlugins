@@ -128,7 +128,6 @@ static void nol_on_enter(Metroflip* app) {
 
         // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
-        nfc_scanner_alloc(app->nfc);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfDesfire);
         nfc_poller_start(app->poller, nol_poller_callback, app);
 

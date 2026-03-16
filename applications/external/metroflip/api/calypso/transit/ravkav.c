@@ -8,12 +8,9 @@ const char* get_ravkav_issuer(int issuer) {
     if(RAVKAV_ISSUERS_LIST[issuer]) {
         return RAVKAV_ISSUERS_LIST[issuer];
     } else {
-        // Return hex
-        char* issuer_str = malloc(9 * sizeof(char));
-        if(!issuer_str) {
-            return "Unknown";
-        }
-        snprintf(issuer_str, 9, "0x%02X", issuer);
+        // Use static buffer to avoid memory leak
+        static char issuer_str[12];
+        snprintf(issuer_str, sizeof(issuer_str), "0x%02X", issuer);
         return issuer_str;
     }
 }

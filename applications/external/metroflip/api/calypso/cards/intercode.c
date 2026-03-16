@@ -603,8 +603,9 @@ const char* get_intercode_string_transition_type(int transition) {
     case 0xF:
         return "Invalidation";
     default: {
-        char* transition_str = malloc(6 * sizeof(char));
-        snprintf(transition_str, 6, "%d", transition);
+        // Use static buffer to avoid memory leak
+        static char transition_str[8];
+        snprintf(transition_str, sizeof(transition_str), "%d", transition);
         return transition_str;
     }
     }
@@ -679,11 +680,9 @@ const char* get_intercode_string_event_result(int result) {
     case 0x33:
         return "Double validation (Exit)";
     default: {
-        char* result_str = malloc(6 * sizeof(char));
-        if(!result_str) {
-            return "Unknown";
-        }
-        snprintf(result_str, 6, "%d", result);
+        // Use static buffer to avoid memory leak
+        static char result_str[8];
+        snprintf(result_str, sizeof(result_str), "%d", result);
         return result_str;
     }
     }

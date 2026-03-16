@@ -243,7 +243,6 @@ static void tmoney_on_enter(Metroflip* app) {
     popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
     // Start worker
-    nfc_scanner_alloc(app->nfc);
     app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_4a);
     nfc_poller_start(app->poller, tmoney_poller_callback, app);
 

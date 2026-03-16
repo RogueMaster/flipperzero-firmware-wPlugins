@@ -79,7 +79,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NFC FeliCa Improvement: Dump All Systems #4293 (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4293)
 - [NFC: Add Saflok MFUL Parser Support (By aaronjamt)](https://github.com/Next-Flip/Momentum-Firmware/pull/474)
 - Reverted: NFC: [ADD: Ventra parsing plugin to Metroflip. Updated: NFC ventra_parser.fal. #1164 (By FatherDivine)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1164)
-- Updated: [Metroflip v1.1 (By luu176)](https://github.com/luu176/Metroflip) (Felica Updates)
 - Updated: [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d) (NTAG4 Support)
 - NFC: [Add Mifare Ultralight C Write Support (By haw8411)](https://github.com/Next-Flip/Momentum-Firmware/pull/524)
 - UL: [KeyFinder protocol (24bit static) (By xMasterX & mishamyte)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/10ebf9addeb9458150a451965341e9d26e3c8cfe)
@@ -99,6 +98,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 - Added: [Gatekeeper v1.0 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
 - Updated: [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
+- Updated: [Metroflip v1.1 (By luu176)](https://github.com/luu176/Metroflip) [Re-applied stability improvements (By baalpeteor2)](https://github.com/luu176/Metroflip/pull/89)
 
 <a name="release"></a>
 

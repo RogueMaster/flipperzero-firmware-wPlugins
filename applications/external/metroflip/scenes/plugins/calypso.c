@@ -519,10 +519,22 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
 
             Iso14443_4bError error;
             size_t response_length = 0;
+            CalypsoCardData* card = NULL;
 
             do {
                 // Initialize the card data
-                CalypsoCardData* card = malloc(sizeof(CalypsoCardData));
+                card = malloc(sizeof(CalypsoCardData));
+                if(!card) {
+                    stage = MetroflipPollerEventTypeFail;
+                    view_dispatcher_send_custom_event(
+                        app->view_dispatcher, MetroflipCustomEventPollerFail);
+                    break;
+                }
+                // Initialize pointers to NULL for safe cleanup
+                card->navigo = NULL;
+                card->opus = NULL;
+                card->ravkav = NULL;
+
                 // Select app ICC
                 error = select_new_app(
                     0x00, 0x02, tx_buffer, rx_buffer, iso14443_4b_poller, app, &stage);
@@ -632,6 +644,12 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                 switch(card->card_type) {
                 case CALYPSO_CARD_NAVIGO: {
                     card->navigo = malloc(sizeof(NavigoCardData));
+                    if(!card->navigo) {
+                        stage = MetroflipPollerEventTypeFail;
+                        view_dispatcher_send_custom_event(
+                            app->view_dispatcher, MetroflipCustomEventPollerFail);
+                        break;
+                    }
 
                     card->navigo->environment.country_num = card->country_num;
                     card->navigo->environment.network_num = card->network_num;
@@ -1417,6 +1435,12 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                 }
                 case CALYPSO_CARD_OPUS: {
                     card->opus = malloc(sizeof(OpusCardData));
+                    if(!card->opus) {
+                        stage = MetroflipPollerEventTypeFail;
+                        view_dispatcher_send_custom_event(
+                            app->view_dispatcher, MetroflipCustomEventPollerFail);
+                        break;
+                    }
 
                     card->opus->environment.country_num = card->country_num;
                     card->opus->environment.network_num = card->network_num;
@@ -1923,6 +1947,12 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                     FURI_LOG_I(TAG, "card type again: %d", card->card_type);
                     if(card->card_type == CALYPSO_CARD_RAVKAV) {
                         card->ravkav = malloc(sizeof(RavKavCardData));
+                        if(!card->ravkav) {
+                            stage = MetroflipPollerEventTypeFail;
+                            view_dispatcher_send_custom_event(
+                                app->view_dispatcher, MetroflipCustomEventPollerFail);
+                            break;
+                        }
 
                         // Prepare calypso structure
 
@@ -2638,6 +2668,13 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
             } while(false);
 
             if(stage != MetroflipPollerEventTypeSuccess) {
+                // Clean up card data on failure if it was allocated but not assigned to context
+                if(card && !app->calypso_context) {
+                    free(card->navigo);
+                    free(card->opus);
+                    free(card->ravkav);
+                    free(card);
+                }
                 next_command = NfcCommandStop;
             }
         }
@@ -2657,7 +2694,6 @@ static void calypso_on_enter(Metroflip* app) {
     popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
     // Start worker
-    nfc_scanner_alloc(app->nfc);
     app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_4b);
     nfc_poller_start(app->poller, calypso_poller_callback, app);
     if(!app->data_loaded) {
@@ -2711,10 +2747,12 @@ static void calypso_on_exit(Metroflip* app) {
 
     if(app->calypso_context) {
         CalypsoContext* ctx = app->calypso_context;
-        free(ctx->card->navigo);
-        free(ctx->card->opus);
-        free(ctx->card->ravkav);
-        free(ctx->card);
+        if(ctx->card) {
+            free(ctx->card->navigo);
+            free(ctx->card->opus);
+            free(ctx->card->ravkav);
+            free(ctx->card);
+        }
         furi_mutex_free(ctx->mutex);
         free(ctx);
         app->calypso_context = NULL;

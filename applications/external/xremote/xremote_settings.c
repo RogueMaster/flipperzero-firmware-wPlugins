@@ -48,7 +48,7 @@ static void infrared_settings_repeat_changed(VariableItem* item) {
     char repeat_str[8];
 
     settings->repeat_count = variable_item_get_current_value_index(item);
-    if (settings->repeat_count == 0) {
+    if(settings->repeat_count == 0) {
         settings->repeat_count = 1;
         variable_item_set_current_value_index(item, 1);
     }

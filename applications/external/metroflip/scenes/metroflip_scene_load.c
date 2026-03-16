@@ -8,6 +8,7 @@
 #define TAG "Metroflip:Scene:Load"
 #include "keys.h"
 #include <nfc/protocols/mf_classic/mf_classic.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight.h>
 
 void metroflip_scene_load_on_enter(void* context) {
     Metroflip* app = (Metroflip*)context;
@@ -134,6 +135,37 @@ void metroflip_scene_load_on_enter(void* context) {
                     app->card_type = "intertic";
                     app->is_desfire = false;
                     app->data_loaded = true;
+                } else if(
+                    strcmp(protocol_name, "Mifare Ultralight") == 0 ||
+                    strcmp(protocol_name, "NTAG") == 0 ||
+                    strcmp(protocol_name, "NTAG/Ultralight") == 0) {
+                    // Try to detect Ventra or other Ultralight-based cards
+                    flipper_format_file_close(format);
+                    flipper_format_file_open_existing(format, furi_string_get_cstr(file_path));
+
+                    MfUltralightData* ul_data = mf_ultralight_alloc();
+                    if(mf_ultralight_load(ul_data, format, 2)) {
+                        // Check for Ventra signature in pages 4-6
+                        // Ventra requires at least 7 pages (0-6) to validate
+                        // Signature: page[4].data[0,1,2] == {0x0A, 4, 0}, page[6].data[0,1,2] == 0
+                        if(ul_data->pages_read >= 7 && ul_data->page[4].data[0] == 0x0A &&
+                           ul_data->page[4].data[1] == 4 && ul_data->page[4].data[2] == 0 &&
+                           ul_data->page[6].data[0] == 0 && ul_data->page[6].data[1] == 0 &&
+                           ul_data->page[6].data[2] == 0) {
+                            app->card_type = "ventra";
+                            app->is_desfire = false;
+                            app->data_loaded = true;
+                            FURI_LOG_I(TAG, "Detected: Ventra Ultralight");
+                        } else {
+                            // Load as generic Ultralight even if not Ventra signature
+                            // This allows loading any Ultralight card saved by Metroflip
+                            app->card_type = "ventra";
+                            app->is_desfire = false;
+                            app->data_loaded = true;
+                            FURI_LOG_I(TAG, "Loaded: Ultralight card (generic)");
+                        }
+                    }
+                    mf_ultralight_free(ul_data);
                 }
             } else {
                 const char* card_str = furi_string_get_cstr(card_type_str);
