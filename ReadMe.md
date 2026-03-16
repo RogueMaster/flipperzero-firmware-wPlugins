@@ -98,6 +98,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Use Native chip AES for Benica (By lupettohf with thanks to carphreak)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a2cf8be1046f0f8662d5b7a249db157ece15500c)
 - Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 - Added: [Gatekeeper v1.0 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
+- Updated: [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 
 <a name="release"></a>
 
@@ -923,7 +924,7 @@ $ ./fbt dolphin_ext
 - [Wire Tester v1.1 (By unixispower)](https://gitlab.com/unixispower/flipper-wire-tester)
 - [WS2812B LED Tester v1.9 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/ws2812b_tester)
 - [XBox360 USB Game Controller v0.2 (By expected-ingot)](https://github.com/expected-ingot/flipper-xinput)
-- [XRemote v1.3 (By kala13x)](https://github.com/kala13x/flipper-xremote)
+- [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max)
 
 ## Current Bounties $$ (Sorted By Difficulty - Easiest to Hardest)

@@ -1,7 +1,7 @@
 <p align="center">Advanced IR Remote App for Flipper Device</p>
 
 <p align="center">
-  Version 1.3 - <a href="https://github.com/kala13x/flipper-xremote/blob/main/docs/changelog.md">Changelog</a>
+  Version 1.4 - <a href="https://github.com/kala13x/flipper-xremote/blob/main/docs/changelog.md">Changelog</a>
 </p>
 
 <p align="center">
