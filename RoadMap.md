@@ -37,7 +37,6 @@
 ### OFW TO ADD: [#4043](https://github.com/flipperdevices/flipperzero-firmware/pull/4043)
 ### OFW TO ADD: [#4075](https://github.com/flipperdevices/flipperzero-firmware/pull/4075)
 ### OFW TO ADD: [#4109](https://github.com/flipperdevices/flipperzero-firmware/pull/4109)
-### OFW TO ADD: [#4090 NORALSY](https://github.com/flipperdevices/flipperzero-firmware/pull/4090)
 ### OFW TO ADD: [#4103](https://github.com/flipperdevices/flipperzero-firmware/pull/4103)
 ### OFW TO ADD: [#4121](https://github.com/flipperdevices/flipperzero-firmware/pull/4121)
 ### OFW TO ADD: [#4119](https://github.com/flipperdevices/flipperzero-firmware/pull/4119)

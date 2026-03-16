@@ -1,10 +1,9 @@
 Filetype: IR library file
 Version: 1
+# Last Updated 7th Sept, 2025
+# Last Checked 7th Sept, 2025
 #
-# Last Updated 8th Oct, 2024
-# Last Checked 8th Oct, 2024
-#
-# TEMP FIX FOR POWER
+# TEMP FIX FOR POWER: Power signals are duplicated, since projectors require second confirm to poweroff
 #
 # ON
 name: Power
@@ -1068,8 +1067,6 @@ type: parsed
 protocol: NECext
 address: 83 F4 00 00
 command: 17 E8 00 00
-#
-# Model: ViewSonic X1_Projector
 #
 name: Vol_up
 type: raw

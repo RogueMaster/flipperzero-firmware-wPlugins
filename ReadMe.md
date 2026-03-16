@@ -74,8 +74,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage) Added Missing API files for strnlen (By xMasterX)
 - Updated: [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer) Added Missing API files for strnlen (By xMasterX)
 - Updated: [Wendigo Bluetooth Tracker WIP v0.5.1 (By chris-bc)](https://github.com/chris-bc/wendigo) `WIP Req: ESP32` Added Missing API files for strnlen (By xMasterX)
-- Removed: [FastJS v1.2 (By jblanked)](https://github.com/jblanked/FastJS-FlipperZero) To make room for more protocols.
-- Removed: [JS Runner v1.0 (By nminaylov & DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/3286) To make room for more protocols.
+- Removed: [FastJS v1.2 (By jblanked)](https://github.com/jblanked/FastJS-FlipperZero) & [JS Runner v1.0 (By nminaylov & DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/3286) [To make room for more protocols.](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/765a5bc110aff31e6aadd53d344b49578c82b3b4)
 - [NFC: Type 4 Support (NTAG4xx/DESFire) + Many Improvements #4242 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4242)
 - [Felica standard loading fix #4311 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4311)
 - [NFC FeliCa Improvement: Dump All Systems #4293 (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4293)
@@ -95,7 +94,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Firmware compilation updates for optimizations and LTO usage (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/c98fa215da6d824462017c9bd2c4cd67be2adffb)
 - [FBT: Allow apps to specify custom cflags (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/514f88983f08c742fefee174ccd4988731dd21ff#diff-06572a96a58dc510037d5efa622f9bec8519bc1beab13c9f251e97e657a9d4ed)
 - Credit to [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware) team for documentation and Sub-GHz upgrades.
-- Credit to [Momentum Firmware](https://github.com/Next-Flip/Momentum-Firmware) team for NFC & firmware compilation upgrades.
+- Credit to [Momentum Firmware](https://github.com/Next-Flip/Momentum-Firmware) team for IR remote codes, NFC & firmware compilation upgrades.
+- OFW: [LFRFID: Noralsy Format/Brand (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4090)
 
 <a name="release"></a>
 
