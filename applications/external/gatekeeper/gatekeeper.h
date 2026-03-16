@@ -31,13 +31,13 @@
 
 // ViewDispatcher view IDs
 typedef enum {
-    VIEW_ID_COMBO      = 0,
-    VIEW_ID_MENU       = 1,
-    VIEW_ID_DEPLOY     = 2,
+    VIEW_ID_COMBO = 0,
+    VIEW_ID_MENU = 1,
+    VIEW_ID_DEPLOY = 2,
     VIEW_ID_NAME_INPUT = 3,
     VIEW_ID_TEXT_INPUT = 4,
     VIEW_ID_DELETE_CONFIRM = 5,
-    VIEW_ID_ICON_PICK  = 6,
+    VIEW_ID_ICON_PICK = 6,
 } GkViewId;
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -53,8 +53,8 @@ typedef enum {
 } GkState;
 
 typedef struct {
-    char    name[MAX_NAME_LEN];
-    char    text[MAX_TEXT_LEN];
+    char name[MAX_NAME_LEN];
+    char text[MAX_TEXT_LEN];
     uint8_t icon; // 0..GK_ICON_COUNT-1
 } GkEntry;
 
@@ -70,7 +70,7 @@ static bool icon_pick_input_cb(InputEvent* event, void* context);
 // ─── App struct ──────────────────────────────────────────────────────────────
 
 typedef struct {
-    Gui*            gui;
+    Gui* gui;
     ViewDispatcher* view_dispatcher;
 
     View* view_combo;
@@ -90,7 +90,7 @@ typedef struct {
     uint8_t password_temp[MAX_PASSWORD_LEN];
     uint8_t input_buf[MAX_PASSWORD_LEN];
     uint8_t input_len;
-    bool    unlock_failed;
+    bool unlock_failed;
 
     // Entries
     GkEntry entries[MAX_ENTRIES];
@@ -105,17 +105,17 @@ typedef struct {
     char edit_text[MAX_TEXT_LEN];
 
     // Deploy
-    int          selected_entry;
-    float        deploy_progress;
-    bool         deploy_not_connected;
-    FuriThread*  deploy_thread;
+    int selected_entry;
+    float deploy_progress;
+    bool deploy_not_connected;
+    FuriThread* deploy_thread;
 
     // Delete confirmation
-    int          delete_entry_index;
-    bool         delete_failed;
+    int delete_entry_index;
+    bool delete_failed;
 
     // Icon picker
-    uint8_t      icon_cursor;
+    uint8_t icon_cursor;
 } GkApp;
 
 int32_t gatekeeper_app(void* p);

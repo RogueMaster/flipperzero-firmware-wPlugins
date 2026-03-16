@@ -73,7 +73,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage) Added Missing API files for strnlen (By xMasterX)
 - Updated: [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer) Added Missing API files for strnlen (By xMasterX)
 - Updated: [Wendigo Bluetooth Tracker WIP v0.5.1 (By chris-bc)](https://github.com/chris-bc/wendigo) `WIP Req: ESP32` Added Missing API files for strnlen (By xMasterX)
-- Removed: [FastJS v1.2 (By jblanked)](https://github.com/jblanked/FastJS-FlipperZero) & [JS Runner v1.0 (By nminaylov & DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/3286) Idea from Flipper-ARF firmware to make room for more protocols, [JS removed here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/765a5bc110aff31e6aadd53d344b49578c82b3b4) & [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/47fdbc314b7d11144be6e2fa6b27c5960aca6893)
+- Removed: [FastJS v1.2 (By jblanked)](https://github.com/jblanked/FastJS-FlipperZero) & [JS Runner v1.0 (By nminaylov & DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/3286) & associated assets. Idea from Flipper-ARF firmware to make room for more protocols, [JS removed here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/765a5bc110aff31e6aadd53d344b49578c82b3b4) & [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/47fdbc314b7d11144be6e2fa6b27c5960aca6893)
 - [NFC: Type 4 Support (NTAG4xx/DESFire) + Many Improvements #4242 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4242)
 - [Felica standard loading fix #4311 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4311)
 - [NFC FeliCa Improvement: Dump All Systems #4293 (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4293)
@@ -97,6 +97,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: RFID: [Noralsy Format/Brand (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4090)
 - Sub-GHz: [Use Native chip AES for Benica (By lupettohf with thanks to carphreak)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a2cf8be1046f0f8662d5b7a249db157ece15500c)
 - Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
+- Added: [Gatekeeper v1.0 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
 
 <a name="release"></a>
 
@@ -622,6 +623,7 @@ $ ./fbt dolphin_ext
 - [FRSScan v0.2 (By thecybermind)](https://github.com/thecybermind/frsscan)
 - [FZ nRF24 Jammer v1.4 (By W0rthlessS0ul)](https://github.com/W0rthlessS0ul/FZ_nRF24_jammer)
 - [Gas Sensor v0.1 (By iancohee)](https://github.com/iancohee/gas_sensor_fap) `Req: BME680 / SGP30`
+- [Gatekeeper v1.0 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
 - [Gauge Tool v0.1 (By skotopes)](https://github.com/skotopes/flipperzero_gauge_tool) (Used To Downgrade From 10/07/2024 Update)
 - [GB Printer v0.5 (By kbembedded)](https://github.com/kbembedded/flipper-gb-printer) `Req: GB Link Cable / Malveke`
 - [Gemini IA v1.1 (By d4rks1d33 & jamisonderek)](https://github.com/d4rks1d33/Gemini-Flipper)

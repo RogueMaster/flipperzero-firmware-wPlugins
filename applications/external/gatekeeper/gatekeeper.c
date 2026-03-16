@@ -10,7 +10,12 @@
 // Draw icon at (x, y) — 8x8 pixels
 static void gk_draw_icon(Canvas* canvas, int x, int y, uint8_t icon) {
     const Icon* icons[GK_ICON_COUNT] = {
-        &I_card, &I_gamepad, &I_heart, &I_key, &I_lock, &I_pc,
+        &I_card,
+        &I_gamepad,
+        &I_heart,
+        &I_key,
+        &I_lock,
+        &I_pc,
     };
     if(icon < GK_ICON_COUNT) {
         canvas_draw_icon(canvas, x, y, icons[icon]);
@@ -104,15 +109,16 @@ static void gk_type_string(const char* str) {
 static void gk_draw_circles(Canvas* c, uint8_t filled) {
     const int r = 7, spacing = 22;
     int xs = (128 - (MAX_PASSWORD_LEN * spacing - (spacing - r * 2))) / 2 + r;
-    int y  = 34;
+    int y = 34;
     for(uint8_t i = 0; i < MAX_PASSWORD_LEN; i++) {
         int cx = xs + i * spacing;
         canvas_draw_circle(c, cx, y, r);
         if(i < filled) {
-            for(int dy = -(r-1); dy <= (r-1); dy++) {
-                int half = r*r - dy*dy, h = 0;
-                while((h+1)*(h+1) <= half) h++;
-                if(h > 0) canvas_draw_line(c, cx-h, y+dy, cx+h, y+dy);
+            for(int dy = -(r - 1); dy <= (r - 1); dy++) {
+                int half = r * r - dy * dy, h = 0;
+                while((h + 1) * (h + 1) <= half)
+                    h++;
+                if(h > 0) canvas_draw_line(c, cx - h, y + dy, cx + h, y + dy);
             }
         }
     }
@@ -169,67 +175,83 @@ static bool combo_input_cb(InputEvent* event, void* context) {
     View* view = context;
     bool consumed = false;
 
-    with_view_model(view, GkViewModel* m, {
-        GkApp* app = m->app;
-        if(app && event->type == InputTypeShort) {
-            if(event->key == InputKeyBack) {
-                app->input_len = 0;
-                app->unlock_failed = false;
-                consumed = true;
-            } else {
-                uint8_t btn = 0;
-                switch(event->key) {
-                case InputKeyUp:    btn = GK_BTN_UP;    break;
-                case InputKeyDown:  btn = GK_BTN_DOWN;  break;
-                case InputKeyLeft:  btn = GK_BTN_LEFT;  break;
-                case InputKeyRight: btn = GK_BTN_RIGHT; break;
-                default: break;
-                }
-
-                if(btn && app->input_len < MAX_PASSWORD_LEN) {
-                    app->input_buf[app->input_len++] = btn;
+    with_view_model(
+        view,
+        GkViewModel * m,
+        {
+            GkApp* app = m->app;
+            if(app && event->type == InputTypeShort) {
+                if(event->key == InputKeyBack) {
+                    app->input_len = 0;
+                    app->unlock_failed = false;
                     consumed = true;
+                } else {
+                    uint8_t btn = 0;
+                    switch(event->key) {
+                    case InputKeyUp:
+                        btn = GK_BTN_UP;
+                        break;
+                    case InputKeyDown:
+                        btn = GK_BTN_DOWN;
+                        break;
+                    case InputKeyLeft:
+                        btn = GK_BTN_LEFT;
+                        break;
+                    case InputKeyRight:
+                        btn = GK_BTN_RIGHT;
+                        break;
+                    default:
+                        break;
+                    }
 
-                    if(app->input_len >= MAX_PASSWORD_LEN) {
-                        // Full combo entered — handle by state
-                        if(app->state == STATE_SET_PASSWORD) {
-                            memcpy(app->password_temp, app->input_buf, MAX_PASSWORD_LEN);
-                            app->input_len = 0;
-                            app->state = STATE_SET_PASSWORD_CONFIRM;
+                    if(btn && app->input_len < MAX_PASSWORD_LEN) {
+                        app->input_buf[app->input_len++] = btn;
+                        consumed = true;
 
-                        } else if(app->state == STATE_SET_PASSWORD_CONFIRM) {
-                            if(memcmp(app->input_buf, app->password_temp, MAX_PASSWORD_LEN) == 0) {
-                                memcpy(app->password, app->password_temp, MAX_PASSWORD_LEN);
-                                app->password_len = MAX_PASSWORD_LEN;
-                                gk_save(app);
+                        if(app->input_len >= MAX_PASSWORD_LEN) {
+                            // Full combo entered — handle by state
+                            if(app->state == STATE_SET_PASSWORD) {
+                                memcpy(app->password_temp, app->input_buf, MAX_PASSWORD_LEN);
                                 app->input_len = 0;
-                                app->state = STATE_MAIN_MENU;
-                                app->menu_cursor = -1;
-                                app->menu_scroll = 0;
-                                view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_MENU);
-                            } else {
-                                app->input_len = 0;
-                                app->state = STATE_SET_PASSWORD;
-                            }
+                                app->state = STATE_SET_PASSWORD_CONFIRM;
 
-                        } else { // STATE_UNLOCK
-                            app->unlock_failed = false;
-                            if(memcmp(app->input_buf, app->password, MAX_PASSWORD_LEN) == 0) {
-                                app->input_len = 0;
-                                app->state = STATE_MAIN_MENU;
-                                app->menu_cursor = -1;
-                                app->menu_scroll = 0;
-                                view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_MENU);
-                            } else {
-                                app->unlock_failed = true;
-                                app->input_len = 0;
+                            } else if(app->state == STATE_SET_PASSWORD_CONFIRM) {
+                                if(memcmp(app->input_buf, app->password_temp, MAX_PASSWORD_LEN) ==
+                                   0) {
+                                    memcpy(app->password, app->password_temp, MAX_PASSWORD_LEN);
+                                    app->password_len = MAX_PASSWORD_LEN;
+                                    gk_save(app);
+                                    app->input_len = 0;
+                                    app->state = STATE_MAIN_MENU;
+                                    app->menu_cursor = -1;
+                                    app->menu_scroll = 0;
+                                    view_dispatcher_switch_to_view(
+                                        app->view_dispatcher, VIEW_ID_MENU);
+                                } else {
+                                    app->input_len = 0;
+                                    app->state = STATE_SET_PASSWORD;
+                                }
+
+                            } else { // STATE_UNLOCK
+                                app->unlock_failed = false;
+                                if(memcmp(app->input_buf, app->password, MAX_PASSWORD_LEN) == 0) {
+                                    app->input_len = 0;
+                                    app->state = STATE_MAIN_MENU;
+                                    app->menu_cursor = -1;
+                                    app->menu_scroll = 0;
+                                    view_dispatcher_switch_to_view(
+                                        app->view_dispatcher, VIEW_ID_MENU);
+                                } else {
+                                    app->unlock_failed = true;
+                                    app->input_len = 0;
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-    }, true);
+        },
+        true);
 
     return consumed;
 }
@@ -284,54 +306,63 @@ static bool menu_input_cb(InputEvent* event, void* context) {
     View* view = context;
     bool consumed = false;
 
-    with_view_model(view, GkViewModel* m, {
-        GkApp* app = m->app;
-        if(app && event->type == InputTypeShort) {
-            consumed = true;
-            switch(event->key) {
-            case InputKeyUp:
-                if(app->menu_cursor > -1) {
-                    app->menu_cursor--;
-                    if(app->menu_cursor >= 0 && app->menu_cursor < app->menu_scroll)
-                        app->menu_scroll--;
-                }
-                break;
-            case InputKeyDown:
-                if(app->menu_cursor < (int)app->entry_count - 1) {
-                    app->menu_cursor++;
-                    if(app->menu_cursor >= app->menu_scroll + 4) app->menu_scroll++;
-                }
-                break;
-            case InputKeyOk:
-                if(app->menu_cursor == -1) {
-                    if(app->entry_count < MAX_ENTRIES) {
-                        memset(app->edit_name, 0, MAX_NAME_LEN);
-                        memset(app->edit_text, 0, MAX_TEXT_LEN);
-                        text_input_set_header_text(app->name_input, "Entry name");
-                        text_input_set_result_callback(
-                            app->name_input, on_name_done, app,
-                            app->edit_name, MAX_NAME_LEN - 1, true);
-                        view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_NAME_INPUT);
+    with_view_model(
+        view,
+        GkViewModel * m,
+        {
+            GkApp* app = m->app;
+            if(app && event->type == InputTypeShort) {
+                consumed = true;
+                switch(event->key) {
+                case InputKeyUp:
+                    if(app->menu_cursor > -1) {
+                        app->menu_cursor--;
+                        if(app->menu_cursor >= 0 && app->menu_cursor < app->menu_scroll)
+                            app->menu_scroll--;
                     }
-                } else {
-                    app->selected_entry = app->menu_cursor;
-                    app->deploy_progress = 0;
-                    app->state = STATE_DEPLOY;
-                    view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_DEPLOY);
+                    break;
+                case InputKeyDown:
+                    if(app->menu_cursor < (int)app->entry_count - 1) {
+                        app->menu_cursor++;
+                        if(app->menu_cursor >= app->menu_scroll + 4) app->menu_scroll++;
+                    }
+                    break;
+                case InputKeyOk:
+                    if(app->menu_cursor == -1) {
+                        if(app->entry_count < MAX_ENTRIES) {
+                            memset(app->edit_name, 0, MAX_NAME_LEN);
+                            memset(app->edit_text, 0, MAX_TEXT_LEN);
+                            text_input_set_header_text(app->name_input, "Entry name");
+                            text_input_set_result_callback(
+                                app->name_input,
+                                on_name_done,
+                                app,
+                                app->edit_name,
+                                MAX_NAME_LEN - 1,
+                                true);
+                            view_dispatcher_switch_to_view(
+                                app->view_dispatcher, VIEW_ID_NAME_INPUT);
+                        }
+                    } else {
+                        app->selected_entry = app->menu_cursor;
+                        app->deploy_progress = 0;
+                        app->state = STATE_DEPLOY;
+                        view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_DEPLOY);
+                    }
+                    break;
+                case InputKeyBack:
+                    app->input_len = 0;
+                    app->unlock_failed = false;
+                    app->state = STATE_UNLOCK;
+                    view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_COMBO);
+                    break;
+                default:
+                    consumed = false;
+                    break;
                 }
-                break;
-            case InputKeyBack:
-                app->input_len = 0;
-                app->unlock_failed = false;
-                app->state = STATE_UNLOCK;
-                view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_COMBO);
-                break;
-            default: 
-                consumed = false;
-                break;
             }
-        }
-    }, true);
+        },
+        true);
 
     return consumed;
 }
@@ -347,9 +378,9 @@ static void deploy_draw_cb(Canvas* canvas, void* model) {
     canvas_set_color(canvas, ColorBlack);
 
     float prog = (app->deploy_progress < 0) ? 0 : app->deploy_progress;
-    bool idle   = (app->deploy_progress == 0);
+    bool idle = (app->deploy_progress == 0);
     bool typing = (app->deploy_progress > 0 && app->deploy_progress < 100);
-    bool done   = (app->deploy_progress >= 100);
+    bool done = (app->deploy_progress >= 100);
 
     // ── USB флешка из assets ─────────────────────────────────────────────
     // I_Drive генерируется ufbt из assets/Drive.png (112x35)
@@ -358,8 +389,8 @@ static void deploy_draw_cb(Canvas* canvas, void* model) {
 
     // Название пароля поверх флешки — центр тела флешки ~x=50
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 50, 23, AlignCenter, AlignCenter,
-        app->entries[app->selected_entry].name);
+    canvas_draw_str_aligned(
+        canvas, 50, 23, AlignCenter, AlignCenter, app->entries[app->selected_entry].name);
 
     // ── Нижняя панель ───────────────────────────────────────────────────
 
@@ -397,41 +428,45 @@ static bool deploy_input_cb(InputEvent* event, void* context) {
     View* view = context;
     bool consumed = false;
 
-    with_view_model(view, GkViewModel* m, {
-        GkApp* app = m->app;
-        if(app && event->type == InputTypeShort) {
-            if(event->key == InputKeyOk && app->deploy_progress == 0) {
-                app->deploy_progress = -1.0f;
-                app->deploy_not_connected = false;
-                view_dispatcher_send_custom_event(app->view_dispatcher, GK_EVENT_START_DEPLOY);
-                consumed = true;
-            }
-            if(event->key == InputKeyLeft && app->deploy_progress == 0) {
-                // Request delete confirmation
-                app->delete_entry_index = app->selected_entry;
-                app->delete_failed = false;
-                app->input_len = 0;
-                app->state = STATE_DELETE_CONFIRM;
-                view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_DELETE_CONFIRM);
-                consumed = true;
-            }
-            // BACK: разрешаем выход только когда деплой не активен
-            if(event->key == InputKeyBack &&
-               (app->deploy_progress <= 0 || app->deploy_progress >= 100.0f)) {
-                // Дожидаемся завершения потока если он ещё жив
-                if(app->deploy_thread) {
-                    furi_thread_join(app->deploy_thread);
-                    furi_thread_free(app->deploy_thread);
-                    app->deploy_thread = NULL;
+    with_view_model(
+        view,
+        GkViewModel * m,
+        {
+            GkApp* app = m->app;
+            if(app && event->type == InputTypeShort) {
+                if(event->key == InputKeyOk && app->deploy_progress == 0) {
+                    app->deploy_progress = -1.0f;
+                    app->deploy_not_connected = false;
+                    view_dispatcher_send_custom_event(app->view_dispatcher, GK_EVENT_START_DEPLOY);
+                    consumed = true;
                 }
-                app->state = STATE_MAIN_MENU;
-                app->deploy_progress = 0;
-                app->deploy_not_connected = false;
-                view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_MENU);
-                consumed = true;
+                if(event->key == InputKeyLeft && app->deploy_progress == 0) {
+                    // Request delete confirmation
+                    app->delete_entry_index = app->selected_entry;
+                    app->delete_failed = false;
+                    app->input_len = 0;
+                    app->state = STATE_DELETE_CONFIRM;
+                    view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_DELETE_CONFIRM);
+                    consumed = true;
+                }
+                // BACK: разрешаем выход только когда деплой не активен
+                if(event->key == InputKeyBack &&
+                   (app->deploy_progress <= 0 || app->deploy_progress >= 100.0f)) {
+                    // Дожидаемся завершения потока если он ещё жив
+                    if(app->deploy_thread) {
+                        furi_thread_join(app->deploy_thread);
+                        furi_thread_free(app->deploy_thread);
+                        app->deploy_thread = NULL;
+                    }
+                    app->state = STATE_MAIN_MENU;
+                    app->deploy_progress = 0;
+                    app->deploy_not_connected = false;
+                    view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_MENU);
+                    consumed = true;
+                }
             }
-        }
-    }, true);
+        },
+        true);
 
     return consumed;
 }
@@ -470,55 +505,68 @@ static bool delete_confirm_input_cb(InputEvent* event, void* context) {
     View* view = context;
     bool consumed = false;
 
-    with_view_model(view, GkViewModel* m, {
-        GkApp* app = m->app;
-        if(app && event->type == InputTypeShort) {
-            if(event->key == InputKeyBack) {
-                app->input_len = 0;
-                app->delete_failed = false;
-                app->state = STATE_DEPLOY;
-                view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_DEPLOY);
-                consumed = true;
-            } else {
-                uint8_t btn = 0;
-                switch(event->key) {
-                case InputKeyUp:    btn = GK_BTN_UP;    break;
-                case InputKeyDown:  btn = GK_BTN_DOWN;  break;
-                case InputKeyLeft:  btn = GK_BTN_LEFT;  break;
-                case InputKeyRight: btn = GK_BTN_RIGHT; break;
-                default: break;
-                }
-
-                if(btn && app->input_len < MAX_PASSWORD_LEN) {
-                    app->input_buf[app->input_len++] = btn;
+    with_view_model(
+        view,
+        GkViewModel * m,
+        {
+            GkApp* app = m->app;
+            if(app && event->type == InputTypeShort) {
+                if(event->key == InputKeyBack) {
+                    app->input_len = 0;
+                    app->delete_failed = false;
+                    app->state = STATE_DEPLOY;
+                    view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_DEPLOY);
                     consumed = true;
+                } else {
+                    uint8_t btn = 0;
+                    switch(event->key) {
+                    case InputKeyUp:
+                        btn = GK_BTN_UP;
+                        break;
+                    case InputKeyDown:
+                        btn = GK_BTN_DOWN;
+                        break;
+                    case InputKeyLeft:
+                        btn = GK_BTN_LEFT;
+                        break;
+                    case InputKeyRight:
+                        btn = GK_BTN_RIGHT;
+                        break;
+                    default:
+                        break;
+                    }
 
-                    if(app->input_len >= MAX_PASSWORD_LEN) {
-                        // Check password
-                        app->delete_failed = false;
-                        if(memcmp(app->input_buf, app->password, MAX_PASSWORD_LEN) == 0) {
-                            // Password correct - delete entry
-                            int idx = app->delete_entry_index;
-                            for(int i = idx; i < (int)app->entry_count - 1; i++) {
-                                app->entries[i] = app->entries[i + 1];
+                    if(btn && app->input_len < MAX_PASSWORD_LEN) {
+                        app->input_buf[app->input_len++] = btn;
+                        consumed = true;
+
+                        if(app->input_len >= MAX_PASSWORD_LEN) {
+                            // Check password
+                            app->delete_failed = false;
+                            if(memcmp(app->input_buf, app->password, MAX_PASSWORD_LEN) == 0) {
+                                // Password correct - delete entry
+                                int idx = app->delete_entry_index;
+                                for(int i = idx; i < (int)app->entry_count - 1; i++) {
+                                    app->entries[i] = app->entries[i + 1];
+                                }
+                                app->entry_count--;
+                                gk_save(app);
+
+                                app->input_len = 0;
+                                app->state = STATE_MAIN_MENU;
+                                app->menu_cursor = -1;
+                                view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_MENU);
+                            } else {
+                                // Wrong password
+                                app->delete_failed = true;
+                                app->input_len = 0;
                             }
-                            app->entry_count--;
-                            gk_save(app);
-                            
-                            app->input_len = 0;
-                            app->state = STATE_MAIN_MENU;
-                            app->menu_cursor = -1;
-                            view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_MENU);
-                        } else {
-                            // Wrong password
-                            app->delete_failed = true;
-                            app->input_len = 0;
                         }
                     }
                 }
             }
-        }
-    }, true);
+        },
+        true);
 
     return consumed;
 }
@@ -531,8 +579,7 @@ static void on_name_done(void* ctx) {
     GkApp* app = ctx;
     text_input_set_header_text(app->text_input, "BadUSB text");
     text_input_set_result_callback(
-        app->text_input, on_text_done, app,
-        app->edit_text, MAX_TEXT_LEN - 1, true);
+        app->text_input, on_text_done, app, app->edit_text, MAX_TEXT_LEN - 1, true);
     view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_TEXT_INPUT);
 }
 
@@ -573,7 +620,7 @@ static void icon_pick_draw_cb(Canvas* canvas, void* model) {
         bool sel = (app->icon_cursor == (uint8_t)i);
         if(sel) {
             // Выделение — чёрный квадрат, иконка белая
-            canvas_draw_box(canvas, cx - sel_size/2, iy, sel_size, sel_size);
+            canvas_draw_box(canvas, cx - sel_size / 2, iy, sel_size, sel_size);
             canvas_set_color(canvas, ColorWhite);
             canvas_draw_icon(canvas, cx - 4, iy + 6, icons[i]);
             canvas_set_color(canvas, ColorBlack);
@@ -584,7 +631,7 @@ static void icon_pick_draw_cb(Canvas* canvas, void* model) {
 
     // Название выбранной иконки
     canvas_set_font(canvas, FontPrimary);
-    const char* labels[GK_ICON_COUNT] = {"Card","Gamepad","Heart","Key","Lock","PC"};
+    const char* labels[GK_ICON_COUNT] = {"Card", "Gamepad", "Heart", "Key", "Lock", "PC"};
     canvas_draw_str_aligned(canvas, 64, 39, AlignCenter, AlignTop, labels[app->icon_cursor]);
 
     // Кнопка Skip (левая)
@@ -604,33 +651,43 @@ static bool icon_pick_input_cb(InputEvent* event, void* context) {
     View* view = context;
     bool consumed = false;
 
-    with_view_model(view, GkViewModel* m, {
-        GkApp* app = m->app;
-        if(app && event->type == InputTypeShort) {
-            if(event->key == InputKeyLeft) {
-                if(app->icon_cursor > 0) app->icon_cursor--;
-                else app->icon_cursor = GK_ICON_COUNT - 1;
-                consumed = true;
-            } else if(event->key == InputKeyRight) {
-                if(app->icon_cursor < GK_ICON_COUNT - 1) app->icon_cursor++;
-                else app->icon_cursor = 0;
-                consumed = true;
-            } else if(event->key == InputKeyOk || event->key == InputKeyBack) {
-                // OK — сохранить с выбранной иконкой, BACK — сохранить с иконкой 0
-                if(app->entry_count < MAX_ENTRIES) {
-                    uint8_t idx = app->entry_count;
-                    strlcpy(app->entries[idx].name, app->edit_name, MAX_NAME_LEN);
-                    strlcpy(app->entries[idx].text, app->edit_text, MAX_TEXT_LEN);
-                    app->entries[idx].icon = (event->key == InputKeyOk) ? app->icon_cursor : 3; // 3 = key
-                    app->entry_count++;
-                    gk_save(app);
+    with_view_model(
+        view,
+        GkViewModel * m,
+        {
+            GkApp* app = m->app;
+            if(app && event->type == InputTypeShort) {
+                if(event->key == InputKeyLeft) {
+                    if(app->icon_cursor > 0)
+                        app->icon_cursor--;
+                    else
+                        app->icon_cursor = GK_ICON_COUNT - 1;
+                    consumed = true;
+                } else if(event->key == InputKeyRight) {
+                    if(app->icon_cursor < GK_ICON_COUNT - 1)
+                        app->icon_cursor++;
+                    else
+                        app->icon_cursor = 0;
+                    consumed = true;
+                } else if(event->key == InputKeyOk || event->key == InputKeyBack) {
+                    // OK — сохранить с выбранной иконкой, BACK — сохранить с иконкой 0
+                    if(app->entry_count < MAX_ENTRIES) {
+                        uint8_t idx = app->entry_count;
+                        strlcpy(app->entries[idx].name, app->edit_name, MAX_NAME_LEN);
+                        strlcpy(app->entries[idx].text, app->edit_text, MAX_TEXT_LEN);
+                        app->entries[idx].icon = (event->key == InputKeyOk) ? app->icon_cursor :
+                                                                              3; // 3 = key
+                        app->entry_count++;
+                        gk_save(app);
+                    }
+                    app->state = STATE_MAIN_MENU;
+                    app->menu_cursor = -1;
+                    view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_MENU);
+                    consumed = true;
                 }
-                app->state = STATE_MAIN_MENU;
-                app->menu_cursor = -1;
-                view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_MENU);
-                consumed = true;
-            }        }
-    }, true);
+            }
+        },
+        true);
 
     return consumed;
 }
@@ -713,8 +770,7 @@ static int32_t deploy_worker(void* ctx) {
 static bool gk_custom_event_cb(void* ctx, uint32_t event) {
     GkApp* app = ctx;
     if(event == GK_EVENT_START_DEPLOY && !app->deploy_thread) {
-        app->deploy_thread = furi_thread_alloc_ex(
-            "GK_Deploy", 2048, deploy_worker, app);
+        app->deploy_thread = furi_thread_alloc_ex("GK_Deploy", 2048, deploy_worker, app);
         furi_thread_start(app->deploy_thread);
     }
     // GK_EVENT_REPAINT: проверяем завершение потока и освобождаем его
@@ -731,8 +787,7 @@ static bool gk_custom_event_cb(void* ctx, uint32_t event) {
 static bool gk_navigation_cb(void* ctx) {
     GkApp* app = ctx;
     // Back not consumed by current View
-    if(app->state == STATE_UNLOCK ||
-       app->state == STATE_SET_PASSWORD ||
+    if(app->state == STATE_UNLOCK || app->state == STATE_SET_PASSWORD ||
        app->state == STATE_SET_PASSWORD_CONFIRM) {
         view_dispatcher_stop(app->view_dispatcher);
         return true;
@@ -754,7 +809,7 @@ static View* gk_view_alloc(GkApp* app, ViewDrawCallback draw, ViewInputCallback 
     with_view_model(v, GkViewModel * m, { m->app = app; }, true);
     view_set_draw_callback(v, draw);
     view_set_input_callback(v, input);
-    view_set_context(v, v);  // Pass the view itself as context
+    view_set_context(v, v); // Pass the view itself as context
     return v;
 }
 
@@ -769,22 +824,23 @@ static GkApp* gk_alloc() {
     app->gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, gk_custom_event_cb);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, gk_navigation_cb);
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
-    app->view_combo  = gk_view_alloc(app, combo_draw_cb,  combo_input_cb);
-    app->view_menu   = gk_view_alloc(app, menu_draw_cb,   menu_input_cb);
+    app->view_combo = gk_view_alloc(app, combo_draw_cb, combo_input_cb);
+    app->view_menu = gk_view_alloc(app, menu_draw_cb, menu_input_cb);
     app->view_deploy = gk_view_alloc(app, deploy_draw_cb, deploy_input_cb);
     app->view_delete_confirm = gk_view_alloc(app, delete_confirm_draw_cb, delete_confirm_input_cb);
     app->view_icon_pick = gk_view_alloc(app, icon_pick_draw_cb, icon_pick_input_cb);
 
-    view_dispatcher_add_view(app->view_dispatcher, VIEW_ID_COMBO,  app->view_combo);
-    view_dispatcher_add_view(app->view_dispatcher, VIEW_ID_MENU,   app->view_menu);
+    view_dispatcher_add_view(app->view_dispatcher, VIEW_ID_COMBO, app->view_combo);
+    view_dispatcher_add_view(app->view_dispatcher, VIEW_ID_MENU, app->view_menu);
     view_dispatcher_add_view(app->view_dispatcher, VIEW_ID_DEPLOY, app->view_deploy);
-    view_dispatcher_add_view(app->view_dispatcher, VIEW_ID_DELETE_CONFIRM, app->view_delete_confirm);
+    view_dispatcher_add_view(
+        app->view_dispatcher, VIEW_ID_DELETE_CONFIRM, app->view_delete_confirm);
     view_dispatcher_add_view(app->view_dispatcher, VIEW_ID_ICON_PICK, app->view_icon_pick);
 
     app->name_input = text_input_alloc();
