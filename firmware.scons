@@ -79,15 +79,11 @@ env = ENV.Clone(
         },
         "flipper_application": {
             "CCFLAGS": [
-                "-Og" if fw_build_meta["type"] == "firmware" else "-Os",
+                "-Os",
             ],
             "CPPDEFINES": [
                 "NDEBUG",
-                (
-                    "FURI_DEBUG"
-                    if ENV["DEBUG"] and fw_build_meta["type"] == "firmware"
-                    else "FURI_NDEBUG"
-                ),
+                "FURI_DEBUG" if ENV["DEBUG"] else "FURI_NDEBUG",
             ],
         },
     },
@@ -226,6 +222,14 @@ sources.extend(
         for appdir, source_type in fwenv["APPBUILD"].get_builtin_app_folders()
     )
 )
+
+# Link-Time Optimization for firmware dfu only, we are desperately out of flash space
+if ENV["COMPACT"]:
+    fwenv.Append(
+        CCFLAGS=[
+            "-flto",
+        ],
+    )
 
 # Debug
 # print(fwenv.Dump())

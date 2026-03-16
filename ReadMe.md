@@ -92,6 +92,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: PR: [Add date/time input module #4261 (By aaronjamt)](https://github.com/flipperdevices/flipperzero-firmware/pull/4261)
 - Added: [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
 - Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
+- Firmware compilation updates for optimizations and LTO usage (By Willy-JL)
 
 <a name="release"></a>
 
