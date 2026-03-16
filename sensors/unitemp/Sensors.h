@@ -97,6 +97,14 @@ typedef struct Sensor {
     int16_t co2_offset;   /* CO2 correction, ppm; step 50 */
     uint8_t co2_avg;      /* PWM averaging window, 1..10; 1 = raw */
     void* instance;
+    uint32_t last_valid_tick;  /* tick of last valid CO2 reading */
+    bool     needs_reset;      /* eject: clear co2 + reset averaging */
+    /* Debug: PWM internals (populated by mhz19c_update) */
+    int32_t dbg_th;           /* HIGH duration ms */
+    int32_t dbg_tl;           /* LOW duration ms */
+    int32_t dbg_ppm_raw;      /* raw ppm before averaging */
+    uint8_t dbg_buf_count;    /* averaging buffer fill */
+    bool    dbg_disconnected; /* PWM disconnect flag */
 } Sensor;
 
 /* Interface constants */

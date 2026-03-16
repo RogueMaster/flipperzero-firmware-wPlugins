@@ -1,20 +1,22 @@
 # flipper-air-stats
 
-> **Beta** — functional but expect bugs and config format changes.
+> **Beta** — works, but expect bugs and config format changes.
 
-Flipper Zero app for monitoring CO2, temperature, humidity and pressure via GPIO.
+CO2 + climate monitor for Flipper Zero. Reads CO2 (MH-Z19B/C) and temperature/humidity/pressure (BME280, DHT22, etc.) through GPIO. Two sensors at once.
+
+<!-- TODO: video -->
 
 ## Sensors
 
-| Sensor | Interface | Measures |
-|--------|-----------|----------|
-| MH-Z19C | PWM (pin 3, PA6) | CO2 ppm |
-| MH-Z19C | UART LPUART1 (pins 15/16) | CO2 ppm |
-| BME280/BME680/etc | I2C (pins 15/16) | Temperature, humidity, pressure |
+| Sensor | Interface | What it reads |
+|--------|-----------|---------------|
+| MH-Z19B/C | PWM (pin 3, PA6) | CO2 ppm |
+| MH-Z19B/C | UART LPUART1 (pins 15/16) | CO2 ppm |
+| BME280/BME680/etc | I2C (pins 15/16) | Temp, humidity, pressure |
 
 ## Wiring
 
-### MH-Z19C — PWM mode
+### MH-Z19 — PWM mode (3 wires)
 
 ```
 Flipper pin 1  (5V)  → sensor Vin
@@ -22,7 +24,7 @@ Flipper pin 3  (PA6) ← sensor PWM out
 Flipper pin 8  (GND) → sensor GND
 ```
 
-### MH-Z19C — UART mode (LPUART1)
+### MH-Z19 — UART mode (4 wires)
 
 ```
 Flipper pin 1  (5V)  → sensor Vin
@@ -31,7 +33,7 @@ Flipper pin 16 (C0)  ← sensor TX   [RX to Flipper]
 Flipper pin 8  (GND) → sensor GND
 ```
 
-### BME280 (I2C, default addr 0x76)
+### BME280 (I2C, addr 0x76)
 
 ```
 Flipper pin 9  (3.3V) → VCC
@@ -40,43 +42,96 @@ Flipper pin 16 (C0/SDA) → SDA
 Flipper pin 8  (GND)  → GND
 ```
 
-> BME280 and UART CO2 cannot be used simultaneously — both use pins 15/16.
-> Default config: BME280 (I2C) + MH-Z19C (PWM). UART mode disables I2C climate sensor.
+> PWM CO2 + I2C climate work together. UART CO2 and I2C share pins 15/16, so can't run at the same time — UART mode disables I2C automatically.
 
-## Settings (per sensor, in Edit menu)
+## Settings
 
-**CO2 sensor:**
-- CO2 Type — switch between PWM and UART
-- CO2 offset — manual correction ±1000 ppm, step 50 ppm
-- Avg points — PWM averaging window 1–30 (1 = raw)
+### CO2 sensor (Edit menu)
 
-**Climate sensor:**
-- Sensor — select type (BME280, BME680, DHT22, etc.)
-- Temp. offset — manual correction ±10 °C, step 0.1 °C
-- Temperature / Pressure / Humidity units
+- **CO2 Type** — PWM or UART
+- **CO2 offset** — manual correction ±1000 ppm, step 50
+- **CO2 Alert** — sound alert threshold, 800–5000 ppm
+- **Avg points** (PWM) — averaging window 1–30 readings (1 = raw, no smoothing)
+- **CO2 Range** (PWM) — sensor's measurement scale, 2000–10000. See [PWM Range](#pwm-range) below
+- **Eject** (PWM) — clears current reading and resets the buffer. Sensor picks up fresh data if still connected. Use when the reading is frozen or after unplugging
+
+### Climate sensor (Edit menu)
+
+- Sensor type (BME280, BME680, DHT22, etc.)
+- Temp offset ±10 °C, step 0.1
+- Units: temperature, pressure, humidity
 - Heat index on/off
+
+### General (Settings menu)
+
+- Backlight — auto or always on
+- LED Notify — on/off
+- Sound Alert — on/off
+- Sound Volume — 1–10
+- Debug Mode — shows raw PWM data on screen
+
+## LED colors
+
+| CO2 | Color |
+|-----|-------|
+| < 800 ppm | Green |
+| 800–999 | Yellow |
+| 1000–1399 | Orange |
+| 1400+ | Red |
+
+## Sound alerts
+
+- CO2 crosses threshold up → two rising notes
+- CO2 drops back (with 50 ppm hysteresis) → two falling notes
+- Cooldown: max once per minute
+- LED and sound can be turned off separately
+
+## PWM Range
+
+The sensor has a built-in scale — the maximum CO2 it can report. MH-Z19B and MH-Z19C usually ship set to 5000 ppm.
+
+The **CO2 Range** setting must match the sensor's actual scale. If it doesn't, readings will be proportionally wrong. For example: if the sensor is set to 5000 internally but you pick 2000 in the app, all values will show 2.5x lower.
+
+With PWM wiring you can't read the sensor's range — pick the value that gives correct readings. The actual range can only be checked or changed via UART.
+
+Tradeoff — wider range covers more but reads rougher:
+
+| Range | Precision | Max CO2 |
+|-------|-----------|---------|
+| 2000 | ~40 ppm | 2000 |
+| 5000 | ~100 ppm | 5000 |
+| 10000 | ~200 ppm | 10000 |
+
+## Freeze indicator
+
+If the PWM sensor stops sending fresh data for 5+ seconds, a **freeze** label appears next to the CO2 number. The last value stays on screen but marked as stale.
+
+This happens when:
+- CO2 hits the sensor's range limit (signal maxes out, nothing to measure)
+- Sensor is physically disconnected
+
+To clear a frozen reading — use **Eject** in sensor settings. If the sensor is still connected, it picks up new data automatically.
+
+## Signal processing
+
+**PWM:** rolling buffer of N readings (1–30, default 5). Sorted, min and max dropped, middle values averaged (trimmed mean). Below 3 readings — median instead. Poll interval: 20 ms.
+
+**UART:** raw reading from sensor, no averaging. Poll interval: 5 s.
+
+CO2 offset is applied after averaging.
 
 ## Build
 
 ```bash
-ufbt fap_air_stats
+ufbt
 ```
 
-Deploy to device:
+Deploy:
 ```
 /ext/apps/air_stats.fap
 ```
 
-## Signal processing
-
-**PWM mode:** keeps a rolling buffer of N readings (configurable 1–30, default 5, set in sensor Edit menu). Each new value is added; buffer is sorted and min/max are dropped; the middle values are averaged (trimmed mean). Until 3+ readings accumulate, median is used instead. Setting N=1 disables averaging entirely. Poll interval: 100 ms.
-
-**UART mode:** no averaging — each poll returns a raw reading directly from the sensor. Poll interval: 5 s (sensor internal measurement cycle).
-
-CO2 offset (if set) is applied in software after averaging, before display.
-
 ## Notes
 
-- PWM CO2 algorithm from [flipper-zero-mh-z19](https://github.com/meshchaninov/flipper-zero-mh-z19)
+- PWM algorithm from [flipper-zero-mh-z19](https://github.com/meshchaninov/flipper-zero-mh-z19)
 - PWM accuracy: ±(40 ppm + 3%) per MH-Z19C datasheet
-- Disconnect detection: PWM — no edge for 3 s clears CO2 reading; UART — no response clears CO2 reading

@@ -18,11 +18,13 @@ static VariableItem* onewire_addr_item;
 
 /* CO2 */
 static VariableItem* co2_type_item;
+static VariableItem* co2_alert_edit_item;
 static const char co2_type_names[2][5] = {"PWM", "UART"};
 #define CO2_OFFSET_STEPS    41   /* -1000..+1000 ppm, step 50 */
 #define CO2_OFFSET_CENTER   20   /* index 20 = 0 ppm */
 #define CO2_OFFSET_STEP_PPM 50
 static char co2_offset_buff[8];
+static char co2_alert_buff[12];
 
 /* Climate — sensor selector */
 static VariableItem* climate_sensor_item;
@@ -46,6 +48,7 @@ static char* offset_buff;
 
 /* Computed in view_sensor_edit_switch, used in _enter_callback */
 static uint8_t onewire_scan_item_index = 4;
+static uint8_t eject_item_index = 0xFF; /* 0xFF = not present */
 
 #define VIEW_ID ViewSensorEdit
 
@@ -197,6 +200,23 @@ static void _co2_avg_change_callback(VariableItem* item) {
     char buf[4];
     snprintf(buf, sizeof(buf), "%d", val);
     variable_item_set_current_value_text(item, buf);
+}
+
+static void _co2_alert_edit_change(VariableItem* item) {
+    uint8_t idx = (uint8_t)variable_item_get_current_value_index(item);
+    uint16_t val = (uint16_t)(800 + idx * 50);
+    app->settings.co2_alert_threshold = val;
+    snprintf(co2_alert_buff, sizeof(co2_alert_buff), "%d ppm", val);
+    variable_item_set_current_value_text(item, co2_alert_buff);
+}
+
+static char range_buf[8];
+static void _co2_range_change_callback(VariableItem* item) {
+    uint8_t idx = (uint8_t)variable_item_get_current_value_index(item);
+    uint16_t range = (uint16_t)(2000 + idx * 1000);
+    app->settings.co2_pwm_range = range;
+    snprintf(range_buf, sizeof(range_buf), "%d", range);
+    variable_item_set_current_value_text(item, range_buf);
 }
 
 static void _co2_offset_change_callback(VariableItem* item) {
@@ -474,6 +494,7 @@ static uint32_t _exit_callback(void* context) {
             return ViewMainMenu;
         }
         editable_sensor->status = UT_SENSORSTATUS_TIMEOUT;
+        unitemp_saveSettings();
         unitemp_sensors_save();
         return ViewSensorActions;
     }
@@ -533,6 +554,11 @@ static void _enter_callback(void* context, uint32_t index) {
     if(editable_sensor->type->interface == &ONE_WIRE && index == onewire_scan_item_index) {
         _onewire_scan();
     }
+    if(eject_item_index != 0xFF && index == eject_item_index) {
+        if(editable_sensor) {
+            editable_sensor->needs_reset = true;
+        }
+    }
 }
 
 /* --- Alloc --- */
@@ -562,6 +588,7 @@ void view_sensor_edit_switch(Sensor* sensor) {
     editable_sensor = sensor;
     editable_sensor->status = UT_SENSORSTATUS_INACTIVE;
     initial_gpio = NULL;
+    eject_item_index = 0xFF;
 
     variable_item_list_reset(variable_item_list);
     variable_item_list_set_selected_item(variable_item_list, 0);
@@ -587,6 +614,17 @@ void view_sensor_edit_switch(Sensor* sensor) {
         variable_item_set_current_value_text(co2_offset_item, co2_offset_buff);
         idx++;
 
+        /* CO2 Alert — for both PWM and UART */
+        co2_alert_edit_item = variable_item_list_add(
+            variable_item_list, "CO2 Alert", 85, _co2_alert_edit_change, NULL);
+        uint8_t alert_idx = (app->settings.co2_alert_threshold >= 800) ?
+            (uint8_t)((app->settings.co2_alert_threshold - 800) / 50) : 0;
+        if(alert_idx > 84) alert_idx = 84;
+        variable_item_set_current_value_index(co2_alert_edit_item, alert_idx);
+        snprintf(co2_alert_buff, sizeof(co2_alert_buff), "%d ppm", app->settings.co2_alert_threshold);
+        variable_item_set_current_value_text(co2_alert_edit_item, co2_alert_buff);
+        idx++;
+
         if(actual_co2_type == CO2_TYPE_PWM) {
             VariableItem* avg_item = variable_item_list_add(
                 variable_item_list, "Avg points", 30, _co2_avg_change_callback, NULL);
@@ -594,6 +632,22 @@ void view_sensor_edit_switch(Sensor* sensor) {
             char avg_buf[4];
             snprintf(avg_buf, sizeof(avg_buf), "%d", sensor->co2_avg);
             variable_item_set_current_value_text(avg_item, avg_buf);
+            idx++;
+
+            VariableItem* range_item = variable_item_list_add(
+                variable_item_list, "CO2 Range", 9, _co2_range_change_callback, NULL);
+            uint8_t range_idx = (app->settings.co2_pwm_range >= 2000) ?
+                (uint8_t)((app->settings.co2_pwm_range - 2000) / 1000) : 0;
+            if(range_idx > 8) range_idx = 8;
+            variable_item_set_current_value_index(range_item, range_idx);
+            snprintf(range_buf, sizeof(range_buf), "%d", app->settings.co2_pwm_range);
+            variable_item_set_current_value_text(range_item, range_buf);
+            idx++;
+
+            VariableItem* eject_item = variable_item_list_add(
+                variable_item_list, "Eject", 1, NULL, NULL);
+            variable_item_set_current_value_text(eject_item, "Press OK");
+            eject_item_index = idx;
             idx++;
         }
 

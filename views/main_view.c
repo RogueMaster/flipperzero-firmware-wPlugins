@@ -21,10 +21,10 @@ static View* view;
 #define CLIM_LINE_H 12
 
 static const char* co2_quality(float co2) {
-    if(co2 < 800.0f)  return "GOOD";
-    if(co2 < 1200.0f) return "OK";
-    if(co2 < 1600.0f) return "POOR";
-    return "BAD";
+    if(co2 < 800.0f)  return "GOOD";   /* green */
+    if(co2 < 1000.0f) return "OK";     /* yellow */
+    if(co2 < 1400.0f) return "POOR";   /* orange */
+    return "BAD";                       /* red */
 }
 
 static void draw_callback(Canvas* canvas, void* context) {
@@ -76,6 +76,14 @@ static void draw_callback(Canvas* canvas, void* context) {
         snprintf(buf, sizeof(buf), "%d", (int)co2_sensor->co2);
         canvas_draw_str_aligned(canvas, 54, y + CO2_NUM_H, AlignCenter, AlignBottom, buf);
 
+        /* Freeze indicator — left edge */
+        bool co2_frozen = co2_sensor->last_valid_tick > 0 &&
+            (furi_get_tick() - co2_sensor->last_valid_tick) > 5000;
+        if(co2_frozen) {
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(canvas, 1, y + CO2_NUM_H, AlignLeft, AlignBottom, "freeze");
+        }
+
         /* Quality label — FontPrimary, right edge, same baseline */
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, SCREEN_W - 1, y + CO2_NUM_H, AlignRight, AlignBottom,
@@ -116,6 +124,15 @@ static void draw_callback(Canvas* canvas, void* context) {
     if(has_press) {
         snprintf(buf, sizeof(buf), "%.0f %s", (double)clim_sensor->pressure, press_unit_str);
         canvas_draw_str_aligned(canvas, SCREEN_W / 2, y + CLIM_LINE_H, AlignCenter, AlignBottom, buf);
+    }
+
+    /* Debug overlay: last raw ppm (top of screen, only in debug mode) */
+    if(co2_sensor && app->settings.debug_mode) {
+        canvas_set_font(canvas, FontSecondary);
+        snprintf(buf, sizeof(buf), "raw:%ld %ld/%ld",
+            (long)co2_sensor->dbg_ppm_raw,
+            (long)co2_sensor->dbg_th, (long)co2_sensor->dbg_tl);
+        canvas_draw_str_aligned(canvas, 0, 7, AlignLeft, AlignBottom, buf);
     }
 }
 

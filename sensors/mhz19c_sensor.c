@@ -9,8 +9,6 @@
 #define MHZ19C_CO2_BUF_MAX 30
 
 /* ---- Instance struct ---- */
-/* No edge for this many ms → sensor considered disconnected */
-#define MHZ19C_DISCONNECT_TIMEOUT_MS 3000
 
 typedef struct {
     int32_t prevVal;
@@ -22,16 +20,9 @@ typedef struct {
     uint8_t buf_idx;
     uint8_t buf_count;
     uint32_t last_edge_tick;
-    uint32_t last_update_tick;
-    bool disconnected;
 } MHZ19CInstance;
 
 /* ---- Custom "direct GPIO" interface ---- */
-/*
- * MHZ19C doesn't use a standard bus (I2C/SPI/1-Wire/SingleWire).
- * We wrap the SensorType functions in a thin Interface so that
- * Sensors.c generic code (unitemp_sensor_alloc etc.) works without modification.
- */
 
 static bool mhz19c_if_alloc(Sensor* sensor, char* args) {
     UNUSED(args);
@@ -73,8 +64,6 @@ static bool mhz19c_free(Sensor* sensor) {
 static bool mhz19c_init(Sensor* sensor) {
     MHZ19CInstance* inst = sensor->instance;
     inst->last_edge_tick = furi_get_tick();
-    inst->last_update_tick = furi_get_tick();
-    inst->disconnected = false;
     if(!furi_hal_power_is_otg_enabled()) {
         furi_hal_power_enable_otg();
     }
@@ -94,14 +83,20 @@ static bool mhz19c_deinit(Sensor* sensor) {
 static UnitempStatus mhz19c_update(Sensor* sensor) {
     MHZ19CInstance* inst = sensor->instance;
 
-    /* If polling was suspended (sensor was INACTIVE) for longer than 2 poll intervals,
-     * reset the disconnect timer — stale elapsed time is not a real disconnect. */
-    uint32_t now = furi_get_tick();
-    if(inst->last_update_tick > 0 && (now - inst->last_update_tick) > 300) {
-        inst->last_edge_tick = now;
-        inst->disconnected = false;
+    /* Eject: reset buffer and co2 */
+    if(sensor->needs_reset) {
+        sensor->needs_reset = false;
+        sensor->co2 = -1.0f;
+        sensor->last_valid_tick = 0;
+        inst->buf_idx = 0;
+        inst->buf_count = 0;
+        inst->prevVal = 0;
+        inst->th = 0;
+        inst->tl = 0;
+        inst->h = 0;
+        inst->l = 0;
+        memset(inst->co2_buf, 0, sizeof(inst->co2_buf));
     }
-    inst->last_update_tick = now;
 
     int32_t gpio_val = furi_hal_gpio_read(&gpio_ext_pa6) ? 1 : 0;
 
@@ -113,40 +108,28 @@ static UnitempStatus mhz19c_update(Sensor* sensor) {
         &inst->tl,
         &inst->h,
         &inst->l,
-        RANGE_2000);
+        (SensorRange)app->settings.co2_pwm_range);
 
     bool edge_detected = (inst->prevVal != old_prev);
 
+    /* Debug: expose PWM internals */
+    sensor->dbg_th = inst->th;
+    sensor->dbg_tl = inst->tl;
+    if(ppm > 0) sensor->dbg_ppm_raw = ppm;
+    sensor->dbg_buf_count = inst->buf_count;
+    sensor->dbg_disconnected = false;
+
     if(edge_detected) {
         inst->last_edge_tick = furi_get_tick();
-        if(inst->disconnected) {
-            /* First edge after disconnect — reset state machine, skip stale ppm */
-            inst->disconnected = false;
-            inst->th = 0;
-            inst->tl = 0;
-            inst->h = 0;
-            inst->l = 0;
-            memset(inst->co2_buf, 0, sizeof(inst->co2_buf));
-            inst->buf_idx = 0;
-            inst->buf_count = 0;
-            return UT_SENSORSTATUS_POLLING;
-        }
-    } else {
-        /* No edge — check for disconnect timeout */
-        if(!inst->disconnected && inst->last_edge_tick > 0 &&
-           (furi_get_tick() - inst->last_edge_tick) > MHZ19C_DISCONNECT_TIMEOUT_MS) {
-            inst->disconnected = true;
-            sensor->co2 = -1.0f;
-        }
+        sensor->last_valid_tick = furi_get_tick();
     }
 
     if(ppm > 0) {
         uint8_t win = sensor->co2_avg;
         if(win < 1) win = 1;
-        if(win > MHZ19C_CO2_BUF_MAX) win = MHZ19C_CO2_BUF_MAX;  /* clamp to 30 */
+        if(win > MHZ19C_CO2_BUF_MAX) win = MHZ19C_CO2_BUF_MAX;
 
         if(win == 1) {
-            /* Raw mode — no buffering */
             sensor->co2 = (float)ppm;
             return UT_SENSORSTATUS_OK;
         }
@@ -181,7 +164,6 @@ static UnitempStatus mhz19c_update(Sensor* sensor) {
         return UT_SENSORSTATUS_OK;
     }
 
-    /* Still measuring (waiting for edge) */
     return UT_SENSORSTATUS_POLLING;
 }
 
@@ -191,7 +173,7 @@ const SensorType MHZ19C = {
     .altname        = "MH-Z19C (PWM)",
     .datatype       = UT_DATA_TYPE_CO2,
     .interface      = &DIRECT_GPIO,
-    .pollingInterval = 100,
+    .pollingInterval = 20,
     .allocator      = mhz19c_alloc,
     .mem_releaser   = mhz19c_free,
     .initializer    = mhz19c_init,

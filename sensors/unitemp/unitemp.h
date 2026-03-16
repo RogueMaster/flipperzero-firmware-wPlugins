@@ -64,6 +64,12 @@ typedef struct {
     bool lastOTGState;
     Co2SensorType co2_type;
     uint8_t climate_type_idx;
+    bool     led_notify;
+    bool     sound_notify;
+    uint8_t  sound_volume;
+    uint16_t co2_alert_threshold;
+    uint16_t co2_pwm_range;        /* PWM range: 2000..10000, step 1000 */
+    bool     debug_mode;
 } AppSettings;
 
 /* ---- Sensor types and interfaces (provides Sensor, SensorType, GPIO etc.) ---- */
@@ -90,6 +96,9 @@ typedef struct App {
     bool sensors_update;
     /* Settings */
     AppSettings settings;
+    /* CO2 alert runtime state (not persisted) */
+    bool     co2_was_above;
+    uint32_t last_alert_tick;
 } App;
 
 /* ---- Global app pointer ---- */

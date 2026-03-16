@@ -72,6 +72,6 @@ void view_main_menu_switch(void) {
 }
 
 void view_main_menu_free(void) {
-    variable_item_list_free(variable_item_list);
     view_dispatcher_remove_view(app->view_dispatcher, VIEW_ID);
+    variable_item_list_free(variable_item_list);
 }

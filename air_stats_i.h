@@ -19,5 +19,8 @@
 /* View declarations — implemented in views/ */
 #include "views/views.h"
 
+/* Notifications: LED + sound alerts */
+#include "helpers/notifications.h"
+
 /* Entry point */
 int32_t air_stats_main(void* p);

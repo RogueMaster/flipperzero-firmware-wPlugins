@@ -1,6 +1,5 @@
 /*
- * settings_view.c — backlight setting only.
- * Unit settings moved to climate_settings_view.c.
+ * settings_view.c — backlight + notification settings.
  */
 #include "../air_stats_i.h"
 #include <gui/modules/variable_item_list.h>
@@ -9,21 +8,32 @@ static View* view;
 static VariableItemList* variable_item_list;
 
 static const char backlight_states[2][9] = {"Auto", "Infinity"};
+static const char onoff_states[2][4]     = {"Off", "On"};
+
 static VariableItem* infinity_backlight_item;
+static VariableItem* led_notify_item;
+static VariableItem* sound_notify_item;
+static VariableItem* sound_volume_item;
+static VariableItem* debug_mode_item;
+static char volume_buf[4];
 
 #define VIEW_ID ViewSettings
 
 static uint32_t _exit_callback(void* context) {
     UNUSED(context);
-    bool new_val = (bool)variable_item_get_current_value_index(infinity_backlight_item);
-    if(new_val != app->settings.infinityBacklight) {
-        if(new_val) {
+    bool new_backlight = (bool)variable_item_get_current_value_index(infinity_backlight_item);
+    if(new_backlight != app->settings.infinityBacklight) {
+        if(new_backlight) {
             notification_message(app->notifications, &sequence_display_backlight_enforce_on);
         } else {
             notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
         }
     }
-    app->settings.infinityBacklight = new_val;
+    app->settings.infinityBacklight      = new_backlight;
+    app->settings.led_notify             = (bool)variable_item_get_current_value_index(led_notify_item);
+    app->settings.sound_notify           = (bool)variable_item_get_current_value_index(sound_notify_item);
+    app->settings.sound_volume           = (uint8_t)(variable_item_get_current_value_index(sound_volume_item) + 1);
+    app->settings.debug_mode             = (bool)variable_item_get_current_value_index(debug_mode_item);
     unitemp_saveSettings();
     unitemp_loadSettings();
     return ViewMainMenu;
@@ -34,12 +44,45 @@ static void _backlight_change(VariableItem* item) {
         item, backlight_states[variable_item_get_current_value_index(item)]);
 }
 
+static void _led_notify_change(VariableItem* item) {
+    variable_item_set_current_value_text(
+        item, onoff_states[variable_item_get_current_value_index(item)]);
+}
+
+static void _sound_notify_change(VariableItem* item) {
+    variable_item_set_current_value_text(
+        item, onoff_states[variable_item_get_current_value_index(item)]);
+}
+
+static void _sound_volume_change(VariableItem* item) {
+    uint8_t idx = (uint8_t)variable_item_get_current_value_index(item);
+    snprintf(volume_buf, sizeof(volume_buf), "%d", idx + 1);
+    variable_item_set_current_value_text(item, volume_buf);
+}
+
+static void _debug_mode_change(VariableItem* item) {
+    variable_item_set_current_value_text(
+        item, onoff_states[variable_item_get_current_value_index(item)]);
+}
+
 void view_settings_alloc(void) {
     variable_item_list = variable_item_list_alloc();
     variable_item_list_reset(variable_item_list);
 
     infinity_backlight_item = variable_item_list_add(
         variable_item_list, "Backlight time", 2, _backlight_change, app);
+
+    led_notify_item = variable_item_list_add(
+        variable_item_list, "LED Notify", 2, _led_notify_change, app);
+
+    sound_notify_item = variable_item_list_add(
+        variable_item_list, "Sound Alert", 2, _sound_notify_change, app);
+
+    sound_volume_item = variable_item_list_add(
+        variable_item_list, "Sound Volume", 10, _sound_volume_change, app);
+
+    debug_mode_item = variable_item_list_add(
+        variable_item_list, "Debug Mode", 2, _debug_mode_change, app);
 
     view = variable_item_list_get_view(variable_item_list);
     view_set_previous_callback(view, _exit_callback);
@@ -52,6 +95,24 @@ void view_settings_switch(void) {
     variable_item_set_current_value_text(
         infinity_backlight_item,
         backlight_states[variable_item_get_current_value_index(infinity_backlight_item)]);
+
+    variable_item_set_current_value_index(led_notify_item, (uint8_t)app->settings.led_notify);
+    variable_item_set_current_value_text(
+        led_notify_item, onoff_states[variable_item_get_current_value_index(led_notify_item)]);
+
+    variable_item_set_current_value_index(sound_notify_item, (uint8_t)app->settings.sound_notify);
+    variable_item_set_current_value_text(
+        sound_notify_item, onoff_states[variable_item_get_current_value_index(sound_notify_item)]);
+
+    uint8_t vol_idx = (app->settings.sound_volume > 0) ? (uint8_t)(app->settings.sound_volume - 1) : 0;
+    variable_item_set_current_value_index(sound_volume_item, vol_idx);
+    snprintf(volume_buf, sizeof(volume_buf), "%d", app->settings.sound_volume);
+    variable_item_set_current_value_text(sound_volume_item, volume_buf);
+
+    variable_item_set_current_value_index(debug_mode_item, (uint8_t)app->settings.debug_mode);
+    variable_item_set_current_value_text(
+        debug_mode_item, onoff_states[variable_item_get_current_value_index(debug_mode_item)]);
+
     variable_item_list_set_selected_item(variable_item_list, 0);
     view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID);
 }

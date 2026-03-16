@@ -7,6 +7,7 @@
  *   Two hardcoded sensors: BME280 (I2C 0xEC) + MH-Z19C (PWM PA6).
  */
 #include "air_stats_i.h"
+#include <furi_hal_light.h>
 #include <furi_hal_power.h>
 #include <math.h>
 
@@ -77,6 +78,12 @@ bool unitemp_saveSettings(void) {
     stream_write_format(app->file_stream, "HEAT_INDEX %d\n",        app->settings.heat_index);
     stream_write_format(app->file_stream, "CO2_TYPE %d\n",          (int)app->settings.co2_type);
     stream_write_format(app->file_stream, "CLIMATE_TYPE_IDX %d\n",  (int)app->settings.climate_type_idx);
+    stream_write_format(app->file_stream, "LED_NOTIFY %d\n",          app->settings.led_notify);
+    stream_write_format(app->file_stream, "SOUND_NOTIFY %d\n",        app->settings.sound_notify);
+    stream_write_format(app->file_stream, "SOUND_VOLUME %d\n",        app->settings.sound_volume);
+    stream_write_format(app->file_stream, "CO2_ALERT_THRESHOLD %d\n", app->settings.co2_alert_threshold);
+    stream_write_format(app->file_stream, "CO2_PWM_RANGE %d\n",       app->settings.co2_pwm_range);
+    stream_write_format(app->file_stream, "DEBUG_MODE %d\n",          app->settings.debug_mode);
     file_stream_close(app->file_stream);
     stream_free(app->file_stream);
     furi_string_free(filepath);
@@ -149,6 +156,24 @@ bool unitemp_loadSettings(void) {
         } else if(!strcmp(key, "CLIMATE_TYPE_IDX")) {
             sscanf((char*)(file_buf + line_end), "\nCLIMATE_TYPE_IDX %d", &p);
             app->settings.climate_type_idx = (uint8_t)p;
+        } else if(!strcmp(key, "LED_NOTIFY")) {
+            sscanf((char*)(file_buf + line_end), "\nLED_NOTIFY %d", &p);
+            app->settings.led_notify = (bool)p;
+        } else if(!strcmp(key, "SOUND_NOTIFY")) {
+            sscanf((char*)(file_buf + line_end), "\nSOUND_NOTIFY %d", &p);
+            app->settings.sound_notify = (bool)p;
+        } else if(!strcmp(key, "SOUND_VOLUME")) {
+            sscanf((char*)(file_buf + line_end), "\nSOUND_VOLUME %d", &p);
+            app->settings.sound_volume = (uint8_t)p;
+        } else if(!strcmp(key, "CO2_ALERT_THRESHOLD")) {
+            sscanf((char*)(file_buf + line_end), "\nCO2_ALERT_THRESHOLD %d", &p);
+            app->settings.co2_alert_threshold = (uint16_t)p;
+        } else if(!strcmp(key, "CO2_PWM_RANGE")) {
+            sscanf((char*)(file_buf + line_end), "\nCO2_PWM_RANGE %d", &p);
+            if(p >= 2000 && p <= 10000) app->settings.co2_pwm_range = (uint16_t)p;
+        } else if(!strcmp(key, "DEBUG_MODE")) {
+            sscanf((char*)(file_buf + line_end), "\nDEBUG_MODE %d", &p);
+            app->settings.debug_mode = (bool)p;
         }
         line_end = furi_string_search_char(file, '\n', line_end + 1);
     }
@@ -172,6 +197,8 @@ static void tick_callback(void* context) {
         app->sensors_ready = true;
     } else if(app->sensors_ready) {
         unitemp_sensors_updateValues();
+        air_stats_update_led();
+        air_stats_check_sound_alert();
     }
 }
 
@@ -199,6 +226,12 @@ int32_t air_stats_main(void* p) {
     app->settings.lastOTGState      = furi_hal_power_is_otg_enabled();
     app->settings.co2_type          = CO2_TYPE_PWM;
     app->settings.climate_type_idx  = 0;
+    app->settings.led_notify          = true;
+    app->settings.sound_notify        = true;
+    app->settings.sound_volume        = 5;
+    app->settings.co2_alert_threshold = 1000;
+    app->settings.co2_pwm_range       = 5000;
+    app->settings.debug_mode          = false;
 
     /* Load settings from SD (creates defaults if missing) */
     unitemp_loadSettings();
@@ -263,9 +296,13 @@ int32_t air_stats_main(void* p) {
     /* Initialize sensors (enables OTG power, sets up GPIO) */
     unitemp_sensors_init();
 
+    /* CO2 alert runtime state */
+    app->co2_was_above   = false;
+    app->last_alert_tick = 0;
+
     /* Set up 100 ms polling tick */
     view_dispatcher_set_tick_event_callback(
-        app->view_dispatcher, tick_callback, furi_ms_to_ticks(100));
+        app->view_dispatcher, tick_callback, furi_ms_to_ticks(20));
 
     /* Attach dispatcher to GUI and run */
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -278,6 +315,9 @@ int32_t air_stats_main(void* p) {
     if(app->settings.infinityBacklight) {
         notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
     }
+
+    /* Turn off LED on exit */
+    furi_hal_light_set(LightRed | LightGreen | LightBlue, 0);
 
     unitemp_sensors_deInit();
     unitemp_sensors_free();
