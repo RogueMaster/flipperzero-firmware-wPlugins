@@ -11,8 +11,6 @@
 #include <storage/storage.h>
 #include <input/input.h>
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
 #define MAX_ENTRIES      15
 #define MAX_NAME_LEN     32
 #define MAX_TEXT_LEN     128
@@ -25,11 +23,10 @@
 #define GK_BTN_LEFT  0x03
 #define GK_BTN_RIGHT 0x04
 
-// Custom events sent via view_dispatcher_send_custom_event()
-#define GK_EVENT_START_DEPLOY 0x01
-#define GK_EVENT_REPAINT      0x02
+#define GK_EVENT_START_DEPLOY   0x01
+#define GK_EVENT_REPAINT        0x02
+#define GK_EVENT_NO_HID_TIMEOUT 0x03
 
-// ViewDispatcher view IDs
 typedef enum {
     VIEW_ID_COMBO = 0,
     VIEW_ID_MENU = 1,
@@ -39,8 +36,6 @@ typedef enum {
     VIEW_ID_DELETE_CONFIRM = 5,
     VIEW_ID_ICON_PICK = 6,
 } GkViewId;
-
-// ─── State ───────────────────────────────────────────────────────────────────
 
 typedef enum {
     STATE_SET_PASSWORD,
@@ -58,16 +53,10 @@ typedef struct {
     uint8_t icon; // 0..GK_ICON_COUNT-1
 } GkEntry;
 
-// ─── Forward declarations for TextInput callbacks ────────────────────────────
-// Needed because GkApp references them as function pointers and the
-// definitions appear later in gatekeeper.c
-
 static void on_name_done(void* ctx);
 static void on_text_done(void* ctx);
 static void icon_pick_draw_cb(Canvas* canvas, void* model);
 static bool icon_pick_input_cb(InputEvent* event, void* context);
-
-// ─── App struct ──────────────────────────────────────────────────────────────
 
 typedef struct {
     Gui* gui;
@@ -109,6 +98,7 @@ typedef struct {
     float deploy_progress;
     bool deploy_not_connected;
     FuriThread* deploy_thread;
+    FuriTimer* deploy_no_hid_timer;
 
     // Delete confirmation
     int delete_entry_index;

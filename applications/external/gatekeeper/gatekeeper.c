@@ -1,13 +1,8 @@
 #include "gatekeeper.h"
 #include "gatekeeper_icons.h"
 
-// ════════════════════════════════════════════════════════════════════════════
-// Icons (8x8 pixel bitmaps drawn manually)
-// ════════════════════════════════════════════════════════════════════════════
-
 #define GK_ICON_COUNT 6
 
-// Draw icon at (x, y) — 8x8 pixels
 static void gk_draw_icon(Canvas* canvas, int x, int y, uint8_t icon) {
     const Icon* icons[GK_ICON_COUNT] = {
         &I_card,
@@ -21,10 +16,6 @@ static void gk_draw_icon(Canvas* canvas, int x, int y, uint8_t icon) {
         canvas_draw_icon(canvas, x, y, icons[icon]);
     }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// Storage
-// ════════════════════════════════════════════════════════════════════════════
 
 static void gk_save(GkApp* app) {
     Storage* s = furi_record_open(RECORD_STORAGE);
@@ -86,10 +77,6 @@ static bool gk_load(GkApp* app) {
     return ok;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// HID typing
-// ════════════════════════════════════════════════════════════════════════════
-
 static void gk_type_string(const char* str) {
     for(size_t i = 0; str[i]; i++) {
         uint16_t key = HID_ASCII_TO_KEY(str[i]);
@@ -101,10 +88,6 @@ static void gk_type_string(const char* str) {
         }
     }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// Draw helpers
-// ════════════════════════════════════════════════════════════════════════════
 
 static void gk_draw_circles(Canvas* c, uint8_t filled) {
     const int r = 7, spacing = 22;
@@ -124,19 +107,9 @@ static void gk_draw_circles(Canvas* c, uint8_t filled) {
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// GkViewModel — stored inside each View's model slot
-// view_allocate_model + with_view_model is the correct Flipper API.
-// The draw/input callbacks receive `void* model` = pointer to GkViewModel.
-// ════════════════════════════════════════════════════════════════════════════
-
 typedef struct {
     GkApp* app;
 } GkViewModel;
-
-// ════════════════════════════════════════════════════════════════════════════
-// VIEW: Combo (set-password / confirm / unlock)
-// ════════════════════════════════════════════════════════════════════════════
 
 static void combo_draw_cb(Canvas* canvas, void* model) {
     GkApp* app = ((GkViewModel*)model)->app;
@@ -256,10 +229,6 @@ static bool combo_input_cb(InputEvent* event, void* context) {
     return consumed;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// VIEW: Main menu
-// ════════════════════════════════════════════════════════════════════════════
-
 static void menu_draw_cb(Canvas* canvas, void* model) {
     GkApp* app = ((GkViewModel*)model)->app;
     if(!app) return;
@@ -367,10 +336,6 @@ static bool menu_input_cb(InputEvent* event, void* context) {
     return consumed;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// VIEW: Deploy
-// ════════════════════════════════════════════════════════════════════════════
-
 static void deploy_draw_cb(Canvas* canvas, void* model) {
     GkApp* app = ((GkViewModel*)model)->app;
     if(!app) return;
@@ -378,46 +343,67 @@ static void deploy_draw_cb(Canvas* canvas, void* model) {
     canvas_set_color(canvas, ColorBlack);
 
     float prog = (app->deploy_progress < 0) ? 0 : app->deploy_progress;
-    bool idle = (app->deploy_progress == 0);
-    bool typing = (app->deploy_progress > 0 && app->deploy_progress < 100);
-    bool done = (app->deploy_progress >= 100);
+    bool typing = (app->deploy_progress != 0 && app->deploy_progress < 100.0f);
+    bool done = (app->deploy_progress >= 100.0f);
 
-    // ── USB флешка из assets ─────────────────────────────────────────────
-    // I_Drive генерируется ufbt из assets/Drive.png (112x35)
-    // Центрируем по горизонтали, вертикально в верхней части
     canvas_draw_icon(canvas, 8, 7, &I_Drive);
 
-    // Название пароля поверх флешки — центр тела флешки ~x=50
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(
-        canvas, 50, 23, AlignCenter, AlignCenter, app->entries[app->selected_entry].name);
+    {
+        const char* name = app->entries[app->selected_entry].name;
+        const int x_start = 12; // левый край + 2px отступ
+        const int body_x2 = 94; // правый край тела флешки
+        const int body_cx = (x_start + body_x2) / 2;
+        const int max_w = body_x2 - x_start;
+        int tw = canvas_string_width(canvas, name);
+        if(tw <= max_w) {
+            canvas_draw_str_aligned(canvas, body_cx, 23, AlignCenter, AlignCenter, name);
+        } else {
+            char line1[64] = {0};
+            int len = strlen(name);
+            int split = len;
+            for(int i = 1; i <= len; i++) {
+                char tmp[64];
+                strncpy(tmp, name, i);
+                tmp[i] = '\0';
+                if(canvas_string_width(canvas, tmp) > max_w) {
+                    split = i - 1;
+                    break;
+                }
+            }
+            strncpy(line1, name, split < 63 ? split : 63);
+            line1[split < 63 ? split : 63] = '\0';
+            const char* line2 = name + split;
+            canvas_draw_str_aligned(canvas, x_start, 18, AlignLeft, AlignCenter, line1);
+            canvas_draw_str_aligned(canvas, x_start, 30, AlignLeft, AlignCenter, line2);
+        }
+    }
 
     // ── Нижняя панель ───────────────────────────────────────────────────
 
-    // Кнопка Delete (левая)
+    // Кнопка Delete (левая) — всегда кроме активного деплоя
     if(!typing) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_rframe(canvas, 1, 51, 44, 12, 2);
         canvas_draw_str(canvas, 5, 61, "< Delete");
     }
 
-    // Прогресс / статус по центру
+    // Центр: проценты / Done! / No HID!
     canvas_set_font(canvas, FontSecondary);
-    if(done && app->deploy_not_connected) {
-        canvas_draw_str_aligned(canvas, 64, 57, AlignCenter, AlignCenter, "No HID host!");
+    if(app->deploy_not_connected) {
+        canvas_draw_str_aligned(canvas, 64, 57, AlignCenter, AlignCenter, "No HID!");
     } else if(done) {
         canvas_draw_str_aligned(canvas, 64, 57, AlignCenter, AlignCenter, "Done!");
-    } else {
+    } else if(typing) {
         char pct[8];
         snprintf(pct, sizeof(pct), "%d%%", (int)prog);
         canvas_draw_str_aligned(canvas, 64, 57, AlignCenter, AlignCenter, pct);
     }
 
-    // Кнопка Deploy (правая) с иконкой кнопки OK
-    if(idle) {
+    // Кнопка Deploy (правая) — всегда кроме активного деплоя
+    if(!typing) {
         canvas_draw_rframe(canvas, 83, 51, 44, 12, 2);
         canvas_draw_str(canvas, 87, 60, "Deploy");
-        // Иконка кнопки OK — кружок с точкой
         canvas_draw_circle(canvas, 120, 57, 4);
         canvas_draw_disc(canvas, 120, 57, 1);
     }
@@ -434,13 +420,17 @@ static bool deploy_input_cb(InputEvent* event, void* context) {
         {
             GkApp* app = m->app;
             if(app && event->type == InputTypeShort) {
-                if(event->key == InputKeyOk && app->deploy_progress == 0) {
+                if(event->key == InputKeyOk &&
+                   (app->deploy_progress == 0 || app->deploy_progress >= 100.0f) &&
+                   !app->deploy_thread) {
                     app->deploy_progress = -1.0f;
                     app->deploy_not_connected = false;
                     view_dispatcher_send_custom_event(app->view_dispatcher, GK_EVENT_START_DEPLOY);
                     consumed = true;
                 }
-                if(event->key == InputKeyLeft && app->deploy_progress == 0) {
+                if(event->key == InputKeyLeft &&
+                   (app->deploy_progress == 0 || app->deploy_progress >= 100.0f) &&
+                   !app->deploy_thread) {
                     // Request delete confirmation
                     app->delete_entry_index = app->selected_entry;
                     app->delete_failed = false;
@@ -452,12 +442,17 @@ static bool deploy_input_cb(InputEvent* event, void* context) {
                 // BACK: разрешаем выход только когда деплой не активен
                 if(event->key == InputKeyBack &&
                    (app->deploy_progress <= 0 || app->deploy_progress >= 100.0f)) {
-                    // Дожидаемся завершения потока если он ещё жив
                     if(app->deploy_thread) {
                         furi_thread_join(app->deploy_thread);
                         furi_thread_free(app->deploy_thread);
                         app->deploy_thread = NULL;
                     }
+                    if(app->deploy_no_hid_timer) {
+                        furi_timer_stop(app->deploy_no_hid_timer);
+                        furi_timer_free(app->deploy_no_hid_timer);
+                        app->deploy_no_hid_timer = NULL;
+                    }
+                    furi_hal_vibro_on(false);
                     app->state = STATE_MAIN_MENU;
                     app->deploy_progress = 0;
                     app->deploy_not_connected = false;
@@ -470,10 +465,6 @@ static bool deploy_input_cb(InputEvent* event, void* context) {
 
     return consumed;
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// VIEW: Delete Confirmation
-// ════════════════════════════════════════════════════════════════════════════
 
 static void delete_confirm_draw_cb(Canvas* canvas, void* model) {
     GkApp* app = ((GkViewModel*)model)->app;
@@ -571,10 +562,6 @@ static bool delete_confirm_input_cb(InputEvent* event, void* context) {
     return consumed;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// TextInput callbacks
-// ════════════════════════════════════════════════════════════════════════════
-
 static void on_name_done(void* ctx) {
     GkApp* app = ctx;
     text_input_set_header_text(app->text_input, "BadUSB text");
@@ -590,10 +577,6 @@ static void on_text_done(void* ctx) {
     app->state = STATE_ICON_PICK;
     view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID_ICON_PICK);
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// VIEW: Icon Picker
-// ════════════════════════════════════════════════════════════════════════════
 
 static void icon_pick_draw_cb(Canvas* canvas, void* model) {
     GkApp* app = ((GkViewModel*)model)->app;
@@ -692,19 +675,18 @@ static bool icon_pick_input_cb(InputEvent* event, void* context) {
     return consumed;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// HID state callback
-// ════════════════════════════════════════════════════════════════════════════
-
 static void gk_hid_state_cb(bool connected, void* ctx) {
     if(connected) {
         furi_semaphore_release((FuriSemaphore*)ctx);
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Deploy worker
-// ════════════════════════════════════════════════════════════════════════════
+static void gk_no_hid_timer_cb(void* ctx) {
+    GkApp* app = ctx;
+    app->deploy_not_connected = false;
+    furi_hal_vibro_on(false);
+    view_dispatcher_send_custom_event(app->view_dispatcher, GK_EVENT_REPAINT);
+}
 
 static int32_t deploy_worker(void* ctx) {
     GkApp* app = ctx;
@@ -734,6 +716,17 @@ static int32_t deploy_worker(void* ctx) {
     if(!connected) {
         app->deploy_not_connected = true;
         app->deploy_progress = 100.0f;
+        // Вибрация 1 секунду, таймер сбросит через 2 сек
+        furi_hal_vibro_on(true);
+        if(app->deploy_no_hid_timer) {
+            furi_timer_stop(app->deploy_no_hid_timer);
+            furi_timer_free(app->deploy_no_hid_timer);
+        }
+        app->deploy_no_hid_timer = furi_timer_alloc(gk_no_hid_timer_cb, FuriTimerTypeOnce, app);
+        furi_timer_start(app->deploy_no_hid_timer, 2000);
+        // Вибрация только 1 секунду
+        furi_delay_ms(1000);
+        furi_hal_vibro_on(false);
         view_dispatcher_send_custom_event(app->view_dispatcher, GK_EVENT_REPAINT);
         furi_hal_usb_set_config(prev, NULL);
         return 0;
@@ -763,23 +756,21 @@ static int32_t deploy_worker(void* ctx) {
     return 0;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// ViewDispatcher callbacks
-// ════════════════════════════════════════════════════════════════════════════
-
 static bool gk_custom_event_cb(void* ctx, uint32_t event) {
     GkApp* app = ctx;
     if(event == GK_EVENT_START_DEPLOY && !app->deploy_thread) {
         app->deploy_thread = furi_thread_alloc_ex("GK_Deploy", 2048, deploy_worker, app);
         furi_thread_start(app->deploy_thread);
     }
-    // GK_EVENT_REPAINT: проверяем завершение потока и освобождаем его
-    if(event == GK_EVENT_REPAINT && app->deploy_thread) {
-        if(app->deploy_progress >= 100.0f) {
+    if(event == GK_EVENT_REPAINT) {
+        // Освобождаем поток если завершён
+        if(app->deploy_thread && app->deploy_progress >= 100.0f) {
             furi_thread_join(app->deploy_thread);
             furi_thread_free(app->deploy_thread);
             app->deploy_thread = NULL;
         }
+        // Триггерим перерисовку view
+        with_view_model(app->view_deploy, GkViewModel * m, { (void)m; }, true);
     }
     return true;
 }
@@ -799,10 +790,6 @@ static bool gk_navigation_cb(void* ctx) {
     return true;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Helpers
-// ════════════════════════════════════════════════════════════════════════════
-
 static View* gk_view_alloc(GkApp* app, ViewDrawCallback draw, ViewInputCallback input) {
     View* v = view_alloc();
     view_allocate_model(v, ViewModelTypeLocking, sizeof(GkViewModel));
@@ -812,10 +799,6 @@ static View* gk_view_alloc(GkApp* app, ViewDrawCallback draw, ViewInputCallback 
     view_set_context(v, v); // Pass the view itself as context
     return v;
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// Alloc / Free / Entry point
-// ════════════════════════════════════════════════════════════════════════════
 
 static GkApp* gk_alloc() {
     GkApp* app = malloc(sizeof(GkApp));
@@ -858,6 +841,12 @@ static void gk_free(GkApp* app) {
         furi_thread_join(app->deploy_thread);
         furi_thread_free(app->deploy_thread);
     }
+    if(app->deploy_no_hid_timer) {
+        furi_timer_stop(app->deploy_no_hid_timer);
+        furi_timer_free(app->deploy_no_hid_timer);
+        app->deploy_no_hid_timer = NULL;
+    }
+    furi_hal_vibro_on(false);
     view_dispatcher_remove_view(app->view_dispatcher, VIEW_ID_COMBO);
     view_dispatcher_remove_view(app->view_dispatcher, VIEW_ID_MENU);
     view_dispatcher_remove_view(app->view_dispatcher, VIEW_ID_DEPLOY);

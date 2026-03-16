@@ -99,6 +99,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Gatekeeper v1.0 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
 - Updated: [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - Updated: [Metroflip v1.1 (By luu176)](https://github.com/luu176/Metroflip) [Re-applied stability improvements (By baalpeteor2)](https://github.com/luu176/Metroflip/pull/89)
+- Updated: [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
 
 <a name="release"></a>
 
@@ -624,7 +625,7 @@ $ ./fbt dolphin_ext
 - [FRSScan v0.2 (By thecybermind)](https://github.com/thecybermind/frsscan)
 - [FZ nRF24 Jammer v1.4 (By W0rthlessS0ul)](https://github.com/W0rthlessS0ul/FZ_nRF24_jammer)
 - [Gas Sensor v0.1 (By iancohee)](https://github.com/iancohee/gas_sensor_fap) `Req: BME680 / SGP30`
-- [Gatekeeper v1.0 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
+- [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
 - [Gauge Tool v0.1 (By skotopes)](https://github.com/skotopes/flipperzero_gauge_tool) (Used To Downgrade From 10/07/2024 Update)
 - [GB Printer v0.5 (By kbembedded)](https://github.com/kbembedded/flipper-gb-printer) `Req: GB Link Cable / Malveke`
 - [Gemini IA v1.1 (By d4rks1d33 & jamisonderek)](https://github.com/d4rks1d33/Gemini-Flipper)
