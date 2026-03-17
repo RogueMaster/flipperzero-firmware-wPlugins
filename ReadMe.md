@@ -3,7 +3,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://lh3.googleusercontent.com/d/1iYQlRQXM7nA4IAdcPwvcKRSTCMoi8tug' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://lh3.googleusercontent.com/d/1gjui0-UZNerG13PUblXjmr1YaSAjIf2k' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0226-1517-0.420.0-847b104.tgz&channel=RM0226-1517-0.420.0-847b104&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0317-0022-0.420.0-f4f7318.tgz&channel=RM0317-0022-0.420.0-f4f7318&version=0.420.0&target=f7)
 
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
@@ -30,82 +30,6 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-03-17 00:05 EST`
 - Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-03-17 00:05 EST`
-- Added: [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck)
-- Updated: [FlipLibrary v1.5 (By jblanked)](https://github.com/jblanked/FlipLibrary) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- Added: [BTHome v0.1 (By ghedo)](https://github.com/ghedo/flipper-bthome)
-- [ESP Flasher: Bump Marauder v1.11.0 Beta 2/27 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/nightly_cb1e490)
-- Updated: [Arduventure v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperArduventure)
-- Updated: [Prince Of Arabia v1.0.12 (By apfxtech)](https://github.com/apfxtech/FlipperPrinceOfArabia)
-- [Update CFW Settings Fix background setter to use the order list rather than the constant values (By otac0n)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1171)
-- Added: [FlipperPwn v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- [Otacon passport #1172 (By otac0n)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1172)
-- Updated: [Theme Manager v1.3 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
-- Added: [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
-- Updated: [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
-- Updated: [HID Exfil v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [SubGHz Spectrum v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Added: [BLE Scanner v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- Added: [Evil BLE v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- Updated: [NFC Fuzzer v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Added: [Ray Hunter Client v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- Added: [Rogue AP Detector v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- Added: [Sub-GHz Jammer Detect v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Added: [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [Free Roam v0.5 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- Updated: [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
-- Added: [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
-- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
-- Added: [Hold em v1.0 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
-- Updated: [NFC Comparator v2.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
-- Updated: [24Cxx Programmer v2.0 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
-- Updated: [ProtoPirate v2.5 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
-- Updated: [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
-- Added: [SKIDcity v1.2 (By H4W9)](https://github.com/H4W9/SKIDcity_App)
-- Added: [Sub Duplicate Finder v1.0 (By Endika)](https://github.com/Endika/flipper-sub-dup)
-- Updated: [FlipWeather v1.4 (By jblanked)](https://github.com/jblanked/FlipWeather) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- Updated: [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) `Req: BMP180/BMP280/BME280/BME680/DHT11/DHT22(AM2302)/AM2301/AM2320/HTU2XD/HTU21x/HDC1080/MAX31725/MAX31855/MAX6675/SCD30`
-- Updated: [CAN Commander v2.1.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board` Added Missing API files for strnlen and strtok_r (By xMasterX)
-- Updated: [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100` Added Missing API files for strnlen (By xMasterX)
-- Updated: [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage) Added Missing API files for strnlen (By xMasterX)
-- Updated: [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer) Added Missing API files for strnlen (By xMasterX)
-- Updated: [Wendigo Bluetooth Tracker WIP v0.5.1 (By chris-bc)](https://github.com/chris-bc/wendigo) `WIP Req: ESP32` Added Missing API files for strnlen (By xMasterX)
-- Removed: [FastJS v1.2 (By jblanked)](https://github.com/jblanked/FastJS-FlipperZero) & [JS Runner v1.0 (By nminaylov & DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/3286) & associated assets. Idea from Flipper-ARF firmware to make room for more protocols, [JS removed here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/765a5bc110aff31e6aadd53d344b49578c82b3b4) & [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/47fdbc314b7d11144be6e2fa6b27c5960aca6893)
-- [NFC: Type 4 Support (NTAG4xx/DESFire) + Many Improvements #4242 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4242)
-- [Felica standard loading fix #4311 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4311)
-- [NFC FeliCa Improvement: Dump All Systems #4293 (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4293)
-- [NFC: Add Saflok MFUL Parser Support (By aaronjamt)](https://github.com/Next-Flip/Momentum-Firmware/pull/474)
-- Reverted: NFC: [ADD: Ventra parsing plugin to Metroflip. Updated: NFC ventra_parser.fal. #1164 (By FatherDivine)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1164)
-- Updated: [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d) (NTAG4 Support)
-- NFC: [Add Mifare Ultralight C Write Support (By haw8411)](https://github.com/Next-Flip/Momentum-Firmware/pull/524)
-- UL: [KeyFinder protocol (24bit static) (By xMasterX & mishamyte)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/10ebf9addeb9458150a451965341e9d26e3c8cfe)
-- OFW: RFID: [Add Indala 224-bit (long format) protocol support (By kuzaxak)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/10ebf9addeb9458150a451965341e9d26e3c8cfe)
-- OFW: RFID: [Make FDX-B readout more descriptive (By snowsign)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/10ebf9addeb9458150a451965341e9d26e3c8cfe)
-- Sub-GHz: [Beninca ARC AES128 protocol full support (128bit dynamic) (with Add manually, and 2 button codes) (resolves issue #596) (By xMasterX and zero-mega)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1e45ea4db5bc4ceba71665206f57113ef867b8de)
-- Sub-GHz: [Jarolift protocol full support (72bit dynamic) (with Add manually, and all button codes) (By xMasterX & d82k & Steffen (bastelbudenbuben de))](https://github.com/DarkFlippers/unleashed-firmware/commit/271c65a969e20a7194b716b23d19fc23a9ce3fa0)
-- OFW: PR: [Add date/time input module #4261 (By aaronjamt)](https://github.com/flipperdevices/flipperzero-firmware/pull/4261)
-- Added: [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
-- Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
-- [Firmware compilation updates for optimizations and LTO usage (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/c98fa215da6d824462017c9bd2c4cd67be2adffb)
-- [FBT: Allow apps to specify custom cflags (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/514f88983f08c742fefee174ccd4988731dd21ff#diff-06572a96a58dc510037d5efa622f9bec8519bc1beab13c9f251e97e657a9d4ed)
-- Credit to [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware) team for documentation and Sub-GHz upgrades.
-- Credit to [Momentum Firmware](https://github.com/Next-Flip/Momentum-Firmware) team for IR remote codes, NFC & firmware compilation upgrades.
-- OFW: RFID: [Noralsy Format/Brand (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4090)
-- Sub-GHz: [Use Native chip AES for Benica (By lupettohf with thanks to carphreak)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a2cf8be1046f0f8662d5b7a249db157ece15500c)
-- Updated: [NFC Comparator v2.4 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
-- Added: [Gatekeeper v1.0 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
-- Updated: [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
-- Updated: [Metroflip v1.1 (By luu176)](https://github.com/luu176/Metroflip) [Re-applied stability improvements (By baalpeteor2)](https://github.com/luu176/Metroflip/pull/89)
-- Updated: [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
-- UL: [Display: Extend lcd contrast range to full ST756x 6-bit range (By ShaTie) (reduced to -10 to +18 to avoid fully unreadable state)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9792b05ec415cde798a4bd54dd27588ed101ec19)
-- SubGHz: [Add CAME TOP44FGN support in CAME TWEE protocol &  Nord ICE protocol (33 bits, Static) & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9792b05ec415cde798a4bd54dd27588ed101ec19)
-- Updated: [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
-- Updated: [FlipperPwn v1.6 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [Ray Hunter Client v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- Updated: [Rogue AP Detector v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- [Finish Getting Rid of MJS](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/40a44d75d7a27f4741a3c9f0b0e4faef2ce03fa4)
 
 <a name="release"></a>
 
@@ -939,4 +863,4 @@ $ ./fbt dolphin_ext
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 - `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for wav/mp3 playback ($200 USD in ETH or BTC) (Don't think this is possible)
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0226-1517-0.420.0-847b104.tgz&channel=RM0226-1517-0.420.0-847b104&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0317-0022-0.420.0-f4f7318.tgz&channel=RM0317-0022-0.420.0-f4f7318&version=0.420.0&target=f7)
