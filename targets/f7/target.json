@@ -41,7 +41,6 @@
         "one_wire",
         "ibutton",
         "music_worker",
-        "mjs",
         "mbedtls",
         "lfrfid",
         "flipper_application",
