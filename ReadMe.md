@@ -56,9 +56,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
 - Added: [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
-- Updated: [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [FlipperPwn v1.5 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Added: [Hold em v1.0 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
 - Updated: [NFC Comparator v2.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 - Updated: [24Cxx Programmer v2.0 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
@@ -103,6 +100,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - UL: [Display: Extend lcd contrast range to full ST756x 6-bit range (By ShaTie) (reduced to -10 to +18 to avoid fully unreadable state)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9792b05ec415cde798a4bd54dd27588ed101ec19)
 - SubGHz: [Add CAME TOP44FGN support in CAME TWEE protocol &  Nord ICE protocol (33 bits, Static) & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9792b05ec415cde798a4bd54dd27588ed101ec19)
 - Updated: [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
+- Updated: [FlipperPwn v1.6 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- Updated: [Ray Hunter Client v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
+- Updated: [Rogue AP Detector v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -594,7 +596,7 @@ $ ./fbt dolphin_ext
 - [FlipMap v0.2.2 (By jblanked)](https://github.com/jblanked/FlipMap) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
-- [FlipperPwn v1.5 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- [FlipperPwn v1.6 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [FlipRPI v1.0 (By jblanked)](https://github.com/jblanked/FlipRPI) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipSocial v2.0.9 (By jblanked)](https://github.com/jblanked/FlipSocial) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipTelegram v1.0.1 (By jblanked)](https://github.com/jblanked/FlipTelegram) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)

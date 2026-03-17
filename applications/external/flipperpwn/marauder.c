@@ -56,6 +56,8 @@ struct FPwnMarauder {
     FuriMutex* mutex;
 
     uint32_t scan_start_tick; /* furi_get_tick() when the current AP scan started */
+    uint32_t stop_tick; /* tick when stopscan was sent */
+    bool list_pending; /* true = waiting to send 'list -a' after delay */
 
     /* Secondary log callback — fires for every received line after parsing. */
     FPwnWifiRxCallback log_callback;
@@ -82,6 +84,22 @@ static const char* copy_token(const char* src, char* dst, size_t n) {
     return (*src) ? src : NULL;
 }
 
+static const char* find_prev_token_start(const char* start, const char* end) {
+    while(end > start && end[-1] == ' ')
+        end--;
+    while(end > start && end[-1] != ' ')
+        end--;
+    return end;
+}
+
+static bool line_has_done_marker(const char* line) {
+    return (strcmp(line, "Done") == 0) || (strcmp(line, "done") == 0) ||
+           strstr(line, "Scan complete") || strstr(line, "scan complete") ||
+           strstr(line, "Ping scan complete") || strstr(line, "Port scan complete") ||
+           strstr(line, "Station scan complete") || strstr(line, "Finished") ||
+           strstr(line, "finished");
+}
+
 /* --------------------------------------------------------------------------
  * Marauder output parsers
  * -------------------------------------------------------------------------- */
@@ -97,36 +115,66 @@ static const char* copy_token(const char* src, char* dst, size_t n) {
 static bool parse_ap_line(const char* line, FPwnWifiAP* ap) {
     const char* p = line;
 
-    /* Field 0: index (decimal integer, discarded).
-     * copy_token advances p to the start of the next token. */
     if(!p || *p < '0' || *p > '9') return false;
+
     char idx_buf[8];
     p = copy_token(p, idx_buf, sizeof(idx_buf));
-    if(!p) return false;
+    if(!p || !*p) return false;
 
-    /* Field 1: SSID */
-    p = copy_token(p, ap->ssid, sizeof(ap->ssid));
-    if(!p) return false;
+    const char* end = line + strlen(line);
+    const char* enc_start = find_prev_token_start(p, end);
+    if(enc_start <= p) return false;
 
-    /* Field 2: RSSI (signed, atoi handles leading '-') */
-    char rssi_buf[8];
-    p = copy_token(p, rssi_buf, sizeof(rssi_buf));
-    ap->rssi = (int8_t)atoi(rssi_buf);
-    if(!p) return false;
+    char enc_buf[16];
+    size_t enc_len = (size_t)(end - enc_start);
+    if(enc_len > sizeof(enc_buf) - 1) enc_len = sizeof(enc_buf) - 1;
+    memcpy(enc_buf, enc_start, enc_len);
+    enc_buf[enc_len] = '\0';
 
-    /* Field 3: Channel */
-    char ch_buf[4];
-    p = copy_token(p, ch_buf, sizeof(ch_buf));
+    const char* before_enc = enc_start;
+    const char* bssid_start = find_prev_token_start(p, before_enc);
+    if(bssid_start <= p) return false;
+    size_t bssid_len = (size_t)(before_enc - bssid_start);
+    while(bssid_len > 0 && bssid_start[bssid_len - 1] == ' ')
+        bssid_len--;
+    if(bssid_len == 0) return false;
+    if(bssid_len > sizeof(ap->bssid) - 1) bssid_len = sizeof(ap->bssid) - 1;
+    memcpy(ap->bssid, bssid_start, bssid_len);
+    ap->bssid[bssid_len] = '\0';
+
+    const char* before_bssid = bssid_start;
+    const char* ch_start = find_prev_token_start(p, before_bssid);
+    if(ch_start <= p) return false;
+    char ch_buf[8];
+    size_t ch_len = (size_t)(before_bssid - ch_start);
+    while(ch_len > 0 && ch_start[ch_len - 1] == ' ')
+        ch_len--;
+    if(ch_len == 0) return false;
+    if(ch_len > sizeof(ch_buf) - 1) ch_len = sizeof(ch_buf) - 1;
+    memcpy(ch_buf, ch_start, ch_len);
+    ch_buf[ch_len] = '\0';
     ap->channel = (uint8_t)atoi(ch_buf);
-    if(!p) return false;
 
-    /* Field 4: BSSID */
-    p = copy_token(p, ap->bssid, sizeof(ap->bssid));
-    if(!p) return false;
+    const char* before_ch = ch_start;
+    const char* rssi_start = find_prev_token_start(p, before_ch);
+    if(rssi_start <= p) return false;
+    char rssi_buf[8];
+    size_t rssi_len = (size_t)(before_ch - rssi_start);
+    while(rssi_len > 0 && rssi_start[rssi_len - 1] == ' ')
+        rssi_len--;
+    if(rssi_len == 0) return false;
+    if(rssi_len > sizeof(rssi_buf) - 1) rssi_len = sizeof(rssi_buf) - 1;
+    memcpy(rssi_buf, rssi_start, rssi_len);
+    rssi_buf[rssi_len] = '\0';
+    ap->rssi = (int8_t)atoi(rssi_buf);
 
-    /* Field 5: Encryption label (last field — NULL return is fine) */
-    char enc_buf[8];
-    copy_token(p, enc_buf, sizeof(enc_buf));
+    size_t ssid_len = (size_t)(rssi_start - p);
+    while(ssid_len > 0 && p[ssid_len - 1] == ' ')
+        ssid_len--;
+    if(ssid_len == 0) return false;
+    if(ssid_len > sizeof(ap->ssid) - 1) ssid_len = sizeof(ap->ssid) - 1;
+    memcpy(ap->ssid, p, ssid_len);
+    ap->ssid[ssid_len] = '\0';
 
     if(strcmp(enc_buf, "Open") == 0 || strcmp(enc_buf, "OPEN") == 0) {
         ap->encryption = 0;
@@ -347,8 +395,14 @@ static bool parse_station_line(const char* line, FPwnStation* sta) {
 static void fpwn_marauder_rx_cb(const char* line, void* ctx) {
     FPwnMarauder* m = (FPwnMarauder*)ctx;
 
-    /* Marauder prompt lines start with ">"; skip them. */
-    if(line[0] == '>') return;
+    /* Marauder prompt lines start with ">"; skip parsing but still forward
+     * to the log callback so the wifi connected notification fires. */
+    if(line[0] == '>') {
+        if(m->log_callback) {
+            m->log_callback(line, m->log_callback_ctx);
+        }
+        return;
+    }
 
     furi_mutex_acquire(m->mutex, FuriWaitForever);
 
@@ -358,8 +412,9 @@ static void fpwn_marauder_rx_cb(const char* line, void* ctx) {
         /* Skip status / header lines. Detect end-of-results markers while
          * draining so we can transition to Idle without waiting for the
          * safety timeout in the timer callback. */
-        if(strstr(line, "Scan complete") || strstr(line, "Scanning") || strstr(line, "Stopping") ||
-           strstr(line, "[APs]")) {
+        if(strstr(line, "Scan complete") || strncmp(line, "Scanning", 8) == 0 ||
+           strncmp(line, "Stopping", 8) == 0 || strstr(line, "[APs]") || strstr(line, "Started") ||
+           strstr(line, "Done")) {
             if(m->state == FPwnMarauderStateScanStopping &&
                (strstr(line, "Scan complete") || strstr(line, "Done"))) {
                 m->state = FPwnMarauderStateIdle;
@@ -373,20 +428,29 @@ static void fpwn_marauder_rx_cb(const char* line, void* ctx) {
         if(parse_ap_line(line, &ap)) {
             if(m->ap_count < FPWN_MAX_APS) {
                 m->aps[m->ap_count++] = ap;
-                FURI_LOG_D(
+                FURI_LOG_I(
                     TAG, "AP[%lu]: %s %s", (unsigned long)m->ap_count - 1, ap.ssid, ap.bssid);
             }
         } else if(parse_list_ap_line(line, &ap)) {
             if(m->ap_count < FPWN_MAX_APS) {
                 m->aps[m->ap_count++] = ap;
-                FURI_LOG_D(
+                FURI_LOG_I(
                     TAG, "AP[%lu]: %s %s", (unsigned long)m->ap_count - 1, ap.ssid, ap.bssid);
             }
+        } else {
+            /* Log unparsed lines at Info level to help diagnose Marauder
+             * firmware version mismatches or unexpected output formats. */
+            FURI_LOG_I(TAG, "scan RX (not parsed): %s", line);
         }
         break;
     }
 
     case FPwnMarauderStatePingScan: {
+        if(line_has_done_marker(line)) {
+            m->state = FPwnMarauderStateIdle;
+            FURI_LOG_I(TAG, "ping scan complete, %lu hosts", (unsigned long)m->host_count);
+            break;
+        }
         FPwnNetHost host;
         memset(&host, 0, sizeof(host));
         if(parse_host_line(line, &host)) {
@@ -404,6 +468,11 @@ static void fpwn_marauder_rx_cb(const char* line, void* ctx) {
     }
 
     case FPwnMarauderStatePortScan: {
+        if(line_has_done_marker(line)) {
+            m->state = FPwnMarauderStateIdle;
+            FURI_LOG_I(TAG, "port scan complete, %lu results", (unsigned long)m->port_count);
+            break;
+        }
         FPwnPortResult pr;
         memset(&pr, 0, sizeof(pr));
         if(parse_port_line(line, &pr)) {
@@ -421,6 +490,12 @@ static void fpwn_marauder_rx_cb(const char* line, void* ctx) {
     }
 
     case FPwnMarauderStateStationScan: {
+        if(line_has_done_marker(line)) {
+            m->state = FPwnMarauderStateIdle;
+            FURI_LOG_I(
+                TAG, "station scan complete, %lu stations", (unsigned long)m->station_count);
+            break;
+        }
         FPwnStation sta;
         memset(&sta, 0, sizeof(sta));
         if(parse_station_line(line, &sta)) {
@@ -441,18 +516,15 @@ static void fpwn_marauder_rx_cb(const char* line, void* ctx) {
     case FPwnMarauderStateEvilPortal:
         /* Capture POST data and credential-bearing lines from the portal.
          * Marauder outputs lines like "POST data: user=x&pass=y" when a
-         * victim submits the captive portal form. */
+         * victim submits the captive portal form.
+         * NOTE: mutex is already held by the caller — do NOT re-acquire. */
         if(strstr(line, "POST") || strstr(line, "post") || strstr(line, "password") ||
            strstr(line, "Password") || strstr(line, "username") || strstr(line, "Username") ||
            strstr(line, "credential") || strstr(line, "login")) {
             if(m->cred_count < FPWN_MAX_CREDS) {
-                furi_mutex_acquire(m->mutex, FuriWaitForever);
-                if(m->cred_count < FPWN_MAX_CREDS) {
-                    strncpy(m->creds[m->cred_count].data, line, sizeof(m->creds[0].data) - 1);
-                    m->creds[m->cred_count].data[sizeof(m->creds[0].data) - 1] = '\0';
-                    m->cred_count++;
-                }
-                furi_mutex_release(m->mutex);
+                strncpy(m->creds[m->cred_count].data, line, sizeof(m->creds[0].data) - 1);
+                m->creds[m->cred_count].data[sizeof(m->creds[0].data) - 1] = '\0';
+                m->cred_count++;
                 FURI_LOG_I(
                     TAG,
                     "Evil portal cred captured [%lu]: %s",
@@ -540,13 +612,11 @@ void fpwn_marauder_stop_scan(FPwnMarauder* m) {
 
     furi_mutex_acquire(m->mutex, FuriWaitForever);
     m->state = FPwnMarauderStateScanStopping;
+    m->stop_tick = furi_get_tick();
+    m->list_pending = true; /* 'list -a' will be sent after a delay */
     furi_mutex_release(m->mutex);
 
-    /* Some Marauder firmware versions require an explicit 'list -a' after
-     * stopscan to emit buffered AP results. Send it as a follow-up. */
-    fpwn_wifi_uart_send(m->uart, "list -a");
-
-    FURI_LOG_I(TAG, "scan stopping, waiting for results");
+    FURI_LOG_I(TAG, "scan stopping, will send 'list -a' after delay");
 }
 
 void fpwn_marauder_join(FPwnMarauder* m, uint8_t ap_idx, const char* password) {
@@ -737,6 +807,56 @@ FPwnMarauderState fpwn_marauder_get_state(FPwnMarauder* m) {
     return s;
 }
 
+uint32_t fpwn_marauder_copy_aps(FPwnMarauder* m, FPwnWifiAP* dst, uint32_t max_count) {
+    furi_assert(m);
+    furi_assert(dst);
+    furi_mutex_acquire(m->mutex, FuriWaitForever);
+    uint32_t count = (m->ap_count < max_count) ? m->ap_count : max_count;
+    if(count > 0) memcpy(dst, m->aps, count * sizeof(FPwnWifiAP));
+    furi_mutex_release(m->mutex);
+    return count;
+}
+
+uint32_t fpwn_marauder_copy_hosts(FPwnMarauder* m, FPwnNetHost* dst, uint32_t max_count) {
+    furi_assert(m);
+    furi_assert(dst);
+    furi_mutex_acquire(m->mutex, FuriWaitForever);
+    uint32_t count = (m->host_count < max_count) ? m->host_count : max_count;
+    if(count > 0) memcpy(dst, m->hosts, count * sizeof(FPwnNetHost));
+    furi_mutex_release(m->mutex);
+    return count;
+}
+
+uint32_t fpwn_marauder_copy_ports(FPwnMarauder* m, FPwnPortResult* dst, uint32_t max_count) {
+    furi_assert(m);
+    furi_assert(dst);
+    furi_mutex_acquire(m->mutex, FuriWaitForever);
+    uint32_t count = (m->port_count < max_count) ? m->port_count : max_count;
+    if(count > 0) memcpy(dst, m->ports, count * sizeof(FPwnPortResult));
+    furi_mutex_release(m->mutex);
+    return count;
+}
+
+uint32_t fpwn_marauder_copy_stations(FPwnMarauder* m, FPwnStation* dst, uint32_t max_count) {
+    furi_assert(m);
+    furi_assert(dst);
+    furi_mutex_acquire(m->mutex, FuriWaitForever);
+    uint32_t count = (m->station_count < max_count) ? m->station_count : max_count;
+    if(count > 0) memcpy(dst, m->stations, count * sizeof(FPwnStation));
+    furi_mutex_release(m->mutex);
+    return count;
+}
+
+uint32_t fpwn_marauder_copy_creds(FPwnMarauder* m, FPwnCapturedCred* dst, uint32_t max_count) {
+    furi_assert(m);
+    furi_assert(dst);
+    furi_mutex_acquire(m->mutex, FuriWaitForever);
+    uint32_t count = (m->cred_count < max_count) ? m->cred_count : max_count;
+    if(count > 0) memcpy(dst, m->creds, count * sizeof(FPwnCapturedCred));
+    furi_mutex_release(m->mutex);
+    return count;
+}
+
 FPwnWifiAP* fpwn_marauder_get_aps(FPwnMarauder* m, uint32_t* count) {
     furi_assert(m);
     furi_assert(count);
@@ -780,6 +900,21 @@ FPwnCapturedCred* fpwn_marauder_get_creds(FPwnMarauder* m, uint32_t* count) {
     *count = m->cred_count;
     furi_mutex_release(m->mutex);
     return m->creds;
+}
+
+/* Poll for deferred 'list -a' after stopscan.  Called from the scan timer.
+ * Sends 'list -a' once 1.5 s have elapsed since the stopscan command. */
+void fpwn_marauder_poll_list(FPwnMarauder* m) {
+    furi_assert(m);
+    furi_mutex_acquire(m->mutex, FuriWaitForever);
+    if(m->list_pending && (furi_get_tick() - m->stop_tick) > furi_ms_to_ticks(1500)) {
+        m->list_pending = false;
+        furi_mutex_release(m->mutex);
+        fpwn_wifi_uart_send(m->uart, "list -a");
+        FURI_LOG_I(TAG, "sent deferred 'list -a'");
+        return;
+    }
+    furi_mutex_release(m->mutex);
 }
 
 /* Returns the furi_get_tick() value recorded when the last AP scan started.

@@ -196,6 +196,11 @@ void rh_worker_poll(RhApp* app) {
 
     if(!app->uart) return;
 
+    /* Don't poll until the ESP32 has actually responded at least once.
+     * Polling an unconnected board wastes UART bandwidth and can cause
+     * unexpected responses if the ESP32 hasn't finished booting. */
+    if(!rh_uart_is_connected(app->uart)) return;
+
     /* Before sending a fresh poll, reset the threat level in the model so
    * stale data from previous responses doesn't linger indefinitely.
    * We preserve packet_count and warning_count as running totals. */

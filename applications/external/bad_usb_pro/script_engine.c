@@ -216,7 +216,13 @@ static void substitute_vars(ScriptEngine* engine, const char* input, char* out, 
             const char* val = script_engine_get_var(engine, vname);
             if(val) {
                 size_t vlen = strlen(val);
-                if(oi + vlen < out_size - 1) {
+                size_t remaining = out_size - 1 - oi;
+                if(vlen > remaining) {
+                    FURI_LOG_W(
+                        "BadUSB", "Var $%s truncated: %zu -> %zu bytes", vname, vlen, remaining);
+                    vlen = remaining;
+                }
+                if(vlen > 0) {
                     memcpy(out + oi, val, vlen);
                     oi += vlen;
                 }

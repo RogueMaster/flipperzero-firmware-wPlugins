@@ -836,6 +836,9 @@ static void fpwn_scan_timer_cb(void* ctx) {
     if(state == FPwnMarauderStateScanning || state == FPwnMarauderStateScanStopping) {
         uint32_t elapsed = furi_get_tick() - fpwn_marauder_get_scan_start(app->marauder);
 
+        /* Check if the deferred 'list -a' needs to be sent */
+        fpwn_marauder_poll_list(app->marauder);
+
         if(state == FPwnMarauderStateScanning && elapsed > furi_ms_to_ticks(8000)) {
             /* After 8 s of active scanning, send stopscan + list -a.
              * State transitions to ScanStopping (not Idle), so the RX
@@ -846,57 +849,62 @@ static void fpwn_scan_timer_cb(void* ctx) {
              * marker, force idle after 15 s total. */
             fpwn_marauder_stop(app->marauder);
         }
+    }
 
-        /* Update the view with the latest AP results.  Re-read state after
-         * any stop call so m->scanning reflects the current state. */
-        uint32_t count = 0;
-        FPwnWifiAP* aps = fpwn_marauder_get_aps(app->marauder, &count);
-        if(count > FPWN_MAX_APS) count = FPWN_MAX_APS;
-        bool still_active = (fpwn_marauder_get_state(app->marauder) != FPwnMarauderStateIdle);
+    /* Always update the scan view with the latest AP results, even after the
+     * scan completes (state == Idle).  This ensures results from the deferred
+     * 'list -a' command are shown even if the state transitions to Idle
+     * between timer ticks. */
+    {
+        FPwnMarauderState cur = fpwn_marauder_get_state(app->marauder);
+        bool still_active =
+            (cur == FPwnMarauderStateScanning || cur == FPwnMarauderStateScanStopping);
         with_view_model(
             app->wifi_scan_view,
             FPwnWifiScanModel * m,
             {
-                memcpy(m->aps, aps, count * sizeof(FPwnWifiAP));
+                uint32_t count = fpwn_marauder_copy_aps(app->marauder, m->aps, FPWN_MAX_APS);
                 m->ap_count = count;
                 m->scanning = still_active;
             },
             true);
-    } else if(state == FPwnMarauderStatePingScan) {
-        uint32_t count = 0;
-        FPwnNetHost* hosts = fpwn_marauder_get_hosts(app->marauder, &count);
-        if(count > FPWN_MAX_HOSTS) count = FPWN_MAX_HOSTS;
+    }
+
+    if(state == FPwnMarauderStatePingScan) {
         with_view_model(
             app->ping_scan_view,
             FPwnPingScanModel * m,
             {
-                memcpy(m->hosts, hosts, count * sizeof(FPwnNetHost));
+                uint32_t count = fpwn_marauder_copy_hosts(app->marauder, m->hosts, FPWN_MAX_HOSTS);
                 m->host_count = count;
                 m->scanning = true;
             },
             true);
     } else if(state == FPwnMarauderStatePortScan) {
-        uint32_t count = 0;
-        FPwnPortResult* ports = fpwn_marauder_get_ports(app->marauder, &count);
-        if(count > FPWN_MAX_PORTS) count = FPWN_MAX_PORTS;
         with_view_model(
             app->port_scan_view,
             FPwnPortScanModel * m,
             {
-                memcpy(m->ports, ports, count * sizeof(FPwnPortResult));
+                uint32_t count = fpwn_marauder_copy_ports(app->marauder, m->ports, FPWN_MAX_PORTS);
                 m->port_count = count;
             },
             true);
     } else if(state == FPwnMarauderStateStationScan) {
-        uint32_t count = 0;
-        FPwnStation* stations = fpwn_marauder_get_stations(app->marauder, &count);
-        if(count > FPWN_MAX_STATIONS) count = FPWN_MAX_STATIONS;
         with_view_model(
             app->station_scan_view,
             FPwnStationScanModel * m,
             {
-                memcpy(m->stations, stations, count * sizeof(FPwnStation));
+                uint32_t count =
+                    fpwn_marauder_copy_stations(app->marauder, m->stations, FPWN_MAX_STATIONS);
                 m->station_count = count;
+            },
+            true);
+    } else {
+        with_view_model(
+            app->ping_scan_view,
+            FPwnPingScanModel * m,
+            {
+                if(m->scanning) m->scanning = false;
             },
             true);
     }
@@ -1236,15 +1244,12 @@ static void fpwn_wifi_menu_callback(void* ctx, uint32_t index) {
 
     case FPwnWifiMenuViewCreds: {
         /* Populate credential view model from marauder */
-        uint32_t cc = 0;
-        FPwnCapturedCred* creds = fpwn_marauder_get_creds(app->marauder, &cc);
         with_view_model(
             app->cred_view,
             FPwnCredViewModel * m,
             {
+                uint32_t cc = fpwn_marauder_copy_creds(app->marauder, m->creds, FPWN_MAX_CREDS);
                 m->cred_count = cc;
-                if(cc > FPWN_MAX_CREDS) cc = FPWN_MAX_CREDS;
-                memcpy(m->creds, creds, cc * sizeof(FPwnCapturedCred));
                 m->scroll_offset = 0;
                 m->selected = 0;
             },

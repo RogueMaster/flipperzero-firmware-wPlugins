@@ -81,32 +81,10 @@ static int match_rule(const CcidCard* card, const uint8_t* cmd, uint32_t cmd_len
  * Logging helper
  * --------------------------------------------------------------------------- */
 
-static void log_apdu_exchange(
-    CcidEmulatorApp* app,
-    const uint8_t* cmd,
-    uint32_t cmd_len,
-    const uint8_t* resp,
-    uint32_t resp_len,
-    bool matched) {
-    furi_mutex_acquire(app->log_mutex, FuriWaitForever);
-
-    uint16_t idx = app->log_count % CCID_EMU_LOG_MAX_ENTRIES;
-    CcidApduLogEntry* entry = &app->log_entries[idx];
-
-    entry->timestamp = furi_get_tick();
-    bytes_to_hex_str(cmd, cmd_len, entry->command_hex, sizeof(entry->command_hex));
-    bytes_to_hex_str(resp, resp_len, entry->response_hex, sizeof(entry->response_hex));
-    entry->matched = matched;
-
-    app->log_count++;
-
-    furi_mutex_release(app->log_mutex);
-
-    /* Notify the GUI that there is a new log entry to display */
-    if(app->view_dispatcher) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, CcidEmulatorEventApduExchange);
-    }
-}
+/* log_apdu_exchange() removed — logging is now done inline in
+ * ccid_xfr_datablock() with a volatile dirty flag polled by a FuriTimer,
+ * avoiding the furi_check crash from calling view_dispatcher_send_custom_event
+ * on the USB callback thread under heavy APDU load. */
 
 /* ---------------------------------------------------------------------------
  * CCID Callbacks
@@ -177,8 +155,28 @@ static void ccid_xfr_datablock(
         FURI_LOG_D("CcidHandler", "No rule matched, sending default response");
     }
 
-    /* Log the exchange */
-    log_apdu_exchange(app, cmd, cmd_len, readerToPcDataBlock, *readerToPcDataBlockLen, matched);
+    /* Log the exchange.  Use a short mutex timeout so we never stall the USB
+     * driver, and set a volatile flag instead of calling
+     * view_dispatcher_send_custom_event from this thread (which can overflow
+     * the event queue under heavy APDU load and trigger furi_check). */
+    if(furi_mutex_acquire(app->log_mutex, furi_ms_to_ticks(5)) == FuriStatusOk) {
+        uint16_t idx = app->log_count % CCID_EMU_LOG_MAX_ENTRIES;
+        CcidApduLogEntry* entry = &app->log_entries[idx];
+
+        entry->timestamp = furi_get_tick();
+        bytes_to_hex_str(cmd, cmd_len, entry->command_hex, sizeof(entry->command_hex));
+        bytes_to_hex_str(
+            readerToPcDataBlock,
+            *readerToPcDataBlockLen,
+            entry->response_hex,
+            sizeof(entry->response_hex));
+        entry->matched = matched;
+
+        app->log_count++;
+        app->log_dirty = true;
+
+        furi_mutex_release(app->log_mutex);
+    }
 }
 
 /* ---------------------------------------------------------------------------

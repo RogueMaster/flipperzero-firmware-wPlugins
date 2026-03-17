@@ -138,6 +138,10 @@ typedef struct {
     CcidApduLogEntry log_entries[CCID_EMU_LOG_MAX_ENTRIES];
     uint16_t log_count; /* total entries written (may wrap)      */
     FuriMutex* log_mutex;
+    volatile bool log_dirty; /* set by USB callback, polled by timer  */
+
+    /* Refresh timer for APDU monitor — polls log_dirty every 200 ms */
+    FuriTimer* apdu_refresh_timer;
 
     /* Settings */
     uint8_t usb_preset_index;

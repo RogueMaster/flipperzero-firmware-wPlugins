@@ -30,7 +30,7 @@ typedef enum {
     FPwnCustomEventExecDone = 1, /* execution thread signalled completion       */
     FPwnCustomEventWifiConnected = 2, /* ESP32 first UART line received          */
 } FPwnCustomEvent;
-/* NOTE: FPWN_CUSTOM_EVENT_WIFI_CONNECTED in flipperpwn.h must equal 2 */
+/* NOTE: FPWN_CUSTOM_EVENT_* values in flipperpwn.h must stay aligned here. */
 
 /* View-stack tracker shared with wifi_views.c via fpwn_set_current_view().
  * Reset to the main menu at each app start. */
@@ -553,7 +553,7 @@ static void fpwn_main_menu_callback(void* ctx, uint32_t index) {
     case FPwnMainMenuAbout:
         widget_reset(app->about);
         widget_add_string_element(
-            app->about, 64, 2, AlignCenter, AlignTop, FontPrimary, "FlipperPwn v1.5");
+            app->about, 64, 2, AlignCenter, AlignTop, FontPrimary, "FlipperPwn v1.6");
         widget_add_string_element(
             app->about, 64, 16, AlignCenter, AlignTop, FontSecondary, "Modular Pentest Framework");
         {
@@ -569,7 +569,13 @@ static void fpwn_main_menu_callback(void* ctx, uint32_t index) {
                 app->about, 64, 28, AlignCenter, AlignTop, FontSecondary, about_info);
         }
         widget_add_string_element(
-            app->about, 64, 40, AlignCenter, AlignTop, FontSecondary, "HID+Mouse+WiFi+CDC Exfil");
+            app->about,
+            64,
+            40,
+            AlignCenter,
+            AlignTop,
+            FontSecondary,
+            "HID+Mouse+WiFi+CDC+ATTACKMODE");
         widget_add_string_element(
             app->about, 64, 52, AlignCenter, AlignTop, FontSecondary, "github.com/barkandbite");
         g_current_view = FPwnViewAbout;

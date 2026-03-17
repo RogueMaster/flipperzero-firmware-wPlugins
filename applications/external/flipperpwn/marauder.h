@@ -90,8 +90,11 @@ void fpwn_marauder_free(FPwnMarauder* marauder);
 /* Begin a passive WiFi AP scan.  Clears the AP list first. */
 void fpwn_marauder_scan_ap(FPwnMarauder* m);
 
-/* Send "stopscan" and return to Idle. */
+/* Send "stopscan" and schedule 'list -a' after a delay. */
 void fpwn_marauder_stop_scan(FPwnMarauder* m);
+
+/* Poll for deferred 'list -a'.  Call from a timer every 500ms. */
+void fpwn_marauder_poll_list(FPwnMarauder* m);
 
 /* Associate with AP at index `ap_idx`.  Pass empty string for open networks. */
 void fpwn_marauder_join(FPwnMarauder* m, uint8_t ap_idx, const char* password);
@@ -142,6 +145,14 @@ void fpwn_marauder_deauth_targeted(FPwnMarauder* m, uint8_t ap_idx);
 void fpwn_marauder_set_log_callback(FPwnMarauder* m, FPwnWifiRxCallback cb, void* ctx);
 
 FPwnMarauderState fpwn_marauder_get_state(FPwnMarauder* m);
+
+/* Copy the current result sets into caller-owned buffers under the internal
+ * marauder mutex.  Returns the number of entries copied. */
+uint32_t fpwn_marauder_copy_aps(FPwnMarauder* m, FPwnWifiAP* dst, uint32_t max_count);
+uint32_t fpwn_marauder_copy_hosts(FPwnMarauder* m, FPwnNetHost* dst, uint32_t max_count);
+uint32_t fpwn_marauder_copy_ports(FPwnMarauder* m, FPwnPortResult* dst, uint32_t max_count);
+uint32_t fpwn_marauder_copy_stations(FPwnMarauder* m, FPwnStation* dst, uint32_t max_count);
+uint32_t fpwn_marauder_copy_creds(FPwnMarauder* m, FPwnCapturedCred* dst, uint32_t max_count);
 
 /* Returns a pointer to the internal AP array and sets *count.
  * Valid until the next scan_ap() call. */

@@ -4,8 +4,11 @@
  * Parsing
  * ~~~~~~~
  * Marauder `scanap` output format (one AP per line):
- *   <rssi> <bssid> <channel> <ssid>
- * e.g.: -65 AA:BB:CC:DD:EE:FF 6 MyNetwork
+ *   <idx> <SSID> <RSSI> <Channel> <BSSID> <Encryption>
+ * e.g.: 0 MyNetwork -45 6 AA:BB:CC:DD:EE:FF WPA2
+ *
+ * Also handles `list -a` bracket format:
+ *   [idx] SSID (rssi) ch:X [ENC] BSSID
  *
  * Lines that do not match this format are silently skipped.  Marauder also
  * emits [wifi/] prefix lines and other noise — the parser handles these
@@ -147,43 +150,176 @@ static void rogue_prune_stale(RogueApResults* r) {
  * Expected line format:  <rssi> <bssid> <channel> <ssid>
  * Marauder also prefixes some lines with "[wifi/]" — skip those.
  * ========================================================================= */
+/* Try to parse a Marauder scanap line in streaming format:
+ *   <idx> <SSID> <RSSI> <Channel> <BSSID> <Encryption>
+ *   e.g.: 0 MyNetwork -45 6 AA:BB:CC:DD:EE:FF WPA2
+ *
+ * Or the 'list -a' bracket format:
+ *   [idx] SSID (rssi) ch:X [ENC] BSSID
+ *   e.g.: [0] MyNetwork (-45) ch:6 [WPA2] AA:BB:CC:DD:EE:FF
+ *
+ * Extracts ssid, bssid, rssi, channel into the provided buffers.
+ * Returns true on success.
+ */
+static bool rogue_parse_marauder_ap(
+    const char* line,
+    char* ssid,
+    char* bssid,
+    int* rssi_out,
+    int* channel_out) {
+    /* Try bracket format first: [idx] SSID (rssi) ch:X [ENC] BSSID */
+    if(line[0] == '[') {
+        const char* idx_end = strchr(line, ']');
+        if(!idx_end) return false;
+        const char* p = idx_end + 1;
+        while(*p == ' ')
+            p++;
+        if(!*p) return false;
+
+        /* SSID: up to '(' */
+        const char* paren = strchr(p, '(');
+        if(!paren) return false;
+        size_t ssid_len = (size_t)(paren - p);
+        while(ssid_len > 0 && p[ssid_len - 1] == ' ')
+            ssid_len--;
+        if(ssid_len >= ROGUE_SSID_LEN) ssid_len = ROGUE_SSID_LEN - 1;
+        memcpy(ssid, p, ssid_len);
+        ssid[ssid_len] = '\0';
+
+        /* RSSI inside parens */
+        *rssi_out = atoi(paren + 1);
+        const char* close = strchr(paren, ')');
+        if(!close) return false;
+        p = close + 1;
+        while(*p == ' ')
+            p++;
+
+        /* Channel: "ch:X" */
+        if(strncmp(p, "ch:", 3) == 0 || strncmp(p, "Ch:", 3) == 0) {
+            *channel_out = atoi(p + 3);
+            p += 3;
+            while(*p >= '0' && *p <= '9')
+                p++;
+            while(*p == ' ')
+                p++;
+        }
+
+        /* Skip encryption in brackets */
+        if(*p == '[') {
+            const char* enc_end = strchr(p, ']');
+            if(enc_end) {
+                p = enc_end + 1;
+                while(*p == ' ')
+                    p++;
+            }
+        }
+
+        /* Remaining is BSSID */
+        if(*p) {
+            strncpy(bssid, p, ROGUE_BSSID_LEN - 1);
+            bssid[ROGUE_BSSID_LEN - 1] = '\0';
+            /* Trim trailing whitespace */
+            size_t blen = strlen(bssid);
+            while(blen > 0 &&
+                  (bssid[blen - 1] == ' ' || bssid[blen - 1] == '\r' || bssid[blen - 1] == '\n')) {
+                bssid[--blen] = '\0';
+            }
+        }
+        return is_valid_bssid(bssid) && ssid[0] != '\0';
+    }
+
+    /* Streaming format: <idx> <SSID> <RSSI> <Channel> <BSSID> <Encryption>
+     * Parse from the right side where tokens have fixed format. */
+    if(line[0] < '0' || line[0] > '9') return false;
+
+    /* Skip index */
+    const char* p = line;
+    while(*p >= '0' && *p <= '9')
+        p++;
+    while(*p == ' ')
+        p++;
+    if(!*p) return false;
+
+    /* Find BSSID and encryption from the right end */
+    const char* end = line + strlen(line);
+
+    /* Trim trailing whitespace */
+    while(end > p && (end[-1] == ' ' || end[-1] == '\r' || end[-1] == '\n'))
+        end--;
+
+    /* Last token = encryption */
+    const char* enc_start = end;
+    while(enc_start > p && enc_start[-1] != ' ')
+        enc_start--;
+
+    /* Second-to-last = BSSID */
+    const char* bssid_end = enc_start;
+    while(bssid_end > p && bssid_end[-1] == ' ')
+        bssid_end--;
+    const char* bssid_start = bssid_end;
+    while(bssid_start > p && bssid_start[-1] != ' ')
+        bssid_start--;
+
+    size_t blen = (size_t)(bssid_end - bssid_start);
+    if(blen >= ROGUE_BSSID_LEN) blen = ROGUE_BSSID_LEN - 1;
+    memcpy(bssid, bssid_start, blen);
+    bssid[blen] = '\0';
+    if(!is_valid_bssid(bssid)) return false;
+
+    /* Third-from-last = channel */
+    const char* ch_end = bssid_start;
+    while(ch_end > p && ch_end[-1] == ' ')
+        ch_end--;
+    const char* ch_start = ch_end;
+    while(ch_start > p && ch_start[-1] != ' ')
+        ch_start--;
+    *channel_out = atoi(ch_start);
+
+    /* Fourth-from-last = RSSI */
+    const char* rssi_end = ch_start;
+    while(rssi_end > p && rssi_end[-1] == ' ')
+        rssi_end--;
+    const char* rssi_start = rssi_end;
+    while(rssi_start > p && rssi_start[-1] != ' ')
+        rssi_start--;
+    *rssi_out = atoi(rssi_start);
+
+    /* Everything between p and rssi_start is the SSID */
+    const char* ssid_end = rssi_start;
+    while(ssid_end > p && ssid_end[-1] == ' ')
+        ssid_end--;
+    size_t slen = (size_t)(ssid_end - p);
+    if(slen >= ROGUE_SSID_LEN) slen = ROGUE_SSID_LEN - 1;
+    if(slen == 0) return false;
+    memcpy(ssid, p, slen);
+    ssid[slen] = '\0';
+
+    return true;
+}
+
 static void rogue_uart_line_cb(const char* line, void* ctx) {
     RogueApWorker* worker = (RogueApWorker*)ctx;
     RogueApResults* r = worker->results;
 
-    /* Skip Marauder status/prefix lines that start with '['. */
-    if(line[0] == '[') return;
+    /* Skip Marauder status lines */
+    if(line[0] == '\0') return;
+    if(strncmp(line, "Scanning", 8) == 0 || strncmp(line, "Stopping", 8) == 0 ||
+       strncmp(line, ">", 1) == 0 || strstr(line, "Started") || strstr(line, "Done") ||
+       strstr(line, "[APs]") || strstr(line, "Scan complete"))
+        return;
 
-    /* Parse: rssi bssid channel ssid
-   * ssid may contain spaces, so read up to the first three tokens then
-   * take everything remaining as the SSID. */
     int rssi_raw = 0;
     char bssid[ROGUE_BSSID_LEN];
     int channel = 0;
     char ssid[ROGUE_SSID_LEN];
 
-    /* sscanf into a large temp to capture multi-word SSIDs. */
-    char ssid_raw[ROGUE_SSID_LEN + 8]; /* slight oversize for safety */
-    int parsed = sscanf(line, "%d %17s %d %32[^\n]", &rssi_raw, bssid, &channel, ssid_raw);
-
-    if(parsed < 3) return; /* not enough fields */
-
-    /* Validate BSSID — guards against misparse of status lines. */
-    if(!is_valid_bssid(bssid)) return;
+    if(!rogue_parse_marauder_ap(line, ssid, bssid, &rssi_raw, &channel)) return;
 
     /* Channel sanity (1-14 WiFi channels). */
     if(channel < 1 || channel > 14) return;
 
     /* RSSI sanity (typical range: -100 to -10 dBm). */
     if(rssi_raw < -110 || rssi_raw > 0) return;
-
-    /* Copy SSID — use empty string if field was missing. */
-    if(parsed >= 4) {
-        strncpy(ssid, ssid_raw, ROGUE_SSID_LEN - 1);
-        ssid[ROGUE_SSID_LEN - 1] = '\0';
-    } else {
-        ssid[0] = '\0';
-    }
 
     uint32_t now = furi_get_tick();
 

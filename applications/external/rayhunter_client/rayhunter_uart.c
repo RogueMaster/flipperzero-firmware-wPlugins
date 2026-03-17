@@ -148,7 +148,9 @@ RhUart* rh_uart_alloc(void) {
 
     /* Start the worker before enabling async RX so no bytes are dropped. */
     uart->running = true;
-    uart->rx_thread = furi_thread_alloc_ex("RhUartRx", 1024, rh_uart_rx_worker, uart);
+    /* Stack must accommodate line_buf[512] + rx callback locals + framework
+     * overhead.  1024 was causing MPU fault / stack overflow. */
+    uart->rx_thread = furi_thread_alloc_ex("RhUartRx", 2048, rh_uart_rx_worker, uart);
     furi_assert(uart->rx_thread);
     furi_thread_start(uart->rx_thread);
 

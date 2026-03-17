@@ -203,6 +203,12 @@ bool fpwn_module_load_full(FPwnApp* app, uint32_t index);
  * substitutes {{OPTION}} values, types HID keystrokes. */
 int32_t fpwn_payload_execute_thread(void* ctx);
 
+/* Type a single character via USB HID (press + release). */
+void fpwn_type_char(char c);
+
+/* Type a full NUL-terminated string via USB HID. */
+void fpwn_type_string(const char* s);
+
 /* =========================================================================
  * OS detection (os_detect.c)
  * ========================================================================= */
@@ -210,6 +216,16 @@ int32_t fpwn_payload_execute_thread(void* ctx);
 /* Attempt to detect the host OS via USB HID timing heuristics.
  * Must be called when USB HID is active. */
 FPwnOS fpwn_os_detect(void);
+
+/* Ensure CapsLock is OFF before typing.  Checks the HID LED state
+ * and toggles CapsLock if it is on.  Call before any HID string typing. */
+void fpwn_ensure_capslock_off(void);
+
+/* Enhanced OS detection: LED heuristics first, CDC serial fallback.
+ * Tries each OS terminal opener sequentially, types a detection script,
+ * receives the OS tag via CDC serial.  ~1.5s if LED works, ~8-24s worst case.
+ * Must be called from the exec thread (uses delays, HID, and CDC). */
+FPwnOS fpwn_os_detect_cdc(FPwnApp* app);
 
 /* Return a human-readable name for the OS. */
 const char* fpwn_os_name(FPwnOS os);
@@ -243,6 +259,7 @@ void fpwn_wifi_menu_setup(FPwnApp* app);
  * Custom event IDs (sent via view_dispatcher_send_custom_event)
  * Matches FPwnCustomEvent enum in flipperpwn.c — keep in sync.
  * ========================================================================= */
+#define FPWN_CUSTOM_EVENT_EXEC_DONE 1
 #define FPWN_CUSTOM_EVENT_WIFI_CONNECTED 2
 
 /* =========================================================================
