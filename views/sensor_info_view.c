@@ -38,15 +38,15 @@ static void draw_callback(Canvas* canvas, void* context) {
 
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 0, 36, "I2C addr:");
-        canvas_draw_str(canvas, 0, 47, "SDA pin:");
-        canvas_draw_str(canvas, 0, 58, "SCL pin:");
+        canvas_draw_str(canvas, 0, 47, "SCL:");
+        canvas_draw_str(canvas, 0, 58, "SDA:");
 
         canvas_set_font(canvas, FontSecondary);
         snprintf(app->buff, BUFF_SIZE, "0x%02X",
             ((I2CSensor*)info_sensor->instance)->currentI2CAdr >> 1);
         canvas_draw_str(canvas, 60, 36, app->buff);
-        canvas_draw_str(canvas, 54, 47, "15 (C1)");
-        canvas_draw_str(canvas, 54, 58, "16 (C0)");
+        canvas_draw_str(canvas, 36, 47, "C1 (pin 15) -> SCL");
+        canvas_draw_str(canvas, 36, 58, "C0 (pin 16) -> SDA");
 
     } else if(info_sensor->type->interface == &SINGLE_WIRE) {
         canvas_draw_str(canvas, 36, 24, info_sensor->type->typename);
@@ -78,29 +78,19 @@ static void draw_callback(Canvas* canvas, void* context) {
         /* MHZ19C UART pinout */
         canvas_draw_str(canvas, 36, 24, "MHZ19C UART");
 
-        canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str(canvas, 0, 36, "TX->:");
-        canvas_draw_str(canvas, 0, 47, "RX<-:");
-        canvas_draw_str(canvas, 0, 58, "5V/GND:");
-
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 36, 36, "pin 13");
-        canvas_draw_str(canvas, 36, 47, "pin 14");
-        canvas_draw_str(canvas, 50, 58, "pin1/pin8  9600 8N1");
+        canvas_draw_str(canvas, 0, 36, "C1 (pin 15) -> RXD (pin 3)");
+        canvas_draw_str(canvas, 0, 47, "C0 (pin 16) -> TXD (pin 2)");
+        canvas_draw_str(canvas, 0, 58, "5V (pin 1) GND (pin 8) 9600");
 
     } else {
         /* MHZ19C PWM pinout */
         canvas_draw_str(canvas, 36, 24, "MHZ19C PWM");
 
-        canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str(canvas, 0, 36, "PWM:");
-        canvas_draw_str(canvas, 0, 47, "5V:");
-        canvas_draw_str(canvas, 0, 58, "GND:");
-
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 36, 36, "pin 3 (A6)");
-        canvas_draw_str(canvas, 36, 47, "pin 1");
-        canvas_draw_str(canvas, 36, 58, "pin 8");
+        canvas_draw_str(canvas, 0, 36, "PA6 (pin 3) -> PWM (pin 1)");
+        canvas_draw_str(canvas, 0, 47, "5V (pin 1) -> Vin (pin 4)");
+        canvas_draw_str(canvas, 0, 58, "GND (pin 8) -> GND (pin 5)");
     }
 }
 

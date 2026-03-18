@@ -22,15 +22,44 @@ static View* view;
 
 static const char* co2_quality(float co2) {
     if(co2 < 800.0f)  return "GOOD";   /* green */
-    if(co2 < 1000.0f) return "OK";     /* yellow */
+    if(co2 < 1000.0f) return "NORM";   /* yellow */
     if(co2 < 1400.0f) return "POOR";   /* orange */
     return "BAD";                       /* red */
+}
+
+/* Check if PWM CO2 sensor is frozen (no edge for 5+ sec) */
+static bool is_co2_frozen(void) {
+    if(!app->sensors_ready || !app->sensors) return false;
+    for(uint8_t i = 0; i < app->sensors_count; i++) {
+        Sensor* s = app->sensors[i];
+        if(!s || s->status == UT_SENSORSTATUS_INACTIVE) continue;
+        if((s->type->datatype & UT_CO2) && s->co2 > 0.0f &&
+           s->last_valid_tick > 0 &&
+           (furi_get_tick() - s->last_valid_tick) > 5000) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* Find first active CO2 sensor */
+static Sensor* find_co2_sensor(void) {
+    if(!app->sensors_ready || !app->sensors) return NULL;
+    for(uint8_t i = 0; i < app->sensors_count; i++) {
+        Sensor* s = app->sensors[i];
+        if(!s || s->status == UT_SENSORSTATUS_INACTIVE) continue;
+        if(s->type->datatype & UT_CO2) return s;
+    }
+    return NULL;
 }
 
 static void draw_callback(Canvas* canvas, void* context) {
     UNUSED(context);
     canvas_clear(canvas);
     elements_button_center(canvas, "Menu");
+    if(is_co2_frozen()) {
+        elements_button_left(canvas, "Eject");
+    }
 
     if(!app->sensors_ready || !app->sensors) return;
 
@@ -54,7 +83,7 @@ static void draw_callback(Canvas* canvas, void* context) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, SCREEN_W / 2, 22, AlignCenter, AlignBottom, "No sensors");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, SCREEN_W / 2, 33, AlignCenter, AlignBottom, "Add via menu");
+        canvas_draw_str_aligned(canvas, SCREEN_W / 2, 33, AlignCenter, AlignBottom, "Connect and configure");
         return;
     }
 
@@ -143,6 +172,13 @@ static bool input_callback(InputEvent* event, void* context) {
     if(event->type == InputTypeShort && event->key == InputKeyOk) {
         view_main_menu_switch();
         return true;
+    }
+    if(event->type == InputTypeShort && event->key == InputKeyLeft) {
+        if(is_co2_frozen()) {
+            Sensor* s = find_co2_sensor();
+            if(s) s->needs_reset = true;
+            return true;
+        }
     }
     return false;
 }

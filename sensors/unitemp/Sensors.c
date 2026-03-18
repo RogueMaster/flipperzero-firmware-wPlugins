@@ -287,6 +287,8 @@ Sensor* unitemp_sensor_alloc(char* name, const SensorType* type, char* args) {
     sensor->temp_offset = 0;
     sensor->co2_offset = 0;
     sensor->co2_avg = 5;
+    sensor->last_valid_tick = 0;
+    sensor->needs_reset = false;
 
     status = sensor->type->interface->allocator(sensor, args);
 

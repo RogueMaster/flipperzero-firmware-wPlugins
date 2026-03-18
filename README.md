@@ -11,7 +11,7 @@ CO2 + climate monitor for Flipper Zero. Reads CO2 (MH-Z19B/C) and temperature/hu
 | Sensor | Interface | What it reads |
 |--------|-----------|---------------|
 | MH-Z19B/C | PWM (pin 3, PA6) | CO2 ppm |
-| MH-Z19B/C | UART LPUART1 (pins 15/16) | CO2 ppm |
+| MH-Z19B/C | UART (pins 15/16) | CO2 ppm |
 | BME280/BME680/etc | I2C (pins 15/16) | Temp, humidity, pressure |
 
 ## Wiring
@@ -19,27 +19,27 @@ CO2 + climate monitor for Flipper Zero. Reads CO2 (MH-Z19B/C) and temperature/hu
 ### MH-Z19 — PWM mode (3 wires)
 
 ```
-Flipper pin 1  (5V)  → sensor Vin
-Flipper pin 3  (PA6) ← sensor PWM out
-Flipper pin 8  (GND) → sensor GND
+Flipper PA6 (pin 3)  → sensor PWM (pin 1)
+Flipper 5V  (pin 1)  → sensor Vin (pin 4)
+Flipper GND (pin 8)  → sensor GND (pin 5)
 ```
 
 ### MH-Z19 — UART mode (4 wires)
 
 ```
-Flipper pin 1  (5V)  → sensor Vin
-Flipper pin 15 (C1)  → sensor RX   [TX from Flipper]
-Flipper pin 16 (C0)  ← sensor TX   [RX to Flipper]
-Flipper pin 8  (GND) → sensor GND
+Flipper C1  (pin 15) → sensor RXD (pin 3)
+Flipper C0  (pin 16) → sensor TXD (pin 2)
+Flipper 5V  (pin 1)  → sensor Vin (pin 4)
+Flipper GND (pin 8)  → sensor GND (pin 5)
 ```
 
 ### BME280 (I2C, addr 0x76)
 
 ```
-Flipper pin 9  (3.3V) → VCC
-Flipper pin 15 (C1/SCL) → SCL
-Flipper pin 16 (C0/SDA) → SDA
-Flipper pin 8  (GND)  → GND
+Flipper C1  (pin 15) → sensor SCL
+Flipper C0  (pin 16) → sensor SDA
+Flipper 3.3V (pin 9) → sensor VCC
+Flipper GND (pin 8)  → sensor GND
 ```
 
 > PWM CO2 + I2C climate work together. UART CO2 and I2C share pins 15/16, so can't run at the same time — UART mode disables I2C automatically.
@@ -130,6 +130,12 @@ Deploy:
 ```
 /ext/apps/air_stats.fap
 ```
+
+## Tested on
+
+- Official firmware 1.4.2
+- Unleashed unlshd-086
+- Momentum mntm-012
 
 ## Notes
 
