@@ -12,7 +12,8 @@
 //BMP280, BME280, BME680
 #include "./sensors/BMx280.h"
 #include "./sensors/BME680.h"
-#include "./sensors/SHT30.h"
+#include "./sensors/SHT3x.h"
+#include "./sensors/SHT4x.h"
 #include "./sensors/BMP180.h"
 #include "./sensors/HTU21x.h"
 #include "./sensors/HDC1080.h"
@@ -56,7 +57,8 @@ static const SensorModel* sensor_model_list[] = {
     &SCD30, //tested
     &SCD4x, //tested
     &SHT2x, //tested
-    &SHT30, //tested
+    &SHT3x, //tested
+    &SHT4x, //tested
     &SI7021
 
 };
@@ -454,14 +456,17 @@ bool unitemp_sensors_save(void* context) {
     for(uint8_t i = 0; i < unitemp_sensors_get_count(); i++) {
         Sensor* sensor = unitemp_sensors_get(i);
         //Replacing a space with ?
+
+        char tmp_sensor_name[11];
+        strcpy(tmp_sensor_name, sensor->name);
         for(uint8_t i = 0; i < 10; i++) {
-            if(sensor->name[i] == ' ') sensor->name[i] = '?';
+            if(tmp_sensor_name[i] == ' ') tmp_sensor_name[i] = '?';
         }
 
         stream_write_format(
             app->file_stream,
             "%s %s %d ",
-            sensor->name,
+            tmp_sensor_name,
             sensor->model->modelname,
             sensor->temperature_offset);
 

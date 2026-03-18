@@ -51,7 +51,7 @@
 //Application name
 #define APP_NAME        "Unitemp"
 //Application version
-#define UNITEMP_APP_VER "2.0.2-dev"
+#define UNITEMP_APP_VER "2.0"
 
 //Settings file name
 #define APP_SETTINGS_FILENAME "unitemp.settings"

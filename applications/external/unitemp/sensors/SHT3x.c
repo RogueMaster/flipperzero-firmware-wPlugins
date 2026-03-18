@@ -15,33 +15,33 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "SHT30.h"
+#include "SHT3x.h"
 #include "../interfaces/i2c_sensor.h"
 
-const SensorModel SHT30 = {
+const SensorModel SHT3x = {
     .modelname = "SHT3x",
     .altname = "SHT30/31/35",
     .interface = &unitemp_i2c,
     .data_type = UT_DATA_TYPE_TEMP_HUM,
     .polling_interval = 1000,
-    .allocator = unitemp_SHT30_I2C_alloc,
-    .mem_releaser = unitemp_SHT30_I2C_free,
-    .initializer = unitemp_SHT30_init,
-    .deinitializer = unitemp_SHT30_I2C_deinit,
-    .updater = unitemp_SHT30_I2C_update};
+    .allocator = unitemp_SHT3x_I2C_alloc,
+    .mem_releaser = unitemp_SHT3x_I2C_free,
+    .initializer = unitemp_SHT3x_init,
+    .deinitializer = unitemp_SHT3x_I2C_deinit,
+    .updater = unitemp_SHT3x_I2C_update};
 const SensorModel GXHT30 = {
     .modelname = "GXHT3x",
     .altname = "GXHT30/31/35",
     .interface = &unitemp_i2c,
     .data_type = UT_DATA_TYPE_TEMP_HUM,
     .polling_interval = 1000,
-    .allocator = unitemp_SHT30_I2C_alloc,
-    .mem_releaser = unitemp_SHT30_I2C_free,
+    .allocator = unitemp_SHT3x_I2C_alloc,
+    .mem_releaser = unitemp_SHT3x_I2C_free,
     .initializer = unitemp_GXHT30_init,
-    .deinitializer = unitemp_SHT30_I2C_deinit,
-    .updater = unitemp_SHT30_I2C_update};
+    .deinitializer = unitemp_SHT3x_I2C_deinit,
+    .updater = unitemp_SHT3x_I2C_update};
 
-bool unitemp_SHT30_I2C_alloc(Sensor* sensor, char* args) {
+bool unitemp_SHT3x_I2C_alloc(Sensor* sensor, char* args) {
     UNUSED(args);
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
@@ -51,13 +51,13 @@ bool unitemp_SHT30_I2C_alloc(Sensor* sensor, char* args) {
     return true;
 }
 
-bool unitemp_SHT30_I2C_free(Sensor* sensor) {
+bool unitemp_SHT3x_I2C_free(Sensor* sensor) {
     //Nothing to release since nothing was allocated
     UNUSED(sensor);
     return true;
 }
 
-static uint8_t unitemp_SHT30_crc8(const uint8_t* data, const size_t len) {
+static uint8_t unitemp_SHT3x_crc8(const uint8_t* data, const size_t len) {
     // From Sensirion application note: polynomial 0x31, init 0xFF
     uint8_t crc = 0xFF;
 
@@ -75,7 +75,7 @@ static uint8_t unitemp_SHT30_crc8(const uint8_t* data, const size_t len) {
     return crc;
 }
 
-static bool unitemp_SHT30_readSerial(I2CSensor* i2c_sensor, uint32_t* serial) {
+static bool unitemp_SHT3x_readSerial(I2CSensor* i2c_sensor, uint32_t* serial) {
     // Read 32-bit unique serial number; does not encode the exact SHT3x variant
     uint8_t command[2] = {0x37, 0x80};
     uint8_t response[6] = {0};
@@ -84,8 +84,8 @@ static bool unitemp_SHT30_readSerial(I2CSensor* i2c_sensor, uint32_t* serial) {
     furi_delay_ms(1);
     if(!unitemp_i2c_read_array(i2c_sensor, 6, response)) return false;
 
-    if(unitemp_SHT30_crc8(response, 2) != response[2]) return false;
-    if(unitemp_SHT30_crc8(&response[3], 2) != response[5]) return false;
+    if(unitemp_SHT3x_crc8(response, 2) != response[2]) return false;
+    if(unitemp_SHT3x_crc8(&response[3], 2) != response[5]) return false;
 
     if(serial) {
         *serial = ((uint32_t)response[0] << 24) | ((uint32_t)response[1] << 16) |
@@ -95,7 +95,7 @@ static bool unitemp_SHT30_readSerial(I2CSensor* i2c_sensor, uint32_t* serial) {
     return true;
 }
 
-static bool unitemp_SHT30_startPeriodicMeasurements(I2CSensor* i2c_sensor) {
+static bool unitemp_SHT3x_startPeriodicMeasurements(I2CSensor* i2c_sensor) {
     /*
      * SHT3x devices power on in an idle state. The "fetch data" command (0xE000)
      * returns a NACK until the sensor has been switched into periodic
@@ -110,17 +110,17 @@ static bool unitemp_SHT30_startPeriodicMeasurements(I2CSensor* i2c_sensor) {
     return unitemp_i2c_write_array(i2c_sensor, 2, data);
 }
 
-bool unitemp_SHT30_init(Sensor* sensor) {
+bool unitemp_SHT3x_init(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    if(!unitemp_SHT30_startPeriodicMeasurements(i2c_sensor)) return false;
+    if(!unitemp_SHT3x_startPeriodicMeasurements(i2c_sensor)) return false;
 
     uint32_t serial = 0;
-    if(unitemp_SHT30_readSerial(i2c_sensor, &serial)) {
+    if(unitemp_SHT3x_readSerial(i2c_sensor, &serial)) {
         /*
          * Sensirion exposes a unique serial number but not a product identifier.
          * We can therefore confirm an SHT3x-family device is alive on the bus and
          * surface the serial for troubleshooting, but we cannot algorithmically
-         * distinguish SHT30 vs SHT31 vs SHT35 beyond user-provided context.
+         * distinguish SHT3x vs SHT31 vs SHT35 beyond user-provided context.
          */
         FURI_LOG_I(
             APP_NAME,
@@ -136,16 +136,16 @@ bool unitemp_SHT30_init(Sensor* sensor) {
 
 bool unitemp_GXHT30_init(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    return unitemp_SHT30_startPeriodicMeasurements(i2c_sensor);
+    return unitemp_SHT3x_startPeriodicMeasurements(i2c_sensor);
 }
 
-bool unitemp_SHT30_I2C_deinit(Sensor* sensor) {
+bool unitemp_SHT3x_I2C_deinit(Sensor* sensor) {
     //Nothing to deinitialize
     UNUSED(sensor);
     return true;
 }
 
-SensorStatus unitemp_SHT30_I2C_update(Sensor* sensor) {
+SensorStatus unitemp_SHT3x_I2C_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     //Receiving data
     uint8_t data[6] = {0xE0, 0x00};
@@ -157,7 +157,7 @@ SensorStatus unitemp_SHT30_I2C_update(Sensor* sensor) {
          * measurements here and retry once so we don't misclassify a present SHT3x as
          * disconnected after the first poll.
          */
-        if(!unitemp_SHT30_startPeriodicMeasurements(i2c_sensor)) return UT_SENSORSTATUS_TIMEOUT;
+        if(!unitemp_SHT3x_startPeriodicMeasurements(i2c_sensor)) return UT_SENSORSTATUS_TIMEOUT;
         furi_delay_ms(10);
         data[0] = 0xE0;
         data[1] = 0x00;
