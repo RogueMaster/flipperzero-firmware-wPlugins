@@ -17,6 +17,20 @@
 #define MAX_DICE 5
 #define NUM_SCORES 13
 
+#define SCORE_1 0
+#define SCORE_2 1
+#define SCORE_3 2
+#define SCORE_4 3
+#define SCORE_5 4
+#define SCORE_6 5
+#define SCORE_3_OF_A_KIND 6
+#define SCORE_4_OF_A_KIND 7
+#define SCORE_FULL_HOUSE 8
+#define SCORE_SMALL_STRAIGHT 9
+#define SCORE_LARGE_STRAIGHT 10
+#define SCORE_CHANCE 11
+#define SCORE_YATZEE 12
+
 bool new_game = true;
 bool game_over = false;
 bool bonus_added = false;
@@ -46,7 +60,7 @@ typedef struct {
     uint8_t index;
     uint8_t value;
     bool isHeld;
-} Die;
+} Dice;
 
 typedef struct {
     int index;
@@ -92,7 +106,7 @@ Cursor scoreCursor = {
 };
 
 // setup array to store dice info
-Die die[5] = {
+Dice dices[5] = {
   {.index = 0, .value = 1, .isHeld = false},
   {.index = 1, .value = 1, .isHeld = false},
   {.index = 2, .value = 1, .isHeld = false},
@@ -113,7 +127,7 @@ uint8_t totalrolls = 0;
 static uint8_t ones() {
   uint8_t sum = 0;
   for (uint8_t i = 0; i < 5; i++) {
-    if (die[i].value == 1) {
+    if (dices[i].value == 1) {
       sum++;
     }
   }
@@ -123,7 +137,7 @@ static uint8_t ones() {
 static uint8_t twos() {
   uint8_t sum = 0;
   for (uint8_t i = 0; i < 5; i++) {
-    if (die[i].value == 2) {
+    if (dices[i].value == 2) {
       sum = sum+2;
     }
   }
@@ -133,7 +147,7 @@ static uint8_t twos() {
 static uint8_t threes() {
   uint8_t sum = 0;
   for (uint8_t i = 0; i < 5; i++) {
-    if (die[i].value == 3) {
+    if (dices[i].value == 3) {
       sum = sum+3;
     }
   }
@@ -143,7 +157,7 @@ static uint8_t threes() {
 static uint8_t fours() {
   uint8_t sum = 0;
   for (uint8_t i = 0; i < 5; i++) {
-    if (die[i].value == 4) {
+    if (dices[i].value == 4) {
       sum = sum+4;
     }
   }
@@ -153,7 +167,7 @@ static uint8_t fours() {
 static uint8_t fives() {
   uint8_t sum = 0;
   for (uint8_t i = 0; i < 5; i++) {
-    if (die[i].value == 5) {
+    if (dices[i].value == 5) {
       sum = sum+5;
     }
   }
@@ -163,7 +177,7 @@ static uint8_t fives() {
 static uint8_t sixes() {
   uint8_t sum = 0;
   for (uint8_t i = 0; i < 5; i++) {
-    if (die[i].value == 6) {
+    if (dices[i].value == 6) {
       sum = sum+6;
     }
   }
@@ -185,7 +199,7 @@ static uint8_t sixes() {
 int8_t add_dice() {
   int8_t sum = 0;
   for (int8_t i=0; i<MAX_DICE; i++) {
-    sum+=die[i].value;
+    sum+=dices[i].value;
   } return sum;
 }
 
@@ -209,7 +223,7 @@ static uint8_t threekind() {
     int8_t sum = 0;
 
     for (int8_t i=0; i<MAX_DICE; i++) {
-      if (die[i].value == num) {
+      if (dices[i].value == num) {
         sum++;
       }
       if (sum > 2) {
@@ -226,7 +240,7 @@ static uint8_t fourkind() {
     int8_t sum = 0;
 
     for (int8_t i=0; i<MAX_DICE; i++) {
-      if (die[i].value == num) {
+      if (dices[i].value == num) {
         sum++;
       }
       if (sum > 3) {
@@ -238,53 +252,20 @@ static uint8_t fourkind() {
 }
 
 static uint8_t fullhouse() {
+  int8_t counts[7] = {0};
+  bool has_three = false;
+  bool has_two = false;
 
-  bool check1 = false;
-  bool check2 = false;
-  int8_t val1 = 0;
-  int8_t val2 = 0;
-  UNUSED(val2);
-  UNUSED(val1);
-
-  //check 1 for three of a kind
-  for (int8_t num=1; num<7; num++) {
-    int8_t sum = 0;
-
-    for (int8_t i=0; i<MAX_DICE; i++) {
-      if (die[i].value == num) {
-        sum++;
-      }
-      if (sum > 2) {
-        val1 = die[i].value;
-        check1 = true;
-      }
-    }
+  for (int8_t i = 0; i < MAX_DICE; i++) {
+    counts[dices[i].value]++;
   }
 
-  // return if check 1 failed
-  if (check1 == false) {
-    return 0;
+  for (int8_t i = 1; i <= 6; i++) {
+    if (counts[i] == 3) has_three = true;
+    else if (counts[i] == 2) has_two = true;
   }
 
-  // check 2 for two of a kind.
-  for (int8_t num=1; num<7; num++) {
-    if (num==val1) {continue;}
-    int8_t sum = 0;
-
-    for (int8_t i=0; i<MAX_DICE; i++) {
-      if (die[i].value == num) {
-        sum++;
-      }
-      if (sum > 1) {
-        val2 = die[i].value;
-        check2 = true;
-      }
-    }
-    if (check1 && check2) {
-      return 25;
-    }
-  }
-  return 0;
+  return (has_three && has_two) ? 25 : 0;
 }
 
 // # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -297,7 +278,7 @@ static uint8_t smallstraight() {
     int8_t frequencies[6] = {0};
 
     for (int8_t i = 0; i < 5; i++) {
-      int8_t face = die[i].value;
+      int8_t face = dices[i].value;
       frequencies[face - 1]++;
     }
 
@@ -321,7 +302,7 @@ static uint8_t largestraight() {
     int8_t frequencies[6] = {0};
 
     for (int8_t i = 0; i < 5; i++) {
-      int8_t face = die[i].value;
+      int8_t face = dices[i].value;
       frequencies[face - 1]++;
     }
 
@@ -344,17 +325,17 @@ static uint8_t chance() {
   // chance allows your roll to count for the raw number of pips showing
   int8_t sum = 0;
   for (int8_t i = 0; i<MAX_DICE; i++) {
-    sum+=die[i].value;
+    sum+=dices[i].value;
   }
   return sum;
 }
 
 static uint8_t yatzee() {
   // checks if all die.values are equal to the first die
-  int8_t val = die[0].value;
+  int8_t val = dices[0].value;
   for (int8_t i=1; i<MAX_DICE; i++) {
     // if value is the same as the first die, continue to next
-    if (die[i].value == val){
+    if (dices[i].value == val){
       continue;
     } else {
       // if any value is not equal to the first die,
@@ -380,19 +361,19 @@ static uint8_t yatzee() {
 // Scorecard defined here so that we can use pointers to the functions
 // defined above
 Score scorecard[13] = {
-  {.name = "1", .value = 0, .used = false,  .row=0, .col=0, .fn = &ones},
-  {.name = "2", .value = 0, .used = false,  .row=1, .col=0, .fn = &twos},
-  {.name = "3", .value = 0, .used = false,.row=2, .col=0, .fn = &threes},
-  {.name = "4", .value = 0, .used = false, .row=3, .col=0, .fn = &fours},
-  {.name = "5", .value = 0, .used = false, .row=0, .col=1, .fn = &fives},
-  {.name = "6", .value = 0, .used = false, .row=1, .col=1, .fn = &sixes},
+  {.name = "1",  .value = 0, .used = false, .row=0, .col=0, .fn = &ones},
+  {.name = "2",  .value = 0, .used = false, .row=1, .col=0, .fn = &twos},
+  {.name = "3",  .value = 0, .used = false, .row=2, .col=0, .fn = &threes},
+  {.name = "4",  .value = 0, .used = false, .row=3, .col=0, .fn = &fours},
+  {.name = "5",  .value = 0, .used = false, .row=0, .col=1, .fn = &fives},
+  {.name = "6",  .value = 0, .used = false, .row=1, .col=1, .fn = &sixes},
   {.name = "3k", .value = 0, .used = false, .row=2, .col=1, .fn = &threekind},
   {.name = "4k", .value = 0, .used = false, .row=3, .col=1, .fn = &fourkind},
   {.name = "Fh", .value = 0, .used = false, .row=0, .col=2, .fn = &fullhouse},
   {.name = "Sm", .value = 0, .used = false, .row=1, .col=2, .fn = &smallstraight},
   {.name = "Lg", .value = 0, .used = false, .row=2, .col=2, .fn = &largestraight},
   {.name = "Ch", .value = 0, .used = false, .row=3, .col=2, .fn = &chance},
-  {.name = "Yz", .value = 0, .used = false, .row = 2, .col = 3, .fn = &yatzee},
+  {.name = "Yz", .value = 0, .used = false, .row=2, .col=3, .fn = &yatzee},
 };
 
 
@@ -429,20 +410,20 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
       canvas_draw_line(canvas, 0, 37, 104, 37);
       canvas_draw_line(canvas, 104, 0, 104, 64);
 
-      // iterate through dice and draw icon that correlates to die[n].value, and the x,y position indicated by position[die[i].index]
+      // iterate through dice and draw icon that correlates to dices[n].value, and the x,y position indicated by position[dices[i].index]
       for (int8_t i = 0; i < 5; i++) {
-          if (die[i].value == 1) {
-              canvas_draw_icon(canvas, position[die[i].index].x % 128, position[die[i].index].y % 64, &I_die_1);
-          } else if (die[i].value == 2) {
-              canvas_draw_icon(canvas, position[die[i].index].x % 128, position[die[i].index].y % 64, &I_die_2);
-          } else if (die[i].value == 3) {
-              canvas_draw_icon(canvas, position[die[i].index].x % 128, position[die[i].index].y % 64, &I_die_3);
-          } else if (die[i].value == 4) {
-              canvas_draw_icon(canvas, position[die[i].index].x % 128, position[die[i].index].y % 64, &I_die_4);
-          } else if (die[i].value == 5) {
-              canvas_draw_icon(canvas, position[die[i].index].x % 128, position[die[i].index].y % 64, &I_die_5);
-          } else if (die[i].value == 6) {
-              canvas_draw_icon(canvas, position[die[i].index].x % 128, position[die[i].index].y % 64, &I_die_6);
+          if (dices[i].value == 1) {
+              canvas_draw_icon(canvas, position[dices[i].index].x % 128, position[dices[i].index].y % 64, &I_die_1);
+          } else if (dices[i].value == 2) {
+              canvas_draw_icon(canvas, position[dices[i].index].x % 128, position[dices[i].index].y % 64, &I_die_2);
+          } else if (dices[i].value == 3) {
+              canvas_draw_icon(canvas, position[dices[i].index].x % 128, position[dices[i].index].y % 64, &I_die_3);
+          } else if (dices[i].value == 4) {
+              canvas_draw_icon(canvas, position[dices[i].index].x % 128, position[dices[i].index].y % 64, &I_die_4);
+          } else if (dices[i].value == 5) {
+              canvas_draw_icon(canvas, position[dices[i].index].x % 128, position[dices[i].index].y % 64, &I_die_5);
+          } else if (dices[i].value == 6) {
+              canvas_draw_icon(canvas, position[dices[i].index].x % 128, position[dices[i].index].y % 64, &I_die_6);
           }
       }
 
@@ -450,10 +431,10 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
       int8_t holdOffsetX = 8;
       int8_t holdOffsetY = -5;
       for (int8_t i = 0; i < 5; i++) {
-          if (die[i].isHeld == 1) {
+          if (dices[i].isHeld == 1) {
               elements_multiline_text_aligned(
-                  canvas, position[die[i].index].x+holdOffsetX,
-                    position[die[i].index].y+holdOffsetY, AlignCenter, AlignTop, HOLD);
+                  canvas, position[dices[i].index].x+holdOffsetX,
+                    position[dices[i].index].y+holdOffsetY, AlignCenter, AlignTop, HOLD);
           }
       }
 
@@ -518,13 +499,13 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
       }
 
       // update yatzee score
-      if (scoreCursor.index == 12 && scorecard[12].used == false) {
-          int possiblescore = (int)(*scorecard[12].fn)();
+      if (scoreCursor.index == SCORE_YATZEE && scorecard[SCORE_YATZEE].used == false) {
+          int possiblescore = (int)(*scorecard[SCORE_YATZEE].fn)();
 
           snprintf(buffer, sizeof(buffer), "Yz\n%u", possiblescore);
           elements_multiline_text_aligned(canvas, 93, 10, AlignCenter, AlignTop, buffer);
       } else {
-          snprintf(buffer, sizeof(buffer), "Yz\n%ld", scorecard[12].value);
+          snprintf(buffer, sizeof(buffer), "Yz\n%ld", scorecard[SCORE_YATZEE].value);
           elements_multiline_text_aligned(canvas, 93, 10, AlignCenter, AlignTop, buffer);
       }
 
@@ -591,8 +572,8 @@ static void roll_dice() {
     totalrolls++;
     for (uint8_t i = 0; i < MAX_DICE; i++) {
         // dont reroll if the dice is being held
-        if (die[i].isHeld == false) {
-            die[i].value = 1 + rand() % 6;
+        if (dices[i].isHeld == false) {
+            dices[i].value = 1 + rand() % 6;
         }
     }
     // if 3 rolls have been used, force user to select a score.
@@ -605,48 +586,47 @@ static void clear_board() {
   // reset board after adding score
   totalrolls = 0;
   for (int8_t i=0; i < MAX_DICE; i++) {
-      die[i].isHeld = false;
+      dices[i].isHeld = false;
   }
   scoreCursor.index = -1;
   cursor.index = 0;
 }
 
 static void add_score() {
-    // return when scoring is not possible
-    if (cursor.index != -1 || totalrolls == 0 || (scorecard[scoreCursor.index].used && strcmp(scorecard[scoreCursor.index].name,"Yz")!=0)){
-        return;
+  // return when scoring is not possible
+  if (cursor.index != -1 || totalrolls == 0 || (scoreCursor.index != SCORE_YATZEE && scorecard[scoreCursor.index].used)){
+    return;
+  }
+
+  // extra yatzee scores
+  if (scoreCursor.index == SCORE_YATZEE && scorecard[scoreCursor.index].used) {
+    uint8_t yatzee_score = (*scorecard[SCORE_YATZEE].fn)();
+    scorecard[SCORE_YATZEE].value += 2*yatzee_score;
+    lowerScore+=100;
+    num_bonus_yatzees++;
+  }
+
+  // upper score
+  for (int8_t i = SCORE_1; i <= SCORE_6; i++) {
+    if (scoreCursor.index == i && scorecard[scoreCursor.index].used == false) {
+      scorecard[i].value =(*scorecard[i].fn)();
+      upperScore+=scorecard[i].value;
+      scorecard[i].used = true;
     }
+  }
 
-    // extra yatzee scores
-    if (scoreCursor.index == 12 && scorecard[scoreCursor.index].used) {
-              uint8_t yatzee_score = (*scorecard[12].fn)();
-              scorecard[12].value += 2*yatzee_score;
-              lowerScore+=100;
-              num_bonus_yatzees++;
-      }
-
-
-    // upper score
-    for (int8_t i = 0; i < 6; i++) {
-        if (scoreCursor.index == i && scorecard[scoreCursor.index].used == false) {
-            scorecard[i].value =(*scorecard[i].fn)();
-            upperScore+=scorecard[i].value;
-            scorecard[i].used = true;
-        }
+  // lower score
+  for (int8_t i = SCORE_3_OF_A_KIND; i <= SCORE_YATZEE; i++) {
+    if (scoreCursor.index == i && scorecard[scoreCursor.index].used == false) {
+      scorecard[i].value = (*scorecard[i].fn)();
+      lowerScore+=scorecard[i].value;
+      scorecard[i].used = true;
     }
+  }
 
-    // lower score
-    for (int8_t i = 6; i < 13; i++) {
-        if (scoreCursor.index == i && scorecard[scoreCursor.index].used == false) {
-            scorecard[i].value = (*scorecard[i].fn)();
-            lowerScore+=scorecard[i].value;
-            scorecard[i].used = true;
-      }
-    }
-
-    // recalculate total score
-    totalScore = lowerScore + upperScore;
-    clear_board();
+  // recalculate total score
+  totalScore = lowerScore + upperScore;
+  clear_board();
 }
 
 
@@ -752,10 +732,10 @@ int32_t yatzee_main(void* p) {
                         if (cursor.index == -1 || totalrolls == 0) {
                             break;
                         }
-                        if (die[cursor.index].isHeld == false) {
-                            die[cursor.index].isHeld = true;
+                        if (dices[cursor.index].isHeld == false) {
+                            dices[cursor.index].isHeld = true;
                         } else {
-                            die[cursor.index].isHeld = false;
+                            dices[cursor.index].isHeld = false;
                         }
                       break;
                     default:
