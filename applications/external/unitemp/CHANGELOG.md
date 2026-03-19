@@ -8,10 +8,9 @@ New Features and Sensors
 - When the application is first launched, units of measurement are automatically selected based on the system's localization settings.
 - Added units of measurement when displaying dew point temperature. 
 - Added 5V power management setting.
-- Added support for the HDC2080 sensor.
-- Added support for the SHT40/41/45 sensors.
+- Added support for the HDC2080, TMP102, SHTC3, SHT40/41/45 sensors.
+#### General
 
-General
 - Sensor configuration and save files have been moved to apps_data. Saved sensors from the previous version of the app will automatically migrate to the new location.
 - Fixed temperature index calculation. It is now only calculated for temperatures above 21°C (70°F).
 - Temporarily removed SCD40/41 calibration
