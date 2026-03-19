@@ -337,21 +337,19 @@ static bool suica_help_with_octopus(const FelicaSystem* suica_system, FuriString
             uint16_t unsigned_balance = ((uint16_t)public_block->block.data[2] << 8) |
                                         (uint16_t)public_block->block.data[3]; // 0x0000..0xFFFF
 
-            int32_t older_balance_ten_cents = (int32_t)unsigned_balance - 350;
-            int32_t newer_balance_ten_cents = (int32_t)unsigned_balance - 500;
+            int32_t older_balance_cents = (int32_t)unsigned_balance - 350;
+            int32_t newer_balance_cents = (int32_t)unsigned_balance - 500;
 
-            uint16_t older_abs_ten_cents = (uint16_t)(older_balance_ten_cents < 0 ?
-                                                          -older_balance_ten_cents :
-                                                          older_balance_ten_cents);
-            uint16_t newer_abs_ten_cents = (uint16_t)(newer_balance_ten_cents < 0 ?
-                                                          -newer_balance_ten_cents :
-                                                          newer_balance_ten_cents);
+            uint16_t older_abs_cents =
+                (uint16_t)(older_balance_cents < 0 ? -older_balance_cents : older_balance_cents);
+            uint16_t newer_abs_cents =
+                (uint16_t)(newer_balance_cents < 0 ? -newer_balance_cents : newer_balance_cents);
 
-            uint16_t older_dollars = (uint16_t)(older_abs_ten_cents / 10);
-            uint8_t older_cents = (uint8_t)((older_abs_ten_cents % 10) * 10);
+            uint16_t older_dollars = (uint16_t)(older_abs_cents / 100);
+            uint8_t older_cents = (uint8_t)(older_abs_cents % 100);
 
-            uint16_t newer_dollars = (uint16_t)(newer_abs_ten_cents / 10);
-            uint8_t newer_cents = (uint8_t)((newer_abs_ten_cents % 10) * 10);
+            uint16_t newer_dollars = (uint16_t)(newer_abs_cents / 100);
+            uint8_t newer_cents = (uint8_t)(newer_abs_cents % 100);
             furi_string_printf(parsed_data, "\e#Octopus Card\n");
             furi_string_cat_str(
                 parsed_data, "::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n");
@@ -361,7 +359,7 @@ static bool suica_help_with_octopus(const FelicaSystem* suica_system, FuriString
             furi_string_cat_printf(
                 parsed_data,
                 "Balance: %sHK$ %d.%02d\n",
-                older_balance_ten_cents < 0 ? "-" : "",
+                older_balance_cents < 0 ? "-" : "",
                 older_dollars,
                 older_cents);
 
@@ -373,7 +371,7 @@ static bool suica_help_with_octopus(const FelicaSystem* suica_system, FuriString
             furi_string_cat_printf(
                 parsed_data,
                 "Balance: %sHK$ %d.%02d\n",
-                newer_balance_ten_cents < 0 ? "-" : "",
+                newer_balance_cents < 0 ? "-" : "",
                 newer_dollars,
                 newer_cents);
 
@@ -401,17 +399,18 @@ static void suica_parse_detail_callback(GuiButtonType result, InputType type, vo
 static NfcCommand suica_poller_callback(NfcGenericEvent event, void* context) {
     furi_assert(event.protocol == NfcProtocolFelica);
     NfcCommand command = NfcCommandContinue;
+    // MetroflipPollerEventType stage = MetroflipPollerEventTypeStart;
+
     Metroflip* app = context;
+    FuriString* parsed_data = furi_string_alloc();
+    SuicaHistoryViewModel* model = view_get_model(app->suica_context->view_history);
+
+    Widget* widget = app->widget;
+
     const FelicaPollerEvent* felica_event = event.event_data;
     FURI_LOG_I(TAG, "Felica event: %d", felica_event->type);
-
-    felica_event->data->auth_context->skip_auth = true;
-
-    if(felica_event->type == FelicaPollerEventTypeReady) {
-        SuicaHistoryViewModel* model = view_get_model(app->suica_context->view_history);
-        Widget* widget = app->widget;
-        FuriString* parsed_data = furi_string_alloc();
-
+    if(felica_event->type == FelicaPollerEventTypeReady ||
+       felica_event->type == FelicaPollerEventTypeIncomplete) {
         dolphin_deed(DolphinDeedNfcRead);
 
         FURI_LOG_I(TAG, "Read complete");
@@ -443,7 +442,6 @@ static NfcCommand suica_poller_callback(NfcGenericEvent event, void* context) {
             if(suica_found) {
                 FelicaSystem* suica_system =
                     simple_array_get(felica_data->systems, suica_system_index);
-                furi_string_printf(parsed_data, "\e#Japan Transit IC\n");
                 suica_model_pack_data(model, suica_system, parsed_data);
                 break;
             } else if(octopus_found) {
@@ -471,8 +469,9 @@ static NfcCommand suica_poller_callback(NfcGenericEvent event, void* context) {
             widget, GuiButtonTypeLeft, "Save", metroflip_save_widget_callback, app);
 
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        furi_string_free(parsed_data);
     }
+    furi_string_free(parsed_data);
+    command = NfcCommandStop;
     return command;
 }
 
@@ -609,7 +608,6 @@ static void suica_on_enter(Metroflip* app) {
                     if(suica_found) {
                         FelicaSystem* suica_system =
                             simple_array_get(felica_data->systems, suica_system_index);
-                        furi_string_printf(parsed_data, "\e#Japan Transit IC\n\n");
                         suica_model_pack_data(model, suica_system, parsed_data);
                         break;
                     } else if(octopus_found) {
