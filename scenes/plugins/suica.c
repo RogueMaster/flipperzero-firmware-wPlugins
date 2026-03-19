@@ -28,7 +28,9 @@
 
 // Probably not needed after upstream include this in their suica_i.h
 
-#define TAG "Metroflip:Scene:Suica"
+#define TAG                  "Metroflip:Scene:Suica"
+#define JAPAN_IC_SYSTEM_CODE 0x0003
+#define OCTOPUS_SYSTEM_CODE  0x8008
 
 const char* suica_service_names[] = {
     "Travel History",
@@ -307,13 +309,13 @@ static void suica_parse(SuicaHistoryViewModel* my_model) {
 
 static bool suica_model_pack_data(
     SuicaHistoryViewModel* model,
-    const FelicaData* felica_data,
+    const FelicaSystem* suica_system,
     FuriString* parsed_data) {
-    uint32_t public_block_count = simple_array_get_count(felica_data->public_blocks);
+    uint32_t public_block_count = simple_array_get_count(suica_system->public_blocks);
     bool found = false;
     furi_string_printf(parsed_data, "\e#Japan Transit IC\n\n");
     for(uint16_t i = 0; i < public_block_count; i++) {
-        FelicaPublicBlock* public_block = simple_array_get(felica_data->public_blocks, i);
+        FelicaPublicBlock* public_block = simple_array_get(suica_system->public_blocks, i);
         if(public_block->service_code == SERVICE_CODE_HISTORY_IN_LE) {
             suica_add_entry(model, public_block->block.data);
             furi_string_cat_printf(parsed_data, "Log %02X: ", i);
@@ -327,10 +329,10 @@ static bool suica_model_pack_data(
     return found;
 }
 
-static bool suica_help_with_octopus(const FelicaData* felica_data, FuriString* parsed_data) {
+static bool suica_help_with_octopus(const FelicaSystem* suica_system, FuriString* parsed_data) {
     bool found = false;
-    for(uint16_t i = 0; i < simple_array_get_count(felica_data->public_blocks); i++) {
-        FelicaPublicBlock* public_block = simple_array_get(felica_data->public_blocks, i);
+    for(uint16_t i = 0; i < simple_array_get_count(suica_system->public_blocks); i++) {
+        FelicaPublicBlock* public_block = simple_array_get(suica_system->public_blocks, i);
         if(public_block->service_code == SERVICE_CODE_OCTOPUS_IN_LE) {
             uint16_t unsigned_balance = ((uint16_t)public_block->block.data[2] << 8) |
                                         (uint16_t)public_block->block.data[3]; // 0x0000..0xFFFF
@@ -420,17 +422,38 @@ static NfcCommand suica_poller_callback(NfcGenericEvent event, void* context) {
 
         metroflip_app_blink_stop(app);
 
-        bool suica_found = suica_model_pack_data(model, felica_data, parsed_data);
+        uint32_t system_count = simple_array_get_count(felica_data->systems);
+        bool suica_found = false;
+        bool octopus_found = false;
+        uint8_t suica_system_index = 0;
+        uint8_t octopus_system_index = 0;
+        for(uint8_t i = 0; i < system_count; i++) {
+            FelicaSystem* system = simple_array_get(felica_data->systems, i);
+            if(system->system_code == JAPAN_IC_SYSTEM_CODE) {
+                suica_found = true;
+                suica_system_index = i;
+            } else if(system->system_code == OCTOPUS_SYSTEM_CODE) {
+                octopus_found = true;
+                octopus_system_index = i;
+            }
+        }
 
         do {
-            if(suica_found) break;
-
-            bool octopus_found = suica_help_with_octopus(felica_data, parsed_data);
-            if(octopus_found) break;
-
-            furi_string_printf(
-                parsed_data,
-                "\e#FeliCa\nSorry, unrecorded service code.\nPlease let the developers know and we will add support.");
+            if(suica_found) {
+                FelicaSystem* suica_system =
+                    simple_array_get(felica_data->systems, suica_system_index);
+                suica_model_pack_data(model, suica_system, parsed_data);
+                break;
+            } else if(octopus_found) {
+                FelicaSystem* octopus_system =
+                    simple_array_get(felica_data->systems, octopus_system_index);
+                suica_help_with_octopus(octopus_system, parsed_data);
+                break;
+            } else {
+                furi_string_printf(
+                    parsed_data,
+                    "\e#FeliCa\nSorry, unrecorded service code.\nPlease let the developers know and we will add support.");
+            }
         } while(false);
 
         widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
@@ -566,11 +589,33 @@ static void suica_on_enter(Metroflip* app) {
             bool suica_found = false;
             do {
                 if(is_stock_nfc_file) { // loading from stock NFC file (API 87.0+)
-                    suica_found = suica_model_pack_data(model, felica_data, parsed_data);
-                    if(suica_found) break;
+                    FURI_LOG_I(TAG, "Loading from stock NFC file");
+                    uint32_t system_count = simple_array_get_count(felica_data->systems);
+                    bool octopus_found = false;
+                    uint8_t suica_system_index = 0;
+                    uint8_t octopus_system_index = 0;
+                    for(uint8_t i = 0; i < system_count; i++) {
+                        FelicaSystem* system = simple_array_get(felica_data->systems, i);
+                        if(system->system_code == JAPAN_IC_SYSTEM_CODE) {
+                            suica_found = true;
+                            suica_system_index = i;
+                        } else if(system->system_code == OCTOPUS_SYSTEM_CODE) {
+                            octopus_found = true;
+                            octopus_system_index = i;
+                        }
+                    }
 
-                    bool octopus_found = suica_help_with_octopus(felica_data, parsed_data);
-                    if(octopus_found) break;
+                    if(suica_found) {
+                        FelicaSystem* suica_system =
+                            simple_array_get(felica_data->systems, suica_system_index);
+                        suica_model_pack_data(model, suica_system, parsed_data);
+                        break;
+                    } else if(octopus_found) {
+                        FelicaSystem* octopus_system =
+                            simple_array_get(felica_data->systems, octopus_system_index);
+                        suica_help_with_octopus(octopus_system, parsed_data);
+                        break;
+                    }
                 } else { // loading from legacy saved file (pre API 87.0)
                     suica_found = true;
                     furi_string_printf(parsed_data, "\e#Japan Transit IC\n\n");

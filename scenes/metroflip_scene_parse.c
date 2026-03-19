@@ -63,6 +63,10 @@ bool metroflip_scene_parse_on_event(void* context, SceneManagerEvent event) {
             FURI_LOG_I(TAG, "Wrong card event received - switching to unknown scene");
             scene_manager_next_scene(app->scene_manager, MetroflipSceneUnknown);
             return true;
+        } else if(event.event == MetroflipCustomEventAtrComplete) {
+            FURI_LOG_I(TAG, "ATR complete - re-entering parse scene");
+            scene_manager_next_scene(app->scene_manager, MetroflipSceneParse);
+            return true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         FURI_LOG_I(TAG, "Back event received - returning to start");

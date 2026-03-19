@@ -68,7 +68,8 @@ static bool atr_on_event(Metroflip* app, SceneManagerEvent event) {
                 memcpy(app->hist_bytes, hist_bytes, MIN(hist_bytes_count, sizeof(app->hist_bytes)));
                 app->hist_bytes_count = MIN(hist_bytes_count, sizeof(app->hist_bytes));
             }
-            scene_manager_next_scene(app->scene_manager, MetroflipSceneParse);
+            view_dispatcher_send_custom_event(
+                app->view_dispatcher, MetroflipCustomEventAtrComplete);
             consumed = true;
         } else if(event.event == MetroflipPollerEventTypeCardDetect) {
             Popup* popup = app->popup;
@@ -102,6 +103,7 @@ static void atr_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

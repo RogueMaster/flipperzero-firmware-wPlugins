@@ -134,7 +134,8 @@ enum MetroflipCustomEvent {
 
     MetroflipCustomEventCardLost,
     MetroflipCustomEventCardDetected,
-    MetroflipCustomEventWrongCard
+    MetroflipCustomEventWrongCard,
+    MetroflipCustomEventAtrComplete,
 };
 
 typedef enum {

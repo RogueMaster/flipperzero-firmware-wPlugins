@@ -14,6 +14,16 @@
 #define TAG "Metroflip:Scene:T-Mobilitat"
 
 
+static void tmobilitat_get_control_chars(uint32_t number, char* out) {
+    const char* table = "TRWAGMYFPDXBNJZSQVHLCKE";
+    uint32_t r = number % 23;
+    uint32_t q = number / 23;
+    uint32_t first = (q + r + 1) % 23;
+    out[0] = table[first];
+    out[1] = table[r];
+    out[2] = '\0';
+}
+
 static bool tmobilitat_parse(FuriString* parsed_data, Metroflip* app) {
     bool parsed = false;
 
@@ -28,18 +38,26 @@ static bool tmobilitat_parse(FuriString* parsed_data, Metroflip* app) {
         const uint8_t* last4 = app->hist_bytes + (app->hist_bytes_count - 4);
 
         // Convert to 32-bit unsigned integer (big-endian)
-        uint32_t card_number_decimal = 
+        uint32_t card_number =
             (last4[0] << 24) |
             (last4[1] << 16) |
             (last4[2] << 8)  |
             (last4[3]);
 
-        FURI_LOG_I(TAG, "Card number: %lu", (unsigned long)card_number_decimal);
+        char control[3];
+        tmobilitat_get_control_chars(card_number, control);
+
+        // Format as 9 digits with leading zeros, grouped as XXX XXX XXX
+        uint32_t hi = card_number / 1000000;
+        uint32_t mid = (card_number / 1000) % 1000;
+        uint32_t lo = card_number % 1000;
+
+        FURI_LOG_I(TAG, "Card number: %03lu %03lu %03lu%s",
+            (unsigned long)hi, (unsigned long)mid, (unsigned long)lo, control);
         furi_string_printf(
-                parsed_data,
-                "\e#T-Mobilitat\nCard number: %lu",
-                (unsigned long)card_number_decimal
-            );
+            parsed_data,
+            "\e#T-Mobilitat\nCard number:\n%03lu %03lu %03lu%s",
+            (unsigned long)hi, (unsigned long)mid, (unsigned long)lo, control);
         parsed = true;
     } while(false);
 
@@ -84,12 +102,6 @@ static bool tmobilitat_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void tmobilitat_on_exit(Metroflip* app) {
     widget_reset(app->widget);
-    // Clear view
-    popup_reset(app->popup);
-    if(app->poller && !app->data_loaded) {
-        nfc_poller_stop(app->poller);
-        nfc_poller_free(app->poller);
-    }
 }
 
 /* Actual implementation of app<>plugin interface */
