@@ -15,6 +15,7 @@ static VariableItem* led_notify_item;
 static VariableItem* sound_notify_item;
 static VariableItem* sound_volume_item;
 static VariableItem* debug_mode_item;
+static VariableItem* show_status_item;
 static char volume_buf[4];
 
 #define VIEW_ID ViewSettings
@@ -34,6 +35,7 @@ static uint32_t _exit_callback(void* context) {
     app->settings.sound_notify           = (bool)variable_item_get_current_value_index(sound_notify_item);
     app->settings.sound_volume           = (uint8_t)(variable_item_get_current_value_index(sound_volume_item) + 1);
     app->settings.debug_mode             = (bool)variable_item_get_current_value_index(debug_mode_item);
+    app->settings.show_status            = (bool)variable_item_get_current_value_index(show_status_item);
     unitemp_saveSettings();
     unitemp_loadSettings();
     return ViewMainMenu;
@@ -65,6 +67,11 @@ static void _debug_mode_change(VariableItem* item) {
         item, onoff_states[variable_item_get_current_value_index(item)]);
 }
 
+static void _show_status_change(VariableItem* item) {
+    variable_item_set_current_value_text(
+        item, onoff_states[variable_item_get_current_value_index(item)]);
+}
+
 void view_settings_alloc(void) {
     variable_item_list = variable_item_list_alloc();
     variable_item_list_reset(variable_item_list);
@@ -83,6 +90,9 @@ void view_settings_alloc(void) {
 
     debug_mode_item = variable_item_list_add(
         variable_item_list, "Debug Mode", 2, _debug_mode_change, app);
+
+    show_status_item = variable_item_list_add(
+        variable_item_list, "Clock/Battery", 2, _show_status_change, app);
 
     view = variable_item_list_get_view(variable_item_list);
     view_set_previous_callback(view, _exit_callback);
@@ -112,6 +122,10 @@ void view_settings_switch(void) {
     variable_item_set_current_value_index(debug_mode_item, (uint8_t)app->settings.debug_mode);
     variable_item_set_current_value_text(
         debug_mode_item, onoff_states[variable_item_get_current_value_index(debug_mode_item)]);
+
+    variable_item_set_current_value_index(show_status_item, (uint8_t)app->settings.show_status);
+    variable_item_set_current_value_text(
+        show_status_item, onoff_states[variable_item_get_current_value_index(show_status_item)]);
 
     variable_item_list_set_selected_item(variable_item_list, 0);
     view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_ID);

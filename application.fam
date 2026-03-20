@@ -9,6 +9,6 @@ App(
     fap_icon="air_stats_10.png",
     fap_icon_assets="images",
     fap_description="CO2 + temperature/humidity/pressure monitor with MH-Z19 and BME280",
-    fap_version=(0, 1),
+    fap_version=(1, 0),
     fap_author="ivatikhonov",
 )

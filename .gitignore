@@ -8,3 +8,4 @@ dist/
 # Editor/IDE
 .idea/
 .vscode/
+/.mcp.json

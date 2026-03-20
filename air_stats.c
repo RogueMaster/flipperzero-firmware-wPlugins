@@ -84,6 +84,7 @@ bool unitemp_saveSettings(void) {
     stream_write_format(app->file_stream, "CO2_ALERT_THRESHOLD %d\n", app->settings.co2_alert_threshold);
     stream_write_format(app->file_stream, "CO2_PWM_RANGE %d\n",       app->settings.co2_pwm_range);
     stream_write_format(app->file_stream, "DEBUG_MODE %d\n",          app->settings.debug_mode);
+    stream_write_format(app->file_stream, "SHOW_STATUS %d\n",         app->settings.show_status);
     file_stream_close(app->file_stream);
     stream_free(app->file_stream);
     furi_string_free(filepath);
@@ -174,6 +175,9 @@ bool unitemp_loadSettings(void) {
         } else if(!strcmp(key, "DEBUG_MODE")) {
             sscanf((char*)(file_buf + line_end), "\nDEBUG_MODE %d", &p);
             app->settings.debug_mode = (bool)p;
+        } else if(!strcmp(key, "SHOW_STATUS")) {
+            sscanf((char*)(file_buf + line_end), "\nSHOW_STATUS %d", &p);
+            app->settings.show_status = (bool)p;
         }
         line_end = furi_string_search_char(file, '\n', line_end + 1);
     }
@@ -232,6 +236,7 @@ int32_t air_stats_main(void* p) {
     app->settings.co2_alert_threshold = 1000;
     app->settings.co2_pwm_range       = 5000;
     app->settings.debug_mode          = false;
+    app->settings.show_status         = true;
 
     /* Load settings from SD (creates defaults if missing) */
     unitemp_loadSettings();

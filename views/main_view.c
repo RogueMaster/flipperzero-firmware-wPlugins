@@ -5,6 +5,8 @@
  */
 #include "../air_stats_i.h"
 #include <gui/elements.h>
+#include <furi_hal_rtc.h>
+#include <furi_hal_power.h>
 
 static View* view;
 
@@ -162,6 +164,19 @@ static void draw_callback(Canvas* canvas, void* context) {
             (long)co2_sensor->dbg_ppm_raw,
             (long)co2_sensor->dbg_th, (long)co2_sensor->dbg_tl);
         canvas_draw_str_aligned(canvas, 0, 7, AlignLeft, AlignBottom, buf);
+    }
+
+    /* Clock + battery (top corners, if enabled) */
+    if(app->settings.show_status) {
+        DateTime dt;
+        furi_hal_rtc_get_datetime(&dt);
+        canvas_set_font(canvas, FontSecondary);
+        snprintf(buf, sizeof(buf), "%02d:%02d", dt.hour, dt.minute);
+        canvas_draw_str_aligned(canvas, 0, 7, AlignLeft, AlignBottom, buf);
+
+        uint8_t pct = furi_hal_power_get_pct();
+        snprintf(buf, sizeof(buf), "%d%%", pct);
+        canvas_draw_str_aligned(canvas, SCREEN_W, 7, AlignRight, AlignBottom, buf);
     }
 }
 

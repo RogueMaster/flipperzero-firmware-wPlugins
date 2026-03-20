@@ -70,6 +70,7 @@ typedef struct {
     uint16_t co2_alert_threshold;
     uint16_t co2_pwm_range;        /* PWM range: 2000..10000, step 1000 */
     bool     debug_mode;
+    bool     show_status;           /* show clock + battery on main screen */
 } AppSettings;
 
 /* ---- Sensor types and interfaces (provides Sensor, SensorType, GPIO etc.) ---- */
