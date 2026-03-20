@@ -1,0 +1,13 @@
+App(
+    appid="rs41_tracker",
+    name="RS41 Tracker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="rs41_app",
+    requires=["gui", "notification"],
+    stack_size=4 * 1024,
+    fap_category="Sub-GHz",
+    fap_description="RS41 radiosonde receiver & decoder",
+    fap_author="OK1CHP",
+    fap_version="1.1",
+    fap_icon="rs41_tracker.png",
+)
