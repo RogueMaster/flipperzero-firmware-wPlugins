@@ -1,3 +1,12 @@
+v1.4:
+- Feature: favorites system — mark themes with * prefix, grouped at top of menu
+- Feature: animated preview — up to 4 frames cycling on Info screen
+- Feature: reboot countdown timer (5 sec auto-reboot after apply/restore)
+- Feature: SD card status check on startup with error dialog
+- Improve: favorite toggle via Up key on Info screen
+- Improve: preview timer stops when leaving Info view (no resource leak)
+- Refactor: reboot dialog replaced with custom View + FuriTimer
+
 v1.3:
 - Refactor: unified ThemeEntry struct (replaces 3 separate arrays)
 - Feature: themes sorted alphabetically (case-insensitive)
