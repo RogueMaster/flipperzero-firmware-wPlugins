@@ -9,7 +9,8 @@
 
 #include <nfc/protocols/iso14443_4b/iso14443_4b_poller.h>
 
-#define TAG "Metroflip:Scene:Calypso"
+#define TAG                   "Metroflip:Scene:Calypso"
+#define CALYPSO_BIT_REPR_SIZE (29 * 8 + 1)
 
 bool beginning = true;
 
@@ -562,7 +563,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                     break;
                 }
 
-                char icc_bit_representation[response_length * 8 + 1];
+                char icc_bit_representation[CALYPSO_BIT_REPR_SIZE];
                 icc_bit_representation[0] = '\0';
                 for(size_t i = 0; i < response_length; i++) {
                     char bits[9];
@@ -615,7 +616,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                 if(check_response(rx_buffer, app, &stage, &response_length) != 0) {
                     break;
                 }
-                char environment_bit_representation[response_length * 8 + 1];
+                char environment_bit_representation[CALYPSO_BIT_REPR_SIZE];
                 environment_bit_representation[0] = '\0';
                 for(size_t i = 0; i < response_length; i++) {
                     char bits[9];
@@ -747,7 +748,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                             break;
                         }
 
-                        char bit_representation[response_length * 8 + 1];
+                        char bit_representation[CALYPSO_BIT_REPR_SIZE];
                         bit_representation[0] = '\0';
                         for(size_t i = 0; i < response_length; i++) {
                             char bits[9];
@@ -1014,7 +1015,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                         break;
                     }
 
-                    char counter_bit_representation[response_length * 8 + 1];
+                    char counter_bit_representation[CALYPSO_BIT_REPR_SIZE];
                     counter_bit_representation[0] = '\0';
                     for(size_t i = 0; i < response_length; i++) {
                         char bits[9];
@@ -1083,7 +1084,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                             break;
                         }
 
-                        char event_bit_representation[response_length * 8 + 1];
+                        char event_bit_representation[CALYPSO_BIT_REPR_SIZE];
                         event_bit_representation[0] = '\0';
                         for(size_t i = 0; i < response_length; i++) {
                             char bits[9];
@@ -1286,7 +1287,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                             break;
                         }
 
-                        char event_bit_representation[response_length * 8 + 1];
+                        char event_bit_representation[CALYPSO_BIT_REPR_SIZE];
                         event_bit_representation[0] = '\0';
                         for(size_t i = 0; i < response_length; i++) {
                             char bits[9];
@@ -1567,7 +1568,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                             break;
                         }
 
-                        char bit_representation[response_length * 8 + 1];
+                        char bit_representation[CALYPSO_BIT_REPR_SIZE];
                         bit_representation[0] = '\0';
                         for(size_t i = 0; i < response_length; i++) {
                             char bits[9];
@@ -1769,7 +1770,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                             break;
                         }
 
-                        char event_bit_representation[response_length * 8 + 1];
+                        char event_bit_representation[CALYPSO_BIT_REPR_SIZE];
                         event_bit_representation[0] = '\0';
                         for(size_t i = 0; i < response_length; i++) {
                             char bits[9];
@@ -2044,7 +2045,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                                 break;
                             }
 
-                            char bit_representation[response_length * 8 + 1];
+                            char bit_representation[CALYPSO_BIT_REPR_SIZE];
                             bit_representation[0] = '\0';
                             for(size_t i = 0; i < response_length; i++) {
                                 char bits[9];
@@ -2295,7 +2296,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                             break;
                         }
 
-                        char env_bit_representation[response_length * 8 + 1];
+                        char env_bit_representation[CALYPSO_BIT_REPR_SIZE];
                         env_bit_representation[0] = '\0';
                         for(size_t i = 0; i < response_length; i++) {
                             char bits[9];
@@ -2426,7 +2427,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                                 break;
                             }
 
-                            char event_bit_representation[response_length * 8 + 1];
+                            char event_bit_representation[CALYPSO_BIT_REPR_SIZE];
                             event_bit_representation[0] = '\0';
                             for(size_t i = 0; i < response_length; i++) {
                                 char bits[9];
@@ -2642,6 +2643,12 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                     widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
                 CalypsoContext* context = malloc(sizeof(CalypsoContext));
+                if(!context) {
+                    stage = MetroflipPollerEventTypeFail;
+                    view_dispatcher_send_custom_event(
+                        app->view_dispatcher, MetroflipCustomEventPollerFail);
+                    break;
+                }
                 context->card = card;
                 context->page_id = 0;
                 context->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
@@ -2738,6 +2745,7 @@ static void calypso_on_exit(Metroflip* app) {
     if(app->poller) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
     metroflip_app_blink_stop(app);
     widget_reset(app->widget);

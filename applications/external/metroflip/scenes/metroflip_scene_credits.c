@@ -23,19 +23,25 @@ void metroflip_scene_credits_on_enter(void* context) {
     furi_string_cat_printf(str, "CharlieCard Parser:\nzacharyweiss\n\n");
     furi_string_cat_printf(str, "Clipper Parser:\nke6jjj\n\n");
     furi_string_cat_printf(str, "ITSO Parser:\ngsp8181, hedger, gornekich\n\n");
-    furi_string_cat_printf(str, "Intertic Parser:\nluu176");
+    furi_string_cat_printf(str, "Go Card Parser:\nluu176\n\n");
+    furi_string_cat_printf(str, "Intertic Parser:\nluu176, gentilkiwi\n\n");
     furi_string_cat_printf(str, "Metromoney Parser:\nLeptopt1los\n\n");
     furi_string_cat_printf(str, "myki Parser:\ngornekich\n\n");
-    furi_string_cat_printf(str, "Navigo Parser:\nluu176, DocSystem \n\n");
+    furi_string_cat_printf(str, "Navigo Parser:\nluu176, DocSystem\n\n");
+    furi_string_cat_printf(str, "nol Parser:\nzinongli\n\n");
+    furi_string_cat_printf(str, "Octopus Parser:\nzinongli\n\n");
     furi_string_cat_printf(str, "Opal Parser:\ngornekich\n\n");
     furi_string_cat_printf(str, "Opus Parser:\nDocSystem\n\n");
     furi_string_cat_printf(str, "Rav-Kav Parser:\nluu176\n\n");
     furi_string_cat_printf(str, "RENFE Parser:\nBocamoCM\n\n");
-    furi_string_cat_printf(str, "Japan Transit IC Parser:\nzinongli\n\n");
+    furi_string_cat_printf(str, "SmartRider Parser:\nluu176\n\n");
+    furi_string_cat_printf(str, "Suica Parser:\nzinongli\n\n");
+    furi_string_cat_printf(str, "T-Mobilitat Parser:\nluu176\n\n");
+    furi_string_cat_printf(str, "T-Money Parser:\nJustus Perlwitz\n\n");
     furi_string_cat_printf(str, "Troika Parser:\ngornekich\n\n");
-    furi_string_cat_printf(str, "TRT Parser:\nluu176, zinongli");
-    furi_string_cat_printf(str, "Octopus Parser:\nzinongli\n\n");
-    furi_string_cat_printf(str, "nol Parser:\nzinongli\n\n");
+    furi_string_cat_printf(str, "TRT Parser:\nluu176, zinongli\n\n");
+    furi_string_cat_printf(str, "\e#v1.1 Fixes:\n\n");
+    furi_string_cat_printf(str, "Memory Safety:\nFatherDivine\n\n");
 
     widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(str));
 

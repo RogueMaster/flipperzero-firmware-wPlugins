@@ -13,7 +13,7 @@ void metroflip_scene_about_on_enter(void* context) {
 
     FuriString* str = furi_string_alloc();
 
-    furi_string_printf(str, "\e#About (Ver: 1.0):\n\n");
+    furi_string_printf(str, "\e#About (Ver: 1.1):\n\n");
     furi_string_cat_printf(
         str,
         "Metroflip is a multi-protocol metro card reader app for the Flipper Zero, created by luu176, inspired by the Metrodroid project. It enables the parsing and analysis of metro cards from transit systems around the world, providing a proof-of-concept for exploring transit card data in a portable format.");

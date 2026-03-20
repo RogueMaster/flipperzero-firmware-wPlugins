@@ -72,21 +72,23 @@ This is a list of metro cards and transit systems that need support or have part
 | **Bip!**           | 🇨🇱 Santiago de Chile, Chile                  | MIFARE Classic    |
 | **Charliecard**    | 🇺🇸 Boston, MA, USA                           | MIFARE Classic    |
 | **Clipper**        | 🇺🇸 San Francisco, CA, USA                    | MIFARE DESFire    |
+| **Go Card**        | 🇦🇺 Gold Coast, QLD, Australia                | MIFARE Classic    |
 | **Intertic**       | 🇫🇷 France, About 21 Cities / Companies       | ST25TB            |
 | **ITSO**           | 🇬🇧 United Kingdom                            | MIFARE DESFire    |
 | **Metromoney**     | 🇬🇪 Tbilisi, Georgia                          | MIFARE Classic    |
 | **myki**           | 🇦🇺 Melbourne (and surrounds), VIC, Australia | MIFARE DESFire    |
 | **Navigo**         | 🇫🇷 Paris, France                             | Calypso           |
+| **nol**            | 🇦🇪 Dubai, UAE                                | MIFARE DESFire    |
+| **Octopus**        | 🇭🇰 Hong Kong                                 | FeliCa            |
 | **Opal**           | 🇦🇺 Sydney (and surrounds), NSW, Australia    | MIFARE DESFire    |
 | **Opus**           | 🇨🇦 Montreal, QC, Canada                      | Calypso           |
 | **Rav-Kav**        | 🇮🇱 Israel                                    | Calypso           |
 | **RENFE**          | 🇪🇸 Spain                                     | MIFARE Classic    |
 | **SmartRider**     | 🇦🇺 Perth, WA, Australia                      | MIFARE Classic    |
 | **Suica**          | 🇯🇵 Japan                                     | FeliCa            |
+| **T-Mobilitat**    | 🇪🇸 Barcelona, Spain                          | ISO 14443-4A      |
 | **Troika**         | 🇷🇺 Moscow, Russia                            | MIFARE Classic    |
 | **Trt**            | 🇨🇳 Tianjin, China                            | MIFARE Ultralight |
-| **Octopus**        | 🇭🇰 Hong Kong                                 | FeliCa            |
-| **nol**            | 🇦🇪 Dubai, UAE                                | MIFARE DESFire    |
 
 
 
@@ -98,20 +100,25 @@ This is a list of metro cards and transit systems that need support or have part
 - **Bip! Parser:** [@rbasoalto](https://github.com/rbasoalto), [@gornekich](https://github.com/gornekich)
 - **Charliecard Parser:** [@zacharyweiss](https://github.com/zacharyweiss)
 - **Clipper Parser:** [@ke6jjj](https://github.com/ke6jjj)
+- **Go Card Parser:** [@luu176](https://github.com/luu176)
 - **Intertic Parser (21 Cities):** [@luu176](https://github.com/luu176), [@gentilkiwi](https://github.com/gentilkiwi)
 - **ITSO Parser:** [@gsp8181](https://github.com/gsp8181), [@hedger](https://github.com/hedger), [@gornekich](https://github.com/gornekich)
 - **Metromoney Parser:** [@Leptopt1los](https://github.com/Leptopt1los)
 - **myki Parser:** [@gornekich](https://github.com/gornekich)
 - **Navigo Parser:** [@luu176](https://github.com/luu176), [@DocSystem](https://github.com/docsystem)
+- **nol Parser:** [@zinongli](https://github.com/zinongli)
+- **Octopus Parser:** [@zinongli](https://github.com/zinongli)
 - **Opal Parser:** [@gornekich](https://github.com/gornekich)
 - **Opus Parser:** [@DocSystem](https://github.com/docsystem)
 - **Rav-Kav Parser:** [@luu176](https://github.com/luu176)
 - **RENFE Parser:** [@BocamoCM](https://github.com/BocamoCM)
+- **SmartRider Parser:** [@luu176](https://github.com/luu176)
 - **Suica Parser:** [@zinongli](https://github.com/zinongli)
+- **T-Mobilitat Parser:** [@luu176](https://github.com/luu176)
+- **T-Money Parser:** [@justus-perlwitz](https://github.com/justus-perlwitz)
 - **Troika Parser:** [@gornekich](https://github.com/gornekich)
 - **TRT Parser:** [@luu176](https://github.com/luu176), [@zinongli](https://github.com/zinongli)
-- **Octopus Parser:** [@zinongli](https://github.com/zinongli)
-- **nol Parser:** [@zinongli](https://github.com/zinongli)
+- **v1.1 Memory Safety:** [@FatherDivine](https://github.com/FatherDivine)
 
 ---
 

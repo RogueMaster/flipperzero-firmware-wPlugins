@@ -1,35 +1,56 @@
 ## v1.1
 
-Multiple memory leaks fixes and improved memory safety in the Metroflip codebase 
-to prevent crashes and out-of-memory errors on Flipper Zero devices.
-This entire version is authored by FatherDivine.
+Memory safety overhaul and bug fixes.
 
-Changes Made:
-
-- Orca changes
-  - Added Orca AID variant 0xF013F2 (detected as bytes F0 13 F2) based on user testing
+- Orca changes (FatherDivine)
+  - Added Orca AID variant 0xF013F2 based on user testing
   - Fixed array size from 89 to 90 to accommodate new AID entry
 
-- Ventra/Ultralight File Loading Fix
-  -  Added "NTAG/Ultralight" device type string (used by Flipper NFC library)
-  -  Now loads any Ultralight card even without Ventra signature
-  -  Files saved by Metroflip now load properly
+- Ventra/Ultralight File Loading Fix (FatherDivine)
+  - Added "NTAG/Ultralight" device type string
+  - Now loads any Ultralight card even without Ventra signature
+  - Files saved by Metroflip now load properly
 
-- Buffer Size Verification
-  -  Verified all static buffer sizes are sufficient for their data formats
-  -  Fixed get_navigo_service_provider() buffer from 8 to 12 bytes
+- Buffer Size Verification (FatherDivine)
+  - Verified all static buffer sizes are sufficient for their data formats
+  - Fixed get_navigo_service_provider() buffer from 8 to 12 bytes
 
-- Memory Leak Fixes
-  -  read_calypso_data() - Fixed memory leak when data not found
-  -  get_country_string() - Changed from malloc to static buffer
-  -  Unused nfc_scanner_alloc() calls - Removed from 8 plugins
-  -  Transit display functions - Converted to static buffers
+- Memory Leak Fixes (FatherDivine)
+  - read_calypso_data() - Fixed memory leak when data not found
+  - get_country_string() - Changed from malloc to static buffer
+  - Unused nfc_scanner_alloc() calls - Removed from 8 plugins
+  - Transit display functions - Converted to static buffers
 
-- Memory Safety Improvements
-  -  CalypsoCardData initialization - Initialize pointers to NULL for safe cleanup
-  -  Allocation failure handling - Added NULL checks for malloc returns
-  -  Cleanup on failure - Added proper cleanup path for card data on early exit
-  -  NULL checks in cleanup - Added check for ctx->card in calypso_on_exit
+- Memory Safety Improvements (FatherDivine)
+  - CalypsoCardData initialization - Initialize pointers to NULL for safe cleanup
+  - Allocation failure handling - Added NULL checks for malloc returns
+  - Cleanup on failure - Added proper cleanup path for card data on early exit
+  - NULL checks in cleanup - Added check for ctx->card in calypso_on_exit
+
+- Suica/Octopus Fix
+  - Fixed broken FelicaData vs FelicaSystem struct access in suica parser
+  - Restored system-code matching for Suica (0x0003) and Octopus (0x8008)
+
+- T-Mobilitat Fix
+  - Fixed crash on card read caused by stack overflow from deep scene nesting
+  - ATR plugin now defers scene transition via custom event instead of calling scene_manager_next_scene from within plugin code
+  - Removed erroneous poller cleanup from tmobilitat_on_exit (plugin does not own a poller)
+  - NULL poller pointer after free in ATR plugin to prevent dangling pointer
+  - Card number now displays formatted as XXX XXX XXXCC with control characters
+
+- Calypso/Navigo Stack & Memory Fixes
+  - Replaced 11 variable-length arrays with fixed-size buffers (CALYPSO_BIT_REPR_SIZE) to prevent stack overflow on 2KB stack
+  - Fixed 3 memory leak paths in navigo.c station lookup (strdup failure leaked file handles and FuriStrings)
+  - Reduced get_token() static buffer from 512 to 64 bytes, saving 448 bytes of static RAM
+  - Added NULL check for CalypsoContext allocation in poller callback
+  - NULL poller pointer after free in calypso_on_exit
+
+- Allocation Safety (intercode, opus, ravkav)
+  - Added NULL checks for cascading malloc calls in all structure-building functions
+  - If a nested malloc fails, parent allocations are now properly freed instead of leaked
+
+- calypso_util.c
+  - Added NULL checks in get_calypso_node_offset() and get_calypso_node_size()
 
 ## v1.0
 - Suica Fixes

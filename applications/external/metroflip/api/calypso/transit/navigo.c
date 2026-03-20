@@ -126,7 +126,7 @@ const char* get_zones(int* zones) {
 }
 
 char* get_token(char* psrc, const char* delimit, void* psave) {
-    static char sret[512];
+    static char sret[64];
     register char* ptr = psave;
     memset(sret, 0, sizeof(sret));
 
@@ -181,7 +181,7 @@ char* get_navigo_station(
                     const char* string_line = furi_string_get_cstr(line);
                     char* string_line_copy = strdup(string_line);
                     if(!string_line_copy) {
-                        return "Unknown";
+                        break;
                     }
                     int line_station_id = atoi(get_token(string_line_copy, ",", string_line_copy));
                     int line_station_sub_id =
@@ -208,11 +208,11 @@ char* get_navigo_station(
             }
         }
         // cast station_group_id-station_id-station_sub_id to a string
-        char* station = malloc(12 * sizeof(char));
+        char* station = malloc(12);
         if(!station) {
             return "Unknown";
         }
-        snprintf(station, 10, "%d-%d-%d", station_group_id, station_id, station_sub_id);
+        snprintf(station, 12, "%d-%d-%d", station_group_id, station_id, station_sub_id);
         return station;
     }
     case TRAM: {
@@ -242,7 +242,7 @@ char* get_navigo_station(
                 const char* string_line = furi_string_get_cstr(line);
                 char* string_line_copy = strdup(string_line);
                 if(!string_line_copy) {
-                    return "Unknown";
+                    break;
                 }
                 int line_station_id = atoi(get_token(string_line_copy, ",", string_line_copy));
                 int line_station_sub_id = atoi(get_token(string_line_copy, ",", string_line_copy));
@@ -268,16 +268,16 @@ char* get_navigo_station(
         }
 
         // cast station_group_id-station_id-station_sub_id to a string
-        char* station = malloc(12 * sizeof(char));
+        char* station = malloc(12);
         if(!station) {
             return "Unknown";
         }
         if(station_sub_id != 0) {
-            snprintf(station, 10, "%d-%d-%d", station_group_id, station_id, station_sub_id);
+            snprintf(station, 12, "%d-%d-%d", station_group_id, station_id, station_sub_id);
         } else if(station_id != 0) {
-            snprintf(station, 10, "%d-%d", station_group_id, station_id);
+            snprintf(station, 12, "%d-%d", station_group_id, station_id);
         } else {
-            snprintf(station, 10, "%d", station_group_id);
+            snprintf(station, 12, "%d", station_group_id);
         }
         return station;
     }
@@ -309,7 +309,7 @@ char* get_navigo_station(
                     const char* string_line = furi_string_get_cstr(line);
                     char* string_line_copy = strdup(string_line);
                     if(!string_line_copy) {
-                        return "Unknown";
+                        break;
                     }
                     int line_station_id = atoi(get_token(string_line_copy, ",", string_line_copy));
                     if(line_station_id == station_id) {
@@ -334,31 +334,31 @@ char* get_navigo_station(
             }
         }
         // cast station_group_id-station_id to a string
-        char* station = malloc(12 * sizeof(char));
+        char* station = malloc(12);
         if(!station) {
             return "Unknown";
         }
         if(station_sub_id != 0) {
-            snprintf(station, 10, "%d-%d-%d", station_group_id, station_id, station_sub_id);
+            snprintf(station, 12, "%d-%d-%d", station_group_id, station_id, station_sub_id);
         } else if(station_id != 0) {
-            snprintf(station, 10, "%d-%d", station_group_id, station_id);
+            snprintf(station, 12, "%d-%d", station_group_id, station_id);
         } else {
-            snprintf(station, 10, "%d", station_group_id);
+            snprintf(station, 12, "%d", station_group_id);
         }
         return station;
     }
     default: {
         // cast station_group_id-station_id to a string
-        char* station = malloc(12 * sizeof(char));
+        char* station = malloc(12);
         if(!station) {
             return "Unknown";
         }
         if(station_sub_id != 0) {
-            snprintf(station, 10, "%d-%d-%d", station_group_id, station_id, station_sub_id);
+            snprintf(station, 12, "%d-%d-%d", station_group_id, station_id, station_sub_id);
         } else if(station_id != 0) {
-            snprintf(station, 10, "%d-%d", station_group_id, station_id);
+            snprintf(station, 12, "%d-%d", station_group_id, station_id);
         } else {
-            snprintf(station, 10, "%d", station_group_id);
+            snprintf(station, 12, "%d", station_group_id);
         }
         return station;
     }
