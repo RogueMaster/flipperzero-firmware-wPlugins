@@ -1,7 +1,8 @@
+v1.1
+- UI/UX refresh across gameplay, menus, and results
+- Bot behavior and difficulty upgrades
+- Support for up to 4 CPU opponents
+- Optional progressive blinds and expanded table settings
+
 v1.0
-- Initial public release
-- Full single-player Texas Hold'em gameplay
-- Support for 1 to 3 CPU opponents
-- Side-pot-aware showdown resolution
-- Single-slot save/load support
-- Blind and bot-count configuration
+- Initial app release

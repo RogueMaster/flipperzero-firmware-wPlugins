@@ -16,6 +16,7 @@ void reset_hand(HoldemGame* game);
 bool post_blinds(HoldemGame* game);
 void deal_hole(HoldemGame* game);
 void deal_community(HoldemGame* game, size_t card_count);
+void normalize_contested_pot(HoldemGame* game);
 bool resolve_fold_win(HoldemGame* game, PayoutResult* payout_result);
 void resolve_showdown(HoldemGame* game, PayoutResult* payout_result);
 void set_showdown_winner_mask(HoldemApp* app, const PayoutResult* payout_result);

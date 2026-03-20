@@ -11,6 +11,7 @@ void bot_action(
     int32_t to_call,
     int32_t min_raise,
     int32_t current_bet,
+    bool can_raise,
     HoldemAction* action,
     int32_t* amount);
 

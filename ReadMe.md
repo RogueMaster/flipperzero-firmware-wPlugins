@@ -35,6 +35,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v1.1 (By luu176)](https://github.com/luu176/Metroflip)
 - OFW: PR: [fix HID limits to support international keyboards & Japanese KB Layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
 - Updated: [Theme Manager v1.4 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
+- Updated: [Hold em v1.1 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
 
 <a name="release"></a>
 
@@ -316,7 +317,7 @@ $ ./fbt dolphin_ext
 - [Hanoi Towers v1.0 (By AlexTaran)](https://github.com/AlexTaran/flipperzero)
 - [Heap Defence v1.3 (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fc776446de9fdd553b221c02668b925b689378d8)
 - [Hirn - Crack Color Codes v0.2 (By fgreil)](https://github.com/fgreil/mitzi-hirn)
-- [Hold em v1.0 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
+- [Hold em v1.1 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
 - [Hunter Killer v1.0 (By josephburnett)](https://github.com/josephburnett/hunter-flipper)
 - [Infinite Tic Tac Toe v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/infinite_tic_tac_toe)
 - [Insults v1.0 (By ERSUCC)](https://github.com/ERSUCC/Flipper-Insults)
