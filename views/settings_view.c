@@ -7,7 +7,7 @@
 static View* view;
 static VariableItemList* variable_item_list;
 
-static const char* backlight_labels[] = {"Off", "Auto", "1m", "5m", "10m", "20m", "60m", "Inf"};
+static const char* backlight_labels[] = {"5s", "Auto", "1m", "5m", "10m", "20m", "60m", "Inf"};
 #define BACKLIGHT_COUNT 8
 static const char onoff_states[2][4] = {"Off", "On"};
 
