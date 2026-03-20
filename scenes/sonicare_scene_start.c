@@ -30,7 +30,7 @@ bool sonicare_scene_start_on_event(void* context, SceneManagerEvent event) {
         if (event.event == SonicareMenuIndexRead) {
             scene_manager_set_scene_state(app->scene_manager, SonicareSceneStart, SonicareMenuIndexRead);
             scene_manager_next_scene(app->scene_manager, SonicareSceneRead);
-            //dolphin_deed(DolphinDeedNfcRead);
+            dolphin_deed(DolphinDeedNfcRead);
             consumed = true;
         } else if (event.event == SonicareMenuIndexAbout) {
             scene_manager_set_scene_state(app->scene_manager, SonicareSceneStart, SonicareMenuIndexAbout);

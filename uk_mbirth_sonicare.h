@@ -25,6 +25,10 @@
 
 #include "scenes/sonicare_scene.h"
 
+#include <nfc/nfc_poller.h>
+#include <nfc/nfc_scanner.h>
+#include <nfc/nfc_listener.h>
+
 typedef struct Sonicare Sonicare;
 
 struct Sonicare {
@@ -42,6 +46,12 @@ struct Sonicare {
     Popup* popup;
     TextInput* text_input;
     ByteInput* byte_input;
+    
+    // NFC
+    Nfc* nfc;
+    NfcPoller* poller;
+    NfcScanner* scanner;
+    NfcListener* listener;
 };
 
 typedef enum {
@@ -61,5 +71,9 @@ typedef enum {
     SonicareMenuIndexAddManually,
     SonicareMenuIndexExtraActions,
 } SonicareMenuIndex;
+
+typedef enum {
+    NfcCustomEventWorkerExit,
+} NfcCustomEvent;
 
 void sonicare_widget_callback(GuiButtonType result, InputType type, void* context);
