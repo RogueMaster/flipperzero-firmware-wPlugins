@@ -7,10 +7,11 @@
 static View* view;
 static VariableItemList* variable_item_list;
 
-static const char backlight_states[2][9] = {"Auto", "Infinity"};
-static const char onoff_states[2][4]     = {"Off", "On"};
+static const char* backlight_labels[] = {"Off", "Auto", "1m", "5m", "10m", "20m", "60m", "Inf"};
+#define BACKLIGHT_COUNT 8
+static const char onoff_states[2][4] = {"Off", "On"};
 
-static VariableItem* infinity_backlight_item;
+static VariableItem* backlight_item;
 static VariableItem* led_notify_item;
 static VariableItem* sound_notify_item;
 static VariableItem* sound_volume_item;
@@ -22,28 +23,23 @@ static char volume_buf[4];
 
 static uint32_t _exit_callback(void* context) {
     UNUSED(context);
-    bool new_backlight = (bool)variable_item_get_current_value_index(infinity_backlight_item);
-    if(new_backlight != app->settings.infinityBacklight) {
-        if(new_backlight) {
-            notification_message(app->notifications, &sequence_display_backlight_enforce_on);
-        } else {
-            notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
-        }
-    }
-    app->settings.infinityBacklight      = new_backlight;
+    app->settings.backlight_mode         = (uint8_t)variable_item_get_current_value_index(backlight_item);
     app->settings.led_notify             = (bool)variable_item_get_current_value_index(led_notify_item);
     app->settings.sound_notify           = (bool)variable_item_get_current_value_index(sound_notify_item);
     app->settings.sound_volume           = (uint8_t)(variable_item_get_current_value_index(sound_volume_item) + 1);
     app->settings.debug_mode             = (bool)variable_item_get_current_value_index(debug_mode_item);
     app->settings.show_status            = (bool)variable_item_get_current_value_index(show_status_item);
+    air_stats_apply_backlight();
     unitemp_saveSettings();
     unitemp_loadSettings();
     return ViewMainMenu;
 }
 
 static void _backlight_change(VariableItem* item) {
-    variable_item_set_current_value_text(
-        item, backlight_states[variable_item_get_current_value_index(item)]);
+    uint8_t idx = (uint8_t)variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, backlight_labels[idx]);
+    app->settings.backlight_mode = idx;
+    air_stats_apply_backlight();
 }
 
 static void _led_notify_change(VariableItem* item) {
@@ -76,8 +72,8 @@ void view_settings_alloc(void) {
     variable_item_list = variable_item_list_alloc();
     variable_item_list_reset(variable_item_list);
 
-    infinity_backlight_item = variable_item_list_add(
-        variable_item_list, "Backlight time", 2, _backlight_change, app);
+    backlight_item = variable_item_list_add(
+        variable_item_list, "Backlight", BACKLIGHT_COUNT, _backlight_change, app);
 
     led_notify_item = variable_item_list_add(
         variable_item_list, "LED Notify", 2, _led_notify_change, app);
@@ -100,11 +96,8 @@ void view_settings_alloc(void) {
 }
 
 void view_settings_switch(void) {
-    variable_item_set_current_value_index(
-        infinity_backlight_item, (uint8_t)app->settings.infinityBacklight);
-    variable_item_set_current_value_text(
-        infinity_backlight_item,
-        backlight_states[variable_item_get_current_value_index(infinity_backlight_item)]);
+    variable_item_set_current_value_index(backlight_item, app->settings.backlight_mode);
+    variable_item_set_current_value_text(backlight_item, backlight_labels[app->settings.backlight_mode]);
 
     variable_item_set_current_value_index(led_notify_item, (uint8_t)app->settings.led_notify);
     variable_item_set_current_value_text(

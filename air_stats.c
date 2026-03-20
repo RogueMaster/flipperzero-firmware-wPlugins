@@ -71,7 +71,7 @@ bool unitemp_saveSettings(void) {
         furi_string_free(filepath);
         return false;
     }
-    stream_write_format(app->file_stream, "INFINITY_BACKLIGHT %d\n", app->settings.infinityBacklight);
+    stream_write_format(app->file_stream, "BACKLIGHT_MODE %d\n",     app->settings.backlight_mode);
     stream_write_format(app->file_stream, "TEMP_UNIT %d\n",         app->settings.temp_unit);
     stream_write_format(app->file_stream, "HUMIDITY_UNIT %d\n",     app->settings.humidity_unit);
     stream_write_format(app->file_stream, "PRESSURE_UNIT %d\n",     app->settings.pressure_unit);
@@ -136,9 +136,12 @@ bool unitemp_loadSettings(void) {
         char key[24] = {0};
         sscanf((char*)(file_buf + line_end), "%s", key);
         int p = 0;
-        if(!strcmp(key, "INFINITY_BACKLIGHT")) {
+        if(!strcmp(key, "BACKLIGHT_MODE")) {
+            sscanf((char*)(file_buf + line_end), "BACKLIGHT_MODE %d", &p);
+            if(p >= 0 && p <= 7) app->settings.backlight_mode = (uint8_t)p;
+        } else if(!strcmp(key, "INFINITY_BACKLIGHT")) {
             sscanf((char*)(file_buf + line_end), "INFINITY_BACKLIGHT %d", &p);
-            app->settings.infinityBacklight = (bool)p;
+            app->settings.backlight_mode = p ? 7 : 1;
         } else if(!strcmp(key, "TEMP_UNIT")) {
             sscanf((char*)(file_buf + line_end), "\nTEMP_UNIT %d", &p);
             app->settings.temp_unit = (tempMeasureUnit)p;
@@ -190,10 +193,75 @@ bool unitemp_loadSettings(void) {
     return true;
 }
 
+/* ---- Backlight: direct HAL control ---- */
+
+static const uint32_t bl_minutes[] = {0, 0, 1, 5, 10, 20, 60, 0};
+
+void air_stats_apply_backlight(void) {
+    uint8_t m = app->settings.backlight_mode;
+    app->backlight_deadline = 0;
+    if(m == 0) {
+        /* Off: direct HAL off, tick keeps it off */
+        furi_hal_light_set(LightBacklight, 0);
+    } else if(m == 1) {
+        /* Auto: system controls */
+        notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
+    } else if(m == 7) {
+        /* Inf: direct HAL max, tick keeps it on */
+        furi_hal_light_set(LightBacklight, 0xFF);
+    } else {
+        /* Timed: HAL on + set deadline */
+        furi_hal_light_set(LightBacklight, 0xFF);
+        app->backlight_deadline = furi_get_tick() + furi_ms_to_ticks(bl_minutes[m] * 60000);
+    }
+}
+
+void air_stats_backlight_activity(void) {
+    uint8_t m = app->settings.backlight_mode;
+    if(m >= 2 && m <= 6) {
+        /* Timed: turn on + reset deadline */
+        furi_hal_light_set(LightBacklight, 0xFF);
+        app->backlight_deadline = furi_get_tick() + furi_ms_to_ticks(bl_minutes[m] * 60000);
+    }
+}
+
 /* ---- Tick callback: poll all sensors ---- */
 
 static void tick_callback(void* context) {
     UNUSED(context);
+
+    /* Backlight: direct HAL enforcement, cached + throttled */
+    {
+        static uint8_t bl_last = 0xFF;
+        static uint32_t bl_last_tick = 0;
+        uint8_t bl_want = 0xFF;
+        uint8_t m = app->settings.backlight_mode;
+
+        if(m == 0) {
+            bl_want = 0;
+        } else if(m == 1) {
+            bl_want = 0xFF; /* marker: don't touch */
+        } else if(m == 7) {
+            bl_want = 0xFF;
+        } else {
+            if(app->backlight_deadline > 0 && furi_get_tick() >= app->backlight_deadline) {
+                app->backlight_deadline = 0;
+            }
+            bl_want = (app->backlight_deadline > 0) ? 0xFF : 0;
+        }
+
+        if(m != 1) { /* Auto: skip — system controls */
+            uint32_t now = furi_get_tick();
+            bool changed = (bl_want != bl_last);
+            bool throttle_ok = (now - bl_last_tick) >= 5000;
+            if(changed || throttle_ok) {
+                furi_hal_light_set(LightBacklight, bl_want);
+                bl_last = bl_want;
+                bl_last_tick = now;
+            }
+        }
+    }
+
     if(app->sensors_update) {
         app->sensors_update = false;
         unitemp_sensors_deInit();
@@ -222,7 +290,7 @@ int32_t air_stats_main(void* p) {
     app->storage       = furi_record_open(RECORD_STORAGE);
 
     /* Default settings (applied before loadSettings; loadSettings overwrites from file) */
-    app->settings.infinityBacklight = true;
+    app->settings.backlight_mode    = 7; /* Inf */
     app->settings.temp_unit         = UT_TEMP_CELSIUS;
     app->settings.humidity_unit     = UT_HUMIDITY_RELATIVE;
     app->settings.pressure_unit     = UT_PRESSURE_MM_HG;
@@ -242,9 +310,7 @@ int32_t air_stats_main(void* p) {
     unitemp_loadSettings();
 
     /* Apply backlight setting */
-    if(app->settings.infinityBacklight) {
-        notification_message(app->notifications, &sequence_display_backlight_enforce_on);
-    }
+    air_stats_apply_backlight();
 
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
@@ -316,10 +382,8 @@ int32_t air_stats_main(void* p) {
 
     /* --- Cleanup --- */
 
-    /* Restore backlight */
-    if(app->settings.infinityBacklight) {
-        notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
-    }
+    /* Restore backlight to system */
+    notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
 
     /* Turn off LED on exit */
     furi_hal_light_set(LightRed | LightGreen | LightBlue, 0);

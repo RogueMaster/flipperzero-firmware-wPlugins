@@ -184,6 +184,7 @@ static void draw_callback(Canvas* canvas, void* context) {
 
 static bool input_callback(InputEvent* event, void* context) {
     UNUSED(context);
+    air_stats_backlight_activity();
     if(event->type == InputTypeShort && event->key == InputKeyOk) {
         view_main_menu_switch();
         return true;

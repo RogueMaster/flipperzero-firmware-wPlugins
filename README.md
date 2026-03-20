@@ -64,7 +64,7 @@ Flipper GND (pin 8)  → sensor GND
 
 ### General (Settings menu)
 
-- Backlight — auto or always on
+- Backlight — Off, Auto, 1m, 5m, 10m, 20m, 60m, Inf. The app takes direct control of the display backlight, bypassing the system backlight service. **Off** keeps the screen dark — the system may briefly flash it on button press, but the app turns it back off within seconds. **Auto** hands control to the system (default ~30s timeout). **1m–60m** keep the screen on, then turn it off after the set period of inactivity on the main screen; any button press resets the timer. **Inf** keeps the screen always on
 - LED Notify — on/off
 - Sound Alert — on/off
 - Sound Volume — 1–10
