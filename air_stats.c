@@ -201,13 +201,13 @@ void air_stats_apply_backlight(void) {
     uint8_t m = app->settings.backlight_mode;
     app->backlight_deadline = 0;
     if(m == 0) {
-        /* Off: direct HAL off, tick keeps it off */
+        /* Off: HAL off */
         furi_hal_light_set(LightBacklight, 0);
     } else if(m == 1) {
         /* Auto: system controls */
         notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
     } else if(m == 7) {
-        /* Inf: direct HAL max, tick keeps it on */
+        /* Inf: HAL on */
         furi_hal_light_set(LightBacklight, 0xFF);
     } else {
         /* Timed: HAL on + set deadline */

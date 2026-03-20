@@ -137,6 +137,10 @@ Deploy:
 - Unleashed unlshd-086
 - Momentum mntm-012
 
+## Known issues
+
+- **Unleashed + RGB backlight mod**: timed backlight modes (5s, 1m–60m) may not turn off the screen. The RGB rainbow timer in Unleashed notification service overrides backlight off commands. This is a firmware-level limitation, not an app bug — the screen also doesn't auto-off on the Flipper home screen with this configuration
+
 ## Notes
 
 - PWM algorithm from [flipper-zero-mh-z19](https://github.com/meshchaninov/flipper-zero-mh-z19)
