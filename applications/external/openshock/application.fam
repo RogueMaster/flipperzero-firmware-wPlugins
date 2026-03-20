@@ -1,18 +1,15 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
 App(
-    appid="openshock_app",  # Must be unique
-    name="OpenShock",  # Displayed in menus
+    appid="openshock_app",
+    name="OpenShock",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="openshock_app",
-    requires=["gui", "storage"],
     fap_libs=["subghz"],
     stack_size=8 * 1024,
+    fap_icon="openshock.png",
+    fap_icon_assets="images",
     fap_category="Sub-GHz",
-    fap_version="0.1",
-    fap_icon="openshock.png",  # 10x10 1-bit PNG
-    fap_description="Simple app to control shockers from your flipper",
     fap_author="OpenShock Team",
     fap_weburl="https://github.com/OpenShock/FlipperZero",
-    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_version="0.1",
+    fap_description="Simple app to control shockers from your flipper",
 )

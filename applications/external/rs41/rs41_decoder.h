@@ -2,18 +2,18 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define RS41_PAYLOAD_LEN 312  /* bytes after the 8-byte on-air sync word */
+#define RS41_PAYLOAD_LEN 312 /* bytes after the 8-byte on-air sync word */
 
 typedef struct {
-    char    id[9];      /* 8-char sonde serial (e.g. "S3650123") + NUL */
-    float   lat;        /* degrees, N > 0 */
-    float   lon;        /* degrees, E > 0 */
-    float   alt;        /* metres MSL */
-    uint8_t sats;       /* GPS satellites tracked */
-    float   temp;       /* °C;  -999.0f = not decoded */
-    float   pres;       /* hPa; -1.0f   = not decoded */
-    int16_t rssi;       /* dBm */
-    bool    has_gps;    /* lat / lon / alt valid */
+    char id[9]; /* 8-char sonde serial (e.g. "S3650123") + NUL */
+    float lat; /* degrees, N > 0 */
+    float lon; /* degrees, E > 0 */
+    float alt; /* metres MSL */
+    uint8_t sats; /* GPS satellites tracked */
+    float temp; /* °C;  -999.0f = not decoded */
+    float pres; /* hPa; -1.0f   = not decoded */
+    int16_t rssi; /* dBm */
+    bool has_gps; /* lat / lon / alt valid */
 } Rs41Frame;
 
 /*

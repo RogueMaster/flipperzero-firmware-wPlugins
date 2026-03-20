@@ -20,15 +20,15 @@
 #include <stdbool.h>
 
 /* ── GF(2^8) tables ──────────────────────────────────────────────────────── */
-#define GF_POLY  0x11D   /* x^8 + x^4 + x^3 + x^2 + 1                       */
-#define NROOTS   24      /* 2t: RS parity bytes per codeword                  */
-#define NN       156     /* shortened codeword length = NROOTS + K            */
-#define K        132     /* data bytes per codeword                            */
-#define RS_T     12      /* max correctable errors per codeword               */
+#define GF_POLY 0x11D /* x^8 + x^4 + x^3 + x^2 + 1                       */
+#define NROOTS  24 /* 2t: RS parity bytes per codeword                  */
+#define NN      156 /* shortened codeword length = NROOTS + K            */
+#define K       132 /* data bytes per codeword                            */
+#define RS_T    12 /* max correctable errors per codeword               */
 
 static uint8_t gf_exp[512]; /* gf_exp[i] = α^i; [255..511] mirrors [0..254]  */
 static uint8_t gf_log[256]; /* gf_log[v] = i such that α^i = v               */
-static bool    gf_ready = false;
+static bool gf_ready = false;
 
 static void gf_init(void) {
     if(gf_ready) return;
@@ -65,7 +65,7 @@ static inline uint8_t gf_div(uint8_t a, uint8_t b) {
 static void compute_syndromes(const uint8_t* cw, uint8_t* S) {
     for(int m = 0; m < NROOTS; m++) {
         uint8_t root = gf_exp[m]; /* α^m (FCR=0: root for S_m is α^m) */
-        uint8_t s    = cw[NN - 1];
+        uint8_t s = cw[NN - 1];
         for(int j = NN - 2; j >= 0; j--)
             s = gf_mul(s, root) ^ cw[j];
         S[m] = s;
@@ -84,7 +84,7 @@ static int berlekamp_massey(const uint8_t* S, uint8_t* Lambda) {
     memset(B, 0, sizeof(B));
     C[0] = 1;
     B[0] = 1;
-    int     L = 0, m = 1;
+    int L = 0, m = 1;
     uint8_t b = 1;
 
     for(int r = 0; r < NROOTS; r++) {
@@ -128,13 +128,15 @@ static int berlekamp_massey(const uint8_t* S, uint8_t* Lambda) {
  */
 static int chien_search(const uint8_t* Lambda, int L, int* pos) {
     uint8_t reg[RS_T + 1];
-    for(int i = 0; i <= L; i++) reg[i] = Lambda[i];
+    for(int i = 0; i <= L; i++)
+        reg[i] = Lambda[i];
 
     int count = 0;
     for(int j = 0; j < 255; j++) {
         /* sum = Λ(α^{−j}) = Σ reg[i] */
         uint8_t sum = 0;
-        for(int i = 0; i <= L; i++) sum ^= reg[i];
+        for(int i = 0; i <= L; i++)
+            sum ^= reg[i];
 
         if(sum == 0) {
             if(j >= NN) return -1; /* root in shortening zone → uncorrectable */
@@ -196,7 +198,10 @@ static int rs_correct_cw(uint8_t* cw) {
 
     bool all_zero = true;
     for(int i = 0; i < NROOTS; i++) {
-        if(S[i]) { all_zero = false; break; }
+        if(S[i]) {
+            all_zero = false;
+            break;
+        }
     }
     if(all_zero) return 0;
 
@@ -214,10 +219,10 @@ static int rs_correct_cw(uint8_t* cw) {
 
     /* Apply Forney corrections: e_j = α^j · Ω(α^{−j}) / Λ′(α^{−j}) */
     for(int k = 0; k < count; k++) {
-        int     j      = pos[k];
+        int j = pos[k];
         uint8_t Xj_inv = gf_exp[255 - j]; /* α^{−j}; gf_exp[255]=1 for j=0 */
         uint8_t omega_v = eval_poly(Omega, NROOTS, Xj_inv);
-        uint8_t lp_v    = eval_lambda_prime(Lambda, L, Xj_inv);
+        uint8_t lp_v = eval_lambda_prime(Lambda, L, Xj_inv);
         if(lp_v == 0) return -1; /* degenerate: shouldn't happen */
         uint8_t e = gf_mul(gf_exp[j], gf_div(omega_v, lp_v));
         cw[j] ^= e;
@@ -252,7 +257,7 @@ int rs41_rs_correct(uint8_t* frame, int frame_len) {
 
     /* Write corrections back */
     for(int i = 0; i < NROOTS; i++) {
-        frame[i]          = cw1[i];
+        frame[i] = cw1[i];
         frame[NROOTS + i] = cw2[i];
     }
     for(int i = 0; i < K; i++) {

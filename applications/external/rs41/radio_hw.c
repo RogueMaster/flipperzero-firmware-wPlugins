@@ -23,24 +23,24 @@
 #include <furi_hal_subghz.h>
 
 /* ── CC1101 command bytes ────────────────────────────────────────────────── */
-#define CC1101_SRES   0x30u  /* software reset                   */
-#define CC1101_SIDLE  0x36u  /* go to IDLE                       */
-#define CC1101_SRX    0x34u  /* start RX                         */
-#define CC1101_SFRX   0x3Au  /* flush RX FIFO                    */
-#define CC1101_SPWD   0x39u  /* power down (SLEEP state)         */
+#define CC1101_SRES  0x30u /* software reset                   */
+#define CC1101_SIDLE 0x36u /* go to IDLE                       */
+#define CC1101_SRX   0x34u /* start RX                         */
+#define CC1101_SFRX  0x3Au /* flush RX FIFO                    */
+#define CC1101_SPWD  0x39u /* power down (SLEEP state)         */
 
 /* CC1101 register addresses */
-#define CC1101_REG_FREQ2  0x0Du
-#define CC1101_REG_FREQ1  0x0Eu
-#define CC1101_REG_FREQ0  0x0Fu
+#define CC1101_REG_FREQ2 0x0Du
+#define CC1101_REG_FREQ1 0x0Eu
+#define CC1101_REG_FREQ0 0x0Fu
 
 /* Status register read addresses (R=1 bit7, BURST=1 bit6) */
-#define CC1101_ST_RXBYTES  0xFBu  /* 0x3B | 0xC0 */
-#define CC1101_ST_RSSI     0xF4u  /* 0x34 | 0xC0 */
-#define CC1101_FIFO_RD     0xFFu  /* 0x3F | 0xC0  — burst-read RX FIFO */
+#define CC1101_ST_RXBYTES 0xFBu /* 0x3B | 0xC0 */
+#define CC1101_ST_RSSI    0xF4u /* 0x34 | 0xC0 */
+#define CC1101_FIFO_RD    0xFFu /* 0x3F | 0xC0  — burst-read RX FIFO */
 
 /* CC1101 crystal frequency for external module (Hz) */
-#define CC1101_XOSC_HZ  26000000ULL
+#define CC1101_XOSC_HZ 26000000ULL
 
 /* ── External CC1101 low-level helpers ───────────────────────────────────── */
 
@@ -81,7 +81,7 @@ void radio_hw_init(RadioSource src, const uint8_t* preset) {
         furi_delay_ms(2);
 
         /* Write {reg, val} pairs until terminator {0x00, 0x00} */
-        for(size_t i = 0; ; i += 2) {
+        for(size_t i = 0;; i += 2) {
             uint8_t reg = preset[i];
             uint8_t val = preset[i + 1u];
             if(reg == 0x00u && val == 0x00u) {
@@ -91,8 +91,7 @@ void radio_hw_init(RadioSource src, const uint8_t* preset) {
                 furi_hal_spi_acquire(&furi_hal_spi_bus_handle_external);
                 furi_hal_spi_bus_trx(&furi_hal_spi_bus_handle_external, &cmd, NULL, 1, 50);
                 furi_hal_spi_bus_tx(
-                    &furi_hal_spi_bus_handle_external,
-                    (const uint8_t*)&preset[i + 2u], 8, 50);
+                    &furi_hal_spi_bus_handle_external, (const uint8_t*)&preset[i + 2u], 8, 50);
                 furi_hal_spi_release(&furi_hal_spi_bus_handle_external);
                 break;
             }
@@ -108,8 +107,8 @@ void radio_hw_set_frequency(RadioSource src, uint32_t freq_hz) {
         /* FREQ_REG = freq_hz * 2^16 / f_xosc (26 MHz) */
         uint32_t freq_reg = (uint32_t)(((uint64_t)freq_hz << 16) / CC1101_XOSC_HZ);
         ext_write_reg(CC1101_REG_FREQ2, (uint8_t)((freq_reg >> 16) & 0xFFu));
-        ext_write_reg(CC1101_REG_FREQ1, (uint8_t)((freq_reg >>  8) & 0xFFu));
-        ext_write_reg(CC1101_REG_FREQ0, (uint8_t)( freq_reg        & 0xFFu));
+        ext_write_reg(CC1101_REG_FREQ1, (uint8_t)((freq_reg >> 8) & 0xFFu));
+        ext_write_reg(CC1101_REG_FREQ0, (uint8_t)(freq_reg & 0xFFu));
     }
 }
 
@@ -150,9 +149,8 @@ void radio_hw_flush_rx(RadioSource src) {
 }
 
 uint8_t radio_hw_rxbytes(RadioSource src) {
-    const FuriHalSpiBusHandle* h = (src == RadioInternal)
-                                   ? &furi_hal_spi_bus_handle_subghz
-                                   : &furi_hal_spi_bus_handle_external;
+    FuriHalSpiBusHandle* h = (src == RadioInternal) ? &furi_hal_spi_bus_handle_subghz :
+                                                            &furi_hal_spi_bus_handle_external;
     uint8_t tx[2] = {CC1101_ST_RXBYTES, 0x00u};
     uint8_t rx[2] = {0u, 0u};
     furi_hal_spi_acquire(h);
@@ -165,17 +163,16 @@ float radio_hw_get_rssi(RadioSource src) {
     if(src == RadioInternal) {
         return furi_hal_subghz_get_rssi();
     }
-    uint8_t raw      = ext_read_status(CC1101_ST_RSSI);
-    int     rssi_dec = (raw >= 128u) ? (int)raw - 256 : (int)raw;
+    uint8_t raw = ext_read_status(CC1101_ST_RSSI);
+    int rssi_dec = (raw >= 128u) ? (int)raw - 256 : (int)raw;
     return (float)rssi_dec / 2.0f - 74.0f;
 }
 
 void radio_hw_read_fifo(RadioSource src, uint8_t* dst, uint8_t n) {
     if(n == 0) return;
-    const FuriHalSpiBusHandle* h = (src == RadioInternal)
-                                   ? &furi_hal_spi_bus_handle_subghz
-                                   : &furi_hal_spi_bus_handle_external;
-    uint8_t cmd    = CC1101_FIFO_RD;
+    FuriHalSpiBusHandle* h = (src == RadioInternal) ? &furi_hal_spi_bus_handle_subghz :
+                                                            &furi_hal_spi_bus_handle_external;
+    uint8_t cmd = CC1101_FIFO_RD;
     uint8_t status = 0u;
     furi_hal_spi_acquire(h);
     furi_hal_spi_bus_trx(h, &cmd, &status, 1, 50);
