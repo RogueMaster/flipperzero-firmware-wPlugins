@@ -1,18 +1,53 @@
 # flipper-air-stats
 
-> **Beta** — works, but expect bugs and config format changes.
-
 CO2 + climate monitor for Flipper Zero. Reads CO2 (MH-Z19B/C) and temperature/humidity/pressure (BME280, DHT22, etc.) through GPIO. Two sensors at once.
 
-<!-- TODO: video -->
+| PWM + BME280 (good air) | PWM + BME280 (bad air) | UART |
+|:-:|:-:|:-:|
+| ![good](media/pwm_bme280_good.jpg) | ![bad](media/pwm_bme280_bad.jpg) | ![uart](media/uart.jpg) |
 
 ## Sensors
 
-| Sensor | Interface | What it reads |
-|--------|-----------|---------------|
-| MH-Z19B/C | PWM (pin 3, PA6) | CO2 ppm |
-| MH-Z19B/C | UART (pins 15/16) | CO2 ppm |
-| BME280/BME680/etc | I2C (pins 15/16) | Temp, humidity, pressure |
+### Tested
+
+| Sensor | Interface | Measures |
+|--------|-----------|----------|
+| MH-Z19B | PWM / UART | CO2 |
+| MH-Z19C | PWM / UART | CO2 |
+| BME280 | I2C | Temperature, humidity, pressure |
+
+### Supported (not tested)
+
+Inherited from [unitemp](https://github.com/quen0n/unitemp-flipperzero). Should work — report issues if not.
+
+| Sensor | Interface | Measures |
+|--------|-----------|----------|
+| BMP280 | I2C | Temperature, pressure |
+| BME680 | I2C | Temperature, humidity, pressure |
+| BMP180 | I2C | Temperature, pressure |
+| DHT11 | Single wire | Temperature, humidity |
+| DHT12 | Single wire | Temperature, humidity |
+| DHT20 / AM2108 / AHT10 | I2C | Temperature, humidity |
+| DHT21 / AM2301 | Single wire | Temperature, humidity |
+| DHT22 / AM2302 | Single wire | Temperature, humidity |
+| AM2320 | I2C / Single wire | Temperature, humidity |
+| HTU21x / SI70xx / SHT2x | I2C | Temperature, humidity |
+| SHT30 / SHT31 / SHT35 | I2C | Temperature, humidity |
+| GXHT30 / GXHT31 / GXHT35 | I2C | Temperature, humidity |
+| HDC1080 | I2C | Temperature, humidity |
+| LM75 | I2C | Temperature |
+| MAX31725 | I2C | Temperature |
+| MAX6675 | SPI | Temperature (thermocouple) |
+| MAX31855 | SPI | Temperature (thermocouple) |
+| Dallas DS18x2x | 1-Wire | Temperature |
+| SCD30 | I2C | CO2, temperature, humidity |
+| SCD40 | I2C | CO2, temperature, humidity |
+
+### Based on
+
+- [flipper-zero-mh-z19](https://github.com/meshchaninov/flipper-zero-mh-z19) — PWM CO2 algorithm
+- [flipperzero_mhz19_uart](https://github.com/skotopes/flipperzero_mhz19_uart) — UART CO2 protocol
+- [unitemp-flipperzero](https://github.com/quen0n/unitemp-flipperzero) — climate sensor drivers
 
 ## Wiring
 
@@ -120,28 +155,18 @@ To clear a frozen reading — use **Eject** in sensor settings. If the sensor is
 
 CO2 offset is applied after averaging.
 
-## Build
-
-```bash
-ufbt
-```
-
-Deploy:
-```
-/ext/apps/air_stats.fap
-```
-
 ## Tested on
 
 - Official firmware 1.4.2
 - Unleashed unlshd-086
 - Momentum mntm-012
 
+## Battery drain
+
+Screen off, 24h: <!-- TODO -->
+
 ## Known issues
 
-- **Unleashed + RGB backlight mod**: timed backlight modes (5s, 1m–60m) may not turn off the screen. The RGB rainbow timer in Unleashed notification service overrides backlight off commands. This is a firmware-level limitation, not an app bug — the screen also doesn't auto-off on the Flipper home screen with this configuration
+- **Unleashed + RGB backlight mod**: timed backlight modes (5s, 1m–60m) may not turn off the screen. The RGB rainbow timer in Unleashed notification service overrides backlight off commands. This is a firmware-level limitation, not an app bug
+- **One-time backlight flicker (~30s after launch)**: the system backlight timer may briefly turn off the screen about 30 seconds after app start or after a button press. The app re-enables it within a few seconds. This is a one-time event per input — not a recurring bug
 
-## Notes
-
-- PWM algorithm from [flipper-zero-mh-z19](https://github.com/meshchaninov/flipper-zero-mh-z19)
-- PWM accuracy: ±(40 ppm + 3%) per MH-Z19C datasheet
