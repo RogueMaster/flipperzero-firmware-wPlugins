@@ -6,6 +6,10 @@ CO2 + climate monitor for Flipper Zero. Reads CO2 (MH-Z19B/C) and temperature/hu
 |:-:|:-:|:-:|
 | ![good](media/pwm_bme280_good.jpg) | ![bad](media/pwm_bme280_bad.jpg) | ![uart](media/uart.jpg) |
 
+| Main screen | Menu | Menu |
+|:-:|:-:|:-:|
+| ![main](screenshots/main_screen_1.png) | ![menu1](screenshots/menu_1.png) | ![menu2](screenshots/menu_2.png) |
+
 ## Sensors
 
 ### Tested
