@@ -79,7 +79,7 @@ Flipper 3.3V (pin 9) → sensor VCC
 Flipper GND (pin 8)  → sensor GND
 ```
 
-> PWM CO2 + I2C climate work together. UART CO2 and I2C share pins 15/16, so can't run at the same time — UART mode disables I2C automatically.
+PWM CO2 + I2C climate work together. UART CO2 and I2C share pins 15/16, so can't run at the same time — UART mode disables I2C automatically.
 
 # Settings
 
@@ -165,7 +165,7 @@ CO2 offset is applied after averaging.
 
 # Battery drain
 
-Screen off, 24h: <!-- TODO -->
+Screen off, 24h: ~ -40% battery
 
 # Known issues
 
