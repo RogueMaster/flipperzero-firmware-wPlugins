@@ -6,7 +6,7 @@ App(
     requires=["gui", "notification"],
     stack_size=4 * 1024,
     fap_category="GPIO",
-    fap_icon="air_stats_10.png",
+    fap_icon="icon.png",
     fap_icon_assets="images",
     fap_description="CO2 + temperature/humidity/pressure monitor",
     fap_version=(1, 0),
