@@ -149,6 +149,168 @@ static void menu_draw_callback(Canvas* canvas, void* _model) {
             }
             break;
         }
+        case MenuStyleDsi: {
+            for(int8_t i = -2; i <= 2; i++) {
+                shift_position = (position + items_count + i) % items_count;
+                item = MenuItemArray_get(model->items, shift_position);
+                size_t width = 24;
+                size_t height = 26;
+                size_t pos_x = 64;
+                size_t pos_y = 36;
+                if(i == 0) {
+                    width += 6;
+                    height += 4;
+                    elements_bold_rounded_frame(
+                        canvas, pos_x - width / 2, pos_y - height / 2, width, height + 5);
+                    canvas_set_font(canvas, FontBatteryPercent);
+                    canvas_draw_str_aligned(
+                        canvas, pos_x - 9, pos_y + height / 2 + 1, AlignCenter, AlignBottom, "S");
+                    canvas_draw_str_aligned(
+                        canvas, pos_x, pos_y + height / 2 + 1, AlignCenter, AlignBottom, "TAR");
+                    canvas_draw_str_aligned(
+                        canvas, pos_x + 9, pos_y + height / 2 + 1, AlignCenter, AlignBottom, "T");
+                    canvas_draw_rframe(canvas, 0, 0, 128, 18, 3);
+                    canvas_draw_line(canvas, 60, 18, 64, 26);
+                    canvas_draw_line(canvas, 64, 26, 68, 18);
+                    canvas_set_color(canvas, ColorWhite);
+                    canvas_draw_line(canvas, 60, 17, 68, 17);
+                    canvas_draw_box(canvas, 62, 21, 5, 2);
+                    canvas_set_color(canvas, ColorBlack);
+                    canvas_set_font(canvas, FontPrimary);
+                    menu_short_name(item, name);
+                    size_t scroll_counter = menu_scroll_counter(model, true);
+                    elements_scrollable_text_line(
+                        canvas,
+                        pos_x,
+                        pos_y - height / 2 - 8,
+                        126,
+                        name,
+                        scroll_counter,
+                        false,
+                        true);
+                } else {
+                    pos_x += (width + 6) * i;
+                    pos_y += 2;
+                    elements_slightly_rounded_frame(
+                        canvas, pos_x - width / 2, pos_y - height / 2, width, height);
+                }
+                menu_centered_icon(canvas, item, pos_x - 7, pos_y - 7, 14, 14);
+            }
+            elements_scrollbar_horizontal(canvas, 0, 64, 128, position, items_count);
+            break;
+        }
+        case MenuStylePs4: {
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(
+                canvas, 1, 1, AlignLeft, AlignTop, furi_hal_version_get_name_ptr());
+            char str[10];
+            Dolphin* dolphin = furi_record_open(RECORD_DOLPHIN);
+            snprintf(str, 10, "Level %i", dolphin_get_level(dolphin->state->data.icounter));
+            furi_record_close(RECORD_DOLPHIN);
+            canvas_draw_str_aligned(canvas, 127, 1, AlignRight, AlignTop, str);
+            for(int8_t i = -1; i <= 4; i++) {
+                shift_position = position + i;
+                if(shift_position >= items_count) continue;
+                item = MenuItemArray_get(model->items, shift_position);
+                size_t width = 20;
+                size_t height = 20;
+                size_t pos_x = 36;
+                size_t pos_y = 27;
+                if(i == 0) {
+                    width += 10;
+                    height += 10;
+                    pos_y += 2;
+                    canvas_draw_box(canvas, pos_x - width / 2, pos_y + height / 2, width, 9);
+                    canvas_set_color(canvas, ColorWhite);
+                    canvas_set_font(canvas, FontBatteryPercent);
+                    canvas_draw_str_aligned(
+                        canvas, pos_x, pos_y + height / 2 + 1, AlignCenter, AlignTop, "Start");
+                    canvas_set_color(canvas, ColorBlack);
+                    canvas_set_font(canvas, FontSecondary);
+                    menu_short_name(item, name);
+                    size_t scroll_counter = menu_scroll_counter(model, true);
+                    elements_scrollable_text_line(
+                        canvas,
+                        pos_x + width / 2 + 2,
+                        pos_y + height / 2 + 7,
+                        74,
+                        name,
+                        scroll_counter,
+                        false,
+                        false);
+                } else {
+                    pos_x += (width + 1) * i + (i < 0 ? -6 : 6);
+                }
+                canvas_draw_frame(canvas, pos_x - width / 2, pos_y - height / 2, width, height);
+                menu_centered_icon(canvas, item, pos_x - 7, pos_y - 7, 14, 14);
+            }
+            elements_scrollbar_horizontal(canvas, 0, 64, 128, position, items_count);
+            break;
+        }
+        case MenuStyleVertical: {
+            canvas_set_orientation(canvas, CanvasOrientationVertical);
+            shift_position = model->vertical_offset;
+            canvas_set_font(canvas, FontSecondary);
+            size_t item_i;
+            size_t y_off;
+            for(size_t i = 0; i < 8; i++) {
+                item_i = shift_position + i;
+                if(item_i >= items_count) continue;
+                y_off = 16 * i;
+                bool selected = item_i == position;
+                if(selected) {
+                    elements_slightly_rounded_box(canvas, 0, y_off, 64, 16);
+                    canvas_set_color(canvas, ColorWhite);
+                }
+                item = MenuItemArray_get(model->items, item_i);
+                menu_centered_icon(canvas, item, 0, y_off, 16, 16);
+                menu_short_name(item, name);
+                size_t scroll_counter = menu_scroll_counter(model, selected);
+                elements_scrollable_text_line(
+                    canvas, 17, y_off + 12, 46, name, scroll_counter, false, false);
+                if(selected) {
+                    canvas_set_color(canvas, ColorBlack);
+                }
+            }
+            canvas_set_orientation(canvas, CanvasOrientationHorizontal);
+            break;
+        }
+        case MenuStyleC64: {
+            size_t index;
+            size_t y_off, x_off;
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(
+                canvas, 64, 0, AlignCenter, AlignTop, "* FLIPPADORE 64 BASIC *");
+            char memstr[29];
+            snprintf(memstr, sizeof(memstr), "%d BASIC BYTES FREE", memmgr_get_free_heap());
+            canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignTop, memstr);
+            canvas_set_font(canvas, FontKeyboard);
+            for(size_t i = 0; i < 2; i++) {
+                for(size_t j = 0; j < 5; j++) {
+                    index = i * 5 + j + (position - (position % 10));
+                    if(index >= items_count) continue;
+                    y_off = (9 * j) + 13;
+                    x_off = 64 * i;
+                    bool selected = index == position;
+                    size_t scroll_counter = menu_scroll_counter(model, selected);
+                    if(selected) {
+                        canvas_draw_box(canvas, x_off, y_off + 4, 64, 9);
+                        canvas_set_color(canvas, ColorWhite);
+                    }
+                    item = MenuItemArray_get(model->items, index);
+                    menu_short_name(item, name);
+                    char indexstr[5];
+                    snprintf(indexstr, sizeof(indexstr), "%d.", index);
+                    furi_string_replace_at(name, 0, 0, indexstr);
+                    elements_scrollable_text_line(
+                        canvas, x_off + 2, y_off + 12, 60, name, scroll_counter, false, false);
+                    if(selected) {
+                        canvas_set_color(canvas, ColorBlack);
+                    }
+                }
+            }
+            break;
+        }
         case MenuStyleCompact: {
             size_t index;
             size_t y_off, x_off;
@@ -178,6 +340,38 @@ static void menu_draw_callback(Canvas* canvas, void* _model) {
             }
             break;
         }
+        case MenuStyleTerminal: {
+            // Draw a border around the screen
+            canvas_draw_frame(canvas, 0, 0, 128, 64);
+            // current dir on the title bar
+            canvas_set_font(canvas, FontSecondary);
+            char title[20];
+            snprintf(title, sizeof(title), "%s@fz: ~/Home", furi_hal_version_get_name_ptr());
+            canvas_draw_str(canvas, 20, 10, title);
+            canvas_draw_str(canvas, 118, 9, "x"); // "X" button on the top-right corner
+            canvas_draw_frame(canvas, 116, 2, 8, 9);
+            canvas_draw_frame(canvas, 0, 0, 128, 13);
+            // Display the user's name line at the bottom
+            canvas_set_font(canvas, FontBatteryPercent);
+            char prefix[15];
+            snprintf(prefix, sizeof(prefix), "%s@fz:~$", furi_hal_version_get_name_ptr());
+            canvas_draw_str(canvas, 2, 56, prefix);
+            size_t name_start_x = 2 + (strlen(prefix) - 1) * 6;
+            for(size_t i = 0; i < 4 && (position + i) < items_count; i++) {
+                item = MenuItemArray_get(model->items, position + i);
+                menu_short_name(item, name);
+                size_t scroll_counter = menu_scroll_counter(model, i == 0);
+                if(i == 0) {
+                    // Display selected item to the right of the $ symbol
+                    elements_scrollable_text_line(
+                        canvas, name_start_x, 56, 60, name, scroll_counter, false, false);
+                } else {
+                    // Display the previous items above the user's name line
+                    canvas_draw_str(canvas, 2, 56 - i * 12, item->label);
+                }
+            }
+            break;
+        }
         default:
             break;
         }
@@ -191,6 +385,21 @@ static void menu_draw_callback(Canvas* canvas, void* _model) {
 static bool menu_input_callback(InputEvent* event, void* context) {
     Menu* menu = context;
     bool consumed = true;
+
+    MenuStyle this_menu_style;
+    if(menu->gamemode) {
+        this_menu_style = cfw_settings.game_menu_style;
+    } else {
+        this_menu_style = cfw_settings.menu_style;
+    }
+    if(this_menu_style == MenuStyleVertical &&
+       furi_hal_rtc_is_flag_set(FuriHalRtcFlagHandOrient)) {
+        if(event->key == InputKeyLeft) {
+            event->key = InputKeyRight;
+        } else if(event->key == InputKeyRight) {
+            event->key = InputKeyLeft;
+        }
+    }
 
     if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
         switch(event->key) {
@@ -249,9 +458,6 @@ static void menu_exit(void* context) {
         menu->view,
         MenuModel * model,
         {
-            // If menu_reset() is called before view exit, model->items is reset
-            // But for some reason, even with size 0, array get() returns a non-null pointer?
-            // MLIB docs have no mention of out of bounds condition, seems weird
             if(model->position < MenuItemArray_size(model->items)) {
                 MenuItem* item = MenuItemArray_get(model->items, model->position);
                 if(item && item->icon) {
@@ -399,6 +605,7 @@ static void menu_process_up(Menu* menu) {
 
             switch(my_menu_style) {
             case MenuStyleList:
+            case MenuStyleTerminal:
                 if(position > 0) {
                     position--;
                     if(vertical_offset && vertical_offset == position) {
@@ -417,6 +624,7 @@ static void menu_process_up(Menu* menu) {
                 }
                 vertical_offset = CLAMP(MAX((int)position - 4, 0), MAX((int)count - 8, 0), 0);
                 break;
+            case MenuStyleC64:
             case MenuStyleCompact:
                 if(position > 0) {
                     position--;
@@ -448,6 +656,7 @@ static void menu_process_down(Menu* menu) {
 
             switch(my_menu_style) {
             case MenuStyleList:
+            case MenuStyleTerminal:
                 if(position < count - 1) {
                     position++;
                     if(vertical_offset < count - 8 && vertical_offset == position - 7) {
@@ -466,6 +675,7 @@ static void menu_process_down(Menu* menu) {
                 }
                 vertical_offset = CLAMP(MAX((int)position - 4, 0), MAX((int)count - 8, 0), 0);
                 break;
+            case MenuStyleC64:
             case MenuStyleCompact:
                 if(position < count - 1) {
                     position++;
@@ -505,6 +715,27 @@ static void menu_process_left(Menu* menu) {
                     }
                 } else {
                     position -= 2;
+                }
+                vertical_offset = CLAMP(MAX((int)position - 4, 0), MAX((int)count - 8, 0), 0);
+                break;
+            case MenuStyleDsi:
+            case MenuStylePs4:
+            case MenuStyleVertical:
+                if(position > 0) {
+                    position--;
+                    if(vertical_offset && vertical_offset == position) {
+                        vertical_offset--;
+                    }
+                } else {
+                    position = count - 1;
+                    vertical_offset = count - 8;
+                }
+                break;
+            case MenuStyleC64:
+                if((position % 10) < 5) {
+                    position = position + 5;
+                } else {
+                    position = position - 5;
                 }
                 vertical_offset = CLAMP(MAX((int)position - 4, 0), MAX((int)count - 8, 0), 0);
                 break;
@@ -552,6 +783,27 @@ static void menu_process_right(Menu* menu) {
                     if(position >= count) {
                         position = position % 2;
                     }
+                }
+                vertical_offset = CLAMP(MAX((int)position - 4, 0), MAX((int)count - 8, 0), 0);
+                break;
+            case MenuStyleDsi:
+            case MenuStylePs4:
+            case MenuStyleVertical:
+                if(position < count - 1) {
+                    position++;
+                    if(vertical_offset < count - 8 && vertical_offset == position - 7) {
+                        vertical_offset++;
+                    }
+                } else {
+                    position = 0;
+                    vertical_offset = 0;
+                }
+                break;
+            case MenuStyleC64:
+                if((position % 10) < 5) {
+                    position = position + 5;
+                } else {
+                    position = position - 5;
                 }
                 vertical_offset = CLAMP(MAX((int)position - 4, 0), MAX((int)count - 8, 0), 0);
                 break;
