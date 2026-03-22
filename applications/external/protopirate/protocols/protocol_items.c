@@ -11,6 +11,10 @@ const SubGhzProtocol* protopirate_protocol_registry_items[] = {
     &kia_protocol_v6, // Heap: free 18296
     &ford_protocol_v0, // Heap: free 19456
     &fiat_protocol_v0, // Heap: free 16864
+    &fiat_v1_protocol,
+    &mazda_v0_protocol,
+    &mitsubishi_v0_protocol,
+    &porsche_touareg_protocol,
     &subaru_protocol, // Heap: free 17280
     &suzuki_protocol, // Heap: free 16064
     &vag_protocol, // Heap: free 29352
@@ -95,6 +99,38 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_short = 200,
         .te_long = 400,
         .te_delta = 100,
+        .min_count_bit = 64,
+    },
+    // Fiat V1: Manchester dynamic (baseline Type A 260/520us)
+    {
+        .name = "Fiat V1",
+        .te_short = 260,
+        .te_long = 520,
+        .te_delta = 80,
+        .min_count_bit = 80,
+    },
+    // Mazda V0: 250/500us
+    {
+        .name = "Mazda V0",
+        .te_short = 250,
+        .te_long = 500,
+        .te_delta = 100,
+        .min_count_bit = 64,
+    },
+    // Mitsubishi V0: 250/500us
+    {
+        .name = "Mitsubishi V0",
+        .te_short = 250,
+        .te_long = 500,
+        .te_delta = 100,
+        .min_count_bit = 80,
+    },
+    // Porsche Touareg: 1680/3370us
+    {
+        .name = "Porsche Touareg",
+        .te_short = 1680,
+        .te_long = 3370,
+        .te_delta = 500,
         .min_count_bit = 64,
     },
     // Subaru: PPM 800/1600µs

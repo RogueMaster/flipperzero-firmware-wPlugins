@@ -23,7 +23,7 @@ App is intended for educational and security purposes only, and has no signal tr
 | Protocol                      | Decoder | Encoder | Signal Encoding | Modulation | Encryption | CRC | Frequency |
 |:------------------------------|:--------|:--------|:--------|:--------|:--------|:--------|:--------|
 | Fiat V0                       | ✅ | ✅ | Manchester  | AM    | Rolling Code (Static Emu only) | ❌      | 433.92            |
-| Ford V0                       | ✅ | ✅ | Manchester  | AM    | Rolling Code                   | ✅ + BS | 315.00 / 433.92   |
+| Ford V0                       | ✅ | ✅ | Manchester  | AM    | Rolling Code                   | ✅ + Checksum | 315.00 / 433.92   |
 | Kia V0                        | ✅ | ✅ | PWM         | FM    | Rolling Code                   | CRC8    | 433.92            |
 | Kia V1                        | ✅ | ✅ | Manchester  | AM    | Rolling Code                   | CRC4    | 315.00 / 433.92   |
 | Kia V2                        | ✅ | ✅ | Manchester  | AM/FM | Rolling Code                   | CRC4    | 315.00 / 433.92   |
