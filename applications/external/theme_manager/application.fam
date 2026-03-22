@@ -8,6 +8,6 @@ App(
     fap_category="Settings",
     fap_author="Hoasker",
     fap_weburl="https://github.com/Hoasker/flipper-theme-manager",
-    fap_version="1.4",
+    fap_version="1.6",
     fap_description="Manage dolphin animation themes from SD card",
 )

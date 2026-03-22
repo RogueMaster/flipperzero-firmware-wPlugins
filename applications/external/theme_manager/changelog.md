@@ -1,3 +1,24 @@
+v1.6:
+- Feature: Progress bar during theme application with file counter and current file name indicator
+- Improve: Replaced blocking SDK merge call with manual recursive copying to prevent UI freezing
+- Improve: Optimized copy buffer size for faster theme application from SD card
+
+v1.5:
+- Feature: theme file integrity validation — checks meta.txt, frame_0.bm, manifest.txt
+- Feature: invalid themes marked with \[!P\], \[!A\], \[!S\] prefix in menu
+- Feature: Status line on Info screen (OK / Invalid!)
+- Feature: Apply blocked for invalid themes with error popup
+- Cleanup: removed remaining redundant timer NULL checks
+- Cleanup: auto-formatted via ufbt format
+
+v1.4.1:
+- Fix: bounded directory recursion (max depth 8) prevents stack overflow
+- Fix: removed dangerous goto in preview draw — uses bool flag pattern
+- Fix: MAX_THEMES reduced to 64 (saves ~9KB RAM)
+- Fix: removed redundant NULL checks on timers (always allocated)
+- Fix: removed unreachable default case in type_label switch
+- Improve: added MAX_DIR_DEPTH constant for recursive dir traversal
+
 v1.4:
 - Feature: favorites system — mark themes with * prefix, grouped at top of menu
 - Feature: animated preview — up to 4 frames cycling on Info screen

@@ -5,7 +5,6 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/dialog_ex.h>
 #include <gui/modules/popup.h>
-#include <gui/modules/loading.h>
 #include <gui/view.h>
 #include <storage/storage.h>
 #include <toolbox/compress.h>
@@ -35,7 +34,7 @@
 #define FAVORITES_FILENAME  ".favorites.txt"
 #define FAVORITES_PATH      ANIMATION_PACKS_PATH "/" FAVORITES_FILENAME
 
-#define MAX_THEMES    128
+#define MAX_THEMES    64
 #define MAX_NAME_LEN  64
 #define MAX_LABEL_LEN 36
 
@@ -44,6 +43,7 @@
 #define PREVIEW_MAX_BM_SIZE 2048 /* max .bm file size (compressed or raw) */
 #define PREVIEW_MAX_FRAMES  4 /* max frames for animated preview */
 #define PREVIEW_DEFAULT_MS  200 /* default frame interval ms */
+#define MAX_DIR_DEPTH       8 /* max recursion depth for dir size calc */
 #define PREVIEW_DRAW_X      2
 #define PREVIEW_DRAW_Y      2
 #define PREVIEW_DRAW_W      48
@@ -52,11 +52,12 @@
 #define REBOOT_COUNTDOWN_SEC 5
 
 /* Y-offsets for info text (relative to PREVIEW_DRAW_Y) */
-#define INFO_TEXT_Y_NAME  8
-#define INFO_TEXT_Y_TYPE  18
-#define INFO_TEXT_Y_ANIMS 27
-#define INFO_TEXT_Y_SIZE  36
-#define INFO_TEXT_Y_BTN   63
+#define INFO_TEXT_Y_NAME   8
+#define INFO_TEXT_Y_TYPE   18
+#define INFO_TEXT_Y_ANIMS  27
+#define INFO_TEXT_Y_SIZE   36
+#define INFO_TEXT_Y_STATUS 45
+#define INFO_TEXT_Y_BTN    63
 
 #define INFO_NAME_MAX_LEN      13 /* max visible chars for theme name in Info view */
 #define MENU_LABEL_MAX_VISIBLE 30 /* max visible chars in submenu label */
@@ -74,14 +75,21 @@ typedef enum {
     ThemeManagerViewRebootTimer,
     ThemeManagerViewDeleteConfirm,
     ThemeManagerViewPopup,
-    ThemeManagerViewLoading,
+    ThemeManagerViewProgress,
 } ThemeManagerView;
+
+typedef struct {
+    uint32_t current;
+    uint32_t total;
+    char status_text[48];
+} ProgressModel;
 
 typedef struct {
     char name[MAX_NAME_LEN];
     char type_label[16];
     uint32_t anim_count;
     char size_str[16];
+    char status_str[20];
 
     uint8_t* frames[PREVIEW_MAX_FRAMES];
     uint32_t frame_sizes[PREVIEW_MAX_FRAMES];
@@ -103,9 +111,10 @@ typedef struct {
     char label[MAX_LABEL_LEN];
     ThemeType type;
     uint32_t anim_count;
-    uint32_t cached_size;
+    uint64_t cached_size;
     bool meta_cached;
     bool is_favorite;
+    bool is_valid;
 } ThemeEntry;
 
 typedef struct {
@@ -119,7 +128,7 @@ typedef struct {
     View* reboot_timer_view;
     DialogEx* delete_dialog;
     Popup* popup;
-    Loading* loading;
+    View* progress_view;
 
     FuriTimer* preview_timer;
     FuriTimer* reboot_timer;
@@ -158,9 +167,21 @@ static bool theme_manager_reboot_timer_input(InputEvent* event, void* context);
 static void theme_manager_reboot_tick(void* context);
 static void theme_manager_preview_tick(void* context);
 
+static void theme_manager_progress_draw(Canvas* canvas, void* model);
+
 static void theme_manager_load_favorites(ThemeManagerApp* app);
 static void theme_manager_save_favorites(ThemeManagerApp* app);
 static void theme_manager_toggle_favorite(ThemeManagerApp* app, uint32_t index);
+static bool theme_manager_validate_theme(ThemeManagerApp* app, ThemeEntry* entry);
+
+static uint32_t theme_manager_count_files(ThemeManagerApp* app, const char* path, uint8_t depth);
+static bool theme_manager_copy_recursive(
+    ThemeManagerApp* app,
+    const char* src,
+    const char* dst,
+    uint32_t* progress,
+    uint32_t total,
+    uint8_t depth);
 
 static uint32_t theme_manager_nav_exit(void* context);
 static uint32_t theme_manager_nav_submenu(void* context);
@@ -347,9 +368,7 @@ static uint8_t* theme_manager_decode_frame(
 // -------------------------------------------------------------------
 static void theme_manager_load_preview(ThemeManagerApp* app, uint32_t index) {
     /* Stop preview animation timer if running */
-    if(app->preview_timer) {
-        furi_timer_stop(app->preview_timer);
-    }
+    furi_timer_stop(app->preview_timer);
 
     with_view_model(
         app->info_view,
@@ -473,7 +492,7 @@ static void theme_manager_load_preview(ThemeManagerApp* app, uint32_t index) {
     FURI_LOG_I(TAG, "Preview loaded: %s (%ux%u, %u frames)", name, w, h, loaded);
 
     /* Start animation timer if multiple frames loaded */
-    if(loaded > 1 && app->preview_timer) {
+    if(loaded > 1) {
         furi_timer_start(app->preview_timer, furi_ms_to_ticks(PREVIEW_DEFAULT_MS));
     }
 }
@@ -481,7 +500,10 @@ static void theme_manager_load_preview(ThemeManagerApp* app, uint32_t index) {
 // -------------------------------------------------------------------
 // Calculate total size of a directory (recursive)
 // -------------------------------------------------------------------
-static uint64_t theme_manager_get_dir_size(ThemeManagerApp* app, const char* path) {
+static uint64_t
+    theme_manager_get_dir_size_r(ThemeManagerApp* app, const char* path, uint8_t depth) {
+    if(depth >= MAX_DIR_DEPTH) return 0;
+
     uint64_t total = 0;
     File* dir = storage_file_alloc(app->storage);
 
@@ -497,7 +519,8 @@ static uint64_t theme_manager_get_dir_size(ThemeManagerApp* app, const char* pat
     while(storage_dir_read(dir, &file_info, name, sizeof(name))) {
         furi_string_printf(child_path, "%s/%s", path, name);
         if(file_info.flags & FSF_DIRECTORY) {
-            total += theme_manager_get_dir_size(app, furi_string_get_cstr(child_path));
+            total +=
+                theme_manager_get_dir_size_r(app, furi_string_get_cstr(child_path), depth + 1);
         } else {
             total += file_info.size;
         }
@@ -508,6 +531,10 @@ static uint64_t theme_manager_get_dir_size(ThemeManagerApp* app, const char* pat
     storage_file_free(dir);
 
     return total;
+}
+
+static uint64_t theme_manager_get_dir_size(ThemeManagerApp* app, const char* path) {
+    return theme_manager_get_dir_size_r(app, path, 0);
 }
 
 // -------------------------------------------------------------------
@@ -568,8 +595,10 @@ static void theme_manager_save_favorites(ThemeManagerApp* app) {
         if(app->themes[i].is_favorite) {
             const char* name = app->themes[i].name;
             size_t name_len = strlen(name);
-            storage_file_write(file, name, name_len);
-            storage_file_write(file, "\n", 1);
+            if(storage_file_write(file, name, name_len) != name_len ||
+               storage_file_write(file, "\n", 1) != 1) {
+                FURI_LOG_W(TAG, "Favorites write error for %s", name);
+            }
         }
     }
 
@@ -591,6 +620,98 @@ static void theme_manager_toggle_favorite(ThemeManagerApp* app, uint32_t index) 
         "Favorite %s: %s",
         app->themes[index].is_favorite ? "added" : "removed",
         app->themes[index].name);
+}
+
+// -------------------------------------------------------------------
+// Validate theme: check that required files exist
+// -------------------------------------------------------------------
+static bool theme_manager_validate_theme(ThemeManagerApp* app, ThemeEntry* entry) {
+    FuriString* path = furi_string_alloc();
+    bool valid = false;
+
+    switch(entry->type) {
+    case ThemeTypeSingle:
+        /* Single needs meta.txt + frame_0.bm in its folder */
+        furi_string_printf(path, "%s/%s/%s", ANIMATION_PACKS_PATH, entry->name, META_FILENAME);
+        if(!storage_file_exists(app->storage, furi_string_get_cstr(path))) break;
+
+        furi_string_printf(path, "%s/%s/frame_0.bm", ANIMATION_PACKS_PATH, entry->name);
+        if(!storage_file_exists(app->storage, furi_string_get_cstr(path))) break;
+
+        valid = true;
+        break;
+
+    case ThemeTypePack: {
+        /* Pack needs manifest.txt with valid header */
+        furi_string_printf(path, "%s/%s/%s", ANIMATION_PACKS_PATH, entry->name, MANIFEST_FILENAME);
+        uint32_t count = 0;
+        if(!theme_manager_parse_manifest(app, furi_string_get_cstr(path), &count)) break;
+        if(count == 0) break;
+
+        /* Check first animation has meta.txt + frame_0.bm */
+        char first_anim[MAX_NAME_LEN];
+        if(!theme_manager_get_first_anim_name(
+               app, furi_string_get_cstr(path), first_anim, sizeof(first_anim)))
+            break;
+
+        furi_string_printf(
+            path, "%s/%s/%s/%s", ANIMATION_PACKS_PATH, entry->name, first_anim, META_FILENAME);
+        if(!storage_file_exists(app->storage, furi_string_get_cstr(path))) break;
+
+        furi_string_printf(
+            path, "%s/%s/%s/frame_0.bm", ANIMATION_PACKS_PATH, entry->name, first_anim);
+        if(!storage_file_exists(app->storage, furi_string_get_cstr(path))) break;
+
+        valid = true;
+        break;
+    }
+
+    case ThemeTypeAnimsPack: {
+        /* AnimsPack needs Anims/manifest.txt with valid header */
+        furi_string_printf(
+            path,
+            "%s/%s/%s/%s",
+            ANIMATION_PACKS_PATH,
+            entry->name,
+            ANIMS_DIRNAME,
+            MANIFEST_FILENAME);
+        uint32_t count = 0;
+        if(!theme_manager_parse_manifest(app, furi_string_get_cstr(path), &count)) break;
+        if(count == 0) break;
+
+        /* Check first animation has meta.txt + frame_0.bm */
+        char first_anim[MAX_NAME_LEN];
+        if(!theme_manager_get_first_anim_name(
+               app, furi_string_get_cstr(path), first_anim, sizeof(first_anim)))
+            break;
+
+        furi_string_printf(
+            path,
+            "%s/%s/%s/%s/%s",
+            ANIMATION_PACKS_PATH,
+            entry->name,
+            ANIMS_DIRNAME,
+            first_anim,
+            META_FILENAME);
+        if(!storage_file_exists(app->storage, furi_string_get_cstr(path))) break;
+
+        furi_string_printf(
+            path,
+            "%s/%s/%s/%s/frame_0.bm",
+            ANIMATION_PACKS_PATH,
+            entry->name,
+            ANIMS_DIRNAME,
+            first_anim);
+        if(!storage_file_exists(app->storage, furi_string_get_cstr(path))) break;
+
+        valid = true;
+        break;
+    }
+    }
+
+    furi_string_free(path);
+    FURI_LOG_I(TAG, "Validate %s: %s", entry->name, valid ? "OK" : "INVALID");
+    return valid;
 }
 
 // -------------------------------------------------------------------
@@ -640,14 +761,14 @@ static bool theme_manager_reboot_timer_input(InputEvent* event, void* context) {
 
     if(event->key == InputKeyLeft || event->key == InputKeyBack) {
         /* Cancel timer, go to submenu */
-        if(app->reboot_timer) furi_timer_stop(app->reboot_timer);
+        furi_timer_stop(app->reboot_timer);
         theme_manager_scan_themes(app);
         theme_manager_populate_submenu(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, ThemeManagerViewSubmenu);
         return true;
     } else if(event->key == InputKeyRight || event->key == InputKeyOk) {
         /* Immediate reboot */
-        if(app->reboot_timer) furi_timer_stop(app->reboot_timer);
+        furi_timer_stop(app->reboot_timer);
         furi_hal_power_reset();
         return true;
     }
@@ -797,6 +918,7 @@ static void theme_manager_scan_themes(ThemeManagerApp* app) {
             entry->anim_count = 0;
             entry->cached_size = 0;
             entry->is_favorite = false;
+            entry->is_valid = theme_manager_validate_theme(app, entry);
             app->theme_count++;
         } else {
             FURI_LOG_W(TAG, "Skipping %s (unknown format)", name);
@@ -817,6 +939,184 @@ static void theme_manager_scan_themes(ThemeManagerApp* app) {
 
     FURI_LOG_I(
         TAG, "Total: %lu themes, backup: %s", app->theme_count, app->has_backup ? "yes" : "no");
+}
+
+// -------------------------------------------------------------------
+// Progress view — draw callback
+// -------------------------------------------------------------------
+static void theme_manager_progress_draw(Canvas* canvas, void* _model) {
+    ProgressModel* model = _model;
+    canvas_clear(canvas);
+    canvas_set_color(canvas, ColorBlack);
+
+    /* Header */
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "Applying theme...");
+
+    /* Progress bar outline */
+    uint8_t bar_x = 14;
+    uint8_t bar_y = 22;
+    uint8_t bar_w = 100;
+    uint8_t bar_h = 10;
+    canvas_draw_frame(canvas, bar_x, bar_y, bar_w, bar_h);
+
+    /* Progress bar fill */
+    if(model->total > 0) {
+        uint8_t fill_w = (uint8_t)((uint32_t)(bar_w - 2) * model->current / model->total);
+        if(fill_w > 0) {
+            canvas_draw_box(canvas, bar_x + 1, bar_y + 1, fill_w, bar_h - 2);
+        }
+    }
+
+    /* Counter text */
+    canvas_set_font(canvas, FontSecondary);
+    char counter[24];
+    snprintf(counter, sizeof(counter), "%lu / %lu files", model->current, model->total);
+    canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignTop, counter);
+
+    /* Current file name */
+    canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignTop, model->status_text);
+}
+
+// -------------------------------------------------------------------
+// Count files recursively (for progress total)
+// -------------------------------------------------------------------
+static uint32_t theme_manager_count_files(ThemeManagerApp* app, const char* path, uint8_t depth) {
+    if(depth >= MAX_DIR_DEPTH) return 0;
+
+    uint32_t count = 0;
+    File* dir = storage_file_alloc(app->storage);
+
+    if(!storage_dir_open(dir, path)) {
+        storage_file_free(dir);
+        return 0;
+    }
+
+    FileInfo file_info;
+    char name[MAX_NAME_LEN];
+    FuriString* child_path = furi_string_alloc();
+
+    while(storage_dir_read(dir, &file_info, name, sizeof(name))) {
+        furi_string_printf(child_path, "%s/%s", path, name);
+        if(file_info.flags & FSF_DIRECTORY) {
+            count += theme_manager_count_files(app, furi_string_get_cstr(child_path), depth + 1);
+        } else {
+            count++;
+        }
+    }
+
+    furi_string_free(child_path);
+    storage_dir_close(dir);
+    storage_file_free(dir);
+    return count;
+}
+
+// -------------------------------------------------------------------
+// Recursive copy with progress updates
+// -------------------------------------------------------------------
+#define COPY_BUF_SIZE 2048
+
+static bool theme_manager_copy_recursive(
+    ThemeManagerApp* app,
+    const char* src,
+    const char* dst,
+    uint32_t* progress,
+    uint32_t total,
+    uint8_t depth) {
+    if(depth >= MAX_DIR_DEPTH) return true;
+
+    /* Ensure destination directory exists */
+    FS_Error mkdir_err = storage_common_mkdir(app->storage, dst);
+    if(mkdir_err != FSE_OK && mkdir_err != FSE_EXIST) {
+        FURI_LOG_E(TAG, "mkdir failed: %s (err %d)", dst, mkdir_err);
+        return false;
+    }
+
+    File* dir = storage_file_alloc(app->storage);
+    if(!storage_dir_open(dir, src)) {
+        FURI_LOG_E(TAG, "Cannot open src dir: %s", src);
+        storage_file_free(dir);
+        return false;
+    }
+
+    FileInfo file_info;
+    char name[MAX_NAME_LEN];
+    FuriString* src_child = furi_string_alloc();
+    FuriString* dst_child = furi_string_alloc();
+    bool success = true;
+
+    while(storage_dir_read(dir, &file_info, name, sizeof(name))) {
+        furi_string_printf(src_child, "%s/%s", src, name);
+        furi_string_printf(dst_child, "%s/%s", dst, name);
+
+        if(file_info.flags & FSF_DIRECTORY) {
+            /* Recurse into subdirectory */
+            if(!theme_manager_copy_recursive(
+                   app,
+                   furi_string_get_cstr(src_child),
+                   furi_string_get_cstr(dst_child),
+                   progress,
+                   total,
+                   depth + 1)) {
+                success = false;
+                break;
+            }
+        } else {
+            /* Copy single file */
+            File* src_file = storage_file_alloc(app->storage);
+            File* dst_file = storage_file_alloc(app->storage);
+
+            bool file_ok = false;
+            if(storage_file_open(
+                   src_file, furi_string_get_cstr(src_child), FSAM_READ, FSOM_OPEN_EXISTING) &&
+               storage_file_open(
+                   dst_file, furi_string_get_cstr(dst_child), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+                uint8_t buf[COPY_BUF_SIZE];
+                file_ok = true;
+                size_t bytes;
+                while((bytes = storage_file_read(src_file, buf, sizeof(buf))) > 0) {
+                    if(storage_file_write(dst_file, buf, bytes) != bytes) {
+                        file_ok = false;
+                        break;
+                    }
+                }
+            }
+
+            storage_file_close(src_file);
+            storage_file_close(dst_file);
+            storage_file_free(src_file);
+            storage_file_free(dst_file);
+
+            if(!file_ok) {
+                FURI_LOG_E(TAG, "Copy failed: %s", furi_string_get_cstr(src_child));
+                success = false;
+                break;
+            }
+
+            /* Update progress */
+            (*progress)++;
+            with_view_model(
+                app->progress_view,
+                ProgressModel * model,
+                {
+                    model->current = *progress;
+                    /* Truncate filename for display */
+                    size_t nlen = strlen(name);
+                    if(nlen > sizeof(model->status_text) - 1) {
+                        nlen = sizeof(model->status_text) - 1;
+                    }
+                    memcpy(model->status_text, name, nlen);
+                    model->status_text[nlen] = '\0';
+                },
+                true); /* redraw */
+        }
+    }
+
+    furi_string_free(src_child);
+    furi_string_free(dst_child);
+    storage_dir_close(dir);
+    storage_file_free(dir);
+    return success;
 }
 
 // -------------------------------------------------------------------
@@ -844,18 +1144,34 @@ static bool theme_manager_backup_dolphin(ThemeManagerApp* app) {
 }
 
 // -------------------------------------------------------------------
-// Apply Pack theme (format A or B): merge directory into /ext/dolphin/
+// Apply Pack theme (format A or B): copy with progress into /ext/dolphin/
 // -------------------------------------------------------------------
 static bool theme_manager_apply_pack(ThemeManagerApp* app, const char* merge_src_dir) {
-    FS_Error err = storage_common_merge(app->storage, merge_src_dir, DOLPHIN_PATH);
+    uint32_t file_count = theme_manager_count_files(app, merge_src_dir, 0);
+    if(file_count == 0) file_count = 1; /* avoid div-by-zero */
 
-    if(err != FSE_OK) {
-        FURI_LOG_E(TAG, "Merge failed: %s -> %s (err %d)", merge_src_dir, DOLPHIN_PATH, err);
-        return false;
+    with_view_model(
+        app->progress_view,
+        ProgressModel * model,
+        {
+            model->current = 0;
+            model->total = file_count;
+            model->status_text[0] = '\0';
+        },
+        true);
+
+    view_dispatcher_switch_to_view(app->view_dispatcher, ThemeManagerViewProgress);
+
+    uint32_t progress = 0;
+    bool ok =
+        theme_manager_copy_recursive(app, merge_src_dir, DOLPHIN_PATH, &progress, file_count, 0);
+
+    if(ok) {
+        FURI_LOG_I(TAG, "Copied %lu files: %s -> %s", progress, merge_src_dir, DOLPHIN_PATH);
+    } else {
+        FURI_LOG_E(TAG, "Copy failed: %s -> %s", merge_src_dir, DOLPHIN_PATH);
     }
-
-    FURI_LOG_I(TAG, "Merged: %s -> %s", merge_src_dir, DOLPHIN_PATH);
-    return true;
+    return ok;
 }
 
 // -------------------------------------------------------------------
@@ -867,22 +1183,37 @@ static bool theme_manager_apply_single(ThemeManagerApp* app, const char* theme_n
     FuriString* src_dir = furi_string_alloc_printf("%s/%s", ANIMATION_PACKS_PATH, theme_name);
     FuriString* dst_dir = furi_string_alloc_printf("%s/%s", DOLPHIN_PATH, theme_name);
 
-    FS_Error mkdir_err = storage_common_mkdir(app->storage, furi_string_get_cstr(dst_dir));
-    if(mkdir_err != FSE_OK && mkdir_err != FSE_EXIST) {
-        FURI_LOG_E(TAG, "mkdir failed for %s (err %d)", furi_string_get_cstr(dst_dir), mkdir_err);
-    }
+    uint32_t file_count = theme_manager_count_files(app, furi_string_get_cstr(src_dir), 0);
+    if(file_count == 0) file_count = 1;
 
-    FS_Error err = storage_common_merge(
-        app->storage, furi_string_get_cstr(src_dir), furi_string_get_cstr(dst_dir));
+    /* +1 for the manifest.txt we generate */
+    uint32_t total = file_count + 1;
+
+    with_view_model(
+        app->progress_view,
+        ProgressModel * model,
+        {
+            model->current = 0;
+            model->total = total;
+            model->status_text[0] = '\0';
+        },
+        true);
+
+    view_dispatcher_switch_to_view(app->view_dispatcher, ThemeManagerViewProgress);
+
+    uint32_t progress = 0;
+    bool ok = theme_manager_copy_recursive(
+        app, furi_string_get_cstr(src_dir), furi_string_get_cstr(dst_dir), &progress, total, 0);
 
     furi_string_free(src_dir);
     furi_string_free(dst_dir);
 
-    if(err != FSE_OK) {
-        FURI_LOG_E(TAG, "Copy single anim failed (err %d)", err);
+    if(!ok) {
+        FURI_LOG_E(TAG, "Copy single anim failed");
         return false;
     }
 
+    /* Generate manifest.txt */
     File* manifest = storage_file_alloc(app->storage);
     if(!storage_file_open(manifest, DOLPHIN_MANIFEST, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         FURI_LOG_E(TAG, "Failed to create manifest");
@@ -917,6 +1248,17 @@ static bool theme_manager_apply_single(ThemeManagerApp* app, const char* theme_n
     furi_string_free(content);
     storage_file_close(manifest);
     storage_file_free(manifest);
+
+    /* Update progress for manifest generation */
+    progress++;
+    with_view_model(
+        app->progress_view,
+        ProgressModel * model,
+        {
+            model->current = progress;
+            snprintf(model->status_text, sizeof(model->status_text), "manifest.txt");
+        },
+        true);
 
     FURI_LOG_I(TAG, "Applied single animation: %s (manifest generated)", theme_name);
     return true;
@@ -1021,6 +1363,8 @@ static void theme_manager_info_draw(Canvas* canvas, void* _model) {
     canvas_draw_frame(
         canvas, PREVIEW_DRAW_X - 1, PREVIEW_DRAW_Y - 1, PREVIEW_DRAW_W + 2, PREVIEW_DRAW_H + 2);
 
+    bool has_preview = false;
+
     if(model->preview_loaded && model->frame_count > 0) {
         uint8_t cf = model->current_frame;
         uint8_t* frame_data = model->frames[cf];
@@ -1055,11 +1399,11 @@ static void theme_manager_info_draw(Canvas* canvas, void* _model) {
                     }
                 }
             }
-        } else {
-            goto no_preview;
+            has_preview = true;
         }
-    } else {
-    no_preview:
+    }
+
+    if(!has_preview) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(
             canvas,
@@ -1094,6 +1438,8 @@ static void theme_manager_info_draw(Canvas* canvas, void* _model) {
     snprintf(size_line, sizeof(size_line), "Size: %s", model->size_str);
     canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + INFO_TEXT_Y_SIZE, size_line);
 
+    canvas_draw_str(canvas, text_x, PREVIEW_DRAW_Y + INFO_TEXT_Y_STATUS, model->status_str);
+
     /* Bottom buttons */
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 2, INFO_TEXT_Y_BTN, AlignLeft, AlignBottom, "<Back");
@@ -1112,7 +1458,7 @@ static bool theme_manager_info_input(InputEvent* event, void* context) {
 
     if(event->key == InputKeyLeft || event->key == InputKeyBack) {
         /* Stop preview timer when leaving info view */
-        if(app->preview_timer) furi_timer_stop(app->preview_timer);
+        furi_timer_stop(app->preview_timer);
         view_dispatcher_switch_to_view(app->view_dispatcher, ThemeManagerViewSubmenu);
         return true;
 
@@ -1123,9 +1469,15 @@ static bool theme_manager_info_input(InputEvent* event, void* context) {
 
     } else if(event->key == InputKeyRight) {
         /* Stop preview timer before switching view */
-        if(app->preview_timer) furi_timer_stop(app->preview_timer);
+        furi_timer_stop(app->preview_timer);
         uint32_t index = app->selected_index;
         if(index >= app->theme_count) return true;
+
+        /* Block Apply for invalid themes */
+        if(!app->themes[index].is_valid) {
+            theme_manager_show_error(app, "Cannot apply!\nTheme has missing files.");
+            return true;
+        }
 
         dialog_ex_set_header(
             app->confirm_dialog, app->themes[index].name, 64, 0, AlignCenter, AlignTop);
@@ -1147,7 +1499,7 @@ static bool theme_manager_info_input(InputEvent* event, void* context) {
 
     } else if(event->key == InputKeyOk) {
         /* Stop preview timer before switching view */
-        if(app->preview_timer) furi_timer_stop(app->preview_timer);
+        furi_timer_stop(app->preview_timer);
         uint32_t index = app->selected_index;
         if(index >= app->theme_count) return true;
 
@@ -1185,7 +1537,7 @@ static void theme_manager_show_info(ThemeManagerApp* app, uint32_t index) {
     const char* name = entry->name;
     ThemeType type = entry->type;
 
-    const char* type_label;
+    const char* type_label = "Unknown";
     uint32_t anim_count = 0;
 
     /* Use cached metadata if available */
@@ -1210,8 +1562,6 @@ static void theme_manager_show_info(ThemeManagerApp* app, uint32_t index) {
         case ThemeTypeSingle:
             anim_count = 1;
             break;
-        default:
-            break;
         }
         entry->anim_count = anim_count;
     }
@@ -1226,9 +1576,6 @@ static void theme_manager_show_info(ThemeManagerApp* app, uint32_t index) {
     case ThemeTypeSingle:
         type_label = "Single";
         break;
-    default:
-        type_label = "Unknown";
-        break;
     }
 
     /* Use cached size or calculate and cache */
@@ -1239,7 +1586,7 @@ static void theme_manager_show_info(ThemeManagerApp* app, uint32_t index) {
         FuriString* theme_dir = furi_string_alloc_printf("%s/%s", ANIMATION_PACKS_PATH, name);
         size_bytes = theme_manager_get_dir_size(app, furi_string_get_cstr(theme_dir));
         furi_string_free(theme_dir);
-        entry->cached_size = (uint32_t)size_bytes;
+        entry->cached_size = size_bytes;
         entry->meta_cached = true;
     }
 
@@ -1267,6 +1614,11 @@ static void theme_manager_show_info(ThemeManagerApp* app, uint32_t index) {
             model->anim_count = anim_count;
             strncpy(model->size_str, size_str, sizeof(model->size_str) - 1);
             model->size_str[sizeof(model->size_str) - 1] = '\0';
+            snprintf(
+                model->status_str,
+                sizeof(model->status_str),
+                "%s",
+                entry->is_valid ? "Status: OK" : "Status: Invalid!");
         },
         false);
 
@@ -1302,8 +1654,6 @@ static void theme_manager_confirm_callback(DialogExResult result, void* context)
     ThemeManagerApp* app = context;
 
     if(result == DialogExResultRight) {
-        view_dispatcher_switch_to_view(app->view_dispatcher, ThemeManagerViewLoading);
-
         if(theme_manager_apply_theme(app, app->selected_index)) {
             const char* type_str = "";
             switch(app->themes[app->selected_index].type) {
@@ -1403,15 +1753,16 @@ static void theme_manager_populate_submenu(ThemeManagerApp* app) {
                 if((pass == 0 && !is_fav) || (pass == 1 && is_fav)) continue;
 
                 const char* prefix;
+                bool valid = entry->is_valid;
                 switch(entry->type) {
                 case ThemeTypePack:
-                    prefix = is_fav ? "*[P] " : "[P] ";
+                    prefix = is_fav ? (valid ? "*[P] " : "*[!P] ") : (valid ? "[P] " : "[!P] ");
                     break;
                 case ThemeTypeAnimsPack:
-                    prefix = is_fav ? "*[A] " : "[A] ";
+                    prefix = is_fav ? (valid ? "*[A] " : "*[!A] ") : (valid ? "[A] " : "[!A] ");
                     break;
                 case ThemeTypeSingle:
-                    prefix = is_fav ? "*[S] " : "[S] ";
+                    prefix = is_fav ? (valid ? "*[S] " : "*[!S] ") : (valid ? "[S] " : "[!S] ");
                     break;
                 default:
                     prefix = is_fav ? "* " : "";
@@ -1552,9 +1903,12 @@ int32_t theme_manager_app(void* p) {
     view_dispatcher_add_view(
         app->view_dispatcher, ThemeManagerViewPopup, popup_get_view(app->popup));
 
-    app->loading = loading_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, ThemeManagerViewLoading, loading_get_view(app->loading));
+    /* Custom Progress view */
+    app->progress_view = view_alloc();
+    view_allocate_model(app->progress_view, ViewModelTypeLocking, sizeof(ProgressModel));
+    view_set_draw_callback(app->progress_view, theme_manager_progress_draw);
+    view_set_context(app->progress_view, app);
+    view_dispatcher_add_view(app->view_dispatcher, ThemeManagerViewProgress, app->progress_view);
 
     /* Create timers */
     app->preview_timer = furi_timer_alloc(theme_manager_preview_tick, FuriTimerTypePeriodic, app);
@@ -1586,7 +1940,7 @@ int32_t theme_manager_app(void* p) {
         },
         false);
 
-    view_dispatcher_remove_view(app->view_dispatcher, ThemeManagerViewLoading);
+    view_dispatcher_remove_view(app->view_dispatcher, ThemeManagerViewProgress);
     view_dispatcher_remove_view(app->view_dispatcher, ThemeManagerViewPopup);
     view_dispatcher_remove_view(app->view_dispatcher, ThemeManagerViewDeleteConfirm);
     view_dispatcher_remove_view(app->view_dispatcher, ThemeManagerViewRebootTimer);
@@ -1594,7 +1948,7 @@ int32_t theme_manager_app(void* p) {
     view_dispatcher_remove_view(app->view_dispatcher, ThemeManagerViewInfo);
     view_dispatcher_remove_view(app->view_dispatcher, ThemeManagerViewSubmenu);
 
-    loading_free(app->loading);
+    view_free(app->progress_view);
     popup_free(app->popup);
     dialog_ex_free(app->delete_dialog);
     view_free(app->reboot_timer_view);
