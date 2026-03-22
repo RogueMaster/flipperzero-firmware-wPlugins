@@ -3,7 +3,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://lh3.googleusercontent.com/d/1iYQlRQXM7nA4IAdcPwvcKRSTCMoi8tug' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://lh3.googleusercontent.com/d/1gjui0-UZNerG13PUblXjmr1YaSAjIf2k' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# IMPORTANT NOTE : This is a forked version of the RogueMaster CFW where the menus (Vertical, DSi, PS4...) are restored. There might be a delay after the official update because of the time when seeing that. The official RogueMaster firmware is [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins)
+# IMPORTANT NOTE : This is a forked version of the RogueMaster CFW where the menus (Vertical, DSi, PS4...) are restored. There might be a delay after the official update because of the time when seeing that. The official RogueMaster firmware page is [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins).
 
 # Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0317-0022-0.420.0-f4f7318.tgz&channel=RM0317-0022-0.420.0-f4f7318&version=0.420.0&target=f7)
 
