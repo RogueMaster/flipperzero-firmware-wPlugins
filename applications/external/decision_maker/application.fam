@@ -1,0 +1,23 @@
+App(
+    appid = "random_decision_maker",
+
+    name = "Decision Maker",
+
+    apptype = FlipperAppType.EXTERNAL,
+
+    entry_point = "random_decision_maker_app",
+
+    requires = ["gui"],
+
+    stack_size = 2 * 1024,
+
+    fap_category = "Games",
+
+    fap_description = "Spin a roulette to pick a random option for you.",
+
+    fap_version = "1.0",
+
+    fap_author = "jacki",
+
+    fap_icon = "icon.png",
+)

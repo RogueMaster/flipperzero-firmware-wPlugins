@@ -1,0 +1,14 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/Gerijacki/random_decision_maker.git
+    commit_sha: 863fa52550bd798c13a145c9b0efd9f52eb2fabe
+
+description: "Spin a roulette to pick a random option for you."
+
+changelog: "v1.0 - Initial release"
+
+screenshots:
+  - screenshots/menu.png
+  - screenshots/spinning.png
+  - screenshots/result.png
