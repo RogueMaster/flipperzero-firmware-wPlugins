@@ -1,15 +1,12 @@
 #pragma once
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <furi_hal_serial_types.h>
 #include <furi_hal_version.h>
 #include <toolbox/colors.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 #define CFW_SETTINGS_PATH       CFG_PATH("cfw_settings.txt")
 #define CFW_MENU_PATH           CFG_PATH("cfw_mainmenu.txt")
 #define CFW_MENU_GAMESMODE_PATH CFG_PATH("cfw_gamesmenu.txt")
@@ -17,20 +14,22 @@ extern "C" {
 #define NAMESPOOF_HEADER        "Flipper Name File"
 #define NAMESPOOF_VERSION       1
 #define NAMESPOOF_PATH          EXT_PATH("dolphin/name.txt")
-
 typedef enum {
     MenuStyleList,
     MenuStyleWii,
+    MenuStyleDsi,
+    MenuStylePs4,
+    MenuStyleVertical,
+    MenuStyleC64,
     MenuStyleCompact,
+    MenuStyleTerminal,
     MenuStyleCount,
 } MenuStyle;
-
 typedef enum {
     SpiDefault, // cs on pa4
     SpiExtra, // cs on pc3
     SpiCount,
 } SpiHandle;
-
 typedef enum {
     VgmColorModeDefault,
     VgmColorModeCustom,
@@ -38,7 +37,6 @@ typedef enum {
     VgmColorModeRgbBacklight,
     VgmColorModeCount,
 } VgmColorMode;
-
 typedef struct {
     char* manifest_name;
     MenuStyle menu_style;
@@ -63,10 +61,8 @@ typedef struct {
     uint32_t lcd_style;
     FuriHalVersionColor spoof_color;
 } CfwSettings;
-
 void cfw_settings_save(void);
 extern CfwSettings cfw_settings;
-
 #ifdef __cplusplus
 }
 #endif
