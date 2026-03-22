@@ -38,10 +38,10 @@ static UnitempStatus mhz19c_if_update(Sensor* sensor) {
 }
 
 static const Interface DIRECT_GPIO = {
-    .name         = "DirectGPIO",
-    .allocator    = mhz19c_if_alloc,
+    .name = "DirectGPIO",
+    .allocator = mhz19c_if_alloc,
     .mem_releaser = mhz19c_if_free,
-    .updater      = mhz19c_if_update,
+    .updater = mhz19c_if_update,
 };
 
 /* ---- SensorType callbacks ---- */
@@ -156,7 +156,8 @@ static UnitempStatus mhz19c_update(Sensor* sensor) {
             filtered = sorted[inst->buf_count / 2];
         } else {
             int32_t sum = 0;
-            for(uint8_t i = 1; i < inst->buf_count - 1; i++) sum += sorted[i];
+            for(uint8_t i = 1; i < inst->buf_count - 1; i++)
+                sum += sorted[i];
             filtered = sum / (int32_t)(inst->buf_count - 2);
         }
 
@@ -169,14 +170,14 @@ static UnitempStatus mhz19c_update(Sensor* sensor) {
 
 /* ---- Public SensorType ---- */
 const SensorType MHZ19C = {
-    .typename       = "MHZ19C",
-    .altname        = "MH-Z19C (PWM)",
-    .datatype       = UT_DATA_TYPE_CO2,
-    .interface      = &DIRECT_GPIO,
+    .typename = "MHZ19C",
+    .altname = "MH-Z19C (PWM)",
+    .datatype = UT_DATA_TYPE_CO2,
+    .interface = &DIRECT_GPIO,
     .pollingInterval = 20,
-    .allocator      = mhz19c_alloc,
-    .mem_releaser   = mhz19c_free,
-    .initializer    = mhz19c_init,
-    .deinitializer  = mhz19c_deinit,
-    .updater        = mhz19c_update,
+    .allocator = mhz19c_alloc,
+    .mem_releaser = mhz19c_free,
+    .initializer = mhz19c_init,
+    .deinitializer = mhz19c_deinit,
+    .updater = mhz19c_update,
 };

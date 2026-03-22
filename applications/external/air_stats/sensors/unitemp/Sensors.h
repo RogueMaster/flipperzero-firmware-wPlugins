@@ -18,12 +18,12 @@
 
 /* Sensor data types */
 typedef enum {
-    UT_DATA_TYPE_TEMP          = UT_TEMPERATURE,
-    UT_DATA_TYPE_TEMP_HUM      = UT_TEMPERATURE | UT_HUMIDITY,
-    UT_DATA_TYPE_TEMP_PRESS    = UT_TEMPERATURE | UT_PRESSURE,
+    UT_DATA_TYPE_TEMP = UT_TEMPERATURE,
+    UT_DATA_TYPE_TEMP_HUM = UT_TEMPERATURE | UT_HUMIDITY,
+    UT_DATA_TYPE_TEMP_PRESS = UT_TEMPERATURE | UT_PRESSURE,
     UT_DATA_TYPE_TEMP_HUM_PRESS = UT_TEMPERATURE | UT_HUMIDITY | UT_PRESSURE,
-    UT_DATA_TYPE_TEMP_HUM_CO2  = UT_TEMPERATURE | UT_HUMIDITY | UT_CO2,
-    UT_DATA_TYPE_CO2           = UT_CO2,
+    UT_DATA_TYPE_TEMP_HUM_CO2 = UT_TEMPERATURE | UT_HUMIDITY | UT_CO2,
+    UT_DATA_TYPE_CO2 = UT_CO2,
 } SensorDataType;
 
 /* Sensor poll statuses */
@@ -94,17 +94,17 @@ typedef struct Sensor {
     UnitempStatus status;
     uint32_t lastPollingTime;
     int8_t temp_offset;
-    int16_t co2_offset;   /* CO2 correction, ppm; step 50 */
-    uint8_t co2_avg;      /* PWM averaging window, 1..10; 1 = raw */
+    int16_t co2_offset; /* CO2 correction, ppm; step 50 */
+    uint8_t co2_avg; /* PWM averaging window, 1..10; 1 = raw */
     void* instance;
-    uint32_t last_valid_tick;  /* tick of last valid CO2 reading */
-    bool     needs_reset;      /* eject: clear co2 + reset averaging */
+    uint32_t last_valid_tick; /* tick of last valid CO2 reading */
+    bool needs_reset; /* eject: clear co2 + reset averaging */
     /* Debug: PWM internals (populated by mhz19c_update) */
-    int32_t dbg_th;           /* HIGH duration ms */
-    int32_t dbg_tl;           /* LOW duration ms */
-    int32_t dbg_ppm_raw;      /* raw ppm before averaging */
-    uint8_t dbg_buf_count;    /* averaging buffer fill */
-    bool    dbg_disconnected; /* PWM disconnect flag */
+    int32_t dbg_th; /* HIGH duration ms */
+    int32_t dbg_tl; /* LOW duration ms */
+    int32_t dbg_ppm_raw; /* raw ppm before averaging */
+    uint8_t dbg_buf_count; /* averaging buffer fill */
+    bool dbg_disconnected; /* PWM disconnect flag */
 } Sensor;
 
 /* Interface constants */
@@ -141,7 +141,8 @@ uint8_t unitemp_gpio_toInt(const GPIO* gpio);
 void unitemp_gpio_lock(const GPIO* gpio, const Interface* interface);
 void unitemp_gpio_unlock(const GPIO* gpio);
 uint8_t unitemp_gpio_getAviablePortsCount(const Interface* interface, const GPIO* extraport);
-const GPIO* unitemp_gpio_getAviablePort(const Interface* interface, uint8_t index, const GPIO* extraport);
+const GPIO*
+    unitemp_gpio_getAviablePort(const Interface* interface, uint8_t index, const GPIO* extraport);
 
 /* ===== Sensor driver headers ===== */
 #include "./interfaces/SingleWireSensor.h"

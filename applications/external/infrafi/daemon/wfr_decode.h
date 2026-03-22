@@ -14,9 +14,9 @@
 
 typedef struct {
     uint8_t payload_buf[WFR_MAX_TOTAL_PAYLOAD + 1];
-    uint8_t expected_len;   /* total payload length from START */
-    uint8_t write_cursor;   /* next byte position in current pass */
-    uint8_t current_pass;   /* which retransmit pass (0-3) */
+    uint8_t expected_len; /* total payload length from START */
+    uint8_t write_cursor; /* next byte position in current pass */
+    uint8_t current_pass; /* which retransmit pass (0-3) */
     bool in_transmission;
 
     struct timespec start_time;

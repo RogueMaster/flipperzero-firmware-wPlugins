@@ -22,7 +22,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-  
+
 #ifndef UNITEMP_MAX31725
 #define UNITEMP_MAX31725
 
@@ -36,7 +36,6 @@
 
 #include "../unitemp.h"
 #include "../Sensors.h"
-
 
 /**
  * @brief SensorType instance for the MAX31725 sensor
@@ -101,4 +100,3 @@ bool unitemp_MAX31725_deinit(Sensor* sensor);
 UnitempStatus unitemp_MAX31725_update(Sensor* sensor);
 
 #endif // UNITEMP_MAX31725
-

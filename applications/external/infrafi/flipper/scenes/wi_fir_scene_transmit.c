@@ -20,19 +20,17 @@ static void wi_fir_ir_rx_callback(void* context, InfraredWorkerSignal* signal) {
     uint8_t command = (uint8_t)(message->command & 0xFF);
 
     char payload[WFR_MAX_TOTAL_PAYLOAD + 1];
-    int result = wfr_ack_decode_feed(
-        &app->ack_decoder, address, command, payload, sizeof(payload));
+    int result =
+        wfr_ack_decode_feed(&app->ack_decoder, address, command, payload, sizeof(payload));
 
     if(result > 0) {
         if(strncmp(payload, WFR_ACK_PREFIX_OK, strlen(WFR_ACK_PREFIX_OK)) == 0) {
             const char* ip = payload + strlen(WFR_ACK_PREFIX_OK);
             strncpy(app->ack_result_text, ip, sizeof(app->ack_result_text) - 1);
             app->ack_result_text[sizeof(app->ack_result_text) - 1] = '\0';
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, WiFirCustomEventAckSuccess);
+            view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventAckSuccess);
         } else {
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, WiFirCustomEventAckFail);
+            view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventAckFail);
         }
     }
 }
@@ -40,15 +38,13 @@ static void wi_fir_ir_rx_callback(void* context, InfraredWorkerSignal* signal) {
 /* ACK timeout — no response from server within WFR_ACK_TIMEOUT_SEC */
 static void wi_fir_ack_timeout_callback(void* context) {
     WiFirApp* app = context;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, WiFirCustomEventAckTimeout);
+    view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventAckTimeout);
 }
 
 /* Auto-dismiss result popup back to main menu */
 static void wi_fir_result_popup_callback(void* context) {
     WiFirApp* app = context;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, WiFirCustomEventAckDismiss);
+    view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventAckDismiss);
 }
 
 /* Stop ACK listener (IR worker + timer) — safe to call multiple times */
@@ -89,8 +85,7 @@ void wi_fir_scene_transmit_on_enter(void* context) {
 
     if(!success) {
         notification_message(app->notifications, &sequence_error);
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, WiFirCustomEventTransmitFail);
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventTransmitFail);
         return;
     }
 
@@ -100,8 +95,7 @@ void wi_fir_scene_transmit_on_enter(void* context) {
 
     if(!app->ack_enabled) {
         /* ACK disabled — show simple "Sent!" popup and return */
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, WiFirCustomEventTransmitDone);
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventTransmitDone);
         return;
     }
 
@@ -113,13 +107,11 @@ void wi_fir_scene_transmit_on_enter(void* context) {
     app->ir_worker = infrared_worker_alloc();
     infrared_worker_rx_enable_signal_decoding(app->ir_worker, true);
     infrared_worker_rx_enable_blink_on_receiving(app->ir_worker, true);
-    infrared_worker_rx_set_received_signal_callback(
-        app->ir_worker, wi_fir_ir_rx_callback, app);
+    infrared_worker_rx_set_received_signal_callback(app->ir_worker, wi_fir_ir_rx_callback, app);
     infrared_worker_rx_start(app->ir_worker);
 
     /* Timeout timer */
-    app->ack_timer = furi_timer_alloc(
-        wi_fir_ack_timeout_callback, FuriTimerTypeOnce, app);
+    app->ack_timer = furi_timer_alloc(wi_fir_ack_timeout_callback, FuriTimerTypeOnce, app);
     furi_timer_start(app->ack_timer, furi_ms_to_ticks(WFR_ACK_TIMEOUT_SEC * 1000));
 
     /* Show "waiting" popup with cyan LED pulse */
@@ -127,9 +119,7 @@ void wi_fir_scene_transmit_on_enter(void* context) {
     popup_reset(app->popup);
     popup_set_header(app->popup, "Sent!", 64, 10, AlignCenter, AlignCenter);
     popup_set_text(
-        app->popup,
-        "Waiting for server\nresponse...",
-        64, 35, AlignCenter, AlignCenter);
+        app->popup, "Waiting for server\nresponse...", 64, 35, AlignCenter, AlignCenter);
     view_dispatcher_switch_to_view(app->view_dispatcher, WiFirViewPopup);
 }
 
@@ -145,11 +135,8 @@ bool wi_fir_scene_transmit_on_event(void* context, SceneManagerEvent event) {
 
             popup_reset(app->popup);
             popup_set_header(app->popup, "Connected!", 64, 10, AlignCenter, AlignCenter);
-            snprintf(
-                app->confirm_text, sizeof(app->confirm_text),
-                "IP: %s", app->ack_result_text);
-            popup_set_text(
-                app->popup, app->confirm_text, 64, 35, AlignCenter, AlignCenter);
+            snprintf(app->confirm_text, sizeof(app->confirm_text), "IP: %s", app->ack_result_text);
+            popup_set_text(app->popup, app->confirm_text, 64, 35, AlignCenter, AlignCenter);
             popup_set_context(app->popup, app);
             popup_set_callback(app->popup, wi_fir_result_popup_callback);
             popup_set_timeout(app->popup, 5000);
@@ -165,9 +152,7 @@ bool wi_fir_scene_transmit_on_event(void* context, SceneManagerEvent event) {
             popup_reset(app->popup);
             popup_set_header(app->popup, "Failed", 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                "Server could not\nconnect to WiFi",
-                64, 35, AlignCenter, AlignCenter);
+                app->popup, "Server could not\nconnect to WiFi", 64, 35, AlignCenter, AlignCenter);
             popup_set_context(app->popup, app);
             popup_set_callback(app->popup, wi_fir_result_popup_callback);
             popup_set_timeout(app->popup, 3000);
@@ -184,7 +169,10 @@ bool wi_fir_scene_transmit_on_event(void* context, SceneManagerEvent event) {
             popup_set_text(
                 app->popup,
                 "No response from server\n(credentials were sent)",
-                64, 35, AlignCenter, AlignCenter);
+                64,
+                35,
+                AlignCenter,
+                AlignCenter);
             popup_set_context(app->popup, app);
             popup_set_callback(app->popup, wi_fir_result_popup_callback);
             popup_set_timeout(app->popup, 3000);
@@ -197,9 +185,7 @@ bool wi_fir_scene_transmit_on_event(void* context, SceneManagerEvent event) {
             popup_reset(app->popup);
             popup_set_header(app->popup, "Sent!", 64, 20, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                "Credentials transmitted\nvia IR",
-                64, 40, AlignCenter, AlignCenter);
+                app->popup, "Credentials transmitted\nvia IR", 64, 40, AlignCenter, AlignCenter);
             popup_set_context(app->popup, app);
             popup_set_callback(app->popup, wi_fir_result_popup_callback);
             popup_set_timeout(app->popup, 2000);
@@ -210,8 +196,7 @@ bool wi_fir_scene_transmit_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == WiFirCustomEventTransmitFail) {
             popup_reset(app->popup);
             popup_set_header(app->popup, "Error!", 64, 20, AlignCenter, AlignCenter);
-            popup_set_text(
-                app->popup, "IR transmission failed", 64, 40, AlignCenter, AlignCenter);
+            popup_set_text(app->popup, "IR transmission failed", 64, 40, AlignCenter, AlignCenter);
             popup_set_context(app->popup, app);
             popup_set_callback(app->popup, wi_fir_result_popup_callback);
             popup_set_timeout(app->popup, 2000);
@@ -225,8 +210,7 @@ bool wi_fir_scene_transmit_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        scene_manager_search_and_switch_to_previous_scene(
-            app->scene_manager, WiFirSceneMainMenu);
+        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, WiFirSceneMainMenu);
         consumed = true;
     }
 

@@ -13,10 +13,10 @@
 #include "../../sensors/mhz19c_uart_sensor.h"
 
 /* Extra GPIO pins not in the standard list */
-const GpioPin SWC_10      = {.pin = LL_GPIO_PIN_14, .port = GPIOA};
-const GpioPin SIO_12      = {.pin = LL_GPIO_PIN_13, .port = GPIOA};
-const GpioPin TX_13       = {.pin = LL_GPIO_PIN_6,  .port = GPIOB};
-const GpioPin RX_14       = {.pin = LL_GPIO_PIN_7,  .port = GPIOB};
+const GpioPin SWC_10 = {.pin = LL_GPIO_PIN_14, .port = GPIOA};
+const GpioPin SIO_12 = {.pin = LL_GPIO_PIN_13, .port = GPIOA};
+const GpioPin TX_13 = {.pin = LL_GPIO_PIN_6, .port = GPIOB};
+const GpioPin RX_14 = {.pin = LL_GPIO_PIN_7, .port = GPIOB};
 const GpioPin ibutton_gpio = {.pin = LL_GPIO_PIN_14, .port = GPIOB};
 
 #define GPIO_ITEMS             (sizeof(GPIOList) / sizeof(GPIO))
@@ -25,57 +25,54 @@ const GpioPin ibutton_gpio = {.pin = LL_GPIO_PIN_14, .port = GPIOB};
 
 /* Available I/O ports */
 static const GPIO GPIOList[] = {
-    {2,  "2 (A7)",   &gpio_ext_pa7},
-    {3,  "3 (A6)",   &gpio_ext_pa6},
-    {4,  "4 (A4)",   &gpio_ext_pa4},
-    {5,  "5 (B3)",   &gpio_ext_pb3},
-    {6,  "6 (B2)",   &gpio_ext_pb2},
-    {7,  "7 (C3)",   &gpio_ext_pc3},
+    {2, "2 (A7)", &gpio_ext_pa7},
+    {3, "3 (A6)", &gpio_ext_pa6},
+    {4, "4 (A4)", &gpio_ext_pa4},
+    {5, "5 (B3)", &gpio_ext_pb3},
+    {6, "6 (B2)", &gpio_ext_pb2},
+    {7, "7 (C3)", &gpio_ext_pc3},
     {10, " 10(SWC)", &SWC_10},
     {12, "12 (SIO)", &SIO_12},
-    {13, "13 (TX)",  &TX_13},
-    {14, "14 (RX)",  &RX_14},
-    {15, "15 (C1)",  &gpio_ext_pc1},
-    {16, "16 (C0)",  &gpio_ext_pc0},
-    {17, "17 (1W)",  &ibutton_gpio}};
+    {13, "13 (TX)", &TX_13},
+    {14, "14 (RX)", &RX_14},
+    {15, "15 (C1)", &gpio_ext_pc1},
+    {16, "16 (C0)", &gpio_ext_pc0},
+    {17, "17 (1W)", &ibutton_gpio}};
 
 /* GPIO lock table: NULL = free, non-NULL = locked by interface */
 static const Interface* gpio_interfaces_list[GPIO_ITEMS] = {0};
 
 /* ---- Interface constants ---- */
 const Interface SINGLE_WIRE = {
-    .name         = "Single wire",
-    .allocator    = unitemp_singlewire_alloc,
+    .name = "Single wire",
+    .allocator = unitemp_singlewire_alloc,
     .mem_releaser = unitemp_singlewire_free,
-    .updater      = unitemp_singlewire_update};
+    .updater = unitemp_singlewire_update};
 
 const Interface I2C = {
-    .name         = "I2C",
-    .allocator    = unitemp_I2C_sensor_alloc,
+    .name = "I2C",
+    .allocator = unitemp_I2C_sensor_alloc,
     .mem_releaser = unitemp_I2C_sensor_free,
-    .updater      = unitemp_I2C_sensor_update};
+    .updater = unitemp_I2C_sensor_update};
 
 const Interface ONE_WIRE = {
-    .name         = "One wire",
-    .allocator    = unitemp_onewire_sensor_alloc,
+    .name = "One wire",
+    .allocator = unitemp_onewire_sensor_alloc,
     .mem_releaser = unitemp_onewire_sensor_free,
-    .updater      = unitemp_onewire_sensor_update};
+    .updater = unitemp_onewire_sensor_update};
 
 const Interface SPI = {
-    .name         = "SPI",
-    .allocator    = unitemp_spi_sensor_alloc,
+    .name = "SPI",
+    .allocator = unitemp_spi_sensor_alloc,
     .mem_releaser = unitemp_spi_sensor_free,
-    .updater      = unitemp_spi_sensor_update};
+    .updater = unitemp_spi_sensor_update};
 
 /* ---- Sensor type registry ---- */
 static const SensorType* sensorTypes[] = {
-    &DHT11,      &DHT12_SW,   &DHT20,      &DHT21,      &DHT22,
-    &Dallas,     &AM2320_SW,  &AM2320_I2C, &HTU21x,     &AHT10,
-    &SHT30,      &GXHT30,     &LM75,       &HDC1080,    &BMP180,
-    &BMP280,     &BME280,     &BME680,     &MAX31855,   &MAX6675,
-    &SCD30,      &SCD40.super,
-    &MHZ19C,      /* PWM CO2 sensor */
-    &MHZ19C_UART  /* UART CO2 sensor */
+    &DHT11,      &DHT12_SW, &DHT20,    &DHT21,   &DHT22, &Dallas,      &AM2320_SW, &AM2320_I2C,
+    &HTU21x,     &AHT10,    &SHT30,    &GXHT30,  &LM75,  &HDC1080,     &BMP180,    &BMP280,
+    &BME280,     &BME680,   &MAX31855, &MAX6675, &SCD30, &SCD40.super, &MHZ19C, /* PWM CO2 sensor */
+    &MHZ19C_UART /* UART CO2 sensor */
 };
 
 /* ---- Type registry functions ---- */
@@ -434,7 +431,8 @@ bool unitemp_sensors_load(void) {
         if(file_stream_get_error(app->file_stream) == FSE_NOT_EXIST) {
             FURI_LOG_W(APP_NAME, "Missing sensors file");
         } else {
-            FURI_LOG_E(APP_NAME, "Sensors load error: %d", file_stream_get_error(app->file_stream));
+            FURI_LOG_E(
+                APP_NAME, "Sensors load error: %d", file_stream_get_error(app->file_stream));
         }
         file_stream_close(app->file_stream);
         stream_free(app->file_stream);
@@ -471,18 +469,28 @@ bool unitemp_sensors_load(void) {
         int parsed = sscanf(
             (char*)(file_buf + line_end),
             "%10s %15s %d %d %d %n",
-            name, type, &temp_offset, &co2_offset_val, &co2_avg_val, &offset);
+            name,
+            type,
+            &temp_offset,
+            &co2_offset_val,
+            &co2_avg_val,
+            &offset);
         if(parsed < 5) {
             offset = 0;
             parsed = sscanf(
                 (char*)(file_buf + line_end),
                 "%10s %15s %d %d %n",
-                name, type, &temp_offset, &co2_offset_val, &offset);
+                name,
+                type,
+                &temp_offset,
+                &co2_offset_val,
+                &offset);
             co2_avg_val = 5;
         }
         if(parsed < 4) {
             offset = 0;
-            sscanf((char*)(file_buf + line_end), "%10s %15s %d %n", name, type, &temp_offset, &offset);
+            sscanf(
+                (char*)(file_buf + line_end), "%10s %15s %d %n", name, type, &temp_offset, &offset);
             co2_offset_val = 0;
             co2_avg_val = 5;
         }
@@ -496,8 +504,10 @@ bool unitemp_sensors_load(void) {
             Sensor* sensor = unitemp_sensor_alloc(name, stype, args);
             if(sensor != NULL) {
                 sensor->temp_offset = temp_offset;
-                sensor->co2_offset  = (int16_t)co2_offset_val;
-                sensor->co2_avg     = (uint8_t)(co2_avg_val < 1 ? 1 : co2_avg_val > 30 ? 30 : co2_avg_val);
+                sensor->co2_offset = (int16_t)co2_offset_val;
+                sensor->co2_avg = (uint8_t)(co2_avg_val < 1  ? 1 :
+                                            co2_avg_val > 30 ? 30 :
+                                                               co2_avg_val);
                 unitemp_sensors_add(sensor);
             }
         }
@@ -533,9 +543,13 @@ bool unitemp_sensors_save(void) {
             if(sensor->name[j] == ' ') sensor->name[j] = '?';
         }
         stream_write_format(
-            app->file_stream, "%s %s %d %d %d ",
-            sensor->name, sensor->type->typename,
-            sensor->temp_offset, sensor->co2_offset, sensor->co2_avg);
+            app->file_stream,
+            "%s %s %d %d %d ",
+            sensor->name,
+            sensor->type->typename,
+            sensor->temp_offset,
+            sensor->co2_offset,
+            sensor->co2_avg);
 
         if(sensor->type->interface == &SINGLE_WIRE) {
             stream_write_format(

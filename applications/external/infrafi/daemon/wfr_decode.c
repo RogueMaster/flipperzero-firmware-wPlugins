@@ -35,7 +35,6 @@ int wfr_decode_feed_scancode(
     uint8_t rc6_command,
     char* out,
     size_t out_size) {
-
     if(wfr_decode_check_timeout(dec)) return -1;
 
     /* Filter: must have InfraFi magic in high nibble */
@@ -57,11 +56,7 @@ int wfr_decode_feed_scancode(
             dec->write_cursor = 0;
             dec->current_pass = pass;
             clock_gettime(CLOCK_MONOTONIC, &dec->start_time);
-            syslog(
-                LOG_INFO,
-                "infrafid: START retransmit pass %d (len=%d)",
-                pass,
-                total_len);
+            syslog(LOG_INFO, "infrafid: START retransmit pass %d (len=%d)", pass, total_len);
             return 0;
         }
 

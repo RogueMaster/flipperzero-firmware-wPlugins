@@ -2,7 +2,10 @@
 
 #include <stdint.h>
 
-typedef enum { RANGE_2000 = 2000, RANGE_5000 = 5000 } SensorRange;
+typedef enum {
+    RANGE_2000 = 2000,
+    RANGE_5000 = 5000
+} SensorRange;
 
 int32_t calculate_ppm(
     int32_t* prevVal,

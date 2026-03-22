@@ -7,11 +7,9 @@ static const char* security_labels[] = {"Open", "WPA", "WEP", "SAE"};
 static void wi_fir_scene_confirm_delete_callback(DialogExResult result, void* context) {
     WiFirApp* app = context;
     if(result == DialogExResultRight) {
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, WiFirCustomEventDeleteConfirmed);
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventDeleteConfirmed);
     } else {
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, WiFirCustomEventDeleteCancelled);
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventDeleteCancelled);
     }
 }
 
@@ -70,8 +68,7 @@ bool wi_fir_scene_confirm_on_event(void* context, SceneManagerEvent event) {
             if(app->selected_saved_file[0] != '\0') {
                 /* Show "are you sure?" confirmation */
                 dialog_ex_reset(app->dialog_ex);
-                dialog_ex_set_header(
-                    app->dialog_ex, "Delete?", 64, 0, AlignCenter, AlignTop);
+                dialog_ex_set_header(app->dialog_ex, "Delete?", 64, 0, AlignCenter, AlignTop);
                 snprintf(
                     app->confirm_text,
                     sizeof(app->confirm_text),

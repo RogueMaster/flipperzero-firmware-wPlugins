@@ -17,13 +17,20 @@ App* app = NULL;
 /* ---- Sensor value conversions (declared in unitemp.h) ---- */
 
 void unitemp_celsiusToFahrenheit(Sensor* sensor) {
-    sensor->temp       = sensor->temp * (9.0f / 5.0f) + 32.0f;
+    sensor->temp = sensor->temp * (9.0f / 5.0f) + 32.0f;
     sensor->heat_index = sensor->heat_index * (9.0f / 5.0f) + 32.0f;
 }
 
 static const float heat_index_consts[9] = {
-    -42.379f,     2.04901523f,  10.14333127f, -0.22475541f, -0.00683783f,
-    -0.05481717f, 0.00122874f,  0.00085282f,  -0.00000199f};
+    -42.379f,
+    2.04901523f,
+    10.14333127f,
+    -0.22475541f,
+    -0.00683783f,
+    -0.05481717f,
+    0.00122874f,
+    0.00085282f,
+    -0.00000199f};
 
 void unitemp_calculate_heat_index(Sensor* sensor) {
     float t = sensor->temp * (9.0f / 5.0f) + 32.0f;
@@ -48,10 +55,18 @@ void unitemp_rhToDewpointF(Sensor* sensor) {
     sensor->hum = calculateDewPoint(sensor->temp, sensor->hum) * (9.0f / 5.0f) + 32.0f;
 }
 
-void unitemp_pascalToMmHg(Sensor* sensor) { sensor->pressure *= 0.007500638f; }
-void unitemp_pascalToKPa(Sensor* sensor)  { sensor->pressure /= 1000.0f; }
-void unitemp_pascalToHPa(Sensor* sensor)  { sensor->pressure /= 100.0f; }
-void unitemp_pascalToInHg(Sensor* sensor) { sensor->pressure *= 0.0002953007f; }
+void unitemp_pascalToMmHg(Sensor* sensor) {
+    sensor->pressure *= 0.007500638f;
+}
+void unitemp_pascalToKPa(Sensor* sensor) {
+    sensor->pressure /= 1000.0f;
+}
+void unitemp_pascalToHPa(Sensor* sensor) {
+    sensor->pressure /= 100.0f;
+}
+void unitemp_pascalToInHg(Sensor* sensor) {
+    sensor->pressure *= 0.0002953007f;
+}
 
 /* ---- Settings persistence ---- */
 
@@ -61,30 +76,29 @@ bool unitemp_saveSettings(void) {
     furi_string_printf(filepath, "%s/%s", APP_PATH_FOLDER, APP_FILENAME_SETTINGS);
     storage_common_mkdir(app->storage, APP_PATH_FOLDER);
     if(!file_stream_open(
-           app->file_stream,
-           furi_string_get_cstr(filepath),
-           FSAM_READ_WRITE,
-           FSOM_CREATE_ALWAYS)) {
+           app->file_stream, furi_string_get_cstr(filepath), FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
         FURI_LOG_E(APP_NAME, "Settings save error: %d", file_stream_get_error(app->file_stream));
         file_stream_close(app->file_stream);
         stream_free(app->file_stream);
         furi_string_free(filepath);
         return false;
     }
-    stream_write_format(app->file_stream, "BACKLIGHT_MODE %d\n",     app->settings.backlight_mode);
-    stream_write_format(app->file_stream, "TEMP_UNIT %d\n",         app->settings.temp_unit);
-    stream_write_format(app->file_stream, "HUMIDITY_UNIT %d\n",     app->settings.humidity_unit);
-    stream_write_format(app->file_stream, "PRESSURE_UNIT %d\n",     app->settings.pressure_unit);
-    stream_write_format(app->file_stream, "HEAT_INDEX %d\n",        app->settings.heat_index);
-    stream_write_format(app->file_stream, "CO2_TYPE %d\n",          (int)app->settings.co2_type);
-    stream_write_format(app->file_stream, "CLIMATE_TYPE_IDX %d\n",  (int)app->settings.climate_type_idx);
-    stream_write_format(app->file_stream, "LED_NOTIFY %d\n",          app->settings.led_notify);
-    stream_write_format(app->file_stream, "SOUND_NOTIFY %d\n",        app->settings.sound_notify);
-    stream_write_format(app->file_stream, "SOUND_VOLUME %d\n",        app->settings.sound_volume);
-    stream_write_format(app->file_stream, "CO2_ALERT_THRESHOLD %d\n", app->settings.co2_alert_threshold);
-    stream_write_format(app->file_stream, "CO2_PWM_RANGE %d\n",       app->settings.co2_pwm_range);
-    stream_write_format(app->file_stream, "DEBUG_MODE %d\n",          app->settings.debug_mode);
-    stream_write_format(app->file_stream, "SHOW_STATUS %d\n",         app->settings.show_status);
+    stream_write_format(app->file_stream, "BACKLIGHT_MODE %d\n", app->settings.backlight_mode);
+    stream_write_format(app->file_stream, "TEMP_UNIT %d\n", app->settings.temp_unit);
+    stream_write_format(app->file_stream, "HUMIDITY_UNIT %d\n", app->settings.humidity_unit);
+    stream_write_format(app->file_stream, "PRESSURE_UNIT %d\n", app->settings.pressure_unit);
+    stream_write_format(app->file_stream, "HEAT_INDEX %d\n", app->settings.heat_index);
+    stream_write_format(app->file_stream, "CO2_TYPE %d\n", (int)app->settings.co2_type);
+    stream_write_format(
+        app->file_stream, "CLIMATE_TYPE_IDX %d\n", (int)app->settings.climate_type_idx);
+    stream_write_format(app->file_stream, "LED_NOTIFY %d\n", app->settings.led_notify);
+    stream_write_format(app->file_stream, "SOUND_NOTIFY %d\n", app->settings.sound_notify);
+    stream_write_format(app->file_stream, "SOUND_VOLUME %d\n", app->settings.sound_volume);
+    stream_write_format(
+        app->file_stream, "CO2_ALERT_THRESHOLD %d\n", app->settings.co2_alert_threshold);
+    stream_write_format(app->file_stream, "CO2_PWM_RANGE %d\n", app->settings.co2_pwm_range);
+    stream_write_format(app->file_stream, "DEBUG_MODE %d\n", app->settings.debug_mode);
+    stream_write_format(app->file_stream, "SHOW_STATUS %d\n", app->settings.show_status);
     file_stream_close(app->file_stream);
     stream_free(app->file_stream);
     furi_string_free(filepath);
@@ -97,10 +111,7 @@ bool unitemp_loadSettings(void) {
     FuriString* filepath = furi_string_alloc();
     furi_string_printf(filepath, "%s/%s", APP_PATH_FOLDER, APP_FILENAME_SETTINGS);
     if(!file_stream_open(
-           app->file_stream,
-           furi_string_get_cstr(filepath),
-           FSAM_READ_WRITE,
-           FSOM_OPEN_EXISTING)) {
+           app->file_stream, furi_string_get_cstr(filepath), FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) {
         if(file_stream_get_error(app->file_stream) == FSE_NOT_EXIST) {
             FURI_LOG_W(APP_NAME, "No settings file, saving defaults");
         }
@@ -285,26 +296,26 @@ int32_t air_stats_main(void* p) {
     memset(app, 0, sizeof(App));
 
     /* Open system records */
-    app->gui           = furi_record_open(RECORD_GUI);
+    app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
-    app->storage       = furi_record_open(RECORD_STORAGE);
+    app->storage = furi_record_open(RECORD_STORAGE);
 
     /* Default settings (applied before loadSettings; loadSettings overwrites from file) */
-    app->settings.backlight_mode    = 7; /* Inf */
-    app->settings.temp_unit         = UT_TEMP_CELSIUS;
-    app->settings.humidity_unit     = UT_HUMIDITY_RELATIVE;
-    app->settings.pressure_unit     = UT_PRESSURE_MM_HG;
-    app->settings.heat_index        = false;
-    app->settings.lastOTGState      = furi_hal_power_is_otg_enabled();
-    app->settings.co2_type          = CO2_TYPE_PWM;
-    app->settings.climate_type_idx  = 0;
-    app->settings.led_notify          = true;
-    app->settings.sound_notify        = true;
-    app->settings.sound_volume        = 5;
+    app->settings.backlight_mode = 7; /* Inf */
+    app->settings.temp_unit = UT_TEMP_CELSIUS;
+    app->settings.humidity_unit = UT_HUMIDITY_RELATIVE;
+    app->settings.pressure_unit = UT_PRESSURE_MM_HG;
+    app->settings.heat_index = false;
+    app->settings.lastOTGState = furi_hal_power_is_otg_enabled();
+    app->settings.co2_type = CO2_TYPE_PWM;
+    app->settings.climate_type_idx = 0;
+    app->settings.led_notify = true;
+    app->settings.sound_notify = true;
+    app->settings.sound_volume = 5;
     app->settings.co2_alert_threshold = 1000;
-    app->settings.co2_pwm_range       = 5000;
-    app->settings.debug_mode          = false;
-    app->settings.show_status         = true;
+    app->settings.co2_pwm_range = 5000;
+    app->settings.debug_mode = false;
+    app->settings.show_status = true;
 
     /* Load settings from SD (creates defaults if missing) */
     unitemp_loadSettings();
@@ -314,6 +325,7 @@ int32_t air_stats_main(void* p) {
 
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
 
     /* Popup (registered as ViewPopup in dispatcher) */
     app->popup = popup_alloc();
@@ -329,7 +341,7 @@ int32_t air_stats_main(void* p) {
     view_widgets_alloc();
 
     /* Sensors: load from SD card, fallback to hardcoded defaults */
-    app->sensors       = NULL;
+    app->sensors = NULL;
     app->sensors_count = 0;
 
     if(!unitemp_sensors_load() || app->sensors_count == 0) {
@@ -347,11 +359,14 @@ int32_t air_stats_main(void* p) {
     /* Sync CO2 sensor type: settings.co2_type must match the actual loaded sensor.
      * If they diverge (e.g. save was interrupted last session), fix silently. */
     {
-        const SensorType* expected = (app->settings.co2_type == CO2_TYPE_UART) ?
-                                     &MHZ19C_UART : &MHZ19C;
+        const SensorType* expected = (app->settings.co2_type == CO2_TYPE_UART) ? &MHZ19C_UART :
+                                                                                 &MHZ19C;
         bool ok = false;
         for(uint8_t i = 0; i < app->sensors_count; i++) {
-            if(app->sensors[i]->type == expected) { ok = true; break; }
+            if(app->sensors[i]->type == expected) {
+                ok = true;
+                break;
+            }
         }
         if(!ok) {
             for(uint8_t i = 0; i < app->sensors_count; i++) {
@@ -368,7 +383,7 @@ int32_t air_stats_main(void* p) {
     unitemp_sensors_init();
 
     /* CO2 alert runtime state */
-    app->co2_was_above   = false;
+    app->co2_was_above = false;
     app->last_alert_tick = 0;
 
     /* Set up 100 ms polling tick */

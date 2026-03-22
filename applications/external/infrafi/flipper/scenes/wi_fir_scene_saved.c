@@ -13,8 +13,8 @@ void wi_fir_scene_saved_on_enter(void* context) {
     submenu_set_header(app->submenu, "Saved Networks");
 
     /* Scan SD card for saved credentials */
-    app->saved_count = wfr_storage_list(
-        app->storage, app->saved_ssids, app->saved_files, WFR_SAVED_MAX);
+    app->saved_count =
+        wfr_storage_list(app->storage, app->saved_ssids, app->saved_files, WFR_SAVED_MAX);
 
     if(app->saved_count == 0) {
         submenu_add_item(app->submenu, "(no saved networks)", 0, NULL, NULL);
@@ -37,18 +37,12 @@ bool wi_fir_scene_saved_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == WiFirCustomEventSavedSelected) {
-            uint32_t index =
-                scene_manager_get_scene_state(app->scene_manager, WiFirSceneSaved);
+            uint32_t index = scene_manager_get_scene_state(app->scene_manager, WiFirSceneSaved);
 
             if(index < app->saved_count) {
                 /* Build full path and load credentials */
                 char path[256];
-                snprintf(
-                    path,
-                    sizeof(path),
-                    "%s/%s",
-                    WFR_SAVE_DIR,
-                    app->saved_files[index]);
+                snprintf(path, sizeof(path), "%s/%s", WFR_SAVE_DIR, app->saved_files[index]);
 
                 WfrWifiCreds creds;
                 if(wfr_storage_load(app->storage, path, &creds)) {
@@ -57,9 +51,7 @@ bool wi_fir_scene_saved_on_event(void* context, SceneManagerEvent event) {
                     app->security_type = creds.security;
                     app->hidden = creds.hidden;
                     strncpy(
-                        app->selected_saved_file,
-                        app->saved_files[index],
-                        WFR_FILENAME_MAX - 1);
+                        app->selected_saved_file, app->saved_files[index], WFR_FILENAME_MAX - 1);
 
                     scene_manager_next_scene(app->scene_manager, WiFirSceneConfirm);
                     consumed = true;

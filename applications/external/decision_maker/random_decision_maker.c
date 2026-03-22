@@ -43,7 +43,7 @@
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /** Maximum number of decisions the user can enter. */
-#define MAX_DECISIONS    20u
+#define MAX_DECISIONS 20u
 
 /**
  * @brief Buffer size per decision, including the null terminator.
@@ -53,16 +53,16 @@
 #define MAX_DECISION_LEN 21u
 
 /** Number of rows visible in the manage-screen list at once. */
-#define MENU_VISIBLE     4u
+#define MENU_VISIBLE 4u
 
 /** Minimum full rotations through the list before the wheel decelerates. */
 #define SPIN_BASE_CYCLES 3u
 
 /** Fast animation frame interval (ms). */
-#define SPIN_FAST_MS     60u
+#define SPIN_FAST_MS 60u
 
 /** Slow / deceleration animation frame interval (ms). */
-#define SPIN_SLOW_MS     220u
+#define SPIN_SLOW_MS 220u
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * 2.  View IDs and custom events
@@ -70,10 +70,10 @@
 
 /** Identifiers for each view managed by the ViewDispatcher. */
 typedef enum {
-    ViewIdManage    = 0,
+    ViewIdManage = 0,
     ViewIdTextInput = 1,
-    ViewIdSpinning  = 2,
-    ViewIdResult    = 3,
+    ViewIdSpinning = 2,
+    ViewIdResult = 3,
 } ViewId;
 
 /** Custom events sent from the spin timer to the ViewDispatcher. */
@@ -92,20 +92,20 @@ typedef enum {
  * button (unless count == MAX_DECISIONS, in which case it is hidden).
  */
 typedef struct {
-    char    items[MAX_DECISIONS][MAX_DECISION_LEN]; /**< Decision strings.   */
-    uint8_t count;  /**< Number of decisions entered so far.                 */
+    char items[MAX_DECISIONS][MAX_DECISION_LEN]; /**< Decision strings.   */
+    uint8_t count; /**< Number of decisions entered so far.                 */
     uint8_t cursor; /**< Highlighted row index (count = "Añadir" row).       */
     uint8_t scroll; /**< Index of the topmost visible row.                   */
 } ManageModel;
 
 /** @brief Model for the spinning animation screen. */
 typedef struct {
-    char    options[MAX_DECISIONS][MAX_DECISION_LEN]; /**< Snapshot of decisions. */
-    uint8_t count;       /**< Number of options in this spin run.            */
-    uint8_t current;     /**< Index of the currently displayed option.       */
-    uint8_t steps;       /**< Animation frames elapsed.                      */
-    uint8_t total;       /**< Total frames for this spin run.                */
-    uint8_t fast_steps;  /**< Frames executed at full speed.                 */
+    char options[MAX_DECISIONS][MAX_DECISION_LEN]; /**< Snapshot of decisions. */
+    uint8_t count; /**< Number of options in this spin run.            */
+    uint8_t current; /**< Index of the currently displayed option.       */
+    uint8_t steps; /**< Animation frames elapsed.                      */
+    uint8_t total; /**< Total frames for this spin run.                */
+    uint8_t fast_steps; /**< Frames executed at full speed.                 */
 } SpinModel;
 
 /** @brief Model for the result screen. */
@@ -120,10 +120,10 @@ typedef struct {
 typedef struct {
     ViewDispatcher* view_dispatcher;
 
-    View*       view_manage;   /**< Custom manage-decisions view.   */
-    TextInput*  text_input;    /**< Built-in keyboard module.       */
-    View*       view_spinning; /**< Custom roulette animation view. */
-    View*       view_result;   /**< Custom result display view.     */
+    View* view_manage; /**< Custom manage-decisions view.   */
+    TextInput* text_input; /**< Built-in keyboard module.       */
+    View* view_spinning; /**< Custom roulette animation view. */
+    View* view_result; /**< Custom result display view.     */
 
     /** Buffer written by TextInput; read in the done callback. */
     char input_buffer[MAX_DECISION_LEN];
@@ -167,9 +167,9 @@ static void spin_timer_callback(void* context) {
  *   [55–63]  Context-sensitive hint bar
  */
 static void manage_draw_callback(Canvas* canvas, void* model_ptr) {
-    ManageModel* m         = (ManageModel*)model_ptr;
-    bool         has_add   = (m->count < MAX_DECISIONS);
-    uint8_t      total     = (uint8_t)(m->count + (has_add ? 1u : 0u));
+    ManageModel* m = (ManageModel*)model_ptr;
+    bool has_add = (m->count < MAX_DECISIONS);
+    uint8_t total = (uint8_t)(m->count + (has_add ? 1u : 0u));
 
     canvas_clear(canvas);
 
@@ -181,11 +181,11 @@ static void manage_draw_callback(Canvas* canvas, void* model_ptr) {
     /* ── Option rows ── */
     canvas_set_font(canvas, FontSecondary);
     for(uint8_t i = 0; i < MENU_VISIBLE; i++) {
-        uint8_t idx   = (uint8_t)(m->scroll + i);
+        uint8_t idx = (uint8_t)(m->scroll + i);
         if(idx >= total) break;
 
-        uint8_t row_y    = (uint8_t)(12 + i * 10);
-        bool    selected = (idx == m->cursor);
+        uint8_t row_y = (uint8_t)(12 + i * 10);
+        bool selected = (idx == m->cursor);
 
         if(selected) {
             canvas_draw_box(canvas, 0, row_y, 128, 10);
@@ -203,24 +203,20 @@ static void manage_draw_callback(Canvas* canvas, void* model_ptr) {
     }
 
     /* ── Scroll arrows ── */
-    if(m->scroll > 0)
-        canvas_draw_str(canvas, 122, 19, "^");
-    if((uint8_t)(m->scroll + MENU_VISIBLE) < total)
-        canvas_draw_str(canvas, 122, 50, "v");
+    if(m->scroll > 0) canvas_draw_str(canvas, 122, 19, "^");
+    if((uint8_t)(m->scroll + MENU_VISIBLE) < total) canvas_draw_str(canvas, 122, 50, "v");
 
     /* ── Context-sensitive hint ── */
     bool on_decision = (m->cursor < m->count);
-    bool can_spin    = (m->count >= 2u);
+    bool can_spin = (m->count >= 2u);
 
     if(on_decision && can_spin) {
-        canvas_draw_str_aligned(
-            canvas, 64, 63, AlignCenter, AlignBottom, "[<]Borrar [>]Girar");
+        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[<]Borrar [>]Girar");
     } else if(on_decision) {
         canvas_draw_str_aligned(
             canvas, 64, 63, AlignCenter, AlignBottom, "[<]Borrar (min.2 decisiones)");
     } else if(can_spin) {
-        canvas_draw_str_aligned(
-            canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Anadir [>]Girar");
+        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Anadir [>]Girar");
     } else {
         canvas_draw_str_aligned(
             canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Anadir (min.2 para girar)");
@@ -240,23 +236,22 @@ static bool manage_input_callback(InputEvent* event, void* context) {
 
     /* LEFT / RIGHT / OK only on short press to prevent accidental actions. */
     bool is_repeat = (event->type == InputTypeRepeat);
-    if(is_repeat &&
-       (event->key == InputKeyLeft || event->key == InputKeyRight ||
-        event->key == InputKeyOk   || event->key == InputKeyBack)) {
+    if(is_repeat && (event->key == InputKeyLeft || event->key == InputKeyRight ||
+                     event->key == InputKeyOk || event->key == InputKeyBack)) {
         return false;
     }
 
     bool open_keyboard = false;
-    bool do_spin       = false;
-    bool do_exit       = false;
+    bool do_spin = false;
+    bool do_exit = false;
 
     with_view_model(
         app->view_manage,
-        ManageModel* m,
+        ManageModel * m,
         {
-            uint8_t has_add    = (m->count < MAX_DECISIONS) ? 1u : 0u;
-            uint8_t total      = (uint8_t)(m->count + has_add);
-            bool    on_decision = (m->cursor < m->count);
+            uint8_t has_add = (m->count < MAX_DECISIONS) ? 1u : 0u;
+            uint8_t total = (uint8_t)(m->count + has_add);
+            bool on_decision = (m->cursor < m->count);
 
             switch(event->key) {
             case InputKeyUp:
@@ -353,7 +348,7 @@ static void text_input_done_callback(void* context) {
     if(app->input_buffer[0] != '\0') {
         with_view_model(
             app->view_manage,
-            ManageModel* m,
+            ManageModel * m,
             {
                 if(m->count < MAX_DECISIONS) {
                     /* Copy the new decision into the list. */
@@ -389,12 +384,12 @@ static void text_input_done_callback(void* context) {
  */
 static void start_spin(App* app) {
     /* ── Snapshot decisions from manage model ── */
-    char    decisions[MAX_DECISIONS][MAX_DECISION_LEN];
+    char decisions[MAX_DECISIONS][MAX_DECISION_LEN];
     uint8_t count = 0;
 
     with_view_model(
         app->view_manage,
-        ManageModel* m,
+        ManageModel * m,
         {
             count = m->count;
             for(uint8_t i = 0; i < count; i++) {
@@ -407,23 +402,23 @@ static void start_spin(App* app) {
     if(count < 2u) return;
 
     /* ── Choose a random start position and a random winner ── */
-    uint8_t start  = (uint8_t)(furi_hal_random_get() % count);
+    uint8_t start = (uint8_t)(furi_hal_random_get() % count);
     uint8_t target = (uint8_t)(furi_hal_random_get() % count);
-    uint8_t delta  = (uint8_t)((target - start + count) % count);
+    uint8_t delta = (uint8_t)((target - start + count) % count);
     if(delta == 0) delta = count; /* At least one full pass. */
 
     uint8_t fast_steps = (uint8_t)(SPIN_BASE_CYCLES * count);
-    uint8_t total      = (uint8_t)(fast_steps + delta);
+    uint8_t total = (uint8_t)(fast_steps + delta);
 
     /* ── Populate spin model ── */
     with_view_model(
         app->view_spinning,
-        SpinModel* sm,
+        SpinModel * sm,
         {
-            sm->count      = count;
-            sm->current    = start;
-            sm->steps      = 0;
-            sm->total      = total;
+            sm->count = count;
+            sm->current = start;
+            sm->steps = 0;
+            sm->total = total;
             sm->fast_steps = fast_steps;
             for(uint8_t i = 0; i < count; i++) {
                 strncpy(sm->options[i], decisions[i], MAX_DECISION_LEN - 1);
@@ -504,8 +499,7 @@ static void result_draw_callback(Canvas* canvas, void* model_ptr) {
     canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, m->winner);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(
-        canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Otra vez [BACK]Menu");
+    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Otra vez [BACK]Menu");
 }
 
 /** Handles OK (spin again) and BACK (return to manage) on the result screen. */
@@ -543,13 +537,13 @@ static bool app_custom_event_callback(void* context, uint32_t event) {
 
     if((CustomEvent)event != CustomEventSpinTick) return false;
 
-    bool   finished = false;
-    char   winner[MAX_DECISION_LEN];
+    bool finished = false;
+    char winner[MAX_DECISION_LEN];
     winner[0] = '\0';
 
     with_view_model(
         app->view_spinning,
-        SpinModel* m,
+        SpinModel * m,
         {
             m->steps++;
             m->current = (uint8_t)((m->current + 1u) % m->count);
@@ -573,7 +567,7 @@ static bool app_custom_event_callback(void* context, uint32_t event) {
         /* Populate the result model and switch to the result screen. */
         with_view_model(
             app->view_result,
-            ResultModel* rm,
+            ResultModel * rm,
             {
                 strncpy(rm->winner, winner, MAX_DECISION_LEN - 1);
                 rm->winner[MAX_DECISION_LEN - 1] = '\0';
@@ -607,6 +601,7 @@ static App* app_alloc(void) {
 
     /* ── ViewDispatcher ── */
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, app_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(
@@ -622,7 +617,8 @@ static App* app_alloc(void) {
     view_set_input_callback(app->view_manage, manage_input_callback);
     view_set_context(app->view_manage, app);
     /* Initialise model fields to zero/empty. */
-    with_view_model(app->view_manage, ManageModel* m, { memset(m, 0, sizeof(ManageModel)); }, false);
+    with_view_model(
+        app->view_manage, ManageModel * m, { memset(m, 0, sizeof(ManageModel)); }, false);
     view_dispatcher_add_view(app->view_dispatcher, ViewIdManage, app->view_manage);
 
     /* ── TextInput ── */

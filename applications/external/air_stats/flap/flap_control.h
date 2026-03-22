@@ -7,11 +7,11 @@
 
 typedef struct {
     const GpioPin* output_pin;
-    bool active;              // Current relay state
-    bool enabled;             // Feature enabled/disabled
-    uint16_t on_threshold;    // CO2 ppm to turn ON (default 1000)
-    uint16_t off_threshold;   // CO2 ppm to turn OFF (default 800)
-    uint32_t debounce_ms;     // Min time between switches (default 30000)
+    bool active; // Current relay state
+    bool enabled; // Feature enabled/disabled
+    uint16_t on_threshold; // CO2 ppm to turn ON (default 1000)
+    uint16_t off_threshold; // CO2 ppm to turn OFF (default 800)
+    uint32_t debounce_ms; // Min time between switches (default 30000)
     uint32_t last_change_tick;
 } FlapControl;
 

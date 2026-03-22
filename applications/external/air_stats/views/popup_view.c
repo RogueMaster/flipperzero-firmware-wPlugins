@@ -21,13 +21,7 @@ void view_popup(const Icon* icon, char* header, char* message, uint32_t prev_vie
     }
 
     popup_set_header(app->popup, header, 64, 6, AlignCenter, AlignCenter);
-    popup_set_text(
-        app->popup,
-        message,
-        64,
-        32,
-        AlignCenter,
-        AlignCenter);
+    popup_set_text(app->popup, message, 64, 32, AlignCenter, AlignCenter);
 
     popup_set_timeout(app->popup, 3000);
     popup_set_callback(app->popup, _popup_callback);

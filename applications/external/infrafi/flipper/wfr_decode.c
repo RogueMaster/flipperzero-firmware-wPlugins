@@ -30,7 +30,6 @@ int wfr_ack_decode_feed(
     uint8_t rc6_command,
     char* out,
     size_t out_size) {
-
     if(ack_check_timeout(dec)) return -1;
 
     /* Must have InfraFi magic in high nibble */
@@ -76,8 +75,7 @@ int wfr_ack_decode_feed(
         if(!dec->in_transmission) return 0;
 
         if(dec->write_cursor != dec->expected_len) {
-            FURI_LOG_D(
-                TAG, "END but %d/%d bytes — waiting", dec->write_cursor, dec->expected_len);
+            FURI_LOG_D(TAG, "END but %d/%d bytes — waiting", dec->write_cursor, dec->expected_len);
             return 0;
         }
 

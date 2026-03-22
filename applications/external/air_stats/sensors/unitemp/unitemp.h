@@ -53,10 +53,13 @@ typedef enum {
     UT_HUMIDITY_COUNT
 } humidityUnit;
 
-typedef enum { CO2_TYPE_PWM = 0, CO2_TYPE_UART = 1 } Co2SensorType;
+typedef enum {
+    CO2_TYPE_PWM = 0,
+    CO2_TYPE_UART = 1
+} Co2SensorType;
 
 typedef struct {
-    uint8_t backlight_mode;  /* 0=Off 1=Auto 2=1m 3=5m 4=10m 5=20m 6=60m 7=Inf */
+    uint8_t backlight_mode; /* 0=Off 1=Auto 2=1m 3=5m 4=10m 5=20m 6=60m 7=Inf */
     tempMeasureUnit temp_unit;
     humidityUnit humidity_unit;
     pressureMeasureUnit pressure_unit;
@@ -64,13 +67,13 @@ typedef struct {
     bool lastOTGState;
     Co2SensorType co2_type;
     uint8_t climate_type_idx;
-    bool     led_notify;
-    bool     sound_notify;
-    uint8_t  sound_volume;
+    bool led_notify;
+    bool sound_notify;
+    uint8_t sound_volume;
     uint16_t co2_alert_threshold;
-    uint16_t co2_pwm_range;        /* PWM range: 2000..10000, step 1000 */
-    bool     debug_mode;
-    bool     show_status;           /* show clock + battery on main screen */
+    uint16_t co2_pwm_range; /* PWM range: 2000..10000, step 1000 */
+    bool debug_mode;
+    bool show_status; /* show clock + battery on main screen */
 } AppSettings;
 
 /* ---- Sensor types and interfaces (provides Sensor, SensorType, GPIO etc.) ---- */
@@ -98,7 +101,7 @@ typedef struct App {
     /* Settings */
     AppSettings settings;
     /* CO2 alert runtime state (not persisted) */
-    bool     co2_was_above;
+    bool co2_was_above;
     uint32_t last_alert_tick;
     uint32_t backlight_deadline;
 } App;

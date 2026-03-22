@@ -39,6 +39,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [ProtoPirate v2.6 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) [Replace blocking dialog with non-blocking NeedSaving scene for exit confirmation (By mishamyte)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/23) [Expansion with Fiat, Mazda, Mitzubishi and Porche protocols (Originally By lupettohf) & Ford Fixed (By LeeroysHub) & Several Other Community Changes](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b377cee471cf61aaeff089c5ff194e1a13e8d94a)
 - Updated: [Theme Manager v1.6 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
 - Updated: [POCSAG Pager v1.4 (By XMasterx & Shmuma)](https://github.com/xMasterX/flipper-pager) (Version Only)
+- Added: [Agentic Remote USB/BT v0.27 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
+- Added: [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
+- Added: [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
+- Added: [InfraFi v1.0 (By amd989)](https://github.com/amd989/InfraFi)
 
 <a name="release"></a>
 
@@ -410,7 +414,9 @@ $ ./fbt dolphin_ext
 ## Apps / Plugins
 
 - [24Cxx Programmer v2.0 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
+- [Agentic Remote USB/BT v0.27 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
 - [Air Level v1.0 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/vgm/air_level) `Req: Video Game Module By Flipper Devices`
+- [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
@@ -482,6 +488,7 @@ $ ./fbt dolphin_ext
 - [DAP Link v1.3 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1897)
 - [DCF77 Clock Sync v1.3 (By mdaskalov)](https://github.com/mdaskalov/dcf77-clock-sync)
 - [DCF77 Transmitter v1.3 (By arha)](https://github.com/arha/flipper-dcf77)
+- [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
 - [Deauther PWNDTOOLS V2.6.0 (By HEX0DAYS)](https://github.com/HEX0DAYS/FlipperZero-PWNDTOOLS) `Req: ESP8266` [Original](https://github.com/SpacehuhnTech/esp8266_deauther)
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
@@ -601,6 +608,7 @@ $ ./fbt dolphin_ext
 - [Image Scroller v0.1 (By fgreil)](https://github.com/fgreil/mitzi-scroller)
 - [Image Viewer v0.1 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer)
 - [INA Meter v0.8 (By cepetr)](https://github.com/cepetr/flipper-tina)
+- [InfraFi v1.0 (By amd989)](https://github.com/amd989/InfraFi)
 - [Intervalometer v1.2 (By theageoflove)](https://github.com/theageoflove/flipperzero-zeitraffer)
 - [IR Blaster v1.1 (By mateusz-szafraniec)](https://github.com/mateusz-szafraniec/flipperzero-IR_Blaster)
 - [IR Decoder v1.0 (By prplecake)](https://github.com/prplecake/f0/tree/master/infrared/apps/ir_decoder)

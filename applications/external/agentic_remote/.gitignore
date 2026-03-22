@@ -1,6 +1,0 @@
-dist/
-.vscode/
-.ufbt/
-build/
-*.elf
-*.map

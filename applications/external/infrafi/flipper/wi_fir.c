@@ -25,11 +25,13 @@ static WiFirApp* wi_fir_alloc(void) {
 
     /* Allocate ViewDispatcher and SceneManager */
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&wi_fir_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, wi_fir_custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, wi_fir_back_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, wi_fir_back_event_callback);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     /* Allocate view modules and register with ViewDispatcher */
@@ -52,8 +54,7 @@ static WiFirApp* wi_fir_alloc(void) {
         app->view_dispatcher, WiFirViewDialogEx, dialog_ex_get_view(app->dialog_ex));
 
     app->popup = popup_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, WiFirViewPopup, popup_get_view(app->popup));
+    view_dispatcher_add_view(app->view_dispatcher, WiFirViewPopup, popup_get_view(app->popup));
 
     app->loading = loading_alloc();
     view_dispatcher_add_view(

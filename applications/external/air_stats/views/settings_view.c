@@ -23,12 +23,13 @@ static char volume_buf[4];
 
 static uint32_t _exit_callback(void* context) {
     UNUSED(context);
-    app->settings.backlight_mode         = (uint8_t)variable_item_get_current_value_index(backlight_item);
-    app->settings.led_notify             = (bool)variable_item_get_current_value_index(led_notify_item);
-    app->settings.sound_notify           = (bool)variable_item_get_current_value_index(sound_notify_item);
-    app->settings.sound_volume           = (uint8_t)(variable_item_get_current_value_index(sound_volume_item) + 1);
-    app->settings.debug_mode             = (bool)variable_item_get_current_value_index(debug_mode_item);
-    app->settings.show_status            = (bool)variable_item_get_current_value_index(show_status_item);
+    app->settings.backlight_mode = (uint8_t)variable_item_get_current_value_index(backlight_item);
+    app->settings.led_notify = (bool)variable_item_get_current_value_index(led_notify_item);
+    app->settings.sound_notify = (bool)variable_item_get_current_value_index(sound_notify_item);
+    app->settings.sound_volume =
+        (uint8_t)(variable_item_get_current_value_index(sound_volume_item) + 1);
+    app->settings.debug_mode = (bool)variable_item_get_current_value_index(debug_mode_item);
+    app->settings.show_status = (bool)variable_item_get_current_value_index(show_status_item);
     air_stats_apply_backlight();
     unitemp_saveSettings();
     unitemp_loadSettings();
@@ -75,20 +76,20 @@ void view_settings_alloc(void) {
     backlight_item = variable_item_list_add(
         variable_item_list, "Backlight", BACKLIGHT_COUNT, _backlight_change, app);
 
-    led_notify_item = variable_item_list_add(
-        variable_item_list, "LED Notify", 2, _led_notify_change, app);
+    led_notify_item =
+        variable_item_list_add(variable_item_list, "LED Notify", 2, _led_notify_change, app);
 
-    sound_notify_item = variable_item_list_add(
-        variable_item_list, "Sound Alert", 2, _sound_notify_change, app);
+    sound_notify_item =
+        variable_item_list_add(variable_item_list, "Sound Alert", 2, _sound_notify_change, app);
 
-    sound_volume_item = variable_item_list_add(
-        variable_item_list, "Sound Volume", 10, _sound_volume_change, app);
+    sound_volume_item =
+        variable_item_list_add(variable_item_list, "Sound Volume", 10, _sound_volume_change, app);
 
-    debug_mode_item = variable_item_list_add(
-        variable_item_list, "Debug Mode", 2, _debug_mode_change, app);
+    debug_mode_item =
+        variable_item_list_add(variable_item_list, "Debug Mode", 2, _debug_mode_change, app);
 
-    show_status_item = variable_item_list_add(
-        variable_item_list, "Clock/Battery", 2, _show_status_change, app);
+    show_status_item =
+        variable_item_list_add(variable_item_list, "Clock/Battery", 2, _show_status_change, app);
 
     view = variable_item_list_get_view(variable_item_list);
     view_set_previous_callback(view, _exit_callback);
@@ -97,7 +98,8 @@ void view_settings_alloc(void) {
 
 void view_settings_switch(void) {
     variable_item_set_current_value_index(backlight_item, app->settings.backlight_mode);
-    variable_item_set_current_value_text(backlight_item, backlight_labels[app->settings.backlight_mode]);
+    variable_item_set_current_value_text(
+        backlight_item, backlight_labels[app->settings.backlight_mode]);
 
     variable_item_set_current_value_index(led_notify_item, (uint8_t)app->settings.led_notify);
     variable_item_set_current_value_text(
@@ -107,7 +109,8 @@ void view_settings_switch(void) {
     variable_item_set_current_value_text(
         sound_notify_item, onoff_states[variable_item_get_current_value_index(sound_notify_item)]);
 
-    uint8_t vol_idx = (app->settings.sound_volume > 0) ? (uint8_t)(app->settings.sound_volume - 1) : 0;
+    uint8_t vol_idx =
+        (app->settings.sound_volume > 0) ? (uint8_t)(app->settings.sound_volume - 1) : 0;
     variable_item_set_current_value_index(sound_volume_item, vol_idx);
     snprintf(volume_buf, sizeof(volume_buf), "%d", app->settings.sound_volume);
     variable_item_set_current_value_text(sound_volume_item, volume_buf);

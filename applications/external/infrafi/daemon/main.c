@@ -23,7 +23,8 @@ static void print_usage(const char* prog) {
     fprintf(stderr, "Usage: %s [options]\n", prog);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -d, --device PATH       LIRC device for RX (default: /dev/lirc0)\n");
-    fprintf(stderr, "  -a, --ack-device PATH   LIRC device for ACK TX (default: same as --device)\n");
+    fprintf(
+        stderr, "  -a, --ack-device PATH   LIRC device for ACK TX (default: same as --device)\n");
     fprintf(stderr, "  -f, --foreground        Run in foreground (don't daemonize)\n");
     fprintf(stderr, "  -v, --verbose           Verbose logging\n");
     fprintf(stderr, "  -V, --version           Show version\n");
@@ -171,8 +172,8 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        int result = wfr_decode_feed_scancode(
-            &decoder, address, command, payload, sizeof(payload));
+        int result =
+            wfr_decode_feed_scancode(&decoder, address, command, payload, sizeof(payload));
         if(result > 0) {
             handle_credentials(payload);
         }

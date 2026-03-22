@@ -28,25 +28,25 @@ extern "C" {
  */
 
 /* RC-6 address byte encoding */
-#define WFR_RC6_MAGIC        0xA0
-#define WFR_RC6_MAGIC_MASK   0xF0
-#define WFR_RC6_TYPE_MASK    0x0C
-#define WFR_RC6_PASS_MASK    0x03
+#define WFR_RC6_MAGIC      0xA0
+#define WFR_RC6_MAGIC_MASK 0xF0
+#define WFR_RC6_TYPE_MASK  0x0C
+#define WFR_RC6_PASS_MASK  0x03
 
-#define WFR_RC6_TYPE_START   0x00
-#define WFR_RC6_TYPE_DATA    0x04
-#define WFR_RC6_TYPE_END     0x08
+#define WFR_RC6_TYPE_START 0x00
+#define WFR_RC6_TYPE_DATA  0x04
+#define WFR_RC6_TYPE_END   0x08
 
 /* Frame type for ACK responses (daemon → Flipper) */
-#define WFR_RC6_TYPE_ACK     0x0C
+#define WFR_RC6_TYPE_ACK 0x0C
 
 /* Timing */
-#define WFR_RC6_INTER_MSG_MS      20   /* Delay between RC-6 messages (ms) */
-#define WFR_RC6_RETRANSMIT_GAP_MS 200  /* Gap between retransmission passes */
+#define WFR_RC6_INTER_MSG_MS      20 /* Delay between RC-6 messages (ms) */
+#define WFR_RC6_RETRANSMIT_GAP_MS 200 /* Gap between retransmission passes */
 #define WFR_RETRANSMIT_COUNT      1
 
 /* ACK timeout — how long Flipper waits for a response (seconds) */
-#define WFR_ACK_TIMEOUT_SEC       30
+#define WFR_ACK_TIMEOUT_SEC 30
 
 /* ACK payload prefixes */
 #define WFR_ACK_PREFIX_OK   "OK:"

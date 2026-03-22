@@ -52,12 +52,7 @@ void wi_fir_scene_scan_nfc_on_enter(void* context) {
     popup_reset(app->popup);
     popup_set_header(app->popup, "Scanning...", 64, 10, AlignCenter, AlignCenter);
     popup_set_text(
-        app->popup,
-        "Place NFC WiFi tag\non back of Flipper",
-        64,
-        35,
-        AlignCenter,
-        AlignCenter);
+        app->popup, "Place NFC WiFi tag\non back of Flipper", 64, 35, AlignCenter, AlignCenter);
     /* Override popup input so back button reaches scene manager */
     view_set_input_callback(popup_get_view(app->popup), wi_fir_scan_nfc_input_cb);
 
@@ -97,7 +92,12 @@ bool wi_fir_scene_scan_nfc_on_event(void* context, SceneManagerEvent event) {
             popup_reset(app->popup);
             popup_set_header(app->popup, "Not a WiFi Tag", 64, 20, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup, "No WiFi credentials\nfound on this tag", 64, 40, AlignCenter, AlignCenter);
+                app->popup,
+                "No WiFi credentials\nfound on this tag",
+                64,
+                40,
+                AlignCenter,
+                AlignCenter);
             popup_set_timeout(app->popup, 2000);
             popup_enable_timeout(app->popup);
             view_dispatcher_switch_to_view(app->view_dispatcher, WiFirViewPopup);

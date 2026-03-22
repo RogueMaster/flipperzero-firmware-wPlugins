@@ -45,7 +45,8 @@ int wfr_lirc_read_scancode(int fd, uint8_t* rc6_address, uint8_t* rc6_command) {
             return -1;
         }
 
-        syslog(LOG_DEBUG,
+        syslog(
+            LOG_DEBUG,
             "infrafid: scancode proto=%u flags=0x%x scancode=0x%llx",
             (unsigned)sc.rc_proto,
             (unsigned)sc.flags,

@@ -66,7 +66,8 @@ bool wfr_ack_send(int fd, bool success, const char* ip_str) {
     size_t payload_len;
 
     if(success && ip_str) {
-        payload_len = (size_t)snprintf(payload, sizeof(payload), "%s%s", WFR_ACK_PREFIX_OK, ip_str);
+        payload_len =
+            (size_t)snprintf(payload, sizeof(payload), "%s%s", WFR_ACK_PREFIX_OK, ip_str);
     } else {
         payload_len = (size_t)snprintf(payload, sizeof(payload), "%s", WFR_ACK_PREFIX_FAIL);
     }

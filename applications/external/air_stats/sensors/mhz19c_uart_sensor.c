@@ -14,20 +14,19 @@
 #define MHZ19_CMD_GAS_CONC  0x86
 
 typedef struct {
-    FuriStreamBuffer*    stream;
+    FuriStreamBuffer* stream;
     FuriHalSerialHandle* serial;
 } MHZ19CUARTInstance;
 
 static uint8_t mhz19c_uart_checksum(uint8_t* pkt) {
     uint8_t cs = 0;
-    for(uint8_t i = 1; i < 8; i++) cs += pkt[i];
+    for(uint8_t i = 1; i < 8; i++)
+        cs += pkt[i];
     return (uint8_t)(0xFF - cs + 1);
 }
 
-static void mhz19c_uart_rx_cb(
-    FuriHalSerialHandle* handle,
-    FuriHalSerialRxEvent event,
-    void* context) {
+static void
+    mhz19c_uart_rx_cb(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
     FuriStreamBuffer* stream = context;
     if(event == FuriHalSerialRxEventData) {
         uint8_t data = furi_hal_serial_async_rx(handle);
@@ -51,10 +50,10 @@ static UnitempStatus mhz19c_uart_if_update(Sensor* sensor) {
 }
 
 static const Interface DIRECT_UART = {
-    .name         = "DirectUART",
-    .allocator    = mhz19c_uart_if_alloc,
+    .name = "DirectUART",
+    .allocator = mhz19c_uart_if_alloc,
     .mem_releaser = mhz19c_uart_if_free,
-    .updater      = mhz19c_uart_if_update,
+    .updater = mhz19c_uart_if_update,
 };
 
 /* ---- SensorType callbacks ---- */
@@ -131,14 +130,14 @@ static UnitempStatus mhz19c_uart_update(Sensor* sensor) {
 
 /* ---- Public SensorType ---- */
 const SensorType MHZ19C_UART = {
-    .typename        = "MHZ19C_UART",
-    .altname         = "MH-Z19C (UART)",
-    .datatype        = UT_DATA_TYPE_CO2,
-    .interface       = &DIRECT_UART,
+    .typename = "MHZ19C_UART",
+    .altname = "MH-Z19C (UART)",
+    .datatype = UT_DATA_TYPE_CO2,
+    .interface = &DIRECT_UART,
     .pollingInterval = 5000,
-    .allocator       = mhz19c_uart_alloc,
-    .mem_releaser    = mhz19c_uart_free,
-    .initializer     = mhz19c_uart_init,
-    .deinitializer   = mhz19c_uart_deinit,
-    .updater         = mhz19c_uart_update,
+    .allocator = mhz19c_uart_alloc,
+    .mem_releaser = mhz19c_uart_free,
+    .initializer = mhz19c_uart_init,
+    .deinitializer = mhz19c_uart_deinit,
+    .updater = mhz19c_uart_update,
 };

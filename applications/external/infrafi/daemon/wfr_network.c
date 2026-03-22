@@ -114,7 +114,11 @@ static bool verify_connectivity(void) {
 static const char* get_wpa_state(const char* iface) {
     static char state[64];
     char cmd[256];
-    snprintf(cmd, sizeof(cmd), "wpa_cli -i %s status 2>/dev/null | grep '^wpa_state=' | cut -d= -f2", iface);
+    snprintf(
+        cmd,
+        sizeof(cmd),
+        "wpa_cli -i %s status 2>/dev/null | grep '^wpa_state=' | cut -d= -f2",
+        iface);
 
     if(run_cmd_output(cmd, state, sizeof(state)) && state[0]) {
         return state;
@@ -125,8 +129,8 @@ static const char* get_wpa_state(const char* iface) {
 /* Get the SSID that wpa_supplicant is currently connected to. */
 static bool get_wpa_ssid(const char* iface, char* out, size_t out_size) {
     char cmd[256];
-    snprintf(cmd, sizeof(cmd),
-        "wpa_cli -i %s status 2>/dev/null | grep '^ssid=' | cut -d= -f2", iface);
+    snprintf(
+        cmd, sizeof(cmd), "wpa_cli -i %s status 2>/dev/null | grep '^ssid=' | cut -d= -f2", iface);
     return run_cmd_output(cmd, out, out_size) && out[0];
 }
 
@@ -143,7 +147,8 @@ static int wait_for_wpa_association(const char* iface, const char* target_ssid, 
         const char* state = get_wpa_state(iface);
 
         if(!state) {
-            syslog(LOG_DEBUG, "infrafid: wpa_cli not available, falling back to connectivity check");
+            syslog(
+                LOG_DEBUG, "infrafid: wpa_cli not available, falling back to connectivity check");
             return 0; /* can't determine state, caller should check connectivity */
         }
 
@@ -154,9 +159,11 @@ static int wait_for_wpa_association(const char* iface, const char* target_ssid, 
             char connected_ssid[WFR_SSID_MAX_LEN + 1];
             if(get_wpa_ssid(iface, connected_ssid, sizeof(connected_ssid))) {
                 if(strcmp(connected_ssid, target_ssid) != 0) {
-                    syslog(LOG_WARNING,
+                    syslog(
+                        LOG_WARNING,
                         "infrafid: WPA shows COMPLETED but on '%s' not '%s' — stale connection",
-                        connected_ssid, target_ssid);
+                        connected_ssid,
+                        target_ssid);
                     return -1;
                 }
             }
@@ -186,8 +193,8 @@ static bool wait_for_dhcp(const char* iface, int max_wait) {
 
     for(int elapsed = 0; elapsed < max_wait; elapsed += 2) {
         sleep(2);
-        snprintf(cmd, sizeof(cmd),
-            "ip -4 addr show %s 2>/dev/null | grep -oP 'inet \\K[0-9.]+'", iface);
+        snprintf(
+            cmd, sizeof(cmd), "ip -4 addr show %s 2>/dev/null | grep -oP 'inet \\K[0-9.]+'", iface);
 
         if(run_cmd_output(cmd, ip, sizeof(ip)) && ip[0]) {
             /* Ignore link-local (169.254.x.x) */
@@ -213,7 +220,9 @@ static bool detect_wifi_iface(char* out, size_t out_size) {
     char iface[32];
     if(run_cmd_output(
            "for d in /sys/class/net/*/wireless; do [ -d \"$d\" ] && basename \"$(dirname \"$d\")\" && break; done",
-           iface, sizeof(iface)) && iface[0]) {
+           iface,
+           sizeof(iface)) &&
+       iface[0]) {
         snprintf(out, out_size, "%s", iface);
         return true;
     }
@@ -235,9 +244,7 @@ bool wfr_net_get_current(char* out, size_t out_size) {
     if(wfr_net_has_networkmanager()) {
         char line[256];
         if(run_cmd_output(
-               "nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes:'",
-               line,
-               sizeof(line))) {
+               "nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes:'", line, sizeof(line))) {
             char* ssid = strchr(line, ':');
             if(ssid && *(ssid + 1)) {
                 ssid++;
@@ -291,7 +298,8 @@ static bool wfr_net_connect_nmcli(const WfrWifiCreds* creds) {
             creds->hidden ? " hidden yes" : "");
     }
 
-    syslog(LOG_INFO, "infrafid: connecting to SSID: %s (security=%d)", creds->ssid, creds->security);
+    syslog(
+        LOG_INFO, "infrafid: connecting to SSID: %s (security=%d)", creds->ssid, creds->security);
 
     int status = run_cmd(cmd);
     if(status != 0) {
@@ -335,8 +343,13 @@ static bool wfr_net_connect_networkd(const WfrWifiCreds* creds) {
     syslog(LOG_DEBUG, "infrafid: wpa_cli added network %s", net_id);
 
     /* Set SSID */
-    snprintf(cmd, sizeof(cmd),
-        "wpa_cli -i %s set_network %s ssid '\"%s\"' 2>/dev/null", iface, net_id, creds->ssid);
+    snprintf(
+        cmd,
+        sizeof(cmd),
+        "wpa_cli -i %s set_network %s ssid '\"%s\"' 2>/dev/null",
+        iface,
+        net_id,
+        creds->ssid);
     if(!run_wpa_cmd(cmd)) {
         syslog(LOG_ERR, "infrafid: wpa_cli set ssid failed");
         return false;
@@ -344,25 +357,43 @@ static bool wfr_net_connect_networkd(const WfrWifiCreds* creds) {
 
     /* Set security */
     if(creds->security == WFR_SEC_OPEN) {
-        snprintf(cmd, sizeof(cmd),
-            "wpa_cli -i %s set_network %s key_mgmt NONE 2>/dev/null", iface, net_id);
+        snprintf(
+            cmd,
+            sizeof(cmd),
+            "wpa_cli -i %s set_network %s key_mgmt NONE 2>/dev/null",
+            iface,
+            net_id);
         run_wpa_cmd(cmd);
     } else if(creds->security == WFR_SEC_SAE) {
-        snprintf(cmd, sizeof(cmd),
-            "wpa_cli -i %s set_network %s key_mgmt SAE 2>/dev/null", iface, net_id);
+        snprintf(
+            cmd,
+            sizeof(cmd),
+            "wpa_cli -i %s set_network %s key_mgmt SAE 2>/dev/null",
+            iface,
+            net_id);
         if(!run_wpa_cmd(cmd)) {
             syslog(LOG_ERR, "infrafid: wpa_cli set key_mgmt SAE failed");
             return false;
         }
-        snprintf(cmd, sizeof(cmd),
-            "wpa_cli -i %s set_network %s psk '\"%s\"' 2>/dev/null", iface, net_id, creds->password);
+        snprintf(
+            cmd,
+            sizeof(cmd),
+            "wpa_cli -i %s set_network %s psk '\"%s\"' 2>/dev/null",
+            iface,
+            net_id,
+            creds->password);
         if(!run_wpa_cmd(cmd)) {
             syslog(LOG_ERR, "infrafid: wpa_cli set psk failed (password must be 8-63 chars)");
             return false;
         }
     } else {
-        snprintf(cmd, sizeof(cmd),
-            "wpa_cli -i %s set_network %s psk '\"%s\"' 2>/dev/null", iface, net_id, creds->password);
+        snprintf(
+            cmd,
+            sizeof(cmd),
+            "wpa_cli -i %s set_network %s psk '\"%s\"' 2>/dev/null",
+            iface,
+            net_id,
+            creds->password);
         if(!run_wpa_cmd(cmd)) {
             syslog(LOG_ERR, "infrafid: wpa_cli set psk failed (password must be 8-63 chars)");
             return false;
@@ -370,14 +401,17 @@ static bool wfr_net_connect_networkd(const WfrWifiCreds* creds) {
     }
 
     if(creds->hidden) {
-        snprintf(cmd, sizeof(cmd),
-            "wpa_cli -i %s set_network %s scan_ssid 1 2>/dev/null", iface, net_id);
+        snprintf(
+            cmd,
+            sizeof(cmd),
+            "wpa_cli -i %s set_network %s scan_ssid 1 2>/dev/null",
+            iface,
+            net_id);
         run_wpa_cmd(cmd);
     }
 
     /* Select this network (disconnects from current, connects to new) */
-    snprintf(cmd, sizeof(cmd),
-        "wpa_cli -i %s select_network %s 2>/dev/null", iface, net_id);
+    snprintf(cmd, sizeof(cmd), "wpa_cli -i %s select_network %s 2>/dev/null", iface, net_id);
     if(!run_wpa_cmd(cmd)) {
         syslog(LOG_ERR, "infrafid: wpa_cli select_network failed");
         return false;
@@ -391,7 +425,8 @@ static bool wfr_net_connect_networkd(const WfrWifiCreds* creds) {
     }
 
     /* Request DHCP renewal */
-    snprintf(cmd, sizeof(cmd), "dhclient -r %s 2>/dev/null; dhclient %s 2>/dev/null", iface, iface);
+    snprintf(
+        cmd, sizeof(cmd), "dhclient -r %s 2>/dev/null; dhclient %s 2>/dev/null", iface, iface);
     run_cmd(cmd);
 
     /* Wait for DHCP */
@@ -408,12 +443,12 @@ static bool wfr_net_connect_networkd(const WfrWifiCreds* creds) {
     }
 
     /* Save to wpa_supplicant config so it persists across reboots */
-    snprintf(cmd, sizeof(cmd),
-        "wpa_cli -i %s set update_config 1 2>/dev/null", iface);
+    snprintf(cmd, sizeof(cmd), "wpa_cli -i %s set update_config 1 2>/dev/null", iface);
     run_wpa_cmd(cmd);
     snprintf(cmd, sizeof(cmd), "wpa_cli -i %s save_config 2>/dev/null", iface);
     if(!run_wpa_cmd(cmd)) {
-        syslog(LOG_DEBUG,
+        syslog(
+            LOG_DEBUG,
             "infrafid: save_config failed — connection works but won't persist across reboot");
     }
 
@@ -431,8 +466,11 @@ static bool wfr_net_connect_interfaces(const WfrWifiCreds* creds) {
 
     const char* conf_path = "/etc/network/interfaces.d/infrafid";
     char wpa_conf_path[128];
-    snprintf(wpa_conf_path, sizeof(wpa_conf_path),
-        "/etc/wpa_supplicant/wpa_supplicant-infrafid-%s.conf", iface);
+    snprintf(
+        wpa_conf_path,
+        sizeof(wpa_conf_path),
+        "/etc/wpa_supplicant/wpa_supplicant-infrafid-%s.conf",
+        iface);
 
     /* Write wpa_supplicant config */
     FILE* wpa = fopen(wpa_conf_path, "w");
@@ -512,8 +550,12 @@ static bool wfr_net_connect_interfaces(const WfrWifiCreds* creds) {
 bool wfr_net_connect(const WfrWifiCreds* creds) {
     if(!creds || creds->ssid[0] == '\0') return false;
 
-    syslog(LOG_INFO, "infrafid: connecting to SSID: %s (security=%d, hidden=%d)",
-        creds->ssid, creds->security, creds->hidden);
+    syslog(
+        LOG_INFO,
+        "infrafid: connecting to SSID: %s (security=%d, hidden=%d)",
+        creds->ssid,
+        creds->security,
+        creds->hidden);
 
     if(wfr_net_has_networkmanager()) {
         return wfr_net_connect_nmcli(creds);
@@ -582,8 +624,8 @@ bool wfr_net_get_ip(char* out, size_t out_size) {
     if(!detect_wifi_iface(iface, sizeof(iface))) return false;
 
     char cmd[256];
-    snprintf(cmd, sizeof(cmd),
-        "ip -4 addr show %s 2>/dev/null | grep -oP 'inet \\K[0-9.]+'", iface);
+    snprintf(
+        cmd, sizeof(cmd), "ip -4 addr show %s 2>/dev/null | grep -oP 'inet \\K[0-9.]+'", iface);
 
     if(run_cmd_output(cmd, out, out_size) && out[0]) {
         if(strncmp(out, "169.254.", 8) != 0) {

@@ -3,11 +3,11 @@
 #include "protocol/wfr_protocol.h"
 #include <storage/storage.h>
 
-#define WFR_SAVE_DIR       "/ext/apps_data/infrafi"
-#define WFR_SETTINGS_FILE  "/ext/apps_data/infrafi/settings.cfg"
-#define WFR_SAVE_EXT       ".wfir"
-#define WFR_SAVED_MAX      20
-#define WFR_FILENAME_MAX   64
+#define WFR_SAVE_DIR      "/ext/apps_data/infrafi"
+#define WFR_SETTINGS_FILE "/ext/apps_data/infrafi/settings.cfg"
+#define WFR_SAVE_EXT      ".wfir"
+#define WFR_SAVED_MAX     20
+#define WFR_FILENAME_MAX  64
 
 /* Save WiFi credentials to SD card. Returns true on success. */
 bool wfr_storage_save(Storage* storage, const WfrWifiCreds* creds);

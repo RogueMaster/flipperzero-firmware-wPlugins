@@ -42,7 +42,10 @@ static void draw_callback(Canvas* canvas, void* context) {
         canvas_draw_str(canvas, 0, 58, "SDA:");
 
         canvas_set_font(canvas, FontSecondary);
-        snprintf(app->buff, BUFF_SIZE, "0x%02X",
+        snprintf(
+            app->buff,
+            BUFF_SIZE,
+            "0x%02X",
             ((I2CSensor*)info_sensor->instance)->currentI2CAdr >> 1);
         canvas_draw_str(canvas, 60, 36, app->buff);
         canvas_draw_str(canvas, 36, 47, "C1 (pin 15) -> SCL");
@@ -55,13 +58,11 @@ static void draw_callback(Canvas* canvas, void* context) {
         canvas_draw_str(canvas, 0, 36, "GPIO:");
 
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 36, 36,
-            ((SingleWireSensor*)info_sensor->instance)->gpio->name);
+        canvas_draw_str(canvas, 36, 36, ((SingleWireSensor*)info_sensor->instance)->gpio->name);
 
     } else if(info_sensor->type->interface == &ONE_WIRE) {
         OneWireSensor* ow = info_sensor->instance;
-        canvas_draw_str(canvas, 36, 24,
-            unitemp_onewire_sensor_getModel(info_sensor));
+        canvas_draw_str(canvas, 36, 24, unitemp_onewire_sensor_getModel(info_sensor));
 
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 0, 36, "GPIO:");
@@ -69,9 +70,18 @@ static void draw_callback(Canvas* canvas, void* context) {
 
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 36, 36, ow->bus->gpio->name);
-        snprintf(app->buff, BUFF_SIZE, "%02X%02X%02X%02X%02X%02X%02X%02X",
-            ow->deviceID[0], ow->deviceID[1], ow->deviceID[2], ow->deviceID[3],
-            ow->deviceID[4], ow->deviceID[5], ow->deviceID[6], ow->deviceID[7]);
+        snprintf(
+            app->buff,
+            BUFF_SIZE,
+            "%02X%02X%02X%02X%02X%02X%02X%02X",
+            ow->deviceID[0],
+            ow->deviceID[1],
+            ow->deviceID[2],
+            ow->deviceID[3],
+            ow->deviceID[4],
+            ow->deviceID[5],
+            ow->deviceID[6],
+            ow->deviceID[7]);
         canvas_draw_str(canvas, 18, 47, app->buff);
 
     } else if(info_sensor->type == &MHZ19C_UART) {

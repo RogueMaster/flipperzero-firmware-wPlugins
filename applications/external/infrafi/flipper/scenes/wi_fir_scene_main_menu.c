@@ -16,20 +16,16 @@ static void wi_fir_scene_main_menu_callback(void* context, uint32_t index) {
             app->view_dispatcher, WiFirCustomEventMainMenuCredentials);
         break;
     case MainMenuIndexScanNfc:
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, WiFirCustomEventMainMenuScanNfc);
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventMainMenuScanNfc);
         break;
     case MainMenuIndexSaved:
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, WiFirCustomEventMainMenuSaved);
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventMainMenuSaved);
         break;
     case MainMenuIndexSettings:
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, WiFirCustomEventMainMenuSettings);
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventMainMenuSettings);
         break;
     case MainMenuIndexAbout:
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, WiFirCustomEventMainMenuAbout);
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventMainMenuAbout);
         break;
     }
 }
@@ -46,23 +42,11 @@ void wi_fir_scene_main_menu_on_enter(void* context) {
         wi_fir_scene_main_menu_callback,
         app);
     submenu_add_item(
-        app->submenu,
-        "Scan NFC Tag",
-        MainMenuIndexScanNfc,
-        wi_fir_scene_main_menu_callback,
-        app);
+        app->submenu, "Scan NFC Tag", MainMenuIndexScanNfc, wi_fir_scene_main_menu_callback, app);
     submenu_add_item(
-        app->submenu,
-        "Saved",
-        MainMenuIndexSaved,
-        wi_fir_scene_main_menu_callback,
-        app);
+        app->submenu, "Saved", MainMenuIndexSaved, wi_fir_scene_main_menu_callback, app);
     submenu_add_item(
-        app->submenu,
-        "Settings",
-        MainMenuIndexSettings,
-        wi_fir_scene_main_menu_callback,
-        app);
+        app->submenu, "Settings", MainMenuIndexSettings, wi_fir_scene_main_menu_callback, app);
     submenu_add_item(
         app->submenu, "About", MainMenuIndexAbout, wi_fir_scene_main_menu_callback, app);
 

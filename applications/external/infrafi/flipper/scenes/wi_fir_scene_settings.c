@@ -17,11 +17,7 @@ void wi_fir_scene_settings_on_enter(void* context) {
     variable_item_list_reset(app->variable_item_list);
 
     VariableItem* item = variable_item_list_add(
-        app->variable_item_list,
-        "Wait for ACK",
-        2,
-        wi_fir_scene_settings_ack_change,
-        app);
+        app->variable_item_list, "Wait for ACK", 2, wi_fir_scene_settings_ack_change, app);
     variable_item_set_current_value_index(item, app->ack_enabled ? 1 : 0);
     variable_item_set_current_value_text(item, ack_names[app->ack_enabled ? 1 : 0]);
 

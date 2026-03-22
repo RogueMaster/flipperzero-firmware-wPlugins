@@ -2,36 +2,33 @@
 #include <string.h>
 
 /* WiFi Simple Configuration attribute IDs */
-#define WSC_ATTR_CREDENTIAL  0x100E
-#define WSC_ATTR_SSID        0x1045
-#define WSC_ATTR_AUTH_TYPE   0x1003
-#define WSC_ATTR_NET_KEY     0x1027
+#define WSC_ATTR_CREDENTIAL 0x100E
+#define WSC_ATTR_SSID       0x1045
+#define WSC_ATTR_AUTH_TYPE  0x1003
+#define WSC_ATTR_NET_KEY    0x1027
 
 /* WSC Authentication Type values */
-#define WSC_AUTH_OPEN        0x0001
-#define WSC_AUTH_WPA_PSK     0x0002
-#define WSC_AUTH_SHARED      0x0004 /* WEP */
-#define WSC_AUTH_WPA2_PSK    0x0020
+#define WSC_AUTH_OPEN     0x0001
+#define WSC_AUTH_WPA_PSK  0x0002
+#define WSC_AUTH_SHARED   0x0004 /* WEP */
+#define WSC_AUTH_WPA2_PSK 0x0020
 
 /* NDEF TLV types */
-#define NDEF_TLV_NULL        0x00
-#define NDEF_TLV_NDEF_MSG    0x03
-#define NDEF_TLV_TERMINATOR  0xFE
+#define NDEF_TLV_NULL       0x00
+#define NDEF_TLV_NDEF_MSG   0x03
+#define NDEF_TLV_TERMINATOR 0xFE
 
 /* NDEF record TNF values */
-#define NDEF_TNF_MEDIA_TYPE  0x02
+#define NDEF_TNF_MEDIA_TYPE 0x02
 
 /* NDEF Capability Container magic byte */
-#define NDEF_CC_MAGIC        0xE1
+#define NDEF_CC_MAGIC 0xE1
 
 static const char wifi_ndef_type[] = "application/vnd.wfa.wsc";
 #define WIFI_NDEF_TYPE_LEN 23
 
-static bool parse_wsc_attributes(
-    const uint8_t* data,
-    size_t len,
-    WfrWifiCreds* creds,
-    bool* found_ssid) {
+static bool
+    parse_wsc_attributes(const uint8_t* data, size_t len, WfrWifiCreds* creds, bool* found_ssid) {
     size_t pos = 0;
 
     while(pos + 4 <= len) {
@@ -116,8 +113,7 @@ static bool parse_ndef_record(const uint8_t* data, size_t len, WfrWifiCreds* cre
 
     /* Check type field */
     if(pos + type_len > len) return false;
-    if(type_len != WIFI_NDEF_TYPE_LEN ||
-       memcmp(&data[pos], wifi_ndef_type, type_len) != 0) {
+    if(type_len != WIFI_NDEF_TYPE_LEN || memcmp(&data[pos], wifi_ndef_type, type_len) != 0) {
         return false;
     }
     pos += type_len;
@@ -156,8 +152,7 @@ static bool parse_ndef_message(const uint8_t* data, size_t len, WfrWifiCreds* cr
             hdr_size += 1;
         } else {
             if(pos + 6 > len) break;
-            payload_len = ((uint32_t)data[pos + 2] << 24) |
-                          ((uint32_t)data[pos + 3] << 16) |
+            payload_len = ((uint32_t)data[pos + 2] << 24) | ((uint32_t)data[pos + 3] << 16) |
                           ((uint32_t)data[pos + 4] << 8) | data[pos + 5];
             hdr_size += 4;
         }
@@ -186,10 +181,7 @@ static bool parse_ndef_message(const uint8_t* data, size_t len, WfrWifiCreds* cr
     return false;
 }
 
-bool wfr_nfc_parse_wifi_tag(
-    const uint8_t* tag_pages,
-    uint16_t pages_read,
-    WfrWifiCreds* out_creds) {
+bool wfr_nfc_parse_wifi_tag(const uint8_t* tag_pages, uint16_t pages_read, WfrWifiCreds* out_creds) {
     if(pages_read < 5 || !tag_pages || !out_creds) return false;
 
     /* Page 3 = Capability Container. Check NDEF magic byte. */

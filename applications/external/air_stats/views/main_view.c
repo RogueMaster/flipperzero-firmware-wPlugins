@@ -10,23 +10,23 @@
 
 static View* view;
 
-#define VIEW_ID    ViewMain
-#define SCREEN_W   128
-#define CONTENT_H  52    /* 64px screen - 12px elements_button_center */
+#define VIEW_ID   ViewMain
+#define SCREEN_W  128
+#define CONTENT_H 52 /* 64px screen - 12px elements_button_center */
 
 /* CO2 block: big number row + separator */
-#define CO2_NUM_H  18    /* FontBigNumbers leading */
-#define CO2_SEP_H   2    /* separator line + gap */
+#define CO2_NUM_H   18 /* FontBigNumbers leading */
+#define CO2_SEP_H   2 /* separator line + gap */
 #define CO2_BLOCK_H (CO2_NUM_H + CO2_SEP_H)
 
 /* Climate: one FontPrimary line */
 #define CLIM_LINE_H 12
 
 static const char* co2_quality(float co2) {
-    if(co2 < 800.0f)  return "GOOD";   /* green */
-    if(co2 < 1000.0f) return "NORM";   /* yellow */
-    if(co2 < 1400.0f) return "POOR";   /* orange */
-    return "BAD";                       /* red */
+    if(co2 < 800.0f) return "GOOD"; /* green */
+    if(co2 < 1000.0f) return "NORM"; /* yellow */
+    if(co2 < 1400.0f) return "POOR"; /* orange */
+    return "BAD"; /* red */
 }
 
 /* Check if PWM CO2 sensor is frozen (no edge for 5+ sec) */
@@ -35,8 +35,7 @@ static bool is_co2_frozen(void) {
     for(uint8_t i = 0; i < app->sensors_count; i++) {
         Sensor* s = app->sensors[i];
         if(!s || s->status == UT_SENSORSTATUS_INACTIVE) continue;
-        if((s->type->datatype & UT_CO2) && s->co2 > 0.0f &&
-           s->last_valid_tick > 0 &&
+        if((s->type->datatype & UT_CO2) && s->co2 > 0.0f && s->last_valid_tick > 0 &&
            (furi_get_tick() - s->last_valid_tick) > 5000) {
             return true;
         }
@@ -66,18 +65,18 @@ static void draw_callback(Canvas* canvas, void* context) {
     if(!app->sensors_ready || !app->sensors) return;
 
     /* Find first CO2 and first climate sensor */
-    Sensor* co2_sensor  = NULL;
+    Sensor* co2_sensor = NULL;
     Sensor* clim_sensor = NULL;
     for(uint8_t i = 0; i < app->sensors_count; i++) {
         Sensor* s = app->sensors[i];
         if(!s || s->status == UT_SENSORSTATUS_INACTIVE) continue;
-        if((s->type->datatype & UT_CO2)  && !co2_sensor)  co2_sensor  = s;
+        if((s->type->datatype & UT_CO2) && !co2_sensor) co2_sensor = s;
         if(!(s->type->datatype & UT_CO2) && !clim_sensor) clim_sensor = s;
     }
 
-    bool co2_valid = co2_sensor  && co2_sensor->co2 > 0.0f;
-    bool clim_ok   = clim_sensor && clim_sensor->status == UT_SENSORSTATUS_OK;
-    bool has_th    = clim_ok && (clim_sensor->type->datatype & (UT_TEMPERATURE | UT_HUMIDITY));
+    bool co2_valid = co2_sensor && co2_sensor->co2 > 0.0f;
+    bool clim_ok = clim_sensor && clim_sensor->status == UT_SENSORSTATUS_OK;
+    bool has_th = clim_ok && (clim_sensor->type->datatype & (UT_TEMPERATURE | UT_HUMIDITY));
     bool has_press = clim_ok && (clim_sensor->type->datatype & UT_PRESSURE);
 
     /* Nothing valid — show placeholder */
@@ -85,15 +84,16 @@ static void draw_callback(Canvas* canvas, void* context) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, SCREEN_W / 2, 22, AlignCenter, AlignBottom, "No sensors");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, SCREEN_W / 2, 33, AlignCenter, AlignBottom, "Connect and configure");
+        canvas_draw_str_aligned(
+            canvas, SCREEN_W / 2, 33, AlignCenter, AlignBottom, "Connect and configure");
         return;
     }
 
     /* Vertical centering: measure total content height */
     uint8_t total_h = 0;
-    if(co2_valid)  total_h += CO2_BLOCK_H;
-    if(has_th)     total_h += CLIM_LINE_H;
-    if(has_press)  total_h += CLIM_LINE_H;
+    if(co2_valid) total_h += CO2_BLOCK_H;
+    if(has_th) total_h += CLIM_LINE_H;
+    if(has_press) total_h += CLIM_LINE_H;
 
     int16_t y = ((int16_t)CONTENT_H - total_h) / 2;
     if(y < 0) y = 0;
@@ -109,7 +109,7 @@ static void draw_callback(Canvas* canvas, void* context) {
 
         /* Freeze indicator — left edge */
         bool co2_frozen = co2_sensor->last_valid_tick > 0 &&
-            (furi_get_tick() - co2_sensor->last_valid_tick) > 5000;
+                          (furi_get_tick() - co2_sensor->last_valid_tick) > 5000;
         if(co2_frozen) {
             canvas_set_font(canvas, FontSecondary);
             canvas_draw_str_aligned(canvas, 1, y + CO2_NUM_H, AlignLeft, AlignBottom, "freeze");
@@ -117,7 +117,12 @@ static void draw_callback(Canvas* canvas, void* context) {
 
         /* Quality label — FontPrimary, right edge, same baseline */
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, SCREEN_W - 1, y + CO2_NUM_H, AlignRight, AlignBottom,
+        canvas_draw_str_aligned(
+            canvas,
+            SCREEN_W - 1,
+            y + CO2_NUM_H,
+            AlignRight,
+            AlignBottom,
             co2_quality(co2_sensor->co2));
 
         y += CO2_NUM_H;
@@ -129,10 +134,18 @@ static void draw_callback(Canvas* canvas, void* context) {
     const char* temp_unit_str = (app->settings.temp_unit == UT_TEMP_FAHRENHEIT) ? "F" : "C";
     const char* press_unit_str;
     switch(app->settings.pressure_unit) {
-    case UT_PRESSURE_IN_HG: press_unit_str = "inHg"; break;
-    case UT_PRESSURE_KPA:   press_unit_str = "kPa";  break;
-    case UT_PRESSURE_HPA:   press_unit_str = "hPa";  break;
-    default:                press_unit_str = "mmHg";  break;
+    case UT_PRESSURE_IN_HG:
+        press_unit_str = "inHg";
+        break;
+    case UT_PRESSURE_KPA:
+        press_unit_str = "kPa";
+        break;
+    case UT_PRESSURE_HPA:
+        press_unit_str = "hPa";
+        break;
+    default:
+        press_unit_str = "mmHg";
+        break;
     }
 
     canvas_set_font(canvas, FontPrimary);
@@ -141,28 +154,34 @@ static void draw_callback(Canvas* canvas, void* context) {
     if(has_th) {
         int pos = 0;
         if(clim_sensor->type->datatype & UT_TEMPERATURE)
-            pos += snprintf(buf + pos, sizeof(buf) - pos,
-                "%.1f*%s", (double)clim_sensor->temp, temp_unit_str);
+            pos += snprintf(
+                buf + pos, sizeof(buf) - pos, "%.1f*%s", (double)clim_sensor->temp, temp_unit_str);
         if(clim_sensor->type->datatype & UT_HUMIDITY) {
             if(pos) pos += snprintf(buf + pos, sizeof(buf) - pos, "   ");
             snprintf(buf + pos, sizeof(buf) - pos, "%.0f%%", (double)clim_sensor->hum);
         }
-        canvas_draw_str_aligned(canvas, SCREEN_W / 2, y + CLIM_LINE_H, AlignCenter, AlignBottom, buf);
+        canvas_draw_str_aligned(
+            canvas, SCREEN_W / 2, y + CLIM_LINE_H, AlignCenter, AlignBottom, buf);
         y += CLIM_LINE_H;
     }
 
     /* Pressure row */
     if(has_press) {
         snprintf(buf, sizeof(buf), "%.0f %s", (double)clim_sensor->pressure, press_unit_str);
-        canvas_draw_str_aligned(canvas, SCREEN_W / 2, y + CLIM_LINE_H, AlignCenter, AlignBottom, buf);
+        canvas_draw_str_aligned(
+            canvas, SCREEN_W / 2, y + CLIM_LINE_H, AlignCenter, AlignBottom, buf);
     }
 
     /* Debug overlay: last raw ppm (top of screen, only in debug mode) */
     if(co2_sensor && app->settings.debug_mode) {
         canvas_set_font(canvas, FontSecondary);
-        snprintf(buf, sizeof(buf), "raw:%ld %ld/%ld",
+        snprintf(
+            buf,
+            sizeof(buf),
+            "raw:%ld %ld/%ld",
             (long)co2_sensor->dbg_ppm_raw,
-            (long)co2_sensor->dbg_th, (long)co2_sensor->dbg_tl);
+            (long)co2_sensor->dbg_th,
+            (long)co2_sensor->dbg_tl);
         canvas_draw_str_aligned(canvas, 0, 7, AlignLeft, AlignBottom, buf);
     }
 

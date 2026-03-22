@@ -17,7 +17,4 @@
  *
  * Returns true if WiFi credentials were found and parsed.
  */
-bool wfr_nfc_parse_wifi_tag(
-    const uint8_t* tag_pages,
-    uint16_t pages_read,
-    WfrWifiCreds* out_creds);
+bool wfr_nfc_parse_wifi_tag(const uint8_t* tag_pages, uint16_t pages_read, WfrWifiCreds* out_creds);

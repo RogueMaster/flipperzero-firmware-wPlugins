@@ -41,11 +41,7 @@ void wi_fir_scene_edit_security_on_enter(void* context) {
     variable_item_set_current_value_text(item, security_names[app->security_type]);
 
     VariableItem* hidden_item = variable_item_list_add(
-        app->variable_item_list,
-        "Hidden SSID",
-        2,
-        wi_fir_scene_edit_hidden_change_callback,
-        app);
+        app->variable_item_list, "Hidden SSID", 2, wi_fir_scene_edit_hidden_change_callback, app);
 
     variable_item_set_current_value_index(hidden_item, app->hidden ? 1 : 0);
     variable_item_set_current_value_text(hidden_item, hidden_names[app->hidden ? 1 : 0]);
