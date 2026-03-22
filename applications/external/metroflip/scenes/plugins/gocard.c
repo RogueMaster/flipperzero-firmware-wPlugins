@@ -25,23 +25,6 @@ typedef enum {
     ADULT = 3073 // 0xc01
 } ConcessionType;
 
-bool hasTravelPassAvailable = false;
-
-// Function to print concession type
-void printConcessionType(unsigned short concession_type, FuriString* parsed_data) {
-    switch(concession_type) {
-    case CHILD:
-        furi_string_cat_printf(parsed_data, "Concession Type: Child\n");
-        break;
-    case ADULT:
-        furi_string_cat_printf(parsed_data, "Concession Type: Adult\n");
-        break;
-    default:
-        furi_string_cat_printf(parsed_data, "Concession Type: 0x%X\n", concession_type);
-        break;
-    }
-}
-
 unsigned short byteArrayToIntReversed(unsigned int dec1, unsigned int dec2) {
     unsigned char byte1 = (unsigned char)dec1;
     unsigned char byte2 = (unsigned char)dec2;
@@ -59,14 +42,14 @@ uint32_t extract_and_convert(const char* str, int start, int length) {
     return value;
 }
 
-void parse_gocard_time(int block, int offset, const MfClassicData* data, FuriString* parsed_data) {
-    //byte to start at
+/* Parse gocard date/time from a block and write formatted string into out buffer */
+static void
+    gocard_format_time(int block, int offset, const MfClassicData* data, char* out, size_t out_len) {
     int num_bytes = 4;
     char gocard_date_bit_representation[num_bytes * 8 + 1];
     memset(gocard_date_bit_representation, 0, sizeof(gocard_date_bit_representation));
 
-    for(int i = (offset + num_bytes - 1), j = 0; i >= offset;
-        i--, j++) { // Reverse the order of bytes and converty to binary
+    for(int i = (offset + num_bytes - 1), j = 0; i >= offset; i--, j++) {
         char bits[9];
         byte_to_binary(data->block[block].data[i], bits);
         memcpy(&gocard_date_bit_representation[j * 8], bits, 8);
@@ -74,120 +57,121 @@ void parse_gocard_time(int block, int offset, const MfClassicData* data, FuriStr
     gocard_date_bit_representation[num_bytes * 8] = '\0';
 
     int len = strlen(gocard_date_bit_representation);
-    FURI_LOG_I(TAG, "len %d", len); // I get 34
 
     if(len != 32 && len != 33) {
-        FURI_LOG_I(TAG, "Invalid input length");
+        snprintf(out, out_len, "Invalid");
         return;
     }
 
-    // Field layout (from rightmost bit):
-    // - Day: 5 bits
-    // - Month: 4 bits
-    // - Year: 6 bits (years since 2000)
-    // - Minutes: 11 bits (minutes from midnight)
-    // Extract values from right to left using bit_slice_to_dec
     uint32_t day = bit_slice_to_dec(gocard_date_bit_representation, len - 5, len);
     uint32_t month = bit_slice_to_dec(gocard_date_bit_representation, len - 9, len - 6);
     uint32_t year = bit_slice_to_dec(gocard_date_bit_representation, len - 15, len - 10);
     uint32_t minutes = bit_slice_to_dec(gocard_date_bit_representation, len - 26, len - 16);
 
-    // Convert year from offset 2000
     year += 2000;
 
-    // Convert minutes since midnight to HH:MM
     uint32_t hours = minutes / 60;
     uint32_t mins = minutes % 60;
 
-    // Format output string: "YYYY-MM-DD HH:MM"
-    furi_string_cat_printf(
-        parsed_data, "%04lu-%02lu-%02lu %02lu:%02lu\n", year, month, day, hours, mins);
+    snprintf(out, out_len, "%04lu-%02lu-%02lu %02lu:%02lu", year, month, day, hours, mins);
 }
 
-void parse_gocard_topup_info(FuriString* parsed_data, const MfClassicData* data) {
-    furi_string_cat_printf(parsed_data, "\n\e#Top-Up Info:");
-    bool fully_empty = true;
+/* Get concession type string */
+static const char* gocard_concession_str(unsigned short concession_type) {
+    switch(concession_type) {
+    case CHILD:
+        return "Child";
+    case ADULT:
+        return "Adult";
+    default:
+        return "Unknown";
+    }
+}
+
+/* Parse and populate card view. Returns true on success. */
+static bool gocard_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
+    int balance_slot = 4;
+
+    if(data->block[balance_slot].data[13] <= data->block[balance_slot + 1].data[13])
+        balance_slot++;
+
+    unsigned short balancecents = byteArrayToIntReversed(
+        data->block[balance_slot].data[2], data->block[balance_slot].data[3]);
+
+    // Check if the sign flag is set in 'balance'
+    if((balancecents & 0x8000) == 0x8000) {
+        balancecents = balancecents & 0x7fff;
+        balancecents *= -1;
+    } else if((data->block[balance_slot].data[1] & 0x80) == 0x80) {
+        balancecents *= -1;
+    }
+
+    double balance = balancecents / 100.0;
+
+    bool has_travel_pass = (data->block[balance_slot].data[7] != 0x00);
+    int config_block = 6;
+
+    unsigned short concession_type = byteArrayToIntReversed(
+        data->block[config_block].data[8], data->block[config_block].data[9]);
+
+    /* Allocate card view */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "go card");
+
+    /* Page: Overview */
+    uint8_t p = metroflip_card_view_add_page(view, "Overview");
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+
+    snprintf(val, sizeof(val), "A$%.2f", balance);
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
+
+    gocard_format_time(config_block, 4, data, val, sizeof(val));
+    metroflip_card_view_add_field(view, p, "Expiry", val, false);
+
+    metroflip_card_view_add_field(
+        view, p, "Concession", gocard_concession_str(concession_type), false);
+
+    if(has_travel_pass) {
+        metroflip_card_view_add_field(view, p, "Travel Pass", "Available", false);
+    }
+
+    /* Top-Up History pages */
     int block_num = 8;
     for(int i = block_num; i < block_num + 3; i++) {
-        /******* Check if it's empty ******/
         bool is_block_empty = true;
-
         for(int j = 2; j < 8; j++) {
             if(data->block[i].data[j] != 0) {
-                FURI_LOG_I(TAG, "Not 0, proceeding");
                 is_block_empty = false;
                 break;
             }
         }
+        if(is_block_empty) continue;
 
-        if(is_block_empty) {
-            FURI_LOG_I(TAG, "Block %d is empty", i);
-            continue;
-        } else {
-            fully_empty = false;
-        }
-
-        /**** If not fully empty, proceed ******/
         unsigned short creditcents =
             byteArrayToIntReversed(data->block[i].data[6], data->block[i].data[7]);
         creditcents &= 0x7FFF;
         double credit = creditcents / 100.0;
 
-        furi_string_cat_printf(parsed_data, "\nCredit Added: A$%.2f\nTime: ", credit);
-        parse_gocard_time(i, 2, data, parsed_data);
+        char hdr[METROFLIP_CARD_VIEW_HEADER_LEN];
+        snprintf(hdr, sizeof(hdr), "Top-Up %d", i - block_num + 1);
+        p = metroflip_card_view_add_page(view, hdr);
+
+        snprintf(val, sizeof(val), "A$%.2f", credit);
+        metroflip_card_view_add_field(view, p, "Credit Added", val, true);
+
+        gocard_format_time(i, 2, data, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Time", val, false);
     }
 
-    if(fully_empty) {
-        FURI_LOG_I(TAG, "All checked blocks are empty, returning.");
+    /* Button configuration */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
     }
-}
 
-static bool gocard_parse(FuriString* parsed_data, const MfClassicData* data) {
-    bool parsed = false;
-
-    do {
-        int balance_slot = 4;
-
-        if(data->block[balance_slot].data[13] <= data->block[balance_slot + 1].data[13])
-            balance_slot++;
-
-        unsigned short balancecents = byteArrayToIntReversed(
-            data->block[balance_slot].data[2], data->block[balance_slot].data[3]);
-
-        // Check if the sign flag is set in 'balance'
-        if((balancecents & 0x8000) == 0x8000) {
-            balancecents = balancecents & 0x7fff; // Clear the sign flag.
-            balancecents *= -1; // Negate the balance.
-        }
-        // Otherwise, check the sign flag in data->block[4].data[1]
-        else if((data->block[balance_slot].data[1] & 0x80) == 0x80) {
-            // seq_go uses a sign flag in an adjacent byte.
-            balancecents *= -1;
-        }
-
-        double balance = balancecents / 100.0;
-        furi_string_printf(parsed_data, "\e#go card\nValue: A$%.2f\n", balance); //show balance
-
-        hasTravelPassAvailable = (data->block[balance_slot].data[7] != 0x00) ? true : false;
-        int start_index = 4; //byte to start at
-        int config_block = 6; //block number containing card configuration
-
-        furi_string_cat_printf(parsed_data, "Expiry:\n");
-        parse_gocard_time(config_block, start_index, data, parsed_data);
-
-        //concession type:
-
-        unsigned short concession_type = byteArrayToIntReversed(
-            data->block[config_block].data[8], data->block[config_block].data[9]);
-
-        printConcessionType(concession_type, parsed_data);
-
-        parse_gocard_topup_info(parsed_data, data);
-
-        parsed = true;
-    } while(false);
-
-    return parsed;
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static void gocard_on_enter(Metroflip* app) {
@@ -201,31 +185,26 @@ static void gocard_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfClassicData* mfc_data = mf_classic_alloc();
             mf_classic_load(mfc_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!gocard_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!gocard_display_card_view(mfc_data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
             mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
     } else {
         // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "unsupported", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
     }
 }
@@ -236,19 +215,19 @@ static bool gocard_on_event(Metroflip* app, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -261,16 +240,13 @@ static bool gocard_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void gocard_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
     }
-
-    // Clear view
-    popup_reset(app->popup);
-
-    metroflip_app_blink_stop(app);
 }
 
 /* Actual implementation of app<>plugin interface */

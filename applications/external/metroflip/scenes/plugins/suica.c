@@ -71,7 +71,7 @@ static void suica_model_free(SuicaHistoryViewModel* model) {
     furi_string_free(model->history.entry_station.jr_header);
     furi_string_free(model->history.exit_station.name);
     furi_string_free(model->history.exit_station.jr_header);
-    // no need to free RailwaysList — static
+    // no need to free RailwaysList - static
 }
 
 static void suica_add_entry(SuicaHistoryViewModel* model, const uint8_t* entry) {

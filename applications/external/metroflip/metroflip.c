@@ -16,6 +16,12 @@ static bool metroflip_custom_event_callback(void* context, uint32_t event) {
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
+static void metroflip_tick_callback(void* context) {
+    Metroflip* app = context;
+    /* Broadcast a tick event - each active scene handles its own animation */
+    view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventTick);
+}
+
 static bool metroflip_back_event_callback(void* context) {
     furi_assert(context);
     Metroflip* app = context;
@@ -50,6 +56,7 @@ Metroflip* metroflip_alloc() {
         app->view_dispatcher, metroflip_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, metroflip_back_event_callback);
+    view_dispatcher_set_tick_event_callback(app->view_dispatcher, metroflip_tick_callback, 250);
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
@@ -73,7 +80,6 @@ Metroflip* metroflip_alloc() {
 
     app->popup = popup_alloc();
     view_dispatcher_add_view(app->view_dispatcher, MetroflipViewPopup, popup_get_view(app->popup));
-    app->nfc_device = nfc_device_alloc();
 
     // TextBox
     app->text_box = text_box_alloc();
@@ -84,7 +90,18 @@ Metroflip* metroflip_alloc() {
     // Dialog for loading
     app->dialogs = furi_record_open(RECORD_DIALOGS);
 
+    // Custom main menu (canvas-based, callbacks set in start scene)
+    app->main_menu = view_alloc();
+    view_set_context(app->main_menu, app);
+    view_dispatcher_add_view(app->view_dispatcher, MetroflipViewMenu, app->main_menu);
+
+    // Scan animation view (callbacks set in auto scene)
+    app->scan_anim = view_alloc();
+    view_set_context(app->scan_anim, app);
+    view_dispatcher_add_view(app->view_dispatcher, MetroflipViewLoading, app->scan_anim);
+
     app->data_loaded = false;
+    app->card_view = NULL;
     return app;
 }
 
@@ -115,6 +132,32 @@ void metroflip_free(Metroflip* app) {
     byte_input_free(app->byte_input);
     view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewPopup);
     popup_free(app->popup);
+
+    // Clear callbacks on persistent views BEFORE freeing -
+    // prevents pending GUI/input events from calling unmapped code
+    if(app->scan_anim) {
+        view_set_draw_callback(app->scan_anim, NULL);
+        view_set_input_callback(app->scan_anim, NULL);
+        view_set_previous_callback(app->scan_anim, NULL);
+    }
+    if(app->main_menu) {
+        view_set_draw_callback(app->main_menu, NULL);
+        view_set_input_callback(app->main_menu, NULL);
+        view_set_previous_callback(app->main_menu, NULL);
+    }
+
+    // Card view (persistent - only destroyed at app exit)
+    metroflip_card_view_destroy(app);
+
+    // Scan animation
+    view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewLoading);
+    view_free_model(app->scan_anim);
+    view_free(app->scan_anim);
+
+    // Custom main menu
+    view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewMenu);
+    view_free_model(app->main_menu);
+    view_free(app->main_menu);
 
     // Custom Widget
     view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewWidget);
@@ -296,36 +339,30 @@ KeyfileManager manage_keyfiles(
     snprintf(dest_path, dest_required_size, "/ext/nfc/assets/.%s.keys", uid_str);
     bool dest_cache_file = storage_file_open(dest, dest_path, FSAM_READ, FSOM_OPEN_EXISTING);
     /*-----------------Check cache file------------*/
+    KeyfileManager result = MISSING_KEYFILE;
+
     if(!cache_file) {
         /*-----------------Check assets cache file------------*/
         FURI_LOG_I("TAG", "cache dont exist, checking assets");
 
         if(!dest_cache_file) {
             FURI_LOG_I("TAG", "assets dont exist, prompting user to fix..");
-            storage_file_close(source);
-            storage_file_close(dest);
-            return MISSING_KEYFILE;
+            result = MISSING_KEYFILE;
         } else {
             size_t dest_file_length = storage_file_size(dest);
 
             FURI_LOG_I(
                 "TAG", "assets exist, but cache doesnt, proceeding to copy assets to cache");
-            // Close, then open both files
             storage_file_close(source);
             storage_file_close(dest);
-            storage_file_open(
-                source, source_path, FSAM_WRITE, FSOM_OPEN_ALWAYS); // create new file
-            storage_file_open(
-                dest, dest_path, FSAM_READ, FSOM_OPEN_EXISTING); // open existing assets keyfile
+            storage_file_open(source, source_path, FSAM_WRITE, FSOM_OPEN_ALWAYS);
+            storage_file_open(dest, dest_path, FSAM_READ, FSOM_OPEN_EXISTING);
             FURI_LOG_I("TAG", "creating cache file at %s from %s", source_path, dest_path);
-            /*-----Clone keyfile from assets to cache (creates temporary buffer)----*/
             uint8_t* cloned_buffer = malloc(dest_file_length);
             storage_file_read(dest, cloned_buffer, dest_file_length);
             storage_file_write(source, cloned_buffer, dest_file_length);
             free(cloned_buffer);
-            storage_file_close(source);
-            storage_file_close(dest);
-            return SUCCESSFUL;
+            result = SUCCESSFUL;
         }
     } else {
         size_t source_file_length = storage_file_size(source);
@@ -337,29 +374,27 @@ KeyfileManager manage_keyfiles(
            KEY_MASK_BIT_CHECK(key_mask_b_required, instance->keys.key_b_mask)) {
             FURI_LOG_I("TAG", "cache exist, creating assets cache if not already exists");
             storage_file_close(dest);
-            storage_file_close(source);
             storage_file_open(dest, dest_path, FSAM_WRITE, FSOM_OPEN_ALWAYS);
             storage_file_open(source, source_path, FSAM_READ, FSOM_OPEN_EXISTING);
             FURI_LOG_I("TAG", "creating assets cache");
-            /*-----Clone keyfile from assets to cache (creates temporary buffer)----*/
             uint8_t* cloned_buffer = malloc(source_file_length);
             storage_file_read(source, cloned_buffer, source_file_length);
             storage_file_write(dest, cloned_buffer, source_file_length);
             free(cloned_buffer);
-            storage_file_close(source);
-            storage_file_close(dest);
-            return SUCCESSFUL;
-
+            result = SUCCESSFUL;
         } else {
             FURI_LOG_I("TAG", "incomplete cache file, aborting.");
-            storage_file_close(source);
-            storage_file_close(dest);
-            return INCOMPLETE_KEYFILE;
+            result = INCOMPLETE_KEYFILE;
         }
     }
-    FURI_LOG_I("TAG", "proceeding to read");
+
+    /* Single cleanup path - always free file handles and close storage */
     storage_file_close(source);
     storage_file_close(dest);
+    storage_file_free(source);
+    storage_file_free(dest);
+    furi_record_close(RECORD_STORAGE);
+    return result;
 }
 
 void uid_to_string(const uint8_t* uid, size_t uid_len, char* uid_str, size_t max_len) {

@@ -23,69 +23,67 @@ static void tmobilitat_get_control_chars(uint32_t number, char* out) {
     out[2] = '\0';
 }
 
-static bool tmobilitat_parse(FuriString* parsed_data, Metroflip* app) {
-    bool parsed = false;
+static bool tmobilitat_display_card_view(Metroflip* app) {
+    // Safety check: make sure there are at least 4 historical bytes
+    if(app->hist_bytes_count < 4) {
+        FURI_LOG_E(TAG, "Not enough historical bytes!");
+        return false;
+    }
 
-    do {
-        // Safety check: make sure there are at least 4 historical bytes
-        if(app->hist_bytes_count < 4) {
-            FURI_LOG_E(TAG, "Not enough historical bytes!");
-            break;
-        }
+    // Take the last 4 bytes
+    const uint8_t* last4 = app->hist_bytes + (app->hist_bytes_count - 4);
 
-        // Take the last 4 bytes
-        const uint8_t* last4 = app->hist_bytes + (app->hist_bytes_count - 4);
+    // Convert to 32-bit unsigned integer (big-endian)
+    uint32_t card_number = (last4[0] << 24) | (last4[1] << 16) | (last4[2] << 8) | (last4[3]);
 
-        // Convert to 32-bit unsigned integer (big-endian)
-        uint32_t card_number = (last4[0] << 24) | (last4[1] << 16) | (last4[2] << 8) | (last4[3]);
+    char control[3];
+    tmobilitat_get_control_chars(card_number, control);
 
-        char control[3];
-        tmobilitat_get_control_chars(card_number, control);
+    // Format as 9 digits with leading zeros, grouped as XXX XXX XXX
+    uint32_t hi = card_number / 1000000;
+    uint32_t mid = (card_number / 1000) % 1000;
+    uint32_t lo = card_number % 1000;
 
-        // Format as 9 digits with leading zeros, grouped as XXX XXX XXX
-        uint32_t hi = card_number / 1000000;
-        uint32_t mid = (card_number / 1000) % 1000;
-        uint32_t lo = card_number % 1000;
+    FURI_LOG_I(
+        TAG,
+        "Card number: %03lu %03lu %03lu%s",
+        (unsigned long)hi,
+        (unsigned long)mid,
+        (unsigned long)lo,
+        control);
 
-        FURI_LOG_I(
-            TAG,
-            "Card number: %03lu %03lu %03lu%s",
-            (unsigned long)hi,
-            (unsigned long)mid,
-            (unsigned long)lo,
-            control);
-        furi_string_printf(
-            parsed_data,
-            "\e#T-Mobilitat\nCard number:\n%03lu %03lu %03lu%s",
-            (unsigned long)hi,
-            (unsigned long)mid,
-            (unsigned long)lo,
-            control);
-        parsed = true;
-    } while(false);
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+    snprintf(
+        val,
+        sizeof(val),
+        "%03lu %03lu %03lu%s",
+        (unsigned long)hi,
+        (unsigned long)mid,
+        (unsigned long)lo,
+        control);
 
-    return parsed;
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "T-Mobilitat");
+
+    uint8_t p = metroflip_card_view_add_page(view, "Card Info");
+    metroflip_card_view_add_field(view, p, "Card Number", val, false);
+
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static void tmobilitat_on_enter(Metroflip* app) {
-    FuriString* parsed_data = furi_string_alloc();
-    Widget* widget = app->widget;
-
-    furi_string_reset(app->text_box_store);
-    widget_reset(widget);
-
-    if(!tmobilitat_parse(parsed_data, app)) {
-        furi_string_reset(app->text_box_store);
+    if(!tmobilitat_display_card_view(app)) {
         FURI_LOG_I(TAG, "Unknown card type");
-        furi_string_printf(parsed_data, "\e#Unknown card\n");
+        Widget* widget = app->widget;
+        widget_reset(widget);
+        FuriString* parsed_data = furi_string_alloc_set("\e#Unknown card\n");
+        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
+        widget_add_button_element(
+            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+        furi_string_free(parsed_data);
+        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
     }
-    widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
-    widget_add_button_element(
-        widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-
-    view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-    furi_string_free(parsed_data);
 }
 
 static bool tmobilitat_on_event(Metroflip* app, SceneManagerEvent event) {
@@ -101,6 +99,7 @@ static bool tmobilitat_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void tmobilitat_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
 }
 
 /* Actual implementation of app<>plugin interface */

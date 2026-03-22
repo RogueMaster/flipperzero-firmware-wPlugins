@@ -17,6 +17,11 @@ void metroflip_scene_load_on_enter(void* context) {
     app->data_loaded = false;
     app->card_type = "unknown"; // Default card type
 
+    // Show "Parsing" popup so main menu doesn't flash during file loading
+    popup_reset(app->popup);
+    popup_set_header(app->popup, "Parsing card\ndata...", 64, 32, AlignCenter, AlignCenter);
+    view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
+
     // Buffers for reading data
     FuriString* card_type_str = furi_string_alloc();
     FuriString* device_type = furi_string_alloc();
@@ -66,6 +71,7 @@ void metroflip_scene_load_on_enter(void* context) {
                     }
 
                     CardType card_type = determine_card_type(app->nfc, mfc_data, true);
+                    mf_classic_free(mfc_data);
                     app->mfc_card_type = card_type;
                     app->data_loaded = true;
                     app->is_desfire = false;
@@ -219,7 +225,9 @@ void metroflip_scene_load_on_enter(void* context) {
     // Scene transitions
     if(app->data_loaded) {
         FURI_LOG_I(TAG, "Data loaded successfully, transitioning to parse scene");
-        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, MetroflipSceneStart);
+        // Push Parse directly - no need to go through Start first.
+        // Back from Parse uses search_and_switch(Start) which will
+        // pop both Parse and Load cleanly.
         scene_manager_next_scene(app->scene_manager, MetroflipSceneParse);
     } else {
         FURI_LOG_I(TAG, "Data loading failed, returning to start");
@@ -249,5 +257,5 @@ bool metroflip_scene_load_on_event(void* context, SceneManagerEvent event) {
 
 void metroflip_scene_load_on_exit(void* context) {
     Metroflip* app = context;
-    UNUSED(app);
+    popup_reset(app->popup);
 }

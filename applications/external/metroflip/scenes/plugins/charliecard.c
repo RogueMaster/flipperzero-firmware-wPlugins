@@ -2,57 +2,57 @@
  * Parser for MBTA CharlieCard (Boston, MA, USA).
  *
  * Copyright 2024 Zachary Weiss <me@zachary.ws>
- * 
+ *
  * Public security research on the MBTA's fare system stretches back to 2008,
- * starting with Russel Ryan, Zack Anderson, and Alessandro Chiesa's 
- * "Anatomy of a Subway Hack", for which they were famously issued a gag order. 
- * A thorough history of research & researchers deserving of credit is 
+ * starting with Russel Ryan, Zack Anderson, and Alessandro Chiesa's
+ * "Anatomy of a Subway Hack", for which they were famously issued a gag order.
+ * A thorough history of research & researchers deserving of credit is
  * detailed by @bobbyrsec in his 2022 blog post (& presentation):
- * "Operation Charlie: Hacking the MBTA CharlieCard from 2008 to Present" 
+ * "Operation Charlie: Hacking the MBTA CharlieCard from 2008 to Present"
  * https://medium.com/@bobbyrsec/operation-charlie-hacking-the-mbta-charliecard-from-2008-to-present-24ea9f0aaa38
- * 
+ *
  * Fare gate IDs, card types, and general assistance courtesy of the
  * minds behind DEFCON 31's "Boston Infinite Money Glitch" presentation:
- * — Matthew Harris; mattyharris.net <matty@mattyharris.net>
- * — Zachary Bertocchi; zackbertocchi.com <zach@zachbertocci.com>
- * — Scott Campbell; josephscottcampbell.com <scott@josephscottcampbell.com>
- * — Noah Gibson; <noahgibson06@proton.me>
+ * - Matthew Harris; mattyharris.net <matty@mattyharris.net>
+ * - Zachary Bertocchi; zackbertocchi.com <zach@zachbertocci.com>
+ * - Scott Campbell; josephscottcampbell.com <scott@josephscottcampbell.com>
+ * - Noah Gibson; <noahgibson06@proton.me>
  * Talk available at: https://www.youtube.com/watch?v=1JT_lTfK69Q
- * 
+ *
  * TODOs:
- * — Reverse engineer passes (sectors 4 & 5?), impl.
- * — Infer transaction flag meanings
- * — Infer remaining unknown bytes in the balance sectors (2 & 3)
- * — Improve string output formatting, esp. of transaction log
- * — Mapping of buses to garages, and subsequently, route subsets via 
+ * - Reverse engineer passes (sectors 4 & 5?), impl.
+ * - Infer transaction flag meanings
+ * - Infer remaining unknown bytes in the balance sectors (2 & 3)
+ * - Improve string output formatting, esp. of transaction log
+ * - Mapping of buses to garages, and subsequently, route subsets via
  *   http://roster.transithistory.org/ data
- * — Mapping of stations to lines
- * — Add'l data fields for side of station fare gates are on? Some stations
+ * - Mapping of stations to lines
+ * - Add'l data fields for side of station fare gates are on? Some stations
  *   separate inbound & outbound sides, so direction could be inferred
  *   from gates used.
- * — Continually gather data on fare gate ID mappings, update as collected;
+ * - Continually gather data on fare gate ID mappings, update as collected;
  *   check locations this might be scrapable / inferrable from:
- *   [X] MBTA GTFS spec (https://www.mbta.com/developers/gtfs) features & IDs 
+ *   [X] MBTA GTFS spec (https://www.mbta.com/developers/gtfs) features & IDs
  *       seem too-coarse-grained & uncorrelated
- *   [X] MBTA ArcGIS (https://mbta-massdot.opendata.arcgis.com/) & Tableau 
- *       (https://public.tableau.com/app/profile/mbta.office.of.performance.management.and.innovation/vizzes) 
+ *   [X] MBTA ArcGIS (https://mbta-massdot.opendata.arcgis.com/) & Tableau
+ *       (https://public.tableau.com/app/profile/mbta.office.of.performance.management.and.innovation/vizzes)
  *       files don't seem to have anything of that resolution (only down to ridership by station)
  *   [X] (skim of) MBTA public GitHub (https://github.com/mbta) repos make no reference to fare-gate-level data
  *   [X] (skim of) MBTA public engineering docs (https://www.mbta.com/engineering) unfruitful;
- *       Closest mention spotted is 2014 "Ridership and Service Statistics" 
+ *       Closest mention spotted is 2014 "Ridership and Service Statistics"
  *       (https://cdn.mbta.com/sites/default/files/fmcb-meeting-docs/reports-policies/2014-07-mbta-bluebook-ed14.pdf)
  *       where on pg.40, "Equipment at Stations" is enumerated, and fare gates counts are given,
  *       listed as "AFC Gates" (presumably standing for "Automated Fare Collection")
- *   [X] Josiah Zachery criminal trial public evidence — convicted partially on 
+ *   [X] Josiah Zachery criminal trial public evidence - convicted partially on
  *       data on his CharlieCard, appeals partially on basis of legality of this search.
  *       Prev. court case (gag order mentioned in preamble) leaked some data in the files
  *       entered into evidence. Seemingly did not happen here; fare gate IDs unmentioned,
  *       only ever the nature of stored/saved data and methods of retrieval.
- *       Appelate case dockets 2019-P-0401, SJC-12952, SJ-2017-0390 
+ *       Appelate case dockets 2019-P-0401, SJC-12952, SJ-2017-0390
  *       (https://www.ma-appellatecourts.org/party)
- *       Trial court indictment 04/02/2015, Case# 1584CR10265 @Suffolk County Criminal Superior Court 
+ *       Trial court indictment 04/02/2015, Case# 1584CR10265 @Suffolk County Criminal Superior Court
  *       (https://www.masscourts.org/eservices/home.page.16)
- *   [ ] FOIA / public records request? 
+ *   [ ] FOIA / public records request?
  *       (https://massachusettsdot.mycusthelp.com/WEBAPP/_rs/(S(tbcygdlm0oojy35p1wv0y2y5))/supporthome.aspx)
  *   [X] MBTA data blog? (https://www.massdottracker.com/datablog/)
  *   [ ] MassDOT developers Google group? (https://groups.google.com/g/massdotdevelopers)
@@ -89,7 +89,6 @@
 #include <nfc/nfc.h>
 #include <nfc/nfc_device.h>
 #include <nfc/nfc_listener.h>
-#include "../../api/metroflip/metroflip_api.h"
 
 #define TAG "Metroflip:Scene:CharlieCard"
 
@@ -732,9 +731,9 @@ static Pass
     // same is true of type & end-validity split found in balance sector
     //
     // likely fields incl
-    // — type #,
-    // — a secondary date field (eg start/end, end validity or normal format)
-    // — ID of FVM from which the pass was loaded
+    // - type #,
+    // - a secondary date field (eg start/end, end validity or normal format)
+    // - ID of FVM from which the pass was loaded
 
     // check for empty, if so, return struct filled w/ 0s
     // (incl "valid" field: hence, "valid" is false-y)
@@ -772,19 +771,19 @@ static Transaction
     //
     // Gate ID ("loc") is only the first 13 bits of 0x3:0x5, the final three bits appear to be flags ("f").
     // Least significant flag bit seems to indicate:
-    // — When f & 1 == 1, fare (the amount by which balance is decremented)
-    // — When f & 1 == 0, refill (the amount by which balance is incremented)
+    // - When f & 1 == 1, fare (the amount by which balance is decremented)
+    // - When f & 1 == 0, refill (the amount by which balance is incremented)
     // MSB (sign bit) of amt seems to serve the same role, just inverted, ie
-    // — When amt & 0x8000 == 0, fare
-    // — When amt & 0x8000 == 0x8000, refill
+    // - When amt & 0x8000 == 0, fare
+    // - When amt & 0x8000 == 0x8000, refill
     // Only contradiction between the two observed is on cards w/ passes;
     // MSB of amt seems to be set for every transaction when (remaining bits of) amt is 0 on a card w/ a pass
     // Hence, using f's LSB as method for inferring fare v. refill
     //
     // Remaining unknown bits:
-    // — f & 0b100; seems to be set on fares where the card has a pass, and amt is 0
-    // — f & 0b010
-    // — amt & 1; does not seem to correspond with card type, last transaction, first transaction, refill v. fare, etc
+    // - f & 0b100; seems to be set on fares where the card has a pass, and amt is 0
+    // - f & 0b010
+    // - amt & 1; does not seem to correspond with card type, last transaction, first transaction, refill v. fare, etc
 
     const DateTime date = date_parse(data, sector, block, byte);
     const uint16_t gate = pos_to_num(data, sector, block, byte + 3, 2) >> 3;
@@ -909,7 +908,7 @@ static Pass* passes_parse(const MfClassicData* data) {
 }
 
 static Transaction* transactions_parse(const MfClassicData* data) {
-    // Transaction history (Sectors 6–7)
+    // Transaction history (Sectors 6-7)
     //
     //       0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
     //       +----.----.----.----.----.----.----+----.----.----.----.----.----.----+----.----+
@@ -966,158 +965,63 @@ static Transaction* transactions_parse(const MfClassicData* data) {
     return transactions;
 }
 
-/*
-static DateTime expiry(DateTime iss) {
-    // Per Metrodroid CharlieCard parser (https://github.com/metrodroid/metrodroid/blob/master/src/commonMain/kotlin/au/id/micolous/metrodroid/transit/charlie/CharlieCardTransitData.kt)
-    // Expiry not explicitly stored in card data; rather, calculated from date of issue
-    // Cards were first issued in 2006, expired in 5 years, w/ no printed expiry date
-    // Cards issued after 2011 expire in 10 years
-    //
-    // Per DEFCON31 researcher's work (cited above):
-    // Student cards last one school year and expire at the end of August the following year
-    // Pre-2011 issued cards expire in 7 years, not 5 as claimed by Metrodroid
-    // Post-2011 expire in 10 years, less one day
-    // Redundant function given the existance of the end validity field?
-    // Any important distinctions between the two?
-    
-
-    // perhaps additionally clipping to 2030-12-__ in anticipation of upcoming system migration?
-    // need to get a new card to confirm.
-
-    // TODO add card type logic for student card expiry
-    DateTime exp;
-    if(iss.year < 2011) {
-        // add 7 years; assumes average year of 8766 hrs (to account for leap years)
-        // may be off by a few hours as a result
-        exp = dt_delta(iss, 7 * 8766 * 60 * 60);
-    } else {
-        // add 10 years, subtract a day. Same assumption as above
-        exp = dt_delta(iss, ((10 * 8766) - 24) * 60 * 60);
-    }
-
-    return exp;
-}
-
-static bool expired(DateTime expiry, DateTime last_transaction) {
-    // if a card has sat unused for >2 years, expired (verify this claim?)
-    // else expired if current date > expiry date
-
-    uint32_t ts_exp = datetime_datetime_to_timestamp(&expiry);
-    uint32_t ts_last = datetime_datetime_to_timestamp(&last_transaction);
-    uint32_t ts_now = time_now();
-
-    return (ts_exp <= ts_now) | ((ts_now - ts_last) >= (2 * 365 * 24 * 60 * 60));
-}
-*/
-
 // **********************************************************
-// ****************** STRING FORMATTING *********************
+// ************** CARD VIEW FORMATTING HELPERS **************
 // **********************************************************
 
-void locale_format_dt_cat(FuriString* out, const DateTime* dt) {
-    // helper to print datetimes
+/* Format a DateTime into a short string for card view fields */
+static void charlie_format_datetime(const DateTime* dt, char* out, size_t len) {
     FuriString* s = furi_string_alloc();
 
     LocaleDateFormat date_format = locale_get_date_format();
     const char* separator = (date_format == LocaleDateFormatDMY) ? "." : "/";
     locale_format_date(s, dt, date_format, separator);
-    furi_string_cat(out, s);
-    locale_format_time(s, dt, locale_get_time_format(), false);
-    furi_string_cat_printf(out, "  ");
-    furi_string_cat(out, s);
+
+    FuriString* t = furi_string_alloc();
+    locale_format_time(t, dt, locale_get_time_format(), false);
+
+    snprintf(out, len, "%s %s", furi_string_get_cstr(s), furi_string_get_cstr(t));
 
     furi_string_free(s);
+    furi_string_free(t);
 }
 
-void type_format_cat(FuriString* out, uint16_t type) {
+/* Get the type name string, truncated for card view value field */
+static void charlie_type_to_str(uint16_t type, char* out, size_t len) {
     const char* s;
     if(!get_map_item(type, charliecard_types, kNumTypes, &s)) {
-        s = "";
-        furi_string_cat_printf(out, "Unknown-%u", type);
-    }
-
-    furi_string_cat_str(out, s);
-}
-
-void pass_format_cat(FuriString* out, Pass pass) {
-    furi_string_cat_printf(out, "\n-Pre: %b", pass.pre);
-    // type_format_cat(out, pass.type);
-    furi_string_cat_printf(out, "\n-Post: ");
-    type_format_cat(out, pass.post);
-    // locale_format_dt_cat(out, &pass.start);
-    furi_string_cat_printf(out, "\n-Date: ");
-    locale_format_dt_cat(out, &pass.date);
-}
-
-void passes_format_cat(FuriString* out, Pass* passes) {
-    // only print passes if DEBUG on
-    if(!is_debug()) {
-        return;
-    }
-
-    // only print if there is at least 1 valid pass to print
-    bool any_valid = false;
-    for(size_t i = 0; i < CHARLIE_N_PASSES; i++) {
-        any_valid |= passes[i].valid;
-    }
-    if(!any_valid) {
-        return;
-    }
-
-    furi_string_cat_printf(out, "\nPasses (DEBUG / WIP):");
-    for(size_t i = 0; i < CHARLIE_N_PASSES; i++) {
-        if(passes[i].valid) {
-            furi_string_cat_printf(out, "\nPass %u", i + 1);
-            pass_format_cat(out, passes[i]);
-            furi_string_cat_printf(out, "\n");
-        }
-    }
-}
-
-void money_format_cat(FuriString* out, Money money) {
-    furi_string_cat_printf(out, "$%u.%02u", money.dollars, money.cents);
-}
-
-void transaction_format_cat(FuriString* out, Transaction transaction) {
-    const char* sep = "   ";
-    const char* sta;
-
-    locale_format_dt_cat(out, &transaction.date);
-    furi_string_cat_printf(out, "\n%s", !!(transaction.g_flag & 0x1) ? "-" : "+");
-    money_format_cat(out, transaction.fare);
-    if(!!(transaction.g_flag & 0x1) && (transaction.fare.dollars == FARE_BUS.dollars) &&
-       (transaction.fare.cents == FARE_BUS.cents)) {
-        // if not a refill, and the fare amount is equal to bus fare (any better approach? flag bits for modality?)
-        // format for bus — supposedly some correlation between gate ID & bus #, haven't investigated
-        furi_string_cat_printf(out, "%s#%u", sep, transaction.gate);
-    } else if(get_map_item(transaction.gate, charliecard_fare_gate_ids, kNumFareGateIds, &sta)) {
-        // station found in fare gate ID map, append station name
-        furi_string_cat_str(out, sep);
-        furi_string_cat_str(out, sta);
+        snprintf(out, len, "Unknown-%u", type);
     } else {
-        // no found station in fare gate ID map & not a bus, just print ID w/o add'l info
-        furi_string_cat_printf(out, "%s#%u", sep, transaction.gate);
-    }
-    // print flags for debugging purposes
-    if(is_debug()) {
-        furi_string_cat_printf(out, "%s%x%s%x", sep, transaction.g_flag, sep, transaction.f_flag);
+        snprintf(out, len, "%s", s);
     }
 }
 
-void transactions_format_cat(FuriString* out, Transaction* transactions) {
-    furi_string_cat_printf(out, "\nTransactions:");
-    for(size_t i = 0; i < CHARLIE_N_TRANSACTION_HISTORY; i++) {
-        furi_string_cat_printf(out, "\n");
-        transaction_format_cat(out, transactions[i]);
-        furi_string_cat_printf(out, "\n");
+/* Format money value into string */
+static void charlie_money_to_str(Money money, char* out, size_t len) {
+    snprintf(out, len, "$%u.%02u", money.dollars, money.cents);
+}
+
+/* Get location string for a transaction */
+static void charlie_location_to_str(Transaction* t, char* out, size_t len) {
+    const char* sta;
+    if(!!(t->g_flag & 0x1) && (t->fare.dollars == FARE_BUS.dollars) &&
+       (t->fare.cents == FARE_BUS.cents)) {
+        // Bus fare
+        snprintf(out, len, "Bus #%u", t->gate);
+    } else if(get_map_item(t->gate, charliecard_fare_gate_ids, kNumFareGateIds, &sta)) {
+        snprintf(out, len, "%s", sta);
+    } else {
+        snprintf(out, len, "Gate #%u", t->gate);
     }
 }
 
 // **********************************************************
-// **************** NFC PLUGIN BOILERPLATE ******************
+// **************** CARD VIEW DISPLAY ***********************
 // **********************************************************
 
-static bool charliecard_parse(FuriString* parsed_data, const MfClassicData* data) {
+/* Parse MfClassic data and populate card view */
+static bool
+    charliecard_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
     bool parsed = false;
 
     do {
@@ -1140,48 +1044,130 @@ static bool charliecard_parse(FuriString* parsed_data, const MfClassicData* data
         Pass* passes = passes_parse(data);
         Transaction* transactions = transactions_parse(data);
 
-        // print/append card data
-        furi_string_cat_printf(parsed_data, "\e#CharlieCard");
-        furi_string_cat_printf(parsed_data, "\nSerial: 5-%lu", card_number);
+        /* Allocate card view */
+        View* view = metroflip_card_view_alloc(app);
+        metroflip_card_view_set_title(view, "CharlieCard");
 
-        // Type and balance 0 on some (Perq) cards
-        // (ie no "main" type / balance / end validity,
-        //  essentially only pass & trip info)
-        // skip/change formatting for that case?
-        furi_string_cat_printf(parsed_data, "\nBal: ");
-        money_format_cat(parsed_data, balance_sector.balance);
+        char val[METROFLIP_CARD_VIEW_VALUE_LEN];
 
-        furi_string_cat_printf(parsed_data, "\nType: ");
-        type_format_cat(parsed_data, balance_sector.type);
+        /* Page: Overview */
+        uint8_t p = metroflip_card_view_add_page(view, "Overview");
 
-        furi_string_cat_printf(parsed_data, "\nTrip Count: %u", counter_sector.n_uses);
+        snprintf(val, sizeof(val), "5-%lu", card_number);
+        metroflip_card_view_add_field(view, p, "Serial", val, false);
 
-        furi_string_cat_printf(parsed_data, "\nIssued: ");
-        locale_format_dt_cat(parsed_data, &balance_sector.issued);
+        charlie_money_to_str(balance_sector.balance, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Balance", val, true);
 
-        if(!dt_eq(balance_sector.end_validity, CHARLIE_EPOCH) &
+        charlie_type_to_str(balance_sector.type, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Type", val, false);
+
+        snprintf(val, sizeof(val), "%u", counter_sector.n_uses);
+        metroflip_card_view_add_field(view, p, "Trip Count", val, false);
+
+        /* Page: Card Details */
+        p = metroflip_card_view_add_page(view, "Card Details");
+
+        charlie_format_datetime(&balance_sector.issued, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Issued", val, false);
+
+        if(!dt_eq(balance_sector.end_validity, CHARLIE_EPOCH) &&
            dt_ge(balance_sector.end_validity, balance_sector.issued)) {
-            // sometimes (seen on Perq cards) end validity field is all 0
-            // When this is the case, calc'd end validity is equal to CHARLIE_EPOCH).
-            // Only print if not 0, & end validity after issuance date
-            furi_string_cat_printf(parsed_data, "\nExpiry: ");
-            locale_format_dt_cat(parsed_data, &balance_sector.end_validity);
+            charlie_format_datetime(&balance_sector.end_validity, val, sizeof(val));
+            metroflip_card_view_add_field(view, p, "Expiry", val, false);
         }
 
-        // const DateTime last = date_parse(data, active_sector, 0, 1);
-        // furi_string_cat_printf(parsed_data, "\nExpired: %s", expired(e_v, last) ? "Yes" : "No");
+        /* Transaction history pages (2 transactions per page, max 5 pages) */
+        for(int i = 0; i < CHARLIE_N_TRANSACTION_HISTORY; i += 2) {
+            char hdr[METROFLIP_CARD_VIEW_HEADER_LEN];
+            snprintf(hdr, sizeof(hdr), "Transactions %d-%d", i + 1, i + 2);
 
-        transactions_format_cat(parsed_data, transactions);
+            p = metroflip_card_view_add_page(view, hdr);
+
+            /* First transaction of pair */
+            Transaction* t1 = &transactions[i];
+            char amt1[METROFLIP_CARD_VIEW_VALUE_LEN];
+            snprintf(
+                amt1,
+                sizeof(amt1),
+                "%s$%u.%02u",
+                !!(t1->g_flag & 0x1) ? "-" : "+",
+                t1->fare.dollars,
+                t1->fare.cents);
+            metroflip_card_view_add_field(view, p, "Amount", amt1, true);
+
+            charlie_location_to_str(t1, val, sizeof(val));
+            metroflip_card_view_add_field(view, p, "Location", val, false);
+
+            /* Second transaction of pair */
+            if(i + 1 < CHARLIE_N_TRANSACTION_HISTORY) {
+                Transaction* t2 = &transactions[i + 1];
+                char amt2[METROFLIP_CARD_VIEW_VALUE_LEN];
+                snprintf(
+                    amt2,
+                    sizeof(amt2),
+                    "%s$%u.%02u",
+                    !!(t2->g_flag & 0x1) ? "-" : "+",
+                    t2->fare.dollars,
+                    t2->fare.cents);
+                metroflip_card_view_add_field(view, p, "Amount", amt2, true);
+
+                charlie_location_to_str(t2, val, sizeof(val));
+                metroflip_card_view_add_field(view, p, "Location", val, false);
+            }
+        }
+
+        /* Passes pages (debug only) */
+        if(is_debug()) {
+            bool any_valid = false;
+            for(size_t i = 0; i < CHARLIE_N_PASSES; i++) {
+                any_valid |= passes[i].valid;
+            }
+            if(any_valid) {
+                for(size_t i = 0; i < CHARLIE_N_PASSES; i++) {
+                    if(!passes[i].valid) continue;
+
+                    char hdr[METROFLIP_CARD_VIEW_HEADER_LEN];
+                    snprintf(hdr, sizeof(hdr), "Pass %u (DBG)", (unsigned)(i + 1));
+                    p = metroflip_card_view_add_page(view, hdr);
+
+                    snprintf(val, sizeof(val), "%u", passes[i].pre);
+                    metroflip_card_view_add_field(view, p, "Pre", val, false);
+
+                    const char* post_name;
+                    if(get_map_item(passes[i].post, charliecard_types, kNumTypes, &post_name)) {
+                        snprintf(val, sizeof(val), "%s", post_name);
+                    } else {
+                        snprintf(val, sizeof(val), "%u", passes[i].post);
+                    }
+                    metroflip_card_view_add_field(view, p, "Post", val, false);
+
+                    charlie_format_datetime(&passes[i].date, val, sizeof(val));
+                    metroflip_card_view_add_field(view, p, "Date", val, false);
+                }
+            }
+        }
+
         free(transactions);
-
-        passes_format_cat(parsed_data, passes);
         free(passes);
 
+        /* Button configuration */
+        if(from_file) {
+            metroflip_card_view_set_delete(view, true);
+        } else {
+            metroflip_card_view_set_save(view, true);
+        }
+
+        metroflip_card_view_show(app);
         parsed = true;
     } while(false);
 
     return parsed;
 }
+
+// **********************************************************
+// **************** NFC PLUGIN BOILERPLATE ******************
+// **********************************************************
 
 static NfcCommand
     metroflip_scene_charlicard_poller_callback(NfcGenericEvent event, void* context) {
@@ -1221,27 +1207,22 @@ static NfcCommand
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
         const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        FuriString* parsed_data = furi_string_alloc();
-        Widget* widget = app->widget;
 
         dolphin_deed(DolphinDeedNfcReadSuccess);
-        furi_string_reset(app->text_box_store);
-        if(!charliecard_parse(parsed_data, mfc_data)) {
-            furi_string_reset(app->text_box_store);
+
+        if(!charliecard_display_card_view(mfc_data, app, false)) {
             FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
+            Widget* widget = app->widget;
+            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            furi_string_free(s);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        command = NfcCommandStop;
         metroflip_app_blink_stop(app);
+        command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         FURI_LOG_I(TAG, "fail");
         command = NfcCommandContinue;
@@ -1261,34 +1242,27 @@ static void charliecard_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfClassicData* mfc_data = mf_classic_alloc();
             mf_classic_load(mfc_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!charliecard_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!charliecard_display_card_view(mfc_data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
 
             mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
     } else {
-        // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-        // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfClassic);
         nfc_poller_start(app->poller, metroflip_scene_charlicard_poller_callback, app);
@@ -1303,19 +1277,19 @@ static bool charliecard_on_event(Metroflip* app, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card type", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -1328,16 +1302,13 @@ static bool charliecard_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void charliecard_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
     }
-
-    // Clear view
-    popup_reset(app->popup);
-
-    metroflip_app_blink_stop(app);
 }
 
 /* Actual implementation of app<>plugin interface */

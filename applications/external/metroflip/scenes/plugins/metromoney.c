@@ -36,46 +36,58 @@ const MfClassicKeyPair metromoney_1k_keys[16] = {
     {.a = 0xFFFFFFFFFFFF, .b = 0xFFFFFFFFFFFF},
 };
 
-static bool metromoney_parse(FuriString* parsed_data, const MfClassicData* data) {
-    bool parsed = false;
+/* Parse Metromoney data and populate card view. Returns true on success. */
+static bool
+    metromoney_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
+    // Verify key
+    const uint8_t ticket_sector_number = 1;
+    const uint8_t ticket_block_number = 1;
 
-    do {
-        // Verify key
-        const uint8_t ticket_sector_number = 1;
-        const uint8_t ticket_block_number = 1;
+    const MfClassicSectorTrailer* sec_tr =
+        mf_classic_get_sector_trailer_by_sector(data, ticket_sector_number);
 
-        const MfClassicSectorTrailer* sec_tr =
-            mf_classic_get_sector_trailer_by_sector(data, ticket_sector_number);
+    const uint64_t key = bit_lib_bytes_to_num_be(sec_tr->key_a.data, COUNT_OF(sec_tr->key_a.data));
+    if(key != metromoney_1k_keys[ticket_sector_number].a) return false;
 
-        const uint64_t key =
-            bit_lib_bytes_to_num_be(sec_tr->key_a.data, COUNT_OF(sec_tr->key_a.data));
-        if(key != metromoney_1k_keys[ticket_sector_number].a) break;
-        FURI_LOG_D(TAG, "passed key check");
-        // Parse data
-        const uint8_t start_block_num =
-            mf_classic_get_first_block_num_of_sector(ticket_sector_number);
+    FURI_LOG_D(TAG, "passed key check");
 
-        const uint8_t* block_start_ptr =
-            &data->block[start_block_num + ticket_block_number].data[0];
+    // Parse data
+    const uint8_t start_block_num = mf_classic_get_first_block_num_of_sector(ticket_sector_number);
 
-        uint32_t balance = bit_lib_bytes_to_num_le(block_start_ptr, 4) - 100;
+    const uint8_t* block_start_ptr = &data->block[start_block_num + ticket_block_number].data[0];
 
-        uint32_t balance_lari = balance / 100;
-        uint8_t balance_tetri = balance % 100;
+    uint32_t balance = bit_lib_bytes_to_num_le(block_start_ptr, 4) - 100;
 
-        size_t uid_len = 0;
-        const uint8_t* uid = mf_classic_get_uid(data, &uid_len);
-        uint32_t card_number = bit_lib_bytes_to_num_le(uid, 4);
-        furi_string_printf(
-            parsed_data,
-            "\e#Metromoney\nCard number: %lu\nBalance: %lu.%02u GEL",
-            card_number,
-            balance_lari,
-            balance_tetri);
-        parsed = true;
-    } while(false);
+    uint32_t balance_lari = balance / 100;
+    uint8_t balance_tetri = balance % 100;
 
-    return parsed;
+    size_t uid_len = 0;
+    const uint8_t* uid = mf_classic_get_uid(data, &uid_len);
+    uint32_t card_number = bit_lib_bytes_to_num_le(uid, 4);
+
+    /* Allocate card view */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "Metromoney");
+
+    /* Page: Card Info */
+    uint8_t p = metroflip_card_view_add_page(view, "Card Info");
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+
+    snprintf(val, sizeof(val), "%lu", card_number);
+    metroflip_card_view_add_field(view, p, "Card Number", val, false);
+
+    snprintf(val, sizeof(val), "%lu.%02u GEL", balance_lari, balance_tetri);
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
+
+    /* Button configuration */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
+
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand metromoney_poller_callback(NfcGenericEvent event, void* context) {
@@ -115,20 +127,19 @@ static NfcCommand metromoney_poller_callback(NfcGenericEvent event, void* contex
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
         const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        FuriString* parsed_data = furi_string_alloc();
-        Widget* widget = app->widget;
         dolphin_deed(DolphinDeedNfcReadSuccess);
-        furi_string_reset(app->text_box_store);
-        metromoney_parse(parsed_data, mfc_data);
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
+        if(!metromoney_display_card_view(mfc_data, app, false)) {
+            FURI_LOG_I(TAG, "Unknown card type");
+            Widget* widget = app->widget;
+            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            furi_string_free(s);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+        }
 
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         command = NfcCommandStop;
         metroflip_app_blink_stop(app);
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
@@ -151,35 +162,28 @@ static void metromoney_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfClassicData* mfc_data = mf_classic_alloc();
             mf_classic_load(mfc_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!metromoney_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!metromoney_display_card_view(mfc_data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
             mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
     } else {
         FURI_LOG_I(TAG, "tbilisi not loaded");
-        // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-        // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfClassic);
         nfc_poller_start(app->poller, metromoney_poller_callback, app);
@@ -194,19 +198,19 @@ static bool metromoney_on_event(Metroflip* app, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -219,16 +223,13 @@ static bool metromoney_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void metromoney_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
     }
-
-    // Clear view
-    popup_reset(app->popup);
-
-    metroflip_app_blink_stop(app);
 }
 
 /* Actual implementation of app<>plugin interface */
