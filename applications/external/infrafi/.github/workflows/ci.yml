@@ -1,0 +1,104 @@
+name: CI Build Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:  # manual trigger from GitHub Actions UI
+
+permissions:
+  contents: read
+
+jobs:
+  build-flipper:
+    name: Build Flipper App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.3
+        id: build-app
+        with:
+          sdk-channel: release
+
+      - name: Upload .fap artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: infrafi-fap
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+
+  build-deb:
+    name: Build .deb (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            docker_platform: linux/amd64
+          - arch: arm64
+            docker_platform: linux/arm64
+          - arch: armhf
+            docker_platform: linux/arm/v7
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build .deb package
+        run: |
+          docker run --rm --platform ${{ matrix.docker_platform }} \
+            -v "$PWD":/build -w /build \
+            debian:bookworm bash -c '
+              set -e
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                build-essential debhelper
+              dpkg-buildpackage -us -uc -b
+              echo "=== .deb build successful ==="
+              for deb in ../*.deb; do dpkg-deb --info "$deb"; done
+            '
+
+  build-rpm:
+    name: Build .rpm (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            docker_platform: linux/amd64
+          - arch: aarch64
+            docker_platform: linux/arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build .rpm package
+        run: |
+          docker run --rm --platform ${{ matrix.docker_platform }} \
+            -v "$PWD":/build -w /build \
+            rockylinux:9 bash -c '
+              set -e
+              dnf install -y gcc make kernel-headers rpm-build systemd-rpm-macros
+              mkdir -p /root/rpmbuild/{SOURCES,SPECS}
+              tar czf /root/rpmbuild/SOURCES/infrafid-1.0.0.tar.gz \
+                --transform "s,^\.,infrafid-1.0.0," \
+                --exclude=.git .
+              cp rpm/infrafid.spec /root/rpmbuild/SPECS/
+              rpmbuild -bb --define "_version 1.0.0" /root/rpmbuild/SPECS/infrafid.spec
+              echo "=== .rpm build successful ==="
+              rpm -qip /root/rpmbuild/RPMS/*/*.rpm
+            '

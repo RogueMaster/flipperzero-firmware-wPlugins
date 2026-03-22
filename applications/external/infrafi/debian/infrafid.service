@@ -1,0 +1,20 @@
+[Unit]
+Description=InfraFi IR WiFi Credential Receiver
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/infrafid --foreground
+Restart=always
+RestartSec=5
+User=root
+Group=root
+
+# Logging goes to syslog/journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=infrafid
+
+[Install]
+WantedBy=multi-user.target

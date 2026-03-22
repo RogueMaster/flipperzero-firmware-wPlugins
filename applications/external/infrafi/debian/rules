@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) -C daemon
+
+override_dh_auto_install:
+	# dh_install handles file placement from infrafid.install
+
+override_dh_auto_clean:
+	$(MAKE) -C daemon clean || true
+
+override_dh_auto_test:
+	# no tests

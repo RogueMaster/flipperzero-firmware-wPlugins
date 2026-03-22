@@ -1,0 +1,20 @@
+Source: infrafid
+Section: net
+Priority: optional
+Maintainer: amd989 <amd989@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.0
+Homepage: https://github.com/amd989/infrafi
+
+Package: infrafid
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: network-manager | wpasupplicant
+Description: InfraFi IR WiFi credential receiver daemon
+ Receives WiFi credentials transmitted via infrared (RC-6 protocol)
+ from a Flipper Zero running the InfraFi app. Automatically connects
+ to the transmitted WiFi network using NetworkManager, systemd-networkd,
+ or ifupdown.
+ .
+ Designed for headless Linux servers with CIR (Consumer IR) receivers
+ such as the ITE8708 found in Intel NUCs.

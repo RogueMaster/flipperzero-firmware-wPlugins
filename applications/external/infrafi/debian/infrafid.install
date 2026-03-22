@@ -1,0 +1,2 @@
+daemon/infrafid usr/bin
+daemon/99-infrafid-rc6.rules etc/udev/rules.d
