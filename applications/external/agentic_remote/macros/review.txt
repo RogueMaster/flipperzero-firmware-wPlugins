@@ -1,0 +1,10 @@
+review this file
+any security issues?
+check for edge cases
+suggest improvements
+is this production ready?
+rate code quality 1-10
+find potential bugs
+/pr-comments
+/commit
+looks good ship it
