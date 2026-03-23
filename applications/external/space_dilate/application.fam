@@ -3,7 +3,7 @@ App(
     name="Time Dilation Calculator",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="dilate_app",
-    stack_size=2 * 1024,
+    stack_size=4 * 1024,
     fap_icon="dilate.png",
     fap_category="Tools",
     fap_author="ejfox",
