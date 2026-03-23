@@ -157,7 +157,13 @@ void ui_setup_views(SubDupFinderApp* app) {
     widget_add_string_element(
         app->credits_widget, 0, 26, AlignLeft, AlignTop, FontPrimary, "Author: Endika");
     widget_add_string_element(
-        app->credits_widget, 0, 40, AlignLeft, AlignTop, FontSecondary, "github.com/endika/");
+        app->credits_widget,
+        0,
+        40,
+        AlignLeft,
+        AlignTop,
+        FontSecondary,
+        "https://github.com/endika/");
     widget_add_string_element(
         app->credits_widget, 0, 50, AlignLeft, AlignTop, FontSecondary, "flipper-sub-dup");
 
