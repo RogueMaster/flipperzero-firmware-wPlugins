@@ -46,9 +46,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: PR: [NFC: Fix BusFault in Write to Initial Card #4362 (By akrylysov)](https://github.com/flipperdevices/flipperzero-firmware/pull/4362)
 - Updated: [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - Updated: [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
-- Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
 - Updated: [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
 - Updated: [Sub Duplicate Finder v1.2 (By Endika)](https://github.com/Endika/flipper-sub-dup)
+- Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
 
 <a name="release"></a>
 

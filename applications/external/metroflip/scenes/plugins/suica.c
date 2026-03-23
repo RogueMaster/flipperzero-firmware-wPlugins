@@ -703,6 +703,14 @@ static bool suica_on_event(Metroflip* app, SceneManagerEvent event) {
     Popup* popup = app->popup;
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventPollerSuccess) {
+            // Stop and free the poller BEFORE building UI — releases NFC hardware
+            // so it doesn't interfere with input processing
+            if(app->poller) {
+                nfc_poller_stop(app->poller);
+                nfc_poller_free(app->poller);
+                app->poller = NULL;
+            }
+
             // Build widget on main thread using data prepared by poller callback
             Widget* widget = app->widget;
             FuriString* parsed_data = app->suica_context->parsed_data;
@@ -771,6 +779,7 @@ static void suica_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 
