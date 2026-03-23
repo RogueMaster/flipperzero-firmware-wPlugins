@@ -54,8 +54,7 @@ bool metroflip_scene_unknown_on_event(void* context, SceneManagerEvent event) {
                     MetroflipCardViewModel * m,
                     {
                         if(m->anim[0]) {
-                            m->anim_frame =
-                                (m->anim_frame + 1) % METROFLIP_CARD_VIEW_ANIM_FRAMES;
+                            m->anim_frame = (m->anim_frame + 1) % METROFLIP_CARD_VIEW_ANIM_FRAMES;
                         }
                     },
                     true);

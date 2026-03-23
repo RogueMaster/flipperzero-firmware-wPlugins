@@ -23,11 +23,8 @@ static bool parse_aid_hex(const char* hex, uint8_t out[3]) {
 
 // Search the asset file for a matching AID. Returns card_name via out_name (static buffer).
 // Returns locked status. Returns false if no match found.
-static bool desfire_lookup_aid(
-    const uint8_t aid[3],
-    char* out_name,
-    size_t name_size,
-    bool* out_locked) {
+static bool
+    desfire_lookup_aid(const uint8_t aid[3], char* out_name, size_t name_size, bool* out_locked) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     Stream* stream = file_stream_alloc(storage);
     bool found = false;

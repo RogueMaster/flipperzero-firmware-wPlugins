@@ -15,15 +15,35 @@ bool beginning = true;
 
 // SELECT APPLICATION by partial AID (Calypso RID) - used when CLA 0x94 is rejected
 static const uint8_t calypso_aid_select[] = {
-    0x00, 0xA4, 0x04, 0x00, 0x05, // CLA=00 INS=A4 P1=04(by name) P2=00 Lc=05
-    0xA0, 0x00, 0x00, 0x04, 0x04  // Calypso RID
+    0x00,
+    0xA4,
+    0x04,
+    0x00,
+    0x05, // CLA=00 INS=A4 P1=04(by name) P2=00 Lc=05
+    0xA0,
+    0x00,
+    0x00,
+    0x04,
+    0x04 // Calypso RID
 };
 
 // SELECT APPLICATION by full Navigo AID - for new Navigo variants that reject partial AID
 static const uint8_t calypso_navigo_aid_select[] = {
-    0x00, 0xA4, 0x04, 0x00, 0x0A, // CLA=00 INS=A4 P1=04(by name) P2=00 Lc=0A
-    0xA0, 0x00, 0x00, 0x04, 0x04, // Calypso RID
-    0x01, 0x25, 0x09, 0x01, 0x01  // Navigo PIX
+    0x00,
+    0xA4,
+    0x04,
+    0x00,
+    0x0A, // CLA=00 INS=A4 P1=04(by name) P2=00 Lc=0A
+    0xA0,
+    0x00,
+    0x00,
+    0x04,
+    0x04, // Calypso RID
+    0x01,
+    0x25,
+    0x09,
+    0x01,
+    0x01 // Navigo PIX
 };
 
 char* build_hex_string(BitBuffer* rx_buffer) {
@@ -555,8 +575,8 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                     bit_buffer_reset(rx_buffer);
                     bit_buffer_append_bytes(
                         tx_buffer, calypso_aid_select, sizeof(calypso_aid_select));
-                    error = iso14443_4b_poller_send_block(
-                        iso14443_4b_poller, tx_buffer, rx_buffer);
+                    error =
+                        iso14443_4b_poller_send_block(iso14443_4b_poller, tx_buffer, rx_buffer);
                     if(error == Iso14443_4bErrorNone) {
                         response_length = bit_buffer_get_size_bytes(rx_buffer);
                         if(response_length >= 2 &&
@@ -571,8 +591,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
 
                     // 2. If RID select failed, try full Navigo AID for new card variants
                     if(!aid_selected) {
-                        FURI_LOG_I(
-                            TAG, "RID select failed, trying full Navigo AID");
+                        FURI_LOG_I(TAG, "RID select failed, trying full Navigo AID");
                         bit_buffer_reset(tx_buffer);
                         bit_buffer_reset(rx_buffer);
                         bit_buffer_append_bytes(
@@ -588,9 +607,7 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                                    apdu_success[0] &&
                                bit_buffer_get_byte(rx_buffer, response_length - 1) ==
                                    apdu_success[1]) {
-                                FURI_LOG_I(
-                                    TAG,
-                                    "Full Navigo AID selected, using ISO 7816 mode");
+                                FURI_LOG_I(TAG, "Full Navigo AID selected, using ISO 7816 mode");
                                 aid_selected = true;
                             }
                         }

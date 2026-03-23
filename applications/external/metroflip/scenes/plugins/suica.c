@@ -459,16 +459,15 @@ static NfcCommand suica_poller_callback(NfcGenericEvent event, void* context) {
             if(err == FelicaErrorNone && resp && resp->SF1 == 0 && resp->block_count > 0) {
                 furi_string_reset(parsed_data);
                 const uint8_t* data = resp->data;
-                uint16_t unsigned_balance =
-                    ((uint16_t)data[2] << 8) | (uint16_t)data[3];
+                uint16_t unsigned_balance = ((uint16_t)data[2] << 8) | (uint16_t)data[3];
 
                 int32_t older_balance_cents = (int32_t)unsigned_balance - 350;
                 int32_t newer_balance_cents = (int32_t)unsigned_balance - 500;
 
-                uint16_t older_abs =
-                    (uint16_t)(older_balance_cents < 0 ? -older_balance_cents : older_balance_cents);
-                uint16_t newer_abs =
-                    (uint16_t)(newer_balance_cents < 0 ? -newer_balance_cents : newer_balance_cents);
+                uint16_t older_abs = (uint16_t)(older_balance_cents < 0 ? -older_balance_cents :
+                                                                          older_balance_cents);
+                uint16_t newer_abs = (uint16_t)(newer_balance_cents < 0 ? -newer_balance_cents :
+                                                                          newer_balance_cents);
 
                 furi_string_printf(parsed_data, "\e#Octopus Card\n");
                 furi_string_cat_str(
@@ -494,8 +493,7 @@ static NfcCommand suica_poller_callback(NfcGenericEvent event, void* context) {
                     (uint16_t)(newer_abs / 100),
                     (uint8_t)(newer_abs % 100));
                 furi_string_cat_str(
-                    parsed_data,
-                    "::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::");
+                    parsed_data, "::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::");
             } else {
                 furi_string_reset(parsed_data);
                 furi_string_printf(
