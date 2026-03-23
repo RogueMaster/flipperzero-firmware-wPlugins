@@ -1,68 +1,116 @@
-# Dilate
+# Flipper Space Calculators
 
-Time dilation calculator for Flipper Zero. One mode. No frills. Physics only.
+A pair of minimalist space and physics calculators for the Flipper Zero. No games, no splash screens -- just the numbers.
 
-## Overview
+## Applications
 
-Calculate time dilation effects from special relativity. Answer the critical question: "If I travel at relativistic speeds, how much time difference will there be between me and Earth?"
+### [Space Travel Calculator](./space-travel-calculator/)
 
-## Features
+Interplanetary trajectory planner with real-time orbital visualization. Select a destination (Mars, Venus, Jupiter, Europa, Titan, and more), scroll through launch dates, and see Hohmann transfer orbits drawn on screen. Outputs delta-v requirements, flight time, and phase angles.
 
-- **Velocity dilation**: Calculate time differences at relativistic speeds (up to 0.999c)
-- **Human-centered**: Always compares YOU vs EARTH
-- **Auto-scaling units**: Displays differences in meaningful units (seconds to years)
-- **Experience-focused**: Rounded values that answer "what will it feel like?"
+### [Dilate](./dilate/)
 
-## User Interface
-
-### Main Display
-```
-SPEED: 0.90c
-TIME:  1.0y
-──────────────
-YOU:   1.0y
-EARTH: 2.3y
-DIFF:  +1.3y
-```
-
-## Controls
-
-- **UP/DOWN**: Adjust velocity (adaptive precision based on current speed)
-- **LEFT/RIGHT**: Adjust time duration
-- **OK**: Cycle time units (h → d → y)
-- **BACK**: Exit application
-
-## Use Cases
-
-Perfect for answering questions like:
-- "I'm traveling to Proxima Centauri at 0.9c - how much will I age compared to Earth?"
-- "At what speed do I need to travel for my twin to be noticeably older when I return?"
-- "If I spend a year traveling at near light speed, how much time passes on Earth?"
-
-## Technical Details
-
-- Uses Lorentz factor: γ = 1/√(1 - v²/c²)
-- Adaptive precision: 0.05c steps below 0.9c, 0.001c steps above 0.99c
-- Maximum velocity: 0.999c
-- Always compares traveler's proper time vs Earth coordinate time
-
-## Building
-
-```bash
-# From flipper firmware root
-./fbt fap_dilate
-```
+Time dilation calculator for special relativity. Set a velocity (fraction of c) and a duration, and see how much time passes for you versus an observer on Earth. Auto-scales units from seconds to years.
 
 ## Installation
 
-Copy `dilate.fap` to your Flipper Zero's SD card under `/apps/Tools/`
+### Pre-built .fap files (easiest)
 
-## Test Values
+1. Download `space_travel_calculator.fap` and/or `dilate.fap` from the [latest release](https://github.com/ejfox/flipper-space-calculators/releases/latest).
+2. Connect your Flipper Zero via qFlipper or mount the SD card directly.
+3. Copy the `.fap` files to `SD Card/apps/Tools/` on the Flipper.
+4. On the Flipper, open **Apps > Tools** and select the calculator you want.
 
-- 0.866c for 1 year → Earth experiences 2.0 years (exactly)
-- 0.90c for 1 year → Earth experiences 2.3 years
-- 0.999c for 1 year → Earth experiences 22.4 years
+### Firmware compatibility
 
----
+The pre-built `.fap` files in releases are compiled for **Momentum firmware mntm-009** (API 79.2). If you are running a different firmware or API version, you will need to build from source (see below).
 
-*"The universe doesn't approximate."*
+## Building from Source
+
+The recommended way to build Flipper Zero apps is with [ufbt](https://github.com/flipperdevices/flipperzero-ufbt) (micro Flipper Build Tool).
+
+### 1. Install ufbt
+
+```bash
+pip install ufbt
+```
+
+### 2. Set up the SDK
+
+For **Momentum firmware** (recommended if you use Momentum):
+
+```bash
+ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json
+```
+
+For **stock Flipper firmware**:
+
+```bash
+ufbt update
+```
+
+### 3. Clone and build
+
+```bash
+git clone https://github.com/ejfox/flipper-space-calculators.git
+cd flipper-space-calculators
+```
+
+Each app is built separately from its own directory:
+
+```bash
+# Space Travel Calculator
+cd space-travel-calculator
+ufbt
+cd ..
+
+# Dilate
+cd dilate
+ufbt
+cd ..
+```
+
+Compiled `.fap` files will be in each app's `dist/` directory.
+
+### 4. Deploy directly to Flipper (optional)
+
+From inside either app directory:
+
+```bash
+ufbt launch
+```
+
+## Testing
+
+Both calculators include unit tests for their core calculation functions, run via GitHub Actions on every push and PR.
+
+- Space Travel Calculator: 14 tests (orbital mechanics, Hohmann transfers)
+- Dilate: 15 tests (Lorentz factor, time dilation)
+
+Run tests locally from each app's directory:
+
+```bash
+cd space-travel-calculator && make -C tests && cd ..
+cd dilate && make -C tests && cd ..
+```
+
+## Project Structure
+
+```
+flipper-space-calculators/
+  space-travel-calculator/    # Orbital transfer calculator
+    application.fam
+    calculations.h/c          # Core physics functions
+    tests/                    # Unit tests
+    ...
+  dilate/                     # Time dilation calculator
+    application.fam
+    calculations.h/c          # Core physics functions
+    tests/                    # Unit tests
+    ...
+  .github/workflows/          # CI test runner
+```
+
+## License
+
+MIT where applicable. See individual app directories.

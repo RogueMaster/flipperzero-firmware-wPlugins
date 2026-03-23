@@ -1,5 +1,48 @@
 ## v1.1
 
+### UI Overhaul
+
+- **Custom Main Menu** - Canvas-based menu with per-item icons and animated selection highlights (NFC pulse, save arrow, ticket slide, info pulse, sparkle)
+- **Card View System** - New multi-page scrollable card result display replacing plain text scroll:
+  - Inverted header bar with card title, animated icon, and page indicator
+  - Full-width "Label: Value" field rendering with auto line-split for long values
+  - Left/Right page navigation, Up/Down scrolling with scrollbar
+  - OK=Save / OK=Delete button in footer
+  - Random animated icon (train, wallet, ticket, card) assigned per scan
+- **Scan Animation** - Dolphin NFC scan screen with progressive wave animation (waves appear one by one) and animated "Scanning..." text
+- **Supported Cards** - Converted from plain text to scrollable submenu list with 20 cards by name and city
+- **Unsupported Card Scene** - Card view UI with animated X icon, protocol/lock info, and GitHub reporting link
+- **Loading Screen** - "Parsing card data..." popup when loading saved files (no more menu flash)
+
+### Plugin Migrations (17/19 plugins)
+
+All plugins migrated to the new card view system with structured field display:
+Clipper, Opal, myki, ITSO, Nol, Bip!, CharlieCard, GoCard, MetroMoney, SmartRider, Troika, Two Cities, RENFE Suma 10, RENFE Regular, Intertic, T-Mobilitat, TRT
+
+Suica and Calypso excluded (already have custom UIs).
+
+### Custom Icons
+
+- 13 static icons: CardGeneric, Wallet, Calendar, Ticket, Train, Check, Cross, Lock, NfcScan, Save, Info, ArrowLeft, ArrowRight
+- 39 animation frames across 13 icon sets for menu and parser animations
+- 3 DolphinScan frames (progressive NFC waves from original dolphin image)
+
+### Memory Safety & Stability
+
+- Fixed null pointer dereference in main menu draw callback (model freed while view active)
+- Fixed card view cleanup order - card view freed by parse scene AFTER plugin unload
+- Fixed double nfc_device_alloc leak in metroflip_alloc
+- Fixed storage file handle leaks in manage_keyfiles (added storage_file_free + furi_record_close)
+- Fixed plugin_manager leak when plugin load fails
+- Fixed ATR/T-Money fall-through to plugin load after sending WrongCard event
+- Fixed unguarded plugin_on_event calls when plugin_manager is NULL
+- Replaced all FuriTimer usage with view_dispatcher tick callback to prevent usagefault on app exit
+- Added null guards to all draw callbacks
+- Cleared view callbacks before freeing in metroflip_free to prevent dangling function pointers
+- OV-Chipkaart removed from main menu (still parseable from saved files)
+
+### Previous v1.1 fixes
+
 Memory safety overhaul and bug fixes.
 
 - Orca changes (FatherDivine)

@@ -6,10 +6,11 @@ Auto-backs up your current dolphin folder before applying a new theme, and lets 
 
 Features:
 - Scan /ext/animation_packs/ automatically
+- Theme file integrity validation
 - Animated preview with multi-frame playback
 - Favorites: mark themes for quick access
 - View theme info: type, animation count, size
-- Apply themes with full backup and restore support
+- Apply themes with progress bar, backup and restore support
 - Delete theme packs from within the app
 - 5-second reboot countdown after applying
 - SD card check on startup

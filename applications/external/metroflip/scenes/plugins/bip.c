@@ -1,5 +1,5 @@
 /*
- * Parser for bip card (Georgia).
+ * Parser for bip card (Santiago, Chile).
  *
  * Copyright 2023 Leptoptilos <leptoptilos@icloud.com>
  *
@@ -77,9 +77,10 @@ static void bip_parse_datetime(const MfClassicBlock* block, DateTime* parsed_dat
     parsed_data->second = (((block->data[4] << 8) + block->data[3]) >> 7) & 0x3f;
 }
 
-static void bip_print_datetime(const DateTime* datetime, FuriString* str) {
+/* Format a DateTime into a short string for card view fields */
+static void bip_format_datetime(const DateTime* datetime, char* out, size_t len) {
     furi_assert(datetime);
-    furi_assert(str);
+    furi_assert(out);
 
     LocaleDateFormat date_format = locale_get_date_format();
     const char* separator = (date_format == LocaleDateFormatDMY) ? "." : "/";
@@ -88,10 +89,9 @@ static void bip_print_datetime(const DateTime* datetime, FuriString* str) {
     locale_format_date(date_str, datetime, date_format, separator);
 
     FuriString* time_str = furi_string_alloc();
-    locale_format_time(time_str, datetime, locale_get_time_format(), true);
+    locale_format_time(time_str, datetime, locale_get_time_format(), false);
 
-    furi_string_cat_printf(
-        str, "%s %s", furi_string_get_cstr(date_str), furi_string_get_cstr(time_str));
+    snprintf(out, len, "%s %s", furi_string_get_cstr(date_str), furi_string_get_cstr(time_str));
 
     furi_string_free(date_str);
     furi_string_free(time_str);
@@ -133,9 +133,8 @@ static bool is_bip_block_empty(const MfClassicBlock* block) {
     return true;
 }
 
-static bool bip_parse(FuriString* parsed_data, const MfClassicData* data) {
-    furi_assert(parsed_data);
-
+/* Parse MfClassic data and populate card view */
+static bool bip_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
     struct {
         uint32_t card_id;
         uint16_t balance;
@@ -145,126 +144,149 @@ static bool bip_parse(FuriString* parsed_data, const MfClassicData* data) {
         BipTransaction charges[3];
     } bip_data = {0};
 
-    bool parsed = false;
+    // verify sector 0 key A
+    MfClassicSectorTrailer* sec_tr = mf_classic_get_sector_trailer_by_sector(data, 0);
 
-    do {
-        // verify sector 0 key A
-        MfClassicSectorTrailer* sec_tr = mf_classic_get_sector_trailer_by_sector(data, 0);
+    if(data->type != MfClassicType1k) return false;
 
-        if(data->type != MfClassicType1k) break;
+    uint64_t key = bit_lib_bytes_to_num_be(sec_tr->key_a.data, 6);
+    if(key != bip_1k_keys[0].a) {
+        return false;
+    }
 
-        uint64_t key = bit_lib_bytes_to_num_be(sec_tr->key_a.data, 6);
-        if(key != bip_1k_keys[0].a) {
-            break;
+    // Get Card ID, little-endian 4 bytes at sector 0 block 1, bytes 4-7
+    const uint8_t card_id_start_block_num =
+        mf_classic_get_first_block_num_of_sector(BIP_CARD_ID_SECTOR_NUMBER);
+    const uint8_t* block_start_ptr = &data->block[card_id_start_block_num + 1].data[0];
+
+    bip_data.card_id = bit_lib_bytes_to_num_le(block_start_ptr + 4, 4);
+
+    // Get balance, little-endian 2 bytes at sector 8 block 1, bytes 0-1
+    const uint8_t balance_start_block_num =
+        mf_classic_get_first_block_num_of_sector(BIP_BALANCE_SECTOR_NUMBER);
+    block_start_ptr = &data->block[balance_start_block_num + 1].data[0];
+
+    bip_data.balance = bit_lib_bytes_to_num_le(block_start_ptr, 2);
+
+    // Get balance flags (negative balance, etc.), little-endian 2 bytes at sector 8 block 1, bytes 2-3
+    bip_data.flags = bit_lib_bytes_to_num_le(block_start_ptr + 2, 2);
+
+    // Get trip time window, proprietary format, at sector 5 block 1, bytes 0-7
+    const uint8_t trip_time_window_start_block_num =
+        mf_classic_get_first_block_num_of_sector(BIP_TRIP_TIME_WINDOW_SECTOR_NUMBER);
+    const MfClassicBlock* trip_window_block_ptr =
+        &data->block[trip_time_window_start_block_num + 1];
+
+    bip_parse_datetime(trip_window_block_ptr, &bip_data.trip_time_window);
+
+    // Last 3 top-ups: sector 10, ring-buffer of 3 blocks, timestamp in bytes 0-7, amount in bytes 9-10
+    const uint8_t top_ups_start_block_num =
+        mf_classic_get_first_block_num_of_sector(BIP_LAST_TOP_UPS_SECTOR_NUMBER);
+    for(size_t i = 0; i < 3; i++) {
+        const MfClassicBlock* block = &data->block[top_ups_start_block_num + i];
+
+        if(is_bip_block_empty(block)) continue;
+
+        BipTransaction* top_up = &bip_data.top_ups[i];
+        bip_parse_datetime(block, &top_up->datetime);
+
+        top_up->amount = bit_lib_bytes_to_num_le(&block->data[9], 2) >> 2;
+    }
+
+    // Last 3 charges (i.e. trips), sector 11, ring-buffer of 3 blocks, timestamp in bytes 0-7, amount in bytes 10-11
+    const uint8_t trips_start_block_num =
+        mf_classic_get_first_block_num_of_sector(BIP_TRIPS_INFO_SECTOR_NUMBER);
+    for(size_t i = 0; i < 3; i++) {
+        const MfClassicBlock* block = &data->block[trips_start_block_num + i];
+
+        if(is_bip_block_empty(block)) continue;
+
+        BipTransaction* charge = &bip_data.charges[i];
+        bip_parse_datetime(block, &charge->datetime);
+
+        charge->amount = bit_lib_bytes_to_num_le(&block->data[10], 2) >> 2;
+    }
+
+    // All data is now parsed, build card view
+
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "Bip!");
+
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+
+    /* Page: Overview */
+    uint8_t p = metroflip_card_view_add_page(view, "Overview");
+
+    snprintf(val, sizeof(val), "%lu", bip_data.card_id);
+    metroflip_card_view_add_field(view, p, "Card Number", val, false);
+
+    snprintf(val, sizeof(val), "$%hu (flags %hu)", bip_data.balance, bip_data.flags);
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
+
+    bip_format_datetime(&bip_data.trip_time_window, val, sizeof(val));
+    metroflip_card_view_add_field(view, p, "Trip Window End", val, false);
+
+    /* Top-ups: find newest first */
+    size_t newest_top_up = 0;
+    for(size_t i = 1; i < 3; i++) {
+        const DateTime* newest = &bip_data.top_ups[newest_top_up].datetime;
+        const DateTime* current = &bip_data.top_ups[i].datetime;
+        if(datetime_cmp(current, newest) > 0) {
+            newest_top_up = i;
         }
-        // Get Card ID, little-endian 4 bytes at sector 0 block 1, bytes 4-7
-        const uint8_t card_id_start_block_num =
-            mf_classic_get_first_block_num_of_sector(BIP_CARD_ID_SECTOR_NUMBER);
-        const uint8_t* block_start_ptr = &data->block[card_id_start_block_num + 1].data[0];
+    }
 
-        bip_data.card_id = bit_lib_bytes_to_num_le(block_start_ptr + 4, 4);
+    /* Pages: Top-ups (newest first) */
+    for(size_t i = 0; i < 3; i++) {
+        const BipTransaction* top_up = &bip_data.top_ups[(3u + newest_top_up - i) % 3];
 
-        // Get balance, little-endian 2 bytes at sector 8 block 1, bytes 0-1
-        const uint8_t balance_start_block_num =
-            mf_classic_get_first_block_num_of_sector(BIP_BALANCE_SECTOR_NUMBER);
-        block_start_ptr = &data->block[balance_start_block_num + 1].data[0];
+        char hdr[METROFLIP_CARD_VIEW_HEADER_LEN];
+        snprintf(hdr, sizeof(hdr), "Top-up %u", (unsigned)(i + 1));
 
-        bip_data.balance = bit_lib_bytes_to_num_le(block_start_ptr, 2);
+        p = metroflip_card_view_add_page(view, hdr);
 
-        // Get balance flags (negative balance, etc.), little-endian 2 bytes at sector 8 block 1, bytes 2-3
-        bip_data.flags = bit_lib_bytes_to_num_le(block_start_ptr + 2, 2);
+        snprintf(val, sizeof(val), "+$%d", top_up->amount);
+        metroflip_card_view_add_field(view, p, "Amount", val, true);
 
-        // Get trip time window, proprietary format, at sector 5 block 1, bytes 0-7
-        const uint8_t trip_time_window_start_block_num =
-            mf_classic_get_first_block_num_of_sector(BIP_TRIP_TIME_WINDOW_SECTOR_NUMBER);
-        const MfClassicBlock* trip_window_block_ptr =
-            &data->block[trip_time_window_start_block_num + 1];
+        bip_format_datetime(&top_up->datetime, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Date", val, false);
+    }
 
-        bip_parse_datetime(trip_window_block_ptr, &bip_data.trip_time_window);
-
-        // Last 3 top-ups: sector 10, ring-buffer of 3 blocks, timestamp in bytes 0-7, amount in bytes 9-10
-        const uint8_t top_ups_start_block_num =
-            mf_classic_get_first_block_num_of_sector(BIP_LAST_TOP_UPS_SECTOR_NUMBER);
-        for(size_t i = 0; i < 3; i++) {
-            const MfClassicBlock* block = &data->block[top_ups_start_block_num + i];
-
-            if(is_bip_block_empty(block)) continue;
-
-            BipTransaction* top_up = &bip_data.top_ups[i];
-            bip_parse_datetime(block, &top_up->datetime);
-
-            top_up->amount = bit_lib_bytes_to_num_le(&block->data[9], 2) >> 2;
+    /* Charges: find newest first */
+    size_t newest_charge = 0;
+    for(size_t i = 1; i < 3; i++) {
+        const DateTime* newest = &bip_data.charges[newest_charge].datetime;
+        const DateTime* current = &bip_data.charges[i].datetime;
+        if(datetime_cmp(current, newest) > 0) {
+            newest_charge = i;
         }
+    }
 
-        // Last 3 charges (i.e. trips), sector 11, ring-buffer of 3 blocks, timestamp in bytes 0-7, amount in bytes 10-11
-        const uint8_t trips_start_block_num =
-            mf_classic_get_first_block_num_of_sector(BIP_TRIPS_INFO_SECTOR_NUMBER);
-        for(size_t i = 0; i < 3; i++) {
-            const MfClassicBlock* block = &data->block[trips_start_block_num + i];
+    /* Pages: Charges / Trips (newest first) */
+    for(size_t i = 0; i < 3; i++) {
+        const BipTransaction* charge = &bip_data.charges[(3u + newest_charge - i) % 3];
 
-            if(is_bip_block_empty(block)) continue;
+        char hdr[METROFLIP_CARD_VIEW_HEADER_LEN];
+        snprintf(hdr, sizeof(hdr), "Trip %u", (unsigned)(i + 1));
 
-            BipTransaction* charge = &bip_data.charges[i];
-            bip_parse_datetime(block, &charge->datetime);
+        p = metroflip_card_view_add_page(view, hdr);
 
-            charge->amount = bit_lib_bytes_to_num_le(&block->data[10], 2) >> 2;
-        }
+        snprintf(val, sizeof(val), "-$%d", charge->amount);
+        metroflip_card_view_add_field(view, p, "Fare", val, true);
 
-        // All data is now parsed and stored in bip_data, now print it
+        bip_format_datetime(&charge->datetime, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Date", val, false);
+    }
 
-        // Print basic info
-        furi_string_printf(
-            parsed_data,
-            "\e#Tarjeta Bip!\n"
-            "Card Number: %lu\n"
-            "Balance: $%hu (flags %hu)\n"
-            "Current Trip Window Ends:\n  @",
-            bip_data.card_id,
-            bip_data.balance,
-            bip_data.flags);
+    /* Button configuration */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
 
-        bip_print_datetime(&bip_data.trip_time_window, parsed_data);
-
-        // Find newest top-up
-        size_t newest_top_up = 0;
-        for(size_t i = 1; i < 3; i++) {
-            const DateTime* newest = &bip_data.top_ups[newest_top_up].datetime;
-            const DateTime* current = &bip_data.top_ups[i].datetime;
-            if(datetime_cmp(current, newest) > 0) {
-                newest_top_up = i;
-            }
-        }
-
-        // Print top-ups, newest first
-        furi_string_cat_printf(parsed_data, "\n\e#Last Top-ups");
-        for(size_t i = 0; i < 3; i++) {
-            const BipTransaction* top_up = &bip_data.top_ups[(3u + newest_top_up - i) % 3];
-            furi_string_cat_printf(parsed_data, "\n+$%d\n  @", top_up->amount);
-            bip_print_datetime(&top_up->datetime, parsed_data);
-        }
-
-        // Find newest charge
-        size_t newest_charge = 0;
-        for(size_t i = 1; i < 3; i++) {
-            const DateTime* newest = &bip_data.charges[newest_charge].datetime;
-            const DateTime* current = &bip_data.charges[i].datetime;
-            if(datetime_cmp(current, newest) > 0) {
-                newest_charge = i;
-            }
-        }
-
-        // Print charges
-        furi_string_cat_printf(parsed_data, "\n\e#Last Charges (Trips)");
-        for(size_t i = 0; i < 3; i++) {
-            const BipTransaction* charge = &bip_data.charges[(3u + newest_charge - i) % 3];
-            furi_string_cat_printf(parsed_data, "\n-$%d\n  @", charge->amount);
-            bip_print_datetime(&charge->datetime, parsed_data);
-        }
-
-        parsed = true;
-    } while(false);
-
-    return parsed;
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand bip_poller_callback(NfcGenericEvent event, void* context) {
@@ -304,27 +326,21 @@ static NfcCommand bip_poller_callback(NfcGenericEvent event, void* context) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
         const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        FuriString* parsed_data = furi_string_alloc();
-        Widget* widget = app->widget;
 
         dolphin_deed(DolphinDeedNfcReadSuccess);
-        furi_string_reset(app->text_box_store);
-        if(!bip_parse(parsed_data, mfc_data)) {
-            furi_string_reset(app->text_box_store);
+
+        if(!bip_display_card_view(mfc_data, app, false)) {
             FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
+            Widget* widget = app->widget;
+            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            furi_string_free(s);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
+
         metroflip_app_blink_stop(app);
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-
         command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         FURI_LOG_I(TAG, "fail");
@@ -345,34 +361,27 @@ static void bip_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfClassicData* mfc_data = mf_classic_alloc();
             mf_classic_load(mfc_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!bip_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!bip_display_card_view(mfc_data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
             mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
     } else {
-        // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-        // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfClassic);
         nfc_poller_start(app->poller, bip_poller_callback, app);
@@ -387,19 +396,19 @@ static bool bip_on_event(Metroflip* app, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card type", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -412,16 +421,13 @@ static bool bip_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void bip_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
     }
-
-    // Clear view
-    popup_reset(app->popup);
-
-    metroflip_app_blink_stop(app);
 }
 
 /* Actual implementation of app<>plugin interface */

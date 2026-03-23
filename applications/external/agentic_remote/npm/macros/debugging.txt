@@ -1,0 +1,10 @@
+explain this error
+fix this bug
+run the tests again
+what caused this failure?
+add logging here
+check the stack trace
+try a different approach
+/rewind
+/compact
+/doctor

@@ -102,16 +102,8 @@ static void kia_v1_check_remote_controller(SubGhzProtocolDecoderKiaV1* instance)
     char_data[4] = instance->generic.btn;
     char_data[5] = instance->generic.cnt & 0xFF;
 
-    uint8_t crc;
-    if(cnt_high == 0) {
-        uint8_t offset = (instance->generic.cnt >= 0x098) ? instance->generic.btn : 1;
-        crc = kia_v1_crc4(char_data, 6, offset);
-    } else if(cnt_high >= 0x6) {
-        char_data[6] = cnt_high;
-        crc = kia_v1_crc4(char_data, 7, 1);
-    } else {
-        crc = kia_v1_crc4(char_data, 6, 1);
-    }
+    char_data[6] = cnt_high;
+    uint8_t crc = kia_v1_crc4(char_data, 7, 1);
 
     instance->crc = cnt_high << 4 | crc;
     instance->crc_check = (crc == (instance->generic.data & 0xF));
@@ -170,16 +162,8 @@ static void kia_protocol_encoder_v1_get_upload(SubGhzProtocolEncoderKiaV1* insta
     char_data[4] = instance->generic.btn;
     char_data[5] = instance->generic.cnt & 0xFF;
 
-    uint8_t crc;
-    if(cnt_high == 0) {
-        uint8_t offset = (instance->generic.cnt >= 0x098) ? instance->generic.btn : 1;
-        crc = kia_v1_crc4(char_data, 6, offset);
-    } else if(cnt_high >= 0x6) {
-        char_data[6] = cnt_high;
-        crc = kia_v1_crc4(char_data, 7, 1);
-    } else {
-        crc = kia_v1_crc4(char_data, 6, 1);
-    }
+    char_data[6] = cnt_high;
+    uint8_t crc = kia_v1_crc4(char_data, 7, 1);
 
     instance->generic.data = (uint64_t)instance->generic.serial << 24 |
                              instance->generic.btn << 16 | (instance->generic.cnt & 0xFF) << 8 |

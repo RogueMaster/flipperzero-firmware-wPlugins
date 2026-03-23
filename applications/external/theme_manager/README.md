@@ -26,10 +26,11 @@ Manage dolphin animation themes directly from your Flipper Zero — no PC requir
 
 - **Scan SD card** — auto-detects animation packs in `/ext/animation_packs/`
 - **3 theme formats** — Pack `[P]`, Anim Pack `[A]`, Single animation `[S]`
+- **Theme validation** — checks file integrity (invalid marked `[!P]`, blocked from applying)
 - **Animated preview** — multi-frame animation playback on the info screen
 - **Favorites** — mark themes with `*` prefix, favorites grouped at top of menu
 - **Theme info** — view type, animation count, and size before applying
-- **One-tap apply** — merges theme files into `/ext/dolphin/`
+- **One-tap apply** — merges theme files into `/ext/dolphin/` with progress bar
 - **Delete themes** — remove theme packs directly from the app
 - **Auto-backup** — backs up entire `/ext/dolphin/` before overwriting
 - **Restore** — revert to previous theme from the menu
@@ -95,7 +96,7 @@ animation_packs/MySingleAnim/
 1. Scans `/ext/animation_packs/` for supported theme formats
 2. Select a theme → view info with animated preview
 3. Press **Up** on Info screen to add/remove from favorites
-4. Apply → backs up `/ext/dolphin/` → merges new theme
+4. Apply → backs up `/ext/dolphin/` → merges new theme with progress bar
 5. 5-second reboot countdown starts (or press Later to cancel)
 6. Use **Restore Previous** to revert anytime
 

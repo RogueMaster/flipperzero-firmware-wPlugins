@@ -28,86 +28,118 @@ uint64_t swap_uint64(uint64_t val) {
     return (val << 32) | (val >> 32);
 }
 
-bool itso_parse(const MfDesfireData* data, FuriString* parsed_data) {
-    furi_assert(parsed_data);
+/* Parse DESFire data and populate card view */
+static bool itso_display_card_view(const MfDesfireData* data, Metroflip* app, bool from_file) {
+    const MfDesfireApplication* mf_app = mf_desfire_get_application(data, &itso_app_id);
+    if(mf_app == NULL) return false;
 
-    bool parsed = false;
+    typedef struct {
+        uint64_t part1;
+        uint64_t part2;
+        uint64_t part3;
+        uint64_t part4;
+    } ItsoFile;
 
-    do {
-        const MfDesfireApplication* app = mf_desfire_get_application(data, &itso_app_id);
-        if(app == NULL) break;
+    const MfDesfireFileSettings* file_settings =
+        mf_desfire_get_file_settings(mf_app, &itso_file_id);
 
-        typedef struct {
-            uint64_t part1;
-            uint64_t part2;
-            uint64_t part3;
-            uint64_t part4;
-        } ItsoFile;
+    if(file_settings == NULL || file_settings->type != MfDesfireFileTypeStandard ||
+       file_settings->data.size < sizeof(ItsoFile))
+        return false;
 
-        const MfDesfireFileSettings* file_settings =
-            mf_desfire_get_file_settings(app, &itso_file_id);
+    const MfDesfireFileData* file_data = mf_desfire_get_file_data(mf_app, &itso_file_id);
+    if(file_data == NULL) return false;
 
-        if(file_settings == NULL || file_settings->type != MfDesfireFileTypeStandard ||
-           file_settings->data.size < sizeof(ItsoFile))
-            break;
+    const ItsoFile* itso_file = simple_array_cget_data(file_data->data);
 
-        const MfDesfireFileData* file_data = mf_desfire_get_file_data(app, &itso_file_id);
-        if(file_data == NULL) break;
+    uint64_t x1 = swap_uint64(itso_file->part1);
+    uint64_t x2 = swap_uint64(itso_file->part2);
 
-        const ItsoFile* itso_file = simple_array_cget_data(file_data->data);
+    char cardBuff[32];
+    char dateBuff[18];
 
-        uint64_t x1 = swap_uint64(itso_file->part1);
-        uint64_t x2 = swap_uint64(itso_file->part2);
+    snprintf(cardBuff, sizeof(cardBuff), "%llx%llx", x1, x2);
+    snprintf(dateBuff, sizeof(dateBuff), "%llx", x2);
 
-        char cardBuff[32];
-        char dateBuff[18];
+    char* cardp = cardBuff + 4;
+    cardp[18] = '\0';
 
-        snprintf(cardBuff, sizeof(cardBuff), "%llx%llx", x1, x2);
-        snprintf(dateBuff, sizeof(dateBuff), "%llx", x2);
+    // All itso card numbers are prefixed with "633597"
+    if(strncmp(cardp, "633597", 6) != 0) return false;
 
-        char* cardp = cardBuff + 4;
-        cardp[18] = '\0';
+    char* datep = dateBuff + 12;
+    dateBuff[17] = '\0';
 
-        // All itso card numbers are prefixed with "633597"
-        if(strncmp(cardp, "633597", 6) != 0) break;
+    // DateStamp is defined in BS EN 1545 - Days passed since 01/01/1997
+    uint32_t dateStamp;
+    if(strint_to_uint32(datep, NULL, &dateStamp, 16) != StrintParseNoError) {
+        return false;
+    }
+    uint32_t unixTimestamp = dateStamp * 24 * 60 * 60 + 852076800U;
 
-        char* datep = dateBuff + 12;
-        dateBuff[17] = '\0';
+    // Format the card number: 6 4 4 4
+    char card_top[METROFLIP_CARD_VIEW_VALUE_LEN];
+    char card_bottom[METROFLIP_CARD_VIEW_VALUE_LEN];
 
-        // DateStamp is defined in BS EN 1545 - Days passed since 01/01/1997
-        uint32_t dateStamp;
-        if(strint_to_uint32(datep, NULL, &dateStamp, 16) != StrintParseNoError) {
-            return false;
-        }
-        uint32_t unixTimestamp = dateStamp * 24 * 60 * 60 + 852076800U;
+    snprintf(
+        card_top,
+        sizeof(card_top),
+        "%c%c%c%c%c%c %c%c%c%c",
+        cardp[0],
+        cardp[1],
+        cardp[2],
+        cardp[3],
+        cardp[4],
+        cardp[5],
+        cardp[6],
+        cardp[7],
+        cardp[8],
+        cardp[9]);
 
-        furi_string_set(parsed_data, "\e#ITSO Card\n");
+    snprintf(
+        card_bottom,
+        sizeof(card_bottom),
+        "%c%c%c%c %c%c%c%c",
+        cardp[10],
+        cardp[11],
+        cardp[12],
+        cardp[13],
+        cardp[14],
+        cardp[15],
+        cardp[16],
+        cardp[17]);
 
-        // Digit count in each space-separated group
-        static const uint8_t digit_count[] = {6, 4, 4, 4};
+    // Format expiry date
+    DateTime timestamp = {0};
+    datetime_timestamp_to_datetime(unixTimestamp, &timestamp);
 
-        for(uint32_t i = 0, k = 0; i < COUNT_OF(digit_count); k += digit_count[i++]) {
-            for(uint32_t j = 0; j < digit_count[i]; ++j) {
-                furi_string_push_back(parsed_data, cardp[j + k]);
-            }
-            furi_string_push_back(parsed_data, ' ');
-        }
+    FuriString* timestamp_str = furi_string_alloc();
+    locale_format_date(timestamp_str, &timestamp, locale_get_date_format(), "-");
 
-        DateTime timestamp = {0};
-        datetime_timestamp_to_datetime(unixTimestamp, &timestamp);
+    char expiry_val[METROFLIP_CARD_VIEW_VALUE_LEN];
+    snprintf(expiry_val, sizeof(expiry_val), "%s", furi_string_get_cstr(timestamp_str));
+    furi_string_free(timestamp_str);
 
-        FuriString* timestamp_str = furi_string_alloc();
-        locale_format_date(timestamp_str, &timestamp, locale_get_date_format(), "-");
+    /* Allocate card view */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "ITSO");
 
-        furi_string_cat(parsed_data, "\nExpiry: ");
-        furi_string_cat(parsed_data, timestamp_str);
+    /* Page: Card Info */
+    uint8_t p = metroflip_card_view_add_page(view, "Card Info");
 
-        furi_string_free(timestamp_str);
+    metroflip_card_view_add_field(view, p, "Card No.", card_top, false);
+    metroflip_card_view_add_field(view, p, "", card_bottom, false);
+    metroflip_card_view_add_field(view, p, "Expiry", expiry_val, true);
 
-        parsed = true;
-    } while(false);
+    /* Button configuration */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
 
-    return parsed;
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand itso_poller_callback(NfcGenericEvent event, void* context) {
@@ -116,28 +148,23 @@ static NfcCommand itso_poller_callback(NfcGenericEvent event, void* context) {
     Metroflip* app = context;
     NfcCommand command = NfcCommandContinue;
 
-    FuriString* parsed_data = furi_string_alloc();
-    Widget* widget = app->widget;
-    furi_string_reset(app->text_box_store);
     const MfDesfirePollerEvent* mf_desfire_event = event.event_data;
     if(mf_desfire_event->type == MfDesfirePollerEventTypeReadSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfDesfire, nfc_poller_get_data(app->poller));
         const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
-        if(!itso_parse(data, parsed_data)) {
-            furi_string_reset(app->text_box_store);
+
+        if(!itso_display_card_view(data, app, false)) {
             FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
+            Widget* widget = app->widget;
+            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            furi_string_free(s);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         metroflip_app_blink_stop(app);
         command = NfcCommandStop;
     } else if(mf_desfire_event->type == MfDesfirePollerEventTypeReadFailed) {
@@ -157,31 +184,26 @@ static void itso_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfDesfireData* data = mf_desfire_alloc();
             mf_desfire_load(data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!itso_parse(data, parsed_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!itso_display_card_view(data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
             mf_desfire_free(data);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
     } else {
         // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
         // Start worker
@@ -199,19 +221,19 @@ static bool itso_on_event(Metroflip* app, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -224,6 +246,7 @@ static bool itso_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void itso_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
     metroflip_app_blink_stop(app);
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);

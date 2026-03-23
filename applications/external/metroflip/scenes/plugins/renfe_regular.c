@@ -19,12 +19,6 @@
 
 #define TAG "Metroflip:Scene:RenfeRegular"
 
-typedef struct {
-    uint8_t block_data[16];
-    uint32_t timestamp;
-    int block_number;
-} HistoryEntry;
-
 // Station name cache structure
 #define MAX_STATION_NAME_LENGTH 28
 #define MAX_CACHED_STATIONS     50
@@ -45,18 +39,8 @@ static StationCache station_cache = {0};
 
 // Forward declarations for helper functions
 static bool renfe_regular_is_history_entry(const uint8_t* block_data);
-static void renfe_regular_parse_history_entry(
-    FuriString* parsed_data,
-    const uint8_t* block_data,
-    int entry_num);
-static void renfe_regular_parse_travel_history(FuriString* parsed_data, const MfClassicData* data);
-static uint32_t renfe_regular_extract_timestamp(const uint8_t* block_data);
-static void renfe_regular_sort_history_entries(HistoryEntry* entries, int count);
 static bool renfe_regular_has_history_data(const MfClassicData* data);
-static bool renfe_regular_load_station_file(const char* region);
-static const char* renfe_regular_get_station_name_from_cache(uint16_t station_code);
 static void renfe_regular_clear_station_cache(void);
-static const char* renfe_regular_get_station_name_dynamic(uint16_t station_code);
 static bool renfe_regular_is_travel_history_block(const uint8_t* block_data, int block_number);
 static bool renfe_regular_is_default_station_code(uint16_t station_code);
 static bool renfe_regular_is_valid_timestamp(const uint8_t* block_data);
@@ -155,185 +139,12 @@ static bool renfe_regular_is_history_entry(const uint8_t* block_data) {
     return false;
 }
 
-// Extract timestamp from block data for sorting
-static uint32_t renfe_regular_extract_timestamp(const uint8_t* block_data) {
-    if(!block_data) return 0;
-
-    // Extract timestamp from bytes 4-6
-    uint32_t timestamp = ((uint32_t)block_data[4] << 16) | ((uint32_t)block_data[5] << 8) |
-                         (uint32_t)block_data[6];
-
-    return timestamp;
-}
-
-// Sort history entries (newest first)
-static void renfe_regular_sort_history_entries(HistoryEntry* entries, int count) {
-    if(!entries || count <= 1) return;
-
-    for(int i = 0; i < count - 1; i++) {
-        for(int j = 0; j < count - 1 - i; j++) {
-            bool should_swap = false;
-
-            if(entries[j].timestamp < entries[j + 1].timestamp) {
-                should_swap = true;
-            } else if(entries[j].timestamp == entries[j + 1].timestamp) {
-                if(entries[j].block_number < entries[j + 1].block_number) {
-                    should_swap = true;
-                }
-            }
-
-            if(should_swap) {
-                HistoryEntry temp = entries[j];
-                entries[j] = entries[j + 1];
-                entries[j + 1] = temp;
-            }
-        }
-    }
-}
-
 // Clear the station cache
 static void renfe_regular_clear_station_cache(void) {
     station_cache.count = 0;
     station_cache.loaded = false;
     memset(station_cache.current_region, 0, sizeof(station_cache.current_region));
     memset(station_cache.stations, 0, sizeof(station_cache.stations));
-}
-
-// Load station names from file
-static bool renfe_regular_load_station_file(const char* region) {
-    if(!region) {
-        return false;
-    }
-
-    // Check if we already have this file loaded
-    if(station_cache.loaded && strcmp(station_cache.current_region, region) == 0) {
-        return true;
-    }
-
-    // Clear existing cache
-    renfe_regular_clear_station_cache();
-
-    // Build file path
-    FuriString* file_path = furi_string_alloc();
-    furi_string_printf(file_path, "/ext/apps_assets/metroflip/renfe/stations/%s.txt", region);
-
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    File* file = storage_file_alloc(storage);
-
-    bool success = false;
-    if(storage_file_open(file, furi_string_get_cstr(file_path), FSAM_READ, FSOM_OPEN_EXISTING)) {
-        char line_buffer[128];
-        station_cache.count = 0;
-
-        while(station_cache.count < MAX_CACHED_STATIONS) {
-            size_t line_pos = 0;
-            bool end_of_file = false;
-
-            // Read line character by character
-            while(line_pos < sizeof(line_buffer) - 1) {
-                char c;
-                size_t bytes_read = storage_file_read(file, &c, 1);
-                if(bytes_read == 0) {
-                    end_of_file = true;
-                    break;
-                }
-
-                if(c == '\n') {
-                    break;
-                }
-
-                if(c != '\r') {
-                    line_buffer[line_pos++] = c;
-                }
-            }
-
-            if(end_of_file && line_pos == 0) {
-                break;
-            }
-
-            line_buffer[line_pos] = '\0';
-
-            // Skip comments and empty lines
-            if(line_buffer[0] == '#' || line_buffer[0] == '\0' || strlen(line_buffer) < 3) {
-                if(end_of_file) break;
-                continue;
-            }
-
-            // Parse format: 0xCODE,Station Name
-            char* comma = strchr(line_buffer, ',');
-            if(comma && station_cache.count < MAX_CACHED_STATIONS) {
-                *comma = '\0';
-                char* code_str = line_buffer;
-                char* name_str = comma + 1;
-
-                // Parse hex code
-                uint16_t code = 0;
-                if(sscanf(code_str, "0x%hX", &code) == 1) {
-                    station_cache.stations[station_cache.count].code = code;
-                    strncpy(
-                        station_cache.stations[station_cache.count].name,
-                        name_str,
-                        MAX_STATION_NAME_LENGTH - 1);
-                    station_cache.stations[station_cache.count].name[MAX_STATION_NAME_LENGTH - 1] =
-                        '\0';
-                    station_cache.count++;
-                }
-            }
-
-            if(end_of_file) break;
-        }
-
-        if(station_cache.count > 0) {
-            strncpy(
-                station_cache.current_region, region, sizeof(station_cache.current_region) - 1);
-            station_cache.current_region[sizeof(station_cache.current_region) - 1] = '\0';
-            station_cache.loaded = true;
-            success = true;
-        }
-
-        storage_file_close(file);
-    }
-
-    storage_file_free(file);
-    furi_record_close(RECORD_STORAGE);
-    furi_string_free(file_path);
-
-    return success;
-}
-
-// Get station name from cache
-static const char* renfe_regular_get_station_name_from_cache(uint16_t station_code) {
-    if(!station_cache.loaded) {
-        return "Unknown";
-    }
-
-    for(size_t i = 0; i < station_cache.count; i++) {
-        if(station_cache.stations[i].code == station_code) {
-            return station_cache.stations[i].name;
-        }
-    }
-
-    return "Unknown";
-}
-
-// Dynamic station name lookup (optimized for Valencia)
-static const char* renfe_regular_get_station_name_dynamic(uint16_t station_code) {
-    if(station_code == 0x0000) {
-        return "";
-    }
-
-    // Only load valencia once at startup if not already loaded
-    if(!station_cache.loaded || strcmp(station_cache.current_region, "valencia") != 0) {
-        renfe_regular_load_station_file("valencia");
-    }
-
-    // Search in currently loaded cache
-    const char* station_name = renfe_regular_get_station_name_from_cache(station_code);
-    if(strcmp(station_name, "Unknown") != 0) {
-        return station_name;
-    }
-
-    return "Unknown";
 }
 
 // Detect card type
@@ -623,240 +434,6 @@ static const char* renfe_regular_get_region_from_data(const MfClassicData* data)
     return "valencia";
 }
 
-// Parse a single history entry
-static void renfe_regular_parse_history_entry(
-    FuriString* parsed_data,
-    const uint8_t* block_data,
-    int entry_num) {
-    if(!parsed_data || !block_data) {
-        return;
-    }
-
-    // Extract transaction type from pattern
-    uint8_t pattern1 = block_data[0];
-    uint8_t pattern2 = block_data[1];
-    uint8_t pattern3 = block_data[2];
-    uint8_t pattern4 = block_data[3];
-
-    // Extract station code from different positions
-    uint16_t station_code = 0;
-
-    // Position candidates for station codes
-    uint16_t pos_std = (block_data[9] << 8) | block_data[10]; // Standard position bytes 9-10
-    uint16_t pos_end_single = block_data[15]; // Single byte 15
-    uint16_t pos_end_pair = (block_data[14] << 8) | block_data[15]; // bytes 14-15
-    uint16_t pos_alt1 = (block_data[10] << 8) | block_data[11]; // bytes 10-11
-    uint16_t pos_alt2 = (block_data[11] << 8) | block_data[12]; // bytes 11-12
-    uint16_t pos_mid = (block_data[7] << 8) | block_data[8]; // bytes 7-8
-
-    // Try to find a reasonable station code using various strategies
-    uint16_t candidates[] = {pos_end_single, pos_alt1, pos_alt2, pos_mid, pos_end_pair, pos_std};
-    int num_candidates = sizeof(candidates) / sizeof(candidates[0]);
-
-    // Strategy 1: Look for small values that could be station IDs (prefer single byte values under 0x100)
-    for(int i = 0; i < num_candidates; i++) {
-        uint16_t candidate = candidates[i];
-        if(candidate > 0x00 && candidate < 0x100 && candidate != 0xFF) {
-            station_code = candidate;
-            break;
-        }
-    }
-
-    // Strategy 2: If no small values found, look for any reasonable non-zero values
-    if(station_code == 0) {
-        for(int i = 0; i < num_candidates; i++) {
-            uint16_t candidate = candidates[i];
-            if(candidate > 0x00 && candidate < 0x8000 && candidate != 0xFFFF) {
-                station_code = candidate;
-                break;
-            }
-        }
-    }
-
-    // Strategy 3: Default to standard position if nothing else works
-    if(station_code == 0) {
-        station_code = pos_std;
-    }
-
-    // Extract additional transaction details
-    uint8_t detail_byte = block_data[7];
-
-    furi_string_cat_printf(parsed_data, "%d. ", entry_num);
-
-    // Interpret transaction type
-    if(pattern1 == 0x3D && pattern2 == 0x80 && pattern3 == 0xA6 && pattern4 == 0xEF) {
-        furi_string_cat_printf(parsed_data, "Entry");
-    } else if(pattern1 == 0x3C && pattern2 == 0x80 && pattern3 == 0xDE && pattern4 == 0xEF) {
-        furi_string_cat_printf(parsed_data, "Exit");
-    } else if(pattern1 == 0x3D && pattern2 == 0x80 && pattern3 == 0xDE && pattern4 == 0xEF) {
-        furi_string_cat_printf(parsed_data, "Transfer");
-    } else if(pattern1 == 0x3C && pattern2 == 0x80 && pattern3 == 0xA6 && pattern4 == 0xEF) {
-        furi_string_cat_printf(parsed_data, "Validation");
-    } else {
-        furi_string_cat_printf(parsed_data, "Transaction");
-    }
-
-    // Add station information
-    const char* station_name = renfe_regular_get_station_name_dynamic(station_code);
-
-    if(station_code != 0x0000 && strlen(station_name) > 0) {
-        furi_string_cat_printf(parsed_data, " - %s", station_name);
-    } else {
-        // Station name not available
-    }
-
-    // Add transaction details if available
-    if(detail_byte != 0x00 && detail_byte != 0xFF) {
-        if(detail_byte == 0x10) {
-            furi_string_cat_printf(parsed_data, " (Standard)");
-        } else if(detail_byte == 0x00) {
-            furi_string_cat_printf(parsed_data, " (Free)");
-        } else {
-            furi_string_cat_printf(parsed_data, " (Special)");
-        }
-    }
-
-    furi_string_cat_printf(parsed_data, "\n");
-}
-
-// Parse travel history from card data
-static void
-    renfe_regular_parse_travel_history(FuriString* parsed_data, const MfClassicData* data) {
-    if(!parsed_data || !data) {
-        return;
-    }
-
-    // Get the detected region for better station name resolution
-    const char* detected_region = renfe_regular_get_region_from_data(data);
-    const char* card_type = renfe_regular_detect_card_type(data);
-
-    // Pre-load the region-specific station file for faster lookups
-    renfe_regular_load_station_file(detected_region);
-
-    // History blocks where transactions are stored
-    // Different blocks for different card types
-    int history_blocks[25]; // Reduced from 20 to 25 for safety but more efficient than before
-    int num_blocks = 0;
-
-    if(strcmp(card_type, "Bono Regular 10 trips") == 0) {
-        // For Bono Regular 10 trips, check additional blocks where trip history might be stored
-        int bono_blocks[] = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 40};
-        num_blocks = sizeof(bono_blocks) / sizeof(bono_blocks[0]);
-        for(int i = 0; i < num_blocks; i++) {
-            history_blocks[i] = bono_blocks[i];
-        }
-    } else {
-        // For regular RENFE cards, use original blocks
-        int regular_blocks[] = {18, 20, 21, 40};
-        num_blocks = sizeof(regular_blocks) / sizeof(regular_blocks[0]);
-        for(int i = 0; i < num_blocks; i++) {
-            history_blocks[i] = regular_blocks[i];
-        }
-    }
-
-    // Array to store found history entries
-    HistoryEntry* history_entries = malloc(sizeof(HistoryEntry) * num_blocks);
-    if(!history_entries) {
-        furi_string_cat_printf(parsed_data, "Memory allocation error\n");
-        return;
-    }
-
-    int history_count = 0;
-    int max_blocks = (data->type == MfClassicType1k) ? 64 : 256;
-
-    // Collect all valid history entries
-    for(int i = 0; i < num_blocks; i++) {
-        int block = history_blocks[i];
-
-        if(block >= max_blocks) {
-            continue;
-        }
-
-        if(!mf_classic_is_block_read(data, block)) {
-            continue;
-        }
-
-        const uint8_t* block_data = data->block[block].data;
-
-        // For Bono Regular 10 trips, use different history detection logic
-        bool is_history = false;
-        if(strcmp(card_type, "Bono Regular 10 trips") == 0) {
-            // Check for any non-zero, non-FF patterns that might indicate usage
-            bool has_data = false;
-            for(int j = 0; j < 16; j++) {
-                if(block_data[j] != 0x00 && block_data[j] != 0xFF) {
-                    has_data = true;
-                    break;
-                }
-            }
-
-            if(has_data) {
-                // Check for specific patterns that might indicate trip usage
-                if(block_data[0] >= 0x20 && block_data[0] <= 0x40) {
-                    is_history = true;
-                } else if(block_data[15] > 0x00 && block_data[15] < 0x80) {
-                    is_history = true;
-                } else if(block_data[2] > 0x00 && block_data[2] <= 0x10) {
-                    is_history = true;
-                }
-            }
-        } else {
-            // Use regular history detection for other card types
-            is_history = renfe_regular_is_travel_history_block(block_data, block);
-        }
-
-        if(is_history) {
-            memcpy(history_entries[history_count].block_data, block_data, 16);
-            history_entries[history_count].timestamp = renfe_regular_extract_timestamp(block_data);
-            history_entries[history_count].block_number = block;
-            history_count++;
-        }
-    }
-
-    if(history_count == 0) {
-        // If no history found but we know there should be trips (for Bono 10 trips)
-        if(strcmp(card_type, "Bono Regular 10 trips") == 0) {
-            furi_string_cat_printf(parsed_data, "Bono Trip History:\n");
-            furi_string_cat_printf(parsed_data, "Card shows trips used but\n");
-            furi_string_cat_printf(parsed_data, "detailed history format not\n");
-            furi_string_cat_printf(parsed_data, "yet decoded.\n\n");
-
-            // Show raw data from blocks that might contain trip info
-            furi_string_cat_printf(parsed_data, "Raw trip data analysis:\n");
-            for(int i = 0; i < num_blocks && i < 5; i++) {
-                int block = history_blocks[i];
-                if(block < max_blocks && mf_classic_is_block_read(data, block)) {
-                    const uint8_t* block_data = data->block[block].data;
-                    furi_string_cat_printf(parsed_data, "B%02d: ", block);
-                    for(int j = 0; j < 16; j++) {
-                        furi_string_cat_printf(parsed_data, "%02X", block_data[j]);
-                        if(j == 7) furi_string_cat_printf(parsed_data, " ");
-                    }
-                    furi_string_cat_printf(parsed_data, "\n");
-                }
-            }
-        }
-        // Empty - let calling function handle message for regular cards
-    } else {
-        // Sort and display history
-        renfe_regular_sort_history_entries(history_entries, history_count);
-
-        furi_string_cat_printf(parsed_data, "Travel History (%d entries):\n", history_count);
-        furi_string_cat_printf(parsed_data, "Region: %s\n", detected_region);
-        furi_string_cat_printf(parsed_data, "Card Type: %s\n", card_type);
-        furi_string_cat_printf(parsed_data, "(Most recent first)\n\n");
-
-        for(int i = 0; i < history_count; i++) {
-            furi_string_cat_printf(
-                parsed_data, "Entry %d (Block %d):\n", i + 1, history_entries[i].block_number);
-            renfe_regular_parse_history_entry(parsed_data, history_entries[i].block_data, i + 1);
-            furi_string_cat_printf(parsed_data, "\n");
-        }
-    }
-
-    free(history_entries);
-}
-
 // Check if a specific block contains travel history
 static bool renfe_regular_is_travel_history_block(const uint8_t* block_data, int block_number) {
     UNUSED(block_number);
@@ -941,33 +518,6 @@ static bool renfe_regular_has_history_data(const MfClassicData* data) {
     return false;
 }
 
-// Parse only travel history (called when user presses LEFT button)
-static bool renfe_regular_parse_history_only(FuriString* parsed_data, const MfClassicData* data) {
-    if(!parsed_data || !data) {
-        return false;
-    }
-
-    furi_string_reset(parsed_data);
-    furi_string_cat_printf(parsed_data, "\e#RENFE REGULAR\n");
-    furi_string_cat_printf(parsed_data, "\e#Travel History\n\n");
-
-    bool has_history = renfe_regular_has_history_data(data);
-
-    if(!has_history) {
-        furi_string_cat_printf(parsed_data, "No travel history found\n\n");
-        furi_string_cat_printf(parsed_data, "This card appears to be:\n");
-        furi_string_cat_printf(parsed_data, "• New or unused\n");
-        furi_string_cat_printf(parsed_data, "• Recently cleared\n");
-        furi_string_cat_printf(parsed_data, "• Load dump from Saved\n\n");
-    } else {
-        renfe_regular_parse_travel_history(parsed_data, data);
-    }
-
-    furi_string_cat_printf(parsed_data, "\nPress LEFT to return");
-
-    return true;
-}
-
 typedef struct {
     uint8_t data_sector;
     const MfClassicKeyPair* keys;
@@ -989,154 +539,123 @@ static bool renfe_regular_get_card_config(RenfeRegularCardConfig* config, MfClas
     return success;
 }
 
-// Parse function for RENFE Regular cards
-static bool renfe_regular_parse(FuriString* parsed_data, const MfClassicData* data) {
-    if(!parsed_data) {
-        return false;
-    }
+// Display card view for RENFE Regular cards
+static bool
+    renfe_regular_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
+    if(!data) return false;
 
-    if(!data) {
-        return false;
-    }
-
-    bool parsed = false;
     RenfeRegularCardConfig cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    if(!renfe_regular_get_card_config(&cfg, data->type)) return false;
 
-    do {
-        memset(&cfg, 0, sizeof(cfg));
-        if(!renfe_regular_get_card_config(&cfg, data->type)) {
-            break;
-        }
+    /* Card view setup */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "RENFE Regular");
 
-        furi_string_cat_printf(parsed_data, "\e#RENFE REGULAR\n");
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
 
-        // 1. Show card type
-        const char* card_type = renfe_regular_detect_card_type(data);
-        furi_string_cat_printf(parsed_data, "Type: %s\n", card_type);
+    /* Page: Card Info */
+    uint8_t p = metroflip_card_view_add_page(view, "Card Info");
 
-        // 1.1. Show trip counter or usage status
-        if(strcmp(card_type, "Bono Regular 10 trips") == 0) {
-            // Multi-trip BONO card
-            int trip_count = renfe_regular_get_bono_trip_count(data);
-            if(trip_count >= 0) {
-                furi_string_cat_printf(parsed_data, "Trips: %d/10\n", trip_count);
-            } else {
-                furi_string_cat_printf(parsed_data, "Trips: Unknown/10\n");
-            }
+    const char* card_type = renfe_regular_detect_card_type(data);
+    snprintf(val, sizeof(val), "%.23s", card_type);
+    metroflip_card_view_add_field(view, p, "Type", val, false);
+
+    // Trip counter or usage status
+    if(strcmp(card_type, "Bono Regular 10 trips") == 0) {
+        int trip_count = renfe_regular_get_bono_trip_count(data);
+        if(trip_count >= 0) {
+            snprintf(val, sizeof(val), "%d/10", trip_count);
         } else {
-            // Regular ida/vuelta card
-            int trip_count = renfe_regular_get_bono_trip_count(data);
-            if(trip_count == -2) {
-                furi_string_cat_printf(parsed_data, "Status: USED\n");
-            } else if(trip_count == -1) {
-                furi_string_cat_printf(parsed_data, "Status: UNUSED\n");
-            } else if(trip_count == -3) {
-                furi_string_cat_printf(parsed_data, "Status: UNKNOWN\n");
-            } else if(trip_count >= 0) {
-                furi_string_cat_printf(parsed_data, "Trips: %d\n", trip_count);
-            } else {
-                furi_string_cat_printf(parsed_data, "Status: Cannot read\n");
-            }
+            snprintf(val, sizeof(val), "Unknown/10");
         }
-
-        // 2. Show card format
-        if(data->type == MfClassicType1k) {
-            furi_string_cat_printf(parsed_data, "Format: Mifare Classic 1K\n");
-        } else if(data->type == MfClassicType4k) {
-            furi_string_cat_printf(parsed_data, "Format: Mifare Classic 4K\n");
+        metroflip_card_view_add_field(view, p, "Trips", val, true);
+    } else {
+        int trip_count = renfe_regular_get_bono_trip_count(data);
+        if(trip_count == -2) {
+            snprintf(val, sizeof(val), "USED");
+        } else if(trip_count == -1) {
+            snprintf(val, sizeof(val), "UNUSED");
+        } else if(trip_count == -3) {
+            snprintf(val, sizeof(val), "UNKNOWN");
+        } else if(trip_count >= 0) {
+            snprintf(val, sizeof(val), "%d", trip_count);
         } else {
-            furi_string_cat_printf(parsed_data, "Format: Unknown\n");
+            snprintf(val, sizeof(val), "Cannot read");
         }
+        metroflip_card_view_add_field(view, p, "Status", val, true);
+    }
 
-        // 3. Extract and show UID
-        // Attempting to extract UID
+    // Format
+    if(data->type == MfClassicType1k) {
+        metroflip_card_view_add_field(view, p, "Format", "Mifare Classic 1K", false);
+    } else if(data->type == MfClassicType4k) {
+        metroflip_card_view_add_field(view, p, "Format", "Mifare Classic 4K", false);
+    } else {
+        metroflip_card_view_add_field(view, p, "Format", "Unknown", false);
+    }
 
-        if(data->iso14443_3a_data && data->iso14443_3a_data->uid_len > 0) {
-            const uint8_t* uid = data->iso14443_3a_data->uid;
-            size_t uid_len = data->iso14443_3a_data->uid_len;
+    /* Page: Details */
+    p = metroflip_card_view_add_page(view, "Details");
 
-            // UID data found
-
-            furi_string_cat_printf(parsed_data, "UID: ");
-            for(size_t i = 0; i < uid_len; i++) {
-                furi_string_cat_printf(parsed_data, "%02X", uid[i]);
-                if(i < uid_len - 1) furi_string_cat_printf(parsed_data, " ");
-            }
-            furi_string_cat_printf(parsed_data, "\n");
-        } else {
-            // Extract UID from block 0
-
-            if(mf_classic_is_block_read(data, 0)) {
-                const uint8_t* block0 = data->block[0].data;
-                furi_string_cat_printf(
-                    parsed_data,
-                    "UID: %02X %02X %02X %02X\n",
-                    block0[0],
-                    block0[1],
-                    block0[2],
-                    block0[3]);
-            } else {
-                furi_string_cat_printf(parsed_data, "UID: N/A\n");
-            }
+    // UID
+    if(data->iso14443_3a_data && data->iso14443_3a_data->uid_len > 0) {
+        const uint8_t* uid = data->iso14443_3a_data->uid;
+        size_t uid_len = data->iso14443_3a_data->uid_len;
+        size_t pos = 0;
+        for(size_t i = 0; i < uid_len && pos < sizeof(val) - 3; i++) {
+            if(i > 0 && pos < sizeof(val) - 4) val[pos++] = ' ';
+            pos += snprintf(val + pos, sizeof(val) - pos, "%02X", uid[i]);
         }
+        metroflip_card_view_add_field(view, p, "UID", val, false);
+    } else if(mf_classic_is_block_read(data, 0)) {
+        const uint8_t* block0 = data->block[0].data;
+        snprintf(
+            val, sizeof(val), "%02X %02X %02X %02X", block0[0], block0[1], block0[2], block0[3]);
+        metroflip_card_view_add_field(view, p, "UID", val, false);
+    } else {
+        metroflip_card_view_add_field(view, p, "UID", "N/A", false);
+    }
 
-        // 4. Show region
-        const char* region = renfe_regular_get_region_from_data(data);
-        // Capitalize first letter for display
-        char display_region[32];
-        strncpy(display_region, region, sizeof(display_region) - 1);
-        display_region[sizeof(display_region) - 1] = '\0';
-        if(strlen(display_region) > 0) {
-            display_region[0] = toupper(display_region[0]);
-            // Replace underscores with spaces and capitalize after spaces
-            for(size_t i = 1; i < strlen(display_region); i++) {
-                if(display_region[i] == '_') {
-                    display_region[i] = ' ';
-                    if(i + 1 < strlen(display_region)) {
-                        display_region[i + 1] = toupper(display_region[i + 1]);
-                    }
+    // Region
+    const char* region = renfe_regular_get_region_from_data(data);
+    char display_region[24];
+    strncpy(display_region, region, sizeof(display_region) - 1);
+    display_region[sizeof(display_region) - 1] = '\0';
+    if(strlen(display_region) > 0) {
+        display_region[0] = toupper(display_region[0]);
+        for(size_t i = 1; i < strlen(display_region); i++) {
+            if(display_region[i] == '_') {
+                display_region[i] = ' ';
+                if(i + 1 < strlen(display_region)) {
+                    display_region[i + 1] = toupper(display_region[i + 1]);
                 }
             }
         }
-        furi_string_cat_printf(parsed_data, "Region: %s\n", display_region);
+    }
+    metroflip_card_view_add_field(view, p, "Region", display_region, false);
 
-        // Add travel history status (only for non-ida/vuelta cards)
-        bool is_ida_vuelta = renfe_regular_is_ida_vuelta_card(data);
-        if(!is_ida_vuelta) {
-            furi_string_cat_printf(parsed_data, "\n");
-            if(renfe_regular_has_history_data(data)) {
-                furi_string_cat_printf(parsed_data, "History: Available\n");
-                furi_string_cat_printf(parsed_data, "   Press LEFT to view details\n");
-            } else {
-                furi_string_cat_printf(parsed_data, "History: Empty/Not found\n");
-                furi_string_cat_printf(parsed_data, "   Load dump from Saved\n");
-            }
+    // History status
+    bool is_ida_vuelta = renfe_regular_is_ida_vuelta_card(data);
+    if(!is_ida_vuelta) {
+        if(renfe_regular_has_history_data(data)) {
+            metroflip_card_view_add_field(view, p, "History", "Available", false);
+        } else {
+            metroflip_card_view_add_field(view, p, "History", "Empty", false);
         }
+    }
 
-        parsed = true;
+    /* Buttons */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
 
-    } while(false);
-
-    return parsed;
+    metroflip_card_view_show(app);
+    return true;
 }
 
-// Widget callback function for handling button events
-static void renfe_regular_widget_callback(GuiButtonType result, InputType type, void* context) {
-    if(!context) {
-        return;
-    }
-
-    Metroflip* app = context;
-    if(!app->view_dispatcher) {
-        return;
-    }
-
-    if(type == InputTypeShort) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, result);
-    }
-}
-
-// This plugin only works with saved dumps, not live card reading
 static void renfe_regular_on_enter(Metroflip* app) {
     if(!app) {
         return;
@@ -1162,58 +681,17 @@ static void renfe_regular_on_enter(Metroflip* app) {
         furi_record_close(RECORD_STORAGE);
 
         if(mfc_data) {
-            // RENFE Regular: MFC data available
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
-
-            if(!widget) {
-                // RENFE Regular: Widget is NULL
-                if(should_free_mfc_data) mf_classic_free(mfc_data);
-                furi_string_free(parsed_data);
-                return;
-            }
-
-            if(!app->text_box_store) {
-                if(should_free_mfc_data) mf_classic_free(mfc_data);
-                furi_string_free(parsed_data);
-                return;
-            }
-
-            furi_string_reset(app->text_box_store);
-            if(!renfe_regular_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
-            }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-
-            // Check if it's ida/vuelta card to decide whether to show History button
-            bool is_ida_vuelta = renfe_regular_is_ida_vuelta_card(mfc_data);
-
-            if(!is_ida_vuelta) {
-                // Only show History button for non-ida/vuelta cards
+            if(!renfe_regular_display_card_view(mfc_data, app, true)) {
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
                 widget_add_button_element(
-                    widget, GuiButtonTypeLeft, "History", renfe_regular_widget_callback, app);
-            }
-
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-
-            if(!app->view_dispatcher) {
-                if(should_free_mfc_data) mf_classic_free(mfc_data);
-                furi_string_free(parsed_data);
-                return;
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
 
             if(should_free_mfc_data) mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
-
-            // RENFE Regular: Switching to widget view
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        } else {
-            // RENFE Regular: Failed to load MFC data
         }
     } else {
         // Card reading not supported - show message to load dump
@@ -1253,105 +731,21 @@ static bool renfe_regular_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == GuiButtonTypeLeft) {
-            // Handle LEFT button press to show travel history
-            if(app->data_loaded) {
-                MfClassicData* mfc_data = NULL;
-                bool should_free_mfc_data = false;
-
-                Storage* storage = furi_record_open(RECORD_STORAGE);
-                FlipperFormat* ff = flipper_format_file_alloc(storage);
-                if(flipper_format_file_open_existing(ff, app->file_path)) {
-                    mfc_data = mf_classic_alloc();
-                    mf_classic_load(mfc_data, ff, 2);
-                    should_free_mfc_data = true;
-                }
-                flipper_format_free(ff);
-                furi_record_close(RECORD_STORAGE);
-
-                if(mfc_data) {
-                    FuriString* parsed_data = furi_string_alloc();
-                    Widget* widget = app->widget;
-
-                    if(widget) {
-                        widget_reset(widget);
-                        if(!renfe_regular_parse_history_only(parsed_data, mfc_data)) {
-                            furi_string_reset(parsed_data);
-                            furi_string_printf(
-                                parsed_data, "\e#Travel History\nNo history found\n");
-                        }
-                        widget_add_text_scroll_element(
-                            widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-                        widget_add_button_element(
-                            widget, GuiButtonTypeRight, "Back", renfe_regular_widget_callback, app);
-                        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-                    }
-
-                    if(should_free_mfc_data) mf_classic_free(mfc_data);
-                    furi_string_free(parsed_data);
-                }
-            }
+        if(event.event == MetroflipCustomEventCardDetected) {
+            Popup* popup = app->popup;
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
-        } else if(event.event == GuiButtonTypeRight) {
-            if(app->data_loaded) {
-                MfClassicData* mfc_data = NULL;
-                bool should_free_mfc_data = false;
-
-                Storage* storage = furi_record_open(RECORD_STORAGE);
-                FlipperFormat* ff = flipper_format_file_alloc(storage);
-                if(flipper_format_file_open_existing(ff, app->file_path)) {
-                    mfc_data = mf_classic_alloc();
-                    mf_classic_load(mfc_data, ff, 2);
-                    should_free_mfc_data = true;
-                }
-                flipper_format_free(ff);
-                furi_record_close(RECORD_STORAGE);
-
-                if(mfc_data) {
-                    FuriString* parsed_data = furi_string_alloc();
-                    Widget* widget = app->widget;
-
-                    if(widget) {
-                        widget_reset(widget);
-                        if(!renfe_regular_parse(parsed_data, mfc_data)) {
-                            furi_string_printf(parsed_data, "\e#Unknown card\n");
-                        }
-                        widget_add_text_scroll_element(
-                            widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-
-                        // Check if it's ida/vuelta card to decide whether to show History button
-                        bool is_ida_vuelta = renfe_regular_is_ida_vuelta_card(mfc_data);
-
-                        if(!is_ida_vuelta) {
-                            // Only show History button for non-ida/vuelta cards
-                            widget_add_button_element(
-                                widget,
-                                GuiButtonTypeLeft,
-                                "History",
-                                renfe_regular_widget_callback,
-                                app);
-                        }
-
-                        widget_add_button_element(
-                            widget,
-                            GuiButtonTypeCenter,
-                            "Delete",
-                            metroflip_delete_widget_callback,
-                            app);
-                        widget_add_button_element(
-                            widget,
-                            GuiButtonTypeRight,
-                            "Exit",
-                            metroflip_exit_widget_callback,
-                            app);
-
-                        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-                    }
-
-                    if(should_free_mfc_data) mf_classic_free(mfc_data);
-                    furi_string_free(parsed_data);
-                }
-            }
+        } else if(event.event == MetroflipCustomEventCardLost) {
+            Popup* popup = app->popup;
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventWrongCard) {
+            Popup* popup = app->popup;
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventPollerFail) {
+            Popup* popup = app->popup;
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -1364,13 +758,12 @@ static bool renfe_regular_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void renfe_regular_on_exit(Metroflip* app) {
     if(!app) {
-        // renfe_regular_on_exit: app is NULL
         return;
     }
 
-    if(app->widget) {
-        widget_reset(app->widget);
-    }
+    widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     // Clear station cache to free memory
     renfe_regular_clear_station_cache();

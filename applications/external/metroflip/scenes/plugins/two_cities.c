@@ -40,68 +40,87 @@ static const MfClassicKeyPair two_cities_4k_keys[] = {
     {.a = 0xb27addfb64b0, .b = 0x152fd0c420a7}, {.a = 0x7259fa0197c6, .b = 0x5583698df085},
 };
 
-static bool two_cities_parse(FuriString* parsed_data, const MfClassicData* data) {
-    bool parsed = false;
+static bool
+    two_cities_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
+    // Verify key
+    MfClassicSectorTrailer* sec_tr = mf_classic_get_sector_trailer_by_sector(data, 4);
+    uint64_t key = bit_lib_bytes_to_num_be(sec_tr->key_a.data, 6);
+    if(key != two_cities_4k_keys[4].a) return false;
 
-    do {
-        // Verify key
-        MfClassicSectorTrailer* sec_tr = mf_classic_get_sector_trailer_by_sector(data, 4);
-        uint64_t key = bit_lib_bytes_to_num_be(sec_tr->key_a.data, 6);
-        if(key != two_cities_4k_keys[4].a) return false;
+    // =====
+    // PLANTAIN
+    // =====
 
-        // =====
-        // PLANTAIN
-        // =====
+    // Point to block 0 of sector 4, value 0
+    const uint8_t* temp_ptr = data->block[16].data;
+    // Read first 4 bytes of block 0 of sector 4 from last to first and convert them to uint32_t
+    // 38 18 00 00 becomes 00 00 18 38, and equals to 6200 decimal
+    uint32_t balance =
+        ((temp_ptr[3] << 24) | (temp_ptr[2] << 16) | (temp_ptr[1] << 8) | temp_ptr[0]) / 100;
+    // Read card number
+    // Point to block 0 of sector 0, value 0
+    temp_ptr = data->block[0].data;
+    // Read first 7 bytes of block 0 of sector 0 from last to first and convert them to uint64_t
+    // 04 31 16 8A 23 5C 80 becomes 80 5C 23 8A 16 31 04, and equals to 36130104729284868 decimal
+    uint8_t card_number_arr[7];
+    for(size_t i = 0; i < 7; i++) {
+        card_number_arr[i] = temp_ptr[6 - i];
+    }
+    // Copy card number to uint64_t
+    uint64_t card_number = 0;
+    for(size_t i = 0; i < 7; i++) {
+        card_number = (card_number << 8) | card_number_arr[i];
+    }
 
-        // Point to block 0 of sector 4, value 0
-        const uint8_t* temp_ptr = data->block[16].data;
-        // Read first 4 bytes of block 0 of sector 4 from last to first and convert them to uint32_t
-        // 38 18 00 00 becomes 00 00 18 38, and equals to 6200 decimal
-        uint32_t balance =
-            ((temp_ptr[3] << 24) | (temp_ptr[2] << 16) | (temp_ptr[1] << 8) | temp_ptr[0]) / 100;
-        // Read card number
-        // Point to block 0 of sector 0, value 0
-        temp_ptr = data->block[0].data;
-        // Read first 7 bytes of block 0 of sector 0 from last to first and convert them to uint64_t
-        // 04 31 16 8A 23 5C 80 becomes 80 5C 23 8A 16 31 04, and equals to 36130104729284868 decimal
-        uint8_t card_number_arr[7];
-        for(size_t i = 0; i < 7; i++) {
-            card_number_arr[i] = temp_ptr[6 - i];
-        }
-        // Copy card number to uint64_t
-        uint64_t card_number = 0;
-        for(size_t i = 0; i < 7; i++) {
-            card_number = (card_number << 8) | card_number_arr[i];
-        }
+    // =====
+    // --PLANTAIN--
+    // =====
+    // TROIKA
+    // =====
 
-        // =====
-        // --PLANTAIN--
-        // =====
-        // TROIKA
-        // =====
+    const uint8_t* troika_temp_ptr = &data->block[33].data[5];
+    uint16_t troika_balance = ((troika_temp_ptr[0] << 8) | troika_temp_ptr[1]) / 25;
+    troika_temp_ptr = &data->block[32].data[2];
+    uint32_t troika_number = 0;
+    for(size_t i = 0; i < 4; i++) {
+        troika_number <<= 8;
+        troika_number |= troika_temp_ptr[i];
+    }
+    troika_number >>= 4;
 
-        const uint8_t* troika_temp_ptr = &data->block[33].data[5];
-        uint16_t troika_balance = ((troika_temp_ptr[0] << 8) | troika_temp_ptr[1]) / 25;
-        troika_temp_ptr = &data->block[32].data[2];
-        uint32_t troika_number = 0;
-        for(size_t i = 0; i < 4; i++) {
-            troika_number <<= 8;
-            troika_number |= troika_temp_ptr[i];
-        }
-        troika_number >>= 4;
+    /* Card view setup */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "Troika+Plantain");
 
-        furi_string_printf(
-            parsed_data,
-            "\e#Troika+Plantain\nPN: %lluX\nPB: %lu rur.\nTN: %lu\nTB: %u rur.\n",
-            card_number,
-            balance,
-            troika_number,
-            troika_balance);
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
 
-        parsed = true;
-    } while(false);
+    /* Page: Plantain */
+    uint8_t p = metroflip_card_view_add_page(view, "Plantain");
 
-    return parsed;
+    snprintf(val, sizeof(val), "%lluX", card_number);
+    metroflip_card_view_add_field(view, p, "Number", val, false);
+
+    snprintf(val, sizeof(val), "%lu rub", balance);
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
+
+    /* Page: Troika */
+    p = metroflip_card_view_add_page(view, "Troika");
+
+    snprintf(val, sizeof(val), "%lu", troika_number);
+    metroflip_card_view_add_field(view, p, "Number", val, false);
+
+    snprintf(val, sizeof(val), "%u rub", troika_balance);
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
+
+    /* Buttons */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
+
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand two_cities_poller_callback(NfcGenericEvent event, void* context) {
@@ -141,20 +160,19 @@ static NfcCommand two_cities_poller_callback(NfcGenericEvent event, void* contex
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
         const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        FuriString* parsed_data = furi_string_alloc();
-        Widget* widget = app->widget;
         dolphin_deed(DolphinDeedNfcReadSuccess);
-        furi_string_reset(app->text_box_store);
-        two_cities_parse(parsed_data, mfc_data);
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
+        if(!two_cities_display_card_view(mfc_data, app, false)) {
+            FURI_LOG_I(TAG, "Unknown card type");
+            Widget* widget = app->widget;
+            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            furi_string_free(s);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+        }
 
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         command = NfcCommandStop;
         metroflip_app_blink_stop(app);
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
@@ -177,32 +195,27 @@ static void two_cities_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfClassicData* mfc_data = mf_classic_alloc();
             mf_classic_load(mfc_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!two_cities_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!two_cities_display_card_view(mfc_data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
             mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
     } else {
         FURI_LOG_I(TAG, "TwoCities not loaded");
         // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
         // Start worker
@@ -220,19 +233,19 @@ static bool two_cities_on_event(Metroflip* app, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -245,16 +258,13 @@ static bool two_cities_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void two_cities_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
     }
-
-    // Clear view
-    popup_reset(app->popup);
-
-    metroflip_app_blink_stop(app);
 }
 
 /* Actual implementation of app<>plugin interface */

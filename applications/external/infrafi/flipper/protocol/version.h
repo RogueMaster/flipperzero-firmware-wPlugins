@@ -1,0 +1,6 @@
+#pragma once
+
+#define INFRAFI_VERSION       "1.0.0"
+#define INFRAFI_VERSION_MAJOR 1
+#define INFRAFI_VERSION_MINOR 0
+#define INFRAFI_VERSION_PATCH 0

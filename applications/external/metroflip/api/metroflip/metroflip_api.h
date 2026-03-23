@@ -16,6 +16,8 @@
 #include <datetime.h>
 #include <stdbool.h>
 
+#include "metroflip_card_view.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

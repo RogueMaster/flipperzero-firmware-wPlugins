@@ -1,0 +1,14 @@
+App(
+    appid="air_stats",
+    name="Air Stats",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="air_stats_main",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    fap_category="GPIO",
+    fap_author="thevan4",
+    fap_weburl="https://github.com/thevan4/flipper-air-stats",
+    fap_version="1.0",
+    fap_description="CO2 + temperature/humidity/pressure monitor",
+)

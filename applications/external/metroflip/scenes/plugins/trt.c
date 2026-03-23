@@ -25,63 +25,75 @@
 #define SALE_RECORD_TIME_STAMP_B  0x0E
 #define SALE_YEAR_OFFSET          2000
 
-static bool trt_parse(FuriString* parsed_data, const MfUltralightData* data) {
+static bool trt_display_card_view(const MfUltralightData* data, Metroflip* app, bool from_file) {
     furi_assert(data);
-    furi_assert(parsed_data);
 
-    bool parsed = false;
+    uint8_t latest_sale_page = 0;
 
-    do {
-        uint8_t latest_sale_page = 0;
+    // Look for sale record signature
+    if(data->page[SALE_RECORD_TIME_STAMP_A].data[0] == LATEST_SALE_MARKER) {
+        latest_sale_page = SALE_RECORD_TIME_STAMP_A;
+    } else if(data->page[SALE_RECORD_TIME_STAMP_B].data[0] == LATEST_SALE_MARKER) {
+        latest_sale_page = SALE_RECORD_TIME_STAMP_B;
+    } else {
+        return false;
+    }
 
-        // Look for sale record signature
-        if(data->page[SALE_RECORD_TIME_STAMP_A].data[0] == LATEST_SALE_MARKER) {
-            latest_sale_page = SALE_RECORD_TIME_STAMP_A;
-        } else if(data->page[SALE_RECORD_TIME_STAMP_B].data[0] == LATEST_SALE_MARKER) {
-            latest_sale_page = SALE_RECORD_TIME_STAMP_B;
-        } else {
-            break;
-        }
+    // Check if the sale record was backed up
+    const uint8_t* partial_record_pointer = &data->page[latest_sale_page - 1].data[0];
+    const uint8_t* full_record_pointer = &data->page[FULL_SALE_TIME_STAMP_PAGE].data[0];
+    uint32_t latest_sale_record = bit_lib_get_bits_32(partial_record_pointer, 3, 20);
+    uint32_t latest_sale_full_record = bit_lib_get_bits_32(full_record_pointer, 0, 27);
+    if(latest_sale_record != (latest_sale_full_record & 0xFFFFF))
+        return false; // check if the copy matches
+    if((latest_sale_record == 0) || (latest_sale_full_record == 0))
+        return false; // prevent false positive
 
-        // Check if the sale record was backed up
-        const uint8_t* partial_record_pointer = &data->page[latest_sale_page - 1].data[0];
-        const uint8_t* full_record_pointer = &data->page[FULL_SALE_TIME_STAMP_PAGE].data[0];
-        uint32_t latest_sale_record = bit_lib_get_bits_32(partial_record_pointer, 3, 20);
-        uint32_t latest_sale_full_record = bit_lib_get_bits_32(full_record_pointer, 0, 27);
-        if(latest_sale_record != (latest_sale_full_record & 0xFFFFF))
-            break; // check if the copy matches
-        if((latest_sale_record == 0) || (latest_sale_full_record == 0))
-            break; // prevent false positive
+    // Parse date
+    // yyy yyyymmmm dddddhhh hhnnnnnn
+    uint16_t sale_year = ((latest_sale_full_record & 0x7F00000) >> 20) + SALE_YEAR_OFFSET;
+    uint8_t sale_month = (latest_sale_full_record & 0xF0000) >> 16;
+    uint8_t sale_day = (latest_sale_full_record & 0xF800) >> 11;
+    uint8_t sale_hour = (latest_sale_full_record & 0x7C0) >> 6;
+    uint8_t sale_minute = latest_sale_full_record & 0x3F;
 
-        // Parse date
-        // yyy yyyymmmm dddddhhh hhnnnnnn
-        uint16_t sale_year = ((latest_sale_full_record & 0x7F00000) >> 20) + SALE_YEAR_OFFSET;
-        uint8_t sale_month = (latest_sale_full_record & 0xF0000) >> 16;
-        uint8_t sale_day = (latest_sale_full_record & 0xF800) >> 11;
-        uint8_t sale_hour = (latest_sale_full_record & 0x7C0) >> 6;
-        uint8_t sale_minute = latest_sale_full_record & 0x3F;
+    // Parse balance
+    uint16_t balance = bit_lib_get_bits_16(&data->page[BALANCE_PAGE].data[2], 0, 16);
+    uint16_t balance_yuan = balance / 100;
+    uint8_t balance_cent = balance % 100;
 
-        // Parse balance
-        uint16_t balance = bit_lib_get_bits_16(&data->page[BALANCE_PAGE].data[2], 0, 16);
-        uint16_t balance_yuan = balance / 100;
-        uint8_t balance_cent = balance % 100;
+    // Build card view
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
 
-        // Format string for rendering
-        furi_string_cat_printf(parsed_data, "\e#TRT Tianjin Metro\n");
-        furi_string_cat_printf(parsed_data, "Single-Use Ticket\n");
-        furi_string_cat_printf(parsed_data, "Balance: %u.%02u RMB\n", balance_yuan, balance_cent);
-        furi_string_cat_printf(
-            parsed_data,
-            "Sale Date: \n%04u-%02d-%02d %02d:%02d",
-            sale_year,
-            sale_month,
-            sale_day,
-            sale_hour,
-            sale_minute);
-        parsed = true;
-    } while(false);
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "TRT Tianjin");
 
-    return parsed;
+    uint8_t p = metroflip_card_view_add_page(view, "Ticket Info");
+
+    metroflip_card_view_add_field(view, p, "Type", "Single-Use Ticket", false);
+
+    snprintf(val, sizeof(val), "%u.%02u RMB", balance_yuan, balance_cent);
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
+
+    snprintf(
+        val,
+        sizeof(val),
+        "%04u-%02d-%02d %02d:%02d",
+        sale_year,
+        sale_month,
+        sale_day,
+        sale_hour,
+        sale_minute);
+    metroflip_card_view_add_field(view, p, "Sale Date", val, false);
+
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
+
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand trt_poller_callback(NfcGenericEvent event, void* context) {
@@ -120,32 +132,27 @@ static void trt_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfUltralightData* ultralight_data = mf_ultralight_alloc();
             mf_ultralight_load(ultralight_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!trt_parse(parsed_data, ultralight_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!trt_display_card_view(ultralight_data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
             mf_ultralight_free(ultralight_data);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
     } else {
         FURI_LOG_I(TAG, "TRT not loaded");
         // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
         // Start worker
@@ -163,56 +170,41 @@ static bool trt_on_event(Metroflip* app, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerSuccess) {
             const MfUltralightData* ultralight_data =
                 nfc_device_get_data(app->nfc_device, NfcProtocolMfUltralight);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!trt_parse(parsed_data, ultralight_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!trt_display_card_view(ultralight_data, app, false)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-            widget_add_button_element(
-                widget, GuiButtonTypeLeft, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Save", metroflip_save_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+
             metroflip_app_blink_stop(app);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
-
-            furi_string_reset(app->text_box_store);
-            furi_string_reset(app->text_box_store);
             FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
+            Widget* widget = app->widget;
+            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
             widget_add_button_element(
                 widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            furi_string_free(parsed_data);
+            furi_string_free(s);
             view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             metroflip_app_blink_stop(app);
             consumed = true;
