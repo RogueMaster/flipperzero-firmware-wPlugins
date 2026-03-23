@@ -30,6 +30,7 @@ GamesMenuList Version 0
 /ext/apps/Games/countdown.fap
 /ext/apps/Games/crossy_road.fap
 /ext/apps/Games/deadzone.fap
+/ext/apps/Games/random_decision_maker.fap
 /ext/apps/Games/dice_rm.fap
 /ext/apps/Games/digital_kaleidoscope.fap
 /ext/apps/Games/dnd_dice_app.fap
