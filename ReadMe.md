@@ -44,6 +44,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
 - Added: [InfraFi v1.0 (By amd989)](https://github.com/amd989/InfraFi)
 - Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
+- OFW: PR: [NFC: Fix BusFault in Write to Initial Card #4362 (By akrylysov)](https://github.com/flipperdevices/flipperzero-firmware/pull/4362)
 
 <a name="release"></a>
 
