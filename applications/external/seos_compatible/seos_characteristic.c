@@ -199,7 +199,8 @@ void seos_characteristic_cred_flow(
     if(memcmp(apdu, select_header, sizeof(select_header)) == 0) {
         if(memcmp(apdu + sizeof(select_header) + 1, standard_seos_aid, sizeof(standard_seos_aid)) ==
            0) {
-            seos_emulator_select_aid(payload);
+            seos_emulator_select_aid(
+                payload, apdu + sizeof(select_header) + 1, sizeof(standard_seos_aid));
             bit_buffer_append_bytes(payload, (uint8_t*)success, sizeof(success));
         } else {
             bit_buffer_append_bytes(payload, (uint8_t*)file_not_found, sizeof(file_not_found));
@@ -352,7 +353,7 @@ void seos_characteristic_write_request(void* context, BitBuffer* attribute_value
     bit_buffer_append_bytes(seos_characteristic->rx_buffer, data + 1, len - 1);
 
     // Only parse if end-of-message flag found
-    if((flags & BLE_FLAG_EOM) == BLE_FLAG_EOM) return;
+    if((flags & BLE_FLAG_EOM) != BLE_FLAG_EOM) return;
 
     if(seos_characteristic->flow_mode == FLOW_READER) {
         seos_characteristic_reader_flow(

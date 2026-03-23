@@ -13,7 +13,7 @@ enum SubmenuIndex {
     SubmenuIndexAbout,
     SubmenuIndexInspect,
     SubmenuIndexSavedSeader,
-    SubmenuIndexMigrateKeys,
+    SubmenuIndexKeys,
 };
 
 void seos_scene_main_menu_submenu_callback(void* context, uint32_t index) {
@@ -66,14 +66,18 @@ void seos_scene_main_menu_on_enter(void* context) {
             seos);
     }
 
-    if(seos->keys_loaded && seos->keys_version == 1) {
-        submenu_add_item(
-            submenu,
-            "Migrate Keys",
-            SubmenuIndexMigrateKeys,
-            seos_scene_main_menu_submenu_callback,
-            seos);
+    char keys_label[48];
+    if(seos->keys_version > 0 && !furi_string_empty(seos->active_key_file)) {
+        snprintf(
+            keys_label,
+            sizeof(keys_label),
+            "Keys > (%s)",
+            furi_string_get_cstr(seos->active_key_file));
+    } else {
+        snprintf(keys_label, sizeof(keys_label), "Keys > (zero)");
     }
+    submenu_add_item(
+        submenu, keys_label, SubmenuIndexKeys, seos_scene_main_menu_submenu_callback, seos);
 
     submenu_add_item(
         submenu, "About", SubmenuIndexAbout, seos_scene_main_menu_submenu_callback, seos);
@@ -134,10 +138,10 @@ bool seos_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
                 seos->scene_manager, SeosSceneMainMenu, SubmenuIndexAbout);
             scene_manager_next_scene(seos->scene_manager, SeosSceneAbout);
             consumed = true;
-        } else if(event.event == SubmenuIndexMigrateKeys) {
+        } else if(event.event == SubmenuIndexKeys) {
             scene_manager_set_scene_state(
-                seos->scene_manager, SeosSceneMainMenu, SubmenuIndexMigrateKeys);
-            scene_manager_next_scene(seos->scene_manager, SeosSceneMigrateKeys);
+                seos->scene_manager, SeosSceneMainMenu, SubmenuIndexKeys);
+            scene_manager_next_scene(seos->scene_manager, SeosSceneKeysMenu);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {

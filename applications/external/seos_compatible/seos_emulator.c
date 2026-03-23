@@ -4,6 +4,8 @@
 
 #define NAD_MASK 0x08
 
+#define DESFIRE_CLA 0x90
+
 static uint8_t select_header[] = {0x00, 0xa4, 0x04, 0x00};
 static uint8_t standard_seos_aid[] = {0xa0, 0x00, 0x00, 0x04, 0x40, 0x00, 0x01, 0x01, 0x00, 0x01};
 static uint8_t MOBILE_SEOS_ADMIN_CARD[] =
@@ -11,9 +13,8 @@ static uint8_t MOBILE_SEOS_ADMIN_CARD[] =
 static uint8_t OPERATION_SELECTOR[] = {0xa0, 0x00, 0x00, 0x03, 0x82, 0x00, 0x2f, 0x00, 0x01, 0x01};
 static uint8_t OPERATION_SELECTOR_POST_RESET[] =
     {0xa0, 0x00, 0x00, 0x03, 0x82, 0x00, 0x31, 0x00, 0x01, 0x01};
+static uint8_t DESFIRE_ISO_AID[] = {0xd2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x00};
 
-static uint8_t SEOS_APPLET_FCI[] =
-    {0x6F, 0x0C, 0x84, 0x0A, 0xA0, 0x00, 0x00, 0x04, 0x40, 0x00, 0x01, 0x01, 0x00, 0x01};
 static uint8_t FILE_NOT_FOUND[] = {0x6A, 0x82};
 static uint8_t success[] = {0x90, 0x00};
 
@@ -54,9 +55,13 @@ void seos_emulator_free(SeosEmulator* seos_emulator) {
     free(seos_emulator);
 }
 
-void seos_emulator_select_aid(BitBuffer* tx_buffer) {
+void seos_emulator_select_aid(BitBuffer* tx_buffer, const uint8_t* aid, size_t aid_len) {
     FURI_LOG_D(TAG, "Select AID");
-    bit_buffer_append_bytes(tx_buffer, SEOS_APPLET_FCI, sizeof(SEOS_APPLET_FCI));
+    bit_buffer_append_byte(tx_buffer, 0x6F); // FCI Template
+    bit_buffer_append_byte(tx_buffer, 2 + aid_len); // length
+    bit_buffer_append_byte(tx_buffer, 0x84); // DF Name
+    bit_buffer_append_byte(tx_buffer, aid_len); // length
+    bit_buffer_append_bytes(tx_buffer, aid, aid_len);
 }
 
 void seos_emulator_general_authenticate_1(BitBuffer* tx_buffer, AuthParameters params) {
@@ -169,7 +174,6 @@ bool seos_emulator_general_authenticate_2(
     uint8_t encrypted[32];
     if(params->cipher == AES_128_CBC) {
         seos_worker_aes_encrypt(params->priv_key, sizeof(clear), clear, encrypted);
-
         aes_cmac(params->auth_key, sizeof(params->auth_key), encrypted, sizeof(encrypted), cmac);
     } else if(params->cipher == TWO_KEY_3DES_CBC_MODE) {
         seos_worker_des_encrypt(params->priv_key, sizeof(clear), clear, encrypted);
@@ -327,7 +331,6 @@ bool seos_emulator_select_adf(
         seos_emulator_des_adf_payload(credential, buffer);
         bit_buffer_append_bytes(tx_buffer, buffer, des_cryptogram_length);
 
-        // +2 / -2 is to ignore iso14a framing
         des_cmac(
             SEOS_ADF1_PRIV_MAC,
             sizeof(SEOS_ADF1_PRIV_MAC),
@@ -363,14 +366,18 @@ NfcCommand seos_worker_listener_inspect_reader(Seos* seos) {
         if(memcmp(
                apdu + sizeof(select_header) + 1, OPERATION_SELECTOR, sizeof(OPERATION_SELECTOR)) ==
            0) {
+            FURI_LOG_I(TAG, "OPERATION_SELECTOR");
             uint8_t enableInspection[] = {
                 0x6f, 0x08, 0x85, 0x06, 0x02, 0x01, 0x40, 0x02, 0x01, 0x00};
 
             bit_buffer_append_bytes(tx_buffer, enableInspection, sizeof(enableInspection));
             view_dispatcher_send_custom_event(seos->view_dispatcher, SeosCustomEventAIDSelected);
         } else {
+            FURI_LOG_I(TAG, "Inspect mode: reject other AID");
             bit_buffer_append_bytes(tx_buffer, (uint8_t*)FILE_NOT_FOUND, sizeof(FILE_NOT_FOUND));
         }
+    } else if(apdu[0] == DESFIRE_CLA) {
+        FURI_LOG_I(TAG, "Desfire command received: ignore");
     } else if(bit_buffer_get_size_bytes(seos_emulator->rx_buffer) > (size_t)(offset + 2)) {
         FURI_LOG_I(TAG, "NFC stop; %d bytes", bit_buffer_get_size_bytes(seos_emulator->rx_buffer));
         ret = NfcCommandStop;
@@ -400,9 +407,11 @@ NfcCommand seos_worker_listener_process_message(Seos* seos) {
         seos_emulator->credential->use_hardcoded = false;
         if(memcmp(apdu + sizeof(select_header) + 1, standard_seos_aid, sizeof(standard_seos_aid)) ==
            0) {
-            seos_emulator_select_aid(seos_emulator->tx_buffer);
+            seos_emulator_select_aid(
+                seos_emulator->tx_buffer,
+                apdu + sizeof(select_header) + 1,
+                sizeof(standard_seos_aid));
             view_dispatcher_send_custom_event(seos->view_dispatcher, SeosCustomEventAIDSelected);
-
         } else if(
             memcmp(
                 apdu + sizeof(select_header) + 1,
@@ -427,8 +436,14 @@ NfcCommand seos_worker_listener_process_message(Seos* seos) {
             FURI_LOG_I(TAG, "MOBILE_SEOS_ADMIN_CARD");
             bit_buffer_append_bytes(
                 seos_emulator->tx_buffer, (uint8_t*)FILE_NOT_FOUND, sizeof(FILE_NOT_FOUND));
+        } else if(
+            memcmp(apdu + sizeof(select_header) + 1, DESFIRE_ISO_AID, sizeof(DESFIRE_ISO_AID)) ==
+            0) {
+            FURI_LOG_I(TAG, "DESFIRE_ISO_AID");
+            bit_buffer_append_bytes(
+                seos_emulator->tx_buffer, (uint8_t*)FILE_NOT_FOUND, sizeof(FILE_NOT_FOUND));
         } else {
-            seos_log_bitbuffer(TAG, "Reject select", seos_emulator->rx_buffer);
+            seos_log_bitbuffer(TAG, "Reject unknown AID", seos_emulator->rx_buffer);
             bit_buffer_append_bytes(
                 seos_emulator->tx_buffer, (uint8_t*)FILE_NOT_FOUND, sizeof(FILE_NOT_FOUND));
         }
@@ -446,6 +461,8 @@ NfcCommand seos_worker_listener_process_message(Seos* seos) {
             view_dispatcher_send_custom_event(seos->view_dispatcher, SeosCustomEventADFMatched);
         } else {
             FURI_LOG_W(TAG, "Failed to match any ADF OID");
+            bit_buffer_append_bytes(
+                seos_emulator->tx_buffer, (uint8_t*)FILE_NOT_FOUND, sizeof(FILE_NOT_FOUND));
         }
     } else if(memcmp(apdu, general_authenticate_1, sizeof(general_authenticate_1)) == 0) {
         seos_emulator_general_authenticate_1(seos_emulator->tx_buffer, seos_emulator->params);
@@ -492,6 +509,7 @@ NfcCommand seos_worker_listener_process_message(Seos* seos) {
                 bit_buffer_append_bytes(
                     sio_file, seos_emulator->credential->sio, seos_emulator->credential->sio_len);
 
+                seos_log_bitbuffer(TAG, "NFC send(clear)", sio_file);
                 secure_messaging_wrap_rapdu(
                     seos_emulator->secure_messaging,
                     (uint8_t*)bit_buffer_get_data(sio_file),
@@ -564,11 +582,13 @@ NfcCommand seos_worker_listener_callback(NfcGenericEvent event, void* context) {
         if(bit_buffer_get_size_bytes(seos_emulator->tx_buffer) >
            offset) { // contents belong iso framing
 
-            if(memcmp(
-                   FILE_NOT_FOUND,
-                   bit_buffer_get_data(tx_buffer) + bit_buffer_get_size_bytes(tx_buffer) -
-                       sizeof(FILE_NOT_FOUND),
-                   sizeof(FILE_NOT_FOUND)) != 0) {
+            uint8_t* statusword = (uint8_t*)bit_buffer_get_data(tx_buffer) +
+                                  bit_buffer_get_size_bytes(tx_buffer) - sizeof(uint16_t);
+            if(memcmp(success, statusword, sizeof(success)) == 0) {
+                // no-op
+            } else if(memcmp(FILE_NOT_FOUND, statusword, sizeof(FILE_NOT_FOUND)) == 0) {
+                // no-op
+            } else {
                 bit_buffer_append_bytes(tx_buffer, success, sizeof(success));
             }
         }

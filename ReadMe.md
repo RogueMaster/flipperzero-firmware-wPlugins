@@ -43,6 +43,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
 - Added: [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
 - Added: [InfraFi v1.0 (By amd989)](https://github.com/amd989/InfraFi)
+- Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
 
 <a name="release"></a>
 
@@ -772,7 +773,7 @@ $ ./fbt dolphin_ext
 - [SD SPI v0.5 (By Gl1tchub)](https://github.com/Gl1tchub/Flipperzero-SD-SPI) `Req: External SD Board`
 - [Segment Clock v1.1 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/Segment-Clock-For-Flipper-Zero)
 - [Sentry Safe v2.0 (By H4ckd4ddy)](https://github.com/H4ckd4ddy/flipperzero-sentry-safe-plugin) ([Pin Out](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/sentry_safe) from [UberGuidoZ](https://github.com/UberGuidoZ/)
-- [Seos compatible v1.2 (By bettse)](https://gitlab.com/bettse/flipper_seos)
+- [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
 - [SERMA CAN-FD-HS v1.0 (By serma-safety-security)](https://github.com/serma-safety-security/Flipper-Zero-CAN-FD-HS-SW) `Req: SERMA CAN FD GPIO Board`
 - [Servotester v1.2 (By spin7ion)](https://github.com/spin7ion/flipper-servotester)
 - [ServoTester (2) v0.2 (By mhasbini)](https://github.com/mhasbini/ServoTesterApp)

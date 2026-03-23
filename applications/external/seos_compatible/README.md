@@ -6,9 +6,11 @@ Flipper app for reading and emulating Seos®-compatible cards/fobs/mobile creden
 
 ## 🔑 Keys
 
-**The app uses all 00 keys by default.**  
-It uses an ADF OID of 030107090000000000 ("0.3.1.7.9.0.0.0.0.0").  
-If you'd like to use your own keys/ADF OID, use the format of the `keys-example.txt` to specify them, and place into `SD Card/apps_data/seos/keys.txt`.
+**The app uses all zero keys by default**. If you'd like to use your own keys/ADF OID, use the format of the  `keys-example.txt` to specify them, and place into `SD Card/apps_data/seos/`.
+
+- **No key files**: If no key files are present, the app defaults to all zeros (00) for keys and an ADF OID of 030107090000000000 ("0.3.1.7.9.0.0.0.0.0").  
+- **keys.txt**: If `keys.txt` is present in `SD Card/apps_data/seos/`, it is automatically loaded at launch
+- **Additional key sets**: Other key files named `*_keys.txt` (e.g., `work_keys.txt`, `home_keys.txt`) can be placed in the same directory and selected via the Key Switcher in the app menu
 
 ## ⚠️ Note
 
