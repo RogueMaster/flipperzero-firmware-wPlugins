@@ -1,5 +1,5 @@
 App(
-    appid="random_decision_maker",
+    appid="decision_maker",
     name="Decision Maker",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="random_decision_maker_app",
