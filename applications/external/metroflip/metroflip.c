@@ -74,17 +74,9 @@ Metroflip* metroflip_alloc() {
     view_dispatcher_add_view(
         app->view_dispatcher, MetroflipViewTextInput, text_input_get_view(app->text_input));
 
-    app->byte_input = byte_input_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, MetroflipViewByteInput, byte_input_get_view(app->byte_input));
-
     app->popup = popup_alloc();
     view_dispatcher_add_view(app->view_dispatcher, MetroflipViewPopup, popup_get_view(app->popup));
 
-    // TextBox
-    app->text_box = text_box_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, MetroflipViewTextBox, text_box_get_view(app->text_box));
     app->text_box_store = furi_string_alloc();
 
     // Dialog for loading
@@ -128,8 +120,6 @@ void metroflip_free(Metroflip* app) {
     submenu_free(app->submenu);
     view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewTextInput);
     text_input_free(app->text_input);
-    view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewByteInput);
-    byte_input_free(app->byte_input);
     view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewPopup);
     popup_free(app->popup);
 
@@ -163,9 +153,6 @@ void metroflip_free(Metroflip* app) {
     view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewWidget);
     widget_free(app->widget);
 
-    // TextBox
-    view_dispatcher_remove_view(app->view_dispatcher, MetroflipViewTextBox);
-    text_box_free(app->text_box);
     furi_string_free(app->text_box_store);
 
     // View Dispatcher and Scene Manager

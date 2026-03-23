@@ -76,7 +76,7 @@ static void start_menu_draw(Canvas* canvas, void* model) {
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_icon(canvas, 3, 2, &I_icon);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 16, 11, "Metroflip");
+    canvas_draw_str(canvas, 16, 11, "Metroflip V2");
 
     /* Menu items */
     for(uint8_t i = 0; i < MENU_VISIBLE_ITEMS; i++) {

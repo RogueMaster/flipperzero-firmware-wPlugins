@@ -398,81 +398,124 @@ static void suica_parse_detail_callback(GuiButtonType result, InputType type, vo
 
 static NfcCommand suica_poller_callback(NfcGenericEvent event, void* context) {
     furi_assert(event.protocol == NfcProtocolFelica);
-    NfcCommand command = NfcCommandContinue;
-    // MetroflipPollerEventType stage = MetroflipPollerEventTypeStart;
-
     Metroflip* app = context;
-    FuriString* parsed_data = furi_string_alloc();
-    SuicaHistoryViewModel* model = view_get_model(app->suica_context->view_history);
-
-    Widget* widget = app->widget;
-
     const FelicaPollerEvent* felica_event = event.event_data;
     FURI_LOG_I(TAG, "Felica event: %d", felica_event->type);
-    if(felica_event->type == FelicaPollerEventTypeReady ||
-       felica_event->type == FelicaPollerEventTypeIncomplete) {
-        dolphin_deed(DolphinDeedNfcRead);
 
-        FURI_LOG_I(TAG, "Read complete");
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
-        command = NfcCommandStop;
+    if(felica_event->type == FelicaPollerEventTypeRequestAuthContext) {
+        // Skip authentication
+        felica_event->data->auth_context->skip_auth = true;
+
+        // Read only the blocks we need instead of letting the poller traverse
+        // all 60+ services (which exhausts memory and crashes).
+        FelicaPoller* poller = (FelicaPoller*)event.instance;
+        SuicaHistoryViewModel* model = view_get_model(app->suica_context->view_history);
+        FuriString* parsed_data = furi_string_alloc();
 
         nfc_device_set_data(app->nfc_device, NfcProtocolFelica, nfc_poller_get_data(app->poller));
-        const FelicaData* felica_data = nfc_poller_get_data(app->poller);
 
-        metroflip_app_blink_stop(app);
-
-        uint32_t system_count = simple_array_get_count(felica_data->systems);
+        // Try reading Suica history blocks from service 0x090F
         bool suica_found = false;
-        bool octopus_found = false;
-        uint8_t suica_system_index = 0;
-        uint8_t octopus_system_index = 0;
-        for(uint8_t i = 0; i < system_count; i++) {
-            FelicaSystem* system = simple_array_get(felica_data->systems, i);
-            if(system->system_code == JAPAN_IC_SYSTEM_CODE) {
+        furi_string_printf(parsed_data, "\e#Japan Transit IC\n\n");
+
+        for(uint8_t start = 0; start < 20; start += 4) {
+            uint8_t count = (start + 4 <= 20) ? 4 : (20 - start);
+            uint8_t block_nums[4];
+            for(uint8_t i = 0; i < count; i++) {
+                block_nums[i] = start + i;
+            }
+
+            FelicaPollerReadCommandResponse* resp = NULL;
+            FelicaError err = felica_poller_read_blocks(
+                poller, count, block_nums, SERVICE_CODE_HISTORY_IN_LE, &resp);
+
+            FURI_LOG_I(TAG, "Read blocks %d-%d: err=%d", start, start + count - 1, err);
+
+            if(err != FelicaErrorNone || !resp || resp->SF1 != 0) {
+                break;
+            }
+
+            for(uint8_t i = 0; i < resp->block_count; i++) {
+                const uint8_t* blk = resp->data + (i * FELICA_DATA_BLOCK_SIZE);
+                suica_add_entry(model, blk);
+                furi_string_cat_printf(parsed_data, "Log %02X: ", start + i);
+                for(size_t j = 0; j < FELICA_DATA_BLOCK_SIZE; j++) {
+                    furi_string_cat_printf(parsed_data, "%02X ", blk[j]);
+                }
+                furi_string_cat_printf(parsed_data, "\n");
                 suica_found = true;
-                suica_system_index = i;
-            } else if(system->system_code == OCTOPUS_SYSTEM_CODE) {
-                octopus_found = true;
-                octopus_system_index = i;
             }
         }
 
-        do {
-            if(suica_found) {
-                FelicaSystem* suica_system =
-                    simple_array_get(felica_data->systems, suica_system_index);
-                suica_model_pack_data(model, suica_system, parsed_data);
-                break;
-            } else if(octopus_found) {
-                FelicaSystem* octopus_system =
-                    simple_array_get(felica_data->systems, octopus_system_index);
-                suica_help_with_octopus(octopus_system, parsed_data);
-                break;
+        if(!suica_found) {
+            // Try Octopus balance from service 0x0117
+            uint8_t block_num = 0;
+            FelicaPollerReadCommandResponse* resp = NULL;
+            FelicaError err = felica_poller_read_blocks(
+                poller, 1, &block_num, SERVICE_CODE_OCTOPUS_IN_LE, &resp);
+
+            FURI_LOG_I(TAG, "Octopus read: err=%d", err);
+
+            if(err == FelicaErrorNone && resp && resp->SF1 == 0 && resp->block_count > 0) {
+                furi_string_reset(parsed_data);
+                const uint8_t* data = resp->data;
+                uint16_t unsigned_balance =
+                    ((uint16_t)data[2] << 8) | (uint16_t)data[3];
+
+                int32_t older_balance_cents = (int32_t)unsigned_balance - 350;
+                int32_t newer_balance_cents = (int32_t)unsigned_balance - 500;
+
+                uint16_t older_abs =
+                    (uint16_t)(older_balance_cents < 0 ? -older_balance_cents : older_balance_cents);
+                uint16_t newer_abs =
+                    (uint16_t)(newer_balance_cents < 0 ? -newer_balance_cents : newer_balance_cents);
+
+                furi_string_printf(parsed_data, "\e#Octopus Card\n");
+                furi_string_cat_str(
+                    parsed_data,
+                    "::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n");
+                furi_string_cat_printf(
+                    parsed_data, "If this card was issued \nbefore 2017 October 1st:\n");
+                furi_string_cat_printf(
+                    parsed_data,
+                    "Balance: %sHK$ %d.%02d\n",
+                    older_balance_cents < 0 ? "-" : "",
+                    (uint16_t)(older_abs / 100),
+                    (uint8_t)(older_abs % 100));
+                furi_string_cat_str(
+                    parsed_data,
+                    "::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n");
+                furi_string_cat_printf(
+                    parsed_data, "If this card was issued \nafter 2017 October 1st:\n");
+                furi_string_cat_printf(
+                    parsed_data,
+                    "Balance: %sHK$ %d.%02d\n",
+                    newer_balance_cents < 0 ? "-" : "",
+                    (uint16_t)(newer_abs / 100),
+                    (uint8_t)(newer_abs % 100));
+                furi_string_cat_str(
+                    parsed_data,
+                    "::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::");
             } else {
+                furi_string_reset(parsed_data);
                 furi_string_printf(
                     parsed_data,
                     "\e#FeliCa\nSorry, unrecorded service code.\nPlease let the developers know and we will add support.");
             }
-        } while(false);
-
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
-        if(suica_found) {
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Parse", suica_parse_detail_callback, app);
         }
 
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeLeft, "Save", metroflip_save_widget_callback, app);
+        // Store parsed data and result in context for the main thread to build the UI
+        app->suica_context->parsed_data = parsed_data;
+        app->suica_context->suica_found = suica_found;
 
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+        FURI_LOG_I(TAG, "Manual read complete, stopping poller");
+        dolphin_deed(DolphinDeedNfcRead);
+        metroflip_app_blink_stop(app);
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        return NfcCommandStop;
     }
-    furi_string_free(parsed_data);
-    command = NfcCommandStop;
-    return command;
+
+    return NfcCommandContinue;
 }
 
 static bool suica_history_input_callback(InputEvent* event, void* context) {
@@ -661,7 +704,31 @@ static bool suica_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
     Popup* popup = app->popup;
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            // Build widget on main thread using data prepared by poller callback
+            Widget* widget = app->widget;
+            FuriString* parsed_data = app->suica_context->parsed_data;
+            bool suica_found = app->suica_context->suica_found;
+
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
+
+            if(suica_found) {
+                widget_add_button_element(
+                    widget, GuiButtonTypeCenter, "Parse", suica_parse_detail_callback, app);
+            }
+
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            widget_add_button_element(
+                widget, GuiButtonTypeLeft, "Save", metroflip_save_widget_callback, app);
+
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+
+            furi_string_free(parsed_data);
+            app->suica_context->parsed_data = NULL;
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
@@ -690,6 +757,10 @@ static bool suica_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void suica_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    if(app->suica_context->parsed_data) {
+        furi_string_free(app->suica_context->parsed_data);
+        app->suica_context->parsed_data = NULL;
+    }
     with_view_model(
         app->suica_context->view_history,
         SuicaHistoryViewModel * model,

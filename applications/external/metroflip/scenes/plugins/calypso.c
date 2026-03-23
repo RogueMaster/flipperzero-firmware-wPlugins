@@ -13,6 +13,19 @@
 
 bool beginning = true;
 
+// SELECT APPLICATION by partial AID (Calypso RID) - used when CLA 0x94 is rejected
+static const uint8_t calypso_aid_select[] = {
+    0x00, 0xA4, 0x04, 0x00, 0x05, // CLA=00 INS=A4 P1=04(by name) P2=00 Lc=05
+    0xA0, 0x00, 0x00, 0x04, 0x04  // Calypso RID
+};
+
+// SELECT APPLICATION by full Navigo AID - for new Navigo variants that reject partial AID
+static const uint8_t calypso_navigo_aid_select[] = {
+    0x00, 0xA4, 0x04, 0x00, 0x0A, // CLA=00 INS=A4 P1=04(by name) P2=00 Lc=0A
+    0xA0, 0x00, 0x00, 0x04, 0x04, // Calypso RID
+    0x01, 0x25, 0x09, 0x01, 0x01  // Navigo PIX
+};
+
 char* build_hex_string(BitBuffer* rx_buffer) {
     static char output[29 * 3 + 1]; // 3 chars per byte + null terminator
     uint8_t byte;
@@ -532,6 +545,64 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                 card->opus = NULL;
                 card->ravkav = NULL;
 
+                // Try selecting Calypso application by AID first (must be first command
+                // sent to card - a prior failed command can corrupt card session state)
+                if(!app->data_loaded) {
+                    bool aid_selected = false;
+
+                    // 1. Try partial AID (RID only) - works for most Calypso cards
+                    bit_buffer_reset(tx_buffer);
+                    bit_buffer_reset(rx_buffer);
+                    bit_buffer_append_bytes(
+                        tx_buffer, calypso_aid_select, sizeof(calypso_aid_select));
+                    error = iso14443_4b_poller_send_block(
+                        iso14443_4b_poller, tx_buffer, rx_buffer);
+                    if(error == Iso14443_4bErrorNone) {
+                        response_length = bit_buffer_get_size_bytes(rx_buffer);
+                        if(response_length >= 2 &&
+                           bit_buffer_get_byte(rx_buffer, response_length - 2) ==
+                               apdu_success[0] &&
+                           bit_buffer_get_byte(rx_buffer, response_length - 1) ==
+                               apdu_success[1]) {
+                            FURI_LOG_I(TAG, "Calypso AID selected, using ISO 7816 mode");
+                            aid_selected = true;
+                        }
+                    }
+
+                    // 2. If RID select failed, try full Navigo AID for new card variants
+                    if(!aid_selected) {
+                        FURI_LOG_I(
+                            TAG, "RID select failed, trying full Navigo AID");
+                        bit_buffer_reset(tx_buffer);
+                        bit_buffer_reset(rx_buffer);
+                        bit_buffer_append_bytes(
+                            tx_buffer,
+                            calypso_navigo_aid_select,
+                            sizeof(calypso_navigo_aid_select));
+                        error = iso14443_4b_poller_send_block(
+                            iso14443_4b_poller, tx_buffer, rx_buffer);
+                        if(error == Iso14443_4bErrorNone) {
+                            response_length = bit_buffer_get_size_bytes(rx_buffer);
+                            if(response_length >= 2 &&
+                               bit_buffer_get_byte(rx_buffer, response_length - 2) ==
+                                   apdu_success[0] &&
+                               bit_buffer_get_byte(rx_buffer, response_length - 1) ==
+                                   apdu_success[1]) {
+                                FURI_LOG_I(
+                                    TAG,
+                                    "Full Navigo AID selected, using ISO 7816 mode");
+                                aid_selected = true;
+                            }
+                        }
+                    }
+
+                    if(aid_selected) {
+                        select_app[0] = 0x00;
+                        select_app[2] = 0x09; // P1: select from current DF
+                        read_file[0] = 0x00;
+                    }
+                }
+
                 // Select app ICC
                 error = select_new_app(
                     0x00, 0x02, tx_buffer, rx_buffer, iso14443_4b_poller, app, &stage);
@@ -540,26 +611,8 @@ static NfcCommand calypso_poller_callback(NfcGenericEvent event, void* context) 
                 }
 
                 // Check the response after selecting app
-                // CLA fallback: if card returns 6E00 (class not supported), retry with CLA=0x00
                 if(check_response(rx_buffer, app, &stage, &response_length) != 0) {
-                    if(response_length >= 2 &&
-                       bit_buffer_get_byte(rx_buffer, response_length - 2) == 0x6E &&
-                       bit_buffer_get_byte(rx_buffer, response_length - 1) == 0x00) {
-                        FURI_LOG_I(TAG, "CLA 0x94 not supported, retrying with CLA 0x00");
-                        select_app[0] = 0x00;
-                        read_file[0] = 0x00;
-                        stage = MetroflipPollerEventTypeStart;
-                        error = select_new_app(
-                            0x00, 0x02, tx_buffer, rx_buffer, iso14443_4b_poller, app, &stage);
-                        if(error != 0) {
-                            break;
-                        }
-                        if(check_response(rx_buffer, app, &stage, &response_length) != 0) {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
+                    break;
                 }
 
                 // Now send the read command for ICC
@@ -2713,6 +2766,7 @@ static void calypso_on_enter(Metroflip* app) {
     dolphin_deed(DolphinDeedNfcRead);
     beginning = true;
     select_app[0] = 0x94;
+    select_app[2] = 0x00;
     read_file[0] = 0x94;
 
     // Setup view
