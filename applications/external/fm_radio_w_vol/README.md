@@ -3,7 +3,7 @@
 </p>
 
 # flipperzero-radio-with-volume-control
-Flipper Zero external app to control TEA5767 FM radio boards and PT2257/PT2259 I2C volume.
+Flipper Zero external app to control TEA5767 FM radio boards and PT2257/PT2259-S I2C volume.
 
 ## Table of Contents
 - [Quick Start](#quick-start)
@@ -36,8 +36,9 @@ Windows (qFlipper):
 ## Features
 
 - TEA5767 FM control with manual tune (`76.0–108.0 MHz`) and seek step.
-- PT2257/PT2259 volume control and mute over I2C.
-- PT chip auto/manual address selection in app config (`Auto`, `0x88`, `0x44`).
+- PT2257/PT2259-S volume control and mute over I2C.
+- Manual PT chip protocol selection in app config (`PT2257`, `PT2259-S`).
+- Manual PT I2C address selection in app config (`0x88`, `0x44`).
 - Preset storage on SD card (`settings.fff`, `presets.fff`).
 - Live TEA5767 audio options (`SNC`, `De-emph`, `SoftMute`, `HighCut`, `Mono`).
 - Backlight keep-on option for long listening sessions.
@@ -46,7 +47,7 @@ Windows (qFlipper):
 
 - `Left/Right` (short): tune `-/+ 0.1 MHz` (`76.0–108.0`).
 - `Left/Right` (hold): single-step seek to next/previous station (from current, `+/-0.1 MHz` offset).
-- `OK` (short): toggle mute (PT2257/PT2259).
+- `OK` (short): toggle PT mute.
 - `OK` (hold): save current frequency to preset (no duplicates; overwrites current slot if full).
 - `Up/Down` (short): preset next/previous (or built-in frequency list if no presets exist).
 - `Up/Down` (hold): volume up/down (PT attenuation).
@@ -58,7 +59,8 @@ Open with: `Menu -> Config`
 
 - `Freq (MHz)`: jump to a frequency from the built-in list and tune immediately.
 - `Volume`: toggles mute/unmute (same as `OK` short in listen view).
-- `PT Addr`: select PT I2C address mode (`Auto`, `0x88`, `0x44`).
+- `PT Chip`: select PT control protocol (`PT2257`, `PT2259-S`).
+- `PT Addr`: select PT I2C address byte (`0x88`, `0x44`).
 - `Backlight`: keep Flipper display backlight on while app runs.
 - `SNC`: TEA5767 Stereo Noise Cancelling.
 - `De-emph`: TEA5767 de-emphasis (`50us` EU / `75us` US).
@@ -93,17 +95,12 @@ Automated releases (GitHub Actions):
 - PT2257 / PT2259 (I2C electronic volume controller)
 - PAM8403 (external audio amplifier)
 
-### PT2257 vs PT2259 (I2C Address)
-Some schematics/modules reference **PT2259**, while this repo is built around a **PT2257** software baseline. The key practical difference is I2C addressing.
+### PT2257 vs PT2259-S
+This app now treats **PT2257** and **PT2259-S** as separate control protocols.
 
-- This app/driver uses an **8-bit I2C address byte** convention (already left-shifted).
-  - PT2257 typical address byte: `0x88`
-  - PT2259 typical address byte: `0x44`
-- Equivalent **7-bit** addresses:
-  - PT2257: `0x44`
-  - PT2259: `0x22`
-
-You can switch this in app config: `Menu -> Config -> PT Addr`.
+- PT chip selection is manual in app config: `Menu -> Config -> PT Chip`.
+- PT I2C address remains a separate manual setting: `Menu -> Config -> PT Addr`.
+- PT2259-S support uses its own startup and mute sequence and no longer relies on autodetection by address.
 
 ### Wiring / Pinout
 - `3V3` (pin 9)  -> TEA/PT VCC

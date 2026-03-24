@@ -1,6 +1,6 @@
 App(
     appid="fmradio_controller_pt2257",
-    name="FM Radio w Vol [TEA+PT2257]",
+    name="FM Radio w Vol [TEA+PT]",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="fmradio_controller_app",
     stack_size=1 * 1024,
@@ -9,6 +9,6 @@ App(
     fap_category="GPIO",
     fap_author="coolshrimp & pchmielewski1",
     fap_weburl="https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control",
-    fap_version="0.9",
+    fap_version="0.10",
     fap_description="FM Radio app for controlling an FM receiver and (optionally) an external I2C volume controller",
 )
