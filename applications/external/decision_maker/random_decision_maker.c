@@ -4,7 +4,7 @@
  *
  * Controls — Manage screen:
  *   UP / DOWN   Navigate the list
- *   OK          Add a new decision (cursor on "Añadir") / select to spin (cursor on a decision)
+ *   OK          Add a new decision (cursor on "Add") / select to spin (cursor on a decision)
  *   LEFT        Delete the highlighted decision
  *   RIGHT       Spin the roulette (requires ≥ 2 decisions)
  *   BACK        Exit the app
@@ -175,7 +175,7 @@ static void manage_draw_callback(Canvas* canvas, void* model_ptr) {
 
     /* ── Title bar ── */
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Mis Decisiones");
+    canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "My Decisions");
     canvas_draw_line(canvas, 0, 11, 127, 11);
 
     /* ── Option rows ── */
@@ -196,7 +196,7 @@ static void manage_draw_callback(Canvas* canvas, void* model_ptr) {
             canvas_draw_str(canvas, 3, (uint8_t)(row_y + 8), m->items[idx]);
         } else {
             /* "Add" button */
-            canvas_draw_str(canvas, 3, (uint8_t)(row_y + 8), "+ Anadir decision");
+            canvas_draw_str(canvas, 3, (uint8_t)(row_y + 8), "+ Add decision");
         }
 
         if(selected) canvas_set_color(canvas, ColorBlack);
@@ -211,15 +211,15 @@ static void manage_draw_callback(Canvas* canvas, void* model_ptr) {
     bool can_spin = (m->count >= 2u);
 
     if(on_decision && can_spin) {
-        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[<]Borrar [>]Girar");
+        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[<]Delete [>]Spin");
     } else if(on_decision) {
         canvas_draw_str_aligned(
-            canvas, 64, 63, AlignCenter, AlignBottom, "[<]Borrar (min.2 decisiones)");
+            canvas, 64, 63, AlignCenter, AlignBottom, "[<]Delete (min.2 decisions)");
     } else if(can_spin) {
-        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Anadir [>]Girar");
+        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Add [>]Spin");
     } else {
         canvas_draw_str_aligned(
-            canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Anadir (min.2 para girar)");
+            canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Add (min.2 to spin)");
     }
 }
 
@@ -315,7 +315,7 @@ static bool manage_input_callback(InputEvent* event, void* context) {
         /* Prepare TextInput and switch to it. */
         app->input_buffer[0] = '\0';
         text_input_reset(app->text_input);
-        text_input_set_header_text(app->text_input, "Nueva decision:");
+        text_input_set_header_text(app->text_input, "New decision:");
         text_input_set_result_callback(
             app->text_input,
             text_input_done_callback,
@@ -440,10 +440,10 @@ static void start_spin(App* app) {
  * @brief Draws the roulette frame and progress bar.
  *
  * Layout:
- *   [0–12]   "Girando..." header
+ *   [0–12]   "Spinning..." header
  *   [14–44]  Rounded frame with the current option centred inside
  *   [50–56]  Progress bar (fills left → right)
- *   [57–63]  "Esperando..." hint
+ *   [57–63]  "Waiting..." hint
  */
 static void spinning_draw_callback(Canvas* canvas, void* model_ptr) {
     SpinModel* m = (SpinModel*)model_ptr;
@@ -452,7 +452,7 @@ static void spinning_draw_callback(Canvas* canvas, void* model_ptr) {
 
     /* Header */
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, "Girando...");
+    canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, "Spinning...");
 
     /* Roulette frame */
     canvas_draw_rframe(canvas, 2, 14, 124, 30, 4);
@@ -464,7 +464,7 @@ static void spinning_draw_callback(Canvas* canvas, void* model_ptr) {
     if(fill > 0) canvas_draw_box(canvas, 6, 50, fill, 7);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Esperando...");
+    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Waiting...");
 }
 
 /** Consumes all input while the animation is running. */
@@ -482,7 +482,7 @@ static bool spinning_input_callback(InputEvent* event, void* context) {
  * @brief Draws the winner inside a rounded frame.
  *
  * Layout:
- *   [0–13]   "La decision es:" header + separator
+ *   [0–13]   "The decision is:" header + separator
  *   [16–48]  Rounded frame with the winner centred inside
  *   [55–63]  Hint bar
  */
@@ -492,14 +492,14 @@ static void result_draw_callback(Canvas* canvas, void* model_ptr) {
     canvas_clear(canvas);
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, "La decision es:");
+    canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, "The decision is:");
     canvas_draw_line(canvas, 0, 13, 127, 13);
 
     canvas_draw_rframe(canvas, 2, 16, 124, 32, 4);
     canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, m->winner);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Otra vez [BACK]Menu");
+    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[OK]Again [BACK]Menu");
 }
 
 /** Handles OK (spin again) and BACK (return to manage) on the result screen. */

@@ -46,7 +46,22 @@ bool metroflip_scene_unknown_on_event(void* context, SceneManagerEvent event) {
     Metroflip* app = context;
     bool consumed = false;
 
-    if(event.type == SceneManagerEventTypeBack) {
+    if(event.type == SceneManagerEventTypeCustom) {
+        if(event.event == MetroflipCustomEventTick) {
+            if(app->card_view && view_get_model(app->card_view)) {
+                with_view_model(
+                    app->card_view,
+                    MetroflipCardViewModel * m,
+                    {
+                        if(m->anim[0]) {
+                            m->anim_frame = (m->anim_frame + 1) % METROFLIP_CARD_VIEW_ANIM_FRAMES;
+                        }
+                    },
+                    true);
+            }
+            consumed = true;
+        }
+    } else if(event.type == SceneManagerEventTypeBack) {
         scene_manager_search_and_switch_to_previous_scene(app->scene_manager, MetroflipSceneStart);
         consumed = true;
     }

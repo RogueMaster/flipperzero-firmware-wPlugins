@@ -1,38 +1,44 @@
-## v1.1
+## v2
 
-### UI Overhaul
+## UI Overhaul
 
-- **Custom Main Menu** - Canvas-based menu with per-item icons and animated selection highlights (NFC pulse, save arrow, ticket slide, info pulse, sparkle)
-- **Card View System** - New multi-page scrollable card result display replacing plain text scroll:
+- Custom Main Menu - Canvas-based menu with per-item icons and animated selection highlights (NFC pulse, save arrow, ticket slide, info pulse, sparkle)
+- Card View System - New multi-page scrollable card result display replacing plain text scroll
   - Inverted header bar with card title, animated icon, and page indicator
-  - Full-width "Label: Value" field rendering with auto line-split for long values
+  - Full-width field rendering with auto line-split for long values
   - Left/Right page navigation, Up/Down scrolling with scrollbar
   - OK=Save / OK=Delete button in footer
   - Random animated icon (train, wallet, ticket, card) assigned per scan
-- **Scan Animation** - Dolphin NFC scan screen with progressive wave animation (waves appear one by one) and animated "Scanning..." text
-- **Supported Cards** - Converted from plain text to scrollable submenu list with 20 cards by name and city
-- **Unsupported Card Scene** - Card view UI with animated X icon, protocol/lock info, and GitHub reporting link
-- **Loading Screen** - "Parsing card data..." popup when loading saved files (no more menu flash)
+- Scan Animation - Dolphin NFC scan screen with progressive wave animation and animated "Scanning..." text
+- Supported Cards - Converted from plain text to scrollable submenu list with 20 cards by name and city
+- Unsupported Card Scene - Card view UI with animated X icon, protocol/lock info, and GitHub reporting link
+- Loading Screen - "Parsing card data..." popup when loading saved files (no more menu flash)
 
-### Plugin Migrations (17/19 plugins)
+## Plugin Migrations (17/19 plugins)
 
 All plugins migrated to the new card view system with structured field display:
 Clipper, Opal, myki, ITSO, Nol, Bip!, CharlieCard, GoCard, MetroMoney, SmartRider, Troika, Two Cities, RENFE Suma 10, RENFE Regular, Intertic, T-Mobilitat, TRT
 
 Suica and Calypso excluded (already have custom UIs).
 
-### Custom Icons
+## Custom Icons
 
 - 13 static icons: CardGeneric, Wallet, Calendar, Ticket, Train, Check, Cross, Lock, NfcScan, Save, Info, ArrowLeft, ArrowRight
 - 39 animation frames across 13 icon sets for menu and parser animations
 - 3 DolphinScan frames (progressive NFC waves from original dolphin image)
 
-### Memory Safety & Stability
+## Bug Fixes (beta.2)
+
+- Suica/FeliCa crash fix - Fixed crash when reading Suica cards with many services. The FeliCa poller was traversing all 60+ services on the card, exhausting memory. Now reads only the needed history blocks directly, avoiding the full traversal.
+- Navigo/Calypso AID selection - Fixed newer Navigo cards that reject the legacy CLA 0x94 class byte. Now performs an upfront ISO 7816 SELECT APPLICATION by AID before falling back to Calypso native commands.
+- Unknown card scene - Added tick event handling for card view animation on the unsupported card screen.
+
+## Memory Safety and Stability
 
 - Fixed null pointer dereference in main menu draw callback (model freed while view active)
 - Fixed card view cleanup order - card view freed by parse scene AFTER plugin unload
 - Fixed double nfc_device_alloc leak in metroflip_alloc
-- Fixed storage file handle leaks in manage_keyfiles (added storage_file_free + furi_record_close)
+- Fixed storage file handle leaks in manage_keyfiles
 - Fixed plugin_manager leak when plugin load fails
 - Fixed ATR/T-Money fall-through to plugin load after sending WrongCard event
 - Fixed unguarded plugin_on_event calls when plugin_manager is NULL
@@ -40,10 +46,9 @@ Suica and Calypso excluded (already have custom UIs).
 - Added null guards to all draw callbacks
 - Cleared view callbacks before freeing in metroflip_free to prevent dangling function pointers
 - OV-Chipkaart removed from main menu (still parseable from saved files)
+- Show actionable error when plugin fails to load
 
-### Previous v1.1 fixes
-
-Memory safety overhaul and bug fixes.
+## Previous Fixes
 
 - Orca changes (FatherDivine)
   - Added Orca AID variant 0xF013F2 based on user testing
@@ -76,21 +81,19 @@ Memory safety overhaul and bug fixes.
 
 - T-Mobilitat Fix
   - Fixed crash on card read caused by stack overflow from deep scene nesting
-  - ATR plugin now defers scene transition via custom event instead of calling scene_manager_next_scene from within plugin code
-  - Removed erroneous poller cleanup from tmobilitat_on_exit (plugin does not own a poller)
-  - NULL poller pointer after free in ATR plugin to prevent dangling pointer
+  - ATR plugin now defers scene transition via custom event
+  - Removed erroneous poller cleanup from tmobilitat_on_exit
   - Card number now displays formatted as XXX XXX XXXCC with control characters
 
-- Calypso/Navigo Stack & Memory Fixes
-  - Replaced 11 variable-length arrays with fixed-size buffers (CALYPSO_BIT_REPR_SIZE) to prevent stack overflow on 2KB stack
-  - Fixed 3 memory leak paths in navigo.c station lookup (strdup failure leaked file handles and FuriStrings)
-  - Reduced get_token() static buffer from 512 to 64 bytes, saving 448 bytes of static RAM
+- Calypso/Navigo Stack and Memory Fixes
+  - Replaced 11 variable-length arrays with fixed-size buffers to prevent stack overflow on 2KB stack
+  - Fixed 3 memory leak paths in navigo.c station lookup
+  - Reduced get_token() static buffer from 512 to 64 bytes
   - Added NULL check for CalypsoContext allocation in poller callback
-  - NULL poller pointer after free in calypso_on_exit
 
 - Allocation Safety (intercode, opus, ravkav)
   - Added NULL checks for cascading malloc calls in all structure-building functions
-  - If a nested malloc fails, parent allocations are now properly freed instead of leaked
+  - If a nested malloc fails, parent allocations are now properly freed
 
 - calypso_util.c
   - Added NULL checks in get_calypso_node_offset() and get_calypso_node_size()
@@ -106,7 +109,7 @@ Memory safety overhaul and bug fixes.
 ## v0.9
 
 - Fix unsupported card crash
-- RENFE Suma 10 support ADDED 
+- RENFE Suma 10 support ADDED
 - GEG Connect AID added to DESfire list.
 - Top Up log parsing and animations.
 - 16 new rail lines, including JR lines like Chuo, Negishi, Joban, and Yamanote; and all of Tokyu's operating lines.
@@ -123,54 +126,54 @@ Memory safety overhaul and bug fixes.
 - Fixed Navigo crash
 - Fixed crash when opening Navigo files after exit
 - Fixed Clipper timestamp epoch conversion
-- Fixed Calypso file saving 
+- Fixed Calypso file saving
 
 ## v0.7
 
-- Fixed the stuck-in-app loop  
-- Added balance to Rav-Kav  
-- Added Suica parser  
-- Stylization updates  
+- Fixed the stuck-in-app loop
+- Added balance to Rav-Kav
+- Added Suica parser
+- Stylization updates
 
 ## v0.6
 
-- Added a load mode and a save mode to store card info  
-- Fixed a major bug due to API symbol not existing  
+- Added a load mode and a save mode to store card info
+- Fixed a major bug due to API symbol not existing
 
 ## v0.5
 
 Big update!
 
-- Custom API Added: A custom API for Metroflip has been introduced for smoother operation and better scalability  
-- Parsers Moved to Plugins: All parsers have been moved to individual plugins, loaded from the SD card as '.fal' files  
-- Scene Optimization: All scenes merged into 'metroflip_scene_parse.c' for simplification  
-- RAM Usage Reduced: Over 45% reduction in RAM usage  
+- Custom API Added: A custom API for Metroflip has been introduced for smoother operation and better scalability
+- Parsers Moved to Plugins: All parsers have been moved to individual plugins, loaded from the SD card as '.fal' files
+- Scene Optimization: All scenes merged into 'metroflip_scene_parse.c' for simplification
+- RAM Usage Reduced: Over 45% reduction in RAM usage
 - Navigo Station List: Moved to 'apps_assets'
-- Unified Calypso Parser: Thanks to DocSystem  
-- Rav-Kav Moved to Calypso Parser: Credit to luu176  
+- Unified Calypso Parser: Thanks to DocSystem
+- Rav-Kav Moved to Calypso Parser: Credit to luu176
 
 ## v0.4
 
-- Updated Navigo parser (thanks to DocSystem)  
-  - Now uses a global Calypso parser with defined structures  
-  - Fixes BusFault and NULL pointer dereferences  
-- Updated all Desfire parsers (Opal, ITSO, Myki, etc.)  
-  - Fixed crash when pressing back button while reading  
-- Fix Charliecard parser  
+- Updated Navigo parser (thanks to DocSystem)
+  - Now uses a global Calypso parser with defined structures
+  - Fixes BusFault and NULL pointer dereferences
+- Updated all Desfire parsers (Opal, ITSO, Myki, etc.)
+  - Fixed crash when pressing back button while reading
+- Fix Charliecard parser
 
 ## v0.3
 
-- Added Clipper parser (San Francisco, CA, USA)  
-- Added Troika parser (Moscow, Russia)  
-- Added Myki parser (Melbourne, VIC, Australia)  
-- Added Opal parser (Sydney, NSW, Australia)  
-- Added ITSO parser (United Kingdom)  
+- Added Clipper parser (San Francisco, CA, USA)
+- Added Troika parser (Moscow, Russia)
+- Added Myki parser (Melbourne, VIC, Australia)
+- Added Opal parser (Sydney, NSW, Australia)
+- Added ITSO parser (United Kingdom)
 
 ## v0.2
 
-- Updated Rav-Kav parsing to show more data like transaction logs  
-- Added Navigo parser (Paris, France)  
-- Bug fixes  
+- Updated Rav-Kav parsing to show more data like transaction logs
+- Added Navigo parser (Paris, France)
+- Bug fixes
 
 ## v0.1
 

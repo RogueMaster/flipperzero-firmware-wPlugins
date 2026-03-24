@@ -72,10 +72,10 @@ void metroflip_scene_parse_on_enter(void* context) {
         FuriString* s = furi_string_alloc();
         furi_string_printf(
             s,
-            "\e#Plugin Load Failed\n\n"
+            "\e#Not Enough Memory\n\n"
             "Card: %s\n"
-            "Try reinstalling the\n"
-            "app with fresh plugins.",
+            "Please reboot and\n"
+            "try again.",
             app->card_type);
         widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
         widget_add_button_element(
