@@ -50,6 +50,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
 - Updated: [Sub Duplicate Finder v1.2 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - Updated: [Apple Grabber v0.1 (By d7d8)](https://github.com/d7d8/apple-grabber)
+- Updated: [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper) (Version Only)
 
 <a name="release"></a>
 
@@ -422,7 +423,7 @@ $ ./fbt dolphin_ext
 ## Apps / Plugins
 
 - [24Cxx Programmer v2.0 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
-- [Agentic Remote USB/BT v0.27 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
+- [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
 - [Air Level v1.0 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/vgm/air_level) `Req: Video Game Module By Flipper Devices`
 - [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`

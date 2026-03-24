@@ -10,7 +10,7 @@ App(
     fap_category="USB",
     fap_author="Kasen Sansonetti",
     fap_weburl="https://github.com/Wet-wr-Labs/claupper",
-    fap_version="0.27",
+    fap_version="0.28",
     fap_description="One-handed USB remote for AI coding agents (Claude Code). 5-button D-pad control, macros, offline manual + quiz.",
 )
 
@@ -28,6 +28,6 @@ App(
     fap_category="Bluetooth",
     fap_author="Kasen Sansonetti",
     fap_weburl="https://github.com/Wet-wr-Labs/claupper",
-    fap_version="0.27",
+    fap_version="0.28",
     fap_description="One-handed Bluetooth remote for AI coding agents (Claude Code). 5-button D-pad control, macros, offline manual + quiz.",
 )
