@@ -6,8 +6,10 @@
 
 #include <apple_grabber_icons.h>
 
-#define CATCH       261.63f //C middle note from Piano
-#define PROJECTILES 4 //Number of apples per round
+#define CATCH        261.63f //C middle note from Piano
+#define PROJECTILES  4 //Number of apples per round
+#define GAME_SPEED   1 //Speed of the apples
+#define PLAYER_SPEED 1 //Speed of the apples
 
 // Screensize 128 p x 64 p
 
@@ -32,10 +34,12 @@ typedef struct {
 } Projectile;
 
 typedef struct {
-    int speed;
+    int game_speed;
     int player_speed;
-    int score;
+    bool playing;
+    enum FinalScore score;
     int catch;
+    Projectile* apples[PROJECTILES];
     FuriMutex* model_mutex;
     FuriMessageQueue* event_queue;
     ViewPort* view_port;
@@ -44,18 +48,15 @@ typedef struct {
     Entity* player;
 } AppleGame;
 
-Projectile* apples[PROJECTILES];
-bool playing = false;
-int game_speed = 1;
-enum FinalScore score = EXIT;
-
 void free_apple_game(AppleGame* AP) {
+    furi_timer_stop(AP->timer);
+    furi_timer_free(AP->timer);
+
     view_port_enabled_set(AP->view_port, false);
     gui_remove_view_port(AP->gui, AP->view_port);
     furi_record_close("gui");
     view_port_free(AP->view_port);
     furi_message_queue_free(AP->event_queue);
-    furi_timer_free(AP->timer);
 
     furi_mutex_free(AP->model_mutex);
 
@@ -65,19 +66,19 @@ void free_apple_game(AppleGame* AP) {
     }
 
     for(int i = 0; i < PROJECTILES; i++) {
-        free(apples[i]);
+        free(AP->apples[i]);
     }
 
     free(AP->player);
     free(AP);
 }
 
-AppleGame* apple_allocation(int game_speed, int player_speed) {
+AppleGame* apple_allocation() {
     AppleGame* AP = malloc(sizeof(AppleGame));
 
     AP->model_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
-    AP->event_queue = furi_message_queue_alloc(1, sizeof(InputEvent));
+    AP->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
     AP->view_port = view_port_alloc();
     view_port_set_orientation(AP->view_port, ViewPortOrientationVertical);
@@ -90,10 +91,11 @@ AppleGame* apple_allocation(int game_speed, int player_speed) {
     AP->gui = furi_record_open("gui");
     gui_add_view_port(AP->gui, AP->view_port, GuiLayerFullscreen);
 
-    AP->speed = game_speed;
-    AP->player_speed = player_speed;
-    AP->score = 0;
+    AP->game_speed = GAME_SPEED;
+    AP->player_speed = PLAYER_SPEED;
+    AP->score = EXIT;
     AP->catch = 0;
+    AP->playing = false;
 
     AP->player = malloc(sizeof(Entity));
 
@@ -101,10 +103,10 @@ AppleGame* apple_allocation(int game_speed, int player_speed) {
     AP->player->y = 32;
 
     for(int i = 0; i < PROJECTILES; i++) {
-        apples[i] = malloc(sizeof(Projectile));
-        apples[i]->coordinate.y = rand() % 59;
-        apples[i]->coordinate.x = -rand() % 128;
-        apples[i]->playing = true;
+        AP->apples[i] = malloc(sizeof(Projectile));
+        AP->apples[i]->coordinate.y = rand() % 59;
+        AP->apples[i]->coordinate.x = -rand() % 128;
+        AP->apples[i]->playing = true;
     }
 
     return AP;
@@ -117,16 +119,16 @@ void draw_cb(Canvas* canvas, void* ap_pointer) {
     Icon* player = (Icon*)&I_player; //Player Icon definition 10 x 15
     Icon* apple = (Icon*)&I_apple; //Apple Icon definition 5 x 6
 
-    if(playing == false) {
+    if(AP->playing == false) {
         canvas_draw_frame(canvas, 0, 0, 64, 128);
         canvas_draw_str_aligned(canvas, 32, 10, AlignCenter, AlignCenter, "AppleGame");
         canvas_draw_str_aligned(canvas, 32, 30, AlignCenter, AlignCenter, "Press OK");
         canvas_draw_str_aligned(canvas, 32, 40, AlignCenter, AlignCenter, "to start");
         canvas_draw_str_aligned(canvas, 32, 60, AlignCenter, AlignCenter, "Use arrows");
         canvas_draw_str_aligned(canvas, 32, 70, AlignCenter, AlignCenter, "to move");
-    } else if(score != EXIT) {
+    } else if(AP->score != EXIT) {
         canvas_draw_frame(canvas, 0, 0, 64, 128);
-        if(score == WIN) {
+        if(AP->score == WIN) {
             canvas_draw_str_aligned(canvas, 32, 10, AlignCenter, AlignCenter, "You Won!!");
         } else {
             canvas_draw_str_aligned(canvas, 32, 10, AlignCenter, AlignCenter, "You Lost :(");
@@ -138,8 +140,9 @@ void draw_cb(Canvas* canvas, void* ap_pointer) {
     } else {
         canvas_draw_icon(canvas, AP->player->y, AP->player->x, player);
         for(int i = 0; i < PROJECTILES; i++) {
-            if(apples[i]->playing == true) {
-                canvas_draw_icon(canvas, apples[i]->coordinate.y, apples[i]->coordinate.x, apple);
+            if(AP->apples[i]->playing == true) {
+                canvas_draw_icon(
+                    canvas, AP->apples[i]->coordinate.y, AP->apples[i]->coordinate.x, apple);
             }
         }
     }
@@ -150,15 +153,20 @@ void draw_cb(Canvas* canvas, void* ap_pointer) {
 //For input callbacks
 void input_cb(InputEvent* input, void* ap_pointer) {
     AppleGame* AP = ap_pointer;
-    furi_message_queue_put(AP->event_queue, input, FuriWaitForever);
+    if(AP && AP->event_queue) {
+        furi_message_queue_put(AP->event_queue, input, 0);
+    }
 }
 
 //For apple ticks
 void timer_cb(void* ap_pointer) {
     AppleGame* AP = ap_pointer;
-    InputEvent* input = malloc(sizeof(InputEvent));
-    input->type = InputTypeMAX;
-    furi_message_queue_put(AP->event_queue, input, FuriWaitForever);
+    if(AP && AP->event_queue) {
+        InputEvent input;
+        input.type = InputTypeMAX;
+        input.key = 0;
+        furi_message_queue_put(AP->event_queue, &input, 0);
+    }
 }
 
 int32_t apple_grabber_app(void* p) {
@@ -166,12 +174,12 @@ int32_t apple_grabber_app(void* p) {
 
     InputEvent event;
 
-    AppleGame* AP = apple_allocation(1, 1);
+    AppleGame* AP = apple_allocation();
     bool game_stop = false;
 
     while(game_stop == false) {
         //Playing phase
-        playing = false;
+        AP->playing = false;
         bool running = true;
         while(running) {
             FuriStatus status = furi_message_queue_get(AP->event_queue, &event, FuriWaitForever);
@@ -192,8 +200,8 @@ int32_t apple_grabber_app(void* p) {
                         AP->player->y -= 8;
                         break;
                     case InputKeyOk:
-                        if(playing == false) {
-                            playing = true;
+                        if(AP->playing == false) {
+                            AP->playing = true;
                         }
                         break;
                     case InputKeyBack:
@@ -204,28 +212,28 @@ int32_t apple_grabber_app(void* p) {
                         break;
                     }
                 } else if(event.type == InputTypeRelease) {
-                } else if(event.type == InputTypeMAX && playing) {
+                } else if(event.type == InputTypeMAX && AP->playing) {
                     if(furi_hal_speaker_is_mine()) {
                         furi_hal_speaker_stop();
                         furi_hal_speaker_release();
                     }
                     bool apples_remaining = false;
                     for(int i = 0; i < PROJECTILES; i++) {
-                        if(apples[i]->playing) {
-                            if(apples[i]->coordinate.x > 113 &&
-                               apples[i]->coordinate.y >= AP->player->y &&
-                               apples[i]->coordinate.y <= (AP->player->y + 10)) {
-                                apples[i]->playing = false;
+                        if(AP->apples[i]->playing) {
+                            if(AP->apples[i]->coordinate.x > 113 &&
+                               AP->apples[i]->coordinate.y >= AP->player->y &&
+                               AP->apples[i]->coordinate.y <= (AP->player->y + 10)) {
+                                AP->apples[i]->playing = false;
                                 if(furi_hal_speaker_is_mine() || furi_hal_speaker_acquire(1000)) {
                                     furi_hal_speaker_start(CATCH, volume);
                                 }
                             }
-                            if(apples[i]->coordinate.x > 128) {
-                                score = LOSE;
+                            if(AP->apples[i]->coordinate.x > 128) {
+                                AP->score = LOSE;
                                 running = false;
                             } else {
                                 apples_remaining = true;
-                                apples[i]->coordinate.x += game_speed;
+                                AP->apples[i]->coordinate.x += AP->game_speed;
                             }
                         }
                     }
@@ -233,11 +241,11 @@ int32_t apple_grabber_app(void* p) {
                     // If apples are caught, place them again
                     if(apples_remaining == false) {
                         for(int i = 0; i < PROJECTILES; i++) {
-                            apples[i]->coordinate.y = rand() % 59;
-                            apples[i]->coordinate.x = -32 - rand() % 128;
-                            apples[i]->playing = true;
+                            AP->apples[i]->coordinate.y = rand() % 59;
+                            AP->apples[i]->coordinate.x = -32 - rand() % 128;
+                            AP->apples[i]->playing = true;
                         }
-                        game_speed += 2;
+                        AP->game_speed += 2;
                     }
                 }
             }
@@ -246,8 +254,8 @@ int32_t apple_grabber_app(void* p) {
             } else if(AP->player->y < 0) {
                 AP->player->y = 0;
             }
-            if(game_speed > 7) {
-                score = WIN;
+            if(AP->game_speed > 7) {
+                AP->score = WIN;
                 running = false;
             }
 
@@ -256,7 +264,7 @@ int32_t apple_grabber_app(void* p) {
         }
 
         //End result phase
-        while(score != EXIT) {
+        while(AP->score != EXIT) {
             if(furi_hal_speaker_is_mine()) {
                 furi_hal_speaker_stop();
                 furi_hal_speaker_release();
@@ -267,16 +275,16 @@ int32_t apple_grabber_app(void* p) {
                 if(event.type == InputTypePress) {
                     switch(event.key) {
                     case InputKeyOk:
-                        score = EXIT;
+                        AP->score = EXIT;
                         for(int i = 0; i < PROJECTILES; i++) {
-                            apples[i]->coordinate.y = rand() % 59;
-                            apples[i]->coordinate.x = -32 - rand() % 128;
-                            apples[i]->playing = true;
+                            AP->apples[i]->coordinate.y = rand() % 59;
+                            AP->apples[i]->coordinate.x = -32 - rand() % 128;
+                            AP->apples[i]->playing = true;
                         }
-                        game_speed = 1;
+                        AP->game_speed = GAME_SPEED;
                         break;
                     case InputKeyBack:
-                        score = EXIT;
+                        AP->score = EXIT;
                         game_stop = true;
                         break;
                     default:
