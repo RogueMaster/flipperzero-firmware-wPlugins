@@ -104,7 +104,15 @@ int32_t seader_uart_worker(void* context) {
     while(1) {
         uint32_t events =
             furi_thread_flags_wait(WORKER_ALL_RX_EVENTS, FuriFlagWaitAny, FuriWaitForever);
-        furi_check(!(events & FuriFlagError));
+        if(events & FuriFlagError) {
+            FURI_LOG_E(
+                TAG,
+                "RX worker flag error events=0x%08lx thread=%p tx_thread=%p",
+                (unsigned long)events,
+                (void*)seader_uart->thread,
+                (void*)seader_uart->tx_thread);
+            break;
+        }
         if(events & WorkerEvtStop) {
             memset(cmd, 0, cmd_len);
             cmd_len = 0;
@@ -171,7 +179,14 @@ int32_t seader_uart_tx_thread(void* context) {
     while(1) {
         uint32_t events =
             furi_thread_flags_wait(WORKER_ALL_TX_EVENTS, FuriFlagWaitAny, FuriWaitForever);
-        furi_check(!(events & FuriFlagError));
+        if(events & FuriFlagError) {
+            FURI_LOG_E(
+                TAG,
+                "TX worker flag error events=0x%08lx serial_handle=%p",
+                (unsigned long)events,
+                (void*)seader_uart->serial_handle);
+            break;
+        }
         if(events & WorkerEvtTxStop) break;
         if(events & WorkerEvtSamRx) {
             if(seader_uart->tx_len > 0) {

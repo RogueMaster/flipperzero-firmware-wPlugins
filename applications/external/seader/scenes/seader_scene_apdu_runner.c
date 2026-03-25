@@ -12,6 +12,7 @@ void seader_apdu_runner_worker_callback(uint32_t event, void* context) {
 
 void seader_scene_apdu_runner_on_enter(void* context) {
     Seader* seader = context;
+    seader_worker_acquire(seader);
     // Setup view
     Popup* popup = seader->popup;
     popup_set_header(popup, "APDU Runner", 68, 30, AlignLeft, AlignTop);
@@ -73,4 +74,5 @@ void seader_scene_apdu_runner_on_exit(void* context) {
 
     // Clear view
     popup_reset(seader->popup);
+    seader_worker_release(seader);
 }

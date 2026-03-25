@@ -14,6 +14,13 @@
 /* Keep the host harness aligned with the production UART scratchpad size. */
 #define SEADER_UART_RX_BUF_SIZE   (300)
 #define FURI_LOG_W(tag, fmt, ...) ((void)0)
+#define furi_check(expr)                                                                  \
+    do {                                                                                  \
+        if(!(expr)) {                                                                     \
+            fprintf(stderr, "furi_check failed: %s (%s:%d)\n", #expr, __FILE__, __LINE__); \
+            abort();                                                                      \
+        }                                                                                 \
+    } while(0)
 
 typedef struct BitBuffer BitBuffer;
 typedef struct Seader Seader;

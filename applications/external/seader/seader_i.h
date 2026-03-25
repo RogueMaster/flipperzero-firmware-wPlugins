@@ -39,7 +39,8 @@
 #include <Payload.h>
 #include <FrameProtocol.h>
 
-#include "plugin/interface.h"
+#include "wiegand_interface_fal/interface.h"
+#include "hf_interface_fal/hf_interface.h"
 #include <flipper_application/flipper_application.h>
 #include <flipper_application/plugins/plugin_manager.h>
 #include <loader/firmware_api/firmware_api.h>
@@ -68,6 +69,7 @@
 #define SEADER_TEXT_STORE_SIZE         128
 #define SEADER_MAX_ATR_SIZE            33
 #define MAX_FRAME_HEADERS              32
+#define SEADER_SCRATCH_SIZE            512
 #define SEADER_MAX_DETECTED_CARD_TYPES 3
 
 enum SeaderCustomEvent {
@@ -103,6 +105,18 @@ typedef struct {
     uint16_t current_line;
 } SeaderAPDURunnerContext;
 
+typedef struct {
+    size_t offset;
+    size_t high_water;
+    uint8_t arena[SEADER_SCRATCH_SIZE];
+} SeaderScratch;
+
+typedef struct {
+    SeaderCredentialType detected_card_types[SEADER_MAX_DETECTED_CARD_TYPES];
+    size_t detected_card_type_count;
+    SeaderCredentialType selected_read_type;
+} SeaderHfModeContext;
+
 typedef enum {
     SeaderSamStateIdle,
     SeaderSamStateDetectPending,
@@ -135,11 +149,14 @@ struct Seader {
     SeaderSamState sam_state;
     SeaderSamIntent sam_intent;
     bool sam_present;
+    uint8_t sam_version[2];
     uint8_t ATR[SEADER_MAX_ATR_SIZE];
     size_t ATR_len;
     char sam_key_label[SEADER_SAM_KEY_LABEL_MAX_LEN];
     char uhf_status_label[SEADER_UHF_STATUS_LABEL_MAX_LEN];
     SeaderUhfSnmpProbe snmp_probe;
+    SeaderScratch scratch;
+    SeaderHfModeContext* hf_mode;
 
     char text_store[SEADER_TEXT_STORE_SIZE + 1];
     char read_error[SEADER_TEXT_STORE_SIZE + 1];
@@ -164,12 +181,18 @@ struct Seader {
     PicopassPoller* picopass_poller;
 
     NfcDevice* nfc_device;
-    SeaderCredentialType detected_card_types[SEADER_MAX_DETECTED_CARD_TYPES];
-    size_t detected_card_type_count;
-    SeaderCredentialType selected_read_type;
 
     PluginManager* plugin_manager;
     PluginWiegand* plugin_wiegand;
+    PluginManager* hf_plugin_manager;
+    PluginHf* plugin_hf;
+    void* hf_plugin_ctx;
+    SeaderModeRuntime mode_runtime;
+    SeaderHfSessionState hf_session_state;
+    SeaderHfTeardownAction hf_teardown_action;
+    bool loading_popup_enabled;
+    bool start_scene_active;
+    bool sam_present_menu_guard_active;
 
     APDULog* apdu_log;
     SeaderAPDURunnerContext apdu_runner_ctx;
@@ -199,4 +222,17 @@ void seader_blink_start(Seader* seader);
 
 void seader_blink_stop(Seader* seader);
 
+void seader_nfc_loading_callback(void* context, bool show);
 void seader_show_loading_popup(void* context, bool show);
+
+bool seader_hf_mode_activate(Seader* seader);
+void seader_hf_mode_deactivate(Seader* seader);
+SeaderCredentialType seader_hf_mode_get_selected_read_type(const Seader* seader);
+void seader_hf_mode_set_selected_read_type(Seader* seader, SeaderCredentialType type);
+void seader_hf_mode_set_detected_types(
+    Seader* seader,
+    const SeaderCredentialType* types,
+    size_t count);
+size_t seader_hf_mode_get_detected_type_count(const Seader* seader);
+const SeaderCredentialType* seader_hf_mode_get_detected_types(const Seader* seader);
+void seader_hf_mode_clear_detected_types(Seader* seader);

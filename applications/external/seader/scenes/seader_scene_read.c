@@ -4,6 +4,8 @@
 
 void seader_scene_read_on_enter(void* context) {
     Seader* seader = context;
+    seader_hf_mode_activate(seader);
+    seader_worker_acquire(seader);
     dolphin_deed(DolphinDeedNfcRead);
 
     // Setup view
@@ -16,9 +18,8 @@ void seader_scene_read_on_enter(void* context) {
 
     seader_scene_read_prepare(seader);
     seader_credential_clear(seader->credential);
-    if(seader->selected_read_type == SeaderCredentialTypeNone) {
-        seader->detected_card_type_count = 0;
-        memset(seader->detected_card_types, 0, sizeof(seader->detected_card_types));
+    if(seader_hf_mode_get_selected_read_type(seader) == SeaderCredentialTypeNone) {
+        seader_hf_mode_clear_detected_types(seader);
     }
     seader_worker_start(
         seader->worker,
@@ -38,6 +39,11 @@ bool seader_scene_read_on_event(void* context, SceneManagerEvent event) {
         if(event.event == SeaderCustomEventWorkerExit) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneReadCardSuccess);
             consumed = true;
+        } else if(event.event == SeaderWorkerEventFail) {
+            scene_manager_next_scene(seader->scene_manager, SeaderSceneReadCardSuccess);
+            consumed = true;
+        } else if(event.event == SeaderWorkerEventHfTeardownComplete) {
+            consumed = seader_hf_finish_teardown_action(seader);
         } else if(event.event == SeaderCustomEventPollerDetect) {
             Popup* popup = seader->popup;
             popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
@@ -50,12 +56,8 @@ bool seader_scene_read_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        seader->selected_read_type = SeaderCredentialTypeNone;
-        seader->detected_card_type_count = 0;
-        memset(seader->detected_card_types, 0, sizeof(seader->detected_card_types));
-        scene_manager_search_and_switch_to_previous_scene(
-            seader->scene_manager, SeaderSceneSamPresent);
-        consumed = true;
+        seader_scene_read_abort_cleanup(seader);
+        consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionSamPresent);
     }
 
     return consumed;
@@ -63,6 +65,6 @@ bool seader_scene_read_on_event(void* context, SceneManagerEvent event) {
 
 void seader_scene_read_on_exit(void* context) {
     Seader* seader = context;
-    seader_worker_stop(seader->worker);
-    seader_scene_read_cleanup(seader);
+    seader_scene_read_finish_cleanup(seader);
+    seader_worker_release(seader);
 }

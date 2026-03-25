@@ -3,13 +3,13 @@
 
 #include "PT2259.h"
 
-#define TIMEOUT_MS 100
+#define TIMEOUT_MS              100
 #define PT2259_I2C_ADDR_DEFAULT 0x88
-#define PT2259_CLEAR_REGISTERS 0xF0
-#define PT2259_ALL_MUTE_OFF 0x74
-#define PT2259_ALL_MUTE_ON 0x77
-#define PT2259_EVC_2CH_1 0xD0
-#define PT2259_EVC_2CH_10 0xE0
+#define PT2259_CLEAR_REGISTERS  0xF0
+#define PT2259_ALL_MUTE_OFF     0x74
+#define PT2259_ALL_MUTE_ON      0x77
+#define PT2259_EVC_2CH_1        0xD0
+#define PT2259_EVC_2CH_10       0xE0
 
 static uint8_t pt2259_i2c_addr = PT2259_I2C_ADDR_DEFAULT;
 
@@ -35,7 +35,8 @@ static bool pt2259_write_bytes(const uint8_t* data, size_t len) {
 
     bool ok = pt2259_acquire_i2c();
     if(ok) {
-        ok = furi_hal_i2c_tx(&furi_hal_i2c_handle_external, pt2259_i2c_addr, data, len, TIMEOUT_MS);
+        ok =
+            furi_hal_i2c_tx(&furi_hal_i2c_handle_external, pt2259_i2c_addr, data, len, TIMEOUT_MS);
     }
     pt2259_release_i2c();
     return ok;

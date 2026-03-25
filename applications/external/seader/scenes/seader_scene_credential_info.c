@@ -1,7 +1,14 @@
 #include "../seader_i.h"
+#include "../credential_sio_label.h"
 #include <dolphin/dolphin.h>
 
 #define TAG "SeaderCredentialInfoScene"
+
+static bool seader_credential_is_picopass_sio_context(const SeaderCredential* credential) {
+    return credential && (credential->type == SeaderCredentialTypePicopass ||
+                          (credential->has_pacs_media_type &&
+                           credential->pacs_media_type == SeaderPacsMediaTypePicopass));
+}
 
 void seader_scene_credential_info_widget_callback(
     GuiButtonType result,
@@ -16,7 +23,7 @@ void seader_scene_credential_info_widget_callback(
 void seader_scene_credential_info_on_enter(void* context) {
     Seader* seader = context;
     SeaderCredential* credential = seader->credential;
-    PluginWiegand* plugin = seader->plugin_wiegand;
+    seader_wiegand_plugin_acquire(seader);
     Widget* widget = seader->widget;
 
     // Use reusable strings instead of allocating new ones
@@ -41,16 +48,13 @@ void seader_scene_credential_info_on_enter(void* context) {
         seader_scene_credential_info_widget_callback,
         seader);
 
-    if(plugin) {
-        size_t format_count = plugin->count(credential->bit_length, credential->credential);
-        if(format_count > 0) {
-            widget_add_button_element(
-                seader->widget,
-                GuiButtonTypeCenter,
-                "Parse",
-                seader_scene_credential_info_widget_callback,
-                seader);
-        }
+    if(credential->bit_length > 0) {
+        widget_add_button_element(
+            seader->widget,
+            GuiButtonTypeCenter,
+            "Parse",
+            seader_scene_credential_info_widget_callback,
+            seader);
     }
 
     widget_add_string_element(
@@ -72,8 +76,13 @@ void seader_scene_credential_info_on_enter(void* context) {
         FontSecondary,
         furi_string_get_cstr(credential_str));
 
-    if(credential->sio[0] == 0x30) {
-        furi_string_set(sio_str, "+SIO");
+    if(seader_sio_label_format(
+           credential->sio[0] == 0x30,
+           seader_credential_is_picopass_sio_context(credential),
+           credential->sio_start_block,
+           seader->text_store,
+           sizeof(seader->text_store))) {
+        furi_string_set(sio_str, seader->text_store);
         widget_add_string_element(
             widget, 64, 48, AlignCenter, AlignCenter, FontSecondary, furi_string_get_cstr(sio_str));
     }
@@ -109,4 +118,5 @@ void seader_scene_credential_info_on_exit(void* context) {
 
     // Clear views
     widget_reset(seader->widget);
+    seader_wiegand_plugin_release(seader);
 }

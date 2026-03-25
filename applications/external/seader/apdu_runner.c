@@ -1,4 +1,9 @@
 #include "apdu_runner.h"
+#include "seader_i.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define TAG "APDU_Runner"
 
@@ -6,7 +11,14 @@
 #define SEADER_APDU_MAX_LEN 732
 
 void seader_apdu_runner_cleanup(Seader* seader, SeaderWorkerEvent event) {
+    furi_check(seader);
+
     SeaderWorker* seader_worker = seader->worker;
+    if(!seader_worker) {
+        apdu_log_free(seader->apdu_log);
+        seader->apdu_log = NULL;
+        return;
+    }
     seader_worker_change_state(seader_worker, SeaderWorkerStateReady);
     apdu_log_free(seader->apdu_log);
     seader->apdu_log = NULL;
@@ -16,7 +28,10 @@ void seader_apdu_runner_cleanup(Seader* seader, SeaderWorkerEvent event) {
 }
 
 bool seader_apdu_runner_send_next_line(Seader* seader) {
+    furi_check(seader);
     SeaderWorker* seader_worker = seader->worker;
+    furi_check(seader_worker);
+    furi_check(seader_worker->uart);
     SeaderUartBridge* seader_uart = seader_worker->uart;
     SeaderAPDURunnerContext* apdu_runner_ctx = &(seader->apdu_runner_ctx);
 
@@ -86,6 +101,9 @@ void seader_apdu_runner_init(Seader* seader) {
 }
 
 bool seader_apdu_runner_response(Seader* seader, uint8_t* r_apdu, size_t r_len) {
+    furi_check(seader);
+    furi_check(seader->worker);
+    furi_check(seader->worker->uart);
     SeaderUartBridge* seader_uart = seader->worker->uart;
     SeaderAPDURunnerContext* apdu_runner_ctx = &(seader->apdu_runner_ctx);
     uint8_t GET_RESPONSE[] = {0x00, 0xc0, 0x00, 0x00, 0xff};

@@ -10,16 +10,35 @@ static size_t seader_uhf_append_family(
     bool* wrote_any,
     const char* name,
     bool key_present) {
-    if(*wrote_any) {
-        pos += (size_t)snprintf(out + pos, out_size - pos, "/");
-    } else {
-        pos += (size_t)snprintf(out + pos, out_size - pos, "UHF: ");
-        *wrote_any = true;
+    int written = 0;
+
+    if(pos >= out_size) {
+        return out_size - 1U;
     }
 
-    pos += (size_t)snprintf(out + pos, out_size - pos, "%s", name);
+    if(*wrote_any) {
+        written = snprintf(out + pos, out_size - pos, "/");
+    } else {
+        written = snprintf(out + pos, out_size - pos, "UHF: ");
+        *wrote_any = true;
+    }
+    pos += (size_t)written;
+    if(pos >= out_size) {
+        return out_size - 1U;
+    }
+
+    written = snprintf(out + pos, out_size - pos, "%s", name);
+    pos += (size_t)written;
+    if(pos >= out_size) {
+        return out_size - 1U;
+    }
+
     if(!key_present) {
-        pos += (size_t)snprintf(out + pos, out_size - pos, " [no key]");
+        written = snprintf(out + pos, out_size - pos, " [no key]");
+        pos += (size_t)written;
+        if(pos >= out_size) {
+            return out_size - 1U;
+        }
     }
     return pos;
 }

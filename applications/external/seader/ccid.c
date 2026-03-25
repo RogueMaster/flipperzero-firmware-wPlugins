@@ -30,6 +30,13 @@ static uint8_t seader_ccid_next_sequence(SeaderUartBridge* seader_uart, uint8_t 
     return seader_ccid_sequence_advance(&slot_state->sequence);
 }
 
+static SeaderUartBridge* seader_ccid_active_uart(Seader* seader) {
+    furi_check(seader);
+    furi_check(seader->worker);
+    furi_check(seader->worker->uart);
+    return seader->worker->uart;
+}
+
 void seader_ccid_IccPowerOn(SeaderUartBridge* seader_uart, uint8_t slot) {
     SeaderCcidSlotState* slot_state = seader_ccid_slot_state(seader_uart, slot);
     if(slot_state->powered) {
@@ -92,8 +99,7 @@ void seader_ccid_GetSlotStatus(SeaderUartBridge* seader_uart, uint8_t slot) {
 }
 
 void seader_ccid_SetParameters(Seader* seader, uint8_t slot) {
-    SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderUartBridge* seader_uart = seader_ccid_active_uart(seader);
     FURI_LOG_D(TAG, "seader_ccid_SetParameters(%d)", slot);
 
     uint8_t payloadLen = 0;
@@ -227,8 +233,8 @@ void seader_ccid_XfrBlockToSlot(
 }
 
 size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
+    SeaderUartBridge* seader_uart = seader_ccid_active_uart(seader);
     SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
     CCID_Message message;
     message.consumed = 0;
     SeaderCcidState* ccid_state = seader_ccid_state(seader_uart);

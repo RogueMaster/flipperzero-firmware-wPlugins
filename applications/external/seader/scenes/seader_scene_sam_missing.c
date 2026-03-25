@@ -42,6 +42,7 @@ bool seader_scene_sam_missing_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneFileSelect);
             consumed = true;
         } else if(event.event == SeaderWorkerEventSamPresent) {
+            seader->sam_present_menu_guard_active = true;
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamPresent);
             consumed = true;
         }

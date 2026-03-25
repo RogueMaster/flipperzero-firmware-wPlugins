@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "munit.h"
 #include "uhf_status_label.h"
 
@@ -19,9 +21,68 @@ static MunitResult test_formats_supported_key_states(const MunitParameter params
     return MUNIT_OK;
 }
 
+static MunitResult test_handles_null_and_zero_sized_output(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    seader_uhf_status_label_format(true, true, false, false, NULL, 0U);
+
+    char label[4] = {'X', 'Y', 'Z', 'W'};
+    seader_uhf_status_label_format(true, true, false, false, label, 0U);
+    munit_assert_memory_equal(sizeof(label), label, ((char[]){'X', 'Y', 'Z', 'W'}));
+    return MUNIT_OK;
+}
+
+static MunitResult test_nul_terminates_single_byte_output(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    char label[1] = {'X'};
+    seader_uhf_status_label_format(true, false, true, false, label, sizeof(label));
+    munit_assert_char(label[0], ==, '\0');
+    return MUNIT_OK;
+}
+
+static MunitResult test_truncates_safely_for_small_buffers(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    char label[8];
+    memset(label, 'Z', sizeof(label));
+    seader_uhf_status_label_format(true, false, true, false, label, sizeof(label));
+
+    munit_assert_char(label[sizeof(label) - 1], ==, '\0');
+    munit_assert_char(label[0], ==, 'U');
+    munit_assert_char(label[1], ==, 'H');
+    return MUNIT_OK;
+}
+
+static MunitResult test_small_buffer_for_none_is_safe(const MunitParameter params[], void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    char label[4];
+    memset(label, 'Q', sizeof(label));
+    seader_uhf_status_label_format(false, false, false, false, label, sizeof(label));
+
+    munit_assert_char(label[sizeof(label) - 1], ==, '\0');
+    munit_assert_char(label[0], ==, 'U');
+    return MUNIT_OK;
+}
+
 static MunitTest test_uhf_status_label_cases[] = {
     {(char*)"/none", test_formats_none, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/supported-key-states", test_formats_supported_key_states, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/null-zero-output", test_handles_null_and_zero_sized_output, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/single-byte-output", test_nul_terminates_single_byte_output, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/small-buffer-truncation", test_truncates_safely_for_small_buffers, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/small-buffer-none", test_small_buffer_for_none_is_safe, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {NULL, NULL, NULL, NULL, 0, NULL},
 };
 

@@ -3,7 +3,7 @@
 
 void seader_scene_formats_on_enter(void* context) {
     Seader* seader = context;
-    PluginWiegand* plugin = seader->plugin_wiegand;
+    PluginWiegand* plugin = seader_wiegand_plugin_acquire(seader) ? seader->plugin_wiegand : NULL;
     SeaderCredential* credential = seader->credential;
 
     FuriString* str = seader->text_box_store;
@@ -19,7 +19,12 @@ void seader_scene_formats_on_enter(void* context) {
 
             furi_string_cat_printf(str, "%s\n", furi_string_get_cstr(description));
         }
+        if(format_count == 0) {
+            furi_string_set_str(str, "No known Wiegand formats matched.");
+        }
         // No need to free description as it's reused from seader struct
+    } else {
+        furi_string_set_str(str, "Wiegand parser unavailable.");
     }
 
     text_box_set_font(seader->text_box, TextBoxFontHex);
@@ -46,4 +51,5 @@ void seader_scene_formats_on_exit(void* context) {
 
     // Clear views
     text_box_reset(seader->text_box);
+    seader_wiegand_plugin_release(seader);
 }

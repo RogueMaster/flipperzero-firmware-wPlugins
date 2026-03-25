@@ -12,7 +12,6 @@ void seader_scene_sam_info_widget_callback(GuiButtonType result, InputType type,
 
 void seader_scene_sam_info_on_enter(void* context) {
     Seader* seader = context;
-    SeaderWorker* seader_worker = seader->worker;
     Widget* widget = seader->widget;
 
     // Use reusable string instead of allocating new one
@@ -24,8 +23,7 @@ void seader_scene_sam_info_on_enter(void* context) {
     furi_string_reset(info_str);
     furi_string_reset(uhf_str);
 
-    furi_string_cat_printf(
-        fw_str, "FW %d.%d", seader_worker->sam_version[0], seader_worker->sam_version[1]);
+    furi_string_cat_printf(fw_str, "FW %d.%d", seader->sam_version[0], seader->sam_version[1]);
     furi_string_set_str(info_str, seader->sam_key_label);
     furi_string_set_str(uhf_str, seader->uhf_status_label);
 

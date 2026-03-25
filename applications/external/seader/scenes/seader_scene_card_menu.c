@@ -33,7 +33,7 @@ void seader_scene_card_menu_on_enter(void* context) {
         SubmenuIndexSaveRFID,
         seader_scene_card_menu_submenu_callback,
         seader);
-    if(credential->sio[0] == 0x30 && credential->diversifier_len == RFAL_PICOPASS_UID_LEN) {
+    if(credential->sio[0] == 0x30 && credential->diversifier_len == PICOPASS_UID_LEN) {
         submenu_add_item(
             submenu,
             "Save SR",
@@ -88,8 +88,7 @@ bool seader_scene_card_menu_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        consumed = scene_manager_search_and_switch_to_previous_scene(
-            seader->scene_manager, SeaderSceneSamPresent);
+        consumed = scene_manager_previous_scene(seader->scene_manager);
     }
 
     return consumed;

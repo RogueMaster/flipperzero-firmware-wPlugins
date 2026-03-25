@@ -8,6 +8,9 @@ enum SubmenuIndex {
 
 static void seader_scene_start_detect_callback(void* context) {
     Seader* seader = context;
+    if(!seader || !seader->start_scene_active) {
+        return;
+    }
     view_dispatcher_send_custom_event(seader->view_dispatcher, SeaderWorkerEventSamMissing);
 }
 
@@ -18,6 +21,8 @@ void seader_scene_start_submenu_callback(void* context, uint32_t index) {
 
 void seader_scene_start_on_enter(void* context) {
     Seader* seader = context;
+    seader_worker_acquire(seader);
+    seader->start_scene_active = true;
 
     Popup* popup = seader->popup;
 
@@ -43,6 +48,7 @@ bool seader_scene_start_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == SeaderWorkerEventSamPresent) {
+            seader->sam_present_menu_guard_active = true;
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamPresent);
             consumed = true;
         } else if(event.event == SeaderWorkerEventSamMissing) {
@@ -67,5 +73,7 @@ bool seader_scene_start_on_event(void* context, SceneManagerEvent event) {
 
 void seader_scene_start_on_exit(void* context) {
     Seader* seader = context;
+    seader->start_scene_active = false;
     popup_reset(seader->popup);
+    seader_worker_release(seader);
 }

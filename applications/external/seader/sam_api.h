@@ -1,17 +1,20 @@
 #pragma once
 
+#ifndef ASN_EMIT_DEBUG
+#define ASN_EMIT_DEBUG 0
+#endif
+
 #include <nfc/helpers/iso13239_crc.h>
 #include <optimized_ikeys.h>
 #include <optimized_cipher.h>
+#include <lib/nfc/nfc.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#include "seader_i.h"
-#include "seader_credential.h"
-#include "seader_bridge.h"
-#include "seader_worker.h"
-#include "protocol/rfal_picopass.h"
+typedef struct Seader Seader;
+typedef struct SeaderPollerContainer SeaderPollerContainer;
 
 #include <Payload.h>
-#include <SIO.h>
 
 #define ExternalApplicationA 0x44
 #define NFCInterface         0x14
@@ -26,6 +29,7 @@ NfcCommand seader_worker_card_detect(
     uint8_t* ats,
     uint8_t ats_len);
 
+void seader_send_nfc_rx(Seader* seader, uint8_t* buffer, size_t len);
 void seader_send_no_card_detected(Seader* seader);
 bool seader_sam_can_accept_card(const Seader* seader);
 bool seader_sam_has_active_card(const Seader* seader);

@@ -10,6 +10,7 @@ void seader_read_config_card_worker_callback(uint32_t event, void* context) {
 
 void seader_scene_read_config_card_on_enter(void* context) {
     Seader* seader = context;
+    seader_worker_acquire(seader);
 
     // Setup view
     Popup* popup = seader->popup;
@@ -41,6 +42,10 @@ bool seader_scene_read_config_card_on_event(void* context, SceneManagerEvent eve
         if(event.event == SeaderCustomEventWorkerExit || event.event == SeaderWorkerEventSuccess) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneReadConfigCardSuccess);
             consumed = true;
+        } else if(event.event == SeaderWorkerEventFail) {
+            scene_manager_search_and_switch_to_previous_scene(
+                seader->scene_manager, SeaderSceneSamPresent);
+            consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         scene_manager_search_and_switch_to_previous_scene(
@@ -53,6 +58,9 @@ bool seader_scene_read_config_card_on_event(void* context, SceneManagerEvent eve
 
 void seader_scene_read_config_card_on_exit(void* context) {
     Seader* seader = context;
-    seader_worker_stop(seader->worker);
+    if(seader->worker) {
+        seader_worker_stop(seader->worker);
+    }
     seader_scene_read_cleanup(seader);
+    seader_worker_release(seader);
 }

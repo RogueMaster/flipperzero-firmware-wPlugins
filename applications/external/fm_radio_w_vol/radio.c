@@ -9,7 +9,6 @@
  * @copyright GPLv3
  */
 
-
 #include <furi.h>
 #include <furi_hal.h>
 #include <stdint.h>
@@ -37,7 +36,7 @@
 // Uncomment only if you really want forced backlight.
 // #define BACKLIGHT_ALWAYS_ON
 
-#define TAG "FMRadio"
+#define TAG                "FMRadio"
 #define FMRADIO_UI_VERSION "0.10+pt22xx.dev"
 
 // Volume config options (used by Config menu)
@@ -114,15 +113,15 @@ static void fmradio_apply_pt_state(void) {
     (void)pt22xx_apply_state(&state);
 }
 
-#define SETTINGS_DIR EXT_PATH("apps_data/fmradio_controller_pt2257")
-#define SETTINGS_FILE EXT_PATH("apps_data/fmradio_controller_pt2257/settings.fff")
+#define SETTINGS_DIR      EXT_PATH("apps_data/fmradio_controller_pt2257")
+#define SETTINGS_FILE     EXT_PATH("apps_data/fmradio_controller_pt2257/settings.fff")
 #define SETTINGS_FILETYPE "FMRadio PT Settings"
-#define SETTINGS_VERSION (2U)
+#define SETTINGS_VERSION  (2U)
 
-#define PRESETS_FILE EXT_PATH("apps_data/fmradio_controller_pt2257/presets.fff")
+#define PRESETS_FILE     EXT_PATH("apps_data/fmradio_controller_pt2257/presets.fff")
 #define PRESETS_FILETYPE "FMRadio Presets"
-#define PRESETS_VERSION (1U)
-#define PRESETS_MAX (32U)
+#define PRESETS_VERSION  (1U)
+#define PRESETS_MAX      (32U)
 
 static bool settings_dirty = false;
 
@@ -144,19 +143,18 @@ static uint32_t seek_last_step_tick = 0;
 static FuriMutex* state_mutex = NULL;
 
 // Built-in frequency list for Config menu quick-jump
-static const float frequency_values[] = {
-    88.1, 88.9, 89.1, 90.3, 91.5, 91.7, 92.0, 92.5, 94.1, 95.9, 96.3, 96.9,
-    97.3, 98.1, 98.7, 99.1, 99.9, 100.7, 101.3, 103.9, 104.5, 105.1, 105.5, 106.5,
-    107.1, 102.7, 105.3
-};
+static const float frequency_values[] = {88.1,  88.9,  89.1,  90.3,  91.5,  91.7,  92.0,
+                                         92.5,  94.1,  95.9,  96.3,  96.9,  97.3,  98.1,
+                                         98.7,  99.1,  99.9,  100.7, 101.3, 103.9, 104.5,
+                                         105.1, 105.5, 106.5, 107.1, 102.7, 105.3};
 
-static uint32_t current_frequency_index = 0;  // Default to the first frequency
+static uint32_t current_frequency_index = 0; // Default to the first frequency
 
 // SEEK pacing / settling for TEA5767
-#define SEEK_MIN_INTERVAL_MS 2500
-#define SEEK_SETTLE_DELAY_MS 250
+#define SEEK_MIN_INTERVAL_MS  2500
+#define SEEK_SETTLE_DELAY_MS  250
 #define SEEK_READY_TIMEOUT_MS 1800
-#define SEEK_READY_POLL_MS 50
+#define SEEK_READY_POLL_MS    50
 
 static uint32_t clamp_u32(uint32_t value, uint32_t min, uint32_t max) {
     if(value < min) return min;
@@ -229,7 +227,8 @@ static void fmradio_presets_load(void) {
         if(count > PRESETS_MAX) count = PRESETS_MAX;
 
         if(count > 0) {
-            if(!flipper_format_read_uint32(ff, "Freq10kHz", preset_freq_10khz, (uint16_t)count)) break;
+            if(!flipper_format_read_uint32(ff, "Freq10kHz", preset_freq_10khz, (uint16_t)count))
+                break;
         }
 
         preset_count = (uint8_t)count;
@@ -259,7 +258,8 @@ static void fmradio_presets_save(void) {
         uint32_t count = preset_count;
         if(!flipper_format_write_uint32(ff, "Count", &count, 1)) break;
         if(preset_count > 0) {
-            if(!flipper_format_write_uint32(ff, "Freq10kHz", preset_freq_10khz, preset_count)) break;
+            if(!flipper_format_write_uint32(ff, "Freq10kHz", preset_freq_10khz, preset_count))
+                break;
             uint32_t idx = preset_index;
             if(!flipper_format_write_uint32(ff, "Index", &idx, 1)) break;
         }
@@ -568,8 +568,7 @@ static void elements_button_top_left(Canvas* canvas, const char* str) {
     canvas_draw_line(canvas, x + button_width + 2, y - button_height, x + button_width + 2, y - 3);
 
     canvas_invert_color(canvas);
-    canvas_draw_str(
-        canvas, x + horizontal_offset + 3, y - vertical_offset, str);
+    canvas_draw_str(canvas, x + horizontal_offset + 3, y - vertical_offset, str);
     canvas_invert_color(canvas);
 }
 
@@ -637,8 +636,8 @@ typedef struct {
 
 uint32_t fmradio_controller_navigation_exit_callback(void* context) {
     UNUSED(context);
-    uint8_t buffer[5];  // Create a buffer to hold the TEA5767 register values
-        tea5767_sleep(buffer);  // Call the tea5767_sleep function, passing the buffer as an argument
+    uint8_t buffer[5]; // Create a buffer to hold the TEA5767 register values
+    tea5767_sleep(buffer); // Call the tea5767_sleep function, passing the buffer as an argument
 
     // Persist last state (frequency/mute/attenuation)
     fmradio_settings_save();
@@ -701,14 +700,14 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
         fmradio_presets_save();
         fmradio_feedback_success();
         return true;
-    } else if (event->type == InputTypeShort && event->key == InputKeyOk) {
+    } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         fmradio_state_lock();
         current_volume = !current_volume;
         fmradio_state_unlock();
         fmradio_apply_pt_state();
         fmradio_settings_mark_dirty();
-        return true;  // Event was handled
-    } else if (event->type == InputTypeShort && event->key == InputKeyUp) {
+        return true; // Event was handled
+    } else if(event->type == InputTypeShort && event->key == InputKeyUp) {
         fmradio_state_lock();
         if(preset_count > 0) {
             preset_index = (preset_index + 1) % preset_count;
@@ -724,8 +723,8 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
             tea5767_SetFreqMHz(frequency_values[current_frequency_index]);
         }
         fmradio_settings_mark_dirty();
-        return true;  // Event was handled
-    } else if (event->type == InputTypeShort && event->key == InputKeyDown) {
+        return true; // Event was handled
+    } else if(event->type == InputTypeShort && event->key == InputKeyDown) {
         fmradio_state_lock();
         if(preset_count > 0) {
             if(preset_index == 0) {
@@ -739,8 +738,9 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
         } else {
             fmradio_state_unlock();
             // Decrement the current frequency index and loop back if at the beginning
-            if (current_frequency_index == 0) {
-                current_frequency_index = (sizeof(frequency_values) / sizeof(frequency_values[0])) - 1;
+            if(current_frequency_index == 0) {
+                current_frequency_index =
+                    (sizeof(frequency_values) / sizeof(frequency_values[0])) - 1;
             } else {
                 current_frequency_index--;
             }
@@ -748,12 +748,13 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
             tea5767_SetFreqMHz(frequency_values[current_frequency_index]);
         }
         fmradio_settings_mark_dirty();
-        return true;  // Event was handled
-    } else if ((event->type == InputTypeLong || event->type == InputTypeRepeat) &&
-              event->key == InputKeyUp) {
+        return true; // Event was handled
+    } else if(
+        (event->type == InputTypeLong || event->type == InputTypeRepeat) &&
+        event->key == InputKeyUp) {
         // Volume up => reduce attenuation
         fmradio_state_lock();
-        if (pt_atten_db > 0) {
+        if(pt_atten_db > 0) {
             pt_atten_db--;
             fmradio_state_unlock();
             fmradio_apply_pt_state();
@@ -762,11 +763,12 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
             fmradio_state_unlock();
         }
         return true;
-    } else if ((event->type == InputTypeLong || event->type == InputTypeRepeat) &&
-              event->key == InputKeyDown) {
+    } else if(
+        (event->type == InputTypeLong || event->type == InputTypeRepeat) &&
+        event->key == InputKeyDown) {
         // Volume down => increase attenuation
         fmradio_state_lock();
-        if (pt_atten_db < 79) {
+        if(pt_atten_db < 79) {
             pt_atten_db++;
             fmradio_state_unlock();
             fmradio_apply_pt_state();
@@ -776,8 +778,8 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
         }
         return true;
     }
-    
-    return false;  // Event was not handled
+
+    return false; // Event was not handled
 }
 
 // Callback for handling frequency changes
@@ -795,8 +797,9 @@ void fmradio_controller_frequency_change(VariableItem* item) {
     }
 
     // Display the selected frequency value as text
-    char frequency_display[16];  // Adjust the buffer size as needed
-    snprintf(frequency_display, sizeof(frequency_display), "%.1f MHz", (double)frequency_values[index]);
+    char frequency_display[16]; // Adjust the buffer size as needed
+    snprintf(
+        frequency_display, sizeof(frequency_display), "%.1f MHz", (double)frequency_values[index]);
     variable_item_set_current_value_text(item, frequency_display);
 }
 
@@ -807,7 +810,8 @@ void fmradio_controller_volume_change(VariableItem* item) {
         index = 0;
         variable_item_set_current_value_index(item, index);
     }
-    variable_item_set_current_value_text(item, volume_names[index]);  // Display the selected volume as text
+    variable_item_set_current_value_text(
+        item, volume_names[index]); // Display the selected volume as text
 
     // Apply immediately (this Config "Volume" is PT mute/unmute)
     if(index < COUNT_OF(volume_values)) {
@@ -905,19 +909,19 @@ static void fmradio_tick_callback(void* context) {
 // Callback for drawing the view
 
 void fmradio_controller_view_draw_callback(Canvas* canvas, void* model) {
-    (void)model;  // Mark model as unused
-    
-    char frequency_display[64];    
+    (void)model; // Mark model as unused
+
+    char frequency_display[64];
     char signal_display[64];
     char audio_display[32];
     char pt_display[32];
-    
+
     // tea5767_get_radio_info() populates the info
     struct RADIO_INFO info;
     uint8_t buffer[5];
 
     // Draw strings on the canvas
-    canvas_draw_str(canvas, 45, 10, "FM Radio");    
+    canvas_draw_str(canvas, 45, 10, "FM Radio");
 
     // Draw button prompts
     canvas_set_font(canvas, FontSecondary);
@@ -946,29 +950,37 @@ void fmradio_controller_view_draw_callback(Canvas* canvas, void* model) {
         snprintf(pt_display, sizeof(pt_display), "%s: ERROR", pt_name);
     }
     canvas_draw_str(canvas, 10, 51, pt_display);
-    
-    
-    if (tea5767_get_radio_info(buffer, &info)) {
-        snprintf(frequency_display, sizeof(frequency_display), "Frequency: %.1f MHz", (double)info.frequency);
+
+    if(tea5767_get_radio_info(buffer, &info)) {
+        snprintf(
+            frequency_display,
+            sizeof(frequency_display),
+            "Frequency: %.1f MHz",
+            (double)info.frequency);
         canvas_draw_str(canvas, 10, 21, frequency_display);
 
-        snprintf(signal_display, sizeof(signal_display), "RSSI: %d (%s)", info.signalLevel, info.signalQuality);
-        canvas_draw_str(canvas, 10, 41, signal_display); 
+        snprintf(
+            signal_display,
+            sizeof(signal_display),
+            "RSSI: %d (%s)",
+            info.signalLevel,
+            info.signalQuality);
+        canvas_draw_str(canvas, 10, 41, signal_display);
 
         if(local_muted) {
             snprintf(audio_display, sizeof(audio_display), "Audio: MUTE");
         } else {
-            snprintf(audio_display, sizeof(audio_display), "Audio: %s", info.stereo ? "Stereo" : "Mono");
+            snprintf(
+                audio_display, sizeof(audio_display), "Audio: %s", info.stereo ? "Stereo" : "Mono");
         }
         canvas_draw_str(canvas, 10, 31, audio_display);
     } else {
         snprintf(frequency_display, sizeof(frequency_display), "TEA5767 Not Detected");
-        canvas_draw_str(canvas, 10, 21, frequency_display); 
+        canvas_draw_str(canvas, 10, 21, frequency_display);
 
         snprintf(signal_display, sizeof(signal_display), "Pin 15 = SDA | Pin 16 = SCL");
-        canvas_draw_str(canvas, 10, 41, signal_display); 
-    }   
-
+        canvas_draw_str(canvas, 10, 41, signal_display);
+    }
 }
 
 // Allocate memory for the application
@@ -993,11 +1005,24 @@ FMRadio* fmradio_controller_alloc() {
     // Initialize the submenu
     app->submenu = submenu_alloc();
     if(!app->submenu) goto fail;
-    submenu_add_item(app->submenu,"Listen Now",FMRadioSubmenuIndexListen,fmradio_controller_submenu_callback,app);
-    submenu_add_item(app->submenu, "Config", FMRadioSubmenuIndexConfigure, fmradio_controller_submenu_callback, app);
-    submenu_add_item(app->submenu, "About", FMRadioSubmenuIndexAbout, fmradio_controller_submenu_callback, app);
-    view_set_previous_callback(submenu_get_view(app->submenu), fmradio_controller_navigation_exit_callback);
-    view_dispatcher_add_view(app->view_dispatcher, FMRadioViewSubmenu, submenu_get_view(app->submenu));
+    submenu_add_item(
+        app->submenu,
+        "Listen Now",
+        FMRadioSubmenuIndexListen,
+        fmradio_controller_submenu_callback,
+        app);
+    submenu_add_item(
+        app->submenu,
+        "Config",
+        FMRadioSubmenuIndexConfigure,
+        fmradio_controller_submenu_callback,
+        app);
+    submenu_add_item(
+        app->submenu, "About", FMRadioSubmenuIndexAbout, fmradio_controller_submenu_callback, app);
+    view_set_previous_callback(
+        submenu_get_view(app->submenu), fmradio_controller_navigation_exit_callback);
+    view_dispatcher_add_view(
+        app->view_dispatcher, FMRadioViewSubmenu, submenu_get_view(app->submenu));
     view_dispatcher_switch_to_view(app->view_dispatcher, FMRadioViewSubmenu);
 
     // Initialize the variable item list for configuration
@@ -1007,78 +1032,64 @@ FMRadio* fmradio_controller_alloc() {
 
     // Add TEA5767 SNC toggle
     app->item_snc = variable_item_list_add(
-        app->variable_item_list_config,
-        "SNC",
-        2,
-        fmradio_controller_snc_change,
-        app);
+        app->variable_item_list_config, "SNC", 2, fmradio_controller_snc_change, app);
     if(!app->item_snc) goto fail;
     variable_item_set_current_value_index(app->item_snc, tea_snc_enabled ? 1 : 0);
     variable_item_set_current_value_text(app->item_snc, tea_snc_enabled ? "On" : "Off");
 
     // Add TEA5767 de-emphasis time constant
     app->item_deemph = variable_item_list_add(
-        app->variable_item_list_config,
-        "De-emph",
-        2,
-        fmradio_controller_deemph_change,
-        app);
+        app->variable_item_list_config, "De-emph", 2, fmradio_controller_deemph_change, app);
     if(!app->item_deemph) goto fail;
     variable_item_set_current_value_index(app->item_deemph, tea_deemph_75us ? 1 : 0);
     variable_item_set_current_value_text(app->item_deemph, tea_deemph_75us ? "75us" : "50us");
 
     // Add TEA5767 SoftMute
     app->item_softmute = variable_item_list_add(
-        app->variable_item_list_config,
-        "SoftMute",
-        2,
-        fmradio_controller_softmute_change,
-        app);
+        app->variable_item_list_config, "SoftMute", 2, fmradio_controller_softmute_change, app);
     if(!app->item_softmute) goto fail;
     variable_item_set_current_value_index(app->item_softmute, tea_softmute_enabled ? 1 : 0);
     variable_item_set_current_value_text(app->item_softmute, tea_softmute_enabled ? "On" : "Off");
 
     // Add TEA5767 High Cut Control
     app->item_highcut = variable_item_list_add(
-        app->variable_item_list_config,
-        "HighCut",
-        2,
-        fmradio_controller_highcut_change,
-        app);
+        app->variable_item_list_config, "HighCut", 2, fmradio_controller_highcut_change, app);
     if(!app->item_highcut) goto fail;
     variable_item_set_current_value_index(app->item_highcut, tea_highcut_enabled ? 1 : 0);
     variable_item_set_current_value_text(app->item_highcut, tea_highcut_enabled ? "On" : "Off");
 
     // Add TEA5767 Force mono
     app->item_mono = variable_item_list_add(
-        app->variable_item_list_config,
-        "Mono",
-        2,
-        fmradio_controller_mono_change,
-        app);
+        app->variable_item_list_config, "Mono", 2, fmradio_controller_mono_change, app);
     if(!app->item_mono) goto fail;
     variable_item_set_current_value_index(app->item_mono, tea_force_mono_enabled ? 1 : 0);
     variable_item_set_current_value_text(app->item_mono, tea_force_mono_enabled ? "On" : "Off");
 
     // Keep backlight on while app runs
     app->item_backlight = variable_item_list_add(
-        app->variable_item_list_config,
-        "Backlight",
-        2,
-        fmradio_controller_backlight_change,
-        app);
+        app->variable_item_list_config, "Backlight", 2, fmradio_controller_backlight_change, app);
     if(!app->item_backlight) goto fail;
     variable_item_set_current_value_index(app->item_backlight, backlight_keep_on ? 1 : 0);
     variable_item_set_current_value_text(app->item_backlight, backlight_keep_on ? "On" : "Off");
 
     // Add frequency configuration
-    app->item_freq = variable_item_list_add(app->variable_item_list_config,"Freq (MHz)", COUNT_OF(frequency_values),fmradio_controller_frequency_change,app); 
+    app->item_freq = variable_item_list_add(
+        app->variable_item_list_config,
+        "Freq (MHz)",
+        COUNT_OF(frequency_values),
+        fmradio_controller_frequency_change,
+        app);
     if(!app->item_freq) goto fail;
     uint32_t frequency_index = 0;
     variable_item_set_current_value_index(app->item_freq, frequency_index);
 
     // Add volume configuration
-    app->item_volume = variable_item_list_add(app->variable_item_list_config,"Volume", COUNT_OF(volume_values),fmradio_controller_volume_change,app);
+    app->item_volume = variable_item_list_add(
+        app->variable_item_list_config,
+        "Volume",
+        COUNT_OF(volume_values),
+        fmradio_controller_volume_change,
+        app);
     if(!app->item_volume) goto fail;
     uint8_t volume_index = 0;
     variable_item_set_current_value_index(app->item_volume, volume_index);
@@ -1118,8 +1129,13 @@ FMRadio* fmradio_controller_alloc() {
     variable_item_set_current_value_index(app->item_pt_i2c_addr, addr_index);
     variable_item_set_current_value_text(app->item_pt_i2c_addr, pt_i2c_addr8_names[addr_index]);
 
-    view_set_previous_callback(variable_item_list_get_view(app->variable_item_list_config),fmradio_controller_navigation_submenu_callback);
-    view_dispatcher_add_view(app->view_dispatcher,FMRadioViewConfigure,variable_item_list_get_view(app->variable_item_list_config));
+    view_set_previous_callback(
+        variable_item_list_get_view(app->variable_item_list_config),
+        fmradio_controller_navigation_submenu_callback);
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        FMRadioViewConfigure,
+        variable_item_list_get_view(app->variable_item_list_config));
 
     // Initialize the Listen view
     app->listen_view = view_alloc();
@@ -1134,8 +1150,14 @@ FMRadio* fmradio_controller_alloc() {
     // Initialize the widget for displaying information about the app
     app->widget_about = widget_alloc();
     if(!app->widget_about) goto fail;
-    widget_add_text_scroll_element(app->widget_about,0,0,128,64,
-        "FM Radio. (v" FMRADIO_UI_VERSION ")\n---\n Created By Coolshrimp\n Fork/extended by pchmielewski1\n\n"
+    widget_add_text_scroll_element(
+        app->widget_about,
+        0,
+        0,
+        128,
+        64,
+        "FM Radio. (v" FMRADIO_UI_VERSION
+        ")\n---\n Created By Coolshrimp\n Fork/extended by pchmielewski1\n\n"
         "Left/Right (short) = Tune -/+ 0.1MHz\n"
         "Left/Right (hold) = Seek next/prev\n"
         "OK (short) = Mute PT\n"
@@ -1145,8 +1167,10 @@ FMRadio* fmradio_controller_alloc() {
         "Band: 76.0-108.0MHz\n\n"
         "Config: SNC / De-emph / SoftMute / HighCut / Mono\n"
         "Try toggling while listening for feedback");
-    view_set_previous_callback(widget_get_view(app->widget_about), fmradio_controller_navigation_submenu_callback);
-    view_dispatcher_add_view(app->view_dispatcher, FMRadioViewAbout, widget_get_view(app->widget_about));
+    view_set_previous_callback(
+        widget_get_view(app->widget_about), fmradio_controller_navigation_submenu_callback);
+    view_dispatcher_add_view(
+        app->view_dispatcher, FMRadioViewAbout, widget_get_view(app->widget_about));
 
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     if(!app->notifications) goto fail;
@@ -1165,7 +1189,8 @@ FMRadio* fmradio_controller_alloc() {
     }
     if(app->item_volume) {
         variable_item_set_current_value_index(app->item_volume, current_volume ? 1 : 0);
-        variable_item_set_current_value_text(app->item_volume, current_volume ? "Muted" : "Un-Muted");
+        variable_item_set_current_value_text(
+            app->item_volume, current_volume ? "Muted" : "Un-Muted");
     }
     if(app->item_pt_chip) {
         uint8_t chip_index = 0;
@@ -1184,7 +1209,11 @@ FMRadio* fmradio_controller_alloc() {
             uint32_t idx = fmradio_find_nearest_freq_index(freq);
             variable_item_set_current_value_index(app->item_freq, idx);
             char frequency_display[16];
-            snprintf(frequency_display, sizeof(frequency_display), "%.1f MHz", (double)frequency_values[idx]);
+            snprintf(
+                frequency_display,
+                sizeof(frequency_display),
+                "%.1f MHz",
+                (double)frequency_values[idx]);
             variable_item_set_current_value_text(app->item_freq, frequency_display);
         }
     }
@@ -1194,19 +1223,23 @@ FMRadio* fmradio_controller_alloc() {
     }
     if(app->item_softmute) {
         variable_item_set_current_value_index(app->item_softmute, tea_softmute_enabled ? 1 : 0);
-        variable_item_set_current_value_text(app->item_softmute, tea_softmute_enabled ? "On" : "Off");
+        variable_item_set_current_value_text(
+            app->item_softmute, tea_softmute_enabled ? "On" : "Off");
     }
     if(app->item_highcut) {
         variable_item_set_current_value_index(app->item_highcut, tea_highcut_enabled ? 1 : 0);
-        variable_item_set_current_value_text(app->item_highcut, tea_highcut_enabled ? "On" : "Off");
+        variable_item_set_current_value_text(
+            app->item_highcut, tea_highcut_enabled ? "On" : "Off");
     }
     if(app->item_mono) {
         variable_item_set_current_value_index(app->item_mono, tea_force_mono_enabled ? 1 : 0);
-        variable_item_set_current_value_text(app->item_mono, tea_force_mono_enabled ? "On" : "Off");
+        variable_item_set_current_value_text(
+            app->item_mono, tea_force_mono_enabled ? "On" : "Off");
     }
     if(app->item_backlight) {
         variable_item_set_current_value_index(app->item_backlight, backlight_keep_on ? 1 : 0);
-        variable_item_set_current_value_text(app->item_backlight, backlight_keep_on ? "On" : "Off");
+        variable_item_set_current_value_text(
+            app->item_backlight, backlight_keep_on ? "On" : "Off");
     }
     if(app->item_pt_i2c_addr) {
         uint8_t addr_index = 0;
@@ -1217,7 +1250,8 @@ FMRadio* fmradio_controller_alloc() {
             }
         }
         variable_item_set_current_value_index(app->item_pt_i2c_addr, addr_index);
-        variable_item_set_current_value_text(app->item_pt_i2c_addr, pt_i2c_addr8_names[addr_index]);
+        variable_item_set_current_value_text(
+            app->item_pt_i2c_addr, pt_i2c_addr8_names[addr_index]);
     }
 
     // Give PT controllers time to settle after power-on before touching I2C.
@@ -1249,22 +1283,26 @@ fail:
             app->notifications = NULL;
         }
         if(app->widget_about) {
-            if(app->view_dispatcher) view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewAbout);
+            if(app->view_dispatcher)
+                view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewAbout);
             widget_free(app->widget_about);
             app->widget_about = NULL;
         }
         if(app->listen_view) {
-            if(app->view_dispatcher) view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewListen);
+            if(app->view_dispatcher)
+                view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewListen);
             view_free(app->listen_view);
             app->listen_view = NULL;
         }
         if(app->variable_item_list_config) {
-            if(app->view_dispatcher) view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewConfigure);
+            if(app->view_dispatcher)
+                view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewConfigure);
             variable_item_list_free(app->variable_item_list_config);
             app->variable_item_list_config = NULL;
         }
         if(app->submenu) {
-            if(app->view_dispatcher) view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewSubmenu);
+            if(app->view_dispatcher)
+                view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewSubmenu);
             submenu_free(app->submenu);
             app->submenu = NULL;
         }
@@ -1305,22 +1343,26 @@ void fmradio_controller_free(FMRadio* app) {
     }
 
     if(app->widget_about) {
-        if(app->view_dispatcher) view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewAbout);
+        if(app->view_dispatcher)
+            view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewAbout);
         widget_free(app->widget_about);
         app->widget_about = NULL;
     }
     if(app->listen_view) {
-        if(app->view_dispatcher) view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewListen);
+        if(app->view_dispatcher)
+            view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewListen);
         view_free(app->listen_view);
         app->listen_view = NULL;
     }
     if(app->variable_item_list_config) {
-        if(app->view_dispatcher) view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewConfigure);
+        if(app->view_dispatcher)
+            view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewConfigure);
         variable_item_list_free(app->variable_item_list_config);
         app->variable_item_list_config = NULL;
     }
     if(app->submenu) {
-        if(app->view_dispatcher) view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewSubmenu);
+        if(app->view_dispatcher)
+            view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewSubmenu);
         submenu_free(app->submenu);
         app->submenu = NULL;
     }

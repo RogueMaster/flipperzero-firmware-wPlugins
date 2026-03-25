@@ -19,6 +19,13 @@ static uint8_t seader_next_dpcb(SeaderUartBridge* seader_uart) {
     return t1->send_pcb;
 }
 
+static SeaderUartBridge* seader_t1_active_uart(Seader* seader) {
+    furi_check(seader);
+    furi_check(seader->worker);
+    furi_check(seader->worker->uart);
+    return seader->worker->uart;
+}
+
 void seader_t_1_reset(SeaderUartBridge* seader_uart) {
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     t1->nad = 0x00;
@@ -31,8 +38,7 @@ void seader_t_1_reset(SeaderUartBridge* seader_uart) {
 }
 
 void seader_t_1_set_IFSD(Seader* seader) {
-    SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderUartBridge* seader_uart = seader_t1_active_uart(seader);
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[5];
     uint8_t frame_len = 0;
@@ -51,8 +57,7 @@ void seader_t_1_set_IFSD(Seader* seader) {
 }
 
 static void seader_t_1_IFSD_response(Seader* seader, uint8_t ifs_value) {
-    SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderUartBridge* seader_uart = seader_t1_active_uart(seader);
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[5];
     uint8_t frame_len = 0;
@@ -68,8 +73,7 @@ static void seader_t_1_IFSD_response(Seader* seader, uint8_t ifs_value) {
 }
 
 static void seader_t_1_WTX_response(Seader* seader, uint8_t multiplier) {
-    SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderUartBridge* seader_uart = seader_t1_active_uart(seader);
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[5];
     uint8_t frame_len = 0;
@@ -85,8 +89,7 @@ static void seader_t_1_WTX_response(Seader* seader, uint8_t multiplier) {
 }
 
 static void seader_t_1_resynch_response(Seader* seader) {
-    SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderUartBridge* seader_uart = seader_t1_active_uart(seader);
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[4];
     uint8_t frame_len = 0;
@@ -101,8 +104,7 @@ static void seader_t_1_resynch_response(Seader* seader) {
 }
 
 void seader_t_1_send_ack(Seader* seader) {
-    SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderUartBridge* seader_uart = seader_t1_active_uart(seader);
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[4];
     uint8_t frame_len = 0;
@@ -117,8 +119,7 @@ void seader_t_1_send_ack(Seader* seader) {
 }
 
 static void seader_t_1_send_nak(Seader* seader) {
-    SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
+    SeaderUartBridge* seader_uart = seader_t1_active_uart(seader);
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t frame[4];
     uint8_t frame_len = 0;
@@ -211,8 +212,8 @@ void seader_send_t1(SeaderUartBridge* seader_uart, uint8_t* apdu, size_t len) {
 }
 
 bool seader_recv_t1(Seader* seader, CCID_Message* message) {
+    SeaderUartBridge* seader_uart = seader_t1_active_uart(seader);
     SeaderWorker* seader_worker = seader->worker;
-    SeaderUartBridge* seader_uart = seader_worker->uart;
     SeaderT1State* t1 = seader_t1_state(seader_uart);
     uint8_t* apdu = NULL;
     size_t apdu_len = 0;
