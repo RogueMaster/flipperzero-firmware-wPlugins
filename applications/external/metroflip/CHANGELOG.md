@@ -27,6 +27,19 @@ Suica and Calypso excluded (already have custom UIs).
 - 39 animation frames across 13 icon sets for menu and parser animations
 - 3 DolphinScan frames (progressive NFC waves from original dolphin image)
 
+## RENFE Regular Parser Rewrite (beta.3)
+
+- Proper date decoding using LSB-first 15-bit DMY format (year+2000 | month | day)
+- Card Dates page: card start date, card expiry, price, and tariff from Block 8/12
+- Title / Charge page: title start (Block 13), last charge date/time and terminal ID (Block 61)
+- Sale History page: sale date/time, terminal, and tariff from Block 57
+- Trip history time-of-day decoding from byte5 + (byte6 & 0x07) << 8 formula
+- Broader history entry detection (byte2 A6/DE + byte7 0x10) instead of only 4 hardcoded headers
+- Transaction classification using byte 2 (A6=entry/check, DE=exit/transfer) and byte 0 bit 0
+- Gate direction (IN/OUT) and zone display on trip pages
+- Removed bogus region detection patterns that matched random data
+- Cleaned up dead code and overly broad bono history scanning
+
 ## Bug Fixes (beta.2)
 
 - Suica/FeliCa crash fix - Fixed crash when reading Suica cards with many services. The FeliCa poller was traversing all 60+ services on the card, exhausting memory. Now reads only the needed history blocks directly, avoiding the full traversal.
