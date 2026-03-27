@@ -1,0 +1,13 @@
+App(
+    appid="miele_scout",
+    name="Miele Scout RX2",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="miele_scout_app",
+    requires=["gui", "notification", "infrared"],
+    fap_category="Infrared",
+    fap_icon="miele_scout_10px.png",
+    fap_version=(1, 0),
+    fap_description="Remote control for Miele Scout RX2 robot vacuum with Drive and Menu modes",
+    fap_author="Kalle Varavas",
+    stack_size=2 * 1024,
+)
