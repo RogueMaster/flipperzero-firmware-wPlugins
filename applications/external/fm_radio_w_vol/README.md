@@ -38,7 +38,6 @@ Windows (qFlipper):
 - TEA5767 FM control with manual tune (`76.0–108.0 MHz`) and seek step.
 - PT2257/PT2259-S volume control and mute over I2C.
 - Manual PT chip protocol selection in app config (`PT2257`, `PT2259-S`).
-- Manual PT I2C address selection in app config (`0x88`, `0x44`).
 - Preset storage on SD card (`settings.fff`, `presets.fff`).
 - Live TEA5767 audio options (`SNC`, `De-emph`, `SoftMute`, `HighCut`, `Mono`).
 - Backlight keep-on option for long listening sessions.
@@ -60,7 +59,6 @@ Open with: `Menu -> Config`
 - `Freq (MHz)`: jump to a frequency from the built-in list and tune immediately.
 - `Volume`: toggles mute/unmute (same as `OK` short in listen view).
 - `PT Chip`: select PT control protocol (`PT2257`, `PT2259-S`).
-- `PT Addr`: select PT I2C address byte (`0x88`, `0x44`).
 - `Backlight`: keep Flipper display backlight on while app runs.
 - `SNC`: TEA5767 Stereo Noise Cancelling.
 - `De-emph`: TEA5767 de-emphasis (`50us` EU / `75us` US).
@@ -99,8 +97,8 @@ Automated releases (GitHub Actions):
 This app now treats **PT2257** and **PT2259-S** as separate control protocols.
 
 - PT chip selection is manual in app config: `Menu -> Config -> PT Chip`.
-- PT I2C address remains a separate manual setting: `Menu -> Config -> PT Addr`.
-- PT2259-S support uses its own startup and mute sequence and no longer relies on autodetection by address.
+- PT address is fixed to `0x88` for the dedicated PCB revision documented here.
+- PT2259-S support uses its own startup and mute sequence.
 
 ### Wiring / Pinout
 - `3V3` (pin 9)  -> TEA/PT VCC
@@ -125,24 +123,30 @@ Volume/noise tweak used on one popular PAM8403 board:
 
 ## PCB (Current Revision)
 
+PCB v1.0 is available now on Tindie:
+- [Flipper Zero FM Radio Board with PT Volume Control](https://www.tindie.com/products/electronicstore/flipper-zero-fm-radio-board-with-pt-volume-control/)
+
+This revision is fully usable and available for purchase, but it is still the first hardware release.
+- PCB v1.0 requires three quick manual post-factory fixes.
+- More details about the current revision, store availability, and ordering are on the Tindie listing.
+- PCB v1.1 is already being prepared as the next corrected revision.
+
 Assets:
 - Schematic (SVG, 2026-02-25): [schematics/svg/schematic_radio_tea5767_pt2257_2026-02-25.svg](schematics/svg/schematic_radio_tea5767_pt2257_2026-02-25.svg)
 - PCB Gerbers (ZIP): [schematics/zip/gerber_radio_tea5767_pt2257_2026-02-25.zip](schematics/zip/gerber_radio_tea5767_pt2257_2026-02-25.zip)
 - PCB project/export (ZIP): [schematics/zip/pcb_radio_tea5767_pt2257_2026-02-25.zip](schematics/zip/pcb_radio_tea5767_pt2257_2026-02-25.zip)
 
-Front (top):
+Current PCB photo:
+
+![PCB v1.0 photo](images/pcb/IMG_20260326_150826497~3.jpg)
+
+Render front (top):
 
 ![PCB front](images/pcb/pcb_front_2026-02-25.jpeg)
 
-Back (bottom):
+Render back (bottom):
 
 ![PCB back](images/pcb/pcb_back_2026-02-25.jpeg)
-
-Status note:
-- A test batch of 15 pcs has been ordered.
-- This PCB revision is not yet 100% validated.
-- Hardware tests in ~14–18 days will confirm whether this revision is fully correct.
-- A follow-up update will be published after testing.
 
 ## App Screenshots
 
@@ -174,7 +178,6 @@ Settings file:
   - `TeaHighCut` (bool)
   - `TeaForceMono` (bool)
   - `BacklightKeepOn` (bool)
-  - `PtI2cAddr8` (`0`=Auto, `136`=0x88, `68`=0x44)
 
 Presets file:
 - Path: `/ext/apps_data/fmradio_controller_pt2257/presets.fff`
