@@ -119,26 +119,24 @@ int32_t seader_uart_worker(void* context) {
             break;
         }
         if(events & (WorkerEvtRxDone | WorkerEvtSamTxComplete)) {
+            if(cmd_len >= sizeof(cmd)) {
+                FURI_LOG_I(TAG, "RX buffer full, resetting");
+                memset(cmd, 0, sizeof(cmd));
+                cmd_len = 0;
+            }
+
             size_t len = furi_stream_buffer_receive(
-                seader_uart->rx_stream, seader_uart->rx_buf, SEADER_UART_RX_BUF_SIZE, 0);
+                seader_uart->rx_stream, cmd + cmd_len, sizeof(cmd) - cmd_len, 0);
             if(len > 0) {
                 furi_delay_ms(5); //WTF
 
                 /*
                 char display[SEADER_UART_RX_BUF_SIZE * 2 + 1] = {0};
                 for (uint8_t i = 0; i < len; i++) {
-                    snprintf(display+(i*2), sizeof(display), "%02x", seader_uart->rx_buf[i]);
+                    snprintf(display+(i*2), sizeof(display), "%02x", cmd[cmd_len + i]);
                 }
                 FURI_LOG_I(TAG, "RECV %d bytes: %s", len, display);
                 */
-
-                if(cmd_len + len > SEADER_UART_RX_BUF_SIZE) {
-                    FURI_LOG_I(TAG, "OVERFLOW: %d + %d", cmd_len, len);
-                    memset(cmd, 0, cmd_len);
-                    cmd_len = 0;
-                }
-
-                memcpy(cmd + cmd_len, seader_uart->rx_buf, len);
                 cmd_len += len;
                 cmd_len = seader_uart_process_buffer(seader, cmd, cmd_len);
             }
@@ -165,7 +163,7 @@ SeaderUartBridge* seader_uart_enable(SeaderUartConfig* cfg, Seader* seader) {
     memcpy(&(seader_uart->cfg_new), cfg, sizeof(SeaderUartConfig));
 
     seader_uart->thread =
-        furi_thread_alloc_ex("SeaderUartWorker", 5 * 1024, seader_uart_worker, seader);
+        furi_thread_alloc_ex("SeaderUartWorker", 4 * 1024, seader_uart_worker, seader);
 
     furi_thread_start(seader_uart->thread);
     return seader_uart;

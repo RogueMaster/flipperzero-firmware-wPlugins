@@ -26,6 +26,7 @@
 
 #define HF_PLUGIN_POLLER_MAX_FWT         (200000U)
 #define HF_PLUGIN_POLLER_MAX_BUFFER_SIZE (258U)
+#define HF_PLUGIN_MAX_ATS_SIZE           33U
 
 // ATS bit definitions
 #define ISO14443_4A_ATS_T0_TA1 (1U << 4)
@@ -246,7 +247,7 @@ static void plugin_hf_iso14443a_transmit(
         return;
     }
 
-    BitBuffer* tx_buffer = bit_buffer_alloc(len + 1);
+    BitBuffer* tx_buffer = bit_buffer_alloc(len + 1U);
     BitBuffer* rx_buffer = bit_buffer_alloc(HF_PLUGIN_POLLER_MAX_BUFFER_SIZE);
     if(!tx_buffer || !rx_buffer) {
         FURI_LOG_E(TAG, "Failed to allocate 14A buffers");
@@ -477,13 +478,13 @@ static NfcCommand plugin_hf_poller_callback_iso14443_4a(NfcGenericEvent event, v
             }
 
             uint8_t ats_len = 0;
-            uint8_t* ats = malloc(4 + t1_tk_size);
-            if(!ats) {
-                FURI_LOG_E(TAG, "Failed to allocate ATS buffer");
-                ctx->api->set_stage(ctx->host_ctx, PluginHfStageFail);
-                return NfcCommandStop;
-            }
+            uint8_t ats[HF_PLUGIN_MAX_ATS_SIZE] = {0};
             if(iso_data->ats_data.tl > 1) {
+                if(sizeof(ats) < 4U + t1_tk_size) {
+                    FURI_LOG_E(TAG, "ATS buffer too small: %u", (unsigned)(4U + t1_tk_size));
+                    ctx->api->set_stage(ctx->host_ctx, PluginHfStageFail);
+                    return NfcCommandStop;
+                }
                 ats[ats_len++] = iso_data->ats_data.t0;
                 if(iso_data->ats_data.t0 & ISO14443_4A_ATS_T0_TA1)
                     ats[ats_len++] = iso_data->ats_data.ta_1;
@@ -503,7 +504,6 @@ static NfcCommand plugin_hf_poller_callback_iso14443_4a(NfcGenericEvent event, v
             ctx->api->send_card_detected(
                 ctx->host_ctx, iso14443_3a_get_sak(iso3a), uid, uid_len, ats, ats_len);
             FURI_LOG_D(TAG, "14A cardDetected delivered uid_len=%u ats_len=%u", uid_len, ats_len);
-            free(ats);
             ctx->api->set_stage(ctx->host_ctx, PluginHfStageConversation);
         } else if(stage == PluginHfStageConversation) {
             FURI_LOG_D(TAG, "14A enter conversation");

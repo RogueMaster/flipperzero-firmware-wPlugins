@@ -8,6 +8,7 @@ extern MunitSuite test_t1_protocol_suite;
 extern MunitSuite test_snmp_suite;
 extern MunitSuite test_uhf_status_label_suite;
 extern MunitSuite test_credential_sio_label_suite;
+extern MunitSuite test_hf_read_plan_suite;
 extern MunitSuite test_runtime_policy_suite;
 
 int main(int argc, char* argv[]) {
@@ -20,6 +21,7 @@ int main(int argc, char* argv[]) {
         {"/snmp", test_snmp_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
         {"/uhf-status-label", test_uhf_status_label_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
         {"/credential-sio-label", test_credential_sio_label_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
+        {"/hf-read-plan", test_hf_read_plan_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
         {"/runtime-policy", test_runtime_policy_suite.tests, NULL, 1, MUNIT_SUITE_OPTION_NONE},
         {NULL, NULL, NULL, 0, 0},
     };

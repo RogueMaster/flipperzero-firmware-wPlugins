@@ -6,7 +6,8 @@
 
 #include "t_1_logic.h"
 
-#define TAG "Seader:T=1"
+#define TAG                     "Seader:T=1"
+#define SEADER_T1_MAX_FRAME_LEN (3U + SEADER_T1_IFS_MAX + 1U)
 
 static SeaderT1State* seader_t1_state(SeaderUartBridge* seader_uart) {
     return &seader_uart->t1;
@@ -136,8 +137,12 @@ static void seader_t_1_send_nak(Seader* seader) {
 
 void seader_send_t1_chunk(SeaderUartBridge* seader_uart, uint8_t pcb, uint8_t* chunk, size_t len) {
     SeaderT1State* t1 = seader_t1_state(seader_uart);
-    uint8_t* frame = malloc(3 + len + 1);
+    uint8_t frame[SEADER_T1_MAX_FRAME_LEN];
     uint8_t frame_len = 0;
+
+    if(len > SEADER_T1_IFS_MAX) {
+        return;
+    }
 
     frame[0] = t1->nad;
     frame[1] = pcb;
@@ -151,7 +156,6 @@ void seader_send_t1_chunk(SeaderUartBridge* seader_uart, uint8_t pcb, uint8_t* c
 
     frame_len = seader_add_lrc(frame, frame_len);
     seader_ccid_XfrBlock(seader_uart, frame, frame_len);
-    free(frame);
 }
 
 void seader_send_t1_scratchpad(

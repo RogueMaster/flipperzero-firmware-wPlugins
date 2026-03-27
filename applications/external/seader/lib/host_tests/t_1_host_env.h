@@ -12,7 +12,7 @@
 #include "t_1_logic.h"
 
 /* Keep the host harness aligned with the production UART scratchpad size. */
-#define SEADER_UART_RX_BUF_SIZE   (300)
+#define SEADER_UART_RX_BUF_SIZE   (272)
 #define FURI_LOG_W(tag, fmt, ...) ((void)0)
 #define furi_check(expr)                                                                  \
     do {                                                                                  \
@@ -32,7 +32,6 @@ typedef enum { SeaderWorkerEventSamPresent = 53 } SeaderWorkerEvent;
 typedef void (*SeaderWorkerCallback)(uint32_t event, void* context);
 
 struct SeaderUartBridge {
-    uint8_t rx_buf[SEADER_UART_RX_BUF_SIZE];
     uint8_t tx_buf[SEADER_UART_RX_BUF_SIZE];
     size_t tx_len;
     uint8_t T;

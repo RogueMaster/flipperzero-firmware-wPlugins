@@ -18,22 +18,22 @@ void seader_scene_save_name_on_enter(void* context) {
     TextInput* text_input = seader->text_input;
     bool cred_name_empty = false;
     if(!strcmp(seader->credential->name, "")) {
-        name_generator_make_random(seader->text_store, sizeof(seader->text_store));
+        name_generator_make_random(seader->save_name_buf, sizeof(seader->save_name_buf));
         cred_name_empty = true;
     } else {
-        seader_text_store_set(seader, seader->credential->name);
+        strlcpy(seader->save_name_buf, seader->credential->name, sizeof(seader->save_name_buf));
     }
     text_input_set_header_text(text_input, "Name the credential");
     text_input_set_result_callback(
         text_input,
         seader_scene_save_name_text_input_callback,
         seader,
-        seader->text_store,
+        seader->save_name_buf,
         SEADER_CRED_NAME_MAX_LEN,
         cred_name_empty);
 
-    // Use reusable string instead of allocating new one
-    FuriString* folder_path = seader->temp_string1;
+    FuriString* folder_path = furi_string_alloc();
+    furi_check(folder_path);
     if(furi_string_end_with(seader->credential->load_path, SEADER_APP_EXTENSION)) {
         path_extract_dirname(furi_string_get_cstr(seader->credential->load_path), folder_path);
     } else {
@@ -45,8 +45,7 @@ void seader_scene_save_name_on_enter(void* context) {
     text_input_set_validator(text_input, validator_is_file_callback, validator_is_file);
 
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewTextInput);
-
-    // No need to free folder_path as it's reused from seader struct
+    furi_string_free(folder_path);
 }
 
 bool seader_scene_save_name_on_event(void* context, SceneManagerEvent event) {
@@ -60,8 +59,9 @@ bool seader_scene_save_name_on_event(void* context, SceneManagerEvent event) {
                 FURI_LOG_D(TAG, "Delete existing named credential [%s]", seader->credential->name);
                 seader_credential_delete(seader->credential, true);
             }
-            strlcpy(seader->credential->name, seader->text_store, strlen(seader->text_store) + 1);
-            if(seader_credential_save(seader->credential, seader->text_store)) {
+            strlcpy(
+                seader->credential->name, seader->save_name_buf, sizeof(seader->credential->name));
+            if(seader_credential_save(seader->credential, seader->save_name_buf)) {
                 scene_manager_next_scene(seader->scene_manager, SeaderSceneSaveSuccess);
                 consumed = true;
             } else {

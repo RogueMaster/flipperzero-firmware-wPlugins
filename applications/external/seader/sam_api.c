@@ -98,8 +98,12 @@ static void seader_reset_cached_sam_metadata(Seader* seader) {
 static bool seader_snmp_probe_send_next_request(Seader* seader) {
     SeaderUartBridge* seader_uart = seader_require_uart(seader);
     uint8_t* scratch = seader_uart->tx_buf + MAX_FRAME_HEADERS;
-    uint8_t* message = seader_uart->rx_buf;
+    uint8_t* message = seader_scratch_alloc(seader, SEADER_UART_RX_BUF_SIZE, _Alignof(uint8_t));
     size_t message_len = 0U;
+
+    if(!message) {
+        return false;
+    }
 
     if(!seader_uhf_snmp_probe_build_next_request(
            &seader->snmp_probe,
@@ -351,8 +355,14 @@ PicopassError seader_worker_fake_epurse_update(BitBuffer* tx_buffer, BitBuffer* 
 
 void seader_virtual_picopass_state_machine(Seader* seader, uint8_t* buffer, size_t len) {
     BitBuffer* tx_buffer = bit_buffer_alloc(len);
-    bit_buffer_append_bytes(tx_buffer, buffer, len);
     BitBuffer* rx_buffer = bit_buffer_alloc(SEADER_POLLER_MAX_BUFFER_SIZE);
+    if(!tx_buffer || !rx_buffer) {
+        FURI_LOG_E(TAG, "Failed to allocate virtual Picopass buffers");
+        if(tx_buffer) bit_buffer_free(tx_buffer);
+        if(rx_buffer) bit_buffer_free(rx_buffer);
+        return;
+    }
+    bit_buffer_append_bytes(tx_buffer, buffer, len);
 
     uint8_t config[PICOPASS_BLOCK_LEN] = {0x12, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0xff, 0x3c};
     uint8_t sr_aia[PICOPASS_BLOCK_LEN] = {0xFF, 0xff, 0xff, 0xff, 0xFF, 0xFf, 0xff, 0xFF};
@@ -1204,8 +1214,17 @@ void seader_iso15693_transmit(
 
     BitBuffer* tx_buffer = bit_buffer_alloc(len);
     BitBuffer* rx_buffer = bit_buffer_alloc(SEADER_POLLER_MAX_BUFFER_SIZE);
-
     PicopassError error = PicopassErrorNone;
+
+    if(!tx_buffer || !rx_buffer) {
+        FURI_LOG_E(TAG, "Failed to allocate Picopass tx/rx buffers");
+        if(tx_buffer) bit_buffer_free(tx_buffer);
+        if(rx_buffer) bit_buffer_free(rx_buffer);
+        if(seader_worker) {
+            seader_worker->stage = SeaderPollerEventTypeFail;
+        }
+        return;
+    }
 
     do {
         bit_buffer_append_bytes(tx_buffer, buffer, len);
@@ -1234,7 +1253,6 @@ void seader_iso15693_transmit(
             bit_buffer_get_size_bytes(rx_buffer));
 
     } while(false);
-
     bit_buffer_free(tx_buffer);
     bit_buffer_free(rx_buffer);
 }

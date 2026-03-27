@@ -8,7 +8,8 @@
 #define TAG "APDU_Runner"
 
 // Max length of firmware upgrade: 731 bytes
-#define SEADER_APDU_MAX_LEN 732
+#define SEADER_APDU_MAX_LEN                  732
+#define SEADER_APDU_RUNNER_HEX_LOG_MAX_BYTES 32U
 
 void seader_apdu_runner_cleanup(Seader* seader, SeaderWorkerEvent event) {
     furi_check(seader);
@@ -27,6 +28,28 @@ void seader_apdu_runner_cleanup(Seader* seader, SeaderWorkerEvent event) {
     }
 }
 
+static void seader_apdu_runner_log_hex(const char* prefix, const uint8_t* data, size_t len) {
+    if(!data || len == 0U) {
+        FURI_LOG_I(TAG, "%s: <empty>", prefix);
+        return;
+    }
+
+    const size_t display_len =
+        len > SEADER_APDU_RUNNER_HEX_LOG_MAX_BYTES ? SEADER_APDU_RUNNER_HEX_LOG_MAX_BYTES : len;
+    char hex[(SEADER_APDU_RUNNER_HEX_LOG_MAX_BYTES * 2U) + 1U];
+
+    for(size_t i = 0; i < display_len; i++) {
+        snprintf(hex + (i * 2U), sizeof(hex) - (i * 2U), "%02x", data[i]);
+    }
+    hex[display_len * 2U] = '\0';
+
+    if(display_len < len) {
+        FURI_LOG_I(TAG, "%s len=%u: %s...", prefix, (unsigned)len, hex);
+    } else {
+        FURI_LOG_I(TAG, "%s len=%u: %s", prefix, (unsigned)len, hex);
+    }
+}
+
 bool seader_apdu_runner_send_next_line(Seader* seader) {
     furi_check(seader);
     SeaderWorker* seader_worker = seader->worker;
@@ -39,24 +62,19 @@ bool seader_apdu_runner_send_next_line(Seader* seader) {
     apdu_log_get_next_log_str(seader->apdu_log, line);
 
     size_t len = furi_string_size(line) / 2; // String is in HEX, divide by 2 for bytes
-    uint8_t* apdu = malloc(len);
-    if(apdu == NULL) {
-        FURI_LOG_E(TAG, "Failed to allocate memory for APDU");
+    if(len > SEADER_UART_RX_BUF_SIZE || len > SEADER_APDU_MAX_LEN) {
+        FURI_LOG_E(TAG, "APDU length is too long");
         seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerError);
+        furi_string_free(line);
         return false;
     }
 
-    if(len > SEADER_UART_RX_BUF_SIZE) {
-        FURI_LOG_E(TAG, "APDU length is too long");
-        seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerError);
-        free(apdu);
-        return false;
-    }
+    uint8_t apdu[SEADER_APDU_MAX_LEN];
 
     if(!hex_chars_to_uint8(furi_string_get_cstr(line), apdu)) {
         FURI_LOG_E(TAG, "Failed to convert line to number");
         seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerError);
-        free(apdu);
+        furi_string_free(line);
         return false;
     }
     FURI_LOG_I(
@@ -77,7 +95,6 @@ bool seader_apdu_runner_send_next_line(Seader* seader) {
         seader_ccid_XfrBlock(seader_uart, apdu, len);
     }
     furi_string_free(line);
-    free(apdu);
 
     return true;
 }
@@ -120,23 +137,7 @@ bool seader_apdu_runner_response(Seader* seader, uint8_t* r_apdu, size_t r_len) 
     }
 
     if(r_len < SEADER_UART_RX_BUF_SIZE) {
-        char* display = malloc(r_len * 2 + 1);
-        if(display == NULL) {
-            FURI_LOG_E(TAG, "Failed to allocate memory for display");
-            seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerError);
-            return false;
-        }
-        memset(display, 0, r_len * 2 + 1);
-        for(uint8_t i = 0; i < r_len; i++) {
-            snprintf(display + (i * 2), sizeof(display), "%02x", r_apdu[i]);
-        }
-        FURI_LOG_I(
-            TAG,
-            "APDU Runner <=: (%d/%d): %s",
-            apdu_runner_ctx->current_line + 1,
-            apdu_runner_ctx->total_lines,
-            display);
-        free(display);
+        seader_apdu_runner_log_hex("APDU Runner <=", r_apdu, r_len);
     } else {
         FURI_LOG_I(TAG, "APDU Runner <=: Response too long to display");
     }
@@ -148,22 +149,24 @@ bool seader_apdu_runner_response(Seader* seader, uint8_t* r_apdu, size_t r_len) 
     if(furi_string_size(line) % 2 == 1) {
         FURI_LOG_E(TAG, "APDU log file has odd number of characters");
         seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerError);
+        furi_string_free(line);
         return false;
     }
 
     size_t len = furi_string_size(line) / 2; // String is in HEX, divide by 2 for bytes
-    uint8_t* apdu = malloc(len);
-    if(apdu == NULL) {
-        FURI_LOG_E(TAG, "Failed to allocate memory for APDU");
+    if(len > SEADER_APDU_MAX_LEN) {
+        FURI_LOG_E(TAG, "Expected APDU length is too long");
         seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerError);
+        furi_string_free(line);
         return false;
     }
+    uint8_t apdu[SEADER_APDU_MAX_LEN];
 
     if(!hex_chars_to_uint8(furi_string_get_cstr(line), apdu)) {
         FURI_LOG_E(TAG, "Failed to convert line to byte array");
         seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerError);
-        free(apdu);
         // TODO: Send failed event
+        furi_string_free(line);
         return false;
     }
 
@@ -179,10 +182,8 @@ bool seader_apdu_runner_response(Seader* seader, uint8_t* r_apdu, size_t r_len) 
             apdu[len - 2],
             apdu[len - 1]);
         seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerError);
-        free(apdu);
         return false;
     }
-    free(apdu);
 
     // Check if we are at the end of the log
     if(apdu_runner_ctx->current_line >= apdu_runner_ctx->total_lines) {

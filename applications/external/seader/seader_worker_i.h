@@ -17,6 +17,7 @@
 #define SEADER_POLLER_MAX_FWT         (200000U)
 // Maximum basic rAPDU size is 256 bytes of data + 2 byte SW
 #define SEADER_POLLER_MAX_BUFFER_SIZE (258U)
+#define SEADER_WORKER_APDU_SLOT_COUNT (2U)
 
 // ATS bit definitions
 #define ISO14443_4A_ATS_T0_TA1 (1U << 4)
@@ -33,6 +34,8 @@ struct SeaderWorker {
 
     SeaderPollerEventType stage;
     SeaderWorkerState state;
+    struct SeaderAPDU* apdu_slots;
+    bool apdu_slot_in_use[SEADER_WORKER_APDU_SLOT_COUNT];
 };
 
 struct SeaderAPDU {

@@ -158,7 +158,7 @@ struct Seader {
     SeaderScratch scratch;
     SeaderHfModeContext* hf_mode;
 
-    char text_store[SEADER_TEXT_STORE_SIZE + 1];
+    char save_name_buf[SEADER_CRED_NAME_MAX_LEN + 1];
     char read_error[SEADER_TEXT_STORE_SIZE + 1];
     FuriString* text_box_store;
 
@@ -213,10 +213,6 @@ typedef enum {
     SeaderViewWidget,
     SeaderViewUart,
 } SeaderView;
-
-void seader_text_store_set(Seader* seader, const char* text, ...);
-
-void seader_text_store_clear(Seader* seader);
 
 void seader_blink_start(Seader* seader);
 

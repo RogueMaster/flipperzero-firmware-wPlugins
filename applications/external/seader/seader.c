@@ -535,18 +535,18 @@ Seader* seader_alloc() {
     seader->text_box = text_box_alloc();
     view_dispatcher_add_view(
         seader->view_dispatcher, SeaderViewTextBox, text_box_get_view(seader->text_box));
-    seader->text_box_store = furi_string_alloc();
+    seader->text_box_store = NULL;
 
     // Custom Widget
     seader->widget = widget_alloc();
     view_dispatcher_add_view(
         seader->view_dispatcher, SeaderViewWidget, widget_get_view(seader->widget));
 
-    // Allocate reusable strings for scene optimization
-    seader->temp_string1 = furi_string_alloc();
-    seader->temp_string2 = furi_string_alloc();
-    seader->temp_string3 = furi_string_alloc();
-    seader->temp_string4 = furi_string_alloc();
+    // Scene strings are allocated lazily by the scenes that need them.
+    seader->temp_string1 = NULL;
+    seader->temp_string2 = NULL;
+    seader->temp_string3 = NULL;
+    seader->temp_string4 = NULL;
 
     seader->plugin_manager = NULL;
     seader->plugin_wiegand = NULL;
@@ -620,17 +620,19 @@ void seader_free(Seader* seader) {
     // TextBox
     view_dispatcher_remove_view(seader->view_dispatcher, SeaderViewTextBox);
     text_box_free(seader->text_box);
-    furi_string_free(seader->text_box_store);
+    if(seader->text_box_store) {
+        furi_string_free(seader->text_box_store);
+    }
 
     // Custom Widget
     view_dispatcher_remove_view(seader->view_dispatcher, SeaderViewWidget);
     widget_free(seader->widget);
 
     // Free reusable strings
-    furi_string_free(seader->temp_string1);
-    furi_string_free(seader->temp_string2);
-    furi_string_free(seader->temp_string3);
-    furi_string_free(seader->temp_string4);
+    if(seader->temp_string1) furi_string_free(seader->temp_string1);
+    if(seader->temp_string2) furi_string_free(seader->temp_string2);
+    if(seader->temp_string3) furi_string_free(seader->temp_string3);
+    if(seader->temp_string4) furi_string_free(seader->temp_string4);
 
     // View Dispatcher
     view_dispatcher_free(seader->view_dispatcher);
@@ -647,19 +649,6 @@ void seader_free(Seader* seader) {
     seader->notifications = NULL;
 
     free(seader);
-}
-
-void seader_text_store_set(Seader* seader, const char* text, ...) {
-    va_list args;
-    va_start(args, text);
-
-    vsnprintf(seader->text_store, sizeof(seader->text_store), text, args);
-
-    va_end(args);
-}
-
-void seader_text_store_clear(Seader* seader) {
-    memset(seader->text_store, 0, sizeof(seader->text_store));
 }
 
 static const NotificationSequence seader_sequence_blink_start_blue = {

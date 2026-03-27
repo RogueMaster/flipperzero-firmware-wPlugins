@@ -1,7 +1,8 @@
 #include "seader_i.h"
 #include "ccid_logic.h"
 
-#define TAG "SeaderCCID"
+#define TAG                           "SeaderCCID"
+#define SEADER_CCID_HEX_LOG_MAX_BYTES 32U
 const uint8_t SAM_ATR[] =
     {0x3b, 0x95, 0x96, 0x80, 0xb1, 0xfe, 0x55, 0x1f, 0xc7, 0x47, 0x72, 0x61, 0x63, 0x65, 0x13};
 const uint8_t SAM_ATR2[] = {0x3b, 0x90, 0x96, 0x91, 0x81, 0xb1, 0xfe, 0x55, 0x1f, 0xc7, 0xd4};
@@ -35,6 +36,28 @@ static SeaderUartBridge* seader_ccid_active_uart(Seader* seader) {
     furi_check(seader->worker);
     furi_check(seader->worker->uart);
     return seader->worker->uart;
+}
+
+static void seader_ccid_log_hex(const char* prefix, const uint8_t* data, size_t len) {
+    if(!data || len == 0U) {
+        FURI_LOG_D(TAG, "%s: <empty>", prefix);
+        return;
+    }
+
+    const size_t display_len =
+        len > SEADER_CCID_HEX_LOG_MAX_BYTES ? SEADER_CCID_HEX_LOG_MAX_BYTES : len;
+    char hex[(SEADER_CCID_HEX_LOG_MAX_BYTES * 2U) + 1U];
+
+    for(size_t i = 0; i < display_len; i++) {
+        snprintf(hex + (i * 2U), sizeof(hex) - (i * 2U), "%02x", data[i]);
+    }
+    hex[display_len * 2U] = '\0';
+
+    if(display_len < len) {
+        FURI_LOG_D(TAG, "%s len=%u: %s...", prefix, (unsigned)len, hex);
+    } else {
+        FURI_LOG_D(TAG, "%s len=%u: %s", prefix, (unsigned)len, hex);
+    }
 }
 
 void seader_ccid_IccPowerOn(SeaderUartBridge* seader_uart, uint8_t slot) {
@@ -239,12 +262,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
     message.consumed = 0;
     SeaderCcidState* ccid_state = seader_ccid_state(seader_uart);
 
-    char* display = malloc(cmd_len * 2 + 1);
-    for(size_t i = 0; i < cmd_len; i++) {
-        snprintf(display + (i * 2), sizeof(display), "%02x", cmd[i]);
-    }
-    FURI_LOG_D(TAG, "seader_ccid_process %d: %s", cmd_len, display);
-    free(display);
+    seader_ccid_log_hex("seader_ccid_process", cmd, cmd_len);
 
     if(cmd_len == 2) {
         if(cmd[0] == CCID_MESSAGE_TYPE_RDR_TO_PC_NOTIFY_SLOT_CHANGE) {
