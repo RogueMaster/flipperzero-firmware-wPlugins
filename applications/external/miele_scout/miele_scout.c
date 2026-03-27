@@ -19,24 +19,24 @@ typedef struct {
 } MieleCommand;
 
 /* Drive-mode commands */
-static const uint32_t cmd_up    = 0x08;
-static const uint32_t cmd_down  = 0x09;
-static const uint32_t cmd_left  = 0x0B;
+static const uint32_t cmd_up = 0x08;
+static const uint32_t cmd_down = 0x09;
+static const uint32_t cmd_left = 0x0B;
 static const uint32_t cmd_right = 0x0A;
 static const uint32_t cmd_start = 0x06; /* PLAY/PAUSE — starts cleaning */
 
 /* Menu-mode commands */
 static const MieleCommand menu_commands[] = {
-    {"POWER",      0x07},
-    {"BASE",       0x04},
+    {"POWER", 0x07},
+    {"BASE", 0x04},
     {"PLAY/PAUSE", 0x06},
-    {"OK",         0x0C},
-    {"MODE",       0x05},
-    {"WIFI",       0x01},
-    {"TIMER",      0x03},
-    {"CLOCK",      0x02},
-    {"CLIMB",      0x0D},
-    {"MUTE",       0x0E},
+    {"OK", 0x0C},
+    {"MODE", 0x05},
+    {"WIFI", 0x01},
+    {"TIMER", 0x03},
+    {"CLOCK", 0x02},
+    {"CLIMB", 0x0D},
+    {"MUTE", 0x0E},
 };
 
 #define MENU_COUNT (sizeof(menu_commands) / sizeof(menu_commands[0]))
@@ -60,8 +60,8 @@ typedef enum {
 typedef struct {
     AppMode mode;
     int menu_index;
-    ActiveDirection active_dir;    /* brief highlight on TX */
-    bool tx_flash;                 /* brief flash on any TX */
+    ActiveDirection active_dir; /* brief highlight on TX */
+    bool tx_flash; /* brief flash on any TX */
     bool running;
     FuriMessageQueue* queue;
     ViewPort* view_port;
@@ -264,7 +264,6 @@ int32_t miele_scout_app(void* p) {
     InputEvent event;
     while(app->running) {
         if(furi_message_queue_get(app->queue, &event, 100) == FuriStatusOk) {
-
             /* Back button: short = toggle mode, long = exit */
             if(event.key == InputKeyBack) {
                 if(event.type == InputTypeLong) {

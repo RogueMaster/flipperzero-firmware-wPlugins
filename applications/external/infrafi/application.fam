@@ -2,6 +2,7 @@ App(
     appid="infrafi",
     name="InfraFi",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="wi_fir_app",
     stack_size=8 * 1024,
     fap_icon="flipper/images/wifi_10px.png",
