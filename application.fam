@@ -6,7 +6,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="sonicare_app",
     stack_size=2 * 1024,
-    fap_category="RFID",
+    fap_category="NFC",
     # Optional values
     requires=["gui"],
     fap_version="0.1",

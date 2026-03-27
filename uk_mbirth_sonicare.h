@@ -28,6 +28,7 @@
 #include <nfc/nfc_poller.h>
 #include <nfc/nfc_scanner.h>
 #include <nfc/nfc_listener.h>
+#include <nfc/nfc_device.h>
 
 typedef struct Sonicare Sonicare;
 
@@ -52,6 +53,7 @@ struct Sonicare {
     NfcPoller* poller;
     NfcScanner* scanner;
     NfcListener* listener;
+    NfcDevice* nfc_device;
 };
 
 typedef enum {
@@ -62,6 +64,7 @@ typedef enum {
     SonicareViewTextInput,
     SonicareViewByteInput,
     SonicareViewRead,
+    SonicareViewReadComplete,
 } SonicareView;
 
 typedef enum {
