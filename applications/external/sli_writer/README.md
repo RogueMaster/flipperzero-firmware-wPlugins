@@ -119,10 +119,3 @@ Write block N failed
 ```
 - Block write failed after retries
 
----
-
-## ✅ Status
-
-✔ Working reliably  
-✔ Supports SLIX / SLIX2 magic tags  
-✔ Android version available  
