@@ -7,6 +7,7 @@
 #include <nfc/nfc_scanner.h>
 #include <nfc/protocols/nfc_protocol.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight.h>
 #include <nfc/protocols/mf_ultralight/mf_ultralight_poller.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
@@ -25,13 +26,23 @@ void nfc_scene_detect_scan_callback(NfcScannerEvent event, void* context) {
 }
 
 NfcCommand nfc_scene_poller_callback(NfcGenericEvent event, void* context) {
-    furi_assert(event.protocol == NfcProtocolIso14443_3a);
+    //furi_assert(event.protocol == NfcProtocolIso14443_3a);
+    furi_assert(event.protocol == NfcProtocolMfUltralight);
 
     Sonicare* app = context;
-    const Iso14443_3aPollerEvent* ev = event.event_data;
+    //const Iso14443_3aPollerEvent* ev = event.event_data;
+    const MfUltralightPollerEvent* ev = event.event_data;
     
-    if (ev->type == Iso14443_3aPollerEventTypeReady) {
-        nfc_device_set_data(app->nfc_device, NfcProtocolIso14443_3a, nfc_poller_get_data(app->poller));
+    //if (ev->type == Iso14443_3aPollerEventTypeReady) {
+    if (ev->type == MfUltralightPollerEventTypeReadSuccess) {
+        FURI_LOG_I("sonicare_scene_read", "NFC Poller reports Read Success");
+        //nfc_device_set_data(app->nfc_device, NfcProtocolIso14443_3a, nfc_poller_get_data(app->poller));
+        nfc_device_set_data(app->nfc_device, NfcProtocolMfUltralight, nfc_poller_get_data(app->poller));
+        FURI_LOG_D("sonicare_scene_read", "Pulling Mifare Ultralight data from poller");
+        const MfUltralightData* ul_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfUltralight);
+        app->nfc_data = ul_data;
+
+        FURI_LOG_I("sonicare_scene_read", "Dataset has %i of %i pages read from Mifare Ultralight", ul_data->pages_read, ul_data->pages_total);
         view_dispatcher_send_custom_event(app->view_dispatcher, NfcCustomEventWorkerExit);
         return NfcCommandStop;
     }
@@ -55,7 +66,8 @@ void sonicare_scene_read_on_enter(void* context) {
     // we probably don't need to "scan" but can instead directly "poll" for NTAG213 (ISO 14443-3a) data
     //app->scanner = nfc_scanner_alloc(app->nfc);
     //nfc_scanner_start(app->scanner, nfc_scene_detect_scan_callback, app);
-    app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_3a);
+    //app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_3a);
+    app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfUltralight);
     nfc_poller_start(app->poller, nfc_scene_poller_callback, app);
 }
 

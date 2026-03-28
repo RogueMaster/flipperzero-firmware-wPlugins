@@ -29,6 +29,7 @@
 #include <nfc/nfc_scanner.h>
 #include <nfc/nfc_listener.h>
 #include <nfc/nfc_device.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight.h>
 
 typedef struct Sonicare Sonicare;
 
@@ -54,6 +55,7 @@ struct Sonicare {
     NfcScanner* scanner;
     NfcListener* listener;
     NfcDevice* nfc_device;
+    const MfUltralightData* nfc_data;
 };
 
 typedef enum {

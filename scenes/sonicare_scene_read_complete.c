@@ -7,6 +7,7 @@
 #include <nfc/nfc_device.h>
 #include <nfc/protocols/nfc_protocol.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
+#include "nfc/protocols/mf_ultralight/mf_ultralight.h"
 #include <uk_mbirth_sonicare_icons.h>
 #include <dolphin/dolphin.h>
 
@@ -25,14 +26,14 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     widget_reset(widget);
     
     const NfcDevice* nfc_device = app->nfc_device;
-    const Iso14443_3aData* nfc_data = nfc_device_get_data(nfc_device, NfcProtocolIso14443_3a);
+    FURI_LOG_D("sonicare_scene_read_complete", "Pulling Mifare Ultralight data from NFC device");
+    const MfUltralightData* ul_data = app->nfc_data;
 
-    UNUSED(nfc_data);
+    UNUSED(ul_data);
 
     FuriString* temp_str = furi_string_alloc();
     
     furi_string_cat_printf(temp_str, "\e#%s\n", nfc_device_get_name(nfc_device, NfcDeviceNameTypeFull));
-
     widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(temp_str));
 
     furi_string_free(temp_str);
@@ -53,7 +54,7 @@ bool sonicare_scene_read_complete_on_event(void* context, SceneManagerEvent even
         }
     } else if (event.type == SceneManagerEventTypeBack) {
         // Back button pressed
-        consumed = true;
+        //consumed = true;
     }
     
     return consumed;
