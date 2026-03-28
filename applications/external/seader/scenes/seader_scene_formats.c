@@ -7,16 +7,18 @@ static void seader_scene_formats_alloc_strings(Seader* seader) {
         seader->text_box_store = furi_string_alloc();
         furi_check(seader->text_box_store);
     }
-    if(!seader->temp_string1) {
-        seader->temp_string1 = furi_string_alloc();
-        furi_check(seader->temp_string1);
-    }
+    furi_check(seader_temp_strings_ensure(seader, 1U));
 }
 
 void seader_scene_formats_on_enter(void* context) {
     Seader* seader = context;
     PluginWiegand* plugin = seader_wiegand_plugin_acquire(seader) ? seader->plugin_wiegand : NULL;
     SeaderCredential* credential = seader->credential;
+    TextBox* text_box = seader_get_text_box(seader);
+    if(!text_box) {
+        FURI_LOG_E("SeaderSceneFormats", "Text box view unavailable");
+        return;
+    }
 
     seader_scene_formats_alloc_strings(seader);
     FuriString* str = seader->text_box_store;
@@ -25,12 +27,13 @@ void seader_scene_formats_on_enter(void* context) {
     if(plugin) {
         // Use reusable string instead of allocating new one
         FuriString* description = seader->temp_string1;
-        furi_string_reset(description);
         size_t format_count = plugin->count(credential->bit_length, credential->credential);
         for(size_t i = 0; i < format_count; i++) {
+            furi_string_reset(description);
             plugin->description(credential->bit_length, credential->credential, i, description);
-
-            furi_string_cat_printf(str, "%s\n", furi_string_get_cstr(description));
+            if(furi_string_size(description) > 0U) {
+                furi_string_cat_printf(str, "%s\n", furi_string_get_cstr(description));
+            }
         }
         if(format_count == 0) {
             furi_string_set_str(str, "No known Wiegand formats matched.");
@@ -40,8 +43,8 @@ void seader_scene_formats_on_enter(void* context) {
         furi_string_set_str(str, "Wiegand parser unavailable.");
     }
 
-    text_box_set_font(seader->text_box, TextBoxFontHex);
-    text_box_set_text(seader->text_box, furi_string_get_cstr(seader->text_box_store));
+    text_box_set_font(text_box, TextBoxFontHex);
+    text_box_set_text(text_box, furi_string_get_cstr(seader->text_box_store));
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewTextBox);
 }
 
@@ -63,14 +66,13 @@ void seader_scene_formats_on_exit(void* context) {
     Seader* seader = context;
 
     // Clear views
-    text_box_reset(seader->text_box);
+    if(seader->text_box) {
+        text_box_reset(seader->text_box);
+    }
     if(seader->text_box_store) {
         furi_string_free(seader->text_box_store);
         seader->text_box_store = NULL;
     }
-    if(seader->temp_string1) {
-        furi_string_free(seader->temp_string1);
-        seader->temp_string1 = NULL;
-    }
+    seader_temp_strings_release(seader, 1U);
     seader_wiegand_plugin_release(seader);
 }

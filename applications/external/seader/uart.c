@@ -1,7 +1,10 @@
 #include "seader_i.h"
+#include "trace_log.h"
 
-#define TAG              "SeaderUART"
-#define BAUDRATE_DEFAULT 115200
+#define TAG                              "SeaderUART"
+#define BAUDRATE_DEFAULT                 115200
+#define SEADER_UART_WORKER_STACK_SIZE    (3U * 1024U)
+#define SEADER_UART_TX_WORKER_STACK_SIZE (1024U)
 
 static void seader_uart_on_irq_rx_dma_cb(
     FuriHalSerialHandle* handle,
@@ -88,8 +91,8 @@ int32_t seader_uart_worker(void* context) {
 
     seader_uart->tx_sem = furi_semaphore_alloc(1, 1);
 
-    seader_uart->tx_thread =
-        furi_thread_alloc_ex("SeaderUartTxWorker", 1.5 * 1024, seader_uart_tx_thread, seader);
+    seader_uart->tx_thread = furi_thread_alloc_ex(
+        "SeaderUartTxWorker", SEADER_UART_TX_WORKER_STACK_SIZE, seader_uart_tx_thread, seader);
 
     seader_uart_serial_init(seader_uart, seader_uart->cfg.uart_ch);
     furi_hal_serial_set_br(seader_uart->serial_handle, seader_uart->cfg.baudrate);
@@ -162,8 +165,8 @@ SeaderUartBridge* seader_uart_enable(SeaderUartConfig* cfg, Seader* seader) {
 
     memcpy(&(seader_uart->cfg_new), cfg, sizeof(SeaderUartConfig));
 
-    seader_uart->thread =
-        furi_thread_alloc_ex("SeaderUartWorker", 4 * 1024, seader_uart_worker, seader);
+    seader_uart->thread = furi_thread_alloc_ex(
+        "SeaderUartWorker", SEADER_UART_WORKER_STACK_SIZE, seader_uart_worker, seader);
 
     furi_thread_start(seader_uart->thread);
     return seader_uart;
@@ -188,11 +191,6 @@ int32_t seader_uart_tx_thread(void* context) {
         if(events & WorkerEvtTxStop) break;
         if(events & WorkerEvtSamRx) {
             if(seader_uart->tx_len > 0) {
-                char display[SEADER_UART_RX_BUF_SIZE * 2 + 1] = {0};
-                for(size_t i = 0; i < seader_uart->tx_len; i++) {
-                    snprintf(display + (i * 2), sizeof(display), "%02x", seader_uart->tx_buf[i]);
-                }
-                // FURI_LOG_I(TAG, "SEND %d bytes: %s", seader_uart->tx_len, display);
                 furi_hal_serial_tx(
                     seader_uart->serial_handle, seader_uart->tx_buf, seader_uart->tx_len);
             }
@@ -218,7 +216,7 @@ SeaderUartBridge* seader_uart_alloc(Seader* seader) {
     SeaderUartState uart_state;
     SeaderUartBridge* seader_uart;
 
-    FURI_LOG_I(TAG, "Enable UART");
+    SEADER_VERBOSE_I(TAG, "Enable UART");
     seader_uart = seader_uart_enable(&cfg, seader);
 
     seader_uart_get_config(seader_uart, &cfg);

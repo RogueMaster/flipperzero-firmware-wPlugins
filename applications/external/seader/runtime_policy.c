@@ -1,5 +1,7 @@
 #include "runtime_policy.h"
 
+#include <string.h>
+
 /* A newly accepted SAM must not inherit visible metadata from the previous card while
    asynchronous version/serial/UHF maintenance responses are still in flight. */
 void seader_runtime_reset_cached_sam_metadata(
@@ -74,5 +76,89 @@ void seader_runtime_finalize_hf_release(
 
     if(mode_runtime && *mode_runtime == SeaderModeRuntimeHF) {
         *mode_runtime = SeaderModeRuntimeNone;
+    }
+}
+
+void seader_runtime_fail_hf_startup(
+    SeaderHfReadState* hf_read_state,
+    SeaderHfReadFailureReason* failure_reason,
+    uint32_t* last_progress_tick,
+    SeaderHfSessionState* hf_session_state,
+    SeaderModeRuntime* mode_runtime) {
+    if(hf_read_state) {
+        *hf_read_state = SeaderHfReadStateTerminalFail;
+    }
+
+    if(failure_reason) {
+        *failure_reason = SeaderHfReadFailureReasonUnavailable;
+    }
+
+    if(last_progress_tick) {
+        *last_progress_tick = 0U;
+    }
+
+    if(hf_session_state) {
+        *hf_session_state = SeaderHfSessionStateUnloaded;
+    }
+
+    if(mode_runtime && *mode_runtime == SeaderModeRuntimeHF) {
+        *mode_runtime = SeaderModeRuntimeNone;
+    }
+}
+
+bool seader_runtime_begin_board_auto_recover(
+    bool sam_present,
+    bool hf_runtime_active,
+    SeaderCredentialType selected_read_type,
+    bool* pending,
+    bool* resume_read,
+    SeaderCredentialType* preserved_read_type) {
+    if(!sam_present || !pending || !resume_read || !preserved_read_type || *pending) {
+        return false;
+    }
+
+    *pending = true;
+    *resume_read = hf_runtime_active;
+    *preserved_read_type = hf_runtime_active ? selected_read_type : SeaderCredentialTypeNone;
+    return true;
+}
+
+void seader_runtime_finish_board_auto_recover(
+    bool* pending,
+    bool* resume_read,
+    SeaderCredentialType* preserved_read_type) {
+    if(pending) {
+        *pending = false;
+    }
+
+    if(resume_read) {
+        *resume_read = false;
+    }
+
+    if(preserved_read_type) {
+        *preserved_read_type = SeaderCredentialTypeNone;
+    }
+}
+
+void seader_runtime_reset_hf_mode(
+    bool* hf_mode_active,
+    SeaderCredentialType* selected_read_type,
+    SeaderCredentialType detected_types[],
+    size_t detected_capacity,
+    size_t* detected_type_count) {
+    if(selected_read_type) {
+        *selected_read_type = SeaderCredentialTypeNone;
+    }
+
+    if(detected_types && detected_capacity > 0U) {
+        memset(detected_types, 0, detected_capacity * sizeof(detected_types[0]));
+    }
+
+    if(detected_type_count) {
+        *detected_type_count = 0U;
+    }
+
+    if(hf_mode_active) {
+        *hf_mode_active = false;
     }
 }

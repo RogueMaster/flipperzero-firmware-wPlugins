@@ -33,6 +33,7 @@ void seader_send_nfc_rx(Seader* seader, uint8_t* buffer, size_t len);
 void seader_send_no_card_detected(Seader* seader);
 bool seader_sam_can_accept_card(const Seader* seader);
 bool seader_sam_has_active_card(const Seader* seader);
+void seader_sam_force_idle_for_recovery(Seader* seader);
 
 bool seader_process_success_response_i(
     Seader* seader,

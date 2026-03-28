@@ -16,6 +16,7 @@ App(
         "*.c",
         "aeabi_uldivmod.sx",
         "!hf_interface_fal/*.c",
+        "!runtime_policy.c",
         "!wiegand_interface_fal/*.c",
     ],
     fap_icon="icons/logo.png",

@@ -162,21 +162,20 @@ static void loclass_rk(const uint8_t* key, uint8_t n, uint8_t* outp_key) {
     return;
 }
 
-static mbedtls_des_context loclass_ctx_enc;
-static mbedtls_des_context loclass_ctx_dec;
-
 static void loclass_desdecrypt_iclass(uint8_t* iclass_key, uint8_t* input, uint8_t* output) {
     uint8_t key_std_format[8] = {0};
     loclass_permutekey_rev(iclass_key, key_std_format);
-    mbedtls_des_setkey_dec(&loclass_ctx_dec, key_std_format);
-    mbedtls_des_crypt_ecb(&loclass_ctx_dec, input, output);
+    mbedtls_des_context ctx;
+    mbedtls_des_setkey_dec(&ctx, key_std_format);
+    mbedtls_des_crypt_ecb(&ctx, input, output);
 }
 
 static void loclass_desencrypt_iclass(const uint8_t* iclass_key, uint8_t* input, uint8_t* output) {
     uint8_t key_std_format[8] = {0};
     loclass_permutekey_rev(iclass_key, key_std_format);
-    mbedtls_des_setkey_enc(&loclass_ctx_enc, key_std_format);
-    mbedtls_des_crypt_ecb(&loclass_ctx_enc, input, output);
+    mbedtls_des_context ctx;
+    mbedtls_des_setkey_enc(&ctx, key_std_format);
+    mbedtls_des_crypt_ecb(&ctx, input, output);
 }
 
 /**

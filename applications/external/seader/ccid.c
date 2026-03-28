@@ -1,8 +1,8 @@
 #include "seader_i.h"
 #include "ccid_logic.h"
+#include "trace_log.h"
 
-#define TAG                           "SeaderCCID"
-#define SEADER_CCID_HEX_LOG_MAX_BYTES 32U
+#define TAG "SeaderCCID"
 const uint8_t SAM_ATR[] =
     {0x3b, 0x95, 0x96, 0x80, 0xb1, 0xfe, 0x55, 0x1f, 0xc7, 0x47, 0x72, 0x61, 0x63, 0x65, 0x13};
 const uint8_t SAM_ATR2[] = {0x3b, 0x90, 0x96, 0x91, 0x81, 0xb1, 0xfe, 0x55, 0x1f, 0xc7, 0xd4};
@@ -38,28 +38,6 @@ static SeaderUartBridge* seader_ccid_active_uart(Seader* seader) {
     return seader->worker->uart;
 }
 
-static void seader_ccid_log_hex(const char* prefix, const uint8_t* data, size_t len) {
-    if(!data || len == 0U) {
-        FURI_LOG_D(TAG, "%s: <empty>", prefix);
-        return;
-    }
-
-    const size_t display_len =
-        len > SEADER_CCID_HEX_LOG_MAX_BYTES ? SEADER_CCID_HEX_LOG_MAX_BYTES : len;
-    char hex[(SEADER_CCID_HEX_LOG_MAX_BYTES * 2U) + 1U];
-
-    for(size_t i = 0; i < display_len; i++) {
-        snprintf(hex + (i * 2U), sizeof(hex) - (i * 2U), "%02x", data[i]);
-    }
-    hex[display_len * 2U] = '\0';
-
-    if(display_len < len) {
-        FURI_LOG_D(TAG, "%s len=%u: %s...", prefix, (unsigned)len, hex);
-    } else {
-        FURI_LOG_D(TAG, "%s len=%u: %s", prefix, (unsigned)len, hex);
-    }
-}
-
 void seader_ccid_IccPowerOn(SeaderUartBridge* seader_uart, uint8_t slot) {
     SeaderCcidSlotState* slot_state = seader_ccid_slot_state(seader_uart, slot);
     if(slot_state->powered) {
@@ -67,7 +45,7 @@ void seader_ccid_IccPowerOn(SeaderUartBridge* seader_uart, uint8_t slot) {
     }
     slot_state->powered = true;
 
-    FURI_LOG_D(TAG, "Sending Power On (%d)", slot);
+    SEADER_VERBOSE_D(TAG, "Sending Power On (%d)", slot);
     memset(seader_uart->tx_buf, 0, SEADER_UART_RX_BUF_SIZE);
     seader_uart->tx_buf[0] = SYNC;
     seader_uart->tx_buf[1] = CTRL;
@@ -84,7 +62,7 @@ void seader_ccid_IccPowerOn(SeaderUartBridge* seader_uart, uint8_t slot) {
 void seader_ccid_IccPowerOff(SeaderUartBridge* seader_uart, uint8_t slot) {
     seader_ccid_slot_state(seader_uart, slot)->powered = false;
 
-    FURI_LOG_D(TAG, "Sending Power Off (%d)", slot);
+    SEADER_VERBOSE_D(TAG, "Sending Power Off (%d)", slot);
     memset(seader_uart->tx_buf, 0, SEADER_UART_RX_BUF_SIZE);
     seader_uart->tx_buf[0] = SYNC;
     seader_uart->tx_buf[1] = CTRL;
@@ -109,7 +87,7 @@ void seader_ccid_check_for_sam(SeaderUartBridge* seader_uart) {
 }
 
 void seader_ccid_GetSlotStatus(SeaderUartBridge* seader_uart, uint8_t slot) {
-    FURI_LOG_D(TAG, "seader_ccid_GetSlotStatus(%d)", slot);
+    SEADER_VERBOSE_D(TAG, "seader_ccid_GetSlotStatus(%d)", slot);
     memset(seader_uart->tx_buf, 0, SEADER_UART_RX_BUF_SIZE);
     seader_uart->tx_buf[0] = SYNC;
     seader_uart->tx_buf[1] = CTRL;
@@ -123,7 +101,7 @@ void seader_ccid_GetSlotStatus(SeaderUartBridge* seader_uart, uint8_t slot) {
 
 void seader_ccid_SetParameters(Seader* seader, uint8_t slot) {
     SeaderUartBridge* seader_uart = seader_ccid_active_uart(seader);
-    FURI_LOG_D(TAG, "seader_ccid_SetParameters(%d)", slot);
+    SEADER_VERBOSE_D(TAG, "seader_ccid_SetParameters(%d)", slot);
 
     uint8_t payloadLen = 0;
     if(seader_uart->T == 0) {
@@ -248,7 +226,7 @@ void seader_ccid_XfrBlockToSlot(
     for(uint8_t i = 0; i < seader_uart->tx_len; i++) {
         snprintf(display + (i * 2), sizeof(display), "%02x", frame[i]);
     }
-    FURI_LOG_D(TAG, "seader_ccid_XfrBlockToSlot(%d) %d: %s", slot, seader_uart->tx_len, display);
+    SEADER_VERBOSE_D(TAG, "seader_ccid_XfrBlockToSlot(%d) %d: %s", slot, seader_uart->tx_len, display);
     free(display);
     */
 
@@ -262,7 +240,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
     message.consumed = 0;
     SeaderCcidState* ccid_state = seader_ccid_state(seader_uart);
 
-    seader_ccid_log_hex("seader_ccid_process", cmd, cmd_len);
+    SEADER_VERBOSE_HEX(FuriLogLevelDebug, TAG, "seader_ccid_process", cmd, cmd_len);
 
     if(cmd_len == 2) {
         if(cmd[0] == CCID_MESSAGE_TYPE_RDR_TO_PC_NOTIFY_SLOT_CHANGE) {
@@ -272,7 +250,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
                 // No change, no-op
                 break;
             case CCID_SLOT_0_CARD_IN:
-                FURI_LOG_D(TAG, "Card Inserted (0)");
+                SEADER_VERBOSE_D(TAG, "Card Inserted (0)");
                 if(ccid_state->has_sam && ccid_state->sam_slot == 0) {
                     break;
                 }
@@ -280,7 +258,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
                 seader_ccid_IccPowerOn(seader_uart, 0);
                 break;
             case CCID_SLOT_0_CARD_OUT:
-                FURI_LOG_D(TAG, "Card Removed (0)");
+                SEADER_VERBOSE_D(TAG, "Card Removed (0)");
                 if(ccid_state->has_sam && ccid_state->sam_slot == 0) {
                     ccid_state->slots[0].powered = false;
                     ccid_state->has_sam = false;
@@ -299,7 +277,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
                 // No change, no-op
                 break;
             case CCID_SLOT_1_CARD_IN:
-                FURI_LOG_D(TAG, "Card Inserted (1)");
+                SEADER_VERBOSE_D(TAG, "Card Inserted (1)");
                 if(ccid_state->has_sam && ccid_state->sam_slot == 1) {
                     break;
                 }
@@ -307,7 +285,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
                 seader_ccid_IccPowerOn(seader_uart, 1);
                 break;
             case CCID_SLOT_1_CARD_OUT:
-                FURI_LOG_D(TAG, "Card Removed (1)");
+                SEADER_VERBOSE_D(TAG, "Card Removed (1)");
                 if(ccid_state->has_sam && ccid_state->sam_slot == 1) {
                     ccid_state->slots[1].powered = false;
                     ccid_state->has_sam = false;
@@ -423,7 +401,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
         }
 
         if(message.bMessageType == CCID_MESSAGE_TYPE_RDR_TO_PC_PARAMETERS) {
-            FURI_LOG_D(TAG, "Got Parameters");
+            SEADER_VERBOSE_D(TAG, "Got Parameters");
             if(seader_uart->T == 1) {
                 seader_t_1_set_IFSD(seader);
             } else {
@@ -442,11 +420,11 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
                         seader_recv_t1(seader, &message);
                     }
                 } else {
-                    FURI_LOG_D(TAG, "Discarding message on non-sam slot");
+                    SEADER_VERBOSE_D(TAG, "Discarding message on non-sam slot");
                 }
             } else {
                 if(memcmp(SAM_ATR, message.payload, sizeof(SAM_ATR)) == 0) {
-                    FURI_LOG_I(TAG, "SAM ATR!");
+                    SEADER_VERBOSE_I(TAG, "SAM ATR!");
                     ccid_state->has_sam = true;
                     ccid_state->sam_slot = message.bSlot;
                     seader->ATR_len = sizeof(SAM_ATR);
@@ -457,7 +435,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
                         seader_ccid_SetParameters(seader, ccid_state->sam_slot);
                     }
                 } else if(memcmp(SAM_ATR2, message.payload, sizeof(SAM_ATR2)) == 0) {
-                    FURI_LOG_I(TAG, "SAM ATR2!");
+                    SEADER_VERBOSE_I(TAG, "SAM ATR2!");
                     ccid_state->has_sam = true;
                     ccid_state->sam_slot = message.bSlot;
                     seader->ATR_len = sizeof(SAM_ATR);
@@ -465,7 +443,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
                     // I don't have an ATR2 to test with
                     seader_ccid_GetParameters(seader_uart);
                 } else if(memcmp(SAM_ATR3, message.payload, sizeof(SAM_ATR3)) == 0) {
-                    FURI_LOG_I(TAG, "SAM ATR3!");
+                    SEADER_VERBOSE_I(TAG, "SAM ATR3!");
                     ccid_state->has_sam = true;
                     ccid_state->sam_slot = message.bSlot;
                     seader->ATR_len = sizeof(SAM_ATR);

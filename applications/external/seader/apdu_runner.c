@@ -1,5 +1,6 @@
 #include "apdu_runner.h"
 #include "seader_i.h"
+#include "trace_log.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,8 +9,7 @@
 #define TAG "APDU_Runner"
 
 // Max length of firmware upgrade: 731 bytes
-#define SEADER_APDU_MAX_LEN                  732
-#define SEADER_APDU_RUNNER_HEX_LOG_MAX_BYTES 32U
+#define SEADER_APDU_MAX_LEN 732
 
 void seader_apdu_runner_cleanup(Seader* seader, SeaderWorkerEvent event) {
     furi_check(seader);
@@ -25,28 +25,6 @@ void seader_apdu_runner_cleanup(Seader* seader, SeaderWorkerEvent event) {
     seader->apdu_log = NULL;
     if(seader_worker->callback) {
         seader_worker->callback(event, seader_worker->context);
-    }
-}
-
-static void seader_apdu_runner_log_hex(const char* prefix, const uint8_t* data, size_t len) {
-    if(!data || len == 0U) {
-        FURI_LOG_I(TAG, "%s: <empty>", prefix);
-        return;
-    }
-
-    const size_t display_len =
-        len > SEADER_APDU_RUNNER_HEX_LOG_MAX_BYTES ? SEADER_APDU_RUNNER_HEX_LOG_MAX_BYTES : len;
-    char hex[(SEADER_APDU_RUNNER_HEX_LOG_MAX_BYTES * 2U) + 1U];
-
-    for(size_t i = 0; i < display_len; i++) {
-        snprintf(hex + (i * 2U), sizeof(hex) - (i * 2U), "%02x", data[i]);
-    }
-    hex[display_len * 2U] = '\0';
-
-    if(display_len < len) {
-        FURI_LOG_I(TAG, "%s len=%u: %s...", prefix, (unsigned)len, hex);
-    } else {
-        FURI_LOG_I(TAG, "%s len=%u: %s", prefix, (unsigned)len, hex);
     }
 }
 
@@ -77,7 +55,7 @@ bool seader_apdu_runner_send_next_line(Seader* seader) {
         furi_string_free(line);
         return false;
     }
-    FURI_LOG_I(
+    SEADER_VERBOSE_I(
         TAG,
         "APDU Runner => (%d/%d): %s",
         apdu_runner_ctx->current_line + 1,
@@ -103,7 +81,7 @@ void seader_apdu_runner_init(Seader* seader) {
     SeaderAPDURunnerContext* apdu_runner_ctx = &(seader->apdu_runner_ctx);
 
     if(apdu_log_check_presence(SEADER_APDU_RUNNER_FILE_NAME)) {
-        FURI_LOG_I(TAG, "APDU log file exists");
+        SEADER_VERBOSE_I(TAG, "APDU log file exists");
     } else {
         FURI_LOG_W(TAG, "APDU log file does not exist");
         return;
@@ -112,7 +90,7 @@ void seader_apdu_runner_init(Seader* seader) {
     seader->apdu_log = apdu_log_alloc(SEADER_APDU_RUNNER_FILE_NAME, APDULogModeOpenExisting);
     apdu_runner_ctx->current_line = 0;
     apdu_runner_ctx->total_lines = apdu_log_get_total_lines(seader->apdu_log);
-    FURI_LOG_I(TAG, "APDU log lines: %d", apdu_runner_ctx->total_lines);
+    SEADER_VERBOSE_I(TAG, "APDU log lines: %d", apdu_runner_ctx->total_lines);
 
     seader_apdu_runner_send_next_line(seader);
 }
@@ -137,9 +115,9 @@ bool seader_apdu_runner_response(Seader* seader, uint8_t* r_apdu, size_t r_len) 
     }
 
     if(r_len < SEADER_UART_RX_BUF_SIZE) {
-        seader_apdu_runner_log_hex("APDU Runner <=", r_apdu, r_len);
+        SEADER_VERBOSE_HEX(FuriLogLevelInfo, TAG, "APDU Runner <=", r_apdu, r_len);
     } else {
-        FURI_LOG_I(TAG, "APDU Runner <=: Response too long to display");
+        SEADER_VERBOSE_I(TAG, "APDU Runner <=: Response too long to display");
     }
 
     /** Compare last two bytes to expected line **/
@@ -187,7 +165,7 @@ bool seader_apdu_runner_response(Seader* seader, uint8_t* r_apdu, size_t r_len) 
 
     // Check if we are at the end of the log
     if(apdu_runner_ctx->current_line >= apdu_runner_ctx->total_lines) {
-        FURI_LOG_I(TAG, "APDU runner finished");
+        SEADER_VERBOSE_I(TAG, "APDU runner finished");
         seader_apdu_runner_cleanup(seader, SeaderWorkerEventAPDURunnerSuccess);
         return false;
     }

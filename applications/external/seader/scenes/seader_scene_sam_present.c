@@ -99,6 +99,7 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneFileSelect);
             consumed = true;
         } else if(event.event == SeaderWorkerEventSamMissing) {
+            seader->board_status = seader_board_status_on_sam_missing(seader->board_status);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamMissing);
             consumed = true;
         } else if(event.event == SubmenuIndexAPDURunner) {

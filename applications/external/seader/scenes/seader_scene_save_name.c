@@ -15,7 +15,11 @@ void seader_scene_save_name_on_enter(void* context) {
     Seader* seader = context;
 
     // Setup view
-    TextInput* text_input = seader->text_input;
+    TextInput* text_input = seader_get_text_input(seader);
+    if(!text_input) {
+        FURI_LOG_E(TAG, "Text input view unavailable");
+        return;
+    }
     bool cred_name_empty = false;
     if(!strcmp(seader->credential->name, "")) {
         name_generator_make_random(seader->save_name_buf, sizeof(seader->save_name_buf));
@@ -75,11 +79,15 @@ bool seader_scene_save_name_on_event(void* context, SceneManagerEvent event) {
 
 void seader_scene_save_name_on_exit(void* context) {
     Seader* seader = context;
+    TextInput* text_input = seader->text_input;
+    if(!text_input) {
+        return;
+    }
 
     // Clear view
-    void* validator_context = text_input_get_validator_callback_context(seader->text_input);
-    text_input_set_validator(seader->text_input, NULL, NULL);
+    void* validator_context = text_input_get_validator_callback_context(text_input);
+    text_input_set_validator(text_input, NULL, NULL);
     validator_is_file_free(validator_context);
 
-    text_input_reset(seader->text_input);
+    text_input_reset(text_input);
 }

@@ -36,10 +36,8 @@ typedef struct {
 
 typedef struct {
     /* Required runtime callbacks. A successful plugin alloc assumes these remain valid until free. */
-    void (*notify_card_detected)(void* host_ctx);
     void (*notify_worker_exit)(void* host_ctx);
-    bool (*sam_can_accept_card)(void* host_ctx);
-    void (*send_card_detected)(
+    bool (*begin_card_session)(
         void* host_ctx,
         uint8_t sak,
         const uint8_t* uid,

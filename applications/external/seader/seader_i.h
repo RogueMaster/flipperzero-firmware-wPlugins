@@ -27,6 +27,8 @@
 #include <lib/nfc/nfc.h>
 #include <nfc/nfc_poller.h>
 #include <nfc/nfc_device.h>
+#include <lib/nfc/protocols/iso14443_4a/iso14443_4a_poller.h>
+#include <lib/nfc/protocols/mf_classic/mf_classic_poller.h>
 #include <nfc/helpers/nfc_data_generator.h>
 
 // ASN1
@@ -44,6 +46,8 @@
 #include <flipper_application/flipper_application.h>
 #include <flipper_application/plugins/plugin_manager.h>
 #include <loader/firmware_api/firmware_api.h>
+#include <power/power_service/power.h>
+#include <expansion/expansion.h>
 
 #include "protocol/picopass_poller.h"
 #include "scenes/seader_scene.h"
@@ -57,6 +61,8 @@
 #include "seader_worker.h"
 #include "seader_credential.h"
 #include "apdu_log.h"
+#include "board_power_lifecycle.h"
+#include "sam_startup_ui.h"
 #include "sam_key_label.h"
 #include "uhf_snmp_probe.h"
 #include "uhf_status_label.h"
@@ -66,10 +72,9 @@
      WorkerEvtCtrlLineSet | WorkerEvtSamTxComplete)
 #define WORKER_ALL_TX_EVENTS (WorkerEvtTxStop | WorkerEvtSamRx)
 
-#define SEADER_TEXT_STORE_SIZE         128
+#define SEADER_TEXT_STORE_SIZE         96
 #define SEADER_MAX_ATR_SIZE            33
 #define MAX_FRAME_HEADERS              32
-#define SEADER_SCRATCH_SIZE            512
 #define SEADER_MAX_DETECTED_CARD_TYPES 3
 
 enum SeaderCustomEvent {
@@ -84,6 +89,10 @@ enum SeaderCustomEvent {
     SeaderCustomEventPollerDetect,
     SeaderCustomEventPollerSuccess,
     SeaderCustomEventSamStatusUpdated,
+    SeaderCustomEventBoardAutoRecover,
+    SeaderCustomEventBoardPowerLost,
+    SeaderCustomEventStartDetect,
+    SeaderCustomEventBeginRead,
 };
 
 typedef enum {
@@ -104,12 +113,6 @@ typedef struct {
     uint16_t total_lines;
     uint16_t current_line;
 } SeaderAPDURunnerContext;
-
-typedef struct {
-    size_t offset;
-    size_t high_water;
-    uint8_t arena[SEADER_SCRATCH_SIZE];
-} SeaderScratch;
 
 typedef struct {
     SeaderCredentialType detected_card_types[SEADER_MAX_DETECTED_CARD_TYPES];
@@ -136,8 +139,21 @@ typedef enum {
 } SeaderSamIntent;
 
 struct Seader {
-    bool revert_power;
+    bool board_power_enabled;
+    bool board_power_owned;
+    bool expansion_disabled;
+    SeaderBoardStatus board_status;
+    SeaderStartupStage startup_stage;
+    uint8_t board_retry_remaining;
+    bool board_power_loss_pending;
+    bool board_auto_recover_pending;
+    bool board_auto_recover_resume_read;
+    SeaderCredentialType board_auto_recover_read_type;
+    uint8_t board_power_monitor_tick_divider;
+    uint32_t board_power_loss_started_at;
     bool is_debug_enabled;
+    Power* power;
+    Expansion* expansion;
     SeaderWorker* worker;
     ViewDispatcher* view_dispatcher;
     Gui* gui;
@@ -152,11 +168,13 @@ struct Seader {
     uint8_t sam_version[2];
     uint8_t ATR[SEADER_MAX_ATR_SIZE];
     size_t ATR_len;
+    SeaderSamKeyProbeStatus sam_key_probe_status;
+    SeaderUhfProbeStatus uhf_probe_status;
     char sam_key_label[SEADER_SAM_KEY_LABEL_MAX_LEN];
     char uhf_status_label[SEADER_UHF_STATUS_LABEL_MAX_LEN];
     SeaderUhfSnmpProbe snmp_probe;
-    SeaderScratch scratch;
-    SeaderHfModeContext* hf_mode;
+    SeaderHfModeContext hf_mode_ctx;
+    bool hf_mode_active;
 
     char save_name_buf[SEADER_CRED_NAME_MAX_LEN + 1];
     char read_error[SEADER_TEXT_STORE_SIZE + 1];
@@ -190,6 +208,9 @@ struct Seader {
     SeaderModeRuntime mode_runtime;
     SeaderHfSessionState hf_session_state;
     SeaderHfTeardownAction hf_teardown_action;
+    SeaderHfReadState hf_read_state;
+    SeaderHfReadFailureReason hf_read_failure_reason;
+    uint32_t hf_read_last_progress_tick;
     bool loading_popup_enabled;
     bool start_scene_active;
     bool sam_present_menu_guard_active;
@@ -219,6 +240,13 @@ void seader_blink_start(Seader* seader);
 void seader_blink_stop(Seader* seader);
 
 void seader_nfc_loading_callback(void* context, bool show);
+
+TextInput* seader_get_text_input(Seader* seader);
+
+TextBox* seader_get_text_box(Seader* seader);
+
+Widget* seader_get_widget(Seader* seader);
+
 void seader_show_loading_popup(void* context, bool show);
 
 bool seader_hf_mode_activate(Seader* seader);

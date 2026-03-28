@@ -170,23 +170,27 @@ static int wiegand_H10302_parse(uint8_t bit_length, uint64_t bits, FuriString* d
     return 0;
 }
 
+typedef int (*WiegandFormatParser)(uint8_t bit_length, uint64_t bits, FuriString* description);
+
+static const WiegandFormatParser wiegand_format_parsers[] = {
+    wiegand_h10301_parse,
+    wiegand_C1k35s_parse,
+    wiegand_H10302_parse,
+    wiegand_H10304_parse,
+};
+
 static int wiegand_format_count(uint8_t bit_length, uint64_t bits) {
-    UNUSED(bit_length);
-    UNUSED(bits);
     int count = 0;
     FuriString* ignore = furi_string_alloc();
 
-    // NOTE: Always update the `total` and add to the wiegand_format_description function
-    // TODO: Make this into a function pointer array
-    count += wiegand_h10301_parse(bit_length, bits, ignore);
-    count += wiegand_C1k35s_parse(bit_length, bits, ignore);
-    count += wiegand_H10302_parse(bit_length, bits, ignore);
-    count += wiegand_H10304_parse(bit_length, bits, ignore);
-    int total = 4;
+    for(size_t i = 0; i < COUNT_OF(wiegand_format_parsers); i++) {
+        furi_string_reset(ignore);
+        count += wiegand_format_parsers[i](bit_length, bits, ignore);
+    }
 
     furi_string_free(ignore);
 
-    FURI_LOG_I(PLUGIN_APP_ID, "count: %i/%i", count, total);
+    FURI_LOG_I(PLUGIN_APP_ID, "count: %i/%zu", count, COUNT_OF(wiegand_format_parsers));
     return count;
 }
 
@@ -196,17 +200,37 @@ static void wiegand_format_description(
     size_t index,
     FuriString* description) {
     FURI_LOG_I(PLUGIN_APP_ID, "description %d", index);
+    furi_string_reset(description);
 
-    // Turns out I did this wrong and trying to use the index means the results get repeated.  Instead, just return the results for index == 0
-    if(index != 0) {
-        return;
+    size_t match_index = 0;
+    for(size_t i = 0; i < COUNT_OF(wiegand_format_parsers); i++) {
+        if(!wiegand_format_parsers[i](bit_length, bits, description)) {
+            furi_string_reset(description);
+            continue;
+        }
+
+        if(match_index == index) {
+            return;
+        }
+
+        match_index++;
+        furi_string_reset(description);
     }
-
-    wiegand_h10301_parse(bit_length, bits, description);
-    wiegand_C1k35s_parse(bit_length, bits, description);
-    wiegand_H10302_parse(bit_length, bits, description);
-    wiegand_H10304_parse(bit_length, bits, description);
 }
+
+#ifdef SEADER_HOST_TEST
+int seader_test_wiegand_format_count(uint8_t bit_length, uint64_t bits) {
+    return wiegand_format_count(bit_length, bits);
+}
+
+void seader_test_wiegand_format_description(
+    uint8_t bit_length,
+    uint64_t bits,
+    size_t index,
+    FuriString* description) {
+    wiegand_format_description(bit_length, bits, index, description);
+}
+#endif
 
 /* Actual implementation of app<>plugin interface */
 static const PluginWiegand plugin_wiegand = {

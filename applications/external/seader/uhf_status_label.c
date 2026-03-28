@@ -44,6 +44,7 @@ static size_t seader_uhf_append_family(
 }
 
 void seader_uhf_status_label_format(
+    SeaderUhfProbeStatus probe_status,
     bool has_monza4qt,
     bool monza4qt_key_present,
     bool has_higgs3,
@@ -58,6 +59,16 @@ void seader_uhf_status_label_format(
     }
 
     out[0] = '\0';
+
+    if(probe_status == SeaderUhfProbeStatusUnknown) {
+        snprintf(out, out_size, "UHF: probing...");
+        return;
+    }
+
+    if(probe_status == SeaderUhfProbeStatusFailed) {
+        snprintf(out, out_size, "UHF: probe failed");
+        return;
+    }
 
     if(has_monza4qt) {
         pos = seader_uhf_append_family(

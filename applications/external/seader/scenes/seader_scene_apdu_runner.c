@@ -3,8 +3,6 @@
 
 #define TAG "Seader:Scene:APDURunner"
 
-char seader_scene_apdu_runner_update_text[24];
-
 void seader_apdu_runner_worker_callback(uint32_t event, void* context) {
     Seader* seader = context;
     view_dispatcher_send_custom_event(seader->view_dispatcher, event);
@@ -43,14 +41,14 @@ bool seader_scene_apdu_runner_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         } else if(event.event == SeaderWorkerEventAPDURunnerUpdate) {
             SeaderAPDURunnerContext apdu_runner_ctx = seader->apdu_runner_ctx;
+            char update_text[24];
             snprintf(
-                seader_scene_apdu_runner_update_text,
-                sizeof(seader_scene_apdu_runner_update_text),
+                update_text,
+                sizeof(update_text),
                 "APDU Runner\n%d/%d",
                 apdu_runner_ctx.current_line + 1,
                 apdu_runner_ctx.total_lines);
-            popup_set_header(
-                popup, seader_scene_apdu_runner_update_text, 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, update_text, 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == SeaderWorkerEventAPDURunnerSuccess) {
             notification_message(seader->notifications, &sequence_success);

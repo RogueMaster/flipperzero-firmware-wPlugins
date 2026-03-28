@@ -53,8 +53,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Updated: [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
-- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 - Added: [Miele Scout RX2 v1.0 (By kallevaravas)](https://github.com/kallevaravas/flipper-miele-scout)
+- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 
 <a name="release"></a>
 

@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "hf_read_lifecycle.h"
+#include "sam_startup_ui.h"
+
 typedef struct Seader Seader;
 typedef struct SeaderPollerContainer SeaderPollerContainer;
 
@@ -22,14 +25,19 @@ typedef enum {
 typedef enum {
     SeaderHfTeardownActionNone,
     SeaderHfTeardownActionSamPresent,
+    SeaderHfTeardownActionBoardMissing,
+    SeaderHfTeardownActionAutoRecover,
+    SeaderHfTeardownActionPrepareSave,
     SeaderHfTeardownActionRestartRead,
     SeaderHfTeardownActionStopApp,
 } SeaderHfTeardownAction;
 
 bool seader_worker_acquire(Seader* seader);
 void seader_worker_release(Seader* seader);
-void seader_scratch_reset(Seader* seader);
-void* seader_scratch_alloc(Seader* seader, size_t size, size_t align);
+bool seader_temp_strings_ensure(Seader* seader, size_t count);
+void seader_temp_strings_release(Seader* seader, size_t count);
+bool seader_board_retry_power_cycle(Seader* seader);
+void seader_start_popup_set_stage(Seader* seader, SeaderStartupStage stage);
 bool seader_wiegand_plugin_acquire(Seader* seader);
 void seader_wiegand_plugin_release(Seader* seader);
 bool seader_hf_plugin_acquire(Seader* seader);

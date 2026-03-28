@@ -1,9 +1,5 @@
 #pragma once
 
-#include <lib/nfc/protocols/iso14443_4a/iso14443_4a_poller.h>
-#include <lib/nfc/protocols/mf_classic/mf_classic_poller.h>
-
-#include "protocol/picopass_poller.h"
 #include "seader.h"
 #include "sam_api.h"
 #include "seader_credential.h"
@@ -79,7 +75,3 @@ void seader_worker_send_version(Seader* seader);
 void seader_worker_cancel_poller_session(SeaderWorker* seader_worker);
 void seader_worker_reset_poller_session(SeaderWorker* seader_worker);
 void seader_worker_run_hf_conversation(Seader* seader);
-
-NfcCommand seader_worker_poller_callback_iso14443_4a(NfcGenericEvent event, void* context);
-NfcCommand seader_worker_poller_callback_mfc(NfcGenericEvent event, void* context);
-NfcCommand seader_worker_poller_callback_picopass(PicopassPollerEvent event, void* context);
