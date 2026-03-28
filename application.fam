@@ -4,7 +4,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="arduboy_app",
     requires=["gui"],
-    cdefines=["ARDULIB_USE_TONES"],
+    cdefines=["ARDULIB_USE_TONES"], # workflow add view 
     sources=["lib/scr/*.cpp", "game/*.cpp"],
     stack_size=8 * 1024,
     fap_category="Games",
