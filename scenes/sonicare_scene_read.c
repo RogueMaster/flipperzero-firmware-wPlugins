@@ -26,14 +26,14 @@ void nfc_scene_detect_scan_callback(NfcScannerEvent event, void* context) {
 
 NfcCommand nfc_scene_poller_callback(NfcGenericEvent event, void* context) {
     //furi_assert(event.protocol == NfcProtocolIso14443_3a);
-    furi_assert(event.protocol == NfcProtocolMfUltralight);
+    //furi_assert(event.protocol == NfcProtocolMfUltralight);
 
     Sonicare* app = context;
     //const Iso14443_3aPollerEvent* ev = event.event_data;
     const MfUltralightPollerEvent* ev = event.event_data;
     
     //if (ev->type == Iso14443_3aPollerEventTypeReady) {
-    if (ev->type == MfUltralightPollerEventTypeReadSuccess) {
+    if (event.protocol == NfcProtocolMfUltralight && ev->type == MfUltralightPollerEventTypeReadSuccess) {
         FURI_LOG_I("sonicare_scene_read", "NFC Poller reports Read Success");
         nfc_device_set_data(app->nfc_device, NfcProtocolMfUltralight, nfc_poller_get_data(app->poller));
         FURI_LOG_D("sonicare_scene_read", "Pulling Mifare Ultralight data from poller");
@@ -42,8 +42,12 @@ NfcCommand nfc_scene_poller_callback(NfcGenericEvent event, void* context) {
         mf_ultralight_copy(app->nfc_data, ul_data);
 
         FURI_LOG_I("sonicare_scene_read", "Dataset has %i of %i pages read from Mifare Ultralight", ul_data->pages_read, ul_data->pages_total);
-        view_dispatcher_send_custom_event(app->view_dispatcher, NfcCustomEventWorkerExit);
-        return NfcCommandStop;
+        
+        if (ul_data->pages_read == 43) {
+            // only stop when we have all data
+            view_dispatcher_send_custom_event(app->view_dispatcher, NfcCustomEventWorkerExit);
+            return NfcCommandStop;
+        }
     }
 
     return NfcCommandContinue;

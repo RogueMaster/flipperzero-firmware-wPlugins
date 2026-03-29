@@ -37,23 +37,35 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     const MfUltralightData* ul_data = app->nfc_data;
 
     FuriString* temp_str = furi_string_alloc();
-    
+
     furi_string_cat_printf(temp_str, "\e#%s\n", nfc_device_get_name(nfc_device, NfcDeviceNameTypeFull));
+    
+    // UID
     furi_string_cat_printf(temp_str, "UID:");
     format_bytes(temp_str, ul_data->iso14443_3a_data->uid, ul_data->iso14443_3a_data->uid_len);
     furi_string_cat_printf(temp_str, "\n");
     
+    // Serial#
     furi_string_cat_str(temp_str, "Ser#: ");
     FuriString* serial_no = furi_string_alloc();
     furi_string_cat_str(serial_no, (char*)(ul_data->page[0x21].data));
-//    furi_string_right(serial_no, 10);
-    
+    furi_string_right(serial_no, 2);
     furi_string_cat(temp_str, serial_no);
+    furi_string_free(serial_no);
+    furi_string_cat_printf(temp_str, "\n");
 
+    furi_string_cat_printf(temp_str, "Timer:");
+    const uint16_t seconds = ul_data->page[0x24].data[1]*256 + ul_data->page[0x24].data[0];
+    const uint16_t brushes = seconds / 120;   // one brush = 2 minutes
+    format_bytes(temp_str, ul_data->page[0x24].data, 4);
+    furi_string_cat_printf(temp_str, "\n");
+    furi_string_cat_printf(temp_str, "Usage: %u brushes (%u s)\n", (int)brushes, (int)seconds);
+
+
+    // Output to widget
     widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(temp_str));
 
     furi_string_free(temp_str);
-    furi_string_free(serial_no);
 
     widget_add_button_element(widget, GuiButtonTypeRight, "Change", sonicare_scene_read_complete_widget_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, SonicareViewWidget);
