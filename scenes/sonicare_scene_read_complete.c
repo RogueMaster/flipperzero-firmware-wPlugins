@@ -54,12 +54,19 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     furi_string_free(serial_no);
     furi_string_cat_printf(temp_str, "\n");
 
+    // Usage
     furi_string_cat_printf(temp_str, "Timer:");
     const uint16_t seconds = ul_data->page[0x24].data[1]*256 + ul_data->page[0x24].data[0];
-    const uint16_t brushes = seconds / 120;   // one brush = 2 minutes
+    uint16_t brushes = seconds / 120;   // one brush = 2 minutes
+    if (seconds % 120 > 0) {
+        brushes++;
+    }
+    const uint8_t hours = seconds / 3600;
+    const uint8_t minutes = (seconds % 3600) / 60;
+    const uint8_t secs = seconds % 60;
     format_bytes(temp_str, ul_data->page[0x24].data, 4);
     furi_string_cat_printf(temp_str, "\n");
-    furi_string_cat_printf(temp_str, "Usage: %u brushes (%u s)\n", (int)brushes, (int)seconds);
+    furi_string_cat_printf(temp_str, "Usage: %u brushes (%u:%02u:%02u)\n", (int)brushes, (int)hours, (int)minutes, (int)secs);
 
 
     // Output to widget
