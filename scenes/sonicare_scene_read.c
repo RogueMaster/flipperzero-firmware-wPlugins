@@ -1,5 +1,4 @@
 #include "../uk_mbirth_sonicare.h"
-#include "core/core_defines.h"
 #include "gui/scene_manager.h"
 #include "gui/view_dispatcher.h"
 #include <nfc/nfc.h>
@@ -36,11 +35,11 @@ NfcCommand nfc_scene_poller_callback(NfcGenericEvent event, void* context) {
     //if (ev->type == Iso14443_3aPollerEventTypeReady) {
     if (ev->type == MfUltralightPollerEventTypeReadSuccess) {
         FURI_LOG_I("sonicare_scene_read", "NFC Poller reports Read Success");
-        //nfc_device_set_data(app->nfc_device, NfcProtocolIso14443_3a, nfc_poller_get_data(app->poller));
         nfc_device_set_data(app->nfc_device, NfcProtocolMfUltralight, nfc_poller_get_data(app->poller));
         FURI_LOG_D("sonicare_scene_read", "Pulling Mifare Ultralight data from poller");
         const MfUltralightData* ul_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfUltralight);
-        app->nfc_data = ul_data;
+        
+        mf_ultralight_copy(app->nfc_data, ul_data);
 
         FURI_LOG_I("sonicare_scene_read", "Dataset has %i of %i pages read from Mifare Ultralight", ul_data->pages_read, ul_data->pages_total);
         view_dispatcher_send_custom_event(app->view_dispatcher, NfcCustomEventWorkerExit);

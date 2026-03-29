@@ -11,6 +11,13 @@
 #include <uk_mbirth_sonicare_icons.h>
 #include <dolphin/dolphin.h>
 
+
+void format_bytes(FuriString* str, const uint8_t* data, size_t size) {
+    for(size_t i = 0; i < size; i++) {
+        furi_string_cat_printf(str, " %02X", data[i]);
+    }
+}
+
 void sonicare_scene_read_complete_widget_callback(GuiButtonType result, InputType type, void* context) {
     furi_assert(context);
     Sonicare* app = context;
@@ -29,14 +36,24 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     FURI_LOG_D("sonicare_scene_read_complete", "Pulling Mifare Ultralight data from NFC device");
     const MfUltralightData* ul_data = app->nfc_data;
 
-    UNUSED(ul_data);
-
     FuriString* temp_str = furi_string_alloc();
     
     furi_string_cat_printf(temp_str, "\e#%s\n", nfc_device_get_name(nfc_device, NfcDeviceNameTypeFull));
+    furi_string_cat_printf(temp_str, "UID:");
+    format_bytes(temp_str, ul_data->iso14443_3a_data->uid, ul_data->iso14443_3a_data->uid_len);
+    furi_string_cat_printf(temp_str, "\n");
+    
+    furi_string_cat_str(temp_str, "Ser#: ");
+    FuriString* serial_no = furi_string_alloc();
+    furi_string_cat_str(serial_no, (char*)(ul_data->page[0x21].data));
+//    furi_string_right(serial_no, 10);
+    
+    furi_string_cat(temp_str, serial_no);
+
     widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(temp_str));
 
     furi_string_free(temp_str);
+    furi_string_free(serial_no);
 
     widget_add_button_element(widget, GuiButtonTypeRight, "Change", sonicare_scene_read_complete_widget_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, SonicareViewWidget);

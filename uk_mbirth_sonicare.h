@@ -55,7 +55,7 @@ struct Sonicare {
     NfcScanner* scanner;
     NfcListener* listener;
     NfcDevice* nfc_device;
-    const MfUltralightData* nfc_data;
+    MfUltralightData* nfc_data;
 };
 
 typedef enum {
