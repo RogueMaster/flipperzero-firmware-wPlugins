@@ -1,0 +1,12 @@
+App(
+    appid="flipfetch",
+    name="FlipFetch",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipfetch_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    fap_description="Sistema info estilo fastfetch",
+    fap_author="Ismael",
+    fap_version="0.1",
+)
