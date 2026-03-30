@@ -4,17 +4,28 @@
 
 I decided to build it as a native Flipper app for **flexibility, portability, and ease of use on the GO!**.  
 ListEM brings advanced list generating features (previously done via my Python scripts) straight onto the Flipper Zero.
-Now with **Fuzzing Mode / Bit-Mutation engine!** A real, usable reader testing FuZZ engine!
+Now with **Fuzzing Mode / Bit Mutation engine!** A real, usable reader testing FuZZ engine!
 
 ---
 
 
-## 🆕 What’s New in v1.3
+## 🆕 What’s New in v1.4
 
-- Reverse sequential UID generation
-- Collision-aware fuzzing for realistic reader behavior testing
-- Improved prefix handling across all modes
-- Improved stability and generation reliability
+- **Structured Mode (NEW)**
+  - UID modeling using segmented generation (Facility + Card)
+  - Tail patterns for better bruteforce efficiency
+
+- **Structured Randomization Option**
+  - Switch between:
+    - Sequential structured (default)
+    - Randomized structured (anti pattern detection & wide coverage)
+
+- **Engine Upgrade**
+  - Prefix × Sequence × Tail generation
+  - Better coverage of UID distributions
+  - More efficient brute force lists
+
+- General improvements & code cleanup
 
 ---
 
@@ -91,13 +102,12 @@ Fuzz Mode can generate:
  - Collision Fuzzing  (Configurable collision rate)
 
 Ideal for:
- - Parser robustness testing
+ - Parser stress testing
  - Reader edge case discovery
  - Unexpected behavior detection
  - Caching and UID de-duplication logic
-
-
-**✔ Configurable via submenu**
+ 
+ **✔ Configurable via submenu**
 
 | Boundary on/off
 | Bit flip on/off
@@ -106,6 +116,35 @@ Ideal for:
 | Collision on/off (10) <- adjustable count
 
 **This is legitimate fuzzing, not just “random junk”!**
+
+
+#### 🧬 Structured Mode (NEW 🔥)
+A smart generator that produces structured ID lists optimized for efficient bruteforce and fuzzing.
+
+It follows patterns like:
+Vendor/Type:Facility:Card Number:Tail
+
+Example: 04 | 12 34 | 00 01 / A1 | 00 7F | 12 34
+         
+This allows to:
+ - Explore UID ranges more efficiently
+ - Match common access control system patterns
+ - Improve bruteforce success rate compared to random or linear generation
+
+Structured Mode can generate: 
+ - Segmented UID modeling (facility + card split)
+ - Combinatorial tail engine
+ - Multi prefix support
+
+**Structured Variants:**
+ - **Sequential**
+   - Explores dense UID ranges efficiently
+   - Ideal for systems with predictable numbering
+
+ - **Randomized**
+   - Shuffles traversal of structured space
+   - Useful for bypassing detection and widening coverage
+
 
 ---
 
@@ -119,7 +158,7 @@ Generated files are saved automatically to corresponding folder:
 
 ### 📄 Output filenames include:
 - Protocol name
-- Generation mode (`random`, `sequential`, `fuzz`)
+- Generation mode (`random`, `sequential`, `fuzz`, `structured`)
 - Selected prefixes (or `noprefix`)
 
 Example:
