@@ -11,10 +11,10 @@ void sonicare_scene_start_on_enter(void* context) {
     Sonicare* app = context;
     Submenu* submenu = app->submenu;
 
-    submenu_set_header(submenu, "Sonicare");
+    submenu_set_header(submenu, "Sonicare Head ID");
     submenu_add_item(submenu, "Read Brush Head", SonicareMenuIndexRead, sonicare_scene_start_submenu_callback, app);
-    submenu_add_item(submenu, "Write Brush Head", SonicareMenuIndexSaved, sonicare_scene_start_submenu_callback, app);
-    submenu_add_item(submenu, "Add Manually", SonicareMenuIndexAddManually, sonicare_scene_start_submenu_callback, app);
+    // TODO: submenu_add_item(submenu, "Write Brush Head", SonicareMenuIndexSaved, sonicare_scene_start_submenu_callback, app);
+    // TODO?: submenu_add_item(submenu, "Add Manually", SonicareMenuIndexAddManually, sonicare_scene_start_submenu_callback, app);
     submenu_add_item(submenu, "About...", SonicareMenuIndexAbout, sonicare_scene_start_submenu_callback, app);
 
     submenu_set_selected_item(submenu, scene_manager_get_scene_state(app->scene_manager, SonicareSceneStart));

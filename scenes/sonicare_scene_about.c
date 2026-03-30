@@ -8,8 +8,9 @@ void sonicare_scene_about_on_enter(void* context) {
     Widget* widget = app->widget;
 
     widget_add_icon_element(widget, 128-17, 0, &I_sonicare_brush);
-    widget_add_string_element(widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Sonicare Brush ID");
+    widget_add_string_element(widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Sonicare Head ID");
     widget_add_string_element(widget, 0, 12, AlignLeft, AlignTop, FontSecondary, "by mbirth.uk");
+    widget_add_string_element(widget, 0, 24, AlignLeft, AlignTop, FontSecondary, "NFC unlock algo by atc1441");
     widget_add_icon_element(widget, 8, 35, &I_sonicare_qr);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, SonicareViewWidget);
