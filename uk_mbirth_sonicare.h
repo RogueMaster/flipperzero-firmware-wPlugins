@@ -26,7 +26,6 @@
 #include "scenes/sonicare_scene.h"
 
 #include <nfc/nfc_poller.h>
-#include <nfc/nfc_scanner.h>
 #include <nfc/nfc_listener.h>
 #include <nfc/nfc_device.h>
 #include <nfc/protocols/mf_ultralight/mf_ultralight.h>
@@ -52,7 +51,6 @@ struct Sonicare {
     // NFC
     Nfc* nfc;
     NfcPoller* poller;
-    NfcScanner* scanner;
     NfcListener* listener;
     NfcDevice* nfc_device;
     MfUltralightData* nfc_data;

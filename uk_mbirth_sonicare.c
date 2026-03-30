@@ -1,4 +1,6 @@
 #include "uk_mbirth_sonicare.h"
+#include "nfc/nfc.h"
+#include "nfc/nfc_device.h"
 #include <nfc/protocols/mf_ultralight/mf_ultralight.h>
 #include <dolphin/dolphin.h>
 
@@ -48,6 +50,9 @@ static Sonicare* sonicare_alloc(void) {
     app->popup = popup_alloc();
     view_dispatcher_add_view(app->view_dispatcher, SonicareViewPopup, popup_get_view(app->popup));
 
+    // NFC
+    app->nfc = nfc_alloc();
+    app->nfc_device = nfc_device_alloc();
     app->nfc_data = mf_ultralight_alloc();
 
     return app;
@@ -56,7 +61,10 @@ static Sonicare* sonicare_alloc(void) {
 static void sonicare_free(Sonicare* app) {
     furi_assert(app);
 
+    // NFC
     mf_ultralight_free(app->nfc_data);
+    nfc_device_free(app->nfc_device);
+    nfc_free(app->nfc);
     
     // Popup
     view_dispatcher_remove_view(app->view_dispatcher, SonicareViewPopup);

@@ -1,15 +1,10 @@
 #include "../uk_mbirth_sonicare.h"
 #include "../sonicare_password.h"
-#include "core/string.h"
-#include "gui/canvas.h"
-#include "gui/modules/widget.h"
-#include "gui/modules/widget_elements/widget_element.h"
-#include "gui/scene_manager.h"
-#include "gui/view_dispatcher.h"
-#include <nfc/nfc_device.h>
-#include <nfc/protocols/nfc_protocol.h>
-#include <nfc/protocols/iso14443_3a/iso14443_3a.h>
-#include <nfc/protocols/mf_ultralight/mf_ultralight.h>
+#include <gui/canvas.h>
+#include <gui/modules/widget.h>
+#include <gui/modules/widget_elements/widget_element.h>
+#include <gui/scene_manager.h>
+#include <gui/view_dispatcher.h>
 #include <uk_mbirth_sonicare_icons.h>
 #include <dolphin/dolphin.h>
 
@@ -90,7 +85,7 @@ void sonicare_scene_read_complete_on_enter(void* context) {
 
     // NFC password
     uint32_t unlock_pwd_big = get_sonicare_password((uint8_t*)ul_data->iso14443_3a_data->uid, (uint8_t*)furi_string_get_cstr(serial_no));
-    FURI_LOG_D("sonicare_scene_read_complete", "NFC unlock password: %04lx", unlock_pwd_big);
+    FURI_LOG_D("sonicare_scene_read_complete", "NFC unlock password: 0x%08lx", unlock_pwd_big);
     uint8_t unlock_pwd[4];
     memcpy(unlock_pwd, &unlock_pwd_big, sizeof(unlock_pwd_big));
     furi_string_cat_printf(temp_str, "NFC pwd:");
@@ -103,7 +98,7 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     furi_string_free(temp_str);
     furi_string_free(serial_no);
 
-    widget_add_button_element(widget, GuiButtonTypeRight, "Change", sonicare_scene_read_complete_widget_callback, app);
+    // TODO: widget_add_button_element(widget, GuiButtonTypeRight, "Change", sonicare_scene_read_complete_widget_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, SonicareViewWidget);
 }
 
