@@ -4,6 +4,7 @@
 #include "hf_read_lifecycle.h"
 #include "sam_startup_ui.h"
 #include "trace_log.h"
+#include <expansion/expansion.h>
 
 #define TAG                                       "Seader"
 #define SEADER_PLUGIN_DIR                         APP_ASSETS_PATH("plugins")
@@ -289,7 +290,7 @@ static void seader_board_runtime_monitor_tick(Seader* seader) {
     power_get_info(seader->power, &info);
     const uint16_t vbus_mv = seader_board_vbus_mv_from_volts(info.voltage_vbus);
 
-    const bool otg_requested = power_is_otg_enabled(seader->power);
+    const bool otg_requested = furi_hal_power_is_otg_enabled();
     const uint32_t now = furi_get_tick();
     const uint32_t elapsed =
         seader->board_power_loss_pending ? (now - seader->board_power_loss_started_at) : 0U;
@@ -297,7 +298,7 @@ static void seader_board_runtime_monitor_tick(Seader* seader) {
 
     const SeaderBoardRuntimePowerState runtime_state = seader_board_runtime_power_state(
         otg_requested,
-        info.is_otg_enabled,
+        furi_hal_power_is_otg_enabled(),
         vbus_mv,
         otg_fault,
         seader->board_power_loss_pending,
@@ -380,7 +381,7 @@ static void seader_board_power_fail(Seader* seader, SeaderBoardStatus status) {
     seader_board_set_enable_pin(false);
     if(seader->power && seader_board_should_disable_owned_otg(
                             seader->board_power_owned, furi_hal_power_is_otg_enabled())) {
-        power_enable_otg(seader->power, false);
+        furi_hal_power_disable_otg();
     }
     seader->board_power_enabled = false;
     seader->board_power_owned = false;
@@ -408,7 +409,7 @@ static bool seader_board_power_on(Seader* seader) {
             seader->board_status = SeaderBoardStatusFaultPreEnable;
             return false;
         }
-        power_enable_otg(seader->power, true);
+        furi_hal_power_enable_otg();
     }
 
     furi_delay_ms(SEADER_BOARD_POWER_SETTLE_MS);
@@ -456,7 +457,7 @@ static void seader_board_power_off(Seader* seader) {
     seader_board_set_enable_pin(false);
     if(seader->power && seader_board_should_disable_owned_otg(
                             seader->board_power_owned, furi_hal_power_is_otg_enabled())) {
-        power_enable_otg(seader->power, false);
+        furi_hal_power_disable_otg();
     }
     seader->board_power_enabled = false;
     seader->board_power_owned = false;
@@ -1571,6 +1572,11 @@ void seader_hf_mode_clear_detected_types(Seader* seader) {
 
 int32_t seader_app(void* p) {
     UNUSED(p);
+
+    // Disable expansion protocol to avoid interference with UART Handle
+    Expansion* expansion = furi_record_open(RECORD_EXPANSION);
+    expansion_disable(expansion);
+
     Seader* seader = seader_alloc();
 
     scene_manager_next_scene(seader->scene_manager, SeaderSceneStart);
@@ -1578,6 +1584,10 @@ int32_t seader_app(void* p) {
     view_dispatcher_run(seader->view_dispatcher);
 
     seader_free(seader);
+
+    // Return previous state of expansion
+    expansion_enable(expansion);
+    furi_record_close(RECORD_EXPANSION);
 
     return 0;
 }
