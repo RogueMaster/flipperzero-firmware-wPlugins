@@ -25,12 +25,14 @@ uint16_t CRC16(uint16_t crc, uint8_t *buffer, int len) // Default CRC16 Algo
 //uint8_t nfc_second[] = "221214 12K"; // Head MFG String, printed on Head and at memory location 0x23
 
 uint32_t get_sonicare_password(uint8_t nfctag_uid[], uint8_t nfc_second[]) {
+    /*
     for (uint16_t i=0; i<7; i++) {
         FURI_LOG_D("sonicare_password", "Input UID byte %i: 0x%02x", i, nfctag_uid[i]);
     }
     for (uint16_t i=0; i<10; i++) {
         FURI_LOG_D("sonicare_password", "Input MFG byte %i: 0x%02x", i, nfc_second[i]);
     }
+    */
     uint32_t crc_calc = CRC16(0x49A3, nfctag_uid, 7); // Calculate the NTAG UID CRC
     FURI_LOG_D("sonicare_password", "CRC16 of UID: 0x%08lx", crc_calc);
 
