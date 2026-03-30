@@ -10,17 +10,17 @@
 #define REFRESH_MS 2000
 
 typedef struct {
-    FuriMutex*        mutex;
-    ViewPort*         view_port;
-    Gui*              gui;
+    FuriMutex* mutex;
+    ViewPort* view_port;
+    Gui* gui;
     FuriMessageQueue* event_queue;
-    bool              running;
+    bool running;
 
-    char     firmware[24];
-    char     build_date[16];
-    uint8_t  battery_pct;
+    char firmware[24];
+    char build_date[16];
+    uint8_t battery_pct;
     uint16_t battery_mv;
-    bool     charging;
+    bool charging;
     uint32_t uptime_s;
     uint32_t free_heap_k;
     uint32_t sd_free_mb;
@@ -31,14 +31,15 @@ static void load_sysinfo(FlipFetchApp* app) {
 
     const Version* v = furi_hal_version_get_firmware_version();
     if(v) {
-        snprintf(app->firmware,    sizeof(app->firmware),    "%s", version_get_version(v));
-        snprintf(app->build_date,  sizeof(app->build_date),  "%s", version_get_builddate(v));
+        snprintf(app->firmware, sizeof(app->firmware), "%s", version_get_version(v));
+        snprintf(app->build_date, sizeof(app->build_date), "%s", version_get_builddate(v));
     }
 
     app->battery_pct = furi_hal_power_get_pct();
-    app->battery_mv  = (uint16_t)(furi_hal_power_get_battery_voltage(FuriHalPowerICFuelGauge) * 1000);
-    app->charging    = furi_hal_power_is_charging();
-    app->uptime_s    = furi_get_tick() / 1000;
+    app->battery_mv =
+        (uint16_t)(furi_hal_power_get_battery_voltage(FuriHalPowerICFuelGauge) * 1000);
+    app->charging = furi_hal_power_is_charging();
+    app->uptime_s = furi_get_tick() / 1000;
     app->free_heap_k = memmgr_get_free_heap() / 1024;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -62,11 +63,11 @@ static void draw_cb(Canvas* canvas, void* ctx) {
 
     // Logo lado izquierdo (40px de ancho)
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 1,  9,  "(o_o)");
-    canvas_draw_str(canvas, 1, 18,  "/|_|\\");
-    canvas_draw_str(canvas, 4, 27,  "| |");
-    canvas_draw_str(canvas, 1, 38,  "FLIP");
-    canvas_draw_str(canvas, 1, 47,  "PER");
+    canvas_draw_str(canvas, 1, 9, "(o_o)");
+    canvas_draw_str(canvas, 1, 18, "/|_|\\");
+    canvas_draw_str(canvas, 4, 27, "| |");
+    canvas_draw_str(canvas, 1, 38, "FLIP");
+    canvas_draw_str(canvas, 1, 47, "PER");
 
     // Uptime debajo del logo
     uint32_t h = app->uptime_s / 3600;
@@ -130,9 +131,9 @@ int32_t flipfetch_app(void* p) {
     memset(app, 0, sizeof(FlipFetchApp));
     app->running = true;
 
-    app->mutex       = furi_mutex_alloc(FuriMutexTypeNormal);
+    app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     app->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
-    app->view_port   = view_port_alloc();
+    app->view_port = view_port_alloc();
 
     view_port_draw_callback_set(app->view_port, draw_cb, app);
     view_port_input_callback_set(app->view_port, input_cb, app);

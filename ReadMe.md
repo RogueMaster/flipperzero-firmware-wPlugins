@@ -56,6 +56,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Miele Scout RX2 v1.0 (By kallevaravas)](https://github.com/kallevaravas/flipper-miele-scout)
 - Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 - Updated: [ListEM v1.4 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
+- Added: [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
 
 <a name="release"></a>
 
@@ -565,6 +566,7 @@ $ ./fbt dolphin_ext
 - [FlipBoard Simon v1.10 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBIP Crypto Wallet v1.18 (By xtruan)](https://github.com/xtruan/FlipBIP)
 - [FlipCrypt v0.6 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
+- [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
 - [Flipper Aid v1.0 (By spaghety)](https://github.com/spaghety/flipper-aid)
 - [Flipper Doctor v0.1 (By julandealb)](https://github.com/julandealb/flipperdoc)
 - [Flipper Tag v1.0 (By thejudge156)](https://github.com/thejudge156/flippertag)

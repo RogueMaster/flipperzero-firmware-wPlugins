@@ -1,15 +1,13 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
 App(
-    appid="flipfetch",  # Must be unique
-    name="App flipfetch",  # Displayed in menus
+    appid="flipfetch",
+    name="Flipfetch",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flipfetch_app",
     stack_size=2 * 1024,
-    fap_category="Examples",
-    fap_icon="flipfetch.png",  # 10x10 1-bit PNG
-    fap_description="A simple app that shows some flipper info",
+    fap_category="Tools",
+    fap_icon="flipfetch.png",
     fap_author="Ismael A. Rodríguez",
-    fap_weburl="https://github.com/alexroses47/flipper-flipfetch/",
-    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_weburl="https://github.com/alexroses47/flipper-flipfetch",
+    fap_version="0.1",
+    fap_description="A simple app that shows some flipper info",
 )
