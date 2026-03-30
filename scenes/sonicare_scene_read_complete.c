@@ -88,7 +88,7 @@ void sonicare_scene_read_complete_on_enter(void* context) {
     FURI_LOG_D("sonicare_scene_read_complete", "NFC unlock password: 0x%08lx", unlock_pwd_big);
     uint8_t unlock_pwd[4];
     memcpy(unlock_pwd, &unlock_pwd_big, sizeof(unlock_pwd_big));
-    furi_string_cat_printf(temp_str, "NFC pwd:");
+    furi_string_cat_printf(temp_str, "NFC unlock:");
     format_bytes_reverse(temp_str, unlock_pwd, 4);
     furi_string_cat_printf(temp_str, "\n");
 
