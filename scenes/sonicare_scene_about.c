@@ -1,5 +1,5 @@
 #include "../uk_mbirth_sonicare.h"
-#include "gui/canvas.h"
+#include <gui/canvas.h>
 #include <uk_mbirth_sonicare_icons.h>
 #include <dolphin/dolphin.h>
 

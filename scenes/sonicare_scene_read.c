@@ -1,4 +1,6 @@
 #include "../uk_mbirth_sonicare.h"
+#include <uk_mbirth_sonicare_icons.h>
+
 #include <gui/scene_manager.h>
 #include <gui/view_dispatcher.h>
 #include <nfc/nfc.h>
@@ -50,9 +52,10 @@ void sonicare_scene_read_on_enter(void* context) {
     Popup* popup = app->popup;
 
     popup_reset(popup);
-    popup_set_header(popup, "Reading", 97, 15, AlignCenter, AlignTop);
-    popup_set_text(popup, "Hold brush stem next\nto Flipper's back", 94, 27, AlignCenter, AlignTop);
-    //popup_set_icon(app->popup, 0, 8, &I_NFC_manual_60x50);
+    // image is 39px wide, screen is 128px --> 89px left, centre point X: 39 + (89/2) = 83
+    popup_set_header(popup, "Reading", 83, 8, AlignCenter, AlignTop);
+    popup_set_text(popup, "Hold brush stem\nnext to\nFlipper's back", 83, 27, AlignCenter, AlignTop);
+    popup_set_icon(app->popup, 0, 0, &I_sonicare_read);
     view_dispatcher_switch_to_view(app->view_dispatcher, SonicareViewPopup);
     
     app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfUltralight);
