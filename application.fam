@@ -9,7 +9,7 @@ App(
     fap_category="NFC",
     # Optional values
     requires=["gui"],
-    fap_version="0.1",
+    fap_version="0.9",
     fap_icon="uk_mbirth_sonicare.png",  # 10x10 1-bit PNG
     fap_description="Philips Sonicare brush head reader",
     fap_author="mbirth.uk",
