@@ -12,6 +12,12 @@ static void protopirate_scene_receiver_info_widget_callback(
     InputType type,
     void* context);
 
+static void protopirate_scene_receiver_info_text_input_callback(void* context) {
+    ProtoPirateApp* app = context;
+    view_dispatcher_send_custom_event(
+        app->view_dispatcher, ProtoPirateCustomEventReceiverInfoSaveConfirm);
+}
+
 static void psa_bf_done_cb_receiver_info(void* context) {
     ProtoPirateApp* app = context;
     view_dispatcher_send_custom_event(
@@ -425,27 +431,97 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
             FlipperFormat* ff =
                 protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
             if(ff) {
+                // Read protocol name for default filename
                 FuriString* protocol = furi_string_alloc();
                 flipper_format_rewind(ff);
                 if(!flipper_format_read_string(ff, "Protocol", protocol)) {
                     furi_string_set_str(protocol, "Unknown");
                 }
-                FuriString* saved_path = furi_string_alloc();
-                if(protopirate_storage_save_capture(
-                       ff, furi_string_get_cstr(protocol), saved_path)) {
+
+                // Clean protocol name for filename
+                furi_string_replace_all(protocol, "/", "_");
+                furi_string_replace_all(protocol, " ", "_");
+
+                // Get the next auto-generated filename (just the name part)
+                FuriString* auto_path = furi_string_alloc();
+                if(protopirate_storage_get_next_filename(
+                       furi_string_get_cstr(protocol), auto_path)) {
+                    // Extract just the filename without folder and extension
+                    const char* full = furi_string_get_cstr(auto_path);
+                    const char* slash = strrchr(full, '/');
+                    const char* name_start = slash ? slash + 1 : full;
+
+                    // Copy without extension
+                    size_t name_len = strlen(name_start);
+                    const char* dot = strrchr(name_start, '.');
+                    if(dot) name_len = dot - name_start;
+                    if(name_len >= sizeof(app->save_filename))
+                        name_len = sizeof(app->save_filename) - 1;
+
+                    memcpy(app->save_filename, name_start, name_len);
+                    app->save_filename[name_len] = '\0';
+                } else {
+                    snprintf(app->save_filename, sizeof(app->save_filename), "capture");
+                }
+                furi_string_free(auto_path);
+
+                // Store context for when text input confirms
+                if(app->save_protocol) furi_string_free(app->save_protocol);
+                app->save_protocol = protocol; // transfer ownership
+                app->save_history_idx = app->txrx->idx_menu_chosen;
+                app->save_from_saved_info = false;
+
+                // Configure and show text input
+                text_input_reset(app->text_input);
+                text_input_set_header_text(app->text_input, "Save filename:");
+                text_input_set_result_callback(
+                    app->text_input,
+                    protopirate_scene_receiver_info_text_input_callback,
+                    app,
+                    app->save_filename,
+                    sizeof(app->save_filename),
+                    false); // don't clear default text
+
+                view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewTextInput);
+            }
+            consumed = true;
+        }
+
+        if(event.event == ProtoPirateCustomEventReceiverInfoSaveConfirm) {
+            // User confirmed the filename in text input
+            FlipperFormat* ff =
+                protopirate_history_get_raw_data(app->txrx->history, app->save_history_idx);
+            if(ff) {
+                // Build full path: folder/filename.psf
+                FuriString* save_path = furi_string_alloc_printf(
+                    "%s/%s%s",
+                    PROTOPIRATE_APP_FOLDER,
+                    app->save_filename,
+                    PROTOPIRATE_APP_EXTENSION);
+
+                if(protopirate_storage_save_capture_to_path(ff, furi_string_get_cstr(save_path))) {
                     notification_message(app->notifications, &sequence_success);
-                    FURI_LOG_I(TAG, "Saved to: %s", furi_string_get_cstr(saved_path));
+                    FURI_LOG_I(TAG, "Saved to: %s", furi_string_get_cstr(save_path));
                 } else {
                     notification_message(app->notifications, &sequence_error);
                     FURI_LOG_E(TAG, "Save failed");
                 }
-                furi_string_free(protocol);
-                furi_string_free(saved_path);
+                furi_string_free(save_path);
             }
+
+            // Clean up save protocol string
+            if(app->save_protocol) {
+                furi_string_free(app->save_protocol);
+                app->save_protocol = NULL;
+            }
+
+            // Return to the receiver info widget
+            view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
             consumed = true;
         }
+
 #ifdef ENABLE_EMULATE_FEATURE
-        else if(event.event == ProtoPirateCustomEventReceiverInfoEmulate && !is_emu_off) {
+        if(event.event == ProtoPirateCustomEventReceiverInfoEmulate && !is_emu_off) {
             FlipperFormat* ff =
                 protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
             if(ff) {

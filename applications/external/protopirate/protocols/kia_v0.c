@@ -13,6 +13,7 @@ static const SubGhzBlockConst subghz_protocol_kia_const = {
 // Multi-burst configuration
 #define KIA_TOTAL_BURSTS       2
 #define KIA_INTER_BURST_GAP_US 25000
+#define KIA_HEADER_PULSES      64
 
 struct SubGhzProtocolDecoderKIA {
     SubGhzProtocolDecoderBase base;
@@ -139,7 +140,8 @@ void* subghz_protocol_encoder_kia_alloc(SubGhzEnvironment* environment) {
     instance->button = 0;
     instance->counter = 0;
 
-    instance->encoder.size_upload = (32 + 2 + 118 + 1) * KIA_TOTAL_BURSTS + (KIA_TOTAL_BURSTS - 1);
+    instance->encoder.size_upload =
+        (KIA_HEADER_PULSES + 2 + 118 + 1) * KIA_TOTAL_BURSTS + (KIA_TOTAL_BURSTS - 1);
     instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
     instance->encoder.repeat =
         10; // High repeat count for continuous transmission while button is held
@@ -202,7 +204,7 @@ static void subghz_protocol_encoder_kia_get_upload(SubGhzProtocolEncoderKIA* ins
             instance->encoder.upload[index++] = level_duration_make(false, KIA_INTER_BURST_GAP_US);
         }
 
-        for(int i = 0; i < 32; i++) {
+        for(int i = 0; i < KIA_HEADER_PULSES; i++) {
             bool is_high = (i % 2) == 0;
             instance->encoder.upload[index++] =
                 level_duration_make(is_high, subghz_protocol_kia_const.te_short);
