@@ -198,6 +198,93 @@ static MunitResult test_probe_stages(const MunitParameter params[], void* fixtur
     return MUNIT_OK;
 }
 
+static MunitResult test_probe_full_sequence_succeeds_with_runtime_sized_buffers(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    SeaderUhfSnmpProbe probe = {0};
+    uint8_t message[176] = {0};
+    uint8_t scratch[240] = {0};
+    uint8_t response[512] = {0};
+    size_t message_len = 0U;
+    size_t response_len = 0U;
+
+    seader_uhf_snmp_probe_init(&probe);
+
+    munit_assert_true(seader_uhf_snmp_probe_build_next_request(
+        &probe, scratch, sizeof(scratch), message, sizeof(message), &message_len));
+    response_len = test_hex_to_bytes(snmp_discovery_response_hex, response, sizeof(response));
+    munit_assert_true(seader_uhf_snmp_probe_consume_response(&probe, response, response_len));
+
+    memset(message, 0, sizeof(message));
+    memset(scratch, 0, sizeof(scratch));
+    munit_assert_true(seader_uhf_snmp_probe_build_next_request(
+        &probe, scratch, sizeof(scratch), message, sizeof(message), &message_len));
+    response_len = test_hex_to_bytes(snmp_ice_response_hex, response, sizeof(response));
+    munit_assert_true(seader_uhf_snmp_probe_consume_response(&probe, response, response_len));
+
+    memset(message, 0, sizeof(message));
+    memset(scratch, 0, sizeof(scratch));
+    munit_assert_true(seader_uhf_snmp_probe_build_next_request(
+        &probe, scratch, sizeof(scratch), message, sizeof(message), &message_len));
+    response_len = test_hex_to_bytes(snmp_uhf_config_response_hex, response, sizeof(response));
+    munit_assert_true(seader_uhf_snmp_probe_consume_response(&probe, response, response_len));
+
+    memset(message, 0, sizeof(message));
+    memset(scratch, 0, sizeof(scratch));
+    munit_assert_true(seader_uhf_snmp_probe_build_next_request(
+        &probe, scratch, sizeof(scratch), message, sizeof(message), &message_len));
+    munit_assert_true(seader_uhf_snmp_probe_consume_error(
+        &probe, 0x06U, (const uint8_t*)"\x69\x82", 2U));
+
+    memset(message, 0, sizeof(message));
+    memset(scratch, 0, sizeof(scratch));
+    munit_assert_true(seader_uhf_snmp_probe_build_next_request(
+        &probe, scratch, sizeof(scratch), message, sizeof(message), &message_len));
+    munit_assert_true(seader_uhf_snmp_probe_consume_error(
+        &probe, 0x06U, (const uint8_t*)"\x69\x82", 2U));
+
+    munit_assert_true(probe.monza4qt_key_present);
+    munit_assert_true(probe.higgs3_key_present);
+    munit_assert_int(probe.stage, ==, SeaderUhfSnmpProbeStageDone);
+    return MUNIT_OK;
+}
+
+static MunitResult test_get_data_request_fits_bounded_transport_buffer(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    uint8_t engine[SEADER_UHF_SNMP_MAX_ID_LEN];
+    uint8_t username[SEADER_UHF_SNMP_MAX_ID_LEN];
+    uint8_t scratch[240] = {0};
+    uint8_t message[176] = {0};
+    size_t message_len = 0U;
+
+    memset(engine, 0xAA, sizeof(engine));
+    memset(username, 0xBB, sizeof(username));
+
+    munit_assert_true(seader_snmp_build_get_data_request(
+        engine,
+        sizeof(engine),
+        username,
+        sizeof(username),
+        UINT32_MAX,
+        UINT32_MAX,
+        oid_monza4qt_access_key,
+        sizeof(oid_monza4qt_access_key),
+        scratch,
+        sizeof(scratch),
+        message,
+        sizeof(message),
+        &message_len));
+    munit_assert_size(message_len, <=, sizeof(message));
+    return MUNIT_OK;
+}
+
 static MunitResult test_tag_config_view_extracts_known_entries(const MunitParameter params[], void* fixture) {
     (void)params;
     (void)fixture;
@@ -240,6 +327,8 @@ static MunitTest test_snmp_cases[] = {
     {(char*)"/parse-response", test_parse_response_and_zero_copy_views, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/parse-values", test_parse_ice_and_tag_config_values, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/probe", test_probe_stages, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/probe-runtime-buffers", test_probe_full_sequence_succeeds_with_runtime_sized_buffers, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/bounded-get-data", test_get_data_request_fits_bounded_transport_buffer, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/tag-config", test_tag_config_view_extracts_known_entries, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/malformed-length", test_response_rejects_truncated_length, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {NULL, NULL, NULL, NULL, 0, NULL},

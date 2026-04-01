@@ -1,6 +1,27 @@
 # Changelog
 
 
+## [v1.4] – 30-03-2026
+
+## Added
+
+- **Structured Mode (NEW)**
+  - UID modeling using segmented generation (Facility + Card)
+  - Tail patterns for better bruteforce efficiency
+
+- **Structured Randomization Option**
+  - Switch between:
+    - Sequential structured (default)
+    - Randomized structured (anti pattern detection & wide coverage)
+
+- **Engine Upgrade**
+  - Prefix × Sequence × Tail generation
+  - Better coverage of UID distributions
+  - More efficient brute force lists
+
+- General improvements & code cleanup
+
+
 ## [v1.3] – 01-02-2026
 
 ### Added

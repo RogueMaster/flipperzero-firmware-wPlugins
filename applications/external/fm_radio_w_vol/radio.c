@@ -3,7 +3,7 @@
  * @author Coolshrimp - CoolshrimpModz.com
  *
  * @brief FM Radio using the TEA5767 FM radio chip.
- * @version 0.9+pt2257.1
+ * @version 0.10+pt22xx.0
  * @date 2023-09-29
  * 
  * @copyright GPLv3
@@ -29,8 +29,7 @@
 #include <flipper_format/flipper_format.h>
 
 #include "TEA5767/TEA5767.h"
-#include "PT2257/PT2257.h"
-#include "fmradio_controller_pt2257_icons.h"
+#include "PT/PT22xx.h"
 
 // Define a macro for enabling the backlight always on.
 // NOTE: For some setups this can inject audible PWM/DC-DC noise into the audio path.
@@ -38,79 +37,83 @@
 // #define BACKLIGHT_ALWAYS_ON
 
 #define TAG                "FMRadio"
-#define FMRADIO_UI_VERSION "0.9+pt2257.dev"
+#define FMRADIO_UI_VERSION "0.10+pt22xx.dev"
 
 // Volume config options (used by Config menu)
 static const uint8_t volume_values[] = {0, 1};
 static const char* volume_names[] = {"Un-Muted", "Muted"};
-static bool current_volume = false; // PT2257 mute flag
+static bool current_volume = false;
 
-// PT2257/PT2259 I2C address selection.
-// NOTE: This app uses an 8-bit I2C address byte (already left-shifted like TEA5767_ADR).
-// Common values:
-// - PT2257: 0x88
-// - PT2259: 0x44
-// 0 means "Auto" (try known address bytes).
-static const uint8_t pt_i2c_addr8_values[] = {0x00, 0x88, 0x44};
-static const char* pt_i2c_addr8_names[] = {"Auto", "0x88", "0x44"};
-static uint8_t pt2257_i2c_addr8 = 0x00;
+static const PT22xxChip pt_chip_values[] = {PT22xxChipPT2257, PT22xxChipPT2259};
+static const char* pt_chip_names[] = {"PT2257", "PT2259-S"};
+static PT22xxChip pt_chip = PT22xxChipPT2257;
 
-// PT2257 attenuation in dB: 0..79 (0 => max volume, 79 => min volume)
-static uint8_t pt2257_atten_db = 20;
-static bool pt2257_ready_cached = false;
+// Dedicated boards use a fixed 8-bit PT I2C address byte.
+static const uint8_t pt_i2c_addr8 = 0x88;
+
+// PT attenuation in dB: 0..79 (0 => max volume, 79 => min volume)
+static uint8_t pt_atten_db = 20;
+static bool pt_ready_cached = false;
+static bool pt_initialized_cached = false;
 
 static void fmradio_state_lock(void);
 static void fmradio_state_unlock(void);
 
-static bool fmradio_pt2257_autodetect_addr8(void) {
-    // Try known address bytes and keep the first that ACKs.
-    for(size_t i = 0; i < COUNT_OF(pt_i2c_addr8_values); i++) {
-        uint8_t addr8 = pt_i2c_addr8_values[i];
-        if(addr8 == 0x00) continue;
-        pt2257_set_i2c_addr(addr8);
-        if(pt2257_is_device_ready()) return true;
-    }
-    return false;
+static void fmradio_pt_apply_config(void) {
+    pt22xx_set_chip(pt_chip);
+    pt22xx_set_i2c_addr(pt_i2c_addr8);
 }
 
-static void fmradio_pt2257_apply_addr8(void) {
-    if(pt2257_i2c_addr8 != 0x00) {
-        pt2257_set_i2c_addr(pt2257_i2c_addr8);
-    } else {
-        (void)fmradio_pt2257_autodetect_addr8();
-    }
-}
+static bool fmradio_pt_refresh_state(bool force_init) {
+    bool local_initialized;
 
-static const char* fmradio_pt_name_from_addr8(uint8_t addr8) {
-    if(addr8 == 0x88) return "PT2257";
-    if(addr8 == 0x44) return "PT2259";
-    return "PT";
+    fmradio_state_lock();
+    local_initialized = pt_initialized_cached;
+    fmradio_state_unlock();
+
+    fmradio_pt_apply_config();
+    bool ready = pt22xx_is_device_ready();
+
+    if(!ready) {
+        local_initialized = false;
+    } else if(force_init || !local_initialized) {
+        local_initialized = pt22xx_init();
+        if(!local_initialized) ready = false;
+    }
+
+    fmradio_state_lock();
+    pt_ready_cached = ready;
+    pt_initialized_cached = local_initialized;
+    fmradio_state_unlock();
+
+    return ready;
 }
 
 static const char* fmradio_pt_active_name(void) {
-    // Manual selection: use configured address directly.
-    // Auto mode: use currently active driver address (set by autodetection).
-    uint8_t effective_addr8 = (pt2257_i2c_addr8 != 0x00) ? pt2257_i2c_addr8 :
-                                                           pt2257_get_i2c_addr();
-    return fmradio_pt_name_from_addr8(effective_addr8);
+    return pt22xx_get_chip_name();
 }
 
-static void fmradio_apply_pt2257_state(void) {
+static void fmradio_apply_pt_state(void) {
     fmradio_state_lock();
-    bool local_ready = pt2257_ready_cached;
+    bool local_ready = pt_ready_cached;
     bool local_muted = current_volume;
-    uint8_t local_atten_db = pt2257_atten_db;
+    uint8_t local_atten_db = pt_atten_db;
     fmradio_state_unlock();
 
     if(!local_ready) return;
-    pt2257_set_attenuation_db(local_muted ? 79 : local_atten_db);
-    pt2257_mute(local_muted);
+
+    PT22xxState state = {
+        .attenuation_db = local_atten_db,
+        .muted = local_muted,
+    };
+
+    (void)pt22xx_apply_state(&state);
 }
 
 #define SETTINGS_DIR      EXT_PATH("apps_data/fmradio_controller_pt2257")
 #define SETTINGS_FILE     EXT_PATH("apps_data/fmradio_controller_pt2257/settings.fff")
-#define SETTINGS_FILETYPE "FMRadio PT2257 Settings"
-#define SETTINGS_VERSION  (1U)
+#define SETTINGS_FILETYPE "FMRadio PT Settings"
+#define SETTINGS_VERSION  (2U)
 
 #define PRESETS_FILE     EXT_PATH("apps_data/fmradio_controller_pt2257/presets.fff")
 #define PRESETS_FILETYPE "FMRadio Presets"
@@ -337,7 +340,7 @@ static void fmradio_settings_load(void) {
     do {
         if(!flipper_format_file_open_existing(ff, SETTINGS_FILE)) break;
         if(!flipper_format_read_header(ff, filetype, &version)) break;
-        if(version != SETTINGS_VERSION) break;
+        if((version == 0U) || (version > SETTINGS_VERSION)) break;
 
         bool snc = false;
         if(flipper_format_read_bool(ff, "TeaSNC", &snc, 1)) {
@@ -383,7 +386,7 @@ static void fmradio_settings_load(void) {
         uint32_t atten = 0;
         if(flipper_format_read_uint32(ff, "PtAttenDb", &atten, 1)) {
             if(atten > 79) atten = 79;
-            pt2257_atten_db = (uint8_t)atten;
+            pt_atten_db = (uint8_t)atten;
         }
 
         bool muted = false;
@@ -391,10 +394,12 @@ static void fmradio_settings_load(void) {
             current_volume = muted;
         }
 
-        uint32_t addr8 = 0;
-        if(flipper_format_read_uint32(ff, "PtI2cAddr8", &addr8, 1)) {
-            if((addr8 == 0U) || (addr8 == 0x88U) || (addr8 == 0x44U)) {
-                pt2257_i2c_addr8 = (uint8_t)addr8;
+        if(version >= 2U) {
+            uint32_t chip_type = 0;
+            if(flipper_format_read_uint32(ff, "PtChipType", &chip_type, 1)) {
+                if(chip_type <= (uint32_t)PT22xxChipPT2259) {
+                    pt_chip = (PT22xxChip)chip_type;
+                }
             }
         }
 
@@ -437,14 +442,14 @@ static void fmradio_settings_save(void) {
         uint32_t freq_10khz = fmradio_get_current_freq_10khz();
         if(!flipper_format_write_uint32(ff, "Freq10kHz", &freq_10khz, 1)) break;
 
-        uint32_t atten = pt2257_atten_db;
+        uint32_t atten = pt_atten_db;
         if(!flipper_format_write_uint32(ff, "PtAttenDb", &atten, 1)) break;
 
         bool muted = (current_volume != 0);
         if(!flipper_format_write_bool(ff, "PtMuted", &muted, 1)) break;
 
-        uint32_t addr8 = pt2257_i2c_addr8;
-        if(!flipper_format_write_uint32(ff, "PtI2cAddr8", &addr8, 1)) break;
+        uint32_t chip_type = (uint32_t)pt_chip;
+        if(!flipper_format_write_uint32(ff, "PtChipType", &chip_type, 1)) break;
 
         ok = true;
     } while(false);
@@ -596,7 +601,7 @@ typedef struct {
     VariableItemList* variable_item_list_config;
     VariableItem* item_freq;
     VariableItem* item_volume;
-    VariableItem* item_pt_i2c_addr;
+    VariableItem* item_pt_chip;
     VariableItem* item_snc;
     VariableItem* item_deemph;
     VariableItem* item_softmute;
@@ -685,7 +690,7 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
         fmradio_state_lock();
         current_volume = !current_volume;
         fmradio_state_unlock();
-        fmradio_apply_pt2257_state();
+        fmradio_apply_pt_state();
         fmradio_settings_mark_dirty();
         return true; // Event was handled
     } else if(event->type == InputTypeShort && event->key == InputKeyUp) {
@@ -735,10 +740,10 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
         event->key == InputKeyUp) {
         // Volume up => reduce attenuation
         fmradio_state_lock();
-        if(pt2257_atten_db > 0) {
-            pt2257_atten_db--;
+        if(pt_atten_db > 0) {
+            pt_atten_db--;
             fmradio_state_unlock();
-            fmradio_apply_pt2257_state();
+            fmradio_apply_pt_state();
             fmradio_settings_mark_dirty();
         } else {
             fmradio_state_unlock();
@@ -749,10 +754,10 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
         event->key == InputKeyDown) {
         // Volume down => increase attenuation
         fmradio_state_lock();
-        if(pt2257_atten_db < 79) {
-            pt2257_atten_db++;
+        if(pt_atten_db < 79) {
+            pt_atten_db++;
             fmradio_state_unlock();
-            fmradio_apply_pt2257_state();
+            fmradio_apply_pt_state();
             fmradio_settings_mark_dirty();
         } else {
             fmradio_state_unlock();
@@ -794,27 +799,26 @@ void fmradio_controller_volume_change(VariableItem* item) {
     variable_item_set_current_value_text(
         item, volume_names[index]); // Display the selected volume as text
 
-    // Apply immediately (this Config "Volume" is just PT2257 mute/unmute)
+    // Apply immediately (this Config "Volume" is PT mute/unmute)
     if(index < COUNT_OF(volume_values)) {
         current_volume = (volume_values[index] != 0);
-        fmradio_apply_pt2257_state();
+        fmradio_apply_pt_state();
         fmradio_settings_mark_dirty();
     }
 }
 
-void fmradio_controller_pt_i2c_addr_change(VariableItem* item) {
+void fmradio_controller_pt_chip_change(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
-    if(index >= COUNT_OF(pt_i2c_addr8_values)) {
+    if(index >= COUNT_OF(pt_chip_values)) {
         index = 0;
         variable_item_set_current_value_index(item, index);
     }
 
-    pt2257_i2c_addr8 = pt_i2c_addr8_values[index];
-    variable_item_set_current_value_text(item, pt_i2c_addr8_names[index]);
+    pt_chip = pt_chip_values[index];
+    variable_item_set_current_value_text(item, pt_chip_names[index]);
 
-    fmradio_pt2257_apply_addr8();
-    pt2257_ready_cached = pt2257_is_device_ready();
-    fmradio_apply_pt2257_state();
+    (void)fmradio_pt_refresh_state(true);
+    fmradio_apply_pt_state();
     fmradio_settings_mark_dirty();
 }
 
@@ -838,23 +842,19 @@ static void fmradio_tick_callback(void* context) {
     FMRadio* app = (FMRadio*)context;
     uint32_t now = furi_get_tick();
 
-    // PT2257 hot-plug (every ~500 ms)
-    static uint32_t last_pt2257_check = 0;
-    if((now - last_pt2257_check) > furi_ms_to_ticks(500)) {
-        bool ready = pt2257_is_device_ready();
-        if(!ready && (pt2257_i2c_addr8 == 0x00)) {
-            fmradio_pt2257_apply_addr8();
-            ready = pt2257_is_device_ready();
-        }
+    // PT hot-plug (every ~500 ms)
+    static uint32_t last_pt_check = 0;
+    if((now - last_pt_check) > furi_ms_to_ticks(500)) {
         fmradio_state_lock();
-        bool was_ready = pt2257_ready_cached;
-        pt2257_ready_cached = ready;
+        bool was_ready = pt_ready_cached;
         fmradio_state_unlock();
 
+        bool ready = fmradio_pt_refresh_state(false);
+
         if(ready && !was_ready) {
-            fmradio_apply_pt2257_state();
+            fmradio_apply_pt_state();
         }
-        last_pt2257_check = now;
+        last_pt_check = now;
     }
 
     // Debounced settings save (every ~2 s when dirty)
@@ -885,7 +885,7 @@ void fmradio_controller_view_draw_callback(Canvas* canvas, void* model) {
     char frequency_display[64];
     char signal_display[64];
     char audio_display[32];
-    char pt2257_display[32];
+    char pt_display[32];
 
     // tea5767_get_radio_info() populates the info
     struct RADIO_INFO info;
@@ -903,24 +903,24 @@ void fmradio_controller_view_draw_callback(Canvas* canvas, void* model) {
     elements_button_top_right(canvas, "Pre ");
 
     fmradio_state_lock();
-    bool local_pt2257_ready = pt2257_ready_cached;
-    uint8_t local_pt2257_atten = pt2257_atten_db;
+    bool local_pt_ready = pt_ready_cached;
+    uint8_t local_pt_atten = pt_atten_db;
     bool local_muted = current_volume;
     fmradio_state_unlock();
 
     const char* pt_name = fmradio_pt_active_name();
 
-    if(local_pt2257_ready) {
+    if(local_pt_ready) {
         snprintf(
-            pt2257_display,
-            sizeof(pt2257_display),
+            pt_display,
+            sizeof(pt_display),
             "%s: OK  Vol: -%udB",
             pt_name,
-            (unsigned)local_pt2257_atten);
+            (unsigned)local_pt_atten);
     } else {
-        snprintf(pt2257_display, sizeof(pt2257_display), "PT: ERROR");
+        snprintf(pt_display, sizeof(pt_display), "%s: ERROR", pt_name);
     }
-    canvas_draw_str(canvas, 10, 51, pt2257_display);
+    canvas_draw_str(canvas, 10, 51, pt_display);
 
     if(tea5767_get_radio_info(buffer, &info)) {
         snprintf(
@@ -1066,23 +1066,22 @@ FMRadio* fmradio_controller_alloc() {
     uint8_t volume_index = 0;
     variable_item_set_current_value_index(app->item_volume, volume_index);
 
-    // PT2257/PT2259 I2C address byte selection
-    app->item_pt_i2c_addr = variable_item_list_add(
+    app->item_pt_chip = variable_item_list_add(
         app->variable_item_list_config,
-        "PT Addr",
-        COUNT_OF(pt_i2c_addr8_values),
-        fmradio_controller_pt_i2c_addr_change,
+        "PT Chip",
+        COUNT_OF(pt_chip_values),
+        fmradio_controller_pt_chip_change,
         app);
-    if(!app->item_pt_i2c_addr) goto fail;
-    uint8_t addr_index = 0;
-    for(uint8_t i = 0; i < COUNT_OF(pt_i2c_addr8_values); i++) {
-        if(pt_i2c_addr8_values[i] == pt2257_i2c_addr8) {
-            addr_index = i;
+    if(!app->item_pt_chip) goto fail;
+    uint8_t chip_index = 0;
+    for(uint8_t i = 0; i < COUNT_OF(pt_chip_values); i++) {
+        if(pt_chip_values[i] == pt_chip) {
+            chip_index = i;
             break;
         }
     }
-    variable_item_set_current_value_index(app->item_pt_i2c_addr, addr_index);
-    variable_item_set_current_value_text(app->item_pt_i2c_addr, pt_i2c_addr8_names[addr_index]);
+    variable_item_set_current_value_index(app->item_pt_chip, chip_index);
+    variable_item_set_current_value_text(app->item_pt_chip, pt_chip_names[chip_index]);
 
     view_set_previous_callback(
         variable_item_list_get_view(app->variable_item_list_config),
@@ -1115,10 +1114,10 @@ FMRadio* fmradio_controller_alloc() {
         ")\n---\n Created By Coolshrimp\n Fork/extended by pchmielewski1\n\n"
         "Left/Right (short) = Tune -/+ 0.1MHz\n"
         "Left/Right (hold) = Seek next/prev\n"
-        "OK (short) = Mute (PT2257)\n"
+        "OK (short) = Mute PT\n"
         "OK (hold) = Save to preset\n"
         "Up/Down (short) = Preset next/prev\n"
-        "Up/Down (hold) = Volume (PT2257)\n\n"
+        "Up/Down (hold) = Volume PT\n\n"
         "Band: 76.0-108.0MHz\n\n"
         "Config: SNC / De-emph / SoftMute / HighCut / Mono\n"
         "Try toggling while listening for feedback");
@@ -1146,6 +1145,17 @@ FMRadio* fmradio_controller_alloc() {
         variable_item_set_current_value_index(app->item_volume, current_volume ? 1 : 0);
         variable_item_set_current_value_text(
             app->item_volume, current_volume ? "Muted" : "Un-Muted");
+    }
+    if(app->item_pt_chip) {
+        uint8_t chip_index = 0;
+        for(uint8_t i = 0; i < COUNT_OF(pt_chip_values); i++) {
+            if(pt_chip_values[i] == pt_chip) {
+                chip_index = i;
+                break;
+            }
+        }
+        variable_item_set_current_value_index(app->item_pt_chip, chip_index);
+        variable_item_set_current_value_text(app->item_pt_chip, pt_chip_names[chip_index]);
     }
     if(app->item_freq) {
         float freq = tea5767_GetFreq();
@@ -1185,26 +1195,11 @@ FMRadio* fmradio_controller_alloc() {
         variable_item_set_current_value_text(
             app->item_backlight, backlight_keep_on ? "On" : "Off");
     }
-    if(app->item_pt_i2c_addr) {
-        uint8_t addr_index = 0;
-        for(uint8_t i = 0; i < COUNT_OF(pt_i2c_addr8_values); i++) {
-            if(pt_i2c_addr8_values[i] == pt2257_i2c_addr8) {
-                addr_index = i;
-                break;
-            }
-        }
-        variable_item_set_current_value_index(app->item_pt_i2c_addr, addr_index);
-        variable_item_set_current_value_text(
-            app->item_pt_i2c_addr, pt_i2c_addr8_names[addr_index]);
-    }
 
-    // Ensure PT2257 comes up in a known state
-    // PT2257 datasheets typically recommend waiting ~200ms after power-on before I2C.
-    // This is harmless for PT2259 and improves robustness across different modules.
+    // Give PT controllers time to settle after power-on before touching I2C.
     furi_delay_ms(200);
-    fmradio_pt2257_apply_addr8();
-    pt2257_ready_cached = pt2257_is_device_ready();
-    fmradio_apply_pt2257_state();
+    (void)fmradio_pt_refresh_state(true);
+    fmradio_apply_pt_state();
 
     // Start periodic background tick (I2C hot-plug, debounced saves)
     app->tick_timer = furi_timer_alloc(fmradio_tick_callback, FuriTimerTypePeriodic, app);

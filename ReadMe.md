@@ -28,10 +28,10 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a>
 
-## Latest Updates - [PATREON: Latest Release RM0322-1920-0.420.0-bde30bb](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM0330-1335-0.420.0-8670c1d](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-03-22 19:20 EST`
-- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-03-22 19:20 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-03-30 13:35 EST`
+- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-03-30 13:35 EST`
 - Updated: [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - OFW: PR: [fix HID limits to support international keyboards & Japanese KB Layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
 - Updated: [Hold em v1.1 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
@@ -48,11 +48,17 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - Updated: [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - Updated: [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
-- Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
 - Updated: [Sub Duplicate Finder v1.2 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - Updated: [Apple Grabber v0.1 (By d7d8)](https://github.com/d7d8/apple-grabber)
 - Updated: [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper) (Version Only)
 - Updated: [ProtoPirate v2.6 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) [Replace blocking dialog with non-blocking NeedSaving scene for exit confirmation (By mishamyte)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/23) [Expansion with Fiat, Mazda, Mitzubishi and Porche protocols (Originally By lupettohf) & Ford Fixed (By LeeroysHub) & Several Other Community Changes](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b377cee471cf61aaeff089c5ff194e1a13e8d94a) Different ProtoPirate Builds Enabled For Better Testing
+- Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
+- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
+- Updated: [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
+- Added: [Miele Scout RX2 v1.0 (By kallevaravas)](https://github.com/kallevaravas/flipper-miele-scout)
+- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
+- Updated: [ListEM v1.4 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
+- Added: [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
 
 <a name="release"></a>
 
@@ -562,6 +568,7 @@ $ ./fbt dolphin_ext
 - [FlipBoard Simon v1.10 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBIP Crypto Wallet v1.18 (By xtruan)](https://github.com/xtruan/FlipBIP)
 - [FlipCrypt v0.6 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
+- [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
 - [Flipper Aid v1.0 (By spaghety)](https://github.com/spaghety/flipper-aid)
 - [Flipper Doctor v0.1 (By julandealb)](https://github.com/julandealb/flipperdoc)
 - [Flipper Tag v1.0 (By thejudge156)](https://github.com/thejudge156/flippertag)
@@ -572,7 +579,7 @@ $ ./fbt dolphin_ext
 - [FlipTDI v1.1 (By Skorpionm)](https://github.com/flipperdevices/flipperzero-good-faps/pull/234)
 - [Flizzer Tracker v0.9 (By LTVA1)](https://github.com/LTVA1/flizzer_tracker)
 - [FM Radio v1.1.1 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-firmware-wPlugins/tree/420/applications/external/fm_radio) `Req: TEA5767`
-- [FM Radio w Vol v0.9 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
+- [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - [FM Transmitter KT0803 v1.0 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter) `Req: KT0803`
 - [FMF2USBMIDI v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_Zero_FMF2USBMIDI)
 - [Ford Radio Codes v0.1 (By DavidB445)](https://github.com/DavidB445/fz_fordradiocodes)
@@ -646,7 +653,7 @@ $ ./fbt dolphin_ext
 - [Lightmeter v1.3 (By oleksiikutuzov)](https://github.com/oleksiikutuzov/flipperzero-lightmeter) `Req: BH1750/MAX44009`
 - [Lightning Distance v0.1 (By HyperMuffin12)](https://github.com/HyperMuffin12/Flipper-Lightning-Distance)
 - [Lishi HU66 v0.3 (By evillero)](https://github.com/evillero/lishi_hu66)
-- [ListEM v1.3 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
+- [ListEM v1.4 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
 - [Logic Analyzer v1.1 (By g3gg0)](https://github.com/g3gg0/flipper-logic_analyzer)
 - [Longwave Clock v0.1 (By m7i-org)](https://github.com/m7i-org/flipper_longwave_clock)
 - [LoRa Relay v1.1.3 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-SX1262-LoRa) `Req: SX1262 By ElectronicCats`
@@ -676,6 +683,7 @@ $ ./fbt dolphin_ext
 - [Midea AC Remote v1.0 (By xakep666)](https://github.com/xakep666/flipperzero-midea-ac-remote)
 - [MIDI Ocarina v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_Zero_MIDI_Ocarina)
 - [MIDI RX v0.1 (By crackerjacques)](https://github.com/crackerjacques/flipper_zero_midi_rx)
+- [Miele Scout RX2 v1.0 (By kallevaravas)](https://github.com/kallevaravas/flipper-miele-scout)
 - [Mifare Fuzzer v1.5 (By spheeere98)](https://github.com/spheeere98/mifare_fuzzer)
 - [Mitsubishi AC Remote v1.0 (By achistyakov)](https://github.com/achistyakov/flipperzero-mitsubishi-ac-remote)
 - [Mitzi Type Aid Demo v0.1 (By fgreil)](https://github.com/fgreil/mitzi-tyaid)
@@ -732,7 +740,7 @@ $ ./fbt dolphin_ext
 - [Paranoia WIP v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
 - [Password Generator v1.3 (By anakod)](https://github.com/anakod/flipper_passgen)
 - [Password Manager v1.2 (By Rrycbarm)](https://github.com/Rrycbarm/flipperZeroPasswordManager)
-- [Passy v1.4 (By bettse)](https://github.com/bettse/passy)
+- [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
 - [Pause Timer v1.0 (By Matt-London)](https://github.com/Matt-London/pause_timer)
 - [PC Monitor v1.1.3 (By TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/TheSainEyereg/flipper-pc-monitor-backend)`
 - [PC Monitor USB v1.0 (By DonJulve & TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB-Backend)`

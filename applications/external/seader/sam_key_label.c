@@ -20,6 +20,7 @@ static bool seader_sam_key_label_is_missing(const uint8_t* value, size_t value_l
 
 void seader_sam_key_label_format(
     bool sam_present,
+    SeaderSamKeyProbeStatus probe_status,
     const uint8_t* elite_ice_value,
     size_t elite_ice_value_len,
     char* out,
@@ -35,8 +36,23 @@ void seader_sam_key_label_format(
         return;
     }
 
-    if(seader_sam_key_label_is_missing(elite_ice_value, elite_ice_value_len)) {
+    if(probe_status == SeaderSamKeyProbeStatusUnknown) {
+        snprintf(out, out_size, "SAM: Key Unknown");
+        return;
+    }
+
+    if(probe_status == SeaderSamKeyProbeStatusProbeFailed) {
+        snprintf(out, out_size, "SAM: Probe Failed");
+        return;
+    }
+
+    if(probe_status == SeaderSamKeyProbeStatusVerifiedStandard) {
         snprintf(out, out_size, "SAM: Standard Key");
+        return;
+    }
+
+    if(seader_sam_key_label_is_missing(elite_ice_value, elite_ice_value_len)) {
+        snprintf(out, out_size, "SAM: Probe Failed");
         return;
     }
 

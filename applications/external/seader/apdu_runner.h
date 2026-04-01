@@ -2,7 +2,10 @@
 #pragma once
 
 #include <lib/toolbox/hex.h>
-#include "seader_i.h"
+#include <stddef.h>
+#include <stdint.h>
+
+#include "seader.h"
 
 #define SEADER_APDU_RUNNER_FILE_NAME APP_DATA_PATH("script.apdu")
 
