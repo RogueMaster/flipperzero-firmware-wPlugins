@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ufbt
+        run: pip install ufbt
+
+      - name: Build FAP
+        run: python3 -m ufbt build
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ~/.ufbt/build/flipper_track.fap
+          generate_release_notes: false
+          body: |
+            ## FlipperTrack ${{ github.ref_name }}
+
+            ### Install
+            Copy `flipper_track.fap` to `SD Card/apps/Tools/` on your Flipper Zero.
+
+            ### Controls
+            - **OK** — toggle Win (Ctrl+Tab) / Mac (Cmd+Tab) mode
+            - **Right** — toggle fake typing on/off
+            - **Hold Back** — exit and restore USB

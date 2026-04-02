@@ -1,0 +1,14 @@
+App(
+    appid="flipper_track",
+    name="FlipperTrack",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_track_app",
+    requires=[
+        "gui",
+    ],
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_version=(1, 0),
+    fap_description="Simulates HID activity to test productivity monitoring detection",
+)
