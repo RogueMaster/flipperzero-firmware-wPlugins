@@ -4,15 +4,10 @@ sourcecode:
     origin: https://github.com/pinkpwningclub/flipperTrack.git
     commit_sha: 78798d1e4f06e53e2b99f81e96c8afeaeaa0eea6
 
-name: FlipperTrack
-id: flipper_track
-category: Tools
-version: "1.0"
-short_description: Simulates HID activity to test productivity monitoring detection
-description: "@../README.md"
-changelog: "@../CHANGELOG.md"
-author: pinkpwningclub
-icon: ../icon.png
+short_description: "HID activity simulator for productivity monitoring research"
+description: "@README.md"
+changelog: "@CHANGELOG.md"
+author: "@pinkpwningclub"
 screenshots:
-  - ../screenshots/1.png
-  - ../screenshots/2.png
+  - screenshots/1.png
+  - screenshots/2.png
