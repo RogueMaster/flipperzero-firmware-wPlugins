@@ -1,3 +1,8 @@
+## 1.0.4 (2026-04-02)
+- Updated to the latest game engine (merged from Free Roam)
+- Optimized Vector usage in the rendering code to improve performance and reduce memory usage
+- Updated input handling to only parse short and long presses
+
 ## 1.0.2 (2025-10-18)
 - Updated to use the flipper_http folder as intended
 

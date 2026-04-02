@@ -18,7 +18,6 @@ private:
     //
     std::unique_ptr<Draw> draw; // Draw instance
     std::unique_ptr<GameEngine> engine; // Engine instance
-    bool inputHeld = false; // Flag to check if input is held
     bool isGameRunning = false; // Flag to check if the game is running
     InputKey lastInput = InputKeyMAX; // Last input key pressed
     QueuedMessage messageQueue[MAX_QUEUED_MESSAGES]; // Queue for websocket messages
@@ -31,7 +30,6 @@ private:
     int atoi(const char* nptr) {
         return (int)strtol(nptr, NULL, 10);
     } // convert string to integer
-    void debounceInput(); // debounce input to prevent multiple actions from a single press
     void handleIncomingMultiplayerData(
         const char* message); // Handle incoming websocket messages (PvE mode only)
     void inputManager(); // manage input for the game, called from updateInput
@@ -40,7 +38,8 @@ private:
     void processWebsocketQueue(FlipWorldApp* app); // Process queued websocket messages
     bool queueWebsocketMessage(const char* message); // Queue a websocket message for sending
     bool safeWebsocketSend(FlipWorldApp* app, const char* message); // Send websocket message
-    static void pveRender(Entity* entity, Draw* canvas, Game* game); // Callback for PvE entity
+    static void
+        pveRender(Entity* entity, Draw* canvas, Game* game, void* ctx); // Callback for PvE entity
 public:
     FlipWorldRun();
     ~FlipWorldRun();

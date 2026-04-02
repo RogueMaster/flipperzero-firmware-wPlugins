@@ -1,5 +1,6 @@
 #pragma once
-#include "engine/game.hpp"
+#include "game.hpp"
+#include ENGINE_DELAY_INCLUDE
 
 class GameEngine {
 private:
@@ -25,7 +26,7 @@ public:
             // Render the game
             game->render();
 
-            furi_delay_ms(1000 / fps);
+            ENGINE_DELAY_MS(1000 / fps);
         }
 
         this->stop();
@@ -45,7 +46,7 @@ public:
 
         if(shouldDelay) {
             // Delay to control the frame rate
-            furi_delay_ms(1000 / fps);
+            ENGINE_DELAY_MS(1000 / fps);
         }
     }
 
@@ -54,9 +55,9 @@ public:
         game->stop();
 
         // clear the screen
-        game->draw->clear(Vector(0, 0), game->size, game->bg_color);
+        game->draw->fillScreen(game->bg_color);
 
-        delete game;
+        ENGINE_MEM_DELETE game;
         game = nullptr;
     }
 

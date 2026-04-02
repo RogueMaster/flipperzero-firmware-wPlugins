@@ -29,54 +29,53 @@ static int32_t flipper_http_worker(void* context) {
             break;
         }
         if(events & WorkerEvtRxDone) {
-            // Continuously read from the stream buffer until it's empty
-            while(!furi_stream_buffer_is_empty(fhttp->flipper_http_stream)) {
-                // Read one byte at a time
-                char c = 0;
-                size_t received = furi_stream_buffer_receive(fhttp->flipper_http_stream, &c, 1, 0);
-
-                if(received == 0) {
-                    // No more data to read
-                    break;
-                }
-
+            // Drain the stream buffer in chunks
+            uint8_t chunk[128];
+            size_t received;
+            while((received = furi_stream_buffer_receive(
+                       fhttp->flipper_http_stream, chunk, sizeof(chunk), 0)) > 0) {
                 fhttp->bytes_received += received;
 
                 // print amount of bytes received
                 // FURI_LOG_I(HTTP_TAG, "Bytes received: %d", fhttp->bytes_received);
 
-                // Append the received byte to the file if saving is enabled
-                if(fhttp->save_bytes) {
-                    // Add byte to the buffer
-                    fhttp->file_buffer[fhttp->file_buffer_len++] = c;
-                    // Write to file if buffer is full
-                    if(fhttp->file_buffer_len >= FILE_BUFFER_SIZE) {
-                        if(!flipper_http_append_to_file(
-                               fhttp->file_buffer,
-                               fhttp->file_buffer_len,
-                               fhttp->just_started_bytes,
-                               fhttp->file_path)) {
-                            FURI_LOG_E(HTTP_TAG, "Failed to append data to file");
+                for(size_t i = 0; i < received; i++) {
+                    char c = (char)chunk[i];
+
+                    // Append the received byte to the file if saving is enabled
+                    if(fhttp->save_bytes) {
+                        // Add byte to the buffer
+                        fhttp->file_buffer[fhttp->file_buffer_len++] = c;
+                        // Write to file if buffer is full
+                        if(fhttp->file_buffer_len >= FILE_BUFFER_SIZE) {
+                            if(!flipper_http_append_to_file(
+                                   fhttp->file_buffer,
+                                   fhttp->file_buffer_len,
+                                   fhttp->just_started_bytes,
+                                   fhttp->file_path)) {
+                                FURI_LOG_E(HTTP_TAG, "Failed to append data to file");
+                            }
+                            fhttp->file_buffer_len = 0;
+                            fhttp->just_started_bytes = false;
                         }
-                        fhttp->file_buffer_len = 0;
-                        fhttp->just_started_bytes = false;
                     }
-                }
 
-                // Handle line buffering only if callback is set (text data)
-                if(fhttp->handle_rx_line_cb) {
-                    // Handle line buffering
-                    if(c == '\n' || rx_line_pos >= RX_LINE_BUFFER_SIZE - 1) {
-                        fhttp->rx_line_buffer[rx_line_pos] = '\0'; // Null-terminate the line
+                    // Handle line buffering only if callback is set (text data)
+                    if(fhttp->handle_rx_line_cb) {
+                        // Handle line buffering
+                        if(c == '\n' || rx_line_pos >= RX_LINE_BUFFER_SIZE - 1) {
+                            fhttp->rx_line_buffer[rx_line_pos] = '\0'; // Null-terminate the line
 
-                        // Invoke the callback with the complete line
-                        fhttp->handle_rx_line_cb(fhttp->rx_line_buffer, fhttp->callback_context);
+                            // Invoke the callback with the complete line
+                            fhttp->handle_rx_line_cb(
+                                fhttp->rx_line_buffer, fhttp->callback_context);
 
-                        // Reset the line buffer position
-                        rx_line_pos = 0;
-                    } else {
-                        fhttp->rx_line_buffer[rx_line_pos++] =
-                            c; // Add character to the line buffer
+                            // Reset the line buffer position
+                            rx_line_pos = 0;
+                        } else {
+                            fhttp->rx_line_buffer[rx_line_pos++] =
+                                c; // Add character to the line buffer
+                        }
                     }
                 }
             }
@@ -105,8 +104,11 @@ static void _flipper_http_rx_callback(
         return;
     }
     if(event == FuriHalSerialRxEventData) {
-        uint8_t data = furi_hal_serial_async_rx(handle);
-        furi_stream_buffer_send(fhttp->flipper_http_stream, &data, 1, 0);
+        uint8_t data = 0;
+        while(furi_hal_serial_async_rx_available(handle)) {
+            data = furi_hal_serial_async_rx(handle);
+            furi_stream_buffer_send(fhttp->flipper_http_stream, &data, 1, 0);
+        }
         furi_thread_flags_set(fhttp->rx_thread_id, WorkerEvtRxDone);
     }
 }
@@ -259,6 +261,48 @@ FlipperHTTP* flipper_http_alloc() {
 
     // FURI_LOG_I(HTTP_TAG, "UART initialized successfully.");
     return fhttp;
+}
+
+/**
+ * @brief      Send a command to deauthenticate a WiFi network.
+ * @return     true if the request was successful, false otherwise.
+ * @param fhttp The FlipperHTTP context
+ * @note       The received data will be handled asynchronously via the callback.
+ */
+bool flipper_http_deauth_start(FlipperHTTP* fhttp, const char* ssid) {
+    if(!fhttp) {
+        FURI_LOG_E(HTTP_TAG, "flipper_http_deauth_start: Failed to get context.");
+        return false;
+    }
+    if(!ssid) {
+        FURI_LOG_E("FlipperHTTP", "Invalid arguments provided to flipper_http_deauth_start.");
+        return false;
+    }
+
+    char buffer[256];
+
+    int ret = snprintf(buffer, sizeof(buffer), "[DEAUTH]{\"ssid\":\"%s\"}", ssid);
+
+    if(ret < 0 || ret >= (int)sizeof(buffer)) {
+        FURI_LOG_E("FlipperHTTP", "Failed to format WiFi deauth command.");
+        return false;
+    }
+
+    return flipper_http_send_data(fhttp, buffer);
+}
+
+/**
+ * @brief      Send a request to stop the deauth
+ * @return     true if the request was successful, false otherwise.
+ * @param fhttp The FlipperHTTP context
+ * @note       The received data will be handled asynchronously via the callback.
+ */
+bool flipper_http_deauth_stop(FlipperHTTP* fhttp) {
+    if(!fhttp) {
+        FURI_LOG_E(HTTP_TAG, "flipper_http_deauth_stop: Failed to get context.");
+        return false;
+    }
+    return flipper_http_send_data(fhttp, "[DEAUTH/STOP]");
 }
 
 // Deinitialize UART
@@ -908,8 +952,10 @@ bool flipper_http_send_command(FlipperHTTP* fhttp, HTTPCommand command) {
     case HTTP_CMD_IP_ADDRESS:
         return flipper_http_send_data(fhttp, "[IP/ADDRESS]");
     case HTTP_CMD_IP_WIFI:
+        fhttp->method = GET;
         return flipper_http_send_data(fhttp, "[WIFI/IP]");
     case HTTP_CMD_SCAN:
+        fhttp->method = GET;
         return flipper_http_send_data(fhttp, "[WIFI/SCAN]");
     case HTTP_CMD_LIST_COMMANDS:
         return flipper_http_send_data(fhttp, "[LIST]");
@@ -920,6 +966,16 @@ bool flipper_http_send_command(FlipperHTTP* fhttp, HTTPCommand command) {
     case HTTP_CMD_PING:
         fhttp->state = INACTIVE; // set state as INACTIVE to be made IDLE if PONG is received
         return flipper_http_send_data(fhttp, "[PING]");
+    case HTTP_CMD_VERSION:
+        return flipper_http_send_data(fhttp, "[VERSION]");
+    case HTTP_CMD_STATUS:
+        return flipper_http_send_data(fhttp, "[WIFI/STATUS]");
+    case HTTP_CMD_REBOOT:
+        return flipper_http_send_data(fhttp, "[REBOOT]");
+    case HTTP_CMD_SSID:
+        return flipper_http_send_data(fhttp, "[WIFI/SSID]");
+    case HTTP_CMD_WIFI_LIST:
+        return flipper_http_send_data(fhttp, "[WIFI/LIST]");
     default:
         FURI_LOG_E(HTTP_TAG, "Invalid command.");
         return false;
@@ -1105,6 +1161,11 @@ static void flipper_http_rx_callback(const char* line, void* context) {
             strncpy(fhttp->last_response, trimmed_line, RX_BUF_SIZE);
         }
     }
+    // Invoke per-line user callback if registered (before freeing trimmed_line)
+    if(trimmed_line != NULL && trimmed_line[0] != '\0' && fhttp->user_rx_line_cb) {
+        fhttp->user_rx_line_cb(trimmed_line, fhttp->user_callback_context);
+    }
+
     free(trimmed_line); // Free the allocated memory for trimmed_line
 
     if(fhttp->state != INACTIVE && fhttp->state != ISSUE) {
@@ -1375,6 +1436,9 @@ static void flipper_http_rx_callback(const char* line, void* context) {
         return;
     } else if(strstr(line, "[DISCONNECTED]") != NULL) {
         // FURI_LOG_I(HTTP_TAG, "WiFi disconnected successfully.");
+    } else if(strstr(line, "[FILE/READY]") != NULL) {
+        fhttp->file_ready = true;
+        return;
     } else if(strstr(line, "[ERROR]") != NULL) {
         FURI_LOG_E(HTTP_TAG, "Received error: %s", line);
         fhttp->state = ISSUE;
@@ -1396,6 +1460,141 @@ static void flipper_http_rx_callback(const char* line, void* context) {
     } else {
         fhttp->state = IDLE;
     }
+}
+
+/**
+ * @brief      Upload a file from the SD card to a URL via POST.
+ * @return     true if all bytes were sent successfully, false otherwise.
+ * @param fhttp The FlipperHTTP context
+ * @param url  The URL to upload to.
+ * @param file_path Full path to the file on the SD card.
+ * @param content_type The MIME content type (e.g. "text/plain").
+ * @param headers Optional JSON headers string, or NULL.
+ * @note       After this returns true, poll fhttp->state for IDLE to know the response is complete.
+ */
+bool flipper_http_upload_file(
+    FlipperHTTP* fhttp,
+    const char* url,
+    const char* file_path,
+    const char* content_type,
+    const char* headers) {
+    if(!fhttp || !url || !file_path) {
+        FURI_LOG_E(HTTP_TAG, "Invalid arguments provided to flipper_http_upload_file.");
+        return false;
+    }
+
+    if(!content_type) {
+        content_type = "application/octet-stream";
+    }
+
+    // Open the file and get its size
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+
+    if(!storage_file_open(file, file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        FURI_LOG_E(HTTP_TAG, "Failed to open file for upload: %s", file_path);
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+
+    uint64_t file_size = storage_file_size(file);
+
+    // Build the [POST/FILE] command
+    char command[512];
+    int ret;
+    if(headers && strlen(headers) > 0) {
+        ret = snprintf(
+            command,
+            sizeof(command),
+            "[POST/FILE]{\"url\":\"%s\",\"size\":%lu,\"content_type\":\"%s\",\"headers\":%s}",
+            url,
+            (unsigned long)file_size,
+            content_type,
+            headers);
+    } else {
+        ret = snprintf(
+            command,
+            sizeof(command),
+            "[POST/FILE]{\"url\":\"%s\",\"size\":%lu,\"content_type\":\"%s\"}",
+            url,
+            (unsigned long)file_size,
+            content_type);
+    }
+
+    if(ret < 0 || ret >= (int)sizeof(command)) {
+        FURI_LOG_E(HTTP_TAG, "Failed to format POST/FILE command.");
+        storage_file_close(file);
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+
+    // Reset file_ready flag and set method for response handling
+    fhttp->file_ready = false;
+    fhttp->method = POST;
+
+    // Send the command
+    if(!flipper_http_send_data(fhttp, command)) {
+        FURI_LOG_E(HTTP_TAG, "Failed to send POST/FILE command.");
+        storage_file_close(file);
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+
+    // Wait for [FILE/READY] from the board
+    uint32_t timeout = 100; // 10 seconds (100 * 100ms)
+    while(!fhttp->file_ready && timeout > 0) {
+        if(fhttp->state == ISSUE) {
+            FURI_LOG_E(HTTP_TAG, "Board reported an error before file upload.");
+            storage_file_close(file);
+            storage_file_free(file);
+            furi_record_close(RECORD_STORAGE);
+            return false;
+        }
+        furi_delay_ms(100);
+        timeout--;
+    }
+
+    if(!fhttp->file_ready) {
+        FURI_LOG_E(HTTP_TAG, "Timed out waiting for FILE/READY.");
+        storage_file_close(file);
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+
+    // Read file in chunks and send raw bytes over UART
+    uint8_t buf[128];
+    uint64_t remaining = file_size;
+    bool success = true;
+
+    while(remaining > 0) {
+        size_t to_read = remaining < sizeof(buf) ? (size_t)remaining : sizeof(buf);
+        size_t bytes_read = storage_file_read(file, buf, to_read);
+        if(bytes_read == 0) {
+            FURI_LOG_E(HTTP_TAG, "Failed to read from file during upload.");
+            success = false;
+            break;
+        }
+        furi_hal_serial_tx(fhttp->serial_handle, buf, bytes_read);
+        furi_hal_serial_tx_wait_complete(fhttp->serial_handle);
+        remaining -= bytes_read;
+        furi_delay_ms(5); // pacing delay
+    }
+
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+
+    if(success) {
+        // The response will arrive as [POST/SUCCESS]...data...[POST/END]
+        // handled by the rx_callback. Set state so the caller can poll.
+        fhttp->state = RECEIVING;
+    }
+
+    return success;
 }
 
 /**

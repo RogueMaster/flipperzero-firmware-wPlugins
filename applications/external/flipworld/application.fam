@@ -9,6 +9,6 @@ App(
     fap_category="GPIO/ESP32",
     fap_author="JBlanked",
     fap_weburl="https://github.com/jblanked/FlipWorld",
-    fap_version="1.0.3",
+    fap_version="1.0.4",
     fap_description="The first open-world multiplayer game, best played with the VGM.",
 )
