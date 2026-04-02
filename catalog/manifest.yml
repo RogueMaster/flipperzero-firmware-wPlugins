@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/pinkpwningclub/flipperTrack.git
-    commit_sha: COMMIT_SHA_PLACEHOLDER
+    commit_sha: 78798d1e4f06e53e2b99f81e96c8afeaeaa0eea6
 
 name: FlipperTrack
 id: flipper_track
