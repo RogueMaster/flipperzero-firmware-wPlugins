@@ -1,6 +1,7 @@
 #pragma once
 #include "vector.hpp"
 #include "camera.hpp"
+#include "callback.hpp"
 
 // Forward declarations
 class Game;
@@ -14,8 +15,8 @@ public:
         const char* name,
         const Vector& size,
         Game* game,
-        void (*start)(Level&) = nullptr,
-        void (*stop)(Level&) = nullptr);
+        CallbackLevel start = {},
+        CallbackLevel stop = {});
     ~Level();
 
     // Member Functions
@@ -63,7 +64,8 @@ private:
     Game* gameRef;
     int entity_count;
     Entity** entities;
+    int* renderOrder;
     // Callback Functions
-    void (*_start)(Level&);
-    void (*_stop)(Level&);
+    CallbackLevel _start;
+    CallbackLevel _stop;
 };

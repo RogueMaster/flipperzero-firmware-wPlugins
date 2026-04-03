@@ -2,6 +2,9 @@
 #include "game.hpp"
 #include "level.hpp"
 #include "sprite3d.hpp"
+#include "engine_config.hpp"
+#include ENGINE_LCD_INCLUDE
+#include <math.h>
 
 // Default Constructor
 Level::Level()
@@ -11,8 +14,9 @@ Level::Level()
     , gameRef(nullptr)
     , entity_count(0)
     , entities(nullptr)
-    , _start(nullptr)
-    , _stop(nullptr) {
+    , renderOrder(nullptr)
+    , _start{}
+    , _stop{} {
 }
 
 // Parameterized Constructor
@@ -20,14 +24,15 @@ Level::Level(
     const char* name,
     const Vector& size,
     Game* game,
-    void (*start)(Level&),
-    void (*stop)(Level&))
+    CallbackLevel start,
+    CallbackLevel stop)
     : name(name)
     , size(size)
     , clearAllowed(true)
     , gameRef(game)
     , entity_count(0)
     , entities(nullptr)
+    , renderOrder(nullptr)
     , _start(start)
     , _stop(stop) {
 }
@@ -53,6 +58,8 @@ void Level::clear() {
     ENGINE_MEM_DELETE[] entities;
     entities = nullptr;
     entity_count = 0;
+    ENGINE_MEM_FREE(renderOrder);
+    renderOrder = nullptr;
 }
 
 // Get list of collisions for a given entity
@@ -83,7 +90,7 @@ void Level::entity_add(Entity* entity) {
     }
 
     // Allocate a new array with size one greater than the current count
-    Entity** newEntities = new Entity*[entity_count + 1];
+    Entity** newEntities = ENGINE_MEM_NEW Entity * [entity_count + 1];
     if(!newEntities) {
         return;
     }
@@ -98,6 +105,10 @@ void Level::entity_add(Entity* entity) {
     ENGINE_MEM_DELETE[] entities;
     entities = newEntities;
     entity_count++;
+
+    // Grow the depth-sort scratch buffer to match
+    ENGINE_MEM_FREE(renderOrder);
+    renderOrder = (int*)ENGINE_MEM_MALLOC(entity_count * sizeof(int));
 
     // Start the new entity
     entity->start(this->gameRef);
@@ -136,6 +147,10 @@ void Level::entity_remove(Entity* entity) {
     ENGINE_MEM_DELETE[] entities;
     entities = newEntities;
     entity_count--;
+
+    // Shrink the depth-sort scratch buffer to match
+    ENGINE_MEM_FREE(renderOrder);
+    renderOrder = entity_count > 0 ? (int*)ENGINE_MEM_MALLOC(entity_count * sizeof(int)) : nullptr;
 }
 
 // Check if any entity has collided with the given entity
@@ -230,8 +245,47 @@ void Level::render(Game* game) {
         }
     }
 
+    if(entity_count == 0) {
+        return; // Nothing to render
+    }
+
+    // Painter's algorithm (back-to-front) for third-person
+    const bool use_depth_order =
+        (gameCamera->perspective == CAMERA_THIRD_PERSON && entity_count > 0);
+    if(use_depth_order && renderOrder != nullptr) {
+        for(int i = 0; i < entity_count; i++)
+            renderOrder[i] = i;
+        // Insertion sort: furthest entities first so closer ones overdraw them
+        for(int i = 1; i < entity_count; i++) {
+            int key_idx = renderOrder[i];
+            float key_dist = 0.0f;
+            if(entities[key_idx] != nullptr) {
+                float dx = entities[key_idx]->position.x - gameCamera->position.x;
+                float dy = entities[key_idx]->position.y - gameCamera->position.y;
+                key_dist = dx * dx + dy * dy;
+            }
+            int j = i - 1;
+            while(j >= 0) {
+                int cmp_idx = renderOrder[j];
+                float cmp_dist = 0.0f;
+                if(entities[cmp_idx] != nullptr) {
+                    float dx = entities[cmp_idx]->position.x - gameCamera->position.x;
+                    float dy = entities[cmp_idx]->position.y - gameCamera->position.y;
+                    cmp_dist = dx * dx + dy * dy;
+                }
+                if(cmp_dist < key_dist) {
+                    renderOrder[j + 1] = renderOrder[j];
+                    j--;
+                } else {
+                    break;
+                }
+            }
+            renderOrder[j + 1] = key_idx;
+        }
+    }
+
     for(int i = 0; i < entity_count; i++) {
-        Entity* ent = entities[i];
+        Entity* ent = entities[use_depth_order && renderOrder ? renderOrder[i] : i];
 
         if(ent != nullptr && ent->is_active) {
             ent->render(game->draw, game);
@@ -308,9 +362,11 @@ void Level::render3DSprite(
     if(!sprite3d) return;
 
     // Get triangles from the 3D sprite and render them
-    static Vector screen_points[3];
-    static Vector vertex;
-    static Triangle3D triangle;
+    // changed from static because it gave us size issues
+    // with compiling in micropython
+    Vector screen_points[3];
+    Vector vertex;
+    Triangle3D triangle;
     //
     const uint8_t triangle_count = sprite3d->getTriangleCount();
     for(uint8_t i = 0; i < triangle_count; i++) {
@@ -366,6 +422,18 @@ void Level::render3DSprite(
             if(any_visible && !has_behind) {
                 draw->fillTriangle(
                     screen_points[0], screen_points[1], screen_points[2], triangle.color);
+                if(triangle.wireframe) {
+                    // Compute a lighter outline color from the fill color
+                    uint8_t r = (uint8_t)((triangle.color >> 11) & 0x1F);
+                    uint8_t g = (uint8_t)((triangle.color >> 5) & 0x3F);
+                    uint8_t b = (uint8_t)(triangle.color & 0x1F);
+                    r = r + ((0x1F - r) >> 1);
+                    g = g + ((0x3F - g) >> 1);
+                    b = b + ((0x1F - b) >> 1);
+                    const uint16_t outline_color = ((uint16_t)r << 11) | ((uint16_t)g << 5) | b;
+                    draw->triangle(
+                        screen_points[0], screen_points[1], screen_points[2], outline_color);
+                }
             }
         }
     }
@@ -373,14 +441,14 @@ void Level::render3DSprite(
 
 // Start the level
 void Level::start() {
-    if(_start != nullptr) {
+    if(_start) {
         _start(*this);
     }
 }
 
 // Stop the level
 void Level::stop() {
-    if(_stop != nullptr) {
+    if(_stop) {
         _stop(*this);
     }
 }
@@ -393,13 +461,12 @@ void Level::update(Game* game) {
         if(ent != nullptr && ent->is_active) {
             ent->update(game);
 
-            int count = 0;
-            Entity** collisions = collision_list(ent, count);
-
-            for(int j = 0; j < count; j++) {
-                ent->collision(collisions[j], game);
+            for(int j = 0; j < entity_count; j++) {
+                if(entities[j] != nullptr && entities[j] != ent &&
+                   is_collision(ent, entities[j])) {
+                    ent->collision(entities[j], game);
+                }
             }
-            ENGINE_MEM_DELETE[] collisions;
         }
     }
 }

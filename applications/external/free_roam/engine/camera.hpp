@@ -1,5 +1,8 @@
 #pragma once
 #include "vector.hpp"
+#include "engine_config.hpp"
+
+#include ENGINE_MEM_INCLUDE
 
 // Camera perspective types for 3D rendering
 typedef enum {

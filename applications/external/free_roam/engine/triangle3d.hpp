@@ -8,6 +8,7 @@ public:
     float distance; // For depth sorting
     bool set; // Indicates if the triangle has been initialized with valid vertices
     uint16_t color; // Color of the triangle
+    bool wireframe; // If true, draw outline and fill; if false, only fill
 
     Vector getCenter() const; // Calculate triangle center for distance sorting
     bool isFacingCamera(const Vector& camera_pos) const; // Check if triangle is facing the camera
@@ -16,14 +17,16 @@ public:
         : visible(true)
         , distance(0)
         , set(false)
-        , color(0x0000) {
+        , color(0x0000)
+        , wireframe(true) {
     }
 
     Triangle3D(const Vector& v1, const Vector& v2, const Vector& v3, uint16_t color = 0x0000)
         : visible(true)
         , distance(0)
         , set(true)
-        , color(color) {
+        , color(color)
+        , wireframe(true) {
         x1 = v1.x;
         y1 = v1.y;
         z1 = v1.z;
@@ -58,6 +61,7 @@ public:
         , visible(true)
         , distance(0)
         , set(true)
-        , color(color) {
+        , color(color)
+        , wireframe(true) {
     }
 };

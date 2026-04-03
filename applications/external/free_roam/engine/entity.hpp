@@ -3,6 +3,7 @@
 #include "draw.hpp"
 #include "image.hpp"
 #include "sprite3d.hpp"
+#include "callback.hpp"
 
 // Forward declarations
 class Game;
@@ -83,6 +84,7 @@ public:
     float xp; // Experience points of the entity
     float health_regen; // player health regeneration rate per second/frame
     float elapsed_health_regen; // time elapsed since last health regeneration
+    void* mp_ctx; // back-pointer to entity_mp_obj_t wrapper (set by MicroPython bindings)
 
     Entity(
         const char* name, // The name of the entity.
@@ -92,11 +94,11 @@ public:
         Image* sprite_data, // The sprite of the entity.
         Image* sprite_left_data = NULL, // The sprite to switch to when facing left.
         Image* sprite_right_data = NULL, // The sprite to switch to when facing right.
-        void (*start)(Entity*, Game*) = NULL, // The start function of the entity.
-        void (*stop)(Entity*, Game*) = NULL, // The stop function of the entity.
-        void (*update)(Entity*, Game*) = NULL, // The update function of the entity.
-        void (*render)(Entity*, Draw*, Game*) = NULL, // The render function of the entity.
-        void (*collision)(Entity*, Entity*, Game*) = NULL, // The collision function of the entity.
+        CallbackEntityGame start = {}, // The start function of the entity.
+        CallbackEntityGame stop = {}, // The stop function of the entity.
+        CallbackEntityGame update = {}, // The update function of the entity.
+        CallbackEntityDrawGame render = {}, // The render function of the entity.
+        CallbackEntityEntityGame collision = {}, // The collision function of the entity.
         bool is_8bit_sprite = false, // Flag to indicate if the entity uses 8-bit graphics
         Sprite3DType sprite_3d_type = SPRITE_3D_NONE, // 3D sprite type (optional)
         uint16_t sprite_3d_color =
@@ -112,7 +114,8 @@ public:
     void position_set(
         float x,
         float y,
-        float z = 0.0f); // Sets the position of the entity using x and y coordinates.
+        float z = 0.0f,
+        bool integer = false); // Sets the position of the entity using x and y coordinates.
     virtual void render(Draw* draw, Game* game); // called every frame to render the entity.
     virtual void start(Game* game); // called when the entity is created.
     virtual void stop(Game* game); // called when the entity is destroyed.
@@ -136,9 +139,9 @@ private:
         uint16_t color = 0x0000);
     void destroy3DSprite();
 
-    void (*_start)(Entity*, Game*);
-    void (*_stop)(Entity*, Game*);
-    void (*_update)(Entity*, Game*);
-    void (*_render)(Entity*, Draw*, Game*);
-    void (*_collision)(Entity*, Entity*, Game*);
+    CallbackEntityGame _start;
+    CallbackEntityGame _stop;
+    CallbackEntityGame _update;
+    CallbackEntityDrawGame _render;
+    CallbackEntityEntityGame _collision;
 };

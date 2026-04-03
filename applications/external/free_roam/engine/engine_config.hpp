@@ -7,6 +7,10 @@
 #define ENGINE_MEM_MALLOC  malloc
 #define ENGINE_MEM_FREE    free
 
+// delay
+#define ENGINE_DELAY_INCLUDE "furi.h"
+#define ENGINE_DELAY_MS(ms)  furi_delay_ms(ms)
+
 // font
 #define ENGINE_FONT_INCLUDE "font/font.h"
 #define ENGINE_FONT_SIZE    FontSize

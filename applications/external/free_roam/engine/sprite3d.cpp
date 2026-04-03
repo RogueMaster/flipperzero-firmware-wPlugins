@@ -1,8 +1,15 @@
 #include "sprite3d.hpp"
-#include "engine_config.hpp"
-#include "math.h"
 
-#include ENGINE_MEM_INCLUDE
+// Shade an RGB565 color by a factor (< 1.0 darkens, > 1.0 lightens)
+static uint16_t shadeColor565(uint16_t color, float factor) {
+    uint8_t r = (uint8_t)(((color >> 11) & 0x1F) * factor);
+    uint8_t g = (uint8_t)(((color >> 5) & 0x3F) * factor);
+    uint8_t b = (uint8_t)((color & 0x1F) * factor);
+    if(r > 0x1F) r = 0x1F;
+    if(g > 0x3F) g = 0x3F;
+    if(b > 0x1F) b = 0x1F;
+    return ((uint16_t)r << 11) | ((uint16_t)g << 5) | b;
+}
 
 Sprite3D::Sprite3D()
     : triangle_count(0)
@@ -134,7 +141,13 @@ void Sprite3D::createHouse(float width, float height, uint16_t color) {
 
     // Roof (triangular prism)
     createTriangularPrism(
-        0, wall_height + roof_height / 2, 0, house_width, roof_height, house_depth, color);
+        0,
+        wall_height + roof_height / 2,
+        0,
+        house_width,
+        roof_height,
+        house_depth,
+        shadeColor565(color, 0.6f));
 }
 
 void Sprite3D::createHumanoid(float height, uint16_t color) {
@@ -148,7 +161,7 @@ void Sprite3D::createHumanoid(float height, uint16_t color) {
     float arm_length = height * 0.25f;
 
     // Head (sphere) - positioned at top
-    createSphere(0, height - head_radius, 0, head_radius, 4, color);
+    createSphere(0, height - head_radius, 0, head_radius, 4, shadeColor565(color, 1.25f));
 
     // Torso - positioned in middle, wider and deeper
     createCube(
@@ -157,13 +170,15 @@ void Sprite3D::createHumanoid(float height, uint16_t color) {
     // Arms - positioned at shoulder level
     float arm_width = torso_width * 0.35f;
     float arm_y = leg_height + torso_height - arm_length / 2;
-    createCube(-torso_width * 0.8f, arm_y, 0, arm_width, arm_length, arm_width, color);
-    createCube(torso_width * 0.8f, arm_y, 0, arm_width, arm_length, arm_width, color);
+    const uint16_t arm_color = shadeColor565(color, 0.75f);
+    createCube(-torso_width * 0.8f, arm_y, 0, arm_width, arm_length, arm_width, arm_color);
+    createCube(torso_width * 0.8f, arm_y, 0, arm_width, arm_length, arm_width, arm_color);
 
     // Legs - positioned so their bottoms touch ground (y=0)
     float leg_width = torso_width * 0.45f;
-    createCube(-leg_width * 0.7f, leg_height / 2, 0, leg_width, leg_height, leg_width, color);
-    createCube(leg_width * 0.7f, leg_height / 2, 0, leg_width, leg_height, leg_width, color);
+    const uint16_t leg_color = shadeColor565(color, 0.55f);
+    createCube(-leg_width * 0.7f, leg_height / 2, 0, leg_width, leg_height, leg_width, leg_color);
+    createCube(leg_width * 0.7f, leg_height / 2, 0, leg_width, leg_height, leg_width, leg_color);
 }
 
 void Sprite3D::createPillar(float height, float radius, uint16_t color) {
@@ -238,8 +253,8 @@ void Sprite3D::createTree(float height, uint16_t color) {
     float crown_width = height * 0.65f;
     float crown_height = height * 0.6f;
 
-    // Trunk (simple cube) - positioned so bottom touches ground (y=0)
-    createCube(0, trunk_height / 2, 0, trunk_width, trunk_height, trunk_width, color);
+    // Trunk (simple cube) - positioned so bottom touches ground (y=0) - brown
+    createCube(0, trunk_height / 2, 0, trunk_width, trunk_height, trunk_width, 0x9A60);
 
     // Crown (simple cube representing foliage) - positioned on top of trunk
     createCube(

@@ -22,12 +22,12 @@ DynamicMap::~DynamicMap() {
     }
 }
 
-void DynamicMap::addBorderWalls() {
+void DynamicMap::addBorderWalls(float height, float depth) {
     // Add walls around the entire map border
-    addHorizontalWall(0, width - 1, 0, TILE_WALL); // Top border
-    addHorizontalWall(0, width - 1, height - 1, TILE_WALL); // Bottom border
-    addVerticalWall(0, 0, height - 1, TILE_WALL); // Left border
-    addVerticalWall(width - 1, 0, height - 1, TILE_WALL); // Right border
+    addHorizontalWall(0, width - 1, 0, height, depth, TILE_WALL); // Top border
+    addHorizontalWall(0, width - 1, height - 1, height, depth, TILE_WALL); // Bottom border
+    addVerticalWall(0, 0, height - 1, height, depth, TILE_WALL); // Left border
+    addVerticalWall(width - 1, 0, height - 1, height, depth, TILE_WALL); // Right border
 }
 
 void DynamicMap::addCorridor(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
