@@ -1,0 +1,15 @@
+App(
+    appid="tesla_fsd",
+    name="Tesla FSD",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="tesla_fsd_main",
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_category="GPIO",
+    fap_icon_assets="assets",
+    fap_author="hypery11",
+    fap_version="2.0.0",
+    fap_description="Unlock Tesla FSD via CAN bus. Auto-detects HW3/HW4. Requires CAN Add-On.",
+    fap_weburl="https://github.com/hypery11/flipper-tesla-fsd",
+)
