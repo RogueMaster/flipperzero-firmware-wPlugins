@@ -453,10 +453,7 @@ static void flippass_browser_begin_execute_action(App* app, FlipPassOutputTransp
         flippass_browser_map_pending_action(app->action_selected_index, transport);
 
     flippass_progress_begin(
-        app,
-        flippass_browser_progress_title(app->action_selected_index),
-        "Connecting",
-        5U);
+        app, flippass_browser_progress_title(app->action_selected_index), "Connecting", 5U);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewLoading);
     view_dispatcher_send_custom_event(
         app->view_dispatcher, FlipPassSceneDbEntriesEventRunPendingAction);

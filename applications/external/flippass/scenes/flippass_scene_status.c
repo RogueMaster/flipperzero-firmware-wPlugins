@@ -26,15 +26,7 @@ static void flippass_scene_status_build_widget(App* app) {
     widget_add_string_element(
         app->widget, 64, 5, AlignCenter, AlignTop, FontPrimary, app->status_title);
     widget_add_text_box_element(
-        app->widget,
-        0,
-        16,
-        128,
-        40,
-        AlignLeft,
-        AlignTop,
-        compact_message,
-        true);
+        app->widget, 0, 16, 128, 40, AlignLeft, AlignTop, compact_message, true);
     widget_add_button_element(app->widget, GuiButtonTypeRight, "Back", NULL, NULL);
 }
 

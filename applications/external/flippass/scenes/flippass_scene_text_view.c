@@ -5,7 +5,11 @@
 
 #include <stdio.h>
 
-void flippass_scene_text_view_show(App* app, const char* title, const char* body, uint32_t return_scene) {
+void flippass_scene_text_view_show(
+    App* app,
+    const char* title,
+    const char* body,
+    uint32_t return_scene) {
     furi_assert(app);
 
     snprintf(app->text_view_title, sizeof(app->text_view_title), "%s", title != NULL ? title : "");

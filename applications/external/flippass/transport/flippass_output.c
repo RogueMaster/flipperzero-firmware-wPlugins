@@ -10,18 +10,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FLIPPASS_BT_KEYS_STORAGE_DIR    EXT_PATH("apps_data/bad_usb")
-#define FLIPPASS_BT_KEYS_STORAGE_PATH   EXT_PATH("apps_data/bad_usb/.bt_hid.keys")
-#define FLIPPASS_BLE_SETUP_DELAY_MS     200U
-#define FLIPPASS_BLE_WAIT_STEP_MS       100U
-#define FLIPPASS_BLE_CONNECT_TIMEOUT_MS 15000U
-#define FLIPPASS_BLE_CONNECT_SETTLE_MS  300U
-#define FLIPPASS_BLE_PRESS_DELAY_MS     12U
-#define FLIPPASS_BLE_RELEASE_DELAY_MS   18U
-#define FLIPPASS_BLE_STEP_DELAY_MS      45U
-#define FLIPPASS_BLE_NAME_PREFIX        "BadUSB"
-#define FLIPPASS_BLE_NAME_BUFFER_SIZE   21U
-#define FLIPPASS_BLE_MAC_XOR            0x0002U
+#define FLIPPASS_BT_KEYS_STORAGE_DIR             EXT_PATH("apps_data/bad_usb")
+#define FLIPPASS_BT_KEYS_STORAGE_PATH            EXT_PATH("apps_data/bad_usb/.bt_hid.keys")
+#define FLIPPASS_BLE_SETUP_DELAY_MS              200U
+#define FLIPPASS_BLE_WAIT_STEP_MS                100U
+#define FLIPPASS_BLE_CONNECT_TIMEOUT_MS          15000U
+#define FLIPPASS_BLE_CONNECT_SETTLE_MS           300U
+#define FLIPPASS_BLE_PRESS_DELAY_MS              12U
+#define FLIPPASS_BLE_RELEASE_DELAY_MS            18U
+#define FLIPPASS_BLE_STEP_DELAY_MS               45U
+#define FLIPPASS_BLE_NAME_PREFIX                 "BadUSB"
+#define FLIPPASS_BLE_NAME_BUFFER_SIZE            21U
+#define FLIPPASS_BLE_MAC_XOR                     0x0002U
 #define FLIPPASS_OUTPUT_KEEPASS_DEFAULT_SEQUENCE "{USERNAME}{TAB}{PASSWORD}{ENTER}"
 #define FLIPPASS_OUTPUT_CLEARFIELD_SEQUENCE      "{HOME}+({END}){BKSP}{DELAY 50}"
 
@@ -86,9 +86,8 @@ static void flippass_output_progress_begin(
     flippass_progress_update(session->app, "Typing", detail, 45U);
 }
 
-static void flippass_output_progress_update(
-    FlipPassOutputSession* session,
-    size_t completed_steps) {
+static void
+    flippass_output_progress_update(FlipPassOutputSession* session, size_t completed_steps) {
     uint8_t percent = 45U;
 
     if(session == NULL || session->app == NULL || session->progress_total == 0U) {
@@ -121,7 +120,8 @@ static void flippass_ble_release_all(App* app) {
 static bool flippass_ble_press_key_prepared(App* app, uint16_t hid_key) {
     furi_assert(app);
 
-    if(hid_key == HID_KEYBOARD_NONE || app->ble_session == NULL || app->ble_session->profile == NULL) {
+    if(hid_key == HID_KEYBOARD_NONE || app->ble_session == NULL ||
+       app->ble_session->profile == NULL) {
         return false;
     }
 
@@ -132,7 +132,8 @@ static bool flippass_ble_press_key_prepared(App* app, uint16_t hid_key) {
 static bool flippass_ble_release_key_prepared(App* app, uint16_t hid_key) {
     furi_assert(app);
 
-    if(hid_key == HID_KEYBOARD_NONE || app->ble_session == NULL || app->ble_session->profile == NULL) {
+    if(hid_key == HID_KEYBOARD_NONE || app->ble_session == NULL ||
+       app->ble_session->profile == NULL) {
         return false;
     }
 
@@ -232,8 +233,8 @@ static bool flippass_ble_session_start(App* app) {
     FlipPassBleProfileParams profile_params;
     flippass_ble_prepare_profile_params(&profile_params);
 
-    session->profile = bt_profile_start(
-        session->bt, &flippass_ble_profile_template, (void*)&profile_params);
+    session->profile =
+        bt_profile_start(session->bt, &flippass_ble_profile_template, (void*)&profile_params);
     if(session->profile == NULL) {
         bt_keys_storage_set_default_path(session->bt);
         furi_record_close(RECORD_BT);
@@ -322,14 +323,16 @@ static char flippass_output_ascii_upper(char value) {
     return value;
 }
 
-static bool flippass_output_token_n_equals(const char* token, size_t token_len, const char* expected) {
+static bool
+    flippass_output_token_n_equals(const char* token, size_t token_len, const char* expected) {
     if(token == NULL || expected == NULL) {
         return false;
     }
 
     size_t index = 0U;
     while(index < token_len && expected[index] != '\0') {
-        if(flippass_output_ascii_upper(token[index]) != flippass_output_ascii_upper(expected[index])) {
+        if(flippass_output_ascii_upper(token[index]) !=
+           flippass_output_ascii_upper(expected[index])) {
             return false;
         }
         index++;
@@ -338,10 +341,8 @@ static bool flippass_output_token_n_equals(const char* token, size_t token_len, 
     return (index == token_len) && (expected[index] == '\0');
 }
 
-static bool flippass_output_token_n_starts_with(
-    const char* token,
-    size_t token_len,
-    const char* prefix) {
+static bool
+    flippass_output_token_n_starts_with(const char* token, size_t token_len, const char* prefix) {
     if(token == NULL || prefix == NULL) {
         return false;
     }
@@ -352,7 +353,8 @@ static bool flippass_output_token_n_starts_with(
             return false;
         }
 
-        if(flippass_output_ascii_upper(token[index]) != flippass_output_ascii_upper(prefix[index])) {
+        if(flippass_output_ascii_upper(token[index]) !=
+           flippass_output_ascii_upper(prefix[index])) {
             return false;
         }
         index++;
@@ -501,9 +503,8 @@ static uint16_t flippass_output_modifier_from_symbol(char symbol) {
     }
 }
 
-static bool flippass_output_session_press_prepared(
-    FlipPassOutputSession* session,
-    uint16_t hid_key) {
+static bool
+    flippass_output_session_press_prepared(FlipPassOutputSession* session, uint16_t hid_key) {
     furi_assert(session);
 
     switch(session->transport) {
@@ -516,9 +517,8 @@ static bool flippass_output_session_press_prepared(
     }
 }
 
-static bool flippass_output_session_release_prepared(
-    FlipPassOutputSession* session,
-    uint16_t hid_key) {
+static bool
+    flippass_output_session_release_prepared(FlipPassOutputSession* session, uint16_t hid_key) {
     furi_assert(session);
 
     switch(session->transport) {
@@ -720,11 +720,8 @@ static bool flippass_output_session_tap_raw_key(
     return true;
 }
 
-static bool flippass_output_session_tap_key(
-    FlipPassOutputSession* session,
-    uint16_t hid_key) {
-    return flippass_output_session_tap_raw_key(
-        session, hid_key & 0xFFU, hid_key & 0xFF00U);
+static bool flippass_output_session_tap_key(FlipPassOutputSession* session, uint16_t hid_key) {
+    return flippass_output_session_tap_raw_key(session, hid_key & 0xFFU, hid_key & 0xFF00U);
 }
 
 static bool flippass_output_session_tap_char(FlipPassOutputSession* session, char ch) {
@@ -736,9 +733,8 @@ static bool flippass_output_session_tap_char(FlipPassOutputSession* session, cha
     return flippass_output_session_tap_key(session, hid_key);
 }
 
-static bool flippass_output_session_type_literal(
-    FlipPassOutputSession* session,
-    const char* text) {
+static bool
+    flippass_output_session_type_literal(FlipPassOutputSession* session, const char* text) {
     for(size_t index = 0U; text[index] != '\0'; index++) {
         if(!flippass_output_session_tap_char(session, text[index])) {
             return false;
@@ -766,9 +762,8 @@ static bool flippass_output_session_prepare_alt_numpad(FlipPassOutputSession* se
     return flippass_output_session_tap_raw_key(session, HID_KEYBOARD_LOCK_NUM_LOCK, 0U);
 }
 
-static bool flippass_output_session_type_alt_code_byte(
-    FlipPassOutputSession* session,
-    uint8_t value) {
+static bool
+    flippass_output_session_type_alt_code_byte(FlipPassOutputSession* session, uint8_t value) {
     char ascii_code[4];
     const bool alt_already_pressed = (session->current_modifiers & KEY_MOD_LEFT_ALT) != 0U;
 
@@ -798,9 +793,8 @@ static bool flippass_output_session_type_alt_code_byte(
     return true;
 }
 
-static bool flippass_output_session_type_alt_code_text(
-    FlipPassOutputSession* session,
-    const char* text) {
+static bool
+    flippass_output_session_type_alt_code_text(FlipPassOutputSession* session, const char* text) {
     if(text == NULL) {
         return false;
     }
@@ -1168,10 +1162,7 @@ static bool flippass_output_append_placeholder_text(
     return false;
 }
 
-static bool flippass_output_vk_to_hid(
-    uint32_t vkey,
-    bool force_extended,
-    uint16_t* hid_key) {
+static bool flippass_output_vk_to_hid(uint32_t vkey, bool force_extended, uint16_t* hid_key) {
     if(hid_key == NULL) {
         return false;
     }
@@ -1520,8 +1511,10 @@ static bool flippass_output_execute_braced_token(
 
     {
         uint32_t repeat = 1U;
-        const FlipPassOutputSpecialKey* special = flippass_output_find_special_key_n(name, name_len);
-        const bool has_repeat = !no_params && flippass_output_parse_uint_n(params, params_len, &repeat);
+        const FlipPassOutputSpecialKey* special =
+            flippass_output_find_special_key_n(name, name_len);
+        const bool has_repeat = !no_params &&
+                                flippass_output_parse_uint_n(params, params_len, &repeat);
 
         if(special != NULL && (no_params || has_repeat)) {
             ok = true;
@@ -1564,7 +1557,8 @@ static bool flippass_output_execute_sequence(
 
         if(ch == '(') {
             (*index)++;
-            if(!flippass_output_session_set_modifiers(session, group_modifiers | pending_modifiers)) {
+            if(!flippass_output_session_set_modifiers(
+                   session, group_modifiers | pending_modifiers)) {
                 return false;
             }
             if(!flippass_output_execute_sequence(
@@ -1591,7 +1585,8 @@ static bool flippass_output_execute_sequence(
         }
 
         if(ch == '{') {
-            if(!flippass_output_execute_braced_token(session, entry, sequence, index, group_modifiers)) {
+            if(!flippass_output_execute_braced_token(
+                   session, entry, sequence, index, group_modifiers)) {
                 return false;
             }
         } else if(ch == '}') {
@@ -1671,9 +1666,7 @@ bool flippass_output_type_login(
     }
 
     flippass_output_progress_begin(
-        &session,
-        username_len + password_len + 2U,
-        "Sending login sequence.");
+        &session, username_len + password_len + 2U, "Sending login sequence.");
 
     ok = flippass_output_session_type_alt_code_text(&session, username);
     if(ok) {
@@ -1751,8 +1744,7 @@ bool flippass_output_type_autotype(
     }
 
     flippass_output_progress_begin(&session, strlen(sequence), "Sending AutoType sequence.");
-    const bool ok = flippass_output_execute_sequence(
-        &session, entry, sequence, &index, 0U, false);
+    const bool ok = flippass_output_execute_sequence(&session, entry, sequence, &index, 0U, false);
 
     flippass_output_session_end(&session);
     furi_string_free(session.placeholder_buffer);

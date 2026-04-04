@@ -66,6 +66,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Sonic Head ID v0.9 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - Added: [Tesla FSD v2.0 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Added: [Video Game Module Console v1.0 (By jblanked)](https://github.com/jblanked/Video-Game-Module-Console)
+- Added: [FlipPass v1.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
+- Added: [FlipperTrack v1.0 (By pinkpwningclub)](https://github.com/pinkpwningclub/flipperTrack)
 
 <a name="release"></a>
 
@@ -560,9 +562,11 @@ $ ./fbt dolphin_ext
 - [FlipLibrary v1.5 (By jblanked)](https://github.com/jblanked/FlipLibrary) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipMap v0.2.2 (By jblanked)](https://github.com/jblanked/FlipMap) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
+- [FlipPass v1.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
 - [FlipperPwn v1.6 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- [FlipperTrack v1.0 (By pinkpwningclub)](https://github.com/pinkpwningclub/flipperTrack)
 - [FlipRPI v1.0 (By jblanked)](https://github.com/jblanked/FlipRPI) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipSocial v2.0.9 (By jblanked)](https://github.com/jblanked/FlipSocial) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipTelegram v1.0.1 (By jblanked)](https://github.com/jblanked/FlipTelegram) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)

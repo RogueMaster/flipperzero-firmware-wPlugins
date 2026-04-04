@@ -8,20 +8,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define KDBX_GZIP_HEADER_SIZE         10U
-#define KDBX_GZIP_TRAILER_SIZE        8U
-#define KDBX_GZIP_ID1                 0x1FU
-#define KDBX_GZIP_ID2                 0x8BU
-#define KDBX_GZIP_CM_DEFLATE          8U
-#define KDBX_GZIP_FLAG_FHCRC          0x02U
-#define KDBX_GZIP_FLAG_FEXTRA         0x04U
-#define KDBX_GZIP_FLAG_FNAME          0x08U
-#define KDBX_GZIP_FLAG_FCOMMENT       0x10U
-#define KDBX_GZIP_FLAG_RESERVED       0xE0U
-#define KDBX_GZIP_CRC32_POLY          0xEDB88320U
-#define KDBX_GZIP_FILE_CACHE_PAGES    1U
+#define KDBX_GZIP_HEADER_SIZE          10U
+#define KDBX_GZIP_TRAILER_SIZE         8U
+#define KDBX_GZIP_ID1                  0x1FU
+#define KDBX_GZIP_ID2                  0x8BU
+#define KDBX_GZIP_CM_DEFLATE           8U
+#define KDBX_GZIP_FLAG_FHCRC           0x02U
+#define KDBX_GZIP_FLAG_FEXTRA          0x04U
+#define KDBX_GZIP_FLAG_FNAME           0x08U
+#define KDBX_GZIP_FLAG_FCOMMENT        0x10U
+#define KDBX_GZIP_FLAG_RESERVED        0xE0U
+#define KDBX_GZIP_CRC32_POLY           0xEDB88320U
+#define KDBX_GZIP_FILE_CACHE_PAGES     1U
 #define KDBX_GZIP_FILE_MIN_CACHE_PAGES 1U
-#define KDBX_GZIP_INPUT_CHUNK_BYTES   512U
+#define KDBX_GZIP_INPUT_CHUNK_BYTES    512U
 
 typedef struct {
     KDBXGzipOutputCallback callback;
@@ -90,10 +90,7 @@ static uint32_t kdbx_gzip_crc32_update(uint32_t crc, const uint8_t* data, size_t
     return crc;
 }
 
-static bool kdbx_gzip_skip_zero_terminated(
-    const uint8_t* data,
-    size_t data_size,
-    size_t* offset) {
+static bool kdbx_gzip_skip_zero_terminated(const uint8_t* data, size_t data_size, size_t* offset) {
     while(*offset < data_size) {
         if(data[*offset] == '\0') {
             (*offset)++;
@@ -242,8 +239,8 @@ static bool kdbx_gzip_vault_reader_skip(KDBXGzipVaultReader* reader) {
         if(reader->request_count <= 2U) {
             kdbx_gzip_user_trace(reader->trace_config, reader->telemetry, "vault_skip_request");
         }
-        const size_t request =
-            reader->skip_remaining < sizeof(discard) ? reader->skip_remaining : sizeof(discard);
+        const size_t request = reader->skip_remaining < sizeof(discard) ? reader->skip_remaining :
+                                                                          sizeof(discard);
         size_t out_size = 0U;
         if(!kdbx_vault_reader_read(&reader->reader, discard, request, &out_size) ||
            out_size != request) {
@@ -309,8 +306,7 @@ static size_t kdbx_gzip_vault_reader_read(void* out, size_t capacity, void* cont
 
 static size_t kdbx_gzip_memory_reader_read(void* out, size_t capacity, void* context) {
     KDBXGzipMemoryReader* reader = context;
-    const size_t out_size =
-        (reader->remaining < capacity) ? reader->remaining : capacity;
+    const size_t out_size = (reader->remaining < capacity) ? reader->remaining : capacity;
 
     if(reader == NULL || out == NULL || capacity == 0U || reader->data == NULL) {
         return 0U;
@@ -388,10 +384,8 @@ static void kdbx_gzip_sync_paged_telemetry(
              (paged->page_size * (paged->cache_pages + 1U)));
 }
 
-static void kdbx_gzip_trace_bridge(
-    const char* event,
-    const tinfl_paged_telemetry* paged,
-    void* context) {
+static void
+    kdbx_gzip_trace_bridge(const char* event, const tinfl_paged_telemetry* paged, void* context) {
     KDBXGzipTraceBridge* bridge = context;
 
     if(bridge == NULL) {
@@ -409,7 +403,8 @@ static void kdbx_gzip_user_trace(
     const KDBXGzipTraceConfig* trace_config,
     KDBXGzipTelemetry* telemetry,
     const char* event) {
-    if(trace_config == NULL || trace_config->callback == NULL || telemetry == NULL || event == NULL) {
+    if(trace_config == NULL || trace_config->callback == NULL || telemetry == NULL ||
+       event == NULL) {
         return;
     }
 
@@ -462,8 +457,9 @@ static KDBXGzipStatus kdbx_gzip_map_paged_status(
            strcmp(paged->storage_stage, "file_decomp_alloc") == 0 ||
            strcmp(paged->storage_stage, "file_input_alloc") == 0 ||
            strcmp(paged->storage_stage, "window_file_alloc") == 0) {
-            return (paged->failed_page_index != (size_t)-1) ? KDBXGzipStatusWorkspacePageAllocFailed :
-                                                              KDBXGzipStatusWorkspaceAllocFailed;
+            return (paged->failed_page_index != (size_t)-1) ?
+                       KDBXGzipStatusWorkspacePageAllocFailed :
+                       KDBXGzipStatusWorkspaceAllocFailed;
         }
 
         if(strcmp(paged->storage_stage, "window_open_create") == 0 ||
@@ -481,9 +477,8 @@ static KDBXGzipStatus kdbx_gzip_map_paged_status(
     return KDBXGzipStatusInflateFailed;
 }
 
-static bool kdbx_gzip_can_try_exact_output(
-    size_t expected_output_size,
-    KDBXGzipTelemetry* telemetry) {
+static bool
+    kdbx_gzip_can_try_exact_output(size_t expected_output_size, KDBXGzipTelemetry* telemetry) {
     const size_t free_heap = memmgr_get_free_heap();
     const size_t max_free = memmgr_heap_get_max_free_block();
 
@@ -535,9 +530,9 @@ static bool kdbx_gzip_emit_exact_output_memory(
 
     output = malloc(expected_output_size);
     if(output == NULL) {
-        telemetry->status =
-            (telemetry->max_free_block < expected_output_size) ? KDBXGzipStatusOutputHeapFragmented :
-                                                                 KDBXGzipStatusOutputAllocFailed;
+        telemetry->status = (telemetry->max_free_block < expected_output_size) ?
+                                KDBXGzipStatusOutputHeapFragmented :
+                                KDBXGzipStatusOutputAllocFailed;
         return false;
     }
 
@@ -546,9 +541,9 @@ static bool kdbx_gzip_emit_exact_output_memory(
     telemetry->consumed_input_size = compressed_size;
     telemetry->actual_output_size =
         (actual_output_size == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) ? 0U : actual_output_size;
-    telemetry->inflate_status =
-        (actual_output_size == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) ? TINFL_STATUS_FAILED :
-                                                                     TINFL_STATUS_DONE;
+    telemetry->inflate_status = (actual_output_size == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) ?
+                                    TINFL_STATUS_FAILED :
+                                    TINFL_STATUS_DONE;
     telemetry->free_heap = memmgr_get_free_heap();
     telemetry->max_free_block = memmgr_heap_get_max_free_block();
 
@@ -567,9 +562,8 @@ static bool kdbx_gzip_emit_exact_output_memory(
     }
 
     if(!kdbx_gzip_output_callback(output, (int)actual_output_size, &emit_state)) {
-        telemetry->status =
-            emit_state.callback_failed ? KDBXGzipStatusOutputRejected :
-                                         KDBXGzipStatusOutputSizeMismatch;
+        telemetry->status = emit_state.callback_failed ? KDBXGzipStatusOutputRejected :
+                                                         KDBXGzipStatusOutputSizeMismatch;
         memzero(output, expected_output_size);
         free(output);
         return false;
@@ -769,17 +763,17 @@ static bool kdbx_gzip_emit_paged_reader(
     telemetry->free_heap = memmgr_get_free_heap();
     telemetry->max_free_block = memmgr_heap_get_max_free_block();
 
-    const bool ok = tinfl_decompress_reader_to_callback_file_paged_ex(
-                        reader_callback,
-                        reader_context,
-                        &consumed_size,
-                        kdbx_gzip_output_callback,
-                        &emit_state,
-                        0,
-                        &file_config,
-                        trace_config != NULL ? (tinfl_decompressor*)trace_config->inflate_workspace :
-                                               NULL,
-                        &paged) != 0;
+    const bool ok =
+        tinfl_decompress_reader_to_callback_file_paged_ex(
+            reader_callback,
+            reader_context,
+            &consumed_size,
+            kdbx_gzip_output_callback,
+            &emit_state,
+            0,
+            &file_config,
+            trace_config != NULL ? (tinfl_decompressor*)trace_config->inflate_workspace : NULL,
+            &paged) != 0;
 
     kdbx_gzip_sync_paged_telemetry(telemetry, &paged, KDBXGzipInflatePathFilePagedCallback);
     telemetry->consumed_input_size = consumed_size;
@@ -907,9 +901,8 @@ bool kdbx_gzip_emit_stream_ex(
             return true;
         }
 
-        if(telemetry == NULL ||
-           (telemetry->status != KDBXGzipStatusOutputHeapFragmented &&
-            telemetry->status != KDBXGzipStatusOutputAllocFailed)) {
+        if(telemetry == NULL || (telemetry->status != KDBXGzipStatusOutputHeapFragmented &&
+                                 telemetry->status != KDBXGzipStatusOutputAllocFailed)) {
             return false;
         }
     }
@@ -939,10 +932,9 @@ bool kdbx_gzip_emit_stream_ex(
             return true;
         }
 
-        if(telemetry == NULL ||
-           (telemetry->status != KDBXGzipStatusWorkspaceAllocFailed &&
-            telemetry->status != KDBXGzipStatusWorkspacePageAllocFailed &&
-            telemetry->status != KDBXGzipStatusWorkspaceTotalTooSmall)) {
+        if(telemetry == NULL || (telemetry->status != KDBXGzipStatusWorkspaceAllocFailed &&
+                                 telemetry->status != KDBXGzipStatusWorkspacePageAllocFailed &&
+                                 telemetry->status != KDBXGzipStatusWorkspaceTotalTooSmall)) {
             return false;
         }
     }
@@ -1021,7 +1013,8 @@ bool kdbx_gzip_parse_member_info(
     }
 
     if((flags & KDBX_GZIP_FLAG_FNAME) &&
-       (!kdbx_gzip_skip_zero_terminated(prefix, prefix_size, &offset) || offset > trailer_offset)) {
+       (!kdbx_gzip_skip_zero_terminated(prefix, prefix_size, &offset) ||
+        offset > trailer_offset)) {
         if(telemetry != NULL) {
             telemetry->status = KDBXGzipStatusInvalidNameField;
         }
@@ -1029,7 +1022,8 @@ bool kdbx_gzip_parse_member_info(
     }
 
     if((flags & KDBX_GZIP_FLAG_FCOMMENT) &&
-       (!kdbx_gzip_skip_zero_terminated(prefix, prefix_size, &offset) || offset > trailer_offset)) {
+       (!kdbx_gzip_skip_zero_terminated(prefix, prefix_size, &offset) ||
+        offset > trailer_offset)) {
         if(telemetry != NULL) {
             telemetry->status = KDBXGzipStatusInvalidCommentField;
         }
@@ -1094,7 +1088,8 @@ bool kdbx_gzip_emit_vault_stream(
         return false;
     }
 
-    if(member_info->expected_output_size == 0U || member_info->expected_output_size > max_output_size) {
+    if(member_info->expected_output_size == 0U ||
+       member_info->expected_output_size > max_output_size) {
         kdbx_gzip_reset_telemetry(telemetry);
         if(telemetry != NULL) {
             telemetry->expected_output_size = member_info->expected_output_size;
@@ -1137,12 +1132,10 @@ bool kdbx_gzip_emit_vault_stream(
             trace_config);
     }
 
-    if(!ok &&
-       (!can_try_ram ||
-        (telemetry != NULL &&
-         (telemetry->status == KDBXGzipStatusWorkspaceAllocFailed ||
-         telemetry->status == KDBXGzipStatusWorkspacePageAllocFailed ||
-         telemetry->status == KDBXGzipStatusWorkspaceTotalTooSmall)))) {
+    if(!ok && (!can_try_ram || (telemetry != NULL &&
+                                (telemetry->status == KDBXGzipStatusWorkspaceAllocFailed ||
+                                 telemetry->status == KDBXGzipStatusWorkspacePageAllocFailed ||
+                                 telemetry->status == KDBXGzipStatusWorkspaceTotalTooSmall)))) {
         kdbx_vault_reader_reset(&reader->reader, vault, ref);
         reader->skip_remaining = member_info->body_offset;
         reader->remaining = member_info->compressed_size;

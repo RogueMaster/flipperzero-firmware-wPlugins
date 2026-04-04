@@ -12,9 +12,10 @@
 #include <gui/modules/file_browser.h>
 #include <storage/storage.h>
 
-#define KBDX_EXTENSION   "kdbx" /**<  File extension for KeePass databases. */
-#define KBDX_ICON        &I_Storage /**< Icon for KeePass database files. */
-#define KBDX_SEARCH_PATH EXT_PATH("apps_data/flippass") /**< Path to the application data directory. */
+#define KBDX_EXTENSION "kdbx" /**<  File extension for KeePass databases. */
+#define KBDX_ICON      &I_Storage /**< Icon for KeePass database files. */
+#define KBDX_SEARCH_PATH \
+    EXT_PATH("apps_data/flippass") /**< Path to the application data directory. */
 
 /**
  * @brief Callback for the file browser.
@@ -54,7 +55,7 @@ void flippass_scene_file_browser_on_enter(void* context) {
  * @return True if the event was handled, false otherwise.
  */
 bool flippass_scene_file_browser_on_event(void* context, SceneManagerEvent event) {
-    App* app      = context;
+    App* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeBack) {

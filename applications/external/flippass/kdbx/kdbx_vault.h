@@ -53,19 +53,14 @@ typedef struct {
 #define KDBX_VAULT_WINDOW_INT_PATH  INT_PATH("apps_data/flippass/gzip_window.bin")
 #define KDBX_VAULT_WINDOW_EXT_PATH  EXT_PATH("apps_data/flippass/gzip_window.bin")
 
-KDBXVault* kdbx_vault_alloc(
-    KDBXVaultBackend backend,
-    size_t* committed_bytes,
-    size_t commit_limit);
+KDBXVault*
+    kdbx_vault_alloc(KDBXVaultBackend backend, size_t* committed_bytes, size_t commit_limit);
 KDBXVault* kdbx_vault_alloc_with_path(
     KDBXVaultBackend backend,
     const char* file_path,
     size_t* committed_bytes,
     size_t commit_limit);
-void kdbx_vault_set_budget(
-    KDBXVault* vault,
-    size_t* committed_bytes,
-    size_t commit_limit);
+void kdbx_vault_set_budget(KDBXVault* vault, size_t* committed_bytes, size_t commit_limit);
 void kdbx_vault_free(KDBXVault* vault);
 bool kdbx_vault_backend_supported(KDBXVaultBackend backend);
 const char* kdbx_vault_backend_unavailable_reason(KDBXVaultBackend backend);
@@ -105,7 +100,11 @@ void kdbx_vault_writer_abort(KDBXVaultWriter* writer);
 bool kdbx_vault_writer_write(KDBXVaultWriter* writer, const uint8_t* data, size_t len);
 bool kdbx_vault_writer_finish(KDBXVaultWriter* writer, KDBXFieldRef* out_ref);
 void kdbx_vault_reader_reset(KDBXVaultReader* reader, KDBXVault* vault, const KDBXFieldRef* ref);
-bool kdbx_vault_reader_read(KDBXVaultReader* reader, uint8_t* out, size_t capacity, size_t* out_size);
+bool kdbx_vault_reader_read(
+    KDBXVaultReader* reader,
+    uint8_t* out,
+    size_t capacity,
+    size_t* out_size);
 bool kdbx_vault_ref_is_empty(const KDBXFieldRef* ref);
 bool kdbx_vault_load_text(
     KDBXVault* vault,

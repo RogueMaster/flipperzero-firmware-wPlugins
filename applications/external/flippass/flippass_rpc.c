@@ -46,7 +46,8 @@ static const char* fp_rpc_text(const char* value, const char* fallback) {
 static void fp_rpc_trim(char* text) {
     if(text == NULL) return;
     size_t len = strlen(text);
-    while(len > 0U && (text[len - 1U] == '\r' || text[len - 1U] == '\n' || text[len - 1U] == ' ')) {
+    while(len > 0U &&
+          (text[len - 1U] == '\r' || text[len - 1U] == '\n' || text[len - 1U] == ' ')) {
         text[--len] = '\0';
     }
 }
@@ -93,12 +94,18 @@ static void fp_rpc_json(FuriString* out, const char* value) {
     furi_string_cat(out, "\"");
     if(value != NULL) {
         for(const unsigned char* p = (const unsigned char*)value; *p != '\0'; ++p) {
-            if(*p == '\\') furi_string_cat(out, "\\\\");
-            else if(*p == '"') furi_string_cat(out, "\\\"");
-            else if(*p == '\n') furi_string_cat(out, "\\n");
-            else if(*p == '\r') furi_string_cat(out, "\\r");
-            else if(*p == '\t') furi_string_cat(out, "\\t");
-            else furi_string_cat_printf(out, "%c", *p);
+            if(*p == '\\')
+                furi_string_cat(out, "\\\\");
+            else if(*p == '"')
+                furi_string_cat(out, "\\\"");
+            else if(*p == '\n')
+                furi_string_cat(out, "\\n");
+            else if(*p == '\r')
+                furi_string_cat(out, "\\r");
+            else if(*p == '\t')
+                furi_string_cat(out, "\\t");
+            else
+                furi_string_cat_printf(out, "%c", *p);
         }
     }
     furi_string_cat(out, "\"");
@@ -194,11 +201,8 @@ static void fp_rpc_entry_json(FuriString* response, const KDBXEntry* entry) {
     furi_string_cat(response, "}");
 }
 
-static bool fp_rpc_prepare_entry(
-    App* app,
-    KDBXEntry* entry,
-    bool load_notes,
-    FuriString* response) {
+static bool
+    fp_rpc_prepare_entry(App* app, KDBXEntry* entry, bool load_notes, FuriString* response) {
     if(flippass_db_activate_entry(app, entry, load_notes, response)) {
         return true;
     }
@@ -216,7 +220,9 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
     }
 
     if(fp_rpc_eq(cmd.part[0], "help")) {
-        furi_string_set_str(response, "{\"ok\":true,\"commands\":[\"status\",\"load\",\"unlock\",\"ls\",\"cd\",\"entry\",\"show\",\"type\"]}");
+        furi_string_set_str(
+            response,
+            "{\"ok\":true,\"commands\":[\"status\",\"load\",\"unlock\",\"ls\",\"cd\",\"entry\",\"show\",\"type\"]}");
         ok = true;
     } else if(fp_rpc_eq(cmd.part[0], "status")) {
         FuriString* path = furi_string_alloc();
@@ -231,16 +237,35 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
         furi_string_free(path);
         ok = true;
     } else if(fp_rpc_eq(cmd.part[0], "load")) {
-        if(cmd.count < 2U) fp_rpc_fail(app, response, FlipPassRpcErrorMissingArgument, "The load command requires a file path.");
-        else ok = true, furi_string_set_str(app->file_path, cmd.part[1]), flippass_save_settings(app), flippass_reset_database(app), flippass_clear_text_buffer(app), flippass_clear_master_password(app), furi_string_set_str(response, "{\"ok\":true,\"file\":"), fp_rpc_json(response, cmd.part[1]), furi_string_cat(response, "}");
+        if(cmd.count < 2U)
+            fp_rpc_fail(
+                app,
+                response,
+                FlipPassRpcErrorMissingArgument,
+                "The load command requires a file path.");
+        else
+            ok = true, furi_string_set_str(app->file_path, cmd.part[1]),
+            flippass_save_settings(app), flippass_reset_database(app),
+            flippass_clear_text_buffer(app), flippass_clear_master_password(app),
+            furi_string_set_str(response, "{\"ok\":true,\"file\":"),
+            fp_rpc_json(response, cmd.part[1]), furi_string_cat(response, "}");
     } else if(fp_rpc_eq(cmd.part[0], "unlock")) {
-        if(cmd.count < 2U) fp_rpc_fail(app, response, FlipPassRpcErrorMissingArgument, "The unlock command requires a password.");
+        if(cmd.count < 2U)
+            fp_rpc_fail(
+                app,
+                response,
+                FlipPassRpcErrorMissingArgument,
+                "The unlock command requires a password.");
         else {
             FuriString* error = furi_string_alloc();
             if(cmd.count >= 3U) {
                 const KDBXVaultBackend backend = flippass_db_parse_backend_hint(cmd.part[2]);
                 if(backend == KDBXVaultBackendNone) {
-                    fp_rpc_fail(app, response, FlipPassRpcErrorBadCommand, "Unknown backend. Use ram, int, or ext.");
+                    fp_rpc_fail(
+                        app,
+                        response,
+                        FlipPassRpcErrorBadCommand,
+                        "Unknown backend. Use ram, int, or ext.");
                     furi_string_free(error);
                     fp_rpc_free(&cmd);
                     return false;
@@ -254,7 +279,8 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
                 fp_rpc_json(response, kdbx_vault_backend_label(app->active_vault_backend));
                 furi_string_cat(response, "}");
             } else {
-                fp_rpc_fail(app, response, FlipPassRpcErrorOperationFailed, furi_string_get_cstr(error));
+                fp_rpc_fail(
+                    app, response, FlipPassRpcErrorOperationFailed, furi_string_get_cstr(error));
             }
             furi_string_free(error);
         }
@@ -279,7 +305,11 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
             KDBXEntry* entry = app->current_group->entries;
             for(size_t i = 0U; entry != NULL; ++i, entry = entry->next) {
                 if(!flippass_db_copy_entry_title(app, entry, title, error)) {
-                    fp_rpc_fail(app, response, FlipPassRpcErrorOperationFailed, furi_string_get_cstr(error));
+                    fp_rpc_fail(
+                        app,
+                        response,
+                        FlipPassRpcErrorOperationFailed,
+                        furi_string_get_cstr(error));
                     list_ok = false;
                     break;
                 }
@@ -297,33 +327,74 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
             ok = list_ok;
         }
     } else if(fp_rpc_eq(cmd.part[0], "cd")) {
-        if(cmd.count < 2U) fp_rpc_fail(app, response, FlipPassRpcErrorMissingArgument, "The cd command requires a group index or '..'.");
+        if(cmd.count < 2U)
+            fp_rpc_fail(
+                app,
+                response,
+                FlipPassRpcErrorMissingArgument,
+                "The cd command requires a group index or '..'.");
         else if(fp_rpc_loaded(app, response)) {
             if(fp_rpc_eq(cmd.part[1], "..")) {
-                if(app->current_group->parent == NULL) fp_rpc_fail(app, response, FlipPassRpcErrorInvalidIndex, "The current group has no parent.");
-                else ok = true, flippass_db_deactivate_entry(app), app->current_group = app->current_group->parent, app->current_entry = NULL, app->active_group = app->current_group, furi_string_set_str(response, "{\"ok\":true}");
+                if(app->current_group->parent == NULL)
+                    fp_rpc_fail(
+                        app,
+                        response,
+                        FlipPassRpcErrorInvalidIndex,
+                        "The current group has no parent.");
+                else
+                    ok = true, flippass_db_deactivate_entry(app),
+                    app->current_group = app->current_group->parent, app->current_entry = NULL,
+                    app->active_group = app->current_group,
+                    furi_string_set_str(response, "{\"ok\":true}");
             } else {
                 char* end = NULL;
                 unsigned long index = strtoul(cmd.part[1], &end, 10);
-                if(end == NULL || *end != '\0') fp_rpc_fail(app, response, FlipPassRpcErrorInvalidIndex, "Group index must be numeric.");
+                if(end == NULL || *end != '\0')
+                    fp_rpc_fail(
+                        app,
+                        response,
+                        FlipPassRpcErrorInvalidIndex,
+                        "Group index must be numeric.");
                 else {
                     KDBXGroup* group = app->current_group->children;
-                    while(group != NULL && index > 0U) group = group->next, index--;
-                    if(group == NULL) fp_rpc_fail(app, response, FlipPassRpcErrorInvalidIndex, "Group index is out of range.");
-                    else ok = true, flippass_db_deactivate_entry(app), app->current_group = group, app->current_entry = NULL, app->active_group = group, furi_string_set_str(response, "{\"ok\":true}");
+                    while(group != NULL && index > 0U)
+                        group = group->next, index--;
+                    if(group == NULL)
+                        fp_rpc_fail(
+                            app,
+                            response,
+                            FlipPassRpcErrorInvalidIndex,
+                            "Group index is out of range.");
+                    else
+                        ok = true, flippass_db_deactivate_entry(app), app->current_group = group,
+                        app->current_entry = NULL, app->active_group = group,
+                        furi_string_set_str(response, "{\"ok\":true}");
                 }
             }
         }
     } else if(fp_rpc_eq(cmd.part[0], "entry")) {
-        if(cmd.count < 2U) fp_rpc_fail(app, response, FlipPassRpcErrorMissingArgument, "The entry command requires an entry index.");
+        if(cmd.count < 2U)
+            fp_rpc_fail(
+                app,
+                response,
+                FlipPassRpcErrorMissingArgument,
+                "The entry command requires an entry index.");
         else if(fp_rpc_loaded(app, response)) {
             char* end = NULL;
             unsigned long index = strtoul(cmd.part[1], &end, 10);
-            if(end == NULL || *end != '\0') fp_rpc_fail(app, response, FlipPassRpcErrorInvalidIndex, "Entry index must be numeric.");
+            if(end == NULL || *end != '\0')
+                fp_rpc_fail(
+                    app, response, FlipPassRpcErrorInvalidIndex, "Entry index must be numeric.");
             else {
                 KDBXEntry* entry = app->current_group->entries;
-                while(entry != NULL && index > 0U) entry = entry->next, index--;
-                if(entry == NULL) fp_rpc_fail(app, response, FlipPassRpcErrorInvalidIndex, "Entry index is out of range.");
+                while(entry != NULL && index > 0U)
+                    entry = entry->next, index--;
+                if(entry == NULL)
+                    fp_rpc_fail(
+                        app,
+                        response,
+                        FlipPassRpcErrorInvalidIndex,
+                        "Entry index is out of range.");
                 else if(!fp_rpc_prepare_entry(app, entry, true, response)) {
                 } else {
                     ok = true;
@@ -334,7 +405,12 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
             }
         }
     } else if(fp_rpc_eq(cmd.part[0], "show")) {
-        if(cmd.count < 2U) fp_rpc_fail(app, response, FlipPassRpcErrorMissingArgument, "The show command requires a field name.");
+        if(cmd.count < 2U)
+            fp_rpc_fail(
+                app,
+                response,
+                FlipPassRpcErrorMissingArgument,
+                "The show command requires a field name.");
         else if(fp_rpc_entry(app, response)) {
             KDBXEntry* entry = app->active_entry;
             const char* value = NULL;
@@ -344,33 +420,62 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
                     fp_rpc_entry_json(response, entry);
                     ok = true;
                 }
-            }
-            else {
-                if(fp_rpc_eq(cmd.part[1], "title")) value = entry->title;
+            } else {
+                if(fp_rpc_eq(cmd.part[1], "title"))
+                    value = entry->title;
                 else if(fp_rpc_eq(cmd.part[1], "username")) {
-                    if(!flippass_db_ensure_entry_field(app, entry, KDBXEntryFieldUsername, response)) {
-                        fp_rpc_fail(app, response, FlipPassRpcErrorOperationFailed, furi_string_get_cstr(response));
-                    } else value = entry->username;
+                    if(!flippass_db_ensure_entry_field(
+                           app, entry, KDBXEntryFieldUsername, response)) {
+                        fp_rpc_fail(
+                            app,
+                            response,
+                            FlipPassRpcErrorOperationFailed,
+                            furi_string_get_cstr(response));
+                    } else
+                        value = entry->username;
                 } else if(fp_rpc_eq(cmd.part[1], "password")) {
-                    if(!flippass_db_ensure_entry_field(app, entry, KDBXEntryFieldPassword, response)) {
-                        fp_rpc_fail(app, response, FlipPassRpcErrorOperationFailed, furi_string_get_cstr(response));
-                    } else value = entry->password;
+                    if(!flippass_db_ensure_entry_field(
+                           app, entry, KDBXEntryFieldPassword, response)) {
+                        fp_rpc_fail(
+                            app,
+                            response,
+                            FlipPassRpcErrorOperationFailed,
+                            furi_string_get_cstr(response));
+                    } else
+                        value = entry->password;
                 } else if(fp_rpc_eq(cmd.part[1], "url")) {
                     if(!flippass_db_ensure_entry_field(app, entry, KDBXEntryFieldUrl, response)) {
-                        fp_rpc_fail(app, response, FlipPassRpcErrorOperationFailed, furi_string_get_cstr(response));
-                    } else value = entry->url;
+                        fp_rpc_fail(
+                            app,
+                            response,
+                            FlipPassRpcErrorOperationFailed,
+                            furi_string_get_cstr(response));
+                    } else
+                        value = entry->url;
                 } else if(fp_rpc_eq(cmd.part[1], "notes")) {
                     if(!flippass_db_ensure_entry_field(app, entry, KDBXEntryFieldNotes, response)) {
-                        fp_rpc_fail(app, response, FlipPassRpcErrorOperationFailed, furi_string_get_cstr(response));
-                    } else value = entry->notes;
+                        fp_rpc_fail(
+                            app,
+                            response,
+                            FlipPassRpcErrorOperationFailed,
+                            furi_string_get_cstr(response));
+                    } else
+                        value = entry->notes;
                 } else if(fp_rpc_eq(cmd.part[1], "autotype")) {
                     if(flippass_db_entry_has_field(entry, KDBXEntryFieldAutotype) &&
-                       !flippass_db_ensure_entry_field(app, entry, KDBXEntryFieldAutotype, response)) {
-                        fp_rpc_fail(app, response, FlipPassRpcErrorOperationFailed, furi_string_get_cstr(response));
-                    } else value = entry->autotype_sequence;
-                }
-                else if(fp_rpc_eq(cmd.part[1], "uuid")) value = entry->uuid;
-                else field_known = false;
+                       !flippass_db_ensure_entry_field(
+                           app, entry, KDBXEntryFieldAutotype, response)) {
+                        fp_rpc_fail(
+                            app,
+                            response,
+                            FlipPassRpcErrorOperationFailed,
+                            furi_string_get_cstr(response));
+                    } else
+                        value = entry->autotype_sequence;
+                } else if(fp_rpc_eq(cmd.part[1], "uuid"))
+                    value = entry->uuid;
+                else
+                    field_known = false;
 
                 if(!field_known) {
                     fp_rpc_fail(app, response, FlipPassRpcErrorBadCommand, "Unknown field name.");
@@ -385,24 +490,44 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
             }
         }
     } else if(fp_rpc_eq(cmd.part[0], "type")) {
-        if(cmd.count < 2U) fp_rpc_fail(app, response, FlipPassRpcErrorMissingArgument, "The type command requires a field name.");
+        if(cmd.count < 2U)
+            fp_rpc_fail(
+                app,
+                response,
+                FlipPassRpcErrorMissingArgument,
+                "The type command requires a field name.");
         else if(fp_rpc_entry(app, response)) {
             FlipPassOutputTransport transport;
             KDBXEntry* entry = app->active_entry;
             const char* log_prefix = "USB";
             if(!fp_rpc_transport(cmd.count >= 3U ? cmd.part[2] : "usb", &transport)) {
-                fp_rpc_fail(app, response, FlipPassRpcErrorUnsupportedTransport, "Unknown transport. Use usb, bt, ble, or bluetooth.");
+                fp_rpc_fail(
+                    app,
+                    response,
+                    FlipPassRpcErrorUnsupportedTransport,
+                    "Unknown transport. Use usb, bt, ble, or bluetooth.");
             } else {
                 bool typed = false;
                 if(!fp_rpc_prepare_entry(app, entry, false, response)) {
                     typed = false;
                 } else {
                     log_prefix = (transport == FlipPassOutputTransportBluetooth) ? "BT" : "USB";
-                    if(fp_rpc_eq(cmd.part[1], "username")) typed = entry->username && entry->username[0] != '\0' && flippass_output_type_string(app, transport, entry->username);
-                    else if(fp_rpc_eq(cmd.part[1], "password")) typed = entry->password && entry->password[0] != '\0' && flippass_output_type_string(app, transport, entry->password);
-                    else if(fp_rpc_eq(cmd.part[1], "login")) typed = entry->username && entry->password && flippass_output_type_login(app, transport, entry->username, entry->password);
-                    else if(fp_rpc_eq(cmd.part[1], "autotype")) typed = flippass_output_type_autotype(app, transport, entry);
-                    else fp_rpc_fail(app, response, FlipPassRpcErrorBadCommand, "Unknown type action."), typed = false;
+                    if(fp_rpc_eq(cmd.part[1], "username"))
+                        typed = entry->username && entry->username[0] != '\0' &&
+                                flippass_output_type_string(app, transport, entry->username);
+                    else if(fp_rpc_eq(cmd.part[1], "password"))
+                        typed = entry->password && entry->password[0] != '\0' &&
+                                flippass_output_type_string(app, transport, entry->password);
+                    else if(fp_rpc_eq(cmd.part[1], "login"))
+                        typed = entry->username && entry->password &&
+                                flippass_output_type_login(
+                                    app, transport, entry->username, entry->password);
+                    else if(fp_rpc_eq(cmd.part[1], "autotype"))
+                        typed = flippass_output_type_autotype(app, transport, entry);
+                    else
+                        fp_rpc_fail(
+                            app, response, FlipPassRpcErrorBadCommand, "Unknown type action."),
+                            typed = false;
                 }
                 if(typed) {
                     flippass_log_event(app, "%s_TYPE_OK field=%s", log_prefix, cmd.part[1]);
@@ -414,7 +539,11 @@ static bool fp_rpc_exec(App* app, const uint8_t* data, size_t data_size, FuriStr
                     furi_string_cat(response, "}");
                 } else if(furi_string_empty(response)) {
                     flippass_log_event(app, "%s_TYPE_FAIL field=%s", log_prefix, cmd.part[1]);
-                    fp_rpc_fail(app, response, FlipPassRpcErrorOperationFailed, "Typing failed because the transport was unavailable, not connected, or unsupported by the selected entry.");
+                    fp_rpc_fail(
+                        app,
+                        response,
+                        FlipPassRpcErrorOperationFailed,
+                        "Typing failed because the transport was unavailable, not connected, or unsupported by the selected entry.");
                 }
             }
         }
@@ -464,7 +593,11 @@ static void fp_rpc_callback(const RpcAppSystemEvent* event, void* context) {
     case RpcAppEventTypeButtonPress:
     case RpcAppEventTypeButtonRelease:
     case RpcAppEventTypeButtonPressRelease:
-        fp_rpc_fail(app, response, FlipPassRpcErrorBadCommand, "Button-based app RPC is not implemented yet. Use data exchange commands instead.");
+        fp_rpc_fail(
+            app,
+            response,
+            FlipPassRpcErrorBadCommand,
+            "Button-based app RPC is not implemented yet. Use data exchange commands instead.");
         fp_rpc_send(app, response);
         rpc_system_app_confirm(app->rpc, false);
         break;

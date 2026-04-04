@@ -64,8 +64,8 @@ static bool kdbx_arena_budget_reserve(KDBXArena* arena, size_t size) {
 static KDBXArenaChunk* kdbx_arena_chunk_alloc(KDBXArena* arena, size_t min_payload_size) {
     furi_assert(arena);
 
-    const size_t payload_size =
-        (min_payload_size > arena->chunk_size) ? min_payload_size : arena->chunk_size;
+    const size_t payload_size = (min_payload_size > arena->chunk_size) ? min_payload_size :
+                                                                         arena->chunk_size;
     if(payload_size > (SIZE_MAX - sizeof(KDBXArenaChunk))) {
         kdbx_arena_note_failure(arena, "size_overflow", payload_size);
         return NULL;

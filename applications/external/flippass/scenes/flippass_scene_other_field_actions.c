@@ -33,21 +33,20 @@ static bool flippass_other_field_get_value(App* app, const char** out_value, Fur
         error);
 }
 
-static void flippass_scene_other_field_actions_dialog_callback(
-    DialogExResult result,
-    void* context) {
+static void
+    flippass_scene_other_field_actions_dialog_callback(DialogExResult result, void* context) {
     App* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, result);
 }
 
-static FlipPassEntryAction flippass_scene_other_field_actions_map_type_action(
-    FlipPassOtherFieldAction action) {
-    return (action == FlipPassOtherFieldActionTypeBluetooth) ? FlipPassEntryActionTypeOtherBluetooth :
-                                                               FlipPassEntryActionTypeOtherUsb;
+static FlipPassEntryAction
+    flippass_scene_other_field_actions_map_type_action(FlipPassOtherFieldAction action) {
+    return (action == FlipPassOtherFieldActionTypeBluetooth) ?
+               FlipPassEntryActionTypeOtherBluetooth :
+               FlipPassEntryActionTypeOtherUsb;
 }
 
-static FlipPassOutputTransport flippass_scene_other_field_actions_transport(
-    const App* app) {
+static FlipPassOutputTransport flippass_scene_other_field_actions_transport(const App* app) {
     return (app->pending_entry_action == FlipPassEntryActionTypeOtherBluetooth) ?
                FlipPassOutputTransportBluetooth :
                FlipPassOutputTransportUsb;
@@ -60,8 +59,8 @@ static const char* flippass_scene_other_field_actions_typing_status_title(const 
 }
 
 void flippass_other_field_begin_type_action(App* app, bool bluetooth, uint32_t run_event) {
-    const FlipPassOtherFieldAction action =
-        bluetooth ? FlipPassOtherFieldActionTypeBluetooth : FlipPassOtherFieldActionTypeUsb;
+    const FlipPassOtherFieldAction action = bluetooth ? FlipPassOtherFieldActionTypeBluetooth :
+                                                        FlipPassOtherFieldActionTypeUsb;
 
     app->other_field_action_selected_index = (uint32_t)action;
     app->pending_entry_action = flippass_scene_other_field_actions_map_type_action(action);
@@ -78,10 +77,7 @@ void flippass_other_field_show_selected_value(App* app, uint32_t return_scene) {
 
     if(!flippass_other_field_get_value(app, &value, error)) {
         flippass_scene_status_show(
-            app,
-            "Field Load Failed",
-            furi_string_get_cstr(error),
-            return_scene);
+            app, "Field Load Failed", furi_string_get_cstr(error), return_scene);
         scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
         furi_string_free(error);
         return;
@@ -113,7 +109,8 @@ void flippass_other_field_run_pending_type_action(App* app, uint32_t failure_ret
     if(flippass_entry_action_execute_pending(app, error)) {
         flippass_progress_update(app, "Done", "Field sent.", 100U);
         flippass_progress_reset(app);
-        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, FlipPassScene_DbEntries);
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, FlipPassScene_DbEntries);
     } else {
         flippass_progress_reset(app);
         flippass_scene_status_show(
@@ -150,16 +147,12 @@ void flippass_scene_other_field_actions_on_enter(void* context) {
         AlignCenter,
         AlignTop);
     dialog_ex_set_text(
-        app->dialog_ex,
-        "BT = type, Show = view, USB = type.",
-        64,
-        24,
-        AlignCenter,
-        AlignCenter);
+        app->dialog_ex, "BT = type, Show = view, USB = type.", 64, 24, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_ex, "BT");
     dialog_ex_set_center_button_text(app->dialog_ex, "Show");
     dialog_ex_set_right_button_text(app->dialog_ex, "USB");
-    dialog_ex_set_result_callback(app->dialog_ex, flippass_scene_other_field_actions_dialog_callback);
+    dialog_ex_set_result_callback(
+        app->dialog_ex, flippass_scene_other_field_actions_dialog_callback);
     dialog_ex_set_context(app->dialog_ex, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDialogEx);

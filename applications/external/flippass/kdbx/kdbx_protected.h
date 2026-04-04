@@ -39,10 +39,7 @@ bool kdbx_protected_stream_init(
     KDBXProtectedStreamAlgorithm algorithm,
     const uint8_t* key,
     size_t key_size);
-bool kdbx_protected_stream_apply(
-    KDBXProtectedStream* stream,
-    uint8_t* data,
-    size_t data_size);
+bool kdbx_protected_stream_apply(KDBXProtectedStream* stream, uint8_t* data, size_t data_size);
 bool kdbx_chacha20_stream_init(
     KDBXProtectedStream* stream,
     const uint8_t* key,
@@ -62,9 +59,7 @@ bool kdbx_protected_value_decode_reuse(
     size_t* decoded_size,
     uint8_t** buffer,
     size_t* buffer_capacity);
-bool kdbx_protected_value_discard(
-    KDBXProtectedStream* stream,
-    const char* encoded);
+bool kdbx_protected_value_discard(KDBXProtectedStream* stream, const char* encoded);
 void kdbx_protected_discard_state_init(KDBXProtectedDiscardState* state);
 bool kdbx_protected_decode_state_update(
     KDBXProtectedStream* stream,

@@ -70,28 +70,29 @@ static unsigned long flippass_entry_action_char_count(
     switch(action) {
     case FlipPassEntryActionTypeUsernameUsb:
     case FlipPassEntryActionTypeUsernameBluetooth:
-        return (entry != NULL && entry->username != NULL) ? (unsigned long)strlen(entry->username) :
-                                                            0UL;
+        return (entry != NULL && entry->username != NULL) ?
+                   (unsigned long)strlen(entry->username) :
+                   0UL;
     case FlipPassEntryActionTypePasswordUsb:
     case FlipPassEntryActionTypePasswordBluetooth:
-        return (entry != NULL && entry->password != NULL) ? (unsigned long)strlen(entry->password) :
-                                                            0UL;
+        return (entry != NULL && entry->password != NULL) ?
+                   (unsigned long)strlen(entry->password) :
+                   0UL;
     case FlipPassEntryActionTypeLoginUsb:
     case FlipPassEntryActionTypeLoginBluetooth:
         return (entry != NULL) ?
-                   (unsigned long)(
-                       (entry->username ? strlen(entry->username) : 0U) +
-                       (entry->password ? strlen(entry->password) : 0U) + 2U) :
+                   (unsigned long)((entry->username ? strlen(entry->username) : 0U) +
+                                   (entry->password ? strlen(entry->password) : 0U) + 2U) :
                    0UL;
     case FlipPassEntryActionTypeAutoTypeUsb:
     case FlipPassEntryActionTypeAutoTypeBluetooth:
-        if(entry != NULL && entry->autotype_sequence != NULL && entry->autotype_sequence[0] != '\0') {
+        if(entry != NULL && entry->autotype_sequence != NULL &&
+           entry->autotype_sequence[0] != '\0') {
             return (unsigned long)strlen(entry->autotype_sequence);
         }
         return (entry != NULL) ?
-                   (unsigned long)(
-                       (entry->username ? strlen(entry->username) : 0U) +
-                       (entry->password ? strlen(entry->password) : 0U) + 2U) :
+                   (unsigned long)((entry->username ? strlen(entry->username) : 0U) +
+                                   (entry->password ? strlen(entry->password) : 0U) + 2U) :
                    0UL;
     case FlipPassEntryActionTypeOtherUsb:
     case FlipPassEntryActionTypeOtherBluetooth:
@@ -177,7 +178,8 @@ bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
              flippass_db_entry_has_field(entry, KDBXEntryFieldPassword))) {
             if(error != NULL) {
                 furi_string_set_str(
-                    error, "This entry needs both a username and a password for a login sequence.");
+                    error,
+                    "This entry needs both a username and a password for a login sequence.");
             }
             return false;
         }
@@ -195,7 +197,8 @@ bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
         }
         if(other_value == NULL || other_value[0] == '\0') {
             if(error != NULL) {
-                furi_string_set_str(error, "The selected field does not contain any text to send.");
+                furi_string_set_str(
+                    error, "The selected field does not contain any text to send.");
             }
             return false;
         }
@@ -258,10 +261,7 @@ bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
     }
 
     flippass_log_event(
-        app,
-        typed ? "%s_TYPE_OK field=%s" : "%s_TYPE_FAIL field=%s",
-        log_prefix,
-        log_label);
+        app, typed ? "%s_TYPE_OK field=%s" : "%s_TYPE_FAIL field=%s", log_prefix, log_label);
 
     if(!typed && error != NULL) {
         if(transport == FlipPassOutputTransportBluetooth) {

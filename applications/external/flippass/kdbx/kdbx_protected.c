@@ -381,8 +381,7 @@ bool kdbx_protected_discard_state_update(
     KDBXProtectedDiscardState* state,
     const char* encoded,
     size_t encoded_size) {
-    return kdbx_protected_decode_state_update(
-        stream, state, encoded, encoded_size, NULL, NULL);
+    return kdbx_protected_decode_state_update(stream, state, encoded, encoded_size, NULL, NULL);
 }
 
 bool kdbx_protected_discard_state_finalize(
@@ -401,20 +400,16 @@ static void kdbx_chacha20_generate_block(KDBXProtectedStream* stream) {
     working[2] = sigma[2];
     working[3] = sigma[3];
 
-#define KDBX_CHACHA_QR(a, b, c, d)                   \
-    do {                                             \
-        working[(a)] += working[(b)];                \
-        working[(d)] = kdbx_rotl32(                  \
-            working[(d)] ^ working[(a)], 16);        \
-        working[(c)] += working[(d)];                \
-        working[(b)] = kdbx_rotl32(                  \
-            working[(b)] ^ working[(c)], 12);        \
-        working[(a)] += working[(b)];                \
-        working[(d)] = kdbx_rotl32(                  \
-            working[(d)] ^ working[(a)], 8);         \
-        working[(c)] += working[(d)];                \
-        working[(b)] = kdbx_rotl32(                  \
-            working[(b)] ^ working[(c)], 7);         \
+#define KDBX_CHACHA_QR(a, b, c, d)                                   \
+    do {                                                             \
+        working[(a)] += working[(b)];                                \
+        working[(d)] = kdbx_rotl32(working[(d)] ^ working[(a)], 16); \
+        working[(c)] += working[(d)];                                \
+        working[(b)] = kdbx_rotl32(working[(b)] ^ working[(c)], 12); \
+        working[(a)] += working[(b)];                                \
+        working[(d)] = kdbx_rotl32(working[(d)] ^ working[(a)], 8);  \
+        working[(c)] += working[(d)];                                \
+        working[(b)] = kdbx_rotl32(working[(b)] ^ working[(c)], 7);  \
     } while(false)
 
     for(size_t round = 0; round < 10U; round++) {
@@ -449,16 +444,12 @@ static void kdbx_salsa20_generate_block(KDBXProtectedStream* stream) {
 
     memcpy(working, stream->state.salsa20.state, sizeof(working));
 
-#define KDBX_SALSA_QR(a, b, c, d)                         \
-    do {                                                  \
-        working[(b)] ^= kdbx_rotl32(                      \
-            working[(a)] + working[(d)], 7);              \
-        working[(c)] ^= kdbx_rotl32(                      \
-            working[(b)] + working[(a)], 9);              \
-        working[(d)] ^= kdbx_rotl32(                      \
-            working[(c)] + working[(b)], 13);             \
-        working[(a)] ^= kdbx_rotl32(                      \
-            working[(d)] + working[(c)], 18);             \
+#define KDBX_SALSA_QR(a, b, c, d)                                     \
+    do {                                                              \
+        working[(b)] ^= kdbx_rotl32(working[(a)] + working[(d)], 7);  \
+        working[(c)] ^= kdbx_rotl32(working[(b)] + working[(a)], 9);  \
+        working[(d)] ^= kdbx_rotl32(working[(c)] + working[(b)], 13); \
+        working[(a)] ^= kdbx_rotl32(working[(d)] + working[(c)], 18); \
     } while(false)
 
     for(size_t round = 0; round < 10U; round++) {
@@ -520,8 +511,8 @@ bool kdbx_protected_stream_init(
     if(algorithm == KDBXProtectedStreamChaCha20) {
         sha512_Raw(key, key_size, hash);
         stream->algorithm = algorithm;
-        stream->ready = kdbx_chacha20_init_state(
-            stream->state.chacha20.state, hash, 32U, &hash[32], 12U, 0U);
+        stream->ready =
+            kdbx_chacha20_init_state(stream->state.chacha20.state, hash, 32U, &hash[32], 12U, 0U);
         stream->block_offset = sizeof(stream->block);
         memzero(hash, sizeof(hash));
         return stream->ready;
@@ -557,10 +548,7 @@ bool kdbx_protected_stream_init(
     return false;
 }
 
-bool kdbx_protected_stream_apply(
-    KDBXProtectedStream* stream,
-    uint8_t* data,
-    size_t data_size) {
+bool kdbx_protected_stream_apply(KDBXProtectedStream* stream, uint8_t* data, size_t data_size) {
     furi_assert(stream);
     furi_assert(data);
 
@@ -621,8 +609,8 @@ bool kdbx_chacha20_stream_init(
 
     kdbx_protected_stream_reset(stream);
     stream->algorithm = KDBXProtectedStreamChaCha20;
-    stream->ready =
-        kdbx_chacha20_init_state(stream->state.chacha20.state, key, key_size, nonce, nonce_size, counter);
+    stream->ready = kdbx_chacha20_init_state(
+        stream->state.chacha20.state, key, key_size, nonce, nonce_size, counter);
     stream->block_offset = sizeof(stream->block);
     return stream->ready;
 }

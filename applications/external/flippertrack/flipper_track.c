@@ -19,44 +19,43 @@
 
 // --- Tunable parameters ---------------------------------------------------
 
-#define MIN_MOUSE_MS  2000UL
-#define MAX_MOUSE_MS  5000UL
-#define MOUSE_JITTER  20
+#define MIN_MOUSE_MS 2000UL
+#define MAX_MOUSE_MS 5000UL
+#define MOUSE_JITTER 20
 
-#define MIN_CTAB_MS   45000UL
-#define MAX_CTAB_MS   90000UL
+#define MIN_CTAB_MS 45000UL
+#define MAX_CTAB_MS 90000UL
 
-#define MIN_TYPE_MS   8000UL
-#define MAX_TYPE_MS   20000UL
+#define MIN_TYPE_MS    8000UL
+#define MAX_TYPE_MS    20000UL
 #define TYPE_CHARS_MIN 3
 #define TYPE_CHARS_MAX 8
 
 // --------------------------------------------------------------------------
 
 /* HID keycodes for a-z (0x04 = 'a') */
-#define HID_KEY_A 0x04
-#define HID_KEY_SPACE 0x2C
+#define HID_KEY_A         0x04
+#define HID_KEY_SPACE     0x2C
 #define HID_KEY_BACKSPACE 0x2A
 
 static const uint16_t LETTER_KEYS[] = {
-    0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,
-    0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,
-    0x18,0x19,0x1A,0x1B,0x1C,0x1D,
+    0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
+    0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
 };
 #define NUM_LETTERS 26
 
 typedef struct {
     FuriMessageQueue* input_queue;
-    ViewPort*         view_port;
-    Gui*              gui;
-    NotificationApp*  notifications;
-    bool              running;
-    bool              mac_mode;
-    bool              typing_on;
-    char              status[48];
-    uint32_t          mouse_deadline;
-    uint32_t          ctab_deadline;
-    uint32_t          type_deadline;
+    ViewPort* view_port;
+    Gui* gui;
+    NotificationApp* notifications;
+    bool running;
+    bool mac_mode;
+    bool typing_on;
+    char status[48];
+    uint32_t mouse_deadline;
+    uint32_t ctab_deadline;
+    uint32_t type_deadline;
 } FlipperTrackApp;
 
 // --- Drawing --------------------------------------------------------------
@@ -79,17 +78,24 @@ static void draw_callback(Canvas* canvas, void* ctx) {
 
     /* Mode + typing toggle on one line */
     char modeline[40];
-    snprintf(modeline, sizeof(modeline), "[OK]%s  [>]Type:%s",
-             app->mac_mode ? "Mac" : "Win",
-             app->typing_on ? "ON" : "off");
+    snprintf(
+        modeline,
+        sizeof(modeline),
+        "[OK]%s  [>]Type:%s",
+        app->mac_mode ? "Mac" : "Win",
+        app->typing_on ? "ON" : "off");
     canvas_draw_str(canvas, 2, 33, modeline);
 
     /* Countdown timers */
     uint32_t ms = (app->mouse_deadline > now) ? (app->mouse_deadline - now) : 0;
-    uint32_t cs = (app->ctab_deadline  > now) ? (app->ctab_deadline  - now) : 0;
+    uint32_t cs = (app->ctab_deadline > now) ? (app->ctab_deadline - now) : 0;
     char timers[40];
-    snprintf(timers, sizeof(timers), "Mouse:%lus  Tab:%lus",
-             (unsigned long)(ms / 1000), (unsigned long)(cs / 1000));
+    snprintf(
+        timers,
+        sizeof(timers),
+        "Mouse:%lus  Tab:%lus",
+        (unsigned long)(ms / 1000),
+        (unsigned long)(cs / 1000));
     canvas_draw_str(canvas, 2, 43, timers);
 
     if(app->typing_on) {
@@ -111,9 +117,8 @@ static void input_callback(InputEvent* event, void* ctx) {
 // --- HID helpers ----------------------------------------------------------
 
 static void send_app_switch(bool mac_mode) {
-    uint16_t key = mac_mode
-        ? (KEY_MOD_LEFT_GUI  | HID_KEYBOARD_TAB)
-        : (KEY_MOD_LEFT_CTRL | HID_KEYBOARD_TAB);
+    uint16_t key = mac_mode ? (KEY_MOD_LEFT_GUI | HID_KEYBOARD_TAB) :
+                              (KEY_MOD_LEFT_CTRL | HID_KEYBOARD_TAB);
     furi_hal_hid_kb_press(key);
     furi_delay_ms(80);
     furi_hal_hid_kb_release(key);
@@ -159,8 +164,7 @@ static void do_mouse(FlipperTrackApp* app) {
 
 static void do_ctab(FlipperTrackApp* app) {
     send_app_switch(app->mac_mode);
-    snprintf(app->status, sizeof(app->status), "%s+Tab sent",
-             app->mac_mode ? "Cmd" : "Ctrl");
+    snprintf(app->status, sizeof(app->status), "%s+Tab sent", app->mac_mode ? "Cmd" : "Ctrl");
 }
 
 static void do_type(FlipperTrackApp* app) {
@@ -183,9 +187,9 @@ int32_t flipper_track_app(void* p) {
     FlipperTrackApp* app = malloc(sizeof(FlipperTrackApp));
     furi_check(app);
 
-    app->running    = true;
-    app->mac_mode   = false;
-    app->typing_on  = false;
+    app->running = true;
+    app->mac_mode = false;
+    app->typing_on = false;
     app->input_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     snprintf(app->status, sizeof(app->status), "Starting...");
 
@@ -206,8 +210,8 @@ int32_t flipper_track_app(void* p) {
 
     uint32_t now = furi_get_tick();
     app->mouse_deadline = now + rand_range(MIN_MOUSE_MS, MAX_MOUSE_MS);
-    app->ctab_deadline  = now + rand_range(MIN_CTAB_MS,  MAX_CTAB_MS);
-    app->type_deadline  = now + rand_range(MIN_TYPE_MS,  MAX_TYPE_MS);
+    app->ctab_deadline = now + rand_range(MIN_CTAB_MS, MAX_CTAB_MS);
+    app->type_deadline = now + rand_range(MIN_TYPE_MS, MAX_TYPE_MS);
 
     snprintf(app->status, sizeof(app->status), "Running");
     view_port_update(app->view_port);
@@ -225,16 +229,23 @@ int32_t flipper_track_app(void* p) {
             if(event.type == InputTypeShort) {
                 if(event.key == InputKeyOk) {
                     app->mac_mode = !app->mac_mode;
-                    snprintf(app->status, sizeof(app->status), "Mode: %s",
-                             app->mac_mode ? "Mac (Cmd+Tab)" : "Win (Ctrl+Tab)");
+                    snprintf(
+                        app->status,
+                        sizeof(app->status),
+                        "Mode: %s",
+                        app->mac_mode ? "Mac (Cmd+Tab)" : "Win (Ctrl+Tab)");
                 }
                 if(event.key == InputKeyRight) {
                     app->typing_on = !app->typing_on;
-                    snprintf(app->status, sizeof(app->status), "Typing: %s",
-                             app->typing_on ? "ON" : "off");
+                    snprintf(
+                        app->status,
+                        sizeof(app->status),
+                        "Typing: %s",
+                        app->typing_on ? "ON" : "off");
                     /* reset deadline when enabling */
                     if(app->typing_on)
-                        app->type_deadline = furi_get_tick() + rand_range(MIN_TYPE_MS, MAX_TYPE_MS);
+                        app->type_deadline =
+                            furi_get_tick() + rand_range(MIN_TYPE_MS, MAX_TYPE_MS);
                 }
             }
         }

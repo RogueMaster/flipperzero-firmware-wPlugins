@@ -272,18 +272,12 @@ bool kdbx_entry_take_loaded_text(
 
 bool kdbx_entry_set_username(KDBXEntry* entry, const char* username) {
     return kdbx_entry_set_loaded_text(
-        entry,
-        KDBXEntryFieldUsername,
-        username,
-        username != NULL ? strlen(username) : 0U);
+        entry, KDBXEntryFieldUsername, username, username != NULL ? strlen(username) : 0U);
 }
 
 bool kdbx_entry_set_password(KDBXEntry* entry, const char* password) {
     return kdbx_entry_set_loaded_text(
-        entry,
-        KDBXEntryFieldPassword,
-        password,
-        password != NULL ? strlen(password) : 0U);
+        entry, KDBXEntryFieldPassword, password, password != NULL ? strlen(password) : 0U);
 }
 
 bool kdbx_entry_set_url(KDBXEntry* entry, const char* url) {
@@ -370,10 +364,7 @@ bool kdbx_custom_field_is_loaded(const KDBXCustomField* field) {
     return field != NULL && field->value != NULL;
 }
 
-bool kdbx_custom_field_set_loaded_text(
-    KDBXCustomField* field,
-    const char* value,
-    size_t value_len) {
+bool kdbx_custom_field_set_loaded_text(KDBXCustomField* field, const char* value, size_t value_len) {
     if(field == NULL) {
         return false;
     }
@@ -392,10 +383,7 @@ bool kdbx_custom_field_set_loaded_text(
     return kdbx_custom_field_take_loaded_text(field, copy, value_len);
 }
 
-bool kdbx_custom_field_take_loaded_text(
-    KDBXCustomField* field,
-    char* value,
-    size_t value_len) {
+bool kdbx_custom_field_take_loaded_text(KDBXCustomField* field, char* value, size_t value_len) {
     if(field == NULL) {
         return false;
     }

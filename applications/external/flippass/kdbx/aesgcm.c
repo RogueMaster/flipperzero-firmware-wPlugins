@@ -194,7 +194,7 @@ ret_type gcm_init_message(/* initialise a new message     */
     ctx->y0_val = *UI32_PTR(UI8_PTR(ctx->ctr_val) + CTR_POS);
     memset(ctx->hdr_ghv, 0, BLOCK_SIZE);
     memset(ctx->txt_ghv, 0, BLOCK_SIZE);
-    ctx->hdr_cnt  = 0;
+    ctx->hdr_cnt = 0;
     ctx->txt_ccnt = ctx->txt_acnt = 0;
     return RETURN_GOOD;
 }
@@ -505,7 +505,7 @@ ret_type gcm_decrypt_message(/* decrypt an entire message    */
                              gcm_ctx ctx[1]) /* the mode context             */
 {
     uint8_t local_tag[BLOCK_SIZE] = {0};
-    ret_type rr                   = 0;
+    ret_type rr = 0;
 
     gcm_init_message(iv, iv_len, ctx);
     gcm_auth_header(hdr, hdr_len, ctx);

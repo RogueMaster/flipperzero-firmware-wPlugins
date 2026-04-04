@@ -3,13 +3,6 @@ App(
     name="FlipPass",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flippass_app",
-    fap_version="1.0",
-    fap_author="Arckanos",
-    fap_description="KeePass KDBX 4 vault browser with USB and Bluetooth HID typing.",
-    fap_weburl="https://github.com/Arckanos/FlipPass",
-    requires=[
-        "gui",
-    ],
     cdefines=[
         "APP_FlipPass",
         "FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE=0",
@@ -24,9 +17,7 @@ App(
     ],
     fap_icon="icons/icon.png",
     fap_icon_assets="icons",
-    fap_category="Tools",
     stack_size=12 * 1024,
-    order=90,
     sources=[
         "FlipPass.c",
         "flippass_db.c",
@@ -67,4 +58,9 @@ App(
         "mntminput/validators.c",
         "transport/flippass_output.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version="1.0",
+    fap_description="KeePass KDBX 4 vault browser with USB and Bluetooth HID typing.",
 )

@@ -9,15 +9,15 @@
 #include "flippass_scene_status.h"
 #include "flippass_scene_text_view.h"
 
-static const char* flippass_scene_entry_actions_safe_text(const char* value, const char* fallback) {
+static const char*
+    flippass_scene_entry_actions_safe_text(const char* value, const char* fallback) {
     return (value != NULL && value[0] != '\0') ? value : fallback;
 }
 
 static bool flippass_scene_entry_actions_has_other_fields(const KDBXEntry* entry) {
-    return entry != NULL &&
-           (flippass_db_entry_has_field(entry, KDBXEntryFieldUrl) ||
-            flippass_db_entry_has_field(entry, KDBXEntryFieldNotes) ||
-            flippass_db_entry_get_custom_fields(entry) != NULL);
+    return entry != NULL && (flippass_db_entry_has_field(entry, KDBXEntryFieldUrl) ||
+                             flippass_db_entry_has_field(entry, KDBXEntryFieldNotes) ||
+                             flippass_db_entry_get_custom_fields(entry) != NULL);
 }
 
 static void flippass_scene_entry_actions_show_text(App* app, const char* title, const char* body) {
@@ -48,18 +48,14 @@ static bool flippass_scene_entry_actions_execute(App* app, uint32_t index, FuriS
             return false;
         }
         flippass_scene_entry_actions_show_text(
-            app,
-            "Username",
-            flippass_scene_entry_actions_safe_text(entry->username, "Not set"));
+            app, "Username", flippass_scene_entry_actions_safe_text(entry->username, "Not set"));
         return true;
     case FlipPassEntryActionRevealPassword:
         if(!flippass_db_ensure_entry_field(app, app->active_entry, KDBXEntryFieldPassword, error)) {
             return false;
         }
         flippass_scene_entry_actions_show_text(
-            app,
-            "Password",
-            flippass_scene_entry_actions_safe_text(entry->password, "Not set"));
+            app, "Password", flippass_scene_entry_actions_safe_text(entry->password, "Not set"));
         return true;
     case FlipPassEntryActionRevealUrl:
         if(!flippass_db_ensure_entry_field(app, app->active_entry, KDBXEntryFieldUrl, error)) {
@@ -114,10 +110,7 @@ static void flippass_scene_entry_actions_callback(void* context, uint32_t index)
     FuriString* error = furi_string_alloc();
     if(!flippass_scene_entry_actions_execute(app, index, error)) {
         flippass_scene_status_show(
-            app,
-            "Entry Action Failed",
-            furi_string_get_cstr(error),
-            FlipPassScene_DbEntries);
+            app, "Entry Action Failed", furi_string_get_cstr(error), FlipPassScene_DbEntries);
         scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
     }
     furi_string_free(error);
@@ -141,10 +134,7 @@ void flippass_scene_entry_actions_on_enter(void* context) {
 
     if(!flippass_db_activate_entry(app, app->active_entry, false, error)) {
         flippass_scene_status_show(
-            app,
-            "Entry Load Failed",
-            furi_string_get_cstr(error),
-            FlipPassScene_DbEntries);
+            app, "Entry Load Failed", furi_string_get_cstr(error), FlipPassScene_DbEntries);
         scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
         furi_string_free(error);
         return;
@@ -153,8 +143,7 @@ void flippass_scene_entry_actions_on_enter(void* context) {
 
     submenu_reset(app->submenu);
     submenu_set_header(
-        app->submenu,
-        flippass_scene_entry_actions_safe_text(entry->title, "Untitled Entry"));
+        app->submenu, flippass_scene_entry_actions_safe_text(entry->title, "Untitled Entry"));
 
     submenu_add_item(
         app->submenu,

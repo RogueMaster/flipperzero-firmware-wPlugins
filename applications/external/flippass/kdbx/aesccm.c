@@ -171,7 +171,7 @@ static AES_RETURN aes_ccm_init(
 
     // Encode the first block.
     uint8_t block[AES_BLOCK_SIZE] = {0};
-    block[0]                      = flags;
+    block[0] = flags;
     memcpy(&block[1], nonce, nonce_len);
     size_t shifted_len = plaintext_len;
     for(size_t i = 0; i < q; ++i) {
@@ -193,20 +193,20 @@ static AES_RETURN aes_ccm_init(
     if(adata_len != 0) {
         size_t block_size = 0;
         if(adata_len < 65536 - 256) {
-            block[0]   = adata_len >> 8;
-            block[1]   = adata_len & 0xff;
+            block[0] = adata_len >> 8;
+            block[1] = adata_len & 0xff;
             block_size = 2;
         } else {
             shifted_len = adata_len;
-            block[5]    = shifted_len & 0xff;
+            block[5] = shifted_len & 0xff;
             shifted_len >>= 8;
             block[4] = shifted_len & 0xff;
             shifted_len >>= 8;
             block[3] = shifted_len & 0xff;
             shifted_len >>= 8;
-            block[2]   = shifted_len & 0xff;
-            block[1]   = 0xfe;
-            block[0]   = 0xff;
+            block[2] = shifted_len & 0xff;
+            block[1] = 0xfe;
+            block[0] = 0xff;
             block_size = 6;
             if((shifted_len >> 8) != 0) {
                 // Associated data over 4 GB not supported.
@@ -241,7 +241,7 @@ AES_RETURN aes_ccm_encrypt(
     size_t plaintext_len,
     size_t mac_len,
     uint8_t* ciphertext) {
-    cbc_mac_context cbc_ctx           = {0};
+    cbc_mac_context cbc_ctx = {0};
     uint8_t ctr_block[AES_BLOCK_SIZE] = {0};
     if(aes_ccm_init(
            encrypt_ctx,
@@ -296,9 +296,9 @@ AES_RETURN aes_ccm_decrypt(
     size_t ciphertext_len,
     size_t mac_len,
     uint8_t* plaintext) {
-    cbc_mac_context cbc_ctx           = {0};
+    cbc_mac_context cbc_ctx = {0};
     uint8_t ctr_block[AES_BLOCK_SIZE] = {0};
-    size_t plaintext_len              = ciphertext_len - mac_len;
+    size_t plaintext_len = ciphertext_len - mac_len;
     if(ciphertext_len < mac_len || aes_ccm_init(
                                        encrypt_ctx,
                                        nonce,

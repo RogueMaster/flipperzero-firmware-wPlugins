@@ -60,25 +60,19 @@ void flippass_db_browser_view_set_callback(
 void flippass_db_browser_view_reset(FlipPassDbBrowserView* browser);
 void flippass_db_browser_view_set_header(FlipPassDbBrowserView* browser, const char* header);
 void flippass_db_browser_view_set_has_parent(FlipPassDbBrowserView* browser, bool has_parent);
-void flippass_db_browser_view_set_mode(
-    FlipPassDbBrowserView* browser,
-    FlipPassDbBrowserMode mode);
+void flippass_db_browser_view_set_mode(FlipPassDbBrowserView* browser, FlipPassDbBrowserMode mode);
 void flippass_db_browser_view_add_item(
     FlipPassDbBrowserView* browser,
     FlipPassDbBrowserItemType type,
     const char* label);
 void flippass_db_browser_view_set_selected_item(FlipPassDbBrowserView* browser, uint32_t index);
 uint32_t flippass_db_browser_view_get_selected_item(const FlipPassDbBrowserView* browser);
-void flippass_db_browser_view_set_action_selected(
-    FlipPassDbBrowserView* browser,
-    uint32_t index);
+void flippass_db_browser_view_set_action_selected(FlipPassDbBrowserView* browser, uint32_t index);
 uint32_t flippass_db_browser_view_get_action_selected(const FlipPassDbBrowserView* browser);
-void flippass_db_browser_view_set_action_menu_open(
-    FlipPassDbBrowserView* browser,
-    bool open);
+void flippass_db_browser_view_set_action_menu_open(FlipPassDbBrowserView* browser, bool open);
 bool flippass_db_browser_view_is_action_menu_open(const FlipPassDbBrowserView* browser);
-FlipPassDbBrowserItemType flippass_db_browser_view_get_selected_type(
-    const FlipPassDbBrowserView* browser);
+FlipPassDbBrowserItemType
+    flippass_db_browser_view_get_selected_type(const FlipPassDbBrowserView* browser);
 
 #ifdef __cplusplus
 }

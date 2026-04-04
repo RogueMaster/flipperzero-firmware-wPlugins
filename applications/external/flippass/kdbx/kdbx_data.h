@@ -76,14 +76,8 @@ KDBXCustomField* kdbx_entry_add_custom_field(
 const KDBXCustomField* kdbx_entry_get_custom_fields(const KDBXEntry* entry);
 const KDBXFieldRef* kdbx_custom_field_get_ref(const KDBXCustomField* field);
 bool kdbx_custom_field_is_loaded(const KDBXCustomField* field);
-bool kdbx_custom_field_set_loaded_text(
-    KDBXCustomField* field,
-    const char* value,
-    size_t value_len);
-bool kdbx_custom_field_take_loaded_text(
-    KDBXCustomField* field,
-    char* value,
-    size_t value_len);
+bool kdbx_custom_field_set_loaded_text(KDBXCustomField* field, const char* value, size_t value_len);
+bool kdbx_custom_field_take_loaded_text(KDBXCustomField* field, char* value, size_t value_len);
 bool kdbx_entry_has_field(const KDBXEntry* entry, uint32_t field_mask);
 bool kdbx_entry_is_loaded(const KDBXEntry* entry, uint32_t field_mask);
 bool kdbx_entry_set_loaded_text(

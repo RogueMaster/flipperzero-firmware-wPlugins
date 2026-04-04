@@ -22,7 +22,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#define TAG "FlipPass"
+#define TAG                           "FlipPass"
 #define FLIPPASS_SYSTEM_LOG_MAX_BYTES (24U * 1024U)
 
 #if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG
@@ -145,8 +145,8 @@ static const char* flippass_heap_track_mode_name(FuriHalRtcHeapTrackMode mode) {
 }
 
 static bool flippass_system_log_capture_flag_present(void) {
-    bool present      = false;
-    Storage* storage  = furi_record_open(RECORD_STORAGE);
+    bool present = false;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
     present = storage_file_exists(storage, FLIPPASS_SYSTEM_LOG_ENABLE_FILE_PATH);
     furi_record_close(RECORD_STORAGE);
     return present;
@@ -177,12 +177,10 @@ static bool flippass_system_log_line_matches(const char* line) {
         return false;
     }
 
-    return strstr(line, "[FlipPassGzip]") != NULL ||
-           strstr(line, "[FlipPassParser]") != NULL ||
+    return strstr(line, "[FlipPassGzip]") != NULL || strstr(line, "[FlipPassParser]") != NULL ||
            strstr(line, "[FlipPassVault]") != NULL ||
            strstr(line, "allocation balance:") != NULL ||
-           strstr(line, "Stack watermark is") != NULL ||
-           strstr(line, "dangerously low") != NULL;
+           strstr(line, "Stack watermark is") != NULL || strstr(line, "dangerously low") != NULL;
 }
 
 static void flippass_system_log_store_ring_line(App* app, const char* line, size_t line_len) {
@@ -202,8 +200,7 @@ static void flippass_system_log_store_ring_line(App* app, const char* line, size
         app->system_log_ring_dropped++;
     }
 
-    app->system_log_ring_next =
-        (app->system_log_ring_next + 1U) % FLIPPASS_SYSTEM_LOG_RING_LINES;
+    app->system_log_ring_next = (app->system_log_ring_next + 1U) % FLIPPASS_SYSTEM_LOG_RING_LINES;
     if(app->system_log_ring_count < FLIPPASS_SYSTEM_LOG_RING_LINES) {
         app->system_log_ring_count++;
     }
@@ -524,7 +521,10 @@ bool flippass_usb_begin(App* app) {
     }
 
     if(!furi_hal_hid_is_connected()) {
-        flippass_log_event(app, "USB_PREPARE_FAIL stage=connect_timeout waited_ms=%lu", (unsigned long)elapsed_ms);
+        flippass_log_event(
+            app,
+            "USB_PREPARE_FAIL stage=connect_timeout waited_ms=%lu",
+            (unsigned long)elapsed_ms);
         return false;
     }
 
@@ -683,16 +683,8 @@ bool flippass_usb_type_autotype(App* app, const KDBXEntry* entry) {
 void flippass_set_status(App* app, const char* title, const char* message) {
     furi_assert(app);
 
-    snprintf(
-        app->status_title,
-        sizeof(app->status_title),
-        "%s",
-        title ? title : "Status");
-    snprintf(
-        app->status_message,
-        sizeof(app->status_message),
-        "%s",
-        message ? message : "");
+    snprintf(app->status_title, sizeof(app->status_title), "%s", title ? title : "Status");
+    snprintf(app->status_message, sizeof(app->status_message), "%s", message ? message : "");
 }
 
 void flippass_progress_reset(App* app) {
@@ -710,10 +702,7 @@ void flippass_progress_begin(App* app, const char* title, const char* stage, uin
     furi_assert(app);
 
     snprintf(
-        app->progress_title,
-        sizeof(app->progress_title),
-        "%s",
-        title != NULL ? title : "Working");
+        app->progress_title, sizeof(app->progress_title), "%s", title != NULL ? title : "Working");
     app->progress_started_tick = furi_get_tick();
     app->progress_percent = 0U;
     flippass_progress_update(app, stage, "", percent);
@@ -744,11 +733,7 @@ void flippass_progress_update(App* app, const char* stage, const char* detail, u
                     (unsigned long)(remaining_sec / 60U),
                     (unsigned long)(remaining_sec % 60U));
             } else {
-                snprintf(
-                    eta_text,
-                    sizeof(eta_text),
-                    "~%lus left",
-                    (unsigned long)remaining_sec);
+                snprintf(eta_text, sizeof(eta_text), "~%lus left", (unsigned long)remaining_sec);
             }
         }
     }
@@ -775,7 +760,8 @@ void flippass_progress_update(App* app, const char* stage, const char* detail, u
 void flippass_reset_database(App* app) {
     furi_assert(app);
 
-    if(app->root_group != NULL || app->vault != NULL || app->db_arena != NULL || app->database_loaded) {
+    if(app->root_group != NULL || app->vault != NULL || app->db_arena != NULL ||
+       app->database_loaded) {
         flippass_log_event(app, "VAULT_CLEANUP");
     }
 
@@ -791,29 +777,29 @@ void flippass_reset_database(App* app) {
     if(app->pending_gzip_scratch_vault != NULL) {
         kdbx_vault_free(app->pending_gzip_scratch_vault);
     }
-    app->db_arena                = NULL;
-    app->vault                   = NULL;
-    app->active_vault_backend    = KDBXVaultBackendNone;
+    app->db_arena = NULL;
+    app->vault = NULL;
+    app->active_vault_backend = KDBXVaultBackendNone;
     app->requested_vault_backend = KDBXVaultBackendRam;
     app->pending_gzip_scratch_vault = NULL;
     memset(&app->pending_gzip_scratch_ref, 0, sizeof(app->pending_gzip_scratch_ref));
     app->pending_gzip_plain_size = 0U;
-    app->root_group             = NULL;
-    app->current_group          = NULL;
-    app->current_entry          = NULL;
-    app->active_group           = NULL;
-    app->active_entry           = NULL;
+    app->root_group = NULL;
+    app->current_group = NULL;
+    app->current_entry = NULL;
+    app->active_group = NULL;
+    app->active_entry = NULL;
     app->browser_selected_index = 0;
-    app->action_selected_index  = 0;
+    app->action_selected_index = 0;
     app->other_field_selected_index = 0;
     app->other_field_action_selected_index = 0;
-    app->pending_entry_action   = FlipPassEntryActionNone;
+    app->pending_entry_action = FlipPassEntryActionNone;
     app->pending_other_field_mask = 0U;
     app->pending_other_custom_field = NULL;
     app->pending_other_field_name[0] = '\0';
-    app->close_db_dialog_open   = false;
-    app->parse_failed           = false;
-    app->database_loaded        = false;
+    app->close_db_dialog_open = false;
+    app->parse_failed = false;
+    app->database_loaded = false;
     app->pending_vault_fallback = false;
     app->allow_ext_vault_promotion = false;
     kdbx_protected_stream_reset(&app->protected_stream);
@@ -860,7 +846,7 @@ void flippass_save_settings(App* app) {
 }
 
 static void flippass_load_settings(App* app) {
-    Storage* storage    = furi_record_open(RECORD_STORAGE);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* file = flipper_format_file_alloc(storage);
 
     if(flipper_format_file_open_existing(file, FLIPPASS_CONFIG_FILE_PATH)) {
@@ -895,8 +881,9 @@ static App* flippass_app_alloc(const char* args) {
     App* app = malloc(sizeof(App));
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
-    app->scene_manager   = scene_manager_alloc(&flippass_scene_handlers, app);
-    app->input_events    = furi_record_open(RECORD_INPUT_EVENTS);
+    view_dispatcher_enable_queue(app->view_dispatcher);
+    app->scene_manager = scene_manager_alloc(&flippass_scene_handlers, app);
+    app->input_events = furi_record_open(RECORD_INPUT_EVENTS);
     app->input_subscription =
         furi_pubsub_subscribe(app->input_events, flippass_input_events_callback, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -906,7 +893,7 @@ static App* flippass_app_alloc(const char* args) {
         app->view_dispatcher, flippass_back_event_callback);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
-    app->file_path    = furi_string_alloc();
+    app->file_path = furi_string_alloc();
     app->file_browser = file_browser_alloc(app->file_path);
     view_dispatcher_add_view(
         app->view_dispatcher, AppViewFileBrowser, file_browser_get_view(app->file_browser));
@@ -936,27 +923,27 @@ static App* flippass_app_alloc(const char* args) {
     view_dispatcher_add_view(
         app->view_dispatcher, AppViewDialogEx, dialog_ex_get_view(app->dialog_ex));
 
-    app->kdbx_parser            = kdbx_parser_alloc();
-    app->db_arena               = NULL;
-    app->vault                  = NULL;
-    app->active_vault_backend   = KDBXVaultBackendNone;
+    app->kdbx_parser = kdbx_parser_alloc();
+    app->db_arena = NULL;
+    app->vault = NULL;
+    app->active_vault_backend = KDBXVaultBackendNone;
     app->requested_vault_backend = KDBXVaultBackendRam;
     app->pending_gzip_scratch_vault = NULL;
     memset(&app->pending_gzip_scratch_ref, 0, sizeof(app->pending_gzip_scratch_ref));
     app->pending_gzip_plain_size = 0U;
-    app->root_group             = NULL;
-    app->current_group          = NULL;
-    app->current_entry          = NULL;
-    app->active_group           = NULL;
-    app->active_entry           = NULL;
-    app->text_view_body         = furi_string_alloc();
+    app->root_group = NULL;
+    app->current_group = NULL;
+    app->current_entry = NULL;
+    app->active_group = NULL;
+    app->active_entry = NULL;
+    app->text_view_body = furi_string_alloc();
     kdbx_protected_stream_reset(&app->protected_stream);
     app->usb_if_prev = NULL;
     app->usb_was_locked = false;
     app->usb_expect_rpc_session_close = false;
     app->ble_session = NULL;
     app->browser_selected_index = 0;
-    app->action_selected_index  = 0;
+    app->action_selected_index = 0;
     app->other_field_selected_index = 0;
     app->other_field_action_selected_index = 0;
     app->pending_entry_action = FlipPassEntryActionNone;
@@ -964,8 +951,8 @@ static App* flippass_app_alloc(const char* args) {
     app->pending_other_custom_field = NULL;
     app->pending_other_field_name[0] = '\0';
     app->close_db_dialog_open = false;
-    app->parse_failed     = false;
-    app->database_loaded  = false;
+    app->parse_failed = false;
+    app->database_loaded = false;
     app->pending_vault_fallback = false;
     app->allow_ext_vault_promotion = false;
     app->close_test_logged = false;
@@ -1003,8 +990,8 @@ static App* flippass_app_alloc(const char* args) {
 
     // If a valid last file is found, transition to the password entry scene
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    const bool has_last_file =
-        app->file_path != NULL && storage_file_exists(storage, furi_string_get_cstr(app->file_path));
+    const bool has_last_file = app->file_path != NULL &&
+                               storage_file_exists(storage, furi_string_get_cstr(app->file_path));
     FLIPPASS_STARTUP_LOG(
         app, "APP_INIT_STEP step=last_file_exists ok=%u", has_last_file ? 1U : 0U);
     if(has_last_file) {

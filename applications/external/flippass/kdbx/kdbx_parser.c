@@ -317,8 +317,7 @@ static bool kdbx_parser_plain_sink(
         return true;
     }
 
-    return kdbx_parser_stream_emit(
-        parser, callback, context, emitted_bytes, data, data_size);
+    return kdbx_parser_stream_emit(parser, callback, context, emitted_bytes, data, data_size);
 }
 
 static bool kdbx_parser_aes_emit_decrypted_block(
@@ -553,7 +552,8 @@ static void kdbx_parser_set_gzip_error(KDBXParser* parser, const KDBXGzipTelemet
             (unsigned long)telemetry->expected_output_size);
         break;
     case KDBXGzipStatusCrcMismatch:
-        kdbx_parser_set_error(parser, "The decompressed database CRC did not match the GZip trailer.");
+        kdbx_parser_set_error(
+            parser, "The decompressed database CRC did not match the GZip trailer.");
         break;
     case KDBXGzipStatusOutputRejected:
         if(parser->last_error[0] == '\0') {
@@ -575,15 +575,15 @@ static void kdbx_parser_set_gzip_error(KDBXParser* parser, const KDBXGzipTelemet
 KDBXParser* kdbx_parser_alloc() {
     KDBXParser* parser = malloc(sizeof(KDBXParser));
     furi_assert(parser);
-    parser->storage                    = furi_record_open(RECORD_STORAGE);
-    parser->stream                     = file_stream_alloc(parser->storage);
-    parser->header_parsed              = false;
-    parser->stream_open                = false;
-    parser->header.kdf_parameters      = NULL;
+    parser->storage = furi_record_open(RECORD_STORAGE);
+    parser->stream = file_stream_alloc(parser->storage);
+    parser->header_parsed = false;
+    parser->stream_open = false;
+    parser->header.kdf_parameters = NULL;
     parser->header.kdf_parameters_size = 0;
-    parser->decrypt_budget_free_heap   = 0U;
+    parser->decrypt_budget_free_heap = 0U;
     parser->decrypt_budget_max_free_block = 0U;
-    parser->last_error[0]              = '\0';
+    parser->last_error[0] = '\0';
     return parser;
 }
 
@@ -598,7 +598,7 @@ static void kdbx_parser_release_kdf_parameters(KDBXParser* parser) {
         memzero(parser->header.kdf_parameters, parser->header.kdf_parameters_size);
         free(parser->header.kdf_parameters);
     }
-    parser->header.kdf_parameters      = NULL;
+    parser->header.kdf_parameters = NULL;
     parser->header.kdf_parameters_size = 0;
 }
 
@@ -771,8 +771,7 @@ static bool kdbx_parser_read_header(KDBXParser* parser) {
             }
 
             uint8_t end_marker[4];
-            if(stream_read(parser->stream, end_marker, sizeof(end_marker)) !=
-               sizeof(end_marker)) {
+            if(stream_read(parser->stream, end_marker, sizeof(end_marker)) != sizeof(end_marker)) {
                 FURI_LOG_E("KDBXParser", "Failed to read end-of-header marker bytes");
                 return false;
             }
@@ -831,7 +830,7 @@ static bool kdbx_parser_read_header(KDBXParser* parser) {
             break;
         case KDBX_HEADER_FIELD_ID_KDF_PARAMETERS:
             parser->header.kdf_parameters_size = field_size;
-            parser->header.kdf_parameters      = malloc(field_size);
+            parser->header.kdf_parameters = malloc(field_size);
             if(!parser->header.kdf_parameters) {
                 FURI_LOG_E("KDBXParser", "Failed to allocate KDF parameters");
                 return false;
@@ -874,8 +873,7 @@ static bool kdbx_parser_stream_emit(
     }
 
     if(*emitted_bytes > (KDBX_MAX_STREAM_OUTPUT_SIZE - data_size)) {
-        kdbx_parser_set_error(
-            parser, "This database exceeds FlipPass's streaming output limit.");
+        kdbx_parser_set_error(parser, "This database exceeds FlipPass's streaming output limit.");
         return false;
     }
 
@@ -911,10 +909,12 @@ static bool kdbx_parser_stream_payload_internal(
         KDBX_PARSER_TRACE_TAG,
         "payload start compression=%lu cipher=%s free=%lu max=%lu",
         (unsigned long)parser->header.compression_algorithm,
-        memcmp(parser->header.encryption_algorithm_uuid, KDBX_UUID_AES256, sizeof(KDBX_UUID_AES256)) ==
-                    0 ?
-                "aes" :
-                "chacha20",
+        memcmp(
+            parser->header.encryption_algorithm_uuid,
+            KDBX_UUID_AES256,
+            sizeof(KDBX_UUID_AES256)) == 0 ?
+            "aes" :
+            "chacha20",
         (unsigned long)parser->decrypt_budget_free_heap,
         (unsigned long)parser->decrypt_budget_max_free_block);
 
@@ -1004,7 +1004,8 @@ static bool kdbx_parser_stream_payload_internal(
     if(buffer_gzip_member) {
         if(!kdbx_parser_heap_buffer_reserve(&gzip_buffer, KDBX_STREAM_IO_CHUNK_SIZE)) {
             free(io_buffer);
-            kdbx_parser_set_error(parser, "Not enough RAM is available for the GZip stream buffer.");
+            kdbx_parser_set_error(
+                parser, "Not enough RAM is available for the GZip stream buffer.");
             kdbx_parser_trace_fail(parser, "gzip_buffer_alloc");
             return false;
         }
@@ -1042,7 +1043,8 @@ static bool kdbx_parser_stream_payload_internal(
         if(stream_read(parser->stream, hmac, 32) != 32) {
             FURI_LOG_E("KDBXParser", "Failed to read HMAC for block %llu", block_index);
             kdbx_parser_set_error(parser, "Unable to read the encrypted database payload.");
-            kdbx_parser_trace(parser, "PAYLOAD_BLOCKS_FAIL cause=read_hmac block=%llu", block_index);
+            kdbx_parser_trace(
+                parser, "PAYLOAD_BLOCKS_FAIL cause=read_hmac block=%llu", block_index);
             kdbx_parser_trace_fail(parser, "read_hmac");
             goto cleanup_fail;
         }
@@ -1051,7 +1053,8 @@ static bool kdbx_parser_stream_payload_internal(
         if(stream_read(parser->stream, (uint8_t*)&block_size, 4) != 4) {
             FURI_LOG_E("KDBXParser", "Failed to read size for block %llu", block_index);
             kdbx_parser_set_error(parser, "Unable to read the encrypted database payload.");
-            kdbx_parser_trace(parser, "PAYLOAD_BLOCKS_FAIL cause=read_size block=%llu", block_index);
+            kdbx_parser_trace(
+                parser, "PAYLOAD_BLOCKS_FAIL cause=read_size block=%llu", block_index);
             kdbx_parser_trace_fail(parser, "read_block_size");
             goto cleanup_fail;
         }
@@ -1062,12 +1065,14 @@ static bool kdbx_parser_stream_payload_internal(
             (unsigned long)block_size);
 
         if(block_size > KDBX_MAX_STREAM_OUTPUT_SIZE) {
-            kdbx_parser_set_error(parser, "A database payload block exceeds FlipPass's stream limit.");
+            kdbx_parser_set_error(
+                parser, "A database payload block exceeds FlipPass's stream limit.");
             kdbx_parser_trace_fail(parser, "block_too_large");
             goto cleanup_fail;
         }
 
-        const size_t remaining_after_size = stream_size(parser->stream) - stream_tell(parser->stream);
+        const size_t remaining_after_size =
+            stream_size(parser->stream) - stream_tell(parser->stream);
         if(block_size > remaining_after_size) {
             kdbx_parser_set_error(parser, "The encrypted database payload is truncated.");
             kdbx_parser_trace_fail(parser, "block_truncated");
@@ -1090,9 +1095,7 @@ static bool kdbx_parser_stream_payload_internal(
             goto cleanup_fail;
         }
         FURI_LOG_T(
-            KDBX_PARSER_TRACE_TAG,
-            "block hmac ok index=%llu",
-            (unsigned long long)block_index);
+            KDBX_PARSER_TRACE_TAG, "block hmac ok index=%llu", (unsigned long long)block_index);
 
         if(block_size == 0U) {
             FURI_LOG_T(
@@ -1104,9 +1107,9 @@ static bool kdbx_parser_stream_payload_internal(
 
         size_t block_remaining = block_size;
         while(block_remaining > 0U) {
-            const size_t chunk_size =
-                (block_remaining > KDBX_STREAM_IO_CHUNK_SIZE) ? KDBX_STREAM_IO_CHUNK_SIZE :
-                                                                block_remaining;
+            const size_t chunk_size = (block_remaining > KDBX_STREAM_IO_CHUNK_SIZE) ?
+                                          KDBX_STREAM_IO_CHUNK_SIZE :
+                                          block_remaining;
 
             if(stream_read(parser->stream, io_buffer, chunk_size) != chunk_size) {
                 kdbx_parser_set_error(parser, "Unable to read the encrypted database payload.");
@@ -1217,9 +1220,7 @@ static bool kdbx_parser_stream_payload_internal(
                 (unsigned long)gzip_telemetry.actual_output_size,
                 (unsigned long)gzip_telemetry.consumed_input_size);
             FURI_LOG_T(
-                KDBX_PARSER_TRACE_TAG,
-                "payload gzip ok size=%lu",
-                (unsigned long)emitted_bytes);
+                KDBX_PARSER_TRACE_TAG, "payload gzip ok size=%lu", (unsigned long)emitted_bytes);
         }
     } else {
         FURI_LOG_T(KDBX_PARSER_TRACE_TAG, "payload raw ok size=%lu", (unsigned long)emitted_bytes);
@@ -1253,14 +1254,7 @@ bool kdbx_parser_stream_payload(
     KDBXParserOutputCallback callback,
     void* context) {
     return kdbx_parser_stream_payload_internal(
-        parser,
-        cipher_key,
-        cipher_key_size,
-        hmac_key,
-        hmac_key_size,
-        callback,
-        context,
-        true);
+        parser, cipher_key, cipher_key_size, hmac_key, hmac_key_size, callback, context, true);
 }
 
 bool kdbx_parser_stream_outer_payload(
@@ -1272,24 +1266,16 @@ bool kdbx_parser_stream_outer_payload(
     KDBXParserOutputCallback callback,
     void* context) {
     return kdbx_parser_stream_payload_internal(
-        parser,
-        cipher_key,
-        cipher_key_size,
-        hmac_key,
-        hmac_key_size,
-        callback,
-        context,
-        false);
+        parser, cipher_key, cipher_key_size, hmac_key, hmac_key_size, callback, context, false);
 }
 
-uint8_t*
-    kdbx_parser_decrypt_payload(
-        KDBXParser* parser,
-        const uint8_t* cipher_key,
-        size_t cipher_key_size,
-        const uint8_t* hmac_key,
-        size_t hmac_key_size,
-        size_t* payload_size) {
+uint8_t* kdbx_parser_decrypt_payload(
+    KDBXParser* parser,
+    const uint8_t* cipher_key,
+    size_t cipher_key_size,
+    const uint8_t* hmac_key,
+    size_t hmac_key_size,
+    size_t* payload_size) {
     furi_assert(payload_size);
 
     KDBXParserCollectState collect = {0};
@@ -1358,7 +1344,7 @@ static bool kdbx_parser_derive_transformed_key(
     }
 
     // 1. Parse KDF parameters from the variant dictionary
-    const uint8_t* p   = parser->header.kdf_parameters;
+    const uint8_t* p = parser->header.kdf_parameters;
     const uint8_t* end = p + parser->header.kdf_parameters_size;
 
     // Version check (should be 0x0100)
@@ -1374,8 +1360,8 @@ static bool kdbx_parser_derive_transformed_key(
     }
 
     uint8_t kdf_uuid[16] = {0};
-    uint8_t* salt        = NULL;
-    uint64_t rounds      = 0;
+    uint8_t* salt = NULL;
+    uint64_t rounds = 0;
 
     while(p < end && *p != 0x00) {
         if(!kdbx_parser_has_bytes(p, end, 1 + 4)) {
@@ -1439,7 +1425,8 @@ static bool kdbx_parser_derive_transformed_key(
     for(uint64_t i = 0; i < rounds; ++i) {
         aes_encrypt(composite_key, composite_key, &aes_ctx);
         aes_encrypt(composite_key + 16, composite_key + 16, &aes_ctx);
-        if(parser->kdf_progress_callback != NULL && ((i + 1U) >= next_progress || (i + 1U) == rounds)) {
+        if(parser->kdf_progress_callback != NULL &&
+           ((i + 1U) >= next_progress || (i + 1U) == rounds)) {
             parser->kdf_progress_callback(i + 1U, rounds, parser->kdf_progress_context);
             next_progress += progress_step;
         }

@@ -105,7 +105,7 @@ AES_RETURN aes_xi(encrypt_key128)(const unsigned char* key, aes_encrypt_ctx cx[1
     }
 #endif
     ke4(cx->ks, 9);
-    cx->inf.l    = 0;
+    cx->inf.l = 0;
     cx->inf.b[0] = 10 * AES_BLOCK_SIZE;
 
 #ifdef USE_VIA_ACE_IF_PRESENT
@@ -159,7 +159,7 @@ AES_RETURN aes_xi(encrypt_key192)(const unsigned char* key, aes_encrypt_ctx cx[1
     }
 #endif
     kef6(cx->ks, 7);
-    cx->inf.l    = 0;
+    cx->inf.l = 0;
     cx->inf.b[0] = 12 * AES_BLOCK_SIZE;
 
 #ifdef USE_VIA_ACE_IF_PRESENT
@@ -172,12 +172,12 @@ AES_RETURN aes_xi(encrypt_key192)(const unsigned char* key, aes_encrypt_ctx cx[1
 
 #if defined(AES_256) || defined(AES_VAR)
 
-#define kef8(k, i)                                                    \
-    {                                                                 \
-        k[8 * (i) + 8]  = ss[0] ^= ls_box(ss[7], 3) ^ t_use(r, c)[i]; \
-        k[8 * (i) + 9]  = ss[1] ^= ss[0];                             \
-        k[8 * (i) + 10] = ss[2] ^= ss[1];                             \
-        k[8 * (i) + 11] = ss[3] ^= ss[2];                             \
+#define kef8(k, i)                                                   \
+    {                                                                \
+        k[8 * (i) + 8] = ss[0] ^= ls_box(ss[7], 3) ^ t_use(r, c)[i]; \
+        k[8 * (i) + 9] = ss[1] ^= ss[0];                             \
+        k[8 * (i) + 10] = ss[2] ^= ss[1];                            \
+        k[8 * (i) + 11] = ss[3] ^= ss[2];                            \
     }
 
 #define ke8(k, i)                                    \
@@ -216,7 +216,7 @@ AES_RETURN aes_xi(encrypt_key256)(const unsigned char* key, aes_encrypt_ctx cx[1
     }
 #endif
     kef8(cx->ks, 6);
-    cx->inf.l    = 0;
+    cx->inf.l = 0;
     cx->inf.b[0] = 14 * AES_BLOCK_SIZE;
 
 #ifdef USE_VIA_ACE_IF_PRESENT
@@ -282,7 +282,7 @@ AES_RETURN aes_xi(encrypt_key256)(const unsigned char* key, aes_encrypt_ctx cx[1
     {                                                               \
         ss[4] = ls_box(ss[(i + 3) % 4], 3) ^ t_use(r, c)[i];        \
         ss[i % 4] ^= ss[4];                                         \
-        ss[4]                   = ff(ss[4]);                        \
+        ss[4] = ff(ss[4]);                                          \
         k[v(40, (4 * (i)) + 4)] = ss[4] ^= k[v(40, (4 * (i)))];     \
         k[v(40, (4 * (i)) + 5)] = ss[4] ^= k[v(40, (4 * (i)) + 1)]; \
         k[v(40, (4 * (i)) + 6)] = ss[4] ^= k[v(40, (4 * (i)) + 2)]; \
@@ -317,7 +317,7 @@ AES_RETURN aes_xi(encrypt_key256)(const unsigned char* key, aes_encrypt_ctx cx[1
     {                                                               \
         ss[4] = ls_box(ss[3], 3) ^ t_use(r, c)[i];                  \
         ss[0] ^= ss[4];                                             \
-        ss[4]                   = ff(ss[4]);                        \
+        ss[4] = ff(ss[4]);                                          \
         k[v(40, (4 * (i)) + 4)] = ss[4] ^= k[v(40, (4 * (i)))];     \
         ss[1] ^= ss[0];                                             \
         k[v(40, (4 * (i)) + 5)] = ss[4] ^= k[v(40, (4 * (i)) + 1)]; \
@@ -374,7 +374,7 @@ AES_RETURN aes_xi(decrypt_key128)(const unsigned char* key, aes_decrypt_ctx cx[1
 #endif
     }
 #endif
-    cx->inf.l    = 0;
+    cx->inf.l = 0;
     cx->inf.b[0] = 10 * AES_BLOCK_SIZE;
 
 #ifdef USE_VIA_ACE_IF_PRESENT
@@ -422,7 +422,7 @@ AES_RETURN aes_xi(decrypt_key128)(const unsigned char* key, aes_decrypt_ctx cx[1
     {                                                                \
         ss[6] = ls_box(ss[5], 3) ^ t_use(r, c)[i];                   \
         ss[0] ^= ss[6];                                              \
-        ss[6]                   = ff(ss[6]);                         \
+        ss[6] = ff(ss[6]);                                           \
         k[v(48, (6 * (i)) + 6)] = ss[6] ^= k[v(48, (6 * (i)))];      \
         ss[1] ^= ss[0];                                              \
         k[v(48, (6 * (i)) + 7)] = ss[6] ^= k[v(48, (6 * (i)) + 1)];  \
@@ -460,8 +460,8 @@ AES_RETURN aes_xi(decrypt_key192)(const unsigned char* key, aes_decrypt_ctx cx[1
     cx->ks[v(48, (3))] = ss[3] = word_in(key, 3);
 
 #ifdef DEC_KS_UNROLL
-    ss[4]              = word_in(key, 4);
-    ss[5]              = word_in(key, 5);
+    ss[4] = word_in(key, 4);
+    ss[5] = word_in(key, 5);
     cx->ks[v(48, (4))] = ff(ss[4]);
     cx->ks[v(48, (5))] = ff(ss[5]);
     kdf6(cx->ks, 0);
@@ -487,7 +487,7 @@ AES_RETURN aes_xi(decrypt_key192)(const unsigned char* key, aes_decrypt_ctx cx[1
 #endif
     }
 #endif
-    cx->inf.l    = 0;
+    cx->inf.l = 0;
     cx->inf.b[0] = 12 * AES_BLOCK_SIZE;
 
 #ifdef USE_VIA_ACE_IF_PRESENT
@@ -500,12 +500,12 @@ AES_RETURN aes_xi(decrypt_key192)(const unsigned char* key, aes_decrypt_ctx cx[1
 
 #if defined(AES_256) || defined(AES_VAR)
 
-#define k8ef(k, i)                                                             \
-    {                                                                          \
-        k[v(56, (8 * (i)) + 8)]  = ss[0] ^= ls_box(ss[7], 3) ^ t_use(r, c)[i]; \
-        k[v(56, (8 * (i)) + 9)]  = ss[1] ^= ss[0];                             \
-        k[v(56, (8 * (i)) + 10)] = ss[2] ^= ss[1];                             \
-        k[v(56, (8 * (i)) + 11)] = ss[3] ^= ss[2];                             \
+#define k8ef(k, i)                                                            \
+    {                                                                         \
+        k[v(56, (8 * (i)) + 8)] = ss[0] ^= ls_box(ss[7], 3) ^ t_use(r, c)[i]; \
+        k[v(56, (8 * (i)) + 9)] = ss[1] ^= ss[0];                             \
+        k[v(56, (8 * (i)) + 10)] = ss[2] ^= ss[1];                            \
+        k[v(56, (8 * (i)) + 11)] = ss[3] ^= ss[2];                            \
     }
 
 #define k8e(k, i)                                             \
@@ -541,7 +541,7 @@ AES_RETURN aes_xi(decrypt_key192)(const unsigned char* key, aes_decrypt_ctx cx[1
     {                                                                \
         ss[8] = ls_box(ss[7], 3) ^ t_use(r, c)[i];                   \
         ss[0] ^= ss[8];                                              \
-        ss[8]                   = ff(ss[8]);                         \
+        ss[8] = ff(ss[8]);                                           \
         k[v(56, (8 * (i)) + 8)] = ss[8] ^= k[v(56, (8 * (i)))];      \
         ss[1] ^= ss[0];                                              \
         k[v(56, (8 * (i)) + 9)] = ss[8] ^= k[v(56, (8 * (i)) + 1)];  \
@@ -549,9 +549,9 @@ AES_RETURN aes_xi(decrypt_key192)(const unsigned char* key, aes_decrypt_ctx cx[1
         k[v(56, (8 * (i)) + 10)] = ss[8] ^= k[v(56, (8 * (i)) + 2)]; \
         ss[3] ^= ss[2];                                              \
         k[v(56, (8 * (i)) + 11)] = ss[8] ^= k[v(56, (8 * (i)) + 3)]; \
-        ss[8]                    = ls_box(ss[3], 0);                 \
+        ss[8] = ls_box(ss[3], 0);                                    \
         ss[4] ^= ss[8];                                              \
-        ss[8]                    = ff(ss[8]);                        \
+        ss[8] = ff(ss[8]);                                           \
         k[v(56, (8 * (i)) + 12)] = ss[8] ^= k[v(56, (8 * (i)) + 4)]; \
         ss[5] ^= ss[4];                                              \
         k[v(56, (8 * (i)) + 13)] = ss[8] ^= k[v(56, (8 * (i)) + 5)]; \
@@ -585,10 +585,10 @@ AES_RETURN aes_xi(decrypt_key256)(const unsigned char* key, aes_decrypt_ctx cx[1
     cx->ks[v(56, (3))] = ss[3] = word_in(key, 3);
 
 #ifdef DEC_KS_UNROLL
-    ss[4]              = word_in(key, 4);
-    ss[5]              = word_in(key, 5);
-    ss[6]              = word_in(key, 6);
-    ss[7]              = word_in(key, 7);
+    ss[4] = word_in(key, 4);
+    ss[5] = word_in(key, 5);
+    ss[6] = word_in(key, 6);
+    ss[7] = word_in(key, 7);
     cx->ks[v(56, (4))] = ff(ss[4]);
     cx->ks[v(56, (5))] = ff(ss[5]);
     cx->ks[v(56, (6))] = ff(ss[6]);
@@ -617,7 +617,7 @@ AES_RETURN aes_xi(decrypt_key256)(const unsigned char* key, aes_decrypt_ctx cx[1
 #endif
     }
 #endif
-    cx->inf.l    = 0;
+    cx->inf.l = 0;
     cx->inf.b[0] = 14 * AES_BLOCK_SIZE;
 
 #ifdef USE_VIA_ACE_IF_PRESENT

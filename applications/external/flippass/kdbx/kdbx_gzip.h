@@ -79,10 +79,8 @@ typedef struct {
 } KDBXGzipTelemetry;
 
 typedef bool (*KDBXGzipOutputCallback)(const uint8_t* data, size_t data_size, void* context);
-typedef void (*KDBXGzipTraceCallback)(
-    const char* event,
-    const KDBXGzipTelemetry* telemetry,
-    void* context);
+typedef void (
+    *KDBXGzipTraceCallback)(const char* event, const KDBXGzipTelemetry* telemetry, void* context);
 
 typedef struct {
     KDBXGzipTraceCallback callback;

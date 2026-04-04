@@ -32,7 +32,7 @@ uint32_t random_uniform(uint32_t n) {
 
 void random_permute(char* str, size_t len) {
     for(int i = len - 1; i >= 1; i--) {
-        int j  = random_uniform(i + 1);
+        int j = random_uniform(i + 1);
         char t = str[j];
         str[j] = str[i];
         str[i] = t;

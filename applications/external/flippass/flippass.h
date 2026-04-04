@@ -33,28 +33,28 @@
 
 #define TAG "FlipPass"
 
-#define FLIPPASS_CONFIG_FILE_PATH EXT_PATH("apps_data/flippass/flippass.conf")
-#define FLIPPASS_LOG_FILE_PATH    EXT_PATH("apps_data/flippass/flippass.log")
-#define FLIPPASS_DEBUG_UNLOCK_FILE_PATH EXT_PATH("apps_data/flippass/debug_unlock.txt")
-#define FLIPPASS_SYSTEM_LOG_FILE_PATH EXT_PATH("apps_data/flippass/system_trace.log")
-#define FLIPPASS_SYSTEM_LOG_ENABLE_FILE_PATH EXT_PATH("apps_data/flippass/system_trace.enable")
-#define FLIPPASS_USB_ENUMERATION_TIMEOUT_MS 15000U
-#define FLIPPASS_USB_POLL_DELAY_MS          100U
-#define FLIPPASS_USB_PRESS_DELAY_MS         12U
-#define FLIPPASS_USB_RELEASE_DELAY_MS       18U
-#define FLIPPASS_USB_STEP_DELAY_MS          45U
-#define FLIPPASS_USB_SETTLE_DELAY_MS        300U
-#define FLIPPASS_USB_SWITCH_DELAY_MS        150U
-#define FLIPPASS_OUTPUT_PRE_PRESS_DELAY_MS      10U
+#define FLIPPASS_CONFIG_FILE_PATH              EXT_PATH("apps_data/flippass/flippass.conf")
+#define FLIPPASS_LOG_FILE_PATH                 EXT_PATH("apps_data/flippass/flippass.log")
+#define FLIPPASS_DEBUG_UNLOCK_FILE_PATH        EXT_PATH("apps_data/flippass/debug_unlock.txt")
+#define FLIPPASS_SYSTEM_LOG_FILE_PATH          EXT_PATH("apps_data/flippass/system_trace.log")
+#define FLIPPASS_SYSTEM_LOG_ENABLE_FILE_PATH   EXT_PATH("apps_data/flippass/system_trace.enable")
+#define FLIPPASS_USB_ENUMERATION_TIMEOUT_MS    15000U
+#define FLIPPASS_USB_POLL_DELAY_MS             100U
+#define FLIPPASS_USB_PRESS_DELAY_MS            12U
+#define FLIPPASS_USB_RELEASE_DELAY_MS          18U
+#define FLIPPASS_USB_STEP_DELAY_MS             45U
+#define FLIPPASS_USB_SETTLE_DELAY_MS           300U
+#define FLIPPASS_USB_SWITCH_DELAY_MS           150U
+#define FLIPPASS_OUTPUT_PRE_PRESS_DELAY_MS     10U
 #define FLIPPASS_OUTPUT_ALT_PRE_PRESS_DELAY_MS 30U
 
-#define TEXT_BUFFER_SIZE 256
-#define STATUS_TITLE_SIZE 64
-#define STATUS_MESSAGE_SIZE 256
-#define FLIPPASS_RPC_BUFFER_SIZE 512
-#define FLIPPASS_PASSWORD_HEADER_SIZE 96
-#define FLIPPASS_SYSTEM_LOG_LINE_SIZE 384
-#define FLIPPASS_SYSTEM_LOG_RING_LINES 8
+#define TEXT_BUFFER_SIZE                   256
+#define STATUS_TITLE_SIZE                  64
+#define STATUS_MESSAGE_SIZE                256
+#define FLIPPASS_RPC_BUFFER_SIZE           512
+#define FLIPPASS_PASSWORD_HEADER_SIZE      96
+#define FLIPPASS_SYSTEM_LOG_LINE_SIZE      384
+#define FLIPPASS_SYSTEM_LOG_RING_LINES     8
 #define FLIPPASS_SYSTEM_LOG_RING_LINE_SIZE 128
 
 typedef enum {
@@ -119,7 +119,8 @@ typedef struct App {
     KDBXVault* vault;
     KDBXVaultBackend active_vault_backend;
     KDBXVaultBackend requested_vault_backend;
-    KDBXVault* pending_gzip_scratch_vault; /**< Preflight-staged GZip XML scratch kept across /ext approval. */
+    KDBXVault*
+        pending_gzip_scratch_vault; /**< Preflight-staged GZip XML scratch kept across /ext approval. */
     KDBXFieldRef pending_gzip_scratch_ref; /**< Record range for the staged GZip XML scratch. */
     size_t pending_gzip_plain_size; /**< Expected plaintext XML size for the staged GZip scratch. */
     KDBXGroup* root_group;
@@ -127,7 +128,8 @@ typedef struct App {
     KDBXEntry* current_entry;
     KDBXGroup* active_group; /**< Group currently shown in the browser scene. */
     KDBXEntry* active_entry; /**< Entry currently shown in detail or action scenes. */
-    KDBXProtectedStream protected_stream; /**< Active inner protected-value stream for XML parsing. */
+    KDBXProtectedStream
+        protected_stream; /**< Active inner protected-value stream for XML parsing. */
     RpcAppSystem* rpc; /**< Active RPC app context when the app is launched in RPC mode. */
     FuriHalUsbInterface* usb_if_prev; /**< USB interface active before HID typing. */
     bool usb_was_locked; /**< True when FlipPass temporarily unlocked USB for typing. */
@@ -136,11 +138,16 @@ typedef struct App {
     uint32_t browser_selected_index; /**< Last selected browser item. */
     uint32_t action_selected_index; /**< Last selected action item. */
     uint32_t other_field_selected_index; /**< Last selected item in the other-fields list. */
-    uint32_t other_field_action_selected_index; /**< Last selected action for the current other field. */
-    FlipPassEntryAction pending_entry_action; /**< Entry action awaiting confirmation or execution. */
-    uint32_t pending_other_field_mask; /**< Standard entry field selected from the other-fields flow. */
-    KDBXCustomField* pending_other_custom_field; /**< Custom entry field selected from the other-fields flow. */
-    char pending_other_field_name[STATUS_TITLE_SIZE]; /**< Current other-field label for prompts and status. */
+    uint32_t
+        other_field_action_selected_index; /**< Last selected action for the current other field. */
+    FlipPassEntryAction
+        pending_entry_action; /**< Entry action awaiting confirmation or execution. */
+    uint32_t
+        pending_other_field_mask; /**< Standard entry field selected from the other-fields flow. */
+    KDBXCustomField*
+        pending_other_custom_field; /**< Custom entry field selected from the other-fields flow. */
+    char pending_other_field_name
+        [STATUS_TITLE_SIZE]; /**< Current other-field label for prompts and status. */
     bool close_db_dialog_open; /**< True while the close-database confirmation dialog is visible. */
     bool parse_failed; /**< True once XML or data-model parsing hits a handled failure. */
     bool database_loaded; /**< True if the current database was parsed successfully. */
@@ -155,16 +162,19 @@ typedef struct App {
     uint8_t progress_percent; /**< Last rendered progress percentage. */
     char progress_title[STATUS_TITLE_SIZE]; /**< Persistent progress-screen title. */
 #if FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE
-    FuriLogHandler system_log_handler; /**< Optional filtered system-log capture for debug sessions. */
+    FuriLogHandler
+        system_log_handler; /**< Optional filtered system-log capture for debug sessions. */
     bool system_log_capture_enabled; /**< True while the filtered system-log handler is registered. */
     bool system_log_capture_busy; /**< Reentrancy guard for the filtered system-log handler. */
     size_t system_log_capture_bytes; /**< Total bytes written to the filtered system-log file. */
     size_t system_log_line_len; /**< Pending bytes in the filtered system-log line buffer. */
-    char system_log_line[FLIPPASS_SYSTEM_LOG_LINE_SIZE]; /**< Pending filtered system-log line assembly buffer. */
+    char system_log_line
+        [FLIPPASS_SYSTEM_LOG_LINE_SIZE]; /**< Pending filtered system-log line assembly buffer. */
     char* system_log_ring; /**< Optional RAM-backed ring of filtered system-log lines. */
     size_t system_log_ring_count; /**< Number of valid lines currently stored in the ring. */
     size_t system_log_ring_next; /**< Next line slot to overwrite in the RAM-backed ring. */
-    size_t system_log_ring_dropped; /**< Number of filtered lines dropped because they exceeded the ring slot size. */
+    size_t
+        system_log_ring_dropped; /**< Number of filtered lines dropped because they exceeded the ring slot size. */
     bool system_log_capture_buffered; /**< True when filtered system-log capture uses RAM buffering instead of live file writes. */
 #endif
 } App;

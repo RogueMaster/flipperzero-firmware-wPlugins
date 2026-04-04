@@ -39,9 +39,8 @@ static void flippass_scene_password_entry_set_header(App* app) {
 
 #if FLIPPASS_ENABLE_DEBUG_UNLOCK_HOOK
 static bool flippass_scene_password_entry_bool_text(const char* text) {
-    return text != NULL &&
-           (strcmp(text, "1") == 0 || strcmp(text, "true") == 0 || strcmp(text, "yes") == 0 ||
-            strcmp(text, "on") == 0);
+    return text != NULL && (strcmp(text, "1") == 0 || strcmp(text, "true") == 0 ||
+                            strcmp(text, "yes") == 0 || strcmp(text, "on") == 0);
 }
 static bool flippass_scene_password_entry_try_debug_unlock(App* app) {
     bool triggered = false;

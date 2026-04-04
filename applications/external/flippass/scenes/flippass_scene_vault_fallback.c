@@ -36,27 +36,11 @@ void flippass_scene_vault_fallback_on_enter(void* context) {
     widget_add_string_element(
         app->widget, 64, 5, AlignCenter, AlignTop, FontPrimary, "Need /ext Session");
     widget_add_text_box_element(
-        app->widget,
-        0,
-        16,
-        128,
-        40,
-        AlignLeft,
-        AlignTop,
-        compact_message,
-        true);
+        app->widget, 0, 16, 128, 40, AlignLeft, AlignTop, compact_message, true);
     widget_add_button_element(
-        app->widget,
-        GuiButtonTypeLeft,
-        "Cancel",
-        flippass_scene_vault_fallback_callback,
-        app);
+        app->widget, GuiButtonTypeLeft, "Cancel", flippass_scene_vault_fallback_callback, app);
     widget_add_button_element(
-        app->widget,
-        GuiButtonTypeCenter,
-        "Continue",
-        flippass_scene_vault_fallback_callback,
-        app);
+        app->widget, GuiButtonTypeCenter, "Continue", flippass_scene_vault_fallback_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewWidget);
 }
 

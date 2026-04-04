@@ -68,10 +68,7 @@ static bool flippass_other_fields_select_current_item(App* app) {
     app->pending_other_field_mask = item->field_mask;
     app->pending_other_custom_field = item->custom_field;
     snprintf(
-        app->pending_other_field_name,
-        sizeof(app->pending_other_field_name),
-        "%s",
-        item->label);
+        app->pending_other_field_name, sizeof(app->pending_other_field_name), "%s", item->label);
     return true;
 }
 
@@ -157,17 +154,15 @@ void flippass_scene_other_fields_on_enter(void* context) {
 
     if(!flippass_db_activate_entry(app, app->active_entry, false, error)) {
         flippass_scene_status_show(
-            app,
-            "Entry Load Failed",
-            furi_string_get_cstr(error),
-            FlipPassScene_DbEntries);
+            app, "Entry Load Failed", furi_string_get_cstr(error), FlipPassScene_DbEntries);
         scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
         furi_string_free(error);
         return;
     }
     furi_string_free(error);
 
-    flippass_db_browser_view_set_callback(app->db_browser, flippass_other_fields_view_callback, app);
+    flippass_db_browser_view_set_callback(
+        app->db_browser, flippass_other_fields_view_callback, app);
     flippass_other_fields_render(app, entry);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
 }

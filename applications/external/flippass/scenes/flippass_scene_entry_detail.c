@@ -25,13 +25,16 @@ static void flippass_scene_entry_detail_build_text(App* app, FuriString* text) {
     const bool has_password = entry && flippass_db_entry_has_field(entry, KDBXEntryFieldPassword);
 
     furi_string_set_str(text, "");
-    furi_string_cat_printf(text, "Title: %s\n", flippass_safe_text(entry ? entry->title : NULL, "Untitled Entry"));
-    furi_string_cat_printf(text, "User: %s\n", flippass_safe_text(entry ? entry->username : NULL, "Not set"));
+    furi_string_cat_printf(
+        text, "Title: %s\n", flippass_safe_text(entry ? entry->title : NULL, "Untitled Entry"));
+    furi_string_cat_printf(
+        text, "User: %s\n", flippass_safe_text(entry ? entry->username : NULL, "Not set"));
     furi_string_cat_printf(text, "Password: %s\n", has_password ? "Hidden" : "Not set");
     if(has_url) {
         furi_string_cat_printf(text, "URL: %s\n", flippass_safe_text(entry->url, "Not set"));
     }
-    furi_string_cat_printf(text, "Group: %s\n", flippass_safe_text(group ? group->name : NULL, "Root"));
+    furi_string_cat_printf(
+        text, "Group: %s\n", flippass_safe_text(group ? group->name : NULL, "Root"));
     if(has_notes) {
         furi_string_cat(text, "Notes: Available\n");
     }
@@ -39,9 +42,7 @@ static void flippass_scene_entry_detail_build_text(App* app, FuriString* text) {
         text,
         "AutoType: %s\n",
         has_autotype ? "Custom sequence" :
-                       ((has_username && has_password) ?
-                            "Default login" :
-                            "Not available"));
+                       ((has_username && has_password) ? "Default login" : "Not available"));
     furi_string_cat(text, "\n");
     furi_string_cat(text, "Return to actions.");
 }
@@ -63,10 +64,7 @@ void flippass_scene_entry_detail_on_enter(void* context) {
 
     if(!flippass_db_activate_entry(app, app->current_entry, false, scratch)) {
         flippass_scene_status_show(
-            app,
-            "Entry Load Failed",
-            furi_string_get_cstr(scratch),
-            FlipPassScene_DbEntries);
+            app, "Entry Load Failed", furi_string_get_cstr(scratch), FlipPassScene_DbEntries);
         scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
         furi_string_free(scratch);
         return;
@@ -76,15 +74,7 @@ void flippass_scene_entry_detail_on_enter(void* context) {
 
     flippass_scene_entry_detail_build_text(app, scratch);
     widget_add_text_box_element(
-        app->widget,
-        0,
-        0,
-        128,
-        50,
-        AlignLeft,
-        AlignTop,
-        furi_string_get_cstr(scratch),
-        true);
+        app->widget, 0, 0, 128, 50, AlignLeft, AlignTop, furi_string_get_cstr(scratch), true);
     widget_add_button_element(app->widget, GuiButtonTypeRight, "Back", NULL, NULL);
     furi_string_free(scratch);
 

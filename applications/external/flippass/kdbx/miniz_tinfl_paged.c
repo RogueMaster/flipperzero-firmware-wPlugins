@@ -31,15 +31,15 @@ extern "C" {
 #define TINFL_RUNTIME_ALLOCA(size) NULL
 #endif
 
-#define TINFL_CR_BEGIN            \
-    switch(r->m_state) {          \
+#define TINFL_CR_BEGIN   \
+    switch(r->m_state) { \
     case 0:
 #define TINFL_CR_RETURN(state_index, result) \
-    do {                                       \
-        status = result;                       \
-        r->m_state = state_index;              \
-        goto common_exit;                      \
-    case state_index:;                         \
+    do {                                     \
+        status = result;                     \
+        r->m_state = state_index;            \
+        goto common_exit;                    \
+    case state_index:;                       \
     } while(0)
 #define TINFL_CR_RETURN_FOREVER(state_index, result) \
     do {                                             \
@@ -49,90 +49,91 @@ extern "C" {
     } while(0)
 #define TINFL_CR_FINISH }
 
-#define TINFL_GET_BYTE(state_index, c)                                                              \
-    do {                                                                                            \
-        if(!tinfl_paged_runtime_heartbeat(runtime)) {                                               \
-            status = TINFL_STATUS_FAILED;                                                           \
-            goto common_exit;                                                                       \
-        }                                                                                           \
-        while(pIn_buf_cur >= pIn_buf_end) {                                                         \
-            TINFL_CR_RETURN(                                                                        \
-                state_index,                                                                        \
-                (decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT :       \
-                                                              TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS); \
-        }                                                                                           \
-        c = *pIn_buf_cur++;                                                                         \
+#define TINFL_GET_BYTE(state_index, c)                         \
+    do {                                                       \
+        if(!tinfl_paged_runtime_heartbeat(runtime)) {          \
+            status = TINFL_STATUS_FAILED;                      \
+            goto common_exit;                                  \
+        }                                                      \
+        while(pIn_buf_cur >= pIn_buf_end) {                    \
+            TINFL_CR_RETURN(                                   \
+                state_index,                                   \
+                (decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ?   \
+                    TINFL_STATUS_NEEDS_MORE_INPUT :            \
+                    TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS); \
+        }                                                      \
+        c = *pIn_buf_cur++;                                    \
     } while(0)
 
-#define TINFL_NEED_BITS(state_index, n)             \
-    do {                                            \
-        mz_uint c;                                  \
-        TINFL_GET_BYTE(state_index, c);             \
+#define TINFL_NEED_BITS(state_index, n)                \
+    do {                                               \
+        mz_uint c;                                     \
+        TINFL_GET_BYTE(state_index, c);                \
         bit_buf |= (((tinfl_bit_buf_t)c) << num_bits); \
-        num_bits += 8;                              \
+        num_bits += 8;                                 \
     } while(num_bits < (mz_uint)(n))
-#define TINFL_SKIP_BITS(state_index, n)   \
-    do {                                  \
-        if(num_bits < (mz_uint)(n)) {     \
+#define TINFL_SKIP_BITS(state_index, n)      \
+    do {                                     \
+        if(num_bits < (mz_uint)(n)) {        \
             TINFL_NEED_BITS(state_index, n); \
-        }                                 \
-        bit_buf >>= (n);                  \
-        num_bits -= (n);                  \
+        }                                    \
+        bit_buf >>= (n);                     \
+        num_bits -= (n);                     \
     } while(0)
-#define TINFL_GET_BITS(state_index, b, n) \
-    do {                                  \
-        if(num_bits < (mz_uint)(n)) {     \
+#define TINFL_GET_BITS(state_index, b, n)    \
+    do {                                     \
+        if(num_bits < (mz_uint)(n)) {        \
             TINFL_NEED_BITS(state_index, n); \
-        }                                 \
-        b = bit_buf & ((1 << (n)) - 1);   \
-        bit_buf >>= (n);                  \
-        num_bits -= (n);                  \
+        }                                    \
+        b = bit_buf & ((1 << (n)) - 1);      \
+        bit_buf >>= (n);                     \
+        num_bits -= (n);                     \
     } while(0)
 
-#define TINFL_HUFF_BITBUF_FILL(state_index, pLookUp, pTree)         \
-    do {                                                            \
-        temp = pLookUp[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)];     \
-        if(temp >= 0) {                                             \
-            code_len = temp >> 9;                                   \
-            if((code_len) && (num_bits >= code_len)) break;         \
-        } else if(num_bits > TINFL_FAST_LOOKUP_BITS) {              \
-            code_len = TINFL_FAST_LOOKUP_BITS;                      \
-            do {                                                    \
+#define TINFL_HUFF_BITBUF_FILL(state_index, pLookUp, pTree)          \
+    do {                                                             \
+        temp = pLookUp[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)];      \
+        if(temp >= 0) {                                              \
+            code_len = temp >> 9;                                    \
+            if((code_len) && (num_bits >= code_len)) break;          \
+        } else if(num_bits > TINFL_FAST_LOOKUP_BITS) {               \
+            code_len = TINFL_FAST_LOOKUP_BITS;                       \
+            do {                                                     \
                 temp = pTree[~temp + ((bit_buf >> code_len++) & 1)]; \
-            } while((temp < 0) && (num_bits >= (code_len + 1)));    \
-            if(temp >= 0) break;                                    \
-        }                                                           \
-        TINFL_GET_BYTE(state_index, c);                             \
-        bit_buf |= (((tinfl_bit_buf_t)c) << num_bits);              \
-        num_bits += 8;                                              \
+            } while((temp < 0) && (num_bits >= (code_len + 1)));     \
+            if(temp >= 0) break;                                     \
+        }                                                            \
+        TINFL_GET_BYTE(state_index, c);                              \
+        bit_buf |= (((tinfl_bit_buf_t)c) << num_bits);               \
+        num_bits += 8;                                               \
     } while(num_bits < 15)
 
-#define TINFL_HUFF_DECODE(state_index, sym, pLookUp, pTree)                    \
-    do {                                                                       \
-        int temp;                                                              \
-        mz_uint code_len, c;                                                   \
-        if(num_bits < 15) {                                                    \
-            if((pIn_buf_end - pIn_buf_cur) < 2) {                              \
-                TINFL_HUFF_BITBUF_FILL(state_index, pLookUp, pTree);           \
-            } else {                                                           \
-                bit_buf |= (((tinfl_bit_buf_t)pIn_buf_cur[0]) << num_bits) |   \
+#define TINFL_HUFF_DECODE(state_index, sym, pLookUp, pTree)                       \
+    do {                                                                          \
+        int temp;                                                                 \
+        mz_uint code_len, c;                                                      \
+        if(num_bits < 15) {                                                       \
+            if((pIn_buf_end - pIn_buf_cur) < 2) {                                 \
+                TINFL_HUFF_BITBUF_FILL(state_index, pLookUp, pTree);              \
+            } else {                                                              \
+                bit_buf |= (((tinfl_bit_buf_t)pIn_buf_cur[0]) << num_bits) |      \
                            (((tinfl_bit_buf_t)pIn_buf_cur[1]) << (num_bits + 8)); \
-                pIn_buf_cur += 2;                                              \
-                num_bits += 16;                                                \
-            }                                                                  \
-        }                                                                      \
-        if((temp = pLookUp[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)]) >= 0) {    \
-            code_len = temp >> 9;                                              \
-            temp &= 511;                                                       \
-        } else {                                                               \
-            code_len = TINFL_FAST_LOOKUP_BITS;                                 \
-            do {                                                               \
-                temp = pTree[~temp + ((bit_buf >> code_len++) & 1)];           \
-            } while(temp < 0);                                                 \
-        }                                                                      \
-        sym = temp;                                                            \
-        bit_buf >>= code_len;                                                  \
-        num_bits -= code_len;                                                  \
+                pIn_buf_cur += 2;                                                 \
+                num_bits += 16;                                                   \
+            }                                                                     \
+        }                                                                         \
+        if((temp = pLookUp[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)]) >= 0) {       \
+            code_len = temp >> 9;                                                 \
+            temp &= 511;                                                          \
+        } else {                                                                  \
+            code_len = TINFL_FAST_LOOKUP_BITS;                                    \
+            do {                                                                  \
+                temp = pTree[~temp + ((bit_buf >> code_len++) & 1)];              \
+            } while(temp < 0);                                                    \
+        }                                                                         \
+        sym = temp;                                                               \
+        bit_buf >>= code_len;                                                     \
+        num_bits -= code_len;                                                     \
     } while(0)
 
 typedef struct {
@@ -145,7 +146,8 @@ typedef struct {
     mz_uint8 (*get)(const void* impl, size_t offset);
     void (*set)(void* impl, size_t offset, mz_uint8 value);
     void (*write)(void* impl, size_t offset, const mz_uint8* src, size_t len);
-    int (*flush)(void* impl, size_t offset, size_t len, tinfl_put_buf_func_ptr callback, void* user);
+    int (
+        *flush)(void* impl, size_t offset, size_t len, tinfl_put_buf_func_ptr callback, void* user);
     bool (*copy_match)(
         void* impl,
         size_t dst_offset,
@@ -169,16 +171,16 @@ struct tinfl_paged_runtime_tag {
     uint32_t deadline_tick;
 };
 
-#define TINFL_PAGED_YIELD_OUTPUT_BYTES 8192U
-#define TINFL_PAGED_HEARTBEAT_STEPS    131072U
-#define TINFL_PAGED_IO_TOUCH_STEPS     64U
-#define TINFL_PAGED_TIMEOUT_MS         300000U
-#define TINFL_PAGED_INPUT_CHUNK_BYTES  512U
-#define TINFL_FILE_DICT_MAC_SIZE       32U
+#define TINFL_PAGED_YIELD_OUTPUT_BYTES  8192U
+#define TINFL_PAGED_HEARTBEAT_STEPS     131072U
+#define TINFL_PAGED_IO_TOUCH_STEPS      64U
+#define TINFL_PAGED_TIMEOUT_MS          300000U
+#define TINFL_PAGED_INPUT_CHUNK_BYTES   512U
+#define TINFL_FILE_DICT_MAC_SIZE        32U
 #define TINFL_FILE_DICT_MAX_CACHE_PAGES 1U
 #define TINFL_FILE_DICT_MIN_CACHE_PAGES 1U
-#define TINFL_FILE_DICT_USE_COPY_MATCH 1U
-#define TINFL_FILE_TAG                 "FlipPassGzip"
+#define TINFL_FILE_DICT_USE_COPY_MATCH  1U
+#define TINFL_FILE_TAG                  "FlipPassGzip"
 
 typedef struct {
     uint8_t* data;
@@ -261,7 +263,8 @@ static void tinfl_debug_trace_telemetry(tinfl_paged_telemetry* telemetry, const 
 
 #if FLIPPASS_ENABLE_GZIP_PAGED_TRACE
 static void tinfl_paged_trace(tinfl_paged_runtime* runtime, const char* event) {
-    if(runtime == NULL || runtime->telemetry == NULL || runtime->telemetry->trace_callback == NULL) {
+    if(runtime == NULL || runtime->telemetry == NULL ||
+       runtime->telemetry->trace_callback == NULL) {
         return;
     }
 
@@ -305,9 +308,9 @@ static void tinfl_file_dict_trace_runtime(tinfl_file_dict* dict, const char* eve
         UNUSED(telemetry);                            \
     } while(0)
 #define tinfl_file_dict_trace_step(dict, telemetry, event) \
-    do {                                                  \
-        UNUSED(dict);                                     \
-        UNUSED(telemetry);                                \
+    do {                                                   \
+        UNUSED(dict);                                      \
+        UNUSED(telemetry);                                 \
     } while(0)
 #define tinfl_file_dict_trace_runtime(dict, event) \
     do {                                           \
@@ -463,10 +466,8 @@ static void tinfl_file_dict_derive_keys(tinfl_file_dict* dict) {
     memzero(hash, sizeof(hash));
 }
 
-static void tinfl_file_dict_nonce(
-    const tinfl_file_dict* dict,
-    uint16_t page_index,
-    uint8_t nonce[12]) {
+static void
+    tinfl_file_dict_nonce(const tinfl_file_dict* dict, uint16_t page_index, uint8_t nonce[12]) {
     furi_assert(dict);
     furi_assert(nonce);
 
@@ -579,7 +580,8 @@ static bool tinfl_file_dict_load_plain_page_to_buffer(
         return false;
     }
 
-    if(storage_file_read(dict->file, out, TINFL_PAGED_LZ_DICT_PAGE_SIZE) != TINFL_PAGED_LZ_DICT_PAGE_SIZE ||
+    if(storage_file_read(dict->file, out, TINFL_PAGED_LZ_DICT_PAGE_SIZE) !=
+           TINFL_PAGED_LZ_DICT_PAGE_SIZE ||
        !tinfl_file_dict_runtime_touch(dict, telemetry, io_stage) ||
        storage_file_read(dict->file, dict->io_mac, sizeof(dict->io_mac)) != sizeof(dict->io_mac) ||
        !tinfl_file_dict_runtime_touch(dict, telemetry, io_stage)) {
@@ -670,7 +672,8 @@ static bool tinfl_file_dict_write_page(
     if(storage_file_write(dict->file, dict->io_page, TINFL_PAGED_LZ_DICT_PAGE_SIZE) !=
            TINFL_PAGED_LZ_DICT_PAGE_SIZE ||
        !tinfl_file_dict_runtime_touch(dict, telemetry, "window_write") ||
-       storage_file_write(dict->file, dict->io_mac, sizeof(dict->io_mac)) != sizeof(dict->io_mac) ||
+       storage_file_write(dict->file, dict->io_mac, sizeof(dict->io_mac)) !=
+           sizeof(dict->io_mac) ||
        !tinfl_file_dict_runtime_touch(dict, telemetry, "window_write")) {
         tinfl_file_dict_note_failure(dict, telemetry, "window_write");
         goto cleanup;
@@ -732,9 +735,8 @@ static bool tinfl_file_dict_read_page(
 
     if(dict->io_page_valid && dict->io_page_index == page_index && dict->io_page != out) {
         memcpy(out, dict->io_page, TINFL_PAGED_LZ_DICT_PAGE_SIZE);
-    } else if(
-        !tinfl_file_dict_load_plain_page_to_buffer(
-            dict, page_index, out, telemetry, "window_read_seek", "window_read")) {
+    } else if(!tinfl_file_dict_load_plain_page_to_buffer(
+                  dict, page_index, out, telemetry, "window_read_seek", "window_read")) {
         return false;
     }
 
@@ -792,9 +794,9 @@ static bool tinfl_file_dict_copy_seed_to_page(
         const size_t src_in_page = src_masked % TINFL_PAGED_LZ_DICT_PAGE_SIZE;
         const size_t step = MZ_MIN(len, (size_t)TINFL_PAGED_LZ_DICT_PAGE_SIZE - src_in_page);
         const uint8_t* src_page =
-            (src_page_index == dst_page->page_index) ? dst_page->data :
-                                                       tinfl_file_dict_get_source_page(
-                                                           dict, src_page_index, telemetry);
+            (src_page_index == dst_page->page_index) ?
+                dst_page->data :
+                tinfl_file_dict_get_source_page(dict, src_page_index, telemetry);
         if(src_page == NULL) {
             return false;
         }
@@ -842,9 +844,8 @@ static bool tinfl_file_dict_copy_match_impl(
             return false;
         }
 
-        if(seed > 0U &&
-           !tinfl_file_dict_copy_seed_to_page(
-               dict, dst_page, dst_in_page, src_offset, seed, dict->telemetry)) {
+        if(seed > 0U && !tinfl_file_dict_copy_seed_to_page(
+                            dict, dst_page, dst_in_page, src_offset, seed, dict->telemetry)) {
             return false;
         }
 
@@ -854,15 +855,13 @@ static bool tinfl_file_dict_copy_match_impl(
             if(step > produced) {
                 step = produced;
             }
-            memmove(
-                dst_page->data + dst_in_page + produced,
-                dst_page->data + dst_in_page,
-                step);
+            memmove(dst_page->data + dst_in_page + produced, dst_page->data + dst_in_page, step);
             produced += step;
         }
         dst_page->dirty = true;
 
-        if(dict->io_page_valid && dict->io_page_index == dst_page_index && dict->io_page != dst_page->data) {
+        if(dict->io_page_valid && dict->io_page_index == dst_page_index &&
+           dict->io_page != dst_page->data) {
             memcpy(dict->io_page + dst_in_page, dst_page->data + dst_in_page, chunk);
         }
 
@@ -920,7 +919,11 @@ static tinfl_file_cache_page* tinfl_file_dict_acquire_page(
         if(page->valid && page->page_index == page_index) {
             if(dict->diag_acquire_count <= 8U) {
                 tinfl_file_dict_trace_runtime(dict, "acquire_hit");
-                FURI_LOG_T(TINFL_FILE_TAG, "acquire_hit page=%u slot=%lu", page_index, (unsigned long)index);
+                FURI_LOG_T(
+                    TINFL_FILE_TAG,
+                    "acquire_hit page=%u slot=%lu",
+                    page_index,
+                    (unsigned long)index);
             }
             page->age = ++dict->age_counter;
             return page;
@@ -930,8 +933,7 @@ static tinfl_file_cache_page* tinfl_file_dict_acquire_page(
         const bool victim_clean = (victim != NULL) && victim->valid && !victim->dirty;
         const bool page_clean = page->valid && !page->dirty;
         const bool prefer_page =
-            (victim == NULL) ||
-            (page_invalid && !victim_invalid) ||
+            (victim == NULL) || (page_invalid && !victim_invalid) ||
             (!page_invalid && !victim_invalid && page_clean && !victim_clean) ||
             (!page_invalid && !victim_invalid && page->dirty == victim->dirty &&
              page->age < victim->age);
@@ -1016,7 +1018,8 @@ static void tinfl_file_dict_set(void* impl, size_t offset, mz_uint8 value) {
     if(page != NULL) {
         page->data[in_page] = value;
         page->dirty = true;
-        if(dict->io_page_valid && dict->io_page_index == page_index && dict->io_page != page->data) {
+        if(dict->io_page_valid && dict->io_page_index == page_index &&
+           dict->io_page != page->data) {
             dict->io_page[in_page] = value;
         }
     }
@@ -1046,7 +1049,8 @@ static void tinfl_file_dict_write(void* impl, size_t offset, const mz_uint8* src
         }
         memcpy(page->data + in_page, src, chunk);
         page->dirty = true;
-        if(dict->io_page_valid && dict->io_page_index == page_index && dict->io_page != page->data) {
+        if(dict->io_page_valid && dict->io_page_index == page_index &&
+           dict->io_page != page->data) {
             memcpy(dict->io_page + in_page, src, chunk);
         }
         offset += chunk;
@@ -1148,12 +1152,12 @@ static bool tinfl_file_dict_alloc(
     const tinfl_paged_file_config* config,
     tinfl_paged_telemetry* telemetry) {
     const char* file_path = (config != NULL) ? config->file_path : NULL;
-    size_t preferred_cache_pages =
-        (config != NULL && config->preferred_cache_pages > 0U) ? config->preferred_cache_pages :
-                                                                 TINFL_FILE_DICT_MAX_CACHE_PAGES;
-    size_t minimum_cache_pages =
-        (config != NULL && config->minimum_cache_pages > 0U) ? config->minimum_cache_pages :
-                                                               TINFL_FILE_DICT_MIN_CACHE_PAGES;
+    size_t preferred_cache_pages = (config != NULL && config->preferred_cache_pages > 0U) ?
+                                       config->preferred_cache_pages :
+                                       TINFL_FILE_DICT_MAX_CACHE_PAGES;
+    size_t minimum_cache_pages = (config != NULL && config->minimum_cache_pages > 0U) ?
+                                     config->minimum_cache_pages :
+                                     TINFL_FILE_DICT_MIN_CACHE_PAGES;
     memset(dict, 0, sizeof(*dict));
     dict->telemetry = telemetry;
 
@@ -1312,17 +1316,13 @@ static void tinfl_paged_dict_set(tinfl_paged_dict* dict, size_t offset, mz_uint8
     dict->pages[page][in_page] = value;
 }
 
-static void tinfl_paged_dict_write(
-    tinfl_paged_dict* dict,
-    size_t offset,
-    const mz_uint8* src,
-    size_t len) {
+static void
+    tinfl_paged_dict_write(tinfl_paged_dict* dict, size_t offset, const mz_uint8* src, size_t len) {
     while(len > 0U) {
         const size_t masked = offset & (TINFL_LZ_DICT_SIZE - 1U);
         const size_t page = masked / TINFL_PAGED_LZ_DICT_PAGE_SIZE;
         const size_t in_page = masked % TINFL_PAGED_LZ_DICT_PAGE_SIZE;
-        const size_t chunk =
-            MZ_MIN(len, (size_t)TINFL_PAGED_LZ_DICT_PAGE_SIZE - in_page);
+        const size_t chunk = MZ_MIN(len, (size_t)TINFL_PAGED_LZ_DICT_PAGE_SIZE - in_page);
         memcpy(dict->pages[page] + in_page, src, chunk);
         offset += chunk;
         src += chunk;
@@ -1340,8 +1340,7 @@ static int tinfl_paged_dict_flush(
         const size_t masked = offset & (TINFL_LZ_DICT_SIZE - 1U);
         const size_t page = masked / TINFL_PAGED_LZ_DICT_PAGE_SIZE;
         const size_t in_page = masked % TINFL_PAGED_LZ_DICT_PAGE_SIZE;
-        const size_t chunk =
-            MZ_MIN(len, (size_t)TINFL_PAGED_LZ_DICT_PAGE_SIZE - in_page);
+        const size_t chunk = MZ_MIN(len, (size_t)TINFL_PAGED_LZ_DICT_PAGE_SIZE - in_page);
         if(callback(dict->pages[page] + in_page, (int)chunk, user) == 0) {
             return 0;
         }
@@ -1406,22 +1405,19 @@ static tinfl_status tinfl_decompress_paged(
     size_t* pOut_buf_size,
     const mz_uint32 decomp_flags,
     tinfl_paged_runtime* runtime) {
-    static const mz_uint16 s_length_base[31] = {
-        3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
-        35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0};
-    static const mz_uint8 s_length_extra[31] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
-        3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 0, 0};
-    static const mz_uint16 s_dist_base[32] = {
-        1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
-        257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193,
-        12289, 16385, 24577, 0, 0};
-    static const mz_uint8 s_dist_extra[32] = {
-        0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
-        7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13};
+    static const mz_uint16 s_length_base[31] = {3,  4,   5,   6,   7,   8,   9,   10, 11, 13, 15,
+                                                17, 19,  23,  27,  31,  35,  43,  51, 59, 67, 83,
+                                                99, 115, 131, 163, 195, 227, 258, 0,  0};
+    static const mz_uint8 s_length_extra[31] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
+                                                3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 0, 0};
+    static const mz_uint16 s_dist_base[32] = {1,    2,    3,    4,     5,     7,     9,    13,
+                                              17,   25,   33,   49,    65,    97,    129,  193,
+                                              257,  385,  513,  769,   1025,  1537,  2049, 3073,
+                                              4097, 6145, 8193, 12289, 16385, 24577, 0,    0};
+    static const mz_uint8 s_dist_extra[32] = {0, 0, 0, 0, 1, 1, 2, 2,  3,  3,  4,  4,  5,  5,  6,
+                                              6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13};
     static const mz_uint8 s_length_dezigzag[19] = {
-        16, 17, 18, 0, 8, 7, 9, 6, 10, 5,
-        11, 4, 12, 3, 13, 2, 14, 1, 15};
+        16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
     static const mz_uint16 s_min_table_sizes[3] = {257, 1, 4};
 
     mz_int16* pTrees[3];
@@ -1439,9 +1435,8 @@ static tinfl_status tinfl_decompress_paged(
 
     if(dict == NULL || out_buf_next > TINFL_LZ_DICT_SIZE ||
        *pOut_buf_size > (TINFL_LZ_DICT_SIZE - out_buf_next) ||
-       (decomp_flags &
-        (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
-         TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
+       (decomp_flags & (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
+                        TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
         *pIn_buf_size = 0U;
         *pOut_buf_size = 0U;
         return TINFL_STATUS_BAD_PARAM;
@@ -1509,7 +1504,9 @@ static tinfl_status tinfl_decompress_paged(
                             TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS);
                 }
                 n = MZ_MIN(
-                    MZ_MIN((size_t)(pOut_buf_end - pOut_buf_cur), (size_t)(pIn_buf_end - pIn_buf_cur)),
+                    MZ_MIN(
+                        (size_t)(pOut_buf_end - pOut_buf_cur),
+                        (size_t)(pIn_buf_end - pIn_buf_cur)),
                     counter);
                 dict->ops->write(dict->impl, pOut_buf_cur, pIn_buf_cur, n);
                 if(dict->ops->failed != NULL && dict->ops->failed(dict->impl)) {
@@ -1820,17 +1817,12 @@ static tinfl_status tinfl_decompress_paged(
                     while(pOut_buf_cur >= pOut_buf_end) {
                         TINFL_CR_RETURN(53, TINFL_STATUS_HAS_MORE_OUTPUT);
                     }
-                    mz_uint8 dist_byte =
-                        dict->ops->get(
-                            dict->impl,
-                            (dist_from_out_buf_start++ - dist) & out_buf_size_mask);
+                    mz_uint8 dist_byte = dict->ops->get(
+                        dict->impl, (dist_from_out_buf_start++ - dist) & out_buf_size_mask);
                     if(dict->ops->failed != NULL && dict->ops->failed(dict->impl)) {
                         TINFL_CR_RETURN_FOREVER(66, TINFL_STATUS_FAILED);
                     }
-                    dict->ops->set(
-                        dict->impl,
-                        pOut_buf_cur++,
-                        dist_byte);
+                    dict->ops->set(dict->impl, pOut_buf_cur++, dist_byte);
                     if(dict->ops->failed != NULL && dict->ops->failed(dict->impl)) {
                         TINFL_CR_RETURN_FOREVER(67, TINFL_STATUS_FAILED);
                     }
@@ -1891,14 +1883,13 @@ int tinfl_decompress_mem_to_callback_paged_ex(
     memset(&runtime, 0, sizeof(runtime));
     runtime.telemetry = pTelemetry;
     runtime.deadline_tick = furi_get_tick() + furi_ms_to_ticks(TINFL_PAGED_TIMEOUT_MS);
-    runtime.next_trace_output =
-        (pTelemetry != NULL && pTelemetry->trace_interval_bytes > 0U) ? pTelemetry->trace_interval_bytes :
-                                                                        0U;
+    runtime.next_trace_output = (pTelemetry != NULL && pTelemetry->trace_interval_bytes > 0U) ?
+                                    pTelemetry->trace_interval_bytes :
+                                    0U;
 
     if(pIn_buf == NULL || pIn_buf_size == NULL || pPut_buf_func == NULL ||
-        (flags &
-         (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
-          TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
+       (flags & (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
+                 TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
         return 0;
     }
 
@@ -1937,7 +1928,8 @@ int tinfl_decompress_mem_to_callback_paged_ex(
             &dict_view,
             dict_ofs,
             &dst_buf_size,
-            (mz_uint32)(flags & ~(TINFL_FLAG_HAS_MORE_INPUT | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF)),
+            (mz_uint32)(flags &
+                        ~(TINFL_FLAG_HAS_MORE_INPUT | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF)),
             &runtime);
 
         if(pTelemetry != NULL) {
@@ -2014,14 +2006,13 @@ int tinfl_decompress_reader_to_callback_paged_ex(
     memset(&runtime, 0, sizeof(runtime));
     runtime.telemetry = pTelemetry;
     runtime.deadline_tick = furi_get_tick() + furi_ms_to_ticks(TINFL_PAGED_TIMEOUT_MS);
-    runtime.next_trace_output =
-        (pTelemetry != NULL && pTelemetry->trace_interval_bytes > 0U) ? pTelemetry->trace_interval_bytes :
-                                                                        0U;
+    runtime.next_trace_output = (pTelemetry != NULL && pTelemetry->trace_interval_bytes > 0U) ?
+                                    pTelemetry->trace_interval_bytes :
+                                    0U;
 
     if(pGet_buf_func == NULL || pIn_buf_size == NULL || pPut_buf_func == NULL ||
-       (flags &
-        (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
-         TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
+       (flags & (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
+                 TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
         return 0;
     }
 
@@ -2046,9 +2037,7 @@ int tinfl_decompress_reader_to_callback_paged_ex(
     for(;;) {
         if(input_ofs >= input_len && !input_eof) {
             FURI_LOG_T(
-                TINFL_FILE_TAG,
-                "file paged input request size=%u",
-                (unsigned)sizeof(input_buf));
+                TINFL_FILE_TAG, "file paged input request size=%u", (unsigned)sizeof(input_buf));
             input_len = pGet_buf_func(input_buf, sizeof(input_buf), pGet_buf_user);
             input_ofs = 0U;
             if(input_len == 0U) {
@@ -2179,14 +2168,14 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
     memset(&runtime, 0, sizeof(runtime));
     runtime.telemetry = pTelemetry;
     runtime.deadline_tick = furi_get_tick() + furi_ms_to_ticks(TINFL_PAGED_TIMEOUT_MS);
-    runtime.next_trace_output =
-        (pTelemetry != NULL && pTelemetry->trace_interval_bytes > 0U) ? pTelemetry->trace_interval_bytes :
-                                                                        0U;
+    runtime.next_trace_output = (pTelemetry != NULL && pTelemetry->trace_interval_bytes > 0U) ?
+                                    pTelemetry->trace_interval_bytes :
+                                    0U;
 
-    if(pGet_buf_func == NULL || pIn_buf_size == NULL || pPut_buf_func == NULL || pFile_config == NULL ||
-       (flags &
-        (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
-         TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
+    if(pGet_buf_func == NULL || pIn_buf_size == NULL || pPut_buf_func == NULL ||
+       pFile_config == NULL ||
+       (flags & (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
+                 TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
         tinfl_debug_trace_telemetry(pTelemetry, "debug_file_paged_bad_param");
         TINFL_DEBUG_LOG("file_paged bad_param");
         return 0;
@@ -2513,14 +2502,13 @@ int tinfl_decompress_mem_to_callback_file_paged_ex(
     memset(&runtime, 0, sizeof(runtime));
     runtime.telemetry = pTelemetry;
     runtime.deadline_tick = furi_get_tick() + furi_ms_to_ticks(TINFL_PAGED_TIMEOUT_MS);
-    runtime.next_trace_output =
-        (pTelemetry != NULL && pTelemetry->trace_interval_bytes > 0U) ? pTelemetry->trace_interval_bytes :
-                                                                        0U;
+    runtime.next_trace_output = (pTelemetry != NULL && pTelemetry->trace_interval_bytes > 0U) ?
+                                    pTelemetry->trace_interval_bytes :
+                                    0U;
 
     if(pIn_buf == NULL || pIn_buf_size == NULL || pPut_buf_func == NULL || pFile_config == NULL ||
-       (flags &
-        (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
-         TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
+       (flags & (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
+                 TINFL_FLAG_COMPUTE_ADLER32)) != 0U) {
         return 0;
     }
 
@@ -2613,7 +2601,8 @@ int tinfl_decompress_mem_to_callback_file_paged_ex(
             &dict_view,
             dict_ofs,
             &dst_buf_size,
-            (mz_uint32)(flags & ~(TINFL_FLAG_HAS_MORE_INPUT | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF)),
+            (mz_uint32)(flags &
+                        ~(TINFL_FLAG_HAS_MORE_INPUT | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF)),
             &runtime);
 
         if(pTelemetry != NULL) {
@@ -2722,8 +2711,7 @@ int tinfl_file_paged_probe(
         goto cleanup;
     }
     tinfl_paged_trace_telemetry(
-        pTelemetry,
-        decomp_on_stack ? "file_probe_decomp_stack" : "file_probe_decomp_heap");
+        pTelemetry, decomp_on_stack ? "file_probe_decomp_stack" : "file_probe_decomp_heap");
     tinfl_paged_trace_telemetry(pTelemetry, "file_probe_decomp_ok");
 
     input_buf = malloc(TINFL_PAGED_INPUT_CHUNK_BYTES);

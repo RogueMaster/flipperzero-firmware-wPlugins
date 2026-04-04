@@ -132,9 +132,8 @@ static void flippass_rpc_command_callback(const RpcAppSystemEvent* event, void* 
         furi_string_set_str(app->rpc_pending_file, event->data.string);
         view_dispatcher_send_custom_event(app->view_dispatcher, FlipPassRpcCustomEventLoadFile);
     } else if(event->type == RpcAppEventTypeDataExchange) {
-        if(event->data.type != RpcAppSystemEventDataTypeBytes ||
-           event->data.bytes.ptr == NULL || event->data.bytes.size == 0U ||
-           event->data.bytes.size >= FLIPPASS_RPC_BUFFER_SIZE) {
+        if(event->data.type != RpcAppSystemEventDataTypeBytes || event->data.bytes.ptr == NULL ||
+           event->data.bytes.size == 0U || event->data.bytes.size >= FLIPPASS_RPC_BUFFER_SIZE) {
             rpc_system_app_set_error_code(app->rpc_ctx, RpcAppSystemErrorCodeInternalParse);
             rpc_system_app_set_error_text(app->rpc_ctx, "Invalid command payload.");
             rpc_system_app_confirm(app->rpc_ctx, false);
@@ -197,8 +196,8 @@ static bool flippass_rpc_handle_command_event(App* app) {
     }
 
     rpc_system_app_error_reset(app->rpc_ctx);
-    const bool result = flippass_rpc_execute_command(
-        app, furi_string_get_cstr(app->rpc_pending_command));
+    const bool result =
+        flippass_rpc_execute_command(app, furi_string_get_cstr(app->rpc_pending_command));
     rpc_system_app_confirm(app->rpc_ctx, result);
     return true;
 }
@@ -207,7 +206,8 @@ static bool flippass_rpc_execute_command(App* app, const char* command) {
     const char* arg = NULL;
 
     if(command == NULL) {
-        return flippass_rpc_reply_error(app, RpcAppSystemErrorCodeInternalParse, "Missing command.");
+        return flippass_rpc_reply_error(
+            app, RpcAppSystemErrorCodeInternalParse, "Missing command.");
     }
 
     command = flippass_rpc_skip_spaces(command);
@@ -256,7 +256,8 @@ static const char* flippass_rpc_skip_spaces(const char* text) {
     return text;
 }
 
-static bool flippass_rpc_command_match(const char* command, const char* keyword, const char** arg) {
+static bool
+    flippass_rpc_command_match(const char* command, const char* keyword, const char** arg) {
     size_t i = 0U;
     while(command[i] != '\0' && keyword[i] != '\0') {
         if(tolower((unsigned char)command[i]) != tolower((unsigned char)keyword[i])) {
@@ -335,7 +336,8 @@ static size_t flippass_rpc_count_groups(const KDBXGroup* group) {
         return 0U;
     }
 
-    return 1U + flippass_rpc_count_groups(group->children) + flippass_rpc_count_groups(group->next);
+    return 1U + flippass_rpc_count_groups(group->children) +
+           flippass_rpc_count_groups(group->next);
 }
 
 static size_t flippass_rpc_count_entries(const KDBXGroup* group) {
@@ -350,7 +352,8 @@ static size_t flippass_rpc_count_entries(const KDBXGroup* group) {
         entry = entry->next;
     }
 
-    return count + flippass_rpc_count_entries(group->children) + flippass_rpc_count_entries(group->next);
+    return count + flippass_rpc_count_entries(group->children) +
+           flippass_rpc_count_entries(group->next);
 }
 
 static bool flippass_rpc_resolve_visible_index(
@@ -460,9 +463,11 @@ static bool flippass_rpc_handle_unlock(App* app, const char* password) {
 
     FuriString* response = furi_string_alloc();
     furi_string_set_str(response, "{\"ok\":true,\"database_loaded\":true,\"groups\":");
-    furi_string_cat_printf(response, "%lu", (unsigned long)flippass_rpc_count_groups(app->root_group));
+    furi_string_cat_printf(
+        response, "%lu", (unsigned long)flippass_rpc_count_groups(app->root_group));
     furi_string_cat(response, ",\"entries\":");
-    furi_string_cat_printf(response, "%lu", (unsigned long)flippass_rpc_count_entries(app->root_group));
+    furi_string_cat_printf(
+        response, "%lu", (unsigned long)flippass_rpc_count_entries(app->root_group));
     furi_string_cat(response, ",\"current_group\":");
     flippass_rpc_append_json_string(response, furi_string_get_cstr(group_path));
     furi_string_cat(response, "}");
@@ -669,8 +674,7 @@ static bool flippass_rpc_handle_status(App* app) {
     flippass_rpc_append_json_string(response, furi_string_get_cstr(group_path));
     furi_string_cat(response, ",\"active_entry\":");
     flippass_rpc_append_json_string(
-        response,
-        app->active_entry && app->active_entry->title ? app->active_entry->title : "");
+        response, app->active_entry && app->active_entry->title ? app->active_entry->title : "");
     furi_string_cat(response, ",\"supports_usb\":true,\"supports_bluetooth\":true}");
 
     flippass_rpc_send_response(app, response);
@@ -796,8 +800,8 @@ static bool flippass_rpc_handle_type(App* app, const char* args) {
         output_transport = FlipPassOutputTransportUsb;
         selected_transport = "usb";
     } else if(
-        strcasecmp(selected_transport, "bluetooth") == 0 || strcasecmp(selected_transport, "bt") == 0 ||
-        strcasecmp(selected_transport, "ble") == 0) {
+        strcasecmp(selected_transport, "bluetooth") == 0 ||
+        strcasecmp(selected_transport, "bt") == 0 || strcasecmp(selected_transport, "ble") == 0) {
         output_transport = FlipPassOutputTransportBluetooth;
         selected_transport = "bluetooth";
     } else {
@@ -809,8 +813,7 @@ static bool flippass_rpc_handle_type(App* app, const char* args) {
 
     bool typed = false;
     const char* field_name = field;
-    const char* log_prefix =
-        (output_transport == FlipPassOutputTransportBluetooth) ? "BT" : "USB";
+    const char* log_prefix = (output_transport == FlipPassOutputTransportBluetooth) ? "BT" : "USB";
 
     if(strcasecmp(field, "username") == 0) {
         if(entry->username == NULL || entry->username[0] == '\0') {
@@ -818,21 +821,29 @@ static bool flippass_rpc_handle_type(App* app, const char* args) {
                 app, RpcAppSystemErrorCodeParseFile, "The active entry has no username.");
         }
         flippass_log_event(
-            app, "%s_TYPE_BEGIN field=username chars=%lu", log_prefix, (unsigned long)strlen(entry->username));
+            app,
+            "%s_TYPE_BEGIN field=username chars=%lu",
+            log_prefix,
+            (unsigned long)strlen(entry->username));
         typed = flippass_output_type_string(app, output_transport, entry->username);
-        flippass_log_event(app, typed ? "%s_TYPE_OK field=username" : "%s_TYPE_FAIL field=username", log_prefix);
+        flippass_log_event(
+            app, typed ? "%s_TYPE_OK field=username" : "%s_TYPE_FAIL field=username", log_prefix);
     } else if(strcasecmp(field, "password") == 0) {
         if(entry->password == NULL || entry->password[0] == '\0') {
             return flippass_rpc_reply_error(
                 app, RpcAppSystemErrorCodeParseFile, "The active entry has no password.");
         }
         flippass_log_event(
-            app, "%s_TYPE_BEGIN field=password chars=%lu", log_prefix, (unsigned long)strlen(entry->password));
+            app,
+            "%s_TYPE_BEGIN field=password chars=%lu",
+            log_prefix,
+            (unsigned long)strlen(entry->password));
         typed = flippass_output_type_string(app, output_transport, entry->password);
-        flippass_log_event(app, typed ? "%s_TYPE_OK field=password" : "%s_TYPE_FAIL field=password", log_prefix);
+        flippass_log_event(
+            app, typed ? "%s_TYPE_OK field=password" : "%s_TYPE_FAIL field=password", log_prefix);
     } else if(strcasecmp(field, "login") == 0) {
-        if(entry->username == NULL || entry->username[0] == '\0' ||
-           entry->password == NULL || entry->password[0] == '\0') {
+        if(entry->username == NULL || entry->username[0] == '\0' || entry->password == NULL ||
+           entry->password[0] == '\0') {
             return flippass_rpc_reply_error(
                 app,
                 RpcAppSystemErrorCodeParseFile,
@@ -843,13 +854,15 @@ static bool flippass_rpc_handle_type(App* app, const char* args) {
             "%s_TYPE_BEGIN field=login chars=%lu",
             log_prefix,
             (unsigned long)(strlen(entry->username) + strlen(entry->password) + 2U));
-        typed = flippass_output_type_login(app, output_transport, entry->username, entry->password);
+        typed =
+            flippass_output_type_login(app, output_transport, entry->username, entry->password);
         field_name = "login";
-        flippass_log_event(app, typed ? "%s_TYPE_OK field=login" : "%s_TYPE_FAIL field=login", log_prefix);
+        flippass_log_event(
+            app, typed ? "%s_TYPE_OK field=login" : "%s_TYPE_FAIL field=login", log_prefix);
     } else if(strcasecmp(field, "autotype") == 0) {
         if((entry->autotype_sequence == NULL || entry->autotype_sequence[0] == '\0') &&
-           (entry->username == NULL || entry->username[0] == '\0' ||
-            entry->password == NULL || entry->password[0] == '\0')) {
+           (entry->username == NULL || entry->username[0] == '\0' || entry->password == NULL ||
+            entry->password[0] == '\0')) {
             return flippass_rpc_reply_error(
                 app,
                 RpcAppSystemErrorCodeParseFile,
@@ -859,10 +872,10 @@ static bool flippass_rpc_handle_type(App* app, const char* args) {
             app,
             "%s_TYPE_BEGIN field=autotype chars=%lu",
             log_prefix,
-            (unsigned long)(
-                entry->autotype_sequence != NULL ? strlen(entry->autotype_sequence) :
-                                                   ((entry->username ? strlen(entry->username) : 0U) +
-                                                    (entry->password ? strlen(entry->password) : 0U) + 2U)));
+            (unsigned long)(entry->autotype_sequence != NULL ?
+                                strlen(entry->autotype_sequence) :
+                                ((entry->username ? strlen(entry->username) : 0U) +
+                                 (entry->password ? strlen(entry->password) : 0U) + 2U)));
         typed = flippass_output_type_autotype(app, output_transport, entry);
         field_name = "autotype";
         flippass_log_event(
@@ -877,8 +890,7 @@ static bool flippass_rpc_handle_type(App* app, const char* args) {
             (output_transport == FlipPassOutputTransportBluetooth) ?
                 "Typing failed because Bluetooth HID was unavailable, not connected, or the selected data uses unsupported characters or AutoType tokens." :
                 "Typing failed because USB HID was unavailable or the selected data uses unsupported characters or AutoType tokens.";
-        return flippass_rpc_reply_error(
-            app, RpcAppSystemErrorCodeInternalParse, error_text);
+        return flippass_rpc_reply_error(app, RpcAppSystemErrorCodeInternalParse, error_text);
     }
 
     FuriString* response = furi_string_alloc();

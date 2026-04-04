@@ -52,7 +52,7 @@ Issue Date: 20/12/2007
 /* A slow field multiplier */
 
 void gf_mul(gf_t a, const gf_t b) {
-    gf_t p[8]  = {0};
+    gf_t p[8] = {0};
     uint8_t *q = NULL, ch = 0;
     int i = 0;
 
@@ -185,7 +185,7 @@ void gf_mul_64k(gf_t a, const gf_t64k_t t, gf_t r) {
 #else
 
 void gf_mul_64k(gf_t a, const gf_t64k_t t, gf_t r) {
-    int i       = 0;
+    int i = 0;
     uint8_t* ap = (uint8_t*)a;
     memset(r, 0, GF_BYTE_LEN);
     for(i = 15; i >= 0; --i) {
@@ -291,7 +291,7 @@ void gf_mul_8k(gf_t a, const gf_t8k_t t, gf_t r) {
 #else
 
 void gf_mul_8k(gf_t a, const gf_t8k_t t, gf_t r) {
-    int i       = 0;
+    int i = 0;
     uint8_t* ap = (uint8_t*)a;
     memset(r, 0, GF_BYTE_LEN);
     for(i = 15; i >= 0; --i) {
@@ -379,7 +379,7 @@ void gf_mul_4k(gf_t a, const gf_t4k_t t, gf_t r) {
 #else
 
 void gf_mul_4k(gf_t a, const gf_t4k_t t, gf_t r) {
-    int i       = 15;
+    int i = 15;
     uint8_t* ap = (uint8_t*)a;
     memset(r, 0, GF_BYTE_LEN);
     for(i = 15; i >= 0; --i) {
@@ -478,7 +478,7 @@ void gf_mul_256(gf_t a, const gf_t256_t t, gf_t r) {
 #else
 
 void gf_mul_256(gf_t a, const gf_t256_t t, gf_t r) {
-    int i       = 0;
+    int i = 0;
     uint8_t* ap = (uint8_t*)a;
     memset(r, 0, GF_BYTE_LEN);
     for(i = 15; i >= 0; --i) {

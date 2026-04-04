@@ -56,11 +56,11 @@ extern "C" {
 
 #pragma pack(16)
 
-aligned_array(unsigned long, enc_gen_table, 12, 16)    = NEH_ENC_GEN_DATA;
-aligned_array(unsigned long, enc_load_table, 12, 16)   = NEH_ENC_LOAD_DATA;
+aligned_array(unsigned long, enc_gen_table, 12, 16) = NEH_ENC_GEN_DATA;
+aligned_array(unsigned long, enc_load_table, 12, 16) = NEH_ENC_LOAD_DATA;
 aligned_array(unsigned long, enc_hybrid_table, 12, 16) = NEH_ENC_HYBRID_DATA;
-aligned_array(unsigned long, dec_gen_table, 12, 16)    = NEH_DEC_GEN_DATA;
-aligned_array(unsigned long, dec_load_table, 12, 16)   = NEH_DEC_LOAD_DATA;
+aligned_array(unsigned long, dec_gen_table, 12, 16) = NEH_DEC_GEN_DATA;
+aligned_array(unsigned long, dec_load_table, 12, 16) = NEH_DEC_LOAD_DATA;
 aligned_array(unsigned long, dec_hybrid_table, 12, 16) = NEH_DEC_HYBRID_DATA;
 
 /* NOTE: These control word macros must only be used after  */
@@ -98,7 +98,7 @@ aligned_array(unsigned long, dec_hybrid_table, 12, 16) = NEH_DEC_HYBRID_DATA;
 #define via_cwd(cwd, ty, dir, len)           \
     aligned_auto(unsigned long, cwd, 4, 16); \
     cwd[1] = cwd[2] = cwd[3] = 0;            \
-    cwd[0]                   = neh_##dir##_##ty##_key(len)
+    cwd[0] = neh_##dir##_##ty##_key(len)
 
 #endif
 
@@ -345,7 +345,7 @@ AES_RETURN aes_cbc_decrypt(
     unsigned char* iv,
     const aes_decrypt_ctx ctx[1]) {
     unsigned char tmp[AES_BLOCK_SIZE] = {0};
-    int nb                            = len >> AES_BLOCK_SIZE_P2;
+    int nb = len >> AES_BLOCK_SIZE_P2;
 
     if(len & (AES_BLOCK_SIZE - 1)) return EXIT_FAILURE;
 
@@ -460,7 +460,7 @@ AES_RETURN aes_cfb_encrypt(
 #if defined(USE_VIA_ACE_IF_PRESENT)
 
         if(ctx->inf.b[1] == 0xff) {
-            int m        = 0;
+            int m = 0;
             uint8_t *ksp = (uint8_t*)(ctx->ks), *ivp = iv;
             aligned_auto(uint8_t, liv, AES_BLOCK_SIZE, 16);
             via_cwd(cwd, hybrid, enc, 2 * ctx->inf.b[0] - 192);
@@ -522,16 +522,16 @@ AES_RETURN aes_cfb_encrypt(
             while(cnt + AES_BLOCK_SIZE <= len) {
                 assert(b_pos == 0);
                 if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS) return EXIT_FAILURE;
-                obuf[0]  = iv[0] ^= ibuf[0];
-                obuf[1]  = iv[1] ^= ibuf[1];
-                obuf[2]  = iv[2] ^= ibuf[2];
-                obuf[3]  = iv[3] ^= ibuf[3];
-                obuf[4]  = iv[4] ^= ibuf[4];
-                obuf[5]  = iv[5] ^= ibuf[5];
-                obuf[6]  = iv[6] ^= ibuf[6];
-                obuf[7]  = iv[7] ^= ibuf[7];
-                obuf[8]  = iv[8] ^= ibuf[8];
-                obuf[9]  = iv[9] ^= ibuf[9];
+                obuf[0] = iv[0] ^= ibuf[0];
+                obuf[1] = iv[1] ^= ibuf[1];
+                obuf[2] = iv[2] ^= ibuf[2];
+                obuf[3] = iv[3] ^= ibuf[3];
+                obuf[4] = iv[4] ^= ibuf[4];
+                obuf[5] = iv[5] ^= ibuf[5];
+                obuf[6] = iv[6] ^= ibuf[6];
+                obuf[7] = iv[7] ^= ibuf[7];
+                obuf[8] = iv[8] ^= ibuf[8];
+                obuf[9] = iv[9] ^= ibuf[9];
                 obuf[10] = iv[10] ^= ibuf[10];
                 obuf[11] = iv[11] ^= ibuf[11];
                 obuf[12] = iv[12] ^= ibuf[12];
@@ -573,8 +573,8 @@ AES_RETURN aes_cfb_decrypt(
         uint8_t t = 0;
 
         while(b_pos < AES_BLOCK_SIZE && cnt < len) {
-            t           = *ibuf++;
-            *obuf++     = t ^ iv[b_pos];
+            t = *ibuf++;
+            *obuf++ = t ^ iv[b_pos];
             iv[b_pos++] = t;
             cnt++;
         }
@@ -587,7 +587,7 @@ AES_RETURN aes_cfb_decrypt(
 #if defined(USE_VIA_ACE_IF_PRESENT)
 
         if(ctx->inf.b[1] == 0xff) {
-            int m        = 0;
+            int m = 0;
             uint8_t *ksp = (uint8_t*)(ctx->ks), *ivp = iv;
             aligned_auto(uint8_t, liv, AES_BLOCK_SIZE, 16);
             via_cwd(cwd, hybrid, dec, 2 * ctx->inf.b[0] - 192);
@@ -684,8 +684,8 @@ AES_RETURN aes_cfb_decrypt(
         if(!b_pos && aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS) return EXIT_FAILURE;
 
         while(cnt < len && b_pos < AES_BLOCK_SIZE) {
-            t           = *ibuf++;
-            *obuf++     = t ^ iv[b_pos];
+            t = *ibuf++;
+            *obuf++ = t ^ iv[b_pos];
             iv[b_pos++] = t;
             cnt++;
         }
@@ -720,7 +720,7 @@ AES_RETURN aes_ofb_crypt(
 #if defined(USE_VIA_ACE_IF_PRESENT)
 
         if(ctx->inf.b[1] == 0xff) {
-            int m        = 0;
+            int m = 0;
             uint8_t *ksp = (uint8_t*)(ctx->ks), *ivp = iv;
             aligned_auto(uint8_t, liv, AES_BLOCK_SIZE, 16);
             via_cwd(cwd, hybrid, enc, 2 * ctx->inf.b[0] - 192);
@@ -782,16 +782,16 @@ AES_RETURN aes_ofb_crypt(
             while(cnt + AES_BLOCK_SIZE <= len) {
                 assert(b_pos == 0);
                 if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS) return EXIT_FAILURE;
-                obuf[0]  = iv[0] ^ ibuf[0];
-                obuf[1]  = iv[1] ^ ibuf[1];
-                obuf[2]  = iv[2] ^ ibuf[2];
-                obuf[3]  = iv[3] ^ ibuf[3];
-                obuf[4]  = iv[4] ^ ibuf[4];
-                obuf[5]  = iv[5] ^ ibuf[5];
-                obuf[6]  = iv[6] ^ ibuf[6];
-                obuf[7]  = iv[7] ^ ibuf[7];
-                obuf[8]  = iv[8] ^ ibuf[8];
-                obuf[9]  = iv[9] ^ ibuf[9];
+                obuf[0] = iv[0] ^ ibuf[0];
+                obuf[1] = iv[1] ^ ibuf[1];
+                obuf[2] = iv[2] ^ ibuf[2];
+                obuf[3] = iv[3] ^ ibuf[3];
+                obuf[4] = iv[4] ^ ibuf[4];
+                obuf[5] = iv[5] ^ ibuf[5];
+                obuf[6] = iv[6] ^ ibuf[6];
+                obuf[7] = iv[7] ^ ibuf[7];
+                obuf[8] = iv[8] ^ ibuf[8];
+                obuf[9] = iv[9] ^ ibuf[9];
                 obuf[10] = iv[10] ^ ibuf[10];
                 obuf[11] = iv[11] ^ ibuf[11];
                 obuf[12] = iv[12] ^ ibuf[12];
@@ -871,7 +871,7 @@ AES_RETURN aes_ctr_crypt(
             if(aes_ecb_encrypt(buf, buf, i * AES_BLOCK_SIZE, ctx) != EXIT_SUCCESS)
             return EXIT_FAILURE;
 
-        i  = 0;
+        i = 0;
         ip = buf;
 #ifdef FAST_BUFFER_OPERATIONS
         if(!ALIGN_OFFSET(ibuf, 4) && !ALIGN_OFFSET(obuf, 4) && !ALIGN_OFFSET(ip, 4))
@@ -888,16 +888,16 @@ AES_RETURN aes_ctr_crypt(
         else
 #endif
             while(i + AES_BLOCK_SIZE <= blen) {
-                obuf[0]  = ibuf[0] ^ ip[0];
-                obuf[1]  = ibuf[1] ^ ip[1];
-                obuf[2]  = ibuf[2] ^ ip[2];
-                obuf[3]  = ibuf[3] ^ ip[3];
-                obuf[4]  = ibuf[4] ^ ip[4];
-                obuf[5]  = ibuf[5] ^ ip[5];
-                obuf[6]  = ibuf[6] ^ ip[6];
-                obuf[7]  = ibuf[7] ^ ip[7];
-                obuf[8]  = ibuf[8] ^ ip[8];
-                obuf[9]  = ibuf[9] ^ ip[9];
+                obuf[0] = ibuf[0] ^ ip[0];
+                obuf[1] = ibuf[1] ^ ip[1];
+                obuf[2] = ibuf[2] ^ ip[2];
+                obuf[3] = ibuf[3] ^ ip[3];
+                obuf[4] = ibuf[4] ^ ip[4];
+                obuf[5] = ibuf[5] ^ ip[5];
+                obuf[6] = ibuf[6] ^ ip[6];
+                obuf[7] = ibuf[7] ^ ip[7];
+                obuf[8] = ibuf[8] ^ ip[8];
+                obuf[9] = ibuf[9] ^ ip[9];
                 obuf[10] = ibuf[10] ^ ip[10];
                 obuf[11] = ibuf[11] ^ ip[11];
                 obuf[12] = ibuf[12] ^ ip[12];

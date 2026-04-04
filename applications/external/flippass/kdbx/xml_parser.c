@@ -49,7 +49,8 @@ static bool xml_parser_emit_text(XmlParser* parser) {
     }
 
     if(parser->character_data_handler != NULL) {
-        parser->character_data_handler(parser->context, parser->text_buffer, (int)parser->text_len);
+        parser->character_data_handler(
+            parser->context, parser->text_buffer, (int)parser->text_len);
     }
     parser->text_len = 0U;
     return true;
@@ -82,7 +83,8 @@ static bool xml_parser_emit_codepoint(XmlParser* parser, uint32_t codepoint) {
         return false;
     }
 
-    if(parser->text_len + encoded_len > sizeof(parser->text_buffer) && !xml_parser_emit_text(parser)) {
+    if(parser->text_len + encoded_len > sizeof(parser->text_buffer) &&
+       !xml_parser_emit_text(parser)) {
         return false;
     }
 
@@ -168,9 +170,8 @@ static char* xml_parser_trim_left(char* text) {
 
 static void xml_parser_trim_right(char* text) {
     size_t len = strlen(text);
-    while(len > 0U &&
-          (text[len - 1U] == ' ' || text[len - 1U] == '\t' || text[len - 1U] == '\r' ||
-           text[len - 1U] == '\n')) {
+    while(len > 0U && (text[len - 1U] == ' ' || text[len - 1U] == '\t' || text[len - 1U] == '\r' ||
+                       text[len - 1U] == '\n')) {
         text[--len] = '\0';
     }
 }
@@ -475,8 +476,8 @@ bool xml_parser_feed(XmlParser* parser, const char* xml, size_t xml_len, bool fi
             return false;
         }
 
-        if(parser->tag_buffer[0] == '!' && parser->tag_len == 2U &&
-           parser->tag_buffer[1] != '-' && parser->tag_buffer[1] != '[') {
+        if(parser->tag_buffer[0] == '!' && parser->tag_len == 2U && parser->tag_buffer[1] != '-' &&
+           parser->tag_buffer[1] != '[') {
             parser->state = XmlParserStateDeclaration;
             parser->tag_len = 0U;
             memset(parser->special_tail, 0, sizeof(parser->special_tail));

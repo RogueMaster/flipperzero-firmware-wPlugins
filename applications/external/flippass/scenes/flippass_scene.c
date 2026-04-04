@@ -56,6 +56,6 @@ void (*const flippass_scene_on_exit_handlers[])(void*) = {
 const SceneManagerHandlers flippass_scene_handlers = {
     .on_enter_handlers = flippass_scene_on_enter_handlers,
     .on_event_handlers = flippass_scene_on_event_handlers,
-    .on_exit_handlers  = flippass_scene_on_exit_handlers,
-    .scene_num         = FlipPassScene_Status + 1,
+    .on_exit_handlers = flippass_scene_on_exit_handlers,
+    .scene_num = FlipPassScene_Status + 1,
 };

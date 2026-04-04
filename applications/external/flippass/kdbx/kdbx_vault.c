@@ -4,7 +4,7 @@
 #include <furi_hal_random.h>
 #include <stdlib.h>
 
-#define KDBX_VAULT_TRACE_TAG "FlipPassVault"
+#define KDBX_VAULT_TRACE_TAG           "FlipPassVault"
 #define KDBX_VAULT_INDEX_NODE_CAPACITY 64U
 #define KDBX_VAULT_RAM_PAGE_SIZE       1024U
 #define KDBX_VAULT_MAC_SIZE            32U
@@ -206,7 +206,8 @@ static void kdbx_vault_derive_keys(KDBXVault* vault) {
     memzero(hash, sizeof(hash));
 }
 
-static void kdbx_vault_record_nonce(const KDBXVault* vault, uint32_t record_id, uint8_t nonce[12]) {
+static void
+    kdbx_vault_record_nonce(const KDBXVault* vault, uint32_t record_id, uint8_t nonce[12]) {
     furi_assert(vault);
     furi_assert(nonce);
 
@@ -380,8 +381,8 @@ static const KDBXVaultLocator* kdbx_vault_index_get(const KDBXVault* vault, uint
 static KDBXVaultRamPage* kdbx_vault_page_alloc(KDBXVault* vault, size_t min_size) {
     furi_assert(vault);
 
-    const size_t payload_size =
-        (min_size > KDBX_VAULT_RAM_PAGE_SIZE) ? min_size : KDBX_VAULT_RAM_PAGE_SIZE;
+    const size_t payload_size = (min_size > KDBX_VAULT_RAM_PAGE_SIZE) ? min_size :
+                                                                        KDBX_VAULT_RAM_PAGE_SIZE;
     if(payload_size > (SIZE_MAX - sizeof(KDBXVaultRamPage))) {
         kdbx_vault_note_budget_failure(vault, "size_overflow", payload_size);
         return NULL;
@@ -545,10 +546,8 @@ static void kdbx_vault_writer_release_pending(KDBXVaultWriter* writer) {
     writer->pending_owned = false;
 }
 
-KDBXVault* kdbx_vault_alloc(
-    KDBXVaultBackend backend,
-    size_t* committed_bytes,
-    size_t commit_limit) {
+KDBXVault*
+    kdbx_vault_alloc(KDBXVaultBackend backend, size_t* committed_bytes, size_t commit_limit) {
     return kdbx_vault_alloc_with_path(backend, NULL, committed_bytes, commit_limit);
 }
 
@@ -587,10 +586,7 @@ KDBXVault* kdbx_vault_alloc_with_path(
     return vault;
 }
 
-void kdbx_vault_set_budget(
-    KDBXVault* vault,
-    size_t* committed_bytes,
-    size_t commit_limit) {
+void kdbx_vault_set_budget(KDBXVault* vault, size_t* committed_bytes, size_t commit_limit) {
     if(vault == NULL) {
         return;
     }
@@ -613,9 +609,8 @@ static size_t kdbx_vault_ram_record_size(const KDBXVaultRecordHeader* header) {
     return sizeof(*header) + header->cipher_len + KDBX_VAULT_MAC_SIZE;
 }
 
-static KDBXVaultLocator* kdbx_vault_index_next_locator(
-    KDBXVaultIndexNode** node,
-    uint16_t* locator_index) {
+static KDBXVaultLocator*
+    kdbx_vault_index_next_locator(KDBXVaultIndexNode** node, uint16_t* locator_index) {
     furi_assert(locator_index);
 
     while(node != NULL && *node != NULL && *locator_index >= (*node)->count) {
@@ -777,8 +772,8 @@ void kdbx_vault_writer_set_file_streaming(KDBXVaultWriter* writer, bool enabled)
         kdbx_vault_writer_close_stream_file(writer, true);
     }
 
-    writer->stream_file_mode =
-        enabled && writer->vault != NULL && kdbx_vault_backend_uses_file(writer->vault->backend);
+    writer->stream_file_mode = enabled && writer->vault != NULL &&
+                               kdbx_vault_backend_uses_file(writer->vault->backend);
 }
 
 void kdbx_vault_writer_abort(KDBXVaultWriter* writer) {
@@ -860,7 +855,8 @@ static bool kdbx_vault_writer_flush(KDBXVaultWriter* writer) {
     }
 
     if(writer->stream_file_mode) {
-        writer->stream_unsynced_bytes += sizeof(KDBXVaultRecordHeader) + writer->pending_len + sizeof(uint8_t) * KDBX_VAULT_MAC_SIZE;
+        writer->stream_unsynced_bytes += sizeof(KDBXVaultRecordHeader) + writer->pending_len +
+                                         sizeof(uint8_t) * KDBX_VAULT_MAC_SIZE;
         if(writer->stream_unsynced_bytes >= KDBX_VAULT_STREAM_SYNC_INTERVAL) {
             if(!storage_file_sync(writer->stream_file)) {
                 kdbx_vault_note_storage_failure(writer->vault, "record_sync");
@@ -965,7 +961,11 @@ void kdbx_vault_reader_reset(KDBXVaultReader* reader, KDBXVault* vault, const KD
     }
 }
 
-bool kdbx_vault_reader_read(KDBXVaultReader* reader, uint8_t* out, size_t capacity, size_t* out_size) {
+bool kdbx_vault_reader_read(
+    KDBXVaultReader* reader,
+    uint8_t* out,
+    size_t capacity,
+    size_t* out_size) {
     furi_assert(reader);
     furi_assert(out);
     furi_assert(out_size);
@@ -982,9 +982,9 @@ bool kdbx_vault_reader_read(KDBXVaultReader* reader, uint8_t* out, size_t capaci
     while(*out_size < capacity) {
         if(reader->record_plain_offset < reader->record_plain_len) {
             const size_t available = reader->record_plain_len - reader->record_plain_offset;
-            const size_t chunk = (capacity - *out_size) < available ? (capacity - *out_size) : available;
-            memcpy(
-                out + *out_size, reader->record_plain + reader->record_plain_offset, chunk);
+            const size_t chunk = (capacity - *out_size) < available ? (capacity - *out_size) :
+                                                                      available;
+            memcpy(out + *out_size, reader->record_plain + reader->record_plain_offset, chunk);
             reader->record_plain_offset += chunk;
             *out_size += chunk;
             continue;
@@ -1011,8 +1011,7 @@ bool kdbx_vault_reader_read(KDBXVaultReader* reader, uint8_t* out, size_t capaci
                 (unsigned long)capacity);
         }
 
-        if(!kdbx_vault_record_read(
-               reader->vault, record_id, &header, ciphertext, mac)) {
+        if(!kdbx_vault_record_read(reader->vault, record_id, &header, ciphertext, mac)) {
             memzero(ciphertext, sizeof(ciphertext));
             kdbx_vault_note_reader_failure(reader->vault, "record_read", record_id);
             reader->failed = true;
@@ -1033,8 +1032,8 @@ bool kdbx_vault_reader_read(KDBXVaultReader* reader, uint8_t* out, size_t capaci
                 header.cipher_len);
         }
 
-        if(header.record_id != record_id ||
-           header.plain_len != header.cipher_len || header.plain_len > sizeof(ciphertext)) {
+        if(header.record_id != record_id || header.plain_len != header.cipher_len ||
+           header.plain_len > sizeof(ciphertext)) {
             memzero(ciphertext, sizeof(ciphertext));
             kdbx_vault_note_reader_failure(reader->vault, "header_invalid", record_id);
             reader->failed = true;
@@ -1144,7 +1143,7 @@ static bool kdbx_vault_record_read(
         return false;
     }
     if(header->cipher_len > KDBX_VAULT_RECORD_PLAIN_MAX ||
-        header->plain_len > header->cipher_len) {
+       header->plain_len > header->cipher_len) {
         kdbx_vault_session_file_close(file);
         KDBX_VAULT_TRACE(
             KDBX_VAULT_TRACE_TAG,
@@ -1575,7 +1574,7 @@ size_t kdbx_vault_last_failed_max_free_block(const KDBXVault* vault) {
 
 const char* kdbx_vault_last_reader_failure(const KDBXVault* vault) {
     return (vault != NULL && vault->reader_failure_stage != NULL) ? vault->reader_failure_stage :
-                                                                     "none";
+                                                                    "none";
 }
 
 uint32_t kdbx_vault_last_reader_failure_record(const KDBXVault* vault) {

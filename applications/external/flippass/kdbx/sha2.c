@@ -272,34 +272,34 @@ void sha1_Init(SHA1_CTX* context) {
     j++;
 
 #define ROUND1_16_TO_19(a, b, c, d, e)                                                  \
-    T1  = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f]; \
+    T1 = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];  \
     (e) = ROTL32(5, a) + Ch(b, c, d) + e + K1_0_TO_19 + (W1[j & 0x0f] = ROTL32(1, T1)); \
     (b) = ROTL32(30, b);                                                                \
     j++;
 
 #define ROUND1_20_TO_39(a, b, c, d, e)                                                       \
-    T1  = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];      \
+    T1 = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];       \
     (e) = ROTL32(5, a) + Parity(b, c, d) + e + K1_20_TO_39 + (W1[j & 0x0f] = ROTL32(1, T1)); \
     (b) = ROTL32(30, b);                                                                     \
     j++;
 
 #define ROUND1_40_TO_59(a, b, c, d, e)                                                    \
-    T1  = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];   \
+    T1 = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];    \
     (e) = ROTL32(5, a) + Maj(b, c, d) + e + K1_40_TO_59 + (W1[j & 0x0f] = ROTL32(1, T1)); \
     (b) = ROTL32(30, b);                                                                  \
     j++;
 
 #define ROUND1_60_TO_79(a, b, c, d, e)                                                       \
-    T1  = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];      \
+    T1 = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];       \
     (e) = ROTL32(5, a) + Parity(b, c, d) + e + K1_60_TO_79 + (W1[j & 0x0f] = ROTL32(1, T1)); \
     (b) = ROTL32(30, b);                                                                     \
     j++;
 
 void sha1_Transform(const sha2_word32* state_in, const sha2_word32* data, sha2_word32* state_out) {
     sha2_word32 a = 0, b = 0, c = 0, d = 0, e = 0;
-    sha2_word32 T1     = 0;
+    sha2_word32 T1 = 0;
     sha2_word32 W1[16] = {0};
-    int j              = 0;
+    int j = 0;
 
     /* Initialize registers with the prev. intermediate value */
     a = state_in[0];
@@ -415,9 +415,9 @@ void sha1_Transform(const sha2_word32* state_in, const sha2_word32* data, sha2_w
 
 void sha1_Transform(const sha2_word32* state_in, const sha2_word32* data, sha2_word32* state_out) {
     sha2_word32 a = 0, b = 0, c = 0, d = 0, e = 0;
-    sha2_word32 T1     = 0;
+    sha2_word32 T1 = 0;
     sha2_word32 W1[16] = {0};
-    int j              = 0;
+    int j = 0;
 
     /* Initialize registers with the prev. intermediate value */
     a = state_in[0];
@@ -428,55 +428,55 @@ void sha1_Transform(const sha2_word32* state_in, const sha2_word32* data, sha2_w
     j = 0;
     do {
         T1 = ROTL32(5, a) + Ch(b, c, d) + e + K1_0_TO_19 + (W1[j] = *data++);
-        e  = d;
-        d  = c;
-        c  = ROTL32(30, b);
-        b  = a;
-        a  = T1;
+        e = d;
+        d = c;
+        c = ROTL32(30, b);
+        b = a;
+        a = T1;
         j++;
     } while(j < 16);
 
     do {
         T1 = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];
         T1 = ROTL32(5, a) + Ch(b, c, d) + e + K1_0_TO_19 + (W1[j & 0x0f] = ROTL32(1, T1));
-        e  = d;
-        d  = c;
-        c  = ROTL32(30, b);
-        b  = a;
-        a  = T1;
+        e = d;
+        d = c;
+        c = ROTL32(30, b);
+        b = a;
+        a = T1;
         j++;
     } while(j < 20);
 
     do {
         T1 = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];
         T1 = ROTL32(5, a) + Parity(b, c, d) + e + K1_20_TO_39 + (W1[j & 0x0f] = ROTL32(1, T1));
-        e  = d;
-        d  = c;
-        c  = ROTL32(30, b);
-        b  = a;
-        a  = T1;
+        e = d;
+        d = c;
+        c = ROTL32(30, b);
+        b = a;
+        a = T1;
         j++;
     } while(j < 40);
 
     do {
         T1 = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];
         T1 = ROTL32(5, a) + Maj(b, c, d) + e + K1_40_TO_59 + (W1[j & 0x0f] = ROTL32(1, T1));
-        e  = d;
-        d  = c;
-        c  = ROTL32(30, b);
-        b  = a;
-        a  = T1;
+        e = d;
+        d = c;
+        c = ROTL32(30, b);
+        b = a;
+        a = T1;
         j++;
     } while(j < 60);
 
     do {
         T1 = W1[(j + 13) & 0x0f] ^ W1[(j + 8) & 0x0f] ^ W1[(j + 2) & 0x0f] ^ W1[j & 0x0f];
         T1 = ROTL32(5, a) + Parity(b, c, d) + e + K1_60_TO_79 + (W1[j & 0x0f] = ROTL32(1, T1));
-        e  = d;
-        d  = c;
-        c  = ROTL32(30, b);
-        b  = a;
-        a  = T1;
+        e = d;
+        d = c;
+        c = ROTL32(30, b);
+        b = a;
+        a = T1;
         j++;
     } while(j < 80);
 
@@ -682,9 +682,9 @@ void sha256_Init_ex(SHA256_CTX* context, const uint32_t state[8], uint64_t bitco
 
 void sha256_Transform(const sha2_word32* state_in, const sha2_word32* data, sha2_word32* state_out) {
     sha2_word32 a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0, s0 = 0, s1 = 0;
-    sha2_word32 T1       = 0;
+    sha2_word32 T1 = 0;
     sha2_word32 W256[16] = {0};
-    int j                = 0;
+    int j = 0;
 
     /* Initialize registers with the prev. intermediate value */
     a = state_in[0];
@@ -757,14 +757,14 @@ void sha256_Transform(const sha2_word32* state_in, const sha2_word32* data, sha2
         /* Apply the SHA-256 compression function to update a..h with copy */
         T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] + (W256[j] = *data++);
         T2 = Sigma0_256(a) + Maj(a, b, c);
-        h  = g;
-        g  = f;
-        f  = e;
-        e  = d + T1;
-        d  = c;
-        c  = b;
-        b  = a;
-        a  = T1 + T2;
+        h = g;
+        g = f;
+        f = e;
+        e = d + T1;
+        d = c;
+        c = b;
+        b = a;
+        a = T1 + T2;
 
         j++;
     } while(j < 16);
@@ -780,14 +780,14 @@ void sha256_Transform(const sha2_word32* state_in, const sha2_word32* data, sha2
         T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] +
              (W256[j & 0x0f] += s1 + W256[(j + 9) & 0x0f] + s0);
         T2 = Sigma0_256(a) + Maj(a, b, c);
-        h  = g;
-        g  = f;
-        f  = e;
-        e  = d + T1;
-        d  = c;
-        c  = b;
-        b  = a;
-        a  = T1 + T2;
+        h = g;
+        g = f;
+        f = e;
+        e = d + T1;
+        d = c;
+        c = b;
+        b = a;
+        a = T1 + T2;
 
         j++;
     } while(j < 64);
@@ -1069,14 +1069,14 @@ void sha512_Transform(const sha2_word64* state_in, const sha2_word64* data, sha2
         /* Apply the SHA-512 compression function to update a..h with copy */
         T1 = h + Sigma1_512(e) + Ch(e, f, g) + K512[j] + (W512[j] = *data++);
         T2 = Sigma0_512(a) + Maj(a, b, c);
-        h  = g;
-        g  = f;
-        f  = e;
-        e  = d + T1;
-        d  = c;
-        c  = b;
-        b  = a;
-        a  = T1 + T2;
+        h = g;
+        g = f;
+        f = e;
+        e = d + T1;
+        d = c;
+        c = b;
+        b = a;
+        a = T1 + T2;
 
         j++;
     } while(j < 16);
@@ -1092,14 +1092,14 @@ void sha512_Transform(const sha2_word64* state_in, const sha2_word64* data, sha2
         T1 = h + Sigma1_512(e) + Ch(e, f, g) + K512[j] +
              (W512[j & 0x0f] += s1 + W512[(j + 9) & 0x0f] + s0);
         T2 = Sigma0_512(a) + Maj(a, b, c);
-        h  = g;
-        g  = f;
-        f  = e;
-        e  = d + T1;
-        d  = c;
-        c  = b;
-        b  = a;
-        a  = T1 + T2;
+        h = g;
+        g = f;
+        f = e;
+        e = d + T1;
+        d = c;
+        c = b;
+        b = a;
+        a = T1 + T2;
 
         j++;
     } while(j < 80);
@@ -1265,7 +1265,7 @@ void sha512_Raw(const sha2_byte* data, size_t len, uint8_t digest[SHA512_DIGEST_
 
 void sha384_Raw(const sha2_byte* data, size_t len, uint8_t digest[SHA384_DIGEST_LENGTH]) {
     uint8_t full_digest[SHA512_DIGEST_LENGTH] = {0};
-    SHA512_CTX context                        = {0};
+    SHA512_CTX context = {0};
     sha384_Init(&context);
     sha512_Update(&context, data, len);
     sha512_Final(&context, full_digest);

@@ -169,8 +169,8 @@ BUFR_TYPEDEF(gf_t, UNIT_BITS, GF_BYTE_LEN);
 */
 
 typedef enum {
-    REVERSE_NONE  = 0,
-    REVERSE_BITS  = 1,
+    REVERSE_NONE = 0,
+    REVERSE_BITS = 1,
     REVERSE_BYTES = 2
 } transform;
 

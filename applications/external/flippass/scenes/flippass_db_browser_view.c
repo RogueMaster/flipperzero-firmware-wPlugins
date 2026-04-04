@@ -61,9 +61,8 @@ static bool flippass_db_browser_selected_is_entry(const FlipPassDbBrowserViewMod
 }
 
 static bool flippass_db_browser_selected_action_is_other(const FlipPassDbBrowserViewModel* model) {
-    return model != NULL &&
-           flippass_db_browser_clamp_action_index(model->action_selected_index) ==
-               FlipPassDbBrowserActionOther;
+    return model != NULL && flippass_db_browser_clamp_action_index(model->action_selected_index) ==
+                                FlipPassDbBrowserActionOther;
 }
 
 static bool flippass_db_browser_selected_is_actionable(const FlipPassDbBrowserViewModel* model) {
@@ -144,7 +143,8 @@ static void flippass_db_browser_view_draw_list(Canvas* canvas, FlipPassDbBrowser
             label_width,
             model->draw_string,
             is_selected ? model->scroll_counter : 0U,
-            true);
+            true,
+            false);
     }
 
     canvas_set_color(canvas, ColorBlack);
@@ -245,7 +245,7 @@ static void flippass_db_browser_view_draw_callback(Canvas* canvas, void* _model)
     canvas_set_font(canvas, FontSecondary);
     furi_string_set_str(model->draw_string, model->header);
     elements_scrollable_text_line(
-        canvas, 2, 8, 124U, model->draw_string, model->scroll_counter, true);
+        canvas, 2, 8, 124U, model->draw_string, model->scroll_counter, true, false);
 
     flippass_db_browser_view_draw_list(canvas, model);
     flippass_db_browser_view_draw_buttons(canvas, model);
@@ -535,9 +535,7 @@ void flippass_db_browser_view_set_has_parent(FlipPassDbBrowserView* browser, boo
         true);
 }
 
-void flippass_db_browser_view_set_mode(
-    FlipPassDbBrowserView* browser,
-    FlipPassDbBrowserMode mode) {
+void flippass_db_browser_view_set_mode(FlipPassDbBrowserView* browser, FlipPassDbBrowserMode mode) {
     furi_check(browser);
     with_view_model(
         browser->view,
