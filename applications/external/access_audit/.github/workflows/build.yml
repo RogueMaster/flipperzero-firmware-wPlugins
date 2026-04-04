@@ -1,0 +1,42 @@
+name: Build Flipper App
+
+on:
+  push:
+  pull_request:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Official release
+            sdk-channel: release
+
+          - name: Official dev
+            sdk-channel: dev
+
+          - name: Momentum release
+            sdk-channel: release
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+
+          - name: Momentum dev
+            sdk-channel: dev
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+
+    name: Build (${{ matrix.name }})
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
+        with:
+          app-dir: .
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url }}
