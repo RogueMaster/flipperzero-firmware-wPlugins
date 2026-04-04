@@ -149,7 +149,8 @@ const SubGhzProtocol ford_protocol_v0 = {
 static uint8_t ford_v0_calculate_checksum(uint32_t serial, uint32_t count, uint8_t button) {
     return (uint8_t)((((count >> 24) & 0xFF) + ((count >> 16) & 0xFF) + ((count >> 8) & 0xFF) +
                       (count & 0xFF) + ((serial >> 24) & 0xFF) + ((serial >> 16) & 0xFF) +
-                      ((serial >> 8) & 0xFF) + (serial & 0xFF) + (button << 4)) &
+                      ((serial >> 8) & 0xFF) + (serial & 0xFF) +
+                      ((button == 0) ? 8 : button << 4)) &
                      0xFF);
 }
 #endif
@@ -271,7 +272,7 @@ static void decode_ford_v0(
 
     *button = (buf[5] >> 4) & 0x0F;
 
-    *count = ((buf[5] & 0x0F) << 16) | (buf[6] << 8) | buf[7];
+    *count = (((buf[5] & 0x0F) << 16) | (buf[6] << 8) | buf[7]) & 0xFFFF;
 }
 
 // =============================================================================
@@ -299,7 +300,7 @@ static void encode_ford_v0(
     buf[3] = (serial >> 8) & 0xFF;
     buf[4] = serial & 0xFF;
 
-    buf[5] = ((button & 0x0F) << 4) | ((count >> 16) & 0x0F);
+    buf[5] = ((button == 0) ? 8 : ((button & 0x0F) << 4)) | ((count >> 16) & 0x0F);
 
     uint8_t count_mid = (count >> 8) & 0xFF;
     uint8_t count_low = count & 0xFF;
@@ -930,7 +931,9 @@ void subghz_protocol_decoder_ford_v0_get_string(void* context, FuriString* outpu
     bool crc_ok = ford_v0_verify_crc(instance->key1, instance->key2);
 
     const char* button_name = "??";
-    if(instance->button == 0x01)
+    if(!instance->button)
+        button_name = "Panic";
+    else if(instance->button == 0x01)
         button_name = "Lock";
     else if(instance->button == 0x02)
         button_name = "Unlock";
