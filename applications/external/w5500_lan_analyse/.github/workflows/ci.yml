@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  version-check:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check version consistency
+        run: |
+          set -euo pipefail
+
+          # Extract version from each source
+          FAM_VER=$(grep -Po 'fap_version="\K[0-9]+\.[0-9]+\.[0-9]+' application.fam)
+          BADGE_VER=$(grep -Po 'version-\K[0-9]+\.[0-9]+\.[0-9]+' README.md | head -1)
+          CHANGELOG_VER=$(grep -Po '^# \K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | head -1)
+          ABOUT_VER=$(grep -Po 'v\K[0-9]+\.[0-9]+\.[0-9]+' lan_tester_app.c | head -1)
+
+          echo "application.fam:    $FAM_VER"
+          echo "README.md badge:    $BADGE_VER"
+          echo "CHANGELOG.md:       $CHANGELOG_VER"
+          echo "About screen:       $ABOUT_VER"
+
+          ERRORS=0
+
+          if [ "$FAM_VER" != "$BADGE_VER" ]; then
+            echo "::error::Version mismatch: application.fam ($FAM_VER) != README.md badge ($BADGE_VER)"
+            ERRORS=1
+          fi
+
+          if [ "$FAM_VER" != "$CHANGELOG_VER" ]; then
+            echo "::error::Version mismatch: application.fam ($FAM_VER) != CHANGELOG.md ($CHANGELOG_VER)"
+            ERRORS=1
+          fi
+
+          if [ "$FAM_VER" != "$ABOUT_VER" ]; then
+            echo "::error::Version mismatch: application.fam ($FAM_VER) != About screen ($ABOUT_VER)"
+            ERRORS=1
+          fi
+
+          if [ "$ERRORS" -ne 0 ]; then
+            echo ""
+            echo "All four version strings must match:"
+            echo "  - application.fam  (fap_version)"
+            echo "  - README.md                   (version badge)"
+            echo "  - CHANGELOG.md                (latest ## [x.y.z])"
+            echo "  - lan_tester_app.c (About screen)"
+            exit 1
+          fi
+
+          echo "All versions match: $FAM_VER"
+
+  build-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build
+        with:
+          task: build
+          app-dir: .
+
+      - name: Lint
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          task: lint
+          app-dir: .
+          skip-setup: true

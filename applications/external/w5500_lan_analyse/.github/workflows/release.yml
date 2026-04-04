@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build
+        with:
+          task: build
+          app-dir: .
+
+      - name: Prepare assets
+        id: assets
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          mkdir -p release
+
+          # Copy .fap artifacts
+          for f in dist/*.fap; do
+            [ -f "$f" ] || continue
+            base=$(basename "$f" .fap)
+            cp "$f" "release/${base}-${TAG}.fap"
+          done
+
+          # Extract changelog section for this version
+          NOTES=$(awk -v ver="$VERSION" '
+            /^# [0-9]/ {
+              if (found) exit
+              if (index($0, ver)) { found=1; next }
+            }
+            found { print }
+          ' CHANGELOG.md)
+
+          if [ -z "$NOTES" ]; then
+            NOTES="Release ${TAG}"
+          fi
+          printf '%s\n' "$NOTES" > release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "LAN Tester ${{ github.ref_name }}"
+          body_path: release_notes.md
+          files: release/*.fap
