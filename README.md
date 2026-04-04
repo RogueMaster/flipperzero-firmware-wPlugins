@@ -1,8 +1,6 @@
 # FlipperTrack
 
-Proof-of-concept FAP for testing how productivity monitoring software responds to simulated HID activity.
-
-Periodically generates mouse jitter, window-switch keystrokes, and fake typing bursts over USB HID — without touching the monitored host's software.
+USB HID activity simulator for Flipper Zero. Generates periodic mouse movement, keystroke bursts, and window-cycling inputs over USB HID — useful for keeping systems active during presentations, testing HID automation pipelines, or verifying endpoint software behavior in lab environments.
 
 ## Controls
 
@@ -25,7 +23,3 @@ Periodically generates mouse jitter, window-switch keystrokes, and fake typing b
 ```
 ufbt
 ```
-
-## Use case
-
-Security research and authorized testing of endpoint monitoring tools. Run against systems you own or have explicit written permission to test.

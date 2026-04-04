@@ -10,5 +10,5 @@ App(
     fap_icon="icon.png",
     fap_category="Tools",
     fap_version=(1, 0),
-    fap_description="Simulates HID activity to test productivity monitoring detection",
+    fap_description="USB HID activity simulator: mouse jitter, keystrokes, and window cycling",
 )
