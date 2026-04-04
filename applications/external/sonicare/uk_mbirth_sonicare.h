@@ -40,14 +40,14 @@ struct Sonicare {
     Storage* storage;
     DialogsApp* dialogs;
     Widget* widget;
-    
+
     // Common Views
     Submenu* submenu;
     DialogEx* dialog_ex;
     Popup* popup;
     TextInput* text_input;
     ByteInput* byte_input;
-    
+
     // NFC
     Nfc* nfc;
     NfcPoller* poller;

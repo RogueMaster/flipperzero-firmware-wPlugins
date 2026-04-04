@@ -13,23 +13,23 @@
  * iCLASS command bytes (HID iCLASS proprietary protocol over ISO15693 RF)
  * -------------------------------------------------------------------------
  */
-#define ICLASS_CMD_ACTALL    0x0A  /* SOF-only response (IncompleteFrame expected) */
-#define ICLASS_CMD_IDENTIFY  0x0C  /* Response: CSN(8) + iCLASS CRC16(2) */
-#define ICLASS_CMD_SELECT    0x81  /* Select by CSN; response: CC(8) + CRC16(2) */
-#define ICLASS_CMD_READ      0x0C  /* READ: same opcode as IDENTIFY + block addr byte */
+#define ICLASS_CMD_ACTALL    0x0A /* SOF-only response (IncompleteFrame expected) */
+#define ICLASS_CMD_IDENTIFY  0x0C /* Response: CSN(8) + iCLASS CRC16(2) */
+#define ICLASS_CMD_SELECT    0x81 /* Select by CSN; response: CC(8) + CRC16(2) */
+#define ICLASS_CMD_READ      0x0C /* READ: same opcode as IDENTIFY + block addr byte */
 #define ICLASS_CSN_LEN       8
-#define ICLASS_BLOCK_LEN     8    /* All iCLASS blocks are 8 bytes */
+#define ICLASS_BLOCK_LEN     8 /* All iCLASS blocks are 8 bytes */
 #define ICLASS_POLLER_FWT_FC 100000 /* Frame wait time in FC units (~7.4 ms) */
 #define ICLASS_BUF_SIZE      32
 
 struct IclassProvider {
-    Nfc*       nfc;     /* borrowed — not owned */
-    NfcPoller* poller;  /* active poller; NULL when not scanning */
-    NfcPoller* stale;   /* completed poller awaiting cleanup on next start/stop */
+    Nfc* nfc; /* borrowed — not owned */
+    NfcPoller* poller; /* active poller; NULL when not scanning */
+    NfcPoller* stale; /* completed poller awaiting cleanup on next start/stop */
     BitBuffer* tx_buf;
     BitBuffer* rx_buf;
     FuriMutex* mutex;
-    bool       done;
+    bool done;
     AccessObservation pending;
 };
 
@@ -122,11 +122,10 @@ static NfcCommand iclass_poller_cb(NfcGenericEvent event, void* context) {
     err = nfc_poller_trx(p->nfc, p->tx_buf, p->rx_buf, ICLASS_POLLER_FWT_FC);
 
     CardType card_type = CardTypeHidIclassLegacy;
-    if(err == NfcErrorNone &&
-       bit_buffer_get_size_bytes(p->rx_buf) == ICLASS_BLOCK_LEN + 2 &&
+    if(err == NfcErrorNone && bit_buffer_get_size_bytes(p->rx_buf) == ICLASS_BLOCK_LEN + 2 &&
        iso13239_crc_check(Iso13239CrcTypePicopass, p->rx_buf)) {
         iso13239_crc_trim(p->rx_buf);
-        uint8_t chip_cfg  = bit_buffer_get_byte(p->rx_buf, 4);
+        uint8_t chip_cfg = bit_buffer_get_byte(p->rx_buf, 4);
         uint8_t app_limit = bit_buffer_get_byte(p->rx_buf, 0);
         if((chip_cfg & 0xF0) == 0x00) {
             card_type = CardTypeHidIclassLegacy2k;
@@ -150,8 +149,8 @@ static NfcCommand iclass_poller_cb(NfcGenericEvent event, void* context) {
     p->pending.uid_len = ICLASS_CSN_LEN;
     memcpy(p->pending.uid, csn, ICLASS_CSN_LEN);
     p->done = true;
-    p->stale = p->poller;  /* hand off ownership — poller will stop after we return */
-    p->poller = NULL;      /* mark as not running so start() creates a fresh poller */
+    p->stale = p->poller; /* hand off ownership — poller will stop after we return */
+    p->poller = NULL; /* mark as not running so start() creates a fresh poller */
 
     furi_mutex_release(p->mutex);
 
@@ -169,19 +168,19 @@ IclassProvider* iclass_provider_alloc(Nfc* nfc) {
     IclassProvider* p = malloc(sizeof(IclassProvider));
     if(!p) return NULL;
 
-    p->nfc    = nfc;   /* borrowed — not owned */
+    p->nfc = nfc; /* borrowed — not owned */
     p->poller = NULL;
-    p->stale  = NULL;
+    p->stale = NULL;
     p->tx_buf = bit_buffer_alloc(ICLASS_BUF_SIZE);
     p->rx_buf = bit_buffer_alloc(ICLASS_BUF_SIZE);
-    p->mutex  = furi_mutex_alloc(FuriMutexTypeNormal);
-    p->done   = false;
+    p->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    p->done = false;
     p->pending = (AccessObservation){0};
 
     if(!p->tx_buf || !p->rx_buf || !p->mutex) {
         if(p->tx_buf) bit_buffer_free(p->tx_buf);
         if(p->rx_buf) bit_buffer_free(p->rx_buf);
-        if(p->mutex)  furi_mutex_free(p->mutex);
+        if(p->mutex) furi_mutex_free(p->mutex);
         free(p);
         return NULL;
     }
@@ -203,8 +202,8 @@ void iclass_provider_start(IclassProvider* provider) {
     if(!provider) return;
 
     furi_mutex_acquire(provider->mutex, FuriWaitForever);
-    NfcPoller* stale  = provider->stale;
-    provider->stale   = NULL;
+    NfcPoller* stale = provider->stale;
+    provider->stale = NULL;
     bool already_running = (provider->poller != NULL);
     provider->done = false;
     furi_mutex_release(provider->mutex);
@@ -235,9 +234,9 @@ void iclass_provider_stop(IclassProvider* provider) {
 
     furi_mutex_acquire(provider->mutex, FuriWaitForever);
     NfcPoller* poller = provider->poller;
-    NfcPoller* stale  = provider->stale;
+    NfcPoller* stale = provider->stale;
     provider->poller = NULL;
-    provider->stale  = NULL;
+    provider->stale = NULL;
     furi_mutex_release(provider->mutex);
 
     if(poller) {

@@ -12,7 +12,8 @@ void tesla_fsd_scene_hw_select_on_enter(void* context) {
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Select HW Version");
     submenu_add_item(app->submenu, "HW3", TeslaFSDEventSelectHW3, hw_select_callback, app);
-    submenu_add_item(app->submenu, "HW4 (FSD V14)", TeslaFSDEventSelectHW4, hw_select_callback, app);
+    submenu_add_item(
+        app->submenu, "HW4 (FSD V14)", TeslaFSDEventSelectHW4, hw_select_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewSubmenu);
 }

@@ -5,10 +5,8 @@ bool rule_legacy_family(const AccessObservation* obs) {
     /* All 125 kHz RFID protocols lack cryptographic protection */
     if(obs->tech == TechTypeRfid125) return true;
     /* MIFARE Classic family — Crypto1 cipher is broken */
-    if(obs->card_type == CardTypeMifareClassic ||
-       obs->card_type == CardTypeMifareClassic1K ||
-       obs->card_type == CardTypeMifareClassic4K ||
-       obs->card_type == CardTypeMifareClassicMini)
+    if(obs->card_type == CardTypeMifareClassic || obs->card_type == CardTypeMifareClassic1K ||
+       obs->card_type == CardTypeMifareClassic4K || obs->card_type == CardTypeMifareClassicMini)
         return true;
     /* MIFARE Plus SL1 — Classic-compatibility mode, no AES in use */
     if(obs->card_type == CardTypeMifarePlusSL1) return true;

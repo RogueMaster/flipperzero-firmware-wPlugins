@@ -4,12 +4,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define CAN_ID_STW_ACTN_RQ    0x045  // 69 - steering wheel stalk (Legacy follow distance)
-#define CAN_ID_AP_LEGACY      0x3EE  // 1006 - autopilot control (Legacy)
-#define CAN_ID_ISA_SPEED      0x399  // 921 - ISA speed chime (HW4)
-#define CAN_ID_GTW_CAR_CONFIG 0x398  // 920 - HW version detection
-#define CAN_ID_FOLLOW_DIST    0x3F8  // 1016 - follow distance / speed profile
-#define CAN_ID_AP_CONTROL     0x3FD  // 1021 - autopilot control (HW3/HW4)
+#define CAN_ID_STW_ACTN_RQ    0x045 // 69 - steering wheel stalk (Legacy follow distance)
+#define CAN_ID_AP_LEGACY      0x3EE // 1006 - autopilot control (Legacy)
+#define CAN_ID_ISA_SPEED      0x399 // 921 - ISA speed chime (HW4)
+#define CAN_ID_GTW_CAR_CONFIG 0x398 // 920 - HW version detection
+#define CAN_ID_FOLLOW_DIST    0x3F8 // 1016 - follow distance / speed profile
+#define CAN_ID_AP_CONTROL     0x3FD // 1021 - autopilot control (HW3/HW4)
 
 typedef enum {
     TeslaHW_Unknown = 0,

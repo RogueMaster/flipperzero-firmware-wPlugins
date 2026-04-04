@@ -48,10 +48,8 @@ struct RfidProvider {
  * -------------------------------------------------------------------------
  */
 
-static void rfid_worker_callback(
-    LFRFIDWorkerReadResult result,
-    ProtocolId protocol,
-    void* context) {
+static void
+    rfid_worker_callback(LFRFIDWorkerReadResult result, ProtocolId protocol, void* context) {
     RfidProvider* p = context;
 
     if(result != LFRFIDWorkerReadDone) return;
@@ -66,8 +64,8 @@ static void rfid_worker_callback(
     /* Pull the raw data bytes and use them as the UID. */
     size_t data_size = protocol_dict_get_data_size(p->dict, (size_t)protocol);
     if(data_size > 0) {
-        size_t copy_size =
-            data_size <= sizeof(p->pending.uid) ? data_size : sizeof(p->pending.uid);
+        size_t copy_size = data_size <= sizeof(p->pending.uid) ? data_size :
+                                                                 sizeof(p->pending.uid);
         protocol_dict_get_data(p->dict, (size_t)protocol, p->pending.uid, copy_size);
         p->pending.uid_present = true;
         p->pending.uid_len = copy_size;

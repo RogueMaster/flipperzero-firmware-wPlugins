@@ -16,8 +16,8 @@ bool report_save_session(const ScanSession* session);
 
 /* ── Report listing / loading ── */
 
-#define REPORT_LIST_MAX  100
-#define REPORT_NAME_LEN  28  /* "YYYYMMDD_HHMMSS\0" (16) + safety */
+#define REPORT_LIST_MAX 100
+#define REPORT_NAME_LEN 28 /* "YYYYMMDD_HHMMSS\0" (16) + safety */
 
 /**
  * Fill names[] with up to REPORT_LIST_MAX report basenames, newest first.
@@ -46,9 +46,9 @@ ReportSummary report_read_summary(const char* name);
  * Loaded report content — heap-allocated, free with report_content_free().
  */
 typedef struct {
-    char*   buf;    /* file bytes with '\n' replaced by '\0' */
-    char**  lines;  /* pointers into buf, one per line        */
-    size_t  count;  /* number of lines                        */
+    char* buf; /* file bytes with '\n' replaced by '\0' */
+    char** lines; /* pointers into buf, one per line        */
+    size_t count; /* number of lines                        */
 } ReportContent;
 
 /**

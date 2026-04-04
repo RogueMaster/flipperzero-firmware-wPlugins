@@ -10,7 +10,7 @@
 
 #define TAG "AccessAudit"
 
-#define REPORT_DIR "/ext/apps_data/access_audit"
+#define REPORT_DIR         "/ext/apps_data/access_audit"
 #define REPORT_APP_VERSION "1.0"
 
 /* Write a plain C string to the file. */
@@ -21,16 +21,26 @@ static void fw(File* f, const char* s) {
 /** Known user-memory capacity for card types we can determine statically. */
 static const char* memory_capacity(CardType type) {
     switch(type) {
-    case CardTypeMifareClassic1K:    return "1 KB (16 sectors)";
-    case CardTypeMifareClassic4K:    return "4 KB (40 sectors)";
-    case CardTypeMifareClassicMini:  return "320 B (5 sectors)";
-    case CardTypeMifareUltralight:   return "64 B";
-    case CardTypeMifareUltralightC:  return "192 B";
-    case CardTypeNtag203:            return "144 B";
-    case CardTypeNtag213:            return "144 B";
-    case CardTypeNtag215:            return "540 B";
-    case CardTypeNtag216:            return "888 B";
-    default:                         return NULL;
+    case CardTypeMifareClassic1K:
+        return "1 KB (16 sectors)";
+    case CardTypeMifareClassic4K:
+        return "4 KB (40 sectors)";
+    case CardTypeMifareClassicMini:
+        return "320 B (5 sectors)";
+    case CardTypeMifareUltralight:
+        return "64 B";
+    case CardTypeMifareUltralightC:
+        return "192 B";
+    case CardTypeNtag203:
+        return "144 B";
+    case CardTypeNtag213:
+        return "144 B";
+    case CardTypeNtag215:
+        return "540 B";
+    case CardTypeNtag216:
+        return "888 B";
+    default:
+        return NULL;
     }
 }
 
@@ -42,12 +52,18 @@ static const char* nfc_manufacturer(const AccessObservation* obs) {
     if(obs->tech != TechTypeNfc13Mhz) return NULL;
     if(!obs->uid_present || obs->uid_len < 7) return NULL;
     switch(obs->uid[0]) {
-    case 0x02: return "STMicroelectronics";
-    case 0x04: return "NXP Semiconductors";
-    case 0x05: return "Infineon Technologies";
-    case 0x07: return "Texas Instruments";
-    case 0x16: return "Atmel";
-    default:   return NULL;
+    case 0x02:
+        return "STMicroelectronics";
+    case 0x04:
+        return "NXP Semiconductors";
+    case 0x05:
+        return "Infineon Technologies";
+    case 0x07:
+        return "Texas Instruments";
+    case 0x16:
+        return "Atmel";
+    default:
+        return NULL;
     }
 }
 
@@ -56,7 +72,10 @@ static size_t count_unique_uids(const ScanSession* session) {
     size_t unique = 0;
     for(size_t i = 0; i < session->count; i++) {
         const AccessObservation* a = &session->entries[i].obs;
-        if(!a->uid_present || a->uid_len == 0) { unique++; continue; }
+        if(!a->uid_present || a->uid_len == 0) {
+            unique++;
+            continue;
+        }
         bool dup = false;
         for(size_t j = 0; j < i; j++) {
             const AccessObservation* b = &session->entries[j].obs;
@@ -76,7 +95,7 @@ static bool session_has_mixed_tech(const ScanSession* session) {
     bool has_nfc = false, has_rfid = false;
     for(size_t i = 0; i < session->count; i++) {
         if(session->entries[i].obs.tech == TechTypeNfc13Mhz) has_nfc = true;
-        if(session->entries[i].obs.tech == TechTypeRfid125)  has_rfid = true;
+        if(session->entries[i].obs.tech == TechTypeRfid125) has_rfid = true;
     }
     return has_nfc && has_rfid;
 }
@@ -144,11 +163,7 @@ static const char* report_risk_label(Severity severity) {
     }
 }
 
-static void write_card_entry(
-    File* f,
-    size_t index,
-    size_t total,
-    const SessionEntry* entry) {
+static void write_card_entry(File* f, size_t index, size_t total, const SessionEntry* entry) {
     char buf[64];
 
     snprintf(buf, sizeof(buf), "Card %u/%u\n", (unsigned)(index + 1), (unsigned)total);
@@ -201,12 +216,15 @@ static void write_card_entry(
         fw(f, buf);
     }
 
-    snprintf(
-        buf, sizeof(buf), "  Risk:   %s\n", report_risk_label(entry->score.max_severity));
+    snprintf(buf, sizeof(buf), "  Risk:   %s\n", report_risk_label(entry->score.max_severity));
     fw(f, buf);
 
-    snprintf(buf, sizeof(buf), "  Score:  %u/100  Confidence: %u%%\n",
-        entry->score.score, entry->score.confidence);
+    snprintf(
+        buf,
+        sizeof(buf),
+        "  Score:  %u/100  Confidence: %u%%\n",
+        entry->score.score,
+        entry->score.confidence);
     fw(f, buf);
 
     /* Rules triggered */
@@ -245,8 +263,9 @@ static void write_card_entry(
 
     /* Default key finding - explicit note when confirmed via active scan */
     if(rule_default_keys(&entry->obs)) {
-        fw(f, "  Note:   Sector 0 readable with a default key (active scan). "
-              "Keys have never been changed.\n");
+        fw(f,
+           "  Note:   Sector 0 readable with a default key (active scan). "
+           "Keys have never been changed.\n");
     }
 
     fw(f, "\n");
@@ -280,8 +299,7 @@ bool report_save_session(const ScanSession* session) {
     File* file = storage_file_alloc(storage);
     bool open_ok = storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS);
     if(!open_ok) {
-        FURI_LOG_E(TAG, "open failed: %s err=%u", path,
-            (unsigned)storage_file_get_error(file));
+        FURI_LOG_E(TAG, "open failed: %s err=%u", path, (unsigned)storage_file_get_error(file));
     }
 
     if(open_ok) {
@@ -330,10 +348,7 @@ bool report_save_session(const ScanSession* session) {
         fw(file, buf);
         if(sum.most_common_type != CardTypeUnknown) {
             snprintf(
-                buf,
-                sizeof(buf),
-                "Most common: %s\n",
-                card_type_to_string(sum.most_common_type));
+                buf, sizeof(buf), "Most common: %s\n", card_type_to_string(sum.most_common_type));
             fw(file, buf);
         }
 
@@ -365,7 +380,9 @@ bool report_save_session(const ScanSession* session) {
         if(sum.high > 0 || sum.medium > 0) {
             fw(file, "========================================\n");
             if(sum.high > 0) {
-                snprintf(buf, sizeof(buf),
+                snprintf(
+                    buf,
+                    sizeof(buf),
                     "ACTION REQUIRED: %u high-risk card(s) detected.\n",
                     (unsigned)sum.high);
                 fw(file, buf);
@@ -397,8 +414,7 @@ size_t report_list(char names[REPORT_LIST_MAX][REPORT_NAME_LEN]) {
 
     if(storage_dir_open(dir, REPORT_DIR)) {
         char fname[64];
-        while(count < REPORT_LIST_MAX &&
-              storage_dir_read(dir, NULL, fname, sizeof(fname))) {
+        while(count < REPORT_LIST_MAX && storage_dir_read(dir, NULL, fname, sizeof(fname))) {
             /* Expect "report_YYYYMMDD_HHMMSS.txt" — 26 chars */
             size_t len = strlen(fname);
             if(len >= 26 && strncmp(fname, "report_", 7) == 0) {
@@ -517,13 +533,12 @@ ReportSummary report_read_summary(const char* name) {
             if(newline) *newline = '\0';
 
             unsigned h = 0, m = 0, lo = 0, s = 0;
-            if(sscanf(line, "High: %u  Medium: %u  Low: %u  Secure: %u",
-                      &h, &m, &lo, &s) == 4) {
-                sum.high   = (uint8_t)(h  > 255 ? 255 : h);
-                sum.medium = (uint8_t)(m  > 255 ? 255 : m);
-                sum.low    = (uint8_t)(lo > 255 ? 255 : lo);
-                sum.secure = (uint8_t)(s  > 255 ? 255 : s);
-                sum.valid  = true;
+            if(sscanf(line, "High: %u  Medium: %u  Low: %u  Secure: %u", &h, &m, &lo, &s) == 4) {
+                sum.high = (uint8_t)(h > 255 ? 255 : h);
+                sum.medium = (uint8_t)(m > 255 ? 255 : m);
+                sum.low = (uint8_t)(lo > 255 ? 255 : lo);
+                sum.secure = (uint8_t)(s > 255 ? 255 : s);
+                sum.valid = true;
                 break;
             }
 

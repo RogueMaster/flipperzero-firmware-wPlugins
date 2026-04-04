@@ -20,7 +20,8 @@ void tesla_fsd_scene_main_menu_on_enter(void* context) {
 
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Tesla FSD Unlock");
-    submenu_add_item(app->submenu, "Auto Detect & Start", MainMenuAutoDetect, main_menu_callback, app);
+    submenu_add_item(
+        app->submenu, "Auto Detect & Start", MainMenuAutoDetect, main_menu_callback, app);
     submenu_add_item(app->submenu, "Force HW3 Mode", MainMenuHW3, main_menu_callback, app);
     submenu_add_item(app->submenu, "Force HW4 Mode", MainMenuHW4, main_menu_callback, app);
     submenu_add_item(app->submenu, "Force Legacy Mode", MainMenuLegacy, main_menu_callback, app);

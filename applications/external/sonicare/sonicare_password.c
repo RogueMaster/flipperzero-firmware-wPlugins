@@ -3,22 +3,19 @@
 
 #include <furi.h>
 
-uint16_t CRC16(uint16_t crc, uint8_t *buffer, int len) // Default CRC16 Algo
+uint16_t CRC16(uint16_t crc, uint8_t* buffer, int len) // Default CRC16 Algo
 {
-  while(len--)
-  {
-    crc ^= *buffer++ << 8;
-    int bits = 0;
-    do
-    {
-      if ( (crc & 0x8000) != 0 )
-        crc = (2 * crc) ^ 0x1021;
-      else
-        crc *= 2;
+    while(len--) {
+        crc ^= *buffer++ << 8;
+        int bits = 0;
+        do {
+            if((crc & 0x8000) != 0)
+                crc = (2 * crc) ^ 0x1021;
+            else
+                crc *= 2;
+        } while(++bits < 8);
     }
-    while ( ++bits < 8 );
-  }
-  return crc;
+    return crc;
 }
 
 //uint8_t nfctag_uid[] = {0x04,0xEC,0xFC,0xA2,0x94,0x10,0x90}; // NTAG UID
@@ -38,9 +35,10 @@ uint32_t get_sonicare_password(uint8_t nfctag_uid[], uint8_t nfc_second[]) {
 
     crc_calc = crc_calc | (CRC16(crc_calc, nfc_second, 10) << 16); // Calculate the MFG CRC
     FURI_LOG_D("sonicare_password", "CRC16 with MFG: 0x%08lx", crc_calc);
-    
-    crc_calc = ((crc_calc >> 8) & 0x00FF00FF) | ((crc_calc << 8) & 0xFF00FF00); // Rotate the uin16_t bytes
+
+    crc_calc = ((crc_calc >> 8) & 0x00FF00FF) |
+               ((crc_calc << 8) & 0xFF00FF00); // Rotate the uin16_t bytes
     FURI_LOG_D("sonicare_password", "Final NFC password: 0x%08lx", crc_calc);
-    
+
     return crc_calc;
 }

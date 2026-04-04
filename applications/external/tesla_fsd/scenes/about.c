@@ -6,15 +6,18 @@ void tesla_fsd_scene_about_on_enter(void* context) {
 
     widget_reset(app->widget);
     widget_add_string_element(
-        app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary,
-        "Tesla FSD Unlock");
+        app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary, "Tesla FSD Unlock");
 
     widget_add_string_element(
-        app->widget, 64, 14, AlignCenter, AlignTop, FontSecondary,
-        "v" TESLA_FSD_VERSION);
+        app->widget, 64, 14, AlignCenter, AlignTop, FontSecondary, "v" TESLA_FSD_VERSION);
 
     widget_add_string_multiline_element(
-        app->widget, 64, 28, AlignCenter, AlignTop, FontSecondary,
+        app->widget,
+        64,
+        28,
+        AlignCenter,
+        AlignTop,
+        FontSecondary,
         "HW3/HW4/Legacy + Force FSD\n"
         "Chime suppress, Emerg. detect\n"
         "github.com/hypery11/flipper-tesla-fsd");

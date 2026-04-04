@@ -291,8 +291,7 @@ static void scanner_callback(NfcScannerEvent event, void* context) {
     furi_mutex_acquire(p->mutex, FuriWaitForever);
 
     if(p->state == ProviderStateScanning) {
-        p->detected_card_type =
-            best_card_type(event.data.protocols, event.data.protocol_num);
+        p->detected_card_type = best_card_type(event.data.protocols, event.data.protocol_num);
         p->uid_protocol = uid_transport(event.data.protocols, event.data.protocol_num);
         p->state = ProviderStateReadPending;
     }
@@ -337,8 +336,8 @@ static NfcCommand iso14443_3a_poller_cb(NfcGenericEvent event, void* context) {
 
             if(uid && uid_len > 0) {
                 p->pending.uid_present = true;
-                p->pending.uid_len =
-                    uid_len <= sizeof(p->pending.uid) ? uid_len : sizeof(p->pending.uid);
+                p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                         sizeof(p->pending.uid);
                 for(size_t i = 0; i < p->pending.uid_len; i++) {
                     p->pending.uid[i] = uid[i];
                 }
@@ -382,8 +381,7 @@ static NfcCommand mf_ultralight_poller_cb(NfcGenericEvent event, void* context) 
     furi_mutex_acquire(p->mutex, FuriWaitForever);
 
     if(ul_event->type == MfUltralightPollerEventTypeReadSuccess) {
-        const MfUltralightData* ul_data =
-            (const MfUltralightData*)nfc_poller_get_data(p->poller);
+        const MfUltralightData* ul_data = (const MfUltralightData*)nfc_poller_get_data(p->poller);
 
         if(ul_data) {
             size_t uid_len = 0;
@@ -396,8 +394,8 @@ static NfcCommand mf_ultralight_poller_cb(NfcGenericEvent event, void* context) 
 
             if(uid && uid_len > 0) {
                 p->pending.uid_present = true;
-                p->pending.uid_len =
-                    uid_len <= sizeof(p->pending.uid) ? uid_len : sizeof(p->pending.uid);
+                p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                         sizeof(p->pending.uid);
                 for(size_t i = 0; i < p->pending.uid_len; i++) {
                     p->pending.uid[i] = uid[i];
                 }
@@ -446,8 +444,8 @@ static NfcCommand mf_desfire_poller_cb(NfcGenericEvent event, void* context) {
 
             if(uid && uid_len > 0) {
                 p->pending.uid_present = true;
-                p->pending.uid_len =
-                    uid_len <= sizeof(p->pending.uid) ? uid_len : sizeof(p->pending.uid);
+                p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                         sizeof(p->pending.uid);
                 for(size_t i = 0; i < p->pending.uid_len; i++) {
                     p->pending.uid[i] = uid[i];
                 }
@@ -497,8 +495,8 @@ static NfcCommand mf_plus_poller_cb(NfcGenericEvent event, void* context) {
 
             if(uid && uid_len > 0) {
                 p->pending.uid_present = true;
-                p->pending.uid_len =
-                    uid_len <= sizeof(p->pending.uid) ? uid_len : sizeof(p->pending.uid);
+                p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                         sizeof(p->pending.uid);
                 for(size_t i = 0; i < p->pending.uid_len; i++) {
                     p->pending.uid[i] = uid[i];
                 }
@@ -557,8 +555,8 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
             for(size_t t = 0; t < 2 && !default_key_found; t++) {
                 MfClassicKey key;
                 memcpy(key.data, DEFAULT_KEYS[k], MF_CLASSIC_KEY_SIZE);
-                MfClassicError err = mf_classic_poller_auth(
-                    cl_poller, 0, &key, KEY_TYPES[t], &auth_ctx, false);
+                MfClassicError err =
+                    mf_classic_poller_auth(cl_poller, 0, &key, KEY_TYPES[t], &auth_ctx, false);
                 if(err == MfClassicErrorNone) default_key_found = true;
             }
         }
@@ -583,8 +581,7 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
                 uint8_t sak = iso14443_3a_get_sak(iso_data);
                 uint8_t atqa[2];
                 iso14443_3a_get_atqa(iso_data, atqa);
-                p->pending.card_type =
-                    classic_subtype_from_sak(sak, p->detected_card_type);
+                p->pending.card_type = classic_subtype_from_sak(sak, p->detected_card_type);
                 p->pending.sak_atqa_present = true;
                 p->pending.sak = sak;
                 p->pending.atqa[0] = atqa[0];
@@ -595,8 +592,8 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
 
             if(uid && uid_len > 0) {
                 p->pending.uid_present = true;
-                p->pending.uid_len =
-                    uid_len <= sizeof(p->pending.uid) ? uid_len : sizeof(p->pending.uid);
+                p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                         sizeof(p->pending.uid);
                 memcpy(p->pending.uid, uid, p->pending.uid_len);
             }
 
@@ -655,8 +652,7 @@ static NfcCommand iso15693_3_poller_cb(NfcGenericEvent event, void* context) {
         p->pending = (AccessObservation){0};
         p->pending.tech = TechTypeNfc13Mhz;
         /* metadata_complete only if full activation succeeded */
-        p->pending.metadata_complete =
-            (iso_event->type == Iso15693_3PollerEventTypeReady);
+        p->pending.metadata_complete = (iso_event->type == Iso15693_3PollerEventTypeReady);
 
         /* Classify by manufacturer code in uid[6] (LSB-first UID storage). */
         if(uid && uid_len == 8 && uid[6] == 0x07) {
@@ -668,8 +664,8 @@ static NfcCommand iso15693_3_poller_cb(NfcGenericEvent event, void* context) {
 
         if(uid && uid_len > 0) {
             p->pending.uid_present = true;
-            p->pending.uid_len =
-                uid_len <= sizeof(p->pending.uid) ? uid_len : sizeof(p->pending.uid);
+            p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                     sizeof(p->pending.uid);
             for(size_t i = 0; i < p->pending.uid_len; i++) {
                 p->pending.uid[i] = uid[i];
             }
@@ -733,8 +729,8 @@ static NfcCommand felica_poller_cb(NfcGenericEvent event, void* context) {
 
         if(uid && uid_len > 0) {
             p->pending.uid_present = true;
-            p->pending.uid_len =
-                uid_len <= sizeof(p->pending.uid) ? uid_len : sizeof(p->pending.uid);
+            p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                     sizeof(p->pending.uid);
             for(size_t i = 0; i < p->pending.uid_len; i++) {
                 p->pending.uid[i] = uid[i];
             }
@@ -966,4 +962,3 @@ bool observation_provider_poll(ObservationProvider* provider, AccessObservation*
 Nfc* observation_provider_get_nfc(ObservationProvider* provider) {
     return provider ? provider->nfc : NULL;
 }
-

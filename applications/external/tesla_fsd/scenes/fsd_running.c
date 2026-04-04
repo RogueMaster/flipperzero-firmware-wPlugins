@@ -13,49 +13,62 @@ static void fsd_update_display(TeslaFSDApp* app) {
     const char* hw_str;
     int max_profile;
     switch(hw) {
-    case TeslaHW_Legacy: hw_str = "Legacy"; max_profile = 2; break;
-    case TeslaHW_HW3:    hw_str = "HW3";    max_profile = 2; break;
-    case TeslaHW_HW4:    hw_str = "HW4";    max_profile = 4; break;
-    default:             hw_str = "??";      max_profile = 0; break;
+    case TeslaHW_Legacy:
+        hw_str = "Legacy";
+        max_profile = 2;
+        break;
+    case TeslaHW_HW3:
+        hw_str = "HW3";
+        max_profile = 2;
+        break;
+    case TeslaHW_HW4:
+        hw_str = "HW4";
+        max_profile = 4;
+        break;
+    default:
+        hw_str = "??";
+        max_profile = 0;
+        break;
     }
 
     widget_reset(app->widget);
 
     widget_add_string_element(
-        app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary,
-        "Tesla FSD Active");
+        app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary, "Tesla FSD Active");
 
     char line1[40];
-    snprintf(line1, sizeof(line1), "HW: %s    Profile: %d/%d", hw_str, state.speed_profile, max_profile);
-    widget_add_string_element(
-        app->widget, 2, 16, AlignLeft, AlignTop, FontSecondary, line1);
+    snprintf(
+        line1, sizeof(line1), "HW: %s    Profile: %d/%d", hw_str, state.speed_profile, max_profile);
+    widget_add_string_element(app->widget, 2, 16, AlignLeft, AlignTop, FontSecondary, line1);
 
     char line2[40];
-    snprintf(line2, sizeof(line2), "FSD: %s  Nag: %s",
+    snprintf(
+        line2,
+        sizeof(line2),
+        "FSD: %s  Nag: %s",
         state.fsd_enabled ? "ON" : "WAIT",
         state.nag_suppressed ? "OFF" : "--");
-    widget_add_string_element(
-        app->widget, 2, 26, AlignLeft, AlignTop, FontSecondary, line2);
+    widget_add_string_element(app->widget, 2, 26, AlignLeft, AlignTop, FontSecondary, line2);
 
     char line3[40];
     snprintf(line3, sizeof(line3), "Frames: %lu", (unsigned long)state.frames_modified);
-    widget_add_string_element(
-        app->widget, 2, 36, AlignLeft, AlignTop, FontSecondary, line3);
+    widget_add_string_element(app->widget, 2, 36, AlignLeft, AlignTop, FontSecondary, line3);
 
     // show active features
     char line4[40];
-    snprintf(line4, sizeof(line4), "%s%s%s",
+    snprintf(
+        line4,
+        sizeof(line4),
+        "%s%s%s",
         state.force_fsd ? "FORCE " : "",
         state.suppress_speed_chime ? "CHIME " : "",
         state.emergency_vehicle_detect ? "EMRG" : "");
     if(line4[0]) {
-        widget_add_string_element(
-            app->widget, 2, 46, AlignLeft, AlignTop, FontSecondary, line4);
+        widget_add_string_element(app->widget, 2, 46, AlignLeft, AlignTop, FontSecondary, line4);
     }
 
     widget_add_string_element(
-        app->widget, 64, 56, AlignCenter, AlignTop, FontSecondary,
-        "[BACK] to stop");
+        app->widget, 64, 56, AlignCenter, AlignTop, FontSecondary, "[BACK] to stop");
 }
 
 static int32_t fsd_running_worker(void* context) {
@@ -164,8 +177,7 @@ void tesla_fsd_scene_fsd_running_on_enter(void* context) {
 
     widget_reset(app->widget);
     widget_add_string_element(
-        app->widget, 64, 28, AlignCenter, AlignCenter, FontPrimary,
-        "Starting...");
+        app->widget, 64, 28, AlignCenter, AlignCenter, FontPrimary, "Starting...");
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewWidget);
 
     app->worker_thread = furi_thread_alloc_ex("TeslaFSD", 2048, fsd_running_worker, app);
@@ -180,7 +192,12 @@ bool tesla_fsd_scene_fsd_running_on_event(void* context, SceneManagerEvent event
         if(event.event == TeslaFSDEventNoDevice) {
             widget_reset(app->widget);
             widget_add_string_multiline_element(
-                app->widget, 64, 28, AlignCenter, AlignCenter, FontPrimary,
+                app->widget,
+                64,
+                28,
+                AlignCenter,
+                AlignCenter,
+                FontPrimary,
                 "CAN Module\nNot Found");
             consumed = true;
         }

@@ -39,14 +39,14 @@ typedef struct {
     AuditScore score;
     AccessAuditScreen screen;
     int saved_ticks; /* countdown to auto-exit after save confirmation */
-    bool save_ok;    /* result of the last report_save_session() call */
-    uint8_t kb_row;  /* keyboard cursor row (0-3) */
-    uint8_t kb_col;  /* keyboard cursor column */
+    bool save_ok; /* result of the last report_save_session() call */
+    uint8_t kb_row; /* keyboard cursor row (0-3) */
+    uint8_t kb_col; /* keyboard cursor column */
     /* Report list */
     char rlist_names[REPORT_LIST_MAX][REPORT_NAME_LEN];
     ReportSummary rlist_summaries[REPORT_LIST_MAX];
     size_t rlist_count;
-    size_t rlist_top;    /* index of first visible row */
+    size_t rlist_top; /* index of first visible row */
     size_t rlist_cursor; /* index of selected row */
     /* Report viewer */
     ReportContent rviewer;
@@ -81,8 +81,8 @@ static void access_audit_start_scanning(AccessAuditApp* app) {
     } else {
         /* iCLASS — lazy alloc */
         if(!app->iclass_provider) {
-            app->iclass_provider = iclass_provider_alloc(
-                observation_provider_get_nfc(app->nfc_provider));
+            app->iclass_provider =
+                iclass_provider_alloc(observation_provider_get_nfc(app->nfc_provider));
         }
         if(app->iclass_provider) {
             iclass_provider_start(app->iclass_provider);
@@ -102,10 +102,8 @@ static void access_audit_stop_scanning(AccessAuditApp* app) {
     }
 }
 
-static void access_audit_format_uid_line(
-    const AccessObservation* obs,
-    char* out,
-    size_t out_size) {
+static void
+    access_audit_format_uid_line(const AccessObservation* obs, char* out, size_t out_size) {
     if(!obs->uid_present || obs->uid_len == 0) {
         snprintf(out, out_size, "UID: unavailable");
         return;
@@ -163,9 +161,9 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
             10,
             AlignRight,
             AlignBottom,
-            app->scan_mode == ScanModeNfc     ? "[NFC]" :
-            app->scan_mode == ScanModeRfid    ? "[RFID]" :
-                                                "[iCLASS]");
+            app->scan_mode == ScanModeNfc  ? "[NFC]" :
+            app->scan_mode == ScanModeRfid ? "[RFID]" :
+                                             "[iCLASS]");
         if(app->session.count > 0) {
             char cbuf[16];
             snprintf(cbuf, sizeof(cbuf), "[%u]", (unsigned)app->session.count);
@@ -175,8 +173,8 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
             canvas,
             2,
             26,
-            app->scan_mode == ScanModeNfc     ? "Tap card to reader..." :
-            app->scan_mode == ScanModeIclass  ? "Tap iCLASS card..." :
+            app->scan_mode == ScanModeNfc    ? "Tap card to reader..." :
+            app->scan_mode == ScanModeIclass ? "Tap iCLASS card..." :
                                                "Hold card to reader...");
         canvas_draw_str(canvas, 2, 38, "Scanning...");
         canvas_draw_str(canvas, 2, 50, "< > NFC/RFID/iCLASS");
@@ -237,8 +235,8 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
                         date_str,
                         sizeof(date_str),
                         "%.8s %.2s:%.2s",
-                        n,       /* YYYYMMDD */
-                        n + 9,   /* HH */
+                        n, /* YYYYMMDD */
+                        n + 9, /* HH */
                         n + 11); /* MM */
                 } else {
                     snprintf(date_str, sizeof(date_str), "%s", n);
@@ -300,13 +298,13 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
         /* ── QWERTY keyboard ── */
         static const char* const KB_ROWS[3] = {"QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"};
         static const uint8_t KB_LENS[3] = {10, 9, 7};
-        static const uint8_t KB_X0[3]   = {4, 6, 12};
+        static const uint8_t KB_X0[3] = {4, 6, 12};
         static const uint8_t KB_STEP[3] = {12, 13, 15};
-        static const uint8_t KB_Y[4]    = {34, 44, 54, 63};
+        static const uint8_t KB_Y[4] = {34, 44, 54, 63};
         /* Special row: 0=DEL  1=SPC  2=OK */
         static const char* const SPEC_LABEL[3] = {"DEL", "SPC", "OK"};
-        static const uint8_t SPEC_X[3]  = {4,  44, 100};
-        static const uint8_t SPEC_W[3]  = {27, 42,  24};
+        static const uint8_t SPEC_X[3] = {4, 44, 100};
+        static const uint8_t SPEC_W[3] = {27, 42, 24};
 
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, "Name session");
@@ -410,8 +408,8 @@ int32_t access_audit_app(void* p) {
         return -1;
     }
 
-    app->rfid_provider = NULL;    /* allocated on demand */
-    app->iclass_provider = NULL;  /* allocated on demand */
+    app->rfid_provider = NULL; /* allocated on demand */
+    app->iclass_provider = NULL; /* allocated on demand */
     app->scan_mode = ScanModeNfc;
     session_init(&app->session);
     access_audit_reset_to_scan(app);
@@ -444,12 +442,15 @@ int32_t access_audit_app(void* p) {
 
         if(app->screen == AccessAuditScreenScan) {
             AccessObservation candidate;
-            bool got =
-                (app->scan_mode == ScanModeNfc) ?
-                    observation_provider_poll(app->nfc_provider, &candidate) :
-                (app->scan_mode == ScanModeRfid) ?
-                    (app->rfid_provider ? rfid_provider_poll(app->rfid_provider, &candidate) : false) :
-                    (app->iclass_provider ? iclass_provider_poll(app->iclass_provider, &candidate) : false);
+            bool got = (app->scan_mode == ScanModeNfc) ?
+                           observation_provider_poll(app->nfc_provider, &candidate) :
+                       (app->scan_mode == ScanModeRfid) ?
+                           (app->rfid_provider ?
+                                rfid_provider_poll(app->rfid_provider, &candidate) :
+                                false) :
+                           (app->iclass_provider ?
+                                iclass_provider_poll(app->iclass_provider, &candidate) :
+                                false);
             if(got) {
                 app->obs = candidate;
                 app->score = score_observation(&app->obs);
@@ -466,23 +467,28 @@ int32_t access_audit_app(void* p) {
                         running = false;
                     } else if(event.input.key == InputKeyRight) {
                         access_audit_stop_scanning(app);
-                        if(app->scan_mode == ScanModeNfc)         app->scan_mode = ScanModeRfid;
-                        else if(app->scan_mode == ScanModeRfid)   app->scan_mode = ScanModeIclass;
-                        else                                       app->scan_mode = ScanModeNfc;
+                        if(app->scan_mode == ScanModeNfc)
+                            app->scan_mode = ScanModeRfid;
+                        else if(app->scan_mode == ScanModeRfid)
+                            app->scan_mode = ScanModeIclass;
+                        else
+                            app->scan_mode = ScanModeNfc;
                         access_audit_start_scanning(app);
                     } else if(event.input.key == InputKeyLeft) {
                         access_audit_stop_scanning(app);
-                        if(app->scan_mode == ScanModeNfc)         app->scan_mode = ScanModeIclass;
-                        else if(app->scan_mode == ScanModeIclass) app->scan_mode = ScanModeRfid;
-                        else                                       app->scan_mode = ScanModeNfc;
+                        if(app->scan_mode == ScanModeNfc)
+                            app->scan_mode = ScanModeIclass;
+                        else if(app->scan_mode == ScanModeIclass)
+                            app->scan_mode = ScanModeRfid;
+                        else
+                            app->scan_mode = ScanModeNfc;
                         access_audit_start_scanning(app);
                         view_port_update(app->view_port);
                     } else if(event.input.key == InputKeyUp) {
                         access_audit_stop_scanning(app);
                         app->rlist_count = report_list(app->rlist_names);
                         for(size_t ri = 0; ri < app->rlist_count; ri++)
-                            app->rlist_summaries[ri] =
-                                report_read_summary(app->rlist_names[ri]);
+                            app->rlist_summaries[ri] = report_read_summary(app->rlist_names[ri]);
                         app->rlist_top = 0;
                         app->rlist_cursor = 0;
                         app->screen = AccessAuditScreenReportList;
@@ -502,8 +508,7 @@ int32_t access_audit_app(void* p) {
                             view_port_update(app->view_port);
                         }
                     } else if(event.input.key == InputKeyDown) {
-                        if(app->rlist_count > 0 &&
-                           app->rlist_cursor < app->rlist_count - 1) {
+                        if(app->rlist_count > 0 && app->rlist_cursor < app->rlist_count - 1) {
                             app->rlist_cursor++;
                             if(app->rlist_cursor >= app->rlist_top + 3) {
                                 app->rlist_top = app->rlist_cursor - 2;
@@ -513,8 +518,7 @@ int32_t access_audit_app(void* p) {
                     } else if(event.input.key == InputKeyOk) {
                         if(app->rlist_count > 0) {
                             report_content_free(&app->rviewer);
-                            if(report_load(
-                                   app->rlist_names[app->rlist_cursor], &app->rviewer)) {
+                            if(report_load(app->rlist_names[app->rlist_cursor], &app->rviewer)) {
                                 app->rviewer_scroll = 0;
                                 app->screen = AccessAuditScreenReportViewer;
                                 view_port_update(app->view_port);
@@ -636,8 +640,7 @@ int32_t access_audit_app(void* p) {
                         report_delete(app->rlist_names[app->rlist_cursor]);
                         app->rlist_count = report_list(app->rlist_names);
                         for(size_t ri = 0; ri < app->rlist_count; ri++)
-                            app->rlist_summaries[ri] =
-                                report_read_summary(app->rlist_names[ri]);
+                            app->rlist_summaries[ri] = report_read_summary(app->rlist_names[ri]);
                         app->rlist_top = 0;
                         app->rlist_cursor = 0;
                         app->screen = AccessAuditScreenReportList;

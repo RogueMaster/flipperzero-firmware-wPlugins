@@ -23,7 +23,7 @@ typedef struct IclassProvider IclassProvider;
 
 /** nfc is borrowed; stop ObservationProvider before calling iclass_provider_start(). */
 IclassProvider* iclass_provider_alloc(Nfc* nfc);
-void            iclass_provider_free(IclassProvider* provider);
+void iclass_provider_free(IclassProvider* provider);
 
 void iclass_provider_start(IclassProvider* provider);
 void iclass_provider_stop(IclassProvider* provider);

@@ -3,18 +3,17 @@
 #include <gui/modules/widget.h>
 #include <gui/view_dispatcher.h>
 
-class VideoGameModuleConsoleAbout
-{
+class VideoGameModuleConsoleAbout {
 private:
-    Widget *widget;
-    ViewDispatcher *viewDispatcherRef;
+    Widget* widget;
+    ViewDispatcher* viewDispatcherRef;
 
     static constexpr const uint32_t VideoGameModuleConsoleViewSubmenu = 1; // View ID for submenu
-    static constexpr const uint32_t VideoGameModuleConsoleViewAbout = 2;   // View ID for about
+    static constexpr const uint32_t VideoGameModuleConsoleViewAbout = 2; // View ID for about
 
-    static uint32_t callbackToSubmenu(void *context);
+    static uint32_t callbackToSubmenu(void* context);
 
 public:
-    VideoGameModuleConsoleAbout(ViewDispatcher *viewDispatcher);
+    VideoGameModuleConsoleAbout(ViewDispatcher* viewDispatcher);
     ~VideoGameModuleConsoleAbout();
 };

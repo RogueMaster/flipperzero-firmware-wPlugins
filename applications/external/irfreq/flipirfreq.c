@@ -10,23 +10,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define FLIPIRFREQ_DEFAULT_FREQUENCY 38000U
-#define FLIPIRFREQ_DEFAULT_DUTY_CYCLE 33U
-#define FLIPIRFREQ_DEFAULT_BURST_MS 250U
-#define FLIPIRFREQ_DEFAULT_SIGNAL_MODE FlipIRFreqSignalModeCarrier
-#define FLIPIRFREQ_TX_CHUNK_US 25000U
-#define FLIPIRFREQ_UI_TICK_HZ 8U
-#define FLIPIRFREQ_SETTINGS_PATH APP_DATA_PATH("flipirfreq.settings")
-#define FLIPIRFREQ_SETTINGS_MAGIC 0x49
-#define FLIPIRFREQ_SETTINGS_VERSION 1U
+#define FLIPIRFREQ_DEFAULT_FREQUENCY          38000U
+#define FLIPIRFREQ_DEFAULT_DUTY_CYCLE         33U
+#define FLIPIRFREQ_DEFAULT_BURST_MS           250U
+#define FLIPIRFREQ_DEFAULT_SIGNAL_MODE        FlipIRFreqSignalModeCarrier
+#define FLIPIRFREQ_TX_CHUNK_US                25000U
+#define FLIPIRFREQ_UI_TICK_HZ                 8U
+#define FLIPIRFREQ_SETTINGS_PATH              APP_DATA_PATH("flipirfreq.settings")
+#define FLIPIRFREQ_SETTINGS_MAGIC             0x49
+#define FLIPIRFREQ_SETTINGS_VERSION           1U
 #define FLIPIRFREQ_PULSE_MIN_FREQUENCY_TENTHS 100U
 #define FLIPIRFREQ_PULSE_MAX_FREQUENCY_TENTHS 5000U
-#define FLIPIRFREQ_MIN_DUTY_CYCLE 1U
-#define FLIPIRFREQ_MAX_DUTY_CYCLE 99U
-#define FLIPIRFREQ_MIN_BURST_MS 1U
-#define FLIPIRFREQ_MAX_BURST_MS 5000U
-#define FLIPIRFREQ_VISIBLE_ROWS 4U
-#define FLIPIRFREQ_ROW_HEIGHT 9
+#define FLIPIRFREQ_MIN_DUTY_CYCLE             1U
+#define FLIPIRFREQ_MAX_DUTY_CYCLE             99U
+#define FLIPIRFREQ_MIN_BURST_MS               1U
+#define FLIPIRFREQ_MAX_BURST_MS               5000U
+#define FLIPIRFREQ_VISIBLE_ROWS               4U
+#define FLIPIRFREQ_ROW_HEIGHT                 9
 
 typedef enum {
     FlipIRFreqFieldFrequency,
@@ -199,13 +199,15 @@ static const GpioPin* flipirfreq_resolve_output_gpio(FuriHalInfraredTxPin output
 }
 
 static uint32_t flipirfreq_frequency_min(FlipIRFreqApp* app) {
-    return (app->signal_mode == FlipIRFreqSignalModePulse) ? FLIPIRFREQ_PULSE_MIN_FREQUENCY_TENTHS :
-                                                             INFRARED_MIN_FREQUENCY;
+    return (app->signal_mode == FlipIRFreqSignalModePulse) ?
+               FLIPIRFREQ_PULSE_MIN_FREQUENCY_TENTHS :
+               INFRARED_MIN_FREQUENCY;
 }
 
 static uint32_t flipirfreq_frequency_max(FlipIRFreqApp* app) {
-    return (app->signal_mode == FlipIRFreqSignalModePulse) ? FLIPIRFREQ_PULSE_MAX_FREQUENCY_TENTHS :
-                                                             INFRARED_MAX_FREQUENCY;
+    return (app->signal_mode == FlipIRFreqSignalModePulse) ?
+               FLIPIRFREQ_PULSE_MAX_FREQUENCY_TENTHS :
+               INFRARED_MAX_FREQUENCY;
 }
 
 static uint32_t flipirfreq_frequency_step(bool coarse) {
@@ -287,8 +289,8 @@ static void flipirfreq_load_settings(FlipIRFreqApp* app) {
         app->signal_mode = (settings.signal_mode < FlipIRFreqSignalModeCount) ?
                                (FlipIRFreqSignalMode)settings.signal_mode :
                                FLIPIRFREQ_DEFAULT_SIGNAL_MODE;
-        app->frequency =
-            flipirfreq_clamp_i32_to_u32(settings.frequency, INFRARED_MIN_FREQUENCY, INFRARED_MAX_FREQUENCY);
+        app->frequency = flipirfreq_clamp_i32_to_u32(
+            settings.frequency, INFRARED_MIN_FREQUENCY, INFRARED_MAX_FREQUENCY);
         app->pulse_frequency_tenths = flipirfreq_clamp_i32_to_u32(
             settings.pulse_frequency_tenths,
             FLIPIRFREQ_PULSE_MIN_FREQUENCY_TENTHS,
@@ -297,7 +299,8 @@ static void flipirfreq_load_settings(FlipIRFreqApp* app) {
 }
 
 static uint32_t flipirfreq_get_active_frequency(FlipIRFreqApp* app) {
-    return (app->signal_mode == FlipIRFreqSignalModePulse) ? app->pulse_frequency_tenths : app->frequency;
+    return (app->signal_mode == FlipIRFreqSignalModePulse) ? app->pulse_frequency_tenths :
+                                                             app->frequency;
 }
 
 static void flipirfreq_set_active_frequency(FlipIRFreqApp* app, uint32_t value) {
@@ -456,8 +459,7 @@ static void flipirfreq_start_transmit(FlipIRFreqApp* app) {
         furi_hal_infrared_async_tx_set_data_isr_callback(
             flipirfreq_tx_data_callback, &app->tx_context);
         furi_hal_infrared_async_tx_set_signal_sent_isr_callback(
-            (app->tx_mode == FlipIRFreqModeBurst) ? flipirfreq_tx_finished_callback : NULL,
-            app);
+            (app->tx_mode == FlipIRFreqModeBurst) ? flipirfreq_tx_finished_callback : NULL, app);
         furi_hal_infrared_async_tx_start(app->frequency, (float)app->duty_cycle / 100.0f);
     }
 
@@ -478,7 +480,9 @@ static void flipirfreq_adjust_field(FlipIRFreqApp* app, bool increase, bool coar
         int32_t next = (int32_t)flipirfreq_get_active_frequency(app) +
                        (int32_t)flipirfreq_frequency_step_for_mode(app, coarse) * direction;
         flipirfreq_set_active_frequency(
-            app, flipirfreq_clamp_i32_to_u32(next, flipirfreq_frequency_min(app), flipirfreq_frequency_max(app)));
+            app,
+            flipirfreq_clamp_i32_to_u32(
+                next, flipirfreq_frequency_min(app), flipirfreq_frequency_max(app)));
         break;
     }
     case FlipIRFreqFieldDutyCycle: {
@@ -562,7 +566,8 @@ static const char* flipirfreq_field_label(FlipIRFreqField field) {
     }
 }
 
-static void flipirfreq_field_value(FlipIRFreqApp* app, FlipIRFreqField field, char* value, size_t size) {
+static void
+    flipirfreq_field_value(FlipIRFreqApp* app, FlipIRFreqField field, char* value, size_t size) {
     switch(field) {
     case FlipIRFreqFieldFrequency:
         if(app->signal_mode == FlipIRFreqSignalModePulse) {
@@ -604,7 +609,8 @@ static void flipirfreq_field_value(FlipIRFreqApp* app, FlipIRFreqField field, ch
             value,
             size,
             "%s",
-            app->transmitting ? "STOP" : (app->tx_mode == FlipIRFreqModeContinuous ? "START" : "SEND"));
+            app->transmitting ? "STOP" :
+                                (app->tx_mode == FlipIRFreqModeContinuous ? "START" : "SEND"));
         break;
     default:
         value[0] = '\0';
@@ -765,8 +771,8 @@ static void flipirfreq_handle_tick(FlipIRFreqApp* app) {
         app->tx_anim_phase = (app->tx_anim_phase + 1) & 0x03;
     }
 
-    if(app->settings_dirty &&
-       ((furi_get_tick() - app->last_settings_change_tick) >= (furi_kernel_get_tick_frequency() / 2))) {
+    if(app->settings_dirty && ((furi_get_tick() - app->last_settings_change_tick) >=
+                               (furi_kernel_get_tick_frequency() / 2))) {
         flipirfreq_save_settings(app);
     }
 }

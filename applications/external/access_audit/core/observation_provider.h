@@ -40,4 +40,3 @@ bool observation_provider_poll(ObservationProvider* provider, AccessObservation*
  * share a single NFC hardware handle and avoid hardware contention.
  */
 Nfc* observation_provider_get_nfc(ObservationProvider* provider);
-

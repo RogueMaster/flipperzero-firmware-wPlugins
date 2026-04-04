@@ -38,9 +38,12 @@ TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame) {
     if(frame->canId != CAN_ID_GTW_CAR_CONFIG) return TeslaHW_Unknown;
     uint8_t das_hw = (frame->buffer[0] >> 6) & 0x03;
     switch(das_hw) {
-    case 2:  return TeslaHW_HW3;
-    case 3:  return TeslaHW_HW4;
-    default: return TeslaHW_Unknown;
+    case 2:
+        return TeslaHW_HW3;
+    case 3:
+        return TeslaHW_HW4;
+    default:
+        return TeslaHW_Unknown;
     }
 }
 
@@ -52,19 +55,37 @@ void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame) {
 
     if(state->hw_version == TeslaHW_HW3) {
         switch(fd) {
-        case 1: state->speed_profile = 2; break;
-        case 2: state->speed_profile = 1; break;
-        case 3: state->speed_profile = 0; break;
-        default: break;
+        case 1:
+            state->speed_profile = 2;
+            break;
+        case 2:
+            state->speed_profile = 1;
+            break;
+        case 3:
+            state->speed_profile = 0;
+            break;
+        default:
+            break;
         }
     } else {
         switch(fd) {
-        case 1: state->speed_profile = 3; break;
-        case 2: state->speed_profile = 2; break;
-        case 3: state->speed_profile = 1; break;
-        case 4: state->speed_profile = 0; break;
-        case 5: state->speed_profile = 4; break;
-        default: break;
+        case 1:
+            state->speed_profile = 3;
+            break;
+        case 2:
+            state->speed_profile = 2;
+            break;
+        case 3:
+            state->speed_profile = 1;
+            break;
+        case 4:
+            state->speed_profile = 0;
+            break;
+        case 5:
+            state->speed_profile = 4;
+            break;
+        default:
+            break;
         }
     }
 }

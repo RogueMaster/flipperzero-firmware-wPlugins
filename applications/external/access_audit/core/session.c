@@ -6,10 +6,7 @@ void session_init(ScanSession* session) {
     memset(session, 0, sizeof(*session));
 }
 
-bool session_append(
-    ScanSession* session,
-    const AccessObservation* obs,
-    const AuditScore* score) {
+bool session_append(ScanSession* session, const AccessObservation* obs, const AuditScore* score) {
     if(!session || !obs || !score) return false;
     if(session->count >= SESSION_MAX_ENTRIES) return false;
 
@@ -43,10 +40,18 @@ SessionSummary session_summarise(const ScanSession* session) {
     for(size_t i = 0; i < session->count; i++) {
         const SessionEntry* e = &session->entries[i];
         switch(e->score.max_severity) {
-        case SeverityHigh:   s.high++;   break;
-        case SeverityMedium: s.medium++; break;
-        case SeverityLow:    s.low++;    break;
-        default:             s.secure++; break;
+        case SeverityHigh:
+            s.high++;
+            break;
+        case SeverityMedium:
+            s.medium++;
+            break;
+        case SeverityLow:
+            s.low++;
+            break;
+        default:
+            s.secure++;
+            break;
         }
         size_t t = (size_t)e->obs.card_type;
         if(t < sizeof(type_counts)) type_counts[t]++;

@@ -25,19 +25,26 @@ TeslaFSDApp* tesla_fsd_app_alloc(void) {
     app->scene_manager = scene_manager_alloc(&tesla_fsd_scene_handlers, app);
 
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_custom_event_callback(app->view_dispatcher, tesla_fsd_custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, tesla_fsd_back_event_callback);
+    view_dispatcher_set_custom_event_callback(
+        app->view_dispatcher, tesla_fsd_custom_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, tesla_fsd_back_event_callback);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     app->submenu = submenu_alloc();
-    view_dispatcher_add_view(app->view_dispatcher, TeslaFSDViewSubmenu, submenu_get_view(app->submenu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, TeslaFSDViewSubmenu, submenu_get_view(app->submenu));
 
     app->widget = widget_alloc();
-    view_dispatcher_add_view(app->view_dispatcher, TeslaFSDViewWidget, widget_get_view(app->widget));
+    view_dispatcher_add_view(
+        app->view_dispatcher, TeslaFSDViewWidget, widget_get_view(app->widget));
 
     app->var_item_list = variable_item_list_alloc();
-    view_dispatcher_add_view(app->view_dispatcher, TeslaFSDViewVarItemList,
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        TeslaFSDViewVarItemList,
         variable_item_list_get_view(app->var_item_list));
 
     app->hw_version = TeslaHW_Unknown;
