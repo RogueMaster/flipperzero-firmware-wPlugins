@@ -1,0 +1,14 @@
+App(
+    appid="video_game_module_console",
+    name="Video Game Module Console",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="video_game_module_console_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO",
+    fap_icon_assets="assets",
+    fap_description="Flipper Zero console handling game display rendering and input forwarding", 
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked",
+    fap_version="1.0",
+)
