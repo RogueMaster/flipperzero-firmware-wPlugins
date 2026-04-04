@@ -1,0 +1,12 @@
+dist/
+*.fap
+.venv/
+.vscode
+#.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+
+extras/flipperzero-firmware-dev
+extras/Flipper-Android-App-dev
