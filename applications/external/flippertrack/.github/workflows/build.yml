@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ufbt
+        run: pip install ufbt
+
+      - name: Build FAP
+        run: python3 -m ufbt build
+
+      - name: Upload FAP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flipper_track.fap
+          path: ~/.ufbt/build/flipper_track.fap
+          retention-days: 30

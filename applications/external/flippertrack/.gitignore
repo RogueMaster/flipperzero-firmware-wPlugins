@@ -1,0 +1,21 @@
+# Compiled output
+*.fap
+*.elf
+*.map
+*.o
+*.d
+
+# ufbt build artifacts
+.ufbt/
+dist/
+
+# Claude Code session data
+.claude/
+
+# Editor/OS noise
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
