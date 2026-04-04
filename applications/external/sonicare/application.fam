@@ -1,0 +1,18 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="uk_mbirth_sonicare",  # Must be unique
+    name="Sonicare Head ID",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="sonicare_app",
+    stack_size=2 * 1024,
+    fap_category="NFC",
+    # Optional values
+    requires=["gui"],
+    fap_version="0.9",
+    fap_icon="uk_mbirth_sonicare.png",  # 10x10 1-bit PNG
+    fap_description="Philips Sonicare brush head NFC reader",
+    fap_author="mbirth.uk",
+    fap_weburl="https://git.mbirth.uk/flipper_zero/sonicare",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)

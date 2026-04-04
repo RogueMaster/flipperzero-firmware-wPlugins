@@ -1,0 +1,16 @@
+{
+  "actions" : {
+    "build" : {
+      "enabled" : true,
+      "script" : "#!\/bin\/sh\nufbt\n"
+    },
+    "clean" : {
+      "enabled" : true,
+      "script" : "#!\/bin\/sh\nufbt -c\n"
+    },
+    "run" : {
+      "enabled" : true,
+      "script" : "#!\/bin\/sh\nufbt launch\n"
+    }
+  }
+}

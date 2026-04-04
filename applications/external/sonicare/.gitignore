@@ -1,0 +1,8 @@
+.DS_Store
+dist/*
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
