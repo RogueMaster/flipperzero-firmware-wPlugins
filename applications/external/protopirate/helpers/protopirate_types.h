@@ -43,9 +43,6 @@ typedef enum {
     ProtoPirateCustomEventPsaBruteforceComplete,
     // File Browser
     ProtoPirateCustomEventSavedFileSelected,
-    // Need saving confirmation
-    ProtoPirateCustomEventSceneStay,
-    ProtoPirateCustomEventSceneExit,
 } ProtoPirateCustomEvent;
 
 typedef enum {

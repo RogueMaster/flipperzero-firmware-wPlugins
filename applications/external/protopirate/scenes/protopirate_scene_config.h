@@ -10,7 +10,6 @@ ADD_SCENE(protopirate, about, About)
 ADD_SCENE(protopirate, receiver, Receiver)
 ADD_SCENE(protopirate, receiver_config, ReceiverConfig)
 ADD_SCENE(protopirate, receiver_info, ReceiverInfo)
-ADD_SCENE(protopirate, need_saving, NeedSaving)
 ADD_SCENE(protopirate, saved, Saved)
 ADD_SCENE(protopirate, saved_info, SavedInfo)
 #ifdef ENABLE_EMULATE_FEATURE
