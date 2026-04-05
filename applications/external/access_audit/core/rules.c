@@ -53,8 +53,7 @@ bool rule_crypto1_breakable(const AccessObservation* obs) {
     if(!obs) return false;
     /* Classic cards have Crypto1 — broken but not trivially bypassed without
      * an active attack. 125 kHz RFID has no crypto at all, so no reduction there. */
-    return obs->card_type == CardTypeMifareClassic ||
-           obs->card_type == CardTypeMifareClassic1K ||
+    return obs->card_type == CardTypeMifareClassic || obs->card_type == CardTypeMifareClassic1K ||
            obs->card_type == CardTypeMifareClassic4K ||
            obs->card_type == CardTypeMifareClassicMini;
 }

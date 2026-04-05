@@ -10,6 +10,7 @@
 #define CAN_ID_GTW_CAR_CONFIG 0x398 // 920 - HW version detection
 #define CAN_ID_FOLLOW_DIST    0x3F8 // 1016 - follow distance / speed profile
 #define CAN_ID_AP_CONTROL     0x3FD // 1021 - autopilot control (HW3/HW4)
+#define CAN_ID_EPAS_STATUS    0x370 // 880 - EPAS3P_sysStatus (nag killer target)
 
 typedef enum {
     TeslaHW_Unknown = 0,
@@ -29,6 +30,8 @@ typedef struct {
     bool force_fsd;
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
+    bool nag_killer; // CAN 880 counter echo method
+    uint32_t nag_echo_count;
 } FSDState;
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw);
@@ -43,3 +46,7 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame);
 void fsd_handle_legacy_stalk(FSDState* state, const CANFRAME* frame);
 bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame);
 bool fsd_handle_isa_speed_chime(CANFRAME* frame);
+
+/** Handle CAN ID 0x370 - EPAS nag killer (counter+1 echo).
+ *  Builds a new frame in out_frame. Returns true if should be sent. */
+bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out_frame);

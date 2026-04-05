@@ -1,3 +1,8 @@
+## 2.1
+
+- Nag Killer: CAN 880 counter+1 echo method — spoofs EPAS handsOnLevel to suppress nag at the sensor layer (ported from upstream MR !44)
+- New Settings toggle: "Nag Killer" (runtime, no recompile)
+
 ## 2.0
 
 - Legacy mode for HW1/HW2 (Model S/X 2016-2019, CAN ID 0x3EE)

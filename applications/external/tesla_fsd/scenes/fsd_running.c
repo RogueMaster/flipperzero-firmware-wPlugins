@@ -55,14 +55,15 @@ static void fsd_update_display(TeslaFSDApp* app) {
     widget_add_string_element(app->widget, 2, 36, AlignLeft, AlignTop, FontSecondary, line3);
 
     // show active features
-    char line4[40];
+    char line4[48];
     snprintf(
         line4,
         sizeof(line4),
-        "%s%s%s",
+        "%s%s%s%s",
         state.force_fsd ? "FORCE " : "",
         state.suppress_speed_chime ? "CHIME " : "",
-        state.emergency_vehicle_detect ? "EMRG" : "");
+        state.emergency_vehicle_detect ? "EMRG " : "",
+        state.nag_killer ? "NAG" : "");
     if(line4[0]) {
         widget_add_string_element(app->widget, 2, 46, AlignLeft, AlignTop, FontSecondary, line4);
     }
@@ -90,6 +91,7 @@ static int32_t fsd_running_worker(void* context) {
     state.force_fsd = app->force_fsd;
     state.suppress_speed_chime = app->suppress_speed_chime;
     state.emergency_vehicle_detect = app->emergency_vehicle_detect;
+    state.nag_killer = app->nag_killer;
     furi_mutex_release(app->mutex);
 
     // configure MCP2515 filters based on mode
@@ -102,21 +104,21 @@ static int32_t fsd_running_worker(void* context) {
         init_filter(mcp, 3, CAN_ID_STW_ACTN_RQ);
         init_filter(mcp, 4, CAN_ID_STW_ACTN_RQ);
         init_filter(mcp, 5, CAN_ID_STW_ACTN_RQ);
-    } else if(state.hw_version == TeslaHW_HW4 && state.suppress_speed_chime) {
-        // need 3 IDs: 0x3FD, 0x3F8, 0x399
-        // RXB0: exact match 0x3FD
+    } else if(state.nag_killer || state.suppress_speed_chime) {
+        // Multiple extra IDs needed. Use relaxed masks and filter in software.
+        // RXB0: accept 0x3FD (autopilot control)
         init_mask(mcp, 0, 0x7FF);
         init_filter(mcp, 0, CAN_ID_AP_CONTROL);
         init_filter(mcp, 1, CAN_ID_AP_CONTROL);
-        // RXB1: relaxed mask to accept both 0x3F8 and 0x399
-        // 0x3F8 ^ 0x399 = 0x061 → mask = 0x7FF & ~0x061 = 0x79E
-        init_mask(mcp, 1, 0x79E);
-        init_filter(mcp, 2, CAN_ID_FOLLOW_DIST);
-        init_filter(mcp, 3, CAN_ID_FOLLOW_DIST);
-        init_filter(mcp, 4, CAN_ID_FOLLOW_DIST);
-        init_filter(mcp, 5, CAN_ID_FOLLOW_DIST);
+        // RXB1: accept 0x370, 0x398, 0x399, 0x3F8
+        // wide open — filter in the dispatch loop
+        init_mask(mcp, 1, 0x000);
+        init_filter(mcp, 2, 0x000);
+        init_filter(mcp, 3, 0x000);
+        init_filter(mcp, 4, 0x000);
+        init_filter(mcp, 5, 0x000);
     } else {
-        // HW3 or HW4 without chime suppress
+        // HW3 or HW4, no extra features
         init_mask(mcp, 0, 0x7FF);
         init_filter(mcp, 0, CAN_ID_AP_CONTROL);
         init_filter(mcp, 1, CAN_ID_AP_CONTROL);
@@ -136,7 +138,12 @@ static int32_t fsd_running_worker(void* context) {
         if(check_receive(mcp) == ERROR_OK) {
             if(read_can_message(mcp, &frame) == ERROR_OK) {
                 // dispatch by CAN ID
-                if(frame.canId == CAN_ID_STW_ACTN_RQ && state.hw_version == TeslaHW_Legacy) {
+                if(frame.canId == CAN_ID_EPAS_STATUS && state.nag_killer) {
+                    CANFRAME echo;
+                    if(fsd_handle_nag_killer(&state, &frame, &echo)) {
+                        send_can_frame(mcp, &echo);
+                    }
+                } else if(frame.canId == CAN_ID_STW_ACTN_RQ && state.hw_version == TeslaHW_Legacy) {
                     fsd_handle_legacy_stalk(&state, &frame);
                 } else if(frame.canId == CAN_ID_AP_LEGACY && state.hw_version == TeslaHW_Legacy) {
                     if(fsd_handle_legacy_autopilot(&state, &frame)) {

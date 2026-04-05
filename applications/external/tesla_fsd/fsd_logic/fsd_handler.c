@@ -192,11 +192,50 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame) {
 bool fsd_handle_isa_speed_chime(CANFRAME* frame) {
     if(frame->data_lenght < 8) return false;
     frame->buffer[1] |= 0x20;
-    // recalculate checksum: sum bytes 0-6 + CAN ID bytes
     uint8_t sum = 0;
     for(int i = 0; i < 7; i++)
         sum += frame->buffer[i];
     sum += (CAN_ID_ISA_SPEED & 0xFF) + (CAN_ID_ISA_SPEED >> 8);
     frame->buffer[7] = sum & 0xFF;
+    return true;
+}
+
+// --- Nag killer (CAN 880 counter+1 echo) ---
+
+bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out) {
+    if(frame->data_lenght < 8) return false;
+    if(!state->nag_killer) return false;
+
+    // only act when handsOnLevel == 0 (no hands detected)
+    uint8_t hands_on = (frame->buffer[4] >> 6) & 0x03;
+    if(hands_on != 0) return false;
+
+    // build echo frame
+    out->canId = CAN_ID_EPAS_STATUS;
+    out->data_lenght = 8;
+    out->ext = 0;
+    out->req = 0;
+
+    out->buffer[0] = frame->buffer[0];
+    out->buffer[1] = frame->buffer[1];
+    out->buffer[2] = 0x08;
+    out->buffer[3] = 0xB6; // torsionBarTorque = 1.80 Nm
+    out->buffer[4] = frame->buffer[4] | 0x40; // handsOnLevel = 1
+    out->buffer[5] = frame->buffer[5];
+
+    // counter + 1 (byte6 lower nibble)
+    uint8_t cnt = (frame->buffer[6] & 0x0F);
+    cnt = (cnt + 1) & 0x0F;
+    out->buffer[6] = (frame->buffer[6] & 0xF0) | cnt;
+
+    // checksum: sum(byte0..6) + 0x70 + 0x03 (CAN ID 0x370 split)
+    uint16_t sum = 0;
+    for(int i = 0; i < 7; i++)
+        sum += out->buffer[i];
+    sum += (CAN_ID_EPAS_STATUS & 0xFF) + (CAN_ID_EPAS_STATUS >> 8);
+    out->buffer[7] = (uint8_t)(sum & 0xFF);
+
+    state->nag_echo_count++;
+    state->nag_suppressed = true;
     return true;
 }
