@@ -29,6 +29,7 @@ Each rule fires independently. Multiple rules can fire on the same observation.
 | Rule | Points | Effect |
 |---|---|---|
 | `modern_crypto` | -20 | Reduces score; lowers severity label (see below) |
+| `crypto1_breakable` | -10 | Small reduction for MIFARE Classic; cracking Crypto1 requires active attack unlike passive 125 kHz replay |
 
 ### Confidence penalties
 
@@ -82,12 +83,13 @@ If both `modern_crypto` and `legacy_family` fire simultaneously (which cannot ha
 |---|---|
 | `legacy_family` fires | +35 |
 | `identifier_only_pattern` fires | +35 |
-| Score | 70 |
+| `crypto1_breakable` fires (Crypto1 requires active cracking, not passive replay) | -10 |
+| Score | 60 |
 | Max severity | HIGH |
 
-**Result: HIGH RISK · 70/100**
+**Result: HIGH RISK · 60/100**
 
-> If sector 0 authenticates with a default key, `default_keys` also fires (+15), raising the score to 85/100.
+> If sector 0 authenticates with a default key, `default_keys` also fires (+15), raising the score to 65/100.
 
 ---
 

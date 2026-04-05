@@ -86,6 +86,19 @@ This rule requires an active authentication attempt. A note is written to the re
 
 ## Mitigating rules
 
+### `crypto1_breakable`
+
+MIFARE Classic card. Crypto1 is cryptographically broken, but exploiting it still requires an active attack (dictionary scan or hardnested / darkside attack) against a reader. This is meaningfully more effort than cloning a 125 kHz EM4100 card, which is a passive serial-number replay with no cryptographic barrier at all. Applies a small score reduction relative to 125 kHz RFID cards.
+
+Matches:
+- MIFARE Classic 1K, 4K, Mini
+
+**Score contribution:** -10
+
+Does not apply to MIFARE Plus SL1 (Classic-compatible mode, same threat model as EM4100 for relay purposes once the SL1 downgrade is exploited).
+
+---
+
 ### `modern_crypto`
 
 Card family uses modern cryptography. Reduces the effective risk score and lowers the severity label.
@@ -120,8 +133,8 @@ Matches:
 | Card | Rules fired | Score | Label |
 |---|---|---|---|
 | EM4100 | legacy_family, identifier_only_pattern | 70 | HIGH RISK |
-| MIFARE Classic 1K | legacy_family, identifier_only_pattern | 70 | HIGH RISK |
-| MIFARE Classic 1K (default keys) | legacy_family, identifier_only_pattern, default_keys | 85 | HIGH RISK |
+| MIFARE Classic 1K | legacy_family, identifier_only_pattern, crypto1_breakable | 60 | HIGH RISK |
+| MIFARE Classic 1K (default keys) | legacy_family, identifier_only_pattern, default_keys, crypto1_breakable | 65 | HIGH RISK |
 | MIFARE Plus SL1 | legacy_family, identifier_only_pattern | 70 | HIGH RISK |
 | HID iCLASS Legacy 2k | legacy_family, identifier_only_pattern | 70 | HIGH RISK |
 | MIFARE Plus SL2 | identifier_only_pattern, modern_crypto | 15 | MODERATE |

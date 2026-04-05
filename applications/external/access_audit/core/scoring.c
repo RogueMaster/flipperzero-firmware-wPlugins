@@ -70,7 +70,15 @@ AuditScore score_observation(const AccessObservation* obs) {
         result.max_severity = max_sev(result.max_severity, SeverityLow);
     }
 
-    /* ── Mitigating rules — reduce score for modern crypto ── */
+    /* ── Mitigating rules — reduce score for partial / breakable crypto ── */
+
+    /* Crypto1 is broken but cracking requires active effort (dictionary /
+     * hardnested attack), unlike 125 kHz RFID which is a passive serial replay.
+     * Apply a small reduction so Classic scores below EM4100-class cards. */
+    if(rule_crypto1_breakable(obs)) {
+        result.score = (result.score >= 10) ? result.score - 10 : 0;
+    }
+
     if(rule_modern_crypto(obs)) {
         uint8_t reduction = severity_points(SeverityMedium);
         result.score = (result.score >= reduction) ? result.score - reduction : 0;

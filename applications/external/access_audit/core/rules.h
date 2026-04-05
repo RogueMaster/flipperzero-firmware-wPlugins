@@ -38,6 +38,14 @@ bool rule_no_uid(const AccessObservation* obs);
  */
 bool rule_modern_crypto(const AccessObservation* obs);
 
+/**
+ * MIFARE Classic card — Crypto1 cipher is broken but cracking keys still
+ * requires active attack effort (dictionary/hardnested), unlike 125 kHz RFID
+ * which is a passive replay with no cryptographic barrier at all.
+ * Small score reduction relative to EM4100-class cards.
+ */
+bool rule_crypto1_breakable(const AccessObservation* obs);
+
 /* ── Active findings ── */
 
 /**

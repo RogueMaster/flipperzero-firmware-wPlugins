@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## [1.6.0]: MIFARE Classic score adjustment
+
+### Changed
+- **MIFARE Classic scores lower than EM4100**: added a new mitigating rule `crypto1_breakable` (-10 points) for MIFARE Classic 1K, 4K, and Mini. Crypto1 is broken but exploiting it requires an active attack (dictionary scan or hardnested/darkside), unlike 125 kHz EM4100 which is a passive serial-number replay with no cryptographic barrier. Scores: Classic 1K is now 60/100 (was 70), Classic 1K with default keys is 65/100 (was 85); EM4100 and MIFARE Plus SL1 remain 70/100
+
 ## [1.5.0]: Default MIFARE Classic key detection
 
 ### Added

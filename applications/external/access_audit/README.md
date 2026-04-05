@@ -100,7 +100,7 @@ ufbt
 2. The richest available poller is started (DESFire → Plus → Ultralight → ISO14443-3a).
 3. The poller reads the UID and card-specific metadata without authentication; no sectors are unlocked, no data is modified.
 4. For HID iCLASS, a proprietary ACTALL → IDENTIFY → SELECT → READ block 1 exchange runs over the ISO15693 RF channel to obtain the CSN and memory variant.
-5. The observation is scored against seven named rules (see [docs/rules.md](docs/rules.md)).
+5. The observation is scored against eight named rules (see [docs/rules.md](docs/rules.md)).
 6. Results are displayed on screen and appended to the session buffer.
 7. On save, the session is written as a `.txt` report with per-card advice and a session-level advisory.
 
