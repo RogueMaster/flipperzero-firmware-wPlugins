@@ -24,7 +24,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Supporters also get SD Card Assets zip file with extra NFC Assets such as Infrared remotes, NFC files, SubGHz files and 86 RM Pro Trained Level 50 Sm@sh Amiib0 (By RogueMaster)](https://www.patreon.com/RogueMaster/membership)
 - We love our features, to keep some, some have been purposefully left out. See list of [OFW TO ADD in ROADMAP](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/RoadMap.md). We are open to PRs, suggestions and advice if you feel you need anything that has been left out. [Contact me on Discord](https://discord.gg/gF2bBUzAFe)
 
-<a name="latest"></a>
+<a name="latest"></a> 
 
 ## Latest Updates - [PATREON: Latest Release RM0406-1530-0.420.0-1d8740b](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
