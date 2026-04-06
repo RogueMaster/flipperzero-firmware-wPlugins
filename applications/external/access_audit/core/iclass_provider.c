@@ -45,7 +45,7 @@ struct IclassProvider {
  */
 static NfcCommand iclass_poller_cb(NfcGenericEvent event, void* context) {
     IclassProvider* p = context;
-    Iso15693_3PollerEvent* iso_event = (Iso15693_3PollerEvent*)event.event_data;
+    const Iso15693_3PollerEvent* iso_event = (const Iso15693_3PollerEvent*)event.event_data;
 
     if(iso_event->type == Iso15693_3PollerEventTypeReady) {
         /* A standard ISO15693 card responded to inventory — not an iCLASS DP.

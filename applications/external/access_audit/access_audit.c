@@ -183,8 +183,6 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
     }
 
     if(app->screen == AccessAuditScreenSaved) {
-        char line[48];
-
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, "Access Audit");
 
@@ -194,6 +192,7 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
 
         canvas_set_font(canvas, FontSecondary);
         if(app->save_ok) {
+            char line[48];
             snprintf(line, sizeof(line), "%u card(s) written to SD", (unsigned)app->session.count);
             canvas_draw_str(canvas, 2, 46, line);
         } else {

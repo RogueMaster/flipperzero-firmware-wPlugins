@@ -126,6 +126,14 @@ Rules must be side-effect free and must handle `obs == NULL` by returning `false
 - No `furi_assert` in provider callbacks (NFC worker thread; panics are unrecoverable)
 - Prefer early returns over deep nesting
 
+Formatting is enforced by clang-format using the official Flipper Zero firmware style (`.clang-format` in the repo root). Before opening a PR, run:
+
+```sh
+clang-format -i **/*.c **/*.h
+```
+
+Or format a single file: `clang-format -i core/rules.c`. The CI lint job will fail the PR if any file is not formatted correctly.
+
 ---
 
 ## Building
@@ -135,6 +143,6 @@ ufbt          # build FAP
 ufbt launch   # build and deploy to connected Flipper (requires USB)
 ```
 
-CI builds against official release, official dev, Momentum release, and Momentum dev SDKs on every push. All four must pass before merging.
+CI builds against official release, official dev, Momentum release, and Momentum dev SDKs on every push. A separate lint job runs clang-format and cppcheck. All build and lint jobs must pass before merging.
 
 When tagging a release, `release.yml` checks that `fap_version` in `application.fam` matches the tag's MAJOR.MINOR before building. Always bump `fap_version=(X, Y)` to match the intended tag.

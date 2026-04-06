@@ -1,6 +1,7 @@
 # Flipper Access Audit
 
 [![Build](https://github.com/matthewkayne/flipper-access-audit/actions/workflows/build.yml/badge.svg)](https://github.com/matthewkayne/flipper-access-audit/actions/workflows/build.yml)
+[![Lint](https://github.com/matthewkayne/flipper-access-audit/actions/workflows/lint.yml/badge.svg)](https://github.com/matthewkayne/flipper-access-audit/actions/workflows/lint.yml)
 [![Release](https://img.shields.io/github/v/release/matthewkayne/flipper-access-audit)](https://github.com/matthewkayne/flipper-access-audit/releases/latest)
 [![License](https://img.shields.io/github/license/matthewkayne/flipper-access-audit)](LICENSE)
 
@@ -110,7 +111,7 @@ ufbt
 
 - Platform: Flipper Zero (official firmware, Momentum)
 - Language: C (uFBT / Flipper SDK)
-- CI: GitHub Actions, builds against official release, official dev, Momentum release, and Momentum dev SDKs on every push
+- CI: GitHub Actions, builds against official release, official dev, Momentum release, and Momentum dev SDKs on every push; clang-format and cppcheck lint on every push
 
 ```
 core/
@@ -129,8 +130,6 @@ access_audit.c            - app loop, screens, input handling
 
 ## Author
 
-[@matthewkayne](https://github.com/matthewkayne) 
-
-AI-assisted development with Claude Code
+[@matthewkayne](https://github.com/matthewkayne) - AI-assisted development with [Claude Code](https://claude.ai/code)
 
 ---

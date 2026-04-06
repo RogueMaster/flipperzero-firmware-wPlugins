@@ -11,7 +11,7 @@
 #define TAG "AccessAudit"
 
 #define REPORT_DIR         "/ext/apps_data/access_audit"
-#define REPORT_APP_VERSION "1.0"
+#define REPORT_APP_VERSION "1.7.1"
 
 /* Write a plain C string to the file. */
 static void fw(File* f, const char* s) {
@@ -527,7 +527,7 @@ ReportSummary report_read_summary(const char* name) {
         storage_file_close(file);
 
         /* Scan line by line for "High: N  Medium: N  Low: N  Secure: N" */
-        char* line = buf;
+        const char* line = buf;
         for(int l = 0; l < 20 && line && *line; l++) {
             char* newline = strchr(line, '\n');
             if(newline) *newline = '\0';

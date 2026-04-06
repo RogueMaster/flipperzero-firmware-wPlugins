@@ -310,7 +310,7 @@ static void scanner_callback(NfcScannerEvent event, void* context) {
 
 static NfcCommand iso14443_3a_poller_cb(NfcGenericEvent event, void* context) {
     ObservationProvider* p = context;
-    Iso14443_3aPollerEvent* iso_event = (Iso14443_3aPollerEvent*)event.event_data;
+    const Iso14443_3aPollerEvent* iso_event = (const Iso14443_3aPollerEvent*)event.event_data;
 
     furi_mutex_acquire(p->mutex, FuriWaitForever);
 
@@ -424,7 +424,7 @@ static NfcCommand mf_ultralight_poller_cb(NfcGenericEvent event, void* context) 
 
 static NfcCommand mf_desfire_poller_cb(NfcGenericEvent event, void* context) {
     ObservationProvider* p = context;
-    MfDesfirePollerEvent* df_event = (MfDesfirePollerEvent*)event.event_data;
+    const MfDesfirePollerEvent* df_event = (const MfDesfirePollerEvent*)event.event_data;
 
     furi_mutex_acquire(p->mutex, FuriWaitForever);
 
@@ -473,7 +473,7 @@ static NfcCommand mf_desfire_poller_cb(NfcGenericEvent event, void* context) {
 
 static NfcCommand mf_plus_poller_cb(NfcGenericEvent event, void* context) {
     ObservationProvider* p = context;
-    MfPlusPollerEvent* plus_event = (MfPlusPollerEvent*)event.event_data;
+    const MfPlusPollerEvent* plus_event = (const MfPlusPollerEvent*)event.event_data;
 
     furi_mutex_acquire(p->mutex, FuriWaitForever);
 
@@ -637,7 +637,7 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
 
 static NfcCommand iso15693_3_poller_cb(NfcGenericEvent event, void* context) {
     ObservationProvider* p = context;
-    Iso15693_3PollerEvent* iso_event = (Iso15693_3PollerEvent*)event.event_data;
+    const Iso15693_3PollerEvent* iso_event = (const Iso15693_3PollerEvent*)event.event_data;
 
     furi_mutex_acquire(p->mutex, FuriWaitForever);
 
@@ -697,7 +697,7 @@ static NfcCommand iso15693_3_poller_cb(NfcGenericEvent event, void* context) {
 
 static NfcCommand felica_poller_cb(NfcGenericEvent event, void* context) {
     ObservationProvider* p = context;
-    FelicaPollerEvent* fc_event = (FelicaPollerEvent*)event.event_data;
+    const FelicaPollerEvent* fc_event = (const FelicaPollerEvent*)event.event_data;
 
     if(fc_event->type != FelicaPollerEventTypeReady &&
        fc_event->type != FelicaPollerEventTypeIncomplete) {
