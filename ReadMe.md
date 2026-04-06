@@ -409,7 +409,7 @@ $ ./fbt dolphin_ext
 - [Snake v1.7 (By OlegSchwann)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/829)
 - [Snake 2.0 v2.3 (By Willzvul)](https://github.com/Willzvul/Snake_2.0/)
 - [Solitaire v2.0.2 (By doofy-dev)](https://github.com/doofy-dev/flipper_solitaire)
-- [Sokoban v1.4 (By Racso)](https://github.com/Racso/fzero-apps)
+- [Sokoban v1.6 (By Racso)](https://github.com/Racso/fzero-apps)
 - [Space Impact WIP v0.2 (By Ka3u6y6a)](https://github.com/Ka3u6y6a/flipper-zero-space-impact)
 - [Space Impact II v1.0.2 (By Erbonator3000 & VoidXH)](https://github.com/Erbonator3000/Flipper-Zero-Space-Impact-II)
 - [Space Invaders v0.1 (By PavelZurek)](https://github.com/PavelZurek/flipperzero-space-invaders)
