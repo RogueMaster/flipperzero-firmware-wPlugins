@@ -1,0 +1,24 @@
+# Flight Monitor Application Manifest
+# Format zgodny z Flipper Application Catalog
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/kamylwnb/flight_monitor
+    commit_sha: 521d64621c4dad96fbe051e02783800152bbf9c0
+
+short_description: "War Thunder flight parameters monitor with BLE connectivity"
+
+description: |
+  Real-time flight monitoring application for Flipper Zero with War Thunder integration.
+  Features live display of altitude, speed, vertical speed, throttle, flaps, gear status,
+  and aircraft orientation. Includes configurable alarm system with altitude warnings,
+  gear retraction alerts, stall/overspeed protection, and engine failure detection.
+  Professional settings menu with persistent configuration and automatic crash detection.
+
+changelog: "@CHANGELOG.md"
+
+screenshots:
+  - screenshots/1.png
+  - screenshots/2.png
+  - screenshots/4.png

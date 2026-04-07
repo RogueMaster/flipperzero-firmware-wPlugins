@@ -1,0 +1,32 @@
+# Exclude deprecated serial_service files - provided by SDK
+helpers/serial_service.c
+helpers/serial_service.h
+helpers/serial_service_uuid.inc
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts
+*.fap
+build/
+.vscode/
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# System files
+.DS_Store
+Thumbs.db
+
+# User-specific files
+flight_server_config.json
+create_icon.py
+check_size.py
+test_flight.py
+flight_server.py
+
+# Keep only essential files for Flipper App Catalog
