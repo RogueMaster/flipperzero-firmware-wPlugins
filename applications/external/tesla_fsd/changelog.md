@@ -1,3 +1,12 @@
+## 2.2
+
+- OTA detection: monitors GTW_carState for `GTW_updateInProgress` and auto-suspends CAN TX when Tesla is pushing a firmware update
+- Operation modes: Active / Listen-Only / Service. Listen-Only switches the MCP2515 to its hardware listen-only register (no TX even on bus error frames)
+- CRC error counter sampled from MCP2515 EFLG register, surfaced on screen
+- TX / RX / Err counters live on the running screen
+- Wiring sanity check: shows a clear "no CAN traffic — check wiring" warning after 5s with zero RX
+- Background-research notes for the enhauto S3XY Commander reverse engineering live in `enhauto-re/RESEARCH.md`
+
 ## 2.1
 
 - Nag Killer: CAN 880 counter+1 echo method — spoofs EPAS handsOnLevel to suppress nag at the sensor layer (ported from upstream MR !44)

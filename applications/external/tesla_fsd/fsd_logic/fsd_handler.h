@@ -11,6 +11,7 @@
 #define CAN_ID_FOLLOW_DIST    0x3F8 // 1016 - follow distance / speed profile
 #define CAN_ID_AP_CONTROL     0x3FD // 1021 - autopilot control (HW3/HW4)
 #define CAN_ID_EPAS_STATUS    0x370 // 880 - EPAS3P_sysStatus (nag killer target)
+#define CAN_ID_GTW_CAR_STATE  0x318 // 792 - GTW_carState (carries GTW_updateInProgress)
 
 typedef enum {
     TeslaHW_Unknown = 0,
@@ -18,6 +19,12 @@ typedef enum {
     TeslaHW_HW3,
     TeslaHW_HW4,
 } TeslaHWVersion;
+
+typedef enum {
+    OpMode_Active = 0, // RX + TX, normal operation
+    OpMode_ListenOnly, // pure passive sniff, no TX at all
+    OpMode_Service, // unrestricted, gates aggressive features
+} OpMode;
 
 typedef struct {
     TeslaHWVersion hw_version;
@@ -32,6 +39,12 @@ typedef struct {
     bool emergency_vehicle_detect;
     bool nag_killer; // CAN 880 counter echo method
     uint32_t nag_echo_count;
+
+    // operation mode + diagnostics
+    OpMode op_mode;
+    bool tesla_ota_in_progress; // pause TX while Tesla is updating
+    uint32_t crc_err_count; // CAN bus error counter
+    uint32_t rx_count; // total frames seen (for wiring sanity check)
 } FSDState;
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw);
@@ -50,3 +63,9 @@ bool fsd_handle_isa_speed_chime(CANFRAME* frame);
 /** Handle CAN ID 0x370 - EPAS nag killer (counter+1 echo).
  *  Builds a new frame in out_frame. Returns true if should be sent. */
 bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out_frame);
+
+/** Handle CAN ID 0x318 - GTW_carState - update OTA-in-progress flag in state. */
+void fsd_handle_gtw_car_state(FSDState* state, const CANFRAME* frame);
+
+/** Returns true if the current state allows transmitting CAN frames. */
+bool fsd_can_transmit(const FSDState* state);

@@ -10,6 +10,21 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
         state->speed_profile = 1;
     else
         state->speed_profile = 2;
+    state->op_mode = OpMode_Active;
+}
+
+void fsd_handle_gtw_car_state(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 7) return;
+    // GTW_updateInProgress sits at bit 48|2 in 0x318 (Tesla DBC).
+    // Treat any non-zero value as "OTA in progress" — be conservative.
+    uint8_t in_progress = (frame->buffer[6] >> 0) & 0x03;
+    state->tesla_ota_in_progress = (in_progress != 0);
+}
+
+bool fsd_can_transmit(const FSDState* state) {
+    if(state->op_mode == OpMode_ListenOnly) return false;
+    if(state->tesla_ota_in_progress) return false;
+    return true;
 }
 
 void fsd_set_bit(CANFRAME* frame, int bit, bool value) {

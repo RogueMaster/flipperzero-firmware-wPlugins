@@ -7,6 +7,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/hypery11/flipper-tesla-fsd?style=flat-square)](https://github.com/hypery11/flipper-tesla-fsd/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 [![Build](https://img.shields.io/badge/build-ufbt-brightgreen?style=flat-square)](https://github.com/flipperdevices/flipperzero-ufbt)
+[![Featured on FSD CAN Mod Hub](https://img.shields.io/badge/featured%20on-FSD%20CAN%20Mod%20Hub-orange?style=flat-square)](https://fsdcanmod.com/project/hypery11-flipper-zero)
 
 Unlock Tesla FSD on your Flipper Zero. No subscription, no computer, just plug into OBD-II and go.
 

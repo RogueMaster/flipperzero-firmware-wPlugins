@@ -6,6 +6,7 @@
 [![GitHub forks](https://img.shields.io/github/forks/hypery11/flipper-tesla-fsd?style=flat-square)](https://github.com/hypery11/flipper-tesla-fsd/network)
 [![GitHub release](https://img.shields.io/github/v/release/hypery11/flipper-tesla-fsd?style=flat-square)](https://github.com/hypery11/flipper-tesla-fsd/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
+[![Featured on FSD CAN Mod Hub](https://img.shields.io/badge/featured%20on-FSD%20CAN%20Mod%20Hub-orange?style=flat-square)](https://fsdcanmod.com/project/hypery11-flipper-zero)
 
 用 Flipper Zero 解鎖 Tesla FSD。不用訂閱、不用電腦，插上 OBD-II 就能跑。
 

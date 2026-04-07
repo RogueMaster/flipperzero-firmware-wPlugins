@@ -11,7 +11,7 @@
 #include "libraries/mcp_can_2515.h"
 #include "fsd_logic/fsd_handler.h"
 
-#define TESLA_FSD_VERSION "2.1.0"
+#define TESLA_FSD_VERSION "2.2.0"
 
 typedef enum {
     TeslaFSDSceneMainMenu,
@@ -63,6 +63,7 @@ typedef struct {
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
     bool nag_killer;
+    OpMode op_mode; // Active / ListenOnly / Service
 } TeslaFSDApp;
 
 TeslaFSDApp* tesla_fsd_app_alloc(void);

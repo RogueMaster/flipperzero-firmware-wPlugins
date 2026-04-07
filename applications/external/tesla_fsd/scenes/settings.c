@@ -31,6 +31,14 @@ static void nag_killer_changed(VariableItem* item) {
     app->nag_killer = (idx == 1);
 }
 
+static const char* const op_mode_text[] = {"Active", "Listen", "Service"};
+static void op_mode_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, op_mode_text[idx]);
+    app->op_mode = (OpMode)idx;
+}
+
 void tesla_fsd_scene_settings_on_enter(void* context) {
     TeslaFSDApp* app = context;
     VariableItemList* list = app->var_item_list;
@@ -53,6 +61,10 @@ void tesla_fsd_scene_settings_on_enter(void* context) {
     item = variable_item_list_add(list, "Nag Killer", 2, nag_killer_changed, app);
     variable_item_set_current_value_index(item, app->nag_killer ? 1 : 0);
     variable_item_set_current_value_text(item, toggle_text[app->nag_killer ? 1 : 0]);
+
+    item = variable_item_list_add(list, "Mode", 3, op_mode_changed, app);
+    variable_item_set_current_value_index(item, (uint8_t)app->op_mode);
+    variable_item_set_current_value_text(item, op_mode_text[(uint8_t)app->op_mode]);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewVarItemList);
 }
