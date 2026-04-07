@@ -27,6 +27,41 @@ bool fsd_can_transmit(const FSDState* state) {
     return true;
 }
 
+// --- BMS read-only parsers (CAN frame templates from tuncasoftbildik/tesla-can-mod) ---
+
+void fsd_handle_bms_hv(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 4) return;
+    uint16_t raw_v = ((uint16_t)frame->buffer[1] << 8) | frame->buffer[0];
+    int16_t raw_i = (int16_t)(((uint16_t)frame->buffer[3] << 8) | frame->buffer[2]);
+    state->pack_voltage_v = raw_v * 0.01f;
+    state->pack_current_a = raw_i * 0.1f;
+    state->bms_seen = true;
+}
+
+void fsd_handle_bms_soc(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 2) return;
+    uint16_t raw = ((uint16_t)(frame->buffer[1] & 0x03) << 8) | frame->buffer[0];
+    state->soc_percent = raw * 0.1f;
+    state->bms_seen = true;
+}
+
+void fsd_handle_bms_thermal(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 6) return;
+    state->batt_temp_min_c = (int8_t)(frame->buffer[4] - 40);
+    state->batt_temp_max_c = (int8_t)(frame->buffer[5] - 40);
+    state->bms_seen = true;
+}
+
+// --- Precondition trigger ---
+
+void fsd_build_precondition_frame(CANFRAME* frame) {
+    memset(frame, 0, sizeof(CANFRAME));
+    frame->canId = CAN_ID_TRIP_PLANNING;
+    frame->data_lenght = 8;
+    // bit 0 = tripPlanningActive, bit 2 = requestActiveBatteryHeating
+    frame->buffer[0] = 0x05;
+}
+
 void fsd_set_bit(CANFRAME* frame, int bit, bool value) {
     if(bit < 0 || bit >= 64) return;
     int byte_idx = bit / 8;

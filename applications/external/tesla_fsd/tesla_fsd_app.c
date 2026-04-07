@@ -54,6 +54,7 @@ TeslaFSDApp* tesla_fsd_app_alloc(void) {
     app->suppress_speed_chime = false;
     app->emergency_vehicle_detect = false;
     app->nag_killer = false;
+    app->precondition = false;
     app->op_mode = OpMode_Active;
 
     return app;

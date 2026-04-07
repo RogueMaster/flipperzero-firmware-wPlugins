@@ -4,6 +4,7 @@
 
 #define FSD_DISPLAY_REFRESH_MS 250
 #define WIRING_WARN_TIMEOUT_MS 5000
+#define PRECOND_INTERVAL_MS    500
 
 static void fsd_update_display(TeslaFSDApp* app, uint32_t uptime_ms) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
@@ -91,16 +92,29 @@ static void fsd_update_display(TeslaFSDApp* app, uint32_t uptime_ms) {
         (unsigned long)state.crc_err_count);
     widget_add_string_element(app->widget, 2, 36, AlignLeft, AlignTop, FontSecondary, line3);
 
-    // show active features
+    // Line 4: live BMS readout if we've seen any BMS frames, else feature flags
     char line4[48];
-    snprintf(
-        line4,
-        sizeof(line4),
-        "%s%s%s%s",
-        state.force_fsd ? "FORCE " : "",
-        state.suppress_speed_chime ? "CHIME " : "",
-        state.emergency_vehicle_detect ? "EMRG " : "",
-        state.nag_killer ? "NAG" : "");
+    if(state.bms_seen) {
+        float kw = state.pack_voltage_v * state.pack_current_a / 1000.0f;
+        snprintf(
+            line4,
+            sizeof(line4),
+            "SoC:%.0f%% %.0fkW %d-%dC",
+            (double)state.soc_percent,
+            (double)kw,
+            state.batt_temp_min_c,
+            state.batt_temp_max_c);
+    } else {
+        snprintf(
+            line4,
+            sizeof(line4),
+            "%s%s%s%s%s",
+            state.force_fsd ? "FORCE " : "",
+            state.suppress_speed_chime ? "CHIME " : "",
+            state.emergency_vehicle_detect ? "EMRG " : "",
+            state.nag_killer ? "NAG " : "",
+            state.precondition ? "PRECOND" : "");
+    }
     if(line4[0]) {
         widget_add_string_element(app->widget, 2, 46, AlignLeft, AlignTop, FontSecondary, line4);
     }
@@ -120,6 +134,7 @@ static int32_t fsd_running_worker(void* context) {
     state.suppress_speed_chime = app->suppress_speed_chime;
     state.emergency_vehicle_detect = app->emergency_vehicle_detect;
     state.nag_killer = app->nag_killer;
+    state.precondition = app->precondition;
     state.op_mode = app->op_mode;
     furi_mutex_release(app->mutex);
 
@@ -160,6 +175,7 @@ static int32_t fsd_running_worker(void* context) {
 
     uint32_t last_display = 0;
     uint32_t last_err_check = 0;
+    uint32_t last_precond = 0;
     uint32_t worker_start = furi_get_tick();
 
     while(true) {
@@ -176,6 +192,15 @@ static int32_t fsd_running_worker(void* context) {
             last_err_check = now;
         }
 
+        // Precondition trigger: inject 0x082 every 500ms while toggle is on
+        if(state.precondition && fsd_can_transmit(&state) &&
+           (now - last_precond) >= furi_ms_to_ticks(PRECOND_INTERVAL_MS)) {
+            CANFRAME pf;
+            fsd_build_precondition_frame(&pf);
+            send_can_frame(mcp, &pf);
+            last_precond = now;
+        }
+
         if(check_receive(mcp) == ERROR_OK) {
             if(read_can_message(mcp, &frame) == ERROR_OK) {
                 state.rx_count++;
@@ -185,6 +210,14 @@ static int32_t fsd_running_worker(void* context) {
                 // Always handle OTA monitoring regardless of mode
                 if(frame.canId == CAN_ID_GTW_CAR_STATE) {
                     fsd_handle_gtw_car_state(&state, &frame);
+                }
+                // Live BMS sniff (read-only, mode-independent)
+                else if(frame.canId == CAN_ID_BMS_HV_BUS) {
+                    fsd_handle_bms_hv(&state, &frame);
+                } else if(frame.canId == CAN_ID_BMS_SOC) {
+                    fsd_handle_bms_soc(&state, &frame);
+                } else if(frame.canId == CAN_ID_BMS_THERMAL) {
+                    fsd_handle_bms_thermal(&state, &frame);
                 }
 
                 if(frame.canId == CAN_ID_EPAS_STATUS && state.nag_killer) {
