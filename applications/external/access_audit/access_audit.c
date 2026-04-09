@@ -2,6 +2,8 @@
 #include <gui/gui.h>
 #include <input/input.h>
 
+#define APP_VERSION FAP_VERSION
+
 #include "access_audit.h"
 #include "core/observation.h"
 #include "core/scoring.h"
@@ -155,6 +157,7 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
         canvas_draw_line(canvas, 0, 13, 127, 13);
 
         canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 20, "v" APP_VERSION);
         canvas_draw_str_aligned(
             canvas,
             126,

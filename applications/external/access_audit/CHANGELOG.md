@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## [1.8.0]: Version displayed on scan screen
+
+### Added
+- **Version on home screen**: the app version is now shown in small text below the title divider on the scan (home) screen, so the installed version is always visible at a glance
+
 ## [1.7.1]: Report version string fix
 
 ### Fixed
