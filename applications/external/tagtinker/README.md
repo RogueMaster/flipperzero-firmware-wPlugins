@@ -67,6 +67,21 @@ The Flipper app is source-first. Build the `.fap` yourself from this repository 
 
 The maintainer primarily uses TagTinker on Momentum firmware with asset packs disabled and has not had issues in that setup. If you are using a different firmware branch, custom asset packs, or a heavily modified device setup, start by testing from a clean baseline.
 
+**What happens if I pull the battery out of the tag?**
+
+Many infrared ESL tags store their firmware, address, and display data in volatile RAM (not flash memory) to save cost and energy.  
+If you remove the battery or let it fully discharge, the tag will lose all programming and become **unresponsive ("dead")**. It usually cannot be recovered without the original base station.
+
+**I found a bug or want to contribute — how can I get in touch?**
+
+You can contact me on:
+- Discord: **@i12bp8**
+- Telegram: **@i12bp8**
+
+I'm currently traveling, so response times may be slower than usual. Feel free to open issues or Pull Requests anyway — contributions (bug fixes, improvements, documentation, etc.) are very welcome and will help keep the project alive while I'm away.
+
+
+
 ## How It Works
 
 TagTinker is built around the study of **infrared electronic shelf-label communication** used by fixed-transmitter labeling systems.
