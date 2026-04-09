@@ -30,8 +30,7 @@ void tagtinker_scene_main_menu_on_enter(void* ctx) {
     submenu_add_item(app->submenu, "About", MainMenuAbout, main_menu_cb, app);
 
     submenu_set_selected_item(
-        app->submenu,
-        scene_manager_get_scene_state(app->scene_manager, TagTinkerSceneMainMenu));
+        app->submenu, scene_manager_get_scene_state(app->scene_manager, TagTinkerSceneMainMenu));
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TagTinkerViewSubmenu);
 }

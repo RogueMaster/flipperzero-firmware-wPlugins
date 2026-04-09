@@ -24,19 +24,19 @@ typedef struct {
 
 /* Known type codes seen in ESL barcodes. */
 static const TagTinkerProfileEntry profile_table[] = {
-    {1206, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1207, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1217, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1219, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1240, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1241, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1242, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1243, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1265, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
+    {1206, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1207, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1217, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1219, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1240, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1241, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1242, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1243, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1265, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
     {1275, 320, 192, TagTinkerTagKindDotMatrix, TagTinkerTagColorMono},
     {1276, 320, 140, TagTinkerTagKindDotMatrix, TagTinkerTagColorMono},
-    {1291, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
-    {1300, 172, 72,  TagTinkerTagKindDotMatrix, TagTinkerTagColorMono},
+    {1291, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
+    {1300, 172, 72, TagTinkerTagKindDotMatrix, TagTinkerTagColorMono},
     {1314, 400, 300, TagTinkerTagKindDotMatrix, TagTinkerTagColorMono},
     {1315, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorMono},
     {1317, 152, 152, TagTinkerTagKindDotMatrix, TagTinkerTagColorMono},
@@ -58,7 +58,7 @@ static const TagTinkerProfileEntry profile_table[] = {
     {1354, 648, 480, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed},
     {1370, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed},
     {1371, 648, 480, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed},
-    {1510, 0,   0,   TagTinkerTagKindSegment,   TagTinkerTagColorMono},
+    {1510, 0, 0, TagTinkerTagKindSegment, TagTinkerTagColorMono},
     {1627, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed},
     {1628, 296, 128, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed},
     {1639, 152, 152, TagTinkerTagKindDotMatrix, TagTinkerTagColorRed},
@@ -81,17 +81,18 @@ static void append_word(uint8_t* buf, size_t* pos, uint16_t value) {
 
 static size_t terminate(uint8_t* buf, size_t len) {
     uint16_t crc = tagtinker_crc16(buf, len);
-    buf[len]     = crc & 0xFF;
+    buf[len] = crc & 0xFF;
     buf[len + 1] = (crc >> 8) & 0xFF;
     return len + 2;
 }
 
-static size_t raw_frame(uint8_t* buf, uint8_t proto,
-                        const uint8_t plid[4], uint8_t cmd) {
+static size_t raw_frame(uint8_t* buf, uint8_t proto, const uint8_t plid[4], uint8_t cmd) {
     /* Every addressed frame starts with protocol byte, PLID, then command. */
     buf[0] = proto;
-    buf[1] = plid[3]; buf[2] = plid[2];
-    buf[3] = plid[1]; buf[4] = plid[0];
+    buf[1] = plid[3];
+    buf[2] = plid[2];
+    buf[3] = plid[1];
+    buf[4] = plid[0];
     buf[5] = cmd;
     return 6;
 }
@@ -122,11 +123,13 @@ bool tagtinker_barcode_to_plid(const char* barcode, uint8_t plid[4]) {
         if(barcode[i] < '0' || barcode[i] > '9') return false;
 
     uint32_t lo = 0, hi = 0;
-    for(int i = 2; i < 7; i++)  lo = lo * 10 + (barcode[i] - '0');
-    for(int i = 7; i < 12; i++) hi = hi * 10 + (barcode[i] - '0');
+    for(int i = 2; i < 7; i++)
+        lo = lo * 10 + (barcode[i] - '0');
+    for(int i = 7; i < 12; i++)
+        hi = hi * 10 + (barcode[i] - '0');
 
     uint32_t id = lo + (hi << 16);
-    plid[0] = (id >> 8)  & 0xFF;
+    plid[0] = (id >> 8) & 0xFF;
     plid[1] = id & 0xFF;
     plid[2] = (id >> 24) & 0xFF;
     plid[3] = (id >> 16) & 0xFF;
@@ -167,8 +170,10 @@ bool tagtinker_barcode_to_profile(const char* barcode, TagTinkerTagProfile* prof
 }
 
 size_t tagtinker_build_broadcast_page_frame(
-    uint8_t* buf, uint8_t page, bool forever, uint16_t duration) {
-
+    uint8_t* buf,
+    uint8_t page,
+    bool forever,
+    uint16_t duration) {
     const uint8_t plid[4] = {0};
     size_t p = raw_frame(buf, TAGTINKER_PROTO_DM, plid, 0x06);
     buf[p++] = ((page & 7) << 3) | 0x01 | (forever ? 0x80 : 0x00);
@@ -191,9 +196,10 @@ size_t tagtinker_build_broadcast_debug_frame(uint8_t* buf) {
 }
 
 size_t tagtinker_make_addressed_frame(
-    uint8_t* buf, const uint8_t plid[4],
-    const uint8_t* payload, size_t payload_len) {
-
+    uint8_t* buf,
+    const uint8_t plid[4],
+    const uint8_t* payload,
+    size_t payload_len) {
     size_t p = raw_frame(buf, TAGTINKER_PROTO_DM, plid, payload[0]);
     memcpy(&buf[p], payload + 1, payload_len - 1);
     p += payload_len - 1;
@@ -206,18 +212,19 @@ size_t tagtinker_make_ping_frame(uint8_t* buf, const uint8_t plid[4]) {
     buf[p++] = 0x00;
     buf[p++] = 0x00;
     buf[p++] = 0x00;
-    for(int i = 0; i < 22; i++) buf[p++] = 0x01;
+    for(int i = 0; i < 22; i++)
+        buf[p++] = 0x01;
     return terminate(buf, p);
 }
 
 size_t tagtinker_make_refresh_frame(uint8_t* buf, const uint8_t plid[4]) {
     size_t p = mcu_frame(buf, plid, 0x01);
-    for(int i = 0; i < 22; i++) buf[p++] = 0x00;
+    for(int i = 0; i < 22; i++)
+        buf[p++] = 0x00;
     return terminate(buf, p);
 }
 
-size_t tagtinker_make_mcu_frame(
-    uint8_t* buf, const uint8_t plid[4], uint8_t cmd) {
+size_t tagtinker_make_mcu_frame(uint8_t* buf, const uint8_t plid[4], uint8_t cmd) {
     return mcu_frame(buf, plid, cmd);
 }
 
@@ -225,9 +232,14 @@ static void record_run(uint8_t* out, size_t* pos, size_t cap, uint32_t run_count
     uint8_t bits[32];
     int n = 0;
     uint32_t v = run_count;
-    while(v) { bits[n++] = v & 1; v >>= 1; }
+    while(v) {
+        bits[n++] = v & 1;
+        v >>= 1;
+    }
     for(int i = 0; i < n / 2; i++) {
-        uint8_t t = bits[i]; bits[i] = bits[n - 1 - i]; bits[n - 1 - i] = t;
+        uint8_t t = bits[i];
+        bits[i] = bits[n - 1 - i];
+        bits[n - 1 - i] = t;
     }
     /* Runs are unary-prefixed: zeros mark bit-length, then the count bits follow. */
     for(int i = 1; i < n; i++)
@@ -237,10 +249,15 @@ static void record_run(uint8_t* out, size_t* pos, size_t cap, uint32_t run_count
 }
 
 size_t tagtinker_rle_compress(
-    const uint8_t* pixels, size_t count,
-    uint8_t* out, size_t out_cap, uint8_t* comp_type) {
-
-    if(count == 0) { *comp_type = 0; return 0; }
+    const uint8_t* pixels,
+    size_t count,
+    uint8_t* out,
+    size_t out_cap,
+    uint8_t* comp_type) {
+    if(count == 0) {
+        *comp_type = 0;
+        return 0;
+    }
 
     size_t pos = 0;
     if(pos < out_cap) out[pos++] = pixels[0];
@@ -315,8 +332,10 @@ static void bit_writer_append_run(TagTinkerBitWriter* writer, uint32_t run_count
         bits[n - 1 - i] = t;
     }
 
-    for(int i = 1; i < n; i++) bit_writer_append(writer, 0U);
-    for(int i = 0; i < n; i++) bit_writer_append(writer, bits[i]);
+    for(int i = 1; i < n; i++)
+        bit_writer_append(writer, 0U);
+    for(int i = 0; i < n; i++)
+        bit_writer_append(writer, bits[i]);
 }
 
 static size_t tagtinker_rle_planes_bit_length(
@@ -403,7 +422,8 @@ bool tagtinker_encode_planes_payload(
     memset(payload, 0, sizeof(*payload));
 
     size_t total_pixels = secondary_pixels ? (pixel_count * 2U) : pixel_count;
-    size_t comp_len = tagtinker_rle_planes_bit_length(primary_pixels, secondary_pixels, pixel_count);
+    size_t comp_len =
+        tagtinker_rle_planes_bit_length(primary_pixels, secondary_pixels, pixel_count);
     bool use_compressed = false;
     if(mode == TagTinkerCompressionRle) {
         use_compressed = true;
@@ -485,7 +505,8 @@ size_t tagtinker_make_image_param_frame(
     append_word(buf, &p, 0x0000);
     buf[p++] = 0x88;
     append_word(buf, &p, 0x0000);
-    for(int i = 0; i < 4; i++) buf[p++] = 0x00;
+    for(int i = 0; i < 4; i++)
+        buf[p++] = 0x00;
     return terminate(buf, p);
 }
 
@@ -506,11 +527,12 @@ void tagtinker_build_image_sequence(
     TagTinkerApp* app,
     const uint8_t plid[4],
     const uint8_t* pixels,
-    uint16_t width, uint16_t height,
+    uint16_t width,
+    uint16_t height,
     uint8_t page,
-    uint16_t pos_x, uint16_t pos_y,
+    uint16_t pos_x,
+    uint16_t pos_y,
     uint16_t wake_repeats) {
-
     TagTinkerImagePayload payload;
     if(!tagtinker_encode_image_payload(
            pixels, width, height, app->color_clear, app->compression_mode, &payload))
@@ -519,7 +541,9 @@ void tagtinker_build_image_sequence(
     /* The tag expects 20 data bytes per frame, so pad the payload to that boundary. */
     size_t frame_count = payload.byte_count / DATA_BYTES_PER_FRAME;
 
-    FURI_LOG_I("TagTinker", "IMG %ux%u pg=%u comp=%u %zu->%zu frames=%zu",
+    FURI_LOG_I(
+        "TagTinker",
+        "IMG %ux%u pg=%u comp=%u %zu->%zu frames=%zu",
         width,
         height,
         page,
@@ -532,8 +556,8 @@ void tagtinker_build_image_sequence(
 
     app->frame_seq_count = total;
     app->frame_sequence = malloc(sizeof(uint8_t*) * total);
-    app->frame_lengths  = malloc(sizeof(size_t) * total);
-    app->frame_repeats  = malloc(sizeof(uint16_t) * total);
+    app->frame_lengths = malloc(sizeof(size_t) * total);
+    app->frame_repeats = malloc(sizeof(uint16_t) * total);
 
     if(!app->frame_sequence || !app->frame_lengths || !app->frame_repeats) {
         tagtinker_free_image_payload(&payload);
@@ -545,8 +569,8 @@ void tagtinker_build_image_sequence(
 
     /* Wake the tag before sending the upload. */
     app->frame_sequence[idx] = malloc(TAGTINKER_MAX_FRAME_SIZE);
-    app->frame_lengths[idx]  = tagtinker_make_ping_frame(app->frame_sequence[idx], plid);
-    app->frame_repeats[idx]  = wake_repeats;
+    app->frame_lengths[idx] = tagtinker_make_ping_frame(app->frame_sequence[idx], plid);
+    app->frame_repeats[idx] = wake_repeats;
     idx++;
 
     /* The parameter frame describes size, page, compression mode, and placement. */
@@ -576,13 +600,15 @@ void tagtinker_build_image_sequence(
 
     /* Refresh asks the tag to display the uploaded image. */
     app->frame_sequence[idx] = malloc(TAGTINKER_MAX_FRAME_SIZE);
-    app->frame_lengths[idx]  = tagtinker_make_refresh_frame(app->frame_sequence[idx], plid);
-    app->frame_repeats[idx]  = 1;
+    app->frame_lengths[idx] = tagtinker_make_refresh_frame(app->frame_sequence[idx], plid);
+    app->frame_repeats[idx] = 1;
 
     if(app->frame_seq_count > 1) {
-        memcpy(app->frame_buf, app->frame_sequence[1],
-               app->frame_lengths[1] < TAGTINKER_MAX_FRAME_SIZE
-                   ? app->frame_lengths[1] : TAGTINKER_MAX_FRAME_SIZE);
+        memcpy(
+            app->frame_buf,
+            app->frame_sequence[1],
+            app->frame_lengths[1] < TAGTINKER_MAX_FRAME_SIZE ? app->frame_lengths[1] :
+                                                               TAGTINKER_MAX_FRAME_SIZE);
         app->frame_len = app->frame_lengths[1];
     }
 

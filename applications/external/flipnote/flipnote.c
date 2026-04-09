@@ -989,6 +989,7 @@ int32_t flipnote_app(void* p) {
     memset(app, 0, sizeof(App));
 
     app->vd = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->vd);
     view_dispatcher_set_event_callback_context(app->vd, app);
     view_dispatcher_set_navigation_event_callback(app->vd, nav_cb);
     view_dispatcher_set_custom_event_callback(app->vd, custom_ev);

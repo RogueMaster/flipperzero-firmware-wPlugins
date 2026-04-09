@@ -42,7 +42,8 @@ void tagtinker_scene_text_input_on_enter(void* ctx) {
     }
 
     text_input_reset(app->text_input);
-    text_input_set_header_text(app->text_input, rename_target ? "Target name:" : "Text to display:");
+    text_input_set_header_text(
+        app->text_input, rename_target ? "Target name:" : "Text to display:");
     text_input_set_result_callback(
         app->text_input,
         text_input_done_cb,

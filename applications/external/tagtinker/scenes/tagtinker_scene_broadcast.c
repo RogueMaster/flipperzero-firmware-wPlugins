@@ -87,7 +87,10 @@ void tagtinker_scene_broadcast_on_enter(void* context) {
         uint16_t durations[] = {2, 5, 10, 15, 30, 60, 120};
         uint8_t dur_idx = 3; /* default 15s */
         for(uint8_t i = 0; i < 7; i++) {
-            if(durations[i] == app->duration) { dur_idx = i; break; }
+            if(durations[i] == app->duration) {
+                dur_idx = i;
+                break;
+            }
         }
         const char* dur_labels[] = {"2s", "5s", "10s", "15s", "30s", "60s", "120s"};
         variable_item_set_current_value_index(item, dur_idx);
@@ -103,7 +106,10 @@ void tagtinker_scene_broadcast_on_enter(void* context) {
     item = variable_item_list_add(vil, "Repeats", REPEAT_COUNT, repeats_changed, app);
     uint8_t rep_idx = 2; /* default 200 */
     for(uint8_t i = 0; i < REPEAT_COUNT; i++) {
-        if(repeat_values[i] == app->repeats) { rep_idx = i; break; }
+        if(repeat_values[i] == app->repeats) {
+            rep_idx = i;
+            break;
+        }
     }
     variable_item_set_current_value_index(item, rep_idx);
     variable_item_set_current_value_text(item, repeat_labels[rep_idx]);

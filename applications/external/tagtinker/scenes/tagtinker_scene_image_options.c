@@ -46,9 +46,8 @@ static void image_option_clamp_position(TagTinkerApp* app) {
 
     if(!target->profile.known || !target->profile.width || !target->profile.height) return;
 
-    uint16_t max_x = (job->width < target->profile.width) ?
-                         (uint16_t)(target->profile.width - job->width) :
-                         0U;
+    uint16_t max_x =
+        (job->width < target->profile.width) ? (uint16_t)(target->profile.width - job->width) : 0U;
     uint16_t max_y = (job->height < target->profile.height) ?
                          (uint16_t)(target->profile.height - job->height) :
                          0U;
@@ -137,8 +136,7 @@ void tagtinker_scene_image_options_on_enter(void* ctx) {
     image_option_clamp_position(app);
     variable_item_list_reset(list);
 
-    VariableItem* item =
-        variable_item_list_add(list, "Page", 8, image_option_page_changed, app);
+    VariableItem* item = variable_item_list_add(list, "Page", 8, image_option_page_changed, app);
     variable_item_set_current_value_index(item, job->page);
     {
         char buf[4];
@@ -164,13 +162,12 @@ void tagtinker_scene_image_options_on_enter(void* ctx) {
         variable_item_set_current_value_text(item, buf);
     }
 
-    item = variable_item_list_add(
-        list, "Compression", 3, image_option_compression_changed, app);
+    item = variable_item_list_add(list, "Compression", 3, image_option_compression_changed, app);
     variable_item_set_current_value_index(item, app->compression_mode);
-    variable_item_set_current_value_text(item, image_option_compression_labels[app->compression_mode]);
+    variable_item_set_current_value_text(
+        item, image_option_compression_labels[app->compression_mode]);
 
-    item = variable_item_list_add(
-        list, "Frame Repeat", 5, image_option_frame_repeat_changed, app);
+    item = variable_item_list_add(list, "Frame Repeat", 5, image_option_frame_repeat_changed, app);
     variable_item_set_current_value_index(item, app->data_frame_repeats - 1U);
     {
         char buf[4];

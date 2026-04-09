@@ -15,8 +15,10 @@ void tagtinker_scene_broadcast_menu_on_enter(void* ctx) {
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Broadcast Payloads");
 
-    submenu_add_item(app->submenu, "Change Page", TagTinkerBroadcastFlipPage, broadcast_menu_cb, app);
-    submenu_add_item(app->submenu, "Diagnostic Page", TagTinkerBroadcastDebugScreen, broadcast_menu_cb, app);
+    submenu_add_item(
+        app->submenu, "Change Page", TagTinkerBroadcastFlipPage, broadcast_menu_cb, app);
+    submenu_add_item(
+        app->submenu, "Diagnostic Page", TagTinkerBroadcastDebugScreen, broadcast_menu_cb, app);
 
     submenu_set_selected_item(
         app->submenu,

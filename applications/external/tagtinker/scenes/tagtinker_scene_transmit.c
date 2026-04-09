@@ -116,7 +116,8 @@ static bool tx_send_payload_frames(
 
     size_t frame_count = payload->byte_count / 20U;
     for(size_t i = 0; ok && i < frame_count; i++) {
-        size_t len = tagtinker_make_image_data_frame(frame, plid, (uint16_t)i, &payload->data[i * 20U]);
+        size_t len =
+            tagtinker_make_image_data_frame(frame, plid, (uint16_t)i, &payload->data[i * 20U]);
         ok = tx_send_frame(app, frame, len, app->data_frame_repeats);
         if(ok && ((i + 1U) % 16U) == 0U && (i + 1U) < frame_count) {
             furi_delay_ms(1);
@@ -139,11 +140,7 @@ static bool tx_send_image_chunk(
     TagTinkerImagePayload payload;
     size_t pixel_count = (size_t)width * height;
     if(!tagtinker_encode_planes_payload(
-           primary_pixels,
-           secondary_pixels,
-           pixel_count,
-           app->compression_mode,
-           &payload)) {
+           primary_pixels, secondary_pixels, pixel_count, app->compression_mode, &payload)) {
         return false;
     }
 
@@ -226,7 +223,8 @@ static bool tx_send_full_text_image(TagTinkerApp* app) {
     if(accent_text) {
         uint8_t bg_primary = app->invert_text ? 0 : 1;
         uint8_t fg_primary = (accent_color == TagTinkerTagColorYellow) ? 0 : 1;
-        render_text_ex(primary, job->width, job->height, app->text_input_buf, bg_primary, fg_primary);
+        render_text_ex(
+            primary, job->width, job->height, app->text_input_buf, bg_primary, fg_primary);
         render_text_ex(secondary, job->width, job->height, app->text_input_buf, 1, 0);
     } else {
         render_text_ex(
@@ -248,14 +246,7 @@ static bool tx_send_full_text_image(TagTinkerApp* app) {
     if(!ok) return false;
 
     ok = tx_send_full_payload(
-        app,
-        job->plid,
-        &payload,
-        job->page,
-        job->width,
-        job->height,
-        job->pos_x,
-        job->pos_y);
+        app, job->plid, &payload, job->page, job->width, job->height, job->pos_x, job->pos_y);
     tagtinker_free_image_payload(&payload);
     return ok;
 }
@@ -300,14 +291,7 @@ static bool tx_stream_text_image(TagTinkerApp* app) {
                 bg_primary,
                 fg_primary);
             render_text_region_ex(
-                secondary,
-                job->width,
-                job->height,
-                y,
-                actual_h,
-                app->text_input_buf,
-                1,
-                0);
+                secondary, job->width, job->height, y, actual_h, app->text_input_buf, 1, 0);
         } else {
             render_text_region_ex(
                 primary,
@@ -359,7 +343,8 @@ static bool tx_bmp_open(const char* path, File* file, TxBmpInfo* info) {
     info->bpp = bpp;
 
     int32_t bmp_h = header[22] | (header[23] << 8) | (header[24] << 16) | (header[25] << 24);
-    info->width = (uint16_t)(header[18] | (header[19] << 8) | (header[20] << 16) | (header[21] << 24));
+    info->width =
+        (uint16_t)(header[18] | (header[19] << 8) | (header[20] << 16) | (header[21] << 24));
     info->top_down = false;
     if(bmp_h < 0) {
         info->top_down = true;
@@ -464,8 +449,8 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
     }
 
     TagTinkerTagColor accent_color = tx_target_color(app);
-    bool accent_capable =
-        accent_color == TagTinkerTagColorRed || accent_color == TagTinkerTagColorYellow;
+    bool accent_capable = accent_color == TagTinkerTagColorRed ||
+                          accent_color == TagTinkerTagColorYellow;
     bool use_second_plane = app->color_clear || accent_capable;
 
     if(ok && tx_should_send_full_job(job->width, job->height, use_second_plane)) {
@@ -556,11 +541,13 @@ static int32_t tx_thread_callback(void* context) {
             ok = tx_stream_bmp_image(app);
         } else if(app->frame_seq_count > 0) {
             for(size_t i = 0; i < app->frame_seq_count; i++) {
-                if(!app->tx_active) { ok = false; break; }
+                if(!app->tx_active) {
+                    ok = false;
+                    break;
+                }
                 if(i > 0) furi_delay_ms(20);
                 ok = tagtinker_ir_transmit(
-                    app->frame_sequence[i], app->frame_lengths[i],
-                    app->frame_repeats[i], 10);
+                    app->frame_sequence[i], app->frame_lengths[i], app->frame_repeats[i], 10);
                 if(!ok) break;
             }
         } else {
@@ -574,7 +561,7 @@ static int32_t tx_thread_callback(void* context) {
 
     app->tx_active = false;
     /* Use event payload to securely pass result instead of querying running thread! */
-    view_dispatcher_send_custom_event(app->view_dispatcher, 101 + (ok ? 0 : 1)); 
+    view_dispatcher_send_custom_event(app->view_dispatcher, 101 + (ok ? 0 : 1));
     return 0;
 }
 
@@ -596,16 +583,16 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
     canvas_draw_box(canvas, f_x + 12, f_y + 6, 16, 12);
     /* Flipper Screen highlight glow */
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_dot(canvas, f_x + 14, f_y + 8); 
+    canvas_draw_dot(canvas, f_x + 14, f_y + 8);
     canvas_draw_dot(canvas, f_x + 15, f_y + 8);
     canvas_set_color(canvas, ColorBlack);
     /* D-Pad Matrix */
     canvas_draw_circle(canvas, f_x + 18, f_y + 27, 5); // Outer
     canvas_draw_circle(canvas, f_x + 18, f_y + 27, 2); // Inner button
     /* GPIO / Case Vents */
-    for(int i=0; i<4; i++) {
-        canvas_draw_dot(canvas, f_x + 32, f_y + 8 + i*3);
-        canvas_draw_dot(canvas, f_x + 34, f_y + 8 + i*3);
+    for(int i = 0; i < 4; i++) {
+        canvas_draw_dot(canvas, f_x + 32, f_y + 8 + i * 3);
+        canvas_draw_dot(canvas, f_x + 34, f_y + 8 + i * 3);
     }
     /* IR Blaster window on the right tip */
     int ir_x = f_x + f_w; // 25
@@ -614,23 +601,25 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
 
     int center_y = f_y + 18; /* perfectly aligns with tag center */
 
-    if (app->tx_active) {
+    if(app->tx_active) {
         /* Aggressive Pulsing Data-Stream Chevrons with bits */
         uint8_t wave_phase = (t * 2) % 15;
-        for(int w=0; w<2; w++) {
-            int r = wave_phase + w*18; 
+        for(int w = 0; w < 2; w++) {
+            int r = wave_phase + w * 18;
             if(r > 0 && r < 20) {
                 int wave_x = ir_x + 4 + r;
-                int wave_h = r/2 + 3; 
+                int wave_h = r / 2 + 3;
                 /* 2px thick chevron pointing right */
-                canvas_draw_line(canvas, wave_x,   center_y, wave_x - wave_h/2, center_y - wave_h);
-                canvas_draw_line(canvas, wave_x,   center_y, wave_x - wave_h/2, center_y + wave_h);
-                canvas_draw_line(canvas, wave_x+1, center_y, wave_x+1 - wave_h/2, center_y - wave_h);
-                canvas_draw_line(canvas, wave_x+1, center_y, wave_x+1 - wave_h/2, center_y + wave_h);
+                canvas_draw_line(canvas, wave_x, center_y, wave_x - wave_h / 2, center_y - wave_h);
+                canvas_draw_line(canvas, wave_x, center_y, wave_x - wave_h / 2, center_y + wave_h);
+                canvas_draw_line(
+                    canvas, wave_x + 1, center_y, wave_x + 1 - wave_h / 2, center_y - wave_h);
+                canvas_draw_line(
+                    canvas, wave_x + 1, center_y, wave_x + 1 - wave_h / 2, center_y + wave_h);
                 /* Data stream particles */
                 if((t + w) % 2 == 0) {
-                    canvas_draw_dot(canvas, wave_x + 3, center_y - wave_h/2);
-                    canvas_draw_dot(canvas, wave_x - 3, center_y + wave_h/2 + 2);
+                    canvas_draw_dot(canvas, wave_x + 3, center_y - wave_h / 2);
+                    canvas_draw_dot(canvas, wave_x - 3, center_y + wave_h / 2 + 2);
                 }
             }
         }
@@ -644,15 +633,15 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
     /* Outer casing bounding rect */
     canvas_draw_rframe(canvas, tag_x, tag_y, tag_w, tag_h, 2);
     /* Internal 3D bezel shadow */
-    canvas_draw_rframe(canvas, tag_x+1, tag_y+1, tag_w-2, tag_h-2, 1);
-    
+    canvas_draw_rframe(canvas, tag_x + 1, tag_y + 1, tag_w - 2, tag_h - 2, 1);
+
     /* True 32-bit encoded barcode representation on the rim */
     int bc_x = tag_x + 3;
     int bc_w = 8;
     int bc_y = tag_y + 4;
     uint8_t bar_pattern[] = {0b10110100, 0b11010010, 0b10011011, 0b01101010};
-    for(int i=0; i<32; i++) {
-        if( (bar_pattern[i/8] >> (7-(i%8))) & 1 ) {
+    for(int i = 0; i < 32; i++) {
+        if((bar_pattern[i / 8] >> (7 - (i % 8))) & 1) {
             canvas_draw_line(canvas, bc_x, bc_y + i, bc_x + bc_w - 1, bc_y + i);
         }
     }
@@ -666,10 +655,10 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
 
     /* E-Paper Sweep Logic */
     int cycle = t % 40; /* 2 second loop at 20fps */
-    
-    if (app->tx_active) {
+
+    if(app->tx_active) {
         bool show_result = (cycle >= 20);
-        
+
         if(!show_result) {
             canvas_set_font(canvas, FontSecondary);
             canvas_draw_str(canvas, scr_x + 2, scr_y + 11, "LAB NOTE");
@@ -678,7 +667,12 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
         } else {
             canvas_set_font(canvas, FontSecondary);
             canvas_draw_str_aligned(
-                canvas, scr_x + scr_w / 2, scr_y + scr_h / 2, AlignCenter, AlignCenter, "FLIPPED ;)");
+                canvas,
+                scr_x + scr_w / 2,
+                scr_y + scr_h / 2,
+                AlignCenter,
+                AlignCenter,
+                "FLIPPED ;)");
         }
 
         /* Glitchy Matrix Wipe Transition */
@@ -687,14 +681,14 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
             canvas_draw_box(canvas, scr_x, scr_y, scr_w, wipe_h);
             /* Algorithmic leading edge burn/glitch */
             for(int xx = 0; xx < scr_w; xx += 2) {
-                canvas_draw_dot(canvas, scr_x + xx, scr_y + wipe_h + ((xx+t)%4));
+                canvas_draw_dot(canvas, scr_x + xx, scr_y + wipe_h + ((xx + t) % 4));
             }
-        } else if (cycle >= 20 && cycle < 25) {
+        } else if(cycle >= 20 && cycle < 25) {
             int wipe_h = ((cycle - 20) * scr_h) / 5;
             canvas_draw_box(canvas, scr_x, scr_y + wipe_h, scr_w, scr_h - wipe_h);
             /* Algorithmic trailing edge burn/glitch */
             for(int xx = 0; xx < scr_w; xx += 2) {
-                canvas_draw_dot(canvas, scr_x + xx, scr_y + wipe_h - 1 - ((xx+t)%4));
+                canvas_draw_dot(canvas, scr_x + xx, scr_y + wipe_h - 1 - ((xx + t) % 4));
             }
         }
     } else {
@@ -708,7 +702,8 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
     if(app->tx_spam) {
         canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignTop, "[<-] Stop Repeat");
     } else {
-        canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignTop, app->tx_active ? "[<-] Cancel" : "[<-] Back");
+        canvas_draw_str_aligned(
+            canvas, 64, 55, AlignCenter, AlignTop, app->tx_active ? "[<-] Cancel" : "[<-] Back");
     }
 }
 
@@ -745,10 +740,14 @@ bool tagtinker_scene_transmit_on_event(void* context, SceneManagerEvent event) {
             tagtinker_ir_stop();
             return true;
         } else {
-            if(!scene_manager_search_and_switch_to_previous_scene(app->scene_manager, TagTinkerSceneTargetActions)) {
-                if(!scene_manager_search_and_switch_to_previous_scene(app->scene_manager, TagTinkerSceneBroadcast)) {
-                    if(!scene_manager_search_and_switch_to_previous_scene(app->scene_manager, TagTinkerSceneBroadcastMenu)) {
-                        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, TagTinkerSceneMainMenu);
+            if(!scene_manager_search_and_switch_to_previous_scene(
+                   app->scene_manager, TagTinkerSceneTargetActions)) {
+                if(!scene_manager_search_and_switch_to_previous_scene(
+                       app->scene_manager, TagTinkerSceneBroadcast)) {
+                    if(!scene_manager_search_and_switch_to_previous_scene(
+                           app->scene_manager, TagTinkerSceneBroadcastMenu)) {
+                        scene_manager_search_and_switch_to_previous_scene(
+                            app->scene_manager, TagTinkerSceneMainMenu);
                     }
                 }
             }
@@ -776,7 +775,7 @@ bool tagtinker_scene_transmit_on_event(void* context, SceneManagerEvent event) {
 
 void tagtinker_scene_transmit_on_exit(void* context) {
     TagTinkerApp* app = context;
-    
+
     app->tx_active = false;
     tagtinker_ir_stop();
     furi_thread_join(app->tx_thread);

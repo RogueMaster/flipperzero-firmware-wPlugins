@@ -71,6 +71,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Access Audit v1.8 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 - Updated: [Tesla FSD v2.4 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
+- Added: [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
+- Added: [TagTinker v1.3 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 
 <a name="release"></a>
 
@@ -565,6 +567,7 @@ $ ./fbt dolphin_ext
 - [FlipGemini v1.0 (By jblanked)](https://github.com/jblanked/FlipGemini) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipLibrary v1.5 (By jblanked)](https://github.com/jblanked/FlipLibrary) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipMap v0.2.2 (By jblanked)](https://github.com/jblanked/FlipMap) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
 - [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
 - [FlipPass v1.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
@@ -849,6 +852,7 @@ $ ./fbt dolphin_ext
 - [SWD Probe v1.3 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T5577 Multiwriter v0.2 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer)
+- [TagTinker v1.3 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.2 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - [Tesla FSD v2.4 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)

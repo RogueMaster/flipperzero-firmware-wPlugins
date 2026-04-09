@@ -43,8 +43,8 @@ static void tagtinker_clamp_region_to_target(
     const TagTinkerTarget* target = &app->targets[app->selected_target];
     if(!target->profile.known || !target->profile.width || !target->profile.height) return;
 
-    uint16_t max_x =
-        (width < target->profile.width) ? (uint16_t)(target->profile.width - width) : 0U;
+    uint16_t max_x = (width < target->profile.width) ? (uint16_t)(target->profile.width - width) :
+                                                       0U;
     uint16_t max_y =
         (height < target->profile.height) ? (uint16_t)(target->profile.height - height) : 0U;
 
@@ -147,7 +147,8 @@ bool tagtinker_find_latest_synced_image(
                         if(path) *path++ = '\0';
 
                         if(job_id && current_barcode && width && height && page && path &&
-                           strcmp(current_barcode, barcode) == 0 && storage_common_exists(storage, path)) {
+                           strcmp(current_barcode, barcode) == 0 &&
+                           storage_common_exists(storage, path)) {
                             strncpy(image->job_id, job_id, TAGTINKER_SYNC_JOB_ID_LEN);
                             image->job_id[TAGTINKER_SYNC_JOB_ID_LEN] = '\0';
                             strncpy(image->barcode, current_barcode, TAGTINKER_BC_LEN);
@@ -218,9 +219,8 @@ size_t tagtinker_delete_synced_images_for_barcode(TagTinkerApp* app, const char*
                         char* path = page ? strchr(page, '|') : NULL;
                         if(path) *path++ = '\0';
 
-                        bool matches =
-                            job_id && current_barcode && width && height && page && path &&
-                            strcmp(current_barcode, barcode) == 0;
+                        bool matches = job_id && current_barcode && width && height && page &&
+                                       path && strcmp(current_barcode, barcode) == 0;
                         if(matches) {
                             storage_common_remove(storage, path);
                             removed_count++;
@@ -241,9 +241,11 @@ size_t tagtinker_delete_synced_images_for_barcode(TagTinkerApp* app, const char*
                 storage_file_close(file);
                 if(output_len == 0U) {
                     storage_common_remove(storage, APP_DATA_PATH("synced_images.txt"));
-                } else if(
-                    storage_file_open(
-                        file, APP_DATA_PATH("synced_images.txt"), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+                } else if(storage_file_open(
+                              file,
+                              APP_DATA_PATH("synced_images.txt"),
+                              FSAM_WRITE,
+                              FSOM_CREATE_ALWAYS)) {
                     storage_file_write(file, output, (uint16_t)output_len);
                     storage_file_close(file);
                 }
@@ -338,7 +340,8 @@ void tagtinker_free_frame_sequence(TagTinkerApp* app) {
 uint16_t tagtinker_pick_chunk_height(uint16_t width, bool color_clear) {
     if(width == 0) return 1;
 
-    size_t plane_budget = color_clear ? (TAGTINKER_STREAM_PIXEL_BUDGET / 2U) : TAGTINKER_STREAM_PIXEL_BUDGET;
+    size_t plane_budget = color_clear ? (TAGTINKER_STREAM_PIXEL_BUDGET / 2U) :
+                                        TAGTINKER_STREAM_PIXEL_BUDGET;
     uint16_t chunk_h = (uint16_t)(plane_budget / width);
     if(chunk_h == 0) chunk_h = 1;
     return chunk_h;
@@ -552,11 +555,7 @@ bool tagtinker_targets_save(const TagTinkerApp* app) {
         for(uint8_t i = 0; i < app->target_count; i++) {
             char line[64];
             int len = snprintf(
-                line,
-                sizeof(line),
-                "%s|%s\n",
-                app->targets[i].barcode,
-                app->targets[i].name);
+                line, sizeof(line), "%s|%s\n", app->targets[i].barcode, app->targets[i].name);
 
             if(len <= 0 || !storage_file_write(file, line, (uint16_t)len)) {
                 ok = false;
@@ -598,6 +597,7 @@ static TagTinkerApp* app_alloc(void) {
 
     /* View dispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, navigation_cb);
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, tick_cb, 50);
@@ -618,7 +618,8 @@ static TagTinkerApp* app_alloc(void) {
 
     app->var_item_list = variable_item_list_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, TagTinkerViewVarItemList,
+        app->view_dispatcher,
+        TagTinkerViewVarItemList,
         variable_item_list_get_view(app->var_item_list));
 
     app->text_input = text_input_alloc();
@@ -626,8 +627,7 @@ static TagTinkerApp* app_alloc(void) {
         app->view_dispatcher, TagTinkerViewTextInput, text_input_get_view(app->text_input));
 
     app->popup = popup_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, TagTinkerViewPopup, popup_get_view(app->popup));
+    view_dispatcher_add_view(app->view_dispatcher, TagTinkerViewPopup, popup_get_view(app->popup));
 
     app->widget = widget_alloc();
     view_dispatcher_add_view(
@@ -638,16 +638,13 @@ static TagTinkerApp* app_alloc(void) {
         app->view_dispatcher, TagTinkerViewNumlock, numlock_input_get_view(app->numlock));
 
     app->warning_view = view_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, TagTinkerViewWarning, app->warning_view);
+    view_dispatcher_add_view(app->view_dispatcher, TagTinkerViewWarning, app->warning_view);
 
     app->transmit_view = view_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, TagTinkerViewTransmit, app->transmit_view);
+    view_dispatcher_add_view(app->view_dispatcher, TagTinkerViewTransmit, app->transmit_view);
 
     app->about_view = view_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, TagTinkerViewAbout, app->about_view);
+    view_dispatcher_add_view(app->view_dispatcher, TagTinkerViewAbout, app->about_view);
 
     app->dialogs = furi_record_open(RECORD_DIALOGS);
 

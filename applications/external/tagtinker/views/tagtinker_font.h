@@ -112,7 +112,8 @@ static const uint8_t font_5x7[][5] = {
 };
 
 /* Sets a pixel in a 1-byte-per-pixel buffer */
-static inline void set_pixel(uint8_t* buf, uint16_t w, uint16_t h, uint16_t x, uint16_t y, uint8_t val) {
+static inline void
+    set_pixel(uint8_t* buf, uint16_t w, uint16_t h, uint16_t x, uint16_t y, uint8_t val) {
     if(x < w && y < h) buf[y * w + x] = val;
 }
 
@@ -136,8 +137,13 @@ static inline void set_region_pixel(
  *   Inverted: bg=0 (black), fg=1 (white)
  * No outer margin is added.
  */
-static inline void render_text_ex(uint8_t* buf, uint16_t w, uint16_t h,
-                                   const char* text, uint8_t bg_val, uint8_t fg_val) {
+static inline void render_text_ex(
+    uint8_t* buf,
+    uint16_t w,
+    uint16_t h,
+    const char* text,
+    uint8_t bg_val,
+    uint8_t fg_val) {
     memset(buf, bg_val, w * h);
 
     size_t len = strlen(text);

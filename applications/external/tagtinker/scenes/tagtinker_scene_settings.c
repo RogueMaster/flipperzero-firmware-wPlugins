@@ -132,8 +132,8 @@ void tagtinker_scene_settings_on_enter(void* ctx) {
 
     variable_item_list_reset(list);
 
-    VariableItem* item = variable_item_list_add(
-        list, "Startup Warning", 2, startup_warning_changed, app);
+    VariableItem* item =
+        variable_item_list_add(list, "Startup Warning", 2, startup_warning_changed, app);
     variable_item_set_current_value_index(item, app->show_startup_warning ? 1 : 0);
     variable_item_set_current_value_text(
         item, settings_toggle_labels[app->show_startup_warning ? 1 : 0]);

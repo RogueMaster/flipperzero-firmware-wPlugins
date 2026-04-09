@@ -8,7 +8,7 @@
 #include <storage/storage.h>
 
 static const uint16_t width_values[] = {
-    48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 172,
+    48,  56,  64,  72,  80,  88,  96,  104, 112, 120, 128, 136, 144, 152, 160, 168, 172,
     176, 184, 192, 200, 208, 224, 240, 256, 264, 272, 288, 296, 304, 320, 400, 648, 800,
 };
 
@@ -27,8 +27,8 @@ static const uint16_t coord_values[] = {
 
 static const char* compression_labels[] = {"Auto", "Raw", "RLE"};
 
-#define W_COUNT COUNT_OF(width_values)
-#define H_COUNT COUNT_OF(height_values)
+#define W_COUNT     COUNT_OF(width_values)
+#define H_COUNT     COUNT_OF(height_values)
 #define COORD_COUNT COUNT_OF(coord_values)
 
 enum {
@@ -118,20 +118,20 @@ static void polarity_changed(VariableItem* item) {
     TagTinkerApp* app = variable_item_get_context(item);
     app->invert_text = (variable_item_get_current_value_index(item) == 1);
 
-    variable_item_set_current_value_text(
-        item, app->invert_text ? "W on B" : "B on W");
+    variable_item_set_current_value_text(item, app->invert_text ? "W on B" : "B on W");
 }
 
 static void mode_changed(VariableItem* item) {
     TagTinkerApp* app = variable_item_get_context(item);
-    TagTinkerTarget* target = (app->selected_target >= 0) ? &app->targets[app->selected_target] : NULL;
+    TagTinkerTarget* target = (app->selected_target >= 0) ? &app->targets[app->selected_target] :
+                                                            NULL;
     bool accent = tagtinker_target_supports_accent(target);
     app->color_clear = (variable_item_get_current_value_index(item) == 1);
 
     variable_item_set_current_value_text(
         item,
-        accent ? (app->color_clear ? "Accent" : "Black")
-               : (app->color_clear ? "Dual Plane" : "Mono Fast"));
+        accent ? (app->color_clear ? "Accent" : "Black") :
+                 (app->color_clear ? "Dual Plane" : "Mono Fast"));
 }
 
 static void compression_changed(VariableItem* item) {
@@ -180,12 +180,15 @@ static void save_presets_to_sd(TagTinkerApp* app) {
     storage_common_mkdir(storage, APP_DATA_PATH(""));
 
     File* file = storage_file_alloc(storage);
-    if(storage_file_open(file, APP_DATA_PATH("presets.txt"),
-           FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+    if(storage_file_open(file, APP_DATA_PATH("presets.txt"), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         for(uint8_t i = 0; i < app->preset_count; i++) {
             char line[80];
-            int len = snprintf(line, sizeof(line), "%u|%u|%u|%d|%d|%s\n",
-                app->presets[i].width, app->presets[i].height,
+            int len = snprintf(
+                line,
+                sizeof(line),
+                "%u|%u|%u|%d|%d|%s\n",
+                app->presets[i].width,
+                app->presets[i].height,
                 app->presets[i].page,
                 app->presets[i].invert ? 1 : 0,
                 app->presets[i].color_clear ? 1 : 0,
@@ -210,8 +213,7 @@ static void setting_cb(void* ctx, uint32_t index) {
             app->presets[idx].page = app->img_page;
             app->presets[idx].invert = app->invert_text;
             app->presets[idx].color_clear = app->color_clear;
-            strncpy(app->presets[idx].text, app->text_input_buf,
-                TAGTINKER_PRESET_TEXT_LEN - 1);
+            strncpy(app->presets[idx].text, app->text_input_buf, TAGTINKER_PRESET_TEXT_LEN - 1);
             app->presets[idx].text[TAGTINKER_PRESET_TEXT_LEN - 1] = '\0';
 
             save_presets_to_sd(app);
@@ -223,9 +225,14 @@ static void setting_cb(void* ctx, uint32_t index) {
 
     if(index != SettingTransmit) return;
 
-    FURI_LOG_I(TAGTINKER_TAG, "TX: %ux%u pg=%u inv=%d clr=%d",
-        app->esl_width, app->esl_height, app->img_page,
-        app->invert_text, app->color_clear);
+    FURI_LOG_I(
+        TAGTINKER_TAG,
+        "TX: %ux%u pg=%u inv=%d clr=%d",
+        app->esl_width,
+        app->esl_height,
+        app->img_page,
+        app->invert_text,
+        app->color_clear);
 
     TagTinkerTarget* target = &app->targets[app->selected_target];
     tagtinker_prepare_text_tx(app, target->plid);
@@ -245,8 +252,8 @@ void tagtinker_scene_size_picker_on_enter(void* ctx) {
     clamp_current_offsets(app);
 
     /* Width */
-    VariableItem* item_w = variable_item_list_add(
-        app->var_item_list, "Width", W_COUNT, width_changed, app);
+    VariableItem* item_w =
+        variable_item_list_add(app->var_item_list, "Width", W_COUNT, width_changed, app);
     variable_item_set_current_value_index(item_w, w_idx);
     {
         char buf[8];
@@ -255,8 +262,8 @@ void tagtinker_scene_size_picker_on_enter(void* ctx) {
     }
 
     /* Height */
-    VariableItem* item_h = variable_item_list_add(
-        app->var_item_list, "Height", H_COUNT, height_changed, app);
+    VariableItem* item_h =
+        variable_item_list_add(app->var_item_list, "Height", H_COUNT, height_changed, app);
     variable_item_set_current_value_index(item_h, h_idx);
     {
         char buf[8];
@@ -265,8 +272,8 @@ void tagtinker_scene_size_picker_on_enter(void* ctx) {
     }
 
     /* Page */
-    VariableItem* item_pg = variable_item_list_add(
-        app->var_item_list, "Page", 8, page_changed, app);
+    VariableItem* item_pg =
+        variable_item_list_add(app->var_item_list, "Page", 8, page_changed, app);
     variable_item_set_current_value_index(item_pg, app->img_page);
     {
         char buf[4];
@@ -275,30 +282,30 @@ void tagtinker_scene_size_picker_on_enter(void* ctx) {
     }
 
     /* Polarity */
-    VariableItem* item_col = variable_item_list_add(
-        app->var_item_list, "Polarity", 2, polarity_changed, app);
+    VariableItem* item_col =
+        variable_item_list_add(app->var_item_list, "Polarity", 2, polarity_changed, app);
     variable_item_set_current_value_index(item_col, app->invert_text ? 1 : 0);
-    variable_item_set_current_value_text(
-        item_col, app->invert_text ? "W on B" : "B on W");
+    variable_item_set_current_value_text(item_col, app->invert_text ? "W on B" : "B on W");
 
     /* Text ink / plane mode */
-    TagTinkerTarget* target = (app->selected_target >= 0) ? &app->targets[app->selected_target] : NULL;
+    TagTinkerTarget* target = (app->selected_target >= 0) ? &app->targets[app->selected_target] :
+                                                            NULL;
     bool accent = tagtinker_target_supports_accent(target);
-    VariableItem* item_mode = variable_item_list_add(
-        app->var_item_list, accent ? "Ink" : "Mode", 2, mode_changed, app);
+    VariableItem* item_mode =
+        variable_item_list_add(app->var_item_list, accent ? "Ink" : "Mode", 2, mode_changed, app);
     variable_item_set_current_value_index(item_mode, app->color_clear ? 1 : 0);
     variable_item_set_current_value_text(
         item_mode,
-        accent ? (app->color_clear ? "Accent" : "Black")
-               : (app->color_clear ? "Dual Plane" : "Mono Fast"));
+        accent ? (app->color_clear ? "Accent" : "Black") :
+                 (app->color_clear ? "Dual Plane" : "Mono Fast"));
 
-    VariableItem* item_comp = variable_item_list_add(
-        app->var_item_list, "Compression", 3, compression_changed, app);
+    VariableItem* item_comp =
+        variable_item_list_add(app->var_item_list, "Compression", 3, compression_changed, app);
     variable_item_set_current_value_index(item_comp, app->compression_mode);
     variable_item_set_current_value_text(item_comp, compression_labels[app->compression_mode]);
 
-    VariableItem* item_rep = variable_item_list_add(
-        app->var_item_list, "Frame Repeat", 5, frame_repeat_changed, app);
+    VariableItem* item_rep =
+        variable_item_list_add(app->var_item_list, "Frame Repeat", 5, frame_repeat_changed, app);
     variable_item_set_current_value_index(item_rep, app->data_frame_repeats - 1U);
     {
         char buf[4];
@@ -306,8 +313,8 @@ void tagtinker_scene_size_picker_on_enter(void* ctx) {
         variable_item_set_current_value_text(item_rep, buf);
     }
 
-    VariableItem* item_x = variable_item_list_add(
-        app->var_item_list, "Offset X", COORD_COUNT, offset_x_changed, app);
+    VariableItem* item_x =
+        variable_item_list_add(app->var_item_list, "Offset X", COORD_COUNT, offset_x_changed, app);
     variable_item_set_current_value_index(
         item_x, nearest_value_index(coord_values, COORD_COUNT, app->draw_x));
     {
@@ -316,8 +323,8 @@ void tagtinker_scene_size_picker_on_enter(void* ctx) {
         variable_item_set_current_value_text(item_x, buf);
     }
 
-    VariableItem* item_y = variable_item_list_add(
-        app->var_item_list, "Offset Y", COORD_COUNT, offset_y_changed, app);
+    VariableItem* item_y =
+        variable_item_list_add(app->var_item_list, "Offset Y", COORD_COUNT, offset_y_changed, app);
     variable_item_set_current_value_index(
         item_y, nearest_value_index(coord_values, COORD_COUNT, app->draw_y));
     {

@@ -3,8 +3,8 @@
  */
 
 #include "../tagtinker_app.h"
-#define EVT_ADD_NEW  200
-#define EVT_PRESET   0
+#define EVT_ADD_NEW 200
+#define EVT_PRESET  0
 
 static void presets_load(TagTinkerApp* app) {
     app->preset_count = 0;
@@ -12,8 +12,7 @@ static void presets_load(TagTinkerApp* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
-    if(storage_file_open(file, APP_DATA_PATH("presets.txt"),
-           FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(storage_file_open(file, APP_DATA_PATH("presets.txt"), FSAM_READ, FSOM_OPEN_EXISTING)) {
         char buf[512];
         uint16_t read = storage_file_read(file, buf, sizeof(buf) - 1);
         buf[read] = '\0';
@@ -28,7 +27,10 @@ static void presets_load(TagTinkerApp* app) {
             if(sscanf(line, "%u|%u|%u|%u|%u|", &w, &h, &pg, &inv, &clr) == 5) {
                 char* p = line;
                 int pipes = 0;
-                while(*p && pipes < 5) { if(*p == '|') pipes++; p++; }
+                while(*p && pipes < 5) {
+                    if(*p == '|') pipes++;
+                    p++;
+                }
 
                 uint8_t idx = app->preset_count++;
                 app->presets[idx].width = (uint16_t)w;
@@ -63,17 +65,17 @@ void tagtinker_scene_preset_list_on_enter(void* ctx) {
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Text Presets");
 
-    submenu_add_item(app->submenu, "[+] New Preset",
-        EVT_ADD_NEW, preset_list_cb, app);
+    submenu_add_item(app->submenu, "[+] New Preset", EVT_ADD_NEW, preset_list_cb, app);
 
     for(uint8_t i = 0; i < app->preset_count; i++) {
-        snprintf(preset_labels[i], sizeof(preset_labels[i]),
+        snprintf(
+            preset_labels[i],
+            sizeof(preset_labels[i]),
             "%ux%u \"%s\"",
             app->presets[i].width,
             app->presets[i].height,
             app->presets[i].text);
-        submenu_add_item(app->submenu, preset_labels[i],
-            EVT_PRESET + i, preset_list_cb, app);
+        submenu_add_item(app->submenu, preset_labels[i], EVT_PRESET + i, preset_list_cb, app);
     }
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TagTinkerViewSubmenu);
@@ -97,11 +99,15 @@ bool tagtinker_scene_preset_list_on_event(void* ctx, SceneManagerEvent event) {
         app->img_page = app->presets[idx].page;
         app->invert_text = app->presets[idx].invert;
         app->color_clear = app->presets[idx].color_clear;
-        strncpy(app->text_input_buf, app->presets[idx].text,
-            sizeof(app->text_input_buf) - 1);
+        strncpy(app->text_input_buf, app->presets[idx].text, sizeof(app->text_input_buf) - 1);
 
-        FURI_LOG_I(TAGTINKER_TAG, "Preset %lu: %ux%u \"%s\"",
-            idx, app->esl_width, app->esl_height, app->text_input_buf);
+        FURI_LOG_I(
+            TAGTINKER_TAG,
+            "Preset %lu: %ux%u \"%s\"",
+            idx,
+            app->esl_width,
+            app->esl_height,
+            app->text_input_buf);
 
         TagTinkerTarget* target = &app->targets[app->selected_target];
         tagtinker_prepare_text_tx(app, target->plid);

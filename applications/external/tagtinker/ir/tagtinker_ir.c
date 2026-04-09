@@ -17,12 +17,12 @@
 #include <stm32wbxx_ll_tim.h>
 
 /* Carrier setup for the built-in IR LED on TIM1 CH3N. */
-#define CARRIER_TIM       TIM1
-#define CARRIER_ARR       (51 - 1)
-#define CARRIER_CCR       25
+#define CARRIER_TIM TIM1
+#define CARRIER_ARR (51 - 1)
+#define CARRIER_CCR 25
 
 /* PP4 sends two bits per symbol. The gap selects the symbol value. */
-#define PP4_BURST_CYCLES  2581
+#define PP4_BURST_CYCLES 2581
 static const uint32_t pp4_gap_cycles[4] = {
     3871,
     15483,
@@ -32,24 +32,8 @@ static const uint32_t pp4_gap_cycles[4] = {
 
 /* PP16 sends four bits per symbol. */
 #define PP16_BURST_CYCLES 1344
-static const uint32_t pp16_gap_cycles[16] = {
-    1728,
-    3264,
-    2240,
-    2752,
-    9408,
-    7872,
-    8896,
-    8384,
-    5312,
-    3776,
-    4800,
-    4288,
-    5824,
-    7360,
-    6336,
-    6848
-};
+static const uint32_t pp16_gap_cycles[16] =
+    {1728, 3264, 2240, 2752, 9408, 7872, 8896, 8384, 5312, 3776, 4800, 4288, 5824, 7360, 6336, 6848};
 
 static bool ir_initialized = false;
 static volatile bool ir_stop_requested = false;
@@ -154,7 +138,9 @@ void tagtinker_ir_init(void) {
     ir_stop_requested = false;
     ir_initialized = true;
 
-    FURI_LOG_I("TagTinker", "IR TX initialized: carrier %.3f MHz",
+    FURI_LOG_I(
+        "TagTinker",
+        "IR TX initialized: carrier %.3f MHz",
         (double)(64000000.0f / (CARRIER_ARR + 1) / 1000000.0f));
 }
 
@@ -187,8 +173,13 @@ bool tagtinker_ir_transmit(const uint8_t* data, size_t len, uint16_t repeats_raw
     bool is_pp16 = (repeats_raw & 0x8000) != 0;
     uint32_t repeats = repeats_raw & 0x7FFF;
 
-    FURI_LOG_I("TagTinker", "TX start: %zu bytes, %lu repeats (PP%d), %u delay",
-        len, repeats, is_pp16 ? 16 : 4, delay);
+    FURI_LOG_I(
+        "TagTinker",
+        "TX start: %zu bytes, %lu repeats (PP%d), %u delay",
+        len,
+        repeats,
+        is_pp16 ? 16 : 4,
+        delay);
 
     for(uint32_t rep = 0; rep <= repeats; rep++) {
         if(ir_stop_requested) {

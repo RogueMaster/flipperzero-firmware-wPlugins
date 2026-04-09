@@ -5,9 +5,9 @@
 #include "../tagtinker_app.h"
 #include <gui/elements.h>
 
-#define TAGTINKER_SYNC_DIR        APP_DATA_PATH("sync")
-#define TAGTINKER_SYNC_INDEX_PATH APP_DATA_PATH("synced_images.txt")
-#define TAGTINKER_BLE_FLOW_WINDOW 8192U
+#define TAGTINKER_SYNC_DIR             APP_DATA_PATH("sync")
+#define TAGTINKER_SYNC_INDEX_PATH      APP_DATA_PATH("synced_images.txt")
+#define TAGTINKER_BLE_FLOW_WINDOW      8192U
 #define TAGTINKER_SYNC_MAX_CHUNK_BYTES 384U
 
 enum {
@@ -173,11 +173,8 @@ static int8_t sync_base64_value(char c) {
     return -1;
 }
 
-static bool sync_decode_base64(
-    const char* input,
-    uint8_t* output,
-    size_t output_size,
-    size_t* output_len) {
+static bool
+    sync_decode_base64(const char* input, uint8_t* output, size_t output_size, size_t* output_len) {
     if(!input || !output || !output_len) return false;
 
     size_t out_len = 0;
@@ -222,8 +219,8 @@ static bool sync_begin_job(
     uint32_t byte_count,
     bool compact_protocol) {
     if(!app || !sync_safe_token(job_id, TAGTINKER_SYNC_JOB_ID_LEN) ||
-       (barcode && *barcode && !sync_safe_token(barcode, TAGTINKER_BC_LEN)) || width == 0U || height == 0U ||
-       page > 7U || byte_count == 0U) {
+       (barcode && *barcode && !sync_safe_token(barcode, TAGTINKER_BC_LEN)) || width == 0U ||
+       height == 0U || page > 7U || byte_count == 0U) {
         return false;
     }
 
@@ -284,7 +281,8 @@ static bool sync_begin_job(
 }
 
 static bool sync_set_job_barcode(TagTinkerApp* app, const char* barcode) {
-    if(!app || !app->ble_sync_job_active || !barcode || !sync_safe_token(barcode, TAGTINKER_BC_LEN)) {
+    if(!app || !app->ble_sync_job_active || !barcode ||
+       !sync_safe_token(barcode, TAGTINKER_BC_LEN)) {
         return false;
     }
 
@@ -372,9 +370,8 @@ static bool sync_finish_job(TagTinkerApp* app, const char* job_id) {
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     storage_common_remove(storage, app->ble_sync_final_path);
-    bool ok =
-        storage_common_rename(storage, app->ble_sync_temp_path, app->ble_sync_final_path) ==
-        FSE_OK;
+    bool ok = storage_common_rename(storage, app->ble_sync_temp_path, app->ble_sync_final_path) ==
+              FSE_OK;
     furi_record_close(RECORD_STORAGE);
     if(!ok) {
         ble_set_status(app, "Save failed");
@@ -590,7 +587,8 @@ static uint16_t ble_rx_callback(SerialServiceEvent event, void* context) {
                     app->ble_rx_pending_ready = true;
                     app->ble_rx_len = 0;
                 }
-            } else if(!app->ble_rx_pending_ready && app->ble_rx_len < (sizeof(app->ble_rx_line) - 1U)) {
+            } else if(
+                !app->ble_rx_pending_ready && app->ble_rx_len < (sizeof(app->ble_rx_line) - 1U)) {
                 app->ble_rx_line[app->ble_rx_len++] = c;
             }
         }
@@ -647,7 +645,8 @@ static void ble_sync_start(TagTinkerApp* app) {
     app->ble_sync_last_completed_chunks = 0;
     app->ble_sync_last_compact_protocol = false;
     app->ble_sync_ready_target = -1;
-    ble_profile_serial_set_event_callback(app->ble_serial, TAGTINKER_BLE_FLOW_WINDOW, ble_rx_callback, app);
+    ble_profile_serial_set_event_callback(
+        app->ble_serial, TAGTINKER_BLE_FLOW_WINDOW, ble_rx_callback, app);
     ble_profile_serial_set_rpc_active(app->ble_serial, false);
     ble_set_status(app, "Waiting phone");
     app->ble_sync_active = true;
@@ -759,12 +758,7 @@ bool tagtinker_scene_about_on_event(void* ctx, SceneManagerEvent event) {
                 app->draw_y = 0;
                 app->color_clear = false;
                 tagtinker_prepare_bmp_tx(
-                    app,
-                    target->plid,
-                    image.image_path,
-                    image.width,
-                    image.height,
-                    image.page);
+                    app, target->plid, image.image_path, image.width, image.height, image.page);
                 app->tx_spam = false;
                 app->ble_sync_ready_target = -1;
                 scene_manager_next_scene(app->scene_manager, TagTinkerSceneTransmit);

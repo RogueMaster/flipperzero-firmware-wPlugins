@@ -4,7 +4,7 @@
 
 #include "tagtinker_scene.h"
 
-void(*const tagtinker_scene_on_enter_handlers[])(void*) = {
+void (*const tagtinker_scene_on_enter_handlers[])(void*) = {
     tagtinker_scene_warning_on_enter,
     tagtinker_scene_main_menu_on_enter,
     tagtinker_scene_settings_on_enter,
@@ -22,7 +22,7 @@ void(*const tagtinker_scene_on_enter_handlers[])(void*) = {
     tagtinker_scene_about_on_enter,
 };
 
-bool(*const tagtinker_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
+bool (*const tagtinker_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
     tagtinker_scene_warning_on_event,
     tagtinker_scene_main_menu_on_event,
     tagtinker_scene_settings_on_event,
@@ -40,7 +40,7 @@ bool(*const tagtinker_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
     tagtinker_scene_about_on_event,
 };
 
-void(*const tagtinker_scene_on_exit_handlers[])(void*) = {
+void (*const tagtinker_scene_on_exit_handlers[])(void*) = {
     tagtinker_scene_warning_on_exit,
     tagtinker_scene_main_menu_on_exit,
     tagtinker_scene_settings_on_exit,

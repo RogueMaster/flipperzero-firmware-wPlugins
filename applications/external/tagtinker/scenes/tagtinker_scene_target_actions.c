@@ -10,7 +10,11 @@ static void target_actions_cb(void* ctx, uint32_t index) {
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-static bool confirm_target_action(TagTinkerApp* app, const char* header, const char* body, const char* action) {
+static bool confirm_target_action(
+    TagTinkerApp* app,
+    const char* header,
+    const char* body,
+    const char* action) {
     if(!app || !header || !body || !action) return false;
 
     DialogMessage* message = dialog_message_alloc();
@@ -69,29 +73,33 @@ static void show_target_details(TagTinkerApp* app, const TagTinkerTarget* target
 
 void tagtinker_scene_target_actions_on_enter(void* ctx) {
     TagTinkerApp* app = ctx;
-    TagTinkerTarget* target = (app->selected_target >= 0) ? &app->targets[app->selected_target] : NULL;
+    TagTinkerTarget* target = (app->selected_target >= 0) ? &app->targets[app->selected_target] :
+                                                            NULL;
     bool allow_graphics = tagtinker_target_supports_graphics(target);
 
     submenu_reset(app->submenu);
 
     char header[24];
-    snprintf(
-        header,
-        sizeof(header),
-        "%s",
-        (target && target->name[0]) ? target->name : "Target");
+    snprintf(header, sizeof(header), "%s", (target && target->name[0]) ? target->name : "Target");
     submenu_set_header(app->submenu, header);
-    submenu_add_item(app->submenu, "Show Tag Info", TagTinkerTargetDetails, target_actions_cb, app);
+    submenu_add_item(
+        app->submenu, "Show Tag Info", TagTinkerTargetDetails, target_actions_cb, app);
     submenu_add_item(app->submenu, "Rename Tag", TagTinkerTargetRename, target_actions_cb, app);
 
     if(allow_graphics) {
-        submenu_add_item(app->submenu, "Set Text", TagTinkerTargetPushText, target_actions_cb, app);
-        submenu_add_item(app->submenu, "Set Image", TagTinkerTargetPushSyncedImage, target_actions_cb, app);
+        submenu_add_item(
+            app->submenu, "Set Text", TagTinkerTargetPushText, target_actions_cb, app);
+        submenu_add_item(
+            app->submenu, "Set Image", TagTinkerTargetPushSyncedImage, target_actions_cb, app);
     }
 
     submenu_add_item(app->submenu, "LED Test", TagTinkerTargetPingFlash, target_actions_cb, app);
     submenu_add_item(
-        app->submenu, "Delete Saved Images", TagTinkerTargetDeleteSyncedImages, target_actions_cb, app);
+        app->submenu,
+        "Delete Saved Images",
+        TagTinkerTargetDeleteSyncedImages,
+        target_actions_cb,
+        app);
     submenu_add_item(app->submenu, "Delete Tag", TagTinkerTargetDeleteTag, target_actions_cb, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TagTinkerViewSubmenu);
@@ -118,60 +126,62 @@ bool tagtinker_scene_target_actions_on_event(void* ctx, SceneManagerEvent event)
         if(!tagtinker_target_supports_graphics(&app->targets[app->selected_target])) return true;
         scene_manager_next_scene(app->scene_manager, TagTinkerSceneSyncedImageList);
         return true;
-    case TagTinkerTargetDeleteSyncedImages:
-        {
-            TagTinkerTarget* target = &app->targets[app->selected_target];
-            char body[96];
-            snprintf(body, sizeof(body), "Remove saved images for\n%s?", target->name);
-            if(!confirm_target_action(app, "Delete Images", body, "Delete")) {
-                return true;
-            }
-
-            size_t removed = tagtinker_delete_synced_images_for_barcode(app, target->barcode);
-            char result[96];
-            snprintf(result, sizeof(result), "Removed %u saved image%s", (unsigned)removed, removed == 1U ? "" : "s");
-            show_target_action_result(app, "Delete Images", result);
+    case TagTinkerTargetDeleteSyncedImages: {
+        TagTinkerTarget* target = &app->targets[app->selected_target];
+        char body[96];
+        snprintf(body, sizeof(body), "Remove saved images for\n%s?", target->name);
+        if(!confirm_target_action(app, "Delete Images", body, "Delete")) {
+            return true;
         }
+
+        size_t removed = tagtinker_delete_synced_images_for_barcode(app, target->barcode);
+        char result[96];
+        snprintf(
+            result,
+            sizeof(result),
+            "Removed %u saved image%s",
+            (unsigned)removed,
+            removed == 1U ? "" : "s");
+        show_target_action_result(app, "Delete Images", result);
+    }
         return true;
-    case TagTinkerTargetPingFlash:
-        {
-            TagTinkerTarget* target = &app->targets[app->selected_target];
+    case TagTinkerTargetPingFlash: {
+        TagTinkerTarget* target = &app->targets[app->selected_target];
 
-            app->frame_seq_count = 2;
-            app->frame_sequence = malloc(sizeof(uint8_t*) * 2);
-            app->frame_lengths  = malloc(sizeof(size_t) * 2);
-            app->frame_repeats  = malloc(sizeof(uint16_t) * 2);
+        app->frame_seq_count = 2;
+        app->frame_sequence = malloc(sizeof(uint8_t*) * 2);
+        app->frame_lengths = malloc(sizeof(size_t) * 2);
+        app->frame_repeats = malloc(sizeof(uint16_t) * 2);
 
-            app->frame_sequence[0] = malloc(TAGTINKER_MAX_FRAME_SIZE);
-            app->frame_lengths[0] = tagtinker_make_ping_frame(app->frame_sequence[0], target->plid);
-            app->frame_repeats[0] = 500;
+        app->frame_sequence[0] = malloc(TAGTINKER_MAX_FRAME_SIZE);
+        app->frame_lengths[0] = tagtinker_make_ping_frame(app->frame_sequence[0], target->plid);
+        app->frame_repeats[0] = 500;
 
-            app->frame_sequence[1] = malloc(TAGTINKER_MAX_FRAME_SIZE);
-            const uint8_t blink_payload[6] = {0x06, 0xC9, 0x00, 0x00, 0x00, 0x00};
-            app->frame_lengths[1] = tagtinker_make_addressed_frame(
-                app->frame_sequence[1], target->plid, blink_payload, 6);
-            app->frame_repeats[1] = 100;
+        app->frame_sequence[1] = malloc(TAGTINKER_MAX_FRAME_SIZE);
+        const uint8_t blink_payload[6] = {0x06, 0xC9, 0x00, 0x00, 0x00, 0x00};
+        app->frame_lengths[1] =
+            tagtinker_make_addressed_frame(app->frame_sequence[1], target->plid, blink_payload, 6);
+        app->frame_repeats[1] = 100;
 
-            memcpy(app->frame_buf, app->frame_sequence[0], app->frame_lengths[0]);
-            app->frame_len = app->frame_lengths[0];
+        memcpy(app->frame_buf, app->frame_sequence[0], app->frame_lengths[0]);
+        app->frame_len = app->frame_lengths[0];
 
-            app->tx_spam = false;
-            scene_manager_next_scene(app->scene_manager, TagTinkerSceneTransmit);
-        }
+        app->tx_spam = false;
+        scene_manager_next_scene(app->scene_manager, TagTinkerSceneTransmit);
+    }
         return true;
-    case TagTinkerTargetDeleteTag:
-        {
-            TagTinkerTarget* target = &app->targets[app->selected_target];
-            char body[96];
-            snprintf(body, sizeof(body), "Delete %s and its\nsaved images?", target->name);
-            if(!confirm_target_action(app, "Delete Tag", body, "Delete")) {
-                return true;
-            }
-
-            tagtinker_delete_target(app, (uint8_t)app->selected_target);
-            scene_manager_search_and_switch_to_previous_scene(
-                app->scene_manager, TagTinkerSceneTargetMenu);
+    case TagTinkerTargetDeleteTag: {
+        TagTinkerTarget* target = &app->targets[app->selected_target];
+        char body[96];
+        snprintf(body, sizeof(body), "Delete %s and its\nsaved images?", target->name);
+        if(!confirm_target_action(app, "Delete Tag", body, "Delete")) {
+            return true;
         }
+
+        tagtinker_delete_target(app, (uint8_t)app->selected_target);
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, TagTinkerSceneTargetMenu);
+    }
         return true;
     }
     return false;

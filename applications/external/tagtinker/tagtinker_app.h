@@ -26,18 +26,18 @@
 #include "protocol/tagtinker_proto.h"
 #include "ir/tagtinker_ir.h"
 
-#define TAGTINKER_TAG          "TagTinker"
-#define TAGTINKER_DISPLAY_NAME "TagTinker"
-#define TAGTINKER_VERSION      "1.3"
-#define TAGTINKER_BC_LEN   17
-#define TAGTINKER_HEX_LEN  64
-#define TAGTINKER_MAX_TARGETS 16
-#define TAGTINKER_TARGET_NAME_LEN 16
-#define TAGTINKER_MAX_PRESETS 6
+#define TAGTINKER_TAG               "TagTinker"
+#define TAGTINKER_DISPLAY_NAME      "TagTinker"
+#define TAGTINKER_VERSION           "1.3"
+#define TAGTINKER_BC_LEN            17
+#define TAGTINKER_HEX_LEN           64
+#define TAGTINKER_MAX_TARGETS       16
+#define TAGTINKER_TARGET_NAME_LEN   16
+#define TAGTINKER_MAX_PRESETS       6
 #define TAGTINKER_MAX_SYNCED_IMAGES 24
-#define TAGTINKER_PRESET_TEXT_LEN 32
-#define TAGTINKER_IMAGE_PATH_LEN 255
-#define TAGTINKER_SYNC_JOB_ID_LEN 32
+#define TAGTINKER_PRESET_TEXT_LEN   32
+#define TAGTINKER_IMAGE_PATH_LEN    255
+#define TAGTINKER_SYNC_JOB_ID_LEN   32
 
 typedef enum {
     TagTinkerTxModeNone = 0,
@@ -166,10 +166,10 @@ struct TagTinkerApp {
     struct {
         uint16_t width;
         uint16_t height;
-        uint8_t  page;
-        bool     invert;
-        bool     color_clear;
-        char     text[TAGTINKER_PRESET_TEXT_LEN];
+        uint8_t page;
+        bool invert;
+        bool color_clear;
+        char text[TAGTINKER_PRESET_TEXT_LEN];
     } presets[TAGTINKER_MAX_PRESETS];
     uint8_t preset_count;
 
