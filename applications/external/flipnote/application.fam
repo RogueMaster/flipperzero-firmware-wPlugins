@@ -1,0 +1,14 @@
+App(
+    appid="flipnote",
+    name="FlipNote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipnote_app",
+    requires=["gui", "storage"],
+    stack_size=8 * 1024,
+    fap_version=(1, 0),
+    fap_category="Tools",
+    fap_icon="icon.png",
+    fap_description="A real text editor for Flipper Zero. Open, edit and save files directly on device.",
+    fap_author="morty517",
+    fap_weburl="https://github.com/morty517/flipnote",
+)

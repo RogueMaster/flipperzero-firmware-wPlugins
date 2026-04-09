@@ -1,0 +1,78 @@
+name: Build FlipNote FAP
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: Official Firmware
+            sdk-index-url: https://update.flipperzero.one/firmware/directory.json
+            sdk-channel: release
+            artifact-suffix: ofw
+            extra-cflags: ""
+
+          - name: Momentum / Unleashed / RogueMaster
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+            sdk-channel: release
+            artifact-suffix: momentum
+            extra-cflags: "-DMOMENTUM_FW"
+
+    name: Build for ${{ matrix.name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          sdk-index-url: ${{ matrix.sdk-index-url }}
+          sdk-channel: ${{ matrix.sdk-channel }}
+          task: setup
+
+      - name: Build FAP
+        run: |
+          ufbt CFLAGS="${{ matrix.extra-cflags }}"
+
+      - name: Rename FAP with suffix
+        run: |
+          find dist/ -name "*.fap" -exec mv {} flipnote_${{ matrix.artifact-suffix }}.fap \;
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flipnote-${{ matrix.artifact-suffix }}
+          path: "flipnote_${{ matrix.artifact-suffix }}.fap"
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.fap
+          body: |
+            ## Install
+
+            | Firmware | File |
+            |----------|------|
+            | Official Firmware | `flipnote_ofw.fap` |
+            | Momentum / Unleashed / RogueMaster | `flipnote_momentum.fap` |
+
+            Copy the correct `.fap` to `/ext/apps/Tools/` on your SD card.
