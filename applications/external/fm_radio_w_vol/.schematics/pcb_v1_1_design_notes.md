@@ -509,11 +509,19 @@ Proponowany finalny przydzial dla v1.1:
 - pin 5, PB3 -> PAM_MUTE
 - pin 6, PB2 -> PAM_SHDN
 - pin 7, PC3 -> PAM_MODE_ABD
+- pin 4, PA4 -> RDS_MPX_ADC
 
 Powod takiego wyboru:
 - sa to trzy wolne, sasiednie piny, co upraszcza routing i dokumentacje
-- zostawiaja PA7, PA6 i PA4 wolne na przyszle funkcje albo debug
+- zostawiaja PA7 i PA6 wolne na przyszle funkcje albo debug, a PA4 rezerwujemy na wejscie ADC dla RDS z MPX
 - pin 7 lezy blisko GND i 3.3 V na zlaczu Flippera, co jest wygodne dla dodatkowych rezystorow podciagajacych i sekcji sterowania
+
+Aktualizacja dla funkcji RDS z MPX:
+- pin 4, PA4, jest rezerwowany jako wejscie ADC dla toru RDS_MPX_ADC
+- sygnal MPX z TEA5767 nalezy doprowadzic do PA4 przez analogowy tor dopasowujacy
+- wariant startowy: wejscie przez offset DC do zakresu ADC 0 do 3.3 V
+- wariant preferowany: bufor i wzmocnienie na MCP6001 z ustawieniem wzmocnienia okolo x4 oraz przesunieciem poziomu DC do polowy zakresu ADC
+- szczegolowy plan analog front-end i dekodowania RDS znajduje sie w osobnym pliku [rds_mpx_plan.md](rds_mpx_plan.md)
 
 Zalecenie do hardware:
 - wszystkie linie sterujace PAM8406 potraktowac jako sygnaly 3.3 V z Flippera
@@ -642,3 +650,290 @@ Najwazniejsze zmiany funkcjonalne:
 2. Amp Power On / Off
 3. Amp Mode AB / D
 4. poprawna sekwencja startu i wylaczania toru audio
+
+## Sekcja RDS Analog Front-End z MCP6001
+
+### Cel
+
+Wzmocnic skladowa RDS (57 kHz) z wyjscia MPXO TEA5767 przed podaniem na ADC PA4 Flippera.
+Bez wzmacniacza sygnal RDS to okolo 6.7 mV, co daje zaledwie 8 LSB na 12-bitowym ADC.
+Po wzmocnieniu x6 na MCP6001 z filtrem HP odcinajacym audio uzyskujemy okolo 41 LSB,
+co poprawia stosunek sygnalu do szumu kwantyzacji o okolo 14 dB.
+
+### Parametry wyjscia MPXO z datasheetu TEA5767
+
+Parametry zmierzone i katalogowe:
+- DC bias VMPXO: 680 do 950 mV, typowo 815 mV
+- AC output (mono, delta_f = 22.5 kHz): 60 do 90 mV, typowo 75 mV
+- Output resistance Ro: max 500 Ohm
+- Sink current Isink: max 30 uA
+
+Skladowa RDS na wyjsciu MPXO:
+- typowa dewiacja RDS: +/- 2 kHz
+- wzgledem testowej dewiacji 22.5 kHz: 2 / 22.5 = 8.9%
+- RDS AC na MPXO: 75 mV x 0.089 = okolo 6.7 mV peak
+
+### Schemat obwodu (ASCII)
+
+Koncepcja:
+- C1 zdejmuje DC z TEA
+- dzielnik Rb1/Rb2 ustawia DC 1.65 V (srodek zakresu ADC)
+- C2+R1 filtruja audio (HPF), zeby ×6 nie clipowalo
+- MCP6001 wzmacnia ×6 wokol 1.65 V
+- wyjscie 1.65 V +/- wzmocniony sygnal idzie do ADC
+
+```
+    TEA5767 pin 25 (MPX out)
+         |
+       [C1 = 1uF]         Zdejmuje DC 815 mV z TEA
+         |
+         |
+       [C2 = 2.2nF]       HPF: przepuszcza >33 kHz (RDS), odcina audio
+         |
+         |
+       node_Y ----------- MCP6001 pin 3 (V+)
+         |
+       [R1 = 2.2k]        Dolny rez HPF + sciezka DC bias
+         |
+       Vbias = 1.65 V     DC offset: srodek zakresu ADC
+         |      |
+       [Rb1]  [Cb = 100nF]   Cb = AC ground na Vbias
+       100k     |
+         |     GND
+       3.3V
+         |
+        Vbias
+         |
+       [Rb2]
+       100k
+         |
+        GND
+
+
+    Wzmacniacz ×6:
+
+                  +--------[Rf = 10k]--------+
+                  |                           |
+    MCP6001 pin 4 (V-)              MCP6001 pin 1 (Vout)
+                  |                           |
+                [Rg = 2k]                ADC PA4
+                  |                    (Flipper pin 4)
+                Vbias = 1.65 V
+
+
+    Zasilanie:
+    MCP6001 pin 5 (Vdd) ---- 3.3V_TEA ---- [C4 = 100nF] ---- GND
+    MCP6001 pin 2 (Vss) ---- GND
+```
+
+### Pelen schemat jednolinijkowy
+
+```
+TEA pin25 --[C1=1uF]--[C2=2.2nF]-- node_Y -------- MCP6001(V+)
+                                      |                  |
+                                  [R1=2.2k]          wzmacnia ×6
+                                      |                  |
+            3.3V --[Rb1=100k]-- Vbias --- [Cb=100nF] --- GND
+                                  |
+                              [Rb2=100k]
+                                  |
+                                 GND
+
+                                Vbias
+                                  |
+                              [Rg=2k]
+                                  |
+                    Vout ---[Rf=10k]--- MCP6001(V-)
+                      |
+                  ADC PA4           DC na Vout = 1.65 V
+               (Flipper pin 4)     AC na Vout = sygnal × 6
+```
+
+### Opis polaczen krok po kroku
+
+1. Sygnal MPX wychodzi z TEA5767 pin 25 (DC bias ~815 mV, AC ~75 mV).
+
+2. C1 = 1 uF zdejmuje DC. Za C1 sygnal jest czyste AC, bez skladowej stalej.
+
+3. C2 = 2.2 nF + R1 = 2.2 kOhm tworza filtr HPF (fc = 33 kHz).
+   Odcinaja audio i pilota, przepuszczaja RDS (57 kHz) z -1.3 dB straty.
+   Bez tego filtru audio po ×6 clipowaloby na ADC.
+
+4. Dzielnik Rb1/Rb2 (2 x 100 kOhm) ustawia DC offset = 1.65 V na nodzie Vbias.
+   R1 laczy node_Y z Vbias, wiec MCP6001 V+ widzi DC = 1.65 V.
+   To jest dokladnie srodek zakresu ADC 0 do 3.3 V.
+
+5. MCP6001 wzmacnia ×6 (Av = 1 + Rf/Rg = 1 + 10k/2k).
+   Rg laczy V- do Vbias. Rf laczy V- do Vout.
+   Feedback wymusza V- = V+, wiec Vout DC = 1.65 V.
+
+6. Na wyjsciu MCP6001: DC = 1.65 V, AC = sygnal RDS × 6.
+   To idzie bezposrednio na ADC PA4 (Flipper pin 4).
+
+7. Zasilanie MCP6001: pin 5 do 3.3V_TEA, pin 2 do GND, C4 = 100 nF bypass.
+
+### Dlaczego 100 kOhm a nie 10 kOhm na biasie
+
+Obawy:
+- czy 100 kOhm nie spowoduje ze wyjscie bedzie za miekkie i RDS zniknie?
+
+Odpowiedz: NIE, bo Rb1/Rb2 NIE SA w sciezce sygnalowej.
+
+Dowod:
+- Rb1 i Rb2 lacza sie do node Vbias, nie do node_Y (wejscie MCP6001)
+- miedzy node_Y a Vbias jest R1 = 2.2 kOhm
+- Cb = 100 nF przy Vbias ma impedancje 28 Ohm przy 57 kHz
+- R1 widzi na swoim dolnym koncu: Rb1 || Rb2 || Cb = 50k || 28 = 28 Ohm
+- wiec AC ground na Vbias jest praktycznie idealny, niezaleznie od Rb
+
+Porownanie:
+- Rb = 100 kOhm: Rb1||Rb2 = 50k, z Cb(28 Ohm): node Vbias AC = 28 Ohm
+- Rb = 10 kOhm: Rb1||Rb2 = 5k, z Cb(28 Ohm): node Vbias AC = 28 Ohm
+- IDENTYCZNIE! Cb dominuje, Rb nie ma znaczenia dla AC
+
+Sygnal RDS na node_Y (niezalezny od Rb):
+- V_Y = V_TEA x R1 / sqrt(R1^2 + Xc2^2) = V_TEA x 2200 / 2540 = 0.866 x V_TEA
+- strata HPF na 57 kHz = -1.3 dB, identycznie dla 10k i 100k biasu
+
+Dodatkowa zaleta 100 kOhm:
+- C1 blokuje DC z TEA, wiec Rb nie laduja wyjscia TEA DC
+- ale 100 kOhm daje dodatkowe bezpieczenstwo:
+  gdyby C1 mialo nieliniowy uplyw, 100k ogranicza prad do 33 uA vs 330 uA z 10k
+- mniejsze zageszczenie szumow termicznych: szum 100k jest wiekszy,
+  ale przytlumiony przez Cb i R1 nie dociera na wejscie MCP6001
+
+### Obliczenie clipping (worst case)
+
+MPX z TEA5767 przy najsilniejszej stacji, oszacowanie na podstawie oscyloskopu:
+- max MPX p-p obserwowany: 800 mV = 400 mV peak
+
+Poszczegolne skladowe MPX (proporcje typowe):
+- Audio L+R: 640 mV p-p (80% modulacji)
+- Pilot 19 kHz: 80 mV p-p (10%)
+- Stereo L-R: 320 mV p-p (40%)
+- RDS: 32 mV p-p (4%)
+
+Po HPF (fc=33 kHz, tlumienie na poszczegolnych czestotliwosciach):
+- Audio 5 kHz: 640 x 0.15 = 96 mV p-p
+- Pilot 19 kHz: 80 x 0.50 = 40 mV p-p
+- Stereo 38 kHz: 320 x 0.76 = 243 mV p-p
+- RDS 57 kHz: 32 x 0.87 = 28 mV p-p
+- Suma peak: okolo 407 mV p-p (worst case koherentny)
+
+Po wzmocnieniu x6:
+- Worst case output AC: 407 x 6 = 2442 mV p-p = 2.44 V p-p
+- Wokol DC 1.65 V: od 0.43 V do 2.87 V
+- Zakres ADC: 0 do 3.3 V
+- Margines: 430 mV do raila = 13%
+- NIE CLIPUJE nawet na najsilniejszej stacji
+
+Typowa stacja (500 mV MPX p-p):
+- output AC: 250 x 0.55 x 6 = 825 mV p-p
+- od 1.24 V do 2.06 V
+- margines: duzy, ponad 1 V do raila
+
+### Weryfikacja parametrow MCP6001 z datasheetu
+
+Zrodlo: [pdf/MCP6001.pdf](pdf/MCP6001.pdf) (DS20001733L)
+
+Parametry potwierdzone jako zgodne z naszym projektem:
+- VDD: 1.8 do 6.0 V — nasz 3.3 V jest w zakresie
+- IQ: 100 uA typ — pomijalne obciazenie LDO TEA
+- Rail-to-rail I/O: VOH = VDD - 25 mV, VOL = VSS + 25 mV przy RL = 10k
+- VCM range: VSS - 0.3 V do VDD + 0.3 V — nasz VCM = 1.65 V jest w zakresie
+- Phase margin: 90 stopni typ przy G=+1, stabilny przy G=+6
+- Input bias current: 1 pA typ — pomijalne przy naszych rezystancjach
+- Bypass cap: datasheet zaleca 0.01 do 0.1 uF w odleglosci 2 mm + 1 uF bulk
+  Nasz C4 = 100 nF bezposrednio przy pinach = zgodne
+
+Input stage crossover:
+- datasheet podaje ze przy VCM = VDD - 1.1 V nastepuje przelaczenie stopni wejsc
+- dla VDD = 3.3 V: crossover = 2.2 V
+- nasz VCM = 1.65 V < 2.2 V, wiec pracujemy na jednym stopniu = lepsza liniowsc
+
+Capacitive load:
+- datasheet ostrzega o problemach przy CL > 100 pF (G=+1)
+- nasz CL to wejscie ADC (~5 pF) + trasa PCB (~10 pF) = okolo 15 pF
+- daleko ponizej progu, RISO nie jest potrzebny
+
+### GBW check MCP6001
+
+MCP6001 ma GBW = 1 MHz.
+- f_-3dB = GBW / Av = 1 MHz / 6 = 167 kHz
+- Gain at 57 kHz: Av(57k) = 6 / sqrt(1 + (57/167)^2) = 6 / 1.056 = 5.68x
+- Strata wzgledem idealnych 6x: 5.3% = pomijalna
+
+### Slew rate check
+
+MCP6001 slew rate: 0.6 V/us.
+- Worst case (800 mV MPX, po HPF i x6): 2.44 V p-p na 57 kHz
+- Wymagany slew rate: pi x 57000 x 2.44 = 0.44 V/us
+- Zuzycie SR: 73% — przechodzi, ale niewielki zapas
+- Typowa stacja (500 mV MPX): 0.15 V/us = 25% SR, duzy zapas
+- Wniosek: przy najsilniejszych stacjach sygnal jest blisko limitu SR,
+  ale to dotyczy tylko worst-case koherentnego szczytu (audio+stereo+RDS w fazie)
+  W praktyce to sie zdarza rzadko, wiec jest OK
+
+### Poprawa sygnalu RDS na ADC
+
+Bez MCP6001:
+- RDS na ADC: 6.7 mV, okolo 8 LSB (0.806 mV/LSB)
+- Quantization SNR: 20 x log10(8) = 18 dB
+
+Z MCP6001:
+- RDS na ADC: 6.7 x 0.87 (HPF) x 5.68 (gain) = 33 mV, okolo 41 LSB
+- Quantization SNR: 20 x log10(41) = 32 dB
+- Poprawa: +14 dB, 5x wiecej kwantow
+
+### BOM sekcji RDS front-end
+
+| Ref  | Wartosc   | Obudowa | Funkcja                          |
+|------|-----------|---------|----------------------------------|
+| U_RDS| MCP6001   | SOT-23-5| bufor i wzmacniacz               |
+| C1   | 1 uF      | 0402/0603| coupling cap (istniejacy)       |
+| C2   | 2.2 nF    | 0402    | HPF cap                          |
+| R1   | 2.2 kOhm  | 0402    | HPF shunt, DC bias path          |
+| Rf   | 10 kOhm   | 0402    | feedback resistor                |
+| Rg   | 2 kOhm    | 0402    | gain set resistor                |
+| Rb1  | 100 kOhm  | 0402    | bias divider gorny               |
+| Rb2  | 100 kOhm  | 0402    | bias divider dolny               |
+| Cb   | 100 nF    | 0402    | bias node bypass                 |
+| C4   | 100 nF    | 0402    | MCP6001 Vdd bypass               |
+
+Lacznie: 1 uklad + 4 kondensatory + 5 rezystorow = 10 elementow.
+
+### Zasilanie MCP6001
+
+MCP6001 zasilany z tego samego LDO TPS7A2033 co TEA5767 (3.3V_TEA).
+Kondensator C4 = 100 nF bezposrednio przy pinach Vdd i Vss MCP6001.
+
+Nie potrzeba osobnego LDO dla MCP6001:
+- pobor pradu MCP6001: typowo 100 uA
+- LDO TEA i tak ma duzy zapas pradowy
+- odseparowanie od PAM8406 jest juz zapewnione przez osobny LDO TEA
+
+### Placement na PCB
+
+Zalecenia:
+1. MCP6001 umiescic blisko zlacza modulu TEA5767, krotka trasa od C1.
+2. C2 i R1 bezposrednio przy wejsciu V+ MCP6001.
+3. Rf i Rg bezposrednio przy MCP6001.
+4. C4 bypass bezposrednio przy pinach zasilania MCP6001.
+5. Rb1, Rb2, Cb moga byc nieco dalej, nie sa krytyczne pod wzgledem trasy sygnalowej.
+6. Wyjscie MCP6001 do PA4 prowadzic czysta sciezka, z dala od wyjsc glosnikowych.
+7. GND pod MCP6001 ma byc czysta analogowa masa TEA, nie masa mocy PAM.
+
+### Zapasowy wariant wzmocnienia
+
+Jesli na najsilniejszych stacjach wyjscie MCP6001 clipuje:
+- zamienic Rg = 2 kOhm na 2.7 kOhm
+- nowe wzmocnienie: 1 + 10k/2.7k = 4.7x
+- output worst case: 407 x 4.7 = 1.91 V p-p, margines 35%
+
+Jesli sygnal RDS nadal za slaby:
+- zamienic Rg = 2 kOhm na 1.5 kOhm
+- nowe wzmocnienie: 1 + 10k/1.5k = 7.7x
+- GBW check: 1 MHz / 7.7 = 130 kHz, gain at 57k: 7.3x
+- output worst case: 407 x 7.7 = 3.13 V p-p, na granicy clippingu
+
+Wniosek: x6 jest dobrym kompromisem. Footprint Rg zostawic z mozliwoscia latwy zamiany.

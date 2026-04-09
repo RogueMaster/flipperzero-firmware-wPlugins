@@ -31,6 +31,16 @@
 #include "TEA5767/TEA5767.h"
 #include "PT/PT22xx.h"
 
+// Set to 1 to enable RDS decoder (uses ADC on PA4, extra ~3 kB flash).
+// Set to 0 to disable RDS completely (UI items hidden, no ADC).
+#define ENABLE_RDS 1
+
+#ifdef ENABLE_RDS
+#include "RDS/RDSCore.h"
+#include "RDS/RDSDsp.h"
+#include "RDS/RDSAcquisition.h"
+#endif
+
 // Define a macro for enabling the backlight always on.
 // NOTE: For some setups this can inject audible PWM/DC-DC noise into the audio path.
 // Uncomment only if you really want forced backlight.
@@ -58,6 +68,26 @@ static bool pt_initialized_cached = false;
 
 static void fmradio_state_lock(void);
 static void fmradio_state_unlock(void);
+static uint32_t fmradio_get_current_freq_10khz(void);
+#ifdef ENABLE_RDS
+static void fmradio_rds_on_tuned_frequency_changed(void);
+void fmradio_rds_process_adc_block(const uint16_t* samples, size_t count, uint16_t adc_midpoint);
+static void fmradio_rds_acquisition_block_callback(
+    const uint16_t* samples,
+    size_t count,
+    uint16_t adc_midpoint,
+    void* context);
+static bool fmradio_rds_adc_start(void);
+static void fmradio_rds_adc_stop(void);
+static void fmradio_rds_adc_timer_callback(void* context);
+static void fmradio_rds_update_ui_snapshot(void);
+static const char* fmradio_rds_sync_short_text(RdsSyncState state);
+static void fmradio_rds_metadata_reset(void);
+static void fmradio_rds_metadata_save(void);
+#else
+static inline void fmradio_rds_on_tuned_frequency_changed(void) {
+}
+#endif
 
 static void fmradio_pt_apply_config(void) {
     pt22xx_set_chip(pt_chip);
@@ -113,7 +143,10 @@ static void fmradio_apply_pt_state(void) {
 #define SETTINGS_DIR      EXT_PATH("apps_data/fmradio_controller_pt2257")
 #define SETTINGS_FILE     EXT_PATH("apps_data/fmradio_controller_pt2257/settings.fff")
 #define SETTINGS_FILETYPE "FMRadio PT Settings"
-#define SETTINGS_VERSION  (2U)
+#define SETTINGS_VERSION  (3U)
+#ifdef ENABLE_RDS
+#define RDS_RUNTIME_META_FILE EXT_PATH("apps_data/fmradio_controller_pt2257/rds_runtime_meta.txt")
+#endif
 
 #define PRESETS_FILE     EXT_PATH("apps_data/fmradio_controller_pt2257/presets.fff")
 #define PRESETS_FILETYPE "FMRadio Presets"
@@ -127,6 +160,9 @@ static bool tea_deemph_75us = false;
 static bool tea_softmute_enabled = true;
 static bool tea_highcut_enabled = false;
 static bool tea_force_mono_enabled = false;
+#ifdef ENABLE_RDS
+static bool rds_enabled = false;
+#endif
 
 static bool backlight_keep_on = false;
 
@@ -138,6 +174,19 @@ static bool presets_dirty = false;
 static uint32_t seek_last_step_tick = 0;
 
 static FuriMutex* state_mutex = NULL;
+
+#ifdef ENABLE_RDS
+static RDSCore rds_core;
+static RDSDsp rds_dsp;
+static RdsAcquisition rds_acquisition;
+static char rds_ps_display[RDS_PS_LEN + 1U];
+static RdsSyncState rds_sync_display = RdsSyncStateSearch;
+static uint32_t rds_ok_blocks_display = 0U;
+#define RDS_ADC_FIXED_MIDPOINT 2072U
+static const GpioPin* rds_adc_pin = &gpio_ext_pa4;
+static FuriHalAdcChannel rds_adc_channel = FuriHalAdcChannel9;
+static FuriTimer* rds_adc_timer_handle = NULL;
+#endif
 
 // Built-in frequency list for Config menu quick-jump
 static const float frequency_values[] = {88.1,  88.9,  89.1,  90.3,  91.5,  91.7,  92.0,
@@ -328,7 +377,7 @@ static void fmradio_seek_step(bool direction_up) {
         furi_delay_ms(SEEK_READY_POLL_MS);
     }
 
-    fmradio_settings_mark_dirty();
+    fmradio_rds_on_tuned_frequency_changed();
 }
 
 static void fmradio_settings_load(void) {
@@ -403,6 +452,15 @@ static void fmradio_settings_load(void) {
             }
         }
 
+        if(version >= 3U) {
+#ifdef ENABLE_RDS
+            bool rds = false;
+            if(flipper_format_read_bool(ff, "RdsEnabled", &rds, 1)) {
+                rds_enabled = rds;
+            }
+#endif
+        }
+
     } while(false);
 
     flipper_format_file_close(ff);
@@ -439,6 +497,11 @@ static void fmradio_settings_save(void) {
         bool bl = backlight_keep_on;
         if(!flipper_format_write_bool(ff, "BacklightKeepOn", &bl, 1)) break;
 
+#ifdef ENABLE_RDS
+        bool rds = rds_enabled;
+        if(!flipper_format_write_bool(ff, "RdsEnabled", &rds, 1)) break;
+#endif
+
         uint32_t freq_10khz = fmradio_get_current_freq_10khz();
         if(!flipper_format_write_uint32(ff, "Freq10kHz", &freq_10khz, 1)) break;
 
@@ -469,6 +532,262 @@ static void fmradio_apply_backlight(NotificationApp* notifications) {
         notification_message(notifications, &sequence_display_backlight_enforce_auto);
     }
 }
+
+#ifdef ENABLE_RDS
+static void fmradio_rds_metadata_reset(void) {
+    rds_acquisition_reset(&rds_acquisition);
+}
+
+static void fmradio_rds_metadata_save(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return;
+
+    File* meta_file = storage_file_alloc(storage);
+    if(!meta_file) {
+        furi_record_close(RECORD_STORAGE);
+        return;
+    }
+
+    RdsAcquisitionStats stats;
+    rds_acquisition_get_stats(&rds_acquisition, &stats);
+
+    char meta_text[2048];
+    uint32_t drop_rate_pct_x100 = 0U;
+    if(stats.total_dma_blocks > 0U) {
+        drop_rate_pct_x100 =
+            (uint32_t)(((uint64_t)stats.dropped_blocks * 10000ULL) / stats.total_dma_blocks);
+    }
+
+    int meta_len = snprintf(
+        meta_text,
+        sizeof(meta_text),
+        "configured_sample_rate_hz=%lu\n"
+        "measured_sample_rate_hz=%lu\n"
+        "adc_midpoint=%u\n"
+        "dma_buffer_samples=%u\n"
+        "dma_block_samples=%u\n"
+        "dma_half_events=%lu\n"
+        "dma_full_events=%lu\n"
+        "total_dma_blocks=%lu\n"
+        "delivered_blocks=%lu\n"
+        "dropped_blocks=%lu\n"
+        "drop_rate_pct=%lu.%02lu\n"
+        "pending_blocks=%u\n"
+        "pending_peak_blocks=%u\n"
+        "adc_overrun_count=%lu\n"
+        "samples_delivered=%lu\n"
+        "dsp_symbol_count=%lu\n"
+        "dsp_timing_adjust_q16=%ld\n"
+        "dsp_timing_error_avg=%ld\n"
+        "dsp_symbol_confidence_avg_q16=%lu\n"
+        "dsp_block_symbols_last=%lu\n"
+        "dsp_block_confidence_last_q16=%lu\n"
+        "dsp_block_confidence_avg_q16=%lu\n"
+        "dsp_corrected_confidence_avg_q16=%lu\n"
+        "dsp_uncorrectable_confidence_avg_q16=%lu\n"
+        "dsp_block_corrected_count_last=%lu\n"
+        "dsp_block_uncorrectable_count_last=%lu\n"
+        "dsp_block_corrected_confidence_last_q16=%lu\n"
+        "dsp_block_uncorrectable_confidence_last_q16=%lu\n"
+        "dsp_pilot_level_q8=%lu\n"
+        "dsp_rds_band_level_q8=%lu\n"
+        "dsp_avg_abs_hp_q8=%lu\n"
+        "dsp_avg_vector_mag_q8=%lu\n"
+        "dsp_avg_decision_mag_q8=%lu\n"
+        "core_pilot_level_x1000=%lu\n"
+        "core_rds_band_level_x1000=%lu\n"
+        "core_lock_quality_x1000=%lu\n"
+        "sync_state=%lu\n"
+        "ok_blocks_display=%lu\n"
+        "valid_blocks=%lu\n"
+        "corrected_blocks=%lu\n"
+        "uncorrectable_blocks=%lu\n"
+        "sync_losses=%lu\n"
+        "bit_slip_repairs=%lu\n"
+        "tuned_freq_10khz=%lu\n",
+        (unsigned long)stats.configured_sample_rate_hz,
+        (unsigned long)stats.measured_sample_rate_hz,
+        (unsigned)stats.adc_midpoint,
+        (unsigned)stats.dma_buffer_samples,
+        (unsigned)stats.block_samples,
+        (unsigned long)stats.dma_half_events,
+        (unsigned long)stats.dma_full_events,
+        (unsigned long)stats.total_dma_blocks,
+        (unsigned long)stats.delivered_blocks,
+        (unsigned long)stats.dropped_blocks,
+        (unsigned long)(drop_rate_pct_x100 / 100U),
+        (unsigned long)(drop_rate_pct_x100 % 100U),
+        (unsigned)stats.pending_blocks,
+        (unsigned)stats.pending_peak_blocks,
+        (unsigned long)stats.adc_overrun_count,
+        (unsigned long)stats.samples_delivered,
+        (unsigned long)rds_dsp.symbol_count,
+        (long)rds_dsp.timing_adjust_q16,
+        (long)rds_dsp.timing_error_avg_q8,
+        (unsigned long)rds_dsp.symbol_confidence_avg_q16,
+        (unsigned long)rds_dsp.block_symbol_count_last,
+        (unsigned long)rds_dsp.block_confidence_last_q16,
+        (unsigned long)rds_dsp.block_confidence_avg_q16,
+        (unsigned long)rds_dsp.corrected_confidence_avg_q16,
+        (unsigned long)rds_dsp.uncorrectable_confidence_avg_q16,
+        (unsigned long)rds_dsp.block_corrected_count_last,
+        (unsigned long)rds_dsp.block_uncorrectable_count_last,
+        (unsigned long)rds_dsp.block_corrected_confidence_last_q16,
+        (unsigned long)rds_dsp.block_uncorrectable_confidence_last_q16,
+        (unsigned long)rds_dsp.pilot_level_q8,
+        (unsigned long)rds_dsp.rds_band_level_q8,
+        (unsigned long)rds_dsp.avg_abs_hp_q8,
+        (unsigned long)rds_dsp.avg_vector_mag_q8,
+        (unsigned long)rds_dsp.avg_decision_mag_q8,
+        (unsigned long)(rds_core.pilot_level_q8 * 1000UL / 256UL),
+        (unsigned long)(rds_core.rds_band_level_q8 * 1000UL / 256UL),
+        (unsigned long)(rds_core.lock_quality_q16 * 1000UL / 65535UL),
+        (unsigned long)rds_sync_display,
+        (unsigned long)rds_ok_blocks_display,
+        (unsigned long)rds_core.valid_blocks,
+        (unsigned long)rds_core.corrected_blocks,
+        (unsigned long)rds_core.uncorrectable_blocks,
+        (unsigned long)rds_core.sync_losses,
+        (unsigned long)rds_core.bit_slip_repairs,
+        (unsigned long)fmradio_get_current_freq_10khz());
+
+    if(meta_len > 0) {
+        storage_simply_mkdir(storage, SETTINGS_DIR);
+        if(storage_file_open(meta_file, RDS_RUNTIME_META_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+            (void)storage_file_write(meta_file, meta_text, (size_t)meta_len);
+        }
+    }
+
+    storage_file_close(meta_file);
+    storage_file_free(meta_file);
+    furi_record_close(RECORD_STORAGE);
+}
+
+static void fmradio_rds_clear_station_name(void) {
+    fmradio_state_lock();
+    memset(rds_ps_display, 0, sizeof(rds_ps_display));
+    rds_sync_display = RdsSyncStateSearch;
+    rds_ok_blocks_display = 0U;
+    fmradio_state_unlock();
+}
+
+static void fmradio_rds_update_ui_snapshot(void) {
+    fmradio_state_lock();
+    rds_sync_display = rds_core.sync_state;
+    rds_ok_blocks_display = rds_core.valid_blocks + rds_core.corrected_blocks;
+    fmradio_state_unlock();
+}
+
+static const char* fmradio_rds_sync_short_text(RdsSyncState state) {
+    switch(state) {
+    case RdsSyncStateSearch:
+        return "srch";
+    case RdsSyncStatePreSync:
+        return "pre";
+    case RdsSyncStateSync:
+        return "sync";
+    case RdsSyncStateLost:
+        return "lost";
+    default:
+        return "?";
+    }
+}
+
+static void fmradio_rds_on_tuned_frequency_changed(void) {
+    fmradio_rds_clear_station_name();
+    if(rds_enabled) {
+        rds_core_restart_sync(&rds_core);
+        rds_dsp_reset(&rds_dsp);
+        fmradio_rds_update_ui_snapshot();
+        fmradio_rds_metadata_reset();
+    }
+    fmradio_settings_mark_dirty();
+}
+
+static void fmradio_rds_process_events(void) {
+    RdsEvent event;
+
+    while(rds_core_pop_event(&rds_core, &event)) {
+        if(event.type == RdsEventTypePsUpdated) {
+            fmradio_state_lock();
+            memcpy(rds_ps_display, event.ps, RDS_PS_LEN);
+            rds_ps_display[RDS_PS_LEN] = '\0';
+            fmradio_state_unlock();
+        }
+    }
+
+    fmradio_rds_update_ui_snapshot();
+}
+
+void fmradio_rds_process_adc_block(const uint16_t* samples, size_t count, uint16_t adc_midpoint) {
+    static uint8_t ui_snapshot_div = 0U;
+
+    if(!rds_enabled) return;
+    rds_dsp_process_u16_samples(&rds_dsp, &rds_core, samples, count, adc_midpoint);
+    ui_snapshot_div++;
+    if(ui_snapshot_div >= 4U) {
+        fmradio_rds_update_ui_snapshot();
+        ui_snapshot_div = 0U;
+    }
+}
+
+static void fmradio_rds_acquisition_block_callback(
+    const uint16_t* samples,
+    size_t count,
+    uint16_t adc_midpoint,
+    void* context) {
+    UNUSED(context);
+    fmradio_rds_process_adc_block(samples, count, adc_midpoint);
+}
+
+static bool fmradio_rds_adc_start(void) {
+    bool started = rds_acquisition_start(&rds_acquisition);
+    if(!started) {
+        FURI_LOG_W(TAG, "RDS acquisition start failed");
+    } else {
+        RdsAcquisitionStats stats;
+        rds_acquisition_get_stats(&rds_acquisition, &stats);
+        rds_dsp_init(&rds_dsp, stats.configured_sample_rate_hz);
+    }
+    return started;
+}
+
+static void fmradio_rds_adc_stop(void) {
+    rds_acquisition_stop(&rds_acquisition);
+}
+
+static void fmradio_rds_adc_timer_callback(void* context) {
+    UNUSED(context);
+
+    if(!rds_enabled) return;
+    rds_acquisition_on_timer_tick(&rds_acquisition);
+}
+
+static void fmradio_controller_rds_change(VariableItem* item) {
+    UNUSED(variable_item_get_context(item));
+    uint8_t index = variable_item_get_current_value_index(item);
+    rds_enabled = (index != 0);
+    variable_item_set_current_value_text(item, rds_enabled ? "On" : "Off");
+
+    fmradio_rds_clear_station_name();
+    if(rds_enabled) {
+        rds_core_reset(&rds_core);
+        rds_dsp_reset(&rds_dsp);
+        fmradio_rds_metadata_reset();
+        (void)fmradio_rds_adc_start();
+        if(rds_adc_timer_handle) {
+            furi_timer_start(rds_adc_timer_handle, furi_ms_to_ticks(RDS_ACQ_TIMER_MS));
+        }
+    } else {
+        if(rds_adc_timer_handle) {
+            furi_timer_stop(rds_adc_timer_handle);
+        }
+        fmradio_rds_metadata_save();
+        fmradio_rds_adc_stop();
+    }
+    fmradio_settings_mark_dirty();
+}
+#endif /* ENABLE_RDS */
 
 static void fmradio_controller_snc_change(VariableItem* item) {
     UNUSED(variable_item_get_context(item));
@@ -608,9 +927,15 @@ typedef struct {
     VariableItem* item_highcut;
     VariableItem* item_mono;
     VariableItem* item_backlight;
+#ifdef ENABLE_RDS
+    VariableItem* item_rds;
+#endif
     View* listen_view;
     Widget* widget_about;
     FuriTimer* tick_timer;
+#ifdef ENABLE_RDS
+    FuriTimer* rds_adc_timer;
+#endif
 } FMRadio;
 
 // Model struct for the Listen view (state lives in globals; kept for view_commit_model redraws)
@@ -622,6 +947,17 @@ typedef struct {
 
 uint32_t fmradio_controller_navigation_exit_callback(void* context) {
     UNUSED(context);
+    // Pre-close shutdown path: disable RDS work and let final teardown release resources.
+#ifdef ENABLE_RDS
+    if(rds_adc_timer_handle) {
+        furi_timer_stop(rds_adc_timer_handle);
+    }
+    fmradio_rds_metadata_save();
+    fmradio_rds_adc_stop();
+
+    rds_enabled = false;
+#endif
+
     uint8_t buffer[5]; // Create a buffer to hold the TEA5767 register values
     tea5767_sleep(buffer); // Call the tea5767_sleep function, passing the buffer as an argument
 
@@ -669,7 +1005,7 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
         freq -= 0.1f;
         if(freq < 76.0f) freq = 76.0f;
         tea5767_SetFreqMHz(freq);
-        fmradio_settings_mark_dirty();
+        fmradio_rds_on_tuned_frequency_changed();
         return true;
     } else if(event->type == InputTypeShort && event->key == InputKeyRight) {
         float freq = tea5767_GetFreq();
@@ -677,7 +1013,7 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
         freq += 0.1f;
         if(freq > 108.0f) freq = 108.0f;
         tea5767_SetFreqMHz(freq);
-        fmradio_settings_mark_dirty();
+        fmradio_rds_on_tuned_frequency_changed();
         return true;
     } else if(event->type == InputTypeLong && event->key == InputKeyOk) {
         // Save current frequency to presets: select if already present, otherwise append
@@ -708,7 +1044,7 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
             // Set the new frequency
             tea5767_SetFreqMHz(frequency_values[current_frequency_index]);
         }
-        fmradio_settings_mark_dirty();
+        fmradio_rds_on_tuned_frequency_changed();
         return true; // Event was handled
     } else if(event->type == InputTypeShort && event->key == InputKeyDown) {
         fmradio_state_lock();
@@ -733,7 +1069,7 @@ bool fmradio_controller_view_input_callback(InputEvent* event, void* context) {
             // Set the new frequency
             tea5767_SetFreqMHz(frequency_values[current_frequency_index]);
         }
-        fmradio_settings_mark_dirty();
+        fmradio_rds_on_tuned_frequency_changed();
         return true; // Event was handled
     } else if(
         (event->type == InputTypeLong || event->type == InputTypeRepeat) &&
@@ -779,7 +1115,7 @@ void fmradio_controller_frequency_change(VariableItem* item) {
     // Apply immediately
     if(index < COUNT_OF(frequency_values)) {
         tea5767_SetFreqMHz(frequency_values[index]);
-        fmradio_settings_mark_dirty();
+        fmradio_rds_on_tuned_frequency_changed();
     }
 
     // Display the selected frequency value as text
@@ -864,6 +1200,12 @@ static void fmradio_tick_callback(void* context) {
         last_settings_save = now;
     }
 
+#ifdef ENABLE_RDS
+    if(rds_enabled) {
+        fmradio_rds_process_events();
+    }
+#endif
+
     // Debounced presets save (every ~2 s when dirty)
     static uint32_t last_presets_save = 0;
     if(presets_dirty && ((now - last_presets_save) > furi_ms_to_ticks(2000))) {
@@ -884,8 +1226,14 @@ void fmradio_controller_view_draw_callback(Canvas* canvas, void* model) {
 
     char frequency_display[64];
     char signal_display[64];
-    char audio_display[32];
+    char audio_display[48];
     char pt_display[32];
+#ifdef ENABLE_RDS
+    char rds_ps_local[RDS_PS_LEN + 1U];
+    bool local_rds_enabled;
+    RdsSyncState local_rds_sync;
+    uint32_t local_rds_ok_blocks;
+#endif
 
     // tea5767_get_radio_info() populates the info
     struct RADIO_INFO info;
@@ -906,6 +1254,12 @@ void fmradio_controller_view_draw_callback(Canvas* canvas, void* model) {
     bool local_pt_ready = pt_ready_cached;
     uint8_t local_pt_atten = pt_atten_db;
     bool local_muted = current_volume;
+#ifdef ENABLE_RDS
+    local_rds_enabled = rds_enabled;
+    local_rds_sync = rds_sync_display;
+    local_rds_ok_blocks = rds_ok_blocks_display;
+    memcpy(rds_ps_local, rds_ps_display, sizeof(rds_ps_local));
+#endif
     fmradio_state_unlock();
 
     const char* pt_name = fmradio_pt_active_name();
@@ -923,11 +1277,24 @@ void fmradio_controller_view_draw_callback(Canvas* canvas, void* model) {
     canvas_draw_str(canvas, 10, 51, pt_display);
 
     if(tea5767_get_radio_info(buffer, &info)) {
-        snprintf(
-            frequency_display,
-            sizeof(frequency_display),
-            "Frequency: %.1f MHz",
-            (double)info.frequency);
+#ifdef ENABLE_RDS
+        if(local_rds_enabled && rds_ps_local[0] != '\0') {
+            snprintf(
+                frequency_display,
+                sizeof(frequency_display),
+                "F: %.1f %.*s",
+                (double)info.frequency,
+                (int)RDS_PS_LEN,
+                rds_ps_local);
+        } else
+#endif
+        {
+            snprintf(
+                frequency_display,
+                sizeof(frequency_display),
+                "F: %.1f MHz",
+                (double)info.frequency);
+        }
         canvas_draw_str(canvas, 10, 21, frequency_display);
 
         snprintf(
@@ -939,11 +1306,22 @@ void fmradio_controller_view_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str(canvas, 10, 41, signal_display);
 
         if(local_muted) {
-            snprintf(audio_display, sizeof(audio_display), "Audio: MUTE");
+            snprintf(audio_display, sizeof(audio_display), "A:MT");
         } else {
-            snprintf(
-                audio_display, sizeof(audio_display), "Audio: %s", info.stereo ? "Stereo" : "Mono");
+            snprintf(audio_display, sizeof(audio_display), "A:%s", info.stereo ? "ST" : "MO");
         }
+
+        size_t used = strlen(audio_display);
+#ifdef ENABLE_RDS
+        snprintf(
+            audio_display + used,
+            sizeof(audio_display) - used,
+            " R:%s %lu",
+            local_rds_enabled ? fmradio_rds_sync_short_text(local_rds_sync) : "off",
+            (unsigned long)local_rds_ok_blocks);
+#else
+        (void)used;
+#endif
         canvas_draw_str(canvas, 10, 31, audio_display);
     } else {
         snprintf(frequency_display, sizeof(frequency_display), "TEA5767 Not Detected");
@@ -1044,6 +1422,14 @@ FMRadio* fmradio_controller_alloc() {
     variable_item_set_current_value_index(app->item_backlight, backlight_keep_on ? 1 : 0);
     variable_item_set_current_value_text(app->item_backlight, backlight_keep_on ? "On" : "Off");
 
+#ifdef ENABLE_RDS
+    app->item_rds = variable_item_list_add(
+        app->variable_item_list_config, "RDS", 2, fmradio_controller_rds_change, app);
+    if(!app->item_rds) goto fail;
+    variable_item_set_current_value_index(app->item_rds, rds_enabled ? 1 : 0);
+    variable_item_set_current_value_text(app->item_rds, rds_enabled ? "On" : "Off");
+#endif
+
     // Add frequency configuration
     app->item_freq = variable_item_list_add(
         app->variable_item_list_config,
@@ -1119,7 +1505,11 @@ FMRadio* fmradio_controller_alloc() {
         "Up/Down (short) = Preset next/prev\n"
         "Up/Down (hold) = Volume PT\n\n"
         "Band: 76.0-108.0MHz\n\n"
+#ifdef ENABLE_RDS
+        "Config: SNC / De-emph / SoftMute / HighCut / Mono / RDS\n"
+#else
         "Config: SNC / De-emph / SoftMute / HighCut / Mono\n"
+#endif
         "Try toggling while listening for feedback");
     view_set_previous_callback(
         widget_get_view(app->widget_about), fmradio_controller_navigation_submenu_callback);
@@ -1132,6 +1522,23 @@ FMRadio* fmradio_controller_alloc() {
     // Load persisted state (if present)
     fmradio_presets_load();
     fmradio_settings_load();
+
+#ifdef ENABLE_RDS
+    rds_core_reset(&rds_core);
+    rds_dsp_init(&rds_dsp, RDS_ACQ_TARGET_SAMPLE_RATE_HZ);
+    rds_acquisition_init(
+        &rds_acquisition,
+        rds_adc_pin,
+        rds_adc_channel,
+        RDS_ADC_FIXED_MIDPOINT,
+        fmradio_rds_acquisition_block_callback,
+        NULL);
+    fmradio_rds_clear_station_name();
+    if(rds_enabled) {
+        fmradio_rds_metadata_reset();
+        (void)fmradio_rds_adc_start();
+    }
+#endif
 
     // Apply backlight policy after loading settings
     fmradio_apply_backlight(app->notifications);
@@ -1195,6 +1602,12 @@ FMRadio* fmradio_controller_alloc() {
         variable_item_set_current_value_text(
             app->item_backlight, backlight_keep_on ? "On" : "Off");
     }
+#ifdef ENABLE_RDS
+    if(app->item_rds) {
+        variable_item_set_current_value_index(app->item_rds, rds_enabled ? 1 : 0);
+        variable_item_set_current_value_text(app->item_rds, rds_enabled ? "On" : "Off");
+    }
+#endif
 
     // Give PT controllers time to settle after power-on before touching I2C.
     furi_delay_ms(200);
@@ -1205,6 +1618,14 @@ FMRadio* fmradio_controller_alloc() {
     app->tick_timer = furi_timer_alloc(fmradio_tick_callback, FuriTimerTypePeriodic, app);
     if(!app->tick_timer) goto fail;
     furi_timer_start(app->tick_timer, furi_ms_to_ticks(250));
+
+#ifdef ENABLE_RDS
+    app->rds_adc_timer =
+        furi_timer_alloc(fmradio_rds_adc_timer_callback, FuriTimerTypePeriodic, app);
+    if(!app->rds_adc_timer) goto fail;
+    rds_adc_timer_handle = app->rds_adc_timer;
+    furi_timer_start(app->rds_adc_timer, furi_ms_to_ticks(RDS_ACQ_TIMER_MS));
+#endif
 
 #ifdef BACKLIGHT_ALWAYS_ON
     notification_message(app->notifications, &sequence_display_backlight_enforce_on);
@@ -1219,6 +1640,16 @@ fail:
             furi_timer_free(app->tick_timer);
             app->tick_timer = NULL;
         }
+#ifdef ENABLE_RDS
+        if(app->rds_adc_timer) {
+            furi_timer_stop(app->rds_adc_timer);
+            furi_timer_free(app->rds_adc_timer);
+            app->rds_adc_timer = NULL;
+        }
+        rds_adc_timer_handle = NULL;
+        fmradio_rds_metadata_save();
+        fmradio_rds_adc_stop();
+#endif
         if(app->notifications) {
             notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
             furi_record_close(RECORD_NOTIFICATION);
@@ -1276,6 +1707,16 @@ void fmradio_controller_free(FMRadio* app) {
         furi_timer_free(app->tick_timer);
         app->tick_timer = NULL;
     }
+#ifdef ENABLE_RDS
+    if(app->rds_adc_timer) {
+        furi_timer_stop(app->rds_adc_timer);
+        furi_timer_free(app->rds_adc_timer);
+        app->rds_adc_timer = NULL;
+    }
+    rds_adc_timer_handle = NULL;
+    fmradio_rds_metadata_save();
+    fmradio_rds_adc_stop();
+#endif
 
     // Always restore auto backlight on exit
     if(app->notifications) {

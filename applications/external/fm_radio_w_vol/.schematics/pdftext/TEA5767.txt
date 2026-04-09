@@ -1,0 +1,2474 @@
+                 TEA5767HN
+                 Low-power FM stereo radio for handheld applications
+                 Rev. 05 — 26 January 2007                                       Product data sheet
+
+
+
+
+1. General description
+              The TEA5767HN is a single-chip electronically tuned FM stereo radio for low-voltage
+              applications with fully integrated Intermediate Frequency (IF) selectivity and
+              demodulation. The radio is completely adjustment-free and only requires a minimum of
+              small and low cost external components. The radio can be tuned to the European, US,
+              and Japanese FM bands.
+
+
+2. Features
+              n High sensitivity due to integrated low-noise RF input amplifier
+              n FM mixer for conversion to IF of the US/Europe (87.5 MHz to 108 MHz) and Japanese
+                (76 MHz to 91 MHz) FM band
+              n Preset tuning to receive Japanese TV audio up to 108 MHz
+              n RF Automatic Gain Control (AGC) circuit
+              n LC tuner oscillator operating with low cost fixed chip inductors
+              n FM IF selectivity performed internally
+              n No external discriminator needed due to fully integrated FM demodulator
+              n Crystal reference frequency oscillator; the oscillator operates with a 32.768 kHz clock
+                crystal or with a 13 MHz crystal and with an externally applied 6.5 MHz reference
+                frequency
+              n Phase-locked loop (PLL) synthesizer tuning system
+              n I2C-bus and 3-wire bus, selectable via pin BUSMODE
+              n 7-bit IF counter output via the bus
+              n 4-bit level information output via the bus
+              n Soft mute
+              n Signal dependent mono to stereo blend [Stereo Noise Cancelling (SNC)]
+              n Signal dependent High Cut Control (HCC)
+              n Soft mute, SNC and HCC can be switched off via the bus
+              n Adjustment-free stereo decoder
+              n Autonomous search tuning function
+              n Standby mode
+              n Two software programmable ports
+              n Bus enable line to switch the bus input and output lines into 3-state mode
+NXP Semiconductors                                                                      TEA5767HN
+                                                         Low-power FM stereo radio for handheld applications
+
+
+
+3. Quick reference data
+                     Table 1.     Quick reference data
+                     VCCA = VCCD = VCC(VCO) = 2.7 V; Tamb = 25 °C; AC values are given in RMS;
+                     for VRF the emf value is given; unless otherwise specified.
+                     Symbol     Parameter                Conditions                           Min      Typ        Max Unit
+                     VCCA       analog supply voltage                                   [1]   2.5      3.0        5.0         V
+                     VCC(VCO)   Voltage-Controlled                                      [1]   2.5      3.0        5.0         V
+                                Oscillator (VCO)
+                                supply voltage
+                     VCCD       digital supply voltage                                  [1]   2.5      3.0        5.0         V
+                     ICCA       analog supply current    operating; VCCA = 3 V                6.0      8.4        10.5 mA
+                                                         Standby mode; VCCA = 3 V             -        3          6           µA
+                     ICC(VCO)   VCO supply current       operating; VCC(VCO) = 3 V            560      750        940         µA
+                                                         Standby mode; VCC(VCO) = 3 V         -        1          2           µA
+                     ICCD       digital supply current   operating; VCCD = 3 V                2.1      3.0        3.9         mA
+                                                         Standby mode; VCCD = 3 V
+                                                           bus enable line HIGH               30       56         80          µA
+                                                           bus enable line LOW                11       19         26          µA
+                     fFM(ant)   FM input frequency                                            76       -          108         MHz
+                     Tamb       ambient temperature      VCCA = VCC(VCO) = VCCD =             −10      -          +75         °C
+                                                         2.5 V to 5 V
+                     FM overall system parameters; see Figure 13
+                     VRF        RF sensitivity input     fRF = 76 MHz to 108 MHz;             -        2          3.5         µV
+                                voltage                  ∆f = 22.5 kHz; fmod = 1 kHz;
+                                                         (S+N)/N = 26 dB;
+                                                         de-emphasis = 75 µs; L = R;
+                                                         BAF = 300 Hz to 15 kHz
+                     S−200      low side 200 kHz         ∆f = −200 kHz;                 [2]   32       36         -           dB
+                                selectivity              ftune = 76 MHz to 108 MHz
+                     S+200      high side 200 kHz        ∆f = +200 kHz;                 [2]   39       43         -           dB
+                                selectivity              ftune = 76 MHz to 108 MHz
+                     VAFL       left audio frequency     VRF = 1 mV; L = R;                   60       75         90          mV
+                                output voltage           ∆f = 22.5 kHz; fmod = 1 kHz;
+                                                         de-emphasis = 75 µs
+                     VAFR       right audio frequency    VRF = 1 mV; L = R;                   60       75         90          mV
+                                output voltage           ∆f = 22.5 kHz; fmod = 1 kHz;
+                                                         de-emphasis = 75 µs
+
+
+
+
+TEA5767HN_5                                                                                         © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                           Rev. 05 — 26 January 2007                                                       2 of 40
+NXP Semiconductors                                                                                   TEA5767HN
+                                                             Low-power FM stereo radio for handheld applications
+
+
+                     Table 1.     Quick reference data …continued
+                     VCCA = VCCD = VCC(VCO) = 2.7 V; Tamb = 25 °C; AC values are given in RMS;
+                     for VRF the emf value is given; unless otherwise specified.
+                     Symbol        Parameter                  Conditions                                Min      Typ        Max Unit
+                     (S+N)/N       maximum signal plus        VRF = 1 mV; L = R;                        54       60         -           dB
+                                   noise-to-noise ratio       ∆f = 22.5 kHz; fmod = 1 kHz;
+                                                              de-emphasis = 75 µs;
+                                                              BAF = 300 Hz to 15 kHz
+                     αcs(stereo)   stereo channel             VRF = 1 mV; R = L = 0 or R = 0            24       30         -           dB
+                                   separation                 and L = 1 including 9 % pilot;
+                                                              ∆f = 75 kHz; fmod = 1 kHz;
+                                                              data byte 3 bit 3 = 0;
+                                                              data byte 4 bit 1 = 1
+                     THD           total harmonic             VRF = 1 mV; L = R;                        -        0.4        1           %
+                                   distortion                 ∆f = 75 kHz; fmod = 1 kHz;
+                                                              de-emphasis = 75 µs
+
+                     [1]   VCCA, VCC(VCO) and VCCD must not differ by more than 200 mV.
+                     [2]   Low side and high side selectivity can be switched by changing the mixer from high side to low side LO
+                           injection.
+
+
+4. Ordering information
+                     Table 2.      Ordering information
+                     Type number         Package
+                                         Name           Description                                                         Version
+                     TEA5767HN           HVQFN40        plastic thermal enhanced very thin quad flat package;               SOT618-1
+                                                        no leads; 40 terminals; body 6 × 6 × 0.85 mm
+
+
+
+
+TEA5767HN_5                                                                                                   © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                               Rev. 05 — 26 January 2007                                                             3 of 40
+                                                                                xxxx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx x xxxxxxxxxxxxxx xxxxxxxxxx xxx xxxxxx xxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxx
+                                                                                xxxxx xxxxxx xx xxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxx xxxxxxx xxxxxxxxxxxxxxxxxxx
+                                                                                xxxxxxxxxxxxxxxx xxxxxxxxxxxxxx xxxxxx xx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxx xxxxxxx
+                                                                                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxx xxxxx x x
+Product data sheet
+                            TEA5767HN_5
+
+
+
+
+                                                                                                                                                                                                                                                                                                                       5. Block diagram
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                NXP Semiconductors
+                                                                                                                                                                        47 nF               47 nF           47 nF                  33 nF                  33 nF
+                                                                                                                                                                     LIMDEC2                LIMDEC1        TIFC                   Vref      MPXO          TMUTE     VAFR    VAFL
+
+                                                                                                                                                                            29              28             27                     26        25            24        23      22
+                                                                                          R1              Igain 32
+                                                                                                                                                             GAIN                                                             POWER
+                                                                                                                                                         STABILIZATION                                                        SUPPLY
+                                                                                                         AGND 33
+                                                                                  22 nF
+                                                                                                 22 µF
+                                                                                                                 34
+                                                                       VCCA                                                                                                                                     DEMODULATOR
+                                                                                                          VCCA                                            RESONANCE
+                                                                                 4.7 Ω                                                                                           LIMITER
+                                                                                                                                                                                                                                         SOFT
+                                                                                                                                                           AMPLIFIER                                                                     MUTE
+                                                                                                                                                                                                                                                          SDS
+
+
+
+
+                                                                                                                      I/Q-MIXER                                                   LEVEL                            IF
+                                                                         FM antenna                                     1st FM                2                                                                                                                               19 PILFIL        1 nF
+                                                                                                                                                                                   ADC                          COUNTER
+                                                                                                                                             N1
+                                                                                                                                                                                                                                              MPX                                   33 kΩ 22 nF
+                                                                                                                                                             IF CENTRE                                                                      DECODER
+                                                                                100 pF                                                                      FREQUENCY                                                                                                                         22 nF
+                                                                                                          RFI1 35                                              ADJUST
+                                                                                                                                                                                                    Iref                                                                      18 PHASEFIL
+Rev. 05 — 26 January 2007
+
+
+
+
+                                                                                               27 pF RFGND 36                                                                                                                                                                                        Ccomp(1)
+                                                                                 L1                                                      AGC                                                                                                                                  17 XTAL2
+                                                                                               47 pF      RFI2 37
+                                                                                                                                                                                                                      TEA5767HN                                 CRYSTAL                   Cpull(1)
+                                                                                                                                                                                                                                                                                                         32.768 kHz
+                                                                                                          TAGC 38                                                                                                                                              OSCILLATOR     16 XTAL1
+                                                                                                                                                                                                                                                                                                             or
+                                                                                                                                                                                                                                                                                                          13 MHz
+                                                                                                 4.7 nF
+                                                                                                                                                                                                                                                                              15 SWPORT2 10 kΩ
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                          Low-power FM stereo radio for handheld applications
+                                                                                                                                                                programmable divider output                                SOFTWARE
+                                                                                                   LOOPSW 39
+                                                                                                                            TUNING SYSTEM                                                                   MUX          PROGRAMMABLE                                         14 SWPORT1
+                                                                                                                                                                                                                             PORT                                                                               VCCA
+                                                                                                                                                            reference frequency divider output                                                                                                 10 kΩ
+                                                                                                                                                                                                                                    pilot
+
+                                                                                                                                                                                                                                    mono                                      13 BUSENABLE
+                                                                                                                                                                                                          I2C-BUS                                                             12 BUSMODE
+                                                                                                                                       VCO
+                                                                                                                                                                                                            AND
+                                                                                                                                                                                                        3-WIRE BUS                                                            11 WRITE/READ
+                                                                                                                                                                                                                                                   1, 10, 20, 21,
+                                                                                                                        2         3                  4          5                       6           7             8       9                        30, 31, 40
+                                                                                                                        CPOUT VCOTANK1               VCOTANK2    VCC(VCO)               DGND        VCCD          DATA    CLOCK                    n.c.                    mhc283
+
+                                                                                                                                                                                            12 Ω
+                                                                                                            10 nF        39 nF                                                   VCCD
+                                                                                                                                  D1         D2
+                                                                                                                       10 kΩ                                                                          22 nF
+
+
+                                                                                                                                  L3         L2
+                                                                                                                       100 kΩ
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                TEA5767HN
+                                                                                                                                             22 nF
+                                                                                                                                  47 Ω
+                            © NXP B.V. 2007. All rights reserved.
+
+
+
+
+                                                                                                                                         VCC(VCO)
+
+
+
+
+                                                                              The component list is given in Section 16.
+                                                                       (1) Ccomp and Cpull data depends on crystal specification.
+4 of 40
+
+
+
+
+                                                                    Fig 1. Block diagram
+NXP Semiconductors                                                                                                                                                                                     TEA5767HN
+                                                                   Low-power FM stereo radio for handheld applications
+
+
+
+6. Pinning information
+
+                     6.1 Pinning
+
+
+
+
+                                                                                   39 LOOPSW
+
+
+
+
+                                                                                                                            36 RFGND
+
+
+
+
+                                                                                                                                                               33 AGND
+                                                                                                38 TAGC
+
+
+
+
+                                                                                                                                                    34 VCCA
+                                                                                                               37 RFI2
+
+
+                                                                                                                                         35 RFI1
+
+
+
+
+                                                                                                                                                                             32 Igain
+                                                                   40 n.c.
+
+
+
+
+                                                                                                                                                                                         31 n.c.
+                                                terminal 1
+                                               index area
+
+
+                                                       n.c.    1                                                                                                                                   30 n..c.
+                                                  CPOUT        2                                                                                                                                   29 LIMDEC2
+                                              VCOTANK1         3                                                                                                                                   28 LIMDEC1
+                                              VCOTANK2         4                                                                                                                                   27 TIFC
+                                                VCC(VCO)       5                                                                                                                                   26 Vref
+                                                                                                               TEA5767HN
+                                                    DGND       6                                                                                                                                   25 MPXO
+                                                     VCCD      7                                                                                                                                   24 TMUTE
+                                                    DATA       8                                                                                                                                   23 VAFR
+                                                  CLOCK        9                                                                                                                                   22 VAFL
+                                                       n.c. 10                                                                                                                                     21 n.c.
+                                                                   WRITE/READ 11
+                                                                                   BUSMODE 12
+                                                                                                BUSENABLE 13
+                                                                                                               SWPORT1 14
+                                                                                                                            SWPORT2 15
+                                                                                                                                         XTAL1 16
+                                                                                                                                                    XTAL2 17
+                                                                                                                                                               PHASEFIL 18
+                                                                                                                                                                             PILFIL 19
+                                                                                                                                                                                         n.c. 20
+                                                                                                                                                                                                     001aab363
+
+
+
+
+                                                                                                Transparent top view
+
+                          Fig 2. Pin configuration
+
+
+                     6.2 Pin description
+                         Table 3.   Pin description
+                         Symbol           Pin                 Description
+                         n.c.             1                   not connected
+                         CPOUT            2                   charge pump output of synthesizer PLL
+                         VCOTANK1         3                   VCO tuned circuit output 1
+                         VCOTANK2         4                   VCO tuned circuit output 2
+                         VCC(VCO)         5                   VCO supply voltage
+                         DGND             6                   digital ground
+                         VCCD             7                   digital supply voltage
+                         DATA             8                   bus data line input/output
+                         CLOCK            9                   bus clock line input
+                         n.c.             10                  not connected
+                         WRITE/READ       11                  write/read control input for the 3-wire bus
+                         BUSMODE          12                  bus mode select input
+                         BUSENABLE        13                  bus enable input
+                         SWPORT1          14                  software programmable port 1
+                         SWPORT2          15                  software programmable port 2
+                         XTAL1            16                  crystal oscillator input 1
+TEA5767HN_5                                                                                                                                                                                                      © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                Rev. 05 — 26 January 2007                                                                                                                                                               5 of 40
+NXP Semiconductors                                                                             TEA5767HN
+                                                          Low-power FM stereo radio for handheld applications
+
+
+                         Table 3.   Pin description …continued
+                         Symbol           Pin          Description
+                         XTAL2            17           crystal oscillator input 2
+                         PHASEFIL         18           phase detector loop filter
+                         PILFIL           19           pilot detector low-pass filter
+                         n.c.             20           not connected
+                         n.c.             21           not connected
+                         VAFL             22           left audio frequency output voltage
+                         VAFR             23           right audio frequency output voltage
+                         TMUTE            24           time constant for soft mute
+                         MPXO             25           FM demodulator MPX signal output
+                         Vref             26           reference voltage
+                         TIFC             27           time constant for IF center adjust
+                         LIMDEC1          28           decoupling IF limiter 1
+                         LIMDEC2          29           decoupling IF limiter 2
+                         n.c.             30           not connected
+                         n.c.             31           not connected
+                         Igain            32           gain control current for IF filter
+                         AGND             33           analog ground
+                         VCCA             34           analog supply voltage
+                         RFI1             35           RF input 1
+                         RFGND            36           RF ground
+                         RFI2             37           RF input 2
+                         TAGC             38           time constant RF AGC
+                         LOOPSW           39           switch output of synthesizer PLL loop filter
+                         n.c.             40           not connected
+
+
+7. Functional description
+
+                     7.1 Low-noise RF amplifier
+                         The Low Noise Amplifier (LNA) input impedance together with the LC RF input circuit
+                         defines an FM band filter. The gain of the LNA is controlled by the RF AGC circuit.
+
+                     7.2 FM mixer
+                         The FM quadrature mixer converts the FM RF (76 MHz to 108 MHz) to an IF of 225 kHz.
+
+                     7.3 VCO
+                         The varactor tuned LC VCO provides the Local Oscillator (LO) signal for the FM
+                         quadrature mixer. The VCO frequency range is 150 MHz to 217 MHz.
+
+
+
+
+TEA5767HN_5                                                                                           © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                              Rev. 05 — 26 January 2007                                                      6 of 40
+NXP Semiconductors                                                                          TEA5767HN
+                                                             Low-power FM stereo radio for handheld applications
+
+
+                     7.4 Crystal oscillator
+                          The crystal oscillator can operate with a 32.768 kHz clock crystal or a 13 MHz crystal. The
+                          temperature drift of standard 32.768 kHz clock crystals limits the operational temperature
+                          range from −10 °C to +60 °C.
+
+                          The PLL synthesizer can be clocked externally with a 32.768 kHz, a 6.5 MHz or a 13 MHz
+                          signal via pin XTAL2.
+
+                          The crystal oscillator generates the reference frequency for:
+
+                           • The reference frequency divider for the synthesizer PLL
+                           • The timing for the IF counter
+                           • The free-running frequency adjustment of the stereo decoder VCO
+                           • The center frequency adjustment of the IF filters
+
+                     7.5 PLL tuning system
+                          The PLL synthesizer tuning system is suitable to operate with a 32.768 kHz or a 13 MHz
+                          reference frequency generated by the crystal oscillator or applied to the IC from an
+                          external source. The synthesizer can also be clocked via pin XTAL2 at 6.5 MHz. The PLL
+                          tuning system can perform an autonomous search tuning function.
+
+                     7.6 RF AGC
+                          The RF AGC prevents overloading and limits the amount of intermodulation products
+                          created by strong adjacent channels.
+
+                     7.7 IF filter
+                          Fully integrated IF filter.
+
+                     7.8 FM demodulator
+                          The FM quadrature demodulator has an integrated resonator to perform the phase shift of
+                          the IF signal.
+
+                     7.9 Level voltage generator and analog-to-digital converter
+                          The FM IF analog level voltage is converted to 4 bits digital data and output via the bus.
+
+                7.10 IF counter
+                          The IF counter outputs a 7-bit count result via the bus.
+
+                7.11 Soft mute
+                          The low-pass filtered level voltage drives the soft mute attenuator at low RF input levels.
+                          The soft mute function can be switched off via the bus.
+
+                7.12 MPX decoder
+                          The PLL stereo decoder is adjustment-free. The stereo decoder can be switched to mono
+                          via the bus.
+TEA5767HN_5                                                                                        © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                 Rev. 05 — 26 January 2007                                                7 of 40
+NXP Semiconductors                                                                  TEA5767HN
+                                                    Low-power FM stereo radio for handheld applications
+
+
+                7.13 Signal dependent mono to stereo blend
+                     With a decreasing RF input level the MPX decoder blends from stereo to mono to limit the
+                     output noise. The continuous mono to stereo blend can also be programmed via the bus
+                     to an RF level depending switched mono to stereo transition. Stereo Noise Cancelling
+                     (SNC) can be switched off via the bus.
+
+                7.14 Signal dependent AF response
+                     The audio bandwidth will be reduced with a decreasing RF input level. This function can
+                     be switched off via the bus.
+
+                7.15 Software programmable ports
+                     Two software programmable ports (open-collector) can be addressed via the bus.
+
+                     The port 1 (pin SWPORT1) function can be changed with write data byte 4 bit 0
+                     (see Table 13). Pin SWPORT1 is then output for the ready flag of read byte 1.
+
+                7.16 I2C-bus and 3-wire bus
+                     The 3-wire bus and the I2C-bus operate with a maximum clock frequency of 400 kHz.
+
+                     Before any READ or WRITE operation the pin BUSENABLE has to be HIGH for at
+                     least 10 µs.
+
+                     The I2C-bus mode is selected when pin BUSMODE is LOW, when pin BUSMODE is HIGH
+                     the 3-wire bus mode is selected.
+
+
+
+
+TEA5767HN_5                                                                                © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                        Rev. 05 — 26 January 2007                                                 8 of 40
+NXP Semiconductors                                                                                                                  TEA5767HN
+                                                                    Low-power FM stereo radio for handheld applications
+
+
+
+
+                                                                                                        Power on:
+                                                                                                 Mute, stand-by activated
+                                                                                               All other status is random
+                                                                                               Complete initialization by
+                                                                                               microprocessor is required
+
+
+
+
+                                                                                                      Write enable           no
+                                                                                                       activated?
+
+                                                                                                               yes
+
+                                                                                                    Reset bit counter:
+                                                                                                 Bits are clocked into the
+                                                                                                      receive register
+                                                                                            Completed bytes are written to
+                                                                                              the destinastion register
+
+
+
+                                                                                              Use value of tuning memory:
+                                                                                           Write result to the programmable
+                                                                                           divider (also available at the bus)
+                                                                                        Wait 10 ms. Have the signal level
+                                                                                              available at the bus
+
+
+
+                                                                                                         Search              no
+                                                                                                         Mode?
+
+
+                                                                                                               yes
+
+                                                                                            no            Signal
+                                                                                                        level OK?
+
+
+                                                                                                         yes
+
+                                                                                      Reset IF counter and enable counting
+                                                                                                      Wait for result
+                                                                                       Have the result available for the bus
+
+
+
+
+                                                                                                         Search              yes
+                                                                                                         Mode?
+
+
+                                      Search         no                                                        no              no    IF frequency
+                                     upwards?                                                                                             OK?
+
+
+                                           yes                                                                                               yes
+
+                          Add 100 kHz to the tuning memory        Substract 100 kHz to the tuning memory                            Set 'found' flag
+
+
+
+                                      Upper                                      Lower
+                                                     yes
+                                    tuning limit                               tuning limit
+                                    exceeded?                                  exceeded?
+
+                                           no                                         no
+
+
+
+                                                      Set 'band limit' flag
+
+
+
+                                                                                                                                                          001aae346
+
+
+
+                     Fig 3. Flowchart auto search or preset
+
+
+
+
+TEA5767HN_5                                                                                                                                   © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                 Rev. 05 — 26 January 2007                                                                                           9 of 40
+NXP Semiconductors                                                                        TEA5767HN
+                                                          Low-power FM stereo radio for handheld applications
+
+
+
+8. I2C-bus, 3-wire bus and bus-controlled functions
+
+                     8.1 I2C-bus specification
+                         Information about the I2C-bus can be found in the brochure “The I2C-bus and how to use
+                         it” (order number 9398 393 40011).
+
+                         The standard I2C-bus specification is expanded by the following definitions:
+
+                           IC address: 110 0000b
+                           Structure of the I2C-bus logic: slave transceiver
+                           Subaddresses are not used
+                           The maximum LOW-level input and the minimum HIGH-level input are specified to
+                           0.2VCCD and 0.45VCCD respectively.
+                           The pin BUSMODE must be connected to ground to operate the IC with the I2C-bus.
+
+                         Remark: The I2C-bus operates at a maximum clock frequency of 400 kHz. It is not
+                         allowed to connect the IC to an I2C-bus operating at a higher clock rate.
+
+                8.1.1 Data transfer
+                         Data sequence: address, byte 1, byte 2, byte 3, byte 4 and byte 5 (the data transfer has to
+                         be in this order). The Least Significant Bit (LSB) = 0 of the address indicates a WRITE
+                         operation to the TEA5767HN.
+
+                         Bit 7 of each byte is considered as the Most Significant Bit (MSB) and has to be
+                         transferred as the first bit of the byte.
+
+                         The data becomes valid bitwise at the appropriate falling edge of the clock. A STOP
+                         condition after any byte can shorten transmission times.
+
+                         When writing to the transceiver by using the STOP condition before completion of the
+                         whole transfer:
+
+                          • The remaining bytes will contain the old information
+                          • If the transfer of a byte is not completed, the new bits will be used, but a new tuning
+                             cycle will not be started
+
+                         The IC can be switched into a low current Standby mode with the standby bit; the bus is
+                         then still active. The standby current can be reduced by deactivating the bus interface
+                         (pin BUSENABLE LOW). If the bus interface is deactivated (pin BUSENABLE LOW)
+                         without the Standby mode being programmed, the IC maintains normal operation, but is
+                         isolated from the bus lines.
+
+                         The software programmable output (SWPORT1) can be programmed to operate as a
+                         tuning indicator output. As long as the IC has not completed a tuning action,
+                         pin SWPORT1 remains LOW. The pin becomes HIGH, when a preset or search tuning is
+                         completed or when a band limit is reached.
+
+                         The reference frequency divider of the synthesizer PLL is changed when the MSB in
+                         byte 5 is set to logic 1. The tuning system can then be clocked via pin XTAL2 at 6.5 MHz.
+
+
+
+TEA5767HN_5                                                                                      © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                             Rev. 05 — 26 January 2007                                                10 of 40
+NXP Semiconductors                                                                                          TEA5767HN
+                                                               Low-power FM stereo radio for handheld applications
+
+
+                8.1.2 Power-on reset
+                         At Power-on reset the mute is set, all other bits are set to LOW. To initialize the IC all bytes
+                         have to be transferred.
+
+                     8.2 I2C-bus protocol
+
+
+                                    S(1)          ADDRESS (WRITE)          A(2)              DATA BYTE(S)             A(2)          P(3)
+
+                                                                                                                                001aae347
+
+
+                               (1) S = START condition.
+                               (2) A = acknowledge.
+                               (3) P = STOP condition.
+                           Fig 4. Write mode
+
+
+
+
+                                    S(1)             ADDRESS (READ)                   A(2)                  DATA BYTE 1
+
+                                                                                                                                001aae348
+
+
+                               (1) S = START condition.
+                               (2) A = acknowledge.
+                           Fig 5. Read mode
+
+
+                         Table 4.          IC address byte
+                         IC address                                                                                                Mode
+                         1                 1          0             0             0              0              0                  R/W[1]
+
+                         [1]   Read or write mode:
+                               a) 0 = write operation to the TEA5767HN.
+                               b) 1 = read operation from the TEA5767HN.
+
+
+
+
+TEA5767HN_5                                                                                                         © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                   Rev. 05 — 26 January 2007                                                             11 of 40
+NXP Semiconductors                                                                                                 TEA5767HN
+                                                                         Low-power FM stereo radio for handheld applications
+
+
+
+
+                    SDA
+
+
+                           tf                         tr                                           t SU;DAT
+                                           t LOW                                                                              t BUF
+                                                                                      t HD;STA                tf
+
+
+                    SCL
+
+
+
+
+                                t HD;STA               t HD;DAT      t SU;STA                    t HIGH            t SU;STO
+                                 t SU;BUSEN                                                                                                t HO;BUSEN
+
+
+      BUSENABLE
+
+
+                                                                                                                                           001aae349
+
+
+              tf = fall time of both SDA and SCL signals: 20 + 0.1Cb < tf < 300 ns, where Cb = capacitive load on bus line in pF.
+              tr = rise time of both SDA and SCL signals: 20 + 0.1Cb < tf < 300 ns, where Cb = capacitive load on bus line in pF.
+              tHD;STA = hold time (repeated) START condition. After this period, the first clock pulse is generated: > 600 ns.
+              tHIGH = HIGH period of the SCL clock: > 600 ns.
+              tLOW = LOW period of the SCL clock > 1300 ns.
+              tSU;STA = set-up time for a repeated START condition: > 600 ns.
+              tHD;DAT = data hold time: 300 ns < tHD;DAT < 900 ns.
+              Remark: 300 ns lower limit is added because the ASIC has no internal hold time for the SDA signal.
+              tSU;DAT = data set-up time: tSU;DAT > 100 ns. If ASIC is used in a standard mode I2C-bus system, tSU;DAT > 250 ns.
+              tSU;STO = set-up time for STOP condition: > 600 ns.
+              tBUF = bus free time between a STOP and a START condition: > 600 ns.
+              Cb = capacitive load of one bus line: < 400 pF.
+              tSU;BUSEN = bus enable set-up time: tSU;BUSEN > 10 µs.
+              tHO;BUSEN = bus enable hold time: tHO;BUSEN > 10 µs.
+              Remark: The terms SDA and SCL are the corresponding terms used by the I2C-bus for the DATA and CLOCK signals
+              respectively.
+ Fig 6. I2C-bus timing diagram
+
+
+                        8.3 3-wire bus specification
+                                The 3-wire bus controls the write/read, clock and data lines and operates at a maximum
+                                clock frequency of 400 kHz.
+
+                                Hint: By using the standby bit the IC can be switched into a low current Standby mode. In
+                                Standby mode the IC must be in the WRITE mode. When the IC is switched to READ
+                                mode, during standby, the IC will hold the data line down. The standby current can be
+                                reduced by deactivating the bus interface (pin BUSENABLE LOW). If the bus interface is
+                                deactivated (pin BUSENABLE LOW) without the Standby mode being programmed, the
+                                IC maintains normal operation, but is isolated from the clock and data line.
+
+                      8.3.1 Data transfer
+                                Data sequence: byte 1, byte 2, byte 3, byte 4 and byte 5 (the data transfer has to be in this
+                                order).
+
+
+
+TEA5767HN_5                                                                                                                   © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                           Rev. 05 — 26 January 2007                                                               12 of 40
+NXP Semiconductors                                                                                     TEA5767HN
+                                                             Low-power FM stereo radio for handheld applications
+
+
+                         A positive edge at pin WRITE/READ enables the data transfer into the IC. The data has to
+                         be stable at the positive edge of the clock. Data may change while the clock is LOW and is
+                         written into the IC on the positive edge of the clock. Data transfer can be stopped after the
+                         transmission of new tuning information with the first two bytes or after each following byte.
+
+                         A negative edge at pin WRITE/READ enables the data transfer from the IC. The
+                         WRITE/READ pin changes while the clock is LOW. With the negative edge at
+                         pin WRITE/READ the MSB of the first byte occurs at pin DATA.
+
+                         The bits are shifted on the negative clock edge to pin DATA and can be read on the
+                         positive edge.
+
+                         To do two consecutive read or write actions, pin WRITE/READ has to be toggled for at
+                         least one clock period. When a search tuning request is sent, the IC autonomously starts
+                         searching the FM band; the search direction and search stop level can be selected. When
+                         a station with a field strength equal to or greater than the stop level is found, the tuning
+                         system stops and the ready flag bit is set to HIGH. When, during search, a band limit is
+                         reached, the tuning system stops at the band limit and the band limit flag bit is set to
+                         HIGH. The ready flag is also set to HIGH in this case.
+
+                         The software programmable output (SWPORT1) can be programmed to operate as a
+                         tuning indicator output. As long as the IC has not completed a tuning action,
+                         pin SWPORT1 remains LOW. The pin becomes HIGH, when a preset or search tuning is
+                         completed or when a band limit is reached.
+
+                         The reference frequency divider of the synthesizer PLL is changed when the MSB in
+                         byte 5 is set to logic 1. The tuning system can then be clocked via pin XTAL2 at 6.5 MHz.
+
+                8.3.2 Power-on reset
+                         At Power-on reset the mute is set, all other bits are random. To initialize the IC all bytes
+                         have to be transferred.
+
+                     8.4 Writing data
+
+
+
+                           WRITE_READ                     50 %
+
+
+                                              tW(write)
+                                                          tsu(clk)
+
+
+                                CLOCK                                50 %            50 %
+
+
+                                                                                                      th(write)
+                                                                                   tsu(write)
+
+
+                                  DATA                                      50 %                valid data
+
+
+                                                                                                                                        mhc250
+
+
+                          Fig 7. 3-wire bus write data
+
+
+
+
+TEA5767HN_5                                                                                                       © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                              Rev. 05 — 26 January 2007                                                                13 of 40
+NXP Semiconductors                                                                            TEA5767HN
+                                                          Low-power FM stereo radio for handheld applications
+
+
+
+
+                                DATA BYTE 1       DATA BYTE 2          DATA BYTE 3   DATA BYTE 4         DATA BYTE 5
+
+                                                                                                                    001aae350
+
+
+                      Fig 8. Write mode
+
+
+                     Table 5.     Format of 1st data byte
+                     7 (MSB)       6          5                 4            3       2             1                   0 (LSB)
+                     MUTE          SM         PLL13             PLL12        PLL11   PLL10         PLL9                PLL8
+
+
+                     Table 6.     Description of 1st data byte bits
+                     Bit          Symbol           Description
+                     7            MUTE             if MUTE = 1 then L and R audio are muted; if MUTE = 0 then L and R
+                                                   audio are not muted
+                     6            SM               Search mode: if SM = 1 then in search mode; if SM = 0 then not in
+                                                   search mode
+                     5 to 0       PLL[13:8]        setting of synthesizer programmable counter for search or preset
+
+
+                     Table 7.     Format of 2nd data byte
+                     7 (MSB)       6          5                 4            3       2             1                   0 (LSB)
+                     PLL7          PLL6       PLL5              PLL4         PLL3    PLL2          PLL1                PLL0
+
+
+                     Table 8.     Description of 2nd data byte bits
+                     Bit          Symbol           Description
+                     7 to 0       PLL[7:0]         setting of synthesizer programmable counter for search or preset
+
+
+                     Table 9.     Format of 3rd data byte
+                     7 (MSB)       6          5                 4            3       2             1                   0 (LSB)
+                     SUD           SSL1       SSL0              HLSI         MS      MR            ML                  SWP1
+
+
+                     Table 10.    Description of 3rd data byte bits
+                     Bit          Symbol           Description
+                     7            SUD              Search Up/Down: if SUD = 1 then search up; if SUD = 0 then search
+                                                   down
+                     6 and 5      SSL[1:0]         Search Stop Level: see Table 11
+                     4            HLSI             High/Low Side Injection: if HLSI = 1 then high side LO injection; if
+                                                   HLSI = 0 then low side LO injection
+                     3            MS               Mono to Stereo: if MS = 1 then forced mono; if MS = 0 then stereo
+                                                   ON
+                     2            MR               Mute Right: if MR = 1 then the right audio channel is muted and
+                                                   forced mono; if MR = 0 then the right audio channel is not muted
+                     1            ML               Mute Left: if ML = 1 then the left audio channel is muted and forced
+                                                   mono; if ML = 0 then the left audio channel is not muted
+                     0            SWP1             Software programmable port 1: if SWP1 = 1 then port 1 is HIGH; if
+                                                   SWP1 = 0 then port 1 is LOW
+
+
+
+TEA5767HN_5                                                                                             © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                            Rev. 05 — 26 January 2007                                                        14 of 40
+NXP Semiconductors                                                                          TEA5767HN
+                                                         Low-power FM stereo radio for handheld applications
+
+
+                     Table 11.   Search stop level setting
+                     SSL1        SSL0             Search stop level
+                     0           0                not allowed in search mode
+                     0           1                low; level ADC output = 5
+                     1           0                mid; level ADC output = 7
+                     1           1                high; level ADC output = 10
+
+
+                     Table 12.   Format of 4th data byte
+                     7 (MSB)         6       5              4            3           2          1                  0 (LSB)
+                     SWP2            STBY    BL             XTAL         SMUTE       HCC        SNC                SI
+
+
+                     Table 13.   Description of 4th data byte bits
+                     Bit         Symbol           Description
+                     7           SWP2             Software programmable port 2: if SWP2 = 1 then port 2 is HIGH; if
+                                                  SWP2 = 0 then port 2 is LOW
+                     6           STBY             Standby: if STBY = 1 then in Standby mode; if STBY = 0 then not in
+                                                  Standby mode
+                     5           BL               Band Limits: if BL = 1 then Japanese FM band; if BL = 0 then
+                                                  US/Europe FM band
+                     4           XTAL             Clock frequency: see Table 16
+                     3           SMUTE            Soft Mute: if SMUTE = 1 then soft mute is ON; if SMUTE = 0 then soft
+                                                  mute is OFF
+                     2           HCC              High Cut Control: if HCC = 1 then high cut control is ON; if HCC = 0
+                                                  then high cut control is OFF
+                     1           SNC              Stereo Noise Cancelling: if SNC = 1 then stereo noise cancelling is
+                                                  ON; if SNC = 0 then stereo noise cancelling is OFF
+                     0           SI               Search Indicator: if SI = 1 then pin SWPORT1 is output for the ready
+                                                  flag; if SI = 0 then pin SWPORT1 is software programmable port 1
+
+
+                     Table 14.   Format of 5th data byte
+                     7 (MSB)         6       5              4            3           2          1                  0 (LSB)
+                     PLLREF          DTC     -              -            -           -          -                  -
+
+
+                     Table 15.   Description of 5th data byte bits
+                     Bit         Symbol           Description
+                     7           PLLREF           if PLLREF = 1 then the 6.5 MHz reference frequency for the PLL is
+                                                  enabled; if PLLREF = 0 then the 6.5 MHz reference frequency for the
+                                                  PLL is disabled; see Table 16
+                     6           DTC              if DTC = 1 then the de-emphasis time constant is 75 µs; if DTC = 0
+                                                  then the de-emphasis time constant is 50 µs
+                     5 to 0      -                not used; position is don’t care
+
+
+
+
+TEA5767HN_5                                                                                         © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                          Rev. 05 — 26 January 2007                                                      15 of 40
+NXP Semiconductors                                                                                              TEA5767HN
+                                                                  Low-power FM stereo radio for handheld applications
+
+
+                         Table 16.    Clock bits setting
+                         PLLREF       XTAL                Clock frequency
+                         0            0                   13 MHz
+                         0            1                   32.768 kHz
+                         1            0                   6.5 MHz
+                         1            1                   not allowed
+
+
+                     8.5 Reading data
+
+
+                             WRITE_READ                        50 %
+
+
+                                                  tW(read)
+                                                               tsu(clk)                                      tHIGH
+
+
+                                  CLOCK                                    50 %                                          50 %
+
+
+                                                                                             tLOW
+                                                                                        th                               td
+
+
+                                     DATA                                                      50 %                               50 %
+
+
+                                                                                                                                                mhc249
+
+
+                          Fig 9. 3-wire bus read data
+
+
+
+
+                                   DATA BYTE 1           DATA BYTE 2          DATA BYTE 3           DATA BYTE 4               DATA BYTE 5
+
+                                                                                                                                      001aae350
+
+
+                          Fig 10. Read mode
+
+
+                         Table 17.    Format of 1st data byte
+                         7 (MSB)       6             5                 4            3                 2              1                   0 (LSB)
+                         RF            BLF           PLL13             PLL12        PLL11             PLL10          PLL9                PLL8
+
+
+                         Table 18.    Description of 1st data byte bits
+                         Bit          Symbol              Description
+                         7            RF                  Ready Flag: if RF = 1 then a station has been found or the band limit
+                                                          has been reached; if RF = 0 then no station has been found
+                         6            BLF                 Band Limit Flag: if BLF = 1 then the band limit has been reached; if
+                                                          BLF = 0 then the band limit has not been reached
+                         5 to 0       PLL[13:8]           setting of synthesizer programmable counter after search or preset
+
+
+                         Table 19.    Format of 2nd data byte
+                         7 (MSB)       6             5                 4            3                 2              1                   0 (LSB)
+                         PLL7          PLL6          PLL5              PLL4         PLL3              PLL2           PLL1                PLL0
+
+
+TEA5767HN_5                                                                                                               © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                  Rev. 05 — 26 January 2007                                                                    16 of 40
+NXP Semiconductors                                                                             TEA5767HN
+                                                         Low-power FM stereo radio for handheld applications
+
+
+                     Table 20.   Description of 2nd data byte bits
+                     Bit         Symbol          Description
+                     7 to 0      PLL[7:0]        setting of synthesizer programmable counter after search or preset
+
+
+                     Table 21.   Format of 3rd data byte
+                     7 (MSB)         6       5              4             3              2        1                    0 (LSB)
+                     STEREO          IF6     IF5            IF4           IF3            IF2      IF1                  IF0
+
+
+                     Table 22.   Description of 3rd data byte bits
+                     Bit         Symbol          Description
+                     7           STEREO          Stereo indication: if STEREO = 1 then stereo reception; if
+                                                 STEREO = 0 then mono reception
+                     6 to 0      PLL[13:8]       IF counter result
+
+
+                     Table 23.   Format of 4th data byte
+                     7 (MSB)         6       5              4             3              2        1                    0 (LSB)
+                     LEV3            LEV2    LEV1           LEV0          CI3            CI2      CI1                  0
+
+
+                     Table 24.   Description of 4th data byte bits
+                     Bit         Symbol          Description
+                     7 to 4      LEV[3:0]        level ADC output
+                     3 to 1      CI[3:1]         Chip Identification: these bits have to be set to logic 0
+                     0           -               this bit is internally set to logic 0
+
+
+                     Table 25.   Format of 5th data byte
+                     7 (MSB)         6       5              4             3              2        1                    0 (LSB)
+                     0               0       0              0             0              0        0                    0
+
+
+                     Table 26.   Description of 5th data byte bits
+                     Bit         Symbol          Description
+                     7 to 0      -               reserved for future extensions; these bits are internally set to logic 0
+
+
+
+
+TEA5767HN_5                                                                                             © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                           Rev. 05 — 26 January 2007                                                         17 of 40
+NXP Semiconductors                                                                                    TEA5767HN
+                                                         Low-power FM stereo radio for handheld applications
+
+
+
+9. Internal circuitry
+                     Table 27.   Internal circuitry
+                     Pin            Symbol            Equivalent circuit
+                     1              n.c.
+                     2              CPOUT
+
+
+
+
+                                                                                       270 Ω
+
+
+
+                                                                                   2                                   mhc285
+
+
+                     3              VCOTANK1
+                                                                                       3       4
+                     4              VCOTANK2
+                                                                               120 Ω               120 Ω
+
+
+
+
+                                                                                                      mhc286
+
+
+                     5              VCC(VCO)
+                     6              DGND
+                     7              VCCD
+                     8              DATA
+
+
+
+                                                                               8
+
+
+
+
+                                                                                               6           mhc287
+
+
+                     9              CLOCK
+
+
+
+
+                                                                       270 Ω
+
+
+                                                                               9                       6      mhc288
+
+
+                     10             n.c.
+
+
+
+
+TEA5767HN_5                                                                                                         © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                           Rev. 05 — 26 January 2007                                                                     18 of 40
+NXP Semiconductors                                                                           TEA5767HN
+                                                         Low-power FM stereo radio for handheld applications
+
+
+                     Table 27.   Internal circuitry
+                     Pin            Symbol            Equivalent circuit
+                     11             WRITE/READ
+
+
+
+
+                                                                      270 Ω
+
+                                                                                11               6         mhc289
+
+
+                     12             BUSMODE
+
+
+
+
+                                                                       270 Ω
+
+
+                                                                               12                6     mhc290
+
+
+                     13             BUSENABLE
+
+
+
+
+                                                                       150 Ω
+
+
+                                                                               13                6     mhc291
+
+
+                     14             SWPORT1
+                                                                                         150 Ω
+                                                                                                      14
+
+
+
+
+                                                                                     6           mhc292
+
+
+                     15             SWPORT2
+                                                                                         150 Ω
+                                                                                                      15
+
+
+
+
+                                                                                     6           mhc293
+
+
+                     16             XTAL1
+                     17             XTAL2
+
+
+                                                                           16                              17
+
+
+
+
+                                                                                                     mhc294
+
+
+
+
+TEA5767HN_5                                                                                                     © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                           Rev. 05 — 26 January 2007                                                                 19 of 40
+NXP Semiconductors                                                                           TEA5767HN
+                                                         Low-power FM stereo radio for handheld applications
+
+
+                     Table 27.   Internal circuitry
+                     Pin            Symbol            Equivalent circuit
+                     18             PHASEFIL
+
+                                                                                             18
+
+
+
+
+                                                                                33         mhc295
+
+
+                     19             PILFIL
+
+                                                                                           270 Ω
+                                                                                                       19
+
+
+
+
+                                                                           33                    mhc296
+
+
+                     20             n.c.
+                     21             n.c.
+                     22             VAFL
+
+
+                                                                                           10 Ω
+                                                                                                       22
+
+
+
+
+                                                                                     33          mhc297
+
+
+                     23             VAFR
+
+
+                                                                                           10 Ω
+                                                                                                       23
+
+
+
+
+                                                                                     33          mhc298
+
+
+                     24             TMUTE
+                                                                                     24
+
+
+                                                                                          1 kΩ
+
+
+
+
+                                                                                                  33    mhc299
+
+
+
+
+TEA5767HN_5                                                                                                 © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                           Rev. 05 — 26 January 2007                                                             20 of 40
+NXP Semiconductors                                                                             TEA5767HN
+                                                         Low-power FM stereo radio for handheld applications
+
+
+                     Table 27.   Internal circuitry
+                     Pin            Symbol            Equivalent circuit
+                     25             MPXO
+
+
+
+                                                                                               150 Ω
+                                                                                                         25
+
+
+
+
+                                                                                         33           mhc300
+
+
+                     26             Vref
+
+
+                                                                     26
+
+
+
+
+                                                                                                               33
+                                                                    mhc301
+
+
+                     27             TIFC
+
+
+                                                                                     40 kΩ
+                                                                                                27
+
+
+
+                                                                                             mhc302
+
+
+                     28             LIMDEC1
+
+
+                                                                             270 Ω
+                                                                                                 28
+
+
+
+
+                                                                                                          mhc303
+
+
+                     29             LIMDEC2
+
+
+                                                                             270 Ω
+                                                                                                 29
+
+
+
+
+                                                                                                          mhc304
+
+
+                     30             n.c.
+                     31             n.c.
+
+
+
+
+TEA5767HN_5                                                                                               © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                           Rev. 05 — 26 January 2007                                                           21 of 40
+NXP Semiconductors                                                                        TEA5767HN
+                                                            Low-power FM stereo radio for handheld applications
+
+
+                     Table 27.   Internal circuitry
+                     Pin            Symbol            Equivalent circuit
+                     32             Igain
+
+                                                                    32
+
+
+
+
+                                                                                                       mhc305
+
+
+                     33             AGND
+                     34             VCCA
+                     35             RFI1
+                     36             RFGND
+                     37             RFI2
+                                                                         35                     37
+
+
+
+                                                                         36                      mhc306
+
+
+                     38             TAGC
+
+
+                                                                              38
+
+
+                                                                                    36      mhc307
+
+
+                     39             LOOPSW
+                                                                                     5
+
+
+
+
+                                                                                    39
+                                                                                          mhc308
+
+
+                     40             n.c.
+
+
+10. Limiting values
+                     Table 28. Limiting values
+                     In accordance with the Absolute Maximum Rating System (IEC 60134).
+                     Symbol        Parameter                       Conditions            Min          Max               Unit
+                     VVCOTANK1     VCO tuned circuit output                              −0.3         +8                V
+                                   voltage 1
+                     VVCOTANK2     VCO tuned circuit output                              −0.3         +8                V
+                                   voltage 2
+                     VCCD          digital supply voltage                                −0.3         +5                V
+                     VCCA          analog supply voltage                                 −0.3         +8                V
+                     Tstg          storage temperature                                   −55          +150              °C
+                     Tamb          ambient temperature                                   −10          +75               °C
+
+
+
+TEA5767HN_5                                                                                          © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                           Rev. 05 — 26 January 2007                                                      22 of 40
+NXP Semiconductors                                                                                   TEA5767HN
+                                                                Low-power FM stereo radio for handheld applications
+
+
+                          Table 28. Limiting values …continued
+                          In accordance with the Absolute Maximum Rating System (IEC 60134).
+                           Symbol         Parameter                      Conditions                  Min           Max               Unit
+                           Vesd           electrostatic discharge        all pins except       [1]   −200          +200              V
+                                          voltage                        pin DATA              [2]   −2000         +2000             V
+                                                                         pin DATA              [1]   −150          +200              V
+                                                                                               [2]   −2000         +2000             V
+
+                          [1]   Machine model (R = 0 Ω, C = 200 pF).
+                          [2]   Human body model (R = 1.5 kΩ, C = 100 pF).
+
+
+11. Thermal characteristics
+                          Table 29.    Thermal characteristics
+                           Symbol         Parameter                               Conditions                    Typ                Unit
+                           Rth(j-a)       thermal resistance from junction to in free air                       29                 K/W
+                                          ambient
+
+
+12. Static characteristics
+Table 30. Static characteristics
+VCCA = VCC(VCO) = VCCD = 2.7 V; Tamb = 25 °C; All AC values are given in RMS unless otherwise specified.
+Symbol        Parameter                   Conditions                                 Min       Typ          Max                           Unit
+Supply voltages[1]
+VCCA          analog supply voltage                                                  2.5       3.0          5.0                           V
+VCC(VCO)      VCO supply voltage                                                     2.5       3.0          5.0                           V
+VCCD          digital supply voltage                                                 2.5       3.0          5.0                           V
+Supply currents
+ICCA          analog supply current       operating
+                                            VCCA = 3 V                               6.0       8.4          10.5                          mA
+                                            VCCA = 5 V                               6.2       8.6          10.7                          mA
+                                          Standby mode
+                                            VCCA = 3 V                               -         3            6                             µA
+                                            VCCA = 5 V                               -         3.2          6.2                           µA
+ICC(VCO)      VCO supply current          operating
+                                            VCC(VCO) = 3 V                           560       750          940                           µA
+                                            VCC(VCO) = 5 V                           570       760          950                           µA
+                                          Standby mode
+                                            VCC(VCO) = 3 V                           -         1            2                             µA
+                                            VCC(VCO) = 5 V                           -         1.2          2.2                           µA
+
+
+
+
+TEA5767HN_5                                                                                                       © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                    Rev. 05 — 26 January 2007                                                          23 of 40
+NXP Semiconductors                                                                                 TEA5767HN
+                                                                     Low-power FM stereo radio for handheld applications
+
+
+Table 30. Static characteristics …continued
+VCCA = VCC(VCO) = VCCD = 2.7 V; Tamb = 25 °C; All AC values are given in RMS unless otherwise specified.
+Symbol         Parameter                   Conditions                               Min     Typ         Max                           Unit
+ICCD           digital supply current      operating
+                                              VCCD = 3 V                            2.1     3.0         3.9                           mA
+                                              VCCD = 5 V                            2.25    3.15        4.05                          mA
+                                           Standby mode; VCCD = 3 V
+                                              bus enable line HIGH                  30      56          80                            µA
+                                              bus enable line LOW                   11      19          26                            µA
+                                           Standby mode; VCCD = 5 V
+                                              bus enable line HIGH                  50      78          105                           µA
+                                              bus enable line LOW                   20      33          45                            µA
+
+[1]   VCCA, VCC(VCO) and VCCD must not differ by more than 200 mV.
+
+
+                            Table 31. DC operating points, unloaded DC voltage
+                            VCCA = VCC(VCO) = VCCD = 2.7 V; Tamb = 25 °C; unless otherwise specified.
+                            Operating Conditions                                    Min     Typ         Max                           Unit
+                            point
+                            VCPOUT                                                  0.1     -           VCC(VCO) − 0.1                V
+                            VXTAL2        data byte 4 bit 4 = 1                     1.64    1.72        1.8                           V
+                                          data byte 4 bit 4 = 0                     1.68    1.75        1.82                          V
+                            VXTAL2        data byte 4 bit 4 = 1                     1.64    1.72        1.8                           V
+                                          data byte 4 bit 4 = 0                     1.68    1.75        1.82                          V
+                            VPHASEFIL                                               0.4     1.2         VCCA − 0.4                    V
+                            VPILFIL                                                 0.65    0.9         1.3                           V
+                            VAFL          fRF = 98 MHz; VRF = 1 mV                  720     850         940                           mV
+                            VAFR          fRF = 98 MHz; VRF = 1 mV                  720     850         940                           mV
+                            VTMUTE        VRF = 0 V                                 1.5     1.65        1.8                           V
+                            VMPXO         fRF = 98 MHz; VRF = 1 mV                  680     815         950                           mV
+                            Vref                                                    1.45    1.55        1.65                          V
+                            VTIFC                                                   1.34    1.44        1.54                          V
+                            VLIMDEC1                                                1.86    1.98        2.1                           V
+                            VLIMDEC2                                                1.86    1.98        2.1                           V
+                            VIgain                                                  480     530         580                           mV
+                            VRFI1                                                   0.93    1.03        1.13                          V
+                            VRFI2                                                   0.93    1.03        1.13                          V
+                            VTAGC         VRF = 0 V                                 1       1.57        2                             V
+
+
+
+
+TEA5767HN_5                                                                                                   © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                     Rev. 05 — 26 January 2007                                                     24 of 40
+NXP Semiconductors                                                                                TEA5767HN
+                                                                Low-power FM stereo radio for handheld applications
+
+
+
+13. Dynamic characteristics
+Table 32. Dynamic characteristics
+VCCA = VCCD = VCC(VCO) = 2.7 V; Tamb = 25 °C; AC values given in RMS;
+For VRF the emf value is given; unless otherwise specified.
+Symbol          Parameter                    Conditions                          Min        Typ      Max                   Unit
+VCO
+fosc            oscillator frequency                                             150        -        217                   MHz
+Crystal oscillator
+Circuit input: pin XTAL2
+Vi(osc)         oscillator input voltage     oscillator externally clocked       140        -        350                   mV
+Ri              input resistance             oscillator externally clocked
+                                               data byte 4 bit 4 = 0             2          3        4                     kΩ
+                                               data byte 4 bit 4 = 1             230        330      430                   kΩ
+Ci              input capacitance            oscillator externally clocked
+                                               data byte 4 bit 4 = 0             3.9        5.6      7.3                   pF
+                                               data byte 4 bit 4 = 1             5          6        7                     pF
+Crystal: 32.768 kHz
+fr              series resonance             data byte 4 bit 4 = 1               -          32.768   -                     kHz
+                frequency
+∆f/fr           frequency deviation                                              −20 × 10−6 -        +20 × 10−6
+C0              shunt capacitance                                                -          -        3.5                   pF
+RS              series resistance                                                -          -        80                    kΩ
+∆fr/fr(25 °C)   temperature drift            −10 °C < Tamb < +60 °C              −50 × 10−6 -        +50 × 10−6
+Crystal: 13 MHz
+fr              series resonance             data byte 4 bit 4 = 0               -          13       -                     MHz
+                frequency
+∆f/fr           frequency deviation                                              −30 × 10−6 -        +30 × 10−6
+C0              shunt capacitance                                                -          -        4.5                   pF
+Cmot            motional capacitance                                             1.5        -        3.0                   fF
+RS              series resistance                                                -          -        100                   kΩ
+∆fr/fr(25 °C)   temperature drift            −40 °C < Tamb < +85 °C              −30 × 10−6 -        +30 × 10−6
+Synthesizer
+Programmable divider[1]
+Nprog           programmable divider         data byte 1 = XX11 1111;            -          -        8191                  -
+                ratio                        data byte 2 = 1111 1110
+                                             data byte 1 = XX01 0000;            2048       -        -                     -
+                                             data byte 2 = 0000 0000
+∆Nstep          programmable divider                                             -          1        -                     -
+                step size
+Reference frequency divider
+Nref            crystal oscillator divider   data byte 4 bit 4 = 0               -          260      -                     -
+                ratio                        data byte 5 bit 7 = 1;              -          130      -                     -
+                                             data byte 4 bit 4 = 0
+                                             data byte 4 bit 4 = 1               -          1        -                     -
+
+TEA5767HN_5                                                                                          © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                   Rev. 05 — 26 January 2007                                                 25 of 40
+NXP Semiconductors                                                                              TEA5767HN
+                                                                 Low-power FM stereo radio for handheld applications
+
+
+Table 32. Dynamic characteristics …continued
+VCCA = VCCD = VCC(VCO) = 2.7 V; Tamb = 25 °C; AC values given in RMS;
+For VRF the emf value is given; unless otherwise specified.
+Symbol         Parameter                    Conditions                          Min       Typ      Max                   Unit
+Charge pump: pin CPOUT
+Isink          charge pump peak sink        0.2 V < VCPOUT <                    -         0.5      -                     µA
+               current                      VVCOTANK2 − 0.2 V;
+                                            fVCO > fref × Nprog
+Isource        charge pump peak source 0.2 V < VCPOUT <                         -         −0.5     -                     µA
+               current                 VVCOTANK2 − 0.2 V;
+                                       fVCO < fref × Nprog
+IF counter
+VRF            RF input voltage for                                             -         12       18                    µV
+               correct IF count
+NIF            IF counter length                                                -         7        -                     bit
+Nprecount      IF counter prescaler ratio                                       -         64       -                     -
+Tcount(IF)     IF counter period            fxtal = 32.768 kHz                  -         15.625   -                     ms
+                                            fxtal = 13 MHz                      -         15.754   -                     ms
+REScount(IF)   IF counter resolution        fxtal = 32.768 kHz                  -         4.096    -                     kHz
+                                            fxtal = 13 MHz                      -         4.0625   -                     kHz
+IFcount        IF counter result for        fxtal = 32.768 kHz                  29h       -        3Dh                   -
+               search tuning stop           fxtal = 13 MHz                      30h       -        3Dh                   -
+Pins DATA, CLOCK, WRITE/READ, BUSMODE and BUSENABLE
+Ri             input resistance                                                 10        -        -                     MΩ
+
+
+
+
+TEA5767HN_5                                                                                        © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                 Rev. 05 — 26 January 2007                                                 26 of 40
+NXP Semiconductors                                                                                           TEA5767HN
+                                                                               Low-power FM stereo radio for handheld applications
+
+
+Table 32. Dynamic characteristics …continued
+VCCA = VCCD = VCC(VCO) = 2.7 V; Tamb = 25 °C; AC values given in RMS;
+For VRF the emf value is given; unless otherwise specified.
+Symbol        Parameter                    Conditions                                             Min   Typ      Max                   Unit
+Software programmable ports
+Pin SWPORT1
+Isink(max)    maximum sink current         data byte 3 bit 0 = 0;                                 500   -        -                     µA
+                                           data byte 4 bit 0 = 0;
+                                           VSWPORT1 < 0.5 V
+Ileak(max)    maximum leakage current data byte 3 bit 0 = 1;                                      −1    -        +1                    µA
+                                      VSWPORT1 < 5 V
+Pin SWPORT2
+Isink(max)    maximum sink current         data byte 4 bit 7 = 0;                                 500   -        -                     µA
+                                           VSWPORT1 < 0.5 V
+Ileak(max)    maximum leakage current data byte 4 bit 7 = 1;                                      −1    -        +1                    µA
+                                      VSWPORT1 < 5 V
+FM signal channel
+FM RF input
+fFM(ant)      FM input frequency                                                                  76    -        108                   MHz
+Ri            input resistance at pins                                                            75    100      125                   Ω
+              RFI1 and RFI2 to RFGND
+Ci            input capacitance at pins                                                           2.5   4        6                     pF
+              RFI1 and RFI2 to RFGND
+VRF           RF sensitivity input         fRF = 76 MHz to 108 MHz;                               -     2        3.5                   µV
+              voltage                      ∆f = 22.5 kHz; fmod = 1 kHz;
+                                           (S+N)/N = 26 dB; L = R;
+                                           de-emphasis = 75 µs;
+                                           BAF = 300 Hz to 15 kHz
+IP3in         in-band 3rd-order            ∆f1 = 200 kHz; ∆f2 = 400 kHz;                          81    84       -                     dBµV
+              intercept point related to   ftune = 76 MHz to 108 MHz
+              VRFI1-RFI2 (peak value)
+IP3out        out-band 3rd-order           ∆f1 = 4 MHz; ∆f2 = 8 Hz;                               82    85       -                     dBµV
+              intercept point related to   ftune = 76 MHz to 108 MHz
+              VRFI1-RFI2 (peak value)
+RF AGC
+VRF1          RF input voltage for start   fRF1 = 93 MHz; fRF2 = 98 MHz;                    [2]   66    72       78                    dBµV
+              of AGC                       VRF2 = 50 dBµV;
+                                           ∆V TMUTE                     14 mV
+                                           ------------------------ < -------------------
+                                                                      3 dBµV
+                                                 V RF1
+IF filter
+fIF           IF filter center frequency                                                          215   225      235                   kHz
+BIF           IF filter bandwidth                                                                 85    94       102                   kHz
+S+200         high side 200 kHz            ∆f = +200 kHz;                                   [3]   39    43       -                     dB
+              selectivity                  ftune = 76 MHz to 108 MHz
+S−200         low side 200 kHz             ∆f = −200 kHz;                                   [3]   32    36       -                     dB
+              selectivity                  ftune = 76 MHz to 108 MHz
+S+100         high side 100 kHz            ∆f = +100 kHz;                                   [3]   8     12       -                     dB
+              selectivity                  ftune = 76 MHz to 108 MHz
+
+TEA5767HN_5                                                                                                      © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                      Rev. 05 — 26 January 2007                                                       27 of 40
+NXP Semiconductors                                                                                 TEA5767HN
+                                                               Low-power FM stereo radio for handheld applications
+
+
+Table 32. Dynamic characteristics …continued
+VCCA = VCCD = VCC(VCO) = 2.7 V; Tamb = 25 °C; AC values given in RMS;
+For VRF the emf value is given; unless otherwise specified.
+Symbol          Parameter                    Conditions                               Min    Typ     Max                   Unit
+S-100           low side 100 kHz             ∆f = −100 kHz;                     [3]   8      12      -                     dB
+                selectivity                  ftune = 76 MHz to 108 MHz
+IR              image rejection              ftune = 76 MHz to 108 MHz;               24     30      -                     dB
+                                             VRF = 50 dBµV
+FM IF level detector and mute voltage
+VRF             RF input voltage for start   read mode data byte 4 bit 4 = 1          2      3       5                     µV
+                of level ADC
+∆Vstep          level ADC step size                                                   2      3       5                     dB
+Pin TMUTE
+Vlevel          level output DC voltage      VRF = 0 µV                               1.55   1.65    1.80                  V
+                                             VRF = 3 µV                               1.60   1.70    1.85                  V
+Vlevel(slope)   slope of level voltage       VRF = 10 µV to 500 µV                    150    165     180                      mV
+                                                                                                                           -------------
+                                                                                                                           20 dB
+Ro              output resistance                                                     280    400     520                   kΩ
+FM demodulator: pin MPXO
+VMPXO           demodulator output           VRF = 1 mV; L = R;                       60     75      90                    mV
+                voltage                      ∆f = 22.5 kHz; fmod = 1 kHz;
+                                             de-emphasis = 75 µs;
+                                             BAF = 300 Hz to 15 kHz
+(S+N)/N         maximum signal plus          VRF = 1 mV; L = R;                       54     60      -                     dB
+                noise-to-noise ratio         ∆f = 22.5 kHz; fmod = 1 kHz;
+                                             de-emphasis = 75 µs;
+                                             BAF = 300 Hz to 15 kHz
+THD             total harmonic distortion    VRF = 1 mV; L = R;                       -      0.5     1.5                   %
+                                             ∆f = 75 kHz; fmod = 1 kHz;
+                                             de-emphasis = 75 µs
+αAM             AM suppression               VRF = 300 µV; L = R;                     40     -       -                     dB
+                                             ∆f = 22.5 kHz; fmod = 1 kHz;
+                                             m = 0.3; de-emphasis = 75 µs;
+                                             BAF = 300 Hz to 15 kHz
+Ro              demodulator output                                                    -      -       500                   Ω
+                resistance
+Isink           demodulator output sink                                               -      -       30                    µA
+                current
+Soft mute
+VRF             RF input voltage for soft    αmute = 3 dB; data byte 4                3      5       10                    µV
+                mute start                   bit 3 = 1
+αmute           mute attenuation             VRF = 1 µV; L = R;                       4      7       15                    dB
+                                             ∆f = 22.5 kHz; fmod = 1 kHz;
+                                             de-emphasis = 75 µs;
+                                             BAF = 300 Hz to 15 kHz;
+                                             data byte 4 bit 3 = 1
+
+
+
+
+TEA5767HN_5                                                                                          © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                  Rev. 05 — 26 January 2007                                               28 of 40
+NXP Semiconductors                                                                                TEA5767HN
+                                                                   Low-power FM stereo radio for handheld applications
+
+
+Table 32. Dynamic characteristics …continued
+VCCA = VCCD = VCC(VCO) = 2.7 V; Tamb = 25 °C; AC values given in RMS;
+For VRF the emf value is given; unless otherwise specified.
+Symbol              Parameter                   Conditions                         Min      Typ      Max                   Unit
+MPX decoder
+VAFL                left audio frequency        VRF = 1 mV; L = R;                 60       75       90                    mV
+                    output voltage              ∆f = 22.5 kHz; fmod = 1 kHz;
+                                                de-emphasis = 75 µs
+VAFR                right audio frequency       VRF = 1 mV; L = R;                 60       75       90                    mV
+                    output voltage              ∆f = 22.5 kHz; fmod = 1 kHz;
+                                                de-emphasis = 75 µs
+RAFL                left audio frequency                                           -        -        50                    Ω
+                    output resistance
+RAFR                right audio frequency                                          -        -        50                    Ω
+                    output resistance
+Isink(AFL)          left audio frequency                                           170      -        -                     µA
+                    output sink current
+Isink(AFR)          right audio frequency                                          170      -        -                     µA
+                    output sink current
+VMPXIN(max)         input overdrive margin      THD < 3 %                          4        -        -                     dB
+VAFL                left audio frequency        VRF = 1 mV; L = R;                 -1       -        +1                    dB
+                    output voltage difference   ∆f = 75 kHz; fmod = 1 kHz;
+                                                de-emphasis = 75 µs
+VAFR                right audio frequency       VRF = 1 mV; L = R;                 -1       -        +1                    dB
+                    output voltage difference   ∆f = 75 kHz; fmod = 1 kHz;
+                                                de-emphasis = 75 µs
+αcs(stereo)         stereo channel separation VRF = 1 mV; R = L = 0 or R = 0       24       30       -                     dB
+                                              and L = 1 including 9 % pilot;
+                                              ∆f = 75 kHz; fmod = 1 kHz;
+                                              data byte 3 bit 3 = 0;
+                                              data byte 4 bit 1 = 1
+(S+N)/N             maximum signal plus         VRF = 1 mV; L = R;                 54       60       -                     dB
+                    noise-to-noise ratio        ∆f = 22.5 kHz; fmod = 1 kHz;
+                                                de-emphasis = 75 µs;
+                                                BAF = 300 Hz to 15 kHz
+THD                 total harmonic distortion   VRF = 1 mV; L = R;                 -        0.4      1                     %
+                                                ∆f = 75 kHz; fmod = 1 kHz;
+                                                de-emphasis = 75 µs
+αpilot              pilot suppression           related to ∆f = 75 kHz;            40       50       -                     dB
+                    measured at pins VAFL       fmod = 1 kHz;
+                    and VAFR                    de-emphasis = 75 µs
+∆fpilot             stereo pilot frequency      VRF = 1 mV; read mode
+                    deviation                     data byte 3 bit 7 = 1            -        3.6      5.8                   kHz
+                                                  data byte 3 bit 7 = 0            1        3        -                     kHz
+ ∆f pilot1          pilot switch hysteresis     VRF = 1 mV                         2        -        -                     dB
+ ----------------
+ ∆f pilot2
+
+
+
+
+TEA5767HN_5                                                                                          © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                     Rev. 05 — 26 January 2007                                            29 of 40
+NXP Semiconductors                                                                                                                              TEA5767HN
+                                                                                          Low-power FM stereo radio for handheld applications
+
+
+Table 32. Dynamic characteristics …continued
+VCCA = VCCD = VCC(VCO) = 2.7 V; Tamb = 25 °C; AC values given in RMS;
+For VRF the emf value is given; unless otherwise specified.
+Symbol              Parameter                                 Conditions                                               Min                Typ               Max                   Unit
+High cut control
+TCde-em             de-emphasis time                          VRF = 1 mV
+                    constant                                      data byte 5 bit 6 = 0                                38                 50                62                    µs
+                                                                  data byte 5 bit 6 = 1                                57                 75                93                    µs
+                                                              VRF = 1 µV
+                                                                  data byte 5 bit 6 = 0                                114                150               186                   µs
+                                                                  data byte 5 bit 6 = 1                                171                225               279                   µs
+Mono to stereo blend control
+αcs(stereo)         stereo channel separation VRF = 45 µV; R = L = 0 or                                                4                  10                16                    dB
+                                              R = 0 and L = 1 including 9 %
+                                              pilot; ∆f = 75 kHz; fmod = 1 kHz;
+                                              data byte 3 bit 3 = 0;
+                                              data byte 4 bit 1 = 1
+Mono to stereo switched
+αcs(stereo)         stereo channel separation                 R = L = 0 or R = 0 and L = 1
+                    switching from mono to                    including 9 % pilot;
+                    stereo with increasing RF                 ∆f = 75 kHz; fmod = 1 kHz;
+                    input level                               data byte 3 bit 3 = 0;
+                                                              data byte 4 bit 1 = 0
+                                                                  VRF = 1 mV                                           24                 -                 -                     dB
+                                                                  VRF = 20 µV                                          -                  -                 1                     dB
+Bus-driven mute functions
+Tuning mute
+αmute               VAFL and VAFR muting                      data byte 1 bit 7 = 1                                    -                  -                 −60                   dB
+                    depth
+αmute(L)            VAFL muting depth                         data byte 3 bit 1 = 1;                                   -                  -                 −80                   dB
+                                                              fAF = 1 kHz; Rload(L) < 30 kΩ
+αmute(R)            VAFR muting depth                         data byte 3 bit 2 = 1;                                   -                  -                 −80                   dB
+                                                              fAF = 1 kHz; Rload(R) < 30 kΩ
+
+[1]   Calculation of this 14-bit word can be done as follows:
+                                           4 × ( f RF + f IF )                                                          4 × ( f RF – f IF )
+      formula for high side injection: N = -------------------------------------- ; formula for low side injection: N = --------------------------------------
+                                                          f ref                                                                        f ref
+      where:
+      N = decimal value of PLL word;
+      fRF = the wanted tuning frequency [Hz];
+      fIF = the intermediate frequency [Hz] = 225 kHz;
+      fref = the reference frequency [Hz] = 32.768 kHz for the 32.768 kHz crystal; fref = 50 kHz for the 13 MHz crystal or when externally
+      clocked with 6.5 MHz.
+                                                                                                                6                              3
+                                                                               4 × ( 100 × 10 + 225 × 10 )
+      Example for receiving a channel at 100 MHz with high side injection: N = -------------------------------------------------------------------- = 12234
+                                                                                                                            32768
+      The PLL word becomes 2FCAh.
+[2]   VRF in Figure 13 is replaced by VRF1 + VRF2. The radio is tuned to 98 MHz (high side injection).
+[3]   Low side and high side selectivity can be switched by changing the mixer from high side to low side LO injection.
+
+TEA5767HN_5                                                                                                                                                 © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                                        Rev. 05 — 26 January 2007                                                                                30 of 40
+NXP Semiconductors                                                                               TEA5767HN
+                                                             Low-power FM stereo radio for handheld applications
+
+
+
+14. FM characteristics
+
+                                                                                                            001aae351
+                              0                                                                                           4
+
+                          VAFL,      (1)                                                                                  THD+N
+                          VAFR                                                                                             (%)
+                          (dB)
+                            −20                                                                                           3
+
+
+
+
+                            −40                                                                                           2
+
+
+
+                                                                      (2)
+                            −60                                                                                           1
+
+                                                                      (3)
+
+
+
+                            −80                                                                                         0
+                              10−1          1           10          102       103        104         105              106
+                                                                                                           VRF (µV)
+
+
+                        (1) Mono signal, no soft mute, ∆f = 22,5 kHz.
+                        (2) Noise in mono mode, no soft mute.
+                        (3) Total Harmonic Distortion (THD), ∆f = 75 kHz.
+                     Fig 11. FM mono characteristics
+
+
+
+                                                                                                            001aae352
+                              0                                                                                           4
+                                                              (1)
+                          VAFL,                                                                                           THD+N
+                          VAFR                                                                                             (%)
+                          (dB)                                (2)
+                            −20                                                                                           3
+
+
+
+
+                            −40                                                                                           2
+
+                                                              (3)
+
+
+                            −60                                                                                           1
+                                                              (4)
+
+
+
+
+                            −80                                                                                         0
+                              10−1          1           10          102       103        104         105              106
+                                                                                                           VRF (µV)
+
+
+                        (1) Right channel with modulation right, SNC on, ∆f = 67,5 kHz + 6,75 kHz pilot.
+                        (2) Left channel with modulation left, SNC on, ∆f = 67,5 kHz + 6,75 kHz pilot.
+                        (3) Noise in stereo mode, SNC on, ∆f = 0 kHz + 6,75 kHz pilot.
+                        (4) Total Harmonic Distortion (THD), ∆f = 67,5 kHz + 6,75 kHz pilot.
+                     Fig 12. FM stereo characteristics
+
+
+
+
+TEA5767HN_5                                                                                                 © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                              Rev. 05 — 26 January 2007                                                          31 of 40
+NXP Semiconductors                                                                                           TEA5767HN
+                                                                Low-power FM stereo radio for handheld applications
+
+
+
+15. I2C-bus characteristics
+                     Table 33.      Digital levels and timing
+                     Symbol Parameter                                      Conditions                    Min            Max                 Unit
+                     Digital inputs
+                     VIH           HIGH-level input voltage                                              0.45VCCD -                         V
+                     VIL           LOW-level input voltage                                               -              0.2VCCD             V
+                     Digital outputs
+                     Isink(L)      LOW-level sink current                                                500            -                   µA
+                     VOL           LOW-level output voltage                IOL = 500 µA                  -              450                 mV
+                     Timing
+                     fclk          clock input frequency                   I2C-bus enabled               -              400                 kHz
+                                                                           3-wire bus enabled            -              400                 kHz
+                     tHIGH         clock HIGH time                         I2C-bus enabled               1              -                   µs
+                                                                           3-wire bus enabled            1              -                   µs
+                     tLOW          clock LOW time                          I2C-bus enabled               1              -                   µs
+                                                                           3-wire bus enabled            1              -                   µs
+                     tW(write)     pulse width for write enable            3-wire bus enabled            1              -                   µs
+                     tW(read)      pulse width for read enable             3-wire bus enabled            1              -                   µs
+                     tsu(clk)      clock set-up time                       3-wire bus enabled            300            -                   ns
+                     th(out)       read mode data output hold time 3-wire bus enabled                    10             -                   ns
+                     td(out)       read mode output delay time             3-wire bus enabled            -              400                 ns
+                     tsu(write)    write mode set-up time                  3-wire bus enabled            100            -                   ns
+                     th(write)     write mode hold time                    3-wire bus enabled            100            -                   ns
+
+
+16. Test information
+                     Table 34.      Component list for Figure 1 and Figure 13
+                     Component            Parameter                          Value         Tolerance Type                   Manufacturer
+                     R1                   resistor with low                  18 kΩ         ±1 %         RC12G               Philips
+                                          temperature coefficient
+                     D1 and D2            varicap for VCO tuning             -             -            BB202               Philips
+                     L1                   RF band filter coil                120 nH        ±2 %         Qmin = 40
+                     L2 and L3            VCO coil                           33 nH         ±2 %         Qmin = 40
+                     XTAL13MHz            13 MHz crystal                     -             -            NX4025GA
+                     Cpull                pulling capacitor for              10 pF         -
+                                          NX4025GA
+                     XTAL32768Hz 32,768 kHz crystal                          -             -
+                     Cpull                pulling capacitor for              Cload   [1]   -
+                                          XTAL32768Hz
+
+                     [1]    Value of the Cpull must be as close as possible to the value of Cload of the crystal.
+
+
+
+
+TEA5767HN_5                                                                                                         © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                 Rev. 05 — 26 January 2007                                                               32 of 40
+                                                                                 xxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxx x x x xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxx xx xx
+                                                                                 xxxxx xxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxx xxxxxx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxx x x
+                                                                                 xxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxx
+                                                                                 xxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxx xxx
+Product data sheet
+                            TEA5767HN_5
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                     NXP Semiconductors
+                                                                                                                                                                               47 nF               47 nF           47 nF                  33 nF                   33 nF
+                                                                                                                                                                            LIMDEC2                LIMDEC1        TIFC                   Vref       MPXO          TMUTE     VAFR    VAFL
+
+                                                                                                                                                                                   29              28             27                     26         25            24        23      22
+                                                                                                 R1               Igain 32
+                                                                                                                                                                    GAIN                                                             POWER
+                                                                                                                                                                STABILIZATION                                                        SUPPLY
+                                                                                                                AGND 33
+                                                                                         22 nF
+                                                                                                        22 µF
+                                                                                                                        34
+                                                                                VCCA                                                                                                                                   DEMODULATOR
+                                                                                        4.7 Ω                    VCCA                                            RESONANCE                                                                      SOFT
+                                                                                                                                                                  AMPLIFIER             LIMITER
+                                                                                                                                                                                                                                                MUTE
+                                                                                                                                                                                                                                                                  SDS
+
+
+
+
+                                                                                                                             I/Q-MIXER                                                   LEVEL                            IF
+                                                                                                                               1st FM                2                                                                                                                                19 PILFIL        1 nF
+                                                                                                                                                                                          ADC                          COUNTER
+                                                                                                                                                    N1
+                                                                                                                                                                                                                                                      MPX                                   33 kΩ 22 nF
+                                                                                                                                                                    IF CENTRE                                                                       DECODER
+                                                                                       100 pF                                                                      FREQUENCY                                                                                                                          22 nF
+                                                                                                                 RFI1 35                                              ADJUST
+                                                                                                                                                                                                           Iref                                                                       18 PHASEFIL
+Rev. 05 — 26 January 2007
+
+
+
+
+                                                                                40 Ω                  27 pF RFGND 36                                                                                                                                                                                         Ccomp(1)
+                                                                                        L1                                                      AGC                                                                                                                                   17 XTAL2
+                                                                                                      47 pF      RFI2 37
+                                                                                                                                                                                                                             TEA5767HN                                  CRYSTAL                   Cpull(1)
+                                                                          VRF                                                                                                                                                                                                                                    32.768 kHz
+                                                                                                                 TAGC 38                                                                                                                                               OSCILLATOR     16 XTAL1
+                                                                                                                                                                                                                                                                                                                     or
+                                                                                                                                                                                                                                                                                                                  13 MHz
+                                                                                                        4.7 nF
+                                                                                                                                                                                                                                                                                      15 SWPORT2 10 kΩ
+
+
+
+
+                                                                                                                                                                                                                                                                                                                               Low-power FM stereo radio for handheld applications
+                                                                                                                                                                       programmable divider output                                SOFTWARE
+                                                                                                          LOOPSW 39
+                                                                                                                                   TUNING SYSTEM                                                                   MUX          PROGRAMMABLE                                          14 SWPORT1
+                                                                                                                                                                                                                                    PORT                                                                                VCCA
+                                                                                                                                                                   reference frequency divider output                                                                                                  10 kΩ
+                                                                                                                                                                                                                                            pilot
+
+                                                                                                                                                                                                                                           mono                                       13 BUSENABLE
+                                                                                                                                                                                                                 I2C-BUS                                                              12 BUSMODE
+                                                                                                                                              VCO
+                                                                                                                                                                                                                   AND
+                                                                                                                                                                                                               3-WIRE BUS                                                             11 WRITE/READ
+                                                                                                                                                                                                                                                           1, 10, 20, 21,
+                                                                                                                               2         3                  4          5                       6           7             8       9                         30, 31, 40
+                                                                                                                               CPOUT VCOTANK1               VCOTANK2   VCC(VCO)                DGND        VCCD          DATA    CLOCK                     n.c.                    mhc284
+
+                                                                                                                                                                                                   12 Ω
+                                                                                                                   10 nF        39 nF                                                   VCCD
+                                                                                                                                         D1      D2
+                                                                                                                              10 kΩ                                                                          22 nF
+
+
+                                                                                                                                         L3         L2
+                                                                                                                              100 kΩ
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                     TEA5767HN
+                                                                                                                                                    22 nF
+                                                                                                                                         47 Ω
+                            © NXP B.V. 2007. All rights reserved.
+
+
+
+
+                                                                                                                                                VCC(VCO)
+
+
+
+
+                                                                           Value of Cpull must be as close as possible to the value of Cload of the crystal.
+33 of 40
+
+
+
+
+                                                                       (1) Ccomp and Cpull data depends on crystal specification.
+                                                                    Fig 13. Application and test diagram
+NXP Semiconductors                                                                                                                                        TEA5767HN
+                                                                                                   Low-power FM stereo radio for handheld applications
+
+
+
+17. Package outline
+
+   HVQFN40: plastic thermal enhanced very thin quad flat package; no leads;
+   40 terminals; body 6 x 6 x 0.85 mm                                                                                                                                            SOT618-1
+
+
+                                                                  D                                  B          A
+
+
+
+
+                     terminal 1
+                     index area
+
+                                                                                                                                 A
+                                                                                                                E                      A1
+                                                                                                                                                                                   c
+
+
+                                                                                                                                                    detail X
+
+
+
+
+                                                                 e1                                                                                             C
+
+                                                      e                 1/2 e      b                         v M C A B                 y1 C                         y
+                                          11                                                 20              w M C
+                           L
+                                                                                                   21
+                                10
+
+                                                                                                         e
+
+
+
+
+                          Eh                                                                                    e2
+
+                                                                                                        1/2 e
+
+
+
+
+                                 1
+                                                                                                   30
+                     terminal 1
+                     index area             40                                          31
+                                                                 Dh                                                                                             X
+
+                                                                          0                        2.5                    5 mm
+
+                                                                                                  scale
+      DIMENSIONS (mm are the original dimensions)
+                A(1)
+       UNIT
+                max.
+                         A1           b          c        D(1)   Dh       E(1)     Eh         e           e1         e2   L      v           w      y      y1
+
+        mm               0.05        0.30                 6.1    4.25     6.1      4.25                                   0.5
+                 1                              0.2                                          0.5         4.5        4.5          0.1        0.05   0.05   0.1
+                         0.00        0.18                 5.9    3.95     5.9      3.95                                   0.3
+      Note
+      1. Plastic or metal protrusions of 0.075 mm maximum per side are not included.
+
+              OUTLINE                                                         REFERENCES                                                          EUROPEAN
+                                                                                                                                                                        ISSUE DATE
+              VERSION                          IEC                    JEDEC                       JEITA                                          PROJECTION
+
+                                                                                                                                                                            01-08-08
+              SOT618-1                         ---                 MO-220                          ---
+                                                                                                                                                                            02-10-22
+
+
+
+Fig 14. Package outline SOT618-1 (HVQFN40)
+TEA5767HN_5                                                                                                                                                         © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                                               Rev. 05 — 26 January 2007                                                                                 34 of 40
+NXP Semiconductors                                                                     TEA5767HN
+                                                      Low-power FM stereo radio for handheld applications
+
+
+
+18. Soldering
+                     This text provides a very brief insight into a complex technology. A more in-depth account
+                     of soldering ICs can be found in Application Note AN10365 “Surface mount reflow
+                     soldering description”.
+
+                18.1 Introduction to soldering
+                     Soldering is one of the most common methods through which packages are attached to
+                     Printed Circuit Boards (PCBs), to form electrical circuits. The soldered joint provides both
+                     the mechanical and the electrical connection. There is no single soldering method that is
+                     ideal for all IC packages. Wave soldering is often preferred when through-hole and
+                     Surface Mount Devices (SMDs) are mixed on one printed wiring board; however, it is not
+                     suitable for fine pitch SMDs. Reflow soldering is ideal for the small pitches and high
+                     densities that come with increased miniaturization.
+
+                18.2 Wave and reflow soldering
+                     Wave soldering is a joining technology in which the joints are made by solder coming from
+                     a standing wave of liquid solder. The wave soldering process is suitable for the following:
+
+                      • Through-hole components
+                      • Leaded or leadless SMDs, which are glued to the surface of the printed circuit board
+                     Not all SMDs can be wave soldered. Packages with solder balls, and some leadless
+                     packages which have solder lands underneath the body, cannot be wave soldered. Also,
+                     leaded SMDs with leads having a pitch smaller than ~0.6 mm cannot be wave soldered,
+                     due to an increased probability of bridging.
+
+                     The reflow soldering process involves applying solder paste to a board, followed by
+                     component placement and exposure to a temperature profile. Leaded packages,
+                     packages with solder balls, and leadless packages are all reflow solderable.
+
+                     Key characteristics in both wave and reflow soldering are:
+
+                      • Board specifications, including the board finish, solder masks and vias
+                      • Package footprints, including solder thieves and orientation
+                      • The moisture sensitivity level of the packages
+                      • Package placement
+                      • Inspection and repair
+                      • Lead-free soldering versus PbSn soldering
+
+                18.3 Wave soldering
+                     Key characteristics in wave soldering are:
+
+                      • Process issues, such as application of adhesive and flux, clinching of leads, board
+                         transport, the solder wave parameters, and the time during which components are
+                         exposed to the wave
+                      • Solder bath specifications, including temperature and impurities
+
+TEA5767HN_5                                                                                   © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                         Rev. 05 — 26 January 2007                                                 35 of 40
+NXP Semiconductors                                                                         TEA5767HN
+                                                       Low-power FM stereo radio for handheld applications
+
+
+                18.4 Reflow soldering
+                     Key characteristics in reflow soldering are:
+
+                      • Lead-free versus SnPb soldering; note that a lead-free reflow process usually leads to
+                         higher minimum peak temperatures (see Figure 15) than a PbSn process, thus
+                         reducing the process window
+                      • Solder paste printing issues including smearing, release, and adjusting the process
+                         window for a mix of large and small components on one board
+                      • Reflow temperature profile; this profile includes preheat, reflow (in which the board is
+                         heated to the peak temperature) and cooling down. It is imperative that the peak
+                         temperature is high enough for the solder to make reliable solder joints (a solder paste
+                         characteristic). In addition, the peak temperature must be low enough that the
+                         packages and/or boards are not damaged. The peak temperature of the package
+                         depends on package thickness and volume and is classified in accordance with
+                         Table 35 and 36
+
+                     Table 35.    SnPb eutectic process (from J-STD-020C)
+                     Package thickness (mm)      Package reflow temperature (°C)
+                                                 Volume (mm3)
+                                                 < 350                             ≥ 350
+                     < 2.5                       235                               220
+                     ≥ 2.5                       220                               220
+
+
+                     Table 36.    Lead-free process (from J-STD-020C)
+                     Package thickness (mm)      Package reflow temperature (°C)
+                                                 Volume (mm3)
+                                                 < 350                  350 to 2000         > 2000
+                     < 1.6                       260                    260                 260
+                     1.6 to 2.5                  260                    250                 245
+                     > 2.5                       250                    245                 245
+
+                     Moisture sensitivity precautions, as indicated on the packing, must be respected at all
+                     times.
+
+                     Studies have shown that small packages reach higher temperatures during reflow
+                     soldering, see Figure 15.
+
+
+
+
+TEA5767HN_5                                                                                   © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                          Rev. 05 — 26 January 2007                                                36 of 40
+NXP Semiconductors                                                                    TEA5767HN
+                                                          Low-power FM stereo radio for handheld applications
+
+
+
+
+                                                      maximum peak temperature
+                             temperature               = MSL limit, damage level
+
+
+
+
+                                                       minimum peak temperature
+                                                 = minimum soldering temperature
+
+
+
+
+                                                                                        peak
+                                                                                     temperature
+
+
+
+
+                                                                                                            time
+                                                                                                    001aac844
+
+
+                             MSL: Moisture Sensitivity Level
+                      Fig 15. Temperature profiles for large and small components
+
+                     For further information on temperature profiles, refer to Application Note AN10365
+                     “Surface mount reflow soldering description”.
+
+
+
+
+TEA5767HN_5                                                                                    © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                           Rev. 05 — 26 January 2007                                                37 of 40
+NXP Semiconductors                                                                                TEA5767HN
+                                                               Low-power FM stereo radio for handheld applications
+
+
+
+19. Revision history
+Table 37.     Revision history
+Document ID                 Release date         Data sheet status              Change notice      Supersedes
+TEA5767HN_5                 20070126             Product data sheet             -                  TEA5767HN_4
+Modifications:                   • Modified: Section 13 “Dynamic characteristics” values of Soft mute, mute attenuation are
+                                   changed
+TEA5767HN_4                 20060220             Product data sheet             -                  TEA5767HN_3
+                                                                                                   (9397 750 13531)
+TEA5767HN_3                 20040920             Product specification          -                  TEA5767HN_2
+(9397 750 13531)                                                                                   (9397 750 12071)
+TEA5767HN_2                 20031112             Preliminary specification      -                  TEA5767HN_1
+(9397 750 12071)                                                                                   (9397 750 09626)
+TEA5767HN_1                 20020913             Preliminary specification      -                  -
+(9397 750 09626)
+
+
+
+
+TEA5767HN_5                                                                                              © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                  Rev. 05 — 26 January 2007                                                   38 of 40
+NXP Semiconductors                                                                                                                             TEA5767HN
+                                                                                          Low-power FM stereo radio for handheld applications
+
+
+
+20. Legal information
+
+20.1 Data sheet status
+Document status[1][2]                  Product status[3]                   Definition
+Objective [short] data sheet           Development                         This document contains data from the objective specification for product development.
+Preliminary [short] data sheet         Qualification                       This document contains data from the preliminary specification.
+Product [short] data sheet             Production                          This document contains the product specification.
+
+[1]   Please consult the most recently issued document before initiating or completing a design.
+[2]   The term ‘short data sheet’ is explained in section “Definitions”.
+[3]   The product status of device(s) described in this document may have changed since this document was published and may differ in case of multiple devices. The latest product status
+      information is available on the Internet at URL http://www.nxp.com.
+
+
+
+20.2 Definitions                                                                                   result in personal injury, death or severe property or environmental damage.
+                                                                                                   NXP Semiconductors accepts no liability for inclusion and/or use of NXP
+                                                                                                   Semiconductors products in such equipment or applications and therefore
+Draft — The document is a draft version only. The content is still under
+                                                                                                   such inclusion and/or use is at the customer’s own risk.
+internal review and subject to formal approval, which may result in
+modifications or additions. NXP Semiconductors does not give any                                   Applications — Applications that are described herein for any of these
+representations or warranties as to the accuracy or completeness of                                products are for illustrative purposes only. NXP Semiconductors makes no
+information included herein and shall have no liability for the consequences of                    representation or warranty that such applications will be suitable for the
+use of such information.                                                                           specified use without further testing or modification.
+
+Short data sheet — A short data sheet is an extract from a full data sheet                         Limiting values — Stress above one or more limiting values (as defined in
+with the same product type number(s) and title. A short data sheet is intended                     the Absolute Maximum Ratings System of IEC 60134) may cause permanent
+for quick reference only and should not be relied upon to contain detailed and                     damage to the device. Limiting values are stress ratings only and operation of
+full information. For detailed and full information see the relevant full data                     the device at these or any other conditions above those given in the
+sheet, which is available on request via the local NXP Semiconductors sales                        Characteristics sections of this document is not implied. Exposure to limiting
+office. In case of any inconsistency or conflict with the short data sheet, the                    values for extended periods may affect device reliability.
+full data sheet shall prevail.                                                                     Terms and conditions of sale — NXP Semiconductors products are sold
+                                                                                                   subject to the general terms and conditions of commercial sale, as published
+                                                                                                   at http://www.nxp.com/profile/terms, including those pertaining to warranty,
+20.3 Disclaimers                                                                                   intellectual property rights infringement and limitation of liability, unless
+                                                                                                   explicitly otherwise agreed to in writing by NXP Semiconductors. In case of
+General — Information in this document is believed to be accurate and                              any inconsistency or conflict between information in this document and such
+reliable. However, NXP Semiconductors does not give any representations or                         terms and conditions, the latter will prevail.
+warranties, expressed or implied, as to the accuracy or completeness of such
+                                                                                                   No offer to sell or license — Nothing in this document may be interpreted
+information and shall have no liability for the consequences of use of such
+                                                                                                   or construed as an offer to sell products that is open for acceptance or the
+information.
+                                                                                                   grant, conveyance or implication of any license under any copyrights, patents
+Right to make changes — NXP Semiconductors reserves the right to make                              or other industrial or intellectual property rights.
+changes to information published in this document, including without
+limitation specifications and product descriptions, at any time and without
+notice. This document supersedes and replaces all information supplied prior                       20.4 Trademarks
+to the publication hereof.
+                                                                                                   Notice: All referenced brands, product names, service names and trademarks
+Suitability for use — NXP Semiconductors products are not designed,
+                                                                                                   are the property of their respective owners.
+authorized or warranted to be suitable for use in medical, military, aircraft,
+space or life support equipment, nor in applications where failure or                              I2C-bus — logo is a trademark of NXP B.V.
+malfunction of a NXP Semiconductors product can reasonably be expected to
+
+
+
+21. Contact information
+For additional information, please visit: http://www.nxp.com
+For sales office addresses, send an email to: salesaddresses@nxp.com
+
+
+
+
+TEA5767HN_5                                                                                                                                               © NXP B.V. 2007. All rights reserved.
+
+Product data sheet                                                          Rev. 05 — 26 January 2007                                                                            39 of 40
+NXP Semiconductors                                                                                                                      TEA5767HN
+                                                                                        Low-power FM stereo radio for handheld applications
+
+
+
+22. Contents
+1       General description . . . . . . . . . . . . . . . . . . . . . . 1                  17          Package outline . . . . . . . . . . . . . . . . . . . . . . . .        34
+2       Features . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1           18          Soldering . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    35
+3       Quick reference data . . . . . . . . . . . . . . . . . . . . . 2                   18.1          Introduction to soldering. . . . . . . . . . . . . . . . .           35
+4       Ordering information . . . . . . . . . . . . . . . . . . . . . 3                   18.2          Wave and reflow soldering . . . . . . . . . . . . . . .              35
+                                                                                           18.3          Wave soldering. . . . . . . . . . . . . . . . . . . . . . . .        35
+5       Block diagram . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+                                                                                           18.4          Reflow soldering. . . . . . . . . . . . . . . . . . . . . . .        36
+6       Pinning information . . . . . . . . . . . . . . . . . . . . . . 5
+                                                                                           19          Revision history . . . . . . . . . . . . . . . . . . . . . . .         38
+6.1        Pinning . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+6.2        Pin description . . . . . . . . . . . . . . . . . . . . . . . . . 5             20          Legal information . . . . . . . . . . . . . . . . . . . . . .          39
+                                                                                           20.1          Data sheet status . . . . . . . . . . . . . . . . . . . . . .        39
+7       Functional description . . . . . . . . . . . . . . . . . . . 6
+                                                                                           20.2          Definitions . . . . . . . . . . . . . . . . . . . . . . . . . . .    39
+7.1        Low-noise RF amplifier . . . . . . . . . . . . . . . . . . . 6
+                                                                                           20.3          Disclaimers. . . . . . . . . . . . . . . . . . . . . . . . . . .     39
+7.2        FM mixer. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+                                                                                           20.4          Trademarks . . . . . . . . . . . . . . . . . . . . . . . . . .       39
+7.3        VCO . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+7.4        Crystal oscillator . . . . . . . . . . . . . . . . . . . . . . . . 7            21          Contact information . . . . . . . . . . . . . . . . . . . .            39
+7.5        PLL tuning system . . . . . . . . . . . . . . . . . . . . . . 7                 22          Contents. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    40
+7.6        RF AGC . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+7.7        IF filter. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+7.8        FM demodulator . . . . . . . . . . . . . . . . . . . . . . . . 7
+7.9        Level voltage generator and
+           analog-to-digital converter . . . . . . . . . . . . . . . . 7
+7.10       IF counter . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+7.11       Soft mute . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+7.12       MPX decoder . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+7.13       Signal dependent mono to stereo blend . . . . . . 8
+7.14       Signal dependent AF response . . . . . . . . . . . . 8
+7.15       Software programmable ports . . . . . . . . . . . . . 8
+7.16       I2C-bus and 3-wire bus . . . . . . . . . . . . . . . . . . . 8
+8        2
+        I C-bus, 3-wire bus and bus-controlled
+        functions. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+8.1        I2C-bus specification . . . . . . . . . . . . . . . . . . . . 10
+8.1.1      Data transfer . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+8.1.2      Power-on reset . . . . . . . . . . . . . . . . . . . . . . . . 11
+8.2        I2C-bus protocol . . . . . . . . . . . . . . . . . . . . . . . 11
+8.3        3-wire bus specification . . . . . . . . . . . . . . . . . 12
+8.3.1      Data transfer . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+8.3.2      Power-on reset . . . . . . . . . . . . . . . . . . . . . . . . 13
+8.4        Writing data . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+8.5        Reading data . . . . . . . . . . . . . . . . . . . . . . . . . 16
+9       Internal circuitry. . . . . . . . . . . . . . . . . . . . . . . . 18
+10      Limiting values. . . . . . . . . . . . . . . . . . . . . . . . . 22
+11      Thermal characteristics. . . . . . . . . . . . . . . . . . 23
+12      Static characteristics. . . . . . . . . . . . . . . . . . . . 23
+13      Dynamic characteristics . . . . . . . . . . . . . . . . . 25
+14      FM characteristics . . . . . . . . . . . . . . . . . . . . . . 31
+15      I2C-bus characteristics . . . . . . . . . . . . . . . . . . 32
+16      Test information . . . . . . . . . . . . . . . . . . . . . . . . 32
+
+
+
+
+                                                                                           Please be aware that important notices concerning this document and the product(s)
+                                                                                           described herein, have been included in section ‘Legal information’.
+
+
+                                                                                           © NXP B.V. 2007.                                              All rights reserved.
+                                                                                           For more information, please visit: http://www.nxp.com
+                                                                                           For sales office addresses, please send an email to: salesaddresses@nxp.com
+                                                                                                                                                  Date of release: 26 January 2007
+                                                                                                                                                Document identifier: TEA5767HN_5
+
