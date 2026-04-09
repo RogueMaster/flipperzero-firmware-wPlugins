@@ -2,17 +2,35 @@
 
 # Tesla FSD 解鎖 — Flipper Zero
 
-[![GitHub stars](https://img.shields.io/github/stars/hypery11/flipper-tesla-fsd?style=flat-square)](https://github.com/hypery11/flipper-tesla-fsd/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/hypery11/flipper-tesla-fsd?style=flat-square)](https://github.com/hypery11/flipper-tesla-fsd/network)
-[![GitHub release](https://img.shields.io/github/v/release/hypery11/flipper-tesla-fsd?style=flat-square)](https://github.com/hypery11/flipper-tesla-fsd/releases)
+[![GitHub stars](https://img.shields.io/github/stars/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/network)
+[![GitHub release](https://img.shields.io/github/v/release/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/releases)
+[![Downloads](https://img.shields.io/github/downloads/hypery11/flipper-tesla-fsd/total?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/releases)
+[![Last commit](https://img.shields.io/github/last-commit/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/commits/main)
+[![Open issues](https://img.shields.io/github/issues/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/issues)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Featured on FSD CAN Mod Hub](https://img.shields.io/badge/featured%20on-FSD%20CAN%20Mod%20Hub-orange?style=flat-square)](https://fsdcanmod.com/project/hypery11-flipper-zero)
 
-用 Flipper Zero 解鎖 Tesla FSD。不用訂閱、不用電腦，插上 OBD-II 就能跑。
+> **Tesla Full Self-Driving（FSD）解鎖 — Flipper Zero 版。** 支援 HW3、HW4、Legacy HW1/HW2 Model S/X，FSD v14 可用。免訂閱解鎖、繞過「交通號誌與停車標誌控制」地區鎖、含 Nag 抑制、限速提示音消除、OTA 自動暫停、電池預熱觸發、BMS 即時儀表板。中規 Model 3 / Y / Highland 已確認可用。硬體成本：Flipper Zero + Electronic Cats CAN Bus Add-On + OBD-II 線；或做 [PR #6](https://github.com/hypery11/flipper-tesla-fsd/pull/6) 的 ESP32 移植版，總成本 ~$14 / ¥100。
 
 <p align="center">
-  <img src="screenshots/main_menu.png" alt="主選單" width="256">&nbsp;&nbsp;&nbsp;
-  <img src="screenshots/fsd_running.png" alt="FSD 運作中" width="256">
+  <img src="assets/demo.gif" alt="Tesla FSD 解鎖運作中 — 主選單、HW 偵測、BMS 即時儀表板" width="600">
+</p>
+
+<p align="center">
+  <img src="screenshots/main_menu.png" alt="Flipper Zero Tesla FSD 主選單" width="256">&nbsp;&nbsp;&nbsp;
+  <img src="screenshots/fsd_running.png" alt="Tesla FSD 解鎖運作中" width="256">
+</p>
+
+<p align="center">
+  <a href="https://star-history.com/#hypery11/flipper-tesla-fsd&Date">
+    <img src="https://api.star-history.com/svg?repos=hypery11/flipper-tesla-fsd&type=Date" alt="Star history" width="600">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/hypery11/flipper-tesla-fsd/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=hypery11/flipper-tesla-fsd" alt="Contributors">
+  </a>
 </p>
 
 ---
@@ -50,9 +68,13 @@ HW4 車輛韌體版本 **2026.2.3 以前**請使用 HW3 模式。詳見[相容�
   <img src="images/wiring_diagram.png" alt="接線圖" width="700">
 </p>
 
-> **重要：** 把 CAN Add-On 板上的 120 歐姆終端電阻切斷或停用。車上的 CAN bus 已經有自己的終端電阻，多一個會造成通訊錯誤。
+> **終端電阻：** Electronic Cats 這塊 Add-On 有兩個版本。v0.1 預設啟用 120 Ω 終端，要把板子背面靠近 SN65HVD230 的 `J1 / TERM` solder jumper 切開。v0.2+ 預設已經是斷開狀態，不用動。**接車前**先用三用電表量 CAN-H 跟 CAN-L 兩個 pin 之間的電阻：~120 Ω = 好（terminator 關閉），~60 Ω = 要切斷 jumper，無限大 = 也沒問題。完整說明見 [`HARDWARE.md`](HARDWARE.md#termination-resistor--important-detail)。
 
 替代接點：後座中控台內的 **X179 診斷接頭**（20-pin 版 Pin 13/14 = CAN-H/L；26-pin 版 Pin 18/19）。
+
+### 其他支援的硬體
+
+不想買 Flipper Zero？PR [#6](https://github.com/hypery11/flipper-tesla-fsd/pull/6) 提供完整 ESP32 移植版，整套硬體成本壓到 **~$14 / ¥100**，內建 WiFi 網頁儀表板。Aliexpress 上 ¥30 的通用 MCP2515 模組也能搭 Flipper Zero 用，自己拉幾條跳線就行。完整對照表見 [`HARDWARE.md`](HARDWARE.md)。
 
 ---
 
@@ -110,19 +132,35 @@ git clone https://github.com/hypery11/flipper-tesla-fsd.git applications_user/te
 
 ## 相容性
 
-| 車型 | HW 版本 | 韌體 | 模式 | 狀態 |
-|------|--------|------|------|------|
-| Model 3/Y（2019-2023） | HW3 | 任何 | HW3 | 支援 |
-| Model 3/Y（2023+） | HW4 | < 2026.2.3 | **HW3** | 支援 |
-| Model 3/Y（2023+） | HW4 | >= 2026.2.3 | HW4 | 支援 |
-| Model S/X（2021+） | HW4 | >= 2026.2.3 | HW4 | 支援 |
-| Model S/X（2016-2019） | HW1/HW2 | 任何 | Legacy | **徵求測試者** |
+| 車型 | HW | 韌體 | 模式 | 狀態 |
+|------|----|------|------|------|
+| Model 3 / Y（2019-2023） | HW3 | 任何 | Auto | 支援 |
+| Model 3 / Y（2023+） | HW4 | `< 2026.2.3` | Force HW3 | 支援 |
+| Model 3 / Y（2023+） | HW4 | `2026.2.3` ↔ `2026.2.8` | Auto | 支援 |
+| Model 3 / Y（2023+） | HW4 | `2026.2.9.x`（FSD v14） | Auto | 支援 |
+| Model 3 / Y（2023+） | HW4 | `2026.2.10` ↔ `2026.4.x` | Auto | 支援 |
+| Model 3 / Y（2023+） | HW4 | `2026.8.6` | **Force HW3** | HW4 path 在這個版本壞掉，要強制 HW3 |
+| Model 3 Highland（2024+） | HW4 | `2026.2.x` | Auto | 已有運作回報 — 需更多確認 |
+| Model 3 / Y（中規 MIC） | HW3 / HW4 | `2026.2.11` | Auto + Force FSD | 已有運作回報 — 見 issue #1, #4, #7 |
+| Model S / X（2021+） | HW4 | `>= 2026.2.3`（除 2026.8.6） | Auto | 支援 |
+| Model S / X（2016-2019） | HW1 / HW2 | 任何 | Legacy | v2.0 已實作，**待上車驗證** |
+
+### 社群測試回報
+
+實車回報（用 [Car compatibility report](https://github.com/hypery11/flipper-tesla-fsd/issues/new?template=car_compatibility.yml) issue template 自己回報）：
+
+| 回報者 | 車 | HW | 韌體 | 地區 | 模式 | 結果 |
+|--------|----|----|------|------|------|------|
+| @vbarrier | Model 3 | HW4 | 2026.4.x | 歐洲 | Auto | 運作 |
+| @kwangseok73-sudo | Model 3 | HW4 | 2026.2.x | 韓國 | Force FSD | 運作 |
+| @andreiboestean | Model 3 | HW4 | 2026.2.9.3（FSD v14） | 歐洲 | Auto | 運作 |
+| Marow | Model Y Juniper | HW4 | 2026.8.6 | 歐洲 | (Force HW3 尚未測試) | 顯示「Region not available」→ 用 Force FSD + Force HW3 |
 
 ### HW1/HW2 Legacy 支援 — 徵求志願者
 
 舊款 Model S/X（2016-2019）使用 Mobileye 架構，CAN ID 完全不同。Autopilot 控制 frame 在 `0x3EE`（1006）而非 `0x3FD`（1021），bit 排列也不一樣。
 
-邏輯已經有文件記錄（參考 [CanFeather LegacyHandler](https://gitlab.com/Starmixcraft/tesla-fsd-can-mod)），但我們需要有 HW1/HW2 車的人幫忙驗證才能上線。
+邏輯記錄在 [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod) 這個 CanFeather 鏡像（原始 `Starmixcraft/tesla-fsd-can-mod` GitLab 上游已被下架）。但我們需要有 HW1/HW2 車的人幫忙驗證才能上線。
 
 **如果你有 2016-2019 Model S/X 且有 FSD，想幫忙的話：**
 
@@ -166,11 +204,24 @@ git clone https://github.com/hypery11/flipper-tesla-fsd.git applications_user/te
 
 ---
 
+## 相關專案
+
+| 專案 | 是什麼 | 硬體 |
+|------|--------|------|
+| [slxslx/tesla-open-can-mod-slx-repo](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo) | 原始 Tesla-OPEN-CAN-MOD 上游 namespace 被下架後事實上的接班 fork。範圍更廣 — 「general CAN mod tool, not just FSD」 | Adafruit RP2040 CAN、Feather M4、ESP32、M5Stack ATOMIC CAN |
+| ESP32 移植 — PR [#6](https://github.com/hypery11/flipper-tesla-fsd/pull/6) by @elonleo | 把本專案 CAN 邏輯完整移植到 ESP32，內建 WiFi 網頁儀表板。~$14 的 Flipper + Add-On 替代方案 | M5Stack ATOM Lite + ATOMIC CAN、Waveshare ESP32-S3-RS485-CAN |
+| [tumik/S3XY-candump](https://github.com/tumik/S3XY-candump) | 用 enhauto S3XY Commander 當 Panda-protocol bridge 透過 WiFi dump 整條 Tesla CAN bus 的 Python 工具 | Commander dongle |
+| [dzid26/ESP32-DualCAN](https://github.com/dzid26/ESP32-DualCAN) | 「Dorky Commander」— 開源硬體版的 enhauto S3XY Commander | ESP32 + dual CAN |
+| [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod) | 原始 `Starmixcraft/tesla-fsd-can-mod` CanFeather 研究的鏡像 — 我們移植的源頭。原始 GitLab 上游已被下架，這是目前還能看的版本。 | Adafruit Feather M4 CAN |
+| [tuncasoftbildik/tesla-can-mod](https://github.com/tuncasoftbildik/tesla-can-mod) | Arduino 參考實作，含多個非 FSD 功能的 frame template | Arduino + MCP2515 |
+
 ## 致謝
 
 - [commaai/opendbc](https://github.com/commaai/opendbc) — Tesla CAN 訊號資料庫
 - [ElectronicCats/flipper-MCP2515-CANBUS](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) — Flipper 用 MCP2515 驅動
-- [Starmixcraft/tesla-fsd-can-mod](https://gitlab.com/Starmixcraft/tesla-fsd-can-mod) — 原始 CanFeather FSD 研究
+- `Starmixcraft/tesla-fsd-can-mod` — 原始 CanFeather FSD 研究（GitLab 上已被下架，鏡像在 [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod)）
+- mikegapinski/tesla-can-explorer — 從 Tesla 主機 `libQtCarVAPI.so` 萃取的 4 萬個 Tesla CAN 訊號字典
+- talas9/tesla_can_signals — 各車型 wire format 對照
 
 ## 授權
 
@@ -178,4 +229,4 @@ GPL-3.0
 
 ## 免責聲明
 
-僅供教育與研究用途。改裝車輛系統可能導致保固失效，也可能違反當地法規。使用者需自行承擔所有責任與風險。
+僅供教育與研究用途。**FSD 是 Tesla 的付費功能，必須合法購買或訂閱使用。** 改裝車輛系統可能導致保固失效，也可能違反當地法規。使用者需自行承擔所有責任與風險。完整安全與責任使用說明見 [`SECURITY.md`](SECURITY.md)。

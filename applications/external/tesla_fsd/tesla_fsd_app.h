@@ -11,7 +11,7 @@
 #include "libraries/mcp_can_2515.h"
 #include "fsd_logic/fsd_handler.h"
 
-#define TESLA_FSD_VERSION "2.3.0"
+#define TESLA_FSD_VERSION FAP_VERSION
 
 typedef enum {
     TeslaFSDSceneMainMenu,

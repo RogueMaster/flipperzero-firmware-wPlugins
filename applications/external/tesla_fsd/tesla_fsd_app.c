@@ -55,7 +55,11 @@ TeslaFSDApp* tesla_fsd_app_alloc(void) {
     app->emergency_vehicle_detect = false;
     app->nag_killer = false;
     app->precondition = false;
-    app->op_mode = OpMode_Active;
+    // First-boot default: Listen-Only. Forces the user to make an explicit
+    // decision in Settings before any TX happens. Better for new users who
+    // haven't read the README, and matches the safer default that the ESP32
+    // port (PR #6) uses.
+    app->op_mode = OpMode_ListenOnly;
 
     return app;
 }
