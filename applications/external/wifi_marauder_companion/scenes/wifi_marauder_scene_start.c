@@ -5,12 +5,20 @@
 // For each command, define whether additional arguments are needed
 // (enabling text input to fill them out), and whether the console
 // text box should focus at the start of the output or the end
-typedef enum { NO_ARGS = 0, INPUT_ARGS, TOGGLE_ARGS } InputArgs;
+typedef enum {
+    NO_ARGS = 0,
+    INPUT_ARGS,
+    TOGGLE_ARGS
+} InputArgs;
 
-typedef enum { FOCUS_CONSOLE_END = 0, FOCUS_CONSOLE_START, FOCUS_CONSOLE_TOGGLE } FocusConsole;
+typedef enum {
+    FOCUS_CONSOLE_END = 0,
+    FOCUS_CONSOLE_START,
+    FOCUS_CONSOLE_TOGGLE
+} FocusConsole;
 
 #define SHOW_STOPSCAN_TIP (true)
-#define NO_TIP (false)
+#define NO_TIP            (false)
 
 #define MAX_OPTIONS (17)
 typedef struct {
@@ -54,13 +62,7 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
      INPUT_ARGS,
      FOCUS_CONSOLE_END,
      NO_TIP},
-    {"AP Info",
-     {""},
-     1,
-     {"info -a"},
-     INPUT_ARGS,
-     FOCUS_CONSOLE_END,
-     NO_TIP},
+    {"AP Info", {""}, 1, {"info -a"}, INPUT_ARGS, FOCUS_CONSOLE_END, NO_TIP},
     {"Set MAC",
      {"rand ap", "rand sta", "clone ap", "clone sta"},
      4,
@@ -106,12 +108,7 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
      FOCUS_CONSOLE_END,
      SHOW_STOPSCAN_TIP},
     {"BLE Spam",
-     {"sour apple",
-      "swiftpair spam",
-      "samsung spam",
-      "google spam",
-      "flipper spam",
-      "bt spam all"},
+     {"sour apple", "swiftpair spam", "samsung spam", "google spam", "flipper spam", "bt spam all"},
      6,
      {"blespam -t apple",
       "blespam -t windows",
@@ -122,13 +119,7 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
      NO_ARGS,
      FOCUS_CONSOLE_END,
      SHOW_STOPSCAN_TIP},
-    {"Spoof Airtag",
-     {""},
-     1,
-     {"spoofat -t"},
-     INPUT_ARGS,
-     FOCUS_CONSOLE_END,
-     NO_TIP},
+    {"Spoof Airtag", {""}, 1, {"spoofat -t"}, INPUT_ARGS, FOCUS_CONSOLE_END, NO_TIP},
     {"Wardrive",
      {"ap", "station", "flock", "bt"},
      4,
@@ -151,13 +142,9 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
      FOCUS_CONSOLE_END,
      NO_TIP},
     {"Targeted Attacks",
-     {"deauth",
-      "manual",
-      "karma",
-      "badmsg",
-      "sleep"},
+     {"deauth", "manual", "karma", "badmsg", "sleep"},
      5,
-     {"attack -t deauth -c", 
+     {"attack -t deauth -c",
       "attack -t deauth -s",
       "karma -p",
       "attack -t badmsg -c",
@@ -187,7 +174,23 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
      FOCUS_CONSOLE_END,
      SHOW_STOPSCAN_TIP},
     {"Sniff",
-     {"beacon", "deauth", "pmkid", "probe", "pwn", "raw", "bt", "skim", "airtag", "flipper", "flock", "meta", "mactrack", "packetcount", "pineapple", "multissid", "sae"},
+     {"beacon",
+      "deauth",
+      "pmkid",
+      "probe",
+      "pwn",
+      "raw",
+      "bt",
+      "skim",
+      "airtag",
+      "flipper",
+      "flock",
+      "meta",
+      "mactrack",
+      "packetcount",
+      "pineapple",
+      "multissid",
+      "sae"},
      17,
      {"sniffbeacon",
       "sniffdeauth",
@@ -240,7 +243,14 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
      FOCUS_CONSOLE_END,
      NO_TIP},
     {"Settings",
-     {"display", "restore", "ForcePMKID", "ForceProbe", "SavePCAP", "EnableLED", "EPDeauth", "other"},
+     {"display",
+      "restore",
+      "ForcePMKID",
+      "ForceProbe",
+      "SavePCAP",
+      "EnableLED",
+      "EPDeauth",
+      "other"},
      8,
      {"settings",
       "settings -r",
