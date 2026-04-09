@@ -1,0 +1,35 @@
+# Build artifacts
+*.o
+*.d
+*.elf
+*.fap
+*.map
+dist/
+build/
+
+# ufbt
+.ufbt/
+
+# Android companion
+android-companion/.gradle/
+android-companion/build/
+android-companion/app/build/
+android-companion/local.properties
+android-companion/release-artifacts/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# OS garbage
+.DS_Store
+Desktop.ini
