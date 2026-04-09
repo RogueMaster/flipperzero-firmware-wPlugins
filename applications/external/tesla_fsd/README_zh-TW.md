@@ -10,7 +10,14 @@
 [![Open issues](https://img.shields.io/github/issues/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/issues)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 
-> **Tesla Full Self-Driving（FSD）解鎖 — Flipper Zero 版。** 支援 HW3、HW4、Legacy HW1/HW2 Model S/X，FSD v14 可用。免訂閱解鎖、繞過「交通號誌與停車標誌控制」地區鎖、含 Nag 抑制、限速提示音消除、OTA 自動暫停、電池預熱觸發、BMS 即時儀表板。中規 Model 3 / Y / Highland 已確認可用。硬體成本：Flipper Zero + Electronic Cats CAN Bus Add-On + OBD-II 線；或做 [PR #6](https://github.com/hypery11/flipper-tesla-fsd/pull/6) 的 ESP32 移植版，總成本 ~$14 / ¥100。
+> **Tesla FSD 區域鎖繞過 — Flipper Zero 版。** 讓**已經有 FSD 訂閱或購買**但所在地區的車機不顯示「交通號誌與停車標誌控制」選項的車主，能透過 CAN bus 層面啟用 FSD UI 開關。支援 HW3、HW4、Legacy HW1/HW2 Model S/X，FSD v14 可用。另含 Nag 抑制、限速提示音消除、OTA 自動暫停、電池預熱觸發、BMS 即時儀表板（這些功能**不需要** FSD 訂閱就能使用）。硬體成本：Flipper Zero + Electronic Cats CAN Bus Add-On + OBD-II 線；或做 [ESP32 移植版](https://github.com/hypery11/flipper-tesla-fsd/tree/main/esp32)，總成本 ~$14 / ¥100。
+
+> [!IMPORTANT]
+> **FSD 相關功能必須有有效的 FSD 套件** — 購買或訂閱均可。此工具在 CAN bus 層面啟用 FSD 功能，但車輛仍需要來自 Tesla 的合法 FSD 授權。**這不是免費解鎖工具。**
+>
+> 如果你所在的地區無法訂閱 FSD，上游社群記錄了一個變通方法：在可訂閱 FSD 的地區（如加拿大）建立 Tesla 帳號，將車輛轉移到該帳號，然後訂閱 FSD。詳見[上游文件](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo)。
+>
+> Nag 抑制、限速提示音消除、BMS 儀表板、電池預熱等功能**無需 FSD 訂閱**，可獨立使用。
 
 <p align="center">
   <img src="assets/demo.gif" alt="Tesla FSD 解鎖運作中 — 主選單、HW 偵測、BMS 即時儀表板" width="600">
@@ -37,7 +44,7 @@
 
 ## 功能
 
-- 自動偵測 HW3/HW4（從 `GTW_carConfig` `0x398` 讀取），也可手動強制指定
+- 自動偵測 HW3/HW4（從 `GTW_carConfig` `0x398` legacy / `0x7FF` Ethernet 讀取），也可手動強制指定 — **注意：** 2020 後 Model 3/Y HW3/HW4 的 `0x398` 在 Ethernet bus 上，CAN bus 可能看不到；遇到偵測不到的情況請用 Force HW3 或 Force HW4
 - 透過修改 `UI_autopilotControl`（`0x3FD`）的 bit 來啟用 FSD
 - Nag 抑制（消除方向盤握手提醒）
 - 速度檔位預設最快，自動從跟車距離撥桿同步

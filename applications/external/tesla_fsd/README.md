@@ -13,7 +13,14 @@
 [![Build](https://img.shields.io/badge/build-ufbt-brightgreen?style=flat-square)](https://github.com/flipperdevices/flipperzero-ufbt)
 [![Flipper target](https://img.shields.io/badge/Flipper%20target-7%20%2F%20API%2087.1-orange?style=flat-square)](https://github.com/flipperdevices/flipperzero-firmware)
 
-> **Tesla Full Self-Driving (FSD) unlock for Flipper Zero.** One-button activation for HW3, HW4, and Legacy HW1/HW2 Model S/X. FSD v14 ready. Bypasses the "Traffic Light and Stop Sign Control" regional gate. Includes nag killer, ISA speed chime suppression, OTA guard, battery preconditioning trigger, and a live BMS dashboard. Total hardware cost: Flipper Zero + Electronic Cats CAN Bus Add-On + OBD-II cable — or build the $14 ESP32 port from [PR #6](https://github.com/hypery11/flipper-tesla-fsd/pull/6) instead.
+> **Tesla FSD region-gate bypass for Flipper Zero.** Enables the FSD UI toggle for users who **already have an active FSD subscription or purchase** but are in a region where the "Traffic Light and Stop Sign Control" option is not exposed in the vehicle menu. HW3, HW4, Legacy HW1/HW2. FSD v14 ready. Also includes nag killer, ISA speed chime suppression, OTA guard, battery preconditioning trigger, and a live BMS dashboard — these work independently of FSD entitlement. Total hardware cost: Flipper Zero + Electronic Cats CAN Bus Add-On + OBD-II cable — or build the [$14 ESP32 port](https://github.com/hypery11/flipper-tesla-fsd/tree/main/esp32) instead.
+
+> [!IMPORTANT]
+> **An active FSD package is required for FSD features** — either purchased or subscribed. This tool enables the FSD functionality at the CAN bus level, but the vehicle still needs a valid FSD entitlement from Tesla. It is NOT a purchase bypass.
+>
+> If FSD subscriptions are not available in your region, the upstream community documents a workaround: create a Tesla account in a region where FSD subscriptions are offered (e.g. Canada), transfer the vehicle to that account, and subscribe. See the [upstream documentation](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo) for details.
+>
+> Features like the Nag Killer, ISA Speed Chime Suppression, BMS Dashboard, and battery preconditioning work **without** FSD and do not require any subscription.
 
 <p align="center">
   <img src="assets/demo.gif" alt="Tesla FSD unlock running on Flipper Zero — main menu, HW detect, and live BMS dashboard" width="600">
@@ -40,7 +47,7 @@
 
 ## Features
 
-- Auto-detect HW3/HW4 from `GTW_carConfig` (`0x398`), or force manually
+- Auto-detect HW3/HW4 from `GTW_carConfig` (`0x398` on legacy / `0x7FF` on Ethernet), or force manually — **note:** on 2020+ Model 3/Y HW3/HW4, `0x398` is on the Ethernet bus and may not appear on the CAN bus tap; use Force HW3 or Force HW4 if auto-detect doesn't find it
 - **Legacy mode** for HW1/HW2 (Model S/X 2016-2019)
 - FSD unlock via bit manipulation on `UI_autopilotControl` (`0x3FD` / `0x3EE`)
 - Nag suppression (hands-on-wheel reminder)
@@ -52,7 +59,7 @@
 | Setting | Description |
 |---------|-------------|
 | **Mode** | `Active` / `Listen-Only` / `Service`. Listen-Only is the **first-boot default** as of v2.4 — the MCP2515 is put into hardware listen-only mode and physically cannot TX. Switch to Active when you're ready. |
-| **Force FSD** | Enable FSD without "Traffic Light and Stop Sign Control" toggle — for regions where this option doesn't exist |
+| **Force FSD** | Bypass the `isFSDSelectedInUI` CAN-level check so frames are modified even if the car's Traffic Light toggle is absent. **This does not bypass Tesla's server-side entitlement verification** — it only affects the local CAN frame flow. Useful when the toggle exists in the car but is hidden by the region UI gating. |
 | **Suppress Chime** | Kill the ISA speed warning chime (HW4 only, CAN ID `0x399`) |
 | **Emerg. Vehicle** | Enable emergency vehicle detection flag (HW4 only, bit59) |
 | **Nag Killer** | EPAS counter+1 echo on `0x370` (CAN 880 method, ported from upstream MR !44) |
