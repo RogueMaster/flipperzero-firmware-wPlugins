@@ -250,6 +250,51 @@ bool fsd_handle_isa_speed_chime(CANFRAME* frame) {
     return true;
 }
 
+// --- Extras: read-only parsers ---
+
+void fsd_handle_di_system_status(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 7) return;
+    // DI_trackModeState: byte 6 bits 1:0 (0=unavail 1=avail 2=on)
+    state->track_mode_state = frame->buffer[6] & 0x03;
+    // DI_tractionControlMode: byte 5 bits 2:0 (0=normal..5=dyno)
+    state->traction_ctrl_mode = frame->buffer[5] & 0x07;
+}
+
+void fsd_handle_vcright_status(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 2) return;
+    // VCRIGHT_rearDefrostState: byte 1 bits 2:0 (0=sna 1=on 2=off)
+    state->rear_defrost_state = frame->buffer[1] & 0x07;
+}
+
+// --- Extras: write handlers (BETA, Service mode only) ---
+
+bool fsd_handle_hazard_inject(const FSDState* state, CANFRAME* frame) {
+    if(!state->extra_hazard_lights) return false;
+    if(state->op_mode != OpMode_Service) return false;
+    if(frame->data_lenght < 1) return false;
+    // VCFRONT_hazardLightRequest: byte 0 bits 7:4
+    // Set to 1 (HAZARD_REQUEST_BUTTON) when toggle is ON
+    frame->buffer[0] = (frame->buffer[0] & 0x0F) | (0x01 << 4);
+    return true;
+}
+
+bool fsd_handle_wiper_off(const FSDState* state, CANFRAME* frame) {
+    if(!state->extra_wiper_off) return false;
+    if(state->op_mode != OpMode_Service) return false;
+    if(frame->data_lenght < 1) return false;
+    // DAS_wiperSpeed: byte 0 bits 7:4, set to 0 (OFF)
+    frame->buffer[0] &= 0x0F;
+    return true;
+}
+
+void fsd_build_park_frame(CANFRAME* frame) {
+    memset(frame, 0, sizeof(CANFRAME));
+    frame->canId = CAN_ID_SCCM_RSTALK;
+    frame->data_lenght = 3;
+    // SCCM_parkButtonStatus: byte 2 bits 1:0 = 1 (PRESSED)
+    frame->buffer[2] = 0x01;
+}
+
 // --- Nag killer (CAN 880 counter+1 echo) ---
 
 bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out) {

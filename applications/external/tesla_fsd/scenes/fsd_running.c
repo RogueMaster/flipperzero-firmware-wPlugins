@@ -136,6 +136,10 @@ static int32_t fsd_running_worker(void* context) {
     state.nag_killer = app->nag_killer;
     state.precondition = app->precondition;
     state.op_mode = app->op_mode;
+    // extras
+    state.extra_hazard_lights = app->extra_hazard_lights;
+    state.extra_wiper_off = app->extra_auto_wipers_off;
+    state.extra_park_inject = false; // one-shot, not persistent
     furi_mutex_release(app->mutex);
 
     // Listen-only mode → MCP2515 hardware listen-only register
@@ -218,6 +222,22 @@ static int32_t fsd_running_worker(void* context) {
                     fsd_handle_bms_soc(&state, &frame);
                 } else if(frame.canId == CAN_ID_BMS_THERMAL) {
                     fsd_handle_bms_thermal(&state, &frame);
+                }
+                // Extras: read-only vehicle state parsers (mode-independent)
+                else if(frame.canId == CAN_ID_DI_SYS_STATUS) {
+                    fsd_handle_di_system_status(&state, &frame);
+                } else if(frame.canId == CAN_ID_VCRIGHT_STATUS) {
+                    fsd_handle_vcright_status(&state, &frame);
+                }
+
+                // Extras: write handlers (Service mode only, gated inside each handler)
+                if(frame.canId == CAN_ID_VCFRONT_LIGHT) {
+                    if(fsd_handle_hazard_inject(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
+                    if(fsd_handle_wiper_off(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
                 }
 
                 if(frame.canId == CAN_ID_EPAS_STATUS && state.nag_killer) {

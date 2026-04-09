@@ -17,6 +17,12 @@
 #define CAN_ID_BMS_THERMAL    0x312 // 786 - BMS_thermalStatus (battery temp)
 #define CAN_ID_TRIP_PLANNING  0x082 // 130 - UI_tripPlanning (precondition trigger)
 
+// --- Extras CAN IDs (Model 3/Y) ---
+#define CAN_ID_VCFRONT_LIGHT  0x3F5 // 1013 - ID3F5VCFRONT_lighting (hazard, fog, DRL, wiper)
+#define CAN_ID_SCCM_RSTALK    0x229 // 553  - SCCM_rightStalk (gear shift, park button)
+#define CAN_ID_DI_SYS_STATUS  0x118 // 280  - DI_systemStatus (track mode, traction ctrl)
+#define CAN_ID_VCRIGHT_STATUS 0x343 // 835  - VCRIGHT_status (rear defrost state)
+
 typedef enum {
     TeslaHW_Unknown = 0,
     TeslaHW_Legacy,
@@ -60,6 +66,16 @@ typedef struct {
 
     // precondition trigger (writes 0x082 periodically)
     bool precondition;
+
+    // --- extras: read-only vehicle state (parsed from bus) ---
+    uint8_t track_mode_state; // 0=unavail 1=avail 2=on (from 0x118 DI_trackModeState)
+    uint8_t traction_ctrl_mode; // 0..5 (from 0x118 DI_tractionControlMode)
+    uint8_t rear_defrost_state; // 0=sna 1=on 2=off (from 0x343 VCRIGHT_rearDefrostState)
+
+    // --- extras: write toggles (BETA, Service mode only) ---
+    bool extra_hazard_lights;
+    bool extra_wiper_off;
+    bool extra_park_inject; // inject a PARK stalk press
 } FSDState;
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw);
@@ -96,3 +112,28 @@ void fsd_handle_bms_thermal(FSDState* state, const CANFRAME* frame);
 
 /** Build a UI_tripPlanning frame (0x082) to trigger precondition heating. */
 void fsd_build_precondition_frame(CANFRAME* frame);
+
+// --- Extras: read-only parsers ---
+
+/** Parse DI_systemStatus (0x118) — track mode state + traction control mode. */
+void fsd_handle_di_system_status(FSDState* state, const CANFRAME* frame);
+
+/** Parse VCRIGHT_status (0x343) — rear defrost state. */
+void fsd_handle_vcright_status(FSDState* state, const CANFRAME* frame);
+
+// --- Extras: write handlers (BETA, Service mode only) ---
+
+/** Modify VCFRONT_lighting (0x3F5) to inject hazard light request.
+ *  Sets VCFRONT_hazardLightRequest (byte0 bits 7:4) to HAZARD_REQUEST_BUTTON.
+ *  Source: opendbc tesla_model3_vehicle.dbc line 235. */
+bool fsd_handle_hazard_inject(const FSDState* state, CANFRAME* frame);
+
+/** Modify DAS_bodyControls in 0x3F5 to set wiper speed to 0 (off).
+ *  DAS_wiperSpeed (byte0 bits 7:4). Service mode only.
+ *  Source: opendbc tesla_model3_vehicle.dbc line 199. */
+bool fsd_handle_wiper_off(const FSDState* state, CANFRAME* frame);
+
+/** Build a SCCM_rightStalk (0x229) frame simulating a PARK button press.
+ *  SCCM_parkButtonStatus (byte2 bits 1:0) = 1 (PRESSED).
+ *  Source: opendbc tesla_model3_vehicle.dbc line 126. */
+void fsd_build_park_frame(CANFRAME* frame);

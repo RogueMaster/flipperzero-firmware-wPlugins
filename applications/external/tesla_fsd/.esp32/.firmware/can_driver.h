@@ -1,0 +1,33 @@
+#pragma once
+
+#include "fsd_handler.h" // for CanFrame
+
+// ── Abstract CAN driver ───────────────────────────────────────────────────────
+// Implemented by TwaiDriver (CAN_DRIVER_TWAI) and Mcp2515Driver (CAN_DRIVER_MCP2515).
+// Compile-time selection via platformio.ini build_flags.
+
+class CanDriver {
+public:
+    /** Initialise hardware and start the CAN bus.
+     *  @param listen_only  If true, enter hardware listen-only mode (no ACK, no TX). */
+    virtual bool begin(bool listen_only) = 0;
+
+    /** Send one CAN frame.  Returns false when TX is not allowed (listen-only, bus-off, etc.). */
+    virtual bool send(const CanFrame& frame) = 0;
+
+    /** Non-blocking receive.  Fills frame and returns true if a frame was available. */
+    virtual bool receive(CanFrame& frame) = 0;
+
+    /** Cumulative bus-error counter (rx_missed + bus_errors). */
+    virtual uint32_t errorCount() = 0;
+
+    /** Switch between listen-only and normal TX mode at runtime.
+     *  Implementations must reinitialise the hardware as needed. */
+    virtual void setListenOnly(bool enable) = 0;
+
+    virtual ~CanDriver() = default;
+};
+
+/** Factory function — returns the driver selected at compile time.
+ *  Caller owns the returned pointer. */
+CanDriver* can_driver_create();

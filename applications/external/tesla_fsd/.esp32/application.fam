@@ -1,0 +1,12 @@
+# Marker file — tells ufbt this directory is a separate app root.
+# The ESP32 port is built with PlatformIO, not ufbt.
+# Without this file, ufbt tries to compile the .cpp sources
+# as part of the parent Flipper app and fails on Arduino.h.
+App(
+    appid="tesla_mod_esp32_port",
+    name="[DO NOT BUILD] ESP32 Port",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="dummy",
+    requires=[],
+    sources=[],
+)

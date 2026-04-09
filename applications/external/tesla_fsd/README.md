@@ -1,6 +1,6 @@
 [English](README.md) | [繁體中文](README_zh-TW.md)
 
-# Tesla FSD Unlock for Flipper Zero
+# Tesla Mod for Flipper Zero
 
 [![GitHub stars](https://img.shields.io/github/stars/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/network)

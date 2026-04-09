@@ -1,5 +1,6 @@
 ADD_SCENE(tesla_fsd, main_menu, main_menu)
 ADD_SCENE(tesla_fsd, settings, settings)
+ADD_SCENE(tesla_fsd, extras, extras)
 ADD_SCENE(tesla_fsd, hw_detect, hw_detect)
 ADD_SCENE(tesla_fsd, hw_select, hw_select)
 ADD_SCENE(tesla_fsd, fsd_running, fsd_running)

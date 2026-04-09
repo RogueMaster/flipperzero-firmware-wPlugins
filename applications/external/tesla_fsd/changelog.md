@@ -1,8 +1,10 @@
-## unreleased
+## 2.5 — Tesla Mod
 
-- Housekeeping: removed the `Featured on FSD CAN Mod Hub` README badge — the linked site (fsdcanmod.com) has stopped serving an A record across all public resolvers, so clicking the badge was a dead link. Private note on the site captured in the community workbook.
-- Fixed dead links to `gitlab.com/Starmixcraft/tesla-fsd-can-mod` across README, README_zh-TW, HARDWARE.md, and the HW1/HW2 Legacy Support section. The original GitLab upstream has been removed; replaced each reference with the `Karolynaz/waymo-fsd-can-mod` CanFeather mirror on GitHub.
-- Filled in the placeholder `https://gitlab.com/` link in SECURITY.md's "Why all the caution" section with the actual chain of takedowns (original Starmixcraft → Tesla-OPEN-CAN-MOD → now slxslx and Karolynaz as the reachable continuations).
+- **Rebrand: Tesla FSD Unlock → Tesla Mod.** The app name in the Flipper menu changes from "Tesla FSD" to "Tesla Mod". The repo URL stays the same (`hypery11/flipper-tesla-fsd`) for link stability. This reflects the project's evolution from a single-purpose FSD tool to a general Tesla CAN bus toolkit.
+- **Extras scene [BETA]** — a new submenu accessible from the main menu with toggles for CAN features beyond FSD: Hazard Lights, Rear Window Heat, Auto Wipers Off, Fold Mirrors, Rear Fog Light. These are marked BETA — the CAN IDs and bit positions come from public sources but need on-vehicle verification. Only active when Mode = Service. Adding a new extra is intentionally cheap (one bool + one toggle + one handler + one dispatch line). PRs welcome — see `CONTRIBUTING.md`.
+- **Multi-hardware welcome**: this project now explicitly welcomes ports to any hardware platform. The Flipper Zero version lives in the root, the ESP32 port in `esp32/`. If you want to port to RP2040, STM32, nRF, or anything else with a CAN transceiver, open a PR. See `HARDWARE.md` for the current hardware matrix.
+- Housekeeping: removed dead FSD CAN Mod Hub badge, fixed Starmixcraft dead links, filled SECURITY.md takedown chain.
+- Added Prerequisites section to README — FSD entitlement is required for FSD features, this is a region-gate bypass not a purchase bypass.
 
 ## 2.4
 

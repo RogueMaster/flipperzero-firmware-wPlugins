@@ -6,6 +6,7 @@ enum {
     MainMenuHW3,
     MainMenuHW4,
     MainMenuLegacy,
+    MainMenuExtras,
     MainMenuSettings,
     MainMenuAbout,
 };
@@ -19,12 +20,13 @@ void tesla_fsd_scene_main_menu_on_enter(void* context) {
     TeslaFSDApp* app = context;
 
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Tesla FSD Unlock");
+    submenu_set_header(app->submenu, "Tesla Mod");
     submenu_add_item(
         app->submenu, "Auto Detect & Start", MainMenuAutoDetect, main_menu_callback, app);
     submenu_add_item(app->submenu, "Force HW3 Mode", MainMenuHW3, main_menu_callback, app);
     submenu_add_item(app->submenu, "Force HW4 Mode", MainMenuHW4, main_menu_callback, app);
     submenu_add_item(app->submenu, "Force Legacy Mode", MainMenuLegacy, main_menu_callback, app);
+    submenu_add_item(app->submenu, "Extras [BETA]", MainMenuExtras, main_menu_callback, app);
     submenu_add_item(app->submenu, "Settings", MainMenuSettings, main_menu_callback, app);
     submenu_add_item(app->submenu, "About", MainMenuAbout, main_menu_callback, app);
 
@@ -57,6 +59,10 @@ bool tesla_fsd_scene_main_menu_on_event(void* context, SceneManagerEvent event) 
             app->hw_version = TeslaHW_Legacy;
             fsd_state_init(&app->fsd_state, TeslaHW_Legacy);
             scene_manager_next_scene(app->scene_manager, tesla_fsd_scene_fsd_running);
+            consumed = true;
+            break;
+        case MainMenuExtras:
+            scene_manager_next_scene(app->scene_manager, tesla_fsd_scene_extras);
             consumed = true;
             break;
         case MainMenuSettings:

@@ -110,7 +110,7 @@ def scene_main_menu(selected=0):
         "About",
     ]
     # Title bar
-    draw_text(img, 0, 2, "Tesla FSD", font=FONT_PRIMARY, align="center")
+    draw_text(img, 0, 2, "Tesla Mod", font=FONT_PRIMARY, align="center")
     draw_hline(img, 14)
     # Menu items
     y = 18
