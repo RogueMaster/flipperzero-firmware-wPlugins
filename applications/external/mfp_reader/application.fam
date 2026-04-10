@@ -1,0 +1,18 @@
+App(
+    appid="mfp_reader",
+    name="MFP Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mfp_app_entry",
+    stack_size=4 * 1024,
+    fap_icon="icons/mfp_reader_10px.png",
+    fap_icon_assets="icons",
+    sources=[
+        "*.c",
+        "lib/aes/*.c",
+    ],
+    fap_category="NFC",
+    fap_author="Defensor7",
+    fap_weburl="https://github.com/Defensor7/flipperzero-mfp-reader",
+    fap_version="1.0",
+    fap_description="MIFARE Plus SL3 reader, dumper and emulator",
+)

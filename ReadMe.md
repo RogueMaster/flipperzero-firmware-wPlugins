@@ -75,6 +75,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest) [Added CSA,Quiet commands and moved all BLE spams (By Clawzman)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1177)
 - Updated: [Tesla Mod v2.5 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Added: [Click Recorder v1.0 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
+- Added: [MFP Reader v1.0 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 
 <a name="release"></a>
 
@@ -702,6 +703,7 @@ $ ./fbt dolphin_ext
 - [MFC Editor v1.0 (By TollyH)](https://github.com/TollyH/flipper-apps)
 - [MFDesfire Auth v1.0 (By Gatorixx)](https://github.com/Gatorixx/flipper-zero-legacy-authentication)
 - [Mfkey v4.1 (By noproto)](https://github.com/noproto/FlipperMfkey)
+- [MFP Reader v1.0 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 - [MH-Z19 CO2 Sensor v0.2 (By meshchaninov)](https://github.com/meshchaninov/flipper-zero-mh-z19)
 - [MH-Z19 UART (By skotopes)](https://github.com/skotopes/flipperzero_mhz19_uart)
 - [Mi Band NFC Writer v1.0 (By LucaTomei)](https://github.com/LucaTomei/flipper-miband-nfc-writer)
