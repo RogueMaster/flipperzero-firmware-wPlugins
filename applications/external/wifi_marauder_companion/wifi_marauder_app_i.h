@@ -34,6 +34,7 @@
 
 #define MARAUDER_APP_FOLDER_USER            "apps_data/marauder"
 #define MARAUDER_APP_FOLDER                 EXT_PATH(MARAUDER_APP_FOLDER_USER)
+#define MARAUDER_APP_FOLDER_EVILPORTAL      EXT_PATH("apps_assets/evil_portal")
 #define MARAUDER_APP_FOLDER_HTML            MARAUDER_APP_FOLDER "/html"
 #define MARAUDER_APP_FOLDER_PCAPS           MARAUDER_APP_FOLDER "/pcaps"
 #define MARAUDER_APP_FOLDER_DUMPS           MARAUDER_APP_FOLDER "/dumps"
