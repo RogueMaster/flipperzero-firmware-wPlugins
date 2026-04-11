@@ -4,11 +4,11 @@ I made a simple Flipper app to write **magic ISO15693 tags with changeable UID**
 
 ---
 
-## 📱 Update (26/03)
+## 📱 Update (10/04)
 
 I also developed an **Android version** of the app, available as an `.apk`.
 
-I can share the source code if anyone needs it.
+Sadly it is impossible to read a tag in privacy mode due to Android limitations, so I simplified the code to remove the fallback path
 
 ---
 
