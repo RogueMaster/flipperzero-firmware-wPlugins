@@ -1,12 +1,15 @@
 #include "RDSCore.h"
 
+#include <limits.h>
 #include <string.h>
 
 #define RDS_POLY_10                      0x5B9U
 #define RDS_DEFAULT_FLYWHEEL_LIMIT       20U
 #define RDS_BURST_CORRECTION_MAX_ENTRIES 120U
 #define RDS_FULL_PS_SEGMENT_MASK         0x0FU
-#define RDS_FULL_RT_SEGMENT_MASK         0xFFFFU
+#define RDS_FULL_RT_SEGMENT_MASK_2A      0xFFFFU
+#define RDS_FULL_RT_SEGMENT_MASK_2B      0x00FFU
+#define RDS_BLOCK_STATS_EMIT_INTERVAL    32U
 
 static RdsCorrectionEntry rds_correction_table[RDS_BURST_CORRECTION_MAX_ENTRIES];
 static size_t rds_correction_table_count = 0;
@@ -39,6 +42,7 @@ static bool rds_core_try_decode_search(RdsBlock* block, uint32_t raw26);
 static bool rds_core_try_decode_expected(RDSCore* core, RdsBlock* block, uint32_t raw26);
 static bool rds_core_try_bit_slip_repair(RDSCore* core, RdsBlock* block, uint32_t raw26);
 static uint32_t rds_core_extract_window(const RDSCore* core, uint8_t back_offset);
+static void rds_core_maybe_emit_block_stats(RDSCore* core, bool force);
 
 static void rds_core_emit_event(RDSCore* core, RdsEventType type) {
     RdsEvent event = {0};
@@ -46,6 +50,7 @@ static void rds_core_emit_event(RDSCore* core, RdsEventType type) {
     if(!core) return;
 
     event.type = type;
+    event.tick_ms = core->event_tick_ms ? core->event_tick_ms : (core->events_emitted + 1U);
     event.pi = core->program.pi;
     memcpy(event.ps, core->program.ps, sizeof(event.ps));
     memcpy(event.rt, core->program.rt, sizeof(event.rt));
@@ -60,11 +65,13 @@ static void rds_core_emit_event(RDSCore* core, RdsEventType type) {
     if(core->event_count >= RDS_EVENT_QUEUE_SIZE) {
         core->event_read_idx = (uint8_t)((core->event_read_idx + 1U) % RDS_EVENT_QUEUE_SIZE);
         core->event_count--;
+        core->events_dropped++;
     }
 
     core->event_queue[core->event_write_idx] = event;
     core->event_write_idx = (uint8_t)((core->event_write_idx + 1U) % RDS_EVENT_QUEUE_SIZE);
     core->event_count++;
+    core->events_emitted++;
 }
 
 static void rds_core_ensure_correction_table(void) {
@@ -73,7 +80,7 @@ static void rds_core_ensure_correction_table(void) {
     rds_core_build_syndrome_tables();
 
     rds_correction_table_count = rds_core_build_burst_correction_table(
-        rds_correction_table, RDS_BURST_CORRECTION_MAX_ENTRIES, 5U);
+        rds_correction_table, RDS_BURST_CORRECTION_MAX_ENTRIES, 2U);
 
     for(size_t i = 0; i < 1024U; i++) {
         rds_correction_best_by_syndrome[i] = -1;
@@ -99,6 +106,14 @@ static void rds_core_ensure_correction_table(void) {
     }
 
     rds_correction_table_ready = true;
+}
+
+static void rds_core_maybe_emit_block_stats(RDSCore* core, bool force) {
+    if(!core) return;
+
+    if(force || ((core->total_blocks % RDS_BLOCK_STATS_EMIT_INTERVAL) == 0U)) {
+        rds_core_emit_event(core, RdsEventTypeBlockStatsUpdated);
+    }
 }
 
 static void rds_core_build_syndrome_tables(void) {
@@ -223,6 +238,9 @@ static bool rds_core_try_decode_for_type_with_syndrome(
 }
 
 static bool rds_core_try_decode_search(RdsBlock* block, uint32_t raw26) {
+    /* SEARCH mode with correction enabled (legacy behavior):
+     * try all block types and pick the best unique candidate.
+     */
     const RdsBlockType types[] = {
         RdsBlockTypeA,
         RdsBlockTypeB,
@@ -230,54 +248,46 @@ static bool rds_core_try_decode_search(RdsBlock* block, uint32_t raw26) {
         RdsBlockTypeCp,
         RdsBlockTypeD,
     };
-    RdsBlock best_candidate = {0};
-    bool found = false;
-    bool found_valid = false;
     const uint16_t syndrome10 = rds_core_calc_syndrome(raw26);
+    RdsBlock best_block = {0};
+    int32_t best_score = INT32_MIN;
+    uint8_t best_count = 0U;
 
     for(size_t i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
         RdsBlock candidate = {0};
+        int32_t score;
 
-        if(rds_core_try_decode_for_type_with_syndrome(&candidate, raw26, syndrome10, types[i])) {
-            bool candidate_is_valid = (candidate.status == RdsBlockStatusValid);
+        if(!rds_core_try_decode_for_type_with_syndrome(&candidate, raw26, syndrome10, types[i])) {
+            continue;
+        }
+        if(!rds_core_is_block_status_ok(candidate.status)) {
+            continue;
+        }
 
-            if(!found) {
-                best_candidate = candidate;
-                found = true;
-                found_valid = candidate_is_valid;
-                continue;
-            }
+        score = (candidate.status == RdsBlockStatusValid) ? 1000 : 0;
+        score += (100 - (int32_t)candidate.corrected_bits);
 
-            if(candidate_is_valid && !found_valid) {
-                best_candidate = candidate;
-                found_valid = true;
-                continue;
-            }
-
-            if(candidate_is_valid == found_valid) {
-                memset(block, 0, sizeof(*block));
-                block->raw26 = raw26 & 0x03FFFFFFU;
-                block->data16 = (uint16_t)((block->raw26 >> RDS_CHECK_BITS) & 0xFFFFU);
-                block->syndrome10 = rds_core_calc_syndrome(block->raw26);
-                block->status = RdsBlockStatusInvalid;
-                block->type = RdsBlockTypeUnknown;
-                return false;
-            }
+        if(score > best_score) {
+            best_score = score;
+            best_block = candidate;
+            best_count = 1U;
+        } else if(score == best_score) {
+            best_count++;
         }
     }
 
-    if(!found) {
-        memset(block, 0, sizeof(*block));
-        block->raw26 = raw26 & 0x03FFFFFFU;
-        block->data16 = (uint16_t)((block->raw26 >> RDS_CHECK_BITS) & 0xFFFFU);
-        block->syndrome10 = rds_core_calc_syndrome(block->raw26);
-        block->status = RdsBlockStatusUncorrectable;
-        block->type = RdsBlockTypeUnknown;
-    } else {
-        *block = best_candidate;
+    if(best_count == 1U) {
+        *block = best_block;
+        return true;
     }
 
-    return found;
+    memset(block, 0, sizeof(*block));
+    block->raw26 = raw26 & 0x03FFFFFFU;
+    block->data16 = (uint16_t)((block->raw26 >> RDS_CHECK_BITS) & 0xFFFFU);
+    block->syndrome10 = syndrome10;
+    block->status = RdsBlockStatusUncorrectable;
+    block->type = RdsBlockTypeUnknown;
+    return false;
 }
 
 static bool rds_core_try_decode_expected(RDSCore* core, RdsBlock* block, uint32_t raw26) {
@@ -334,6 +344,8 @@ static void rds_core_parse_group_0(RDSCore* core, const RdsGroup* group) {
 
     if(core->program.pi != pi) {
         core->program.pi = pi;
+        core->last_pi = pi;
+        core->pi_updates++;
         rds_core_emit_event(core, RdsEventTypePiUpdated);
     }
 
@@ -355,6 +367,7 @@ static void rds_core_parse_group_0(RDSCore* core, const RdsGroup* group) {
     core->program.ps[segment * 2U + 1U] = core->program.ps_candidate[segment * 2U + 1U];
     core->program.ps[RDS_PS_LEN] = '\0';
     core->program.ps_ready = true;
+    core->ps_updates++;
     rds_core_emit_event(core, RdsEventTypePsUpdated);
 
     if(core->ps_segment_mask == RDS_FULL_PS_SEGMENT_MASK) {
@@ -367,13 +380,17 @@ static void rds_core_parse_group_2(RDSCore* core, const RdsGroup* group) {
     const uint16_t pi = group->blocks[0].data16;
     const bool version_b = group->version_b;
     const bool rt_ab_flag = ((block_b >> 4U) & 0x01U) != 0U;
-    const uint8_t segment = (uint8_t)(block_b & 0x0FU);
+    const uint8_t segment_raw = (uint8_t)(block_b & 0x0FU);
     const uint8_t pty = (uint8_t)((block_b >> 5U) & 0x1FU);
     const bool tp = ((block_b >> 10U) & 0x01U) != 0U;
+    uint8_t segment;
     uint8_t base_index;
+    uint16_t expected_segment_mask;
 
     if(core->program.pi != pi) {
         core->program.pi = pi;
+        core->last_pi = pi;
+        core->pi_updates++;
         rds_core_emit_event(core, RdsEventTypePiUpdated);
     }
 
@@ -390,15 +407,19 @@ static void rds_core_parse_group_2(RDSCore* core, const RdsGroup* group) {
         core->program.rt_segment_mask = 0U;
         core->program.rt_ready = false;
         core->program.rt_ab_flag = rt_ab_flag;
-        core->program.rt_length = version_b ? 32U : 64U;
+        core->program.rt_length = version_b ? 16U : 64U;
     }
 
     if(version_b) {
+        segment = (uint8_t)(segment_raw & 0x07U);
+        expected_segment_mask = RDS_FULL_RT_SEGMENT_MASK_2B;
         base_index = (uint8_t)(segment * 2U);
         if(base_index + 1U >= RDS_RT_LEN) return;
         core->program.rt_candidate[base_index] = (char)((group->blocks[3].data16 >> 8U) & 0xFFU);
         core->program.rt_candidate[base_index + 1U] = (char)(group->blocks[3].data16 & 0xFFU);
     } else {
+        segment = segment_raw;
+        expected_segment_mask = RDS_FULL_RT_SEGMENT_MASK_2A;
         base_index = (uint8_t)(segment * 4U);
         if(base_index + 3U >= RDS_RT_LEN) return;
         core->program.rt_candidate[base_index] = (char)((group->blocks[2].data16 >> 8U) & 0xFFU);
@@ -411,7 +432,7 @@ static void rds_core_parse_group_2(RDSCore* core, const RdsGroup* group) {
     core->program.rt_candidate[core->program.rt_length] = '\0';
     core->program.rt_segment_mask |= (uint16_t)(1U << segment);
 
-    if(core->program.rt_segment_mask == RDS_FULL_RT_SEGMENT_MASK) {
+    if(core->program.rt_segment_mask == expected_segment_mask) {
         if(memcmp(core->program.rt, core->program.rt_candidate, core->program.rt_length + 1U) !=
            0) {
             memcpy(core->program.rt, core->program.rt_candidate, core->program.rt_length + 1U);
@@ -469,6 +490,7 @@ static void rds_core_handle_synced_block(RDSCore* core, const RdsBlock* block) {
         core->current_group.version_b = ((core->current_group.blocks[1].data16 >> 11U) & 0x01U) !=
                                         0U;
         core->current_group.complete = true;
+        core->groups_complete++;
         rds_core_handle_group(core, &core->current_group);
         rds_core_reset_group(&core->current_group);
     }
@@ -507,6 +529,12 @@ void rds_core_restart_sync(RDSCore* core) {
     rds_core_reset_group(&core->current_group);
 }
 
+void rds_core_set_tick_ms(RDSCore* core, uint32_t tick_ms) {
+    if(!core) return;
+
+    core->event_tick_ms = tick_ms;
+}
+
 void rds_core_push_bit(RDSCore* core, uint8_t bit) {
     if(!core) return;
 
@@ -529,6 +557,13 @@ bool rds_core_consume_demod_bit(RDSCore* core, uint8_t bit, RdsBlock* decoded_bl
                ((core->pilot_level_q8 * 2U) > (core->rds_band_level_q8 * 3U));
     rds_ok = core->rds_band_level_q8 >= RDS_BAND_LEVEL_MIN_Q8;
 
+#ifdef HOST_BUILD
+    /* Disable quality gate for offline testing — pilot/rds ratio depends on
+       generator parameters and doesn't reflect real antenna signal quality. */
+    pilot_ok = true;
+    rds_ok = true;
+#endif
+
     if(pilot_ok && !core->pilot_detected) {
         core->pilot_detected = true;
         rds_core_emit_event(core, RdsEventTypePilotDetected);
@@ -543,13 +578,26 @@ bool rds_core_consume_demod_bit(RDSCore* core, uint8_t bit, RdsBlock* decoded_bl
         core->rds_carrier_detected = false;
     }
 
-    rds_core_push_bit(core, bit);
-
     if(!(pilot_ok && rds_ok)) {
+        if(!pilot_ok) core->quality_gate_pilot_fail++;
+        if(!rds_ok) core->quality_gate_rds_fail++;
+        /* Gate closed: discard this bit entirely.  Reset bit accumulator
+         * so that when the gate re-opens we start with 26 fresh good bits
+         * before any decode attempt.  push_bit is intentionally skipped. */
+        core->bit_window = 0;
+        core->bit_history = 0;
+        core->bit_count = 0;
         if(core->sync_state != RdsSyncStateSearch) {
             rds_core_restart_sync(core);
         }
         return false;
+    }
+
+    rds_core_push_bit(core, bit);
+
+    /* Track bits spent in sync/presync for diagnostics */
+    if(core->sync_state == RdsSyncStateSync || core->sync_state == RdsSyncStatePreSync) {
+        core->sync_bits_total++;
     }
 
     if(core->bit_count < RDS_BLOCK_BITS) {
@@ -611,27 +659,46 @@ bool rds_core_try_decode_block(RDSCore* core, RdsBlock* block, uint32_t raw26) {
 }
 
 void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
+    bool force_block_stats = false;
+
     if(!core || !block) return;
 
     core->total_blocks++;
+
+    /* Mode-separated counters for diagnostics */
+    bool in_sync =
+        (core->sync_state == RdsSyncStateSync || core->sync_state == RdsSyncStatePreSync);
 
     switch(block->status) {
     case RdsBlockStatusValid:
         core->valid_blocks++;
         core->flywheel_errors = 0U;
+        if(in_sync)
+            core->sync_valid++;
+        else
+            core->search_valid++;
         break;
     case RdsBlockStatusCorrected:
         core->corrected_blocks++;
         core->flywheel_errors = 0U;
+        if(in_sync)
+            core->sync_corrected++;
+        else
+            core->search_corrected++;
         break;
     case RdsBlockStatusUncorrectable:
         core->uncorrectable_blocks++;
+        if(in_sync)
+            core->sync_uncorrectable++;
+        else
+            core->search_uncorrectable++;
         if(core->sync_state == RdsSyncStateSync) {
             core->flywheel_errors++;
             if(core->flywheel_errors > core->flywheel_limit) {
                 core->sync_state = RdsSyncStateLost;
                 core->sync_losses++;
                 rds_core_emit_event(core, RdsEventTypeSyncLost);
+                force_block_stats = true;
             }
         }
         break;
@@ -641,14 +708,13 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
 
     switch(core->sync_state) {
     case RdsSyncStateSearch:
-        // Require VALID (exact syndrome) to enter PRE_SYNC.
-        // Noise false rate: 1/1024 per offset vs 11.7% with correction.
         if(block->status == RdsBlockStatusValid) {
             core->sync_state = RdsSyncStatePreSync;
             core->expected_next_block = rds_core_next_block_type(block->type);
             core->block_index_in_group = rds_core_group_index_from_block_type(block->type);
             core->bit_phase = 0;
             core->presync_consecutive = 1U;
+            core->presync_attempts++;
         }
         break;
     case RdsSyncStatePreSync:
@@ -656,6 +722,9 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
         if(rds_core_is_block_status_ok(block->status) &&
            rds_core_block_type_matches_expected(block->type, core->expected_next_block)) {
             core->presync_consecutive++;
+            if(core->presync_consecutive > core->presync_max_consecutive) {
+                core->presync_max_consecutive = core->presync_consecutive;
+            }
             core->expected_next_block = rds_core_next_block_type(block->type);
             core->block_index_in_group = rds_core_group_index_from_block_type(block->type);
             core->bit_phase = 0;
@@ -664,6 +733,7 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
                 core->sync_state = RdsSyncStateSync;
                 core->flywheel_errors = 0U;
                 rds_core_emit_event(core, RdsEventTypeSyncAcquired);
+                force_block_stats = true;
 
                 if(block->type == RdsBlockTypeA) {
                     rds_core_handle_synced_block(core, block);
@@ -701,8 +771,9 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
             }
 
             if(!repaired) {
-                // Advance expected block to stay aligned with the stream.
                 core->expected_next_block = rds_core_next_block_type(core->expected_next_block);
+                core->block_index_in_group =
+                    rds_core_group_index_from_block_type(core->expected_next_block);
                 core->slip_retry_pending = false;
             }
         }
@@ -717,6 +788,8 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
     default:
         break;
     }
+
+    rds_core_maybe_emit_block_stats(core, force_block_stats);
 }
 
 void rds_core_handle_group(RDSCore* core, const RdsGroup* group) {
@@ -725,15 +798,18 @@ void rds_core_handle_group(RDSCore* core, const RdsGroup* group) {
     if(!group->complete) return;
 
     if(group->group_type == 0U) {
+        core->groups_type0++;
         rds_core_parse_group_0(core, group);
         return;
     }
 
     if(group->group_type == 2U) {
+        core->groups_type2++;
         rds_core_parse_group_2(core, group);
         return;
     }
 
+    core->groups_other++;
     if(group->pi != 0U && group->pi != core->program.pi) {
         core->program.pi = group->pi;
         rds_core_emit_event(core, RdsEventTypePiUpdated);

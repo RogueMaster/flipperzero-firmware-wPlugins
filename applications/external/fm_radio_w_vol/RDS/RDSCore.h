@@ -140,12 +140,37 @@ typedef struct {
     uint32_t sync_losses;
     uint32_t bit_slip_repairs;
 
+    /* Diagnostic counters */
+    uint32_t groups_complete;
+    uint32_t groups_type0;
+    uint32_t groups_type2;
+    uint32_t groups_other;
+    uint32_t pi_updates;
+    uint32_t ps_updates;
+    uint32_t presync_attempts;
+    uint32_t presync_max_consecutive;
+    uint32_t quality_gate_pilot_fail;
+    uint32_t quality_gate_rds_fail;
+    uint32_t events_emitted;
+    uint32_t events_dropped;
+    uint16_t last_pi;
+
+    /* Mode-separated block counters for diagnostics */
+    uint32_t search_valid;
+    uint32_t search_corrected;
+    uint32_t search_uncorrectable;
+    uint32_t sync_valid;
+    uint32_t sync_corrected;
+    uint32_t sync_uncorrectable;
+    uint32_t sync_bits_total;
+
     RdsGroup current_group;
     RdsProgramInfo program;
     uint8_t ps_segment_mask;
     bool slip_retry_pending;
     bool pilot_detected;
     bool rds_carrier_detected;
+    uint32_t event_tick_ms;
     RdsEvent event_queue[RDS_EVENT_QUEUE_SIZE];
     uint8_t event_read_idx;
     uint8_t event_write_idx;
@@ -154,6 +179,7 @@ typedef struct {
 
 void rds_core_reset(RDSCore* core);
 void rds_core_restart_sync(RDSCore* core);
+void rds_core_set_tick_ms(RDSCore* core, uint32_t tick_ms);
 void rds_core_push_bit(RDSCore* core, uint8_t bit);
 bool rds_core_consume_demod_bit(RDSCore* core, uint8_t bit, RdsBlock* decoded_block);
 bool rds_core_try_decode_block(RDSCore* core, RdsBlock* block, uint32_t raw26);

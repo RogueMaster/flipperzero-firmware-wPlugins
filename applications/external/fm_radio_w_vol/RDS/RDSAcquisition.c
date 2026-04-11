@@ -239,9 +239,12 @@ static void rds_acquisition_update_measured_rate(RdsAcquisition* acquisition) {
         return;
     }
 
+    /* Use delivered_blocks (wraps after ~224 days) instead of sample_count
+       (wraps after ~5.2 hours at 228 kHz) to avoid uint32_t overflow. */
+    uint64_t total_samples =
+        (uint64_t)acquisition->stats.delivered_blocks * (uint64_t)RDS_ACQ_BLOCK_SAMPLES;
     acquisition->stats.measured_sample_rate_hz =
-        (uint32_t)(((uint64_t)acquisition->sample_count * (uint64_t)furi_ms_to_ticks(1000U)) /
-                   (uint64_t)elapsed_ticks);
+        (uint32_t)((total_samples * (uint64_t)furi_ms_to_ticks(1000U)) / (uint64_t)elapsed_ticks);
 }
 
 void rds_acquisition_init(

@@ -68,6 +68,15 @@ bool tea5767_write_registers(uint8_t* buffer) {
     return result;
 }
 
+bool tea5767_retune(void) {
+    if(!tea5767_last_write_valid) return false;
+    uint8_t buf[5];
+    memcpy(buf, tea5767_last_write_regs, 5);
+    /* Clear search mode bit so chip just re-locks PLL and re-measures */
+    buf[REG_1] &= (uint8_t)~REG_1_SM;
+    return tea5767_write_registers(buf);
+}
+
 bool tea5767_init(uint8_t* buffer) {
     bool result = false;
 

@@ -194,9 +194,9 @@ typedef struct {
      * After deserialization we drain the transmitter into this buffer so the
      * DMA callback can loop it infinitely without stopping the radio between
      * repetitions.  NULL when a RAW file is active. */
-    LevelDuration* protocol_upload;  /**< Heap buffer of pre-computed samples */
-    size_t protocol_upload_count;    /**< Number of valid samples in the buffer */
-    size_t protocol_upload_index;    /**< Current read position (DMA callback only) */
+    LevelDuration* protocol_upload; /**< Heap buffer of pre-computed samples */
+    size_t protocol_upload_count; /**< Number of valid samples in the buffer */
+    size_t protocol_upload_index; /**< Current read position (DMA callback only) */
 
     /* Screen management */
     AppScreen current_screen; /**< Which screen is currently displayed */
@@ -1087,7 +1087,9 @@ static void app_start_transmit_file(ClayLoopApp* app) {
                 if(level_duration_is_reset(ld)) break;
                 app->protocol_upload[app->protocol_upload_count++] = ld;
             }
-            FURI_LOG_I(TAG, "Pre-computed %u samples for gapless TX",
+            FURI_LOG_I(
+                TAG,
+                "Pre-computed %u samples for gapless TX",
                 (unsigned)app->protocol_upload_count);
             /* Transmitter is fully drained — free it now */
             subghz_transmitter_free(app->transmitter);

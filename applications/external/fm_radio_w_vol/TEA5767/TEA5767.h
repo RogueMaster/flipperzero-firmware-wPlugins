@@ -84,6 +84,7 @@ bool tea5767_seek(uint8_t* buffer, bool seek_up);
 bool tea5767_get_frequency(uint8_t* buffer, int* value);
 bool tea5767_set_frequency(uint8_t* buffer, int value);
 bool tea5767_get_radio_info(uint8_t* buffer, struct RADIO_INFO* info);
+bool tea5767_retune(void);
 
 // Audio options
 void tea5767_set_snc_enabled(bool enabled);

@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="images/logo.png" alt="Project logo" width="220"/>
+  <img src="images/logo.png" alt="Project logo" width="330"/>
 </p>
 
 # flipperzero-radio-with-volume-control
-Flipper Zero external app to control TEA5767 FM radio boards and PT2257/PT2259-S I2C volume.
+Flipper Zero external app for TEA5767 FM reception, PT2257/PT2259-S audio control, and RDS decoding from the TEA5767 MPXO path.
 
 ## Table of Contents
 - [Quick Start](#quick-start)
@@ -16,7 +16,6 @@ Flipper Zero external app to control TEA5767 FM radio boards and PT2257/PT2259-S
 - [App Screenshots](#app-screenshots)
 - [Persistent Settings](#persistent-settings)
 - [TEA5767 Audio Tuning](#tea5767-audio-tuning)
-- [Audible Noise and Power Tips](#audible-noise-and-power-tips)
 - [Provenance and Licensing](#provenance-and-licensing)
 - [References](#references)
 - [Acknowledgements](#acknowledgements)
@@ -36,11 +35,13 @@ Windows (qFlipper):
 ## Features
 
 - TEA5767 FM control with manual tune (`76.0–108.0 MHz`) and seek step.
+- RDS receive path from TEA5767 MPXO on `PA4`, with in-app `RDS` enable/disable option.
 - PT2257/PT2259-S volume control and mute over I2C.
 - Manual PT chip protocol selection in app config (`PT2257`, `PT2259-S`).
 - Preset storage on SD card (`settings.fff`, `presets.fff`).
-- Live TEA5767 audio options (`SNC`, `De-emph`, `SoftMute`, `HighCut`, `Mono`).
+- Live TEA5767 audio options (`SNC`, `De-emph`, `SoftMute`, `HighCut`, `Mono`) plus `RDS` toggle in config.
 - Backlight keep-on option for long listening sessions.
+- RDS support will continue to be tuned and validated on PCB v1.1 after PCB design and PCBA production complete.
 
 ## Controls
 
@@ -65,6 +66,7 @@ Open with: `Menu -> Config`
 - `SoftMute`: TEA5767 SoftMute.
 - `HighCut`: TEA5767 High Cut control.
 - `Mono`: TEA5767 force mono mode.
+- `RDS`: enable or disable the MPXO-based RDS decoder path.
 
 ## Build and Release
 
@@ -89,37 +91,86 @@ Automated releases (GitHub Actions):
 ## Hardware
 
 ### Supported Boards
-- TEA5767 (I2C FM receiver)
-- PT2257 / PT2259 (I2C electronic volume controller)
-- PAM8403 (external audio amplifier)
+- TEA5767 external FM receiver module
+- PT2259-S is the intended onboard audio-control IC for both PCB v1.0 and PCB v1.1
+- PT2257 remains supported in firmware for prototyping and bench testing
+- Current released hardware revision: PCB v1.0 with PT2259-S onboard
+- Next hardware revision in progress: PCB v1.1, also planned around PT2259-S onboard
+
+Hardware direction for PCB v1.1:
+- TEA5767 remains the only external radio module.
+- PT2259-S remains the dedicated onboard volume-control IC, as in PCB v1.0.
+- The external PAM module is removed from the design.
+- Common PAM8403 modules are still cheap and easy to buy, but the PAM8403 device itself has `NRND / EOL` status.
+- PCB v1.1 moves toward an onboard PAM8406 implementation based on a currently active amplifier family.
+- The PAM8406 stage is planned as an onboard PCB v1.1 block with reserved control from Flipper GPIO.
 
 ### PT2257 vs PT2259-S
 This app now treats **PT2257** and **PT2259-S** as separate control protocols.
 
 - PT chip selection is manual in app config: `Menu -> Config -> PT Chip`.
+- PT2259-S is the target IC for the dedicated PCB revisions documented here.
+- PT2257 support is retained for prototype boards and bench setups.
+- PT2257 is likely `EOL`, but it is still easy to source in a convenient 8-pin package, which makes it practical for quick breadboard and adapter-board testing.
 - PT address is fixed to `0x88` for the dedicated PCB revision documented here.
 - PT2259-S support uses its own startup and mute sequence.
 
-### Wiring / Pinout
-- `3V3` (pin 9)  -> TEA/PT VCC
-- `GND` (pin 18) -> TEA/PT GND
-- `SCL` (C0, pin 16) -> TEA/PT SCL
-- `SDA` (C1, pin 15) -> TEA/PT SDA
-- `5V` (pin 1) -> PAM8403 VCC
-- `GND` (pin 8) -> PAM8403 GND (power ground)
+### TEA5767 Module Pinout
+- `3V3` (pin 9) -> TEA5767 VCC
+- `GND` (pin 18) -> TEA5767 GND
+- `SCL` (C0, pin 16) -> TEA5767 SCL
+- `SDA` (C1, pin 15) -> TEA5767 SDA
+- `PA4` (pin 4) -> MPXO / RDS ADC path on the v1.1 design
 
-### PAM8403 Note
-TEA5767 line-out is not meant to drive a speaker directly. A small stereo amp module like PAM8403 is a common choice.
+### PT2257 / PT2259-S Interface
+- PT control is handled over the same I2C bus as TEA5767.
+- `SCL` (C0, pin 16) -> PT2257 / PT2259-S SCL
+- `SDA` (C1, pin 15) -> PT2257 / PT2259-S SDA
+- PT2259-S is the onboard choice for PCB v1.0 and the planned PCB v1.1 successor.
+- PT2257 remains supported by firmware mainly for prototype work, where its 8-pin package is convenient.
+- Firmware volume control is selected manually in app config, depending on whether the test setup uses PT2257 or PT2259-S.
 
-### Audio Chain (Example)
-One working setup:
+### PAM8403 Legacy Module Interface
+- Used by legacy external builds and by the currently released v1.0 hardware workflow.
+- `5V` (pin 1) -> PAM8403 module VCC
+- `GND` (pin 8 or pin 18) -> PAM8403 module GND
+- PT audio outputs -> PAM8403 module L/R inputs
+- PAM8403 module speaker outputs -> speakers
 
-- TEA5767 L/R -> coupling caps `4.7uF` (X7R ceramic) -> PT2257 IN
-- PT2257 OUT -> coupling caps `4.7uF` (X7R ceramic) -> PAM8403 L/R input
-- PAM8403 output -> speaker `8Ω` (~7.5 cm) in enclosure
+### PAM8406 v1.1 Integration Interface
+- Used by the planned PCB v1.1 design instead of a separate external PAM module.
+- PAM8406 is powered from the filtered onboard 5 V audio rail.
+- Audio input path: onboard PT stage -> PAM8406 input stage.
+- Audio output path: PAM8406 speaker outputs -> speakers.
+- Control path reserved on Flipper GPIO: `PAM_MUTE`, `PAM_SHDN`, `PAM_MODE_ABD`.
 
-Volume/noise tweak used on one popular PAM8403 board:
-- Change board resistor in the volume network from `10kΩ` to `20kΩ`.
+### Audio Hardware Direction
+TEA5767 line output still needs downstream audio hardware. For the current hardware roadmap:
+
+- PCB v1.0 is the currently released board.
+- PCB v1.1 keeps TEA5767 as the external module.
+- PT2259-S remains onboard.
+- The separate external PAM amplifier module is replaced by an onboard PAM8406 stage.
+- PAM8406 is the planned onboard successor to the legacy external PAM8403 module approach.
+
+### Audio Chain Direction
+Target signal flow for PCB v1.1:
+
+- TEA5767 L/R -> onboard PT stage -> onboard PAM8406 -> speakers
+- TEA5767 MPXO -> MCP6001 front-end -> `PA4` ADC for RDS
+- The RDS direction is inspired specifically by the Philips `SAA6588` family (`SAA6588` / `SAA6588T`) used as a reference RDS decoder architecture.
+- Because the classic `SAA6588` path is no longer a practical choice due to `EOL / NRND` availability status, the Flipper implementation aims to replace that logic in software using its own DSP, DMA, and CPU resources.
+- That part is still an innovation path in progress and will only be considered validated after confirmation on PCB v1.1 hardware.
+- Detailed MPX/RDS notes are in [schematics/rds_mpx_plan.md](schematics/rds_mpx_plan.md). The document is in Polish because the author is a native Polish speaker and uses it as the primary design note.
+
+Planned PAM8406 control model on PCB v1.1:
+
+- These control lines are reserved in the v1.1 hardware plan and are not yet active in released firmware.
+- `PAM_MUTE` on `PB3` / Flipper pin 5: planned shared mute together with the PT stage
+- `PAM_SHDN` on `PB2` / Flipper pin 6: planned amplifier power enable / shutdown
+- `PAM_MODE_ABD` on `PC3` / Flipper pin 7: planned Class AB / Class D selection
+
+Legacy external builds can still use a separate amplifier module, but that is no longer the main hardware direction for this project.
 
 ## PCB (Current Revision)
 
@@ -129,7 +180,11 @@ PCB v1.0 is available now on Tindie:
 This revision is fully usable and available for purchase, but it is still the first hardware release.
 - PCB v1.0 requires three quick manual post-factory fixes.
 - More details about the current revision, store availability, and ordering are on the Tindie listing.
-- PCB v1.1 is already being prepared as the next corrected revision.
+- There is no released hardware revision newer than v1.0 at this time.
+- PCB v1.1 is the planned successor with expanded hardware capabilities.
+- The v1.1 effort is currently entering the PCB design and PCBA ordering phase.
+- Documentation and hardware updates for v1.1 are still in progress.
+- Detailed PCB v1.1 notes are in [schematics/pcb_v1_1_design_notes.md](schematics/pcb_v1_1_design_notes.md). That document is in Polish because it is the working hardware note set for the project author.
 
 Assets:
 - Schematic (SVG, 2026-02-25): [schematics/svg/schematic_radio_tea5767_pt2257_2026-02-25.svg](schematics/svg/schematic_radio_tea5767_pt2257_2026-02-25.svg)
@@ -186,6 +241,9 @@ Presets file:
   - `Freq10kHz` (array)
   - `Index`
 
+Additional setting:
+- `RdsEnabled` (`true/false`)
+
 ## TEA5767 Audio Tuning
 
 ### SNC (Stereo Noise Cancelling)
@@ -203,27 +261,6 @@ These options can be toggled while listening:
 - `SoftMute`
 - `HighCut`
 - `Mono`
-
-## Audible Noise and Power Tips
-
-If you hear tones (often around `8–16 kHz`) while powering modules from Flipper:
-
-- Add local decoupling close to each module IC: `100nF` + `1–10uF` ceramics (X7R), plus bulk electrolytics.
-- Add a series element on supply into audio section (especially PAM8403): ferrite bead or `10uH` inductor.
-- Use star grounding and short wiring.
-- Keep audio wires away from SDA/SCL lines.
-- Consider turning off `Backlight` in `Menu -> Config` if it injects noise (PWM backlight can couple into audio).
-
-### Proven Ground Wiring Fix
-Observed on one build:
-
-- Spectrum showed peaks near `~8.4 kHz` and `~16.6 kHz` while powering TEA/PT and PAM8403 from Flipper.
-- `~8.4 kHz` component was clearly audible.
-
-What helped:
-
-- Route PAM8403 power GND (next to VCC) separately to Flipper main GND (star ground style).
-- Route PAM8403 audio/input GND with the PT2257 audio ground reference.
 
 ## Provenance and Licensing
 

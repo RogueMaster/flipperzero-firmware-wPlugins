@@ -69,13 +69,14 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [ProtoPirate v2.6 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) [Replace blocking dialog with non-blocking NeedSaving scene for exit confirmation (By mishamyte)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/23) [Expansion with Fiat, Mazda, Mitzubishi and Porche protocols (Originally By lupettohf) & Ford Fixed (By LeeroysHub) & Several Other Community Changes](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b377cee471cf61aaeff089c5ff194e1a13e8d94a) Different ProtoPirate Builds Enabled For Better Testing [FORD: Fix PANIC Button ENCODE and Counter Overflow in DECODE (By RalphWiggum)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/28)
 - Added: [Flight Monitor v1.0 (By kamylwnb)](https://github.com/kamylwnb/flight_monitor)
 - Updated: [Access Audit v1.8 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
-- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Added: [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
 - Added: [TagTinker v1.3 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest) [Added CSA,Quiet commands and moved all BLE spams (By Clawzman)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1177)
 - Added: [Click Recorder v1.0 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - Added: [MFP Reader v1.0 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 - Updated: [Tesla Mod v2.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
+- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 
 <a name="release"></a>
 
