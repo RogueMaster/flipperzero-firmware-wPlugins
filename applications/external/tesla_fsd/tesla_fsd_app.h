@@ -73,6 +73,10 @@ typedef struct {
     bool extra_auto_wipers_off;
     bool extra_fold_mirrors;
     bool extra_rear_fog;
+    uint8_t extra_steering_mode; // 0=no change, 1=comfort, 2=standard, 3=sport (Chassis CAN)
+    bool extra_highbeam_strobe; // rapid high beam flash (Party CAN 0x249)
+    bool extra_turn_left; // inject left turn signal
+    bool extra_turn_right; // inject right turn signal
 } TeslaFSDApp;
 
 TeslaFSDApp* tesla_fsd_app_alloc(void);

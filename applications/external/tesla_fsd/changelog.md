@@ -1,3 +1,34 @@
+## 2.6 — Full Party CAN coverage
+
+- **32 CAN handlers** (12 TX write + 20 RX read-only), up from 19 in v2.5. Every useful signal on Tesla Model 3/Y Party CAN is now parsed or injectable.
+- **New write handlers (Service mode only):**
+  - High Beam Strobe — rapid PULL/IDLE toggle on `SCCM_leftStalk (0x249)` at 200ms. Same Party CAN OBD-II tap.
+  - Turn Signal Left/Right — inject turn indicator via `SCCM_leftStalk (0x249)` UP_1/DOWN_1.
+  - Wiper Wash — inject wiper wash button press via `SCCM_leftStalk (0x249)`.
+  - Steering Tune — `GTW_epasTuneRequest (0x101)` COMFORT/STANDARD/SPORT (Chassis CAN tap required).
+  - Hazard Lights — `VCFRONT_hazardLightRequest (0x3F5)`.
+  - Wiper Off — force `DAS_wiperSpeed (0x3F5)` to 0.
+  - Park Inject — `SCCM_parkButtonStatus (0x229)` PRESSED (Vehicle CAN tap required).
+- **New read-only parsers (Party CAN, mode-independent):**
+  - `DAS_control (0x2B9)`: ACC state (ACC_ON=4), set cruise speed.
+  - `DAS_status (0x39B)`: AP hands-on state (4-bit nag), auto lane change, blind spot warning, blind spot avoidance, FCW, vision speed limit.
+  - `DAS_status2 (0x389)`: ACC report, AP activation failure reason.
+  - `DAS_settings (0x293)`: autosteer enabled readback.
+  - `DI_state (0x286)`: cruise state (enabled/standby/standstill), park brake, autopark, digital speed.
+  - `DI_torque (0x108)`: motor torque (Nm).
+  - `DI_speed (0x257)`: vehicle speed (kph), UI speed.
+  - `UI_warning (0x311)`: left/right blinker, any door open, seatbelt, high beam status.
+  - `SCCM_steeringAngleSensor (0x129)`: steering wheel angle (deg).
+  - `DAS_steeringControl (0x488)`: DAS steering request type + angle.
+  - `EPAS3S_currentTuneMode (0x370)`: current steering mode + torsion bar torque.
+  - `ESP_driverBrakeApply (0x145)`: brake pedal state.
+  - `DI_systemStatus (0x118)`: track mode state, traction control mode.
+  - `VCRIGHT_rearDefrostState (0x343)`: rear window defrost.
+- **Extras scene expanded** to 10 toggles: Hazard, Rear Window Heat, Auto Wipers Off, Fold Mirrors, Rear Fog, Steering [ChassisCAN], High Beam Strobe, Turn Left, Turn Right.
+- **New research docs:**
+  - `enhauto-re/FEIFAN_CAN_ANALYSIS.md` — technical analysis of the 非凡指揮官 (Feifan Commander, 69K+ sales in China) CAN injection techniques: continuous AP, stalk simulation, strobe, checksum formulas.
+  - `enhauto-re/COMMANDER_VS_TESLAMOD.md` — three-way feature comparison between enhauto S3XY Commander, Feifan Commander, and Tesla Mod.
+
 ## 2.5 — Tesla Mod
 
 - **Rebrand: Tesla FSD Unlock → Tesla Mod.** The app name in the Flipper menu changes from "Tesla FSD" to "Tesla Mod". The repo URL stays the same (`hypery11/flipper-tesla-fsd`) for link stability. This reflects the project's evolution from a single-purpose FSD tool to a general Tesla CAN bus toolkit.

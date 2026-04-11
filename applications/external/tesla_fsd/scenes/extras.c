@@ -54,6 +54,35 @@ static void rear_fog_changed(VariableItem* item) {
     app->extra_rear_fog = (idx == 1);
 }
 
+static const char* const steering_text[] = {"--", "Comfort", "Standard", "Sport"};
+static void steering_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, steering_text[idx]);
+    app->extra_steering_mode = idx;
+}
+
+static void strobe_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->extra_highbeam_strobe = (idx == 1);
+}
+
+static void turn_left_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->extra_turn_left = (idx == 1);
+}
+
+static void turn_right_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->extra_turn_right = (idx == 1);
+}
+
 void tesla_fsd_scene_extras_on_enter(void* context) {
     TeslaFSDApp* app = context;
     VariableItemList* list = app->var_item_list;
@@ -80,6 +109,25 @@ void tesla_fsd_scene_extras_on_enter(void* context) {
     item = variable_item_list_add(list, "Rear Fog Light", 2, rear_fog_changed, app);
     variable_item_set_current_value_index(item, app->extra_rear_fog ? 1 : 0);
     variable_item_set_current_value_text(item, toggle_text[app->extra_rear_fog ? 1 : 0]);
+
+    // Steering tune — requires Chassis CAN tap (not OBD-II Party CAN)
+    item = variable_item_list_add(list, "Steering [ChassisCAN]", 4, steering_changed, app);
+    variable_item_set_current_value_index(item, app->extra_steering_mode);
+    variable_item_set_current_value_text(item, steering_text[app->extra_steering_mode]);
+
+    // High beam strobe — Party CAN (SCCM_leftStalk 0x249)
+    item = variable_item_list_add(list, "High Beam Strobe", 2, strobe_changed, app);
+    variable_item_set_current_value_index(item, app->extra_highbeam_strobe ? 1 : 0);
+    variable_item_set_current_value_text(item, toggle_text[app->extra_highbeam_strobe ? 1 : 0]);
+
+    // Turn signal injection — Party CAN
+    item = variable_item_list_add(list, "Turn Left", 2, turn_left_changed, app);
+    variable_item_set_current_value_index(item, app->extra_turn_left ? 1 : 0);
+    variable_item_set_current_value_text(item, toggle_text[app->extra_turn_left ? 1 : 0]);
+
+    item = variable_item_list_add(list, "Turn Right", 2, turn_right_changed, app);
+    variable_item_set_current_value_index(item, app->extra_turn_right ? 1 : 0);
+    variable_item_set_current_value_text(item, toggle_text[app->extra_turn_right ? 1 : 0]);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewVarItemList);
 }
