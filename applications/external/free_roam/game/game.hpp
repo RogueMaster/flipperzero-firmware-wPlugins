@@ -17,7 +17,7 @@ private:
     InputKey lastInput = InputKeyMAX; // Last input key pressed
     std::unique_ptr<Player> player; // Player instance
     ToggleState soundToggle = ToggleOn; // sound toggle state
-    const int totalLevels = 3; // Total number of levels available
+    const int totalLevels = 4; // Total number of levels available
     ToggleState vibrationToggle = ToggleOn; // vibration toggle state
     //
     int atoi(const char* nptr) {
@@ -34,8 +34,6 @@ public:
     void* appContext =
         nullptr; // Pointer to the application context for accessing app-specific functionality
     bool shouldReturnToMenu = false; // Flag to signal return to menu
-    ViewDispatcher** viewDispatcherRef =
-        nullptr; // Reference to the view dispatcher for navigation
     //
     void endGame(); // end the game and return to the submenu
     InputKey getCurrentInput() const {
@@ -47,7 +45,7 @@ public:
     Draw* getDraw() const {
         return draw.get();
     } // Get the Draw instance
-    bool init(ViewDispatcher** viewDispatcher, void* appContext); // initialize the game
+    bool init(void* appContext); // initialize the game
     bool isActive() const {
         return shouldReturnToMenu == false;
     } // Check if the game is active
@@ -58,6 +56,7 @@ public:
         lastInput = InputKeyMAX;
     } // Reset input after processing
     bool startGame(); // start the actual game
+    bool startGameOnline(); // start the online multiplayer game
     void updateDraw(Canvas* canvas); // update and draw the game
     void updateInput(InputEvent* event); // update input for the game
     void updateSoundToggle(); // update sound toggle state

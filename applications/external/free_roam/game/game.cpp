@@ -25,6 +25,7 @@ void FreeRoamGame::endGame() {
 
     if(engine) {
         engine->stop();
+        engine.reset();
     }
 
     if(draw) {
@@ -32,8 +33,7 @@ void FreeRoamGame::endGame() {
     }
 }
 
-bool FreeRoamGame::init(ViewDispatcher** viewDispatcher, void* appContext) {
-    this->viewDispatcherRef = viewDispatcher;
+bool FreeRoamGame::init(void* appContext) {
     this->appContext = appContext;
 
     FreeRoamApp* app = static_cast<FreeRoamApp*>(appContext);
@@ -68,9 +68,6 @@ void FreeRoamGame::inputManager() {
 }
 
 bool FreeRoamGame::startGame() {
-    draw->fillScreen(0xFFFF);
-    draw->text(Vector(0, 10), "Initializing game...", 0x0000);
-
     if(isGameRunning || engine) {
         FURI_LOG_E("FreeRoamGame", "Game already running, skipping start");
         return true;
@@ -80,6 +77,11 @@ bool FreeRoamGame::startGame() {
     // camera.release() transfers ownership to Game so it isn't deleted when startGame() returns
     auto camera = std::make_unique<Camera>(
         Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 0.66f, 0), 1.6f, 2.0f, CAMERA_THIRD_PERSON);
+    if(!camera) {
+        FURI_LOG_E("FreeRoamGame", "Failed to create Camera object");
+        return false;
+    }
+
     auto game = std::make_unique<Game>(
         "Free Roam", draw->getDisplaySize(), draw.get(), 0x0000, 0xFFFF, camera.release());
     if(!game) {
@@ -89,7 +91,14 @@ bool FreeRoamGame::startGame() {
 
     // Create the player instance if it doesn't exist
     if(!player) {
-        player = std::make_unique<Player>();
+        // pass username to player
+        FreeRoamApp* app = static_cast<FreeRoamApp*>(appContext);
+        furi_check(app);
+        char username[64] = {0};
+        if(!app->load_char("user_name", username, sizeof(username), "flipper_http")) {
+            snprintf(username, sizeof(username), "Player");
+        }
+        player = std::make_unique<Player>(username);
         if(!player) {
             FURI_LOG_E("FreeRoamGame", "Failed to create Player object");
             return false;
@@ -196,6 +205,115 @@ bool FreeRoamGame::startGame() {
     return true;
 }
 
+bool FreeRoamGame::startGameOnline() {
+    if(isGameRunning || engine) {
+        FURI_LOG_E("FreeRoamGame", "Game already running, skipping start");
+        return true;
+    }
+
+    // Create the game instance with 3rd person perspective
+    // camera.release() transfers ownership to Game so it isn't deleted when startGame() returns
+    auto camera = std::make_unique<Camera>(
+        Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 0.66f, 0), 1.6f, 2.0f, CAMERA_THIRD_PERSON);
+    auto game = std::make_unique<Game>(
+        "Free Roam", draw->getDisplaySize(), draw.get(), 0x0000, 0xFFFF, camera.release());
+    if(!game) {
+        FURI_LOG_E("FreeRoamGame", "Failed to create Game object");
+        return false;
+    }
+
+    // Create the player instance if it doesn't exist
+    if(!player) {
+        // pass username to player
+        FreeRoamApp* app = static_cast<FreeRoamApp*>(appContext);
+        furi_check(app);
+        char username[64] = {0};
+        if(!app->load_char("user_name", username, sizeof(username), "flipper_http")) {
+            snprintf(username, sizeof(username), "Player");
+        }
+        player = std::make_unique<Player>(username);
+        if(!player) {
+            FURI_LOG_E("FreeRoamGame", "Failed to create Player object");
+            return false;
+        }
+    }
+
+    // set sound/vibration toggle states
+    player->setSoundToggle(soundToggle);
+    player->setVibrationToggle(vibrationToggle);
+
+    // Online multiplayer level — open 64x57 gathering world
+    std::unique_ptr<Level> level_online =
+        std::make_unique<Level>("Online", draw->getDisplaySize(), game.get());
+    level_online->entity_add(player.get());
+
+    // 4 houses in the four quadrants (mirrors town layout)
+    level_online->entity_add(
+        new Sprite("House 1", Vector(14, 13), SPRITE_3D_HOUSE, 10.0f, 10.0f, 0.0f));
+    level_online->entity_add(
+        new Sprite("House 2", Vector(48, 13), SPRITE_3D_HOUSE, 10.0f, 10.0f, (float)(M_PI / 2.0)));
+    level_online->entity_add(
+        new Sprite("House 3", Vector(14, 43), SPRITE_3D_HOUSE, 10.0f, 10.0f, (float)(M_PI)));
+    level_online->entity_add(
+        new Sprite("House 4", Vector(48, 43), SPRITE_3D_HOUSE, 10.0f, 10.0f, (float)(M_PI * 1.5)));
+
+    // Trees bordering the perimeter and accenting corners/paths
+    const Vector onlineTreePositions[] = {
+        Vector(8, 5),
+        Vector(20, 5),
+        Vector(40, 5),
+        Vector(55, 5),
+        Vector(5, 15),
+        Vector(25, 12),
+        Vector(38, 12),
+        Vector(58, 15),
+        Vector(5, 28),
+        Vector(58, 28),
+        Vector(5, 42),
+        Vector(25, 45),
+        Vector(38, 45),
+        Vector(58, 42),
+        Vector(8, 51),
+        Vector(55, 51),
+    };
+    static const char* onlineTreeNames[] = {
+        "OTree 1",
+        "OTree 2",
+        "OTree 3",
+        "OTree 4",
+        "OTree 5",
+        "OTree 6",
+        "OTree 7",
+        "OTree 8",
+        "OTree 9",
+        "OTree 10",
+        "OTree 11",
+        "OTree 12",
+        "OTree 13",
+        "OTree 14",
+        "OTree 15",
+        "OTree 16",
+    };
+    for(uint8_t i = 0; i < 16; i++) {
+        level_online->entity_add(new Sprite(
+            onlineTreeNames[i], onlineTreePositions[i], SPRITE_3D_TREE, 3.0f, 1.0f, 0.0f));
+    }
+
+    game->level_add(level_online.release());
+
+    this->engine = std::make_unique<GameEngine>(game.release(), 240);
+    if(!this->engine) {
+        FURI_LOG_E("FreeRoamGame", "Failed to create GameEngine");
+        return false;
+    }
+
+    draw->fillScreen(0xFFFF);
+    draw->text(Vector(0, 10), "Starting game engine...", 0x0000);
+
+    isGameRunning = true; // Set the flag to indicate game is running
+    return true;
+}
+
 void FreeRoamGame::switchToLevel(int levelIndex) {
     if(!isGameRunning || !engine || !engine->getGame()) return;
 
@@ -243,7 +361,14 @@ void FreeRoamGame::updateDraw(Canvas* canvas) {
 
     // Initialize player if not already done
     if(!player) {
-        player = std::make_unique<Player>();
+        // pass username to player
+        FreeRoamApp* app = static_cast<FreeRoamApp*>(appContext);
+        furi_check(app);
+        char username[64] = {0};
+        if(!app->load_char("user_name", username, sizeof(username), "flipper_http")) {
+            snprintf(username, sizeof(username), "Player");
+        }
+        player = std::make_unique<Player>(username);
         if(player) {
             player->setFreeRoamGame(this);
             player->setSoundToggle(soundToggle);
@@ -254,12 +379,6 @@ void FreeRoamGame::updateDraw(Canvas* canvas) {
     // Let the player handle all drawing
     if(player) {
         player->drawCurrentView(draw.get());
-
-        if(player->shouldLeaveGame()) {
-            this->soundToggle = player->getSoundToggle();
-            this->vibrationToggle = player->getVibrationToggle();
-            this->endGame(); // End the game if the player wants to leave
-        }
     }
 }
 
@@ -272,7 +391,10 @@ void FreeRoamGame::updateInput(InputEvent* event) {
     this->lastInput = event->key;
 
     // Only run inputManager when not in an active game to avoid input conflicts
-    if(!(player && player->getCurrentMainView() == GameViewGameLocal && this->isGameRunning)) {
+    if(!(player &&
+         (player->getCurrentMainView() == GameViewGameLocal ||
+          player->getCurrentMainView() == GameViewGameOnline) &&
+         this->isGameRunning)) {
         this->inputManager();
     }
 }
