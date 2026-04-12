@@ -6,52 +6,57 @@
 #include <furi_hal_speaker.h>
 #include <subghz/devices/devices.h>
 
-
 static void radio_scanner_apply_freq(RadioScannerApp* app);
 
 #define RADIO_SCANNER_DEFAULT_RSSI        (-100.0f)
 #define RADIO_SCANNER_DEFAULT_SENSITIVITY (-85.0f)
-#define SUBGHZ_DEVICE_NAME "cc1101_int"
-#define RSSI_SAMPLES 5
-#define RSSI_DELAY_MS 3
-#define CHANNEL_SETTLE_MS 15
-#define SCAN_PASS_DELAY 10
-#define MENU_ITEMS_COUNT 3
+#define SUBGHZ_DEVICE_NAME                "cc1101_int"
+#define RSSI_SAMPLES                      5
+#define RSSI_DELAY_MS                     3
+#define CHANNEL_SETTLE_MS                 15
+#define SCAN_PASS_DELAY                   10
+#define MENU_ITEMS_COUNT                  3
 
 static const uint32_t pmr446_channels[] = {
-    446006250, 446018750, 446031250, 446043750,
-    446056250, 446068750, 446081250, 446093750,
-    446106250, 446118750, 446131250, 446143750,
-    446156250, 446168750, 446181250, 446193750
-};
+    446006250,
+    446018750,
+    446031250,
+    446043750,
+    446056250,
+    446068750,
+    446081250,
+    446093750,
+    446106250,
+    446118750,
+    446131250,
+    446143750,
+    446156250,
+    446168750,
+    446181250,
+    446193750};
 
-static const uint32_t frs_gmrs_channels[] = {
-    462562500, 462587500, 462612500, 462637500,
-    462662500, 462687500, 462712500,
-    467562500, 467587500, 467612500, 467637500,
-    467662500, 467687500, 467712500,
-    462550000, 462575000, 462600000, 462625000,
-    462650000, 462675000, 462700000, 462725000
-};
+static const uint32_t frs_gmrs_channels[] = {462562500, 462587500, 462612500, 462637500, 462662500,
+                                             462687500, 462712500, 467562500, 467587500, 467612500,
+                                             467637500, 467662500, 467687500, 467712500, 462550000,
+                                             462575000, 462600000, 462625000, 462650000, 462675000,
+                                             462700000, 462725000};
 
 // ================= DRAW =================
 
 static void draw_scanner(Canvas* canvas, RadioScannerApp* app) {
-
     canvas_clear(canvas);
-canvas_set_font(canvas, FontSecondary);
+    canvas_set_font(canvas, FontSecondary);
 
-// Channel
-char ch[16];
-snprintf(ch, sizeof(ch), "CH-%02d", (int)app->channel_index + 1);
-canvas_draw_str(canvas, 2, 10, ch);
+    // Channel
+    char ch[16];
+    snprintf(ch, sizeof(ch), "CH-%02d", (int)app->channel_index + 1);
+    canvas_draw_str(canvas, 2, 10, ch);
 
-// Profile
-const char* profile =
-    (app->profile == ProfilePMR) ? "PMR" : "FRS";
+    // Profile
+    const char* profile = (app->profile == ProfilePMR) ? "PMR" : "FRS";
 
-canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignCenter, profile);
-canvas_draw_str(canvas, 90, 10, app->scanning ? "SCAN" : "HOLD");
+    canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignCenter, profile);
+    canvas_draw_str(canvas, 90, 10, app->scanning ? "SCAN" : "HOLD");
 
     canvas_set_font(canvas, FontBigNumbers);
 
@@ -59,27 +64,27 @@ canvas_draw_str(canvas, 90, 10, app->scanning ? "SCAN" : "HOLD");
     snprintf(freq, sizeof(freq), "%.3f", (double)app->frequency / 1000000);
     canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignCenter, freq);
 
-float target = (app->rssi + 100) / 8.0f;
-app->bars_smooth = (0.5f * target) + (0.5f * app->bars_smooth);
+    float target = (app->rssi + 100) / 8.0f;
+    app->bars_smooth = (0.5f * target) + (0.5f * app->bars_smooth);
 
-int bars = (int)app->bars_smooth;
+    int bars = (int)app->bars_smooth;
 
-if(bars < 0) bars = 0;
-if(bars > 10) bars = 10;
+    if(bars < 0) bars = 0;
+    if(bars > 10) bars = 10;
 
-for(int i = 0; i < bars; i++) {
-    canvas_draw_box(canvas, 70 + i * 5, 60, 4, 6);
-}
+    for(int i = 0; i < bars; i++) {
+        canvas_draw_box(canvas, 70 + i * 5, 60, 4, 6);
+    }
 
-canvas_set_color(canvas, ColorBlack); 
-canvas_set_font(canvas, FontSecondary);
-canvas_set_color(canvas, ColorBlack);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_set_color(canvas, ColorBlack);
 
-const char* mode =
-    (app->resume_mode == ResumeLock) ? "LOCK" :
-    (app->resume_mode == ResumeDelay) ? "DLY" : "HOLD";
+    const char* mode = (app->resume_mode == ResumeLock)  ? "LOCK" :
+                       (app->resume_mode == ResumeDelay) ? "DLY" :
+                                                           "HOLD";
 
-canvas_draw_str(canvas, 2, 60, mode);
+    canvas_draw_str(canvas, 2, 60, mode);
 }
 
 static void draw_squelch(Canvas* canvas, RadioScannerApp* app) {
@@ -90,25 +95,24 @@ static void draw_squelch(Canvas* canvas, RadioScannerApp* app) {
 }
 
 static float radio_scanner_get_avg_rssi(RadioScannerApp* app) {
-
     int samples;
 
     switch(app->scan_speed) {
-        case ScanSpeedFast:
-            samples = 4;
-            break;
+    case ScanSpeedFast:
+        samples = 4;
+        break;
 
-        case ScanSpeedBalanced:
-            samples = 5;
-            break;
+    case ScanSpeedBalanced:
+        samples = 5;
+        break;
 
-        case ScanSpeedAccurate:
-            samples = 6;
-            break;
+    case ScanSpeedAccurate:
+        samples = 6;
+        break;
 
-        default:
-            samples = 5;
-            break;
+    default:
+        samples = 5;
+        break;
     }
 
     float total = 0;
@@ -122,12 +126,10 @@ static float radio_scanner_get_avg_rssi(RadioScannerApp* app) {
 }
 
 static float radio_scanner_fine_rssi(RadioScannerApp* app, uint32_t base_freq) {
-
     const int offsets[] = {-10000, -5000, 0, 5000, 10000};
     float best = -120.0f;
 
     for(size_t i = 0; i < 5; i++) {
-
         app->frequency = base_freq + offsets[i];
 
         radio_scanner_apply_freq(app);
@@ -135,19 +137,18 @@ static float radio_scanner_fine_rssi(RadioScannerApp* app, uint32_t base_freq) {
 
         float rssi = radio_scanner_get_avg_rssi(app);
 
-        if(rssi > best)
-            best = rssi;
+        if(rssi > best) best = rssi;
     }
 
-float center_rssi;
+    float center_rssi;
 
-app->frequency = base_freq;
-radio_scanner_apply_freq(app);
-furi_delay_ms(10);
+    app->frequency = base_freq;
+    radio_scanner_apply_freq(app);
+    furi_delay_ms(10);
 
-center_rssi = radio_scanner_get_avg_rssi(app);
+    center_rssi = radio_scanner_get_avg_rssi(app);
 
-return (best * 0.7f) + (center_rssi * 0.3f);
+    return (best * 0.7f) + (center_rssi * 0.3f);
 }
 
 static float radio_scanner_smooth_rssi(RadioScannerApp* app, float new_rssi) {
@@ -161,7 +162,6 @@ static void draw_settings(Canvas* canvas, RadioScannerApp* app) {
     const char* items[] = {"Resume Mode", "Squelch"};
 
     for(int i = 0; i < 2; i++) {
-
         if(i == app->settings_index) {
             canvas_set_color(canvas, ColorBlack);
             canvas_draw_box(canvas, 0, 14 + i * 14, 128, 12);
@@ -177,19 +177,16 @@ static void draw_settings(Canvas* canvas, RadioScannerApp* app) {
 }
 
 static void handle_settings_input(RadioScannerApp* app, InputEvent* event) {
-
     if(event->key == InputKeyUp) {
-    if(app->settings_index == 0)
-        app->settings_index = 1;
-    else
-        app->settings_index--;
-    }
-    else if(event->key == InputKeyDown) {
+        if(app->settings_index == 0)
+            app->settings_index = 1;
+        else
+            app->settings_index--;
+    } else if(event->key == InputKeyDown) {
         app->settings_index = (app->settings_index + 1) % 2;
     }
 
     else if(event->key == InputKeyOk) {
-
         if(app->settings_index == 0)
             app->ui_screen = UiScreenResumeMode;
 
@@ -199,26 +196,18 @@ static void handle_settings_input(RadioScannerApp* app, InputEvent* event) {
 }
 
 static void draw_resume_mode(Canvas* canvas, RadioScannerApp* app) {
-
     char delay_str[32];
-    ScanResumeMode modes[] = {
-        ResumeLock,
-        ResumeDelay,
-        ResumeHold
-    };
+    ScanResumeMode modes[] = {ResumeLock, ResumeDelay, ResumeHold};
 
     for(int i = 0; i < 3; i++) {
-
         ScanResumeMode mode = modes[i];
         const char* label;
 
         if(mode == ResumeLock) {
             label = "LOCK";
-        }
-        else if(mode == ResumeHold) {
+        } else if(mode == ResumeHold) {
             label = "HOLD";
-        }
-        else {
+        } else {
             snprintf(delay_str, sizeof(delay_str), "DELAY (%lums)", app->delay_ms);
             label = delay_str;
         }
@@ -248,7 +237,6 @@ static void draw_menu(Canvas* canvas, RadioScannerApp* app) {
         }
 
         if(i == 2) {
-
             canvas_draw_str(canvas, 4, 24 + i * 14, "Speed");
             int slider_x = 50;
             int slider_y = 18 + i * 14;
@@ -260,10 +248,9 @@ static void draw_menu(Canvas* canvas, RadioScannerApp* app) {
             int knob_x = slider_x + (app->scan_speed * 30);
             canvas_draw_box(canvas, knob_x, slider_y - 1, 4, 8);
 
-            const char* label =
-                (app->scan_speed == ScanSpeedFast) ? "F" :
-                (app->scan_speed == ScanSpeedBalanced) ? "M" :
-                "A";
+            const char* label = (app->scan_speed == ScanSpeedFast)     ? "F" :
+                                (app->scan_speed == ScanSpeedBalanced) ? "M" :
+                                                                         "A";
 
             canvas_draw_str(canvas, 115, 24 + i * 14, label);
 
@@ -279,7 +266,6 @@ static void draw_profiles(Canvas* canvas, RadioScannerApp* app) {
     const char* items[] = {"PMR", "FRS/GMRS"};
 
     for(int i = 0; i < 2; i++) {
-
         if(i == app->profile) {
             canvas_set_color(canvas, ColorBlack);
             canvas_draw_box(canvas, 0, 14 + i * 14, 128, 12);
@@ -294,43 +280,40 @@ static void draw_profiles(Canvas* canvas, RadioScannerApp* app) {
     }
 }
 
-
 static void radio_scanner_draw_callback(Canvas* canvas, void* ctx) {
     RadioScannerApp* app = ctx;
 
     canvas_clear(canvas);
 
     switch(app->ui_screen) {
+    case UiScreenScanner:
+        draw_scanner(canvas, app);
+        break;
 
-        case UiScreenScanner:
-            draw_scanner(canvas, app);
-            break;
+    case UiScreenMenu:
+        draw_menu(canvas, app);
+        break;
 
-        case UiScreenMenu:
-            draw_menu(canvas, app);
-            break;
+    case UiScreenProfiles:
+        draw_profiles(canvas, app);
+        break;
 
-        case UiScreenProfiles:
-            draw_profiles(canvas, app);
-            break;
-        
-        case UiScreenSettings:
-            draw_settings(canvas, app);
-            break;
-            
-        case UiScreenResumeMode:
-            draw_resume_mode(canvas, app);
-            break;
+    case UiScreenSettings:
+        draw_settings(canvas, app);
+        break;
 
-        case UiScreenSquelch:
-            draw_squelch(canvas, app);
-            break;
+    case UiScreenResumeMode:
+        draw_resume_mode(canvas, app);
+        break;
 
-        default:
-            break;
+    case UiScreenSquelch:
+        draw_squelch(canvas, app);
+        break;
+
+    default:
+        break;
     }
 }
-
 
 // ============================================ INPUT =================
 
@@ -340,22 +323,17 @@ static void radio_scanner_input_callback(InputEvent* event, void* ctx) {
 }
 
 static void handle_squelch_input(RadioScannerApp* app, InputEvent* event) {
-
-if(event->key == InputKeyRight) {
-    if(app->sensitivity < -60.0f)
-        app->sensitivity += 2;
-}
-else if(event->key == InputKeyLeft) {
-    if(app->sensitivity > -100.0f)
-        app->sensitivity -= 2;
-}
+    if(event->key == InputKeyRight) {
+        if(app->sensitivity < -60.0f) app->sensitivity += 2;
+    } else if(event->key == InputKeyLeft) {
+        if(app->sensitivity > -100.0f) app->sensitivity -= 2;
+    }
 
     else if(event->key == InputKeyOk)
         app->ui_screen = UiScreenSettings;
 }
 
 static void handle_scanner_input(RadioScannerApp* app, InputEvent* event) {
-
     if(event->key == InputKeyOk) {
         app->scanning_before_menu = app->scanning;
         app->scanning = false;
@@ -368,7 +346,6 @@ static void handle_scanner_input(RadioScannerApp* app, InputEvent* event) {
     }
 
     else if(event->key == InputKeyUp && !app->scanning) {
-
         app->channel_index = (app->channel_index + 1) % app->channel_count;
         app->frequency = app->channels[app->channel_index];
 
@@ -378,7 +355,6 @@ static void handle_scanner_input(RadioScannerApp* app, InputEvent* event) {
     }
 
     else if(event->key == InputKeyDown && !app->scanning) {
-
         if(app->channel_index == 0)
             app->channel_index = app->channel_count - 1;
         else
@@ -391,50 +367,42 @@ static void handle_scanner_input(RadioScannerApp* app, InputEvent* event) {
 }
 
 static void handle_menu_input(RadioScannerApp* app, InputEvent* event) {
+    if(app->menu_index == 2) {
+        if(event->key == InputKeyRight) {
+            if(app->scan_speed < ScanSpeedAccurate) app->scan_speed++;
+            return;
+        }
 
-if(app->menu_index == 2) {
-
-    if(event->key == InputKeyRight) {
-        if(app->scan_speed < ScanSpeedAccurate)
-            app->scan_speed++;
-        return;
+        else if(event->key == InputKeyLeft) {
+            if(app->scan_speed > ScanSpeedFast) app->scan_speed--;
+            return;
+        }
     }
 
-    else if(event->key == InputKeyLeft) {
-        if(app->scan_speed > ScanSpeedFast)
-            app->scan_speed--;
-        return;
+    if(event->key == InputKeyUp) {
+        if(app->menu_index == 0)
+            app->menu_index = MENU_ITEMS_COUNT - 1;
+        else
+            app->menu_index--;
+    }
+
+    else if(event->key == InputKeyDown) {
+        app->menu_index = (app->menu_index + 1) % MENU_ITEMS_COUNT;
+    }
+
+    else if(event->key == InputKeyOk) {
+        if(app->menu_index == 0)
+            app->ui_screen = UiScreenProfiles;
+
+        else if(app->menu_index == 1)
+            app->ui_screen = UiScreenSettings;
+
+        else
+            app->ui_screen = UiScreenScanner;
     }
 }
-
-
-if(event->key == InputKeyUp) {
-    if(app->menu_index == 0)
-        app->menu_index = MENU_ITEMS_COUNT - 1;
-    else
-        app->menu_index--;
-}
-
-else if(event->key == InputKeyDown) {
-    app->menu_index = (app->menu_index + 1) % MENU_ITEMS_COUNT;
-}
-
-else if(event->key == InputKeyOk) {
-
-    if(app->menu_index == 0)
-        app->ui_screen = UiScreenProfiles;
-
-    else if(app->menu_index == 1)
-        app->ui_screen = UiScreenSettings;
-
-    else
-        app->ui_screen = UiScreenScanner;
-    }
-}
-
 
 static void handle_resume_mode_input(RadioScannerApp* app, InputEvent* event) {
-
     if(event->key == InputKeyUp)
         app->resume_mode = (app->resume_mode + 2) % 3;
 
@@ -446,8 +414,7 @@ static void handle_resume_mode_input(RadioScannerApp* app, InputEvent* event) {
     }
 
     else if(event->key == InputKeyLeft && app->resume_mode == ResumeDelay) {
-        if(app->delay_ms > 250)
-            app->delay_ms -= 250;
+        if(app->delay_ms > 250) app->delay_ms -= 250;
     }
 
     else if(event->key == InputKeyOk) {
@@ -456,7 +423,6 @@ static void handle_resume_mode_input(RadioScannerApp* app, InputEvent* event) {
 }
 
 static void handle_profiles_input(RadioScannerApp* app, InputEvent* event) {
-
     if(event->key == InputKeyUp)
         app->profile = (app->profile + 1) % 2;
 
@@ -464,15 +430,13 @@ static void handle_profiles_input(RadioScannerApp* app, InputEvent* event) {
         app->profile = (app->profile + 1) % 2;
 
     else if(event->key == InputKeyOk) {
-
-
-if(app->profile == ProfilePMR) {
-    app->channels = (uint32_t*)pmr446_channels;
-    app->channel_count = 16;
-} else {
-    app->channels = (uint32_t*)frs_gmrs_channels;
-    app->channel_count = 22;
-}
+        if(app->profile == ProfilePMR) {
+            app->channels = (uint32_t*)pmr446_channels;
+            app->channel_count = 16;
+        } else {
+            app->channels = (uint32_t*)frs_gmrs_channels;
+            app->channel_count = 22;
+        }
 
         app->channel_index = 0;
         app->frequency = app->channels[0];
@@ -484,7 +448,6 @@ if(app->profile == ProfilePMR) {
 
         app->ui_screen = UiScreenScanner;
     }
-
 }
 
 // ===================================== RADIO =================
@@ -535,91 +498,84 @@ static void radio_scanner_apply_freq(RadioScannerApp* app) {
     subghz_devices_start_async_rx(app->radio_device, radio_scanner_rx_callback, app);
 }
 
-
 static void radio_scanner_process_scanning(RadioScannerApp* app) {
+    if(app->signal_locked) {
+        float open_threshold = app->sensitivity;
+        float close_threshold = app->sensitivity - 2;
 
-if(app->signal_locked) {
+        float rssi = radio_scanner_get_avg_rssi(app);
+        app->rssi = radio_scanner_smooth_rssi(app, rssi);
 
-    float open_threshold  = app->sensitivity;
-    float close_threshold = app->sensitivity - 2;
-
-    float rssi = radio_scanner_get_avg_rssi(app);
-    app->rssi = radio_scanner_smooth_rssi(app, rssi);
-
-    if(app->resume_mode == ResumeHold) {
-
-        if(rssi > open_threshold) {
-            return; 
-        }
-
-        if(rssi < close_threshold) {
-            app->signal_locked = false;
-            app->scanning = true;
-            return;
-        }
-
-        return; 
-    }
-
-    if(app->resume_mode == ResumeDelay) {
-
-        if(rssi > open_threshold) {
-            app->hold_timer = app->delay_ms;
-            return;
-        }
-
-        if(rssi < close_threshold) {
-
-            if(app->hold_timer > 0) {
-                app->hold_timer -= 20;
+        if(app->resume_mode == ResumeHold) {
+            if(rssi > open_threshold) {
                 return;
             }
 
-            app->signal_locked = false;
-            app->scanning = true;
+            if(rssi < close_threshold) {
+                app->signal_locked = false;
+                app->scanning = true;
+                return;
+            }
+
             return;
         }
 
-        return; 
+        if(app->resume_mode == ResumeDelay) {
+            if(rssi > open_threshold) {
+                app->hold_timer = app->delay_ms;
+                return;
+            }
+
+            if(rssi < close_threshold) {
+                if(app->hold_timer > 0) {
+                    app->hold_timer -= 20;
+                    return;
+                }
+
+                app->signal_locked = false;
+                app->scanning = true;
+                return;
+            }
+
+            return;
+        }
+        if(app->resume_mode == ResumeLock) {
+            return;
+        }
     }
-    if(app->resume_mode == ResumeLock) {
-        return; 
-    }
-}
 
     // ============================ SPEED CONFIG =================
     int passes = 2;
     int settle = 15;
 
     switch(app->scan_speed) {
-        case ScanSpeedFast:
-            passes = 1;
-            settle = 10;
-            break;
+    case ScanSpeedFast:
+        passes = 1;
+        settle = 10;
+        break;
 
-        case ScanSpeedBalanced:
-            passes = 2;
-            settle = 18;
-            break;
+    case ScanSpeedBalanced:
+        passes = 2;
+        settle = 18;
+        break;
 
-        case ScanSpeedAccurate:
-            passes = 2;
-            settle = 20;
-            break;
+    case ScanSpeedAccurate:
+        passes = 2;
+        settle = 20;
+        break;
 
-        default:
-            break;
+    default:
+        break;
     }
 
     // ================= MULTIPASS SCAN ==========================
-float scores[128];
+    float scores[128];
 
-for(size_t i = 0; i < app->channel_count; i++) {
-    scores[i] = -120.0f;
-}
+    for(size_t i = 0; i < app->channel_count; i++) {
+        scores[i] = -120.0f;
+    }
 
     for(int pass = 0; pass < passes; pass++) {
-
         for(size_t i = 0; i < app->channel_count; i++) {
             if(!app->scanning) return;
 
@@ -631,79 +587,75 @@ for(size_t i = 0; i < app->channel_count; i++) {
 
             float rssi;
 
-if(app->scan_speed == ScanSpeedFast) {
-    rssi = radio_scanner_get_avg_rssi(app);
-}
-else {
-    rssi = radio_scanner_fine_rssi(app, app->channels[i]);
-}
-            
-            if(rssi > app->sensitivity) {
+            if(app->scan_speed == ScanSpeedFast) {
+                rssi = radio_scanner_get_avg_rssi(app);
+            } else {
+                rssi = radio_scanner_fine_rssi(app, app->channels[i]);
+            }
 
+            if(rssi > app->sensitivity) {
                 if(app->scan_speed == ScanSpeedFast) {
                     furi_delay_ms(10);
                     float confirm = radio_scanner_get_avg_rssi(app);
                     rssi = (rssi + confirm) * 0.5f;
-                }
-                else if(app->scan_speed == ScanSpeedAccurate) {
+                } else if(app->scan_speed == ScanSpeedAccurate) {
                     furi_delay_ms(20);
                     float confirm = radio_scanner_get_avg_rssi(app);
                     rssi = (rssi * 0.6f) + (confirm * 0.4f);
-                }
-                else {
+                } else {
                     furi_delay_ms(15);
                     float confirm = radio_scanner_get_avg_rssi(app);
                     rssi = (rssi * 0.65f) + (confirm * 0.35f);
                 }
             }
 
-if(rssi > scores[i]) {
-    scores[i] = rssi;
-}
+            if(rssi > scores[i]) {
+                scores[i] = rssi;
+            }
 
-if(rssi > app->sensitivity) {
-    scores[i] += 1.0f;
-}
+            if(rssi > app->sensitivity) {
+                scores[i] += 1.0f;
+            }
         }
     }
-    
-float best_score = -120.0f;
-size_t best_index = 0;
 
-// find best raw score first
-for(size_t i = 0; i < app->channel_count; i++) {
-    if(scores[i] > best_score) {
-        best_score = scores[i];
-        best_index = i;
+    float best_score = -120.0f;
+    size_t best_index = 0;
+
+    // find best raw score first
+    for(size_t i = 0; i < app->channel_count; i++) {
+        if(scores[i] > best_score) {
+            best_score = scores[i];
+            best_index = i;
+        }
     }
-}
 
-for(size_t i = 0; i < app->channel_count; i++) {
-    if(i != best_index) {
-        scores[i] -= 2.0f;
+    for(size_t i = 0; i < app->channel_count; i++) {
+        if(i != best_index) {
+            scores[i] -= 2.0f;
+        }
     }
-}
 
-size_t best = 0;
+    size_t best = 0;
 
-for(size_t i = 1; i < app->channel_count; i++) {
-    if(scores[i] > scores[best]) {
-        best = i;
+    for(size_t i = 1; i < app->channel_count; i++) {
+        if(scores[i] > scores[best]) {
+            best = i;
+        }
     }
-}
 
-// ================= CONFIDENCE CHECK =================
-float second_best = -120.0f;
+    // ================= CONFIDENCE CHECK =================
+    float second_best = -120.0f;
 
-for(size_t i = 0; i < app->channel_count; i++) {
-    if(i != best && scores[i] > second_best) {
-        second_best = scores[i];
+    for(size_t i = 0; i < app->channel_count; i++) {
+        if(i != best && scores[i] > second_best) {
+            second_best = scores[i];
+        }
     }
-}
 
-if((scores[best] - second_best) < 1.5f) {
-    return; 
-}
+    if((scores[best] - second_best) < 1.5f) {
+        return;
+    }
 
     // ================= LOCK =================
     app->channel_index = best;
@@ -714,20 +666,19 @@ if((scores[best] - second_best) < 1.5f) {
     float confirm = radio_scanner_get_avg_rssi(app);
     app->rssi = radio_scanner_smooth_rssi(app, confirm);
 
-if(confirm > app->sensitivity) {
+    if(confirm > app->sensitivity) {
+        app->signal_locked = true;
 
-    app->signal_locked = true;
+        if(app->resume_mode == ResumeDelay) {
+            app->hold_timer = app->delay_ms;
+        }
 
-    if(app->resume_mode == ResumeDelay) {
-        app->hold_timer = app->delay_ms;
+        if(app->resume_mode == ResumeLock) {
+            app->scanning = false;
+        }
+
+        return;
     }
-
-    if(app->resume_mode == ResumeLock) {
-        app->scanning = false;
-    }
-
-    return;
-}
 
     furi_delay_ms(SCAN_PASS_DELAY);
 }
@@ -738,7 +689,7 @@ RadioScannerApp* radio_scanner_app_alloc() {
 
     app->view_port = view_port_alloc();
     app->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
-    
+
     app->ui_screen = UiScreenScanner;
     app->menu_index = 0;
     app->settings_index = 0;
@@ -755,10 +706,10 @@ RadioScannerApp* radio_scanner_app_alloc() {
     app->scan_speed = ScanSpeedBalanced;
 
     app->rssi = RADIO_SCANNER_DEFAULT_RSSI;
-    app->rssi_smoothed = app->rssi;   
-    app->bars_smooth = 0.0f;   
+    app->rssi_smoothed = app->rssi;
+    app->bars_smooth = 0.0f;
 
-app->sensitivity = -90.0f;
+    app->sensitivity = -90.0f;
 
     app->resume_mode = ResumeDelay;
     app->delay_ms = 1000;
@@ -808,77 +759,68 @@ int32_t ham_scanner_app(void* p) {
     InputEvent event;
 
     while(app->running) {
-
         if(app->scanning)
             radio_scanner_process_scanning(app);
         else
             radio_scanner_update_rssi(app);
 
-if(furi_message_queue_get(app->event_queue, &event, 10) == FuriStatusOk) {
+        if(furi_message_queue_get(app->event_queue, &event, 10) == FuriStatusOk) {
+            if(event.type != InputTypeShort) {
+                continue;
+            }
 
-    if(event.type != InputTypeShort) {
-        continue;
+            if(event.key == InputKeyBack) {
+                if(app->ui_screen == UiScreenScanner) {
+                    app->running = false;
+                } else if(app->ui_screen == UiScreenMenu) {
+                    app->ui_screen = UiScreenScanner;
+                    app->scanning = app->scanning_before_menu;
+                } else if(app->ui_screen == UiScreenProfiles) {
+                    app->ui_screen = UiScreenMenu;
+                } else if(app->ui_screen == UiScreenSettings) {
+                    app->ui_screen = UiScreenMenu;
+                } else if(app->ui_screen == UiScreenResumeMode) {
+                    app->ui_screen = UiScreenSettings;
+                } else if(app->ui_screen == UiScreenSquelch) {
+                    app->ui_screen = UiScreenSettings;
+                }
+
+                continue;
+            }
+
+            switch(app->ui_screen) {
+            case UiScreenScanner:
+                handle_scanner_input(app, &event);
+                break;
+
+            case UiScreenMenu:
+                handle_menu_input(app, &event);
+                break;
+
+            case UiScreenProfiles:
+                handle_profiles_input(app, &event);
+                break;
+
+            case UiScreenSettings:
+                handle_settings_input(app, &event);
+                break;
+
+            case UiScreenResumeMode:
+                handle_resume_mode_input(app, &event);
+                break;
+
+            case UiScreenSquelch:
+                handle_squelch_input(app, &event);
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        view_port_update(app->view_port);
+        furi_delay_ms(20);
     }
-
-    if(event.key == InputKeyBack) {
-
-        if(app->ui_screen == UiScreenScanner) {
-            app->running = false;
-        } 
-        else if(app->ui_screen == UiScreenMenu) {
-            app->ui_screen = UiScreenScanner;
-            app->scanning = app->scanning_before_menu;
-        } 
-        else if(app->ui_screen == UiScreenProfiles) {
-            app->ui_screen = UiScreenMenu;
-        }
-        else if(app->ui_screen == UiScreenSettings) {
-            app->ui_screen = UiScreenMenu;
-        }
-        else if(app->ui_screen == UiScreenResumeMode) {
-            app->ui_screen = UiScreenSettings;
-        }
-        else if(app->ui_screen == UiScreenSquelch) {
-            app->ui_screen = UiScreenSettings;
-        }
-
-        continue;
-    }
-
-    switch(app->ui_screen) {
-
-        case UiScreenScanner:
-            handle_scanner_input(app, &event);
-            break;
-
-        case UiScreenMenu:
-            handle_menu_input(app, &event);
-            break;
-
-        case UiScreenProfiles:
-            handle_profiles_input(app, &event);
-            break;
-                
-        case UiScreenSettings:
-            handle_settings_input(app, &event);
-            break;
-                
-        case UiScreenResumeMode:
-            handle_resume_mode_input(app, &event);
-            break;
-
-        case UiScreenSquelch:
-            handle_squelch_input(app, &event);
-            break;
-
-        default:
-            break;
-    }
-}
-
-    view_port_update(app->view_port);
-    furi_delay_ms(20);
-}
 
     radio_scanner_app_free(app);
     return 0;

@@ -58,7 +58,7 @@ typedef struct {
     float sensitivity;
     float rssi_smoothed;
     float bars_smooth;
-    
+
     UiScreen ui_screen;
     uint8_t menu_index;
     uint8_t settings_index;
@@ -68,7 +68,7 @@ typedef struct {
 
     const SubGhzDevice* radio_device;
     bool speaker_acquired;
-    
+
     ScanResumeMode resume_mode;
     uint32_t delay_ms;
     uint32_t hold_timer;
@@ -80,7 +80,6 @@ typedef struct {
     size_t channel_index;
 
 } RadioScannerApp;
-
 
 void radio_scanner_app_free(RadioScannerApp* app);
 int32_t ham_scanner_app(void* p);
