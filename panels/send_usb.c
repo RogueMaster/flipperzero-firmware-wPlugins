@@ -38,10 +38,9 @@ static SendUSBModel sendModel = {.state = State_NONE};
 
 void add_line(char* line) {
     if(!line) return;
-    // deal with max lines
+    if(sendModel.num_lines >= MAX_LINES) return;
     char* new_line = malloc(strlen(line) + 1);
     strcpy(new_line, line);
-    new_line[strlen(line)] = 0;
     sendModel.lines[sendModel.num_lines] = new_line;
     sendModel.num_lines++;
     if(sendModel.callback) {
@@ -55,7 +54,6 @@ void update_line(char* line) {
     free(sendModel.lines[sendModel.num_lines - 1]);
     sendModel.lines[sendModel.num_lines - 1] = malloc(strlen(line) + 1);
     strcpy(sendModel.lines[sendModel.num_lines - 1], line);
-    sendModel.lines[sendModel.num_lines - 1][strlen(line)] = 0;
     if(sendModel.callback) {
         sendModel.callback(sendModel.callback_context);
     }
@@ -105,7 +103,7 @@ void send_usb_stop() {
 }
 
 void send_usb_send_str(const char* str) {
-    for(size_t i = 0; i < strlen(str); i++) {
+    for(size_t i = 0, len = strlen(str); i < len; i++) {
         uint16_t key = HID_ASCII_TO_KEY(str[i]);
         furi_hal_hid_kb_press(key);
         furi_hal_hid_kb_release(key);
@@ -157,10 +155,11 @@ void send_usb_send_icon() {
             icon_text = png_file_generate_frame(sendModel.icon, sendModel.icon->current_frame);
             send_usb_send_str(furi_string_get_cstr(icon_text));
             send_usb_send_str(END_OF_DATA_STREAM);
+            furi_string_free(icon_text);
         } else {
             for(size_t f = 0; f < sendModel.icon->frame_count; f++) {
                 char progress[32];
-                snprintf(progress, 32, "Sending: %d/%d", f + 1, sendModel.icon->frame_count);
+                snprintf(progress, sizeof(progress), "Sending: %d/%d", f + 1, sendModel.icon->frame_count);
                 update_line(progress);
                 icon_text = png_file_generate_frame(sendModel.icon, f);
                 send_usb_send_str(furi_string_get_cstr(icon_text));
@@ -170,9 +169,8 @@ void send_usb_send_icon() {
             send_usb_send_str("frame_rate\n");
             send_usb_send_str(END_OF_DATA_STREAM);
             char fr_buf[8];
-            itoa(sendModel.icon->frame_rate, fr_buf, 8);
+            snprintf(fr_buf, sizeof(fr_buf), "%d\n", sendModel.icon->frame_rate);
             send_usb_send_str(fr_buf);
-            send_usb_send_str("\n");
             send_usb_send_str(END_OF_DATA_STREAM);
         }
         break;

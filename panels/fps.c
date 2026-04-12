@@ -25,7 +25,7 @@ void fps_draw(Canvas* canvas, void* context) {
 
     ie_draw_modal_panel_frame(canvas, x, y, pw, ph);
     char buf[8];
-    snprintf(buf, 8, "%d fps", fps);
+    snprintf(buf, sizeof(buf), "%d fps", fps);
     canvas_draw_str_aligned(canvas, cw / 2, ch / 2 - 5, AlignCenter, AlignTop, buf);
     canvas_draw_icon(canvas, (cw / 2) - 16 - 5, (ch / 2) - 3, &I_iet_smArrowL);
     canvas_draw_icon(canvas, (cw / 2) + 16, (ch / 2) - 3, &I_iet_smArrowR);

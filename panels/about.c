@@ -16,7 +16,7 @@ void about_draw(Canvas* canvas, void* context) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 32, 22, AlignCenter, AlignBottom, APP_NAME);
     char version[10];
-    snprintf(version, 10, "v%s", FAP_VERSION);
+    snprintf(version, sizeof(version), "v%s", FAP_VERSION);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 32, 31, AlignCenter, AlignBottom, version);
 

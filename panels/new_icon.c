@@ -48,7 +48,7 @@ void new_icon_draw(Canvas* canvas, void* context) {
     for(int i = 0; i < 6; i++) {
         char buf[4];
 
-        snprintf(buf, 4, "%d", newModel.digits[i]);
+        snprintf(buf, sizeof(buf), "%d", newModel.digits[i]);
         canvas_draw_str_aligned(
             canvas, x + xpad + i * dw + 3, y + ypad, AlignCenter, AlignTop, buf);
         if(newModel.curr_digit == i) {
@@ -73,7 +73,7 @@ void new_icon_draw(Canvas* canvas, void* context) {
         y + ypad,
         AlignCenter,
         AlignTop,
-        new_icon_check_digits() ? "Y" : "N");
+        newModel.ok_enabled ? "Y" : "N");
 }
 
 bool new_icon_input(InputEvent* event, void* context) {

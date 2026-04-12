@@ -7,7 +7,7 @@
 static const NotificationMessage* notifications[NOTIFICATION_COUNT];
 
 void notify_error(IconEdit* app) {
-    memset(notifications, 0, sizeof(NotificationMessage*));
+    memset(notifications, 0, sizeof(notifications));
     int n = 0;
     notifications[n++] = &message_vibro_on;
     notifications[n++] = &message_red_255;

@@ -42,9 +42,11 @@ void iconedit_draw_callback(Canvas* canvas, void* context) {
     switch(tabbar_get_selected_tab()) {
     case TabFile:
         file_draw(canvas, app);
+        canvas_draw(canvas, app);
         break;
     case TabTools:
         tools_draw(canvas, app);
+        canvas_draw(canvas, app);
         break;
     case TabSettings:
         settings_draw(canvas, app);
@@ -57,11 +59,6 @@ void iconedit_draw_callback(Canvas* canvas, void* context) {
         break;
     default:
         break;
-    }
-
-    Tab selected_tab = tabbar_get_selected_tab();
-    if(selected_tab == TabFile || selected_tab == TabTools) {
-        canvas_draw(canvas, app);
     }
 
     // now draw modal panels
@@ -218,9 +215,8 @@ void iconedit_load_settings(IconEdit* app) {
             FURI_LOG_E(TAG, "SETTINGS: Missing or incorrect header");
             break;
         }
-        if(!strcmp(furi_string_get_cstr(tmp_str), ICONEDIT_SETTINGS_FILE_TYPE) &&
-           (tmp_data32 == ICONEDIT_SETTINGS_FILE_VERSION)) {
-        } else {
+        if(strcmp(furi_string_get_cstr(tmp_str), ICONEDIT_SETTINGS_FILE_TYPE) != 0 ||
+           tmp_data32 != ICONEDIT_SETTINGS_FILE_VERSION) {
             FURI_LOG_E(TAG, "SETTINGS: Type or version mismatch");
             break;
         }

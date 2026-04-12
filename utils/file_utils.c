@@ -7,6 +7,8 @@
 
 #include "file_utils.h"
 
+#define MAX_FRAME_BUFFER_SIZE (128 * 64)
+
 // Determines filename format string for single vs multiple frames
 const char* get_filename_format_str(IEIcon* icon) {
     const char* const single_fn_fmt = "/data/%s";
@@ -161,15 +163,15 @@ bool xbm_file_save(IEIcon* icon) {
             furi_string_free(tmp);
 
             storage_file_close(xbm_file);
-            storage_file_free(xbm_file);
-
         } else {
             success = false;
             FURI_LOG_E(
                 "IE", "Failed to open file for saving: %s", storage_file_get_error_desc(xbm_file));
         }
 
+        storage_file_free(xbm_file);
         furi_string_free(filename);
+        furi_string_free(base_name);
     }
     furi_record_close(RECORD_STORAGE);
     return success;
@@ -405,12 +407,12 @@ bool bmx_file_generate_binary(
     // log_xbm_data(xbm, size);
 
     // then compress (heatshrink) them
-    uint8_t* encoded_data = malloc(128 * 64); // is this too big?
+    uint8_t* encoded_data = malloc(MAX_FRAME_BUFFER_SIZE); // is this too big?
     size_t encoded_size = 0;
     Compress* compress =
         compress_alloc(CompressTypeHeatshrink, &compress_config_heatshrink_default);
     bool encode_success =
-        compress_encode(compress, xbm, size, encoded_data, 128 * 64, &encoded_size);
+        compress_encode(compress, xbm, size, encoded_data, MAX_FRAME_BUFFER_SIZE, &encoded_size);
     compress_free(compress);
     free(xbm);
 
@@ -500,15 +502,21 @@ IEIcon* bmx_file_open(const char* icon_path) {
         if(bytes_read != (bmx_file_size - 2 * sizeof(int32_t))) {
             FURI_LOG_E(
                 "BMX", "Bytes read (%d) doesn't match file size (%lld)", bytes_read, bmx_file_size);
+            free(encoded_data);
             break;
         }
 
-        uint8_t* decoded_data = malloc(128 * 64);
+        uint8_t* decoded_data = malloc(MAX_FRAME_BUFFER_SIZE);
         size_t decoded_data_size = 0;
         Compress* compress =
             compress_alloc(CompressTypeHeatshrink, &compress_config_heatshrink_default);
         bool decode_success = compress_decode(
-            compress, encoded_data, bytes_read, decoded_data, 128 * 64, &decoded_data_size);
+            compress,
+            encoded_data,
+            bytes_read,
+            decoded_data,
+            MAX_FRAME_BUFFER_SIZE,
+            &decoded_data_size);
         free(encoded_data);
         compress_free(compress);
         if(!decode_success) {
@@ -559,9 +567,9 @@ FuriString* c_file_generate(IEIcon* icon, bool current_frame_only) {
         size_t size;
         uint8_t* xbm = xbm_encode_from_icon(icon, icon->current_frame, &size);
         // then compress (heatshrink) them
-        uint8_t* encoded_data = malloc(128 * 64); // is this too big?
+        uint8_t* encoded_data = malloc(MAX_FRAME_BUFFER_SIZE); // is this too big?
         size_t encoded_size = 0;
-        compress_encode(compress, xbm, size, encoded_data, 128 * 64, &encoded_size);
+        compress_encode(compress, xbm, size, encoded_data, MAX_FRAME_BUFFER_SIZE, &encoded_size);
         free(xbm);
 
         // convert to hex
@@ -583,9 +591,10 @@ FuriString* c_file_generate(IEIcon* icon, bool current_frame_only) {
             size_t size;
             uint8_t* xbm = xbm_encode_from_icon(icon, f, &size);
             // then compress (heatshrink) them
-            uint8_t* encoded_data = malloc(128 * 64); // is this too big?
+            uint8_t* encoded_data = malloc(MAX_FRAME_BUFFER_SIZE); // is this too big?
             size_t encoded_size = 0;
-            compress_encode(compress, xbm, size, encoded_data, 128 * 64, &encoded_size);
+            compress_encode(
+                compress, xbm, size, encoded_data, MAX_FRAME_BUFFER_SIZE, &encoded_size);
             free(xbm);
 
             // convert to hex
@@ -646,13 +655,12 @@ bool c_file_save(IEIcon* icon, bool current_frame_only) {
         furi_string_free(tmp);
 
         storage_file_close(c_file);
-        storage_file_free(c_file);
-
     } else {
         success = false;
         FURI_LOG_E("IE", "Couldn't save C file");
     }
 
+    storage_file_free(c_file);
     furi_string_free(filename);
     furi_record_close(RECORD_STORAGE);
     return success;

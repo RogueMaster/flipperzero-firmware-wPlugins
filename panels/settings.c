@@ -23,9 +23,9 @@ void settings_draw(Canvas* canvas, void* context) {
     size_t cw = canvas_width(canvas);
     char buf[8] = {0};
     if(app->settings.canvas_scale == 0) {
-        snprintf(buf, 8, "%s", "Auto");
+        snprintf(buf, sizeof(buf), "%s", "Auto");
     } else {
-        snprintf(buf, 8, "%dx", app->settings.canvas_scale);
+        snprintf(buf, sizeof(buf), "%dx", app->settings.canvas_scale);
     }
     canvas_draw_str_aligned(canvas, cw - (cw / 4), y, AlignCenter, AlignTop, buf);
 

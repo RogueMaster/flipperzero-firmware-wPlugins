@@ -41,7 +41,7 @@ void tabbar_draw(Canvas* canvas, void* context) {
     // clear the tab strip first? only if we're the selected panel?
     if(app->panel == Panel_TabBar) {
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_box(canvas, 0, 0, 127, 6);
+        canvas_draw_box(canvas, 0, 0, 128, 6);
         canvas_set_color(canvas, ColorBlack);
     }
 

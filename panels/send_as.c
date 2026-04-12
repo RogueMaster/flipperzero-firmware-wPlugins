@@ -90,7 +90,7 @@ void send_as_draw(Canvas* canvas, void* context) {
                 char frame_str[16] = {};
                 snprintf(
                     frame_str,
-                    16,
+                    sizeof(frame_str),
                     "%s FRAME %d %s",
                     app->icon->current_frame == 0 ? " " : "<",
                     app->icon->current_frame + 1,

@@ -136,7 +136,7 @@ bool file_open_file_browser_callback(
     UNUSED(context);
     UNUSED(item_name);
     char ext[5];
-    path_extract_extension(path, ext, 5);
+    path_extract_extension(path, ext, sizeof(ext));
     if(!strcmp(ext, ".png")) {
         memcpy(*icon, icon_get_frame_data(&I_iet_PNG, 0), 32);
     } else if(!strcmp(ext, ".bmx")) {
@@ -174,7 +174,7 @@ void file_input_handle_ok(void* context) {
         if(dialog_file_browser_show(dialog, filename, filename, &ieOptions)) {
             // FURI_LOG_I(TAG, "Selected %s to open", furi_string_get_cstr(tmp_str));
             char ext[5];
-            path_extract_extension(filename, ext, 5);
+            path_extract_extension(filename, ext, sizeof(ext));
             IEIcon* icon = NULL;
             if(!strcmp(ext, ".png")) {
                 icon = png_file_open(furi_string_get_cstr(filename));
@@ -183,6 +183,7 @@ void file_input_handle_ok(void* context) {
                 icon = bmx_file_open(furi_string_get_cstr(filename));
             }
             if(icon) {
+                ie_icon_free(app->icon);
                 app->icon = icon;
                 canvas_initialize(app->icon, app->settings.canvas_scale);
             } else {
@@ -213,7 +214,7 @@ void file_input_handle_ok(void* context) {
 
         TextInput* text_input = text_input_alloc();
         char tmp_cstr[64] = {0};
-        strncpy(tmp_cstr, furi_string_get_cstr(app->icon->name), 64);
+        strncpy(tmp_cstr, furi_string_get_cstr(app->icon->name), sizeof(tmp_cstr));
         text_input_set_result_callback(
             text_input, text_input_callback, ti_context, tmp_cstr, 64, false);
         text_input_set_header_text(text_input, "Rename icon:");

@@ -47,6 +47,7 @@ void canvas_initialize(IEIcon* icon, size_t scale_setting) {
 void canvas_free_canvas() {
     if(canvasModel.double_buffer) {
         free(canvasModel.double_buffer);
+        canvasModel.double_buffer = NULL;
     }
 }
 
@@ -77,8 +78,8 @@ void canvas_set_scale(size_t scale_setting) {
                          canvasModel.vph < canvasModel.icon->height;
 
     // place the cursor in the middle-ish of view port
-    canvasModel.cursor_x = MAX((canvasModel.vpw / 2) - 1, 0u);
-    canvasModel.cursor_y = MAX((canvasModel.vph / 2) - 1, 0u);
+    canvasModel.cursor_x = canvasModel.vpw > 1 ? (canvasModel.vpw / 2) - 1 : 0;
+    canvasModel.cursor_y = canvasModel.vph > 1 ? (canvasModel.vph / 2) - 1 : 0;
 }
 
 void canvas_draw(Canvas* canvas, void* context) {
