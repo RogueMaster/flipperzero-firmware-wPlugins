@@ -58,6 +58,7 @@ static uint8_t click_type_hid(ClickType ct) {
 static void enter_mode_select(App* app) {
     app->state = StateModeSelect;
     furi_timer_stop(app->timer);
+    hid_deinit(app);
 }
 
 static void enter_template_select(App* app) {
@@ -81,6 +82,7 @@ static void enter_recording(App* app) {
 }
 
 static void enter_positioning(App* app) {
+    hid_ensure_init(app);
     app->state = StatePositioning;
     app->dir_up = false;
     app->dir_down = false;
@@ -195,6 +197,7 @@ static void enter_spam_clicking(App* app) {
 }
 
 static void enter_computer_mouse(App* app) {
+    hid_ensure_init(app);
     app->state = StateComputerMouse;
     furi_timer_stop(app->timer);
     app->dir_up = false;
@@ -911,9 +914,7 @@ static void handle_mode_select(App* app, InputEvent* ev) {
         break;
     case InputKeyLeft:
     case InputKeyRight:
-        hid_deinit(app);
         app->transport = (app->transport == TransportUsb) ? TransportBle : TransportUsb;
-        hid_init(app);
         break;
     case InputKeyOk: {
         AppMode mode = mode_from_selection(app->menu_selection);
@@ -1377,8 +1378,6 @@ int32_t mouse_click_recorder_app(void* p) {
     app->timer = furi_timer_alloc(app_timer_callback, FuriTimerTypePeriodic, app);
     app->bt = furi_record_open(RECORD_BT);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
-
-    hid_init(app);
 
     app->view_port = view_port_alloc();
     view_port_draw_callback_set(app->view_port, app_draw_callback, app);

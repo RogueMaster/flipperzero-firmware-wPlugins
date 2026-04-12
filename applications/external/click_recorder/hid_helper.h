@@ -4,6 +4,7 @@
 
 void hid_init(App* app);
 void hid_deinit(App* app);
+void hid_ensure_init(App* app);
 void hid_mouse_move(App* app, int8_t dx, int8_t dy);
 void hid_mouse_press(App* app);
 void hid_mouse_release(App* app);

@@ -2,9 +2,9 @@
 
 Turn your Flipper Zero into a powerful mouse automation tool. Record, replay, randomize, or spam mouse clicks over USB or Bluetooth. No software needed on the target computer just connect your flipper zero.
 
-## Modes
+# Modes
 
-### Record Clicks
+## Record Clicks
 
 Capture the exact timing of your mouse clicks, then replay them perfectly on the dot.
 
@@ -14,7 +14,7 @@ Capture the exact timing of your mouse clicks, then replay them perfectly on the
 4. **Tune the track** - stretch or compress the timing after recording and watch keyframes shift in real time
 5. Position your cursor, pick **Play Once** or **Loop Forever**, and go
 
-### Shuffle Clicks
+## Shuffle Clicks
 
 Generate random click patterns within a time window. Each playback produces a brand new distribution - great for randomized stress testing or making automation look human.
 
@@ -22,7 +22,7 @@ Generate random click patterns within a time window. Each playback produces a br
 2. Choose how many clicks (1–128, default 25)
 3. Position your cursor, then pick **Shuffle Once** or **Shuffle Forever**
 
-### Spam Click
+## Spam Click
 
 Rapid-fire a burst of clicks at 100ms intervals.
 
@@ -31,7 +31,7 @@ Rapid-fire a burst of clicks at 100ms intervals.
 3. Position your cursor, then pick **Spam Once** or **Spam Forever**
 4. Press **OK** to pause/resume mid-spam, **Back** to stop
 
-### Computer Mouse
+## Computer Mouse
 
 Use your Flipper as a full wireless or wired mouse.
 
@@ -40,7 +40,7 @@ Use your Flipper as a full wireless or wired mouse.
 - **Back** = right click (hold for drag)
 - On-screen indicators show which buttons are currently pressed
 
-## Highlights
+# Highlights
 
 - **USB + Bluetooth** - switch between wired and wireless from the main menu with Left/Right
 - **BLE auto-discovery** - advertises as "ClickRec" or as the Flipper name configured with a blue LED when a device connects
@@ -50,7 +50,7 @@ Use your Flipper as a full wireless or wired mouse.
 - **Works on any OS** - standard HID mouse protocol, no drivers or software required
 - **In-app menu** - long-press Back from any screen to access Resume, Menu, About, or Quit
 
-## Controls
+# Controls
 
 | Screen | Key | Action |
 |---|---|---|
@@ -80,46 +80,15 @@ Use your Flipper as a full wireless or wired mouse.
 | | Back (hold) | Right click |
 | **Any screen** | Long Back | Open menu |
 
-## Install
-
-### From a pre-built file
-
-Copy `mouse_click_recorder.fap` to your Flipper's SD card at:
-
-```
-SD Card → apps/USB/mouse_click_recorder.fap
-```
-
-Use qFlipper's file manager, a USB cable, or an SD card reader. Then open **Apps → USB → Click Recorder** on your Flipper.
-
-### Build from source
-
-Requires [ufbt](https://pypi.org/project/ufbt/) and Python 3.9+.
-
-```sh
-python -m venv venv
-./venv/Scripts/activate
-pip install ufbt
-cd click_recorder
-ufbt launch
-```
-
-This builds, deploys, and launches the app in one step.
-
-## Compatibility
-
-- Flipper Zero with Momentum 012 firmware
-- Works with any computer, phone, or tablet that supports USB or Bluetooth HID mice
-
-## Troubleshooting
+# Troubleshooting
 
 | Problem | Solution |
 |---|---|
 | No mouse movement | Check that USB HID is connected (look at the Flipper's notification bar) |
 | BLE not connecting | Make sure Bluetooth is enabled on both devices - look for "ClickRec" or the flipper name configured in your device's Bluetooth settings |
-| App not showing on Flipper | Verify the `.fap` file is at `apps/USB/mouse_click_recorder.fap` on the SD card |
-| Build errors | Run `ufbt update` to fetch the latest SDK |
+| App not showing on Flipper | Verify the .fap file is at apps/USB/mouse_click_recorder.fap on the SD card |
+| Build errors | Run ufbt update to fetch the latest SDK |
 
 ## Author
 
-Created by [**0x78f1935**](https://github.com/0x78f1935) aka **undeƒined**
+Created by **0x78f1935** aka **undeƒined**

@@ -59,8 +59,7 @@ void mfp_scene_card_info_on_enter(void* ctx) {
     widget_add_text_scroll_element(
         app->widget, 0, 0, 128, show_dump_btn ? 50 : 64, furi_string_get_cstr(text));
     if(show_dump_btn) {
-        widget_add_button_element(
-            app->widget, GuiButtonTypeRight, "Dump", card_info_dump_cb, app);
+        widget_add_button_element(app->widget, GuiButtonTypeRight, "Dump", card_info_dump_cb, app);
     }
     furi_string_free(text);
 
@@ -88,8 +87,7 @@ bool mfp_scene_card_info_on_event(void* ctx, SceneManagerEvent event) {
          * the immediate previous scene and would restart card detection
          * on its on_enter, so jump straight back to Start. */
         if(scene_manager_has_previous_scene(app->scene_manager, MfpSceneRead)) {
-            scene_manager_search_and_switch_to_previous_scene(
-                app->scene_manager, MfpSceneStart);
+            scene_manager_search_and_switch_to_previous_scene(app->scene_manager, MfpSceneStart);
             return true;
         }
         return false;
