@@ -149,8 +149,7 @@ const SubGhzProtocol ford_protocol_v0 = {
 static uint8_t ford_v0_calculate_checksum(uint32_t serial, uint32_t count, uint8_t button) {
     return (uint8_t)((((count >> 24) & 0xFF) + ((count >> 16) & 0xFF) + ((count >> 8) & 0xFF) +
                       (count & 0xFF) + ((serial >> 24) & 0xFF) + ((serial >> 16) & 0xFF) +
-                      ((serial >> 8) & 0xFF) + (serial & 0xFF) +
-                      ((button == 0) ? 8 : button << 4)) &
+                      ((serial >> 8) & 0xFF) + (serial & 0xFF) + (button << 3)) &
                      0xFF);
 }
 #endif
@@ -209,7 +208,7 @@ static bool ford_v0_verify_crc(uint64_t key1, uint16_t key2) {
     uint8_t calculated_crc = ford_v0_calculate_crc(buf);
     uint8_t received_crc = (uint8_t)(key2 & 0xFF) ^ 0x80;
 
-    return (calculated_crc == received_crc);
+    return ((calculated_crc & 0x7F) == (received_crc & 0x7F));
 }
 
 // =============================================================================
@@ -270,9 +269,9 @@ static void decode_ford_v0(
     *serial = ((serial_le & 0xFF) << 24) | (((serial_le >> 8) & 0xFF) << 16) |
               (((serial_le >> 16) & 0xFF) << 8) | ((serial_le >> 24) & 0xFF);
 
-    *button = (buf[5] >> 4) & 0x0F;
+    *button = (buf[5] >> 3) & 0x0F;
 
-    *count = (((buf[5] & 0x0F) << 16) | (buf[6] << 8) | buf[7]) & 0xFFFF;
+    *count = ((buf[5] & 0x07) << 16) | (buf[6] << 8) | buf[7];
 }
 
 // =============================================================================
@@ -300,7 +299,7 @@ static void encode_ford_v0(
     buf[3] = (serial >> 8) & 0xFF;
     buf[4] = serial & 0xFF;
 
-    buf[5] = ((button == 0) ? 8 : ((button & 0x0F) << 4)) | ((count >> 16) & 0x0F);
+    buf[5] = ((button & 0x0F) << 3) | ((count >> 16) & 0x0F);
 
     uint8_t count_mid = (count >> 8) & 0xFF;
     uint8_t count_low = count & 0xFF;
@@ -931,13 +930,13 @@ void subghz_protocol_decoder_ford_v0_get_string(void* context, FuriString* outpu
     bool crc_ok = ford_v0_verify_crc(instance->key1, instance->key2);
 
     const char* button_name = "??";
-    if(!instance->button)
+    if(instance->button == 0x01)
         button_name = "Panic";
-    else if(instance->button == 0x01)
-        button_name = "Lock";
     else if(instance->button == 0x02)
-        button_name = "Unlock";
+        button_name = "Lock";
     else if(instance->button == 0x04)
+        button_name = "Unlock";
+    else if(instance->button == 0x08)
         button_name = "Boot";
 
     furi_string_cat_printf(

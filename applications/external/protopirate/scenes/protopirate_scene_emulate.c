@@ -168,16 +168,16 @@ static uint8_t
     // Ford - (needs testing)
     else if(strstr(protocol, "Ford")) {
         switch(key) {
-        case InputKeyUp:
-            return 0x1; // Lock?
-        case InputKeyOk:
-            return 0x2; // Unlock?
-        case InputKeyDown:
-            return 0x4; // Boot?
         case InputKeyLeft:
-            return 0x0; // Panic?
+            return 0x1; // Panic
+        case InputKeyUp:
+            return 0x2; // Lock
+        case InputKeyOk:
+            return 0x4; // Unlock
+        case InputKeyDown:
+            return 0x8; // Boot
         case InputKeyRight:
-            return 0x3; // ?
+            return 0x10; // There is no 10 (Unless other vehicles?)
         default:
             return original;
         }
