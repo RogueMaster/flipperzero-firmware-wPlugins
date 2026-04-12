@@ -1,4 +1,4 @@
-# subhound
+# Subhound
 
 Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 11 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
 
