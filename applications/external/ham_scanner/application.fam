@@ -1,0 +1,16 @@
+App(
+    appid="ham_scanner",
+    name="HAM Scanner",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ham_scanner_app",
+    requires=["gui", "subghz", "furi"],
+    cdefines=["APP_RADIO_SCANNER"],
+    stack_size=2 * 1024,
+    fap_category="Sub-GHz",
+    fap_version="1.0",
+    fap_icon_assets="assets",
+    fap_author="Clawzman",
+    fap_description="HAM Scanner for Flipper",
+    fap_icon="icons/ham_scanner.png",
+    fap_weburl="https://github.com/Clawzman/Flipper-HAM-Scanner",
+)
