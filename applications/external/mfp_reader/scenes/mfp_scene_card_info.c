@@ -46,12 +46,21 @@ void mfp_scene_card_info_on_enter(void* ctx) {
         app->ats_len,
         block0);
 
+    bool is_sl1 = (app->version.sl != MfpSL3);
+
+    if(pre_dump && is_sl1) {
+        /* SL1 card: append hint to use built-in NFC app */
+        furi_string_cat(text, "\n\e#SL1: use NFC app\nfor MF Classic\n");
+    }
+
     /* Scrollable text area. Leave 14px at the bottom for the Dump
-     * button in preview mode; otherwise use full screen height. */
+     * button in preview mode (SL3 only); otherwise use full height. */
+    bool show_dump_btn = pre_dump && !is_sl1;
     widget_add_text_scroll_element(
-        app->widget, 0, 0, 128, pre_dump ? 50 : 64, furi_string_get_cstr(text));
-    if(pre_dump) {
-        widget_add_button_element(app->widget, GuiButtonTypeRight, "Dump", card_info_dump_cb, app);
+        app->widget, 0, 0, 128, show_dump_btn ? 50 : 64, furi_string_get_cstr(text));
+    if(show_dump_btn) {
+        widget_add_button_element(
+            app->widget, GuiButtonTypeRight, "Dump", card_info_dump_cb, app);
     }
     furi_string_free(text);
 
@@ -79,7 +88,8 @@ bool mfp_scene_card_info_on_event(void* ctx, SceneManagerEvent event) {
          * the immediate previous scene and would restart card detection
          * on its on_enter, so jump straight back to Start. */
         if(scene_manager_has_previous_scene(app->scene_manager, MfpSceneRead)) {
-            scene_manager_search_and_switch_to_previous_scene(app->scene_manager, MfpSceneStart);
+            scene_manager_search_and_switch_to_previous_scene(
+                app->scene_manager, MfpSceneStart);
             return true;
         }
         return false;

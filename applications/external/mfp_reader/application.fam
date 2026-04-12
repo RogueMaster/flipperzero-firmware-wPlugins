@@ -13,6 +13,6 @@ App(
     fap_category="NFC",
     fap_author="Defensor7",
     fap_weburl="https://github.com/Defensor7/flipperzero-mfp-reader",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="MIFARE Plus SL3 reader, dumper and emulator",
 )

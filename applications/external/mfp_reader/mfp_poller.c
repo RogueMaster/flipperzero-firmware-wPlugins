@@ -117,12 +117,49 @@ MfpError mfp_poller_read_version(
     out->uid_len = uid_len;
 
     out->sl = (MfpSecurityLevel)((out->hw_subtype >> 4) & 0x0F);
-    if(out->sl < MfpSL1 || out->sl > MfpSL3) out->sl = MfpSL3;
+    if(out->sl < MfpSL1 || out->sl > MfpSL3) out->sl = MfpSL1; /* probe will refine */
     /* hw_storage per NXP MF1PLUSx0y1: 2K = 0x10, 4K = 0x18.
      * Threshold 0x13 tolerates odd clone encodings (0x11/0x12 as 2K). */
     out->size = (out->hw_storage & 0x1F) >= 0x13 ? MfpSize4K : MfpSize2K;
 
     if(out->hw_vendor != 0x04) return MfpErrorNotMfp;
+    return MfpOk;
+}
+
+/* ---- SL probe ---- */
+
+MfpError mfp_poller_probe_sl(void* iso4a_poller, uint8_t sak, MfpSecurityLevel* out_sl) {
+    /* SAK fast path: Classic-compatible SAKs mean SL1 */
+    if(sak == 0x08 || sak == 0x18) {
+        *out_sl = MfpSL1;
+        return MfpOk;
+    }
+
+    /* SAK 0x20 or other: probe with AuthFirstPart1 (0x70) for sector 0 key A.
+     * In SL3 the card responds 0x90 + 16 bytes (ek(RndB)) regardless of
+     * whether we know the key — the key is only checked in Part2.
+     * In SL1 the card either won't understand the command or returns an error. */
+    Iso14443_4aPoller* poller = (Iso14443_4aPoller*)iso4a_poller;
+
+    uint8_t cmd[4] = {MFP_CMD_AUTH1_PART1, 0x00, 0x40, 0x00}; /* key 0x4000 = sector 0 key A */
+    uint8_t resp[32];
+    size_t resp_len = 0;
+
+    MfpError err = mfp_send(poller, cmd, sizeof(cmd), resp, &resp_len, sizeof(resp));
+    if(err != MfpOk) {
+        /* Comm failure — can't determine, assume SL1 since SL3 cards
+         * with SAK 0x20 should always respond to ISO14443-4A APDUs */
+        *out_sl = MfpSL1;
+        return MfpOk;
+    }
+
+    /* SL3: response = 0x90 + 16 bytes ek(RndB) */
+    if(resp_len >= 17 && resp[0] == MFP_STATUS_OK) {
+        *out_sl = MfpSL3;
+    } else {
+        *out_sl = MfpSL1;
+    }
+
     return MfpOk;
 }
 

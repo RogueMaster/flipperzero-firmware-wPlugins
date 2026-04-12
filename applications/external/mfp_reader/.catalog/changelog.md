@@ -1,3 +1,7 @@
+## 1.1
+- Fix SL detection: probe actual security level via SAK and AuthFirstPart1 instead of defaulting to SL3
+- SL1 cards now show card info but hide Dump with a hint to use the built-in NFC app for MF Classic
+
 ## 1.0
 - Initial public release
 - MIFARE Plus SL3 card detection and identification (UID, SAK, ATQA, ATS, manufacturer decoding, BCC validation)

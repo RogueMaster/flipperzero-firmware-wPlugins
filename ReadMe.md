@@ -78,6 +78,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Ham Scanner v1.0 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
 - Updated: [Tesla Mod v2.7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [MFP Reader v1.1 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 
 <a name="release"></a>
 
@@ -706,7 +707,7 @@ $ ./fbt dolphin_ext
 - [MFC Editor v1.0 (By TollyH)](https://github.com/TollyH/flipper-apps)
 - [MFDesfire Auth v1.0 (By Gatorixx)](https://github.com/Gatorixx/flipper-zero-legacy-authentication)
 - [Mfkey v4.1 (By noproto)](https://github.com/noproto/FlipperMfkey)
-- [MFP Reader v1.0 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
+- [MFP Reader v1.1 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 - [MH-Z19 CO2 Sensor v0.2 (By meshchaninov)](https://github.com/meshchaninov/flipper-zero-mh-z19)
 - [MH-Z19 UART (By skotopes)](https://github.com/skotopes/flipperzero_mhz19_uart)
 - [Mi Band NFC Writer v1.0 (By LucaTomei)](https://github.com/LucaTomei/flipper-miband-nfc-writer)
