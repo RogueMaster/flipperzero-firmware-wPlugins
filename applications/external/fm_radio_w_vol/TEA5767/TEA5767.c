@@ -228,7 +228,9 @@ bool tea5767_seek(uint8_t* buffer, bool seek_up) {
     } else {
         buffer[REG_3] &= (uint8_t)~REG_3_MS;
     }
-    buffer[REG_5] |= REG_5_PLLREF;
+    // PLLREF must stay 0 when XTAL=1 (32.768 kHz crystal).
+    // Table 16: PLLREF=1 + XTAL=1 = not allowed.
+    buffer[REG_5] &= (uint8_t)~REG_5_PLLREF;
     // Write the updated register values to the TEA5767
     result = tea5767_write_registers(buffer);
     return result;
@@ -271,7 +273,9 @@ bool tea5767_set_frequency(uint8_t* buffer, int value) {
     } else {
         buffer[REG_3] &= (uint8_t)~REG_3_MS;
     }
-    buffer[REG_5] |= REG_5_PLLREF;
+    // PLLREF must stay 0 when XTAL=1 (32.768 kHz crystal).
+    // Table 16: PLLREF=1 + XTAL=1 = not allowed.
+    buffer[REG_5] &= (uint8_t)~REG_5_PLLREF;
     result = tea5767_write_registers(buffer);
     return result;
 }
@@ -282,12 +286,11 @@ bool tea5767_get_radio_info(uint8_t* buffer, struct RADIO_INFO* info) {
 
     // Error handling: Check if buffer and info are not NULL
     if(buffer && info && tea5767_read_registers(buffer)) {
-        // If mono is forced by configuration, report mono explicitly.
-        // TEA5767 readback layout/status bits are not always reliable for reflecting this in real time.
+        // TEA5767 read byte 3 (index 2) bit 7 = stereo indication (1=stereo, 0=mono).
         if(tea5767_force_mono_enabled) {
             info->stereo = false;
         } else {
-            info->stereo = (buffer[REG_3] & REG_3_MS) ? false : true;
+            info->stereo = (buffer[REG_3] & 0x80) ? true : false;
         }
 
         info->signalLevel = buffer[REG_4] >> 4;
@@ -311,12 +314,9 @@ bool tea5767_get_radio_info(uint8_t* buffer, struct RADIO_INFO* info) {
             result = true; // Only return true if both read_registers and get_frequency succeeded
         }
 
-        // Check if the radio is muted
-        if(buffer[REG_1] & REG_1_MUTE) {
-            info->muted = true;
-        } else {
-            info->muted = false;
-        }
+        // Mute status comes from the WRITE register cache, not READ registers.
+        // READ byte 1 bit 7 = Ready Flag (RF), not MUTE.
+        info->muted = tea5767_last_write_valid && (tea5767_last_write_regs[REG_1] & REG_1_MUTE);
     }
     return result;
 }
@@ -347,8 +347,15 @@ float tea5767_GetFreq() {
 }
 
 void tea5767_sleep(uint8_t* buffer) {
-    if(tea5767_read_registers(buffer)) {
-        buffer[REG_4] |= REG_4_STBY; // Set the Standby bit in register 4 to enter standby mode
-        tea5767_write_registers(buffer);
+    // READ register layout differs from WRITE layout — never read-modify-write.
+    // Use cached last-write buffer to preserve PLL and config bits.
+    if(tea5767_last_write_valid) {
+        memcpy(buffer, tea5767_last_write_regs, 5);
+    } else {
+        // Fallback: minimal standby-only command (PLL=0, STBY=1, XTAL=1).
+        memset(buffer, 0, 5);
+        buffer[REG_4] = REG_4_XTAL;
     }
+    buffer[REG_4] |= REG_4_STBY;
+    tea5767_write_registers(buffer);
 }

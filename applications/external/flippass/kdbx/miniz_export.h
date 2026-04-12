@@ -1,0 +1,20 @@
+#pragma once
+
+#define MINIZ_EXPORT
+
+#ifndef MINIZ_LITTLE_ENDIAN
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
+    (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define MINIZ_LITTLE_ENDIAN 1
+#else
+#define MINIZ_LITTLE_ENDIAN 0
+#endif
+#endif
+
+#ifndef MINIZ_USE_UNALIGNED_LOADS_AND_STORES
+#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
+#endif
+
+#ifndef MINIZ_HAS_64BIT_REGISTERS
+#define MINIZ_HAS_64BIT_REGISTERS 0
+#endif

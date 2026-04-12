@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TagTinker Image Converter</title>
+    <style>
+        :root {
+            --bg: #09090b;
+            --surface: #18181b;
+            --border: #27272a;
+            --primary: #FF8A00; /* Flipper Orange */
+            --primary-hover: #ff9d2e;
+            --text: #fafafa;
+            --text-dim: #a1a1aa;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, sans-serif; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+        }
+
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+        
+        header p { color: var(--text-dim); margin-top: 0.5rem; }
+
+        .dropzone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 4rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.02);
+            margin-bottom: 2rem;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dropzone:hover { 
+            border-color: var(--primary); 
+            background: rgba(255,138,0,0.05);
+            transform: translateY(-2px);
+        }
+        
+        .dropzone input { 
+            position: absolute;
+            width: 0.1px;
+            height: 0.1px;
+            opacity: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label { font-size: 0.875rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        select, input[type="file"] {
+            padding: 0.75rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            outline: none;
+            font-size: 1rem;
+        }
+        select:focus { border-color: var(--primary); }
+
+        .preview-section {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            max-width: 100%;
+            background: white;
+            border: 1px solid #333;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        button {
+            width: 100%;
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: var(--primary-hover); }
+        button:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>TagTinker Image Converter</h1>
+            <p>Prepare 1-bit BMP assets for educational ESL display experiments on hardware you own.</p>
+        </header>
+
+        <label class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" accept="image/*">
+            <div id="dropText">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" style="margin-bottom: 1rem;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg><br>
+                <strong>Click or Drag & Drop</strong><br>
+                <span style="font-size: 0.9em; color: var(--text-dim);">JPEG, PNG, WebP accepted</span>
+            </div>
+        </label>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Target Resolution</label>
+                <select id="resSelect">
+                    <option value="128x64">128x64 (Standard Small)</option>
+                    <option value="200x90">200x90 (Medium Tag)</option>
+                    <option value="250x122">250x122 (Large Tag 1)</option>
+                    <option value="400x300">400x300 (Large E-Paper)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Dithering Engine</label>
+                <select id="ditherSelect">
+                    <option value="floyd">Floyd-Steinberg (High Detail)</option>
+                    <option value="atkinson">Atkinson (High Contrast)</option>
+                    <option value="threshold">Binary Threshold (Logos/Text)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="preview-section" id="previewArea" style="display: none;">
+            <label>Pixel Perfect Preview</label>
+            <canvas id="canvasPreview"></canvas>
+        </div>
+
+        <button id="downloadBtn" disabled>Download BMP Asset</button>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const resSelect = document.getElementById('resSelect');
+        const ditherSelect = document.getElementById('ditherSelect');
+        const canvas = document.getElementById('canvasPreview');
+        const ctx = canvas.getContext('2d');
+        const previewArea = document.getElementById('previewArea');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        let currentImage = null;
+        let lastPayloadBuffer = null;
+
+        // UI Handlers
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor = 'var(--primary)'; });
+        dropzone.addEventListener('dragleave', e => { e.preventDefault(); dropzone.style.borderColor = 'var(--border)'; });
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.style.borderColor = 'var(--border)';
+            if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', e => { if(e.target.files.length) processFile(e.target.files[0]); });
+
+        resSelect.addEventListener('change', updatePreview);
+        ditherSelect.addEventListener('change', updatePreview);
+
+        downloadBtn.addEventListener('click', () => {
+            if(!lastPayloadBuffer) return;
+            const [w, h] = resSelect.value.split('x').map(Number);
+            const blob = new Blob([lastPayloadBuffer], { type: "image/bmp" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `esl_study_${w}x${h}.bmp`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    updatePreview();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updatePreview() {
+            if(!currentImage) return;
+
+            const [tw, th] = resSelect.value.split('x').map(Number);
+            canvas.width = tw;
+            canvas.height = th;
+            previewArea.style.display = 'flex';
+
+            // Calculate scaling to 'Cover' the target resolution
+            const scale = Math.max(tw / currentImage.width, th / currentImage.height);
+            const sw = currentImage.width * scale;
+            const sh = currentImage.height * scale;
+            const offsetX = (tw - sw) / 2;
+            const offsetY = (th - sh) / 2;
+
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, tw, th);
+            ctx.drawImage(currentImage, offsetX, offsetY, sw, sh);
+
+            const imageData = ctx.getImageData(0, 0, tw, th);
+            const data = imageData.data;
+
+            // Greyscale conversion
+            const greyscale = new Float32Array(tw * th);
+            for(let i=0; i<data.length; i+=4) {
+                // Luminance
+                greyscale[i/4] = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+            }
+
+            const method = ditherSelect.value;
+            
+            if(method === 'threshold') {
+                for(let i=0; i<greyscale.length; i++) {
+                    const c = greyscale[i] < 128 ? 0 : 255;
+                    data[i*4] = data[i*4+1] = data[i*4+2] = c;
+                }
+            } else if (method === 'floyd') {
+                for(let y=0; y<th; y++) {
+                    for(let x=0; x<tw; x++) {
+                        const idx = y*tw + x;
+                        const oldPixel = greyscale[idx];
+                        const newPixel = oldPixel < 128 ? 0 : 255;
+                        
+                        data[idx*4] = data[idx*4+1] = data[idx*4+2] = newPixel;
+                        const err = oldPixel - newPixel;
+
+                        if(x+1 < tw) greyscale[idx+1] += err * 7/16;
+                        if(y+1 < th) {
+                            if(x-1 >= 0) greyscale[idx+tw-1] += err * 3/16;
+                            greyscale[idx+tw] += err * 5/16;
+                            if(x+1 < tw) greyscale[idx+tw+1] += err * 1/16;
+                        }
+                    }
+                }
+            } else if (method === 'atkinson') {
+                for(let y=0; y<th; y++) {
+                    for(let x=0; x<tw; x++) {
+                        const idx = y*tw + x;
+                        const oldPixel = greyscale[idx];
+                        const newPixel = oldPixel < 128 ? 0 : 255;
+                        
+                        data[idx*4] = data[idx*4+1] = data[idx*4+2] = newPixel;
+                        const err = Math.floor((oldPixel - newPixel)/8);
+
+                        if(x+1 < tw) greyscale[idx+1] += err;
+                        if(x+2 < tw) greyscale[idx+2] += err;
+                        if(y+1 < th) {
+                            if(x-1 >= 0) greyscale[idx+tw-1] += err;
+                            greyscale[idx+tw] += err;
+                            if(x+1 < tw) greyscale[idx+tw+1] += err;
+                        }
+                        if(y+2 < th) greyscale[idx+tw*2] += err;
+                    }
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            generateBMP();
+            downloadBtn.disabled = false;
+            usbBtn.disabled = false;
+        }
+
+        function generateBMP() {
+            const [w, h] = resSelect.value.split('x').map(Number);
+            const imageData = ctx.getImageData(0, 0, w, h).data;
+            
+            const binaryPixels = new Uint8Array(w * h);
+            for(let i=0; i<binaryPixels.length; i++) {
+                // Determine if pixel is white (1) or black (0) for BMP
+                binaryPixels[i] = imageData[i*4] > 127 ? 1 : 0;
+            }
+
+            const rowStride = Math.floor((w + 31) / 32) * 4;
+            const pixelDataSize = rowStride * h;
+            const fileSize = 14 + 40 + 8 + pixelDataSize;
+
+            const buffer = new ArrayBuffer(fileSize);
+            const view = new DataView(buffer);
+
+            // BMP Header
+            view.setUint8(0, 0x42); // 'B'
+            view.setUint8(1, 0x4D); // 'M'
+            view.setUint32(2, fileSize, true);
+            view.setUint32(6, 0, true);
+            view.setUint32(10, 62, true); // Offset to Data
+
+            // DIB Header
+            view.setUint32(14, 40, true); 
+            view.setUint32(18, w, true); 
+            view.setInt32(22, h, true); // Positive = Bottom-Up
+            view.setUint16(26, 1, true); // Color Planes
+            view.setUint16(28, 1, true); // Bits per pixel (1-bit)
+            view.setUint32(30, 0, true); // BI_RGB
+            view.setUint32(34, pixelDataSize, true);
+            view.setUint32(38, 2835, true); 
+            view.setUint32(42, 2835, true); 
+            view.setUint32(46, 2, true); 
+            view.setUint32(50, 0, true); 
+
+            // Color Table
+            view.setUint32(54, 0x00000000, true); // Color 0: Black
+            view.setUint32(58, 0x00FFFFFF, true); // Color 1: White
+
+            // Pixel Data
+            const dataView = new Uint8Array(buffer, 62);
+            for (let y = 0; y < h; y++) {
+                // Bottom-Up
+                const srcY = h - 1 - y;
+                for (let x = 0; x < w; x++) {
+                    const px = binaryPixels[srcY * w + x];
+                    if (px === 1) { // Set bit if White
+                        const byteIndex = y * rowStride + Math.floor(x / 8);
+                        const bitShift = 7 - (x % 8);
+                        dataView[byteIndex] |= (1 << bitShift);
+                    }
+                }
+            }
+
+            const blob = new Blob([buffer], { type: "image/bmp" });
+            lastPayloadBuffer = buffer;
+        }
+    </script>
+</body>
+</html>

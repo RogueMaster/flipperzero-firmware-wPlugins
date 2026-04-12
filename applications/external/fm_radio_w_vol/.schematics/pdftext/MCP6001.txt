@@ -1,0 +1,2772 @@
+                                     MCP6001/1R/1U/2/4
+                                  1 MHz, Low-Power Op Amp
+Features                                              Description
+• Available in 5-Lead SC-70 and 5-Lead SOT-23         The Microchip Technology Inc. MCP6001/2/4 family of
+  Packages                                            operational amplifiers (op amps) is specifically
+• Gain Bandwidth Product: 1 MHz (typical)             designed for general purpose applications. This family
+• Rail-to-Rail Input/Output                           has a 1 MHz Gain Bandwidth Product (GBWP) and 90°
+                                                      phase margin (typical). It also maintains a 45° phase
+• Supply Voltage: 1.8V to 6.0V
+                                                      margin (typical) with a 500 pF capacitive load. This
+• Supply Current: IQ = 100 µA (typical)               family operates from a single-supply voltage as low as
+• Phase Margin: 90° (typical)                         1.8V, while drawing 100 µA (typical) quiescent current.
+• Temperature Range:                                  Additionally, the MCP6001/2/4 supports rail-to-rail input
+  - Industrial: -40°C to +85°C                        and output swing, with a Common-mode input voltage
+  - Extended: -40°C to +125°C                         range of VDD + 300 mV to VSS – 300 mV. This family of
+                                                      op amps is designed with Microchip’s advanced CMOS
+• Available in Single, Dual and Quad Packages
+                                                      process.
+
+Applications                                          The MCP6001/2/4 family is available in the industrial
+                                                      and extended temperature ranges, with a power supply
+• Automotive                                          range of 1.8V to 6.0V.
+• Portable Equipment
+• Photodiode Amplifier                                Package Types
+• Analog Filters                                                   MCP6001                             MCP6001R
+• Notebooks and PDAs                                       5-Lead SC70, SOT-23                     5-Lead SOT-23
+• Battery-Powered Systems                                VOUT 1                     5 VDD     VOUT 1                   5 VSS
+                                                          VSS 2                                VDD 2
+Design Aids                                                            +                                    +
+                                                                           –
+
+
+
+
+                                                                                                                –
+                                                         VIN+ 3                     4 VIN-    VIN+ 3                   4 VIN-
+• SPICE Macro Models
+• FilterLab® Software
+                                                                   MCP6002                             MCP6001U
+• Mindi™ Circuit Designer and Analog Simulator           8-Lead PDIP, SOIC, MSOP                   5-Lead SOT-23
+• Microchip Advanced Part Selector (MAPS)
+                                                       VOUTA 1                     8 VDD     VIN+ 1                   5 VDD
+• Analog Demonstration and Evaluation Boards                                                              +
+                                                        VINA- 2        +           7 VOUTB    VSS 2
+                                                                   –
+
+
+
+
+• Application Notes                                                                                       –
+                                                        VINA+ 3            +       6 VINB-    VIN- 3                  4 VOUT
+                                                                               –
+
+
+
+
+Typical Application                                      VSS 4                     5 VINB+
+
+                             VDD
+                                                                   MCP6002                              MCP6004
+      VIN                                                     8-Lead 2x3 DFN*                 14-Lead PDIP, SOIC, TSSOP
+                       +
+                                                        VOUTA 1                    8 VDD     VOUTA 1                  14 VOUTD
+                       MCP6001                 VOUT
+                       –                                 VINA- 2       EP          7 VOUTB VINA- 2          + +       13 VIND-
+                                                                                                        –
+
+
+                                                                                                                  –
+
+
+
+
+                                                        VINA+ 3         9          6 VINB-   VINA+ 3                  12 VIND+
+                                   VSS
+                                                          VSS 4                    5 VINB+    VDD 4                   11 VSS
+                                                                                             VINB+ 5                  10 VINC+
+                           R1                                                                               + +
+                                                                                             VINB- 6                  9 VINC-
+                                                                                                        –
+
+
+                                                                                                                  –
+
+
+
+
+            R2
+                                           R1                                                VOUTB 7                  8 VOUTC
+                                Gain = 1 + -----
+                   VREF                    R2
+                                                        *Includes Exposed Thermal Pad (EP); see Table 3-1.
+                 Noninverting Amplifier
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                  DS20001733L-page 1
+MCP6001/1R/1U/2/4
+NOTES:
+
+
+
+
+DS20001733L-page 2    2002-2020 Microchip Technology Inc.
+                                                                                           MCP6001/1R/1U/2/4
+1.0           ELECTRICAL                                                                     † Notice: Stresses above those listed under “Absolute
+                                                                                                Maximum Ratings” may cause permanent damage
+              CHARACTERISTICS
+                                                                                                to the device. This is a stress rating only and func-
+                                                                                                tional operation of the device at those or any other
+Absolute Maximum Ratings†                                                                       conditions above those indicated in the operational
+VDD – VSS ........................................................................7.0V          listings of this specification is not implied. Exposure
+                                                                                                to maximum rating conditions for extended periods
+Current at Analog Input Pins (VIN+, VIN-)......................±2 mA
+                                                                                                may affect device reliability.
+Analog Inputs (VIN+, VIN-)†† .......... VSS – 1.0V to VDD + 1.0V
+                                                                                             †† See Section 4.1.2 “Input Voltage and Current
+All Other Inputs and Outputs ......... VSS – 0.3V to VDD + 0.3V                                 Limits”.
+Difference Input Voltage ...................................... |VDD – VSS|
+Output Short-Circuit Current ................................ Continuous
+Current at Output and Supply Pins ............................±30 mA
+Storage Temperature ....................................-65°C to +150°C
+Maximum Junction Temperature (TJ) ......................... .+150°C
+ESD Protection On All Pins (HBM; MM)   4 kV; 200V
+
+
+
+DC ELECTRICAL SPECIFICATIONS
+ Electrical Characteristics: Unless otherwise indicated, TA = +25°C, VDD = +1.8V to +5.5V, VSS = GND, VCM = VDD/2, VL = VDD/2,
+ RL = 10 kto VL and VOUT  VDD/2 (refer to Figure 1-1).
+                    Parameters                                  Sym                Min      Typ        Max       Units            Conditions
+
+ Input Offset
+ Input Offset Voltage                                           VOS                -4.5      —         +4.5       mV     VCM = VSS (Note 1)
+ Input Offset Drift with Temperature                        VOS/TA                —       ±2.0        —        µV/°C   TA= -40°C to +125°C,
+                                                                                                                         VCM = VSS
+ Power Supply Rejection Ratio                                  PSRR                 —        86         —         dB     VCM = VSS
+ Input Bias Current and Impedance
+ Input Bias Current:                                              IB                —       ±1.0        —         pA
+        Industrial Temperature                                    IB                —        19         —         pA     TA = +85°C
+        Extended Temperature                                      IB                —       1100        —         pA     TA = +125°C
+ Input Offset Current                                            IOS                —       ±1.0        —         pA
+                                                                                             13
+ Common-Mode Input Impedance                                    ZCM                 —      10 ||6       —        ||pF
+ Differential Input Impedance                                  ZDIFF                —      1013||3      —        ||pF
+ Common-Mode
+ Common-Mode Input Range                                       VCMR            VSS –0.3     —       VDD + 0.3     V
+ Common-Mode Rejection Ratio                                  CMRR                  60       76         —         dB     VCM = -0.3V to 5.3V, VDD = 5V
+ Open-Loop Gain
+ DC Open-Loop Gain (Large Signal)                               AOL                 88      112         —         dB     VOUT = 0.3V to VDD – 0.3V,
+                                                                                                                         VCM = VSS
+ Output
+ Maximum Output Voltage Swing                                VOL, VOH          VSS + 25      —       VDD – 25     mV     VDD = 5.5V,
+                                                                                                                         0.5V input overdrive
+ Output Short-Circuit Current                                    ISC                —        ±6         —         mA     VDD = 1.8V
+                                                                                    —       ±23         —         mA     VDD = 5.5V
+ Power Supply
+ Supply Voltage                                                 VDD                1.8       —          6.0        V     Note 2
+ Quiescent Current per Amplifier                                  IQ                50      100        170        µA     IO = 0, VDD = 5.5V, VCM = 5V
+ Note 1: MCP6001/1R/1U/2/4 parts with date codes prior to December 2004 (week code 49) were tested to ±7 mV
+         minimum/maximum limits.
+      2: All parts with date codes November 2007 and later have been screened to ensure operation at VDD = 6.0V. However, the
+         other minimum and maximum specifications are measured at 1.8V and 5.5V.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                                             DS20001733L-page 3
+MCP6001/1R/1U/2/4
+AC ELECTRICAL SPECIFICATIONS
+Electrical Characteristics: Unless otherwise indicated, TA = +25°C, VDD = +1.8 to 5.5V, VSS = GND, VCM = VDD/2,
+VL = VDD/2, VOUT  VDD/2, RL = 10 k to VL and CL = 60 pF (refer to Figure 1-1).
+               Parameters                    Sym       Min      Typ        Max          Units           Conditions
+AC Response
+Gain Bandwidth Product                      GBWP        —       1.0        —            MHz
+Phase Margin                                 PM         —       90         —              °        G = +1 V/V
+Slew Rate                                    SR         —       0.6        —            V/µs
+Noise
+Input Noise Voltage                          Eni        —       6.1        —            µVp-p      f = 0.1 Hz to 10 Hz
+Input Noise Voltage Density                   eni       —       28         —           nV/Hz      f = 1 kHz
+Input Noise Current Density                   ini       —       0.6        —           fA/Hz      f = 1 kHz
+
+
+TEMPERATURE SPECIFICATIONS
+Electrical Characteristics: Unless otherwise indicated, VDD = +1.8V to +5.5V and VSS = GND.
+                Parameters                     Sym       Min       Typ         Max         Units         Conditions
+Temperature Ranges
+Industrial Temperature Range                    TA       -40          —        +85            °C
+Extended Temperature Range                      TA       -40          —      +125             °C
+Operating Temperature Range                     TA       -40          —      +125             °C     Note 1
+Storage Temperature Range                       TA       -65          —      +150             °C
+Thermal Package Resistances
+Thermal Resistance, 5-Lead SC70                 JA       —        331           —         °C/W
+Thermal Resistance, 5-Lead SOT-23               JA       —        256           —         °C/W
+Thermal Resistance, 8-Lead PDIP                 JA       —           85         —         °C/W
+Thermal Resistance, 8-Lead SOIC (150 mil)       JA       —        163           —         °C/W
+Thermal Resistance, 8-Lead MSOP                 JA       —        206           —         °C/W
+Thermal Resistance, 8-Lead DFN (2x3)            JA       —           68         —         °C/W
+Thermal Resistance, 14-Lead PDIP                JA       —           70         —         °C/W
+Thermal Resistance, 14-Lead SOIC                JA       —        120           —         °C/W
+Thermal Resistance, 14-Lead TSSOP               JA       —        100           —         °C/W
+Note 1:     The industrial temperature devices operate over this extended temperature range, but with reduced
+            performance. In any case, the internal Junction Temperature (TJ) must not exceed the Absolute Maximum
+            specification of +150°C.
+
+
+
+
+DS20001733L-page 4                                                                    2002-2020 Microchip Technology Inc.
+                                                              MCP6001/1R/1U/2/4
+1.1       Test Circuits
+                                                                                   CF
+The circuit used for most DC and AC tests is shown in
+                                                                                 6.8 pF
+Figure 1-1. This circuit can independently set VCM and
+VOUT; see Equation 1-1. Note that VCM is not the
+circuit’s Common-mode voltage ((VP + VM)/2) and that                  RG        RF
+VOST includes VOS plus the effects (on the input offset             100 k    100 k
+error, VOST) of temperature, CMRR, PSRR and AOL.               VP                                               VDD/2
+                                                                                                       VDD
+                                                                    VIN+
+EQUATION 1-1:
+                                                                             +             CB1           CB2
+   G DM = R F  RG                                              MCP600X                    100 nF        1 µF
+   V CM =  V P + V DD  2   2                                             –
+   V OST = VIN– – V IN+                                             VIN-
+   V OUT =  VDD  2  +  V P – V M  + V OST  1 + G DM     VM                                             VOUT
+                                                                      RG        RF             RL        CL
+   Where:
+                                                                    100 k    100 k           10 k     60 pF
+      GDM = Differential-Mode Gain                  (V/V)
+      VCM = Op Amp’s Common-Mode                    (V)                            CF
+            Input Voltage                                                        6.8 pF   VL
+      VOST = Op Amp’s Total Input Offset            (mV)
+                                                              FIGURE 1-1:          AC and DC Test Circuit for
+             Voltage
+                                                              Most Specifications.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                            DS20001733L-page 5
+MCP6001/1R/1U/2/4
+NOTES:
+
+
+
+
+DS20001733L-page 6    2002-2020 Microchip Technology Inc.
+                                                                                                                  MCP6001/1R/1U/2/4
+2.0                                 TYPICAL PERFORMANCE CURVES
+  Note:                                  The graphs and tables provided following this note are a statistical summary based on a limited number of
+                                         samples and are provided for informational purposes only. The performance characteristics listed herein
+                                         are not tested or guaranteed. In some graphs or tables, the data presented may be outside the specified
+                                         operating range (e.g., outside specified power supply range) and therefore outside the warranted range.
+Note: Unless otherwise indicated, TA = +25°C, VDD = +1.8V to +5.5V, VSS = GND, VCM = VDD/2, VOUT  VDD/2,
+VL = VDD/2, RL = 10 kto VL and CL = 60 pF.
+
+
+                              20%                                                                                                                 0
+                                      64,695 Samples                                                                                                     VDD = 1.8V
+  Percentage of Occurrences
+
+
+
+
+                              18%     VCM = VSS
+
+
+
+
+                                                                                                                   Input Offset Voltage (µV)
+                                                                                                                                               -100
+                              16%
+                              14%                                                                                                              -200
+                              12%                                                                                                              -300
+                              10%
+                                                                                                                                               -400                                    TA = -40°C
+                               8%
+                                                                                                                                                                                       TA = +25°C
+                               6%                                                                                                              -500                                    TA = +85°C
+                               4%                                                                                                                                                      TA = +125°C
+                                                                                                                                               -600
+                               2%
+                               0%                                                                                                              -700
+
+
+
+
+                                                                                                                                                      -0.4
+                                                                                                                                                             -0.2
+                                                                                                                                                                     0.0
+                                                                                                                                                                           0.2
+                                                                                                                                                                                 0.4
+                                                                                                                                                                                       0.6
+                                                                                                                                                                                             0.8
+                                                                                                                                                                                                   1.0
+                                                                                                                                                                                                         1.2
+                                                                                                                                                                                                               1.4
+                                                                                                                                                                                                                     1.6
+                                                                                                                                                                                                                           1.8
+                                                                                                                                                                                                                                 2.0
+                                                                                                                                                                                                                                       2.2
+                                     5      -4       -3     -2 -1 0        1    2   3                 4     5
+                                                          Input Offset Voltage (mV)                                                                                    Common Mode Input Voltage (V)
+
+FIGURE 2-1:                                                  Input Offset Voltage.                                FIGURE 2-4:     Input Offset Voltage vs.
+                                                                                                                  Common-Mode Input Voltage at VDD = 1.8V.
+
+                              18%                                                                                                                0
+  Percentage of Occurrences
+
+
+
+
+                                     2453 Samples                                                                                                        VDD = 5.5V
+                              16%    TA = -40°C to +125°C
+                                                                                                                   Input Offset Voltage (µV)
+
+
+
+                                                                                                                                               -100
+                              14%    VCM = VSS
+                              12%                                                                                                              -200
+                              10%                                                                                                              -300
+                               8%
+                               6%                                                                                                              -400
+                                                                                                                                                                                                TA = -40°C
+                               4%                                                                                                              -500                                            TA = +25°C
+                                                                                                                                                                                               TA = +85°C
+                               2%
+                                                                                                                                               -600                                            TA = +125°C
+                               0%
+                                    -12 -10 -8 -6 -4 -2 0 2 4 6                                 8     10 12                                    -700
+                                                                                                                                                      -0.5
+                                                                                                                                                             0.0
+                                                                                                                                                                     0.5
+                                                                                                                                                                           1.0
+                                                                                                                                                                                 1.5
+                                                                                                                                                                                       2.0
+                                                                                                                                                                                             2.5
+                                                                                                                                                                                                   3.0
+                                                                                                                                                                                                         3.5
+                                                                                                                                                                                                               4.0
+                                                                                                                                                                                                                     4.5
+                                                                                                                                                                                                                           5.0
+                                                                                                                                                                                                                                 5.5
+                                                                                                                                                                                                                                       6.0
+                                               Input Offset Voltage Drift;
+                                                      TC1 (µV/°C)                                                                                                      Common Mode Input Voltage (V)
+
+FIGURE 2-2:                                                  Input Offset Voltage Drift.                          FIGURE 2-5:     Input Offset Voltage vs.
+                                                                                                                  Common-Mode Input Voltage at VDD = 5.5V.
+
+                              45%                                                                                                              200
+  Percentage of Occurrences
+
+
+
+
+                                                                                  2453 Samples
+                              40%                                                 TA = -40°C to +125°C                                         150
+                                                                                                                   Input Offset Voltage (µV)
+
+
+
+
+                              35%                                                 VCM = VSS
+                              30%                                                                                                              100
+                              25%                                                                                                                50                                                      VDD = 5.5V
+                              20%
+                                                                                                                                                  0
+                              15%                                                                                                                                   VDD = 1.8V
+                              10%                                                                                                               -50
+                               5%                                                                                                              -100
+                               0%
+                                                                                                                                               -150                                                                        VCM = VSS
+                                    -0.02
+
+                                            -0.01
+
+                                                      0.00
+
+                                                             0.01
+
+                                                                    0.02
+
+                                                                           0.03
+
+                                                                                  0.04
+
+                                                                                         0.05
+
+                                                                                                    0.06
+
+                                                                                                           0.07
+
+
+
+
+                                                                                                                                               -200
+                                                    Input Offset Quadratic Temp. Co.;                                                                 0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5
+                                                                         2
+                                                               TC2 (µV/°C )                                                                                          Output Voltage (V)
+
+FIGURE 2-3:                                                  Input Offset Quadratic                               FIGURE 2-6:                                                     Input Offset Voltage vs.
+Temp. Co.                                                                                                         Output Voltage.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                                                                                                                    DS20001733L-page 7
+MCP6001/1R/1U/2/4
+Note: Unless otherwise indicated, TA = +25°C, VDD = +1.8V to +5.5V, VSS = GND, VCM = VDD/2, VOUT  VDD/2,
+VL = VDD/2, RL = 10 kto VL and CL = 60 pF.
+
+                              14%                                                                                                      100
+                                          1230 Samples                                                                                                                                       VCM = VSS
+  Percentage of Occurrences
+
+
+
+
+                              12%         VDD = 5.5V                                                                                     90
+                                          VCM = VDD
+                                                                                                                                         80
+
+
+
+
+                                                                                                                 PSRR, CMRR (dB)
+                              10%         TA = +85°C
+                                                                                                                                         70
+                               8%                                                                                                                                                  PSRR–
+                                                                                                                                         60
+                               6%                                                                                                                                          PSRR+
+                                                                                                                                         50
+                                                                                                                                                                  CMRR
+                               4%
+                                                                                                                                         40
+                               2%
+                                                                                                                                         30
+                               0%                                                                                                        20
+                                      0       3     6       9 12 15 18 21 24                      27     30                                  10
+                                                                                                                                          1.E+01                  100
+                                                                                                                                                                1.E+02         1k
+                                                                                                                                                                             1.E+03       10k
+                                                                                                                                                                                        1.E+04        100k
+                                                                                                                                                                                                     1.E+05
+                                                          Input Bias Current (pA)                                                                                        Frequency (Hz)
+
+FIGURE 2-7:                                                 Input Bias Current at +85°C.                        FIGURE 2-10:                                             PSRR, CMRR vs.
+                                                                                                                Frequency.
+
+                              55%                                                                                                      120                                                       0
+                                          605 Samples
+  Percentage of Occurrences
+
+
+
+
+                              50%         VDD = 5.5V
+                              45%                                                                                                      100                                                       -30
+
+
+                                                                                                                 Open-Loop Gain (dB)
+
+
+
+
+                                                                                                                                                                                                         Open-Loop Phase (°)
+                                          VCM = VDD
+                              40%         TA = +125°C                                                                                   80                                           Phase
+                                                                                                                                                                                                 -60
+                              35%
+                              30%                                                                                                       60                                                       -90
+                              25%
+                              20%                                                                                                       40                                                       -120
+                                                                                                                                                                            Gain
+                              15%
+                                                                                                                                        20                                                       -150
+                              10%
+                               5%                                                                                                              0                                                 -180
+                               0%                                                                                                                   VCM = VSS
+                                                                                                                                       -20                                         -210
+                                     0
+
+                                             150
+
+                                                    300
+
+                                                          450
+
+                                                                  600
+
+                                                                        750
+
+                                                                              900
+
+                                                                                    1050
+
+                                                                                           1200
+
+                                                                                                  1350
+
+                                                                                                         1500
+
+
+
+
+                                                                                                                                           0.1 1.E+
+                                                                                                                                          1.E-   1 1.E+
+                                                                                                                                                    10 1.E+
+                                                                                                                                                        100 1.E+
+                                                                                                                                                             1k 1.E+
+                                                                                                                                                                 10k 100k 1M 10M
+                                                                                                                                                                     1.E+ 1.E+ 1.E+
+                                                          Input Bias Current (pA)                                                          01 00 01 Frequency
+                                                                                                                                                         02 03 (Hz)
+                                                                                                                                                                  04 05 06 07
+
+FIGURE 2-8:                                                 Input Bias Current at                               FIGURE 2-11:                                             Open-Loop Gain, Phase vs.
++125°C.                                                                                                         Frequency.
+
+                              100                                                                                                              1,000
+                                      VDD = 5.0V
+                                                                                                                 Input Noise Voltage Density
+
+
+
+
+                              95
+  PSRR, CMRR (dB)
+
+
+
+
+                              90
+                                                                                                                           (nV/ Hz)
+
+
+
+
+                                                                     PSRR (VCM = VSS)
+                              85                                                                                                                   100
+
+                              80
+                                                                CMRR (VCM = -0.3V to +5.3V)
+                              75
+
+                              70                                                                                                                    10
+                                    -50       -25     0     25    50     75                   100        125                                         1.E-01  1
+                                                                                                                                                       0.1 1.E+0   10
+                                                                                                                                                                 1.E+0          1k
+                                                                                                                                                                          100 1.E+0
+                                                                                                                                                                         1.E+0            100k
+                                                                                                                                                                                     10k 1.E+0
+                                                                                                                                                                                    1.E+0
+                                                     Ambient Temperature (°C)                                                                                0      1Frequency
+                                                                                                                                                                           2 (Hz)3    4    5
+
+FIGURE 2-9:                                                 CMRR, PSRR vs. Ambient                              FIGURE 2-12:                                             Input Noise Voltage Density
+Temperature.                                                                                                    vs. Frequency.
+
+
+
+
+DS20001733L-page 8                                                                                                                                                 2002-2020 Microchip Technology Inc.
+                                                                                             MCP6001/1R/1U/2/4
+Note: Unless otherwise indicated, TA = +25°C, VDD = +1.8V to +5.5V, VSS = GND, VCM = VDD/2, VOUT  VDD/2,
+VL = VDD/2, RL = 10 kto VL and CL = 60 pF.
+
+                            30                                                                                             0.08
+
+
+
+
+                                                                                                                                       G = +1 V/V
+
+
+
+
+                                                                                              Output Voltage (20 mV/div)
+                            25
+                                                                                                                           0.06
+   Short Circuit Current
+
+
+
+
+                                         TA = -40°C
+     Magnitude (mA)
+
+
+
+
+                                         TA = +25°C
+                                                                                                                           0.04
+
+
+
+
+                            20           TA = +85°C                                                                        0.02
+
+
+
+                                        TA = +125°C
+                            15                                                                                             0.00
+
+
+
+
+                            10                                                                                             -0.02
+
+
+
+
+                             5
+                                                                                                                           -0.04
+
+
+
+
+                                                                                                                           -0.06
+
+
+
+
+                             0
+                                 0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5                                           -0.08
+                                                                                                                              0.E+00              1.E-06            2.E-06            3.E-06                 4.E-06             5.E-06             6.E-06            7.E-06            8.E-06          9.E-06       1.E-05
+
+
+
+
+                                             Power Supply Voltage (V)                                                                                                                                       Time (1 µs/div)
+
+FIGURE 2-13:       Output Short-Circuit Current                                              FIGURE 2-16:                                                                                                   Small-Signal, Noninverting
+vs. Power Supply Voltage.                                                                    Pulse Response.
+
+
+                            1,000                                                                                             5.0                                                                                                                                                                   G = +1 V/V
+                                                                                                                              4.5
+  Output Voltage Headroom
+
+
+
+
+                                                                                                                                                                                                                                                                                                    VDD = 5.0V
+
+                                                                                                                              4.0
+
+
+
+                                                                                              Output Voltage (V)
+                                                                VDD – VOH
+                             100                                                                                              3.5
+                                                                            VOL – VSS                                         3.0
+            (mV)
+
+
+
+
+                                                                                                                              2.5
+                                 10                                                                                           2.0
+                                                                                                                              1.5
+                                                                                                                              1.0
+                                 1                                                                                            0.5
+                                  10µ
+                                 1.E-05            100µ
+                                                  1.E-04         1m
+                                                               1.E-03                10m
+                                                                                    1.E-02                                    0.0        0.E+00            1.E-05            2.E-05                3.E-05             4.E-05             5.E-05             6.E-05            7.E-05       8.E-05        9.E-05     1.E-04
+
+
+
+
+                                              Output Current Magnitude (A)                                                                                                                                   Time (10 µs/div)
+
+FIGURE 2-14:        Output Voltage Headroom                                                  FIGURE 2-17:                                                                                                   Large-Signal, Noninverting
+vs. Output Current Magnitude.                                                                Pulse Response.
+
+                            180                                                                                               1.0
+                                       VCM = VDD - 0.5V
+                            160                                                                                               0.9                                                                                              VDD = 5.5V
+                            140                                                                                               0.8
+   Quiescent Current
+   per amplifier (µA)
+
+
+
+
+                                                                                              Slew Rate (V/µs)
+
+
+
+
+                                                                                                                                                  Falling Edge
+                            120                                                                                               0.7
+                                                                                                                              0.6
+                            100
+                                                                                                                              0.5
+                              80                                                                                              0.4
+                                                          TA = +125°C                                                                                                                                                                                   VDD = 1.8V
+                              60                                                                                              0.3
+                                                           TA = +85°C                                                                                                                          Rising Edge
+                              40                           TA = +25°C                                                         0.2
+                              20                           TA = -40°C                                                         0.1
+                                 0                                                                                            0.0
+                                     0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5                                                   -50                      -25                            0                      25                          50                 75                    100                    125
+                                                                                                                                                                                      Ambient Temperature (°C)
+                                                 Power Supply Voltage (V)
+
+FIGURE 2-15:       Quiescent Current vs.                                                     FIGURE 2-18:                                                                                                   Slew Rate vs. Ambient
+Power Supply Voltage.                                                                        Temperature.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                                                                                                                                                                          DS20001733L-page 9
+MCP6001/1R/1U/2/4
+Note: Unless otherwise indicated, TA = +25°C, VDD = +1.8V to +5.5V, VSS = GND, VCM = VDD/2, VOUT  VDD/2,
+VL = VDD/2, RL = 10 kto VL and CL = 60 pF.
+
+
+                                  10                                                                                         6
+                                                                                                                                                                             VIN                                           VDD = 5.0V
+  Output Voltage Swing (V P-P )
+
+
+
+
+                                                                                                                                                                                                                           G = +2 V/V
+                                                                                                                             5
+
+
+
+
+                                                                                                Input, Output Voltages (V)
+                                                VDD = 5.5V                                                                                                   VOUT
+                                                                                                                             4
+                                                 VDD = 1.8V
+                                                                                                                             3
+                                   1
+                                                                                                                             2
+
+                                                                                                                             1
+
+                                                                                                                             0
+                                  0.1
+                                      1k
+                                   1.E+03              10k
+                                                     1.E+04          100k
+                                                                    1.E+05            1M
+                                                                                    1.E+06                                   -1   0.E+00   1.E-05   2.E-05          3.E-05         4.E-05   5.E-05   6.E-05   7.E-05   8.E-05   9.E-05   1.E-04
+
+
+
+
+                                                         Frequency (Hz)                                                                                                        Time (10 µs/div)
+
+FIGURE 2-19:                                             Output Voltage Swing vs.              FIGURE 2-21:                                                                   The MCP6001/2/4 Show No
+Frequency.                                                                                     Phase Reversal.
+
+                  10m
+                1.E-02
+  Input Current Magnitude (A)
+
+
+
+
+                   1m
+                1.E-03
+                  100µ
+                1.E-04
+                   10µ
+                1.E-05
+                    1µ
+                1.E-06
+                  100n
+                1.E-07
+                   10n
+                1.E-08
+                    1n
+                1.E-09                                        +125°C
+                                                               +85°C
+                  100p
+                1.E-10                                         +25°C
+                   10p
+                1.E-11                                         -40°C
+                    1p
+                1.E-12
+                                       -1.0 -0.9 -0.8 -0.7 -0.6 -0.5 -0.4 -0.3 -0.2 -0.1 0.0
+                                                         Input Voltage (V)
+
+FIGURE 2-20:        Measured Input Current vs.
+Input Voltage (below VSS).
+
+
+
+
+DS20001733L-page 10                                                                                                                                             2002-2020 Microchip Technology Inc.
+                                                             MCP6001/1R/1U/2/4
+3.0       PIN DESCRIPTIONS
+Descriptions of the pins are listed in Table 3-1.
+
+TABLE 3-1:         PIN FUNCTION TABLE
+ MCP6001 MCP6001R MCP6001U                    MCP6002       MCP6004
+  5-Lead                                   8-Lead   8-Lead  8-Lead        Symbol               Description
+               5-Lead       5-Lead
+   SC70,                                   MSOP,      2x3 PDIP, SOIC,
+               SOT-23       SOT-23
+  SOT-23                                 PDIP, SOIC DFN    TSSOP
+      1           1             4             1         1      1        VOUT, VOUTA Analog Output (Op Amp A)
+      4           4             3             2         2      2         VIN-, VINA-   Inverting Input (Op Amp A)
+      3           3             1             3         3      3        VIN+, VINA+ Noninverting Input (Op Amp A)
+      5           2             5             8         8      4            VDD        Positive Power Supply
+      —           —            —              5         5      5           VINB+       Noninverting Input (Op Amp B)
+      —           —            —              6         6      6           VINB-       Inverting Input (Op Amp B)
+      —           —            —              7         7      7           VOUTB       Analog Output (Op Amp B)
+      —           —            —             —          —      8           VOUTC       Analog Output (Op Amp C)
+      —           —            —             —          —      9           VINC-       Inverting Input (Op Amp C)
+      —           —            —             —          —     10           VINC+       Noninverting Input (Op Amp C)
+      2           5             2             4         4      11           VSS        Negative Power Supply
+      —           —            —             —          —     12           VIND+       Noninverting Input (Op Amp D)
+      —           —            —             —          —     13           VIND-       Inverting Input (Op Amp D)
+      —           —            —             —          —     14           VOUTD       Analog Output (Op Amp D)
+      —           —            —             —          9      —            EP         Exposed Thermal Pad (EP);
+                                                                                       must be connected to VSS.
+
+3.1       Analog Outputs                                      3.4       Exposed Thermal Pad (EP)
+The output pins are low-impedance voltage sources.            There is an internal electrical connection between the
+                                                              Exposed Thermal Pad (EP) and the VSS pin; they must
+3.2       Analog Inputs                                       be connected to the same potential on the Printed
+                                                              Circuit Board (PCB).
+The noninverting and inverting inputs are
+high-impedance CMOS inputs with low bias currents.
+
+3.3       Power Supply Pins
+The positive power supply (VDD) is 1.8V to 6.0V higher
+than the negative power supply (VSS). For normal
+operation, the other pins are at voltages between VSS
+and VDD.
+Typically, these parts are used in a single (positive)
+supply configuration. In this case, VSS is connected to
+ground and VDD is connected to the supply. VDD will
+need bypass capacitors.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                           DS20001733L-page 11
+MCP6001/1R/1U/2/4
+NOTES:
+
+
+
+
+DS20001733L-page 12    2002-2020 Microchip Technology Inc.
+                                                           MCP6001/1R/1U/2/4
+4.0       APPLICATION INFORMATION                          VDD, and dump any currents onto VDD. When
+                                                           implemented as shown, resistors, R1 and R2, also limit
+The MCP6001/2/4 family of op amps is manufactured          the current through D1 and D2.
+using Microchip’s state-of-the-art CMOS process and
+is specifically designed for low-cost, low-power and
+general purpose applications. The low supply voltage,                                            VDD
+low quiescent current and wide bandwidth makes the
+MCP6001/2/4 ideal for battery-powered applications.
+                                                                                D1   D2
+These devices have high phase margin, which makes
+them stable for larger capacitive load applications.               V1                        +
+                                                                               R1            MCP600X
+4.1       Rail-to-Rail Inputs                                      V2                        –
+4.1.1         PHASE REVERSAL                                                   R2
+
+The MCP6001/1R/1U/2/4 op amp is designed to
+                                                                                                  R3
+prevent phase reversal when the input pins exceed the
+supply voltages. Figure 2-21 shows the input voltage                           VSS – (minimum expected V1)
+exceeding the supply voltage without any phase                          R1 >
+                                                                                           2 mA
+reversal.
+                                                                               VSS – (minimum expected V2)
+                                                                        R2 >
+4.1.2         INPUT VOLTAGE AND CURRENT                                                    2 mA
+              LIMITS                                       FIGURE 4-2:                Protecting the Analog
+The ESD protection on the inputs can be depicted as        Inputs.
+shown in Figure 4-1. This structure was chosen to
+protect the input transistors and to minimize Input Bias   It is also possible to connect the diodes to the left of
+(IB) current. The input ESD diodes clamp the inputs        resistors, R1 and R2. In this case, current through the
+when they try to go more than one diode drop below         diodes, D1 and D2, needs to be limited by some other
+VSS. They also clamp any voltages that go too far          mechanism. The resistors then serve as inrush current
+above VDD; their breakdown voltage is high enough to       limiters; the DC current into the input pins (VIN+ and
+allow normal operation and low enough to bypass quick      VIN-) should be very small.
+ESD events within the specified limits.                    A significant amount of current can flow out of the
+                                                           inputs when the Common-Mode Voltage (VCM) is below
+                                                           ground (VSS); see Figure 2-20. Applications that are
+                                                           high-impedance may need to limit the usable voltage
+        VDD Bond
+            Pad                                            range.
+
+                                                           4.1.3          NORMAL OPERATION
+                                                           The input stage of the MCP6001/1R/1U/2/4 op amps
+      VIN+ Bond          Input          Bond V -
+                                              IN           use two differential CMOS input stages in parallel. One
+           Pad           Stage          Pad
+                                                           operates at low Common-mode input voltage (VCM),
+                                                           while the other operates at high VCM. With this
+                                                           topology, the device operates with VCM up to 0.3V
+              Bond                                         above VDD and 0.3V below VSS.
+        VSS
+              Pad
+                                                           The transition between the two input stages occurs
+                                                           when VCM = VDD – 1.1V. For the best distortion and
+FIGURE 4-1:            Simplified Analog Input ESD         gain linearity, with noninverting gains, avoid this region
+Structures.                                                of operation.
+In order to prevent damage and/or improper operation
+of these op amps, the circuit they are in must limit the   4.2          Rail-to-Rail Output
+currents and voltages at the VIN+ and VIN- pins (see
+                                                           The output voltage range of the MCP6001/2/4 op amps
+Absolute Maximum Ratings† at the beginning of
+                                                           is VDD – 25 mV (minimum), and VSS + 25 mV
+Section 1.0 “Electrical Characteristics”). Figure 4-2
+                                                           (maximum) when RL = 10 k is connected to VDD/2
+shows the recommended approach to protecting these
+                                                           and VDD = 5.5V. Refer to Figure 2-14 for more
+inputs. The internal ESD diodes prevent the input pins
+                                                           information.
+(VIN+ and VIN-) from going too far below ground, and
+the resistors, R1 and R2, limit the possible current
+drawn out of the input pins. Diodes, D1 and D2, prevent
+the input pins (VIN+ and VIN-) from going too far above
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                            DS20001733L-page 13
+MCP6001/1R/1U/2/4
+4.3                             Capacitive Loads                                    After selecting RISO for your circuit, double-check the
+                                                                                    resulting frequency response peaking and step
+Driving large capacitive loads can cause stability                                  response overshoot. Modify RISO’s value until the
+problems for voltage feedback op amps. As the load                                  response is reasonable. Bench evaluation and
+capacitance increases, the feedback loop’s phase                                    simulations with the MCP6001/1R/1U/2/4 SPICE
+margin decreases and the closed-loop bandwidth is                                   macro model are very helpful.
+reduced. This produces gain peaking in the frequency
+response, with overshoot and ringing in the step
+                                                                                    4.4      Supply Bypass
+response. While a unity gain buffer (G = +1) is the most
+sensitive to capacitive loads, all gains show the same                              With this family of operational amplifiers, the power
+general behavior.                                                                   supply pin (VDD for single supply) should have a local
+When driving large capacitive loads with these                                      bypass capacitor (i.e., 0.01 µF to 0.1 µF) within 2 mm
+op amps (e.g., >100 pF when G = +1), a small series                                 for good high-frequency performance. It also needs a
+resistor at the output (RISO in Figure 4-3) improves the                            bulk capacitor (i.e., 1 µF or larger) within 100 mm to
+feedback loop’s phase margin (stability) by making the                              provide large, slow currents. This bulk capacitor can be
+output load resistive at higher frequencies. The                                    shared with nearby analog parts.
+bandwidth will be generally lower than the bandwidth
+with no capacitance load.                                                           4.5      Unused Op Amps
+                                                                                    An unused op amp in a quad package (MCP6004)
+                                                                                    should be configured as shown in Figure 4-5. These
+                                                                                    circuits prevent the output from toggling and causing
+                                    –                   RISO                        crosstalk. Circuit A sets the op amp at its minimum
+                                    MCP600X                               VOUT      noise gain. The resistor divider produces any desired
+  VIN                               +                                               reference voltage within the output voltage range of the
+                                                             CL
+                                                                                    op amp; the op amp buffers that reference voltage.
+                                                                                    Circuit B uses the minimum number of components
+                                                                                    and operates as a comparator, but it may draw more
+FIGURE 4-3:         Output Resistor, RISO,                                          current.
+Stabilizes Large Capacitive Loads.
+Figure 4-4 gives recommended RISO values for different                                       ¼ MCP6004 (A)                     ¼ MCP6004 (B)
+capacitive loads and gains. The x-axis is the normalized
+                                                                                       VDD                                                 VDD
+load capacitance (CL/GN), where GN is the circuit’s noise
+gain. For noninverting gains, GN and the signal gain are
+                                                                                           R1       VDD
+equal. For inverting gains, GN is 1+|Signal Gain| (e.g.,                                                                               +
+-1 V/V gives GN = +2 V/V).                                                                         +
+                                                                                                                  VREF                 –
+                                                                                           R2      –
+                         1000
+                                 VDD = 5.0V
+                                 RL = 100 k
+  Recommended RISO (Ω)
+
+
+
+
+                                                                                                                        R2
+                                                                                                    VREF = V DD  ------------------
+                                                                                                                  R1 + R 2
+                          100     GN = 1
+                                  GN  2                                            FIGURE 4-5:              Unused Op Amps.
+
+
+
+                          10
+                            10p              100p           1n              10n
+                           1.E-11           1.E-10        1.E-09           1.E-08
+                                    Normalized Load Capacitance; CL/GN (F)
+
+FIGURE 4-4:         Recommended RISO Values
+for Capacitive Loads.
+
+
+
+
+DS20001733L-page 14                                                                                     2002-2020 Microchip Technology Inc.
+                                                            MCP6001/1R/1U/2/4
+4.6       PCB Surface Leakage
+In applications where low input bias current is critical,                 –              R2            R1
+Printed Circuit Board (PCB) surface leakage effects                         1/2
+                                                                          MCP6002
+need to be considered. Surface leakage is caused by            VIN1       +
+humidity, dust or other contamination on the board.                                              –
+Under low humidity conditions, a typical resistance
+                                                                                                 MCP6001         VOUT
+between nearby traces is 1012. A 5V difference would
+                                                                                                 +
+cause 5 pA of current to flow, which is greater than the
+                                                                          –               R2
+MCP6001/1R/1U/2/4 family’s bias current at +25°C                            1/2
+                                                                          MCP6002                       R1 = 20 k
+(typically 1 pA).
+                                                               VIN2       +                             R2 = 10 k
+The easiest way to reduce surface leakage is to use a
+                                                                                                R1
+guard ring around sensitive pins (or traces). The guard
+ring is biased at the same voltage as the sensitive pin.                                         VREF
+An example of this type of layout is shown in
+                                                                                                  R1
+Figure 4-6.                                                            V OUT =  VIN2 – V IN1   ----- + VREF
+                                                                                                  R2
+                     VIN-        VIN+
+                                            VSS             FIGURE 4-7:         Instrumentation Amplifier
+                                                            with Unity Gain Buffer Inputs.
+
+                                                            4.7.2        ACTIVE LOW-PASS FILTER
+                                                            The MCP6001/2/4 op amp’s low input bias current
+                                                            makes it possible for the designer to use larger resis-
+                                                            tors and smaller capacitors for active low-pass filter
+                                                            applications. However, as the resistance increases, the
+                       Guard Ring
+                                                            noise generated also increases. Parasitic capacitances
+FIGURE 4-6:             Example Guard Ring Layout           and the large value resistors could also modify the
+for Inverting Gain.                                         frequency response. These trade-offs need to be
+                                                            considered when selecting circuit elements.
+1.    Noninverting Gain and Unity Gain Buffer:
+      a. Connect the noninverting pin (VIN+) to the         Usually, the op amp bandwidth is 100x the filter cutoff
+          input with a wire that does not touch the         frequency (or higher) for good performance. It is
+          PCB surface.                                      possible to have the op amp bandwidth 10x higher than
+                                                            the cutoff frequency, thus having a design that is more
+      b. Connect the guard ring to the inverting input
+                                                            sensitive to component tolerances.
+          pin (VIN-). This biases the guard ring to the
+          Common-mode input voltage.                        Figure 4-8 shows a second-order Butterworth filter with
+2.    Inverting Gain and Transimpedance Gain                100 kHz cutoff frequency and a gain of +1 V/V; the
+      Amplifiers (convert current to voltage, such as       op amp bandwidth is only 10x higher than the cutoff
+      photo detectors):                                     frequency. The component values were selected using
+                                                            Microchip’s FilterLab® software.
+      a. Connect the guard ring to the noninverting
+          input pin (VIN+). This biases the guard ring
+          to the same reference voltage as the                                            100 pF
+          op amp (e.g., VDD/2 or ground).
+      b. Connect the inverting pin (VIN-) to the input
+          with a wire that does not touch the PCB                     14.3 k 53.6 k
+          surface.                                            VIN                                  +
+                                                                                                   MCP6002
+                                                                                                                 VOUT
+4.7       Application Circuits                                                 33 pF               –
+
+4.7.1        UNITY GAIN BUFFER
+The rail-to-rail input and output capability of the         FIGURE 4-8:              Active Second-Order
+MCP6001/2/4 op amp is ideal for unity gain buffer           Low-Pass Filter.
+applications. The low quiescent current and wide
+bandwidth makes the device suitable for a buffer
+configuration in an instrumentation amplifier circuit, as
+shown in Figure 4-7.
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                              DS20001733L-page 15
+MCP6001/1R/1U/2/4
+4.7.3        PEAK DETECTOR                                                 can be determined. For example, with an op amp
+                                                                           short-circuit current of ISC = 25 mA and a load capacitor
+The MCP6001/2/4 op amp has a high input impedance,
+                                                                           of C1 = 0.1 µF, then:
+rail-to-rail input/output and low input bias current, which
+makes this device suitable for peak detector applica-
+tions. Figure 4-9 shows a peak detector circuit with                       EQUATION 4-1:
+clear and sample switches. The peak detection cycle                                                        dV C1
+uses a clock (CLK), as shown in Figure 4-9.                                                      ISC = C 1 ------------
+                                                                                                               dt
+At the rising edge of the CLK, the sample switch closes                                            dV C1          I SC
+to begin sampling. The peak voltage stored on C1 is                                                ------------ = -------
+                                                                                                       dt          C1
+sampled to C2 for a sample time defined by tSAMP. At the
+end of the sample time (falling edge of sample signal),                                                           25mA
+                                                                                                                = --------------
+the clear signal goes high and closes the clear switch.                                                           0.1F
+When the clear switch closes, C1 discharges through R1                                        dVC1
+                                                                                              ------------ = 250mV  s
+for a time defined by tCLEAR. At the end of the clear time                                        dt
+(falling edge of the clear signal), Op Amp A begins to
+store the peak value of VIN on C1 for a time defined by                    This voltage rate of change is less than the
+tDETECT.                                                                   MCP6001/2/4 slew rate of 0.6 V/µs. When the input
+                                                                           voltage swings below the voltage across C1, D1
+In order to define tSAMP and tCLEAR, it is necessary to
+                                                                           becomes reverse-biased. This opens the feedback
+determine the capacitor charging and discharging
+                                                                           loop and rails the amplifier. When the input voltage
+period. The capacitor charging time is limited by the
+                                                                           increases, the amplifier recovers at its slew rate. Based
+amplifier source current, while the discharging time ()
+                                                                           on the rate of voltage change shown in the above equa-
+is defined using R1 ( = R1C1). tDETECT is the time that
+                                                                           tion, it takes an extended period of time to charge a
+the input signal is sampled on C1 and is dependent on
+                                                                           0.1 µF capacitor. The capacitors need to be selected so
+the input voltage change frequency.
+                                                                           that the circuit is not limited by the amplifier slew rate.
+The op amp output current limit, and the size of the                       Therefore, the capacitors should be less than 40 µF
+storage capacitors (both C1 and C2), could create                          and a stabilizing resistor (RISO) needs to be properly
+slewing limitations as the Input Voltage (VIN) increases.                  selected. (Refer to Section 4.3 “Capacitive Loads”.)
+Current through a capacitor is dependent on the size of
+the capacitor and the rate of voltage change. From this
+relationship, the rate of voltage change or the slew rate
+
+
+ VIN
+         +              D1     RISO
+           1/2                        VC1
+         MCP6002                                              +                               RISO
+                                                                1/2                                     VC2
+         –                                                    MCP6002                                                        +            VOUT
+                                            C1      R1        –
+             Op Amp A                                                                                                        MCP6001
+                                                                                                               C2
+                                                                                                                             –
+                                                                  Op Amp B
+
+                                                                                                                               Op Amp C
+
+                                                                                     Sample
+                                                                                     Switch
+                                      Clear
+                                      Switch
+                                                                   tSAMP
+
+                                                 Sample Signal
+                                                                    tCLEAR
+
+                                                   Clear Signal
+                                                                           tDETECT
+
+                                                          CLK
+
+FIGURE 4-9:             Peak Detector with Clear and Sample CMOS Analog Switches.
+
+
+
+
+DS20001733L-page 16                                                                             2002-2020 Microchip Technology Inc.
+                                                               MCP6001/1R/1U/2/4
+5.0      DESIGN AIDS                                           5.4      Microchip Advanced Part Selector
+                                                                        (MAPS)
+Microchip provides the basic design tools needed for
+the MCP6001/1R/1U/2/4 family of op amps.                       MAPS is a software tool that helps semiconductor
+                                                               professionals efficiently identify Microchip devices that
+5.1      SPICE Macro Model                                     fit a particular design requirement. Available at no cost
+                                                               from the Microchip website at www.microchip.com/
+The latest SPICE macro model for the                           maps, the MAPS is an overall selection tool for
+MCP6001/1R/1U/2/4 op amps is available on the                  Microchip’s product portfolio that includes Analog,
+Microchip website at www.microchip.com. The model              Memory, MCUs and DSCs. Using this tool you can
+was written and tested in official OrCAD™ (Cadence®)           define a filter to sort features for a parametric search of
+owned PSpice®. For the other simulators, it may                devices and export side-by-side technical comparison
+require translation.                                           reports. Helpful links are also provided for Data Sheets,
+The model covers a wide aspect of the op amp’s                 Purchase and Sampling of Microchip parts.
+electrical specifications. Not only does the model cover
+voltage, current and resistance of the op amp, but it          5.5      Analog Demonstration and
+also covers the temperature and noise effects on the                    Evaluation Boards
+behavior of the op amp. The model has not been
+verified outside of the specification range listed in the      Microchip offers a broad spectrum of Analog
+op amp data sheet. The model behaviors under these             Demonstration and Evaluation Boards that are designed
+conditions can not be ensured that it will match the           to help you achieve faster time to market. For a complete
+actual op amp performance.                                     listing of these boards and their corresponding user’s
+                                                               guides and technical information, visit the Microchip
+Moreover, the model is intended to be an initial design
+                                                               website at www.microchip.com/analogtools.
+tool. Bench testing is a very important part of any
+design and cannot be replaced with simulations. Also,          Some boards that are especially useful are:
+simulation results using this macro model need to be           • MCP6XXX Amplifier Evaluation Board 1
+validated by comparing them to the data sheet
+                                                               • MCP6XXX Amplifier Evaluation Board 2
+specifications and characteristic curves.
+                                                               • MCP6XXX Amplifier Evaluation Board 3
+5.2      FilterLab® Software                                   • MCP6XXX Amplifier Evaluation Board 4
+                                                               • Active Filter Demo Board Kit
+Microchip’s FilterLab® software is an innovative               • 5/6-Pin SOT-23 Evaluation Board, P/N VSUPEV2
+software tool that simplifies analog active filter (using
+                                                               • 8-Pin SOIC/MSOP/TSSOP/DIP Evaluation Board,
+op amps) design. Available at no cost from the
+                                                                 P/N SOIC8EV
+Microchip website at www.microchip.com/filterlab, the
+FilterLab design tool provides full schematic diagrams         • 14-Pin SOIC/TSSOP/DIP Evaluation Board,
+of the filter circuit with component values. It also             P/N SOIC14EV
+outputs the filter circuit in SPICE format, which can be
+used with the macro model to simulate actual filter
+performance.
+
+5.3      Mindi™ Circuit Designer and
+         Analog Simulator
+Microchip’s Mindi™ Circuit Designer and Analog Simula-
+tor aids in the design of various circuits useful for active
+filter, amplifier and power management applications. It is
+a free online circuit designer and simulator available from
+the Microchip website at www.microchip.com/mindi. This
+interactive circuit designer and analog simulator enables
+designers to quickly generate circuit diagrams and
+simulate circuits. Circuits developed using the Mindi Cir-
+cuit Designer and Analog Simulator can be downloaded
+to a personal computer or workstation.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                              DS20001733L-page 17
+MCP6001/1R/1U/2/4
+5.6     Application Notes                           • AN990: “Analog Sensor Conditioning Circuits –
+                                                       An Overview” (DS00990)
+The following Microchip Analog Design Note and
+                                                    • AN1177: “Op Amp Precision Design: DC Errors”
+Application Notes are available on the Microchip
+                                                      (DS01177)
+website at www.microchip.com/appnotes and are
+recommended as supplemental reference resources.    • AN1228: “Op Amp Precision Design: Random
+                                                      Noise” (DS01228)
+• ADN003: “Select the Right Operational Amplifier
+                                                    • AN1297: “Microchip’s Op Amp SPICE Macro
+  for your Filtering Circuits” (DS21821)
+                                                      Models” (DS01297)
+• AN722: “Operational Amplifier Topologies and DC
+  Specifications” (DS00722)                         These application notes and others are listed in the
+                                                    design guide:
+• AN723: “Operational Amplifier AC Specifications
+  and Applications” (DS00723)                       • “Signal Chain Design Guide” (DS21825)
+• AN884: “Driving Capacitive Loads With Op Amps”
+  (DS00884)
+
+
+
+
+DS20001733L-page 18                                                   2002-2020 Microchip Technology Inc.
+                                                                 MCP6001/1R/1U/2/4
+6.0      PACKAGING INFORMATION
+6.1      Package Marking Information
+          5-Lead SC-70 (MCP6001)                                                      Example: (I-Temp)
+
+
+
+            XXN (Front)                                I-Temp      E-Temp               AA7 (Front)
+                                           Device
+            YWW (Back)                                  Code        Code                432 (Back)
+                                         MCP6001        AAN          CDN
+                                          Note: Applies to 5-Lead SC-70.
+
+                  OR                                                                         OR
+
+
+                                                       I-Temp      E-Temp
+                                           Device
+               XXNN                                     Code        Code                     AA74
+                                         MCP6001       AANN         CDNN
+                                          Note: Applies to 5-Lead SC-70.
+
+
+          5-Lead SOT-23 (MCP6001/1R/1U)                                               Example: (E-Temp)
+
+              5           4                            I-Temp      E-Temp                5            4
+                                           Device
+                                                        Code        Code
+
+                  XXNN                   MCP6001       AANN         CDNN                     CD25
+                                         MCP6001R      ADNN         CENN
+              1      2     3             MCP6001U      AFNN         CFNN                 1     2      3
+                                          Note: Applies to 5-Lead SOT-23.
+
+          8-Lead PDIP (300 mil)                                        Example:
+
+            XXXXXXXX                                                         MCP6002                  MCP6002
+            XXXXXNNN                                                         I/P256          OR       I/P^^256
+                                                                                                         e3
+
+                YYWW                                                             0432                     0746
+
+
+
+          8-Lead DFN (2 x 3)                                               Example:
+
+
+                  XXX                                                           ABY
+                  YWW                                                           944
+                  NN                                                            25
+
+
+                  Legend: XX...X        Customer-specific information
+                          Y             Year code (last digit of calendar year)
+                          YY            Year code (last 2 digits of calendar year)
+                          WW            Week code (week of January 1 is week ‘01’)
+                          NNN           Alphanumeric traceability code
+                               e3       Pb-free JEDEC designator for Matte Tin (Sn)
+                               *        This package is Pb-free. The Pb-free JEDEC designator ( e3 )
+                                        can be found on the outer packaging for this package.
+
+                  Note:   In the event the full Microchip part number cannot be marked on one line, it will
+                          be carried over to the next line, thus limiting the number of available
+                          characters for customer-specific information.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                     DS20001733L-page 19
+MCP6001/1R/1U/2/4
+Package Marking Information (Continued)
+    8-Lead SOIC (150 mil)                             Example:
+
+
+    XXXXXXXX                                           MCP6002I                  MCP6002I
+    XXXXYYWW                                           SN0432         OR         SN^^0746
+                                                                                   e3
+
+         NNN                                               256                        256
+
+
+
+    8-Lead MSOP                                       Example:
+
+
+
+     XXXXXX                                             6002I
+     YWWNNN                                             432256
+
+
+    14-Lead PDIP (300 mil) (MCP6004)                  Example:
+
+
+         XXXXXXXXXXXXXX                                     MCP6004
+         XXXXXXXXXXXXXX                                     I/P e3
+              YYWWNNN                                            0432256
+
+
+                                                                    OR
+
+
+                                                            MCP6004
+                                                            E/P e3
+                                                                 0746256
+
+
+    14-Lead SOIC (150 mil) (MCP6004)   Example:
+
+
+
+       XXXXXXXXXX                         MCP6004ISL                            MCP6004
+       XXXXXXXXXX                                                   OR          E/SL e3
+          YYWWNNN                                 0432256                          0746256
+
+
+
+    14-Lead TSSOP (MCP6004)                              Example:
+
+
+       XXXXXX                                                6004ST                     6004STE
+                                                                               OR
+        YYWW                                                   0432                        0432
+         NNN                                                    256                         256
+
+
+
+
+DS20001733L-page 20                                                       2002-2020 Microchip Technology Inc.
+                                                               MCP6001/1R/1U/2/4
+5-Lead Plastic Small Outline Transistor (LT) [SC70]
+
+  Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+           http://www.microchip.com/packaging
+
+
+
+
+                                            D            A
+                                        e
+                                                e                     B
+
+
+                              3                     1
+
+
+
+
+                                                                E1    E
+          2X
+               0.15 C
+                              4                     N
+               NOTE 1                                                     5X TIPS
+               2X                                                              0.30 C
+                    0.15 C
+                                                        5X b
+                                                               0.10   C A B
+
+                                   TOP VIEW
+
+
+
+
+                    A                                    A2                                                  c
+                C
+    SEATING
+     PLANE
+                        A1                                                       L
+
+                                        SIDE VIEW                                    END VIEW
+
+
+
+
+                                                        Microchip Technology Drawing C04-061-LT Rev E Sheet 1 of 2
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                          DS20001733L-page 21
+MCP6001/1R/1U/2/4
+5-Lead Plastic Small Outline Transistor (LT) [SC70]
+
+ Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+
+
+
+                                                      Units               MILLIMETERS
+                                           Dimension Limits        MIN        NOM          MAX
+                       Number of Pins                  N                        5
+                       Pitch                            e                   0.65 BSC
+                       Overall Height                  A           0.80          -         1.10
+                       Standoff                        A1          0.00          -         0.10
+                       Molded Package Thickness        A2          0.80          -         1.00
+                       Overall Length                  D                    2.00 BSC
+                       Overall Width                   E                    2.10 BSC
+                       Molded Package Width            E1                   1.25 BSC
+                       Terminal Width                   b          0.15          -         0.40
+                       Terminal Length                  L          0.10        0.20        0.46
+                       Lead Thickness                   c          0.08          -         0.26
+
+
+
+    Notes:
+    1. Pin 1 visual index feature may vary, but must be located within the hatched area.
+    2. Dimensions D and E1 do not include mold flash or protrusions. Mold flash or
+       protrusions shall not exceed 0.15mm per side.
+    3. Dimensioning and tolerancing per ASME Y14.5M
+           BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+           REF: Reference Dimension, usually without tolerance, for information purposes only.
+
+
+                                                           Microchip Technology Drawing C04-061-LT Rev E Sheet 2 of 2
+
+
+
+
+DS20001733L-page 22                                                                    2002-2020 Microchip Technology Inc.
+                                                                  MCP6001/1R/1U/2/4
+5-Lead Plastic Small Outline Transistor (LT) [SC70]
+
+  Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+           http://www.microchip.com/packaging
+
+
+
+
+                                                                 E
+                                                                         Gx
+
+
+                                                                                        SILK SCREEN
+
+
+
+                                                     3      2        1
+                                        C                                           G
+                                                     4               5
+
+
+                                                                                Y
+
+
+
+
+                                                                     X
+
+
+
+
+                                        RECOMMENDED LAND PATTERN
+
+
+
+
+                                                        Units               MILLIMETERS
+                                             Dimension Limits        MIN        NOM        MAX
+                       Contact Pitch                     E                    0.65 BSC
+                       Contact Pad Spacing               C                       2.20
+                       Contact Pad Width                 X                                 0.45
+                       Contact Pad Length                Y                                 0.95
+                       Distance Between Pads             G           1.25
+                       Distance Between Pads             Gx          0.20
+
+
+
+
+      Notes:
+      1. Dimensioning and tolerancing per ASME Y14.5M
+            BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+
+                                                                Microchip Technology Drawing No. C04-2061-LT Rev E
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                               DS20001733L-page 23
+MCP6001/1R/1U/2/4
+5-Lead Plastic Small Outline Transistor (OT) [SOT23]
+
+ Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+                                                                                   0.20 C 2X
+                                                        D
+
+
+                                                        e1
+                                                A                                         D
+
+                                       N
+
+
+
+                                                                                              E/2
+                                E1/2
+
+                      E1                                                                               E
+                                                                                   (DATUM D)
+                                                                                   (DATUM A-B)
+
+              0.15 C D
+         2X
+                  NOTE 1               1            2
+
+                                                e
+
+
+                                               B                 NX b
+                                                                      0.20     C A-B D
+
+                                                   TOP VIEW
+
+
+          A
+
+
+
+                      A A2
+                                                                                           0.20 C
+
+                                                                                          SEATING PLANE
+          A
+   SEE SHEET 2             A1                                                         C
+
+                                                 SIDE VIEW
+
+                                                        Microchip Technology Drawing C04-091-OT Rev F Sheet 1 of 2
+
+
+
+
+DS20001733L-page 24                                                              2002-2020 Microchip Technology Inc.
+                                                                    MCP6001/1R/1U/2/4
+5-Lead Plastic Small Outline Transistor (OT) [SOT23]
+
+  Note:       For the most current package drawings, please see the Microchip Packaging Specification located at
+              http://www.microchip.com/packaging
+
+
+
+
+    c
+
+
+
+
+                                                                      T
+                                                         L
+                                                        L1
+
+                                 VIEW A-A
+                                   SHEET 1
+
+
+
+                                                        Units                MILLIMETERS
+                                            Dimension Limits          MIN        NOM          MAX
+                         Number of Pins                  N                         5
+                         Pitch                            e                    0.95 BSC
+                         Outside lead pitch              e1                    1.90 BSC
+                         Overall Height                  A            0.90         -          1.45
+                         Molded Package Thickness        A2           0.89         -          1.30
+                         Standoff                        A1             -          -          0.15
+                         Overall Width                   E                     2.80 BSC
+                         Molded Package Width            E1                    1.60 BSC
+                         Overall Length                  D                     2.90 BSC
+                         Foot Length                      L           0.30         -          0.60
+                         Footprint                       L1                    0.60 REF
+                         Foot Angle                       I            0°          -          10°
+                         Lead Thickness                   c           0.08         -          0.26
+                         Lead Width                       b           0.20         -          0.51
+        Notes:
+        1. Dimensions D and E1 do not include mold flash or protrusions. Mold flash or
+           protrusions shall not exceed 0.25mm per side.
+        2. Dimensioning and tolerancing per ASME Y14.5M
+               BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+               REF: Reference Dimension, usually without tolerance, for information purposes only.
+
+
+                                                                Microchip Technology Drawing C04-091-OT Rev F Sheet 2 of 2
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                  DS20001733L-page 25
+MCP6001/1R/1U/2/4
+5-Lead Plastic Small Outline Transistor (OT) [SOT23]
+
+ Note:       For the most current package drawings, please see the Microchip Packaging Specification located at
+             http://www.microchip.com/packaging
+
+
+
+                                                  X
+
+                                                  5                       SILK SCREEN
+
+
+
+
+                                                                                       Y
+
+
+
+
+                               Z   C                                                   G
+
+
+
+
+                                              1            2
+
+                                                       E
+                                                                             GX
+
+                                       RECOMMENDED LAND PATTERN
+
+
+
+
+                                                         Units             MILLIMETERS
+                                              Dimension Limits     MIN         NOM         MAX
+                      Contact Pitch                       E                  0.95 BSC
+                      Contact Pad Spacing                 C                     2.80
+                      Contact Pad Width (X5)              X                                0.60
+                      Contact Pad Length (X5)             Y                                1.10
+                      Distance Between Pads               G        1.70
+                      Distance Between Pads              GX        0.35
+                      Overall Width                       Z                                3.90
+
+    Notes:
+    1. Dimensioning and tolerancing per ASME Y14.5M
+           BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+                                                               Microchip Technology Drawing No. C04-2091-OT Rev F
+
+
+
+
+DS20001733L-page 26                                                                     2002-2020 Microchip Technology Inc.
+                                                                      MCP6001/1R/1U/2/4
+/HDG3ODVWLF'XDO)ODW1R/HDG3DFNDJH 0& ±[[PP%RG\>')1@
+  1RWH     )RUWKHPRVWFXUUHQWSDFNDJHGUDZLQJVSOHDVHVHHWKH0LFURFKLS3DFNDJLQJ6SHFLILFDWLRQORFDWHGDW
+            KWWSZZZPLFURFKLSFRPSDFNDJLQJ
+
+
+                                      D                                                               e
+                                                                                     b
+                           N                                                                                  N
+                                                                      L
+
+
+
+                                                                          K
+
+                                                     E                                                                E2
+
+
+
+                                                           EXPOSED PAD
+
+             NOTE 1
+                                                                                                                      NOTE 1
+                               1     2                                                            2       1
+                                                                                             D2
+                                   TOP VIEW                                          BOTTOM VIEW
+
+
+
+
+                                                     A
+
+
+
+             A3                               A1          NOTE 2
+
+
+                                                              8QLWV                  0,//,0(7(56
+                                                   'LPHQVLRQ/LPLWV           0,1         120                 0$;
+                  1XPEHURI3LQV                               1                            
+                  3LWFK                                        H                         %6&
+                  2YHUDOO+HLJKW                               $                                      
+                  6WDQGRII                                    $                                     
+                  &RQWDFW7KLFNQHVV                            $                        5()
+                  2YHUDOO/HQJWK                               '                         %6&
+                  2YHUDOO:LGWK                                (                         %6&
+                  ([SRVHG3DG/HQJWK                           '                       ±                 
+                  ([SRVHG3DG:LGWK                            (                       ±                 
+                  &RQWDFW:LGWK                                E                                      
+                  &RQWDFW/HQJWK                               /                                      
+                  &RQWDFWWR([SRVHG3DG                       .                        ±                     ±
+1RWHV
+ 3LQYLVXDOLQGH[IHDWXUHPD\YDU\EXWPXVWEHORFDWHGZLWKLQWKHKDWFKHGDUHD
+ 3DFNDJHPD\KDYHRQHRUPRUHH[SRVHGWLHEDUVDWHQGV
+ 3DFNDJHLVVDZVLQJXODWHG
+ 'LPHQVLRQLQJDQGWROHUDQFLQJSHU$60(<0
+       %6& %DVLF'LPHQVLRQ7KHRUHWLFDOO\H[DFWYDOXHVKRZQZLWKRXWWROHUDQFHV
+       5() 5HIHUHQFH'LPHQVLRQXVXDOO\ZLWKRXWWROHUDQFHIRULQIRUPDWLRQSXUSRVHVRQO\
+                                                                                            0LFURFKLS 7HFKQRORJ\ 'UDZLQJ &&
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                                  DS20001733L-page 27
+MCP6001/1R/1U/2/4
+
+  Note:   For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+
+
+
+DS20001733L-page 28                                                             2002-2020 Microchip Technology Inc.
+                                                               MCP6001/1R/1U/2/4
+ 8-Lead Plastic Dual In-Line (P) - 300 mil Body [PDIP]
+
+  Note:     For the most current package drawings, please see the Microchip Packaging Specification located at
+            http://www.microchip.com/packaging
+
+
+
+
+                                               D           A
+                                N                               B
+
+
+
+
+                                                                E1
+
+
+
+              NOTE 1
+                                1          2
+                                        TOP VIEW
+
+
+
+
+                                                                                              E
+
+
+
+
+               C   A                                            A2
+
+
+     PLANE
+                                                            L                                       c
+                   A1
+
+
+                                                   e                                         eB
+                          8X b1
+                            8X b
+                                    .010       C
+
+                                      SIDE VIEW                                        END VIEW
+
+
+
+
+                                                       Microchip Technology Drawing No. C04-018-P Rev E Sheet 1 of 2
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                             DS20001733L-page 29
+MCP6001/1R/1U/2/4
+8-Lead Plastic Dual In-Line (P) - 300 mil Body [PDIP]
+
+  Note:   For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+
+
+
+                                                                             ALTERNATE LEAD DESIGN
+                                                                                    (NOTE 5)
+
+                                            DATUM A                                                      DATUM A
+
+
+
+
+                                            b                                                            b
+                      e                                                          e
+                      2                                                          2
+
+                                e                                                             e
+
+
+
+                                                        Units                  INCHES
+                                             Dimension Limits       MIN          NOM              MAX
+                    Number of Pins                       N                         8
+                    Pitch                                 e                   .100 BSC
+                    Top to Seating Plane                  A           -            -              .210
+                    Molded Package Thickness             A2         .115         .130             .195
+                    Base to Seating Plane                A1         .015           -                -
+                    Shoulder to Shoulder Width            E         .290         .310             .325
+                    Molded Package Width                 E1         .240         .250             .280
+                    Overall Length                       D          .348         .365             .400
+                    Tip to Seating Plane                  L         .115         .130             .150
+                    Lead Thickness                        c         .008         .010             .015
+                    Upper Lead Width                     b1         .040         .060             .070
+                    Lower Lead Width                      b         .014         .018             .022
+                    Overall Row Spacing        §         eB           -            -              .430
+    Notes:
+    1. Pin 1 visual index feature may vary, but must be located within the hatched area.
+    2. § Significant Characteristic
+    3. Dimensions D and E1 do not include mold flash or protrusions. Mold flash or
+       protrusions shall not exceed .010" per side.
+    4. Dimensioning and tolerancing per ASME Y14.5M
+           BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+    5. Lead design above seating plane may vary, based on assembly vendor.
+
+                                                          Microchip Technology Drawing No. C04-018-P Rev E Sheet 2 of 2
+
+
+
+
+DS20001733L-page 30                                                                         2002-2020 Microchip Technology Inc.
+                                                                 MCP6001/1R/1U/2/4
+8-Lead Plastic Small Outline (SN) - Narrow, 3.90 mm (.150 In.) Body [SOIC]
+
+  Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+           http://www.microchip.com/packaging
+
+                                                                          2X
+                                                                                 0.10 C A–B
+                                                             D
+                                                     A                                     D
+                                                                 NOTE 5
+                                                 N
+
+
+
+                                                                                   E
+                                                                                   2
+                                        E1
+                                        2
+
+                            E1                                                             E
+
+
+
+
+                            NOTE 1           1           2
+
+                                                     e                         NX b
+                                                     B                             0.25        C A–B D
+                                                                    NOTE 5
+                                                     TOP VIEW
+                                                                                 0.10 C
+
+                            C    A A2
+                 SEATING
+                  PLANE                                                     8X
+                                                                                  0.10 C
+                                  A1                 SIDE VIEW
+
+
+                                    h
+                                                                                                 R0.13
+                     h
+                                                                                                 R0.13
+            H                                                                                             0.23
+
+
+
+
+                                                                                       L
+                                SEE VIEW C
+                                                                                  (L1)
+                                 VIEW A–A
+
+                                                                                  VIEW C
+                                                         Microchip Technology Drawing No. C04-057-SN Rev E Sheet 1 of 2
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                               DS20001733L-page 31
+MCP6001/1R/1U/2/4
+8-Lead Plastic Small Outline (SN) - Narrow, 3.90 mm (.150 In.) Body [SOIC]
+
+ Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+
+
+
+                                                   Units               MILLIMETERS
+                                         Dimension Limits       MIN        NOM          MAX
+                   Number of Pins                    N                       8
+                   Pitch                             e                   1.27 BSC
+                   Overall Height                    A            -          -          1.75
+                   Molded Package Thickness          A2         1.25         -            -
+                   Standoff           §              A1         0.10         -          0.25
+                   Overall Width                     E                   6.00 BSC
+                   Molded Package Width              E1                  3.90 BSC
+                   Overall Length                    D                   4.90 BSC
+                   Chamfer (Optional)                h          0.25         -          0.50
+                   Foot Length                       L          0.40         -          1.27
+                   Footprint                         L1                  1.04 REF
+                   Foot Angle                                    0°          -           8°
+                   Lead Thickness                     c         0.17         -          0.25
+                   Lead Width                        b          0.31         -          0.51
+                   Mold Draft Angle Top                          5°          -          15°
+                   Mold Draft Angle Bottom                       5°          -          15°
+    Notes:
+    1. Pin 1 visual index feature may vary, but must be located within the hatched area.
+    2. § Significant Characteristic
+    3. Dimensions D and E1 do not include mold flash or protrusions. Mold flash or
+        protrusions shall not exceed 0.15mm per side.
+    4. Dimensioning and tolerancing per ASME Y14.5M
+            BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+            REF: Reference Dimension, usually without tolerance, for information purposes only.
+    5. Datums A & B to be determined at Datum H.
+
+                                                        Microchip Technology Drawing No. C04-057-SN Rev E Sheet 2 of 2
+
+
+
+
+DS20001733L-page 32                                                                     2002-2020 Microchip Technology Inc.
+                                                                  MCP6001/1R/1U/2/4
+8-Lead Plastic Small Outline (SN) - Narrow, 3.90 mm Body [SOIC]
+
+  Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+           http://www.microchip.com/packaging
+
+
+
+
+                                                                                    SILK SCREEN
+
+
+                                  C
+
+
+
+
+                                                                                  Y1
+
+
+
+
+                                                                               X1
+                                                  E
+
+
+
+
+                                        RECOMMENDED LAND PATTERN
+
+
+
+
+                                                          Units           MILLIMETERS
+                                               Dimension Limits     MIN       NOM        MAX
+                       Contact Pitch                       E                1.27 BSC
+                       Contact Pad Spacing                 C                   5.40
+                       Contact Pad Width (X8)              X1                             0.60
+                       Contact Pad Length (X8)             Y1                             1.55
+
+      Notes:
+      1. Dimensioning and tolerancing per ASME Y14.5M
+            BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+
+                                                                  Microchip Technology Drawing C04-2057-SN Rev E
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                             DS20001733L-page 33
+MCP6001/1R/1U/2/4
+
+  Note:   For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+
+
+
+DS20001733L-page 34                                                             2002-2020 Microchip Technology Inc.
+                                                              MCP6001/1R/1U/2/4
+
+  Note:     For the most current package drawings, please see the Microchip Packaging Specification located at
+            http://www.microchip.com/packaging
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                           DS20001733L-page 35
+MCP6001/1R/1U/2/4
+
+  Note:   For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+
+
+
+DS20001733L-page 36                                                             2002-2020 Microchip Technology Inc.
+                                                                       MCP6001/1R/1U/2/4
+/HDG3ODVWLF'XDO,Q/LQH 3 ±PLO%RG\>3',3@
+  1RWH     )RUWKHPRVWFXUUHQWSDFNDJHGUDZLQJVSOHDVHVHHWKH0LFURFKLS3DFNDJLQJ6SHFLILFDWLRQORFDWHGDW
+            KWWSZZZPLFURFKLSFRPSDFNDJLQJ
+
+
+
+                           N
+
+
+
+     NOTE 1
+                                                                        E1
+
+
+
+                           1    2        3
+
+                                             D
+
+                                                                                                        E
+
+
+           A                                                           A2
+
+
+                                                                                   L                                     c
+
+            A1
+                                        b1
+
+                                    b                     e                                             eB
+
+                                                               8QLWV                   ,1&+(6
+                                                   'LPHQVLRQ/LPLWV         0,1         120           0$;
+                   1XPEHURI3LQV                                1                       
+                   3LWFK                                         H                     %6&
+                   7RSWR6HDWLQJ3ODQH                          $           ±            ±            
+                   0ROGHG3DFNDJH7KLFNQHVV                     $                             
+                   %DVHWR6HDWLQJ3ODQH                        $                    ±             ±
+                   6KRXOGHUWR6KRXOGHU:LGWK                    (                             
+                   0ROGHG3DFNDJH:LGWK                         (                             
+                   2YHUDOO/HQJWK                                '                             
+                   7LSWR6HDWLQJ3ODQH                          /                             
+                   /HDG7KLFNQHVV                                F                             
+                   8SSHU/HDG:LGWK                             E                             
+                   /RZHU/HDG:LGWK                              E                             
+                   2YHUDOO5RZ6SDFLQJ                       H%           ±            ±            
+1RWHV
+ 3LQYLVXDOLQGH[IHDWXUHPD\YDU\EXWPXVWEHORFDWHGZLWKWKHKDWFKHGDUHD
+ 6LJQLILFDQW&KDUDFWHULVWLF
+ 'LPHQVLRQV'DQG(GRQRWLQFOXGHPROGIODVKRUSURWUXVLRQV0ROGIODVKRUSURWUXVLRQVVKDOOQRWH[FHHGSHUVLGH
+ 'LPHQVLRQLQJDQGWROHUDQFLQJSHU$60(<0
+       %6&%DVLF'LPHQVLRQ7KHRUHWLFDOO\H[DFWYDOXHVKRZQZLWKRXWWROHUDQFHV
+
+                                                                                          0LFURFKLS 7HFKQRORJ\ 'UDZLQJ &%
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                         DS20001733L-page 37
+MCP6001/1R/1U/2/4
+14-Lead Plastic Small Outline (SL) - Narrow, 3.90 mm Body [SOIC]
+
+ Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+                                                                                  2X
+                                                                                         0.10 C A–B
+                                                           D
+                                                       A          NOTE 5                            D
+                                      N
+
+
+
+                                                                                               E
+                                                                                               2
+                           E2
+                            2
+
+                      E1                                                                            E
+
+
+    2X
+         0.10 C D
+                                                                                                        2X N/2 TIPS
+                 NOTE 1               1    2       3                                                         0.20 C
+                                               e                                NX b
+                                                       B          NOTE 5               0.25        C A–B D
+
+                                                       TOP VIEW
+
+                                                                                                   0.10 C
+
+            C    A A2
+  SEATING
+   PLANE                                                                              14X
+                      A1                           SIDE VIEW                                0.10 C
+
+
+
+                 h                h
+
+     H                                                                                        R0.13
+                                                                                                   R0.13
+
+
+
+             c
+
+                        SEE VIEW C
+                                                                                  L
+                                VIEW A–A                                       (L1)
+
+
+                                                                          VIEW C
+                                                       Microchip Technology Drawing No. C04-065-SL Rev D Sheet 1 of 2
+
+
+
+
+DS20001733L-page 38                                                                 2002-2020 Microchip Technology Inc.
+                                                                  MCP6001/1R/1U/2/4
+14-Lead Plastic Small Outline (SL) - Narrow, 3.90 mm Body [SOIC]
+
+  Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+           http://www.microchip.com/packaging
+
+
+
+
+                                                             Units             MILLIMETERS
+                                                  Dimension Limits      MIN        NOM            MAX
+                            Number of Pins                    N                     14
+                            Pitch                              e                 1.27 BSC
+                            Overall Height                    A           -          -            1.75
+                            Molded Package Thickness          A2        1.25         -              -
+                            Standoff           §              A1        0.10         -            0.25
+                            Overall Width                     E                  6.00 BSC
+                            Molded Package Width              E1                 3.90 BSC
+                            Overall Length                    D                  8.65 BSC
+                            Chamfer (Optional)                 h        0.25         -            0.50
+                            Foot Length                       L         0.40         -            1.27
+                            Footprint                         L1                 1.04 REF
+                            Lead Angle                                   0°          -              -
+                            Foot Angle                                   0°          -             8°
+                            Lead Thickness                     c        0.10         -            0.25
+                            Lead Width                        b         0.31         -            0.51
+                            Mold Draft Angle Top                         5°          -            15°
+                            Mold Draft Angle Bottom                      5°          -            15°
+     Notes:
+     1. Pin 1 visual index feature may vary, but must be located within the hatched area.
+     2. § Significant Characteristic
+     3. Dimension D does not include mold flash, protrusions or gate burrs, which shall
+        not exceed 0.15 mm per end. Dimension E1 does not include interlead flash
+        or protrusion, which shall not exceed 0.25 mm per side.
+     4. Dimensioning and tolerancing per ASME Y14.5M
+            BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+            REF: Reference Dimension, usually without tolerance, for information purposes only.
+     5. Datums A & B to be determined at Datum H.
+
+                                                         Microchip Technology Drawing No. C04-065-SL Rev D Sheet 2 of 2
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                    DS20001733L-page 39
+MCP6001/1R/1U/2/4
+14-Lead Plastic Small Outline (SL) - Narrow, 3.90 mm Body [SOIC]
+
+ Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+
+
+
+                                    14
+
+
+
+
+                                                                                                      SILK SCREEN
+
+
+                        C
+
+
+
+
+                                                                                                        Y
+
+                                    1       2
+                                                                                             X
+                                                E
+
+
+
+
+                                    RECOMMENDED LAND PATTERN
+
+
+
+                                                        Units            MILLIMETERS
+                                             Dimension Limits      MIN       NOM            MAX
+                      Contact Pitch                      E                 1.27 BSC
+                      Contact Pad Spacing                C                    5.40
+                      Contact Pad Width (X14)            X                                   0.60
+                      Contact Pad Length (X14)           Y                                   1.55
+
+     Notes:
+     1. Dimensioning and tolerancing per ASME Y14.5M
+           BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+
+
+
+
+                                                                 Microchip Technology Drawing No. C04-2065-SL Rev D
+
+
+
+
+DS20001733L-page 40                                                                     2002-2020 Microchip Technology Inc.
+                                                                 MCP6001/1R/1U/2/4
+14Lead Thin Shrink Small Outline Package [ST] 4.4 mm Body [TSSOP]
+
+  Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+           http://www.microchip.com/packaging
+
+
+
+
+                                                           D                    A    B
+                                             N
+
+
+
+
+                                                                                 E
+                                                                                 2
+                                        E1
+                                        2
+
+
+                                  E1                                                 E
+
+
+
+
+                                                                                         2X 7 TIPS
+                                             1   2                                            0.20 C B A
+                                                       e
+
+                                                     TOP VIEW
+                                                                                                 A
+
+                              C                                                          A2 A
+                SEATING
+                  PLANE
+                   14X                                          14X b           A1
+                                                                                                 A
+                         0.10 C                                     0.10     C B A
+
+                                                     SIDE VIEW
+
+
+
+                                                                                            SEE DETAIL B
+
+
+
+
+                                                     VIEW A–A
+
+
+                                                               Microchip Technology Drawing C04-087 Rev D Sheet 1 of 2
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                DS20001733L-page 41
+MCP6001/1R/1U/2/4
+14Lead Thin Shrink Small Outline Package [ST] 4.4 mm Body [TSSOP]
+
+ Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+          http://www.microchip.com/packaging
+
+
+
+
+                                  (ș2)
+
+                                          R1
+      H
+                                               R2
+
+                                                     c
+
+
+
+
+                                      L              ș1
+                               (L1)
+         (ș3)
+
+                          DETAIL B
+
+
+
+
+                                                                Units            MILLIMETERS
+                                                     Dimension Limits     MIN        NOM         MAX
+                       Number of Terminals                       N                     14
+                       Pitch                                      e                0.65 BSC
+                       Overall Height                            A         –            –        1.20
+                       Standoff                                  A1       0.05          –        0.15
+                       Molded Package Thickness                  A2       0.80        1.00       1.05
+                       Overall Length                            D        4.90        5.00       5.10
+                       Overall Width                             E                 6.40 BSC
+                       Molded Package Width                      E1       4.30        4.40       4.50
+                       Terminal Width                             b       0.19          –        0.30
+                       Terminal Thickness                         c       0.09         –         0.20
+                       Terminal Length                            L       0.45        0.60       0.75
+                       Footprint                                 L1                1.00 REF
+                       Lead Bend Radius                          R1       0.09         –          –
+                       Lead Bend Radius                          R2       0.09         –          –
+                       Foot Angle                                ș1        0°          –          8°
+                       Mold Draft Angle                          ș2        –        12° REF       –
+                       Mold Draft Angle                          ș3        –        12° REF       –
+    Notes:
+    1. Pin 1 visual index feature may vary, but must be located within the hatched area.
+    2. Dimensioning and tolerancing per ASME Y14.5M
+           BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+           REF: Reference Dimension, usually without tolerance, for information purposes only.
+
+
+                                                              Microchip Technology Drawing C04-087 Rev D Sheet 2 of 2
+
+
+
+
+DS20001733L-page 42                                                                    2002-2020 Microchip Technology Inc.
+                                                                   MCP6001/1R/1U/2/4
+14Lead Thin Shrink Small Outline Package [ST] 4.4 mm Body [TSSOP]
+
+  Note:    For the most current package drawings, please see the Microchip Packaging Specification located at
+           http://www.microchip.com/packaging
+
+
+
+
+                                                                      G
+
+
+
+
+                                                                                            SILK SCREEN
+
+
+
+
+                                C
+
+
+
+
+                                                                                        Y
+
+
+
+                                                                                   X
+                                                          E
+
+
+
+
+                                        RECOMMENDED LAND PATTERN
+                                                           Units           MILLIMETERS
+                                                Dimension Limits     MIN       NOM          MAX
+                        Contact Pitch                       E                0.65 BSC
+                        Contact Pad Spacing                 C                   5.90
+                        Contact Pad Width (Xnn)             X                               0.45
+                        Contact Pad Length (Xnn)            Y                               1.45
+                        Contact Pad to Contact Pad (Xnn)    G       0.20
+
+      Notes:
+      1. Dimensioning and tolerancing per ASME Y14.5M
+            BSC: Basic Dimension. Theoretically exact value shown without tolerances.
+
+
+
+
+                                                              Microchip Technology Drawing C04-2087 Rev D
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                              DS20001733L-page 43
+MCP6001/1R/1U/2/4
+NOTES:
+
+
+
+
+DS20001733L-page 44    2002-2020 Microchip Technology Inc.
+                                                       MCP6001/1R/1U/2/4
+APPENDIX A:             REVISION HISTORY               Revision G (November 2007)
+                                                       The following is the list of modifications:
+Revision L (March 2020)
+                                                       1.   Updated notes to Section 1.0 “Electrical
+The following is the list of modifications:                 Characteristics”.
+1.   Updated package drawings for the 5-Lead           2.   Increased Absolute Maximum Voltage range at
+     SC-70 and 14-Lead TSSOP packages in                    input pins.
+     Section 6.0 “Packaging Information”.              3.   Increased maximum operating supply voltage
+                                                            (VDD).
+Revision K (November 2019)                             4.   Added test circuits.
+                                                       5.   Added Figure 2-3 and Figure 2-20.
+The following is the list of modifications:
+                                                       6.   Added Section 4.1.1 “Phase Reversal”,
+1.   Updated Section 6.0 “Packaging                         Section 4.1.2 “Input Voltage and Current
+     Information”.                                          Limits”, Section 4.1.3 “Normal Operation”
+                                                            and Section 4.5 “Unused Op Amps”.
+Revision J (November 2009)                             7.   Updated Section 5.0 “Design Aids”,
+The following is the list of modifications:            8.   Updated Section 6.0 “Packaging
+                                                            Information”.
+1.  Added new 2x3 DFN 8-Lead package on
+    page 1.                                            9.   Updated Package Outline Drawings.
+2. Updated the Temperature Specifications table
+    with 2x3 DFN thermal resistance information.       Revision F (March 2005)
+3. Updated Section 1.1 “Test Circuits”.                The following is the list of modifications:
+4. Updated Figure 2-15.                                1.   Updated Section 6.0 “Packaging
+5. Added the 2x3 DFN column to Table 3-1.                   Information” to include old and new packaging
+6. Added new Section 3.4 “Exposed Thermal                   examples.
+    Pad (EP)”.
+7. Updated Section 5.1 “SPICE Macro Model”.            Revision E (December 2004)
+8. Updated Section 5.5 “Analog Demonstration
+                                                       The following is the list of modifications:
+    and Evaluation Boards”.
+9. Updated Section 5.6 “Application Notes”.            1.   VOS specification reduced to ±4.5 mV from
+                                                            ±7.0 mV for parts starting with date code
+10. Updated Section 6.1 “Package Marking
+                                                            YYWW = 0449
+    Information” with the new 2x3 DFN package
+    marking information.                               2.   Corrected package markings in Section 6.0
+                                                            “Packaging Information”.
+11. Updated the package drawings.
+                                                       3.   Added Appendix A: Revision History.
+12. Updated the Product Identification System
+    section with new 2x3 DFN package information.
+                                                       Revision D (May 2003)
+Revision H (May 2008)                                  • Undocumented changes.
+The following is the list of modifications:
+                                                       Revision C (December 2002)
+1.   Section 5.0 “Design Aids”: Name change for
+     Mindi™ Simulation Tool.                           • Undocumented changes.
+2.   Package Types: Correct device labeling error.
+3.   Section 1.0 “Electrical Characteristics”, DC      Revision B (October 2002)
+     Electrical Specifications: Changed “Maximum       • Undocumented changes.
+     Output Voltage Swing” condition from 0.9V Input
+     Overdrive to 0.5V Input Overdrive.
+                                                       Revision A (June 2002)
+4.   Section 1.0 “Electrical Characteristics”, AC
+     Electrical Specifications: Changed Phase          • Original data sheet release.
+     Margin condition from G = +1 to G= +1 V/V.
+5.   Section 5.0 “Design Aids”: Name change for
+     Mindi Simulation Tool.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                      DS20001733L-page 45
+                                        MCP6001/1R/1U/2/4
+NOTES:
+
+
+
+
+ 2002-2020 Microchip Technology Inc.             DS20001733L-page 46
+                                                                           MCP6001/1R/1U/2/4
+PRODUCT IDENTIFICATION SYSTEM
+To order or obtain information, e.g., on pricing or delivery, refer to the factory or the listed sales office.
+
+  PART NO.              X             /XX                                               Examples:
+                                                                                        a) MCP6001T-I/LT:  Tape and Reel,
+    Device       Temperature       Package                                                                 Industrial Temperature,
+                   Range                                                                                   5-Lead SC-70 Package.
+                                                                                        b) MCP6001T-I/OT:  Tape and Reel,
+                                                                                                           Industrial Temperature,
+  Device:                MCP6001T:       Single Op Amp (Tape and Reel)                                     5-Lead SOT-23 Package.
+                                         (SC-70, SOT-23)
+                                                                                        c) MCP6001RT-I/OT: Tape and Reel,
+                         MCP6001RT:      Single Op Amp (Tape and Reel) (SOT-23)
+                         MCP6001UT:      Single Op Amp (Tape and Reel) (SOT-23)                            Industrial Temperature,
+                         MCP6002:        Dual Op Amp                                                       5-Lead SOT-23 Package.
+                         MCP6002T:       Dual Op Amp (Tape and Reel)                    d) MCP6001UT-E/OT: Tape and Reel,
+                                         (SOIC, MSOP)                                                      Extended Temperature,
+                         MCP6004:        Quad Op Amp                                                       5-Lead SOT-23 Package.
+                         MCP6004T:       Quad Op Amp (Tape and Reel)
+                                         (SOIC, MSOP)                                   a) MCP6002-I/MS:         Industrial Temperature,
+                                                                                                                 8-Lead MSOP Package.
+                                                                                        b) MCP6002-I/P:          Industrial Temperature,
+  Temperature Range:     I    = -40°C to +85°C
+                                                                                                                 8-Lead PDIP Package.
+                         E    = -40°C to +125°C
+                                                                                        c) MCP6002-E/P:          Extended Temperature,
+                                                                                                                 8-Lead PDIP Package.
+  Package:               LT   = Plastic Small Outline Transistor (SC-70), 5-Lead        d) MCP6002-E/MC:         Extended Temperature,
+                                (MCP6001 only)                                                                   8-Lead DFN Package.
+                         OT   = Plastic Small Outline Transistor (SOT-23), 5-Lead
+                                                                                        e) MCP6002-I/SN:         Industrial Temperature,
+                                (MCP6001, MCP6001R, MCP6001U)
+                         MS   = Plastic MSOP, 8-Lead
+                                                                                                                 8-Lead SOIC Package.
+                         MC   = Plastic Dual Flat, 2x3x0.9 mm (DFN), 8-Lead             f)   MCP6002T-I/MS:      Tape and Reel,
+                         P    = Plastic DIP, 300 mil Body (PDIP), 8-Lead, 14-Lead                                Industrial Temperature,
+                         SN   = Plastic SOIC (3.90 mm body), 8-Lead                                              8-Lead MSOP Package.
+                         SL   = Plastic SOIC (3.90 body), 14-Lead                       g) MCP6002T-E/MC:        Tape and Reel,
+                         ST   = Plastic TSSOP (4.4 mm body), 14-Lead
+                                                                                                                 Extended Temperature,
+                                                                                                                 8-Lead DFN Package.
+
+                                                                                        a) MCP6004-I/P:          Industrial Temperature,
+                                                                                                                 14-Lead PDIP Package.
+                                                                                        b) MCP6004-I/SL:         Industrial Temperature,
+                                                                                                                 14-Lead SOIC Package.
+                                                                                        c) MCP6004-E/SL:         Extended Temperature,
+                                                                                                                 14-Lead SOIC Package.
+                                                                                        d) MCP6004-I/ST:         Industrial Temperature,
+                                                                                                                 14-Lead TSSOP Package.
+                                                                                        e) MCP6004T-I/SL:        Tape and Reel,
+                                                                                                                 Industrial Temperature,
+                                                                                                                 14-Lead SOIC Package.
+                                                                                        f)   MCP6004T-I/ST:      Tape and Reel,
+                                                                                                                 Industrial Temperature,
+                                                                                                                 14-Lead TSSOP Package.
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                                DS20001733L-page 47
+MCP6001/1R/1U/2/4
+NOTES:
+
+
+
+
+DS20001733L-page 48    2002-2020 Microchip Technology Inc.
+Note the following details of the code protection feature on Microchip devices:
+•    Microchip products meet the specification contained in their particular Microchip Data Sheet.
+
+•    Microchip believes that its family of products is one of the most secure families of its kind on the market today, when used in the
+     intended manner and under normal conditions.
+
+•    There are dishonest and possibly illegal methods used to breach the code protection feature. All of these methods, to our
+     knowledge, require using the Microchip products in a manner outside the operating specifications contained in Microchip’s Data
+     Sheets. Most likely, the person doing so is engaged in theft of intellectual property.
+
+•    Microchip is willing to work with the customer who is concerned about the integrity of their code.
+
+•    Neither Microchip nor any other semiconductor manufacturer can guarantee the security of their code. Code protection does not
+     mean that we are guaranteeing the product as “unbreakable.”
+
+Code protection is constantly evolving. We at Microchip are committed to continuously improving the code protection features of our
+products. Attempts to break Microchip’s code protection feature may be a violation of the Digital Millennium Copyright Act. If such acts
+allow unauthorized access to your software or other copyrighted work, you may have a right to sue for relief under that Act.
+
+
+
+Information contained in this publication regarding device               Trademarks
+applications and the like is provided only for your convenience          The Microchip name and logo, the Microchip logo, Adaptec,
+and may be superseded by updates. It is your responsibility to           AnyRate, AVR, AVR logo, AVR Freaks, BesTime, BitCloud, chipKIT,
+ensure that your application meets with your specifications.             chipKIT logo, CryptoMemory, CryptoRF, dsPIC, FlashFlex,
+                                                                         flexPWR, HELDO, IGLOO, JukeBlox, KeeLoq, Kleer, LANCheck,
+MICROCHIP MAKES NO REPRESENTATIONS OR                                    LinkMD, maXStylus, maXTouch, MediaLB, megaAVR, Microsemi,
+WARRANTIES OF ANY KIND WHETHER EXPRESS OR                                Microsemi logo, MOST, MOST logo, MPLAB, OptoLyzer,
+IMPLIED, WRITTEN OR ORAL, STATUTORY OR                                   PackeTime, PIC, picoPower, PICSTART, PIC32 logo, PolarFire,
+OTHERWISE, RELATED TO THE INFORMATION,                                   Prochip Designer, QTouch, SAM-BA, SenGenuity, SpyNIC, SST,
+INCLUDING BUT NOT LIMITED TO ITS CONDITION,                              SST Logo, SuperFlash, Symmetricom, SyncServer, Tachyon,
+                                                                         TempTrackr, TimeSource, tinyAVR, UNI/O, Vectron, and XMEGA
+QUALITY, PERFORMANCE, MERCHANTABILITY OR                                 are registered trademarks of Microchip Technology Incorporated in
+FITNESS FOR PURPOSE. Microchip disclaims all liability                   the U.S.A. and other countries.
+arising from this information and its use. Use of Microchip
+devices in life support and/or safety applications is entirely at        APT, ClockWorks, The Embedded Control Solutions Company,
+the buyer’s risk, and the buyer agrees to defend, indemnify and          EtherSynch, FlashTec, Hyper Speed Control, HyperLight Load,
+                                                                         IntelliMOS, Libero, motorBench, mTouch, Powermite 3, Precision
+hold harmless Microchip from any and all damages, claims,                Edge, ProASIC, ProASIC Plus, ProASIC Plus logo, Quiet-Wire,
+suits, or expenses resulting from such use. No licenses are              SmartFusion, SyncWorld, Temux, TimeCesium, TimeHub,
+conveyed, implicitly or otherwise, under any Microchip                   TimePictra, TimeProvider, Vite, WinPath, and ZL are registered
+intellectual property rights unless otherwise stated.                    trademarks of Microchip Technology Incorporated in the U.S.A.
+
+                                                                         Adjacent Key Suppression, AKS, Analog-for-the-Digital Age, Any
+                                                                         Capacitor, AnyIn, AnyOut, BlueSky, BodyCom, CodeGuard,
+                                                                         CryptoAuthentication, CryptoAutomotive, CryptoCompanion,
+                                                                         CryptoController, dsPICDEM, dsPICDEM.net, Dynamic Average
+                                                                         Matching, DAM, ECAN, EtherGREEN, In-Circuit Serial
+                                                                         Programming, ICSP, INICnet, Inter-Chip Connectivity, JitterBlocker,
+                                                                         KleerNet, KleerNet logo, memBrain, Mindi, MiWi, MPASM, MPF,
+                                                                         MPLAB Certified logo, MPLIB, MPLINK, MultiTRAK, NetDetach,
+                                                                         Omniscient Code Generation, PICDEM, PICDEM.net, PICkit,
+                                                                         PICtail, PowerSmart, PureSilicon, QMatrix, REAL ICE, Ripple
+                                                                         Blocker, SAM-ICE, Serial Quad I/O, SMART-I.S., SQI,
+                                                                         SuperSwitcher, SuperSwitcher II, Total Endurance, TSHARC,
+                                                                         USBCheck, VariSense, ViewSpan, WiperLock, Wireless DNA, and
+                                                                         ZENA are trademarks of Microchip Technology Incorporated in the
+                                                                         U.S.A. and other countries.
+
+                                                                         SQTP is a service mark of Microchip Technology Incorporated in
+                                                                         the U.S.A.
+                                                                         The Adaptec logo, Frequency on Demand, Silicon Storage
+                                                                         Technology, and Symmcom are registered trademarks of Microchip
+                                                                         Technology Inc. in other countries.
+                                                                         GestIC is a registered trademark of Microchip Technology Germany
+                                                                         II GmbH & Co. KG, a subsidiary of Microchip Technology Inc., in
+                                                                         other countries.
+                                                                         All other trademarks mentioned herein are property of their
+                                                                         respective companies.
+
+                                                                         © 2002-2020, Microchip Technology Incorporated, All Rights
+                                                                         Reserved.
+For information regarding Microchip’s Quality Management Systems,
+please visit www.microchip.com/quality.                                  ISBN: 978-1-5224-5717-6
+
+
+
+
+ 2002-2020 Microchip Technology Inc.                                                                             DS20001733L-page 49
+                            Worldwide Sales and Service
+AMERICAS                    ASIA/PACIFIC            ASIA/PACIFIC                     EUROPE
+Corporate Office            Australia - Sydney      India - Bangalore                Austria - Wels
+2355 West Chandler Blvd.    Tel: 61-2-9868-6733     Tel: 91-80-3090-4444             Tel: 43-7242-2244-39
+Chandler, AZ 85224-6199     China - Beijing         India - New Delhi                Fax: 43-7242-2244-393
+Tel: 480-792-7200           Tel: 86-10-8569-7000    Tel: 91-11-4160-8631             Denmark - Copenhagen
+Fax: 480-792-7277                                                                    Tel: 45-4450-2828
+                            China - Chengdu         India - Pune
+Technical Support:                                                                   Fax: 45-4485-2829
+                            Tel: 86-28-8665-5511    Tel: 91-20-4121-0141
+http://www.microchip.com/
+                            China - Chongqing       Japan - Osaka                    Finland - Espoo
+support
+                            Tel: 86-23-8980-9588    Tel: 81-6-6152-7160              Tel: 358-9-4520-820
+Web Address:
+www.microchip.com           China - Dongguan        Japan - Tokyo                    France - Paris
+                            Tel: 86-769-8702-9880   Tel: 81-3-6880- 3770             Tel: 33-1-69-53-63-20
+Atlanta                                                                              Fax: 33-1-69-30-90-79
+Duluth, GA                  China - Guangzhou       Korea - Daegu
+Tel: 678-957-9614           Tel: 86-20-8755-8029    Tel: 82-53-744-4301              Germany - Garching
+                                                                                     Tel: 49-8931-9700
+Fax: 678-957-1455           China - Hangzhou        Korea - Seoul
+Austin, TX                  Tel: 86-571-8792-8115   Tel: 82-2-554-7200               Germany - Haan
+Tel: 512-257-3370                                                                    Tel: 49-2129-3766400
+                            China - Hong Kong SAR   Malaysia - Kuala Lumpur
+                            Tel: 852-2943-5100      Tel: 60-3-7651-7906              Germany - Heilbronn
+Boston
+                                                                                     Tel: 49-7131-72400
+Westborough, MA             China - Nanjing         Malaysia - Penang
+Tel: 774-760-0087           Tel: 86-25-8473-2460    Tel: 60-4-227-8870               Germany - Karlsruhe
+Fax: 774-760-0088                                                                    Tel: 49-721-625370
+                            China - Qingdao         Philippines - Manila
+Chicago                     Tel: 86-532-8502-7355   Tel: 63-2-634-9065               Germany - Munich
+Itasca, IL                                                                           Tel: 49-89-627-144-0
+                            China - Shanghai        Singapore
+Tel: 630-285-0071                                                                    Fax: 49-89-627-144-44
+                            Tel: 86-21-3326-8000    Tel: 65-6334-8870
+Fax: 630-285-0075                                                                    Germany - Rosenheim
+                            China - Shenyang        Taiwan - Hsin Chu
+Dallas                                                                               Tel: 49-8031-354-560
+                            Tel: 86-24-2334-2829    Tel: 886-3-577-8366
+Addison, TX                                                                          Israel - Ra’anana
+                            China - Shenzhen        Taiwan - Kaohsiung
+Tel: 972-818-7423                                                                    Tel: 972-9-744-7705
+                            Tel: 86-755-8864-2200   Tel: 886-7-213-7830
+Fax: 972-818-2924                                                                    Italy - Milan
+                            China - Suzhou          Taiwan - Taipei
+Detroit                                                                              Tel: 39-0331-742611
+                            Tel: 86-186-6233-1526   Tel: 886-2-2508-8600
+Novi, MI                                                                             Fax: 39-0331-466781
+Tel: 248-848-4000           China - Wuhan           Thailand - Bangkok
+                            Tel: 86-27-5980-5300    Tel: 66-2-694-1351               Italy - Padova
+Houston, TX                                                                          Tel: 39-049-7625286
+Tel: 281-894-5983           China - Xian            Vietnam - Ho Chi Minh
+                            Tel: 86-29-8833-7252    Tel: 84-28-5448-2100             Netherlands - Drunen
+Indianapolis                                                                         Tel: 31-416-690399
+Noblesville, IN             China - Xiamen                                           Fax: 31-416-690340
+Tel: 317-773-8323           Tel: 86-592-2388138
+                                                                                     Norway - Trondheim
+Fax: 317-773-5453           China - Zhuhai                                           Tel: 47-7288-4388
+Tel: 317-536-2380           Tel: 86-756-3210040
+                                                                                     Poland - Warsaw
+Los Angeles                                                                          Tel: 48-22-3325737
+Mission Viejo, CA
+                                                                                     Romania - Bucharest
+Tel: 949-462-9523
+                                                                                     Tel: 40-21-407-87-50
+Fax: 949-462-9608
+Tel: 951-273-7800                                                                    Spain - Madrid
+                                                                                     Tel: 34-91-708-08-90
+Raleigh, NC                                                                          Fax: 34-91-708-08-91
+Tel: 919-844-7510
+                                                                                     Sweden - Gothenberg
+New York, NY                                                                         Tel: 46-31-704-60-40
+Tel: 631-435-6000
+                                                                                     Sweden - Stockholm
+San Jose, CA                                                                         Tel: 46-8-5090-4654
+Tel: 408-735-9110
+Tel: 408-436-4270                                                                    UK - Wokingham
+                                                                                     Tel: 44-118-921-5800
+Canada - Toronto                                                                     Fax: 44-118-921-5820
+Tel: 905-695-1980
+Fax: 905-695-2078
+
+
+
+
+DS20001733L-page 50                                                         2002-2020 Microchip Technology Inc.
+                                                                                                           05/14/19
+

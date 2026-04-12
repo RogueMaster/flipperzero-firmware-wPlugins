@@ -276,6 +276,50 @@ cleanup:
     return status;
 }
 
+bool protopirate_storage_save_capture_to_path(FlipperFormat* flipper_format, const char* full_path) {
+    furi_check(flipper_format);
+    furi_check(full_path);
+
+    if(!protopirate_storage_init()) {
+        FURI_LOG_E(TAG, "Failed to create app folder");
+        return false;
+    }
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    FlipperFormat* save_file = flipper_format_file_alloc(storage);
+    bool result = false;
+
+    do {
+        // Remove if it already exists (overwrite)
+        if(storage_file_exists(storage, full_path)) {
+            storage_simply_remove(storage, full_path);
+        }
+
+        if(!flipper_format_file_open_new(save_file, full_path)) {
+            FURI_LOG_E(TAG, "Failed to create file: %s", full_path);
+            break;
+        }
+
+        if(!flipper_format_write_header_cstr(save_file, "Flipper SubGhz Key File", 1)) {
+            FURI_LOG_E(TAG, "Failed to write header");
+            break;
+        }
+
+        if(!protopirate_storage_write_capture_data(save_file, flipper_format)) {
+            FURI_LOG_E(TAG, "Failed to write capture data");
+            break;
+        }
+
+        result = true;
+        FURI_LOG_I(TAG, "Saved capture to %s", full_path);
+
+    } while(false);
+
+    flipper_format_free(save_file);
+    furi_record_close(RECORD_STORAGE);
+    return result;
+}
+
 bool protopirate_storage_save_temp(FlipperFormat* flipper_format) {
     if(!protopirate_storage_init()) {
         FURI_LOG_E(TAG, "Failed to create app folder");

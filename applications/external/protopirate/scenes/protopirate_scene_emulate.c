@@ -175,7 +175,7 @@ static uint8_t
         case InputKeyDown:
             return 0x4; // Boot?
         case InputKeyLeft:
-            return 0x8; // Panic?
+            return 0x0; // Panic?
         case InputKeyRight:
             return 0x3; // ?
         default:

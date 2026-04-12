@@ -15,6 +15,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
+#include <gui/modules/text_input.h>
 #include <notification/notification_messages.h>
 #include <lib/subghz/subghz_setting.h>
 #include <lib/subghz/subghz_worker.h>
@@ -54,6 +55,7 @@ struct ProtoPirateApp {
     VariableItemList* variable_item_list;
     Submenu* submenu;
     Widget* widget;
+    TextInput* text_input;
     View* view_about;
     FuriString* file_path;
     ProtoPirateReceiver* protopirate_receiver;
@@ -69,6 +71,10 @@ struct ProtoPirateApp {
     uint8_t tx_power;
     PsaBfState* psa_bf_state;
     FuriThread* psa_bf_thread;
+    char save_filename[64];
+    FuriString* save_protocol;
+    uint16_t save_history_idx;
+    bool save_from_saved_info;
 };
 
 typedef enum {

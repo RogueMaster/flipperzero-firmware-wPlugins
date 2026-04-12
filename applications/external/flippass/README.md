@@ -1,0 +1,35 @@
+# FlipPass
+
+FlipPass lets Flipper Zero open a KeePass vault and send credentials to another device through USB HID or Bluetooth HID.
+
+## Features
+
+- Browse KeePass KDBX 4 vaults stored on the SD card.
+- Navigate groups and entries without modifying the database.
+- Show username, password, URL, notes, AutoType sequences, and custom fields on-device.
+- Type username, password, login pairs, AutoType sequences, or custom fields over USB HID or Bluetooth HID.
+- Reuse the default KeePass AutoType sequence when an entry does not define a custom one.
+
+## Requirements
+
+- A Flipper Zero with an SD card.
+- A KeePass database in KDBX 4 format.
+- AES256 or ChaCha20 database encryption.
+- Raw or GZip-compressed payloads.
+
+## Usage
+
+0. Download and use [KeePass](https://keepass.info/download.html) to create a password vault.
+1. Copy your .kdbx file to /ext/apps_data/flippass/. (or your preferred directory)
+2. Launch FlipPass and choose the database from the browser.
+3. Enter the master password for the selected vault.
+4. Open a group or entry, then choose whether to view a field or type it to the connected host.
+5. For Bluetooth HID, pair or reconnect the host before sending credentials.
+
+## Notes
+
+- FlipPass is a read-only browser. It does not edit or save KeePass entries.
+- The app can type over USB HID or over the Bluetooth HID profile.
+- To reduce typing errors, FlipPass sends characters using the Windows Alt+NumPad input method.
+- Because of this input method, automatic typing is primarily compatible with Windows hosts and may not work correctly on non-Windows systems.
+- The screenshots use demo data only.

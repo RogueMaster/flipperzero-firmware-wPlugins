@@ -1,0 +1,13 @@
+App(
+    appid="flipirfreq",
+    name="FlipIRFreq",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipirfreq_app",
+    fap_icon="icon.png",
+    stack_size=4 * 1024,
+    fap_category="Infrared",
+    fap_author="jsammarco",
+    fap_weburl="https://github.com/jsammarco/FlipIRFreq",
+    fap_version="0.2",
+    fap_description="Transmit IR in carrier or low-frequency pulse modes with burst or continuous output.",
+)

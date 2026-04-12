@@ -77,11 +77,14 @@
 // Initialize storage (create folder if needed)
 bool protopirate_storage_init(void);
 
-// Save a capture to a new file
+// Save a capture to a new file (auto-generated name)
 bool protopirate_storage_save_capture(
     FlipperFormat* flipper_format,
     const char* protocol_name,
     FuriString* out_path);
+
+// Save a capture to a specific file path (user-chosen name)
+bool protopirate_storage_save_capture_to_path(FlipperFormat* flipper_format, const char* full_path);
 
 // Save to temp file for emulation
 bool protopirate_storage_save_temp(FlipperFormat* flipper_format);

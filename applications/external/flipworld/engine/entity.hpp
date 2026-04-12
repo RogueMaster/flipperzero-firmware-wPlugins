@@ -1,12 +1,12 @@
 #pragma once
-#include "engine/vector.hpp"
-#include "engine/draw.hpp"
+#include "vector.hpp"
+#include "draw.hpp"
+#include "image.hpp"
+#include "sprite3d.hpp"
+#include "callback.hpp"
 
 // Forward declarations
 class Game;
-class Sprite3D;
-struct Vertex3D;
-struct Triangle3D;
 
 #define ENTITY_LEFT  Vector(-1, 0)
 #define ENTITY_RIGHT Vector(1, 0)
@@ -49,14 +49,14 @@ public:
     Vector direction; // The direction the entity is facing.
     Vector plane; // The camera plane perpendicular to the direction.
     bool is_player; // Indicates if the entity is the player.
-    bool position_changed = false; // Indicates if the position of the entity has changed.
     Vector size; // The size of the entity.
-    const uint8_t* sprite; // The current displayed sprite of the entity.
-    const uint8_t* sprite_left; // The sprite to switch to when facing left.
-    const uint8_t* sprite_right; // The sprite to switch to when facing right.
+    Image* sprite; // The current displayed sprite of the entity.
+    Image* sprite_left; // The sprite to switch to when facing left.
+    Image* sprite_right; // The sprite to switch to when facing right.
     bool is_active; // Indicates if the entity is active.
     bool is_visible; // Indicates if the entity is visible (for rendering)
     EntityType type; // Type of the entity
+    bool is_8bit; // Flag to indicate if the entity uses 8-bit graphics
 
     // 3D Sprite properties
     Sprite3D* sprite_3d; // 3D sprite representation (can be null for 2D entities)
@@ -84,21 +84,25 @@ public:
     float xp; // Experience points of the entity
     float health_regen; // player health regeneration rate per second/frame
     float elapsed_health_regen; // time elapsed since last health regeneration
+    void* mp_ctx; // back-pointer to entity_mp_obj_t wrapper (set by MicroPython bindings)
 
     Entity(
         const char* name, // The name of the entity.
         EntityType type, // The type of the entity.
         Vector position, // The position of the entity.
         Vector size, // The size of the entity.
-        const uint8_t* sprite_data, // The sprite of the entity.
-        const uint8_t* sprite_left_data = NULL, // The sprite to switch to when facing left.
-        const uint8_t* sprite_right_data = NULL, // The sprite to switch to when facing right.
-        void (*start)(Entity*, Game*) = NULL, // The start function of the entity.
-        void (*stop)(Entity*, Game*) = NULL, // The stop function of the entity.
-        void (*update)(Entity*, Game*) = NULL, // The update function of the entity.
-        void (*render)(Entity*, Draw*, Game*) = NULL, // The render function of the entity.
-        void (*collision)(Entity*, Entity*, Game*) = NULL, // The collision function of the entity.
-        Sprite3DType sprite_3d_type = SPRITE_3D_NONE // 3D sprite type (optional)
+        Image* sprite_data, // The sprite of the entity.
+        Image* sprite_left_data = NULL, // The sprite to switch to when facing left.
+        Image* sprite_right_data = NULL, // The sprite to switch to when facing right.
+        CallbackEntityGame start = {}, // The start function of the entity.
+        CallbackEntityGame stop = {}, // The stop function of the entity.
+        CallbackEntityGame update = {}, // The update function of the entity.
+        CallbackEntityDrawGame render = {}, // The render function of the entity.
+        CallbackEntityEntityGame collision = {}, // The collision function of the entity.
+        bool is_8bit_sprite = false, // Flag to indicate if the entity uses 8-bit graphics
+        Sprite3DType sprite_3d_type = SPRITE_3D_NONE, // 3D sprite type (optional)
+        uint16_t sprite_3d_color =
+            0x0000 // Color to use for the 3D sprite (optional, default is black)
     );
 
     virtual ~Entity(); // Virtual destructor for proper inheritance
@@ -107,22 +111,21 @@ public:
         collision(Entity* other, Game* game); // Handles the collision with another entity.
     Vector position_get(); // Gets the position of the entity.
     void position_set(Vector value); // Sets the position of the entity.
+    void position_set(
+        float x,
+        float y,
+        float z = 0.0f,
+        bool integer = false); // Sets the position of the entity using x and y coordinates.
     virtual void render(Draw* draw, Game* game); // called every frame to render the entity.
     virtual void start(Game* game); // called when the entity is created.
     virtual void stop(Game* game); // called when the entity is destroyed.
     virtual void update(Game* game); // called every frame to update the entity.
 
     // 3D Sprite query and control methods
-    bool has3DSprite() const;
-    void set3DSpriteRotation(float rotation);
-    void set3DSpriteScale(float scale);
-    void render3DSprite(
-        Draw* draw,
-        Vector player_pos,
-        Vector player_dir,
-        Vector player_plane,
-        float view_height) const;
-    void update3DSpritePosition();
+    bool has3DSprite() const; // Check if the entity has an associated 3D sprite
+    void set3DSpriteRotation(float rotation); // Set the rotation of the 3D sprite
+    void set3DSpriteScale(float scale); // Set the scale of the 3D sprite
+    void update3DSpritePosition(); // Update the position of the 3D sprite
 
     bool hasChangedPosition() const; // Check if the entity's position has changed
 
@@ -132,21 +135,13 @@ private:
         Sprite3DType type,
         float height = 2.0f,
         float width = 1.0f,
-        float rotation = 0.0f);
+        float rotation = 0.0f,
+        uint16_t color = 0x0000);
     void destroy3DSprite();
 
-    // Helper methods for 3D sprite rendering
-    Vector project3DTo2D(
-        const Vertex3D& vertex,
-        Vector player_pos,
-        Vector player_dir,
-        Vector player_plane,
-        float view_height) const;
-    void fillTriangle(Draw* const draw, Vector p1, Vector p2, Vector p3) const;
-
-    void (*_start)(Entity*, Game*);
-    void (*_stop)(Entity*, Game*);
-    void (*_update)(Entity*, Game*);
-    void (*_render)(Entity*, Draw*, Game*);
-    void (*_collision)(Entity*, Entity*, Game*);
+    CallbackEntityGame _start;
+    CallbackEntityGame _stop;
+    CallbackEntityGame _update;
+    CallbackEntityDrawGame _render;
+    CallbackEntityEntityGame _collision;
 };
