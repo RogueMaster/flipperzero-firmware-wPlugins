@@ -44,7 +44,28 @@ Limitation: Party CAN does not carry stalk signals (SCCM_rightStalk),
 lighting commands (VCFRONT_lighting), or steering wheel button inputs
 (STW_ACTN_RQ). Those are on Vehicle CAN.
 
-### X179 — behind the rear center console (recommended)
+### X052 — 2019 Model 3 (pre-facelift)
+
+The 2019 Model 3 does **not** have the X179 connector or a standard
+OBD-II port under the steering column. Instead, it uses the X052
+connector, located behind the center console / passenger footwell area.
+
+Confirmed by community tester @THER4iN (issue #21):
+
+| X052 Pin | Signal | Notes |
+|----------|--------|-------|
+| **44** | **CAN-H** | CAN bus |
+| **45** | **CAN-L** | CAN bus |
+| **20** | **12V** | Power (no service mode errors confirmed) |
+| **22** | **GND** | Ground |
+
+Same 4-wire pattern as X179 — CAN + power. Compatible with all the
+same ESP32/MCP2515 setups described below.
+
+The 2019 Model 3 also has an **X930m** connector near the A-pillar.
+Pinout not yet confirmed — if you test it, please report in an issue.
+
+### X179 — behind the rear center console (2021+ Model 3/Y)
 
 Tesla's own service/diagnostic connector. Requires removing a trim
 panel behind the rear armrest. Two versions exist:

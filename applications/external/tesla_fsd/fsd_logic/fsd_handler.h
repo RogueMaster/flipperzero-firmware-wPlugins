@@ -28,6 +28,10 @@
 #define CAN_ID_DAS_STATUS     0x39B // 923  - DAS_status (AP state, nag, lane change, blind spot)
 #define CAN_ID_DAS_STATUS2    0x389 // 905  - DAS_status2 (ACC report, driver interaction)
 #define CAN_ID_DAS_SETTINGS   0x293 // 659  - DAS_settings (autosteer enable, steering weight, etc.)
+#define CAN_ID_GTW_CONFIG_ETH \
+    0x7FF // 2047 - GTW_carConfig on Ethernet/mixed bus (autopilot tier readback)
+#define CAN_ID_TRACK_MODE_SET \
+    0x313 // 787  - UI_trackModeSettings (track mode request, checksummed)
 #define CAN_ID_SCCM_LSTALK \
     0x249 // 585  - SCCM_leftStalk (high beam, turn signal, wiper wash — Party CAN, 3 bytes)
 #define CAN_ID_DI_TORQUE    0x108 // 264  - DI_torque (motor torque/power — Party CAN)
@@ -105,6 +109,16 @@ typedef struct {
     uint8_t das_activation_fail; // 0-2  (why AP failed to activate)
     bool das_autosteer_on; // from 0x293 DAS_autosteerEnabled readback
     bool das_seen; // true once we've parsed at least one 0x39B
+
+    // --- GTW autopilot tier (from 0x7FF mux=2 on mixed bus) ---
+    // 0=NONE 1=HIGHWAY 2=ENHANCED 3=SELF_DRIVING 4=BASIC
+    // Source: ev-open-can-tools readGTWAutopilot()
+    int8_t gtw_autopilot_tier; // -1 = not yet read
+
+    // --- upstream feature flags ---
+    bool enhanced_autopilot; // when true, mux=1 also sets bit46 (EAP/summon)
+    bool speed_profile_locked; // when true, follow distance won't override profile
+    uint8_t hw4_offset; // HW4 mux=2 speed offset override (0 = no override)
 
     // --- DAS_control (0x2B9) — ACC / longitudinal state ---
     uint8_t das_acc_state; // 0-15 (0=cancel, 3=hold, 4=ACC_ON, 9=pause)
@@ -242,6 +256,16 @@ void fsd_handle_das_status2(FSDState* state, const CANFRAME* frame);
 /** Parse DAS_settings (0x293) — readback of autosteer enabled state.
  *  Source: opendbc tesla_model3_party.dbc. */
 void fsd_handle_das_settings(FSDState* state, const CANFRAME* frame);
+
+/** Parse GTW_carConfig (0x7FF) mux=2 — autopilot tier readback.
+ *  byte[5] bits 4:2 → 0=NONE 1=HIGHWAY 2=ENHANCED 3=SELF_DRIVING 4=BASIC.
+ *  Source: ev-open-can-tools readGTWAutopilot(). */
+void fsd_handle_gtw_autopilot_tier(FSDState* state, const CANFRAME* frame);
+
+/** Modify UI_trackModeSettings (0x313) to set track mode ON.
+ *  byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn) + recalc checksum byte[7].
+ *  Source: ev-open-can-tools setTrackModeRequest(). */
+bool fsd_handle_track_mode_inject(FSDState* state, CANFRAME* frame);
 
 /** Build a SCCM_leftStalk (0x249) frame for high beam strobe.
  *  SCCM_highBeamStalkStatus (bit12|2) = 1 (PULL) for flash.

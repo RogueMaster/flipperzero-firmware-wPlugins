@@ -1,4 +1,4 @@
-[English](README.md) | [繁體中文](README_zh-TW.md)
+[English](README.md) | [繁體中文](README_zh-TW.md) | [简体中文](README_zh-CN.md)
 
 # Tesla Mod for Flipper Zero
 
@@ -233,7 +233,7 @@ Yes. Flipper has no built-in CAN. You need the Electronic Cats board or any MCP2
 
 | Project | What it is | Hardware |
 |---------|------------|----------|
-| [slxslx/tesla-open-can-mod-slx-repo](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo) | The de facto upstream after the original Tesla-OPEN-CAN-MOD GitLab namespace was taken down. Broader scope ("general CAN mod tool, not just FSD"). | Adafruit RP2040 CAN, Feather M4, ESP32, M5Stack ATOMIC CAN |
+| [ev-open-can-tools/ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools) | The upstream project, now on GitHub as a vehicle-agnostic CAN mod toolkit. Formerly `Tesla-OPEN-CAN-MOD` on GitLab (taken down) → `slxslx/tesla-open-can-mod-slx-repo` (archiving) → now here. | Adafruit RP2040 CAN, Feather M4, ESP32, M5Stack ATOMIC CAN |
 | ESP32 port — PR [#6](https://github.com/hypery11/flipper-tesla-fsd/pull/6) by @elonleo | Full ESP32 port of this project's CAN logic with a built-in WiFi web dashboard. ~$14 alternative to Flipper Zero + Add-On. | M5Stack ATOM Lite + ATOMIC CAN, Waveshare ESP32-S3-RS485-CAN |
 | [tumik/S3XY-candump](https://github.com/tumik/S3XY-candump) | Python tool to dump Tesla CAN bus over WiFi using an enhauto S3XY Commander as a Panda-protocol bridge | Commander dongle |
 | [dzid26/ESP32-DualCAN](https://github.com/dzid26/ESP32-DualCAN) | "Dorky Commander" — open-source hardware alternative to the enhauto S3XY Commander | ESP32 + dual CAN |

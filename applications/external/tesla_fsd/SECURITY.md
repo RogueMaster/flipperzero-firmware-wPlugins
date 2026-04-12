@@ -121,6 +121,7 @@ exactly what triggered it — the working assumption is that visible legal
 pressure on this kind of project is real and increasing. Conservative
 defaults (Listen-Only first boot, OTA Guard, narrow TX surface, explicit
 disclaimer) make this project survivable for longer and protect the
-people who use it. The currently-reachable community continuations are
-[slxslx/tesla-open-can-mod-slx-repo](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo)
-and [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod).
+people who use it. The community has since reorganized on GitHub as
+[ev-open-can-tools/ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools)
+— a vehicle-agnostic CAN mod toolkit. The CanFeather mirror lives at
+[Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod).

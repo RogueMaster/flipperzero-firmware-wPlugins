@@ -1,3 +1,23 @@
+## 2.7 — Upstream parity + Momentum fix + X179 guide
+
+- **Ported 5 features from upstream** ([ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools)):
+  - GTW autopilot tier readback (`0x7FF` mux=2): shows the vehicle's actual AP entitlement — NONE/HIGHWAY/ENHANCED/SELF_DRIVING/BASIC. If it reads NONE or BASIC, FSD features won't work regardless of CAN injection.
+  - Track Mode inject (`0x313`): sets track mode request ON with checksummed retransmit. Service mode only.
+  - Enhanced Autopilot flag: mux=1 now also sets bit 46 when enabled — required for EAP auto lane change and summon on HW3/HW4.
+  - HW4 speed offset runtime: mux=2 byte[1] lower 6 bits can be overridden at runtime.
+  - Speed profile lock: follow distance stalk no longer overrides the speed profile when locked.
+- **Fix: SPI callback const mismatch** — `Spi_lib.c` now compiles on Momentum and Xtreme firmware in addition to official. The `FuriHalSpiBusHandleEventCallback` typedef differs between firmware builds; fixed with a portable cast. Reported by @LeeSSXX in issue #17.
+- **HARDWARE.md complete rewrite:**
+  - X179 connector is now the recommended connection point (4-wire: CAN-H + CAN-L + 12V + GND).
+  - Full X179 20-pin and 26-pin pinout tables with all 4 CAN bus pairs documented.
+  - Explains why Pin 13/14 (bus 6) is a Gateway-forwarded mixed bus that carries both Party CAN and Vehicle CAN signals — one connection for nearly all features.
+  - Added X052 connector for 2019 Model 3 (pre-facelift): Pin 44/45 CAN + Pin 20/22 12V/GND, confirmed by @THER4iN.
+  - Added LILYGO T-2CAN ESP32-S3 (~$24, dual isolated CAN) as recommended future-proof board.
+  - All hardware prices corrected from verified official store listings.
+  - Deep sleep guidance for permanent vehicle installation.
+- **Upstream link updated**: the upstream project moved from GitLab (`slxslx/tesla-open-can-mod-slx-repo`, archiving) to GitHub (`ev-open-can-tools/ev-open-can-tools`, vehicle-agnostic naming).
+- **37 total CAN handlers** (14 TX write + 23 RX read-only).
+
 ## 2.6 — Full Party CAN coverage
 
 - **32 CAN handlers** (12 TX write + 20 RX read-only), up from 19 in v2.5. Every useful signal on Tesla Model 3/Y Party CAN is now parsed or injectable.

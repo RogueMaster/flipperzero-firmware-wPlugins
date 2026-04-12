@@ -1,4 +1,4 @@
-[English](README.md) | [繁體中文](README_zh-TW.md)
+[English](README.md) | [繁體中文](README_zh-TW.md) | [简体中文](README_zh-CN.md)
 
 # Tesla Mod — Flipper Zero
 

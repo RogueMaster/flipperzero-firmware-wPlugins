@@ -274,6 +274,15 @@ static int32_t fsd_running_worker(void* context) {
                     fsd_handle_das_status2(&state, &frame);
                 } else if(frame.canId == CAN_ID_DAS_SETTINGS) {
                     fsd_handle_das_settings(&state, &frame);
+                } else if(frame.canId == CAN_ID_GTW_CONFIG_ETH) {
+                    fsd_handle_gtw_autopilot_tier(&state, &frame);
+                }
+
+                // Track Mode inject (Service mode only, 0x313)
+                if(frame.canId == CAN_ID_TRACK_MODE_SET) {
+                    if(fsd_handle_track_mode_inject(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
                 } else if(frame.canId == CAN_ID_DAS_CONTROL) {
                     fsd_handle_das_control(&state, &frame);
                 } else if(frame.canId == CAN_ID_DI_STATE) {

@@ -71,13 +71,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest) [Added CSA,Quiet commands and moved all BLE spams (By Clawzman)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1177)
 - Added: [Click Recorder v1.0 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - Added: [MFP Reader v1.0 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
-- Updated: [Tesla Mod v2.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Updated: [Free Roam v0.6 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - Updated: [ProtoPirate v2.6 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) [Replace blocking dialog with non-blocking NeedSaving scene for exit confirmation (By mishamyte)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/23) [Expansion with Fiat, Mazda, Mitzubishi and Porche protocols (Originally By lupettohf) & Ford Fixed (By LeeroysHub) & Several Other Community Changes](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b377cee471cf61aaeff089c5ff194e1a13e8d94a) Different ProtoPirate Builds Enabled For Better Testing [FORD: Fix PANIC Button ENCODE and Counter Overflow in DECODE (By RalphWiggum)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/28)
 - Added: [Ham Scanner v1.0 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
+- Updated: [Tesla Mod v2.7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 
@@ -863,7 +863,7 @@ $ ./fbt dolphin_ext
 - [TagTinker v1.3 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.2 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
-- [Tesla Mod v2.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- [Tesla Mod v2.7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - [Text To SAM v1.4 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)
 - [Text Viewer v1.6 (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ae4fc4a54febccb44b010c4025a99c2edef9a7f0)
 - [The C Prog. Language v0.2 (By armixz)](https://github.com/armixz/Flipper-Zero-The-C-Programming-Language)

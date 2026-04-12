@@ -11,6 +11,10 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
     else
         state->speed_profile = 2;
     state->op_mode = OpMode_Active;
+    state->gtw_autopilot_tier = -1;
+    state->enhanced_autopilot = false;
+    state->speed_profile_locked = false;
+    state->hw4_offset = 0;
 }
 
 void fsd_handle_gtw_car_state(FSDState* state, const CANFRAME* frame) {
@@ -101,6 +105,7 @@ TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame) {
 
 void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 6) return;
+    if(state->speed_profile_locked) return; // upstream: speedProfileLocked
     uint8_t fd = (frame->buffer[5] & 0xE0) >> 5;
 
     if(state->hw_version == TeslaHW_HW3) {
@@ -163,6 +168,11 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
         }
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
+            // Enhanced Autopilot: also set bit 46 on mux=1 (enables EAP/summon)
+            // Source: ev-open-can-tools HW3Handler enhancedAutopilotRuntime
+            if(state->enhanced_autopilot) {
+                fsd_set_bit(frame, 46, true);
+            }
             state->nag_suppressed = true;
             modified = true;
         }
@@ -186,12 +196,21 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
             fsd_set_bit(frame, 47, true);
+            // Enhanced Autopilot: also set bit 46 (enables EAP/summon on HW4)
+            if(state->enhanced_autopilot) {
+                fsd_set_bit(frame, 46, true);
+            }
             state->nag_suppressed = true;
             modified = true;
         }
         if(mux == 2) {
             frame->buffer[7] &= ~(0x07 << 4);
             frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 4);
+            // HW4 speed offset runtime override
+            // Source: ev-open-can-tools hw4OffsetRuntime
+            if(state->hw4_offset > 0) {
+                frame->buffer[1] = (frame->buffer[1] & 0xC0) | (state->hw4_offset & 0x3F);
+            }
             modified = true;
         }
     }
@@ -402,9 +421,36 @@ void fsd_handle_das_status2(FSDState* state, const CANFRAME* frame) {
 
 void fsd_handle_das_settings(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 5) return;
-    // DAS_autosteerEnabled: bit38|1@0+ (big-endian)
-    // Motorola bit 38 → byte4 bit6
     state->das_autosteer_on = (frame->buffer[4] >> 6) & 0x01;
+}
+
+// --- GTW_carConfig (0x7FF / 2047) mux=2 — autopilot tier ---
+// Source: ev-open-can-tools readGTWAutopilot()
+// byte[5] bits 4:2 → 0=NONE 1=HIGHWAY 2=ENHANCED 3=SELF_DRIVING 4=BASIC
+
+void fsd_handle_gtw_autopilot_tier(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 6) return;
+    uint8_t mux = frame->buffer[0] & 0x07;
+    if(mux != 2) return;
+    state->gtw_autopilot_tier = (int8_t)((frame->buffer[5] >> 2) & 0x07);
+}
+
+// --- Track Mode inject (0x313 / 787) ---
+// Source: ev-open-can-tools HW3Handler frame.id == 787
+// byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn)
+// checksum in byte[7] = computeVehicleChecksum
+
+bool fsd_handle_track_mode_inject(FSDState* state, CANFRAME* frame) {
+    if(frame->data_lenght < 8) return false;
+    if(state->op_mode != OpMode_Service) return false;
+    // set track mode request ON
+    frame->buffer[0] = (frame->buffer[0] & 0xFC) | 0x01;
+    // recalculate Tesla vehicle checksum
+    uint16_t sum = (CAN_ID_TRACK_MODE_SET & 0xFF) + ((CAN_ID_TRACK_MODE_SET >> 8) & 0xFF);
+    for(int i = 0; i < 7; i++)
+        sum += frame->buffer[i];
+    frame->buffer[7] = (uint8_t)(sum & 0xFF);
+    return true;
 }
 
 // --- SCCM_leftStalk (0x249) builders — Party CAN, 3 bytes ---
