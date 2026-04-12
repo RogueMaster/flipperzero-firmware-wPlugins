@@ -1,4 +1,4 @@
-# SubHound
+# subhound
 
 Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 11 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
 
@@ -10,7 +10,7 @@ Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 11 ISM-
 - Flux Capacitor (external RF board) — recommended for BinRAW capture
 - High-gain antenna for 315 / 433 / 868 / 915 MHz
 
-Captures are saved as **BinRAW** `.sub` files (not the key-learning format). SubHound reads these directly.
+Captures are saved as **BinRAW** `.sub` files (not the key-learning format). Subhound reads these directly.
 
 ---
 
@@ -181,7 +181,7 @@ captures (
 
 ## .sub file format (reference)
 
-SubHound expects the Flipper Zero **SubGhz Key File v1** BinRAW format:
+Subhound expects the Flipper Zero **SubGhz Key File v1** BinRAW format:
 
 ```
 Filetype: Flipper SubGhz Key File
