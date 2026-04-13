@@ -80,6 +80,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [MFP Reader v1.1 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 - Updated: [Click Recorder v1.1 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - Updated: [Tesla Mod v2.7.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [FlipPass v1.1 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 
 <a name="release"></a>
 
@@ -577,7 +578,7 @@ $ ./fbt dolphin_ext
 - [FlipMap v0.2.2 (By jblanked)](https://github.com/jblanked/FlipMap) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
 - [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
-- [FlipPass v1.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
+- [FlipPass v1.1 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
 - [FlipperPwn v1.6 (By barkandbite)](https://github.com/barkandbite/flipper_suite)

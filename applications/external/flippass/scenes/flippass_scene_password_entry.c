@@ -68,7 +68,7 @@ static bool flippass_scene_password_entry_try_debug_unlock(App* app) {
             sizeof(app->master_password),
             "%s",
             furi_string_get_cstr(password));
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "DEBUG_UNLOCK_HOOK backend=%s allow_ext=%u",
             kdbx_vault_backend_label(app->requested_vault_backend),
@@ -130,7 +130,7 @@ void flippass_scene_password_entry_on_enter(void* context) {
     flippass_clear_text_buffer(app);
     flippass_log_event(app, "SCENE password_entry");
     if(!app->close_test_logged) {
-        flippass_log_event(app, "CLOSE_TEST_START");
+        FLIPPASS_BENCH_LOG(app, "CLOSE_TEST_START");
         app->close_test_logged = true;
     }
     flippass_scene_password_entry_set_header(app);
@@ -146,6 +146,8 @@ void flippass_scene_password_entry_on_enter(void* context) {
         app->text_buffer,
         TEXT_BUFFER_SIZE,
         true);
+    text_input_set_is_password(app->text_input, true);
+    text_input_set_for_open(app->text_input, true);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewPasswordEntry);
 }
 

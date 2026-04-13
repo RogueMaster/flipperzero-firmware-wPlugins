@@ -26,9 +26,13 @@
 typedef struct {
     KDBXGzipOutputCallback callback;
     void* context;
+    KDBXGzipTelemetry* telemetry;
+    const KDBXGzipTraceConfig* trace_config;
+    const tinfl_paged_telemetry* live_paged;
     uint32_t crc32;
     size_t output_size;
     size_t expected_output_size;
+    size_t next_trace_output;
     bool callback_failed;
     bool output_limit_failed;
 } KDBXGzipEmitState;
@@ -202,6 +206,7 @@ static bool kdbx_gzip_prepare_member(
 
     if(telemetry != NULL) {
         telemetry->expected_output_size = *expected_output_size;
+        telemetry->expected_input_size = *compressed_size;
         telemetry->free_heap = memmgr_get_free_heap();
         telemetry->max_free_block = memmgr_heap_get_max_free_block();
     }
@@ -335,17 +340,34 @@ static int kdbx_gzip_output_callback(const void* data, int len, void* context) {
     }
 
     const size_t size = (size_t)len;
-    if(state->output_size + size > state->expected_output_size) {
+    const size_t next_output_size = state->output_size + size;
+    if(next_output_size > state->expected_output_size) {
         state->output_limit_failed = true;
         return 0;
     }
 
     state->crc32 = kdbx_gzip_crc32_update(state->crc32, bytes, size);
-    state->output_size += size;
 
     if(state->callback != NULL && !state->callback(bytes, size, state->context)) {
         state->callback_failed = true;
         return 0;
+    }
+
+    state->output_size = next_output_size;
+    if(state->telemetry != NULL) {
+        state->telemetry->actual_output_size = state->output_size;
+        if(state->live_paged != NULL) {
+            state->telemetry->consumed_input_size = state->live_paged->input_offset;
+        }
+    }
+
+    if(state->telemetry != NULL && state->trace_config != NULL &&
+       state->trace_config->callback != NULL && state->next_trace_output > 0U &&
+       state->output_size >= state->next_trace_output) {
+        kdbx_gzip_user_trace(state->trace_config, state->telemetry, "progress");
+        do {
+            state->next_trace_output += state->trace_config->interval_bytes;
+        } while(state->output_size >= state->next_trace_output);
     }
 
     return 1;
@@ -372,6 +394,8 @@ static void kdbx_gzip_sync_paged_telemetry(
     telemetry->paged_yield_count = paged->yield_count;
     telemetry->paged_no_progress_count = paged->no_progress_count;
     telemetry->paged_input_offset = paged->input_offset;
+    telemetry->consumed_input_size = paged->input_offset;
+    telemetry->actual_output_size = paged->output_bytes;
     telemetry->paged_last_input_advance = paged->last_input_advance;
     telemetry->paged_last_output_advance = paged->last_output_advance;
     telemetry->paged_last_dict_offset = paged->last_dict_offset;
@@ -477,112 +501,6 @@ static KDBXGzipStatus kdbx_gzip_map_paged_status(
     return KDBXGzipStatusInflateFailed;
 }
 
-static bool
-    kdbx_gzip_can_try_exact_output(size_t expected_output_size, KDBXGzipTelemetry* telemetry) {
-    const size_t free_heap = memmgr_get_free_heap();
-    const size_t max_free = memmgr_heap_get_max_free_block();
-
-    if(telemetry != NULL) {
-        telemetry->free_heap = free_heap;
-        telemetry->max_free_block = max_free;
-        telemetry->workspace_total_size = expected_output_size;
-        telemetry->workspace_page_size = 0U;
-        telemetry->workspace_cache_pages = 0U;
-    }
-
-    return expected_output_size > 0U && free_heap >= expected_output_size &&
-           max_free >= expected_output_size;
-}
-
-static bool kdbx_gzip_emit_exact_output_memory(
-    const uint8_t* compressed_data,
-    size_t compressed_size,
-    uint32_t expected_crc32,
-    uint32_t expected_output_size,
-    KDBXGzipOutputCallback callback,
-    void* context,
-    KDBXGzipTelemetry* telemetry) {
-    uint8_t* output = NULL;
-    size_t actual_output_size = 0U;
-    KDBXGzipEmitState emit_state;
-
-    if(compressed_data == NULL || callback == NULL || telemetry == NULL) {
-        kdbx_gzip_reset_telemetry(telemetry);
-        if(telemetry != NULL) {
-            telemetry->status = KDBXGzipStatusInvalidArgument;
-        }
-        return false;
-    }
-
-    memset(&emit_state, 0, sizeof(emit_state));
-    emit_state.callback = callback;
-    emit_state.context = context;
-    emit_state.crc32 = 0xFFFFFFFFU;
-    emit_state.expected_output_size = expected_output_size;
-
-    telemetry->inflate_path = KDBXGzipInflatePathExactOutput;
-    telemetry->expected_output_size = expected_output_size;
-    telemetry->workspace_total_size = expected_output_size;
-    telemetry->workspace_page_size = 0U;
-    telemetry->workspace_cache_pages = 0U;
-    telemetry->free_heap = memmgr_get_free_heap();
-    telemetry->max_free_block = memmgr_heap_get_max_free_block();
-
-    output = malloc(expected_output_size);
-    if(output == NULL) {
-        telemetry->status = (telemetry->max_free_block < expected_output_size) ?
-                                KDBXGzipStatusOutputHeapFragmented :
-                                KDBXGzipStatusOutputAllocFailed;
-        return false;
-    }
-
-    actual_output_size = tinfl_decompress_mem_to_mem(
-        output, expected_output_size, compressed_data, compressed_size, 0);
-    telemetry->consumed_input_size = compressed_size;
-    telemetry->actual_output_size =
-        (actual_output_size == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) ? 0U : actual_output_size;
-    telemetry->inflate_status = (actual_output_size == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) ?
-                                    TINFL_STATUS_FAILED :
-                                    TINFL_STATUS_DONE;
-    telemetry->free_heap = memmgr_get_free_heap();
-    telemetry->max_free_block = memmgr_heap_get_max_free_block();
-
-    if(actual_output_size == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) {
-        telemetry->status = KDBXGzipStatusInflateFailed;
-        memzero(output, expected_output_size);
-        free(output);
-        return false;
-    }
-
-    if(actual_output_size != expected_output_size) {
-        telemetry->status = KDBXGzipStatusOutputSizeMismatch;
-        memzero(output, expected_output_size);
-        free(output);
-        return false;
-    }
-
-    if(!kdbx_gzip_output_callback(output, (int)actual_output_size, &emit_state)) {
-        telemetry->status = emit_state.callback_failed ? KDBXGzipStatusOutputRejected :
-                                                         KDBXGzipStatusOutputSizeMismatch;
-        memzero(output, expected_output_size);
-        free(output);
-        return false;
-    }
-
-    emit_state.crc32 = ~emit_state.crc32;
-    if(emit_state.crc32 != expected_crc32) {
-        telemetry->status = KDBXGzipStatusCrcMismatch;
-        memzero(output, expected_output_size);
-        free(output);
-        return false;
-    }
-
-    telemetry->status = KDBXGzipStatusOk;
-    memzero(output, expected_output_size);
-    free(output);
-    return true;
-}
-
 static bool kdbx_gzip_can_try_ram_paged(KDBXGzipTelemetry* telemetry) {
     const size_t required_total = sizeof(tinfl_decompressor) + TINFL_LZ_DICT_SIZE;
     const size_t free_heap = memmgr_get_free_heap();
@@ -624,8 +542,13 @@ static bool kdbx_gzip_emit_ram_paged_reader(
     memset(&emit_state, 0, sizeof(emit_state));
     emit_state.callback = callback;
     emit_state.context = context;
+    emit_state.telemetry = telemetry;
+    emit_state.trace_config = trace_config;
     emit_state.crc32 = 0xFFFFFFFFU;
     emit_state.expected_output_size = expected_output_size;
+    emit_state.next_trace_output = (trace_config != NULL && trace_config->interval_bytes > 0U) ?
+                                       trace_config->interval_bytes :
+                                       0U;
 
     memset(&bridge, 0, sizeof(bridge));
     bridge.telemetry = telemetry;
@@ -636,6 +559,7 @@ static bool kdbx_gzip_emit_ram_paged_reader(
     paged.trace_interval_bytes = trace_config != NULL ? trace_config->interval_bytes : 0U;
     paged.trace_callback = kdbx_gzip_trace_bridge;
     paged.trace_context = &bridge;
+    emit_state.live_paged = &paged;
 
     telemetry->inflate_path = KDBXGzipInflatePathPagedCallback;
     telemetry->expected_output_size = expected_output_size;
@@ -675,6 +599,7 @@ static bool kdbx_gzip_emit_ram_paged_reader(
     }
 
     telemetry->status = KDBXGzipStatusOk;
+    kdbx_gzip_user_trace(trace_config, telemetry, "done");
     return true;
 }
 
@@ -739,8 +664,13 @@ static bool kdbx_gzip_emit_paged_reader(
     memset(&emit_state, 0, sizeof(emit_state));
     emit_state.callback = callback;
     emit_state.context = context;
+    emit_state.telemetry = telemetry;
+    emit_state.trace_config = trace_config;
     emit_state.crc32 = 0xFFFFFFFFU;
     emit_state.expected_output_size = expected_output_size;
+    emit_state.next_trace_output = (trace_config != NULL && trace_config->interval_bytes > 0U) ?
+                                       trace_config->interval_bytes :
+                                       0U;
 
     memset(&bridge, 0, sizeof(bridge));
     bridge.telemetry = telemetry;
@@ -751,6 +681,7 @@ static bool kdbx_gzip_emit_paged_reader(
     paged.trace_interval_bytes = trace_config != NULL ? trace_config->interval_bytes : 0U;
     paged.trace_callback = kdbx_gzip_trace_bridge;
     paged.trace_context = &bridge;
+    emit_state.live_paged = &paged;
 
     memset(&file_config, 0, sizeof(file_config));
     file_config.file_path = window_path;
@@ -799,6 +730,7 @@ static bool kdbx_gzip_emit_paged_reader(
     }
 
     telemetry->status = KDBXGzipStatusOk;
+    kdbx_gzip_user_trace(trace_config, telemetry, "done");
     return true;
 }
 
@@ -889,22 +821,8 @@ bool kdbx_gzip_emit_stream_ex(
         return false;
     }
 
-    if(kdbx_gzip_can_try_exact_output(expected_output_size, telemetry)) {
-        if(kdbx_gzip_emit_exact_output_memory(
-               data + body_offset,
-               compressed_size,
-               expected_crc32,
-               expected_output_size,
-               callback,
-               context,
-               telemetry)) {
-            return true;
-        }
-
-        if(telemetry == NULL || (telemetry->status != KDBXGzipStatusOutputHeapFragmented &&
-                                 telemetry->status != KDBXGzipStatusOutputAllocFailed)) {
-            return false;
-        }
+    if(telemetry != NULL) {
+        telemetry->expected_input_size = compressed_size;
     }
 
     if(trace_config != NULL && trace_config->prefer_file_paged) {
@@ -1055,6 +973,7 @@ bool kdbx_gzip_parse_member_info(
 
     if(telemetry != NULL) {
         telemetry->expected_output_size = out_info->expected_output_size;
+        telemetry->expected_input_size = out_info->compressed_size;
         telemetry->free_heap = memmgr_get_free_heap();
         telemetry->max_free_block = memmgr_heap_get_max_free_block();
     }
@@ -1093,9 +1012,14 @@ bool kdbx_gzip_emit_vault_stream(
         kdbx_gzip_reset_telemetry(telemetry);
         if(telemetry != NULL) {
             telemetry->expected_output_size = member_info->expected_output_size;
+            telemetry->expected_input_size = member_info->compressed_size;
             telemetry->status = KDBXGzipStatusOutputTooLarge;
         }
         return false;
+    }
+
+    if(telemetry != NULL) {
+        telemetry->expected_input_size = member_info->compressed_size;
     }
 
     reader = malloc(sizeof(*reader));

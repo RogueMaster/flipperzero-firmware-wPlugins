@@ -22,6 +22,7 @@ typedef enum {
     FlipPassScene_VaultFallback, /**< Retry unlock using an encrypted session file. */
     FlipPassScene_OtherFields, /**< Select an alternate entry field to inspect or type. */
     FlipPassScene_OtherFieldActions, /**< Choose how to use the selected alternate field. */
+    FlipPassScene_KeyboardLayout, /**< Select the typing layout before continuing a send. */
     FlipPassScene_TextView, /**< Shared long-text viewer for notes and fields. */
     FlipPassScene_Status, /**< The status and error scene. */
 } FlipPassScene;

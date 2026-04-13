@@ -38,7 +38,12 @@
 #define FLIPPASS_DEBUG_UNLOCK_FILE_PATH        EXT_PATH("apps_data/flippass/debug_unlock.txt")
 #define FLIPPASS_SYSTEM_LOG_FILE_PATH          EXT_PATH("apps_data/flippass/system_trace.log")
 #define FLIPPASS_SYSTEM_LOG_ENABLE_FILE_PATH   EXT_PATH("apps_data/flippass/system_trace.enable")
+#define FLIPPASS_BADUSB_LAYOUT_DIR             EXT_PATH("badusb/assets/layouts")
+#define FLIPPASS_BADUSB_LAYOUT_EXT             ".kl"
+#define FLIPPASS_KEYBOARD_LAYOUT_ALT           "alt-numpad"
 #define FLIPPASS_USB_ENUMERATION_TIMEOUT_MS    15000U
+#define FLIPPASS_USB_ENUMERATION_GRACE_MS      5000U
+#define FLIPPASS_USB_PREPARE_RETRY_COUNT       3U
 #define FLIPPASS_USB_POLL_DELAY_MS             100U
 #define FLIPPASS_USB_PRESS_DELAY_MS            12U
 #define FLIPPASS_USB_RELEASE_DELAY_MS          18U
@@ -102,6 +107,7 @@ typedef struct App {
     FuriPubSubSubscription* input_subscription; /**< Subscription handle for long-Back exit. */
     FileBrowser* file_browser; /**< Pointer to the FileBrowser instance. */
     FuriString* file_path; /**< Pointer to a FuriString for the selected file path. */
+    FuriString* keyboard_layout_path; /**< Selected BadUSB layout path, or empty for Alt+NumPad. */
     TextInput* text_input; /**< Pointer to the TextInput instance. */
     char text_buffer[TEXT_BUFFER_SIZE]; /**< Buffer for text input. */
     char password_header[FLIPPASS_PASSWORD_HEADER_SIZE]; /**< Persistent password-entry header text. */
@@ -148,6 +154,7 @@ typedef struct App {
         pending_other_custom_field; /**< Custom entry field selected from the other-fields flow. */
     char pending_other_field_name
         [STATUS_TITLE_SIZE]; /**< Current other-field label for prompts and status. */
+    uint32_t keyboard_layout_return_scene; /**< Scene to restore if layout-assisted typing fails. */
     bool close_db_dialog_open; /**< True while the close-database confirmation dialog is visible. */
     bool parse_failed; /**< True once XML or data-model parsing hits a handled failure. */
     bool database_loaded; /**< True if the current database was parsed successfully. */
@@ -197,6 +204,24 @@ typedef enum {
     AppViewDbEntries = AppViewDbBrowser, /**< Legacy alias for the database browser view. */
 } AppView;
 
+#if FLIPPASS_ENABLE_DEEP_DIAGNOSTICS
+#define FLIPPASS_DIAGNOSTIC_LOG(app, ...) flippass_log_event((app), __VA_ARGS__)
+#else
+#define FLIPPASS_DIAGNOSTIC_LOG(app, ...) \
+    do {                                  \
+        UNUSED(app);                      \
+    } while(0)
+#endif
+
+#if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG
+#define FLIPPASS_BENCH_LOG(app, ...) flippass_log_event((app), __VA_ARGS__)
+#else
+#define FLIPPASS_BENCH_LOG(app, ...) \
+    do {                             \
+        UNUSED(app);                 \
+    } while(0)
+#endif
+
 void flippass_save_settings(App* app);
 void flippass_clear_text_buffer(App* app);
 void flippass_clear_master_password(App* app);
@@ -229,6 +254,17 @@ bool flippass_output_type_login(
     FlipPassOutputTransport transport,
     const char* username,
     const char* password);
+bool flippass_output_type_vault_ref(
+    App* app,
+    FlipPassOutputTransport transport,
+    KDBXVault* vault,
+    const KDBXFieldRef* ref);
+bool flippass_output_type_login_refs(
+    App* app,
+    FlipPassOutputTransport transport,
+    KDBXVault* vault,
+    const KDBXFieldRef* username_ref,
+    const KDBXFieldRef* password_ref);
 bool flippass_output_type_autotype(
     App* app,
     FlipPassOutputTransport transport,

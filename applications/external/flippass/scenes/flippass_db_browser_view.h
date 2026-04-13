@@ -43,6 +43,8 @@ typedef enum {
     FlipPassDbBrowserEventShow,
     FlipPassDbBrowserEventTypeUsb,
     FlipPassDbBrowserEventTypeBluetooth,
+    FlipPassDbBrowserEventTypeUsbLong,
+    FlipPassDbBrowserEventTypeBluetoothLong,
     FlipPassDbBrowserEventOpenOther,
 } FlipPassDbBrowserEvent;
 
@@ -69,6 +71,9 @@ void flippass_db_browser_view_set_selected_item(FlipPassDbBrowserView* browser, 
 uint32_t flippass_db_browser_view_get_selected_item(const FlipPassDbBrowserView* browser);
 void flippass_db_browser_view_set_action_selected(FlipPassDbBrowserView* browser, uint32_t index);
 uint32_t flippass_db_browser_view_get_action_selected(const FlipPassDbBrowserView* browser);
+void flippass_db_browser_view_set_show_other_action(
+    FlipPassDbBrowserView* browser,
+    bool show_other_action);
 void flippass_db_browser_view_set_action_menu_open(FlipPassDbBrowserView* browser, bool open);
 bool flippass_db_browser_view_is_action_menu_open(const FlipPassDbBrowserView* browser);
 FlipPassDbBrowserItemType

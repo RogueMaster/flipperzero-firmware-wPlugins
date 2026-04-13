@@ -27,6 +27,7 @@ typedef struct {
     uint32_t action_selected_index;
     size_t scroll_counter;
     bool has_parent;
+    bool show_other_action;
     bool action_menu_open;
     FlipPassDbBrowserMode mode;
     FuriString* draw_string;
@@ -46,8 +47,16 @@ static const char* flippass_db_browser_action_labels[FlipPassDbBrowserActionCoun
     "Other",
 };
 
-static uint32_t flippass_db_browser_clamp_action_index(uint32_t index) {
-    return (index < FlipPassDbBrowserActionCount) ? index : 0U;
+static uint32_t flippass_db_browser_action_count(const FlipPassDbBrowserViewModel* model) {
+    return (model != NULL && !model->show_other_action) ? FlipPassDbBrowserActionOther :
+                                                          FlipPassDbBrowserActionCount;
+}
+
+static uint32_t flippass_db_browser_clamp_action_index_for_model(
+    const FlipPassDbBrowserViewModel* model,
+    uint32_t index) {
+    const uint32_t action_count = flippass_db_browser_action_count(model);
+    return (action_count > 0U && index < action_count) ? index : 0U;
 }
 
 static bool flippass_db_browser_selected_is_group(const FlipPassDbBrowserViewModel* model) {
@@ -61,8 +70,9 @@ static bool flippass_db_browser_selected_is_entry(const FlipPassDbBrowserViewMod
 }
 
 static bool flippass_db_browser_selected_action_is_other(const FlipPassDbBrowserViewModel* model) {
-    return model != NULL && flippass_db_browser_clamp_action_index(model->action_selected_index) ==
-                                FlipPassDbBrowserActionOther;
+    return model != NULL && model->show_other_action &&
+           flippass_db_browser_clamp_action_index_for_model(model, model->action_selected_index) ==
+               FlipPassDbBrowserActionOther;
 }
 
 static bool flippass_db_browser_selected_is_actionable(const FlipPassDbBrowserViewModel* model) {
@@ -182,7 +192,7 @@ static void flippass_db_browser_view_draw_action_menu(
     canvas_draw_line(canvas, box_x + 1U, box_y + 12U, box_x + box_w - 2U, box_y + 12U);
 
     canvas_set_font(canvas, FontSecondary);
-    for(uint32_t index = 0U; index < FlipPassDbBrowserActionCount; index++) {
+    for(uint32_t index = 0U; index < flippass_db_browser_action_count(model); index++) {
         const uint8_t row_y = (uint8_t)(15U + index * 9U);
         const bool selected = model->action_selected_index == index;
 
@@ -266,9 +276,9 @@ static void flippass_db_browser_view_move_selection(FlipPassDbBrowserView* brows
         FlipPassDbBrowserViewModel * model,
         {
             if(model->action_menu_open) {
-                const uint32_t action_count = FlipPassDbBrowserActionCount;
-                const uint32_t current =
-                    flippass_db_browser_clamp_action_index(model->action_selected_index);
+                const uint32_t action_count = flippass_db_browser_action_count(model);
+                const uint32_t current = flippass_db_browser_clamp_action_index_for_model(
+                    model, model->action_selected_index);
                 model->action_selected_index = (delta > 0) ?
                                                    ((current + 1U) % action_count) :
                                                    ((current + action_count - 1U) % action_count);
@@ -297,10 +307,6 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
         return true;
     }
 
-    if(event->type != InputTypeShort) {
-        return false;
-    }
-
     FlipPassDbBrowserViewModel* model = view_get_model(browser->view);
     const bool action_menu_open = model->action_menu_open;
     const bool selected_group = flippass_db_browser_selected_is_group(model);
@@ -309,26 +315,39 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
     const bool has_parent = model->has_parent;
     const bool selected_other_action = flippass_db_browser_selected_action_is_other(model);
     const bool direct_actions_mode = model->mode == FlipPassDbBrowserModeDirectActions;
+    const bool long_press = event->type == InputTypeLong;
     view_commit_model(browser->view, false);
+
+    if(event->type != InputTypeShort && !long_press) {
+        return false;
+    }
 
     if(action_menu_open) {
         switch(event->key) {
         case InputKeyLeft:
             if(!selected_other_action) {
-                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventTypeBluetooth);
+                flippass_db_browser_view_emit(
+                    browser,
+                    long_press ? FlipPassDbBrowserEventTypeBluetoothLong :
+                                 FlipPassDbBrowserEventTypeBluetooth);
                 consumed = true;
             }
             break;
         case InputKeyOk:
-            flippass_db_browser_view_emit(
-                browser,
-                selected_other_action ? FlipPassDbBrowserEventOpenOther :
-                                        FlipPassDbBrowserEventShow);
-            consumed = true;
+            if(!long_press) {
+                flippass_db_browser_view_emit(
+                    browser,
+                    selected_other_action ? FlipPassDbBrowserEventOpenOther :
+                                            FlipPassDbBrowserEventShow);
+                consumed = true;
+            }
             break;
         case InputKeyRight:
             if(!selected_other_action) {
-                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventTypeUsb);
+                flippass_db_browser_view_emit(
+                    browser,
+                    long_press ? FlipPassDbBrowserEventTypeUsbLong :
+                                 FlipPassDbBrowserEventTypeUsb);
                 consumed = true;
             }
             break;
@@ -350,19 +369,25 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
         switch(event->key) {
         case InputKeyLeft:
             if(selected_actionable) {
-                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventTypeBluetooth);
+                flippass_db_browser_view_emit(
+                    browser,
+                    long_press ? FlipPassDbBrowserEventTypeBluetoothLong :
+                                 FlipPassDbBrowserEventTypeBluetooth);
                 consumed = true;
             }
             break;
         case InputKeyOk:
-            if(selected_actionable) {
+            if(selected_actionable && !long_press) {
                 flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventShow);
                 consumed = true;
             }
             break;
         case InputKeyRight:
             if(selected_actionable) {
-                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventTypeUsb);
+                flippass_db_browser_view_emit(
+                    browser,
+                    long_press ? FlipPassDbBrowserEventTypeUsbLong :
+                                 FlipPassDbBrowserEventTypeUsb);
                 consumed = true;
             }
             break;
@@ -510,6 +535,7 @@ void flippass_db_browser_view_reset(FlipPassDbBrowserView* browser) {
             model->action_selected_index = 0U;
             model->scroll_counter = 0U;
             model->has_parent = false;
+            model->show_other_action = true;
             model->action_menu_open = false;
             model->mode = FlipPassDbBrowserModeBrowse;
         },
@@ -599,7 +625,10 @@ void flippass_db_browser_view_set_action_selected(FlipPassDbBrowserView* browser
     with_view_model(
         browser->view,
         FlipPassDbBrowserViewModel * model,
-        { model->action_selected_index = flippass_db_browser_clamp_action_index(index); },
+        {
+            model->action_selected_index =
+                flippass_db_browser_clamp_action_index_for_model(model, index);
+        },
         true);
 }
 
@@ -610,9 +639,27 @@ uint32_t flippass_db_browser_view_get_action_selected(const FlipPassDbBrowserVie
     with_view_model(
         browser->view,
         FlipPassDbBrowserViewModel * model,
-        { selected = flippass_db_browser_clamp_action_index(model->action_selected_index); },
+        {
+            selected = flippass_db_browser_clamp_action_index_for_model(
+                model, model->action_selected_index);
+        },
         false);
     return selected;
+}
+
+void flippass_db_browser_view_set_show_other_action(
+    FlipPassDbBrowserView* browser,
+    bool show_other_action) {
+    furi_check(browser);
+    with_view_model(
+        browser->view,
+        FlipPassDbBrowserViewModel * model,
+        {
+            model->show_other_action = show_other_action;
+            model->action_selected_index = flippass_db_browser_clamp_action_index_for_model(
+                model, model->action_selected_index);
+        },
+        true);
 }
 
 void flippass_db_browser_view_set_action_menu_open(FlipPassDbBrowserView* browser, bool open) {

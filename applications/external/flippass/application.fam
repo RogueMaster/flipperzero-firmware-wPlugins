@@ -1,3 +1,12 @@
+enable_deep_diagnostics = 0
+enable_gzip_support = 1
+enable_typing_actions = 1
+enable_bluetooth_output = 1
+enable_keyboard_layout = 1
+enable_debug_unlock_hook = 0
+enable_app_rpc = 0
+stack_size_kib = 8
+
 App(
     appid="flippass",
     name="FlipPass",
@@ -9,15 +18,21 @@ App(
         "FLIPPASS_ENABLE_GZIP_PAGED_TRACE=0",
         "FLIPPASS_ENABLE_PARSER_FURI_TRACE=0",
         "FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG=0",
-        "FLIPPASS_ENABLE_DEBUG_UNLOCK_HOOK=0",
-        "FLIPPASS_ENABLE_APP_RPC=0",
+        f"FLIPPASS_ENABLE_DEEP_DIAGNOSTICS={enable_deep_diagnostics}",
+        "FLIPPASS_ENABLE_XML_PREFLIGHT=0",
+        f"FLIPPASS_ENABLE_GZIP_SUPPORT={enable_gzip_support}",
+        f"FLIPPASS_ENABLE_TYPING_ACTIONS={enable_typing_actions}",
+        f"FLIPPASS_ENABLE_BLUETOOTH_OUTPUT={enable_bluetooth_output}",
+        f"FLIPPASS_ENABLE_KEYBOARD_LAYOUT={enable_keyboard_layout}",
+        f"FLIPPASS_ENABLE_DEBUG_UNLOCK_HOOK={enable_debug_unlock_hook}",
+        f"FLIPPASS_ENABLE_APP_RPC={enable_app_rpc}",
     ],
-    fap_libs=[
-        "ble_profile",
-    ],
+    fap_libs=(
+        ["ble_profile"] if enable_typing_actions and enable_bluetooth_output else []
+    ),
     fap_icon="icons/icon.png",
     fap_icon_assets="icons",
-    stack_size=12 * 1024,
+    stack_size=stack_size_kib * 1024,
     sources=[
         "FlipPass.c",
         "flippass_db.c",
@@ -30,7 +45,6 @@ App(
         "scenes/flippass_scene_other_field_actions.c",
         "scenes/flippass_scene_other_fields.c",
         "scenes/flippass_scene_password_entry.c",
-        "scenes/flippass_scene_send_confirm.c",
         "scenes/flippass_scene_status.c",
         "scenes/flippass_scene_text_view.c",
         "scenes/flippass_scene_vault_fallback.c",
@@ -44,23 +58,35 @@ App(
         "kdbx/hmac.c",
         "kdbx/kdbx_arena.c",
         "kdbx/kdbx_data.c",
-        "kdbx/kdbx_gzip.c",
         "kdbx/kdbx_parser.c",
         "kdbx/kdbx_protected.c",
         "kdbx/kdbx_vault.c",
         "kdbx/memzero.c",
-        "kdbx/miniz_tinfl.c",
-        "kdbx/miniz_tinfl_paged.c",
         "kdbx/rand.c",
         "kdbx/sha2.c",
         "kdbx/xml_parser.c",
         "mntminput/text_input.c",
         "mntminput/validators.c",
-        "transport/flippass_output.c",
-    ],
+    ]
+    + (
+        ["scenes/flippass_scene_keyboard_layout.c"]
+        if enable_keyboard_layout
+        else ["scenes/flippass_scene_keyboard_layout_stub.c"]
+    )
+    + (
+        ["scenes/flippass_scene_send_confirm.c"]
+        if enable_typing_actions
+        else ["scenes/flippass_scene_send_confirm_stub.c"]
+    )
+    + (["kdbx/kdbx_gzip.c", "kdbx/miniz_tinfl_paged.c"] if enable_gzip_support else [])
+    + (
+        ["transport/flippass_output.c"]
+        if enable_typing_actions
+        else ["transport/flippass_output_stub.c"]
+    ),
     fap_category="USB",
     fap_author="Arckanos",
     fap_weburl="https://github.com/Arckanos/FlipPass",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="KeePass KDBX 4 vault browser with USB and Bluetooth HID typing.",
 )

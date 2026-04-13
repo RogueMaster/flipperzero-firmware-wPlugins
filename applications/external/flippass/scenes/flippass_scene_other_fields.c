@@ -15,6 +15,8 @@ enum {
     FlipPassSceneOtherFieldsEventShowSelected = 1,
     FlipPassSceneOtherFieldsEventExecuteUsbAction,
     FlipPassSceneOtherFieldsEventExecuteBluetoothAction,
+    FlipPassSceneOtherFieldsEventSelectUsbLayout,
+    FlipPassSceneOtherFieldsEventSelectBluetoothLayout,
     FlipPassSceneOtherFieldsEventRunPendingAction = 0x200U,
 };
 
@@ -127,6 +129,12 @@ static void flippass_other_fields_view_callback(FlipPassDbBrowserEvent event, vo
     case FlipPassDbBrowserEventTypeBluetooth:
         custom_event = FlipPassSceneOtherFieldsEventExecuteBluetoothAction;
         break;
+    case FlipPassDbBrowserEventTypeUsbLong:
+        custom_event = FlipPassSceneOtherFieldsEventSelectUsbLayout;
+        break;
+    case FlipPassDbBrowserEventTypeBluetoothLong:
+        custom_event = FlipPassSceneOtherFieldsEventSelectBluetoothLayout;
+        break;
     default:
         break;
     }
@@ -190,6 +198,22 @@ bool flippass_scene_other_fields_on_event(void* context, SceneManagerEvent event
         if(event.event == FlipPassSceneOtherFieldsEventExecuteBluetoothAction) {
             flippass_other_field_begin_type_action(
                 app, true, FlipPassSceneOtherFieldsEventRunPendingAction);
+            return true;
+        }
+
+        if(event.event == FlipPassSceneOtherFieldsEventSelectUsbLayout) {
+            app->other_field_action_selected_index = 2U;
+            app->pending_entry_action = FlipPassEntryActionTypeOtherUsb;
+            app->keyboard_layout_return_scene = FlipPassScene_OtherFields;
+            scene_manager_next_scene(app->scene_manager, FlipPassScene_KeyboardLayout);
+            return true;
+        }
+
+        if(event.event == FlipPassSceneOtherFieldsEventSelectBluetoothLayout) {
+            app->other_field_action_selected_index = 0U;
+            app->pending_entry_action = FlipPassEntryActionTypeOtherBluetooth;
+            app->keyboard_layout_return_scene = FlipPassScene_OtherFields;
+            scene_manager_next_scene(app->scene_manager, FlipPassScene_KeyboardLayout);
             return true;
         }
 

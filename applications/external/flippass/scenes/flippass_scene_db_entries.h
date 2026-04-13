@@ -20,6 +20,8 @@ enum {
     FlipPassSceneDbEntriesEventShowSelectedAction,
     FlipPassSceneDbEntriesEventExecuteUsbAction,
     FlipPassSceneDbEntriesEventExecuteBluetoothAction,
+    FlipPassSceneDbEntriesEventSelectUsbLayout,
+    FlipPassSceneDbEntriesEventSelectBluetoothLayout,
     FlipPassSceneDbEntriesEventOpenOtherFields,
     FlipPassSceneDbEntriesEventRunPendingAction,
     FlipPassSceneDbEntriesEventConfirmCloseDatabase = 0x100U,

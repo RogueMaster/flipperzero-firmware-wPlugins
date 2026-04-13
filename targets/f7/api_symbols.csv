@@ -1796,7 +1796,7 @@ Function,+,furi_hal_usb_is_locked,_Bool,
 Function,+,furi_hal_usb_lock,void,
 Function,+,furi_hal_usb_reinit,void,
 Function,+,furi_hal_usb_set_config,_Bool,"FuriHalUsbInterface*, void*"
-Function,-,furi_hal_usb_set_state_callback,void,"FuriHalUsbStateCallback, void*"
+Function,+,furi_hal_usb_set_state_callback,void,"FuriHalUsbStateCallback, void*"
 Function,+,furi_hal_usb_unlock,void,
 Function,+,furi_hal_version_do_i_belong_here,_Bool,
 Function,+,furi_hal_version_get_ble_local_device_name_ptr,const char*,

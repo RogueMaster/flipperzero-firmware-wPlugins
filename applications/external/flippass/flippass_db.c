@@ -200,6 +200,7 @@ typedef struct {
     void* inflate_workspace;
 } FlipPassDbGzipStageState;
 
+#if FLIPPASS_ENABLE_DEEP_DIAGNOSTICS
 static const char* flippass_db_text_state_label(FlipPassDbTextState state) {
     switch(state) {
     case FlipPassDbTextStateNone:
@@ -220,7 +221,9 @@ static const char* flippass_db_text_state_label(FlipPassDbTextState state) {
         return "unknown";
     }
 }
+#endif
 
+#if FLIPPASS_ENABLE_XML_PREFLIGHT
 typedef enum {
     FlipPassDbPreflightTextStateNone = 0,
     FlipPassDbPreflightTextStateGroupName,
@@ -302,6 +305,7 @@ typedef struct {
     size_t file_budget;
     bool prefer_file;
 } FlipPassDbPreflightSummary;
+#endif
 
 static const char* flippass_db_field_log_name(uint32_t field_mask);
 static bool flippass_db_is_supported_string_key(const char* key);
@@ -373,6 +377,7 @@ static FlipPassDbLoadContext* flippass_db_load_context_alloc(App* app, FuriStrin
 static void flippass_db_load_context_free(FlipPassDbLoadContext* ctx);
 static FlipPassDbGzipStageState* flippass_db_gzip_stage_state_alloc(void);
 static void flippass_db_gzip_stage_state_free(FlipPassDbGzipStageState* state);
+#if FLIPPASS_ENABLE_XML_PREFLIGHT
 static size_t flippass_db_align_up_size(size_t value, size_t alignment);
 static bool flippass_db_arena_estimate_alloc(
     FlipPassDbArenaEstimate* estimate,
@@ -447,6 +452,7 @@ static bool flippass_db_apply_preflight_decision(
     const FlipPassDbPreflightSummary* summary,
     KDBXVaultBackend* backend,
     FuriString* error);
+#endif
 
 static bool flippass_db_byte_buffer_reserve(FlipPassDbByteBuffer* buffer, size_t capacity) {
     uint8_t* next = NULL;
@@ -614,6 +620,7 @@ static void flippass_db_load_context_free(FlipPassDbLoadContext* ctx) {
     free(ctx);
 }
 
+#if FLIPPASS_ENABLE_XML_PREFLIGHT
 static size_t flippass_db_align_up_size(size_t value, size_t alignment) {
     if(alignment <= 1U) {
         return value;
@@ -1501,6 +1508,7 @@ static bool flippass_db_apply_preflight_decision(
     flippass_db_progress_update(app, "Continuing on /ext", "", 80U);
     return true;
 }
+#endif
 
 static FlipPassDbGzipStageState* flippass_db_gzip_stage_state_alloc(void) {
     FlipPassDbGzipStageState* state = malloc(sizeof(*state));
@@ -1575,7 +1583,11 @@ static void flippass_db_gzip_progress_callback(
     const KDBXGzipTelemetry* telemetry,
     void* context) {
     App* app = context;
+    char detail[40];
     uint8_t percent = 58U;
+    uint32_t output_percent = 0U;
+    uint32_t input_percent = 0U;
+    size_t consumed_input = 0U;
 
     if(app == NULL || event == NULL || telemetry == NULL ||
        telemetry->expected_output_size == 0U) {
@@ -1595,7 +1607,33 @@ static void flippass_db_gzip_progress_callback(
         return;
     }
 
-    flippass_db_progress_update(app, "Uncompressing", "", percent);
+    output_percent =
+        (uint32_t)((telemetry->actual_output_size * 100U) / telemetry->expected_output_size);
+    if(output_percent > 100U) {
+        output_percent = 100U;
+    }
+
+    consumed_input = telemetry->consumed_input_size;
+    if(consumed_input == 0U && telemetry->paged_input_offset > 0U) {
+        consumed_input = telemetry->paged_input_offset;
+    }
+
+    if(telemetry->expected_input_size > 0U) {
+        input_percent = (uint32_t)((consumed_input * 100U) / telemetry->expected_input_size);
+        if(input_percent > 100U) {
+            input_percent = 100U;
+        }
+        snprintf(
+            detail,
+            sizeof(detail),
+            "In:%lu%%  Out:%lu%%",
+            (unsigned long)input_percent,
+            (unsigned long)output_percent);
+    } else {
+        snprintf(detail, sizeof(detail), "Output: %lu%%", (unsigned long)output_percent);
+    }
+
+    flippass_db_progress_update(app, "Uncompressing", detail, percent);
 }
 
 static size_t flippass_db_active_safety_reserve(const FlipPassDbLoadContext* ctx) {
@@ -2051,9 +2089,10 @@ static void flippass_db_set_error(FlipPassDbLoadContext* ctx, const char* format
     va_end(args);
 
     if(ctx->app != NULL) {
+#if FLIPPASS_ENABLE_DEEP_DIAGNOSTICS
         const char* string_key =
             (ctx->string_key != NULL) ? furi_string_get_cstr(ctx->string_key) : NULL;
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             ctx->app,
             "PARSE_ERROR_CTX reason=%s state=%s key=%s in_group=%u in_entry=%u groups=%lu "
             "entries=%lu xml=%lu arena=%lu arena_fail=%u arena_reason=%s arena_size=%lu "
@@ -2087,6 +2126,7 @@ static void flippass_db_set_error(FlipPassDbLoadContext* ctx, const char* format
             (unsigned long)memmgr_get_free_heap(),
             (unsigned long)memmgr_heap_get_max_free_block(),
             (unsigned long)furi_thread_get_stack_space(furi_thread_get_current_id()));
+#endif
     }
 }
 
@@ -3179,17 +3219,24 @@ static bool
         if(first_xml_chunk) {
             flippass_db_progress_update(
                 ctx->app, "Modeling", "", ctx->xml_total_bytes_hint > 0U ? 82U : 70U);
-            flippass_log_event(
+            FLIPPASS_DIAGNOSTIC_LOG(
                 ctx->app, "XML_STREAM_FIRST_CHUNK size=%lu", (unsigned long)xml_chunk);
         }
         if(ctx->xml_total_bytes_hint > 0U) {
+            char detail[32];
+            uint32_t stage_percent =
+                (uint32_t)((ctx->xml_bytes * 100U) / ctx->xml_total_bytes_hint);
             uint8_t percent =
                 (uint8_t)(82U + ((ctx->xml_bytes * 16U) / ctx->xml_total_bytes_hint));
             if(percent > 98U) {
                 percent = 98U;
             }
+            if(stage_percent > 100U) {
+                stage_percent = 100U;
+            }
             if(percent > ctx->app->progress_percent) {
-                flippass_db_progress_update(ctx->app, "Modeling", "", percent);
+                snprintf(detail, sizeof(detail), "Payload %lu%%", (unsigned long)stage_percent);
+                flippass_db_progress_update(ctx->app, "Modeling", detail, percent);
             }
         }
         if(!xml_parser_feed(ctx->xml_parser, (const char*)(data + consumed), xml_chunk, false)) {
@@ -3202,7 +3249,7 @@ static bool
             return false;
         }
         if(first_xml_chunk) {
-            flippass_log_event(
+            FLIPPASS_DIAGNOSTIC_LOG(
                 ctx->app,
                 "XML_STREAM_FIRST_CHUNK_OK total=%lu stack=%lu",
                 (unsigned long)ctx->xml_bytes,
@@ -3857,7 +3904,7 @@ static bool flippass_db_stage_gzip_payload(
         goto cleanup;
     }
 
-    flippass_log_event(
+    FLIPPASS_BENCH_LOG(
         app,
         "GZIP_STAGE_START member_backend=%s output_backend=%s",
         kdbx_vault_backend_label(member_backend),
@@ -3885,7 +3932,7 @@ static bool flippass_db_stage_gzip_payload(
            member_collect_ctx)) {
         flippass_db_gzip_member_log_summary(app, "GZIP_STAGE_OUTER_SUMMARY", member_collect_ctx);
         if(member_collect_ctx->failed) {
-            flippass_log_event(
+            FLIPPASS_BENCH_LOG(
                 app,
                 "GZIP_STAGE_MEMBER_FAIL chunk=%lu size=%lu free=%lu max=%lu spill=%u vault_fail=%s storage_stage=%s",
                 (unsigned long)member_collect_ctx->failure_chunk_index,
@@ -3911,7 +3958,7 @@ static bool flippass_db_stage_gzip_payload(
         }
         goto cleanup;
     }
-    flippass_log_event(app, "GZIP_STAGE_OUTER_OK");
+    FLIPPASS_BENCH_LOG(app, "GZIP_STAGE_OUTER_OK");
     flippass_db_gzip_member_log_summary(app, "GZIP_STAGE_OUTER_SUMMARY", member_collect_ctx);
     flippass_db_progress_update(app, "Analyzing GZip", "", 55U);
 
@@ -3935,14 +3982,14 @@ static bool flippass_db_stage_gzip_payload(
             (unsigned long)member_ref->record_count);
     }
 
-    flippass_log_event(
+    FLIPPASS_BENCH_LOG(
         app,
         "GZIP_STAGE_MEMBER_OK backend=%s bytes=%lu records=%lu",
         member_vault != NULL ? "encrypted staged member vault" : "RAM collect buffer",
         (unsigned long)member_collect_ctx->total_bytes,
         (unsigned long)member_ref->record_count);
 
-    flippass_log_event(app, "GZIP_STAGE_MEMBER_PARSE_BEGIN");
+    FLIPPASS_BENCH_LOG(app, "GZIP_STAGE_MEMBER_PARSE_BEGIN");
     const bool member_info_ok =
         member_collect_ctx->trailer_len >= sizeof(member_collect_ctx->trailer) &&
         ((member_collect_ctx->ram_buffer.size > 0U &&
@@ -3961,7 +4008,7 @@ static bool flippass_db_stage_gzip_payload(
         flippass_db_set_gzip_stage_error(error, gzip_telemetry);
         goto cleanup;
     }
-    flippass_log_event(app, "GZIP_STAGE_MEMBER_PARSE_OK");
+    FLIPPASS_BENCH_LOG(app, "GZIP_STAGE_MEMBER_PARSE_OK");
 
     FLIPPASS_VERBOSE_LOG(
         app,
@@ -3979,12 +4026,12 @@ static bool flippass_db_stage_gzip_payload(
         (unsigned long)member_info->expected_output_size);
 
     kdbx_parser_reset(app->kdbx_parser);
-    flippass_log_event(app, "GZIP_STAGE_RESET_OK");
+    FLIPPASS_BENCH_LOG(app, "GZIP_STAGE_RESET_OK");
 
-    flippass_log_event(
+    FLIPPASS_BENCH_LOG(
         app, "GZIP_STAGE_LOAD_OK bytes=%lu", (unsigned long)member_collect_ctx->total_bytes);
 
-    flippass_log_event(
+    FLIPPASS_BENCH_LOG(
         app,
         "GZIP_STAGE_INFLATE_BEGIN compressed=%lu free=%lu max=%lu stack=%lu",
         (unsigned long)member_info->compressed_size,
@@ -4029,13 +4076,13 @@ static bool flippass_db_stage_gzip_payload(
                                     gzip_trace_config);
     if(!inflate_ok) {
         if(member_vault != NULL) {
-            flippass_log_event(
+            FLIPPASS_DIAGNOSTIC_LOG(
                 app,
                 "GZIP_STAGE_MEMBER_READER stage=%s record=%lu",
                 kdbx_vault_last_reader_failure(member_vault),
                 (unsigned long)kdbx_vault_last_reader_failure_record(member_vault));
         }
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "GZIP_STAGE_FAIL_PRE_FLUSH status=%u path=%u exp=%lu out=%lu in=%lu free=%lu max=%lu stack=%lu ws=%lu page=%lu cache=%lu stage=%s loops=%lu flushes=%lu yields=%lu no_prog=%lu ofs=%lu last_in=%lu last_out=%lu last_dict=%lu last_status=%d timed_out=%u",
             (unsigned)gzip_telemetry->status,
@@ -4062,7 +4109,7 @@ static bool flippass_db_stage_gzip_payload(
             (unsigned long)gzip_telemetry->paged_last_dict_offset,
             gzip_telemetry->paged_last_status,
             gzip_telemetry->paged_timed_out ? 1U : 0U);
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "GZIP_STAGE_OUTPUT_SUMMARY chunks=%lu plain=%lu checkpoints=%lu last_index=%lu last_size=%lu last_free=%lu last_max=%lu last_plain=%lu last_records=%lu failed=%u alloc_failed=%u storage_failed=%u",
             (unsigned long)scratch_ctx->chunk_count,
@@ -4089,7 +4136,7 @@ static bool flippass_db_stage_gzip_payload(
         } else {
             flippass_db_set_gzip_stage_error(error, gzip_telemetry);
         }
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "GZIP_STAGE_INFLATE_FAIL status=%u path=%u exp=%lu out=%lu in=%lu free=%lu max=%lu stack=%lu ws=%lu page=%lu cache=%lu stage=%s timeout=%lu pages=%lu fail_page=%lu loops=%lu flushes=%lu yields=%lu no_prog=%lu ofs=%lu last_in=%lu last_out=%lu last_dict=%lu last_status=%d timed_out=%u",
             (unsigned)gzip_telemetry->status,
@@ -4129,7 +4176,7 @@ static bool flippass_db_stage_gzip_payload(
     }
 
     if(!kdbx_vault_writer_finish(&scratch_ctx->writer, out_ref)) {
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "GZIP_STAGE_OUTPUT_FINISH_FAIL records=%lu vault_fail=%s storage_stage=%s free=%lu max=%lu",
             (unsigned long)(*out_scratch_vault != NULL ?
@@ -4144,8 +4191,8 @@ static bool flippass_db_stage_gzip_payload(
         goto cleanup;
     }
 
-    flippass_log_event(app, "GZIP_STAGE_OUTPUT_FINISH_OK");
-    flippass_log_event(
+    FLIPPASS_BENCH_LOG(app, "GZIP_STAGE_OUTPUT_FINISH_OK");
+    FLIPPASS_DIAGNOSTIC_LOG(
         app,
         "GZIP_STAGE_OUTPUT_SUMMARY chunks=%lu plain=%lu checkpoints=%lu last_index=%lu last_size=%lu last_free=%lu last_max=%lu last_plain=%lu last_records=%lu failed=%u alloc_failed=%u storage_failed=%u",
         (unsigned long)scratch_ctx->chunk_count,
@@ -4160,8 +4207,8 @@ static bool flippass_db_stage_gzip_payload(
         scratch_ctx->failed ? 1U : 0U,
         scratch_ctx->alloc_failed ? 1U : 0U,
         scratch_ctx->storage_failed ? 1U : 0U);
-    flippass_log_event(app, "GZIP_STAGE_POST_FLUSH");
-    flippass_log_event(
+    FLIPPASS_BENCH_LOG(app, "GZIP_STAGE_POST_FLUSH");
+    FLIPPASS_BENCH_LOG(
         app,
         "GZIP_STAGE_INFLATE_OK path=%u out=%lu in=%lu cache=%lu timeout=%lu pages=%lu loops=%lu flushes=%lu yields=%lu stack=%lu",
         (unsigned)gzip_telemetry->inflate_path,
@@ -4175,7 +4222,7 @@ static bool flippass_db_stage_gzip_payload(
         (unsigned long)gzip_telemetry->paged_yield_count,
         (unsigned long)furi_thread_get_stack_space(furi_thread_get_current_id()));
 
-    flippass_log_event(
+    FLIPPASS_BENCH_LOG(
         app,
         "GZIP_STAGE_OK backend=%s bytes=%lu records=%lu",
         kdbx_vault_backend_label(kdbx_vault_get_backend(*out_scratch_vault)),
@@ -4294,7 +4341,9 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
     const KDBXHeader* header = NULL;
     uint8_t cipher_key[32];
     uint8_t hmac_key[64];
+#if FLIPPASS_ENABLE_XML_PREFLIGHT
     FlipPassDbPreflightSummary preflight_summary;
+#endif
     KDBXVault* gzip_scratch_vault = NULL;
     KDBXVault* resume_gzip_scratch_vault = NULL;
     KDBXFieldRef gzip_scratch_ref;
@@ -4312,7 +4361,9 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
 
     memset(cipher_key, 0, sizeof(cipher_key));
     memset(hmac_key, 0, sizeof(hmac_key));
+#if FLIPPASS_ENABLE_XML_PREFLIGHT
     memset(&preflight_summary, 0, sizeof(preflight_summary));
+#endif
     memset(&gzip_scratch_ref, 0, sizeof(gzip_scratch_ref));
     memset(&resume_gzip_scratch_ref, 0, sizeof(resume_gzip_scratch_ref));
 
@@ -4330,17 +4381,29 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
         return true;
     }
 
-    if(app->master_password[0] == '\0') {
+    resume_gzip_scratch_vault = app->pending_gzip_scratch_vault;
+    resume_gzip_scratch_ref = app->pending_gzip_scratch_ref;
+    resume_gzip_plain_size = app->pending_gzip_plain_size;
+    resume_from_gzip_scratch = resume_gzip_scratch_vault != NULL && allow_ext_promotion;
+    app->pending_gzip_scratch_vault = NULL;
+    memset(&app->pending_gzip_scratch_ref, 0, sizeof(app->pending_gzip_scratch_ref));
+    app->pending_gzip_plain_size = 0U;
+
+    if(resume_from_gzip_scratch) {
+        backend = KDBXVaultBackendFileExt;
+    }
+
+    if(app->master_password[0] == '\0' && !resume_from_gzip_scratch) {
         furi_string_set_str(error, "Enter the database password to continue.");
-        flippass_db_load_context_free(ctx);
-        return false;
+        goto cleanup;
     }
 
     if(!kdbx_vault_backend_supported(backend)) {
         furi_string_set_str(error, kdbx_vault_backend_unavailable_reason(backend));
-        flippass_clear_master_password(app);
-        flippass_db_load_context_free(ctx);
-        return false;
+        if(!resume_from_gzip_scratch) {
+            flippass_clear_master_password(app);
+        }
+        goto cleanup;
     }
 
     flippass_log_event(app, "UNLOCK_START");
@@ -4353,22 +4416,14 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
         (unsigned long)memmgr_heap_get_max_free_block(),
         (unsigned long)furi_thread_get_stack_space(furi_thread_get_current_id()));
 #if FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE
-    flippass_log_event(app, "SYSTEM_TRACE_CAPTURE_PAUSE reason=unlock_hot_path");
+    FLIPPASS_BENCH_LOG(app, "SYSTEM_TRACE_CAPTURE_PAUSE reason=unlock_hot_path");
 #endif
     flippass_system_log_capture_suspend();
     trace_capture_suspended = true;
-    resume_gzip_scratch_vault = app->pending_gzip_scratch_vault;
-    resume_gzip_scratch_ref = app->pending_gzip_scratch_ref;
-    resume_gzip_plain_size = app->pending_gzip_plain_size;
-    resume_from_gzip_scratch = resume_gzip_scratch_vault != NULL && allow_ext_promotion;
-    app->pending_gzip_scratch_vault = NULL;
-    memset(&app->pending_gzip_scratch_ref, 0, sizeof(app->pending_gzip_scratch_ref));
-    app->pending_gzip_plain_size = 0U;
     FLIPPASS_VERBOSE_LOG(app, "UNLOCK_STEP reset_begin");
     flippass_reset_database(app);
     app->requested_vault_backend = backend;
     app->allow_ext_vault_promotion = allow_ext_promotion;
-    flippass_db_progress_update(app, "Reading Header", "", 3U);
     FLIPPASS_VERBOSE_LOG(
         app,
         "UNLOCK_STEP reset_ok free=%lu max=%lu stack=%lu",
@@ -4377,15 +4432,13 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
         (unsigned long)furi_thread_get_stack_space(furi_thread_get_current_id()));
 
     if(resume_from_gzip_scratch) {
-        backend = KDBXVaultBackendFileExt;
-        app->requested_vault_backend = backend;
         gzip_scratch_vault = resume_gzip_scratch_vault;
         resume_gzip_scratch_vault = NULL;
         gzip_scratch_ref = resume_gzip_scratch_ref;
         gzip_plain_size = resume_gzip_plain_size;
         use_gzip_scratch = true;
         ctx->xml_total_bytes_hint = gzip_plain_size;
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "GZIP_STAGE_RESUME bytes=%lu records=%lu",
             (unsigned long)gzip_plain_size,
@@ -4393,6 +4446,8 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
         flippass_db_progress_update(app, "Continuing on /ext", "", 80U);
         goto model_alloc;
     }
+
+    flippass_db_progress_update(app, "Reading Header", "", 3U);
 
     FLIPPASS_VERBOSE_LOG(app, "UNLOCK_STEP process_file_begin");
     if(!kdbx_parser_process_file(app->kdbx_parser, furi_string_get_cstr(app->file_path))) {
@@ -4431,9 +4486,14 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
            sizeof(cipher_key),
            hmac_key,
            sizeof(hmac_key))) {
+        const char* kdf_error = kdbx_parser_get_last_error(app->kdbx_parser);
         kdbx_parser_set_kdf_progress_callback(app->kdbx_parser, NULL, NULL);
         flippass_log_event(app, "KEY_DERIVE_FAIL");
-        furi_string_set_str(error, "This database uses an unsupported or invalid KDF.");
+        furi_string_set_str(
+            error,
+            (kdf_error != NULL && kdf_error[0] != '\0') ?
+                kdf_error :
+                "This database uses an unsupported or invalid KDF.");
         kdbx_parser_reset(app->kdbx_parser);
         flippass_clear_master_password(app);
         flippass_db_load_context_free(ctx);
@@ -4443,8 +4503,10 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
     flippass_log_event(app, "KEY_DERIVE_OK");
     flippass_db_progress_update(app, "Decrypting", "", 38U);
 
+#if FLIPPASS_ENABLE_XML_PREFLIGHT
     const bool can_preflight_ram_backend = backend == KDBXVaultBackendRam &&
                                            kdbx_vault_backend_supported(KDBXVaultBackendFileExt);
+#endif
 
     if(header != NULL && header->compression_algorithm == KDBX_COMPRESSION_GZIP) {
         flippass_db_progress_update(app, "Decrypting", "", 45U);
@@ -4465,7 +4527,8 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
 
         use_gzip_scratch = true;
         ctx->xml_total_bytes_hint = gzip_plain_size;
-        flippass_log_event(app, "DECRYPT_OK");
+        FLIPPASS_BENCH_LOG(app, "DECRYPT_OK");
+#if FLIPPASS_ENABLE_XML_PREFLIGHT
         if(can_preflight_ram_backend) {
             if(!flippass_db_run_preflight_from_vault(
                    app, gzip_scratch_vault, &gzip_scratch_ref, &preflight_summary, error)) {
@@ -4477,8 +4540,10 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
                 goto cleanup;
             }
         }
+#endif
         flippass_db_progress_update(app, "Modeling", "", 82U);
         kdbx_parser_reset(app->kdbx_parser);
+#if FLIPPASS_ENABLE_XML_PREFLIGHT
     } else if(can_preflight_ram_backend) {
         if(!flippass_db_run_preflight_from_payload(
                app,
@@ -4504,6 +4569,7 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
                 error, "Failed to reopen the database after sizing the XML model.");
             goto cleanup;
         }
+#endif
     }
 
 model_alloc:
@@ -4617,7 +4683,7 @@ model_alloc:
             }
             goto cleanup;
         }
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "XML_REPLAY_DONE xml=%lu groups=%lu entries=%lu records=%lu",
             (unsigned long)ctx->xml_bytes,
@@ -4651,7 +4717,7 @@ model_alloc:
             }
             goto cleanup;
         }
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "XML_REPLAY_DONE xml=%lu groups=%lu entries=%lu records=%lu",
             (unsigned long)ctx->xml_bytes,
@@ -4662,7 +4728,7 @@ model_alloc:
     }
 
     if(!ctx->inner_header_done) {
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "INNER_HEADER_FAIL prefix=%lu field=%lu remaining=%lu",
             (unsigned long)ctx->inner_header_prefix_len,
@@ -4727,13 +4793,14 @@ cleanup:
         flippass_system_log_capture_resume();
         trace_capture_suspended = false;
 #if FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE
-        flippass_log_event(app, "SYSTEM_TRACE_CAPTURE_RESUME reason=unlock_hot_path");
+        FLIPPASS_BENCH_LOG(app, "SYSTEM_TRACE_CAPTURE_RESUME reason=unlock_hot_path");
 #endif
     }
 
     if(!app->database_loaded && app->pending_vault_fallback && use_gzip_scratch &&
-       gzip_scratch_vault != NULL && gzip_scratch_ref.record_count > 0U && ctx != NULL &&
-       ctx->xml_bytes == 0U) {
+       gzip_scratch_vault != NULL && gzip_scratch_ref.record_count > 0U && ctx != NULL) {
+        /* Preserve the staged plaintext scratch so the /ext-approved retry can restart
+           modeling without repeating header, KDF, decrypt, or inflate work. */
         if(app->pending_gzip_scratch_vault != NULL) {
             kdbx_vault_free(app->pending_gzip_scratch_vault);
         }
@@ -4743,7 +4810,7 @@ cleanup:
         gzip_scratch_vault = NULL;
         memset(&gzip_scratch_ref, 0, sizeof(gzip_scratch_ref));
         gzip_plain_size = 0U;
-        flippass_log_event(
+        FLIPPASS_DIAGNOSTIC_LOG(
             app,
             "GZIP_STAGE_RESUME_CACHE bytes=%lu records=%lu",
             (unsigned long)app->pending_gzip_plain_size,
@@ -4752,7 +4819,7 @@ cleanup:
 
     if(!app->database_loaded) {
         if(gzip_scratch_vault != NULL && kdbx_vault_storage_failed(gzip_scratch_vault)) {
-            flippass_log_event(
+            FLIPPASS_DIAGNOSTIC_LOG(
                 app,
                 "GZIP_STAGE_STORAGE_FAIL stage=%s records=%lu index=%lu",
                 kdbx_vault_storage_stage(gzip_scratch_vault),
@@ -4769,7 +4836,7 @@ cleanup:
             FLIPPASS_DB_DEBUG_LOG_RAM(ctx, "cleanup_budget", "-", 0U);
             flippass_db_prepare_fallback_message(ctx, "cleanup_budget", 0U);
         } else if(ctx->vault != NULL && kdbx_vault_storage_failed(ctx->vault)) {
-            flippass_log_event(
+            FLIPPASS_DIAGNOSTIC_LOG(
                 app,
                 "STORAGE_FAIL stage=%s records=%lu index=%lu",
                 kdbx_vault_storage_stage(ctx->vault),
@@ -4817,7 +4884,7 @@ void flippass_db_deactivate_entry(App* app) {
     furi_assert(app);
 
     if(app->active_entry != NULL) {
-        flippass_log_event(app, "ENTRY_DEMATERIALIZE");
+        FLIPPASS_DIAGNOSTIC_LOG(app, "ENTRY_DEMATERIALIZE");
         kdbx_entry_clear_loaded_fields(app->active_entry);
     }
 
@@ -4850,7 +4917,7 @@ static bool flippass_db_load_entry_field(
     const bool ok = kdbx_entry_take_loaded_text(entry, field_mask, plain, plain_size);
 
     if(ok) {
-        flippass_log_event(app, "FIELD_READY key=%s", flippass_db_field_log_name(field_mask));
+        FLIPPASS_DIAGNOSTIC_LOG(app, "FIELD_READY key=%s", flippass_db_field_log_name(field_mask));
     }
 
     if(!ok && error != NULL) {
@@ -4955,7 +5022,7 @@ bool flippass_db_ensure_entry_field(
 
     const bool ok = flippass_db_load_entry_field(app, entry, field_mask, error);
     if(ok && field_mask == KDBXEntryFieldNotes) {
-        flippass_log_event(app, "ENTRY_NOTES_LOAD");
+        FLIPPASS_DIAGNOSTIC_LOG(app, "ENTRY_NOTES_LOAD");
     }
     return ok;
 }
@@ -5053,7 +5120,7 @@ bool flippass_db_activate_entry(App* app, KDBXEntry* entry, bool load_notes, Fur
     if(app->active_entry != entry) {
         flippass_db_deactivate_entry(app);
         app->active_entry = entry;
-        flippass_log_event(app, "ENTRY_MATERIALIZE");
+        FLIPPASS_DIAGNOSTIC_LOG(app, "ENTRY_MATERIALIZE");
     }
 
     app->current_entry = entry;

@@ -22,6 +22,12 @@ static const char* flippass_browser_safe_text(const char* value, const char* fal
     return (value != NULL && value[0] != '\0') ? value : fallback;
 }
 
+static bool flippass_browser_entry_has_other_fields(const KDBXEntry* entry) {
+    return entry != NULL && (flippass_db_entry_has_field(entry, KDBXEntryFieldUrl) ||
+                             flippass_db_entry_has_field(entry, KDBXEntryFieldNotes) ||
+                             flippass_db_entry_get_custom_fields(entry) != NULL);
+}
+
 static const char* flippass_browser_safe_path_segment(const char* value, const char* fallback) {
     const char* segment = value;
 
@@ -352,6 +358,7 @@ static void flippass_browser_render(App* app) {
     }
 
     flippass_db_browser_view_set_selected_item(app->db_browser, app->browser_selected_index);
+    flippass_db_browser_view_set_show_other_action(app->db_browser, false);
     flippass_db_browser_view_set_action_selected(app->db_browser, app->action_selected_index);
     flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
     furi_string_free(scratch);
@@ -380,6 +387,12 @@ static void flippass_browser_view_callback(FlipPassDbBrowserEvent event, void* c
     case FlipPassDbBrowserEventTypeBluetooth:
         custom_event = FlipPassSceneDbEntriesEventExecuteBluetoothAction;
         break;
+    case FlipPassDbBrowserEventTypeUsbLong:
+        custom_event = FlipPassSceneDbEntriesEventSelectUsbLayout;
+        break;
+    case FlipPassDbBrowserEventTypeBluetoothLong:
+        custom_event = FlipPassSceneDbEntriesEventSelectBluetoothLayout;
+        break;
     case FlipPassDbBrowserEventOpenOther:
         custom_event = FlipPassSceneDbEntriesEventOpenOtherFields;
         break;
@@ -402,6 +415,8 @@ static void flippass_browser_open_action_menu(App* app) {
     app->current_entry = item->entry;
     app->active_entry = item->entry;
     app->active_group = app->current_group;
+    flippass_db_browser_view_set_show_other_action(
+        app->db_browser, flippass_browser_entry_has_other_fields(item->entry));
     flippass_entry_action_prepare_pending(app);
 }
 
@@ -459,6 +474,22 @@ static void flippass_browser_begin_execute_action(App* app, FlipPassOutputTransp
         app->view_dispatcher, FlipPassSceneDbEntriesEventRunPendingAction);
 }
 
+static void flippass_browser_begin_layout_selection(App* app, FlipPassOutputTransport transport) {
+    FlipPassBrowserItem* item = flippass_browser_get_selected_item(app);
+
+    if(item == NULL || item->type != FlipPassDbBrowserItemTypeEntry || item->entry == NULL) {
+        return;
+    }
+
+    app->current_entry = item->entry;
+    app->active_entry = item->entry;
+    app->active_group = app->current_group;
+    app->pending_entry_action =
+        flippass_browser_map_pending_action(app->action_selected_index, transport);
+    app->keyboard_layout_return_scene = FlipPassScene_DbEntries;
+    scene_manager_next_scene(app->scene_manager, FlipPassScene_KeyboardLayout);
+}
+
 static void flippass_browser_open_other_fields(App* app) {
     FlipPassBrowserItem* item = flippass_browser_get_selected_item(app);
 
@@ -477,7 +508,7 @@ static void flippass_browser_open_other_fields(App* app) {
 
 void flippass_scene_db_entries_on_enter(void* context) {
     App* app = context;
-    flippass_log_event(app, "SCENE db_entries");
+    FLIPPASS_BENCH_LOG(app, "SCENE db_entries");
     flippass_db_browser_view_set_callback(app->db_browser, flippass_browser_view_callback, app);
 
     if(app->database_loaded && app->root_group != NULL) {
@@ -489,7 +520,13 @@ void flippass_scene_db_entries_on_enter(void* context) {
         return;
     }
 
-    flippass_progress_begin(app, "Opening Database", "Preparing", 0U);
+    const bool resuming_ext_continuation = app->pending_gzip_scratch_vault != NULL &&
+                                           app->allow_ext_vault_promotion;
+    flippass_progress_begin(
+        app,
+        "Opening Database",
+        resuming_ext_continuation ? "Continuing on /ext" : "Preparing",
+        resuming_ext_continuation ? 80U : 0U);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewLoading);
     view_dispatcher_send_custom_event(
         app->view_dispatcher, FlipPassSceneDbEntriesEventLoadDatabase);
@@ -516,23 +553,23 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
 
             if(flippass_db_load(app, error)) {
                 flippass_progress_update(app, "Ready", "", 100U);
-                flippass_log_event(app, "LOAD_EVENT_OK");
+                FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_OK");
                 if(app->current_group == NULL) {
                     app->current_group = app->root_group;
                 }
-                flippass_log_event(app, "BROWSER_RENDER_BEGIN");
+                FLIPPASS_BENCH_LOG(app, "BROWSER_RENDER_BEGIN");
                 flippass_browser_render(app);
-                flippass_log_event(app, "BROWSER_RENDER_OK");
+                FLIPPASS_BENCH_LOG(app, "BROWSER_RENDER_OK");
                 flippass_progress_reset(app);
                 view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
-                flippass_log_event(app, "DB_VIEW_READY");
+                FLIPPASS_BENCH_LOG(app, "DB_VIEW_READY");
             } else if(app->pending_vault_fallback && !app->rpc_mode) {
                 flippass_progress_reset(app);
-                flippass_log_event(app, "LOAD_EVENT_FALLBACK");
+                FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_FALLBACK");
                 scene_manager_next_scene(app->scene_manager, FlipPassScene_VaultFallback);
             } else {
                 flippass_progress_reset(app);
-                flippass_log_event(app, "LOAD_EVENT_FAIL");
+                FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_FAIL");
                 flippass_scene_status_show(
                     app, "Unlock Failed", furi_string_get_cstr(error), FlipPassScene_PasswordEntry);
                 scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
@@ -568,6 +605,16 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
 
         if(event.event == FlipPassSceneDbEntriesEventExecuteBluetoothAction) {
             flippass_browser_begin_execute_action(app, FlipPassOutputTransportBluetooth);
+            return true;
+        }
+
+        if(event.event == FlipPassSceneDbEntriesEventSelectUsbLayout) {
+            flippass_browser_begin_layout_selection(app, FlipPassOutputTransportUsb);
+            return true;
+        }
+
+        if(event.event == FlipPassSceneDbEntriesEventSelectBluetoothLayout) {
+            flippass_browser_begin_layout_selection(app, FlipPassOutputTransportBluetooth);
             return true;
         }
 

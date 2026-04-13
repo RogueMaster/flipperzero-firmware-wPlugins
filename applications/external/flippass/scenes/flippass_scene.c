@@ -9,6 +9,7 @@
 #include "../flippass.h"
 #include "flippass_scene_db_entries.h"
 #include "flippass_scene_file_browser.h"
+#include "flippass_scene_keyboard_layout.h"
 #include "flippass_scene_other_field_actions.h"
 #include "flippass_scene_other_fields.h"
 #include "flippass_scene_password_entry.h"
@@ -24,6 +25,7 @@ void (*const flippass_scene_on_enter_handlers[])(void*) = {
     flippass_scene_vault_fallback_on_enter,
     flippass_scene_other_fields_on_enter,
     flippass_scene_other_field_actions_on_enter,
+    flippass_scene_keyboard_layout_on_enter,
     flippass_scene_text_view_on_enter,
     flippass_scene_status_on_enter,
 };
@@ -36,6 +38,7 @@ bool (*const flippass_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
     flippass_scene_vault_fallback_on_event,
     flippass_scene_other_fields_on_event,
     flippass_scene_other_field_actions_on_event,
+    flippass_scene_keyboard_layout_on_event,
     flippass_scene_text_view_on_event,
     flippass_scene_status_on_event,
 };
@@ -48,6 +51,7 @@ void (*const flippass_scene_on_exit_handlers[])(void*) = {
     flippass_scene_vault_fallback_on_exit,
     flippass_scene_other_fields_on_exit,
     flippass_scene_other_field_actions_on_exit,
+    flippass_scene_keyboard_layout_on_exit,
     flippass_scene_text_view_on_exit,
     flippass_scene_status_on_exit,
 };

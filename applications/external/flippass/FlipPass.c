@@ -42,8 +42,36 @@ enum {
     FlipPassCustomEventExit = 0x80000000U,
 };
 
+enum {
+    FlipPassUsbPrepareFlagConnected = 1U << 0,
+};
+
+typedef struct {
+    volatile uint8_t flags;
+    volatile uint8_t activity_serial;
+} FlipPassUsbPrepareState;
+
 static bool flippass_usb_send_key(uint16_t hid_key);
 static bool flippass_usb_send_special_key_prepared(uint16_t hid_key);
+static bool flippass_keyboard_layout_is_valid(const char* path);
+static void flippass_usb_prepare_usb_state_callback(FuriHalUsbStateEvent state, void* context);
+static void flippass_usb_prepare_state_callback(bool state, void* context);
+static uint8_t flippass_usb_prepare_progress_percent(
+    uint8_t attempt_index,
+    uint32_t elapsed_ms,
+    uint32_t attempt_timeout_ms);
+static void flippass_usb_prepare_progress(
+    App* app,
+    uint8_t attempt_index,
+    uint32_t elapsed_ms,
+    uint32_t attempt_timeout_ms);
+static bool flippass_usb_prepare_attach_hid(App* app, uint8_t attempt_index);
+static bool flippass_usb_prepare_wait_connected(
+    App* app,
+    FlipPassUsbPrepareState* prepare_state,
+    uint8_t attempt_index,
+    uint32_t attempt_timeout_ms,
+    uint32_t* waited_ms);
 #if FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE
 static void flippass_system_log_capture_init(App* app);
 static void flippass_system_log_capture_deinit(App* app);
@@ -449,6 +477,24 @@ bool flippass_system_log_capture_is_suspended(void) {
 }
 #endif
 
+static bool flippass_keyboard_layout_is_valid(const char* path) {
+    bool valid = false;
+
+    if(path == NULL || path[0] == '\0' || strcmp(path, FLIPPASS_KEYBOARD_LAYOUT_ALT) == 0) {
+        return true;
+    }
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    FileInfo file_info;
+    if(storage_common_stat(storage, path, &file_info) == FSE_OK &&
+       !(file_info.flags & FSF_DIRECTORY) && file_info.size == 256U) {
+        valid = true;
+    }
+    furi_record_close(RECORD_STORAGE);
+
+    return valid;
+}
+
 void flippass_clear_text_buffer(App* app) {
     furi_assert(app);
     memzero(app->text_buffer, sizeof(app->text_buffer));
@@ -459,11 +505,178 @@ void flippass_clear_master_password(App* app) {
     memzero(app->master_password, sizeof(app->master_password));
 }
 
+static void
+    flippass_usb_prepare_mark_activity(FlipPassUsbPrepareState* prepare_state, bool connected) {
+    if(prepare_state != NULL) {
+        uint8_t flags = prepare_state->flags;
+        if(connected) {
+            flags |= FlipPassUsbPrepareFlagConnected;
+        }
+        prepare_state->flags = flags;
+        prepare_state->activity_serial++;
+    }
+}
+
+static void flippass_usb_prepare_usb_state_callback(FuriHalUsbStateEvent state, void* context) {
+    switch(state) {
+    case FuriHalUsbStateEventReset:
+    case FuriHalUsbStateEventDescriptorRequest:
+    case FuriHalUsbStateEventWakeup:
+    case FuriHalUsbStateEventSuspend:
+        flippass_usb_prepare_mark_activity(context, false);
+        break;
+    }
+}
+
+static void flippass_usb_prepare_state_callback(bool state, void* context) {
+    FlipPassUsbPrepareState* prepare_state = context;
+    if(prepare_state == NULL) {
+        return;
+    }
+
+    if(state) {
+        flippass_usb_prepare_mark_activity(prepare_state, true);
+    } else {
+        prepare_state->flags &= (uint8_t)~FlipPassUsbPrepareFlagConnected;
+    }
+}
+
+static uint8_t flippass_usb_prepare_progress_percent(
+    uint8_t attempt_index,
+    uint32_t elapsed_ms,
+    uint32_t attempt_timeout_ms) {
+    const uint32_t total_timeout_ms = attempt_timeout_ms * FLIPPASS_USB_PREPARE_RETRY_COUNT;
+    const uint32_t completed_before_attempt =
+        (attempt_index > 0U) ? ((uint32_t)(attempt_index - 1U) * attempt_timeout_ms) : 0U;
+    uint32_t aggregate_elapsed = completed_before_attempt + elapsed_ms;
+
+    if(total_timeout_ms == 0U) {
+        return 5U;
+    }
+
+    if(aggregate_elapsed > total_timeout_ms) {
+        aggregate_elapsed = total_timeout_ms;
+    }
+
+    return (uint8_t)(5U + ((aggregate_elapsed * 35U) / total_timeout_ms));
+}
+
+static void flippass_usb_prepare_progress(
+    App* app,
+    uint8_t attempt_index,
+    uint32_t elapsed_ms,
+    uint32_t attempt_timeout_ms) {
+    char detail[48];
+
+    furi_assert(app);
+
+    snprintf(
+        detail,
+        sizeof(detail),
+        "Waiting for USB HID host (%u/%u).",
+        (unsigned)attempt_index,
+        (unsigned)FLIPPASS_USB_PREPARE_RETRY_COUNT);
+    flippass_progress_update(
+        app,
+        "Connecting",
+        detail,
+        flippass_usb_prepare_progress_percent(attempt_index, elapsed_ms, attempt_timeout_ms));
+}
+
+static bool flippass_usb_prepare_attach_hid(App* app, uint8_t attempt_index) {
+    char detail[40];
+
+    furi_assert(app);
+
+    snprintf(
+        detail,
+        sizeof(detail),
+        "Re-enumerating USB HID (%u/%u).",
+        (unsigned)attempt_index,
+        (unsigned)FLIPPASS_USB_PREPARE_RETRY_COUNT);
+    flippass_progress_update(
+        app,
+        "Cleaning",
+        detail,
+        (uint8_t)(3U +
+                  (((uint32_t)(attempt_index - 1U) * 2U) / FLIPPASS_USB_PREPARE_RETRY_COUNT)));
+
+    furi_hal_hid_kb_release_all();
+    furi_delay_ms(FLIPPASS_USB_RELEASE_DELAY_MS);
+    if(!furi_hal_usb_set_config(NULL, NULL)) {
+        FLIPPASS_BENCH_LOG(
+            app, "USB_PREPARE_FAIL stage=detach attempt=%u", (unsigned)attempt_index);
+        return false;
+    }
+
+    furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
+    furi_hal_hid_kb_release_all();
+    if(!furi_hal_usb_set_config(&usb_hid, NULL)) {
+        FLIPPASS_BENCH_LOG(
+            app, "USB_PREPARE_FAIL stage=attach attempt=%u", (unsigned)attempt_index);
+        return false;
+    }
+
+    furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
+    if(attempt_index > 1U) {
+        /* Force a fresh bus-level reconnect on retries to mirror the successful
+           manual retry behavior seen on flaky hosts. */
+        furi_hal_usb_reinit();
+        furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
+    }
+
+    return true;
+}
+
+static bool flippass_usb_prepare_wait_connected(
+    App* app,
+    FlipPassUsbPrepareState* prepare_state,
+    uint8_t attempt_index,
+    uint32_t attempt_timeout_ms,
+    uint32_t* waited_ms) {
+    uint32_t elapsed_ms = 0U;
+    uint32_t deadline_ms = FLIPPASS_USB_ENUMERATION_TIMEOUT_MS;
+    uint8_t observed_activity_serial = 0U;
+
+    furi_assert(app);
+    furi_assert(prepare_state);
+    furi_assert(waited_ms);
+
+    observed_activity_serial = prepare_state->activity_serial;
+
+    while(((prepare_state->flags & FlipPassUsbPrepareFlagConnected) == 0U) &&
+          !furi_hal_hid_is_connected() && elapsed_ms < attempt_timeout_ms) {
+        if(elapsed_ms >= deadline_ms) {
+            break;
+        }
+
+        furi_delay_ms(FLIPPASS_USB_POLL_DELAY_MS);
+        elapsed_ms += FLIPPASS_USB_POLL_DELAY_MS;
+
+        if(observed_activity_serial != prepare_state->activity_serial) {
+            observed_activity_serial = prepare_state->activity_serial;
+            deadline_ms = elapsed_ms + FLIPPASS_USB_ENUMERATION_GRACE_MS;
+            if(deadline_ms > attempt_timeout_ms) {
+                deadline_ms = attempt_timeout_ms;
+            }
+        }
+
+        flippass_usb_prepare_progress(app, attempt_index, elapsed_ms, attempt_timeout_ms);
+    }
+
+    *waited_ms = elapsed_ms;
+    return ((prepare_state->flags & FlipPassUsbPrepareFlagConnected) != 0U) ||
+           furi_hal_hid_is_connected();
+}
+
 bool flippass_usb_begin(App* app) {
     furi_assert(app);
 
     const bool was_locked = furi_hal_usb_is_locked();
-    flippass_log_event(
+    const uint32_t attempt_timeout_ms =
+        FLIPPASS_USB_ENUMERATION_TIMEOUT_MS + FLIPPASS_USB_ENUMERATION_GRACE_MS;
+    uint32_t total_waited_ms = 0U;
+    FLIPPASS_BENCH_LOG(
         app,
         "USB_PREPARE_BEGIN prev=%u rpc=%u locked=%u",
         app->usb_if_prev != NULL ? 1U : 0U,
@@ -477,61 +690,64 @@ bool flippass_usb_begin(App* app) {
         app->usb_was_locked = was_locked;
         app->usb_if_prev = furi_hal_usb_get_config();
         app->usb_expect_rpc_session_close = app->rpc_mode;
+    }
+
+    for(uint8_t attempt = 1U; attempt <= FLIPPASS_USB_PREPARE_RETRY_COUNT; attempt++) {
+        FlipPassUsbPrepareState prepare_state = {0};
+        uint32_t waited_ms = 0U;
+
+        furi_hal_usb_set_state_callback(flippass_usb_prepare_usb_state_callback, &prepare_state);
+        furi_hal_hid_set_state_callback(flippass_usb_prepare_state_callback, &prepare_state);
+        if(!flippass_usb_prepare_attach_hid(app, attempt)) {
+            furi_hal_hid_set_state_callback(NULL, NULL);
+            furi_hal_usb_set_state_callback(NULL, NULL);
+            if(attempt < FLIPPASS_USB_PREPARE_RETRY_COUNT) {
+                FLIPPASS_BENCH_LOG(
+                    app, "USB_PREPARE_RETRY stage=attach attempt=%u", (unsigned)attempt);
+                continue;
+            }
+            break;
+        }
+
+        if(flippass_usb_prepare_wait_connected(
+               app, &prepare_state, attempt, attempt_timeout_ms, &waited_ms)) {
+            furi_hal_hid_set_state_callback(NULL, NULL);
+            furi_hal_usb_set_state_callback(NULL, NULL);
+            total_waited_ms += waited_ms;
+            FLIPPASS_BENCH_LOG(
+                app,
+                "USB_PREPARE_OK attempt=%u waited_ms=%lu",
+                (unsigned)attempt,
+                (unsigned long)total_waited_ms);
+            flippass_progress_update(app, "Typing", "USB HID connected.", 40U);
+            furi_delay_ms(FLIPPASS_USB_SETTLE_DELAY_MS);
+            return true;
+        }
+        furi_hal_hid_set_state_callback(NULL, NULL);
+        furi_hal_usb_set_state_callback(NULL, NULL);
+
+        total_waited_ms += waited_ms;
+        FLIPPASS_BENCH_LOG(
+            app,
+            "USB_PREPARE_FAIL stage=%s attempt=%u waited_ms=%lu",
+            (prepare_state.activity_serial != 0U) ? "enum_idle_timeout" : "host_timeout",
+            (unsigned)attempt,
+            (unsigned long)waited_ms);
         furi_hal_hid_kb_release_all();
-
-        if(app->usb_if_prev != NULL) {
-            if(!furi_hal_usb_set_config(NULL, NULL)) {
-                flippass_log_event(app, "USB_PREPARE_FAIL stage=detach");
-                app->usb_if_prev = NULL;
-                app->usb_expect_rpc_session_close = false;
-                if(app->usb_was_locked) {
-                    furi_hal_usb_lock();
-                    app->usb_was_locked = false;
-                }
-                return false;
-            }
-            furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
-        }
-
-        if(!furi_hal_usb_set_config(&usb_hid, NULL)) {
-            flippass_log_event(app, "USB_PREPARE_FAIL stage=attach");
-            if(app->usb_if_prev != NULL) {
-                furi_hal_usb_set_config(app->usb_if_prev, NULL);
-                furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
-            }
-            app->usb_if_prev = NULL;
-            app->usb_expect_rpc_session_close = false;
-            if(app->usb_was_locked) {
-                furi_hal_usb_lock();
-                app->usb_was_locked = false;
-            }
-            return false;
+        furi_hal_usb_set_config(NULL, NULL);
+        furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
+        if(attempt < FLIPPASS_USB_PREPARE_RETRY_COUNT) {
+            FLIPPASS_BENCH_LOG(
+                app, "USB_PREPARE_RETRY stage=connect_timeout next=%u", (unsigned)(attempt + 1U));
         }
     }
 
-    uint32_t elapsed_ms = 0U;
-    while(!furi_hal_hid_is_connected() && elapsed_ms < FLIPPASS_USB_ENUMERATION_TIMEOUT_MS) {
-        furi_delay_ms(FLIPPASS_USB_POLL_DELAY_MS);
-        elapsed_ms += FLIPPASS_USB_POLL_DELAY_MS;
-        flippass_progress_update(
-            app,
-            "Connecting",
-            "Waiting for USB HID host.",
-            (uint8_t)(5U + ((elapsed_ms * 35U) / FLIPPASS_USB_ENUMERATION_TIMEOUT_MS)));
-    }
-
-    if(!furi_hal_hid_is_connected()) {
-        flippass_log_event(
-            app,
-            "USB_PREPARE_FAIL stage=connect_timeout waited_ms=%lu",
-            (unsigned long)elapsed_ms);
-        return false;
-    }
-
-    flippass_log_event(app, "USB_PREPARE_OK waited_ms=%lu", (unsigned long)elapsed_ms);
-    flippass_progress_update(app, "Typing", "USB HID connected.", 40U);
-    furi_delay_ms(FLIPPASS_USB_SETTLE_DELAY_MS);
-    return true;
+    FLIPPASS_BENCH_LOG(
+        app,
+        "USB_PREPARE_FAIL stage=exhausted retries=%u total_waited_ms=%lu",
+        (unsigned)FLIPPASS_USB_PREPARE_RETRY_COUNT,
+        (unsigned long)total_waited_ms);
+    return false;
 }
 
 static bool flippass_usb_send_key(uint16_t hid_key) {
@@ -593,13 +809,13 @@ void flippass_usb_restore(App* app) {
     furi_delay_ms(FLIPPASS_USB_RELEASE_DELAY_MS);
     if(app->usb_if_prev != NULL) {
         if(!furi_hal_usb_set_config(NULL, NULL)) {
-            flippass_log_event(app, "USB_RESTORE_FAIL stage=detach");
+            FLIPPASS_BENCH_LOG(app, "USB_RESTORE_FAIL stage=detach");
         }
         furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
         if(!furi_hal_usb_set_config(app->usb_if_prev, NULL)) {
-            flippass_log_event(app, "USB_RESTORE_FAIL stage=restore");
+            FLIPPASS_BENCH_LOG(app, "USB_RESTORE_FAIL stage=restore");
         } else {
-            flippass_log_event(app, "USB_RESTORE_OK");
+            FLIPPASS_BENCH_LOG(app, "USB_RESTORE_OK");
         }
         furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
         app->usb_if_prev = NULL;
@@ -762,7 +978,7 @@ void flippass_reset_database(App* app) {
 
     if(app->root_group != NULL || app->vault != NULL || app->db_arena != NULL ||
        app->database_loaded) {
-        flippass_log_event(app, "VAULT_CLEANUP");
+        FLIPPASS_DIAGNOSTIC_LOG(app, "VAULT_CLEANUP");
     }
 
     flippass_db_deactivate_entry(app);
@@ -813,7 +1029,7 @@ void flippass_reset_database(App* app) {
 void flippass_close_database(App* app) {
     furi_assert(app);
 
-    flippass_log_event(app, "DATABASE_CLOSE");
+    FLIPPASS_DIAGNOSTIC_LOG(app, "DATABASE_CLOSE");
     flippass_usb_restore(app);
     flippass_output_release_all(app);
     dialog_ex_reset(app->dialog_ex);
@@ -838,6 +1054,12 @@ void flippass_save_settings(App* app) {
     if(flipper_format_file_open_always(file, FLIPPASS_CONFIG_FILE_PATH)) {
         flipper_format_write_string_cstr(
             file, "last_file_path", furi_string_get_cstr(app->file_path));
+        flipper_format_write_string_cstr(
+            file,
+            "keyboard_layout",
+            (app->keyboard_layout_path != NULL && !furi_string_empty(app->keyboard_layout_path)) ?
+                furi_string_get_cstr(app->keyboard_layout_path) :
+                FLIPPASS_KEYBOARD_LAYOUT_ALT);
     }
 
     flipper_format_file_close(file);
@@ -848,14 +1070,28 @@ void flippass_save_settings(App* app) {
 static void flippass_load_settings(App* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* file = flipper_format_file_alloc(storage);
+    FuriString* keyboard_layout = furi_string_alloc();
 
     if(flipper_format_file_open_existing(file, FLIPPASS_CONFIG_FILE_PATH)) {
         flipper_format_read_string(file, "last_file_path", app->file_path);
+        if(flipper_format_read_string(file, "keyboard_layout", keyboard_layout) &&
+           !furi_string_empty(keyboard_layout)) {
+            const char* layout_path = furi_string_get_cstr(keyboard_layout);
+            if(strcmp(layout_path, FLIPPASS_KEYBOARD_LAYOUT_ALT) != 0 &&
+               flippass_keyboard_layout_is_valid(layout_path)) {
+                furi_string_set(app->keyboard_layout_path, keyboard_layout);
+            } else {
+                furi_string_reset(app->keyboard_layout_path);
+            }
+        } else {
+            furi_string_reset(app->keyboard_layout_path);
+        }
     }
 
     flipper_format_file_close(file);
     flipper_format_free(file);
     furi_record_close(RECORD_STORAGE);
+    furi_string_free(keyboard_layout);
 }
 
 /**
@@ -881,7 +1117,6 @@ static App* flippass_app_alloc(const char* args) {
     App* app = malloc(sizeof(App));
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&flippass_scene_handlers, app);
     app->input_events = furi_record_open(RECORD_INPUT_EVENTS);
     app->input_subscription =
@@ -894,6 +1129,7 @@ static App* flippass_app_alloc(const char* args) {
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     app->file_path = furi_string_alloc();
+    app->keyboard_layout_path = furi_string_alloc();
     app->file_browser = file_browser_alloc(app->file_path);
     view_dispatcher_add_view(
         app->view_dispatcher, AppViewFileBrowser, file_browser_get_view(app->file_browser));
@@ -950,6 +1186,7 @@ static App* flippass_app_alloc(const char* args) {
     app->pending_other_field_mask = 0U;
     app->pending_other_custom_field = NULL;
     app->pending_other_field_name[0] = '\0';
+    app->keyboard_layout_return_scene = FlipPassScene_DbEntries;
     app->close_db_dialog_open = false;
     app->parse_failed = false;
     app->database_loaded = false;
@@ -1031,6 +1268,7 @@ static void flippass_app_free(App* app) {
     text_input_free(app->text_input);
     file_browser_free(app->file_browser);
     furi_string_free(app->file_path);
+    furi_string_free(app->keyboard_layout_path);
     flippass_reset_database(app);
     flippass_output_cleanup(app);
     kdbx_parser_free(app->kdbx_parser);
