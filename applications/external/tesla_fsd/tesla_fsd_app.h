@@ -66,6 +66,7 @@ typedef struct {
     bool nag_killer;
     bool precondition; // periodic 0x082 inject for battery preheat
     OpMode op_mode; // Active / ListenOnly / Service
+    uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz
 
     // extras toggles (BETA — need on-vehicle verification per CAN ID)
     bool extra_hazard_lights;

@@ -17,6 +17,9 @@
 
 > [!IMPORTANT]
 > **An active FSD package is required for FSD features** — either purchased or subscribed. This tool enables the FSD functionality at the CAN bus level, but the vehicle still needs a valid FSD entitlement from Tesla. It is NOT a purchase bypass.
+
+> [!CAUTION]
+> **Tesla has begun issuing VIN-level bans** (April 2026). Affected vehicles lose the TLSSC toggle silently — no OTA, no warning, persists across account transfers and re-subscriptions. CAN injection cannot override a VIN ban. See [SECURITY.md](SECURITY.md) and [issue #18](https://github.com/hypery11/flipper-tesla-fsd/issues/18) for details. Non-FSD features (nag killer, BMS dashboard, diagnostics) are not affected.
 >
 > If FSD subscriptions are not available in your region, the upstream community documents a workaround: create a Tesla account in a region where FSD subscriptions are offered (e.g. Canada), transfer the vehicle to that account, and subscribe. See the [upstream documentation](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo) for details.
 >

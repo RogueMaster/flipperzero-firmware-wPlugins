@@ -15,8 +15,10 @@ TeslaFSDApp* tesla_fsd_app_alloc(void) {
     TeslaFSDApp* app = malloc(sizeof(TeslaFSDApp));
     memset(app, 0, sizeof(TeslaFSDApp));
 
-    app->mcp_can = malloc(sizeof(MCP2515));
-    memset(app->mcp_can, 0, sizeof(MCP2515));
+    // Use mcp_alloc() instead of raw malloc — it calls spi_alloc() to
+    // properly initialize the SPI bus handle. Without this, mcp_can->spi
+    // is NULL and furi_hal_spi_bus_handle_init() triggers furi_check fail.
+    app->mcp_can = mcp_alloc(MCP_NORMAL, MCP_16MHZ, MCP_500KBPS);
 
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
@@ -80,7 +82,7 @@ void tesla_fsd_app_free(TeslaFSDApp* app) {
 
     furi_mutex_free(app->mutex);
 
-    free(app->mcp_can);
+    free_mcp2515(app->mcp_can);
     free(app);
 }
 

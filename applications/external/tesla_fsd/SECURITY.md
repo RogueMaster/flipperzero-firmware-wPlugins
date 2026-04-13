@@ -16,6 +16,15 @@
 > subscription is a violation of Tesla's Terms of Service. Doing so is
 > your decision and your risk.
 
+> [!CAUTION]
+> **Tesla has begun issuing VIN-level bans** (confirmed April 2026,
+> issue #18). Affected vehicles lose the TLSSC toggle silently — no OTA
+> update, no warning. The ban persists across account transfers, FSD
+> re-subscriptions, and software reinstalls from Service. CAN injection
+> cannot override a VIN-level ban. Pulling the SIM card before use
+> reduces but does not eliminate detection risk. Community member
+> @THER4iN documented the full ban sequence with testing evidence.
+
 This project is published for testing, research, and educational purposes.
 It is intended for use on **private property** and **off public roads**
 unless and until you have your own legal opinion that operating it on a
