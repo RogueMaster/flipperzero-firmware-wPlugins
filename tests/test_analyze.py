@@ -3,8 +3,10 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from analyze import (
     decode_manchester, detect_rolling_code, compute_signal_quality,
     classify_alarm_sensor, classify_doorbell, classify_outlet_switch,
+    classify_keyfob, classify,
     format_geojson, ClassificationResult,
     SubFile, FeatureVector, PWMParams, PreambleInfo, extract_features,
+    ISM_FREQS,
 )
 
 
@@ -185,3 +187,31 @@ def test_geojson_includes_gps_record():
     assert feat["geometry"]["coordinates"] == [4.8952, 52.3702]
     assert feat["properties"]["classification"] == "GARAGE_REMOTE"
     assert feat["properties"]["file"] == "test.sub"
+
+
+def test_manchester_single_bit_no_crash():
+    bits, convention, error_rate = decode_manchester([1])
+    assert bits == []
+    assert error_rate == 0.0
+
+
+def test_noise_near_empty_signal():
+    # 1 set bit out of 143 total — the pattern from crashing files
+    bits = [0] * 1 + [1] + [0] * 141
+    sub = _make_sub([bits])
+    fv = extract_features(sub)
+    result = classify(fv)
+    assert result.label == "NOISE"
+    assert result.confidence == "HIGH"
+
+
+def test_434mhz_in_ism_freqs():
+    assert 434_420_000 in ISM_FREQS
+
+
+def test_classify_keyfob_315mhz():
+    fv = _make_fv(freq=315_000_000, te=174, pwm_decoded=24, seg_count=1)
+    result = classify_keyfob(fv)
+    assert result is not None
+    assert result.label == "KEYFOB_REMOTE"
+    assert "315MHz" in result.sub_protocol[0]

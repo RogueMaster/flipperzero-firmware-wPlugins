@@ -321,7 +321,7 @@ def decode_manchester(bits: list) -> tuple:
     Odd-length input: trailing bit is silently dropped (only complete pairs decoded).
     Invalid pairs (0,0 or 1,1) are counted as errors and not appended to output.
     """
-    if not bits:
+    if len(bits) < 2:
         return [], "G.E.Thomas", 0.0
 
     def _try_convention(hi_is_one: bool):
@@ -338,7 +338,7 @@ def decode_manchester(bits: list) -> tuple:
             else:
                 # Invalid pair (0,0 or 1,1): not appended, counted as error
                 errors += 1
-        error_rate = errors / total  # total >= 1 guaranteed: loop only runs when len(bits) >= 2
+        error_rate = errors / total  # total >= 1 guaranteed: len(bits) >= 2 checked above
         return decoded, error_rate
 
     decoded_a, err_a = _try_convention(True)   # G.E.Thomas: 10=1
@@ -604,8 +604,9 @@ def extract_features(sub: SubFile) -> FeatureVector:
 # Classification layer
 # ---------------------------------------------------------------------------
 
-ISM_FREQS = {315_000_000, 433_920_000, 433_420_000, 868_350_000, 915_000_000}
+ISM_FREQS = {315_000_000, 433_420_000, 433_920_000, 434_420_000, 868_350_000, 915_000_000}
 # 433.42MHz: Somfy RTS (shutters/blinds)
+# 434.42MHz: EU ISM band upper region (433.05–434.79 MHz)
 # 868.35MHz: EU ISM (alarms, LoRa-adjacent OOK)
 # 915MHz: US ISM (some AMR meters, Z-Wave adjacent)
 
@@ -668,6 +669,16 @@ def classify_noise(fv: FeatureVector) -> object:
     for seg in fv.inner_bits_per_seg:
         all_inner.extend(seg)
     set_bits = sum(all_inner)
+
+    # N0: near-empty signal — single glitch or squelch spike
+    if set_bits <= 2:
+        return ClassificationResult(
+            label="NOISE",
+            confidence="HIGH",
+            sub_protocol=[],
+            reasons=[f"[N0] Only {set_bits} set bit(s) — effectively empty capture"],
+            warnings=[],
+        )
 
     # N1: too few total bits
     if fv.total_bits < 50:
@@ -1118,7 +1129,7 @@ def classify_weather(fv: FeatureVector) -> object:
 
 
 def classify_keyfob(fv: FeatureVector) -> object:
-    if fv.frequency != 433_920_000:
+    if fv.frequency not in {315_000_000, 433_920_000}:
         return None
 
     reasons = []
@@ -1148,10 +1159,15 @@ def classify_keyfob(fv: FeatureVector) -> object:
     else:
         return None
 
+    freq_hint = (
+        "315MHz → North American car keyfob"
+        if fv.frequency == 315_000_000
+        else "433.92MHz → EU/Asian car keyfob / short-range remote"
+    )
     return ClassificationResult(
         label="KEYFOB_REMOTE",
         confidence=confidence,
-        sub_protocol=["433.92MHz short-range keyfob"],
+        sub_protocol=[freq_hint],
         reasons=reasons,
         warnings=[],
     )
