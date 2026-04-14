@@ -79,9 +79,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
 - Updated: [MFP Reader v1.1 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 - Updated: [Click Recorder v1.1 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
-- Updated: [Tesla Mod v2.7.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [FlipPass v1.1 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
+- Updated: [Tesla Mod v2.7.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

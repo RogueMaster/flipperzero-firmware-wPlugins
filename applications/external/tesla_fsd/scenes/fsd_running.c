@@ -150,7 +150,18 @@ static int32_t fsd_running_worker(void* context) {
     // Active / Service → normal mode (TX permitted)
     mcp->mode = (state.op_mode == OpMode_ListenOnly) ? MCP_LISTENONLY : MCP_NORMAL;
     mcp->bitRate = MCP_500KBPS;
-    mcp->clck = (app->mcp_clock == 1) ? MCP_8MHZ : MCP_16MHZ;
+    // 0=16MHz (default), 1=8MHz, 2=12MHz
+    switch(app->mcp_clock) {
+    case 1:
+        mcp->clck = MCP_8MHZ;
+        break;
+    case 2:
+        mcp->clck = MCP_12MHZ;
+        break;
+    default:
+        mcp->clck = MCP_16MHZ;
+        break;
+    }
 
     if(mcp2515_init(mcp) != ERROR_OK) {
         view_dispatcher_send_custom_event(app->view_dispatcher, TeslaFSDEventNoDevice);
