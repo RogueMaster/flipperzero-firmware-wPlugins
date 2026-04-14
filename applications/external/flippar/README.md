@@ -16,6 +16,7 @@ FlipPar is a Flipper Zero external app for tracking golf or disc golf rounds on-
 - Automatic current-round persistence and restore
 - Running total view with leader summary relative to par
 - Plain-text score-sheet export to the SD card
+- In-app lock screen for quickly hiding the current round
 
 ## Screenshots
 
@@ -44,6 +45,7 @@ FlipPar is a Flipper Zero external app for tracking golf or disc golf rounds on-
 - `OK` on `Start Round`: begin score entry
 - `OK` on `New Game`: clear the current scorecard after confirmation
 - `OK` on `Save Score Sheet`: export the current round
+- `OK` on `Lock Screen`: show the last played hole summary and require 3 `Back` presses to exit
 
 ### Score grid
 

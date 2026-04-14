@@ -81,6 +81,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Click Recorder v1.1 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - Updated: [Tesla Mod v2.7.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [FlipPass v1.1 (By Arckanos)](https://github.com/Arckanos/FlipPass)
+- Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
 
 <a name="release"></a>
 
