@@ -102,6 +102,21 @@ static void emulate_context_free(void) {
 
 static uint8_t
     protopirate_get_button_for_protocol(const char* protocol, InputKey key, uint8_t original) {
+    // Kia V7
+    if(strcmp(protocol, KIA_PROTOCOL_V7_NAME) == 0) {
+        switch(key) {
+        case InputKeyUp:
+            return 0x01; // Lock
+        case InputKeyOk:
+            return 0x02; // Unlock
+        case InputKeyDown:
+            return 0x03; // Trunk
+        case InputKeyRight:
+            return 0x08; // Panic
+        default:
+            return original;
+        }
+    }
     // Kia/Hyundai (all versions)
     if(strstr(protocol, "Kia")) {
         switch(key) {
@@ -161,6 +176,21 @@ static uint8_t
             return 0x1; // Panic
         case InputKeyRight:
             return original;
+        default:
+            return original;
+        }
+    }
+    // Mazda V0
+    else if(strstr(protocol, "Mazda")) {
+        switch(key) {
+        case InputKeyUp:
+            return 0x01; // Lock
+        case InputKeyOk:
+            return 0x02; // Unlock
+        case InputKeyDown:
+            return 0x04; // Trunk
+        case InputKeyRight:
+            return 0x08; // Remote
         default:
             return original;
         }
