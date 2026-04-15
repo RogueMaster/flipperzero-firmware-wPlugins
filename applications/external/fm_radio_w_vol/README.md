@@ -182,7 +182,9 @@ This revision is fully usable and available for purchase, but it is still the fi
 - More details about the current revision, store availability, and ordering are on the Tindie listing.
 - There is no released hardware revision newer than v1.0 at this time.
 - PCB v1.1 is the planned successor with expanded hardware capabilities.
-- The v1.1 effort is currently entering the PCB design and PCBA ordering phase.
+- PCB v1.1 has already been ordered for PCBA and is currently awaiting delivery and hardware testing.
+- Expected wait time for delivery and first validation is about 20 days.
+- If PCB v1.1 testing goes well, it is planned to be offered on Tindie in the same store listing path where PCB v1.0 is currently available.
 - Documentation and hardware updates for v1.1 are still in progress.
 - Detailed PCB v1.1 notes are in [schematics/pcb_v1_1_design_notes.md](schematics/pcb_v1_1_design_notes.md). That document is in Polish because it is the working hardware note set for the project author.
 
@@ -195,13 +197,27 @@ Current PCB photo:
 
 ![PCB v1.0 photo](images/pcb/IMG_20260326_150826497~3.jpg)
 
-Render front (top):
+PCB v1.0 render front (top):
 
 ![PCB front](images/pcb/pcb_front_2026-02-25.jpeg)
 
-Render back (bottom):
+PCB v1.0 render back (bottom):
 
 ![PCB back](images/pcb/pcb_back_2026-02-25.jpeg)
+
+PCB v1.1 status renders:
+
+Top view:
+
+![PCB v1.1 top view](images/pcb/1_1/1_capture-2026-04-15T13_19_23.801Z.jpeg)
+
+Front render:
+
+![PCB v1.1 front render](images/pcb/1_1/2_front_capture-2026-04-15T13_18_40.008Z.jpeg)
+
+Back render:
+
+![PCB v1.1 back render](images/pcb/1_1/3_back_capture-2026-04-15T13_18_26.673Z.jpeg)
 
 ## App Screenshots
 
