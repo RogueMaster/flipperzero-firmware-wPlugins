@@ -18,9 +18,9 @@
 
 // SRIX4K Constants
 #define SRIX_BLOCK_LENGTH 4
-#define SRIX_UID_LENGTH 8
-#define SRIX4K_BLOCKS 128
-#define SRIX4K_BYTES 512
+#define SRIX_UID_LENGTH   8
+#define SRIX4K_BLOCKS     128
+#define SRIX4K_BYTES      512
 
 typedef enum {
     COGSMyKaiViewSubmenu,
@@ -51,7 +51,7 @@ typedef struct {
     uint32_t encryption_key;
     bool is_loaded;
     bool is_reset;
-    bool is_modified;  
+    bool is_modified;
     uint16_t current_credit;
 } MyKeyData;
 
@@ -70,7 +70,7 @@ typedef struct {
 
     MyKeyData mykey;
     char text_buffer[32];
-    uint32_t temp_credit_value; 
+    uint32_t temp_credit_value;
 } COGSMyKaiApp;
 
 // Scene handler function declarations
@@ -127,11 +127,11 @@ bool mykey_write_to_nfc(COGSMyKaiApp* app);
 void mykey_calculate_encryption_key(MyKeyData* key);
 bool mykey_is_reset(MyKeyData* key);
 uint16_t mykey_get_current_credit(MyKeyData* key);
-uint16_t mykey_get_credit_from_history(MyKeyData* key); 
+uint16_t mykey_get_credit_from_history(MyKeyData* key);
 void mykey_encode_decode_block(uint32_t* block);
 bool mykey_add_cents(MyKeyData* key, uint16_t cents, uint8_t day, uint8_t month, uint8_t year);
 bool mykey_set_cents(MyKeyData* key, uint16_t cents, uint8_t day, uint8_t month, uint8_t year);
 void mykey_reset(MyKeyData* key);
 uint32_t mykey_get_block(MyKeyData* key, uint8_t block_num);
 void mykey_modify_block(MyKeyData* key, uint32_t block, uint8_t block_num);
-bool mykey_save_raw_data(COGSMyKaiApp* app, const char* path); 
+bool mykey_save_raw_data(COGSMyKaiApp* app, const char* path);

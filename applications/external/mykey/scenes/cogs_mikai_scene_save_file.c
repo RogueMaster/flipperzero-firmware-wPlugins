@@ -7,7 +7,8 @@ enum {
     SaveFileSceneEventInput,
 };
 
-static bool cogs_mikai_scene_save_file_validator(const char* text, FuriString* error, void* context) {
+static bool
+    cogs_mikai_scene_save_file_validator(const char* text, FuriString* error, void* context) {
     UNUSED(context);
 
     if(strlen(text) == 0) {
@@ -16,8 +17,8 @@ static bool cogs_mikai_scene_save_file_validator(const char* text, FuriString* e
 
     for(size_t i = 0; text[i] != '\0'; i++) {
         char c = text[i];
-        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-             (c >= '0' && c <= '9') || c == '_' || c == '-')) {
+        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+             c == '_' || c == '-')) {
             furi_string_set(error, "Only a-z, 0-9, _, -");
             return false;
         }
@@ -96,7 +97,8 @@ bool cogs_mikai_scene_save_file_on_event(void* context, SceneManagerEvent event)
             File* file = storage_file_alloc(storage);
             bool success = false;
 
-            if(storage_file_open(file, furi_string_get_cstr(file_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+            if(storage_file_open(
+                   file, furi_string_get_cstr(file_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
                 const char* header = "COGES_MYKEY_V1\n";
                 storage_file_write(file, header, strlen(header));
 
@@ -123,7 +125,8 @@ bool cogs_mikai_scene_save_file_on_event(void* context, SceneManagerEvent event)
             Popup* popup = app->popup;
             if(success) {
                 popup_set_header(popup, "Success!", 64, 10, AlignCenter, AlignTop);
-                popup_set_text(popup, "File saved to\napps_data/cogs_mikai/", 64, 25, AlignCenter, AlignTop);
+                popup_set_text(
+                    popup, "File saved to\napps_data/cogs_mikai/", 64, 25, AlignCenter, AlignTop);
                 notification_message(app->notifications, &sequence_success);
                 FURI_LOG_I(TAG, "File saved: %s", furi_string_get_cstr(file_path));
             } else {
@@ -143,7 +146,8 @@ bool cogs_mikai_scene_save_file_on_event(void* context, SceneManagerEvent event)
 
             consumed = true;
         } else {
-            scene_manager_search_and_switch_to_previous_scene(app->scene_manager, COGSMyKaiSceneStart);
+            scene_manager_search_and_switch_to_previous_scene(
+                app->scene_manager, COGSMyKaiSceneStart);
             consumed = true;
         }
     }

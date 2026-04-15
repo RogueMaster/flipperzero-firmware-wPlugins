@@ -5,7 +5,8 @@ enum {
     SetCreditSceneEventInput,
 };
 
-static bool cogs_mikai_scene_set_credit_validator(const char* text, FuriString* error, void* context) {
+static bool
+    cogs_mikai_scene_set_credit_validator(const char* text, FuriString* error, void* context) {
     UNUSED(context);
 
     if(strlen(text) == 0) {
@@ -28,7 +29,6 @@ static bool cogs_mikai_scene_set_credit_validator(const char* text, FuriString* 
 
     return true;
 }
-
 
 static bool parse_euros_to_cents(const char* text, uint16_t* cents) {
     if(!text || !cents) return false;
@@ -127,11 +127,7 @@ bool cogs_mikai_scene_set_credit_on_event(void* context, SceneManagerEvent event
                 furi_hal_rtc_get_datetime(&datetime);
 
                 bool success = mykey_set_cents(
-                    &app->mykey,
-                    cents,
-                    datetime.day,
-                    datetime.month,
-                    datetime.year - 2000);
+                    &app->mykey, cents, datetime.day, datetime.month, datetime.year - 2000);
 
                 if(success) {
                     app->mykey.current_credit = mykey_get_current_credit(&app->mykey);
@@ -140,7 +136,13 @@ bool cogs_mikai_scene_set_credit_on_event(void* context, SceneManagerEvent event
                     memset(app->text_buffer, 0, sizeof(app->text_buffer));
                     Popup* popup = app->popup;
                     popup_set_header(popup, "Credit Set!", 64, 10, AlignCenter, AlignTop);
-                    popup_set_text(popup, "Saved in memory\nUse 'Write to Card'", 64, 25, AlignCenter, AlignTop);
+                    popup_set_text(
+                        popup,
+                        "Saved in memory\nUse 'Write to Card'",
+                        64,
+                        25,
+                        AlignCenter,
+                        AlignTop);
                     popup_set_callback(popup, cogs_mikai_scene_set_credit_popup_callback);
                     popup_set_context(popup, app);
                     popup_set_timeout(popup, 2000);
@@ -159,17 +161,11 @@ bool cogs_mikai_scene_set_credit_on_event(void* context, SceneManagerEvent event
                     notification_message(app->notifications, &sequence_error);
                 }
             } else {
-                FURI_LOG_E(TAG, "Invalid amount: parse_ok=%d, cents=%d",
-                    parse_ok, cents);
+                FURI_LOG_E(TAG, "Invalid amount: parse_ok=%d, cents=%d", parse_ok, cents);
                 Popup* popup = app->popup;
                 popup_set_header(popup, "Error", 64, 10, AlignCenter, AlignTop);
                 popup_set_text(
-                    popup,
-                    "Invalid amount\nEnter 0.00-999.99",
-                    64,
-                    25,
-                    AlignCenter,
-                    AlignTop);
+                    popup, "Invalid amount\nEnter 0.00-999.99", 64, 25, AlignCenter, AlignTop);
                 popup_set_callback(popup, cogs_mikai_scene_set_credit_popup_callback);
                 popup_set_context(popup, app);
                 popup_set_timeout(popup, 2000);
@@ -178,7 +174,8 @@ bool cogs_mikai_scene_set_credit_on_event(void* context, SceneManagerEvent event
             }
             consumed = true;
         } else {
-            scene_manager_search_and_switch_to_previous_scene(app->scene_manager, COGSMyKaiSceneStart);
+            scene_manager_search_and_switch_to_previous_scene(
+                app->scene_manager, COGSMyKaiSceneStart);
             consumed = true;
         }
     }

@@ -6,12 +6,15 @@
 
 // Encode or decode a MyKey block (XOR bit manipulation)
 static inline void encode_decode_block(uint32_t* block) {
-    *block ^= (*block & 0x00C00000) << 6 | (*block & 0x0000C000) << 12 | (*block & 0x000000C0) << 18 |
-              (*block & 0x000C0000) >> 6 | (*block & 0x00030000) >> 12 | (*block & 0x00000300) >> 6;
-    *block ^= (*block & 0x30000000) >> 6 | (*block & 0x0C000000) >> 12 | (*block & 0x03000000) >> 18 |
-              (*block & 0x00003000) << 6 | (*block & 0x00000030) << 12 | (*block & 0x0000000C) << 6;
-    *block ^= (*block & 0x00C00000) << 6 | (*block & 0x0000C000) << 12 | (*block & 0x000000C0) << 18 |
-              (*block & 0x000C0000) >> 6 | (*block & 0x00030000) >> 12 | (*block & 0x00000300) >> 6;
+    *block ^= (*block & 0x00C00000) << 6 | (*block & 0x0000C000) << 12 |
+              (*block & 0x000000C0) << 18 | (*block & 0x000C0000) >> 6 |
+              (*block & 0x00030000) >> 12 | (*block & 0x00000300) >> 6;
+    *block ^= (*block & 0x30000000) >> 6 | (*block & 0x0C000000) >> 12 |
+              (*block & 0x03000000) >> 18 | (*block & 0x00003000) << 6 |
+              (*block & 0x00000030) << 12 | (*block & 0x0000000C) << 6;
+    *block ^= (*block & 0x00C00000) << 6 | (*block & 0x0000C000) << 12 |
+              (*block & 0x000000C0) << 18 | (*block & 0x000C0000) >> 6 |
+              (*block & 0x00030000) >> 12 | (*block & 0x00000300) >> 6;
 }
 
 // Public wrapper for debug purposes
@@ -128,7 +131,9 @@ uint16_t mykey_get_current_credit(MyKeyData* key) {
     // Use libmikai approach: read from block 0x21
     uint32_t block21_raw = key->eeprom[0x21];
     FURI_LOG_I(TAG, "Block 0x21 raw: 0x%08lX", block21_raw);
-    FURI_LOG_I(TAG, "  Bytes: [%02X %02X %02X %02X]",
+    FURI_LOG_I(
+        TAG,
+        "  Bytes: [%02X %02X %02X %02X]",
         (uint8_t)(block21_raw & 0xFF),
         (uint8_t)((block21_raw >> 8) & 0xFF),
         (uint8_t)((block21_raw >> 16) & 0xFF),
@@ -145,10 +150,18 @@ uint16_t mykey_get_current_credit(MyKeyData* key) {
 
     uint16_t credit_lower = current_credit & 0xFFFF;
     uint16_t credit_upper = (current_credit >> 16) & 0xFFFF;
-    FURI_LOG_I(TAG, "Lower 16 bits: %u cents (%u.%02u EUR)",
-        credit_lower, credit_lower / 100, credit_lower % 100);
-    FURI_LOG_I(TAG, "Upper 16 bits: %u cents (%u.%02u EUR)",
-        credit_upper, credit_upper / 100, credit_upper % 100);
+    FURI_LOG_I(
+        TAG,
+        "Lower 16 bits: %u cents (%u.%02u EUR)",
+        credit_lower,
+        credit_lower / 100,
+        credit_lower % 100);
+    FURI_LOG_I(
+        TAG,
+        "Upper 16 bits: %u cents (%u.%02u EUR)",
+        credit_upper,
+        credit_upper / 100,
+        credit_upper % 100);
     FURI_LOG_I(TAG, "=========================================");
 
     return credit_lower;
@@ -237,16 +250,20 @@ bool mykey_add_cents(MyKeyData* key, uint16_t cents, uint8_t day, uint8_t month,
         current = (current == 7) ? 0 : current + 1;
 
         // Save new credit to history blocks
-        uint32_t txn_block = (uint32_t)day << 27 | (uint32_t)month << 23 |
-                             (uint32_t)year << 16 | actual_credit;
+        uint32_t txn_block = (uint32_t)day << 27 | (uint32_t)month << 23 | (uint32_t)year << 16 |
+                             actual_credit;
         key->eeprom[0x34 + current] = txn_block;
 
-        FURI_LOG_I(TAG, "Transaction %u: %u cents at block 0x%02X",
-                   current, actual_credit, 0x34 + current);
+        FURI_LOG_I(
+            TAG,
+            "Transaction %u: %u cents at block 0x%02X",
+            current,
+            actual_credit,
+            0x34 + current);
     } while(cents > 5);
 
-    FURI_LOG_I(TAG, "Final credit: %u cents, precedent: %u cents",
-               actual_credit, precedent_credit);
+    FURI_LOG_I(
+        TAG, "Final credit: %u cents, precedent: %u cents", actual_credit, precedent_credit);
 
     // Save new credit to 21 and 25
     key->eeprom[0x21] = actual_credit;
@@ -316,132 +333,132 @@ void mykey_reset(MyKeyData* key) {
         uint32_t current_block;
 
         switch(i) {
-            case 0x10:
-            case 0x14:
-            case 0x3F:
-            case 0x43: {
-                // Key ID (first byte) + days elapsed from production
-                uint32_t production_date = key->eeprom[0x08];
+        case 0x10:
+        case 0x14:
+        case 0x3F:
+        case 0x43: {
+            // Key ID (first byte) + days elapsed from production
+            uint32_t production_date = key->eeprom[0x08];
 
-                // Decode BCD (Binary Coded Decimal) production date
-                uint8_t pday = (production_date >> 28 & 0x0F) * 10 + (production_date >> 24 & 0x0F);
-                uint8_t pmonth = (production_date >> 20 & 0x0F) * 10 + (production_date >> 16 & 0x0F);
-                uint16_t pyear = (production_date & 0x0F) * 1000 +
-                                (production_date >> 4 & 0x0F) * 100 +
-                                (production_date >> 12 & 0x0F) * 10 +
-                                (production_date >> 8 & 0x0F);
+            // Decode BCD (Binary Coded Decimal) production date
+            uint8_t pday = (production_date >> 28 & 0x0F) * 10 + (production_date >> 24 & 0x0F);
+            uint8_t pmonth = (production_date >> 20 & 0x0F) * 10 + (production_date >> 16 & 0x0F);
+            uint16_t pyear = (production_date & 0x0F) * 1000 +
+                             (production_date >> 4 & 0x0F) * 100 +
+                             (production_date >> 12 & 0x0F) * 10 + (production_date >> 8 & 0x0F);
 
-                uint32_t elapsed = days_difference(pday, pmonth, pyear);
-                current_block = ((key->eeprom[0x07] & 0xFF000000) >> 8) |
-                               (((elapsed / 1000 % 10) << 12) + ((elapsed / 100 % 10) << 8)) |
-                               (((elapsed / 10 % 10) << 4) + (elapsed % 10));
-                calculate_block_checksum(&current_block, i);
-                break;
-            }
+            uint32_t elapsed = days_difference(pday, pmonth, pyear);
+            current_block = ((key->eeprom[0x07] & 0xFF000000) >> 8) |
+                            (((elapsed / 1000 % 10) << 12) + ((elapsed / 100 % 10) << 8)) |
+                            (((elapsed / 10 % 10) << 4) + (elapsed % 10));
+            calculate_block_checksum(&current_block, i);
+            break;
+        }
 
-            case 0x11:
-            case 0x15:
-            case 0x40:
-            case 0x44:
-                // Key ID [last three bytes]
-                current_block = key->eeprom[0x07];
-                calculate_block_checksum(&current_block, i);
-                break;
+        case 0x11:
+        case 0x15:
+        case 0x40:
+        case 0x44:
+            // Key ID [last three bytes]
+            current_block = key->eeprom[0x07];
+            calculate_block_checksum(&current_block, i);
+            break;
 
-            case 0x22:
-            case 0x26:
-            case 0x51:
-            case 0x55: {
-                // Production date (last three bytes)
-                uint32_t production_date = key->eeprom[0x08];
-                current_block = (production_date & 0x0000FF00) << 8 | (production_date & 0x00FF0000) >> 8 |
-                               (production_date & 0xFF000000) >> 24;
-                calculate_block_checksum(&current_block, i);
-                encode_decode_block(&current_block);
-                break;
-            }
+        case 0x22:
+        case 0x26:
+        case 0x51:
+        case 0x55: {
+            // Production date (last three bytes)
+            uint32_t production_date = key->eeprom[0x08];
+            current_block = (production_date & 0x0000FF00) << 8 |
+                            (production_date & 0x00FF0000) >> 8 |
+                            (production_date & 0xFF000000) >> 24;
+            calculate_block_checksum(&current_block, i);
+            encode_decode_block(&current_block);
+            break;
+        }
 
-            case 0x12:
-            case 0x16:
-            case 0x41:
-            case 0x45:
-                // Operations counter
-                current_block = 1;
-                calculate_block_checksum(&current_block, i);
-                break;
+        case 0x12:
+        case 0x16:
+        case 0x41:
+        case 0x45:
+            // Operations counter
+            current_block = 1;
+            calculate_block_checksum(&current_block, i);
+            break;
 
-            case 0x13:
-            case 0x17:
-            case 0x42:
-            case 0x46:
-                // Generic blocks
-                current_block = 0x00040013;
-                calculate_block_checksum(&current_block, i);
-                break;
+        case 0x13:
+        case 0x17:
+        case 0x42:
+        case 0x46:
+            // Generic blocks
+            current_block = 0x00040013;
+            calculate_block_checksum(&current_block, i);
+            break;
 
-            case 0x18:
-            case 0x1C:
-            case 0x47:
-            case 0x4B:
-                // Generic blocks
-                current_block = 0x0000FEDC;
-                calculate_block_checksum(&current_block, i);
-                encode_decode_block(&current_block);
-                break;
+        case 0x18:
+        case 0x1C:
+        case 0x47:
+        case 0x4B:
+            // Generic blocks
+            current_block = 0x0000FEDC;
+            calculate_block_checksum(&current_block, i);
+            encode_decode_block(&current_block);
+            break;
 
-            case 0x19:
-            case 0x1D:
-            case 0x48:
-            case 0x4C:
-                // Generic blocks
-                current_block = 0x00000123;
-                calculate_block_checksum(&current_block, i);
-                encode_decode_block(&current_block);
-                break;
+        case 0x19:
+        case 0x1D:
+        case 0x48:
+        case 0x4C:
+            // Generic blocks
+            current_block = 0x00000123;
+            calculate_block_checksum(&current_block, i);
+            encode_decode_block(&current_block);
+            break;
 
-            case 0x21:
-            case 0x25:
-                // Current credit (0,00€)
-                mykey_calculate_encryption_key(key);
-                current_block = 0;
-                calculate_block_checksum(&current_block, i);
-                encode_decode_block(&current_block);
-                current_block ^= key->encryption_key;
-                break;
+        case 0x21:
+        case 0x25:
+            // Current credit (0,00€)
+            mykey_calculate_encryption_key(key);
+            current_block = 0;
+            calculate_block_checksum(&current_block, i);
+            encode_decode_block(&current_block);
+            current_block ^= key->encryption_key;
+            break;
 
-            case 0x20:
-            case 0x24:
-            case 0x4F:
-            case 0x53:
-                // Generic blocks
-                current_block = 0x00010000;
-                calculate_block_checksum(&current_block, i);
-                encode_decode_block(&current_block);
-                break;
+        case 0x20:
+        case 0x24:
+        case 0x4F:
+        case 0x53:
+            // Generic blocks
+            current_block = 0x00010000;
+            calculate_block_checksum(&current_block, i);
+            encode_decode_block(&current_block);
+            break;
 
-            case 0x1A:
-            case 0x1B:
-            case 0x1E:
-            case 0x1F:
-            case 0x23:
-            case 0x27:
-            case 0x49:
-            case 0x4A:
-            case 0x4D:
-            case 0x4E:
-            case 0x50:
-            case 0x52:
-            case 0x54:
-            case 0x56:
-                // Generic blocks
-                current_block = 0;
-                calculate_block_checksum(&current_block, i);
-                encode_decode_block(&current_block);
-                break;
+        case 0x1A:
+        case 0x1B:
+        case 0x1E:
+        case 0x1F:
+        case 0x23:
+        case 0x27:
+        case 0x49:
+        case 0x4A:
+        case 0x4D:
+        case 0x4E:
+        case 0x50:
+        case 0x52:
+        case 0x54:
+        case 0x56:
+            // Generic blocks
+            current_block = 0;
+            calculate_block_checksum(&current_block, i);
+            encode_decode_block(&current_block);
+            break;
 
-            default:
-                current_block = 0xFFFFFFFF;
-                break;
+        default:
+            current_block = 0xFFFFFFFF;
+            break;
         }
 
         // If this block has a different value than EEPROM, modify it
@@ -453,7 +470,6 @@ void mykey_reset(MyKeyData* key) {
     // Mark as modified
     key->is_modified = true;
 }
-
 
 // Save raw card data to file for debugging
 bool mykey_save_raw_data(COGSMyKaiApp* app, const char* path) {

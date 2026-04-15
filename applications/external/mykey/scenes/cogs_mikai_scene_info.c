@@ -11,7 +11,6 @@ void cogs_mikai_scene_info_on_enter(void* context) {
     if(!app->mykey.is_loaded) {
         furi_string_cat(text, "No Card Loaded\n\nPlease read a card first.");
     } else {
-
         furi_string_cat_printf(text, "Serial: %08lX\n", (uint32_t)app->mykey.eeprom[0x07]);
 
         // vendor ID - calculated from blocks 0x18 and 0x19
@@ -20,7 +19,7 @@ void cogs_mikai_scene_info_on_enter(void* context) {
         mykey_encode_decode_block(&block18);
         mykey_encode_decode_block(&block19);
         uint64_t vendor = (((uint64_t)block18 << 16) | (block19 & 0x0000FFFF)) + 1;
-  
+
         furi_string_cat_printf(text, "Vendor: %llX\n", vendor);
 
         // current credit
@@ -48,8 +47,8 @@ void cogs_mikai_scene_info_on_enter(void* context) {
         uint32_t block3C = app->mykey.eeprom[0x3C];
         if(block3C != 0xFFFFFFFF) {
             block3C ^= app->mykey.eeprom[0x07];
-            uint32_t starting_offset =
-                ((block3C & 0x30000000) >> 28) | ((block3C & 0x00100000) >> 18);
+            uint32_t starting_offset = ((block3C & 0x30000000) >> 28) |
+                                       ((block3C & 0x00100000) >> 18);
 
             if(starting_offset < 8) {
                 // first, find how many transactions exist by going forward from starting_offset

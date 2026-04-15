@@ -30,18 +30,10 @@ void cogs_mikai_scene_start_on_enter(void* context) {
     }
 
     submenu_add_item(
-        submenu,
-        "Read Card",
-        SubmenuIndexRead,
-        cogs_mikai_scene_start_submenu_callback,
-        app);
+        submenu, "Read Card", SubmenuIndexRead, cogs_mikai_scene_start_submenu_callback, app);
 
     submenu_add_item(
-        submenu,
-        "View Info",
-        SubmenuIndexInfo,
-        cogs_mikai_scene_start_submenu_callback,
-        app);
+        submenu, "View Info", SubmenuIndexInfo, cogs_mikai_scene_start_submenu_callback, app);
 
     // Show "Write to Card" only if data has been modified
     if(app->mykey.is_modified) {
@@ -54,25 +46,13 @@ void cogs_mikai_scene_start_on_enter(void* context) {
     }
 
     submenu_add_item(
-        submenu,
-        "Add Credit", 
-        SubmenuIndexAddCredit,
-        cogs_mikai_scene_start_submenu_callback,
-        app);
+        submenu, "Add Credit", SubmenuIndexAddCredit, cogs_mikai_scene_start_submenu_callback, app);
 
     submenu_add_item(
-        submenu,
-        "Set Credit",
-        SubmenuIndexSetCredit,
-        cogs_mikai_scene_start_submenu_callback,
-        app);
+        submenu, "Set Credit", SubmenuIndexSetCredit, cogs_mikai_scene_start_submenu_callback, app);
 
     submenu_add_item(
-        submenu,
-        "Reset Card",
-        SubmenuIndexReset,
-        cogs_mikai_scene_start_submenu_callback,
-        app);
+        submenu, "Reset Card", SubmenuIndexReset, cogs_mikai_scene_start_submenu_callback, app);
 
     submenu_add_item(
         submenu,
@@ -89,18 +69,10 @@ void cogs_mikai_scene_start_on_enter(void* context) {
         app);
 
     submenu_add_item(
-        submenu,
-        "Debug Info",
-        SubmenuIndexDebug,
-        cogs_mikai_scene_start_submenu_callback,
-        app);
+        submenu, "Debug Info", SubmenuIndexDebug, cogs_mikai_scene_start_submenu_callback, app);
 
     submenu_add_item(
-        submenu,
-        "About",
-        SubmenuIndexAbout,
-        cogs_mikai_scene_start_submenu_callback,
-        app);
+        submenu, "About", SubmenuIndexAbout, cogs_mikai_scene_start_submenu_callback, app);
 
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, COGSMyKaiSceneStart));
@@ -116,36 +88,36 @@ bool cogs_mikai_scene_start_on_event(void* context, SceneManagerEvent event) {
         scene_manager_set_scene_state(app->scene_manager, COGSMyKaiSceneStart, event.event);
         consumed = true;
         switch(event.event) {
-            case SubmenuIndexRead:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneRead);
-                break;
-            case SubmenuIndexInfo:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneInfo);
-                break;
-            case SubmenuIndexWriteCard:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneWriteCard);
-                break;
-            case SubmenuIndexAddCredit:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneAddCredit);
-                break;
-            case SubmenuIndexSetCredit:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneSetCredit);
-                break;
-            case SubmenuIndexReset:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneReset);
-                break;
-            case SubmenuIndexSaveFile:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneSaveFile);
-                break;
-            case SubmenuIndexLoadFile:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneLoadFile);
-                break;
-            case SubmenuIndexDebug:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneDebug);
-                break;
-            case SubmenuIndexAbout:
-                scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneAbout);
-                break;
+        case SubmenuIndexRead:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneRead);
+            break;
+        case SubmenuIndexInfo:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneInfo);
+            break;
+        case SubmenuIndexWriteCard:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneWriteCard);
+            break;
+        case SubmenuIndexAddCredit:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneAddCredit);
+            break;
+        case SubmenuIndexSetCredit:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneSetCredit);
+            break;
+        case SubmenuIndexReset:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneReset);
+            break;
+        case SubmenuIndexSaveFile:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneSaveFile);
+            break;
+        case SubmenuIndexLoadFile:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneLoadFile);
+            break;
+        case SubmenuIndexDebug:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneDebug);
+            break;
+        case SubmenuIndexAbout:
+            scene_manager_next_scene(app->scene_manager, COGSMyKaiSceneAbout);
+            break;
         }
     }
 

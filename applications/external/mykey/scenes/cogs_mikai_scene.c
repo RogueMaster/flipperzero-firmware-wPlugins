@@ -1,19 +1,19 @@
 #include "../cogs_mikai.h"
 
 #define ADD_SCENE(prefix, name, id) prefix##_scene_##name##_on_enter,
-void (* const cogs_mikai_scene_on_enter_handlers[])(void*) = {
+void (*const cogs_mikai_scene_on_enter_handlers[])(void*) = {
 #include "cogs_mikai_scene_config.c"
 };
 #undef ADD_SCENE
 
 #define ADD_SCENE(prefix, name, id) prefix##_scene_##name##_on_event,
-bool (* const cogs_mikai_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
+bool (*const cogs_mikai_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
 #include "cogs_mikai_scene_config.c"
 };
 #undef ADD_SCENE
 
 #define ADD_SCENE(prefix, name, id) prefix##_scene_##name##_on_exit,
-void (* const cogs_mikai_scene_on_exit_handlers[])(void*) = {
+void (*const cogs_mikai_scene_on_exit_handlers[])(void*) = {
 #include "cogs_mikai_scene_config.c"
 };
 #undef ADD_SCENE

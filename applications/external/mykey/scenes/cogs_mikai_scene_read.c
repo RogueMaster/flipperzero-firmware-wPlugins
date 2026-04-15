@@ -25,7 +25,7 @@ void cogs_mikai_scene_read_on_enter(void* context) {
         // Calculate encryption key
         mykey_calculate_encryption_key(&app->mykey);
         app->mykey.is_loaded = true;
-        app->mykey.is_modified = false;  // Fresh read from card
+        app->mykey.is_modified = false; // Fresh read from card
         app->mykey.is_reset = mykey_is_reset(&app->mykey);
         app->mykey.current_credit = mykey_get_current_credit(&app->mykey);
 
@@ -34,7 +34,8 @@ void cogs_mikai_scene_read_on_enter(void* context) {
         notification_message(app->notifications, &sequence_success);
     } else {
         popup_set_header(popup, "Error", 64, 10, AlignCenter, AlignTop);
-        popup_set_text(popup, "Failed to read card\nsegmentaion fault", 64, 25, AlignCenter, AlignTop);
+        popup_set_text(
+            popup, "Failed to read card\nsegmentaion fault", 64, 25, AlignCenter, AlignTop);
         notification_message(app->notifications, &sequence_error);
     }
 }

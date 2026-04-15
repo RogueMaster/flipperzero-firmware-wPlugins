@@ -576,7 +576,38 @@ void fsd_handle_das_steering(FSDState* state, const CANFRAME* frame) {
     state->das_steer_angle_req = raw * 0.1f - 1638.35f;
 }
 
-// --- Nag killer (CAN 880 counter+1 echo) ---
+// --- Nag killer (DAS-aware counter+1 echo) ---
+//
+// Improved from ev-open-can-tools PR #5 (zdenekbouresh):
+//
+// 1. DAS-aware gating: only echo when DAS_autopilotHandsOnState (from
+//    0x39B, already parsed in fsd_handle_das_status) indicates the car
+//    is actually demanding hands-on. States 0 (NOT_REQD) and 8
+//    (SUSPENDED) mean DAS is satisfied — no echo needed. This reduces
+//    spurious bus traffic from ~25 frames/sec to near-zero during normal
+//    driving.
+//
+// 2. Organic torque variation: replaces fixed 1.80 Nm with a smooth
+//    random walk [1.00-2.40 Nm] plus brief "grip pulses" [3.10-3.30 Nm]
+//    every ~5-9 seconds. A flat torque signal for 30+ minutes is a
+//    statistical impossibility from a real hand — this makes telemetry
+//    detection much harder.
+
+// xorshift32 PRNG — no stdlib dependency, deterministic, fast
+static uint32_t nag_prng_state = 0xDEADBEEF;
+static uint32_t nag_xorshift32(void) {
+    uint32_t x = nag_prng_state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    nag_prng_state = x;
+    return x;
+}
+
+// Torque random walk state
+static int16_t nag_torq_walk = 2230; // raw starting = 1.80 Nm
+static uint8_t nag_exc_frames = 0; // frames in grip excursion
+static uint16_t nag_frames_until_exc = 175; // frames until next excursion
 
 bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out) {
     if(frame->data_lenght < 8) return false;
@@ -586,6 +617,38 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     uint8_t hands_on = (frame->buffer[4] >> 6) & 0x03;
     if(hands_on != 0) return false;
 
+    // DAS-aware gating: skip echo when DAS is satisfied or AP suspended.
+    // das_hands_on_state is parsed from 0x39B in fsd_handle_das_status().
+    // 0 = NOT_REQD (satisfied), 8 = SUSPENDED (AP paused).
+    // 0xFF = no DAS frame seen yet — echo conservatively as fallback.
+    uint8_t das = state->das_hands_on_state;
+    if(das == 0 || das == 8) return false;
+
+    // --- Organic torque variation ---
+    // torsionBarTorque encoding: tRaw = (Nm + 20.5) / 0.01
+    // d[2] lower nibble = tRaw >> 8, d[3] = tRaw & 0xFF
+    int16_t torq;
+    if(nag_exc_frames > 0) {
+        // Grip pulse: ~3.20 Nm ± small noise
+        torq = 2350 + (int16_t)((nag_xorshift32() % 41) - 20);
+        nag_exc_frames--;
+    } else {
+        // Normal random walk: step ±15 per frame
+        int16_t step = (int16_t)((nag_xorshift32() % 31) - 15);
+        nag_torq_walk += step;
+        if(nag_torq_walk < 2150) nag_torq_walk = 2150; // min ~1.00 Nm
+        if(nag_torq_walk > 2290) nag_torq_walk = 2290; // max ~2.40 Nm
+        torq = nag_torq_walk;
+
+        // Count down to next grip excursion
+        if(nag_frames_until_exc > 0) {
+            nag_frames_until_exc--;
+        } else {
+            nag_exc_frames = 3 + (nag_xorshift32() % 3); // 3-5 frames
+            nag_frames_until_exc = 125 + (nag_xorshift32() % 100); // 5-9 sec
+        }
+    }
+
     // build echo frame
     out->canId = CAN_ID_EPAS_STATUS;
     out->data_lenght = 8;
@@ -594,8 +657,8 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
 
     out->buffer[0] = frame->buffer[0];
     out->buffer[1] = frame->buffer[1];
-    out->buffer[2] = 0x08;
-    out->buffer[3] = 0xB6; // torsionBarTorque = 1.80 Nm
+    out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torq >> 8) & 0x0F);
+    out->buffer[3] = (uint8_t)(torq & 0xFF);
     out->buffer[4] = frame->buffer[4] | 0x40; // handsOnLevel = 1
     out->buffer[5] = frame->buffer[5];
 

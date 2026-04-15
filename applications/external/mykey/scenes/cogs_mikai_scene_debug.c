@@ -20,17 +20,14 @@ void cogs_mikai_scene_debug_on_enter(void* context) {
         furi_string_cat(text, "=== DEBUG INFO ===\n\n");
 
         // UID
-                furi_string_cat_printf(
-            text, "UID: %016llX\n", (unsigned long long)app->mykey.uid);
+        furi_string_cat_printf(text, "UID: %016llX\n", (unsigned long long)app->mykey.uid);
 
         // lower 32 bits of UID
-        furi_string_cat_printf(
-            text, "UID (lower 32): 0x%08lX\n", (uint32_t)app->mykey.uid);
+        furi_string_cat_printf(text, "UID (lower 32): 0x%08lX\n", (uint32_t)app->mykey.uid);
 
         // encryption key
 
-        furi_string_cat_printf(
-            text, "Encryption Key: 0x%08lX\n\n", app->mykey.encryption_key);
+        furi_string_cat_printf(text, "Encryption Key: 0x%08lX\n\n", app->mykey.encryption_key);
 
         // block 0x21 (credit block) analysis
         furi_string_cat(text, "--- Block 0x21 Analysis ---\n");
@@ -38,7 +35,9 @@ void cogs_mikai_scene_debug_on_enter(void* context) {
         furi_string_cat_printf(text, "Raw: 0x%08lX\n", block21_raw);
 
         // show individual bytes
-        furi_string_cat_printf(text, "Bytes: [%02X %02X %02X %02X]\n",
+        furi_string_cat_printf(
+            text,
+            "Bytes: [%02X %02X %02X %02X]\n",
             (uint8_t)(block21_raw & 0xFF),
             (uint8_t)((block21_raw >> 8) & 0xFF),
             (uint8_t)((block21_raw >> 16) & 0xFF),
@@ -47,13 +46,11 @@ void cogs_mikai_scene_debug_on_enter(void* context) {
         // uint32_t block21_xor = block21_raw ^ app->mykey.encryption_key;
         // furi_string_cat_printf(text, "After XOR: 0x%08lX\n", block21_xor);
 
-    
         // uint32_t block21_swapped = __bswap32(block21_raw);
         // furi_string_cat_printf(text, "Byte-swapped: 0x%08lX\n", block21_swapped);
 
         // uint32_t block21_xor_swapped = block21_swapped ^ app->mykey.encryption_key;
         // furi_string_cat_printf(text, "Swap then XOR: 0x%08lX\n\n", block21_xor_swapped);
-
 
         // furi_string_cat(text, "--- Test Combinations ---\n");
 
@@ -117,7 +114,6 @@ void cogs_mikai_scene_debug_on_enter(void* context) {
     text_box_set_font(text_box, TextBoxFontText);
     text_box_set_focus(text_box, TextBoxFocusStart);
 
-
     if(app->mykey.is_loaded) {
         DateTime datetime;
         furi_hal_rtc_get_datetime(&datetime);
@@ -136,12 +132,12 @@ void cogs_mikai_scene_debug_on_enter(void* context) {
         Storage* storage = furi_record_open(RECORD_STORAGE);
         File* file = storage_file_alloc(storage);
 
-        if(storage_file_open(file, furi_string_get_cstr(file_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-
+        if(storage_file_open(
+               file, furi_string_get_cstr(file_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
             storage_file_write(file, furi_string_get_cstr(text), furi_string_size(text));
 
-       
-            storage_file_write(file, "\n\n--- Raw Data Dump ---\n", strlen("\n\n--- Raw Data Dump ---\n"));
+            storage_file_write(
+                file, "\n\n--- Raw Data Dump ---\n", strlen("\n\n--- Raw Data Dump ---\n"));
 
             FuriString* line = furi_string_alloc();
             for(size_t i = 0; i < SRIX4K_BLOCKS; i++) {

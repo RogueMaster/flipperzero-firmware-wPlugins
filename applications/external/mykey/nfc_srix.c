@@ -52,9 +52,17 @@ bool mykey_read_from_nfc(COGSMyKaiApp* app) {
     }
 
     FURI_LOG_I(TAG, "Card UID (big-endian): %016llX", app->mykey.uid);
-    FURI_LOG_I(TAG, "UID bytes: %02X %02X %02X %02X %02X %02X %02X %02X",
-        st25tb_data->uid[0], st25tb_data->uid[1], st25tb_data->uid[2], st25tb_data->uid[3],
-        st25tb_data->uid[4], st25tb_data->uid[5], st25tb_data->uid[6], st25tb_data->uid[7]);
+    FURI_LOG_I(
+        TAG,
+        "UID bytes: %02X %02X %02X %02X %02X %02X %02X %02X",
+        st25tb_data->uid[0],
+        st25tb_data->uid[1],
+        st25tb_data->uid[2],
+        st25tb_data->uid[3],
+        st25tb_data->uid[4],
+        st25tb_data->uid[5],
+        st25tb_data->uid[6],
+        st25tb_data->uid[7]);
 
     // Copy blocks to MyKey data structure
     // ST25TB stores data in blocks, we need to read all 128 blocks (512 bytes total)
@@ -76,13 +84,15 @@ bool mykey_read_from_nfc(COGSMyKaiApp* app) {
 
     // Update cached values
     app->mykey.is_loaded = true;
-    app->mykey.is_modified = false;  // Fresh read from card
+    app->mykey.is_modified = false; // Fresh read from card
     app->mykey.is_reset = mykey_is_reset(&app->mykey);
     app->mykey.current_credit = mykey_get_current_credit(&app->mykey);
 
-    FURI_LOG_I(TAG, "Card loaded successfully. Credit: %d cents, Reset: %s",
-               app->mykey.current_credit,
-               app->mykey.is_reset ? "Yes" : "No");
+    FURI_LOG_I(
+        TAG,
+        "Card loaded successfully. Credit: %d cents, Reset: %s",
+        app->mykey.current_credit,
+        app->mykey.is_reset ? "Yes" : "No");
 
     success = true;
 

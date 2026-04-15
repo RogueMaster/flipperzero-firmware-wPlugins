@@ -41,8 +41,7 @@ static COGSMyKaiApp* cogs_mikai_app_alloc() {
         app->view_dispatcher, COGSMyKaiViewTextInput, text_input_get_view(app->text_input));
 
     app->popup = popup_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, COGSMyKaiViewPopup, popup_get_view(app->popup));
+    view_dispatcher_add_view(app->view_dispatcher, COGSMyKaiViewPopup, popup_get_view(app->popup));
 
     app->widget = widget_alloc();
     view_dispatcher_add_view(

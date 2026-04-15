@@ -12,6 +12,7 @@
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 [![Build](https://img.shields.io/badge/build-ufbt-brightgreen?style=flat-square)](https://github.com/flipperdevices/flipperzero-ufbt)
 [![Flipper target](https://img.shields.io/badge/Flipper%20target-7%20%2F%20API%2087.1-orange?style=flat-square)](https://github.com/flipperdevices/flipperzero-firmware)
+[![Tracked on FSD CAN Mod Hub](https://img.shields.io/badge/tracked%20on-FSD%20CAN%20Mod%20Hub-orange?style=flat-square)](https://fsdcanmod.com/project/hypery11-flipper-zero)
 
 > **Tesla FSD region-gate bypass for Flipper Zero.** Enables the FSD UI toggle for users who **already have an active FSD subscription or purchase** but are in a region where the "Traffic Light and Stop Sign Control" option is not exposed in the vehicle menu. HW3, HW4, Legacy HW1/HW2. FSD v14 ready. Also includes nag killer, ISA speed chime suppression, OTA guard, battery preconditioning trigger, and a live BMS dashboard — these work independently of FSD entitlement. Total hardware cost: Flipper Zero + Electronic Cats CAN Bus Add-On + OBD-II cable — or build the [$14 ESP32 port](https://github.com/hypery11/flipper-tesla-fsd/tree/main/esp32) instead.
 

@@ -1,3 +1,14 @@
+## 2.8 — DAS-aware nag killer + anti-detection
+
+- **DAS-aware nag suppression** — the nag killer now gates on `DAS_autopilotHandsOnState` (from `0x39B`). Only echoes when DAS is actively demanding hands-on (states 2-7, 9-10). States 0 (NOT_REQD) and 8 (SUSPENDED) suppress the echo entirely. Reduces spurious bus traffic from ~25 frames/sec to near-zero during normal AP driving. Ported from ev-open-can-tools PR #5 (@zdenekbouresh).
+- **Organic torque variation** — replaces the fixed 1.80 Nm echo with a xorshift32 random walk in [1.00-2.40 Nm] plus brief grip pulses [3.10-3.30 Nm] every 5-9 seconds. A flat torque signal is a telemetry detection vector for VIN-level bans (issue #18).
+- **MCP2515 12 MHz crystal support** — Settings → MCP Crystal now has 16 / 8 / 12 MHz. Fixes Waveshare RS485 CAN HAT compatibility. CNF values: CFG1=0x00, CFG2=0xA2, CFG3=0x02 (from arduino-CAN library).
+- **MCP2515 8 MHz crystal toggle** — same Settings menu, for generic AliExpress modules.
+- **VIN-level ban warning** — README and SECURITY.md now document Tesla's VIN-level FSD bans (confirmed April 2026 by @THER4iN in issue #18). Bans persist across account transfers and re-subscriptions. CAN injection cannot override.
+- **MCP2515 SPI NULL crash fix** (v2.7.1 hotfix) — `mcp_alloc()` now properly initializes the SPI bus handle.
+- **SPI callback const fix** — compiles on Momentum and Xtreme firmware.
+- **fsdcanmod.com badge restored** — community tracker site back online with accurate project tracking.
+
 ## 2.7 — Upstream parity + Momentum fix + X179 guide
 
 - **Ported 5 features from upstream** ([ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools)):

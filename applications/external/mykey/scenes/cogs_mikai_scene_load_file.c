@@ -11,10 +11,14 @@ static bool parse_hex64(const char* str, uint64_t* value) {
     for(size_t i = 0; str[i] != '\0' && i < 16; i++) {
         char c = str[i];
         uint8_t digit;
-        if(c >= '0' && c <= '9') digit = c - '0';
-        else if(c >= 'A' && c <= 'F') digit = c - 'A' + 10;
-        else if(c >= 'a' && c <= 'f') digit = c - 'a' + 10;
-        else break;
+        if(c >= '0' && c <= '9')
+            digit = c - '0';
+        else if(c >= 'A' && c <= 'F')
+            digit = c - 'A' + 10;
+        else if(c >= 'a' && c <= 'f')
+            digit = c - 'a' + 10;
+        else
+            break;
         *value = (*value << 4) | digit;
     }
     return true;
@@ -26,10 +30,14 @@ static bool parse_hex32(const char* str, uint32_t* value) {
     for(size_t i = 0; str[i] != '\0' && i < 8; i++) {
         char c = str[i];
         uint8_t digit;
-        if(c >= '0' && c <= '9') digit = c - '0';
-        else if(c >= 'A' && c <= 'F') digit = c - 'A' + 10;
-        else if(c >= 'a' && c <= 'f') digit = c - 'a' + 10;
-        else break;
+        if(c >= '0' && c <= '9')
+            digit = c - '0';
+        else if(c >= 'A' && c <= 'F')
+            digit = c - 'A' + 10;
+        else if(c >= 'a' && c <= 'f')
+            digit = c - 'a' + 10;
+        else
+            break;
         *value = (*value << 4) | digit;
     }
     return true;
@@ -62,7 +70,8 @@ void cogs_mikai_scene_load_file_on_enter(void* context) {
         Storage* storage = furi_record_open(RECORD_STORAGE);
         File* file = storage_file_alloc(storage);
 
-        if(storage_file_open(file, furi_string_get_cstr(file_path), FSAM_READ, FSOM_OPEN_EXISTING)) {
+        if(storage_file_open(
+               file, furi_string_get_cstr(file_path), FSAM_READ, FSOM_OPEN_EXISTING)) {
             // Read entire file
             size_t file_size = storage_file_size(file);
             char* file_buffer = malloc(file_size + 1);
@@ -86,7 +95,7 @@ void cogs_mikai_scene_load_file_on_enter(void* context) {
                         buf[i] = '\0';
                         if(**p == '\n') (*p)++;
                         return i > 0;
-                    };
+                    }
 
                     // Skip header line
                     read_line(&ptr, line, sizeof(line));
@@ -100,22 +109,27 @@ void cogs_mikai_scene_load_file_on_enter(void* context) {
                             // Read encryption key
                             if(read_line(&ptr, line, sizeof(line))) {
                                 char* key_str = strstr(line, "ENCRYPTION_KEY: ");
-                                if(key_str && parse_hex32(key_str + 16, &app->mykey.encryption_key)) {
-                                    FURI_LOG_I(TAG, "Loaded key: %08lX", app->mykey.encryption_key);
+                                if(key_str &&
+                                   parse_hex32(key_str + 16, &app->mykey.encryption_key)) {
+                                    FURI_LOG_I(
+                                        TAG, "Loaded key: %08lX", app->mykey.encryption_key);
                                     success = true;
 
                                     // Read blocks
                                     for(size_t i = 0; i < SRIX4K_BLOCKS && success; i++) {
                                         if(read_line(&ptr, line, sizeof(line))) {
                                             char* block_str = strstr(line, ": ");
-                                            if(block_str && parse_hex32(block_str + 2, &app->mykey.eeprom[i])) {
+                                            if(block_str &&
+                                               parse_hex32(block_str + 2, &app->mykey.eeprom[i])) {
                                                 // Success
                                             } else {
-                                                FURI_LOG_E(TAG, "Failed to parse block %zu: %s", i, line);
+                                                FURI_LOG_E(
+                                                    TAG, "Failed to parse block %zu: %s", i, line);
                                                 success = false;
                                             }
                                         } else {
-                                            FURI_LOG_E(TAG, "Failed to read line for block %zu", i);
+                                            FURI_LOG_E(
+                                                TAG, "Failed to read line for block %zu", i);
                                             success = false;
                                         }
                                     }
@@ -136,7 +150,7 @@ void cogs_mikai_scene_load_file_on_enter(void* context) {
 
             if(success) {
                 app->mykey.is_loaded = true;
-                app->mykey.is_modified = false;  // Fresh load from file
+                app->mykey.is_modified = false; // Fresh load from file
                 app->mykey.is_reset = mykey_is_reset(&app->mykey);
                 app->mykey.current_credit = mykey_get_current_credit(&app->mykey);
 
