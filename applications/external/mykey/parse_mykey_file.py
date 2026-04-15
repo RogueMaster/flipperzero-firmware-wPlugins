@@ -8,24 +8,50 @@ Parses .myk files created by the COGES MyKai Flipper Zero application.
 import sys
 from datetime import datetime
 
+
 def bswap32(val):
     """Byte swap 32-bit value"""
-    return ((val & 0xFF) << 24) | ((val & 0xFF00) << 8) | ((val & 0xFF0000) >> 8) | ((val >> 24) & 0xFF)
+    return (
+        ((val & 0xFF) << 24)
+        | ((val & 0xFF00) << 8)
+        | ((val & 0xFF0000) >> 8)
+        | ((val >> 24) & 0xFF)
+    )
+
 
 def encode_decode_block(block):
     """libmikai encode_decode function"""
-    block ^= ((block & 0x00C00000) << 6 | (block & 0x0000C000) << 12 | (block & 0x000000C0) << 18 |
-              (block & 0x000C0000) >> 6 | (block & 0x00030000) >> 12 | (block & 0x00000300) >> 6)
-    block ^= ((block & 0x30000000) >> 6 | (block & 0x0C000000) >> 12 | (block & 0x03000000) >> 18 |
-              (block & 0x00003000) << 6 | (block & 0x00000030) << 12 | (block & 0x0000000C) << 6)
-    block ^= ((block & 0x00C00000) << 6 | (block & 0x0000C000) << 12 | (block & 0x000000C0) << 18 |
-              (block & 0x000C0000) >> 6 | (block & 0x00030000) >> 12 | (block & 0x00000300) >> 6)
+    block ^= (
+        (block & 0x00C00000) << 6
+        | (block & 0x0000C000) << 12
+        | (block & 0x000000C0) << 18
+        | (block & 0x000C0000) >> 6
+        | (block & 0x00030000) >> 12
+        | (block & 0x00000300) >> 6
+    )
+    block ^= (
+        (block & 0x30000000) >> 6
+        | (block & 0x0C000000) >> 12
+        | (block & 0x03000000) >> 18
+        | (block & 0x00003000) << 6
+        | (block & 0x00000030) << 12
+        | (block & 0x0000000C) << 6
+    )
+    block ^= (
+        (block & 0x00C00000) << 6
+        | (block & 0x0000C000) << 12
+        | (block & 0x000000C0) << 18
+        | (block & 0x000C0000) >> 6
+        | (block & 0x00030000) >> 12
+        | (block & 0x00000300) >> 6
+    )
     return block & 0xFFFFFFFF
+
 
 def parse_mykey_file(filename):
     """Parse a .myk file and display its contents"""
     try:
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             lines = f.readlines()
     except FileNotFoundError:
         print(f"Error: File '{filename}' not found")
@@ -92,7 +118,7 @@ def parse_mykey_file(filename):
     # Check if reset
     block_18 = blocks.get(0x18, 0)
     block_19 = blocks.get(0x19, 0)
-    is_reset = (block_18 == 0x8FCD0F48 and block_19 == 0xC0820007)
+    is_reset = block_18 == 0x8FCD0F48 and block_19 == 0xC0820007
     print(f"Status: {'Reset' if is_reset else 'Active'}")
 
     # Parse transaction history
@@ -101,8 +127,9 @@ def parse_mykey_file(filename):
 
     if block_3C != 0xFFFFFFFF:
         block_3C_decrypted = block_3C ^ block_07
-        starting_offset = ((block_3C_decrypted & 0x30000000) >> 28) | \
-                         ((block_3C_decrypted & 0x00100000) >> 18)
+        starting_offset = ((block_3C_decrypted & 0x30000000) >> 28) | (
+            (block_3C_decrypted & 0x00100000) >> 18
+        )
 
         if starting_offset < 8:
             # Count transactions
@@ -117,17 +144,18 @@ def parse_mykey_file(filename):
                 year = 2000 + ((txn_block >> 16) & 0x7F)
                 credit = txn_block & 0xFFFF
 
-                transactions.append({
-                    'date': f"{day:02d}/{month:02d}/{year}",
-                    'credit': credit
-                })
+                transactions.append(
+                    {"date": f"{day:02d}/{month:02d}/{year}", "credit": credit}
+                )
 
             if transactions:
                 print("\n" + "=" * 60)
                 print(" Transaction History (Newest First)")
                 print("=" * 60)
                 for i, txn in enumerate(reversed(transactions), 1):
-                    print(f"{i}. {txn['date']} - {txn['credit']} cents ({txn['credit']/100:.2f} EUR)")
+                    print(
+                        f"{i}. {txn['date']} - {txn['credit']} cents ({txn['credit']/100:.2f} EUR)"
+                    )
 
     # Display interesting blocks
     print("\n" + "=" * 60)
@@ -139,6 +167,7 @@ def parse_mykey_file(filename):
             print(f"Block 0x{block_num:02X}: 0x{blocks[block_num]:08X}")
 
     return True
+
 
 def main():
     if len(sys.argv) < 2:
@@ -155,6 +184,7 @@ def main():
     else:
         sys.exit(1)
 
+
 if __name__ == "__main__":
     main()
-#culo
+# culo

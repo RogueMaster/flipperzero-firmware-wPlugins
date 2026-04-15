@@ -83,6 +83,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
 - Added: [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey)
 - Updated: [Tesla Mod v2.8 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- [ESP Flasher: Bump Marauder v1.11.1 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.11.1)
 
 <a name="release"></a>
 
