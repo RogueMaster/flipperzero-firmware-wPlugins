@@ -82,6 +82,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FlipPass v1.1 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
 - Updated: [Tesla Mod v2.7.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Added: [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey)
 
 <a name="release"></a>
 
@@ -518,6 +519,7 @@ $ ./fbt dolphin_ext
 - [Clock v1.2 (By kowalski7cc)](https://github.com/kowalski7cc/flipperzero-firmware/tree/clock-v1)
 - [CO2 Logger v0.4 (By harryob2)](https://github.com/harryob2/co2_logger) `Req: MH-Z19`
 - [Coffee-EEPROM (By wh00hw)](https://github.com/wh00hw/Coffee-EEPROM-FAP) For ethical pentest only.
+- [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey)
 - [Combo Cracker v0.5 (By CharlesTheGreat77)](https://github.com/CharlesTheGreat77/ComboCracker-FZ)
 - [Continuity Tester (By benallen-dev)](https://github.com/benallen-dev/flipper-zero-apps/tree/main/continuity)
 - [Cookie Clicker v1.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/hid/hid_cookie)

@@ -1,16 +1,10 @@
-# COGS MyKai 
 App(
     appid="cogs_mikai",
-    name="COGS - MyKey",
+    name="COGS MyKey",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="cogs_mikai_app",
     stack_size=4 * 1024,
-    fap_category="NFC",
-    fap_version="1.1",
     fap_icon="cogs_mikai.png",
-    fap_description="Read and edit COGES MyKey NFC cards.",
-    fap_author="luhf",
-    fap_weburl="https://monocul.us/",
     fap_icon_assets="images",
     sources=[
         "cogs_mikai_app.c",
@@ -29,11 +23,12 @@ App(
         "scenes/cogs_mikai_scene_debug.c",
         "scenes/cogs_mikai_scene_about.c",
     ],
-    requires=[
-        "gui",
-        "dialogs",
-    ],
     provides=[
         "cogs_mikai",
     ],
+    fap_category="NFC",
+    fap_author="luhf",
+    fap_weburl="https://github.com/lupettohf/mykey",
+    fap_version="1.1",
+    fap_description="Read and edit COGES MyKey NFC cards.",
 )
