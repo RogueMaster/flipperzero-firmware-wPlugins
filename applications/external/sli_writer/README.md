@@ -15,11 +15,11 @@ Sadly it is impossible to read a tag in privacy mode due to Android limitations,
 ## 🏷️ Supported Tags
 
 ### SLIX2 / ISO15693 (Magic UID)
-You can use:
-https://aliexpress.com/item/1005006949791537.html
 
-⚠️ One user reported that **round tags are not working**,  
-so it’s recommended to **stick with rectangular ones**.
+Used to be https://aliexpress.com/item/1005006949791537.html but the chip changed and it is no more compatible (rectangulars where working perfectly).
+
+There is now  "TAG-it TI2048" inscribed and according to comments it seems to be a weird chip where you need to reset original UID before write data.
+I don't have this kind of tags so I can't make them work with app.
 
 ---
 
