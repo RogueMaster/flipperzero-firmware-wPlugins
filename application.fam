@@ -1,0 +1,14 @@
+App(
+    appid="ghouls",
+    name="Ghouls",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ghouls_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO",
+    fap_icon_assets="assets",
+    fap_description="3D Round-based survival game", 
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/Ghouls-Flipper",
+    fap_version="0.1"
+)
