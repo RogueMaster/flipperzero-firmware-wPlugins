@@ -11,6 +11,7 @@
 #include "kia_v3_v4.h"
 #include "kia_v5.h"
 #include "kia_v6.h"
+#include "kia_v7.h"
 #include "ford_v0.h"
 #include "fiat_v0.h"
 #include "fiat_v1.h"
