@@ -115,6 +115,16 @@ typedef struct {
     // Source: ev-open-can-tools readGTWAutopilot()
     int8_t gtw_autopilot_tier; // -1 = not yet read
 
+    // --- 0x7FF shield (ban defense) ---
+    // Snapshots of all 8 GTW_carConfig mux frames in "healthy" state.
+    // When shield is armed: any incoming 0x7FF that differs from snapshot
+    // is immediately retransmitted with the snapshot data, blocking
+    // server-side ban pushes at the CAN layer.
+    uint8_t gtw_snapshot[8][8]; // [mux][byte0..7], 64 bytes total
+    bool gtw_snapshot_valid[8]; // per-mux: has this mux been captured?
+    bool gtw_shield_armed; // true = actively blocking changes
+    uint32_t gtw_shield_blocks; // counter: how many frames we've blocked
+
     // --- upstream feature flags ---
     bool enhanced_autopilot; // when true, mux=1 also sets bit46 (EAP/summon)
     bool speed_profile_locked; // when true, follow distance won't override profile
@@ -261,6 +271,14 @@ void fsd_handle_das_settings(FSDState* state, const CANFRAME* frame);
  *  byte[5] bits 4:2 → 0=NONE 1=HIGHWAY 2=ENHANCED 3=SELF_DRIVING 4=BASIC.
  *  Source: ev-open-can-tools readGTWAutopilot(). */
 void fsd_handle_gtw_autopilot_tier(FSDState* state, const CANFRAME* frame);
+
+/** 0x7FF shield — snapshot healthy state and block changes.
+ *  Call on every 0x7FF frame. When shield is not armed, captures the
+ *  current frame as the "healthy" snapshot. When armed, compares
+ *  incoming frame against snapshot and returns true if the frame was
+ *  modified (caller should retransmit the modified frame to override
+ *  the Gateway's banned version). */
+bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame);
 
 /** Modify UI_trackModeSettings (0x313) to set track mode ON.
  *  byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn) + recalc checksum byte[7].

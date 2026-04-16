@@ -435,6 +435,54 @@ void fsd_handle_gtw_autopilot_tier(FSDState* state, const CANFRAME* frame) {
     state->gtw_autopilot_tier = (int8_t)((frame->buffer[5] >> 2) & 0x07);
 }
 
+// --- 0x7FF Shield (ban defense) ---
+//
+// Phase 1 (shield NOT armed): learn the "healthy" 0x7FF state by
+// capturing each mux frame. Once all 8 muxes are seen, the snapshot
+// is complete and can be armed.
+//
+// Phase 2 (shield armed): compare every incoming 0x7FF against the
+// snapshot. If ANY byte differs, overwrite the frame data with the
+// snapshot and return true — the caller retransmits immediately,
+// racing the Gateway's banned frame so the AP ECU sees our healthy
+// version.
+
+bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame) {
+    if(frame->data_lenght < 8) return false;
+    uint8_t mux = frame->buffer[0] & 0x07;
+
+    if(!state->gtw_shield_armed) {
+        // Learning phase: capture snapshot
+        if(!state->gtw_snapshot_valid[mux]) {
+            for(int i = 0; i < 8; i++)
+                state->gtw_snapshot[mux][i] = frame->buffer[i];
+            state->gtw_snapshot_valid[mux] = true;
+        }
+        return false;
+    }
+
+    // Armed: compare against snapshot
+    if(!state->gtw_snapshot_valid[mux]) return false;
+
+    bool changed = false;
+    for(int i = 0; i < 8; i++) {
+        if(frame->buffer[i] != state->gtw_snapshot[mux][i]) {
+            changed = true;
+            break;
+        }
+    }
+
+    if(changed) {
+        // Overwrite with healthy snapshot
+        for(int i = 0; i < 8; i++)
+            frame->buffer[i] = state->gtw_snapshot[mux][i];
+        state->gtw_shield_blocks++;
+        return true; // caller should retransmit
+    }
+
+    return false;
+}
+
 // --- Track Mode inject (0x313 / 787) ---
 // Source: ev-open-can-tools HW3Handler frame.id == 787
 // byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn)

@@ -1,3 +1,11 @@
+## 2.9 — Ban Shield
+
+- **Ban Shield** — a CAN-layer immune system that freezes `GTW_carConfig (0x7FF)` in its healthy state. When Tesla pushes a server-side VIN ban, the Gateway changes specific bits in 0x7FF to disable TLSSC. The Ban Shield detects these changes in real-time and immediately retransmits the healthy snapshot, blocking the ban at the CAN frame level before the AP ECU processes it.
+  - **Phase 1 (learning):** Enable "Ban Shield" in Settings. During normal driving, the shield automatically captures all 8 GTW_carConfig mux frames as the "healthy" baseline. No user action needed.
+  - **Phase 2 (armed):** Once the baseline is captured, any incoming 0x7FF frame that differs from the snapshot is instantly overwritten and retransmitted with the healthy data. The `gtw_shield_blocks` counter tracks how many frames were blocked.
+  - All GTW_carConfig signals are static hardware configuration (dasHw, country, drivetrainType, seatHeaters, autopilot tier, etc.) — they never change during normal driving. A change means either Tesla pushed a ban or a service center modified the config.
+  - **Note:** Whether the AP ECU reads 0x7FF from CAN (where our shield works) or from Ethernet (where it doesn't) is still unverified. Community testing needed.
+
 ## 2.8 — DAS-aware nag killer + anti-detection
 
 - **DAS-aware nag suppression** — the nag killer now gates on `DAS_autopilotHandsOnState` (from `0x39B`). Only echoes when DAS is actively demanding hands-on (states 2-7, 9-10). States 0 (NOT_REQD) and 8 (SUSPENDED) suppress the echo entirely. Reduces spurious bus traffic from ~25 frames/sec to near-zero during normal AP driving. Ported from ev-open-can-tools PR #5 (@zdenekbouresh).

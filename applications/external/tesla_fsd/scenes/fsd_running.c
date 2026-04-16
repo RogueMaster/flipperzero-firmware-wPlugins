@@ -144,6 +144,7 @@ static int32_t fsd_running_worker(void* context) {
     state.extra_highbeam_strobe = app->extra_highbeam_strobe;
     state.extra_turn_left = app->extra_turn_left;
     state.extra_turn_right = app->extra_turn_right;
+    state.gtw_shield_armed = app->gtw_shield;
     furi_mutex_release(app->mutex);
 
     // Listen-only mode → MCP2515 hardware listen-only register
@@ -287,6 +288,10 @@ static int32_t fsd_running_worker(void* context) {
                     fsd_handle_das_settings(&state, &frame);
                 } else if(frame.canId == CAN_ID_GTW_CONFIG_ETH) {
                     fsd_handle_gtw_autopilot_tier(&state, &frame);
+                    // 0x7FF Shield: learn or defend
+                    if(fsd_handle_gtw_shield(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
                 }
 
                 // Track Mode inject (Service mode only, 0x313)
