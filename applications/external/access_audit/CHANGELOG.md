@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## [1.8.1]: MIFARE Classic scan fix
+
+### Fixed
+- **MIFARE Classic 1K/4K/Mini cards now scan correctly**: `MfClassicPollerEventTypeCardDetected` was hitting the catch-all handler and aborting the read before sector 0 was ever requested. Added explicit handling for `CardDetected` and `DataUpdate` events with `NfcCommandContinue`, and guarded the catch-all so it cannot overwrite a successful result
+
 ## [1.8.0]: Version displayed on scan screen
 
 ### Added

@@ -539,6 +539,18 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
         return NfcCommandContinue;
     }
 
+    /* Card detected event fires before the first RequestReadSector — let it pass. */
+    if(cl_event->type == MfClassicPollerEventTypeCardDetected) {
+        return NfcCommandContinue;
+    }
+
+    /* DataUpdate fires periodically during MfClassicPollerModeRead to report
+     * progress. We stop after sector 0 so it rarely fires, but handle it
+     * explicitly to avoid hitting the catch-all before sector 0 is reached. */
+    if(cl_event->type == MfClassicPollerEventTypeDataUpdate) {
+        return NfcCommandContinue;
+    }
+
     if(cl_event->type == MfClassicPollerEventTypeRequestReadSector &&
        cl_event->data->read_sector_request_data.sector_num == 0) {
         static const uint8_t DEFAULT_KEYS[][MF_CLASSIC_KEY_SIZE] = {
@@ -606,9 +618,11 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
         return NfcCommandStop;
     }
 
-    /* Fail, CardLost, or any event before sector 0 is requested. */
+    /* CardLost, Fail, or any unhandled event — do not overwrite a successful result. */
     furi_mutex_acquire(p->mutex, FuriWaitForever);
-    p->state = ProviderStateReadFailed;
+    if(p->state != ProviderStateDone) {
+        p->state = ProviderStateReadFailed;
+    }
     furi_mutex_release(p->mutex);
     return NfcCommandStop;
 }
