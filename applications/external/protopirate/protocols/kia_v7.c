@@ -173,17 +173,6 @@ static void kia_v7_decode_key_decoder(SubGhzProtocolDecoderKiaV7* instance) {
         &instance->crc_valid);
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
-static void kia_v7_decode_key_encoder(SubGhzProtocolEncoderKiaV7* instance) {
-    kia_v7_decode_key_common(
-        &instance->generic,
-        &instance->decoded_button,
-        &instance->fixed_high_byte,
-        &instance->crc_calculated,
-        &instance->crc_raw,
-        &instance->crc_valid);
-}
-
 static uint64_t kia_v7_encode_key(
     uint8_t fixed_high_byte,
     uint32_t serial,
@@ -209,6 +198,17 @@ static uint64_t kia_v7_encode_key(
     }
 
     return kia_v7_bytes_to_u64_be(bytes);
+}
+
+#ifdef ENABLE_EMULATE_FEATURE
+static void kia_v7_decode_key_encoder(SubGhzProtocolEncoderKiaV7* instance) {
+    kia_v7_decode_key_common(
+        &instance->generic,
+        &instance->decoded_button,
+        &instance->fixed_high_byte,
+        &instance->crc_calculated,
+        &instance->crc_raw,
+        &instance->crc_valid);
 }
 
 static bool kia_v7_encoder_get_upload(SubGhzProtocolEncoderKiaV7* instance) {
