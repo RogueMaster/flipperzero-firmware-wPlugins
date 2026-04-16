@@ -123,6 +123,10 @@ Same C source file, same features — compile-time `#ifdef` switching selects th
 
 > **Why does BLE require custom firmware?** Stock Flipper firmware doesn't expose the BLE HID APIs needed for wireless keyboard emulation. [Momentum](https://momentum-fw.dev) and [Unleashed](https://github.com/DarkFlippers/unleashed-firmware) firmware add the `ble_profile` library that makes wireless HID possible. Installing Momentum takes ~2 minutes and doesn't void your warranty — it's fully reversible.
 
+**Branch layout:**
+- [`main`](https://github.com/Wet-wr-Labs/claupper) — USB build only. Submitted to the Official Flipper App Catalog, so its manifest declares a single `App()` (catalog CI builds everything in `application.fam` and won't link the BLE app on stock firmware).
+- [`ble`](https://github.com/Wet-wr-Labs/claupper/tree/ble) — Dual-build manifest (USB + BLE) for Momentum / Unleashed users who want both `.fap`s from one compile.
+
 **USB version submitted to the [Official Flipper App Catalog](https://github.com/flipperdevices/flipper-application-catalog/pull/987)** — pending review.
 
 ---

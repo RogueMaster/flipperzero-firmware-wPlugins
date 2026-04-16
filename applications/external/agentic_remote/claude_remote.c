@@ -30,7 +30,7 @@ static const NotificationMessage message_brightness_dim = {
 };
 
 static const NotificationSequence sequence_backlight_dim = {
-    &message_display_backlight_enforce_on,
+    &message_display_backlight_on,
     &message_brightness_dim,
     NULL,
 };
@@ -884,6 +884,10 @@ typedef struct {
     uint32_t combo_tick;
     bool macros_from_remote; /* true if macros opened via Left+Down combo in remote */
     bool usb_hid_active; /* true if USB HID was initialized on demand (BLE build) */
+
+    /* backlight wake-gate: first press after screen sleep wakes only */
+    uint32_t last_input_tick;
+    bool backlight_awake;
 } ClaudeRemoteState;
 
 /* ── Utility ── */
@@ -1173,7 +1177,8 @@ static inline uint32_t dc_timeout(const ClaudeRemoteState* state) {
     if(state->dc_speed == 2) return 200;
     return 300;
 }
-#define FLASH_DURATION_TICKS 200 /* ~200ms visual feedback */
+#define FLASH_DURATION_TICKS  200 /* ~200ms visual feedback */
+#define BACKLIGHT_SLEEP_TICKS 30000 /* 30s idle before screen sleeps */
 
 /* ── Macro string sender (needs SEND_HID macro) ── */
 
@@ -1337,6 +1342,34 @@ static void flush_pending(ClaudeRemoteState* state) {
         if(state->haptics_enabled) {
             notification_message(state->notifications, &sequence_single_vibro);
         }
+    }
+}
+
+/* Flush a deferred single-press in Macros mode: send the selected macro string.
+ * Must be called while mutex is held; releases/reacquires for the blocking send. */
+static void flush_macro_pending(ClaudeRemoteState* state) {
+    if(!state->dc_pending) return;
+    state->dc_pending = false;
+    if(!state->hid_connected || state->macro_count == 0) return;
+    if(state->dc_count >= 2) return; /* double already fired */
+
+    char macro_buf[MACRO_MAX_LEN + 1];
+    memcpy(macro_buf, state->macros[state->macro_index], sizeof(macro_buf));
+    furi_mutex_release(state->mutex);
+    if(strcmp(macro_buf, "{update}") == 0) {
+        if(state->os_mode == 0) {
+            send_macro_string(state, "brew upgrade claude-code");
+        } else {
+            send_macro_string(state, "npm update -g @anthropic-ai/claude-code");
+        }
+    } else {
+        send_macro_string(state, macro_buf);
+    }
+    furi_mutex_acquire(state->mutex, FuriWaitForever);
+    state->flash_label = "Sent";
+    state->flash_tick = furi_get_tick();
+    if(state->haptics_enabled) {
+        notification_message(state->notifications, &sequence_single_vibro);
     }
 }
 
@@ -2339,6 +2372,12 @@ static void draw_macros(Canvas* canvas, ClaudeRemoteState* state) {
 
         draw_scrollbar(canvas, 62, 18, 125, state->macro_index, state->macro_count);
     }
+
+    /* Flash label for Enter/Sent feedback */
+    if(state->flash_label && (furi_get_tick() - state->flash_tick) < FLASH_DURATION_TICKS) {
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 32, 120, AlignCenter, AlignCenter, state->flash_label);
+    }
 }
 
 /* ── Draw dispatcher ── */
@@ -3001,12 +3040,14 @@ static bool handle_macros_input(ClaudeRemoteState* state, InputEvent* event, Vie
 
     switch(event->key) {
     case InputKeyUp:
+        state->dc_pending = false; /* cancel pending macro on scroll */
         if(state->macro_index > 0) {
             state->macro_index--;
             state->macro_scroll_tick = furi_get_tick();
         }
         break;
     case InputKeyDown:
+        state->dc_pending = false; /* cancel pending macro on scroll */
         if(state->macro_count > 0 && state->macro_index < state->macro_count - 1) {
             state->macro_index++;
             state->macro_scroll_tick = furi_get_tick();
@@ -3014,24 +3055,31 @@ static bool handle_macros_input(ClaudeRemoteState* state, InputEvent* event, Vie
         break;
     case InputKeyOk:
         if(state->macro_count > 0 && state->hid_connected) {
-            /* Release mutex during macro send so draw_callback isn't blocked */
-            char macro_buf[MACRO_MAX_LEN + 1];
-            memcpy(macro_buf, state->macros[state->macro_index], sizeof(macro_buf));
-            furi_mutex_release(state->mutex);
-            /* Smart macros: expand tokens based on settings */
-            if(strcmp(macro_buf, "{update}") == 0) {
-                if(state->os_mode == 0) {
-                    send_macro_string(state, "brew upgrade claude-code");
-                } else {
-                    send_macro_string(state, "npm update -g @anthropic-ai/claude-code");
+            uint32_t now = furi_get_tick();
+            if(state->dc_pending && state->dc_key == InputKeyOk &&
+               (now - state->dc_tick) < dc_timeout(state)) {
+                /* Double-click OK: send Enter to execute the typed command */
+                state->dc_pending = false;
+                state->dc_count = 2;
+                SEND_HID(state, HID_KEYBOARD_RETURN);
+                state->flash_label = "Enter";
+                state->flash_tick = furi_get_tick();
+                FURI_LOG_I(TAG, "Macro double-click: sent Enter");
+                if(state->haptics_enabled) {
+                    notification_message(state->notifications, &sequence_double_vibro);
                 }
             } else {
-                send_macro_string(state, macro_buf);
+                /* First click: defer, wait for possible double-click */
+                flush_macro_pending(state);
+                state->dc_key = InputKeyOk;
+                state->dc_tick = now;
+                state->dc_pending = true;
+                state->dc_count = 1;
             }
-            furi_mutex_acquire(state->mutex, FuriWaitForever);
         }
         break;
     case InputKeyBack:
+        state->dc_pending = false;
         if(state->macros_from_remote) {
             state->mode = ModeRemote;
             notification_message(state->notifications, &sequence_backlight_dim);
@@ -3064,6 +3112,8 @@ static int32_t claude_remote_main(void* p) {
     memset(state, 0, sizeof(ClaudeRemoteState));
     state->mode = ModeSplash;
     state->splash_start = furi_get_tick();
+    state->last_input_tick = furi_get_tick();
+    state->backlight_awake = true;
     state->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
     state->notifications = furi_record_open(RECORD_NOTIFICATION);
@@ -3132,6 +3182,19 @@ static int32_t claude_remote_main(void* p) {
         }
 
         if(status == FuriStatusOk) {
+            state->last_input_tick = furi_get_tick();
+
+            /* Wake-gate: if screen is asleep in Remote/Macros, first press
+             * just wakes the backlight without sending any command. */
+            if(!state->backlight_awake &&
+               (state->mode == ModeRemote || state->mode == ModeMacros)) {
+                state->backlight_awake = true;
+                notification_message(state->notifications, &sequence_backlight_dim);
+                furi_mutex_release(state->mutex);
+                view_port_update(view_port);
+                continue;
+            }
+
             switch(state->mode) {
             case ModeSplash:
                 break; /* handled above */
@@ -3177,10 +3240,19 @@ static int32_t claude_remote_main(void* p) {
 #else
             state->hid_connected = furi_hal_hid_is_connected();
 #endif
-            /* flush pending single-press after double-click timeout (remote only) */
-            if(state->mode == ModeRemote && state->dc_pending &&
-               (furi_get_tick() - state->dc_tick) >= dc_timeout(state)) {
-                flush_pending(state);
+            /* flush pending single-press after double-click timeout */
+            if(state->dc_pending && (furi_get_tick() - state->dc_tick) >= dc_timeout(state)) {
+                if(state->mode == ModeRemote) {
+                    flush_pending(state);
+                } else if(state->mode == ModeMacros) {
+                    flush_macro_pending(state);
+                }
+            }
+
+            /* Mark screen asleep after idle timeout */
+            if(state->backlight_awake &&
+               (furi_get_tick() - state->last_input_tick) >= BACKLIGHT_SLEEP_TICKS) {
+                state->backlight_awake = false;
             }
         }
 
