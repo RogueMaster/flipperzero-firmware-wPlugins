@@ -1,18 +1,19 @@
 #pragma once
+#include <engine_config.hpp>
 
 // general
-#define ENGINE_MAX_TRIANGLES_PER_SPRITE 64
+// #define ENGINE_MAX_TRIANGLES_PER_SPRITE 64
 
 // logging
 // #define ENGINE_LOG_INCLUDE "furi.h"
-#define ENGINE_LOG_INFO(...) // FURI_LOG_I("Ghouls", __VA_ARGS__) // (const char *format, ...) -> void
+// #define ENGINE_LOG_INFO(...) // FURI_LOG_I("Ghouls", __VA_ARGS__) // (const char *format, ...) -> void
 
 // memory
-#define ENGINE_MEM_INCLUDE "stdlib.h"
-#define ENGINE_MEM_NEW new
-#define ENGINE_MEM_DELETE delete
-#define ENGINE_MEM_MALLOC malloc
-#define ENGINE_MEM_FREE free
+// #define ENGINE_MEM_INCLUDE "stdlib.h"
+// #define ENGINE_MEM_NEW new
+// #define ENGINE_MEM_DELETE delete
+// #define ENGINE_MEM_MALLOC malloc
+// #define ENGINE_MEM_FREE free
 
 // delay
 // #define ENGINE_DELAY_INCLUDE "furi.h"
