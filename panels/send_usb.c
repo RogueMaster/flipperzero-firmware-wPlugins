@@ -75,8 +75,12 @@ void send_usb_start(IEIcon* icon, SendAsType send_as, bool current_frame_only) {
     }
     sendModel.icon = icon;
     for(int l = 0; l < MAX_LINES; l++) {
-        sendModel.lines[l] = NULL;
+        if(sendModel.lines[l]) {
+            free(sendModel.lines[l]);
+            sendModel.lines[l] = NULL;
+        }
     }
+    sendModel.num_lines = 0;
 
     sendModel.usb_if_prev = furi_hal_usb_get_config();
     furi_hal_usb_unlock();
@@ -94,6 +98,7 @@ void send_usb_stop() {
     for(int l = 0; l < MAX_LINES; l++) {
         if(sendModel.lines[l]) {
             free(sendModel.lines[l]);
+            sendModel.lines[l] = NULL;
         }
     }
     sendModel.num_lines = 0;
@@ -159,7 +164,12 @@ void send_usb_send_icon() {
         } else {
             for(size_t f = 0; f < sendModel.icon->frame_count; f++) {
                 char progress[32];
-                snprintf(progress, sizeof(progress), "Sending: %d/%d", f + 1, sendModel.icon->frame_count);
+                snprintf(
+                    progress,
+                    sizeof(progress),
+                    "Sending: %d/%d",
+                    f + 1,
+                    sendModel.icon->frame_count);
                 update_line(progress);
                 icon_text = png_file_generate_frame(sendModel.icon, f);
                 send_usb_send_str(furi_string_get_cstr(icon_text));

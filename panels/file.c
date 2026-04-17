@@ -49,7 +49,7 @@ const FileTool FileTool_LEFT[File_COUNT] = {File_NONE, File_New, File_Open, File
 const FileTool FileTool_RIGHT[File_COUNT] =
     {File_Open, File_Save, File_Rename, File_NONE, File_NONE};
 
-FileTool tool = File_New;
+static FileTool tool = File_New;
 
 typedef struct {
     FuriApiLock lock;
@@ -132,7 +132,6 @@ bool file_open_file_browser_callback(
     void* context,
     uint8_t** icon,
     FuriString* item_name) {
-    UNUSED(path);
     UNUSED(context);
     UNUSED(item_name);
     char ext[5];

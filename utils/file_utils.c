@@ -306,7 +306,7 @@ bool png_file_save(IEIcon* icon, bool current_frame_only) {
 
 void png_init_cb(pngle_t* pngle, uint32_t width, uint32_t height) {
     IEIcon* icon = pngle_get_user_data(pngle);
-    assert(icon->data == NULL);
+    assert(icon->frames == NULL);
     assert(width > 0);
     assert(height > 0);
     ie_icon_reset(icon, width, height, NULL);

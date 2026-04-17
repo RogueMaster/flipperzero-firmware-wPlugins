@@ -222,7 +222,7 @@ static inline void image_write_iend_chunk(image_t* image) {
 }
 
 void image_save(image_t* image) {
-    assert(image->file != NULL && image->bytes != NULL);
+    assert(image->file != NULL || image->bytes != NULL);
     image_write_header(image);
     image_write_ihdr_chunk(image);
     image_write_idat_chunk(image);

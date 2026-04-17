@@ -63,6 +63,7 @@ void dialog_setup(const char* msg, DialogPrompt prompt, DialogCallback callback,
 void dialog_free_dialog() {
     if(dialogModel.message) {
         furi_string_free(dialogModel.message);
+        dialogModel.message = NULL;
     }
 }
 

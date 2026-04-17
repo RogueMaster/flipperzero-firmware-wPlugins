@@ -54,6 +54,10 @@ void canvas_free_canvas() {
 // Sets up the view port size based on the scale setting.
 // Repositions the cursor to the middle of the viewport
 void canvas_set_scale(size_t scale_setting) {
+    if(scale_setting == 0) {
+        FURI_LOG_E(TAG, "Can not set canvas scale to 0");
+        return;
+    }
     // Auto minimum scale is always 2x - so we can actually SEE the pixels
     // also, let's constrain the canvas to the 64x64 area - always
     // but our drawing area needs to be a little less - like 60x60? <-- do we even do this?

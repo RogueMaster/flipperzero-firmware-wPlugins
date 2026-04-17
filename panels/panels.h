@@ -11,6 +11,7 @@
 #include "fps.h"
 #include "send_usb.h"
 #include "dialog.h"
+#include "about.h"
 
 // Define common panel methods
 #define PANEL_DECLARE(PANEL)                          \

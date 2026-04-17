@@ -186,6 +186,7 @@ IconEdit* iconedit_app_alloc() {
 
 void iconedit_app_free(IconEdit* app) {
     dialog_free_dialog();
+    about_free();
 
     ie_icon_free(app->icon);
     canvas_free_canvas();

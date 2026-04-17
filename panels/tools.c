@@ -145,7 +145,7 @@ void tools_draw(Canvas* canvas, void* context) {
     }
     // current frame
     char cf[16];
-    snprintf(cf, sizeof(cf), "f%d/%d", app->icon->current_frame + 1, app->icon->frame_count);
+    snprintf(cf, sizeof(cf), "f%zu/%zu", app->icon->current_frame + 1, app->icon->frame_count);
     ie_draw_str(canvas, 64 - 4, 64 - 10, AlignRight, AlignBottom, Font5x7, cf);
 }
 

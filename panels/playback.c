@@ -22,7 +22,7 @@ void playback_start(IEIcon* icon) {
 
     // wipe out any previous animation data
     if(playbackModel.anim) {
-        assert(false);
+        FURI_LOG_W(TAG, "Playback animation already exists, cleaning up");
         ie_icon_animation_stop(playbackModel.anim);
         ie_icon_animation_free(playbackModel.anim);
     }

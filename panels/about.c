@@ -10,6 +10,15 @@
 #include <iconedit_icons.h>
 #include <gui/icon_i.h>
 
+static uint8_t* about_icon_pixels = NULL;
+
+void about_free() {
+    if(about_icon_pixels) {
+        free(about_icon_pixels);
+        about_icon_pixels = NULL;
+    }
+}
+
 void about_draw(Canvas* canvas, void* context) {
     UNUSED(context);
 
@@ -24,26 +33,18 @@ void about_draw(Canvas* canvas, void* context) {
     ie_draw_str(canvas, 8, 48, AlignLeft, AlignTop, Font5x7, "/rdefeo");
     ie_draw_str(canvas, 14, 56, AlignLeft, AlignTop, Font5x7, "/iconedit");
 
-    // hijack the canvas and draw our app icon!
-    // we should probably do all of this decoding once, and not on every draw :/
+    // Decode the app icon once and cache it
+    if(!about_icon_pixels) {
+        const uint8_t* xbmc = icon_get_frame_data(&I_iconedit, 0);
+        CompressIcon* compress = compress_icon_alloc((128u * 64 / 8));
+        uint8_t* xbm = NULL;
+        compress_icon_decode(compress, xbmc, &xbm);
+        about_icon_pixels = xbm_decode(xbm, 10, 10);
+        compress_icon_free(compress);
+    }
 
-    const uint8_t* xbmc = icon_get_frame_data(&I_iconedit, 0);
-
-    // #define ICON_DECOMPRESSOR_BUFFER_SIZE (128u * 64 / 8)
-    CompressIcon* compress = compress_icon_alloc((128u * 64 / 8));
-    uint8_t* xbm = NULL;
-    compress_icon_decode(compress, xbmc, &xbm);
-
-    uint8_t* pixel_data = NULL;
-    pixel_data = xbm_decode(xbm, 10, 10);
-
-    compress_icon_free(compress);
-
-    // this next part is mostly copied direct from our canvas draw method,
-    // but since we know we have a 10x10 icon, we can take some shortcuts
-    // in computing where and how to draw
-    int x_offset = 64 + 2; // top-left corner
-    int y_offset = 0 + 2; // of our canvas area
+    int x_offset = 64 + 2;
+    int y_offset = 0 + 2;
     int scale = 6;
 
     // clear the canvas area
@@ -54,13 +55,12 @@ void about_draw(Canvas* canvas, void* context) {
     // draw
     for(size_t y = 0; y < 10; ++y) {
         for(size_t x = 0; x < 10; ++x) {
-            if(pixel_data[y * 10 + x]) {
+            if(about_icon_pixels[y * 10 + x]) {
                 canvas_draw_box(
                     canvas, x_offset + (x * scale), y_offset + (y * scale), scale, scale);
             }
         }
     }
-    free(pixel_data);
 }
 
 bool about_input(InputEvent* event, void* context) {
