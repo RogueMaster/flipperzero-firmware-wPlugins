@@ -1,6 +1,6 @@
 #include "loading.hpp"
+#include <math.h>
 #include TIME_INCLUDE
-#define PI 3.14159265358979323846f
 Loading::Loading(Draw *draw)
     : draw(draw)
 {
@@ -57,7 +57,7 @@ void Loading::drawSpinner()
     {
         int angle = (startAngle + offset) % 360;
         int nextAngle = (angle + step) % 360;
-        float rad = PI / 180.0f;
+        float rad = M_PI / 180.0f;
 
         // compute two successive points on the circumference
         _pos.x = centerX + int(radius * cos(angle * rad));

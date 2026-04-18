@@ -697,7 +697,7 @@ void Player::drawLoginView(Draw *canvas)
 void Player::drawMenuType1(Draw *canvas, uint8_t selectedIndex, const char *option1, const char *option2)
 {
     canvas->fillScreen(0xFFFF);
-    canvas->setFont(FONT_SIZE_SECONDARY);
+    canvas->setFont(FONT_SIZE_SMALL);
 
     // rain effect
     drawRainEffect(canvas);
@@ -771,7 +771,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         canvas->rectangle(sw * 76 / 128, sh * 6 / 64, sw * 46 / 128, sh * 46 / 64, 0x0000);
         canvas->setFont(FONT_SIZE_PRIMARY);
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
-        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
         canvas->text(sw * 80 / 128, sh * 36 / 64, "Settings");
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
@@ -781,11 +781,11 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
     {
         this->renderMiniMap(canvas);
         canvas->rectangle(sw * 76 / 128, sh * 6 / 64, sw * 46 / 128, sh * 46 / 64, 0x0000);
-        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
         canvas->setFont(FONT_SIZE_PRIMARY);
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
-        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh * 36 / 64, "Settings");
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
     }
@@ -853,12 +853,12 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
             break;
         };
         canvas->rectangle(sw * 76 / 128, sh * 6 / 64, sw * 46 / 128, sh * 46 / 64, 0x0000);
-        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
         canvas->setFont(FONT_SIZE_PRIMARY);
         canvas->text(sw * 79 / 128, sh * 36 / 64, "Settings");
-        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
     }
     break;
@@ -875,7 +875,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
 
         // draw a box around the selected option
         canvas->rectangle(sw * 76 / 128, sh * 6 / 64, sw * 46 / 128, sh * 46 / 64, 0x0000);
-        canvas->setFont(FONT_SIZE_SECONDARY);
+        canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
         canvas->text(sw * 80 / 128, sh * 36 / 64, "Settings");
@@ -2340,7 +2340,7 @@ void Player::userRequest(RequestType requestType)
         }
         snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/game-stats/%s/", this->name);
         snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
-        if (!HTTP_SEND_REQUEST(url, "GET", authHeader))
+        if (!HTTP_SEND_REQUEST(url, "GET", authHeader, nullptr))
         {
             userInfoStatus = UserInfoRequestError;
         }
@@ -2386,7 +2386,7 @@ void Player::userRequest(RequestType requestType)
             break;
         }
         snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
-        if (!HTTP_SEND_REQUEST("https://www.jblanked.com/game-server/games/", "GET", authHeader))
+        if (!HTTP_SEND_REQUEST("https://www.jblanked.com/game-server/games/", "GET", authHeader, nullptr))
         {
             lobbyFetched = true;
             lobbyCount = 0;
