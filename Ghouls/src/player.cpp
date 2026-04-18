@@ -143,7 +143,7 @@ void Player::drawGameLocalView(Draw *canvas)
         const int sw = canvas->getDisplaySize().x;
         const int sh = canvas->getDisplaySize().y;
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 25 / 128, sh / 2, "Starting Game...", 0x0000);
         bool gameStarted = ghoulsGame->startGame();
         if (gameStarted && ghoulsGame->getEngine())
@@ -173,7 +173,7 @@ void Player::drawGameOnlineView(Draw *canvas)
     // ── Phase 1: POST to jblanked.com/game-server/games/create/ ─────────────
     case OnlineStateIdle:
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Connecting to server...", 0x0000);
         this->userRequest(RequestTypeGameCreate);
         break;
@@ -181,7 +181,7 @@ void Player::drawGameOnlineView(Draw *canvas)
     case OnlineStateFetchingSession:
     {
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         static bool loadingStarted = false;
         if (!loadingStarted)
         {
@@ -270,7 +270,7 @@ void Player::drawGameOnlineView(Draw *canvas)
     case OnlineStateConnecting:
     {
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
 
         if (HTTP_WEBSOCKET_IS_CONNECTED())
         {
@@ -298,7 +298,7 @@ void Player::drawGameOnlineView(Draw *canvas)
         if (!ghoulsGame->isRunning())
         {
             canvas->fillScreen(0xFFFF);
-            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 25 / 128, sh / 2, "Starting Game...", 0x0000);
             ghoulsGame->startGameOnline();
             if (ghoulsGame->getEngine() && ghoulsGame->getEngine()->getGame())
@@ -429,7 +429,7 @@ void Player::drawGameOnlineView(Draw *canvas)
     case OnlineStateError:
     {
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Connection failed!", 0x0000);
         canvas->text(0, sh * 20 / 64, "Check network and", 0x0000);
         canvas->text(0, sh * 30 / 64, "try again.", 0x0000);
@@ -442,7 +442,7 @@ void Player::drawGameOnlineView(Draw *canvas)
     case OnlineStateJoiningExisting:
     {
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Joining game...", 0x0000);
 
         char *websocket_url = (char *)ENGINE_MEM_MALLOC(128);
@@ -476,7 +476,7 @@ void Player::drawLobbyBrowserView(Draw *canvas)
     if (!lobbyFetched)
     {
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
 
         static bool lobbyRequestStarted = false;
         if (!lobbyRequestStarted)
@@ -548,7 +548,7 @@ void Player::drawLobbyBrowserView(Draw *canvas)
     canvas->fillScreen(0xFFFF);
     drawRainEffect(canvas);
 
-    canvas->setFont(FONT_SIZE_PRIMARY);
+    canvas->setFont(FONT_SIZE_MEDIUM);
     canvas->text(sw * 20 / 128, sh * 10 / 64, "Online Lobbies", 0x0000);
 
     // Total items: "New Game" at index 0, then existing lobbies
@@ -611,7 +611,7 @@ void Player::drawLoginView(Draw *canvas)
 {
     const int sh = canvas->getDisplaySize().y;
     canvas->fillScreen(0xFFFF);
-    canvas->setFont(FONT_SIZE_PRIMARY);
+    canvas->setFont(FONT_SIZE_MEDIUM);
     static bool loadingStarted = false;
     switch (loginStatus)
     {
@@ -751,7 +751,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         snprintf(xp, sizeof(xp), "XP      : %d", (int)this->xp);
         snprintf(strength, sizeof(strength), "Strength: %d", (int)this->strength);
 
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         if (this->name == nullptr || strlen(this->name) == 0)
         {
             canvas->text(sw * 6 / 128, sh / 4, "Unknown");
@@ -769,7 +769,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
 
         // draw a box around the selected option
         canvas->rectangle(sw * 76 / 128, sh * 6 / 64, sw * 46 / 128, sh * 46 / 64, 0x0000);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
@@ -783,7 +783,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         canvas->rectangle(sw * 76 / 128, sh * 6 / 64, sw * 46 / 128, sh * 46 / 64, 0x0000);
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh * 36 / 64, "Settings");
@@ -802,7 +802,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         switch (selectedIndexSettings)
         {
         case 0: // none/default
-            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 6 / 128, sh / 4, "Settings");
             canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(sw * 6 / 128, sh * 27 / 64, soundStatus);
@@ -811,7 +811,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
             canvas->text(sw * 6 / 128, sh * 54 / 64, "Leave Game");
             break;
         case 1: // sound
-            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 6 / 128, sh / 4, "Settings");
             canvas->fillRectangle(sw * 5 / 128, sh * 20 / 64, sw * 41 / 128, sh * 10 / 64, 0x0000);
             canvas->text(sw * 6 / 128, sh * 27 / 64, soundStatus, 0xFFFF);
@@ -820,7 +820,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
             canvas->text(sw * 6 / 128, sh * 54 / 64, "Leave Game", 0x0000);
             break;
         case 2: // vibration
-            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 6 / 128, sh / 4, "Settings");
             canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(sw * 6 / 128, sh * 27 / 64, soundStatus);
@@ -830,7 +830,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
             canvas->text(sw * 6 / 128, sh * 54 / 64, "Leave Game", 0x0000);
             break;
         case 3: // show player
-            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 6 / 128, sh / 4, "Settings");
             canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(sw * 6 / 128, sh * 27 / 64, soundStatus);
@@ -840,7 +840,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
             canvas->text(sw * 6 / 128, sh * 54 / 64, "Leave Game", 0x0000);
             break;
         case 4: // leave game
-            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 6 / 128, sh / 4, "Settings");
             canvas->setFont(FONT_SIZE_SMALL);
             canvas->text(sw * 6 / 128, sh * 27 / 64, soundStatus);
@@ -856,7 +856,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 79 / 128, sh * 36 / 64, "Settings");
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
@@ -864,7 +864,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
     break;
     case 3: // about
     {
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 6 / 128, sh / 4, "Ghouls");
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 4 / 128, sh * 25 / 64, "Creator: @JBlanked");
@@ -879,7 +879,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
         canvas->text(sw * 80 / 128, sh * 36 / 64, "Settings");
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
     }
     break;
@@ -944,7 +944,7 @@ void Player::drawRegistrationView(Draw *canvas)
 {
     const int sh = canvas->getDisplaySize().y;
     canvas->fillScreen(0xFFFF);
-    canvas->setFont(FONT_SIZE_PRIMARY);
+    canvas->setFont(FONT_SIZE_MEDIUM);
     static bool loadingStarted = false;
     switch (registrationStatus)
     {
@@ -1184,33 +1184,33 @@ void Player::drawUserInfoView(Draw *canvas)
         break;
     case UserInfoSuccess:
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "User info loaded successfully!", 0x0000);
         canvas->text(0, sh * 20 / 64, "Press OK to continue.", 0x0000);
         break;
     case UserInfoCredentialsMissing:
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Missing credentials!", 0x0000);
         canvas->text(0, sh * 20 / 64, "Please update your username", 0x0000);
         canvas->text(0, sh * 30 / 64, "and password in the settings.", 0x0000);
         break;
     case UserInfoRequestError:
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "User info request failed!", 0x0000);
         canvas->text(0, sh * 20 / 64, "Check your network and", 0x0000);
         canvas->text(0, sh * 30 / 64, "try again later.", 0x0000);
         break;
     case UserInfoParseError:
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Failed to parse user info!", 0x0000);
         canvas->text(0, sh * 20 / 64, "Try again...", 0x0000);
         break;
     default:
         canvas->fillScreen(0xFFFF);
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Loading user info...", 0x0000);
         break;
     }
@@ -1880,7 +1880,7 @@ void Player::renderMiniMap(Draw *canvas)
     DynamicMap *currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
     if (currentDynamicMap == nullptr)
     {
-        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 6 / 128, sh / 2, "No map loaded", 0x0000);
         return; // No map to render
     }
