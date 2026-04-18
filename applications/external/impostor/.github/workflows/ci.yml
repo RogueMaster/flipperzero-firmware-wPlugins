@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential cppcheck clang-format
+      - name: Run linter
+        run: make linter
+      - name: Check format
+        run: git ls-files '*.c' '*.h' | xargs clang-format --dry-run --Werror
+      - name: Run tests
+        run: make test

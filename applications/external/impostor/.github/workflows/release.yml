@@ -1,0 +1,52 @@
+# Release assets are only built when release-please opens a GitHub Release
+# (release_created == true). Pushes to main that are not a release do not upload a .fap.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - uses: actions/checkout@v6
+        if: ${{ steps.release.outputs.release_created }}
+
+      - name: Build FAP
+        id: ufbt
+        if: ${{ steps.release.outputs.release_created }}
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          sdk-channel: dev
+
+      - name: Upload FAP to release
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          faps=(dist/*.fap)
+          if [ ${#faps[@]} -eq 0 ]; then
+            echo "::error::No .fap in dist/. ufbt output was:"
+            echo "${{ steps.ufbt.outputs.fap-artifacts }}"
+            ls -la dist/ 2>&1 || true
+            find . -name '*.fap' -print 2>/dev/null || true
+            exit 1
+          fi
+          gh release upload "${{ steps.release.outputs.tag_name }}" "${faps[@]}"

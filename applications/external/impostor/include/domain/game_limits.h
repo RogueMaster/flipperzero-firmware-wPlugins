@@ -1,0 +1,9 @@
+#pragma once
+
+#include <stdint.h>
+
+#define IMPOSTOR_MAX_PLAYERS 64u
+#define IMPOSTOR_MIN_PLAYERS 3u
+#define IMPOSTOR_MAX_NAME_LEN 24u
+#define IMPOSTOR_MAX_SESSION_TITLE_LEN 32u
+#define IMPOSTOR_MAX_SAVED_GAMES 16u
