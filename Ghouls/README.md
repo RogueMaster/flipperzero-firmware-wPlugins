@@ -24,4 +24,5 @@ A simple 3D action-adventure game built with the Pico Game Engine. Search for sa
 ### Installation
 This project has two configuration files: `config.hpp` and `engine_config.hpp`. The former is for game-specific settings, while the latter is for engine-specific settings. Both files are located in the `src` directory and are required to be configured before building the game (otherwise you'll encounter compilation errors). More details can be found [here](Configuration.md). Set your desired settings in both files, then compile and run the game!
 
-
+### Current Platforms
+- Flipper Zero: https://github.com/jblanked/Ghouls-Flipper

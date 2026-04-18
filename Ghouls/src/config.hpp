@@ -1,36 +1,36 @@
 #pragma once
-#include <stdint.h>
-#include <string.h>
-#include <string>
-#include <memory>
+// #include <stdint.h>
+// #include <string.h>
+// #include <string>
+// #include <memory>
 #include <config.hpp>
 
-#include ENGINE_MEM_INCLUDE
+// #include ENGINE_MEM_INCLUDE
 
-#ifdef ENGINE_LOG_INCLUDE
-#include ENGINE_LOG_INCLUDE
-#endif
+// #ifdef ENGINE_LOG_INCLUDE
+// #include ENGINE_LOG_INCLUDE
+// #endif
 
-#define WIREFRAME_ENABLED true
+// #define WIREFRAME_ENABLED true
 
 // time
 // #define TIME_INCLUDE "furi.h"
 // #define TIME_MILLIS furi_get_tick() * 10
 
 // buttons
-#define INPUT_KEY_UP 0
-#define INPUT_KEY_DOWN 1
-#define INPUT_KEY_RIGHT 2
-#define INPUT_KEY_LEFT 3
-#define INPUT_KEY_CENTER 4
-#define INPUT_KEY_BACK 5
+// #define INPUT_KEY_UP 0
+// #define INPUT_KEY_DOWN 1
+// #define INPUT_KEY_RIGHT 2
+// #define INPUT_KEY_LEFT 3
+// #define INPUT_KEY_CENTER 4
+// #define INPUT_KEY_BACK 5
 
 // http
-#define HTTP_INACTIVE -1
-#define HTTP_IDLE 0
-#define HTTP_RECEIVING 1
-#define HTTP_SENDING 2
-#define HTTP_ISSUE 3
+// #define HTTP_INACTIVE -1
+// #define HTTP_IDLE 0
+// #define HTTP_RECEIVING 1
+// #define HTTP_SENDING 2
+// #define HTTP_ISSUE 3
 // #define HTTP_INCLUDE "../http.hpp"
 // #define HTTP_REQUEST_IS_FINISHED http_is_finished               // () -> bool
 // #define HTTP_SEND_REQUEST http_send_request                     // (const char *url, const char *method, const char *headers, const char *payload) -> bool
