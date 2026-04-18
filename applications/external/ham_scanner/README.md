@@ -16,9 +16,8 @@ A lightweight SubGHz radio scanner, designed to behave like a scanner for common
 - Improved signal detection consistency
 
 ### Live RSSI per Channel (when on hold)
-- RSSI is refreshed after every frequency hop
-- Display always matches the current channel
-
+- Display always matches the current channels RSSI
+  
 ---
 
 ## 📸 Screenshots
