@@ -1,0 +1,18 @@
+# Host unit tests (make test)
+*.o
+tests/*.o
+test_avocado_rules
+test_logic
+
+# ufbt / GitHub Actions release build
+dist/
+.ufbt/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / swap
+*.swp
+*~
+.idea/
