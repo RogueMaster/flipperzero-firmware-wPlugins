@@ -84,6 +84,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Access Audit v1.8.1 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 - Updated: [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper) (Version Only)
 - Updated: [Tesla Mod v2.9 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Added: [Avocado Zero v0.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
+- Added: [Impostor v0.1.3 (By Endika)](https://github.com/Endika/flipper-impostor-game)
+- Added: [HyperFocus Calc v0.1.1 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 
 <a name="release"></a>
 
@@ -317,6 +320,7 @@ $ ./fbt dolphin_ext
 - [Arduventure v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperArduventure)
 - [Arkanoid v1.2 (By gotnull)](https://github.com/gotnull/flipperzero-firmware-wPlugins)
 - [Asteroids v1.2 (By antirez)](https://github.com/antirez/flipper-asteroids)
+- [Avocado Zero v0.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - [Banana v0.4 (By DrEverr)](https://github.com/DrEverr/FlipperApps)
 - [Blackjack v0.1 (By RocketGod)](https://github.com/RocketGod-Git/Flipper-Zero-Blackjack)
 - [BlackJack v1.1 (By teeebor)](https://github.com/teeebor/flipper_games)
@@ -368,6 +372,7 @@ $ ./fbt dolphin_ext
 - [Hirn - Crack Color Codes v0.2 (By fgreil)](https://github.com/fgreil/mitzi-hirn)
 - [Hold em v1.1 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
 - [Hunter Killer v1.0 (By josephburnett)](https://github.com/josephburnett/hunter-flipper)
+- [Impostor v0.1.3 (By Endika)](https://github.com/Endika/flipper-impostor-game)
 - [Infinite Tic Tac Toe v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/infinite_tic_tac_toe)
 - [Insults v1.0 (By ERSUCC)](https://github.com/ERSUCC/Flipper-Insults)
 - [JetPack v1.1 (by timstrasser)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1164e4d214efa38847e08c6387bf53578bc0d366)
@@ -650,6 +655,7 @@ $ ./fbt dolphin_ext
 - [HID File Transfer v1.0 (By Kavakuo)](https://github.com/Kavakuo/HID-File-Transfer)
 - [Hitachi AC Remote v1.1 (By dogtopus)](https://github.com/dogtopus/flipperzero-hitachi-ac-remote)
 - [HTW AC Remote v1.1 (By sokogen)](https://github.com/sokogen/flipperzero-htw-ac-remote)
+- [HyperFocus Calc v0.1.1 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - [I2C Explorer v0.9 (By 4mb3rz)](https://github.com/4mb3rz/Flipper-I2C-Explorer)
 - [i2c Tools v1.2 (By NaejEL)](https://github.com/NaejEL/flipperzero-i2ctools)
 - [iButton Converter v1.1 (By Leptopt1los)](https://github.com/Leptopt1los/ibutton_converter)

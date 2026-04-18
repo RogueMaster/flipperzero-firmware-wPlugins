@@ -12,7 +12,7 @@ float hyperfocal_fstop_at_index(size_t idx);
 
 size_t hyperfocal_fstop_index_of(float fstop);
 
-void hyperfocal_fstop_step(size_t *idx, int delta);
+void hyperfocal_fstop_step(size_t* idx, int delta);
 
 /**
  * Hyperfocal distance in mm: (f^2)/(N*c) + f

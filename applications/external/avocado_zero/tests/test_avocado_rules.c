@@ -45,7 +45,7 @@ static void test_clean_clear_water_no_roots(void) {
     memset(&d, 0, sizeof(d));
     d.dirty_level = 0;
     d.roots_length = 3;
-    for (int i = 0; i < 80; i++) {
+    for(int i = 0; i < 80; i++) {
         avocado_rules_on_primary_action(&d);
     }
     assert(d.dirty_level == 0);

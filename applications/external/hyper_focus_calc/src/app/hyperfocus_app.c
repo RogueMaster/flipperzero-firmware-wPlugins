@@ -32,20 +32,20 @@ static float hfc_round3(float x) {
 }
 
 static float hfc_clamp_wh(float x) {
-    if (x < HFC_W_H_MIN) {
+    if(x < HFC_W_H_MIN) {
         return HFC_W_H_MIN;
     }
-    if (x > HFC_W_H_MAX) {
+    if(x > HFC_W_H_MAX) {
         return HFC_W_H_MAX;
     }
     return x;
 }
 
 static float hfc_clamp_coc(float x) {
-    if (x < HFC_COC_MIN) {
+    if(x < HFC_COC_MIN) {
         return HFC_COC_MIN;
     }
-    if (x > HFC_COC_MAX) {
+    if(x > HFC_COC_MAX) {
         return HFC_COC_MAX;
     }
     return x;
@@ -61,14 +61,14 @@ typedef enum {
 } AppViewId;
 
 typedef struct {
-    ViewDispatcher *vd;
-    Gui *gui;
-    Submenu *menu;
-    Widget *credits;
-    View *calc;
-    View *sensor_list;
-    View *sensor_edit;
-    TextInput *text_input;
+    ViewDispatcher* vd;
+    Gui* gui;
+    Submenu* menu;
+    Widget* credits;
+    View* calc;
+    View* sensor_list;
+    View* sensor_edit;
+    TextInput* text_input;
     SensorsStore store;
     CalcSceneModel calc_model;
     uint16_t focal_mm;
@@ -86,69 +86,74 @@ typedef struct {
 
 /** Flipper passes view model to draw_cb, not view_set_context (see view_draw in view.c). */
 typedef struct {
-    HyperFocusApp *app;
+    HyperFocusApp* app;
 } HfcViewCtx;
 
-static void app_calc_refresh(HyperFocusApp *app);
-static void app_switch(HyperFocusApp *app, AppViewId v);
-static void app_build_credits(HyperFocusApp *app);
-static bool app_navigation(void *context);
+static void app_calc_refresh(HyperFocusApp* app);
+static void app_switch(HyperFocusApp* app, AppViewId v);
+static void app_build_credits(HyperFocusApp* app);
+static bool app_navigation(void* context);
 
-static void app_switch(HyperFocusApp *app, AppViewId v) {
+static void app_switch(HyperFocusApp* app, AppViewId v) {
     app->current_view = v;
     view_dispatcher_switch_to_view(app->vd, v);
 }
 
-static void app_build_credits(HyperFocusApp *app) {
+static void app_build_credits(HyperFocusApp* app) {
     furi_assert(app && app->credits);
     widget_reset(app->credits);
-    snprintf(app->credits_buf, sizeof(app->credits_buf),
-             "\e#%s\e#\n\nVersion: %s\n\nAuthor: %s\n\n%s", APP_NAME, APP_VERSION, APP_AUTHOR,
-             APP_REPO_URL);
+    snprintf(
+        app->credits_buf,
+        sizeof(app->credits_buf),
+        "\e#%s\e#\n\nVersion: %s\n\nAuthor: %s\n\n%s",
+        APP_NAME,
+        APP_VERSION,
+        APP_AUTHOR,
+        APP_REPO_URL);
     widget_add_text_scroll_element(app->credits, 0, 0, 128, 64, app->credits_buf);
 }
 
-static void app_calc_refresh(HyperFocusApp *app) {
-    const SensorData *s = sensors_store_active(&app->store);
-    if (!s) {
+static void app_calc_refresh(HyperFocusApp* app) {
+    const SensorData* s = sensors_store_active(&app->store);
+    if(!s) {
         return;
     }
     app->calc_model.focal_mm = app->focal_mm;
     app->calc_model.fstop_idx = app->fstop_idx;
     app->calc_model.coc_mm = s->coc;
-    const float h_m = hyperfocal_distance_m((float)app->focal_mm,
-                                            hyperfocal_fstop_at_index(app->fstop_idx), s->coc);
+    const float h_m = hyperfocal_distance_m(
+        (float)app->focal_mm, hyperfocal_fstop_at_index(app->fstop_idx), s->coc);
     app->calc_model.h_meters = h_m;
-    snprintf(app->calc_model.result_text, sizeof(app->calc_model.result_text), "H: %.2f m",
-             (double)h_m);
+    snprintf(
+        app->calc_model.result_text, sizeof(app->calc_model.result_text), "H: %.2f m", (double)h_m);
 }
 
-static void calc_draw_cb(Canvas *canvas, void *model) {
-    const HfcViewCtx *ctx = model;
+static void calc_draw_cb(Canvas* canvas, void* model) {
+    const HfcViewCtx* ctx = model;
     furi_assert(ctx && ctx->app);
     calc_scene_draw(canvas, &ctx->app->calc_model);
 }
 
-static bool calc_input_cb(InputEvent *event, void *context) {
-    HyperFocusApp *app = context;
-    if (event->type != InputTypeShort && event->type != InputTypeRepeat) {
+static bool calc_input_cb(InputEvent* event, void* context) {
+    HyperFocusApp* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
         return false;
     }
-    if (event->key == InputKeyBack) {
+    if(event->key == InputKeyBack) {
         app_switch(app, ViewMenu);
         return true;
     }
-    if (event->key == InputKeyUp) {
-        if (app->focal_mm < (uint16_t)HFC_FOCAL_MM_MAX) {
+    if(event->key == InputKeyUp) {
+        if(app->focal_mm < (uint16_t)HFC_FOCAL_MM_MAX) {
             app->focal_mm++;
         }
-    } else if (event->key == InputKeyDown) {
-        if (app->focal_mm > (uint16_t)HFC_FOCAL_MM_MIN) {
+    } else if(event->key == InputKeyDown) {
+        if(app->focal_mm > (uint16_t)HFC_FOCAL_MM_MIN) {
             app->focal_mm--;
         }
-    } else if (event->key == InputKeyRight) {
+    } else if(event->key == InputKeyRight) {
         hyperfocal_fstop_step(&app->fstop_idx, 1);
-    } else if (event->key == InputKeyLeft) {
+    } else if(event->key == InputKeyLeft) {
         hyperfocal_fstop_step(&app->fstop_idx, -1);
     } else {
         return false;
@@ -157,31 +162,31 @@ static bool calc_input_cb(InputEvent *event, void *context) {
     return true;
 }
 
-static uint32_t sensor_list_total(const HyperFocusApp *app) {
+static uint32_t sensor_list_total(const HyperFocusApp* app) {
     return app->store.count + 1u;
 }
 
-static void list_clamp_scroll(HyperFocusApp *app) {
+static void list_clamp_scroll(HyperFocusApp* app) {
     const uint32_t total = sensor_list_total(app);
-    if (total == 0) {
+    if(total == 0) {
         return;
     }
-    if (app->list_sel >= total) {
+    if(app->list_sel >= total) {
         app->list_sel = total - 1u;
     }
     const uint32_t vis = 4u;
-    if (app->list_sel < app->list_scroll) {
+    if(app->list_sel < app->list_scroll) {
         app->list_scroll = app->list_sel;
     }
-    if (app->list_sel >= app->list_scroll + vis) {
+    if(app->list_sel >= app->list_scroll + vis) {
         app->list_scroll = app->list_sel - (vis - 1u);
     }
 }
 
-static void sensor_list_draw_cb(Canvas *canvas, void *model) {
-    const HfcViewCtx *ctx = model;
+static void sensor_list_draw_cb(Canvas* canvas, void* model) {
+    const HfcViewCtx* ctx = model;
     furi_assert(ctx && ctx->app);
-    HyperFocusApp *app = ctx->app;
+    HyperFocusApp* app = ctx->app;
     canvas_clear(canvas);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 8, "My sensors");
@@ -189,10 +194,10 @@ static void sensor_list_draw_cb(Canvas *canvas, void *model) {
     const uint32_t total = sensor_list_total(app);
     const uint32_t vis = 4u;
     uint32_t y = 18;
-    for (uint32_t row = 0; row < vis && app->list_scroll + row < total; row++) {
+    for(uint32_t row = 0; row < vis && app->list_scroll + row < total; row++) {
         const uint32_t i = app->list_scroll + row;
         char line[40];
-        if (i < app->store.count) {
+        if(i < app->store.count) {
             const bool sel = (i == app->list_sel);
             snprintf(line, sizeof(line), "%s%s", sel ? "> " : "  ", app->store.sensors[i].name);
         } else {
@@ -205,39 +210,39 @@ static void sensor_list_draw_cb(Canvas *canvas, void *model) {
     canvas_draw_str(canvas, 2, 58, "OK: use  Long OK: edit");
 }
 
-static bool sensor_list_input_cb(InputEvent *event, void *context) {
-    HyperFocusApp *app = context;
+static bool sensor_list_input_cb(InputEvent* event, void* context) {
+    HyperFocusApp* app = context;
     const uint32_t total = sensor_list_total(app);
 
-    if (event->key == InputKeyBack &&
-        (event->type == InputTypeShort || event->type == InputTypeLong)) {
+    if(event->key == InputKeyBack &&
+       (event->type == InputTypeShort || event->type == InputTypeLong)) {
         app_switch(app, ViewMenu);
         return true;
     }
 
-    if (event->type != InputTypeShort && event->type != InputTypeRepeat &&
-        event->type != InputTypeLong) {
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat &&
+       event->type != InputTypeLong) {
         return false;
     }
 
-    if (event->key == InputKeyUp) {
-        if (app->list_sel > 0) {
+    if(event->key == InputKeyUp) {
+        if(app->list_sel > 0) {
             app->list_sel--;
         }
         list_clamp_scroll(app);
         return true;
     }
-    if (event->key == InputKeyDown) {
-        if (app->list_sel + 1 < total) {
+    if(event->key == InputKeyDown) {
+        if(app->list_sel + 1 < total) {
             app->list_sel++;
         }
         list_clamp_scroll(app);
         return true;
     }
 
-    if (event->key == InputKeyOk) {
-        if (event->type == InputTypeLong) {
-            if (app->list_sel < app->store.count) {
+    if(event->key == InputKeyOk) {
+        if(event->type == InputTypeLong) {
+            if(app->list_sel < app->store.count) {
                 app->edit_buf = app->store.sensors[app->list_sel];
                 app->edit_index = app->list_sel;
                 app->edit_is_new = false;
@@ -246,8 +251,8 @@ static bool sensor_list_input_cb(InputEvent *event, void *context) {
             }
             return true;
         }
-        if (event->type == InputTypeShort) {
-            if (app->list_sel < app->store.count) {
+        if(event->type == InputTypeShort) {
+            if(app->list_sel < app->store.count) {
                 sensors_store_set_active(&app->store, app->list_sel);
                 app_calc_refresh(app);
                 app_switch(app, ViewCalc);
@@ -270,96 +275,115 @@ static uint8_t edit_row_max(bool is_new) {
     return is_new ? (uint8_t)4u : (uint8_t)5u;
 }
 
-static void sensor_edit_draw_cb(Canvas *canvas, void *model) {
-    const HfcViewCtx *ctx = model;
+static void sensor_edit_draw_cb(Canvas* canvas, void* model) {
+    const HfcViewCtx* ctx = model;
     furi_assert(ctx && ctx->app);
-    HyperFocusApp *app = ctx->app;
+    HyperFocusApp* app = ctx->app;
     canvas_clear(canvas);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 6, "Edit sensor");
     char line[56];
-    snprintf(line, sizeof(line), "%s%s", (app->edit_row == 0) ? "> " : "  ",
-             app->edit_buf.name[0] ? app->edit_buf.name : "(name)");
+    snprintf(
+        line,
+        sizeof(line),
+        "%s%s",
+        (app->edit_row == 0) ? "> " : "  ",
+        app->edit_buf.name[0] ? app->edit_buf.name : "(name)");
     canvas_draw_str(canvas, 2, 14, line);
-    snprintf(line, sizeof(line), "%sW: %6.2f mm", (app->edit_row == 1) ? "> " : "  ",
-             (double)app->edit_buf.w);
+    snprintf(
+        line,
+        sizeof(line),
+        "%sW: %6.2f mm",
+        (app->edit_row == 1) ? "> " : "  ",
+        (double)app->edit_buf.w);
     canvas_draw_str(canvas, 2, 22, line);
-    snprintf(line, sizeof(line), "%sH: %6.2f mm", (app->edit_row == 2) ? "> " : "  ",
-             (double)app->edit_buf.h);
+    snprintf(
+        line,
+        sizeof(line),
+        "%sH: %6.2f mm",
+        (app->edit_row == 2) ? "> " : "  ",
+        (double)app->edit_buf.h);
     canvas_draw_str(canvas, 2, 30, line);
     const float ref_coc = sensor_compute_coc_mm(app->edit_buf.w, app->edit_buf.h);
-    snprintf(line, sizeof(line), "%sCoC: %6.3f  d/1500=%.3f", (app->edit_row == 3) ? "> " : "  ",
-             (double)app->edit_buf.coc, (double)ref_coc);
+    snprintf(
+        line,
+        sizeof(line),
+        "%sCoC: %6.3f  d/1500=%.3f",
+        (app->edit_row == 3) ? "> " : "  ",
+        (double)app->edit_buf.coc,
+        (double)ref_coc);
     canvas_draw_str(canvas, 2, 38, line);
     snprintf(line, sizeof(line), "%sSave", (app->edit_row == 4) ? "> " : "  ");
     canvas_draw_str(canvas, 2, 46, line);
-    if (!app->edit_is_new) {
+    if(!app->edit_is_new) {
         snprintf(line, sizeof(line), "%sDelete", (app->edit_row == 5) ? "> " : "  ");
         canvas_draw_str(canvas, 2, 54, line);
     }
 }
 
-static bool sensor_edit_input_cb(InputEvent *event, void *context) {
-    HyperFocusApp *app = context;
+static bool sensor_edit_input_cb(InputEvent* event, void* context) {
+    HyperFocusApp* app = context;
     const uint8_t rmax = edit_row_max(app->edit_is_new);
 
-    if (event->key == InputKeyBack &&
-        (event->type == InputTypeShort || event->type == InputTypeLong)) {
+    if(event->key == InputKeyBack &&
+       (event->type == InputTypeShort || event->type == InputTypeLong)) {
         app_switch(app, ViewSensorList);
         return true;
     }
 
-    if (event->type != InputTypeShort && event->type != InputTypeRepeat) {
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
         return false;
     }
 
-    if (event->key == InputKeyUp) {
-        if (app->edit_row > 0) {
+    if(event->key == InputKeyUp) {
+        if(app->edit_row > 0) {
             app->edit_row--;
         }
         return true;
     }
-    if (event->key == InputKeyDown) {
-        if (app->edit_row < rmax) {
+    if(event->key == InputKeyDown) {
+        if(app->edit_row < rmax) {
             app->edit_row++;
         }
         return true;
     }
 
-    if (event->key == InputKeyLeft || event->key == InputKeyRight) {
+    if(event->key == InputKeyLeft || event->key == InputKeyRight) {
         const int sign = (event->key == InputKeyRight) ? 1 : -1;
-        if (app->edit_row == 1) {
+        if(app->edit_row == 1) {
             const float step = 0.01f;
             app->edit_buf.w = hfc_round2(hfc_clamp_wh(app->edit_buf.w + (float)sign * step));
-            app->edit_buf.coc = hfc_round3(sensor_compute_coc_mm(app->edit_buf.w, app->edit_buf.h));
-        } else if (app->edit_row == 2) {
+            app->edit_buf.coc =
+                hfc_round3(sensor_compute_coc_mm(app->edit_buf.w, app->edit_buf.h));
+        } else if(app->edit_row == 2) {
             const float step = 0.01f;
             app->edit_buf.h = hfc_round2(hfc_clamp_wh(app->edit_buf.h + (float)sign * step));
-            app->edit_buf.coc = hfc_round3(sensor_compute_coc_mm(app->edit_buf.w, app->edit_buf.h));
-        } else if (app->edit_row == 3) {
+            app->edit_buf.coc =
+                hfc_round3(sensor_compute_coc_mm(app->edit_buf.w, app->edit_buf.h));
+        } else if(app->edit_row == 3) {
             const float step = 0.001f;
             app->edit_buf.coc = hfc_round3(hfc_clamp_coc(app->edit_buf.coc + (float)sign * step));
         }
         return true;
     }
 
-    if (event->key == InputKeyOk) {
-        if (app->edit_row == 0) {
+    if(event->key == InputKeyOk) {
+        if(app->edit_row == 0) {
             snprintf(app->text_store, sizeof(app->text_store), "%s", app->edit_buf.name);
             app_switch(app, ViewTextInput);
             return true;
         }
-        if (app->edit_row == 4) {
-            if (strlen(app->edit_buf.name) == 0) {
+        if(app->edit_row == 4) {
+            if(strlen(app->edit_buf.name) == 0) {
                 snprintf(app->edit_buf.name, sizeof(app->edit_buf.name), "Sensor");
             }
             app->edit_buf.w = hfc_round2(app->edit_buf.w);
             app->edit_buf.h = hfc_round2(app->edit_buf.h);
             app->edit_buf.coc = hfc_round3(app->edit_buf.coc);
-            if (!sensor_data_valid(&app->edit_buf)) {
+            if(!sensor_data_valid(&app->edit_buf)) {
                 return true;
             }
-            if (app->edit_is_new) {
+            if(app->edit_is_new) {
                 sensors_store_add(&app->store, &app->edit_buf);
             } else {
                 sensors_store_replace_at(&app->store, app->edit_index, &app->edit_buf);
@@ -368,7 +392,7 @@ static bool sensor_edit_input_cb(InputEvent *event, void *context) {
             app_switch(app, ViewSensorList);
             return true;
         }
-        if (app->edit_row == 5 && !app->edit_is_new) {
+        if(app->edit_row == 5 && !app->edit_is_new) {
             sensors_store_delete_at(&app->store, app->edit_index);
             app_calc_refresh(app);
             app_switch(app, ViewSensorList);
@@ -379,39 +403,39 @@ static bool sensor_edit_input_cb(InputEvent *event, void *context) {
     return false;
 }
 
-static void text_input_ok_cb(void *context) {
-    HyperFocusApp *app = context;
+static void text_input_ok_cb(void* context) {
+    HyperFocusApp* app = context;
     snprintf(app->edit_buf.name, sizeof(app->edit_buf.name), "%s", app->text_store);
     app_switch(app, ViewSensorEdit);
 }
 
-static void menu_cb(void *context, uint32_t index) {
-    HyperFocusApp *app = context;
-    if (index == 0u) {
+static void menu_cb(void* context, uint32_t index) {
+    HyperFocusApp* app = context;
+    if(index == 0u) {
         app_calc_refresh(app);
         app_switch(app, ViewCalc);
-    } else if (index == 1u) {
+    } else if(index == 1u) {
         app->list_sel = 0;
         app->list_scroll = 0;
         list_clamp_scroll(app);
         app_switch(app, ViewSensorList);
-    } else if (index == 2u) {
+    } else if(index == 2u) {
         app_build_credits(app);
         app_switch(app, ViewCredits);
     }
 }
 
-static bool app_navigation(void *context) {
-    HyperFocusApp *app = context;
-    if (app->current_view == ViewTextInput) {
+static bool app_navigation(void* context) {
+    HyperFocusApp* app = context;
+    if(app->current_view == ViewTextInput) {
         app_switch(app, ViewSensorEdit);
         return true;
     }
-    if (app->current_view == ViewCredits) {
+    if(app->current_view == ViewCredits) {
         app_switch(app, ViewMenu);
         return true;
     }
-    if (app->current_view == ViewMenu) {
+    if(app->current_view == ViewMenu) {
         view_dispatcher_stop(app->vd);
         return true;
     }
@@ -419,8 +443,8 @@ static bool app_navigation(void *context) {
 }
 
 int32_t hyperfocus_app_run(void) {
-    HyperFocusApp *app = malloc(sizeof(HyperFocusApp));
-    if (!app) {
+    HyperFocusApp* app = malloc(sizeof(HyperFocusApp));
+    if(!app) {
         return -1;
     }
     memset(app, 0, sizeof(*app));
@@ -432,6 +456,7 @@ int32_t hyperfocus_app_run(void) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->vd = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->vd);
     view_dispatcher_attach_to_gui(app->vd, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->vd, app);
     view_dispatcher_set_navigation_event_callback(app->vd, app_navigation);
@@ -471,8 +496,8 @@ int32_t hyperfocus_app_run(void) {
 
     app->text_input = text_input_alloc();
     text_input_set_header_text(app->text_input, "Name");
-    text_input_set_result_callback(app->text_input, text_input_ok_cb, app, app->text_store,
-                                   sizeof(app->text_store), false);
+    text_input_set_result_callback(
+        app->text_input, text_input_ok_cb, app, app->text_store, sizeof(app->text_store), false);
     view_dispatcher_add_view(app->vd, ViewTextInput, text_input_get_view(app->text_input));
 
     app_calc_refresh(app);

@@ -2,7 +2,7 @@
 
 static ImpostorLocale g_locale = ImpostorLocaleEn;
 
-static const char *const k_en[ImpostorStrCount] = {
+static const char* const k_en[ImpostorStrCount] = {
     [ImpostorStrMenuPlay] = "Play",
     [ImpostorStrMenuNewGame] = "New game",
     [ImpostorStrMenuSettings] = "Settings",
@@ -47,7 +47,7 @@ static const char *const k_en[ImpostorStrCount] = {
     [ImpostorStrCreditsRepoLine2] = "flipper-impostor-game",
 };
 
-static const char *const k_es[ImpostorStrCount] = {
+static const char* const k_es[ImpostorStrCount] = {
     [ImpostorStrMenuPlay] = "Jugar",
     [ImpostorStrMenuNewGame] = "Nueva partida",
     [ImpostorStrMenuSettings] = "Ajustes",
@@ -92,22 +92,24 @@ static const char *const k_es[ImpostorStrCount] = {
     [ImpostorStrCreditsRepoLine2] = "flipper-impostor-game",
 };
 
-ImpostorLocale impostor_locale_get(void) { return g_locale; }
-
-void impostor_locale_set(ImpostorLocale locale) {
-  if (locale != ImpostorLocaleEn && locale != ImpostorLocaleEs) {
-    g_locale = ImpostorLocaleEn;
-    return;
-  }
-  g_locale = locale;
+ImpostorLocale impostor_locale_get(void) {
+    return g_locale;
 }
 
-const char *impostor_str(ImpostorStrId id) {
-  if ((unsigned)id >= (unsigned)ImpostorStrCount) {
-    return "";
-  }
-  if (g_locale == ImpostorLocaleEs) {
-    return k_es[id];
-  }
-  return k_en[id];
+void impostor_locale_set(ImpostorLocale locale) {
+    if(locale != ImpostorLocaleEn && locale != ImpostorLocaleEs) {
+        g_locale = ImpostorLocaleEn;
+        return;
+    }
+    g_locale = locale;
+}
+
+const char* impostor_str(ImpostorStrId id) {
+    if((unsigned)id >= (unsigned)ImpostorStrCount) {
+        return "";
+    }
+    if(g_locale == ImpostorLocaleEs) {
+        return k_es[id];
+    }
+    return k_en[id];
 }

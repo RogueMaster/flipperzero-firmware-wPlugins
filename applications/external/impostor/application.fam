@@ -1,6 +1,6 @@
 App(
-    appid="flipper_impostor_game",
-    name="Impostor Game",
+    appid="impostor",
+    name="Impostor",
     apptype=FlipperAppType.EXTERNAL,
     sources=[
         "main.c",
@@ -19,9 +19,10 @@ App(
     ],
     entry_point="impostor_game_app",
     stack_size=4 * 1024,
-    fap_version="0.1.3",  # x-release-please-version
     fap_icon="icons/icon.icon",
     fap_category="Games",
     fap_author="Endika",
+    fap_weburl="https://github.com/Endika/flipper-impostor-game",
+    fap_version="0.1.3",
     fap_description="Undercover-style word game: impostors see a hint, everyone else shares one secret word.",
 )

@@ -1,10 +1,10 @@
 #include "include/domain/word_bank.h"
 
 typedef struct {
-  const char *en_w;
-  const char *es_w;
-  const char *en_h;
-  const char *es_h;
+    const char* en_w;
+    const char* es_w;
+    const char* en_h;
+    const char* es_h;
 } WordRow;
 
 static const WordRow k_rows[] = {
@@ -46,8 +46,7 @@ static const WordRow k_rows[] = {
     {"GPS", "GPS", "Technology", "Tecnologia"},
     {"Drone", "Dron", "Technology", "Tecnologia"},
     {"Robot", "Robot", "Technology", "Tecnologia"},
-    {"Artificial Intelligence", "Inteligencia Artificial", "Technology",
-     "Tecnologia"},
+    {"Artificial Intelligence", "Inteligencia Artificial", "Technology", "Tecnologia"},
     {"Virtual Reality", "Realidad Virtual", "Technology", "Tecnologia"},
     {"Algorithm", "Algoritmo", "Technology", "Tecnologia"},
     {"Network", "Red", "Technology", "Tecnologia"},
@@ -94,8 +93,7 @@ static const WordRow k_rows[] = {
     {"Batman", "Batman", "Entertainment", "Entretenimiento"},
     {"Superman", "Superman", "Entertainment", "Entretenimiento"},
     {"Spiderman", "Spiderman", "Entertainment", "Entretenimiento"},
-    {"Star Wars", "La Guerra de las Galaxias", "Entertainment",
-     "Entretenimiento"},
+    {"Star Wars", "La Guerra de las Galaxias", "Entertainment", "Entretenimiento"},
     {"Harry Potter", "Harry Potter", "Entertainment", "Entretenimiento"},
     {"Jurassic Park", "Parque Jurasico", "Entertainment", "Entretenimiento"},
     {"Terminator", "Terminator", "Entertainment", "Entretenimiento"},
@@ -104,8 +102,7 @@ static const WordRow k_rows[] = {
     {"Indiana Jones", "Indiana Jones", "Entertainment", "Entretenimiento"},
     {"Godzilla", "Godzilla", "Entertainment", "Entretenimiento"},
     {"Transformers", "Transformers", "Entertainment", "Entretenimiento"},
-    {"Pirates of the Caribbean", "Piratas del Caribe", "Entertainment",
-     "Entretenimiento"},
+    {"Pirates of the Caribbean", "Piratas del Caribe", "Entertainment", "Entretenimiento"},
     {"Wonder Woman", "Mujer Maravilla", "Entertainment", "Entretenimiento"},
     {"Football", "Futbol", "Sports", "Deporte"},
     {"Basketball", "Baloncesto", "Sports", "Deporte"},
@@ -393,22 +390,25 @@ static const WordRow k_rows[] = {
 };
 
 uint16_t word_bank_word_count(void) {
-  return (uint16_t)(sizeof(k_rows) / sizeof(k_rows[0]));
+    return (uint16_t)(sizeof(k_rows) / sizeof(k_rows[0]));
 }
 
-void word_bank_get_pair(uint16_t index, ImpostorLocale locale,
-                        const char **word_out, const char **hint_out) {
-  if (!word_out || !hint_out) {
-    return;
-  }
-  const uint16_t n = word_bank_word_count();
-  const uint16_t i = (uint16_t)(index % n);
-  const WordRow *row = &k_rows[i];
-  if (locale == ImpostorLocaleEs) {
-    *word_out = row->es_w;
-    *hint_out = row->es_h;
-  } else {
-    *word_out = row->en_w;
-    *hint_out = row->en_h;
-  }
+void word_bank_get_pair(
+    uint16_t index,
+    ImpostorLocale locale,
+    const char** word_out,
+    const char** hint_out) {
+    if(!word_out || !hint_out) {
+        return;
+    }
+    const uint16_t n = word_bank_word_count();
+    const uint16_t i = (uint16_t)(index % n);
+    const WordRow* row = &k_rows[i];
+    if(locale == ImpostorLocaleEs) {
+        *word_out = row->es_w;
+        *hint_out = row->es_h;
+    } else {
+        *word_out = row->en_w;
+        *hint_out = row->en_h;
+    }
 }

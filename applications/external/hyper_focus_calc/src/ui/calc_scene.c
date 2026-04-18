@@ -4,20 +4,20 @@
 #include <math.h>
 #include <stdio.h>
 
-static void draw_dotted_hline(Canvas *canvas, int x0, int x1, int y) {
+static void draw_dotted_hline(Canvas* canvas, int x0, int x1, int y) {
     canvas_set_color(canvas, ColorBlack);
-    if (x0 > x1) {
+    if(x0 > x1) {
         const int t = x0;
         x0 = x1;
         x1 = t;
     }
-    for (int x = x0; x <= x1; x += 3) {
+    for(int x = x0; x <= x1; x += 3) {
         canvas_draw_dot(canvas, x, y);
     }
 }
 
 /** Simple camera icon (left). */
-static void draw_camera(Canvas *canvas, int cx, int cy) {
+static void draw_camera(Canvas* canvas, int cx, int cy) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_frame(canvas, cx - 8, cy - 5, 16, 10);
     canvas_draw_disc(canvas, cx, cy, 3);
@@ -25,7 +25,7 @@ static void draw_camera(Canvas *canvas, int cx, int cy) {
 }
 
 /** Simple tree icon (right). */
-static void draw_tree(Canvas *canvas, int cx, int cy) {
+static void draw_tree(Canvas* canvas, int cx, int cy) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_line(canvas, cx, cy + 6, cx, cy + 12);
     const int tip = cy - 4;
@@ -34,14 +34,14 @@ static void draw_tree(Canvas *canvas, int cx, int cy) {
     canvas_draw_line(canvas, cx - 8, cy + 4, cx + 8, cy + 4);
 }
 
-static void draw_tick_down(Canvas *canvas, int x, int y_line) {
+static void draw_tick_down(Canvas* canvas, int x, int y_line) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_line(canvas, x - 3, y_line - 6, x, y_line - 1);
     canvas_draw_line(canvas, x + 3, y_line - 6, x, y_line - 1);
 }
 
-void calc_scene_draw(Canvas *canvas, const CalcSceneModel *model) {
-    if (!canvas || !model) {
+void calc_scene_draw(Canvas* canvas, const CalcSceneModel* model) {
+    if(!canvas || !model) {
         return;
     }
 

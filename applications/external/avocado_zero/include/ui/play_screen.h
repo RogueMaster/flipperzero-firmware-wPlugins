@@ -9,6 +9,6 @@
 
 typedef struct PlayScreen PlayScreen;
 
-PlayScreen *play_screen_alloc(AvocadoData *data, AvocadoFeedback *feedback);
-void play_screen_free(PlayScreen *screen);
-View *play_screen_get_view(PlayScreen *screen);
+PlayScreen* play_screen_alloc(AvocadoData* data, AvocadoFeedback* feedback);
+void play_screen_free(PlayScreen* screen);
+View* play_screen_get_view(PlayScreen* screen);

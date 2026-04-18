@@ -10,8 +10,8 @@ float sensor_compute_coc_mm(float w_mm, float h_mm) {
     return diag / 1500.0f;
 }
 
-void sensor_data_set_defaults(SensorData *s) {
-    if (!s) {
+void sensor_data_set_defaults(SensorData* s) {
+    if(!s) {
         return;
     }
     memset(s, 0, sizeof(*s));
@@ -21,14 +21,14 @@ void sensor_data_set_defaults(SensorData *s) {
     s->coc = sensor_compute_coc_mm(s->w, s->h);
 }
 
-bool sensor_data_valid(const SensorData *s) {
-    if (!s) {
+bool sensor_data_valid(const SensorData* s) {
+    if(!s) {
         return false;
     }
-    if (s->w < 0.01f || s->h < 0.01f) {
+    if(s->w < 0.01f || s->h < 0.01f) {
         return false;
     }
-    if (s->coc < 0.0001f || s->coc > 1.0f) {
+    if(s->coc < 0.0001f || s->coc > 1.0f) {
         return false;
     }
     return true;

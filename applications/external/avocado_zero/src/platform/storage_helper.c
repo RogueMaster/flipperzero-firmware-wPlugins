@@ -3,8 +3,8 @@
 #include <furi_hal_rtc.h>
 #include <storage/storage.h>
 
-#define APPS_DATA_DIR "/ext/apps_data/avocado_zero"
-#define STORAGE_PATH APPS_DATA_DIR "/data.bin"
+#define APPS_DATA_DIR        "/ext/apps_data/avocado_zero"
+#define STORAGE_PATH         APPS_DATA_DIR "/data.bin"
 #define ONBOARDING_DONE_PATH APPS_DATA_DIR "/onboarding_done"
 
 #define AVOCADO_SAVE_MAGIC 0x41564143u
@@ -18,26 +18,26 @@ typedef struct {
     uint8_t reserved;
 } AvocadoDataFile;
 
-static void avocado_data_apply_defaults(AvocadoData *data) {
+static void avocado_data_apply_defaults(AvocadoData* data) {
     data->last_timestamp = furi_hal_rtc_get_timestamp();
     data->dirty_level = 0;
     data->roots_length = 0;
     data->victory_seen = 0;
 }
 
-bool avocado_data_load(AvocadoData *data) {
-    Storage *storage = furi_record_open(RECORD_STORAGE);
-    File *file = storage_file_alloc(storage);
+bool avocado_data_load(AvocadoData* data) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
 
     bool ok = false;
 
-    if (storage_file_open(file, STORAGE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(storage_file_open(file, STORAGE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         uint8_t buf[sizeof(AvocadoDataFile)];
         size_t read = storage_file_read(file, buf, sizeof(buf));
         storage_file_close(file);
-        if (read == sizeof(AvocadoDataFile)) {
-            const AvocadoDataFile *f = (const AvocadoDataFile *)buf;
-            if (f->magic == AVOCADO_SAVE_MAGIC) {
+        if(read == sizeof(AvocadoDataFile)) {
+            const AvocadoDataFile* f = (const AvocadoDataFile*)buf;
+            if(f->magic == AVOCADO_SAVE_MAGIC) {
                 data->last_timestamp = f->last_timestamp;
                 data->dirty_level = f->dirty_level;
                 data->roots_length = f->roots_length;
@@ -50,7 +50,7 @@ bool avocado_data_load(AvocadoData *data) {
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
 
-    if (ok) {
+    if(ok) {
         return true;
     }
 
@@ -59,8 +59,8 @@ bool avocado_data_load(AvocadoData *data) {
 }
 
 bool avocado_onboarding_should_show(void) {
-    Storage *storage = furi_record_open(RECORD_STORAGE);
-    File *file = storage_file_alloc(storage);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
 
     const bool exists =
         storage_file_open(file, ONBOARDING_DONE_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
@@ -71,11 +71,11 @@ bool avocado_onboarding_should_show(void) {
 }
 
 void avocado_onboarding_complete(void) {
-    Storage *storage = furi_record_open(RECORD_STORAGE);
-    File *file = storage_file_alloc(storage);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
 
     storage_common_mkdir(storage, APPS_DATA_DIR);
-    if (storage_file_open(file, ONBOARDING_DONE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+    if(storage_file_open(file, ONBOARDING_DONE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         const uint8_t marker = 1;
         storage_file_write(file, &marker, sizeof(marker));
     }
@@ -85,12 +85,12 @@ void avocado_onboarding_complete(void) {
     furi_record_close(RECORD_STORAGE);
 }
 
-void avocado_data_save(const AvocadoData *data) {
-    Storage *storage = furi_record_open(RECORD_STORAGE);
-    File *file = storage_file_alloc(storage);
+void avocado_data_save(const AvocadoData* data) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
 
     storage_common_mkdir(storage, APPS_DATA_DIR);
-    if (storage_file_open(file, STORAGE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+    if(storage_file_open(file, STORAGE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         AvocadoDataFile f = {
             .magic = AVOCADO_SAVE_MAGIC,
             .last_timestamp = data->last_timestamp,

@@ -16,26 +16,26 @@ typedef enum {
 } AvocadoView;
 
 typedef struct {
-    ViewDispatcher *vd;
-    Gui *gui;
-    WelcomeScreen *welcome;
-    PlayScreen *play;
+    ViewDispatcher* vd;
+    Gui* gui;
+    WelcomeScreen* welcome;
+    PlayScreen* play;
     AvocadoFeedback feedback;
     AvocadoData data;
 } AvocadoZeroApp;
 
-static bool avocado_navigation_stop(void *context) {
-    AvocadoZeroApp *app = context;
+static bool avocado_navigation_stop(void* context) {
+    AvocadoZeroApp* app = context;
     furi_assert(app && app->vd);
     view_dispatcher_stop(app->vd);
     return true;
 }
 
-int32_t avocado_zero_app(void *p) {
+int32_t avocado_zero_app(void* p) {
     UNUSED(p);
 
-    AvocadoZeroApp *app = malloc(sizeof(AvocadoZeroApp));
-    if (!app) {
+    AvocadoZeroApp* app = malloc(sizeof(AvocadoZeroApp));
+    if(!app) {
         return -1;
     }
     memset(app, 0, sizeof(*app));
@@ -46,6 +46,7 @@ int32_t avocado_zero_app(void *p) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->vd = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->vd);
     view_dispatcher_attach_to_gui(app->vd, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->vd, app);
     view_dispatcher_set_navigation_event_callback(app->vd, avocado_navigation_stop);
@@ -53,7 +54,7 @@ int32_t avocado_zero_app(void *p) {
     const bool show_welcome = avocado_onboarding_should_show();
 
     app->play = play_screen_alloc(&app->data, &app->feedback);
-    if (!app->play) {
+    if(!app->play) {
         view_dispatcher_free(app->vd);
         furi_record_close(RECORD_GUI);
         avocado_feedback_deinit(&app->feedback);
@@ -62,14 +63,14 @@ int32_t avocado_zero_app(void *p) {
     }
     view_dispatcher_add_view(app->vd, AvocadoViewPlay, play_screen_get_view(app->play));
 
-    if (show_welcome) {
+    if(show_welcome) {
         WelcomeScreenContext wctx = {
             .vd = app->vd,
             .view_game_index = AvocadoViewPlay,
             .feedback = &app->feedback,
         };
         app->welcome = welcome_screen_alloc(&wctx);
-        if (!app->welcome) {
+        if(!app->welcome) {
             view_dispatcher_remove_view(app->vd, AvocadoViewPlay);
             play_screen_free(app->play);
             view_dispatcher_free(app->vd);
@@ -78,8 +79,8 @@ int32_t avocado_zero_app(void *p) {
             free(app);
             return -1;
         }
-        view_dispatcher_add_view(app->vd, AvocadoViewWelcome,
-                                 welcome_screen_get_view(app->welcome));
+        view_dispatcher_add_view(
+            app->vd, AvocadoViewWelcome, welcome_screen_get_view(app->welcome));
         view_dispatcher_switch_to_view(app->vd, AvocadoViewWelcome);
     } else {
         view_dispatcher_switch_to_view(app->vd, AvocadoViewPlay);
@@ -87,7 +88,7 @@ int32_t avocado_zero_app(void *p) {
 
     view_dispatcher_run(app->vd);
 
-    if (app->welcome) {
+    if(app->welcome) {
         view_dispatcher_remove_view(app->vd, AvocadoViewWelcome);
     }
     view_dispatcher_remove_view(app->vd, AvocadoViewPlay);

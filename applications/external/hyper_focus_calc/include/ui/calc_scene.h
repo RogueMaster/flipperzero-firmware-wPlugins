@@ -12,4 +12,4 @@ typedef struct {
     char result_text[32];
 } CalcSceneModel;
 
-void calc_scene_draw(Canvas *canvas, const CalcSceneModel *model);
+void calc_scene_draw(Canvas* canvas, const CalcSceneModel* model);

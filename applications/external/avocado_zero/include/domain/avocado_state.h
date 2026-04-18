@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #define AVOCADO_GRIME_GAME_OVER 10u
-#define AVOCADO_ROOTS_MAX 10u
+#define AVOCADO_ROOTS_MAX       10u
 
 typedef struct {
     uint32_t last_timestamp;

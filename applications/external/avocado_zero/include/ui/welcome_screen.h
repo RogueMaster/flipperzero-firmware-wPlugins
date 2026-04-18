@@ -10,11 +10,11 @@
 typedef struct WelcomeScreen WelcomeScreen;
 
 typedef struct {
-    ViewDispatcher *vd;
+    ViewDispatcher* vd;
     uint32_t view_game_index;
-    AvocadoFeedback *feedback;
+    AvocadoFeedback* feedback;
 } WelcomeScreenContext;
 
-WelcomeScreen *welcome_screen_alloc(const WelcomeScreenContext *ctx);
-void welcome_screen_free(WelcomeScreen *screen);
-View *welcome_screen_get_view(WelcomeScreen *screen);
+WelcomeScreen* welcome_screen_alloc(const WelcomeScreenContext* ctx);
+void welcome_screen_free(WelcomeScreen* screen);
+View* welcome_screen_get_view(WelcomeScreen* screen);

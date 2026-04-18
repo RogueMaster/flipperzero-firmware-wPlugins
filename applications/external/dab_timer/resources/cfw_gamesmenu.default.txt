@@ -12,6 +12,7 @@ GamesMenuList Version 0
 /ext/apps/Games/arduventure.fap
 /ext/apps/Games/arkanoid.fap
 /ext/apps/Games/asteroids.fap
+/ext/apps/Games/avocado_zero.fap
 /ext/apps/Games/banana.fap
 /ext/apps/Games/blackjack.fap
 /ext/apps/Games/blackjack_rg.fap
@@ -60,6 +61,7 @@ GamesMenuList Version 0
 /ext/apps/Games/heap_defence.fap
 /ext/apps/Games/holdem.fap
 /ext/apps/Games/hunter_flipper.fap
+/ext/apps/Games/impostor.fap
 /ext/apps/Games/infinite_tic_tac_toe.fap
 /ext/apps/Games/insults.fap
 /ext/apps/Games/jetpack.fap
