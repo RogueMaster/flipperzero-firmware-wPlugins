@@ -11,7 +11,7 @@
 #include ENGINE_LOG_INCLUDE
 #endif
 
-#define WIREFRAME_ENABLED true
+#define WIREFRAME_ENABLED false
 
 // time
 #define TIME_INCLUDE "furi.h"
