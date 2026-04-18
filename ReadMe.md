@@ -87,6 +87,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Avocado Zero v0.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - Added: [Impostor v0.1.3 (By Endika)](https://github.com/Endika/flipper-impostor-game)
 - Added: [HyperFocus Calc v0.1.1 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
+- Updated: [Ham Scanner v1.0 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 
 <a name="release"></a>
 
