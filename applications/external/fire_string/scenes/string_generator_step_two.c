@@ -3,11 +3,11 @@
 /** indicies for menu items*/
 typedef enum {
     FireStringStepTwoSelection_USB,
-    // FireStringStepTwoSelection_BT        // TODO
+    FireStringStepTwoSelection_BT,
     // FireStringStepTwoSelection_NFC,      // TODO?
-    // FireStringStepTwoSelection_RFID,     // TODO?? Not sure if this has any uses?
-    // FireStringStepTwoSelection_SUBGHZ    // TODO??? Is this getting too crazy?
-    // FireStringStepTwoSelection_Infrared  // TODO???? Does this even make any sense to do?
+    // FireStringStepTwoSelection_RFID,     // TODO?
+    // FireStringStepTwoSelection_SUBGHZ    // TODO?
+    // FireStringStepTwoSelection_Infrared  // TODO?
     FireStringStepTwoSelection_Save,
     FireStringStepTwoSelection_Restart,
     FireStringStepTwoSelection_Exit
@@ -22,6 +22,9 @@ void fire_string_menu_callback_step_two_menu(void* context, uint32_t index) {
     switch(index) {
     case FireStringStepTwoSelection_USB:
         scene_manager_next_scene(app->scene_manager, FireStringScene_LoadingUSB);
+        break;
+    case FireStringStepTwoSelection_BT:
+        scene_manager_next_scene(app->scene_manager, FireStringScene_Bluetooth);
         break;
     case FireStringStepTwoSelection_Save:
         scene_manager_next_scene(app->scene_manager, FireStringScene_SaveString);
@@ -46,8 +49,14 @@ void fire_string_scene_on_enter_step_two_menu(void* context) {
 
     submenu_add_item(
         app->submenu,
-        "Send through USB",
+        "USB Export",
         FireStringStepTwoSelection_USB,
+        fire_string_menu_callback_step_two_menu,
+        app);
+    submenu_add_item(
+        app->submenu,
+        "Bluetooth Export",
+        FireStringStepTwoSelection_BT,
         fire_string_menu_callback_step_two_menu,
         app);
     submenu_add_item(

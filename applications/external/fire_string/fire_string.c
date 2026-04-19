@@ -9,6 +9,7 @@ void (*const fire_string_scene_on_enter_handlers[])(void*) = {
     fire_string_scene_on_enter_step_two_menu,
     fire_string_scene_on_enter_loading_usb,
     fire_string_scene_on_enter_usb,
+    fire_string_scene_on_enter_bluetooth,
     fire_string_scene_on_enter_load_string,
     fire_string_scene_on_enter_save_string,
     fire_string_scene_on_enter_about,
@@ -22,6 +23,7 @@ bool (*const fire_string_scene_on_event_handlers[])(void*, SceneManagerEvent) = 
     fire_string_scene_on_event_step_two_menu,
     fire_string_scene_on_event_loading_usb,
     fire_string_scene_on_event_usb,
+    fire_string_scene_on_event_bluetooth,
     fire_string_scene_on_event_load_string,
     fire_string_scene_on_event_save_string,
     fire_string_scene_on_event_about,
@@ -35,6 +37,7 @@ void (*const fire_string_scene_on_exit_handlers[])(void*) = {
     fire_string_scene_on_exit_step_two_menu,
     fire_string_scene_on_exit_loading_usb,
     fire_string_scene_on_exit_usb,
+    fire_string_scene_on_exit_bluetooth,
     fire_string_scene_on_exit_load_string,
     fire_string_scene_on_exit_save_string,
     fire_string_scene_on_exit_about,
@@ -144,12 +147,15 @@ FireString* fire_string_init() {
     // Set HID defaults
     app->hid = malloc(sizeof(FireStringHID));
     app->hid->api = NULL;
-    app->hid->interface = BadUsbHidInterfaceUsb;
     app->hid->usb_if_prev = NULL;
     app->hid->hid_inst = NULL;
     // Set default keyboard layout
+    // TODO: Alternate keyboard layouts - lang assets are included at APP_ASSETS_PATH("layouts")
     memset(app->hid->layout, HID_KEYBOARD_NONE, sizeof(app->hid->layout));
     memcpy(app->hid->layout, hid_asciimap, MIN(sizeof(hid_asciimap), sizeof(app->hid->layout)));
+
+    // Init notifications app
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     // Init dictionary
     app->dict = malloc(sizeof(FireStringDictionary));
@@ -158,6 +164,7 @@ FireString* fire_string_init() {
     app->dict->len = 0;
 
     app->fire_string = furi_string_alloc();
+    furi_string_reserve(app->fire_string, STR_RESERVE_LEN);
 
     fire_string_scene_manager_init(app);
     fire_string_view_dispatcher_init(app);
@@ -179,19 +186,26 @@ void fire_string_free(FireString* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FireStringView_TextInput);
 
     view_dispatcher_free(app->view_dispatcher);
+    app->view_dispatcher = NULL;
     menu_free(app->menu);
+    app->menu = NULL;
     submenu_free(app->submenu);
+    app->submenu = NULL;
     variable_item_list_free(app->variable_item_list);
+    app->variable_item_list = NULL;
     widget_free(app->widget);
+    app->widget = NULL;
     loading_free(app->loading);
+    app->loading = NULL;
     furi_string_free(app->fire_string);
+    app->fire_string = NULL;
     text_input_free(app->text_input);
+    app->text_input = NULL;
 
     if(app->dict->word_list != NULL) {
-        uint32_t i = 0;
-        while(app->dict->word_list[i] != NULL && !furi_string_empty(app->dict->word_list[i])) {
+        for(uint16_t i = 0; i < app->dict->len; i++) {
             furi_string_free(app->dict->word_list[i]);
-            i++;
+            app->dict->word_list[i] = NULL;
         }
         free(app->dict->word_list);
         app->dict->word_list = NULL;
@@ -201,10 +215,17 @@ void fire_string_free(FireString* app) {
         app->dict->char_list = NULL;
     }
 
+    furi_record_close(RECORD_NOTIFICATION);
+    app->notifications = NULL;
+
     free(app->settings);
+    app->settings = NULL;
     free(app->hid);
+    app->hid = NULL;
     free(app->dict);
+    app->dict = NULL;
     free(app);
+    app = NULL;
 }
 
 /** go to trace log level in dev environment */

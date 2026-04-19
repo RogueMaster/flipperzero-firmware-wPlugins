@@ -24,7 +24,25 @@ void fire_string_scene_on_enter_about(void* context) {
         "When generating a string,\nflick a lighter several inches\naway from the Flipper Zero's\nIR sensor to capture IR bursts\nwhich are then used to\ngenerate random strings.\n\n");
     furi_string_cat_printf(
         tmp_str,
-        "Fire is dangerous and can\nburn things, always handle a\nflame with caution and care.");
+        "\e#Troubleshooting:\nIf the app ever freezes up the device, holding the left arrow + the back button will restart the Flipper.\n\n");
+    furi_string_cat_printf(
+        tmp_str, "Please report any bugs\nencountered to the github\nissues page.\n\n");
+    furi_string_cat_printf(
+        tmp_str,
+        "\e#Disclaimer:\nFire is dangerous and can\nburn things, always handle a\nflame with caution and care.\n\n");
+    furi_string_cat_printf(
+        tmp_str,
+        "Never ignite a flame too close to the Flipper or any other\nflammable objects,\nalways ensure a safe distance is maintained.\n\n");
+    furi_string_cat_printf(
+        tmp_str,
+        "Never leave a flame\nunattended. I am not\nresponsible for any damages\nor harm caused by playing\nwith fire.\n\n");
+    furi_string_cat_printf(
+        tmp_str,
+        "While suitable for casual use,\navoid using generated strings for secure cryptographic\napplications. This application\nwas developed as a hobby\nproject for fun and has\nnot undergone rigorous\ncryptographic testing and\nshould not be used in critical\nsecurity applications\nwithout further verification.\n\n");
+    furi_string_cat_printf(
+        tmp_str,
+        "--------------------\n\nThe hidden Spam mode can\nbe unlocked by pressing the\nright arrow 5 times while\nexporting a string\n\n>:D\n\n");
+    furi_string_cat_printf(tmp_str, "--------------------");
 
     widget_add_text_box_element(
         app->widget,
