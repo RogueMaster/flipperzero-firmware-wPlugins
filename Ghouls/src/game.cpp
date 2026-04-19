@@ -577,9 +577,9 @@ void GhoulsGame::renderEnvironment(Game *game)
 {
     if (game)
     {
+        // renderWalls(game);
         renderHouses(game);
         renderTrees(game);
-        // renderWalls(game);
     }
 }
 
@@ -596,7 +596,7 @@ void GhoulsGame::renderHouses(Game *game)
         ENGINE_LOG_INFO("[GhoulsGame:renderHouses] Current level instance is null");
         return;
     }
-    for (uint8_t i = 0; i < HOUSE_SPAWN_COUNT; i++)
+    for (int8_t i = HOUSE_SPAWN_COUNT - 1; i >= 0; i--)
     {
         const Vector &pos = housePositions[i];
         float dx = pos.x - player->position.x;
@@ -621,7 +621,7 @@ void GhoulsGame::renderTrees(Game *game)
         ENGINE_LOG_INFO("[GhoulsGame:renderTrees] Current level instance is null");
         return;
     }
-    for (uint8_t i = 0; i < TREE_SPAWN_COUNT; i++)
+    for (int8_t i = TREE_SPAWN_COUNT - 1; i >= 0; i--)
     {
         const Vector &pos = treePositions[i];
         float dx = pos.x - player->position.x;
@@ -646,7 +646,7 @@ void GhoulsGame::renderWalls(Game *game)
         ENGINE_LOG_INFO("[GhoulsGame:renderWalls] Current level instance is null");
         return;
     }
-    for (uint8_t i = 0; i < MAP_OUTER_WALLS; i++)
+    for (int8_t i = MAP_OUTER_WALLS - 1; i >= 0; i--)
     {
         const Vector &pos = wallPositions[i];
         float dx = pos.x - player->position.x;

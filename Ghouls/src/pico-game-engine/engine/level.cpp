@@ -393,10 +393,8 @@ void Level::render(Game *game)
 
     if (clearAllowed)
     {
-// send newly drawn pixels to the display
-#ifdef ENGINE_LCD_SWAP
-        ENGINE_LCD_SWAP();
-#endif
+        // send newly drawn pixels to the display
+        game->draw->swap();
     }
 }
 
