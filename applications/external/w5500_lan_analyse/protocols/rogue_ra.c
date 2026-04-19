@@ -82,13 +82,10 @@ bool rogue_ra_process_frame(RogueRaState* state, const uint8_t* frame, uint16_t 
     memcpy(router->src_mac, src_mac, 6);
     memcpy(router->src_ip, src_ipv6, 16);
 
-    router->cur_hop_limit = payload[4];
     uint8_t flags = payload[5];
     router->managed_flag = (flags & 0x80) != 0;
     router->other_flag = (flags & 0x40) != 0;
     router->router_lifetime = pkt_read_u16_be(&payload[6]);
-    router->reachable_time = pkt_read_u32_be(&payload[8]);
-    router->retrans_timer = pkt_read_u32_be(&payload[12]);
 
     /* Parse options to find Prefix Information */
     uint16_t opt_offset = 16;

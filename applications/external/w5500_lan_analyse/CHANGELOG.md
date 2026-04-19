@@ -1,3 +1,75 @@
+# 2.7.0
+
+## Added
+- **File Manager** custom CSS/JS support — place custom.css and/or custom.js in apps_data/lan_tester/web/ on SD card to override default styles and scripts
+- **File Manager** JS-based alphabetical sorting (directories first, then files) replaces two-pass C rendering
+- **File Manager** serves .css and .js files with correct Content-Type (text/css, text/javascript) instead of octet-stream
+- Example themes in docs/filemanager_themes/: Hacker Green, Arctic Light, Cyberpunk, Solarized Dark
+- Example custom.js with search, breadcrumbs, multi-select delete, drag and drop upload, file preview (text, images, audio, video, PDF, hex dump)
+- Build excludes docs/ directory via sources parameter in application.fam
+
+# 2.6.0
+
+## Added
+- **Port Scan (Custom)** available from Discovered Hosts actions menu
+- **Discovered Hosts pagination** — browse all found hosts in pages of 24
+- **Ping Sweep** and **ARP Scan** no longer have host count limits (results stored on SD card)
+- **ARP Scan** dedup array supports up to 1024 hosts (was 128)
+
+## Improved
+- **Ping Sweep** progress bar on header line, compact format: found/scanned/total
+- **Ping Sweep** BACK button now interrupts immediately (was blocked by ping timeout)
+- **ARP Scan** results written to SD during scan (no large heap buffer at finish)
+- **ARP Scan** dedup uses 2 bytes per host instead of 16 (same 2 KB, 4x more hosts)
+- Worker thread allocated once at startup, reused for all tools (eliminates heap fragmentation)
+- Discovered Hosts loaded from SD card in single file pass per page (was N file opens per host)
+- Storage API opened once per scan, not per host (was 176 open/close cycles)
+- Progress bar uses fixed-width characters (no visual jitter on Flipper font)
+
+## Fixed
+- **Ping Sweep** crash when clicking host after large scan (worker thread OOM)
+- **ARP Scan** out of memory on networks with >128 hosts
+- **Discovered Hosts** out of memory with >64 hosts in submenu
+
+# 2.5.0
+
+## Improved
+- Reduced flash usage by ~2.8 KB through code deduplication and dead code removal
+- Reduced heap usage by ~2.4 KB: DHCP buffer optimized, unused struct fields removed, USB RX buffer now allocated on demand
+- Removed unused DNS and ICMP modules from WIZnet library build
+- Disabled debug logging in WIZnet DHCP library to save flash
+- Simplified PXE Help screen and File Manager web interface styling
+
+## Removed
+- **RADIUS Test** tool removed (limited by Flipper keyboard — no special characters for passwords)
+
+# 2.4.5
+
+## Added
+- **PXE Server** auto-selects boot file by client architecture (DHCP Option 93) — BIOS clients get .kpxe/.pxe, UEFI clients get .efi
+- **PXE Server** TFTP block size negotiation (RFC 2348) — supports blksize up to 1468 bytes, allowing files over 512 KB to transfer without "PXE-E3A: TFTP too many packages" error
+- **PXE Server** TFTP transfer size option (RFC 2349) — reports file size to client in OACK for progress display
+- **PXE Download** now includes ipxe.pxe (native driver build) for better Legacy BIOS compatibility
+
+## Improved
+- **PXE Server** TFTP sends DATA from port 69 (single socket) — fixes iPXE rejecting packets from ephemeral port
+- **PXE Server** gracefully restarts transfer when client sends new RRQ during active session instead of rejecting with "Server busy"
+- **PXE Server** uses real DHCP-assigned IP when built-in DHCP is OFF, so clients on external networks can reach TFTP
+- **Auto Test** LLDP/CDP listener now runs inline instead of a separate thread — saves ~2 KB heap
+- **Discovery** no longer allocates a device array — uses compact dedup and streams results live to screen
+- **File Manager** directory listing uses two-pass streaming instead of sorted array (~3.8 KB saved)
+- Tools now free leftover state before launching, reducing heap fragmentation
+
+## Fixed
+- **PXE Server** TFTP transfer broken — clients rejected DATA from wrong source port (port 51000 instead of 69)
+- **Auto Test** instant out-of-memory — worker thread stack reduced from 8 KB to 4 KB
+- Stack overflows in Settings, LLDP/CDP, STP/VLAN, DNS, VLAN hopping, EAPOL, RADIUS, Ping, Traceroute, DHCP, IPMI, PXE, History, PCAP dump (128-512 byte buffers moved off stack)
+- **RADIUS client** broken response parsing
+- **Rogue DHCP** and **TFTP client** broken receive — size was pointer size, not buffer size
+- **File Manager** stack overflow in HTML escape and response header buffers
+- **ETH Bridge** crash on failed allocation
+- Multiple NULL-check guards added after malloc
+
 # 2.4.0
 
 ## Added

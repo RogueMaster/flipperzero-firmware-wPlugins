@@ -40,7 +40,6 @@ typedef struct {
     uint16_t max_hosts; /* allocated capacity */
     uint16_t count;
     uint16_t total_sent;
-    uint8_t progress_percent;
     bool scanning;
     bool complete;
     uint32_t start_tick;

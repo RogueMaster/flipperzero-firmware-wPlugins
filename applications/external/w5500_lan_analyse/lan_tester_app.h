@@ -45,7 +45,6 @@ typedef enum {
     LanTesterViewToolResult, /* shared TextBox for all tools */
     LanTesterViewToolInput, /* shared TextInput for all tools */
     LanTesterViewToolByteInput, /* shared ByteInput for MAC entry */
-    LanTesterViewCount,
 } LanTesterView;
 
 /* Main menu item indices */
@@ -87,7 +86,6 @@ typedef enum {
     LanTesterMenuItemVlanHopCustom,
     LanTesterMenuItemTftpClient,
     LanTesterMenuItemIpmiClient,
-    LanTesterMenuItemRadiusClient,
     LanTesterMenuItemPxeDownload,
 } LanTesterMenuItem;
 
@@ -104,15 +102,6 @@ typedef struct {
     uint32_t cdp_frames;
     uint32_t unknown_frames;
 } PacketStats;
-
-/* Discovered host from scan results */
-typedef struct {
-    uint8_t ip[4];
-    uint8_t mac[6];
-    bool has_mac;
-} DiscoveredHost;
-
-#define MAX_DISCOVERED_HOSTS 64
 
 /* Application state */
 struct LanTesterApp {
@@ -153,7 +142,6 @@ struct LanTesterApp {
 
     /* W5500 state */
     bool w5500_initialized;
-    bool spi_acquired;
     bool link_up;
     uint8_t link_speed; /* 0 = 10M, 1 = 100M */
     uint8_t link_duplex; /* 0 = half, 1 = full */
@@ -243,9 +231,9 @@ struct LanTesterApp {
     /* Discovered hosts from scans */
     Submenu* submenu_host_list;
     Submenu* submenu_host_actions;
-    DiscoveredHost discovered_hosts[MAX_DISCOVERED_HOSTS];
-    uint16_t discovered_host_count;
+    uint16_t discovered_host_count; /* lines in last_scan.txt */
     uint16_t selected_host_idx;
+    uint16_t host_list_page; /* current page in Discovered Hosts (0-based) */
 
     /* Packet Capture state */
     View* view_packet_capture;
@@ -258,10 +246,6 @@ struct LanTesterApp {
 
     /* Auto Test runtime */
     volatile bool autotest_running;
-    FuriThread* autotest_lldp_thread;
-    FuriString* autotest_lldp_result;
-    FuriMutex* autotest_lldp_mutex;
-    volatile bool autotest_lldp_done;
 
     /* Auto Test settings */
     char autotest_dns_host[64];
@@ -288,16 +272,9 @@ struct LanTesterApp {
     char tftp_filename_input[64];
     uint8_t ipmi_target[4];
     char ipmi_ip_input[16];
-    uint8_t radius_target[4];
-    char radius_ip_input[16];
     /* VLAN Hop state */
     bool vlan_hop_custom;
     char vlan_hop_input[32]; /* comma-separated VLAN IDs */
-
-    char radius_secret_input[32];
-    char radius_user_input[32];
-    char radius_pass_input[32];
-    uint8_t radius_input_step;
 
     /* Security category submenu */
     Submenu* submenu_cat_security;

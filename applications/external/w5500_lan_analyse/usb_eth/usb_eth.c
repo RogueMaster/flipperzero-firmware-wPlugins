@@ -16,6 +16,7 @@ extern void usb_eth_set_mac(const uint8_t mac[6]);
 extern bool usb_eth_is_connected_internal(void);
 extern bool usb_eth_send_frame_internal(const uint8_t* frame, uint16_t len);
 extern int16_t usb_eth_receive_frame_internal(uint8_t* frame, uint16_t max_len);
+extern uint8_t* usb_rx_frame;
 
 bool usb_eth_init(void) {
     if(usb_eth_initialized) {
@@ -24,6 +25,12 @@ bool usb_eth_init(void) {
     }
 
     FURI_LOG_I(TAG, "Initializing USB CDC-ECM...");
+
+    /* Allocate RX buffer once (persists for app lifetime) */
+    if(!usb_rx_frame) {
+        usb_rx_frame = malloc(1520);
+        if(!usb_rx_frame) return false;
+    }
 
     /* Save current USB config so we can restore it later */
     prev_usb_interface = furi_hal_usb_get_config();

@@ -8,8 +8,6 @@
 
 typedef struct {
     uint8_t mac[6];
-    uint8_t options[DHCP_FP_MAX_OPTIONS]; /* option 55 parameter list */
-    uint8_t option_count;
     char os_guess[32]; /* identified OS or device type */
     bool identified;
 } DhcpFpClient;

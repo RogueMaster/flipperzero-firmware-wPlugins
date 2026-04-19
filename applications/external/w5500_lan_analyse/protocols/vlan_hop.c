@@ -83,7 +83,8 @@ bool vlan_hop_test(
     /* Listen for replies */
     uint32_t start = furi_get_tick();
     uint32_t timeout_ms = 5000;
-    uint8_t rx_buf[256];
+    /* Static to avoid 256B stack usage; worker is single-threaded */
+    static uint8_t rx_buf[256];
 
     while((furi_get_tick() - start) < timeout_ms) {
         uint16_t recv_len = w5500_hal_macraw_recv(rx_buf, sizeof(rx_buf));

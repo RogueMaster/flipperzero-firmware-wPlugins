@@ -190,8 +190,8 @@ bool dns_lookup(
     uint16_t tx_id;
     furi_hal_random_fill_buf((uint8_t*)&tx_id, sizeof(tx_id));
 
-    /* Build DNS query */
-    uint8_t dns_buf[DNS_BUF_SIZE];
+    /* Build DNS query — static to avoid 512B stack usage; worker is single-threaded */
+    static uint8_t dns_buf[DNS_BUF_SIZE];
     uint16_t query_len = dns_build_query(dns_buf, DNS_BUF_SIZE, hostname, tx_id);
     if(query_len == 0) {
         FURI_LOG_E(TAG, "Failed to build DNS query for '%s'", hostname);

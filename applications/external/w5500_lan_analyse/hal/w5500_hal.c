@@ -117,10 +117,12 @@ bool w5500_hal_chip_init(void) {
     /*
      * FIFO buffer sizes for 8 sockets (TX/RX in KB each).
      * Must be powers of 2 (0,1,2,4,8,16). Total = 16KB each.
-     * Socket 0: 8KB MACRAW, 1-2: 2KB, 3-5: 1KB tools+HTTP DL.
+     * Socket 0: 8KB MACRAW, 1-2: 2KB general tools,
+     * 3: 1KB PXE DHCP, 4: 2KB PXE TFTP (blksize up to 1468),
+     * 5: 1KB HTTP DL, 6-7: unused.
      */
-    uint8_t rx_sizes[8] = {8, 2, 2, 2, 1, 1, 0, 0};
-    uint8_t tx_sizes[8] = {8, 2, 2, 2, 1, 1, 0, 0};
+    uint8_t rx_sizes[8] = {8, 2, 2, 1, 2, 1, 0, 0};
+    uint8_t tx_sizes[8] = {8, 2, 2, 1, 2, 1, 0, 0};
     uint8_t fifo_sizes[2][8];
     memcpy(fifo_sizes[0], tx_sizes, 8);
     memcpy(fifo_sizes[1], rx_sizes, 8);

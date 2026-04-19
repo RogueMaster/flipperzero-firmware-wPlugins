@@ -18,12 +18,13 @@
 #define PXE_BOOT_DIR          EXT_PATH("apps_data/lan_tester/pxe")
 #define PXE_DEFAULT_BOOT_FILE "undionly.kpxe"
 
-/* TFTP opcodes (RFC 1350) */
+/* TFTP opcodes (RFC 1350 + RFC 2347) */
 #define TFTP_OP_RRQ   1
 #define TFTP_OP_WRQ   2
 #define TFTP_OP_DATA  3
 #define TFTP_OP_ACK   4
 #define TFTP_OP_ERROR 5
+#define TFTP_OP_OACK  6
 
 /* TFTP error codes */
 #define TFTP_ERR_UNDEFINED 0
@@ -61,12 +62,14 @@ typedef struct {
     uint8_t client_ip[4];
     uint16_t client_port; /* Client's TID (source port) */
     uint16_t block_num; /* Current block being sent */
+    uint16_t blksize; /* Negotiated block size (512 default, up to 1468) */
     uint32_t file_size; /* Total file size in bytes */
     uint32_t bytes_sent; /* Bytes successfully ACK'd */
-    uint16_t last_block_size; /* Size of last DATA sent (< 512 = EOF) */
+    uint16_t last_block_size; /* Size of last DATA sent (< blksize = EOF) */
     uint8_t retries; /* Retry counter for current block */
     uint32_t last_send_tick; /* Tick when last DATA was sent */
     bool active;
+    bool oack_pending; /* Waiting for ACK 0 after OACK */
     File* file; /* Open file handle during transfer */
     Storage* storage; /* Storage record handle */
 } TftpSession;

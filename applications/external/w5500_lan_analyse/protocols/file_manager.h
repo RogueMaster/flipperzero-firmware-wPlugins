@@ -25,6 +25,8 @@ typedef struct {
     uint32_t errors;
     char current_path[FILEMGR_PATH_MAX]; /* path being browsed */
     char auth_token[FILEMGR_TOKEN_LEN + 1]; /* random access token */
+    bool has_custom_css; /* apps_data/lan_tester/web/custom.css exists */
+    bool has_custom_js; /* apps_data/lan_tester/web/custom.js exists */
 } FileManagerState;
 
 /**

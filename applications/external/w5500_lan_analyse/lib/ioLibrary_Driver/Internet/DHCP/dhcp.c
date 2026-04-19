@@ -59,8 +59,6 @@
 #include <stdio.h>
 #endif
 
-#define _DHCP_DEBUG_
-
 /* DHCP state machine. */
 #define STATE_DHCP_INIT 0 ///< Initialize
 #define STATE_DHCP_DISCOVER 1 ///< send DISCOVER and wait OFFER
@@ -588,6 +586,7 @@ int8_t parseDHCPMSG(void) {
     uint8_t opt_len;
 
     if((len = getSn_RX_RSR(DHCP_SOCKET)) > 0) {
+        if(len > RIP_MSG_SIZE) len = RIP_MSG_SIZE;
         len = recvfrom(DHCP_SOCKET, (uint8_t*)pDHCPMSG, len, svr_addr, &svr_port);
 #ifdef _DHCP_DEBUG_
         eth_printf(

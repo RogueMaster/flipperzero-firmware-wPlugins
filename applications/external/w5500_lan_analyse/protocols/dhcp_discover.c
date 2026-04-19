@@ -237,8 +237,9 @@ void dhcp_format_result(const DhcpAnalyzeResult* result, char* buf, uint16_t buf
     pkt_format_ip(result->ntp_server, ntp_str);
     pkt_format_ip(result->broadcast, bcast_str);
 
-    /* Build fingerprint string */
-    char fp_str[128] = {0};
+    /* Build fingerprint string — static to avoid 128B stack usage */
+    static char fp_str[128];
+    fp_str[0] = '\0';
     uint16_t fp_offset = 0;
     for(uint8_t i = 0; i < result->fingerprint_len && fp_offset < sizeof(fp_str) - 4; i++) {
         if(i > 0) {

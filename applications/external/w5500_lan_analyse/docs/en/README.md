@@ -43,11 +43,10 @@ Turn your **Flipper Zero + W5500** Ethernet module into a professional-grade por
 | DHCP Fingerprint | Security | Identify client OS by DHCP option 55 |
 | 802.1X Probe | Security | EAPOL-Start probe, detect port authentication |
 | VLAN Hopping | Security | Test VLAN isolation (Top 10 / Custom VLANs) |
-| RADIUS Test | Security | Access-Request with PAP/MD5, check Accept/Reject |
 | Wake-on-LAN | Utilities | Magic packet sender |
 | PXE Server | Utilities | Network boot server with DHCP + TFTP |
 | PXE Download | Utilities | Download iPXE/EFI boot files from the internet to SD card |
-| File Manager | Utilities | Web-based SD card manager via HTTP |
+| File Manager | Utilities | Web-based SD card manager via HTTP, custom CSS/JS themes |
 | TFTP Client | Utilities | Download config files from network equipment |
 | IPMI Query | Utilities | BMC chassis status, device ID, firmware version |
 | History | -- | Timestamped auto-saved results, browsable and deletable |

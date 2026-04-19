@@ -4,6 +4,16 @@
 
 Flipper Zero LAN Tester — portable Ethernet analyzer & security toolkit using W5500 SPI module. C99, ufbt build system, ~130 KB heap, 4 KB stack.
 
+## Hardware Platform
+
+- **MCU**: STM32WB55RG — dual-core ARM (Cortex-M4F @ 64 MHz + Cortex-M0+ @ 32 MHz for BLE)
+- **Flash**: 1024 KB (shared between app and radio firmware)
+- **SRAM**: 256 KB total (SRAM1 192 KB + SRAM2a 32 KB + SRAM2b 32 KB). FreeRTOS heap ~186 KB from SRAM1; after firmware services and .fap code loading, ~100–130 KB remains for the app.
+- **Display**: 128x64 px monochrome LCD (ST7567, SPI), orange backlight. ~6 lines x ~21 chars at default font.
+- **GPIO**: 18-pin header, 13 I/O pins, 3.3V CMOS (5V tolerant input), up to 20 mA per pin.
+- **.fap code is loaded into heap** — the app binary itself consumes heap before the first `malloc()`.
+- **No stack guard pages** — stack overflow silently corrupts adjacent memory. Prevention is the only reliable protection.
+
 ## Build & Verify
 
 ```bash
@@ -18,8 +28,10 @@ Always build and lint after changes. Never push code that doesn't compile or has
 ## Critical Constraints
 
 ### Memory (most important)
-- **130 KB heap total** — every malloc matters. Prefer reusing existing buffers.
-- **4 KB stack** — no arrays >128 bytes on stack. Use `malloc`/`free` or `app->frame_buf` (1600 B shared buffer, available after W5500 init).
+- **~130 KB heap available** — FreeRTOS heap is ~186 KB (from 256 KB SRAM), but firmware services + .fap binary loading consume ~50–80 KB before the app starts. Every malloc matters. Prefer reusing existing buffers.
+- **4 KB main thread stack** (set via `stack_size` in `application.fam`) — no arrays >128 bytes on stack. Use `malloc`/`free` or `app->frame_buf` (1600 B shared buffer, available after W5500 init).
+- **Worker thread stacks are allocated from heap** — creating a thread with 2 KB stack costs ~2 KB of heap. Keep worker stacks minimal.
+- **Heap fragmentation** — FreeRTOS heap_4 allocator does not defragment. Many small alloc/free cycles create gaps; a 2 KB malloc can fail with 10 KB free. Reuse buffers instead of frequent alloc/free.
 - **One worker thread at a time** — all tools share `text_box_tool`, `tool_text`, `text_input_tool`, `byte_input_tool`. Set `app->tool_back_view` before switching to `LanTesterViewToolResult`.
 - **WIZnet DHCP_init() keeps pointer** — never pass `frame_buf` to `DHCP_init()`. DHCP needs its own `malloc(1024)`.
 - **OOM-prone operations**: ARP scan (hosts array), Discovery (device array), History (file list). Keep caps low, structs small.
@@ -117,4 +129,4 @@ The catalog bundler parses `CHANGELOG.md` and rejects any Markdown element outsi
 - Don't share `frame_buf` with `DHCP_init()` (WIZnet keeps the pointer)
 - Don't call `furi_hal_power_disable_otg()` without checking `is_otg_enabled()`
 - Don't allocate new TextBox/FuriString per tool — use shared `text_box_tool`/`tool_text`
-- Don't modify files under `lib/ioLibrary_Driver/` — vendored, read-only
+- Files under `lib/ioLibrary_Driver/` are vendored but may be patched when needed (e.g. stack safety fixes)

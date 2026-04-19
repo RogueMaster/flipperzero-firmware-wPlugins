@@ -43,11 +43,10 @@
 | DHCP Fingerprint | Security | Определение ОС клиентов по option 55 |
 | 802.1X Probe | Security | EAPOL-Start, обнаружение аутентификации на порту |
 | VLAN Hopping | Security | Проверка изоляции VLAN (Top 10 / Custom) |
-| RADIUS Test | Security | Access-Request (PAP/MD5), проверка Accept/Reject |
 | Wake-on-LAN | Utilities | Отправка magic-пакетов |
 | PXE Server | Utilities | Сервер сетевой загрузки (DHCP + TFTP) |
 | PXE Download | Utilities | Скачивание iPXE/EFI boot-файлов из интернета на SD |
-| File Manager | Utilities | Веб-менеджер файлов SD через HTTP |
+| File Manager | Utilities | Веб-менеджер файлов SD через HTTP, кастомные CSS/JS темы |
 | TFTP Client | Utilities | Скачивание конфигов с оборудования |
 | IPMI Query | Utilities | Статус шасси BMC, версия прошивки |
 | History | -- | Автосохранение результатов с метками времени |

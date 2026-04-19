@@ -33,15 +33,6 @@
 #define CDP_TLV_NATIVE_VLAN  0x000A
 #define CDP_TLV_DUPLEX       0x000B
 
-/* CDP capabilities bits */
-#define CDP_CAP_ROUTER       (1 << 0)
-#define CDP_CAP_TRANS_BRIDGE (1 << 1)
-#define CDP_CAP_SRC_BRIDGE   (1 << 2)
-#define CDP_CAP_SWITCH       (1 << 3)
-#define CDP_CAP_HOST         (1 << 4)
-#define CDP_CAP_IGMP         (1 << 5)
-#define CDP_CAP_REPEATER     (1 << 6)
-
 typedef struct {
     char device_id[CDP_MAX_STRING];
     char port_id[CDP_MAX_STRING];

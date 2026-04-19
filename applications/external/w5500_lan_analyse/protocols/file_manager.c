@@ -15,34 +15,7 @@
 #define TAG "FILEMGR"
 
 /* Max single file/folder name */
-#define FM_NAME_MAX    64
-#define FM_MAX_ENTRIES 48 /* max directory entries to sort (48×80≈3.8KB) */
-
-/* Directory entry for sorting */
-typedef struct {
-    char name[FM_NAME_MAX];
-    uint64_t size;
-    bool is_dir;
-} FmDirEntry;
-
-/* Compare: directories first, then case-insensitive alphabetical */
-static int fm_entry_cmp(const void* a, const void* b) {
-    const FmDirEntry* ea = a;
-    const FmDirEntry* eb = b;
-    if(ea->is_dir != eb->is_dir) return ea->is_dir ? -1 : 1;
-    /* Case-insensitive compare */
-    const char* sa = ea->name;
-    const char* sb = eb->name;
-    while(*sa && *sb) {
-        char ca = *sa, cb = *sb;
-        if(ca >= 'A' && ca <= 'Z') ca += 32;
-        if(cb >= 'A' && cb <= 'Z') cb += 32;
-        if(ca != cb) return (ca < cb) ? -1 : 1;
-        sa++;
-        sb++;
-    }
-    return (*sa == 0 && *sb == 0) ? 0 : (*sa == 0 ? -1 : 1);
-}
+#define FM_NAME_MAX 64
 
 /* Simple memmem implementation */
 static void* filemgr_memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen) {
@@ -150,6 +123,31 @@ static bool http_send_str(uint8_t sn, const char* str) {
     return http_send_buf(sn, (const uint8_t*)str, len);
 }
 
+/* Send "/web_path/name?token" path fragment (reused for browse/download/delete links) */
+static void http_send_path(uint8_t sn, const char* web_path, const char* name, const char* tsuf) {
+    if(strcmp(web_path, "/") != 0) http_send_str(sn, web_path);
+    http_send_str(sn, "/");
+    http_send_str(sn, name);
+    http_send_str(sn, tsuf);
+}
+
+/* Stream file contents from SD directly into HTTP socket (no heap buffer needed).
+ * Uses a small stack buffer for chunked reading. */
+static void http_send_file_inline(uint8_t sn, const char* path) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* f = storage_file_alloc(storage);
+    if(storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char chunk[128];
+        uint16_t rd;
+        while((rd = storage_file_read(f, chunk, sizeof(chunk))) > 0) {
+            http_send_buf(sn, (const uint8_t*)chunk, rd);
+        }
+    }
+    storage_file_close(f);
+    storage_file_free(f);
+    furi_record_close(RECORD_STORAGE);
+}
+
 /*
  * Wait for ALL pending data to be transmitted before closing connection.
  * 1. Wait for SEND_OK (last send command completed)
@@ -177,29 +175,34 @@ static void http_flush(uint8_t sn) {
 static const char css[] =
     "<style>"
     "body{font-family:monospace;background:#1a1a2e;color:#e0e0e0;margin:0;padding:16px}"
-    "h1{color:#ff8c00;font-size:18px;margin:0 0 4px}"
-    ".p{color:#888;font-size:13px;margin-bottom:12px;word-break:break-all}"
+    "h1{color:#ff8c00;margin:0 0 4px}"
+    ".p{color:#888;margin-bottom:12px;word-break:break-all}"
     "table{width:100%;border-collapse:collapse}"
-    "th{text-align:left;padding:6px 8px;border-bottom:2px solid #ff8c00;color:#ff8c00;font-size:13px}"
-    "td{padding:5px 8px;border-bottom:1px solid #333;font-size:13px}"
-    "tr:hover{background:#2a2a4a}"
-    "a{color:#5dade2;text-decoration:none}a:hover{text-decoration:underline}"
+    "th{text-align:left;padding:6px 8px;border-bottom:2px solid #ff8c00;color:#ff8c00}"
+    "td{padding:5px 8px;border-bottom:1px solid #333}"
+    "a{color:#5dade2;text-decoration:none}"
     ".d{color:#ff8c00;font-weight:bold}"
     ".s{color:#888;text-align:right}"
     ".a{white-space:nowrap}"
-    ".a a{margin-left:8px;color:#e74c3c;font-size:12px}"
+    ".a a{margin-left:8px;color:#e74c3c}"
     ".b{display:inline-block;padding:6px 14px;background:#ff8c00;color:#1a1a2e;"
-    "border:none;cursor:pointer;font-family:monospace;font-size:13px;font-weight:bold;"
-    "text-decoration:none;margin:2px}"
-    ".b:hover{background:#ffa500}"
-    ".bs{padding:3px 8px;font-size:11px}"
+    "border:none;font-weight:bold;text-decoration:none;margin:2px}"
+    ".bs{padding:3px 8px}"
     ".uf{margin:12px 0;padding:10px;background:#2a2a4a;border:1px solid #444}"
     ".mf{margin:8px 0}"
-    "input[type=text]{background:#1a1a2e;color:#e0e0e0;border:1px solid #555;"
-    "padding:4px 8px;font-family:monospace;font-size:13px}"
-    "input[type=file]{color:#e0e0e0;font-size:12px}"
-    ".ft{margin-top:16px;color:#888;font-size:11px}"
+    ".ft{margin-top:16px;color:#888}"
     "</style>";
+
+static const char default_js[] = "<script>"
+                                 "onload=()=>{let t=document.querySelector('table');"
+                                 "if(!t)return;let r=[...t.rows].slice(1),"
+                                 "d=r.filter(e=>e.querySelector('.d')),"
+                                 "f=r.filter(e=>!e.querySelector('.d'));"
+                                 "let s=e=>e.cells[0].textContent.toLowerCase();"
+                                 "d.sort((a,b)=>s(a).localeCompare(s(b)));"
+                                 "f.sort((a,b)=>s(a).localeCompare(s(b)));"
+                                 "[...d,...f].forEach(e=>t.tBodies[0].appendChild(e))}"
+                                 "</script>";
 
 /* Format file size human-readable */
 static void format_size(uint64_t size, char* buf, size_t buf_size) {
@@ -280,8 +283,12 @@ static void get_parent_path(const char* path, char* parent, size_t parent_size) 
  * Uses Connection: close without Content-Length so the browser reads
  * until the server closes the connection.
  */
-static void
-    handle_list_dir(uint8_t sn, const char* sd_path, const char* web_path, const char* token) {
+static void handle_list_dir(
+    uint8_t sn,
+    const char* sd_path,
+    const char* web_path,
+    const char* token,
+    const FileManagerState* fms) {
     /* Token suffix for all URLs */
     char tsuf[16];
     snprintf(tsuf, sizeof(tsuf), "?t=%s", token);
@@ -298,7 +305,13 @@ static void
         "<!DOCTYPE html><html><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width,initial-scale=1'>"
         "<title>Flipper File Manager</title>");
-    http_send_str(sn, css);
+    if(fms->has_custom_css) {
+        http_send_str(sn, "<style>");
+        http_send_file_inline(sn, APP_DATA_PATH("web/custom.css"));
+        http_send_str(sn, "</style>");
+    } else {
+        http_send_str(sn, css);
+    }
     http_send_str(sn, "</head><body>");
 
     /* Title */
@@ -350,97 +363,56 @@ static void
     /* Table header */
     http_send_str(sn, "<table><tr><th>Name</th><th>Size</th><th></th></tr>");
 
-    /* Read directory entries into array for sorting */
+    /* Single-pass rendering — JS on client sorts dirs first, then alphabetically */
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    FmDirEntry* entries = malloc(sizeof(FmDirEntry) * FM_MAX_ENTRIES);
-    uint16_t entry_count = 0;
-
     File* dir = storage_file_alloc(storage);
-    if(!entries) {
-        http_send_str(sn, "<tr><td colspan='3'>Not enough memory</td></tr>");
-    } else if(!storage_dir_open(dir, sd_path)) {
+    /* Static to avoid 320B stack usage; worker is single-threaded */
+    static char esc_name[FM_NAME_MAX * 5];
+    bool dir_ok = storage_dir_open(dir, sd_path);
+    if(!dir_ok) {
         http_send_str(sn, "<tr><td colspan='3'>Failed to open directory</td></tr>");
     } else {
         FileInfo info;
         char name[FM_NAME_MAX];
-        while(storage_dir_read(dir, &info, name, sizeof(name)) && entry_count < FM_MAX_ENTRIES) {
-            strncpy(entries[entry_count].name, name, FM_NAME_MAX - 1);
-            entries[entry_count].name[FM_NAME_MAX - 1] = '\0';
-            entries[entry_count].size = info.size;
-            entries[entry_count].is_dir = (info.flags & FSF_DIRECTORY);
-            entry_count++;
-        }
-        storage_dir_close(dir);
 
-        /* Insertion sort: directories first, then alphabetical.
-         * qsort is disabled in Flipper FAP SDK; insertion sort is
-         * fine for <=48 entries and uses no extra memory. */
-        for(uint16_t i = 1; i < entry_count; i++) {
-            FmDirEntry tmp = entries[i];
-            uint16_t j = i;
-            while(j > 0 && fm_entry_cmp(&tmp, &entries[j - 1]) < 0) {
-                entries[j] = entries[j - 1];
-                j--;
-            }
-            entries[j] = tmp;
-        }
+        while(storage_dir_read(dir, &info, name, sizeof(name))) {
+            html_escape(name, esc_name, sizeof(esc_name));
+            bool is_dir = (info.flags & FSF_DIRECTORY);
 
-        /* Stream each row directly — no HTML accumulation */
-        char esc_name[FM_NAME_MAX * 5]; /* worst case: every char escaped */
-        for(uint16_t i = 0; i < entry_count; i++) {
-            html_escape(entries[i].name, esc_name, sizeof(esc_name));
-            if(entries[i].is_dir) {
-                http_send_str(sn, "<tr><td><a href='/browse");
-                if(strcmp(web_path, "/") != 0) http_send_str(sn, web_path);
-                http_send_str(sn, "/");
-                http_send_str(sn, esc_name);
-                http_send_str(sn, tsuf);
+            http_send_str(sn, "<tr><td>");
+            if(is_dir) {
+                http_send_str(sn, "<a href='/browse");
+                http_send_path(sn, web_path, esc_name, tsuf);
                 http_send_str(sn, "' class='d'>");
                 http_send_str(sn, esc_name);
-                http_send_str(
-                    sn,
-                    "/</a></td><td class='s'>-</td><td class='a'>"
-                    "<a href='/delete");
-                if(strcmp(web_path, "/") != 0) http_send_str(sn, web_path);
-                http_send_str(sn, "/");
+                http_send_str(sn, "/</a>");
+            } else {
                 http_send_str(sn, esc_name);
-                http_send_str(sn, tsuf);
-                http_send_str(
-                    sn,
-                    "' onclick=\"return confirm('Delete?')\">"
-                    "Del</a></td></tr>");
+            }
+            http_send_str(sn, "</td><td class='s'>");
+            if(is_dir) {
+                http_send_str(sn, "-");
             } else {
                 char size_str[32];
-                format_size(entries[i].size, size_str, sizeof(size_str));
-                http_send_str(sn, "<tr><td>");
-                http_send_str(sn, esc_name);
-                http_send_str(sn, "</td><td class='s'>");
+                format_size(info.size, size_str, sizeof(size_str));
                 http_send_str(sn, size_str);
-                http_send_str(
-                    sn,
-                    "</td><td class='a'>"
-                    "<a href='/download");
-                if(strcmp(web_path, "/") != 0) http_send_str(sn, web_path);
-                http_send_str(sn, "/");
-                http_send_str(sn, esc_name);
-                http_send_str(sn, tsuf);
-                http_send_str(
-                    sn,
-                    "' class='b bs'>DL</a>"
-                    "<a href='/delete");
-                if(strcmp(web_path, "/") != 0) http_send_str(sn, web_path);
-                http_send_str(sn, "/");
-                http_send_str(sn, esc_name);
-                http_send_str(sn, tsuf);
-                http_send_str(
-                    sn,
-                    "' onclick=\"return confirm('Delete?')\">"
-                    "Del</a></td></tr>");
             }
+            http_send_str(sn, "</td><td class='a'>");
+            if(!is_dir) {
+                http_send_str(sn, "<a href='/download");
+                http_send_path(sn, web_path, esc_name, tsuf);
+                http_send_str(sn, "' class='b bs'>DL</a>");
+            }
+            http_send_str(sn, "<a href='/delete");
+            http_send_path(sn, web_path, esc_name, tsuf);
+            http_send_str(
+                sn,
+                "' onclick=\"return confirm('Delete?')\">"
+                "Del</a></td></tr>");
         }
+        storage_dir_close(dir);
     }
     storage_file_free(dir);
-    if(entries) free(entries);
     furi_record_close(RECORD_STORAGE);
 
     /* Footer with device info */
@@ -452,7 +424,8 @@ static void
         uint64_t st_total = 0, st_free = 0;
         storage_common_fs_info(fst, "/ext", &st_total, &st_free);
         furi_record_close(RECORD_STORAGE);
-        char ft[128];
+        /* Static to avoid 128B stack usage; worker is single-threaded */
+        static char ft[128];
         snprintf(
             ft,
             sizeof(ft),
@@ -463,7 +436,15 @@ static void
             (unsigned long)(st_total / (1024 * 1024)));
         http_send_str(sn, ft);
     }
-    http_send_str(sn, "</div></body></html>");
+    http_send_str(sn, "</div>");
+    if(fms->has_custom_js) {
+        http_send_str(sn, "<script>");
+        http_send_file_inline(sn, APP_DATA_PATH("web/custom.js"));
+        http_send_str(sn, "</script>");
+    } else {
+        http_send_str(sn, default_js);
+    }
+    http_send_str(sn, "</body></html>");
     http_flush(sn);
 }
 
@@ -502,18 +483,44 @@ static void handle_download(
     }
     safe_name[si] = '\0';
 
-    /* Send response headers */
-    char hdr[192];
-    snprintf(
-        hdr,
-        sizeof(hdr),
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: application/octet-stream\r\n"
-        "Content-Disposition: attachment; filename=\"%.48s\"\r\n"
-        "Content-Length: %lu\r\n"
-        "Connection: close\r\n\r\n",
-        safe_name,
-        (unsigned long)file_size);
+    /* Detect MIME type for CSS/JS (inline), everything else as download */
+    const char* content_type = "application/octet-stream";
+    bool inline_file = false;
+    size_t name_len = strlen(safe_name);
+    if(name_len > 4 && strcmp(safe_name + name_len - 4, ".css") == 0) {
+        content_type = "text/css";
+        inline_file = true;
+    } else if(name_len > 3 && strcmp(safe_name + name_len - 3, ".js") == 0) {
+        content_type = "text/javascript";
+        inline_file = true;
+    }
+
+    /* Send response headers
+     * Static to avoid 192B stack usage; worker is single-threaded */
+    static char hdr[192];
+    if(inline_file) {
+        snprintf(
+            hdr,
+            sizeof(hdr),
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: %s\r\n"
+            "Content-Length: %lu\r\n"
+            "Connection: close\r\n\r\n",
+            content_type,
+            (unsigned long)file_size);
+    } else {
+        snprintf(
+            hdr,
+            sizeof(hdr),
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: %s\r\n"
+            "Content-Disposition: attachment; filename=\"%.48s\"\r\n"
+            "Content-Length: %lu\r\n"
+            "Connection: close\r\n\r\n",
+            content_type,
+            safe_name,
+            (unsigned long)file_size);
+    }
     http_send_str(sn, hdr);
 
     /* Stream file in chunks */
@@ -993,7 +1000,7 @@ static void handle_request(
         furi_record_close(RECORD_STORAGE);
 
         if(is_dir) {
-            handle_list_dir(sn, sd_path, web_path, state->auth_token);
+            handle_list_dir(sn, sd_path, web_path, state->auth_token, state);
         } else {
             http_send_str(
                 sn,
@@ -1164,6 +1171,14 @@ bool file_manager_start(FileManagerState* state) {
     state->auth_token[3] = digits[rnd[3] % 10];
     state->auth_token[4] = '\0';
     FURI_LOG_I(TAG, "File Manager token: %s", state->auth_token);
+
+    /* Check for custom CSS/JS on SD (once at startup) */
+    Storage* st = furi_record_open(RECORD_STORAGE);
+    state->has_custom_css =
+        (storage_common_stat(st, APP_DATA_PATH("web/custom.css"), NULL) == FSE_OK);
+    state->has_custom_js =
+        (storage_common_stat(st, APP_DATA_PATH("web/custom.js"), NULL) == FSE_OK);
+    furi_record_close(RECORD_STORAGE);
 
     int8_t ret = socket(FILEMGR_HTTP_SOCKET, Sn_MR_TCP, FILEMGR_HTTP_PORT, 0);
     if(ret != FILEMGR_HTTP_SOCKET) {

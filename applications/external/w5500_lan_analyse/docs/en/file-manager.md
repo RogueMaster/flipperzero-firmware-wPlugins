@@ -69,11 +69,34 @@ Click **Delete** next to any file or folder. A confirmation dialog appears befor
 
 ## Web UI
 
-The web interface uses a dark theme with responsive layout:
+The web interface uses a dark theme with built-in alphabetical sorting (directories first). Works on desktop and mobile browsers.
 
-- Works on desktop and mobile browsers
-- No JavaScript framework dependencies -- pure HTML
-- Clean, minimal design optimized for readability
+### Custom Themes
+
+You can replace the default CSS and/or JavaScript by placing files on the SD card:
+
+- **apps_data/lan_tester/web/custom.css** -- replaces default styles
+- **apps_data/lan_tester/web/custom.js** -- replaces default sorting script
+
+Files are detected once when File Manager starts. To apply changes, restart the tool (Back, then reopen).
+
+Example themes and an advanced custom.js are included in the repository under **docs/filemanager_themes/**:
+
+**Themes (custom.css):**
+- **hacker-green.css** -- green terminal on black, glowing text
+- **arctic-light.css** -- clean white theme with blue accents
+- **cyberpunk.css** -- neon pink on dark purple
+- **solarized-dark.css** -- classic Solarized palette
+
+**Advanced JS (custom.js):**
+- Click-to-sort by Name or Size columns
+- Live search/filter
+- Clickable breadcrumb path
+- Multi-select with checkboxes and batch delete
+- Drag-and-drop file upload
+- File preview: text, images, audio, video, PDF, hex dump for binary files
+
+To use: copy the desired file to **apps_data/lan_tester/web/** on the SD card and rename it to **custom.css** or **custom.js**.
 
 ## Browser Compatibility
 

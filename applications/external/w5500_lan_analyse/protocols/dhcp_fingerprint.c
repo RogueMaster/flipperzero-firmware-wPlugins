@@ -196,9 +196,6 @@ bool dhcp_fp_process_frame(DhcpFpState* state, const uint8_t* frame, uint16_t le
 
     if(client->identified) return false; /* Already fingerprinted */
 
-    memcpy(client->options, opt55, opt55_len);
-    client->option_count = opt55_len;
-
     const char* os = dhcp_fp_identify(opt55, opt55_len);
     strncpy(client->os_guess, os, sizeof(client->os_guess) - 1);
     client->os_guess[sizeof(client->os_guess) - 1] = '\0';

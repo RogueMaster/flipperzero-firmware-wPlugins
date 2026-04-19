@@ -16,16 +16,6 @@
 
 /* ==================== Helpers ==================== */
 
-static uint16_t
-    pxe_build_tftp_data(uint8_t* buf, uint16_t block_num, const uint8_t* data, uint16_t data_len) {
-    buf[0] = 0;
-    buf[1] = TFTP_OP_DATA;
-    buf[2] = (block_num >> 8) & 0xFF;
-    buf[3] = block_num & 0xFF;
-    memcpy(buf + 4, data, data_len);
-    return 4 + data_len;
-}
-
 static uint16_t pxe_build_tftp_error(uint8_t* buf, uint16_t code, const char* msg) {
     buf[0] = 0;
     buf[1] = TFTP_OP_ERROR;
@@ -192,8 +182,9 @@ static void pxe_dhcp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
     uint8_t cmac[6];
     memcpy(cmac, buf + 28, 6);
 
-    /* Find Option 53 (DHCP Message Type) in options starting at offset 240 */
+    /* Parse DHCP options starting at offset 240 */
     uint8_t msg_type = 0;
+    uint16_t client_arch = 0xFFFF; /* Option 93: Client System Architecture */
     uint16_t opt_off = 240;
     while(opt_off < (uint16_t)len && buf[opt_off] != 255) {
         uint8_t opt = buf[opt_off++];
@@ -202,16 +193,39 @@ static void pxe_dhcp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
         uint8_t opt_len = buf[opt_off++];
         if(opt == 53 && opt_len >= 1) {
             msg_type = buf[opt_off];
+        } else if(opt == 93 && opt_len >= 2) {
+            client_arch = ((uint16_t)buf[opt_off] << 8) | buf[opt_off + 1];
         }
         opt_off += opt_len;
     }
 
     if(msg_type == 0) return;
 
+    /* Select boot file based on client architecture (Option 93).
+     * arch=0: BIOS → prefer .kpxe/.pxe/.0
+     * arch=6/7/9: UEFI → prefer .efi
+     * Unknown: use user-selected default. */
+    const char* selected_boot = state->boot_filename;
+    if(client_arch != 0xFFFF && state->boot_file_count > 1) {
+        bool want_efi = (client_arch >= 6);
+        for(uint8_t i = 0; i < state->boot_file_count; i++) {
+            const char* fn = state->boot_files[i].filename;
+            uint16_t fnlen = strlen(fn);
+            bool is_efi = (fnlen > 4 && strcmp(fn + fnlen - 4, ".efi") == 0);
+            if(want_efi == is_efi) {
+                selected_boot = fn;
+                break;
+            }
+        }
+        FURI_LOG_I(TAG, "Client arch=%d, boot=%s", client_arch, selected_boot);
+    }
+
     FURI_LOG_I(
         TAG,
-        "DHCP msg type=%d from %02X:%02X:%02X:%02X:%02X:%02X",
+        "DHCP type=%d arch=%d boot=%s from %02X:%02X:%02X:%02X:%02X:%02X",
         msg_type,
+        (int16_t)client_arch,
+        selected_boot,
         cmac[0],
         cmac[1],
         cmac[2],
@@ -228,7 +242,7 @@ static void pxe_dhcp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
     if(msg_type == DHCP_DISCOVER) {
         state->dhcp_discovers++;
         uint16_t pkt_len =
-            pxe_build_dhcp_reply(buf, &state->config, DHCP_OFFER, xid, cmac, state->boot_filename);
+            pxe_build_dhcp_reply(buf, &state->config, DHCP_OFFER, xid, cmac, selected_boot);
         sendto(PXE_DHCP_SOCKET, buf, pkt_len, bcast, DHCP_CLIENT_PORT);
         state->state = PxeStateDhcpOfferSent;
         FURI_LOG_I(
@@ -261,7 +275,7 @@ static void pxe_dhcp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
         }
 
         uint16_t pkt_len =
-            pxe_build_dhcp_reply(buf, &state->config, DHCP_ACK, xid, cmac, state->boot_filename);
+            pxe_build_dhcp_reply(buf, &state->config, DHCP_ACK, xid, cmac, selected_boot);
         sendto(PXE_DHCP_SOCKET, buf, pkt_len, bcast, DHCP_CLIENT_PORT);
         state->state = PxeStateDhcpAckSent;
         FURI_LOG_I(TAG, "Sent DHCP ACK");
@@ -271,32 +285,98 @@ static void pxe_dhcp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
 
 /* ==================== TFTP server handler ==================== */
 
+/* Build and send OACK (Option Acknowledgment, RFC 2347) */
+static bool pxe_tftp_send_oack(PxeServerState* state, uint8_t* buf) {
+    uint16_t off = 0;
+    buf[off++] = 0;
+    buf[off++] = TFTP_OP_OACK;
+
+    /* blksize option */
+    const char* bs = "blksize";
+    memcpy(buf + off, bs, 7);
+    off += 7;
+    buf[off++] = 0;
+    char val[8];
+    snprintf(val, sizeof(val), "%d", state->tftp.blksize);
+    uint8_t vlen = strlen(val);
+    memcpy(buf + off, val, vlen);
+    off += vlen;
+    buf[off++] = 0;
+
+    /* tsize option */
+    const char* ts = "tsize";
+    memcpy(buf + off, ts, 5);
+    off += 5;
+    buf[off++] = 0;
+    char tval[12];
+    snprintf(tval, sizeof(tval), "%lu", state->tftp.file_size);
+    uint8_t tvlen = strlen(tval);
+    memcpy(buf + off, tval, tvlen);
+    off += tvlen;
+    buf[off++] = 0;
+
+    int32_t ret =
+        sendto(PXE_TFTP_SOCKET, buf, off, state->tftp.client_ip, state->tftp.client_port);
+    FURI_LOG_I(
+        TAG,
+        "TFTP OACK blksize=%d tsize=%lu ret=%ld",
+        state->tftp.blksize,
+        state->tftp.file_size,
+        (long)ret);
+    state->tftp.last_send_tick = furi_get_tick();
+    return ret > 0;
+}
+
 /* Send current TFTP block from file */
-static bool pxe_tftp_send_block(PxeServerState* state, uint8_t* buf) {
-    /* Seek to correct position */
-    uint32_t offset = (uint32_t)(state->tftp.block_num - 1) * TFTP_BLOCK_SIZE;
-    if(!storage_file_seek(state->tftp.file, offset, true)) {
-        FURI_LOG_E(TAG, "TFTP seek failed to offset %lu", offset);
+static bool pxe_tftp_send_block(PxeServerState* state, uint8_t* buf, bool is_retry) {
+    uint16_t blk = state->tftp.blksize ? state->tftp.blksize : TFTP_BLOCK_SIZE;
+
+    if(is_retry) {
+        /* Retransmit: seek back to the block position */
+        uint32_t offset = (uint32_t)(state->tftp.block_num - 1) * blk;
+        if(!storage_file_seek(state->tftp.file, offset, true)) {
+            FURI_LOG_E(TAG, "TFTP seek failed to offset %lu", offset);
+            return false;
+        }
+    }
+
+    /* Write TFTP DATA header, then read file data directly after it */
+    buf[0] = 0;
+    buf[1] = TFTP_OP_DATA;
+    buf[2] = (state->tftp.block_num >> 8) & 0xFF;
+    buf[3] = state->tftp.block_num & 0xFF;
+    uint16_t bytes_read = storage_file_read(state->tftp.file, buf + 4, blk);
+
+    FURI_LOG_I(
+        TAG,
+        "TFTP TX blk=%d read=%d to %d.%d.%d.%d:%d",
+        state->tftp.block_num,
+        bytes_read,
+        state->tftp.client_ip[0],
+        state->tftp.client_ip[1],
+        state->tftp.client_ip[2],
+        state->tftp.client_ip[3],
+        state->tftp.client_port);
+
+    int32_t ret = sendto(
+        PXE_TFTP_SOCKET, buf, 4 + bytes_read, state->tftp.client_ip, state->tftp.client_port);
+
+    FURI_LOG_I(TAG, "TFTP sendto ret=%ld", (long)ret);
+
+    if(ret <= 0) {
+        FURI_LOG_E(TAG, "TFTP sendto failed: %ld", (long)ret);
         return false;
     }
 
-    /* Read data */
-    uint8_t data[TFTP_BLOCK_SIZE];
-    uint16_t bytes_read = storage_file_read(state->tftp.file, data, TFTP_BLOCK_SIZE);
-
-    /* Build and send DATA packet */
-    uint16_t pkt_len = pxe_build_tftp_data(buf, state->tftp.block_num, data, bytes_read);
-    sendto(PXE_TFTP_DATA_SOCKET, buf, pkt_len, state->tftp.client_ip, state->tftp.client_port);
-
     state->tftp.last_block_size = bytes_read;
     state->tftp.last_send_tick = furi_get_tick();
-
-    FURI_LOG_D(TAG, "TFTP DATA blk=%d len=%d", state->tftp.block_num, bytes_read);
     return true;
 }
 
 static void pxe_tftp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_size) {
-    /* 1. Check listen socket (port 69) for new RRQ/WRQ */
+    /* All TFTP traffic uses PXE_TFTP_SOCKET (port 69).
+     * iPXE rejects DATA from a different source port, so we send DATA
+     * from port 69 and receive ACK on port 69 as well. */
     int16_t len = getSn_RX_RSR(PXE_TFTP_SOCKET);
     if(len > 0) {
         uint8_t req_ip[4];
@@ -305,25 +385,61 @@ static void pxe_tftp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
         if(len >= 4) {
             uint16_t opcode = ((uint16_t)buf[0] << 8) | buf[1];
 
-            if(opcode == TFTP_OP_WRQ) {
-                /* Write not supported */
+            if(opcode == TFTP_OP_ACK && state->tftp.active) {
+                uint16_t ack_block = ((uint16_t)buf[2] << 8) | buf[3];
+
+                /* ACK 0 = OACK confirmation */
+                if(ack_block == 0 && state->tftp.oack_pending) {
+                    state->tftp.oack_pending = false;
+                    state->tftp.retries = 0;
+                    FURI_LOG_I(TAG, "TFTP OACK confirmed, sending data");
+                    pxe_tftp_send_block(state, buf, false);
+                } else if(ack_block == state->tftp.block_num) {
+                    state->tftp.bytes_sent += state->tftp.last_block_size;
+                    state->tftp_blocks_sent++;
+                    state->tftp.retries = 0;
+
+                    uint16_t cur_blk = state->tftp.blksize ? state->tftp.blksize : TFTP_BLOCK_SIZE;
+                    if(state->tftp.last_block_size < cur_blk) {
+                        FURI_LOG_I(
+                            TAG,
+                            "TFTP complete: %lu B in %lu blk",
+                            state->tftp.bytes_sent,
+                            state->tftp_blocks_sent);
+                        state->state = PxeStateDone;
+                        state->tftp.active = false;
+                        storage_file_close(state->tftp.file);
+                        storage_file_free(state->tftp.file);
+                        state->tftp.file = NULL;
+                        furi_record_close(RECORD_STORAGE);
+                        state->tftp.storage = NULL;
+                    } else {
+                        state->tftp.block_num++;
+                        pxe_tftp_send_block(state, buf, false);
+                    }
+                }
+
+            } else if(opcode == TFTP_OP_WRQ) {
                 uint16_t err_len = pxe_build_tftp_error(buf, TFTP_ERR_ACCESS, "Access violation");
                 sendto(PXE_TFTP_SOCKET, buf, err_len, req_ip, req_port);
                 state->tftp_errors++;
-                FURI_LOG_I(TAG, "TFTP WRQ rejected");
 
             } else if(opcode == TFTP_OP_RRQ && state->tftp.active) {
-                /* Already busy */
-                uint16_t err_len = pxe_build_tftp_error(buf, TFTP_ERR_UNDEFINED, "Server busy");
-                sendto(PXE_TFTP_SOCKET, buf, err_len, req_ip, req_port);
-                state->tftp_errors++;
-                FURI_LOG_I(TAG, "TFTP RRQ rejected (busy)");
+                /* New RRQ while transfer active — abort old, start new */
+                FURI_LOG_I(TAG, "TFTP new RRQ during transfer, restarting");
+                storage_file_close(state->tftp.file);
+                storage_file_free(state->tftp.file);
+                state->tftp.file = NULL;
+                furi_record_close(RECORD_STORAGE);
+                state->tftp.storage = NULL;
+                state->tftp.active = false;
+                /* Fall through to RRQ handler */
+                opcode = TFTP_OP_RRQ;
+            }
 
-            } else if(opcode == TFTP_OP_RRQ) {
-                /* New read request */
+            if(opcode == TFTP_OP_RRQ && !state->tftp.active) {
                 state->tftp_requests++;
                 char* filename = (char*)(buf + 2);
-                /* Reject path traversal attempts */
                 bool safe = true;
                 for(const char* p = filename; *p; p++) {
                     if(p[0] == '.' && p[1] == '.') {
@@ -339,36 +455,65 @@ static void pxe_tftp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
                     uint16_t err_len = pxe_build_tftp_error(buf, TFTP_ERR_ACCESS, "Access denied");
                     sendto(PXE_TFTP_SOCKET, buf, err_len, req_ip, req_port);
                     state->tftp_errors++;
-                    FURI_LOG_W(TAG, "TFTP path traversal rejected: %s", filename);
                 } else {
+                    /* Parse RRQ: filename\0mode\0[option\0value\0]... */
+                    uint16_t req_blksize = 0;
+                    bool req_tsize = false;
+                    {
+                        /* Skip filename + NUL + mode + NUL */
+                        uint16_t p = 2;
+                        while(p < (uint16_t)len && buf[p])
+                            p++; /* filename */
+                        p++; /* NUL */
+                        while(p < (uint16_t)len && buf[p])
+                            p++; /* mode */
+                        p++; /* NUL */
+                        /* Parse option/value pairs (RFC 2347) */
+                        while(p + 1 < (uint16_t)len && buf[p]) {
+                            char* opt_name = (char*)(buf + p);
+                            while(p < (uint16_t)len && buf[p])
+                                p++;
+                            p++;
+                            if(p >= (uint16_t)len) break;
+                            char* opt_val = (char*)(buf + p);
+                            while(p < (uint16_t)len && buf[p])
+                                p++;
+                            p++;
+                            if(opt_name[0] == '\0') break;
+                            if(strcasecmp(opt_name, "blksize") == 0) {
+                                int v = atoi(opt_val);
+                                if(v >= 8 && v <= 1468) req_blksize = (uint16_t)v;
+                            } else if(strcasecmp(opt_name, "tsize") == 0) {
+                                req_tsize = true;
+                            }
+                        }
+                    }
+
                     FURI_LOG_I(
                         TAG,
-                        "TFTP RRQ: %s from %d.%d.%d.%d:%d",
+                        "TFTP RRQ: %s from %d.%d.%d.%d:%d blksize=%d",
                         filename,
                         req_ip[0],
                         req_ip[1],
                         req_ip[2],
                         req_ip[3],
-                        req_port);
+                        req_port,
+                        req_blksize);
 
-                    /* Build file path */
-                    char filepath[128];
+                    static char filepath[128];
                     snprintf(filepath, sizeof(filepath), "%s/%s", PXE_BOOT_DIR, filename);
 
-                    /* Open file from SD */
                     Storage* storage = furi_record_open(RECORD_STORAGE);
                     File* file = storage_file_alloc(storage);
                     if(!storage_file_open(file, filepath, FSAM_READ, FSOM_OPEN_EXISTING)) {
                         FURI_LOG_E(TAG, "TFTP file not found: %s", filepath);
                         storage_file_free(file);
                         furi_record_close(RECORD_STORAGE);
-
                         uint16_t err_len =
                             pxe_build_tftp_error(buf, TFTP_ERR_NOT_FOUND, "File not found");
                         sendto(PXE_TFTP_SOCKET, buf, err_len, req_ip, req_port);
                         state->tftp_errors++;
                     } else {
-                        /* Set up transfer session */
                         memcpy(state->tftp.client_ip, req_ip, 4);
                         state->tftp.client_port = req_port;
                         state->tftp.block_num = 1;
@@ -377,101 +522,65 @@ static void pxe_tftp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
                         state->tftp.last_block_size = 0;
                         state->tftp.retries = 0;
                         state->tftp.active = true;
+                        state->tftp.oack_pending = false;
                         state->tftp.file = file;
                         state->tftp.storage = storage;
 
-                        /* Save client info for display (if not already from DHCP) */
+                        /* Cap blksize to W5500 socket 4 TX buf (2KB - 4 hdr) */
+                        if(req_blksize > 1468) req_blksize = 1468;
+                        state->tftp.blksize = req_blksize;
+
                         if(!state->client_seen) {
-                            memcpy(
-                                state->client_mac,
-                                req_ip,
-                                4); /* store IP in mac for non-DHCP display */
+                            memcpy(state->client_mac, req_ip, 4);
                             state->client_seen = true;
                         }
 
-                        /* Open data socket on dynamic port */
-                        close(PXE_TFTP_DATA_SOCKET);
-                        socket(PXE_TFTP_DATA_SOCKET, Sn_MR_UDP, TFTP_DATA_PORT_BASE, 0);
-
-                        /* Send first block */
                         state->state = PxeStateTftpTransfer;
-                        pxe_tftp_send_block(state, buf);
+
+                        if(req_blksize > 0 || req_tsize) {
+                            /* Client requested options — send OACK, wait for ACK 0 */
+                            if(!state->tftp.blksize) state->tftp.blksize = TFTP_BLOCK_SIZE;
+                            state->tftp.oack_pending = true;
+                            pxe_tftp_send_oack(state, buf);
+                        } else {
+                            /* No options — send DATA block 1 directly (RFC 1350) */
+                            pxe_tftp_send_block(state, buf, false);
+                        }
 
                         FURI_LOG_I(
                             TAG,
-                            "TFTP transfer started: %s (%lu bytes)",
+                            "TFTP started: %s (%lu B) blksize=%d",
                             filename,
-                            state->tftp.file_size);
+                            state->tftp.file_size,
+                            state->tftp.blksize ? state->tftp.blksize : TFTP_BLOCK_SIZE);
                     }
-                } /* end else (safe path) */
+                }
             }
         }
     }
 
-    /* 2. If transfer active — check data socket for ACKs */
+    /* Timeout handling — retransmit if no ACK */
     if(state->tftp.active) {
-        len = getSn_RX_RSR(PXE_TFTP_DATA_SOCKET);
-        if(len > 0) {
-            uint8_t ack_ip[4];
-            uint16_t ack_port;
-            len = recvfrom(PXE_TFTP_DATA_SOCKET, buf, buf_size, ack_ip, &ack_port);
-            if(len >= 4) {
-                uint16_t opcode = ((uint16_t)buf[0] << 8) | buf[1];
-                uint16_t ack_block = ((uint16_t)buf[2] << 8) | buf[3];
-
-                if(opcode == TFTP_OP_ACK && ack_block == state->tftp.block_num) {
-                    /* Correct ACK received */
-                    state->tftp.bytes_sent += state->tftp.last_block_size;
-                    state->tftp_blocks_sent++;
-                    state->tftp.retries = 0;
-
-                    if(state->tftp.last_block_size < TFTP_BLOCK_SIZE) {
-                        /* Transfer complete (last block was < 512 bytes) */
-                        FURI_LOG_I(
-                            TAG,
-                            "TFTP transfer complete: %lu bytes in %lu blocks",
-                            state->tftp.bytes_sent,
-                            state->tftp_blocks_sent);
-
-                        state->state = PxeStateDone;
-                        state->tftp.active = false;
-
-                        /* Close file and storage */
-                        storage_file_close(state->tftp.file);
-                        storage_file_free(state->tftp.file);
-                        state->tftp.file = NULL;
-                        furi_record_close(RECORD_STORAGE);
-                        state->tftp.storage = NULL;
-
-                        close(PXE_TFTP_DATA_SOCKET);
-                    } else {
-                        /* Send next block */
-                        state->tftp.block_num++;
-                        pxe_tftp_send_block(state, buf);
-                    }
-                }
-                /* Ignore duplicate or unexpected ACKs */
-            }
-        }
-
-        /* 3. Timeout handling — retransmit if no ACK within 3 seconds */
         uint32_t now = furi_get_tick();
-        if(state->tftp.active && (now - state->tftp.last_send_tick) > TFTP_TIMEOUT_MS) {
+        if((now - state->tftp.last_send_tick) > TFTP_TIMEOUT_MS) {
             if(state->tftp.retries < TFTP_MAX_RETRIES) {
                 state->tftp.retries++;
-                FURI_LOG_I(
-                    TAG,
-                    "TFTP retransmit blk=%d retry=%d",
-                    state->tftp.block_num,
-                    state->tftp.retries);
-                pxe_tftp_send_block(state, buf);
+                if(state->tftp.oack_pending) {
+                    FURI_LOG_I(TAG, "TFTP OACK retransmit retry=%d", state->tftp.retries);
+                    pxe_tftp_send_oack(state, buf);
+                } else {
+                    FURI_LOG_I(
+                        TAG,
+                        "TFTP retransmit blk=%d retry=%d",
+                        state->tftp.block_num,
+                        state->tftp.retries);
+                    pxe_tftp_send_block(state, buf, true);
+                }
             } else {
-                /* Max retries exceeded — abort */
-                FURI_LOG_E(TAG, "TFTP transfer aborted after %d retries", TFTP_MAX_RETRIES);
+                FURI_LOG_E(TAG, "TFTP aborted after %d retries", TFTP_MAX_RETRIES);
                 state->state = PxeStateError;
                 state->tftp.active = false;
                 state->tftp_errors++;
-
                 if(state->tftp.file) {
                     storage_file_close(state->tftp.file);
                     storage_file_free(state->tftp.file);
@@ -481,7 +590,6 @@ static void pxe_tftp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
                     furi_record_close(RECORD_STORAGE);
                     state->tftp.storage = NULL;
                 }
-                close(PXE_TFTP_DATA_SOCKET);
             }
         }
     }
@@ -489,11 +597,12 @@ static void pxe_tftp_handle(PxeServerState* state, uint8_t* buf, uint16_t buf_si
 
 /* ==================== Boot file detection ==================== */
 
-/* Priority list for auto-detection */
+/* Priority list for auto-detection (checked in order) */
 static const char* pxe_preferred_files[] = {
-    "undionly.kpxe",
-    "ipxe.efi",
-    "snponly.efi",
+    "ipxe.pxe", /* BIOS: native drivers, best compatibility */
+    "undionly.kpxe", /* BIOS: UNDI fallback */
+    "snponly.efi", /* UEFI: small, uses firmware SNP */
+    "ipxe.efi", /* UEFI: full native drivers */
     NULL,
 };
 
@@ -535,7 +644,8 @@ bool pxe_detect_boot_file(PxeServerState* state) {
 
     /* Check preferred files first (these get priority ordering) */
     for(int i = 0; pxe_preferred_files[i] != NULL; i++) {
-        char path[128];
+        /* Static to avoid 128B stack usage; worker is single-threaded */
+        static char path[128];
         snprintf(path, sizeof(path), "%s/%s", PXE_BOOT_DIR, pxe_preferred_files[i]);
         File* file = storage_file_alloc(storage);
         if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
@@ -747,7 +857,6 @@ void pxe_server_stop(PxeServerState* state) {
 
     /* Close sockets */
     close(PXE_TFTP_SOCKET);
-    close(PXE_TFTP_DATA_SOCKET);
     if(state->config.dhcp_enabled) {
         close(PXE_DHCP_SOCKET);
     }

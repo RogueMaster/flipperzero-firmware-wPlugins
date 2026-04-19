@@ -86,7 +86,8 @@ bool pcap_dump_start(PcapDumpState* state) {
     /* Generate timestamped filename */
     DateTime dt;
     furi_hal_rtc_get_datetime(&dt);
-    char filepath[128];
+    /* Static to avoid 128B stack usage; worker is single-threaded */
+    static char filepath[128];
     snprintf(
         filepath,
         sizeof(filepath),

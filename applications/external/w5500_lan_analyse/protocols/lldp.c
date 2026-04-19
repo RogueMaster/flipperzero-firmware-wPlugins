@@ -88,7 +88,6 @@ bool lldp_parse(const uint8_t* payload, uint16_t payload_len, LldpNeighbor* neig
         case LLDP_TLV_SYSTEM_CAP:
             if(tlv_len >= 4) {
                 neighbor->capabilities = pkt_read_u16_be(tlv_data);
-                neighbor->enabled_capabilities = pkt_read_u16_be(tlv_data + 2);
             }
             break;
 

@@ -311,6 +311,7 @@ static bool ip_keyboard_input(InputEvent* event, void* context) {
 
 IpKeyboard* ip_keyboard_alloc(void) {
     IpKeyboard* kb = malloc(sizeof(IpKeyboard));
+    if(!kb) return NULL;
     kb->view = view_alloc();
 
     view_allocate_model(kb->view, ViewModelTypeLocking, sizeof(IpKeyboardModel));

@@ -10,12 +10,9 @@ typedef struct {
     uint8_t src_ip[16]; /* IPv6 source address */
     uint8_t prefix[16]; /* advertised prefix */
     uint8_t prefix_len;
-    uint8_t cur_hop_limit;
     uint16_t router_lifetime;
     bool managed_flag; /* M flag: managed address config */
     bool other_flag; /* O flag: other config */
-    uint32_t reachable_time;
-    uint32_t retrans_timer;
 } RogueRaRouter;
 
 typedef struct {

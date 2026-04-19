@@ -6,15 +6,12 @@
 /* IPMI Chassis status bits */
 #define IPMI_CHASSIS_POWER_ON     0x01
 #define IPMI_CHASSIS_OVERLOAD     0x02
-#define IPMI_CHASSIS_INTERLOCK    0x04
 #define IPMI_CHASSIS_FAULT        0x08
 #define IPMI_CHASSIS_POWER_POLICY 0x60
 
 typedef struct {
     /* Chassis Status */
     uint8_t power_state; /* bit 0 = power on */
-    uint8_t last_event;
-    uint8_t misc_state;
     bool chassis_ok;
 
     /* Device ID */
