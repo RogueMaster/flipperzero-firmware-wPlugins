@@ -2,6 +2,7 @@
 #include "game.hpp"
 #include "general.hpp"
 #include <math.h>
+#include <cinttypes>
 #include HTTP_INCLUDE
 #include JSON_INCLUDE
 
@@ -2430,7 +2431,7 @@ void Player::userRequest(RequestType requestType)
             ENGINE_MEM_FREE(authHeader);
             break;
         }
-        snprintf(stats_payload, 128, "{\"username\":\"%s\",\"xp\":%u}", this->name, (uint32_t)this->xp);
+        snprintf(stats_payload, 128, "{\"username\":\"%s\",\"xp\":%" PRIu32 "}", this->name, (uint32_t)this->xp);
         snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
         if (!HTTP_SEND_REQUEST("https://www.jblanked.com/flipper/api/user/update-xp/", "POST", authHeader, stats_payload))
         {
