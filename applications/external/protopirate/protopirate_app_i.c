@@ -114,6 +114,48 @@ void protopirate_sleep(ProtoPirateApp* app) {
     app->txrx->txrx_state = ProtoPirateTxRxStateSleep;
 }
 
+void protopirate_rx_stack_suspend_for_tx(ProtoPirateApp* app) {
+    if(!app || !app->radio_initialized) {
+        return;
+    }
+
+    if(app->txrx->txrx_state == ProtoPirateTxRxStateRx) {
+        protopirate_rx_end(app);
+    }
+
+    if(app->txrx->receiver) {
+        subghz_receiver_set_rx_callback(app->txrx->receiver, NULL, NULL);
+        subghz_receiver_free(app->txrx->receiver);
+        app->txrx->receiver = NULL;
+    }
+
+    if(app->txrx->worker) {
+        subghz_worker_free(app->txrx->worker);
+        app->txrx->worker = NULL;
+    }
+
+    if(app->txrx->radio_device && app->txrx->txrx_state != ProtoPirateTxRxStateTx) {
+        subghz_devices_idle(app->txrx->radio_device);
+        app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
+    }
+}
+
+void protopirate_rx_stack_resume_after_tx(ProtoPirateApp* app) {
+    if(!app || !app->radio_initialized || !app->txrx->environment) {
+        return;
+    }
+    if(app->txrx->receiver) {
+        return;
+    }
+
+    app->txrx->receiver = subghz_receiver_alloc_init(app->txrx->environment);
+    if(!app->txrx->receiver) {
+        FURI_LOG_E(TAG, "rx_stack_resume: subghz_receiver_alloc_init failed");
+        return;
+    }
+    subghz_receiver_set_filter(app->txrx->receiver, SubGhzProtocolFlag_Decodable);
+}
+
 void protopirate_hopper_update(ProtoPirateApp* app) {
     furi_check(app);
 
@@ -153,7 +195,7 @@ void protopirate_hopper_update(ProtoPirateApp* app) {
     if(app->txrx->txrx_state == ProtoPirateTxRxStateRx) {
         protopirate_rx_end(app);
     }
-    if(app->txrx->txrx_state == ProtoPirateTxRxStateIDLE) {
+    if(app->txrx->txrx_state == ProtoPirateTxRxStateIDLE && app->txrx->receiver) {
         subghz_receiver_reset(app->txrx->receiver);
         app->txrx->preset->frequency =
             subghz_setting_get_hopper_frequency(app->setting, app->txrx->hopper_idx_frequency);

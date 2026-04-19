@@ -5,6 +5,7 @@
 #include "../helpers/protopirate_types.h"
 
 typedef struct ProtoPirateReceiver ProtoPirateReceiver;
+typedef struct ProtoPirateHistory ProtoPirateHistory;
 
 typedef void (*ProtoPirateReceiverCallback)(ProtoPirateCustomEvent event, void* context);
 
@@ -38,3 +39,14 @@ void protopirate_view_receiver_set_sub_decode_mode(
     ProtoPirateReceiver* receiver,
     bool sub_decode_mode);
 void protopirate_view_receiver_reset_menu(ProtoPirateReceiver* receiver);
+
+void protopirate_view_receiver_sync_menu_from_history(
+    ProtoPirateReceiver* receiver,
+    ProtoPirateHistory* history);
+
+void protopirate_view_receiver_pop_first_menu_item(ProtoPirateReceiver* receiver);
+
+void protopirate_view_receiver_append_menu_row_from_history(
+    ProtoPirateReceiver* receiver,
+    ProtoPirateHistory* history,
+    uint16_t idx);

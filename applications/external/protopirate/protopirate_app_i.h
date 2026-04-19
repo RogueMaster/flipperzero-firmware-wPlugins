@@ -107,6 +107,9 @@ void protopirate_tx_stop(ProtoPirateApp* app);
 bool protopirate_radio_init(ProtoPirateApp* app);
 void protopirate_radio_deinit(ProtoPirateApp* app);
 
+void protopirate_rx_stack_suspend_for_tx(ProtoPirateApp* app);
+void protopirate_rx_stack_resume_after_tx(ProtoPirateApp* app);
+
 void protopirate_app_free(ProtoPirateApp* app);
 
 static const NotificationSequence sequence_tx = {

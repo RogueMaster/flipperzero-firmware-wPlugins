@@ -631,6 +631,10 @@ void protopirate_scene_timing_tuner_on_enter(void* context) {
     g_timing_ctx->buffer_wrapped = false;
     g_timing_ctx->app = app;
 
+    if(app->radio_initialized) {
+        protopirate_rx_stack_resume_after_tx(app);
+    }
+
     view_set_draw_callback(app->view_about, timing_tuner_draw_callback);
     view_set_input_callback(app->view_about, timing_tuner_input_callback);
     view_set_context(app->view_about, app);

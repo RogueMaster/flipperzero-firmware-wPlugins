@@ -1,5 +1,6 @@
 // views/protopirate_receiver.c
 #include "protopirate_receiver.h"
+#include "../protopirate_history.h"
 #include "../protopirate_app_i.h"
 #include <input/input.h>
 #include <gui/elements.h>
@@ -35,6 +36,7 @@ typedef struct {
     FuriString* frequency_str;
     FuriString* preset_str;
     FuriString* history_stat_str;
+    FuriString* draw_scratch;
     bool external_radio;
     ProtoPirateLock lock;
     uint8_t lock_count;
@@ -199,9 +201,6 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
     size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
     bool scrollbar = item_count > MENU_ITEMS;
 
-    FuriString* str_buff;
-    str_buff = furi_string_alloc();
-
     if(!model->sub_decode_mode) {
         //Config button. (Do it at the top so we dont get Inversion problems from the list view part.)
         elements_button_left(canvas, "Config");
@@ -244,8 +243,9 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
             ProtoPirateReceiverMenuItem* item =
                 ProtoPirateReceiverMenuItemArray_get(model->history_item_arr, idx);
 
-            furi_string_set(str_buff, item->item_str);
-            elements_string_fit_width(canvas, str_buff, scrollbar ? MAX_LEN_PX - 6 : MAX_LEN_PX);
+            furi_string_set(model->draw_scratch, item->item_str);
+            elements_string_fit_width(
+                canvas, model->draw_scratch, scrollbar ? MAX_LEN_PX - 6 : MAX_LEN_PX);
 
             if(model->history_item == idx) {
                 protopirate_view_receiver_draw_frame(canvas, i, scrollbar);
@@ -253,7 +253,8 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
                 canvas_set_color(canvas, ColorBlack);
             }
 
-            canvas_draw_str(canvas, 4, 9 + (i * FRAME_HEIGHT), furi_string_get_cstr(str_buff));
+            canvas_draw_str(
+                canvas, 4, 9 + (i * FRAME_HEIGHT), furi_string_get_cstr(model->draw_scratch));
         }
 
         //Draw scrollbar if needed
@@ -395,8 +396,6 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
                 canvas, 110 - canvas_string_width(canvas, auto_save_text), 7, auto_save_text);
         }
     }
-
-    furi_string_free(str_buff);
 }
 
 bool protopirate_view_receiver_input(InputEvent* event, void* context) {
@@ -555,6 +554,8 @@ ProtoPirateReceiver* protopirate_view_receiver_alloc(bool auto_save) {
             model->frequency_str = furi_string_alloc();
             model->preset_str = furi_string_alloc();
             model->history_stat_str = furi_string_alloc();
+            model->draw_scratch = furi_string_alloc();
+            furi_check(model->draw_scratch);
             model->list_offset = 0;
             model->history_item = 0;
             model->rssi = -127.0f;
@@ -588,6 +589,7 @@ void protopirate_view_receiver_free(ProtoPirateReceiver* receiver) {
             furi_string_free(model->frequency_str);
             furi_string_free(model->preset_str);
             furi_string_free(model->history_stat_str);
+            furi_string_free(model->draw_scratch);
         },
         false);
 
@@ -612,6 +614,69 @@ void protopirate_view_receiver_reset_menu(ProtoPirateReceiver* receiver) {
             model->list_offset = 0;
         },
         false);
+}
+
+void protopirate_view_receiver_sync_menu_from_history(
+    ProtoPirateReceiver* receiver,
+    ProtoPirateHistory* history) {
+    furi_check(receiver);
+    furi_check(history);
+
+    protopirate_view_receiver_reset_menu(receiver);
+
+    uint16_t count = protopirate_history_get_item(history);
+    if(count == 0) {
+        return;
+    }
+
+    FuriString* line = furi_string_alloc();
+    furi_check(line);
+    for(uint16_t i = 0; i < count; i++) {
+        protopirate_history_get_text_item_menu(history, line, i);
+        protopirate_view_receiver_add_item_to_menu(receiver, furi_string_get_cstr(line), 0);
+    }
+    furi_string_free(line);
+}
+
+void protopirate_view_receiver_pop_first_menu_item(ProtoPirateReceiver* receiver) {
+    furi_check(receiver);
+    with_view_model(
+        receiver->view,
+        ProtoPirateReceiverModel * model,
+        {
+            if(ProtoPirateReceiverMenuItemArray_size(model->history_item_arr) > 0) {
+                ProtoPirateReceiverMenuItem* first =
+                    ProtoPirateReceiverMenuItemArray_get(model->history_item_arr, 0);
+                furi_string_free(first->item_str);
+                ProtoPirateReceiverMenuItemArray_pop_at(NULL, model->history_item_arr, 0);
+                if(model->history_item > 0) {
+                    model->history_item--;
+                }
+                size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+                if(model->list_offset > 0 && model->list_offset >= item_count) {
+                    model->list_offset = item_count > 0 ? item_count - 1 : 0;
+                }
+            }
+        },
+        true);
+    protopirate_view_receiver_update_offset(receiver);
+}
+
+void protopirate_view_receiver_append_menu_row_from_history(
+    ProtoPirateReceiver* receiver,
+    ProtoPirateHistory* history,
+    uint16_t idx) {
+    furi_check(receiver);
+    furi_check(history);
+
+    FuriString* line = furi_string_alloc();
+    if(!line) {
+        protopirate_view_receiver_sync_menu_from_history(receiver, history);
+        return;
+    }
+    protopirate_history_get_text_item_menu(history, line, idx);
+    protopirate_view_receiver_add_item_to_menu(receiver, furi_string_get_cstr(line), 0);
+    furi_string_free(line);
 }
 
 View* protopirate_view_receiver_get_view(ProtoPirateReceiver* receiver) {

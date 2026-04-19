@@ -32,6 +32,7 @@ static void protopirate_app_tick_event_callback(void* context) {
 
 ProtoPirateApp* protopirate_app_alloc() {
     LOG_HEAP("Pre alloc");
+    protopirate_storage_purge_temp_history_at_startup();
     ProtoPirateApp* app = malloc(sizeof(ProtoPirateApp));
     if(!app) {
         FURI_LOG_E(TAG, "Failed to allocate ProtoPirateApp app !");

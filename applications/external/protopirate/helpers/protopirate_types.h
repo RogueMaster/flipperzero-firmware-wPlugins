@@ -23,6 +23,7 @@ typedef enum {
     ProtoPirateCustomEventViewReceiverUnlock,
     // Custom events for scenes
     ProtoPirateCustomEventSceneReceiverUpdate,
+    ProtoPirateCustomEventReceiverDeferredRxStart,
     ProtoPirateCustomEventSceneSettingLock,
     // File management
     ProtoPirateCustomEventReceiverInfoSave,

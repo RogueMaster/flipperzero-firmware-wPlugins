@@ -137,6 +137,7 @@ static void mazda_v0_u64_to_bytes_be(uint64_t data, uint8_t bytes[8]) {
         bytes[i] = (uint8_t)((data >> ((7 - i) * 8)) & 0xFF);
     }
 }
+
 #ifdef ENABLE_EMULATE_FEATURE
 static uint64_t mazda_v0_bytes_to_u64_be(const uint8_t bytes[8]) {
     uint64_t data = 0;
@@ -146,6 +147,7 @@ static uint64_t mazda_v0_bytes_to_u64_be(const uint8_t bytes[8]) {
     return data;
 }
 #endif
+
 static uint8_t mazda_v0_calculate_checksum(uint32_t serial, uint8_t button, uint32_t counter) {
     counter &= 0xFFFFFU;
     return (uint8_t)(((serial >> 24) & 0xFF) + ((serial >> 16) & 0xFF) + ((serial >> 8) & 0xFF) +

@@ -17,10 +17,10 @@ const SubGhzProtocol* protopirate_protocol_registry_items[] = {
     &mitsubishi_v0_protocol,
     &porsche_touareg_protocol,
     &subaru_protocol, // Heap: free 17280
-    &suzuki_protocol, // Heap: free 16064
     &vag_protocol, // Heap: free 29352
     &subghz_protocol_star_line, // Heap: free 18632
     &psa_protocol, // Heap: free 25408
+    &honda_static_protocol,
 };
 // TODO: See above
 // Current HEAP situation:
@@ -38,7 +38,15 @@ const SubGhzProtocolRegistry protopirate_protocol_registry = {
 
 // Protocol timing definitions - mirrors the SubGhzBlockConst in each protocol
 static const ProtoPirateProtocolTiming protocol_timings[] = {
-    // Kia V0: PWM encoding, 250/500µs
+    // Honda Static
+    {
+        .name = HONDA_STATIC_PROTOCOL_NAME,
+        .te_short = 63,
+        .te_long = 700,
+        .te_delta = 120,
+        .min_count_bit = 64,
+    },
+    // Kia V0: PWM 250/500µs — Kia 61bit, Suzuki 64bit, Honda V0 72bit
     {
         .name = "Kia V0",
         .te_short = 250,
@@ -150,14 +158,6 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_delta = 200,
         .min_count_bit = 64,
     },
-    // Suzuki: PWM 250/500µs
-    {
-        .name = "Suzuki",
-        .te_short = 250,
-        .te_long = 500,
-        .te_delta = 100,
-        .min_count_bit = 64,
-    },
     // VW: Manchester 500/1000µs
     {
         .name = "VW",
@@ -208,8 +208,7 @@ const ProtoPirateProtocolTiming* protopirate_get_protocol_timing(const char* pro
     // Try partial matching for version variants
     for(size_t i = 0; i < protocol_timings_count; i++) {
         // Match "Kia" protocols
-        if(strstr(protocol_name, "Kia") != NULL || strstr(protocol_name, "KIA") != NULL ||
-           strstr(protocol_name, "HYU") != NULL) {
+        if(strstr(protocol_name, "Kia") != NULL || strstr(protocol_name, "KIA") != NULL) {
             // Try to match version number
             if(strstr(protocol_name, "V0") != NULL &&
                strstr(protocol_timings[i].name, "V0") != NULL) {
@@ -255,9 +254,15 @@ const ProtoPirateProtocolTiming* protopirate_get_protocol_timing(const char* pro
             return &protocol_timings[i];
         }
 
-        // Match Suzuki
+        // Suzuki merged into Kia V0
         if(strstr(protocol_name, "Suzuki") != NULL &&
-           strstr(protocol_timings[i].name, "Suzuki") != NULL) {
+           strstr(protocol_timings[i].name, "Kia V0") != NULL) {
+            return &protocol_timings[i];
+        }
+
+        // Honda V0 (Type 3)
+        if(strstr(protocol_name, "Honda V0") != NULL &&
+           strstr(protocol_timings[i].name, "Kia V0") != NULL) {
             return &protocol_timings[i];
         }
 

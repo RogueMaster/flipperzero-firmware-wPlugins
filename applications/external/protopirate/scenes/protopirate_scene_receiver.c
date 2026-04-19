@@ -5,8 +5,7 @@
 #include <notification/notification_messages.h>
 #include "proto_pirate_icons.h"
 
-#define TAG                             "ProtoPirateSceneRx"
-#define PROTOPIRATE_DISPLAY_HISTORY_MAX 20 // Reduced from 50 to save memory
+#define TAG "ProtoPirateSceneRx"
 
 // Forward declaration
 void protopirate_scene_receiver_view_callback(ProtoPirateCustomEvent event, void* context);
@@ -46,7 +45,7 @@ static void protopirate_scene_receiver_update_statusbar(void* context) {
         history_stat_str,
         "%u/%u",
         protopirate_history_get_item(app->txrx->history),
-        PROTOPIRATE_DISPLAY_HISTORY_MAX);
+        PROTOPIRATE_HISTORY_MAX);
     // Pass actual external radio status
     protopirate_view_receiver_add_data_statusbar(
         app->protopirate_receiver,
@@ -81,6 +80,7 @@ static void protopirate_scene_receiver_callback(
     FURI_LOG_I(TAG, "%s", furi_string_get_cstr(str_buff));
 
     // Add to history
+    uint16_t count_before = protopirate_history_get_item(app->txrx->history);
     if(protopirate_history_add_to_history(app->txrx->history, decoder_base, app->txrx->preset)) {
         notification_message(app->notifications, &sequence_semi_success);
 
@@ -89,19 +89,15 @@ static void protopirate_scene_receiver_callback(
             "Added to history, total items: %u",
             protopirate_history_get_item(app->txrx->history));
 
-        FuriString* item_name = furi_string_alloc();
-        if(!item_name) {
-            FURI_LOG_E(TAG, "item_name allocation failed");
-            return;
+        uint16_t count_after = protopirate_history_get_item(app->txrx->history);
+
+        if(count_after == PROTOPIRATE_HISTORY_MAX) {
+            protopirate_view_receiver_sync_menu_from_history(
+                app->protopirate_receiver, app->txrx->history);
+        } else if(count_after > count_before) {
+            protopirate_view_receiver_append_menu_row_from_history(
+                app->protopirate_receiver, app->txrx->history, count_after - 1);
         }
-
-        protopirate_history_get_text_item_menu(
-            app->txrx->history, item_name, protopirate_history_get_item(app->txrx->history) - 1);
-
-        protopirate_view_receiver_add_item_to_menu(
-            app->protopirate_receiver, furi_string_get_cstr(item_name), 0);
-
-        furi_string_free(item_name);
 
         // Auto-scroll to the last detected signal
         uint16_t last_index = protopirate_history_get_item(app->txrx->history) - 1;
@@ -165,42 +161,26 @@ static void protopirate_scene_receiver_callback(
     }
 }
 
-void protopirate_scene_receiver_on_enter(void* context) {
-    furi_check(context);
-    ProtoPirateApp* app = context;
-
-    FURI_LOG_I(TAG, "=== ENTERING RECEIVER SCENE ===");
-
-// Now safe to access radio device
-#ifndef REMOVE_LOGS
-    bool is_external =
-        app->txrx->radio_device ? radio_device_loader_is_external(app->txrx->radio_device) : false;
-    const char* device_name =
-        app->txrx->radio_device ? subghz_devices_get_name(app->txrx->radio_device) : NULL;
-    FURI_LOG_I(TAG, "Radio device: %s", device_name ? device_name : "NULL");
-    FURI_LOG_I(TAG, "Is External: %s", is_external ? "YES" : "NO");
-    FURI_LOG_I(TAG, "Frequency: %lu Hz", app->txrx->preset->frequency);
-    FURI_LOG_I(TAG, "Modulation: %s", furi_string_get_cstr(app->txrx->preset->name));
-    FURI_LOG_I(TAG, "Auto-save: %s", app->auto_save ? "ON" : "OFF");
-#endif
-
-    // Allocate history
-    if(!app->txrx->history) {
-        app->txrx->history = protopirate_history_alloc();
-        if(!app->txrx->history) {
-            FURI_LOG_E(TAG, "Failed to allocate history!");
-            return;
-        }
+static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
+    furi_check(app);
+    if(!app->radio_initialized) {
+        return;
     }
 
-    // Allocate worker
+    protopirate_rx_stack_resume_after_tx(app);
+    if(!app->txrx->receiver) {
+        FURI_LOG_E(TAG, "SubGhz receiver unavailable — cannot start RX");
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
     if(!app->txrx->worker) {
         app->txrx->worker = subghz_worker_alloc();
         if(!app->txrx->worker) {
             FURI_LOG_E(TAG, "Failed to allocate worker!");
             return;
         }
-        // Set up worker callbacks
         subghz_worker_set_overrun_callback(
             app->txrx->worker, (SubGhzWorkerOverrunCallback)subghz_receiver_reset);
         subghz_worker_set_pair_callback(
@@ -208,22 +188,12 @@ void protopirate_scene_receiver_on_enter(void* context) {
         subghz_worker_set_context(app->txrx->worker, app->txrx->receiver);
     }
 
-    // Set up the receiver callback
     subghz_receiver_set_rx_callback(app->txrx->receiver, protopirate_scene_receiver_callback, app);
 
-    // Set up view callback
-    protopirate_view_receiver_set_callback(
-        app->protopirate_receiver, protopirate_scene_receiver_view_callback, app);
-
-    // Update status bar
-    protopirate_scene_receiver_update_statusbar(app);
-
-    // Start hopper if enabled
     if(app->txrx->hopper_state != ProtoPirateHopperStateOFF) {
         app->txrx->hopper_state = ProtoPirateHopperStateRunning;
     }
 
-    // Get preset data
     const char* preset_name = furi_string_get_cstr(app->txrx->preset->name);
     uint8_t* preset_data = subghz_setting_get_preset_data_by_name(app->setting, preset_name);
 
@@ -232,7 +202,6 @@ void protopirate_scene_receiver_on_enter(void* context) {
         preset_data = subghz_setting_get_preset_data_by_name(app->setting, "AM650");
     }
 
-    // Begin receiving
     protopirate_begin(app, preset_data);
 
     uint32_t frequency = app->txrx->preset->frequency;
@@ -244,17 +213,57 @@ void protopirate_scene_receiver_on_enter(void* context) {
     FURI_LOG_I(TAG, "Starting RX on %lu Hz", frequency);
     protopirate_rx(app, frequency);
     FURI_LOG_I(TAG, "RX started, state: %d", app->txrx->txrx_state);
+}
 
-    // Update lock state in view
+void protopirate_scene_receiver_on_enter(void* context) {
+    furi_check(context);
+    ProtoPirateApp* app = context;
+
+    if(app->txrx->history) {
+        protopirate_history_release_scratch(app->txrx->history);
+    }
+
+    if(!app->txrx->history) {
+        app->txrx->history = protopirate_history_alloc();
+        if(!app->txrx->history) {
+            FURI_LOG_E(TAG, "Failed to allocate history!");
+            return;
+        }
+    }
+
+    protopirate_view_receiver_set_callback(
+        app->protopirate_receiver, protopirate_scene_receiver_view_callback, app);
+
+    protopirate_scene_receiver_update_statusbar(app);
+
     protopirate_view_receiver_set_lock(app->protopirate_receiver, app->lock);
-
-    // Update auto-save state in view
     protopirate_view_receiver_set_autosave(app->protopirate_receiver, app->auto_save);
-
-    //Not in Sub Decode Mode
     protopirate_view_receiver_set_sub_decode_mode(app->protopirate_receiver, false);
 
-    // Switch to receiver view
+    if(app->radio_initialized && !app->txrx->receiver) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewReceiver);
+        view_dispatcher_send_custom_event(
+            app->view_dispatcher, ProtoPirateCustomEventReceiverDeferredRxStart);
+        return;
+    }
+
+#ifndef REMOVE_LOGS
+    bool is_external =
+        app->txrx->radio_device ? radio_device_loader_is_external(app->txrx->radio_device) : false;
+    const char* device_name =
+        app->txrx->radio_device ? subghz_devices_get_name(app->txrx->radio_device) : NULL;
+    FURI_LOG_I(TAG, "=== ENTERING RECEIVER SCENE ===");
+    FURI_LOG_I(TAG, "Radio device: %s", device_name ? device_name : "NULL");
+    FURI_LOG_I(TAG, "Is External: %s", is_external ? "YES" : "NO");
+    FURI_LOG_I(TAG, "Frequency: %lu Hz", app->txrx->preset->frequency);
+    FURI_LOG_I(TAG, "Modulation: %s", furi_string_get_cstr(app->txrx->preset->name));
+    FURI_LOG_I(TAG, "Auto-save: %s", app->auto_save ? "ON" : "OFF");
+#endif
+
+    if(app->radio_initialized) {
+        protopirate_scene_receiver_start_rx_stack(app);
+    }
+
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewReceiver);
 }
 
@@ -276,6 +285,14 @@ bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event)
 
     if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {
+        case ProtoPirateCustomEventReceiverDeferredRxStart:
+#ifndef REMOVE_LOGS
+            FURI_LOG_I(TAG, "Deferred RX start (post-emulate path)");
+#endif
+            protopirate_scene_receiver_start_rx_stack(app);
+            consumed = true;
+            break;
+
         case ProtoPirateCustomEventSceneReceiverUpdate:
             protopirate_scene_receiver_update_statusbar(app);
             consumed = true;
@@ -314,7 +331,11 @@ bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event)
         // Update hopper
         if(app->txrx->hopper_state != ProtoPirateHopperStateOFF) {
             protopirate_hopper_update(app);
-            protopirate_scene_receiver_update_statusbar(app);
+            static uint8_t hopper_statusbar_tick = 0;
+            if(++hopper_statusbar_tick >= 8) {
+                hopper_statusbar_tick = 0;
+                protopirate_scene_receiver_update_statusbar(app);
+            }
         }
 
         // Update RSSI from the correct radio device (only if initialized)
@@ -351,21 +372,25 @@ void protopirate_scene_receiver_on_exit(void* context) {
 
     FURI_LOG_I(TAG, "=== EXITING RECEIVER SCENE ===");
 
+    const bool leaving_for_subscene =
+        (scene_manager_get_scene_state(app->scene_manager, ProtoPirateSceneReceiver) == 1);
+
     // Only try to stop RX if radio is initialized
     if(app->radio_initialized && app->txrx->txrx_state == ProtoPirateTxRxStateRx) {
         protopirate_rx_end(app);
     }
+
+    if(leaving_for_subscene) {
+        scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneReceiver, 0);
+        return;
+    }
+
     if(app->txrx->worker) {
         FURI_LOG_D(TAG, "Freeing worker %p", app->txrx->worker);
         subghz_worker_free(app->txrx->worker);
         app->txrx->worker = NULL;
     } else {
         FURI_LOG_D(TAG, "Worker was NULL, skipping free");
-    }
-
-    if(scene_manager_get_scene_state(app->scene_manager, ProtoPirateSceneReceiver) == 1) {
-        scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneReceiver, 0);
-        return;
     }
 
     // Full teardown: put radio to sleep, free worker and history

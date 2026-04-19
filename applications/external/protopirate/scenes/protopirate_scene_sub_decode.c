@@ -478,6 +478,10 @@ static void protopirate_scene_sub_decode_widget_callback(
 void protopirate_scene_sub_decode_on_enter(void* context) {
     ProtoPirateApp* app = context;
 
+    if(app->radio_initialized) {
+        protopirate_rx_stack_resume_after_tx(app);
+    }
+
     FURI_LOG_I(TAG, "Sub decode scene enter - Free heap: %zu", memmgr_get_free_heap());
 
     g_decode_ctx = malloc(sizeof(SubDecodeContext));
@@ -564,15 +568,8 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 // Rebuild history view
                 uint16_t history_count = protopirate_history_get_item(ctx->history);
                 if(history_count > 0) {
-                    protopirate_view_receiver_reset_menu(app->protopirate_receiver);
-
-                    FuriString* item_text = furi_string_alloc();
-                    for(uint16_t i = 0; i < history_count; i++) {
-                        protopirate_history_get_text_item_menu(ctx->history, item_text, i);
-                        protopirate_view_receiver_add_item_to_menu(
-                            app->protopirate_receiver, furi_string_get_cstr(item_text), 0);
-                    }
-                    furi_string_free(item_text);
+                    protopirate_view_receiver_sync_menu_from_history(
+                        app->protopirate_receiver, ctx->history);
 
                     protopirate_view_receiver_set_idx_menu(
                         app->protopirate_receiver, ctx->selected_history_index);
@@ -727,6 +724,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 protopirate_history_set_item_str(
                     ctx->history, ctx->selected_history_index, furi_string_get_cstr(new_str));
                 furi_string_free(new_str);
+                protopirate_history_commit_loaded(ctx->history);
                 notification_message(app->notifications, &sequence_success);
             }
             free(app->psa_bf_state);
@@ -1142,16 +1140,8 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
             // Show history list using receiver view (same as receive mode)
             uint16_t history_count = protopirate_history_get_item(ctx->history);
             if(history_count > 0) {
-                // Reset and populate receiver view menu
-                protopirate_view_receiver_reset_menu(app->protopirate_receiver);
-
-                FuriString* item_text = furi_string_alloc();
-                for(uint16_t i = 0; i < history_count; i++) {
-                    protopirate_history_get_text_item_menu(ctx->history, item_text, i);
-                    protopirate_view_receiver_add_item_to_menu(
-                        app->protopirate_receiver, furi_string_get_cstr(item_text), 0);
-                }
-                furi_string_free(item_text);
+                protopirate_view_receiver_sync_menu_from_history(
+                    app->protopirate_receiver, ctx->history);
 
                 // Set initial selection
                 protopirate_view_receiver_set_idx_menu(
@@ -1216,7 +1206,8 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
 
                 // Get full text for body
                 furi_string_reset(text);
-                protopirate_history_get_text_item(ctx->history, text, ctx->selected_history_index);
+                protopirate_history_get_text_item_detail(
+                    ctx->history, ctx->selected_history_index, text, app->txrx->environment);
                 widget_add_text_scroll_element(
                     app->widget, 0, 0, 128, 50, furi_string_get_cstr(text));
 

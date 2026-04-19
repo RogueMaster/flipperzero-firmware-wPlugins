@@ -10,6 +10,57 @@ bool protopirate_storage_init(void) {
     return result;
 }
 
+void protopirate_storage_wipe_history_cache(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(storage_dir_exists(storage, PROTOPIRATE_HISTORY_FOLDER)) {
+        storage_simply_remove_recursive(storage, PROTOPIRATE_HISTORY_FOLDER);
+        FURI_LOG_I(TAG, "Wiped history cache");
+    }
+    furi_record_close(RECORD_STORAGE);
+}
+
+void protopirate_storage_purge_temp_history_at_startup(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(storage_dir_exists(storage, PROTOPIRATE_HISTORY_FOLDER)) {
+        storage_simply_remove_recursive(storage, PROTOPIRATE_HISTORY_FOLDER);
+    }
+    furi_record_close(RECORD_STORAGE);
+}
+
+bool protopirate_storage_ensure_history_folder(void) {
+    if(!protopirate_storage_init()) {
+        return false;
+    }
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_simply_mkdir(storage, PROTOPIRATE_CACHE_FOLDER);
+    bool ok = storage_simply_mkdir(storage, PROTOPIRATE_HISTORY_FOLDER);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+bool protopirate_storage_save_history_capture(
+    FlipperFormat* flipper_format,
+    uint32_t seq,
+    FuriString* out_path) {
+    furi_check(flipper_format);
+    furi_check(out_path);
+
+    if(!protopirate_storage_ensure_history_folder()) {
+        FURI_LOG_E(TAG, "History folder missing");
+        return false;
+    }
+
+    furi_string_printf(
+        out_path,
+        "%s/hist_%08lu%s",
+        PROTOPIRATE_HISTORY_FOLDER,
+        (unsigned long)seq,
+        PROTOPIRATE_APP_EXTENSION);
+
+    return protopirate_storage_save_capture_to_path(
+        flipper_format, furi_string_get_cstr(out_path));
+}
+
 static void sanitize_filename(const char* input, char* output, size_t output_size) {
     if(!output || output_size == 0) return;
     if(!input) {
