@@ -1,0 +1,15 @@
+App(
+    appid="disney_toolbox",
+    name="Disney Toolbox",
+    fap_description="Toolbox for Disney park tech, including Kyber crystal writer and MagicBand+ beacon emulator.",
+    fap_version="0.1",
+    apptype=FlipperAppType.EXTERNAL,
+    fap_category="Tools",
+    fap_author="Nathaniel Belles",
+    fap_weburl="https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox",
+    entry_point="disney_toolbox_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    fap_icon="images/icon_10x.png",
+    fap_icon_assets="images",
+)

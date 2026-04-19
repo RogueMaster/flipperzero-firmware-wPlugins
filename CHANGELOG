@@ -1,0 +1,5 @@
+v0.1:
+
+* Initial release
+* Read and write to Kyber crystal RFID tags (series 1 and 2)
+* MagicBand+ BLE beacon for triggering lights and vibrations

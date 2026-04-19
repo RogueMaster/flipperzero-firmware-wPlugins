@@ -1,0 +1,45 @@
+stages:
+  - build
+  - release
+
+build:
+  stage: build
+  image: python:3.11-slim
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends curl
+    - pip install ufbt
+    - ufbt update
+  script:
+    - ufbt build
+    - mkdir -p dist && cp /root/.ufbt/build/disney_toolbox.fap disney_toolbox.fap
+  artifacts:
+    paths:
+      - disney_toolbox.fap
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - echo "Creating release for $CI_COMMIT_TAG"
+  artifacts:
+    paths:
+      - disney_toolbox.fap
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "$CI_COMMIT_TAG"
+    description: "Release $CI_COMMIT_TAG"
+    assets:
+      links:
+        - name: "disney_toolbox.fap"
+          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/raw/disney_toolbox.fap"
+          link_type: "package"
+  rules:
+    - if: $CI_COMMIT_TAG
