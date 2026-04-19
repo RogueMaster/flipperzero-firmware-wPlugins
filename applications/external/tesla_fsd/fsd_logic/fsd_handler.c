@@ -483,6 +483,25 @@ bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame) {
     return false;
 }
 
+// --- TLSSC Restore (0x331 / 817) ---
+// Spoof DAS_autopilot + DAS_autopilotBase to SELF_DRIVING.
+// byte[0] lower 6 bits → 0x1B. Preserves upper 2 bits.
+// Source: community research in issue #18 (gauner1986, kp43h8, MiniCS).
+
+bool fsd_handle_tlssc_restore(FSDState* state, CANFRAME* frame) {
+    if(!state->tlssc_restore) return false;
+    if(frame->data_lenght < 1) return false;
+
+    uint8_t original = frame->buffer[0];
+    uint8_t modified = (original & 0xC0) | 0x1B;
+
+    if(modified == original) return false;
+
+    frame->buffer[0] = modified;
+    state->tlssc_restore_count++;
+    return true;
+}
+
 // --- Track Mode inject (0x313 / 787) ---
 // Source: ev-open-can-tools HW3Handler frame.id == 787
 // byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn)

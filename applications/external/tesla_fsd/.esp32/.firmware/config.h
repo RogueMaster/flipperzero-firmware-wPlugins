@@ -12,11 +12,16 @@
 #define CAN_ID_ISA_SPEED      0x399u  // 921  - ISA speed limit:  HW4 chime suppress
 #define CAN_ID_AP_LEGACY      0x3EEu  // 1006 - DAS_autopilot:   Legacy / HW1 / HW2
 #define CAN_ID_FOLLOW_DIST    0x3F8u  // 1016 - DAS_followDistance: speed profile source
+#define CAN_ID_DAS_AP_CONFIG  0x331u  // 817  - DAS autopilot config (tier restore target, ~1 Hz)
 #define CAN_ID_AP_CONTROL     0x3FDu  // 1021 - DAS_autopilotControl: HW3 / HW4 core
 
 // ── GPIO — M5Stack ATOM Lite + ATOMIC CAN Base (CA-IS3050G) ──────────────────
+#ifndef PIN_CAN_TX
 #define PIN_CAN_TX   22   // TWAI TX → ATOMIC CAN Base TX
+#endif
+#ifndef PIN_CAN_RX
 #define PIN_CAN_RX   19   // TWAI RX ← ATOMIC CAN Base RX
+#endif
 #define PIN_LED      27   // SK6812 NeoPixel (single LED)
 #define PIN_BUTTON   39   // Built-in button, active-LOW (no external pull-up needed)
 
@@ -38,3 +43,11 @@
 #define LONG_PRESS_MS         3000u   // Long press → toggle NAG killer
 #define DOUBLE_CLICK_MS        400u   // Max gap between two clicks for double-click
 #define STATUS_PRINT_MS       5000u   // Periodic status line when Active
+
+// OTA detection hardening on GTW_carState (0x318)
+// Some firmware versions keep non-zero states when no update is actively running.
+// We only treat one specific raw value as "update in progress" and require
+// consecutive-frame confirmation to avoid false positives.
+#define OTA_IN_PROGRESS_RAW_VALUE  1u
+#define OTA_ASSERT_FRAMES          3u
+#define OTA_CLEAR_FRAMES           6u

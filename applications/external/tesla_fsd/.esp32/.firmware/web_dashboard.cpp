@@ -18,16 +18,19 @@
 #include <Arduino.h>
 
 // ── Module state ──────────────────────────────────────────────────────────────
-static FSDState* g_state = nullptr; // shared with main
-static CanDriver* g_can = nullptr; // for setListenOnly()
+static FSDState  *g_state = nullptr;   // shared with main
+static CanDriver *g_can   = nullptr;   // for setListenOnly()
 
-static WebServer g_http(80);
+static WebServer        g_http(80);
 static WebSocketsServer g_ws(81);
 
-static uint32_t g_start_ms = 0;
-static uint32_t g_last_rx = 0;
+static uint32_t g_start_ms    = 0;
+static uint32_t g_last_rx     = 0;
 static uint32_t g_last_fps_ms = 0;
-static float g_fps = 0.0f;
+static uint32_t g_last_can_seen_ms = 0;
+static float    g_fps         = 0.0f;
+
+#define CAN_VEHICLE_ALIVE_MS 3000u
 
 // ── Embedded HTML/CSS/JS ──────────────────────────────────────────────────────
 // Tesla dark theme; mobile-first (max 480 px); WebSocket on :81
@@ -182,11 +185,23 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <span class="lbl">NAG Killer</span>
     <span class="pill off" id="nagSt"><span class="pd"></span>--</span>
   </div>
+  <div class="row">
+    <span class="lbl">CAN Vehicle</span>
+    <span class="pill off" id="canVeh"><span class="pd"></span>--</span>
+  </div>
 </div>
 
 <!-- Battery -->
 <div class="card">
   <div class="card-head"><div class="icon ic-b">B</div><h2>Battery</h2></div>
+  <div class="row">
+    <span class="lbl">BMS Status</span>
+    <span class="pill off" id="bmsSt"><span class="pd"></span>Waiting Frames</span>
+  </div>
+  <div class="row">
+    <span class="lbl">BMS Frames</span>
+    <span id="bmsFrames" style="font-size:.8em;color:var(--text2)">HV:0 SOC:0 TH:0</span>
+  </div>
   <div class="hero">
     <div class="soc-ring">
       <svg viewBox="0 0 120 120" width="120" height="120">
@@ -233,6 +248,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <div class="row">
     <span class="lbl">Force FSD</span>
     <label class="sw"><input type="checkbox" id="swFsd" onchange="cmd('force_fsd',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">TLSSC Restore</span>
+    <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
   </div>
 </div>
 
@@ -287,6 +306,9 @@ function upd(d){
   hwEl.innerHTML='<span class="pd"></span>'+(HW[d.hw_version]||'?');
 
   pill('nagSt', d.nag_killer, d.nag_killer?'ON':'OFF');
+  pill('canVeh', d.can_vehicle_detected, d.can_vehicle_detected?'Detected':'No CAN Traffic');
+  pill('bmsSt', d.bms && d.bms.seen, (d.bms && d.bms.seen)?'Live':'Waiting Frames');
+  document.getElementById('bmsFrames').textContent='HV:'+d.bms_hv_seen+' SOC:'+d.bms_soc_seen+' TH:'+d.bms_thermal_seen;
 
   // OTA banner
   document.getElementById('otaBanner').style.display=d.ota?'block':'none';
@@ -301,6 +323,7 @@ function upd(d){
   document.getElementById('swNag').checked=d.nag_killer;
   document.getElementById('swBms').checked=d.bms_output;
   document.getElementById('swFsd').checked=d.force_fsd;
+  document.getElementById('swTlssc').checked=d.tlssc_restore;
 
   // CAN stats
   document.getElementById('rxCnt').textContent=d.rx_count.toLocaleString();
@@ -356,13 +379,15 @@ conn();
 // ── JSON builder ──────────────────────────────────────────────────────────────
 static String build_json() {
     uint32_t uptime_s = (millis() - g_start_ms) / 1000;
+  bool can_vehicle_detected = false;
+  if (g_state != nullptr && g_state->rx_count > 0) {
+    can_vehicle_detected = (millis() - g_last_can_seen_ms) <= CAN_VEHICLE_ALIVE_MS;
+  }
 
     // BMS sub-object
     char bms[128];
-    if(g_state->bms_seen) {
-        snprintf(
-            bms,
-            sizeof(bms),
+    if (g_state->bms_seen) {
+        snprintf(bms, sizeof(bms),
             "{\"seen\":true,\"voltage\":%.1f,\"current\":%.1f,"
             "\"soc\":%.1f,\"temp_min\":%d,\"temp_max\":%d}",
             g_state->pack_voltage_v,
@@ -380,67 +405,43 @@ static String build_json() {
 
     String j;
     j.reserve(512);
-    j = "{";
-    j += "\"fsd_enabled\":";
-    j += g_state->fsd_enabled ? "true" : "false";
-    j += ',';
-    j += "\"op_mode\":";
-    j += (int)g_state->op_mode;
-    j += ',';
-    j += "\"hw_version\":";
-    j += (int)g_state->hw_version;
-    j += ',';
-    j += "\"ota\":";
-    j += g_state->tesla_ota_in_progress ? "true" : "false";
-    j += ',';
-    j += "\"nag_killer\":";
-    j += g_state->nag_killer ? "true" : "false";
-    j += ',';
-    j += "\"bms_output\":";
-    j += g_state->bms_output ? "true" : "false";
-    j += ',';
-    j += "\"force_fsd\":";
-    j += g_state->force_fsd ? "true" : "false";
-    j += ',';
-    j += "\"rx_count\":";
-    j += g_state->rx_count;
-    j += ',';
-    j += "\"tx_count\":";
-    j += g_state->frames_modified;
-    j += ',';
-    j += "\"crc_errors\":";
-    j += g_state->crc_err_count;
-    j += ',';
-    j += "\"fps\":";
-    j += fps_s;
-    j += ',';
-    j += "\"bms\":";
-    j += bms;
-    j += ',';
-    j += "\"uptime_s\":";
-    j += uptime_s;
-    j += ',';
-    j += "\"fw_build\":\"";
-    j += __DATE__;
-    j += ' ';
-    j += __TIME__;
-    j += "\",";
-    j += "\"wifi_clients\":";
-    j += (int)WiFi.softAPgetStationNum();
+    j  = "{";
+    j += "\"fsd_enabled\":";   j += g_state->fsd_enabled             ? "true" : "false"; j += ',';
+    j += "\"op_mode\":";       j += (int)g_state->op_mode;            j += ',';
+    j += "\"hw_version\":";    j += (int)g_state->hw_version;         j += ',';
+    j += "\"ota\":";           j += g_state->tesla_ota_in_progress    ? "true" : "false"; j += ',';
+    j += "\"nag_killer\":";    j += g_state->nag_killer               ? "true" : "false"; j += ',';
+    j += "\"bms_output\":";    j += g_state->bms_output               ? "true" : "false"; j += ',';
+    j += "\"force_fsd\":";     j += g_state->force_fsd                ? "true" : "false"; j += ',';
+    j += "\"tlssc_restore\":"; j += g_state->tlssc_restore            ? "true" : "false"; j += ',';
+    j += "\"can_vehicle_detected\":"; j += can_vehicle_detected       ? "true" : "false"; j += ',';
+    j += "\"bms_hv_seen\":";   j += g_state->seen_bms_hv;              j += ',';
+    j += "\"bms_soc_seen\":";  j += g_state->seen_bms_soc;             j += ',';
+    j += "\"bms_thermal_seen\":"; j += g_state->seen_bms_thermal;       j += ',';
+    j += "\"rx_count\":";      j += g_state->rx_count;                 j += ',';
+    j += "\"tx_count\":";      j += g_state->frames_modified;          j += ',';
+    j += "\"crc_errors\":";    j += g_state->crc_err_count;            j += ',';
+    j += "\"fps\":";           j += fps_s;                             j += ',';
+    j += "\"bms\":";           j += bms;                               j += ',';
+    j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
+    j += "\"fw_build\":\"";    j += __DATE__;  j += ' '; j += __TIME__; j += "\",";
+    j += "\"wifi_clients\":";  j += (int)WiFi.softAPgetStationNum();
     j += '}';
     return j;
 }
 
 // ── WebSocket event handler ───────────────────────────────────────────────────
-static void ws_event(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
-    if(type == WStype_CONNECTED) {
+static void ws_event(uint8_t num, WStype_t type,
+                     uint8_t *payload, size_t length)
+{
+    if (type == WStype_CONNECTED) {
         // Push current state immediately on connect
         String json = build_json();
         g_ws.sendTXT(num, json.c_str(), json.length());
         return;
     }
 
-    if(type != WStype_TEXT || g_state == nullptr || length == 0) return;
+    if (type != WStype_TEXT || g_state == nullptr || length == 0) return;
 
     // Parse the short command JSON without a heavy JSON library.
     // Expected format: {"cmd":"mode"}  {"cmd":"nag","value":true}  etc.
@@ -448,23 +449,26 @@ static void ws_event(uint8_t num, WStype_t type, uint8_t* payload, size_t length
     size_t n = (length < sizeof(buf) - 1) ? length : sizeof(buf) - 1;
     memcpy(buf, payload, n);
 
-    if(strstr(buf, "\"mode\"")) {
-        if(g_state->op_mode == OpMode_ListenOnly) {
+    if (strstr(buf, "\"mode\"")) {
+        if (g_state->op_mode == OpMode_ListenOnly) {
             g_state->op_mode = OpMode_Active;
-            if(g_can) g_can->setListenOnly(false);
+            if (g_can) g_can->setListenOnly(false);
             Serial.println("[Web] \u2192 Active mode");
         } else {
             g_state->op_mode = OpMode_ListenOnly;
-            if(g_can) g_can->setListenOnly(true);
+            if (g_can) g_can->setListenOnly(true);
             Serial.println("[Web] \u2192 Listen-Only mode");
         }
-    } else if(strstr(buf, "\"nag\"")) {
+    } else if (strstr(buf, "\"nag\"")) {
         g_state->nag_killer = (strstr(buf, "true") != nullptr);
         Serial.printf("[Web] NAG Killer: %s\n", g_state->nag_killer ? "ON" : "OFF");
-    } else if(strstr(buf, "\"bms\"")) {
+    } else if (strstr(buf, "\"bms\"")) {
         g_state->bms_output = (strstr(buf, "true") != nullptr);
         Serial.printf("[Web] BMS output: %s\n", g_state->bms_output ? "ON" : "OFF");
-    } else if(strstr(buf, "\"force_fsd\"")) {
+    } else if (strstr(buf, "\"tlssc_restore\"")) {
+        g_state->tlssc_restore = (strstr(buf, "true") != nullptr);
+        Serial.printf("[Web] TLSSC Restore: %s\n", g_state->tlssc_restore ? "ON" : "OFF");
+    } else if (strstr(buf, "\"force_fsd\"")) {
         g_state->force_fsd = (strstr(buf, "true") != nullptr);
         Serial.printf("[Web] Force FSD: %s\n", g_state->force_fsd ? "ON" : "OFF");
     }
@@ -476,22 +480,20 @@ static void handle_root() {
 }
 
 static void handle_status() {
-    if(g_state == nullptr) {
-        g_http.send(503, "application/json", "{}");
-        return;
-    }
+    if (g_state == nullptr) { g_http.send(503, "application/json", "{}"); return; }
     g_http.send(200, "application/json", build_json());
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
-void web_dashboard_init(FSDState* state, CanDriver* can) {
-    g_state = state;
-    g_can = can;
-    g_start_ms = millis();
+void web_dashboard_init(FSDState *state, CanDriver *can) {
+    g_state       = state;
+    g_can         = can;
+    g_start_ms    = millis();
     g_last_fps_ms = millis();
-    g_last_rx = state ? state->rx_count : 0;
+    g_last_rx     = state ? state->rx_count : 0;
+    g_last_can_seen_ms = (state && state->rx_count > 0) ? millis() : 0;
 
-    g_http.on("/", HTTP_GET, handle_root);
+    g_http.on("/",           HTTP_GET, handle_root);
     g_http.on("/api/status", HTTP_GET, handle_status);
     g_http.begin();
 
@@ -502,18 +504,19 @@ void web_dashboard_init(FSDState* state, CanDriver* can) {
 }
 
 void web_dashboard_update() {
-    if(g_state == nullptr) return; // init was never called (WiFi failed)
+    if (g_state == nullptr) return;   // init was never called (WiFi failed)
 
     g_http.handleClient();
     g_ws.loop();
 
     // FPS calculation + 1 Hz WebSocket broadcast
     uint32_t now = millis();
-    if((now - g_last_fps_ms) >= 1000u) {
+    if ((now - g_last_fps_ms) >= 1000u) {
         uint32_t rx = g_state->rx_count;
-        float dt = (now - g_last_fps_ms) / 1000.0f;
-        g_fps = (float)(rx - g_last_rx) / dt;
-        g_last_rx = rx;
+        float    dt = (now - g_last_fps_ms) / 1000.0f;
+      if (rx != g_last_rx) g_last_can_seen_ms = now;
+        g_fps        = (float)(rx - g_last_rx) / dt;
+        g_last_rx    = rx;
         g_last_fps_ms = now;
 
         String json = build_json();

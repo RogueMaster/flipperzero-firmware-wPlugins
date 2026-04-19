@@ -46,6 +46,13 @@ static void shield_changed(VariableItem* item) {
     app->gtw_shield = (idx == 1);
 }
 
+static void tlssc_restore_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->tlssc_restore = (idx == 1);
+}
+
 static const char* const clock_text[] = {"16 MHz", "8 MHz", "12 MHz"};
 static void clock_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
@@ -95,6 +102,10 @@ void tesla_fsd_scene_settings_on_enter(void* context) {
     item = variable_item_list_add(list, "Ban Shield", 2, shield_changed, app);
     variable_item_set_current_value_index(item, app->gtw_shield ? 1 : 0);
     variable_item_set_current_value_text(item, toggle_text[app->gtw_shield ? 1 : 0]);
+
+    item = variable_item_list_add(list, "TLSSC Restore", 2, tlssc_restore_changed, app);
+    variable_item_set_current_value_index(item, app->tlssc_restore ? 1 : 0);
+    variable_item_set_current_value_text(item, toggle_text[app->tlssc_restore ? 1 : 0]);
 
     item = variable_item_list_add(list, "MCP Crystal", 3, clock_changed, app);
     variable_item_set_current_value_index(item, app->mcp_clock);

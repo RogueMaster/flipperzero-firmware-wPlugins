@@ -68,6 +68,7 @@ typedef struct {
     OpMode op_mode; // Active / ListenOnly / Service
     uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz
     bool gtw_shield; // 0x7FF ban defense shield
+    bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
 
     // extras toggles (BETA — need on-vehicle verification per CAN ID)
     bool extra_hazard_lights;

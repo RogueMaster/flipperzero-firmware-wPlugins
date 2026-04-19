@@ -28,6 +28,7 @@
 #define CAN_ID_DAS_STATUS     0x39B // 923  - DAS_status (AP state, nag, lane change, blind spot)
 #define CAN_ID_DAS_STATUS2    0x389 // 905  - DAS_status2 (ACC report, driver interaction)
 #define CAN_ID_DAS_SETTINGS   0x293 // 659  - DAS_settings (autosteer enable, steering weight, etc.)
+#define CAN_ID_DAS_AP_CONFIG  0x331 // 817  - DAS autopilot config (tier restore target, ~1 Hz)
 #define CAN_ID_GTW_CONFIG_ETH \
     0x7FF // 2047 - GTW_carConfig on Ethernet/mixed bus (autopilot tier readback)
 #define CAN_ID_TRACK_MODE_SET \
@@ -158,6 +159,10 @@ typedef struct {
     // --- DAS_steeringControl (0x488) ---
     float das_steer_angle_req; // DAS requested angle
     uint8_t das_steer_type; // 0=none 1=angle_ctrl 2=LKA 3=ELK
+
+    // --- TLSSC Restore (0x331 DAS config spoof) ---
+    bool tlssc_restore; // read-modify-retransmit 0x331 to set tier=SELF_DRIVING
+    uint32_t tlssc_restore_count; // frames modified
 
     // --- extras: write toggles (BETA, Service mode only) ---
     bool extra_hazard_lights;
@@ -296,6 +301,13 @@ void fsd_build_highbeam_flash(CANFRAME* frame, uint8_t counter, bool flash_on);
  *  SCCM_turnIndicatorStalkStatus (bit16|3): 1=UP_1(right), 3=DOWN_1(left).
  *  Source: opendbc tesla_model3_party.dbc. */
 void fsd_build_turn_signal(CANFRAME* frame, uint8_t counter, uint8_t direction);
+
+/** Handle CAN ID 0x331 — TLSSC Restore via DAS config spoof.
+ *  Overwrites byte[0] lower 6 bits to 0x1B (DAS_autopilot=SELF_DRIVING,
+ *  DAS_autopilotBase=SELF_DRIVING). Triggers MCU reboot and restores
+ *  TLSSC toggle on banned vehicles.
+ *  Returns true if frame was modified (caller should retransmit). */
+bool fsd_handle_tlssc_restore(FSDState* state, CANFRAME* frame);
 
 /** Build a SCCM_leftStalk (0x249) frame for wiper wash button press.
  *  SCCM_washWipeButtonStatus (bit14|2): 1=1ST_DETENT, 2=2ND_DETENT.
