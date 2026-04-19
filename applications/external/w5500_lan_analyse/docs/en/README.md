@@ -35,7 +35,8 @@ Turn your **Flipper Zero + W5500** Ethernet module into a professional-grade por
 | Statistics | Traffic | Frame counters by type and EtherType (10s capture) |
 | SNMP GET | Port Info | Query sysName, sysDescr, sysUpTime, ifStatus (v1/v2c) |
 | NetBIOS Query | Scan | Discover Windows machine names and workgroups |
-| NTP Diagnostics | Diagnostics | Stratum, root delay, reference ID, RTT |
+| NTP Diagnostics | Diagnostics | Stratum, root delay, reference ID, RTT, UTC time |
+| Apply NTP Sync | Diagnostics | Apply cached NTP time to Flipper clock |
 | DNS Poison Check | Diagnostics | Compare local vs public DNS to detect poisoning |
 | ARP Watch | Security | Detect spoofing, duplicate IPs, ARP storms |
 | Rogue DHCP | Security | Find unauthorized DHCP servers |
@@ -50,7 +51,7 @@ Turn your **Flipper Zero + W5500** Ethernet module into a professional-grade por
 | TFTP Client | Utilities | Download config files from network equipment |
 | IPMI Query | Utilities | BMC chassis status, device ID, firmware version |
 | History | -- | Timestamped auto-saved results, browsable and deletable |
-| Settings | -- | Auto-save, sound/vibro, custom DNS, ping config, MAC Changer, About |
+| Settings | -- | Auto-save, sound/vibro, custom DNS, ping config, target persistence, MAC Changer, About |
 
 ## Documentation
 

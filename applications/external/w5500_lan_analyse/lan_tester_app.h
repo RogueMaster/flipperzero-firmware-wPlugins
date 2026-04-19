@@ -8,6 +8,7 @@
 #include <gui/modules/text_box.h>
 #include <gui/modules/text_input.h>
 #include <gui/modules/byte_input.h>
+#include <gui/modules/number_input.h>
 #include <gui/view.h>
 #include <notification/notification_messages.h>
 #include "protocols/ping_graph.h"
@@ -45,6 +46,7 @@ typedef enum {
     LanTesterViewToolResult, /* shared TextBox for all tools */
     LanTesterViewToolInput, /* shared TextInput for all tools */
     LanTesterViewToolByteInput, /* shared ByteInput for MAC entry */
+    LanTesterViewNumberInput, /* shared NumberInput */
 } LanTesterView;
 
 /* Main menu item indices */
@@ -75,6 +77,7 @@ typedef enum {
     LanTesterMenuItemPacketCapture,
     LanTesterMenuItemSnmpGet,
     LanTesterMenuItemNtpDiag,
+    LanTesterMenuItemNtpSync,
     LanTesterMenuItemNetbiosQuery,
     LanTesterMenuItemDnsPoisonCheck,
     LanTesterMenuItemArpWatch,
@@ -257,6 +260,7 @@ struct LanTesterApp {
     FuriString* tool_text;
     TextInput* text_input_tool;
     ByteInput* byte_input_tool;
+    NumberInput* number_input_tool;
     LanTesterView tool_back_view; /* navigation target when pressing Back */
 
     /* Tool input buffers (small, always allocated) */
@@ -264,6 +268,10 @@ struct LanTesterApp {
     char snmp_ip_input[16];
     uint8_t ntp_target[4];
     char ntp_ip_input[16];
+    uint32_t ntp_unix_time; /* last NTP result for clock sync (0 = none) */
+    uint32_t ntp_query_tick; /* furi_get_tick() when NTP result was received */
+    int8_t ntp_tz_hours; /* timezone offset hours (-12..+14) */
+    int8_t ntp_tz_minutes; /* timezone offset minutes (0/15/30/45) */
     uint8_t netbios_target[4];
     char netbios_ip_input[16];
     char dns_poison_host_input[64];

@@ -35,7 +35,8 @@
 | Statistics | Traffic | Счётчики фреймов по типам и EtherType (10с) |
 | SNMP GET | Port Info | Запрос sysName, sysDescr, sysUpTime, ifStatus (v1/v2c) |
 | NetBIOS Query | Scan | Имена Windows-машин и рабочие группы |
-| NTP Diagnostics | Diagnostics | Stratum, root delay, reference ID, RTT |
+| NTP Diagnostics | Diagnostics | Stratum, root delay, reference ID, RTT, UTC-время |
+| Apply NTP Sync | Diagnostics | Применение NTP-времени к часам Flipper |
 | DNS Poison Check | Diagnostics | Сравнение локального и публичного DNS |
 | ARP Watch | Security | Обнаружение спуфинга, дубликатов IP, ARP-штормов |
 | Rogue DHCP | Security | Обнаружение неавторизованных DHCP-серверов |
@@ -50,7 +51,7 @@
 | TFTP Client | Utilities | Скачивание конфигов с оборудования |
 | IPMI Query | Utilities | Статус шасси BMC, версия прошивки |
 | History | -- | Автосохранение результатов с метками времени |
-| Settings | -- | Автосохранение, звук, DNS, пинг, MAC Changer, About |
+| Settings | -- | Автосохранение, звук, DNS, пинг, сохранение целей, MAC Changer, About |
 
 ## Документация
 

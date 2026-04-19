@@ -41,7 +41,8 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 | **PXE Download** | Download iPXE and EFI boot files from the internet directly to SD card for PXE Server |
 | **File Manager** | Web-based file manager: browse, download, upload, delete files on microSD via HTTP from any browser on the LAN. Supports custom CSS/JS themes from SD card |
 | **SNMP GET** | Query device info via SNMPv1/v2c: sysName, sysDescr, sysUpTime, ifOperStatus |
-| **NTP Diagnostics** | NTP server analysis: stratum, root delay/dispersion, reference ID, RTT |
+| **NTP Diagnostics** | NTP server analysis: stratum, root delay/dispersion, reference ID, RTT, UTC time |
+| **Apply NTP Sync** | Apply NTP time from last NTP Diagnostics result to Flipper clock |
 | **NetBIOS Query** | Discover Windows machine names, workgroups, and MAC addresses |
 | **DNS Poison Check** | Compare local vs public DNS (8.8.8.8) to detect poisoning or split-horizon |
 | **ARP Watch** | Passive ARP monitoring: detect spoofing, duplicate IPs, gratuitous ARP storms |
@@ -53,7 +54,7 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 | **TFTP Client** | Download config files from network equipment via TFTP, save to SD card |
 | **IPMI v1.5** | Query BMC: chassis power status, device ID, firmware version |
 | **History** | All scan results auto-saved with timestamps, browsable and deletable |
-| **Settings** | Auto-save, sound/vibro, custom DNS server, ping count/timeout/interval, clear history, MAC Changer |
+| **Settings** | Auto-save, sound/vibro, custom DNS, ping config, target persistence, MAC Changer |
 
 ### UX Highlights
 
@@ -62,7 +63,7 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 - **DHCP caching**: single negotiation shared across all operations — no repeated 15s waits
 - **Visual progress**: countdown timers for listeners, ASCII progress bars for scans
 - **LED/vibro feedback**: green blink on success, red on error (optional, toggle in Settings)
-- **Smart defaults**: IP inputs pre-populated with DHCP gateway
+- **Smart defaults**: IP inputs pre-populated with DHCP gateway, last-used targets remembered across sessions
 
 ## Hardware
 
@@ -200,7 +201,8 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 - **Continuous Ping** — live RTT graph with loss tracking, runs until Back.
 - **DNS Lookup** — resolves a hostname via the DHCP-provided DNS server.
 - **Traceroute** — hop-by-hop ICMP path discovery up to 30 hops.
-- **NTP Diagnostics** — stratum, root delay, reference ID, RTT.
+- **NTP Diagnostics** — stratum, root delay, reference ID, RTT, UTC time and clock diff.
+- **Apply NTP Sync** — apply cached NTP time to Flipper clock (run NTP Diagnostics first).
 - **DNS Poison Check** — compare local vs public DNS responses.
 
 ### Traffic
@@ -228,6 +230,7 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 - **Sound & vibro** — ON/OFF, controls LED/vibro notifications.
 - **Clear History** — delete all saved result files.
 - **MAC Changer** — generate random MAC or enter custom, saved to SD.
+- **Target persistence** — last-used IP/hostname per tool saved to settings.conf, restored on next launch.
 
 ### File Manager Custom Themes
 
@@ -300,7 +303,8 @@ MIT License. See [LICENSE](LICENSE) for details.
 | **PXE Download** | Скачивание iPXE и EFI boot-файлов из интернета на SD-карту для PXE Server |
 | **File Manager** | Веб-менеджер файлов: просмотр, скачивание, загрузка, удаление файлов на microSD через HTTP. Поддержка кастомных CSS/JS тем с SD-карты |
 | **SNMP GET** | Запрос информации об устройстве по SNMPv1/v2c: sysName, sysDescr, sysUpTime, ifStatus |
-| **NTP Diagnostics** | Анализ NTP-сервера: stratum, root delay/dispersion, reference ID, RTT |
+| **NTP Diagnostics** | Анализ NTP-сервера: stratum, root delay/dispersion, reference ID, RTT, UTC-время |
+| **Apply NTP Sync** | Применение NTP-времени из последнего NTP Diagnostics к часам Flipper |
 | **NetBIOS Query** | Обнаружение имён Windows-машин, рабочих групп и MAC-адресов |
 | **DNS Poison Check** | Сравнение локального и публичного DNS (8.8.8.8) для обнаружения подмены |
 | **ARP Watch** | Пассивный мониторинг ARP: обнаружение спуфинга, дубликатов IP, ARP-штормов |
@@ -312,7 +316,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 | **TFTP Client** | Скачивание конфигурационных файлов с оборудования по TFTP на SD-карту |
 | **IPMI v1.5** | Запрос BMC: статус питания шасси, ID устройства, версия прошивки |
 | **История** | Все результаты автосохраняются с метками времени, просмотр и удаление |
-| **Настройки** | Автосохранение, звук/вибрация, очистка истории, MAC Changer (смена MAC с сохранением на SD) |
+| **Настройки** | Автосохранение, звук/вибрация, DNS, пинг, сохранение целей, MAC Changer |
 
 ### UX-особенности
 
@@ -321,7 +325,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 - **Кеширование DHCP**: одна DHCP-сессия на всё — не ждёте 15 секунд каждый раз
 - **Визуальный прогресс**: таймеры обратного отсчёта для прослушиваний, прогрессбары для сканов
 - **LED/вибро оповещения**: зелёный при успехе, красный при ошибке (опционально)
-- **Умные дефолты**: IP-поля предзаполнены шлюзом из DHCP
+- **Умные дефолты**: IP-поля предзаполнены шлюзом из DHCP, последние цели запоминаются между сессиями
 
 ## Оборудование
 
@@ -457,7 +461,8 @@ ufbt install            # установка .fap на SD-карту Flipper
 - **Continuous Ping** — график RTT с отслеживанием потерь.
 - **DNS Lookup** — разрешение имён через DNS.
 - **Traceroute** — ICMP-трассировка до 30 хопов.
-- **NTP Diagnostics** — stratum, root delay, reference ID, RTT.
+- **NTP Diagnostics** — stratum, root delay, reference ID, RTT, UTC-время и расхождение.
+- **Apply NTP Sync** — применение NTP-времени к часам Flipper (сначала запустите NTP Diagnostics).
 - **DNS Poison Check** — сравнение локального и публичного DNS.
 
 ### Traffic
@@ -473,7 +478,6 @@ ufbt install            # установка .fap на SD-карту Flipper
 - **802.1X Probe** — EAPOL-Start, обнаружение аутентификации и типа EAP.
 - **VLAN Hop Top10** — проверка изоляции на VLANs 1,2,10,20,50,100,150,200,300,999.
 - **VLAN Hop Custom** — проверка произвольных VLAN ID (через запятую).
-- **RADIUS Test** — Access-Request с PAP/MD5, проверка ответа сервера.
 
 ### Utilities
 - **Wake-on-LAN** — magic-пакет для пробуждения устройства.
@@ -487,6 +491,7 @@ ufbt install            # установка .fap на SD-карту Flipper
 - **Sound & vibro** — вкл/выкл LED/вибро.
 - **Clear History** — удалить все результаты.
 - **MAC Changer** — генерация/ввод MAC, сохранение на SD.
+- **Сохранение целей** — последний IP/hostname для каждого инструмента сохраняется в settings.conf.
 
 ### Кастомные темы File Manager
 

@@ -87,8 +87,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [HyperFocus Calc v0.1.1 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - Updated: [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - Updated: [ProtoPirate v2.8 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) [Replace blocking dialog with non-blocking NeedSaving scene for exit confirmation (By mishamyte)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/23) [Expansion with Fiat, Mazda, Mitzubishi and Porche protocols (Originally By lupettohf) & Ford Fixed (By LeeroysHub) & Several Other Community Changes](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b377cee471cf61aaeff089c5ff194e1a13e8d94a) Different ProtoPirate Builds Enabled For Better Testing [FORD: Fix PANIC Button ENCODE and Counter Overflow in DECODE (By RalphWiggum)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/28) [Kia v7 & Mazda Fix (By zero-mega)](https://github.com/RocketGod-git/ProtoPirate/commits?author=zero-mega)
-- Updated: [LAN Tester v2.7 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
 - Updated: [Tesla Mod v2.9 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [LAN Tester v2.8 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
 
 <a name="release"></a>
 
@@ -685,7 +685,7 @@ $ ./fbt dolphin_ext
 - [Key Copier v1.5 (By zinongli)](https://github.com/zinongli/KeyCopier)
 - [Lab401/DigiLab v1.1.1 (By lab-401 & tixlegeek)](https://github.com/lab-401/fzDigiLab)
 - [Lab401/Light MESSENGER v1.4.1 (By tixlegeek)](https://github.com/lab-401/fzLightMessenger/tree/main/401lightMessengerApp)
-- [LAN Tester v2.7 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
+- [LAN Tester v2.8 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
 - [LaserCat v1.1 (By DroWez)](https://github.com/DroWez/LaserCat)
 - [Lasko 2519 Timer v1.0 (By LN4CY)](https://github.com/LN4CY/lasko-2519-timer)
 - [LD2410 Human Detector v1.0 (By sistemasorp)](https://github.com/sistemasorp/flipper-ld2410_human_detector)

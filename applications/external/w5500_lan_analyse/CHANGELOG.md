@@ -1,3 +1,11 @@
+# 2.8.0
+
+## Added
+- **Apply NTP Sync** — apply cached NTP time to Flipper clock after reviewing diff in NTP Diagnostics
+- **NTP Diagnostics** now shows received UTC time and clock difference
+- **Settings persistence** — all tool targets (IP addresses, hostnames) saved to settings.conf and restored on next launch
+- **MAC address** stored in settings.conf (mac.conf no longer used)
+
 # 2.7.0
 
 ## Added

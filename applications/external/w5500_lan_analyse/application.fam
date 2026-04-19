@@ -25,6 +25,6 @@ App(
     fap_category="GPIO",
     fap_author="Dok2d",
     fap_weburl="https://github.com/dok2d/fz-W5500-lan-analyse",
-    fap_version="2.7.0",
-    fap_description="Portable LAN tester & security analyzer: ARP, ping, DHCP, LLDP/CDP, port scan, SNMP, NTP, IPMI, TFTP, PXE boot/download, 802.1X, VLAN, rogue DHCP/RA detection via W5500",
+    fap_version="2.8.0",
+    fap_description="Portable LAN tester & security analyzer: ARP, ping, DHCP, LLDP/CDP, port scan, SNMP, NTP sync, IPMI, TFTP, PXE boot/download, 802.1X, VLAN, rogue DHCP/RA detection via W5500",
 )
