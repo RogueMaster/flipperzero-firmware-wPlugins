@@ -8,7 +8,6 @@
 class GhoulsGame
 {
 private:
-    int currentLevelIndex = 0;               // Current level index
     DynamicMap *currentDynamicMap = nullptr; // current dynamic map
     uint16_t currentRound = 1;               // Current round number
     bool dayJustSwitched = true;             // Flag to track if day/night just switched
@@ -19,7 +18,6 @@ private:
     bool isGameRunning = false;              // Flag to check if the game is running
     int lastInput = -1;                      // Last input key pressed
     Player *player = nullptr;                // Player instance
-    ToggleState soundToggle = ToggleOn;      // sound toggle state
     bool shouldExit = false;                 // Flag to signal exit the game
     Sprite3D *treeSprite = nullptr;          // Static Sprite3D instance for trees
     Sprite3D *wallSprite = nullptr;          // Static Sprite3D instance for horizontal walls (top/bottom borders)
