@@ -103,7 +103,7 @@ The install script automatically:
 
 ### Pre-built Packages
 
-Debian/Ubuntu and RPM packages are available from [GitHub Releases](https://github.com/amd989/infrafi/releases) for amd64, arm64, and armhf architectures.
+Debian/Ubuntu and RPM packages are available from [GitHub Releases](https://github.com/amd989/infrafi/releases) for amd64, arm64, armhf, and armel (ARMv6, Raspberry Pi Zero/1) architectures.
 
 **APT repository:**
 ```bash
