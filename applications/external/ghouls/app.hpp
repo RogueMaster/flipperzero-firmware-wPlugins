@@ -15,10 +15,10 @@
 #include "flipper_http/flipper_http.h"
 #include "settings/settings.hpp"
 #include "about/about.hpp"
-#include "ghouls/src/game.hpp"
+#include "Ghouls/src/game.hpp"
 
 #define TAG         "Ghouls"
-#define VERSION     "1.0"
+#define VERSION     FAP_VERSION
 #define VERSION_TAG TAG " " VERSION
 #define APP_ID      "ghouls"
 
