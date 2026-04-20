@@ -148,6 +148,7 @@ GhoulsGame::~GhoulsGame()
     }
     if (engine)
     {
+        engine->stop();
         ENGINE_MEM_DELETE engine;
         engine = nullptr;
     }
@@ -203,19 +204,6 @@ void GhoulsGame::endGame()
 {
     shouldExit = true;
     isGameRunning = false;
-
-    if (engine)
-    {
-        engine->stop();
-        ENGINE_MEM_DELETE engine;
-        engine = nullptr;
-    }
-
-    if (draw)
-    {
-        ENGINE_MEM_DELETE draw;
-        draw = nullptr;
-    }
 }
 
 bool GhoulsGame::setDynamicMap()

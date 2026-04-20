@@ -193,6 +193,8 @@ void Game::stop()
         this->levels[i] = nullptr;
     }
 
+    this->current_level = nullptr;
+
     // Clear the screen.
     this->draw->fillScreen(bg_color);
 }

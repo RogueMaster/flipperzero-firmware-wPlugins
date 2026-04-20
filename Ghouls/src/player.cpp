@@ -156,7 +156,7 @@ void Player::drawGameLocalView(Draw *canvas)
         }
         return;
     }
-    else
+    else if (!shouldLeaveGame())
     {
         const int sw = canvas->getDisplaySize().x;
         const int sh = canvas->getDisplaySize().y;
