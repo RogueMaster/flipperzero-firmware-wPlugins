@@ -1861,14 +1861,14 @@ void Player::render(Draw *canvas, Game *game)
             {
                 snprintf(ammoStr, sizeof(ammoStr), "Ammo: ∞");
             }
-            canvas->text(sw * 4 / 128, sh * 63 / 64, ammoStr, 0x0000);
+            canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, 0x0000);
         }
 
         // draw health
         canvas->setFont(FONT_SIZE_SMALL);
         char healthStr[32];
         snprintf(healthStr, sizeof(healthStr), "HP: %d", (uint16_t)health);
-        canvas->text(sw * 96 / 128, sh * 63 / 64, healthStr, 0x0000);
+        canvas->text(sw * 96 / 128, sh * 61 / 64, healthStr, 0x0000);
 
         // Draw in-game alert overlay if active
         if (alertTimer > 0 && alertMessage[0] != '\0')
