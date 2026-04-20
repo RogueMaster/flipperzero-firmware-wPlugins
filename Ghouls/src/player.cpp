@@ -1074,6 +1074,7 @@ void Player::drawUserInfoView(Draw *canvas)
     switch (userInfoStatus)
     {
     case UserInfoWaiting:
+        canvas->fillScreen(0xFFFF);
         if (!loadingStarted)
         {
             if (!loading)
@@ -1254,7 +1255,7 @@ void Player::drawWelcomeView(Draw *canvas)
     canvas->setFont(FONT_SIZE_SMALL);
     if ((welcomeFrame / 15) % 2 == 0)
     {
-        canvas->text(sw * 34 / 128, sh * 60 / 64, "Press OK to start", 0x0000);
+        canvas->text(sw * 40 / 128, sh * 60 / 64, "Press OK to start", 0x0000);
     }
     welcomeFrame++;
 
@@ -1265,9 +1266,9 @@ void Player::drawWelcomeView(Draw *canvas)
     }
 
     // Draw a box around the OK button
-    canvas->fillRectangle(sw * 40 / 128, sh * 25 / 64, sw * 56 / 128, sh / 4, 0x0000);
+    canvas->fillRectangle(sw * 36 / 128, sh * 25 / 64, sw * 56 / 128, sh / 4, 0x0000);
     canvas->setColor(0xFFFF);
-    canvas->text(sw * 56 / 128, sh * 35 / 64, "Welcome", 0xFFFF);
+    canvas->text(sw * 52 / 128, sh * 31 / 64, "Welcome", 0xFFFF);
     canvas->setColor(0x0000);
 }
 
