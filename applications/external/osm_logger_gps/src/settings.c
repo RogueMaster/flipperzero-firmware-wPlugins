@@ -12,11 +12,12 @@
 
 #include "app.h"
 
-#define SETTINGS_FILE "/ext/apps_data/osm_logger/settings.txt"
+#define SETTINGS_FILE     "/ext/apps_data/osm_logger/settings.txt"
 #define SETTINGS_MAX_SIZE 1024
 
 const uint32_t BAUD_RATES[BAUD_RATE_COUNT] = {4800, 9600, 19200, 38400, 57600, 115200};
-const char* const BAUD_LABELS[BAUD_RATE_COUNT] = {"4800", "9600", "19200", "38400", "57600", "115200"};
+const char* const BAUD_LABELS[BAUD_RATE_COUNT] =
+    {"4800", "9600", "19200", "38400", "57600", "115200"};
 
 const uint8_t TRACK_INTERVALS_S[TRACK_INTERVAL_COUNT] = {1, 5, 10, 30, 60};
 const char* const TRACK_INTERVAL_LABELS[TRACK_INTERVAL_COUNT] = {"1s", "5s", "10s", "30s", "60s"};
@@ -42,9 +43,9 @@ void settings_defaults(Settings* s) {
     s->preview_before_save = false;
     s->auto_photo_id = false;
     s->duplicate_check_m = 10; // ON par défaut, seuil 10m (OSM-friendly)
-    s->avg_seconds = 0;        // instantané par défaut (compat avec v0.9)
-    s->hdop_max_x10 = 50;      // HDOP <= 5.0 par défaut (permissif, NEO-6M consumer)
-    s->survey_mode = false;    // off par défaut (opt-in : norme OSM quand on vérifie sur place)
+    s->avg_seconds = 0; // instantané par défaut (compat avec v0.9)
+    s->hdop_max_x10 = 50; // HDOP <= 5.0 par défaut (permissif, NEO-6M consumer)
+    s->survey_mode = false; // off par défaut (opt-in : norme OSM quand on vérifie sur place)
 }
 
 uint8_t baud_rate_to_idx(uint32_t baud) {
@@ -93,8 +94,10 @@ static uint32_t parse_uint(const char* s, size_t len) {
     uint32_t v = 0;
     for(size_t i = 0; i < len; i++) {
         char c = s[i];
-        if(c >= '0' && c <= '9') v = v * 10 + (uint32_t)(c - '0');
-        else break;
+        if(c >= '0' && c <= '9')
+            v = v * 10 + (uint32_t)(c - '0');
+        else
+            break;
     }
     return v;
 }
@@ -104,20 +107,24 @@ static void parse_settings_buffer(char* buf, size_t size, Settings* s) {
     size_t i = 0;
     while(i < size) {
         // skip whitespace
-        while(i < size && (buf[i] == ' ' || buf[i] == '\t' || buf[i] == '\r' || buf[i] == '\n')) i++;
+        while(i < size && (buf[i] == ' ' || buf[i] == '\t' || buf[i] == '\r' || buf[i] == '\n'))
+            i++;
         if(i >= size) break;
 
         // commentaire ?
         if(buf[i] == '#') {
-            while(i < size && buf[i] != '\n') i++;
+            while(i < size && buf[i] != '\n')
+                i++;
             continue;
         }
 
         // key
         size_t key_start = i;
-        while(i < size && buf[i] != '=' && buf[i] != '\n') i++;
+        while(i < size && buf[i] != '=' && buf[i] != '\n')
+            i++;
         if(i >= size || buf[i] != '=') {
-            while(i < size && buf[i] != '\n') i++;
+            while(i < size && buf[i] != '\n')
+                i++;
             continue;
         }
         size_t key_end = i;
@@ -125,7 +132,8 @@ static void parse_settings_buffer(char* buf, size_t size, Settings* s) {
 
         // value
         size_t val_start = i;
-        while(i < size && buf[i] != '\n' && buf[i] != '\r') i++;
+        while(i < size && buf[i] != '\n' && buf[i] != '\r')
+            i++;
         size_t val_end = i;
 
         size_t key_len = key_end - key_start;
@@ -428,34 +436,21 @@ void app_start_settings(App* app) {
         variable_item_set_current_value_text(item, TRACK_MIN_DIST_LABELS[d_idx]);
 
         item = variable_item_list_add(
-            app->settings_list,
-            "Track HDOP strict",
-            2,
-            settings_hdop_strict_changed,
-            app);
+            app->settings_list, "Track HDOP strict", 2, settings_hdop_strict_changed, app);
         variable_item_set_current_value_index(item, app->settings.track_hdop_strict ? 1 : 0);
         variable_item_set_current_value_text(
             item, ON_OFF[app->settings.track_hdop_strict ? 1 : 0]);
 
         item = variable_item_list_add(
-            app->settings_list,
-            "Preview save",
-            2,
-            settings_preview_changed,
-            app);
+            app->settings_list, "Preview save", 2, settings_preview_changed, app);
         variable_item_set_current_value_index(item, app->settings.preview_before_save ? 1 : 0);
         variable_item_set_current_value_text(
             item, ON_OFF[app->settings.preview_before_save ? 1 : 0]);
 
         item = variable_item_list_add(
-            app->settings_list,
-            "Auto photo ID",
-            2,
-            settings_auto_photo_changed,
-            app);
+            app->settings_list, "Auto photo ID", 2, settings_auto_photo_changed, app);
         variable_item_set_current_value_index(item, app->settings.auto_photo_id ? 1 : 0);
-        variable_item_set_current_value_text(
-            item, ON_OFF[app->settings.auto_photo_id ? 1 : 0]);
+        variable_item_set_current_value_text(item, ON_OFF[app->settings.auto_photo_id ? 1 : 0]);
 
         item = variable_item_list_add(
             app->settings_list,
@@ -468,34 +463,21 @@ void app_start_settings(App* app) {
         variable_item_set_current_value_text(item, DUPLICATE_CHECK_LABELS[dup_idx]);
 
         item = variable_item_list_add(
-            app->settings_list,
-            "Averaging",
-            AVG_SECONDS_COUNT,
-            settings_avg_changed,
-            app);
+            app->settings_list, "Averaging", AVG_SECONDS_COUNT, settings_avg_changed, app);
         uint8_t avg_idx = avg_seconds_to_idx(app->settings.avg_seconds);
         variable_item_set_current_value_index(item, avg_idx);
         variable_item_set_current_value_text(item, AVG_SECONDS_LABELS[avg_idx]);
 
         item = variable_item_list_add(
-            app->settings_list,
-            "HDOP max",
-            HDOP_MAX_COUNT,
-            settings_hdop_max_changed,
-            app);
+            app->settings_list, "HDOP max", HDOP_MAX_COUNT, settings_hdop_max_changed, app);
         uint8_t hdop_idx = hdop_max_to_idx(app->settings.hdop_max_x10);
         variable_item_set_current_value_index(item, hdop_idx);
         variable_item_set_current_value_text(item, HDOP_MAX_LABELS[hdop_idx]);
 
         item = variable_item_list_add(
-            app->settings_list,
-            "Survey mode",
-            2,
-            settings_survey_mode_changed,
-            app);
+            app->settings_list, "Survey mode", 2, settings_survey_mode_changed, app);
         variable_item_set_current_value_index(item, app->settings.survey_mode ? 1 : 0);
-        variable_item_set_current_value_text(
-            item, ON_OFF[app->settings.survey_mode ? 1 : 0]);
+        variable_item_set_current_value_text(item, ON_OFF[app->settings.survey_mode ? 1 : 0]);
 
         app->settings_view = variable_item_list_get_view(app->settings_list);
         view_set_previous_callback(app->settings_view, settings_previous_callback);

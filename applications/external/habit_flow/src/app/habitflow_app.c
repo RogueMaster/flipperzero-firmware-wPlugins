@@ -18,45 +18,50 @@
 #include <stdlib.h>
 #include <string.h>
 
-void hf_switch(HabitFlowApp *app, HfViewId v) {
+void hf_switch(HabitFlowApp* app, HfViewId v) {
     app->current = v;
     view_dispatcher_switch_to_view(app->vd, v);
 }
 
-static void dialog_result_cb(DialogExResult result, void *context);
+static void dialog_result_cb(DialogExResult result, void* context);
 
-void hf_dialog_rebind(HabitFlowApp *app) {
+void hf_dialog_rebind(HabitFlowApp* app) {
     dialog_ex_set_context(app->dialog, app);
     dialog_ex_set_result_callback(app->dialog, dialog_result_cb);
 }
 
-void hf_app_save(HabitFlowApp *app) {
+void hf_app_save(HabitFlowApp* app) {
     habit_store_save(&app->store);
 }
 
-void hf_build_credits(HabitFlowApp *app) {
+void hf_build_credits(HabitFlowApp* app) {
     furi_assert(app && app->credits);
     widget_reset(app->credits);
-    snprintf(app->credits_buf, sizeof(app->credits_buf),
-             "\e#%s\e#\n\nVersion: %s\n\nAuthor: %s\n\n%s", APP_NAME, APP_VERSION, APP_AUTHOR,
-             APP_REPO_URL);
+    snprintf(
+        app->credits_buf,
+        sizeof(app->credits_buf),
+        "\e#%s\e#\n\nVersion: %s\n\nAuthor: %s\n\n%s",
+        APP_NAME,
+        APP_VERSION,
+        APP_AUTHOR,
+        APP_REPO_URL);
     widget_add_text_scroll_element(app->credits, 0, 0, 128, 64, app->credits_buf);
 }
 
-void text_input_ok_cb(void *context) {
-    HabitFlowApp *app = context;
+void text_input_ok_cb(void* context) {
+    HabitFlowApp* app = context;
     snprintf(app->edit_buf.name, sizeof(app->edit_buf.name), "%s", app->text_buf);
     hf_switch(app, HfViewEdit);
 }
 
-static void popup_mastered_cb(void *context) {
-    HabitFlowApp *app = context;
+static void popup_mastered_cb(void* context) {
+    HabitFlowApp* app = context;
     hf_switch(app, HfViewDetail);
 }
 
-static void hf_show_yesterday_dialog(HabitFlowApp *app) {
+static void hf_show_yesterday_dialog(HabitFlowApp* app) {
     const size_t idx = app->yq.indices[app->yq.pos];
-    const Habit *h = &app->store.habits[idx];
+    const Habit* h = &app->store.habits[idx];
     char body[64];
     snprintf(body, sizeof(body), "Did you complete\n\"%s\"\nyesterday?", h->name);
     dialog_ex_reset(app->dialog);
@@ -67,19 +72,19 @@ static void hf_show_yesterday_dialog(HabitFlowApp *app) {
     dialog_ex_set_right_button_text(app->dialog, "Yes");
 }
 
-static void hf_finish_yesterday_queue(HabitFlowApp *app) {
+static void hf_finish_yesterday_queue(HabitFlowApp* app) {
     hf_session_close_yesterday_flow(&app->store, hf_clock_today_packed(), &app->yq);
 }
 
-static void dialog_result_cb(DialogExResult result, void *context) {
-    HabitFlowApp *app = context;
-    if (app->dlg_mode == HfDlgYesterday) {
+static void dialog_result_cb(DialogExResult result, void* context) {
+    HabitFlowApp* app = context;
+    if(app->dlg_mode == HfDlgYesterday) {
         const bool yes = (result == DialogExResultRight);
         const size_t idx = app->yq.indices[app->yq.pos];
         hf_habit_apply_overnight(&app->store.habits[idx], yes);
         hf_app_save(app);
         app->yq.pos++;
-        if (app->yq.pos >= app->yq.count) {
+        if(app->yq.pos >= app->yq.count) {
             hf_finish_yesterday_queue(app);
             hf_switch(app, HfViewMain);
         } else {
@@ -87,16 +92,16 @@ static void dialog_result_cb(DialogExResult result, void *context) {
         }
         return;
     }
-    if (app->dlg_mode == HfDlgResetStreak) {
-        if (result == DialogExResultRight) {
+    if(app->dlg_mode == HfDlgResetStreak) {
+        if(result == DialogExResultRight) {
             hf_habit_reset_streak(&app->store.habits[app->detail_index]);
             hf_app_save(app);
         }
         hf_switch(app, HfViewDetail);
         return;
     }
-    if (app->dlg_mode == HfDlgDeleteHabit) {
-        if (result == DialogExResultRight) {
+    if(app->dlg_mode == HfDlgDeleteHabit) {
+        if(result == DialogExResultRight) {
             habit_store_delete_at(&app->store, app->edit_index);
             hf_switch(app, HfViewManage);
         } else {
@@ -106,29 +111,29 @@ static void dialog_result_cb(DialogExResult result, void *context) {
     }
 }
 
-static bool app_navigation_cb(void *context) {
-    HabitFlowApp *app = context;
-    if (app->current == HfViewCredits) {
+static bool app_navigation_cb(void* context) {
+    HabitFlowApp* app = context;
+    if(app->current == HfViewCredits) {
         hf_switch(app, HfViewMain);
         return true;
     }
-    if (app->current == HfViewTextInput) {
+    if(app->current == HfViewTextInput) {
         hf_switch(app, HfViewEdit);
         return true;
     }
-    if (app->current == HfViewDialog) {
-        if (app->dlg_mode == HfDlgYesterday) {
+    if(app->current == HfViewDialog) {
+        if(app->dlg_mode == HfDlgYesterday) {
             dialog_result_cb(DialogExResultLeft, app);
         } else {
             hf_switch(app, app->dlg_mode == HfDlgResetStreak ? HfViewDetail : HfViewEdit);
         }
         return true;
     }
-    if (app->current == HfViewPopupMastered) {
+    if(app->current == HfViewPopupMastered) {
         hf_switch(app, HfViewDetail);
         return true;
     }
-    if (app->current == HfViewMain) {
+    if(app->current == HfViewMain) {
         view_dispatcher_stop(app->vd);
         return true;
     }
@@ -136,8 +141,8 @@ static bool app_navigation_cb(void *context) {
 }
 
 int32_t habitflow_app_run(void) {
-    HabitFlowApp *app = malloc(sizeof(HabitFlowApp));
-    if (!app) {
+    HabitFlowApp* app = malloc(sizeof(HabitFlowApp));
+    if(!app) {
         return -1;
     }
     memset(app, 0, sizeof(*app));
@@ -148,6 +153,7 @@ int32_t habitflow_app_run(void) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->vd = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->vd);
     view_dispatcher_attach_to_gui(app->vd, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->vd, app);
     view_dispatcher_set_navigation_event_callback(app->vd, app_navigation_cb);
@@ -189,8 +195,8 @@ int32_t habitflow_app_run(void) {
     view_dispatcher_add_view(app->vd, HfViewEdit, app->edit);
 
     app->text_input = text_input_alloc();
-    text_input_set_result_callback(app->text_input, text_input_ok_cb, app, app->text_buf,
-                                   sizeof(app->text_buf), false);
+    text_input_set_result_callback(
+        app->text_input, text_input_ok_cb, app, app->text_buf, sizeof(app->text_buf), false);
     view_dispatcher_add_view(app->vd, HfViewTextInput, text_input_get_view(app->text_input));
 
     app->dialog = dialog_ex_alloc();
@@ -202,7 +208,7 @@ int32_t habitflow_app_run(void) {
     popup_set_callback(app->popup_mastered, popup_mastered_cb);
     view_dispatcher_add_view(app->vd, HfViewPopupMastered, popup_get_view(app->popup_mastered));
 
-    if (app->yq.count > 0) {
+    if(app->yq.count > 0) {
         app->dlg_mode = HfDlgYesterday;
         hf_show_yesterday_dialog(app);
         hf_switch(app, HfViewDialog);

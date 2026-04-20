@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PRESETS_FILE "/ext/apps_data/osm_logger/presets.txt"
+#define PRESETS_FILE          "/ext/apps_data/osm_logger/presets.txt"
 #define PRESETS_MAX_FILE_SIZE 4096
-#define PRESETS_MAX_ENTRIES 128
+#define PRESETS_MAX_ENTRIES   128
 
 const char* const PRESET_CATEGORY_LABELS[PresetCatCount] = {
     "Street furniture",
@@ -51,7 +51,11 @@ const char* const PRESET_CATEGORY_COLORS[PresetCatCount] = {
 // --- Defaults compilés en dur ---
 static const Preset DEFAULT_PRESETS[] = {
     // =========================  Street furniture  ============================
-    {"Bench", "amenity", {"bench", "material=wood", "material=metal", "material=concrete"}, 4, PresetCatStreet},
+    {"Bench",
+     "amenity",
+     {"bench", "material=wood", "material=metal", "material=concrete"},
+     4,
+     PresetCatStreet},
     {"Waste basket", "amenity", {"waste_basket"}, 1, PresetCatStreet},
     {"Drinking water", "amenity", {"drinking_water", "fountain", "bottle=yes"}, 3, PresetCatStreet},
     {"Toilets", "amenity", {"toilets", "fee=yes", "wheelchair=yes"}, 3, PresetCatStreet},
@@ -93,7 +97,15 @@ static const Preset DEFAULT_PRESETS[] = {
     {"Climbing wall", "sport", {"climbing"}, 1, PresetCatSports},
 
     // =========================  Waste  =======================================
-    {"Recycling", "amenity", {"recycling", "recycling:glass=yes", "recycling:paper=yes", "recycling:clothes=yes", "recycling:plastic=yes"}, 5, PresetCatWaste},
+    {"Recycling",
+     "amenity",
+     {"recycling",
+      "recycling:glass=yes",
+      "recycling:paper=yes",
+      "recycling:clothes=yes",
+      "recycling:plastic=yes"},
+     5,
+     PresetCatWaste},
     {"Composter", "amenity", {"compost"}, 1, PresetCatWaste},
 
     // =========================  Shops  =======================================
@@ -171,7 +183,11 @@ static const Preset DEFAULT_PRESETS[] = {
     // Ex. preset "House number" + note "42" → tag final addr:housenumber=42.
     {"House number", "addr:housenumber", {"TBD"}, 1, PresetCatAddress},
     {"Building entry", "entrance", {"main", "yes", "service", "emergency"}, 4, PresetCatAddress},
-    {"Building", "building", {"yes", "residential", "commercial", "industrial"}, 4, PresetCatAddress},
+    {"Building",
+     "building",
+     {"yes", "residential", "commercial", "industrial"},
+     4,
+     PresetCatAddress},
 };
 static const uint8_t DEFAULT_PRESETS_COUNT =
     (uint8_t)(sizeof(DEFAULT_PRESETS) / sizeof(DEFAULT_PRESETS[0]));
@@ -213,35 +229,42 @@ static uint8_t parse_buffer(char* buf, size_t size, Preset* out, uint8_t max_ent
         if(i >= size) break;
 
         if(buf[i] == '#') {
-            while(i < size && buf[i] != '\n') i++;
+            while(i < size && buf[i] != '\n')
+                i++;
             continue;
         }
 
         char* label = &buf[i];
-        while(i < size && buf[i] != ';' && buf[i] != '\n') i++;
+        while(i < size && buf[i] != ';' && buf[i] != '\n')
+            i++;
         if(i >= size || buf[i] != ';') {
-            while(i < size && buf[i] != '\n') i++;
+            while(i < size && buf[i] != '\n')
+                i++;
             continue;
         }
         buf[i++] = '\0';
 
         char* key = &buf[i];
-        while(i < size && buf[i] != ';' && buf[i] != '\n') i++;
+        while(i < size && buf[i] != ';' && buf[i] != '\n')
+            i++;
         if(i >= size || buf[i] != ';') {
-            while(i < size && buf[i] != '\n') i++;
+            while(i < size && buf[i] != '\n')
+                i++;
             continue;
         }
         buf[i++] = '\0';
 
         char* values = &buf[i];
-        while(i < size && buf[i] != '\n' && buf[i] != '\r' && buf[i] != ';') i++;
+        while(i < size && buf[i] != '\n' && buf[i] != '\r' && buf[i] != ';')
+            i++;
 
         // Catégorie optionnelle : quatrième champ après ';' (ex: "Bench;amenity;bench;0")
         uint8_t category = PresetCatOther;
         if(i < size && buf[i] == ';') {
             buf[i++] = '\0';
             char* cat_str = &buf[i];
-            while(i < size && buf[i] != '\n' && buf[i] != '\r') i++;
+            while(i < size && buf[i] != '\n' && buf[i] != '\r')
+                i++;
             if(i < size) buf[i++] = '\0';
             // Parse catégorie numérique (0..7)
             if(*cat_str >= '0' && *cat_str <= '7') {

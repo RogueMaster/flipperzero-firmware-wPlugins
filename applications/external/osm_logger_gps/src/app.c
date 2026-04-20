@@ -27,8 +27,8 @@ static void app_menu_callback(void* ctx, uint32_t index);
 static void category_menu_callback(void* ctx, uint32_t index);
 static void preset_menu_callback(void* ctx, uint32_t index);
 static void rebuild_preset_menu(App* app);
-static void serial_rx_callback(
-    FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context);
+static void
+    serial_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context);
 
 typedef enum {
     MenuItemQuickLog = 0,
@@ -96,7 +96,8 @@ static void app_tick_callback(void* ctx) {
 }
 
 // --- RX async callback (IRQ): NE PAS toucher au GUI depuis une IRQ
-static void serial_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
+static void
+    serial_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
     (void)handle;
     App* app = (App*)context;
 
@@ -124,8 +125,15 @@ static void serial_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent
                     uint8_t sats = app->sats;
 
                     nmea_parse_line(
-                        app->nmea_line, &has_fix, &lat, &lon, &hdop, &sats, &altitude,
-                        &heading, &speed_kts);
+                        app->nmea_line,
+                        &has_fix,
+                        &lat,
+                        &lon,
+                        &hdop,
+                        &sats,
+                        &altitude,
+                        &heading,
+                        &speed_kts);
 
                     bool was_fix = app->has_fix;
                     app->has_fix = has_fix;
@@ -234,6 +242,7 @@ int32_t app(void* p) {
 
     // Dispatcher
     app->dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->dispatcher);
     view_dispatcher_set_event_callback_context(app->dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->dispatcher, app_navigation_callback);
     view_dispatcher_set_tick_event_callback(app->dispatcher, app_tick_callback, 500);
@@ -251,23 +260,21 @@ int32_t app(void* p) {
     // Menu principal (Menu module Flipper avec icônes)
     app->menu = menu_alloc();
     menu_add_item(
-        app->menu, "Quick Log", &I_icon_quicklog_10x10,
-        MenuItemQuickLog, app_menu_callback, app);
+        app->menu, "Quick Log", &I_icon_quicklog_10x10, MenuItemQuickLog, app_menu_callback, app);
     menu_add_item(
-        app->menu, "Track mode", &I_icon_track_10x10,
-        MenuItemTrack, app_menu_callback, app);
+        app->menu, "Track mode", &I_icon_track_10x10, MenuItemTrack, app_menu_callback, app);
     menu_add_item(
-        app->menu, "Last points", &I_icon_lastpoints_10x10,
-        MenuItemLastPoints, app_menu_callback, app);
+        app->menu,
+        "Last points",
+        &I_icon_lastpoints_10x10,
+        MenuItemLastPoints,
+        app_menu_callback,
+        app);
     menu_add_item(
-        app->menu, "GPS status", &I_icon_status_10x10,
-        MenuItemStatus, app_menu_callback, app);
+        app->menu, "GPS status", &I_icon_status_10x10, MenuItemStatus, app_menu_callback, app);
     menu_add_item(
-        app->menu, "Settings", &I_icon_settings_10x10,
-        MenuItemSettings, app_menu_callback, app);
-    menu_add_item(
-        app->menu, "About", &I_icon_about_10x10,
-        MenuItemAbout, app_menu_callback, app);
+        app->menu, "Settings", &I_icon_settings_10x10, MenuItemSettings, app_menu_callback, app);
+    menu_add_item(app->menu, "About", &I_icon_about_10x10, MenuItemAbout, app_menu_callback, app);
     View* menu_view = menu_get_view(app->menu);
     view_dispatcher_add_view(app->dispatcher, AppViewMenu, menu_view);
 

@@ -66,7 +66,6 @@ CATEGORY_RULES = [
     ("amenity", "police", CAT_EMERGENCY),
     ("amenity", "hospital", CAT_EMERGENCY),
     ("amenity", "clinic", CAT_EMERGENCY),
-
     # --- Education ---
     ("amenity", "school", CAT_EDUCATION),
     ("amenity", "kindergarten", CAT_EDUCATION),
@@ -74,7 +73,6 @@ CATEGORY_RULES = [
     ("amenity", "college", CAT_EDUCATION),
     ("amenity", "library", CAT_EDUCATION),
     ("amenity", "research_institute", CAT_EDUCATION),
-
     # --- Religion ---
     ("amenity", "place_of_worship", CAT_RELIGION),
     ("amenity", "grave_yard", CAT_RELIGION),
@@ -82,7 +80,6 @@ CATEGORY_RULES = [
     ("landuse", "cemetery", CAT_RELIGION),
     ("historic", "wayside_cross", CAT_RELIGION),
     ("historic", "wayside_shrine", CAT_RELIGION),
-
     # --- Transport ---
     ("public_transport", None, CAT_TRANSPORT),
     ("railway", None, CAT_TRANSPORT),
@@ -92,27 +89,23 @@ CATEGORY_RULES = [
     ("amenity", "ferry_terminal", CAT_TRANSPORT),
     ("amenity", "bus_station", CAT_TRANSPORT),
     ("highway", "bus_stop", CAT_TRANSPORT),
-
     # --- Parking ---
     ("amenity", "parking", CAT_PARKING),
     ("amenity", "bicycle_parking", CAT_PARKING),
     ("amenity", "motorcycle_parking", CAT_PARKING),
     ("amenity", "charging_station", CAT_PARKING),
     ("amenity", "parking_entrance", CAT_PARKING),
-
     # --- Sports & leisure ---
     ("leisure", None, CAT_SPORTS),
     ("sport", None, CAT_SPORTS),
     ("amenity", "basketball_hoop", CAT_SPORTS),
     ("amenity", "gym", CAT_SPORTS),
     ("amenity", "swimming_pool", CAT_SPORTS),
-
     # --- Waste ---
     ("amenity", "recycling", CAT_WASTE),
     ("amenity", "waste_basket", CAT_STREET),  # poubelle = mobilier urbain
     ("amenity", "waste_disposal", CAT_WASTE),
     ("amenity", "compost", CAT_WASTE),
-
     # --- Services (bank/post/health etc.) ---
     ("amenity", "bank", CAT_SERVICES),
     ("amenity", "atm", CAT_SERVICES),
@@ -127,7 +120,6 @@ CATEGORY_RULES = [
     ("office", None, CAT_SERVICES),
     ("shop", "laundry", CAT_SERVICES),
     ("shop", "dry_cleaning", CAT_SERVICES),
-
     # --- Shops ---
     ("shop", None, CAT_SHOPS),
     ("amenity", "cafe", CAT_SHOPS),
@@ -138,25 +130,20 @@ CATEGORY_RULES = [
     ("amenity", "food_court", CAT_SHOPS),
     ("amenity", "pharmacy", CAT_SHOPS),
     ("amenity", "marketplace", CAT_SHOPS),
-
     # --- Tourism ---
     ("tourism", None, CAT_TOURISM),
     ("historic", None, CAT_TOURISM),
-
     # --- Address ---
     ("building", None, CAT_ADDRESS),
     ("entrance", None, CAT_ADDRESS),
     ("addr:housenumber", None, CAT_ADDRESS),
-
     # --- Nature ---
     ("natural", None, CAT_NATURE),
-
     # --- Roads & signs ---
     ("highway", None, CAT_ROADS),
     ("traffic_calming", None, CAT_ROADS),
     ("barrier", None, CAT_ROADS),
     ("traffic_sign", None, CAT_ROADS),
-
     # --- Street furniture ---
     ("amenity", "bench", CAT_STREET),
     ("amenity", "drinking_water", CAT_STREET),
@@ -172,7 +159,6 @@ CATEGORY_RULES = [
     ("amenity", "hunting_stand", CAT_STREET),
     ("amenity", "lounger", CAT_STREET),
     ("man_made", None, CAT_STREET),  # lampadaires, tours, etc.
-
     # --- Fallback pour amenity ---
     ("amenity", None, CAT_SERVICES),
 ]
@@ -200,10 +186,12 @@ def normalize_label(label: str) -> str:
     if not label:
         return ""
     # Décompose (é → e + ́), puis retire les diacritiques
-    nfd = unicodedata.normalize('NFD', label)
-    ascii_only = "".join(c for c in nfd if unicodedata.category(c) != 'Mn' and ord(c) < 128)
+    nfd = unicodedata.normalize("NFD", label)
+    ascii_only = "".join(
+        c for c in nfd if unicodedata.category(c) != "Mn" and ord(c) < 128
+    )
     # Remplace les caractères qui cassent notre format presets.txt
-    ascii_only = ascii_only.replace(';', ' ').replace(',', ' ')
+    ascii_only = ascii_only.replace(";", " ").replace(",", " ")
     # snake_case → espaces (on retombe sur ça quand la traduction manque et
     # qu'on prend primary_val comme fallback, ex. "vending_machine")
     if "_" in ascii_only and " " not in ascii_only:
@@ -229,10 +217,26 @@ def extract_primary_tag(tags: dict) -> tuple:
         return None, None
     # Préfère les clés "bien connues" dans cet ordre
     preferred = [
-        "emergency", "amenity", "shop", "tourism", "leisure", "sport",
-        "natural", "highway", "railway", "aerialway", "historic",
-        "man_made", "building", "entrance", "office", "addr:housenumber",
-        "traffic_calming", "traffic_sign", "barrier", "public_transport",
+        "emergency",
+        "amenity",
+        "shop",
+        "tourism",
+        "leisure",
+        "sport",
+        "natural",
+        "highway",
+        "railway",
+        "aerialway",
+        "historic",
+        "man_made",
+        "building",
+        "entrance",
+        "office",
+        "addr:housenumber",
+        "traffic_calming",
+        "traffic_sign",
+        "barrier",
+        "public_transport",
     ]
     for key in preferred:
         if key in tags:
@@ -262,7 +266,9 @@ def load_translations(locale: str) -> dict:
     try:
         data = fetch_json(url)
     except Exception as e:
-        print(f"⚠️  Impossible de charger les traductions {locale}: {e}", file=sys.stderr)
+        print(
+            f"⚠️  Impossible de charger les traductions {locale}: {e}", file=sys.stderr
+        )
         return {}
     # Structure : {"fr": {"presets": {"presets": {"amenity/bench": {"name": "Banc"}}}}}
     try:
@@ -319,14 +325,16 @@ def build_presets(schema: dict, translations: dict) -> list:
 
         category = infer_category(tags)
 
-        out.append({
-            "path": path,
-            "label": label,
-            "key": primary_key,
-            "value": primary_val,
-            "category": category,
-            "all_tags": tags,
-        })
+        out.append(
+            {
+                "path": path,
+                "label": label,
+                "key": primary_key,
+                "value": primary_val,
+                "category": category,
+                "all_tags": tags,
+            }
+        )
 
     return out
 
@@ -378,7 +386,7 @@ def sort_and_limit(presets: list, max_count: int) -> list:
                 break
             items = by_cat[cat]
             already = len(kept_by_cat.get(cat, []))
-            extras = items[already:already + leftover]
+            extras = items[already : already + leftover]
             kept.extend(extras)
             leftover -= len(extras)
 
@@ -404,9 +412,21 @@ def emit_presets_txt(presets: list, output: Path, locale: str) -> None:
     lines = [header]
     current_cat = -1
     cat_names = [
-        "Street furniture", "Roads & signs", "Parking", "Sports & leisure",
-        "Waste", "Shops", "Services", "Emergency", "Tourism", "Nature",
-        "Education", "Religion", "Transport", "Address", "Other",
+        "Street furniture",
+        "Roads & signs",
+        "Parking",
+        "Sports & leisure",
+        "Waste",
+        "Shops",
+        "Services",
+        "Emergency",
+        "Tourism",
+        "Nature",
+        "Education",
+        "Religion",
+        "Transport",
+        "Address",
+        "Other",
     ]
     for p in presets:
         if p["category"] != current_cat:
@@ -419,12 +439,30 @@ def emit_presets_txt(presets: list, output: Path, locale: str) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--locale", default="en", help="code locale iD (en, fr, de, es, ...) — défaut: en")
-    parser.add_argument("--max", type=int, default=PRESETS_MAX, help=f"limite sur le nombre de presets — défaut: {PRESETS_MAX}")
-    parser.add_argument("-o", "--output", default="presets.txt", help="chemin du fichier de sortie — défaut: ./presets.txt")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--locale",
+        default="en",
+        help="code locale iD (en, fr, de, es, ...) — défaut: en",
+    )
+    parser.add_argument(
+        "--max",
+        type=int,
+        default=PRESETS_MAX,
+        help=f"limite sur le nombre de presets — défaut: {PRESETS_MAX}",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="presets.txt",
+        help="chemin du fichier de sortie — défaut: ./presets.txt",
+    )
     parser.add_argument("--input", help="fichier local presets.json (mode hors-ligne)")
-    parser.add_argument("--stats", action="store_true", help="affiche un résumé par catégorie")
+    parser.add_argument(
+        "--stats", action="store_true", help="affiche un résumé par catégorie"
+    )
     args = parser.parse_args()
 
     # Chargement du schéma
@@ -436,13 +474,19 @@ def main():
             schema = fetch_json(SCHEMA_URL)
         except Exception as e:
             print(f"❌ Erreur téléchargement du schéma : {e}", file=sys.stderr)
-            print("   Conseil : télécharger presets.json à la main et utiliser --input", file=sys.stderr)
+            print(
+                "   Conseil : télécharger presets.json à la main et utiliser --input",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
     # Chargement traductions
     translations = load_translations(args.locale)
     if translations:
-        print(f"✓ {len(translations)} traductions chargées pour la locale '{args.locale}'", file=sys.stderr)
+        print(
+            f"✓ {len(translations)} traductions chargées pour la locale '{args.locale}'",
+            file=sys.stderr,
+        )
 
     # Extraction + filtrage
     presets = build_presets(schema, translations)
@@ -457,9 +501,21 @@ def main():
     # Stats
     if args.stats:
         cat_names = [
-            "Street furniture", "Roads & signs", "Parking", "Sports & leisure",
-            "Waste", "Shops", "Services", "Emergency", "Tourism", "Nature",
-            "Education", "Religion", "Transport", "Address", "Other",
+            "Street furniture",
+            "Roads & signs",
+            "Parking",
+            "Sports & leisure",
+            "Waste",
+            "Shops",
+            "Services",
+            "Emergency",
+            "Tourism",
+            "Nature",
+            "Education",
+            "Religion",
+            "Transport",
+            "Address",
+            "Other",
         ]
         counts = [0] * 15
         for p in presets:

@@ -50,8 +50,8 @@ typedef enum {
 
 typedef struct {
     LearnState state;
-    uint8_t learn_step;    /**< Step counter (0-based) for progress display. */
-    uint8_t button_index;  /**< Actual TvButton index for current step. */
+    uint8_t learn_step; /**< Step counter (0-based) for progress display. */
+    uint8_t button_index; /**< Actual TvButton index for current step. */
     bool signal_is_parsed; /**< True when received signal was decoded. */
     /* Decoded signal info shown to the user. */
     char info_line1[32];
@@ -93,8 +93,7 @@ static void tv_remote_learn_ir_rx_callback(void* context, InfraredWorkerSignal* 
      * button's capture starts fresh.
      */
     app->learn_signal_received = true;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, TvRemoteCustomEventSignalReceived);
+    view_dispatcher_send_custom_event(app->view_dispatcher, TvRemoteCustomEventSignalReceived);
 }
 
 /* ---- Helper: start / stop IR worker ---- */
@@ -184,10 +183,9 @@ static void tv_remote_learn_draw_callback(Canvas* canvas, void* model_void) {
     }
 
     /* Header */
-    const char* btn_name =
-        (model->button_index < TV_BUTTON_COUNT) ?
-            tv_remote_button_names[model->button_index] :
-            "?";
+    const char* btn_name = (model->button_index < TV_BUTTON_COUNT) ?
+                               tv_remote_button_names[model->button_index] :
+                               "?";
 
     if(model->state == LearnStateWaiting) {
         canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Learn Remote");
@@ -202,8 +200,7 @@ static void tv_remote_learn_draw_callback(Canvas* canvas, void* model_void) {
             (unsigned)TV_LEARN_COUNT,
             btn_name);
         canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignTop, header);
-        canvas_draw_str_aligned(
-            canvas, 64, 28, AlignCenter, AlignTop, "Point remote at Flipper");
+        canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignTop, "Point remote at Flipper");
         canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignTop, "and press the button.");
 
         /* Hint bar */
@@ -235,10 +232,7 @@ static void learn_advance(TvRemoteApp* app) {
         tv_remote_app_save_named(app, app->current_remote_name);
         tv_remote_learn_stop_rx(app);
         with_view_model(
-            app->learn_view,
-            TvRemoteLearnModel * model,
-            { model->state = LearnStateDone; },
-            true);
+            app->learn_view, TvRemoteLearnModel * model, { model->state = LearnStateDone; }, true);
     } else {
         tv_remote_learn_start_rx(app);
         with_view_model(
@@ -263,10 +257,7 @@ static bool tv_remote_learn_input_callback(InputEvent* event, void* context) {
     LearnState current_state = LearnStateWaiting;
 
     with_view_model(
-        app->learn_view,
-        TvRemoteLearnModel * model,
-        { current_state = model->state; },
-        false);
+        app->learn_view, TvRemoteLearnModel * model, { current_state = model->state; }, false);
 
     if(current_state == LearnStateDone) {
         /* Any key returns to menu when done */

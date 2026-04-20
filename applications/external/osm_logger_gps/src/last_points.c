@@ -16,7 +16,7 @@
 #include "point_detail.h"
 #include "storage_helpers.h"
 
-#define MAX_DISPLAY 10
+#define MAX_DISPLAY   10
 #define LINE_BUF_SIZE 56
 
 // Chaque action a un ID distinct en dehors de la plage [0..MAX_DISPLAY-1]
@@ -78,8 +78,7 @@ static void build_list(App* app) {
             app->last_points_menu, "(no points yet)", 0, last_points_item_callback, app);
     } else {
         for(uint8_t i = 0; i < n; i++) {
-            submenu_add_item(
-                app->last_points_menu, g_lines[i], i, last_points_item_callback, app);
+            submenu_add_item(app->last_points_menu, g_lines[i], i, last_points_item_callback, app);
         }
     }
 

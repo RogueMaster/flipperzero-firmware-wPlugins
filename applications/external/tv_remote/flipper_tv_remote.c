@@ -50,7 +50,10 @@ void tv_remote_build_path(FuriString* out, const char* name) {
 bool tv_remote_app_save_named(TvRemoteApp* app, const char* name) {
     bool any_learned = false;
     for(size_t i = 0; i < TV_BUTTON_COUNT; i++) {
-        if(app->buttons[i].learned) { any_learned = true; break; }
+        if(app->buttons[i].learned) {
+            any_learned = true;
+            break;
+        }
     }
     if(!any_learned) return true;
 
@@ -71,40 +74,51 @@ bool tv_remote_app_save_named(TvRemoteApp* app, const char* name) {
             if(!app->buttons[i].learned) continue;
             TvRemoteIrSignal* sig = &app->buttons[i].signal;
 
-            if(!flipper_format_write_comment_cstr(ff, "")) { success = false; break; }
+            if(!flipper_format_write_comment_cstr(ff, "")) {
+                success = false;
+                break;
+            }
             if(!flipper_format_write_string_cstr(ff, "name", tv_remote_button_names[i])) {
-                success = false; break;
+                success = false;
+                break;
             }
             if(sig->is_raw) {
                 if(!flipper_format_write_string_cstr(ff, "type", "raw")) {
-                    success = false; break;
+                    success = false;
+                    break;
                 }
                 if(!flipper_format_write_uint32(ff, "frequency", &sig->frequency, 1)) {
-                    success = false; break;
+                    success = false;
+                    break;
                 }
                 if(!flipper_format_write_float(ff, "duty_cycle", &sig->duty_cycle, 1)) {
-                    success = false; break;
+                    success = false;
+                    break;
                 }
                 if(!flipper_format_write_uint32(
                        ff, "data", sig->timings, (uint16_t)sig->timings_size)) {
-                    success = false; break;
+                    success = false;
+                    break;
                 }
             } else {
                 if(!flipper_format_write_string_cstr(ff, "type", "parsed")) {
-                    success = false; break;
+                    success = false;
+                    break;
                 }
                 if(!flipper_format_write_string_cstr(
-                       ff, "protocol",
-                       infrared_get_protocol_name(sig->message.protocol))) {
-                    success = false; break;
+                       ff, "protocol", infrared_get_protocol_name(sig->message.protocol))) {
+                    success = false;
+                    break;
                 }
                 if(!flipper_format_write_hex(
                        ff, "address", (const uint8_t*)&sig->message.address, 4)) {
-                    success = false; break;
+                    success = false;
+                    break;
                 }
                 if(!flipper_format_write_hex(
                        ff, "command", (const uint8_t*)&sig->message.command, 4)) {
-                    success = false; break;
+                    success = false;
+                    break;
                 }
             }
         }
@@ -162,7 +176,8 @@ bool tv_remote_app_load_named(TvRemoteApp* app, const char* name) {
 
                 uint32_t* timings = malloc(sizeof(uint32_t) * timings_count);
                 if(!flipper_format_read_uint32(ff, "data", timings, (uint16_t)timings_count)) {
-                    free(timings); break;
+                    free(timings);
+                    break;
                 }
                 if(btn_idx >= 0) {
                     TvRemoteIrSignal* sig = &app->buttons[btn_idx].signal;
@@ -179,14 +194,17 @@ bool tv_remote_app_load_named(TvRemoteApp* app, const char* name) {
             } else if(strcmp(type_cstr, "parsed") == 0) {
                 FuriString* protocol_str = furi_string_alloc();
                 if(!flipper_format_read_string(ff, "protocol", protocol_str)) {
-                    furi_string_free(protocol_str); break;
+                    furi_string_free(protocol_str);
+                    break;
                 }
                 uint32_t address = 0, command = 0;
                 if(!flipper_format_read_hex(ff, "address", (uint8_t*)&address, 4)) {
-                    furi_string_free(protocol_str); break;
+                    furi_string_free(protocol_str);
+                    break;
                 }
                 if(!flipper_format_read_hex(ff, "command", (uint8_t*)&command, 4)) {
-                    furi_string_free(protocol_str); break;
+                    furi_string_free(protocol_str);
+                    break;
                 }
                 if(btn_idx >= 0) {
                     TvRemoteIrSignal* sig = &app->buttons[btn_idx].signal;
@@ -240,7 +258,10 @@ void tv_remote_scan_remotes(TvRemoteApp* app) {
             n[name_len] = '\0';
 
             char** new_names = realloc(app->remote_names, (app->remote_count + 1) * sizeof(char*));
-            if(!new_names) { free(n); break; }
+            if(!new_names) {
+                free(n);
+                break;
+            }
             app->remote_names = new_names;
             app->remote_names[app->remote_count++] = n;
         }
@@ -355,8 +376,7 @@ static void tv_remote_show_select_view(TvRemoteApp* app) {
             app);
     }
     submenu_add_item(
-        app->select_submenu, "Cancel", SELECT_CANCEL_INDEX,
-        tv_remote_select_submenu_callback, app);
+        app->select_submenu, "Cancel", SELECT_CANCEL_INDEX, tv_remote_select_submenu_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TvRemoteViewSelectRemote);
 }
 
@@ -395,8 +415,8 @@ static void tv_remote_text_input_callback(void* context) {
     size_t out_len = 0;
     for(; *src && out_len < TV_REMOTE_NAME_MAX; src++) {
         char c = *src;
-        if((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-           (c >= '0' && c <= '9') || c == '_') {
+        if((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+           c == '_') {
             *dst++ = c;
             out_len++;
         } else if(c == ' ') {
@@ -450,8 +470,8 @@ static void tv_remote_main_menu_callback(void* context, uint32_t index) {
 /* ---- Button Map view ---- */
 
 typedef struct {
-    uint8_t scroll;      /**< Top row index (0-based). */
-    bool button_swap;    /**< Mirror of app->button_swap for draw. */
+    uint8_t scroll; /**< Top row index (0-based). */
+    bool button_swap; /**< Mirror of app->button_swap for draw. */
 } TvRemoteButtonMapModel;
 
 /* All rows in display order – default (short=directional, hold=vol/ch) */
@@ -493,10 +513,10 @@ static const char* const bmap_lines_swapped[] = {
     "Back x2  - Power",
     "Back[Hold]- Exit",
 };
-#define BMAP_LINE_COUNT ((int)(sizeof(bmap_lines_default) / sizeof(bmap_lines_default[0])))
+#define BMAP_LINE_COUNT   ((int)(sizeof(bmap_lines_default) / sizeof(bmap_lines_default[0])))
 #define BMAP_VISIBLE_ROWS 4
-#define BMAP_ROW_H 11
-#define BMAP_Y0 20
+#define BMAP_ROW_H        11
+#define BMAP_Y0           20
 
 static void tv_remote_bmap_draw_callback(Canvas* canvas, void* model_void) {
     TvRemoteButtonMapModel* model = model_void;
@@ -504,8 +524,7 @@ static void tv_remote_bmap_draw_callback(Canvas* canvas, void* model_void) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Button Map");
     canvas_set_font(canvas, FontSecondary);
-    const char* const* lines =
-        model->button_swap ? bmap_lines_swapped : bmap_lines_default;
+    const char* const* lines = model->button_swap ? bmap_lines_swapped : bmap_lines_default;
     int top = (int)model->scroll;
     for(int i = 0; i < BMAP_VISIBLE_ROWS; i++) {
         int idx = top + i;
@@ -529,9 +548,12 @@ static bool tv_remote_bmap_input_callback(InputEvent* event, void* context) {
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
     if(event->key == InputKeyBack) return false; /* let ViewDispatcher handle */
     int delta = 0;
-    if(event->key == InputKeyUp) delta = -1;
-    else if(event->key == InputKeyDown) delta = 1;
-    else return false;
+    if(event->key == InputKeyUp)
+        delta = -1;
+    else if(event->key == InputKeyDown)
+        delta = 1;
+    else
+        return false;
     with_view_model(
         app->button_map_view,
         TvRemoteButtonMapModel * model,
@@ -614,8 +636,11 @@ static void tv_remote_settings_save(TvRemoteApp* app) {
         .button_swap = (uint8_t)app->button_swap,
     };
     saved_struct_save(
-        TV_REMOTE_SETTINGS_PATH, &d, sizeof(d),
-        TV_REMOTE_SETTINGS_MAGIC, TV_REMOTE_SETTINGS_VERSION);
+        TV_REMOTE_SETTINGS_PATH,
+        &d,
+        sizeof(d),
+        TV_REMOTE_SETTINGS_MAGIC,
+        TV_REMOTE_SETTINGS_VERSION);
 }
 
 static void tv_remote_settings_load(TvRemoteApp* app) {
@@ -624,8 +649,11 @@ static void tv_remote_settings_load(TvRemoteApp* app) {
         .button_swap = 0,
     };
     saved_struct_load(
-        TV_REMOTE_SETTINGS_PATH, &d, sizeof(d),
-        TV_REMOTE_SETTINGS_MAGIC, TV_REMOTE_SETTINGS_VERSION);
+        TV_REMOTE_SETTINGS_PATH,
+        &d,
+        sizeof(d),
+        TV_REMOTE_SETTINGS_MAGIC,
+        TV_REMOTE_SETTINGS_VERSION);
     if(d.orientation < (uint8_t)TvRemoteOrientationCount) {
         app->orientation = (TvRemoteOrientation)d.orientation;
     }
@@ -635,8 +663,8 @@ static void tv_remote_settings_load(TvRemoteApp* app) {
 static void tv_remote_apply_orientation(TvRemoteApp* app) {
     view_set_orientation(
         app->remote_view,
-        app->orientation == TvRemoteOrientationHorizontal ?
-            ViewOrientationHorizontal : ViewOrientationVertical);
+        app->orientation == TvRemoteOrientationHorizontal ? ViewOrientationHorizontal :
+                                                            ViewOrientationVertical);
 }
 
 /* ---- Settings view ---- */
@@ -698,8 +726,7 @@ static bool tv_remote_settings_input_callback(InputEvent* event, void* context) 
         return true;
     }
 
-    if(event->key != InputKeyLeft && event->key != InputKeyRight &&
-       event->key != InputKeyOk)
+    if(event->key != InputKeyLeft && event->key != InputKeyRight && event->key != InputKeyOk)
         return false;
 
     with_view_model(
@@ -707,8 +734,8 @@ static bool tv_remote_settings_input_callback(InputEvent* event, void* context) 
         TvRemoteSettingsModel * model,
         {
             if(model->selected_row == 0) {
-                model->orientation = (TvRemoteOrientation)(
-                    ((uint8_t)model->orientation + 1u) % (uint8_t)TvRemoteOrientationCount);
+                model->orientation = (TvRemoteOrientation)(((uint8_t)model->orientation + 1u) %
+                                                           (uint8_t)TvRemoteOrientationCount);
                 app->orientation = model->orientation;
             } else {
                 model->button_swap = !model->button_swap;
@@ -742,7 +769,8 @@ static View* tv_remote_settings_view_alloc(TvRemoteApp* app) {
     view_set_input_callback(view, tv_remote_settings_input_callback);
     view_set_enter_callback(view, tv_remote_settings_enter_callback);
     with_view_model(
-        view, TvRemoteSettingsModel * model,
+        view,
+        TvRemoteSettingsModel * model,
         {
             model->orientation = TvRemoteOrientationVertical;
             model->button_swap = false;
@@ -756,8 +784,7 @@ static View* tv_remote_settings_view_alloc(TvRemoteApp* app) {
 
 static void tv_remote_back_timer_callback(void* context) {
     TvRemoteApp* app = context;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, TvRemoteCustomEventBackTimeout);
+    view_dispatcher_send_custom_event(app->view_dispatcher, TvRemoteCustomEventBackTimeout);
 }
 
 /* ---- App lifecycle ---- */
@@ -782,6 +809,7 @@ TvRemoteApp* tv_remote_app_alloc(void) {
 
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     /* ── Main menu ── */

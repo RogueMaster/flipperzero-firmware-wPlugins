@@ -39,7 +39,8 @@ static bool append_line(Storage* s, const char* path, const char* line) {
 
 static void sanitize_quotes(char* s) {
     if(!s) return;
-    for(char* p = s; *p; ++p) if(*p == '"') *p = '\'';
+    for(char* p = s; *p; ++p)
+        if(*p == '"') *p = '\'';
 }
 
 // Stratégie GPX / GeoJSON : garder un fichier valide entre deux saves.
@@ -48,9 +49,9 @@ static void sanitize_quotes(char* s) {
 static void write_append_framed(
     Storage* s,
     const char* path,
-    const char* header,              // utilisé seulement à la création du fichier
-    const char* body,                // contenu principal à ajouter
-    const char* body_prefix,         // écrit AVANT body si le fichier existait déjà (ex. "," pour séparer)
+    const char* header, // utilisé seulement à la création du fichier
+    const char* body, // contenu principal à ajouter
+    const char* body_prefix, // écrit AVANT body si le fichier existait déjà (ex. "," pour séparer)
     const char* footer,
     size_t footer_len) {
     FileInfo fi;
@@ -86,11 +87,10 @@ static void write_append_framed(
 // GPX header avec namespace OsmAnd pour les extensions Favorites.
 // Les apps qui ne connaissent pas osmand (JOSM, iD, QGIS, ...) ignorent
 // silencieusement les extensions, c'est compatible standard GPX 1.1.
-static const char GPX_HEADER[] =
-    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-    "<gpx version=\"1.1\" creator=\"Flipper Zero OSM Logger\" "
-    "xmlns=\"http://www.topografix.com/GPX/1/1\" "
-    "xmlns:osmand=\"https://osmand.net\">\n";
+static const char GPX_HEADER[] = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                                 "<gpx version=\"1.1\" creator=\"Flipper Zero OSM Logger\" "
+                                 "xmlns=\"http://www.topografix.com/GPX/1/1\" "
+                                 "xmlns:osmand=\"https://osmand.net\">\n";
 static const char GPX_FOOTER[] = "</gpx>\n";
 
 // Format OSM XML API 0.6 — chargeable comme data layer dans JOSM.
@@ -106,12 +106,23 @@ static size_t xml_escape(char* dst, size_t dst_size, const char* src) {
     if(!dst || dst_size == 0) return 0;
     size_t o = 0;
     while(src && *src && o + 6 < dst_size) {
-        if(*src == '&') { memcpy(&dst[o], "&amp;", 5); o += 5; }
-        else if(*src == '<') { memcpy(&dst[o], "&lt;", 4); o += 4; }
-        else if(*src == '>') { memcpy(&dst[o], "&gt;", 4); o += 4; }
-        else if(*src == '"') { memcpy(&dst[o], "&quot;", 6); o += 6; }
-        else if(*src == '\'') { memcpy(&dst[o], "&apos;", 6); o += 6; }
-        else dst[o++] = *src;
+        if(*src == '&') {
+            memcpy(&dst[o], "&amp;", 5);
+            o += 5;
+        } else if(*src == '<') {
+            memcpy(&dst[o], "&lt;", 4);
+            o += 4;
+        } else if(*src == '>') {
+            memcpy(&dst[o], "&gt;", 4);
+            o += 4;
+        } else if(*src == '"') {
+            memcpy(&dst[o], "&quot;", 6);
+            o += 6;
+        } else if(*src == '\'') {
+            memcpy(&dst[o], "&apos;", 6);
+            o += 6;
+        } else
+            dst[o++] = *src;
         src++;
     }
     dst[o] = '\0';
@@ -148,7 +159,12 @@ void storage_write_all_formats(
         iso,
         sizeof(iso),
         "%04u-%02u-%02uT%02u:%02u:%02uZ",
-        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+        dt.year,
+        dt.month,
+        dt.day,
+        dt.hour,
+        dt.minute,
+        dt.second);
 
     const char* tag_s = tag ? tag : "";
 
@@ -310,8 +326,7 @@ void storage_write_all_formats(
                     char v_esc[64];
                     xml_escape(v_esc, sizeof(v_esc), v);
                     w += snprintf(
-                        node + w, sizeof(node) - w,
-                        "    <tag k=\"%s\" v=\"%s\"/>\n", k, v_esc);
+                        node + w, sizeof(node) - w, "    <tag k=\"%s\" v=\"%s\"/>\n", k, v_esc);
                 }
                 if(!semi) break;
                 token = semi + 1;
@@ -321,27 +336,28 @@ void storage_write_all_formats(
         // Altitude en tag ele= (convention OSM)
         if(altitude != 0.0f && w < (int)sizeof(node) - 60) {
             w += snprintf(
-                node + w, sizeof(node) - w,
-                "    <tag k=\"ele\" v=\"%.1f\"/>\n", (double)altitude);
+                node + w, sizeof(node) - w, "    <tag k=\"ele\" v=\"%.1f\"/>\n", (double)altitude);
         }
 
         // Note utilisateur en tag note= (convention OSM)
         if(note && note[0] && w < (int)sizeof(node) - 80) {
             char note_esc[128];
             xml_escape(note_esc, sizeof(note_esc), note);
-            w += snprintf(
-                node + w, sizeof(node) - w,
-                "    <tag k=\"note\" v=\"%s\"/>\n", note_esc);
+            w +=
+                snprintf(node + w, sizeof(node) - w, "    <tag k=\"note\" v=\"%s\"/>\n", note_esc);
         }
 
         // Métadonnées FlipperOSM (pour retrouver nos points dans JOSM)
         if(w < (int)sizeof(node) - 80) {
             w += snprintf(
-                node + w, sizeof(node) - w,
+                node + w,
+                sizeof(node) - w,
                 "    <tag k=\"flipper:hdop\" v=\"%.1f\"/>\n"
                 "    <tag k=\"flipper:sats\" v=\"%u\"/>\n"
                 "    <tag k=\"flipper:time\" v=\"%s\"/>\n",
-                (double)hdop, (unsigned)sats, iso);
+                (double)hdop,
+                (unsigned)sats,
+                iso);
         }
 
         w += snprintf(node + w, sizeof(node) - w, "  </node>\n");
@@ -384,12 +400,11 @@ uint32_t storage_count_saved_points(void) {
     return count;
 }
 
-static const char TRACK_HEADER[] =
-    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-    "<gpx version=\"1.1\" creator=\"Flipper Zero OSM Logger\" "
-    "xmlns=\"http://www.topografix.com/GPX/1/1\">\n"
-    "<trk><name>Track</name>\n"
-    "<trkseg>\n";
+static const char TRACK_HEADER[] = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                                   "<gpx version=\"1.1\" creator=\"Flipper Zero OSM Logger\" "
+                                   "xmlns=\"http://www.topografix.com/GPX/1/1\">\n"
+                                   "<trk><name>Track</name>\n"
+                                   "<trkseg>\n";
 static const char TRACK_FOOTER[] = "</trkseg>\n</trk>\n</gpx>\n";
 
 // --- Helpers lecture/troncature (pour Browse + Undo) ---
@@ -434,7 +449,10 @@ static bool trim_last_line(Storage* s, const char* path) {
     uint32_t size = 0;
     char* buf = read_whole_file(s, path, &size, 65536);
     if(!buf) return false;
-    if(size == 0) { free(buf); return false; }
+    if(size == 0) {
+        free(buf);
+        return false;
+    }
 
     // trim trailing \n
     size_t end = size;
@@ -442,7 +460,8 @@ static bool trim_last_line(Storage* s, const char* path) {
     if(end > 0 && buf[end - 1] == '\r') end--;
     // find previous \n
     size_t prev = end;
-    while(prev > 0 && buf[prev - 1] != '\n') prev--;
+    while(prev > 0 && buf[prev - 1] != '\n')
+        prev--;
 
     rewrite_file(s, path, buf, prev);
     free(buf);
@@ -461,7 +480,10 @@ static bool trim_last_gpx_wpt(Storage* s) {
     for(char* p = buf; p + 7 < buf + size; p++) {
         if(!memcmp(p, "  <wpt ", 7)) last = p;
     }
-    if(!last) { free(buf); return false; }
+    if(!last) {
+        free(buf);
+        return false;
+    }
 
     size_t new_size = (size_t)(last - buf);
     // Réécrit jusqu'à last, puis rajoute le footer
@@ -519,7 +541,10 @@ static bool trim_last_geojson_feature(Storage* s) {
     for(char* p = buf; p + mlen < buf + size; p++) {
         if(!memcmp(p, marker, mlen)) last = p;
     }
-    if(!last) { free(buf); return false; }
+    if(!last) {
+        free(buf);
+        return false;
+    }
 
     // On veut tronquer juste avant la virgule+\n qui précède (ou juste après le header).
     // Si last est précédé de ",\n" on tronque avant.
@@ -546,9 +571,9 @@ bool storage_delete_last_point(void) {
     bool any = false;
     if(trim_last_line(s, "/ext/apps_data/osm_logger/points.jsonl")) any = true;
     if(trim_last_line(s, "/ext/apps_data/osm_logger/notes.csv")) any = true;
-    trim_last_gpx_wpt(s);         // best-effort
+    trim_last_gpx_wpt(s); // best-effort
     trim_last_geojson_feature(s); // best-effort
-    trim_last_osm_node(s);        // best-effort
+    trim_last_osm_node(s); // best-effort
     furi_record_close(RECORD_STORAGE);
     return any;
 }
@@ -613,7 +638,8 @@ uint8_t storage_read_last_points(char* out_lines, uint8_t max_lines, size_t line
     while(n_lines < max_lines) {
         // Cherche le \n précédent depuis cursor
         size_t start = cursor;
-        while(start > 0 && buf[start - 1] != '\n') start--;
+        while(start > 0 && buf[start - 1] != '\n')
+            start--;
         line_starts[n_lines++] = start;
         if(start == 0) break;
         cursor = start - 1; // saute le \n
@@ -669,9 +695,10 @@ bool storage_get_point_raw(uint8_t idx_from_end, char* out, size_t out_size) {
 
     // Parcourt les lignes depuis la fin
     size_t cursor = end;
-    for(uint8_t i = 0; ; i++) {
+    for(uint8_t i = 0;; i++) {
         size_t start = cursor;
-        while(start > 0 && buf[start - 1] != '\n') start--;
+        while(start > 0 && buf[start - 1] != '\n')
+            start--;
         if(i == idx_from_end) {
             size_t linelen = cursor - start;
             if(linelen >= out_size) linelen = out_size - 1;
@@ -702,7 +729,12 @@ bool storage_archive_session(char* err, size_t err_size) {
         folder,
         sizeof(folder),
         "/ext/apps_data/osm_logger/session_%04u%02u%02uT%02u%02u%02u",
-        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+        dt.year,
+        dt.month,
+        dt.day,
+        dt.hour,
+        dt.minute,
+        dt.second);
 
     FS_Error r = storage_common_mkdir(s, folder);
     if(r != FSE_OK && r != FSE_EXIST) {
@@ -713,8 +745,12 @@ bool storage_archive_session(char* err, size_t err_size) {
 
     // Renomme les fichiers (silencieux si absent)
     static const char* const files[] = {
-        "points.jsonl", "notes.csv", "points.gpx", "points.geojson",
-        "points.osm", "track.gpx",
+        "points.jsonl",
+        "notes.csv",
+        "points.gpx",
+        "points.geojson",
+        "points.osm",
+        "track.gpx",
     };
     bool any = false;
     for(size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
@@ -788,8 +824,12 @@ static float haversine_m(float lat1, float lon1, float lat2, float lon2) {
 static float simple_atof(const char* s) {
     if(!s || !*s) return 0.0f;
     float sign = 1.0f;
-    if(*s == '-') { sign = -1.0f; s++; }
-    else if(*s == '+') { s++; }
+    if(*s == '-') {
+        sign = -1.0f;
+        s++;
+    } else if(*s == '+') {
+        s++;
+    }
 
     float val = 0.0f;
     while(*s >= '0' && *s <= '9') {
@@ -809,7 +849,12 @@ static float simple_atof(const char* s) {
 }
 
 // Parse une ligne JSONL null-terminée pour en extraire lat, lon et tag.
-static bool parse_jsonl_line(const char* line, float* out_lat, float* out_lon, char* out_tag, size_t tag_size) {
+static bool parse_jsonl_line(
+    const char* line,
+    float* out_lat,
+    float* out_lon,
+    char* out_tag,
+    size_t tag_size) {
     if(!line) return false;
 
     const char* q = strstr(line, "\"lat\":");
@@ -896,14 +941,22 @@ void storage_append_trkpt(float lat, float lon, float altitude, bool new_segment
         iso,
         sizeof(iso),
         "%04u-%02u-%02uT%02u:%02u:%02uZ",
-        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+        dt.year,
+        dt.month,
+        dt.day,
+        dt.hour,
+        dt.minute,
+        dt.second);
 
     char pt[192];
     snprintf(
         pt,
         sizeof(pt),
         "  <trkpt lat=\"%.6f\" lon=\"%.6f\"><ele>%.1f</ele><time>%s</time></trkpt>\n",
-        (double)lat, (double)lon, (double)altitude, iso);
+        (double)lat,
+        (double)lon,
+        (double)altitude,
+        iso);
 
     write_append_framed(
         s,

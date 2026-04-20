@@ -6,47 +6,57 @@
 #include HTTP_INCLUDE
 #include JSON_INCLUDE
 
-Player::Player(const char *user_name, const char *user_pass) : Entity(username, ENTITY_PLAYER, Vector(4, 20), Vector(1.0f, 2.0f), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, false, SPRITE_3D_HUMANOID, 0x0000)
-{
+Player::Player(const char* user_name, const char* user_pass)
+    : Entity(
+          username,
+          ENTITY_PLAYER,
+          Vector(4, 20),
+          Vector(1.0f, 2.0f),
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          false,
+          SPRITE_3D_HUMANOID,
+          0x0000) {
     sprite_3d->setWireframe(WIREFRAME_ENABLED);
-    direction = Vector(1, 0);                                    // facing east initially
-    plane = Vector(0, 0.66);                                     // camera plane perpendicular to direction
-    is_player = true;                                            // Mark this entity as a player (so level doesn't delete it)
-    end_position = Vector(4, 20);                                // Initialize end position
-    start_position = Vector(4, 20);                              // Initialize start position
-    snprintf(username, sizeof(this->username), "%s", user_name); // set username with bounds checking
-    name = this->username;                                       // set name
-    snprintf(password, sizeof(this->password), "%s", user_pass); // set password with bounds checking
-    this->is_visible = (showPlayerToggle == ToggleOn);           // set visibility based on toggle
+    direction = Vector(1, 0); // facing east initially
+    plane = Vector(0, 0.66); // camera plane perpendicular to direction
+    is_player = true; // Mark this entity as a player (so level doesn't delete it)
+    end_position = Vector(4, 20); // Initialize end position
+    start_position = Vector(4, 20); // Initialize start position
+    snprintf(
+        username, sizeof(this->username), "%s", user_name); // set username with bounds checking
+    name = this->username; // set name
+    snprintf(
+        password, sizeof(this->password), "%s", user_pass); // set password with bounds checking
+    this->is_visible = (showPlayerToggle == ToggleOn); // set visibility based on toggle
 }
 
-Player::~Player()
-{
-    if (equippedWeapon)
-    {
+Player::~Player() {
+    if(equippedWeapon) {
         // dont delete the weapon since we dont own it
         equippedWeapon = nullptr;
     }
-    if (loading)
-    {
+    if(loading) {
         ENGINE_MEM_DELETE loading;
         loading = nullptr;
     }
 }
 
-void Player::collision(Entity *other, Game *game)
-{
-    switch (other->type)
-    {
+void Player::collision(Entity* other, Game* game) {
+    switch(other->type) {
     case ENTITY_ENEMY: // ghouls (take damage)
         // Check if enemy can attack
-        if (other->elapsed_attack_timer >= other->attack_timer)
-        {
+        if(other->elapsed_attack_timer >= other->attack_timer) {
             other->elapsed_attack_timer = 0; // Reset enemy attack timer
             this->health -= other->strength;
             this->state = ENTITY_ATTACKED;
-            if (this->health <= 0)
-            {
+            if(this->health <= 0) {
                 this->health = 0;
                 this->state = ENTITY_DEAD;
                 this->showAlert("You were killed by a ghoul!", 50);
@@ -57,10 +67,11 @@ void Player::collision(Entity *other, Game *game)
         break;
     case ENTITY_NPC: // weapons (pick up)
     {
-        Weapon *weapon = static_cast<Weapon *>(other);
-        if (!weapon || !equipWeapon(game->current_level, weapon))
-        {
-            ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s", weapon ? weapon->name : "unknown");
+        Weapon* weapon = static_cast<Weapon*>(other);
+        if(!weapon || !equipWeapon(game->current_level, weapon)) {
+            ENGINE_LOG_INFO(
+                "[Player:collision] Failed to equip weapon: %s",
+                weapon ? weapon->name : "unknown");
         }
         char alertMsg[64];
         snprintf(alertMsg, sizeof(alertMsg), "Picked up %s!", weapon ? weapon->name : "unknown");
@@ -78,13 +89,10 @@ void Player::collision(Entity *other, Game *game)
     };
 }
 
-void Player::drawCurrentView(Draw *canvas)
-{
-    if (!canvas)
-        return;
+void Player::drawCurrentView(Draw* canvas) {
+    if(!canvas) return;
 
-    switch (currentMainView)
-    {
+    switch(currentMainView) {
     case GameViewTitle:
         drawTitleView(canvas);
         break;
@@ -121,8 +129,7 @@ void Player::drawCurrentView(Draw *canvas)
         return;
     }
 
-    switch (currentMainView)
-    {
+    switch(currentMainView) {
     case GameViewTitle:
     case GameViewSystemMenu:
     case GameViewLobbyMenu:
@@ -138,14 +145,10 @@ void Player::drawCurrentView(Draw *canvas)
     }
 }
 
-void Player::drawGameLocalView(Draw *canvas)
-{
-    if (ghoulsGame->isRunning())
-    {
-        if (ghoulsGame->getEngine())
-        {
-            if (shouldLeaveGame())
-            {
+void Player::drawGameLocalView(Draw* canvas) {
+    if(ghoulsGame->isRunning()) {
+        if(ghoulsGame->getEngine()) {
+            if(shouldLeaveGame()) {
                 ghoulsGame->endGame();
                 return;
             }
@@ -155,9 +158,7 @@ void Player::drawGameLocalView(Draw *canvas)
             ghoulsGame->getEngine()->runAsync(false);
         }
         return;
-    }
-    else if (!shouldLeaveGame())
-    {
+    } else if(!shouldLeaveGame()) {
         const int sw = canvas->getDisplaySize().x;
         const int sh = canvas->getDisplaySize().y;
         canvas->fillScreen(0xFFFF);
@@ -165,19 +166,15 @@ void Player::drawGameLocalView(Draw *canvas)
         canvas->text(sw * 25 / 128, sh / 2, "Starting Game...", 0x0000);
         canvas->swap();
         bool gameStarted = ghoulsGame->startGame();
-        if (gameStarted && ghoulsGame->getEngine())
-        {
+        if(gameStarted && ghoulsGame->getEngine()) {
             ghoulsGame->getEngine()->runAsync(false); // Run the game engine immediately
         }
     }
 }
 
-void Player::drawGameOnlineView(Draw *canvas)
-{
-    if (shouldLeaveGame())
-    {
-        if (!HTTP_WEBSOCKET_STOP())
-        {
+void Player::drawGameOnlineView(Draw* canvas) {
+    if(shouldLeaveGame()) {
+        if(!HTTP_WEBSOCKET_STOP()) {
             ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to stop WebSocket");
         }
         onlineGameState = OnlineStateIdle;
@@ -187,8 +184,7 @@ void Player::drawGameOnlineView(Draw *canvas)
 
     const int sw = canvas->getDisplaySize().x;
     const int sh = canvas->getDisplaySize().y;
-    switch (onlineGameState)
-    {
+    switch(onlineGameState) {
     // ── Phase 1: POST to jblanked.com/game-server/games/create/ ─────────────
     case OnlineStateIdle:
         canvas->fillScreen(0xFFFF);
@@ -198,133 +194,107 @@ void Player::drawGameOnlineView(Draw *canvas)
         this->userRequest(RequestTypeGameCreate);
         break;
     // ── Phase 2: Wait for HTTP response, parse port, open WebSocket ──────────
-    case OnlineStateFetchingSession:
-    {
+    case OnlineStateFetchingSession: {
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_MEDIUM);
         static bool loadingStarted = false;
-        if (!loadingStarted)
-        {
-            if (!loading)
-            {
+        if(!loadingStarted) {
+            if(!loading) {
                 loading = ENGINE_MEM_NEW Loading(canvas);
             }
-            if (loading)
-            {
+            if(loading) {
                 loading->setText("Creating game...");
             }
             loadingStarted = true;
         }
 
-        if (!HTTP_REQUEST_IS_FINISHED())
-        {
-            if (loading)
-            {
+        if(!HTTP_REQUEST_IS_FINISHED()) {
+            if(loading) {
                 loading->animate();
             }
-        }
-        else
-        {
-            if (loading)
-            {
+        } else {
+            if(loading) {
                 loading->stop();
             }
             loadingStarted = false;
 
-            char *response = (char *)ENGINE_MEM_MALLOC(512);
-            if (!response)
-            {
+            char* response = (char*)ENGINE_MEM_MALLOC(512);
+            if(!response) {
                 onlineGameState = OnlineStateError;
                 break;
             }
-            if (HTTP_GET_RESPONSE(response, 512))
-            {
-                char *port_str = get_json_value("port", response);
-                if (port_str)
-                {
+            if(HTTP_GET_RESPONSE(response, 512)) {
+                char* port_str = get_json_value("port", response);
+                if(port_str) {
                     onlinePort = (uint16_t)atoi(port_str);
                     ::ENGINE_MEM_FREE(port_str);
 
-                    char *game_id_str = get_json_value("game_id", response);
-                    if (game_id_str)
-                    {
+                    char* game_id_str = get_json_value("game_id", response);
+                    if(game_id_str) {
                         strncpy(onlineGameId, game_id_str, sizeof(onlineGameId) - 1);
                         onlineGameId[sizeof(onlineGameId) - 1] = '\0';
                         ::ENGINE_MEM_FREE(game_id_str);
                     }
-                    char *websocket_url = (char *)ENGINE_MEM_MALLOC(128);
-                    if (!websocket_url)
-                    {
+                    char* websocket_url = (char*)ENGINE_MEM_MALLOC(128);
+                    if(!websocket_url) {
                         onlineGameState = OnlineStateError;
                         ::ENGINE_MEM_FREE(response);
                         break;
                     }
-                    snprintf(websocket_url, 128, "ws://www.jblanked.com/ws/game-server/%s/", onlineGameId);
-                    if (HTTP_WEBSOCKET_START(websocket_url, onlinePort))
-                    {
+                    snprintf(
+                        websocket_url,
+                        128,
+                        "ws://www.jblanked.com/ws/game-server/%s/",
+                        onlineGameId);
+                    if(HTTP_WEBSOCKET_START(websocket_url, onlinePort)) {
                         onlineGameState = OnlineStateConnecting;
-                    }
-                    else
-                    {
+                    } else {
                         onlineGameState = OnlineStateError;
                     }
                     ::ENGINE_MEM_FREE(websocket_url);
-                }
-                else
-                {
-                    ENGINE_LOG_INFO("[Player:drawGameOnlineView] Missing 'port' in game session response");
+                } else {
+                    ENGINE_LOG_INFO(
+                        "[Player:drawGameOnlineView] Missing 'port' in game session response");
                     onlineGameState = OnlineStateError;
                 }
-            }
-            else
-            {
-                ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to load game_session response");
+            } else {
+                ENGINE_LOG_INFO(
+                    "[Player:drawGameOnlineView] Failed to load game_session response");
                 onlineGameState = OnlineStateError;
             }
             ::ENGINE_MEM_FREE(response);
         }
-    }
-    break;
+    } break;
 
     // ── Phase 3: Wait for [CONNECTED] from FlipperHTTP board ─────────────────
-    case OnlineStateConnecting:
-    {
+    case OnlineStateConnecting: {
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_MEDIUM);
 
-        if (HTTP_WEBSOCKET_IS_CONNECTED())
-        {
+        if(HTTP_WEBSOCKET_IS_CONNECTED()) {
             onlineGameState = OnlineStatePlaying;
-            if (!ghoulsGame->isRunning())
-            {
+            if(!ghoulsGame->isRunning()) {
                 ghoulsGame->startGameOnline();
             }
             // Switch to the multiplayer level immediately so the correct map loads
-            if (ghoulsGame->getEngine() && ghoulsGame->getEngine()->getGame())
-            {
+            if(ghoulsGame->getEngine() && ghoulsGame->getEngine()->getGame()) {
                 ghoulsGame->getEngine()->getGame()->level_switch("Online");
             }
-        }
-        else
-        {
+        } else {
             canvas->text(0, sh * 10 / 64, "Connecting...", 0x0000);
             canvas->swap();
         }
-    }
-    break;
+    } break;
 
     // ── Phase 4: Active online game ───────────────────────────────────────────
-    case OnlineStatePlaying:
-    {
-        if (!ghoulsGame->isRunning())
-        {
+    case OnlineStatePlaying: {
+        if(!ghoulsGame->isRunning()) {
             canvas->fillScreen(0xFFFF);
             canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 25 / 128, sh / 2, "Starting Game...", 0x0000);
             canvas->swap();
             ghoulsGame->startGameOnline();
-            if (ghoulsGame->getEngine() && ghoulsGame->getEngine()->getGame())
-            {
+            if(ghoulsGame->getEngine() && ghoulsGame->getEngine()->getGame()) {
                 ghoulsGame->getEngine()->getGame()->level_switch("Online");
             }
             return;
@@ -334,12 +304,9 @@ void Player::drawGameOnlineView(Draw *canvas)
         // The server feeds this directly into game->input, so InputKey values
         // map 1-to-1 (0=Up, 1=Down, 2=Left, 3=Right, 4=Ok, 5=Back).
         int currentInput = ghoulsGame->getCurrentInput();
-        if (currentInput != -1)
-        {
-            if (currentInput != INPUT_KEY_BACK)
-            {
-                if (gameState == GameStatePlaying)
-                {
+        if(currentInput != -1) {
+            if(currentInput != INPUT_KEY_BACK) {
+                if(gameState == GameStatePlaying) {
                     char inputMsg[96]; // {"username": "<username>", "input": <input>}
                     /*
                     up: 0
@@ -348,27 +315,26 @@ void Player::drawGameOnlineView(Draw *canvas)
                     left: 3
                     ok: 4
                     */
-                    snprintf(inputMsg, sizeof(inputMsg), "{\"username\": \"%s\", \"input\": %d}", this->name, currentInput);
+                    snprintf(
+                        inputMsg,
+                        sizeof(inputMsg),
+                        "{\"username\": \"%s\", \"input\": %d}",
+                        this->name,
+                        currentInput);
                     HTTP_WEBSOCKET_SEND(inputMsg);
                     // Prevent the local engine from also moving the player — the server
                     // position update below is the authoritative source.
-                    if (ghoulsGame->getEngine())
-                    {
+                    if(ghoulsGame->getEngine()) {
                         ghoulsGame->getEngine()->updateGameInput(-1);
                     }
-                }
-                else // menu
+                } else // menu
                 {
-                    if (ghoulsGame->getEngine())
-                    {
+                    if(ghoulsGame->getEngine()) {
                         ghoulsGame->getEngine()->updateGameInput(currentInput);
                     }
                 }
-            }
-            else
-            {
-                if (ghoulsGame->getEngine())
-                {
+            } else {
+                if(ghoulsGame->getEngine()) {
                     ghoulsGame->getEngine()->updateGameInput(INPUT_KEY_BACK);
                 }
             }
@@ -379,44 +345,34 @@ void Player::drawGameOnlineView(Draw *canvas)
         // message, then let the local engine render the updated state.
         char buffer[256];
         HTTP_GET_WEBSOCKET_RESPONSE(buffer, sizeof(buffer));
-        if (buffer[0] != '\0')
-        {
-            if (strcmp(buffer, "[SOCKET/STOPPED]") == 0)
-            {
+        if(buffer[0] != '\0') {
+            if(strcmp(buffer, "[SOCKET/STOPPED]") == 0) {
                 ENGINE_LOG_INFO("[Player:drawGameOnlineView] WebSocket stopped unexpectedly");
                 onlineGameState = OnlineStateError;
-            }
-            else
-            {
+            } else {
                 updateEntitiesFromServer(buffer);
             }
         }
 
-        if (ghoulsGame->getEngine())
-        {
+        if(ghoulsGame->getEngine()) {
             ghoulsGame->getEngine()->runAsync(false);
 
-            if (gameState != GameStateMenu)
-            {
+            if(gameState != GameStateMenu) {
                 // ── Name tag overlay ─────────────────────────────────────────────
                 // After the 3D scene is drawn, project each humanoid entity's head
                 // position to screen space and draw a small username label above it.
-                Game *og = ghoulsGame->getEngine()->getGame();
-                if (og && og->current_level)
-                {
-                    Camera *cam = og->getCamera();
+                Game* og = ghoulsGame->getEngine()->getGame();
+                if(og && og->current_level) {
+                    Camera* cam = og->getCamera();
                     Vector ss = og->draw->getDisplaySize(); // 128 x 64
                     float vh = cam->height;
                     int entityCount = og->current_level->getEntityCount();
-                    for (int i = 0; i < entityCount; i++)
-                    {
-                        Entity *ent = og->current_level->getEntity(i);
-                        if (!ent || !ent->is_active || !ent->name)
-                            continue;
-                        if (ent->sprite_3d_type != SPRITE_3D_HUMANOID)
-                            continue;
+                    for(int i = 0; i < entityCount; i++) {
+                        Entity* ent = og->current_level->getEntity(i);
+                        if(!ent || !ent->is_active || !ent->name) continue;
+                        if(ent->sprite_3d_type != SPRITE_3D_HUMANOID) continue;
                         // Skip local player when show-player is off
-                        if (ent == static_cast<Entity *>(this) && showPlayerToggle == ToggleOff)
+                        if(ent == static_cast<Entity*>(this) && showPlayerToggle == ToggleOff)
                             continue;
 
                         // Project the head (world y = 2.2) to screen coords
@@ -426,30 +382,25 @@ void Player::drawGameOnlineView(Draw *canvas)
 
                         float cx = wdx * (-cam->direction.y) + wdz * cam->direction.x;
                         float cz = wdx * cam->direction.x + wdz * cam->direction.y;
-                        if (cz <= 0.1f)
-                            continue; // behind camera
+                        if(cz <= 0.1f) continue; // behind camera
 
                         float sx = (cx / cz) * ss.y + ss.x * 0.5f;
                         float sy = (-wdy / cz) * ss.y + ss.y * 0.5f;
-                        if (sx < 0 || sx >= ss.x || sy < 2 || sy >= ss.y - 2)
-                            continue;
+                        if(sx < 0 || sx >= ss.x || sy < 2 || sy >= ss.y - 2) continue;
 
                         int tx = (int)sx - (int)(strlen(ent->name) * 3);
                         int ty = (int)sy;
-                        if (tx < 0)
-                            tx = 0;
+                        if(tx < 0) tx = 0;
                         og->draw->setFont(FONT_SIZE_SMALL);
                         og->draw->text(tx, ty, ent->name);
                     }
                 }
             }
         }
-    }
-    break;
+    } break;
 
     // ── Error state ───────────────────────────────────────────────────────────
-    case OnlineStateError:
-    {
+    case OnlineStateError: {
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Connection failed!", 0x0000);
@@ -458,104 +409,82 @@ void Player::drawGameOnlineView(Draw *canvas)
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(0, sh * 50 / 64, "Press BACK to return.", 0x0000);
         canvas->swap();
-    }
-    break;
+    } break;
 
     // ── Join existing lobby (skip create, go straight to WS) ─────────────────
-    case OnlineStateJoiningExisting:
-    {
+    case OnlineStateJoiningExisting: {
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Joining game...", 0x0000);
         canvas->swap();
 
-        char *websocket_url = (char *)ENGINE_MEM_MALLOC(128);
-        if (!websocket_url)
-        {
+        char* websocket_url = (char*)ENGINE_MEM_MALLOC(128);
+        if(!websocket_url) {
             onlineGameState = OnlineStateError;
             break;
         }
         snprintf(websocket_url, 128, "ws://www.jblanked.com/ws/game-server/%s/", onlineGameId);
-        if (HTTP_WEBSOCKET_START(websocket_url, onlinePort))
-        {
+        if(HTTP_WEBSOCKET_START(websocket_url, onlinePort)) {
             onlineGameState = OnlineStateConnecting;
-        }
-        else
-        {
+        } else {
             onlineGameState = OnlineStateError;
         }
         ::ENGINE_MEM_FREE(websocket_url);
-    }
-    break;
+    } break;
 
     default:
-        ENGINE_LOG_INFO("[Player:drawGameOnlineView] Unknown online game state: %d", onlineGameState);
+        ENGINE_LOG_INFO(
+            "[Player:drawGameOnlineView] Unknown online game state: %d", onlineGameState);
         break;
     }
 }
 
-void Player::drawLobbyBrowserView(Draw *canvas)
-{
-
-    if (!lobbyFetched)
-    {
+void Player::drawLobbyBrowserView(Draw* canvas) {
+    if(!lobbyFetched) {
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_MEDIUM);
 
         static bool lobbyRequestStarted = false;
-        if (!lobbyRequestStarted)
-        {
-            if (!loading)
-            {
+        if(!lobbyRequestStarted) {
+            if(!loading) {
                 loading = ENGINE_MEM_NEW Loading(canvas);
             }
-            if (loading)
-            {
+            if(loading) {
                 loading->setText("Fetching lobbies...");
             }
             userRequest(RequestTypeGameList);
             lobbyRequestStarted = true;
         }
 
-        if (!HTTP_REQUEST_IS_FINISHED())
-        {
-            if (loading)
-                loading->animate();
+        if(!HTTP_REQUEST_IS_FINISHED()) {
+            if(loading) loading->animate();
             return;
         }
 
-        if (loading)
-            loading->stop();
+        if(loading) loading->stop();
         lobbyRequestStarted = false;
 
         // Parse the list of active game sessions
         lobbyCount = 0;
-        char *response = (char *)ENGINE_MEM_MALLOC(1024);
-        if (response)
-        {
-            if (HTTP_GET_RESPONSE(response, 1024))
-            {
-                for (int i = 0; i < MAX_LOBBY_ENTRIES; i++)
-                {
-                    char *entry = get_json_array_value("games", i, response);
-                    if (!entry)
-                        break;
+        char* response = (char*)ENGINE_MEM_MALLOC(1024);
+        if(response) {
+            if(HTTP_GET_RESPONSE(response, 1024)) {
+                for(int i = 0; i < MAX_LOBBY_ENTRIES; i++) {
+                    char* entry = get_json_array_value("games", i, response);
+                    if(!entry) break;
 
-                    char *gid = get_json_value("game_id", entry);
-                    char *gname = get_json_value("game_name", entry);
+                    char* gid = get_json_value("game_id", entry);
+                    char* gname = get_json_value("game_name", entry);
 
-                    if (gid && gname)
-                    {
+                    if(gid && gname) {
                         strncpy(lobbyEntries[lobbyCount].game_id, gid, 36);
                         lobbyEntries[lobbyCount].game_id[36] = '\0';
                         strncpy(lobbyEntries[lobbyCount].game_name, gname, 63);
                         lobbyEntries[lobbyCount].game_name[63] = '\0';
                         lobbyCount++;
                     }
-                    if (gid)
-                        ::ENGINE_MEM_FREE(gid);
-                    if (gname)
-                        ::ENGINE_MEM_FREE(gname);
+                    if(gid) ::ENGINE_MEM_FREE(gid);
+                    if(gname) ::ENGINE_MEM_FREE(gname);
                     ::ENGINE_MEM_FREE(entry);
                 }
             }
@@ -582,42 +511,32 @@ void Player::drawLobbyBrowserView(Draw *canvas)
     int maxVisible = 4;
 
     int scrollOffset = 0;
-    if (lobbySelectedIndex >= maxVisible)
-        scrollOffset = lobbySelectedIndex - maxVisible + 1;
+    if(lobbySelectedIndex >= maxVisible) scrollOffset = lobbySelectedIndex - maxVisible + 1;
 
     canvas->setFont(FONT_SIZE_SMALL);
-    for (int i = scrollOffset; i < totalItems && (i - scrollOffset) < maxVisible; i++)
-    {
+    for(int i = scrollOffset; i < totalItems && (i - scrollOffset) < maxVisible; i++) {
         int y = startY + (i - scrollOffset) * lineH;
 
-        if (i == lobbySelectedIndex)
-        {
+        if(i == lobbySelectedIndex) {
             canvas->fillRectangle(0, y, sw, lineH, 0x0000);
             canvas->setColor(0xFFFF);
-        }
-        else
-        {
+        } else {
             canvas->setColor(0x0000);
         }
 
-        if (i == 0)
-        {
+        if(i == 0) {
             canvas->text(sw * 4 / 128, y + sh * 8 / 64, "> New Game");
-        }
-        else
-        {
+        } else {
             canvas->text(sw * 4 / 128, y + sh * 8 / 64, lobbyEntries[i - 1].game_name);
         }
         canvas->setColor(0x0000);
     }
 
     // Scroll indicators
-    if (scrollOffset > 0)
-    {
+    if(scrollOffset > 0) {
         canvas->text(sw * 120 / 128, sh * 20 / 64, "^", 0x0000);
     }
-    if (scrollOffset + maxVisible < totalItems)
-    {
+    if(scrollOffset + maxVisible < totalItems) {
         canvas->text(sw * 120 / 128, sh * 55 / 64, "v", 0x0000);
     }
 
@@ -625,74 +544,54 @@ void Player::drawLobbyBrowserView(Draw *canvas)
     canvas->text(sw * 4 / 128, sh * 62 / 64, "OK:Select  BACK:Return", 0x0000);
 }
 
-void Player::drawLobbyMenuView(Draw *canvas)
-{
+void Player::drawLobbyMenuView(Draw* canvas) {
     // draw lobby text
     drawMenuType1(canvas, currentLobbyMenuIndex, "Local", "Online");
 }
 
-void Player::drawLoginView(Draw *canvas)
-{
+void Player::drawLoginView(Draw* canvas) {
     const int sh = canvas->getDisplaySize().y;
     canvas->fillScreen(0xFFFF);
     canvas->setFont(FONT_SIZE_MEDIUM);
     static bool loadingStarted = false;
-    switch (loginStatus)
-    {
+    switch(loginStatus) {
     case LoginWaiting:
-        if (!loadingStarted)
-        {
-            if (!loading)
-            {
+        if(!loadingStarted) {
+            if(!loading) {
                 loading = ENGINE_MEM_NEW Loading(canvas);
             }
             loadingStarted = true;
-            if (loading)
-            {
+            if(loading) {
                 loading->setText("Logging in...");
             }
         }
-        if (!HTTP_REQUEST_IS_FINISHED())
-        {
-            if (loading)
-            {
+        if(!HTTP_REQUEST_IS_FINISHED()) {
+            if(loading) {
                 loading->animate();
             }
-        }
-        else
-        {
-            if (loading)
-            {
+        } else {
+            if(loading) {
                 loading->stop();
             }
             loadingStarted = false;
-            char *response = (char *)ENGINE_MEM_MALLOC(256);
-            if (!response)
-            {
+            char* response = (char*)ENGINE_MEM_MALLOC(256);
+            if(!response) {
                 loginStatus = LoginRequestError;
                 break;
             }
-            if (HTTP_GET_RESPONSE(response, 256))
-            {
-                if (strstr(response, "[SUCCESS]") != NULL)
-                {
+            if(HTTP_GET_RESPONSE(response, 256)) {
+                if(strstr(response, "[SUCCESS]") != NULL) {
                     loginStatus = LoginSuccess;
                     currentMainView = GameViewTitle; // switch to title view
-                }
-                else if (strstr(response, "User not found") != NULL)
-                {
+                } else if(strstr(response, "User not found") != NULL) {
                     loginStatus = LoginNotStarted;
                     currentMainView = GameViewRegistration;
                     registrationStatus = RegistrationWaiting;
                     userRequest(RequestTypeRegistration);
-                }
-                else
-                {
+                } else {
                     loginStatus = LoginRequestError;
                 }
-            }
-            else
-            {
+            } else {
                 loginStatus = LoginRequestError;
             }
             ::ENGINE_MEM_FREE(response);
@@ -718,8 +617,11 @@ void Player::drawLoginView(Draw *canvas)
     }
 }
 
-void Player::drawMenuType1(Draw *canvas, uint8_t selectedIndex, const char *option1, const char *option2)
-{
+void Player::drawMenuType1(
+    Draw* canvas,
+    uint8_t selectedIndex,
+    const char* option1,
+    const char* option2) {
     canvas->fillScreen(0xFFFF);
     canvas->setFont(FONT_SIZE_SMALL);
 
@@ -730,17 +632,14 @@ void Player::drawMenuType1(Draw *canvas, uint8_t selectedIndex, const char *opti
     const int sh = canvas->getDisplaySize().y;
 
     // draw lobby text
-    if (selectedIndex == 0)
-    {
+    if(selectedIndex == 0) {
         canvas->fillRectangle(sw * 36 / 128, sh / 4, sw * 56 / 128, sh / 4, 0x0000);
         canvas->setColor(0xFFFF);
         canvas->text(sw * 54 / 128, sh * 27 / 64, option1);
         canvas->fillRectangle(sw * 36 / 128, sh / 2, sw * 56 / 128, sh / 4, 0xFFFF);
         canvas->setColor(0x0000);
         canvas->text(sw * 54 / 128, sh * 42 / 64, option2);
-    }
-    else if (selectedIndex == 1)
-    {
+    } else if(selectedIndex == 1) {
         canvas->setColor(0xFFFF);
         canvas->fillRectangle(sw * 36 / 128, sh / 4, sw * 56 / 128, sh / 4, 0xFFFF);
         canvas->setColor(0x0000);
@@ -752,16 +651,14 @@ void Player::drawMenuType1(Draw *canvas, uint8_t selectedIndex, const char *opti
     }
 }
 
-void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t selectedIndexSettings)
-{
+void Player::drawMenuType2(Draw* canvas, uint8_t selectedIndexMain, uint8_t selectedIndexSettings) {
     canvas->fillScreen(0xFFFF);
     canvas->setColor(0x0000);
 
     const int sw = canvas->getDisplaySize().x;
     const int sh = canvas->getDisplaySize().y;
 
-    switch (selectedIndexMain)
-    {
+    switch(selectedIndexMain) {
     case 0: // profile
     {
         // draw info
@@ -776,12 +673,9 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         snprintf(strength, sizeof(strength), "Strength: %d", (int)this->strength);
 
         canvas->setFont(FONT_SIZE_MEDIUM);
-        if (this->name == nullptr || strlen(this->name) == 0)
-        {
+        if(this->name == nullptr || strlen(this->name) == 0) {
             canvas->text(sw * 6 / 128, sh / 4, "Unknown");
-        }
-        else
-        {
+        } else {
             canvas->text(sw * 6 / 128, sh / 4, this->name);
         }
 
@@ -799,8 +693,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         canvas->text(sw * 80 / 128, sh * 26 / 64, "Map");
         canvas->text(sw * 80 / 128, sh * 36 / 64, "Settings");
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
-    }
-    break;
+    } break;
     case 1: // map
     {
         this->renderMiniMap(canvas);
@@ -812,19 +705,25 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh * 36 / 64, "Settings");
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
-    }
-    break;
+    } break;
     case 2: // settings (sound on/off, vibration on/off, show player, leave game)
     {
         char soundStatus[16];
         char vibrationStatus[16];
         char showPlayerStatus[20];
         snprintf(soundStatus, sizeof(soundStatus), "Sound: %s", toggleToString(soundToggle));
-        snprintf(vibrationStatus, sizeof(vibrationStatus), "Vibrate: %s", toggleToString(vibrationToggle));
-        snprintf(showPlayerStatus, sizeof(showPlayerStatus), "Show Me: %s", toggleToString(showPlayerToggle));
+        snprintf(
+            vibrationStatus,
+            sizeof(vibrationStatus),
+            "Vibrate: %s",
+            toggleToString(vibrationToggle));
+        snprintf(
+            showPlayerStatus,
+            sizeof(showPlayerStatus),
+            "Show Me: %s",
+            toggleToString(showPlayerToggle));
         // draw settings info
-        switch (selectedIndexSettings)
-        {
+        switch(selectedIndexSettings) {
         case 0: // none/default
             canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 6 / 128, sh / 4, "Settings");
@@ -884,8 +783,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         canvas->text(sw * 79 / 128, sh * 36 / 64, "Settings");
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
-    }
-    break;
+    } break;
     case 3: // about
     {
         canvas->setFont(FONT_SIZE_MEDIUM);
@@ -905,8 +803,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         canvas->text(sw * 80 / 128, sh * 36 / 64, "Settings");
         canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 80 / 128, sh * 46 / 64, "About");
-    }
-    break;
+    } break;
     default:
         canvas->fillScreen(0xFFFF);
         canvas->text(0, sh * 10 / 64, "Unknown Menu", 0x0000);
@@ -914,11 +811,9 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
     };
 
     // Show current game time below the navigation rectangle
-    if (selectedIndexMain < 4 && ghoulsGame)
-    {
-        Time *t = ghoulsGame->getGameTime();
-        if (t)
-        {
+    if(selectedIndexMain < 4 && ghoulsGame) {
+        Time* t = ghoulsGame->getGameTime();
+        if(t) {
             uint8_t hours = 0, minutes = 0;
             t->getTimeIn24HourFormat(hours, minutes);
             char timeStr[16];
@@ -929,21 +824,17 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
     }
 }
 
-void Player::showAlert(const char *message, uint16_t ticks)
-{
-    if (!message)
-        return;
+void Player::showAlert(const char* message, uint16_t ticks) {
+    if(!message) return;
     snprintf(alertMessage, sizeof(alertMessage), "%s", message);
     alertTimer = ticks; // show for specified duration
 }
 
-void Player::drawRainEffect(Draw *canvas)
-{
+void Player::drawRainEffect(Draw* canvas) {
     const int sw = canvas->getDisplaySize().x;
     const int sh = canvas->getDisplaySize().y;
     // rain droplets/star droplets effect
-    for (int i = 0; i < 8; i++)
-    {
+    for(int i = 0; i < 8; i++) {
         // Use pseudo-random offsets based on frame and droplet index
         uint8_t seed = (rainFrame + i * 37) & 0xFF;
         int16_t x = (rainFrame + seed * 13) % sw;
@@ -958,76 +849,56 @@ void Player::drawRainEffect(Draw *canvas)
     }
 
     rainFrame += 1;
-    if (rainFrame > sw) // reset after a full cycle
+    if(rainFrame > sw) // reset after a full cycle
     {
         rainFrame = 0;
     }
 }
 
-void Player::drawRegistrationView(Draw *canvas)
-{
+void Player::drawRegistrationView(Draw* canvas) {
     const int sh = canvas->getDisplaySize().y;
     canvas->fillScreen(0xFFFF);
     canvas->setFont(FONT_SIZE_MEDIUM);
     static bool loadingStarted = false;
-    switch (registrationStatus)
-    {
+    switch(registrationStatus) {
     case RegistrationWaiting:
-        if (!loadingStarted)
-        {
-            if (!loading)
-            {
+        if(!loadingStarted) {
+            if(!loading) {
                 loading = ENGINE_MEM_NEW Loading(canvas);
             }
             loadingStarted = true;
-            if (loading)
-            {
+            if(loading) {
                 loading->setText("Registering...");
             }
         }
-        if (!HTTP_REQUEST_IS_FINISHED())
-        {
-            if (loading)
-            {
+        if(!HTTP_REQUEST_IS_FINISHED()) {
+            if(loading) {
                 loading->animate();
             }
-        }
-        else
-        {
-            if (loading)
-            {
+        } else {
+            if(loading) {
                 loading->stop();
             }
             loadingStarted = false;
-            char *response = (char *)ENGINE_MEM_MALLOC(256);
-            if (!response)
-            {
-                ENGINE_LOG_INFO("[Player:drawRegistrationView] Failed to allocate memory for registration response");
+            char* response = (char*)ENGINE_MEM_MALLOC(256);
+            if(!response) {
+                ENGINE_LOG_INFO(
+                    "[Player:drawRegistrationView] Failed to allocate memory for registration response");
                 registrationStatus = RegistrationRequestError;
                 return;
             }
-            if (HTTP_GET_RESPONSE(response, 256))
-            {
-                if (strstr(response, "[SUCCESS]") != NULL)
-                {
+            if(HTTP_GET_RESPONSE(response, 256)) {
+                if(strstr(response, "[SUCCESS]") != NULL) {
                     registrationStatus = RegistrationSuccess;
                     currentMainView = GameViewTitle; // switch to title view
-                }
-                else if (strstr(response, "Username or password not provided") != NULL)
-                {
+                } else if(strstr(response, "Username or password not provided") != NULL) {
                     registrationStatus = RegistrationCredentialsMissing;
-                }
-                else if (strstr(response, "User already exists") != NULL)
-                {
+                } else if(strstr(response, "User already exists") != NULL) {
                     registrationStatus = RegistrationUserExists;
-                }
-                else
-                {
+                } else {
                     registrationStatus = RegistrationRequestError;
                 }
-            }
-            else
-            {
+            } else {
                 registrationStatus = RegistrationRequestError;
             }
             ::ENGINE_MEM_FREE(response);
@@ -1053,75 +924,60 @@ void Player::drawRegistrationView(Draw *canvas)
     }
 }
 
-void Player::drawSystemMenuView(Draw *canvas)
-{
+void Player::drawSystemMenuView(Draw* canvas) {
     canvas->fillScreen(0xFFFF);
     canvas->setColor(0x0000);
 
     drawMenuType2(canvas, currentMenuIndex, currentSettingsIndex);
 }
 
-void Player::drawTitleView(Draw *canvas)
-{
+void Player::drawTitleView(Draw* canvas) {
     // draw title text
     drawMenuType1(canvas, currentTitleIndex, "Start", "Menu");
 }
 
-void Player::drawUserInfoView(Draw *canvas)
-{
+void Player::drawUserInfoView(Draw* canvas) {
     const int sh = canvas->getDisplaySize().y;
     static bool loadingStarted = false;
-    switch (userInfoStatus)
-    {
+    switch(userInfoStatus) {
     case UserInfoWaiting:
         canvas->fillScreen(0xFFFF);
-        if (!loadingStarted)
-        {
-            if (!loading)
-            {
+        if(!loadingStarted) {
+            if(!loading) {
                 loading = ENGINE_MEM_NEW Loading(canvas);
             }
             loadingStarted = true;
-            if (loading)
-            {
+            if(loading) {
                 loading->setText("Fetching...");
             }
         }
-        if (!HTTP_REQUEST_IS_FINISHED())
-        {
-            if (loading)
-            {
+        if(!HTTP_REQUEST_IS_FINISHED()) {
+            if(loading) {
                 loading->animate();
             }
-        }
-        else
-        {
+        } else {
             canvas->text(0, sh * 10 / 64, "Loading user info...", 0x0000);
             canvas->text(0, sh * 20 / 64, "Please wait...", 0x0000);
             canvas->text(0, sh * 30 / 64, "It may take up to 15 seconds.", 0x0000);
-            char *response = (char *)ENGINE_MEM_MALLOC(512);
-            if (!response)
-            {
-                ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to allocate memory for user info response");
+            char* response = (char*)ENGINE_MEM_MALLOC(512);
+            if(!response) {
+                ENGINE_LOG_INFO(
+                    "[Player:drawUserInfoView] Failed to allocate memory for user info response");
                 userInfoStatus = UserInfoRequestError;
-                if (loading)
-                {
+                if(loading) {
                     loading->stop();
                 }
                 loadingStarted = false;
                 return;
             }
-            if (HTTP_GET_RESPONSE(response, 512))
-            {
+            if(HTTP_GET_RESPONSE(response, 512)) {
                 userInfoStatus = UserInfoSuccess;
                 // they're in! let's go
-                char *game_stats = get_json_value("game_stats", response);
-                if (!game_stats)
-                {
+                char* game_stats = get_json_value("game_stats", response);
+                if(!game_stats) {
                     ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse game_stats");
                     userInfoStatus = UserInfoParseError;
-                    if (loading)
-                    {
+                    if(loading) {
                         loading->stop();
                     }
                     loadingStarted = false;
@@ -1130,31 +986,23 @@ void Player::drawUserInfoView(Draw *canvas)
                 }
                 canvas->fillScreen(0xFFFF);
                 canvas->text(0, sh * 10 / 64, "User info loaded!", 0x0000);
-                char *username = get_json_value("username", game_stats);
-                char *level = get_json_value("level", game_stats);
-                char *xp = get_json_value("xp", game_stats);
-                char *health = get_json_value("health", game_stats);
-                char *strength = get_json_value("strength", game_stats);
-                char *max_health = get_json_value("max_health", game_stats);
-                if (!username || !level || !xp || !health || !strength || !max_health)
-                {
+                char* username = get_json_value("username", game_stats);
+                char* level = get_json_value("level", game_stats);
+                char* xp = get_json_value("xp", game_stats);
+                char* health = get_json_value("health", game_stats);
+                char* strength = get_json_value("strength", game_stats);
+                char* max_health = get_json_value("max_health", game_stats);
+                if(!username || !level || !xp || !health || !strength || !max_health) {
                     ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse user info");
                     userInfoStatus = UserInfoParseError;
-                    if (username)
-                        ::ENGINE_MEM_FREE(username);
-                    if (level)
-                        ::ENGINE_MEM_FREE(level);
-                    if (xp)
-                        ::ENGINE_MEM_FREE(xp);
-                    if (health)
-                        ::ENGINE_MEM_FREE(health);
-                    if (strength)
-                        ::ENGINE_MEM_FREE(strength);
-                    if (max_health)
-                        ::ENGINE_MEM_FREE(max_health);
+                    if(username) ::ENGINE_MEM_FREE(username);
+                    if(level) ::ENGINE_MEM_FREE(level);
+                    if(xp) ::ENGINE_MEM_FREE(xp);
+                    if(health) ::ENGINE_MEM_FREE(health);
+                    if(strength) ::ENGINE_MEM_FREE(strength);
+                    if(max_health) ::ENGINE_MEM_FREE(max_health);
                     ::ENGINE_MEM_FREE(game_stats);
-                    if (loading)
-                    {
+                    if(loading) {
                         loading->stop();
                     }
                     loadingStarted = false;
@@ -1179,8 +1027,7 @@ void Player::drawUserInfoView(Draw *canvas)
                 ::ENGINE_MEM_FREE(game_stats);
                 ::ENGINE_MEM_FREE(response);
 
-                if (loading)
-                {
+                if(loading) {
                     loading->stop();
                 }
                 loadingStarted = false;
@@ -1199,9 +1046,7 @@ void Player::drawUserInfoView(Draw *canvas)
                 //     currentMainView = GameViewLobbyBrowser; // Show lobby browser instead of creating directly
                 // }
                 return;
-            }
-            else
-            {
+            } else {
                 userInfoStatus = UserInfoRequestError;
             }
             ::ENGINE_MEM_FREE(response);
@@ -1241,8 +1086,7 @@ void Player::drawUserInfoView(Draw *canvas)
     }
 }
 
-void Player::drawWelcomeView(Draw *canvas)
-{
+void Player::drawWelcomeView(Draw* canvas) {
     const int sw = canvas->getDisplaySize().x;
     const int sh = canvas->getDisplaySize().y;
     canvas->fillScreen(0xFFFF);
@@ -1253,15 +1097,13 @@ void Player::drawWelcomeView(Draw *canvas)
     // Draw welcome text with blinking effect
     // Blink every 15 frames (show for 15, hide for 15)
     canvas->setFont(FONT_SIZE_SMALL);
-    if ((welcomeFrame / 15) % 2 == 0)
-    {
+    if((welcomeFrame / 15) % 2 == 0) {
         canvas->text(sw * 40 / 128, sh * 60 / 64, "Press OK to start", 0x0000);
     }
     welcomeFrame++;
 
     // Reset frame counter to prevent overflow
-    if (welcomeFrame >= 30)
-    {
+    if(welcomeFrame >= 30) {
         welcomeFrame = 0;
     }
 
@@ -1272,23 +1114,22 @@ void Player::drawWelcomeView(Draw *canvas)
     canvas->setColor(0x0000);
 }
 
-bool Player::equipWeapon(Level *level, Weapon *weapon)
-{
-    if (!weapon)
-    {
+bool Player::equipWeapon(Level* level, Weapon* weapon) {
+    if(!weapon) {
         ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip null weapon");
         return false;
     }
-    if (!level)
-    {
+    if(!level) {
         ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip weapon without level");
         return false;
     }
-    if (equippedWeapon)
-    {
+    if(equippedWeapon) {
         // drop weapon right behind us
         equippedWeapon->setHeld(false);
-        equippedWeapon->position_set(this->position.x - 4, this->position.y, this->position.z); // drop slightly behind player
+        equippedWeapon->position_set(
+            this->position.x - 4,
+            this->position.y,
+            this->position.z); // drop slightly behind player
         equippedWeapon->direction = this->direction;
         equippedWeapon->update3DSpritePosition();
         equippedWeapon = nullptr; // drop our reference
@@ -1296,8 +1137,7 @@ bool Player::equipWeapon(Level *level, Weapon *weapon)
     weapon->setHeld(true);
     weapon->position_set(this->position);
     weapon->direction = this->direction;
-    if (weapon->has3DSprite())
-    {
+    if(weapon->has3DSprite()) {
         weapon->update3DSpritePosition();
         weapon->set3DSpriteRotation(this->sprite_rotation);
     }
@@ -1306,50 +1146,38 @@ bool Player::equipWeapon(Level *level, Weapon *weapon)
     return true;
 }
 
-void Player::handleMenu(Draw *draw, Game *game)
-{
-    if (!draw || !game)
-    {
+void Player::handleMenu(Draw* draw, Game* game) {
+    if(!draw || !game) {
         return;
     }
 
-    if (currentMenuIndex != MenuIndexSettings)
-    {
-        switch (game->input)
-        {
+    if(currentMenuIndex != MenuIndexSettings) {
+        switch(game->input) {
         case INPUT_KEY_UP:
-            if (currentMenuIndex > MenuIndexProfile)
-            {
+            if(currentMenuIndex > MenuIndexProfile) {
                 currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
             }
             break;
         case INPUT_KEY_DOWN:
-            if (currentMenuIndex < MenuIndexAbout)
-            {
+            if(currentMenuIndex < MenuIndexAbout) {
                 currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
             }
             break;
         default:
             break;
         };
-    }
-    else
-    {
-        switch (currentSettingsIndex)
-        {
+    } else {
+        switch(currentSettingsIndex) {
         case MenuSettingsMain:
             // back to title, up to profile, down to settings, left to sound
-            switch (game->input)
-            {
+            switch(game->input) {
             case INPUT_KEY_UP:
-                if (currentMenuIndex > MenuIndexProfile)
-                {
+                if(currentMenuIndex > MenuIndexProfile) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                 }
                 break;
             case INPUT_KEY_DOWN:
-                if (currentMenuIndex < MenuIndexAbout)
-                {
+                if(currentMenuIndex < MenuIndexAbout) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                 }
                 break;
@@ -1362,15 +1190,12 @@ void Player::handleMenu(Draw *draw, Game *game)
             break;
         case MenuSettingsSound:
             // sound on/off (using OK button), down to vibration, right to MainSettingsMain
-            switch (game->input)
-            {
-            case INPUT_KEY_CENTER:
-            {
+            switch(game->input) {
+            case INPUT_KEY_CENTER: {
                 // Toggle sound on/off
                 soundToggle = soundToggle == ToggleOn ? ToggleOff : ToggleOn;
                 // let's just make the game check if state has changed and save it
-            }
-            break;
+            } break;
             case INPUT_KEY_RIGHT:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
                 break;
@@ -1383,15 +1208,12 @@ void Player::handleMenu(Draw *draw, Game *game)
             break;
         case MenuSettingsVibration:
             // vibration on/off (using OK button), up to sound, right to MainSettingsMain, down to leave game
-            switch (game->input)
-            {
-            case INPUT_KEY_CENTER:
-            {
+            switch(game->input) {
+            case INPUT_KEY_CENTER: {
                 // Toggle vibration on/off
                 vibrationToggle = vibrationToggle == ToggleOn ? ToggleOff : ToggleOn;
                 // let's just make the game check if state has changed and save it
-            }
-            break;
+            } break;
             case INPUT_KEY_RIGHT:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
                 break;
@@ -1407,8 +1229,7 @@ void Player::handleMenu(Draw *draw, Game *game)
             break;
         case MenuSettingsShowPlayer:
             // show/hide player (using OK), up to vibration, down to leave game, right to main
-            switch (game->input)
-            {
+            switch(game->input) {
             case INPUT_KEY_CENTER:
                 showPlayerToggle = showPlayerToggle == ToggleOn ? ToggleOff : ToggleOn;
                 break;
@@ -1427,8 +1248,7 @@ void Player::handleMenu(Draw *draw, Game *game)
             break;
         case MenuSettingsLeave:
             // leave game (using OK button), up to show player, right to MainSettingsMain
-            switch (game->input)
-            {
+            switch(game->input) {
             case INPUT_KEY_CENTER:
                 // Leave game
                 userRequest(RequestTypeUpdateStats);
@@ -1455,70 +1275,57 @@ void Player::handleMenu(Draw *draw, Game *game)
     drawMenuType2(draw, currentMenuIndex, currentSettingsIndex);
 }
 
-void Player::increaseXP(uint16_t amount)
-{
+void Player::increaseXP(uint16_t amount) {
     xp += amount;
     uint16_t old_level = (uint16_t)level;
     // Determine the player's level based on XP
     level = 1;
     uint32_t xp_required = 100; // Base XP for level 2
 
-    while (level < 100 && xp >= xp_required) // Maximum level supported
+    while(level < 100 && xp >= xp_required) // Maximum level supported
     {
         level++;
         xp_required = (uint32_t)(xp_required * 1.5); // 1.5 growth factor per level
     }
 
     // Update strength and max health based on the new level
-    strength = 10 + (level * 1);           // 1 strength per level
+    strength = 10 + (level * 1); // 1 strength per level
     max_health = 100 + ((level - 1) * 10); // 10 health per level
 
-    if (level > old_level)
-    {
+    if(level > old_level) {
         char levelUpMessage[32];
         snprintf(levelUpMessage, sizeof(levelUpMessage), "Leveled up to %d!", (uint16_t)level);
         showAlert(levelUpMessage, 120);
     }
 }
 
-void Player::processInput()
-{
-    if (!ghoulsGame)
-    {
+void Player::processInput() {
+    if(!ghoulsGame) {
         return;
     }
 
     int currentInput = lastInput;
 
-    if (currentInput == -1)
-    {
+    if(currentInput == -1) {
         return; // No input to process
     }
 
-    switch (currentMainView)
-    {
+    switch(currentMainView) {
     case GameViewWelcome:
-        if (currentInput == INPUT_KEY_CENTER)
-        {
+        if(currentInput == INPUT_KEY_CENTER) {
             // Check if we should attempt login or skip to title
-            if (loginStatus != LoginSuccess)
-            {
+            if(loginStatus != LoginSuccess) {
                 // Try to login first
                 currentMainView = GameViewLogin;
                 loginStatus = LoginWaiting;
                 userRequest(RequestTypeLogin);
-            }
-            else
-            {
+            } else {
                 // Already logged in, go to title
                 currentMainView = GameViewTitle;
             }
-        }
-        else if (currentInput == INPUT_KEY_BACK)
-        {
+        } else if(currentInput == INPUT_KEY_BACK) {
             // Allow exit from welcome screen
-            if (ghoulsGame)
-            {
+            if(ghoulsGame) {
                 ghoulsGame->endGame(); // This will set shouldReturnToMenu
             }
         }
@@ -1526,8 +1333,7 @@ void Player::processInput()
 
     case GameViewTitle:
         // Handle title view navigation
-        switch (currentInput)
-        {
+        switch(currentInput) {
         case INPUT_KEY_UP:
             currentTitleIndex = TitleIndexStart;
             break;
@@ -1535,8 +1341,7 @@ void Player::processInput()
             currentTitleIndex = TitleIndexMenu;
             break;
         case INPUT_KEY_CENTER:
-            switch (currentTitleIndex)
-            {
+            switch(currentTitleIndex) {
             case TitleIndexStart:
                 // Start button pressed - go to lobby menu
                 currentMainView = GameViewLobbyMenu;
@@ -1559,8 +1364,7 @@ void Player::processInput()
 
     case GameViewLobbyMenu:
         // Handle lobby menu navigation with proper selection
-        switch (currentInput)
-        {
+        switch(currentInput) {
         case INPUT_KEY_UP:
             currentLobbyMenuIndex = LobbyMenuLocal; // Switch to local menu
             break;
@@ -1585,27 +1389,22 @@ void Player::processInput()
         break;
 
     case GameViewLobbyBrowser:
-        switch (currentInput)
-        {
+        switch(currentInput) {
         case INPUT_KEY_UP:
-            if (lobbySelectedIndex > 0)
-                lobbySelectedIndex--;
+            if(lobbySelectedIndex > 0) lobbySelectedIndex--;
             break;
         case INPUT_KEY_DOWN:
-            if (lobbySelectedIndex < lobbyCount) // 0 = "New Game", 1..lobbyCount = existing
+            if(lobbySelectedIndex < lobbyCount) // 0 = "New Game", 1..lobbyCount = existing
                 lobbySelectedIndex++;
             break;
         case INPUT_KEY_CENTER:
-            if (lobbySelectedIndex == 0)
-            {
+            if(lobbySelectedIndex == 0) {
                 // Create a new game — use existing create flow
                 onlineGameState = OnlineStateIdle;
                 onlinePort = 0;
                 onlineGameId[0] = '\0';
                 currentMainView = GameViewGameOnline;
-            }
-            else
-            {
+            } else {
                 // Join an existing lobby
                 int idx = lobbySelectedIndex - 1;
                 strncpy(onlineGameId, lobbyEntries[idx].game_id, sizeof(onlineGameId) - 1);
@@ -1626,29 +1425,24 @@ void Player::processInput()
 
     case GameViewSystemMenu:
         // Handle system menu with full original navigation logic
-        if (currentMenuIndex != MenuIndexSettings)
-        {
-            switch (currentInput)
-            {
+        if(currentMenuIndex != MenuIndexSettings) {
+            switch(currentInput) {
             case INPUT_KEY_BACK:
                 currentMainView = GameViewTitle;
                 break;
             case INPUT_KEY_UP:
-                if (currentMenuIndex > MenuIndexProfile)
-                {
+                if(currentMenuIndex > MenuIndexProfile) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                 }
                 break;
             case INPUT_KEY_DOWN:
-                if (currentMenuIndex < MenuIndexAbout)
-                {
+                if(currentMenuIndex < MenuIndexAbout) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                 }
                 break;
             case INPUT_KEY_CENTER:
                 // Enter the selected menu item
-                if (currentMenuIndex == MenuIndexSettings)
-                {
+                if(currentMenuIndex == MenuIndexSettings) {
                     // Entering settings - this doesn't change the main menu, just shows settings details
                     currentSettingsIndex = MenuSettingsMain;
                 }
@@ -1656,26 +1450,21 @@ void Player::processInput()
             default:
                 break;
             }
-        }
-        else // currentMenuIndex == MenuIndexSettings
+        } else // currentMenuIndex == MenuIndexSettings
         {
-            switch (currentSettingsIndex)
-            {
+            switch(currentSettingsIndex) {
             case MenuSettingsMain:
-                switch (currentInput)
-                {
+                switch(currentInput) {
                 case INPUT_KEY_BACK:
                     currentMainView = GameViewTitle;
                     break;
                 case INPUT_KEY_UP:
-                    if (currentMenuIndex > MenuIndexProfile)
-                    {
+                    if(currentMenuIndex > MenuIndexProfile) {
                         currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                     }
                     break;
                 case INPUT_KEY_DOWN:
-                    if (currentMenuIndex < MenuIndexAbout)
-                    {
+                    if(currentMenuIndex < MenuIndexAbout) {
                         currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                     }
                     break;
@@ -1687,8 +1476,7 @@ void Player::processInput()
                 }
                 break;
             case MenuSettingsSound:
-                switch (currentInput)
-                {
+                switch(currentInput) {
                 case INPUT_KEY_CENTER:
                     soundToggle = soundToggle == ToggleOn ? ToggleOff : ToggleOn;
                     break;
@@ -1703,8 +1491,7 @@ void Player::processInput()
                 }
                 break;
             case MenuSettingsVibration:
-                switch (currentInput)
-                {
+                switch(currentInput) {
                 case INPUT_KEY_CENTER:
                     break;
                 case INPUT_KEY_RIGHT:
@@ -1721,8 +1508,7 @@ void Player::processInput()
                 }
                 break;
             case MenuSettingsLeave:
-                switch (currentInput)
-                {
+                switch(currentInput) {
                 case INPUT_KEY_CENTER:
                     leaveGame = ToggleOn;
                     break;
@@ -1743,14 +1529,12 @@ void Player::processInput()
         break;
 
     case GameViewLogin:
-        switch (currentInput)
-        {
+        switch(currentInput) {
         case INPUT_KEY_BACK:
             currentMainView = GameViewWelcome;
             break;
         case INPUT_KEY_CENTER:
-            if (loginStatus == LoginSuccess)
-            {
+            if(loginStatus == LoginSuccess) {
                 currentMainView = GameViewTitle;
             }
             break;
@@ -1760,14 +1544,12 @@ void Player::processInput()
         break;
 
     case GameViewRegistration:
-        switch (currentInput)
-        {
+        switch(currentInput) {
         case INPUT_KEY_BACK:
             currentMainView = GameViewWelcome;
             break;
         case INPUT_KEY_CENTER:
-            if (registrationStatus == RegistrationSuccess)
-            {
+            if(registrationStatus == RegistrationSuccess) {
                 currentMainView = GameViewTitle;
             }
             break;
@@ -1777,8 +1559,7 @@ void Player::processInput()
         break;
 
     case GameViewUserInfo:
-        switch (currentInput)
-        {
+        switch(currentInput) {
         case INPUT_KEY_BACK:
             currentMainView = GameViewTitle;
             break;
@@ -1799,47 +1580,38 @@ void Player::processInput()
     }
 }
 
-void Player::render(Draw *canvas, Game *game)
-{
-    if (!canvas || !game || !game->current_level)
-    {
+void Player::render(Draw* canvas, Game* game) {
+    if(!canvas || !game || !game->current_level) {
         return;
     }
 
     static uint8_t _state = GameStatePlaying;
 
-    if (gameState == GameStatePlaying)
-    {
-        if (ghoulsGame)
-        {
+    if(gameState == GameStatePlaying) {
+        if(ghoulsGame) {
             ghoulsGame->renderEnvironment(game);
         }
 
-        if (_state != GameStatePlaying)
-        {
+        if(_state != GameStatePlaying) {
             // make entities active again
-            for (int i = 0; i < game->current_level->getEntityCount(); i++)
-            {
-                Entity *entity = game->current_level->getEntity(i);
-                if (entity && !entity->is_active && !entity->is_player)
-                {
+            for(int i = 0; i < game->current_level->getEntityCount(); i++) {
+                Entity* entity = game->current_level->getEntity(i);
+                if(entity && !entity->is_active && !entity->is_player) {
                     entity->is_active = true; // activate all entities
                 }
             }
             this->is_visible = (showPlayerToggle == ToggleOn); // restore per toggle
             _state = GameStatePlaying;
         }
-        DynamicMap *currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
-        if (currentDynamicMap != nullptr)
-        {
+        DynamicMap* currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
+        if(currentDynamicMap != nullptr) {
             // Update player 3D sprite orientation for 3rd person perspective
-            if (game->getCamera()->perspective == CAMERA_THIRD_PERSON)
-            {
+            if(game->getCamera()->perspective == CAMERA_THIRD_PERSON) {
                 float dir_length = sqrtf(direction.x * direction.x + direction.y * direction.y);
-                if (has3DSprite())
-                {
+                if(has3DSprite()) {
                     update3DSpritePosition();
-                    float camera_direction_angle = atan2f(direction.y / dir_length, direction.x / dir_length) + M_PI_2;
+                    float camera_direction_angle =
+                        atan2f(direction.y / dir_length, direction.x / dir_length) + M_PI_2;
                     set3DSpriteRotation(camera_direction_angle);
                 }
             }
@@ -1848,17 +1620,13 @@ void Player::render(Draw *canvas, Game *game)
         // draw ammo count if we have a weapon equipped
         const int sw = canvas->getDisplaySize().x;
         const int sh = canvas->getDisplaySize().y;
-        if (equippedWeapon)
-        {
+        if(equippedWeapon) {
             canvas->setFont(FONT_SIZE_SMALL);
             char ammoStr[16];
             uint16_t ammo = equippedWeapon->getAmmo();
-            if (ammo > 0)
-            {
+            if(ammo > 0) {
                 snprintf(ammoStr, sizeof(ammoStr), "Ammo: %d", ammo);
-            }
-            else
-            {
+            } else {
                 snprintf(ammoStr, sizeof(ammoStr), "Ammo: ∞");
             }
             canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, 0x0000);
@@ -1871,23 +1639,17 @@ void Player::render(Draw *canvas, Game *game)
         canvas->text(sw * 96 / 128, sh * 61 / 64, healthStr, 0x0000);
 
         // Draw in-game alert overlay if active
-        if (alertTimer > 0 && alertMessage[0] != '\0')
-        {
+        if(alertTimer > 0 && alertMessage[0] != '\0') {
             canvas->setFont(FONT_SIZE_SMALL);
             canvas->fillRectangle(0, 0, sw, sh * 8 / 64, 0x0000);
             canvas->text(sw * 2 / 128, sh * 6 / 64, alertMessage, 0xFFFF);
         }
-    }
-    else if (gameState == GameStateMenu)
-    {
-        if (_state != GameStateMenu)
-        {
+    } else if(gameState == GameStateMenu) {
+        if(_state != GameStateMenu) {
             // make entities inactive
-            for (int i = 0; i < game->current_level->getEntityCount(); i++)
-            {
-                Entity *entity = game->current_level->getEntity(i);
-                if (entity && entity->is_active && !entity->is_player)
-                {
+            for(int i = 0; i < game->current_level->getEntityCount(); i++) {
+                Entity* entity = game->current_level->getEntity(i);
+                if(entity && entity->is_active && !entity->is_player) {
                     entity->is_active = false; // deactivate all entities
                 }
             }
@@ -1898,13 +1660,11 @@ void Player::render(Draw *canvas, Game *game)
     }
 }
 
-void Player::renderMiniMap(Draw *canvas)
-{
+void Player::renderMiniMap(Draw* canvas) {
     const int sw = canvas->getDisplaySize().x;
     const int sh = canvas->getDisplaySize().y;
-    DynamicMap *currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
-    if (currentDynamicMap == nullptr)
-    {
+    DynamicMap* currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
+    if(currentDynamicMap == nullptr) {
         canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 6 / 128, sh / 2, "No map loaded", 0x0000);
         return; // No map to render
@@ -1926,46 +1686,36 @@ void Player::renderMiniMap(Draw *canvas)
 
     Vector _pos = Vector(scale_x, scale_y);
     Vector _size = Vector(scale_x, scale_y);
-    for (uint8_t ty = 0; ty < height; ty++)
-    {
-        for (uint8_t tx = 0; tx < width; tx++)
-        {
+    for(uint8_t ty = 0; ty < height; ty++) {
+        for(uint8_t tx = 0; tx < width; tx++) {
             TileType tile = currentDynamicMap->getTile(tx, ty);
-            if (tile == TILE_EMPTY)
-                continue;
+            if(tile == TILE_EMPTY) continue;
 
             _pos.x = (uint8_t)(mapPosition.x + tx * scale_x);
             _pos.y = (uint8_t)(mapPosition.y + ty * scale_y);
             _size.x = (uint8_t)(scale_x + 0.5f);
             _size.y = (uint8_t)(scale_y + 0.5f);
-            if (_size.x < 1)
-                _size.x = 1;
-            if (_size.y < 1)
-                _size.y = 1;
+            if(_size.x < 1) _size.x = 1;
+            if(_size.y < 1) _size.y = 1;
 
             canvas->fillRectangle(_pos.x, _pos.y, _size.x, _size.y, 0x0000);
         }
     }
 
-    Game *game = ghoulsGame->getEngine()->getGame();
-    if (!game || !game->is_active)
-    {
+    Game* game = ghoulsGame->getEngine()->getGame();
+    if(!game || !game->is_active) {
         return;
     }
 
-    Level *level = game->current_level;
-    if (!level)
-    {
+    Level* level = game->current_level;
+    if(!level) {
         return;
     }
 
-    for (int i = 0; i < level->getEntityCount(); i++)
-    {
-        Entity *e = level->getEntity(i);
-        if (e && (e->type == ENTITY_PLAYER || e->type == ENTITY_ENEMY))
-        {
-            if (e->position.x >= 0 && e->position.y >= 0)
-            {
+    for(int i = 0; i < level->getEntityCount(); i++) {
+        Entity* e = level->getEntity(i);
+        if(e && (e->type == ENTITY_PLAYER || e->type == ENTITY_ENEMY)) {
+            if(e->position.x >= 0 && e->position.y >= 0) {
                 int16_t ppx = (int16_t)(mapPosition.x + e->position.x * scale_x);
                 int16_t ppy = (int16_t)(mapPosition.y + e->position.y * scale_y);
 
@@ -1973,8 +1723,7 @@ void Player::renderMiniMap(Draw *canvas)
                 canvas->fillRectangle(ppx - 1, ppy - 1, 3, 3, 0xFFFF);
 
                 // Direction arrow: line from centre out 4px in facing direction
-                if (e->direction.x != 0.0f || e->direction.y != 0.0f)
-                {
+                if(e->direction.x != 0.0f || e->direction.y != 0.0f) {
                     int16_t tip_x = ppx + (int16_t)(e->direction.x * 4.0f);
                     int16_t tip_y = ppy + (int16_t)(e->direction.y * 4.0f);
                     canvas->line(ppx, ppy, tip_x, tip_y, 0x0000);
@@ -1994,54 +1743,44 @@ void Player::renderMiniMap(Draw *canvas)
     }
 }
 
-void Player::update(Game *game)
-{
-    if (!game || !game->is_active || !game->current_level)
-    {
+void Player::update(Game* game) {
+    if(!game || !game->is_active || !game->current_level) {
         return;
     }
 
-    if (game->input == INPUT_KEY_BACK)
-    {
+    if(game->input == INPUT_KEY_BACK) {
         gameState = gameState == GameStateMenu ? GameStatePlaying : GameStateMenu;
         game->input = -1;
         return;
     }
 
-    if (alertTimer > 0)
-    {
+    if(alertTimer > 0) {
         alertTimer--;
     }
 
-    if (gameState == GameStateMenu || state == ENTITY_DEAD)
-    {
+    if(gameState == GameStateMenu || state == ENTITY_DEAD) {
         return; // Don't update player position in menu or if dead
     }
 
     float rotSpeed = 0.2f; // Rotation speed in radians
 
-    DynamicMap *currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
+    DynamicMap* currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
 
-    switch (game->input)
-    {
-    case INPUT_KEY_UP:
-    {
+    switch(game->input) {
+    case INPUT_KEY_UP: {
         rotSpeed = 0.4f;
 
         // Calculate new position
-        Vector new_pos = Vector(
-            position.x + direction.x * rotSpeed,
-            position.y + direction.y * rotSpeed);
+        Vector new_pos =
+            Vector(position.x + direction.x * rotSpeed, position.y + direction.y * rotSpeed);
 
         // Check collision with dynamic map
-        if (currentDynamicMap == nullptr || !ghoulsGame->collisionMapCheck(new_pos))
-        {
+        if(currentDynamicMap == nullptr || !ghoulsGame->collisionMapCheck(new_pos)) {
             // Move forward in the direction the player is facing
             this->position_set(new_pos);
 
             // Update 3D sprite position and rotation to match camera direction
-            if (has3DSprite())
-            {
+            if(has3DSprite()) {
                 update3DSpritePosition();
                 // Make sprite face forward (add π/2 to correct orientation)
                 float rotation_angle = atan2f(direction.y, direction.x) + M_PI_2;
@@ -2049,11 +1788,9 @@ void Player::update(Game *game)
             }
 
             // update equipped weapon
-            if (equippedWeapon)
-            {
+            if(equippedWeapon) {
                 equippedWeapon->position_set(this->position);
-                if (equippedWeapon->has3DSprite())
-                {
+                if(equippedWeapon->has3DSprite()) {
                     equippedWeapon->update3DSpritePosition();
                     equippedWeapon->set3DSpriteRotation(sprite_rotation);
                 }
@@ -2061,26 +1798,21 @@ void Player::update(Game *game)
         }
         game->input = -1;
         is_visible = (showPlayerToggle == ToggleOn);
-    }
-    break;
-    case INPUT_KEY_DOWN:
-    {
+    } break;
+    case INPUT_KEY_DOWN: {
         rotSpeed = 0.4f;
 
         // Calculate new position
-        Vector new_pos = Vector(
-            position.x - direction.x * rotSpeed,
-            position.y - direction.y * rotSpeed);
+        Vector new_pos =
+            Vector(position.x - direction.x * rotSpeed, position.y - direction.y * rotSpeed);
 
         // Check collision with dynamic map
-        if (currentDynamicMap == nullptr || !ghoulsGame->collisionMapCheck(new_pos))
-        {
+        if(currentDynamicMap == nullptr || !ghoulsGame->collisionMapCheck(new_pos)) {
             // Move backward (opposite to the direction)
             this->position_set(new_pos);
 
             // Update 3D sprite position and rotation to match camera direction
-            if (has3DSprite())
-            {
+            if(has3DSprite()) {
                 update3DSpritePosition();
                 // Make sprite face forward (add π/2 to correct orientation)
                 float rotation_angle = atan2f(direction.y, direction.x) + M_PI_2;
@@ -2088,11 +1820,9 @@ void Player::update(Game *game)
             }
 
             // update equipped weapon
-            if (equippedWeapon)
-            {
+            if(equippedWeapon) {
                 equippedWeapon->position_set(this->position);
-                if (equippedWeapon->has3DSprite())
-                {
+                if(equippedWeapon->has3DSprite()) {
                     equippedWeapon->update3DSpritePosition();
                     equippedWeapon->set3DSpriteRotation(sprite_rotation);
                 }
@@ -2100,10 +1830,8 @@ void Player::update(Game *game)
         }
         game->input = -1;
         is_visible = (showPlayerToggle == ToggleOn);
-    }
-    break;
-    case INPUT_KEY_LEFT:
-    {
+    } break;
+    case INPUT_KEY_LEFT: {
         float old_dir_x = direction.x;
         float old_plane_x = plane.x;
 
@@ -2113,29 +1841,24 @@ void Player::update(Game *game)
         plane.y = old_plane_x * sin(-rotSpeed) + plane.y * cos(-rotSpeed);
 
         // Update sprite rotation to match new camera direction
-        if (has3DSprite())
-        {
+        if(has3DSprite()) {
             float rotation_angle = atan2f(direction.y, direction.x) + M_PI_2;
             set3DSpriteRotation(rotation_angle);
         }
 
         // update equipped weapon
-        if (equippedWeapon)
-        {
+        if(equippedWeapon) {
             equippedWeapon->direction = this->direction;
             equippedWeapon->plane = this->plane;
-            if (equippedWeapon->has3DSprite())
-            {
+            if(equippedWeapon->has3DSprite()) {
                 equippedWeapon->set3DSpriteRotation(sprite_rotation);
             }
         }
 
         game->input = -1;
         is_visible = (showPlayerToggle == ToggleOn);
-    }
-    break;
-    case INPUT_KEY_RIGHT:
-    {
+    } break;
+    case INPUT_KEY_RIGHT: {
         float old_dir_x = direction.x;
         float old_plane_x = plane.x;
 
@@ -2145,32 +1868,26 @@ void Player::update(Game *game)
         plane.y = old_plane_x * sin(rotSpeed) + plane.y * cos(rotSpeed);
 
         // Update sprite rotation to match new camera direction
-        if (has3DSprite())
-        {
+        if(has3DSprite()) {
             float rotation_angle = atan2f(direction.y, direction.x) + M_PI_2;
             set3DSpriteRotation(rotation_angle);
         }
 
         // update equipped weapon
-        if (equippedWeapon)
-        {
+        if(equippedWeapon) {
             equippedWeapon->direction = this->direction;
             equippedWeapon->plane = this->plane;
-            if (equippedWeapon->has3DSprite())
-            {
+            if(equippedWeapon->has3DSprite()) {
                 equippedWeapon->set3DSpriteRotation(sprite_rotation);
             }
         }
 
         game->input = -1;
         is_visible = (showPlayerToggle == ToggleOn);
-    }
-    break;
+    } break;
     case INPUT_KEY_CENTER:
-        if (equippedWeapon)
-        {
-            if (equippedWeapon->fire(game->current_level))
-            {
+        if(equippedWeapon) {
+            if(equippedWeapon->fire(game->current_level)) {
                 char alert_buf[32];
                 snprintf(alert_buf, sizeof(alert_buf), "Fired %s!", equippedWeapon->name);
                 this->showAlert(alert_buf, 10);
@@ -2182,14 +1899,11 @@ void Player::update(Game *game)
     }
 }
 
-void Player::updateEntitiesFromServer(const char *csv)
-{
-    if (!csv || !ghoulsGame || !ghoulsGame->getEngine())
-        return;
+void Player::updateEntitiesFromServer(const char* csv) {
+    if(!csv || !ghoulsGame || !ghoulsGame->getEngine()) return;
 
-    Game *game = ghoulsGame->getEngine()->getGame();
-    if (!game || !game->current_level)
-        return;
+    Game* game = ghoulsGame->getEngine()->getGame();
+    if(!game || !game->current_level) return;
 
     // CSV format from server:
     //   Entity update: name,x,y,z,dir_x,dir_y,plane_x,plane_y  (8 fields)
@@ -2197,30 +1911,24 @@ void Player::updateEntitiesFromServer(const char *csv)
     //
 
     // Field 0: name (up to first comma)
-    const char *p = csv;
-    const char *comma = strchr(p, ',');
-    if (!comma || comma == p)
-        return; // no comma or empty name
+    const char* p = csv;
+    const char* comma = strchr(p, ',');
+    if(!comma || comma == p) return; // no comma or empty name
 
     char entity_name[64];
     size_t nameLen = (size_t)(comma - p);
-    if (nameLen >= sizeof(entity_name))
-        nameLen = sizeof(entity_name) - 1;
+    if(nameLen >= sizeof(entity_name)) nameLen = sizeof(entity_name) - 1;
     memcpy(entity_name, p, nameLen);
     entity_name[nameLen] = '\0';
 
     p = comma + 1; // advance past first comma
 
     // Check for removal marker: "R" as the second field
-    if (*p == 'R' && (*(p + 1) == '\0' || *(p + 1) == '\n' || *(p + 1) == '\r'))
-    {
-        if (strcmp(entity_name, this->name) != 0)
-        {
-            for (int i = 0; i < game->current_level->getEntityCount(); i++)
-            {
-                Entity *e = game->current_level->getEntity(i);
-                if (e && e->name && strcmp(e->name, entity_name) == 0)
-                {
+    if(*p == 'R' && (*(p + 1) == '\0' || *(p + 1) == '\n' || *(p + 1) == '\r')) {
+        if(strcmp(entity_name, this->name) != 0) {
+            for(int i = 0; i < game->current_level->getEntityCount(); i++) {
+                Entity* e = game->current_level->getEntity(i);
+                if(e && e->name && strcmp(e->name, entity_name) == 0) {
                     game->current_level->entity_remove(e);
                     break;
                 }
@@ -2231,16 +1939,12 @@ void Player::updateEntitiesFromServer(const char *csv)
 
     // Parse 7 float fields: x,y,z,dir_x,dir_y,plane_x,plane_y
     float vals[7];
-    for (int fi = 0; fi < 7; fi++)
-    {
-        char *end = nullptr;
+    for(int fi = 0; fi < 7; fi++) {
+        char* end = nullptr;
         vals[fi] = strtof(p, &end);
-        if (end == p)
-            return; // parse failure
-        if (fi < 6)
-        {
-            if (*end != ',')
-                return;
+        if(end == p) return; // parse failure
+        if(fi < 6) {
+            if(*end != ',') return;
             p = end + 1;
         }
     }
@@ -2253,36 +1957,29 @@ void Player::updateEntitiesFromServer(const char *csv)
     float e_pl_x = vals[5];
     float e_pl_y = vals[6];
 
-    if (strcmp(entity_name, this->name) == 0)
-    {
+    if(strcmp(entity_name, this->name) == 0) {
         position_set(ex, ey, ez);
         direction.x = e_dir_x;
         direction.y = e_dir_y;
         plane.x = e_pl_x;
         plane.y = e_pl_y;
-        if (has3DSprite())
-        {
+        if(has3DSprite()) {
             float rotation_angle = atan2f(direction.y, direction.x) + M_PI_2;
             set3DSpriteRotation(rotation_angle);
             update3DSpritePosition();
         }
-    }
-    else
-    {
+    } else {
         bool found = false;
-        for (int i = 0; i < game->current_level->getEntityCount(); i++)
-        {
-            Entity *e = game->current_level->getEntity(i);
-            if (e && e->name && strcmp(e->name, entity_name) == 0)
-            {
+        for(int i = 0; i < game->current_level->getEntityCount(); i++) {
+            Entity* e = game->current_level->getEntity(i);
+            if(e && e->name && strcmp(e->name, entity_name) == 0) {
                 found = true;
                 e->position_set(ex, ey, ez);
                 e->direction.x = e_dir_x;
                 e->direction.y = e_dir_y;
                 e->plane.x = e_pl_x;
                 e->plane.y = e_pl_y;
-                if (e->has3DSprite())
-                {
+                if(e->has3DSprite()) {
                     float rotation_angle = atan2f(e->direction.y, e->direction.x) + M_PI_2;
                     e->set3DSpriteRotation(rotation_angle);
                     e->update3DSpritePosition();
@@ -2291,11 +1988,10 @@ void Player::updateEntitiesFromServer(const char *csv)
             }
         }
 
-        if (!found)
-        {
+        if(!found) {
             // switch back to holding name (on-release)
             // const char *name_ptr = remotePlayerNamePool.insert(std::string(entity_name)).first->c_str();
-            Entity *remote = ENGINE_MEM_NEW Entity(
+            Entity* remote = ENGINE_MEM_NEW Entity(
                 entity_name, // name_ptr,
                 ENTITY_PLAYER,
                 Vector(ex, ey, ez),
@@ -2321,127 +2017,144 @@ void Player::updateEntitiesFromServer(const char *csv)
     }
 }
 
-void Player::userRequest(RequestType requestType)
-{
+void Player::userRequest(RequestType requestType) {
     // Create JSON payload for login/registration
-    char *payload = (char *)ENGINE_MEM_MALLOC(256);
-    if (!payload)
-    {
+    char* payload = (char*)ENGINE_MEM_MALLOC(256);
+    if(!payload) {
         ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for payload");
         return;
     }
-    snprintf(payload, 256, "{\"username\":\"%s\",\"password\":\"%s\"}", this->name, this->password);
+    snprintf(
+        payload, 256, "{\"username\":\"%s\",\"password\":\"%s\"}", this->name, this->password);
 
-    switch (requestType)
-    {
+    switch(requestType) {
     case RequestTypeLogin:
-        if (!HTTP_SEND_REQUEST("https://www.jblanked.com/flipper/api/user/login/", "POST", "{\"Content-Type\":\"application/json\"}", payload))
-        {
+        if(!HTTP_SEND_REQUEST(
+               "https://www.jblanked.com/flipper/api/user/login/",
+               "POST",
+               "{\"Content-Type\":\"application/json\"}",
+               payload)) {
             ENGINE_LOG_INFO("[Player:userRequest] Login request failed for user: %s", this->name);
             loginStatus = LoginRequestError;
         }
         break;
     case RequestTypeRegistration:
-        if (!HTTP_SEND_REQUEST("https://www.jblanked.com/flipper/api/user/register/", "POST", "{\"Content-Type\":\"application/json\"}", payload))
-        {
+        if(!HTTP_SEND_REQUEST(
+               "https://www.jblanked.com/flipper/api/user/register/",
+               "POST",
+               "{\"Content-Type\":\"application/json\"}",
+               payload)) {
             registrationStatus = RegistrationRequestError;
         }
         break;
-    case RequestTypeUserInfo:
-    {
-        char *authHeader = (char *)ENGINE_MEM_MALLOC(256);
-        if (!authHeader)
-        {
+    case RequestTypeUserInfo: {
+        char* authHeader = (char*)ENGINE_MEM_MALLOC(256);
+        if(!authHeader) {
             userInfoStatus = UserInfoRequestError;
             break;
         }
-        char *url = (char *)ENGINE_MEM_MALLOC(128);
-        if (!url)
-        {
+        char* url = (char*)ENGINE_MEM_MALLOC(128);
+        if(!url) {
             ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for url");
             userInfoStatus = UserInfoRequestError;
             ENGINE_MEM_FREE(payload);
             return;
         }
         snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/game-stats/%s/", this->name);
-        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
-        if (!HTTP_SEND_REQUEST(url, "GET", authHeader, nullptr))
-        {
+        snprintf(
+            authHeader,
+            256,
+            "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}",
+            this->name,
+            this->password);
+        if(!HTTP_SEND_REQUEST(url, "GET", authHeader, nullptr)) {
             userInfoStatus = UserInfoRequestError;
         }
         ENGINE_MEM_FREE(url);
-    }
-    break;
-    case RequestTypeGameCreate:
-    {
-        char *authHeader = (char *)ENGINE_MEM_MALLOC(256);
-        if (!authHeader)
-        {
+    } break;
+    case RequestTypeGameCreate: {
+        char* authHeader = (char*)ENGINE_MEM_MALLOC(256);
+        if(!authHeader) {
             onlineGameState = OnlineStateError;
             break;
         }
-        char *game_payload = (char *)ENGINE_MEM_MALLOC(128);
-        if (!game_payload)
-        {
+        char* game_payload = (char*)ENGINE_MEM_MALLOC(128);
+        if(!game_payload) {
             ENGINE_MEM_FREE(authHeader);
             onlineGameState = OnlineStateError;
             break;
         }
         snprintf(game_payload, 128, "{\"game_name\":\"Ghouls\", \"username\":\"%s\"}", this->name);
-        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
-        if (!HTTP_SEND_REQUEST("https://www.jblanked.com/game-server/games/create/", "POST", authHeader, game_payload))
-        {
+        snprintf(
+            authHeader,
+            256,
+            "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}",
+            this->name,
+            this->password);
+        if(!HTTP_SEND_REQUEST(
+               "https://www.jblanked.com/game-server/games/create/",
+               "POST",
+               authHeader,
+               game_payload)) {
             onlineGameState = OnlineStateError;
-        }
-        else
-        {
+        } else {
             onlineGameState = OnlineStateFetchingSession;
         }
         ENGINE_MEM_FREE(authHeader);
         ENGINE_MEM_FREE(game_payload);
-    }
-    break;
-    case RequestTypeGameList:
-    {
-        char *authHeader = (char *)ENGINE_MEM_MALLOC(256);
-        if (!authHeader)
-        {
+    } break;
+    case RequestTypeGameList: {
+        char* authHeader = (char*)ENGINE_MEM_MALLOC(256);
+        if(!authHeader) {
             lobbyFetched = true; // mark as fetched (with 0 results) so UI doesn't hang
             lobbyCount = 0;
             break;
         }
-        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
-        if (!HTTP_SEND_REQUEST("https://www.jblanked.com/game-server/games/", "GET", authHeader, nullptr))
-        {
+        snprintf(
+            authHeader,
+            256,
+            "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}",
+            this->name,
+            this->password);
+        if(!HTTP_SEND_REQUEST(
+               "https://www.jblanked.com/game-server/games/", "GET", authHeader, nullptr)) {
             lobbyFetched = true;
             lobbyCount = 0;
         }
         ENGINE_MEM_FREE(authHeader);
-    }
-    break;
-    case RequestTypeUpdateStats:
-    {
-        char *authHeader = (char *)ENGINE_MEM_MALLOC(256);
-        if (!authHeader)
-        {
+    } break;
+    case RequestTypeUpdateStats: {
+        char* authHeader = (char*)ENGINE_MEM_MALLOC(256);
+        if(!authHeader) {
             break;
         }
-        char *stats_payload = (char *)ENGINE_MEM_MALLOC(128);
-        if (!stats_payload)
-        {
+        char* stats_payload = (char*)ENGINE_MEM_MALLOC(128);
+        if(!stats_payload) {
             ENGINE_MEM_FREE(authHeader);
             break;
         }
-        snprintf(stats_payload, 128, "{\"username\":\"%s\",\"xp\":%" PRIu32 "}", this->name, (uint32_t)this->xp);
-        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
-        if (!HTTP_SEND_REQUEST("https://www.jblanked.com/flipper/api/user/update-xp/", "POST", authHeader, stats_payload))
-        {
+        snprintf(
+            stats_payload,
+            128,
+            "{\"username\":\"%s\",\"xp\":%" PRIu32 "}",
+            this->name,
+            (uint32_t)this->xp);
+        snprintf(
+            authHeader,
+            256,
+            "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}",
+            this->name,
+            this->password);
+        if(!HTTP_SEND_REQUEST(
+               "https://www.jblanked.com/flipper/api/user/update-xp/",
+               "POST",
+               authHeader,
+               stats_payload)) {
             ENGINE_LOG_INFO("[Player:userRequest] Failed to update user stats");
         }
         ENGINE_MEM_FREE(authHeader);
         ENGINE_MEM_FREE(stats_payload);
-    }
-    break;
+    } break;
     default:
         ENGINE_LOG_INFO("[Player:userRequest] Unknown request type: %d", requestType);
         loginStatus = LoginRequestError;

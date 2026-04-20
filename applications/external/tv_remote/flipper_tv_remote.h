@@ -24,12 +24,12 @@
 #include <flipper_format/flipper_format.h>
 #include <lib/toolbox/saved_struct.h>
 
-#define TV_REMOTE_APP_TAG      "TvRemote"
-#define TV_REMOTE_FILE_HEADER  "IR signals file"
-#define TV_REMOTE_FILE_VERSION 1
-#define TV_REMOTE_FILE_DIR     ANY_PATH("infrared")
-#define TV_REMOTE_FILE_PREFIX  "tv_remote_"
-#define TV_REMOTE_NAME_MAX     24
+#define TV_REMOTE_APP_TAG       "TvRemote"
+#define TV_REMOTE_FILE_HEADER   "IR signals file"
+#define TV_REMOTE_FILE_VERSION  1
+#define TV_REMOTE_FILE_DIR      ANY_PATH("infrared")
+#define TV_REMOTE_FILE_PREFIX   "tv_remote_"
+#define TV_REMOTE_NAME_MAX      24
 #define TV_REMOTE_SETTINGS_PATH ANY_PATH("infrared/tv_remote_settings.dat")
 
 /** Number of buttons the app can learn and replay. */
@@ -56,7 +56,7 @@ typedef enum {
 /** Screen orientation setting. */
 typedef enum {
     TvRemoteOrientationVertical = 0, /**< Portrait – Flipper held rotated like a remote. */
-    TvRemoteOrientationHorizontal,   /**< Landscape – Flipper held normally. */
+    TvRemoteOrientationHorizontal, /**< Landscape – Flipper held normally. */
     TvRemoteOrientationCount,
 } TvRemoteOrientation;
 
@@ -103,7 +103,7 @@ typedef struct TvRemoteApp TvRemoteApp;
 typedef struct {
     bool is_raw;
     InfraredMessage message; /**< Valid when is_raw == false. */
-    uint32_t* timings;       /**< Heap-allocated raw timing array; NULL when unused. */
+    uint32_t* timings; /**< Heap-allocated raw timing array; NULL when unused. */
     size_t timings_size;
     uint32_t frequency;
     float duty_cycle;
@@ -111,7 +111,7 @@ typedef struct {
 
 /** Per-button state: name, learned flag, and stored IR signal. */
 typedef struct {
-    const char* name;  /**< Human-readable button name (stored in .ir file). */
+    const char* name; /**< Human-readable button name (stored in .ir file). */
     TvRemoteIrSignal signal; /**< Stored IR signal data. */
     bool learned; /**< True when a signal has been successfully recorded. */
 } TvRemoteButton;
@@ -141,12 +141,12 @@ struct TvRemoteApp {
     TvRemoteButton buttons[TV_BUTTON_COUNT];
 
     /* Learning state */
-    uint8_t learn_index;        /**< Index of the button currently being learned. */
+    uint8_t learn_index; /**< Index of the button currently being learned. */
     bool learn_signal_received; /**< Set when IR callback fires during learn. */
 
     /* Remote naming & selection */
     char current_remote_name[TV_REMOTE_NAME_MAX + 1]; /**< Name of the active remote. */
-    char text_input_buf[TV_REMOTE_NAME_MAX + 1];      /**< Working buffer for TextInput. */
+    char text_input_buf[TV_REMOTE_NAME_MAX + 1]; /**< Working buffer for TextInput. */
     TvRemoteSelectMode select_mode;
     char** remote_names; /**< Heap array of scanned remote name strings. */
     size_t remote_count;
@@ -162,8 +162,8 @@ struct TvRemoteApp {
     bool remote_held_long; /**< True once InputTypeLong fires (alt action started). */
 
     /* Back-button double-tap detection */
-    FuriTimer* back_timer;  /**< One-shot timer for deferred single-tap Back. */
-    bool back_pending;      /**< True while waiting for possible double-tap. */
+    FuriTimer* back_timer; /**< One-shot timer for deferred single-tap Back. */
+    bool back_pending; /**< True while waiting for possible double-tap. */
 };
 
 /** Canonical button names (must match .ir file entries). */

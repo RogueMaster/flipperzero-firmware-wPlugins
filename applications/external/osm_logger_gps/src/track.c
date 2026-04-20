@@ -100,16 +100,15 @@ static void track_timer_callback(void* ctx) {
     // Filtre de distance : skip si on n'a pas assez bougé depuis le dernier trkpt.
     uint8_t min_dist = app->settings.track_min_dist_m;
     if(min_dist > 0 && app->last_trk_valid && !app->track_new_segment) {
-        float d = approx_distance_m(
-            app->last_trk_lat, app->last_trk_lon, app->lat, app->lon);
+        float d = approx_distance_m(app->last_trk_lat, app->last_trk_lon, app->lat, app->lon);
         if(d < (float)min_dist) return;
     }
 
     // Cumul de distance depuis le trkpt précédent (si on en a un et qu'on
     // n'ouvre pas un nouveau segment)
     if(app->last_trk_valid && !app->track_new_segment) {
-        app->track_total_dist_m += approx_distance_m(
-            app->last_trk_lat, app->last_trk_lon, app->lat, app->lon);
+        app->track_total_dist_m +=
+            approx_distance_m(app->last_trk_lat, app->last_trk_lon, app->lat, app->lon);
     }
 
     // Vitesse max : kmh = knots * 1.852
@@ -148,7 +147,9 @@ static void track_draw_callback(Canvas* canvas, void* ctx) {
             line2,
             sizeof(line2),
             "HDOP=%.1f sats=%u hdg=%.0f\xb0",
-            (double)m->hdop, m->sats, (double)m->heading_deg);
+            (double)m->hdop,
+            m->sats,
+            (double)m->heading_deg);
     } else {
         snprintf(line1, sizeof(line1), "Waiting for fix...");
         snprintf(line2, sizeof(line2), "sats=%u", m->sats);
@@ -162,23 +163,29 @@ static void track_draw_callback(Canvas* canvas, void* ctx) {
     uint32_t min = (m->duration_s / 60) % 60;
     uint32_t s = m->duration_s % 60;
     snprintf(
-        line3, sizeof(line3), "pts=%lu  %02lu:%02lu:%02lu",
+        line3,
+        sizeof(line3),
+        "pts=%lu  %02lu:%02lu:%02lu",
         (unsigned long)m->points,
-        (unsigned long)h, (unsigned long)min, (unsigned long)s);
+        (unsigned long)h,
+        (unsigned long)min,
+        (unsigned long)s);
     elements_multiline_text_aligned(canvas, 64, 36, AlignCenter, AlignTop, line3);
 
     // Ligne stats : distance totale + vitesse inst + max
     char line4[48];
     if(m->total_dist_m >= 1000.0f) {
         snprintf(
-            line4, sizeof(line4),
+            line4,
+            sizeof(line4),
             "%.2fkm v=%.0f max=%.0fkm/h",
             (double)(m->total_dist_m / 1000.0f),
             (double)m->speed_kmh,
             (double)m->max_speed_kmh);
     } else {
         snprintf(
-            line4, sizeof(line4),
+            line4,
+            sizeof(line4),
             "%.0fm v=%.0f max=%.0fkm/h",
             (double)m->total_dist_m,
             (double)m->speed_kmh,
@@ -187,8 +194,7 @@ static void track_draw_callback(Canvas* canvas, void* ctx) {
     elements_multiline_text_aligned(canvas, 64, 46, AlignCenter, AlignTop, line4);
 
     char footer[48];
-    snprintf(
-        footer, sizeof(footer), "Auto-log %us  Back to stop", (unsigned)m->interval_s);
+    snprintf(footer, sizeof(footer), "Auto-log %us  Back to stop", (unsigned)m->interval_s);
     elements_multiline_text_aligned(canvas, 64, 62, AlignCenter, AlignBottom, footer);
 }
 
@@ -215,13 +221,12 @@ static void track_enter(void* ctx) {
     app->track_max_speed_kmh = 0.0f;
 
     if(!app->track_timer) {
-        app->track_timer =
-            furi_timer_alloc(track_timer_callback, FuriTimerTypePeriodic, app);
+        app->track_timer = furi_timer_alloc(track_timer_callback, FuriTimerTypePeriodic, app);
     }
     if(app->track_timer) {
-        uint32_t interval_ms = app->settings.track_interval_s > 0
-                                   ? (uint32_t)app->settings.track_interval_s * 1000u
-                                   : 5000u;
+        uint32_t interval_ms = app->settings.track_interval_s > 0 ?
+                                   (uint32_t)app->settings.track_interval_s * 1000u :
+                                   5000u;
         furi_timer_start(app->track_timer, furi_ms_to_ticks(interval_ms));
     }
 

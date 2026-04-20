@@ -30,14 +30,14 @@ extern const char* const HDOP_MAX_LABELS[HDOP_MAX_COUNT];
 typedef struct {
     uint32_t baud_rate;
     uint8_t track_interval_s;
-    uint8_t track_min_dist_m;  // 0 = désactivé
+    uint8_t track_min_dist_m; // 0 = désactivé
     bool track_hdop_strict;
     bool preview_before_save;
     bool auto_photo_id;
     uint8_t duplicate_check_m; // 0 = désactivé
-    uint8_t avg_seconds;       // 0 = instantané, sinon moyenne sur N secondes
-    uint8_t hdop_max_x10;      // 0 = gate désactivé, sinon HDOP max × 10 (ex. 50 = 5.0)
-    bool survey_mode;          // ajoute source=survey + survey:date=YYYY-MM-DD à chaque save
+    uint8_t avg_seconds; // 0 = instantané, sinon moyenne sur N secondes
+    uint8_t hdop_max_x10; // 0 = gate désactivé, sinon HDOP max × 10 (ex. 50 = 5.0)
+    bool survey_mode; // ajoute source=survey + survey:date=YYYY-MM-DD à chaque save
 } Settings;
 
 void settings_defaults(Settings* s);

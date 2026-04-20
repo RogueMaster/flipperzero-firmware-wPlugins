@@ -34,8 +34,8 @@ void notes_cache_load(const char* primary_tag, char* out, size_t out_size) {
                 while(p < end) {
                     char* eol = memchr(p, '\n', (size_t)(end - p));
                     char* line_end = eol ? eol : end;
-                    if((size_t)(line_end - p) > pt_len &&
-                       !memcmp(p, primary_tag, pt_len) && p[pt_len] == '\t') {
+                    if((size_t)(line_end - p) > pt_len && !memcmp(p, primary_tag, pt_len) &&
+                       p[pt_len] == '\t') {
                         char* note_start = p + pt_len + 1;
                         size_t note_len = (size_t)(line_end - note_start);
                         if(note_len >= out_size) note_len = out_size - 1;
@@ -106,8 +106,9 @@ void notes_cache_save(const char* primary_tag, const char* note) {
             char* line_end = eol ? eol : end;
             size_t line_with_nl = (size_t)(line_end - p) + (eol ? 1 : 0);
 
-            bool skip = ((size_t)(line_end - p) > pt_len &&
-                         !memcmp(p, primary_tag, pt_len) && p[pt_len] == '\t');
+            bool skip =
+                ((size_t)(line_end - p) > pt_len && !memcmp(p, primary_tag, pt_len) &&
+                 p[pt_len] == '\t');
             if(!skip && new_size + line_with_nl < NOTES_CACHE_MAX) {
                 memcpy(new_buf + new_size, p, line_with_nl);
                 new_size += line_with_nl;
@@ -120,11 +121,7 @@ void notes_cache_save(const char* primary_tag, const char* note) {
 
     if(note && *note) {
         int n = snprintf(
-            new_buf + new_size,
-            NOTES_CACHE_MAX - new_size,
-            "%s\t%s\n",
-            primary_tag,
-            note);
+            new_buf + new_size, NOTES_CACHE_MAX - new_size, "%s\t%s\n", primary_tag, note);
         if(n > 0 && (size_t)n < NOTES_CACHE_MAX - new_size) {
             new_size += (size_t)n;
         }

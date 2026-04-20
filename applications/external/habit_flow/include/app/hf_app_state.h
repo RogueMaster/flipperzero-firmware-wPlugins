@@ -36,21 +36,21 @@ typedef enum {
 typedef struct HabitFlowApp HabitFlowApp;
 
 typedef struct {
-    HabitFlowApp *app;
+    HabitFlowApp* app;
 } HfCtx;
 
 struct HabitFlowApp {
     HabitStore store;
-    ViewDispatcher *vd;
-    Gui *gui;
-    View *main;
-    View *detail;
-    View *manage;
-    View *edit;
-    TextInput *text_input;
-    Widget *credits;
-    DialogEx *dialog;
-    Popup *popup_mastered;
+    ViewDispatcher* vd;
+    Gui* gui;
+    View* main;
+    View* detail;
+    View* manage;
+    View* edit;
+    TextInput* text_input;
+    Widget* credits;
+    DialogEx* dialog;
+    Popup* popup_mastered;
     char credits_buf[320];
 
     uint32_t list_sel;

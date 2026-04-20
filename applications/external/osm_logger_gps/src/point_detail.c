@@ -35,11 +35,13 @@ static bool extract_field(const char* key, char* out, size_t out_size) {
     if(*p == '"') {
         p++;
         size_t o = 0;
-        while(*p && *p != '"' && o < out_size - 1) out[o++] = *p++;
+        while(*p && *p != '"' && o < out_size - 1)
+            out[o++] = *p++;
         out[o] = '\0';
     } else {
         size_t o = 0;
-        while(*p && *p != ',' && *p != '}' && o < out_size - 1) out[o++] = *p++;
+        while(*p && *p != ',' && *p != '}' && o < out_size - 1)
+            out[o++] = *p++;
         out[o] = '\0';
     }
     return true;

@@ -6,21 +6,21 @@
 #define PRESETS_MAX_VARIANTS 8
 
 typedef enum {
-    PresetCatStreet = 0,     // mobilier urbain
-    PresetCatRoads = 1,      // voirie, signalétique
-    PresetCatParking = 2,    // stationnement
-    PresetCatSports = 3,     // sports et loisirs
-    PresetCatWaste = 4,      // déchets et recyclage
-    PresetCatShops = 5,      // commerces
-    PresetCatServices = 6,   // services (banque, poste, santé privée...)
-    PresetCatEmergency = 7,  // urgence, secours
-    PresetCatTourism = 8,    // tourisme, culture
-    PresetCatNature = 9,     // nature
+    PresetCatStreet = 0, // mobilier urbain
+    PresetCatRoads = 1, // voirie, signalétique
+    PresetCatParking = 2, // stationnement
+    PresetCatSports = 3, // sports et loisirs
+    PresetCatWaste = 4, // déchets et recyclage
+    PresetCatShops = 5, // commerces
+    PresetCatServices = 6, // services (banque, poste, santé privée...)
+    PresetCatEmergency = 7, // urgence, secours
+    PresetCatTourism = 8, // tourisme, culture
+    PresetCatNature = 9, // nature
     PresetCatEducation = 10, // éducation
-    PresetCatReligion = 11,  // religion, cérémonies
+    PresetCatReligion = 11, // religion, cérémonies
     PresetCatTransport = 12, // transports en commun
-    PresetCatAddress = 13,   // adresses (utiliser note pour numéro)
-    PresetCatOther = 14,     // divers / fallback
+    PresetCatAddress = 13, // adresses (utiliser note pour numéro)
+    PresetCatOther = 14, // divers / fallback
     PresetCatCount = 15,
 } PresetCategory;
 
@@ -32,8 +32,8 @@ typedef struct {
     const char* label;
     const char* key;
     const char* variants[PRESETS_MAX_VARIANTS]; // [0] = valeur primaire
-    uint8_t variant_count;                      // >= 1
-    uint8_t category;                           // PresetCategory
+    uint8_t variant_count; // >= 1
+    uint8_t category; // PresetCategory
 } Preset;
 
 // Charge les presets depuis /ext/apps_data/osm_logger/presets.txt si présent,

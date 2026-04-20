@@ -61,12 +61,7 @@ static void status_draw_callback(Canvas* canvas, void* ctx) {
     }
 
     if(m->fix_ever) {
-        snprintf(
-            line3,
-            sizeof(line3),
-            "sats=%u  fix=%lus",
-            m->sats,
-            (unsigned long)m->fix_age_s);
+        snprintf(line3, sizeof(line3), "sats=%u  fix=%lus", m->sats, (unsigned long)m->fix_age_s);
     } else {
         snprintf(line3, sizeof(line3), "sats=%u  fix=never", m->sats);
     }
@@ -87,8 +82,7 @@ static void status_draw_callback(Canvas* canvas, void* ctx) {
     // Footer : last save si présent, sinon juste "Back"
     if(m->last_saved_preset[0]) {
         char footer[48];
-        snprintf(footer, sizeof(footer), "last: %s @%s",
-                 m->last_saved_preset, m->last_saved_time);
+        snprintf(footer, sizeof(footer), "last: %s @%s", m->last_saved_preset, m->last_saved_time);
         elements_multiline_text_aligned(canvas, 64, 62, AlignCenter, AlignBottom, footer);
     } else {
         elements_multiline_text_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Back");
@@ -140,11 +134,10 @@ void status_refresh(App* app) {
             m->fix_ever = fix_ever;
             m->nmea_bytes_rx = app->nmea_bytes_rx;
             m->nmea_lines_rx = app->nmea_lines_rx;
-            strncpy(m->last_saved_preset, app->last_saved_preset,
-                    sizeof(m->last_saved_preset) - 1);
+            strncpy(
+                m->last_saved_preset, app->last_saved_preset, sizeof(m->last_saved_preset) - 1);
             m->last_saved_preset[sizeof(m->last_saved_preset) - 1] = '\0';
-            strncpy(m->last_saved_time, app->last_saved_time,
-                    sizeof(m->last_saved_time) - 1);
+            strncpy(m->last_saved_time, app->last_saved_time, sizeof(m->last_saved_time) - 1);
             m->last_saved_time[sizeof(m->last_saved_time) - 1] = '\0';
         },
         true);

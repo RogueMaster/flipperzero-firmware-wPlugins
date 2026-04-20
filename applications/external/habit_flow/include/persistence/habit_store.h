@@ -11,14 +11,14 @@ typedef struct {
     Habit habits[HF_HABITS_MAX];
 } HabitStore;
 
-void habit_store_init(HabitStore *store);
+void habit_store_init(HabitStore* store);
 
-bool habit_store_load(HabitStore *store);
+bool habit_store_load(HabitStore* store);
 
-bool habit_store_save(const HabitStore *store);
+bool habit_store_save(const HabitStore* store);
 
-bool habit_store_add(HabitStore *store, const Habit *habit);
+bool habit_store_add(HabitStore* store, const Habit* habit);
 
-bool habit_store_replace_at(HabitStore *store, size_t index, const Habit *habit);
+bool habit_store_replace_at(HabitStore* store, size_t index, const Habit* habit);
 
-bool habit_store_delete_at(HabitStore *store, size_t index);
+bool habit_store_delete_at(HabitStore* store, size_t index);

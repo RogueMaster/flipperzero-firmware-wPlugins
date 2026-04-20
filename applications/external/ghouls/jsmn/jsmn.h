@@ -17,8 +17,7 @@
 #include <jsmn/jsmn_h.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #ifndef JSMN_H
@@ -29,17 +28,21 @@ extern "C"
 #else
 #define JSMN_API extern
 #endif
-    /**
+/**
      * Create JSON parser over an array of tokens
      */
-    JSMN_API void jsmn_init(jsmn_parser *parser);
+JSMN_API void jsmn_init(jsmn_parser* parser);
 
-    /**
+/**
      * Run JSON parser. It parses a JSON data string into and array of tokens, each
      * describing a single JSON object.
      */
-    JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
-                            jsmntok_t *tokens, const unsigned int num_tokens);
+JSMN_API int jsmn_parse(
+    jsmn_parser* parser,
+    const char* js,
+    const size_t len,
+    jsmntok_t* tokens,
+    const unsigned int num_tokens);
 
 #ifndef JSMN_HEADER
 /* Implementation has been moved to jsmn.c */
@@ -50,23 +53,23 @@ extern "C"
 /* Custom Helper Functions */
 #ifndef JB_JSMN_EDIT
 #define JB_JSMN_EDIT
-    /* Added in by JBlanked on 2024-10-16 for use in Flipper Zero SDK*/
+/* Added in by JBlanked on 2024-10-16 for use in Flipper Zero SDK*/
 
-    // Helper function to create a JSON object
-    char *get_json(const char *key, const char *value);
-    // Helper function to compare JSON keys
-    int jsoneq(const char *json, jsmntok_t *tok, const char *s);
+// Helper function to create a JSON object
+char* get_json(const char* key, const char* value);
+// Helper function to compare JSON keys
+int jsoneq(const char* json, jsmntok_t* tok, const char* s);
 
-    // Return the value of the key in the JSON data
-    char *get_json_value(const char *key, const char *json_data);
+// Return the value of the key in the JSON data
+char* get_json_value(const char* key, const char* json_data);
 
-    // Revised get_json_array_value function
-    char *get_json_array_value(const char *key, uint32_t index, const char *json_data);
+// Revised get_json_array_value function
+char* get_json_array_value(const char* key, uint32_t index, const char* json_data);
 
-    // Revised get_json_array_values function with correct token skipping
-    char **get_json_array_values(const char *key, const char *json_data, int *num_values);
+// Revised get_json_array_values function with correct token skipping
+char** get_json_array_values(const char* key, const char* json_data, int* num_values);
 
-    int json_token_count(const char *json);
+int json_token_count(const char* json);
 #endif /* JB_JSMN_EDIT */
 
 #ifdef __cplusplus

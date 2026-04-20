@@ -1,18 +1,15 @@
 #include "sky.hpp"
 
-Sky::Sky(SkyType type) : type(type)
-{
+Sky::Sky(SkyType type)
+    : type(type) {
 }
 
-Sky::~Sky()
-{
+Sky::~Sky() {
 }
 
-void Sky::render(Draw *draw)
-{
+void Sky::render(Draw* draw) {
     (void)draw; // for now
-    switch (this->type)
-    {
+    switch(this->type) {
     case SKY_SUNNY:
         break;
     case SKY_CLOUDY:
@@ -24,12 +21,10 @@ void Sky::render(Draw *draw)
     }
 }
 
-void Sky::setSkyType(SkyType newType)
-{
+void Sky::setSkyType(SkyType newType) {
     this->type = newType;
 }
 
-void Sky::tick()
-{
+void Sky::tick() {
     time++;
 }

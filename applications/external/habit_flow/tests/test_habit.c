@@ -63,7 +63,7 @@ static void test_long_gap(void) {
     h.history[3] = 1;
     hf_habit_on_long_gap(&h);
     assert(h.streak == 0);
-    for (int i = 0; i < HF_HISTORY_DAYS; i++) {
+    for(int i = 0; i < HF_HISTORY_DAYS; i++) {
         assert(h.history[i] == 0);
     }
 }

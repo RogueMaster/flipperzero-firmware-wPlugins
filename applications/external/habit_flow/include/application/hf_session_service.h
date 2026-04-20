@@ -11,9 +11,11 @@ typedef struct {
     size_t pos;
 } HfYesterdayQueue;
 
-void hf_yesterday_queue_reset(HfYesterdayQueue *q);
+void hf_yesterday_queue_reset(HfYesterdayQueue* q);
 
-void hf_session_on_resume(HabitStore *store, uint32_t today_packed, HfYesterdayQueue *yq);
+void hf_session_on_resume(HabitStore* store, uint32_t today_packed, HfYesterdayQueue* yq);
 
-void hf_session_close_yesterday_flow(HabitStore *store, uint32_t today_packed,
-                                     HfYesterdayQueue *yq);
+void hf_session_close_yesterday_flow(
+    HabitStore* store,
+    uint32_t today_packed,
+    HfYesterdayQueue* yq);

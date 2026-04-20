@@ -9,11 +9,13 @@ for line in sys.stdin:
     obj = json.loads(line)
     lat, lon = obj.get("lat"), obj.get("lon")
     props = {k: v for k, v in obj.items() if k not in {"lat", "lon"}}
-    features.append({
-        "type": "Feature",
-        "geometry": {"type": "Point", "coordinates": [lon, lat]},
-        "properties": props,
-    })
+    features.append(
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [lon, lat]},
+            "properties": props,
+        }
+    )
 
 out = {"type": "FeatureCollection", "features": features}
 print(json.dumps(out, ensure_ascii=False))

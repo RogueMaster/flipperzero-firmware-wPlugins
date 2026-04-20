@@ -27,7 +27,7 @@
 #define DISP_W 64
 
 /* Concentric-circle radii (Home < Ok < D-pad < Hold) */
-#define R_HOME  7
+#define R_HOME 7
 #define R_OK   14
 #define R_DPAD 22
 #define R_HOLD 30
@@ -45,25 +45,25 @@
 /* ---- Press / hold button mapping ---- */
 
 typedef struct {
-    uint8_t press_btn;  /**< TvButton index for short press. */
-    uint8_t hold_btn;   /**< TvButton index for long press.  */
+    uint8_t press_btn; /**< TvButton index for short press. */
+    uint8_t hold_btn; /**< TvButton index for long press.  */
 } ButtonMapping;
 
 static const ButtonMapping key_map[] = {
-    [InputKeyUp]    = {TvButtonUp,    TvButtonVolUp},
-    [InputKeyDown]  = {TvButtonDown,  TvButtonVolDn},
-    [InputKeyLeft]  = {TvButtonLeft,  TvButtonChDn},
+    [InputKeyUp] = {TvButtonUp, TvButtonVolUp},
+    [InputKeyDown] = {TvButtonDown, TvButtonVolDn},
+    [InputKeyLeft] = {TvButtonLeft, TvButtonChDn},
     [InputKeyRight] = {TvButtonRight, TvButtonChUp},
-    [InputKeyOk]    = {TvButtonOk,    TvButtonHome},
+    [InputKeyOk] = {TvButtonOk, TvButtonHome},
 };
 
 /* ---- View model ---- */
 
 typedef struct {
-    int8_t active_button;  /**< TvButton index being sent (-1 = idle). */
-    bool active_is_hold;   /**< True when the hold action is active. */
+    int8_t active_button; /**< TvButton index being sent (-1 = idle). */
+    bool active_is_hold; /**< True when the hold action is active. */
     bool learned[TV_BUTTON_COUNT]; /**< Snapshot – which buttons have signals. */
-    uint8_t pressed_keys;  /**< Bitmask of physically held d-pad/ok/back keys. */
+    uint8_t pressed_keys; /**< Bitmask of physically held d-pad/ok/back keys. */
     TvRemoteOrientation orientation; /**< Current screen orientation. */
     bool button_swap; /**< True: short press = vol/ch, hold = directional. */
 } TvRemoteRemoteModel;
@@ -78,13 +78,20 @@ typedef struct {
 
 static inline uint8_t key_to_bit(InputKey k) {
     switch(k) {
-    case InputKeyUp:    return KEY_BIT_UP;
-    case InputKeyDown:  return KEY_BIT_DOWN;
-    case InputKeyLeft:  return KEY_BIT_LEFT;
-    case InputKeyRight: return KEY_BIT_RIGHT;
-    case InputKeyOk:    return KEY_BIT_OK;
-    case InputKeyBack:  return KEY_BIT_BACK;
-    default:            return 0;
+    case InputKeyUp:
+        return KEY_BIT_UP;
+    case InputKeyDown:
+        return KEY_BIT_DOWN;
+    case InputKeyLeft:
+        return KEY_BIT_LEFT;
+    case InputKeyRight:
+        return KEY_BIT_RIGHT;
+    case InputKeyOk:
+        return KEY_BIT_OK;
+    case InputKeyBack:
+        return KEY_BIT_BACK;
+    default:
+        return 0;
     }
 }
 
@@ -211,43 +218,47 @@ static void draw_ring_filled(Canvas* canvas, int cx, int cy, int r_in, int r_out
 
 #define H_CX     92
 #define H_CY     32
-#define H_R_HOME  5
+#define H_R_HOME 5
 #define H_R_OK   10
 #define H_R_DPAD 17
 #define H_R_HOLD 25
-#define H_D_OK    7
+#define H_D_OK   7
 #define H_D_HOLD 18
 
 static void tv_remote_remote_draw_horizontal(Canvas* canvas, TvRemoteRemoteModel* model) {
     canvas_clear(canvas);
-    int8_t ab   = model->active_button;
-    uint8_t pk  = model->pressed_keys;
+    int8_t ab = model->active_button;
+    uint8_t pk = model->pressed_keys;
     bool is_hold = model->active_is_hold;
 
     bool swap = model->button_swap;
-    bool home_active  = (ab == (int8_t)TvButtonHome);
-    bool ok_active    = (ab == (int8_t)TvButtonOk)    || ((pk & KEY_BIT_OK)    && !is_hold);
-    bool r3_top    = (ab == (int8_t)(swap ? TvButtonVolUp : TvButtonUp))    || ((pk & KEY_BIT_UP)    && !is_hold);
-    bool r3_bottom = (ab == (int8_t)(swap ? TvButtonVolDn : TvButtonDown))  || ((pk & KEY_BIT_DOWN)  && !is_hold);
-    bool r3_left   = (ab == (int8_t)(swap ? TvButtonChDn  : TvButtonLeft))  || ((pk & KEY_BIT_LEFT)  && !is_hold);
-    bool r3_right  = (ab == (int8_t)(swap ? TvButtonChUp  : TvButtonRight)) || ((pk & KEY_BIT_RIGHT) && !is_hold);
-    bool r4_top    = (ab == (int8_t)(swap ? TvButtonUp    : TvButtonVolUp));
-    bool r4_bottom = (ab == (int8_t)(swap ? TvButtonDown  : TvButtonVolDn));
-    bool r4_left   = (ab == (int8_t)(swap ? TvButtonLeft  : TvButtonChDn));
-    bool r4_right  = (ab == (int8_t)(swap ? TvButtonRight : TvButtonChUp));
+    bool home_active = (ab == (int8_t)TvButtonHome);
+    bool ok_active = (ab == (int8_t)TvButtonOk) || ((pk & KEY_BIT_OK) && !is_hold);
+    bool r3_top = (ab == (int8_t)(swap ? TvButtonVolUp : TvButtonUp)) ||
+                  ((pk & KEY_BIT_UP) && !is_hold);
+    bool r3_bottom = (ab == (int8_t)(swap ? TvButtonVolDn : TvButtonDown)) ||
+                     ((pk & KEY_BIT_DOWN) && !is_hold);
+    bool r3_left = (ab == (int8_t)(swap ? TvButtonChDn : TvButtonLeft)) ||
+                   ((pk & KEY_BIT_LEFT) && !is_hold);
+    bool r3_right = (ab == (int8_t)(swap ? TvButtonChUp : TvButtonRight)) ||
+                    ((pk & KEY_BIT_RIGHT) && !is_hold);
+    bool r4_top = (ab == (int8_t)(swap ? TvButtonUp : TvButtonVolUp));
+    bool r4_bottom = (ab == (int8_t)(swap ? TvButtonDown : TvButtonVolDn));
+    bool r4_left = (ab == (int8_t)(swap ? TvButtonLeft : TvButtonChDn));
+    bool r4_right = (ab == (int8_t)(swap ? TvButtonRight : TvButtonChUp));
 
     canvas_set_font(canvas, FontSecondary);
     canvas_set_color(canvas, ColorBlack);
 
-    if(r4_top)    draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_DPAD, H_R_HOLD, QUAD_TOP);
+    if(r4_top) draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_DPAD, H_R_HOLD, QUAD_TOP);
     if(r4_bottom) draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_DPAD, H_R_HOLD, QUAD_BOTTOM);
-    if(r4_left)   draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_DPAD, H_R_HOLD, QUAD_LEFT);
-    if(r4_right)  draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_DPAD, H_R_HOLD, QUAD_RIGHT);
-    if(r3_top)    draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_OK, H_R_DPAD, QUAD_TOP);
+    if(r4_left) draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_DPAD, H_R_HOLD, QUAD_LEFT);
+    if(r4_right) draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_DPAD, H_R_HOLD, QUAD_RIGHT);
+    if(r3_top) draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_OK, H_R_DPAD, QUAD_TOP);
     if(r3_bottom) draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_OK, H_R_DPAD, QUAD_BOTTOM);
-    if(r3_left)   draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_OK, H_R_DPAD, QUAD_LEFT);
-    if(r3_right)  draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_OK, H_R_DPAD, QUAD_RIGHT);
-    if(ok_active)   draw_ring_filled(canvas, H_CX, H_CY, H_R_HOME, H_R_OK);
+    if(r3_left) draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_OK, H_R_DPAD, QUAD_LEFT);
+    if(r3_right) draw_ring_quadrant_filled(canvas, H_CX, H_CY, H_R_OK, H_R_DPAD, QUAD_RIGHT);
+    if(ok_active) draw_ring_filled(canvas, H_CX, H_CY, H_R_HOME, H_R_OK);
     if(home_active) canvas_draw_disc(canvas, H_CX, H_CY, H_R_HOME);
 
     canvas_draw_circle(canvas, H_CX, H_CY, H_R_HOME);
@@ -262,8 +273,8 @@ static void tv_remote_remote_draw_horizontal(Canvas* canvas, TvRemoteRemoteModel
 
     /* Home icon */
     canvas_set_color(canvas, home_active ? ColorWhite : ColorBlack);
-    canvas_draw_line(canvas, H_CX,     H_CY - 4, H_CX - 3, H_CY - 1);
-    canvas_draw_line(canvas, H_CX,     H_CY - 4, H_CX + 3, H_CY - 1);
+    canvas_draw_line(canvas, H_CX, H_CY - 4, H_CX - 3, H_CY - 1);
+    canvas_draw_line(canvas, H_CX, H_CY - 4, H_CX + 3, H_CY - 1);
     canvas_draw_line(canvas, H_CX - 2, H_CY - 1, H_CX - 2, H_CY + 3);
     canvas_draw_line(canvas, H_CX + 2, H_CY - 1, H_CX + 2, H_CY + 3);
     canvas_draw_line(canvas, H_CX - 2, H_CY + 3, H_CX + 2, H_CY + 3);
@@ -315,8 +326,8 @@ static void tv_remote_remote_draw_callback(Canvas* canvas, void* model_void) {
     }
     canvas_clear(canvas);
 
-    const int cx = DISP_W / 2;      /* 32 */
-    const int cy = 45;              /* midpoint between top and Back/Power boxes */
+    const int cx = DISP_W / 2; /* 32 */
+    const int cy = 45; /* midpoint between top and Back/Power boxes */
 
     int8_t ab = model->active_button;
     uint8_t pk = model->pressed_keys;
@@ -328,20 +339,23 @@ static void tv_remote_remote_draw_callback(Canvas* canvas, void* model_void) {
     bool swap = model->button_swap;
     bool home_active = (ab == (int8_t)TvButtonHome);
     /* Ring 2: Ok (press-Ok, but not when hold is active) */
-    bool ok_active = (ab == (int8_t)TvButtonOk) ||
-                     ((pk & KEY_BIT_OK) && !is_hold);
+    bool ok_active = (ab == (int8_t)TvButtonOk) || ((pk & KEY_BIT_OK) && !is_hold);
 
     /* Ring 3 quadrants: short-press actions */
-    bool r3_top    = (ab == (int8_t)(swap ? TvButtonVolUp : TvButtonUp))    || ((pk & KEY_BIT_UP)    && !is_hold);
-    bool r3_bottom = (ab == (int8_t)(swap ? TvButtonVolDn : TvButtonDown))  || ((pk & KEY_BIT_DOWN)  && !is_hold);
-    bool r3_left   = (ab == (int8_t)(swap ? TvButtonChDn  : TvButtonLeft))  || ((pk & KEY_BIT_LEFT)  && !is_hold);
-    bool r3_right  = (ab == (int8_t)(swap ? TvButtonChUp  : TvButtonRight)) || ((pk & KEY_BIT_RIGHT) && !is_hold);
+    bool r3_top = (ab == (int8_t)(swap ? TvButtonVolUp : TvButtonUp)) ||
+                  ((pk & KEY_BIT_UP) && !is_hold);
+    bool r3_bottom = (ab == (int8_t)(swap ? TvButtonVolDn : TvButtonDown)) ||
+                     ((pk & KEY_BIT_DOWN) && !is_hold);
+    bool r3_left = (ab == (int8_t)(swap ? TvButtonChDn : TvButtonLeft)) ||
+                   ((pk & KEY_BIT_LEFT) && !is_hold);
+    bool r3_right = (ab == (int8_t)(swap ? TvButtonChUp : TvButtonRight)) ||
+                    ((pk & KEY_BIT_RIGHT) && !is_hold);
 
     /* Ring 4 quadrants: hold actions */
-    bool r4_top    = (ab == (int8_t)(swap ? TvButtonUp    : TvButtonVolUp));
-    bool r4_bottom = (ab == (int8_t)(swap ? TvButtonDown  : TvButtonVolDn));
-    bool r4_left   = (ab == (int8_t)(swap ? TvButtonLeft  : TvButtonChDn));
-    bool r4_right  = (ab == (int8_t)(swap ? TvButtonRight : TvButtonChUp));
+    bool r4_top = (ab == (int8_t)(swap ? TvButtonUp : TvButtonVolUp));
+    bool r4_bottom = (ab == (int8_t)(swap ? TvButtonDown : TvButtonVolDn));
+    bool r4_left = (ab == (int8_t)(swap ? TvButtonLeft : TvButtonChDn));
+    bool r4_right = (ab == (int8_t)(swap ? TvButtonRight : TvButtonChUp));
 
     canvas_set_font(canvas, FontSecondary);
     canvas_set_color(canvas, ColorBlack);
@@ -349,16 +363,16 @@ static void tv_remote_remote_draw_callback(Canvas* canvas, void* model_void) {
     /* ── 1. Fill active sections ── */
 
     /* Ring 4 (outermost – hold actions) */
-    if(r4_top)    draw_ring_quadrant_filled(canvas, cx, cy, R_DPAD, R_HOLD, QUAD_TOP);
+    if(r4_top) draw_ring_quadrant_filled(canvas, cx, cy, R_DPAD, R_HOLD, QUAD_TOP);
     if(r4_bottom) draw_ring_quadrant_filled(canvas, cx, cy, R_DPAD, R_HOLD, QUAD_BOTTOM);
-    if(r4_left)   draw_ring_quadrant_filled(canvas, cx, cy, R_DPAD, R_HOLD, QUAD_LEFT);
-    if(r4_right)  draw_ring_quadrant_filled(canvas, cx, cy, R_DPAD, R_HOLD, QUAD_RIGHT);
+    if(r4_left) draw_ring_quadrant_filled(canvas, cx, cy, R_DPAD, R_HOLD, QUAD_LEFT);
+    if(r4_right) draw_ring_quadrant_filled(canvas, cx, cy, R_DPAD, R_HOLD, QUAD_RIGHT);
 
     /* Ring 3 (d-pad press actions) */
-    if(r3_top)    draw_ring_quadrant_filled(canvas, cx, cy, R_OK, R_DPAD, QUAD_TOP);
+    if(r3_top) draw_ring_quadrant_filled(canvas, cx, cy, R_OK, R_DPAD, QUAD_TOP);
     if(r3_bottom) draw_ring_quadrant_filled(canvas, cx, cy, R_OK, R_DPAD, QUAD_BOTTOM);
-    if(r3_left)   draw_ring_quadrant_filled(canvas, cx, cy, R_OK, R_DPAD, QUAD_LEFT);
-    if(r3_right)  draw_ring_quadrant_filled(canvas, cx, cy, R_OK, R_DPAD, QUAD_RIGHT);
+    if(r3_left) draw_ring_quadrant_filled(canvas, cx, cy, R_OK, R_DPAD, QUAD_LEFT);
+    if(r3_right) draw_ring_quadrant_filled(canvas, cx, cy, R_OK, R_DPAD, QUAD_RIGHT);
 
     /* Ring 2: Ok */
     if(ok_active) draw_ring_filled(canvas, cx, cy, R_HOME, R_OK);
@@ -382,8 +396,8 @@ static void tv_remote_remote_draw_callback(Canvas* canvas, void* model_void) {
     /* ── 4. Home icon (house) inside inner circle ── */
     canvas_set_color(canvas, home_active ? ColorWhite : ColorBlack);
     /* Roof: inverted-V, apex at top, base at mid */
-    canvas_draw_line(canvas, cx,     cy - 5, cx - 4, cy - 1); /* left slope  */
-    canvas_draw_line(canvas, cx,     cy - 5, cx + 4, cy - 1); /* right slope */
+    canvas_draw_line(canvas, cx, cy - 5, cx - 4, cy - 1); /* left slope  */
+    canvas_draw_line(canvas, cx, cy - 5, cx + 4, cy - 1); /* right slope */
     /* Body: walls + floor */
     canvas_draw_line(canvas, cx - 3, cy - 1, cx - 3, cy + 4); /* left wall   */
     canvas_draw_line(canvas, cx + 3, cy - 1, cx + 3, cy + 4); /* right wall  */
@@ -407,7 +421,7 @@ static void tv_remote_remote_draw_callback(Canvas* canvas, void* model_void) {
     /* Curved return arrow (resembles Flipper Zero back button icon) */
     {
         const int bx = box_gap + box_w / 2; /* centre x of box */
-        const int by = box_y + box_h / 2;   /* centre y of box */
+        const int by = box_y + box_h / 2; /* centre y of box */
         /* Horizontal shaft pointing left */
         canvas_draw_line(canvas, bx - 7, by + 2, bx + 5, by + 2);
         /* Curve up-right: short arc from shaft-right going up */
@@ -437,14 +451,16 @@ static void tv_remote_remote_draw_callback(Canvas* canvas, void* model_void) {
     if(power_active) canvas_set_color(canvas, ColorBlack);
 
     /* Hint */
-    canvas_draw_str_aligned(
-        canvas, DISP_W / 2, 118, AlignCenter, AlignTop, "Hold for alt");
+    canvas_draw_str_aligned(canvas, DISP_W / 2, 118, AlignCenter, AlignTop, "Hold for alt");
 }
 
 /* ---- Helper: update model from app state ---- */
 
 static void tv_remote_remote_update_model(
-    TvRemoteApp* app, int8_t active, bool is_hold, uint8_t pressed_keys) {
+    TvRemoteApp* app,
+    int8_t active,
+    bool is_hold,
+    uint8_t pressed_keys) {
     with_view_model(
         app->remote_view,
         TvRemoteRemoteModel * model,
@@ -537,16 +553,15 @@ static bool tv_remote_remote_input_callback(InputEvent* event, void* context) {
     if(event->key == InputKeyBack) return false; /* handled above */
 
     /* Only handle keys with mappings */
-    if(event->key != InputKeyUp && event->key != InputKeyDown &&
-       event->key != InputKeyLeft && event->key != InputKeyRight &&
-       event->key != InputKeyOk) {
+    if(event->key != InputKeyUp && event->key != InputKeyDown && event->key != InputKeyLeft &&
+       event->key != InputKeyRight && event->key != InputKeyOk) {
         return false;
     }
 
     const ButtonMapping* map = &key_map[event->key];
     bool do_swap = app->button_swap && (event->key != InputKeyOk);
     uint8_t eff_press = do_swap ? map->hold_btn : map->press_btn;
-    uint8_t eff_hold  = do_swap ? map->press_btn : map->hold_btn;
+    uint8_t eff_hold = do_swap ? map->press_btn : map->hold_btn;
 
     if(event->type == InputTypePress) {
         /* Show ring section immediately on press */
@@ -571,8 +586,7 @@ static bool tv_remote_remote_input_callback(InputEvent* event, void* context) {
             tv_remote_tx_stop(app);
         } else {
             /* Quick tap – show active ring section during burst */
-            tv_remote_remote_update_model(
-                app, (int8_t)eff_press, false, app->remote_pressed_keys);
+            tv_remote_remote_update_model(app, (int8_t)eff_press, false, app->remote_pressed_keys);
             tv_remote_ir_burst(app, eff_press);
         }
         app->remote_held_long = false;
@@ -594,8 +608,8 @@ static void tv_remote_remote_enter_callback(void* context) {
     TvRemoteApp* app = context;
     view_set_orientation(
         app->remote_view,
-        app->orientation == TvRemoteOrientationHorizontal ?
-            ViewOrientationHorizontal : ViewOrientationVertical);
+        app->orientation == TvRemoteOrientationHorizontal ? ViewOrientationHorizontal :
+                                                            ViewOrientationVertical);
     app->tx_active = false;
     app->remote_pressed_keys = 0;
     app->remote_held_long = false;

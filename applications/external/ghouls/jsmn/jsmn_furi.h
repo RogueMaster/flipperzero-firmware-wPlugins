@@ -19,8 +19,7 @@
 #include <jsmn/jsmn_h.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #ifdef JSMN_STATIC
@@ -29,9 +28,12 @@ extern "C"
 #define JSMN_API extern
 #endif
 
-    JSMN_API void jsmn_init_furi(jsmn_parser *parser);
-    JSMN_API int jsmn_parse_furi(jsmn_parser *parser, const FuriString *js,
-                                 jsmntok_t *tokens, const unsigned int num_tokens);
+JSMN_API void jsmn_init_furi(jsmn_parser* parser);
+JSMN_API int jsmn_parse_furi(
+    jsmn_parser* parser,
+    const FuriString* js,
+    jsmntok_t* tokens,
+    const unsigned int num_tokens);
 
 #ifndef JSMN_HEADER
 /* Implementation in jsmn_furi.c */
@@ -47,14 +49,16 @@ extern "C"
 #define JB_JSMN_FURI_EDIT
 
 // Helper function to create a JSON object
-FuriString *get_json_furi(const FuriString *key, const FuriString *value);
+FuriString* get_json_furi(const FuriString* key, const FuriString* value);
 
 // Updated signatures to accept const char* key
-FuriString *get_json_value_furi(const char *key, const FuriString *json_data);
-FuriString *get_json_array_value_furi(const char *key, uint32_t index, const FuriString *json_data);
-FuriString **get_json_array_values_furi(const char *key, const FuriString *json_data, int *num_values);
+FuriString* get_json_value_furi(const char* key, const FuriString* json_data);
+FuriString*
+    get_json_array_value_furi(const char* key, uint32_t index, const FuriString* json_data);
+FuriString**
+    get_json_array_values_furi(const char* key, const FuriString* json_data, int* num_values);
 
-uint32_t json_token_count_furi(const FuriString *json);
+uint32_t json_token_count_furi(const FuriString* json);
 /* Example usage:
 char *json = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
 FuriString *json_data = char_to_furi_string(json);

@@ -9,8 +9,12 @@ static float parse_float_simple(const char* s, size_t n) {
     if(!s || n == 0) return 0.0f;
     size_t i = 0;
     int sign = 1;
-    if(s[i] == '+') { i++; }
-    else if(s[i] == '-') { sign = -1; i++; }
+    if(s[i] == '+') {
+        i++;
+    } else if(s[i] == '-') {
+        sign = -1;
+        i++;
+    }
 
     uint32_t ip = 0;
     while(i < n) {
@@ -47,7 +51,10 @@ static float nmea_degmin_to_deg_str(const char* s, size_t n) {
     // find dot to separate minutes precision
     size_t dot = 0;
     for(size_t i = 0; i < n; i++) {
-        if(s[i] == '.') { dot = i; break; }
+        if(s[i] == '.') {
+            dot = i;
+            break;
+        }
     }
     if(dot == 0) {
         // no dot found or dot at 0; fallback: parse as degrees directly
@@ -182,8 +189,10 @@ void nmea_parse_line(
                 uint32_t v = 0;
                 for(size_t i = 0; i < f[7].len; i++) {
                     char c = f[7].p[i];
-                    if(c >= '0' && c <= '9') v = v * 10u + (uint32_t)(c - '0');
-                    else break;
+                    if(c >= '0' && c <= '9')
+                        v = v * 10u + (uint32_t)(c - '0');
+                    else
+                        break;
                 }
                 *sats = (uint8_t)(v & 0xFF);
             }

@@ -1,19 +1,11 @@
-# application.fam — manifest ufbt + métadonnées Apps Catalog
-
 App(
     appid="osm_logger",
-    name="OSM Logger",
+    name="OSM Logger GPS",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="osm_logger_app",
-    requires=["gui", "storage", "notification"],
-    stack_size=4096,
-    fap_category="GPIO",
-    fap_version=(0, 15),
+    stack_size=4 * 1024,
     fap_icon="osm_logger.png",
     fap_icon_assets="images",
-    fap_author="Simon Grossi",
-    fap_weburl="https://github.com/simongrossi/flipperzero-osm-logger-gps",
-    fap_description="Log OSM POIs (bench, bin, fountain...) in the field with a NEO-6M GPS. Saves JSONL, CSV, GPX and GeoJSON on microSD.",
     sources=[
         "src/osm_logger.c",
         "src/app.c",
@@ -29,4 +21,9 @@ App(
         "src/storage.c",
         "src/presets.c",
     ],
+    fap_category="GPIO",
+    fap_author="Simon Grossi",
+    fap_weburl="https://github.com/simongrossi/flipperzero-osm-logger-gps",
+    fap_version=(0, 15),
+    fap_description="Log OSM POIs (bench, bin, fountain...) in the field with a NEO-6M GPS. Saves JSONL, CSV, GPX and GeoJSON on microSD.",
 )

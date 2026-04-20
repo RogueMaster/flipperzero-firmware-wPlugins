@@ -73,8 +73,7 @@ static void quick_log_draw_callback(Canvas* canvas, void* ctx) {
         canvas_set_font(canvas, FontPrimary);
         elements_multiline_text_aligned(canvas, 64, 20, AlignCenter, AlignTop, "Saving...");
         canvas_set_font(canvas, FontSecondary);
-        elements_multiline_text_aligned(
-            canvas, 64, 40, AlignCenter, AlignTop, "writing to SD");
+        elements_multiline_text_aligned(canvas, 64, 40, AlignCenter, AlignTop, "writing to SD");
         return;
     }
 
@@ -85,12 +84,20 @@ static void quick_log_draw_callback(Canvas* canvas, void* ctx) {
         canvas_set_font(canvas, FontSecondary);
 
         char line[48];
-        snprintf(line, sizeof(line), "%lu / %lu s",
-                 (unsigned long)m->avg_elapsed_s, (unsigned long)m->avg_total_s);
+        snprintf(
+            line,
+            sizeof(line),
+            "%lu / %lu s",
+            (unsigned long)m->avg_elapsed_s,
+            (unsigned long)m->avg_total_s);
         elements_multiline_text_aligned(canvas, 64, 16, AlignCenter, AlignTop, line);
 
-        snprintf(line, sizeof(line), "%lu samples  HDOP=%.1f",
-                 (unsigned long)m->avg_samples, (double)m->avg_min_hdop);
+        snprintf(
+            line,
+            sizeof(line),
+            "%lu samples  HDOP=%.1f",
+            (unsigned long)m->avg_samples,
+            (double)m->avg_min_hdop);
         elements_multiline_text_aligned(canvas, 64, 28, AlignCenter, AlignTop, line);
 
         if(m->avg_samples > 0) {
@@ -113,10 +120,8 @@ static void quick_log_draw_callback(Canvas* canvas, void* ctx) {
         canvas_set_font(canvas, FontPrimary);
         elements_multiline_text_aligned(canvas, 64, 8, AlignCenter, AlignTop, "SAVE FAILED");
         canvas_set_font(canvas, FontSecondary);
-        elements_multiline_text_aligned(
-            canvas, 64, 28, AlignCenter, AlignTop, m->last_error);
-        elements_multiline_text_aligned(
-            canvas, 64, 62, AlignCenter, AlignBottom, "Press any key");
+        elements_multiline_text_aligned(canvas, 64, 28, AlignCenter, AlignTop, m->last_error);
+        elements_multiline_text_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Press any key");
         return;
     }
 
@@ -127,8 +132,7 @@ static void quick_log_draw_callback(Canvas* canvas, void* ctx) {
         canvas_set_font(canvas, FontSecondary);
 
         char msg[64];
-        snprintf(
-            msg, sizeof(msg), "Same tag %.0fm away", (double)m->duplicate_dist_m);
+        snprintf(msg, sizeof(msg), "Same tag %.0fm away", (double)m->duplicate_dist_m);
         elements_multiline_text_aligned(canvas, 64, 18, AlignCenter, AlignTop, msg);
 
         char tag[64];
@@ -150,8 +154,7 @@ static void quick_log_draw_callback(Canvas* canvas, void* ctx) {
     // Mode preview (confirmation) : écran distinct et pédagogique.
     if(m->preview_pending) {
         canvas_set_font(canvas, FontPrimary);
-        elements_multiline_text_aligned(
-            canvas, 64, 2, AlignCenter, AlignTop, "Save this point?");
+        elements_multiline_text_aligned(canvas, 64, 2, AlignCenter, AlignTop, "Save this point?");
 
         canvas_set_font(canvas, FontSecondary);
         char tag[64];
@@ -254,15 +257,20 @@ static void quick_log_draw_callback(Canvas* canvas, void* ctx) {
     if(m->fix_ever && m->has_fix) {
         float prec_m = m->hdop * 3.0f;
         snprintf(
-            line3, sizeof(line3),
+            line3,
+            sizeof(line3),
             "alt=%.0fm prec=%.0fm t=%lu",
-            (double)m->altitude, (double)prec_m, (unsigned long)m->total_count);
+            (double)m->altitude,
+            (double)prec_m,
+            (unsigned long)m->total_count);
     } else if(m->fix_ever) {
         // Fix stale (hystérésis 5s) : précision probablement fausse, affiche fix age
         snprintf(
-            line3, sizeof(line3),
+            line3,
+            sizeof(line3),
             "alt=%.0fm fix=%lus  t=%lu",
-            (double)m->altitude, (unsigned long)m->fix_age_s,
+            (double)m->altitude,
+            (unsigned long)m->fix_age_s,
             (unsigned long)m->total_count);
     } else {
         snprintf(line3, sizeof(line3), "alt=-- prec=-- t=%lu", (unsigned long)m->total_count);
@@ -272,9 +280,7 @@ static void quick_log_draw_callback(Canvas* canvas, void* ctx) {
     // Footer : toast SAVED > note > rappel touches
     if(m->recent_save && m->last_saved_preset[0]) {
         char toast[80];
-        snprintf(
-            toast, sizeof(toast), "> saved %s @%s",
-            m->last_saved_preset, m->last_saved_time);
+        snprintf(toast, sizeof(toast), "> saved %s @%s", m->last_saved_preset, m->last_saved_time);
         elements_multiline_text_aligned(canvas, 64, 62, AlignCenter, AlignBottom, toast);
     } else if(m->note[0]) {
         char footer[80];
@@ -292,8 +298,8 @@ static void quick_log_draw_callback(Canvas* canvas, void* ctx) {
 // ni comme vraie valeur de tag OSM. Doivent être remplacées par la note utilisateur.
 static bool is_placeholder_value(const char* v) {
     if(!v || !v[0]) return true;
-    return strcmp(v, "TBD") == 0 || strcmp(v, "?") == 0 ||
-           strcmp(v, "tbd") == 0 || strcmp(v, "fill_me") == 0;
+    return strcmp(v, "TBD") == 0 || strcmp(v, "?") == 0 || strcmp(v, "tbd") == 0 ||
+           strcmp(v, "fill_me") == 0;
 }
 
 // Retourne true si la note est "safe" comme valeur de tag OSM : pas de '=' ni ';'
@@ -307,8 +313,14 @@ static bool note_is_safe_as_value(const char* note) {
 }
 
 static bool quick_log_write_point(
-    App* app, float lat, float lon, float hdop, uint8_t sats, float altitude,
-    const Preset* p, bool forced_note_avg) {
+    App* app,
+    float lat,
+    float lon,
+    float hdop,
+    uint8_t sats,
+    float altitude,
+    const Preset* p,
+    bool forced_note_avg) {
     if(!p) return false;
 
     // Refuser les saves à lat=0/lon=0 (GPS non initialisé, trame RMC/GGA sans coords).
@@ -346,8 +358,12 @@ static bool quick_log_write_point(
                 strncpy(after, sep, sizeof(after) - 1);
                 after[sizeof(after) - 1] = '\0';
             }
-            snprintf(placeholder + 1, sizeof(tag) - (size_t)(placeholder + 1 - tag),
-                     "%s%s", app->quick_note, after);
+            snprintf(
+                placeholder + 1,
+                sizeof(tag) - (size_t)(placeholder + 1 - tag),
+                "%s%s",
+                app->quick_note,
+                after);
             note_consumed_as_value = true;
         }
     }
@@ -364,7 +380,9 @@ static bool quick_log_write_point(
             sizeof(tag) - tlen,
             "%ssource=survey;survey:date=%04u-%02u-%02u",
             tlen > 0 ? ";" : "",
-            dt_s.year, dt_s.month, dt_s.day);
+            dt_s.year,
+            dt_s.month,
+            dt_s.day);
     }
 
     // Note finale (base + auto_photo_id + suffixe avg éventuel).
@@ -372,13 +390,13 @@ static bool quick_log_write_point(
     // du champ note pour éviter la redondance (elle est déjà dans le tag).
     char final_note[160];
     final_note[0] = '\0';
-    const char* base_note = (!note_consumed_as_value && app->quick_note[0]) ? app->quick_note : NULL;
+    const char* base_note = (!note_consumed_as_value && app->quick_note[0]) ? app->quick_note :
+                                                                              NULL;
 
     char photo_suffix[24] = "";
     if(app->settings.auto_photo_id) {
         snprintf(
-            photo_suffix, sizeof(photo_suffix), "photo:%lu",
-            (unsigned long)(app->total_count + 1));
+            photo_suffix, sizeof(photo_suffix), "photo:%lu", (unsigned long)(app->total_count + 1));
     }
 
     // Assemble les morceaux avec espaces
@@ -391,23 +409,21 @@ static bool quick_log_write_point(
             final_note + w, sizeof(final_note) - w, "%s%s", w > 0 ? " " : "", photo_suffix);
     }
     if(forced_note_avg) {
-        w += snprintf(
-            final_note + w, sizeof(final_note) - w, "%s%s",
-            w > 0 ? " " : "", "avg");
+        w += snprintf(final_note + w, sizeof(final_note) - w, "%s%s", w > 0 ? " " : "", "avg");
     }
     const char* note = final_note[0] ? final_note : NULL;
 
     // Infos supplémentaires pour enrichir le GPX (format OsmAnd Favorites)
-    const char* cat_label =
-        (p->category < PresetCatCount) ? PRESET_CATEGORY_LABELS[p->category] : "Other";
-    const char* cat_color =
-        (p->category < PresetCatCount) ? PRESET_CATEGORY_COLORS[p->category] : "#c0c0c0";
+    const char* cat_label = (p->category < PresetCatCount) ? PRESET_CATEGORY_LABELS[p->category] :
+                                                             "Other";
+    const char* cat_color = (p->category < PresetCatCount) ? PRESET_CATEGORY_COLORS[p->category] :
+                                                             "#c0c0c0";
     // L'icône OsmAnd est dérivée de la valeur primaire OSM (ex. "bench" → icône banc).
     // Si la valeur est un placeholder (TBD, ?, ...), fallback sur l'icône générique :
     // sinon OsmAnd affiche un icon "TBD" cassé.
-    const char* icon_hint = (p->variants[0] && !is_placeholder_value(p->variants[0]))
-                                ? p->variants[0]
-                                : "special_marker";
+    const char* icon_hint = (p->variants[0] && !is_placeholder_value(p->variants[0])) ?
+                                p->variants[0] :
+                                "special_marker";
 
     // ID OSM séquentiel : total_count est le nb de points existants,
     // le nouveau sera donc le (total_count + 1)-ième. Utilisé comme ID négatif
@@ -415,8 +431,17 @@ static bool quick_log_write_point(
     uint32_t node_seq = app->total_count + 1;
 
     storage_write_all_formats(
-        lat, lon, altitude, hdop, sats, tag, note,
-        p->label, cat_label, icon_hint, cat_color,
+        lat,
+        lon,
+        altitude,
+        hdop,
+        sats,
+        tag,
+        note,
+        p->label,
+        cat_label,
+        icon_hint,
+        cat_color,
         node_seq);
     FURI_LOG_D("OSM", "write_point: formats written, saving note cache");
 
@@ -465,16 +490,23 @@ static bool quick_log_do_save(App* app, bool force) {
     float hdop_max = quick_log_hdop_max(app);
     bool quality_ok = effective_fix && (app->hdop <= hdop_max);
     FURI_LOG_D(
-        "OSM", "save: fix=%d recent=%d hdop=%.2f max=%.2f ok=%d",
-        app->has_fix, recent_fix, (double)app->hdop, (double)hdop_max, quality_ok);
+        "OSM",
+        "save: fix=%d recent=%d hdop=%.2f max=%.2f ok=%d",
+        app->has_fix,
+        recent_fix,
+        (double)app->hdop,
+        (double)hdop_max,
+        quality_ok);
     if(!quality_ok && !force) {
         if(!effective_fix) {
-            snprintf(app->last_error, sizeof(app->last_error),
-                     "No GPS fix\nHold OK to force");
+            snprintf(app->last_error, sizeof(app->last_error), "No GPS fix\nHold OK to force");
         } else {
-            snprintf(app->last_error, sizeof(app->last_error),
-                     "HDOP %.1f > %.1f\nHold OK to force",
-                     (double)app->hdop, (double)hdop_max);
+            snprintf(
+                app->last_error,
+                sizeof(app->last_error),
+                "HDOP %.1f > %.1f\nHold OK to force",
+                (double)app->hdop,
+                (double)hdop_max);
         }
         FURI_LOG_I("OSM", "save: refused quality (%s)", app->last_error);
         notification_message(app->notification, &sequence_error);
@@ -488,8 +520,7 @@ static bool quick_log_do_save(App* app, bool force) {
         FURI_LOG_D("OSM", "save: dup check starting (%um)", app->settings.duplicate_check_m);
         float dist = 0;
         bool found = storage_find_duplicate_nearby(
-            app->lat, app->lon, tag_for_dup,
-            app->settings.duplicate_check_m, &dist);
+            app->lat, app->lon, tag_for_dup, app->settings.duplicate_check_m, &dist);
         FURI_LOG_D("OSM", "save: dup check done (found=%d dist=%.1f)", found, (double)dist);
         if(found) {
             app->duplicate_warning = true;
@@ -550,12 +581,11 @@ static void averaging_tick(App* app) {
             if(!p) p = presets_get(0);
             if(p) {
                 quick_log_write_point(
-                    app, avg_lat, avg_lon, app->avg_min_hdop, app->sats,
-                    app->altitude, p, true);
+                    app, avg_lat, avg_lon, app->avg_min_hdop, app->sats, app->altitude, p, true);
             }
         } else {
-            snprintf(app->last_error, sizeof(app->last_error),
-                     "Averaging: no fix\nduring capture");
+            snprintf(
+                app->last_error, sizeof(app->last_error), "Averaging: no fix\nduring capture");
             notification_message(app->notification, &sequence_error);
         }
         app->averaging = false;
@@ -642,9 +672,9 @@ static bool quick_log_input_callback(InputEvent* event, void* ctx) {
             if(event->key == InputKeyRight) {
                 app->current_variant = (uint8_t)((app->current_variant + 1) % p->variant_count);
             } else {
-                app->current_variant = app->current_variant == 0
-                                           ? (uint8_t)(p->variant_count - 1)
-                                           : (uint8_t)(app->current_variant - 1);
+                app->current_variant = app->current_variant == 0 ?
+                                           (uint8_t)(p->variant_count - 1) :
+                                           (uint8_t)(app->current_variant - 1);
             }
             quick_log_refresh(app);
         }
@@ -777,11 +807,10 @@ void quick_log_refresh(App* app) {
             strncpy(m->note, app->quick_note, sizeof(m->note) - 1);
             m->note[sizeof(m->note) - 1] = '\0';
             m->recent_save = recent_save;
-            strncpy(m->last_saved_preset, app->last_saved_preset,
-                    sizeof(m->last_saved_preset) - 1);
+            strncpy(
+                m->last_saved_preset, app->last_saved_preset, sizeof(m->last_saved_preset) - 1);
             m->last_saved_preset[sizeof(m->last_saved_preset) - 1] = '\0';
-            strncpy(m->last_saved_time, app->last_saved_time,
-                    sizeof(m->last_saved_time) - 1);
+            strncpy(m->last_saved_time, app->last_saved_time, sizeof(m->last_saved_time) - 1);
             m->last_saved_time[sizeof(m->last_saved_time) - 1] = '\0';
 
             m->saving = app->save_deferred;
@@ -795,10 +824,8 @@ void quick_log_refresh(App* app) {
                 if(freq == 0) freq = 1;
                 m->avg_elapsed_s = (furi_get_tick() - app->averaging_start_tick) / freq;
                 if(app->avg_sample_count > 0) {
-                    m->avg_cur_lat =
-                        (float)(app->avg_lat_sum / (double)app->avg_sample_count);
-                    m->avg_cur_lon =
-                        (float)(app->avg_lon_sum / (double)app->avg_sample_count);
+                    m->avg_cur_lat = (float)(app->avg_lat_sum / (double)app->avg_sample_count);
+                    m->avg_cur_lon = (float)(app->avg_lon_sum / (double)app->avg_sample_count);
                 }
             }
         },

@@ -5,14 +5,11 @@ static const uint8_t u8g2_font_4x6_tf[];
 static const uint8_t u8g2_font_5x8_tf[];
 //  static const uint8_t u8g2_font_9x15_tf[];
 
-bool canvas_set_font_custom(Canvas *canvas, FontSize font_size)
-{
-    if (!canvas)
-    {
+bool canvas_set_font_custom(Canvas* canvas, FontSize font_size) {
+    if(!canvas) {
         return false;
     }
-    switch (font_size)
-    {
+    switch(font_size) {
     case FONT_SIZE_SECONDARY:
         canvas_set_font(canvas, FontSecondary);
         break;
@@ -39,10 +36,8 @@ bool canvas_set_font_custom(Canvas *canvas, FontSize font_size)
     return true;
 }
 
-void canvas_draw_str_multi(Canvas *canvas, uint8_t x, uint8_t y, const char *str)
-{
-    if (!canvas || !str)
-    {
+void canvas_draw_str_multi(Canvas* canvas, uint8_t x, uint8_t y, const char* str) {
+    if(!canvas || !str) {
         return;
     }
     elements_multiline_text(canvas, x, y, str);

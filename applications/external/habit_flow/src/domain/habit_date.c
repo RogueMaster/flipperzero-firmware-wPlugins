@@ -9,7 +9,7 @@ static int civil_to_days(int y, unsigned m, unsigned d) {
     return era * 146097 + (int)doe - 719468;
 }
 
-static void days_to_civil(int z, int *out_y, unsigned *out_m, unsigned *out_d) {
+static void days_to_civil(int z, int* out_y, unsigned* out_m, unsigned* out_d) {
     z += 719468;
     const int era = (z >= 0 ? z : z - 146096) / 146097;
     const unsigned doe = (unsigned)(z - era * 146097);
@@ -28,7 +28,7 @@ uint32_t hf_date_pack(uint16_t year, uint8_t month, uint8_t day) {
     return (uint32_t)year * 10000u + (uint32_t)month * 100u + (uint32_t)day;
 }
 
-void hf_date_unpack(uint32_t packed, uint16_t *year, uint8_t *month, uint8_t *day) {
+void hf_date_unpack(uint32_t packed, uint16_t* year, uint8_t* month, uint8_t* day) {
     *year = (uint16_t)(packed / 10000u);
     *month = (uint8_t)((packed / 100u) % 100u);
     *day = (uint8_t)(packed % 100u);

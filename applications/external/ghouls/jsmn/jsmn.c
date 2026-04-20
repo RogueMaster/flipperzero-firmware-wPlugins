@@ -11,13 +11,11 @@
 /**
  * Allocates a fresh unused token from the token pool.
  */
-static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens,
-                                   const size_t num_tokens)
-{
-    jsmntok_t *tok;
+static jsmntok_t*
+    jsmn_alloc_token(jsmn_parser* parser, jsmntok_t* tokens, const size_t num_tokens) {
+    jsmntok_t* tok;
 
-    if (parser->toknext >= num_tokens)
-    {
+    if(parser->toknext >= num_tokens) {
         return NULL;
     }
     tok = &tokens[parser->toknext++];
@@ -32,9 +30,8 @@ static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens,
 /**
  * Fills token type and boundaries.
  */
-static void jsmn_fill_token(jsmntok_t *token, const jsmntype_t type,
-                            const int start, const int end)
-{
+static void
+    jsmn_fill_token(jsmntok_t* token, const jsmntype_t type, const int start, const int end) {
     token->type = type;
     token->start = start;
     token->end = end;
@@ -44,19 +41,19 @@ static void jsmn_fill_token(jsmntok_t *token, const jsmntype_t type,
 /**
  * Fills next available token with JSON primitive.
  */
-static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
-                                const size_t len, jsmntok_t *tokens,
-                                const size_t num_tokens)
-{
-    jsmntok_t *token;
+static int jsmn_parse_primitive(
+    jsmn_parser* parser,
+    const char* js,
+    const size_t len,
+    jsmntok_t* tokens,
+    const size_t num_tokens) {
+    jsmntok_t* token;
     int start;
 
     start = parser->pos;
 
-    for (; parser->pos < len && js[parser->pos] != '\0'; parser->pos++)
-    {
-        switch (js[parser->pos])
-        {
+    for(; parser->pos < len && js[parser->pos] != '\0'; parser->pos++) {
+        switch(js[parser->pos]) {
 #ifndef JSMN_STRICT
         /* In strict mode primitive must be followed by "," or "}" or "]" */
         case ':':
@@ -73,8 +70,7 @@ static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
             /* to quiet a warning from gcc*/
             break;
         }
-        if (js[parser->pos] < 32 || js[parser->pos] >= 127)
-        {
+        if(js[parser->pos] < 32 || js[parser->pos] >= 127) {
             parser->pos = start;
             return JSMN_ERROR_INVAL;
         }
@@ -86,14 +82,12 @@ static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
 #endif
 
 found:
-    if (tokens == NULL)
-    {
+    if(tokens == NULL) {
         parser->pos--;
         return 0;
     }
     token = jsmn_alloc_token(parser, tokens, num_tokens);
-    if (token == NULL)
-    {
+    if(token == NULL) {
         parser->pos = start;
         return JSMN_ERROR_NOMEM;
     }
@@ -108,31 +102,29 @@ found:
 /**
  * Fills next token with JSON string.
  */
-static int jsmn_parse_string(jsmn_parser *parser, const char *js,
-                             const size_t len, jsmntok_t *tokens,
-                             const size_t num_tokens)
-{
-    jsmntok_t *token;
+static int jsmn_parse_string(
+    jsmn_parser* parser,
+    const char* js,
+    const size_t len,
+    jsmntok_t* tokens,
+    const size_t num_tokens) {
+    jsmntok_t* token;
 
     int start = parser->pos;
 
     /* Skip starting quote */
     parser->pos++;
 
-    for (; parser->pos < len && js[parser->pos] != '\0'; parser->pos++)
-    {
+    for(; parser->pos < len && js[parser->pos] != '\0'; parser->pos++) {
         char c = js[parser->pos];
 
         /* Quote: end of string */
-        if (c == '\"')
-        {
-            if (tokens == NULL)
-            {
+        if(c == '\"') {
+            if(tokens == NULL) {
                 return 0;
             }
             token = jsmn_alloc_token(parser, tokens, num_tokens);
-            if (token == NULL)
-            {
+            if(token == NULL) {
                 parser->pos = start;
                 return JSMN_ERROR_NOMEM;
             }
@@ -144,12 +136,10 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
         }
 
         /* Backslash: Quoted symbol expected */
-        if (c == '\\' && parser->pos + 1 < len)
-        {
+        if(c == '\\' && parser->pos + 1 < len) {
             int i;
             parser->pos++;
-            switch (js[parser->pos])
-            {
+            switch(js[parser->pos]) {
             /* Allowed escaped symbols */
             case '\"':
             case '/':
@@ -163,13 +153,11 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
             /* Allows escaped symbol \uXXXX */
             case 'u':
                 parser->pos++;
-                for (i = 0; i < 4 && parser->pos < len && js[parser->pos] != '\0'; i++)
-                {
+                for(i = 0; i < 4 && parser->pos < len && js[parser->pos] != '\0'; i++) {
                     /* If it isn't a hex character we have an error */
-                    if (!((js[parser->pos] >= 48 && js[parser->pos] <= 57) || /* 0-9 */
-                          (js[parser->pos] >= 65 && js[parser->pos] <= 70) || /* A-F */
-                          (js[parser->pos] >= 97 && js[parser->pos] <= 102)))
-                    { /* a-f */
+                    if(!((js[parser->pos] >= 48 && js[parser->pos] <= 57) || /* 0-9 */
+                         (js[parser->pos] >= 65 && js[parser->pos] <= 70) || /* A-F */
+                         (js[parser->pos] >= 97 && js[parser->pos] <= 102))) { /* a-f */
                         parser->pos = start;
                         return JSMN_ERROR_INVAL;
                     }
@@ -191,8 +179,7 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 /**
  * Create JSON parser over an array of tokens
  */
-void jsmn_init(jsmn_parser *parser)
-{
+void jsmn_init(jsmn_parser* parser) {
     parser->pos = 0;
     parser->toknext = 0;
     parser->toksuper = -1;
@@ -201,41 +188,38 @@ void jsmn_init(jsmn_parser *parser)
 /**
  * Parse JSON string and fill tokens.
  */
-int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
-               jsmntok_t *tokens, const unsigned int num_tokens)
-{
+int jsmn_parse(
+    jsmn_parser* parser,
+    const char* js,
+    const size_t len,
+    jsmntok_t* tokens,
+    const unsigned int num_tokens) {
     int r;
     int i;
-    jsmntok_t *token;
+    jsmntok_t* token;
     int count = parser->toknext;
 
-    for (; parser->pos < len && js[parser->pos] != '\0'; parser->pos++)
-    {
+    for(; parser->pos < len && js[parser->pos] != '\0'; parser->pos++) {
         char c;
         jsmntype_t type;
 
         c = js[parser->pos];
-        switch (c)
-        {
+        switch(c) {
         case '{':
         case '[':
             count++;
-            if (tokens == NULL)
-            {
+            if(tokens == NULL) {
                 break;
             }
             token = jsmn_alloc_token(parser, tokens, num_tokens);
-            if (token == NULL)
-            {
+            if(token == NULL) {
                 return JSMN_ERROR_NOMEM;
             }
-            if (parser->toksuper != -1)
-            {
-                jsmntok_t *t = &tokens[parser->toksuper];
+            if(parser->toksuper != -1) {
+                jsmntok_t* t = &tokens[parser->toksuper];
 #ifdef JSMN_STRICT
                 /* In strict mode an object or array can't become a key */
-                if (t->type == JSMN_OBJECT)
-                {
+                if(t->type == JSMN_OBJECT) {
                     return JSMN_ERROR_INVAL;
                 }
 #endif
@@ -250,33 +234,26 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
             break;
         case '}':
         case ']':
-            if (tokens == NULL)
-            {
+            if(tokens == NULL) {
                 break;
             }
             type = (c == '}' ? JSMN_OBJECT : JSMN_ARRAY);
 #ifdef JSMN_PARENT_LINKS
-            if (parser->toknext < 1)
-            {
+            if(parser->toknext < 1) {
                 return JSMN_ERROR_INVAL;
             }
             token = &tokens[parser->toknext - 1];
-            for (;;)
-            {
-                if (token->start != -1 && token->end == -1)
-                {
-                    if (token->type != type)
-                    {
+            for(;;) {
+                if(token->start != -1 && token->end == -1) {
+                    if(token->type != type) {
                         return JSMN_ERROR_INVAL;
                     }
                     token->end = parser->pos + 1;
                     parser->toksuper = token->parent;
                     break;
                 }
-                if (token->parent == -1)
-                {
-                    if (token->type != type || parser->toksuper == -1)
-                    {
+                if(token->parent == -1) {
+                    if(token->type != type || parser->toksuper == -1) {
                         return JSMN_ERROR_INVAL;
                     }
                     break;
@@ -284,13 +261,10 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
                 token = &tokens[token->parent];
             }
 #else
-            for (i = parser->toknext - 1; i >= 0; i--)
-            {
+            for(i = parser->toknext - 1; i >= 0; i--) {
                 token = &tokens[i];
-                if (token->start != -1 && token->end == -1)
-                {
-                    if (token->type != type)
-                    {
+                if(token->start != -1 && token->end == -1) {
+                    if(token->type != type) {
                         return JSMN_ERROR_INVAL;
                     }
                     parser->toksuper = -1;
@@ -299,15 +273,12 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
                 }
             }
             /* Error if unmatched closing bracket */
-            if (i == -1)
-            {
+            if(i == -1) {
                 return JSMN_ERROR_INVAL;
             }
-            for (; i >= 0; i--)
-            {
+            for(; i >= 0; i--) {
                 token = &tokens[i];
-                if (token->start != -1 && token->end == -1)
-                {
+                if(token->start != -1 && token->end == -1) {
                     parser->toksuper = i;
                     break;
                 }
@@ -316,13 +287,11 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
             break;
         case '\"':
             r = jsmn_parse_string(parser, js, len, tokens, num_tokens);
-            if (r < 0)
-            {
+            if(r < 0) {
                 return r;
             }
             count++;
-            if (parser->toksuper != -1 && tokens != NULL)
-            {
+            if(parser->toksuper != -1 && tokens != NULL) {
                 tokens[parser->toksuper].size++;
             }
             break;
@@ -335,19 +304,15 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
             parser->toksuper = parser->toknext - 1;
             break;
         case ',':
-            if (tokens != NULL && parser->toksuper != -1 &&
-                tokens[parser->toksuper].type != JSMN_ARRAY &&
-                tokens[parser->toksuper].type != JSMN_OBJECT)
-            {
+            if(tokens != NULL && parser->toksuper != -1 &&
+               tokens[parser->toksuper].type != JSMN_ARRAY &&
+               tokens[parser->toksuper].type != JSMN_OBJECT) {
 #ifdef JSMN_PARENT_LINKS
                 parser->toksuper = tokens[parser->toksuper].parent;
 #else
-                for (i = parser->toknext - 1; i >= 0; i--)
-                {
-                    if (tokens[i].type == JSMN_ARRAY || tokens[i].type == JSMN_OBJECT)
-                    {
-                        if (tokens[i].start != -1 && tokens[i].end == -1)
-                        {
+                for(i = parser->toknext - 1; i >= 0; i--) {
+                    if(tokens[i].type == JSMN_ARRAY || tokens[i].type == JSMN_OBJECT) {
+                        if(tokens[i].start != -1 && tokens[i].end == -1) {
                             parser->toksuper = i;
                             break;
                         }
@@ -373,12 +338,9 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
         case 'f':
         case 'n':
             /* And they must not be keys of the object */
-            if (tokens != NULL && parser->toksuper != -1)
-            {
-                const jsmntok_t *t = &tokens[parser->toksuper];
-                if (t->type == JSMN_OBJECT ||
-                    (t->type == JSMN_STRING && t->size != 0))
-                {
+            if(tokens != NULL && parser->toksuper != -1) {
+                const jsmntok_t* t = &tokens[parser->toksuper];
+                if(t->type == JSMN_OBJECT || (t->type == JSMN_STRING && t->size != 0)) {
                     return JSMN_ERROR_INVAL;
                 }
             }
@@ -387,13 +349,11 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
         default:
 #endif
             r = jsmn_parse_primitive(parser, js, len, tokens, num_tokens);
-            if (r < 0)
-            {
+            if(r < 0) {
                 return r;
             }
             count++;
-            if (parser->toksuper != -1 && tokens != NULL)
-            {
+            if(parser->toksuper != -1 && tokens != NULL) {
                 tokens[parser->toksuper].size++;
             }
             break;
@@ -406,13 +366,10 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
         }
     }
 
-    if (tokens != NULL)
-    {
-        for (i = parser->toknext - 1; i >= 0; i--)
-        {
+    if(tokens != NULL) {
+        for(i = parser->toknext - 1; i >= 0; i--) {
             /* Unmatched opened object or array */
-            if (tokens[i].start != -1 && tokens[i].end == -1)
-            {
+            if(tokens[i].start != -1 && tokens[i].end == -1) {
                 return JSMN_ERROR_PART;
             }
         }
@@ -422,12 +379,10 @@ int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
 }
 
 // Helper function to create a JSON object
-char *get_json(const char *key, const char *value)
-{
-    int length = strlen(key) + strlen(value) + 8;         // Calculate required length
-    char *result = (char *)malloc(length * sizeof(char)); // Allocate memory
-    if (result == NULL)
-    {
+char* get_json(const char* key, const char* value) {
+    int length = strlen(key) + strlen(value) + 8; // Calculate required length
+    char* result = (char*)malloc(length * sizeof(char)); // Allocate memory
+    if(result == NULL) {
         return NULL; // Handle memory allocation failure
     }
     snprintf(result, length, "{\"%s\":\"%s\"}", key, value);
@@ -435,41 +390,34 @@ char *get_json(const char *key, const char *value)
 }
 
 // Helper function to compare JSON keys
-int jsoneq(const char *json, jsmntok_t *tok, const char *s)
-{
-    if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
-        strncmp(json + tok->start, s, tok->end - tok->start) == 0)
-    {
+int jsoneq(const char* json, jsmntok_t* tok, const char* s) {
+    if(tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
+       strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
         return 0;
     }
     return -1;
 }
 
 // Return the value of the key in the JSON data
-char *get_json_value(const char *key, const char *json_data)
-{
+char* get_json_value(const char* key, const char* json_data) {
     // Parse the JSON feed
-    if (json_data != NULL)
-    {
+    if(json_data != NULL) {
         jsmn_parser parser;
         jsmn_init(&parser);
         uint32_t max_tokens = json_token_count(json_data);
-        if (!jsmn_memory_check(max_tokens))
-        {
+        if(!jsmn_memory_check(max_tokens)) {
             FURI_LOG_E("JSMM.H", "Insufficient memory for JSON tokens.");
             return NULL;
         }
         // Allocate tokens array on the heap
-        jsmntok_t *tokens = malloc(sizeof(jsmntok_t) * max_tokens);
-        if (tokens == NULL)
-        {
+        jsmntok_t* tokens = malloc(sizeof(jsmntok_t) * max_tokens);
+        if(tokens == NULL) {
             FURI_LOG_E("JSMM.H", "Failed to allocate memory for JSON tokens.");
             return NULL;
         }
 
         int ret = jsmn_parse(&parser, json_data, strlen(json_data), tokens, max_tokens);
-        if (ret < 0)
-        {
+        if(ret < 0) {
             // Handle parsing errors
             FURI_LOG_E("JSMM.H", "Failed to parse JSON: %d", ret);
             free(tokens);
@@ -477,23 +425,19 @@ char *get_json_value(const char *key, const char *json_data)
         }
 
         // Ensure that the root element is an object
-        if (ret < 1 || tokens[0].type != JSMN_OBJECT)
-        {
+        if(ret < 1 || tokens[0].type != JSMN_OBJECT) {
             FURI_LOG_E("JSMM.H", "Root element is not an object.");
             free(tokens);
             return NULL;
         }
 
         // Loop through the tokens to find the key
-        for (int i = 1; i < ret; i++)
-        {
-            if (jsoneq(json_data, &tokens[i], key) == 0)
-            {
+        for(int i = 1; i < ret; i++) {
+            if(jsoneq(json_data, &tokens[i], key) == 0) {
                 // We found the key. Now, return the associated value.
                 int length = tokens[i + 1].end - tokens[i + 1].start;
-                char *value = malloc(length + 1);
-                if (value == NULL)
-                {
+                char* value = malloc(length + 1);
+                if(value == NULL) {
                     FURI_LOG_E("JSMM.H", "Failed to allocate memory for value.");
                     free(tokens);
                     return NULL;
@@ -508,9 +452,7 @@ char *get_json_value(const char *key, const char *json_data)
 
         // Free the token array if key was not found
         free(tokens);
-    }
-    else
-    {
+    } else {
         FURI_LOG_E("JSMM.H", "JSON data is NULL");
     }
     char warning[128];
@@ -522,63 +464,48 @@ char *get_json_value(const char *key, const char *json_data)
 // Helper function to skip a token and all its descendants.
 // Returns the index of the next token after skipping this one.
 // On error or out of bounds, returns -1.
-static int skip_token(const jsmntok_t *tokens, int start, int total)
-{
-    if (start < 0 || start >= total)
-        return -1;
+static int skip_token(const jsmntok_t* tokens, int start, int total) {
+    if(start < 0 || start >= total) return -1;
 
     int i = start;
-    if (tokens[i].type == JSMN_OBJECT)
-    {
+    if(tokens[i].type == JSMN_OBJECT) {
         // For an object: size is number of key-value pairs
         int pairs = tokens[i].size;
         i++; // move to first key-value pair
-        for (int p = 0; p < pairs; p++)
-        {
+        for(int p = 0; p < pairs; p++) {
             // skip key (primitive/string)
             i++;
-            if (i >= total)
-                return -1;
+            if(i >= total) return -1;
             // skip value (which could be object/array and must be skipped recursively)
             i = skip_token(tokens, i, total);
-            if (i == -1)
-                return -1;
+            if(i == -1) return -1;
         }
         return i; // i is now just past the object
-    }
-    else if (tokens[i].type == JSMN_ARRAY)
-    {
+    } else if(tokens[i].type == JSMN_ARRAY) {
         // For an array: size is number of elements
         int elems = tokens[i].size;
         i++; // move to first element
-        for (int e = 0; e < elems; e++)
-        {
+        for(int e = 0; e < elems; e++) {
             i = skip_token(tokens, i, total);
-            if (i == -1)
-                return -1;
+            if(i == -1) return -1;
         }
         return i; // i is now just past the array
-    }
-    else
-    {
+    } else {
         // Primitive or string token, just skip it
         return i + 1;
     }
 }
 
 // Revised get_json_array_value
-char *get_json_array_value(const char *key, uint32_t index, const char *json_data)
-{
+char* get_json_array_value(const char* key, uint32_t index, const char* json_data) {
     // Always extract the full array each time from the original json_data
-    char *array_str = get_json_value(key, json_data);
-    if (array_str == NULL)
-    {
+    char* array_str = get_json_value(key, json_data);
+    if(array_str == NULL) {
         FURI_LOG_E("JSMM.H", "Failed to get array for key: %s", key);
         return NULL;
     }
     uint32_t max_tokens = json_token_count(array_str);
-    if (!jsmn_memory_check(max_tokens))
-    {
+    if(!jsmn_memory_check(max_tokens)) {
         FURI_LOG_E("JSMM.H", "Insufficient memory for JSON tokens.");
         free(array_str);
         return NULL;
@@ -586,33 +513,29 @@ char *get_json_array_value(const char *key, uint32_t index, const char *json_dat
 
     jsmn_parser parser;
     jsmn_init(&parser);
-    jsmntok_t *tokens = malloc(sizeof(jsmntok_t) * max_tokens);
-    if (tokens == NULL)
-    {
+    jsmntok_t* tokens = malloc(sizeof(jsmntok_t) * max_tokens);
+    if(tokens == NULL) {
         FURI_LOG_E("JSMM.H", "Failed to allocate memory for JSON tokens.");
         free(array_str);
         return NULL;
     }
 
     int ret = jsmn_parse(&parser, array_str, strlen(array_str), tokens, max_tokens);
-    if (ret < 0)
-    {
+    if(ret < 0) {
         FURI_LOG_E("JSMM.H", "Failed to parse JSON array: %d", ret);
         free(tokens);
         free(array_str);
         return NULL;
     }
 
-    if (ret < 1 || tokens[0].type != JSMN_ARRAY)
-    {
+    if(ret < 1 || tokens[0].type != JSMN_ARRAY) {
         FURI_LOG_E("JSMM.H", "Value for key '%s' is not an array.", key);
         free(tokens);
         free(array_str);
         return NULL;
     }
 
-    if (index >= (uint32_t)tokens[0].size)
-    {
+    if(index >= (uint32_t)tokens[0].size) {
         // FURI_LOG_E("JSMM.H", "Index %lu out of bounds for array with size %u.", index, tokens[0].size);
         free(tokens);
         free(array_str);
@@ -621,11 +544,9 @@ char *get_json_array_value(const char *key, uint32_t index, const char *json_dat
 
     // Find the index-th element: start from token[1], which is the first element
     int elem_token = 1;
-    for (uint32_t i = 0; i < index; i++)
-    {
+    for(uint32_t i = 0; i < index; i++) {
         elem_token = skip_token(tokens, elem_token, ret);
-        if (elem_token == -1 || elem_token >= ret)
-        {
+        if(elem_token == -1 || elem_token >= ret) {
             FURI_LOG_E("JSMM.H", "Error skipping tokens to reach element %lu.", i);
             free(tokens);
             free(array_str);
@@ -636,9 +557,8 @@ char *get_json_array_value(const char *key, uint32_t index, const char *json_dat
     // Now elem_token should point to the token of the requested element
     jsmntok_t element = tokens[elem_token];
     int length = element.end - element.start;
-    char *value = malloc(length + 1);
-    if (!value)
-    {
+    char* value = malloc(length + 1);
+    if(!value) {
         FURI_LOG_E("JSMM.H", "Failed to allocate memory for array element.");
         free(tokens);
         free(array_str);
@@ -655,18 +575,15 @@ char *get_json_array_value(const char *key, uint32_t index, const char *json_dat
 }
 
 // Revised get_json_array_values function with correct token skipping
-char **get_json_array_values(const char *key, const char *json_data, int *num_values)
-{
+char** get_json_array_values(const char* key, const char* json_data, int* num_values) {
     // Retrieve the array string for the given key
-    char *array_str = get_json_value(key, json_data);
-    if (array_str == NULL)
-    {
+    char* array_str = get_json_value(key, json_data);
+    if(array_str == NULL) {
         FURI_LOG_E("JSMM.H", "Failed to get array for key: %s", key);
         return NULL;
     }
     uint32_t max_tokens = json_token_count(array_str);
-    if (!jsmn_memory_check(max_tokens))
-    {
+    if(!jsmn_memory_check(max_tokens)) {
         FURI_LOG_E("JSMM.H", "Insufficient memory for JSON tokens.");
         free(array_str);
         return NULL;
@@ -676,9 +593,8 @@ char **get_json_array_values(const char *key, const char *json_data, int *num_va
     jsmn_init(&parser);
 
     // Allocate memory for JSON tokens
-    jsmntok_t *tokens = malloc(sizeof(jsmntok_t) * max_tokens); // Allocate on the heap
-    if (tokens == NULL)
-    {
+    jsmntok_t* tokens = malloc(sizeof(jsmntok_t) * max_tokens); // Allocate on the heap
+    if(tokens == NULL) {
         FURI_LOG_E("JSMM.H", "Failed to allocate memory for JSON tokens.");
         free(array_str);
         return NULL;
@@ -686,8 +602,7 @@ char **get_json_array_values(const char *key, const char *json_data, int *num_va
 
     // Parse the JSON array
     int ret = jsmn_parse(&parser, array_str, strlen(array_str), tokens, max_tokens);
-    if (ret < 0)
-    {
+    if(ret < 0) {
         FURI_LOG_E("JSMM.H", "Failed to parse JSON array: %d", ret);
         free(tokens);
         free(array_str);
@@ -695,8 +610,7 @@ char **get_json_array_values(const char *key, const char *json_data, int *num_va
     }
 
     // Ensure the root element is an array
-    if (tokens[0].type != JSMN_ARRAY)
-    {
+    if(tokens[0].type != JSMN_ARRAY) {
         FURI_LOG_E("JSMM.H", "Value for key '%s' is not an array.", key);
         free(tokens);
         free(array_str);
@@ -705,9 +619,8 @@ char **get_json_array_values(const char *key, const char *json_data, int *num_va
 
     // Allocate memory for the array of values (maximum possible)
     int array_size = tokens[0].size;
-    char **values = malloc(array_size * sizeof(char *));
-    if (values == NULL)
-    {
+    char** values = malloc(array_size * sizeof(char*));
+    if(values == NULL) {
         FURI_LOG_E("JSMM.H", "Failed to allocate memory for array of values.");
         free(tokens);
         free(array_str);
@@ -718,18 +631,15 @@ char **get_json_array_values(const char *key, const char *json_data, int *num_va
 
     // Traverse the array and extract all object values
     int current_token = 1; // Start after the array token
-    for (int i = 0; i < array_size; i++)
-    {
-        if (current_token >= ret)
-        {
+    for(int i = 0; i < array_size; i++) {
+        if(current_token >= ret) {
             FURI_LOG_E("JSMM.H", "Unexpected end of tokens while traversing array.");
             break;
         }
 
         jsmntok_t element = tokens[current_token];
 
-        if (element.type != JSMN_OBJECT)
-        {
+        if(element.type != JSMN_OBJECT) {
             FURI_LOG_E("JSMM.H", "Array element %d is not an object, skipping.", i);
             // Skip this element
             current_token += 1;
@@ -739,12 +649,10 @@ char **get_json_array_values(const char *key, const char *json_data, int *num_va
         int length = element.end - element.start;
 
         // Allocate a new string for the value and copy the data
-        char *value = malloc(length + 1);
-        if (value == NULL)
-        {
+        char* value = malloc(length + 1);
+        if(value == NULL) {
             FURI_LOG_E("JSMM.H", "Failed to allocate memory for array element.");
-            for (int j = 0; j < actual_num_values; j++)
-            {
+            for(int j = 0; j < actual_num_values; j++) {
                 free(values[j]);
             }
             free(values);
@@ -766,17 +674,14 @@ char **get_json_array_values(const char *key, const char *json_data, int *num_va
     *num_values = actual_num_values;
 
     // Reallocate the values array to actual_num_values if necessary
-    if (actual_num_values < array_size)
-    {
-        char **reduced_values = realloc(values, actual_num_values * sizeof(char *));
-        if (reduced_values != NULL)
-        {
+    if(actual_num_values < array_size) {
+        char** reduced_values = realloc(values, actual_num_values * sizeof(char*));
+        if(reduced_values != NULL) {
             values = reduced_values;
         }
 
         // Free the remaining values
-        for (int i = actual_num_values; i < array_size; i++)
-        {
+        for(int i = actual_num_values; i < array_size; i++) {
             free(values[i]);
         }
     }
@@ -787,10 +692,8 @@ char **get_json_array_values(const char *key, const char *json_data, int *num_va
     return values;
 }
 
-int json_token_count(const char *json)
-{
-    if (json == NULL)
-    {
+int json_token_count(const char* json) {
+    if(json == NULL) {
         return JSMN_ERROR_INVAL;
     }
 

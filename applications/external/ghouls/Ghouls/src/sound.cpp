@@ -4,16 +4,13 @@
 #include SOUND_INCLUDE
 #endif
 
-Sound::Sound()
-{
+Sound::Sound() {
 }
 
-Sound::~Sound()
-{
+Sound::~Sound() {
 }
 
-void Sound::playNote(const SoundNote &note)
-{
+void Sound::playNote(const SoundNote& note) {
 #ifdef SOUND_PLAY_STEREO_FREQUENCY
     SOUND_PLAY_STEREO_FREQUENCY(note.leftFrequency, note.rightFrequency, note.durationMs);
 #elif defined(SOUND_PLAY_MONO_FREQUENCY)
@@ -23,8 +20,7 @@ void Sound::playNote(const SoundNote &note)
 #endif
 }
 
-void Sound::playPCMSample(const int16_t *samples, int count)
-{
+void Sound::playPCMSample(const int16_t* samples, int count) {
 #ifdef SOUND_PLAY_PCM
     SOUND_PLAY_PCM(samples, count);
 #else
@@ -33,19 +29,16 @@ void Sound::playPCMSample(const int16_t *samples, int count)
 #endif
 }
 
-void Sound::setSong(const SoundSong &song)
-{
+void Sound::setSong(const SoundSong& song) {
     currentSong = song;
     currentNoteIndex = 0;
     time = 0;
 }
 
-void Sound::tick()
-{
+void Sound::tick() {
     time++;
 
-    if (currentSong.notes == nullptr || currentNoteIndex >= currentSong.noteCount)
-    {
+    if(currentSong.notes == nullptr || currentNoteIndex >= currentSong.noteCount) {
         return; // No song or finished
     }
 
