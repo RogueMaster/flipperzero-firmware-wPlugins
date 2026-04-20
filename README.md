@@ -11,12 +11,12 @@ A simple 3D action-adventure game built with the Pico Game Engine. This is the F
 - Instagram: https://www.instagram.com/jblanked
 - Other: https://www.jblanked.com/social/
 
-### Features
+## Features
 - Weapons: Find and use a variety of weapons (shooters and launchers) to fend off the ghouls.
 - Day/Night Cycle: Round-based survival gameplay with a day/night cycle. During the day, players can explore, gather resources, and prepare for the night. At night, players must defend themselves against waves of ghouls.
 - Online Multiplayer: Team up with friends or other players online to survive together. (Coming Soon)
 
-### Controls
+## Controls
 - Up/Down/Left/Right: Move
 - Center Button: Fire Weapon (if equipped)
 - Back Button: Open/Close Game Menu
