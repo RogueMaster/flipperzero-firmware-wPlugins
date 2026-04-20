@@ -120,6 +120,17 @@ GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEna
         player = nullptr;
         return;
     }
+
+    sky = ENGINE_MEM_NEW Sky(SKY_SUNNY);
+    if (!sky)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Sky instance");
+        ENGINE_MEM_DELETE player;
+        player = nullptr;
+        ENGINE_MEM_DELETE gameTime;
+        gameTime = nullptr;
+        return;
+    }
 }
 
 GhoulsGame::~GhoulsGame()
@@ -140,6 +151,11 @@ GhoulsGame::~GhoulsGame()
     {
         ENGINE_MEM_DELETE gameTime;
         gameTime = nullptr;
+    }
+    if (sky)
+    {
+        ENGINE_MEM_DELETE sky;
+        sky = nullptr;
     }
     if (currentDynamicMap)
     {
@@ -397,7 +413,7 @@ bool GhoulsGame::initializeSprites()
         ENGINE_LOG_INFO("[GhoulsGame:initializeSprites] Failed to create Sprite3D instance for house sprite");
         return false;
     }
-    houseSprite->initializeAsHouse(Vector(), 3.0f, 3.0f, 0.0f, 0x0000, WIREFRAME_ENABLED);
+    houseSprite->initializeAsHouse(Vector(), 3.0f, 3.0f, 0.0f, 0xa0a1, WIREFRAME_ENABLED);
 
     // tree
     treeSprite = ENGINE_MEM_NEW Sprite3D();
@@ -406,7 +422,7 @@ bool GhoulsGame::initializeSprites()
         ENGINE_LOG_INFO("[GhoulsGame:initializeSprites] Failed to create Sprite3D instance for tree sprite");
         return false;
     }
-    treeSprite->initializeAsTree(Vector(), 4.0f, 0x0000, WIREFRAME_ENABLED);
+    treeSprite->initializeAsTree(Vector(), 4.0f, 0x13e2, WIREFRAME_ENABLED);
 
     // horizontal wall (top/bottom borders: len = MAP_WIDTH, rotation = 0)
     wallSprite = ENGINE_MEM_NEW Sprite3D();
@@ -633,6 +649,8 @@ void GhoulsGame::renderEnvironment(Game *game)
         dists[j + 1] = keyDist;
         indices[j + 1] = keyIdx;
     }
+
+    sky->render(draw);
 
     renderWalls(game);
 
@@ -889,6 +907,7 @@ bool GhoulsGame::startGameOnline()
 void GhoulsGame::updateDraw()
 {
     gameTime->tick();
+    sky->tick();
 
     /*
     During the day:
@@ -909,6 +928,7 @@ void GhoulsGame::updateDraw()
             // to see the ghouls walking back to their spawns
             makeGhoulsGoHome();
             // we could set sky n stuff here too
+            sky->setSkyType(SKY_SUNNY);
             player->showAlert("You survived the night.. for now");
         }
     }
@@ -934,6 +954,7 @@ void GhoulsGame::updateDraw()
             // make ghouls attack player
             makeGhoulsGoToPlayer();
             // we could set sky n stuff here too
+            sky->setSkyType(SKY_DARK);
             currentRound++;  // Increment round (for next night)
             refreshPlayer(); // refresh player state to update weapon and health displays after day ends
             player->showAlert("The ghouls are coming...");

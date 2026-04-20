@@ -4,6 +4,7 @@
 #include "general.hpp"
 #include "player.hpp"
 #include "time.hpp"
+#include "sky.hpp"
 
 class GhoulsGame
 {
@@ -19,6 +20,7 @@ private:
     int lastInput = -1;                      // Last input key pressed
     Player *player = nullptr;                // Player instance
     bool shouldExit = false;                 // Flag to signal exit the game
+    Sky *sky = nullptr;                      // Sky instance for day/night cycle
     Sprite3D *treeSprite = nullptr;          // Static Sprite3D instance for trees
     Sprite3D *wallSprite = nullptr;          // Static Sprite3D instance for horizontal walls (top/bottom borders)
     Sprite3D *vWallSprite = nullptr;         // Static Sprite3D instance for vertical walls (left/right borders)

@@ -20,6 +20,11 @@ public:
     void tick();                      // advance the sky's internal time
 
 private:
-    SkyType type;
     uint32_t time;
+    SkyType type;
+
+    void drawGradientSky(Draw *draw,
+                         uint8_t topR, uint8_t topG, uint8_t topB,
+                         uint8_t horizR, uint8_t horizG, uint8_t horizB);
+    uint16_t makeRGB565(uint8_t r, uint8_t g, uint8_t b);
 };
