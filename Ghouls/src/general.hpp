@@ -1,5 +1,6 @@
 #pragma once
 #include "config.hpp"
+#include ENGINE_LCD_INCLUDE
 
 #define SKY_HORIZON_HEIGHT (ENGINE_LCD_HEIGHT / 2)
 #define SKY_HORIZON_ROWS 4
