@@ -2,6 +2,7 @@
 #include "game.hpp"
 #include "general.hpp"
 #include <math.h>
+#include <cinttypes>
 #include HTTP_INCLUDE
 #include JSON_INCLUDE
 
@@ -81,6 +82,7 @@ void Player::drawCurrentView(Draw *canvas)
 {
     if (!canvas)
         return;
+
     switch (currentMainView)
     {
     case GameViewTitle:
@@ -116,6 +118,22 @@ void Player::drawCurrentView(Draw *canvas)
     default:
         canvas->fillScreen(0xFFFF);
         canvas->text(0, canvas->getDisplaySize().y * 10 / 64, "Unknown View", 0x0000);
+        return;
+    }
+
+    switch (currentMainView)
+    {
+    case GameViewTitle:
+    case GameViewSystemMenu:
+    case GameViewLobbyMenu:
+    case GameViewLobbyBrowser:
+    case GameViewWelcome:
+    case GameViewLogin:
+    case GameViewRegistration:
+    case GameViewUserInfo:
+        canvas->swap();
+        break;
+    default:
         break;
     }
 }
@@ -138,13 +156,14 @@ void Player::drawGameLocalView(Draw *canvas)
         }
         return;
     }
-    else
+    else if (!shouldLeaveGame())
     {
         const int sw = canvas->getDisplaySize().x;
         const int sh = canvas->getDisplaySize().y;
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(sw * 25 / 128, sh / 2, "Starting Game...", 0x0000);
+        canvas->swap();
         bool gameStarted = ghoulsGame->startGame();
         if (gameStarted && ghoulsGame->getEngine())
         {
@@ -175,6 +194,7 @@ void Player::drawGameOnlineView(Draw *canvas)
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Connecting to server...", 0x0000);
+        canvas->swap();
         this->userRequest(RequestTypeGameCreate);
         break;
     // ── Phase 2: Wait for HTTP response, parse port, open WebSocket ──────────
@@ -288,6 +308,7 @@ void Player::drawGameOnlineView(Draw *canvas)
         else
         {
             canvas->text(0, sh * 10 / 64, "Connecting...", 0x0000);
+            canvas->swap();
         }
     }
     break;
@@ -300,6 +321,7 @@ void Player::drawGameOnlineView(Draw *canvas)
             canvas->fillScreen(0xFFFF);
             canvas->setFont(FONT_SIZE_MEDIUM);
             canvas->text(sw * 25 / 128, sh / 2, "Starting Game...", 0x0000);
+            canvas->swap();
             ghoulsGame->startGameOnline();
             if (ghoulsGame->getEngine() && ghoulsGame->getEngine()->getGame())
             {
@@ -435,6 +457,7 @@ void Player::drawGameOnlineView(Draw *canvas)
         canvas->text(0, sh * 30 / 64, "try again.", 0x0000);
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(0, sh * 50 / 64, "Press BACK to return.", 0x0000);
+        canvas->swap();
     }
     break;
 
@@ -444,6 +467,7 @@ void Player::drawGameOnlineView(Draw *canvas)
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_MEDIUM);
         canvas->text(0, sh * 10 / 64, "Joining game...", 0x0000);
+        canvas->swap();
 
         char *websocket_url = (char *)ENGINE_MEM_MALLOC(128);
         if (!websocket_url)
@@ -1050,6 +1074,7 @@ void Player::drawUserInfoView(Draw *canvas)
     switch (userInfoStatus)
     {
     case UserInfoWaiting:
+        canvas->fillScreen(0xFFFF);
         if (!loadingStarted)
         {
             if (!loading)
@@ -1230,7 +1255,7 @@ void Player::drawWelcomeView(Draw *canvas)
     canvas->setFont(FONT_SIZE_SMALL);
     if ((welcomeFrame / 15) % 2 == 0)
     {
-        canvas->text(sw * 34 / 128, sh * 60 / 64, "Press OK to start", 0x0000);
+        canvas->text(sw * 40 / 128, sh * 60 / 64, "Press OK to start", 0x0000);
     }
     welcomeFrame++;
 
@@ -1241,9 +1266,9 @@ void Player::drawWelcomeView(Draw *canvas)
     }
 
     // Draw a box around the OK button
-    canvas->fillRectangle(sw * 40 / 128, sh * 25 / 64, sw * 56 / 128, sh / 4, 0x0000);
+    canvas->fillRectangle(sw * 36 / 128, sh * 25 / 64, sw * 56 / 128, sh / 4, 0x0000);
     canvas->setColor(0xFFFF);
-    canvas->text(sw * 56 / 128, sh * 35 / 64, "Welcome", 0xFFFF);
+    canvas->text(sw * 52 / 128, sh * 31 / 64, "Welcome", 0xFFFF);
     canvas->setColor(0x0000);
 }
 
@@ -1836,14 +1861,14 @@ void Player::render(Draw *canvas, Game *game)
             {
                 snprintf(ammoStr, sizeof(ammoStr), "Ammo: ∞");
             }
-            canvas->text(sw * 4 / 128, sh * 63 / 64, ammoStr, 0x0000);
+            canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, 0x0000);
         }
 
         // draw health
         canvas->setFont(FONT_SIZE_SMALL);
         char healthStr[32];
         snprintf(healthStr, sizeof(healthStr), "HP: %d", (uint16_t)health);
-        canvas->text(sw * 96 / 128, sh * 63 / 64, healthStr, 0x0000);
+        canvas->text(sw * 96 / 128, sh * 61 / 64, healthStr, 0x0000);
 
         // Draw in-game alert overlay if active
         if (alertTimer > 0 && alertMessage[0] != '\0')
@@ -2407,7 +2432,7 @@ void Player::userRequest(RequestType requestType)
             ENGINE_MEM_FREE(authHeader);
             break;
         }
-        snprintf(stats_payload, 128, "{\"username\":\"%s\",\"xp\":%ld}", this->name, (uint32_t)this->xp);
+        snprintf(stats_payload, 128, "{\"username\":\"%s\",\"xp\":%" PRIu32 "}", this->name, (uint32_t)this->xp);
         snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
         if (!HTTP_SEND_REQUEST("https://www.jblanked.com/flipper/api/user/update-xp/", "POST", authHeader, stats_payload))
         {

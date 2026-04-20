@@ -14,6 +14,11 @@
 
 #define MAP_OUTER_WALLS 4
 
+#define WALL_SEGMENT_SIZE 8.0f
+#define WALL_H_SEGMENT_COUNT ((MAP_WIDTH / 8) * 2)  // top + bottom walls
+#define WALL_V_SEGMENT_COUNT ((MAP_HEIGHT / 8) * 2) // left + right walls
+#define WALL_SEGMENT_COUNT (WALL_H_SEGMENT_COUNT + WALL_V_SEGMENT_COUNT)
+
 #define ENEMY_SPAWN_MAX 5 // about 10kb if max_triangles is set to 48
 #define ENEMY_HEALTH_BASE 100
 #define ENEMY_HEALTH_INCREMENT 5

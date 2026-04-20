@@ -1,5 +1,6 @@
 #include "loading.hpp"
 #include <math.h>
+#include <cstdio>
 #include TIME_INCLUDE
 Loading::Loading(Draw *draw)
     : draw(draw)

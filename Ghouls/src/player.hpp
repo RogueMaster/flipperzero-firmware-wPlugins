@@ -113,7 +113,6 @@ private:
     GameState gameState = GameStatePlaying;                    // current game state
     int lastInput = -1;                                        // Last input key
     ToggleState leaveGame = ToggleOff;                         // leave game toggle state
-    uint8_t levelSwitchCounter = 0;                            // counter for level switch delay
     Loading *loading = nullptr;                                // loading animation instance
     LoginStatus loginStatus = LoginNotStarted;                 // Current login status
     OnlineGameState onlineGameState = OnlineStateIdle;         // online game connection state

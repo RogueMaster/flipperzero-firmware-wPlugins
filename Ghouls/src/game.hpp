@@ -8,7 +8,6 @@
 class GhoulsGame
 {
 private:
-    int currentLevelIndex = 0;               // Current level index
     DynamicMap *currentDynamicMap = nullptr; // current dynamic map
     uint16_t currentRound = 1;               // Current round number
     bool dayJustSwitched = true;             // Flag to track if day/night just switched
@@ -19,15 +18,15 @@ private:
     bool isGameRunning = false;              // Flag to check if the game is running
     int lastInput = -1;                      // Last input key pressed
     Player *player = nullptr;                // Player instance
-    ToggleState soundToggle = ToggleOn;      // sound toggle state
     bool shouldExit = false;                 // Flag to signal exit the game
     Sprite3D *treeSprite = nullptr;          // Static Sprite3D instance for trees
     Sprite3D *wallSprite = nullptr;          // Static Sprite3D instance for horizontal walls (top/bottom borders)
     Sprite3D *vWallSprite = nullptr;         // Static Sprite3D instance for vertical walls (left/right borders)
     //
-    static const Vector housePositions[HOUSE_SPAWN_COUNT]; // pre-computed house spawn positions (scaled)
-    static const Vector treePositions[TREE_SPAWN_COUNT];   // pre-computed tree spawn positions (scaled)
-    static const Vector wallPositions[MAP_OUTER_WALLS];    // pre-computed wall center positions
+    static const Vector housePositions[HOUSE_SPAWN_COUNT];        // pre-computed house spawn positions (scaled)
+    static const Vector treePositions[TREE_SPAWN_COUNT];          // pre-computed tree spawn positions (scaled)
+    static const Vector wallPositions[MAP_OUTER_WALLS];           // pre-computed wall center positions (for collision)
+    static const Vector wallSegmentPositions[WALL_SEGMENT_COUNT]; // pre-computed wall segment positions (for rendering)
     //
     int atoi(const char *nptr) { return (int)strtol(nptr, NULL, 10); } // convert string to integer
     Vector getRandomGhoulPosition(Level *level);                       // get a random position for spawning ghouls
@@ -42,8 +41,6 @@ private:
     void refreshPlayer();                                              // refresh player state (e.g., health and weapon displays) after day/night switch
     void registerSpritePositionsOnMap();                               // register the positions of the static sprites (houses, trees, walls) on the DynamicMap for collision detection
     bool removeGhoulsFromLevel();                                      // remove all ghouls from the level
-    void renderHouses(Game *game);                                     // render houses in the level based on their positions relative to the player
-    void renderTrees(Game *game);                                      // render trees in the level based on their positions relative to the player
     void renderWalls(Game *game);                                      // render walls in the level based on their positions relative to the player
     bool spawnGhouls();                                                // Spawn ghouls into the current level for the current round
     bool setDynamicMap();                                              // set the current dynamic map
