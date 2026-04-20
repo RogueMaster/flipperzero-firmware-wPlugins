@@ -1,6 +1,6 @@
 # Disney Toolbox
 
-A toolbox for interacting with Disney park technology. Write custom kyber crystal identities for Savi's Workshop lightsabers and broadcast BLE beacon packets to trigger effects on MagicBand+ wristbands.
+A toolbox for interacting with Disney park technology. Write custom kyber crystal identities for Savi's Workshop lightsabers, broadcast BLE beacon packets to trigger effects on MagicBand+ wristbands, and control Galaxy's Edge droids with personality and location beacons.
 
 ## Kyber Crystal Writer
 
@@ -17,3 +17,9 @@ A toolbox for interacting with Disney park technology. Write custom kyber crysta
 - **RGB Color** — set precise red, green, and blue values
 - **5-Zone Color** — set individual colors for each of the five LED zones
 - **Presets** — pre-built beacon configurations for common Disney park interactions
+
+## Droid Controller
+
+- Broadcast BLE beacons that Galaxy's Edge astromech droids react to
+- **Personality Broadcaster** — emulate any droid personality chip to trigger reactions from nearby droids, with configurable affiliation and paired/unpaired state
+- **Location Broadcaster** — simulate Galaxy's Edge points of interest with configurable reaction interval and distance threshold
