@@ -1,0 +1,12 @@
+App(
+    appid="allstar_firefly",
+    name="Allstar Firefly",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="allstar_firefly_app",
+    stack_size=4 * 1024,
+    fap_category="Sub-GHz",
+    fap_description="Allstar Firefly 318ALD31K gate remote - 9-bit trinary OOK decoder/emulator",
+    fap_author="Custom",
+    fap_version="0.1",
+    fap_icon="icons/subghz_10px.png",
+)

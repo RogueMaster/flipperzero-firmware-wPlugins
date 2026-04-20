@@ -1,0 +1,44 @@
+# Allstar Firefly — Protocol List Integration
+# ============================================
+# Two files to edit in lib/subghz/protocols/
+# Both stock and Unleashed use the same locations.
+
+# ── protocol_list.h ────────────────────────────────────────────────────────
+# Add with the other protocol includes (alphabetical order fits after "acurite"):
+
+#include "allstar_firefly.h"
+
+
+# ── protocol_list.c ────────────────────────────────────────────────────────
+# The protocols array looks like:
+#
+#   const SubGhzProtocol* subghz_protocol_registry_items[] = {
+#       &subghz_protocol_came,
+#       &subghz_protocol_came_atomo,
+#       ...
+#   };
+#
+# Add one entry (alphabetical position doesn't matter functionally):
+
+    &subghz_protocol_allstar_firefly,
+
+
+# ── Save file format (for reference / hand-testing) ────────────────────────
+# Create a file like /ext/subghz/my_gate.sub with this content:
+#
+#   Filetype: Flipper SubGhz Key File
+#   Version: 1
+#   Frequency: 318000000
+#   Preset: FuriHalSubGhzPresetOok650Async
+#   Protocol: Allstar Firefly
+#   Key: +--000++-
+#
+# The Key field is exactly 9 characters: '+', '-', or '0' per DIP position.
+
+
+# ── Compiler note ──────────────────────────────────────────────────────────
+# allstar_firefly.c must be added to the firmware build.
+# In most Flipper build systems (SCons-based) any .c file placed in
+# lib/subghz/protocols/ is automatically picked up — no SConscript edit needed.
+# Confirm by checking that other protocol .c files in that directory have no
+# explicit SConscript entries either.
