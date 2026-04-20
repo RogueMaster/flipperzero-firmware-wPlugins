@@ -79,6 +79,25 @@ const Vector GhoulsGame::wallPositions[MAP_OUTER_WALLS] = {
     Vector( 0.5f, 24.0f),  // 2: left vertical
     Vector(95.5f, 24.0f),  // 3: right vertical
 };
+
+// WALL_SEGMENT_SIZE=8 → 12 h-segments per row, 6 v-segments per column
+// Indices 0–23: horizontal (top then bottom); 24–35: vertical (left then right)
+const Vector GhoulsGame::wallSegmentPositions[WALL_SEGMENT_COUNT] = {
+    // top wall (y=0.5)
+    Vector( 4.0f,  0.5f), Vector(12.0f,  0.5f), Vector(20.0f,  0.5f), Vector(28.0f,  0.5f),
+    Vector(36.0f,  0.5f), Vector(44.0f,  0.5f), Vector(52.0f,  0.5f), Vector(60.0f,  0.5f),
+    Vector(68.0f,  0.5f), Vector(76.0f,  0.5f), Vector(84.0f,  0.5f), Vector(92.0f,  0.5f),
+    // bottom wall (y=47.5)
+    Vector( 4.0f, 47.5f), Vector(12.0f, 47.5f), Vector(20.0f, 47.5f), Vector(28.0f, 47.5f),
+    Vector(36.0f, 47.5f), Vector(44.0f, 47.5f), Vector(52.0f, 47.5f), Vector(60.0f, 47.5f),
+    Vector(68.0f, 47.5f), Vector(76.0f, 47.5f), Vector(84.0f, 47.5f), Vector(92.0f, 47.5f),
+    // left wall (x=0.5)
+    Vector( 0.5f,  4.0f), Vector( 0.5f, 12.0f), Vector( 0.5f, 20.0f),
+    Vector( 0.5f, 28.0f), Vector( 0.5f, 36.0f), Vector( 0.5f, 44.0f),
+    // right wall (x=95.5)
+    Vector(95.5f,  4.0f), Vector(95.5f, 12.0f), Vector(95.5f, 20.0f),
+    Vector(95.5f, 28.0f), Vector(95.5f, 36.0f), Vector(95.5f, 44.0f),
+};
 // clang-format on
 
 GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEnabled)
@@ -398,11 +417,11 @@ bool GhoulsGame::initializeSprites()
     }
     wallSprite->setPosition(Vector(0, 0));
     wallSprite->setRotation(0.0f);
-    wallSprite->createWall(0, 0.75f, 0, MAP_WIDTH, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
+    wallSprite->createWall(0, 0.75f, 0, 8.0f, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
     wallSprite->setActive(true);
     wallSprite->setWireframe(WIREFRAME_ENABLED);
 
-    // vertical wall (left/right borders: len = MAP_HEIGHT, rotation = π/2)
+    // vertical wall (left/right borders: segment width = 8, rotation = π/2)
     vWallSprite = ENGINE_MEM_NEW Sprite3D();
     if (!vWallSprite)
     {
@@ -411,7 +430,7 @@ bool GhoulsGame::initializeSprites()
     }
     vWallSprite->setPosition(Vector(0, 0));
     vWallSprite->setRotation((float)(M_PI / 2.0));
-    vWallSprite->createWall(0, 0.75f, 0, MAP_HEIGHT, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
+    vWallSprite->createWall(0, 0.75f, 0, 8.0f, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
     vWallSprite->setActive(true);
     vWallSprite->setWireframe(WIREFRAME_ENABLED);
 
@@ -563,61 +582,75 @@ bool GhoulsGame::removeGhoulsFromLevel()
 
 void GhoulsGame::renderEnvironment(Game *game)
 {
-    if (game)
-    {
-        // renderWalls(game);
-        renderHouses(game);
-        renderTrees(game);
-    }
-}
-
-void GhoulsGame::renderHouses(Game *game)
-{
-    if (!houseSprite)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:renderHouses] House sprite is not initialized");
+    if (!game || !houseSprite || !treeSprite)
         return;
-    }
     Level *currentLevel = game->current_level;
     if (!currentLevel)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:renderHouses] Current level instance is null");
         return;
-    }
-    for (int8_t i = HOUSE_SPAWN_COUNT - 1; i >= 0; i--)
+
+    float dists[HOUSE_SPAWN_COUNT + TREE_SPAWN_COUNT];
+    uint8_t indices[HOUSE_SPAWN_COUNT + TREE_SPAWN_COUNT];
+    int count = 0;
+
+    for (int8_t i = 0; i < HOUSE_SPAWN_COUNT; i++)
     {
         const Vector &pos = housePositions[i];
         float dx = pos.x - player->position.x;
         float dy = pos.y - player->position.y;
-        if (dx * dx + dy * dy > (float)(FIELD_OF_VIEW_SQUARED))
+        float d2 = dx * dx + dy * dy;
+        if (d2 > (float)(FIELD_OF_VIEW_SQUARED))
             continue;
-        houseSprite->setPosition(pos);
-        currentLevel->render3DSprite(houseSprite, draw, player->position, player->direction, game->camera->height);
+        dists[count] = d2;
+        indices[count] = i; // 0–5 = houses
+        count++;
     }
-}
 
-void GhoulsGame::renderTrees(Game *game)
-{
-    if (!treeSprite)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:renderTrees] Tree sprite is not initialized");
-        return;
-    }
-    Level *currentLevel = game->current_level;
-    if (!currentLevel)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:renderTrees] Current level instance is null");
-        return;
-    }
-    for (int8_t i = TREE_SPAWN_COUNT - 1; i >= 0; i--)
+    for (int8_t i = 0; i < TREE_SPAWN_COUNT; i++)
     {
         const Vector &pos = treePositions[i];
         float dx = pos.x - player->position.x;
         float dy = pos.y - player->position.y;
-        if (dx * dx + dy * dy > (float)(FIELD_OF_VIEW_SQUARED))
+        float d2 = dx * dx + dy * dy;
+        if (d2 > (float)(FIELD_OF_VIEW_SQUARED))
             continue;
-        treeSprite->setPosition(pos);
-        currentLevel->render3DSprite(treeSprite, draw, player->position, player->direction, game->camera->height);
+        dists[count] = d2;
+        indices[count] = HOUSE_SPAWN_COUNT + i; // 6–59 = trees
+        count++;
+    }
+
+    // Insertion sort: furthest first (descending dist)
+    for (int i = 1; i < count; i++)
+    {
+        float keyDist = dists[i];
+        uint8_t keyIdx = indices[i];
+        int j = i - 1;
+        while (j >= 0 && dists[j] < keyDist)
+        {
+            dists[j + 1] = dists[j];
+            indices[j + 1] = indices[j];
+            j--;
+        }
+        dists[j + 1] = keyDist;
+        indices[j + 1] = keyIdx;
+    }
+
+    renderWalls(game);
+
+    // Render back-to-front
+    for (int i = 0; i < count; i++)
+    {
+        uint8_t idx = indices[i];
+        if (idx < HOUSE_SPAWN_COUNT)
+        {
+            houseSprite->setPosition(housePositions[idx]);
+            currentLevel->render3DSprite(houseSprite, draw, player->position, player->direction, game->camera->height);
+        }
+        else
+        {
+            uint8_t treeIdx = idx - HOUSE_SPAWN_COUNT;
+            treeSprite->setPosition(treePositions[treeIdx]);
+            currentLevel->render3DSprite(treeSprite, draw, player->position, player->direction, game->camera->height);
+        }
     }
 }
 
@@ -634,15 +667,15 @@ void GhoulsGame::renderWalls(Game *game)
         ENGINE_LOG_INFO("[GhoulsGame:renderWalls] Current level instance is null");
         return;
     }
-    for (int8_t i = MAP_OUTER_WALLS - 1; i >= 0; i--)
+
+    for (int i = 0; i < WALL_SEGMENT_COUNT; i++)
     {
-        const Vector &pos = wallPositions[i];
+        const Vector &pos = wallSegmentPositions[i];
         float dx = pos.x - player->position.x;
         float dy = pos.y - player->position.y;
         if (dx * dx + dy * dy > (float)(FIELD_OF_VIEW_SQUARED))
             continue;
-        // indices 0,1 = horizontal (top/bottom); indices 2,3 = vertical (left/right)
-        Sprite3D *sprite = (i < 2) ? wallSprite : vWallSprite;
+        Sprite3D *sprite = (i < WALL_H_SEGMENT_COUNT) ? wallSprite : vWallSprite;
         sprite->setPosition(pos);
         currentLevel->render3DSprite(sprite, draw, player->position, player->direction, game->camera->height);
     }
