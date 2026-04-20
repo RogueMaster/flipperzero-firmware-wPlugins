@@ -60,6 +60,11 @@ static void disney_toolbox_app_apply_beacon_data(DisneyToolboxApp* app) {
 void disney_toolbox_app_scene_mb_broadcast_on_enter(void* context) {
     DisneyToolboxApp* app = context;
 
+    if (!app->preset_mode) {
+        app->beacon_data_len =
+            magicband_code_generate(app->selected_code_type, &app->code_params, app->beacon_data);
+    }
+
     disney_toolbox_app_scene_mb_broadcast_update(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewDialog);
 }

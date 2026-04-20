@@ -1,7 +1,7 @@
 App(
     appid="disney_toolbox",
     name="Disney Toolbox",
-    fap_description="Toolbox for Disney park tech, including Kyber crystal writer and MagicBand+ beacon emulator.",
+    fap_description="Toolbox for Disney park tech, including Kyber crystal writer, MagicBand+ beacon emulator, and Galaxy's Edge droid controller.",
     fap_version="0.1",
     apptype=FlipperAppType.EXTERNAL,
     fap_category="Tools",

@@ -305,12 +305,15 @@ static uint8_t magicband_code_generate_e905(const MagicBandCodeParams* params, u
     uint8_t vib_byte = (uint8_t)(0xB0 | (magicband_vibration_values[params->vibration] & 0x0F));
 
     const uint8_t data[] = {
-        0x0C,              // AD length (12 bytes follow)
-        0xFF,              // AD type: manufacturer specific
-        0x83,       0x01,  // Disney specifier
-        0xE1,       0x00,  // Purpose unknown
-        0xE9,       0x05,  // Single color function
-        0x00,              // Spacer
+        0x0C,  // AD length (12 bytes follow)
+        0xFF,  // AD type: manufacturer specific
+        0x83,  // Disney specifier
+        0x01,
+        0xE1,  // Purpose unknown
+        0x00,
+        0xE9,  // Single color function
+        0x05,
+        0x00,  // Spacer
         timing,
         0x0E,  // Purpose unknown
         mask_color, vib_byte,
@@ -336,12 +339,15 @@ static uint8_t magicband_code_generate_e906(const MagicBandCodeParams* params, u
     uint8_t vib_byte = (uint8_t)(0xB0 | (magicband_vibration_values[params->vibration] & 0x0F));
 
     const uint8_t data[] = {
-        0x0E,          // AD length (14 bytes follow)
-        0xFF,          // AD type: manufacturer specific
-        0x83,   0x01,  // Disney specifier
-        0xE2,   0x00,  // Purpose unknown
-        0xE9,   0x06,  // Dual color function
-        0x00,          // Spacer
+        0x0E,  // AD length (14 bytes follow)
+        0xFF,  // AD type: manufacturer specific
+        0x83,  // Disney specifier
+        0x01,
+        0xE2,  // Purpose unknown
+        0x00,
+        0xE9,  // Dual color function
+        0x06,
+        0x00,  // Spacer
         timing,
         0x0F,  // Purpose unknown
         inner,  outer, vib_byte,
@@ -369,12 +375,15 @@ static uint8_t magicband_code_generate_e908(const MagicBandCodeParams* params, u
     uint8_t vib_byte = (uint8_t)(0xB0 | (magicband_vibration_values[params->vibration] & 0x0F));
 
     const uint8_t data[] = {
-        0x10,          // AD length (16 bytes follow)
-        0xFF,          // AD type: manufacturer specific
-        0x83,   0x01,  // Disney specifier
-        0xE2,   0x00,  // Purpose unknown
-        0xE9,   0x08,  // RGB color function
-        0x00,          // Spacer
+        0x10,  // AD length (16 bytes follow)
+        0xFF,  // AD type: manufacturer specific
+        0x83,  // Disney specifier
+        0x01,
+        0xE2,  // Purpose unknown
+        0x00,
+        0xE9,  // RGB color function
+        0x08,
+        0x00,  // Spacer
         timing,
         0xD2,  // Purpose unknown
         0x55,  // Purpose unknown
@@ -404,12 +413,15 @@ static uint8_t magicband_code_generate_e909(const MagicBandCodeParams* params, u
     uint8_t vib_byte = (uint8_t)(0xB0 | (magicband_vibration_values[params->vibration] & 0x0F));
 
     const uint8_t data[] = {
-        0x10,          // AD length (16 bytes follow)
-        0xFF,          // AD type: manufacturer specific
-        0x83,   0x01,  // Disney specifier
-        0xE1,   0x00,  // Purpose unknown
-        0xE9,   0x09,  // 5-zone color function
-        0x00,          // Spacer
+        0x10,  // AD length (16 bytes follow)
+        0xFF,  // AD type: manufacturer specific
+        0x83,  // Disney specifier
+        0x01,
+        0xE1,  // Purpose unknown
+        0x00,
+        0xE9,  // 5-zone color function
+        0x09,
+        0x00,  // Spacer
         timing,
         0x0F,  // Purpose unknown
         center, top_right, bottom_right, bottom_left, top_left, vib_byte,

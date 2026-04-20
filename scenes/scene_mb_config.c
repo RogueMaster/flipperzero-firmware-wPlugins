@@ -136,10 +136,9 @@ static void mb_config_rgb_blue_changed(VariableItem* item) {
 
 static void mb_config_enter_callback(void* context, uint32_t index) {
     DisneyToolboxApp* app = context;
-    if (index == mb_broadcast_item_index) {
-        scene_manager_set_scene_state(app->scene_manager, DisneyToolboxAppSceneMbConfig, index);
-        scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneMbBroadcast);
-    }
+    UNUSED(index);
+    scene_manager_set_scene_state(app->scene_manager, DisneyToolboxAppSceneMbConfig, index);
+    scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneMbBroadcast);
 }
 
 void disney_toolbox_app_scene_mb_config_on_enter(void* context) {

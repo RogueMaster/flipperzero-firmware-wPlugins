@@ -21,7 +21,7 @@ void disney_toolbox_app_scene_menu_on_enter(void* context) {
                      disney_toolbox_app_scene_menu_submenu_callback, app);
     submenu_add_item(submenu, "MagicBand+ Beacon", SubmenuIndexMagicBand,
                      disney_toolbox_app_scene_menu_submenu_callback, app);
-    submenu_add_item(submenu, "Droid Controller (Soon!)", SubmenuIndexDroidController,
+    submenu_add_item(submenu, "Droid Controller (beta)", SubmenuIndexDroidController,
                      disney_toolbox_app_scene_menu_submenu_callback, app);
     submenu_add_item(submenu, "About", SubmenuIndexAbout,
                      disney_toolbox_app_scene_menu_submenu_callback, app);
@@ -43,6 +43,9 @@ bool disney_toolbox_app_scene_menu_on_event(void* context, SceneManagerEvent eve
             consumed = true;
         } else if (event.event == SubmenuIndexMagicBand) {
             scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneMbMenu);
+            consumed = true;
+        } else if (event.event == SubmenuIndexDroidController) {
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneDroidMenu);
             consumed = true;
         } else if (event.event == SubmenuIndexAbout) {
             scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneAbout);

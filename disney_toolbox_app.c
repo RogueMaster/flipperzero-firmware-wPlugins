@@ -67,6 +67,14 @@ static DisneyToolboxApp* disney_toolbox_app_alloc(void) {
     app->selected_code_type = MagicBandCodeTypeE905;
     magicband_code_params_init(&app->code_params);
 
+    // Droid state init
+    app->selected_droid_personality = DroidPersonalityNoneRSeries;
+    app->droid_paired = false;
+    app->selected_droid_location = DroidLocationMarketplace;
+    app->droid_loc_interval_idx = 0;
+    app->droid_loc_rssi_idx = 0;
+    app->droid_loc_field = 0;
+
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher,
                                               disney_toolbox_app_custom_event_callback);
@@ -96,6 +104,13 @@ static DisneyToolboxApp* disney_toolbox_app_alloc(void) {
     view_dispatcher_add_view(app->view_dispatcher, DisneyToolboxAppViewConfig,
                              variable_item_list_get_view(app->var_item_list));
 
+    app->droid_view = view_alloc();
+    view_allocate_model(app->droid_view, ViewModelTypeLockFree, sizeof(DisneyToolboxApp*));
+    DisneyToolboxApp** droid_model = view_get_model(app->droid_view);
+    *droid_model = app;
+    view_commit_model(app->droid_view, false);
+    view_dispatcher_add_view(app->view_dispatcher, DisneyToolboxAppViewDroid, app->droid_view);
+
     disney_toolbox_app_init_beacon_config(app);
 
     return app;
@@ -107,6 +122,7 @@ static void disney_toolbox_app_free(DisneyToolboxApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, DisneyToolboxAppViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, DisneyToolboxAppViewPopup);
     view_dispatcher_remove_view(app->view_dispatcher, DisneyToolboxAppViewConfig);
+    view_dispatcher_remove_view(app->view_dispatcher, DisneyToolboxAppViewDroid);
 
     free(app->lfworker);
     free(app->protocol_dict);
@@ -116,6 +132,7 @@ static void disney_toolbox_app_free(DisneyToolboxApp* app) {
     free(app->widget);
     free(app->popup);
     free(app->var_item_list);
+    view_free(app->droid_view);
 
     free(app->scene_manager);
     free(app->view_dispatcher);

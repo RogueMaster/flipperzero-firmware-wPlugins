@@ -1,6 +1,6 @@
 # flipper-disney-toolbox
 
-A Flipper Zero app for interacting with Disney park technology. Write custom kyber crystal identities for Savi's Workshop lightsabers and broadcast MagicBand+ BLE beacon packets.
+A Flipper Zero app for interacting with Disney park technology. Write custom kyber crystal identities for Savi's Workshop lightsabers, broadcast MagicBand+ BLE beacon packets, and control Galaxy's Edge droids with personality and location beacons.
 
 <table>
   <tr>
@@ -16,6 +16,7 @@ A Flipper Zero app for interacting with Disney park technology. Write custom kyb
 - [Features](#features)
   - [Kyber Crystal Writer](#kyber-crystal-writer)
   - [MagicBand+ Beacon](#magicband-beacon)
+  - [Droid Controller](#droid-controller)
 - [Installation](#installation)
   - [Flipper Mobile App](#flipper-mobile-app)
   - [Pre-built FAP](#pre-built-fap)
@@ -25,6 +26,9 @@ A Flipper Zero app for interacting with Disney park technology. Write custom kyb
 - [Usage](#usage)
   - [Writing a Kyber Crystal](#writing-a-kyber-crystal)
   - [Broadcasting a MagicBand+ Beacon](#broadcasting-a-magicband-beacon)
+  - [Broadcasting Droid Beacons](#broadcasting-droid-beacons)
+    - [Personality Broadcaster](#personality-broadcaster)
+    - [Location Broadcaster](#location-broadcaster)
 
 ## Features
 
@@ -53,6 +57,23 @@ A Flipper Zero app for interacting with Disney park technology. Write custom kyb
 - Broadcast BLE advertisement packets that trigger light and vibration effects on MagicBand+ wristbands
 - Multiple code types with configurable colors, vibration patterns, timing, and fade settings
 - Pre-built presets for common Disney park interactions
+
+### Droid Controller
+
+<table>
+  <tr>
+    <td><img src="docs/Droid%20Controller.png" alt="Droid Controller"></td>
+    <td><img src="docs/Droid%20Controller%20Personality.png" alt="Droid Controller Personality"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/Droid%20Controller%20Location%20Selector.png" alt="Droid Controller Location Selector"></td>
+    <td><img src="docs/Droid%20Controller%20Location%20Broadcasting.png" alt="Droid Controller Location Broadcasting"></td>
+  </tr>
+</table>
+
+- Broadcast BLE beacons that Galaxy's Edge astromech droids react to
+- Emulate any droid personality chip (color, affiliation, paired/unpaired) to trigger reactions from nearby droids
+- Simulate Galaxy's Edge points of interest (Marketplace, Droid Depot, Oga's Cantina, etc.) with configurable reaction interval and distance threshold
 
 ## Installation
 
@@ -114,3 +135,22 @@ Once written, insert the crystal into a Savi's Workshop lightsaber or Holocron t
 4. Press **Start Broadcast**
 
 The Flipper will broadcast BLE advertisement packets. Nearby MagicBand+ wristbands will react with light and vibration effects.
+
+### Broadcasting Droid Beacons
+
+#### Personality Broadcaster
+
+1. Open **Disney Toolbox** → **Droid Controller** → **Personality Broadcaster**
+2. Browse personality chips with the left/right buttons
+3. Toggle paired/unpaired with the up/down buttons
+4. Press **Start** to begin broadcasting
+
+Nearby Galaxy's Edge droids will react to the emulated personality chip beacon. Press **Stop** to end the broadcast.
+
+#### Location Broadcaster
+
+1. Open **Disney Toolbox** → **Droid Controller** → **Location Broadcaster**
+2. Select a location, reaction interval, and distance threshold
+3. Press **Start Broadcast**
+
+Droids within range will perform location-specific reactions. Interval controls how often the droid reacts; distance sets how close the droid must be.
