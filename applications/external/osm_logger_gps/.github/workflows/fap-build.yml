@@ -1,0 +1,39 @@
+name: FAP Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Lundi 06:00 UTC = 07:00/08:00 Paris. Détecte les dérives SDK entre deux
+    # releases firmware sans qu'on ait à committer.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  ufbt-build:
+    runs-on: ubuntu-latest
+    name: 'ufbt: ${{ matrix.name }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: release channel
+            sdk-channel: release
+          - name: rc channel
+            sdk-channel: rc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.2
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}

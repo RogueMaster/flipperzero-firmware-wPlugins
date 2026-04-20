@@ -1,0 +1,12 @@
+# ufbt build artefacts
+dist/
+.ufbt/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Système
+.DS_Store
+Thumbs.db
