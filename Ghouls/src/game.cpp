@@ -125,6 +125,12 @@ GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEna
 GhoulsGame::~GhoulsGame()
 {
     this->endGame();
+    if (engine)
+    {
+        engine->stop();
+        ENGINE_MEM_DELETE engine;
+        engine = nullptr;
+    }
     if (player)
     {
         ENGINE_MEM_DELETE player;
@@ -164,12 +170,6 @@ GhoulsGame::~GhoulsGame()
     {
         ENGINE_MEM_DELETE draw;
         draw = nullptr;
-    }
-    if (engine)
-    {
-        engine->stop();
-        ENGINE_MEM_DELETE engine;
-        engine = nullptr;
     }
 }
 
