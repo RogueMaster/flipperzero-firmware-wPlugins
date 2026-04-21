@@ -1,43 +1,20 @@
 #include "../flippass.h"
 #include "../flippass_db.h"
+#include "../kdbx/memzero.h"
+#include "flippass_output_transport.h"
 
-#include <bt/bt_service/bt.h>
-#include <extra_profiles/hid_profile.h>
-#include <gap.h>
 #include <storage/storage.h>
 #include <toolbox/path.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define FLIPPASS_BT_KEYS_STORAGE_DIR             EXT_PATH("apps_data/bad_usb")
-#define FLIPPASS_BT_KEYS_STORAGE_PATH            EXT_PATH("apps_data/bad_usb/.bt_hid.keys")
-#define FLIPPASS_BLE_SETUP_DELAY_MS              200U
-#define FLIPPASS_BLE_WAIT_STEP_MS                100U
-#define FLIPPASS_BLE_CONNECT_TIMEOUT_MS          15000U
-#define FLIPPASS_BLE_CONNECT_SETTLE_MS           300U
 #define FLIPPASS_BLE_PRESS_DELAY_MS              12U
 #define FLIPPASS_BLE_RELEASE_DELAY_MS            18U
 #define FLIPPASS_BLE_STEP_DELAY_MS               45U
-#define FLIPPASS_BLE_NAME_PREFIX                 "BadUSB"
-#define FLIPPASS_BLE_NAME_BUFFER_SIZE            21U
-#define FLIPPASS_BLE_MAC_XOR                     0x0002U
+#define FLIPPASS_OUTPUT_VAULT_STREAM_CHUNK_MAX   (4U * KDBX_VAULT_RECORD_PLAIN_MAX)
 #define FLIPPASS_OUTPUT_KEEPASS_DEFAULT_SEQUENCE "{USERNAME}{TAB}{PASSWORD}{ENTER}"
 #define FLIPPASS_OUTPUT_CLEARFIELD_SEQUENCE      "{HOME}+({END}){BKSP}{DELAY 50}"
-
-typedef struct {
-    char name[FLIPPASS_BLE_NAME_BUFFER_SIZE];
-    uint8_t mac[GAP_MAC_ADDR_SIZE];
-    bool bonding;
-    GapPairing pairing;
-} FlipPassBleProfileParams;
-
-struct FlipPassBleSession {
-    Bt* bt;
-    FuriHalBleProfileBase* profile;
-    bool connected;
-    BtStatus status;
-};
 
 typedef struct {
     const char* token;
@@ -55,6 +32,7 @@ typedef struct {
     const char* progress_detail;
     FuriString* placeholder_buffer;
     bool use_alt_numpad;
+    bool pending_cr;
 } FlipPassOutputSession;
 
 typedef enum {
@@ -75,14 +53,13 @@ static const uint8_t flippass_output_numpad_keys[10] = {
     HID_KEYPAD_9,
 };
 
-typedef struct {
-    FlipPassOutputSession* session;
-    size_t completed_steps;
-} FlipPassOutputStreamContext;
-
 static bool flippass_output_session_prepare_alt_numpad(FlipPassOutputSession* session);
+static bool flippass_output_session_cancel_requested(const FlipPassOutputSession* session);
+static bool flippass_output_session_delay(FlipPassOutputSession* session, uint32_t delay_ms);
 static bool
     flippass_output_session_type_alt_code_byte(FlipPassOutputSession* session, uint8_t value);
+static bool flippass_output_session_type_text_byte(FlipPassOutputSession* session, uint8_t value);
+static bool flippass_output_session_flush_pending_cr(FlipPassOutputSession* session);
 static bool flippass_output_session_stream_text_chunk(
     FlipPassOutputSession* session,
     const uint8_t* data,
@@ -146,212 +123,6 @@ static void
     }
 
     flippass_progress_update(session->app, "Typing", session->progress_detail, percent);
-}
-
-static void flippass_ble_release_all(App* app) {
-    if(app == NULL || app->ble_session == NULL || app->ble_session->profile == NULL) {
-        return;
-    }
-
-    ble_profile_hid_kb_release_all(app->ble_session->profile);
-}
-
-static bool flippass_ble_press_key_prepared(App* app, uint16_t hid_key) {
-    furi_assert(app);
-
-    if(hid_key == HID_KEYBOARD_NONE || app->ble_session == NULL ||
-       app->ble_session->profile == NULL) {
-        return false;
-    }
-
-    ble_profile_hid_kb_press(app->ble_session->profile, hid_key);
-    return true;
-}
-
-static bool flippass_ble_release_key_prepared(App* app, uint16_t hid_key) {
-    furi_assert(app);
-
-    if(hid_key == HID_KEYBOARD_NONE || app->ble_session == NULL ||
-       app->ble_session->profile == NULL) {
-        return false;
-    }
-
-    ble_profile_hid_kb_release(app->ble_session->profile, hid_key);
-    return true;
-}
-
-void flippass_output_bluetooth_get_name(char* buffer, size_t size) {
-    if(buffer == NULL || size == 0U) {
-        return;
-    }
-
-    snprintf(buffer, size, "%s %s", FLIPPASS_BLE_NAME_PREFIX, furi_hal_version_get_name_ptr());
-}
-
-static FuriHalBleProfileBase* flippass_ble_profile_start(FuriHalBleProfileParams profile_params) {
-    UNUSED(profile_params);
-
-    return ble_profile_hid->start(NULL);
-}
-
-static void flippass_ble_profile_stop(FuriHalBleProfileBase* profile) {
-    ble_profile_hid->stop(profile);
-}
-
-static void
-    flippass_ble_profile_get_config(GapConfig* config, FuriHalBleProfileParams profile_params) {
-    furi_check(config);
-    FlipPassBleProfileParams* params = profile_params;
-
-    /* Reuse the stock HID BLE identity so hosts already paired with BadUSB reconnect here. */
-    ble_profile_hid->get_gap_config(config, NULL);
-
-    if(params != NULL) {
-        memcpy(config->mac_address, params->mac, sizeof(config->mac_address));
-        strlcpy(config->adv_name + 1, params->name, sizeof(config->adv_name) - 1);
-        config->bonding_mode = params->bonding;
-        config->pairing_method = params->pairing;
-    }
-}
-
-static const FuriHalBleProfileTemplate flippass_ble_profile_template = {
-    .start = flippass_ble_profile_start,
-    .stop = flippass_ble_profile_stop,
-    .get_gap_config = flippass_ble_profile_get_config,
-};
-
-static void flippass_ble_status_changed(BtStatus status, void* context) {
-    FlipPassBleSession* session = context;
-    furi_assert(session);
-    session->status = status;
-    session->connected = (status == BtStatusConnected);
-}
-
-static bool flippass_ble_prepare_storage(void) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    const bool ok = storage_simply_mkdir(storage, FLIPPASS_BT_KEYS_STORAGE_DIR);
-    furi_record_close(RECORD_STORAGE);
-    return ok;
-}
-
-static void flippass_ble_prepare_profile_params(FlipPassBleProfileParams* profile_params) {
-    furi_assert(profile_params);
-
-    memset(profile_params, 0, sizeof(*profile_params));
-    memcpy(profile_params->mac, furi_hal_version_get_ble_mac(), sizeof(profile_params->mac));
-    profile_params->mac[2]++;
-    profile_params->mac[0] ^= FLIPPASS_BLE_MAC_XOR;
-    profile_params->mac[1] ^= FLIPPASS_BLE_MAC_XOR >> 8;
-    profile_params->bonding = true;
-    profile_params->pairing = GapPairingPinCodeVerifyYesNo;
-    flippass_output_bluetooth_get_name(profile_params->name, sizeof(profile_params->name));
-}
-
-static bool flippass_ble_session_start(App* app) {
-    furi_assert(app);
-
-    if(app->ble_session != NULL) {
-        return true;
-    }
-
-    if(!flippass_ble_prepare_storage()) {
-        return false;
-    }
-
-    FlipPassBleSession* session = malloc(sizeof(FlipPassBleSession));
-    if(session == NULL) {
-        return false;
-    }
-    memset(session, 0, sizeof(*session));
-
-    session->bt = furi_record_open(RECORD_BT);
-    bt_disconnect(session->bt);
-    furi_delay_ms(FLIPPASS_BLE_SETUP_DELAY_MS);
-    bt_keys_storage_set_storage_path(session->bt, FLIPPASS_BT_KEYS_STORAGE_PATH);
-
-    FlipPassBleProfileParams profile_params;
-    flippass_ble_prepare_profile_params(&profile_params);
-
-    session->profile =
-        bt_profile_start(session->bt, &flippass_ble_profile_template, (void*)&profile_params);
-    if(session->profile == NULL) {
-        bt_keys_storage_set_default_path(session->bt);
-        furi_record_close(RECORD_BT);
-        free(session);
-        return false;
-    }
-
-    session->connected = false;
-    session->status = BtStatusOff;
-    bt_set_status_changed_callback(session->bt, flippass_ble_status_changed, session);
-    furi_hal_bt_start_advertising();
-    session->status = BtStatusAdvertising;
-
-    app->ble_session = session;
-    return true;
-}
-
-static bool flippass_ble_ensure_advertising(App* app) {
-    furi_assert(app);
-
-    if(!flippass_ble_session_start(app)) {
-        return false;
-    }
-
-    FlipPassBleSession* session = app->ble_session;
-    furi_assert(session);
-
-    if(!session->connected) {
-        flippass_ble_release_all(app);
-        bt_disconnect(session->bt);
-        furi_delay_ms(FLIPPASS_BLE_SETUP_DELAY_MS);
-        furi_hal_bt_start_advertising();
-        session->status = BtStatusAdvertising;
-    }
-
-    return true;
-}
-
-bool flippass_output_bluetooth_is_connected(const App* app) {
-    return app != NULL && app->ble_session != NULL && app->ble_session->connected;
-}
-
-bool flippass_output_bluetooth_is_advertising(const App* app) {
-    return app != NULL && app->ble_session != NULL && !app->ble_session->connected &&
-           app->ble_session->status == BtStatusAdvertising;
-}
-
-bool flippass_output_bluetooth_advertise(App* app) {
-    furi_assert(app);
-    return flippass_ble_ensure_advertising(app);
-}
-
-static bool flippass_ble_wait_connected(App* app) {
-    furi_assert(app);
-
-    if(!flippass_ble_ensure_advertising(app)) {
-        return false;
-    }
-
-    uint32_t waited_ms = 0U;
-    while(app->ble_session != NULL && !app->ble_session->connected &&
-          waited_ms < FLIPPASS_BLE_CONNECT_TIMEOUT_MS) {
-        furi_delay_ms(FLIPPASS_BLE_WAIT_STEP_MS);
-        waited_ms += FLIPPASS_BLE_WAIT_STEP_MS;
-        flippass_progress_update(
-            app,
-            "Connecting",
-            "Waiting for Bluetooth HID host.",
-            (uint8_t)(5U + ((waited_ms * 35U) / FLIPPASS_BLE_CONNECT_TIMEOUT_MS)));
-    }
-
-    if(app->ble_session == NULL || !app->ble_session->connected) {
-        return false;
-    }
-
-    flippass_progress_update(app, "Typing", "Bluetooth HID connected.", 40U);
-    furi_delay_ms(FLIPPASS_BLE_CONNECT_SETTLE_MS);
-    return true;
 }
 
 static char flippass_output_ascii_upper(char value) {
@@ -545,51 +316,30 @@ static uint16_t flippass_output_modifier_from_symbol(char symbol) {
 static bool
     flippass_output_session_press_prepared(FlipPassOutputSession* session, uint16_t hid_key) {
     furi_assert(session);
-
-    switch(session->transport) {
-    case FlipPassOutputTransportUsb:
-        return flippass_usb_press_key_prepared(hid_key);
-    case FlipPassOutputTransportBluetooth:
-        return flippass_ble_press_key_prepared(session->app, hid_key);
-    default:
-        return false;
-    }
+    return flippass_output_transport_press_prepared(session->app, session->transport, hid_key);
 }
 
 static bool
     flippass_output_session_release_prepared(FlipPassOutputSession* session, uint16_t hid_key) {
     furi_assert(session);
-
-    switch(session->transport) {
-    case FlipPassOutputTransportUsb:
-        return flippass_usb_release_key_prepared(hid_key);
-    case FlipPassOutputTransportBluetooth:
-        return flippass_ble_release_key_prepared(session->app, hid_key);
-    default:
-        return false;
-    }
+    return flippass_output_transport_release_prepared(session->app, session->transport, hid_key);
 }
 
 static void flippass_output_session_release_all_prepared(FlipPassOutputSession* session) {
     furi_assert(session);
-
-    switch(session->transport) {
-    case FlipPassOutputTransportUsb:
-        flippass_usb_release_all_prepared();
-        break;
-    case FlipPassOutputTransportBluetooth:
-        flippass_ble_release_all(session->app);
-        break;
-    default:
-        break;
-    }
+    flippass_output_transport_release_all_prepared(session->app, session->transport);
 }
 
 static bool flippass_output_session_begin(FlipPassOutputSession* session) {
     furi_assert(session);
 
+    if(flippass_output_session_cancel_requested(session)) {
+        return false;
+    }
+
     session->sticky_modifiers = 0U;
     session->current_modifiers = 0U;
+    session->pending_cr = false;
     session->use_alt_numpad = session->app == NULL || session->app->keyboard_layout_path == NULL ||
                               furi_string_empty(session->app->keyboard_layout_path);
     session->default_delay_ms = (session->transport == FlipPassOutputTransportBluetooth) ?
@@ -600,19 +350,7 @@ static bool flippass_output_session_begin(FlipPassOutputSession* session) {
         return false;
     }
 
-    switch(session->transport) {
-    case FlipPassOutputTransportUsb:
-        if(!flippass_usb_begin(session->app)) {
-            return false;
-        }
-        break;
-    case FlipPassOutputTransportBluetooth:
-        if(!flippass_ble_wait_connected(session->app)) {
-            return false;
-        }
-        flippass_ble_release_all(session->app);
-        break;
-    default:
+    if(!flippass_output_transport_begin(session->app, session->transport)) {
         return false;
     }
 
@@ -626,27 +364,44 @@ static bool flippass_output_session_begin(FlipPassOutputSession* session) {
 static void flippass_output_session_end(FlipPassOutputSession* session) {
     furi_assert(session);
 
+    if(flippass_output_session_cancel_requested(session)) {
+        flippass_progress_update(session->app, "Canceling", "Cleaning up.", 99U);
+    }
+
     flippass_output_session_release_all_prepared(session);
     session->sticky_modifiers = 0U;
     session->current_modifiers = 0U;
-
-    if(session->transport == FlipPassOutputTransportUsb) {
-        flippass_usb_restore(session->app);
-    }
+    session->pending_cr = false;
+    flippass_output_transport_end(session->app, session->transport);
 }
 
-static void flippass_output_session_inter_key_delay(FlipPassOutputSession* session) {
+static bool flippass_output_session_cancel_requested(const FlipPassOutputSession* session) {
+    return session != NULL && session->app != NULL && flippass_typing_should_cancel(session->app);
+}
+
+static bool flippass_output_session_delay(FlipPassOutputSession* session, uint32_t delay_ms) {
+    while(delay_ms > 0U) {
+        const uint32_t step_ms = (delay_ms > 25U) ? 25U : delay_ms;
+
+        if(flippass_output_session_cancel_requested(session)) {
+            return false;
+        }
+
+        furi_delay_ms(step_ms);
+        delay_ms -= step_ms;
+    }
+
+    return !flippass_output_session_cancel_requested(session);
+}
+
+static bool flippass_output_session_inter_key_delay(FlipPassOutputSession* session) {
     furi_assert(session);
-
-    if(session->default_delay_ms > 0U) {
-        furi_delay_ms(session->default_delay_ms);
-    }
+    return flippass_output_session_delay(session, session->default_delay_ms);
 }
 
-static void flippass_output_session_pre_press_delay(uint32_t delay_ms) {
-    if(delay_ms > 0U) {
-        furi_delay_ms(delay_ms);
-    }
+static bool
+    flippass_output_session_pre_press_delay(FlipPassOutputSession* session, uint32_t delay_ms) {
+    return flippass_output_session_delay(session, delay_ms);
 }
 
 static bool flippass_output_session_press_modifier_mask(
@@ -672,12 +427,16 @@ static bool flippass_output_session_press_modifier_mask(
             (modifier == KEY_MOD_LEFT_ALT || modifier == KEY_MOD_RIGHT_ALT) ?
                 FLIPPASS_OUTPUT_ALT_PRE_PRESS_DELAY_MS :
                 FLIPPASS_OUTPUT_PRE_PRESS_DELAY_MS;
-        flippass_output_session_pre_press_delay(pre_press_delay);
+        if(!flippass_output_session_pre_press_delay(session, pre_press_delay)) {
+            return false;
+        }
         if(!flippass_output_session_press_prepared(session, modifier)) {
             return false;
         }
         session->current_modifiers |= modifier;
-        flippass_output_session_inter_key_delay(session);
+        if(!flippass_output_session_inter_key_delay(session)) {
+            return false;
+        }
     }
 
     return true;
@@ -706,7 +465,9 @@ static bool flippass_output_session_release_modifier_mask(
             return false;
         }
         session->current_modifiers &= ~modifier;
-        flippass_output_session_inter_key_delay(session);
+        if(!flippass_output_session_inter_key_delay(session)) {
+            return false;
+        }
     }
 
     return true;
@@ -735,7 +496,7 @@ static bool flippass_output_session_tap_raw_key(
                                        FLIPPASS_BLE_RELEASE_DELAY_MS :
                                        FLIPPASS_USB_RELEASE_DELAY_MS;
 
-    if(base_key == HID_KEYBOARD_NONE) {
+    if(base_key == HID_KEYBOARD_NONE || flippass_output_session_cancel_requested(session)) {
         return false;
     }
 
@@ -744,7 +505,9 @@ static bool flippass_output_session_tap_raw_key(
         return false;
     }
 
-    flippass_output_session_pre_press_delay(FLIPPASS_OUTPUT_PRE_PRESS_DELAY_MS);
+    if(!flippass_output_session_pre_press_delay(session, FLIPPASS_OUTPUT_PRE_PRESS_DELAY_MS)) {
+        return false;
+    }
     if(!flippass_output_session_press_prepared(session, base_key)) {
         if(temp_modifiers != 0U) {
             flippass_output_session_release_modifier_mask(session, temp_modifiers);
@@ -752,23 +515,31 @@ static bool flippass_output_session_tap_raw_key(
         return false;
     }
 
-    furi_delay_ms(press_delay);
+    if(!flippass_output_session_delay(session, press_delay)) {
+        flippass_output_session_release_all_prepared(session);
+        return false;
+    }
 
     if(!flippass_output_session_release_prepared(session, base_key)) {
         flippass_output_session_release_all_prepared(session);
         return false;
     }
 
-    furi_delay_ms(release_delay);
+    if(!flippass_output_session_delay(session, release_delay)) {
+        return false;
+    }
 
     if(temp_modifiers != 0U &&
        !flippass_output_session_release_modifier_mask(session, temp_modifiers)) {
         return false;
     }
 
-    flippass_output_session_inter_key_delay(session);
-    if(base_key == HID_KEYBOARD_TAB && session->default_delay_ms < 100U) {
-        furi_delay_ms(session->default_delay_ms);
+    if(!flippass_output_session_inter_key_delay(session)) {
+        return false;
+    }
+    if(base_key == HID_KEYBOARD_TAB && session->default_delay_ms < 100U &&
+       !flippass_output_session_delay(session, session->default_delay_ms)) {
+        return false;
     }
 
     return true;
@@ -803,16 +574,56 @@ static bool flippass_output_session_tap_char(FlipPassOutputSession* session, cha
     return flippass_output_session_tap_key(session, hid_key);
 }
 
+static bool flippass_output_session_flush_pending_cr(FlipPassOutputSession* session) {
+    if(session == NULL || !session->pending_cr) {
+        return true;
+    }
+
+    session->pending_cr = false;
+    return flippass_output_session_tap_key(session, HID_KEYBOARD_RETURN);
+}
+
+static bool flippass_output_session_type_text_byte(FlipPassOutputSession* session, uint8_t value) {
+    if(flippass_output_session_cancel_requested(session)) {
+        return false;
+    }
+
+    if(session->pending_cr) {
+        if(value == '\n') {
+            session->pending_cr = false;
+            return flippass_output_session_tap_key(session, HID_KEYBOARD_RETURN);
+        }
+
+        if(!flippass_output_session_flush_pending_cr(session)) {
+            return false;
+        }
+    }
+
+    switch(value) {
+    case '\r':
+        session->pending_cr = true;
+        return true;
+    case '\n':
+        return flippass_output_session_tap_key(session, HID_KEYBOARD_RETURN);
+    case '\t':
+        return flippass_output_session_tap_key(session, HID_KEYBOARD_TAB);
+    case '\b':
+        return flippass_output_session_tap_key(session, HID_KEYBOARD_DELETE);
+    default:
+        return flippass_output_session_tap_char(session, (char)value);
+    }
+}
+
 static bool
     flippass_output_session_type_literal(FlipPassOutputSession* session, const char* text) {
     for(size_t index = 0U; text[index] != '\0'; index++) {
-        if(!flippass_output_session_tap_char(session, text[index])) {
+        if(!flippass_output_session_type_text_byte(session, (uint8_t)text[index])) {
             return false;
         }
         flippass_output_progress_update(session, index + 1U);
     }
 
-    return true;
+    return flippass_output_session_flush_pending_cr(session);
 }
 
 static bool flippass_output_session_stream_cstr(
@@ -823,8 +634,9 @@ static bool flippass_output_session_stream_cstr(
         return false;
     }
 
-    return flippass_output_session_stream_text_chunk(
+    const bool ok = flippass_output_session_stream_text_chunk(
         session, (const uint8_t*)text, strlen(text), completed_steps);
+    return ok && flippass_output_session_flush_pending_cr(session);
 }
 
 static bool flippass_output_session_stream_text_chunk(
@@ -841,7 +653,7 @@ static bool flippass_output_session_stream_text_chunk(
     }
 
     for(size_t index = 0U; index < data_size; index++) {
-        if(!flippass_output_session_tap_char(session, (char)data[index])) {
+        if(!flippass_output_session_type_text_byte(session, data[index])) {
             return false;
         }
         (*completed_steps)++;
@@ -851,16 +663,76 @@ static bool flippass_output_session_stream_text_chunk(
     return true;
 }
 
-static bool
-    flippass_output_stream_text_callback(const uint8_t* data, size_t data_size, void* context) {
-    FlipPassOutputStreamContext* stream_context = context;
+static uint8_t* flippass_output_alloc_vault_stream_buffer(size_t* out_capacity) {
+    static const size_t capacities[] = {
+        FLIPPASS_OUTPUT_VAULT_STREAM_CHUNK_MAX,
+        2U * KDBX_VAULT_RECORD_PLAIN_MAX,
+        KDBX_VAULT_RECORD_PLAIN_MAX,
+    };
 
-    if(stream_context == NULL || stream_context->session == NULL) {
+    if(out_capacity == NULL) {
+        return NULL;
+    }
+
+    for(size_t index = 0U; index < COUNT_OF(capacities); index++) {
+        uint8_t* buffer = malloc(capacities[index]);
+        if(buffer != NULL) {
+            *out_capacity = capacities[index];
+            return buffer;
+        }
+    }
+
+    *out_capacity = 0U;
+    return NULL;
+}
+
+static bool flippass_output_session_stream_vault_ref(
+    FlipPassOutputSession* session,
+    KDBXVault* vault,
+    const KDBXFieldRef* ref,
+    size_t* completed_steps) {
+    KDBXVaultReader reader;
+    uint8_t* buffer = NULL;
+    size_t buffer_capacity = 0U;
+    bool ok = true;
+
+    furi_assert(session);
+    furi_assert(vault);
+    furi_assert(ref);
+    furi_assert(completed_steps);
+
+    if(kdbx_vault_ref_is_empty(ref)) {
+        return true;
+    }
+
+    buffer = flippass_output_alloc_vault_stream_buffer(&buffer_capacity);
+    if(buffer == NULL) {
         return false;
     }
 
-    return flippass_output_session_stream_text_chunk(
-        stream_context->session, data, data_size, &stream_context->completed_steps);
+    kdbx_vault_reader_reset(&reader, vault, ref);
+    while(ok) {
+        size_t chunk_size = 0U;
+
+        if(!kdbx_vault_reader_read(&reader, buffer, buffer_capacity, &chunk_size)) {
+            ok = false;
+            break;
+        }
+
+        if(chunk_size == 0U) {
+            break;
+        }
+
+        ok = flippass_output_session_stream_text_chunk(
+            session, buffer, chunk_size, completed_steps);
+    }
+
+    memzero(buffer, buffer_capacity);
+    free(buffer);
+    if(ok) {
+        ok = flippass_output_session_flush_pending_cr(session);
+    }
+    return ok;
 }
 
 static uint16_t flippass_output_numpad_key_from_digit(char digit) {
@@ -1490,16 +1362,14 @@ static bool flippass_output_execute_vkey(
         if(!flippass_output_session_press_prepared(session, hid_key)) {
             return false;
         }
-        flippass_output_session_inter_key_delay(session);
-        return true;
+        return flippass_output_session_inter_key_delay(session);
     }
 
     if(key_up) {
         if(!flippass_output_session_release_prepared(session, hid_key)) {
             return false;
         }
-        flippass_output_session_inter_key_delay(session);
-        return true;
+        return flippass_output_session_inter_key_delay(session);
     }
 
     return flippass_output_session_tap_key(session, hid_key);
@@ -1553,8 +1423,7 @@ static bool flippass_output_execute_braced_token(
         if(!no_params && !flippass_output_parse_uint_n(params, params_len, &delay_ms)) {
             return false;
         }
-        furi_delay_ms(delay_ms);
-        return true;
+        return flippass_output_session_delay(session, delay_ms);
     }
 
     if(flippass_output_token_n_starts_with(name, name_len, "DELAY=")) {
@@ -1646,12 +1515,18 @@ static bool flippass_output_execute_sequence(
         const uint16_t symbol_modifier = flippass_output_modifier_from_symbol(ch);
 
         if(symbol_modifier != 0U) {
+            if(!flippass_output_session_flush_pending_cr(session)) {
+                return false;
+            }
             pending_modifiers |= symbol_modifier;
             (*index)++;
             continue;
         }
 
         if(ch == '(') {
+            if(!flippass_output_session_flush_pending_cr(session)) {
+                return false;
+            }
             (*index)++;
             if(!flippass_output_session_set_modifiers(
                    session, group_modifiers | pending_modifiers)) {
@@ -1669,6 +1544,9 @@ static bool flippass_output_execute_sequence(
         }
 
         if(ch == ')') {
+            if(!flippass_output_session_flush_pending_cr(session)) {
+                return false;
+            }
             if(!in_group) {
                 return false;
             }
@@ -1681,19 +1559,28 @@ static bool flippass_output_execute_sequence(
         }
 
         if(ch == '{') {
+            if(!flippass_output_session_flush_pending_cr(session)) {
+                return false;
+            }
             if(!flippass_output_execute_braced_token(
                    session, entry, sequence, index, group_modifiers)) {
                 return false;
             }
         } else if(ch == '}') {
+            if(!flippass_output_session_flush_pending_cr(session)) {
+                return false;
+            }
             return false;
         } else if(ch == '~') {
+            if(!flippass_output_session_flush_pending_cr(session)) {
+                return false;
+            }
             if(!flippass_output_session_tap_key(session, HID_KEYBOARD_RETURN)) {
                 return false;
             }
             (*index)++;
         } else {
-            if(!flippass_output_session_tap_char(session, ch)) {
+            if(!flippass_output_session_type_text_byte(session, (uint8_t)ch)) {
                 return false;
             }
             (*index)++;
@@ -1706,7 +1593,7 @@ static bool flippass_output_execute_sequence(
         pending_modifiers = 0U;
     }
 
-    return !in_group;
+    return !in_group && flippass_output_session_flush_pending_cr(session);
 }
 
 const char* flippass_output_transport_name(FlipPassOutputTransport transport) {
@@ -1719,43 +1606,42 @@ const char* flippass_output_transport_name(FlipPassOutputTransport transport) {
     }
 }
 
-bool flippass_output_type_string(App* app, FlipPassOutputTransport transport, const char* text) {
+static bool
+    flippass_output_execute_string_request(App* app, const FlipPassOutputRequest* request) {
     FlipPassOutputSession session = {
         .app = app,
-        .transport = transport,
+        .transport = request->transport,
     };
 
     furi_assert(app);
-    furi_assert(text);
+    furi_assert(request);
+    furi_assert(request->text);
 
     if(!flippass_output_session_begin(&session)) {
         flippass_output_session_end(&session);
         return false;
     }
 
-    flippass_output_progress_begin(&session, strlen(text), "Sending selected text.");
-    const bool ok = flippass_output_session_type_literal(&session, text);
+    flippass_output_progress_begin(&session, strlen(request->text), "Sending text.");
+    const bool ok = flippass_output_session_type_literal(&session, request->text);
     flippass_output_session_end(&session);
     return ok;
 }
 
-bool flippass_output_type_login(
-    App* app,
-    FlipPassOutputTransport transport,
-    const char* username,
-    const char* password) {
+static bool flippass_output_execute_login_request(App* app, const FlipPassOutputRequest* request) {
     FlipPassOutputSession session = {
         .app = app,
-        .transport = transport,
+        .transport = request->transport,
     };
     bool ok = false;
     size_t completed_steps = 0U;
-    const size_t username_len = strlen(username);
-    const size_t password_len = strlen(password);
+    const size_t username_len = strlen(request->username);
+    const size_t password_len = strlen(request->password);
 
     furi_assert(app);
-    furi_assert(username);
-    furi_assert(password);
+    furi_assert(request);
+    furi_assert(request->username);
+    furi_assert(request->password);
 
     if(!flippass_output_session_begin(&session)) {
         flippass_output_session_end(&session);
@@ -1763,9 +1649,9 @@ bool flippass_output_type_login(
     }
 
     flippass_output_progress_begin(
-        &session, username_len + password_len + 2U, "Sending login sequence.");
+        &session, username_len + password_len + 2U, "Sending sequence.");
 
-    ok = flippass_output_session_stream_cstr(&session, username, &completed_steps);
+    ok = flippass_output_session_stream_cstr(&session, request->username, &completed_steps);
     if(ok) {
         ok = flippass_output_session_tap_key(&session, HID_KEYBOARD_TAB);
         if(ok) {
@@ -1774,7 +1660,7 @@ bool flippass_output_type_login(
         }
     }
     if(ok) {
-        ok = flippass_output_session_stream_cstr(&session, password, &completed_steps);
+        ok = flippass_output_session_stream_cstr(&session, request->password, &completed_steps);
     }
     if(ok) {
         ok = flippass_output_session_tap_key(&session, HID_KEYBOARD_RETURN);
@@ -1788,84 +1674,74 @@ bool flippass_output_type_login(
     return ok;
 }
 
-bool flippass_output_type_vault_ref(
-    App* app,
-    FlipPassOutputTransport transport,
-    KDBXVault* vault,
-    const KDBXFieldRef* ref) {
+static bool
+    flippass_output_execute_vault_ref_request(App* app, const FlipPassOutputRequest* request) {
     FlipPassOutputSession session = {
         .app = app,
-        .transport = transport,
+        .transport = request->transport,
     };
-    FlipPassOutputStreamContext stream_context = {
-        .session = &session,
-        .completed_steps = 0U,
-    };
+    size_t completed_steps = 0U;
 
     furi_assert(app);
-    furi_assert(vault);
-    furi_assert(ref);
+    furi_assert(request);
+    furi_assert(request->vault);
+    furi_assert(request->ref);
 
     if(!flippass_output_session_begin(&session)) {
         flippass_output_session_end(&session);
         return false;
     }
 
-    flippass_output_progress_begin(&session, ref->plain_len, "Sending selected text.");
-    const bool ok =
-        kdbx_vault_stream_ref(vault, ref, flippass_output_stream_text_callback, &stream_context);
+    flippass_output_progress_begin(&session, request->ref->plain_len, "Sending text.");
+    const bool ok = flippass_output_session_stream_vault_ref(
+        &session, request->vault, request->ref, &completed_steps);
     flippass_output_session_end(&session);
     return ok;
 }
 
-bool flippass_output_type_login_refs(
-    App* app,
-    FlipPassOutputTransport transport,
-    KDBXVault* vault,
-    const KDBXFieldRef* username_ref,
-    const KDBXFieldRef* password_ref) {
+static bool
+    flippass_output_execute_login_refs_request(App* app, const FlipPassOutputRequest* request) {
     FlipPassOutputSession session = {
         .app = app,
-        .transport = transport,
+        .transport = request->transport,
     };
-    FlipPassOutputStreamContext stream_context = {
-        .session = &session,
-        .completed_steps = 0U,
-    };
+    size_t completed_steps = 0U;
     bool ok = false;
-    const size_t total_steps = (username_ref != NULL ? username_ref->plain_len : 0U) +
-                               (password_ref != NULL ? password_ref->plain_len : 0U) + 2U;
+    const size_t total_steps =
+        (request->username_ref != NULL ? request->username_ref->plain_len : 0U) +
+        (request->password_ref != NULL ? request->password_ref->plain_len : 0U) + 2U;
 
     furi_assert(app);
-    furi_assert(vault);
-    furi_assert(username_ref);
-    furi_assert(password_ref);
+    furi_assert(request);
+    furi_assert(request->vault);
+    furi_assert(request->username_ref);
+    furi_assert(request->password_ref);
 
     if(!flippass_output_session_begin(&session)) {
         flippass_output_session_end(&session);
         return false;
     }
 
-    flippass_output_progress_begin(&session, total_steps, "Sending login sequence.");
+    flippass_output_progress_begin(&session, total_steps, "Sending sequence.");
 
-    ok = kdbx_vault_stream_ref(
-        vault, username_ref, flippass_output_stream_text_callback, &stream_context);
+    ok = flippass_output_session_stream_vault_ref(
+        &session, request->vault, request->username_ref, &completed_steps);
     if(ok) {
         ok = flippass_output_session_tap_key(&session, HID_KEYBOARD_TAB);
         if(ok) {
-            stream_context.completed_steps++;
-            flippass_output_progress_update(&session, stream_context.completed_steps);
+            completed_steps++;
+            flippass_output_progress_update(&session, completed_steps);
         }
     }
     if(ok) {
-        ok = kdbx_vault_stream_ref(
-            vault, password_ref, flippass_output_stream_text_callback, &stream_context);
+        ok = flippass_output_session_stream_vault_ref(
+            &session, request->vault, request->password_ref, &completed_steps);
     }
     if(ok) {
         ok = flippass_output_session_tap_key(&session, HID_KEYBOARD_RETURN);
         if(ok) {
-            stream_context.completed_steps++;
-            flippass_output_progress_update(&session, stream_context.completed_steps);
+            completed_steps++;
+            flippass_output_progress_update(&session, completed_steps);
         }
     }
 
@@ -1873,46 +1749,49 @@ bool flippass_output_type_login_refs(
     return ok;
 }
 
-bool flippass_output_type_autotype(
-    App* app,
-    FlipPassOutputTransport transport,
-    const KDBXEntry* entry) {
+static bool
+    flippass_output_execute_autotype_request(App* app, const FlipPassOutputRequest* request) {
     const char* sequence = NULL;
     FlipPassOutputSession session = {
         .app = app,
-        .transport = transport,
+        .transport = request->transport,
     };
     size_t index = 0U;
 
     furi_assert(app);
-    furi_assert(entry);
+    furi_assert(request);
+    furi_assert(request->entry);
 
-    KDBXEntry* mutable_entry = (KDBXEntry*)entry;
+    KDBXEntry* mutable_entry = (KDBXEntry*)request->entry;
 
-    if(flippass_db_entry_has_field(entry, KDBXEntryFieldUsername) && entry->username == NULL) {
+    if(flippass_db_entry_has_field(request->entry, KDBXEntryFieldUsername) &&
+       request->entry->username == NULL) {
         if(!flippass_db_ensure_entry_field(app, mutable_entry, KDBXEntryFieldUsername, NULL)) {
             return false;
         }
     }
-    if(flippass_db_entry_has_field(entry, KDBXEntryFieldPassword) && entry->password == NULL) {
+    if(flippass_db_entry_has_field(request->entry, KDBXEntryFieldPassword) &&
+       request->entry->password == NULL) {
         if(!flippass_db_ensure_entry_field(app, mutable_entry, KDBXEntryFieldPassword, NULL)) {
             return false;
         }
     }
-    if(flippass_db_entry_has_field(entry, KDBXEntryFieldUrl) && entry->url == NULL) {
+    if(flippass_db_entry_has_field(request->entry, KDBXEntryFieldUrl) &&
+       request->entry->url == NULL) {
         if(!flippass_db_ensure_entry_field(app, mutable_entry, KDBXEntryFieldUrl, NULL)) {
             return false;
         }
     }
-    if(flippass_db_entry_has_field(entry, KDBXEntryFieldAutotype) &&
-       entry->autotype_sequence == NULL) {
+    if(flippass_db_entry_has_field(request->entry, KDBXEntryFieldAutotype) &&
+       request->entry->autotype_sequence == NULL) {
         if(!flippass_db_ensure_entry_field(app, mutable_entry, KDBXEntryFieldAutotype, NULL)) {
             return false;
         }
     }
 
-    sequence = (entry->autotype_sequence != NULL && entry->autotype_sequence[0] != '\0') ?
-                   entry->autotype_sequence :
+    sequence = (request->entry->autotype_sequence != NULL &&
+                request->entry->autotype_sequence[0] != '\0') ?
+                   request->entry->autotype_sequence :
                    FLIPPASS_OUTPUT_KEEPASS_DEFAULT_SEQUENCE;
 
     session.placeholder_buffer = furi_string_alloc();
@@ -1927,38 +1806,104 @@ bool flippass_output_type_autotype(
         return false;
     }
 
-    flippass_output_progress_begin(&session, strlen(sequence), "Sending AutoType sequence.");
-    const bool ok = flippass_output_execute_sequence(&session, entry, sequence, &index, 0U, false);
+    flippass_output_progress_begin(&session, strlen(sequence), "Sending sequence.");
+    const bool ok =
+        flippass_output_execute_sequence(&session, request->entry, sequence, &index, 0U, false);
 
     flippass_output_session_end(&session);
     furi_string_free(session.placeholder_buffer);
     return ok;
 }
 
-void flippass_output_release_all(App* app) {
+bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* request) {
     furi_assert(app);
+    furi_assert(request);
 
-    flippass_usb_release_all_prepared();
-    flippass_ble_release_all(app);
-}
-
-void flippass_output_cleanup(App* app) {
-    furi_assert(app);
-
-    flippass_usb_restore(app);
-
-    if(app->ble_session == NULL) {
-        return;
+    if(flippass_typing_should_cancel(app)) {
+        return false;
     }
 
-    bt_set_status_changed_callback(app->ble_session->bt, NULL, NULL);
-    flippass_ble_release_all(app);
-    bt_disconnect(app->ble_session->bt);
-    furi_delay_ms(FLIPPASS_BLE_SETUP_DELAY_MS);
-    furi_hal_bt_stop_advertising();
-    bt_keys_storage_set_default_path(app->ble_session->bt);
-    bt_profile_restore_default(app->ble_session->bt);
-    furi_record_close(RECORD_BT);
-    free(app->ble_session);
-    app->ble_session = NULL;
+    switch(request->action) {
+    case FlipPassOutputActionString:
+        return (request->text != NULL) && flippass_output_execute_string_request(app, request);
+    case FlipPassOutputActionLogin:
+        return (request->username != NULL) && (request->password != NULL) &&
+               flippass_output_execute_login_request(app, request);
+    case FlipPassOutputActionVaultRef:
+        return (request->vault != NULL) && (request->ref != NULL) &&
+               flippass_output_execute_vault_ref_request(app, request);
+    case FlipPassOutputActionLoginRefs:
+        return (request->vault != NULL) && (request->username_ref != NULL) &&
+               (request->password_ref != NULL) &&
+               flippass_output_execute_login_refs_request(app, request);
+    case FlipPassOutputActionAutotype:
+        return (request->entry != NULL) && flippass_output_execute_autotype_request(app, request);
+    default:
+        return false;
+    }
+}
+
+bool flippass_output_type_string(App* app, FlipPassOutputTransport transport, const char* text) {
+    const FlipPassOutputRequest request = {
+        .transport = transport,
+        .action = FlipPassOutputActionString,
+        .text = text,
+    };
+    return flippass_output_execute_request(app, &request);
+}
+
+bool flippass_output_type_login(
+    App* app,
+    FlipPassOutputTransport transport,
+    const char* username,
+    const char* password) {
+    const FlipPassOutputRequest request = {
+        .transport = transport,
+        .action = FlipPassOutputActionLogin,
+        .username = username,
+        .password = password,
+    };
+    return flippass_output_execute_request(app, &request);
+}
+
+bool flippass_output_type_vault_ref(
+    App* app,
+    FlipPassOutputTransport transport,
+    KDBXVault* vault,
+    const KDBXFieldRef* ref) {
+    const FlipPassOutputRequest request = {
+        .transport = transport,
+        .action = FlipPassOutputActionVaultRef,
+        .vault = vault,
+        .ref = ref,
+    };
+    return flippass_output_execute_request(app, &request);
+}
+
+bool flippass_output_type_login_refs(
+    App* app,
+    FlipPassOutputTransport transport,
+    KDBXVault* vault,
+    const KDBXFieldRef* username_ref,
+    const KDBXFieldRef* password_ref) {
+    const FlipPassOutputRequest request = {
+        .transport = transport,
+        .action = FlipPassOutputActionLoginRefs,
+        .vault = vault,
+        .username_ref = username_ref,
+        .password_ref = password_ref,
+    };
+    return flippass_output_execute_request(app, &request);
+}
+
+bool flippass_output_type_autotype(
+    App* app,
+    FlipPassOutputTransport transport,
+    const KDBXEntry* entry) {
+    const FlipPassOutputRequest request = {
+        .transport = transport,
+        .action = FlipPassOutputActionAutotype,
+        .entry = entry,
+    };
+    return flippass_output_execute_request(app, &request);
 }

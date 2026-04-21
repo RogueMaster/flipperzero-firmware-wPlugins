@@ -64,6 +64,7 @@ void flippass_other_field_begin_type_action(App* app, bool bluetooth, uint32_t r
 
     app->other_field_action_selected_index = (uint32_t)action;
     app->pending_entry_action = flippass_scene_other_field_actions_map_type_action(action);
+    flippass_typing_begin(app);
     flippass_entry_action_prepare_pending(app);
     flippass_progress_begin(app, "Typing Field", "Connecting", 5U);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewLoading);
@@ -105,9 +106,17 @@ void flippass_other_field_show_selected_value(App* app, uint32_t return_scene) {
 
 void flippass_other_field_run_pending_type_action(App* app, uint32_t failure_return_scene) {
     FuriString* error = furi_string_alloc();
+    const bool typed = flippass_entry_action_execute_pending(app, error);
+    const bool canceled = !typed && flippass_typing_should_cancel(app);
 
-    if(flippass_entry_action_execute_pending(app, error)) {
+    flippass_typing_end(app);
+
+    if(typed) {
         flippass_progress_update(app, "Done", "Field sent.", 100U);
+        flippass_progress_reset(app);
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, FlipPassScene_DbEntries);
+    } else if(canceled) {
         flippass_progress_reset(app);
         scene_manager_search_and_switch_to_previous_scene(
             app->scene_manager, FlipPassScene_DbEntries);

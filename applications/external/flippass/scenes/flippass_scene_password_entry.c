@@ -42,6 +42,27 @@ static bool flippass_scene_password_entry_bool_text(const char* text) {
     return text != NULL && (strcmp(text, "1") == 0 || strcmp(text, "true") == 0 ||
                             strcmp(text, "yes") == 0 || strcmp(text, "on") == 0);
 }
+
+static bool flippass_scene_password_entry_try_debug_bool(
+    FlipperFormat* file,
+    const char* key,
+    FuriString* buffer,
+    bool* out_value) {
+    furi_assert(file);
+    furi_assert(key);
+    furi_assert(buffer);
+    furi_assert(out_value);
+
+    furi_string_reset(buffer);
+    flipper_format_rewind(file);
+    if(!flipper_format_read_string(file, key, buffer)) {
+        return false;
+    }
+
+    *out_value = flippass_scene_password_entry_bool_text(furi_string_get_cstr(buffer));
+    return true;
+}
+
 static bool flippass_scene_password_entry_try_debug_unlock(App* app) {
     bool triggered = false;
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -49,9 +70,11 @@ static bool flippass_scene_password_entry_try_debug_unlock(App* app) {
     FuriString* password = furi_string_alloc();
     FuriString* backend = furi_string_alloc();
     FuriString* allow_ext = furi_string_alloc();
+    FuriString* continue_on_ext = furi_string_alloc();
 
     if(flipper_format_file_open_existing(file, FLIPPASS_DEBUG_UNLOCK_FILE_PATH) &&
-       flipper_format_read_string(file, "password", password)) {
+       flippass_secure_read_encrypted_string(file, "password", password)) {
+        flipper_format_rewind(file);
         if(flipper_format_read_string(file, "backend", backend)) {
             const KDBXVaultBackend parsed_backend =
                 flippass_db_parse_backend_hint(furi_string_get_cstr(backend));
@@ -60,9 +83,10 @@ static bool flippass_scene_password_entry_try_debug_unlock(App* app) {
             }
         }
 
-        app->allow_ext_vault_promotion =
-            flipper_format_read_string(file, "allow_ext", allow_ext) &&
-            flippass_scene_password_entry_bool_text(furi_string_get_cstr(allow_ext));
+        flippass_scene_password_entry_try_debug_bool(
+            file, "allow_ext", allow_ext, &app->allow_ext_vault_promotion);
+        flippass_scene_password_entry_try_debug_bool(
+            file, "continue_on_ext", continue_on_ext, &app->debug_auto_continue_vault_fallback);
         snprintf(
             app->master_password,
             sizeof(app->master_password),
@@ -70,19 +94,21 @@ static bool flippass_scene_password_entry_try_debug_unlock(App* app) {
             furi_string_get_cstr(password));
         FLIPPASS_DIAGNOSTIC_LOG(
             app,
-            "DEBUG_UNLOCK_HOOK backend=%s allow_ext=%u",
+            "DEBUG_UNLOCK_HOOK backend=%s allow_ext=%u continue_on_ext=%u",
             kdbx_vault_backend_label(app->requested_vault_backend),
-            app->allow_ext_vault_promotion ? 1U : 0U);
+            app->allow_ext_vault_promotion ? 1U : 0U,
+            app->debug_auto_continue_vault_fallback ? 1U : 0U);
         triggered = true;
     }
 
     flipper_format_file_close(file);
     flipper_format_free(file);
-    storage_simply_remove(storage, FLIPPASS_DEBUG_UNLOCK_FILE_PATH);
+    flippass_secure_delete_file_with_storage(storage, FLIPPASS_DEBUG_UNLOCK_FILE_PATH);
     furi_record_close(RECORD_STORAGE);
     furi_string_free(password);
     furi_string_free(backend);
     furi_string_free(allow_ext);
+    furi_string_free(continue_on_ext);
 
     if(triggered) {
         flippass_clear_text_buffer(app);
@@ -128,7 +154,8 @@ static void flippass_scene_password_entry_callback(void* context) {
 void flippass_scene_password_entry_on_enter(void* context) {
     App* app = context;
     flippass_clear_text_buffer(app);
-    flippass_log_event(app, "SCENE password_entry");
+    app->debug_auto_continue_vault_fallback = false;
+    FLIPPASS_LOG_EVENT(app, "SCENE password_entry");
     if(!app->close_test_logged) {
         FLIPPASS_BENCH_LOG(app, "CLOSE_TEST_START");
         app->close_test_logged = true;

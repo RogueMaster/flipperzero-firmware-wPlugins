@@ -1,6 +1,6 @@
 /**
  * @file flippass_scene_send_confirm.h
- * @brief Credential typing confirmation scene for the FlipPass application.
+ * @brief Helpers for executing pending credential typing actions.
  */
 #pragma once
 

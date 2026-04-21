@@ -33,6 +33,7 @@ void kdbx_parser_reset(KDBXParser* parser);
 bool kdbx_parser_process_file(KDBXParser* parser, const char* file_path);
 const KDBXHeader* kdbx_parser_get_header(const KDBXParser* parser);
 const char* kdbx_parser_get_last_error(const KDBXParser* parser);
+size_t kdbx_parser_get_payload_offset(const KDBXParser* parser);
 void kdbx_parser_set_kdf_progress_callback(
     KDBXParser* parser,
     KDBXParserKdfProgressCallback callback,

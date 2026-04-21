@@ -8,6 +8,7 @@
 #include "flippass_scene_status.h"
 
 #include <stdio.h>
+#include <string.h>
 
 typedef struct {
     FlipPassDbBrowserItemType type;
@@ -467,6 +468,7 @@ static void flippass_browser_begin_execute_action(App* app, FlipPassOutputTransp
     app->pending_entry_action =
         flippass_browser_map_pending_action(app->action_selected_index, transport);
 
+    flippass_typing_begin(app);
     flippass_progress_begin(
         app, flippass_browser_progress_title(app->action_selected_index), "Connecting", 5U);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewLoading);
@@ -551,7 +553,7 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
         if(event.event == FlipPassSceneDbEntriesEventLoadDatabase) {
             FuriString* error = furi_string_alloc();
 
-            if(flippass_db_load(app, error)) {
+            if(flippass_open_execute(app, error)) {
                 flippass_progress_update(app, "Ready", "", 100U);
                 FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_OK");
                 if(app->current_group == NULL) {
@@ -563,6 +565,11 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
                 flippass_progress_reset(app);
                 view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
                 FLIPPASS_BENCH_LOG(app, "DB_VIEW_READY");
+            } else if(strcmp(furi_string_get_cstr(error), "Unlock canceled.") == 0) {
+                flippass_progress_reset(app);
+                FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_CANCEL");
+                scene_manager_search_and_switch_to_previous_scene(
+                    app->scene_manager, FlipPassScene_PasswordEntry);
             } else if(app->pending_vault_fallback && !app->rpc_mode) {
                 flippass_progress_reset(app);
                 FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_FALLBACK");
@@ -625,9 +632,17 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
 
         if(event.event == FlipPassSceneDbEntriesEventRunPendingAction) {
             FuriString* error = furi_string_alloc();
+            const bool ok = flippass_entry_action_execute_pending(app, error);
+            const bool canceled = !ok && flippass_typing_should_cancel(app);
 
-            if(flippass_entry_action_execute_pending(app, error)) {
+            flippass_typing_end(app);
+
+            if(ok) {
                 flippass_progress_update(app, "Done", "Field sent.", 100U);
+                flippass_browser_render(app);
+                flippass_progress_reset(app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
+            } else if(canceled) {
                 flippass_browser_render(app);
                 flippass_progress_reset(app);
                 view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
@@ -647,6 +662,10 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
     }
 
     if(event.type == SceneManagerEventTypeBack) {
+        if(flippass_typing_consume_pending_back(app)) {
+            return true;
+        }
+
         if(app->database_loaded && app->root_group != NULL && flippass_browser_at_root(app)) {
             flippass_browser_show_close_dialog(app);
             return true;

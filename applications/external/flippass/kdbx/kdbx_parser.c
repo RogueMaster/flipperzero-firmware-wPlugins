@@ -6,11 +6,20 @@
 #include <stdio.h>
 #include <string.h>
 
-#if !FLIPPASS_ENABLE_PARSER_FURI_TRACE
+#if !(FLIPPASS_ENABLE_LOGS && FLIPPASS_ENABLE_PARSER_FURI_TRACE)
 #ifdef FURI_LOG_T
 #undef FURI_LOG_T
 #endif
 #define FURI_LOG_T(...) \
+    do {                \
+    } while(0)
+#endif
+
+#if !FLIPPASS_ENABLE_LOGS
+#ifdef FURI_LOG_E
+#undef FURI_LOG_E
+#endif
+#define FURI_LOG_E(...) \
     do {                \
     } while(0)
 #endif
@@ -43,7 +52,7 @@ static void kdbx_parser_clear_header(KDBXParser* parser);
 static void kdbx_parser_release_kdf_parameters(KDBXParser* parser);
 static void kdbx_parser_clear_error(KDBXParser* parser);
 static void kdbx_parser_set_error(KDBXParser* parser, const char* format, ...);
-#if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG
+#if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG && FLIPPASS_ENABLE_LOGS
 static void kdbx_parser_trace(const KDBXParser* parser, const char* format, ...);
 #else
 #define kdbx_parser_trace(...) \
@@ -653,7 +662,7 @@ static void kdbx_parser_set_error(KDBXParser* parser, const char* format, ...) {
     va_end(args);
 }
 
-#if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG
+#if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG && FLIPPASS_ENABLE_LOGS
 static void kdbx_parser_trace(const KDBXParser* parser, const char* format, ...) {
     furi_assert(parser);
     furi_assert(format);
@@ -710,21 +719,29 @@ const char* kdbx_parser_get_last_error(const KDBXParser* parser) {
     return parser->last_error;
 }
 
+size_t kdbx_parser_get_payload_offset(const KDBXParser* parser) {
+    furi_assert(parser);
+    if(!parser->stream_open || parser->stream == NULL) {
+        return 0U;
+    }
+
+    return stream_tell(parser->stream);
+}
+
 bool kdbx_parser_process_file(KDBXParser* parser, const char* file_path) {
     furi_assert(parser);
     furi_assert(file_path);
 
     kdbx_parser_trace(
         parser,
-        "PROCESS_FILE_BEGIN path=%s free=%lu max=%lu",
-        file_path,
+        "PROCESS_FILE_BEGIN free=%lu max=%lu",
         (unsigned long)memmgr_get_free_heap(),
         (unsigned long)memmgr_heap_get_max_free_block());
     kdbx_parser_reset(parser);
     kdbx_parser_trace(parser, "PROCESS_FILE_RESET_OK");
 
     if(!file_stream_open(parser->stream, file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        FURI_LOG_E("KDBXParser", "Failed to open file: %s", file_path);
+        FURI_LOG_E("KDBXParser", "Failed to open selected file");
         kdbx_parser_trace(parser, "PROCESS_FILE_OPEN_FAIL");
         return false;
     }
@@ -1537,7 +1554,7 @@ static bool kdbx_parser_derive_transformed_key_aes(
     uint8_t transformed_key[32]) {
     uint8_t password_hash[32];
     uint8_t composite_key[32];
-    aes_encrypt_ctx aes_ctx;
+    aes_encrypt_ctx* aes_ctx = NULL;
 
     furi_assert(parser);
     furi_assert(password);
@@ -1547,7 +1564,15 @@ static bool kdbx_parser_derive_transformed_key_aes(
     sha256_Raw((const uint8_t*)password, strlen(password), password_hash);
     sha256_Raw(password_hash, sizeof(password_hash), composite_key);
 
-    aes_encrypt_key256(params->salt, &aes_ctx);
+    aes_ctx = malloc(sizeof(*aes_ctx));
+    if(aes_ctx == NULL) {
+        memzero(password_hash, sizeof(password_hash));
+        memzero(composite_key, sizeof(composite_key));
+        kdbx_parser_set_error((KDBXParser*)parser, "Not enough RAM is available for AES-KDF.");
+        return false;
+    }
+
+    aes_encrypt_key256(params->salt, aes_ctx);
 
     if(parser->kdf_progress_callback != NULL) {
         parser->kdf_progress_callback(0U, params->rounds, parser->kdf_progress_context);
@@ -1560,8 +1585,8 @@ static bool kdbx_parser_derive_transformed_key_aes(
 
     uint64_t next_progress = progress_step;
     for(uint64_t i = 0; i < params->rounds; ++i) {
-        aes_encrypt(composite_key, composite_key, &aes_ctx);
-        aes_encrypt(composite_key + 16, composite_key + 16, &aes_ctx);
+        aes_encrypt(composite_key, composite_key, aes_ctx);
+        aes_encrypt(composite_key + 16, composite_key + 16, aes_ctx);
         if(parser->kdf_progress_callback != NULL &&
            ((i + 1U) >= next_progress || (i + 1U) == params->rounds)) {
             parser->kdf_progress_callback(i + 1U, params->rounds, parser->kdf_progress_context);
@@ -1572,7 +1597,8 @@ static bool kdbx_parser_derive_transformed_key_aes(
     sha256_Raw(composite_key, sizeof(composite_key), transformed_key);
     memzero(password_hash, sizeof(password_hash));
     memzero(composite_key, sizeof(composite_key));
-    memzero(&aes_ctx, sizeof(aes_ctx));
+    memzero(aes_ctx, sizeof(*aes_ctx));
+    free(aes_ctx);
     return true;
 }
 

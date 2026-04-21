@@ -37,6 +37,7 @@ struct FlipPassDbBrowserView {
     View* view;
     FuriTimer* scroll_timer;
     FlipPassDbBrowserViewCallback callback;
+    FlipPassDbBrowserViewBackFilter back_filter;
     void* callback_context;
 };
 
@@ -301,6 +302,11 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
     furi_assert(browser);
     furi_assert(event);
 
+    if(event->key == InputKeyBack && browser->back_filter != NULL &&
+       browser->back_filter(browser->callback_context)) {
+        return true;
+    }
+
     if((event->key == InputKeyUp || event->key == InputKeyDown) &&
        (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
         flippass_db_browser_view_move_selection(browser, event->key == InputKeyDown ? 1 : -1);
@@ -470,6 +476,7 @@ FlipPassDbBrowserView* flippass_db_browser_view_alloc(void) {
     browser->scroll_timer =
         furi_timer_alloc(flippass_db_browser_view_timer_callback, FuriTimerTypePeriodic, browser);
     browser->callback = NULL;
+    browser->back_filter = NULL;
     browser->callback_context = NULL;
 
     view_set_context(browser->view, browser);
@@ -519,6 +526,13 @@ void flippass_db_browser_view_set_callback(
     furi_check(browser);
     browser->callback = callback;
     browser->callback_context = context;
+}
+
+void flippass_db_browser_view_set_back_filter(
+    FlipPassDbBrowserView* browser,
+    FlipPassDbBrowserViewBackFilter filter) {
+    furi_check(browser);
+    browser->back_filter = filter;
 }
 
 void flippass_db_browser_view_reset(FlipPassDbBrowserView* browser) {

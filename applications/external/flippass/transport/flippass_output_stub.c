@@ -4,6 +4,12 @@ const char* flippass_output_transport_name(FlipPassOutputTransport transport) {
     return transport == FlipPassOutputTransportBluetooth ? "Bluetooth" : "USB";
 }
 
+bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* request) {
+    UNUSED(app);
+    UNUSED(request);
+    return false;
+}
+
 bool flippass_output_type_string(App* app, FlipPassOutputTransport transport, const char* text) {
     UNUSED(app);
     UNUSED(transport);

@@ -76,7 +76,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
 - Updated: [MFP Reader v1.1 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 - Updated: [Click Recorder v1.1 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
-- Updated: [FlipPass v1.1 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
 - Added: [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey)
 - [ESP Flasher: Bump Marauder v1.11.1 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.11.1)
@@ -95,6 +94,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Habit Flow v0.1.2 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - Added: [OSM Logger GPS v0.15 (By simongrossi)](https://github.com/simongrossi/flipperzero-osm-logger-gps)
 - Added: [TV Remote v1.0 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
+- Updated: [FlipPass v1.2 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 
 <a name="release"></a>
 
@@ -597,7 +597,7 @@ $ ./fbt dolphin_ext
 - [FlipMap v0.2.2 (By jblanked)](https://github.com/jblanked/FlipMap) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
 - [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
-- [FlipPass v1.1 (By Arckanos)](https://github.com/Arckanos/FlipPass)
+- [FlipPass v1.2 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
 - [FlipperPwn v1.6 (By barkandbite)](https://github.com/barkandbite/flipper_suite)

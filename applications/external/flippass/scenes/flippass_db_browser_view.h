@@ -49,6 +49,7 @@ typedef enum {
 } FlipPassDbBrowserEvent;
 
 typedef void (*FlipPassDbBrowserViewCallback)(FlipPassDbBrowserEvent event, void* context);
+typedef bool (*FlipPassDbBrowserViewBackFilter)(void* context);
 
 typedef struct FlipPassDbBrowserView FlipPassDbBrowserView;
 
@@ -59,6 +60,9 @@ void flippass_db_browser_view_set_callback(
     FlipPassDbBrowserView* browser,
     FlipPassDbBrowserViewCallback callback,
     void* context);
+void flippass_db_browser_view_set_back_filter(
+    FlipPassDbBrowserView* browser,
+    FlipPassDbBrowserViewBackFilter filter);
 void flippass_db_browser_view_reset(FlipPassDbBrowserView* browser);
 void flippass_db_browser_view_set_header(FlipPassDbBrowserView* browser, const char* header);
 void flippass_db_browser_view_set_has_parent(FlipPassDbBrowserView* browser, bool has_parent);

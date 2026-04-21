@@ -80,46 +80,80 @@ static const uint8_t text_input_key_box_y_offset = 9;
 static const uint8_t text_input_key_glyph_x_visual_offset = 1;
 static const uint8_t text_input_default_row = 1;
 static const uint8_t text_input_default_column = 5;
+static const uint8_t text_input_enter_key_width = 22;
+static const uint8_t text_input_backspace_key_width = 17;
+static const uint8_t text_input_switch_key_width = 10;
+static const uint8_t text_input_icon_key_height = 11;
 
 #define ENTER_CODEPOINT           '\r'
 #define BACKSPACE_CODEPOINT       '\b'
 #define SWITCH_KEYBOARD_CODEPOINT '\t'
 
-#define CP_GRAVE_ACCENT             0x0060U
-#define CP_ACUTE_ACCENT             0x00B4U
-#define CP_DIAERESIS_ACCENT         0x00A8U
-#define CP_CIRCUMFLEX_ACCENT        0x005EU
-#define CP_C_CEDILLA                0x00E7U
-#define CP_N_TILDE                  0x00F1U
-#define CP_U_DIAERESIS              0x00FCU
-#define CP_SHARP_S                  0x00DFU
-#define CP_AE_LIGATURE              0x00E6U
-#define CP_OE_LIGATURE              0x0153U
-#define CP_O_SLASH                  0x00F8U
-#define CP_LATIN_SMALL_A_GRAVE      0x00E0U
-#define CP_LATIN_SMALL_E_GRAVE      0x00E8U
-#define CP_LATIN_SMALL_I_GRAVE      0x00ECU
-#define CP_LATIN_SMALL_O_GRAVE      0x00F2U
-#define CP_LATIN_SMALL_U_GRAVE      0x00F9U
-#define CP_LATIN_SMALL_Y_GRAVE      0x1EF3U
-#define CP_LATIN_SMALL_A_ACUTE      0x00E1U
-#define CP_LATIN_SMALL_E_ACUTE      0x00E9U
-#define CP_LATIN_SMALL_I_ACUTE      0x00EDU
-#define CP_LATIN_SMALL_O_ACUTE      0x00F3U
-#define CP_LATIN_SMALL_U_ACUTE      0x00FAU
-#define CP_LATIN_SMALL_Y_ACUTE      0x00FDU
-#define CP_LATIN_SMALL_A_DIAERESIS  0x00E4U
-#define CP_LATIN_SMALL_E_DIAERESIS  0x00EBU
-#define CP_LATIN_SMALL_I_DIAERESIS  0x00EFU
-#define CP_LATIN_SMALL_O_DIAERESIS  0x00F6U
-#define CP_LATIN_SMALL_U_DIAERESIS  0x00FCU
-#define CP_LATIN_SMALL_Y_DIAERESIS  0x00FFU
-#define CP_LATIN_SMALL_A_CIRCUMFLEX 0x00E2U
-#define CP_LATIN_SMALL_E_CIRCUMFLEX 0x00EAU
-#define CP_LATIN_SMALL_I_CIRCUMFLEX 0x00EEU
-#define CP_LATIN_SMALL_O_CIRCUMFLEX 0x00F4U
-#define CP_LATIN_SMALL_U_CIRCUMFLEX 0x00FBU
-#define CP_LATIN_SMALL_Y_CIRCUMFLEX 0x0177U
+#define CP_GRAVE_ACCENT               0x0060U
+#define CP_ACUTE_ACCENT               0x00B4U
+#define CP_DIAERESIS_ACCENT           0x00A8U
+#define CP_CIRCUMFLEX_ACCENT          0x005EU
+#define CP_C_CEDILLA                  0x00E7U
+#define CP_C_CAPITAL_CEDILLA          0x00C7U
+#define CP_N_TILDE                    0x00F1U
+#define CP_N_CAPITAL_TILDE            0x00D1U
+#define CP_U_DIAERESIS                0x00FCU
+#define CP_U_CAPITAL_DIAERESIS        0x00DCU
+#define CP_SHARP_S                    0x00DFU
+#define CP_CAPITAL_SHARP_S            0x1E9EU
+#define CP_AE_LIGATURE                0x00E6U
+#define CP_AE_CAPITAL_LIGATURE        0x00C6U
+#define CP_OE_LIGATURE                0x0153U
+#define CP_OE_CAPITAL_LIGATURE        0x0152U
+#define CP_O_SLASH                    0x00F8U
+#define CP_O_CAPITAL_SLASH            0x00D8U
+#define CP_LATIN_SMALL_A_GRAVE        0x00E0U
+#define CP_LATIN_CAPITAL_A_GRAVE      0x00C0U
+#define CP_LATIN_SMALL_E_GRAVE        0x00E8U
+#define CP_LATIN_CAPITAL_E_GRAVE      0x00C8U
+#define CP_LATIN_SMALL_I_GRAVE        0x00ECU
+#define CP_LATIN_CAPITAL_I_GRAVE      0x00CCU
+#define CP_LATIN_SMALL_O_GRAVE        0x00F2U
+#define CP_LATIN_CAPITAL_O_GRAVE      0x00D2U
+#define CP_LATIN_SMALL_U_GRAVE        0x00F9U
+#define CP_LATIN_CAPITAL_U_GRAVE      0x00D9U
+#define CP_LATIN_SMALL_Y_GRAVE        0x1EF3U
+#define CP_LATIN_CAPITAL_Y_GRAVE      0x1EF2U
+#define CP_LATIN_SMALL_A_ACUTE        0x00E1U
+#define CP_LATIN_CAPITAL_A_ACUTE      0x00C1U
+#define CP_LATIN_SMALL_E_ACUTE        0x00E9U
+#define CP_LATIN_CAPITAL_E_ACUTE      0x00C9U
+#define CP_LATIN_SMALL_I_ACUTE        0x00EDU
+#define CP_LATIN_CAPITAL_I_ACUTE      0x00CDU
+#define CP_LATIN_SMALL_O_ACUTE        0x00F3U
+#define CP_LATIN_CAPITAL_O_ACUTE      0x00D3U
+#define CP_LATIN_SMALL_U_ACUTE        0x00FAU
+#define CP_LATIN_CAPITAL_U_ACUTE      0x00DAU
+#define CP_LATIN_SMALL_Y_ACUTE        0x00FDU
+#define CP_LATIN_CAPITAL_Y_ACUTE      0x00DDU
+#define CP_LATIN_SMALL_A_DIAERESIS    0x00E4U
+#define CP_LATIN_CAPITAL_A_DIAERESIS  0x00C4U
+#define CP_LATIN_SMALL_E_DIAERESIS    0x00EBU
+#define CP_LATIN_CAPITAL_E_DIAERESIS  0x00CBU
+#define CP_LATIN_SMALL_I_DIAERESIS    0x00EFU
+#define CP_LATIN_CAPITAL_I_DIAERESIS  0x00CFU
+#define CP_LATIN_SMALL_O_DIAERESIS    0x00F6U
+#define CP_LATIN_CAPITAL_O_DIAERESIS  0x00D6U
+#define CP_LATIN_SMALL_U_DIAERESIS    0x00FCU
+#define CP_LATIN_SMALL_Y_DIAERESIS    0x00FFU
+#define CP_LATIN_CAPITAL_Y_DIAERESIS  0x0178U
+#define CP_LATIN_SMALL_A_CIRCUMFLEX   0x00E2U
+#define CP_LATIN_CAPITAL_A_CIRCUMFLEX 0x00C2U
+#define CP_LATIN_SMALL_E_CIRCUMFLEX   0x00EAU
+#define CP_LATIN_CAPITAL_E_CIRCUMFLEX 0x00CAU
+#define CP_LATIN_SMALL_I_CIRCUMFLEX   0x00EEU
+#define CP_LATIN_CAPITAL_I_CIRCUMFLEX 0x00CEU
+#define CP_LATIN_SMALL_O_CIRCUMFLEX   0x00F4U
+#define CP_LATIN_CAPITAL_O_CIRCUMFLEX 0x00D4U
+#define CP_LATIN_SMALL_U_CIRCUMFLEX   0x00FBU
+#define CP_LATIN_CAPITAL_U_CIRCUMFLEX 0x00DBU
+#define CP_LATIN_SMALL_Y_CIRCUMFLEX   0x0177U
+#define CP_LATIN_CAPITAL_Y_CIRCUMFLEX 0x0176U
 
 #define KEY_INSERT(cp, x_pos, y_pos)        \
     {                                       \
@@ -131,25 +165,25 @@ static const uint8_t text_input_default_column = 5;
         .height = 0,                        \
         .action = TextInputKeyActionInsert, \
     }
-#define KEY_ENTER(x_pos, y_pos)            \
-    {                                      \
-        .codepoint = ENTER_CODEPOINT,      \
-        .value = 0,                        \
-        .x = (x_pos),                      \
-        .y = (y_pos),                      \
-        .width = 0,                        \
-        .height = 0,                       \
-        .action = TextInputKeyActionEnter, \
+#define KEY_ENTER(x_pos, y_pos)               \
+    {                                         \
+        .codepoint = ENTER_CODEPOINT,         \
+        .value = 0,                           \
+        .x = (x_pos),                         \
+        .y = (y_pos),                         \
+        .width = text_input_enter_key_width,  \
+        .height = text_input_icon_key_height, \
+        .action = TextInputKeyActionEnter,    \
     }
-#define KEY_BACKSPACE(x_pos, y_pos)            \
-    {                                          \
-        .codepoint = BACKSPACE_CODEPOINT,      \
-        .value = 0,                            \
-        .x = (x_pos),                          \
-        .y = (y_pos),                          \
-        .width = 0,                            \
-        .height = 0,                           \
-        .action = TextInputKeyActionBackspace, \
+#define KEY_BACKSPACE(x_pos, y_pos)              \
+    {                                            \
+        .codepoint = BACKSPACE_CODEPOINT,        \
+        .value = 0,                              \
+        .x = (x_pos),                            \
+        .y = (y_pos),                            \
+        .width = text_input_backspace_key_width, \
+        .height = text_input_icon_key_height,    \
+        .action = TextInputKeyActionBackspace,   \
     }
 #define KEY_SWITCH(x_pos, y_pos)                    \
     {                                               \
@@ -157,8 +191,8 @@ static const uint8_t text_input_default_column = 5;
         .value = 0,                                 \
         .x = (x_pos),                               \
         .y = (y_pos),                               \
-        .width = 0,                                 \
-        .height = 0,                                \
+        .width = text_input_switch_key_width,       \
+        .height = text_input_icon_key_height,       \
         .action = TextInputKeyActionSwitchKeyboard, \
     }
 #define KEY_ACCENT(cp, target, x_pos, y_pos) \
@@ -446,8 +480,18 @@ static size_t text_input_utf8_clamp_boundary(const char* text, size_t byte_pos);
 static size_t text_input_utf8_encode(uint32_t codepoint, char out[5]);
 static void text_input_clamp_selection(TextInputModel* model);
 static void text_input_set_utf8_font(Canvas* canvas);
+static uint8_t get_row_size(const Keyboard* keyboard, uint8_t row_index);
+static const TextInputKey* get_row(const Keyboard* keyboard, uint8_t row_index);
 static uint8_t text_input_get_key_box_width(const TextInputKey* key);
 static uint8_t text_input_get_key_box_height(const TextInputKey* key);
+static bool text_input_key_uses_icon(const TextInputKey* key);
+static int32_t text_input_get_key_left(const TextInputKey* key);
+static int32_t text_input_get_key_right(const TextInputKey* key);
+static int32_t text_input_get_abs_i32(int32_t value);
+static uint8_t text_input_select_column_for_row(
+    const Keyboard* keyboard,
+    uint8_t row_index,
+    const TextInputKey* anchor_key);
 static int32_t
     text_input_get_key_glyph_x(Canvas* canvas, const TextInputKey* key, uint32_t codepoint);
 static void text_input_set_default_selection(TextInputModel* model);
@@ -500,6 +544,62 @@ static uint8_t text_input_get_key_box_width(const TextInputKey* key) {
 
 static uint8_t text_input_get_key_box_height(const TextInputKey* key) {
     return key->height ? key->height : text_input_key_box_height;
+}
+
+static bool text_input_key_uses_icon(const TextInputKey* key) {
+    return key->action == TextInputKeyActionEnter || key->action == TextInputKeyActionBackspace ||
+           key->action == TextInputKeyActionSwitchKeyboard;
+}
+
+static int32_t text_input_get_key_left(const TextInputKey* key) {
+    if(text_input_key_uses_icon(key)) {
+        return (int32_t)keyboard_origin_x + key->x;
+    }
+
+    return (int32_t)keyboard_origin_x + key->x - (int32_t)text_input_key_box_x_offset;
+}
+
+static int32_t text_input_get_key_right(const TextInputKey* key) {
+    return text_input_get_key_left(key) + text_input_get_key_box_width(key);
+}
+
+static int32_t text_input_get_abs_i32(int32_t value) {
+    return value < 0 ? -value : value;
+}
+
+static uint8_t text_input_select_column_for_row(
+    const Keyboard* keyboard,
+    uint8_t row_index,
+    const TextInputKey* anchor_key) {
+    const uint8_t row_size = get_row_size(keyboard, row_index);
+    if(row_size == 0U) {
+        return 0U;
+    }
+
+    const TextInputKey* row = get_row(keyboard, row_index);
+    const int32_t anchor_left = text_input_get_key_left(anchor_key);
+    const int32_t anchor_right = text_input_get_key_right(anchor_key);
+    const int32_t anchor_center_x2 = anchor_left + anchor_right;
+    uint8_t best_column = 0U;
+    int32_t best_overlap = -1;
+    int32_t best_distance_x2 = INT32_MAX;
+
+    for(uint8_t column = 0; column < row_size; column++) {
+        const int32_t candidate_left = text_input_get_key_left(&row[column]);
+        const int32_t candidate_right = text_input_get_key_right(&row[column]);
+        const int32_t overlap =
+            MIN(anchor_right, candidate_right) - MAX(anchor_left, candidate_left);
+        const int32_t candidate_center_x2 = candidate_left + candidate_right;
+        const int32_t distance_x2 = text_input_get_abs_i32(anchor_center_x2 - candidate_center_x2);
+
+        if(overlap > best_overlap || (overlap == best_overlap && distance_x2 < best_distance_x2)) {
+            best_column = column;
+            best_overlap = overlap;
+            best_distance_x2 = distance_x2;
+        }
+    }
+
+    return best_column;
 }
 
 static int32_t
@@ -653,18 +753,117 @@ static const TextInputKey* get_selected_key(TextInputModel* model) {
         model->selected_row)[model->selected_column];
 }
 
-static bool text_input_is_ascii_lowercase(uint32_t codepoint) {
-    return codepoint >= 0x61U && codepoint <= 0x7AU;
+static bool text_input_codepoint_supports_shift_case(uint32_t codepoint) {
+    switch(codepoint) {
+    case '_':
+    case CP_C_CEDILLA:
+    case CP_N_TILDE:
+    case CP_U_DIAERESIS:
+    case CP_SHARP_S:
+    case CP_AE_LIGATURE:
+    case CP_OE_LIGATURE:
+    case CP_O_SLASH:
+    case CP_LATIN_SMALL_A_GRAVE:
+    case CP_LATIN_SMALL_E_GRAVE:
+    case CP_LATIN_SMALL_I_GRAVE:
+    case CP_LATIN_SMALL_O_GRAVE:
+    case CP_LATIN_SMALL_U_GRAVE:
+    case CP_LATIN_SMALL_Y_GRAVE:
+    case CP_LATIN_SMALL_A_ACUTE:
+    case CP_LATIN_SMALL_E_ACUTE:
+    case CP_LATIN_SMALL_I_ACUTE:
+    case CP_LATIN_SMALL_O_ACUTE:
+    case CP_LATIN_SMALL_U_ACUTE:
+    case CP_LATIN_SMALL_Y_ACUTE:
+    case CP_LATIN_SMALL_A_DIAERESIS:
+    case CP_LATIN_SMALL_E_DIAERESIS:
+    case CP_LATIN_SMALL_I_DIAERESIS:
+    case CP_LATIN_SMALL_O_DIAERESIS:
+    case CP_LATIN_SMALL_Y_DIAERESIS:
+    case CP_LATIN_SMALL_A_CIRCUMFLEX:
+    case CP_LATIN_SMALL_E_CIRCUMFLEX:
+    case CP_LATIN_SMALL_I_CIRCUMFLEX:
+    case CP_LATIN_SMALL_O_CIRCUMFLEX:
+    case CP_LATIN_SMALL_U_CIRCUMFLEX:
+    case CP_LATIN_SMALL_Y_CIRCUMFLEX:
+        return true;
+    default:
+        return codepoint >= 0x61U && codepoint <= 0x7AU;
+    }
 }
 
 static uint32_t text_input_codepoint_to_uppercase(uint32_t codepoint) {
     if(codepoint == '_') {
         return 0x20U;
     }
-    if(text_input_is_ascii_lowercase(codepoint)) {
+    if(codepoint >= 0x61U && codepoint <= 0x7AU) {
         return codepoint - 0x20U;
     }
-    return codepoint;
+
+    switch(codepoint) {
+    case CP_C_CEDILLA:
+        return CP_C_CAPITAL_CEDILLA;
+    case CP_N_TILDE:
+        return CP_N_CAPITAL_TILDE;
+    case CP_U_DIAERESIS:
+        return CP_U_CAPITAL_DIAERESIS;
+    case CP_SHARP_S:
+        return CP_CAPITAL_SHARP_S;
+    case CP_AE_LIGATURE:
+        return CP_AE_CAPITAL_LIGATURE;
+    case CP_OE_LIGATURE:
+        return CP_OE_CAPITAL_LIGATURE;
+    case CP_O_SLASH:
+        return CP_O_CAPITAL_SLASH;
+    case CP_LATIN_SMALL_A_GRAVE:
+        return CP_LATIN_CAPITAL_A_GRAVE;
+    case CP_LATIN_SMALL_E_GRAVE:
+        return CP_LATIN_CAPITAL_E_GRAVE;
+    case CP_LATIN_SMALL_I_GRAVE:
+        return CP_LATIN_CAPITAL_I_GRAVE;
+    case CP_LATIN_SMALL_O_GRAVE:
+        return CP_LATIN_CAPITAL_O_GRAVE;
+    case CP_LATIN_SMALL_U_GRAVE:
+        return CP_LATIN_CAPITAL_U_GRAVE;
+    case CP_LATIN_SMALL_Y_GRAVE:
+        return CP_LATIN_CAPITAL_Y_GRAVE;
+    case CP_LATIN_SMALL_A_ACUTE:
+        return CP_LATIN_CAPITAL_A_ACUTE;
+    case CP_LATIN_SMALL_E_ACUTE:
+        return CP_LATIN_CAPITAL_E_ACUTE;
+    case CP_LATIN_SMALL_I_ACUTE:
+        return CP_LATIN_CAPITAL_I_ACUTE;
+    case CP_LATIN_SMALL_O_ACUTE:
+        return CP_LATIN_CAPITAL_O_ACUTE;
+    case CP_LATIN_SMALL_U_ACUTE:
+        return CP_LATIN_CAPITAL_U_ACUTE;
+    case CP_LATIN_SMALL_Y_ACUTE:
+        return CP_LATIN_CAPITAL_Y_ACUTE;
+    case CP_LATIN_SMALL_A_DIAERESIS:
+        return CP_LATIN_CAPITAL_A_DIAERESIS;
+    case CP_LATIN_SMALL_E_DIAERESIS:
+        return CP_LATIN_CAPITAL_E_DIAERESIS;
+    case CP_LATIN_SMALL_I_DIAERESIS:
+        return CP_LATIN_CAPITAL_I_DIAERESIS;
+    case CP_LATIN_SMALL_O_DIAERESIS:
+        return CP_LATIN_CAPITAL_O_DIAERESIS;
+    case CP_LATIN_SMALL_Y_DIAERESIS:
+        return CP_LATIN_CAPITAL_Y_DIAERESIS;
+    case CP_LATIN_SMALL_A_CIRCUMFLEX:
+        return CP_LATIN_CAPITAL_A_CIRCUMFLEX;
+    case CP_LATIN_SMALL_E_CIRCUMFLEX:
+        return CP_LATIN_CAPITAL_E_CIRCUMFLEX;
+    case CP_LATIN_SMALL_I_CIRCUMFLEX:
+        return CP_LATIN_CAPITAL_I_CIRCUMFLEX;
+    case CP_LATIN_SMALL_O_CIRCUMFLEX:
+        return CP_LATIN_CAPITAL_O_CIRCUMFLEX;
+    case CP_LATIN_SMALL_U_CIRCUMFLEX:
+        return CP_LATIN_CAPITAL_U_CIRCUMFLEX;
+    case CP_LATIN_SMALL_Y_CIRCUMFLEX:
+        return CP_LATIN_CAPITAL_Y_CIRCUMFLEX;
+    default:
+        return codepoint;
+    }
 }
 
 static bool text_input_utf8_is_continuation_byte(uint8_t byte) {
@@ -861,10 +1060,9 @@ static void text_input_draw_key(
     }
 
     uint32_t glyph = key->codepoint;
-    if(model->selected_keyboard == TextInputKeyboard_Letters &&
-       (model->clear_default_text ||
+    if((model->clear_default_text ||
         (model->text_buffer != NULL && model->text_buffer[0] == '\0')) &&
-       (text_input_is_ascii_lowercase(key->codepoint) || key->codepoint == '_')) {
+       text_input_codepoint_supports_shift_case(key->codepoint)) {
         glyph = text_input_codepoint_to_uppercase(key->codepoint);
     }
 
@@ -975,8 +1173,12 @@ static void text_input_handle_up(TextInput* text_input, TextInputModel* model) {
     if(model->cursor_select) {
         model->cursor_select = false;
     } else if(model->selected_row > 0) {
+        const Keyboard* keyboard =
+            text_input_get_keyboard((TextInputKeyboard)model->selected_keyboard);
+        const TextInputKey* anchor_key = get_selected_key(model);
         model->selected_row--;
-        text_input_clamp_selection(model);
+        model->selected_column =
+            text_input_select_column_for_row(keyboard, model->selected_row, anchor_key);
     } else {
         model->cursor_select = true;
         model->clear_default_text = false;
@@ -988,8 +1190,12 @@ static void text_input_handle_down(TextInput* text_input, TextInputModel* model)
     if(model->cursor_select) {
         model->cursor_select = false;
     } else if(model->selected_row < keyboard_row_count - 1) {
+        const Keyboard* keyboard =
+            text_input_get_keyboard((TextInputKeyboard)model->selected_keyboard);
+        const TextInputKey* anchor_key = get_selected_key(model);
         model->selected_row++;
-        text_input_clamp_selection(model);
+        model->selected_column =
+            text_input_select_column_for_row(keyboard, model->selected_row, anchor_key);
     }
 }
 
@@ -1072,7 +1278,7 @@ static void text_input_handle_ok(TextInput* text_input, TextInputModel* model, I
         const bool restore_to_special =
             text_input_keyboard_is_accent((TextInputKeyboard)model->selected_keyboard);
         const size_t effective_length = model->clear_default_text ? 0U : text_length;
-        if(model->selected_keyboard == TextInputKeyboard_Letters &&
+        if(text_input_codepoint_supports_shift_case(codepoint) &&
            (shift != (effective_length == 0U))) {
             codepoint = text_input_codepoint_to_uppercase(codepoint);
         }

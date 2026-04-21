@@ -147,7 +147,6 @@ static void flippass_other_fields_view_callback(FlipPassDbBrowserEvent event, vo
 void flippass_scene_other_fields_on_enter(void* context) {
     App* app = context;
     const KDBXEntry* entry = app->active_entry;
-    FuriString* error = furi_string_alloc();
 
     if(entry == NULL) {
         flippass_scene_status_show(
@@ -156,18 +155,8 @@ void flippass_scene_other_fields_on_enter(void* context) {
             "Return to the browser and pick an entry first.",
             FlipPassScene_DbEntries);
         scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
-        furi_string_free(error);
         return;
     }
-
-    if(!flippass_db_activate_entry(app, app->active_entry, false, error)) {
-        flippass_scene_status_show(
-            app, "Entry Load Failed", furi_string_get_cstr(error), FlipPassScene_DbEntries);
-        scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
-        furi_string_free(error);
-        return;
-    }
-    furi_string_free(error);
 
     flippass_db_browser_view_set_callback(
         app->db_browser, flippass_other_fields_view_callback, app);
