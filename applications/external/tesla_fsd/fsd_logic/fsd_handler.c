@@ -92,6 +92,9 @@ TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame) {
     if(frame->canId != CAN_ID_GTW_CAR_CONFIG) return TeslaHW_Unknown;
     uint8_t das_hw = (frame->buffer[0] >> 6) & 0x03;
     switch(das_hw) {
+    case 0:
+    case 1:
+        return TeslaHW_Legacy; // HW1/HW2/EAP retrofit — uses 0x3EE/0x045
     case 2:
         return TeslaHW_HW3;
     case 3:
@@ -680,9 +683,12 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     if(frame->data_lenght < 8) return false;
     if(!state->nag_killer) return false;
 
-    // only act when handsOnLevel == 0 (no hands detected)
+    // Act on handsOnLevel 0 (nag imminent) and 3 (escalated alarm).
+    // Previous "hands_on != 0" guard silently skipped level 3, leaving the
+    // escalated alarm unsuppressed. Only skip when hands are actually
+    // detected (level 1).
     uint8_t hands_on = (frame->buffer[4] >> 6) & 0x03;
-    if(hands_on != 0) return false;
+    if(hands_on == 1) return false;
 
     // DAS-aware gating: skip echo when DAS is satisfied or AP suspended.
     // das_hands_on_state is parsed from 0x39B in fsd_handle_das_status().
@@ -726,7 +732,9 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     out->buffer[1] = frame->buffer[1];
     out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torq >> 8) & 0x0F);
     out->buffer[3] = (uint8_t)(torq & 0xFF);
-    out->buffer[4] = frame->buffer[4] | 0x40; // handsOnLevel = 1
+    // Clear existing handsOnLevel bits (7:6) before setting level=1.
+    // OR-ing 0x40 without clearing leaves level=3 unchanged on escalated frames.
+    out->buffer[4] = (frame->buffer[4] & ~0xC0u) | 0x40u;
     out->buffer[5] = frame->buffer[5];
 
     // counter + 1 (byte6 lower nibble)

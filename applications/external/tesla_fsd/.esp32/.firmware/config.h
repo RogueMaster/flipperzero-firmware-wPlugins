@@ -15,14 +15,25 @@
 #define CAN_ID_DAS_AP_CONFIG  0x331u  // 817  - DAS autopilot config (tier restore target, ~1 Hz)
 #define CAN_ID_AP_CONTROL     0x3FDu  // 1021 - DAS_autopilotControl: HW3 / HW4 core
 
-// ── GPIO — M5Stack ATOM Lite + ATOMIC CAN Base (CA-IS3050G) ──────────────────
-#ifndef PIN_CAN_TX
-#define PIN_CAN_TX   22   // TWAI TX → ATOMIC CAN Base TX
+// ── GPIO ──────────────────────────────────────────────────────────────────────
+#if defined(BOARD_LILYGO)
+  #define PIN_CAN_TX         27
+  #define PIN_CAN_RX         26
+  #define PIN_CAN_SPEED_MODE 23   // SN65HVD230 Rs — must be LOW for TX+RX
+  #define PIN_LED            4    // SK6812 NeoPixel
+  #define SD_MISO            2
+  #define SD_MOSI            15
+  #define SD_SCLK            14
+  #define SD_CS              13
+#else
+  #ifndef PIN_CAN_TX
+  #define PIN_CAN_TX   22   // TWAI TX → ATOMIC CAN Base TX
+  #endif
+  #ifndef PIN_CAN_RX
+  #define PIN_CAN_RX   19   // TWAI RX ← ATOMIC CAN Base RX
+  #endif
+  #define PIN_LED      27   // SK6812 NeoPixel (single LED)
 #endif
-#ifndef PIN_CAN_RX
-#define PIN_CAN_RX   19   // TWAI RX ← ATOMIC CAN Base RX
-#endif
-#define PIN_LED      27   // SK6812 NeoPixel (single LED)
 #define PIN_BUTTON   39   // Built-in button, active-LOW (no external pull-up needed)
 
 // MCP2515 SPI — only used in CAN_DRIVER_MCP2515 build (generic ESP32)
@@ -51,3 +62,7 @@
 #define OTA_IN_PROGRESS_RAW_VALUE  1u
 #define OTA_ASSERT_FRAMES          3u
 #define OTA_CLEAR_FRAMES           6u
+
+#if defined(BOARD_LILYGO)
+  #define ME2107_EN 16
+#endif

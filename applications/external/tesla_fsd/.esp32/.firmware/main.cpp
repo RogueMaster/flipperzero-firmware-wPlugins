@@ -21,6 +21,7 @@
 #include "led.h"
 #include "wifi_manager.h"
 #include "web_dashboard.h"
+#include "can_dump.h"
 
 // ── Globals ───────────────────────────────────────────────────────────────────
 static CanDriver *g_can   = nullptr;
@@ -46,6 +47,7 @@ static void apply_detected_hw(TeslaHWVersion hw, const char *reason) {
         (hw == TeslaHW_HW4) ? "HW4" :
         (hw == TeslaHW_HW3) ? "HW3" : "Legacy";
     Serial.printf("[HW] Auto-detected: %s (%s)\n", hw_str, reason);
+    can_dump_log("HW  auto-detected: %s (%s)", hw_str, reason);
 }
 
 // ── Button state machine ──────────────────────────────────────────────────────
@@ -62,10 +64,12 @@ static void dispatch_clicks(int n) {
             g_state.op_mode = OpMode_Active;
             g_can->setListenOnly(false);
             Serial.println("[BTN] → Active mode");
+            can_dump_log("MODE switched to Active — TX enabled");
         } else {
             g_state.op_mode = OpMode_ListenOnly;
             g_can->setListenOnly(true);
             Serial.println("[BTN] → Listen-Only mode");
+            can_dump_log("MODE switched to Listen-Only — TX disabled");
         }
     } else if (n >= 2) {
         // Toggle BMS serial output
@@ -129,6 +133,7 @@ static void update_led() {
 // ── CAN frame dispatcher ──────────────────────────────────────────────────────
 static void process_frame(const CanFrame &frame) {
     g_state.rx_count++;
+    can_dump_record(frame);
 
     if (frame.id == CAN_ID_GTW_CAR_STATE)  g_state.seen_gtw_car_state++;
     if (frame.id == CAN_ID_GTW_CAR_CONFIG) g_state.seen_gtw_car_config++;
@@ -141,8 +146,6 @@ static void process_frame(const CanFrame &frame) {
     if (frame.dlc == 0) return;
 
     // ── HW auto-detect (passive, runs in both modes) ─────────────────────────
-    // Only needed until we lock in a version; keep running after that too so
-    // we can print it if a new frame arrives.
     if (frame.id == CAN_ID_GTW_CAR_CONFIG) {
         TeslaHWVersion hw = fsd_detect_hw_version(&frame);
         if (hw != TeslaHW_Unknown && g_state.hw_version == TeslaHW_Unknown)
@@ -154,10 +157,13 @@ static void process_frame(const CanFrame &frame) {
     if (frame.id == CAN_ID_GTW_CAR_STATE) {
         bool was_ota = g_state.tesla_ota_in_progress;
         fsd_handle_gtw_car_state(&g_state, &frame);
-        if (!was_ota && g_state.tesla_ota_in_progress)
+        if (!was_ota && g_state.tesla_ota_in_progress) {
             Serial.printf("[OTA] Update in progress (raw=%u) - TX suspended\n", g_state.ota_raw_state);
-        else if (was_ota && !g_state.tesla_ota_in_progress)
+            can_dump_log("OTA  started — TX suspended");
+        } else if (was_ota && !g_state.tesla_ota_in_progress) {
             Serial.printf("[OTA] Update finished (raw=%u) - TX resumed\n", g_state.ota_raw_state);
+            can_dump_log("OTA  finished — TX resumed");
+        }
         return;
     }
 
@@ -172,8 +178,15 @@ static void process_frame(const CanFrame &frame) {
     // NAG killer — build echo and send before the real frame propagates (0x370)
     if (frame.id == CAN_ID_EPAS_STATUS) {
         CanFrame echo;
-        if (fsd_handle_nag_killer(&g_state, &frame, &echo) && tx)
-            g_can->send(echo);
+        bool fired = fsd_handle_nag_killer(&g_state, &frame, &echo);
+        if (fired) {
+            uint8_t lvl     = (frame.data[4] >> 6) & 0x03;
+            uint8_t cnt_in  = frame.data[6] & 0x0F;
+            uint8_t cnt_out = echo.data[6] & 0x0F;
+            can_dump_log("NAG 0x370 hands_off lvl=%u cnt=%u->%u %s",
+                         lvl, cnt_in, cnt_out, tx ? "TX echo" : "listen-only no-TX");
+            if (tx) g_can->send(echo);
+        }
         return;
     }
 
@@ -251,6 +264,16 @@ void setup() {
     Serial.println("[CAN] Driver: MCP2515 via SPI");
 #endif
 
+#if defined(BOARD_LILYGO)
+    pinMode(ME2107_EN, OUTPUT);
+    digitalWrite(ME2107_EN, HIGH);
+    // CAN transceiver slope/mode pin — must be LOW for normal TX+RX operation.
+    // Floating or HIGH puts the SN65HVD230/TJA1051 into standby (RX-only),
+    // which causes the TWAI controller to go bus-off the first time it tries to TX.
+    pinMode(PIN_CAN_SPEED_MODE, OUTPUT);
+    digitalWrite(PIN_CAN_SPEED_MODE, LOW);
+#endif
+
     pinMode(PIN_BUTTON, INPUT_PULLUP);
     led_init();
 
@@ -264,6 +287,8 @@ void setup() {
     g_state.bms_output            = false;
 
     led_set(LED_BLUE);
+
+    can_dump_init();
 
     g_can = can_driver_create();
     if (!g_can->begin(true)) {
@@ -362,6 +387,8 @@ void loop() {
         Serial.println("[WARN] Verify CAN-H on OBD pin 6, CAN-L on pin 14");
         last_warn_ms = now;
     }
+
+    can_dump_tick(now);
 
     // ── Web dashboard (after CAN to preserve CAN frame latency) ──────────────
     web_dashboard_update();

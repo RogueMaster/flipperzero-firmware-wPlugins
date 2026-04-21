@@ -12,6 +12,7 @@
  */
 
 #include "web_dashboard.h"
+#include "can_dump.h"
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <WiFi.h>
@@ -253,6 +254,21 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <span class="lbl">TLSSC Restore</span>
     <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
   </div>
+  <div class="row">
+    <span class="lbl">CAN Dump</span>
+    <label class="sw"><input type="checkbox" id="swDump" onchange="cmd('dump',this.checked)"><span class="sl2"></span></label>
+  </div>
+</div>
+
+<!-- SD Card -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-d">S</div><h2>SD Card</h2></div>
+  <div class="row">
+    <span class="lbl">Dump Status</span>
+    <span class="pill off" id="dumpSt"><span class="pd"></span>Idle</span>
+  </div>
+  <button id="btnFmt" class="btn-main btn-stop" onclick="sdFormat()" style="margin-top:8px">FORMAT SD CARD</button>
+  <div id="fmtOut" style="font-size:.75em;color:var(--text2);margin-top:8px;display:none"></div>
 </div>
 
 <!-- Device Info -->
@@ -324,6 +340,8 @@ function upd(d){
   document.getElementById('swBms').checked=d.bms_output;
   document.getElementById('swFsd').checked=d.force_fsd;
   document.getElementById('swTlssc').checked=d.tlssc_restore;
+  document.getElementById('swDump').checked=!!d.can_dump;
+  pill('dumpSt',d.can_dump,d.can_dump?'Recording':'Idle');
 
   // CAN stats
   document.getElementById('rxCnt').textContent=d.rx_count.toLocaleString();
@@ -350,6 +368,21 @@ function upd(d){
   document.getElementById('wifiCl').textContent=d.wifi_clients;
 }
 
+function sdFormat(){
+  if(!confirm('Format SD card? All data will be lost.'))return;
+  var btn=document.getElementById('btnFmt');
+  var out=document.getElementById('fmtOut');
+  btn.disabled=true;btn.textContent='FORMATTING\u2026';
+  fetch('/sdformat').then(function(r){return r.json();}).then(function(d){
+    out.style.display='block';
+    out.style.color=d.ok?'var(--accent)':'var(--red)';
+    out.textContent=d.msg+(d.ok?' \u2014 '+d.free_mb+' MB free':'');
+  }).catch(function(){
+    out.style.display='block';out.style.color='var(--red)';out.textContent='Request failed';
+  }).then(function(){
+    btn.disabled=false;btn.textContent='FORMAT SD CARD';
+  });
+}
 function cmd(c,v){
   if(ws&&ws.readyState===1) ws.send(JSON.stringify({cmd:c,value:v}));
 }
@@ -379,10 +412,10 @@ conn();
 // ── JSON builder ──────────────────────────────────────────────────────────────
 static String build_json() {
     uint32_t uptime_s = (millis() - g_start_ms) / 1000;
-  bool can_vehicle_detected = false;
-  if (g_state != nullptr && g_state->rx_count > 0) {
-    can_vehicle_detected = (millis() - g_last_can_seen_ms) <= CAN_VEHICLE_ALIVE_MS;
-  }
+    bool can_vehicle_detected = false;
+    if (g_state != nullptr && g_state->rx_count > 0) {
+        can_vehicle_detected = (millis() - g_last_can_seen_ms) <= CAN_VEHICLE_ALIVE_MS;
+    }
 
     // BMS sub-object
     char bms[128];
@@ -425,6 +458,7 @@ static String build_json() {
     j += "\"bms\":";           j += bms;                               j += ',';
     j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
     j += "\"fw_build\":\"";    j += __DATE__;  j += ' '; j += __TIME__; j += "\",";
+    j += "\"can_dump\":";      j += can_dump_active()                 ? "true" : "false"; j += ',';
     j += "\"wifi_clients\":";  j += (int)WiFi.softAPgetStationNum();
     j += '}';
     return j;
@@ -471,6 +505,11 @@ static void ws_event(uint8_t num, WStype_t type,
     } else if (strstr(buf, "\"force_fsd\"")) {
         g_state->force_fsd = (strstr(buf, "true") != nullptr);
         Serial.printf("[Web] Force FSD: %s\n", g_state->force_fsd ? "ON" : "OFF");
+    } else if (strstr(buf, "\"dump\"")) {
+        bool want = (strstr(buf, "true") != nullptr);
+        if (want) can_dump_start();
+        else      can_dump_stop();
+        Serial.printf("[Web] CAN Dump: %s\n", want ? "START" : "STOP");
     }
 }
 
@@ -484,6 +523,11 @@ static void handle_status() {
     g_http.send(200, "application/json", build_json());
 }
 
+static void handle_sdformat() {
+    String result = sd_format_card();
+    g_http.send(200, "application/json", result);
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 void web_dashboard_init(FSDState *state, CanDriver *can) {
     g_state       = state;
@@ -495,6 +539,7 @@ void web_dashboard_init(FSDState *state, CanDriver *can) {
 
     g_http.on("/",           HTTP_GET, handle_root);
     g_http.on("/api/status", HTTP_GET, handle_status);
+    g_http.on("/sdformat",   HTTP_GET, handle_sdformat);
     g_http.begin();
 
     g_ws.begin();
@@ -514,7 +559,7 @@ void web_dashboard_update() {
     if ((now - g_last_fps_ms) >= 1000u) {
         uint32_t rx = g_state->rx_count;
         float    dt = (now - g_last_fps_ms) / 1000.0f;
-      if (rx != g_last_rx) g_last_can_seen_ms = now;
+        if (rx != g_last_rx) g_last_can_seen_ms = now;
         g_fps        = (float)(rx - g_last_rx) / dt;
         g_last_rx    = rx;
         g_last_fps_ms = now;

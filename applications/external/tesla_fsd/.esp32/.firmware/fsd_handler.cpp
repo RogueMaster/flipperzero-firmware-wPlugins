@@ -77,9 +77,11 @@ TeslaHWVersion fsd_detect_hw_version(const CanFrame *frame) {
     // DAS_HWversion field: bits 7:6 of byte 0  (das_hw)
     uint8_t das_hw = (frame->data[0] >> 6) & 0x03;
     switch (das_hw) {
+        case 0:
+        case 1:  return TeslaHW_Legacy;   // HW1/HW2/EAP retrofit — uses 0x3EE/0x045
         case 2:  return TeslaHW_HW3;
         case 3:  return TeslaHW_HW4;
-        default: return TeslaHW_Unknown;  // 0=HW1/HW2 → Legacy, 1=unknown
+        default: return TeslaHW_Unknown;
     }
 }
 
@@ -281,9 +283,10 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
     if (frame->dlc < 8)    return false;
     if (!state->nag_killer) return false;
 
-    // Only act when handsOnLevel == 0 (bits 7:6 of byte 4)
+    // Act when handsOnLevel == 0 (nag imminent) or == 3 (escalated alarm).
+    // Level 1 = hands confirmed OK — no action needed.
     uint8_t hands_on = (frame->data[4] >> 6) & 0x03;
-    if (hands_on != 0) return false;
+    if (hands_on == 1) return false;
 
     out->id  = CAN_ID_EPAS_STATUS;
     out->dlc = 8;
@@ -292,7 +295,7 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
     out->data[1] = frame->data[1];
     out->data[2] = (frame->data[2] & 0xF0u) | 0x08u; // lower nibble = torque quality
     out->data[3] = 0xB6u;                              // torsionBarTorque = 1.80 Nm (fixed)
-    out->data[4] = frame->data[4] | 0x40u;             // handsOnLevel = 1
+    out->data[4] = (frame->data[4] & ~0xC0u) | 0x40u;  // handsOnLevel = 1 (clear bits 7:6 first)
     out->data[5] = frame->data[5];
 
     // counter+1: lower nibble of byte 6
