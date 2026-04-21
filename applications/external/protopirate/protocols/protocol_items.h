@@ -13,6 +13,7 @@
 #include "kia_v6.h"
 #include "kia_v7.h"
 #include "ford_v0.h"
+#include "ford_v1.h"
 #include "fiat_v0.h"
 #include "fiat_v1.h"
 #include "mazda_v0.h"

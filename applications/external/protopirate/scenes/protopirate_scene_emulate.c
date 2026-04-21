@@ -14,6 +14,7 @@ typedef struct {
     uint8_t original_button;
     FuriString* protocol_name;
     const char* preset;
+    FuriString* preset_from_file;
     uint32_t freq;
     FlipperFormat* flipper_format;
     SubGhzTransmitter* transmitter;
@@ -89,6 +90,11 @@ static void emulate_context_free(void) {
     if(emulate_context->protocol_name) {
         furi_string_free(emulate_context->protocol_name);
         emulate_context->protocol_name = NULL;
+    }
+
+    if(emulate_context->preset_from_file) {
+        furi_string_free(emulate_context->preset_from_file);
+        emulate_context->preset_from_file = NULL;
     }
 
     if(emulate_context->storage) {
@@ -289,6 +295,21 @@ static uint8_t protopirate_get_button_for_protocol(
     }
     // Ford - (needs testing)
     else if(strstr(protocol, "Ford")) {
+        if(strstr(protocol, FORD_PROTOCOL_V1_NAME)) {
+            switch(key) {
+            case InputKeyUp:
+                return 0x1; // Lock
+            case InputKeyOk:
+                return 0x2; // Unlock
+            case InputKeyDown:
+                return 0x4; // Trunk
+            case InputKeyLeft:
+                return 0x8; // Panic
+            case InputKeyRight:
+            default:
+                return original;
+            }
+        }
         switch(key) {
         case InputKeyLeft:
             return 0x1; // Panic
@@ -578,14 +599,17 @@ void protopirate_scene_emulate_on_enter(void* context) {
             furi_string_set(preset_str, "AM650");
         }
 
+        emulate_context->preset_from_file = furi_string_alloc();
+        furi_string_set(emulate_context->preset_from_file, preset_str);
+
         // Convert full preset name to short name
         emulate_context->preset = preset_name_to_short(furi_string_get_cstr(preset_str));
         FURI_LOG_I(
             TAG,
             "Using frequency %lu Hz, preset %s (from %s)",
             (unsigned long)frequency,
-            emulate_context->preset,
-            furi_string_get_cstr(preset_str));
+            furi_string_get_cstr(emulate_context->preset_from_file),
+            emulate_context->preset);
         emulate_context->freq = frequency;
         furi_string_free(preset_str);
 
@@ -751,7 +775,6 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                         uint8_t am_byte = preset_data[preset_offset + 1];
 
                         if(fm_byte && am_byte) {
-                            //Must be a custom Preset with weird PA table not in FW code, dont touch it.
                             FURI_LOG_I(TAG, INVALID_PRESET);
                         } else if(fm_byte) {
                             FURI_LOG_I(TAG, "FM PA table found.");
@@ -761,7 +784,6 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                             preset_data[preset_offset + 1] =
                                 tx_power_value[TX_PRESET_VALUES_AM + app->tx_power];
                         } else {
-                            //Must be a custom Preset with weird PA table not in FW code, dont touch it.
                             FURI_LOG_I(TAG, INVALID_PRESET);
                         }
                     }
@@ -786,8 +808,11 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                         notification_message(app->notifications, &sequence_blink_magenta_10);
                         FURI_LOG_I(
                             TAG,
-                            "Started transmission: freq=%lu, preset=%s",
+                            "Started transmission: freq=%lu file_Preset=\"%s\" short=\"%s\"",
                             (unsigned long)emulate_context->freq,
+                            emulate_context->preset_from_file ?
+                                furi_string_get_cstr(emulate_context->preset_from_file) :
+                                "?",
                             emulate_context->preset);
                     } else {
                         FURI_LOG_E(TAG, "Failed to start async TX");

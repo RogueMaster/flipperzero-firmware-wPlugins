@@ -10,6 +10,7 @@ const SubGhzProtocol* protopirate_protocol_registry_items[] = {
     &kia_protocol_v5, // Heap: free 16528
     &kia_protocol_v6, // Heap: free 18296
     &ford_protocol_v0, // Heap: free 19456
+    &ford_protocol_v1,
     &fiat_protocol_v0, // Heap: free 16864
     &fiat_v1_protocol,
     &mazda_v0_protocol,
@@ -109,6 +110,14 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_long = 500,
         .te_delta = 100,
         .min_count_bit = 64,
+    },
+    // Ford V1: Manchester 65/130us
+    {
+        .name = FORD_PROTOCOL_V1_NAME,
+        .te_short = 65,
+        .te_long = 130,
+        .te_delta = 39,
+        .min_count_bit = 136,
     },
     // Fiat V0: Manchester 200/400µs
     {

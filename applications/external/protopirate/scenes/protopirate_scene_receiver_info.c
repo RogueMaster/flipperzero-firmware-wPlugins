@@ -30,6 +30,11 @@ static bool psa_item_needs_bruteforce(ProtoPirateApp* app) {
     if(!ff) return false;
     FuriString* s = furi_string_alloc();
     flipper_format_rewind(ff);
+    if(!flipper_format_read_string(ff, "Protocol", s) || furi_string_cmp_str(s, "PSA") != 0) {
+        furi_string_free(s);
+        return false;
+    }
+    flipper_format_rewind(ff);
     bool has_key = flipper_format_read_string(ff, "Key", s);
     if(!has_key) {
         furi_string_free(s);

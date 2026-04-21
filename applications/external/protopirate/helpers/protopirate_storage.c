@@ -177,6 +177,14 @@ static bool protopirate_storage_write_capture_data(
             }
 
             free(uint32_array);
+        } else {
+            uint8_t key_hex[8];
+            flipper_format_rewind(flipper_format);
+            if(flipper_format_read_hex(flipper_format, "Key", key_hex, sizeof(key_hex))) {
+                if(!flipper_format_write_hex(save_file, "Key", key_hex, sizeof(key_hex))) {
+                    PROTOPIRATE_FAIL_WRITE("Key");
+                }
+            }
         }
     }
 
@@ -233,6 +241,8 @@ static bool protopirate_storage_write_capture_data(
     PROTOPIRATE_COPY_U32_OPTIONAL("Serial");
     PROTOPIRATE_COPY_U32_OPTIONAL("Btn");
     PROTOPIRATE_COPY_U32_OPTIONAL("Cnt");
+    PROTOPIRATE_COPY_U32_OPTIONAL("Extra");
+    PROTOPIRATE_COPY_U32_OPTIONAL("Extra_bits");
     PROTOPIRATE_COPY_U32_OPTIONAL("Checksum");
     PROTOPIRATE_COPY_U32_OPTIONAL("CRC");
     PROTOPIRATE_COPY_U32_OPTIONAL("Type");
@@ -262,9 +272,30 @@ static bool protopirate_storage_write_capture_data(
     }
 
     /* Key_2 */
-    PROTOPIRATE_COPY_STRING_OPTIONAL("Key_2");
-    PROTOPIRATE_COPY_U32_OPTIONAL("Key_2");
-    PROTOPIRATE_COPY_U32_OPTIONAL("Key_3");
+    do {
+        uint8_t key_2_hex[8];
+        flipper_format_rewind(flipper_format);
+        if(flipper_format_read_hex(flipper_format, "Key_2", key_2_hex, sizeof(key_2_hex))) {
+            if(!flipper_format_write_hex(save_file, "Key_2", key_2_hex, sizeof(key_2_hex))) {
+                PROTOPIRATE_FAIL_WRITE("Key_2");
+            }
+        } else {
+            PROTOPIRATE_COPY_STRING_OPTIONAL("Key_2");
+            PROTOPIRATE_COPY_U32_OPTIONAL("Key_2");
+        }
+    } while(0);
+
+    do {
+        uint8_t key_3_hex[4];
+        flipper_format_rewind(flipper_format);
+        if(flipper_format_read_hex(flipper_format, "Key_3", key_3_hex, sizeof(key_3_hex))) {
+            if(!flipper_format_write_hex(save_file, "Key_3", key_3_hex, sizeof(key_3_hex))) {
+                PROTOPIRATE_FAIL_WRITE("Key_3");
+            }
+        } else {
+            PROTOPIRATE_COPY_U32_OPTIONAL("Key_3");
+        }
+    } while(0);
     PROTOPIRATE_COPY_U32_OPTIONAL("Key_4");
     PROTOPIRATE_COPY_U32_OPTIONAL("Fx");
 
@@ -371,44 +402,6 @@ bool protopirate_storage_save_capture_to_path(FlipperFormat* flipper_format, con
     return result;
 }
 
-bool protopirate_storage_save_temp(FlipperFormat* flipper_format) {
-    if(!protopirate_storage_init()) {
-        FURI_LOG_E(TAG, "Failed to create app folder");
-        return false;
-    }
-
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    FlipperFormat* save_file = flipper_format_file_alloc(storage);
-    bool result = false;
-
-    do {
-        storage_simply_remove(storage, PROTOPIRATE_TEMP_FILE);
-
-        if(!flipper_format_file_open_new(save_file, PROTOPIRATE_TEMP_FILE)) {
-            FURI_LOG_E(TAG, "Failed to create temp file");
-            break;
-        }
-
-        if(!flipper_format_write_header_cstr(save_file, "Flipper SubGhz Key File", 1)) {
-            FURI_LOG_E(TAG, "Failed to write header");
-            break;
-        }
-
-        if(!protopirate_storage_write_capture_data(save_file, flipper_format)) {
-            FURI_LOG_E(TAG, "Failed to capture data");
-            break;
-        }
-
-        result = true;
-        FURI_LOG_I(TAG, "Saved temp file: %s", PROTOPIRATE_TEMP_FILE);
-
-    } while(false);
-
-    flipper_format_free(save_file);
-    furi_record_close(RECORD_STORAGE);
-    return result;
-}
-
 void protopirate_storage_delete_temp(void) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(storage_file_exists(storage, PROTOPIRATE_TEMP_FILE)) {
@@ -479,35 +472,4 @@ bool protopirate_storage_delete_file(const char* file_path) {
 
     FURI_LOG_I(TAG, "Delete file %s: %s", file_path, result ? "OK" : "FAILED");
     return result;
-}
-
-FlipperFormat* protopirate_storage_load_file(const char* file_path) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    FlipperFormat* flipper_format = flipper_format_file_alloc(storage);
-
-    if(!flipper_format_file_open_existing(flipper_format, file_path)) {
-        FURI_LOG_E(TAG, "Failed to open file %s", file_path);
-        flipper_format_free(flipper_format);
-        furi_record_close(RECORD_STORAGE);
-        return NULL;
-    }
-
-    return flipper_format;
-}
-
-void protopirate_storage_close_file(FlipperFormat* flipper_format) {
-    if(flipper_format) {
-        flipper_format_free(flipper_format);
-    }
-    furi_record_close(RECORD_STORAGE);
-}
-
-bool protopirate_storage_file_exists(const char* file_path) {
-    if(!file_path) return false;
-
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    bool exists = storage_file_exists(storage, file_path);
-    furi_record_close(RECORD_STORAGE);
-
-    return exists;
 }
