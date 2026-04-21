@@ -15,7 +15,7 @@
 #include "flipper_http/flipper_http.h"
 #include "settings/settings.hpp"
 #include "about/about.hpp"
-#include "Ghouls/src/game.hpp"
+#include "ghouls/src/game.hpp"
 
 #define TAG         "Ghouls"
 #define VERSION     FAP_VERSION
