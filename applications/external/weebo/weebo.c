@@ -81,6 +81,7 @@ bool weebo_load_figure(Weebo* weebo, FuriString* path, bool show_dialog) {
         }
 
         if(!mf_ultralight_is_all_data_read(data)) {
+            //TODO: check is the missing data is the PWD and/or PACK and fill that in
             furi_string_printf(reason, "Incomplete data");
             break;
         }
@@ -391,6 +392,11 @@ Weebo* weebo_alloc() {
     weebo->dialogs = furi_record_open(RECORD_DIALOGS);
     weebo->load_path = furi_string_alloc();
 
+    // Initialize file cycling fields
+    weebo->nfc_file_list = NULL;
+    weebo->nfc_file_count = 0;
+    weebo->current_file_index = 0;
+
     weebo->keys_loaded = false;
 
     return weebo;
@@ -448,6 +454,10 @@ void weebo_free(Weebo* weebo) {
     weebo->notifications = NULL;
 
     furi_string_free(weebo->load_path);
+
+    // Clean up file cycling
+    weebo_free_nfc_file_list(weebo);
+
     furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_DIALOGS);
 

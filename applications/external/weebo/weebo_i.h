@@ -93,6 +93,11 @@ struct Weebo {
     FuriString* load_path;
     char file_name[WEEBO_FILE_NAME_MAX_LENGTH + 1];
 
+    // File cycling support
+    FuriString** nfc_file_list;
+    size_t nfc_file_count;
+    size_t current_file_index;
+
     bool keys_loaded;
     nfc3d_amiibo_keys keys;
 

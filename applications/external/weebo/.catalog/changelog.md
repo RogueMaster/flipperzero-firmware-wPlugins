@@ -1,3 +1,7 @@
+## 0.4
+ - Add more figures
+ - [Add Amiibo cycling functionality while emulating (By sethgregory)](https://github.com/bettse/weebo/pull/11)
+
 ## 0.3
  - Prevent 0x88 in UID byte 3
  - Added more figures to the database
