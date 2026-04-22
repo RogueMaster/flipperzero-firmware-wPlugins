@@ -1910,7 +1910,7 @@ void Player::update(Game *game)
     {
     case INPUT_KEY_UP:
     {
-        GhoulsLevel *currentLevel = dynamic_cast<GhoulsLevel *>(game->current_level);
+        GhoulsLevel *currentLevel = static_cast<GhoulsLevel *>(game->current_level);
         if (!currentLevel)
         {
             return; // Invalid level type
@@ -1955,7 +1955,7 @@ void Player::update(Game *game)
     break;
     case INPUT_KEY_DOWN:
     {
-        GhoulsLevel *currentLevel = dynamic_cast<GhoulsLevel *>(game->current_level);
+        GhoulsLevel *currentLevel = static_cast<GhoulsLevel *>(game->current_level);
         if (!currentLevel)
         {
             return; // Invalid level type

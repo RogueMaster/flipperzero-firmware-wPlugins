@@ -3,6 +3,8 @@
 
 DynamicMap::DynamicMap(const char *name, uint8_t w, uint8_t h, bool addBorder, float height, float depth) : width(w), height(h), name(name)
 {
+    (void)height;
+    (void)depth;
     memset(tiles, 0, sizeof(tiles));
     if (addBorder)
     {
