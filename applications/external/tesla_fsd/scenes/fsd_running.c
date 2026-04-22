@@ -395,7 +395,7 @@ void tesla_fsd_scene_fsd_running_on_enter(void* context) {
         app->widget, 64, 28, AlignCenter, AlignCenter, FontPrimary, "Starting...");
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewWidget);
 
-    app->worker_thread = furi_thread_alloc_ex("TeslaFSD", 2048, fsd_running_worker, app);
+    app->worker_thread = furi_thread_alloc_ex("TeslaFSD", 4096, fsd_running_worker, app);
     furi_thread_start(app->worker_thread);
 }
 

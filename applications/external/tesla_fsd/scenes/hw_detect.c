@@ -78,7 +78,7 @@ void tesla_fsd_scene_hw_detect_on_enter(void* context) {
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewWidget);
 
-    app->worker_thread = furi_thread_alloc_ex("TeslaHWDetect", 2048, hw_detect_worker, app);
+    app->worker_thread = furi_thread_alloc_ex("TeslaHWDetect", 4096, hw_detect_worker, app);
     furi_thread_start(app->worker_thread);
 }
 
