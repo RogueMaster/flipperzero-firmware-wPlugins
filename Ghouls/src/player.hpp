@@ -118,6 +118,7 @@ private:
     OnlineGameState onlineGameState = OnlineStateIdle;         // online game connection state
     char onlineGameId[37] = {0};                               // UUID of the active game session
     uint16_t onlinePort = 0;                                   // WebSocket port assigned by the server
+    bool pendingStatsUpdate = false;                           // deferred stats update flag
     // Lobby browser data
     static const int MAX_LOBBY_ENTRIES = 8;
     struct LobbyEntry

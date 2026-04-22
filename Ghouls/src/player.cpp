@@ -51,7 +51,7 @@ void Player::collision(Entity *other, Game *game)
                 this->health = 0;
                 this->state = ENTITY_DEAD;
                 this->showAlert("You were killed by a ghoul!", 50);
-                this->userRequest(RequestTypeUpdateStats); // Update stats on server
+                this->pendingStatsUpdate = true;
                 this->leaveGame = ToggleOn;
             }
         }
@@ -131,6 +131,11 @@ void Player::drawGameLocalView(Draw *canvas)
         {
             if (shouldLeaveGame())
             {
+                if (pendingStatsUpdate)
+                {
+                    pendingStatsUpdate = false;
+                    userRequest(RequestTypeUpdateStats);
+                }
                 ghoulsGame->endGame();
                 return;
             }
@@ -161,6 +166,11 @@ void Player::drawGameOnlineView(Draw *canvas)
 {
     if (shouldLeaveGame())
     {
+        if (pendingStatsUpdate)
+        {
+            pendingStatsUpdate = false;
+            userRequest(RequestTypeUpdateStats);
+        }
         if (!HTTP_WEBSOCKET_STOP())
         {
             ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to stop WebSocket");
@@ -1421,7 +1431,7 @@ void Player::handleMenu(Draw *draw, Game *game)
             {
             case INPUT_KEY_CENTER:
                 // Leave game
-                userRequest(RequestTypeUpdateStats);
+                pendingStatsUpdate = true; // deferred: sent from shallow stack before endGame()
                 leaveGame = ToggleOn;
                 break;
             case INPUT_KEY_RIGHT:
