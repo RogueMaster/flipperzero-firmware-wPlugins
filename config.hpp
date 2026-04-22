@@ -11,6 +11,8 @@
 #include ENGINE_LOG_INCLUDE
 #endif
 
+#define SKY_RENDER_ALLOWED false
+
 #define WIREFRAME_ENABLED false
 
 // time
