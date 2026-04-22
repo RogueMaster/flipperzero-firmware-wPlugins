@@ -1,3 +1,26 @@
+## 2.11 — Legacy HW detection + NAG killer fixes
+
+- **Legacy HW detection fix** — `fsd_detect_hw_version()` fell through to `TeslaHW_Unknown` for `das_hw=0` and `das_hw=1`. MCU2/HW3 retrofit Model S/X reports `das_hw=0`, silently disabling FSD injection for this entire class of vehicle. Now correctly maps to `TeslaHW_Legacy`.
+- **NAG killer level 3 fix** — the `hands_on != 0` guard skipped level 3 (escalated alarm), the state where suppression matters most. Changed to `hands_on == 1` so both level 0 (nag imminent) and level 3 (escalated) get echoed.
+- **NAG killer echo byte fix** — OR-ing `0x40` without clearing bits 7:6 left level=3 state on escalated frames. Fixed to `(data[4] & ~0xC0u) | 0x40u`.
+- **ESP32: Lilygo T-CAN485 board** — new build target with onboard SN65HVD230 transceiver and SD card.
+- **ESP32: CAN dump to SD card** — all frames in candump ASCII format + per-session debug.log. Auto-rotation at 1M entries, 15-min auto-stop.
+- **ESP32: OTA false positive hardening** — assert 3 frames / clear 6 frames debounce on 0x318.
+- **ESP32: fallback HW detection** — when 0x398 is absent, falls back to 0x3EE (Legacy), 0x399 (HW4), or 0x3FD (HW3).
+
+## 2.10 — TLSSC Restore
+
+- **TLSSC Restore (0x331)** — recover Traffic Light and Stop Sign Control on VIN-banned vehicles via DAS config spoofing. Read-modify-retransmit on CAN ID 0x331 at ~1 Hz: overwrites byte[0] lower 6 bits to 0x1B, setting `DAS_autopilot` and `DAS_autopilotBase` to `SELF_DRIVING`. Triggers MCU reboot and restores the TLSSC toggle.
+  - **Confirmed working on:** Palladium (Model S Plait 2023), HW4 Highland (Model 3 Performance 2024), Intel HW3 (Model 3, with AP-first workaround).
+  - **Known limitation:** Intel HW3 banned cars must activate AP before using TLSSC (enabling the toggle in UI breaks AP on Intel HW3 specifically).
+  - **Does NOT restore full FSD** — only TLSSC (stop signs / traffic lights). FSD UI elements (Navigate on AP, Summon, Autopark) remain locked behind server-side Ethernet entitlement.
+  - New Settings toggle: "TLSSC Restore" (OFF by default). Also ported to ESP32 web dashboard.
+- **Ban research findings** (issue #18):
+  - Byte-diff of banned vs unbanned 0x7FF mux=2 confirms tier downgrade (SELF_DRIVING→ENHANCED).
+  - 0x3FD mux=0 byte[4] bit 7 is an independent "TLSSC UI visible" flag, cleared on ban.
+  - Ban enforcement is platform-specific: Palladium/HW4 less aggressive than Intel HW3.
+  - New ban indicator candidate: `0x259 APP_fsdSuspendState` (SUSPENDED=1 on banned car).
+
 ## 2.9 — Ban Shield
 
 - **Ban Shield** — a CAN-layer immune system that freezes `GTW_carConfig (0x7FF)` in its healthy state. When Tesla pushes a server-side VIN ban, the Gateway changes specific bits in 0x7FF to disable TLSSC. The Ban Shield detects these changes in real-time and immediately retransmits the healthy snapshot, blocking the ban at the CAN frame level before the AP ECU processes it.

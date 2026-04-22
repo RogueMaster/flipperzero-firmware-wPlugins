@@ -101,10 +101,24 @@ Dual CAN driver support (compile-time switch):
 
 ### Alternative Hardware
 
-Any ESP32 board + CAN transceiver works. Change the build environment in `platformio.ini`:
-- ESP32 + SN65HVD230 (TWAI driver, cheapest option)
-- ESP32 + MCP2515 module (SPI driver, use `esp32-mcp2515` env)
-- ESP32-C3/S3 Super Mini + SN65HVD230
+Any ESP32 board + CAN transceiver works. Pick the matching build env in `platformio.ini`:
+
+| PlatformIO env | Board | CAN driver | CAN pins (TX/RX) | Notes |
+|---|---|---|---|---|
+| `m5stack-atom` | M5Stack ATOM Lite + ATOMIC CAN Base | TWAI | 22 / 19 | Default, cheapest |
+| `m5stack-atom-swap-pins` | M5Stack ATOM Lite + ATOMIC CAN Base | TWAI | 19 / 22 | For boards with swapped silkscreen |
+| `esp32-mcp2515` | Generic ESP32 + MCP2515 module | MCP2515 SPI | SPI CS=5 | 8 MHz crystal |
+| `esp32-lilygo` | LilyGO T-CAN485 | TWAI | 27 / 26 | Built-in SN65HVD230 + SD slot |
+| `waveshare-s3-can` | Waveshare ESP32-S3-RS485-CAN | TWAI | 15 / 16 | ESP32-S3, 8MB flash/PSRAM, USB-CDC |
+| generic | ESP32-C3/S3 Super Mini + SN65HVD230 | TWAI | any two pins | Override `PIN_CAN_TX` / `PIN_CAN_RX` |
+
+Build + upload:
+
+```bash
+pio run -e <env-name> -t upload -t monitor
+```
+
+On first boot every target prints its pin map as `[CFG] pins: LED=.. BUTTON=.. CAN_TX=.. CAN_RX=..` — if the numbers don't match your board, the build flags are being shadowed by an unguarded `#define` somewhere.
 
 ---
 

@@ -94,7 +94,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [TV Remote v1.0 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
 - Updated: [FlipPass v1.2 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - Updated: [ProtoPirate v2.8 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) [Replace blocking dialog with non-blocking NeedSaving scene for exit confirmation (By mishamyte)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/23) [Expansion with Fiat, Mazda, Mitzubishi and Porche protocols (Originally By lupettohf) & Ford Fixed (By LeeroysHub) & Several Other Community Changes](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b377cee471cf61aaeff089c5ff194e1a13e8d94a) Different ProtoPirate Builds Enabled For Better Testing [FORD: Fix PANIC Button ENCODE and Counter Overflow in DECODE (By RalphWiggum)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/28) [Kia v7 & Mazda Fix (By zero-mega)](https://github.com/RocketGod-git/ProtoPirate/commits?author=zero-mega) [Ford v1 (By zero-mega)](https://github.com/RocketGod-git/ProtoPirate/commits?author=zero-mega)
-- Updated: [Tesla Mod v2.9 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [Tesla Mod v2.11 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (Version Only)
 
 <a name="release"></a>
 

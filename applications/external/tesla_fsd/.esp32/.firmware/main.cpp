@@ -259,7 +259,13 @@ void setup() {
     Serial.println("============================");
     Serial.printf("[FSD] Build: %s %s\n", __DATE__, __TIME__);
 #if defined(CAN_DRIVER_TWAI)
+  #if defined(BOARD_WAVESHARE_S3)
+    Serial.println("[CAN] Driver: ESP32-S3 TWAI (Waveshare ESP32-S3-RS485-CAN)");
+  #elif defined(BOARD_LILYGO)
+    Serial.println("[CAN] Driver: ESP32 TWAI (LilyGO T-CAN485)");
+  #else
     Serial.println("[CAN] Driver: ESP32 TWAI (M5Stack ATOM Lite + ATOMIC CAN Base)");
+  #endif
 #elif defined(CAN_DRIVER_MCP2515)
     Serial.println("[CAN] Driver: MCP2515 via SPI");
 #endif
@@ -273,6 +279,9 @@ void setup() {
     pinMode(PIN_CAN_SPEED_MODE, OUTPUT);
     digitalWrite(PIN_CAN_SPEED_MODE, LOW);
 #endif
+
+    Serial.printf("[CFG] pins: LED=%d BUTTON=%d CAN_TX=%d CAN_RX=%d\n",
+                  PIN_LED, PIN_BUTTON, PIN_CAN_TX, PIN_CAN_RX);
 
     pinMode(PIN_BUTTON, INPUT_PULLUP);
     led_init();

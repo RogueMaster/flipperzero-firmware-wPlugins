@@ -32,9 +32,13 @@
   #ifndef PIN_CAN_RX
   #define PIN_CAN_RX   19   // TWAI RX ← ATOMIC CAN Base RX
   #endif
+  #ifndef PIN_LED
   #define PIN_LED      27   // SK6812 NeoPixel (single LED)
+  #endif
 #endif
+#ifndef PIN_BUTTON
 #define PIN_BUTTON   39   // Built-in button, active-LOW (no external pull-up needed)
+#endif
 
 // MCP2515 SPI — only used in CAN_DRIVER_MCP2515 build (generic ESP32)
 // Standard VSPI pins: SCK=18, MISO=19, MOSI=23, CS=5
