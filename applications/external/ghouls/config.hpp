@@ -3,7 +3,7 @@
 #include <string.h>
 #include <string>
 #include <memory>
-#include "Ghouls/src/picogameengine/engine_config.hpp"
+#include "ghouls/src/picogameengine/engine_config.hpp"
 
 #include ENGINE_MEM_INCLUDE
 
