@@ -26,7 +26,9 @@ public:
     GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame);
     ~GhoulsLevel();
     bool collisionMapCheck(Vector new_position);
+#if SKY_RENDER_ALLOWED
     Sky *getSky() const { return sky; }
+#endif
     virtual void render(Game *game) override;
     void renderMiniMap(Draw *canvas);
     virtual void update(Game *game) override;

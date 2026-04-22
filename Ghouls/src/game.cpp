@@ -326,9 +326,9 @@ bool GhoulsGame::removeGhoulsFromLevel()
     return true;
 }
 
+#if SKY_RENDER_ALLOWED
 bool GhoulsGame::setSkyType(SkyType skyType)
 {
-#if SKY_RENDER_ALLOWED
     GhoulsLevel *level = getCurrentLevel();
     if (!level)
     {
@@ -342,9 +342,9 @@ bool GhoulsGame::setSkyType(SkyType skyType)
         return false;
     }
     sky->setSkyType(skyType);
-#endif
     return true;
 }
+#endif
 
 bool GhoulsGame::spawnGhouls()
 {
@@ -542,7 +542,9 @@ void GhoulsGame::updateDraw()
             // im not deleting here since I want the player
             // to see the ghouls walking back to their spawns
             makeGhoulsGoHome();
+#if SKY_RENDER_ALLOWED
             setSkyType(SKY_SUNNY);
+#endif
             player->showAlert("You survived the night.. for now");
         }
     }
@@ -567,7 +569,9 @@ void GhoulsGame::updateDraw()
             increaseDifficulty();
             // make ghouls attack player
             makeGhoulsGoToPlayer();
+#if SKY_RENDER_ALLOWED
             setSkyType(SKY_DARK);
+#endif
             currentRound++;  // Increment round (for next night)
             refreshPlayer(); // refresh player state to update weapon and health displays after day ends
             player->showAlert("The ghouls are coming...");

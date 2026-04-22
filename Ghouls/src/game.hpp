@@ -34,10 +34,14 @@ private:
     bool positionExistsInLevel(Level *level, Vector position);         // check if a position is already occupied by an entity in the level
     void refreshPlayer();                                              // refresh player state (e.g., health and weapon displays) after day/night switch
     bool removeGhoulsFromLevel();                                      // remove all ghouls from the level
-    bool setSkyType(SkyType skyType);                                  // set the sky instance for day/night cycle
-    bool spawnGhouls();                                                // Spawn ghouls into the current level for the current round
-    GhoulsLevel *spawnLevel(Game *game);                               // spawn a new level based on index
-    bool spawnWeapons(Level *level);                                   // spawn all the weapons into the level
+
+#if SKY_RENDER_ALLOWED
+    bool setSkyType(SkyType skyType); // set the sky instance for day/night cycle
+#endif
+
+    bool spawnGhouls();                  // Spawn ghouls into the current level for the current round
+    GhoulsLevel *spawnLevel(Game *game); // spawn a new level based on index
+    bool spawnWeapons(Level *level);     // spawn all the weapons into the level
 
 public:
     //
