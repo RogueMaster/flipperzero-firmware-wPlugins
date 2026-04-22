@@ -155,6 +155,5 @@ private:
     void drawTitleView(Draw *canvas);                                                                  // draw the title view
     void drawUserInfoView(Draw *canvas);                                                               // draw the user info view
     void drawWelcomeView(Draw *canvas);                                                                // draw the welcome view
-    void renderMiniMap(Draw *canvas);                                                                  // render the mini-map on the canvas
     void updateEntitiesFromServer(const char *json);                                                   // parse server entity state and update local entity positions
 };

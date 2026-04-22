@@ -3,8 +3,6 @@
 
 DynamicMap::DynamicMap(const char *name, uint8_t w, uint8_t h, bool addBorder, float height, float depth) : width(w), height(h), name(name)
 {
-    (void)height;
-    (void)depth;
     memset(tiles, 0, sizeof(tiles));
     if (addBorder)
     {
@@ -106,25 +104,6 @@ void DynamicMap::addVerticalWall(uint8_t x, uint8_t y1, uint8_t y2, TileType typ
     for (uint8_t y = y1; y <= y2; y++)
     {
         setTile(x, y, type);
-    }
-}
-
-uint8_t DynamicMap::getBlockAt(uint8_t x, uint8_t y) const
-{
-    // Make sure we're checking within bounds of our actual map
-    if (x >= width || y >= height)
-    {
-        return 0x0; // Out of bounds is always empty
-    }
-
-    TileType tile = tiles[y][x];
-    switch (tile)
-    {
-    case TILE_WALL:
-    case TILE_DOOR:
-        return 0xF;
-    default:
-        return 0x0;
     }
 }
 

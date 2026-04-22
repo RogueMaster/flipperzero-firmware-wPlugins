@@ -2,6 +2,12 @@
 #include "config.hpp"
 #include ENGINE_LCD_INCLUDE
 
+#define PLAYER_MINIMAP_COLOR 0x297f
+
+#ifndef SKY_RENDER_ALLOWED
+#define SKY_RENDER_ALLOWED 1
+#endif
+
 #define SKY_HORIZON_HEIGHT (ENGINE_LCD_HEIGHT / 2)
 #define SKY_HORIZON_ROWS 4
 #define FIXED_POINT_SCALE 256
@@ -30,12 +36,17 @@
 #define ENEMY_HEALTH_BASE 100
 #define ENEMY_HEALTH_INCREMENT 5
 #define ENEMY_STRENGTH_INCREMENT 1
+#define ENEMY_MINIMAP_COLOR 0xc01a
 
 #define WEAPON_SPAWN_COUNT 4 // about 8kb if max_triangles is set to 48
 
 #define TREE_SPAWN_COUNT 54
+#define TREE_COLOR 0x13e2
+#define TREE_TILE_SIZE 3
 
 #define HOUSE_SPAWN_COUNT 6
+#define HOUSE_COLOR 0xa0a1
+#define HOUSE_TILE_SIZE 3
 
 typedef enum
 {
