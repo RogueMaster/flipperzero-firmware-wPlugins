@@ -3,21 +3,38 @@
 #include ENGINE_LCD_INCLUDE
 
 #define PLAYER_MINIMAP_COLOR 0x297f
+#define WEAPON_MINIMAP_COLOR 0xfde0
 
 #ifndef SKY_RENDER_ALLOWED
 #define SKY_RENDER_ALLOWED 1
 #endif
 
 #define SKY_HORIZON_HEIGHT (ENGINE_LCD_HEIGHT / 2)
+#ifndef SKY_HORIZON_ROWS
 #define SKY_HORIZON_ROWS 4
+#endif
+
 #define FIXED_POINT_SCALE 256
 
+#ifndef GROUND_RENDER_ALLOWED
+#define GROUND_RENDER_ALLOWED 1
+#endif
+
+#define GROUND_HORIZON_HEIGHT (ENGINE_LCD_HEIGHT / 2)
+#ifndef GROUND_ROWS
+#define GROUND_ROWS 4
+#endif
+
+#ifndef FIELD_OF_VIEW
 #define FIELD_OF_VIEW 30 // see up to 30 around us
 #define FIELD_OF_VIEW_SQUARED 900
+#endif
 
 #ifndef TICKS_PER_DAY
 #define TICKS_PER_DAY 3600 // 60 seconds at 60fps
 #endif
+
+#define SPEED_SCALE(s) ((s) * (3600.0f / TICKS_PER_DAY))
 
 #define MAP_WIDTH 96
 #define MAP_HEIGHT 48

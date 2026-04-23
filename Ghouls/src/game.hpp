@@ -9,6 +9,10 @@
 #include "sky.hpp"
 #endif
 
+#if GROUND_RENDER_ALLOWED
+#include "ground.hpp"
+#endif
+
 class GhoulsLevel; // forward declaration
 
 class GhoulsGame
@@ -19,6 +23,9 @@ private:
     Draw *draw = nullptr;                                              // Draw instance
     GameEngine *engine = nullptr;                                      // Engine instance
     Time *gameTime = nullptr;                                          // Game time instance
+    uint16_t ghoulCountCurrent = 0;                                    // current number of ghouls in the level
+    uint16_t ghoulCountSpawned = 0;                                    // number of ghouls spawned so far for the current night
+    uint16_t ghoulCountTotal = 0;                                      // total number of ghouls for the current night
     bool isGameRunning = false;                                        // Flag to check if the game is running
     int lastInput = -1;                                                // Last input key pressed
     Player *player = nullptr;                                          // Player instance
@@ -35,11 +42,16 @@ private:
     void refreshPlayer();                                              // refresh player state (e.g., health and weapon displays) after day/night switch
     bool removeGhoulsFromLevel();                                      // remove all ghouls from the level
 
+#if GROUND_RENDER_ALLOWED
+    bool setGroundType(GroundType groundType); // set the ground type for the current level
+#endif
+
 #if SKY_RENDER_ALLOWED
     bool setSkyType(SkyType skyType); // set the sky instance for day/night cycle
 #endif
 
-    bool spawnGhouls();                  // Spawn ghouls into the current level for the current round
+    bool spawnGhouls(uint8_t count);     // Spawn ghouls into the current level for the current round
+    bool spawnOneGhoul();                // Spawn a single ghoul and update counters
     GhoulsLevel *spawnLevel(Game *game); // spawn a new level based on index
     bool spawnWeapons(Level *level);     // spawn all the weapons into the level
 
@@ -58,7 +70,9 @@ public:
     Player *getPlayer() const { return player; }          // Get the player instance
     bool initDraw();                                      // Initialize the Draw instance (moved here for Flipper app; must call lcd_init_canvas first)
     bool isActive() const { return shouldExit == false; } // Check if the game is active
+    bool isDay() const;                                   // Check if it's currently day time in the game
     bool isRunning() const { return isGameRunning; }      // Check if the game engine is running
+    void onGhoulDied();                                   // Called when a ghoul dies; spawns a replacement if round total not yet reached
     void resetInput() { lastInput = -1; }                 // Reset input after processing
     bool startGame();                                     // start the actual game
     bool startGameOnline();                               // start the online multiplayer game

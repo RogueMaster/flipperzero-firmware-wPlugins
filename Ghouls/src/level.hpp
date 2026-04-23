@@ -8,6 +8,10 @@
 #include "sky.hpp"
 #endif
 
+#if GROUND_RENDER_ALLOWED
+#include "ground.hpp"
+#endif
+
 // Index encoding:
 //   0 .. HOUSE_SPAWN_COUNT-1                              -> house
 //   HOUSE_SPAWN_COUNT .. RENDER_WALL_OFFSET-1             -> tree
@@ -26,6 +30,9 @@ public:
     GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame);
     ~GhoulsLevel();
     bool collisionMapCheck(Vector new_position);
+#if GROUND_RENDER_ALLOWED
+    Ground *getGround() const { return ground; }
+#endif
 #if SKY_RENDER_ALLOWED
     Sky *getSky() const { return sky; }
 #endif
@@ -44,6 +51,11 @@ private:
 
     DynamicMap *currentDynamicMap = nullptr; // current dynamic map
     GhoulsGame *ghoulsGame = nullptr;
+
+#if GROUND_RENDER_ALLOWED
+    Ground *ground = nullptr; // Ground instance for rendering the ground
+#endif
+
     Sprite3D *houseSprite = nullptr;
 
 #if SKY_RENDER_ALLOWED

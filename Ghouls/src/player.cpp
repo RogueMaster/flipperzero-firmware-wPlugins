@@ -1840,6 +1840,7 @@ void Player::render(Draw *canvas, Game *game)
         // draw ammo count if we have a weapon equipped
         const int sw = canvas->getDisplaySize().x;
         const int sh = canvas->getDisplaySize().y;
+        const uint16_t color = ghoulsGame->isDay() ? 0x0000 : 0xFFFF; // black in day, white in night
         if (equippedWeapon)
         {
             canvas->setFont(FONT_SIZE_SMALL);
@@ -1853,14 +1854,14 @@ void Player::render(Draw *canvas, Game *game)
             {
                 snprintf(ammoStr, sizeof(ammoStr), "Ammo: ∞");
             }
-            canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, 0x0000);
+            canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, color);
         }
 
         // draw health
         canvas->setFont(FONT_SIZE_SMALL);
         char healthStr[32];
         snprintf(healthStr, sizeof(healthStr), "HP: %d", (uint16_t)health);
-        canvas->text(sw * 96 / 128, sh * 61 / 64, healthStr, 0x0000);
+        canvas->text(sw * 96 / 128, sh * 61 / 64, healthStr, color);
 
         // Draw in-game alert overlay if active
         if (alertTimer > 0 && alertMessage[0] != '\0')

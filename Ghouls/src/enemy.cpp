@@ -24,20 +24,20 @@ Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float heigh
     case ENEMY_BULLY:
         this->makeBully(height);
         this->strength = 10.0f;
-        this->speed = 0.1f;
-        this->attack_timer = 50.0f; // attack every 50 ticks
+        this->speed = SPEED_SCALE(0.1f);
+        this->attack_timer = SPEED_SCALE(50.0f); // attack every 50 ticks
         break;
     case ENEMY_CREEPER:
         this->makeCreeper(height);
         this->strength = 20.0f;
-        this->speed = 0.05f;
-        this->attack_timer = 80.0f; // attack every 80 ticks
+        this->speed = SPEED_SCALE(0.05f);
+        this->attack_timer = SPEED_SCALE(80.0f); // attack every 80 ticks
         break;
     case ENEMY_PUNK:
         this->makePunk(height);
         this->strength = 15.0f;
-        this->speed = 0.07f;
-        this->attack_timer = 60.0f; // attack every 60 ticks
+        this->speed = SPEED_SCALE(0.07f);
+        this->attack_timer = SPEED_SCALE(60.0f); // attack every 60 ticks
         break;
     default:
         break;

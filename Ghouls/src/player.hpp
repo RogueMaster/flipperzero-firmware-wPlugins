@@ -78,6 +78,7 @@ public:
     uint8_t getCurrentGameState() const noexcept { return gameState; }
     GameMainView getCurrentMainView() const { return currentMainView; }
     Weapon *getEquippedWeapon() const { return equippedWeapon; }
+    GhoulsGame *getGhoulsGame() const { return ghoulsGame; }
     ToggleState getSoundToggle() const noexcept { return soundToggle; }
     ToggleState getVibrationToggle() const noexcept { return vibrationToggle; }
     void handleMenu(Draw *canvas, Game *game);

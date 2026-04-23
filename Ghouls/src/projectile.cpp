@@ -15,18 +15,18 @@ Projectile::Projectile(ProjectileType type, float height, Vector position) : Ent
     {
     case PROJECTILE_BULLET:
         makeBullet(height);
-        speed = 0.5f;
+        speed = SPEED_SCALE(0.5f);
         break;
     case PROJECTILE_ARROW:
         makeArrow(height);
-        speed = 0.3f;
+        speed = SPEED_SCALE(0.3f);
         break;
     case PROJECTILE_ROCKET:
         makeRocket(height);
-        speed = 0.1f;
+        speed = SPEED_SCALE(0.1f);
         break;
     default:
-        speed = 0.05f;
+        speed = SPEED_SCALE(0.05f);
         break;
     };
     if (sprite_3d)
@@ -49,24 +49,27 @@ void Projectile::collision(Entity *other, Game *game)
     if (other->type == ENTITY_ENEMY)
     {
         other->health -= this->damage;
-        other->move_timer = 50.0f;     // add a short move cooldown to enemies hit by projectiles
-        other->elapsed_move_timer = 0; // reset move timer to start cooldown immediately
+        other->move_timer = SPEED_SCALE(50.0f);      // add a short move cooldown to enemies hit by projectiles
+        other->elapsed_move_timer = 0;               // reset move timer to start cooldown immediately
+        const float enemyStrength = other->strength; // save before possible removal
         if (other->health <= 0)
         {
             other->health = 0;
-            if (other->health <= 0)
-            {
-                other->health = 0;
-                other->state = ENTITY_DEAD;
+            other->state = ENTITY_DEAD;
 
-                // remove the enemy from the level
-                game->current_level->entity_remove(other);
+            // remove the enemy from the level
+            game->current_level->entity_remove(other);
+
+            Player *p = static_cast<Player *>(getPlayer(game));
+            if (p && p->getGhoulsGame())
+            {
+                p->getGhoulsGame()->onGhoulDied();
             }
         }
         Player *player = static_cast<Player *>(getPlayer(game));
         if (player)
         {
-            player->increaseXP(other->strength); // increase player XP by the enemy's strength
+            player->increaseXP(enemyStrength); // increase player XP by the enemy's strength
         }
     }
     // delete the projectile on collision

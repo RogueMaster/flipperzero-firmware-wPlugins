@@ -6,10 +6,6 @@
 #include "pico-game-engine/engine/sprite3d.hpp"
 #include <math.h>
 
-#if SKY_RENDER_ALLOWED
-#include "sky.hpp"
-#endif
-
 // clang-format off
 const Vector GhoulsLevel::housePositions[HOUSE_SPAWN_COUNT] = {
     Vector(12,  8),  // 0
@@ -128,6 +124,14 @@ GhoulsLevel::GhoulsLevel(const char *name, const Vector &size, Game *game, Ghoul
         return;
     }
 #endif
+#if GROUND_RENDER_ALLOWED
+    ground = ENGINE_MEM_NEW Ground(GROUND_DIRT);
+    if (!ground)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Ground instance");
+        return;
+    }
+#endif
 }
 
 GhoulsLevel::~GhoulsLevel()
@@ -147,6 +151,13 @@ GhoulsLevel::~GhoulsLevel()
     {
         ENGINE_MEM_DELETE sky;
         sky = nullptr;
+    }
+#endif
+#if GROUND_RENDER_ALLOWED
+    if (ground)
+    {
+        ENGINE_MEM_DELETE ground;
+        ground = nullptr;
     }
 #endif
     if (wallSprite)
@@ -310,6 +321,7 @@ void GhoulsLevel::render(Game *game)
 {
     Camera *gameCamera = game->getCamera();
     Player *player = ghoulsGame->getPlayer();
+    Vector ss = game->draw->getDisplaySize();
 
     // get third-person camera position
     if (gameCamera->perspective == CAMERA_THIRD_PERSON)
@@ -343,6 +355,12 @@ void GhoulsLevel::render(Game *game)
 #if SKY_RENDER_ALLOWED
     if (renderEnv && sky)
         sky->render(game->draw);
+#endif
+
+    // ground
+#if GROUND_RENDER_ALLOWED
+    if (renderEnv && ground)
+        ground->render(game->draw);
 #endif
 
     // build combined render list
@@ -421,6 +439,8 @@ void GhoulsLevel::render(Game *game)
         indices[j + 1] = keyIdx;
     }
 
+    char healthstr[16];
+
     // Render back-to-front
     for (int i = 0; i < count; i++)
     {
@@ -467,26 +487,37 @@ void GhoulsLevel::render(Game *game)
             {
                 if (gameCamera->perspective == CAMERA_FIRST_PERSON)
                 {
-                    if (ent->is_player)
-                    {
-                        render3DSprite(ent->sprite_3d, game->draw, ent->position, ent->direction, gameCamera->height);
-                    }
-                    else
-                    {
-                        for (int j = 0; j < getEntityCount(); j++)
-                        {
-                            Entity *p = getEntity(j);
-                            if (p && p->is_player)
-                            {
-                                render3DSprite(ent->sprite_3d, game->draw, p->position, p->direction, gameCamera->height);
-                                break;
-                            }
-                        }
-                    }
+                    render3DSprite(ent->sprite_3d, game->draw, player->position, player->direction, gameCamera->height);
                 }
                 else // CAMERA_THIRD_PERSON
                 {
                     render3DSprite(ent->sprite_3d, game->draw, camPos, camDir, gameCamera->height);
+                }
+
+                if (ent->type == ENTITY_ENEMY)
+                {
+                    // Project the head (world y = 2.2) to screen coords
+                    float wdx = ent->position.x - gameCamera->position.x;
+                    float wdz = ent->position.y - gameCamera->position.y; // position.y = world Z
+                    float wdy = 2.2f - gameCamera->height;
+
+                    float cx = wdx * (-gameCamera->direction.y) + wdz * gameCamera->direction.x;
+                    float cz = wdx * gameCamera->direction.x + wdz * gameCamera->direction.y;
+                    if (cz <= 0.1f)
+                        continue; // behind camera
+
+                    float sx = (cx / cz) * ss.y + ss.x * 0.5f;
+                    float sy = (-wdy / cz) * ss.y + ss.y * 0.5f;
+                    if (sx < 0 || sx >= ss.x || sy < 2 || sy >= ss.y - 2)
+                        continue;
+
+                    snprintf(healthstr, sizeof(healthstr), "%d/%d", (uint16_t)ent->health, (uint16_t)ent->max_health);
+                    int tx = (int)sx - (int)(strlen(healthstr) * 3);
+                    int ty = (int)sy;
+                    if (tx < 0)
+                        tx = 0;
+                    game->draw->setFont(FONT_SIZE_SMALL);
+                    game->draw->text(tx, ty, healthstr, ENEMY_MINIMAP_COLOR);
                 }
             }
         }
@@ -554,13 +585,31 @@ void GhoulsLevel::renderMiniMap(Draw *canvas)
     for (int i = 0; i < getEntityCount(); i++)
     {
         Entity *e = getEntity(i);
-        if (e && (e->type == ENTITY_PLAYER || e->type == ENTITY_ENEMY))
+        if (!e)
+            continue;
+        const EntityType type = (e) ? e->type : ENTITY_ICON;
+        if (type == ENTITY_PLAYER || type == ENTITY_ENEMY || type == ENTITY_NPC)
         {
             if (e->position.x >= 0 && e->position.y >= 0)
             {
                 uint16_t ppx = (uint16_t)(mapPosition.x + e->position.x * scale_x);
                 uint16_t ppy = (uint16_t)(mapPosition.y + e->position.y * scale_y);
-                uint16_t color = (e->type == ENTITY_PLAYER) ? PLAYER_MINIMAP_COLOR : ENEMY_MINIMAP_COLOR;
+                uint16_t color = 0x0000;
+
+                switch (type)
+                {
+                case ENTITY_PLAYER:
+                    color = PLAYER_MINIMAP_COLOR;
+                    break;
+                case ENTITY_ENEMY:
+                    color = ENEMY_MINIMAP_COLOR;
+                    break;
+                case ENTITY_NPC:
+                    color = WEAPON_MINIMAP_COLOR;
+                    break;
+                default:
+                    break;
+                }
 
                 // 3x3 white square so the dot is visible over walls
                 canvas->fillRectangle(ppx - 1, ppy - 1, 3, 3, 0xFFFF);
@@ -568,16 +617,23 @@ void GhoulsLevel::renderMiniMap(Draw *canvas)
                 // Direction arrow: line from centre out 4px in facing direction
                 if (e->direction.x != 0.0f || e->direction.y != 0.0f)
                 {
-                    uint16_t tip_x = ppx + (uint16_t)(e->direction.x * 4.0f);
-                    uint16_t tip_y = ppy + (uint16_t)(e->direction.y * 4.0f);
-                    canvas->line(ppx, ppy, tip_x, tip_y, color);
-                    // Arrowhead: two lines from tip back to flanking points
-                    uint16_t base_x = tip_x - (uint16_t)(e->direction.x * 2.0f);
-                    uint16_t base_y = tip_y - (uint16_t)(e->direction.y * 2.0f);
-                    uint16_t perp_x = (uint16_t)(e->direction.y * 2.0f);
-                    uint16_t perp_y = (uint16_t)(-e->direction.x * 2.0f);
-                    canvas->line(tip_x, tip_y, base_x + perp_x, base_y + perp_y, color);
-                    canvas->line(tip_x, tip_y, base_x - perp_x, base_y - perp_y, color);
+                    if (type != ENTITY_NPC)
+                    {
+                        uint16_t tip_x = ppx + (uint16_t)(e->direction.x * 4.0f);
+                        uint16_t tip_y = ppy + (uint16_t)(e->direction.y * 4.0f);
+                        canvas->line(ppx, ppy, tip_x, tip_y, color);
+                        // Arrowhead: two lines from tip back to flanking points
+                        uint16_t base_x = tip_x - (uint16_t)(e->direction.x * 2.0f);
+                        uint16_t base_y = tip_y - (uint16_t)(e->direction.y * 2.0f);
+                        uint16_t perp_x = (uint16_t)(e->direction.y * 2.0f);
+                        uint16_t perp_y = (uint16_t)(-e->direction.x * 2.0f);
+                        canvas->line(tip_x, tip_y, base_x + perp_x, base_y + perp_y, color);
+                        canvas->line(tip_x, tip_y, base_x - perp_x, base_y - perp_y, color);
+                    }
+                    else
+                    {
+                        canvas->circle(ppx, ppy, 2, color);
+                    }
                 }
 
                 // Centre dot on top
@@ -591,6 +647,10 @@ void GhoulsLevel::update(Game *game)
 {
 #if SKY_RENDER_ALLOWED
     sky->tick();
+#endif
+
+#if GROUND_RENDER_ALLOWED
+    ground->tick();
 #endif
 
     for (int i = 0; i < getEntityCount(); i++)
