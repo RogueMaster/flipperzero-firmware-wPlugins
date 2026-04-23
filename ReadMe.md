@@ -34,6 +34,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.11 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - NFC: [Add ISO15693-3 and SLIX write-back support (By DoniyorI)](https://github.com/DarkFlippers/unleashed-firmware/pull/984)
 - NFC: [Add new parsers SZPPK, SKPPK and SevPPK, upgrade Plantain parser, fix TwoCities parser (By mxcdoam)](https://github.com/DarkFlippers/unleashed-firmware/pull/981)
+- Sub-GHz: [Fix CAME TWEE repeats count for button click (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a5f6285e917240101bc86444ebf36a6b9f2b7e66)
+- NFC: [Fix MIR and other EMV cards crash on Read (By Dmitry422)](https://github.com/DarkFlippers/unleashed-firmware/commit/ecc3e78efa3b077ca4b37f67aff8ae6f8b1e9734)
 
 <a name="release"></a>
 
