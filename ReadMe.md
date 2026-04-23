@@ -26,10 +26,10 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a> 
 
-## Latest Updates - [PATREON: Latest Release RM0421-2342-0.420.0-48ef21c](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM0423-0149-0.420.0-995f718](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-04-21 23:42 EST`
-- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-04-21 23:42 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-04-23 01:49 EST`
+- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-04-23 01:49 EST`
 - Updated: [Weebo v0.4 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer) Added Figures & [Add Amiibo cycling functionality while emulating (By sethgregory)](https://github.com/bettse/weebo/pull/11)
 - Updated: [Tesla Mod v2.11 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - NFC: [Add ISO15693-3 and SLIX write-back support (By DoniyorI)](https://github.com/DarkFlippers/unleashed-firmware/pull/984)
