@@ -1840,7 +1840,11 @@ void Player::render(Draw *canvas, Game *game)
         // draw ammo count if we have a weapon equipped
         const int sw = canvas->getDisplaySize().x;
         const int sh = canvas->getDisplaySize().y;
+#if GROUND_RENDER_ALLOWED
         const uint16_t color = ghoulsGame->isDay() ? 0x0000 : 0xFFFF; // black in day, white in night
+#else
+        const uint16_t color = 0x0000; // always black if no ground rendering
+#endif
         if (equippedWeapon)
         {
             canvas->setFont(FONT_SIZE_SMALL);
