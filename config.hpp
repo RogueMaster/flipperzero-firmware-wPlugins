@@ -11,6 +11,10 @@
 #include ENGINE_LOG_INCLUDE
 #endif
 
+#define WALL_RENDER_ALLOWED false
+#define SKY_RENDER_ALLOWED false
+#define GROUND_RENDER_ALLOWED false
+
 #define WIREFRAME_ENABLED false
 
 // time

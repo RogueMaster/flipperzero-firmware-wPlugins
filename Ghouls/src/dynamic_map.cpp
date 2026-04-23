@@ -109,25 +109,6 @@ void DynamicMap::addVerticalWall(uint8_t x, uint8_t y1, uint8_t y2, TileType typ
     }
 }
 
-uint8_t DynamicMap::getBlockAt(uint8_t x, uint8_t y) const
-{
-    // Make sure we're checking within bounds of our actual map
-    if (x >= width || y >= height)
-    {
-        return 0x0; // Out of bounds is always empty
-    }
-
-    TileType tile = tiles[y][x];
-    switch (tile)
-    {
-    case TILE_WALL:
-    case TILE_DOOR:
-        return 0xF;
-    default:
-        return 0x0;
-    }
-}
-
 void DynamicMap::getMiniMap(uint8_t output[MAP_HEIGHT][MAP_WIDTH]) const
 {
     for (uint8_t y = 0; y < MAP_HEIGHT; y++)

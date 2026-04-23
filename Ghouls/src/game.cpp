@@ -1,104 +1,10 @@
 #include "game.hpp"
+#include "level.hpp"
 #include "pico-game-engine/engine/draw.hpp"
 #include "pico-game-engine/engine/game.hpp"
 #include "pico-game-engine/engine/engine.hpp"
 #include "enemy.hpp"
 #include <math.h>
-
-// clang-format off
-const Vector GhoulsGame::housePositions[HOUSE_SPAWN_COUNT] = {
-    Vector(12,  8),  // 0
-    Vector(12, 36),  // 1
-    Vector(36, 36),  // 2
-    Vector(72,  8),  // 3
-    Vector(72, 28),  // 4
-    Vector(84, 28),  // 5
-};
-
-const Vector GhoulsGame::treePositions[TREE_SPAWN_COUNT] = {
-    Vector( 8,  0),  //  0: (2,  0)
-    Vector( 8, 44),  //  1: (2, 11)
-    Vector(12,  0),  //  2: (3,  0)
-    Vector(12, 44),  //  3: (3, 11)
-    Vector(16,  0),  //  4: (4,  0)
-    Vector(16, 44),  //  5: (4, 11)
-    Vector(20, 24),  //  6: (5,  6)
-    Vector(20, 28),  //  7: (5,  7)
-    Vector(28,  8),  //  8: (7,  2)
-    Vector(28, 12),  //  9: (7,  3)
-    Vector(28, 16),  // 10: (7,  4)
-    Vector(32,  8),  // 11: (8,  2)
-    Vector(32, 12),  // 12: (8,  3)
-    Vector(32, 16),  // 13: (8,  4)
-    Vector(36,  8),  // 14: (9,  2)
-    Vector(40,  8),  // 15: (10, 2)
-    Vector(40, 12),  // 16: (10, 3)
-    Vector(40, 16),  // 17: (10, 4)
-    Vector(44,  8),  // 18: (11, 2)
-    Vector(44, 12),  // 19: (11, 3)
-    Vector(44, 16),  // 20: (11, 4)
-    Vector(32, 44),  // 21: (8, 11)
-    Vector(36, 44),  // 22: (9, 11)
-    Vector(40, 44),  // 23: (10,11)
-    Vector(44, 24),  // 24: (11, 6)
-    Vector(44, 28),  // 25: (11, 7)
-    Vector(48,  0),  // 26: (12, 0)
-    Vector(52,  0),  // 27: (13, 0)
-    Vector(56,  0),  // 28: (14, 0)
-    Vector(64, 36),  // 29: (16, 9)
-    Vector(64, 44),  // 30: (16,11)
-    Vector(68, 36),  // 31: (17, 9)
-    Vector(68, 44),  // 32: (17,11)
-    Vector(72, 36),  // 33: (18, 9)
-    Vector(72, 44),  // 34: (18,11)
-    Vector(76,  0),  // 35: (19, 0)
-    Vector(80,  0),  // 36: (20, 0)
-    Vector(84,  0),  // 37: (21, 0)
-    Vector(88,  0),  // 38: (22, 0)
-    Vector(84, 36),  // 39: (21, 9)
-    Vector(88, 36),  // 40: (22, 9)
-    Vector(84, 44),  // 41: (21,11)
-    Vector(92,  0),  // 42: (23, 0)
-    Vector(92,  4),  // 43: (23, 1)
-    Vector(92,  8),  // 44: (23, 2)
-    Vector(92, 12),  // 45: (23, 3)
-    Vector(92, 16),  // 46: (23, 4)
-    Vector(92, 20),  // 47: (23, 5)
-    Vector(92, 24),  // 48: (23, 6)
-    Vector(92, 28),  // 49: (23, 7)
-    Vector(92, 32),  // 50: (23, 8)
-    Vector(92, 36),  // 51: (23, 9)
-    Vector(92, 40),  // 52: (23,10)
-    Vector(92, 44),  // 53: (23,11)
-};
-
-// MAP_WIDTH=96, MAP_HEIGHT=48
-const Vector GhoulsGame::wallPositions[MAP_OUTER_WALLS] = {
-    Vector(48.0f,  0.5f),  // 0: top horizontal
-    Vector(48.0f, 47.5f),  // 1: bottom horizontal
-    Vector( 0.5f, 24.0f),  // 2: left vertical
-    Vector(95.5f, 24.0f),  // 3: right vertical
-};
-
-// WALL_SEGMENT_SIZE=8 → 12 h-segments per row, 6 v-segments per column
-// Indices 0–23: horizontal (top then bottom); 24–35: vertical (left then right)
-const Vector GhoulsGame::wallSegmentPositions[WALL_SEGMENT_COUNT] = {
-    // top wall (y=0.5)
-    Vector( 4.0f,  0.5f), Vector(12.0f,  0.5f), Vector(20.0f,  0.5f), Vector(28.0f,  0.5f),
-    Vector(36.0f,  0.5f), Vector(44.0f,  0.5f), Vector(52.0f,  0.5f), Vector(60.0f,  0.5f),
-    Vector(68.0f,  0.5f), Vector(76.0f,  0.5f), Vector(84.0f,  0.5f), Vector(92.0f,  0.5f),
-    // bottom wall (y=47.5)
-    Vector( 4.0f, 47.5f), Vector(12.0f, 47.5f), Vector(20.0f, 47.5f), Vector(28.0f, 47.5f),
-    Vector(36.0f, 47.5f), Vector(44.0f, 47.5f), Vector(52.0f, 47.5f), Vector(60.0f, 47.5f),
-    Vector(68.0f, 47.5f), Vector(76.0f, 47.5f), Vector(84.0f, 47.5f), Vector(92.0f, 47.5f),
-    // left wall (x=0.5)
-    Vector( 0.5f,  4.0f), Vector( 0.5f, 12.0f), Vector( 0.5f, 20.0f),
-    Vector( 0.5f, 28.0f), Vector( 0.5f, 36.0f), Vector( 0.5f, 44.0f),
-    // right wall (x=95.5)
-    Vector(95.5f,  4.0f), Vector(95.5f, 12.0f), Vector(95.5f, 20.0f),
-    Vector(95.5f, 28.0f), Vector(95.5f, 36.0f), Vector(95.5f, 44.0f),
-};
-// clang-format on
 
 GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEnabled)
 {
@@ -141,82 +47,11 @@ GhoulsGame::~GhoulsGame()
         ENGINE_MEM_DELETE gameTime;
         gameTime = nullptr;
     }
-    if (currentDynamicMap)
-    {
-        ENGINE_MEM_DELETE currentDynamicMap;
-        currentDynamicMap = nullptr;
-    }
-    if (houseSprite)
-    {
-        ENGINE_MEM_DELETE houseSprite;
-        houseSprite = nullptr;
-    }
-    if (treeSprite)
-    {
-        ENGINE_MEM_DELETE treeSprite;
-        treeSprite = nullptr;
-    }
-    if (wallSprite)
-    {
-        ENGINE_MEM_DELETE wallSprite;
-        wallSprite = nullptr;
-    }
-    if (vWallSprite)
-    {
-        ENGINE_MEM_DELETE vWallSprite;
-        vWallSprite = nullptr;
-    }
     if (draw)
     {
         ENGINE_MEM_DELETE draw;
         draw = nullptr;
     }
-}
-
-bool GhoulsGame::collisionMapCheck(Vector new_position)
-{
-    if (currentDynamicMap == nullptr)
-        return false;
-
-    // Check multiple points around the position to prevent clipping through walls
-    // This accounts for entity size and floating point positions
-    float offset = 0.3f; // Small offset to check around entity position
-
-    Vector checkPoints[] = {
-        new_position,                                             // Center
-        Vector(new_position.x - offset, new_position.y - offset), // Top-left
-        Vector(new_position.x + offset, new_position.y - offset), // Top-right
-        Vector(new_position.x - offset, new_position.y + offset), // Bottom-left
-        Vector(new_position.x + offset, new_position.y + offset)  // Bottom-right
-    };
-
-    Vector point;
-    for (int i = 0; i < 5; i++)
-    {
-        point = checkPoints[i];
-
-        // Ensure we're checking within bounds
-        if (point.x < 0 || point.y < 0)
-            return true; // Collision (out of bounds)
-
-        uint8_t x = (uint8_t)point.x;
-        uint8_t y = (uint8_t)point.y;
-
-        // Bounds checking
-        if (x >= currentDynamicMap->getWidth() || y >= currentDynamicMap->getHeight())
-        {
-            // Out of bounds, treat as collision
-            return true;
-        }
-
-        TileType tile = currentDynamicMap->getTile(x, y);
-        if (tile == TILE_WALL)
-        {
-            return true; // Wall blocks movement
-        }
-    }
-
-    return false; // No collision detected
 }
 
 void GhoulsGame::endGame()
@@ -225,15 +60,28 @@ void GhoulsGame::endGame()
     isGameRunning = false;
 }
 
-bool GhoulsGame::setDynamicMap()
+GhoulsLevel *GhoulsGame::getCurrentLevel() const
 {
-    currentDynamicMap = ENGINE_MEM_NEW DynamicMap("Online", MAP_WIDTH, MAP_HEIGHT, false, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
-    if (!currentDynamicMap)
+    if (!engine)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:setDynamicMap] Failed to create map instance");
-        return false;
+        ENGINE_LOG_INFO("[GhoulsGame:getCurrentLevel] Game engine instance is null");
+        return nullptr;
     }
-    return true;
+    Game *game = engine->getGame();
+    if (game)
+    {
+        return static_cast<GhoulsLevel *>(game->current_level);
+    }
+    return nullptr;
+}
+
+Game *GhoulsGame::getGame() const
+{
+    if (engine)
+    {
+        return engine->getGame();
+    }
+    return nullptr;
 }
 
 Vector GhoulsGame::getRandomGhoulPosition(Level *level)
@@ -349,12 +197,7 @@ void GhoulsGame::increaseDifficulty()
     {
         return; // no difficulty increase on first round
     }
-    if (!engine)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:increaseDifficulty] Game engine instance is null");
-        return;
-    }
-    Level *currentLevel = engine->getGame()->current_level;
+    GhoulsLevel *currentLevel = getCurrentLevel();
     if (!currentLevel)
     {
         ENGINE_LOG_INFO("[GhoulsGame:increaseDifficulty] Current level instance is null");
@@ -388,53 +231,14 @@ bool GhoulsGame::initDraw()
     return true;
 }
 
-bool GhoulsGame::initializeSprites()
+bool GhoulsGame::isDay() const
 {
-    // house
-    houseSprite = ENGINE_MEM_NEW Sprite3D();
-    if (!houseSprite)
+    if (!gameTime)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:initializeSprites] Failed to create Sprite3D instance for house sprite");
-        return false;
+        ENGINE_LOG_INFO("[GhoulsGame:isDay] Game time instance is null");
+        return true; // default to day
     }
-    houseSprite->initializeAsHouse(Vector(), 3.0f, 3.0f, 0.0f, 0x0000, WIREFRAME_ENABLED);
-
-    // tree
-    treeSprite = ENGINE_MEM_NEW Sprite3D();
-    if (!treeSprite)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:initializeSprites] Failed to create Sprite3D instance for tree sprite");
-        return false;
-    }
-    treeSprite->initializeAsTree(Vector(), 4.0f, 0x0000, WIREFRAME_ENABLED);
-
-    // horizontal wall (top/bottom borders: len = MAP_WIDTH, rotation = 0)
-    wallSprite = ENGINE_MEM_NEW Sprite3D();
-    if (!wallSprite)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:initializeSprites] Failed to create Sprite3D instance for horizontal wall sprite");
-        return false;
-    }
-    wallSprite->setPosition(Vector(0, 0));
-    wallSprite->setRotation(0.0f);
-    wallSprite->createWall(0, 0.75f, 0, 8.0f, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
-    wallSprite->setActive(true);
-    wallSprite->setWireframe(WIREFRAME_ENABLED);
-
-    // vertical wall (left/right borders: segment width = 8, rotation = π/2)
-    vWallSprite = ENGINE_MEM_NEW Sprite3D();
-    if (!vWallSprite)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:initializeSprites] Failed to create Sprite3D instance for vertical wall sprite");
-        return false;
-    }
-    vWallSprite->setPosition(Vector(0, 0));
-    vWallSprite->setRotation((float)(M_PI / 2.0));
-    vWallSprite->createWall(0, 0.75f, 0, 8.0f, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
-    vWallSprite->setActive(true);
-    vWallSprite->setWireframe(WIREFRAME_ENABLED);
-
-    return true;
+    return gameTime->getTimeOfDay() == TIME_DAY;
 }
 
 void GhoulsGame::inputManager()
@@ -449,12 +253,7 @@ void GhoulsGame::inputManager()
 
 void GhoulsGame::makeGhoulsGoHome()
 {
-    if (!engine)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:makeGhoulsGoHome] Game engine instance is null");
-        return;
-    }
-    Level *currentLevel = engine->getGame()->current_level;
+    GhoulsLevel *currentLevel = getCurrentLevel();
     if (!currentLevel)
     {
         ENGINE_LOG_INFO("[GhoulsGame:makeGhoulsGoHome] Current level instance is null");
@@ -469,16 +268,14 @@ void GhoulsGame::makeGhoulsGoHome()
             enemy->state = ENTITY_MOVING_TO_START;
         }
     }
+    ghoulCountCurrent = 0;
+    ghoulCountSpawned = 0;
+    ghoulCountTotal = 0;
 }
 
 void GhoulsGame::makeGhoulsGoToPlayer()
 {
-    if (!engine)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:makeGhoulsGoToPlayer] Game engine instance is null");
-        return;
-    }
-    Level *currentLevel = engine->getGame()->current_level;
+    GhoulsLevel *currentLevel = getCurrentLevel();
     if (!currentLevel)
     {
         ENGINE_LOG_INFO("[GhoulsGame:makeGhoulsGoToPlayer] Current level instance is null");
@@ -492,6 +289,18 @@ void GhoulsGame::makeGhoulsGoToPlayer()
             Enemy *enemy = static_cast<Enemy *>(entity);
             enemy->state = ENTITY_MOVING_TO_END;
         }
+    }
+}
+
+void GhoulsGame::onGhoulDied()
+{
+    if (ghoulCountCurrent > 0)
+    {
+        ghoulCountCurrent--;
+    }
+    if (ghoulCountSpawned < ghoulCountTotal)
+    {
+        spawnOneGhoul();
     }
 }
 
@@ -517,52 +326,14 @@ void GhoulsGame::refreshPlayer()
         // sets ammo to max and resets cooldown
         // no need to check for level here because
         // if weapon is allocated then level exists
-        equippedWeapon->reset(engine->getGame()->current_level);
+        equippedWeapon->reset(getCurrentLevel());
         equippedWeapon->setDamage(equippedWeapon->getDamage() + player->strength);
     }
 }
 
-void GhoulsGame::registerSpritePositionsOnMap()
-{
-    if (!player)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:registerSpritePositionsOnMap] Player instance is null");
-        return;
-    }
-    if (!currentDynamicMap)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:registerSpritePositionsOnMap] Player's current dynamic map instance is null");
-        return;
-    }
-    // registering as wall so players dont move through em
-    // i think we'll restrict ghouls later too
-    for (uint8_t i = 0; i < HOUSE_SPAWN_COUNT; i++)
-    {
-        currentDynamicMap->setTile(housePositions[i].x, housePositions[i].y, TILE_WALL);
-    }
-    for (uint8_t i = 0; i < TREE_SPAWN_COUNT; i++)
-    {
-        currentDynamicMap->setTile(treePositions[i].x, treePositions[i].y, TILE_WALL);
-    }
-    for (uint8_t i = 0; i < MAP_OUTER_WALLS; i++)
-    {
-        currentDynamicMap->setTile(wallPositions[i].x, wallPositions[i].y, TILE_WALL);
-    }
-}
 bool GhoulsGame::removeGhoulsFromLevel()
 {
-    if (!engine)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:removeGhoulsFromLevel] Game engine instance is null");
-        return false;
-    }
-    Game *game = engine->getGame();
-    if (!game)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:removeGhoulsFromLevel] Game instance is null");
-        return false;
-    }
-    Level *level = game->current_level;
+    GhoulsLevel *level = getCurrentLevel();
     if (!level)
     {
         ENGINE_LOG_INFO("[GhoulsGame:removeGhoulsFromLevel] Current level instance is null");
@@ -580,149 +351,83 @@ bool GhoulsGame::removeGhoulsFromLevel()
     return true;
 }
 
-void GhoulsGame::renderEnvironment(Game *game)
+#if GROUND_RENDER_ALLOWED
+bool GhoulsGame::setGroundType(GroundType groundType)
 {
-    if (!game || !houseSprite || !treeSprite)
-        return;
-    Level *currentLevel = game->current_level;
-    if (!currentLevel)
-        return;
-
-    float dists[HOUSE_SPAWN_COUNT + TREE_SPAWN_COUNT];
-    uint8_t indices[HOUSE_SPAWN_COUNT + TREE_SPAWN_COUNT];
-    int count = 0;
-
-    for (int8_t i = 0; i < HOUSE_SPAWN_COUNT; i++)
-    {
-        const Vector &pos = housePositions[i];
-        float dx = pos.x - player->position.x;
-        float dy = pos.y - player->position.y;
-        float d2 = dx * dx + dy * dy;
-        if (d2 > (float)(FIELD_OF_VIEW_SQUARED))
-            continue;
-        dists[count] = d2;
-        indices[count] = i; // 0–5 = houses
-        count++;
-    }
-
-    for (int8_t i = 0; i < TREE_SPAWN_COUNT; i++)
-    {
-        const Vector &pos = treePositions[i];
-        float dx = pos.x - player->position.x;
-        float dy = pos.y - player->position.y;
-        float d2 = dx * dx + dy * dy;
-        if (d2 > (float)(FIELD_OF_VIEW_SQUARED))
-            continue;
-        dists[count] = d2;
-        indices[count] = HOUSE_SPAWN_COUNT + i; // 6–59 = trees
-        count++;
-    }
-
-    // Insertion sort: furthest first (descending dist)
-    for (int i = 1; i < count; i++)
-    {
-        float keyDist = dists[i];
-        uint8_t keyIdx = indices[i];
-        int j = i - 1;
-        while (j >= 0 && dists[j] < keyDist)
-        {
-            dists[j + 1] = dists[j];
-            indices[j + 1] = indices[j];
-            j--;
-        }
-        dists[j + 1] = keyDist;
-        indices[j + 1] = keyIdx;
-    }
-
-    renderWalls(game);
-
-    // Render back-to-front
-    for (int i = 0; i < count; i++)
-    {
-        uint8_t idx = indices[i];
-        if (idx < HOUSE_SPAWN_COUNT)
-        {
-            houseSprite->setPosition(housePositions[idx]);
-            currentLevel->render3DSprite(houseSprite, draw, player->position, player->direction, game->camera->height);
-        }
-        else
-        {
-            uint8_t treeIdx = idx - HOUSE_SPAWN_COUNT;
-            treeSprite->setPosition(treePositions[treeIdx]);
-            currentLevel->render3DSprite(treeSprite, draw, player->position, player->direction, game->camera->height);
-        }
-    }
-}
-
-void GhoulsGame::renderWalls(Game *game)
-{
-    if (!wallSprite || !vWallSprite)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:renderWalls] Wall sprites are not initialized");
-        return;
-    }
-    Level *currentLevel = game->current_level;
-    if (!currentLevel)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:renderWalls] Current level instance is null");
-        return;
-    }
-
-    for (int i = 0; i < WALL_SEGMENT_COUNT; i++)
-    {
-        const Vector &pos = wallSegmentPositions[i];
-        float dx = pos.x - player->position.x;
-        float dy = pos.y - player->position.y;
-        if (dx * dx + dy * dy > (float)(FIELD_OF_VIEW_SQUARED))
-            continue;
-        Sprite3D *sprite = (i < WALL_H_SEGMENT_COUNT) ? wallSprite : vWallSprite;
-        sprite->setPosition(pos);
-        currentLevel->render3DSprite(sprite, draw, player->position, player->direction, game->camera->height);
-    }
-}
-
-bool GhoulsGame::spawnGhouls()
-{
-    if (!player)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnGhouls] Player instance is null");
-        return false;
-    }
-    if (!engine)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnGhouls] Game engine instance is null");
-        return false;
-    }
-    Game *game = engine->getGame();
-    if (!game)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnGhouls] Game instance is null");
-        return false;
-    }
-    Level *level = game->current_level;
+    GhoulsLevel *level = getCurrentLevel();
     if (!level)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnGhouls] Current level instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:setGroundType] Current level instance is null");
         return false;
     }
-    for (uint16_t i = 0; i < currentRound; i++)
+    Ground *ground = level->getGround();
+    if (!ground)
     {
-        if (i >= ENEMY_SPAWN_MAX)
+        ENGINE_LOG_INFO("[GhoulsGame:setGroundType] Ground instance is null");
+        return false;
+    }
+    ground->setGroundType(groundType);
+    return true;
+}
+#endif
+
+#if SKY_RENDER_ALLOWED
+bool GhoulsGame::setSkyType(SkyType skyType)
+{
+    GhoulsLevel *level = getCurrentLevel();
+    if (!level)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:setSkyType] Current level instance is null");
+        return false;
+    }
+    Sky *sky = level->getSky();
+    if (!sky)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:setSkyType] Sky instance is null");
+        return false;
+    }
+    sky->setSkyType(skyType);
+    return true;
+}
+#endif
+
+bool GhoulsGame::spawnOneGhoul()
+{
+    GhoulsLevel *level = getCurrentLevel();
+    if (!level)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Current level instance is null");
+        return false;
+    }
+    Entity *ghoul = ENGINE_MEM_NEW Enemy("Ghoul", getRandomGhoulPosition(level), ENEMY_BULLY, 1.7f, 1.5f, 0.f, player->position);
+    if (!ghoul)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Failed to create Enemy instance for Ghoul");
+        return false;
+    }
+    level->entity_add(ghoul);
+    ghoulCountSpawned++;
+    ghoulCountCurrent++;
+    return true;
+}
+
+bool GhoulsGame::spawnGhouls(uint8_t count)
+{
+    ghoulCountTotal = count;
+    ghoulCountSpawned = 0;
+    ghoulCountCurrent = 0;
+    const uint8_t initialSpawn = count < ENEMY_SPAWN_MAX ? count : ENEMY_SPAWN_MAX;
+    for (uint8_t i = 0; i < initialSpawn; i++)
+    {
+        if (!spawnOneGhoul())
         {
-            break;
-        }
-        Entity *ghoul = ENGINE_MEM_NEW Enemy("Ghoul", getRandomGhoulPosition(level), ENEMY_BULLY, 1.7f, 1.5f, 0.f, player->position);
-        if (!ghoul)
-        {
-            ENGINE_LOG_INFO("[GhoulsGame:spawnGhouls] Failed to create Enemy instance for Ghoul");
             return false;
         }
-        level->entity_add(ghoul);
     }
     return true;
 }
 
-Level *GhoulsGame::spawnLevel(Game *game)
+GhoulsLevel *GhoulsGame::spawnLevel(Game *game)
 {
     if (!player)
     {
@@ -730,7 +435,7 @@ Level *GhoulsGame::spawnLevel(Game *game)
         return nullptr;
     }
 
-    Level *newLevel = ENGINE_MEM_NEW Level("Level", draw->getDisplaySize(), game);
+    GhoulsLevel *newLevel = ENGINE_MEM_NEW GhoulsLevel("Level", draw->getDisplaySize(), game, this);
     if (!newLevel)
     {
         ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to create Level instance");
@@ -738,6 +443,7 @@ Level *GhoulsGame::spawnLevel(Game *game)
     }
 
     newLevel->entity_add(player);
+    newLevel->setClearAllowed(false);
 
     if (!spawnWeapons(newLevel))
     {
@@ -745,22 +451,6 @@ Level *GhoulsGame::spawnLevel(Game *game)
         ENGINE_MEM_DELETE newLevel;
         return nullptr;
     }
-
-    if (!setDynamicMap())
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to load map for level");
-        player->setLeaveGameToggle(ToggleOn);
-        return nullptr;
-    }
-
-    if (!initializeSprites())
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to initialize sprites for the level");
-        ENGINE_MEM_DELETE newLevel;
-        return nullptr;
-    }
-
-    registerSpritePositionsOnMap();
 
     // update 3D sprite position immediately after setting player position
     if (player->has3DSprite())
@@ -900,7 +590,7 @@ void GhoulsGame::updateDraw()
         - ghouls target player (makeGhoulsGoToPlayer)
     */
 
-    if (gameTime->getTimeOfDay() == TIME_DAY)
+    if (isDay())
     {
         if (!dayJustSwitched)
         {
@@ -908,7 +598,12 @@ void GhoulsGame::updateDraw()
             // im not deleting here since I want the player
             // to see the ghouls walking back to their spawns
             makeGhoulsGoHome();
-            // we could set sky n stuff here too
+#if SKY_RENDER_ALLOWED
+            setSkyType(SKY_SUNNY);
+#endif
+#if GROUND_RENDER_ALLOWED
+            setGroundType(GROUND_DIRT);
+#endif
             player->showAlert("You survived the night.. for now");
         }
     }
@@ -924,7 +619,7 @@ void GhoulsGame::updateDraw()
                 return;
             }
             // spawn new ghouls for the night based on current round
-            if (!spawnGhouls())
+            if (!spawnGhouls(currentRound))
             {
                 ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to spawn ghouls for the night");
                 return;
@@ -933,18 +628,21 @@ void GhoulsGame::updateDraw()
             increaseDifficulty();
             // make ghouls attack player
             makeGhoulsGoToPlayer();
-            // we could set sky n stuff here too
+#if SKY_RENDER_ALLOWED
+            setSkyType(SKY_DARK);
+#endif
+#if GROUND_RENDER_ALLOWED
+            setGroundType(GROUND_DARK);
+#endif
             currentRound++;  // Increment round (for next night)
             refreshPlayer(); // refresh player state to update weapon and health displays after day ends
             player->showAlert("The ghouls are coming...");
         }
     }
 
-    // Let the player handle all drawing
-    if (player)
-    {
-        player->drawCurrentView(draw);
-    }
+    draw->fillScreen(0xFFFF);
+    player->drawCurrentView(draw);
+    draw->swap();
 }
 
 // called by the platform when input is received

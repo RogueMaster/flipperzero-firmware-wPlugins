@@ -78,6 +78,7 @@ public:
     uint8_t getCurrentGameState() const noexcept { return gameState; }
     GameMainView getCurrentMainView() const { return currentMainView; }
     Weapon *getEquippedWeapon() const { return equippedWeapon; }
+    GhoulsGame *getGhoulsGame() const { return ghoulsGame; }
     ToggleState getSoundToggle() const noexcept { return soundToggle; }
     ToggleState getVibrationToggle() const noexcept { return vibrationToggle; }
     void handleMenu(Draw *canvas, Game *game);
@@ -118,6 +119,7 @@ private:
     OnlineGameState onlineGameState = OnlineStateIdle;         // online game connection state
     char onlineGameId[37] = {0};                               // UUID of the active game session
     uint16_t onlinePort = 0;                                   // WebSocket port assigned by the server
+    bool pendingStatsUpdate = false;                           // deferred stats update flag
     // Lobby browser data
     static const int MAX_LOBBY_ENTRIES = 8;
     struct LobbyEntry
@@ -155,6 +157,5 @@ private:
     void drawTitleView(Draw *canvas);                                                                  // draw the title view
     void drawUserInfoView(Draw *canvas);                                                               // draw the user info view
     void drawWelcomeView(Draw *canvas);                                                                // draw the welcome view
-    void renderMiniMap(Draw *canvas);                                                                  // render the mini-map on the canvas
     void updateEntitiesFromServer(const char *json);                                                   // parse server entity state and update local entity positions
 };
