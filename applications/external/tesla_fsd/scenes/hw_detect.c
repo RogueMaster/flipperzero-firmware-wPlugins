@@ -9,9 +9,19 @@ static int32_t hw_detect_worker(void* context) {
     MCP2515* mcp = app->mcp_can;
     CANFRAME frame;
 
-    mcp->mode = MCP_NORMAL;
+    mcp->mode = MCP_LISTENONLY;
     mcp->bitRate = MCP_500KBPS;
-    mcp->clck = MCP_16MHZ;
+    switch(app->mcp_clock) {
+    case 1:
+        mcp->clck = MCP_8MHZ;
+        break;
+    case 2:
+        mcp->clck = MCP_12MHZ;
+        break;
+    default:
+        mcp->clck = MCP_16MHZ;
+        break;
+    }
 
     if(mcp2515_init(mcp) != ERROR_OK) {
         view_dispatcher_send_custom_event(app->view_dispatcher, TeslaFSDEventNoDevice);

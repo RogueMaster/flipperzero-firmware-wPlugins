@@ -205,14 +205,19 @@ static void process_frame(const CanFrame &frame) {
     }
 
     // Fallback HW detection when 0x398 is unavailable on the tapped bus.
+    // Delay 0x3FD→HW3 fallback to avoid misclassifying HW4 (which also has
+    // 0x3FD) before 0x399 arrives. 0x3EE and 0x399 are unambiguous.
+    static uint32_t hw_fallback_3fd_count = 0;
     if (g_state.hw_version == TeslaHW_Unknown) {
         if (frame.id == CAN_ID_AP_LEGACY) {
             apply_detected_hw(TeslaHW_Legacy, "fallback:0x3EE");
         } else if (frame.id == CAN_ID_ISA_SPEED) {
             apply_detected_hw(TeslaHW_HW4, "fallback:0x399");
+            hw_fallback_3fd_count = 0;
         } else if (frame.id == CAN_ID_AP_CONTROL) {
-            // 0x3FD exists on HW3/HW4. Prefer HW3 as safe default until 0x399 appears.
-            apply_detected_hw(TeslaHW_HW3, "fallback:0x3FD");
+            hw_fallback_3fd_count++;
+            if (hw_fallback_3fd_count >= 50)
+                apply_detected_hw(TeslaHW_HW3, "fallback:0x3FD(confirmed)");
         }
     }
 

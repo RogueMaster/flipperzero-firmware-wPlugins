@@ -19,10 +19,17 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
 
 void fsd_handle_gtw_car_state(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
-    // GTW_updateInProgress sits at bit 48|2 in 0x318 (Tesla DBC).
-    // Treat any non-zero value as "OTA in progress" — be conservative.
-    uint8_t in_progress = (frame->buffer[6] >> 0) & 0x03;
-    state->tesla_ota_in_progress = (in_progress != 0);
+    // GTW_updateInProgress: bits 1:0 of byte 6.
+    // 0=No update, 1=Update available, 2=Installing, 3=Scheduled.
+    // Only value 2 (installing) should suspend TX. Value 1 (available) caused
+    // false positives on some firmware builds (issue #19).
+    uint8_t raw = (frame->buffer[6] >> 0) & 0x03;
+    bool in_progress = (raw == 2);
+    if(in_progress) {
+        state->tesla_ota_in_progress = true;
+    } else {
+        state->tesla_ota_in_progress = false;
+    }
 }
 
 bool fsd_can_transmit(const FSDState* state) {
@@ -207,8 +214,8 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
             modified = true;
         }
         if(mux == 2) {
-            frame->buffer[7] &= ~(0x07 << 4);
-            frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 4);
+            frame->buffer[7] &= ~(0x07 << 5);
+            frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 5);
             // HW4 speed offset runtime override
             // Source: ev-open-can-tools hw4OffsetRuntime
             if(state->hw4_offset > 0) {
@@ -346,7 +353,7 @@ void fsd_handle_di_speed(FSDState* state, const CANFRAME* frame) {
 // MSB at bit 19 (byte2 bit3), 12 bits → byte2[3:0] + byte1[7:0] ... complex big-endian
 
 void fsd_handle_epas_steering_mode(FSDState* state, const CANFRAME* frame) {
-    if(frame->data_lenght < 3) return;
+    if(frame->data_lenght < 4) return;
     // currentTuneMode: startBit=7, len=3, big-endian
     // In Motorola (big-endian) notation: MSB at bit 7 = byte0 bit7
     // 3 bits: byte0 bits [7:5]
@@ -523,6 +530,7 @@ bool fsd_handle_tlssc_restore(FSDState* state, CANFRAME* frame) {
 bool fsd_handle_track_mode_inject(FSDState* state, CANFRAME* frame) {
     if(frame->data_lenght < 8) return false;
     if(state->op_mode != OpMode_Service) return false;
+    if(state->track_mode_state == 0) return false; // require explicit user toggle
     // set track mode request ON
     frame->buffer[0] = (frame->buffer[0] & 0xFC) | 0x01;
     // recalculate Tesla vehicle checksum

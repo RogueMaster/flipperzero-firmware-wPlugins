@@ -200,8 +200,8 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
         }
         if (mux == 2) {
             // Write speed profile into bits 6:4 of byte 7
-            frame->data[7] &= ~(uint8_t)(0x07u << 4);
-            frame->data[7] |=  (uint8_t)((state->speed_profile & 0x07u) << 4);
+            frame->data[7] &= ~(uint8_t)(0x07u << 5);
+            frame->data[7] |=  (uint8_t)((state->speed_profile & 0x07u) << 5);
             modified = true;
         }
     }
