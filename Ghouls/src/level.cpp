@@ -462,6 +462,9 @@ void GhoulsLevel::render(Game *game)
         }
         else if (idx < RENDER_ENTITY_OFFSET)
         {
+#if (!WALL_RENDER_ALLOWED)
+            continue;
+#endif
             // Wall segment
             uint8_t wi = idx - RENDER_WALL_OFFSET;
             Sprite3D *wallSpr = (wi < WALL_H_SEGMENT_COUNT) ? wallSprite : vWallSprite;
@@ -606,8 +609,15 @@ void GhoulsLevel::renderMiniMap(Draw *canvas)
                     color = ENEMY_MINIMAP_COLOR;
                     break;
                 case ENTITY_NPC:
+                {
                     color = WEAPON_MINIMAP_COLOR;
+                    Weapon *weapon = static_cast<Weapon *>(e);
+                    if (weapon && weapon->isHeld())
+                    {
+                        continue;
+                    }
                     break;
+                }
                 default:
                     break;
                 }
