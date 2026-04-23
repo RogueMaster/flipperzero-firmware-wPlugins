@@ -6,7 +6,7 @@ static bool read_register(FuriHalSpiBusHandle* spi, uint8_t address, uint8_t* da
     uint8_t instruction[] = {INSTRUCTION_READ, address};
     furi_hal_spi_acquire(spi);
     furi_hal_spi_bus_tx(spi, instruction, sizeof(instruction), TIMEOUT_SPI);
-    furi_hal_spi_bus_rx(spi, data, sizeof(data), TIMEOUT_SPI);
+    furi_hal_spi_bus_rx(spi, data, 1, TIMEOUT_SPI);
 
     furi_hal_spi_release(spi);
     return ret;
@@ -50,7 +50,7 @@ bool mcp_get_status(FuriHalSpiBusHandle* spi, uint8_t* data) {
     furi_hal_spi_acquire(spi);
     ret =
         (furi_hal_spi_bus_tx(spi, buff, sizeof(buff), TIMEOUT_SPI) &&
-         furi_hal_spi_bus_rx(spi, data, sizeof(data), TIMEOUT_SPI));
+         furi_hal_spi_bus_rx(spi, data, 1, TIMEOUT_SPI));
     furi_hal_spi_release(spi);
     return ret;
 }

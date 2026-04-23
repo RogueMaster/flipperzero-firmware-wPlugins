@@ -460,6 +460,13 @@ bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame) {
             for(int i = 0; i < 8; i++)
                 state->gtw_snapshot[mux][i] = frame->buffer[i];
             state->gtw_snapshot_valid[mux] = true;
+
+            // Auto-arm once all 8 muxes are captured
+            bool all_valid = true;
+            for(int m = 0; m < 8; m++) {
+                if(!state->gtw_snapshot_valid[m]) { all_valid = false; break; }
+            }
+            if(all_valid) state->gtw_shield_armed = true;
         }
         return false;
     }

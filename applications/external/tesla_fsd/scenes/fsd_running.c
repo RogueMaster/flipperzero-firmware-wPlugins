@@ -145,7 +145,11 @@ static int32_t fsd_running_worker(void* context) {
     state.extra_highbeam_strobe = app->extra_highbeam_strobe;
     state.extra_turn_left = app->extra_turn_left;
     state.extra_turn_right = app->extra_turn_right;
-    state.gtw_shield_armed = app->gtw_shield;
+    // Ban Shield: don't arm immediately — learn healthy state first.
+    // gtw_shield_armed starts false; fsd_handle_gtw_shield() auto-arms
+    // after all 8 mux snapshots are captured.
+    bool shield_enabled = app->gtw_shield;
+    state.gtw_shield_armed = false;
     state.tlssc_restore = app->tlssc_restore;
     furi_mutex_release(app->mutex);
 
@@ -294,9 +298,10 @@ static int32_t fsd_running_worker(void* context) {
                     }
                 } else if(frame.canId == CAN_ID_GTW_CONFIG_ETH) {
                     fsd_handle_gtw_autopilot_tier(&state, &frame);
-                    // 0x7FF Shield: learn or defend
-                    if(fsd_handle_gtw_shield(&state, &frame) && tx_allowed) {
-                        send_can_frame(mcp, &frame);
+                    if(shield_enabled) {
+                        if(fsd_handle_gtw_shield(&state, &frame) && tx_allowed) {
+                            send_can_frame(mcp, &frame);
+                        }
                     }
                 }
 
