@@ -5,6 +5,7 @@
 #include "pico-game-engine/engine/entity.hpp"
 #include "pico-game-engine/engine/sprite3d.hpp"
 #include <math.h>
+#include <stdio.h>
 
 // clang-format off
 const Vector GhoulsLevel::housePositions[HOUSE_SPAWN_COUNT] = {
