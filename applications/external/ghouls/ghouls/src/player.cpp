@@ -1,6 +1,7 @@
 #include "player.hpp"
 #include "game.hpp"
 #include "general.hpp"
+#include "level.hpp"
 #include <math.h>
 #include <cinttypes>
 #include HTTP_INCLUDE
@@ -60,7 +61,7 @@ void Player::collision(Entity* other, Game* game) {
                 this->health = 0;
                 this->state = ENTITY_DEAD;
                 this->showAlert("You were killed by a ghoul!", 50);
-                this->userRequest(RequestTypeUpdateStats); // Update stats on server
+                this->pendingStatsUpdate = true;
                 this->leaveGame = ToggleOn;
             }
         }
@@ -128,27 +129,16 @@ void Player::drawCurrentView(Draw* canvas) {
         canvas->text(0, canvas->getDisplaySize().y * 10 / 64, "Unknown View", 0x0000);
         return;
     }
-
-    switch(currentMainView) {
-    case GameViewTitle:
-    case GameViewSystemMenu:
-    case GameViewLobbyMenu:
-    case GameViewLobbyBrowser:
-    case GameViewWelcome:
-    case GameViewLogin:
-    case GameViewRegistration:
-    case GameViewUserInfo:
-        canvas->swap();
-        break;
-    default:
-        break;
-    }
 }
 
 void Player::drawGameLocalView(Draw* canvas) {
     if(ghoulsGame->isRunning()) {
         if(ghoulsGame->getEngine()) {
             if(shouldLeaveGame()) {
+                if(pendingStatsUpdate) {
+                    pendingStatsUpdate = false;
+                    userRequest(RequestTypeUpdateStats);
+                }
                 ghoulsGame->endGame();
                 return;
             }
@@ -174,6 +164,10 @@ void Player::drawGameLocalView(Draw* canvas) {
 
 void Player::drawGameOnlineView(Draw* canvas) {
     if(shouldLeaveGame()) {
+        if(pendingStatsUpdate) {
+            pendingStatsUpdate = false;
+            userRequest(RequestTypeUpdateStats);
+        }
         if(!HTTP_WEBSOCKET_STOP()) {
             ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to stop WebSocket");
         }
@@ -294,8 +288,9 @@ void Player::drawGameOnlineView(Draw* canvas) {
             canvas->text(sw * 25 / 128, sh / 2, "Starting Game...", 0x0000);
             canvas->swap();
             ghoulsGame->startGameOnline();
-            if(ghoulsGame->getEngine() && ghoulsGame->getEngine()->getGame()) {
-                ghoulsGame->getEngine()->getGame()->level_switch("Online");
+            Game* game = ghoulsGame->getGame();
+            if(game) {
+                game->level_switch("Online");
             }
             return;
         }
@@ -353,15 +348,15 @@ void Player::drawGameOnlineView(Draw* canvas) {
                 updateEntitiesFromServer(buffer);
             }
         }
-
-        if(ghoulsGame->getEngine()) {
-            ghoulsGame->getEngine()->runAsync(false);
+        GameEngine* engine = ghoulsGame->getEngine();
+        if(engine) {
+            engine->runAsync(false);
 
             if(gameState != GameStateMenu) {
                 // ── Name tag overlay ─────────────────────────────────────────────
                 // After the 3D scene is drawn, project each humanoid entity's head
                 // position to screen space and draw a small username label above it.
-                Game* og = ghoulsGame->getEngine()->getGame();
+                Game* og = engine->getGame();
                 if(og && og->current_level) {
                     Camera* cam = og->getCamera();
                     Vector ss = og->draw->getDisplaySize(); // 128 x 64
@@ -696,7 +691,10 @@ void Player::drawMenuType2(Draw* canvas, uint8_t selectedIndexMain, uint8_t sele
     } break;
     case 1: // map
     {
-        this->renderMiniMap(canvas);
+        GhoulsLevel* level = ghoulsGame->getCurrentLevel();
+        if(level) {
+            level->renderMiniMap(canvas);
+        }
         canvas->rectangle(sw * 76 / 128, sh * 6 / 64, sw * 46 / 128, sh * 46 / 64, 0x0000);
         canvas->setFont(FONT_SIZE_SMALL);
         canvas->text(sw * 80 / 128, sh / 4, "Profile");
@@ -1251,7 +1249,7 @@ void Player::handleMenu(Draw* draw, Game* game) {
             switch(game->input) {
             case INPUT_KEY_CENTER:
                 // Leave game
-                userRequest(RequestTypeUpdateStats);
+                pendingStatsUpdate = true; // deferred: sent from shallow stack before endGame()
                 leaveGame = ToggleOn;
                 break;
             case INPUT_KEY_RIGHT:
@@ -1588,10 +1586,6 @@ void Player::render(Draw* canvas, Game* game) {
     static uint8_t _state = GameStatePlaying;
 
     if(gameState == GameStatePlaying) {
-        if(ghoulsGame) {
-            ghoulsGame->renderEnvironment(game);
-        }
-
         if(_state != GameStatePlaying) {
             // make entities active again
             for(int i = 0; i < game->current_level->getEntityCount(); i++) {
@@ -1603,23 +1597,27 @@ void Player::render(Draw* canvas, Game* game) {
             this->is_visible = (showPlayerToggle == ToggleOn); // restore per toggle
             _state = GameStatePlaying;
         }
-        DynamicMap* currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
-        if(currentDynamicMap != nullptr) {
-            // Update player 3D sprite orientation for 3rd person perspective
-            if(game->getCamera()->perspective == CAMERA_THIRD_PERSON) {
-                float dir_length = sqrtf(direction.x * direction.x + direction.y * direction.y);
-                if(has3DSprite()) {
-                    update3DSpritePosition();
-                    float camera_direction_angle =
-                        atan2f(direction.y / dir_length, direction.x / dir_length) + M_PI_2;
-                    set3DSpriteRotation(camera_direction_angle);
-                }
+
+        // Update player 3D sprite orientation for 3rd person perspective
+        if(game->getCamera()->perspective == CAMERA_THIRD_PERSON) {
+            float dir_length = sqrtf(direction.x * direction.x + direction.y * direction.y);
+            if(has3DSprite()) {
+                update3DSpritePosition();
+                float camera_direction_angle =
+                    atan2f(direction.y / dir_length, direction.x / dir_length) + M_PI_2;
+                set3DSpriteRotation(camera_direction_angle);
             }
         }
 
         // draw ammo count if we have a weapon equipped
         const int sw = canvas->getDisplaySize().x;
         const int sh = canvas->getDisplaySize().y;
+#if GROUND_RENDER_ALLOWED
+        const uint16_t color = ghoulsGame->isDay() ? 0x0000 :
+                                                     0xFFFF; // black in day, white in night
+#else
+        const uint16_t color = 0x0000; // always black if no ground rendering
+#endif
         if(equippedWeapon) {
             canvas->setFont(FONT_SIZE_SMALL);
             char ammoStr[16];
@@ -1629,19 +1627,19 @@ void Player::render(Draw* canvas, Game* game) {
             } else {
                 snprintf(ammoStr, sizeof(ammoStr), "Ammo: ∞");
             }
-            canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, 0x0000);
+            canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, color);
         }
 
         // draw health
         canvas->setFont(FONT_SIZE_SMALL);
         char healthStr[32];
         snprintf(healthStr, sizeof(healthStr), "HP: %d", (uint16_t)health);
-        canvas->text(sw * 96 / 128, sh * 61 / 64, healthStr, 0x0000);
+        canvas->text(sw * 96 / 128, sh * 61 / 64, healthStr, color);
 
         // Draw in-game alert overlay if active
         if(alertTimer > 0 && alertMessage[0] != '\0') {
             canvas->setFont(FONT_SIZE_SMALL);
-            canvas->fillRectangle(0, 0, sw, sh * 8 / 64, 0x0000);
+            canvas->fillRectangle(0, 0, sw, sh * 9 / 64, 0x0000);
             canvas->text(sw * 2 / 128, sh * 6 / 64, alertMessage, 0xFFFF);
         }
     } else if(gameState == GameStateMenu) {
@@ -1657,89 +1655,6 @@ void Player::render(Draw* canvas, Game* game) {
             _state = GameStateMenu;
         }
         handleMenu(canvas, game);
-    }
-}
-
-void Player::renderMiniMap(Draw* canvas) {
-    const int sw = canvas->getDisplaySize().x;
-    const int sh = canvas->getDisplaySize().y;
-    DynamicMap* currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
-    if(currentDynamicMap == nullptr) {
-        canvas->setFont(FONT_SIZE_MEDIUM);
-        canvas->text(sw * 6 / 128, sh / 2, "No map loaded", 0x0000);
-        return; // No map to render
-    }
-
-    Vector mapPosition = Vector(sw * 3 / 128, sh * 3 / 64);
-    Vector mapSize = Vector(sw * 70 / 128, sh * 57 / 64);
-
-    // Background
-    canvas->fillRectangle(mapPosition.x, mapPosition.y, mapSize.x, mapSize.y, 0xFFFF);
-    canvas->rectangle(mapPosition.x, mapPosition.y, mapSize.x, mapSize.y, 0x0000);
-
-    const float width = currentDynamicMap->getWidth();
-    const float height = currentDynamicMap->getHeight();
-
-    // Scale factors: pixels per map tile
-    float scale_x = (float)mapSize.x / width;
-    float scale_y = (float)mapSize.y / height;
-
-    Vector _pos = Vector(scale_x, scale_y);
-    Vector _size = Vector(scale_x, scale_y);
-    for(uint8_t ty = 0; ty < height; ty++) {
-        for(uint8_t tx = 0; tx < width; tx++) {
-            TileType tile = currentDynamicMap->getTile(tx, ty);
-            if(tile == TILE_EMPTY) continue;
-
-            _pos.x = (uint8_t)(mapPosition.x + tx * scale_x);
-            _pos.y = (uint8_t)(mapPosition.y + ty * scale_y);
-            _size.x = (uint8_t)(scale_x + 0.5f);
-            _size.y = (uint8_t)(scale_y + 0.5f);
-            if(_size.x < 1) _size.x = 1;
-            if(_size.y < 1) _size.y = 1;
-
-            canvas->fillRectangle(_pos.x, _pos.y, _size.x, _size.y, 0x0000);
-        }
-    }
-
-    Game* game = ghoulsGame->getEngine()->getGame();
-    if(!game || !game->is_active) {
-        return;
-    }
-
-    Level* level = game->current_level;
-    if(!level) {
-        return;
-    }
-
-    for(int i = 0; i < level->getEntityCount(); i++) {
-        Entity* e = level->getEntity(i);
-        if(e && (e->type == ENTITY_PLAYER || e->type == ENTITY_ENEMY)) {
-            if(e->position.x >= 0 && e->position.y >= 0) {
-                int16_t ppx = (int16_t)(mapPosition.x + e->position.x * scale_x);
-                int16_t ppy = (int16_t)(mapPosition.y + e->position.y * scale_y);
-
-                // 3x3 white square so the dot is visible over walls
-                canvas->fillRectangle(ppx - 1, ppy - 1, 3, 3, 0xFFFF);
-
-                // Direction arrow: line from centre out 4px in facing direction
-                if(e->direction.x != 0.0f || e->direction.y != 0.0f) {
-                    int16_t tip_x = ppx + (int16_t)(e->direction.x * 4.0f);
-                    int16_t tip_y = ppy + (int16_t)(e->direction.y * 4.0f);
-                    canvas->line(ppx, ppy, tip_x, tip_y, 0x0000);
-                    // Arrowhead: two lines from tip back to flanking points
-                    int16_t base_x = tip_x - (int16_t)(e->direction.x * 2.0f);
-                    int16_t base_y = tip_y - (int16_t)(e->direction.y * 2.0f);
-                    int16_t perp_x = (int16_t)(e->direction.y * 2.0f);
-                    int16_t perp_y = (int16_t)(-e->direction.x * 2.0f);
-                    canvas->line(tip_x, tip_y, base_x + perp_x, base_y + perp_y, 0x0000);
-                    canvas->line(tip_x, tip_y, base_x - perp_x, base_y - perp_y, 0x0000);
-                }
-
-                // Centre dot on top
-                canvas->pixel(ppx, ppy, 0x0000);
-            }
-        }
     }
 }
 
@@ -1764,10 +1679,13 @@ void Player::update(Game* game) {
 
     float rotSpeed = 0.2f; // Rotation speed in radians
 
-    DynamicMap* currentDynamicMap = ghoulsGame->getCurrentDynamicMap();
-
     switch(game->input) {
     case INPUT_KEY_UP: {
+        GhoulsLevel* currentLevel = static_cast<GhoulsLevel*>(game->current_level);
+        if(!currentLevel) {
+            return; // Invalid level type
+        }
+
         rotSpeed = 0.4f;
 
         // Calculate new position
@@ -1775,7 +1693,7 @@ void Player::update(Game* game) {
             Vector(position.x + direction.x * rotSpeed, position.y + direction.y * rotSpeed);
 
         // Check collision with dynamic map
-        if(currentDynamicMap == nullptr || !ghoulsGame->collisionMapCheck(new_pos)) {
+        if(!currentLevel->collisionMapCheck(new_pos)) {
             // Move forward in the direction the player is facing
             this->position_set(new_pos);
 
@@ -1800,6 +1718,11 @@ void Player::update(Game* game) {
         is_visible = (showPlayerToggle == ToggleOn);
     } break;
     case INPUT_KEY_DOWN: {
+        GhoulsLevel* currentLevel = static_cast<GhoulsLevel*>(game->current_level);
+        if(!currentLevel) {
+            return; // Invalid level type
+        }
+
         rotSpeed = 0.4f;
 
         // Calculate new position
@@ -1807,7 +1730,7 @@ void Player::update(Game* game) {
             Vector(position.x - direction.x * rotSpeed, position.y - direction.y * rotSpeed);
 
         // Check collision with dynamic map
-        if(currentDynamicMap == nullptr || !ghoulsGame->collisionMapCheck(new_pos)) {
+        if(!currentLevel->collisionMapCheck(new_pos)) {
             // Move backward (opposite to the direction)
             this->position_set(new_pos);
 
@@ -1902,8 +1825,10 @@ void Player::update(Game* game) {
 void Player::updateEntitiesFromServer(const char* csv) {
     if(!csv || !ghoulsGame || !ghoulsGame->getEngine()) return;
 
-    Game* game = ghoulsGame->getEngine()->getGame();
-    if(!game || !game->current_level) return;
+    GhoulsLevel* currentLevel = ghoulsGame->getCurrentLevel();
+    if(!currentLevel) {
+        return;
+    }
 
     // CSV format from server:
     //   Entity update: name,x,y,z,dir_x,dir_y,plane_x,plane_y  (8 fields)
@@ -1926,10 +1851,10 @@ void Player::updateEntitiesFromServer(const char* csv) {
     // Check for removal marker: "R" as the second field
     if(*p == 'R' && (*(p + 1) == '\0' || *(p + 1) == '\n' || *(p + 1) == '\r')) {
         if(strcmp(entity_name, this->name) != 0) {
-            for(int i = 0; i < game->current_level->getEntityCount(); i++) {
-                Entity* e = game->current_level->getEntity(i);
+            for(int i = 0; i < currentLevel->getEntityCount(); i++) {
+                Entity* e = currentLevel->getEntity(i);
                 if(e && e->name && strcmp(e->name, entity_name) == 0) {
-                    game->current_level->entity_remove(e);
+                    currentLevel->entity_remove(e);
                     break;
                 }
             }
@@ -1970,8 +1895,8 @@ void Player::updateEntitiesFromServer(const char* csv) {
         }
     } else {
         bool found = false;
-        for(int i = 0; i < game->current_level->getEntityCount(); i++) {
-            Entity* e = game->current_level->getEntity(i);
+        for(int i = 0; i < currentLevel->getEntityCount(); i++) {
+            Entity* e = currentLevel->getEntity(i);
             if(e && e->name && strcmp(e->name, entity_name) == 0) {
                 found = true;
                 e->position_set(ex, ey, ez);
@@ -2012,7 +1937,7 @@ void Player::updateEntitiesFromServer(const char* csv) {
             remote->direction.y = e_dir_y;
             remote->plane.x = e_pl_x;
             remote->plane.y = e_pl_y;
-            game->current_level->entity_add(remote);
+            currentLevel->entity_add(remote);
         }
     }
 }

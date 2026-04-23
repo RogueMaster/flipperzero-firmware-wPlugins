@@ -26,3 +26,4 @@ This project has two configuration files: `config.hpp` and `engine_config.hpp`. 
 
 ### Current Platforms
 - Flipper Zero: https://github.com/jblanked/Ghouls-Flipper
+- PicoCalc: https://github.com/jblanked/Picoware/tree/main/src/MicroPython/ghouls
