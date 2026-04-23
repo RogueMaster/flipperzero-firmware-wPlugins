@@ -28,7 +28,7 @@ App is intended for educational and security purposes only, and has no signal tr
 | Kia V0                        | ✅ | ✅ | PWM         | FM    | Rolling Code                   | CRC8    | 433.92            |
 | Kia V1                        | ✅ | ✅ | Manchester  | AM    | Rolling Code                   | CRC4    | 315.00 / 433.92   |
 | Kia V2                        | ✅ | ✅ | Manchester  | AM/FM | Rolling Code                   | CRC4    | 315.00 / 433.92   |
-| Kia V3 / V4                   | ✅ | ✅ | PWM         | AM/FM | KeeLoq                         | CRC4    | 315.00 / 433.92   |
+| Kia V3 / V4                   | ✅ | ✅ | PWM         | FM    | KeeLoq                         | CRC4    | 315.00 / 433.92   |
 | Kia V5                        | ✅ | ❌ | Manchester  | FM    | Rolling Code                   | ✅      | 433.92            |
 | Kia V6                        | ✅ | ✅ | Manchester  | FM    | AES128                         | CRC8    | 433.92            |
 | Kia V7                        | ✅ | ✅ | Manchester  | FM    | Rolling Code                   | CRC8    | 433.92            |

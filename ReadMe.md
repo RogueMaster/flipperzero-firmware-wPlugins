@@ -37,6 +37,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Fix CAME TWEE repeats count for button click (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a5f6285e917240101bc86444ebf36a6b9f2b7e66)
 - NFC: [Fix MIR and other EMV cards crash on Read (By Dmitry422)](https://github.com/DarkFlippers/unleashed-firmware/commit/ecc3e78efa3b077ca4b37f67aff8ae6f8b1e9734)
 - Updated: [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
+- Updated: [ProtoPirate v2.9 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 
@@ -757,7 +758,7 @@ $ ./fbt dolphin_ext
 - [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
 - [Protocol Visualizer v1.3 (By antirez)](https://github.com/antirez/protoview)
-- [ProtoPirate v2.8 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- [ProtoPirate v2.9 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)
 - [Quac! v0.9.1 (By rdefeo)](https://github.com/rdefeo/quac)

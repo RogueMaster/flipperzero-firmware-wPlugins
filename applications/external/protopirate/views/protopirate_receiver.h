@@ -45,6 +45,7 @@ void protopirate_view_receiver_sync_menu_from_history(
     ProtoPirateHistory* history);
 
 void protopirate_view_receiver_pop_first_menu_item(ProtoPirateReceiver* receiver);
+void protopirate_view_receiver_delete_item(ProtoPirateReceiver* receiver, uint16_t idx);
 
 void protopirate_view_receiver_append_menu_row_from_history(
     ProtoPirateReceiver* receiver,

@@ -123,6 +123,8 @@ static void protopirate_scene_receiver_config_set_preset(VariableItem* item) {
         app->txrx->preset->frequency,
         subghz_setting_get_preset_data(app->setting, index),
         subghz_setting_get_preset_data_size(app->setting, index));
+
+    protopirate_refresh_protocol_registry(app, false);
 }
 
 static void protopirate_scene_receiver_config_set_hopping_running(VariableItem* item) {

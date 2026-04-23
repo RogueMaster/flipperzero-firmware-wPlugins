@@ -27,6 +27,22 @@
 
 extern const SubGhzProtocolRegistry protopirate_protocol_registry;
 
+typedef enum {
+    ProtoPirateProtocolRegistryFilterAll = 0,
+    ProtoPirateProtocolRegistryFilterAM,
+    ProtoPirateProtocolRegistryFilterFM,
+} ProtoPirateProtocolRegistryFilter;
+
+ProtoPirateProtocolRegistryFilter protopirate_get_protocol_registry_filter_for_preset(
+    const uint8_t* preset_data,
+    size_t preset_data_size);
+
+const SubGhzProtocolRegistry*
+    protopirate_get_protocol_registry_by_filter(ProtoPirateProtocolRegistryFilter filter);
+
+const char*
+    protopirate_get_protocol_registry_filter_name(ProtoPirateProtocolRegistryFilter filter);
+
 // Timing information for protocol analysis
 typedef struct {
     const char* name;

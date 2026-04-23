@@ -69,6 +69,23 @@ typedef struct {
 
 static SubDecodeContext* g_decode_ctx = NULL;
 
+static void protopirate_scene_sub_decode_update_receiver_statusbar(
+    ProtoPirateApp* app,
+    ProtoPirateHistory* history) {
+    char frequency_str[16] = {0};
+    char modulation_str[8] = {0};
+    char history_stat_str[16] = {0};
+
+    protopirate_get_frequency_modulation_str(
+        app, frequency_str, sizeof(frequency_str), modulation_str, sizeof(modulation_str));
+    protopirate_history_format_status_text(history, history_stat_str, sizeof(history_stat_str));
+
+    bool is_external =
+        app->txrx->radio_device ? radio_device_loader_is_external(app->txrx->radio_device) : false;
+    protopirate_view_receiver_add_data_statusbar(
+        app->protopirate_receiver, frequency_str, modulation_str, history_stat_str, is_external);
+}
+
 static bool psa_subdecode_item_needs_bruteforce(ProtoPirateApp* app, uint16_t idx) {
     FlipperFormat* ff = protopirate_history_get_raw_data(app->txrx->history, idx);
     if(!ff) return false;
@@ -160,13 +177,19 @@ static void protopirate_sub_decode_receiver_callback(
     FURI_LOG_I(TAG, "=== SIGNAL DECODED FROM FILE ===");
 
     // Add to history
+    size_t free_heap_before = memmgr_get_free_heap();
+    size_t max_free_block_before = memmgr_heap_get_max_free_block();
     if(protopirate_history_add_to_history(ctx->history, decoder_base, app->txrx->preset)) {
         ctx->match_count++;
+        protopirate_history_note_signal_allocated(
+            ctx->history, free_heap_before, max_free_block_before);
         FURI_LOG_I(TAG, "Added signal %u to history", ctx->match_count);
 
         // Send update event to refresh animation
         view_dispatcher_send_custom_event(
             app->view_dispatcher, ProtoPirateCustomEventSubDecodeUpdate);
+    } else if(protopirate_history_is_low_memory(ctx->history)) {
+        FURI_LOG_W(TAG, "History capture paused due to low memory");
     }
 
     // Reset receiver to continue looking for more signals
@@ -574,29 +597,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                     protopirate_view_receiver_set_idx_menu(
                         app->protopirate_receiver, ctx->selected_history_index);
 
-                    // Update status bar
-                    FuriString* frequency_str = furi_string_alloc();
-                    FuriString* modulation_str = furi_string_alloc();
-                    FuriString* history_stat_str = furi_string_alloc();
-
-                    protopirate_get_frequency_modulation(app, frequency_str, modulation_str);
-                    furi_string_printf(
-                        history_stat_str, "%u/%u", history_count, PROTOPIRATE_HISTORY_MAX);
-
-                    bool is_external =
-                        app->txrx->radio_device ?
-                            radio_device_loader_is_external(app->txrx->radio_device) :
-                            false;
-                    protopirate_view_receiver_add_data_statusbar(
-                        app->protopirate_receiver,
-                        furi_string_get_cstr(frequency_str),
-                        furi_string_get_cstr(modulation_str),
-                        furi_string_get_cstr(history_stat_str),
-                        is_external);
-
-                    furi_string_free(frequency_str);
-                    furi_string_free(modulation_str);
-                    furi_string_free(history_stat_str);
+                    protopirate_scene_sub_decode_update_receiver_statusbar(app, ctx->history);
                 }
             }
             consumed = true;
@@ -852,11 +853,6 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 close_file_handles(ctx);
                 FURI_LOG_D(TAG, "ReadHeader: Handles closed");
 
-                FURI_LOG_D(TAG, "ReadHeader: Setting up receiver callback");
-                subghz_receiver_set_rx_callback(
-                    app->txrx->receiver, protopirate_sub_decode_receiver_callback, app);
-                FURI_LOG_D(TAG, "ReadHeader: Receiver callback set");
-
                 ctx->state = DecodeStateStartingWorker;
                 FURI_LOG_I(
                     TAG,
@@ -985,6 +981,14 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
 
                 protopirate_preset_init(
                     app, preset_name_short, ctx->frequency, preset_data, preset_data_size);
+
+                if(!protopirate_refresh_protocol_registry(app, true) || !app->txrx->receiver) {
+                    FURI_LOG_E(TAG, "Failed to rebuild receiver for preset %s", preset_name_short);
+                    break;
+                }
+
+                subghz_receiver_set_rx_callback(
+                    app->txrx->receiver, protopirate_sub_decode_receiver_callback, app);
 
                 setup_ok = true;
             } while(false);
@@ -1153,28 +1157,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                     protopirate_scene_sub_decode_receiver_callback,
                     app);
 
-                // Update status bar
-                FuriString* frequency_str = furi_string_alloc();
-                FuriString* modulation_str = furi_string_alloc();
-                FuriString* history_stat_str = furi_string_alloc();
-
-                protopirate_get_frequency_modulation(app, frequency_str, modulation_str);
-                furi_string_printf(
-                    history_stat_str, "%u/%u", history_count, PROTOPIRATE_HISTORY_MAX);
-
-                bool is_external = app->txrx->radio_device ?
-                                       radio_device_loader_is_external(app->txrx->radio_device) :
-                                       false;
-                protopirate_view_receiver_add_data_statusbar(
-                    app->protopirate_receiver,
-                    furi_string_get_cstr(frequency_str),
-                    furi_string_get_cstr(modulation_str),
-                    furi_string_get_cstr(history_stat_str),
-                    is_external);
-
-                furi_string_free(frequency_str);
-                furi_string_free(modulation_str);
-                furi_string_free(history_stat_str);
+                protopirate_scene_sub_decode_update_receiver_statusbar(app, ctx->history);
 
                 // Switch to receiver view
                 view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewReceiver);

@@ -1,6 +1,7 @@
 // protopirate_app_i.h
 #pragma once
 
+#include <stddef.h>
 #include "helpers/protopirate_types.h"
 #include "helpers/protopirate_settings.h"
 #include "scenes/protopirate_scene.h"
@@ -36,11 +37,13 @@ typedef struct {
     SubGhzEnvironment* environment;
     SubGhzReceiver* receiver;
     SubGhzRadioPreset* preset;
+    const SubGhzProtocolRegistry* protocol_registry;
     ProtoPirateHistory* history;
     const SubGhzDevice* radio_device;
     ProtoPirateTxRxState txrx_state;
     ProtoPirateHopperState hopper_state;
     ProtoPirateRxKeyState rx_key_state;
+    bool rx_low_memory_hold;
     uint8_t hopper_idx_frequency;
     uint8_t hopper_timeout;
     uint16_t idx_menu_chosen;
@@ -95,6 +98,12 @@ void protopirate_get_frequency_modulation(
     ProtoPirateApp* app,
     FuriString* frequency,
     FuriString* modulation);
+void protopirate_get_frequency_modulation_str(
+    ProtoPirateApp* app,
+    char* frequency,
+    size_t frequency_size,
+    char* modulation,
+    size_t modulation_size);
 
 void protopirate_begin(ProtoPirateApp* app, uint8_t* preset_data);
 uint32_t protopirate_rx(ProtoPirateApp* app, uint32_t frequency);
@@ -106,6 +115,7 @@ void protopirate_tx(ProtoPirateApp* app, uint32_t frequency);
 void protopirate_tx_stop(ProtoPirateApp* app);
 bool protopirate_radio_init(ProtoPirateApp* app);
 void protopirate_radio_deinit(ProtoPirateApp* app);
+bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_receiver_ready);
 
 void protopirate_rx_stack_suspend_for_tx(ProtoPirateApp* app);
 void protopirate_rx_stack_resume_after_tx(ProtoPirateApp* app);

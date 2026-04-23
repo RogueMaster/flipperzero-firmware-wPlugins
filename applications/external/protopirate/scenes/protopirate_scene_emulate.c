@@ -53,6 +53,13 @@ const uint8_t tx_power_value[TX_PRESET_VALUES_COUNT] = {
     0x03 //-30dBm
 };
 
+static void emulate_context_reset_transmitter(void) {
+    if(emulate_context && emulate_context->transmitter) {
+        subghz_transmitter_free(emulate_context->transmitter);
+        emulate_context->transmitter = NULL;
+    }
+}
+
 void stop_tx(ProtoPirateApp* app) {
     FURI_LOG_I(TAG, "Stopping transmission");
 
@@ -69,6 +76,7 @@ void stop_tx(ProtoPirateApp* app) {
     subghz_devices_idle(app->txrx->radio_device);
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
     app->start_tx_time = 0;
+    emulate_context_reset_transmitter();
 
     FURI_LOG_I(TAG, "Transmission stopped, state set to IDLE");
     notification_message(app->notifications, &sequence_blink_stop);
@@ -690,12 +698,6 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
         switch(event.event) {
         case ProtoPirateCustomEventEmulateTransmit:
             if(emulate_context && emulate_context->flipper_format) {
-                if(!emulate_context_try_init_transmitter(app, emulate_context)) {
-                    FURI_LOG_E(TAG, "No transmitter available");
-                    notification_message(app->notifications, &sequence_error);
-                    consumed = true;
-                    break;
-                }
                 // Stop any ongoing transmission FIRST
                 if(app->txrx->txrx_state == ProtoPirateTxRxStateTx) {
                     FURI_LOG_W(TAG, "Previous transmission still active, stopping it");
@@ -706,6 +708,16 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
                 }
 
+                emulate_context_reset_transmitter();
+
+                if(!emulate_context_try_init_transmitter(app, emulate_context)) {
+                    FURI_LOG_E(TAG, "No transmitter available");
+                    emulate_context->is_transmitting = false;
+                    notification_message(app->notifications, &sequence_error);
+                    consumed = true;
+                    break;
+                }
+
                 // Re-deserialize with updated values
                 flipper_format_rewind(emulate_context->flipper_format);
                 SubGhzProtocolStatus status = subghz_transmitter_deserialize(
@@ -713,6 +725,8 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
 
                 if(status != SubGhzProtocolStatusOk) {
                     FURI_LOG_E(TAG, "Failed to re-deserialize transmitter: %d", status);
+                    emulate_context_reset_transmitter();
+                    emulate_context->is_transmitting = false;
                     notification_message(app->notifications, &sequence_error);
                     consumed = true;
                     break;
@@ -816,11 +830,14 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                             emulate_context->preset);
                     } else {
                         FURI_LOG_E(TAG, "Failed to start async TX");
+                        emulate_context_reset_transmitter();
+                        emulate_context->is_transmitting = false;
                         subghz_devices_idle(app->txrx->radio_device);
                         notification_message(app->notifications, &sequence_error);
                     }
                 } else {
                     FURI_LOG_E(TAG, "No preset data available - cannot transmit");
+                    emulate_context->is_transmitting = false;
                     notification_message(app->notifications, &sequence_error);
                 }
 

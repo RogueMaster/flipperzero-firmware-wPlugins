@@ -238,7 +238,7 @@ const SubGhzProtocolEncoder subghz_protocol_fiat_marelli_encoder = {
 const SubGhzProtocol fiat_v1_protocol = {
     .name = FIAT_MARELLI_PROTOCOL_NAME,
     .type = SubGhzProtocolTypeDynamic,
-    .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM | SubGhzProtocolFlag_Decodable |
+    .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM | SubGhzProtocolFlag_Decodable |
             SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save,
     .decoder = &subghz_protocol_fiat_marelli_decoder,
     .encoder = &subghz_protocol_fiat_marelli_encoder,

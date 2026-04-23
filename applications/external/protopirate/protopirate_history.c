@@ -4,8 +4,14 @@
 #include <lib/subghz/receiver.h>
 #include <storage/storage.h>
 #include <string.h>
+#include <stdio.h>
+#include <furi.h>
 
-#define TAG "ProtoPirateHistory"
+#define TAG                                     "ProtoPirateHistory"
+#define PROTOPIRATE_HISTORY_GUARD_SEED_COST     768U
+#define PROTOPIRATE_HISTORY_GUARD_FREE_RESERVE  1024U
+#define PROTOPIRATE_HISTORY_GUARD_MIN_FREE_HEAP 2048U
+#define PROTOPIRATE_HISTORY_GUARD_MIN_MAX_BLOCK 768U
 
 typedef struct {
     FuriString* item_str;
@@ -24,7 +30,34 @@ struct ProtoPirateHistory {
     Storage* storage;
     FlipperFormat* loaded_ff;
     int16_t loaded_idx;
+    size_t learned_signal_cost;
 };
+
+static size_t protopirate_history_get_required_free_heap(ProtoPirateHistory* instance) {
+    furi_check(instance);
+
+    size_t learned_cost = instance->learned_signal_cost;
+    if(learned_cost < PROTOPIRATE_HISTORY_GUARD_SEED_COST) {
+        learned_cost = PROTOPIRATE_HISTORY_GUARD_SEED_COST;
+    }
+
+    size_t required_free_heap = learned_cost + PROTOPIRATE_HISTORY_GUARD_FREE_RESERVE;
+    if(required_free_heap < PROTOPIRATE_HISTORY_GUARD_MIN_FREE_HEAP) {
+        required_free_heap = PROTOPIRATE_HISTORY_GUARD_MIN_FREE_HEAP;
+    }
+
+    return required_free_heap;
+}
+
+static bool protopirate_history_is_low_memory_now(
+    ProtoPirateHistory* instance,
+    size_t free_heap,
+    size_t max_free_block) {
+    furi_check(instance);
+
+    return free_heap < protopirate_history_get_required_free_heap(instance) ||
+           max_free_block < PROTOPIRATE_HISTORY_GUARD_MIN_MAX_BLOCK;
+}
 
 void protopirate_history_release_scratch(ProtoPirateHistory* instance) {
     furi_check(instance);
@@ -63,6 +96,7 @@ ProtoPirateHistory* protopirate_history_alloc(void) {
     instance->storage = furi_record_open(RECORD_STORAGE);
     instance->loaded_ff = NULL;
     instance->loaded_idx = -1;
+    instance->learned_signal_cost = 0;
     return instance;
 }
 
@@ -104,6 +138,71 @@ uint16_t protopirate_history_get_last_index(ProtoPirateHistory* instance) {
     return instance->last_index;
 }
 
+bool protopirate_history_is_low_memory(ProtoPirateHistory* instance) {
+    furi_check(instance);
+
+    size_t free_heap = memmgr_get_free_heap();
+    size_t max_free_block = memmgr_heap_get_max_free_block();
+    return protopirate_history_is_low_memory_now(instance, free_heap, max_free_block);
+}
+
+void protopirate_history_format_status_text(
+    ProtoPirateHistory* instance,
+    char* output,
+    size_t output_size) {
+    furi_check(instance);
+    furi_check(output);
+
+    if(output_size == 0) {
+        return;
+    }
+
+    if(protopirate_history_is_low_memory(instance)) {
+        snprintf(output, output_size, "RAM!");
+        return;
+    }
+
+    snprintf(
+        output,
+        output_size,
+        "%u/%u",
+        protopirate_history_get_item(instance),
+        PROTOPIRATE_HISTORY_MAX);
+}
+
+void protopirate_history_get_status_text(ProtoPirateHistory* instance, FuriString* output) {
+    furi_check(instance);
+    furi_check(output);
+
+    char status_text[16];
+    protopirate_history_format_status_text(instance, status_text, sizeof(status_text));
+    furi_string_set_str(output, status_text);
+}
+
+void protopirate_history_note_signal_allocated(
+    ProtoPirateHistory* instance,
+    size_t free_heap_before,
+    size_t max_free_block_before) {
+    furi_check(instance);
+
+    size_t free_heap_after = memmgr_get_free_heap();
+    size_t max_free_block_after = memmgr_heap_get_max_free_block();
+    size_t learned_signal_cost =
+        (free_heap_before > free_heap_after) ? (free_heap_before - free_heap_after) : 0;
+
+    if(learned_signal_cost > instance->learned_signal_cost) {
+        instance->learned_signal_cost = learned_signal_cost;
+        FURI_LOG_I(
+            TAG,
+            "Raised learned signal cost to %zu bytes (free %zu->%zu, block %zu->%zu)",
+            instance->learned_signal_cost,
+            free_heap_before,
+            free_heap_after,
+            max_free_block_before,
+            max_free_block_after);
+    }
+}
+
 bool protopirate_history_get_capture_path(
     ProtoPirateHistory* instance,
     uint16_t idx,
@@ -128,6 +227,21 @@ bool protopirate_history_add_to_history(
     SubGhzRadioPreset* preset) {
     furi_check(instance);
     furi_check(context);
+
+    size_t free_heap = memmgr_get_free_heap();
+    size_t max_free_block = memmgr_heap_get_max_free_block();
+    size_t required_free_heap = protopirate_history_get_required_free_heap(instance);
+    if(protopirate_history_is_low_memory_now(instance, free_heap, max_free_block)) {
+        FURI_LOG_W(
+            TAG,
+            "Skipping history add, free=%zu/%zu block=%zu/%u learned=%zu",
+            free_heap,
+            required_free_heap,
+            max_free_block,
+            (size_t)PROTOPIRATE_HISTORY_GUARD_MIN_MAX_BLOCK,
+            instance->learned_signal_cost);
+        return false;
+    }
 
     SubGhzProtocolDecoderBase* decoder_base = context;
 
@@ -187,18 +301,6 @@ bool protopirate_history_add_to_history(
         return false;
     }
     flipper_format_rewind(temp_ff);
-    {
-        uint32_t debug_bit_count;
-        FuriString* debug_protocol = furi_string_alloc();
-        if(flipper_format_read_string(temp_ff, "Protocol", debug_protocol)) {
-            FURI_LOG_I(TAG, "History add - Protocol: %s", furi_string_get_cstr(debug_protocol));
-        }
-        flipper_format_rewind(temp_ff);
-        if(flipper_format_read_uint32(temp_ff, "Bit", &debug_bit_count, 1)) {
-            FURI_LOG_I(TAG, "History add - Bit count: %lu", (unsigned long)debug_bit_count);
-        }
-        furi_string_free(debug_protocol);
-    }
     flipper_format_free(temp_ff);
 
     instance->last_index++;
@@ -211,6 +313,33 @@ bool protopirate_history_add_to_history(
         furi_string_get_cstr(item->capture_path));
 
     return true;
+}
+
+void protopirate_history_delete_item(ProtoPirateHistory* instance, uint16_t idx) {
+    furi_check(instance);
+
+    size_t item_count = ProtoPirateHistoryItemArray_size(instance->data);
+    if(idx >= item_count) {
+        return;
+    }
+
+    if(instance->loaded_ff) {
+        if(instance->loaded_idx == (int16_t)idx) {
+            protopirate_history_release_scratch(instance);
+        } else if(instance->loaded_idx > (int16_t)idx) {
+            instance->loaded_idx--;
+        }
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    protopirate_history_item_free(item, true);
+    ProtoPirateHistoryItemArray_pop_at(NULL, instance->data, idx);
+
+    FURI_LOG_I(
+        TAG,
+        "Deleted history item %u (size: %zu)",
+        idx,
+        ProtoPirateHistoryItemArray_size(instance->data));
 }
 
 void protopirate_history_get_text_item_menu(

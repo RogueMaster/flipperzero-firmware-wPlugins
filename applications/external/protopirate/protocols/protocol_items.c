@@ -23,6 +23,33 @@ const SubGhzProtocol* protopirate_protocol_registry_items[] = {
     &psa_protocol, // Heap: free 25408
     &honda_static_protocol,
 };
+
+static const SubGhzProtocol* const protopirate_protocol_registry_am_items[] = {
+    &fiat_protocol_v0,
+    &fiat_v1_protocol,
+    &ford_protocol_v0,
+    &kia_protocol_v1,
+    &porsche_touareg_protocol,
+    &psa_protocol,
+    &subaru_protocol,
+    &vag_protocol,
+    &subghz_protocol_star_line,
+    &honda_static_protocol,
+};
+
+static const SubGhzProtocol* const protopirate_protocol_registry_fm_items[] = {
+    &subghz_protocol_scher_khan,
+    &kia_protocol_v0,
+    &kia_protocol_v2,
+    &kia_protocol_v3_v4,
+    &kia_protocol_v5,
+    &kia_protocol_v6,
+    &ford_protocol_v1,
+    &mazda_v0_protocol,
+    &kia_protocol_v7,
+    &mitsubishi_v0_protocol,
+    &psa_protocol,
+};
 // TODO: See above
 // Current HEAP situation:
 // All enabled
@@ -36,6 +63,101 @@ const SubGhzProtocolRegistry protopirate_protocol_registry = {
     .items = protopirate_protocol_registry_items,
     .size = COUNT_OF(protopirate_protocol_registry_items),
 };
+
+static const SubGhzProtocolRegistry protopirate_protocol_registry_am = {
+    .items = protopirate_protocol_registry_am_items,
+    .size = COUNT_OF(protopirate_protocol_registry_am_items),
+};
+
+static const SubGhzProtocolRegistry protopirate_protocol_registry_fm = {
+    .items = protopirate_protocol_registry_fm_items,
+    .size = COUNT_OF(protopirate_protocol_registry_fm_items),
+};
+
+#define PROTOPIRATE_CC1101_REG_MDMCFG2        0x12U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_MASK    0x70U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_2FSK    0x00U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_GFSK    0x10U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_ASK_OOK 0x30U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_4FSK    0x40U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_MSK     0x70U
+
+static bool protopirate_preset_try_get_register(
+    const uint8_t* preset_data,
+    size_t preset_data_size,
+    uint8_t reg,
+    uint8_t* value) {
+    if(!preset_data || !value || (preset_data_size < 2U)) {
+        return false;
+    }
+
+    for(size_t i = 0; i + 1U < preset_data_size; i += 2U) {
+        const uint8_t address = preset_data[i];
+        const uint8_t data = preset_data[i + 1U];
+
+        if((address == 0x00U) && (data == 0x00U)) {
+            break;
+        }
+
+        if(address == reg) {
+            *value = data;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+ProtoPirateProtocolRegistryFilter protopirate_get_protocol_registry_filter_for_preset(
+    const uint8_t* preset_data,
+    size_t preset_data_size) {
+    uint8_t mdmcfg2 = 0U;
+
+    if(!protopirate_preset_try_get_register(
+           preset_data, preset_data_size, PROTOPIRATE_CC1101_REG_MDMCFG2, &mdmcfg2)) {
+        return ProtoPirateProtocolRegistryFilterAll;
+    }
+
+    // MDMCFG2[6:4] stores the CC1101 modulation format.
+    // ASK/OOK maps to our AM decoder set; the FSK-family formats map to FM.
+    switch(mdmcfg2 & PROTOPIRATE_CC1101_MOD_FORMAT_MASK) {
+    case PROTOPIRATE_CC1101_MOD_FORMAT_ASK_OOK:
+        return ProtoPirateProtocolRegistryFilterAM;
+    case PROTOPIRATE_CC1101_MOD_FORMAT_2FSK:
+    case PROTOPIRATE_CC1101_MOD_FORMAT_GFSK:
+    case PROTOPIRATE_CC1101_MOD_FORMAT_4FSK:
+    case PROTOPIRATE_CC1101_MOD_FORMAT_MSK:
+        return ProtoPirateProtocolRegistryFilterFM;
+    default:
+        return ProtoPirateProtocolRegistryFilterAll;
+    }
+}
+
+const SubGhzProtocolRegistry*
+    protopirate_get_protocol_registry_by_filter(ProtoPirateProtocolRegistryFilter filter) {
+    switch(filter) {
+    case ProtoPirateProtocolRegistryFilterAM:
+        return &protopirate_protocol_registry_am;
+    case ProtoPirateProtocolRegistryFilterFM:
+        return &protopirate_protocol_registry_fm;
+    case ProtoPirateProtocolRegistryFilterAll:
+    default:
+        return &protopirate_protocol_registry;
+    }
+}
+
+const char*
+    protopirate_get_protocol_registry_filter_name(ProtoPirateProtocolRegistryFilter filter) {
+    switch(filter) {
+    case ProtoPirateProtocolRegistryFilterAM:
+        return "AM";
+    case ProtoPirateProtocolRegistryFilterFM:
+        return "FM";
+    case ProtoPirateProtocolRegistryFilterAll:
+    default:
+        return "ALL";
+    }
+}
 
 // Protocol timing definitions - mirrors the SubGhzBlockConst in each protocol
 static const ProtoPirateProtocolTiming protocol_timings[] = {

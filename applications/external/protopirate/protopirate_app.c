@@ -235,9 +235,12 @@ bool protopirate_radio_init(ProtoPirateApp* app) {
     }
     LOG_HEAP("After environment alloc");
 
-    FURI_LOG_I(TAG, "Registering %zu ProtoPirate protocols", protopirate_protocol_registry.size);
-    subghz_environment_set_protocol_registry(
-        app->txrx->environment, (void*)&protopirate_protocol_registry);
+    if(!protopirate_refresh_protocol_registry(app, false)) {
+        FURI_LOG_E(TAG, "Failed to configure protocol registry");
+        subghz_environment_free(app->txrx->environment);
+        app->txrx->environment = NULL;
+        return false;
+    }
 
     // Load keystores
     subghz_environment_load_keystore(app->txrx->environment, PROTOPIRATE_KEYSTORE_DIR_NAME);
@@ -357,6 +360,7 @@ void protopirate_radio_deinit(ProtoPirateApp* app) {
         FURI_LOG_D(TAG, "Freeing environment %p", app->txrx->environment);
         subghz_environment_free(app->txrx->environment);
         app->txrx->environment = NULL;
+        app->txrx->protocol_registry = NULL;
     } else {
         FURI_LOG_D(TAG, "Environment was NULL, skipping free");
     }

@@ -476,6 +476,22 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
             consumed = true;
             break;
         case InputKeyRight:
+            if(event->type == InputTypeLong) {
+                bool do_delete_cb = false;
+                with_view_model(
+                    receiver->view,
+                    ProtoPirateReceiverModel * model,
+                    {
+                        if(ProtoPirateReceiverMenuItemArray_size(model->history_item_arr) > 0) {
+                            do_delete_cb = true;
+                        }
+                    },
+                    false);
+                if(do_delete_cb && receiver->callback) {
+                    receiver->callback(
+                        ProtoPirateCustomEventViewReceiverDeleteItem, receiver->context);
+                }
+            }
             consumed = true;
             break;
         case InputKeyOk:
@@ -655,6 +671,41 @@ void protopirate_view_receiver_pop_first_menu_item(ProtoPirateReceiver* receiver
                 size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
                 if(model->list_offset > 0 && model->list_offset >= item_count) {
                     model->list_offset = item_count > 0 ? item_count - 1 : 0;
+                }
+            }
+        },
+        true);
+    protopirate_view_receiver_update_offset(receiver);
+}
+
+void protopirate_view_receiver_delete_item(ProtoPirateReceiver* receiver, uint16_t idx) {
+    furi_check(receiver);
+
+    with_view_model(
+        receiver->view,
+        ProtoPirateReceiverModel * model,
+        {
+            size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+            if(idx < item_count) {
+                ProtoPirateReceiverMenuItem* item =
+                    ProtoPirateReceiverMenuItemArray_get(model->history_item_arr, idx);
+                furi_string_free(item->item_str);
+                ProtoPirateReceiverMenuItemArray_pop_at(NULL, model->history_item_arr, idx);
+
+                item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+                if(item_count == 0) {
+                    model->history_item = 0;
+                    model->list_offset = 0;
+                } else {
+                    if(model->history_item > idx || model->history_item >= item_count) {
+                        model->history_item--;
+                    }
+                    if(model->history_item >= item_count) {
+                        model->history_item = item_count - 1;
+                    }
+                    if(model->list_offset >= item_count) {
+                        model->list_offset = item_count - 1;
+                    }
                 }
             }
         },
