@@ -12,6 +12,7 @@
 #endif
 
 #define SKY_RENDER_ALLOWED false
+#define GROUND_RENDER_ALLOWED false
 
 #define WIREFRAME_ENABLED false
 
