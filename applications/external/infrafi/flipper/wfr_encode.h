@@ -8,14 +8,15 @@ extern "C" {
 #endif
 
 /*
- * Transmit WiFi credentials over IR using RC-6 protocol messages.
+ * Transmit WiFi credentials over IR.
  *
- * Builds the WiFi QR string, sends it as a sequence of RC-6 messages
+ * Builds the WiFi QR string, sends it as a sequence of IR messages
  * (START + DATA bytes + END), repeated WFR_RETRANSMIT_COUNT times.
+ * Uses RC-6 or NEC encoding based on the protocol parameter.
  *
  * Returns true if transmission completed, false on error.
  */
-bool wfr_transmit_credentials(const WfrWifiCreds* creds);
+bool wfr_transmit_credentials(const WfrWifiCreds* creds, WfrIrProtocol protocol);
 
 #ifdef __cplusplus
 }

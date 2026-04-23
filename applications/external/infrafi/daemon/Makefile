@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -Wpedantic -O2 -std=c11 -D_GNU_SOURCE
 LDFLAGS =
 
 # Source files
-SRCS = main.c wfr_lirc.c wfr_decode.c wfr_network.c wfr_ack.c ../flipper/protocol/wfr_protocol.c
+SRCS = main.c wfr_lirc.c wfr_evdev.c wfr_decode.c wfr_network.c wfr_ack.c ../flipper/protocol/wfr_protocol.c
 OBJS = $(SRCS:.c=.o)
 TARGET = infrafid
 

@@ -22,7 +22,8 @@ infrafi/
   daemon/                  # Linux daemon (infrafid)
     main.c                 # Entry point, CLI args, main loop
     wfr_lirc.h/c           # LIRC scancode reader (/dev/lirc0, LIRC_MODE_SCANCODE)
-    wfr_decode.h/c         # RC-6 scancode reassembler
+    wfr_evdev.h/c          # evdev input reader (/dev/input/eventN, NEC via MSC_RAW)
+    wfr_decode.h/c         # IR scancode reassembler
     wfr_network.h/c        # NetworkManager/systemd-networkd/ifupdown WiFi connector with rollback
     wfr_ack.h/c            # IR ACK transmitter (LIRC TX, RC-6 scancodes)
     Makefile               # Build with `make` (requires gcc, linux headers)

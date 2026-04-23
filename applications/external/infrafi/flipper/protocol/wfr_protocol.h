@@ -8,11 +8,17 @@
 extern "C" {
 #endif
 
+/* IR transport protocol selection */
+typedef enum {
+    WfrIrProtocolRC6 = 0,
+    WfrIrProtocolNEC = 1,
+} WfrIrProtocol;
+
 /*
- * InfraFi Protocol — RC-6 Scancode Encoding
+ * InfraFi Protocol — IR Frame Encoding (RC-6 and NEC)
  *
- * Uses standard RC-6 IR messages (decoded by the kernel) instead of raw timings.
- * Each RC-6 message carries 1 byte of payload via: address (framing) + command (data).
+ * Uses kernel-decoded RC-6/NEC scancodes instead of raw timings.
+ * Each IR message carries 1 byte of payload via: address (framing) + command (data).
  * Payload is a WiFi QR string: WIFI:T:<type>;S:<ssid>;P:<pass>;H:<hidden>;;
  *
  * Address byte layout:
@@ -27,23 +33,37 @@ extern "C" {
  *   Same framing. Payload is "OK:<ip>" on success or "FAIL" on failure.
  */
 
-/* RC-6 address byte encoding */
-#define WFR_RC6_MAGIC      0xA0
-#define WFR_RC6_MAGIC_MASK 0xF0
-#define WFR_RC6_TYPE_MASK  0x0C
-#define WFR_RC6_PASS_MASK  0x03
+/* Protocol framing encoded in the address byte */
+#define WFR_FRAME_MAGIC      0xA0
+#define WFR_FRAME_MAGIC_MASK 0xF0
+#define WFR_FRAME_TYPE_MASK  0x0C
+#define WFR_FRAME_PASS_MASK  0x03
 
-#define WFR_RC6_TYPE_START 0x00
-#define WFR_RC6_TYPE_DATA  0x04
-#define WFR_RC6_TYPE_END   0x08
+#define WFR_FRAME_TYPE_START 0x00
+#define WFR_FRAME_TYPE_DATA  0x04
+#define WFR_FRAME_TYPE_END   0x08
 
 /* Frame type for ACK responses (daemon → Flipper) */
-#define WFR_RC6_TYPE_ACK 0x0C
+#define WFR_FRAME_TYPE_ACK 0x0C
+
+/* Backward-compatible aliases; prefer WFR_FRAME_* for new code. */
+#define WFR_RC6_MAGIC      WFR_FRAME_MAGIC
+#define WFR_RC6_MAGIC_MASK WFR_FRAME_MAGIC_MASK
+#define WFR_RC6_TYPE_MASK  WFR_FRAME_TYPE_MASK
+#define WFR_RC6_PASS_MASK  WFR_FRAME_PASS_MASK
+#define WFR_RC6_TYPE_START WFR_FRAME_TYPE_START
+#define WFR_RC6_TYPE_DATA  WFR_FRAME_TYPE_DATA
+#define WFR_RC6_TYPE_END   WFR_FRAME_TYPE_END
+#define WFR_RC6_TYPE_ACK   WFR_FRAME_TYPE_ACK
 
 /* Timing */
 #define WFR_RC6_INTER_MSG_MS      20 /* Delay between RC-6 messages (ms) */
 #define WFR_RC6_RETRANSMIT_GAP_MS 200 /* Gap between retransmission passes */
 #define WFR_RETRANSMIT_COUNT      1
+
+/* NEC timing — longer frames (~67ms each) need wider gaps to avoid repeat codes */
+#define WFR_NEC_INTER_MSG_MS      50
+#define WFR_NEC_RETRANSMIT_GAP_MS 200
 
 /* ACK timeout — how long Flipper waits for a response (seconds) */
 #define WFR_ACK_TIMEOUT_SEC 30

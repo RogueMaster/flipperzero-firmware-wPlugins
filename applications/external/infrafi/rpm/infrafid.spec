@@ -15,7 +15,7 @@ BuildRequires:  systemd-rpm-macros
 %global debug_package %{nil}
 
 %description
-Receives WiFi credentials transmitted via infrared (RC-6 protocol) from a
+Receives WiFi credentials transmitted via infrared (RC-6 or NEC protocols) from a
 Flipper Zero running the InfraFi app. Automatically connects to the
 transmitted WiFi network using NetworkManager, systemd-networkd, or ifupdown.
 
@@ -32,14 +32,14 @@ make %{?_smp_mflags}
 %install
 install -D -m 0755 daemon/infrafid %{buildroot}%{_bindir}/infrafid
 install -D -m 0644 daemon/infrafid.service %{buildroot}%{_unitdir}/infrafid.service
-install -D -m 0644 daemon/99-infrafid-rc6.rules %{buildroot}%{_udevrulesdir}/99-infrafid-rc6.rules
+install -D -m 0644 daemon/99-infrafid-ir.rules %{buildroot}%{_udevrulesdir}/99-infrafid-ir.rules
 
 %files
 %license LICENSE.md
 %doc README.md
 %{_bindir}/infrafid
 %{_unitdir}/infrafid.service
-%{_udevrulesdir}/99-infrafid-rc6.rules
+%{_udevrulesdir}/99-infrafid-ir.rules
 
 %post
 %systemd_post infrafid.service

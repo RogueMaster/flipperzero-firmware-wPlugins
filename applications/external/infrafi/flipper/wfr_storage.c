@@ -152,7 +152,7 @@ bool wfr_storage_delete(Storage* storage, const char* filename) {
 #define WFR_SETTINGS_TYPE    "InfraFi Settings"
 #define WFR_SETTINGS_VERSION 1
 
-bool wfr_storage_load_settings(Storage* storage, bool* ack_enabled) {
+bool wfr_storage_load_settings(Storage* storage, bool* ack_enabled, WfrIrProtocol* ir_protocol) {
     FlipperFormat* ff = flipper_format_file_alloc(storage);
     bool ok = false;
     FuriString* tmp = furi_string_alloc();
@@ -169,6 +169,10 @@ bool wfr_storage_load_settings(Storage* storage, bool* ack_enabled) {
         if(flipper_format_read_uint32(ff, "WaitForACK", &ack, 1)) {
             *ack_enabled = (ack != 0);
         }
+        uint32_t proto = 0;
+        if(flipper_format_read_uint32(ff, "IrProtocol", &proto, 1)) {
+            *ir_protocol = (proto <= WfrIrProtocolNEC) ? (WfrIrProtocol)proto : WfrIrProtocolRC6;
+        }
         ok = true;
     } while(false);
 
@@ -177,7 +181,7 @@ bool wfr_storage_load_settings(Storage* storage, bool* ack_enabled) {
     return ok;
 }
 
-bool wfr_storage_save_settings(Storage* storage, bool ack_enabled) {
+bool wfr_storage_save_settings(Storage* storage, bool ack_enabled, WfrIrProtocol ir_protocol) {
     storage_simply_mkdir(storage, WFR_SAVE_DIR);
 
     FlipperFormat* ff = flipper_format_file_alloc(storage);
@@ -188,6 +192,8 @@ bool wfr_storage_save_settings(Storage* storage, bool ack_enabled) {
         if(!flipper_format_write_header_cstr(ff, WFR_SETTINGS_TYPE, WFR_SETTINGS_VERSION)) break;
         uint32_t ack = ack_enabled ? 1 : 0;
         if(!flipper_format_write_uint32(ff, "WaitForACK", &ack, 1)) break;
+        uint32_t proto = (uint32_t)ir_protocol;
+        if(!flipper_format_write_uint32(ff, "IrProtocol", &proto, 1)) break;
         ok = true;
     } while(false);
 

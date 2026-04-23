@@ -11,25 +11,32 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Check for LIRC device
-if [ ! -e /dev/lirc0 ]; then
-    echo "Warning: /dev/lirc0 not found. The daemon will fail to start without it."
-    echo "Ensure your IR receiver is connected and the kernel module is loaded."
+# Detect input mode — LIRC vs evdev
+HAS_LIRC=false
+if ls /dev/lirc* >/dev/null 2>&1; then
+    HAS_LIRC=true
 fi
 
-# Configure IR receiver for RC-6 only
-RC_DIR="/sys/class/rc/rc0"
-if [ -d "$RC_DIR" ]; then
-    echo "Configuring IR receiver for RC-6 protocol..."
-    echo rc-6 > "$RC_DIR/protocols"
-    echo "  Active protocols: $(cat "$RC_DIR/protocols")"
+if [ "$HAS_LIRC" = true ]; then
+    # Configure IR receiver for RC-6 + NEC (both supported via LIRC)
+    RC_DIR="/sys/class/rc/rc0"
+    if [ -d "$RC_DIR" ]; then
+        echo "Configuring IR receiver for RC-6 and NEC protocols..."
+        echo "rc-6 nec" > "$RC_DIR/protocols"
+        echo "  Active protocols: $(cat "$RC_DIR/protocols")"
 
-    # Persist via udev rule so it survives reboot
-    UDEV_RULE="/etc/udev/rules.d/99-infrafid-rc6.rules"
-    echo 'ACTION=="add", SUBSYSTEM=="rc", ATTR{protocols}="rc-6"' > "$UDEV_RULE"
-    echo "  Created udev rule: $UDEV_RULE"
+        # Persist via udev rule so it survives reboot
+        UDEV_RULE="/etc/udev/rules.d/99-infrafid-ir.rules"
+        echo 'ACTION=="add", SUBSYSTEM=="rc", ATTR{protocols}="rc-6 nec"' > "$UDEV_RULE"
+        echo "  Created udev rule: $UDEV_RULE"
+    else
+        echo "Warning: $RC_DIR not found. You may need to configure protocols manually."
+    fi
 else
-    echo "Warning: $RC_DIR not found. You may need to configure RC-6 manually."
+    echo "Warning: no /dev/lirc* device found."
+    echo "  If your device uses evdev (e.g. Squeezebox Touch), configure it via:"
+    echo "  echo 'INFRAFID_ARGS=\"--evdev /dev/input/event1\"' > /etc/default/infrafid"
+    echo "  Then: systemctl restart infrafid"
 fi
 
 # Build

@@ -4,8 +4,8 @@ After=network.target
 Wants=network.target
 [Service]
 Type=simple
-ExecCondition=/bin/sh -c 'ls /dev/lirc* >/dev/null 2>&1'
-ExecStart=/usr/local/bin/infrafid --foreground
+EnvironmentFile=-/etc/default/infrafid
+ExecStart=/usr/local/bin/infrafid --foreground $INFRAFID_ARGS
 Restart=on-failure
 RestartSec=5
 StartLimitBurst=3

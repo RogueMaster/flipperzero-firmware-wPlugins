@@ -20,18 +20,18 @@ flowchart LR
 
     subgraph Linux Server
         B[infrafid daemon]
-        B1["IR RX (/dev/lirc0)"]
+        B1["IR RX (LIRC or evdev)"]
         B2[WiFi Connect]
         B3["IR TX (ACK)"]
         B1 --> B --> B2
         B -.-> B3
     end
 
-    A -- "IR (RC-6, 36kHz)" --> B1
+    A -- "IR (RC-6 or NEC)" --> B1
     B3 -. "ACK (OK/FAIL)" .-> A
 ```
 
-The Flipper encodes WiFi credentials as a sequence of **RC-6 IR messages** and blasts them at the server's CIR (Consumer IR) receiver. The `infrafid` daemon decodes the transmission and connects to the network automatically. No pairing, no Bluetooth, no network required — just line-of-sight IR.
+The Flipper encodes WiFi credentials as a sequence of **IR messages** (RC-6 or NEC) and blasts them at the server's IR receiver. The `infrafid` daemon decodes the transmission and connects to the network automatically. No pairing, no Bluetooth, no network required — just line-of-sight IR.
 
 With **ACK enabled**, the daemon transmits a response back via IR — the Flipper displays whether the connection succeeded (with IP address) or failed.
 
@@ -41,7 +41,8 @@ With **ACK enabled**, the daemon transmits a response back via IR — the Flippe
 - **Manual entry** — On-screen keyboard for SSID and password, security type selector (Open/WPA/WEP/SAE)
 - **NFC WiFi tags** — Scan an NTAG213/215/216 tag with WiFi credentials (standard NDEF WiFi Simple Configuration format) and transmit instantly
 - **Saved networks** — Credentials auto-save to SD card after successful transmit. Browse, resend, or delete saved networks
-- **Fast transmission** — Full credentials sent in under a second via RC-6 protocol
+- **IR protocol selection** — Choose between RC-6 (36kHz, for CIR receivers like ITE8708) or NEC (38kHz, for devices like the Squeezebox Touch) in Settings
+- **Fast transmission** — Full credentials sent in under a second via RC-6, or a few seconds via NEC
 - **Hidden network support** — Toggle hidden SSID flag
 - **ACK feedback** — Optional. When enabled in Settings, the Flipper waits for a response from the server after sending credentials. Shows "Connected! IP: x.x.x.x" or "Failed" on screen
 
@@ -52,7 +53,9 @@ With **ACK enabled**, the daemon transmits a response back via IR — the Flippe
 - **SSID verification** — After WPA handshake completes, verifies the connected SSID matches the target to avoid false positives
 - **IR ACK response** — Sends connection result back to the Flipper via IR (requires TX hardware or external IR blaster)
 - **Runs as a service** — systemd unit with auto-restart, logs to journald/syslog
-- **ITE8708 optimized** — Uses `LIRC_MODE_SCANCODE` for kernel-decoded RC-6, avoiding hardware FIFO overflow issues with the CIR receivers found in Intel NUCs
+- **Dual protocol** — LIRC input accepts both RC-6 and NEC scancodes automatically (just enable the protocol in `/sys/class/rc/rc*/protocols`)
+- **ITE8708 optimized** — Uses `LIRC_MODE_SCANCODE` for kernel-decoded scancodes, avoiding hardware FIFO overflow issues with the CIR receivers found in Intel NUCs
+- **evdev fallback** — For devices without LIRC (e.g., Squeezebox Touch), read NEC scancodes from `/dev/input/eventN` via `--evdev` (expects FAB4-style bit ordering)
 
 ## Getting Started
 
@@ -63,8 +66,9 @@ With **ACK enabled**, the daemon transmits a response back via IR — the Flippe
 - [ufbt](https://github.com/flipperdevices/flipperzero-ufbt) (Flipper build tool)
 
 **Linux Server:**
-- IR receiver (tested with ITE8708 CIR in Intel NUCs)
-- `/dev/lirc0` device available
+- IR receiver — tested with:
+  - ITE8708 CIR in Intel NUCs (`/dev/lirc0`, RC-6 or NEC via LIRC)
+  - Squeezebox Touch FAB4 IR (`/dev/input/event1`, NEC via evdev)
 - `gcc` and Linux headers for building
 - NetworkManager, systemd-networkd, or ifupdown + wpa_supplicant for WiFi management
 
@@ -97,7 +101,7 @@ sudo systemctl enable --now infrafid
 ```
 
 The install script automatically:
-- Configures the IR receiver for RC-6 protocol only
+- Configures the IR receiver for RC-6 and NEC protocols
 - Creates a udev rule so the config persists across reboots
 - Installs and starts the systemd service
 
@@ -148,6 +152,13 @@ ir-keytable -t -s rc0
 2. Open **InfraFi** → **Saved** to browse them
 3. Select a network to resend
 
+### IR Protocol
+1. Open **InfraFi** → **Settings** → set **IR Protocol** to **RC-6** (default) or **NEC**
+2. Use **RC-6** for CIR hardware designed for media center remotes (Intel NUCs)
+3. Use **NEC** for devices with NEC-based IR receivers (Squeezebox Touch, many consumer devices)
+
+> **Note:** On the daemon side, LIRC accepts both RC-6 and NEC automatically — no flag changes needed, just ensure the protocol is enabled in `/sys/class/rc/rc*/protocols`. The `--evdev` flag is only needed for devices that don't have LIRC (like the Squeezebox Touch).
+
 ### ACK (Bidirectional Feedback)
 1. Open **InfraFi** → **Settings** → set **Wait for ACK** to **On**
 2. Send credentials as usual
@@ -165,8 +176,14 @@ ir-keytable -t -s rc0
 # Run in foreground with verbose logging (useful for testing)
 sudo infrafid -f -v
 
+# Use an evdev device for NEC reception (e.g., Squeezebox Touch)
+sudo infrafid -e /dev/input/event1 -f -v
+
 # Use a separate IR device for ACK transmission
 sudo infrafid -a /dev/lirc1
+
+# LIRC RX on lirc0, ACK TX on lirc1
+sudo infrafid -d /dev/lirc0 -a /dev/lirc1
 
 # Check service status
 sudo systemctl status infrafid
@@ -175,11 +192,31 @@ sudo systemctl status infrafid
 sudo journalctl -u infrafid -f
 ```
 
+| Flag | Description |
+|------|-------------|
+| `-d`, `--device PATH` | LIRC device for RX (default: `/dev/lirc0`) |
+| `-e`, `--evdev PATH` | evdev input device for RX (NEC via `MSC_RAW`, FAB4-style bit ordering) |
+| `-a`, `--ack-device PATH` | LIRC device for ACK TX (default: same as `-d`) |
+| `-f`, `--foreground` | Run in foreground (don't daemonize) |
+| `-v`, `--verbose` | Verbose logging |
+
 ## Protocol
 
-InfraFi uses **RC-6 Mode 0** IR protocol at 36kHz — the same protocol used by standard media center remotes. This is intentional: CIR receivers like the ITE8708 (found in Intel NUCs) have hardware decoders optimized for RC-6. Using the kernel's built-in RC-6 decoder (`LIRC_MODE_SCANCODE`) avoids the tiny hardware FIFO that overflows with custom raw protocols.
+InfraFi supports two IR transport protocols. The framing and payload format are identical — only the physical IR encoding differs:
 
-Each RC-6 message carries one byte of payload:
+| | RC-6 Mode 0 | NEC |
+|---|---|---|
+| **Carrier** | 36kHz | 38kHz |
+| **Frame time** | ~25ms | ~67ms |
+| **Daemon input** | LIRC | LIRC or evdev |
+| **Typical hardware** | ITE8708 CIR (Intel NUCs) | Squeezebox Touch (FAB4 IR), any NEC receiver |
+| **Flipper setting** | RC-6 (default) | NEC |
+
+RC-6 is the default and recommended for CIR receivers — it's faster and uses the kernel's built-in decoder (`LIRC_MODE_SCANCODE`), avoiding the tiny hardware FIFO that overflows with custom raw protocols. NEC works through LIRC as well (enable `nec` in `/sys/class/rc/rc*/protocols`), or through the Linux input subsystem (`--evdev`) for devices without LIRC.
+
+> **evdev note:** The current evdev decoder assumes FAB4-style NEC byte bit-ordering and bit-reverses each byte before validation.
+
+Each IR message carries one byte of payload:
 
 | Field | Bits | Description |
 |-------|------|-------------|
@@ -201,8 +238,8 @@ infrafi/
 ├── application.fam              # Flipper app manifest
 ├── flipper/                     # Flipper Zero app
 │   ├── wi_fir.h/c               # App entry, ViewDispatcher + SceneManager
-│   ├── wfr_encode.h/c           # RC-6 IR encoder + transmitter
-│   ├── wfr_decode.h/c           # RC-6 ACK decoder (IR receive)
+│   ├── wfr_encode.h/c           # IR encoder + transmitter (RC-6 / NEC)
+│   ├── wfr_decode.h/c           # ACK decoder (IR receive)
 │   ├── wfr_nfc.h/c              # NFC NDEF WiFi tag parser
 │   ├── wfr_storage.h/c          # SD card credential + settings storage
 │   ├── protocol/
@@ -213,8 +250,9 @@ infrafi/
 │   └── images/                  # App icon
 ├── daemon/                      # Linux daemon (infrafid)
 │   ├── main.c                   # Entry point, CLI args, main loop
-│   ├── wfr_lirc.h/c             # LIRC scancode reader
-│   ├── wfr_decode.h/c           # RC-6 message reassembler
+│   ├── wfr_lirc.h/c             # LIRC scancode reader (RC-6 / NEC)
+│   ├── wfr_evdev.h/c            # evdev input reader (NEC via MSC_RAW)
+│   ├── wfr_decode.h/c           # IR message reassembler
 │   ├── wfr_network.h/c          # WiFi connector (NM/networkd/ifupdown) with rollback
 │   ├── wfr_ack.h/c              # IR ACK transmitter (LIRC TX)
 │   ├── Makefile                 # Build

@@ -36,6 +36,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Add new parsers SZPPK, SKPPK and SevPPK, upgrade Plantain parser, fix TwoCities parser (By mxcdoam)](https://github.com/DarkFlippers/unleashed-firmware/pull/981)
 - Sub-GHz: [Fix CAME TWEE repeats count for button click (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a5f6285e917240101bc86444ebf36a6b9f2b7e66)
 - NFC: [Fix MIR and other EMV cards crash on Read (By Dmitry422)](https://github.com/DarkFlippers/unleashed-firmware/commit/ecc3e78efa3b077ca4b37f67aff8ae6f8b1e9734)
+- Updated: [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
 
 <a name="release"></a>
 
@@ -618,7 +619,7 @@ $ ./fbt dolphin_ext
 - [Image Scroller v0.1 (By fgreil)](https://github.com/fgreil/mitzi-scroller)
 - [Image Viewer v0.1 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer)
 - [INA Meter v0.8 (By cepetr)](https://github.com/cepetr/flipper-tina)
-- [InfraFi v1.0 (By amd989)](https://github.com/amd989/InfraFi)
+- [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
 - [Intervalometer v1.2 (By theageoflove)](https://github.com/theageoflove/flipperzero-zeitraffer)
 - [IR Blaster v1.1 (By mateusz-szafraniec)](https://github.com/mateusz-szafraniec/flipperzero-IR_Blaster)
 - [IR Decoder v1.0 (By prplecake)](https://github.com/prplecake/f0/tree/master/infrared/apps/ir_decoder)
