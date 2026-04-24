@@ -1,0 +1,66 @@
+import os
+import sys
+
+# this small script collects build metadata for the .fap
+#
+# the data here is exported as cdefines while the fam is read
+# the cdefines are used in version.h
+# the values from version.h are used in src/ui/ui_runtime.c
+# search for "APP_VER_TEXT" the only usage
+# the metadata is burnt into the compiled binary
+# you can then see it from the "About" menu on flipper
+
+app_dir = os.path.dirname(app_manifest_path)
+if app_dir and app_dir not in sys.path:
+    sys.path.insert(0, app_dir)
+
+git_commit = "fail"
+git_host = "fail"
+git_built = "fail"
+
+try:
+    import gitver
+
+    git_commit = getattr(gitver, "git_commit", "fail")
+    git_host = getattr(gitver, "git_host", "fail")
+    git_built = getattr(gitver, "git_built", "fail")
+except Exception:
+    pass
+
+
+App(
+    appid="aprstx",
+    name="Flipper ham APRS TX",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipperham_app",
+    requires=["gui"],
+    cdefines=[
+        f'APP_BUILD_COMMIT=\\"{git_commit}\\"',
+        f'APP_BUILD_HOST=\\"{git_host}\\"',
+        f'APP_BUILD_TIME=\\"{git_built}\\"',
+    ],
+    sources=[
+        "app.c",
+        "src/flipperham.c",
+        "src/positions.c",
+        "src/callbook.c",
+        "src/cw.c",
+        "src/ham_calls.c",
+        "src/packet.c",
+        "src/aprs.c",
+        "src/rf_gen.c",
+        "src/ui/ui.c",
+        "src/ui/ui_freq.c",
+        "src/ui/ui_edit.c",
+        "src/ui/ui_splash.c",
+        "src/ui/ui_runtime.c",
+    ],
+    stack_size=2 * 1024,
+    fap_icon="flipperham.png",
+    fap_category="Tools",
+    fap_version="1.3.17",
+    fap_author="@yo3gnd",
+    fap_weburl="https://github.com/yo3gnd/flipper-zero-aprs-tx/",
+    fap_description="An APRS transmitter using Flipper Zero's SubGHZ module exclusively",
+    targets=["f7"],
+)
