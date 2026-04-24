@@ -68,14 +68,13 @@ static void protopirate_receiver_info_show_bf_progress(ProtoPirateApp* app) {
         app->widget, 62, 12, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(pct_str));
     furi_string_free(pct_str);
 
-    widget_add_rect_element(
+    widget_add_frame_element(
         app->widget,
         PSA_BF_PROGRESS_BAR_X,
         PSA_BF_PROGRESS_BAR_Y,
         PSA_BF_PROGRESS_BAR_W,
         PSA_BF_PROGRESS_BAR_H,
-        2,
-        false);
+        2);
     static uint16_t bf_ri_frame = 0;
     bf_ri_frame++;
     uint8_t inner_w = PSA_BF_PROGRESS_BAR_W - 4;
@@ -83,14 +82,13 @@ static void protopirate_receiver_info_show_bf_progress(ProtoPirateApp* app) {
     uint8_t travel = inner_w - block_w;
     uint16_t phase = (bf_ri_frame * 2) % (uint16_t)(2 * travel);
     uint8_t block_x = (phase <= travel) ? (uint8_t)phase : (uint8_t)(2 * travel - phase);
-    widget_add_rect_element(
+    widget_add_frame_element(
         app->widget,
         PSA_BF_PROGRESS_BAR_X + 2 + block_x,
         PSA_BF_PROGRESS_BAR_Y + 2,
         block_w,
         PSA_BF_PROGRESS_BAR_H - 4,
-        0,
-        true);
+        0);
 }
 
 static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
