@@ -1923,7 +1923,7 @@ void Player::update(Game *game)
         return; // Don't update player position in menu or if dead
     }
 
-    float rotSpeed = SPEED_SCALE(0.2f); // Rotation speed in radians
+    float rotSpeed = SPEED_SCALE(0.1f); // Rotation speed in radians
 
     switch (game->input)
     {
