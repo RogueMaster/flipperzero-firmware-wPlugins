@@ -204,6 +204,12 @@ static void process_frame(const CanFrame &frame) {
         return;
     }
 
+    // Auto-upgrade Legacy→HW3: Palladium S/X with HW3 reports das_hw=0
+    // (→Legacy) but actually uses 0x3FD. True Legacy never broadcasts 0x3FD.
+    if (g_state.hw_version == TeslaHW_Legacy && frame.id == CAN_ID_AP_CONTROL) {
+        apply_detected_hw(TeslaHW_HW3, "upgrade:Legacy→HW3(0x3FD seen)");
+    }
+
     // Fallback HW detection when 0x398 is unavailable on the tapped bus.
     // Delay 0x3FD→HW3 fallback to avoid misclassifying HW4 (which also has
     // 0x3FD) before 0x399 arrives. 0x3EE and 0x399 are unambiguous.

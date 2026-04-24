@@ -265,6 +265,21 @@ static int32_t fsd_running_worker(void* context) {
 
                 bool tx_allowed = fsd_can_transmit(&state);
 
+                // Auto-upgrade Legacy→HW3 if 0x3FD is seen on the bus.
+                // Palladium S/X with HW3 reports das_hw=0 (→Legacy) but
+                // actually uses 0x3FD, not 0x3EE. True Legacy cars never
+                // broadcast 0x3FD.
+                if(state.hw_version == TeslaHW_Legacy &&
+                   frame.canId == CAN_ID_AP_CONTROL) {
+                    state.hw_version = TeslaHW_HW3;
+                    fsd_state_init(&state, TeslaHW_HW3);
+                    state.force_fsd = app->force_fsd;
+                    state.suppress_speed_chime = app->suppress_speed_chime;
+                    state.nag_killer = app->nag_killer;
+                    state.op_mode = app->op_mode;
+                    state.tlssc_restore = app->tlssc_restore;
+                }
+
                 // Always handle OTA monitoring regardless of mode
                 if(frame.canId == CAN_ID_GTW_CAR_STATE) {
                     fsd_handle_gtw_car_state(&state, &frame);
