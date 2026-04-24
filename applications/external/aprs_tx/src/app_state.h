@@ -12,34 +12,33 @@
 #include <gui/gui.h>
 #include <gui/view_port.h>
 
-typedef struct FlipperHamApp
-{
-    Gui *gui;
-    ViewDispatcher *view_dispatcher;
-    Submenu *submenu;
-    Submenu *send_menu;
-    Submenu *bulletin_menu;
-    Submenu *status_menu;
-    Submenu *message_menu;
-    Submenu *message_edit_menu;
-    Submenu *position_menu;
-    Submenu *pos_action_menu;
-    Submenu *call_menu;
-    Submenu *book_menu;
-    Submenu *c2_menu;
-    Submenu *freq_menu;
-    VariableItemList *settings_menu;
-    VariableItemList *ham_menu;
-    VariableItemList *ham_tx_menu;
-    VariableItemList *ssid_menu;
-    VariableItemList *freq_edit_menu;
-    VariableItemList *pos_edit_menu;
-    TextInput *text_input;
-    Widget *readme_widget;
-    View *splash_view;
-    FuriTimer *splash_timer;
-    FuriTimer *splash_cycle_timer;
-    ViewPort *view_port;
+typedef struct FlipperHamApp {
+    Gui* gui;
+    ViewDispatcher* view_dispatcher;
+    Submenu* submenu;
+    Submenu* send_menu;
+    Submenu* bulletin_menu;
+    Submenu* status_menu;
+    Submenu* message_menu;
+    Submenu* message_edit_menu;
+    Submenu* position_menu;
+    Submenu* pos_action_menu;
+    Submenu* call_menu;
+    Submenu* book_menu;
+    Submenu* c2_menu;
+    Submenu* freq_menu;
+    VariableItemList* settings_menu;
+    VariableItemList* ham_menu;
+    VariableItemList* ham_tx_menu;
+    VariableItemList* ssid_menu;
+    VariableItemList* freq_edit_menu;
+    VariableItemList* pos_edit_menu;
+    TextInput* text_input;
+    Widget* readme_widget;
+    View* splash_view;
+    FuriTimer* splash_timer;
+    FuriTimer* splash_cycle_timer;
+    ViewPort* view_port;
     volatile uint16_t wave_i;
     volatile bool level;
     volatile bool tx_started;
@@ -61,8 +60,8 @@ typedef struct FlipperHamApp
     bool repeat_wait;
     bool repeat_cancel;
     bool repeat_more;
-    Packet *pkt;
-    uint16_t *wave;
+    Packet* pkt;
+    uint16_t* wave;
     uint16_t wave_len;
     double wave_carry;
     double wave_pending;

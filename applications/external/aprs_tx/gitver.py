@@ -15,6 +15,7 @@ git_built = "fail"
 # the metadata is burnt into the compiled binary
 # you can then see it from the "About" menu on flipper
 
+
 # tiny file read helper
 def read_text(path, default=""):
     try:

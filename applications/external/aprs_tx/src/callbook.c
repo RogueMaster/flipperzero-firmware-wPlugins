@@ -5,10 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
-void callbook_save_txt(FlipperHamApp *app)
-{
-    Storage *storage;
-    File *file;
+void callbook_save_txt(FlipperHamApp* app) {
+    Storage* storage;
+    File* file;
     uint8_t i;
     uint16_t n;
 
@@ -17,18 +16,13 @@ void callbook_save_txt(FlipperHamApp *app)
 
     storage_common_mkdir(storage, CALLBOOK_DIR);
 
-    if (storage_file_open(file, CALLBOOK_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS))
-    {
-        for (i = 0; i < CALL_N; i++)
-        {
-            if (!app->calls_used[i])
-                continue;
-            if (!app->calls[i][0])
-                continue;
+    if(storage_file_open(file, CALLBOOK_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        for(i = 0; i < CALL_N; i++) {
+            if(!app->calls_used[i]) continue;
+            if(!app->calls[i][0]) continue;
 
             n = strlen(app->calls[i]);
-            if (n)
-                storage_file_write(file, app->calls[i], n);
+            if(n) storage_file_write(file, app->calls[i], n);
             storage_file_write(file, "\n", 1);
         }
     }
@@ -38,10 +32,9 @@ void callbook_save_txt(FlipperHamApp *app)
     furi_record_close(RECORD_STORAGE);
 }
 
-void callbook_load_txt(FlipperHamApp *app)
-{
-    Storage *storage;
-    File *file;
+void callbook_load_txt(FlipperHamApp* app) {
+    Storage* storage;
+    File* file;
     char a[CALL_LEN + 4];
     char c;
     uint8_t i;
@@ -56,8 +49,7 @@ void callbook_load_txt(FlipperHamApp *app)
 
     storage_common_mkdir(storage, CALLBOOK_DIR);
 
-    if (!storage_file_open(file, CALLBOOK_FILE, FSAM_READ, FSOM_OPEN_EXISTING))
-    {
+    if(!storage_file_open(file, CALLBOOK_FILE, FSAM_READ, FSOM_OPEN_EXISTING)) {
         storage_file_free(file);
         furi_record_close(RECORD_STORAGE);
         /* Fall back to a tiny default callbook if the file is missing. */
@@ -73,20 +65,15 @@ void callbook_load_txt(FlipperHamApp *app)
     i = 0;
     j = 0;
 
-    while (storage_file_read(file, &c, 1) == 1)
-    {
-        if (c == '\r')
-            continue;
+    while(storage_file_read(file, &c, 1) == 1) {
+        if(c == '\r') continue;
 
-        if (c == '\n')
-        {
+        if(c == '\n') {
             a[i] = 0;
 
-            if (a[0] && j < CALL_N && call_validate(a))
-            {
+            if(a[0] && j < CALL_N && call_validate(a)) {
                 i = 0;
-                while (a[i])
-                {
+                while(a[i]) {
                     app->calls[j][i] = a[i];
                     i++;
                 }
@@ -99,19 +86,15 @@ void callbook_load_txt(FlipperHamApp *app)
             continue;
         }
 
-        if (i < sizeof(a) - 1)
-            a[i++] = c;
+        if(i < sizeof(a) - 1) a[i++] = c;
     }
 
-    if (i)
-    {
+    if(i) {
         a[i] = 0;
 
-        if (a[0] && j < CALL_N && call_validate(a))
-        {
+        if(a[0] && j < CALL_N && call_validate(a)) {
             i = 0;
-            while (a[i])
-            {
+            while(a[i]) {
                 app->calls[j][i] = a[i];
                 i++;
             }

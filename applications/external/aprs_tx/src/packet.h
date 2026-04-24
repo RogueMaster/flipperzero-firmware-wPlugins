@@ -3,8 +3,7 @@
 #include <stdint.h>
 
 /* Raw packet stages after the APRS/AX.25 frame is already assembled. */
-typedef struct
-{
+typedef struct {
     uint8_t payload[96];
     uint16_t payload_len;
 
@@ -21,8 +20,8 @@ typedef struct
     uint16_t nrzi_len;
 } Packet;
 
-void packet_add_fcs(Packet *p);
-void packet_init(Packet *p);
+void packet_add_fcs(Packet* p);
+void packet_init(Packet* p);
 
-void packet_stuff(Packet *p);
-void packet_nrzi(Packet *p);
+void packet_stuff(Packet* p);
+void packet_nrzi(Packet* p);

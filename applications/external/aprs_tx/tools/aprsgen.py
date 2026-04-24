@@ -70,12 +70,12 @@ def mkHeader(dest: str, ssid: int = 0, qso: int = 0, cmd: bool = False) -> bytes
     vals = [(ord(c) - 0x20) & 0x3F for c in dest[:6]]
 
     b0 = (qso >> 6) & 0xFF
-    b1 = ((qso & 0x3F) << 2)        | (2 if cmd else 0) | 1
-    b2 = ((vals[0] & 0x3F) << 2)    | ((vals[1] >> 4) & 0x03)
-    b3 = ((vals[1] & 0x0F) << 4)    | ((vals[2] >> 2) & 0x0F)
-    b4 = ((vals[2] & 0x03) << 6)    | (vals[3] &   0x3F)
-    b5 = ((vals[4] & 0x3F) << 2)    | ((vals[5] >> 4)  & 0x03)
-    b6 = ((vals[5] & 0x0F) << 4)    | (ssid & 0x0F)
+    b1 = ((qso & 0x3F) << 2) | (2 if cmd else 0) | 1
+    b2 = ((vals[0] & 0x3F) << 2) | ((vals[1] >> 4) & 0x03)
+    b3 = ((vals[1] & 0x0F) << 4) | ((vals[2] >> 2) & 0x0F)
+    b4 = ((vals[2] & 0x03) << 6) | (vals[3] & 0x3F)
+    b5 = ((vals[4] & 0x3F) << 2) | ((vals[5] >> 4) & 0x03)
+    b6 = ((vals[5] & 0x0F) << 4) | (ssid & 0x0F)
 
     return bytes([b0, b1, b2, b3, b4, b5, b6])
 
@@ -174,7 +174,7 @@ def c_array_text(name: str, body: bytes, bits, durations_us):
 
     dur_lines = []
     for i in range(0, len(durations_us), 16):
-        chunk = durations_us[i:i + 16]
+        chunk = durations_us[i : i + 16]
         dur_lines.append("    " + ", ".join(str(x) for x in chunk) + ",")
 
     return (
@@ -182,7 +182,9 @@ def c_array_text(name: str, body: bytes, bits, durations_us):
         f"/* src={SRC_CALL} dst={DST_CALL} */\n"
         f"static const uint8_t {name}_frame[] = {{ {hex_frame} }};\n"
         f"static const uint8_t {name}_body[] = {{ {hex_body} }};\n"
-        f"static const uint16_t {name}_durations_us[] = {{\n" + "\n".join(dur_lines) + "\n};\n"
+        f"static const uint16_t {name}_durations_us[] = {{\n"
+        + "\n".join(dur_lines)
+        + "\n};\n"
         f"static const uint32_t {name}_durations_count = {len(durations_us)};\n"
         f"static const uint32_t {name}_bits_count = {len(bits)};\n"
         f"static const bool {name}_start_level = false;\n"
@@ -201,7 +203,9 @@ def write_afsk(path: Path, txt_path: Path, array_name: str, body: bytes):
     bits += list(makeLSB(flags_post))
     durations_us = edge_durations_us_from_bits(bits)
     write_wav(path, waveform_from_durations_us(durations_us, False))
-    txt_path.write_text(c_array_text(array_name, body, bits, durations_us), encoding="ascii")
+    txt_path.write_text(
+        c_array_text(array_name, body, bits, durations_us), encoding="ascii"
+    )
 
 
 def main():
@@ -233,14 +237,17 @@ def main():
     body3 += b">" + MSG3.encode("ascii")
     write_afsk(out3, txt3, "packet3_aprs_packet", bytes(body3))
 
-    msgfile.write_text( MSG1 + "\n" + MSG2 + "\n" + MSG3 + "\n", encoding="ascii",)
+    msgfile.write_text(
+        MSG1 + "\n" + MSG2 + "\n" + MSG3 + "\n",
+        encoding="ascii",
+    )
 
     print(out1)
     print(txt1)
 
     print(out2)
     print(txt2)
-    
+
     print(out3)
     print(txt3)
     print(msgfile)
