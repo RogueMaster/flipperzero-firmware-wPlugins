@@ -16,6 +16,10 @@
 #define MINIMAP_VIEW_RADIUS 12.0f
 #endif
 
+#ifndef MINIMAP_DEFAULT
+#define MINIMAP_DEFAULT 1
+#endif
+
 #define PLAYER_MINIMAP_COLOR 0x297f
 #define WEAPON_MINIMAP_COLOR 0xfde0
 

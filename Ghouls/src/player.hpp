@@ -131,18 +131,18 @@ private:
     int lobbyCount = 0;
     int lobbySelectedIndex = 0;
     bool lobbyFetched = false;
-    char username[64] = {0};                                        // username for login/registeration requests
-    char password[64] = {0};                                        // password for login/registration requests (set in constructor)
-    uint8_t rainFrame = 0;                                          // frame counter for rain effect
-    RegistrationStatus registrationStatus = RegistrationNotStarted; // Current registration status
-    ToggleState showMiniMapToggle = ToggleOn;                       // show/hide on-screen mini maptoggle
-    ToggleState soundToggle = ToggleOn;                             // sound toggle state
-    UserInfoStatus userInfoStatus = UserInfoNotStarted;             // Current user info status
-    ToggleState vibrationToggle = ToggleOn;                         // vibration toggle state
-    char alertMessage[64] = {0};                                    // current alert message text
-    uint16_t alertTimer = 0;                                        // frames remaining to show the alert
-    Weapon *equippedWeapon = nullptr;                               // currently equipped weapon (nullptr if none)
-    uint8_t welcomeFrame = 0;                                       // frame counter for welcome animation
+    char username[64] = {0};                                                // username for login/registeration requests
+    char password[64] = {0};                                                // password for login/registration requests (set in constructor)
+    uint8_t rainFrame = 0;                                                  // frame counter for rain effect
+    RegistrationStatus registrationStatus = RegistrationNotStarted;         // Current registration status
+    ToggleState showMiniMapToggle = MINIMAP_DEFAULT ? ToggleOn : ToggleOff; // show/hide on-screen mini maptoggle
+    ToggleState soundToggle = ToggleOn;                                     // sound toggle state
+    UserInfoStatus userInfoStatus = UserInfoNotStarted;                     // Current user info status
+    ToggleState vibrationToggle = ToggleOn;                                 // vibration toggle state
+    char alertMessage[64] = {0};                                            // current alert message text
+    uint16_t alertTimer = 0;                                                // frames remaining to show the alert
+    Weapon *equippedWeapon = nullptr;                                       // currently equipped weapon (nullptr if none)
+    uint8_t welcomeFrame = 0;                                               // frame counter for welcome animation
     //
     void drawGameLocalView(Draw *canvas);                                                              // draw the local game view
     void drawGameOnlineView(Draw *canvas);                                                             // draw the online game view
