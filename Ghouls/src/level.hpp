@@ -38,6 +38,7 @@ public:
 #endif
     virtual void render(Game *game) override;
     void renderMiniMap(Draw *canvas);
+    void renderMiniatureMiniMap(Draw *canvas);
     virtual void update(Game *game) override;
 
 private:

@@ -135,7 +135,7 @@ private:
     char password[64] = {0};                                        // password for login/registration requests (set in constructor)
     uint8_t rainFrame = 0;                                          // frame counter for rain effect
     RegistrationStatus registrationStatus = RegistrationNotStarted; // Current registration status
-    ToggleState showPlayerToggle = ToggleOff;                       // show/hide local player toggle
+    ToggleState showMiniMapToggle = ToggleOn;                       // show/hide on-screen mini maptoggle
     ToggleState soundToggle = ToggleOn;                             // sound toggle state
     UserInfoStatus userInfoStatus = UserInfoNotStarted;             // Current user info status
     ToggleState vibrationToggle = ToggleOn;                         // vibration toggle state

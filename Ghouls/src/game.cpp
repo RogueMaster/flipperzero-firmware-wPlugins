@@ -26,6 +26,17 @@ GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEna
         player = nullptr;
         return;
     }
+
+    gameSound = ENGINE_MEM_NEW Sound();
+    if (!gameSound)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Sound instance");
+        ENGINE_MEM_DELETE gameTime;
+        gameTime = nullptr;
+        ENGINE_MEM_DELETE player;
+        player = nullptr;
+        return;
+    }
 }
 
 GhoulsGame::~GhoulsGame()
@@ -46,6 +57,11 @@ GhoulsGame::~GhoulsGame()
     {
         ENGINE_MEM_DELETE gameTime;
         gameTime = nullptr;
+    }
+    if (gameSound)
+    {
+        ENGINE_MEM_DELETE gameSound;
+        gameSound = nullptr;
     }
     if (draw)
     {
@@ -579,6 +595,7 @@ bool GhoulsGame::startGameOnline()
 void GhoulsGame::updateDraw()
 {
     gameTime->tick();
+    gameSound->tick();
 
     /*
     During the day:

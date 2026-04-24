@@ -654,6 +654,142 @@ void GhoulsLevel::renderMiniMap(Draw *canvas)
     }
 }
 
+void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
+{
+    if (currentDynamicMap == nullptr)
+        return;
+
+    Player *player = ghoulsGame->getPlayer();
+    if (!player)
+        return;
+
+    // Find player position
+    const Vector playerPos = player->position;
+    const int sw = canvas->getDisplaySize().x;
+
+    // Small square in the top-left corner
+    const int mmLen = sw * 34 / 128; // square side length in pixels
+    const int mmX = sw * 2 / 128;    // left margin
+    const int mmY = sw * 2 / 128;    // top margin
+
+    // World-tile radius visible around the player
+    const float scale = (float)mmLen / (MINIMAP_VIEW_RADIUS * 2.0f);
+
+    // Background + border
+    canvas->fillRectangle(mmX, mmY, mmLen, mmLen, 0xFFFF);
+    canvas->rectangle(mmX, mmY, mmLen, mmLen, 0x0000);
+
+    const uint8_t mapW = currentDynamicMap->getWidth();
+    const uint8_t mapH = currentDynamicMap->getHeight();
+
+    // Draw map tiles within the view window
+    for (uint8_t ty = 0; ty < mapH; ty++)
+    {
+        for (uint8_t tx = 0; tx < mapW; tx++)
+        {
+            TileType tile = currentDynamicMap->getTile(tx, ty);
+            if (tile == TILE_EMPTY)
+                continue;
+
+            float relX = tx - playerPos.x;
+            float relY = ty - playerPos.y;
+            if (relX < -MINIMAP_VIEW_RADIUS || relX > MINIMAP_VIEW_RADIUS || relY < -MINIMAP_VIEW_RADIUS || relY > MINIMAP_VIEW_RADIUS)
+                continue;
+
+            int px = mmX + (int)((relX + MINIMAP_VIEW_RADIUS) * scale);
+            int py = mmY + (int)((relY + MINIMAP_VIEW_RADIUS) * scale);
+            int pw = (int)(scale + 0.5f);
+            int ph = (int)(scale + 0.5f);
+            if (pw < 1)
+                pw = 1;
+            if (ph < 1)
+                ph = 1;
+
+            uint16_t color;
+            switch (tile)
+            {
+            case TILE_HOUSE:
+                color = HOUSE_COLOR;
+                break;
+            case TILE_TREE:
+                color = TREE_COLOR;
+                break;
+            default:
+                color = 0x0000;
+                break;
+            }
+            canvas->fillRectangle((uint8_t)px, (uint8_t)py, (uint8_t)pw, (uint8_t)ph, color);
+        }
+    }
+
+    // Draw entities within the view window
+    for (int i = 0; i < getEntityCount(); i++)
+    {
+        Entity *e = getEntity(i);
+        if (!e)
+            continue;
+        const EntityType type = e->type;
+        if (type != ENTITY_PLAYER && type != ENTITY_ENEMY && type != ENTITY_NPC)
+            continue;
+
+        float relX = e->position.x - playerPos.x;
+        float relY = e->position.y - playerPos.y;
+        if (relX < -MINIMAP_VIEW_RADIUS || relX > MINIMAP_VIEW_RADIUS || relY < -MINIMAP_VIEW_RADIUS || relY > MINIMAP_VIEW_RADIUS)
+            continue;
+
+        if (type == ENTITY_NPC)
+        {
+            Weapon *weapon = static_cast<Weapon *>(e);
+            if (weapon && weapon->isHeld())
+                continue;
+        }
+
+        int ppx = mmX + (int)((relX + MINIMAP_VIEW_RADIUS) * scale);
+        int ppy = mmY + (int)((relY + MINIMAP_VIEW_RADIUS) * scale);
+
+        uint16_t color;
+        switch (type)
+        {
+        case ENTITY_PLAYER:
+            color = PLAYER_MINIMAP_COLOR;
+            break;
+        case ENTITY_ENEMY:
+            color = ENEMY_MINIMAP_COLOR;
+            break;
+        default:
+            color = WEAPON_MINIMAP_COLOR;
+            break;
+        }
+
+        // 3x3 white halo so the dot is visible over walls
+        canvas->fillRectangle(ppx - 1, ppy - 1, 3, 3, 0xFFFF);
+
+        // Direction arrow
+        if (e->direction.x != 0.0f || e->direction.y != 0.0f)
+        {
+            if (type != ENTITY_NPC)
+            {
+                uint16_t tip_x = (uint16_t)(ppx + e->direction.x * 4.0f);
+                uint16_t tip_y = (uint16_t)(ppy + e->direction.y * 4.0f);
+                canvas->line((uint16_t)ppx, (uint16_t)ppy, tip_x, tip_y, color);
+                uint16_t base_x = tip_x - (uint16_t)(e->direction.x * 2.0f);
+                uint16_t base_y = tip_y - (uint16_t)(e->direction.y * 2.0f);
+                uint16_t perp_x = (uint16_t)(e->direction.y * 2.0f);
+                uint16_t perp_y = (uint16_t)(-e->direction.x * 2.0f);
+                canvas->line(tip_x, tip_y, base_x + perp_x, base_y + perp_y, color);
+                canvas->line(tip_x, tip_y, base_x - perp_x, base_y - perp_y, color);
+            }
+            else
+            {
+                canvas->circle((uint16_t)ppx, (uint16_t)ppy, 2, color);
+            }
+        }
+
+        // Centre dot on top
+        canvas->pixel((uint16_t)ppx, (uint16_t)ppy, color);
+    }
+}
+
 void GhoulsLevel::update(Game *game)
 {
 #if SKY_RENDER_ALLOWED

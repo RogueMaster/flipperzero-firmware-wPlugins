@@ -7,8 +7,17 @@
 #include HTTP_INCLUDE
 #include JSON_INCLUDE
 
-Player::Player(const char *user_name, const char *user_pass) : Entity(username, ENTITY_PLAYER, Vector(4, 20), Vector(1.0f, 2.0f), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, false, SPRITE_3D_HUMANOID, 0x0000)
+Player::Player(const char *user_name, const char *user_pass) : Entity(username, ENTITY_PLAYER, Vector(4, 20), Vector(1.0f, 2.0f), nullptr)
 {
+    sprite_3d = ENGINE_MEM_NEW Sprite3D();
+    if (!sprite_3d)
+    {
+        ENGINE_LOG_INFO("[Player:Player] Failed to create Sprite3D for player");
+        return;
+    }
+    sprite_3d_type = SPRITE_3D_CUSTOM;
+    sprite_rotation = 0.0f;
+    sprite_3d->setActive(true);
     sprite_3d->setWireframe(WIREFRAME_ENABLED);
     direction = Vector(1, 0);                                    // facing east initially
     plane = Vector(0, 0.66);                                     // camera plane perpendicular to direction
@@ -18,7 +27,7 @@ Player::Player(const char *user_name, const char *user_pass) : Entity(username, 
     snprintf(username, sizeof(this->username), "%s", user_name); // set username with bounds checking
     name = this->username;                                       // set name
     snprintf(password, sizeof(this->password), "%s", user_pass); // set password with bounds checking
-    this->is_visible = (showPlayerToggle == ToggleOn);           // set visibility based on toggle
+    this->is_visible = false;                                    // dont show player's sprite
 }
 
 Player::~Player()
@@ -416,7 +425,7 @@ void Player::drawGameOnlineView(Draw *canvas)
                         if (ent->sprite_3d_type != SPRITE_3D_HUMANOID)
                             continue;
                         // Skip local player when show-player is off
-                        if (ent == static_cast<Entity *>(this) && showPlayerToggle == ToggleOff)
+                        if (ent == static_cast<Entity *>(this))
                             continue;
 
                         // Project the head (world y = 2.2) to screen coords
@@ -825,7 +834,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         char showPlayerStatus[20];
         snprintf(soundStatus, sizeof(soundStatus), "Sound: %s", toggleToString(soundToggle));
         snprintf(vibrationStatus, sizeof(vibrationStatus), "Vibrate: %s", toggleToString(vibrationToggle));
-        snprintf(showPlayerStatus, sizeof(showPlayerStatus), "Show Me: %s", toggleToString(showPlayerToggle));
+        snprintf(showPlayerStatus, sizeof(showPlayerStatus), "MiniMap: %s", toggleToString(showMiniMapToggle));
         // draw settings info
         switch (selectedIndexSettings)
         {
@@ -1403,18 +1412,18 @@ void Player::handleMenu(Draw *draw, Game *game)
                 currentSettingsIndex = MenuSettingsSound; // Switch to sound settings
                 break;
             case INPUT_KEY_DOWN:
-                currentSettingsIndex = MenuSettingsShowPlayer; // Switch to show player settings
+                currentSettingsIndex = MenuSettingsShowMiniMap; // Switch to show player settings
                 break;
             default:
                 break;
             };
             break;
-        case MenuSettingsShowPlayer:
+        case MenuSettingsShowMiniMap:
             // show/hide player (using OK), up to vibration, down to leave game, right to main
             switch (game->input)
             {
             case INPUT_KEY_CENTER:
-                showPlayerToggle = showPlayerToggle == ToggleOn ? ToggleOff : ToggleOn;
+                showMiniMapToggle = showMiniMapToggle == ToggleOn ? ToggleOff : ToggleOn;
                 break;
             case INPUT_KEY_RIGHT:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
@@ -1442,7 +1451,7 @@ void Player::handleMenu(Draw *draw, Game *game)
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
                 break;
             case INPUT_KEY_UP:
-                currentSettingsIndex = MenuSettingsShowPlayer; // Switch to show player settings
+                currentSettingsIndex = MenuSettingsShowMiniMap; // Switch to show player settings
                 break;
             default:
                 break;
@@ -1825,7 +1834,6 @@ void Player::render(Draw *canvas, Game *game)
                     entity->is_active = true; // activate all entities
                 }
             }
-            this->is_visible = (showPlayerToggle == ToggleOn); // restore per toggle
             _state = GameStatePlaying;
         }
 
@@ -1838,6 +1846,16 @@ void Player::render(Draw *canvas, Game *game)
                 update3DSpritePosition();
                 float camera_direction_angle = atan2f(direction.y / dir_length, direction.x / dir_length) + M_PI_2;
                 set3DSpriteRotation(camera_direction_angle);
+            }
+        }
+
+        // draw miniature minimap
+        if (showMiniMapToggle == ToggleOn)
+        {
+            GhoulsLevel *level = ghoulsGame->getCurrentLevel();
+            if (level)
+            {
+                level->renderMiniatureMiniMap(canvas);
             }
         }
 
@@ -1922,9 +1940,6 @@ void Player::update(Game *game)
     {
         return; // Don't update player position in menu or if dead
     }
-
-    float rotSpeed = SPEED_SCALE(0.1f); // Rotation speed in radians
-
     switch (game->input)
     {
     case INPUT_KEY_UP:
@@ -1935,12 +1950,10 @@ void Player::update(Game *game)
             return; // Invalid level type
         }
 
-        rotSpeed = SPEED_SCALE(1.0f);
-
         // Calculate new position
         Vector new_pos = Vector(
-            position.x + direction.x * rotSpeed,
-            position.y + direction.y * rotSpeed);
+            position.x + direction.x * PLAYER_SPEED_VERTICAL,
+            position.y + direction.y * PLAYER_SPEED_VERTICAL);
 
         // Check collision with dynamic map
         if (!currentLevel->collisionMapCheck(new_pos))
@@ -1969,7 +1982,6 @@ void Player::update(Game *game)
             }
         }
         game->input = -1;
-        is_visible = (showPlayerToggle == ToggleOn);
     }
     break;
     case INPUT_KEY_DOWN:
@@ -1980,12 +1992,10 @@ void Player::update(Game *game)
             return; // Invalid level type
         }
 
-        rotSpeed = SPEED_SCALE(1.0f);
-
         // Calculate new position
         Vector new_pos = Vector(
-            position.x - direction.x * rotSpeed,
-            position.y - direction.y * rotSpeed);
+            position.x - direction.x * PLAYER_SPEED_VERTICAL,
+            position.y - direction.y * PLAYER_SPEED_VERTICAL);
 
         // Check collision with dynamic map
         if (!currentLevel->collisionMapCheck(new_pos))
@@ -2014,7 +2024,6 @@ void Player::update(Game *game)
             }
         }
         game->input = -1;
-        is_visible = (showPlayerToggle == ToggleOn);
     }
     break;
     case INPUT_KEY_LEFT:
@@ -2022,10 +2031,13 @@ void Player::update(Game *game)
         float old_dir_x = direction.x;
         float old_plane_x = plane.x;
 
-        direction.x = direction.x * cos(-rotSpeed) - direction.y * sin(-rotSpeed);
-        direction.y = old_dir_x * sin(-rotSpeed) + direction.y * cos(-rotSpeed);
-        plane.x = plane.x * cos(-rotSpeed) - plane.y * sin(-rotSpeed);
-        plane.y = old_plane_x * sin(-rotSpeed) + plane.y * cos(-rotSpeed);
+        const float cos_horizontal = cosf(-PLAYER_SPEED_HORIZONTAL);
+        const float sin_horizontal = sinf(-PLAYER_SPEED_HORIZONTAL);
+
+        direction.x = direction.x * cos_horizontal - direction.y * sin_horizontal;
+        direction.y = old_dir_x * sin_horizontal + direction.y * cos_horizontal;
+        plane.x = plane.x * cos_horizontal - plane.y * sin_horizontal;
+        plane.y = old_plane_x * sin_horizontal + plane.y * cos_horizontal;
 
         // Update sprite rotation to match new camera direction
         if (has3DSprite())
@@ -2044,9 +2056,7 @@ void Player::update(Game *game)
                 equippedWeapon->set3DSpriteRotation(sprite_rotation);
             }
         }
-
         game->input = -1;
-        is_visible = (showPlayerToggle == ToggleOn);
     }
     break;
     case INPUT_KEY_RIGHT:
@@ -2054,10 +2064,13 @@ void Player::update(Game *game)
         float old_dir_x = direction.x;
         float old_plane_x = plane.x;
 
-        direction.x = direction.x * cos(rotSpeed) - direction.y * sin(rotSpeed);
-        direction.y = old_dir_x * sin(rotSpeed) + direction.y * cos(rotSpeed);
-        plane.x = plane.x * cos(rotSpeed) - plane.y * sin(rotSpeed);
-        plane.y = old_plane_x * sin(rotSpeed) + plane.y * cos(rotSpeed);
+        const float cos_horizontal = cosf(PLAYER_SPEED_HORIZONTAL);
+        const float sin_horizontal = sinf(PLAYER_SPEED_HORIZONTAL);
+
+        direction.x = direction.x * cos_horizontal - direction.y * sin_horizontal;
+        direction.y = old_dir_x * sin_horizontal + direction.y * cos_horizontal;
+        plane.x = plane.x * cos_horizontal - plane.y * sin_horizontal;
+        plane.y = old_plane_x * sin_horizontal + plane.y * cos_horizontal;
 
         // Update sprite rotation to match new camera direction
         if (has3DSprite())
@@ -2076,9 +2089,7 @@ void Player::update(Game *game)
                 equippedWeapon->set3DSpriteRotation(sprite_rotation);
             }
         }
-
         game->input = -1;
-        is_visible = (showPlayerToggle == ToggleOn);
     }
     break;
     case INPUT_KEY_CENTER:
@@ -2091,6 +2102,7 @@ void Player::update(Game *game)
                 this->showAlert(alert_buf, 10);
             }
         }
+        game->input = -1;
         break;
     default:
         break;

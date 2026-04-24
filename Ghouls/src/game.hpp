@@ -4,6 +4,7 @@
 #include "general.hpp"
 #include "player.hpp"
 #include "time.hpp"
+#include "sound.hpp"
 
 #if SKY_RENDER_ALLOWED
 #include "sky.hpp"
@@ -22,6 +23,7 @@ private:
     bool dayJustSwitched = true;                                       // Flag to track if day/night just switched
     Draw *draw = nullptr;                                              // Draw instance
     GameEngine *engine = nullptr;                                      // Engine instance
+    Sound *gameSound = nullptr;                                        // Sound instance
     Time *gameTime = nullptr;                                          // Game time instance
     uint16_t ghoulCountCurrent = 0;                                    // current number of ghouls in the level
     uint16_t ghoulCountSpawned = 0;                                    // number of ghouls spawned so far for the current night

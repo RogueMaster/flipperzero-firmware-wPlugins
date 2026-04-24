@@ -6,10 +6,16 @@
 
 Sound::Sound()
 {
+#ifdef SOUND_INIT
+    SOUND_INIT();
+#endif
 }
 
 Sound::~Sound()
 {
+#ifdef SOUND_DEINIT
+    SOUND_DEINIT();
+#endif
 }
 
 void Sound::playNote(const SoundNote &note)
