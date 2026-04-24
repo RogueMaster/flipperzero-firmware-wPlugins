@@ -8,7 +8,7 @@ enum {
     MainMenuBroadcast,
     MainMenuTargetESL,
     MainMenuSettings,
-    MainMenuAndroid,
+    MainMenuPhoneSync,
     MainMenuAbout,
 };
 
@@ -25,7 +25,8 @@ void tagtinker_scene_main_menu_on_enter(void* ctx) {
 
     submenu_add_item(app->submenu, "Broadcast Payloads", MainMenuBroadcast, main_menu_cb, app);
     submenu_add_item(app->submenu, "Targeted Payloads", MainMenuTargetESL, main_menu_cb, app);
-    submenu_add_item(app->submenu, "Phone Sync", MainMenuAndroid, main_menu_cb, app);
+    submenu_add_item(
+        app->submenu, "Phone Sync (Custom Images)", MainMenuPhoneSync, main_menu_cb, app);
     submenu_add_item(app->submenu, "Settings", MainMenuSettings, main_menu_cb, app);
     submenu_add_item(app->submenu, "About", MainMenuAbout, main_menu_cb, app);
 
@@ -51,8 +52,8 @@ bool tagtinker_scene_main_menu_on_event(void* ctx, SceneManagerEvent event) {
     case MainMenuSettings:
         scene_manager_next_scene(app->scene_manager, TagTinkerSceneSettings);
         return true;
-    case MainMenuAndroid:
-        /* state=1 tells About scene to show Android teaser */
+    case MainMenuPhoneSync:
+        /* state=1 tells About scene to show the browser sync receiver */
         scene_manager_set_scene_state(app->scene_manager, TagTinkerSceneAbout, 1);
         scene_manager_next_scene(app->scene_manager, TagTinkerSceneAbout);
         return true;

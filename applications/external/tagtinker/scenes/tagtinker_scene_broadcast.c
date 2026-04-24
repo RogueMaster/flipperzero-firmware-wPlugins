@@ -119,6 +119,8 @@ void tagtinker_scene_broadcast_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->tx_spam ? 1 : 0);
     variable_item_set_current_value_text(item, forever_labels[app->tx_spam ? 1 : 0]);
 
+    variable_item_list_add(vil, ">> Transmit <<", 0, NULL, app);
+
     /* OK press on any item → trigger transmit */
     variable_item_list_set_enter_callback(vil, broadcast_enter_callback, app);
 

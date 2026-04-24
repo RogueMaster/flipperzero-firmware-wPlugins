@@ -269,8 +269,7 @@ static int32_t fsd_running_worker(void* context) {
                 // Palladium S/X with HW3 reports das_hw=0 (→Legacy) but
                 // actually uses 0x3FD, not 0x3EE. True Legacy cars never
                 // broadcast 0x3FD.
-                if(state.hw_version == TeslaHW_Legacy &&
-                   frame.canId == CAN_ID_AP_CONTROL) {
+                if(state.hw_version == TeslaHW_Legacy && frame.canId == CAN_ID_AP_CONTROL) {
                     state.hw_version = TeslaHW_HW3;
                     fsd_state_init(&state, TeslaHW_HW3);
                     state.force_fsd = app->force_fsd;

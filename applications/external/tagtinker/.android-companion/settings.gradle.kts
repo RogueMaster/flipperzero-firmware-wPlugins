@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "TagTinkerBadgeCreator"
+rootProject.name = "TagTinkerAndroid"
 include(":app")

@@ -14,6 +14,7 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/popup.h>
 #include <gui/modules/widget.h>
+#include <gui/modules/text_box.h>
 #include <dialogs/dialogs.h>
 #include <notification/notification_messages.h>
 #include <storage/storage.h>
@@ -28,7 +29,7 @@
 
 #define TAGTINKER_TAG               "TagTinker"
 #define TAGTINKER_DISPLAY_NAME      "TagTinker"
-#define TAGTINKER_VERSION           "1.3"
+#define TAGTINKER_VERSION           "2.0"
 #define TAGTINKER_BC_LEN            17
 #define TAGTINKER_HEX_LEN           64
 #define TAGTINKER_MAX_TARGETS       16
@@ -47,7 +48,6 @@ typedef enum {
 
 typedef enum {
     TagTinkerSignalPP4 = 0,
-    TagTinkerSignalPP16,
 } TagTinkerSignalMode;
 
 typedef struct {
@@ -84,6 +84,7 @@ typedef enum {
     TagTinkerViewPopup,
     TagTinkerViewWidget,
     TagTinkerViewNumlock,
+    TagTinkerViewTextBox,
     TagTinkerViewTargetActions,
     TagTinkerViewWarning,
     TagTinkerViewTransmit,
@@ -113,6 +114,7 @@ struct TagTinkerApp {
     Popup* popup;
     Widget* widget;
     NumlockInput* numlock;
+    TextBox* text_box;
     View* target_actions_view;
     View* warning_view;
     View* transmit_view;
@@ -161,17 +163,20 @@ struct TagTinkerApp {
     size_t frame_seq_count;
     bool invert_text;
     bool color_clear;
+    uint8_t text_padding_pct;
 
-    /* Saved presets */
+    /* Saved recents */
     struct {
         uint16_t width;
         uint16_t height;
         uint8_t page;
         bool invert;
         bool color_clear;
+        uint8_t padding;
+        uint8_t signal_mode;
         char text[TAGTINKER_PRESET_TEXT_LEN];
-    } presets[TAGTINKER_MAX_PRESETS];
-    uint8_t preset_count;
+    } recents[TAGTINKER_MAX_PRESETS];
+    uint8_t recent_count;
 
     TagTinkerSyncedImage synced_images[TAGTINKER_MAX_SYNCED_IMAGES];
     uint8_t synced_image_count;
@@ -191,11 +196,17 @@ struct TagTinkerApp {
     /* Indicates which mode triggered raw cmd (0=broadcast, 1=targeted) */
     uint8_t raw_mode;
 
-    /* Android BLE sync state */
+    /* Browser BLE sync state */
     Bt* bt;
     FuriHalBleProfileBase* ble_serial;
     BtStatus ble_status;
     bool ble_sync_active;
+    bool ble_sync_start_pending;
+    bool ble_serial_configured;
+    uint32_t ble_total_rx;
+    uint8_t ble_last_bytes[3];
+    bool ble_sync_auto_send_pending;
+    uint8_t ble_sync_auto_send_delay;
     uint16_t ble_synced_lines;
     char ble_status_text[32];
     char ble_rx_line[1024];
@@ -211,6 +222,7 @@ struct TagTinkerApp {
     uint32_t ble_sync_expected_bytes;
     uint32_t ble_sync_received_bytes;
     uint16_t ble_sync_last_chunk;
+    File* ble_sync_file;
     uint16_t ble_sync_last_completed_chunks;
     bool ble_sync_compact_protocol;
     bool ble_sync_last_compact_protocol;
@@ -242,7 +254,7 @@ typedef enum {
 } TagTinkerTargetActionItem;
 
 void tagtinker_target_refresh_profile(TagTinkerTarget* target);
-void tagtinker_target_set_default_name(TagTinkerTarget* target);
+void tagtinker_target_set_default_name(TagTinkerApp* app, TagTinkerTarget* target);
 bool tagtinker_target_supports_graphics(const TagTinkerTarget* target);
 bool tagtinker_target_supports_accent(const TagTinkerTarget* target);
 const char* tagtinker_profile_kind_label(TagTinkerTagKind kind);
@@ -271,3 +283,6 @@ void tagtinker_settings_load(TagTinkerApp* app);
 bool tagtinker_settings_save(const TagTinkerApp* app);
 void tagtinker_targets_load(TagTinkerApp* app);
 bool tagtinker_targets_save(const TagTinkerApp* app);
+void tagtinker_recents_load(TagTinkerApp* app);
+bool tagtinker_recents_save(const TagTinkerApp* app);
+void tagtinker_recents_add(TagTinkerApp* app, const char* text);

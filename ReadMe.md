@@ -37,8 +37,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
 - Updated: [ProtoPirate v2.9 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Ghouls v0.3 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- Updated: [Tesla Mod v2.11 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Weebo v0.5 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer) Added Figures & [Add Amiibo cycling functionality while emulating (By sethgregory)](https://github.com/bettse/weebo/pull/11)
+- Updated: [Tesla Mod v2.11 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [TagTinker v2.0 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 
 <a name="release"></a>
 
@@ -829,7 +830,7 @@ $ ./fbt dolphin_ext
 - [SWD Probe v1.3 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T5577 Multiwriter v0.2 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer)
-- [TagTinker v1.3 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- [TagTinker v2.0 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.2 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - [Tesla Mod v2.9 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)

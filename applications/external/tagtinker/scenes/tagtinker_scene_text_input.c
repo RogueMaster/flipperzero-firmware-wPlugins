@@ -65,7 +65,7 @@ bool tagtinker_scene_text_input_on_event(void* ctx, SceneManagerEvent event) {
             TagTinkerTarget* target = &app->targets[app->selected_target];
             text_input_sanitize_name(app->text_input_buf);
             if(strlen(app->text_input_buf) == 0U) {
-                tagtinker_target_set_default_name(target);
+                tagtinker_target_set_default_name(app, target);
             } else {
                 strncpy(target->name, app->text_input_buf, TAGTINKER_TARGET_NAME_LEN);
                 target->name[TAGTINKER_TARGET_NAME_LEN] = '\0';

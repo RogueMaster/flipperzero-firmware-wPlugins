@@ -143,14 +143,23 @@ static inline void render_text_ex(
     uint16_t h,
     const char* text,
     uint8_t bg_val,
-    uint8_t fg_val) {
-    memset(buf, bg_val, w * h);
+    uint8_t fg_val,
+    uint8_t padding_pct) {
+    memset(buf, bg_val, (size_t)w * h);
 
     size_t len = strlen(text);
     if(len == 0) return;
 
-    uint16_t scale_w = w / (len * (FONT_CHAR_W + 1));
-    uint16_t scale_h = h / FONT_CHAR_H;
+    if(padding_pct > 45) padding_pct = 45;
+
+    uint16_t pad_w = (w * padding_pct) / 100;
+    uint16_t pad_h = (h * padding_pct) / 100;
+
+    uint16_t avail_w = (w > 2 * pad_w) ? (uint16_t)(w - 2 * pad_w) : 1U;
+    uint16_t avail_h = (h > 2 * pad_h) ? (uint16_t)(h - 2 * pad_h) : 1U;
+
+    uint16_t scale_w = avail_w / (len * (FONT_CHAR_W + 1));
+    uint16_t scale_h = avail_h / FONT_CHAR_H;
 
     if(scale_w < 1) scale_w = 1;
     if(scale_h < 1) scale_h = 1;
@@ -185,7 +194,6 @@ static inline void render_text_ex(
         }
     }
 }
-
 static inline void render_text_region_ex(
     uint8_t* buf,
     uint16_t full_w,
@@ -194,14 +202,23 @@ static inline void render_text_region_ex(
     uint16_t region_h,
     const char* text,
     uint8_t bg_val,
-    uint8_t fg_val) {
+    uint8_t fg_val,
+    uint8_t padding_pct) {
     memset(buf, bg_val, full_w * region_h);
 
     size_t len = strlen(text);
     if(len == 0) return;
 
-    uint16_t scale_w = full_w / (len * (FONT_CHAR_W + 1));
-    uint16_t scale_h = full_h / FONT_CHAR_H;
+    if(padding_pct > 45) padding_pct = 45; /* Max 90% total padding */
+
+    uint16_t pad_w = (full_w * padding_pct) / 100;
+    uint16_t pad_h = (full_h * padding_pct) / 100;
+
+    uint16_t avail_w = (full_w > 2 * pad_w) ? (uint16_t)(full_w - 2 * pad_w) : 1U;
+    uint16_t avail_h = (full_h > 2 * pad_h) ? (uint16_t)(full_h - 2 * pad_h) : 1U;
+
+    uint16_t scale_w = avail_w / (len * (FONT_CHAR_W + 1));
+    uint16_t scale_h = avail_h / FONT_CHAR_H;
 
     if(scale_w < 1) scale_w = 1;
     if(scale_h < 1) scale_h = 1;
@@ -236,7 +253,7 @@ static inline void render_text_region_ex(
 
 /* Convenience: normal polarity (white bg=1, black text=0) */
 static inline void render_text(uint8_t* buf, uint16_t w, uint16_t h, const char* text) {
-    render_text_ex(buf, w, h, text, 1, 0);
+    render_text_ex(buf, w, h, text, 1, 0, 0);
 }
 
 #endif

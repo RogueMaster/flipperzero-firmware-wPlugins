@@ -172,10 +172,10 @@ NumlockInput* numlock_input_alloc(void) {
         numlock->view,
         NumlockModel * m,
         {
-            m->prefix = 'N';
+            m->prefix = 'A';
             memset(m->digits, 0, NUM_DIGITS);
-            m->digits[0] = 4;
-            m->cursor = 1;
+            m->digits[0] = 0;
+            m->cursor = 0;
         },
         true);
 
@@ -201,10 +201,10 @@ void numlock_input_reset(NumlockInput* numlock) {
         numlock->view,
         NumlockModel * m,
         {
-            m->prefix = 'N';
+            m->prefix = 'A';
             memset(m->digits, 0, NUM_DIGITS);
-            m->digits[0] = 4;
-            m->cursor = 1;
+            m->digits[0] = 0;
+            m->cursor = 0;
         },
         true);
 }
