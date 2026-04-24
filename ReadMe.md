@@ -37,6 +37,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Fix MIR and other EMV cards crash on Read (By Dmitry422)](https://github.com/DarkFlippers/unleashed-firmware/commit/ecc3e78efa3b077ca4b37f67aff8ae6f8b1e9734)
 - Updated: [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
 - Updated: [ProtoPirate v2.9 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- Updated: [Ghouls v0.3 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - Updated: [Tesla Mod v2.11 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
