@@ -1,4 +1,4 @@
-#include "weebo_common.h"
+#include "weebo_i.h"
 #include <storage/storage.h>
 #include <lib/toolbox/path.h>
 
@@ -48,112 +48,23 @@ void weebo_remix(Weebo* weebo) {
 
 bool weebo_scan_nfc_files(Weebo* weebo, const char* directory) {
     furi_assert(weebo);
-    furi_assert(directory);
-
-    // Free existing file list
-    weebo_free_nfc_file_list(weebo);
-
-    Storage* storage = weebo->storage;
-    File* file = storage_file_alloc(storage);
-    FileInfo file_info;
-
-    if(!storage_dir_open(file, directory)) {
-        FURI_LOG_E(TAG, "Failed to open directory: %s", directory);
-        storage_file_free(file);
-        return false;
-    }
-
-    // Count .nfc files first
-    size_t file_count = 0;
-    char path[256];
-    while(storage_dir_read(file, &file_info, path, sizeof(path))) {
-        if(file_info.flags & FSF_DIRECTORY) continue;
-
-        size_t len = strlen(path);
-        if(len > 4 && strcmp(path + len - 4, ".nfc") == 0) {
-            file_count++;
-        }
-    }
-
-    if(file_count == 0) {
-        FURI_LOG_D(TAG, "No .nfc files found in directory");
-        storage_file_close(file);
-        storage_file_free(file);
-        return false;
-    }
-
-    // Allocate array for file paths
-    weebo->nfc_file_list = malloc(sizeof(FuriString*) * file_count);
-    weebo->nfc_file_count = 0;
-
-    // Reset directory to read again
-    storage_file_close(file);
-    if(!storage_dir_open(file, directory)) {
-        FURI_LOG_E(TAG, "Failed to reopen directory: %s", directory);
-        storage_file_free(file);
-        free(weebo->nfc_file_list);
-        weebo->nfc_file_list = NULL;
-        return false;
-    }
-
-    // Fill array with file paths
-    while(storage_dir_read(file, &file_info, path, sizeof(path))) {
-        if(file_info.flags & FSF_DIRECTORY) continue;
-
-        size_t len = strlen(path);
-        if(len > 4 && strcmp(path + len - 4, ".nfc") == 0) {
-            FuriString* full_path = furi_string_alloc();
-            furi_string_printf(full_path, "%s/%s", directory, path);
-            weebo->nfc_file_list[weebo->nfc_file_count] = full_path;
-            weebo->nfc_file_count++;
-        }
-    }
-
-    storage_file_close(file);
-    storage_file_free(file);
-
-    // Sort the files alphabetically for consistent order
-    for(size_t i = 0; i < weebo->nfc_file_count - 1; i++) {
-        for(size_t j = i + 1; j < weebo->nfc_file_count; j++) {
-            if(furi_string_cmp(weebo->nfc_file_list[i], weebo->nfc_file_list[j]) > 0) {
-                FuriString* temp = weebo->nfc_file_list[i];
-                weebo->nfc_file_list[i] = weebo->nfc_file_list[j];
-                weebo->nfc_file_list[j] = temp;
-            }
-        }
-    }
-
-    FURI_LOG_D(TAG, "Found %zu .nfc files", weebo->nfc_file_count);
-    return true;
+    return weebo_file_list_scan(weebo->file_list, weebo->storage, directory);
 }
 
 void weebo_free_nfc_file_list(Weebo* weebo) {
     furi_assert(weebo);
-
-    if(weebo->nfc_file_list) {
-        for(size_t i = 0; i < weebo->nfc_file_count; i++) {
-            furi_string_free(weebo->nfc_file_list[i]);
-        }
-        free(weebo->nfc_file_list);
-        weebo->nfc_file_list = NULL;
-    }
-    weebo->nfc_file_count = 0;
-    weebo->current_file_index = 0;
+    weebo_file_list_reset(weebo->file_list);
 }
 
 bool weebo_load_current_file(Weebo* weebo) {
     furi_assert(weebo);
 
-    if(!weebo->nfc_file_list || weebo->nfc_file_count == 0) {
+    const char* path_cstr = weebo_file_list_get_current_path(weebo->file_list);
+    if(!path_cstr) {
         return false;
     }
 
-    if(weebo->current_file_index >= weebo->nfc_file_count) {
-        weebo->current_file_index = 0;
-    }
-
-    FuriString* path = weebo->nfc_file_list[weebo->current_file_index];
-    furi_string_set(weebo->load_path, path);
+    furi_string_set(weebo->load_path, path_cstr);
 
     // Extract filename for display
     FuriString* filename = furi_string_alloc();
@@ -165,34 +76,50 @@ bool weebo_load_current_file(Weebo* weebo) {
     FURI_LOG_D(
         TAG,
         "Loaded file %zu/%zu: %s",
-        weebo->current_file_index + 1,
-        weebo->nfc_file_count,
+        weebo_file_list_get_current_index(weebo->file_list) + 1,
+        weebo_file_list_get_count(weebo->file_list),
         weebo->file_name);
     return result;
 }
 
-bool weebo_cycle_to_next_file(Weebo* weebo) {
+size_t weebo_get_file_count(Weebo* weebo) {
     furi_assert(weebo);
-
-    if(!weebo->nfc_file_list || weebo->nfc_file_count == 0) {
-        return false;
-    }
-
-    weebo->current_file_index = (weebo->current_file_index + 1) % weebo->nfc_file_count;
-    return weebo_load_current_file(weebo);
+    return weebo_file_list_get_count(weebo->file_list);
 }
 
-bool weebo_cycle_to_prev_file(Weebo* weebo) {
+size_t weebo_get_current_file_index(Weebo* weebo) {
+    furi_assert(weebo);
+    return weebo_file_list_get_current_index(weebo->file_list);
+}
+
+bool weebo_set_current_file_path(Weebo* weebo, const char* path) {
+    furi_assert(weebo);
+    return weebo_file_list_set_current_path(weebo->file_list, path);
+}
+
+bool weebo_cycle_file(Weebo* weebo, WeeboCycleDirection direction) {
     furi_assert(weebo);
 
-    if(!weebo->nfc_file_list || weebo->nfc_file_count == 0) {
+    size_t count = weebo_file_list_get_count(weebo->file_list);
+    if(count == 0) {
         return false;
     }
 
-    if(weebo->current_file_index == 0) {
-        weebo->current_file_index = weebo->nfc_file_count - 1;
-    } else {
-        weebo->current_file_index--;
-    }
-    return weebo_load_current_file(weebo);
+    size_t original_index = weebo_file_list_get_current_index(weebo->file_list);
+    size_t attempts = 0;
+
+    do {
+        weebo_file_list_cycle(weebo->file_list, direction);
+        attempts++;
+
+        if(weebo_load_current_file(weebo)) {
+            return true; // Successfully loaded a valid file
+        }
+
+        FURI_LOG_W(TAG, "Skipping invalid file: %s", weebo->file_name);
+
+    } while(weebo_file_list_get_current_index(weebo->file_list) != original_index &&
+            attempts < count);
+
+    return false;
 }

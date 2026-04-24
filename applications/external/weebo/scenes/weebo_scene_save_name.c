@@ -3,7 +3,6 @@
 #include <gui/modules/validators.h>
 #include <toolbox/path.h>
 
-#define NFC_APP_EXTENSION     ".nfc"
 #define NFC_APP_PATH_PREFIX   "/ext/nfc"
 #define WEEBO_APP_FILE_PREFIX "weebo_"
 
