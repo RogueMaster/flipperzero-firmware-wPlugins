@@ -25,6 +25,18 @@ typedef struct {
 
 static EmulateContext* emulate_context = NULL;
 
+typedef struct {
+    uint8_t* data;
+    size_t size;
+    bool should_free;
+} EmulateResolvedPreset;
+
+static bool emulate_radio_ready(ProtoPirateApp* app) {
+    furi_check(app);
+    return app->radio_initialized && app->txrx && app->txrx->radio_device &&
+           app->txrx->environment;
+}
+
 #define TX_PRESET_VALUES_AM    8 //Gets 1 added, so is 1 less than actual value.
 #define TX_PRESET_VALUES_COUNT 17
 
@@ -60,11 +72,127 @@ static void emulate_context_reset_transmitter(void) {
     }
 }
 
+static void emulate_resolved_preset_release(EmulateResolvedPreset* preset) {
+    if(!preset) {
+        return;
+    }
+
+    if(preset->should_free && preset->data) {
+        free(preset->data);
+    }
+
+    preset->data = NULL;
+    preset->size = 0U;
+    preset->should_free = false;
+}
+
+static bool emulate_resolved_preset_assign_named(
+    ProtoPirateApp* app,
+    const char* preset_name,
+    EmulateResolvedPreset* preset) {
+    furi_check(app);
+    furi_check(preset);
+
+    int preset_index = subghz_setting_get_inx_preset_by_name(app->setting, preset_name);
+    if(preset_index < 0) {
+        return false;
+    }
+
+    uint8_t* preset_data = subghz_setting_get_preset_data(app->setting, (size_t)preset_index);
+    size_t preset_size = subghz_setting_get_preset_data_size(app->setting, (size_t)preset_index);
+    if(!preset_data || !preset_size) {
+        return false;
+    }
+
+    preset->data = preset_data;
+    preset->size = preset_size;
+    preset->should_free = false;
+    return true;
+}
+
+static bool
+    emulate_resolved_preset_try_load_custom(EmulateContext* ctx, EmulateResolvedPreset* preset) {
+    furi_check(ctx);
+    furi_check(preset);
+
+    if(!ctx->flipper_format) {
+        return false;
+    }
+
+    uint32_t value_count = 0;
+    flipper_format_rewind(ctx->flipper_format);
+    if(!flipper_format_get_value_count(ctx->flipper_format, "Custom_preset_data", &value_count) ||
+       value_count == 0U || value_count >= 1024U) {
+        return false;
+    }
+
+    uint8_t* preset_data = malloc(value_count);
+    if(!preset_data) {
+        return false;
+    }
+
+    flipper_format_rewind(ctx->flipper_format);
+    if(!flipper_format_read_hex(
+           ctx->flipper_format, "Custom_preset_data", preset_data, value_count)) {
+        free(preset_data);
+        return false;
+    }
+
+    preset->data = preset_data;
+    preset->size = value_count;
+    preset->should_free = true;
+    return true;
+}
+
+static bool emulate_context_resolve_tx_preset(
+    ProtoPirateApp* app,
+    EmulateContext* ctx,
+    EmulateResolvedPreset* preset) {
+    furi_check(app);
+    furi_check(ctx);
+    furi_check(preset);
+
+    memset(preset, 0, sizeof(*preset));
+
+    const char* requested_preset = ctx->preset ? ctx->preset : "AM650";
+    if(strcmp(requested_preset, "Custom") == 0) {
+        if(emulate_resolved_preset_try_load_custom(ctx, preset)) {
+            return true;
+        }
+        FURI_LOG_W(TAG, "Custom preset data missing, trying AM650");
+        requested_preset = "AM650";
+    }
+
+    if(emulate_resolved_preset_assign_named(app, requested_preset, preset)) {
+        ctx->preset = requested_preset;
+        return true;
+    }
+
+    if(strcmp(requested_preset, "AM650") != 0) {
+        FURI_LOG_W(TAG, "Preset %s not found, trying AM650", requested_preset);
+        if(emulate_resolved_preset_assign_named(app, "AM650", preset)) {
+            ctx->preset = "AM650";
+            return true;
+        }
+    }
+
+    FURI_LOG_W(TAG, "AM650 not found, trying FM476");
+    if(emulate_resolved_preset_assign_named(app, "FM476", preset)) {
+        ctx->preset = "FM476";
+        return true;
+    }
+
+    return false;
+}
+
 void stop_tx(ProtoPirateApp* app) {
     FURI_LOG_I(TAG, "Stopping transmission");
 
-    // Stop async TX first
-    subghz_devices_stop_async_tx(app->txrx->radio_device);
+    if(app->txrx->radio_device) {
+        subghz_devices_stop_async_tx(app->txrx->radio_device);
+    } else {
+        FURI_LOG_W(TAG, "stop_tx requested without radio device");
+    }
 
     // Stop the encoder
     if(emulate_context && emulate_context->transmitter) {
@@ -73,7 +201,9 @@ void stop_tx(ProtoPirateApp* app) {
 
     furi_delay_ms(10);
 
-    subghz_devices_idle(app->txrx->radio_device);
+    if(app->txrx->radio_device) {
+        subghz_devices_idle(app->txrx->radio_device);
+    }
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
     app->start_tx_time = 0;
     emulate_context_reset_transmitter();
@@ -132,10 +262,30 @@ static bool emulate_context_try_init_transmitter(ProtoPirateApp* app, EmulateCon
         FURI_LOG_I(TAG, "Protocol name KiaV4 fixed to Kia V3/V4 for registry");
     }
 
+    EmulateResolvedPreset resolved_preset;
+    if(!emulate_context_resolve_tx_preset(app, ctx, &resolved_preset)) {
+        FURI_LOG_E(TAG, "Failed to resolve preset data for emulate registry");
+        return false;
+    }
+
+    bool registry_ready = protopirate_apply_protocol_registry_for_preset_data(
+        app, resolved_preset.data, resolved_preset.size);
+    emulate_resolved_preset_release(&resolved_preset);
+    if(!registry_ready) {
+        FURI_LOG_E(TAG, "Failed to apply protocol registry for emulate preset");
+        return false;
+    }
+
     const SubGhzProtocol* protocol = NULL;
-    for(size_t i = 0; i < protopirate_protocol_registry.size; i++) {
-        if(strcmp(protopirate_protocol_registry.items[i]->name, registry_name) == 0) {
-            protocol = protopirate_protocol_registry.items[i];
+    const SubGhzProtocolRegistry* active_registry = app->txrx->protocol_registry;
+    if(!active_registry) {
+        FURI_LOG_E(TAG, "Active protocol registry unavailable");
+        return false;
+    }
+
+    for(size_t i = 0; i < active_registry->size; i++) {
+        if(strcmp(active_registry->items[i]->name, registry_name) == 0) {
+            protocol = active_registry->items[i];
             FURI_LOG_I(TAG, "Found protocol %s in registry at index %zu", registry_name, i);
             break;
         }
@@ -532,6 +682,12 @@ static bool protopirate_emulate_input_callback(InputEvent* event, void* context)
 void protopirate_scene_emulate_on_enter(void* context) {
     ProtoPirateApp* app = context;
 
+    if(!protopirate_ensure_view_about(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
     if(emulate_context != NULL) {
         FURI_LOG_W(TAG, "Previous emulate context not freed, cleaning up");
         emulate_context_free();
@@ -542,6 +698,20 @@ void protopirate_scene_emulate_on_enter(void* context) {
     }
 
     protopirate_rx_stack_suspend_for_tx(app);
+
+    if(!emulate_radio_ready(app) && !protopirate_radio_init(app)) {
+        FURI_LOG_E(TAG, "Failed to initialize radio for emulate scene");
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
+    if(!emulate_radio_ready(app)) {
+        FURI_LOG_E(TAG, "Radio still incomplete after emulate init");
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
 
     // Create emulate context
     emulate_context = malloc(sizeof(EmulateContext));
@@ -701,10 +871,14 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                 // Stop any ongoing transmission FIRST
                 if(app->txrx->txrx_state == ProtoPirateTxRxStateTx) {
                     FURI_LOG_W(TAG, "Previous transmission still active, stopping it");
-                    subghz_devices_stop_async_tx(app->txrx->radio_device);
+                    if(app->txrx->radio_device) {
+                        subghz_devices_stop_async_tx(app->txrx->radio_device);
+                    }
                     subghz_transmitter_stop(emulate_context->transmitter);
                     furi_delay_ms(10);
-                    subghz_devices_idle(app->txrx->radio_device);
+                    if(app->txrx->radio_device) {
+                        subghz_devices_idle(app->txrx->radio_device);
+                    }
                     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
                 }
 
@@ -733,52 +907,30 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                 }
 
                 //Preset Loading
-                uint8_t* preset_data = NULL;
-                bool free_custom_data = false;
-
-                //Use the Custom Preset data from the file, if we have it.
-                uint32_t uint32_array_size;
-                if(strcmp(emulate_context->preset, "Custom") == 0) {
-                    flipper_format_rewind(emulate_context->flipper_format);
-                    if(flipper_format_get_value_count(
-                           emulate_context->flipper_format,
-                           CUSTOM_PRESET_DATA_KEY,
-                           &uint32_array_size) &&
-                       uint32_array_size > 0 && uint32_array_size < 1024) {
-                        preset_data = malloc(uint32_array_size);
-                        free_custom_data = true;
-                        if(!flipper_format_read_hex(
-                               emulate_context->flipper_format,
-                               CUSTOM_PRESET_DATA_KEY,
-                               preset_data,
-                               uint32_array_size)) {
-                            FURI_LOG_W(TAG, "Custom Preset not Loaded, trying AM650");
-                            free(preset_data);
-                            free_custom_data = false;
-                            preset_data =
-                                subghz_setting_get_preset_data_by_name(app->setting, "AM650");
-                            emulate_context->preset = "AM650";
-                        }
-                    }
-                } else {
-                    //NOT A CUStoM PRESET
-                    // Get preset data with fallback chain
-                    preset_data = subghz_setting_get_preset_data_by_name(
-                        app->setting, emulate_context->preset);
+                EmulateResolvedPreset resolved_preset;
+                if(!emulate_context_resolve_tx_preset(app, emulate_context, &resolved_preset)) {
+                    FURI_LOG_E(TAG, "No preset data available - cannot transmit");
+                    emulate_context->is_transmitting = false;
+                    notification_message(app->notifications, &sequence_error);
+                    consumed = true;
+                    break;
                 }
 
-                if(!preset_data) {
-                    FURI_LOG_W(TAG, "Preset %s not found, trying AM650", emulate_context->preset);
-                    preset_data = subghz_setting_get_preset_data_by_name(app->setting, "AM650");
-                    emulate_context->preset = "AM650";
-                }
-                if(!preset_data) {
-                    FURI_LOG_W(TAG, "AM650 not found, trying FM476");
-                    preset_data = subghz_setting_get_preset_data_by_name(app->setting, "FM476");
-                    emulate_context->preset = "FM476";
-                }
+                uint8_t* preset_data = resolved_preset.data;
 
                 if(preset_data) {
+                    if(!emulate_radio_ready(app)) {
+                        FURI_LOG_W(TAG, "Radio went cold before TX, reinitializing");
+                        if(!protopirate_radio_init(app)) {
+                            emulate_resolved_preset_release(&resolved_preset);
+                            emulate_context_reset_transmitter();
+                            emulate_context->is_transmitting = false;
+                            notification_message(app->notifications, &sequence_error);
+                            consumed = true;
+                            break;
+                        }
+                    }
+
                     if(app->tx_power) {
                         //Grab the start of the PA table for this Preset.
                         uint8_t preset_offset = 0;
@@ -841,8 +993,7 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
                     notification_message(app->notifications, &sequence_error);
                 }
 
-                if(free_custom_data)
-                    free(preset_data); //We have used the preset, I alloced it I have to free.
+                emulate_resolved_preset_release(&resolved_preset);
             }
             consumed = true;
             break;
@@ -910,7 +1061,11 @@ void protopirate_scene_emulate_on_exit(void* context) {
     if(app->txrx->txrx_state == ProtoPirateTxRxStateTx) {
         FURI_LOG_I(TAG, "Stopping transmission on exit");
 
-        subghz_devices_stop_async_tx(app->txrx->radio_device);
+        if(app->txrx->radio_device) {
+            subghz_devices_stop_async_tx(app->txrx->radio_device);
+        } else {
+            FURI_LOG_W(TAG, "Emulate exit saw TX state without radio device");
+        }
 
         if(emulate_context && emulate_context->transmitter) {
             subghz_transmitter_stop(emulate_context->transmitter);
@@ -918,7 +1073,9 @@ void protopirate_scene_emulate_on_exit(void* context) {
 
         furi_delay_ms(10);
 
-        subghz_devices_idle(app->txrx->radio_device);
+        if(app->txrx->radio_device) {
+            subghz_devices_idle(app->txrx->radio_device);
+        }
         app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
     } else if(app->txrx->txrx_state != ProtoPirateTxRxStateIDLE) {
         protopirate_idle(app);

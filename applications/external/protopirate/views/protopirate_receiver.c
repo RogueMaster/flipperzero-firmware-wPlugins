@@ -14,12 +14,6 @@
 #define MENU_ITEMS               4u
 #define UNLOCK_CNT               3
 #define SUBGHZ_RAW_THRESHOLD_MIN -90.0f
-typedef struct {
-    FuriString* item_str;
-    uint8_t type;
-} ProtoPirateReceiverMenuItem;
-
-ARRAY_DEF(ProtoPirateReceiverMenuItemArray, ProtoPirateReceiverMenuItem, M_POD_OPLIST)
 
 struct ProtoPirateReceiver {
     View* view;
@@ -28,7 +22,7 @@ struct ProtoPirateReceiver {
 };
 
 typedef struct {
-    ProtoPirateReceiverMenuItemArray_t history_item_arr;
+    ProtoPirateHistory* history;
     uint8_t list_offset;
     uint8_t history_item;
     float rssi;
@@ -45,16 +39,19 @@ typedef struct {
     bool sub_decode_mode;
 } ProtoPirateReceiverModel;
 
+static size_t protopirate_view_receiver_item_count(ProtoPirateReceiverModel* model) {
+    furi_check(model);
+    return model->history ? protopirate_history_get_item(model->history) : 0U;
+}
+
 static void protopirate_view_rssi_draw(Canvas* canvas, ProtoPirateReceiverModel* model) {
     furi_check(model);
     uint8_t u_rssi = 0;
 
     if(model->rssi >= SUBGHZ_RAW_THRESHOLD_MIN) {
-        /* Clamp to a sane range to prevent wrap and off-screen drawing */
-        /* we are using 90.0 to keep (46 + i + (i/5)) within screen bounds (128px wide) */
         float v = model->rssi - SUBGHZ_RAW_THRESHOLD_MIN;
         if(v < 0.0f) v = 0.0f;
-        if(v > 90.0f) v = 90.0f; /* 90 is arbitrary but safe for the screen width */
+        if(v > 67.0f) v = 67.0f;
         u_rssi = (uint8_t)v;
     }
 
@@ -117,7 +114,7 @@ static void protopirate_view_receiver_update_offset(ProtoPirateReceiver* receive
         {
             size_t history_item = model->history_item;
             size_t list_offset = model->list_offset;
-            size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+            size_t item_count = protopirate_view_receiver_item_count(model);
 
             if(history_item < list_offset) {
                 model->list_offset = history_item;
@@ -135,25 +132,6 @@ static void protopirate_view_receiver_update_offset(ProtoPirateReceiver* receive
             }
         },
         true);
-}
-
-void protopirate_view_receiver_add_item_to_menu(
-    ProtoPirateReceiver* receiver,
-    const char* name,
-    uint8_t type) {
-    furi_check(receiver);
-    with_view_model(
-        receiver->view,
-        ProtoPirateReceiverModel * model,
-        {
-            ProtoPirateReceiverMenuItem* item_menu =
-                ProtoPirateReceiverMenuItemArray_push_raw(model->history_item_arr);
-            const char* safe_name = name ? name : "EMPTY_NAME";
-            item_menu->item_str = furi_string_alloc_set(safe_name);
-            item_menu->type = type;
-        },
-        true);
-    protopirate_view_receiver_update_offset(receiver);
 }
 
 void protopirate_view_receiver_add_data_statusbar(
@@ -198,7 +176,7 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
     static uint8_t animation_frame = 0;
     animation_frame = (animation_frame + 1) % 96;
 
-    size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+    size_t item_count = protopirate_view_receiver_item_count(model);
     bool scrollbar = item_count > MENU_ITEMS;
 
     if(!model->sub_decode_mode) {
@@ -240,10 +218,7 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
 
         for(size_t i = 0; i < MIN(item_count, MENU_ITEMS); i++) {
             size_t idx = shift_position + i;
-            ProtoPirateReceiverMenuItem* item =
-                ProtoPirateReceiverMenuItemArray_get(model->history_item_arr, idx);
-
-            furi_string_set(model->draw_scratch, item->item_str);
+            protopirate_history_get_text_item_menu(model->history, model->draw_scratch, idx);
             elements_string_fit_width(
                 canvas, model->draw_scratch, scrollbar ? MAX_LEN_PX - 6 : MAX_LEN_PX);
 
@@ -459,8 +434,7 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
                 receiver->view,
                 ProtoPirateReceiverModel * model,
                 {
-                    size_t item_count =
-                        ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+                    size_t item_count = protopirate_view_receiver_item_count(model);
                     if(item_count > 0 && model->history_item < item_count - 1) {
                         model->history_item++;
                     }
@@ -481,11 +455,7 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
                 with_view_model(
                     receiver->view,
                     ProtoPirateReceiverModel * model,
-                    {
-                        if(ProtoPirateReceiverMenuItemArray_size(model->history_item_arr) > 0) {
-                            do_delete_cb = true;
-                        }
-                    },
+                    { do_delete_cb = protopirate_view_receiver_item_count(model) > 0; },
                     false);
                 if(do_delete_cb && receiver->callback) {
                     receiver->callback(
@@ -502,8 +472,7 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
                 receiver->view,
                 ProtoPirateReceiverModel * model,
                 {
-                    size_t item_count =
-                        ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+                    size_t item_count = protopirate_view_receiver_item_count(model);
 
                     if(item_count > 0) {
                         do_ok_cb = true;
@@ -566,7 +535,7 @@ ProtoPirateReceiver* protopirate_view_receiver_alloc(bool auto_save) {
         receiver->view,
         ProtoPirateReceiverModel * model,
         {
-            ProtoPirateReceiverMenuItemArray_init(model->history_item_arr);
+            model->history = NULL;
             model->frequency_str = furi_string_alloc();
             model->preset_str = furi_string_alloc();
             model->history_stat_str = furi_string_alloc();
@@ -595,13 +564,6 @@ void protopirate_view_receiver_free(ProtoPirateReceiver* receiver) {
         receiver->view,
         ProtoPirateReceiverModel * model,
         {
-            for(size_t i = 0; i < ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
-                i++) {
-                ProtoPirateReceiverMenuItem* item =
-                    ProtoPirateReceiverMenuItemArray_get(model->history_item_arr, i);
-                furi_string_free(item->item_str);
-            }
-            ProtoPirateReceiverMenuItemArray_clear(model->history_item_arr);
             furi_string_free(model->frequency_str);
             furi_string_free(model->preset_str);
             furi_string_free(model->history_stat_str);
@@ -619,13 +581,7 @@ void protopirate_view_receiver_reset_menu(ProtoPirateReceiver* receiver) {
         receiver->view,
         ProtoPirateReceiverModel * model,
         {
-            for(size_t i = 0; i < ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
-                i++) {
-                ProtoPirateReceiverMenuItem* item =
-                    ProtoPirateReceiverMenuItemArray_get(model->history_item_arr, i);
-                furi_string_free(item->item_str);
-            }
-            ProtoPirateReceiverMenuItemArray_reset(model->history_item_arr);
+            model->history = NULL;
             model->history_item = 0;
             model->list_offset = 0;
         },
@@ -638,20 +594,26 @@ void protopirate_view_receiver_sync_menu_from_history(
     furi_check(receiver);
     furi_check(history);
 
-    protopirate_view_receiver_reset_menu(receiver);
-
-    uint16_t count = protopirate_history_get_item(history);
-    if(count == 0) {
-        return;
-    }
-
-    FuriString* line = furi_string_alloc();
-    furi_check(line);
-    for(uint16_t i = 0; i < count; i++) {
-        protopirate_history_get_text_item_menu(history, line, i);
-        protopirate_view_receiver_add_item_to_menu(receiver, furi_string_get_cstr(line), 0);
-    }
-    furi_string_free(line);
+    with_view_model(
+        receiver->view,
+        ProtoPirateReceiverModel * model,
+        {
+            model->history = history;
+            size_t item_count = protopirate_view_receiver_item_count(model);
+            if(item_count == 0) {
+                model->history_item = 0;
+                model->list_offset = 0;
+            } else {
+                if(model->history_item >= item_count) {
+                    model->history_item = item_count - 1;
+                }
+                if(model->list_offset >= item_count) {
+                    model->list_offset = item_count - 1;
+                }
+            }
+        },
+        true);
+    protopirate_view_receiver_update_offset(receiver);
 }
 
 void protopirate_view_receiver_pop_first_menu_item(ProtoPirateReceiver* receiver) {
@@ -660,15 +622,11 @@ void protopirate_view_receiver_pop_first_menu_item(ProtoPirateReceiver* receiver
         receiver->view,
         ProtoPirateReceiverModel * model,
         {
-            if(ProtoPirateReceiverMenuItemArray_size(model->history_item_arr) > 0) {
-                ProtoPirateReceiverMenuItem* first =
-                    ProtoPirateReceiverMenuItemArray_get(model->history_item_arr, 0);
-                furi_string_free(first->item_str);
-                ProtoPirateReceiverMenuItemArray_pop_at(NULL, model->history_item_arr, 0);
+            size_t item_count = protopirate_view_receiver_item_count(model);
+            if(item_count > 0) {
                 if(model->history_item > 0) {
                     model->history_item--;
                 }
-                size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
                 if(model->list_offset > 0 && model->list_offset >= item_count) {
                     model->list_offset = item_count > 0 ? item_count - 1 : 0;
                 }
@@ -685,15 +643,10 @@ void protopirate_view_receiver_delete_item(ProtoPirateReceiver* receiver, uint16
         receiver->view,
         ProtoPirateReceiverModel * model,
         {
-            size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
-            if(idx < item_count) {
-                ProtoPirateReceiverMenuItem* item =
-                    ProtoPirateReceiverMenuItemArray_get(model->history_item_arr, idx);
-                furi_string_free(item->item_str);
-                ProtoPirateReceiverMenuItemArray_pop_at(NULL, model->history_item_arr, idx);
-
-                item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+            size_t item_count = protopirate_view_receiver_item_count(model);
+            if(idx <= item_count) {
                 if(item_count == 0) {
+                    model->history = NULL;
                     model->history_item = 0;
                     model->list_offset = 0;
                 } else {
@@ -719,15 +672,8 @@ void protopirate_view_receiver_append_menu_row_from_history(
     uint16_t idx) {
     furi_check(receiver);
     furi_check(history);
-
-    FuriString* line = furi_string_alloc();
-    if(!line) {
-        protopirate_view_receiver_sync_menu_from_history(receiver, history);
-        return;
-    }
-    protopirate_history_get_text_item_menu(history, line, idx);
-    protopirate_view_receiver_add_item_to_menu(receiver, furi_string_get_cstr(line), 0);
-    furi_string_free(line);
+    UNUSED(idx);
+    protopirate_view_receiver_sync_menu_from_history(receiver, history);
 }
 
 View* protopirate_view_receiver_get_view(ProtoPirateReceiver* receiver) {
@@ -750,7 +696,7 @@ void protopirate_view_receiver_set_idx_menu(ProtoPirateReceiver* receiver, uint1
         ProtoPirateReceiverModel * model,
         {
             model->history_item = idx;
-            size_t item_count = ProtoPirateReceiverMenuItemArray_size(model->history_item_arr);
+            size_t item_count = protopirate_view_receiver_item_count(model);
             if(model->history_item >= item_count) {
                 model->history_item = item_count > 0 ? item_count - 1 : 0;
             }

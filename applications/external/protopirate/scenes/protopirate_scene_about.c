@@ -150,6 +150,12 @@ void protopirate_scene_about_on_enter(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
 
+    if(!protopirate_ensure_view_about(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
     g_state.frame = 0;
     g_state.seed = furi_get_tick() & 0xFF;
     g_state.scroll_offset = 0;

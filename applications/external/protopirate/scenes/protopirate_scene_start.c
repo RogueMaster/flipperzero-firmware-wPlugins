@@ -132,6 +132,8 @@ void protopirate_scene_start_on_enter(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
 
+    protopirate_release_shared_radio_state(app);
+
     submenu_add_item(
         app->submenu,
         "Receive",

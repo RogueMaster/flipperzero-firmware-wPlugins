@@ -196,6 +196,12 @@ void protopirate_scene_receiver_config_on_enter(void* context) {
     VariableItem* item;
     uint8_t value_index;
 
+    if(!protopirate_ensure_variable_item_list(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
     item = variable_item_list_add(
         app->variable_item_list,
         "Frequency:",

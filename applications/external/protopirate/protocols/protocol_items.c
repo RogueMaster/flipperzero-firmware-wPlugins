@@ -34,7 +34,6 @@ static const SubGhzProtocol* const protopirate_protocol_registry_am_items[] = {
     &subaru_protocol,
     &vag_protocol,
     &subghz_protocol_star_line,
-    &honda_static_protocol,
 };
 
 static const SubGhzProtocol* const protopirate_protocol_registry_fm_items[] = {
@@ -45,6 +44,7 @@ static const SubGhzProtocol* const protopirate_protocol_registry_fm_items[] = {
     &kia_protocol_v5,
     &kia_protocol_v6,
     &ford_protocol_v1,
+    &honda_static_protocol,
     &mazda_v0_protocol,
     &kia_protocol_v7,
     &mitsubishi_v0_protocol,

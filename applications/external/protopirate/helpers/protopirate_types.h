@@ -9,7 +9,6 @@ typedef enum {
     ProtoPirateViewSubmenu,
     ProtoPirateViewWidget,
     ProtoPirateViewReceiver,
-    ProtoPirateViewReceiverInfo,
     ProtoPirateViewAbout,
     ProtoPirateViewFileBrowser,
     ProtoPirateViewTextInput,

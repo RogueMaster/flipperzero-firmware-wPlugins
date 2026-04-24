@@ -1,18 +1,20 @@
 #include "honda_static.h"
 #include "../protopirate_app_i.h"
 
-#define HONDA_STATIC_BIT_COUNT                  64
-#define HONDA_STATIC_MIN_SYMBOLS                36
-#define HONDA_STATIC_SHORT_BASE_US              28
-#define HONDA_STATIC_SHORT_SPAN_US              70
-#define HONDA_STATIC_LONG_BASE_US               61
-#define HONDA_STATIC_LONG_SPAN_US               130
-#define HONDA_STATIC_SYNC_TIME_US               700
-#define HONDA_STATIC_ELEMENT_TIME_US            63
-#define HONDA_STATIC_UPLOAD_CAPACITY            512
+#define HONDA_STATIC_BIT_COUNT       64
+#define HONDA_STATIC_MIN_SYMBOLS     36
+#define HONDA_STATIC_SHORT_BASE_US   28
+#define HONDA_STATIC_SHORT_SPAN_US   70
+#define HONDA_STATIC_LONG_BASE_US    61
+#define HONDA_STATIC_LONG_SPAN_US    130
+#define HONDA_STATIC_SYNC_TIME_US    700
+#define HONDA_STATIC_ELEMENT_TIME_US 63
+#define HONDA_STATIC_UPLOAD_CAPACITY \
+    (1U + HONDA_STATIC_PREAMBLE_ALTERNATING_COUNT + (2U * HONDA_STATIC_BIT_COUNT) + 1U)
 #define HONDA_STATIC_SYMBOL_CAPACITY            512
 #define HONDA_STATIC_PREAMBLE_ALTERNATING_COUNT 160
 #define HONDA_STATIC_PREAMBLE_MAX_TRANSITIONS   19
+#define HONDA_STATIC_SYMBOL_BYTE_COUNT          ((HONDA_STATIC_SYMBOL_CAPACITY + 7U) / 8U)
 
 #ifdef ENABLE_EMULATE_FEATURE
 static const uint8_t honda_static_encoder_button_map[4] = {0x02, 0x04, 0x08, 0x05};
@@ -40,21 +42,10 @@ typedef struct {
 
 struct SubGhzProtocolDecoderHondaStatic {
     SubGhzProtocolDecoderBase base;
-    uint32_t _reserved_0c;
-
-    SubGhzBlockDecoder decoder;
-    uint32_t _reserved_20;
-
     SubGhzBlockGeneric generic;
 
-    uint16_t packet_bit_count;
-    uint8_t _reserved_5a;
-    uint8_t _reserved_5b;
-
-    uint8_t symbols[HONDA_STATIC_SYMBOL_CAPACITY];
+    uint8_t symbols[HONDA_STATIC_SYMBOL_BYTE_COUNT];
     uint16_t symbols_count;
-    HondaStaticFields decoded;
-    uint8_t decoded_valid;
 };
 
 #ifdef ENABLE_EMULATE_FEATURE
@@ -69,6 +60,10 @@ struct SubGhzProtocolEncoderHondaStatic {
     uint8_t _reserved_69[3];
 };
 #endif
+
+static void honda_static_decoder_commit(
+    SubGhzProtocolDecoderHondaStatic* instance,
+    const HondaStaticFields* decoded);
 
 static uint64_t honda_static_bytes_to_u64_be(const uint8_t bytes[8]) {
     uint64_t value = 0;
@@ -133,8 +128,21 @@ static uint8_t honda_static_level_u8(bool level) {
     return level ? 1U : 0U;
 }
 
-static uint8_t honda_static_sym_u8(uint8_t stored) {
-    return stored ? 1U : 0U;
+static void honda_static_symbol_set(uint8_t* buf, uint16_t index, uint8_t v) {
+    const uint8_t byte_index = (uint8_t)(index >> 3U);
+    const uint8_t shift = (uint8_t)(~index) & 0x07U;
+    const uint8_t mask = (uint8_t)(1U << shift);
+    if(v) {
+        buf[byte_index] |= mask;
+    } else {
+        buf[byte_index] &= (uint8_t)~mask;
+    }
+}
+
+static uint8_t honda_static_symbol_get(const uint8_t* buf, uint16_t index) {
+    const uint8_t byte_index = (uint8_t)(index >> 3U);
+    const uint8_t shift = (uint8_t)(~index) & 0x07U;
+    return (uint8_t)((buf[byte_index] >> shift) & 1U);
 }
 
 static uint8_t honda_static_reverse_bits8(uint8_t value) {
@@ -304,7 +312,7 @@ static bool
 }
 
 static bool honda_static_manchester_pack_64(
-    const uint8_t* symbols,
+    const uint8_t* symbol_bits,
     uint16_t count,
     uint16_t start_pos,
     bool inverted,
@@ -320,8 +328,8 @@ static bool honda_static_manchester_pack_64(
             break;
         }
 
-        const uint8_t a = honda_static_sym_u8(symbols[pos]);
-        const uint8_t b = honda_static_sym_u8(symbols[pos + 1U]);
+        const uint8_t a = honda_static_symbol_get(symbol_bits, pos);
+        const uint8_t b = honda_static_symbol_get(symbol_bits, pos + 1U);
 
         if(a == b) {
             pos++;
@@ -352,13 +360,15 @@ static bool honda_static_manchester_pack_64(
 
 static bool honda_static_parse_symbols(SubGhzProtocolDecoderHondaStatic* instance, bool inverted) {
     const uint16_t count = instance->symbols_count;
-    const uint8_t* symbols = instance->symbols;
+    const uint8_t* symbol_bits = instance->symbols;
+    HondaStaticFields decoded;
 
     uint16_t index = 1U;
     uint16_t transitions = 0U;
 
     while(index < count) {
-        if(honda_static_sym_u8(symbols[index]) != honda_static_sym_u8(symbols[index - 1U])) {
+        if(honda_static_symbol_get(symbol_bits, index) !=
+           honda_static_symbol_get(symbol_bits, index - 1U)) {
             transitions++;
         } else {
             if(transitions > HONDA_STATIC_PREAMBLE_MAX_TRANSITIONS) {
@@ -373,8 +383,8 @@ static bool honda_static_parse_symbols(SubGhzProtocolDecoderHondaStatic* instanc
         return false;
     }
 
-    while(((uint16_t)(index + 1U) < count) &&
-          (honda_static_sym_u8(symbols[index]) == honda_static_sym_u8(symbols[index + 1U]))) {
+    while(((uint16_t)(index + 1U) < count) && (honda_static_symbol_get(symbol_bits, index) ==
+                                               honda_static_symbol_get(symbol_bits, index + 1U))) {
         index++;
     }
 
@@ -383,12 +393,13 @@ static bool honda_static_parse_symbols(SubGhzProtocolDecoderHondaStatic* instanc
     uint8_t packet[9] = {0};
     uint16_t bit_count = 0U;
 
-    if(!honda_static_manchester_pack_64(symbols, count, data_start, inverted, packet, &bit_count)) {
+    if(!honda_static_manchester_pack_64(
+           symbol_bits, count, data_start, inverted, packet, &bit_count)) {
         return false;
     }
 
-    if(honda_static_validate_forward_packet(packet, &instance->decoded)) {
-        instance->decoded_valid = 1U;
+    if(honda_static_validate_forward_packet(packet, &decoded)) {
+        honda_static_decoder_commit(instance, &decoded);
         return true;
     }
 
@@ -396,21 +407,22 @@ static bool honda_static_parse_symbols(SubGhzProtocolDecoderHondaStatic* instanc
         return false;
     }
 
-    if(honda_static_validate_reverse_packet(packet, &instance->decoded)) {
-        instance->decoded_valid = 1U;
+    if(honda_static_validate_reverse_packet(packet, &decoded)) {
+        honda_static_decoder_commit(instance, &decoded);
         return true;
     }
 
     return false;
 }
 
-static void honda_static_decoder_commit(SubGhzProtocolDecoderHondaStatic* instance) {
-    instance->packet_bit_count = HONDA_STATIC_BIT_COUNT;
+static void honda_static_decoder_commit(
+    SubGhzProtocolDecoderHondaStatic* instance,
+    const HondaStaticFields* decoded) {
     instance->generic.data_count_bit = HONDA_STATIC_BIT_COUNT;
-    instance->generic.data = honda_static_pack_compact(&instance->decoded);
-    instance->generic.serial = instance->decoded.serial;
-    instance->generic.cnt = instance->decoded.counter;
-    instance->generic.btn = instance->decoded.button;
+    instance->generic.data = honda_static_pack_compact(decoded);
+    instance->generic.serial = decoded->serial;
+    instance->generic.cnt = decoded->counter;
+    instance->generic.btn = decoded->button;
 
     if(instance->base.callback) {
         instance->base.callback(&instance->base, instance->base.context);
@@ -512,7 +524,7 @@ const SubGhzProtocol honda_static_protocol = {
     .name = HONDA_STATIC_PROTOCOL_NAME,
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 |
-            SubGhzProtocolFlag_AM | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Load |
+            SubGhzProtocolFlag_FM | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Load |
             SubGhzProtocolFlag_Send,
     .decoder = &subghz_protocol_honda_static_decoder,
     .encoder = &subghz_protocol_honda_static_encoder,
@@ -678,7 +690,6 @@ void subghz_protocol_decoder_honda_static_reset(void* context) {
 
     SubGhzProtocolDecoderHondaStatic* instance = context;
     instance->symbols_count = 0U;
-    instance->decoded_valid = 0U;
 }
 
 void subghz_protocol_decoder_honda_static_feed(void* context, bool level, uint32_t duration) {
@@ -691,7 +702,8 @@ void subghz_protocol_decoder_honda_static_feed(void* context, bool level, uint32
     if((duration >= HONDA_STATIC_SHORT_BASE_US) &&
        ((duration - HONDA_STATIC_SHORT_BASE_US) <= HONDA_STATIC_SHORT_SPAN_US)) {
         if(instance->symbols_count < HONDA_STATIC_SYMBOL_CAPACITY) {
-            instance->symbols[instance->symbols_count++] = sym;
+            honda_static_symbol_set(instance->symbols, instance->symbols_count, sym);
+            instance->symbols_count++;
         }
         return;
     }
@@ -699,8 +711,10 @@ void subghz_protocol_decoder_honda_static_feed(void* context, bool level, uint32
     if((duration >= HONDA_STATIC_LONG_BASE_US) &&
        ((duration - HONDA_STATIC_LONG_BASE_US) <= HONDA_STATIC_LONG_SPAN_US)) {
         if((uint16_t)(instance->symbols_count + 2U) <= HONDA_STATIC_SYMBOL_CAPACITY) {
-            instance->symbols[instance->symbols_count++] = sym;
-            instance->symbols[instance->symbols_count++] = sym;
+            honda_static_symbol_set(instance->symbols, instance->symbols_count, sym);
+            instance->symbols_count++;
+            honda_static_symbol_set(instance->symbols, instance->symbols_count, sym);
+            instance->symbols_count++;
         }
         return;
     }
@@ -708,9 +722,8 @@ void subghz_protocol_decoder_honda_static_feed(void* context, bool level, uint32
     const uint16_t sc = instance->symbols_count;
 
     if(sc >= HONDA_STATIC_MIN_SYMBOLS) {
-        if(honda_static_parse_symbols(instance, true) ||
-           honda_static_parse_symbols(instance, false)) {
-            honda_static_decoder_commit(instance);
+        if(!honda_static_parse_symbols(instance, true)) {
+            honda_static_parse_symbols(instance, false);
         }
     }
 
@@ -731,29 +744,20 @@ void subghz_protocol_decoder_honda_static_get_string(void* context, FuriString* 
     furi_check(context);
 
     SubGhzProtocolDecoderHondaStatic* instance = context;
-    if(!instance->decoded_valid && (instance->generic.data != 0ULL)) {
-        honda_static_unpack_compact(instance->generic.data, &instance->decoded);
-        instance->decoded_valid = 1U;
-    }
+    HondaStaticFields decoded;
+    honda_static_unpack_compact(instance->generic.data, &decoded);
 
-    furi_string_cat_printf(
+    furi_string_printf(
         output,
-        "%s %ubit\r\n"
-        "Key:%016llX\r\n",
+        "%s\r\n"
+        "Key:%016llX\r\n"
+        "Btn:%s\r\n"
+        "Ser:%07lX Cnt:%06lX",
         instance->generic.protocol_name,
-        instance->packet_bit_count ? instance->packet_bit_count : HONDA_STATIC_BIT_COUNT,
-        (unsigned long long)instance->generic.data);
-
-    furi_string_cat_printf(
-        output,
-        "Btn:%s (0x%X)\r\n"
-        "Ser:%07lX\r\n"
-        "Cnt:%06lX Chk:%02X\r\n",
-        honda_static_button_name(instance->decoded.button),
-        instance->decoded.button,
-        (unsigned long)instance->decoded.serial,
-        (unsigned long)instance->decoded.counter,
-        instance->decoded.checksum);
+        (unsigned long long)instance->generic.data,
+        honda_static_button_name(decoded.button),
+        (unsigned long)decoded.serial,
+        (unsigned long)decoded.counter);
 }
 
 SubGhzProtocolStatus subghz_protocol_decoder_honda_static_serialize(
@@ -764,23 +768,36 @@ SubGhzProtocolStatus subghz_protocol_decoder_honda_static_serialize(
 
     SubGhzProtocolDecoderHondaStatic* instance = context;
     instance->generic.data_count_bit = HONDA_STATIC_BIT_COUNT;
+    HondaStaticFields decoded;
+    honda_static_unpack_compact(instance->generic.data, &decoded);
 
-    SubGhzProtocolStatus ret =
+    SubGhzProtocolStatus status =
         subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
-
-    if(ret == SubGhzProtocolStatusOk) {
-        flipper_format_write_uint32(flipper_format, "Serial", &instance->decoded.serial, 1);
-
-        uint32_t temp = instance->decoded.button;
-        flipper_format_write_uint32(flipper_format, "Btn", &temp, 1);
-
-        flipper_format_write_uint32(flipper_format, "Cnt", &instance->decoded.counter, 1);
-
-        temp = instance->decoded.checksum;
-        flipper_format_write_uint32(flipper_format, "Checksum", &temp, 1);
+    if(status != SubGhzProtocolStatusOk) {
+        return status;
     }
 
-    return ret;
+    uint32_t temp = decoded.serial;
+    if(!flipper_format_write_uint32(flipper_format, "Serial", &temp, 1)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
+
+    temp = decoded.button;
+    if(!flipper_format_write_uint32(flipper_format, "Btn", &temp, 1)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
+
+    temp = decoded.counter;
+    if(!flipper_format_write_uint32(flipper_format, "Cnt", &temp, 1)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
+
+    temp = decoded.checksum;
+    if(!flipper_format_write_uint32(flipper_format, "Checksum", &temp, 1)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
+
+    return status;
 }
 
 SubGhzProtocolStatus
@@ -794,28 +811,26 @@ SubGhzProtocolStatus
         return status;
     }
 
-    instance->packet_bit_count = HONDA_STATIC_BIT_COUNT;
-    honda_static_unpack_compact(instance->generic.data, &instance->decoded);
-    instance->decoded_valid = 1U;
-
     flipper_format_rewind(flipper_format);
-    uint32_t s = 0, b = 0, c = 0, k = 0;
+    HondaStaticFields decoded;
+    honda_static_unpack_compact(instance->generic.data, &decoded);
+    uint32_t s = 0;
+    uint32_t b = 0;
+    uint32_t c = 0;
     if(flipper_format_read_uint32(flipper_format, "Serial", &s, 1)) {
-        instance->decoded.serial = s;
+        decoded.serial = s;
     }
     if(flipper_format_read_uint32(flipper_format, "Btn", &b, 1)) {
-        instance->decoded.button = (uint8_t)b;
+        decoded.button = (uint8_t)b;
     }
     if(flipper_format_read_uint32(flipper_format, "Cnt", &c, 1)) {
-        instance->decoded.counter = c & 0x00FFFFFFU;
-    }
-    if(flipper_format_read_uint32(flipper_format, "Checksum", &k, 1)) {
-        instance->decoded.checksum = (uint8_t)k;
+        decoded.counter = c & 0x00FFFFFFU;
     }
 
-    instance->generic.serial = instance->decoded.serial;
-    instance->generic.cnt = instance->decoded.counter;
-    instance->generic.btn = instance->decoded.button;
+    instance->generic.data = honda_static_pack_compact(&decoded);
+    instance->generic.serial = decoded.serial;
+    instance->generic.cnt = decoded.counter;
+    instance->generic.btn = decoded.button;
 
     return status;
 }

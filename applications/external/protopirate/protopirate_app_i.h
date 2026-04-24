@@ -6,7 +6,6 @@
 #include "helpers/protopirate_settings.h"
 #include "scenes/protopirate_scene.h"
 #include "views/protopirate_receiver.h"
-#include "views/protopirate_receiver_info.h"
 #include "protopirate_history.h"
 #include "helpers/radio_device_loader.h"
 
@@ -43,7 +42,6 @@ typedef struct {
     ProtoPirateTxRxState txrx_state;
     ProtoPirateHopperState hopper_state;
     ProtoPirateRxKeyState rx_key_state;
-    bool rx_low_memory_hold;
     uint8_t hopper_idx_frequency;
     uint8_t hopper_timeout;
     uint16_t idx_menu_chosen;
@@ -62,7 +60,6 @@ struct ProtoPirateApp {
     View* view_about;
     FuriString* file_path;
     ProtoPirateReceiver* protopirate_receiver;
-    ProtoPirateReceiverInfo* protopirate_receiver_info;
     ProtoPirateTxRx* txrx;
     SubGhzSetting* setting;
     ProtoPirateLock lock;
@@ -116,8 +113,19 @@ void protopirate_tx_stop(ProtoPirateApp* app);
 bool protopirate_radio_init(ProtoPirateApp* app);
 void protopirate_radio_deinit(ProtoPirateApp* app);
 bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_receiver_ready);
+bool protopirate_apply_protocol_registry_for_preset_data(
+    ProtoPirateApp* app,
+    const uint8_t* preset_data,
+    size_t preset_data_size);
+bool protopirate_ensure_variable_item_list(ProtoPirateApp* app);
+bool protopirate_ensure_widget(ProtoPirateApp* app);
+bool protopirate_ensure_text_input(ProtoPirateApp* app);
+bool protopirate_ensure_view_about(ProtoPirateApp* app);
+bool protopirate_ensure_receiver_view(ProtoPirateApp* app);
+void protopirate_release_shared_radio_state(ProtoPirateApp* app);
 
 void protopirate_rx_stack_suspend_for_tx(ProtoPirateApp* app);
+
 void protopirate_rx_stack_resume_after_tx(ProtoPirateApp* app);
 
 void protopirate_app_free(ProtoPirateApp* app);

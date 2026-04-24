@@ -18,11 +18,6 @@ ProtoPirateReceiver* protopirate_view_receiver_alloc(bool auto_save);
 void protopirate_view_receiver_free(ProtoPirateReceiver* receiver);
 View* protopirate_view_receiver_get_view(ProtoPirateReceiver* receiver);
 
-void protopirate_view_receiver_add_item_to_menu(
-    ProtoPirateReceiver* receiver,
-    const char* name,
-    uint8_t type);
-
 void protopirate_view_receiver_add_data_statusbar(
     ProtoPirateReceiver* receiver,
     const char* frequency_str,

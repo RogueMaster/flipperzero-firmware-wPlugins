@@ -71,6 +71,34 @@ bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_rece
     return true;
 }
 
+bool protopirate_apply_protocol_registry_for_preset_data(
+    ProtoPirateApp* app,
+    const uint8_t* preset_data,
+    size_t preset_data_size) {
+    furi_check(app);
+    furi_check(app->txrx);
+
+    if(!app->txrx->environment) {
+        return false;
+    }
+
+    ProtoPirateProtocolRegistryFilter filter =
+        protopirate_get_protocol_registry_filter_for_preset(preset_data, preset_data_size);
+    const SubGhzProtocolRegistry* registry = protopirate_get_protocol_registry_by_filter(filter);
+
+    if(app->txrx->protocol_registry != registry) {
+        FURI_LOG_I(
+            TAG,
+            "Switching active protocol registry to %s (%zu protocols)",
+            protopirate_get_protocol_registry_filter_name(filter),
+            registry->size);
+    }
+
+    subghz_environment_set_protocol_registry(app->txrx->environment, registry);
+    app->txrx->protocol_registry = registry;
+    return true;
+}
+
 void protopirate_preset_init(
     void* context,
     const char* preset_name,
@@ -149,6 +177,11 @@ void protopirate_get_frequency_modulation(
 
 void protopirate_begin(ProtoPirateApp* app, uint8_t* preset_data) {
     furi_check(app);
+    if(!app->txrx->radio_device) {
+        FURI_LOG_W(TAG, "begin requested without radio device");
+        app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
+        return;
+    }
     subghz_devices_reset(app->txrx->radio_device);
     subghz_devices_idle(app->txrx->radio_device);
     subghz_devices_load_preset(app->txrx->radio_device, FuriHalSubGhzPresetCustom, preset_data);
@@ -185,7 +218,11 @@ uint32_t protopirate_rx(ProtoPirateApp* app, uint32_t frequency) {
 void protopirate_idle(ProtoPirateApp* app) {
     furi_check(app);
     furi_check(app->txrx->txrx_state != ProtoPirateTxRxStateSleep);
-    subghz_devices_idle(app->txrx->radio_device);
+    if(app->txrx->radio_device) {
+        subghz_devices_idle(app->txrx->radio_device);
+    } else {
+        FURI_LOG_W(TAG, "idle requested without radio device");
+    }
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
 }
 
@@ -204,6 +241,17 @@ void protopirate_sleep(ProtoPirateApp* app) {
     furi_check(app);
     subghz_devices_sleep(app->txrx->radio_device);
     app->txrx->txrx_state = ProtoPirateTxRxStateSleep;
+}
+
+void protopirate_release_shared_radio_state(ProtoPirateApp* app) {
+    furi_check(app);
+    furi_check(app->txrx);
+
+    if(app->protopirate_receiver) {
+        protopirate_view_receiver_reset_menu(app->protopirate_receiver);
+    }
+
+    protopirate_radio_deinit(app);
 }
 
 void protopirate_rx_stack_suspend_for_tx(ProtoPirateApp* app) {
@@ -237,6 +285,11 @@ void protopirate_rx_stack_resume_after_tx(ProtoPirateApp* app) {
         return;
     }
     if(app->txrx->receiver) {
+        return;
+    }
+
+    if(!protopirate_refresh_protocol_registry(app, false)) {
+        FURI_LOG_E(TAG, "rx_stack_resume: failed to restore receiver protocol registry");
         return;
     }
 

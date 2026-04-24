@@ -612,6 +612,27 @@ void protopirate_scene_timing_tuner_on_enter(void* context) {
 
     FURI_LOG_I(TAG, "Entering Timing Tuner");
 
+    if(!protopirate_ensure_view_about(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
+    if(!app->radio_initialized && !protopirate_radio_init(app)) {
+        FURI_LOG_E(TAG, "Failed to initialize radio for timing tuner");
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
+    protopirate_rx_stack_resume_after_tx(app);
+    if(!app->txrx->receiver) {
+        FURI_LOG_E(TAG, "Failed to allocate receiver for timing tuner");
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
     g_timing_ctx = malloc(sizeof(TimingTunerContext));
     if(!g_timing_ctx) {
         FURI_LOG_E(TAG, "Failed to allocate timing tuner context");
@@ -630,10 +651,6 @@ void protopirate_scene_timing_tuner_on_enter(void* context) {
     g_timing_ctx->sample_count = 0;
     g_timing_ctx->buffer_wrapped = false;
     g_timing_ctx->app = app;
-
-    if(app->radio_initialized) {
-        protopirate_rx_stack_resume_after_tx(app);
-    }
 
     view_set_draw_callback(app->view_about, timing_tuner_draw_callback);
     view_set_input_callback(app->view_about, timing_tuner_input_callback);
