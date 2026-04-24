@@ -410,8 +410,8 @@ void Level::render3DSprite(const Sprite3D *sprite3d, Draw *draw, Vector player_p
     Vector vertex;
     Triangle3D triangle;
     //
-    const uint8_t triangle_count = sprite3d->getTriangleCount();
-    for (uint8_t i = 0; i < triangle_count; i++)
+    const uint16_t triangle_count = sprite3d->getTriangleCount();
+    for (uint16_t i = 0; i < triangle_count; i++)
     {
         triangle = sprite3d->getTransformedTriangle(i, player_pos);
         if (!triangle.set)

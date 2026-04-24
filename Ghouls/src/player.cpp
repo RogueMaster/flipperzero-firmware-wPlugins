@@ -33,6 +33,10 @@ Player::~Player()
         ENGINE_MEM_DELETE loading;
         loading = nullptr;
     }
+    if (ghoulsGame)
+    {
+        ghoulsGame = nullptr; // we don't own this, so just clear the reference
+    }
 }
 
 void Player::collision(Entity *other, Game *game)
@@ -1919,7 +1923,7 @@ void Player::update(Game *game)
         return; // Don't update player position in menu or if dead
     }
 
-    float rotSpeed = 0.2f; // Rotation speed in radians
+    float rotSpeed = SPEED_SCALE(0.2f); // Rotation speed in radians
 
     switch (game->input)
     {
@@ -1931,7 +1935,7 @@ void Player::update(Game *game)
             return; // Invalid level type
         }
 
-        rotSpeed = 0.4f;
+        rotSpeed = SPEED_SCALE(1.0f);
 
         // Calculate new position
         Vector new_pos = Vector(
@@ -1976,7 +1980,7 @@ void Player::update(Game *game)
             return; // Invalid level type
         }
 
-        rotSpeed = 0.4f;
+        rotSpeed = SPEED_SCALE(1.0f);
 
         // Calculate new position
         Vector new_pos = Vector(
@@ -2273,6 +2277,7 @@ void Player::userRequest(RequestType requestType)
         {
             ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for url");
             userInfoStatus = UserInfoRequestError;
+            ENGINE_MEM_FREE(authHeader);
             ENGINE_MEM_FREE(payload);
             return;
         }
@@ -2282,6 +2287,7 @@ void Player::userRequest(RequestType requestType)
         {
             userInfoStatus = UserInfoRequestError;
         }
+        ENGINE_MEM_FREE(authHeader);
         ENGINE_MEM_FREE(url);
     }
     break;
@@ -2360,8 +2366,7 @@ void Player::userRequest(RequestType requestType)
         loginStatus = LoginRequestError;
         registrationStatus = RegistrationRequestError;
         userInfoStatus = UserInfoRequestError;
-        ENGINE_MEM_FREE(payload);
-        return;
+        break;
     }
 
     ENGINE_MEM_FREE(payload);

@@ -18,11 +18,11 @@ const Vector GhoulsLevel::housePositions[HOUSE_SPAWN_COUNT] = {
 };
 
 const Vector GhoulsLevel::treePositions[TREE_SPAWN_COUNT] = {
-    Vector( 8,  0),  //  0: (2,  0)
+    Vector( 8,  2),  //  0: (2,  0)
     Vector( 8, 44),  //  1: (2, 11)
-    Vector(12,  0),  //  2: (3,  0)
+    Vector(12,  2),  //  2: (3,  0)
     Vector(12, 44),  //  3: (3, 11)
-    Vector(16,  0),  //  4: (4,  0)
+    Vector(16,  2),  //  4: (4,  0)
     Vector(16, 44),  //  5: (4, 11)
     Vector(20, 24),  //  6: (5,  6)
     Vector(20, 28),  //  7: (5,  7)
@@ -44,23 +44,23 @@ const Vector GhoulsLevel::treePositions[TREE_SPAWN_COUNT] = {
     Vector(40, 44),  // 23: (10,11)
     Vector(44, 24),  // 24: (11, 6)
     Vector(44, 28),  // 25: (11, 7)
-    Vector(48,  0),  // 26: (12, 0)
-    Vector(52,  0),  // 27: (13, 0)
-    Vector(56,  0),  // 28: (14, 0)
+    Vector(48,  2),  // 26: (12, 0)
+    Vector(52,  2),  // 27: (13, 0)
+    Vector(56,  2),  // 28: (14, 0)
     Vector(64, 36),  // 29: (16, 9)
     Vector(64, 44),  // 30: (16,11)
     Vector(68, 36),  // 31: (17, 9)
     Vector(68, 44),  // 32: (17,11)
     Vector(72, 36),  // 33: (18, 9)
     Vector(72, 44),  // 34: (18,11)
-    Vector(76,  0),  // 35: (19, 0)
-    Vector(80,  0),  // 36: (20, 0)
-    Vector(84,  0),  // 37: (21, 0)
-    Vector(88,  0),  // 38: (22, 0)
+    Vector(76,  2),  // 35: (19, 0)
+    Vector(80,  2),  // 36: (20, 0)
+    Vector(84,  2),  // 37: (21, 0)
+    Vector(88,  2),  // 38: (22, 0)
     Vector(84, 36),  // 39: (21, 9)
     Vector(88, 36),  // 40: (22, 9)
     Vector(84, 44),  // 41: (21,11)
-    Vector(92,  0),  // 42: (23, 0)
+    Vector(92,  2),  // 42: (23, 0)
     Vector(92,  4),  // 43: (23, 1)
     Vector(92,  8),  // 44: (23, 2)
     Vector(92, 12),  // 45: (23, 3)
@@ -186,7 +186,7 @@ bool GhoulsLevel::collisionMapCheck(Vector new_position)
         return false;
 
     // Check multiple points around the position to prevent clipping through walls
-    float offset = 0.3f;
+    float offset = 0.2f;
 
     Vector checkPoints[] = {
         new_position,                                             // Center

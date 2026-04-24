@@ -26,29 +26,39 @@ Sprite3D::~Sprite3D()
     clearTriangles();
 }
 
-void Sprite3D::addTriangle(const Triangle3D &triangle)
+bool Sprite3D::addTriangle(const Triangle3D &triangle)
 {
     if (triangle_count < ENGINE_MAX_TRIANGLES_PER_SPRITE)
     {
         triangles[triangle_count] = ENGINE_MEM_NEW Triangle3D(triangle);
-        triangle_count++;
+        if (triangles[triangle_count] != nullptr)
+        {
+            triangle_count++;
+            return true;
+        }
     }
+    return false;
 }
 
-void Sprite3D::addTriangle(float x1, float y1, float z1,
+bool Sprite3D::addTriangle(float x1, float y1, float z1,
                            float x2, float y2, float z2,
                            float x3, float y3, float z3, uint16_t color, bool wireframe)
 {
     if (triangle_count < ENGINE_MAX_TRIANGLES_PER_SPRITE)
     {
         triangles[triangle_count] = ENGINE_MEM_NEW Triangle3D(x1, y1, z1, x2, y2, z2, x3, y3, z3, color, wireframe);
-        triangle_count++;
+        if (triangles[triangle_count] != nullptr)
+        {
+            triangle_count++;
+            return true;
+        }
     }
+    return false;
 }
 
 void Sprite3D::clearTriangles()
 {
-    for (uint8_t i = 0; i < triangle_count; i++)
+    for (uint16_t i = 0; i < triangle_count; i++)
     {
         ENGINE_MEM_DELETE triangles[i];
         triangles[i] = nullptr;
@@ -56,7 +66,7 @@ void Sprite3D::clearTriangles()
     triangle_count = 0;
 }
 
-void Sprite3D::createCube(float x, float y, float z, float width, float height, float depth, uint16_t color, bool wireframe)
+bool Sprite3D::createCube(float x, float y, float z, float width, float height, float depth, uint16_t color, bool wireframe)
 {
     float hw = width * 0.5f;
     float hh = height * 0.5f;
@@ -66,47 +76,61 @@ void Sprite3D::createCube(float x, float y, float z, float width, float height, 
     // This gives 8 triangles per cube instead of 12
 
     // Front face (2 triangles)
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z + hd,
-        x + hw, y - hh, z + hd,
-        x + hw, y + hh, z + hd, color, wireframe));
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z + hd,
-        x + hw, y + hh, z + hd,
-        x - hw, y + hh, z + hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z + hd,
+            x + hw, y - hh, z + hd,
+            x + hw, y + hh, z + hd, color, wireframe)))
+        return false;
+
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z + hd,
+            x + hw, y + hh, z + hd,
+            x - hw, y + hh, z + hd, color, wireframe)))
+        return false;
 
     // Back face (2 triangles)
-    addTriangle(Triangle3D(
-        x + hw, y - hh, z - hd,
-        x - hw, y - hh, z - hd,
-        x - hw, y + hh, z - hd, color, wireframe));
-    addTriangle(Triangle3D(
-        x + hw, y - hh, z - hd,
-        x - hw, y + hh, z - hd,
-        x + hw, y + hh, z - hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x + hw, y - hh, z - hd,
+            x - hw, y - hh, z - hd,
+            x - hw, y + hh, z - hd, color, wireframe)))
+        return false;
+
+    if (!addTriangle(Triangle3D(
+            x + hw, y - hh, z - hd,
+            x - hw, y + hh, z - hd,
+            x + hw, y + hh, z - hd, color, wireframe)))
+        return false;
 
     // Right face (2 triangles)
-    addTriangle(Triangle3D(
-        x + hw, y - hh, z + hd,
-        x + hw, y - hh, z - hd,
-        x + hw, y + hh, z - hd, color, wireframe));
-    addTriangle(Triangle3D(
-        x + hw, y - hh, z + hd,
-        x + hw, y + hh, z - hd,
-        x + hw, y + hh, z + hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x + hw, y - hh, z + hd,
+            x + hw, y - hh, z - hd,
+            x + hw, y + hh, z - hd, color, wireframe)))
+        return false;
+
+    if (!addTriangle(Triangle3D(
+            x + hw, y - hh, z + hd,
+            x + hw, y + hh, z - hd,
+            x + hw, y + hh, z + hd, color, wireframe)))
+        return false;
 
     // Left face (2 triangles)
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z - hd,
-        x - hw, y - hh, z + hd,
-        x - hw, y + hh, z + hd, color, wireframe));
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z - hd,
-        x - hw, y + hh, z + hd,
-        x - hw, y + hh, z - hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z - hd,
+            x - hw, y - hh, z + hd,
+            x - hw, y + hh, z + hd, color, wireframe)))
+        return false;
+
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z - hd,
+            x - hw, y + hh, z + hd,
+            x - hw, y + hh, z - hd, color, wireframe)))
+        return false;
+
+    return true;
 }
 
-void Sprite3D::createCylinder(float x, float y, float z, float radius, float height, uint8_t segments, uint16_t color, bool wireframe)
+bool Sprite3D::createCylinder(float x, float y, float z, float radius, float height, uint8_t segments, uint16_t color, bool wireframe)
 {
     float hh = height * 0.5f;
 
@@ -126,18 +150,23 @@ void Sprite3D::createCylinder(float x, float y, float z, float radius, float hei
         float z2 = z + radius * sinf(angle2);
 
         // Side face triangles only
-        addTriangle(Triangle3D(
-            x1, y - hh, z1,
-            x2, y - hh, z2,
-            x2, y + hh, z2, color, wireframe));
-        addTriangle(Triangle3D(
-            x1, y - hh, z1,
-            x2, y + hh, z2,
-            x1, y + hh, z1, color, wireframe));
+        if (!addTriangle(Triangle3D(
+                x1, y - hh, z1,
+                x2, y - hh, z2,
+                x2, y + hh, z2, color, wireframe)))
+            return false;
+
+        if (!addTriangle(Triangle3D(
+                x1, y - hh, z1,
+                x2, y + hh, z2,
+                x1, y + hh, z1, color, wireframe)))
+            return false;
     }
+
+    return true;
 }
 
-void Sprite3D::createHouse(float width, float height, uint16_t color, bool wireframe)
+bool Sprite3D::createHouse(float width, float height, uint16_t color, bool wireframe)
 {
     clearTriangles();
     type = SPRITE_HOUSE;
@@ -148,13 +177,14 @@ void Sprite3D::createHouse(float width, float height, uint16_t color, bool wiref
     float house_depth = width * 1.1f;
 
     // House base (cube)
-    createCube(0, wall_height / 2, 0, house_width, wall_height, house_depth, color, wireframe);
+    if (!createCube(0, wall_height / 2, 0, house_width, wall_height, house_depth, color, wireframe))
+        return false;
 
     // Roof (triangular prism)
-    createTriangularPrism(0, wall_height + roof_height / 2, 0, house_width, roof_height, house_depth, shadeColor565(color, 0.6f), wireframe);
+    return createTriangularPrism(0, wall_height + roof_height / 2, 0, house_width, roof_height, house_depth, shadeColor565(color, 0.6f), wireframe);
 }
 
-void Sprite3D::createHumanoid(float height, uint16_t color, bool wireframe)
+bool Sprite3D::createHumanoid(float height, uint16_t color, bool wireframe)
 {
     clearTriangles();
     type = SPRITE_HUMANOID;
@@ -166,42 +196,52 @@ void Sprite3D::createHumanoid(float height, uint16_t color, bool wireframe)
     float arm_length = height * 0.25f;
 
     // Head (sphere) - positioned at top
-    createSphere(0, height - head_radius, 0, head_radius, 4, shadeColor565(color, 1.25f), wireframe);
+    if (!createSphere(0, height - head_radius, 0, head_radius, 4, shadeColor565(color, 1.25f), wireframe))
+        return false;
 
     // Torso - positioned in middle, wider and deeper
-    createCube(0, leg_height + torso_height / 2, 0, torso_width, torso_height, torso_width * 0.8f, color, wireframe);
+    if (!createCube(0, leg_height + torso_height / 2, 0, torso_width, torso_height, torso_width * 0.8f, color, wireframe))
+        return false;
 
     // Arms - positioned at shoulder level
     float arm_width = torso_width * 0.35f;
     float arm_y = leg_height + torso_height - arm_length / 2;
     const uint16_t arm_color = shadeColor565(color, 0.75f);
-    createCube(-torso_width * 0.8f, arm_y, 0, arm_width, arm_length, arm_width, arm_color, wireframe);
-    createCube(torso_width * 0.8f, arm_y, 0, arm_width, arm_length, arm_width, arm_color, wireframe);
+    if (!createCube(-torso_width * 0.8f, arm_y, 0, arm_width, arm_length, arm_width, arm_color, wireframe))
+        return false;
+    if (!createCube(torso_width * 0.8f, arm_y, 0, arm_width, arm_length, arm_width, arm_color, wireframe))
+        return false;
 
     // Legs - positioned so their bottoms touch ground (y=0)
     float leg_width = torso_width * 0.45f;
     const uint16_t leg_color = shadeColor565(color, 0.55f);
-    createCube(-leg_width * 0.7f, leg_height / 2, 0, leg_width, leg_height, leg_width, leg_color, wireframe);
-    createCube(leg_width * 0.7f, leg_height / 2, 0, leg_width, leg_height, leg_width, leg_color, wireframe);
+    if (!createCube(-leg_width * 0.7f, leg_height / 2, 0, leg_width, leg_height, leg_width, leg_color, wireframe))
+        return false;
+    if (!createCube(leg_width * 0.7f, leg_height / 2, 0, leg_width, leg_height, leg_width, leg_color, wireframe))
+        return false;
+
+    return true;
 }
 
-void Sprite3D::createPillar(float height, float radius, uint16_t color, bool wireframe)
+bool Sprite3D::createPillar(float height, float radius, uint16_t color, bool wireframe)
 {
     clearTriangles();
     type = SPRITE_PILLAR;
     float pillar_radius = radius * 1.5f;
 
     // Main cylinder - 6 segments = 12 triangles
-    createCylinder(0, height / 2, 0, pillar_radius, height, 6, color, wireframe);
+    if (!createCylinder(0, height / 2, 0, pillar_radius, height, 6, color, wireframe))
+        return false;
 
     // Base - 4 segments = 8 triangles
-    createCylinder(0, pillar_radius * 0.4f, 0, pillar_radius * 1.4f, pillar_radius * 0.8f, 4, color, wireframe);
+    if (!createCylinder(0, pillar_radius * 0.4f, 0, pillar_radius * 1.4f, pillar_radius * 0.8f, 4, color, wireframe))
+        return false;
 
     // Top - 4 segments = 8 triangles
-    createCylinder(0, height - pillar_radius * 0.4f, 0, pillar_radius * 1.4f, pillar_radius * 0.8f, 4, color, wireframe);
+    return createCylinder(0, height - pillar_radius * 0.4f, 0, pillar_radius * 1.4f, pillar_radius * 0.8f, 4, color, wireframe);
 }
 
-void Sprite3D::createSphere(float x, float y, float z, float radius, uint8_t segments, uint16_t color, bool wireframe)
+bool Sprite3D::createSphere(float x, float y, float z, float radius, uint8_t segments, uint16_t color, bool wireframe)
 {
     // limit segments for sphere to prevent triangle explosion
     if (segments > 4)
@@ -237,17 +277,20 @@ void Sprite3D::createSphere(float x, float y, float z, float radius, uint8_t seg
             // Add triangles
             if (lat > 0)
             {
-                addTriangle(Triangle3D(x1, y1, z1, x2, y2, z2, x3, y3, z3, color, wireframe));
+                if (!addTriangle(Triangle3D(x1, y1, z1, x2, y2, z2, x3, y3, z3, color, wireframe)))
+                    return false;
             }
             if (lat < segments / 2 - 1)
             {
-                addTriangle(Triangle3D(x2, y2, z2, x4, y4, z4, x3, y3, z3, color, wireframe));
+                if (!addTriangle(Triangle3D(x2, y2, z2, x4, y4, z4, x3, y3, z3, color, wireframe)))
+                    return false;
             }
         }
     }
+    return true;
 }
 
-void Sprite3D::createTree(float height, uint16_t color, bool wireframe)
+bool Sprite3D::createTree(float height, uint16_t color, bool wireframe)
 {
     clearTriangles();
     type = SPRITE_TREE;
@@ -258,77 +301,99 @@ void Sprite3D::createTree(float height, uint16_t color, bool wireframe)
     float crown_height = height * 0.6f;
 
     // Trunk (simple cube) - positioned so bottom touches ground (y=0) - brown
-    createCube(0, trunk_height / 2, 0, trunk_width, trunk_height, trunk_width, 0x9A60, wireframe);
+    if (!createCube(0, trunk_height / 2, 0, trunk_width, trunk_height, trunk_width, 0x9A60, wireframe))
+        return false;
 
     // Crown (simple cube representing foliage) - positioned on top of trunk
-    createCube(0, trunk_height + crown_height / 2, 0, crown_width, crown_height, crown_width, color, wireframe);
+    return createCube(0, trunk_height + crown_height / 2, 0, crown_width, crown_height, crown_width, color, wireframe);
 }
 
-void Sprite3D::createTriangularPrism(float x, float y, float z, float width, float height, float depth, uint16_t color, bool wireframe)
+bool Sprite3D::createTriangularPrism(float x, float y, float z, float width, float height, float depth, uint16_t color, bool wireframe)
 {
     float hw = width * 0.5f;
     float hh = height * 0.5f;
     float hd = depth * 0.5f;
 
     // Front triangle
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z + hd,
-        x + hw, y - hh, z + hd,
-        x, y + hh, z + hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z + hd,
+            x + hw, y - hh, z + hd,
+            x, y + hh, z + hd, color, wireframe)))
+        return false;
 
     // Back triangle
-    addTriangle(Triangle3D(
-        x + hw, y - hh, z - hd,
-        x - hw, y - hh, z - hd,
-        x, y + hh, z - hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x + hw, y - hh, z - hd,
+            x - hw, y - hh, z - hd,
+            x, y + hh, z - hd, color, wireframe)))
+        return false;
 
     // Bottom face
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z - hd,
-        x + hw, y - hh, z - hd,
-        x + hw, y - hh, z + hd, color, wireframe));
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z - hd,
-        x + hw, y - hh, z + hd,
-        x - hw, y - hh, z + hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z - hd,
+            x + hw, y - hh, z - hd,
+            x + hw, y - hh, z + hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z - hd,
+            x + hw, y - hh, z + hd,
+            x - hw, y - hh, z + hd, color, wireframe)))
+        return false;
 
     // Side faces
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z + hd,
-        x, y + hh, z + hd,
-        x, y + hh, z - hd, color, wireframe));
-    addTriangle(Triangle3D(
-        x - hw, y - hh, z + hd,
-        x, y + hh, z - hd,
-        x - hw, y - hh, z - hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z + hd,
+            x, y + hh, z + hd,
+            x, y + hh, z - hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(
+            x - hw, y - hh, z + hd,
+            x, y + hh, z - hd,
+            x - hw, y - hh, z - hd, color, wireframe)))
+        return false;
 
-    addTriangle(Triangle3D(
-        x, y + hh, z + hd,
-        x + hw, y - hh, z + hd,
-        x + hw, y - hh, z - hd, color, wireframe));
-    addTriangle(Triangle3D(
-        x, y + hh, z + hd,
-        x + hw, y - hh, z - hd,
-        x, y + hh, z - hd, color, wireframe));
+    if (!addTriangle(Triangle3D(
+            x, y + hh, z + hd,
+            x + hw, y - hh, z + hd,
+            x + hw, y - hh, z - hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(
+            x, y + hh, z + hd,
+            x + hw, y - hh, z - hd,
+            x, y + hh, z - hd, color, wireframe)))
+        return false;
+
+    return true;
 }
 
-void Sprite3D::createWall(float x, float y, float z, float width, float height, float depth, uint16_t color, bool wireframe)
+bool Sprite3D::createWall(float x, float y, float z, float width, float height, float depth, uint16_t color, bool wireframe)
 {
     // Wall segment using raw triangles, offset by (x, y, z)
     const float hw = width / 2, hh = height / 2, hd = depth / 2;
     // Front face
-    addTriangle(Triangle3D(x - hw, y - hh, z + hd, x + hw, y - hh, z + hd, x + hw, y + hh, z + hd, color, wireframe));
-    addTriangle(Triangle3D(x - hw, y - hh, z + hd, x + hw, y + hh, z + hd, x - hw, y + hh, z + hd, color, wireframe));
+    if (!addTriangle(Triangle3D(x - hw, y - hh, z + hd, x + hw, y - hh, z + hd, x + hw, y + hh, z + hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(x - hw, y - hh, z + hd, x + hw, y + hh, z + hd, x - hw, y + hh, z + hd, color, wireframe)))
+        return false;
     // Back face
-    addTriangle(Triangle3D(x + hw, y - hh, z - hd, x - hw, y - hh, z - hd, x - hw, y + hh, z - hd, color, wireframe));
-    addTriangle(Triangle3D(x + hw, y - hh, z - hd, x - hw, y + hh, z - hd, x + hw, y + hh, z - hd, color, wireframe));
+    if (!addTriangle(Triangle3D(x + hw, y - hh, z - hd, x - hw, y - hh, z - hd, x - hw, y + hh, z - hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(x + hw, y - hh, z - hd, x - hw, y + hh, z - hd, x + hw, y + hh, z - hd, color, wireframe)))
+        return false;
     // Left, right, top caps
-    addTriangle(Triangle3D(x - hw, y - hh, z - hd, x - hw, y - hh, z + hd, x - hw, y + hh, z + hd, color, wireframe));
-    addTriangle(Triangle3D(x - hw, y - hh, z - hd, x - hw, y + hh, z + hd, x - hw, y + hh, z - hd, color, wireframe));
-    addTriangle(Triangle3D(x + hw, y - hh, z + hd, x + hw, y - hh, z - hd, x + hw, y + hh, z - hd, color, wireframe));
-    addTriangle(Triangle3D(x + hw, y - hh, z + hd, x + hw, y + hh, z - hd, x + hw, y + hh, z + hd, color, wireframe));
-    addTriangle(Triangle3D(x - hw, y + hh, z + hd, x + hw, y + hh, z + hd, x + hw, y + hh, z - hd, color, wireframe));
-    addTriangle(Triangle3D(x - hw, y + hh, z + hd, x + hw, y + hh, z - hd, x - hw, y + hh, z - hd, color, wireframe));
+    if (!addTriangle(Triangle3D(x - hw, y - hh, z - hd, x - hw, y - hh, z + hd, x - hw, y + hh, z + hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(x - hw, y - hh, z - hd, x - hw, y + hh, z + hd, x - hw, y + hh, z - hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(x + hw, y - hh, z + hd, x + hw, y - hh, z - hd, x + hw, y + hh, z - hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(x + hw, y - hh, z + hd, x + hw, y + hh, z - hd, x + hw, y + hh, z + hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(x - hw, y + hh, z + hd, x + hw, y + hh, z + hd, x + hw, y + hh, z - hd, color, wireframe)))
+        return false;
+    if (!addTriangle(Triangle3D(x - hw, y + hh, z + hd, x + hw, y + hh, z - hd, x - hw, y + hh, z - hd, color, wireframe)))
+        return false;
+    return true;
 }
 
 static void scale_vertex(float &x, float &y, float &z, float scale_factor)
@@ -354,7 +419,7 @@ static void translate_vertex(float &x, float &y, float &z, float dx, float dy, f
     z += dz;
 }
 
-Triangle3D Sprite3D::getTransformedTriangle(uint8_t index, const Vector &camera_pos) const
+Triangle3D Sprite3D::getTransformedTriangle(uint16_t index, const Vector &camera_pos) const
 {
     if (index >= triangle_count)
         return Triangle3D();
@@ -415,49 +480,49 @@ Triangle3D Sprite3D::getTransformedTriangle(uint8_t index, const Vector &camera_
     return Triangle3D(); // Return empty triangle if not facing camera
 }
 
-void Sprite3D::initializeAsHouse(Vector pos, float width, float height, float rot, uint16_t color, bool wireframe)
+bool Sprite3D::initializeAsHouse(Vector pos, float width, float height, float rot, uint16_t color, bool wireframe)
 {
     position = pos;
     rotation_y = rot;
     clearTriangles();
     type = SPRITE_HOUSE;
     active = true;
-    createHouse(width, height, color, wireframe);
+    return createHouse(width, height, color, wireframe);
 }
 
-void Sprite3D::initializeAsHumanoid(Vector pos, float height, float rot, uint16_t color, bool wireframe)
+bool Sprite3D::initializeAsHumanoid(Vector pos, float height, float rot, uint16_t color, bool wireframe)
 {
     position = pos;
     rotation_y = rot;
     clearTriangles();
     type = SPRITE_HUMANOID;
     active = true;
-    createHumanoid(height, color, wireframe);
+    return createHumanoid(height, color, wireframe);
 }
 
-void Sprite3D::initializeAsPillar(Vector pos, float height, float radius, uint16_t color, bool wireframe)
+bool Sprite3D::initializeAsPillar(Vector pos, float height, float radius, uint16_t color, bool wireframe)
 {
     position = pos;
     rotation_y = 0;
     clearTriangles();
     type = SPRITE_PILLAR;
     active = true;
-    createPillar(height, radius, color, wireframe);
+    return createPillar(height, radius, color, wireframe);
 }
 
-void Sprite3D::initializeAsTree(Vector pos, float height, uint16_t color, bool wireframe)
+bool Sprite3D::initializeAsTree(Vector pos, float height, uint16_t color, bool wireframe)
 {
     position = pos;
     rotation_y = 0;
     clearTriangles();
     type = SPRITE_TREE;
     active = true;
-    createTree(height, color, wireframe);
+    return createTree(height, color, wireframe);
 }
 
 void Sprite3D::setWireframe(bool wireframe)
 {
-    for (uint8_t i = 0; i < triangle_count; i++)
+    for (uint16_t i = 0; i < triangle_count; i++)
     {
         if (triangles[i])
         {

@@ -1,6 +1,7 @@
 #include "weapon.hpp"
 #include "pico-game-engine/engine/game.hpp"
 #include "general.hpp"
+#include "level.hpp"
 
 Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon", ENTITY_NPC, position, Vector(0, height), nullptr)
 {
@@ -36,7 +37,7 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
         damage = 20.0f;
         ammo = 10;
         cooldown_max = SPEED_SCALE(40); // 40 ticks between shots
-        projectileType = PROJECTILE_BULLET;
+        projectileType = PROJECTILE_SHELL;
         makeShotgun(height);
         break;
     case WEAPON_ROCKET_LAUNCHER:
@@ -344,11 +345,29 @@ void Weapon::update(Game *game)
     if (cooldown > 0)
         cooldown--;
 
-    // we'll add rotation/animation here like the enemy sprites
-
-    Level *currentLevel = game->current_level;
+    GhoulsLevel *currentLevel = static_cast<GhoulsLevel *>(game->current_level);
     if (!currentLevel)
         return;
+
+    if (!held)
+    {
+        const float rotSpeed = SPEED_SCALE(0.05f);
+
+        float old_dir_x = direction.x;
+        float old_plane_x = plane.x;
+
+        direction.x = direction.x * cos(-rotSpeed) - direction.y * sin(-rotSpeed);
+        direction.y = old_dir_x * sin(-rotSpeed) + direction.y * cos(-rotSpeed);
+        plane.x = plane.x * cos(-rotSpeed) - plane.y * sin(-rotSpeed);
+        plane.y = old_plane_x * sin(-rotSpeed) + plane.y * cos(-rotSpeed);
+
+        // Update sprite rotation to match new camera direction
+        if (has3DSprite())
+        {
+            float rotation_angle = atan2f(direction.y, direction.x) + M_PI_2;
+            set3DSpriteRotation(rotation_angle);
+        }
+    }
 
     // check for dead projectile
     if (currentProjectile != nullptr && !currentProjectile->is_active)
