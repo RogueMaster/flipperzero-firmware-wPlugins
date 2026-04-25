@@ -36,13 +36,7 @@ bool tagtinker_scene_barcode_input_on_event(void* ctx, SceneManagerEvent event) 
     if(!app->barcode_valid) {
         popup_reset(app->popup);
         popup_set_header(app->popup, "Invalid Barcode", 64, 20, AlignCenter, AlignCenter);
-        popup_set_text(
-            app->popup,
-            "Checksum failed.\nCheck barcode digits.",
-            64,
-            40,
-            AlignCenter,
-            AlignCenter);
+        popup_set_text(app->popup, "Format: Letter + 16 digits", 64, 40, AlignCenter, AlignCenter);
         popup_set_timeout(app->popup, 2000);
         popup_enable_timeout(app->popup);
         popup_set_callback(app->popup, NULL);
