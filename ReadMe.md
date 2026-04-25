@@ -41,6 +41,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [APRS TX v1.3.17 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Updated: [ProtoPirate v2.9 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [TagTinker v2.0 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- Added: [FlipTok Live v1.0 (By kamylwnb)](https://github.com/kamylwnb/FlipTok_Live_Chat)
 
 <a name="release"></a>
 
@@ -553,6 +554,7 @@ $ ./fbt dolphin_ext
 - [FlipRPI v1.0 (By jblanked)](https://github.com/jblanked/FlipRPI) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipSocial v2.0.9 (By jblanked)](https://github.com/jblanked/FlipSocial) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipTelegram v1.0.1 (By jblanked)](https://github.com/jblanked/FlipTelegram) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- [FlipTok Live v1.0 (By kamylwnb)](https://github.com/kamylwnb/FlipTok_Live_Chat)
 - [FlipTrader v1.1.2 (By jblanked)](https://github.com/jblanked/FlipTrader) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipWeather v1.4 (By jblanked)](https://github.com/jblanked/FlipWeather) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipWifi v1.6.3 (By jblanked)](https://github.com/jblanked/FlipWiFi) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
