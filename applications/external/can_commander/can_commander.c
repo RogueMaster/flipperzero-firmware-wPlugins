@@ -10,6 +10,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "libraries/missing_api.h"
+
 #define APP_MONITOR_KEEP_MAX  1500U
 #define APP_MONITOR_KEEP_TAIL 1000U
 #define APP_ARGS_KV_WORK_MAX  (APP_CUSTOM_INJECT_SLOT_ARGS_MAX + 128U)
@@ -937,7 +939,7 @@ bool app_args_set_key_value(char* args, size_t args_size, const char* key, const
     bool ok = false;
 
     char* save_ptr = NULL;
-    char* token = strtok_r(scratch, " ", &save_ptr);
+    char* token = local_strtok_r(scratch, " ", &save_ptr);
 
     while(token) {
         char* eq = strchr(token, '=');
@@ -975,7 +977,7 @@ bool app_args_set_key_value(char* args, size_t args_size, const char* key, const
             used += step;
         }
 
-        token = strtok_r(NULL, " ", &save_ptr);
+        token = local_strtok_r(NULL, " ", &save_ptr);
     }
 
     const int wrote =
