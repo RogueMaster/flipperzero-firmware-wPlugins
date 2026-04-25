@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../libraries/missing_api.h"
-
 #define DASH_OBD_DTC_STORED     0U
 #define DASH_OBD_DTC_PENDING    1U
 #define DASH_OBD_DTC_PERMANENT  2U
@@ -158,7 +156,7 @@ static bool dashboard_parse_obd_dtc_line(
     uint8_t total = 0U;
 
     char* save_ptr = NULL;
-    char* token = local_strtok_r(scratch, " ", &save_ptr);
+    char* token = strtok_r(scratch, " ", &save_ptr);
     while(token) {
         if(dashboard_is_dtc_code_token(token)) {
             total++;
@@ -179,7 +177,7 @@ static bool dashboard_parse_obd_dtc_line(
                 break;
             }
         }
-        token = local_strtok_r(NULL, " ", &save_ptr);
+        token = strtok_r(NULL, " ", &save_ptr);
     }
 
     if(total == 0U) {
@@ -607,7 +605,8 @@ static void dashboard_dbc_sync_registered(AppDashboardModel* model, const App* a
     DashboardDbcEntry ordered[APP_DBC_CFG_MAX_SIGNALS] = {0};
     uint8_t count = 0U;
 
-    for(uint8_t cfg_index = 0U; cfg_index < APP_DBC_CFG_MAX_SIGNALS; cfg_index++) {
+    for(uint8_t cfg_index = 0U; cfg_index < APP_DBC_CFG_MAX_SIGNALS && app->dbc_config_signals;
+        cfg_index++) {
         const AppDbcSignalCache* cfg = &app->dbc_config_signals[cfg_index];
         if(!cfg->used) {
             continue;
@@ -1288,13 +1287,11 @@ static void dashboard_metric_draw_dbc(Canvas* canvas, const AppDashboardModel* d
 }
 
 static void dashboard_metric_draw_reverse(Canvas* canvas, const AppDashboardModel* dashboard) {
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "Phase");
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(
         canvas,
         64,
-        11,
+        2,
         AlignCenter,
         AlignTop,
         dashboard_reverse_phase_text(dashboard->reverse_phase));
@@ -1439,6 +1436,114 @@ static bool dashboard_metric_draw_obd(Canvas* canvas, const AppDashboardModel* d
     return true;
 }
 
+static void dashboard_metric_draw_replay(Canvas* canvas, const AppDashboardModel* dashboard) {
+    /*  Fixed layout (Y positions never change):
+     *    Y  2  Title
+     *    Y 14  Bus / ID line
+     *    Y 24  Frames line
+     *    Y 34  State-specific info line
+     *    Y 44  State-specific detail line
+     *    Y 63  Footer / controls
+     */
+
+    /* Row 0 — Title */
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "CAN Replay");
+
+    /* Row 1 — Bus / ID (always shown) */
+    char id_text[16] = {0};
+    if(dashboard->replay_id[0] != '\0') {
+        snprintf(id_text, sizeof(id_text), "0x%s", dashboard->replay_id);
+    } else {
+        strncpy(id_text, "--", sizeof(id_text) - 1U);
+    }
+    char line_bus[42] = {0};
+    snprintf(
+        line_bus,
+        sizeof(line_bus),
+        "Bus:%s  ID:%s %s",
+        dashboard->replay_bus[0] ? dashboard->replay_bus : "--",
+        id_text,
+        dashboard->replay_ext ? "ext" : "std");
+    canvas_draw_str(canvas, 2, 19, line_bus);
+
+    /* Row 2 — Frames (always shown) */
+    char line_frames[32] = {0};
+    snprintf(
+        line_frames,
+        sizeof(line_frames),
+        "Frames: %u/%u",
+        (unsigned)dashboard->replay_frames,
+        (unsigned)dashboard->replay_max_frames);
+    canvas_draw_str(canvas, 2, 29, line_frames);
+
+    /* Row 3+4 — State-specific content */
+    if(dashboard->replay_state == 1U) {
+        /* RECORDING */
+        uint32_t elapsed_ms = 0U;
+        if(dashboard->replay_record_start_ms > 0U) {
+            elapsed_ms = furi_get_tick() - dashboard->replay_record_start_ms;
+        }
+        char rec_line[32] = {0};
+        snprintf(
+            rec_line,
+            sizeof(rec_line),
+            "** RECORDING **  %lu.%lus",
+            (unsigned long)(elapsed_ms / 1000U),
+            (unsigned long)((elapsed_ms / 100U) % 10U));
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignCenter, rec_line);
+        canvas_set_font(canvas, FontSecondary);
+
+        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Press [OK] to Stop");
+    } else if(dashboard->replay_state == 2U) {
+        /* REPLAYING */
+        char progress_line[32] = {0};
+        snprintf(
+            progress_line,
+            sizeof(progress_line),
+            "Frame: %u/%u",
+            (unsigned)dashboard->replay_progress,
+            (unsigned)dashboard->replay_total);
+        canvas_draw_str(canvas, 2, 39, progress_line);
+
+        uint32_t total_loops = dashboard->replay_count_cfg;
+        uint32_t current_loop = (total_loops >= dashboard->replay_remaining) ?
+                                    (total_loops - dashboard->replay_remaining + 1U) :
+                                    1U;
+        if(current_loop > total_loops) current_loop = total_loops;
+        char loop_line[32] = {0};
+        snprintf(
+            loop_line,
+            sizeof(loop_line),
+            "Loop: %lu/%lu",
+            (unsigned long)current_loop,
+            (unsigned long)total_loops);
+        canvas_draw_str(canvas, 2, 49, loop_line);
+
+        canvas_draw_str_aligned(
+            canvas, 64, 63, AlignCenter, AlignBottom, "[OK] or [DOWN] to Stop");
+    } else {
+        /* IDLE */
+        if(dashboard->replay_frames > 0U) {
+            char loops_line[32] = {0};
+            snprintf(
+                loops_line,
+                sizeof(loops_line),
+                "Loops: < %u >",
+                (unsigned)dashboard->replay_count_cfg);
+            canvas_draw_str(canvas, 2, 39, loops_line);
+
+            canvas_draw_str_aligned(
+                canvas, 64, 49, AlignCenter, AlignCenter, "[OK] Play  [UP] Clear");
+            canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "[L/R] Loops");
+        } else {
+            canvas_draw_str_aligned(
+                canvas, 64, 63, AlignCenter, AlignBottom, "Press [OK] to Record");
+        }
+    }
+}
+
 static void
     dashboard_metric_draw_custom_inject(Canvas* canvas, const AppDashboardModel* dashboard) {
     canvas_set_font(canvas, FontSecondary);
@@ -1544,6 +1649,9 @@ void dashboard_metric_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
     case AppDashboardCustomInject:
         dashboard_metric_draw_custom_inject(canvas, dashboard);
         return;
+    case AppDashboardReplay:
+        dashboard_metric_draw_replay(canvas, dashboard);
+        return;
     default:
         break;
     }
@@ -1596,6 +1704,12 @@ bool dashboard_metric_input(App* app, const InputEvent* event) {
     bool consumed = false;
     uint8_t inject_slot = 0xFFU;
     bool reverse_exclude_pre = false;
+    uint8_t replay_action = 0U;
+    uint16_t replay_count_for_play = 0U;
+    bool reverse_open_bittrack = false;
+    bool reverse_open_replay = false;
+    uint32_t reverse_selected_id = 0U;
+    bool reverse_selected_ext = false;
     bool write_resend = false;
     uint32_t write_counter_before_resend = 0U;
     with_view_model(
@@ -1606,7 +1720,8 @@ bool dashboard_metric_input(App* app, const InputEvent* event) {
                 (model->mode == AppDashboardWrite || model->mode == AppDashboardSpeed ||
                  model->mode == AppDashboardValtrack || model->mode == AppDashboardUniqueIds ||
                  model->mode == AppDashboardDbcDecode || model->mode == AppDashboardCustomInject ||
-                 model->mode == AppDashboardObdPid || model->mode == AppDashboardReverse);
+                 model->mode == AppDashboardObdPid || model->mode == AppDashboardReverse ||
+                 model->mode == AppDashboardReplay);
             if(mode_supported) {
                 const uint8_t key_bit = dashboard_input_key_bit(event->key);
                 if(event->type == InputTypeRelease) {
@@ -1621,8 +1736,46 @@ bool dashboard_metric_input(App* app, const InputEvent* event) {
                         model->input_hold_mask |= key_bit;
                     }
 
-                    if(model->mode == AppDashboardObdPid && model->obd_dtc_active &&
-                       (event->key == InputKeyLeft || event->key == InputKeyRight)) {
+                    if(model->mode == AppDashboardReplay) {
+                        if(!key_was_held) {
+                            if(model->replay_state == 0U) {
+                                if(event->key == InputKeyOk) {
+                                    if(model->replay_frames > 0U) {
+                                        replay_count_for_play = model->replay_count_cfg;
+                                        replay_action = 1U;
+                                    } else {
+                                        replay_action = 2U;
+                                    }
+                                    consumed = true;
+                                } else if(event->key == InputKeyUp && model->replay_frames > 0U) {
+                                    replay_action = 3U;
+                                    consumed = true;
+                                } else if(event->key == InputKeyLeft) {
+                                    if(model->replay_count_cfg > 1U) {
+                                        model->replay_count_cfg--;
+                                    }
+                                    consumed = true;
+                                } else if(event->key == InputKeyRight) {
+                                    if(model->replay_count_cfg < 99U) {
+                                        model->replay_count_cfg++;
+                                    }
+                                    consumed = true;
+                                }
+                            } else if(model->replay_state == 1U) {
+                                if(event->key == InputKeyOk) {
+                                    replay_action = 4U;
+                                    consumed = true;
+                                }
+                            } else if(model->replay_state == 2U) {
+                                if(event->key == InputKeyOk || event->key == InputKeyDown) {
+                                    replay_action = 4U;
+                                    consumed = true;
+                                }
+                            }
+                        }
+                    } else if(
+                        model->mode == AppDashboardObdPid && model->obd_dtc_active &&
+                        (event->key == InputKeyLeft || event->key == InputKeyRight)) {
                         if(!key_was_held) {
                             if(event->key == InputKeyRight) {
                                 model->obd_dtc_page = (uint8_t)((model->obd_dtc_page + 1U) % 4U);
@@ -1685,6 +1838,21 @@ bool dashboard_metric_input(App* app, const InputEvent* event) {
                         model->mode == AppDashboardReverse &&
                         (event->key == InputKeyLeft || event->key == InputKeyRight)) {
                         if(!key_was_held) {
+                            if((event->key == InputKeyRight || event->key == InputKeyLeft) &&
+                               model->reverse_phase == DASH_REVERSE_PHASE_MON &&
+                               model->reverse_count > 0U) {
+                                uint8_t selected = model->reverse_selected;
+                                if(selected >= model->reverse_count) {
+                                    selected = (uint8_t)(model->reverse_count - 1U);
+                                }
+                                reverse_selected_id = model->reverse_ids[selected];
+                                reverse_selected_ext = model->reverse_ext[selected];
+                                if(event->key == InputKeyRight) {
+                                    reverse_open_bittrack = true;
+                                } else {
+                                    reverse_open_replay = true;
+                                }
+                            }
                             consumed = true;
                         }
                     } else if(
@@ -1813,12 +1981,87 @@ bool dashboard_metric_input(App* app, const InputEvent* event) {
         },
         true);
 
+    if(replay_action == 1U) {
+        char cmd[48] = {0};
+        snprintf(
+            cmd, sizeof(cmd), "cmd=replay count=%u speed=100", (unsigned)replay_count_for_play);
+        app_action_tool_config(app, cmd);
+    } else if(replay_action == 2U) {
+        app_action_tool_config(app, "cmd=record");
+    } else if(replay_action == 3U) {
+        app_action_tool_config(app, "cmd=clear");
+    } else if(replay_action == 4U) {
+        app_action_tool_config(app, "cmd=stop");
+    }
+
     if(inject_slot < 5U) {
         app_custom_inject_set_active_slot(app, inject_slot);
         app_action_custom_inject_inject(app, (uint8_t)(inject_slot + 1U));
     }
     if(reverse_exclude_pre) {
         app_action_tool_config(app, "exclude_pre=1");
+    }
+    if(reverse_open_bittrack) {
+        char bus_name[16] = {0};
+        if(!dashboard_arg_get_value_last(
+               app->args_reverse_auto, "bus", bus_name, sizeof(bus_name))) {
+            strncpy(bus_name, "can0", sizeof(bus_name) - 1U);
+        }
+        if(strcmp(bus_name, "can0") != 0 && strcmp(bus_name, "can1") != 0 &&
+           strcmp(bus_name, "both") != 0) {
+            strncpy(bus_name, "can0", sizeof(bus_name) - 1U);
+        }
+
+        char id_text[12] = {0};
+        if(reverse_selected_ext) {
+            snprintf(id_text, sizeof(id_text), "%08lX", (unsigned long)reverse_selected_id);
+        } else {
+            snprintf(
+                id_text, sizeof(id_text), "%03lX", (unsigned long)(reverse_selected_id & 0x7FFU));
+        }
+
+        snprintf(
+            app->args_bittrack,
+            sizeof(app->args_bittrack),
+            "bus=%s id=%s ext=%u",
+            bus_name,
+            id_text,
+            reverse_selected_ext ? 1U : 0U);
+        app->args_bittrack[sizeof(app->args_bittrack) - 1U] = '\0';
+
+        app_action_tool_stop(app);
+        app_action_tool_start(app, CcToolBittrack, app->args_bittrack, "bittrack");
+    }
+    if(reverse_open_replay) {
+        char bus_name[16] = {0};
+        if(!dashboard_arg_get_value_last(
+               app->args_reverse_auto, "bus", bus_name, sizeof(bus_name))) {
+            strncpy(bus_name, "can0", sizeof(bus_name) - 1U);
+        }
+        if(strcmp(bus_name, "can0") != 0 && strcmp(bus_name, "can1") != 0 &&
+           strcmp(bus_name, "both") != 0) {
+            strncpy(bus_name, "can0", sizeof(bus_name) - 1U);
+        }
+
+        char id_text[12] = {0};
+        if(reverse_selected_ext) {
+            snprintf(id_text, sizeof(id_text), "%08lX", (unsigned long)reverse_selected_id);
+        } else {
+            snprintf(
+                id_text, sizeof(id_text), "%03lX", (unsigned long)(reverse_selected_id & 0x7FFU));
+        }
+
+        snprintf(
+            app->args_replay,
+            sizeof(app->args_replay),
+            "bus=%s id=%s ext=%u",
+            bus_name,
+            id_text,
+            reverse_selected_ext ? 1U : 0U);
+        app->args_replay[sizeof(app->args_replay) - 1U] = '\0';
+
+        app_action_tool_stop(app);
+        app_action_tool_start(app, CcToolReplay, app->args_replay, "replay");
     }
     if(write_resend) {
         app_action_tool_start(app, CcToolWrite, app->args_write_tool, "write");
@@ -1892,12 +2135,12 @@ void dashboard_update_obd(App* app, const CcEvent* event) {
                             char scratch[96] = {0};
                             strncpy(scratch, right, sizeof(scratch) - 1U);
                             char* save_ptr = NULL;
-                            char* token = local_strtok_r(scratch, " ", &save_ptr);
+                            char* token = strtok_r(scratch, " ", &save_ptr);
                             while(token) {
                                 if(dashboard_is_dtc_code_token(token)) {
                                     (void)dashboard_obd_dtc_add_unique(model, type_index, token);
                                 }
-                                token = local_strtok_r(NULL, " ", &save_ptr);
+                                token = strtok_r(NULL, " ", &save_ptr);
                             }
                         }
 
@@ -2585,4 +2828,114 @@ void dashboard_update_custom_inject(App* app, const CcEvent* event) {
             model->note[sizeof(model->note) - 1U] = '\0';
         },
         false);
+}
+
+void dashboard_update_replay(App* app, const CcEvent* event) {
+    if(!event || event->type != CcEventTypeTool || event->data.tool.tool != CcToolReplay) {
+        return;
+    }
+
+    char text[sizeof(event->data.tool.text)] = {0};
+    strncpy(text, event->data.tool.text, sizeof(text) - 1U);
+    dashboard_trim_inplace(text);
+
+    with_view_model(
+        app->dashboard_view,
+        AppDashboardModel * model,
+        {
+            char bus_name[16] = {0};
+            unsigned long frame_id = 0;
+            char ext_std[8] = {0};
+            unsigned max_frames = 0U;
+            unsigned frame_count = 0U;
+            unsigned total_frames = 0U;
+            unsigned count = 0U;
+            unsigned speed = 0U;
+            unsigned progress = 0U;
+            unsigned remaining = 0U;
+            unsigned fr_used = 0U;
+            unsigned fr_max = 0U;
+            char state_str[16] = {0};
+
+            if(sscanf(
+                   text,
+                   "ready bus=%15s id=0x%lx %7s (max %u frames)",
+                   bus_name,
+                   &frame_id,
+                   ext_std,
+                   &max_frames) == 4) {
+                model->replay_state = 0U;
+                strncpy(model->replay_bus, bus_name, sizeof(model->replay_bus) - 1U);
+                model->replay_bus[sizeof(model->replay_bus) - 1U] = '\0';
+                if(ext_std[0] == 'e' || ext_std[0] == 'E') {
+                    snprintf(
+                        model->replay_id,
+                        sizeof(model->replay_id),
+                        "%08lX",
+                        (unsigned long)frame_id);
+                    model->replay_ext = true;
+                } else {
+                    snprintf(
+                        model->replay_id,
+                        sizeof(model->replay_id),
+                        "%03lX",
+                        (unsigned long)(frame_id & 0x7FFU));
+                    model->replay_ext = false;
+                }
+                model->replay_max_frames = (uint16_t)max_frames;
+                model->replay_frames = 0U;
+            } else if(strstr(text, "recording started")) {
+                model->replay_state = 1U;
+                model->replay_frames = 0U;
+                model->replay_record_start_ms = furi_get_tick();
+            } else if(sscanf(text, "recording stopped frames=%u", &frame_count) == 1) {
+                model->replay_state = 0U;
+                model->replay_frames = (uint16_t)frame_count;
+            } else if(sscanf(text, "buffer full (%u frames)", &frame_count) == 1) {
+                model->replay_state = 0U;
+                model->replay_frames = (uint16_t)frame_count;
+            } else if(
+                sscanf(
+                    text,
+                    "replay started frames=%u count=%u speed=%u",
+                    &total_frames,
+                    &count,
+                    &speed) == 3) {
+                model->replay_state = 2U;
+                model->replay_total = (uint16_t)total_frames;
+                model->replay_remaining = (uint32_t)count;
+                model->replay_progress = 0U;
+            } else if(strstr(text, "replay complete")) {
+                model->replay_state = 0U;
+            } else if(sscanf(text, "state=%15s frames=%u/%u", state_str, &fr_used, &fr_max) == 3) {
+                model->replay_frames = (uint16_t)fr_used;
+                model->replay_max_frames = (uint16_t)fr_max;
+                if(dashboard_ieq(state_str, "idle")) {
+                    model->replay_state = 0U;
+                } else if(dashboard_ieq(state_str, "recording")) {
+                    model->replay_state = 1U;
+                } else if(dashboard_ieq(state_str, "replaying")) {
+                    model->replay_state = 2U;
+                }
+            } else if(
+                sscanf(
+                    text,
+                    "progress=%u/%u remaining_loops=%u",
+                    &progress,
+                    &total_frames,
+                    &remaining) == 3) {
+                model->replay_progress = (uint16_t)progress;
+                model->replay_total = (uint16_t)total_frames;
+                model->replay_remaining = (uint32_t)remaining;
+            } else if(strstr(text, "recording cleared")) {
+                model->replay_frames = 0U;
+                model->replay_state = 0U;
+            } else if(strstr(text, "frames=")) {
+                unsigned f = 0U;
+                if(sscanf(strstr(text, "frames="), "frames=%u", &f) == 1) {
+                    model->replay_frames = (uint16_t)f;
+                }
+            }
+        },
+        true);
 }

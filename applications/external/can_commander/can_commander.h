@@ -16,7 +16,11 @@
 #include "libraries/can_commander_uart.h"
 #include "scenes_config/scene_functions.h"
 
-#define PROGRAM_VERSION                          "v2.1.1"
+#define PROGRAM_VERSION                          "v2.3.1"
+#define APP_FW_MIN_MAJOR                         2U
+#define APP_FW_MIN_MINOR                         2U
+#define APP_FW_MIN_STRING                        "v2.2"
+#define APP_FW_UPDATE_URL                        "www.cancommander.com"
 #define APP_DBC_CFG_MAX_SIGNALS                  16U
 #define APP_DBC_CFG_MAX_MAPS                     16U
 #define APP_DBC_CFG_LABEL_MAX                    16U
@@ -65,6 +69,7 @@ typedef enum {
     AppDashboardObdPid,
     AppDashboardDbcDecode,
     AppDashboardCustomInject,
+    AppDashboardReplay,
 } AppDashboardMode;
 
 typedef enum {
@@ -157,6 +162,7 @@ struct App {
     char args_reverse_read[128];
     char args_obd_pid[96];
     char args_dbc_decode[64];
+    char args_replay[128];
     char args_custom_inject_start[64];
     char args_custom_inject_slots[5][APP_CUSTOM_INJECT_SLOT_ARGS_MAX];
     char args_custom_inject_bit[64];
@@ -172,6 +178,7 @@ struct App {
 
     char args_dbc_add[220];
     char args_dbc_remove[48];
+    char args_wifi_cfg[192];
 
     char* args_editor_target;
     size_t args_editor_target_size;
@@ -210,8 +217,19 @@ struct App {
     char custom_inject_set_name[32];
     char dbc_config_name[32];
     char dbc_config_save_name[32];
-    AppDbcSignalCache dbc_config_signals[APP_DBC_CFG_MAX_SIGNALS];
+    AppDbcSignalCache* dbc_config_signals;
     uint8_t dbc_config_signal_count;
+
+    uint8_t led_brightness;
+
+    bool fw_version_check_pending;
+    bool fw_version_received;
+    bool fw_version_checked;
+    bool fw_version_warn_pending;
+    bool fw_version_warn_shown;
+    uint8_t fw_version_major;
+    uint8_t fw_version_minor;
+    char fw_version_string[16];
 
     CcToolId pending_tool_start_id;
     char pending_tool_start_name[24];
@@ -226,6 +244,7 @@ bool app_args_set_key_value(char* args, size_t args_size, const char* key, const
 
 bool app_connect(App* app, bool force_reconnect);
 bool app_require_connected(App* app);
+void app_verify_firmware_version(App* app);
 
 void app_begin_edit(App* app, char* destination, size_t destination_size, const char* header_text);
 void app_apply_edit(App* app);
@@ -246,6 +265,8 @@ void app_begin_args_editor_apply(
 void app_action_ping(App* app);
 void app_action_get_info(App* app);
 void app_action_stats(App* app);
+void app_action_wifi_get_cfg(App* app);
+void app_action_wifi_set_cfg(App* app, const char* args);
 
 void app_action_start_read_all(App* app);
 void app_action_tool_start(App* app, CcToolId tool_id, const char* args, const char* label);

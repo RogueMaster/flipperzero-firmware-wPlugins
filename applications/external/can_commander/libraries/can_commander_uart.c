@@ -6,12 +6,10 @@
 
 #include <string.h>
 
-#include "missing_api.h"
-
 #define CC_PACKET_RAW_MAX        (CC_MAX_PAYLOAD + 32U)
 #define CC_PACKET_ENC_MAX        (CC_MAX_PAYLOAD + 40U)
-#define CC_RX_STREAM_SIZE        1024U
-#define CC_EVENT_QUEUE_LEN       24U
+#define CC_RX_STREAM_SIZE        768U
+#define CC_EVENT_QUEUE_LEN       16U
 #define CC_WAIT_SLICE_MS         20U
 #define CC_DRAIN_MAX_BYTES_POLL  1024U
 #define CC_DRAIN_MAX_CHUNKS_POLL 16U
@@ -39,6 +37,9 @@ typedef enum {
     CcCmdDbcRemoveSignal = 0x32,
     CcCmdDbcList = 0x33,
     CcCmdStatsGet = 0x40,
+    CcCmdWifiGetCfg = 0x50,
+    CcCmdWifiSetCfg = 0x51,
+    CcCmdLedSetCfg = 0x60,
 } CcCommandId;
 
 typedef enum {
@@ -916,7 +917,7 @@ bool cc_client_tool_start(
         return false;
     }
 
-    const uint16_t args_len = args ? (uint16_t)local_strnlen(args, CC_MAX_PAYLOAD - 1U) : 0;
+    const uint16_t args_len = args ? (uint16_t)strnlen(args, CC_MAX_PAYLOAD - 1U) : 0;
 
     if(args && args[args_len] != '\0') {
         return false;
@@ -941,7 +942,7 @@ bool cc_client_tool_status(CcClient* client, CcStatusCode* out_status) {
 }
 
 bool cc_client_tool_config(CcClient* client, const char* args, CcStatusCode* out_status) {
-    const uint16_t args_len = args ? (uint16_t)local_strnlen(args, CC_MAX_PAYLOAD) : 0;
+    const uint16_t args_len = args ? (uint16_t)strnlen(args, CC_MAX_PAYLOAD) : 0;
     if(args && args[args_len] != '\0') {
         return false;
     }
@@ -977,7 +978,7 @@ bool cc_client_dbc_add_signal(
 
     memset(&payload[26], 0, CC_UNIT_TEXT_LEN);
     if(def->unit[0]) {
-        memcpy(&payload[26], def->unit, local_strnlen(def->unit, CC_UNIT_TEXT_LEN));
+        memcpy(&payload[26], def->unit, strnlen(def->unit, CC_UNIT_TEXT_LEN));
     }
 
     cc_write_u16_le(&payload[38], def->sid);
@@ -1000,6 +1001,25 @@ bool cc_client_dbc_list(CcClient* client, CcStatusCode* out_status) {
 
 bool cc_client_stats_get(CcClient* client, CcStatusCode* out_status) {
     return cc_exec(client, CcCmdStatsGet, NULL, 0, out_status, NULL, NULL, 300);
+}
+
+bool cc_client_wifi_get_cfg(CcClient* client, CcStatusCode* out_status) {
+    return cc_exec(client, CcCmdWifiGetCfg, NULL, 0, out_status, NULL, NULL, 300);
+}
+
+bool cc_client_wifi_set_cfg(CcClient* client, const char* args, CcStatusCode* out_status) {
+    const uint16_t args_len = args ? (uint16_t)strnlen(args, CC_MAX_PAYLOAD) : 0;
+    if(args && args[args_len] != '\0') {
+        return false;
+    }
+
+    return cc_exec(
+        client, CcCmdWifiSetCfg, (const uint8_t*)args, args_len, out_status, NULL, NULL, 300);
+}
+
+bool cc_client_led_set_brightness(CcClient* client, uint8_t brightness, CcStatusCode* out_status) {
+    uint8_t payload[1] = {brightness};
+    return cc_exec(client, CcCmdLedSetCfg, payload, 1, out_status, NULL, NULL, 300);
 }
 
 const char* cc_status_to_string(CcStatusCode status) {
@@ -1062,6 +1082,8 @@ const char* cc_tool_to_string(CcToolId tool) {
         return "dbc_decode";
     case CcToolCustomInject:
         return "custom_inject";
+    case CcToolReplay:
+        return "replay";
     default:
         return "none";
     }

@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../libraries/missing_api.h"
-
 typedef struct {
     const char* value;
     const char* label;
@@ -52,7 +50,8 @@ static AppArgValueType args_editor_detect_type(const char* key, const char* valu
     }
 
     if(strcmp(key, "ascii") == 0 || strcmp(key, "ext") == 0 || strcmp(key, "rtr") == 0 ||
-       strcmp(key, "ext_match") == 0 || strcmp(key, "strict") == 0 || strcmp(key, "mux") == 0) {
+       strcmp(key, "ext_match") == 0 || strcmp(key, "strict") == 0 || strcmp(key, "mux") == 0 ||
+       strcmp(key, "ap") == 0 || strcmp(key, "autostart") == 0) {
         return AppArgValueBool01;
     }
 
@@ -177,7 +176,7 @@ static void args_editor_parse(App* app) {
     strncpy(scratch, app->args_editor_target, sizeof(scratch) - 1U);
 
     char* save_ptr = NULL;
-    char* token = local_strtok_r(scratch, " ", &save_ptr);
+    char* token = strtok_r(scratch, " ", &save_ptr);
 
     while(token && app->args_editor_count < APP_ARGS_EDITOR_MAX_ITEMS) {
         char* sep = strchr(token, '=');
@@ -196,7 +195,7 @@ static void args_editor_parse(App* app) {
             app->args_editor_count++;
         }
 
-        token = local_strtok_r(NULL, " ", &save_ptr);
+        token = strtok_r(NULL, " ", &save_ptr);
     }
 
     bool has_id = false;

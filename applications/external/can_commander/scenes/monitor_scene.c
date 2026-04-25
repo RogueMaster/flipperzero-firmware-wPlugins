@@ -24,19 +24,24 @@ bool cancommander_scene_monitor_on_event(void* context, SceneManagerEvent event)
     }
 
     if(event.type == SceneManagerEventTypeTick) {
-        bool is_reverse_dashboard = false;
+        bool needs_periodic_refresh = false;
         bool pending = false;
         if(furi_mutex_acquire(app->mutex, FuriWaitForever) == FuriStatusOk) {
-            is_reverse_dashboard = (app->dashboard_mode == AppDashboardReverse);
+            needs_periodic_refresh =
+                (app->dashboard_mode == AppDashboardReverse ||
+                 app->dashboard_mode == AppDashboardReplay);
             pending = app->monitor_update_pending;
             app->monitor_update_pending = false;
-            if(pending || is_reverse_dashboard) {
+            if(pending || needs_periodic_refresh) {
                 app->monitor_last_update_ms = furi_get_tick();
             }
             furi_mutex_release(app->mutex);
         }
 
-        if(pending || is_reverse_dashboard) {
+        if(pending || needs_periodic_refresh) {
+            if(app->dashboard_mode == AppDashboardReplay && app->tool_active) {
+                app_action_tool_config(app, "cmd=status");
+            }
             app_refresh_live_view(app);
             return true;
         }

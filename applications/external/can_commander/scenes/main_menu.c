@@ -56,13 +56,25 @@ bool cancommander_scene_main_menu_on_event(void* context, SceneManagerEvent even
         scene_manager_next_scene(app->scene_manager, cancommander_scene_debug_menu);
         return true;
 
-    case MainMenuAbout:
+    case MainMenuAbout: {
+        char fw_text[24] = {0};
+        if(app->fw_version_received) {
+            snprintf(fw_text, sizeof(fw_text), "v%s", app->fw_version_string);
+        } else {
+            snprintf(fw_text, sizeof(fw_text), "unknown");
+        }
         app_set_status(
             app,
-            "CAN Commander\nVersion %s\nMade by\nMatthew KuKanich\n\nwww.cancommander.com",
-            PROGRAM_VERSION);
+            "CAN Commander\n"
+            "App: %s\n"
+            "Firmware: %s\n"
+            "Made by\nMatthew KuKanich\n"
+            "www.cancommander.com",
+            PROGRAM_VERSION,
+            fw_text);
         scene_manager_next_scene(app->scene_manager, cancommander_scene_status);
         return true;
+    }
 
     default:
         return false;
