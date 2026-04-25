@@ -75,6 +75,15 @@ void Player::collision(Entity *other, Game *game)
         if (!weapon || !equipWeapon(game->current_level, weapon))
         {
             ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s", weapon ? weapon->name : "unknown");
+            return;
+        }
+        if (soundToggle == ToggleOn && ghoulsGame)
+        {
+            Sound *sound = ghoulsGame->getGameSound();
+            if (sound)
+            {
+                sound->playWAV(ASSETS_FOLDER "weapon-pickup.wav");
+            }
         }
         char alertMsg[64];
         snprintf(alertMsg, sizeof(alertMsg), "Picked up %s!", weapon ? weapon->name : "unknown");
@@ -1326,6 +1335,8 @@ void Player::handleMenu(Draw *draw, Game *game)
         return;
     }
 
+    bool shouldPlaySound = soundToggle == ToggleOn && ghoulsGame;
+
     if (currentMenuIndex != MenuIndexSettings)
     {
         switch (game->input)
@@ -1343,6 +1354,7 @@ void Player::handleMenu(Draw *draw, Game *game)
             }
             break;
         default:
+            shouldPlaySound = false;
             break;
         };
     }
@@ -1370,6 +1382,7 @@ void Player::handleMenu(Draw *draw, Game *game)
                 currentSettingsIndex = MenuSettingsSound; // Switch to sound settings
                 break;
             default:
+                shouldPlaySound = false;
                 break;
             };
             break;
@@ -1391,6 +1404,7 @@ void Player::handleMenu(Draw *draw, Game *game)
                 currentSettingsIndex = MenuSettingsVibration; // Switch to vibration settings
                 break;
             default:
+                shouldPlaySound = false;
                 break;
             };
             break;
@@ -1415,6 +1429,7 @@ void Player::handleMenu(Draw *draw, Game *game)
                 currentSettingsIndex = MenuSettingsShowMiniMap; // Switch to show player settings
                 break;
             default:
+                shouldPlaySound = false;
                 break;
             };
             break;
@@ -1435,6 +1450,7 @@ void Player::handleMenu(Draw *draw, Game *game)
                 currentSettingsIndex = MenuSettingsLeave; // Switch to leave game settings
                 break;
             default:
+                shouldPlaySound = false;
                 break;
             };
             break;
@@ -1454,12 +1470,24 @@ void Player::handleMenu(Draw *draw, Game *game)
                 currentSettingsIndex = MenuSettingsShowMiniMap; // Switch to show player settings
                 break;
             default:
+                shouldPlaySound = false;
                 break;
             };
             break;
         default:
+            shouldPlaySound = false;
             break;
         };
+    }
+
+    // Play menu-click sound for any navigation key press in the in-game menu
+    if (shouldPlaySound)
+    {
+        Sound *sound = ghoulsGame->getGameSound();
+        if (sound)
+        {
+            sound->playWAV(ASSETS_FOLDER "menu-click.wav");
+        }
     }
 
     draw->fillScreen(0xFFFF);
@@ -1506,6 +1534,27 @@ void Player::processInput()
     if (currentInput == -1)
     {
         return; // No input to process
+    }
+
+    // Play menu-click sound for navigation in pre-game menu views
+    if (soundToggle == ToggleOn)
+    {
+        Sound *sound = ghoulsGame->getGameSound();
+        if (sound)
+        {
+            switch (currentMainView)
+            {
+            case GameViewWelcome:
+            case GameViewTitle:
+            case GameViewLobbyMenu:
+            case GameViewLobbyBrowser:
+            case GameViewSystemMenu:
+                sound->playWAV(ASSETS_FOLDER "menu-click.wav");
+                break;
+            default:
+                break;
+            }
+        }
     }
 
     switch (currentMainView)
@@ -2100,6 +2149,33 @@ void Player::update(Game *game)
                 char alert_buf[32];
                 snprintf(alert_buf, sizeof(alert_buf), "Fired %s!", equippedWeapon->name);
                 this->showAlert(alert_buf, 10);
+                if (soundToggle == ToggleOn && ghoulsGame)
+                {
+                    Sound *sound = ghoulsGame->getGameSound();
+                    if (sound)
+                    {
+                        const char *wav = nullptr;
+                        switch (equippedWeapon->getWeaponType())
+                        {
+                        case WEAPON_RIFLE:
+                            wav = ASSETS_FOLDER "rifle.wav";
+                            break;
+                        case WEAPON_SHOTGUN:
+                            wav = ASSETS_FOLDER "shotgun.wav";
+                            break;
+                        case WEAPON_ROCKET_LAUNCHER:
+                            wav = ASSETS_FOLDER "rocket-launcher.wav";
+                            break;
+                        case WEAPON_CROSSBOW:
+                            wav = ASSETS_FOLDER "crossbow.wav";
+                            break;
+                        default:
+                            break;
+                        }
+                        if (wav)
+                            sound->playWAV(wav);
+                    }
+                }
             }
         }
         game->input = -1;

@@ -36,6 +36,7 @@ public:
 #if SKY_RENDER_ALLOWED
     Sky *getSky() const { return sky; }
 #endif
+    bool isPositionAvailable(Vector position);
     virtual void render(Game *game) override;
     void renderMiniMap(Draw *canvas);
     void renderMiniatureMiniMap(Draw *canvas);

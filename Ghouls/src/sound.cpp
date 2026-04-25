@@ -39,6 +39,22 @@ void Sound::playPCMSample(const int16_t *samples, int count)
 #endif
 }
 
+void Sound::playWAV(const char *path)
+{
+#ifdef SOUND_PLAY_WAV
+    SOUND_PLAY_WAV(path);
+#else
+    (void)path;
+#endif
+}
+
+void Sound::stop()
+{
+#ifdef SOUND_STOP
+    SOUND_STOP();
+#endif
+}
+
 void Sound::setSong(const SoundSong &song)
 {
     currentSong = song;

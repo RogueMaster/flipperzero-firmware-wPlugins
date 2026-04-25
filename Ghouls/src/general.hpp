@@ -2,6 +2,10 @@
 #include "config.hpp"
 #include ENGINE_LCD_INCLUDE
 
+#ifndef ASSETS_FOLDER
+#define ASSETS_FOLDER "assets/"
+#endif
+
 #define SPEED_SCALE(s) ((s) * (3600.0f / TICKS_PER_DAY))
 
 #ifndef PLAYER_SPEED_HORIZONTAL

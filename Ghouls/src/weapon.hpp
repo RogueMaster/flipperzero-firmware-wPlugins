@@ -5,12 +5,12 @@
 
 typedef enum
 {
-    //                         category, damage, ammo, cooldown, projectile type
-    WEAPON_NONE = 0,        // none, 0, 0, 0, none
-    WEAPON_RIFLE,           // shooter, 15, 30, 20, bullet
-    WEAPON_SHOTGUN,         // shooter, 20, 10, 40, bullet
-    WEAPON_ROCKET_LAUNCHER, // launcher, 50, 5, 100, rocket
-    WEAPON_CROSSBOW,        // launcher, 35, 15, 60, arrow
+    //                         category, damage, ammo, projectile type
+    WEAPON_NONE = 0,        // none, 0, 0, none
+    WEAPON_RIFLE,           // shooter, 15, 30, bullet
+    WEAPON_SHOTGUN,         // shooter, 20, 10, bullet
+    WEAPON_ROCKET_LAUNCHER, // launcher, 50, 5, rocket
+    WEAPON_CROSSBOW,        // launcher, 35, 15, arrow
 } WeaponType;
 
 /*
@@ -21,7 +21,6 @@ when equipped by player:
  - 3D sprite attached to player (rendered in Player::render)
  - damage
  - ammo
- - cooldown (ticks between shots)
 
  so instead just set the constructor to take in the weapon type
 */
@@ -40,7 +39,6 @@ public:
     bool isHeld() const;                 // Check if the weapon is currently held by a player
     void reset(Level *level);            // Reset the weapon's state
     void setAmmo(uint16_t ammo);         // Set the current ammo count
-    void setCooldown(uint16_t cooldown); // Set the cooldown between shots
     void setDamage(float damage);        // Set the damage this weapon will deal
     void setHeld(bool held);             // Set whether the weapon is currently held by a player
     void setWeaponType(WeaponType type); // Set the type of the weapon and update its properties accordingly
@@ -48,8 +46,6 @@ public:
 
 private:
     uint16_t ammo;
-    uint16_t cooldown;
-    uint16_t cooldown_max; // ticks between shots
     float damage;
     bool held;
 
@@ -57,7 +53,7 @@ private:
     ProjectileType projectileType;
     Projectile *currentProjectile;
 
-    bool canFire() const;                  // Check if the weapon can fire based on cooldown and ammo
+    bool canFire() const;                  // Check if the weapon can fire based on ammo
     void makeCrossbow(float height);       // create a 3D crossbow sprite with the specified height
     void makeRifle(float height);          // create a 3D rifle sprite with the specified height
     void makeRocketLauncher(float height); // create a 3D rocket launcher sprite with the specified height

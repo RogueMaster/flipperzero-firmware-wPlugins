@@ -7,7 +7,6 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
 {
     this->currentProjectile = nullptr;
     this->held = false;
-    this->cooldown = 0;
     this->weaponType = type;
     //
     sprite_3d_type = SPRITE_3D_CUSTOM;
@@ -29,27 +28,23 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
     case WEAPON_RIFLE:
         damage = 15.0f;
         ammo = 30;
-        cooldown_max = SPEED_SCALE(20); // 20 ticks between shots
         projectileType = PROJECTILE_BULLET;
         makeRifle(height);
         break;
     case WEAPON_SHOTGUN:
         damage = 20.0f;
         ammo = 10;
-        cooldown_max = SPEED_SCALE(40); // 40 ticks between shots
         projectileType = PROJECTILE_SHELL;
         makeShotgun(height);
         break;
     case WEAPON_ROCKET_LAUNCHER:
         damage = 50.0f;
         ammo = 5;
-        cooldown_max = SPEED_SCALE(100); // 100 ticks between shots
         projectileType = PROJECTILE_ROCKET;
         makeRocketLauncher(height);
         break;
     case WEAPON_CROSSBOW:
         damage = 35.0f;
-        cooldown_max = SPEED_SCALE(60); // 60 ticks between shots
         projectileType = PROJECTILE_ARROW;
         ammo = 15;
         makeCrossbow(height);
@@ -57,7 +52,6 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
     default:
         damage = 0.0f;
         ammo = 0;
-        cooldown_max = 0;
         projectileType = PROJECTILE_NONE;
         break;
     };
@@ -80,7 +74,7 @@ void Weapon::addAmmo(uint16_t amount)
 
 bool Weapon::canFire() const
 {
-    return cooldown == 0 && ammo > 0;
+    return ammo > 0;
 }
 
 bool Weapon::fire(Level *level)
@@ -108,7 +102,6 @@ bool Weapon::fire(Level *level)
     }
     level->entity_add(currentProjectile);
     ammo--;
-    cooldown = cooldown_max;
     return true;
 }
 
@@ -283,7 +276,6 @@ void Weapon::makeShotgun(float height)
 
 void Weapon::reset(Level *level)
 {
-    cooldown = 0;
     switch (weaponType)
     {
     case WEAPON_RIFLE:
@@ -316,11 +308,6 @@ void Weapon::setAmmo(uint16_t ammo)
     this->ammo = ammo;
 }
 
-void Weapon::setCooldown(uint16_t cooldown)
-{
-    this->cooldown_max = cooldown;
-}
-
 void Weapon::setDamage(float damage)
 {
     this->damage = damage;
@@ -342,9 +329,6 @@ void Weapon::setWeaponType(WeaponType type)
 
 void Weapon::update(Game *game)
 {
-    if (cooldown > 0)
-        cooldown--;
-
     GhoulsLevel *currentLevel = static_cast<GhoulsLevel *>(game->current_level);
     if (!currentLevel)
         return;

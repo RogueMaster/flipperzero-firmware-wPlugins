@@ -70,6 +70,7 @@ public:
     Draw *getDraw() const { return draw; }                // Get the Draw instance
     Game *getGame() const;                                // Get the Game instance
     Player *getPlayer() const { return player; }          // Get the player instance
+    Sound *getGameSound() const { return gameSound; }     // Get the Sound instance
     bool initDraw();                                      // Initialize the Draw instance (moved here for Flipper app; must call lcd_init_canvas first)
     bool isActive() const { return shouldExit == false; } // Check if the game is active
     bool isDay() const;                                   // Check if it's currently day time in the game

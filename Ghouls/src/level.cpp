@@ -274,6 +274,27 @@ bool GhoulsLevel::initializeSprites()
     return true;
 }
 
+bool GhoulsLevel::isPositionAvailable(Vector position)
+{
+    // check houses
+    for (uint8_t i = 0; i < HOUSE_SPAWN_COUNT; i++)
+    {
+        if (position == housePositions[i])
+        {
+            return false;
+        }
+    }
+    // check trees
+    for (uint8_t i = 0; i < TREE_SPAWN_COUNT; i++)
+    {
+        if (position == treePositions[i])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 void GhoulsLevel::registerSpritePositionsOnMap(DynamicMap *map)
 {
     // Houses: fill the full HOUSE_TILE_SIZE x HOUSE_TILE_SIZE footprint centered on spawn
@@ -562,10 +583,10 @@ void GhoulsLevel::renderMiniMap(Draw *canvas)
             if (tile == TILE_EMPTY)
                 continue;
 
-            uint8_t x = (uint8_t)(mapPosition.x + tx * scale_x);
-            uint8_t y = (uint8_t)(mapPosition.y + ty * scale_y);
-            uint8_t w = (uint8_t)(scale_x + 0.5f);
-            uint8_t h = (uint8_t)(scale_y + 0.5f);
+            uint16_t x = (uint16_t)(mapPosition.x + tx * scale_x);
+            uint16_t y = (uint16_t)(mapPosition.y + ty * scale_y);
+            uint16_t w = (uint16_t)(scale_x + 0.5f);
+            uint16_t h = (uint16_t)(scale_y + 0.5f);
             if (w < 1)
                 w = 1;
             if (h < 1)
@@ -668,7 +689,7 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
     const int sw = canvas->getDisplaySize().x;
 
     // Small square in the top-left corner
-    const int mmLen = sw * 34 / 128; // square side length in pixels
+    const int mmLen = sw * 30 / 128; // square side length in pixels
     const int mmX = sw * 2 / 128;    // left margin
     const int mmY = sw * 2 / 128;    // top margin
 
@@ -696,10 +717,10 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
             if (relX < -MINIMAP_VIEW_RADIUS || relX > MINIMAP_VIEW_RADIUS || relY < -MINIMAP_VIEW_RADIUS || relY > MINIMAP_VIEW_RADIUS)
                 continue;
 
-            int px = mmX + (int)((relX + MINIMAP_VIEW_RADIUS) * scale);
-            int py = mmY + (int)((relY + MINIMAP_VIEW_RADIUS) * scale);
-            int pw = (int)(scale + 0.5f);
-            int ph = (int)(scale + 0.5f);
+            uint16_t px = mmX + (uint16_t)((relX + MINIMAP_VIEW_RADIUS) * scale);
+            uint16_t py = mmY + (uint16_t)((relY + MINIMAP_VIEW_RADIUS) * scale);
+            uint16_t pw = (uint16_t)(scale + 0.5f);
+            uint16_t ph = (uint16_t)(scale + 0.5f);
             if (pw < 1)
                 pw = 1;
             if (ph < 1)
@@ -718,7 +739,7 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
                 color = 0x0000;
                 break;
             }
-            canvas->fillRectangle((uint8_t)px, (uint8_t)py, (uint8_t)pw, (uint8_t)ph, color);
+            canvas->fillRectangle(px, py, pw, ph, color);
         }
     }
 
@@ -744,8 +765,8 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
                 continue;
         }
 
-        int ppx = mmX + (int)((relX + MINIMAP_VIEW_RADIUS) * scale);
-        int ppy = mmY + (int)((relY + MINIMAP_VIEW_RADIUS) * scale);
+        uint16_t ppx = mmX + (uint16_t)((relX + MINIMAP_VIEW_RADIUS) * scale);
+        uint16_t ppy = mmY + (uint16_t)((relY + MINIMAP_VIEW_RADIUS) * scale);
 
         uint16_t color;
         switch (type)
@@ -769,9 +790,9 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
         {
             if (type != ENTITY_NPC)
             {
-                uint16_t tip_x = (uint16_t)(ppx + e->direction.x * 4.0f);
-                uint16_t tip_y = (uint16_t)(ppy + e->direction.y * 4.0f);
-                canvas->line((uint16_t)ppx, (uint16_t)ppy, tip_x, tip_y, color);
+                uint16_t tip_x = ppx + (uint16_t)(e->direction.x * 4.0f);
+                uint16_t tip_y = ppy + (uint16_t)(e->direction.y * 4.0f);
+                canvas->line(ppx, ppy, tip_x, tip_y, color);
                 uint16_t base_x = tip_x - (uint16_t)(e->direction.x * 2.0f);
                 uint16_t base_y = tip_y - (uint16_t)(e->direction.y * 2.0f);
                 uint16_t perp_x = (uint16_t)(e->direction.y * 2.0f);
@@ -781,12 +802,12 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
             }
             else
             {
-                canvas->circle((uint16_t)ppx, (uint16_t)ppy, 2, color);
+                canvas->circle(ppx, ppy, 2, color);
             }
         }
 
         // Centre dot on top
-        canvas->pixel((uint16_t)ppx, (uint16_t)ppy, color);
+        canvas->pixel(ppx, ppy, color);
     }
 }
 

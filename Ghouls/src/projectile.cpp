@@ -16,26 +16,26 @@ Projectile::Projectile(ProjectileType type, float height, Vector position) : Ent
     {
     case PROJECTILE_BULLET:
         makeBullet(height);
-        speed = SPEED_SCALE(0.5f);
+        speed = SPEED_SCALE(1.0f);
         size = Vector(0.2f, height);
         break;
     case PROJECTILE_ARROW:
         makeArrow(height);
-        speed = SPEED_SCALE(0.3f);
+        speed = SPEED_SCALE(0.6f);
         size = Vector(0.2f, height);
         break;
     case PROJECTILE_ROCKET:
         makeRocket(height);
-        speed = SPEED_SCALE(0.1f);
+        speed = SPEED_SCALE(0.3f);
         size = Vector(1.0f, height);
         break;
     case PROJECTILE_SHELL:
         makeShell(height);
-        speed = SPEED_SCALE(0.4f);
+        speed = SPEED_SCALE(0.8f);
         size = Vector(0.4f, height);
         break;
     default:
-        speed = SPEED_SCALE(0.05f);
+        speed = SPEED_SCALE(0.1f);
         break;
     };
     if (sprite_3d)
@@ -59,7 +59,7 @@ void Projectile::collision(Entity *other, Game *game)
     case ENTITY_ENEMY:
     {
         other->health -= this->damage;
-        other->move_timer = SPEED_SCALE(50.0f);      // add a short move cooldown to enemies hit by projectiles
+        other->move_timer = SPEED_SCALE(20.0f);      // add a short move cooldown to enemies hit by projectiles
         other->elapsed_move_timer = 0;               // reset move timer to start cooldown immediately
         const float enemyStrength = other->strength; // save before possible removal
         if (other->health <= 0)
