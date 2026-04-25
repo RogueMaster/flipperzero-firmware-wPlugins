@@ -11,6 +11,10 @@
 #include ENGINE_LOG_INCLUDE
 #endif
 
+#define PLAYER_SPEED_HORIZONTAL SPEED_SCALE(0.2f)
+
+#define MINIMAP_DEFAULT false
+
 #define WALL_RENDER_ALLOWED false
 #define SKY_RENDER_ALLOWED false
 #define GROUND_RENDER_ALLOWED false
