@@ -4,44 +4,48 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define CAN_ID_STW_ACTN_RQ    0x045  // 69 - steering wheel stalk (Legacy follow distance)
-#define CAN_ID_AP_LEGACY      0x3EE  // 1006 - autopilot control (Legacy)
-#define CAN_ID_ISA_SPEED      0x399  // 921 - ISA speed chime (HW4)
-#define CAN_ID_GTW_CAR_CONFIG 0x398  // 920 - HW version detection
-#define CAN_ID_FOLLOW_DIST    0x3F8  // 1016 - follow distance / speed profile
-#define CAN_ID_AP_CONTROL     0x3FD  // 1021 - autopilot control (HW3/HW4)
-#define CAN_ID_EPAS_STATUS    0x370  // 880 - EPAS3P_sysStatus (nag killer target)
-#define CAN_ID_GTW_CAR_STATE  0x318  // 792 - GTW_carState (carries GTW_updateInProgress)
-#define CAN_ID_BMS_HV_BUS     0x132  // 306 - BMS_hvBusStatus (pack voltage / current)
-#define CAN_ID_BMS_SOC        0x292  // 658 - BMS_socStatus (state of charge)
-#define CAN_ID_BMS_THERMAL    0x312  // 786 - BMS_thermalStatus (battery temp)
-#define CAN_ID_TRIP_PLANNING  0x082  // 130 - UI_tripPlanning (precondition trigger)
+#define CAN_ID_STW_ACTN_RQ    0x045 // 69 - steering wheel stalk (Legacy follow distance)
+#define CAN_ID_AP_LEGACY      0x3EE // 1006 - autopilot control (Legacy)
+#define CAN_ID_ISA_SPEED      0x399 // 921 - ISA speed chime (HW4)
+#define CAN_ID_GTW_CAR_CONFIG 0x398 // 920 - HW version detection
+#define CAN_ID_FOLLOW_DIST    0x3F8 // 1016 - follow distance / speed profile
+#define CAN_ID_AP_CONTROL     0x3FD // 1021 - autopilot control (HW3/HW4)
+#define CAN_ID_EPAS_STATUS    0x370 // 880 - EPAS3P_sysStatus (nag killer target)
+#define CAN_ID_GTW_CAR_STATE  0x318 // 792 - GTW_carState (carries GTW_updateInProgress)
+#define CAN_ID_BMS_HV_BUS     0x132 // 306 - BMS_hvBusStatus (pack voltage / current)
+#define CAN_ID_BMS_SOC        0x292 // 658 - BMS_socStatus (state of charge)
+#define CAN_ID_BMS_THERMAL    0x312 // 786 - BMS_thermalStatus (battery temp)
+#define CAN_ID_TRIP_PLANNING  0x082 // 130 - UI_tripPlanning (precondition trigger)
 
 // --- Extras CAN IDs (Model 3/Y) ---
-#define CAN_ID_VCFRONT_LIGHT  0x3F5  // 1013 - ID3F5VCFRONT_lighting (hazard, fog, DRL, wiper)
-#define CAN_ID_SCCM_RSTALK   0x229  // 553  - SCCM_rightStalk (gear shift, park button)
-#define CAN_ID_DI_SYS_STATUS  0x118  // 280  - DI_systemStatus (track mode, traction ctrl)
-#define CAN_ID_VCRIGHT_STATUS 0x343  // 835  - VCRIGHT_status (rear defrost state)
-#define CAN_ID_DI_SPEED       0x257  // 599  - DI_speed (vehicle speed, checksummed)
-#define CAN_ID_ESP_STATUS     0x145  // 325  - ESP_status (brake, stability)
-#define CAN_ID_GTW_EPAS_CTRL  0x101  // 257  - GTW_epasControl (steering tune WRITE, Chassis CAN)
-#define CAN_ID_DAS_STATUS     0x39B  // 923  - DAS_status (AP state, nag, lane change, blind spot)
-#define CAN_ID_DAS_STATUS2    0x389  // 905  - DAS_status2 (ACC report, driver interaction)
-#define CAN_ID_DAS_SETTINGS   0x293  // 659  - DAS_settings (autosteer enable, steering weight, etc.)
-#define CAN_ID_DAS_AP_CONFIG  0x331  // 817  - DAS autopilot config (tier restore target, ~1 Hz)
-#define CAN_ID_GTW_CONFIG_ETH 0x7FF  // 2047 - GTW_carConfig on Ethernet/mixed bus (autopilot tier readback)
-#define CAN_ID_TRACK_MODE_SET 0x313  // 787  - UI_trackModeSettings (track mode request, checksummed)
-#define CAN_ID_SCCM_LSTALK   0x249  // 585  - SCCM_leftStalk (high beam, turn signal, wiper wash — Party CAN, 3 bytes)
-#define CAN_ID_DI_TORQUE     0x108  // 264  - DI_torque (motor torque/power — Party CAN)
-#define CAN_ID_DAS_CONTROL   0x2B9  // 697  - DAS_control (ACC state, set speed — Party CAN)
-#define CAN_ID_DI_STATE      0x286  // 646  - DI_state (cruise state, gear, park brake — Party CAN)
-#define CAN_ID_UI_WARNING    0x311  // 785  - UI_warning (blinker, door, buckle, wiper — Party CAN)
-#define CAN_ID_ESP_WHEELSPD  0x175  // 373  - ESP_wheelSpeeds (4 wheel speeds — Party CAN)
-#define CAN_ID_STEER_ANGLE   0x129  // 297  - SCCM_steeringAngleSensor (steering angle — Party CAN)
-#define CAN_ID_DAS_STEER     0x488  // 1160 - DAS_steeringControl (DAS steering request — Party CAN)
-#define CAN_ID_APS_EACMON    0x27D  // 637  - APS_eacMonitor (steering permission — Party CAN)
-#define CAN_ID_ENERGY_CONS   0x33A  // 826  - UI_ratedConsumption (energy Wh/km — Party CAN)
-#define CAN_ID_DRIVER_ASSIST 0x3F8  // 1016 - UI_driverAssistControl (also follow distance — Party CAN)
+#define CAN_ID_VCFRONT_LIGHT  0x3F5 // 1013 - ID3F5VCFRONT_lighting (hazard, fog, DRL, wiper)
+#define CAN_ID_SCCM_RSTALK    0x229 // 553  - SCCM_rightStalk (gear shift, park button)
+#define CAN_ID_DI_SYS_STATUS  0x118 // 280  - DI_systemStatus (track mode, traction ctrl)
+#define CAN_ID_VCRIGHT_STATUS 0x343 // 835  - VCRIGHT_status (rear defrost state)
+#define CAN_ID_DI_SPEED       0x257 // 599  - DI_speed (vehicle speed, checksummed)
+#define CAN_ID_ESP_STATUS     0x145 // 325  - ESP_status (brake, stability)
+#define CAN_ID_GTW_EPAS_CTRL  0x101 // 257  - GTW_epasControl (steering tune WRITE, Chassis CAN)
+#define CAN_ID_DAS_STATUS     0x39B // 923  - DAS_status (AP state, nag, lane change, blind spot)
+#define CAN_ID_DAS_STATUS2    0x389 // 905  - DAS_status2 (ACC report, driver interaction)
+#define CAN_ID_DAS_SETTINGS   0x293 // 659  - DAS_settings (autosteer enable, steering weight, etc.)
+#define CAN_ID_DAS_AP_CONFIG  0x331 // 817  - DAS autopilot config (tier restore target, ~1 Hz)
+#define CAN_ID_GTW_CONFIG_ETH \
+    0x7FF // 2047 - GTW_carConfig on Ethernet/mixed bus (autopilot tier readback)
+#define CAN_ID_TRACK_MODE_SET \
+    0x313 // 787  - UI_trackModeSettings (track mode request, checksummed)
+#define CAN_ID_SCCM_LSTALK \
+    0x249 // 585  - SCCM_leftStalk (high beam, turn signal, wiper wash — Party CAN, 3 bytes)
+#define CAN_ID_DI_TORQUE    0x108 // 264  - DI_torque (motor torque/power — Party CAN)
+#define CAN_ID_DAS_CONTROL  0x2B9 // 697  - DAS_control (ACC state, set speed — Party CAN)
+#define CAN_ID_DI_STATE     0x286 // 646  - DI_state (cruise state, gear, park brake — Party CAN)
+#define CAN_ID_UI_WARNING   0x311 // 785  - UI_warning (blinker, door, buckle, wiper — Party CAN)
+#define CAN_ID_ESP_WHEELSPD 0x175 // 373  - ESP_wheelSpeeds (4 wheel speeds — Party CAN)
+#define CAN_ID_STEER_ANGLE  0x129 // 297  - SCCM_steeringAngleSensor (steering angle — Party CAN)
+#define CAN_ID_DAS_STEER    0x488 // 1160 - DAS_steeringControl (DAS steering request — Party CAN)
+#define CAN_ID_APS_EACMON   0x27D // 637  - APS_eacMonitor (steering permission — Party CAN)
+#define CAN_ID_ENERGY_CONS  0x33A // 826  - UI_ratedConsumption (energy Wh/km — Party CAN)
+#define CAN_ID_DRIVER_ASSIST \
+    0x3F8 // 1016 - UI_driverAssistControl (also follow distance — Party CAN)
 
 typedef enum {
     TeslaHW_Unknown = 0,
@@ -51,9 +55,9 @@ typedef enum {
 } TeslaHWVersion;
 
 typedef enum {
-    OpMode_Active = 0,    // RX + TX, normal operation
-    OpMode_ListenOnly,    // pure passive sniff, no TX at all
-    OpMode_Service,       // unrestricted, gates aggressive features
+    OpMode_Active = 0, // RX + TX, normal operation
+    OpMode_ListenOnly, // pure passive sniff, no TX at all
+    OpMode_Service, // unrestricted, gates aggressive features
 } OpMode;
 
 typedef struct {
@@ -67,14 +71,14 @@ typedef struct {
     bool force_fsd;
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
-    bool nag_killer;           // CAN 880 counter echo method
+    bool nag_killer; // CAN 880 counter echo method
     uint32_t nag_echo_count;
 
     // operation mode + diagnostics
     OpMode op_mode;
-    bool tesla_ota_in_progress;  // pause TX while Tesla is updating
-    uint32_t crc_err_count;      // CAN bus error counter
-    uint32_t rx_count;            // total frames seen (for wiring sanity check)
+    bool tesla_ota_in_progress; // pause TX while Tesla is updating
+    uint32_t crc_err_count; // CAN bus error counter
+    uint32_t rx_count; // total frames seen (for wiring sanity check)
 
     // live BMS data (read-only sniff)
     bool bms_seen;
@@ -88,67 +92,67 @@ typedef struct {
     bool precondition;
 
     // --- extras: read-only vehicle state (parsed from bus) ---
-    uint8_t track_mode_state;    // 0=unavail 1=avail 2=on (from 0x118)
-    uint8_t traction_ctrl_mode;  // 0..7 (from 0x118)
-    uint8_t rear_defrost_state;  // 0=sna 1=on 2=off (from 0x343)
-    float vehicle_speed_kph;     // from 0x257 DI_vehicleSpeed (12-bit, 0.08 factor, -40 offset)
-    uint8_t ui_speed;            // from 0x257 DI_uiSpeed (8-bit, display value)
-    uint8_t steering_tune_mode;  // from 0x370 EPAS3S_currentTuneMode (0-6)
+    uint8_t track_mode_state; // 0=unavail 1=avail 2=on (from 0x118)
+    uint8_t traction_ctrl_mode; // 0..7 (from 0x118)
+    uint8_t rear_defrost_state; // 0=sna 1=on 2=off (from 0x343)
+    float vehicle_speed_kph; // from 0x257 DI_vehicleSpeed (12-bit, 0.08 factor, -40 offset)
+    uint8_t ui_speed; // from 0x257 DI_uiSpeed (8-bit, display value)
+    uint8_t steering_tune_mode; // from 0x370 EPAS3S_currentTuneMode (0-6)
     float torsion_bar_torque_nm; // from 0x370 EPAS3S_torsionBarTorque
-    bool driver_brake_applied;   // from 0x145 ESP_driverBrakeApply
-    bool speed_seen;             // true once we've parsed at least one 0x257
+    bool driver_brake_applied; // from 0x145 ESP_driverBrakeApply
+    bool speed_seen; // true once we've parsed at least one 0x257
 
     // --- DAS state (from 0x39B / 0x389 — Party CAN, read-only) ---
-    uint8_t das_hands_on_state;  // 0-15 (4-bit nag level from DAS, more precise than EPAS 2-bit)
-    uint8_t das_lane_change;     // 0-31 (5-bit auto lane change state)
-    uint8_t das_side_coll_warn;  // 0-3  (side collision / blind spot warning)
+    uint8_t das_hands_on_state; // 0-15 (4-bit nag level from DAS, more precise than EPAS 2-bit)
+    uint8_t das_lane_change; // 0-31 (5-bit auto lane change state)
+    uint8_t das_side_coll_warn; // 0-3  (side collision / blind spot warning)
     uint8_t das_side_coll_avoid; // 0-3  (side collision avoidance active)
-    uint8_t das_fcw;             // 0-3  (forward collision warning)
-    uint8_t das_vision_speed_lim;// raw×5 = kph/mph
-    uint8_t das_acc_report;      // 0-24 (ACC state: 0=off, higher=active modes)
+    uint8_t das_fcw; // 0-3  (forward collision warning)
+    uint8_t das_vision_speed_lim; // raw×5 = kph/mph
+    uint8_t das_acc_report; // 0-24 (ACC state: 0=off, higher=active modes)
     uint8_t das_activation_fail; // 0-2  (why AP failed to activate)
-    bool das_autosteer_on;       // from 0x293 DAS_autosteerEnabled readback
-    bool das_seen;               // true once we've parsed at least one 0x39B
+    bool das_autosteer_on; // from 0x293 DAS_autosteerEnabled readback
+    bool das_seen; // true once we've parsed at least one 0x39B
 
     // --- GTW autopilot tier (from 0x7FF mux=2 on mixed bus) ---
     // 0=NONE 1=HIGHWAY 2=ENHANCED 3=SELF_DRIVING 4=BASIC
     // Source: ev-open-can-tools readGTWAutopilot()
-    int8_t gtw_autopilot_tier;   // -1 = not yet read
+    int8_t gtw_autopilot_tier; // -1 = not yet read
 
     // --- 0x7FF shield (ban defense) ---
     // Snapshots of all 8 GTW_carConfig mux frames in "healthy" state.
     // When shield is armed: any incoming 0x7FF that differs from snapshot
     // is immediately retransmitted with the snapshot data, blocking
     // server-side ban pushes at the CAN layer.
-    uint8_t gtw_snapshot[8][8];  // [mux][byte0..7], 64 bytes total
-    bool gtw_snapshot_valid[8];  // per-mux: has this mux been captured?
-    bool gtw_shield_armed;       // true = actively blocking changes
-    uint32_t gtw_shield_blocks;  // counter: how many frames we've blocked
+    uint8_t gtw_snapshot[8][8]; // [mux][byte0..7], 64 bytes total
+    bool gtw_snapshot_valid[8]; // per-mux: has this mux been captured?
+    bool gtw_shield_armed; // true = actively blocking changes
+    uint32_t gtw_shield_blocks; // counter: how many frames we've blocked
 
     // --- upstream feature flags ---
-    bool enhanced_autopilot;     // when true, mux=1 also sets bit46 (EAP/summon)
-    bool speed_profile_locked;   // when true, follow distance won't override profile
-    uint8_t hw4_offset;          // HW4 mux=2 speed offset override (0 = no override)
+    bool enhanced_autopilot; // when true, mux=1 also sets bit46 (EAP/summon)
+    bool speed_profile_locked; // when true, follow distance won't override profile
+    uint8_t hw4_offset; // HW4 mux=2 speed offset override (0 = no override)
 
     // --- DAS_control (0x2B9) — ACC / longitudinal state ---
-    uint8_t das_acc_state;       // 0-15 (0=cancel, 3=hold, 4=ACC_ON, 9=pause)
-    float das_set_speed_kph;     // set cruise speed (0.1 kph resolution)
+    uint8_t das_acc_state; // 0-15 (0=cancel, 3=hold, 4=ACC_ON, 9=pause)
+    float das_set_speed_kph; // set cruise speed (0.1 kph resolution)
 
     // --- DI_state (0x286) — cruise, gear, park brake ---
-    uint8_t di_cruise_state;     // 0-7 (0=unavail 1=standby 2=enabled 3=standstill)
+    uint8_t di_cruise_state; // 0-7 (0=unavail 1=standby 2=enabled 3=standstill)
     uint8_t di_park_brake_state; // 0-15
-    uint8_t di_autopark_state;   // 0-15
-    uint8_t di_digital_speed;    // 0.5 kph resolution (9-bit)
+    uint8_t di_autopark_state; // 0-15
+    uint8_t di_digital_speed; // 0.5 kph resolution (9-bit)
 
     // --- DI_torque (0x108) — motor power ---
-    float di_torque_nm;          // drive motor torque
+    float di_torque_nm; // drive motor torque
     bool di_torque_seen;
 
     // --- UI_warning (0x311) — dashboard indicators ---
     bool ui_left_blinker;
     bool ui_right_blinker;
     bool ui_any_door_open;
-    bool ui_buckle_status;       // seatbelt
+    bool ui_buckle_status; // seatbelt
     bool ui_high_beam;
     bool ui_warning_seen;
 
@@ -156,25 +160,25 @@ typedef struct {
     float steering_angle_deg;
 
     // --- DAS_steeringControl (0x488) ---
-    float das_steer_angle_req;   // DAS requested angle
-    uint8_t das_steer_type;      // 0=none 1=angle_ctrl 2=LKA 3=ELK
+    float das_steer_angle_req; // DAS requested angle
+    uint8_t das_steer_type; // 0=none 1=angle_ctrl 2=LKA 3=ELK
 
     // --- TLSSC Restore (0x331 DAS config spoof) ---
-    bool tlssc_restore;          // read-modify-retransmit 0x331 to set tier=SELF_DRIVING
+    bool tlssc_restore; // read-modify-retransmit 0x331 to set tier=SELF_DRIVING
     uint32_t tlssc_restore_count; // frames modified
 
     // --- 0x7FF active tier override (force SELF_DRIVING) ---
-    bool gtw_tier_override;      // actively write tier=3 on every 0x7FF mux=2
+    bool gtw_tier_override; // actively write tier=3 on every 0x7FF mux=2
 
     // --- 0x3F8 driver assist overrides (FUCKYOU-TESLA feature parity) ---
-    bool assist_nav_enable;      // bit13 + bit48 + bit49: nav-based FSD routing
-    bool assist_hands_off;       // bit14: UI-level hands-on disable
-    bool assist_dev_mode;        // bit5: UI_dasDeveloper flag
-    bool assist_lhd_override;    // bit40-41: force left-hand drive
+    bool assist_nav_enable; // bit13 + bit48 + bit49: nav-based FSD routing
+    bool assist_hands_off; // bit14: UI-level hands-on disable
+    bool assist_dev_mode; // bit5: UI_dasDeveloper flag
+    bool assist_lhd_override; // bit40-41: force left-hand drive
 
     // --- 0x3FD mux1 extras ---
     bool assist_show_lane_graph; // bit45: lane visualization on non-FSD tier
-    bool assist_tlssc_bit38;     // bit38 on mux0: explicit TLSSC enable (complementary to 0x331)
+    bool assist_tlssc_bit38; // bit38 on mux0: explicit TLSSC enable (complementary to 0x331)
 
     // --- energy consumption (0x33A, read-only) ---
     float energy_wh_per_km;
@@ -183,12 +187,12 @@ typedef struct {
     // --- extras: write toggles (BETA, Service mode only) ---
     bool extra_hazard_lights;
     bool extra_wiper_off;
-    bool extra_park_inject;      // inject a PARK stalk press
+    bool extra_park_inject; // inject a PARK stalk press
     uint8_t extra_steering_mode; // 0=no change, 1=comfort 2=standard 3=sport (GTW_epasTuneRequest)
-    bool extra_highbeam_strobe;   // rapid PULL/IDLE toggle on SCCM_leftStalk
-    bool extra_turn_left;         // inject left turn signal
-    bool extra_turn_right;        // inject right turn signal
-    bool extra_wiper_wash;        // inject wiper wash button press
+    bool extra_highbeam_strobe; // rapid PULL/IDLE toggle on SCCM_leftStalk
+    bool extra_turn_left; // inject left turn signal
+    bool extra_turn_right; // inject right turn signal
+    bool extra_wiper_wash; // inject wiper wash button press
 } FSDState;
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw);

@@ -64,20 +64,20 @@ typedef struct {
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
     bool nag_killer;
-    bool precondition;       // periodic 0x082 inject for battery preheat
-    OpMode op_mode;          // Active / ListenOnly / Service
-    uint8_t mcp_clock;       // 0 = 16MHz (default), 1 = 8MHz
-    bool gtw_shield;         // 0x7FF ban defense shield
-    bool tlssc_restore;      // 0x331 DAS config spoof to restore TLSSC
-    bool gtw_tier_override;  // 0x7FF active tier=SELF_DRIVING override
+    bool precondition; // periodic 0x082 inject for battery preheat
+    OpMode op_mode; // Active / ListenOnly / Service
+    uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz
+    bool gtw_shield; // 0x7FF ban defense shield
+    bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
+    bool gtw_tier_override; // 0x7FF active tier=SELF_DRIVING override
 
     // driver assist overrides (0x3F8 + 0x3FD)
-    bool assist_nav_enable;      // nav-based FSD routing (EU/restricted)
-    bool assist_hands_off;       // UI-level hands-on disable
-    bool assist_dev_mode;        // developer mode flag
-    bool assist_lhd_override;    // force left-hand drive
+    bool assist_nav_enable; // nav-based FSD routing (EU/restricted)
+    bool assist_hands_off; // UI-level hands-on disable
+    bool assist_dev_mode; // developer mode flag
+    bool assist_lhd_override; // force left-hand drive
     bool assist_show_lane_graph; // lane visualization
-    bool assist_tlssc_bit38;     // explicit TLSSC enable on 0x3FD mux0
+    bool assist_tlssc_bit38; // explicit TLSSC enable on 0x3FD mux0
 
     // extras toggles (BETA — need on-vehicle verification per CAN ID)
     bool extra_hazard_lights;
@@ -86,9 +86,9 @@ typedef struct {
     bool extra_fold_mirrors;
     bool extra_rear_fog;
     uint8_t extra_steering_mode; // 0=no change, 1=comfort, 2=standard, 3=sport (Chassis CAN)
-    bool extra_highbeam_strobe;   // rapid high beam flash (Party CAN 0x249)
-    bool extra_turn_left;         // inject left turn signal
-    bool extra_turn_right;        // inject right turn signal
+    bool extra_highbeam_strobe; // rapid high beam flash (Party CAN 0x249)
+    bool extra_turn_left; // inject left turn signal
+    bool extra_turn_right; // inject right turn signal
 } TeslaFSDApp;
 
 TeslaFSDApp* tesla_fsd_app_alloc(void);
