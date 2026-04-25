@@ -427,7 +427,7 @@ void tagtinker_settings_load(TagTinkerApp* app) {
     File* file = storage_file_alloc(storage);
 
     app->show_startup_warning = true;
-    app->data_frame_repeats = 3;
+    app->data_frame_repeats = 2;
     app->signal_mode = TagTinkerSignalPP4;
 
     if(storage_file_open(file, APP_DATA_PATH("settings.txt"), FSAM_READ, FSOM_OPEN_EXISTING)) {

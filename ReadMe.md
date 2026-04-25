@@ -38,9 +38,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Ghouls v0.3 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - Updated: [Weebo v0.5 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer) Added Figures & [Add Amiibo cycling functionality while emulating (By sethgregory)](https://github.com/bettse/weebo/pull/11)
 - Updated: [Tesla Mod v2.11 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [TagTinker v2.0 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - Added: [APRS TX v1.3.17 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Updated: [ProtoPirate v2.9 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- Updated: [TagTinker v2.0 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 
 <a name="release"></a>
 

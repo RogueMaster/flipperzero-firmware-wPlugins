@@ -50,19 +50,19 @@ static TagTinkerTagColor tx_target_color(const TagTinkerApp* app) {
 
 static bool tx_send_frame(TagTinkerApp* app, const uint8_t* frame, size_t len, uint16_t repeats) {
     if(!app->tx_active) return false;
-    return tagtinker_ir_transmit(frame, len, tx_apply_signal_mode(app, repeats), 10);
+    return tagtinker_ir_transmit(frame, len, tx_apply_signal_mode(app, repeats), 1);
 }
 
 static bool tx_send_ping(TagTinkerApp* app, const uint8_t plid[4]) {
     uint8_t frame[TAGTINKER_MAX_FRAME_SIZE];
     size_t len = tagtinker_make_ping_frame(frame, plid);
-    return tx_send_frame(app, frame, len, 250);
+    return tx_send_frame(app, frame, len, 80);
 }
 
 static bool tx_send_refresh(TagTinkerApp* app, const uint8_t plid[4]) {
     uint8_t frame[TAGTINKER_MAX_FRAME_SIZE];
     size_t len = tagtinker_make_refresh_frame(frame, plid);
-    return tx_send_frame(app, frame, len, 50);
+    return tx_send_frame(app, frame, len, 20);
 }
 
 static bool tx_should_send_full_job(uint16_t width, uint16_t height, bool second_plane) {
@@ -84,7 +84,7 @@ static bool tx_send_image_start(
     uint8_t frame[TAGTINKER_MAX_FRAME_SIZE];
     size_t len = tagtinker_make_image_param_frame(
         frame, plid, byte_count, comp_type, page, width, height, pos_x, pos_y);
-    return tx_send_frame(app, frame, len, 30);
+    return tx_send_frame(app, frame, len, 15);
 }
 
 static bool tx_send_payload_frames(
@@ -107,7 +107,7 @@ static bool tx_send_payload_frames(
         height,
         pos_x,
         pos_y);
-    if(ok) furi_delay_ms(120);
+    if(ok) furi_delay_ms(50);
 
     size_t frame_count = payload->byte_count / TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME;
     for(size_t i = 0; ok && i < frame_count; i++) {
@@ -115,7 +115,7 @@ static bool tx_send_payload_frames(
             frame, plid, (uint16_t)i, &payload->data[i * TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME]);
         ok = tx_send_frame(app, frame, len, app->data_frame_repeats);
         /* Short delay to avoid tag overflow */
-        if(ok && ((i + 1U) % 16U) == 0U && (i + 1U) < frame_count) {
+        if(ok && ((i + 1U) % 32U) == 0U && (i + 1U) < frame_count) {
             furi_delay_ms(1);
         }
     }
@@ -147,10 +147,13 @@ static bool tx_send_image_chunk(
 }
 
 static uint32_t tx_chunk_settle_delay_ms(uint16_t width, uint16_t height, bool color_clear) {
-    size_t work_pixels = (size_t)width * height * (color_clear ? 2U : 1U);
-    uint32_t delay_ms = 2000U + (uint32_t)(work_pixels / 5U);
-    if(delay_ms < 3500U) delay_ms = 3500U;
-    if(delay_ms > 9000U) delay_ms = 9000U;
+    /* Tag needs time to process each chunk before accepting the next one.
+     * Keep this as short as possible while remaining reliable. */
+    UNUSED(color_clear);
+    size_t work_pixels = (size_t)width * height;
+    uint32_t delay_ms = 500U + (uint32_t)(work_pixels / 20U);
+    if(delay_ms < 800U) delay_ms = 800U;
+    if(delay_ms > 2000U) delay_ms = 2000U;
     return delay_ms;
 }
 
@@ -190,9 +193,9 @@ static bool tx_send_full_payload(
     uint16_t pos_x,
     uint16_t pos_y) {
     bool ok = tx_send_ping(app, plid);
-    if(ok) furi_delay_ms(120);
+    if(ok) furi_delay_ms(50);
     if(ok) ok = tx_send_payload_frames(app, plid, payload, page, width, height, pos_x, pos_y);
-    if(ok) furi_delay_ms(120);
+    if(ok) furi_delay_ms(50);
     if(ok) ok = tx_send_refresh(app, plid);
     return ok;
 }
@@ -324,7 +327,7 @@ static bool tx_stream_text_image(TagTinkerApp* app) {
         }
 
         ok = tx_send_ping(app, job->plid);
-        if(ok) furi_delay_ms(30);
+        if(ok) furi_delay_ms(10);
         ok = tx_send_image_chunk(
             app,
             job->plid,
@@ -335,7 +338,7 @@ static bool tx_stream_text_image(TagTinkerApp* app) {
             job->page,
             job->pos_x,
             (uint16_t)(job->pos_y + y));
-        if(ok) furi_delay_ms(20);
+        if(ok) furi_delay_ms(10);
         if(ok) ok = tx_send_refresh(app, job->plid);
 
         if(ok && (uint16_t)(y + actual_h) < job->height) {
@@ -729,7 +732,7 @@ static int32_t tx_thread_callback(void* context) {
     /* Let OS settle (especially BLE teardown) before IR blasting */
     if(app->image_tx_job.mode == TagTinkerTxModeBmpImage ||
        app->image_tx_job.mode == TagTinkerTxModeTextImage) {
-        furi_delay_ms(1000);
+        furi_delay_ms(500);
     }
 
     do {

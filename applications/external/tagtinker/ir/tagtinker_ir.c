@@ -153,15 +153,15 @@ bool tagtinker_ir_transmit(const uint8_t* data, size_t len, uint16_t repeats_raw
         FURI_CRITICAL_EXIT();
 
         if(rep < repeats) {
-            /* Yield to OS between repeats for smooth animation */
+            /* Short gap between repeats using cycle-accurate delay.
+             * delay parameter = gap in units of 500µs.
+             * Always yield to OS every 5 repeats to prevent watchdog starvation. */
             if(delay > 0) {
-                uint32_t delay_us = (uint32_t)delay * 500U;
-                uint32_t delay_ms_yield = delay_us / 1000U;
-                if(delay_ms_yield > 0) furi_delay_ms(delay_ms_yield);
-            } else {
-                /* Even with delay=0, yield every 10 reps to keep the OS alive */
-                if((rep % 10U) == 9U) furi_delay_ms(1);
+                uint32_t gap_cycles = (uint32_t)delay * 32000U; /* 500µs per unit at 64MHz */
+                delay_cycles(gap_cycles);
             }
+            /* Yield to OS periodically */
+            if((rep % 5U) == 4U) furi_delay_ms(1);
         }
     }
 
