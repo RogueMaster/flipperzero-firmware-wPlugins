@@ -39,8 +39,10 @@ public:
         return sky;
     }
 #endif
+    bool isPositionAvailable(Vector position);
     virtual void render(Game* game) override;
     void renderMiniMap(Draw* canvas);
+    void renderMiniatureMiniMap(Draw* canvas);
     virtual void update(Game* game) override;
 
 private:

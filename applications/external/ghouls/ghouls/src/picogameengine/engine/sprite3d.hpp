@@ -17,7 +17,7 @@ typedef enum {
 class Sprite3D {
 private:
     Triangle3D* triangles[ENGINE_MAX_TRIANGLES_PER_SPRITE];
-    uint8_t triangle_count;
+    uint16_t triangle_count;
     Vector position;
     float rotation_y;
     float scale_factor;
@@ -28,8 +28,8 @@ public:
     Sprite3D();
     ~Sprite3D();
 
-    void addTriangle(const Triangle3D& triangle);
-    void addTriangle(
+    bool addTriangle(const Triangle3D& triangle);
+    bool addTriangle(
         float x1,
         float y1,
         float z1,
@@ -42,19 +42,19 @@ public:
         uint16_t color = 0x0000,
         bool wireframe = true);
     void clearTriangles();
-    void createHumanoid(float height = 1.8f, uint16_t color = 0x0000, bool wireframe = true);
-    void createTree(float height = 2.0f, uint16_t color = 0x0000, bool wireframe = true);
-    void createHouse(
+    bool createHumanoid(float height = 1.8f, uint16_t color = 0x0000, bool wireframe = true);
+    bool createTree(float height = 2.0f, uint16_t color = 0x0000, bool wireframe = true);
+    bool createHouse(
         float width = 2.0f,
         float height = 2.5f,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void createPillar(
+    bool createPillar(
         float height = 3.0f,
         float radius = 0.3f,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void createWall(
+    bool createWall(
         float x,
         float y,
         float z,
@@ -63,7 +63,7 @@ public:
         float depth = 0.2f,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void createCube(
+    bool createCube(
         float x,
         float y,
         float z,
@@ -72,7 +72,7 @@ public:
         float depth,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void createCylinder(
+    bool createCylinder(
         float x,
         float y,
         float z,
@@ -81,7 +81,7 @@ public:
         uint8_t segments,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void createSphere(
+    bool createSphere(
         float x,
         float y,
         float z,
@@ -89,7 +89,7 @@ public:
         uint8_t segments,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void createTriangularPrism(
+    bool createTriangularPrism(
         float x,
         float y,
         float z,
@@ -107,8 +107,8 @@ public:
     float getScale() const {
         return scale_factor;
     }
-    Triangle3D getTransformedTriangle(uint8_t index, const Vector& camera_pos) const;
-    uint8_t getTriangleCount() const {
+    Triangle3D getTransformedTriangle(uint16_t index, const Vector& camera_pos) const;
+    uint16_t getTriangleCount() const {
         return triangle_count;
     }
     SpriteType getType() const {
@@ -130,25 +130,25 @@ public:
         scale_factor = scale;
     }
     void setWireframe(bool wireframe);
-    void initializeAsHouse(
+    bool initializeAsHouse(
         Vector pos,
         float width,
         float height,
         float rot,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void initializeAsHumanoid(
+    bool initializeAsHumanoid(
         Vector pos,
         float height,
         float rot,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void initializeAsPillar(
+    bool initializeAsPillar(
         Vector pos,
         float height,
         float radius,
         uint16_t color = 0x0000,
         bool wireframe = true);
-    void
+    bool
         initializeAsTree(Vector pos, float height, uint16_t color = 0x0000, bool wireframe = true);
 };

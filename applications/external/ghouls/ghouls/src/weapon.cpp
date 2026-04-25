@@ -1,12 +1,12 @@
 #include "weapon.hpp"
 #include "picogameengine/engine/game.hpp"
 #include "general.hpp"
+#include "level.hpp"
 
 Weapon::Weapon(WeaponType type, float height, Vector position)
     : Entity("Weapon", ENTITY_NPC, position, Vector(0, height), nullptr) {
     this->currentProjectile = nullptr;
     this->held = false;
-    this->cooldown = 0;
     this->weaponType = type;
     //
     sprite_3d_type = SPRITE_3D_CUSTOM;
@@ -26,27 +26,23 @@ Weapon::Weapon(WeaponType type, float height, Vector position)
     case WEAPON_RIFLE:
         damage = 15.0f;
         ammo = 30;
-        cooldown_max = SPEED_SCALE(20); // 20 ticks between shots
         projectileType = PROJECTILE_BULLET;
         makeRifle(height);
         break;
     case WEAPON_SHOTGUN:
         damage = 20.0f;
         ammo = 10;
-        cooldown_max = SPEED_SCALE(40); // 40 ticks between shots
-        projectileType = PROJECTILE_BULLET;
+        projectileType = PROJECTILE_SHELL;
         makeShotgun(height);
         break;
     case WEAPON_ROCKET_LAUNCHER:
         damage = 50.0f;
         ammo = 5;
-        cooldown_max = SPEED_SCALE(100); // 100 ticks between shots
         projectileType = PROJECTILE_ROCKET;
         makeRocketLauncher(height);
         break;
     case WEAPON_CROSSBOW:
         damage = 35.0f;
-        cooldown_max = SPEED_SCALE(60); // 60 ticks between shots
         projectileType = PROJECTILE_ARROW;
         ammo = 15;
         makeCrossbow(height);
@@ -54,7 +50,6 @@ Weapon::Weapon(WeaponType type, float height, Vector position)
     default:
         damage = 0.0f;
         ammo = 0;
-        cooldown_max = 0;
         projectileType = PROJECTILE_NONE;
         break;
     };
@@ -73,7 +68,7 @@ void Weapon::addAmmo(uint16_t amount) {
 }
 
 bool Weapon::canFire() const {
-    return cooldown == 0 && ammo > 0;
+    return ammo > 0;
 }
 
 bool Weapon::fire(Level* level) {
@@ -97,7 +92,6 @@ bool Weapon::fire(Level* level) {
     }
     level->entity_add(currentProjectile);
     ammo--;
-    cooldown = cooldown_max;
     return true;
 }
 
@@ -312,7 +306,6 @@ void Weapon::makeShotgun(float height) {
 }
 
 void Weapon::reset(Level* level) {
-    cooldown = 0;
     switch(weaponType) {
     case WEAPON_RIFLE:
         ammo = 30;
@@ -342,10 +335,6 @@ void Weapon::setAmmo(uint16_t ammo) {
     this->ammo = ammo;
 }
 
-void Weapon::setCooldown(uint16_t cooldown) {
-    this->cooldown_max = cooldown;
-}
-
 void Weapon::setDamage(float damage) {
     this->damage = damage;
     if(currentProjectile) {
@@ -362,12 +351,26 @@ void Weapon::setWeaponType(WeaponType type) {
 }
 
 void Weapon::update(Game* game) {
-    if(cooldown > 0) cooldown--;
-
-    // we'll add rotation/animation here like the enemy sprites
-
-    Level* currentLevel = game->current_level;
+    GhoulsLevel* currentLevel = static_cast<GhoulsLevel*>(game->current_level);
     if(!currentLevel) return;
+
+    if(!held) {
+        const float rotSpeed = SPEED_SCALE(0.05f);
+
+        float old_dir_x = direction.x;
+        float old_plane_x = plane.x;
+
+        direction.x = direction.x * cos(-rotSpeed) - direction.y * sin(-rotSpeed);
+        direction.y = old_dir_x * sin(-rotSpeed) + direction.y * cos(-rotSpeed);
+        plane.x = plane.x * cos(-rotSpeed) - plane.y * sin(-rotSpeed);
+        plane.y = old_plane_x * sin(-rotSpeed) + plane.y * cos(-rotSpeed);
+
+        // Update sprite rotation to match new camera direction
+        if(has3DSprite()) {
+            float rotation_angle = atan2f(direction.y, direction.x) + M_PI_2;
+            set3DSpriteRotation(rotation_angle);
+        }
+    }
 
     // check for dead projectile
     if(currentProjectile != nullptr && !currentProjectile->is_active) {
