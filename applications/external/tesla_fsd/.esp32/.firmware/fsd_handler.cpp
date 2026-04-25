@@ -43,7 +43,7 @@ static bool is_fsd_selected(const CanFrame *frame, bool force_fsd) {
 
 void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     memset(state, 0, sizeof(FSDState));
-    state->hw_version = hw;
+    fsd_apply_hw_version(state, hw);
     state->op_mode    = OpMode_ListenOnly;  // safe default — never TX on boot
 
     // Feature flags: nag killer and chime suppress default ON; others OFF
@@ -52,7 +52,15 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->emergency_vehicle_detect = false;
     state->force_fsd            = false;
     state->bms_output           = false;
+    state->sleep_idle_ms        = SLEEP_IDLE_MS;
 
+    strncpy(state->wifi_ssid, "Tesla-FSD", sizeof(state->wifi_ssid));
+    strncpy(state->wifi_pass, "12345678",  sizeof(state->wifi_pass));
+    state->wifi_hidden = false;
+}
+
+void fsd_apply_hw_version(FSDState *state, TeslaHWVersion hw) {
+    state->hw_version = hw;
     // Default speed profile per HW version
     if (hw == TeslaHW_HW4)
         state->speed_profile = 4;
@@ -269,37 +277,82 @@ bool fsd_handle_isa_speed_chime(CanFrame *frame) {
 
 // ── NAG killer: counter+1 echo of EPAS3P_sysStatus (0x370) ──────────────────
 //
-// When handsOnLevel == 0 (car about to nag), we build a spoofed EPAS frame
-// with handsOnLevel = 1 and counter = original_counter + 1, then send it
-// BEFORE the real frame hits the DAS.  The DAS sees "hands on" and suppresses
-// the nag.  The real EPAS frame arrives later with the old counter value and
-// is rejected as a duplicate.
+// When handsOnLevel == 0 (nag imminent) or 3 (escalated alarm), we send a
+// spoofed EPAS frame with handsOnLevel=1 and counter+1 before the real frame
+// reaches the DAS.  The DAS sees "hands on" and drops the nag.
 //
-// Checksum formula (same as the Chinese TSL6P module):
-//   byte7 = (sum(byte0..6) + 0x73) & 0xFF
-//   where 0x73 = (0x370 & 0xFF) + (0x370 >> 8) = 0x70 + 0x03
+// DAS-aware gating: also checks das_hands_on_state from 0x39B.  States 0
+// (NOT_REQD) and 8 (SUSPENDED) mean DAS is already satisfied — skip the echo
+// to avoid ~25 spurious frames/sec on the bus.  If 0x39B has never been seen
+// (das_seen==false), we echo conservatively based on EPAS level alone.
+//
+// Organic torque: torsionBarTorque uses a xorshift32 random walk [1.00–2.40 Nm]
+// with brief grip pulses [3.10–3.30 Nm] every 5–9 s.  A flat signal for 30+
+// minutes is a statistical impossibility from a real hand and is a known
+// telemetry detection vector.
+//
+// Checksum: byte7 = (sum(byte0..6) + 0x70 + 0x03) & 0xFF  (CAN ID 0x370 split)
+
+static uint32_t nag_prng_state       = 0xDEADBEEFu;
+static int16_t  nag_torq_walk        = 2230;   // raw init ≈ 1.80 Nm
+static uint8_t  nag_exc_frames       = 0;
+static uint16_t nag_frames_until_exc = 175;
+
+static uint32_t nag_xorshift32() {
+    uint32_t x = nag_prng_state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    nag_prng_state = x;
+    return x;
+}
 
 bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out) {
-    if (frame->dlc < 8)    return false;
+    if (frame->dlc < 8)     return false;
     if (!state->nag_killer) return false;
 
-    // Act when handsOnLevel == 0 (nag imminent) or == 3 (escalated alarm).
-    // Level 1 = hands confirmed OK — no action needed.
-    uint8_t hands_on = (frame->data[4] >> 6) & 0x03;
+    // EPAS handsOnLevel: bits 7:6 of byte 4.  Skip only when level==1 (hands OK).
+    uint8_t hands_on = (frame->data[4] >> 6) & 0x03u;
     if (hands_on == 1) return false;
+
+    // DAS-aware gating — skip echo when DAS itself is satisfied.
+    if (state->das_seen) {
+        uint8_t das = state->das_hands_on_state;
+        if (das == 0 || das == 8) return false;
+    }
+
+    // Organic torque random walk
+    int16_t torq;
+    if (nag_exc_frames > 0) {
+        // Grip pulse: ~3.20 Nm ± noise
+        torq = 2350 + (int16_t)((int)(nag_xorshift32() % 41u) - 20);
+        nag_exc_frames--;
+    } else {
+        int16_t step = (int16_t)((int)(nag_xorshift32() % 31u) - 15);
+        nag_torq_walk += step;
+        if (nag_torq_walk < 2150) nag_torq_walk = 2150;  // min ~1.00 Nm
+        if (nag_torq_walk > 2290) nag_torq_walk = 2290;  // max ~2.40 Nm
+        torq = nag_torq_walk;
+        if (nag_frames_until_exc > 0) {
+            nag_frames_until_exc--;
+        } else {
+            nag_exc_frames       = (uint8_t)(3u + (nag_xorshift32() % 3u));
+            nag_frames_until_exc = (uint16_t)(125u + (nag_xorshift32() % 100u));
+        }
+    }
 
     out->id  = CAN_ID_EPAS_STATUS;
     out->dlc = 8;
 
     out->data[0] = frame->data[0];
     out->data[1] = frame->data[1];
-    out->data[2] = (frame->data[2] & 0xF0u) | 0x08u; // lower nibble = torque quality
-    out->data[3] = 0xB6u;                              // torsionBarTorque = 1.80 Nm (fixed)
-    out->data[4] = (frame->data[4] & ~0xC0u) | 0x40u;  // handsOnLevel = 1 (clear bits 7:6 first)
+    out->data[2] = (frame->data[2] & 0xF0u) | (uint8_t)((torq >> 8) & 0x0Fu);
+    out->data[3] = (uint8_t)(torq & 0xFFu);
+    out->data[4] = (frame->data[4] & ~0xC0u) | 0x40u;  // handsOnLevel = 1
     out->data[5] = frame->data[5];
 
     // counter+1: lower nibble of byte 6
-    uint8_t cnt  = (frame->data[6] & 0x0Fu);
+    uint8_t cnt = (frame->data[6] & 0x0Fu);
     cnt = (cnt + 1u) & 0x0Fu;
     out->data[6] = (frame->data[6] & 0xF0u) | cnt;
 
@@ -368,4 +421,13 @@ bool fsd_handle_tlssc_restore(FSDState *state, CanFrame *frame) {
     frame->data[0] = modified;
     state->tlssc_restore_count++;
     return true;
+}
+
+// ── DAS status (0x39B) — nag killer gating ───────────────────────────────────
+
+void fsd_handle_das_status(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc < 6) return;
+    // DAS_autopilotHandsOnState: bit42|4 LE → byte5 bits[5:2]
+    state->das_hands_on_state = (frame->data[5] >> 2) & 0x0Fu;
+    state->das_seen = true;
 }

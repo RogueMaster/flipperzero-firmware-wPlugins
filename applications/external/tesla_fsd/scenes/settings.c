@@ -53,6 +53,55 @@ static void tlssc_restore_changed(VariableItem* item) {
     app->tlssc_restore = (idx == 1);
 }
 
+static void tier_override_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->gtw_tier_override = (idx == 1);
+}
+
+static void nav_enable_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->assist_nav_enable = (idx == 1);
+}
+
+static void hands_off_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->assist_hands_off = (idx == 1);
+}
+
+static void dev_mode_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->assist_dev_mode = (idx == 1);
+}
+
+static void lhd_override_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->assist_lhd_override = (idx == 1);
+}
+
+static void lane_graph_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->assist_show_lane_graph = (idx == 1);
+}
+
+static void tlssc_bit38_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->assist_tlssc_bit38 = (idx == 1);
+}
+
 static const char* const clock_text[] = {"16 MHz", "8 MHz", "12 MHz"};
 static void clock_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
@@ -68,6 +117,12 @@ static void precondition_changed(VariableItem* item) {
     app->precondition = (idx == 1);
 }
 
+// Helper macro to reduce boilerplate
+#define ADD_TOGGLE(label, callback, field) \
+    item = variable_item_list_add(list, label, 2, callback, app); \
+    variable_item_set_current_value_index(item, app->field ? 1 : 0); \
+    variable_item_set_current_value_text(item, toggle_text[app->field ? 1 : 0]);
+
 void tesla_fsd_scene_settings_on_enter(void* context) {
     TeslaFSDApp* app = context;
     VariableItemList* list = app->var_item_list;
@@ -75,44 +130,39 @@ void tesla_fsd_scene_settings_on_enter(void* context) {
 
     VariableItem* item;
 
-    item = variable_item_list_add(list, "Force FSD", 2, force_fsd_changed, app);
-    variable_item_set_current_value_index(item, app->force_fsd ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->force_fsd ? 1 : 0]);
-
-    item = variable_item_list_add(list, "Suppress Chime", 2, chime_changed, app);
-    variable_item_set_current_value_index(item, app->suppress_speed_chime ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->suppress_speed_chime ? 1 : 0]);
-
-    item = variable_item_list_add(list, "Emerg. Vehicle", 2, emerg_changed, app);
-    variable_item_set_current_value_index(item, app->emergency_vehicle_detect ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->emergency_vehicle_detect ? 1 : 0]);
-
-    item = variable_item_list_add(list, "Nag Killer", 2, nag_killer_changed, app);
-    variable_item_set_current_value_index(item, app->nag_killer ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->nag_killer ? 1 : 0]);
-
+    // ── Operation mode ──
     item = variable_item_list_add(list, "Mode", 3, op_mode_changed, app);
     variable_item_set_current_value_index(item, (uint8_t)app->op_mode);
     variable_item_set_current_value_text(item, op_mode_text[(uint8_t)app->op_mode]);
 
-    item = variable_item_list_add(list, "Precondition", 2, precondition_changed, app);
-    variable_item_set_current_value_index(item, app->precondition ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->precondition ? 1 : 0]);
+    // ── Stable features (car-tested) ──
+    ADD_TOGGLE("Nag Killer",       nag_killer_changed,       nag_killer)
+    ADD_TOGGLE("Force FSD",        force_fsd_changed,        force_fsd)
+    ADD_TOGGLE("TLSSC Restore",    tlssc_restore_changed,    tlssc_restore)
+    ADD_TOGGLE("Ban Shield",       shield_changed,           gtw_shield)
+    ADD_TOGGLE("Suppress Chime",   chime_changed,            suppress_speed_chime)
+    ADD_TOGGLE("Emerg. Vehicle",   emerg_changed,            emergency_vehicle_detect)
+    ADD_TOGGLE("Precondition",     precondition_changed,     precondition)
 
-    item = variable_item_list_add(list, "Ban Shield", 2, shield_changed, app);
-    variable_item_set_current_value_index(item, app->gtw_shield ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->gtw_shield ? 1 : 0]);
+    // ── Beta features (report results in GitHub issues) ──
+    variable_item_list_add(list, "-- Beta (report!) --", 0, NULL, NULL);
+    ADD_TOGGLE("Nav FSD Route",  nav_enable_changed,       assist_nav_enable)
+    ADD_TOGGLE("TLSSC bit38",   tlssc_bit38_changed,      assist_tlssc_bit38)
+    ADD_TOGGLE("Lane Graph",    lane_graph_changed,        assist_show_lane_graph)
+    ADD_TOGGLE("Tier Override",  tier_override_changed,     gtw_tier_override)
+    ADD_TOGGLE("Dev Mode",       dev_mode_changed,          assist_dev_mode)
+    ADD_TOGGLE("Force LHD",      lhd_override_changed,      assist_lhd_override)
+    ADD_TOGGLE("Hands-Off",      hands_off_changed,         assist_hands_off)
 
-    item = variable_item_list_add(list, "TLSSC Restore", 2, tlssc_restore_changed, app);
-    variable_item_set_current_value_index(item, app->tlssc_restore ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->tlssc_restore ? 1 : 0]);
-
+    // ── Hardware ──
     item = variable_item_list_add(list, "MCP Crystal", 3, clock_changed, app);
     variable_item_set_current_value_index(item, app->mcp_clock);
     variable_item_set_current_value_text(item, clock_text[app->mcp_clock]);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewVarItemList);
 }
+
+#undef ADD_TOGGLE
 
 bool tesla_fsd_scene_settings_on_event(void* context, SceneManagerEvent event) {
     UNUSED(context);

@@ -20,30 +20,41 @@ static uint32_t  g_entries  = 0;
 static File      g_file;
 static File      g_log_file;
 static char      g_dir_path[32];
+static File      g_syslog;          // /debug.log — persistent system log
+
+static void syslog_open() {
+    if (!g_sd_ok) return;
+    g_syslog = SD.open("/debug.log", FILE_APPEND);
+    if (!g_syslog) Serial.println("[SD] /debug.log open failed");
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 // Delete a path (file or directory tree) by repeatedly picking the first
 // remaining child — safe against iterator invalidation during deletion.
 static void rm_recursive(const char *path) {
+    String p = path;
+    if (!p.startsWith("/")) p = "/" + p;
+
     {
-        File f = SD.open(path);
+        File f = SD.open(p);
         if (!f) return;
         bool is_dir = f.isDirectory();
         f.close();
-        if (!is_dir) { SD.remove(path); return; }
+        if (!is_dir) { SD.remove(p); return; }
     }
     for (;;) {
-        File dir = SD.open(path);
+        File dir = SD.open(p);
         if (!dir) break;
         File child = dir.openNextFile();
         if (!child) { dir.close(); break; }
-        String cp = child.name();  // full absolute path from SD root
+        String cp = child.name();
+        if (!cp.startsWith("/")) cp = p + "/" + cp;
         child.close();
         dir.close();
         rm_recursive(cp.c_str());
     }
-    SD.rmdir(path);
+    SD.rmdir(p);
 }
 
 static uint32_t find_next_seq() {
@@ -92,7 +103,8 @@ static bool open_new_file() {
 
 void can_dump_init() {
     g_spi.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
-    if (!SD.begin(SD_CS, g_spi, 4000000)) {
+    // Use format_if_empty = true to recover from previous corruption
+    if (!SD.begin(SD_CS, g_spi, 4000000, "/sd", 5, true)) {
         Serial.println("[SD] No card — CAN dump disabled");
         g_sd_ok = false;
         return;
@@ -101,6 +113,7 @@ void can_dump_init() {
     uint64_t total_mb = SD.totalBytes() / (1024ULL * 1024ULL);
     uint64_t used_mb  = SD.usedBytes()  / (1024ULL * 1024ULL);
     Serial.printf("[SD] Card OK  %lluMB total  %lluMB used\n", total_mb, used_mb);
+    syslog_open();
 }
 
 bool can_dump_start() {
@@ -200,42 +213,84 @@ void can_dump_log(const char *fmt, ...) {
     g_log_file.write((const uint8_t *)buf, pos);
 }
 
+void sd_syslog(const char *fmt, ...) {
+    if (!g_sd_ok) return;
+    if (!g_syslog) {
+        g_syslog = SD.open("/debug.log", FILE_APPEND);
+        if (!g_syslog) return;
+    }
+    uint32_t ms   = millis();
+    uint32_t sec  = ms / 1000;
+    uint32_t usec = (ms % 1000) * 1000;
+    char buf[160];
+    int pos = snprintf(buf, sizeof(buf), "(%lu.%06lu) ",
+                       (unsigned long)sec, (unsigned long)usec);
+    va_list ap;
+    va_start(ap, fmt);
+    pos += vsnprintf(buf + pos, sizeof(buf) - pos, fmt, ap);
+    va_end(ap);
+    if (pos < (int)sizeof(buf) - 1) buf[pos++] = '\n';
+    g_syslog.write((const uint8_t *)buf, pos);
+    g_syslog.flush();
+}
+
+void sd_syslog_close() {
+    if (g_syslog) {
+        g_syslog.flush();
+        g_syslog.close();
+    }
+}
+
 String sd_format_card() {
     if (g_active) can_dump_stop();
+    sd_syslog_close();
 
-    // Unmount so we can remount with format_if_failed=true.
-    // This handles both already-mounted cards (wipe) and raw/unformatted cards.
     if (g_sd_ok) {
         SD.end();
         g_sd_ok = false;
     }
 
-    Serial.println("[SD] Mounting with format_if_failed=true");
-    // format_if_failed=true: ESP32 FAT-formats the card if it can't mount it
+    Serial.println("[SD] Wiping card content...");
+
+    // Mount with format_if_failed=true to handle corrupted cards
     if (!SD.begin(SD_CS, g_spi, 4000000, "/sd", 5, true)) {
-        return "{\"ok\":false,\"msg\":\"SD card not found or unreadable\"}";
+        return "{\"ok\":false,\"msg\":\"SD card mount failed\"}";
     }
     g_sd_ok = true;
 
-    // Wipe any existing content so the card is clean
-    Serial.println("[SD] Clearing existing content");
-    for (;;) {
-        File root = SD.open("/");
-        if (!root) break;
-        File f = root.openNextFile();
-        if (!f) { root.close(); break; }
+    // Recursive wipe of all files/folders
+    File root = SD.open("/");
+    if (!root) return "{\"ok\":false,\"msg\":\"Could not open root\"}";
+
+    File f = root.openNextFile();
+    while (f) {
         String path = f.name();
-        f.close();
-        root.close();
-        Serial.printf("[SD] rm %s\n", path.c_str());
-        rm_recursive(path.c_str());
+        // Ensure absolute path
+        if (!path.startsWith("/")) path = "/" + path;
+        
+        bool is_sys = (path.indexOf("System Volume Information") != -1) || 
+                      (path.indexOf(".Spotlight-V100") != -1) ||
+                      (path.indexOf(".Trashes") != -1);
+
+        if (!is_sys) {
+            Serial.printf("[SD] rm %s\n", path.c_str());
+            f.close(); // Close before deleting
+            rm_recursive(path.c_str());
+        } else {
+            Serial.printf("[SD] skip %s\n", path.c_str());
+            f.close();
+        }
+        f = root.openNextFile();
     }
+    root.close();
 
     uint64_t total_mb = SD.totalBytes() / (1024ULL * 1024ULL);
     uint64_t free_mb  = (SD.totalBytes() - SD.usedBytes()) / (1024ULL * 1024ULL);
-    Serial.printf("[SD] Format done  %lluMB free\n", free_mb);
+    
+    Serial.printf("[SD] Wipe complete. %lluMB free\n", free_mb);
+    syslog_open();
 
-    String r = "{\"ok\":true,\"msg\":\"SD card formatted\",\"total_mb\":";
+    String r = "{\"ok\":true,\"msg\":\"SD card wiped clean\",\"total_mb\":";
     r += (uint32_t)total_mb;
     r += ",\"free_mb\":";
     r += (uint32_t)free_mb;
@@ -254,6 +309,8 @@ void   can_dump_record(const CanFrame &)  {}
 void   can_dump_tick(uint32_t)            {}
 bool   can_dump_active()                  { return false; }
 void   can_dump_log(const char *, ...)    {}
+void   sd_syslog(const char *, ...)       {}
+void   sd_syslog_close()                  {}
 String sd_format_card()                   { return "{\"ok\":false,\"msg\":\"SD not available on this board\"}"; }
 
 #endif

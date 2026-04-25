@@ -13,6 +13,7 @@
 
 #include "web_dashboard.h"
 #include "can_dump.h"
+#include "prefs.h"
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <WiFi.h>
@@ -258,6 +259,28 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <span class="lbl">CAN Dump</span>
     <label class="sw"><input type="checkbox" id="swDump" onchange="cmd('dump',this.checked)"><span class="sl2"></span></label>
   </div>
+  <div class="row">
+    <span class="lbl">Deep Sleep (sec)</span>
+    <input type="number" id="numSleep" min="10" max="3600" style="width:60px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right" onchange="cmd('sleep',parseInt(this.value)*1000)">
+  </div>
+</div>
+
+<!-- WiFi Config -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-c">W</div><h2>WiFi Configuration</h2></div>
+  <div class="row">
+    <span class="lbl">SSID</span>
+    <input type="text" id="wifiSsid" maxlength="32" style="width:140px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right">
+  </div>
+  <div class="row">
+    <span class="lbl">Password</span>
+    <input type="password" id="wifiPass" maxlength="64" style="width:140px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right">
+  </div>
+  <div class="row">
+    <span class="lbl">Stealth Mode (Hidden)</span>
+    <label class="sw"><input type="checkbox" id="swWifiHid"><span class="sl2"></span></label>
+  </div>
+  <button class="btn-main btn-stop" onclick="saveWifi()" style="margin-top:12px">SAVE & RESTART WIFI</button>
 </div>
 
 <!-- SD Card -->
@@ -292,9 +315,17 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 </div><!-- /wrap -->
 
 <script>
-var ws,rt;
+var ws,rt,busy=0,wifiOnce=false;
 var HW=['Unknown','Legacy','HW3','HW4'];
 var CIRC=326.73;
+
+function initWifi(d){
+  if(wifiOnce)return;
+  wifiOnce=true;
+  document.getElementById('wifiSsid').value=d.wifi_ssid||'';
+  document.getElementById('wifiPass').value=d.wifi_pass||'';
+  document.getElementById('swWifiHid').checked=!!d.wifi_hidden;
+}
 
 function fmt(s){
   var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
@@ -313,59 +344,74 @@ function ring(p){
 }
 
 function upd(d){
+  if(!d || Date.now() < busy) return;
   // Status
   pill('fsdSt', d.fsd_enabled, d.fsd_enabled?'Active':'Waiting');
   pill('opMode', d.op_mode===1, d.op_mode===1?'Active':'Listen-Only');
 
   var hwEl=document.getElementById('hwVer');
-  hwEl.className='pill '+(d.hw_version>0?'on':'off');
-  hwEl.innerHTML='<span class="pd"></span>'+(HW[d.hw_version]||'?');
+  if(hwEl){
+    hwEl.className='pill '+(d.hw_version>0?'on':'off');
+    hwEl.innerHTML='<span class="pd"></span>'+(HW[d.hw_version]||'?');
+  }
 
   pill('nagSt', d.nag_killer, d.nag_killer?'ON':'OFF');
   pill('canVeh', d.can_vehicle_detected, d.can_vehicle_detected?'Detected':'No CAN Traffic');
   pill('bmsSt', d.bms && d.bms.seen, (d.bms && d.bms.seen)?'Live':'Waiting Frames');
-  document.getElementById('bmsFrames').textContent='HV:'+d.bms_hv_seen+' SOC:'+d.bms_soc_seen+' TH:'+d.bms_thermal_seen;
+  var bF=document.getElementById('bmsFrames');
+  if(bF) bF.textContent='HV:'+(d.bms_hv_seen||0)+' SOC:'+(d.bms_soc_seen||0)+' TH:'+(d.bms_thermal_seen||0);
 
   // OTA banner
-  document.getElementById('otaBanner').style.display=d.ota?'block':'none';
+  var otaB=document.getElementById('otaBanner');
+  if(otaB) otaB.style.display=d.ota?'block':'none';
 
   // Mode button
   var act=d.op_mode===1;
   var btn=document.getElementById('btnMode');
-  btn.textContent=act?'STOP FSD  \u2192  Listen-Only':'ACTIVATE FSD  \u2192  Active';
-  btn.className='btn-main '+(act?'btn-stop':'btn-act');
+  if(btn){
+    btn.textContent=act?'STOP FSD  \u2192  Listen-Only':'ACTIVATE FSD  \u2192  Active';
+    btn.className='btn-main '+(act?'btn-stop':'btn-act');
+  }
 
   // Switches sync
-  document.getElementById('swNag').checked=d.nag_killer;
-  document.getElementById('swBms').checked=d.bms_output;
-  document.getElementById('swFsd').checked=d.force_fsd;
-  document.getElementById('swTlssc').checked=d.tlssc_restore;
-  document.getElementById('swDump').checked=!!d.can_dump;
+  if(document.getElementById('swNag')) document.getElementById('swNag').checked=d.nag_killer;
+  if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
+  if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
+  if(document.getElementById('swTlssc')) document.getElementById('swTlssc').checked=d.tlssc_restore;
+  if(document.getElementById('swDump')) document.getElementById('swDump').checked=!!d.can_dump;
+  
+  if(document.activeElement.id!=='numSleep' && document.getElementById('numSleep')) 
+    document.getElementById('numSleep').value=Math.floor((d.sleep_ms||0)/1000);
+  
   pill('dumpSt',d.can_dump,d.can_dump?'Recording':'Idle');
 
   // CAN stats
-  document.getElementById('rxCnt').textContent=d.rx_count.toLocaleString();
-  document.getElementById('txCnt').textContent=d.tx_count.toLocaleString();
-  document.getElementById('crcErr').textContent=d.crc_errors;
-  document.getElementById('fps').textContent=d.fps.toFixed(1);
+  if(document.getElementById('rxCnt')) document.getElementById('rxCnt').textContent=(d.rx_count||0).toLocaleString();
+  if(document.getElementById('txCnt')) document.getElementById('txCnt').textContent=(d.tx_count||0).toLocaleString();
+  if(document.getElementById('crcErr')) document.getElementById('crcErr').textContent=d.crc_errors||0;
+  if(document.getElementById('fps')) document.getElementById('fps').textContent=(d.fps||0.0).toFixed(1);
 
   // Battery
   if(d.bms && d.bms.seen){
     var sn=document.getElementById('bSoc');
-    sn.textContent=d.bms.soc.toFixed(0)+'%';
-    sn.style.color=socCol(d.bms.soc);
+    if(sn){
+      sn.textContent=d.bms.soc.toFixed(0)+'%';
+      sn.style.color=socCol(d.bms.soc);
+    }
     ring(d.bms.soc);
-    document.getElementById('bVolt').textContent=d.bms.voltage.toFixed(0)+'V';
+    if(document.getElementById('bVolt')) document.getElementById('bVolt').textContent=d.bms.voltage.toFixed(0)+'V';
     var ce=document.getElementById('bCurr');
-    ce.textContent=(d.bms.current>=0?'+':'')+d.bms.current.toFixed(1)+'A';
-    ce.style.color=d.bms.current>=0?'var(--accent)':'var(--red)';
-    document.getElementById('bTemp').textContent=d.bms.temp_min+'~'+d.bms.temp_max+'\u00b0C';
+    if(ce){
+      ce.textContent=(d.bms.current>=0?'+':'')+d.bms.current.toFixed(1)+'A';
+      ce.style.color=d.bms.current>=0?'var(--accent)':'var(--red)';
+    }
+    if(document.getElementById('bTemp')) document.getElementById('bTemp').textContent=d.bms.temp_min+'~'+d.bms.temp_max+'\u00b0C';
   }
 
   // Device
-  document.getElementById('fwBuild').textContent=d.fw_build;
-  document.getElementById('uptime').textContent=fmt(d.uptime_s);
-  document.getElementById('wifiCl').textContent=d.wifi_clients;
+  if(document.getElementById('fwBuild')) document.getElementById('fwBuild').textContent=d.fw_build;
+  if(document.getElementById('uptime')) document.getElementById('uptime').textContent=fmt(d.uptime_s||0);
+  if(document.getElementById('wifiCl')) document.getElementById('wifiCl').textContent=d.wifi_clients||0;
 }
 
 function sdFormat(){
@@ -383,8 +429,22 @@ function sdFormat(){
     btn.disabled=false;btn.textContent='FORMAT SD CARD';
   });
 }
+function saveWifi(){
+  var s=document.getElementById('wifiSsid').value;
+  var p=document.getElementById('wifiPass').value;
+  var h=document.getElementById('swWifiHid').checked;
+  if(s.length<1){alert('SSID required');return;}
+  if(p.length>0 && p.length<8){alert('Password must be 8+ chars');return;}
+  if(confirm('WiFi settings will be updated and the device will restart.')){
+    var b=document.activeElement; if(b&&b.tagName==='BUTTON'){b.disabled=true;b.textContent='SAVING...';}
+    cmd('wifi_cfg',{ssid:s,pass:p,hidden:h});
+  }
+}
 function cmd(c,v){
-  if(ws&&ws.readyState===1) ws.send(JSON.stringify({cmd:c,value:v}));
+  if(ws&&ws.readyState===1) {
+    ws.send(JSON.stringify({cmd:c,value:v}));
+    busy = Date.now() + 3000;
+  }
 }
 function toggleMode(){ cmd('mode',null); }
 
@@ -395,7 +455,7 @@ function conn(){
     document.getElementById('connErr').style.display='none';
     clearTimeout(rt);
   };
-  ws.onmessage=function(e){ try{upd(JSON.parse(e.data));}catch(x){} };
+  ws.onmessage=function(e){ try{var d=JSON.parse(e.data);initWifi(d);upd(d);}catch(x){} };
   ws.onclose=function(){
     document.getElementById('dot').className='cdot off';
     document.getElementById('connErr').style.display='block';
@@ -408,6 +468,17 @@ conn();
 </body>
 </html>
 )rawliteral";
+
+// ── JSON helpers ──────────────────────────────────────────────────────────────
+static String json_escape(const char *s) {
+    String out;
+    for (; *s; ++s) {
+        if (*s == '"')       out += "\\\"";
+        else if (*s == '\\') out += "\\\\";
+        else                 out += *s;
+    }
+    return out;
+}
 
 // ── JSON builder ──────────────────────────────────────────────────────────────
 static String build_json() {
@@ -459,6 +530,10 @@ static String build_json() {
     j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
     j += "\"fw_build\":\"";    j += __DATE__;  j += ' '; j += __TIME__; j += "\",";
     j += "\"can_dump\":";      j += can_dump_active()                 ? "true" : "false"; j += ',';
+    j += "\"sleep_ms\":";     j += g_state->sleep_idle_ms;            j += ',';
+    j += "\"wifi_ssid\":\"";  j += json_escape(g_state->wifi_ssid);   j += "\",";
+    j += "\"wifi_pass\":\"***\",";
+    j += "\"wifi_hidden\":";  j += g_state->wifi_hidden               ? "true" : "false"; j += ',';
     j += "\"wifi_clients\":";  j += (int)WiFi.softAPgetStationNum();
     j += '}';
     return j;
@@ -477,39 +552,116 @@ static void ws_event(uint8_t num, WStype_t type,
 
     if (type != WStype_TEXT || g_state == nullptr || length == 0) return;
 
-    // Parse the short command JSON without a heavy JSON library.
-    // Expected format: {"cmd":"mode"}  {"cmd":"nag","value":true}  etc.
-    char buf[128] = {};
+    // Use a slightly more robust way to find the value after the second colon
+    char buf[256] = {};
     size_t n = (length < sizeof(buf) - 1) ? length : sizeof(buf) - 1;
     memcpy(buf, payload, n);
+
+    // Find the "value" part of {"cmd":"xxx","value":yyy}
+    const char *vptr = strstr(buf, "\"value\":");
+    if (vptr) vptr = strstr(vptr, ":") + 1;
 
     if (strstr(buf, "\"mode\"")) {
         if (g_state->op_mode == OpMode_ListenOnly) {
             g_state->op_mode = OpMode_Active;
             if (g_can) g_can->setListenOnly(false);
-            Serial.println("[Web] \u2192 Active mode");
+            Serial.println("[Web] → Active mode");
         } else {
             g_state->op_mode = OpMode_ListenOnly;
             if (g_can) g_can->setListenOnly(true);
-            Serial.println("[Web] \u2192 Listen-Only mode");
+            Serial.println("[Web] → Listen-Only mode");
         }
+        prefs_save(g_state);
     } else if (strstr(buf, "\"nag\"")) {
-        g_state->nag_killer = (strstr(buf, "true") != nullptr);
-        Serial.printf("[Web] NAG Killer: %s\n", g_state->nag_killer ? "ON" : "OFF");
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            g_state->nag_killer = (strncmp(vptr, "true", 4) == 0);
+            Serial.printf("[Web] NAG Killer: %s\n", g_state->nag_killer ? "ON" : "OFF");
+            prefs_save(g_state);
+        }
     } else if (strstr(buf, "\"bms\"")) {
-        g_state->bms_output = (strstr(buf, "true") != nullptr);
-        Serial.printf("[Web] BMS output: %s\n", g_state->bms_output ? "ON" : "OFF");
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            g_state->bms_output = (strncmp(vptr, "true", 4) == 0);
+            Serial.printf("[Web] BMS output: %s\n", g_state->bms_output ? "ON" : "OFF");
+            prefs_save(g_state);
+        }
     } else if (strstr(buf, "\"tlssc_restore\"")) {
-        g_state->tlssc_restore = (strstr(buf, "true") != nullptr);
-        Serial.printf("[Web] TLSSC Restore: %s\n", g_state->tlssc_restore ? "ON" : "OFF");
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            g_state->tlssc_restore = (strncmp(vptr, "true", 4) == 0);
+            Serial.printf("[Web] TLSSC Restore: %s\n", g_state->tlssc_restore ? "ON" : "OFF");
+            prefs_save(g_state);
+        }
     } else if (strstr(buf, "\"force_fsd\"")) {
-        g_state->force_fsd = (strstr(buf, "true") != nullptr);
-        Serial.printf("[Web] Force FSD: %s\n", g_state->force_fsd ? "ON" : "OFF");
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            g_state->force_fsd = (strncmp(vptr, "true", 4) == 0);
+            Serial.printf("[Web] Force FSD: %s\n", g_state->force_fsd ? "ON" : "OFF");
+            prefs_save(g_state);
+        }
     } else if (strstr(buf, "\"dump\"")) {
-        bool want = (strstr(buf, "true") != nullptr);
-        if (want) can_dump_start();
-        else      can_dump_stop();
-        Serial.printf("[Web] CAN Dump: %s\n", want ? "START" : "STOP");
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool want = (strncmp(vptr, "true", 4) == 0);
+            if (want) can_dump_start();
+            else      can_dump_stop();
+            Serial.printf("[Web] CAN Dump: %s\n", want ? "START" : "STOP");
+        }
+    } else if (strstr(buf, "\"sleep\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            uint32_t val = (uint32_t)atoi(vptr);
+            if (val >= 10000) { // minimum 10s
+                g_state->sleep_idle_ms = val;
+                Serial.printf("[Web] Sleep timeout: %u ms\n", val);
+                prefs_save(g_state);
+            }
+        }
+    } else if (strstr(buf, "\"wifi_cfg\"")) {
+        // Find the "value":{ object start
+        const char *vobj = strstr(buf, "\"value\":");
+        if (vobj) {
+            char *s = strstr(vobj, "\"ssid\":\"");
+            char *p = strstr(vobj, "\"pass\":\"");
+            char *h = strstr(vobj, "\"hidden\":");
+            if (s) {
+                s += 8;
+                char *end = strchr(s, '\"');
+                if (end) {
+                    int len = end - s;
+                    if (len > 32) len = 32;
+                    if (memchr(s, '\\', len) == nullptr) {
+                        memcpy(g_state->wifi_ssid, s, len);
+                        g_state->wifi_ssid[len] = '\0';
+                    }
+                }
+            }
+            if (p) {
+                p += 8;
+                char *end = strchr(p, '\"');
+                if (end) {
+                    int len = end - p;
+                    if (len > 64) len = 64;
+                    if (memchr(p, '\\', len) == nullptr &&
+                        !(len == 3 && memcmp(p, "***", 3) == 0)) {
+                        memcpy(g_state->wifi_pass, p, len);
+                        g_state->wifi_pass[len] = '\0';
+                    }
+                }
+            }
+            if (h) {
+                h += 9;
+                while (*h == ' ' || *h == ':') h++;
+                if (strncmp(h, "true", 4) == 0) g_state->wifi_hidden = true;
+                else if (strncmp(h, "false", 5) == 0) g_state->wifi_hidden = false;
+            }
+            Serial.printf("[Web] WiFi config: SSID=\"%s\" PASS=*** HIDDEN=%d\n",
+                g_state->wifi_ssid, g_state->wifi_hidden);
+            prefs_save(g_state);
+            delay(500);
+            ESP.restart();
+        }
     }
 }
 

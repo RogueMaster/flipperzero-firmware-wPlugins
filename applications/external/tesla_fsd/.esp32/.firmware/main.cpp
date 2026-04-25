@@ -15,6 +15,7 @@
  */
 
 #include <Arduino.h>
+#include <esp_sleep.h>
 #include "config.h"
 #include "fsd_handler.h"
 #include "can_driver.h"
@@ -22,6 +23,7 @@
 #include "wifi_manager.h"
 #include "web_dashboard.h"
 #include "can_dump.h"
+#include "prefs.h"
 
 // ── Globals ───────────────────────────────────────────────────────────────────
 static CanDriver *g_can   = nullptr;
@@ -30,18 +32,7 @@ static FSDState   g_state = {};
 static void apply_detected_hw(TeslaHWVersion hw, const char *reason) {
     if (hw == TeslaHW_Unknown || g_state.hw_version == hw) return;
 
-    bool old_nag    = g_state.nag_killer;
-    bool old_chime  = g_state.suppress_speed_chime;
-    bool old_bms    = g_state.bms_output;
-    bool old_force  = g_state.force_fsd;
-    OpMode old_mode = g_state.op_mode;
-
-    fsd_state_init(&g_state, hw);
-    g_state.nag_killer           = old_nag;
-    g_state.suppress_speed_chime = old_chime;
-    g_state.bms_output           = old_bms;
-    g_state.force_fsd            = old_force;
-    g_state.op_mode              = old_mode;
+    fsd_apply_hw_version(&g_state, hw);
 
     const char *hw_str =
         (hw == TeslaHW_HW4) ? "HW4" :
@@ -56,6 +47,15 @@ static uint32_t g_last_release_ms = 0;
 static bool     g_btn_down        = false;
 static int      g_pending_clicks  = 0;
 static bool     g_long_fired      = false;  // prevent double-fire on long press
+static bool     g_btn_ignore_boot = true;   // wait for release after boot
+static bool     g_factory_reset_window   = false;  // set true on clean boot, clears at 20s
+static bool     g_factory_reset_eligible = false;  // latched at leading edge if press was in window
+static bool     g_factory_reset_armed    = false;  // blink done, waiting for release
+
+#if defined(BOARD_LILYGO)
+static uint32_t g_last_can_rx_ms = 0;
+static bool     g_sleep_warned   = false;
+#endif
 
 static void dispatch_clicks(int n) {
     if (n == 1) {
@@ -71,10 +71,12 @@ static void dispatch_clicks(int n) {
             Serial.println("[BTN] → Listen-Only mode");
             can_dump_log("MODE switched to Listen-Only — TX disabled");
         }
+        prefs_save(&g_state);
     } else if (n >= 2) {
         // Toggle BMS serial output
         g_state.bms_output = !g_state.bms_output;
         Serial.printf("[BTN] BMS output: %s\n", g_state.bms_output ? "ON" : "OFF");
+        prefs_save(&g_state);
     }
 }
 
@@ -82,28 +84,49 @@ static void button_tick() {
     bool pressed = (digitalRead(PIN_BUTTON) == LOW);
     uint32_t now = millis();
 
+    if (g_btn_ignore_boot) {
+        if (!pressed) g_btn_ignore_boot = false;
+        return;
+    }
+
     if (pressed && !g_btn_down) {
         // Leading edge — debounce
         if ((now - g_last_release_ms) < BUTTON_DEBOUNCE_MS) return;
-        g_btn_down      = true;
-        g_btn_down_ms   = now;
-        g_long_fired    = false;
+        g_btn_down             = true;
+        g_btn_down_ms          = now;
+        g_long_fired           = false;
+        g_factory_reset_eligible = g_factory_reset_window;  // latch at press time
     }
 
     if (g_btn_down && pressed && !g_long_fired) {
-        // Still held — check for long press threshold
-        if ((now - g_btn_down_ms) >= LONG_PRESS_MS) {
+        uint32_t held = now - g_btn_down_ms;
+        if (g_factory_reset_eligible && held >= FACTORY_RESET_HOLD_MS) {
+            g_long_fired           = true;
+            g_pending_clicks       = 0;
+            g_factory_reset_armed  = true;
+            Serial.println("[BTN] Factory reset armed — release to confirm");
+            led_factory_blink();
+        } else if (!g_factory_reset_eligible && held >= LONG_PRESS_MS) {
             g_long_fired      = true;
-            g_pending_clicks  = 0;  // cancel any pending click
+            g_pending_clicks  = 0;
             g_state.nag_killer = !g_state.nag_killer;
             Serial.printf("[BTN] NAG Killer: %s\n", g_state.nag_killer ? "ON" : "OFF");
+            prefs_save(&g_state);
         }
+        // eligible press with held < FACTORY_RESET_HOLD_MS: suppress 3s NAG killer
     }
 
     if (!pressed && g_btn_down) {
         // Trailing edge
-        g_btn_down        = false;
-        g_last_release_ms = now;
+        g_btn_down               = false;
+        g_last_release_ms        = now;
+        g_factory_reset_eligible = false;
+        if (g_factory_reset_armed) {
+            Serial.println("[BTN] Factory reset confirmed — clearing NVS");
+            prefs_clear();
+            delay(200);
+            ESP.restart();
+        }
         if (!g_long_fired) {
             g_pending_clicks++;
         }
@@ -119,6 +142,10 @@ static void button_tick() {
 
 // ── LED refresh ───────────────────────────────────────────────────────────────
 static void update_led() {
+    if (g_factory_reset_armed) {
+        led_set(LED_WHITE);
+        return;
+    }
     if (g_state.rx_count == 0 && millis() > WIRING_WARN_MS) {
         led_set(LED_RED);
     } else if (g_state.tesla_ota_in_progress) {
@@ -134,6 +161,10 @@ static void update_led() {
 static void process_frame(const CanFrame &frame) {
     g_state.rx_count++;
     can_dump_record(frame);
+#if defined(BOARD_LILYGO)
+    g_last_can_rx_ms = millis();
+    g_sleep_warned   = false;
+#endif
 
     if (frame.id == CAN_ID_GTW_CAR_STATE)  g_state.seen_gtw_car_state++;
     if (frame.id == CAN_ID_GTW_CAR_CONFIG) g_state.seen_gtw_car_config++;
@@ -171,6 +202,9 @@ static void process_frame(const CanFrame &frame) {
     if (frame.id == CAN_ID_BMS_HV_BUS)  { fsd_handle_bms_hv(&g_state, &frame);      return; }
     if (frame.id == CAN_ID_BMS_SOC)     { fsd_handle_bms_soc(&g_state, &frame);     return; }
     if (frame.id == CAN_ID_BMS_THERMAL) { fsd_handle_bms_thermal(&g_state, &frame); return; }
+
+    // ── DAS status (read-only, always) — gating for NAG killer ───────────────
+    if (frame.id == CAN_ID_DAS_STATUS)  { fsd_handle_das_status(&g_state, &frame);  return; }
 
     // ── Beyond here only run when TX is allowed ───────────────────────────────
     bool tx = fsd_can_transmit(&g_state);
@@ -260,8 +294,35 @@ static void process_frame(const CanFrame &frame) {
     }
 }
 
+#if defined(BOARD_LILYGO)
+// ── Deep-sleep watchdog (Lilygo only) ────────────────────────────────────────
+static void sleep_tick(uint32_t now) {
+    if (now < g_last_can_rx_ms) return;
+    uint32_t idle_ms = now - g_last_can_rx_ms;
+
+    if (idle_ms >= g_state.sleep_idle_ms) {
+        Serial.printf("[SLEEP] Entering deep sleep after %lu ms CAN silence\n",
+                      (unsigned long)idle_ms);
+        can_dump_stop();
+        sd_syslog_close();
+        led_set(LED_SLEEP);
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_CAN_RX, 0);
+        esp_deep_sleep_start();
+        // never returns
+    } else if (!g_sleep_warned && idle_ms >= (g_state.sleep_idle_ms - SLEEP_WARN_MS)) {
+        g_sleep_warned = true;
+        uint32_t remaining_ms = g_state.sleep_idle_ms - idle_ms;
+        Serial.printf("[SLEEP] Warning: %lu ms idle, sleeping in %lu ms\n",
+                      (unsigned long)idle_ms, (unsigned long)remaining_ms);
+    }
+}
+#endif
+
 // ── setup ─────────────────────────────────────────────────────────────────────
 void setup() {
+#if defined(BOARD_LILYGO)
+    g_last_can_rx_ms = millis();
+#endif
     Serial.begin(115200);
     delay(300);
 
@@ -284,6 +345,7 @@ void setup() {
 #if defined(BOARD_LILYGO)
     pinMode(ME2107_EN, OUTPUT);
     digitalWrite(ME2107_EN, HIGH);
+    delay(100); // Wait for 5V rail to stabilize (SD power)
     // CAN transceiver slope/mode pin — must be LOW for normal TX+RX operation.
     // Floating or HIGH puts the SN65HVD230/TJA1051 into standby (RX-only),
     // which causes the TWAI controller to go bus-off the first time it tries to TX.
@@ -306,9 +368,35 @@ void setup() {
     g_state.force_fsd             = false;
     g_state.bms_output            = false;
 
+    prefs_load(&g_state);
+
+    {
+        esp_sleep_wakeup_cause_t wakeup = esp_sleep_get_wakeup_cause();
+        g_factory_reset_window = (wakeup == ESP_SLEEP_WAKEUP_UNDEFINED);
+        if (g_factory_reset_window)
+            Serial.println("[BTN] Factory reset window active — hold button 5s within 20s");
+    }
+
+    if (g_state.op_mode == OpMode_Active) {
+        // Will be re-applied after g_can is created; record intent here only
+        Serial.println("[NVS] Restored Active mode from NVS");
+    }
+
     led_set(LED_BLUE);
 
     can_dump_init();
+
+#if defined(BOARD_LILYGO)
+    {
+        esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+        if (cause == ESP_SLEEP_WAKEUP_EXT0) {
+            Serial.printf("[WAKE] Woken by CAN activity (EXT0 GPIO %d)\n", PIN_CAN_RX);
+        } else if (cause != ESP_SLEEP_WAKEUP_UNDEFINED) {
+            Serial.printf("[WAKE] Wakeup cause=%d\n", (int)cause);
+        }
+        g_last_can_rx_ms = millis();
+    }
+#endif
 
     g_can = can_driver_create();
     if (!g_can->begin(true)) {
@@ -321,14 +409,19 @@ void setup() {
         }
     }
 
-    Serial.println("[CAN] 500 kbps — Listen-Only");
+    if (g_state.op_mode == OpMode_Active) {
+        g_can->setListenOnly(false);
+        Serial.println("[CAN] 500 kbps — Active (restored from NVS)");
+    } else {
+        Serial.println("[CAN] 500 kbps — Listen-Only");
+    }
     Serial.println("[BTN] Single click : toggle Listen-Only / Active");
     Serial.println("[BTN] Long press 3s: toggle NAG Killer");
     Serial.println("[BTN] Double click : toggle BMS serial output");
     Serial.println("[LED] Blue=Listen  Green=Active  Yellow=OTA  Red=Error");
 
     // ── WiFi AP + Web dashboard (non-fatal if WiFi fails) ─────────────────────
-    if (wifi_ap_init()) {
+    if (wifi_ap_init(&g_state)) {
         web_dashboard_init(&g_state, g_can);
     }
 }
@@ -336,6 +429,11 @@ void setup() {
 // ── loop ──────────────────────────────────────────────────────────────────────
 void loop() {
     uint32_t now = millis();
+
+    if (g_factory_reset_window && now >= FACTORY_RESET_WINDOW_MS) {
+        g_factory_reset_window = false;
+        Serial.println("[BTN] Factory reset window closed");
+    }
 
     button_tick();
 
@@ -409,6 +507,10 @@ void loop() {
     }
 
     can_dump_tick(now);
+
+#if defined(BOARD_LILYGO)
+    sleep_tick(now);
+#endif
 
     // ── Web dashboard (after CAN to preserve CAN frame latency) ──────────────
     web_dashboard_update();

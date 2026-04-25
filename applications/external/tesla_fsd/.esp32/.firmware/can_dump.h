@@ -29,3 +29,11 @@ String sd_format_card();
 // Write a timestamped human-readable entry to debug.log in the active session
 // directory. No-op if no dump is active. Printf-style format.
 void   can_dump_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+
+// Write a timestamped line to /debug.log at the SD root.
+// Always-on — independent of any dump session.  No-op on non-Lilygo builds
+// or if no SD card is present.  Flushed immediately (infrequent writes).
+void   sd_syslog(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+
+// Flush and close /debug.log (call before deep sleep so no data is lost).
+void   sd_syslog_close();

@@ -7,5 +7,7 @@
  * Call once from setup(); non-fatal on failure.
  */
 
-/** Start the WiFi AP.  Returns true on success. */
-bool wifi_ap_init();
+#include "fsd_handler.h"
+
+/** Start the WiFi AP using credentials from the state. Returns true on success. */
+bool wifi_ap_init(const FSDState *state);

@@ -70,15 +70,33 @@ struct FSDState {
     // ── Precondition trigger ──────────────────────────────────────────────────
     bool           precondition;     // periodically inject 0x082
 
+    // ── Deep sleep ────────────────────────────────────────────────────────────
+    uint32_t       sleep_idle_ms;    // CAN silence before entering deep sleep
+
+    // ── WiFi ──────────────────────────────────────────────────────────────────
+    char           wifi_ssid[33];    // max 32 chars + null
+    char           wifi_pass[65];    // max 64 chars + null
+    bool           wifi_hidden;
+
     // ── TLSSC Restore (0x331 DAS config spoof) ──────────────────────────────
     bool           tlssc_restore;
     uint32_t       tlssc_restore_count;
+
+    // ── DAS status (0x39B) — nag killer gating ───────────────────────────────
+    // 0=NOT_REQD, 8=SUSPENDED — both mean DAS is satisfied, skip echo.
+    // das_seen starts false; if 0x39B is absent from the tapped bus the nag
+    // killer falls back to EPAS-level-only gating (conservative echo).
+    bool           das_seen;
+    uint8_t        das_hands_on_state;
 };
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
 /** Initialise state with safe defaults for a given HW version. */
 void fsd_state_init(FSDState *state, TeslaHWVersion hw);
+
+/** Update state for a newly detected HW version (preserves all settings). */
+void fsd_apply_hw_version(FSDState *state, TeslaHWVersion hw);
 
 /** Returns true if current state allows transmitting CAN frames. */
 bool fsd_can_transmit(const FSDState *state);
@@ -128,3 +146,6 @@ void fsd_build_precondition_frame(CanFrame *frame);
  *  Overwrites byte[0] lower 6 bits to 0x1B (SELF_DRIVING).
  *  Returns true if frame was modified and should be re-sent. */
 bool fsd_handle_tlssc_restore(FSDState *state, CanFrame *frame);
+
+/** Parse DAS_status (0x39B) — updates das_hands_on_state for nag killer gating. */
+void fsd_handle_das_status(FSDState *state, const CanFrame *frame);

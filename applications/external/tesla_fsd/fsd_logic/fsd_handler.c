@@ -12,6 +12,7 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
         state->speed_profile = 2;
     state->op_mode = OpMode_Active;
     state->gtw_autopilot_tier = -1;
+    state->das_hands_on_state = 0xFF; // unseen — nag killer echoes conservatively
     state->enhanced_autopilot = false;
     state->speed_profile_locked = false;
     state->hw4_offset = 0;
@@ -163,6 +164,12 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
 
     if(mux == 0) state->fsd_enabled = fsd_ui;
 
+    // bit38 explicit TLSSC enable on mux=0 (complementary to 0x331)
+    if(mux == 0 && state->assist_tlssc_bit38 && state->fsd_enabled) {
+        fsd_set_bit(frame, 38, true);
+        modified = true;
+    }
+
     if(state->hw_version == TeslaHW_HW3) {
         if(mux == 0 && state->fsd_enabled) {
             int raw = (int)((frame->buffer[3] >> 1) & 0x3F) - 30;
@@ -178,10 +185,11 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
         }
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
-            // Enhanced Autopilot: also set bit 46 on mux=1 (enables EAP/summon)
-            // Source: ev-open-can-tools HW3Handler enhancedAutopilotRuntime
             if(state->enhanced_autopilot) {
                 fsd_set_bit(frame, 46, true);
+            }
+            if(state->assist_show_lane_graph) {
+                fsd_set_bit(frame, 45, true);
             }
             state->nag_suppressed = true;
             modified = true;
@@ -206,9 +214,11 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
             fsd_set_bit(frame, 47, true);
-            // Enhanced Autopilot: also set bit 46 (enables EAP/summon on HW4)
             if(state->enhanced_autopilot) {
                 fsd_set_bit(frame, 46, true);
+            }
+            if(state->assist_show_lane_graph) {
+                fsd_set_bit(frame, 45, true);
             }
             state->nag_suppressed = true;
             modified = true;
@@ -501,6 +511,72 @@ bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame) {
     }
 
     return false;
+}
+
+// --- 0x7FF Active Tier Override ---
+// Force GTW_autopilot to SELF_DRIVING (3) on every mux=2 frame.
+// More aggressive than Ban Shield — doesn't just freeze, actively writes.
+// Source: Shayennn/FUCKYOU-TESLA-FSD vehicle_logic.h
+
+bool fsd_handle_gtw_tier_override(FSDState* state, CANFRAME* frame) {
+    if(!state->gtw_tier_override) return false;
+    if(frame->data_lenght < 6) return false;
+    uint8_t mux = frame->buffer[0] & 0x07;
+    if(mux != 2) return false;
+
+    // byte[5] bits 4:2 = autopilot tier. Set to 3 (SELF_DRIVING).
+    uint8_t original = frame->buffer[5];
+    uint8_t modified = (original & ~0x1C) | (3 << 2);
+    if(modified == original) return false;
+
+    frame->buffer[5] = modified;
+    return true;
+}
+
+// --- 0x3F8 Driver Assist Override ---
+// Region unlock, nav FSD, hands-off, dev mode, driving side.
+// Source: Shayennn/FUCKYOU-TESLA-FSD HW3Handler/HW4Handler
+
+bool fsd_handle_driver_assist_override(FSDState* state, CANFRAME* frame) {
+    if(frame->data_lenght < 8) return false;
+    bool modified = false;
+
+    // bit5: UI_dasDeveloper
+    if(state->assist_dev_mode) {
+        fsd_set_bit(frame, 5, true);
+        modified = true;
+    }
+    // bit13: UI_driveOnMapsEnable
+    // bit48: UI_hasDriveOnNav
+    // bit49: UI_followNavRouteEnable
+    if(state->assist_nav_enable) {
+        fsd_set_bit(frame, 13, true);
+        fsd_set_bit(frame, 48, true);
+        fsd_set_bit(frame, 49, true);
+        modified = true;
+    }
+    // bit14: UI_handsOnRequirementDisable
+    if(state->assist_hands_off) {
+        fsd_set_bit(frame, 14, true);
+        modified = true;
+    }
+    // bit40-41: UI_drivingSide = 1 (LHD)
+    if(state->assist_lhd_override) {
+        fsd_set_bit(frame, 40, true);
+        fsd_set_bit(frame, 41, false);
+        modified = true;
+    }
+
+    return modified;
+}
+
+// --- 0x33A Energy Consumption Parser ---
+
+void fsd_handle_energy_consumption(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 4) return;
+    uint16_t raw = ((uint16_t)frame->buffer[1] << 8) | frame->buffer[0];
+    state->energy_wh_per_km = raw * 0.1f;
+    state->energy_seen = true;
 }
 
 // --- TLSSC Restore (0x331 / 817) ---
