@@ -6,10 +6,16 @@
 
 Sound::Sound()
 {
+#ifdef SOUND_INIT
+    SOUND_INIT();
+#endif
 }
 
 Sound::~Sound()
 {
+#ifdef SOUND_DEINIT
+    SOUND_DEINIT();
+#endif
 }
 
 void Sound::playNote(const SoundNote &note)
@@ -30,6 +36,22 @@ void Sound::playPCMSample(const int16_t *samples, int count)
 #else
     (void)samples;
     (void)count;
+#endif
+}
+
+void Sound::playWAV(const char *path)
+{
+#ifdef SOUND_PLAY_WAV
+    SOUND_PLAY_WAV(path);
+#else
+    (void)path;
+#endif
+}
+
+void Sound::stop()
+{
+#ifdef SOUND_STOP
+    SOUND_STOP();
 #endif
 }
 

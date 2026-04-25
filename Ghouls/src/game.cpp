@@ -26,6 +26,17 @@ GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEna
         player = nullptr;
         return;
     }
+
+    gameSound = ENGINE_MEM_NEW Sound();
+    if (!gameSound)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Sound instance");
+        ENGINE_MEM_DELETE gameTime;
+        gameTime = nullptr;
+        ENGINE_MEM_DELETE player;
+        player = nullptr;
+        return;
+    }
 }
 
 GhoulsGame::~GhoulsGame()
@@ -46,6 +57,11 @@ GhoulsGame::~GhoulsGame()
     {
         ENGINE_MEM_DELETE gameTime;
         gameTime = nullptr;
+    }
+    if (gameSound)
+    {
+        ENGINE_MEM_DELETE gameSound;
+        gameSound = nullptr;
     }
     if (draw)
     {
@@ -105,7 +121,7 @@ Vector GhoulsGame::getRandomGhoulPosition(Level *level)
         Vector(20, 10),
         Vector(21, 3),
         Vector(21, 8),
-        Vector(22, 1),
+        Vector(22, 2),
         Vector(22, 3),
         Vector(22, 10),
     };
@@ -131,7 +147,7 @@ Vector GhoulsGame::getRandomWeaponPosition(Level *level)
         Vector(2, 9),
         Vector(3, 5),
         Vector(7, 6),
-        Vector(8, 1),
+        Vector(8, 2),
         Vector(9, 3),
         Vector(13, 5),
         Vector(13, 11),
@@ -210,9 +226,12 @@ void GhoulsGame::increaseDifficulty()
         if (entity && entity->type == ENTITY_ENEMY)
         {
             Enemy *enemy = static_cast<Enemy *>(entity);
-            enemy->max_health += (ENEMY_HEALTH_INCREMENT * decrement); // increase max health based on current round
-            enemy->health = enemy->max_health;                         // restore health to max when stats are updated
-            enemy->strength += (ENEMY_STRENGTH_INCREMENT * decrement); // increase strength based on current round
+            if (enemy)
+            {
+                enemy->max_health += (ENEMY_HEALTH_INCREMENT * decrement); // increase max health based on current round
+                enemy->health = enemy->max_health;                         // restore health to max when stats are updated
+                enemy->strength += (ENEMY_STRENGTH_INCREMENT * decrement); // increase strength based on current round
+            }
         }
     }
 }
@@ -248,6 +267,7 @@ void GhoulsGame::inputManager()
     {
         player->setInputKey(lastInput);
         player->processInput();
+        resetInput();
     }
 }
 
@@ -265,7 +285,10 @@ void GhoulsGame::makeGhoulsGoHome()
         if (entity && entity->type == ENTITY_ENEMY)
         {
             Enemy *enemy = static_cast<Enemy *>(entity);
-            enemy->state = ENTITY_MOVING_TO_START;
+            if (enemy)
+            {
+                enemy->state = ENTITY_MOVING_TO_START;
+            }
         }
     }
     ghoulCountCurrent = 0;
@@ -287,7 +310,10 @@ void GhoulsGame::makeGhoulsGoToPlayer()
         if (entity && entity->type == ENTITY_ENEMY)
         {
             Enemy *enemy = static_cast<Enemy *>(entity);
-            enemy->state = ENTITY_MOVING_TO_END;
+            if (enemy)
+            {
+                enemy->state = ENTITY_MOVING_TO_END;
+            }
         }
     }
 }
@@ -306,6 +332,7 @@ void GhoulsGame::onGhoulDied()
 
 bool GhoulsGame::positionExistsInLevel(Level *level, Vector position)
 {
+    // check entities
     for (int i = 0; i < level->getEntityCount(); i++)
     {
         Entity *entity = level->getEntity(i);
@@ -314,7 +341,9 @@ bool GhoulsGame::positionExistsInLevel(Level *level, Vector position)
             return true;
         }
     }
-    return false;
+    // check trees/houses
+    GhoulsLevel *currentLevel = static_cast<GhoulsLevel *>(level);
+    return currentLevel && !currentLevel->isPositionAvailable(position);
 }
 
 void GhoulsGame::refreshPlayer()
@@ -528,6 +557,9 @@ bool GhoulsGame::startGame()
 
     isGameRunning = true; // Set the flag to indicate game is running
     gameTime->reset();    // ensure day starts at 0
+    gameSound->stop();
+    gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+    player->showAlert("Find weapons before the night..", 120);
     return true;
 }
 
@@ -579,6 +611,7 @@ bool GhoulsGame::startGameOnline()
 void GhoulsGame::updateDraw()
 {
     gameTime->tick();
+    gameSound->tick();
 
     /*
     During the day:
@@ -604,6 +637,8 @@ void GhoulsGame::updateDraw()
 #if GROUND_RENDER_ALLOWED
             setGroundType(GROUND_DIRT);
 #endif
+            gameSound->stop();
+            gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
             player->showAlert("You survived the night.. for now");
         }
     }
@@ -636,6 +671,9 @@ void GhoulsGame::updateDraw()
 #endif
             currentRound++;  // Increment round (for next night)
             refreshPlayer(); // refresh player state to update weapon and health displays after day ends
+            gameSound->stop();
+            gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+            gameSound->playWAV(ASSETS_FOLDER "ghouls-growling.wav");
             player->showAlert("The ghouls are coming...");
         }
     }

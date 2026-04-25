@@ -51,3 +51,5 @@
 // #define SOUND_PLAY_MONO_FREQUENCY sound_play_mono_frequency     // (int frequency, int duration_ms)
 // #define SOUND_PLAY_STEREO_FREQUENCY sound_play_stereo_frequency // (int left_freq, int right_freq, int duration_ms)
 // #define SOUND_PLAY_PCM sound_play_pcm                           // (const int16_t *samples, int count)
+// #define SOUND_PLAY_WAV sound_play_wav                           // (const char *path)
+// #define SOUND_STOP sound_stop                                   // () -> void

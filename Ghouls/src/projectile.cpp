@@ -4,6 +4,7 @@
 #include "general.hpp"
 #include "player.hpp"
 #include "game.hpp"
+#include "level.hpp"
 
 Projectile::Projectile(ProjectileType type, float height, Vector position) : Entity("Projectile", ENTITY_ICON, position, Vector(0, height), nullptr)
 {
@@ -15,18 +16,26 @@ Projectile::Projectile(ProjectileType type, float height, Vector position) : Ent
     {
     case PROJECTILE_BULLET:
         makeBullet(height);
-        speed = SPEED_SCALE(0.5f);
+        speed = SPEED_SCALE(1.0f);
+        size = Vector(0.2f, height);
         break;
     case PROJECTILE_ARROW:
         makeArrow(height);
-        speed = SPEED_SCALE(0.3f);
+        speed = SPEED_SCALE(0.6f);
+        size = Vector(0.2f, height);
         break;
     case PROJECTILE_ROCKET:
         makeRocket(height);
-        speed = SPEED_SCALE(0.1f);
+        speed = SPEED_SCALE(0.3f);
+        size = Vector(1.0f, height);
+        break;
+    case PROJECTILE_SHELL:
+        makeShell(height);
+        speed = SPEED_SCALE(0.8f);
+        size = Vector(0.4f, height);
         break;
     default:
-        speed = SPEED_SCALE(0.05f);
+        speed = SPEED_SCALE(0.1f);
         break;
     };
     if (sprite_3d)
@@ -40,16 +49,17 @@ Projectile::~Projectile()
 
 void Projectile::collision(Entity *other, Game *game)
 {
-    if (other->type == ENTITY_PLAYER)
+    switch (other->type)
     {
+    case ENTITY_PLAYER:
+    case ENTITY_NPC:
         // projectiles should not collide with the player who fired them, so ignore
+        // projectiles should not collide with weapons
         return;
-    }
-
-    if (other->type == ENTITY_ENEMY)
+    case ENTITY_ENEMY:
     {
         other->health -= this->damage;
-        other->move_timer = SPEED_SCALE(50.0f);      // add a short move cooldown to enemies hit by projectiles
+        other->move_timer = SPEED_SCALE(20.0f);      // add a short move cooldown to enemies hit by projectiles
         other->elapsed_move_timer = 0;               // reset move timer to start cooldown immediately
         const float enemyStrength = other->strength; // save before possible removal
         if (other->health <= 0)
@@ -71,12 +81,63 @@ void Projectile::collision(Entity *other, Game *game)
         {
             player->increaseXP(enemyStrength); // increase player XP by the enemy's strength
         }
+
+        switch (projectileType)
+        {
+        case PROJECTILE_BULLET:
+            // don't do anything.. let it keep going through enemies
+            return;
+        case PROJECTILE_ARROW:
+        {
+            if (collisionCount > 1) // allow arrow to hit up to 2 enemies before sticking into the last one
+                break;
+            collisionCount++;
+            Entity *enemy = getEnemy(game, collisionCount);
+            if (enemy)
+            {
+                float dx = enemy->position.x - this->position.x;
+                float dy = enemy->position.y - this->position.y;
+                float len = sqrtf(dx * dx + dy * dy);
+                if (len > 0.0f)
+                {
+                    this->direction.x = dx / len;
+                    this->direction.y = dy / len;
+                    float rotation_angle = atan2f(dy, dx) + M_PI_2;
+                    set3DSpriteRotation(rotation_angle);
+                }
+                return;
+            }
+            break;
+        }
+        default:
+            break;
+        }
+        break;
     }
+    default:
+        break;
+    };
     // delete the projectile on collision
     this->position_set(-100, -100); // move it off-screen first to avoid multiple collisions
     this->inMotion = false;
     this->is_active = false;
     this->is_visible = false;
+}
+
+Entity *Projectile::getEnemy(Game *game, uint8_t shift) const
+{
+    for (int i = 0; i < game->current_level->getEntityCount(); i++)
+    {
+        Entity *e = game->current_level->getEntity(i);
+        if (e && e->type == ENTITY_ENEMY)
+        {
+            if (shift == 0)
+                return e;
+            else
+                shift--;
+        }
+    }
+    return nullptr;
 }
 
 Entity *Projectile::getPlayer(Game *game) const
@@ -254,6 +315,75 @@ void Projectile::makeRocket(float height)
     sprite_3d->createCube(0, cy, -0.02f * s, 0.121f * s, 0.121f * s, 0.025f * s, rgb565(0xffcc00));
 }
 
+void Projectile::makeShell(float height)
+{
+    sprite_3d = ENGINE_MEM_NEW Sprite3D();
+    if (!sprite_3d)
+        return;
+    sprite_3d->clearTriangles();
+    sprite_3d->setActive(true);
+
+    const float s = height / 2.0f;
+    const uint16_t hull = rgb565(0xcc2222);  // red plastic hull
+    const uint16_t brass = rgb565(0xcc8833); // brass base
+    const uint16_t rim_col = rgb565(0xaa7722);
+    const uint16_t primer = rgb565(0xaa5522);
+    const uint16_t pellet = rgb565(0x888899); // lead buckshot
+    const uint16_t wad = rgb565(0xdddddd);    // plastic wad
+    const uint16_t powder = rgb565(0xc8a060); // propellant charge
+    const float cy = 0.10f * s;
+
+    // Brass base
+    sprite_3d->createCube(0, cy, -0.10f * s, 0.075f * s, 0.075f * s, 0.08f * s, brass);
+
+    // Rim (wider than base)
+    sprite_3d->createCube(0, cy, -0.19f * s, 0.085f * s, 0.085f * s, 0.02f * s, rim_col);
+
+    // Primer
+    sprite_3d->createCube(0, cy, -0.20f * s, 0.03f * s, 0.03f * s, 0.01f * s, primer);
+
+    // Powder charge (above brass)
+    sprite_3d->createCube(0, cy, -0.01f * s, 0.068f * s, 0.068f * s, 0.10f * s, powder);
+
+    // Plastic wad (separates powder from shot)
+    sprite_3d->createCube(0, cy, 0.10f * s, 0.068f * s, 0.068f * s, 0.02f * s, wad);
+
+    // Red plastic hull body (over powder + wad zone)
+    sprite_3d->createCube(0, cy, 0.00f * s, 0.070f * s, 0.070f * s, 0.22f * s, hull);
+
+    // 9-pellet buckshot payload (3×3 grid, staggered in Z)
+    const float pr = 0.018f * s; // pellet half-size
+    const float sp = 0.042f * s; // pellet spacing
+    // Layer 1
+    sprite_3d->createCube(-sp, cy - sp, 0.15f * s, pr, pr, pr, pellet);
+    sprite_3d->createCube(0, cy - sp, 0.15f * s, pr, pr, pr, pellet);
+    sprite_3d->createCube(sp, cy - sp, 0.15f * s, pr, pr, pr, pellet);
+    // Layer 2
+    sprite_3d->createCube(-sp, cy, 0.19f * s, pr, pr, pr, pellet);
+    sprite_3d->createCube(0, cy, 0.19f * s, pr, pr, pr, pellet);
+    sprite_3d->createCube(sp, cy, 0.19f * s, pr, pr, pr, pellet);
+    // Layer 3
+    sprite_3d->createCube(-sp, cy + sp, 0.23f * s, pr, pr, pr, pellet);
+    sprite_3d->createCube(0, cy + sp, 0.23f * s, pr, pr, pr, pellet);
+    sprite_3d->createCube(sp, cy + sp, 0.23f * s, pr, pr, pr, pellet);
+
+    // Hull crimp / star crimp top (stacked tapered cubes)
+    sprite_3d->createCube(0, cy, 0.30f * s, 0.065f * s, 0.065f * s, 0.04f * s, rgb565(0xbb1111));
+    sprite_3d->createCube(0, cy, 0.34f * s, 0.050f * s, 0.050f * s, 0.03f * s, rgb565(0xaa0000));
+    sprite_3d->createCube(0, cy, 0.37f * s, 0.032f * s, 0.032f * s, 0.02f * s, rgb565(0x991100));
+
+    // Star crimp tip
+    const float tipZ = 0.40f * s, baseZ = 0.39f * s, r = 0.020f * s;
+    for (int i = 0; i < 6; i++)
+    {
+        float a1 = i * 2.0f * M_PI / 6;
+        float a2 = (i + 1) * 2.0f * M_PI / 6;
+        float x1 = r * cosf(a1), y1 = r * sinf(a1);
+        float x2 = r * cosf(a2), y2 = r * sinf(a2);
+        sprite_3d->addTriangle(x1, cy + y1, baseZ, x2, cy + y2, baseZ, 0, cy, tipZ, rgb565(0x881100));
+    }
+}
+
 void Projectile::setDamage(float damage)
 {
     this->damage = damage;
@@ -279,12 +409,26 @@ void Projectile::update(Game *game)
     if (!inMotion || !is_active || !game)
         return;
 
+    GhoulsLevel *currentLevel = static_cast<GhoulsLevel *>(game->current_level);
+    if (!currentLevel)
+        return;
+
     // continue to move
     position.x += direction.x * speed;
     position.y += direction.y * speed;
 
     // if position goes out of bounds of the game world, deactivate the projectile
     if (position.x < 0 || position.x > game->size.x || position.y < 0 || position.y > game->size.y)
+    {
+        this->position_set(-100, -100);
+        inMotion = false;
+        is_active = false;
+        is_visible = false;
+        return;
+    }
+
+    // if projectile is out of bounds
+    if (currentLevel->collisionMapCheck(position))
     {
         this->position_set(-100, -100);
         inMotion = false;

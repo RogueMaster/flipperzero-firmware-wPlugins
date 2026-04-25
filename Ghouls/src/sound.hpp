@@ -22,6 +22,8 @@ public:
     ~Sound();
     void playNote(const SoundNote &note);                  // play a single note immediately
     void playPCMSample(const int16_t *samples, int count); // play raw PCM audio samples
+    void playWAV(const char *path);                        // play a WAV file by path
+    void stop();                                           // halt all WAV/audio playback
     void setSong(const SoundSong &song);                   // set song to play tick-by-tick
     void tick();                                           // update sound playback state
 private:
