@@ -1,0 +1,23 @@
+# FlipTok Live Chat Application Manifest
+# Format zgodny z Flipper Application Catalog
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/kamylwnb/FlipTok_Live_Chat
+    commit_sha: ec66a72c550a8ac12ce296a32794499d395ebfc2
+
+short_description: "FlipTok Live chat display on Flipper Zero via Bluetooth"
+
+description: |
+  Real-time FlipTok Live chat monitor for Flipper Zero.
+  Displays chat comments, gifts and follows via Bluetooth Low Energy.
+  Includes Python GUI server with Text-to-Speech, deduplication,
+  auto-reconnect, and optional mode without Flipper Zero.
+
+changelog: "@CHANGELOG.md"
+
+screenshots:
+  - screenshots/splash.png
+  - screenshots/waiting.png
+  - screenshots/chat.png

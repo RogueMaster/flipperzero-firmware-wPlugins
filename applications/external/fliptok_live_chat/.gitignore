@@ -1,0 +1,9 @@
+tiktok_server_config.json
+
+helpers/serial_service.c
+helpers/serial_service.h
+helpers/serial_service_uuid.inc
+
+__pycache__/
+*.pyc
+*.pyo
