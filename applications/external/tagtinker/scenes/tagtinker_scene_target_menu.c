@@ -5,6 +5,7 @@
 #include "../tagtinker_app.h"
 
 enum {
+    TargetMenuScanNfc = 99,
     TargetMenuAddNew = 100,
 };
 
@@ -20,7 +21,8 @@ void tagtinker_scene_target_menu_on_enter(void* ctx) {
     submenu_set_header(app->submenu, "Targeted Payloads");
 
     /* Add new target */
-    submenu_add_item(app->submenu, "+ New Target", TargetMenuAddNew, target_menu_cb, app);
+    submenu_add_item(app->submenu, "+ Scan NFC", TargetMenuScanNfc, target_menu_cb, app);
+    submenu_add_item(app->submenu, "+ Type Barcode", TargetMenuAddNew, target_menu_cb, app);
 
     /* List saved targets */
     for(uint8_t i = 0; i < app->target_count; i++) {
@@ -39,6 +41,11 @@ void tagtinker_scene_target_menu_on_enter(void* ctx) {
 bool tagtinker_scene_target_menu_on_event(void* ctx, SceneManagerEvent event) {
     TagTinkerApp* app = ctx;
     if(event.type != SceneManagerEventTypeCustom) return false;
+
+    if(event.event == TargetMenuScanNfc) {
+        scene_manager_next_scene(app->scene_manager, TagTinkerSceneNfcScan);
+        return true;
+    }
 
     if(event.event == TargetMenuAddNew) {
         /* Go to barcode input, then come back */

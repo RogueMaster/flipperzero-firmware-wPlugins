@@ -23,6 +23,7 @@ typedef enum {
     TagTinkerSceneTransmit,
     TagTinkerSceneAbout,
     TagTinkerSceneTextBox,
+    TagTinkerSceneNfcScan,
     TagTinkerSceneCount,
 } TagTinkerScene;
 
@@ -89,3 +90,7 @@ void tagtinker_scene_about_on_exit(void* ctx);
 void tagtinker_scene_text_box_on_enter(void* ctx);
 bool tagtinker_scene_text_box_on_event(void* ctx, SceneManagerEvent event);
 void tagtinker_scene_text_box_on_exit(void* ctx);
+
+void tagtinker_scene_nfc_scan_on_enter(void* ctx);
+bool tagtinker_scene_nfc_scan_on_event(void* ctx, SceneManagerEvent event);
+void tagtinker_scene_nfc_scan_on_exit(void* ctx);

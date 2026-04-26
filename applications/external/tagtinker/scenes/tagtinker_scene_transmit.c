@@ -412,19 +412,49 @@ static inline uint8_t bmp_read_pixel(const uint8_t* row_buf, uint16_t x) {
     return bit ? 0U : 1U;
 }
 
-static inline bool bmp_read_row(
+/* Map an output row index to a source row using nearest-neighbour rescaling,
+ * then read that source row (handling top-down vs bottom-up BMPs and the
+ * stacked-plane layout used by 2bpp accent BMPs). The transmitter calls this
+ * once per output row, with a small cache so we don't re-seek the file when
+ * an upscale maps several output rows to the same source row. */
+static inline uint16_t bmp_map_y(uint16_t out_y, uint16_t tx_h, uint16_t src_h) {
+    if(tx_h == 0U || src_h == 0U) return 0U;
+    uint32_t y = (uint32_t)out_y * (uint32_t)src_h / (uint32_t)tx_h;
+    if(y >= src_h) y = src_h - 1U;
+    return (uint16_t)y;
+}
+
+static inline uint16_t bmp_map_x(uint16_t out_x, uint16_t tx_w, uint16_t src_w) {
+    if(tx_w == 0U || src_w == 0U) return 0U;
+    uint32_t x = (uint32_t)out_x * (uint32_t)src_w / (uint32_t)tx_w;
+    if(x >= src_w) x = src_w - 1U;
+    return (uint16_t)x;
+}
+
+static inline bool bmp_read_row_at(
     File* file,
     const TxBmpInfo* info,
-    uint16_t y,
-    uint16_t tx_height,
-    uint16_t plane_offset,
+    uint16_t src_y,
+    uint16_t plane_offset_rows,
     uint8_t* row_buf) {
-    uint16_t src_row = info->top_down ? y : (uint16_t)(tx_height - 1U - y);
-    uint32_t off =
-        info->data_offset + ((uint32_t)src_row + (uint32_t)plane_offset) * info->row_stride;
+    uint16_t actual_row = info->top_down ? src_y : (uint16_t)(info->height - 1U - src_y);
+    uint32_t off = info->data_offset +
+                   ((uint32_t)actual_row + (uint32_t)plane_offset_rows) * info->row_stride;
     storage_file_seek(file, off, true);
     return storage_file_read(file, row_buf, info->row_stride) == info->row_stride;
 }
+
+#define BMP_FETCH_ROW(out_y, plane_off)                                       \
+    do {                                                                      \
+        uint16_t _src_y = bmp_map_y((out_y), tx_height, info.height);         \
+        if(_src_y != cached_src_y) {                                          \
+            if(!bmp_read_row_at(file, &info, _src_y, (plane_off), row_buf)) { \
+                ok = false;                                                   \
+                break;                                                        \
+            }                                                                 \
+            cached_src_y = _src_y;                                            \
+        }                                                                     \
+    } while(0)
 
 static bool tx_stream_bmp_image(TagTinkerApp* app) {
     const TagTinkerImageTxJob* job = &app->image_tx_job;
@@ -450,17 +480,25 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
         return false;
     }
 
-    uint16_t tx_width = info.width;
-    uint16_t tx_height = info.height;
+    /* Output dims come from the target's profile; source dims come from the
+     * BMP file. The streaming pipeline below rescales source -> target with
+     * nearest-neighbour as it reads, so any BMP can drive any tag. */
+    uint16_t tx_width = (job->width > 0U) ? job->width : info.width;
+    uint16_t tx_height = (job->height > 0U) ? job->height : info.height;
 
     TagTinkerTagColor accent_color = tx_target_color(app);
     bool accent_capable = accent_color == TagTinkerTagColorRed ||
                           accent_color == TagTinkerTagColorYellow;
     bool use_second_plane = app->color_clear || accent_capable;
     bool has_secondary_in_bmp = (info.bpp == 2);
+    /* Plane offset (in source rows) of the secondary plane in 2bpp BMPs. */
+    uint16_t plane2_off_rows = info.height;
     UNUSED(accent_color);
 
-    uint8_t row_buf[64];
+    /* Source row stride is bounded by max profile width (800 px) -> 104 B,
+     * round up generously to 128 to absorb any future profile additions. */
+    uint8_t row_buf[128];
+    uint16_t cached_src_y = UINT16_MAX;
 
     /* ---- PASS 1: Count RLE compressed bit length ---- */
     size_t rle_bits = 0;
@@ -468,13 +506,11 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
     uint32_t run_count = 0;
     bool first = true;
 
+    cached_src_y = UINT16_MAX;
     for(uint16_t y = 0; ok && y < tx_height; y++) {
-        if(!bmp_read_row(file, &info, y, tx_height, 0, row_buf)) {
-            ok = false;
-            break;
-        }
+        BMP_FETCH_ROW(y, 0U);
         for(uint16_t x = 0; x < tx_width; x++) {
-            uint8_t pix = bmp_read_pixel(row_buf, x);
+            uint8_t pix = bmp_read_pixel(row_buf, bmp_map_x(x, tx_width, info.width));
             if(first) {
                 rle_bits = 1;
                 run_pixel = pix;
@@ -491,13 +527,11 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
     }
     if(ok && use_second_plane) {
         if(has_secondary_in_bmp) {
+            cached_src_y = UINT16_MAX;
             for(uint16_t y = 0; ok && y < tx_height; y++) {
-                if(!bmp_read_row(file, &info, y, tx_height, tx_height, row_buf)) {
-                    ok = false;
-                    break;
-                }
+                BMP_FETCH_ROW(y, plane2_off_rows);
                 for(uint16_t x = 0; x < tx_width; x++) {
-                    uint8_t pix = bmp_read_pixel(row_buf, x);
+                    uint8_t pix = bmp_read_pixel(row_buf, bmp_map_x(x, tx_width, info.width));
                     if(first) {
                         rle_bits = 1;
                         run_pixel = pix;
@@ -595,13 +629,11 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
         run_count = 0;
         first = true;
 
+        cached_src_y = UINT16_MAX;
         for(uint16_t y = 0; ok && y < tx_height; y++) {
-            if(!bmp_read_row(file, &info, y, tx_height, 0, row_buf)) {
-                ok = false;
-                break;
-            }
+            BMP_FETCH_ROW(y, 0U);
             for(uint16_t x = 0; x < tx_width; x++) {
-                uint8_t pix = bmp_read_pixel(row_buf, x);
+                uint8_t pix = bmp_read_pixel(row_buf, bmp_map_x(x, tx_width, info.width));
                 if(first) {
                     ENC_BIT(pix);
                     run_pixel = pix;
@@ -618,13 +650,11 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
         }
         if(ok && use_second_plane) {
             if(has_secondary_in_bmp) {
+                cached_src_y = UINT16_MAX;
                 for(uint16_t y = 0; ok && y < tx_height; y++) {
-                    if(!bmp_read_row(file, &info, y, tx_height, tx_height, row_buf)) {
-                        ok = false;
-                        break;
-                    }
+                    BMP_FETCH_ROW(y, plane2_off_rows);
                     for(uint16_t x = 0; x < tx_width; x++) {
-                        uint8_t pix = bmp_read_pixel(row_buf, x);
+                        uint8_t pix = bmp_read_pixel(row_buf, bmp_map_x(x, tx_width, info.width));
                         if(first) {
                             ENC_BIT(pix);
                             run_pixel = pix;
@@ -664,26 +694,22 @@ static bool tx_stream_bmp_image(TagTinkerApp* app) {
     } else {
         /* ---- PASS 2: RAW encode into heap buffer ---- */
         size_t bit_idx = 0;
+        cached_src_y = UINT16_MAX;
         for(uint16_t y = 0; ok && y < tx_height; y++) {
-            if(!bmp_read_row(file, &info, y, tx_height, 0, row_buf)) {
-                ok = false;
-                break;
-            }
+            BMP_FETCH_ROW(y, 0U);
             for(uint16_t x = 0; x < tx_width; x++) {
-                uint8_t pix = bmp_read_pixel(row_buf, x);
+                uint8_t pix = bmp_read_pixel(row_buf, bmp_map_x(x, tx_width, info.width));
                 if(pix != 0) encoded[bit_idx / 8U] |= (1U << (7U - (bit_idx % 8U)));
                 bit_idx++;
             }
         }
         if(ok && use_second_plane) {
             if(has_secondary_in_bmp) {
+                cached_src_y = UINT16_MAX;
                 for(uint16_t y = 0; ok && y < tx_height; y++) {
-                    if(!bmp_read_row(file, &info, y, tx_height, tx_height, row_buf)) {
-                        ok = false;
-                        break;
-                    }
+                    BMP_FETCH_ROW(y, plane2_off_rows);
                     for(uint16_t x = 0; x < tx_width; x++) {
-                        uint8_t pix = bmp_read_pixel(row_buf, x);
+                        uint8_t pix = bmp_read_pixel(row_buf, bmp_map_x(x, tx_width, info.width));
                         if(pix != 0) encoded[bit_idx / 8U] |= (1U << (7U - (bit_idx % 8U)));
                         bit_idx++;
                     }
@@ -775,133 +801,38 @@ static void transmit_draw_cb(Canvas* canvas, void* _model) {
     TagTinkerApp* app = model->app;
     uint32_t t = model->tick;
 
-    /* Left: Top-Down Detailed Flipper Zero Vector Model */
-    int f_x = -15; // Protruding from left screen edge
-    int f_y = 10;
-    int f_w = 40;
-    int f_h = 36;
-    /* Main casing */
-    canvas_draw_rframe(canvas, f_x, f_y, f_w, f_h, 3);
-    /* Outer screen outline */
-    canvas_draw_rframe(canvas, f_x + 10, f_y + 4, 20, 16, 2);
-    /* Screen inner solid */
-    canvas_draw_box(canvas, f_x + 12, f_y + 6, 16, 12);
-    /* Flipper Screen highlight glow */
-    canvas_set_color(canvas, ColorWhite);
-    canvas_draw_dot(canvas, f_x + 14, f_y + 8);
-    canvas_draw_dot(canvas, f_x + 15, f_y + 8);
-    canvas_set_color(canvas, ColorBlack);
-    /* D-Pad Matrix */
-    canvas_draw_circle(canvas, f_x + 18, f_y + 27, 5); // Outer
-    canvas_draw_circle(canvas, f_x + 18, f_y + 27, 2); // Inner button
-    /* GPIO / Case Vents */
-    for(int i = 0; i < 4; i++) {
-        canvas_draw_dot(canvas, f_x + 32, f_y + 8 + i * 3);
-        canvas_draw_dot(canvas, f_x + 34, f_y + 8 + i * 3);
-    }
-    /* IR Blaster window on the right tip */
-    int ir_x = f_x + f_w; // 25
-    int ir_y = f_y + 10;
-    canvas_draw_box(canvas, ir_x, ir_y, 4, 16);
+    /* Static title - large bold "Tinkering Tag" with the instruction below.
+     * Kept text-only (no busy animation) because the IR blaster runs at the
+     * highest thread priority and starves the GUI; trying to animate during
+     * transmission either looks janky or steals CPU from the IR timing. */
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignTop, "Tinkering Tag");
 
-    int center_y = f_y + 18; /* perfectly aligns with tag center */
-
+    canvas_set_font(canvas, FontSecondary);
     if(app->tx_active) {
-        /* Aggressive Pulsing Data-Stream Chevrons with bits */
-        uint8_t wave_phase = (t * 2) % 15;
-        for(int w = 0; w < 2; w++) {
-            int r = wave_phase + w * 18;
-            if(r > 0 && r < 20) {
-                int wave_x = ir_x + 4 + r;
-                int wave_h = r / 2 + 3;
-                /* 2px thick chevron pointing right */
-                canvas_draw_line(canvas, wave_x, center_y, wave_x - wave_h / 2, center_y - wave_h);
-                canvas_draw_line(canvas, wave_x, center_y, wave_x - wave_h / 2, center_y + wave_h);
-                canvas_draw_line(
-                    canvas, wave_x + 1, center_y, wave_x + 1 - wave_h / 2, center_y - wave_h);
-                canvas_draw_line(
-                    canvas, wave_x + 1, center_y, wave_x + 1 - wave_h / 2, center_y + wave_h);
-                /* Data stream particles */
-                if((t + w) % 2 == 0) {
-                    canvas_draw_dot(canvas, wave_x + 3, center_y - wave_h / 2);
-                    canvas_draw_dot(canvas, wave_x - 3, center_y + wave_h / 2 + 2);
-                }
-            }
-        }
-    }
+        canvas_draw_str_aligned(
+            canvas, 64, 28, AlignCenter, AlignTop, "Point the flipper at the tag");
 
-    /* Right: Detailed ESL tag model */
-    int tag_x = 52;
-    int tag_y = 8;
-    int tag_w = 75;
-    int tag_h = 40;
-    /* Outer casing bounding rect */
-    canvas_draw_rframe(canvas, tag_x, tag_y, tag_w, tag_h, 2);
-    /* Internal 3D bezel shadow */
-    canvas_draw_rframe(canvas, tag_x + 1, tag_y + 1, tag_w - 2, tag_h - 2, 1);
-
-    /* True 32-bit encoded barcode representation on the rim */
-    int bc_x = tag_x + 3;
-    int bc_w = 8;
-    int bc_y = tag_y + 4;
-    uint8_t bar_pattern[] = {0b10110100, 0b11010010, 0b10011011, 0b01101010};
-    for(int i = 0; i < 32; i++) {
-        if((bar_pattern[i / 8] >> (7 - (i % 8))) & 1) {
-            canvas_draw_line(canvas, bc_x, bc_y + i, bc_x + bc_w - 1, bc_y + i);
-        }
-    }
-
-    /* Screen display hardware border */
-    int scr_x = tag_x + 14;
-    int scr_y = tag_y + 3;
-    int scr_w = tag_w - 17;
-    int scr_h = tag_h - 6;
-    canvas_draw_frame(canvas, scr_x - 1, scr_y - 1, scr_w + 2, scr_h + 2);
-
-    /* E-Paper Sweep Logic */
-    int cycle = t % 40; /* 2 second loop at 20fps */
-
-    if(app->tx_active) {
-        bool show_result = (cycle >= 20);
-
-        if(!show_result) {
-            canvas_set_font(canvas, FontPrimary);
-            canvas_draw_str_aligned(
-                canvas, scr_x + scr_w / 2, scr_y + scr_h / 2, AlignCenter, AlignCenter, "UPDATING");
-        } else {
-            canvas_set_font(canvas, FontSecondary);
-            canvas_draw_str_aligned(
-                canvas,
-                scr_x + scr_w / 2,
-                scr_y + scr_h / 2,
-                AlignCenter,
-                AlignCenter,
-                "FLIPPED ;)");
-        }
-
-        /* Glitchy Matrix Wipe Transition */
-        if(cycle >= 15 && cycle < 20) {
-            int wipe_h = ((cycle - 15) * scr_h) / 5;
-            canvas_draw_box(canvas, scr_x, scr_y, scr_w, wipe_h);
-            /* Algorithmic leading edge burn/glitch */
-            for(int xx = 0; xx < scr_w; xx += 2) {
-                canvas_draw_dot(canvas, scr_x + xx, scr_y + wipe_h + ((xx + t) % 4));
-            }
-        } else if(cycle >= 20 && cycle < 25) {
-            int wipe_h = ((cycle - 20) * scr_h) / 5;
-            canvas_draw_box(canvas, scr_x, scr_y + wipe_h, scr_w, scr_h - wipe_h);
-            /* Algorithmic trailing edge burn/glitch */
-            for(int xx = 0; xx < scr_w; xx += 2) {
-                canvas_draw_dot(canvas, scr_x + xx, scr_y + wipe_h - 1 - ((xx + t) % 4));
+        /* Tiny three-dot loading indicator: rotates one bright dot through
+         * the dot triplet so even when the tick is delayed by IR bursts the
+         * change is obvious and cheap to draw. */
+        const int dot_y = 44;
+        const int dot_cx = 64;
+        const int dot_spacing = 6;
+        const uint8_t phase = (t / 4U) % 3U;
+        for(int i = 0; i < 3; i++) {
+            int x = dot_cx + (i - 1) * dot_spacing;
+            if((uint8_t)i == phase) {
+                canvas_draw_disc(canvas, x, dot_y, 2);
+            } else {
+                canvas_draw_circle(canvas, x, dot_y, 1);
             }
         }
     } else {
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(
-            canvas, scr_x + scr_w / 2, scr_y + scr_h / 2, AlignCenter, AlignCenter, "FLIPPED ;)");
+        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignTop, "Flipped ;)");
     }
 
-    /* Submenu action hint decoupled from canvas models */
+    /* Bottom action hint. */
     canvas_set_font(canvas, FontSecondary);
     if(app->tx_spam) {
         canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignTop, "[<-] Stop Repeat");

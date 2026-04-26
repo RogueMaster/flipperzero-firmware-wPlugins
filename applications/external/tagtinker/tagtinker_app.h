@@ -21,15 +21,20 @@
 #include <bt/bt_service/bt.h>
 #include <targets/f7/ble_glue/profiles/serial_profile.h>
 
+#include <nfc/nfc.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight_poller_sync.h>
+
 #include "views/numlock_input.h"
 
 #include "scenes/tagtinker_scene.h"
 #include "protocol/tagtinker_proto.h"
 #include "ir/tagtinker_ir.h"
+#include "nfc/tagtinker_nfc.h"
 
 #define TAGTINKER_TAG               "TagTinker"
 #define TAGTINKER_DISPLAY_NAME      "TagTinker"
-#define TAGTINKER_VERSION           "2.0"
+#define TAGTINKER_VERSION           FAP_VERSION
 #define TAGTINKER_BC_LEN            17
 #define TAGTINKER_HEX_LEN           64
 #define TAGTINKER_MAX_TARGETS       16
@@ -67,6 +72,9 @@ typedef struct {
     uint16_t width;
     uint16_t height;
     uint8_t page;
+    /* True when this BMP was authored for a different resolution than the
+     * current target, meaning the transmitter will rescale it on the fly. */
+    bool resampled;
     char image_path[TAGTINKER_IMAGE_PATH_LEN + 1];
 } TagTinkerSyncedImage;
 
@@ -126,6 +134,11 @@ struct TagTinkerApp {
     /* TX state */
     bool tx_active;
     FuriThread* tx_thread;
+
+    /* NFC scan state */
+    Nfc* nfc;
+    FuriThread* nfc_thread;
+    volatile bool nfc_scanning;
 
     /* Broadcast settings */
     uint8_t broadcast_type;

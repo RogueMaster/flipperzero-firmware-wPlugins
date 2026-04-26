@@ -1,4 +1,4 @@
-# TagTinker V2.0
+# TagTinker V2.1
 
 <p align="center">
   <strong>Infrared ESL Research Toolkit for Flipper Zero</strong><br>
@@ -8,14 +8,18 @@
 <p align="center">
   <img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg">
   <img alt="Platform: Flipper Zero" src="https://img.shields.io/badge/Platform-Flipper%20Zero-black.svg">
+  <a href="https://i12bp8.github.io/TagTinker/"><img alt="Image Prep" src="https://img.shields.io/badge/Image%20Prep-Open%20in%20browser-a78bfa?logo=github"></a>
 </p>
 
+<p align="center">
+  <strong><a href="https://i12bp8.github.io/TagTinker/">→ Launch the TagTinker Image Prep web app ←</a></strong>
+</p>
 
 <img alt="Demo Image"  src="https://raw.githubusercontent.com/i12bp8/TagTinker/refs/heads/main/tagtinkerdemo.jpg">
 
 ## Overview
 
-TagTinker is a Flipper Zero app and Android Companion for exploring infrared electronic shelf-label (ESL) protocols. It allows you to transmit custom images and text to supported graphics tags.
+TagTinker is a Flipper Zero app for exploring infrared electronic shelf-label (ESL) protocols. It allows you to transmit custom images and text to supported graphics tags. A companion **web image preparer** runs entirely in the browser and lets you drop, dither and download Flipper-ready BMPs without any install.
 
 As the Flipper Zero team notes:
 > "FYI: this is pure infrared signal, same that you use in TV remotes. The whole security was relying on obscurity of protocol."
@@ -28,17 +32,18 @@ This tool is built for IoT security curiosity, learning about obscure protocols,
 ## Features
 
 - **TagTinker Flipper App:** High-performance, zero-allocation RLE streaming IR engine.
-- **TagTinker Android Companion:** Edit and dither images directly on your phone and sync them instantly to the Flipper Zero over BLE.
+- **TagTinker Image Prep (web):** Single-file, dependency-free HTML page that lists every supported tag profile, runs a full image pipeline (tone, contrast, detail, sharpen, dither, photo-grade Oklab 3-colour quantisation) and exports a Flipper-ready BMP. Hosted at **[i12bp8.github.io/TagTinker](https://i12bp8.github.io/TagTinker/)** (source: `web-image-prep/`).
+- **Drop-folder image flow:** Drop a prepared BMP into `apps_data/tagtinker/dropped/` on the Flipper SD card, then open `Targeted Payloads → <tag> → Set Image` and pick it. The Flipper rescales any BMP on the fly so a single file can target any tag and any page.
+- **NFC Tag Scan:** Instantly identify ESL targets by scanning their NFC tag — no manual barcode entry needed.
 - Display text, custom images, and test-patterns.
 - Support for monochrome and accent-color (red/yellow) graphics tags.
 
 ## Getting Started
 
-The TagTinker Android app manages preparing display payloads and uploading them to the Flipper over BLE.
-1. Build the Flipper app from this repository and install it via `ufbt`.
-2. Download the pre-built Android Companion APK from the [Releases](https://github.com/i12bp8/TagTinker/releases) page and install it on your device.
-3. Open the Flipper app and go to **Phone Sync (Custom Images)**.
-4. Use the Android app to connect, prepare an image, and send it directly to the Flipper for transmission.
+1. Build the Flipper app from this repository and install it via `ufbt`. The first launch creates `apps_data/tagtinker/dropped/` on your SD card.
+2. Open **[i12bp8.github.io/TagTinker](https://i12bp8.github.io/TagTinker/)** in any browser, pick your tag profile, drop an image, tweak, and download the BMP.
+3. Copy the BMP into `apps_data/tagtinker/dropped/` on the SD card (over `qFlipper`, USB MTP, or whatever you use).
+4. On the Flipper open `Targeted Payloads → <your tag> → Set Image`, pick the BMP, choose a page, send.
 
 ## FAQ
 
@@ -60,6 +65,8 @@ This project is deeply indebted to the incredible public reverse-engineering wor
 To understand the underlying protocol, signal structure, and history, please read his research:
 - **Furrtek’s ESL research:** [https://www.furrtek.org/?a=esl](https://www.furrtek.org/?a=esl)
 - **PrecIR reference implementation:** [https://github.com/furrtek/PrecIR](https://github.com/furrtek/PrecIR)
+
+NFC tag decoding contributed by **7h30th3r0n3**.  
 
 ## Disclaimer
 

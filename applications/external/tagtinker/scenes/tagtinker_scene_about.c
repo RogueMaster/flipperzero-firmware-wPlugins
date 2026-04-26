@@ -535,6 +535,7 @@ static void about_draw_cb(Canvas* canvas, void* _model) {
             canvas, 64, 10, AlignCenter, AlignTop, TAGTINKER_DISPLAY_NAME " v" TAGTINKER_VERSION);
         canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignTop, "Ported by I12BP8");
         canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignTop, "Research by furrtek");
+        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "NFC by 7h30th3r0n3");
     }
 }
 

@@ -22,8 +22,14 @@ Thanks for wanting to help out! Here's how to get involved.
 
 - Bug fixes (especially memory-related — the Flipper has very limited heap)
 - Support for new ESL tag sizes and models
+- NFC tag support for additional ESL formats
 - UI/UX improvements
 - Android companion app improvements
+
+## Pull Request Guidelines
+
+- Use **"Create a merge commit"** when merging to preserve contributor attribution.
+- Keep commits focused — one feature or fix per PR.
 
 ## Reporting Issues
 
