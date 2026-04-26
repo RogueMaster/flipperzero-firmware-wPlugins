@@ -1,0 +1,46 @@
+# TagTinker WiFi firmware - ESP-IDF defaults.
+# Targets the Flipper Wi-Fi Devboard (ESP32-S2-MINI; no PSRAM).
+
+# Bigger stack for the main task: TLS handshake + JSON parse needs room.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
+
+# UART0 is owned by our framed protocol to the Flipper. The IDF console
+# is moved to USB-Serial-JTAG (the dev board's USB-C) so logs are visible
+# during development without colliding with our binary frames.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y
+CONFIG_BOOTLOADER_LOG_LEVEL=0
+
+# Stack overflow detection: panic instead of silently wedging when a task
+# blows its stack (we hit this on the link_rx task during mbedTLS).
+CONFIG_FREERTOS_CHECK_STACKOVERFLOW_CANARY=y
+CONFIG_FREERTOS_WATCHPOINT_END_OF_STACK=y
+
+# WiFi tuning - we don't need the full feature matrix.
+CONFIG_ESP32_WIFI_STATIC_RX_BUFFER_NUM=8
+CONFIG_ESP32_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+CONFIG_ESP32_WIFI_DYNAMIC_TX_BUFFER_NUM=16
+
+# mbedTLS: the small "common subset" Mozilla bundle (~20 CAs incl. the
+# Cloudflare DigiCert + ISRG roots), with stock buffer sizes so we don't
+# choke on large TLS records. Hardware AES/SHA accel keeps the handshake
+# fast. We deliberately leave SSL_IN/OUT_CONTENT_LEN at defaults (16 KB).
+CONFIG_MBEDTLS_HARDWARE_AES=y
+CONFIG_MBEDTLS_HARDWARE_SHA=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_CMN=y
+
+# Use our custom OTA-capable partition table at the offsets the Flipper
+# "ESP Flasher" app expects (boot=0x1000, part=0x8000, app0=0xE000,
+# firmware A=0x10000, firmware B=0x150000).
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+
+# We don't include a phy_init partition (no room next to the ESP Flasher
+# fixed offsets); use the embedded default calibration data.
+CONFIG_ESP_PHY_INIT_DATA_IN_PARTITION=n

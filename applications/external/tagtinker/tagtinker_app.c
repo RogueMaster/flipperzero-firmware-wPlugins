@@ -712,6 +712,15 @@ static void app_free(TagTinkerApp* app) {
 
     tagtinker_free_frame_sequence(app);
 
+    /* Tear down WiFi link if it was lazily allocated. */
+    if(app->wifi) {
+        extern void tagtinker_wifi_free(void* w);
+        tagtinker_wifi_free(app->wifi);
+        app->wifi = NULL;
+    }
+    free(app->wifi_plugins);
+    app->wifi_plugins = NULL;
+
     /* Views */
     view_dispatcher_remove_view(app->view_dispatcher, TagTinkerViewSubmenu);
     submenu_free(app->submenu);

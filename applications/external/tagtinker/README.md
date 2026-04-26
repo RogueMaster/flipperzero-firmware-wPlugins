@@ -35,6 +35,9 @@ This tool is built for IoT security curiosity, learning about obscure protocols,
 - **TagTinker Image Prep (web):** Single-file, dependency-free HTML page that lists every supported tag profile, runs a full image pipeline (tone, contrast, detail, sharpen, dither, photo-grade Oklab 3-colour quantisation) and exports a Flipper-ready BMP. Hosted at **[i12bp8.github.io/TagTinker](https://i12bp8.github.io/TagTinker/)** (source: `web-image-prep/`).
 - **Drop-folder image flow:** Drop a prepared BMP into `apps_data/tagtinker/dropped/` on the Flipper SD card, then open `Targeted Payloads → <tag> → Set Image` and pick it. The Flipper rescales any BMP on the fly so a single file can target any tag and any page.
 - **NFC Tag Scan:** Instantly identify ESL targets by scanning their NFC tag — no manual barcode entry needed.
+- **WiFi Plugins (optional):** Plug a Flipper WiFi Dev Board (ESP32-S2) into the GPIO header to unlock live, network-rendered tag designs — crypto price cards, weather tiles, identicons, and more — auto-discovered by the FAP. New plugins live entirely on the cloud worker; the Flipper firmware never has to be re-flashed to add one.
+<img width="2512" height="1230" alt="image" src="https://github.com/user-attachments/assets/fc553d8b-c49a-4865-85c7-439022afb858" />
+
 - Display text, custom images, and test-patterns.
 - Support for monochrome and accent-color (red/yellow) graphics tags.
 

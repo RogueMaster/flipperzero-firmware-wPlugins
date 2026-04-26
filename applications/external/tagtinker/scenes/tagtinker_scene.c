@@ -22,6 +22,9 @@ void (*const tagtinker_scene_on_enter_handlers[])(void*) = {
     tagtinker_scene_about_on_enter,
     tagtinker_scene_text_box_on_enter,
     tagtinker_scene_nfc_scan_on_enter,
+    tagtinker_scene_wifi_plugins_on_enter,
+    tagtinker_scene_wifi_setup_on_enter,
+    tagtinker_scene_wifi_run_on_enter,
 };
 
 bool (*const tagtinker_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
@@ -42,6 +45,9 @@ bool (*const tagtinker_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
     tagtinker_scene_about_on_event,
     tagtinker_scene_text_box_on_event,
     tagtinker_scene_nfc_scan_on_event,
+    tagtinker_scene_wifi_plugins_on_event,
+    tagtinker_scene_wifi_setup_on_event,
+    tagtinker_scene_wifi_run_on_event,
 };
 
 void (*const tagtinker_scene_on_exit_handlers[])(void*) = {
@@ -62,6 +68,9 @@ void (*const tagtinker_scene_on_exit_handlers[])(void*) = {
     tagtinker_scene_about_on_exit,
     tagtinker_scene_text_box_on_exit,
     tagtinker_scene_nfc_scan_on_exit,
+    tagtinker_scene_wifi_plugins_on_exit,
+    tagtinker_scene_wifi_setup_on_exit,
+    tagtinker_scene_wifi_run_on_exit,
 };
 
 const SceneManagerHandlers tagtinker_scene_handlers = {

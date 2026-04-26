@@ -42,8 +42,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CAN Commander v2.3.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
 - Updated: [Ghouls v0.4 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - Updated: [Tesla Mod v2.13.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [TagTinker v2.0 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - Updated: [SLI Writer v1.4 (By Julienbxl)](https://github.com/Julienbxl/SLI-Writer)
+- Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 
 <a name="release"></a>
 
@@ -836,7 +836,7 @@ $ ./fbt dolphin_ext
 - [SWD Probe v1.3 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T5577 Multiwriter v0.2 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer)
-- [TagTinker v2.0 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.2 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - [Tesla Mod v2.13.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)

@@ -240,12 +240,41 @@ struct TagTinkerApp {
     bool ble_sync_compact_protocol;
     bool ble_sync_last_compact_protocol;
     int8_t ble_sync_ready_target;
+
+    /* ---- WiFi Plugins (ESP32 dev board) -------------------------------- */
+    /* Opaque handle (TagTinkerWifi*) - declared in wifi/tagtinker_wifi.h.
+     * Stored as void* here so this header doesn't pull in expansion/serial
+     * deps for unrelated translation units. */
+    void* wifi;
+    /* WiFi link state mirrored from the ESP. */
+    uint8_t wifi_link_state; /* TT_WIFI_* */
+    int8_t wifi_rssi;
+    char wifi_ssid[33];
+    char wifi_ip[20];
+    char wifi_creds_ssid[33]; /* used by setup scene before sending */
+    char wifi_creds_pwd[65];
+    /* Plugin discovery cache. Up to TT_PLUGIN_MAX_PLUGINS_FAP. */
+    void* wifi_plugins; /* TagTinkerWifiPlugin[16], heap-alloced */
+    uint8_t wifi_plugin_count;
+    bool wifi_plugins_loading;
+    int8_t wifi_selected_plugin;
+    /* Per-run state. */
+    char wifi_progress_msg[64];
+    uint8_t wifi_progress_pct;
+    char wifi_last_error[80];
+    bool wifi_run_in_flight;
+    bool wifi_result_ready;
+    /* Param values being collected by the run scene; one slot per plugin
+     * param, holding the textual value the user picked (string for STRING,
+     * stringified int for INT, option name for ENUM, "0"/"1" for BOOL). */
+    char wifi_param_values[6][64];
 };
 
 /* Main menu items */
 typedef enum {
     TagTinkerMenuBroadcast,
     TagTinkerMenuTargetESL,
+    TagTinkerMenuWifiPlugins,
     TagTinkerMenuAbout,
 } TagTinkerMainMenuItem;
 
@@ -261,6 +290,7 @@ typedef enum {
     TagTinkerTargetRename,
     TagTinkerTargetPushText,
     TagTinkerTargetPushSyncedImage,
+    TagTinkerTargetWifiPlugins,
     TagTinkerTargetDeleteSyncedImages,
     TagTinkerTargetPingFlash,
     TagTinkerTargetDeleteTag,

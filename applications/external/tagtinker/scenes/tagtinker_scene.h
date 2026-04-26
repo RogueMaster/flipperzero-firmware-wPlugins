@@ -24,6 +24,9 @@ typedef enum {
     TagTinkerSceneAbout,
     TagTinkerSceneTextBox,
     TagTinkerSceneNfcScan,
+    TagTinkerSceneWifiPlugins,
+    TagTinkerSceneWifiSetup,
+    TagTinkerSceneWifiRun,
     TagTinkerSceneCount,
 } TagTinkerScene;
 
@@ -94,3 +97,15 @@ void tagtinker_scene_text_box_on_exit(void* ctx);
 void tagtinker_scene_nfc_scan_on_enter(void* ctx);
 bool tagtinker_scene_nfc_scan_on_event(void* ctx, SceneManagerEvent event);
 void tagtinker_scene_nfc_scan_on_exit(void* ctx);
+
+void tagtinker_scene_wifi_plugins_on_enter(void* ctx);
+bool tagtinker_scene_wifi_plugins_on_event(void* ctx, SceneManagerEvent event);
+void tagtinker_scene_wifi_plugins_on_exit(void* ctx);
+
+void tagtinker_scene_wifi_setup_on_enter(void* ctx);
+bool tagtinker_scene_wifi_setup_on_event(void* ctx, SceneManagerEvent event);
+void tagtinker_scene_wifi_setup_on_exit(void* ctx);
+
+void tagtinker_scene_wifi_run_on_enter(void* ctx);
+bool tagtinker_scene_wifi_run_on_event(void* ctx, SceneManagerEvent event);
+void tagtinker_scene_wifi_run_on_exit(void* ctx);

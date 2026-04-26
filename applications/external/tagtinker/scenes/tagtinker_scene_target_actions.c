@@ -75,6 +75,8 @@ void tagtinker_scene_target_actions_on_enter(void* ctx) {
             app->submenu, "Set Text", TagTinkerTargetPushText, target_actions_cb, app);
         submenu_add_item(
             app->submenu, "Set Image", TagTinkerTargetPushSyncedImage, target_actions_cb, app);
+        submenu_add_item(
+            app->submenu, "WiFi Plugins", TagTinkerTargetWifiPlugins, target_actions_cb, app);
     }
 
     submenu_add_item(app->submenu, "LED Test", TagTinkerTargetPingFlash, target_actions_cb, app);
@@ -103,6 +105,10 @@ bool tagtinker_scene_target_actions_on_event(void* ctx, SceneManagerEvent event)
     case TagTinkerTargetPushSyncedImage:
         if(!tagtinker_target_supports_graphics(&app->targets[app->selected_target])) return true;
         scene_manager_next_scene(app->scene_manager, TagTinkerSceneSyncedImageList);
+        return true;
+    case TagTinkerTargetWifiPlugins:
+        if(!tagtinker_target_supports_graphics(&app->targets[app->selected_target])) return true;
+        scene_manager_next_scene(app->scene_manager, TagTinkerSceneWifiPlugins);
         return true;
     case TagTinkerTargetPingFlash: {
         TagTinkerTarget* target = &app->targets[app->selected_target];
