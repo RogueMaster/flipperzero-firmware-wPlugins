@@ -1,0 +1,10 @@
+App(
+    appid="oregon_trail",
+    name="Oregon Trail",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="oregon_trail_app",
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_category="Games",
+)
