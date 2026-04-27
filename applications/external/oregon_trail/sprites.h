@@ -19,9 +19,9 @@ void sprite_wagon(Canvas* c, int ox, int oy);
 void sprite_shooter(Canvas* c, int x, int y);
 
 // Animals
-void sprite_rabbit (Canvas* c, int x, int y);
-void sprite_deer   (Canvas* c, int x, int y);
+void sprite_rabbit(Canvas* c, int x, int y);
+void sprite_deer(Canvas* c, int x, int y);
 void sprite_buffalo(Canvas* c, int x, int y);
-void sprite_wolf      (Canvas* c, int x, int y);
-void sprite_skull     (Canvas* c, int x, int y);
-void sprite_tombstone (Canvas* c, int x, int y); // ~14×18 px
+void sprite_wolf(Canvas* c, int x, int y);
+void sprite_skull(Canvas* c, int x, int y);
+void sprite_tombstone(Canvas* c, int x, int y); // ~14×18 px

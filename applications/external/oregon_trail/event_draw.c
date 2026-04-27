@@ -30,7 +30,8 @@ void event_draw(Canvas* c, const ActiveEvent* ev, const GameState* gs) {
     // ── Scrollable body ──────────────────────────────────────
     // Count total body lines
     int total_lines = 0;
-    while(total_lines < MAX_BODY_LINES && def->body[total_lines]) total_lines++;
+    while(total_lines < MAX_BODY_LINES && def->body[total_lines])
+        total_lines++;
 
     canvas_set_font(c, FontSecondary);
     for(int i = 0; i < VISIBLE_LINES; i++) {
@@ -54,11 +55,11 @@ void event_draw(Canvas* c, const ActiveEvent* ev, const GameState* gs) {
     // ── Scroll thumb ─────────────────────────────────────────
     if(total_lines > VISIBLE_LINES) {
         int track_top = BODY_TOP;
-        int track_h   = VISIBLE_LINES * LINE_H;        // 40px
-        int thumb_h   = (track_h * VISIBLE_LINES) / total_lines;
+        int track_h = VISIBLE_LINES * LINE_H; // 40px
+        int thumb_h = (track_h * VISIBLE_LINES) / total_lines;
         if(thumb_h < 4) thumb_h = 4;
-        int thumb_y   = track_top + (track_h - thumb_h) * ev->scroll_y
-                        / (total_lines - VISIBLE_LINES);
+        int thumb_y =
+            track_top + (track_h - thumb_h) * ev->scroll_y / (total_lines - VISIBLE_LINES);
 
         // Track
         canvas_draw_line(c, 125, track_top, 125, track_top + track_h);
@@ -77,10 +78,10 @@ void event_draw(Canvas* c, const ActiveEvent* ev, const GameState* gs) {
     const EventChoice* ch = &def->choices[ev->choice_cursor];
     char choice_buf[32];
     snprintf(choice_buf, sizeof(choice_buf), "\x15 %s", ch->label);
-    canvas_draw_str_aligned(c, 3,   CHOICE_TOP, AlignLeft,  AlignTop, choice_buf);
+    canvas_draw_str_aligned(c, 3, CHOICE_TOP, AlignLeft, AlignTop, choice_buf);
 
     char page_buf[16];
-    snprintf(page_buf, sizeof(page_buf), "%d/%d",
-             ev->choice_cursor + 1, (int)ev->def->num_choices);
+    snprintf(
+        page_buf, sizeof(page_buf), "%d/%d", ev->choice_cursor + 1, (int)ev->def->num_choices);
     canvas_draw_str_aligned(c, 125, CHOICE_TOP, AlignRight, AlignTop, page_buf);
 }

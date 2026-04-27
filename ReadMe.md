@@ -44,6 +44,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.13.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [SLI Writer v1.4 (By Julienbxl)](https://github.com/Julienbxl/SLI-Writer)
 - Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- Added: [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 
 <a name="release"></a>
 
@@ -356,6 +357,7 @@ $ ./fbt dolphin_ext
 - [Nah 2 da Nah Nah Nah v0.2 (By DigiMancer3D)](https://github.com/DigiMancer3D/nah2nah3)
 - [Network Defender v1.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Nu Pogodi! (Ну, погоди!) v1.3 (By sionyx)](https://github.com/sionyx/flipper_nupogodi)
+- [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - [Panis - A Grumpy Bread v0.1 (By fgreil)](https://github.com/fgreil/mitzi-panis)
 - [P1X Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [P1X Your Own Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)

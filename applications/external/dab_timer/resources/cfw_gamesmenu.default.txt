@@ -83,6 +83,7 @@ GamesMenuList Version 0
 /ext/apps/Games/myblab.fap
 /ext/apps/Games/nah2nah3.fap
 /ext/apps/Games/nu_pogodi.fap
+/ext/apps/Games/oregon_trail.fap
 /ext/apps/Games/p1x_adventure.fap
 /ext/apps/Games/p1x_network_defender.fap
 /ext/apps/Games/p1x_your_own_adventure.fap

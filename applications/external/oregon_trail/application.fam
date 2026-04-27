@@ -3,8 +3,11 @@ App(
     name="Oregon Trail",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="oregon_trail_app",
-    requires=["gui"],
     stack_size=4 * 1024,
     fap_icon="icon.png",
     fap_category="Games",
+    fap_author="jlaughter",
+    fap_weburl="https://github.com/jlaughter/flipper_oregon_trail",
+    fap_version="0.1",
+    fap_description="An Oregon Trail experience for the Flipper Zero! Death by Dysentery in 128x64 pixels",
 )
