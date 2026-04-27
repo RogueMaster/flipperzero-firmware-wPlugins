@@ -253,8 +253,8 @@ struct TagTinkerApp {
     char wifi_ip[20];
     char wifi_creds_ssid[33]; /* used by setup scene before sending */
     char wifi_creds_pwd[65];
-    /* Plugin discovery cache. Up to TT_PLUGIN_MAX_PLUGINS_FAP. */
-    void* wifi_plugins; /* TagTinkerWifiPlugin[16], heap-alloced */
+    /* Plugin discovery cache. Up to TT_WIFI_MAX_FAP_PLUGINS slots. */
+    void* wifi_plugins; /* TagTinkerWifiPlugin[TT_WIFI_MAX_FAP_PLUGINS], heap-alloced */
     uint8_t wifi_plugin_count;
     bool wifi_plugins_loading;
     int8_t wifi_selected_plugin;

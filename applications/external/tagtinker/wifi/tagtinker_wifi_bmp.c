@@ -17,8 +17,8 @@
 
 #define BMP_FILE_HDR  14U
 #define BMP_DIB_HDR   40U
-#define BMP_PALETTE   8U
-#define BMP_HDR_TOTAL (BMP_FILE_HDR + BMP_DIB_HDR + BMP_PALETTE)
+#define BMP_PALETTE_2 8U /* mono: 2 entries * 4 bytes BGRA */
+#define BMP_PALETTE_3 12U /* tri:  3 entries (white / black / accent) */
 
 static void put_le16(uint8_t* p, uint16_t v) {
     p[0] = (uint8_t)v;
@@ -31,12 +31,24 @@ static void put_le32(uint8_t* p, uint32_t v) {
     p[3] = (uint8_t)(v >> 24);
 }
 
-bool tagtinker_wifi_bmp_open(TagTinkerWifiBmpWriter* w, uint16_t width, uint16_t height) {
+bool tagtinker_wifi_bmp_open(
+    TagTinkerWifiBmpWriter* w,
+    uint16_t width,
+    uint16_t height,
+    uint8_t planes,
+    uint8_t accent_r,
+    uint8_t accent_g,
+    uint8_t accent_b) {
     memset(w, 0, sizeof(*w));
     w->width = width;
     w->height = height;
+    w->planes = (planes >= 2) ? 2 : 1;
+    w->accent_r = accent_r ? accent_r : 0xE0;
+    w->accent_g = accent_g;
+    w->accent_b = accent_b;
     w->row_stride = (uint16_t)(((width + 31U) / 32U) * 4U);
-    w->pixel_size = (size_t)w->row_stride * height;
+    w->plane_size = (size_t)w->row_stride * height;
+    w->pixel_size = w->plane_size * w->planes;
 
     w->pixel_buf = malloc(w->pixel_size);
     if(!w->pixel_buf) return false;
@@ -63,10 +75,10 @@ bool tagtinker_wifi_bmp_chunk(TagTinkerWifiBmpWriter* w, const uint8_t* data, si
     if(!w->pixel_buf) return false;
     /* Append at the running byte offset. Tracking rows here would silently
      * corrupt partial rows because chunks from the worker aren't aligned
-     * to row_stride. Plane 1 (if any) is appended after plane 0; we simply
-     * stop accepting bytes once plane 0 is full. */
+     * to row_stride. The worker emits planes back-to-back (plane 0 then
+     * plane 1), and pixel_size already accounts for all planes. */
     size_t off = (size_t)w->bytes_written;
-    if(off >= w->pixel_size) return true; /* plane 1 / overflow - drop */
+    if(off >= w->pixel_size) return true; /* overflow - drop */
     size_t remain = w->pixel_size - off;
     size_t take = (len < remain) ? len : remain;
     memcpy(w->pixel_buf + off, data, take);
@@ -77,48 +89,68 @@ bool tagtinker_wifi_bmp_chunk(TagTinkerWifiBmpWriter* w, const uint8_t* data, si
 bool tagtinker_wifi_bmp_close(TagTinkerWifiBmpWriter* w) {
     if(!w->file) return false;
 
-    uint32_t pixel_section = (uint32_t)w->pixel_size;
-    uint32_t total_size = BMP_HDR_TOTAL + pixel_section;
+    const uint16_t pal_bytes = (w->planes == 2) ? BMP_PALETTE_3 : BMP_PALETTE_2;
+    const uint16_t hdr_total = BMP_FILE_HDR + BMP_DIB_HDR + pal_bytes;
+    const uint32_t pixel_section = (uint32_t)w->pixel_size;
+    const uint32_t total_size = hdr_total + pixel_section;
+
+    /* The web-image-prep convention (which the rest of the FAP TX pipeline
+     * already detects via info.bpp == 2 in tx_bmp_open) is:
+     *
+     *   biPlanes   = 1  (BMP standard requires this)
+     *   biBitCount = 2  for 2-plane accent, 1 for plain mono
+     *   palette has 2 (mono) or 3 (white/black/accent) entries
+     *   pixel data is 2 stacked 1bpp planes when biBitCount==2
+     *
+     * The streaming TX reader uses biBitCount as the "accent in this BMP?"
+     * flag, not biPlanes - so we have to write it that way too. */
 
     /* --- File + DIB headers ----------------------------------------- */
-    uint8_t hdr[BMP_HDR_TOTAL] = {0};
+    uint8_t hdr[BMP_FILE_HDR + BMP_DIB_HDR + BMP_PALETTE_3] = {0};
     /* BITMAPFILEHEADER */
     hdr[0] = 'B';
     hdr[1] = 'M';
     put_le32(&hdr[2], total_size);
-    put_le32(&hdr[10], BMP_HDR_TOTAL);
+    put_le32(&hdr[10], hdr_total);
 
     /* BITMAPINFOHEADER */
     put_le32(&hdr[14], BMP_DIB_HDR);
     put_le32(&hdr[18], (uint32_t)w->width);
     put_le32(&hdr[22], (uint32_t)w->height); /* positive = bottom-up */
-    put_le16(&hdr[26], 1); /* planes */
-    put_le16(&hdr[28], 1); /* bpp */
+    put_le16(&hdr[26], 1); /* biPlanes (BMP req) */
+    put_le16(&hdr[28], (uint16_t)w->planes); /* biBitCount: 1=mono, 2=accent */
     put_le32(&hdr[30], 0); /* BI_RGB */
     put_le32(&hdr[34], pixel_section);
     put_le32(&hdr[38], 2835); /* 72 DPI */
     put_le32(&hdr[42], 2835);
-    put_le32(&hdr[46], 2); /* colors used */
+    put_le32(&hdr[46], (uint32_t)(w->planes == 2 ? 3 : 2)); /* colors used */
     put_le32(&hdr[50], 0); /* important colors */
 
-    /* Palette (BGRA): index 0 = white, index 1 = black.
-     * Matches the convention used by the web image prep tool and the rest
-     * of the TagTinker TX pipeline (bit value 1 = ink on / black pixel). */
+    /* Palette (BGRA per entry). */
     hdr[54] = 0xFF;
     hdr[55] = 0xFF;
     hdr[56] = 0xFF;
-    hdr[57] = 0x00;
+    hdr[57] = 0x00; /* white */
     hdr[58] = 0x00;
     hdr[59] = 0x00;
     hdr[60] = 0x00;
-    hdr[61] = 0x00;
+    hdr[61] = 0x00; /* black */
+    if(w->planes == 2) {
+        hdr[62] = w->accent_b;
+        hdr[63] = w->accent_g;
+        hdr[64] = w->accent_r;
+        hdr[65] = 0x00; /* accent */
+    }
 
-    if(storage_file_write(w->file, hdr, sizeof(hdr)) != sizeof(hdr)) goto fail;
+    if(storage_file_write(w->file, hdr, hdr_total) != hdr_total) goto fail;
 
-    /* --- Flip rows bottom-up and write ------------------------------ */
-    for(int32_t row = (int32_t)w->height - 1; row >= 0; row--) {
-        const uint8_t* src = w->pixel_buf + (size_t)row * w->row_stride;
-        if(storage_file_write(w->file, src, w->row_stride) != w->row_stride) goto fail;
+    /* --- Flip rows bottom-up per plane and write ------------------- */
+    for(uint8_t pl = 0; pl < w->planes; pl++) {
+        const uint8_t* plane_base = w->pixel_buf + pl * w->plane_size;
+        for(int32_t row = (int32_t)w->height - 1; row >= 0; row--) {
+            const uint8_t* src = plane_base + (size_t)row * w->row_stride;
+            if(storage_file_write(w->file, src, w->row_stride) != w->row_stride) goto fail;
+        }
     }
 
     storage_file_close(w->file);

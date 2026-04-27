@@ -45,6 +45,13 @@ typedef enum {
 #define TT_WIFI_MAX_PARAMS  6
 #define TT_WIFI_MAX_OPTIONS 8
 
+/* Max plugin manifests the FAP will cache. Each TagTinkerWifiPlugin is
+ * ~1.9 KB so the whole cache is ~15 KB at 8 entries - that's the heap
+ * cost of opening the WiFi Plugins menu. Bumping this number directly
+ * reduces the heap available to the IR transmit pipeline that follows
+ * a plugin run, so leave it small. */
+#define TT_WIFI_MAX_FAP_PLUGINS 8
+
 typedef struct {
     char key[24];
     char label[24];

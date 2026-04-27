@@ -21,16 +21,32 @@ typedef struct {
     Storage* storage;
     uint16_t width;
     uint16_t height;
+    uint8_t planes; /* 1 = mono, 2 = mono + accent (matches web-image-prep BMPs) */
+    uint8_t accent_r;
+    uint8_t accent_g;
+    uint8_t accent_b;
     uint16_t row_stride; /* bytes per row, padded to 4 (matches canvas) */
     uint32_t bytes_written; /* running offset into pixel_buf */
     /* The Flipper file system can't seek-write efficiently, and BMP rows are
      * stored bottom-up - so we buffer the whole pixel section in memory then
-     * flip on close(). */
+     * flip on close(). When planes==2, plane 0 (mono) and plane 1 (accent)
+     * are concatenated in the buffer in worker order. */
     uint8_t* pixel_buf;
-    size_t pixel_size;
+    size_t pixel_size; /* total bytes for ALL planes */
+    size_t plane_size; /* bytes per plane */
 } TagTinkerWifiBmpWriter;
 
-bool tagtinker_wifi_bmp_open(TagTinkerWifiBmpWriter* w, uint16_t width, uint16_t height);
+/* `planes` matches the worker's RESULT_BEGIN plane count (1 or 2).
+ * `accent_rgb` is sampled into the BMP palette[2] when planes==2; ignored
+ * otherwise. Pass 0 to use a default red. */
+bool tagtinker_wifi_bmp_open(
+    TagTinkerWifiBmpWriter* w,
+    uint16_t width,
+    uint16_t height,
+    uint8_t planes,
+    uint8_t accent_r,
+    uint8_t accent_g,
+    uint8_t accent_b);
 bool tagtinker_wifi_bmp_chunk(TagTinkerWifiBmpWriter* w, const uint8_t* data, size_t len);
 bool tagtinker_wifi_bmp_close(TagTinkerWifiBmpWriter* w);
 void tagtinker_wifi_bmp_abort(TagTinkerWifiBmpWriter* w);

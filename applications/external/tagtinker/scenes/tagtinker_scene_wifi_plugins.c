@@ -49,7 +49,7 @@ static void wifi_plugins_event_cb(const TtWifiEvent* e, void* user) {
         view_dispatcher_send_custom_event(app->view_dispatcher, EVT_LINK_STATUS);
         break;
     case TtWifiEvtPlugin:
-        if(app->wifi_plugin_count < 16U && e->plugin) {
+        if(app->wifi_plugin_count < TT_WIFI_MAX_FAP_PLUGINS && e->plugin) {
             plugin_array(app)[app->wifi_plugin_count++] = *e->plugin;
         }
         break;
@@ -126,10 +126,14 @@ static void rebuild_submenu(TagTinkerApp* app) {
 void tagtinker_scene_wifi_plugins_on_enter(void* ctx) {
     TagTinkerApp* app = ctx;
 
-    /* Lazy-allocate the link + plugin cache the first time we enter. */
+    /* Lazy-allocate the link + plugin cache the first time we enter.
+     * The cache is the dominant heap cost of the WiFi flow (~1.9 KB per
+     * slot), so capping at TT_WIFI_MAX_FAP_PLUGINS keeps the IR TX
+     * pipeline that follows a plugin run well-fed on heap. */
     if(!app->wifi) {
-        app->wifi_plugins = malloc(sizeof(TagTinkerWifiPlugin) * 16);
-        memset(app->wifi_plugins, 0, sizeof(TagTinkerWifiPlugin) * 16);
+        const size_t bytes = sizeof(TagTinkerWifiPlugin) * TT_WIFI_MAX_FAP_PLUGINS;
+        app->wifi_plugins = malloc(bytes);
+        memset(app->wifi_plugins, 0, bytes);
         app->wifi = tagtinker_wifi_alloc(wifi_plugins_event_cb, app);
     }
     if(!tagtinker_wifi_open((TagTinkerWifi*)app->wifi)) {
@@ -179,7 +183,7 @@ bool tagtinker_scene_wifi_plugins_on_event(void* ctx, SceneManagerEvent event) {
         rebuild_submenu(app);
         return true;
     }
-    if(event.event >= EVT_PLUGIN_BASE && event.event < EVT_PLUGIN_BASE + 16U) {
+    if(event.event >= EVT_PLUGIN_BASE && event.event < EVT_PLUGIN_BASE + TT_WIFI_MAX_FAP_PLUGINS) {
         uint8_t idx = (uint8_t)(event.event - EVT_PLUGIN_BASE);
         if(idx < app->wifi_plugin_count) {
             app->wifi_selected_plugin = (int8_t)idx;

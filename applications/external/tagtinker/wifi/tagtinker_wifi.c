@@ -396,11 +396,11 @@ TagTinkerWifi* tagtinker_wifi_alloc(TtWifiEventCb cb, void* user) {
     memset(w, 0, sizeof(*w));
     w->cb = cb;
     w->user = user;
-    /* 16 KB: a full plugin render is ~5 KB of pixel data plus header
-     * frames + interleaved progress frames. The old 4 KB buffer would
-     * back-pressure during the burst and the ISR (which uses timeout 0)
-     * silently dropped tail bytes. */
-    w->rx_stream = furi_stream_buffer_alloc(16384, 1);
+    /* 8 KB is plenty after the bulk-read ISR fix: the worker pulls 256
+     * bytes at a time and never lags behind the burst from the ESP. The
+     * older 16 KB sizing was a workaround for the per-byte syscall
+     * bottleneck and just wastes heap that the IR TX pipeline could use. */
+    w->rx_stream = furi_stream_buffer_alloc(8192, 1);
     return w;
 }
 

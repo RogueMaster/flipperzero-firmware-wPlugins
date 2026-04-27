@@ -217,7 +217,20 @@ static void run_event_cb(const TtWifiEvent* e, void* user) {
     case TtWifiEvtResultBegin: {
         uint16_t w = (uint16_t)(e->u0 & 0xFFFFu);
         uint16_t h = (uint16_t)(e->u0 >> 16);
-        if(!tagtinker_wifi_bmp_open(&s_bmp_writer, w, h)) {
+        uint8_t pl = (uint8_t)(e->u1 ? e->u1 : 1);
+        /* Pick a palette accent that matches the destination tag's colour
+         * so the BMP file embeds the right BGR for previewers. The IR TX
+         * path itself only cares about plane bits + the target profile. */
+        uint8_t ar = 0xE0, ag = 0x10, ab = 0x10; /* default red */
+        if(app->selected_target >= 0 && app->selected_target < app->target_count) {
+            const TagTinkerTarget* t = &app->targets[app->selected_target];
+            if(t->profile.color == TagTinkerTagColorYellow) {
+                ar = 0xF0;
+                ag = 0xC0;
+                ab = 0x10;
+            }
+        }
+        if(!tagtinker_wifi_bmp_open(&s_bmp_writer, w, h, pl, ar, ag, ab)) {
             strncpy(app->wifi_last_error, "BMP open failed", sizeof(app->wifi_last_error) - 1);
             view_dispatcher_send_custom_event(app->view_dispatcher, EVT_ERROR);
         }
@@ -276,11 +289,18 @@ static void start_run(TagTinkerApp* app) {
      * else fallback to a reasonable sane size. */
     uint16_t tw = app->esl_width ? app->esl_width : 296;
     uint16_t th = app->esl_height ? app->esl_height : 128;
-    /* TODO: extend the IR TX pipeline to take a 2-plane BMP and TX both
-     * planes (black + accent) so we can light up red/yellow tags. Until
-     * then, force mono so all ink lands on plane 0 - the only plane we
-     * currently forward to the tag. */
+    /* Honour the tag's accent capability: red/yellow profiles get the
+     * accent plane, mono profiles stay mono. The BMP writer + the IR TX
+     * pipeline already understand 2-plane BMPs (same convention as the
+     * web image prep tool), so plugins can use the accent freely. */
     uint8_t accent = TT_ACCENT_NONE;
+    if(app->selected_target >= 0 && app->selected_target < app->target_count) {
+        const TagTinkerTarget* t = &app->targets[app->selected_target];
+        if(tagtinker_target_supports_accent(t)) {
+            accent = (t->profile.color == TagTinkerTagColorYellow) ? TT_ACCENT_YELLOW :
+                                                                     TT_ACCENT_RED;
+        }
+    }
 
     TtWifiKV kv[6];
     uint8_t n = 0;
@@ -381,6 +401,12 @@ void tagtinker_scene_wifi_run_on_exit(void* ctx) {
         s_prev_cb = NULL;
         s_prev_user = NULL;
     }
+    /* Release the ~10 KB pixel buffer if a transfer was abandoned mid-flight
+     * (e.g. the user backs out of the popup before RESULT_END). Without this
+     * the buffer leaks on every run and the IR transmit scene that follows
+     * has noticeably less heap to malloc its plane buffers - the OOM crashes
+     * we were seeing. abort() is a no-op if the writer is already closed. */
+    tagtinker_wifi_bmp_abort(&s_bmp_writer);
     variable_item_list_reset(app->var_item_list);
     popup_reset(app->popup);
     text_input_reset(app->text_input);
