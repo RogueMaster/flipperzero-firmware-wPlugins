@@ -45,6 +45,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [SLI Writer v1.4 (By Julienbxl)](https://github.com/Julienbxl/SLI-Writer)
 - Added: [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- Removed: [Sand Simulation v0.1 (By JJoeDev)](https://github.com/JJoeDev/FZSandSimulation)
 
 <a name="release"></a>
 
@@ -380,7 +381,6 @@ $ ./fbt dolphin_ext
 - [Rock Paper Scissors 2 v1.1 (By benwoo1110)](https://github.com/benwoo1110/rps-FlipperZero)
 - [Root of Life v1.2 (By Xorboo)](https://github.com/Xorboo/root-of-life)
 - [Rubiks Cube Scrambler v1.3 (By RaZeSloth)](https://github.com/RaZeSloth/flipperzero-rubiks-cube-scrambler)
-- [Sand Simulation v0.1 (By JJoeDev)](https://github.com/JJoeDev/FZSandSimulation)
 - [Scorched Tanks v1.3 (By jasniec)](https://github.com/jasniec/flipper-scorched-tanks-game)
 - [Secret Toggle (By nostrumuva)](https://github.com/nostrumuva/secret_toggle)
 - [Simon Says v0.2 (By SimplyMinimal)](https://github.com/SimplyMinimal/FlipperZero-SimonSays)

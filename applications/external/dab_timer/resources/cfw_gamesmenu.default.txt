@@ -108,7 +108,6 @@ GamesMenuList Version 0
 /ext/apps/Games/rock_paper_scissors_2.fap
 /ext/apps/Games/roots_of_life.fap
 /ext/apps/Games/rubiks_cube_scrambler.fap
-/ext/apps/Games/sand_simulation.fap
 /ext/apps/Games/scorched_tanks.fap
 /ext/apps/Games/secret_toggle.fap
 /ext/apps/Games/simon_says.fap
