@@ -5,6 +5,7 @@
 #include "player.hpp"
 #include "time.hpp"
 #include "sound.hpp"
+#include "enemy.hpp"
 
 #if SKY_RENDER_ALLOWED
 #include "sky.hpp"
@@ -34,6 +35,7 @@ private:
     bool shouldExit = false;                                           // Flag to signal exit the game
     int atoi(const char *nptr) { return (int)strtol(nptr, NULL, 10); } // convert string to integer
     Vector getRandomGhoulPosition(Level *level);                       // get a random position for spawning ghouls
+    EnemyType getRandomGhoulType() const;                              // get a random enemy type for spawning ghouls
     Vector getRandomWeaponPosition(Level *level);                      // get a random position for spawning weapons
     WeaponType getUniqueWeaponType(Level *level);                      // get a unique weapon type (only two of each type allowed)
     void increaseDifficulty();                                         // increase game difficulty by increasing enemy spawn rates/stats

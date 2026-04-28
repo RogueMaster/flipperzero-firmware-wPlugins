@@ -82,6 +82,7 @@ public:
     ToggleState getSoundToggle() const noexcept { return soundToggle; }
     ToggleState getVibrationToggle() const noexcept { return vibrationToggle; }
     void handleMenu(Draw *canvas, Game *game);
+    void increaseWeaponAmmo();
     void increaseXP(uint16_t amount);
     void processInput();
     void render(Draw *canvas, Game *game) override;
@@ -102,6 +103,7 @@ public:
     bool shouldLeaveGame() const noexcept { return alertTimer == 0 && leaveGame == ToggleOn; }
     void showAlert(const char *message, uint16_t ticks = 90);
     void update(Game *game) override;
+    void updateEquippedWeaponPosition();
     void userRequest(RequestType requestType);
 
 private:

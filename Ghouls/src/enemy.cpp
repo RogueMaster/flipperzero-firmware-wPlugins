@@ -1,6 +1,7 @@
 #include "enemy.hpp"
 #include <math.h>
 #include "general.hpp"
+#include "level.hpp"
 
 Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float height, float width, float rotation, Vector endPosition)
     : Entity(name, ENTITY_ENEMY, position, Vector(width, height), nullptr,
@@ -25,19 +26,19 @@ Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float heigh
         this->makeBully(height);
         this->strength = 10.0f;
         this->speed = SPEED_SCALE(0.1f);
-        this->attack_timer = SPEED_SCALE(50.0f); // attack every 50 ticks
+        this->attack_timer = SPEED_SCALE(200.0f);
         break;
     case ENEMY_CREEPER:
         this->makeCreeper(height);
         this->strength = 20.0f;
         this->speed = SPEED_SCALE(0.05f);
-        this->attack_timer = SPEED_SCALE(80.0f); // attack every 80 ticks
+        this->attack_timer = SPEED_SCALE(320.0f);
         break;
     case ENEMY_PUNK:
         this->makePunk(height);
         this->strength = 15.0f;
         this->speed = SPEED_SCALE(0.07f);
-        this->attack_timer = SPEED_SCALE(60.0f); // attack every 60 ticks
+        this->attack_timer = SPEED_SCALE(240.0f);
         break;
     default:
         break;
@@ -45,10 +46,58 @@ Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float heigh
     set3DSpriteRotation(rotation);
     start_position = position;
     end_position = endPosition == Vector(-1, -1) ? position : endPosition;
-    state = ENTITY_IDLE;
+    state = ENTITY_MOVING_TO_END;
     this->health = ENEMY_HEALTH_BASE;
     this->max_health = ENEMY_HEALTH_BASE;
     sprite_3d->setWireframe(WIREFRAME_ENABLED);
+}
+
+bool Enemy::moveWithAvoidance(Game *game, float move_x, float move_y)
+{
+    GhoulsLevel *gLevel = static_cast<GhoulsLevel *>(game->current_level);
+    Vector new_pos(position.x + move_x, position.y + move_y);
+
+    if (!gLevel || !gLevel->collisionMapCheck(new_pos))
+    {
+        position_set(new_pos);
+        return true;
+    }
+
+    // if path is blocked, try multiple directions to get around
+    const float speed_mag = sqrtf(move_x * move_x + move_y * move_y);
+    const float perp_x = -move_y;
+    const float perp_y = move_x;
+
+    // possible directions
+    const Vector dirs[] = {
+        Vector(move_x, 0),                                      // X-only slide
+        Vector(0, move_y),                                      // Y-only slide
+        Vector(perp_x, perp_y),                                 // sidestep left
+        Vector(-perp_x, -perp_y),                               // sidestep right
+        Vector(move_x * 0.5f + perp_x, move_y * 0.5f + perp_y), // forward-left
+        Vector(move_x * 0.5f - perp_x, move_y * 0.5f - perp_y), // forward-right
+    };
+
+    for (int i = 0; i < 6; i++)
+    {
+        float cdx = dirs[i].x;
+        float cdy = dirs[i].y;
+        float cdist = sqrtf(cdx * cdx + cdy * cdy);
+        if (cdist < 0.0001f)
+            continue;
+
+        // normal to original speed
+        float nx = (cdx / cdist) * speed_mag;
+        float ny = (cdy / cdist) * speed_mag;
+        Vector candidate(position.x + nx, position.y + ny);
+
+        if (!gLevel->collisionMapCheck(candidate))
+        {
+            position_set(candidate);
+            return true;
+        }
+    }
+    return false; // blocked (so stay in place)
 }
 
 Vector Enemy::getPlayerPosition(Game *game)
@@ -239,16 +288,23 @@ void Enemy::update(Game *game)
                 move_y = dy;
             }
 
-            position_set(position.x + move_x, position.y + move_y);
+            Vector pre_move = position;
+            moveWithAvoidance(game, move_x, move_y);
 
             // Update 3D sprite position and rotation to match camera direction
             if (has3DSprite())
             {
                 update3DSpritePosition();
-                direction.x = dx / distance;
-                direction.y = dy / distance;
-                float rotation_angle = atan2f(direction.y, direction.x) - M_PI_2;
-                set3DSpriteRotation(rotation_angle);
+                float actual_dx = position.x - pre_move.x;
+                float actual_dy = position.y - pre_move.y;
+                float actual_dist = sqrtf(actual_dx * actual_dx + actual_dy * actual_dy);
+                if (actual_dist > 0.0001f)
+                {
+                    direction.x = actual_dx / actual_dist;
+                    direction.y = actual_dy / actual_dist;
+                    float rotation_angle = atan2f(direction.y, direction.x) - M_PI_2;
+                    set3DSpriteRotation(rotation_angle);
+                }
             }
         }
         else
@@ -277,16 +333,23 @@ void Enemy::update(Game *game)
                 move_y = dy;
             }
 
-            position_set(position.x + move_x, position.y + move_y);
+            Vector pre_move = position;
+            moveWithAvoidance(game, move_x, move_y);
 
             // Update 3D sprite position and rotation to match camera direction
             if (has3DSprite())
             {
                 update3DSpritePosition();
-                direction.x = dx / distance;
-                direction.y = dy / distance;
-                float rotation_angle = atan2f(direction.y, direction.x) - M_PI_2;
-                set3DSpriteRotation(rotation_angle);
+                float actual_dx = position.x - pre_move.x;
+                float actual_dy = position.y - pre_move.y;
+                float actual_dist = sqrtf(actual_dx * actual_dx + actual_dy * actual_dy);
+                if (actual_dist > 0.0001f)
+                {
+                    direction.x = actual_dx / actual_dist;
+                    direction.y = actual_dy / actual_dist;
+                    float rotation_angle = atan2f(direction.y, direction.x) - M_PI_2;
+                    set3DSpriteRotation(rotation_angle);
+                }
             }
         }
         else

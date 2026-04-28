@@ -1,5 +1,6 @@
 #pragma once
 #include "pico-game-engine/engine/entity.hpp"
+#include "pico-game-engine/engine/draw.hpp"
 
 typedef enum
 {
@@ -18,6 +19,7 @@ public:
     void collision(Entity *other, Game *game) override;
     Entity *getEnemy(Game *game, uint8_t shift = 0) const; // Helper to get an enemy entity from the game
     Entity *getPlayer(Game *game) const;                   // Helper to get player entity from the game
+    void render(Draw *draw, Game *game) override;          // Draw hit flash when active
     void setDamage(float damage);                          // Set the damage this projectile will deal on collision
     void setMotion(bool inMotion);                         // Set whether the projectile is currently in motion
     void setProjectileType(ProjectileType type);           // Set the type of the projectile (e.g., bullet, arrow, rocket)
@@ -26,6 +28,8 @@ public:
 
 private:
     float damage;
+    Vector hitPosition;
+    uint8_t hitTimer;
     bool inMotion;
     ProjectileType projectileType;
     uint8_t collisionCount;

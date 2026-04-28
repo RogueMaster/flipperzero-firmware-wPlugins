@@ -12,6 +12,8 @@ public:
     bool getTimeIn24HourFormat(uint8_t &hours, uint8_t &minutes) const; // Get the current time in 24-hour format (hours and minutes)
     TimeOfDay getTimeOfDay() const;                                     // Get the current time of day (day or night)
     void set(uint32_t time);                                            // Set time to a specific value
+    bool setTimeOfDay(TimeOfDay timeOfDay);                             // Set time based on time of day (day or night)
+    bool setTimeIn24HourFormat(uint8_t hours, uint8_t minutes);         // Set time using 24-hour format (hours and minutes)
     void reset();                                                       // Reset time to 0
     void tick();                                                        // Advance time by one tick
 

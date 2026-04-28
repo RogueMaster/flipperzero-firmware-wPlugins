@@ -36,6 +36,32 @@ void Time::set(uint32_t newTime)
     time = newTime;
 }
 
+bool Time::setTimeOfDay(TimeOfDay timeOfDay)
+{
+    if (timeOfDay == TIME_DAY)
+    {
+        time = 0; // Start of the day
+    }
+    else if (timeOfDay == TIME_NIGHT)
+    {
+        time = TICKS_PER_DAY / 2; // Start of the night
+    }
+    else
+    {
+        return false; // Invalid time of day
+    }
+    return true;
+}
+
+bool Time::setTimeIn24HourFormat(uint8_t hours, uint8_t minutes)
+{
+    if (hours >= 24 || minutes >= 60)
+        return false; // Invalid time
+
+    time = (hours * 60 + minutes) * TICKS_PER_DAY / 1440; // Scale hours and minutes to ticks
+    return true;
+}
+
 void Time::reset()
 {
     time = 0;
