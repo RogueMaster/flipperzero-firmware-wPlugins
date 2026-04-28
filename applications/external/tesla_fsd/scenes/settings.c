@@ -102,6 +102,13 @@ static void tlssc_bit38_changed(VariableItem* item) {
     app->assist_tlssc_bit38 = (idx == 1);
 }
 
+static void telemetry_off_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->assist_telemetry_off = (idx == 1);
+}
+
 static const char* const clock_text[] = {"16 MHz", "8 MHz", "12 MHz"};
 static void clock_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
@@ -153,6 +160,7 @@ void tesla_fsd_scene_settings_on_enter(void* context) {
     ADD_TOGGLE("Dev Mode", dev_mode_changed, assist_dev_mode)
     ADD_TOGGLE("Force LHD", lhd_override_changed, assist_lhd_override)
     ADD_TOGGLE("Hands-Off", hands_off_changed, assist_hands_off)
+    ADD_TOGGLE("Telemetry Off", telemetry_off_changed, assist_telemetry_off)
 
     // ── Hardware ──
     item = variable_item_list_add(list, "MCP Crystal", 3, clock_changed, app);

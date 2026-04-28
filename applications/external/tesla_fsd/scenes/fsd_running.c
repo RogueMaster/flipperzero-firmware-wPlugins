@@ -158,6 +158,7 @@ static int32_t fsd_running_worker(void* context) {
     state.assist_lhd_override = app->assist_lhd_override;
     state.assist_show_lane_graph = app->assist_show_lane_graph;
     state.assist_tlssc_bit38 = app->assist_tlssc_bit38;
+    state.assist_telemetry_off = app->assist_telemetry_off;
     furi_mutex_release(app->mutex);
 
     // Listen-only mode → MCP2515 hardware listen-only register

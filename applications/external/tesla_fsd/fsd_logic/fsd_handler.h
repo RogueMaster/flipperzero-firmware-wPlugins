@@ -180,6 +180,9 @@ typedef struct {
     bool assist_show_lane_graph; // bit45: lane visualization on non-FSD tier
     bool assist_tlssc_bit38; // bit38 on mux0: explicit TLSSC enable (complementary to 0x331)
 
+    // --- telemetry disable (0x3F8 bit43) ---
+    bool assist_telemetry_off; // force UI_enableTripTelemetry=0
+
     // --- energy consumption (0x33A, read-only) ---
     float energy_wh_per_km;
     bool energy_seen;

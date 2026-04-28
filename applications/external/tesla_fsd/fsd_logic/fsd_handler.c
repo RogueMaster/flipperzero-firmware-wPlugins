@@ -566,6 +566,11 @@ bool fsd_handle_driver_assist_override(FSDState* state, CANFRAME* frame) {
         fsd_set_bit(frame, 41, false);
         modified = true;
     }
+    // bit43: UI_enableTripTelemetry = 0 (disable trip data collection)
+    if(state->assist_telemetry_off) {
+        fsd_set_bit(frame, 43, false);
+        modified = true;
+    }
 
     return modified;
 }
