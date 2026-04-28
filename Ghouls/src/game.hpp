@@ -77,6 +77,7 @@ public:
     bool isRunning() const { return isGameRunning; }      // Check if the game engine is running
     void onGhoulDied();                                   // Called when a ghoul dies; spawns a replacement if round total not yet reached
     void resetInput() { lastInput = -1; }                 // Reset input after processing
+    bool soundAllowed() const;                            // Check if sound is allowed based on player settings
     bool startGame();                                     // start the actual game
     bool startGameOnline();                               // start the online multiplayer game
     void updateDraw();                                    // update and draw the game

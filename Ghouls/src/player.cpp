@@ -149,22 +149,28 @@ void Player::drawGameLocalView(Draw *canvas)
 {
     if (ghoulsGame->isRunning())
     {
-        if (ghoulsGame->getEngine())
+        GameEngine *engine = ghoulsGame->getEngine();
+        if (engine)
         {
             if (shouldLeaveGame())
             {
                 if (pendingStatsUpdate)
                 {
+                    Sound *sound = ghoulsGame->getGameSound();
+                    if (sound)
+                    {
+                        sound->stop();
+                    }
                     pendingStatsUpdate = false;
                     userRequest(RequestTypeUpdateStats);
                 }
                 ghoulsGame->endGame();
                 return;
             }
-            ghoulsGame->getEngine()->updateGameInput(ghoulsGame->getCurrentInput());
+            engine->updateGameInput(ghoulsGame->getCurrentInput());
             // Reset the input after processing to prevent it from being continuously pressed
             ghoulsGame->resetInput();
-            ghoulsGame->getEngine()->runAsync(false);
+            engine->runAsync(false);
         }
         return;
     }
@@ -190,6 +196,11 @@ void Player::drawGameOnlineView(Draw *canvas)
     {
         if (pendingStatsUpdate)
         {
+            Sound *sound = ghoulsGame->getGameSound();
+            if (sound)
+            {
+                sound->stop();
+            }
             pendingStatsUpdate = false;
             userRequest(RequestTypeUpdateStats);
         }

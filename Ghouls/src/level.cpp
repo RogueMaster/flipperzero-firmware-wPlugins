@@ -821,7 +821,9 @@ void GhoulsLevel::update(Game *game)
     ground->tick();
 #endif
 
-    for (int i = 0; i < getEntityCount(); i++)
+    const int entityCount = getEntityCount();
+
+    for (int i = 0; i < entityCount; i++)
     {
         Entity *ent = getEntity(i);
 
@@ -829,7 +831,7 @@ void GhoulsLevel::update(Game *game)
         {
             ent->update(game);
 
-            for (int j = 0; j < getEntityCount(); j++)
+            for (int j = 0; j < entityCount; j++)
             {
                 Entity *other = getEntity(j);
                 if (other != nullptr &&
