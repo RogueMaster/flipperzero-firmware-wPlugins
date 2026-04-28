@@ -6,6 +6,13 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-04-28
+
+### fix
+- **flipperpwn**: Fix `IF_CONNECTED` skip not tracking nested `IF` blocks for depth. The false-branch skip loop in `payload_engine.c` only incremented the depth counter for nested `IF_CONNECTED` but not for regular `IF $VAR == value` blocks. If a module nested `IF...END_IF` inside `IF_CONNECTED`, the skip would stop at the inner `END_IF` and execute commands that should have been skipped when the ESP32 is absent. Added `strncmp(st, "IF ", 3)` to the depth-increment check, matching the pattern already used by the `IF` and `ELSE` skip handlers.
+
+---
+
 ## 2026-04-27
 
 ### fix
