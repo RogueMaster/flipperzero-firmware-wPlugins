@@ -7,6 +7,10 @@
 #include HTTP_INCLUDE
 #include JSON_INCLUDE
 
+#ifdef ENGINE_STORAGE_INCLUDE
+#include ENGINE_STORAGE_INCLUDE
+#endif
+
 Player::Player(const char *user_name, const char *user_pass) : Entity(username, ENTITY_PLAYER, Vector(4, 20), Vector(1.0f, 2.0f), nullptr)
 {
     sprite_3d = ENGINE_MEM_NEW Sprite3D();
@@ -117,6 +121,22 @@ void Player::collision(Entity *other, Game *game)
         break;
     };
 }
+
+// clang-format off
+const char *Player::downloadFiles[11] = {
+    "ambience.wav",
+    "crossbow.wav",
+    "ghouls-growl-loud.wav",
+    "ghouls-growl-medium.wav",
+    "ghouls-growl-soft.wav",
+    "ghouls-growling.wav",
+    "menu-click.wav",
+    "rifle.wav",
+    "rocket-launcher.wav",
+    "shotgun.wav",
+    "weapon-pickup.wav",
+};
+// clang-format on
 
 void Player::drawCurrentView(Draw *canvas)
 {
@@ -1114,7 +1134,81 @@ void Player::drawSystemMenuView(Draw *canvas)
 void Player::drawTitleView(Draw *canvas)
 {
     // draw title text
-    drawMenuType1(canvas, currentTitleIndex, "Start", "Menu");
+    if (currentTitleIndex != TitleIndexDownload)
+    {
+        drawMenuType1(canvas, currentTitleIndex, "Start", "Menu");
+        return;
+    }
+
+    canvas->fillScreen(0xFFFF);
+
+    if (!loading)
+    {
+        loading = ENGINE_MEM_NEW Loading(canvas);
+        if (!loading)
+        {
+            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to create loading animation");
+            leaveGame = ToggleOn;
+            return;
+        }
+    }
+
+    // All files downloaded — transition to lobby menu
+    if (downloadFileIndex >= 11)
+    {
+        if (loading)
+        {
+            loading->stop();
+        }
+        downloadFileIndex = 0;
+        downloadInProgress = false;
+        currentMainView = GameViewLobbyMenu;
+        return;
+    }
+
+    if (!downloadInProgress)
+    {
+        // Build URL and destination path for the current file
+        char url[128];
+        snprintf(url, sizeof(url), GITHUB_ASSETS_URL "%s", downloadFiles[downloadFileIndex]);
+
+        char path[128];
+        snprintf(path, sizeof(path), ASSETS_FOLDER "%s", downloadFiles[downloadFileIndex]);
+
+        snprintf(downloadStatusText, sizeof(downloadStatusText),
+                 "Downloading asset (%d/11)", downloadFileIndex + 1);
+
+        if (loading)
+        {
+            loading->setText(downloadStatusText);
+        }
+
+        if (HTTP_FILE_DOWNLOAD(url, path))
+        {
+            downloadInProgress = true;
+        }
+        else
+        {
+            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to start download for %s", downloadFiles[downloadFileIndex]);
+            leaveGame = ToggleOn;
+        }
+    }
+    else
+    {
+        // waitin for current download to finish
+        if (HTTP_REQUEST_IS_FINISHED())
+        {
+            downloadInProgress = false;
+            downloadFileIndex++;
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+    }
 }
 
 void Player::drawUserInfoView(Draw *canvas)
@@ -1531,6 +1625,18 @@ void Player::handleMenu(Draw *draw, Game *game)
     drawMenuType2(draw, currentMenuIndex, currentSettingsIndex);
 }
 
+bool Player::hasAssets() const
+{
+#if !defined(ENGINE_STORAGE_INCLUDE) || !defined(ENGINE_STORAGE_READ)
+    // if not storage then no need to download
+    return true;
+#else
+    uint16_t buffer[16];
+    size_t bytes_read = ENGINE_STORAGE_READ(ASSETS_FOLDER "ambience.wav", buffer, sizeof(buffer));
+    return bytes_read > 0;
+#endif
+}
+
 void Player::increaseWeaponAmmo()
 {
     if (equippedWeapon == nullptr)
@@ -1672,8 +1778,16 @@ void Player::processInput()
             switch (currentTitleIndex)
             {
             case TitleIndexStart:
-                // Start button pressed - go to lobby menu
-                currentMainView = GameViewLobbyMenu;
+                if (hasAssets())
+                {
+                    // Start button pressed - go to lobby menu
+                    currentMainView = GameViewLobbyMenu;
+                }
+                else
+                {
+                    // download em
+                    currentTitleIndex = TitleIndexDownload;
+                }
                 break;
             case TitleIndexMenu:
                 // Menu button pressed - go to system menu

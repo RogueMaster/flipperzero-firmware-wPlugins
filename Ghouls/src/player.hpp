@@ -112,6 +112,10 @@ private:
     GameMainView currentMainView = GameViewWelcome;            // current main view of the game
     MenuSettingsIndex currentSettingsIndex = MenuSettingsMain; // current settings index (must be in the GameViewSystemMenu in the Settings tab)
     TitleIndex currentTitleIndex = TitleIndexStart;            // current title index (must be in the GameViewTitle)
+    static const char *downloadFiles[11];                      // list of files to download from the server if assets are not found locally
+    int downloadFileIndex = 0;                                 // index of the asset currently being downloaded
+    bool downloadInProgress = false;                           // true while an async file download is in progress
+    char downloadStatusText[32];                               // status text to show during asset downloading
     GhoulsGame *ghoulsGame = nullptr;                          // Reference to the main game instance
     GameState gameState = GameStatePlaying;                    // current game state
     int lastInput = -1;                                        // Last input key
@@ -159,5 +163,6 @@ private:
     void drawTitleView(Draw *canvas);                                                                  // draw the title view
     void drawUserInfoView(Draw *canvas);                                                               // draw the user info view
     void drawWelcomeView(Draw *canvas);                                                                // draw the welcome view
+    bool hasAssets() const;                                                                            // check if game assets are available
     void updateEntitiesFromServer(const char *json);                                                   // parse server entity state and update local entity positions
 };

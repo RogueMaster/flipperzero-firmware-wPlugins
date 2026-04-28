@@ -40,6 +40,7 @@
 // #define HTTP_WEBSOCKET_STOP http_websocket_stop                 // () -> bool
 // #define HTTP_GET_RESPONSE http_get_http_response                // (char *buffer, size_t buffer_size) -> bool
 // #define HTTP_GET_WEBSOCKET_RESPONSE http_get_websocket_response // (char *buffer, size_t buffer_size) -> bool
+// #define HTTP_FILE_DOWNLOAD http_file_download                   // (const char *url, const char *path) -> bool
 
 // json
 // #define JSON_INCLUDE "../json.hpp"
