@@ -115,7 +115,7 @@ private:
     static const char *downloadFiles[11];                      // list of files to download from the server if assets are not found locally
     int downloadFileIndex = 0;                                 // index of the asset currently being downloaded
     bool downloadInProgress = false;                           // true while an async file download is in progress
-    char downloadStatusText[32];                               // status text to show during asset downloading
+    char downloadStatusText[64];                               // status text to show during asset downloading
     GhoulsGame *ghoulsGame = nullptr;                          // Reference to the main game instance
     GameState gameState = GameStatePlaying;                    // current game state
     int lastInput = -1;                                        // Last input key
