@@ -3009,7 +3009,7 @@ int32_t fpwn_payload_execute_thread(void* ctx) {
                     size_t sn = fpwn_read_line(file, raw, sizeof(raw));
                     if(sn == 0) break; /* EOF or I/O error — stop skipping */
                     char* st = fpwn_trim(raw);
-                    if(strcmp(st, "IF_CONNECTED") == 0)
+                    if(strcmp(st, "IF_CONNECTED") == 0 || strncmp(st, "IF ", 3) == 0)
                         depth++;
                     else if(strcmp(st, "END_IF") == 0)
                         depth--;
