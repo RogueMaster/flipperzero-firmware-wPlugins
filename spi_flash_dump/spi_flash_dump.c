@@ -354,6 +354,9 @@ static bool app_custom_event_cb(void* ctx, uint32_t event) {
     }
 }
 
+/* Tracks which view opened Settings so Back returns to the right place. */
+static SpiFlashDumpView settings_return_view = SpiFlashDumpViewWiringGuide;
+
 /* ================================================================== */
 /*  Scene: Wiring Guide                                               */
 /* ================================================================== */
@@ -613,9 +616,6 @@ static void settings_enter_cb(void* ctx, uint32_t index) {
     UNUSED(ctx);
     /* No action on enter for these items */
 }
-
-/* Tracks which view opened Settings so Back returns to the right place. */
-static SpiFlashDumpView settings_return_view = SpiFlashDumpViewWiringGuide;
 
 static uint32_t settings_back_cb(void* ctx) {
     UNUSED(ctx);
