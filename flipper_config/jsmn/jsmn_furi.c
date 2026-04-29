@@ -6,7 +6,7 @@
  * [License text continues...]
  */
 
-#include <jsmn/jsmn_furi.h>
+#include "jsmn_furi.h"
 
 // Forward declarations of helper functions
 static int jsoneq_furi(const FuriString *json, jsmntok_t *tok, const FuriString *s);

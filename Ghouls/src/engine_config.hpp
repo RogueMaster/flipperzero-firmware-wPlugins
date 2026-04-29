@@ -1,5 +1,5 @@
 #pragma once
-#include <engine_config.hpp>
+#include <flipper_config/engine_config.hpp>
 
 // general
 // #define ENGINE_MAX_TRIANGLES_PER_SPRITE 64
