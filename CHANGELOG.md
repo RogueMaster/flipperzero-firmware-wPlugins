@@ -6,6 +6,13 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-04-29
+
+### fix
+- **spi_flash_dump**: Move `settings_return_view` declaration before first use. The file-scope static was declared at line 618 of `spi_flash_dump.c` but referenced at lines 480 and 557 — a C forward-reference error that prevents compilation. Moved the declaration to before `wiring_guide_input_cb` where it is first used.
+
+---
+
 ## 2026-04-28
 
 ### fix
