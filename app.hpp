@@ -10,15 +10,14 @@
 #include <furi.h>
 #include <string>
 #include <memory>
-#include "font/font.h"
 #include "easy_flipper/easy_flipper.h"
-#include "flipper_http/flipper_http.h"
+#include "flipper_config/flipper_http/flipper_http.h"
 #include "settings/settings.hpp"
 #include "about/about.hpp"
 #include "Ghouls/src/game.hpp"
 
 #define TAG "Ghouls"
-#define VERSION "1.0"
+#define VERSION "0.5"
 #define VERSION_TAG TAG " " VERSION
 #define APP_ID "ghouls"
 

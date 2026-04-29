@@ -1,3 +1,17 @@
+## v0.5
+- Fixed the Loading class to center text
+- Updated ghouls to respect tree and house colliders (they now navigate around them instead of through them)
+- Added an on-collision projectile effect (displays an X on impact)
+- Randomized ghoul type on spawn
+- Added a weapon crosshair (a circle indicating where projectiles will land)
+- Fixed ghoul behavior to always target the player
+- Updated the held weapon position so the weapon sprite is more visible to the player
+- Lowered weapon strength round increase (now half the player's current strength instead of the full amount)
+- Updated weapon ammo to stack per round (instead of resetting to max, adds MAX to current)
+- Updated weapon drop to respect player rotation (always dropped behind the player)
+- Updated the player's health to regenerate per frame
+- Updated game logic so the round ends once all ghouls are killed 
+
 ## v0.4
 - Added an on-screen mini map
 - Fixed positioning of objects on mini map

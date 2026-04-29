@@ -1,4 +1,4 @@
-#include "lcd.hpp"
+#include "lcd.h"
 #include <gui/gui.h>
 
 static Canvas *canvas;

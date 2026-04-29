@@ -186,7 +186,9 @@ bool GhoulsLevel::collisionMapCheck(Vector new_position)
         return false;
 
     // Check multiple points around the position to prevent clipping through walls
-    float offset = 0.2f;
+    const float offset = 0.5f;
+    const uint8_t width = currentDynamicMap->getWidth();
+    const uint8_t height = currentDynamicMap->getHeight();
 
     Vector checkPoints[] = {
         new_position,                                             // Center
@@ -197,6 +199,7 @@ bool GhoulsLevel::collisionMapCheck(Vector new_position)
     };
 
     Vector point;
+
     for (int i = 0; i < 5; i++)
     {
         point = checkPoints[i];
@@ -209,14 +212,13 @@ bool GhoulsLevel::collisionMapCheck(Vector new_position)
         uint8_t y = (uint8_t)point.y;
 
         // Bounds checking
-        if (x >= currentDynamicMap->getWidth() || y >= currentDynamicMap->getHeight())
+        if (x >= width || y >= height)
         {
             // Out of bounds, treat as collision
             return true;
         }
 
-        TileType tile = currentDynamicMap->getTile(x, y);
-        if (tile != TILE_EMPTY)
+        if (currentDynamicMap->getTile(x, y) != TILE_EMPTY)
         {
             return true;
         }

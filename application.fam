@@ -10,5 +10,5 @@ App(
     fap_description="3D Round-based survival game", 
     fap_author="JBlanked",
     fap_weburl="https://github.com/jblanked/Ghouls-Flipper",
-    fap_version="0.4"
+    fap_version="0.5"
 )

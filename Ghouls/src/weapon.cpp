@@ -7,6 +7,7 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
 {
     this->currentProjectile = nullptr;
     this->held = false;
+    this->touched = false;
     this->weaponType = type;
     //
     sprite_3d_type = SPRITE_3D_CUSTOM;
@@ -55,6 +56,7 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
         projectileType = PROJECTILE_NONE;
         break;
     };
+    maxAmmo = ammo;
     sprite_3d->setWireframe(WIREFRAME_ENABLED);
 }
 
@@ -70,6 +72,15 @@ Weapon::~Weapon()
 void Weapon::addAmmo(uint16_t amount)
 {
     ammo += amount;
+    if (ammo > maxAmmo)
+    {
+        ammo = maxAmmo;
+    }
+}
+
+void Weapon::addMaxAmmo(uint16_t amount)
+{
+    maxAmmo += amount;
 }
 
 bool Weapon::canFire() const
@@ -115,9 +126,19 @@ float Weapon::getDamage() const
     return damage;
 }
 
+bool Weapon::isAmmoFull() const
+{
+    return ammo >= maxAmmo;
+}
+
 bool Weapon::isHeld() const
 {
     return held;
+}
+
+bool Weapon::isTouched() const
+{
+    return touched;
 }
 
 WeaponType Weapon::getWeaponType() const
@@ -276,24 +297,7 @@ void Weapon::makeShotgun(float height)
 
 void Weapon::reset(Level *level)
 {
-    switch (weaponType)
-    {
-    case WEAPON_RIFLE:
-        ammo = 30;
-        break;
-    case WEAPON_SHOTGUN:
-        ammo = 10;
-        break;
-    case WEAPON_ROCKET_LAUNCHER:
-        ammo = 5;
-        break;
-    case WEAPON_CROSSBOW:
-        ammo = 15;
-        break;
-    default:
-        ammo = 0;
-        break;
-    };
+    ammo = maxAmmo;
 
     if (currentProjectile)
     {
@@ -305,7 +309,7 @@ void Weapon::reset(Level *level)
 
 void Weapon::setAmmo(uint16_t ammo)
 {
-    this->ammo = ammo;
+    this->ammo = ammo > maxAmmo ? maxAmmo : ammo;
 }
 
 void Weapon::setDamage(float damage)
@@ -320,6 +324,10 @@ void Weapon::setDamage(float damage)
 void Weapon::setHeld(bool held)
 {
     this->held = held;
+    if (held)
+    {
+        this->touched = true;
+    }
 }
 
 void Weapon::setWeaponType(WeaponType type)

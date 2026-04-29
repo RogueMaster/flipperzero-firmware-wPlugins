@@ -1,6 +1,6 @@
 #include "app.hpp"
-#include "lcd.hpp"
-#include "http.hpp"
+#include "flipper_config/lcd.h"
+#include "flipper_config/http.h"
 
 uint32_t GhoulsApp::callback_exit_app(void *context)
 {

@@ -2,6 +2,8 @@
 #include "config.hpp"
 #include ENGINE_LCD_INCLUDE
 
+#define GITHUB_ASSETS_URL "https://raw.githubusercontent.com/jblanked/Ghouls/dev/src/assets/"
+
 #ifndef ASSETS_FOLDER
 #define ASSETS_FOLDER "assets/"
 #endif
@@ -80,6 +82,8 @@
 #define ENEMY_MINIMAP_COLOR 0xc01a
 
 #define WEAPON_SPAWN_COUNT 4 // about 8kb if max_triangles is set to 48
+#define WEAPON_VIEW_HEIGHT 1.0f
+#define WEAPON_HIT_COLOR 0xfb4d
 
 #define TREE_SPAWN_COUNT 54
 #define TREE_COLOR 0x13e2
@@ -97,8 +101,9 @@ typedef enum
 
 typedef enum
 {
-    TitleIndexStart = 0, // switch to lobby options (local or online)
-    TitleIndexMenu = 1,  // switch to system menu
+    TitleIndexStart = 0,    // switch to lobby options (local or online)
+    TitleIndexMenu = 1,     // switch to system menu
+    TitleIndexDownload = 2, // (if assets not found) download assets from the server
 } TitleIndex;
 
 typedef enum

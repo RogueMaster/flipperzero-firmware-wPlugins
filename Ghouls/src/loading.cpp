@@ -19,7 +19,12 @@ void Loading::animate()
     }
     drawSpinner();
     draw->setFont(FONT_SIZE_SMALL);
+#ifdef ENGINE_FONT_STRING_WIDTH
+    const size_t textWidth = ENGINE_FONT_STRING_WIDTH(FONT_SIZE_SMALL, currentText);
+    draw->text((draw->getDisplaySize().x - textWidth) / 2, draw->getDisplaySize().y * 5 / 64, currentText, 0x0000);
+#else
     draw->text(draw->getDisplaySize().x * 44 / 128, draw->getDisplaySize().y * 5 / 64, currentText, 0x0000);
+#endif
     uint32_t currentTime = TIME_MILLIS;
     if (currentTime >= timeStart)
     {
