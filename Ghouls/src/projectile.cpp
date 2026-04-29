@@ -128,7 +128,7 @@ void Projectile::collision(Entity *other, Game *game)
     this->hitPosition = this->position; // save before moving off-screen
     this->position_set(-100, -100);
     this->inMotion = false;
-    this->hitTimer = SPEED_SCALE(50); // number of frames to display the X flash
+    this->hitTimer = 10;
     this->is_visible = false;
 }
 
