@@ -6,6 +6,13 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-04-30
+
+### fix
+- **ccid_emulator**: Fix APDU monitor auto-scroll overriding manual scroll during active emulation. The 200ms refresh timer unconditionally snapped `scroll_offset` to the bottom whenever a new APDU arrived, making the Up/Down input handlers non-functional while APDUs were flowing. Added `auto_scroll` flag to `ApduMonitorModel` — disabled on Up press, re-enabled when Down reaches the bottom, reset when emulation starts. The timer now only updates scroll position when `auto_scroll` is true.
+
+---
+
 ## 2026-04-29
 
 ### fix
