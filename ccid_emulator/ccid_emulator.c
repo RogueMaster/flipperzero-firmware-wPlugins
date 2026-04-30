@@ -40,6 +40,7 @@ extern const uint8_t ccid_usb_preset_count;
 typedef struct {
     CcidEmulatorApp* app;
     uint16_t scroll_offset; /* index of first visible *pair* */
+    bool auto_scroll; /* follow new entries until user scrolls up */
 } ApduMonitorModel;
 
 static void apdu_monitor_draw(Canvas* canvas, void* model_ptr) {
@@ -134,7 +135,10 @@ static bool apdu_monitor_input(InputEvent* event, void* context) {
                 app->apdu_monitor,
                 ApduMonitorModel * model,
                 {
-                    if(model->scroll_offset > 0) model->scroll_offset--;
+                    if(model->scroll_offset > 0) {
+                        model->scroll_offset--;
+                        model->auto_scroll = false;
+                    }
                 },
                 true);
             return true;
@@ -150,6 +154,7 @@ static bool apdu_monitor_input(InputEvent* event, void* context) {
                     uint16_t max_off =
                         (total > APDU_MON_MAX_VISIBLE) ? total - APDU_MON_MAX_VISIBLE : 0;
                     if(model->scroll_offset < max_off) model->scroll_offset++;
+                    if(model->scroll_offset >= max_off) model->auto_scroll = true;
                 },
                 true);
             return true;
@@ -523,7 +528,13 @@ static bool custom_event_handler(void* context, uint32_t event) {
 
             /* Reset scroll */
             with_view_model(
-                app->apdu_monitor, ApduMonitorModel * model, { model->scroll_offset = 0; }, false);
+                app->apdu_monitor,
+                ApduMonitorModel * model,
+                {
+                    model->scroll_offset = 0;
+                    model->auto_scroll = true;
+                },
+                false);
 
             /* Start CCID emulation */
             ccid_handler_start(app);
@@ -603,11 +614,13 @@ static void ccid_apdu_refresh_timer_cb(void* ctx) {
             app->apdu_monitor,
             ApduMonitorModel * model,
             {
-                uint32_t total = app->log_count;
-                if(total > CCID_EMU_LOG_MAX_ENTRIES) total = CCID_EMU_LOG_MAX_ENTRIES;
-                uint16_t max_off = (total > APDU_MON_MAX_VISIBLE) ? total - APDU_MON_MAX_VISIBLE :
-                                                                    0;
-                model->scroll_offset = max_off;
+                if(model->auto_scroll) {
+                    uint32_t total = app->log_count;
+                    if(total > CCID_EMU_LOG_MAX_ENTRIES) total = CCID_EMU_LOG_MAX_ENTRIES;
+                    uint16_t max_off =
+                        (total > APDU_MON_MAX_VISIBLE) ? total - APDU_MON_MAX_VISIBLE : 0;
+                    model->scroll_offset = max_off;
+                }
             },
             true);
     }
@@ -665,6 +678,7 @@ static CcidEmulatorApp* ccid_emulator_app_alloc(void) {
         {
             model->app = app;
             model->scroll_offset = 0;
+            model->auto_scroll = true;
         },
         false);
 
