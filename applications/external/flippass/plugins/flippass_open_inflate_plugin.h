@@ -13,7 +13,7 @@ extern "C" {
 #define FLIPPASS_OPEN_INFLATE_NONPAGED_PLUGIN_APP_ID "flippass_open_inflate_nonpaged"
 #define FLIPPASS_OPEN_INFLATE_PAGED_PLUGIN_APP_ID    "flippass_open_inflate_paged"
 #define FLIPPASS_OPEN_INFLATE_PLUGIN_API_VERSION     1u
-#define FLIPPASS_OPEN_INFLATE_HOST_API_VERSION       1u
+#define FLIPPASS_OPEN_INFLATE_HOST_API_VERSION       2u
 
 typedef enum {
     FlipPassOpenInflateKindNone = 0,
@@ -52,6 +52,16 @@ typedef struct {
         FuriString* error);
     bool (*finish_staged_xml)(void* context, size_t plain_size, FuriString* error);
     void (*clear_staged_xml)(void* context);
+    bool (*crypt_paged_window)(
+        void* context,
+        uint16_t page_index,
+        uint8_t* page,
+        size_t page_size,
+        bool encrypt,
+        const uint8_t* expected_mac,
+        uint8_t* out_mac,
+        size_t mac_size);
+    void (*clear_paged_window_crypto)(void* context);
 } FlipPassOpenInflateHostApiV1;
 
 typedef struct {

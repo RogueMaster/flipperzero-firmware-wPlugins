@@ -24,6 +24,16 @@ static const char* flippass_other_field_safe_text(const char* value, const char*
 }
 
 static bool flippass_other_field_get_value(App* app, const char** out_value, FuriString* error) {
+    if(app->pending_other_otp_kind != FlipPassOtpKindNone) {
+        static char otp_code[FLIPPASS_OTP_CODE_MAX_CHARS + 1U];
+        if(!flippass_otp_generate_code(
+               app, app->active_entry, app->pending_other_otp_kind, false, otp_code, error)) {
+            return false;
+        }
+        *out_value = otp_code;
+        return true;
+    }
+
     return flippass_db_get_other_field_value(
         app,
         app->active_entry,
@@ -137,7 +147,8 @@ void flippass_scene_other_field_actions_on_enter(void* context) {
     App* app = context;
 
     if(app->active_entry == NULL ||
-       (app->pending_other_field_mask == 0U && app->pending_other_custom_field == NULL)) {
+       (app->pending_other_field_mask == 0U && app->pending_other_custom_field == NULL &&
+        app->pending_other_otp_kind == FlipPassOtpKindNone)) {
         flippass_scene_status_show(
             app,
             "No Field Selected",
@@ -205,4 +216,6 @@ bool flippass_scene_other_field_actions_on_event(void* context, SceneManagerEven
 void flippass_scene_other_field_actions_on_exit(void* context) {
     App* app = context;
     dialog_ex_reset(app->dialog_ex);
+    flippass_output_release_all(app);
+    flippass_output_cleanup(app);
 }

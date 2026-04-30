@@ -53,6 +53,35 @@ static void fp_open_log(FlipPassOpenInflateContext* ctx, const char* message) {
     }
 }
 
+static void fp_open_memory_log(
+    FlipPassOpenInflateContext* ctx,
+    const char* stage,
+    size_t theoretical_bytes) {
+#if FLIPPASS_ENABLE_MEMORY_DIAGNOSTICS && FLIPPASS_ENABLE_LOGS
+    char log_line[176];
+    snprintf(
+        log_line,
+        sizeof(log_line),
+        "MEMORY stage=%s free=%lu max=%lu theoretical=%lu loaded=plugin:open_inflate_nonpaged",
+        stage != NULL ? stage : "open_inflate_nonpaged",
+        (unsigned long)memmgr_get_free_heap(),
+        (unsigned long)memmgr_heap_get_max_free_block(),
+        (unsigned long)theoretical_bytes);
+    fp_open_log(ctx, log_line);
+#else
+    UNUSED(ctx);
+    UNUSED(stage);
+    UNUSED(theoretical_bytes);
+#endif
+}
+
+static size_t fp_open_nonpaged_theoretical_bytes(const KDBXGzipMemberInfo* member_info) {
+    const size_t member_size = (member_info != NULL) ? member_info->member_size : 0U;
+    return sizeof(FlipPassOpenInflateContext) + sizeof(FlipPassOpenInflateXmlStageContext) +
+           sizeof(FlipPassOpenInflateNonPagedState) + member_size + TINFL_LZ_DICT_SIZE +
+           sizeof(tinfl_decompressor);
+}
+
 static uint8_t fp_open_progress_percent(size_t completed, size_t total) {
     if(total == 0U) {
         return 0U;
@@ -358,6 +387,10 @@ static bool fp_open_inflate_nonpaged_run(
     }
 
     result->retry_with_paged = false;
+    fp_open_memory_log(
+        &ctx,
+        "open_inflate_nonpaged_entry",
+        fp_open_nonpaged_theoretical_bytes(request != NULL ? &request->member_info : NULL));
     if(request->member_info.member_size <
            (request->member_info.body_offset + FLIPPASS_OPEN_GZIP_TRAILER_SIZE) ||
        request->member_info.body_offset + request->member_info.compressed_size +
@@ -380,6 +413,10 @@ static bool fp_open_inflate_nonpaged_run(
     }
 
     if(!fp_open_nonpaged_member_window_fits(request->member_info.member_size)) {
+        fp_open_memory_log(
+            &ctx,
+            "open_inflate_nonpaged_window_too_small",
+            fp_open_nonpaged_theoretical_bytes(&request->member_info));
         result->retry_with_paged = true;
         if(furi_string_empty(error)) {
             furi_string_set_str(
@@ -389,12 +426,24 @@ static bool fp_open_inflate_nonpaged_run(
     }
 
     fp_open_progress(&ctx, "Loading GZip", "", 54U);
+    fp_open_memory_log(
+        &ctx,
+        "open_inflate_nonpaged_payload_load_before",
+        fp_open_nonpaged_theoretical_bytes(&request->member_info));
     if(!fp_open_load_payload_to_heap(&ctx, request->member_info.member_size, &member_data)) {
         result->retry_with_paged = true;
         return false;
     }
+    fp_open_memory_log(
+        &ctx,
+        "open_inflate_nonpaged_payload_load_after",
+        fp_open_nonpaged_theoretical_bytes(&request->member_info));
 
     if(!fp_open_nonpaged_dict_window_fits()) {
+        fp_open_memory_log(
+            &ctx,
+            "open_inflate_nonpaged_dict_too_small",
+            fp_open_nonpaged_theoretical_bytes(&request->member_info));
         result->retry_with_paged = true;
         if(furi_string_empty(error)) {
             furi_string_set_str(
@@ -421,6 +470,10 @@ static bool fp_open_inflate_nonpaged_run(
         fp_open_log(&ctx, log_line);
     }
     fp_open_progress(&ctx, "Uncompressing", "", 58U);
+    fp_open_memory_log(
+        &ctx,
+        "open_inflate_nonpaged_emit_before",
+        fp_open_nonpaged_theoretical_bytes(&request->member_info));
     ok = fp_open_emit_nonpaged_deflate(
         member_data + request->member_info.body_offset,
         request->member_info.compressed_size,
@@ -436,6 +489,10 @@ static bool fp_open_inflate_nonpaged_run(
         host_api->clear_staged_xml(host_api->context);
         goto cleanup;
     }
+    fp_open_memory_log(
+        &ctx,
+        "open_inflate_nonpaged_emit_after",
+        fp_open_nonpaged_theoretical_bytes(&request->member_info));
 
     if(!host_api->finish_staged_xml(host_api->context, stage.plain_size, error)) {
         result->retry_with_paged = true;
@@ -461,6 +518,7 @@ cleanup:
         memzero(member_data, request->member_info.member_size);
         free(member_data);
     }
+    fp_open_memory_log(&ctx, "open_inflate_nonpaged_exit", 0U);
     return ok;
 }
 

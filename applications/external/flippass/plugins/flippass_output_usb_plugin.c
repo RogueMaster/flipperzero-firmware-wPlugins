@@ -338,8 +338,19 @@ static bool flippass_output_usb_is_advertising(const FlipPassOutputPluginHostApi
 }
 
 static bool flippass_output_usb_advertise(const FlipPassOutputPluginHostApiV1* host_api) {
-    UNUSED(host_api);
-    return false;
+    const bool was_locked = furi_hal_usb_is_locked();
+
+    if(was_locked) {
+        furi_hal_usb_unlock();
+    }
+
+    if(flippass_output_usb_state.previous_interface == NULL) {
+        flippass_output_usb_state.was_locked = was_locked;
+        flippass_output_usb_state.previous_interface = furi_hal_usb_get_config();
+    }
+
+    flippass_output_usb_progress(host_api, "Preparing", "USB HID pre-warm.", 15U);
+    return flippass_usb_prepare_attach_hid(host_api, 1U);
 }
 
 static void flippass_output_usb_get_name(char* buffer, size_t size) {

@@ -14,15 +14,17 @@
 #include <stdio.h>
 #include <string.h>
 
-#define FLIPPASS_BT_KEYS_STORAGE_DIR    EXT_PATH("apps_data/bad_usb")
-#define FLIPPASS_BT_KEYS_STORAGE_PATH   EXT_PATH("apps_data/bad_usb/.bt_hid.keys")
-#define FLIPPASS_BLE_SETUP_DELAY_MS     200U
-#define FLIPPASS_BLE_WAIT_STEP_MS       100U
-#define FLIPPASS_BLE_CONNECT_TIMEOUT_MS 15000U
-#define FLIPPASS_BLE_CONNECT_SETTLE_MS  300U
-#define FLIPPASS_BLE_NAME_PREFIX        "BadUSB"
-#define FLIPPASS_BLE_NAME_BUFFER_SIZE   21U
-#define FLIPPASS_BLE_MAC_XOR            0x0002U
+#define FLIPPASS_BT_KEYS_STORAGE_DIR       EXT_PATH("apps_data/bad_usb")
+#define FLIPPASS_BT_KEYS_STORAGE_PATH      EXT_PATH("apps_data/bad_usb/.bt_hid.keys")
+#define FLIPPASS_BLE_SETUP_DELAY_MS        200U
+#define FLIPPASS_BLE_WAIT_STEP_MS          100U
+#define FLIPPASS_BLE_CONNECT_TIMEOUT_MS    15000U
+#define FLIPPASS_BLE_CONNECT_SETTLE_MS     300U
+#define FLIPPASS_BLE_DISCONNECT_STEP_MS    50U
+#define FLIPPASS_BLE_DISCONNECT_TIMEOUT_MS 1000U
+#define FLIPPASS_BLE_NAME_PREFIX           "BadUSB"
+#define FLIPPASS_BLE_NAME_BUFFER_SIZE      21U
+#define FLIPPASS_BLE_MAC_XOR               0x0002U
 
 typedef struct {
     char name[FLIPPASS_BLE_NAME_BUFFER_SIZE];
@@ -302,18 +304,33 @@ static bool flippass_output_ble_advertise(const FlipPassOutputPluginHostApiV1* h
     return flippass_ble_ensure_advertising(host_api);
 }
 
+static void flippass_ble_wait_disconnected(const FlipPassOutputPluginHostApiV1* host_api) {
+    uint32_t waited_ms = 0U;
+
+    while(flippass_output_ble_session != NULL && flippass_output_ble_session->connected &&
+          waited_ms < FLIPPASS_BLE_DISCONNECT_TIMEOUT_MS) {
+        furi_delay_ms(FLIPPASS_BLE_DISCONNECT_STEP_MS);
+        waited_ms += FLIPPASS_BLE_DISCONNECT_STEP_MS;
+    }
+
+    if(flippass_output_ble_session != NULL && flippass_output_ble_session->connected) {
+        flippass_output_ble_log(host_api, "cleanup disconnect wait timed out");
+    }
+}
+
 static void flippass_output_ble_cleanup(const FlipPassOutputPluginHostApiV1* host_api) {
     if(flippass_output_ble_session == NULL) {
         return;
     }
 
-    bt_set_status_changed_callback(flippass_output_ble_session->bt, NULL, NULL);
-    flippass_output_ble_release_all(NULL);
+    flippass_output_ble_release_all(host_api);
     bt_disconnect(flippass_output_ble_session->bt);
-    furi_delay_ms(FLIPPASS_BLE_SETUP_DELAY_MS);
+    flippass_ble_wait_disconnected(host_api);
     furi_hal_bt_stop_advertising();
+    furi_delay_ms(FLIPPASS_BLE_SETUP_DELAY_MS);
     flippass_output_ble_session->connected = false;
     flippass_output_ble_session->status = BtStatusOff;
+    bt_set_status_changed_callback(flippass_output_ble_session->bt, NULL, NULL);
     bt_keys_storage_set_default_path(flippass_output_ble_session->bt);
     if(!bt_profile_restore_default(flippass_output_ble_session->bt)) {
         flippass_output_ble_log(host_api, "cleanup restore default profile failed");

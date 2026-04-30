@@ -9,12 +9,31 @@
 #include "../flippass.h"
 #include "../flippass_db.h"
 #include "flippass_scene.h"
+#include "flippass_scene_status.h"
 #include <flipper_format/flipper_format.h>
 #include <stdio.h>
 #include <toolbox/path.h>
 
 static void flippass_scene_password_entry_set_header(App* app) {
     furi_assert(app);
+
+    if(app->idle_lock_active) {
+        snprintf(app->password_header, sizeof(app->password_header), "%s", "Unlock Session");
+        if(app->file_path != NULL && !furi_string_empty(app->file_path)) {
+            FuriString* file_name = furi_string_alloc();
+            path_extract_filename(app->file_path, file_name, true);
+            if(!furi_string_empty(file_name)) {
+                snprintf(
+                    app->password_header,
+                    sizeof(app->password_header),
+                    "Unlock Session: %s",
+                    furi_string_get_cstr(file_name));
+            }
+            furi_string_free(file_name);
+        }
+        text_input_set_header_text(app->text_input, app->password_header);
+        return;
+    }
 
     snprintf(app->password_header, sizeof(app->password_header), "%s", "Enter Password");
 
@@ -29,7 +48,10 @@ static void flippass_scene_password_entry_set_header(App* app) {
         snprintf(
             app->password_header,
             sizeof(app->password_header),
-            "Pass for %s",
+            (app->editor_mode == FlipPassEditorModeModifyDatabase &&
+             app->editor_return_scene == FlipPassScene_FileBrowser) ?
+                "Pass for Mod. %s" :
+                "Pass for %s",
             furi_string_get_cstr(file_name));
     }
     furi_string_free(file_name);
@@ -147,6 +169,39 @@ static void flippass_scene_password_entry_callback(void* context) {
     flippass_scene_password_entry_trigger_unlock(app, app->text_buffer);
 }
 
+static void flippass_scene_password_entry_idle_callback(void* context) {
+    App* app = context;
+
+    if(flippass_session_verify_password(app, app->text_buffer)) {
+        app->idle_lock_active = false;
+        app->idle_lock_failed_attempts = 0U;
+        flippass_clear_text_buffer(app);
+        flippass_clear_master_password(app);
+        if(!scene_manager_previous_scene(app->scene_manager)) {
+            flippass_request_exit(app);
+        }
+        return;
+    }
+
+    flippass_clear_text_buffer(app);
+    flippass_clear_master_password(app);
+    app->idle_lock_failed_attempts++;
+    const uint8_t max_attempts = app->idle_unlock_attempts > 0U ?
+                                     app->idle_unlock_attempts :
+                                     FLIPPASS_DEFAULT_IDLE_UNLOCK_ATTEMPTS;
+    if(app->idle_lock_failed_attempts >= max_attempts) {
+        FLIPPASS_LOG_EVENT(app, "IDLE_LOCK_FAILED_CLOSE");
+        flippass_close_database(app);
+        scene_manager_search_and_switch_to_another_scene(
+            app->scene_manager, FlipPassScene_FileBrowser);
+        return;
+    }
+
+    flippass_scene_status_show(
+        app, "Unlock Failed", "Wrong database password.", FlipPassScene_PasswordEntry);
+    scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+}
+
 /**
  * @brief Handler for the on_enter event of the password entry scene.
  * @param context The application context.
@@ -161,6 +216,19 @@ void flippass_scene_password_entry_on_enter(void* context) {
         app->close_test_logged = true;
     }
     flippass_scene_password_entry_set_header(app);
+    if(app->idle_lock_active) {
+        text_input_set_result_callback(
+            app->text_input,
+            flippass_scene_password_entry_idle_callback,
+            app,
+            app->text_buffer,
+            TEXT_BUFFER_SIZE,
+            true);
+        text_input_set_is_password(app->text_input, true);
+        text_input_set_for_open(app->text_input, true);
+        view_dispatcher_switch_to_view(app->view_dispatcher, AppViewPasswordEntry);
+        return;
+    }
 #if FLIPPASS_ENABLE_DEBUG_UNLOCK_HOOK
     if(flippass_scene_password_entry_try_debug_unlock(app)) {
         return;
@@ -191,6 +259,21 @@ bool flippass_scene_password_entry_on_event(void* context, SceneManagerEvent eve
     if(event.type == SceneManagerEventTypeBack) {
         flippass_clear_text_buffer(app);
         flippass_clear_master_password(app);
+        if(app->idle_lock_active) {
+            flippass_request_exit(app);
+            consumed = true;
+            return consumed;
+        }
+        if(app->editor_mode == FlipPassEditorModeModifyDatabase &&
+           app->editor_return_scene == FlipPassScene_FileBrowser && !app->database_loaded) {
+            app->editor_mode = FlipPassEditorModeNone;
+            app->editor_text_target = FlipPassEditorTextTargetNone;
+            app->editor_group = NULL;
+            app->editor_entry = NULL;
+            app->editor_selected_index = 0U;
+            app->editor_return_scene = FlipPassScene_FileBrowser;
+            app->editor_close_after_commit = false;
+        }
         if(!scene_manager_previous_scene(app->scene_manager)) {
             flippass_request_exit(app);
         }

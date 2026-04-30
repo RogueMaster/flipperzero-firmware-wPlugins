@@ -19,6 +19,9 @@ extern "C" {
 typedef enum {
     FlipPassDbBrowserItemTypeGroup = 0,
     FlipPassDbBrowserItemTypeEntry,
+    FlipPassDbBrowserItemTypeFile,
+    FlipPassDbBrowserItemTypeUp,
+    FlipPassDbBrowserItemTypeAdd,
     FlipPassDbBrowserItemTypeField,
     FlipPassDbBrowserItemTypeInfo,
 } FlipPassDbBrowserItemType;
@@ -27,6 +30,11 @@ typedef enum {
     FlipPassDbBrowserModeBrowse = 0,
     FlipPassDbBrowserModeDirectActions,
 } FlipPassDbBrowserMode;
+
+typedef enum {
+    FlipPassDbBrowserAddMenuKindObject = 0,
+    FlipPassDbBrowserAddMenuKindItem,
+} FlipPassDbBrowserAddMenuKind;
 
 typedef enum {
     FlipPassDbBrowserActionAutoType = 0,
@@ -46,6 +54,9 @@ typedef enum {
     FlipPassDbBrowserEventTypeUsbLong,
     FlipPassDbBrowserEventTypeBluetoothLong,
     FlipPassDbBrowserEventOpenOther,
+    FlipPassDbBrowserEventLongOk,
+    FlipPassDbBrowserEventSelectAction,
+    FlipPassDbBrowserEventCloseActionMenu,
 } FlipPassDbBrowserEvent;
 
 typedef void (*FlipPassDbBrowserViewCallback)(FlipPassDbBrowserEvent event, void* context);
@@ -67,6 +78,9 @@ void flippass_db_browser_view_reset(FlipPassDbBrowserView* browser);
 void flippass_db_browser_view_set_header(FlipPassDbBrowserView* browser, const char* header);
 void flippass_db_browser_view_set_has_parent(FlipPassDbBrowserView* browser, bool has_parent);
 void flippass_db_browser_view_set_mode(FlipPassDbBrowserView* browser, FlipPassDbBrowserMode mode);
+void flippass_db_browser_view_set_add_menu_kind(
+    FlipPassDbBrowserView* browser,
+    FlipPassDbBrowserAddMenuKind kind);
 void flippass_db_browser_view_add_item(
     FlipPassDbBrowserView* browser,
     FlipPassDbBrowserItemType type,

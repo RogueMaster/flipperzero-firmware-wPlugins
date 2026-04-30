@@ -1636,6 +1636,32 @@ static bool kdbx_parser_derive_transformed_key(
     }
 }
 
+bool kdbx_parser_get_aes_kdf_rounds(const KDBXParser* parser, uint64_t* out_rounds) {
+    KDBXParserKdfParameters params;
+
+    furi_assert(parser);
+    furi_assert(out_rounds);
+
+    *out_rounds = 0U;
+    if(!parser->header_parsed) {
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "The database header is not ready for KDF inspection.");
+        return false;
+    }
+
+    if(!kdbx_parser_parse_kdf_parameters(parser, &params)) {
+        return false;
+    }
+
+    if(params.type != KDBXParserKdfTypeAes || params.rounds == 0U) {
+        kdbx_parser_set_error((KDBXParser*)parser, "This database uses an unsupported KDF.");
+        return false;
+    }
+
+    *out_rounds = params.rounds;
+    return true;
+}
+
 bool kdbx_parser_derive_key(
     const KDBXParser* parser,
     const char* password,

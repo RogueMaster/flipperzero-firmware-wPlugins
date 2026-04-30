@@ -1,17 +1,27 @@
 #include "flippass.h"
 #include "flippass_db.h"
+#include "kdbx/hmac.h"
+#include "kdbx/memzero.h"
+#include "kdbx/kdbx_protected.h"
+#include "kdbx/sha2.h"
 #include "plugins/flippass_open_acquire_plugin.h"
 #include "plugins/flippass_open_inflate_plugin.h"
 #include "plugins/flippass_open_model_plugin.h"
 #include "plugins/flippass_open_stream_plugin.h"
 
 #include <dialogs/dialogs.h>
+#include <furi_hal_random.h>
 #include <string.h>
 
-#define FLIPPASS_OPEN_SAFETY_RESERVE_BYTES       (8U * 1024U)
-#define FLIPPASS_OPEN_MODEL_GROWTH_RESERVE_BYTES (4U * 1024U)
-#define FLIPPASS_OPEN_ARENA_CHUNK_SIZE           256U
-#define FLIPPASS_OPEN_MAX_FIELD_PLAIN_BYTES      (256U * 1024U)
+#define FLIPPASS_OPEN_SAFETY_RESERVE_BYTES          (8U * 1024U)
+#define FLIPPASS_OPEN_MODEL_GROWTH_RESERVE_BYTES    (4U * 1024U)
+#define FLIPPASS_OPEN_ARENA_CHUNK_SIZE              256U
+#define FLIPPASS_OPEN_MAX_FIELD_PLAIN_BYTES         (256U * 1024U)
+#define FLIPPASS_OPEN_GZIP_NONPAGED_LIMIT           (16U * 1024U)
+#define FLIPPASS_OPEN_GZIP_NONPAGED_PLAIN_LIMIT     (16U * 1024U)
+#define FLIPPASS_OPEN_THEORETICAL_GZIP_DICT_BYTES   (32U * 1024U)
+#define FLIPPASS_OPEN_THEORETICAL_GZIP_MARGIN_BYTES (2U * 1024U)
+#define FLIPPASS_OPEN_THEORETICAL_PAGED_RAM_BYTES   (4U * 1024U)
 
 typedef struct {
     App* app;
@@ -28,10 +38,10 @@ typedef struct {
     size_t deferred_field_count;
     size_t deferred_plain_bytes;
     size_t deferred_stream_plain_bytes;
-    uint8_t field_writer_pending[KDBX_VAULT_RECORD_PLAIN_MAX];
     bool session_active;
     bool allow_ext_promotion;
     bool deferred_stream_active;
+    bool deferred_stream_protected;
     bool vault_promotion_attempted;
 } FlipPassOpenBuilderContext;
 
@@ -41,11 +51,10 @@ typedef struct {
     KDBXVaultWriter writer;
     KDBXFieldRef ref;
     size_t size;
-    uint8_t writer_pending[KDBX_VAULT_RECORD_PLAIN_MAX];
 } FlipPassOpenScratchContext;
 
 typedef struct {
-    KDBXVaultReader reader;
+    KDBXVaultReader* reader;
     bool active;
 } FlipPassOpenScratchReaderContext;
 
@@ -58,6 +67,10 @@ typedef struct {
     KDBXVaultBackend requested_backend;
     bool allow_ext_promotion;
     bool resume_from_staged_xml;
+    bool paged_window_crypto_ready;
+    uint8_t paged_window_enc_key[32];
+    uint8_t paged_window_mac_key[32];
+    uint8_t paged_window_nonce_prefix[4];
     KDBXOpenProfile open_profile;
     bool open_profile_ready;
 } FlipPassOpenSession;
@@ -65,6 +78,101 @@ typedef struct {
 static void flippass_open_scratch_reset(FlipPassOpenScratchContext* ctx);
 static void flippass_open_scratch_reader_reset(FlipPassOpenScratchReaderContext* reader);
 static void flippass_open_builder_cancel_session(void* context);
+
+static size_t flippass_open_theoretical_session_bytes(void) {
+    return sizeof(FlipPassOpenSession);
+}
+
+static size_t flippass_open_theoretical_acquire_bytes(void) {
+    return flippass_open_theoretical_session_bytes() + sizeof(FlipPassOpenAcquireRequestV1) +
+           sizeof(FlipPassOpenAcquireHostApiV1) + sizeof(KDBXOpenProfile);
+}
+
+static size_t flippass_open_theoretical_stream_bytes(void) {
+    return flippass_open_theoretical_session_bytes() + sizeof(FlipPassOpenStreamRequestV1) +
+           sizeof(FlipPassOpenStreamHostApiV1) + sizeof(FlipPassOpenStreamResultV2);
+}
+
+static size_t flippass_open_theoretical_inflate_bytes(
+    FlipPassOpenInflateKind kind,
+    const KDBXGzipMemberInfo* member_info) {
+    const size_t member_size = (member_info != NULL) ? member_info->member_size : 0U;
+    size_t theoretical =
+        flippass_open_theoretical_session_bytes() + sizeof(FlipPassOpenInflateRequestV1) +
+        sizeof(FlipPassOpenInflateHostApiV1) + sizeof(FlipPassOpenInflateResultV1);
+
+    if(kind == FlipPassOpenInflateKindNonPaged) {
+        theoretical += member_size + FLIPPASS_OPEN_THEORETICAL_GZIP_DICT_BYTES +
+                       FLIPPASS_OPEN_THEORETICAL_GZIP_MARGIN_BYTES;
+    } else {
+        theoretical += FLIPPASS_OPEN_THEORETICAL_PAGED_RAM_BYTES;
+    }
+
+    return theoretical;
+}
+
+static size_t flippass_open_theoretical_model_bytes(size_t staged_payload_plain_size) {
+    UNUSED(staged_payload_plain_size);
+    return flippass_open_theoretical_session_bytes() + sizeof(FlipPassOpenModelRequestV1) +
+           sizeof(FlipPassOpenModelHostApiV1) + sizeof(FlipPassOpenBuilderApiV1) +
+           sizeof(FlipPassOpenBuilderContext) + FLIPPASS_OPEN_MODEL_GROWTH_RESERVE_BYTES;
+}
+
+static bool flippass_open_can_use_nonpaged_inflate(const KDBXGzipMemberInfo* member_info) {
+    if(member_info == NULL || member_info->member_size == 0U ||
+       member_info->expected_output_size == 0U ||
+       member_info->member_size > FLIPPASS_OPEN_GZIP_NONPAGED_LIMIT ||
+       member_info->expected_output_size > FLIPPASS_OPEN_GZIP_NONPAGED_PLAIN_LIMIT) {
+        return false;
+    }
+
+    const size_t required_max_free = member_info->member_size +
+                                     FLIPPASS_OPEN_THEORETICAL_GZIP_DICT_BYTES +
+                                     FLIPPASS_OPEN_THEORETICAL_GZIP_MARGIN_BYTES;
+    return memmgr_heap_get_max_free_block() >= required_max_free;
+}
+
+static FlipPassOpenInflateKind flippass_open_select_inflate_kind_after_stream(
+    FlipPassOpenInflateKind suggested,
+    const KDBXGzipMemberInfo* member_info) {
+    UNUSED(suggested);
+    return flippass_open_can_use_nonpaged_inflate(member_info) ? FlipPassOpenInflateKindNonPaged :
+                                                                 FlipPassOpenInflateKindPaged;
+}
+
+#if FLIPPASS_ENABLE_LOGS
+static const char* flippass_open_inflate_kind_label(FlipPassOpenInflateKind kind) {
+    switch(kind) {
+    case FlipPassOpenInflateKindNonPaged:
+        return "nonpaged";
+    case FlipPassOpenInflateKindPaged:
+        return "paged";
+    case FlipPassOpenInflateKindNone:
+    default:
+        return "none";
+    }
+}
+#endif
+
+static void flippass_open_trim_runtime_modules(App* app) {
+    furi_assert(app);
+
+    FLIPPASS_MEMORY_LOG(app, "open_trim_before", flippass_open_theoretical_session_bytes());
+    flippass_output_cleanup(app);
+    flippass_module_unload(app, FlipPassModuleSlotOutputAction);
+    flippass_module_unload(app, FlipPassModuleSlotOtherFields);
+    flippass_module_unload(app, FlipPassModuleSlotFileOps);
+    flippass_module_unload(app, FlipPassModuleSlotEditorCrud);
+    flippass_module_unload(app, FlipPassModuleSlotKeyboardLayout);
+    flippass_module_unload(app, FlipPassModuleSlotPasswordGen);
+    flippass_module_unload(app, FlipPassModuleSlotSaveWriter);
+    flippass_module_unload(app, FlipPassModuleSlotOpenAcquire);
+    flippass_module_unload(app, FlipPassModuleSlotOpenStream);
+    flippass_module_unload(app, FlipPassModuleSlotOpenInflateNonPaged);
+    flippass_module_unload(app, FlipPassModuleSlotOpenInflatePaged);
+    flippass_module_unload(app, FlipPassModuleSlotOpenModel);
+    FLIPPASS_MEMORY_LOG(app, "open_trim_after", flippass_open_theoretical_session_bytes());
+}
 
 static const char* flippass_open_field_log_name(uint32_t field_mask) {
     switch(field_mask) {
@@ -113,7 +221,7 @@ static void flippass_open_session_free(FlipPassOpenSession* session) {
     flippass_open_scratch_reset(&session->payload_scratch);
     flippass_open_scratch_reader_reset(&session->payload_reader);
     flippass_open_scratch_reset(&session->xml_scratch);
-    memset(session, 0, sizeof(*session));
+    memzero(session, sizeof(*session));
     free(session);
 }
 
@@ -133,6 +241,197 @@ static void flippass_open_host_log(void* context, const char* message) {
     if(session != NULL && session->app != NULL && message != NULL && message[0] != '\0') {
         FLIPPASS_LOG_EVENT(session->app, "%s", message);
     }
+}
+
+static void flippass_open_host_clear_paged_window_crypto(void* context) {
+    FlipPassOpenSession* session = context;
+    if(session == NULL) {
+        return;
+    }
+
+    memzero(session->paged_window_enc_key, sizeof(session->paged_window_enc_key));
+    memzero(session->paged_window_mac_key, sizeof(session->paged_window_mac_key));
+    memzero(session->paged_window_nonce_prefix, sizeof(session->paged_window_nonce_prefix));
+    session->paged_window_crypto_ready = false;
+}
+
+static bool flippass_open_host_ensure_paged_window_crypto(FlipPassOpenSession* session) {
+    static const uint8_t enc_label[4] = {'e', 'n', 'c', '1'};
+    static const uint8_t mac_label[4] = {'m', 'a', 'c', '1'};
+    uint8_t session_master[32];
+    uint8_t material[sizeof(session_master) + sizeof(enc_label)];
+
+    if(session == NULL) {
+        return false;
+    }
+    if(session->paged_window_crypto_ready) {
+        return true;
+    }
+
+    furi_hal_random_fill_buf(session_master, sizeof(session_master));
+    furi_hal_random_fill_buf(
+        session->paged_window_nonce_prefix, sizeof(session->paged_window_nonce_prefix));
+    memcpy(material, session_master, sizeof(session_master));
+    memcpy(material + sizeof(session_master), enc_label, sizeof(enc_label));
+    sha256_Raw(material, sizeof(material), session->paged_window_enc_key);
+    memcpy(material + sizeof(session_master), mac_label, sizeof(mac_label));
+    sha256_Raw(material, sizeof(material), session->paged_window_mac_key);
+    memzero(session_master, sizeof(session_master));
+    memzero(material, sizeof(material));
+    session->paged_window_crypto_ready = true;
+    return true;
+}
+
+static void flippass_open_paged_window_nonce(
+    const FlipPassOpenSession* session,
+    uint16_t page_index,
+    uint8_t nonce[12]) {
+    furi_assert(session);
+    furi_assert(nonce);
+
+    memcpy(nonce, session->paged_window_nonce_prefix, sizeof(session->paged_window_nonce_prefix));
+    for(size_t index = 0; index < 8U; index++) {
+        nonce[4U + index] = (uint8_t)(((uint64_t)page_index >> (index * 8U)) & 0xFFU);
+    }
+}
+
+static void flippass_open_paged_window_mac(
+    const FlipPassOpenSession* session,
+    uint16_t page_index,
+    const uint8_t* ciphertext,
+    size_t page_size,
+    uint8_t mac[SHA256_DIGEST_LENGTH]) {
+    HMAC_SHA256_CTX hmac_ctx;
+    uint8_t page_le[4];
+
+    furi_assert(session);
+    furi_assert(ciphertext);
+    furi_assert(mac);
+
+    page_le[0] = (uint8_t)(page_index & 0xFFU);
+    page_le[1] = (uint8_t)((page_index >> 8U) & 0xFFU);
+    page_le[2] = 0U;
+    page_le[3] = 0U;
+
+    hmac_sha256_Init(
+        &hmac_ctx, session->paged_window_mac_key, sizeof(session->paged_window_mac_key));
+    hmac_sha256_Update(&hmac_ctx, page_le, sizeof(page_le));
+    hmac_sha256_Update(&hmac_ctx, ciphertext, (uint32_t)page_size);
+    hmac_sha256_Final(&hmac_ctx, mac);
+}
+
+static bool flippass_open_host_crypt_paged_window(
+    void* context,
+    uint16_t page_index,
+    uint8_t* page,
+    size_t page_size,
+    bool encrypt,
+    const uint8_t* expected_mac,
+    uint8_t* out_mac,
+    size_t mac_size) {
+    FlipPassOpenSession* session = context;
+    uint8_t nonce[12];
+    uint8_t actual_mac[SHA256_DIGEST_LENGTH];
+    bool ok = false;
+
+    if(session == NULL || page == NULL || page_size == 0U ||
+       !flippass_open_host_ensure_paged_window_crypto(session)) {
+        return false;
+    }
+
+    flippass_open_paged_window_nonce(session, page_index, nonce);
+    if(encrypt) {
+        if(out_mac == NULL || mac_size < sizeof(actual_mac)) {
+            goto cleanup;
+        }
+        if(!kdbx_chacha20_xor(
+               page,
+               page_size,
+               session->paged_window_enc_key,
+               sizeof(session->paged_window_enc_key),
+               nonce,
+               sizeof(nonce),
+               0U)) {
+            goto cleanup;
+        }
+        flippass_open_paged_window_mac(session, page_index, page, page_size, out_mac);
+        ok = true;
+    } else {
+        if(expected_mac == NULL) {
+            goto cleanup;
+        }
+        flippass_open_paged_window_mac(session, page_index, page, page_size, actual_mac);
+        if(memcmp(actual_mac, expected_mac, sizeof(actual_mac)) != 0) {
+            goto cleanup;
+        }
+        ok = kdbx_chacha20_xor(
+            page,
+            page_size,
+            session->paged_window_enc_key,
+            sizeof(session->paged_window_enc_key),
+            nonce,
+            sizeof(nonce),
+            0U);
+    }
+
+cleanup:
+    memzero(nonce, sizeof(nonce));
+    memzero(actual_mac, sizeof(actual_mac));
+    return ok;
+}
+
+static bool flippass_open_host_derive_protected_stream_material(
+    void* context,
+    uint32_t algorithm,
+    const uint8_t* key,
+    size_t key_size,
+    uint8_t* material,
+    size_t material_capacity,
+    size_t* material_size,
+    FuriString* error) {
+    UNUSED(context);
+
+    if(key == NULL || material == NULL || material_size == NULL) {
+        if(error != NULL) {
+            furi_string_set_str(error, "The KDBX inner protected-value key is missing.");
+        }
+        return false;
+    }
+
+    *material_size = 0U;
+    if(algorithm == KDBXProtectedStreamChaCha20) {
+        uint8_t hash[SHA512_DIGEST_LENGTH];
+        if(material_capacity < KDBX_PROTECTED_STREAM_CHACHA20_MATERIAL_SIZE) {
+            if(error != NULL) {
+                furi_string_set_str(error, "The KDBX protected-stream handoff is too small.");
+            }
+            return false;
+        }
+
+        sha512_Raw(key, key_size, hash);
+        memcpy(material, hash, KDBX_PROTECTED_STREAM_CHACHA20_MATERIAL_SIZE);
+        memzero(hash, sizeof(hash));
+        *material_size = KDBX_PROTECTED_STREAM_CHACHA20_MATERIAL_SIZE;
+        return true;
+    }
+
+    if(algorithm == KDBXProtectedStreamSalsa20) {
+        if(material_capacity < KDBX_PROTECTED_STREAM_SALSA20_MATERIAL_SIZE) {
+            if(error != NULL) {
+                furi_string_set_str(error, "The KDBX protected-stream handoff is too small.");
+            }
+            return false;
+        }
+
+        sha256_Raw(key, key_size, material);
+        *material_size = KDBX_PROTECTED_STREAM_SALSA20_MATERIAL_SIZE;
+        return true;
+    }
+
+    if(error != NULL) {
+        furi_string_set_str(error, "Only Salsa20 or ChaCha20 protected values are supported.");
+    }
+    return false;
 }
 
 static KDBXVaultBackend
@@ -187,6 +486,10 @@ static void flippass_open_scratch_reset(FlipPassOpenScratchContext* ctx) {
 
 static void flippass_open_scratch_reader_reset(FlipPassOpenScratchReaderContext* reader) {
     if(reader != NULL) {
+        if(reader->reader != NULL) {
+            memzero(reader->reader, sizeof(*reader->reader));
+            free(reader->reader);
+        }
         memset(reader, 0, sizeof(*reader));
     }
 }
@@ -227,8 +530,7 @@ static bool flippass_open_scratch_begin(
         return false;
     }
 
-    kdbx_vault_writer_reset_with_pending(
-        &scratch->writer, scratch->vault, scratch->writer_pending, sizeof(scratch->writer_pending));
+    kdbx_vault_writer_reset(&scratch->writer, scratch->vault);
     kdbx_vault_writer_set_file_streaming(&scratch->writer, true);
     if(scratch->writer.failed) {
         if(error != NULL) {
@@ -367,7 +669,15 @@ static bool flippass_open_host_begin_staged_payload_stream(void* context, FuriSt
         return false;
     }
 
-    kdbx_vault_reader_reset(&session->payload_reader.reader, scratch->vault, &scratch->ref);
+    session->payload_reader.reader = malloc(sizeof(*session->payload_reader.reader));
+    if(session->payload_reader.reader == NULL) {
+        if(error != NULL) {
+            furi_string_set_str(error, "Not enough RAM is available to read the staged payload.");
+        }
+        return false;
+    }
+
+    kdbx_vault_reader_reset(session->payload_reader.reader, scratch->vault, &scratch->ref);
     session->payload_reader.active = true;
     return true;
 }
@@ -383,11 +693,12 @@ static bool flippass_open_host_read_staged_payload_stream(
     if(out_size != NULL) {
         *out_size = 0U;
     }
-    if(!session->payload_reader.active || out == NULL || out_size == NULL) {
+    if(!session->payload_reader.active || session->payload_reader.reader == NULL || out == NULL ||
+       out_size == NULL) {
         return false;
     }
 
-    return kdbx_vault_reader_read(&session->payload_reader.reader, out, capacity, out_size);
+    return kdbx_vault_reader_read(session->payload_reader.reader, out, capacity, out_size);
 }
 
 static void flippass_open_host_end_staged_payload_stream(void* context) {
@@ -634,8 +945,15 @@ static bool flippass_open_builder_should_promote(
     const size_t remaining = (ctx->commit_limit > ctx->committed_bytes) ?
                                  (ctx->commit_limit - ctx->committed_bytes) :
                                  0U;
-    return remaining <= (next_plain_len + (2U * KDBX_VAULT_RECORD_PLAIN_MAX)) ||
-           memmgr_heap_get_max_free_block() <= (6U * KDBX_VAULT_RECORD_PLAIN_MAX);
+    const size_t guard = KDBX_VAULT_RECORD_PLAIN_MAX;
+    const size_t required = (next_plain_len <= (SIZE_MAX - guard)) ? (next_plain_len + guard) :
+                                                                     SIZE_MAX;
+    if(remaining < required) {
+        return true;
+    }
+
+    return next_plain_len >= KDBX_VAULT_RECORD_PLAIN_MAX &&
+           memmgr_heap_get_max_free_block() < required;
 }
 
 static bool
@@ -707,10 +1025,10 @@ static void flippass_open_builder_note_flash_write(const FlipPassOpenBuilderCont
 
     switch(kdbx_vault_get_backend(ctx->vault)) {
     case KDBXVaultBackendFileExt:
-        detail = "Payload paused: writing encrypted /ext session";
+        detail = "Storing encrypted /ext session";
         break;
     case KDBXVaultBackendFileInt:
-        detail = "Payload paused: writing encrypted session";
+        detail = "Storing encrypted session";
         break;
     default:
         return;
@@ -734,11 +1052,7 @@ static bool
         kdbx_vault_writer_abort(&ctx->field_writer);
     }
 
-    kdbx_vault_writer_reset_with_pending(
-        &ctx->field_writer,
-        ctx->vault,
-        ctx->field_writer_pending,
-        sizeof(ctx->field_writer_pending));
+    kdbx_vault_writer_reset(&ctx->field_writer, ctx->vault);
     if(ctx->field_writer.failed) {
         if(error != NULL) {
             furi_string_set_str(error, "Not enough RAM is available to keep this database open.");
@@ -954,8 +1268,11 @@ static bool flippass_open_builder_should_stream_string_value(void* context, cons
     return kdbx_vault_get_backend(ctx->vault) != KDBXVaultBackendRam;
 }
 
-static bool
-    flippass_open_builder_begin_streamed_value(void* context, const char* key, FuriString* error) {
+static bool flippass_open_builder_begin_streamed_value(
+    void* context,
+    const char* key,
+    bool protected_value,
+    FuriString* error) {
     FlipPassOpenBuilderContext* ctx = context;
 
     furi_assert(ctx);
@@ -969,6 +1286,7 @@ static bool
     }
 
     ctx->deferred_stream_active = false;
+    ctx->deferred_stream_protected = protected_value;
     ctx->deferred_stream_plain_bytes = 0U;
 
     flippass_open_builder_refresh_budget(ctx);
@@ -1014,6 +1332,7 @@ static bool flippass_open_builder_write_streamed_value_chunk(
     if(ctx->deferred_stream_plain_bytes > (FLIPPASS_OPEN_MAX_FIELD_PLAIN_BYTES - data_size)) {
         kdbx_vault_writer_abort(&ctx->field_writer);
         ctx->deferred_stream_active = false;
+        ctx->deferred_stream_protected = false;
         ctx->deferred_stream_plain_bytes = 0U;
         if(error != NULL) {
             furi_string_printf(
@@ -1027,6 +1346,7 @@ static bool flippass_open_builder_write_streamed_value_chunk(
     if(!kdbx_vault_writer_write(&ctx->field_writer, data, data_size)) {
         kdbx_vault_writer_abort(&ctx->field_writer);
         ctx->deferred_stream_active = false;
+        ctx->deferred_stream_protected = false;
         ctx->deferred_stream_plain_bytes = 0U;
         if(error != NULL) {
             furi_string_set_str(error, "Not enough RAM is available to keep this database open.");
@@ -1118,7 +1438,9 @@ static bool
             return false;
         }
 
-        if(kdbx_entry_add_custom_field(ctx->current_entry, ctx->arena, key, &ref) == NULL) {
+        if(kdbx_entry_add_custom_field_ex(
+               ctx->current_entry, ctx->arena, key, &ref, ctx->deferred_stream_protected) ==
+           NULL) {
             if(error != NULL) {
                 furi_string_set_str(
                     error, "Not enough RAM is available to keep this database open.");
@@ -1130,6 +1452,7 @@ static bool
     ctx->deferred_field_count++;
     ctx->deferred_plain_bytes += value_len;
     ctx->deferred_stream_plain_bytes = 0U;
+    ctx->deferred_stream_protected = false;
     return true;
 }
 
@@ -1144,6 +1467,7 @@ static void flippass_open_builder_abort_streamed_value(void* context) {
         kdbx_vault_writer_abort(&ctx->field_writer);
     }
     ctx->deferred_stream_active = false;
+    ctx->deferred_stream_protected = false;
     ctx->deferred_stream_plain_bytes = 0U;
 }
 
@@ -1213,6 +1537,14 @@ static bool flippass_open_builder_begin_session(
         ctx->session_active = false;
         return false;
     }
+
+    FLIPPASS_LOG_EVENT(
+        app,
+        "VAULT_MODE backend=%s free=%lu max=%lu limit=%lu",
+        kdbx_vault_backend_label(kdbx_vault_get_backend(ctx->vault)),
+        (unsigned long)memmgr_get_free_heap(),
+        (unsigned long)memmgr_heap_get_max_free_block(),
+        (unsigned long)ctx->commit_limit);
 
     return true;
 }
@@ -1344,6 +1676,48 @@ static bool flippass_open_builder_set_group_name(
     return true;
 }
 
+static bool flippass_open_builder_set_group_uuid(
+    void* context,
+    const char* value,
+    size_t value_len,
+    FuriString* error) {
+    FlipPassOpenBuilderContext* ctx = context;
+    KDBXFieldRef ref;
+
+    furi_assert(ctx);
+    if(ctx->current_group == NULL) {
+        return false;
+    }
+
+    if(kdbx_vault_get_backend(ctx->vault) == KDBXVaultBackendRam) {
+        if(!flippass_open_builder_prepare_for_arena_alloc(
+               ctx, error, "group_uuid", value_len + 1U)) {
+            return false;
+        }
+
+        if(!kdbx_group_set_uuid(ctx->current_group, ctx->arena, value)) {
+            if(error != NULL) {
+                furi_string_set_str(
+                    error, "Not enough RAM is available to keep this database open.");
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    memset(&ref, 0, sizeof(ref));
+    if(!flippass_open_builder_write_value(ctx, error, "GroupUUID", value, value_len, &ref) ||
+       !kdbx_group_set_uuid_ref(ctx->current_group, &ref)) {
+        if(error != NULL && furi_string_empty(error)) {
+            furi_string_set_str(error, "Not enough RAM is available to keep this database open.");
+        }
+        return false;
+    }
+
+    return true;
+}
+
 static bool flippass_open_builder_set_entry_title(
     void* context,
     const char* value,
@@ -1466,6 +1840,7 @@ static bool flippass_open_builder_add_custom_field(
     const char* key,
     const char* value,
     size_t value_len,
+    bool protected_value,
     FuriString* error) {
     FlipPassOpenBuilderContext* ctx = context;
     KDBXFieldRef ref;
@@ -1495,7 +1870,8 @@ static bool flippass_open_builder_add_custom_field(
         return false;
     }
 
-    if(kdbx_entry_add_custom_field(ctx->current_entry, ctx->arena, key, &ref) == NULL) {
+    if(kdbx_entry_add_custom_field_ex(
+           ctx->current_entry, ctx->arena, key, &ref, protected_value) == NULL) {
         if(error != NULL) {
             furi_string_set_str(error, "Not enough RAM is available to keep this database open.");
         }
@@ -1661,6 +2037,8 @@ static bool flippass_open_run_inflate_stage(
         .append_staged_xml = flippass_open_host_append_staged_xml,
         .finish_staged_xml = flippass_open_host_finish_staged_xml,
         .clear_staged_xml = flippass_open_host_clear_staged_xml,
+        .crypt_paged_window = flippass_open_host_crypt_paged_window,
+        .clear_paged_window_crypto = flippass_open_host_clear_paged_window_crypto,
     };
 
     if(kind == FlipPassOpenInflateKindNonPaged) {
@@ -1669,18 +2047,44 @@ static bool flippass_open_run_inflate_stage(
         unavailable_message = "FlipPass open inflate nonpaged plugin is unavailable.";
     }
 
+    FLIPPASS_MEMORY_LOG(
+        app,
+        kind == FlipPassOpenInflateKindNonPaged ? "open_inflate_nonpaged_load_before" :
+                                                  "open_inflate_paged_load_before",
+        flippass_open_theoretical_inflate_bytes(kind, member_info));
     inflate_plugin =
         flippass_open_inflate_plugin_get(app, slot, appid, unavailable_message, load_error);
+    FLIPPASS_MEMORY_LOG(
+        app,
+        kind == FlipPassOpenInflateKindNonPaged ? "open_inflate_nonpaged_load_after" :
+                                                  "open_inflate_paged_load_after",
+        flippass_open_theoretical_inflate_bytes(kind, member_info));
     if(inflate_plugin == NULL) {
         furi_string_set(error, load_error);
         return false;
     }
 
     furi_string_reset(error);
+    FLIPPASS_MEMORY_LOG(
+        app,
+        kind == FlipPassOpenInflateKindNonPaged ? "open_inflate_nonpaged_run_begin" :
+                                                  "open_inflate_paged_run_begin",
+        flippass_open_theoretical_inflate_bytes(kind, member_info));
     if(!inflate_plugin->run(&inflate_request, &inflate_host_api, &inflate_result, error)) {
+        flippass_open_host_clear_paged_window_crypto(session);
         const bool retry_with_paged = kind == FlipPassOpenInflateKindNonPaged &&
                                       inflate_result.retry_with_paged;
+        FLIPPASS_MEMORY_LOG(
+            app,
+            kind == FlipPassOpenInflateKindNonPaged ? "open_inflate_nonpaged_run_fail" :
+                                                      "open_inflate_paged_run_fail",
+            flippass_open_theoretical_inflate_bytes(kind, member_info));
         flippass_module_unload(app, slot);
+        FLIPPASS_MEMORY_LOG(
+            app,
+            kind == FlipPassOpenInflateKindNonPaged ? "open_inflate_nonpaged_unloaded" :
+                                                      "open_inflate_paged_unloaded",
+            flippass_open_theoretical_session_bytes());
         if(retry_with_paged) {
             furi_string_reset(error);
             return flippass_open_run_inflate_stage(
@@ -1697,8 +2101,19 @@ static bool flippass_open_run_inflate_stage(
         }
         return false;
     }
+    FLIPPASS_MEMORY_LOG(
+        app,
+        kind == FlipPassOpenInflateKindNonPaged ? "open_inflate_nonpaged_run_ok" :
+                                                  "open_inflate_paged_run_ok",
+        flippass_open_theoretical_inflate_bytes(kind, member_info));
 
+    flippass_open_host_clear_paged_window_crypto(session);
     flippass_module_unload(app, slot);
+    FLIPPASS_MEMORY_LOG(
+        app,
+        kind == FlipPassOpenInflateKindNonPaged ? "open_inflate_nonpaged_unloaded" :
+                                                  "open_inflate_paged_unloaded",
+        flippass_open_theoretical_session_bytes());
     flippass_open_host_clear_staged_payload(session);
     return true;
 }
@@ -1724,11 +2139,18 @@ bool flippass_open_execute(App* app, FuriString* error) {
     KDBXFieldRef resume_scratch_ref = app->pending_gzip_scratch_ref;
     size_t resume_scratch_plain_size = app->pending_gzip_plain_size;
     const bool resume_from_staged_xml = resume_scratch_vault != NULL && allow_ext_promotion;
+    uint8_t resume_save_key[32];
+    uint64_t resume_kdf_rounds = app->database_kdf_rounds;
+    FlipPassKdbxCipher resume_cipher = app->database_cipher;
+    uint32_t resume_compression = app->database_compression;
+    bool resume_save_key_ready = false;
     bool ok = false;
     bool trace_capture_suspended = false;
 
     furi_assert(app);
     furi_assert(error);
+
+    FLIPPASS_MEMORY_LOG(app, "open_begin", flippass_open_theoretical_session_bytes());
 
     if(!resume_from_staged_xml && app->master_password[0] == '\0') {
         furi_string_set_str(error, "Enter the database password to continue.");
@@ -1741,17 +2163,29 @@ bool flippass_open_execute(App* app, FuriString* error) {
             error, "Not enough RAM is available to start unlocking this database.");
         return false;
     }
+    FLIPPASS_MEMORY_LOG(app, "open_session_allocated", flippass_open_theoretical_session_bytes());
     session->requested_backend = requested_backend;
     session->allow_ext_promotion = allow_ext_promotion;
     session->resume_from_staged_xml = resume_from_staged_xml;
+    memzero(resume_save_key, sizeof(resume_save_key));
+    if(resume_from_staged_xml) {
+        resume_save_key_ready = flippass_session_copy_save_key(app, resume_save_key);
+    }
 
     app->pending_gzip_scratch_vault = NULL;
     memset(&app->pending_gzip_scratch_ref, 0, sizeof(app->pending_gzip_scratch_ref));
     app->pending_gzip_plain_size = 0U;
 
     load_error = furi_string_alloc();
+    FLIPPASS_MEMORY_LOG(
+        app, "open_load_error_allocated", flippass_open_theoretical_session_bytes());
+    flippass_open_trim_runtime_modules(app);
     if(!resume_from_staged_xml) {
+        FLIPPASS_MEMORY_LOG(
+            app, "open_acquire_load_before", flippass_open_theoretical_acquire_bytes());
         acquire_plugin = flippass_open_acquire_plugin_get(app, load_error);
+        FLIPPASS_MEMORY_LOG(
+            app, "open_acquire_load_after", flippass_open_theoretical_acquire_bytes());
         if(acquire_plugin == NULL) {
             furi_string_set(error, load_error);
             goto cleanup;
@@ -1765,6 +2199,18 @@ bool flippass_open_execute(App* app, FuriString* error) {
     flippass_reset_database(app);
     app->requested_vault_backend = requested_backend;
     app->allow_ext_vault_promotion = allow_ext_promotion;
+    FLIPPASS_MEMORY_LOG(app, "open_after_reset", flippass_open_theoretical_session_bytes());
+    if(resume_from_staged_xml) {
+        app->database_cipher = resume_cipher;
+        app->database_compression = resume_compression;
+        app->database_kdf_rounds = resume_kdf_rounds;
+        if(resume_save_key_ready) {
+            if(!flippass_session_store_save_key(app, resume_save_key)) {
+                furi_string_set_str(error, "Unable to protect the resumed database credential.");
+                goto cleanup;
+            }
+        }
+    }
     if(resume_from_staged_xml) {
         session->xml_scratch.vault = resume_scratch_vault;
         session->xml_scratch.ref = resume_scratch_ref;
@@ -1799,6 +2245,7 @@ bool flippass_open_execute(App* app, FuriString* error) {
             }
             goto cleanup;
         }
+        FLIPPASS_MEMORY_LOG(app, "open_acquire_run_ok", flippass_open_theoretical_acquire_bytes());
 
         {
             char profile_error[128] = {0};
@@ -1810,12 +2257,34 @@ bool flippass_open_execute(App* app, FuriString* error) {
         }
 
         session->open_profile_ready = true;
+        app->database_cipher = (memcmp(
+                                    session->open_profile.encryption_algorithm_uuid,
+                                    KDBX_UUID_CHACHA20,
+                                    sizeof(KDBX_UUID_CHACHA20)) == 0) ?
+                                   FlipPassKdbxCipherChaCha20 :
+                                   FlipPassKdbxCipherAes256;
+        app->database_compression = session->open_profile.compression_algorithm;
+        app->database_kdf_rounds = session->open_profile.kdf_rounds != 0U ?
+                                       session->open_profile.kdf_rounds :
+                                       FLIPPASS_KDBX_DEFAULT_AES_KDF_ROUNDS;
+        if(session->open_profile.composite_key_ready) {
+            if(!flippass_session_store_save_key(app, session->open_profile.composite_key)) {
+                furi_string_set_str(error, "Unable to protect the database credential.");
+                goto cleanup;
+            }
+        }
         flippass_module_unload(app, FlipPassModuleSlotOpenAcquire);
         acquire_plugin = NULL;
+        FLIPPASS_MEMORY_LOG(
+            app, "open_acquire_unloaded", flippass_open_theoretical_session_bytes());
     }
 
     if(!resume_from_staged_xml) {
+        FLIPPASS_MEMORY_LOG(
+            app, "open_stream_load_before", flippass_open_theoretical_stream_bytes());
         stream_plugin = flippass_open_stream_plugin_get(app, load_error);
+        FLIPPASS_MEMORY_LOG(
+            app, "open_stream_load_after", flippass_open_theoretical_stream_bytes());
         if(stream_plugin == NULL) {
             furi_string_set(error, load_error);
             goto cleanup;
@@ -1851,17 +2320,34 @@ bool flippass_open_execute(App* app, FuriString* error) {
             }
             goto cleanup;
         }
+        FLIPPASS_MEMORY_LOG(app, "open_stream_run_ok", flippass_open_theoretical_stream_bytes());
 
         flippass_module_unload(app, FlipPassModuleSlotOpenStream);
         stream_plugin = NULL;
+        FLIPPASS_MEMORY_LOG(
+            app, "open_stream_unloaded", flippass_open_theoretical_session_bytes());
 
         if(stream_result.output_kind == FlipPassOpenStreamOutputKindGzipMember) {
-            FlipPassOpenInflateKind inflate_kind = stream_result.suggested_inflate_kind;
-            if(inflate_kind != FlipPassOpenInflateKindNonPaged &&
-               inflate_kind != FlipPassOpenInflateKindPaged) {
-                inflate_kind = FlipPassOpenInflateKindPaged;
-            }
+            FlipPassOpenInflateKind inflate_kind = flippass_open_select_inflate_kind_after_stream(
+                stream_result.suggested_inflate_kind, &stream_result.gzip_member_info);
 
+#if FLIPPASS_ENABLE_LOGS
+            FLIPPASS_LOG_EVENT(
+                app,
+                "GZIP_INFLATE_SELECT suggested=%s selected=%s member=%lu out=%lu free=%lu max=%lu",
+                flippass_open_inflate_kind_label(stream_result.suggested_inflate_kind),
+                flippass_open_inflate_kind_label(inflate_kind),
+                (unsigned long)stream_result.gzip_member_info.member_size,
+                (unsigned long)stream_result.gzip_member_info.expected_output_size,
+                (unsigned long)memmgr_get_free_heap(),
+                (unsigned long)memmgr_heap_get_max_free_block());
+#endif
+
+            FLIPPASS_MEMORY_LOG(
+                app,
+                "open_inflate_before",
+                flippass_open_theoretical_inflate_bytes(
+                    inflate_kind, &stream_result.gzip_member_info));
             if(!flippass_open_run_inflate_stage(
                    app,
                    session,
@@ -1872,6 +2358,10 @@ bool flippass_open_execute(App* app, FuriString* error) {
                    error)) {
                 goto cleanup;
             }
+            FLIPPASS_MEMORY_LOG(
+                app,
+                "open_inflate_after",
+                flippass_open_theoretical_model_bytes(session->xml_scratch.size));
         } else if(stream_result.output_kind != FlipPassOpenStreamOutputKindXml) {
             furi_string_set_str(
                 error, "The staged open payload did not expose a usable output kind.");
@@ -1879,7 +2369,15 @@ bool flippass_open_execute(App* app, FuriString* error) {
         }
     }
 
+    FLIPPASS_MEMORY_LOG(
+        app,
+        "open_model_load_before",
+        flippass_open_theoretical_model_bytes(session->xml_scratch.size));
     model_plugin = flippass_open_model_plugin_get(app, load_error);
+    FLIPPASS_MEMORY_LOG(
+        app,
+        "open_model_load_after",
+        flippass_open_theoretical_model_bytes(session->xml_scratch.size));
     if(model_plugin == NULL) {
         furi_string_set(error, load_error);
         goto cleanup;
@@ -1897,6 +2395,7 @@ bool flippass_open_execute(App* app, FuriString* error) {
         .progress = flippass_open_host_progress,
         .log = flippass_open_host_log,
         .stream_staged_xml = flippass_open_host_stream_staged_xml,
+        .derive_protected_stream_material = flippass_open_host_derive_protected_stream_material,
     };
     const FlipPassOpenBuilderApiV1 builder_api = {
         .api_version = FLIPPASS_OPEN_MODEL_BUILDER_API_VERSION,
@@ -1908,6 +2407,7 @@ bool flippass_open_execute(App* app, FuriString* error) {
         .begin_entry = flippass_open_builder_begin_entry,
         .end_entry = flippass_open_builder_end_entry,
         .set_group_name = flippass_open_builder_set_group_name,
+        .set_group_uuid = flippass_open_builder_set_group_uuid,
         .set_entry_title = flippass_open_builder_set_entry_title,
         .set_entry_uuid = flippass_open_builder_set_entry_uuid,
         .set_entry_standard_field = flippass_open_builder_set_entry_standard_field,
@@ -1921,7 +2421,15 @@ bool flippass_open_execute(App* app, FuriString* error) {
         .finish_session = flippass_open_builder_finish_session,
     };
 
+    FLIPPASS_MEMORY_LOG(
+        app,
+        "open_model_run_begin",
+        flippass_open_theoretical_model_bytes(session->xml_scratch.size));
     ok = model_plugin->run(&model_request, &model_host_api, &builder_api, error);
+    FLIPPASS_MEMORY_LOG(
+        app,
+        ok ? "open_model_run_ok" : "open_model_run_fail",
+        flippass_open_theoretical_model_bytes(session->xml_scratch.size));
     if(!ok) {
         flippass_open_builder_cancel_session(&session->builder);
         if(furi_string_empty(error)) {
@@ -1929,6 +2437,31 @@ bool flippass_open_execute(App* app, FuriString* error) {
         }
         FLIPPASS_LOG_EVENT(app, "PARSE_FAIL reason=%s", furi_string_get_cstr(error));
     } else {
+        if(session->open_profile_ready) {
+            app->database_cipher = (memcmp(
+                                        session->open_profile.encryption_algorithm_uuid,
+                                        KDBX_UUID_CHACHA20,
+                                        sizeof(KDBX_UUID_CHACHA20)) == 0) ?
+                                       FlipPassKdbxCipherChaCha20 :
+                                       FlipPassKdbxCipherAes256;
+            app->database_compression = session->open_profile.compression_algorithm;
+            app->database_kdf_rounds = session->open_profile.kdf_rounds != 0U ?
+                                           session->open_profile.kdf_rounds :
+                                           FLIPPASS_KDBX_DEFAULT_AES_KDF_ROUNDS;
+            if(session->open_profile.composite_key_ready && !app->database_save_key_ready) {
+                if(!flippass_session_store_save_key(app, session->open_profile.composite_key)) {
+                    furi_string_set_str(error, "Unable to protect the database credential.");
+                    ok = false;
+                    goto cleanup;
+                }
+            }
+        }
+        app->database_dirty = false;
+        app->database_new = false;
+        if(app->editor_mode == FlipPassEditorModeModifyDatabase &&
+           app->editor_return_scene == FlipPassScene_FileBrowser) {
+            app->editor_database_password[0] = '\0';
+        }
         flippass_clear_master_password(app);
         flippass_progress_update(app, "Ready", "", 100U);
     }
@@ -1951,10 +2484,13 @@ cleanup:
     if(resume_scratch_vault != NULL) {
         kdbx_vault_free(resume_scratch_vault);
     }
+    memzero(resume_save_key, sizeof(resume_save_key));
     if(trace_capture_suspended) {
         flippass_system_log_capture_resume();
     }
     if(!ok && !app->pending_vault_fallback) {
+        flippass_session_clear_credentials(app);
+        app->database_kdf_rounds = FLIPPASS_KDBX_DEFAULT_AES_KDF_ROUNDS;
         flippass_clear_master_password(app);
     }
     flippass_module_unload(app, FlipPassModuleSlotOpenAcquire);
@@ -1962,9 +2498,14 @@ cleanup:
     flippass_module_unload(app, FlipPassModuleSlotOpenInflateNonPaged);
     flippass_module_unload(app, FlipPassModuleSlotOpenInflatePaged);
     flippass_module_unload(app, FlipPassModuleSlotOpenModel);
+    FLIPPASS_MEMORY_LOG(app, "open_modules_unloaded", flippass_open_theoretical_session_bytes());
     if(load_error != NULL) {
         furi_string_free(load_error);
     }
     flippass_open_session_free(session);
+    FLIPPASS_MEMORY_LOG(app, "open_session_freed", 0U);
+    if(ok) {
+        flippass_record_successful_open(app);
+    }
     return ok;
 }

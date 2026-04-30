@@ -1,5 +1,6 @@
 #include "flippass_open_inflate_plugin.h"
 
+#include "../kdbx/memzero.h"
 #include "../kdbx/miniz_tinfl.h"
 
 #include <stdio.h>
@@ -10,6 +11,19 @@
 #define FLIPPASS_OPEN_GZIP_TRAILER_SIZE     8U
 #define FLIPPASS_OPEN_GZIP_FILE_CACHE_PAGES 1U
 #define FLIPPASS_OPEN_GZIP_FILE_MIN_PAGES   1U
+#define FLIPPASS_OPEN_STORED_DEFLATE_CHUNK  128U
+
+#ifndef FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM
+#define FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM 1
+#endif
+
+#ifndef FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_FILE
+#define FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_FILE 1
+#endif
+
+#if !FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM && !FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_FILE
+#error "At least one paged inflate backend must be enabled."
+#endif
 
 typedef struct {
     const FlipPassOpenInflateHostApiV1* host_api;
@@ -58,6 +72,37 @@ static void fp_open_log(FlipPassOpenInflateContext* ctx, const char* message) {
     if(ctx != NULL && ctx->host_api != NULL && ctx->host_api->log != NULL && message != NULL) {
         ctx->host_api->log(ctx->host_api->context, message);
     }
+}
+
+static void fp_open_memory_log(
+    FlipPassOpenInflateContext* ctx,
+    const char* stage,
+    size_t theoretical_bytes) {
+#if FLIPPASS_ENABLE_MEMORY_DIAGNOSTICS && FLIPPASS_ENABLE_LOGS
+    char log_line[176];
+    snprintf(
+        log_line,
+        sizeof(log_line),
+        "MEMORY stage=%s free=%lu max=%lu theoretical=%lu loaded=plugin:open_inflate_paged",
+        stage != NULL ? stage : "open_inflate_paged",
+        (unsigned long)memmgr_get_free_heap(),
+        (unsigned long)memmgr_heap_get_max_free_block(),
+        (unsigned long)theoretical_bytes);
+    fp_open_log(ctx, log_line);
+#else
+    UNUSED(ctx);
+    UNUSED(stage);
+    UNUSED(theoretical_bytes);
+#endif
+}
+
+static size_t fp_open_paged_theoretical_bytes(bool file_paged) {
+    const size_t dict_window = file_paged ? (2U * TINFL_PAGED_LZ_DICT_PAGE_SIZE) :
+                                            TINFL_LZ_DICT_SIZE;
+    return sizeof(FlipPassOpenInflateContext) + sizeof(FlipPassOpenInflateXmlStageContext) +
+           sizeof(FlipPassOpenInflateReaderContext) + sizeof(FlipPassOpenInflatePagedState) +
+           sizeof(tinfl_paged_telemetry) + sizeof(tinfl_paged_file_config) +
+           sizeof(tinfl_decompressor) + dict_window;
 }
 
 static uint8_t fp_open_progress_percent(size_t completed, size_t total) {
@@ -206,6 +251,145 @@ static int fp_open_paged_output_callback(const void* data, int len, void* contex
     return 1;
 }
 
+static bool fp_open_stored_read_exact(
+    FlipPassOpenInflateReaderContext* reader,
+    uint8_t* out,
+    size_t data_size) {
+    size_t offset = 0U;
+
+    while(offset < data_size) {
+        const size_t got = fp_open_payload_reader_read(out + offset, data_size - offset, reader);
+        if(got == 0U) {
+            reader->failed = true;
+            reader->truncated = true;
+            return false;
+        }
+        offset += got;
+    }
+
+    return true;
+}
+
+static bool fp_open_emit_stored_deflate(
+    const FlipPassOpenInflateHostApiV1* host_api,
+    const KDBXGzipMemberInfo* member_info,
+    FlipPassOpenInflateXmlStageContext* stage,
+    FuriString* error,
+    bool* out_supported) {
+    FlipPassOpenInflateReaderContext reader = {
+        .host_api = host_api,
+        .skip_bytes = member_info->body_offset,
+        .remaining_bytes = member_info->compressed_size,
+        .failed = false,
+        .truncated = false,
+    };
+    uint8_t chunk[FLIPPASS_OPEN_STORED_DEFLATE_CHUNK];
+    uint32_t crc32 = 0xFFFFFFFFU;
+    size_t output_size = 0U;
+    size_t consumed_size = 0U;
+    bool final_block = false;
+
+    furi_assert(host_api);
+    furi_assert(member_info);
+    furi_assert(stage);
+    furi_assert(out_supported);
+
+    *out_supported = false;
+    while(!final_block) {
+        uint8_t header = 0U;
+        uint8_t len_header[4];
+        uint16_t len = 0U;
+        uint16_t nlen = 0U;
+
+        if(!fp_open_stored_read_exact(&reader, &header, 1U)) {
+            break;
+        }
+        consumed_size++;
+        final_block = (header & 0x01U) != 0U;
+        if(((header >> 1U) & 0x03U) != 0U) {
+            return false;
+        }
+        if((header & 0xF8U) != 0U) {
+            furi_string_set_str(error, "The stored GZip block header is invalid.");
+            *out_supported = true;
+            return false;
+        }
+        *out_supported = true;
+
+        if(!fp_open_stored_read_exact(&reader, len_header, sizeof(len_header))) {
+            break;
+        }
+        consumed_size += sizeof(len_header);
+        len = (uint16_t)len_header[0] | ((uint16_t)len_header[1] << 8U);
+        nlen = (uint16_t)len_header[2] | ((uint16_t)len_header[3] << 8U);
+        if((uint16_t)~len != nlen) {
+            furi_string_set_str(error, "The stored GZip block length is invalid.");
+            return false;
+        }
+        if(output_size > member_info->expected_output_size ||
+           len > (member_info->expected_output_size - output_size)) {
+            furi_string_set_str(error, "The stored GZip payload exceeded the trailer size.");
+            return false;
+        }
+
+        while(len > 0U) {
+            const size_t read_size = len > sizeof(chunk) ? sizeof(chunk) : (size_t)len;
+            if(!fp_open_stored_read_exact(&reader, chunk, read_size)) {
+                break;
+            }
+            consumed_size += read_size;
+            crc32 = fp_open_crc32_update(crc32, chunk, read_size);
+            if(!fp_open_stage_xml_output(chunk, read_size, stage)) {
+                memzero(chunk, sizeof(chunk));
+                return false;
+            }
+            output_size += read_size;
+            len = (uint16_t)(len - read_size);
+        }
+
+        if(reader.failed) {
+            break;
+        }
+    }
+
+    memzero(chunk, sizeof(chunk));
+    if(host_api->log != NULL) {
+        char log_line[192];
+        snprintf(
+            log_line,
+            sizeof(log_line),
+            "STREAM_GZIP_STORED_RESULT supported=%u failed=%u truncated=%u consumed=%lu out=%lu",
+            *out_supported ? 1U : 0U,
+            reader.failed ? 1U : 0U,
+            reader.truncated ? 1U : 0U,
+            (unsigned long)consumed_size,
+            (unsigned long)output_size);
+        host_api->log(host_api->context, log_line);
+    }
+    if(!*out_supported) {
+        return false;
+    }
+    if(reader.failed || reader.truncated) {
+        if(furi_string_empty(error)) {
+            furi_string_set_str(error, "The stored GZip member is truncated.");
+        }
+        return false;
+    }
+    if(consumed_size != member_info->compressed_size ||
+       output_size != member_info->expected_output_size) {
+        furi_string_set_str(error, "The stored GZip payload did not match the trailer size.");
+        return false;
+    }
+    crc32 = ~crc32;
+    if(crc32 != member_info->expected_crc32) {
+        furi_string_set_str(error, "The stored GZip CRC did not match the trailer.");
+        return false;
+    }
+
+    return true;
+}
+
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM
 static bool fp_open_emit_ram_paged(
     const FlipPassOpenInflateHostApiV1* host_api,
     const KDBXGzipMemberInfo* member_info,
@@ -237,6 +421,23 @@ static bool fp_open_emit_ram_paged(
              &state,
              0,
              &paged) != 0;
+    if(host_api->log != NULL) {
+        char log_line[192];
+        snprintf(
+            log_line,
+            sizeof(log_line),
+            "STREAM_GZIP_RAM_PAGED_RESULT ok=%u status=%d consumed=%lu out=%lu loops=%lu flush=%lu storage=%d failed=%u truncated=%u",
+            ok ? 1U : 0U,
+            paged.last_status,
+            (unsigned long)consumed_size,
+            (unsigned long)state.output_size,
+            (unsigned long)paged.loop_count,
+            (unsigned long)paged.flush_count,
+            paged.storage_failed,
+            reader.failed ? 1U : 0U,
+            reader.truncated ? 1U : 0U);
+        host_api->log(host_api->context, log_line);
+    }
 
     if(!ok || reader.failed) {
         if(!reader.failed && state.output_limit_failed) {
@@ -275,7 +476,9 @@ static bool fp_open_emit_ram_paged(
 
     return true;
 }
+#endif
 
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_FILE
 static const char* fp_open_window_path(KDBXVaultBackend backend) {
     switch(backend) {
     case KDBXVaultBackendFileInt:
@@ -339,6 +542,8 @@ static bool fp_open_emit_file_paged(
     file_config.storage = NULL;
     file_config.preferred_cache_pages = FLIPPASS_OPEN_GZIP_FILE_CACHE_PAGES;
     file_config.minimum_cache_pages = FLIPPASS_OPEN_GZIP_FILE_MIN_PAGES;
+    file_config.crypt_page = host_api->crypt_paged_window;
+    file_config.crypt_context = host_api->context;
 
     ok = tinfl_decompress_reader_to_callback_file_paged_ex(
              fp_open_payload_reader_read,
@@ -350,6 +555,28 @@ static bool fp_open_emit_file_paged(
              &file_config,
              NULL,
              &paged) != 0;
+    if(host_api->clear_paged_window_crypto != NULL) {
+        host_api->clear_paged_window_crypto(host_api->context);
+    }
+    if(host_api->log != NULL) {
+        char log_line[224];
+        snprintf(
+            log_line,
+            sizeof(log_line),
+            "STREAM_GZIP_FILE_PAGED_RESULT ok=%u status=%d consumed=%lu out=%lu loops=%lu flush=%lu storage=%d stage=%s failed=%u truncated=%u path=%s",
+            ok ? 1U : 0U,
+            paged.last_status,
+            (unsigned long)consumed_size,
+            (unsigned long)state.output_size,
+            (unsigned long)paged.loop_count,
+            (unsigned long)paged.flush_count,
+            paged.storage_failed,
+            paged.storage_stage != NULL ? paged.storage_stage : "-",
+            reader.failed ? 1U : 0U,
+            reader.truncated ? 1U : 0U,
+            window_path != NULL ? window_path : "-");
+        host_api->log(host_api->context, log_line);
+    }
 
     if(!ok || reader.failed) {
         if(!reader.failed && state.output_limit_failed) {
@@ -388,12 +615,19 @@ static bool fp_open_emit_file_paged(
 
     return true;
 }
+#endif
 
 static bool fp_open_run_inflate_attempt(
     FlipPassOpenInflateContext* ctx,
     const FlipPassOpenInflateRequestV1* request,
     bool file_paged,
     const char* window_path) {
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM
+    const bool use_file_paged = file_paged;
+#else
+    UNUSED(file_paged);
+    const bool use_file_paged = true;
+#endif
     FlipPassOpenInflateXmlStageContext stage = {
         .inflate_ctx = ctx,
         .plain_size = 0U,
@@ -402,6 +636,11 @@ static bool fp_open_run_inflate_attempt(
     };
     bool ok = false;
 
+    fp_open_memory_log(
+        ctx,
+        use_file_paged ? "open_inflate_file_paged_attempt_begin" :
+                         "open_inflate_ram_paged_attempt_begin",
+        fp_open_paged_theoretical_bytes(use_file_paged));
     if(!ctx->host_api->begin_staged_payload_stream(ctx->host_api->context, ctx->error)) {
         return false;
     }
@@ -418,25 +657,66 @@ static bool fp_open_run_inflate_attempt(
             log_line,
             sizeof(log_line),
             "STREAM_GZIP_INFLATE_BEGIN source=payload window=%s free=%lu max=%lu",
-            file_paged ? "file_paged" : "ram_paged",
+            use_file_paged ? "file_paged" : "ram_paged",
             (unsigned long)memmgr_get_free_heap(),
             (unsigned long)memmgr_heap_get_max_free_block());
         fp_open_log(ctx, log_line);
     }
     fp_open_progress(ctx, "Uncompressing", "", 58U);
-    ok = file_paged ?
-             fp_open_emit_file_paged(
-                 ctx->host_api, &request->member_info, &stage, window_path, ctx->error) :
-             fp_open_emit_ram_paged(ctx->host_api, &request->member_info, &stage, ctx->error);
+    {
+        bool stored_supported = false;
+        ok = fp_open_emit_stored_deflate(
+            ctx->host_api, &request->member_info, &stage, ctx->error, &stored_supported);
+        if(!ok && !stored_supported) {
+            ctx->host_api->clear_staged_xml(ctx->host_api->context);
+            ctx->host_api->end_staged_payload_stream(ctx->host_api->context);
+            if(!ctx->host_api->begin_staged_payload_stream(ctx->host_api->context, ctx->error)) {
+                return false;
+            }
+            if(!ctx->host_api->begin_staged_xml(
+                   ctx->host_api->context, request->preferred_backend, ctx->error)) {
+                ctx->host_api->end_staged_payload_stream(ctx->host_api->context);
+                return false;
+            }
+            if(use_file_paged) {
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_FILE
+                ok = fp_open_emit_file_paged(
+                    ctx->host_api, &request->member_info, &stage, window_path, ctx->error);
+#else
+                furi_string_set_str(
+                    ctx->error, "The file-backed paged GZip inflator is not enabled.");
+                ok = false;
+#endif
+            } else {
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM
+                ok = fp_open_emit_ram_paged(
+                    ctx->host_api, &request->member_info, &stage, ctx->error);
+#else
+                furi_string_set_str(ctx->error, "The RAM-paged GZip inflator is not enabled.");
+                ok = false;
+#endif
+            }
+        }
+    }
     ctx->host_api->end_staged_payload_stream(ctx->host_api->context);
 
     if(!ok) {
         ctx->host_api->clear_staged_xml(ctx->host_api->context);
+        fp_open_memory_log(
+            ctx,
+            use_file_paged ? "open_inflate_file_paged_attempt_fail" :
+                             "open_inflate_ram_paged_attempt_fail",
+            fp_open_paged_theoretical_bytes(use_file_paged));
         return false;
     }
 
     if(!ctx->host_api->finish_staged_xml(ctx->host_api->context, stage.plain_size, ctx->error)) {
         ctx->host_api->clear_staged_xml(ctx->host_api->context);
+        fp_open_memory_log(
+            ctx,
+            use_file_paged ? "open_inflate_file_paged_finish_fail" :
+                             "open_inflate_ram_paged_finish_fail",
+            fp_open_paged_theoretical_bytes(use_file_paged));
         return false;
     }
 
@@ -452,6 +732,11 @@ static bool fp_open_run_inflate_attempt(
         fp_open_log(ctx, log_line);
     }
 
+    fp_open_memory_log(
+        ctx,
+        use_file_paged ? "open_inflate_file_paged_attempt_ok" :
+                         "open_inflate_ram_paged_attempt_ok",
+        fp_open_paged_theoretical_bytes(use_file_paged));
     return true;
 }
 
@@ -465,8 +750,15 @@ static bool fp_open_inflate_paged_run(
         .error = error,
         .progress_percent = 0U,
     };
-    const bool prefer_file_paged = request != NULL &&
-                                   request->member_info.expected_output_size > (32U * 1024U);
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM
+    const bool prefer_file_paged =
+        request != NULL &&
+        (request->member_info.expected_output_size > (32U * 1024U) ||
+         memmgr_heap_get_max_free_block() < (TINFL_LZ_DICT_SIZE + (4U * 1024U)));
+#else
+    const bool prefer_file_paged = true;
+#endif
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_FILE
     const KDBXVaultBackend primary_window_backend =
         (request != NULL) ? fp_open_primary_window_backend(request->preferred_backend) :
                             KDBXVaultBackendFileExt;
@@ -476,6 +768,7 @@ static bool fp_open_inflate_paged_run(
     const char* secondary_window_path = (secondary_window_backend != primary_window_backend) ?
                                             fp_open_window_path(secondary_window_backend) :
                                             NULL;
+#endif
 
     if(request == NULL || host_api == NULL || result == NULL || error == NULL ||
        request->api_version != FLIPPASS_OPEN_INFLATE_PLUGIN_API_VERSION ||
@@ -485,12 +778,14 @@ static bool fp_open_inflate_paged_run(
        host_api->read_staged_payload_stream == NULL ||
        host_api->end_staged_payload_stream == NULL || host_api->begin_staged_xml == NULL ||
        host_api->append_staged_xml == NULL || host_api->finish_staged_xml == NULL ||
-       host_api->clear_staged_xml == NULL) {
+       host_api->clear_staged_xml == NULL || host_api->crypt_paged_window == NULL) {
         furi_string_set_str(error, "Open inflate ABI is unavailable or incompatible.");
         return false;
     }
 
     result->retry_with_paged = false;
+    fp_open_memory_log(
+        &ctx, "open_inflate_paged_entry", fp_open_paged_theoretical_bytes(prefer_file_paged));
     if(request->member_info.member_size <
            (request->member_info.body_offset + FLIPPASS_OPEN_GZIP_TRAILER_SIZE) ||
        request->member_info.body_offset + request->member_info.compressed_size +
@@ -503,14 +798,17 @@ static bool fp_open_inflate_paged_run(
     }
 
     fp_open_log(&ctx, "OPEN_STAGE inflate_paged");
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM
     if(!prefer_file_paged && fp_open_run_inflate_attempt(&ctx, request, false, NULL)) {
         return true;
     }
+#endif
 
     if(prefer_file_paged || !furi_string_empty(error)) {
         furi_string_reset(error);
     }
 
+#if FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_FILE
     if(fp_open_run_inflate_attempt(&ctx, request, true, primary_window_path)) {
         return true;
     }
@@ -519,7 +817,11 @@ static bool fp_open_inflate_paged_run(
         furi_string_reset(error);
         return fp_open_run_inflate_attempt(&ctx, request, true, secondary_window_path);
     }
+#else
+    furi_string_set_str(error, "The file-backed paged GZip inflator is not enabled.");
+#endif
 
+    fp_open_memory_log(&ctx, "open_inflate_paged_exit_fail", 0U);
     return false;
 }
 

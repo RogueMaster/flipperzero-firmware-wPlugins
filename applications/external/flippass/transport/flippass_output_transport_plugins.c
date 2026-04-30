@@ -274,9 +274,13 @@ bool flippass_output_transport_is_advertising(const App* app, FlipPassOutputTran
     return advertising;
 }
 
-bool flippass_output_transport_advertise(App* app, FlipPassOutputTransport transport) {
-    flippass_output_transport_cleanup_other(app, transport);
-
+static bool flippass_output_transport_advertise_impl(
+    App* app,
+    FlipPassOutputTransport transport,
+    bool cleanup_other) {
+    if(cleanup_other) {
+        flippass_output_transport_cleanup_other(app, transport);
+    }
     const FlipPassOutputPluginV1* plugin = flippass_output_transport_plugin_ensure(app, transport);
     if(plugin == NULL || plugin->advertise == NULL) {
         return false;
@@ -289,6 +293,14 @@ bool flippass_output_transport_advertise(App* app, FlipPassOutputTransport trans
     }
 
     return ok;
+}
+
+bool flippass_output_transport_advertise(App* app, FlipPassOutputTransport transport) {
+    return flippass_output_transport_advertise_impl(app, transport, true);
+}
+
+bool flippass_output_transport_prewarm(App* app, FlipPassOutputTransport transport) {
+    return flippass_output_transport_advertise_impl(app, transport, false);
 }
 
 void flippass_output_transport_get_name(
@@ -318,155 +330,4 @@ void flippass_output_transport_get_name(
 
 void flippass_output_transport_cleanup(App* app, FlipPassOutputTransport transport) {
     flippass_output_transport_cleanup_loaded(app, transport);
-}
-
-bool flippass_usb_begin(App* app) {
-    return flippass_output_transport_begin(app, FlipPassOutputTransportUsb);
-}
-
-void flippass_usb_restore(App* app) {
-    flippass_output_transport_cleanup(app, FlipPassOutputTransportUsb);
-}
-
-static bool flippass_usb_send_key(App* app, uint16_t hid_key) {
-    if(hid_key == HID_KEYBOARD_NONE) {
-        return false;
-    }
-
-    if(!flippass_output_transport_press_prepared(app, FlipPassOutputTransportUsb, hid_key)) {
-        flippass_output_transport_release_all_prepared(app, FlipPassOutputTransportUsb);
-        return false;
-    }
-    furi_delay_ms(FLIPPASS_USB_PRESS_DELAY_MS);
-    if(!flippass_output_transport_release_prepared(app, FlipPassOutputTransportUsb, hid_key)) {
-        flippass_output_transport_release_all_prepared(app, FlipPassOutputTransportUsb);
-        return false;
-    }
-    furi_delay_ms(FLIPPASS_USB_RELEASE_DELAY_MS);
-    return true;
-}
-
-static bool flippass_usb_send_special_key_prepared(App* app, uint16_t hid_key) {
-    if(!flippass_usb_send_key(app, hid_key)) {
-        return false;
-    }
-
-    furi_delay_ms(FLIPPASS_USB_STEP_DELAY_MS);
-    return true;
-}
-
-static bool flippass_usb_type_string_prepared(App* app, const char* text) {
-    furi_assert(app);
-    furi_assert(text);
-
-    for(size_t i = 0U; text[i] != '\0'; i++) {
-        if(!flippass_usb_send_key(app, HID_ASCII_TO_KEY(text[i]))) {
-            return false;
-        }
-        furi_delay_ms(FLIPPASS_USB_STEP_DELAY_MS);
-    }
-
-    return true;
-}
-
-bool flippass_usb_type_string(App* app, const char* text) {
-    furi_assert(app);
-    furi_assert(text);
-
-    if(!flippass_usb_begin(app)) {
-        flippass_usb_restore(app);
-        return false;
-    }
-
-    const bool ok = flippass_usb_type_string_prepared(app, text);
-    flippass_usb_restore(app);
-    return ok;
-}
-
-bool flippass_usb_type_login(App* app, const char* username, const char* password) {
-    furi_assert(app);
-    furi_assert(username);
-    furi_assert(password);
-
-    if(!flippass_usb_begin(app)) {
-        flippass_usb_restore(app);
-        return false;
-    }
-
-    if(!flippass_usb_type_string_prepared(app, username)) {
-        flippass_usb_restore(app);
-        return false;
-    }
-
-    if(!flippass_usb_send_special_key_prepared(app, HID_KEYBOARD_TAB)) {
-        flippass_usb_restore(app);
-        return false;
-    }
-
-    if(!flippass_usb_type_string_prepared(app, password)) {
-        flippass_usb_restore(app);
-        return false;
-    }
-
-    if(!flippass_usb_send_special_key_prepared(app, HID_KEYBOARD_RETURN)) {
-        flippass_usb_restore(app);
-        return false;
-    }
-
-    flippass_usb_restore(app);
-    return true;
-}
-
-bool flippass_usb_type_key(App* app, uint16_t hid_key) {
-    furi_assert(app);
-
-    if(!flippass_usb_begin(app)) {
-        flippass_usb_restore(app);
-        return false;
-    }
-
-    const bool ok = flippass_usb_send_key(app, hid_key);
-    flippass_usb_restore(app);
-    return ok;
-}
-
-bool flippass_usb_type_autotype(App* app, const KDBXEntry* entry) {
-    furi_assert(app);
-    furi_assert(entry);
-
-    return flippass_output_type_autotype(app, FlipPassOutputTransportUsb, entry);
-}
-
-bool flippass_output_bluetooth_is_connected(const App* app) {
-    return flippass_output_transport_is_connected(app, FlipPassOutputTransportBluetooth);
-}
-
-bool flippass_output_bluetooth_is_advertising(const App* app) {
-    return flippass_output_transport_is_advertising(app, FlipPassOutputTransportBluetooth);
-}
-
-bool flippass_output_bluetooth_advertise(App* app) {
-    return flippass_output_transport_advertise(app, FlipPassOutputTransportBluetooth);
-}
-
-void flippass_output_bluetooth_get_name(char* buffer, size_t size) {
-    if(buffer == NULL || size == 0U) {
-        return;
-    }
-
-    snprintf(buffer, size, "BadUSB %s", furi_hal_version_get_name_ptr());
-}
-
-void flippass_output_release_all(App* app) {
-    furi_assert(app);
-
-    flippass_output_transport_release_all_prepared(app, FlipPassOutputTransportUsb);
-    flippass_output_transport_release_all_prepared(app, FlipPassOutputTransportBluetooth);
-}
-
-void flippass_output_cleanup(App* app) {
-    furi_assert(app);
-
-    flippass_output_transport_cleanup(app, FlipPassOutputTransportUsb);
-    flippass_output_transport_cleanup(app, FlipPassOutputTransportBluetooth);
 }

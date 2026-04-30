@@ -1,6 +1,8 @@
 #include "flippass_open_acquire_plugin.h"
 
 #include "../kdbx/kdbx_parser.h"
+#include "../kdbx/memzero.h"
+#include "../kdbx/sha2.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -80,7 +82,7 @@ static bool fp_open_acquire_run(
         return false;
     }
 
-    memset(out_profile, 0, sizeof(*out_profile));
+    memzero(out_profile, sizeof(*out_profile));
     ctx.host_api = host_api;
     ctx.error = error;
     ctx.parser = kdbx_parser_alloc();
@@ -114,6 +116,15 @@ static bool fp_open_acquire_run(
     memcpy(out_profile->encryption_iv, header->encryption_iv, sizeof(out_profile->encryption_iv));
     out_profile->encryption_iv_size = header->encryption_iv_size;
     out_profile->payload_data_offset = (uint32_t)kdbx_parser_get_payload_offset(ctx.parser);
+    if(!kdbx_parser_get_aes_kdf_rounds(ctx.parser, &out_profile->kdf_rounds)) {
+        const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
+        furi_string_set_str(
+            error,
+            (kdf_error != NULL && kdf_error[0] != '\0') ? kdf_error :
+                                                          "Unable to inspect the AES-KDF rounds.");
+        fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
+        goto cleanup;
+    }
 
     {
         char profile_error[128] = {0};
@@ -145,13 +156,20 @@ static bool fp_open_acquire_run(
     }
 
     kdbx_parser_set_kdf_progress_callback(ctx.parser, NULL, NULL);
+    {
+        uint8_t password_hash[32];
+        sha256_Raw((const uint8_t*)request->password, strlen(request->password), password_hash);
+        sha256_Raw(password_hash, sizeof(password_hash), out_profile->composite_key);
+        out_profile->composite_key_ready = true;
+        memzero(password_hash, sizeof(password_hash));
+    }
     fp_open_acquire_log(&ctx, "KEY_DERIVE_OK");
     kdbx_parser_free(ctx.parser);
     return true;
 
 cleanup:
     kdbx_parser_set_kdf_progress_callback(ctx.parser, NULL, NULL);
-    memset(out_profile, 0, sizeof(*out_profile));
+    memzero(out_profile, sizeof(*out_profile));
     kdbx_parser_free(ctx.parser);
     return false;
 }

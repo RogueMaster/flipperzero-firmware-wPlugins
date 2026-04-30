@@ -89,6 +89,7 @@ static bool flippass_keyboard_layout_host_set_current_path(
         furi_string_set_str(app->keyboard_layout_path, path);
     }
 
+    app->keyboard_layout_configured = true;
     flippass_save_settings(app);
     return true;
 }
@@ -150,6 +151,15 @@ static const FlipPassKeyboardLayoutPluginV1*
     }
 
     return plugin;
+}
+
+static void flippass_keyboard_layout_unload_plugin(App* app) {
+    const FlipPassKeyboardLayoutPluginV1* plugin = flippass_keyboard_layout_plugin_loaded(app);
+
+    if(plugin != NULL && plugin->reset != NULL) {
+        plugin->reset();
+    }
+    flippass_module_unload(app, FlipPassModuleSlotKeyboardLayout);
 }
 
 static void flippass_keyboard_layout_execute_pending(App* app) {
@@ -240,6 +250,8 @@ bool flippass_scene_keyboard_layout_on_event(void* context, SceneManagerEvent ev
        event.event < (FLIPPASS_LAYOUT_EVENT_SELECT + plugin->item_count())) {
         const uint32_t selected_index = event.event - FLIPPASS_LAYOUT_EVENT_SELECT;
         if(plugin->apply_selection(&host_api, selected_index)) {
+            submenu_reset(app->submenu);
+            flippass_keyboard_layout_unload_plugin(app);
             flippass_keyboard_layout_execute_pending(app);
         } else {
             flippass_scene_status_show(
@@ -257,11 +269,9 @@ bool flippass_scene_keyboard_layout_on_event(void* context, SceneManagerEvent ev
 
 void flippass_scene_keyboard_layout_on_exit(void* context) {
     App* app = context;
-    const FlipPassKeyboardLayoutPluginV1* plugin = flippass_keyboard_layout_plugin_loaded(app);
 
     submenu_reset(app->submenu);
-    if(plugin != NULL && plugin->reset != NULL) {
-        plugin->reset();
-    }
-    flippass_module_unload(app, FlipPassModuleSlotKeyboardLayout);
+    flippass_keyboard_layout_unload_plugin(app);
+    flippass_output_release_all(app);
+    flippass_output_cleanup(app);
 }

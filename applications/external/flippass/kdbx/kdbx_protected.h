@@ -9,6 +9,10 @@ typedef enum {
     KDBXProtectedStreamChaCha20 = 3,
 } KDBXProtectedStreamAlgorithm;
 
+#define KDBX_PROTECTED_STREAM_CHACHA20_MATERIAL_SIZE (32U + 12U)
+#define KDBX_PROTECTED_STREAM_SALSA20_MATERIAL_SIZE  32U
+#define KDBX_PROTECTED_STREAM_MATERIAL_MAX           SHA512_DIGEST_LENGTH
+
 typedef struct {
     bool ready;
     KDBXProtectedStreamAlgorithm algorithm;
@@ -39,6 +43,11 @@ bool kdbx_protected_stream_init(
     KDBXProtectedStreamAlgorithm algorithm,
     const uint8_t* key,
     size_t key_size);
+bool kdbx_protected_stream_init_prederived(
+    KDBXProtectedStream* stream,
+    KDBXProtectedStreamAlgorithm algorithm,
+    const uint8_t* material,
+    size_t material_size);
 bool kdbx_protected_stream_apply(KDBXProtectedStream* stream, uint8_t* data, size_t data_size);
 bool kdbx_chacha20_stream_init(
     KDBXProtectedStream* stream,

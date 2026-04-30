@@ -10,6 +10,9 @@ typedef struct {
     uint8_t encryption_iv[16];
     uint8_t encryption_iv_size;
     uint32_t payload_data_offset;
+    uint64_t kdf_rounds;
+    uint8_t composite_key[32];
+    bool composite_key_ready;
     uint8_t cipher_key[32];
     uint8_t hmac_key[64];
 } KDBXOpenProfile;

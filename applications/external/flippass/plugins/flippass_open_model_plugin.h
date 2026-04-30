@@ -12,8 +12,8 @@ extern "C" {
 
 #define FLIPPASS_OPEN_MODEL_PLUGIN_APP_ID       "flippass_open_model"
 #define FLIPPASS_OPEN_MODEL_PLUGIN_API_VERSION  1u
-#define FLIPPASS_OPEN_MODEL_HOST_API_VERSION    1u
-#define FLIPPASS_OPEN_MODEL_BUILDER_API_VERSION 3u
+#define FLIPPASS_OPEN_MODEL_HOST_API_VERSION    2u
+#define FLIPPASS_OPEN_MODEL_BUILDER_API_VERSION 5u
 
 typedef bool (*FlipPassOpenChunkCallback)(const uint8_t* data, size_t data_size, void* context);
 
@@ -34,6 +34,15 @@ typedef struct {
         FlipPassOpenChunkCallback callback,
         void* callback_context,
         FuriString* error);
+    bool (*derive_protected_stream_material)(
+        void* context,
+        uint32_t algorithm,
+        const uint8_t* key,
+        size_t key_size,
+        uint8_t* material,
+        size_t material_capacity,
+        size_t* material_size,
+        FuriString* error);
 } FlipPassOpenModelHostApiV1;
 
 typedef struct {
@@ -50,6 +59,7 @@ typedef struct {
     bool (*begin_entry)(void* context, FuriString* error);
     bool (*end_entry)(void* context, FuriString* error);
     bool (*set_group_name)(void* context, const char* value, size_t value_len, FuriString* error);
+    bool (*set_group_uuid)(void* context, const char* value, size_t value_len, FuriString* error);
     bool (*set_entry_title)(void* context, const char* value, size_t value_len, FuriString* error);
     bool (*set_entry_uuid)(void* context, const char* value, size_t value_len, FuriString* error);
     bool (*set_entry_standard_field)(
@@ -63,6 +73,7 @@ typedef struct {
         const char* key,
         const char* value,
         size_t value_len,
+        bool protected_value,
         FuriString* error);
     bool (*should_stream_string_value)(void* context, const char* key);
     bool (*prepare_string_value_stream)(
@@ -70,7 +81,11 @@ typedef struct {
         const char* key,
         size_t buffered_size,
         FuriString* error);
-    bool (*begin_streamed_value)(void* context, const char* key, FuriString* error);
+    bool (*begin_streamed_value)(
+        void* context,
+        const char* key,
+        bool protected_value,
+        FuriString* error);
     bool (*write_streamed_value_chunk)(
         void* context,
         const char* key,

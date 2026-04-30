@@ -6,6 +6,14 @@ void flippass_entry_action_prepare_pending(struct App* app) {
     UNUSED(app);
 }
 
+void flippass_entry_action_prepare_type_menu(struct App* app) {
+    UNUSED(app);
+}
+
+void flippass_entry_action_cleanup_type_menu(struct App* app) {
+    UNUSED(app);
+}
+
 bool flippass_entry_action_execute_pending(struct App* app, FuriString* error) {
     UNUSED(app);
 

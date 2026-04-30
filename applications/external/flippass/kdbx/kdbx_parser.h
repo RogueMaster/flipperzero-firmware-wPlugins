@@ -38,6 +38,7 @@ void kdbx_parser_set_kdf_progress_callback(
     KDBXParser* parser,
     KDBXParserKdfProgressCallback callback,
     void* context);
+bool kdbx_parser_get_aes_kdf_rounds(const KDBXParser* parser, uint64_t* out_rounds);
 bool kdbx_parser_derive_key(
     const KDBXParser* parser,
     const char* password,

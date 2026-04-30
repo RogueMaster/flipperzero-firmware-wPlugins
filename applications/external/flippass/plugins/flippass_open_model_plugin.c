@@ -233,7 +233,10 @@ static bool fp_open_begin_streamed_value(FlipPassOpenContext* ctx) {
     }
 
     if(!ctx->builder_api->begin_streamed_value(
-           ctx->builder_api->context, furi_string_get_cstr(ctx->string_key), ctx->error)) {
+           ctx->builder_api->context,
+           furi_string_get_cstr(ctx->string_key),
+           ctx->value_protected,
+           ctx->error)) {
         if(!ctx->parse_failed && ctx->error != NULL && !furi_string_empty(ctx->error)) {
             fp_open_set_error(ctx, "%s", furi_string_get_cstr(ctx->error));
         }
@@ -405,7 +408,7 @@ static bool fp_open_commit_entry_value(
     }
 
     return ctx->builder_api->add_custom_field(
-        ctx->builder_api->context, key, value, value_len, ctx->error);
+        ctx->builder_api->context, key, value, value_len, ctx->value_protected, ctx->error);
 }
 
 static bool fp_open_commit_text_value(
@@ -423,7 +426,8 @@ static bool fp_open_commit_text_value(
             ctx->builder_api->context, value, value_len, ctx->error);
         break;
     case FlipPassOpenTextStateGroupUuid:
-        ok = true;
+        ok = ctx->builder_api->set_group_uuid(
+            ctx->builder_api->context, value, value_len, ctx->error);
         break;
     case FlipPassOpenTextStateEntryUuid:
         ok = ctx->builder_api->set_entry_uuid(
@@ -843,19 +847,35 @@ static void fp_open_character_data(void* context, const char* data, int len) {
 
 static bool fp_open_finish_inner_header(FlipPassOpenContext* ctx) {
     if(ctx->protected_stream_id != KDBXProtectedStreamNone) {
+        uint8_t material[KDBX_PROTECTED_STREAM_MATERIAL_MAX];
+        size_t material_size = 0U;
+
         if(ctx->protected_stream_key.size == 0U) {
             fp_open_set_error(ctx, "The KDBX inner protected-value key is missing.");
             return false;
         }
 
-        if(!kdbx_protected_stream_init(
+        if(ctx->host_api == NULL || ctx->host_api->derive_protected_stream_material == NULL ||
+           !ctx->host_api->derive_protected_stream_material(
+               ctx->host_api->context,
+               ctx->protected_stream_id,
+               ctx->protected_stream_key.data,
+               ctx->protected_stream_key.size,
+               material,
+               sizeof(material),
+               &material_size,
+               ctx->error) ||
+           !kdbx_protected_stream_init_prederived(
                &ctx->protected_stream,
                (KDBXProtectedStreamAlgorithm)ctx->protected_stream_id,
-               ctx->protected_stream_key.data,
-               ctx->protected_stream_key.size)) {
+               material,
+               material_size)) {
+            memzero(material, sizeof(material));
             fp_open_set_error(ctx, "Only Salsa20 or ChaCha20 protected values are supported.");
             return false;
         }
+        memzero(material, sizeof(material));
+        fp_open_byte_buffer_free(&ctx->protected_stream_key);
     }
 
     ctx->inner_header_done = true;
@@ -1116,10 +1136,11 @@ static bool fp_open_model_run(
        request->api_version != FLIPPASS_OPEN_MODEL_PLUGIN_API_VERSION ||
        host_api->api_version != FLIPPASS_OPEN_MODEL_HOST_API_VERSION ||
        builder_api->api_version != FLIPPASS_OPEN_MODEL_BUILDER_API_VERSION ||
-       host_api->stream_staged_xml == NULL || builder_api->begin_session == NULL ||
-       builder_api->cancel_session == NULL || builder_api->begin_group == NULL ||
-       builder_api->end_group == NULL || builder_api->begin_entry == NULL ||
-       builder_api->end_entry == NULL || builder_api->set_group_name == NULL ||
+       host_api->stream_staged_xml == NULL || host_api->derive_protected_stream_material == NULL ||
+       builder_api->begin_session == NULL || builder_api->cancel_session == NULL ||
+       builder_api->begin_group == NULL || builder_api->end_group == NULL ||
+       builder_api->begin_entry == NULL || builder_api->end_entry == NULL ||
+       builder_api->set_group_name == NULL || builder_api->set_group_uuid == NULL ||
        builder_api->set_entry_title == NULL || builder_api->set_entry_uuid == NULL ||
        builder_api->set_entry_standard_field == NULL || builder_api->add_custom_field == NULL ||
        builder_api->should_stream_string_value == NULL ||

@@ -1,37 +1,40 @@
 # FlipPass
 
-FlipPass lets Flipper Zero open a KeePass vault and send credentials to another device through USB HID or Bluetooth HID.
+FlipPass is the Flipper Zero implementation of the KeePass password manager; it creates, opens, edits KDBX files, and sends credentials/OTP to another device via USB HID or Bluetooth HID.
 
 ## Features
 
-- Browse KeePass KDBX 4 vaults stored on the SD card.
-- Navigate groups and entries without modifying the database.
-- Show username, password, URL, notes, AutoType sequences, and custom fields on-device.
-- Type username, password, AutoType sequences, or custom fields over USB HID or Bluetooth HID.
+- Create/Browse/Modify KeePass KDBX v4 vaults stored on the SD card.
+- Navigate and modify groups and entries of the database.
+- Modify the password, encryption type, and KDF derivation effort of an existing KDBX.
+- Show username, password, URL, notes, AutoType sequences, OTP, and custom fields on-device.
+- Type username, password, AutoType sequences, OTP values, or custom fields over USB HID or Bluetooth HID.
+- Generates passwords based on SubGhz noise and user inputs entropy (Trying to be "True Random")
+- Create and calculate HMAC-OTP and TIME-OTP configurations as KeePass. (In the editing/creation of an entry, in the OTP field)
 - Reuse the default KeePass AutoType sequence when an entry does not define a custom one.
 
 ## Requirements
 
 - A Flipper Zero with an SD card.
-- A KeePass database in KDBX 4 format.
-- AES256 or ChaCha20 database encryption.
-- Raw or GZip-compressed payloads.
+- Limited to AES-KDF algorithm
 
 ## Usage
 
-0. Download and use [KeePass](https://keepass.info/download.html) to create a password vault. (With KDF AES)
-1. Copy your .kdbx file to /ext/apps_data/flippass/. (or your preferred directory)
-2. Launch FlipPass and choose the database from the browser.
-3. Enter the master password for the selected vault.
-4. Open a group or entry, then choose whether to view a field or type it to the connected host.
-5. For Bluetooth HID, pair or reconnect the host before sending credentials.
-6. To select the keyboard layout, hold the chosen typing method (USB or BT).
-7. To exit quickly, hold Back.
+1. Launch FlipPass and choose the database from the browser or create one on your preferred directory
+2. Enter the master password for the vault.
+3. Create/Open a group or entry, then choose whether to view a field or type it to the connected host.
+    - To edit a group or entry Hold "OK"
+    - To generate a password, leave the "password" field setting blank in an entry (or the "value" field of a protected "Custom Field").
+4. For Bluetooth HID, pair or reconnect the host before sending credentials.
+5. To select the keyboard layout, hold the chosen typing method (USB ("Right") or BT ("Left")).
+    - For stop tipyng, press "Back".
+6. To exit quickly, hold "Back".
 
 ## Notes
 
-- FlipPass is a read-only browser. It does not edit or save KeePass entries.
 - The application can write via USB HID or via Bluetooth HID profile (preferably paired with the BadUSB app beforehand).
-- To reduce typing errors, FlipPass can send characters using the Windows Alt+Num Keypad input method. (This is the default method.)
-- Due to RAM requirements and limitations, the app may close during decompression or when the qFlipper app connects simultaneously.
+- To reduce typing errors, FlipPass can send characters using the Windows Alt+Num Keypad input method. (The default method is either this one or the last keyboard layout used in BadUSB.)
+- Due to RAM requirements and limitations, the application may not function during decompression or saving if the qFlipper application is connected simultaneously.
+- It is highly recommended to use uncompressed databases
+- An effort of 10k AES-KDF iterations is approximately one and a half seconds of processing time on the Flipper. By default, KeePass offers 600k iterations. Although the Flipper has been tested with 2500k iterations, it is the user's responsibility to decide the effort and time invested.
 - The screenshots use demo data only.

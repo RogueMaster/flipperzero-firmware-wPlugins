@@ -29,6 +29,12 @@ static FlipPassOutputTransport flippass_entry_action_transport(FlipPassEntryActi
     }
 }
 
+static FlipPassOutputTransport
+    flippass_entry_action_other_transport(FlipPassOutputTransport transport) {
+    return (transport == FlipPassOutputTransportBluetooth) ? FlipPassOutputTransportUsb :
+                                                             FlipPassOutputTransportBluetooth;
+}
+
 static const char* flippass_entry_action_log_prefix(FlipPassOutputTransport transport) {
     return transport == FlipPassOutputTransportBluetooth ? "BT" : "USB";
 }
@@ -167,12 +173,47 @@ static const KDBXFieldRef*
 void flippass_entry_action_prepare_pending(App* app) {
     furi_assert(app);
 
-    flippass_usb_restore(app);
+    const FlipPassOutputTransport transport =
+        flippass_entry_action_transport(app->pending_entry_action);
+
+    FLIPPASS_MEMORY_LOG(app, "type_prepare_known_begin", FLIPPASS_TYPE_LOAD_HEAP_RESERVE_BYTES);
     flippass_output_release_all(app);
+    flippass_output_cleanup_transport(app, flippass_entry_action_other_transport(transport));
+
+    if(transport == FlipPassOutputTransportUsb) {
+        FLIPPASS_MEMORY_LOG(app, "type_prepare_known_end", FLIPPASS_TYPE_LOAD_HEAP_RESERVE_BYTES);
+        return;
+    }
 
     if(!flippass_output_bluetooth_is_connected(app)) {
         flippass_output_bluetooth_advertise(app);
     }
+    FLIPPASS_MEMORY_LOG(app, "type_prepare_known_end", FLIPPASS_TYPE_LOAD_HEAP_RESERVE_BYTES);
+}
+
+void flippass_entry_action_prepare_type_menu(App* app) {
+    furi_assert(app);
+
+    FLIPPASS_MEMORY_LOG(app, "type_menu_prewarm_begin", FLIPPASS_TYPE_LOAD_HEAP_RESERVE_BYTES);
+    flippass_output_release_all(app);
+
+    flippass_output_prewarm_transport(app, FlipPassOutputTransportUsb);
+    if(flippass_output_usb_is_connected(app)) {
+        flippass_output_cleanup_transport(app, FlipPassOutputTransportBluetooth);
+    } else if(!flippass_output_bluetooth_is_connected(app)) {
+        flippass_output_prewarm_transport(app, FlipPassOutputTransportBluetooth);
+    }
+
+    FLIPPASS_MEMORY_LOG(app, "type_menu_prewarm_end", FLIPPASS_TYPE_LOAD_HEAP_RESERVE_BYTES);
+}
+
+void flippass_entry_action_cleanup_type_menu(App* app) {
+    furi_assert(app);
+
+    FLIPPASS_MEMORY_LOG(app, "type_menu_cleanup_begin", FLIPPASS_TYPE_LOAD_HEAP_RESERVE_BYTES);
+    flippass_output_release_all(app);
+    flippass_output_cleanup(app);
+    FLIPPASS_MEMORY_LOG(app, "type_menu_cleanup_end", FLIPPASS_TYPE_LOAD_HEAP_RESERVE_BYTES);
 }
 
 bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
@@ -188,6 +229,7 @@ bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
     char* temp_username = NULL;
     char* temp_password = NULL;
     char* temp_other = NULL;
+    char otp_code[FLIPPASS_OTP_CODE_MAX_CHARS + 1U];
     size_t temp_username_size = 0U;
     size_t temp_password_size = 0U;
     size_t temp_other_size = 0U;
@@ -210,6 +252,7 @@ bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
     }
 
     flippass_entry_action_focus_entry(app, entry);
+    otp_code[0] = '\0';
 
     switch(app->pending_entry_action) {
     case FlipPassEntryActionTypeUsernameUsb:
@@ -280,6 +323,16 @@ bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
         break;
     case FlipPassEntryActionTypeOtherUsb:
     case FlipPassEntryActionTypeOtherBluetooth:
+        if(app->pending_other_otp_kind != FlipPassOtpKindNone) {
+            if(!flippass_otp_generate_code(
+                   app, entry, app->pending_other_otp_kind, true, otp_code, error)) {
+                return false;
+            }
+            other_value = otp_code;
+            other_ref = NULL;
+            char_count = strlen(other_value);
+            break;
+        }
         other_value = (app->pending_other_custom_field != NULL) ?
                           app->pending_other_custom_field->value :
                           ((app->pending_other_field_mask == KDBXEntryFieldUrl) ?
@@ -320,6 +373,7 @@ bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
     }
 
     FLIPPASS_BENCH_LOG(app, "%s_TYPE_BEGIN field=%s chars=%lu", log_prefix, log_label, char_count);
+    FLIPPASS_MEMORY_LOG(app, "type_execute_begin", (size_t)char_count);
 
     switch(app->pending_entry_action) {
     case FlipPassEntryActionTypeUsernameUsb:
@@ -416,6 +470,7 @@ bool flippass_entry_action_execute_pending(App* app, FuriString* error) {
     }
 
 finish:
+    memzero(otp_code, sizeof(otp_code));
     flippass_entry_action_free_temp_text(&temp_username, &temp_username_size);
     flippass_entry_action_free_temp_text(&temp_password, &temp_password_size);
     flippass_entry_action_free_temp_text(&temp_other, &temp_other_size);
@@ -431,6 +486,7 @@ finish:
 
     FLIPPASS_LOG_EVENT(
         app, typed ? "%s_TYPE_OK field=%s" : "%s_TYPE_FAIL field=%s", log_prefix, log_label);
+    FLIPPASS_MEMORY_LOG(app, typed ? "type_execute_ok" : "type_execute_fail", 0U);
 
     if(!typed && error != NULL && furi_string_empty(error)) {
         if(transport == FlipPassOutputTransportBluetooth) {
