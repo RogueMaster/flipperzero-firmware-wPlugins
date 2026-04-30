@@ -28,7 +28,7 @@ else:
             "NDEBUG",
         ],
         CCFLAGS=[
-            "-Og" if ENV["IS_BASE_FIRMWARE"] else "-Os",
+            "-Os",
         ],
     )
 

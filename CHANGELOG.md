@@ -1,26 +1,18 @@
 ## Main changes
-- Current API: 87.4
-* SubGHz: **Cardin S449 protocol full support** (64bit keeloq) (with Add manually, and all button codes) (**use FSK12K modulation to read the remote**) (closes issues #735 #908) (by @xMasterX and @zero-mega (thanks!))
-* SubGHz: **Beninca ARC AES128 protocol full support** (128bit dynamic) (with Add manually, and 3 button codes) (resolves issue #596) (by @xMasterX and @zero-mega)
-* SubGHz: **Treadmill37 protocol support** (37bit static) (by @xMasterX)
-* SubGHz: **Jarolift protocol full support** (72bit dynamic) (with Add manually, and all button codes) (by @xMasterX & d82k & Steffen (bastelbudenbuben de))
-* SubGHz: **New modulation FSK with 12KHz deviation**
-* SubGHz: **KingGates Stylo 4k - Add manually and button switch support** + refactoring of encoder
-* SubGHz: **Stilmatic (R-Tech) - 12bit discr. fix & button 9 support** (two buttons hold simulation) (mapped on arrow keys)
-* SubGHz: **Counter editor refactoring** (PR #939 | by @Dmitry422)
-* SubGHz: **Alutech AT-4N & Nice Flor S turbo speedup** (PR #942 | by @Dmitry422)
-* SubGHz: **Sommer fm2 in Add manually now uses FM12K modulation** (Sommer without fm2 tag uses FM476) (try this if regular option doesn't work for you)
-* SubGHz: **Sommer - last button code 0x6 support** (mapped on arrow keys)
-* SubGHz: **V2 Phoenix (Phox) added 2 counter modes support** (docs updated)
-* SubGHz: Add 390MHz, 430.5MHz to default hopper list (6 elements like in OFW) (works well with Hopper RSSI level set for your enviroment)
-* SubGHz: Fixed button mapping for **FAAC RC/XT**
-* SubGHz: KeeLoq **display decrypted hop** in `Hop` instead of showing encrypted as is (encrypted non byte reversed hop is still displayed in `Key` field)
-* SubGHz: **BFT KeeLoq** try decoding with **zero seed** too
-* SubGHz: KeeLoq **display BFT programming mode TX** (when arrow button is held)
-* NFC: Handle PPS request in ISO14443-4 layer (by @WillyJL)
-* NFC: Fixes to `READ_MULTI` and `GET_BLOCK_SECURITY` commands in ISO 15693-3 emulation (by @WillyJL & @aaronjamt)
-* Archive: Allow folders to be pinned (by @WillyJL)
-* Apps: Build tag (**27jan2026**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
+- Current API: 87.7
+* SubGHz: Add support for **42+ Keeloq based systems** (with partial Add Manually support) (see [Full list](/documentation/SubGHzSupportedSystems.md)) (by @zero-mega, @xMasterX, ARF Team)
+* SubGHz: Add **Allstar Firefly 318ALD31K** protocol (18 bits, Static) (PR #989 | by @jlaughter)
+* SubGHz: Add **Nord ICE** protocol (33 bits, Static)
+* SubGHz: **Better support for CAME Atomo** type remotes (TOPD4REN) (decode + button codes) (thx to Roman for raw recordings)
+* SubGHz: Add **CAME TOP44FGN** support in CAME TWEE protocol
+* SubGHz: Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning
+* SubGHz: **Fix CAME TWEE repeats count for button click**
+* NFC: Add **ISO15693-3 and SLIX write-back support** (PR #984 | by @DoniyorI)
+* NFC: **Fix "MIR" and other EMV cards crash on Read** (by @Dmitry422)
+* NFC: Add **Mifare Ultralight C Write Support** (by @haw8411)
+* NFC: Add **new parsers SZPPK, SKPPK and SevPPK**, upgrade Plantain parser, fix TwoCities parser (PR #981 | by @mxcdoam)
+* OFW PR 4362: NFC: **Fix BusFault** in Write to Initial Card (by @akrylysov)
+* OFW PR 4369: NFC: Fix stack buffer overflows in MFUL FAST_READ and DESFire file settings parsers (by @qp-x-qp)
 ## Other changes
 * UI: Various small changes
 * Desktop: Disable winter holidays anims 

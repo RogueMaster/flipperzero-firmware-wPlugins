@@ -66,6 +66,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [MR60FDA1 Radar v0.1 (By adamaratski)](https://github.com/adamaratski/flipperzero-r60afd1) `Req: MR60FDA1/MR60FDA2`
 - Added: [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
 - [uFBT: Fix .clangd config for IDEs besides VSCode (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/d3ba597539f806f8ab291d725a3b16a9364b644e)
+- Sub-GHz: [Add Allstar Firefly 318ALD31K protocol (18 bits, Static) (By jlaughter)](https://github.com/DarkFlippers/unleashed-firmware/pull/989)
+- Sub-GHz: [Faac SLH / Nice Flo Updates & Remove Duplicate Code from RAW & Canvas Buffer in API & Kinggates Logic Fix & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning & Sub-GHz upgrades (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/57500ccf3a39cef2617317d9e849afe5dca182ae)
 
 <a name="release"></a>
 
