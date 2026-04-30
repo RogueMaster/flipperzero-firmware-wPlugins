@@ -5,6 +5,7 @@
 #include "player.hpp"
 #include "time.hpp"
 #include "sound.hpp"
+#include "enemy.hpp"
 
 #if SKY_RENDER_ALLOWED
 #include "sky.hpp"
@@ -35,6 +36,7 @@ private:
         return (int)strtol(nptr, NULL, 10);
     } // convert string to integer
     Vector getRandomGhoulPosition(Level* level); // get a random position for spawning ghouls
+    EnemyType getRandomGhoulType() const; // get a random enemy type for spawning ghouls
     Vector getRandomWeaponPosition(Level* level); // get a random position for spawning weapons
     WeaponType getUniqueWeaponType(
         Level* level); // get a unique weapon type (only two of each type allowed)
@@ -102,6 +104,7 @@ public:
     void resetInput() {
         lastInput = -1;
     } // Reset input after processing
+    bool soundAllowed() const; // Check if sound is allowed based on player settings
     bool startGame(); // start the actual game
     bool startGameOnline(); // start the online multiplayer game
     void updateDraw(); // update and draw the game

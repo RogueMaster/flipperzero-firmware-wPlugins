@@ -1,9 +1,13 @@
 #pragma once
 #include <furi.h>
-#include <font/font.h>
+#include "font/font.h"
 
 #define LCD_WIDTH  128
 #define LCD_HEIGHT 64
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 Canvas* lcd_get_canvas();
 void lcd_init_canvas(Canvas* c);
@@ -50,3 +54,7 @@ void lcd_draw_triangle(
 // Text rendering functions
 void lcd_draw_char(uint16_t x, uint16_t y, char c, uint16_t color, FontSize size);
 void lcd_draw_text(uint16_t x, uint16_t y, const char* text, uint16_t color, FontSize size);
+
+#ifdef __cplusplus
+}
+#endif

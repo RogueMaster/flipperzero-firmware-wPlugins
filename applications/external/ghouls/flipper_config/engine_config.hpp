@@ -20,12 +20,13 @@
 #define ENGINE_DELAY_MS(ms)  furi_delay_ms(ms) // (uint32_t ms) -> void
 
 // font
-#define ENGINE_FONT_INCLUDE "font/font.h"
-#define ENGINE_FONT_SIZE    FontSize
-#define ENGINE_FONT_DEFAULT FONT_SIZE_SMALL
+#define ENGINE_FONT_INCLUDE      "flipper_config/font.h"
+#define ENGINE_FONT_SIZE         FontSize
+#define ENGINE_FONT_DEFAULT      FONT_SIZE_SMALL
+#define ENGINE_FONT_STRING_WIDTH font_string_width // (FontSize size, const char *text) -> size_t
 
 // LCD
-#define ENGINE_LCD_INCLUDE "lcd.hpp"
+#define ENGINE_LCD_INCLUDE "flipper_config/lcd.h"
 #define ENGINE_LCD_INIT    lcd_init // () -> void
 // #define ENGINE_LCD_DEINIT lcd_deinit                                    // () -> void
 #define ENGINE_LCD_WIDTH   LCD_WIDTH
@@ -59,6 +60,6 @@
     lcd_draw_triangle // (uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color) -> void
 
 // storage
-#define ENGINE_STORAGE_INCLUDE "storage.h"
+#define ENGINE_STORAGE_INCLUDE "flipper_config/storage.h"
 #define ENGINE_STORAGE_READ \
     storage_read // (const char *file_path, void *buffer, size_t buffer_size) -> size_t bytes_read

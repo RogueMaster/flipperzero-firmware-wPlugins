@@ -16,7 +16,7 @@
 #ifndef JSMN_FURI_H
 #define JSMN_FURI_H
 
-#include <jsmn/jsmn_h.h>
+#include "jsmn_h.h"
 
 #ifdef __cplusplus
 extern "C" {

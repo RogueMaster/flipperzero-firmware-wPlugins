@@ -1,6 +1,6 @@
-#include "http.hpp"
+#include "http.h"
 #include "flipper_http/flipper_http.h"
-#include "app.hpp"
+// #include "app.hpp"
 
 static FlipperHTTP* flipperHttp = nullptr;
 static char last_saved_file_path[64] = {0};
@@ -14,7 +14,7 @@ void http_deinit() {
 
 bool http_init(void* httpInstance) {
     if(!httpInstance) {
-        FURI_LOG_E(TAG, "http_init: httpInstance is NULL");
+        FURI_LOG_E("HTTP", "http_init: httpInstance is NULL");
         return false;
     }
     // share instance with app
@@ -24,7 +24,7 @@ bool http_init(void* httpInstance) {
 
 bool http_get_http_response(char* buffer, size_t buffer_size) {
     if(!flipperHttp || !buffer || buffer_size == 0) {
-        FURI_LOG_E(TAG, "http_get_http_response: Invalid arguments");
+        FURI_LOG_E("HTTP", "http_get_http_response: Invalid arguments");
         return false;
     }
     Storage* storage = static_cast<Storage*>(furi_record_open(RECORD_STORAGE));
@@ -39,7 +39,7 @@ bool http_get_http_response(char* buffer, size_t buffer_size) {
     if(!storage_file_open(file, file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         storage_file_free(file);
         furi_record_close(RECORD_STORAGE);
-        FURI_LOG_E(TAG, "http_get_http_response: Failed to open response file: %s", file_path);
+        FURI_LOG_E("HTTP", "http_get_http_response: Failed to open response file: %s", file_path);
         return false;
     }
     size_t read_count = storage_file_read(file, buffer, buffer_size);
@@ -84,7 +84,7 @@ bool http_send_request(
     const char* headers,
     const char* payload) {
     if(!flipperHttp || !url || !method) {
-        FURI_LOG_E(TAG, "http_send_request: Invalid arguments");
+        FURI_LOG_E("HTTP", "http_send_request: Invalid arguments");
         return false;
     }
     snprintf(last_saved_file_path, sizeof(last_saved_file_path), "http_%s.txt", method);
@@ -102,7 +102,7 @@ bool http_send_request(
         http_method = POST;
     }
     if(!flipper_http_request(flipperHttp, http_method, url, headers, payload)) {
-        FURI_LOG_E(TAG, "http_send_request: Failed to send HTTP request");
+        FURI_LOG_E("HTTP", "http_send_request: Failed to send HTTP request");
         return false;
     }
     flipperHttp->state = RECEIVING;
@@ -111,7 +111,7 @@ bool http_send_request(
 
 bool http_websocket_send(const char* message) {
     if(!flipperHttp || !message) {
-        FURI_LOG_E(TAG, "http_websocket_send: invalid arguments");
+        FURI_LOG_E("HTTP", "http_websocket_send: invalid arguments");
         return false;
     }
     return flipper_http_send_data(flipperHttp, message);
@@ -119,11 +119,11 @@ bool http_websocket_send(const char* message) {
 
 bool http_websocket_start(const char* url, uint16_t port) {
     if(!flipperHttp) {
-        FURI_LOG_E(TAG, "http_websocket_start: FlipperHTTP is not initialized");
+        FURI_LOG_E("HTTP", "http_websocket_start: FlipperHTTP is not initialized");
         return false;
     }
     if(!url || strlen(url) == 0) {
-        FURI_LOG_E(TAG, "http_websocket_start: WebSocket URL is NULL or empty");
+        FURI_LOG_E("HTTP", "http_websocket_start: WebSocket URL is NULL or empty");
         return false;
     }
     return flipper_http_websocket_start(
@@ -132,8 +132,21 @@ bool http_websocket_start(const char* url, uint16_t port) {
 
 bool http_websocket_stop() {
     if(!flipperHttp) {
-        FURI_LOG_E(TAG, "http_websocket_stop: FlipperHTTP is NULL");
+        FURI_LOG_E("HTTP", "http_websocket_stop: FlipperHTTP is NULL");
         return false;
     }
     return flipper_http_websocket_stop(flipperHttp);
+}
+
+bool http_file_download(const char* url, const char* destination_path) {
+    if(!flipperHttp || !url || !destination_path) {
+        FURI_LOG_E("HTTP", "http_file_download: Invalid arguments");
+        return false;
+    }
+    snprintf(flipperHttp->file_path, sizeof(flipperHttp->file_path), destination_path);
+    flipperHttp->save_received_data = false;
+    flipperHttp->is_bytes_request = true;
+    flipperHttp->state = IDLE;
+    return flipper_http_request(
+        flipperHttp, BYTES, url, "{\"Content-Type\": \"application/octet-stream\"}", NULL);
 }

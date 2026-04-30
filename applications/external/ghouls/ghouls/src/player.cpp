@@ -7,6 +7,10 @@
 #include HTTP_INCLUDE
 #include JSON_INCLUDE
 
+#ifdef ENGINE_STORAGE_INCLUDE
+#include ENGINE_STORAGE_INCLUDE
+#endif
+
 Player::Player(const char* user_name, const char* user_pass)
     : Entity(username, ENTITY_PLAYER, Vector(4, 20), Vector(1.0f, 2.0f), nullptr) {
     sprite_3d = ENGINE_MEM_NEW Sprite3D();
@@ -50,6 +54,12 @@ void Player::collision(Entity* other, Game* game) {
     case ENTITY_ENEMY: // ghouls (take damage)
         // Check if enemy can attack
         if(other->elapsed_attack_timer >= other->attack_timer) {
+            if(ghoulsGame) {
+                Sound* sound = ghoulsGame->getGameSound();
+                if(sound) {
+                    sound->playWAV(ASSETS_FOLDER "ghouls-growl-loud.wav");
+                }
+            }
             other->elapsed_attack_timer = 0; // Reset enemy attack timer
             this->health -= other->strength;
             this->state = ENTITY_ATTACKED;
@@ -65,10 +75,15 @@ void Player::collision(Entity* other, Game* game) {
     case ENTITY_NPC: // weapons (pick up)
     {
         Weapon* weapon = static_cast<Weapon*>(other);
-        if(!weapon || !equipWeapon(game->current_level, weapon)) {
-            ENGINE_LOG_INFO(
-                "[Player:collision] Failed to equip weapon: %s",
-                weapon ? weapon->name : "unknown");
+        if(!weapon) {
+            ENGINE_LOG_INFO("[Player:collision] Failed to cast collided NPC to Weapon");
+            return;
+        }
+        if(weapon->isHeld()) {
+            return; // already held
+        }
+        if(!equipWeapon(game->current_level, weapon)) {
+            ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s", weapon->name);
             return;
         }
         if(soundToggle == ToggleOn && ghoulsGame) {
@@ -78,7 +93,7 @@ void Player::collision(Entity* other, Game* game) {
             }
         }
         char alertMsg[64];
-        snprintf(alertMsg, sizeof(alertMsg), "Picked up %s!", weapon ? weapon->name : "unknown");
+        snprintf(alertMsg, sizeof(alertMsg), "Picked up %s!", weapon->name);
         showAlert(alertMsg);
         break;
     }
@@ -92,6 +107,22 @@ void Player::collision(Entity* other, Game* game) {
         break;
     };
 }
+
+// clang-format off
+const char *Player::downloadFiles[11] = {
+    "ambience.wav",
+    "crossbow.wav",
+    "ghouls-growl-loud.wav",
+    "ghouls-growl-medium.wav",
+    "ghouls-growl-soft.wav",
+    "ghouls-growling.wav",
+    "menu-click.wav",
+    "rifle.wav",
+    "rocket-launcher.wav",
+    "shotgun.wav",
+    "weapon-pickup.wav",
+};
+// clang-format on
 
 void Player::drawCurrentView(Draw* canvas) {
     if(!canvas) return;
@@ -136,19 +167,24 @@ void Player::drawCurrentView(Draw* canvas) {
 
 void Player::drawGameLocalView(Draw* canvas) {
     if(ghoulsGame->isRunning()) {
-        if(ghoulsGame->getEngine()) {
+        GameEngine* engine = ghoulsGame->getEngine();
+        if(engine) {
             if(shouldLeaveGame()) {
                 if(pendingStatsUpdate) {
+                    Sound* sound = ghoulsGame->getGameSound();
+                    if(sound) {
+                        sound->stop();
+                    }
                     pendingStatsUpdate = false;
                     userRequest(RequestTypeUpdateStats);
                 }
                 ghoulsGame->endGame();
                 return;
             }
-            ghoulsGame->getEngine()->updateGameInput(ghoulsGame->getCurrentInput());
+            engine->updateGameInput(ghoulsGame->getCurrentInput());
             // Reset the input after processing to prevent it from being continuously pressed
             ghoulsGame->resetInput();
-            ghoulsGame->getEngine()->runAsync(false);
+            engine->runAsync(false);
         }
         return;
     } else if(!shouldLeaveGame()) {
@@ -168,6 +204,10 @@ void Player::drawGameLocalView(Draw* canvas) {
 void Player::drawGameOnlineView(Draw* canvas) {
     if(shouldLeaveGame()) {
         if(pendingStatsUpdate) {
+            Sound* sound = ghoulsGame->getGameSound();
+            if(sound) {
+                sound->stop();
+            }
             pendingStatsUpdate = false;
             userRequest(RequestTypeUpdateStats);
         }
@@ -720,7 +760,7 @@ void Player::drawMenuType2(Draw* canvas, uint8_t selectedIndexMain, uint8_t sele
         snprintf(
             showPlayerStatus,
             sizeof(showPlayerStatus),
-            "MiniMap: %s",
+            "Mini Map: %s",
             toggleToString(showMiniMapToggle));
         // draw settings info
         switch(selectedIndexSettings) {
@@ -933,7 +973,70 @@ void Player::drawSystemMenuView(Draw* canvas) {
 
 void Player::drawTitleView(Draw* canvas) {
     // draw title text
-    drawMenuType1(canvas, currentTitleIndex, "Start", "Menu");
+    if(currentTitleIndex != TitleIndexDownload) {
+        drawMenuType1(canvas, currentTitleIndex, "Start", "Menu");
+        return;
+    }
+
+    canvas->fillScreen(0xFFFF);
+
+    if(!loading) {
+        loading = ENGINE_MEM_NEW Loading(canvas);
+        if(!loading) {
+            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to create loading animation");
+            leaveGame = ToggleOn;
+            return;
+        }
+    }
+
+    // All files downloaded — transition to lobby menu
+    if(downloadFileIndex >= 11) {
+        if(loading) {
+            loading->stop();
+        }
+        downloadFileIndex = 0;
+        downloadInProgress = false;
+        currentMainView = GameViewLobbyMenu;
+        return;
+    }
+
+    if(!downloadInProgress) {
+        // Build URL and destination path for the current file
+        char url[128];
+        snprintf(url, sizeof(url), GITHUB_ASSETS_URL "%s", downloadFiles[downloadFileIndex]);
+
+        char path[128];
+        snprintf(path, sizeof(path), ASSETS_FOLDER "%s", downloadFiles[downloadFileIndex]);
+
+        snprintf(
+            downloadStatusText,
+            sizeof(downloadStatusText),
+            "Downloading asset (%d/11)",
+            downloadFileIndex + 1);
+
+        if(loading) {
+            loading->setText(downloadStatusText);
+        }
+
+        if(HTTP_FILE_DOWNLOAD(url, path)) {
+            downloadInProgress = true;
+        } else {
+            ENGINE_LOG_INFO(
+                "[Player:drawTitleView] Failed to start download for %s",
+                downloadFiles[downloadFileIndex]);
+            leaveGame = ToggleOn;
+        }
+    } else {
+        // waitin for current download to finish
+        if(HTTP_REQUEST_IS_FINISHED()) {
+            downloadInProgress = false;
+            downloadFileIndex++;
+        } else {
+            if(loading) {
+                loading->animate();
+            }
+        }
+    }
 }
 
 void Player::drawUserInfoView(Draw* canvas) {
@@ -992,7 +1095,9 @@ void Player::drawUserInfoView(Draw* canvas) {
                 char* health = get_json_value("health", game_stats);
                 char* strength = get_json_value("strength", game_stats);
                 char* max_health = get_json_value("max_health", game_stats);
-                if(!username || !level || !xp || !health || !strength || !max_health) {
+                char* health_regen = get_json_value("health_regen", game_stats);
+                if(!username || !level || !xp || !health || !strength || !max_health ||
+                   !health_regen) {
                     ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse user info");
                     userInfoStatus = UserInfoParseError;
                     if(username) ::ENGINE_MEM_FREE(username);
@@ -1001,6 +1106,7 @@ void Player::drawUserInfoView(Draw* canvas) {
                     if(health) ::ENGINE_MEM_FREE(health);
                     if(strength) ::ENGINE_MEM_FREE(strength);
                     if(max_health) ::ENGINE_MEM_FREE(max_health);
+                    if(health_regen) ::ENGINE_MEM_FREE(health_regen);
                     ::ENGINE_MEM_FREE(game_stats);
                     if(loading) {
                         loading->stop();
@@ -1016,6 +1122,7 @@ void Player::drawUserInfoView(Draw* canvas) {
                 this->health = atoi(health);
                 this->strength = atoi(strength);
                 this->max_health = atoi(max_health);
+                this->health_regen = atoi(health_regen);
 
                 // clean em up gang
                 ::ENGINE_MEM_FREE(username);
@@ -1024,6 +1131,7 @@ void Player::drawUserInfoView(Draw* canvas) {
                 ::ENGINE_MEM_FREE(health);
                 ::ENGINE_MEM_FREE(strength);
                 ::ENGINE_MEM_FREE(max_health);
+                ::ENGINE_MEM_FREE(health_regen);
                 ::ENGINE_MEM_FREE(game_stats);
                 ::ENGINE_MEM_FREE(response);
 
@@ -1127,22 +1235,21 @@ bool Player::equipWeapon(Level* level, Weapon* weapon) {
         // drop weapon right behind us
         equippedWeapon->setHeld(false);
         equippedWeapon->position_set(
-            this->position.x - 4,
-            this->position.y,
-            this->position.z); // drop slightly behind player
+            this->position.x - this->direction.x * 4.0f,
+            this->position.y - this->direction.y * 4.0f,
+            this->position.z);
         equippedWeapon->direction = this->direction;
         equippedWeapon->update3DSpritePosition();
         equippedWeapon = nullptr; // drop our reference
     }
+    const bool wasTouched = weapon->isTouched();
     weapon->setHeld(true);
-    weapon->position_set(this->position);
-    weapon->direction = this->direction;
-    if(weapon->has3DSprite()) {
-        weapon->update3DSpritePosition();
-        weapon->set3DSpriteRotation(this->sprite_rotation);
-    }
     equippedWeapon = weapon;
+    updateEquippedWeaponPosition();
     // weapon is already added to level, we're just taking ownership here
+    if(!wasTouched) {
+        increaseWeaponAmmo();
+    }
     return true;
 }
 
@@ -1292,6 +1399,48 @@ void Player::handleMenu(Draw* draw, Game* game) {
     drawMenuType2(draw, currentMenuIndex, currentSettingsIndex);
 }
 
+bool Player::hasAssets() const {
+#if !defined(ENGINE_STORAGE_INCLUDE) || !defined(ENGINE_STORAGE_READ)
+    // if not storage then no need to download
+    return true;
+#else
+    uint16_t buffer[16];
+    size_t bytes_read = ENGINE_STORAGE_READ(ASSETS_FOLDER "ambience.wav", buffer, sizeof(buffer));
+    return bytes_read > 0;
+#endif
+}
+
+void Player::increaseWeaponAmmo() {
+    if(equippedWeapon == nullptr) {
+        return;
+    }
+    uint16_t ammoToAdd = 0;
+    switch(equippedWeapon->getWeaponType()) {
+    case WEAPON_RIFLE:
+        ammoToAdd = (uint16_t)this->level;
+        break;
+    case WEAPON_SHOTGUN:
+        if(this->level >= 2) {
+            ammoToAdd = (uint16_t)this->level / 2;
+        }
+        break;
+    case WEAPON_CROSSBOW:
+        if(this->level >= 3) {
+            ammoToAdd = (uint16_t)this->level / 3;
+        }
+        break;
+    case WEAPON_ROCKET_LAUNCHER:
+        if(this->level >= 4) {
+            ammoToAdd = (uint16_t)this->level / 4;
+        }
+        break;
+    default:
+        break;
+    }
+    equippedWeapon->addMaxAmmo(ammoToAdd);
+    equippedWeapon->addAmmo(ammoToAdd);
+}
+
 void Player::increaseXP(uint16_t amount) {
     xp += amount;
     uint16_t old_level = (uint16_t)level;
@@ -1328,20 +1477,11 @@ void Player::processInput() {
     }
 
     // Play menu-click sound for navigation in pre-game menu views
-    if(soundToggle == ToggleOn) {
+    if(soundToggle == ToggleOn && ghoulsGame->isRunning() &&
+       currentMainView == GameViewSystemMenu) {
         Sound* sound = ghoulsGame->getGameSound();
         if(sound) {
-            switch(currentMainView) {
-            case GameViewWelcome:
-            case GameViewTitle:
-            case GameViewLobbyMenu:
-            case GameViewLobbyBrowser:
-            case GameViewSystemMenu:
-                sound->playWAV(ASSETS_FOLDER "menu-click.wav");
-                break;
-            default:
-                break;
-            }
+            sound->playWAV(ASSETS_FOLDER "menu-click.wav");
         }
     }
 
@@ -1378,8 +1518,13 @@ void Player::processInput() {
         case INPUT_KEY_CENTER:
             switch(currentTitleIndex) {
             case TitleIndexStart:
-                // Start button pressed - go to lobby menu
-                currentMainView = GameViewLobbyMenu;
+                if(hasAssets()) {
+                    // Start button pressed - go to lobby menu
+                    currentMainView = GameViewLobbyMenu;
+                } else {
+                    // download em
+                    currentTitleIndex = TitleIndexDownload;
+                }
                 break;
             case TitleIndexMenu:
                 // Menu button pressed - go to system menu
@@ -1665,13 +1810,23 @@ void Player::render(Draw* canvas, Game* game) {
         if(equippedWeapon) {
             canvas->setFont(FONT_SIZE_SMALL);
             char ammoStr[16];
-            uint16_t ammo = equippedWeapon->getAmmo();
-            if(ammo > 0) {
-                snprintf(ammoStr, sizeof(ammoStr), "Ammo: %d", ammo);
-            } else {
-                snprintf(ammoStr, sizeof(ammoStr), "Ammo: ∞");
-            }
+            snprintf(ammoStr, sizeof(ammoStr), "Ammo: %d", equippedWeapon->getAmmo());
             canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, color);
+
+            // draw crosshair
+            Vector aim_point = Vector(
+                position.x + direction.x * 10.0f,
+                WEAPON_VIEW_HEIGHT,
+                position.y + direction.y * 10.0f);
+            Vector crosshair_pos;
+            game->current_level->project3DTo2D(
+                aim_point,
+                position,
+                direction,
+                game->camera->height,
+                canvas->getDisplaySize(),
+                crosshair_pos);
+            canvas->circle(sw / 2, crosshair_pos.y, 2, color);
         }
 
         // draw health
@@ -1720,6 +1875,17 @@ void Player::update(Game* game) {
     if(gameState == GameStateMenu || state == ENTITY_DEAD) {
         return; // Don't update player position in menu or if dead
     }
+
+    // apply health regen
+    elapsed_health_regen += SPEED_SCALE(0.05f);
+    if(elapsed_health_regen >= 1 && health < max_health) {
+        health += health_regen;
+        elapsed_health_regen = 0;
+        if(health > max_health) {
+            health = max_health;
+        }
+    }
+
     switch(game->input) {
     case INPUT_KEY_UP: {
         GhoulsLevel* currentLevel = static_cast<GhoulsLevel*>(game->current_level);
@@ -1746,13 +1912,7 @@ void Player::update(Game* game) {
             }
 
             // update equipped weapon
-            if(equippedWeapon) {
-                equippedWeapon->position_set(this->position);
-                if(equippedWeapon->has3DSprite()) {
-                    equippedWeapon->update3DSpritePosition();
-                    equippedWeapon->set3DSpriteRotation(sprite_rotation);
-                }
-            }
+            updateEquippedWeaponPosition();
         }
         game->input = -1;
     } break;
@@ -1781,13 +1941,7 @@ void Player::update(Game* game) {
             }
 
             // update equipped weapon
-            if(equippedWeapon) {
-                equippedWeapon->position_set(this->position);
-                if(equippedWeapon->has3DSprite()) {
-                    equippedWeapon->update3DSpritePosition();
-                    equippedWeapon->set3DSpriteRotation(sprite_rotation);
-                }
-            }
+            updateEquippedWeaponPosition();
         }
         game->input = -1;
     } break;
@@ -1810,13 +1964,7 @@ void Player::update(Game* game) {
         }
 
         // update equipped weapon
-        if(equippedWeapon) {
-            equippedWeapon->direction = this->direction;
-            equippedWeapon->plane = this->plane;
-            if(equippedWeapon->has3DSprite()) {
-                equippedWeapon->set3DSpriteRotation(sprite_rotation);
-            }
-        }
+        updateEquippedWeaponPosition();
         game->input = -1;
     } break;
     case INPUT_KEY_RIGHT: {
@@ -1838,13 +1986,7 @@ void Player::update(Game* game) {
         }
 
         // update equipped weapon
-        if(equippedWeapon) {
-            equippedWeapon->direction = this->direction;
-            equippedWeapon->plane = this->plane;
-            if(equippedWeapon->has3DSprite()) {
-                equippedWeapon->set3DSpriteRotation(sprite_rotation);
-            }
-        }
+        updateEquippedWeaponPosition();
         game->input = -1;
     } break;
     case INPUT_KEY_CENTER:
@@ -1882,6 +2024,23 @@ void Player::update(Game* game) {
         break;
     default:
         break;
+    }
+}
+
+void Player::updateEquippedWeaponPosition() {
+    if(!equippedWeapon) {
+        return;
+    }
+    const float adjustment = 0.7f;
+    equippedWeapon->position_set(
+        position.x - this->direction.x * adjustment,
+        position.y - this->direction.y * adjustment,
+        WEAPON_VIEW_HEIGHT);
+    equippedWeapon->direction = this->direction;
+    equippedWeapon->plane = this->plane;
+    if(equippedWeapon->has3DSprite()) {
+        equippedWeapon->update3DSpritePosition();
+        equippedWeapon->set3DSpriteRotation(sprite_rotation);
     }
 }
 

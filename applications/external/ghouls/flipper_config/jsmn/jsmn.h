@@ -14,7 +14,7 @@
  */
 
 #include <stddef.h>
-#include <jsmn/jsmn_h.h>
+#include "jsmn_h.h"
 
 #ifdef __cplusplus
 extern "C" {

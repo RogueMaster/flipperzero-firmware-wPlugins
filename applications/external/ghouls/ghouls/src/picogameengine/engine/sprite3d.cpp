@@ -488,7 +488,7 @@ Triangle3D Sprite3D::getTransformedTriangle(uint16_t index, const Vector& camera
             rotateY_vertex(transformed.x1, transformed.z1, rotation_y);
             // Translate to world position
             translate_vertex(
-                transformed.x1, transformed.y1, transformed.z1, position.x, 0, position.y);
+                transformed.x1, transformed.y1, transformed.z1, position.x, position.z, position.y);
             break;
         }
         case 1: {
@@ -498,7 +498,7 @@ Triangle3D Sprite3D::getTransformedTriangle(uint16_t index, const Vector& camera
             rotateY_vertex(transformed.x2, transformed.z2, rotation_y);
             // Translate to world position
             translate_vertex(
-                transformed.x2, transformed.y2, transformed.z2, position.x, 0, position.y);
+                transformed.x2, transformed.y2, transformed.z2, position.x, position.z, position.y);
             break;
         }
         case 2: {
@@ -508,7 +508,7 @@ Triangle3D Sprite3D::getTransformedTriangle(uint16_t index, const Vector& camera
             rotateY_vertex(transformed.x3, transformed.z3, rotation_y);
             // Translate to world position
             translate_vertex(
-                transformed.x3, transformed.y3, transformed.z3, position.x, 0, position.y);
+                transformed.x3, transformed.y3, transformed.z3, position.x, position.z, position.y);
             break;
         }
         default:

@@ -3,7 +3,6 @@
 #include "picogameengine/engine/draw.hpp"
 #include "picogameengine/engine/game.hpp"
 #include "picogameengine/engine/engine.hpp"
-#include "enemy.hpp"
 #include <math.h>
 
 GhoulsGame::GhoulsGame(const char* username, const char* password, bool soundEnabled) {
@@ -105,6 +104,12 @@ Vector GhoulsGame::getRandomGhoulPosition(Level* level) {
     return Vector(
         spawnPoints[randomIndex].x * 4,
         spawnPoints[randomIndex].y * 4); // scale up to map coordinates
+}
+
+EnemyType GhoulsGame::getRandomGhoulType() const {
+    const EnemyType ghoulTypes[] = {ENEMY_BULLY, ENEMY_CREEPER, ENEMY_PUNK};
+    const uint8_t randomIndex = rand() % (sizeof(ghoulTypes) / sizeof(ghoulTypes[0]));
+    return ghoulTypes[randomIndex];
 }
 
 Vector GhoulsGame::getRandomWeaponPosition(Level* level) {
@@ -254,6 +259,13 @@ void GhoulsGame::onGhoulDied() {
     if(ghoulCountSpawned < ghoulCountTotal) {
         spawnOneGhoul();
     }
+    if(ghoulCountCurrent == 0 && ghoulCountSpawned >= ghoulCountTotal) {
+        ghoulCountSpawned = 0;
+        ghoulCountTotal = 0;
+        if(gameTime->getTimeOfDay() == TIME_NIGHT) {
+            gameTime->setTimeOfDay(TIME_DAY);
+        }
+    }
 }
 
 bool GhoulsGame::positionExistsInLevel(Level* level, Vector position) {
@@ -277,7 +289,7 @@ void GhoulsGame::refreshPlayer() {
         // no need to check for level here because
         // if weapon is allocated then level exists
         equippedWeapon->reset(getCurrentLevel());
-        equippedWeapon->setDamage(equippedWeapon->getDamage() + player->strength);
+        equippedWeapon->setDamage(equippedWeapon->getDamage() + (player->strength / 2));
     }
 }
 
@@ -338,7 +350,13 @@ bool GhoulsGame::spawnOneGhoul() {
         return false;
     }
     Entity* ghoul = ENGINE_MEM_NEW Enemy(
-        "Ghoul", getRandomGhoulPosition(level), ENEMY_BULLY, 1.7f, 1.5f, 0.f, player->position);
+        "Ghoul",
+        getRandomGhoulPosition(level),
+        getRandomGhoulType(),
+        1.7f,
+        1.5f,
+        0.f,
+        player->position);
     if(!ghoul) {
         ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Failed to create Enemy instance for Ghoul");
         return false;
@@ -403,6 +421,7 @@ GhoulsLevel* GhoulsGame::spawnLevel(Game* game) {
 bool GhoulsGame::spawnWeapons(Level* level) {
     for(uint8_t i = 0; i < WEAPON_SPAWN_COUNT; i++) {
         Vector weaponPosition = getRandomWeaponPosition(level);
+        weaponPosition.z = 0.5f;
         WeaponType weaponType = getUniqueWeaponType(level);
         if(weaponType == WEAPON_NONE) {
             ENGINE_LOG_INFO("[GhoulsGame:spawnWeapons] No unique weapon type available for spawn");
@@ -414,6 +433,10 @@ bool GhoulsGame::spawnWeapons(Level* level) {
         }
     }
     return true;
+}
+
+bool GhoulsGame::soundAllowed() const {
+    return player && player->getSoundToggle() == ToggleOn;
 }
 
 bool GhoulsGame::startGame() {
@@ -454,8 +477,10 @@ bool GhoulsGame::startGame() {
 
     isGameRunning = true; // Set the flag to indicate game is running
     gameTime->reset(); // ensure day starts at 0
-    gameSound->stop();
-    gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+    if(soundAllowed()) {
+        gameSound->stop();
+        gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+    }
     player->showAlert("Find weapons before the night..", 120);
     return true;
 }
@@ -528,8 +553,10 @@ void GhoulsGame::updateDraw() {
 #if GROUND_RENDER_ALLOWED
             setGroundType(GROUND_DIRT);
 #endif
-            gameSound->stop();
-            gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+            if(soundAllowed()) {
+                gameSound->stop();
+                gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+            }
             player->showAlert("You survived the night.. for now");
         }
     } else {
@@ -557,9 +584,11 @@ void GhoulsGame::updateDraw() {
 #endif
             currentRound++; // Increment round (for next night)
             refreshPlayer(); // refresh player state to update weapon and health displays after day ends
-            gameSound->stop();
-            gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
-            gameSound->playWAV(ASSETS_FOLDER "ghouls-growling.wav");
+            if(soundAllowed()) {
+                gameSound->stop();
+                gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+                gameSound->playWAV(ASSETS_FOLDER "ghouls-growling.wav");
+            }
             player->showAlert("The ghouls are coming...");
         }
     }

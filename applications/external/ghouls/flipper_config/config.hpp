@@ -11,7 +11,7 @@
 #include ENGINE_LOG_INCLUDE
 #endif
 
-#define PLAYER_SPEED_HORIZONTAL SPEED_SCALE(0.2f)
+#define PLAYER_SPEED_HORIZONTAL 0.15f
 
 #define MINIMAP_DEFAULT false
 
@@ -39,7 +39,7 @@
 #define HTTP_RECEIVING           1
 #define HTTP_SENDING             2
 #define HTTP_ISSUE               3
-#define HTTP_INCLUDE             "http.hpp"
+#define HTTP_INCLUDE             "flipper_config/http.h"
 #define HTTP_REQUEST_IS_FINISHED http_is_finished // () -> bool
 #define HTTP_SEND_REQUEST \
     http_send_request // (const char *url, const char *method, const char *headers, const char *payload) -> bool
@@ -50,9 +50,11 @@
 #define HTTP_GET_RESPONSE           http_get_http_response // (char *buffer, size_t buffer_size) -> bool
 #define HTTP_GET_WEBSOCKET_RESPONSE \
     http_get_websocket_response // (char *buffer, size_t buffer_size) -> bool
+#define HTTP_FILE_DOWNLOAD \
+    http_file_download // (const char *url, const char *destination_path) -> bool
 
 // json
-#define JSON_INCLUDE "json.hpp"
+#define JSON_INCLUDE "flipper_config/json.hpp"
 #define JSON_GET_VALUE \
     get_json_value // (const char *key, const char *json_str) -> char* (caller must free)
 #define JSON_GET_ARRAY_VALUE \

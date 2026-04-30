@@ -23,8 +23,6 @@
 #include <text_input/uart_text_input.h>
 #include <stdio.h>
 #include <string.h>
-#include <jsmn/jsmn_furi.h>
-#include <jsmn/jsmn.h>
 
 #ifdef __cplusplus
 extern "C" {

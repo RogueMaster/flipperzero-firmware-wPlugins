@@ -2,7 +2,7 @@
 // License: MIT
 // Author: JBlanked
 // File: flipper_http.c
-#include <flipper_http/flipper_http.h>
+#include "flipper_http.h"
 
 /**
  * @brief      Worker thread to handle UART data asynchronously.

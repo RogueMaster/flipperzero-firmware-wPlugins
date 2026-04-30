@@ -1,6 +1,10 @@
 #pragma once
 #include "furi.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void http_deinit();
 bool http_init(void* httpInstance);
 bool http_get_http_response(char* buffer, size_t buffer_size);
@@ -15,3 +19,8 @@ bool http_send_request(
 bool http_websocket_send(const char* message);
 bool http_websocket_start(const char* url, uint16_t port);
 bool http_websocket_stop();
+bool http_file_download(const char* url, const char* destination_path);
+
+#ifdef __cplusplus
+}
+#endif

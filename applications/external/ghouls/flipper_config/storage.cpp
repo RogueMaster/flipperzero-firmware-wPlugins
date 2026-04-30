@@ -1,12 +1,11 @@
-#pragma once
-#include <furi.h>
-#include <storage/storage.h>
+#include "storage.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+size_t storage_read(const char* file_path, void* buffer, size_t buffer_size) {
+    // ignore .wav (for now)
+    if(strstr(file_path, ".wav") != nullptr) {
+        return buffer_size;
+    }
 
-static inline size_t storage_read(const char* file_path, void* buffer, size_t buffer_size) {
     Storage* storage = (Storage*)furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
@@ -33,7 +32,3 @@ static inline size_t storage_read(const char* file_path, void* buffer, size_t bu
 
     return read_count;
 }
-
-#ifdef __cplusplus
-}
-#endif

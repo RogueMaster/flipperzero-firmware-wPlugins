@@ -3,6 +3,7 @@
 #include "picogameengine/engine/entity.hpp"
 #include "picogameengine/engine/vector.hpp"
 #include "picogameengine/engine/game.hpp"
+#include "level.hpp"
 
 typedef enum {
     ENEMY_BULLY = 0, // basic enemy
@@ -12,6 +13,10 @@ typedef enum {
 
 class Enemy : public Entity {
     Vector getPlayerPosition(Game* game); // Get the main player's position
+    bool moveWithAvoidance(
+        Game* game,
+        float move_x,
+        float move_y); // Move with map obstacle avoidance
     void makeBully(float height); // Create a bully enemy with the specified height
     void makeCreeper(float height); // Create a creeper enemy with the specified height
     void makePunk(float height); // Create a punk enemy with the specified height
