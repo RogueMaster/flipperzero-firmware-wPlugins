@@ -11,7 +11,11 @@
 #include ENGINE_LOG_INCLUDE
 #endif
 
+<<<<<<< Updated upstream:flipper_config/config.hpp
 #define PLAYER_SPEED_HORIZONTAL 0.15f
+=======
+#define PLAYER_SPEED_HORIZONTAL SPEED_SCALE(0.2f)
+>>>>>>> Stashed changes:config.hpp
 
 #define MINIMAP_DEFAULT false
 
