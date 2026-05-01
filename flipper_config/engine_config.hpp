@@ -1,7 +1,7 @@
 #pragma once
 
 // general
-#define ENGINE_MAX_TRIANGLES_PER_SPRITE 48 // was 64
+#define ENGINE_MAX_TRIANGLES_PER_SPRITE 32 // was 64
 
 // logging
 // #define ENGINE_LOG_INCLUDE "furi.h"
