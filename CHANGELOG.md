@@ -6,6 +6,13 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-01
+
+### docs
+- **ble_scanner**: Full re-trace review — no bugs found. All ~1300 lines verified clean. Buffer sizes, view lifecycle, mutex usage, volatile annotations, stack safety, teardown ordering, and back-button handling all confirmed correct. Prior fixes (NULL context guard, volatile scanning/connected) verified present.
+
+---
+
 ## 2026-04-30
 
 ### fix
