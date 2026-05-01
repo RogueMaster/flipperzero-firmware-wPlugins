@@ -11,7 +11,7 @@ GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEna
     player = ENGINE_MEM_NEW Player(username, password);
     if (!player)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Player instance");
+        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Player instance\n");
         return;
     }
     player->setGhoulsGame(this);
@@ -20,7 +20,7 @@ GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEna
     gameTime = ENGINE_MEM_NEW Time();
     if (!gameTime)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Time instance");
+        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Time instance\n");
         ENGINE_MEM_DELETE player;
         player = nullptr;
         return;
@@ -29,7 +29,7 @@ GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEna
     gameSound = ENGINE_MEM_NEW Sound();
     if (!gameSound)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Sound instance");
+        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Sound instance\n");
         ENGINE_MEM_DELETE gameTime;
         gameTime = nullptr;
         ENGINE_MEM_DELETE player;
@@ -79,7 +79,7 @@ GhoulsLevel *GhoulsGame::getCurrentLevel() const
 {
     if (!engine)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:getCurrentLevel] Game engine instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:getCurrentLevel] Game engine instance is null\n");
         return nullptr;
     }
     Game *game = engine->getGame();
@@ -102,40 +102,21 @@ Game *GhoulsGame::getGame() const
 Vector GhoulsGame::getRandomGhoulPosition(Level *level)
 {
     // possible ghoul spawns
-    Vector spawnPoints[] = {
-        Vector(15, 4),
-        Vector(15, 11),
-        Vector(16, 2),
-        Vector(16, 3),
-        Vector(16, 5),
-        Vector(16, 6),
-        Vector(16, 7),
-        Vector(16, 8),
-        Vector(17, 8),
-        Vector(18, 8),
-        Vector(19, 4),
-        Vector(19, 10),
-        Vector(20, 2),
-        Vector(20, 4),
-        Vector(20, 10),
-        Vector(21, 3),
-        Vector(21, 8),
-        Vector(22, 2),
-        Vector(22, 3),
-        Vector(22, 10),
-    };
+    GhoulsLevel *ghoulsLevel = static_cast<GhoulsLevel *>(level);
+    map_data_t *mapData = ghoulsLevel->getMapData();
+
     uint8_t randomIndex = 0;
     uint8_t attempts = 0;
     do
     {
-        randomIndex = rand() % (sizeof(spawnPoints) / sizeof(spawnPoints[0]));
+        randomIndex = rand() % (mapData->ghoulCount);
         attempts++;
-        if (attempts > 20) // prevent infinite loop
+        if (attempts > mapData->ghoulCount)
         {
             break;
         }
-    } while (positionExistsInLevel(level, spawnPoints[randomIndex]));
-    return Vector(spawnPoints[randomIndex].x * 4, spawnPoints[randomIndex].y * 4); // scale up to map coordinates
+    } while (positionExistsInLevel(level, mapData->ghoulPositions[randomIndex]));
+    return mapData->ghoulPositions[randomIndex];
 }
 
 EnemyType GhoulsGame::getRandomGhoulType() const
@@ -148,40 +129,24 @@ EnemyType GhoulsGame::getRandomGhoulType() const
 Vector GhoulsGame::getRandomWeaponPosition(Level *level)
 {
     // possible weapon spawns
-    Vector spawnPoints[] = {
-        Vector(2, 2),
-        Vector(2, 9),
-        Vector(3, 5),
-        Vector(7, 6),
-        Vector(8, 2),
-        Vector(9, 3),
-        Vector(13, 5),
-        Vector(13, 11),
-        Vector(15, 2),
-        Vector(15, 3),
-        Vector(15, 8),
-        Vector(15, 9),
-        Vector(16, 4),
-        Vector(18, 4),
-        Vector(20, 3),
-        Vector(21, 4),
-        Vector(22, 2),
-        Vector(22, 4),
-        Vector(22, 8),
-        Vector(22, 11)};
+    GhoulsLevel *ghoulsLevel = static_cast<GhoulsLevel *>(level);
+    map_data_t *mapData = ghoulsLevel->getMapData();
 
     uint8_t randomIndex = 0;
     uint8_t attempts = 0;
+    Vector candidate;
     do
     {
-        randomIndex = rand() % (sizeof(spawnPoints) / sizeof(spawnPoints[0]));
+        randomIndex = rand() % (mapData->weaponCount);
+        candidate = mapData->weaponPositions[randomIndex];
+        candidate.z = 0.5f;
         attempts++;
-        if (attempts > 20) // prevent infinite loop
+        if (attempts > mapData->weaponCount)
         {
             break;
         }
-    } while (positionExistsInLevel(level, spawnPoints[randomIndex]));
-    return Vector(spawnPoints[randomIndex].x * 4, spawnPoints[randomIndex].y * 4); // scale up to map coordinates
+    } while (positionExistsInLevel(level, candidate));
+    return mapData->weaponPositions[randomIndex];
 }
 
 WeaponType GhoulsGame::getUniqueWeaponType(Level *level)
@@ -222,7 +187,7 @@ void GhoulsGame::increaseDifficulty()
     GhoulsLevel *currentLevel = getCurrentLevel();
     if (!currentLevel)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:increaseDifficulty] Current level instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:increaseDifficulty] Current level instance is null\n");
         return;
     }
     const uint16_t decrement = currentRound - 1;
@@ -249,7 +214,7 @@ bool GhoulsGame::initDraw()
         draw = ENGINE_MEM_NEW Draw();
         if (!draw)
         {
-            ENGINE_LOG_INFO("[GhoulsGame:initDraw] Failed to create Draw instance");
+            ENGINE_LOG_INFO("[GhoulsGame:initDraw] Failed to create Draw instance\n");
             return false;
         }
     }
@@ -260,7 +225,7 @@ bool GhoulsGame::isDay() const
 {
     if (!gameTime)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:isDay] Game time instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:isDay] Game time instance is null\n");
         return true; // default to day
     }
     return gameTime->getTimeOfDay() == TIME_DAY;
@@ -282,7 +247,7 @@ void GhoulsGame::makeGhoulsGoHome()
     GhoulsLevel *currentLevel = getCurrentLevel();
     if (!currentLevel)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:makeGhoulsGoHome] Current level instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:makeGhoulsGoHome] Current level instance is null\n");
         return;
     }
     for (int i = 0; i < currentLevel->getEntityCount(); i++)
@@ -307,7 +272,7 @@ void GhoulsGame::makeGhoulsGoToPlayer()
     GhoulsLevel *currentLevel = getCurrentLevel();
     if (!currentLevel)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:makeGhoulsGoToPlayer] Current level instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:makeGhoulsGoToPlayer] Current level instance is null\n");
         return;
     }
     for (int i = 0; i < currentLevel->getEntityCount(); i++)
@@ -358,7 +323,7 @@ bool GhoulsGame::positionExistsInLevel(Level *level, Vector position)
     }
     // check trees/houses
     GhoulsLevel *currentLevel = static_cast<GhoulsLevel *>(level);
-    return currentLevel && !currentLevel->isPositionAvailable(position);
+    return currentLevel && (!currentLevel->isPositionAvailable(position) || currentLevel->collisionMapCheck(position));
 }
 
 void GhoulsGame::refreshPlayer()
@@ -370,7 +335,9 @@ void GhoulsGame::refreshPlayer()
         // sets ammo to max and resets cooldown
         // no need to check for level here because
         // if weapon is allocated then level exists
-        equippedWeapon->reset(getCurrentLevel());
+        const uint16_t maxAmmo = equippedWeapon->getAmmoMax();
+        equippedWeapon->addMaxAmmo(maxAmmo - equippedWeapon->getAmmo()); // increase max ammo to current + full magazine
+        equippedWeapon->addAmmo(maxAmmo);                                // refill to current + full magazine
         equippedWeapon->setDamage(equippedWeapon->getDamage() + (player->strength / 2));
     }
 }
@@ -380,7 +347,7 @@ bool GhoulsGame::removeGhoulsFromLevel()
     GhoulsLevel *level = getCurrentLevel();
     if (!level)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:removeGhoulsFromLevel] Current level instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:removeGhoulsFromLevel] Current level instance is null\n");
         return false;
     }
     for (int i = 0; i < level->getEntityCount(); i++)
@@ -396,41 +363,41 @@ bool GhoulsGame::removeGhoulsFromLevel()
 }
 
 #if GROUND_RENDER_ALLOWED
-bool GhoulsGame::setGroundType(GroundType groundType)
+bool GhoulsGame::setGroundType(TimeOfDay timeOfDay)
 {
     GhoulsLevel *level = getCurrentLevel();
     if (!level)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:setGroundType] Current level instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:setGroundType] Current level instance is null\n");
         return false;
     }
     Ground *ground = level->getGround();
     if (!ground)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:setGroundType] Ground instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:setGroundType] Ground instance is null\n");
         return false;
     }
-    ground->setGroundType(groundType);
+    ground->setGround(timeOfDay == TIME_DAY ? level->getMapData()->groundDayGradient : level->getMapData()->groundNightGradient);
     return true;
 }
 #endif
 
 #if SKY_RENDER_ALLOWED
-bool GhoulsGame::setSkyType(SkyType skyType)
+bool GhoulsGame::setSkyType(TimeOfDay timeOfDay)
 {
     GhoulsLevel *level = getCurrentLevel();
     if (!level)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:setSkyType] Current level instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:setSkyType] Current level instance is null\n");
         return false;
     }
     Sky *sky = level->getSky();
     if (!sky)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:setSkyType] Sky instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:setSkyType] Sky instance is null\n");
         return false;
     }
-    sky->setSkyType(skyType);
+    sky->setSky(timeOfDay == TIME_DAY ? level->getMapData()->skyDayGradient : level->getMapData()->skyNightGradient);
     return true;
 }
 #endif
@@ -440,13 +407,13 @@ bool GhoulsGame::spawnOneGhoul()
     GhoulsLevel *level = getCurrentLevel();
     if (!level)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Current level instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Current level instance is null\n");
         return false;
     }
     Entity *ghoul = ENGINE_MEM_NEW Enemy("Ghoul", getRandomGhoulPosition(level), getRandomGhoulType(), 1.7f, 1.5f, 0.f, player->position);
     if (!ghoul)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Failed to create Enemy instance for Ghoul");
+        ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Failed to create Enemy instance for Ghoul\n");
         return false;
     }
     level->entity_add(ghoul);
@@ -475,14 +442,14 @@ GhoulsLevel *GhoulsGame::spawnLevel(Game *game)
 {
     if (!player)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Player instance is null");
+        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Player instance is null\n");
         return nullptr;
     }
 
     GhoulsLevel *newLevel = ENGINE_MEM_NEW GhoulsLevel("Level", draw->getDisplaySize(), game, this);
     if (!newLevel)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to create Level instance");
+        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to create Level instance\n");
         return nullptr;
     }
 
@@ -491,7 +458,7 @@ GhoulsLevel *GhoulsGame::spawnLevel(Game *game)
 
     if (!spawnWeapons(newLevel))
     {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to spawn weapons for the level");
+        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to spawn weapons for the level\n");
         ENGINE_MEM_DELETE newLevel;
         return nullptr;
     }
@@ -520,7 +487,7 @@ bool GhoulsGame::spawnWeapons(Level *level)
         WeaponType weaponType = getUniqueWeaponType(level);
         if (weaponType == WEAPON_NONE)
         {
-            ENGINE_LOG_INFO("[GhoulsGame:spawnWeapons] No unique weapon type available for spawn");
+            ENGINE_LOG_INFO("[GhoulsGame:spawnWeapons] No unique weapon type available for spawn\n");
             continue; // Skip spawning if no unique weapon type is available
         }
         Weapon *newWeapon = ENGINE_MEM_NEW Weapon(weaponType, 1.5f, weaponPosition);
@@ -541,7 +508,7 @@ bool GhoulsGame::startGame()
 {
     if (isGameRunning || engine)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Game is already running or engine is already initialized");
+        ENGINE_LOG_INFO("[GhoulsGame:startGame] Game is already running or engine is already initialized\n");
         return true;
     }
 
@@ -549,14 +516,14 @@ bool GhoulsGame::startGame()
     auto camera = ENGINE_MEM_NEW Camera(Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 0.66f, 0), 1.6f, 2.0f, CAMERA_THIRD_PERSON);
     if (!camera)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create Camera instance");
+        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create Camera instance\n");
         return false;
     }
 
     auto game = ENGINE_MEM_NEW Game("Ghouls", draw->getDisplaySize(), draw, 0x0000, 0xFFFF, camera);
     if (!game)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create Game instance");
+        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create Game instance\n");
         return false;
     }
 
@@ -564,7 +531,7 @@ bool GhoulsGame::startGame()
     Level *initialLevel = spawnLevel(game);
     if (!initialLevel)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to spawn initial level");
+        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to spawn initial level\n");
         return false;
     }
     game->level_add(initialLevel);
@@ -572,7 +539,7 @@ bool GhoulsGame::startGame()
     this->engine = ENGINE_MEM_NEW GameEngine(game, 240);
     if (!this->engine)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create GameEngine");
+        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create GameEngine\n");
         return false;
     }
 
@@ -591,7 +558,7 @@ bool GhoulsGame::startGameOnline()
 {
     if (isGameRunning || engine)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Game is already running or engine is already initialized");
+        ENGINE_LOG_INFO("[GhoulsGame:startGameOnline] Game is already running or engine is already initialized\n");
         return true;
     }
 
@@ -599,14 +566,14 @@ bool GhoulsGame::startGameOnline()
     auto camera = ENGINE_MEM_NEW Camera(Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 0.66f, 0), 1.6f, 2.0f, CAMERA_THIRD_PERSON);
     if (!camera)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create Camera instance");
+        ENGINE_LOG_INFO("[GhoulsGame:startGameOnline] Failed to create Camera instance\n");
         return false;
     }
 
     auto game = ENGINE_MEM_NEW Game("Ghouls", draw->getDisplaySize(), draw, 0x0000, 0xFFFF, camera);
     if (!game)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create Game instance");
+        ENGINE_LOG_INFO("[GhoulsGame:startGameOnline] Failed to create Game instance\n");
         return false;
     }
 
@@ -614,7 +581,7 @@ bool GhoulsGame::startGameOnline()
     Level *initialLevel = spawnLevel(game);
     if (!initialLevel)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to spawn initial level");
+        ENGINE_LOG_INFO("[GhoulsGame:startGameOnline] Failed to spawn initial level\n");
         return false;
     }
     game->level_add(initialLevel);
@@ -622,7 +589,7 @@ bool GhoulsGame::startGameOnline()
     this->engine = ENGINE_MEM_NEW GameEngine(game, 240);
     if (!this->engine)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:startGame] Failed to create GameEngine");
+        ENGINE_LOG_INFO("[GhoulsGame:startGameOnline] Failed to create GameEngine\n");
         return false;
     }
 
@@ -656,10 +623,10 @@ void GhoulsGame::updateDraw()
             // to see the ghouls walking back to their spawns
             makeGhoulsGoHome();
 #if SKY_RENDER_ALLOWED
-            setSkyType(SKY_SUNNY);
+            setSkyType(TIME_DAY);
 #endif
 #if GROUND_RENDER_ALLOWED
-            setGroundType(GROUND_DIRT);
+            setGroundType(TIME_DAY);
 #endif
             if (soundAllowed())
             {
@@ -677,13 +644,13 @@ void GhoulsGame::updateDraw()
             // remove old ghouls
             if (!removeGhoulsFromLevel())
             {
-                ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to remove ghouls for the night");
+                ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to remove ghouls for the night\n");
                 return;
             }
             // spawn new ghouls for the night based on current round
             if (!spawnGhouls(currentRound))
             {
-                ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to spawn ghouls for the night");
+                ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to spawn ghouls for the night\n");
                 return;
             }
             // increase difficulty of ghouls each night
@@ -691,10 +658,10 @@ void GhoulsGame::updateDraw()
             // make ghouls attack player
             makeGhoulsGoToPlayer();
 #if SKY_RENDER_ALLOWED
-            setSkyType(SKY_DARK);
+            setSkyType(TIME_NIGHT);
 #endif
 #if GROUND_RENDER_ALLOWED
-            setGroundType(GROUND_DARK);
+            setGroundType(TIME_NIGHT);
 #endif
             currentRound++;  // Increment round (for next night)
             refreshPlayer(); // refresh player state to update weapon and health displays after day ends

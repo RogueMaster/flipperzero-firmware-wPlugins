@@ -14,7 +14,7 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
     sprite_3d = ENGINE_MEM_NEW Sprite3D();
     if (!sprite_3d)
     {
-        ENGINE_LOG_INFO("[Weapon:Weapon] Failed to create Sprite3D instance for weapon.");
+        ENGINE_LOG_INFO("[Weapon:Weapon] Failed to create Sprite3D instance for weapon.\n");
         return;
     }
     // follow same init setps as Sprite3D::initializeAsHumanoid
@@ -98,7 +98,7 @@ bool Weapon::fire(Level *level)
     currentProjectile = ENGINE_MEM_NEW Projectile(projectileType);
     if (!currentProjectile)
     {
-        ENGINE_LOG_INFO("[Weapon:fire] Failed to create projectile for weapon: %s", name);
+        ENGINE_LOG_INFO("[Weapon:fire] Failed to create projectile for weapon: %s\n", name);
         return false;
     }
     currentProjectile->setDamage(damage);
@@ -119,6 +119,28 @@ bool Weapon::fire(Level *level)
 uint16_t Weapon::getAmmo() const
 {
     return ammo;
+}
+
+uint16_t Weapon::getAmmoDefault() const
+{
+    switch (weaponType)
+    {
+    case WEAPON_RIFLE:
+        return 30;
+    case WEAPON_SHOTGUN:
+        return 10;
+    case WEAPON_ROCKET_LAUNCHER:
+        return 5;
+    case WEAPON_CROSSBOW:
+        return 15;
+    default:
+        return 0;
+    }
+}
+
+uint16_t Weapon::getAmmoMax() const
+{
+    return maxAmmo;
 }
 
 float Weapon::getDamage() const

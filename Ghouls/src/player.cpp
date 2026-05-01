@@ -16,7 +16,7 @@ Player::Player(const char *user_name, const char *user_pass) : Entity(username, 
     sprite_3d = ENGINE_MEM_NEW Sprite3D();
     if (!sprite_3d)
     {
-        ENGINE_LOG_INFO("[Player:Player] Failed to create Sprite3D for player");
+        ENGINE_LOG_INFO("[Player:Player] Failed to create Sprite3D for player\n");
         return;
     }
     sprite_3d_type = SPRITE_3D_CUSTOM;
@@ -86,7 +86,7 @@ void Player::collision(Entity *other, Game *game)
         Weapon *weapon = static_cast<Weapon *>(other);
         if (!weapon)
         {
-            ENGINE_LOG_INFO("[Player:collision] Failed to cast collided NPC to Weapon");
+            ENGINE_LOG_INFO("[Player:collision] Failed to cast collided NPC to Weapon\n");
             return;
         }
         if (weapon->isHeld())
@@ -95,7 +95,7 @@ void Player::collision(Entity *other, Game *game)
         }
         if (!equipWeapon(game->current_level, weapon))
         {
-            ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s", weapon->name);
+            ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s\n", weapon->name);
             return;
         }
         if (soundToggle == ToggleOn && ghoulsGame)
@@ -243,7 +243,7 @@ void Player::drawGameOnlineView(Draw *canvas)
         }
         if (!HTTP_WEBSOCKET_STOP())
         {
-            ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to stop WebSocket");
+            ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to stop WebSocket\n");
         }
         onlineGameState = OnlineStateIdle;
         ghoulsGame->endGame();
@@ -337,13 +337,13 @@ void Player::drawGameOnlineView(Draw *canvas)
                 }
                 else
                 {
-                    ENGINE_LOG_INFO("[Player:drawGameOnlineView] Missing 'port' in game session response");
+                    ENGINE_LOG_INFO("[Player:drawGameOnlineView] Missing 'port' in game session response\n");
                     onlineGameState = OnlineStateError;
                 }
             }
             else
             {
-                ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to load game_session response");
+                ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to load game_session response\n");
                 onlineGameState = OnlineStateError;
             }
             ::ENGINE_MEM_FREE(response);
@@ -449,7 +449,7 @@ void Player::drawGameOnlineView(Draw *canvas)
         {
             if (strcmp(buffer, "[SOCKET/STOPPED]") == 0)
             {
-                ENGINE_LOG_INFO("[Player:drawGameOnlineView] WebSocket stopped unexpectedly");
+                ENGINE_LOG_INFO("[Player:drawGameOnlineView] WebSocket stopped unexpectedly\n");
                 onlineGameState = OnlineStateError;
             }
             else
@@ -555,7 +555,7 @@ void Player::drawGameOnlineView(Draw *canvas)
     break;
 
     default:
-        ENGINE_LOG_INFO("[Player:drawGameOnlineView] Unknown online game state: %d", onlineGameState);
+        ENGINE_LOG_INFO("[Player:drawGameOnlineView] Unknown online game state: %d\n", onlineGameState);
         break;
     }
 }
@@ -1072,7 +1072,7 @@ void Player::drawRegistrationView(Draw *canvas)
             char *response = (char *)ENGINE_MEM_MALLOC(256);
             if (!response)
             {
-                ENGINE_LOG_INFO("[Player:drawRegistrationView] Failed to allocate memory for registration response");
+                ENGINE_LOG_INFO("[Player:drawRegistrationView] Failed to allocate memory for registration response\n");
                 registrationStatus = RegistrationRequestError;
                 return;
             }
@@ -1147,7 +1147,7 @@ void Player::drawTitleView(Draw *canvas)
         loading = ENGINE_MEM_NEW Loading(canvas);
         if (!loading)
         {
-            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to create loading animation");
+            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to create loading animation\n");
             leaveGame = ToggleOn;
             return;
         }
@@ -1189,7 +1189,7 @@ void Player::drawTitleView(Draw *canvas)
         }
         else
         {
-            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to start download for %s", downloadFiles[downloadFileIndex]);
+            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to start download for %s\n", downloadFiles[downloadFileIndex]);
             leaveGame = ToggleOn;
         }
     }
@@ -1246,7 +1246,7 @@ void Player::drawUserInfoView(Draw *canvas)
             char *response = (char *)ENGINE_MEM_MALLOC(512);
             if (!response)
             {
-                ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to allocate memory for user info response");
+                ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to allocate memory for user info response\n");
                 userInfoStatus = UserInfoRequestError;
                 if (loading)
                 {
@@ -1262,7 +1262,7 @@ void Player::drawUserInfoView(Draw *canvas)
                 char *game_stats = get_json_value("game_stats", response);
                 if (!game_stats)
                 {
-                    ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse game_stats");
+                    ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse game_stats\n");
                     userInfoStatus = UserInfoParseError;
                     if (loading)
                     {
@@ -1283,7 +1283,7 @@ void Player::drawUserInfoView(Draw *canvas)
                 char *health_regen = get_json_value("health_regen", game_stats);
                 if (!username || !level || !xp || !health || !strength || !max_health || !health_regen)
                 {
-                    ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse user info");
+                    ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse user info\n");
                     userInfoStatus = UserInfoParseError;
                     if (username)
                         ::ENGINE_MEM_FREE(username);
@@ -1425,12 +1425,12 @@ bool Player::equipWeapon(Level *level, Weapon *weapon)
 {
     if (!weapon)
     {
-        ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip null weapon");
+        ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip null weapon\n");
         return false;
     }
     if (!level)
     {
-        ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip weapon without level");
+        ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip weapon without level\n");
         return false;
     }
     if (equippedWeapon)
@@ -2503,7 +2503,7 @@ void Player::userRequest(RequestType requestType)
     char *payload = (char *)ENGINE_MEM_MALLOC(256);
     if (!payload)
     {
-        ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for payload");
+        ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for payload\n");
         return;
     }
     snprintf(payload, 256, "{\"username\":\"%s\",\"password\":\"%s\"}", this->name, this->password);
@@ -2513,7 +2513,7 @@ void Player::userRequest(RequestType requestType)
     case RequestTypeLogin:
         if (!HTTP_SEND_REQUEST("https://www.jblanked.com/flipper/api/user/login/", "POST", "{\"Content-Type\":\"application/json\"}", payload))
         {
-            ENGINE_LOG_INFO("[Player:userRequest] Login request failed for user: %s", this->name);
+            ENGINE_LOG_INFO("[Player:userRequest] Login request failed for user: %s\n", this->name);
             loginStatus = LoginRequestError;
         }
         break;
@@ -2534,7 +2534,7 @@ void Player::userRequest(RequestType requestType)
         char *url = (char *)ENGINE_MEM_MALLOC(128);
         if (!url)
         {
-            ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for url");
+            ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for url\n");
             userInfoStatus = UserInfoRequestError;
             ENGINE_MEM_FREE(authHeader);
             ENGINE_MEM_FREE(payload);
@@ -2614,14 +2614,14 @@ void Player::userRequest(RequestType requestType)
         snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", this->name, this->password);
         if (!HTTP_SEND_REQUEST("https://www.jblanked.com/flipper/api/user/update-xp/", "POST", authHeader, stats_payload))
         {
-            ENGINE_LOG_INFO("[Player:userRequest] Failed to update user stats");
+            ENGINE_LOG_INFO("[Player:userRequest] Failed to update user stats\n");
         }
         ENGINE_MEM_FREE(authHeader);
         ENGINE_MEM_FREE(stats_payload);
     }
     break;
     default:
-        ENGINE_LOG_INFO("[Player:userRequest] Unknown request type: %d", requestType);
+        ENGINE_LOG_INFO("[Player:userRequest] Unknown request type: %d\n", requestType);
         loginStatus = LoginRequestError;
         registrationStatus = RegistrationRequestError;
         userInfoStatus = UserInfoRequestError;

@@ -12,7 +12,7 @@ Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float heigh
     sprite_3d = ENGINE_MEM_NEW Sprite3D();
     if (!sprite_3d)
     {
-        ENGINE_LOG_INFO("[Enemy:Enemy] Failed to create Sprite3D instance for enemy: %s", name);
+        ENGINE_LOG_INFO("[Enemy:Enemy] Failed to create Sprite3D instance for enemy: %s\n", name);
         return;
     }
     // follow same init setps as Sprite3D::initializeAsHumanoid
@@ -118,7 +118,7 @@ void Enemy::makeBully(float height)
 {
     if (!sprite_3d)
     {
-        ENGINE_LOG_INFO("[Enemy:makeBully] Sprite3D instance is null for enemy: %s", this->name);
+        ENGINE_LOG_INFO("[Enemy:makeBully] Sprite3D instance is null for enemy: %s\n", this->name);
         return;
     }
     const float hr = height * 0.12f, tw = height * 0.20f, th = height * 0.35f;
@@ -157,7 +157,7 @@ void Enemy::makePunk(float height)
 {
     if (!sprite_3d)
     {
-        ENGINE_LOG_INFO("[Enemy:makeBully] Sprite3D instance is null for enemy: %s", this->name);
+        ENGINE_LOG_INFO("[Enemy:makeBully] Sprite3D instance is null for enemy: %s\n", this->name);
         return;
     }
     const float hr = height * 0.13f, tw = height * 0.22f, th = height * 0.28f;
@@ -198,7 +198,7 @@ void Enemy::makeCreeper(float height)
 {
     if (!sprite_3d)
     {
-        ENGINE_LOG_INFO("[Enemy:makeBully] Sprite3D instance is null for enemy: %s", this->name);
+        ENGINE_LOG_INFO("[Enemy:makeBully] Sprite3D instance is null for enemy: %s\n", this->name);
         return;
     }
     const float hr = height * 0.10f, tw = height * 0.18f, th = height * 0.38f;

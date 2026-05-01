@@ -1,11 +1,13 @@
 #include "sky.hpp"
 
-Sky::Sky(SkyType type) : time(0), type(type)
+Sky::Sky() : gradient{}, time(0)
 {
+    memset(&gradient, 0, sizeof(gradient_color_t));
 }
 
 Sky::~Sky()
 {
+    // nothing to do...
 }
 
 void Sky::drawGradientSky(Draw *draw,
@@ -41,31 +43,53 @@ uint16_t Sky::makeRGB565(uint8_t r, uint8_t g, uint8_t b)
 
 void Sky::render(Draw *draw)
 {
-    switch (this->type)
+    drawGradientSky(draw,
+                    gradient.layerR, gradient.layerG, gradient.layerB,
+                    gradient.horizR, gradient.horizG, gradient.horizB);
+}
+
+void Sky::setSky(gradient_color_t skyGradient)
+{
+    this->gradient = skyGradient;
+}
+
+void Sky::setSkyType(SkyType skyType)
+{
+    switch (skyType)
     {
     case SKY_SUNNY:
-        drawGradientSky(draw,
-                        100, 160, 255,
-                        180, 220, 255);
+        this->gradient = {
+            .horizR = 180,
+            .horizG = 220,
+            .horizB = 255,
+            .layerR = 100,
+            .layerG = 160,
+            .layerB = 255,
+        };
         break;
     case SKY_CLOUDY:
-        drawGradientSky(draw,
-                        60, 70, 90,
-                        130, 140, 150);
+        this->gradient = {
+            .horizR = 130,
+            .horizG = 140,
+            .horizB = 150,
+            .layerR = 60,
+            .layerG = 70,
+            .layerB = 90,
+        };
         break;
     case SKY_DARK:
-        drawGradientSky(draw,
-                        10, 15, 50,
-                        40, 50, 120);
+        this->gradient = {
+            .horizR = 40,
+            .horizG = 50,
+            .horizB = 120,
+            .layerR = 10,
+            .layerG = 15,
+            .layerB = 50,
+        };
         break;
     default:
         break;
-    }
-}
-
-void Sky::setSkyType(SkyType newType)
-{
-    this->type = newType;
+    };
 }
 
 void Sky::tick()

@@ -12,16 +12,17 @@ typedef enum
 class Sky
 {
 public:
-    Sky(SkyType type);
+    Sky();
     ~Sky();
 
-    void render(Draw *draw);          // Render the sky using the provided Draw object
-    void setSkyType(SkyType newType); // Change the sky type
-    void tick();                      // advance the sky's internal time
+    void render(Draw *draw);                   // Render the sky using the provided Draw object
+    void setSky(gradient_color_t skyGradient); // Change the sky's gradient colors
+    void setSkyType(SkyType skyType);          // Change the sky type
+    void tick();                               // advance the sky's internal time
 
 private:
+    gradient_color_t gradient;
     uint32_t time;
-    SkyType type;
 
     void drawGradientSky(Draw *draw,
                          uint8_t topR, uint8_t topG, uint8_t topB,

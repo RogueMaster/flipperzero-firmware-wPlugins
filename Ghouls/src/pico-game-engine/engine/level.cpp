@@ -73,7 +73,7 @@ Entity **Level::collision_list(Entity *entity, int &count) const
     count = 0;
     if (entity_count == 0)
     {
-        ENGINE_LOG_INFO("Level::collision_list called but no entities are present");
+        ENGINE_LOG_INFO("Level::collision_list called but no entities are present\n");
         return nullptr;
     }
 
@@ -95,13 +95,13 @@ void Level::entity_add(Entity *entity)
 {
     if (!entity)
     {
-        ENGINE_LOG_INFO("Level::entity_add called with null entity pointer");
+        ENGINE_LOG_INFO("Level::entity_add called with null entity pointer\n");
         return;
     }
 
     if (!this->gameRef)
     {
-        ENGINE_LOG_INFO("Level::entity_add called but level has no reference to game");
+        ENGINE_LOG_INFO("Level::entity_add called but level has no reference to game\n");
         return;
     }
 
@@ -109,7 +109,7 @@ void Level::entity_add(Entity *entity)
     Entity **newEntities = ENGINE_MEM_NEW Entity * [entity_count + 1];
     if (!newEntities)
     {
-        ENGINE_LOG_INFO("Level::entity_add failed to allocate memory for new entity array");
+        ENGINE_LOG_INFO("Level::entity_add failed to allocate memory for new entity array\n");
         return;
     }
 
@@ -139,7 +139,7 @@ void Level::entity_remove(Entity *entity)
 {
     if (entity_count == 0)
     {
-        ENGINE_LOG_INFO("Level::entity_remove called but no entities are present");
+        ENGINE_LOG_INFO("Level::entity_remove called but no entities are present\n");
         return;
     }
 
@@ -155,7 +155,7 @@ void Level::entity_remove(Entity *entity)
 
     if (remove_index == -1)
     {
-        ENGINE_LOG_INFO("Level::entity_remove called but entity not found");
+        ENGINE_LOG_INFO("Level::entity_remove called but entity not found\n");
         return;
     }
 
