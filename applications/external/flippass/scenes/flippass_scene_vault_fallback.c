@@ -23,6 +23,17 @@ static void flippass_scene_vault_fallback_callback(
     }
 }
 
+static bool flippass_scene_vault_fallback_continue(App* app) {
+    furi_assert(app);
+
+    app->pending_vault_fallback = false;
+    app->requested_vault_backend = KDBXVaultBackendFileExt;
+    app->allow_ext_vault_promotion = true;
+    app->debug_auto_continue_vault_fallback = false;
+    scene_manager_previous_scene(app->scene_manager);
+    return true;
+}
+
 void flippass_scene_vault_fallback_on_enter(void* context) {
     App* app = context;
     char compact_message[192];
@@ -42,6 +53,11 @@ void flippass_scene_vault_fallback_on_enter(void* context) {
     widget_add_button_element(
         app->widget, GuiButtonTypeCenter, "Continue", flippass_scene_vault_fallback_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewWidget);
+
+    if(app->debug_auto_continue_vault_fallback) {
+        FLIPPASS_LOG_EVENT(app, "DEBUG_AUTO_CONTINUE_EXT");
+        view_dispatcher_send_custom_event(app->view_dispatcher, DialogExResultCenter);
+    }
 }
 
 bool flippass_scene_vault_fallback_on_event(void* context, SceneManagerEvent event) {
@@ -65,11 +81,7 @@ bool flippass_scene_vault_fallback_on_event(void* context, SceneManagerEvent eve
         }
 
         if(event.event == DialogExResultCenter) {
-            app->pending_vault_fallback = false;
-            app->requested_vault_backend = KDBXVaultBackendRam;
-            app->allow_ext_vault_promotion = true;
-            scene_manager_previous_scene(app->scene_manager);
-            return true;
+            return flippass_scene_vault_fallback_continue(app);
         }
     }
 

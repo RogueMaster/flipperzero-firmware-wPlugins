@@ -1,3 +1,65 @@
+## 2.11 — Legacy HW detection + NAG killer fixes
+
+- **Legacy HW detection fix** — `fsd_detect_hw_version()` fell through to `TeslaHW_Unknown` for `das_hw=0` and `das_hw=1`. MCU2/HW3 retrofit Model S/X reports `das_hw=0`, silently disabling FSD injection for this entire class of vehicle. Now correctly maps to `TeslaHW_Legacy`.
+- **NAG killer level 3 fix** — the `hands_on != 0` guard skipped level 3 (escalated alarm), the state where suppression matters most. Changed to `hands_on == 1` so both level 0 (nag imminent) and level 3 (escalated) get echoed.
+- **NAG killer echo byte fix** — OR-ing `0x40` without clearing bits 7:6 left level=3 state on escalated frames. Fixed to `(data[4] & ~0xC0u) | 0x40u`.
+- **ESP32: Lilygo T-CAN485 board** — new build target with onboard SN65HVD230 transceiver and SD card.
+- **ESP32: CAN dump to SD card** — all frames in candump ASCII format + per-session debug.log. Auto-rotation at 1M entries, 15-min auto-stop.
+- **ESP32: OTA false positive hardening** — assert 3 frames / clear 6 frames debounce on 0x318.
+- **ESP32: fallback HW detection** — when 0x398 is absent, falls back to 0x3EE (Legacy), 0x399 (HW4), or 0x3FD (HW3).
+
+## 2.10 — TLSSC Restore
+
+- **TLSSC Restore (0x331)** — recover Traffic Light and Stop Sign Control on VIN-banned vehicles via DAS config spoofing. Read-modify-retransmit on CAN ID 0x331 at ~1 Hz: overwrites byte[0] lower 6 bits to 0x1B, setting `DAS_autopilot` and `DAS_autopilotBase` to `SELF_DRIVING`. Triggers MCU reboot and restores the TLSSC toggle.
+  - **Confirmed working on:** Palladium (Model S Plait 2023), HW4 Highland (Model 3 Performance 2024), Intel HW3 (Model 3, with AP-first workaround).
+  - **Known limitation:** Intel HW3 banned cars must activate AP before using TLSSC (enabling the toggle in UI breaks AP on Intel HW3 specifically).
+  - **Does NOT restore full FSD** — only TLSSC (stop signs / traffic lights). FSD UI elements (Navigate on AP, Summon, Autopark) remain locked behind server-side Ethernet entitlement.
+  - New Settings toggle: "TLSSC Restore" (OFF by default). Also ported to ESP32 web dashboard.
+- **Ban research findings** (issue #18):
+  - Byte-diff of banned vs unbanned 0x7FF mux=2 confirms tier downgrade (SELF_DRIVING→ENHANCED).
+  - 0x3FD mux=0 byte[4] bit 7 is an independent "TLSSC UI visible" flag, cleared on ban.
+  - Ban enforcement is platform-specific: Palladium/HW4 less aggressive than Intel HW3.
+  - New ban indicator candidate: `0x259 APP_fsdSuspendState` (SUSPENDED=1 on banned car).
+
+## 2.9 — Ban Shield
+
+- **Ban Shield** — a CAN-layer immune system that freezes `GTW_carConfig (0x7FF)` in its healthy state. When Tesla pushes a server-side VIN ban, the Gateway changes specific bits in 0x7FF to disable TLSSC. The Ban Shield detects these changes in real-time and immediately retransmits the healthy snapshot, blocking the ban at the CAN frame level before the AP ECU processes it.
+  - **Phase 1 (learning):** Enable "Ban Shield" in Settings. During normal driving, the shield automatically captures all 8 GTW_carConfig mux frames as the "healthy" baseline. No user action needed.
+  - **Phase 2 (armed):** Once the baseline is captured, any incoming 0x7FF frame that differs from the snapshot is instantly overwritten and retransmitted with the healthy data. The `gtw_shield_blocks` counter tracks how many frames were blocked.
+  - All GTW_carConfig signals are static hardware configuration (dasHw, country, drivetrainType, seatHeaters, autopilot tier, etc.) — they never change during normal driving. A change means either Tesla pushed a ban or a service center modified the config.
+  - **Note:** Whether the AP ECU reads 0x7FF from CAN (where our shield works) or from Ethernet (where it doesn't) is still unverified. Community testing needed.
+
+## 2.8 — DAS-aware nag killer + anti-detection
+
+- **DAS-aware nag suppression** — the nag killer now gates on `DAS_autopilotHandsOnState` (from `0x39B`). Only echoes when DAS is actively demanding hands-on (states 2-7, 9-10). States 0 (NOT_REQD) and 8 (SUSPENDED) suppress the echo entirely. Reduces spurious bus traffic from ~25 frames/sec to near-zero during normal AP driving. Ported from ev-open-can-tools PR #5 (@zdenekbouresh).
+- **Organic torque variation** — replaces the fixed 1.80 Nm echo with a xorshift32 random walk in [1.00-2.40 Nm] plus brief grip pulses [3.10-3.30 Nm] every 5-9 seconds. A flat torque signal is a telemetry detection vector for VIN-level bans (issue #18).
+- **MCP2515 12 MHz crystal support** — Settings → MCP Crystal now has 16 / 8 / 12 MHz. Fixes Waveshare RS485 CAN HAT compatibility. CNF values: CFG1=0x00, CFG2=0xA2, CFG3=0x02 (from arduino-CAN library).
+- **MCP2515 8 MHz crystal toggle** — same Settings menu, for generic AliExpress modules.
+- **VIN-level ban warning** — README and SECURITY.md now document Tesla's VIN-level FSD bans (confirmed April 2026 by @THER4iN in issue #18). Bans persist across account transfers and re-subscriptions. CAN injection cannot override.
+- **MCP2515 SPI NULL crash fix** (v2.7.1 hotfix) — `mcp_alloc()` now properly initializes the SPI bus handle.
+- **SPI callback const fix** — compiles on Momentum and Xtreme firmware.
+- **fsdcanmod.com badge restored** — community tracker site back online with accurate project tracking.
+
+## 2.7 — Upstream parity + Momentum fix + X179 guide
+
+- **Ported 5 features from upstream** ([ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools)):
+  - GTW autopilot tier readback (`0x7FF` mux=2): shows the vehicle's actual AP entitlement — NONE/HIGHWAY/ENHANCED/SELF_DRIVING/BASIC. If it reads NONE or BASIC, FSD features won't work regardless of CAN injection.
+  - Track Mode inject (`0x313`): sets track mode request ON with checksummed retransmit. Service mode only.
+  - Enhanced Autopilot flag: mux=1 now also sets bit 46 when enabled — required for EAP auto lane change and summon on HW3/HW4.
+  - HW4 speed offset runtime: mux=2 byte[1] lower 6 bits can be overridden at runtime.
+  - Speed profile lock: follow distance stalk no longer overrides the speed profile when locked.
+- **Fix: SPI callback const mismatch** — `Spi_lib.c` now compiles on Momentum and Xtreme firmware in addition to official. The `FuriHalSpiBusHandleEventCallback` typedef differs between firmware builds; fixed with a portable cast. Reported by @LeeSSXX in issue #17.
+- **HARDWARE.md complete rewrite:**
+  - X179 connector is now the recommended connection point (4-wire: CAN-H + CAN-L + 12V + GND).
+  - Full X179 20-pin and 26-pin pinout tables with all 4 CAN bus pairs documented.
+  - Explains why Pin 13/14 (bus 6) is a Gateway-forwarded mixed bus that carries both Party CAN and Vehicle CAN signals — one connection for nearly all features.
+  - Added X052 connector for 2019 Model 3 (pre-facelift): Pin 44/45 CAN + Pin 20/22 12V/GND, confirmed by @THER4iN.
+  - Added LILYGO T-2CAN ESP32-S3 (~$24, dual isolated CAN) as recommended future-proof board.
+  - All hardware prices corrected from verified official store listings.
+  - Deep sleep guidance for permanent vehicle installation.
+- **Upstream link updated**: the upstream project moved from GitLab (`slxslx/tesla-open-can-mod-slx-repo`, archiving) to GitHub (`ev-open-can-tools/ev-open-can-tools`, vehicle-agnostic naming).
+- **37 total CAN handlers** (14 TX write + 23 RX read-only).
+
 ## 2.6 — Full Party CAN coverage
 
 - **32 CAN handlers** (12 TX write + 20 RX read-only), up from 19 in v2.5. Every useful signal on Tesla Model 3/Y Party CAN is now parsed or injectable.

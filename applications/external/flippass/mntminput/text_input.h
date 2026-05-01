@@ -84,6 +84,10 @@ void text_input_set_validator(
  */
 void text_input_show_illegal_symbols(TextInput* text_input, bool show);
 
+void text_input_set_is_password(TextInput* text_input, bool is_password);
+
+void text_input_set_for_open(TextInput* text_input, bool for_open);
+
 TextInputValidatorCallback text_input_get_validator_callback(TextInput* text_input);
 
 void* text_input_get_validator_callback_context(TextInput* text_input);

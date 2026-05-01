@@ -6,9 +6,9 @@
 #include "jsmn/jsmn.h"
 #include <math.h>
 
-Player::Player()
+Player::Player(const char* name)
     : Entity(
-          "Player",
+          name,
           ENTITY_PLAYER,
           Vector(10, 10),
           Vector(1.0f, 2.0f),
@@ -28,7 +28,7 @@ Player::Player()
     is_player = true; // Mark this entity as a player (so level doesn't delete it)
     end_position = Vector(10, 10); // Initialize end position
     start_position = Vector(10, 10); // Initialize start position
-    strncpy(player_name, "Player", sizeof(player_name) - 1); // Copy default player name
+    strncpy(player_name, name, sizeof(player_name) - 1); // Copy default player name
     player_name[sizeof(player_name) - 1] = '\0'; // Ensure null termination
     name = player_name; // Point Entity's name to our writable buffer
 }
@@ -95,6 +95,9 @@ void Player::drawCurrentView(Draw* canvas) {
     case GameViewGameOnline:
         drawGameOnlineView(canvas);
         break;
+    case GameViewLobbyBrowser:
+        drawLobbyBrowserView(canvas);
+        break;
     case GameViewWelcome:
         drawWelcomeView(canvas);
         break;
@@ -109,7 +112,7 @@ void Player::drawCurrentView(Draw* canvas) {
         break;
     default:
         canvas->fillScreen(0xFFFF);
-        canvas->text(Vector(0, 10), "Unknown View", 0x0000);
+        canvas->text(0, 10, "Unknown View", 0x0000);
         break;
     }
 }
@@ -130,7 +133,7 @@ void Player::drawGameLocalView(Draw* canvas) {
     } else {
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(25, 32), "Starting Game...", 0x0000);
+        canvas->text(25, 32, "Starting Game...", 0x0000);
         bool gameStarted = freeRoamGame->startGame();
         if(gameStarted && freeRoamGame->getEngine()) {
             freeRoamGame->getEngine()->runAsync(false); // Run the game engine immediately
@@ -139,9 +142,372 @@ void Player::drawGameLocalView(Draw* canvas) {
 }
 
 void Player::drawGameOnlineView(Draw* canvas) {
+    FreeRoamApp* app = static_cast<FreeRoamApp*>(freeRoamGame->appContext);
+    furi_check(app);
+    if(shouldLeaveGame()) {
+        if(!app->websocketStop()) {
+            FURI_LOG_E("Player", "Failed to stop WebSocket");
+        }
+        onlineGameState = OnlineStateIdle;
+        freeRoamGame->endGame();
+        return;
+    }
+
+    switch(onlineGameState) {
+    // ── Phase 1: POST to jblanked.com/game-server/games/create/ ─────────────
+    case OnlineStateIdle:
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(0, 10, "Connecting to server...", 0x0000);
+        this->userRequest(RequestTypeGameCreate);
+        break;
+    // ── Phase 2: Wait for HTTP response, parse port, open WebSocket ──────────
+    case OnlineStateFetchingSession: {
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        static bool loadingStarted = false;
+        if(!loadingStarted) {
+            if(!loading) {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            if(loading) {
+                loading->setText("Creating game...");
+            }
+            loadingStarted = true;
+        }
+
+        if(!this->httpRequestIsFinished()) {
+            if(loading) {
+                loading->animate();
+            }
+        } else {
+            if(loading) {
+                loading->stop();
+            }
+            loadingStarted = false;
+
+            char* response = (char*)malloc(512);
+            if(!response) {
+                onlineGameState = OnlineStateError;
+                break;
+            }
+            if(app->load_char("game_session", response, 512)) {
+                char* port_str = get_json_value("port", response);
+                if(port_str) {
+                    onlinePort = (uint16_t)atoi(port_str);
+                    ::free(port_str);
+
+                    char* game_id_str = get_json_value("game_id", response);
+                    if(game_id_str) {
+                        strncpy(onlineGameId, game_id_str, sizeof(onlineGameId) - 1);
+                        onlineGameId[sizeof(onlineGameId) - 1] = '\0';
+                        ::free(game_id_str);
+                    }
+                    char* websocket_url = (char*)malloc(128);
+                    if(!websocket_url) {
+                        onlineGameState = OnlineStateError;
+                        ::free(response);
+                        break;
+                    }
+                    snprintf(
+                        websocket_url,
+                        128,
+                        "ws://www.jblanked.com/ws/game-server/%s/",
+                        onlineGameId);
+                    if(app->websocketStart(websocket_url, onlinePort)) {
+                        onlineGameState = OnlineStateConnecting;
+                    } else {
+                        onlineGameState = OnlineStateError;
+                    }
+                    ::free(websocket_url);
+                } else {
+                    FURI_LOG_E(
+                        "Player", "drawGameOnlineView: missing 'port' in game session response");
+                    onlineGameState = OnlineStateError;
+                }
+            } else {
+                FURI_LOG_E("Player", "drawGameOnlineView: failed to load game_session response");
+                onlineGameState = OnlineStateError;
+            }
+            ::free(response);
+        }
+    } break;
+
+    // ── Phase 3: Wait for [CONNECTED] from FlipperHTTP board ─────────────────
+    case OnlineStateConnecting: {
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+
+        const char* lastResp = app->getLastResponse();
+        if(lastResp && strstr(lastResp, "[SOCKET/CONNECTED]") != NULL) {
+            onlineGameState = OnlineStatePlaying;
+            if(!freeRoamGame->isRunning()) {
+                freeRoamGame->startGameOnline();
+            }
+            // Switch to the multiplayer level immediately so the correct map loads
+            if(freeRoamGame->getEngine() && freeRoamGame->getEngine()->getGame()) {
+                freeRoamGame->getEngine()->getGame()->level_switch("Online");
+            }
+        } else {
+            canvas->text(0, 10, "Connecting...", 0x0000);
+        }
+    } break;
+
+    // ── Phase 4: Active online game ───────────────────────────────────────────
+    case OnlineStatePlaying: {
+        if(!freeRoamGame->isRunning()) {
+            canvas->fillScreen(0xFFFF);
+            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->text(25, 32, "Starting Game...", 0x0000);
+            freeRoamGame->startGameOnline();
+            if(freeRoamGame->getEngine() && freeRoamGame->getEngine()->getGame()) {
+                freeRoamGame->getEngine()->getGame()->level_switch("Online");
+            }
+            return;
+        }
+
+        // Send the current button input to the server as an integer string.
+        // The server feeds this directly into game->input, so InputKey values
+        // map 1-to-1 (0=Up, 1=Down, 2=Left, 3=Right, 4=Ok, 5=Back).
+        InputKey currentInput = freeRoamGame->getCurrentInput();
+        if(currentInput != InputKeyMAX) {
+            if(currentInput != InputKeyBack) {
+                if(gameState == GameStatePlaying) {
+                    char inputMsg[96]; // {"username": "<username>", "input": <input>}
+                    /*
+                    up: 0
+                    down 1:
+                    right: 2
+                    left: 3
+                    ok: 4
+                    */
+                    snprintf(
+                        inputMsg,
+                        sizeof(inputMsg),
+                        "{\"username\": \"%s\", \"input\": %d}",
+                        player_name,
+                        (int)currentInput);
+                    FreeRoamApp* app = static_cast<FreeRoamApp*>(freeRoamGame->appContext);
+                    furi_check(app);
+                    app->websocketSend(inputMsg);
+                    // Prevent the local engine from also moving the player — the server
+                    // position update below is the authoritative source.
+                    if(freeRoamGame->getEngine()) {
+                        freeRoamGame->getEngine()->updateGameInput(InputKeyMAX);
+                    }
+                } else // menu
+                {
+                    if(freeRoamGame->getEngine()) {
+                        freeRoamGame->getEngine()->updateGameInput(currentInput);
+                    }
+                }
+            } else {
+                if(freeRoamGame->getEngine()) {
+                    freeRoamGame->getEngine()->updateGameInput(InputKeyBack);
+                }
+            }
+            freeRoamGame->resetInput();
+        }
+
+        // Apply server-authoritative entity positions from the latest WebSocket
+        // message, then let the local engine render the updated state.
+        const char* lastResp = app->getLastResponse();
+        if(lastResp && lastResp[0] != '\0') {
+            if(strcmp(lastResp, "[SOCKET/STOPPED]") == 0) {
+                FURI_LOG_E("Player", "WebSocket stopped unexpectedly");
+                onlineGameState = OnlineStateError;
+            } else {
+                updateEntitiesFromServer(lastResp);
+                app->clearLastResponse();
+            }
+        }
+
+        if(freeRoamGame->getEngine()) {
+            freeRoamGame->getEngine()->runAsync(false);
+
+            if(gameState != GameStateMenu) {
+                // ── Name tag overlay ─────────────────────────────────────────────
+                // After the 3D scene is drawn, project each humanoid entity's head
+                // position to screen space and draw a small username label above it.
+                Game* og = freeRoamGame->getEngine()->getGame();
+                if(og && og->current_level) {
+                    Camera* cam = og->getCamera();
+                    Vector ss = og->draw->getDisplaySize(); // 128 x 64
+                    float vh = cam->height;
+                    int entityCount = og->current_level->getEntityCount();
+                    for(int i = 0; i < entityCount; i++) {
+                        Entity* ent = og->current_level->getEntity(i);
+                        if(!ent || !ent->is_active || !ent->name) continue;
+                        if(ent->sprite_3d_type != SPRITE_3D_HUMANOID) continue;
+                        // Skip local player when show-player is off
+                        if(ent == static_cast<Entity*>(this) && showPlayerToggle == ToggleOff)
+                            continue;
+
+                        // Project the head (world y = 2.2) to screen coords
+                        float wdx = ent->position.x - cam->position.x;
+                        float wdz = ent->position.y - cam->position.y; // position.y = world Z
+                        float wdy = 2.2f - vh;
+
+                        float cx = wdx * (-cam->direction.y) + wdz * cam->direction.x;
+                        float cz = wdx * cam->direction.x + wdz * cam->direction.y;
+                        if(cz <= 0.1f) continue; // behind camera
+
+                        float sx = (cx / cz) * ss.y + ss.x * 0.5f;
+                        float sy = (-wdy / cz) * ss.y + ss.y * 0.5f;
+                        if(sx < 0 || sx >= ss.x || sy < 2 || sy >= ss.y - 2) continue;
+
+                        int tx = (int)sx - (int)(strlen(ent->name) * 3);
+                        int ty = (int)sy;
+                        if(tx < 0) tx = 0;
+                        og->draw->setFont(FONT_SIZE_SMALL);
+                        og->draw->text(tx, ty, ent->name);
+                    }
+                }
+            }
+        }
+    } break;
+
+    // ── Error state ───────────────────────────────────────────────────────────
+    case OnlineStateError: {
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(0, 10, "Connection failed!", 0x0000);
+        canvas->text(0, 20, "Check network and", 0x0000);
+        canvas->text(0, 30, "try again.", 0x0000);
+        canvas->setFont(FONT_SIZE_SMALL);
+        canvas->text(0, 50, "Press BACK to return.", 0x0000);
+    } break;
+
+    // ── Join existing lobby (skip create, go straight to WS) ─────────────────
+    case OnlineStateJoiningExisting: {
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+        canvas->text(0, 10, "Joining game...", 0x0000);
+
+        char* websocket_url = (char*)malloc(128);
+        if(!websocket_url) {
+            onlineGameState = OnlineStateError;
+            break;
+        }
+        snprintf(websocket_url, 128, "ws://www.jblanked.com/ws/game-server/%s/", onlineGameId);
+        if(app->websocketStart(websocket_url, onlinePort)) {
+            onlineGameState = OnlineStateConnecting;
+        } else {
+            onlineGameState = OnlineStateError;
+        }
+        ::free(websocket_url);
+    } break;
+
+    default:
+        FURI_LOG_E("Player", "Unknown online game state: %d", onlineGameState);
+        break;
+    }
+}
+
+void Player::drawLobbyBrowserView(Draw* canvas) {
+    FreeRoamApp* app = static_cast<FreeRoamApp*>(freeRoamGame->appContext);
+    furi_check(app);
+
+    if(!lobbyFetched) {
+        canvas->fillScreen(0xFFFF);
+        canvas->setFont(FONT_SIZE_PRIMARY);
+
+        static bool lobbyRequestStarted = false;
+        if(!lobbyRequestStarted) {
+            if(!loading) {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            if(loading) {
+                loading->setText("Fetching lobbies...");
+            }
+            userRequest(RequestTypeGameList);
+            lobbyRequestStarted = true;
+        }
+
+        if(!httpRequestIsFinished()) {
+            if(loading) loading->animate();
+            return;
+        }
+
+        if(loading) loading->stop();
+        lobbyRequestStarted = false;
+
+        // Parse the list of active game sessions
+        lobbyCount = 0;
+        char* response = (char*)malloc(1024);
+        if(response) {
+            if(app->load_char("game_list", response, 1024)) {
+                for(int i = 0; i < MAX_LOBBY_ENTRIES; i++) {
+                    char* entry = get_json_array_value("games", i, response);
+                    if(!entry) break;
+
+                    char* gid = get_json_value("game_id", entry);
+                    char* gname = get_json_value("game_name", entry);
+
+                    if(gid && gname) {
+                        strncpy(lobbyEntries[lobbyCount].game_id, gid, 36);
+                        lobbyEntries[lobbyCount].game_id[36] = '\0';
+                        strncpy(lobbyEntries[lobbyCount].game_name, gname, 63);
+                        lobbyEntries[lobbyCount].game_name[63] = '\0';
+                        lobbyCount++;
+                    }
+                    if(gid) ::free(gid);
+                    if(gname) ::free(gname);
+                    ::free(entry);
+                }
+            }
+            ::free(response);
+        }
+        lobbyFetched = true;
+        lobbySelectedIndex = 0;
+        return;
+    }
+
+    // ── Draw the lobby list ──────────────────────────────────────────────────
     canvas->fillScreen(0xFFFF);
+    drawRainEffect(canvas);
+
     canvas->setFont(FONT_SIZE_PRIMARY);
-    canvas->text(Vector(0, 10), "Not available yet", 0x0000);
+    canvas->text(20, 10, "Online Lobbies", 0x0000);
+
+    // Total items: "New Game" at index 0, then existing lobbies
+    int totalItems = 1 + lobbyCount;
+    int startY = 18;
+    int lineH = 10;
+    int maxVisible = 4;
+
+    int scrollOffset = 0;
+    if(lobbySelectedIndex >= maxVisible) scrollOffset = lobbySelectedIndex - maxVisible + 1;
+
+    canvas->setFont(FONT_SIZE_SMALL);
+    for(int i = scrollOffset; i < totalItems && (i - scrollOffset) < maxVisible; i++) {
+        int y = startY + (i - scrollOffset) * lineH;
+
+        if(i == lobbySelectedIndex) {
+            canvas->fillRectangle(0, y, 128, lineH, 0x0000);
+            canvas->setColor(0xFFFF);
+        } else {
+            canvas->setColor(0x0000);
+        }
+
+        if(i == 0) {
+            canvas->text(4, y + 8, "> New Game");
+        } else {
+            canvas->text(4, y + 8, lobbyEntries[i - 1].game_name);
+        }
+        canvas->setColor(0x0000);
+    }
+
+    // Scroll indicators
+    if(scrollOffset > 0) {
+        canvas->text(120, 20, "^", 0x0000);
+    }
+    if(scrollOffset + maxVisible < totalItems) {
+        canvas->text(120, 55, "v", 0x0000);
+    }
+
+    canvas->setFont(FONT_SIZE_SMALL);
+    canvas->text(4, 62, "OK:Select  BACK:Return", 0x0000);
 }
 
 void Player::drawLobbyMenuView(Draw* canvas) {
@@ -173,9 +539,9 @@ void Player::drawLoginView(Draw* canvas) {
                 loading->stop();
             }
             loadingStarted = false;
-            char response[256];
+            char* response = (char*)malloc(256);
             FreeRoamApp* app = static_cast<FreeRoamApp*>(freeRoamGame->appContext);
-            if(app && app->load_char("login", response, sizeof(response))) {
+            if(app && app->load_char("login", response, 256)) {
                 if(strstr(response, "[SUCCESS]") != NULL) {
                     loginStatus = LoginSuccess;
                     currentMainView = GameViewTitle; // switch to title view
@@ -190,24 +556,25 @@ void Player::drawLoginView(Draw* canvas) {
             } else {
                 loginStatus = LoginRequestError;
             }
+            ::free(response);
         }
         break;
     case LoginSuccess:
-        canvas->text(Vector(0, 10), "Login successful!", 0x0000);
-        canvas->text(Vector(0, 20), "Press OK to continue.", 0x0000);
+        canvas->text(0, 10, "Login successful!", 0x0000);
+        canvas->text(0, 20, "Press OK to continue.", 0x0000);
         break;
     case LoginCredentialsMissing:
-        canvas->text(Vector(0, 10), "Missing credentials!", 0x0000);
-        canvas->text(Vector(0, 20), "Please set your username", 0x0000);
-        canvas->text(Vector(0, 30), "and password in the app.", 0x0000);
+        canvas->text(0, 10, "Missing credentials!", 0x0000);
+        canvas->text(0, 20, "Please set your username", 0x0000);
+        canvas->text(0, 30, "and password in the app.", 0x0000);
         break;
     case LoginRequestError:
-        canvas->text(Vector(0, 10), "Login request failed!", 0x0000);
-        canvas->text(Vector(0, 20), "Check your network and", 0x0000);
-        canvas->text(Vector(0, 30), "try again later.", 0x0000);
+        canvas->text(0, 10, "Login request failed!", 0x0000);
+        canvas->text(0, 20, "Check your network and", 0x0000);
+        canvas->text(0, 30, "try again later.", 0x0000);
         break;
     default:
-        canvas->text(Vector(0, 10), "Logging in...", 0x0000);
+        canvas->text(0, 10, "Logging in...", 0x0000);
         break;
     }
 }
@@ -225,20 +592,20 @@ void Player::drawMenuType1(
 
     // draw lobby text
     if(selectedIndex == 0) {
-        canvas->fillRectangle(Vector(36, 16), Vector(56, 16), 0x0000);
+        canvas->fillRectangle(36, 16, 56, 16, 0x0000);
         canvas->setColor(0xFFFF);
-        canvas->text(Vector(54, 27), option1);
-        canvas->fillRectangle(Vector(36, 32), Vector(56, 16), 0xFFFF);
+        canvas->text(54, 27, option1);
+        canvas->fillRectangle(36, 32, 56, 16, 0xFFFF);
         canvas->setColor(0x0000);
-        canvas->text(Vector(54, 42), option2);
+        canvas->text(54, 42, option2);
     } else if(selectedIndex == 1) {
         canvas->setColor(0xFFFF);
-        canvas->fillRectangle(Vector(36, 16), Vector(56, 16), 0xFFFF);
+        canvas->fillRectangle(36, 16, 56, 16, 0xFFFF);
         canvas->setColor(0x0000);
-        canvas->text(Vector(54, 27), option1);
-        canvas->fillRectangle(Vector(36, 32), Vector(56, 16), 0x0000);
+        canvas->text(54, 27, option1);
+        canvas->fillRectangle(36, 32, 56, 16, 0x0000);
         canvas->setColor(0xFFFF);
-        canvas->text(Vector(54, 42), option2);
+        canvas->text(54, 42, option2);
         canvas->setColor(0x0000);
     }
 }
@@ -269,19 +636,19 @@ void Player::drawMenuType2(Draw* canvas, uint8_t selectedIndexMain, uint8_t sele
         }
 
         canvas->setFont(FONT_SIZE_SMALL);
-        canvas->text(Vector(6, 30), level);
-        canvas->text(Vector(6, 37), health);
-        canvas->text(Vector(6, 44), xp);
-        canvas->text(Vector(6, 51), strength);
+        canvas->text(6, 30, level);
+        canvas->text(6, 37, health);
+        canvas->text(6, 44, xp);
+        canvas->text(6, 51, strength);
 
         // draw a box around the selected option
-        canvas->rectangle(Vector(76, 6), Vector(46, 46), 0x0000);
+        canvas->rectangle(76, 6, 46, 46, 0x0000);
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(80, 16), "Profile");
+        canvas->text(80, 16, "Profile");
         canvas->setFont(FONT_SIZE_SECONDARY);
-        canvas->text(Vector(80, 26), "Map");
-        canvas->text(Vector(80, 36), "Settings");
-        canvas->text(Vector(80, 46), "About");
+        canvas->text(80, 26, "Map");
+        canvas->text(80, 36, "Settings");
+        canvas->text(80, 46, "About");
     } break;
     case 1: // map
     {
@@ -290,105 +657,125 @@ void Player::drawMenuType2(Draw* canvas, uint8_t selectedIndexMain, uint8_t sele
                 canvas, Vector(3, 3), Vector(70, 57), position, direction);
         } else {
             canvas->setFont(FONT_SIZE_PRIMARY);
-            canvas->text(Vector(6, 32), "No map loaded", 0x0000);
+            canvas->text(6, 32, "No map loaded", 0x0000);
         }
 
-        canvas->rectangle(Vector(76, 6), Vector(46, 46), 0x0000);
+        canvas->rectangle(76, 6, 46, 46, 0x0000);
         canvas->setFont(FONT_SIZE_SECONDARY);
-        canvas->text(Vector(80, 16), "Profile");
+        canvas->text(80, 16, "Profile");
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(80, 26), "Map");
+        canvas->text(80, 26, "Map");
         canvas->setFont(FONT_SIZE_SECONDARY);
-        canvas->text(Vector(80, 36), "Settings");
-        canvas->text(Vector(80, 46), "About");
+        canvas->text(80, 36, "Settings");
+        canvas->text(80, 46, "About");
     } break;
-    case 2: // settings (sound on/off, vibration on/off, and leave game)
+    case 2: // settings (sound on/off, vibration on/off, show player, leave game)
     {
         char soundStatus[16];
         char vibrationStatus[16];
+        char showPlayerStatus[20];
         snprintf(soundStatus, sizeof(soundStatus), "Sound: %s", toggleToString(soundToggle));
         snprintf(
             vibrationStatus,
             sizeof(vibrationStatus),
             "Vibrate: %s",
             toggleToString(vibrationToggle));
+        snprintf(
+            showPlayerStatus,
+            sizeof(showPlayerStatus),
+            "Show Me: %s",
+            toggleToString(showPlayerToggle));
         // draw settings info
         switch(selectedIndexSettings) {
         case 0: // none/default
             canvas->setFont(FONT_SIZE_PRIMARY);
-            canvas->text(Vector(6, 16), "Settings");
+            canvas->text(6, 16, "Settings");
             canvas->setFont(FONT_SIZE_SMALL);
-            canvas->text(Vector(6, 30), soundStatus);
-            canvas->text(Vector(6, 40), vibrationStatus);
-            canvas->text(Vector(6, 50), "Leave Game");
+            canvas->text(6, 27, soundStatus);
+            canvas->text(6, 36, vibrationStatus);
+            canvas->text(6, 45, showPlayerStatus);
+            canvas->text(6, 54, "Leave Game");
             break;
         case 1: // sound
             canvas->setFont(FONT_SIZE_PRIMARY);
-            canvas->text(Vector(6, 16), "Settings");
+            canvas->text(6, 16, "Settings");
             canvas->setFont(FONT_SIZE_LARGE);
-            canvas->text(Vector(6, 30), soundStatus);
+            canvas->text(6, 27, soundStatus);
             canvas->setFont(FONT_SIZE_SMALL);
-            canvas->text(Vector(6, 40), vibrationStatus);
-            canvas->text(Vector(6, 50), "Leave Game");
+            canvas->text(6, 36, vibrationStatus);
+            canvas->text(6, 45, showPlayerStatus);
+            canvas->text(6, 54, "Leave Game");
             break;
         case 2: // vibration
             canvas->setFont(FONT_SIZE_PRIMARY);
-            canvas->text(Vector(6, 16), "Settings");
+            canvas->text(6, 16, "Settings");
             canvas->setFont(FONT_SIZE_SMALL);
-            canvas->text(Vector(6, 30), soundStatus);
+            canvas->text(6, 27, soundStatus);
             canvas->setFont(FONT_SIZE_LARGE);
-            canvas->text(Vector(6, 40), vibrationStatus);
+            canvas->text(6, 36, vibrationStatus);
             canvas->setFont(FONT_SIZE_SMALL);
-            canvas->text(Vector(6, 50), "Leave Game");
+            canvas->text(6, 45, showPlayerStatus);
+            canvas->text(6, 54, "Leave Game");
             break;
-        case 3: // leave game
+        case 3: // show player
             canvas->setFont(FONT_SIZE_PRIMARY);
-            canvas->text(Vector(6, 16), "Settings");
+            canvas->text(6, 16, "Settings");
             canvas->setFont(FONT_SIZE_SMALL);
-            canvas->text(Vector(6, 30), soundStatus);
-            canvas->text(Vector(6, 40), vibrationStatus);
+            canvas->text(6, 27, soundStatus);
+            canvas->text(6, 36, vibrationStatus);
             canvas->setFont(FONT_SIZE_LARGE);
-            canvas->text(Vector(6, 50), "Leave Game");
+            canvas->text(6, 45, showPlayerStatus);
+            canvas->setFont(FONT_SIZE_SMALL);
+            canvas->text(6, 54, "Leave Game");
+            break;
+        case 4: // leave game
+            canvas->setFont(FONT_SIZE_PRIMARY);
+            canvas->text(6, 16, "Settings");
+            canvas->setFont(FONT_SIZE_SMALL);
+            canvas->text(6, 27, soundStatus);
+            canvas->text(6, 36, vibrationStatus);
+            canvas->text(6, 45, showPlayerStatus);
+            canvas->setFont(FONT_SIZE_LARGE);
+            canvas->text(6, 54, "Leave Game");
             break;
         default:
             break;
         };
-        canvas->rectangle(Vector(76, 6), Vector(46, 46), 0x0000);
+        canvas->rectangle(76, 6, 46, 46, 0x0000);
         canvas->setFont(FONT_SIZE_SECONDARY);
-        canvas->text(Vector(80, 16), "Profile");
-        canvas->text(Vector(80, 26), "Map");
+        canvas->text(80, 16, "Profile");
+        canvas->text(80, 26, "Map");
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(79, 36), "Settings");
+        canvas->text(79, 36, "Settings");
         canvas->setFont(FONT_SIZE_SECONDARY);
-        canvas->text(Vector(80, 46), "About");
+        canvas->text(80, 46, "About");
     } break;
     case 3: // about
     {
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(6, 16), "Free Roam");
+        canvas->text(6, 16, "Free Roam");
         canvas->setFont(FONT_SIZE_SMALL);
-        canvas->text(Vector(6, 25), "Creator: JBlanked");
-        canvas->text(Vector(6, 59), "www.github.com/jblanked");
+        canvas->text(6, 25, "Creator: JBlanked");
+        canvas->text(6, 59, "www.github.com/jblanked");
 
         // draw a box around the selected option
-        canvas->rectangle(Vector(76, 6), Vector(46, 46), 0x0000);
+        canvas->rectangle(76, 6, 46, 46, 0x0000);
         canvas->setFont(FONT_SIZE_SECONDARY);
-        canvas->text(Vector(80, 16), "Profile");
-        canvas->text(Vector(80, 26), "Map");
-        canvas->text(Vector(80, 36), "Settings");
+        canvas->text(80, 16, "Profile");
+        canvas->text(80, 26, "Map");
+        canvas->text(80, 36, "Settings");
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(80, 46), "About");
+        canvas->text(80, 46, "About");
     } break;
     default:
         canvas->fillScreen(0xFFFF);
-        canvas->text(Vector(0, 10), "Unknown Menu", 0x0000);
+        canvas->text(0, 10, "Unknown Menu", 0x0000);
         break;
     };
 }
 
 void Player::drawRainEffect(Draw* canvas) {
     // rain droplets/star droplets effect
-    Vector _pixel = Vector(0, 0);
     for(int i = 0; i < 8; i++) {
         // Use pseudo-random offsets based on frame and droplet index
         uint8_t seed = (rainFrame + i * 37) & 0xFF;
@@ -396,18 +783,11 @@ void Player::drawRainEffect(Draw* canvas) {
         uint8_t y = (rainFrame * 2 + seed * 7 + i * 23) & 0x3F;
 
         // Draw star-like droplet
-        _pixel.x = x;
-        _pixel.y = y;
-        canvas->pixel(_pixel, 0x0000);
-        _pixel.x = x - 1;
-        canvas->pixel(_pixel, 0x0000);
-        _pixel.x = x + 1;
-        canvas->pixel(_pixel, 0x0000);
-        _pixel.x = x;
-        _pixel.y = y - 1;
-        canvas->pixel(_pixel, 0x0000);
-        _pixel.y = y + 1;
-        canvas->pixel(_pixel, 0x0000);
+        canvas->pixel(x, y, 0x0000);
+        canvas->pixel(x - 1, y, 0x0000);
+        canvas->pixel(x + 1, y, 0x0000);
+        canvas->pixel(x, y - 1, 0x0000);
+        canvas->pixel(x, y + 1, 0x0000);
     }
 
     rainFrame += 1;
@@ -440,9 +820,15 @@ void Player::drawRegistrationView(Draw* canvas) {
                 loading->stop();
             }
             loadingStarted = false;
-            char response[256];
+            char* response = (char*)malloc(256);
+            if(!response) {
+                FURI_LOG_E("Player", "Failed to allocate memory for registration response");
+                registrationStatus = RegistrationRequestError;
+                return;
+            }
             FreeRoamApp* app = static_cast<FreeRoamApp*>(freeRoamGame->appContext);
-            if(app && app->load_char("register", response, sizeof(response))) {
+            furi_check(app);
+            if(app->load_char("register", response, 256)) {
                 if(strstr(response, "[SUCCESS]") != NULL) {
                     registrationStatus = RegistrationSuccess;
                     currentMainView = GameViewTitle; // switch to title view
@@ -456,24 +842,25 @@ void Player::drawRegistrationView(Draw* canvas) {
             } else {
                 registrationStatus = RegistrationRequestError;
             }
+            ::free(response);
         }
         break;
     case RegistrationSuccess:
-        canvas->text(Vector(0, 10), "Registration successful!", 0x0000);
-        canvas->text(Vector(0, 20), "Press OK to continue.", 0x0000);
+        canvas->text(0, 10, "Registration successful!", 0x0000);
+        canvas->text(0, 20, "Press OK to continue.", 0x0000);
         break;
     case RegistrationCredentialsMissing:
-        canvas->text(Vector(0, 10), "Missing credentials!", 0x0000);
-        canvas->text(Vector(0, 20), "Please update your username", 0x0000);
-        canvas->text(Vector(0, 30), "and password in the settings.", 0x0000);
+        canvas->text(0, 10, "Missing credentials!", 0x0000);
+        canvas->text(0, 20, "Please update your username", 0x0000);
+        canvas->text(0, 30, "and password in the settings.", 0x0000);
         break;
     case RegistrationRequestError:
-        canvas->text(Vector(0, 10), "Registration request failed!", 0x0000);
-        canvas->text(Vector(0, 20), "Check your network and", 0x0000);
-        canvas->text(Vector(0, 30), "try again later.", 0x0000);
+        canvas->text(0, 10, "Registration request failed!", 0x0000);
+        canvas->text(0, 20, "Check your network and", 0x0000);
+        canvas->text(0, 30, "try again later.", 0x0000);
         break;
     default:
-        canvas->text(Vector(0, 10), "Registering...", 0x0000);
+        canvas->text(0, 10, "Registering...", 0x0000);
         break;
     }
 }
@@ -508,12 +895,21 @@ void Player::drawUserInfoView(Draw* canvas) {
                 loading->animate();
             }
         } else {
-            canvas->text(Vector(0, 10), "Loading user info...", 0x0000);
-            canvas->text(Vector(0, 20), "Please wait...", 0x0000);
-            canvas->text(Vector(0, 30), "It may take up to 15 seconds.", 0x0000);
-            char response[512];
+            canvas->text(0, 10, "Loading user info...", 0x0000);
+            canvas->text(0, 20, "Please wait...", 0x0000);
+            canvas->text(0, 30, "It may take up to 15 seconds.", 0x0000);
+            char* response = (char*)malloc(512);
+            if(!response) {
+                FURI_LOG_E("Player", "Failed to allocate memory for user info response");
+                userInfoStatus = UserInfoRequestError;
+                if(loading) {
+                    loading->stop();
+                }
+                loadingStarted = false;
+                return;
+            }
             FreeRoamApp* app = static_cast<FreeRoamApp*>(freeRoamGame->appContext);
-            if(app && app->load_char("user_info", response, sizeof(response))) {
+            if(app && app->load_char("user_info", response, 512)) {
                 userInfoStatus = UserInfoSuccess;
                 // they're in! let's go
                 char* game_stats = get_json_value("game_stats", response);
@@ -524,10 +920,11 @@ void Player::drawUserInfoView(Draw* canvas) {
                         loading->stop();
                     }
                     loadingStarted = false;
+                    ::free(response);
                     return;
                 }
                 canvas->fillScreen(0xFFFF);
-                canvas->text(Vector(0, 10), "User info loaded!", 0x0000);
+                canvas->text(0, 10, "User info loaded!", 0x0000);
                 char* username = get_json_value("username", game_stats);
                 char* level = get_json_value("level", game_stats);
                 char* xp = get_json_value("xp", game_stats);
@@ -548,11 +945,9 @@ void Player::drawUserInfoView(Draw* canvas) {
                         loading->stop();
                     }
                     loadingStarted = false;
+                    ::free(response);
                     return;
                 }
-
-                canvas->fillScreen(0xFFFF);
-                canvas->text(Vector(0, 10), "User data found!", 0x0000);
 
                 // Update player info
                 snprintf(player_name, sizeof(player_name), "%s", username);
@@ -563,9 +958,6 @@ void Player::drawUserInfoView(Draw* canvas) {
                 this->strength = atoi(strength);
                 this->max_health = atoi(max_health);
 
-                canvas->fillScreen(0xFFFF);
-                canvas->text(Vector(0, 10), "Player info updated!", 0x0000);
-
                 // clean em up gang
                 ::free(username);
                 ::free(level);
@@ -574,63 +966,59 @@ void Player::drawUserInfoView(Draw* canvas) {
                 ::free(strength);
                 ::free(max_health);
                 ::free(game_stats);
+                ::free(response);
 
-                canvas->fillScreen(0xFFFF);
-                canvas->text(Vector(0, 10), "Memory freed!", 0x0000);
-
-                if(currentLobbyMenuIndex == LobbyMenuLocal) {
-                    currentMainView = GameViewGameLocal; // Switch to local game view
-                } else if(currentLobbyMenuIndex == LobbyMenuOnline) {
-                    currentMainView = GameViewGameOnline; // Switch to online game view
-                }
                 if(loading) {
                     loading->stop();
                 }
                 loadingStarted = false;
 
-                canvas->fillScreen(0xFFFF);
-                canvas->text(Vector(0, 10), "User info loaded successfully!", 0x0000);
-                canvas->text(Vector(0, 20), "Please wait...", 0x0000);
-                canvas->text(Vector(0, 30), "Starting game...", 0x0000);
-                canvas->text(Vector(0, 40), "It may take up to 15 seconds.", 0x0000);
-
-                freeRoamGame->startGame();
+                if(currentLobbyMenuIndex == LobbyMenuLocal) {
+                    currentMainView = GameViewGameLocal; // Switch to local game view
+                    freeRoamGame->startGame();
+                } else if(currentLobbyMenuIndex == LobbyMenuOnline) {
+                    lobbyFetched = false; // Reset so browser fetches fresh data
+                    lobbySelectedIndex = 0;
+                    currentMainView =
+                        GameViewLobbyBrowser; // Show lobby browser instead of creating directly
+                }
                 return;
             } else {
                 userInfoStatus = UserInfoRequestError;
             }
+            ::free(response);
         }
         break;
     case UserInfoSuccess:
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(0, 10), "User info loaded successfully!", 0x0000);
-        canvas->text(Vector(0, 20), "Press OK to continue.", 0x0000);
+        canvas->text(0, 10, "User info loaded successfully!", 0x0000);
+        canvas->text(0, 20, "Press OK to continue.", 0x0000);
         break;
     case UserInfoCredentialsMissing:
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(0, 10), "Missing credentials!", 0x0000);
-        canvas->text(Vector(0, 20), "Please update your username", 0x0000);
-        canvas->text(Vector(0, 30), "and password in the settings.", 0x0000);
+        canvas->text(0, 10, "Missing credentials!", 0x0000);
+        canvas->text(0, 20, "Please update your username", 0x0000);
+        canvas->text(0, 30, "and password in the settings.", 0x0000);
         break;
     case UserInfoRequestError:
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(0, 10), "User info request failed!", 0x0000);
-        canvas->text(Vector(0, 20), "Check your network and", 0x0000);
-        canvas->text(Vector(0, 30), "try again later.", 0x0000);
+        canvas->text(0, 10, "User info request failed!", 0x0000);
+        canvas->text(0, 20, "Check your network and", 0x0000);
+        canvas->text(0, 30, "try again later.", 0x0000);
         break;
     case UserInfoParseError:
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(0, 10), "Failed to parse user info!", 0x0000);
-        canvas->text(Vector(0, 20), "Try again...", 0x0000);
+        canvas->text(0, 10, "Failed to parse user info!", 0x0000);
+        canvas->text(0, 20, "Try again...", 0x0000);
         break;
     default:
         canvas->fillScreen(0xFFFF);
         canvas->setFont(FONT_SIZE_PRIMARY);
-        canvas->text(Vector(0, 10), "Loading user info...", 0x0000);
+        canvas->text(0, 10, "Loading user info...", 0x0000);
         break;
     }
 }
@@ -645,7 +1033,7 @@ void Player::drawWelcomeView(Draw* canvas) {
     // Blink every 15 frames (show for 15, hide for 15)
     canvas->setFont(FONT_SIZE_SMALL);
     if((welcomeFrame / 15) % 2 == 0) {
-        canvas->text(Vector(34, 60), "Press OK to start", 0x0000);
+        canvas->text(34, 60, "Press OK to start", 0x0000);
     }
     welcomeFrame++;
 
@@ -655,9 +1043,9 @@ void Player::drawWelcomeView(Draw* canvas) {
     }
 
     // Draw a box around the OK button
-    canvas->fillRectangle(Vector(40, 25), Vector(56, 16), 0x0000);
+    canvas->fillRectangle(40, 25, 56, 16, 0x0000);
     canvas->setColor(0xFFFF);
-    canvas->text(Vector(56, 35), "Welcome");
+    canvas->text(56, 35, "Welcome", 0xFFFF);
     canvas->setColor(0x0000);
 }
 
@@ -665,7 +1053,8 @@ Vector Player::findSafeSpawnPosition(const char* levelName) {
     Vector defaultPos = start_position;
 
     if(strcmp(levelName, "Tutorial") == 0) {
-        defaultPos = Vector(10, 10); // Center of 20x20 tutorial map
+        defaultPos.x = 10;
+        defaultPos.y = 10; // Center of 20x20 tutorial map
     } else if(strcmp(levelName, "First") == 0) {
         // Try several safe positions in the First level
         Vector candidates[] = {
@@ -681,7 +1070,8 @@ Vector Player::findSafeSpawnPosition(const char* levelName) {
                 return candidates[i];
             }
         }
-        defaultPos = Vector(12, 12); // Fallback
+        defaultPos.x = 12;
+        defaultPos.y = 12; // Fallback
     } else if(strcmp(levelName, "Second") == 0) {
         // Try several safe positions in the Second level
         Vector candidates[] = {
@@ -697,7 +1087,11 @@ Vector Player::findSafeSpawnPosition(const char* levelName) {
                 return candidates[i];
             }
         }
-        defaultPos = Vector(12, 10); // Fallback
+        defaultPos.x = 12;
+        defaultPos.y = 10; // Fallback
+    } else if(strcmp(levelName, "Online") == 0) {
+        defaultPos.x = 32;
+        defaultPos.y = 28; // Center of 64x57 online map
     }
 
     return defaultPos;
@@ -714,13 +1108,11 @@ void Player::handleMenu(Draw* draw, Game* game) {
             if(currentMenuIndex > MenuIndexProfile) {
                 currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
             }
-
             break;
         case InputKeyDown:
             if(currentMenuIndex < MenuIndexAbout) {
                 currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
             }
-
             break;
         default:
             break;
@@ -734,17 +1126,14 @@ void Player::handleMenu(Draw* draw, Game* game) {
                 if(currentMenuIndex > MenuIndexProfile) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                 }
-
                 break;
             case InputKeyDown:
                 if(currentMenuIndex < MenuIndexAbout) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                 }
-
                 break;
             case InputKeyLeft:
                 currentSettingsIndex = MenuSettingsSound; // Switch to sound settings
-
                 break;
             default:
                 break;
@@ -756,16 +1145,13 @@ void Player::handleMenu(Draw* draw, Game* game) {
             case InputKeyOk: {
                 // Toggle sound on/off
                 soundToggle = soundToggle == ToggleOn ? ToggleOff : ToggleOn;
-
                 // let's just make the game check if state has changed and save it
             } break;
             case InputKeyRight:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
-
                 break;
             case InputKeyDown:
                 currentSettingsIndex = MenuSettingsVibration; // Switch to vibration settings
-
                 break;
             default:
                 break;
@@ -777,40 +1163,52 @@ void Player::handleMenu(Draw* draw, Game* game) {
             case InputKeyOk: {
                 // Toggle vibration on/off
                 vibrationToggle = vibrationToggle == ToggleOn ? ToggleOff : ToggleOn;
-
                 // let's just make the game check if state has changed and save it
             } break;
             case InputKeyRight:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
-
                 break;
             case InputKeyUp:
                 currentSettingsIndex = MenuSettingsSound; // Switch to sound settings
-
+                break;
+            case InputKeyDown:
+                currentSettingsIndex = MenuSettingsShowPlayer; // Switch to show player settings
+                break;
+            default:
+                break;
+            };
+            break;
+        case MenuSettingsShowPlayer:
+            // show/hide player (using OK), up to vibration, down to leave game, right to main
+            switch(game->input) {
+            case InputKeyOk:
+                showPlayerToggle = showPlayerToggle == ToggleOn ? ToggleOff : ToggleOn;
+                break;
+            case InputKeyRight:
+                currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
+                break;
+            case InputKeyUp:
+                currentSettingsIndex = MenuSettingsVibration; // Switch to vibration settings
                 break;
             case InputKeyDown:
                 currentSettingsIndex = MenuSettingsLeave; // Switch to leave game settings
-
                 break;
             default:
                 break;
             };
             break;
         case MenuSettingsLeave:
-            // leave game (using OK button), up to vibration, right to MainSettingsMain
+            // leave game (using OK button), up to show player, right to MainSettingsMain
             switch(game->input) {
             case InputKeyOk:
                 // Leave game
                 leaveGame = ToggleOn;
-
                 break;
             case InputKeyRight:
                 currentSettingsIndex = MenuSettingsMain; // Switch back to main settings
-
                 break;
             case InputKeyUp:
-                currentSettingsIndex = MenuSettingsVibration; // Switch to vibration settings
-
+                currentSettingsIndex = MenuSettingsShowPlayer; // Switch to show player settings
                 break;
             default:
                 break;
@@ -821,32 +1219,9 @@ void Player::handleMenu(Draw* draw, Game* game) {
         };
     }
 
-    if(game->input == InputKeyOk) {
-        switch(currentSettingsIndex) {
-        case MenuSettingsSound:
-            // Toggle sound on/off
-            soundToggle = soundToggle == ToggleOn ? ToggleOff : ToggleOn;
-
-            // let's just make the game check if state has changed and save it
-            break;
-        case MenuSettingsVibration:
-            // Toggle vibration on/off
-            vibrationToggle = vibrationToggle == ToggleOn ? ToggleOff : ToggleOn;
-
-            // let's just make the game check if state has changed and save it
-            break;
-        case MenuSettingsLeave:
-            leaveGame = ToggleOn;
-
-            break;
-        default:
-            break;
-        }
-    }
-
     draw->fillScreen(0xFFFF);
     draw->setColor(0x0000);
-
+    game->input = InputKeyMAX;
     drawMenuType2(draw, currentMenuIndex, currentSettingsIndex);
 }
 
@@ -901,23 +1276,19 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyUp:
             currentTitleIndex = TitleIndexStart;
-
             break;
         case InputKeyDown:
             currentTitleIndex = TitleIndexMenu;
-
             break;
         case InputKeyOk:
             switch(currentTitleIndex) {
             case TitleIndexStart:
                 // Start button pressed - go to lobby menu
                 currentMainView = GameViewLobbyMenu;
-
                 break;
             case TitleIndexMenu:
                 // Menu button pressed - go to system menu
                 currentMainView = GameViewSystemMenu;
-
                 break;
             default:
                 break;
@@ -925,7 +1296,6 @@ void Player::processInput() {
             break;
         case InputKeyBack:
             freeRoamGame->endGame();
-
             break;
         default:
             break;
@@ -937,11 +1307,9 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyUp:
             currentLobbyMenuIndex = LobbyMenuLocal; // Switch to local menu
-
             break;
         case InputKeyDown:
             currentLobbyMenuIndex = LobbyMenuOnline; // Switch to online menu
-
             break;
         case InputKeyOk:
             // 1. Switch to GameViewUserInfo
@@ -951,11 +1319,44 @@ void Player::processInput() {
             currentMainView = GameViewUserInfo;
             userInfoStatus = UserInfoWaiting;
             userRequest(RequestTypeUserInfo);
-
             break;
         case InputKeyBack:
             currentMainView = GameViewTitle;
+            break;
+        default:
+            break;
+        }
+        break;
 
+    case GameViewLobbyBrowser:
+        switch(currentInput) {
+        case InputKeyUp:
+            if(lobbySelectedIndex > 0) lobbySelectedIndex--;
+            break;
+        case InputKeyDown:
+            if(lobbySelectedIndex < lobbyCount) // 0 = "New Game", 1..lobbyCount = existing
+                lobbySelectedIndex++;
+            break;
+        case InputKeyOk:
+            if(lobbySelectedIndex == 0) {
+                // Create a new game — use existing create flow
+                onlineGameState = OnlineStateIdle;
+                onlinePort = 0;
+                onlineGameId[0] = '\0';
+                currentMainView = GameViewGameOnline;
+            } else {
+                // Join an existing lobby
+                int idx = lobbySelectedIndex - 1;
+                strncpy(onlineGameId, lobbyEntries[idx].game_id, sizeof(onlineGameId) - 1);
+                onlineGameId[sizeof(onlineGameId) - 1] = '\0';
+                onlinePort = 80;
+                onlineGameState = OnlineStateJoiningExisting;
+                currentMainView = GameViewGameOnline;
+            }
+            break;
+        case InputKeyBack:
+            lobbyFetched = false; // allow re-fetch next time
+            currentMainView = GameViewLobbyMenu;
             break;
         default:
             break;
@@ -968,19 +1369,16 @@ void Player::processInput() {
             switch(currentInput) {
             case InputKeyBack:
                 currentMainView = GameViewTitle;
-
                 break;
             case InputKeyUp:
                 if(currentMenuIndex > MenuIndexProfile) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                 }
-
                 break;
             case InputKeyDown:
                 if(currentMenuIndex < MenuIndexAbout) {
                     currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                 }
-
                 break;
             case InputKeyOk:
                 // Enter the selected menu item
@@ -988,7 +1386,6 @@ void Player::processInput() {
                     // Entering settings - this doesn't change the main menu, just shows settings details
                     currentSettingsIndex = MenuSettingsMain;
                 }
-
                 break;
             default:
                 break;
@@ -1000,23 +1397,19 @@ void Player::processInput() {
                 switch(currentInput) {
                 case InputKeyBack:
                     currentMainView = GameViewTitle;
-
                     break;
                 case InputKeyUp:
                     if(currentMenuIndex > MenuIndexProfile) {
                         currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex - 1);
                     }
-
                     break;
                 case InputKeyDown:
                     if(currentMenuIndex < MenuIndexAbout) {
                         currentMenuIndex = static_cast<MenuIndex>(currentMenuIndex + 1);
                     }
-
                     break;
                 case InputKeyLeft:
                     currentSettingsIndex = MenuSettingsSound;
-
                     break;
                 default:
                     break;
@@ -1030,15 +1423,12 @@ void Player::processInput() {
                     if(freeRoamGame) {
                         freeRoamGame->updateSoundToggle();
                     }
-
                     break;
                 case InputKeyRight:
                     currentSettingsIndex = MenuSettingsMain;
-
                     break;
                 case InputKeyDown:
                     currentSettingsIndex = MenuSettingsVibration;
-
                     break;
                 default:
                     break;
@@ -1052,19 +1442,15 @@ void Player::processInput() {
                     if(freeRoamGame) {
                         freeRoamGame->updateVibrationToggle();
                     }
-
                     break;
                 case InputKeyRight:
                     currentSettingsIndex = MenuSettingsMain;
-
                     break;
                 case InputKeyUp:
                     currentSettingsIndex = MenuSettingsSound;
-
                     break;
                 case InputKeyDown:
                     currentSettingsIndex = MenuSettingsLeave;
-
                     break;
                 default:
                     break;
@@ -1074,15 +1460,12 @@ void Player::processInput() {
                 switch(currentInput) {
                 case InputKeyOk:
                     leaveGame = ToggleOn;
-
                     break;
                 case InputKeyRight:
                     currentSettingsIndex = MenuSettingsMain;
-
                     break;
                 case InputKeyUp:
                     currentSettingsIndex = MenuSettingsVibration;
-
                     break;
                 default:
                     break;
@@ -1098,7 +1481,6 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyBack:
             currentMainView = GameViewWelcome;
-
             break;
         case InputKeyOk:
             if(loginStatus == LoginSuccess) {
@@ -1114,7 +1496,6 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyBack:
             currentMainView = GameViewWelcome;
-
             break;
         case InputKeyOk:
             if(registrationStatus == RegistrationSuccess) {
@@ -1130,13 +1511,11 @@ void Player::processInput() {
         switch(currentInput) {
         case InputKeyBack:
             currentMainView = GameViewTitle;
-
             break;
         default:
             break;
         }
         break;
-
     case GameViewGameLocal:
     case GameViewGameOnline:
         // In game views, we need to handle input differently
@@ -1145,7 +1524,6 @@ void Player::processInput() {
         // The original handleMenu() method in the Player::render()
         // and Player::update() methods will handle the in-game system menu correctly
         break;
-
     default:
         break;
     }
@@ -1163,6 +1541,8 @@ void Player::switchLevels(Game* game) {
             currentDynamicMap = mapsFirst();
         } else if(strcmp(game->current_level->name, "Second") == 0) {
             currentDynamicMap = mapsSecond();
+        } else if(strcmp(game->current_level->name, "Online") == 0) {
+            currentDynamicMap = mapsOnline();
         }
 
         if(currentDynamicMap != nullptr) {
@@ -1235,6 +1615,8 @@ void Player::switchLevels(Game* game) {
 void Player::update(Game* game) {
     if(game->input == InputKeyBack) {
         gameState = gameState == GameStateMenu ? GameStatePlaying : GameStateMenu;
+        game->input = InputKeyMAX;
+        return;
     }
 
     if(gameState == GameStateMenu) {
@@ -1265,7 +1647,7 @@ void Player::update(Game* game) {
         game->input = InputKeyMAX;
         justStarted = false;
         justSwitchedLevels = false;
-        is_visible = true;
+        is_visible = (showPlayerToggle == ToggleOn);
     } break;
     case InputKeyDown: {
         // Calculate new position
@@ -1288,7 +1670,7 @@ void Player::update(Game* game) {
         game->input = InputKeyMAX;
         justStarted = false;
         justSwitchedLevels = false;
-        is_visible = true;
+        is_visible = (showPlayerToggle == ToggleOn);
     } break;
     case InputKeyLeft: {
         float old_dir_x = direction.x;
@@ -1308,7 +1690,7 @@ void Player::update(Game* game) {
         game->input = InputKeyMAX;
         justStarted = false;
         justSwitchedLevels = false;
-        is_visible = true;
+        is_visible = (showPlayerToggle == ToggleOn);
     } break;
     case InputKeyRight: {
         float old_dir_x = direction.x;
@@ -1328,7 +1710,7 @@ void Player::update(Game* game) {
         game->input = InputKeyMAX;
         justStarted = false;
         justSwitchedLevels = false;
-        is_visible = true;
+        is_visible = (showPlayerToggle == ToggleOn);
     } break;
     default:
         break;
@@ -1361,17 +1743,17 @@ void Player::render(Draw* canvas, Game* game) {
         game->draw->fillScreen(0xFFFF);
         game->draw->setColor(0x0000);
         game->draw->setFont(FONT_SIZE_PRIMARY);
-        game->draw->text(Vector(5, 15), "New Level");
+        game->draw->text(5, 15, "New Level");
         game->draw->setFont(FONT_SIZE_SMALL);
-        game->draw->text(Vector(5, 30), game->current_level->name);
-        game->draw->text(Vector(5, 58), "Tip: BACK opens the menu.");
+        game->draw->text(5, 30, game->current_level->name);
+        game->draw->text(5, 58, "Tip: BACK opens the menu.");
         is_visible = false; // hide player entity during level switch
         if(levelSwitchCounter < 50) {
             levelSwitchCounter++;
         } else {
             justSwitchedLevels = false;
             levelSwitchCounter = 0; // reset counter
-            is_visible = true; // show player entity again
+            is_visible = (showPlayerToggle == ToggleOn); // restore per toggle
         }
         return;
     }
@@ -1387,19 +1769,17 @@ void Player::render(Draw* canvas, Game* game) {
                     entity->is_active = true; // activate all entities
                 }
             }
-            this->is_visible = true; // show player entity in game
+            this->is_visible = (showPlayerToggle == ToggleOn); // restore per toggle
             _state = GameStatePlaying;
         }
         if(currentDynamicMap != nullptr) {
             // Update player 3D sprite orientation for 3rd person perspective
             if(game->getCamera()->perspective == CAMERA_THIRD_PERSON) {
                 float dir_length = sqrtf(direction.x * direction.x + direction.y * direction.y);
-                Vector normalized_dir = Vector(direction.x / dir_length, direction.y / dir_length);
-
                 if(has3DSprite()) {
                     update3DSpritePosition();
                     float camera_direction_angle =
-                        atan2f(normalized_dir.y, normalized_dir.x) + M_PI_2;
+                        atan2f(direction.y / dir_length, direction.x / dir_length) + M_PI_2;
                     set3DSpriteRotation(camera_direction_angle);
                 }
             }
@@ -1420,6 +1800,124 @@ void Player::render(Draw* canvas, Game* game) {
     }
 }
 
+void Player::updateEntitiesFromServer(const char* csv) {
+    if(!csv || !freeRoamGame || !freeRoamGame->getEngine()) return;
+
+    Game* game = freeRoamGame->getEngine()->getGame();
+    if(!game || !game->current_level) return;
+
+    // CSV format from server:
+    //   Entity update: name,x,y,z,dir_x,dir_y,plane_x,plane_y  (8 fields)
+    //   Removal:       name,R                                    (2 fields)
+    //
+
+    // Field 0: name (up to first comma)
+    const char* p = csv;
+    const char* comma = strchr(p, ',');
+    if(!comma || comma == p) return; // no comma or empty name
+
+    char entity_name[64];
+    size_t nameLen = (size_t)(comma - p);
+    if(nameLen >= sizeof(entity_name)) nameLen = sizeof(entity_name) - 1;
+    memcpy(entity_name, p, nameLen);
+    entity_name[nameLen] = '\0';
+
+    p = comma + 1; // advance past first comma
+
+    // Check for removal marker: "R" as the second field
+    if(*p == 'R' && (*(p + 1) == '\0' || *(p + 1) == '\n' || *(p + 1) == '\r')) {
+        if(strcmp(entity_name, player_name) != 0) {
+            for(int i = 0; i < game->current_level->getEntityCount(); i++) {
+                Entity* e = game->current_level->getEntity(i);
+                if(e && e->name && strcmp(e->name, entity_name) == 0) {
+                    game->current_level->entity_remove(e);
+                    break;
+                }
+            }
+        }
+        return;
+    }
+
+    // Parse 7 float fields: x,y,z,dir_x,dir_y,plane_x,plane_y
+    float vals[7];
+    for(int fi = 0; fi < 7; fi++) {
+        char* end = nullptr;
+        vals[fi] = strtof(p, &end);
+        if(end == p) return; // parse failure
+        if(fi < 6) {
+            if(*end != ',') return;
+            p = end + 1;
+        }
+    }
+
+    float ex = vals[0];
+    float ey = vals[1];
+    float ez = vals[2];
+    float e_dir_x = vals[3];
+    float e_dir_y = vals[4];
+    float e_pl_x = vals[5];
+    float e_pl_y = vals[6];
+
+    if(strcmp(entity_name, player_name) == 0) {
+        position_set(ex, ey, ez);
+        direction.x = e_dir_x;
+        direction.y = e_dir_y;
+        plane.x = e_pl_x;
+        plane.y = e_pl_y;
+        if(has3DSprite()) {
+            float rotation_angle = atan2f(direction.y, direction.x) + M_PI_2;
+            set3DSpriteRotation(rotation_angle);
+            update3DSpritePosition();
+        }
+    } else {
+        bool found = false;
+        for(int i = 0; i < game->current_level->getEntityCount(); i++) {
+            Entity* e = game->current_level->getEntity(i);
+            if(e && e->name && strcmp(e->name, entity_name) == 0) {
+                found = true;
+                e->position_set(ex, ey, ez);
+                e->direction.x = e_dir_x;
+                e->direction.y = e_dir_y;
+                e->plane.x = e_pl_x;
+                e->plane.y = e_pl_y;
+                if(e->has3DSprite()) {
+                    float rotation_angle = atan2f(e->direction.y, e->direction.x) + M_PI_2;
+                    e->set3DSpriteRotation(rotation_angle);
+                    e->update3DSpritePosition();
+                }
+                break;
+            }
+        }
+
+        if(!found) {
+            const char* name_ptr =
+                remotePlayerNamePool.insert(std::string(entity_name)).first->c_str();
+            Entity* remote = new Entity(
+                name_ptr,
+                ENTITY_PLAYER,
+                Vector(ex, ey, ez),
+                Vector(1.0f, 2.0f),
+                nullptr,
+                nullptr,
+                nullptr,
+                {},
+                {},
+                {},
+                {},
+                {},
+                false,
+                SPRITE_3D_HUMANOID,
+                0x0000);
+            remote->is_player = false;
+            remote->direction.x = e_dir_x;
+            remote->direction.y = e_dir_y;
+            remote->plane.x = e_pl_x;
+            remote->plane.y = e_pl_y;
+            game->current_level->entity_add(remote);
+        }
+    }
+}
+
 void Player::userRequest(RequestType requestType) {
     if(!freeRoamGame) {
         FURI_LOG_E("Player", "userRequest: FreeRoamGame instance is null");
@@ -1428,10 +1926,7 @@ void Player::userRequest(RequestType requestType) {
 
     // Get app context to access HTTP functionality
     FreeRoamApp* app = static_cast<FreeRoamApp*>(freeRoamGame->appContext);
-    if(!app) {
-        FURI_LOG_E("Player", "userRequest: App context is null");
-        return;
-    }
+    furi_check(app);
 
     // Allocate memory for credentials
     char* username = (char*)malloc(64);
@@ -1464,6 +1959,20 @@ void Player::userRequest(RequestType requestType) {
             break;
         case RequestTypeUserInfo:
             userInfoStatus = UserInfoCredentialsMissing;
+            break;
+        case RequestTypeGameCreate:
+            onlineGameState = OnlineStateError;
+            break;
+        case RequestTypeGameList:
+            lobbyFetched = true;
+            lobbyCount = 0;
+            break;
+        default:
+            FURI_LOG_E("Player", "userRequest: Unknown request type %d", requestType);
+            loginStatus = LoginRequestError;
+            registrationStatus = RegistrationRequestError;
+            userInfoStatus = UserInfoRequestError;
+            onlineGameState = OnlineStateError;
             break;
         }
         free(username);
@@ -1503,6 +2012,11 @@ void Player::userRequest(RequestType requestType) {
         }
         break;
     case RequestTypeUserInfo: {
+        char* authHeader = (char*)malloc(256);
+        if(!authHeader) {
+            userInfoStatus = UserInfoRequestError;
+            break;
+        }
         char* url = (char*)malloc(128);
         if(!url) {
             FURI_LOG_E("Player", "userRequest: Failed to allocate memory for url");
@@ -1513,11 +2027,69 @@ void Player::userRequest(RequestType requestType) {
             return;
         }
         snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/game-stats/%s/", username);
-        if(!app->httpRequestAsync(
-               "user_info.txt", url, GET, "{\"Content-Type\":\"application/json\"}")) {
+        snprintf(
+            authHeader,
+            256,
+            "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}",
+            username,
+            password);
+        if(!app->httpRequestAsync("user_info.txt", url, GET, authHeader)) {
             userInfoStatus = UserInfoRequestError;
         }
         free(url);
+    } break;
+    case RequestTypeGameCreate: {
+        char* authHeader = (char*)malloc(256);
+        if(!authHeader) {
+            onlineGameState = OnlineStateError;
+            break;
+        }
+        char* game_payload = (char*)malloc(128);
+        if(!game_payload) {
+            free(authHeader);
+            onlineGameState = OnlineStateError;
+            break;
+        }
+        snprintf(
+            game_payload, 128, "{\"game_name\":\"Free Roam\", \"username\":\"%s\"}", player_name);
+        snprintf(
+            authHeader,
+            256,
+            "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}",
+            username,
+            password);
+        if(!app->httpRequestAsync(
+               "game_session.txt",
+               "https://www.jblanked.com/game-server/games/create/",
+               POST,
+               authHeader,
+               game_payload)) {
+            onlineGameState = OnlineStateError;
+        } else {
+            onlineGameState = OnlineStateFetchingSession;
+        }
+        free(authHeader);
+        free(game_payload);
+    } break;
+    case RequestTypeGameList: {
+        char* authHeader = (char*)malloc(256);
+        if(!authHeader) {
+            lobbyFetched = true; // mark as fetched (with 0 results) so UI doesn't hang
+            lobbyCount = 0;
+            break;
+        }
+        snprintf(
+            authHeader,
+            256,
+            "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}",
+            username,
+            password);
+        if(!app->httpRequestAsync(
+               "game_list.txt", "https://www.jblanked.com/game-server/games/", GET, authHeader)) {
+            lobbyFetched = true;
+            lobbyCount = 0;
+        }
+        free(authHeader);
     } break;
     default:
         FURI_LOG_E("Player", "Unknown request type: %d", requestType);

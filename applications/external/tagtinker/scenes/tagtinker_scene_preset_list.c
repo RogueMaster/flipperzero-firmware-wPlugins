@@ -1,81 +1,59 @@
 /*
- * Text preset list.
+ * Recent pushes list.
+ * Only shows pushes compatible with the current tag profile.
  */
 
 #include "../tagtinker_app.h"
 #define EVT_ADD_NEW 200
-#define EVT_PRESET  0
+#define EVT_RECENT  0
 
-static void presets_load(TagTinkerApp* app) {
-    app->preset_count = 0;
-
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    File* file = storage_file_alloc(storage);
-
-    if(storage_file_open(file, APP_DATA_PATH("presets.txt"), FSAM_READ, FSOM_OPEN_EXISTING)) {
-        char buf[512];
-        uint16_t read = storage_file_read(file, buf, sizeof(buf) - 1);
-        buf[read] = '\0';
-        storage_file_close(file);
-
-        char* line = buf;
-        while(line && *line && app->preset_count < TAGTINKER_MAX_PRESETS) {
-            char* nl = strchr(line, '\n');
-            if(nl) *nl = '\0';
-
-            unsigned w, h, pg, inv, clr;
-            if(sscanf(line, "%u|%u|%u|%u|%u|", &w, &h, &pg, &inv, &clr) == 5) {
-                char* p = line;
-                int pipes = 0;
-                while(*p && pipes < 5) {
-                    if(*p == '|') pipes++;
-                    p++;
-                }
-
-                uint8_t idx = app->preset_count++;
-                app->presets[idx].width = (uint16_t)w;
-                app->presets[idx].height = (uint16_t)h;
-                app->presets[idx].page = (uint8_t)pg;
-                app->presets[idx].invert = (inv != 0);
-                app->presets[idx].color_clear = (clr != 0);
-                memset(app->presets[idx].text, 0, TAGTINKER_PRESET_TEXT_LEN);
-                if(pipes == 5) {
-                    strncpy(app->presets[idx].text, p, TAGTINKER_PRESET_TEXT_LEN - 1);
-                }
-            }
-            line = nl ? nl + 1 : NULL;
-        }
-    }
-    storage_file_free(file);
-    furi_record_close(RECORD_STORAGE);
-}
-
-static void preset_list_cb(void* ctx, uint32_t index) {
+static void recent_list_cb(void* ctx, uint32_t index) {
     TagTinkerApp* app = ctx;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-static char preset_labels[TAGTINKER_MAX_PRESETS][48];
+static char recent_labels[TAGTINKER_MAX_PRESETS][48];
+static uint8_t filtered_indices[TAGTINKER_MAX_PRESETS];
+static uint8_t filtered_count = 0;
 
 void tagtinker_scene_preset_list_on_enter(void* ctx) {
     TagTinkerApp* app = ctx;
 
-    presets_load(app);
+    tagtinker_recents_load(app);
 
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Text Presets");
+    submenu_set_header(app->submenu, "Recent Pushes");
 
-    submenu_add_item(app->submenu, "[+] New Preset", EVT_ADD_NEW, preset_list_cb, app);
+    submenu_add_item(app->submenu, "[+] New Text", EVT_ADD_NEW, recent_list_cb, app);
 
-    for(uint8_t i = 0; i < app->preset_count; i++) {
+    filtered_count = 0;
+    for(uint8_t i = 0; i < app->recent_count; i++) {
+        /* Filter by current tag's width/height if available */
+        if(app->selected_target >= 0) {
+            TagTinkerTarget* target = &app->targets[app->selected_target];
+            if(target->profile.width > 0 && target->profile.height > 0) {
+                if(app->recents[i].width != target->profile.width ||
+                   app->recents[i].height != target->profile.height) {
+                    continue; /* Incompatible size, skip */
+                }
+            }
+        }
+
+        filtered_indices[filtered_count] = i;
         snprintf(
-            preset_labels[i],
-            sizeof(preset_labels[i]),
-            "%ux%u \"%s\"",
-            app->presets[i].width,
-            app->presets[i].height,
-            app->presets[i].text);
-        submenu_add_item(app->submenu, preset_labels[i], EVT_PRESET + i, preset_list_cb, app);
+            recent_labels[filtered_count],
+            sizeof(recent_labels[filtered_count]),
+            "\"%s\"",
+            app->recents[i].text);
+
+        submenu_add_item(
+            app->submenu,
+            recent_labels[filtered_count],
+            EVT_RECENT + filtered_count,
+            recent_list_cb,
+            app);
+
+        filtered_count++;
     }
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TagTinkerViewSubmenu);
@@ -92,24 +70,26 @@ bool tagtinker_scene_preset_list_on_event(void* ctx, SceneManagerEvent event) {
         return true;
     }
 
-    uint32_t idx = event.event - EVT_PRESET;
-    if(idx < app->preset_count) {
-        app->esl_width = app->presets[idx].width;
-        app->esl_height = app->presets[idx].height;
-        app->img_page = app->presets[idx].page;
-        app->invert_text = app->presets[idx].invert;
-        app->color_clear = app->presets[idx].color_clear;
-        strncpy(app->text_input_buf, app->presets[idx].text, sizeof(app->text_input_buf) - 1);
+    uint32_t f_idx = event.event - EVT_RECENT;
+    if(f_idx < filtered_count) {
+        uint8_t r_idx = filtered_indices[f_idx];
 
-        FURI_LOG_I(
-            TAGTINKER_TAG,
-            "Preset %lu: %ux%u \"%s\"",
-            idx,
-            app->esl_width,
-            app->esl_height,
-            app->text_input_buf);
+        app->esl_width = app->recents[r_idx].width;
+        app->esl_height = app->recents[r_idx].height;
+        app->img_page = app->recents[r_idx].page;
+        app->invert_text = app->recents[r_idx].invert;
+        app->color_clear = app->recents[r_idx].color_clear;
+        app->text_padding_pct = app->recents[r_idx].padding;
+        app->signal_mode = TagTinkerSignalPP4;
+        strncpy(app->text_input_buf, app->recents[r_idx].text, sizeof(app->text_input_buf) - 1);
 
         TagTinkerTarget* target = &app->targets[app->selected_target];
+
+        /* Auto-save/update recents order */
+        tagtinker_recents_add(app, app->text_input_buf);
+
+        FURI_LOG_I(TAGTINKER_TAG, "TX Recent: reps=%u", app->data_frame_repeats);
+
         tagtinker_prepare_text_tx(app, target->plid);
         app->tx_spam = false;
         scene_manager_next_scene(app->scene_manager, TagTinkerSceneTransmit);

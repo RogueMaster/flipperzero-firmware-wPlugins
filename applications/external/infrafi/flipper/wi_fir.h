@@ -81,6 +81,7 @@ typedef struct {
     char selected_saved_file[WFR_FILENAME_MAX];
 
     /* Settings */
+    WfrIrProtocol ir_protocol;
     bool ack_enabled;
 
     /* IR ACK receive state */

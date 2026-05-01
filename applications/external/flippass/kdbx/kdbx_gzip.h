@@ -53,6 +53,7 @@ typedef struct {
 typedef struct {
     KDBXGzipStatus status;
     size_t expected_output_size;
+    size_t expected_input_size;
     size_t free_heap;
     size_t max_free_block;
     int inflate_status;

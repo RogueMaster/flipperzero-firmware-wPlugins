@@ -5,7 +5,6 @@
 #define WEEBO_KEY_RETAIL_FILENAME "key_retail"
 #define FIGURE_ID_LIST            APP_ASSETS_PATH("figure_ids.nfc")
 #define UNPACKED_FIGURE_ID        0x1dc
-#define NFC_APP_EXTENSION         ".nfc"
 #define NFC_APP_PATH_PREFIX       "/ext/nfc"
 
 static const char* nfc_resources_header = "Flipper NFC resources";
@@ -81,6 +80,7 @@ bool weebo_load_figure(Weebo* weebo, FuriString* path, bool show_dialog) {
         }
 
         if(!mf_ultralight_is_all_data_read(data)) {
+            //TODO: check is the missing data is the PWD and/or PACK and fill that in
             furi_string_printf(reason, "Incomplete data");
             break;
         }
@@ -391,6 +391,9 @@ Weebo* weebo_alloc() {
     weebo->dialogs = furi_record_open(RECORD_DIALOGS);
     weebo->load_path = furi_string_alloc();
 
+    // Initialize file cycling
+    weebo->file_list = weebo_file_list_alloc();
+
     weebo->keys_loaded = false;
 
     return weebo;
@@ -448,6 +451,10 @@ void weebo_free(Weebo* weebo) {
     weebo->notifications = NULL;
 
     furi_string_free(weebo->load_path);
+
+    // Clean up file cycling
+    weebo_file_list_free(weebo->file_list);
+
     furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_DIALOGS);
 

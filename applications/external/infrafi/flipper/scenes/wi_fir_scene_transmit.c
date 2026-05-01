@@ -14,7 +14,8 @@ static void wi_fir_ir_rx_callback(void* context, InfraredWorkerSignal* signal) {
     if(!infrared_worker_signal_is_decoded(signal)) return;
 
     const InfraredMessage* message = infrared_worker_get_decoded_signal(signal);
-    if(message->protocol != InfraredProtocolRC6) return;
+    if(message->protocol != InfraredProtocolRC6 && message->protocol != InfraredProtocolNEC)
+        return;
 
     uint8_t address = (uint8_t)(message->address & 0xFF);
     uint8_t command = (uint8_t)(message->command & 0xFF);
@@ -79,7 +80,7 @@ void wi_fir_scene_transmit_on_enter(void* context) {
     notification_message(app->notifications, &sequence_blink_start_magenta);
 
     /* Transmit via IR */
-    bool success = wfr_transmit_credentials(&creds);
+    bool success = wfr_transmit_credentials(&creds, app->ir_protocol);
 
     notification_message(app->notifications, &sequence_blink_stop);
 

@@ -1,13 +1,13 @@
 # Fire String
 
-Generate truly random strings from the Flipper Zero using its IR sensor. Capture the infrared bursts from sparking a flame as an unpredictable entropy source. The app also allows saving and loading strings from internal storage or transferring them to external sources via USB.
+Generate truly random strings from the Flipper Zero using its IR sensor. Capture the infrared bursts from sparking a flame as an unpredictable entropy source. The app also allows saving and loading strings from internal storage or transferring them to external sources via USB or Bluetooth.
 
 ## Features
 
 * **IR Sensor Input**: Use the IR sensor to capture unpredictable randomness (e.g., lighter ignition).
 * **Fallback Randomness**: Toggle off the IR sensor, relying on the Flipper Zero’s internal entropy sources.
 * **Internal Storage**: Save your favorite strings to internal storage and retrieve them later for reuse.
-* **USB Output**: Export generated strings directly to any external device that supports USB HID input.
+* **USB and Bluetooth Export**: Export generated strings directly to any external device that supports USB or Bluetooth HID input.
 
 ## How It Works
 
@@ -26,11 +26,12 @@ The Fire String generator uses the IR sensor to detect unpredictable infrared no
 ## Supported Character Sets
 
 * Alphabetic, Numeric and Symbols
-* Phrases
+* Words
 * Alphabetic and Numeric
 * Alphabetic
 * Symbols
 * Numeric
+* Hexadecimal
 * Binary
 
 ## Disclaimer

@@ -18,7 +18,7 @@
 #include "game/game.hpp"
 
 #define TAG         "Free Roam"
-#define VERSION     "0.5"
+#define VERSION     FAP_VERSION
 #define VERSION_TAG TAG " " VERSION
 #define APP_ID      "free_roam"
 
@@ -100,6 +100,12 @@ public:
     bool sendWiFiCredentials(
         const char* ssid,
         const char* password); // send WiFi credentials to the board
+
+    bool websocketStart(const char* url, uint16_t port = 80); // start a WebSocket connection
+    bool websocketStop(); // stop the active WebSocket connection
+    bool websocketSend(const char* message); // send a message over the open WebSocket
+    void clearLastResponse(); // clear the most recent data received over UART
+    const char* getLastResponse() const noexcept; // get the most recent data received over UART
 
     FreeRoamApp();
     ~FreeRoamApp();

@@ -16,6 +16,21 @@
 > subscription is a violation of Tesla's Terms of Service. Doing so is
 > your decision and your risk.
 
+> [!CAUTION]
+> **Tesla has begun issuing VIN-level bans** (confirmed April 2026,
+> issue #18). Affected vehicles lose the TLSSC toggle silently — no OTA
+> update, no warning. The ban persists across account transfers, FSD
+> re-subscriptions, and software reinstalls from Service. Pulling the
+> SIM card before use reduces but does not eliminate detection risk.
+>
+> **What we now know about the ban mechanism** (community research, April 2026):
+> - The ban downgrades `GTW_autopilot` tier from SELF_DRIVING (3) to ENHANCED (2) in `0x7FF` mux=2 byte[5] bits 4:2
+> - `0x3FD` mux=0 byte[4] bit 7 (TLSSC UI visible flag) is independently cleared
+> - `0x259 APP_fsdSuspendState` is set to SUSPENDED on banned cars
+> - The AP ECU reads entitlement over **Ethernet, not CAN** — shadow-injecting 0x7FF has no effect on the AP ECU's decision
+> - **TLSSC Restore (0x331)** can partially recover stop sign / traffic light control on Palladium and HW4 platforms, but does NOT restore full FSD
+> - Ban enforcement is platform-specific: Intel HW3 is more aggressive than Palladium/HW4
+
 This project is published for testing, research, and educational purposes.
 It is intended for use on **private property** and **off public roads**
 unless and until you have your own legal opinion that operating it on a
@@ -65,6 +80,11 @@ project's TX path can write to:
 - `0x082` `UI_tripPlanning` — periodic write of `0x05` in byte 0 to
   trigger battery preconditioning, only when the user enables the
   Precondition setting
+- `0x331` `DAS_autopilotConfig` — overwrites byte[0] lower 6 bits to
+  0x1B (SELF_DRIVING) for TLSSC Restore on banned vehicles; only when
+  the user enables the TLSSC Restore setting
+- `0x7FF` `GTW_carConfig` — retransmits the healthy snapshot when Ban
+  Shield detects a server-side change; only when Ban Shield is armed
 
 It does NOT write to:
 
@@ -121,6 +141,7 @@ exactly what triggered it — the working assumption is that visible legal
 pressure on this kind of project is real and increasing. Conservative
 defaults (Listen-Only first boot, OTA Guard, narrow TX surface, explicit
 disclaimer) make this project survivable for longer and protect the
-people who use it. The currently-reachable community continuations are
-[slxslx/tesla-open-can-mod-slx-repo](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo)
-and [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod).
+people who use it. The community has since reorganized on GitHub as
+[ev-open-can-tools/ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools)
+— a vehicle-agnostic CAN mod toolkit. The CanFeather mirror lives at
+[Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod).

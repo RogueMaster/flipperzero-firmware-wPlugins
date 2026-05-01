@@ -38,6 +38,14 @@ void protopirate_scene_saved_info_on_enter(void* context) {
 
     FURI_LOG_I(TAG, "=== ENTER START ===");
 
+    protopirate_release_shared_radio_state(app);
+
+    if(!protopirate_ensure_widget(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
     // Reset widget first
     widget_reset(app->widget);
 

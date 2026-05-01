@@ -36,6 +36,7 @@ typedef enum {
     FlipParScreenGrid,
     FlipParScreenConfirmNewGame,
     FlipParScreenSaveResult,
+    FlipParScreenLock,
 } FlipParScreen;
 
 typedef enum {
@@ -46,6 +47,7 @@ typedef enum {
     FlipParFieldNewGame,
     FlipParFieldGridLines,
     FlipParFieldSave,
+    FlipParFieldLock,
 } FlipParSetupField;
 
 typedef enum {
@@ -56,6 +58,17 @@ typedef enum {
 typedef enum {
     FlipParCustomEventSplashDone = 1,
 } FlipParCustomEvent;
+
+static const FlipParSetupField flippar_setup_field_order[] = {
+    FlipParFieldHoles,
+    FlipParFieldPlayers,
+    FlipParFieldNames,
+    FlipParFieldStart,
+    FlipParFieldNewGame,
+    FlipParFieldGridLines,
+    FlipParFieldLock,
+    FlipParFieldSave,
+};
 
 typedef struct {
     uint8_t dummy;
@@ -125,6 +138,7 @@ typedef struct {
     char last_save_filename[48];
     bool show_grid_lines;
     FlipParScreen splash_target_screen;
+    uint8_t lock_back_presses;
 
     bool running;
 } FlipParApp;
@@ -202,6 +216,7 @@ static void flippar_init_data(FlipParApp* app) {
     app->last_save_success = false;
     app->show_grid_lines = false;
     app->splash_target_screen = FlipParScreenSetup;
+    app->lock_back_presses = 0;
     app->running = true;
 }
 
@@ -284,6 +299,32 @@ static uint8_t flippar_longest_player_name_length(FlipParApp* app) {
     return longest;
 }
 
+static int8_t flippar_find_last_played_hole(FlipParApp* app) {
+    for(int8_t hole = (int8_t)app->holes - 1; hole >= 0; hole--) {
+        for(uint8_t player = 0; player < app->players; player++) {
+            if(app->scores[player][hole] > 0) {
+                return hole;
+            }
+        }
+    }
+
+    return -1;
+}
+
+static uint8_t flippar_setup_field_count(void) {
+    return COUNT_OF(flippar_setup_field_order);
+}
+
+static uint8_t flippar_get_setup_field_position(FlipParSetupField field) {
+    for(uint8_t i = 0; i < flippar_setup_field_count(); i++) {
+        if(flippar_setup_field_order[i] == field) {
+            return i;
+        }
+    }
+
+    return 0;
+}
+
 static bool flippar_write_text(File* file, const char* text) {
     size_t len = strlen(text);
     return storage_file_write(file, text, len) == len;
@@ -355,8 +396,10 @@ static bool flippar_save_current_state(FlipParApp* app) {
         .version = FLIPPAR_STATE_VERSION,
         .holes = app->holes,
         .players = app->players,
-        .screen = persisted_screen == FlipParScreenConfirmNewGame ? FlipParScreenSetup :
-                                                                    persisted_screen,
+        .screen = (persisted_screen == FlipParScreenConfirmNewGame ||
+                   persisted_screen == FlipParScreenLock) ?
+                      FlipParScreenSetup :
+                      persisted_screen,
         .setup_field = app->setup_field,
         .setup_name_index = app->setup_name_index,
         .selected_row = app->selected_row,
@@ -460,7 +503,7 @@ static bool flippar_load_current_state(FlipParApp* app) {
 
         if(state_v3.holes < 1 || state_v3.holes > FLIPPAR_MAX_HOLES) goto close_file;
         if(state_v3.players < 1 || state_v3.players > FLIPPAR_MAX_PLAYERS) goto close_file;
-        if(state_v3.setup_field > FlipParFieldSave) goto close_file;
+        if(state_v3.setup_field > FlipParFieldLock) goto close_file;
         if(state_v3.setup_name_index >= state_v3.players) goto close_file;
         if(state_v3.selected_row > state_v3.players) goto close_file;
         if(state_v3.selected_col >= state_v3.holes) goto close_file;
@@ -486,6 +529,7 @@ static bool flippar_load_current_state(FlipParApp* app) {
     }
 
     app->confirm_new_game_yes = false;
+    app->lock_back_presses = 0;
     flippar_normalize_state(app);
     success = true;
 
@@ -718,14 +762,17 @@ static void flippar_draw_setup(Canvas* canvas, FlipParApp* app) {
     char line[64];
 
     const uint8_t visible_items = 5;
+    const uint8_t selected_position = flippar_get_setup_field_position(app->setup_field);
     uint8_t scroll_offset = 0;
-    if(app->setup_field >= visible_items) {
-        scroll_offset = app->setup_field - visible_items + 1;
+    if(selected_position >= visible_items) {
+        scroll_offset = selected_position - visible_items + 1;
     }
 
     for(uint8_t i = 0; i < visible_items; i++) {
-        uint8_t field = scroll_offset + i;
-        if(field > FlipParFieldSave) break;
+        uint8_t field_index = scroll_offset + i;
+        if(field_index >= flippar_setup_field_count()) break;
+
+        FlipParSetupField field = flippar_setup_field_order[field_index];
 
         uint8_t y = 18 + (i * 8);
         if(field == FlipParFieldHoles) {
@@ -761,9 +808,11 @@ static void flippar_draw_setup(Canvas* canvas, FlipParApp* app) {
                 "%c Grid Lines %s",
                 app->setup_field == field ? '>' : ' ',
                 app->show_grid_lines ? "ON" : "OFF");
-        } else {
+        } else if(field == FlipParFieldSave) {
             snprintf(
                 line, sizeof(line), "%c Save Score Sheet", app->setup_field == field ? '>' : ' ');
+        } else {
+            snprintf(line, sizeof(line), "%c Lock Screen", app->setup_field == field ? '>' : ' ');
         }
 
         canvas_draw_str(canvas, 2, y, line);
@@ -823,6 +872,66 @@ static void flippar_draw_save_result(Canvas* canvas, FlipParApp* app) {
     }
 
     canvas_draw_str(canvas, 2, 62, "Press any key");
+}
+
+static void flippar_draw_lock_screen(Canvas* canvas, FlipParApp* app) {
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    int8_t last_hole = flippar_find_last_played_hole(app);
+    canvas_draw_str(canvas, 2, 10, "FlipPar Lock Screen");
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 20, "Score");
+
+    if(last_hole < 0) {
+        canvas_draw_str(canvas, 2, 32, "No holes played yet.");
+        canvas_draw_str(canvas, 2, 62, "Back 3 times to return");
+        return;
+    }
+
+    char hole_line[24];
+    snprintf(
+        hole_line,
+        sizeof(hole_line),
+        "H%u Par %u",
+        (unsigned)(last_hole + 1),
+        (unsigned)app->pars[last_hole]);
+    canvas_draw_str(canvas, 44, 20, hole_line);
+
+    for(uint8_t row = 0; row < 5; row++) {
+        const uint8_t left_player = row * 2;
+        const uint8_t right_player = left_player + 1;
+        char line[32] = {0};
+        char left_cell[16] = {0};
+        char right_cell[16] = {0};
+
+        if(left_player < app->players) {
+            snprintf(
+                left_cell,
+                sizeof(left_cell),
+                "%-.4s:%2u",
+                app->player_names[left_player],
+                (unsigned)app->scores[left_player][last_hole]);
+        }
+        if(right_player < app->players) {
+            snprintf(
+                right_cell,
+                sizeof(right_cell),
+                "%-.4s:%2u",
+                app->player_names[right_player],
+                (unsigned)app->scores[right_player][last_hole]);
+        }
+
+        if(right_cell[0] != '\0') {
+            snprintf(line, sizeof(line), "%-14s %s", left_cell, right_cell);
+        } else {
+            snprintf(line, sizeof(line), "%s", left_cell);
+        }
+
+        canvas_draw_str(canvas, 2, 30 + (row * 8), line);
+    }
+
+    canvas_draw_str(canvas, 2, 62, "Back 3 times to return");
 }
 
 static void flippar_draw_scroll_arrow(Canvas* canvas, uint8_t x, uint8_t y, bool up) {
@@ -1008,6 +1117,8 @@ static void flippar_main_view_draw(Canvas* canvas, void* model) {
         flippar_draw_new_game_confirm(canvas, app);
     } else if(app->screen == FlipParScreenSaveResult) {
         flippar_draw_save_result(canvas, app);
+    } else if(app->screen == FlipParScreenLock) {
+        flippar_draw_lock_screen(canvas, app);
     } else {
         flippar_draw_grid(canvas, app);
     }
@@ -1030,6 +1141,18 @@ static uint32_t flippar_main_view_previous(void* context) {
 
     if(app->screen == FlipParScreenSaveResult) {
         app->screen = FlipParScreenSetup;
+        return FlipParViewMain;
+    }
+
+    if(app->screen == FlipParScreenLock) {
+        if(app->lock_back_presses < 2) {
+            app->lock_back_presses++;
+            return FlipParViewMain;
+        }
+
+        app->screen = FlipParScreenSetup;
+        app->lock_back_presses = 0;
+        flippar_save_current_state(app);
         return FlipParViewMain;
     }
 
@@ -1101,15 +1224,32 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
         return false;
     }
 
+    if(app->screen == FlipParScreenLock) {
+        if(event->key == InputKeyBack) {
+            return false;
+        }
+
+        if(event->type == InputTypeShort || event->type == InputTypeRepeat ||
+           event->type == InputTypeLong) {
+            app->lock_back_presses = 0;
+        }
+        return true;
+    }
+
     if(app->screen == FlipParScreenSetup) {
         if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+        uint8_t setup_field_position = flippar_get_setup_field_position(app->setup_field);
 
         if(event->key == InputKeyUp) {
-            if(app->setup_field > 0) app->setup_field--;
+            if(setup_field_position > 0) {
+                app->setup_field = flippar_setup_field_order[setup_field_position - 1];
+            }
             flippar_save_current_state(app);
             return true;
         } else if(event->key == InputKeyDown) {
-            if(app->setup_field < FlipParFieldSave) app->setup_field++;
+            if((setup_field_position + 1) < flippar_setup_field_count()) {
+                app->setup_field = flippar_setup_field_order[setup_field_position + 1];
+            }
             flippar_save_current_state(app);
             return true;
         } else if(event->key == InputKeyLeft) {
@@ -1162,6 +1302,10 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
                 flippar_toggle_grid_lines(app);
             } else if(app->setup_field == FlipParFieldSave) {
                 flippar_save_score_sheet(app);
+            } else if(app->setup_field == FlipParFieldLock) {
+                app->screen = FlipParScreenLock;
+                app->lock_back_presses = 0;
+                flippar_save_current_state(app);
             }
             return true;
         }

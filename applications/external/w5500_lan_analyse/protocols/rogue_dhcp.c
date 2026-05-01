@@ -180,7 +180,9 @@ bool rogue_dhcp_detect(const uint8_t our_mac[6], RogueDhcpState* state, uint32_t
         if(rx_len > 0) {
             uint8_t from_ip[4];
             uint16_t from_port;
-            int32_t recv_len = recvfrom(DHCP_SOCK, pkt, sizeof(pkt), from_ip, &from_port);
+            /* pkt is a pointer here (malloc'd 512 bytes), so we must pass the
+             * explicit buffer size — sizeof(pkt) would be 4 (pointer size). */
+            int32_t recv_len = recvfrom(DHCP_SOCK, pkt, 512, from_ip, &from_port);
             if(recv_len > 0) {
                 RogueDhcpServer temp;
                 memset(&temp, 0, sizeof(temp));

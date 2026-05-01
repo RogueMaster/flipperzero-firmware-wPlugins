@@ -94,7 +94,7 @@ void send_traceroute_request(uint8_t s, uint8_t *dest_addr, uint8_t ttl)
 
 void receive_traceroute_reply(uint8_t s, uint8_t *addr, uint16_t len)
 {
-    uint8_t data_buf[128];
+    static uint8_t data_buf[128];
 
     uint16_t rlen = recvfrom(s, data_buf, len, addr, &port); // Pass the pointer to the port variable
     (void)rlen;

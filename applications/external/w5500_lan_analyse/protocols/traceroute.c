@@ -7,6 +7,8 @@
 #include <wizchip_conf.h>
 #include <string.h>
 
+#include "../utils/packet_utils.h"
+
 #define TAG "TRACERT"
 
 /* ICMP packet constants */
@@ -14,20 +16,6 @@
 #define ICMP_DATA_SIZE   32
 #define ICMP_PACKET_SIZE (ICMP_HEADER_SIZE + ICMP_DATA_SIZE)
 #define IP_PROTO_ICMP    1
-
-static uint16_t traceroute_checksum(const uint8_t* buf, uint16_t len) {
-    uint32_t sum = 0;
-    for(uint16_t i = 0; i + 1 < len; i += 2) {
-        sum += ((uint16_t)buf[i] << 8) | buf[i + 1];
-    }
-    if(len & 1) {
-        sum += (uint16_t)buf[len - 1] << 8;
-    }
-    while(sum >> 16) {
-        sum = (sum & 0xFFFF) + (sum >> 16);
-    }
-    return (uint16_t)(~sum);
-}
 
 bool traceroute_send_hop(
     uint8_t socket_num,
@@ -70,7 +58,7 @@ bool traceroute_send_hop(
         icmp_buf[ICMP_HEADER_SIZE + i] = (uint8_t)(i + 0x30);
     }
 
-    uint16_t cksum = traceroute_checksum(icmp_buf, ICMP_PACKET_SIZE);
+    uint16_t cksum = pkt_checksum(icmp_buf, ICMP_PACKET_SIZE);
     icmp_buf[2] = (uint8_t)(cksum >> 8);
     icmp_buf[3] = (uint8_t)(cksum & 0xFF);
 
@@ -84,7 +72,8 @@ bool traceroute_send_hop(
 
     /* Wait for response (Time Exceeded or Echo Reply) */
     uint32_t start_tick = furi_get_tick();
-    uint8_t recv_buf[128];
+    /* Static to avoid 128B stack usage; worker is single-threaded */
+    static uint8_t recv_buf[128];
     uint8_t from_ip[4];
     uint16_t from_port;
 

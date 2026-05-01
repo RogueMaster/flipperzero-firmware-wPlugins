@@ -30,6 +30,32 @@ bool flippass_db_get_other_field_value(
     FuriString* error);
 bool flippass_db_entry_has_field(const KDBXEntry* entry, uint32_t field_mask);
 const KDBXCustomField* flippass_db_entry_get_custom_fields(const KDBXEntry* entry);
+bool flippass_db_create_custom_field(
+    App* app,
+    KDBXEntry* entry,
+    const char* name,
+    const char* value,
+    bool protected_value,
+    KDBXCustomField** out_field,
+    FuriString* error);
+bool flippass_db_update_custom_field(
+    App* app,
+    KDBXEntry* entry,
+    KDBXCustomField* field,
+    const char* name,
+    const char* value,
+    bool protected_value,
+    FuriString* error);
+bool flippass_db_delete_custom_field(
+    App* app,
+    KDBXEntry* entry,
+    KDBXCustomField* field,
+    FuriString* error);
+bool flippass_db_copy_group_uuid(
+    App* app,
+    const KDBXGroup* group,
+    FuriString* out,
+    FuriString* error);
 bool flippass_db_copy_entry_title(
     App* app,
     const KDBXEntry* entry,

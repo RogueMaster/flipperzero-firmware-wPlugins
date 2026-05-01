@@ -323,6 +323,7 @@ typedef enum {
 // MCP CLOCKS
 typedef enum {
     MCP_8MHZ,
+    MCP_12MHZ,
     MCP_16MHZ,
     MCP_20MHZ,
 } MCP_CLOCK;

@@ -1,11 +1,11 @@
 // protopirate_app_i.h
 #pragma once
 
+#include <stddef.h>
 #include "helpers/protopirate_types.h"
 #include "helpers/protopirate_settings.h"
 #include "scenes/protopirate_scene.h"
 #include "views/protopirate_receiver.h"
-#include "views/protopirate_receiver_info.h"
 #include "protopirate_history.h"
 #include "helpers/radio_device_loader.h"
 
@@ -36,6 +36,7 @@ typedef struct {
     SubGhzEnvironment* environment;
     SubGhzReceiver* receiver;
     SubGhzRadioPreset* preset;
+    const SubGhzProtocolRegistry* protocol_registry;
     ProtoPirateHistory* history;
     const SubGhzDevice* radio_device;
     ProtoPirateTxRxState txrx_state;
@@ -59,7 +60,6 @@ struct ProtoPirateApp {
     View* view_about;
     FuriString* file_path;
     ProtoPirateReceiver* protopirate_receiver;
-    ProtoPirateReceiverInfo* protopirate_receiver_info;
     ProtoPirateTxRx* txrx;
     SubGhzSetting* setting;
     ProtoPirateLock lock;
@@ -95,6 +95,12 @@ void protopirate_get_frequency_modulation(
     ProtoPirateApp* app,
     FuriString* frequency,
     FuriString* modulation);
+void protopirate_get_frequency_modulation_str(
+    ProtoPirateApp* app,
+    char* frequency,
+    size_t frequency_size,
+    char* modulation,
+    size_t modulation_size);
 
 void protopirate_begin(ProtoPirateApp* app, uint8_t* preset_data);
 uint32_t protopirate_rx(ProtoPirateApp* app, uint32_t frequency);
@@ -106,6 +112,21 @@ void protopirate_tx(ProtoPirateApp* app, uint32_t frequency);
 void protopirate_tx_stop(ProtoPirateApp* app);
 bool protopirate_radio_init(ProtoPirateApp* app);
 void protopirate_radio_deinit(ProtoPirateApp* app);
+bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_receiver_ready);
+bool protopirate_apply_protocol_registry_for_preset_data(
+    ProtoPirateApp* app,
+    const uint8_t* preset_data,
+    size_t preset_data_size);
+bool protopirate_ensure_variable_item_list(ProtoPirateApp* app);
+bool protopirate_ensure_widget(ProtoPirateApp* app);
+bool protopirate_ensure_text_input(ProtoPirateApp* app);
+bool protopirate_ensure_view_about(ProtoPirateApp* app);
+bool protopirate_ensure_receiver_view(ProtoPirateApp* app);
+void protopirate_release_shared_radio_state(ProtoPirateApp* app);
+
+void protopirate_rx_stack_suspend_for_tx(ProtoPirateApp* app);
+
+void protopirate_rx_stack_resume_after_tx(ProtoPirateApp* app);
 
 void protopirate_app_free(ProtoPirateApp* app);
 

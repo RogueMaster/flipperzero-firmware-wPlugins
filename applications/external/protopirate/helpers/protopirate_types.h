@@ -9,7 +9,6 @@ typedef enum {
     ProtoPirateViewSubmenu,
     ProtoPirateViewWidget,
     ProtoPirateViewReceiver,
-    ProtoPirateViewReceiverInfo,
     ProtoPirateViewAbout,
     ProtoPirateViewFileBrowser,
     ProtoPirateViewTextInput,
@@ -20,9 +19,11 @@ typedef enum {
     ProtoPirateCustomEventViewReceiverOK,
     ProtoPirateCustomEventViewReceiverConfig,
     ProtoPirateCustomEventViewReceiverBack,
+    ProtoPirateCustomEventViewReceiverDeleteItem,
     ProtoPirateCustomEventViewReceiverUnlock,
     // Custom events for scenes
     ProtoPirateCustomEventSceneReceiverUpdate,
+    ProtoPirateCustomEventReceiverDeferredRxStart,
     ProtoPirateCustomEventSceneSettingLock,
     // File management
     ProtoPirateCustomEventReceiverInfoSave,

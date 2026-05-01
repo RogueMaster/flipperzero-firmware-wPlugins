@@ -12,22 +12,27 @@
  */
 
 #include "web_dashboard.h"
+#include "can_dump.h"
+#include "prefs.h"
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <WiFi.h>
 #include <Arduino.h>
 
 // ── Module state ──────────────────────────────────────────────────────────────
-static FSDState* g_state = nullptr; // shared with main
-static CanDriver* g_can = nullptr; // for setListenOnly()
+static FSDState  *g_state = nullptr;   // shared with main
+static CanDriver *g_can   = nullptr;   // for setListenOnly()
 
-static WebServer g_http(80);
+static WebServer        g_http(80);
 static WebSocketsServer g_ws(81);
 
-static uint32_t g_start_ms = 0;
-static uint32_t g_last_rx = 0;
+static uint32_t g_start_ms    = 0;
+static uint32_t g_last_rx     = 0;
 static uint32_t g_last_fps_ms = 0;
-static float g_fps = 0.0f;
+static uint32_t g_last_can_seen_ms = 0;
+static float    g_fps         = 0.0f;
+
+#define CAN_VEHICLE_ALIVE_MS 3000u
 
 // ── Embedded HTML/CSS/JS ──────────────────────────────────────────────────────
 // Tesla dark theme; mobile-first (max 480 px); WebSocket on :81
@@ -182,11 +187,23 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <span class="lbl">NAG Killer</span>
     <span class="pill off" id="nagSt"><span class="pd"></span>--</span>
   </div>
+  <div class="row">
+    <span class="lbl">CAN Vehicle</span>
+    <span class="pill off" id="canVeh"><span class="pd"></span>--</span>
+  </div>
 </div>
 
 <!-- Battery -->
 <div class="card">
   <div class="card-head"><div class="icon ic-b">B</div><h2>Battery</h2></div>
+  <div class="row">
+    <span class="lbl">BMS Status</span>
+    <span class="pill off" id="bmsSt"><span class="pd"></span>Waiting Frames</span>
+  </div>
+  <div class="row">
+    <span class="lbl">BMS Frames</span>
+    <span id="bmsFrames" style="font-size:.8em;color:var(--text2)">HV:0 SOC:0 TH:0</span>
+  </div>
   <div class="hero">
     <div class="soc-ring">
       <svg viewBox="0 0 120 120" width="120" height="120">
@@ -234,6 +251,47 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <span class="lbl">Force FSD</span>
     <label class="sw"><input type="checkbox" id="swFsd" onchange="cmd('force_fsd',this.checked)"><span class="sl2"></span></label>
   </div>
+  <div class="row">
+    <span class="lbl">TLSSC Restore</span>
+    <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">CAN Dump</span>
+    <label class="sw"><input type="checkbox" id="swDump" onchange="cmd('dump',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Deep Sleep (sec)</span>
+    <input type="number" id="numSleep" min="10" max="3600" style="width:60px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right" onchange="cmd('sleep',parseInt(this.value)*1000)">
+  </div>
+</div>
+
+<!-- WiFi Config -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-c">W</div><h2>WiFi Configuration</h2></div>
+  <div class="row">
+    <span class="lbl">SSID</span>
+    <input type="text" id="wifiSsid" maxlength="32" style="width:140px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right">
+  </div>
+  <div class="row">
+    <span class="lbl">Password</span>
+    <input type="password" id="wifiPass" maxlength="64" style="width:140px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right">
+  </div>
+  <div class="row">
+    <span class="lbl">Stealth Mode (Hidden)</span>
+    <label class="sw"><input type="checkbox" id="swWifiHid"><span class="sl2"></span></label>
+  </div>
+  <button class="btn-main btn-stop" onclick="saveWifi()" style="margin-top:12px">SAVE & RESTART WIFI</button>
+</div>
+
+<!-- SD Card -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-d">S</div><h2>SD Card</h2></div>
+  <div class="row">
+    <span class="lbl">Dump Status</span>
+    <span class="pill off" id="dumpSt"><span class="pd"></span>Idle</span>
+  </div>
+  <button id="btnFmt" class="btn-main btn-stop" onclick="sdFormat()" style="margin-top:8px">FORMAT SD CARD</button>
+  <div id="fmtOut" style="font-size:.75em;color:var(--text2);margin-top:8px;display:none"></div>
 </div>
 
 <!-- Device Info -->
@@ -257,9 +315,17 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 </div><!-- /wrap -->
 
 <script>
-var ws,rt;
+var ws,rt,busy=0,wifiOnce=false;
 var HW=['Unknown','Legacy','HW3','HW4'];
 var CIRC=326.73;
+
+function initWifi(d){
+  if(wifiOnce)return;
+  wifiOnce=true;
+  document.getElementById('wifiSsid').value=d.wifi_ssid||'';
+  document.getElementById('wifiPass').value=d.wifi_pass||'';
+  document.getElementById('swWifiHid').checked=!!d.wifi_hidden;
+}
 
 function fmt(s){
   var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
@@ -278,57 +344,107 @@ function ring(p){
 }
 
 function upd(d){
+  if(!d || Date.now() < busy) return;
   // Status
   pill('fsdSt', d.fsd_enabled, d.fsd_enabled?'Active':'Waiting');
   pill('opMode', d.op_mode===1, d.op_mode===1?'Active':'Listen-Only');
 
   var hwEl=document.getElementById('hwVer');
-  hwEl.className='pill '+(d.hw_version>0?'on':'off');
-  hwEl.innerHTML='<span class="pd"></span>'+(HW[d.hw_version]||'?');
+  if(hwEl){
+    hwEl.className='pill '+(d.hw_version>0?'on':'off');
+    hwEl.innerHTML='<span class="pd"></span>'+(HW[d.hw_version]||'?');
+  }
 
   pill('nagSt', d.nag_killer, d.nag_killer?'ON':'OFF');
+  pill('canVeh', d.can_vehicle_detected, d.can_vehicle_detected?'Detected':'No CAN Traffic');
+  pill('bmsSt', d.bms && d.bms.seen, (d.bms && d.bms.seen)?'Live':'Waiting Frames');
+  var bF=document.getElementById('bmsFrames');
+  if(bF) bF.textContent='HV:'+(d.bms_hv_seen||0)+' SOC:'+(d.bms_soc_seen||0)+' TH:'+(d.bms_thermal_seen||0);
 
   // OTA banner
-  document.getElementById('otaBanner').style.display=d.ota?'block':'none';
+  var otaB=document.getElementById('otaBanner');
+  if(otaB) otaB.style.display=d.ota?'block':'none';
 
   // Mode button
   var act=d.op_mode===1;
   var btn=document.getElementById('btnMode');
-  btn.textContent=act?'STOP FSD  \u2192  Listen-Only':'ACTIVATE FSD  \u2192  Active';
-  btn.className='btn-main '+(act?'btn-stop':'btn-act');
+  if(btn){
+    btn.textContent=act?'STOP FSD  \u2192  Listen-Only':'ACTIVATE FSD  \u2192  Active';
+    btn.className='btn-main '+(act?'btn-stop':'btn-act');
+  }
 
   // Switches sync
-  document.getElementById('swNag').checked=d.nag_killer;
-  document.getElementById('swBms').checked=d.bms_output;
-  document.getElementById('swFsd').checked=d.force_fsd;
+  if(document.getElementById('swNag')) document.getElementById('swNag').checked=d.nag_killer;
+  if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
+  if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
+  if(document.getElementById('swTlssc')) document.getElementById('swTlssc').checked=d.tlssc_restore;
+  if(document.getElementById('swDump')) document.getElementById('swDump').checked=!!d.can_dump;
+  
+  if(document.activeElement.id!=='numSleep' && document.getElementById('numSleep')) 
+    document.getElementById('numSleep').value=Math.floor((d.sleep_ms||0)/1000);
+  
+  pill('dumpSt',d.can_dump,d.can_dump?'Recording':'Idle');
 
   // CAN stats
-  document.getElementById('rxCnt').textContent=d.rx_count.toLocaleString();
-  document.getElementById('txCnt').textContent=d.tx_count.toLocaleString();
-  document.getElementById('crcErr').textContent=d.crc_errors;
-  document.getElementById('fps').textContent=d.fps.toFixed(1);
+  if(document.getElementById('rxCnt')) document.getElementById('rxCnt').textContent=(d.rx_count||0).toLocaleString();
+  if(document.getElementById('txCnt')) document.getElementById('txCnt').textContent=(d.tx_count||0).toLocaleString();
+  if(document.getElementById('crcErr')) document.getElementById('crcErr').textContent=d.crc_errors||0;
+  if(document.getElementById('fps')) document.getElementById('fps').textContent=(d.fps||0.0).toFixed(1);
 
   // Battery
   if(d.bms && d.bms.seen){
     var sn=document.getElementById('bSoc');
-    sn.textContent=d.bms.soc.toFixed(0)+'%';
-    sn.style.color=socCol(d.bms.soc);
+    if(sn){
+      sn.textContent=d.bms.soc.toFixed(0)+'%';
+      sn.style.color=socCol(d.bms.soc);
+    }
     ring(d.bms.soc);
-    document.getElementById('bVolt').textContent=d.bms.voltage.toFixed(0)+'V';
+    if(document.getElementById('bVolt')) document.getElementById('bVolt').textContent=d.bms.voltage.toFixed(0)+'V';
     var ce=document.getElementById('bCurr');
-    ce.textContent=(d.bms.current>=0?'+':'')+d.bms.current.toFixed(1)+'A';
-    ce.style.color=d.bms.current>=0?'var(--accent)':'var(--red)';
-    document.getElementById('bTemp').textContent=d.bms.temp_min+'~'+d.bms.temp_max+'\u00b0C';
+    if(ce){
+      ce.textContent=(d.bms.current>=0?'+':'')+d.bms.current.toFixed(1)+'A';
+      ce.style.color=d.bms.current>=0?'var(--accent)':'var(--red)';
+    }
+    if(document.getElementById('bTemp')) document.getElementById('bTemp').textContent=d.bms.temp_min+'~'+d.bms.temp_max+'\u00b0C';
   }
 
   // Device
-  document.getElementById('fwBuild').textContent=d.fw_build;
-  document.getElementById('uptime').textContent=fmt(d.uptime_s);
-  document.getElementById('wifiCl').textContent=d.wifi_clients;
+  if(document.getElementById('fwBuild')) document.getElementById('fwBuild').textContent=d.fw_build;
+  if(document.getElementById('uptime')) document.getElementById('uptime').textContent=fmt(d.uptime_s||0);
+  if(document.getElementById('wifiCl')) document.getElementById('wifiCl').textContent=d.wifi_clients||0;
 }
 
+function sdFormat(){
+  if(!confirm('Format SD card? All data will be lost.'))return;
+  var btn=document.getElementById('btnFmt');
+  var out=document.getElementById('fmtOut');
+  btn.disabled=true;btn.textContent='FORMATTING\u2026';
+  fetch('/sdformat').then(function(r){return r.json();}).then(function(d){
+    out.style.display='block';
+    out.style.color=d.ok?'var(--accent)':'var(--red)';
+    out.textContent=d.msg+(d.ok?' \u2014 '+d.free_mb+' MB free':'');
+  }).catch(function(){
+    out.style.display='block';out.style.color='var(--red)';out.textContent='Request failed';
+  }).then(function(){
+    btn.disabled=false;btn.textContent='FORMAT SD CARD';
+  });
+}
+function saveWifi(){
+  var s=document.getElementById('wifiSsid').value;
+  var p=document.getElementById('wifiPass').value;
+  var h=document.getElementById('swWifiHid').checked;
+  if(s.length<1){alert('SSID required');return;}
+  if(p.length>0 && p.length<8){alert('Password must be 8+ chars');return;}
+  if(confirm('WiFi settings will be updated and the device will restart.')){
+    var b=document.activeElement; if(b&&b.tagName==='BUTTON'){b.disabled=true;b.textContent='SAVING...';}
+    cmd('wifi_cfg',{ssid:s,pass:p,hidden:h});
+  }
+}
 function cmd(c,v){
-  if(ws&&ws.readyState===1) ws.send(JSON.stringify({cmd:c,value:v}));
+  if(ws&&ws.readyState===1) {
+    ws.send(JSON.stringify({cmd:c,value:v}));
+    busy = Date.now() + 3000;
+  }
 }
 function toggleMode(){ cmd('mode',null); }
 
@@ -339,7 +455,7 @@ function conn(){
     document.getElementById('connErr').style.display='none';
     clearTimeout(rt);
   };
-  ws.onmessage=function(e){ try{upd(JSON.parse(e.data));}catch(x){} };
+  ws.onmessage=function(e){ try{var d=JSON.parse(e.data);initWifi(d);upd(d);}catch(x){} };
   ws.onclose=function(){
     document.getElementById('dot').className='cdot off';
     document.getElementById('connErr').style.display='block';
@@ -353,16 +469,29 @@ conn();
 </html>
 )rawliteral";
 
+// ── JSON helpers ──────────────────────────────────────────────────────────────
+static String json_escape(const char *s) {
+    String out;
+    for (; *s; ++s) {
+        if (*s == '"')       out += "\\\"";
+        else if (*s == '\\') out += "\\\\";
+        else                 out += *s;
+    }
+    return out;
+}
+
 // ── JSON builder ──────────────────────────────────────────────────────────────
 static String build_json() {
     uint32_t uptime_s = (millis() - g_start_ms) / 1000;
+    bool can_vehicle_detected = false;
+    if (g_state != nullptr && g_state->rx_count > 0) {
+        can_vehicle_detected = (millis() - g_last_can_seen_ms) <= CAN_VEHICLE_ALIVE_MS;
+    }
 
     // BMS sub-object
     char bms[128];
-    if(g_state->bms_seen) {
-        snprintf(
-            bms,
-            sizeof(bms),
+    if (g_state->bms_seen) {
+        snprintf(bms, sizeof(bms),
             "{\"seen\":true,\"voltage\":%.1f,\"current\":%.1f,"
             "\"soc\":%.1f,\"temp_min\":%d,\"temp_max\":%d}",
             g_state->pack_voltage_v,
@@ -380,93 +509,159 @@ static String build_json() {
 
     String j;
     j.reserve(512);
-    j = "{";
-    j += "\"fsd_enabled\":";
-    j += g_state->fsd_enabled ? "true" : "false";
-    j += ',';
-    j += "\"op_mode\":";
-    j += (int)g_state->op_mode;
-    j += ',';
-    j += "\"hw_version\":";
-    j += (int)g_state->hw_version;
-    j += ',';
-    j += "\"ota\":";
-    j += g_state->tesla_ota_in_progress ? "true" : "false";
-    j += ',';
-    j += "\"nag_killer\":";
-    j += g_state->nag_killer ? "true" : "false";
-    j += ',';
-    j += "\"bms_output\":";
-    j += g_state->bms_output ? "true" : "false";
-    j += ',';
-    j += "\"force_fsd\":";
-    j += g_state->force_fsd ? "true" : "false";
-    j += ',';
-    j += "\"rx_count\":";
-    j += g_state->rx_count;
-    j += ',';
-    j += "\"tx_count\":";
-    j += g_state->frames_modified;
-    j += ',';
-    j += "\"crc_errors\":";
-    j += g_state->crc_err_count;
-    j += ',';
-    j += "\"fps\":";
-    j += fps_s;
-    j += ',';
-    j += "\"bms\":";
-    j += bms;
-    j += ',';
-    j += "\"uptime_s\":";
-    j += uptime_s;
-    j += ',';
-    j += "\"fw_build\":\"";
-    j += __DATE__;
-    j += ' ';
-    j += __TIME__;
-    j += "\",";
-    j += "\"wifi_clients\":";
-    j += (int)WiFi.softAPgetStationNum();
+    j  = "{";
+    j += "\"fsd_enabled\":";   j += g_state->fsd_enabled             ? "true" : "false"; j += ',';
+    j += "\"op_mode\":";       j += (int)g_state->op_mode;            j += ',';
+    j += "\"hw_version\":";    j += (int)g_state->hw_version;         j += ',';
+    j += "\"ota\":";           j += g_state->tesla_ota_in_progress    ? "true" : "false"; j += ',';
+    j += "\"nag_killer\":";    j += g_state->nag_killer               ? "true" : "false"; j += ',';
+    j += "\"bms_output\":";    j += g_state->bms_output               ? "true" : "false"; j += ',';
+    j += "\"force_fsd\":";     j += g_state->force_fsd                ? "true" : "false"; j += ',';
+    j += "\"tlssc_restore\":"; j += g_state->tlssc_restore            ? "true" : "false"; j += ',';
+    j += "\"can_vehicle_detected\":"; j += can_vehicle_detected       ? "true" : "false"; j += ',';
+    j += "\"bms_hv_seen\":";   j += g_state->seen_bms_hv;              j += ',';
+    j += "\"bms_soc_seen\":";  j += g_state->seen_bms_soc;             j += ',';
+    j += "\"bms_thermal_seen\":"; j += g_state->seen_bms_thermal;       j += ',';
+    j += "\"rx_count\":";      j += g_state->rx_count;                 j += ',';
+    j += "\"tx_count\":";      j += g_state->frames_modified;          j += ',';
+    j += "\"crc_errors\":";    j += g_state->crc_err_count;            j += ',';
+    j += "\"fps\":";           j += fps_s;                             j += ',';
+    j += "\"bms\":";           j += bms;                               j += ',';
+    j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
+    j += "\"fw_build\":\"";    j += __DATE__;  j += ' '; j += __TIME__; j += "\",";
+    j += "\"can_dump\":";      j += can_dump_active()                 ? "true" : "false"; j += ',';
+    j += "\"sleep_ms\":";     j += g_state->sleep_idle_ms;            j += ',';
+    j += "\"wifi_ssid\":\"";  j += json_escape(g_state->wifi_ssid);   j += "\",";
+    j += "\"wifi_pass\":\"***\",";
+    j += "\"wifi_hidden\":";  j += g_state->wifi_hidden               ? "true" : "false"; j += ',';
+    j += "\"wifi_clients\":";  j += (int)WiFi.softAPgetStationNum();
     j += '}';
     return j;
 }
 
 // ── WebSocket event handler ───────────────────────────────────────────────────
-static void ws_event(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
-    if(type == WStype_CONNECTED) {
+static void ws_event(uint8_t num, WStype_t type,
+                     uint8_t *payload, size_t length)
+{
+    if (type == WStype_CONNECTED) {
         // Push current state immediately on connect
         String json = build_json();
         g_ws.sendTXT(num, json.c_str(), json.length());
         return;
     }
 
-    if(type != WStype_TEXT || g_state == nullptr || length == 0) return;
+    if (type != WStype_TEXT || g_state == nullptr || length == 0) return;
 
-    // Parse the short command JSON without a heavy JSON library.
-    // Expected format: {"cmd":"mode"}  {"cmd":"nag","value":true}  etc.
-    char buf[128] = {};
+    // Use a slightly more robust way to find the value after the second colon
+    char buf[256] = {};
     size_t n = (length < sizeof(buf) - 1) ? length : sizeof(buf) - 1;
     memcpy(buf, payload, n);
 
-    if(strstr(buf, "\"mode\"")) {
-        if(g_state->op_mode == OpMode_ListenOnly) {
+    // Find the "value" part of {"cmd":"xxx","value":yyy}
+    const char *vptr = strstr(buf, "\"value\":");
+    if (vptr) vptr = strstr(vptr, ":") + 1;
+
+    if (strstr(buf, "\"mode\"")) {
+        if (g_state->op_mode == OpMode_ListenOnly) {
             g_state->op_mode = OpMode_Active;
-            if(g_can) g_can->setListenOnly(false);
-            Serial.println("[Web] \u2192 Active mode");
+            if (g_can) g_can->setListenOnly(false);
+            Serial.println("[Web] → Active mode");
         } else {
             g_state->op_mode = OpMode_ListenOnly;
-            if(g_can) g_can->setListenOnly(true);
-            Serial.println("[Web] \u2192 Listen-Only mode");
+            if (g_can) g_can->setListenOnly(true);
+            Serial.println("[Web] → Listen-Only mode");
         }
-    } else if(strstr(buf, "\"nag\"")) {
-        g_state->nag_killer = (strstr(buf, "true") != nullptr);
-        Serial.printf("[Web] NAG Killer: %s\n", g_state->nag_killer ? "ON" : "OFF");
-    } else if(strstr(buf, "\"bms\"")) {
-        g_state->bms_output = (strstr(buf, "true") != nullptr);
-        Serial.printf("[Web] BMS output: %s\n", g_state->bms_output ? "ON" : "OFF");
-    } else if(strstr(buf, "\"force_fsd\"")) {
-        g_state->force_fsd = (strstr(buf, "true") != nullptr);
-        Serial.printf("[Web] Force FSD: %s\n", g_state->force_fsd ? "ON" : "OFF");
+        prefs_save(g_state);
+    } else if (strstr(buf, "\"nag\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            g_state->nag_killer = (strncmp(vptr, "true", 4) == 0);
+            Serial.printf("[Web] NAG Killer: %s\n", g_state->nag_killer ? "ON" : "OFF");
+            prefs_save(g_state);
+        }
+    } else if (strstr(buf, "\"bms\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            g_state->bms_output = (strncmp(vptr, "true", 4) == 0);
+            Serial.printf("[Web] BMS output: %s\n", g_state->bms_output ? "ON" : "OFF");
+            prefs_save(g_state);
+        }
+    } else if (strstr(buf, "\"tlssc_restore\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            g_state->tlssc_restore = (strncmp(vptr, "true", 4) == 0);
+            Serial.printf("[Web] TLSSC Restore: %s\n", g_state->tlssc_restore ? "ON" : "OFF");
+            prefs_save(g_state);
+        }
+    } else if (strstr(buf, "\"force_fsd\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            g_state->force_fsd = (strncmp(vptr, "true", 4) == 0);
+            Serial.printf("[Web] Force FSD: %s\n", g_state->force_fsd ? "ON" : "OFF");
+            prefs_save(g_state);
+        }
+    } else if (strstr(buf, "\"dump\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool want = (strncmp(vptr, "true", 4) == 0);
+            if (want) can_dump_start();
+            else      can_dump_stop();
+            Serial.printf("[Web] CAN Dump: %s\n", want ? "START" : "STOP");
+        }
+    } else if (strstr(buf, "\"sleep\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            uint32_t val = (uint32_t)atoi(vptr);
+            if (val >= 10000) { // minimum 10s
+                g_state->sleep_idle_ms = val;
+                Serial.printf("[Web] Sleep timeout: %u ms\n", val);
+                prefs_save(g_state);
+            }
+        }
+    } else if (strstr(buf, "\"wifi_cfg\"")) {
+        // Find the "value":{ object start
+        const char *vobj = strstr(buf, "\"value\":");
+        if (vobj) {
+            char *s = strstr(vobj, "\"ssid\":\"");
+            char *p = strstr(vobj, "\"pass\":\"");
+            char *h = strstr(vobj, "\"hidden\":");
+            if (s) {
+                s += 8;
+                char *end = strchr(s, '\"');
+                if (end) {
+                    int len = end - s;
+                    if (len > 32) len = 32;
+                    if (memchr(s, '\\', len) == nullptr) {
+                        memcpy(g_state->wifi_ssid, s, len);
+                        g_state->wifi_ssid[len] = '\0';
+                    }
+                }
+            }
+            if (p) {
+                p += 8;
+                char *end = strchr(p, '\"');
+                if (end) {
+                    int len = end - p;
+                    if (len > 64) len = 64;
+                    if (memchr(p, '\\', len) == nullptr &&
+                        !(len == 3 && memcmp(p, "***", 3) == 0)) {
+                        memcpy(g_state->wifi_pass, p, len);
+                        g_state->wifi_pass[len] = '\0';
+                    }
+                }
+            }
+            if (h) {
+                h += 9;
+                while (*h == ' ' || *h == ':') h++;
+                if (strncmp(h, "true", 4) == 0) g_state->wifi_hidden = true;
+                else if (strncmp(h, "false", 5) == 0) g_state->wifi_hidden = false;
+            }
+            Serial.printf("[Web] WiFi config: SSID=\"%s\" PASS=*** HIDDEN=%d\n",
+                g_state->wifi_ssid, g_state->wifi_hidden);
+            prefs_save(g_state);
+            delay(500);
+            ESP.restart();
+        }
     }
 }
 
@@ -476,23 +671,27 @@ static void handle_root() {
 }
 
 static void handle_status() {
-    if(g_state == nullptr) {
-        g_http.send(503, "application/json", "{}");
-        return;
-    }
+    if (g_state == nullptr) { g_http.send(503, "application/json", "{}"); return; }
     g_http.send(200, "application/json", build_json());
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
-void web_dashboard_init(FSDState* state, CanDriver* can) {
-    g_state = state;
-    g_can = can;
-    g_start_ms = millis();
-    g_last_fps_ms = millis();
-    g_last_rx = state ? state->rx_count : 0;
+static void handle_sdformat() {
+    String result = sd_format_card();
+    g_http.send(200, "application/json", result);
+}
 
-    g_http.on("/", HTTP_GET, handle_root);
+// ── Public API ────────────────────────────────────────────────────────────────
+void web_dashboard_init(FSDState *state, CanDriver *can) {
+    g_state       = state;
+    g_can         = can;
+    g_start_ms    = millis();
+    g_last_fps_ms = millis();
+    g_last_rx     = state ? state->rx_count : 0;
+    g_last_can_seen_ms = (state && state->rx_count > 0) ? millis() : 0;
+
+    g_http.on("/",           HTTP_GET, handle_root);
     g_http.on("/api/status", HTTP_GET, handle_status);
+    g_http.on("/sdformat",   HTTP_GET, handle_sdformat);
     g_http.begin();
 
     g_ws.begin();
@@ -502,18 +701,19 @@ void web_dashboard_init(FSDState* state, CanDriver* can) {
 }
 
 void web_dashboard_update() {
-    if(g_state == nullptr) return; // init was never called (WiFi failed)
+    if (g_state == nullptr) return;   // init was never called (WiFi failed)
 
     g_http.handleClient();
     g_ws.loop();
 
     // FPS calculation + 1 Hz WebSocket broadcast
     uint32_t now = millis();
-    if((now - g_last_fps_ms) >= 1000u) {
+    if ((now - g_last_fps_ms) >= 1000u) {
         uint32_t rx = g_state->rx_count;
-        float dt = (now - g_last_fps_ms) / 1000.0f;
-        g_fps = (float)(rx - g_last_rx) / dt;
-        g_last_rx = rx;
+        float    dt = (now - g_last_fps_ms) / 1000.0f;
+        if (rx != g_last_rx) g_last_can_seen_ms = now;
+        g_fps        = (float)(rx - g_last_rx) / dt;
+        g_last_rx    = rx;
         g_last_fps_ms = now;
 
         String json = build_json();

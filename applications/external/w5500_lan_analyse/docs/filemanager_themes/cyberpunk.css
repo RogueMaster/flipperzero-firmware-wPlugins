@@ -1,0 +1,17 @@
+/* Cyberpunk — neon pink on dark purple */
+body{font-family:'Segoe UI',monospace;background:#13001a;color:#e0d0ff;margin:0;padding:16px}
+h1{color:#ff2d95;text-shadow:0 0 10px #ff2d95;margin:0 0 4px}
+.p{color:#9966cc;margin-bottom:12px;word-break:break-all}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:6px 8px;border-bottom:2px solid #ff2d95;color:#ff2d95}
+td{padding:5px 8px;border-bottom:1px solid #2a0040}
+a{color:#00d4ff;text-decoration:none}
+.d{color:#ff2d95;font-weight:bold}
+.s{color:#9966cc;text-align:right}
+.a{white-space:nowrap}
+.a a{margin-left:8px;color:#ff6b6b}
+.b{display:inline-block;padding:6px 14px;background:#ff2d95;color:#13001a;border:none;font-weight:bold;text-decoration:none;margin:2px}
+.bs{padding:3px 8px}
+.uf{margin:12px 0;padding:10px;background:#1a0028;border:1px solid #ff2d95}
+.mf{margin:8px 0}
+.ft{margin-top:16px;color:#9966cc}

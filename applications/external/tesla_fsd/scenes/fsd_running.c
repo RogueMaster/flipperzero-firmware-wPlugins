@@ -108,12 +108,13 @@ static void fsd_update_display(TeslaFSDApp* app, uint32_t uptime_ms) {
         snprintf(
             line4,
             sizeof(line4),
-            "%s%s%s%s%s",
+            "%s%s%s%s%s%s",
             state.force_fsd ? "FORCE " : "",
             state.suppress_speed_chime ? "CHIME " : "",
             state.emergency_vehicle_detect ? "EMRG " : "",
             state.nag_killer ? "NAG " : "",
-            state.precondition ? "PRECOND" : "");
+            state.precondition ? "PRECOND " : "",
+            state.tlssc_restore ? "TLSSC" : "");
     }
     if(line4[0]) {
         widget_add_string_element(app->widget, 2, 46, AlignLeft, AlignTop, FontSecondary, line4);
@@ -144,36 +145,53 @@ static int32_t fsd_running_worker(void* context) {
     state.extra_highbeam_strobe = app->extra_highbeam_strobe;
     state.extra_turn_left = app->extra_turn_left;
     state.extra_turn_right = app->extra_turn_right;
+    // Ban Shield: don't arm immediately — learn healthy state first.
+    // gtw_shield_armed starts false; fsd_handle_gtw_shield() auto-arms
+    // after all 8 mux snapshots are captured.
+    bool shield_enabled = app->gtw_shield;
+    state.gtw_shield_armed = false;
+    state.tlssc_restore = app->tlssc_restore;
+    state.gtw_tier_override = app->gtw_tier_override;
+    state.assist_nav_enable = app->assist_nav_enable;
+    state.assist_hands_off = app->assist_hands_off;
+    state.assist_dev_mode = app->assist_dev_mode;
+    state.assist_lhd_override = app->assist_lhd_override;
+    state.assist_show_lane_graph = app->assist_show_lane_graph;
+    state.assist_tlssc_bit38 = app->assist_tlssc_bit38;
+    state.assist_telemetry_off = app->assist_telemetry_off;
     furi_mutex_release(app->mutex);
 
     // Listen-only mode → MCP2515 hardware listen-only register
     // Active / Service → normal mode (TX permitted)
     mcp->mode = (state.op_mode == OpMode_ListenOnly) ? MCP_LISTENONLY : MCP_NORMAL;
     mcp->bitRate = MCP_500KBPS;
-    mcp->clck = MCP_16MHZ;
+    // 0=16MHz (default), 1=8MHz, 2=12MHz
+    switch(app->mcp_clock) {
+    case 1:
+        mcp->clck = MCP_8MHZ;
+        break;
+    case 2:
+        mcp->clck = MCP_12MHZ;
+        break;
+    default:
+        mcp->clck = MCP_16MHZ;
+        break;
+    }
 
     if(mcp2515_init(mcp) != ERROR_OK) {
         view_dispatcher_send_custom_event(app->view_dispatcher, TeslaFSDEventNoDevice);
         return 0;
     }
 
-    // configure MCP2515 filters based on mode
-    if(state.hw_version == TeslaHW_Legacy) {
+    // MCP2515 filters: wide-open on RXB1 for all modes. RXB0 prioritizes
+    // the main autopilot frame for the detected HW. Legacy also needs
+    // wide-open to see 0x3FD for the Legacy→HW3 auto-upgrade trigger.
+    {
+        uint16_t primary_id = (state.hw_version == TeslaHW_Legacy) ? CAN_ID_AP_LEGACY :
+                                                                     CAN_ID_AP_CONTROL;
         init_mask(mcp, 0, 0x7FF);
-        init_filter(mcp, 0, CAN_ID_AP_LEGACY);
-        init_filter(mcp, 1, CAN_ID_AP_LEGACY);
-        init_mask(mcp, 1, 0x7FF);
-        init_filter(mcp, 2, CAN_ID_STW_ACTN_RQ);
-        init_filter(mcp, 3, CAN_ID_STW_ACTN_RQ);
-        init_filter(mcp, 4, CAN_ID_STW_ACTN_RQ);
-        init_filter(mcp, 5, CAN_ID_STW_ACTN_RQ);
-    } else {
-        // HW3 / HW4 — keep autopilot control on RXB0, leave RXB1 wide open so
-        // we always see 0x318 (OTA detect), 0x370 (nag killer), 0x399 (chime),
-        // 0x3F8 (follow distance). Software dispatch filters by canId.
-        init_mask(mcp, 0, 0x7FF);
-        init_filter(mcp, 0, CAN_ID_AP_CONTROL);
-        init_filter(mcp, 1, CAN_ID_AP_CONTROL);
+        init_filter(mcp, 0, primary_id);
+        init_filter(mcp, 1, primary_id);
         init_mask(mcp, 1, 0x000);
         init_filter(mcp, 2, 0x000);
         init_filter(mcp, 3, 0x000);
@@ -247,6 +265,24 @@ static int32_t fsd_running_worker(void* context) {
 
                 bool tx_allowed = fsd_can_transmit(&state);
 
+                // Auto-upgrade Legacy→HW3 if 0x3FD is seen on the bus.
+                // Palladium S/X with HW3 reports das_hw=0 (→Legacy) but
+                // actually uses 0x3FD, not 0x3EE. True Legacy cars never
+                // broadcast 0x3FD.
+                if(state.hw_version == TeslaHW_Legacy && frame.canId == CAN_ID_AP_CONTROL) {
+                    state.hw_version = TeslaHW_HW3;
+                    state.speed_profile = 2;
+                    // Reprogram RXB0 filter from 0x3EE → 0x3FD for HW3
+                    init_mask(mcp, 0, 0x7FF);
+                    init_filter(mcp, 0, CAN_ID_AP_CONTROL);
+                    init_filter(mcp, 1, CAN_ID_AP_CONTROL);
+                    // Update app-level HW for UI display
+                    furi_mutex_acquire(app->mutex, FuriWaitForever);
+                    app->hw_version = TeslaHW_HW3;
+                    app->fsd_state.hw_version = TeslaHW_HW3;
+                    furi_mutex_release(app->mutex);
+                }
+
                 // Always handle OTA monitoring regardless of mode
                 if(frame.canId == CAN_ID_GTW_CAR_STATE) {
                     fsd_handle_gtw_car_state(&state, &frame);
@@ -274,6 +310,31 @@ static int32_t fsd_running_worker(void* context) {
                     fsd_handle_das_status2(&state, &frame);
                 } else if(frame.canId == CAN_ID_DAS_SETTINGS) {
                     fsd_handle_das_settings(&state, &frame);
+                } else if(frame.canId == CAN_ID_DAS_AP_CONFIG) {
+                    if(fsd_handle_tlssc_restore(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
+                } else if(frame.canId == CAN_ID_ENERGY_CONS) {
+                    fsd_handle_energy_consumption(&state, &frame);
+                } else if(frame.canId == CAN_ID_GTW_CONFIG_ETH) {
+                    fsd_handle_gtw_autopilot_tier(&state, &frame);
+                    // Shield and tier override are mutually exclusive on the
+                    // same frame — shield freezes existing state, override
+                    // forces tier=3. Don't send two conflicting copies.
+                    if(shield_enabled) {
+                        if(fsd_handle_gtw_shield(&state, &frame) && tx_allowed) {
+                            send_can_frame(mcp, &frame);
+                        }
+                    } else if(fsd_handle_gtw_tier_override(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
+                }
+
+                // Track Mode inject (Service mode only, 0x313)
+                if(frame.canId == CAN_ID_TRACK_MODE_SET) {
+                    if(fsd_handle_track_mode_inject(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
                 } else if(frame.canId == CAN_ID_DAS_CONTROL) {
                     fsd_handle_das_control(&state, &frame);
                 } else if(frame.canId == CAN_ID_DI_STATE) {
@@ -320,6 +381,9 @@ static int32_t fsd_running_worker(void* context) {
                     }
                 } else if(frame.canId == CAN_ID_FOLLOW_DIST) {
                     fsd_handle_follow_distance(&state, &frame);
+                    if(fsd_handle_driver_assist_override(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
                 } else if(frame.canId == CAN_ID_AP_CONTROL) {
                     if(fsd_handle_autopilot_frame(&state, &frame) && tx_allowed) {
                         send_can_frame(mcp, &frame);
@@ -364,7 +428,7 @@ void tesla_fsd_scene_fsd_running_on_enter(void* context) {
         app->widget, 64, 28, AlignCenter, AlignCenter, FontPrimary, "Starting...");
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewWidget);
 
-    app->worker_thread = furi_thread_alloc_ex("TeslaFSD", 2048, fsd_running_worker, app);
+    app->worker_thread = furi_thread_alloc_ex("TeslaFSD", 4096, fsd_running_worker, app);
     furi_thread_start(app->worker_thread);
 }
 

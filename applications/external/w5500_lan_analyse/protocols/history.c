@@ -33,7 +33,8 @@ bool history_save(const char* type, const char* content) {
     storage_simply_mkdir(storage, HISTORY_DIR);
 
     File* file = storage_file_alloc(storage);
-    char filepath[128];
+    /* Static to avoid 128B stack usage; worker is single-threaded */
+    static char filepath[128];
     snprintf(filepath, sizeof(filepath), HISTORY_DIR "/%s", filename);
 
     bool ok = false;
@@ -57,7 +58,8 @@ uint16_t history_list(HistoryState* state) {
     File* dir = storage_file_alloc(storage);
 
     /* Build dir path, strip trailing slash if present (FatFS compat) */
-    char dir_path[128];
+    /* Static to avoid 128B stack usage; worker is single-threaded */
+    static char dir_path[128];
     snprintf(dir_path, sizeof(dir_path), "%s", HISTORY_DIR);
     size_t plen = strlen(dir_path);
     if(plen > 1 && dir_path[plen - 1] == '/') dir_path[plen - 1] = '\0';
@@ -118,7 +120,8 @@ bool history_read_file(const char* filename, char* out, uint16_t out_size) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
-    char filepath[128];
+    /* Static to avoid 128B stack usage; worker is single-threaded */
+    static char filepath[128];
     snprintf(filepath, sizeof(filepath), HISTORY_DIR "/%s", filename);
 
     bool ok = false;
@@ -137,7 +140,8 @@ bool history_read_file(const char* filename, char* out, uint16_t out_size) {
 bool history_delete_file(const char* filename) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
 
-    char filepath[128];
+    /* Static to avoid 128B stack usage; worker is single-threaded */
+    static char filepath[128];
     snprintf(filepath, sizeof(filepath), HISTORY_DIR "/%s", filename);
 
     bool ok = storage_simply_remove(storage, filepath);

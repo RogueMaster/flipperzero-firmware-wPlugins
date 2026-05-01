@@ -34,6 +34,10 @@
 #include "memzero.h"
 #include "byte_order.h"
 
+#ifndef SHA2_ENABLE_SHA512
+#define SHA2_ENABLE_SHA512 1
+#endif
+
 /*
  * ASSERT NOTE:
  * Some sanity checking code is included using assert().  On my FreeBSD
@@ -165,7 +169,9 @@ typedef uint64_t sha2_word64; /* Exactly 8 bytes */
  * library -- they are intended for private internal visibility/use
  * only.
  */
+#if SHA2_ENABLE_SHA512
 static void sha512_Last(SHA512_CTX*);
+#endif
 
 /*** SHA-XYZ INITIAL HASH VALUES AND CONSTANTS ************************/
 
@@ -204,6 +210,7 @@ const sha2_word32 sha256_initial_hash_value[8] = {
     0x1f83d9abUL,
     0x5be0cd19UL};
 
+#if SHA2_ENABLE_SHA512
 /* Hash constant words K for SHA-384 and SHA-512: */
 static const sha2_word64 K512[80] = {
     0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL, 0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL,
@@ -248,6 +255,7 @@ const sha2_word64 sha384_initial_hash_value[8] = {
     0x8eb44a8768581511ULL,
     0xdb0c2e0d64f98fa7ULL,
     0x47b5481dbefa4fa4ULL};
+#endif
 
 /*
  * Constant used by SHA256/384/512_End() functions for converting the
@@ -955,6 +963,7 @@ char* sha256_Data(const sha2_byte* data, size_t len, char digest[SHA256_DIGEST_S
     return sha256_End(&context, digest);
 }
 
+#if SHA2_ENABLE_SHA512
 /*** SHA-512 and SHA-384: *********************************************/
 void sha512_Init(SHA512_CTX* context) {
     if(context == (SHA512_CTX*)0) {
@@ -1280,3 +1289,4 @@ char* sha512_Data(const sha2_byte* data, size_t len, char digest[SHA512_DIGEST_S
     sha512_Update(&context, data, len);
     return sha512_End(&context, digest);
 }
+#endif

@@ -33,10 +33,12 @@ void kdbx_parser_reset(KDBXParser* parser);
 bool kdbx_parser_process_file(KDBXParser* parser, const char* file_path);
 const KDBXHeader* kdbx_parser_get_header(const KDBXParser* parser);
 const char* kdbx_parser_get_last_error(const KDBXParser* parser);
+size_t kdbx_parser_get_payload_offset(const KDBXParser* parser);
 void kdbx_parser_set_kdf_progress_callback(
     KDBXParser* parser,
     KDBXParserKdfProgressCallback callback,
     void* context);
+bool kdbx_parser_get_aes_kdf_rounds(const KDBXParser* parser, uint64_t* out_rounds);
 bool kdbx_parser_derive_key(
     const KDBXParser* parser,
     const char* password,

@@ -26,6 +26,10 @@
 #include "hmac.h"
 #include "memzero.h"
 
+#ifndef HMAC_ENABLE_SHA512
+#define HMAC_ENABLE_SHA512 1
+#endif
+
 void hmac_sha256_Init(HMAC_SHA256_CTX* hctx, const uint8_t* key, const uint32_t keylen) {
     static uint8_t i_key_pad[SHA256_BLOCK_LENGTH];
     memzero(i_key_pad, SHA256_BLOCK_LENGTH);
@@ -80,6 +84,7 @@ void hmac_sha256_prepare(
     // empty function
 }
 
+#if HMAC_ENABLE_SHA512
 void hmac_sha512_Init(HMAC_SHA512_CTX* hctx, const uint8_t* key, const uint32_t keylen) {
     static uint8_t i_key_pad[SHA512_BLOCK_LENGTH];
     memzero(i_key_pad, SHA512_BLOCK_LENGTH);
@@ -133,3 +138,4 @@ void hmac_sha512_prepare(
     UNUSED(ipad_digest);
     // empty function
 }
+#endif

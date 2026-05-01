@@ -8,7 +8,7 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Language](https://img.shields.io/badge/language-C99-green)
 ![Build](https://img.shields.io/badge/build-ufbt-yellow)
-![Version](https://img.shields.io/badge/version-2.4.0-brightgreen)
+![Version](https://img.shields.io/badge/version-2.7.0-brightgreen)
 
 **[English docs](docs/en/README.md)** | **[Документация на русском](docs/ru/README.md)**
 
@@ -39,9 +39,10 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 | **ETH Bridge** | USB-to-Ethernet bridge: phone/PC gets LAN access via Flipper (CDC-ECM), optional PCAP traffic dump to SD card |
 | **PXE Server** | Minimal PXE boot server with built-in DHCP + TFTP, boots .kpxe/.efi files from SD card |
 | **PXE Download** | Download iPXE and EFI boot files from the internet directly to SD card for PXE Server |
-| **File Manager** | Web-based file manager: browse, download, upload, delete files on microSD via HTTP from any browser on the LAN |
+| **File Manager** | Web-based file manager: browse, download, upload, delete files on microSD via HTTP from any browser on the LAN. Supports custom CSS/JS themes from SD card |
 | **SNMP GET** | Query device info via SNMPv1/v2c: sysName, sysDescr, sysUpTime, ifOperStatus |
-| **NTP Diagnostics** | NTP server analysis: stratum, root delay/dispersion, reference ID, RTT |
+| **NTP Diagnostics** | NTP server analysis: stratum, root delay/dispersion, reference ID, RTT, UTC time |
+| **Apply NTP Sync** | Apply NTP time from last NTP Diagnostics result to Flipper clock |
 | **NetBIOS Query** | Discover Windows machine names, workgroups, and MAC addresses |
 | **DNS Poison Check** | Compare local vs public DNS (8.8.8.8) to detect poisoning or split-horizon |
 | **ARP Watch** | Passive ARP monitoring: detect spoofing, duplicate IPs, gratuitous ARP storms |
@@ -52,9 +53,8 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 | **VLAN Hopping** | Send 802.1Q tagged frames to test VLAN isolation (Top 10 / Custom VLANs) |
 | **TFTP Client** | Download config files from network equipment via TFTP, save to SD card |
 | **IPMI v1.5** | Query BMC: chassis power status, device ID, firmware version |
-| **RADIUS Test** | Send Access-Request with PAP auth (MD5), check Accept/Reject/Challenge |
 | **History** | All scan results auto-saved with timestamps, browsable and deletable |
-| **Settings** | Auto-save, sound/vibro, custom DNS server, ping count/timeout/interval, clear history, MAC Changer |
+| **Settings** | Auto-save, sound/vibro, custom DNS, ping config, target persistence, MAC Changer |
 
 ### UX Highlights
 
@@ -63,7 +63,7 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 - **DHCP caching**: single negotiation shared across all operations — no repeated 15s waits
 - **Visual progress**: countdown timers for listeners, ASCII progress bars for scans
 - **LED/vibro feedback**: green blink on success, red on error (optional, toggle in Settings)
-- **Smart defaults**: IP inputs pre-populated with DHCP gateway
+- **Smart defaults**: IP inputs pre-populated with DHCP gateway, last-used targets remembered across sessions
 
 ## Hardware
 
@@ -146,7 +146,6 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 │   ├── netbios_query.c / .h    # NetBIOS Name Query (NBSTAT)
 │   ├── ntp_diag.c / .h         # NTP diagnostics (stratum, offset, RTT)
 │   ├── port_scan.c / .h        # TCP connect port scanner
-│   ├── radius_client.c / .h    # RADIUS Access-Request with PAP/MD5
 │   ├── rogue_dhcp.c / .h       # Rogue DHCP server detection
 │   ├── rogue_ra.c / .h         # Rogue IPv6 Router Advertisement detection
 │   ├── snmp_client.c / .h      # SNMP v1/v2c GET client (BER/ASN.1)
@@ -202,7 +201,8 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 - **Continuous Ping** — live RTT graph with loss tracking, runs until Back.
 - **DNS Lookup** — resolves a hostname via the DHCP-provided DNS server.
 - **Traceroute** — hop-by-hop ICMP path discovery up to 30 hops.
-- **NTP Diagnostics** — stratum, root delay, reference ID, RTT.
+- **NTP Diagnostics** — stratum, root delay, reference ID, RTT, UTC time and clock diff.
+- **Apply NTP Sync** — apply cached NTP time to Flipper clock (run NTP Diagnostics first).
 - **DNS Poison Check** — compare local vs public DNS responses.
 
 ### Traffic
@@ -218,8 +218,6 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 - **802.1X Probe** — send EAPOL-Start, detect port authentication and EAP type.
 - **VLAN Hop Top10** — test VLAN isolation on common VLANs (1,2,10,20,50,100,150,200,300,999).
 - **VLAN Hop Custom** — test user-specified VLAN IDs (comma-separated).
-- **RADIUS Test** — send Access-Request with PAP/MD5 auth, check server response.
-
 ### Utilities
 - **Wake-on-LAN** — send magic packet to wake a device by MAC address.
 - **PXE Server** — minimal PXE boot server with built-in DHCP + TFTP.
@@ -232,6 +230,18 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 - **Sound & vibro** — ON/OFF, controls LED/vibro notifications.
 - **Clear History** — delete all saved result files.
 - **MAC Changer** — generate random MAC or enter custom, saved to SD.
+- **Target persistence** — last-used IP/hostname per tool saved to settings.conf, restored on next launch.
+
+### File Manager Custom Themes
+
+File Manager supports custom CSS and JavaScript loaded from SD card. Place files in:
+
+- **apps_data/lan_tester/web/custom.css** --- replaces default styles
+- **apps_data/lan_tester/web/custom.js** --- replaces default sorting script
+
+Files are detected once when File Manager starts. To apply changes, restart the tool.
+
+Example themes and an advanced custom.js (with search, breadcrumbs, multi-select, drag-and-drop upload, file preview) are included in **docs/filemanager_themes/**. Copy the desired file to the path above on your SD card.
 
 ## Technical Details
 
@@ -291,9 +301,10 @@ MIT License. See [LICENSE](LICENSE) for details.
 | **ETH Bridge** | USB-Ethernet мост: телефон/ПК получает доступ в LAN через Flipper (CDC-ECM), опциональный PCAP-дамп трафика на SD |
 | **PXE Server** | Минимальный PXE-сервер с DHCP + TFTP, загрузка .kpxe/.efi файлов с SD-карты |
 | **PXE Download** | Скачивание iPXE и EFI boot-файлов из интернета на SD-карту для PXE Server |
-| **File Manager** | Веб-менеджер файлов: просмотр, скачивание, загрузка, удаление файлов на microSD через HTTP из любого браузера в сети |
+| **File Manager** | Веб-менеджер файлов: просмотр, скачивание, загрузка, удаление файлов на microSD через HTTP. Поддержка кастомных CSS/JS тем с SD-карты |
 | **SNMP GET** | Запрос информации об устройстве по SNMPv1/v2c: sysName, sysDescr, sysUpTime, ifStatus |
-| **NTP Diagnostics** | Анализ NTP-сервера: stratum, root delay/dispersion, reference ID, RTT |
+| **NTP Diagnostics** | Анализ NTP-сервера: stratum, root delay/dispersion, reference ID, RTT, UTC-время |
+| **Apply NTP Sync** | Применение NTP-времени из последнего NTP Diagnostics к часам Flipper |
 | **NetBIOS Query** | Обнаружение имён Windows-машин, рабочих групп и MAC-адресов |
 | **DNS Poison Check** | Сравнение локального и публичного DNS (8.8.8.8) для обнаружения подмены |
 | **ARP Watch** | Пассивный мониторинг ARP: обнаружение спуфинга, дубликатов IP, ARP-штормов |
@@ -304,9 +315,8 @@ MIT License. See [LICENSE](LICENSE) for details.
 | **VLAN Hopping** | Отправка 802.1Q tagged-фреймов для проверки изоляции VLAN (Top 10 / Custom) |
 | **TFTP Client** | Скачивание конфигурационных файлов с оборудования по TFTP на SD-карту |
 | **IPMI v1.5** | Запрос BMC: статус питания шасси, ID устройства, версия прошивки |
-| **RADIUS Test** | Отправка Access-Request с PAP-аутентификацией (MD5), проверка Accept/Reject |
 | **История** | Все результаты автосохраняются с метками времени, просмотр и удаление |
-| **Настройки** | Автосохранение, звук/вибрация, очистка истории, MAC Changer (смена MAC с сохранением на SD) |
+| **Настройки** | Автосохранение, звук/вибрация, DNS, пинг, сохранение целей, MAC Changer |
 
 ### UX-особенности
 
@@ -315,7 +325,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 - **Кеширование DHCP**: одна DHCP-сессия на всё — не ждёте 15 секунд каждый раз
 - **Визуальный прогресс**: таймеры обратного отсчёта для прослушиваний, прогрессбары для сканов
 - **LED/вибро оповещения**: зелёный при успехе, красный при ошибке (опционально)
-- **Умные дефолты**: IP-поля предзаполнены шлюзом из DHCP
+- **Умные дефолты**: IP-поля предзаполнены шлюзом из DHCP, последние цели запоминаются между сессиями
 
 ## Оборудование
 
@@ -451,7 +461,8 @@ ufbt install            # установка .fap на SD-карту Flipper
 - **Continuous Ping** — график RTT с отслеживанием потерь.
 - **DNS Lookup** — разрешение имён через DNS.
 - **Traceroute** — ICMP-трассировка до 30 хопов.
-- **NTP Diagnostics** — stratum, root delay, reference ID, RTT.
+- **NTP Diagnostics** — stratum, root delay, reference ID, RTT, UTC-время и расхождение.
+- **Apply NTP Sync** — применение NTP-времени к часам Flipper (сначала запустите NTP Diagnostics).
 - **DNS Poison Check** — сравнение локального и публичного DNS.
 
 ### Traffic
@@ -467,7 +478,6 @@ ufbt install            # установка .fap на SD-карту Flipper
 - **802.1X Probe** — EAPOL-Start, обнаружение аутентификации и типа EAP.
 - **VLAN Hop Top10** — проверка изоляции на VLANs 1,2,10,20,50,100,150,200,300,999.
 - **VLAN Hop Custom** — проверка произвольных VLAN ID (через запятую).
-- **RADIUS Test** — Access-Request с PAP/MD5, проверка ответа сервера.
 
 ### Utilities
 - **Wake-on-LAN** — magic-пакет для пробуждения устройства.
@@ -481,6 +491,18 @@ ufbt install            # установка .fap на SD-карту Flipper
 - **Sound & vibro** — вкл/выкл LED/вибро.
 - **Clear History** — удалить все результаты.
 - **MAC Changer** — генерация/ввод MAC, сохранение на SD.
+- **Сохранение целей** — последний IP/hostname для каждого инструмента сохраняется в settings.conf.
+
+### Кастомные темы File Manager
+
+File Manager поддерживает пользовательские CSS и JavaScript с SD-карты:
+
+- **apps_data/lan_tester/web/custom.css** --- заменяет стандартные стили
+- **apps_data/lan_tester/web/custom.js** --- заменяет стандартный скрипт сортировки
+
+Файлы обнаруживаются при запуске File Manager. Для применения изменений перезапустите инструмент.
+
+Примеры тем и расширенный custom.js (поиск, хлебные крошки, мультивыбор, drag-and-drop загрузка, просмотр файлов) находятся в **docs/filemanager_themes/**. Скопируйте нужный файл по указанному пути на SD-карту.
 
 ## Технические детали
 

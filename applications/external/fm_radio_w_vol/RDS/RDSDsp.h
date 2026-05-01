@@ -8,9 +8,6 @@
 
 typedef struct {
     uint32_t sample_rate_hz;
-    bool use_fast_path_228k;
-    uint8_t sample_mod4;
-    uint8_t sample_mod12;
     uint8_t decim_factor;
     uint8_t decim_phase;
     uint32_t decim_step_q16;
@@ -54,6 +51,11 @@ typedef struct {
     uint32_t avg_vector_mag_q8;
     uint32_t avg_decision_mag_q8;
     uint32_t cached_symbol_period_q16;
+#ifdef HOST_BUILD
+    uint8_t* bit_log;
+    size_t bit_log_count;
+    size_t bit_log_capacity;
+#endif
 } RDSDsp;
 
 void rds_dsp_init(RDSDsp* dsp, uint32_t sample_rate_hz);

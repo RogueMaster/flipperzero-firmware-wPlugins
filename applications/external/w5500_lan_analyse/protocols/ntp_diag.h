@@ -16,6 +16,7 @@ typedef struct {
     char ref_id_str[16]; /* human-readable ref ID (stratum 1) */
     int32_t offset_us; /* clock offset in microseconds */
     uint32_t rtt_us; /* round-trip time in microseconds */
+    uint32_t unix_time; /* UTC seconds since 1970-01-01 (from transmit timestamp) */
     char stratum_name[24]; /* human-readable stratum description */
     bool valid;
 } NtpDiagResult;

@@ -55,29 +55,37 @@ static void spi_bus_callback(FuriHalSpiBusHandle* handle, FuriHalSpiBusHandleEve
 //  This is to Init the SPI Communication
 FuriHalSpiBusHandle* spi_alloc() {
     FuriHalSpiBusHandle* spi = malloc(sizeof(FuriHalSpiBusHandle));
+    if(!spi) return NULL;
+    memset(spi, 0, sizeof(FuriHalSpiBusHandle));
     spi->bus = BUS;
-    spi->callback = &spi_bus_callback;
+    spi->callback = (FuriHalSpiBusHandleEventCallback)spi_bus_callback;
     spi->cs = CS;
     spi->miso = MISO;
     spi->mosi = MOSI;
     spi->sck = SCK;
+    furi_hal_spi_bus_handle_init(spi);
     return spi;
 }
 
 // Function to send data
-bool spi_send(FuriHalSpiBusHandle* spi, uint8_t* buffer) {
+bool spi_send(FuriHalSpiBusHandle* spi, uint8_t* buffer, size_t len) {
     furi_hal_spi_acquire(spi);
-    bool ret = furi_hal_spi_bus_tx(spi, buffer, sizeof(buffer), TIMEOUT_SPI);
+    bool ret = furi_hal_spi_bus_tx(spi, buffer, len, TIMEOUT_SPI);
     furi_hal_spi_release(spi);
     return ret;
 }
 
 // Function to read register
-bool spi_send_and_read(FuriHalSpiBusHandle* spi, uint8_t* action_address, uint8_t* data_read) {
+bool spi_send_and_read(
+    FuriHalSpiBusHandle* spi,
+    uint8_t* action_address,
+    size_t addr_len,
+    uint8_t* data_read,
+    size_t read_len) {
     furi_hal_spi_acquire(spi);
     bool ret =
-        (furi_hal_spi_bus_tx(spi, action_address, sizeof(action_address), TIMEOUT_SPI) &&
-         furi_hal_spi_bus_rx(spi, data_read, sizeof(data_read), TIMEOUT_SPI));
+        (furi_hal_spi_bus_tx(spi, action_address, addr_len, TIMEOUT_SPI) &&
+         furi_hal_spi_bus_rx(spi, data_read, read_len, TIMEOUT_SPI));
     furi_hal_spi_release(spi);
     return ret;
 }

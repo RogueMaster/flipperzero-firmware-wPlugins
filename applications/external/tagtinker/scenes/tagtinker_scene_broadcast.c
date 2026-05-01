@@ -60,9 +60,20 @@ static void repeats_changed(VariableItem* item) {
     app->repeats = repeat_values[idx];
 }
 
+/* Row index of the ">> Transmit <<" item. Set when the list is built
+ * because the row count differs between flip-page (Page/Duration/Forever
+ * + Repeats/Repeat = 5 rows above Transmit) and diagnostic (just
+ * Repeats/Repeat = 2 rows above Transmit). */
+static uint8_t s_transmit_row_index = 0;
+
 static void broadcast_enter_callback(void* context, uint32_t index) {
-    UNUSED(index);
     TagTinkerApp* app = context;
+    /* VariableItemList fires this on OK for ANY row. We only want OK on
+     * the explicit ">> Transmit <<" row to start the broadcast - pressing
+     * OK on the Page / Duration / Forever / Repeats rows used to also
+     * start a transmit, which made it impossible to actually open those
+     * settings without sending stuff to every tag in the room. */
+    if(index != s_transmit_row_index) return;
     view_dispatcher_send_custom_event(app->view_dispatcher, 0);
 }
 
@@ -119,8 +130,26 @@ void tagtinker_scene_broadcast_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->tx_spam ? 1 : 0);
     variable_item_set_current_value_text(item, forever_labels[app->tx_spam ? 1 : 0]);
 
-    /* OK press on any item → trigger transmit */
+    /* The Transmit row is whatever index comes after everything we've
+     * added so far. Diagnostic mode skips Page/Duration/Forever, hence
+     * the index isn't a constant. */
+    s_transmit_row_index = (app->broadcast_type == TagTinkerBroadcastFlipPage) ? 5 : 2;
+    variable_item_list_add(vil, ">> Transmit <<", 0, NULL, app);
+
+    /* The list calls back on OK for ANY row; broadcast_enter_callback
+     * filters by row index so only the Transmit row actually starts
+     * the broadcast.
+     *
+     * Cursor is intentionally LEFT on row 0 (the first setting) and
+     * NOT on Transmit. Reason: the OK key-press that picked us out of
+     * the previous Submenu generates a key-release input event that
+     * arrives just after this scene's VIL becomes active. If the
+     * cursor were on the Transmit row at that moment the stale OK
+     * would auto-fire the enter callback and the radio would start
+     * blasting before the user touched anything. Starting on row 0
+     * (which has a change_callback) means stale OKs are harmless. */
     variable_item_list_set_enter_callback(vil, broadcast_enter_callback, app);
+    variable_item_list_set_selected_item(vil, 0);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TagTinkerViewVarItemList);
 }

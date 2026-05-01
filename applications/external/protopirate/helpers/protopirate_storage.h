@@ -9,6 +9,8 @@
 #define PROTOPIRATE_APP_EXTENSION    ".psf"
 #define PROTOPIRATE_APP_FILE_VERSION 1
 #define PROTOPIRATE_TEMP_FILE        APP_DATA_PATH("saved/.temp.psf")
+#define PROTOPIRATE_CACHE_FOLDER     APP_DATA_PATH("cache")
+#define PROTOPIRATE_HISTORY_FOLDER   APP_DATA_PATH("cache/history")
 
 // Helper: failed read
 #define PROTOPIRATE_FAIL_READ(_k)                           \
@@ -106,3 +108,14 @@ void protopirate_storage_close_file(FlipperFormat* flipper_format);
 
 // Check if file exists
 bool protopirate_storage_file_exists(const char* file_path);
+
+bool protopirate_storage_ensure_history_folder(void);
+
+void protopirate_storage_purge_temp_history_at_startup(void);
+
+void protopirate_storage_wipe_history_cache(void);
+
+bool protopirate_storage_save_history_capture(
+    FlipperFormat* flipper_format,
+    uint32_t seq,
+    FuriString* out_path);

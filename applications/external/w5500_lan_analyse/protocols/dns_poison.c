@@ -159,7 +159,8 @@ static uint8_t dns_resolve_via(
     if(socket(DNS_SOCK, Sn_MR_UDP, local_port, 0) != DNS_SOCK) return 0;
 
     uint16_t txn_id = (uint16_t)(furi_get_tick() & 0xFFFF);
-    uint8_t pkt[256];
+    /* Static to avoid 256B stack usage; worker is single-threaded */
+    static uint8_t pkt[256];
     uint16_t pkt_len = dns_build_query(pkt, sizeof(pkt), hostname, txn_id);
     if(pkt_len == 0) {
         close(DNS_SOCK);

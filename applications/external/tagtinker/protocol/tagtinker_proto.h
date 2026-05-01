@@ -13,9 +13,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define TAGTINKER_PROTO_DM       0x85
-#define TAGTINKER_PROTO_SEG      0x84
-#define TAGTINKER_MAX_FRAME_SIZE 96
+#define TAGTINKER_PROTO_DM                   0x85
+#define TAGTINKER_PROTO_SEG                  0x84
+#define TAGTINKER_MAX_FRAME_SIZE             96
+#define TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME 20U
 
 typedef struct TagTinkerApp TagTinkerApp;
 
@@ -40,9 +41,12 @@ typedef struct {
     uint16_t height;
     TagTinkerTagKind kind;
     TagTinkerTagColor color;
+    const char* model_name;
+    uint8_t pl_bit_def;
     bool known;
 } TagTinkerTagProfile;
 
+bool tagtinker_is_barcode_valid(const char* barcode);
 bool tagtinker_barcode_to_plid(const char* barcode, uint8_t plid[4]);
 bool tagtinker_barcode_to_type(const char* barcode, uint16_t* type_code);
 bool tagtinker_barcode_to_profile(const char* barcode, TagTinkerTagProfile* profile);
@@ -87,7 +91,7 @@ size_t tagtinker_make_image_data_frame(
     uint8_t* buf,
     const uint8_t plid[4],
     uint16_t frame_index,
-    const uint8_t data_bytes[20]);
+    const uint8_t data_bytes[TAGTINKER_IMAGE_DATA_BYTES_PER_FRAME]);
 
 /* Broadcast frames address every listening tag. */
 size_t tagtinker_build_broadcast_page_frame(

@@ -61,7 +61,7 @@ static WiFirApp* wi_fir_alloc(void) {
         app->view_dispatcher, WiFirViewLoading, loading_get_view(app->loading));
 
     /* Load settings from SD card */
-    wfr_storage_load_settings(app->storage, &app->ack_enabled);
+    wfr_storage_load_settings(app->storage, &app->ack_enabled, &app->ir_protocol);
 
     return app;
 }

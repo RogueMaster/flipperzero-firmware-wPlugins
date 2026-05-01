@@ -6,6 +6,8 @@
 #include <wizchip_conf.h>
 #include <string.h>
 
+#include "../utils/packet_utils.h"
+
 #define TAG "ICMP"
 
 /* ICMP packet structure */
@@ -16,26 +18,13 @@
 /* IPRAW protocol number for ICMP */
 #define IP_PROTO_ICMP 1
 
-static uint16_t icmp_checksum(const uint8_t* buf, uint16_t len) {
-    uint32_t sum = 0;
-    for(uint16_t i = 0; i + 1 < len; i += 2) {
-        sum += ((uint16_t)buf[i] << 8) | buf[i + 1];
-    }
-    if(len & 1) {
-        sum += (uint16_t)buf[len - 1] << 8;
-    }
-    while(sum >> 16) {
-        sum = (sum & 0xFFFF) + (sum >> 16);
-    }
-    return (uint16_t)(~sum);
-}
-
 bool icmp_ping(
     uint8_t socket_num,
     const uint8_t target_ip[4],
     uint16_t seq,
     uint32_t timeout_ms,
-    PingResult* result) {
+    PingResult* result,
+    const volatile bool* running) {
     furi_assert(result);
 
     memcpy(result->target_ip, target_ip, 4);
@@ -75,7 +64,7 @@ bool icmp_ping(
     }
 
     /* Calculate checksum */
-    uint16_t cksum = icmp_checksum(icmp_buf, ICMP_PACKET_SIZE);
+    uint16_t cksum = pkt_checksum(icmp_buf, ICMP_PACKET_SIZE);
     icmp_buf[2] = (uint8_t)(cksum >> 8);
     icmp_buf[3] = (uint8_t)(cksum & 0xFF);
 
@@ -94,6 +83,10 @@ bool icmp_ping(
     uint16_t from_port;
 
     while(furi_get_tick() - start_tick < timeout_ms) {
+        if(running && !*running) {
+            close(socket_num);
+            return false;
+        }
         uint16_t rx_size = getSn_RX_RSR(socket_num);
         if(rx_size > 0) {
             int32_t received =

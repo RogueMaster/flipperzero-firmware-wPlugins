@@ -1,0 +1,21 @@
+App(
+    appid="hyper_focus_calc",
+    name="HyperFocus Calc",
+    apptype=FlipperAppType.EXTERNAL,
+    sources=[
+        "main.c",
+        "src/app/hyperfocus_app.c",
+        "src/domain/hyperfocal.c",
+        "src/domain/sensor_data.c",
+        "src/persistence/sensors_store.c",
+        "src/ui/calc_scene.c",
+    ],
+    entry_point="hyperfocus_calc_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/icon.icon",
+    fap_category="Tools",
+    fap_author="Endika",
+    fap_weburl="https://github.com/Endika/flipper-hyper-focus-calc",
+    fap_version="0.1.1",
+    fap_description="Hyperfocal distance calculator: focal and aperture on-device with sensor CoC.",
+)

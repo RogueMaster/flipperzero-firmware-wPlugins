@@ -52,7 +52,8 @@ static AppArgValueType args_editor_detect_type(const char* key, const char* valu
     }
 
     if(strcmp(key, "ascii") == 0 || strcmp(key, "ext") == 0 || strcmp(key, "rtr") == 0 ||
-       strcmp(key, "ext_match") == 0 || strcmp(key, "strict") == 0 || strcmp(key, "mux") == 0) {
+       strcmp(key, "ext_match") == 0 || strcmp(key, "strict") == 0 || strcmp(key, "mux") == 0 ||
+       strcmp(key, "ap") == 0 || strcmp(key, "autostart") == 0) {
         return AppArgValueBool01;
     }
 

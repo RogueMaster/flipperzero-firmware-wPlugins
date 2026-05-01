@@ -10,16 +10,45 @@ const SubGhzProtocol* protopirate_protocol_registry_items[] = {
     &kia_protocol_v5, // Heap: free 16528
     &kia_protocol_v6, // Heap: free 18296
     &ford_protocol_v0, // Heap: free 19456
+    &ford_protocol_v1,
     &fiat_protocol_v0, // Heap: free 16864
     &fiat_v1_protocol,
     &mazda_v0_protocol,
+    &kia_protocol_v7,
     &mitsubishi_v0_protocol,
     &porsche_touareg_protocol,
     &subaru_protocol, // Heap: free 17280
-    &suzuki_protocol, // Heap: free 16064
     &vag_protocol, // Heap: free 29352
     &subghz_protocol_star_line, // Heap: free 18632
     &psa_protocol, // Heap: free 25408
+    &honda_static_protocol,
+};
+
+static const SubGhzProtocol* const protopirate_protocol_registry_am_items[] = {
+    &fiat_protocol_v0,
+    &fiat_v1_protocol,
+    &ford_protocol_v0,
+    &kia_protocol_v1,
+    &porsche_touareg_protocol,
+    &psa_protocol,
+    &subaru_protocol,
+    &vag_protocol,
+    &subghz_protocol_star_line,
+};
+
+static const SubGhzProtocol* const protopirate_protocol_registry_fm_items[] = {
+    &subghz_protocol_scher_khan,
+    &kia_protocol_v0,
+    &kia_protocol_v2,
+    &kia_protocol_v3_v4,
+    &kia_protocol_v5,
+    &kia_protocol_v6,
+    &ford_protocol_v1,
+    &honda_static_protocol,
+    &mazda_v0_protocol,
+    &kia_protocol_v7,
+    &mitsubishi_v0_protocol,
+    &psa_protocol,
 };
 // TODO: See above
 // Current HEAP situation:
@@ -35,9 +64,112 @@ const SubGhzProtocolRegistry protopirate_protocol_registry = {
     .size = COUNT_OF(protopirate_protocol_registry_items),
 };
 
+static const SubGhzProtocolRegistry protopirate_protocol_registry_am = {
+    .items = protopirate_protocol_registry_am_items,
+    .size = COUNT_OF(protopirate_protocol_registry_am_items),
+};
+
+static const SubGhzProtocolRegistry protopirate_protocol_registry_fm = {
+    .items = protopirate_protocol_registry_fm_items,
+    .size = COUNT_OF(protopirate_protocol_registry_fm_items),
+};
+
+#define PROTOPIRATE_CC1101_REG_MDMCFG2        0x12U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_MASK    0x70U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_2FSK    0x00U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_GFSK    0x10U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_ASK_OOK 0x30U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_4FSK    0x40U
+#define PROTOPIRATE_CC1101_MOD_FORMAT_MSK     0x70U
+
+static bool protopirate_preset_try_get_register(
+    const uint8_t* preset_data,
+    size_t preset_data_size,
+    uint8_t reg,
+    uint8_t* value) {
+    if(!preset_data || !value || (preset_data_size < 2U)) {
+        return false;
+    }
+
+    for(size_t i = 0; i + 1U < preset_data_size; i += 2U) {
+        const uint8_t address = preset_data[i];
+        const uint8_t data = preset_data[i + 1U];
+
+        if((address == 0x00U) && (data == 0x00U)) {
+            break;
+        }
+
+        if(address == reg) {
+            *value = data;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+ProtoPirateProtocolRegistryFilter protopirate_get_protocol_registry_filter_for_preset(
+    const uint8_t* preset_data,
+    size_t preset_data_size) {
+    uint8_t mdmcfg2 = 0U;
+
+    if(!protopirate_preset_try_get_register(
+           preset_data, preset_data_size, PROTOPIRATE_CC1101_REG_MDMCFG2, &mdmcfg2)) {
+        return ProtoPirateProtocolRegistryFilterAll;
+    }
+
+    // MDMCFG2[6:4] stores the CC1101 modulation format.
+    // ASK/OOK maps to our AM decoder set; the FSK-family formats map to FM.
+    switch(mdmcfg2 & PROTOPIRATE_CC1101_MOD_FORMAT_MASK) {
+    case PROTOPIRATE_CC1101_MOD_FORMAT_ASK_OOK:
+        return ProtoPirateProtocolRegistryFilterAM;
+    case PROTOPIRATE_CC1101_MOD_FORMAT_2FSK:
+    case PROTOPIRATE_CC1101_MOD_FORMAT_GFSK:
+    case PROTOPIRATE_CC1101_MOD_FORMAT_4FSK:
+    case PROTOPIRATE_CC1101_MOD_FORMAT_MSK:
+        return ProtoPirateProtocolRegistryFilterFM;
+    default:
+        return ProtoPirateProtocolRegistryFilterAll;
+    }
+}
+
+const SubGhzProtocolRegistry*
+    protopirate_get_protocol_registry_by_filter(ProtoPirateProtocolRegistryFilter filter) {
+    switch(filter) {
+    case ProtoPirateProtocolRegistryFilterAM:
+        return &protopirate_protocol_registry_am;
+    case ProtoPirateProtocolRegistryFilterFM:
+        return &protopirate_protocol_registry_fm;
+    case ProtoPirateProtocolRegistryFilterAll:
+    default:
+        return &protopirate_protocol_registry;
+    }
+}
+
+const char*
+    protopirate_get_protocol_registry_filter_name(ProtoPirateProtocolRegistryFilter filter) {
+    switch(filter) {
+    case ProtoPirateProtocolRegistryFilterAM:
+        return "AM";
+    case ProtoPirateProtocolRegistryFilterFM:
+        return "FM";
+    case ProtoPirateProtocolRegistryFilterAll:
+    default:
+        return "ALL";
+    }
+}
+
 // Protocol timing definitions - mirrors the SubGhzBlockConst in each protocol
 static const ProtoPirateProtocolTiming protocol_timings[] = {
-    // Kia V0: PWM encoding, 250/500µs
+    // Honda Static
+    {
+        .name = HONDA_STATIC_PROTOCOL_NAME,
+        .te_short = 63,
+        .te_long = 700,
+        .te_delta = 120,
+        .min_count_bit = 64,
+    },
+    // Kia V0: PWM 250/500µs — Kia 61bit, Suzuki 64bit, Honda V0 72bit
     {
         .name = "Kia V0",
         .te_short = 250,
@@ -85,6 +217,14 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_delta = 100,
         .min_count_bit = 144,
     },
+    // Kia V7: Manchester 250/500µs
+    {
+        .name = KIA_PROTOCOL_V7_NAME,
+        .te_short = 250,
+        .te_long = 500,
+        .te_delta = 100,
+        .min_count_bit = 64,
+    },
     // Ford V0: Manchester 250/500µs
     {
         .name = "Ford V0",
@@ -92,6 +232,14 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_long = 500,
         .te_delta = 100,
         .min_count_bit = 64,
+    },
+    // Ford V1: Manchester 65/130us
+    {
+        .name = FORD_PROTOCOL_V1_NAME,
+        .te_short = 65,
+        .te_long = 130,
+        .te_delta = 39,
+        .min_count_bit = 136,
     },
     // Fiat V0: Manchester 200/400µs
     {
@@ -139,14 +287,6 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_short = 800,
         .te_long = 1600,
         .te_delta = 200,
-        .min_count_bit = 64,
-    },
-    // Suzuki: PWM 250/500µs
-    {
-        .name = "Suzuki",
-        .te_short = 250,
-        .te_long = 500,
-        .te_delta = 100,
         .min_count_bit = 64,
     },
     // VW: Manchester 500/1000µs
@@ -199,8 +339,7 @@ const ProtoPirateProtocolTiming* protopirate_get_protocol_timing(const char* pro
     // Try partial matching for version variants
     for(size_t i = 0; i < protocol_timings_count; i++) {
         // Match "Kia" protocols
-        if(strstr(protocol_name, "Kia") != NULL || strstr(protocol_name, "KIA") != NULL ||
-           strstr(protocol_name, "HYU") != NULL) {
+        if(strstr(protocol_name, "Kia") != NULL || strstr(protocol_name, "KIA") != NULL) {
             // Try to match version number
             if(strstr(protocol_name, "V0") != NULL &&
                strstr(protocol_timings[i].name, "V0") != NULL) {
@@ -220,6 +359,10 @@ const ProtoPirateProtocolTiming* protopirate_get_protocol_timing(const char* pro
             }
             if(strstr(protocol_name, "V5") != NULL &&
                strstr(protocol_timings[i].name, "V5") != NULL) {
+                return &protocol_timings[i];
+            }
+            if(strstr(protocol_name, "V7") != NULL &&
+               strstr(protocol_timings[i].name, "V7") != NULL) {
                 return &protocol_timings[i];
             }
         }
@@ -242,9 +385,15 @@ const ProtoPirateProtocolTiming* protopirate_get_protocol_timing(const char* pro
             return &protocol_timings[i];
         }
 
-        // Match Suzuki
+        // Suzuki merged into Kia V0
         if(strstr(protocol_name, "Suzuki") != NULL &&
-           strstr(protocol_timings[i].name, "Suzuki") != NULL) {
+           strstr(protocol_timings[i].name, "Kia V0") != NULL) {
+            return &protocol_timings[i];
+        }
+
+        // Honda V0 (Type 3)
+        if(strstr(protocol_name, "Honda V0") != NULL &&
+           strstr(protocol_timings[i].name, "Kia V0") != NULL) {
             return &protocol_timings[i];
         }
 

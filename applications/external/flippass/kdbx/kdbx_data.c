@@ -108,6 +108,8 @@ void kdbx_group_reset(KDBXGroup* group) {
     }
 
     group->name = NULL;
+    group->uuid = NULL;
+    memset(&group->uuid_ref, 0, sizeof(group->uuid_ref));
     group->parent = NULL;
     group->children = NULL;
     group->next = NULL;
@@ -193,6 +195,28 @@ void kdbx_entry_free(KDBXEntry* entry) {
 
 bool kdbx_group_set_name(KDBXGroup* group, KDBXArena* arena, const char* name) {
     return group != NULL && kdbx_group_set_arena_string(&group->name, arena, name);
+}
+
+bool kdbx_group_set_uuid(KDBXGroup* group, KDBXArena* arena, const char* uuid) {
+    return group != NULL && kdbx_group_set_arena_string(&group->uuid, arena, uuid);
+}
+
+bool kdbx_group_set_uuid_ref(KDBXGroup* group, const KDBXFieldRef* ref) {
+    if(group == NULL) {
+        return false;
+    }
+
+    if(ref != NULL) {
+        group->uuid_ref = *ref;
+    } else {
+        memset(&group->uuid_ref, 0, sizeof(group->uuid_ref));
+    }
+
+    return true;
+}
+
+const KDBXFieldRef* kdbx_group_get_uuid_ref(const KDBXGroup* group) {
+    return group != NULL ? &group->uuid_ref : NULL;
 }
 
 bool kdbx_entry_set_uuid(KDBXEntry* entry, KDBXArena* arena, const char* uuid) {
@@ -322,6 +346,15 @@ KDBXCustomField* kdbx_entry_add_custom_field(
     KDBXArena* arena,
     const char* key,
     const KDBXFieldRef* ref) {
+    return kdbx_entry_add_custom_field_ex(entry, arena, key, ref, false);
+}
+
+KDBXCustomField* kdbx_entry_add_custom_field_ex(
+    KDBXEntry* entry,
+    KDBXArena* arena,
+    const char* key,
+    const KDBXFieldRef* ref,
+    bool protected_value) {
     if(entry == NULL || arena == NULL || key == NULL || key[0] == '\0' || ref == NULL ||
        ref->plain_len == 0U) {
         return NULL;
@@ -338,6 +371,7 @@ KDBXCustomField* kdbx_entry_add_custom_field(
     }
 
     field->value_ref = *ref;
+    field->protected_value = protected_value;
 
     if(entry->custom_fields == NULL) {
         entry->custom_fields = field;
@@ -358,6 +392,29 @@ const KDBXCustomField* kdbx_entry_get_custom_fields(const KDBXEntry* entry) {
 
 const KDBXFieldRef* kdbx_custom_field_get_ref(const KDBXCustomField* field) {
     return field != NULL ? &field->value_ref : NULL;
+}
+
+bool kdbx_custom_field_set_key(KDBXCustomField* field, KDBXArena* arena, const char* key) {
+    if(field == NULL || key == NULL || key[0] == '\0') {
+        return false;
+    }
+
+    return kdbx_group_set_arena_string(&field->key, arena, key);
+}
+
+bool kdbx_custom_field_set_ref(KDBXCustomField* field, const KDBXFieldRef* ref) {
+    if(field == NULL || ref == NULL || ref->plain_len == 0U) {
+        return false;
+    }
+
+    field->value_ref = *ref;
+    return true;
+}
+
+void kdbx_custom_field_set_protected(KDBXCustomField* field, bool protected_value) {
+    if(field != NULL) {
+        field->protected_value = protected_value;
+    }
 }
 
 bool kdbx_custom_field_is_loaded(const KDBXCustomField* field) {

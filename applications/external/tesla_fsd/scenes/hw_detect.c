@@ -9,9 +9,19 @@ static int32_t hw_detect_worker(void* context) {
     MCP2515* mcp = app->mcp_can;
     CANFRAME frame;
 
-    mcp->mode = MCP_NORMAL;
+    mcp->mode = MCP_LISTENONLY;
     mcp->bitRate = MCP_500KBPS;
-    mcp->clck = MCP_16MHZ;
+    switch(app->mcp_clock) {
+    case 1:
+        mcp->clck = MCP_8MHZ;
+        break;
+    case 2:
+        mcp->clck = MCP_12MHZ;
+        break;
+    default:
+        mcp->clck = MCP_16MHZ;
+        break;
+    }
 
     if(mcp2515_init(mcp) != ERROR_OK) {
         view_dispatcher_send_custom_event(app->view_dispatcher, TeslaFSDEventNoDevice);
@@ -78,7 +88,7 @@ void tesla_fsd_scene_hw_detect_on_enter(void* context) {
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TeslaFSDViewWidget);
 
-    app->worker_thread = furi_thread_alloc_ex("TeslaHWDetect", 2048, hw_detect_worker, app);
+    app->worker_thread = furi_thread_alloc_ex("TeslaHWDetect", 4096, hw_detect_worker, app);
     furi_thread_start(app->worker_thread);
 }
 

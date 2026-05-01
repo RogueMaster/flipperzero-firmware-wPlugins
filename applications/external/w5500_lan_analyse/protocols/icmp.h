@@ -24,9 +24,13 @@ typedef struct {
  * result: output
  * Returns true if reply received.
  */
+/**
+ * @param running  If non-NULL, checked each ms — ping aborts when *running becomes false.
+ */
 bool icmp_ping(
     uint8_t socket_num,
     const uint8_t target_ip[4],
     uint16_t seq,
     uint32_t timeout_ms,
-    PingResult* result);
+    PingResult* result,
+    const volatile bool* running);

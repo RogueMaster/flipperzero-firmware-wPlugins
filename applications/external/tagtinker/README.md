@@ -1,63 +1,58 @@
-# TagTinker
+# TagTinker V2.1
 
 <p align="center">
   <strong>Infrared ESL Research Toolkit for Flipper Zero</strong><br>
-  <sub>Protocol study • Signal analysis • Controlled display experiments on authorized hardware</sub>
+  <sub>Protocol study • Signal analysis • Digital Art</sub>
 </p>
 
 <p align="center">
   <img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg">
   <img alt="Platform: Flipper Zero" src="https://img.shields.io/badge/Platform-Flipper%20Zero-black.svg">
-  <img alt="Status: Research Project" src="https://img.shields.io/badge/Status-Research%20Only-informational.svg">
+  <a href="https://i12bp8.github.io/TagTinker/"><img alt="Image Prep" src="https://img.shields.io/badge/Image%20Prep-Open%20in%20browser-a78bfa?logo=github"></a>
 </p>
 
 <p align="center">
-  <img src="https://github.com/i12bp8/TagTinker/blob/main/demo.jpg" width="700" alt="TagTinker demo">
+  <strong><a href="https://i12bp8.github.io/TagTinker/">→ Launch the TagTinker Image Prep web app ←</a></strong>
 </p>
 
-<p align="center">
-  <sub>Owner-authorized lab display experiment</sub>
-</p>
-
----
-
-> [!IMPORTANT]
-> **TagTinker is a research tool.**
->
-> It is intended **only** for protocol study, signal analysis, and controlled experiments on hardware you personally own or are explicitly authorized to test.
->
-> This repository does **not** authorize access to, modification of, or interference with any third-party deployment, commercial installation, or retail environment.
-
-> [!WARNING]
-> **Strictly prohibited uses include:**
-> - Testing against deployed third-party systems
-> - Use in retail or commercial environments
-> - Altering prices, product data, or operational displays
-> - Interfering with business operations
-> - Bypassing pairing, authorization, or security controls
-> - Any unauthorized, unlawful, or harmful activity
+<img alt="Demo Image"  src="https://raw.githubusercontent.com/i12bp8/TagTinker/refs/heads/main/tagtinkerdemo.jpg">
 
 ## Overview
 
-TagTinker is a Flipper Zero app for **educational research into infrared electronic shelf-label protocols** and related display behavior on authorized test hardware.
+TagTinker is a Flipper Zero app for exploring infrared electronic shelf-label (ESL) protocols. It allows you to transmit custom images and text to supported graphics tags. A companion **web image preparer** runs entirely in the browser and lets you drop, dither and download Flipper-ready BMPs without any install.
 
-It is focused on:
-- protocol observation and replay analysis
-- controlled display experiments
-- monochrome image preparation workflows
-- local tooling for research and interoperability testing
+As the Flipper Zero team notes:
+> "FYI: this is pure infrared signal, same that you use in TV remotes. The whole security was relying on obscurity of protocol."
 
-This README intentionally avoids deployment-oriented instructions and excludes guidance for interacting with live commercial systems.
+This tool is built for IoT security curiosity, learning about obscure protocols, and displaying digital art on e-ink hardware.
+
+> [!WARNING]
+> **Hardware Warning:** Many infrared ESL tags store their firmware, address, and display data in volatile RAM to save cost and energy. If you remove the battery or let it fully discharge, the tag will lose all programming and become unresponsive ("dead"). It usually cannot be recovered without the original base station.
 
 ## Features
 
-- Text, image, and test-pattern display experiments
-- Local web-based image preparation utility (`tools/tagtinker.html`)
-- Signal and response testing for authorized bench hardware
-- Small, modular codebase suitable for further research
-- Research-first project structure with clear scope boundaries
+- **TagTinker Flipper App:** High-performance, zero-allocation RLE streaming IR engine.
+- **TagTinker Image Prep (web):** Single-file, dependency-free HTML page that lists every supported tag profile, runs a full image pipeline (tone, contrast, detail, sharpen, dither, photo-grade Oklab 3-colour quantisation) and exports a Flipper-ready BMP. Hosted at **[i12bp8.github.io/TagTinker](https://i12bp8.github.io/TagTinker/)** (source: `web-image-prep/`).
+- **Drop-folder image flow:** Drop a prepared BMP into `apps_data/tagtinker/dropped/` on the Flipper SD card, then open `Targeted Payloads → <tag> → Set Image` and pick it. The Flipper rescales any BMP on the fly so a single file can target any tag and any page.
+- **NFC Tag Scan:** Instantly identify ESL targets by scanning their NFC tag — no manual barcode entry needed.
+- **WiFi Plugins (optional):** Plug a Flipper WiFi Dev Board (ESP32-S2) into the GPIO header to unlock live, network-rendered tag designs — crypto price cards, weather tiles, identicons, and more — auto-discovered by the FAP. New plugins live entirely on the cloud worker; the Flipper firmware never has to be re-flashed to add one.
+<img alt="image" src="https://raw.githubusercontent.com/i12bp8/TagTinker/refs/heads/main/PXL_20260427_092219442.jpg" />
+
+- Display text, custom images, and test-patterns.
+- Support for monochrome and accent-color (red/yellow) graphics tags.
+
+## Getting Started
+
+1. Build the Flipper app from this repository and install it via `ufbt`. The first launch creates `apps_data/tagtinker/dropped/` on your SD card.
+2. Open **[i12bp8.github.io/TagTinker](https://i12bp8.github.io/TagTinker/)** in any browser, pick your tag profile, drop an image, tweak, and download the BMP.
+3. Copy the BMP into `apps_data/tagtinker/dropped/` on the SD card (over `qFlipper`, USB MTP, or whatever you use).
+4. On the Flipper open `Targeted Payloads → <your tag> → Set Image`, pick the BMP, choose a page, send.
 
 ## FAQ
+
+**Does this require a Flipper Zero?**
+
+No, not at all! You can do this with less than $5 worth of microcontroller hardware (like an ESP32 and an IR LED). The Flipper Zero just happens to be my favorite security research tool, which is why I built the app for this platform.
 
 **Where is the `.fap` release?**
 
@@ -65,93 +60,28 @@ The Flipper app is source-first. Build the `.fap` yourself from this repository 
 
 **What if it crashes or behaves oddly?**
 
-The maintainer primarily uses TagTinker on Momentum firmware with asset packs disabled and has not had issues in that setup. If you are using a different firmware branch, custom asset packs, or a heavily modified device setup, start by testing from a clean baseline.
+If you are using a custom firmware branch, custom asset packs, or a heavily modified device setup, start by testing from a clean baseline firmware.
 
-**What happens if I pull the battery out of the tag?**
+## Credits & Background
 
-Many infrared ESL tags store their firmware, address, and display data in volatile RAM (not flash memory) to save cost and energy.  
-If you remove the battery or let it fully discharge, the tag will lose all programming and become **unresponsive ("dead")**. It usually cannot be recovered without the original base station.
-
-**I found a bug or want to contribute — how can I get in touch?**
-
-You can contact me on:
-- Discord: **@i12bp8**
-- Telegram: **@i12bp8**
-
-I'm currently traveling, so response times may be slower than usual. Feel free to open issues or Pull Requests anyway — contributions (bug fixes, improvements, documentation, etc.) are very welcome and will help keep the project alive while I'm away.
-
-
-
-## How It Works
-
-TagTinker is built around the study of **infrared electronic shelf-label communication** used by fixed-transmitter labeling systems.
-
-At a high level:
-
-- tags receive modulated infrared transmissions rather than ordinary consumer-IR commands
-- communication is based on addressed protocol frames containing command, parameter, and integrity fields
-- display updates are carried as prepared payloads for supported monochrome graphics formats
-- local tooling in this project helps researchers prepare assets and perform controlled experiments on authorized hardware
-
-This project is intended to help researchers understand:
-- signal structure
-- frame and payload behavior
-- display data preparation constraints
-- safe, authorized bench-testing workflows
-
-For the underlying reverse-engineering background and deeper protocol research, see:
+This project is deeply indebted to the incredible public reverse-engineering work by **furrtek**. 
+To understand the underlying protocol, signal structure, and history, please read his research:
 - **Furrtek’s ESL research:** [https://www.furrtek.org/?a=esl](https://www.furrtek.org/?a=esl)
 - **PrecIR reference implementation:** [https://github.com/furrtek/PrecIR](https://github.com/furrtek/PrecIR)
 
-## Project Scope
+NFC tag decoding contributed by **7h30th3r0n3**.  
 
-TagTinker is limited to **home-lab and authorized research use**, including:
+## Disclaimer
 
-- infrared protocol study
-- signal timing and frame analysis
-- controlled experiments on owned or authorized hardware
-- monochrome asset preparation for testing
-- educational diagnostics and interoperability research
-
-It is **not** a retail tool, operational tool, or field-use utility.
-
-## Responsible Use
-
-You are solely responsible for ensuring that any use of this software is lawful, authorized, and appropriate for your environment.
-
-The maintainer does not authorize, approve, or participate in any unauthorized use of this project, and disclaims responsibility for misuse, damage, disruption, legal violations, or any consequences arising from such use.
-
-If you do not own the hardware, or do not have explicit written permission to test it, **do not use this project on it**.
-
-Any unauthorized use is outside the intended scope of this repository and is undertaken entirely at the user’s own risk.
-
-## No Affiliation
-
-This is an **independent research project**.
-
-It is not affiliated with, endorsed by, authorized by, or sponsored by any electronic shelf-label vendor, retailer, infrastructure provider, or system operator.
-
-Any references to external research, public documentation, or reverse-engineering work are included strictly for educational and research context.
-
-## Credits
-
-This project is a port and adaptation of the excellent public reverse-engineering work by **[furrtek / PrecIR](https://github.com/furrtek/PrecIR)** and related community research.
+> [!CAUTION]
+> **STRICTLY PROHIBITED FOR ILLEGAL USE**
+> 
+> TagTinker is an independent project intended **strictly** for educational research, security curiosity, and displaying digital art on hardware that **you legally own**. 
+> 
+> Under no circumstances is this software allowed to be used for illegal activities. You are strictly prohibited from using TagTinker to alter retail displays, modify electronic shelf labels in stores, interfere with third-party infrastructure, or cause any form of vandalism or financial harm. 
+> 
+> The creator of TagTinker assumes absolutely no liability for any misuse of this software. By using this software, you agree to take full responsibility for your actions and use it responsibly and legally.
 
 ## License
 
-Licensed under the **GNU General Public License v3.0** (GPL-3.0).  
-See the [`LICENSE`](LICENSE) file for details.
-
-## Warranty Disclaimer
-
-This software is provided **“AS IS”**, without warranty of any kind, express or implied.
-
-In no event shall the authors or copyright holders be liable for any claim, damages, or other liability arising from the use of this software.
-
-## Maintainer Statement
-
-This repository is maintained as a **narrowly scoped educational research project**.
-
-The maintainer does **not** authorize, encourage, condone, or accept responsibility for use against third-party devices, deployed commercial systems, retail infrastructure, or any environment where the user lacks explicit permission.
-
-**Research responsibly.**
+Licensed under the **GNU General Public License v3.0** (GPL-3.0). See the [`LICENSE`](LICENSE) file for details.

@@ -7,6 +7,7 @@
 | **Any ESP32 + MCP2515 → X179** | **~$5-7** | X179 4-wire | 1 (bus 6 = mixed) | Yes | Cheapest full-feature setup |
 | M5Stack ATOM Lite + ATOMIC CAN → X179 | ~$13-15 | X179 4-wire | 1 (bus 6) | Yes | Plug & play, no soldering |
 | **LILYGO T-2CAN ESP32-S3** → X179 | **~$24** | X179 4-wire (+ spare CAN2) | **2 independent** | Yes | Future-proof, dual-CAN ready |
+| **LILYGO T-CAN485** → X179 | **~$15** | X179 4-wire | 1 (SN65HVD230) | Yes | SD card CAN dump, tested on Model X/S |
 | Waveshare ESP32-S3-RS485-CAN → X179 | ~$18 | X179 4-wire | 1 (TWAI) | Yes | All-in-one board |
 | Flipper Zero + Electronic Cats CAN Add-On → OBD-II | ~$234 | OBD-II plug | 1 (Party CAN) | No | If you already own a Flipper |
 | Flipper Zero + generic MCP2515 → OBD-II | ~$202-205 | OBD-II wire | 1 (Party CAN) | No | Budget Flipper option |
@@ -44,7 +45,28 @@ Limitation: Party CAN does not carry stalk signals (SCCM_rightStalk),
 lighting commands (VCFRONT_lighting), or steering wheel button inputs
 (STW_ACTN_RQ). Those are on Vehicle CAN.
 
-### X179 — behind the rear center console (recommended)
+### X052 — 2019 Model 3 (pre-facelift)
+
+The 2019 Model 3 does **not** have the X179 connector or a standard
+OBD-II port under the steering column. Instead, it uses the X052
+connector, located behind the center console / passenger footwell area.
+
+Confirmed by community tester @THER4iN (issue #21):
+
+| X052 Pin | Signal | Notes |
+|----------|--------|-------|
+| **44** | **CAN-H** | CAN bus |
+| **45** | **CAN-L** | CAN bus |
+| **20** | **12V** | Power (no service mode errors confirmed) |
+| **22** | **GND** | Ground |
+
+Same 4-wire pattern as X179 — CAN + power. Compatible with all the
+same ESP32/MCP2515 setups described below.
+
+The 2019 Model 3 also has an **X930m** connector near the A-pillar.
+Pinout not yet confirmed — if you test it, please report in an issue.
+
+### X179 — behind the rear center console (2021+ Model 3/Y)
 
 Tesla's own service/diagnostic connector. Requires removing a trim
 panel behind the rear armrest. Two versions exist:

@@ -23,7 +23,7 @@ static bool mfp_read_detect_from_ats(MfpApp* app, const uint8_t* ats, uint32_t a
     if(card_type != 0x02) return false;
 
     app->version.hw_vendor = 0x04;
-    app->version.sl = MfpSL3;
+    app->version.sl = MfpSL1; /* conservative default; probe will refine */
 
     uint8_t size_code = ats[2] & 0x0F;
     app->version.size = (size_code >= 0x02) ? MfpSize4K : MfpSize2K;
@@ -75,16 +75,20 @@ static NfcCommand mfp_read_poller_cb(NfcGenericEvent event, void* ctx) {
     if(app->last_error != MfpOk) {
         if(mfp_read_detect_from_ats(app, app->ats_bytes, app->ats_len)) {
             app->card_identified = true;
-            view_dispatcher_send_custom_event(app->view_dispatcher, ReadEventSuccess);
-            return NfcCommandStop;
         } else {
             app->card_identified = false;
             view_dispatcher_send_custom_event(app->view_dispatcher, ReadEventNotMfp);
             return NfcCommandStop;
         }
+    } else {
+        app->card_identified = true;
     }
 
-    app->card_identified = true;
+    /* Probe actual security level using SAK + AuthFirstPart1 test */
+    MfpSecurityLevel probed_sl = MfpSL1;
+    mfp_poller_probe_sl(event.instance, app->sak, &probed_sl);
+    app->version.sl = probed_sl;
+
     view_dispatcher_send_custom_event(app->view_dispatcher, ReadEventSuccess);
     return NfcCommandStop;
 }
@@ -163,7 +167,7 @@ bool mfp_scene_read_on_event(void* ctx, SceneManagerEvent event) {
         } else {
             popup_set_text(
                 app->popup,
-                "Card is not\nMIFARE Plus SL3\nor GetVersion failed",
+                "Card is not\nMIFARE Plus\nor GetVersion failed",
                 90,
                 20,
                 AlignCenter,

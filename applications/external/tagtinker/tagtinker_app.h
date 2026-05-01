@@ -14,21 +14,27 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/popup.h>
 #include <gui/modules/widget.h>
+#include <gui/modules/text_box.h>
 #include <dialogs/dialogs.h>
 #include <notification/notification_messages.h>
 #include <storage/storage.h>
 #include <bt/bt_service/bt.h>
 #include <targets/f7/ble_glue/profiles/serial_profile.h>
 
+#include <nfc/nfc.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight_poller_sync.h>
+
 #include "views/numlock_input.h"
 
 #include "scenes/tagtinker_scene.h"
 #include "protocol/tagtinker_proto.h"
 #include "ir/tagtinker_ir.h"
+#include "nfc/tagtinker_nfc.h"
 
 #define TAGTINKER_TAG               "TagTinker"
 #define TAGTINKER_DISPLAY_NAME      "TagTinker"
-#define TAGTINKER_VERSION           "1.3"
+#define TAGTINKER_VERSION           FAP_VERSION
 #define TAGTINKER_BC_LEN            17
 #define TAGTINKER_HEX_LEN           64
 #define TAGTINKER_MAX_TARGETS       16
@@ -47,7 +53,6 @@ typedef enum {
 
 typedef enum {
     TagTinkerSignalPP4 = 0,
-    TagTinkerSignalPP16,
 } TagTinkerSignalMode;
 
 typedef struct {
@@ -67,6 +72,9 @@ typedef struct {
     uint16_t width;
     uint16_t height;
     uint8_t page;
+    /* True when this BMP was authored for a different resolution than the
+     * current target, meaning the transmitter will rescale it on the fly. */
+    bool resampled;
     char image_path[TAGTINKER_IMAGE_PATH_LEN + 1];
 } TagTinkerSyncedImage;
 
@@ -84,6 +92,7 @@ typedef enum {
     TagTinkerViewPopup,
     TagTinkerViewWidget,
     TagTinkerViewNumlock,
+    TagTinkerViewTextBox,
     TagTinkerViewTargetActions,
     TagTinkerViewWarning,
     TagTinkerViewTransmit,
@@ -113,6 +122,7 @@ struct TagTinkerApp {
     Popup* popup;
     Widget* widget;
     NumlockInput* numlock;
+    TextBox* text_box;
     View* target_actions_view;
     View* warning_view;
     View* transmit_view;
@@ -124,6 +134,11 @@ struct TagTinkerApp {
     /* TX state */
     bool tx_active;
     FuriThread* tx_thread;
+
+    /* NFC scan state */
+    Nfc* nfc;
+    FuriThread* nfc_thread;
+    volatile bool nfc_scanning;
 
     /* Broadcast settings */
     uint8_t broadcast_type;
@@ -161,17 +176,20 @@ struct TagTinkerApp {
     size_t frame_seq_count;
     bool invert_text;
     bool color_clear;
+    uint8_t text_padding_pct;
 
-    /* Saved presets */
+    /* Saved recents */
     struct {
         uint16_t width;
         uint16_t height;
         uint8_t page;
         bool invert;
         bool color_clear;
+        uint8_t padding;
+        uint8_t signal_mode;
         char text[TAGTINKER_PRESET_TEXT_LEN];
-    } presets[TAGTINKER_MAX_PRESETS];
-    uint8_t preset_count;
+    } recents[TAGTINKER_MAX_PRESETS];
+    uint8_t recent_count;
 
     TagTinkerSyncedImage synced_images[TAGTINKER_MAX_SYNCED_IMAGES];
     uint8_t synced_image_count;
@@ -191,11 +209,17 @@ struct TagTinkerApp {
     /* Indicates which mode triggered raw cmd (0=broadcast, 1=targeted) */
     uint8_t raw_mode;
 
-    /* Android BLE sync state */
+    /* Browser BLE sync state */
     Bt* bt;
     FuriHalBleProfileBase* ble_serial;
     BtStatus ble_status;
     bool ble_sync_active;
+    bool ble_sync_start_pending;
+    bool ble_serial_configured;
+    uint32_t ble_total_rx;
+    uint8_t ble_last_bytes[3];
+    bool ble_sync_auto_send_pending;
+    uint8_t ble_sync_auto_send_delay;
     uint16_t ble_synced_lines;
     char ble_status_text[32];
     char ble_rx_line[1024];
@@ -211,16 +235,46 @@ struct TagTinkerApp {
     uint32_t ble_sync_expected_bytes;
     uint32_t ble_sync_received_bytes;
     uint16_t ble_sync_last_chunk;
+    File* ble_sync_file;
     uint16_t ble_sync_last_completed_chunks;
     bool ble_sync_compact_protocol;
     bool ble_sync_last_compact_protocol;
     int8_t ble_sync_ready_target;
+
+    /* ---- WiFi Plugins (ESP32 dev board) -------------------------------- */
+    /* Opaque handle (TagTinkerWifi*) - declared in wifi/tagtinker_wifi.h.
+     * Stored as void* here so this header doesn't pull in expansion/serial
+     * deps for unrelated translation units. */
+    void* wifi;
+    /* WiFi link state mirrored from the ESP. */
+    uint8_t wifi_link_state; /* TT_WIFI_* */
+    int8_t wifi_rssi;
+    char wifi_ssid[33];
+    char wifi_ip[20];
+    char wifi_creds_ssid[33]; /* used by setup scene before sending */
+    char wifi_creds_pwd[65];
+    /* Plugin discovery cache. Up to TT_WIFI_MAX_FAP_PLUGINS slots. */
+    void* wifi_plugins; /* TagTinkerWifiPlugin[TT_WIFI_MAX_FAP_PLUGINS], heap-alloced */
+    uint8_t wifi_plugin_count;
+    bool wifi_plugins_loading;
+    int8_t wifi_selected_plugin;
+    /* Per-run state. */
+    char wifi_progress_msg[64];
+    uint8_t wifi_progress_pct;
+    char wifi_last_error[80];
+    bool wifi_run_in_flight;
+    bool wifi_result_ready;
+    /* Param values being collected by the run scene; one slot per plugin
+     * param, holding the textual value the user picked (string for STRING,
+     * stringified int for INT, option name for ENUM, "0"/"1" for BOOL). */
+    char wifi_param_values[6][64];
 };
 
 /* Main menu items */
 typedef enum {
     TagTinkerMenuBroadcast,
     TagTinkerMenuTargetESL,
+    TagTinkerMenuWifiPlugins,
     TagTinkerMenuAbout,
 } TagTinkerMainMenuItem;
 
@@ -236,13 +290,14 @@ typedef enum {
     TagTinkerTargetRename,
     TagTinkerTargetPushText,
     TagTinkerTargetPushSyncedImage,
+    TagTinkerTargetWifiPlugins,
     TagTinkerTargetDeleteSyncedImages,
     TagTinkerTargetPingFlash,
     TagTinkerTargetDeleteTag,
 } TagTinkerTargetActionItem;
 
 void tagtinker_target_refresh_profile(TagTinkerTarget* target);
-void tagtinker_target_set_default_name(TagTinkerTarget* target);
+void tagtinker_target_set_default_name(TagTinkerApp* app, TagTinkerTarget* target);
 bool tagtinker_target_supports_graphics(const TagTinkerTarget* target);
 bool tagtinker_target_supports_accent(const TagTinkerTarget* target);
 const char* tagtinker_profile_kind_label(TagTinkerTagKind kind);
@@ -271,3 +326,6 @@ void tagtinker_settings_load(TagTinkerApp* app);
 bool tagtinker_settings_save(const TagTinkerApp* app);
 void tagtinker_targets_load(TagTinkerApp* app);
 bool tagtinker_targets_save(const TagTinkerApp* app);
+void tagtinker_recents_load(TagTinkerApp* app);
+bool tagtinker_recents_save(const TagTinkerApp* app);
+void tagtinker_recents_add(TagTinkerApp* app, const char* text);

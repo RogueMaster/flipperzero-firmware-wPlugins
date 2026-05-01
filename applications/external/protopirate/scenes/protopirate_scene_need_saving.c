@@ -2,6 +2,8 @@
 #include "../protopirate_app_i.h"
 #include "proto_pirate_icons.h"
 
+#define TAG "ProtoPirateNeedSaving"
+
 static void
     protopirate_scene_need_saving_callback(GuiButtonType result, InputType type, void* context) {
     furi_assert(context);
@@ -17,6 +19,12 @@ static void
 void protopirate_scene_need_saving_on_enter(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
+
+    if(!protopirate_ensure_widget(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
 
     widget_add_icon_element(app->widget, 0, 12, &I_WarningDolphin_45x42);
     widget_add_string_multiline_element(
@@ -51,21 +59,7 @@ bool protopirate_scene_need_saving_on_event(void* context, SceneManagerEvent eve
             scene_manager_previous_scene(app->scene_manager);
             return true;
         } else if(event.event == ProtoPirateCustomEventSceneExit) {
-            // Full teardown: put radio to sleep, free worker and history
-            protopirate_sleep(app);
-
-            protopirate_view_receiver_reset_menu(app->protopirate_receiver);
-            if(app->radio_initialized && app->txrx->history) {
-                protopirate_history_reset(app->txrx->history);
-            }
-
-            if(app->txrx->history) {
-                FURI_LOG_D(TAG, "Freeing history %p", app->txrx->history);
-                protopirate_history_free(app->txrx->history);
-                app->txrx->history = NULL;
-            } else {
-                FURI_LOG_D(TAG, "History was NULL, skipping free");
-            }
+            protopirate_release_shared_radio_state(app);
             scene_manager_search_and_switch_to_previous_scene(
                 app->scene_manager, ProtoPirateSceneStart);
             return true;

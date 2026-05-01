@@ -97,7 +97,7 @@ static const struct usb_string_descriptor ecm_str_prod = {
 
 /* Frame assembly buffer for received frames from USB host */
 #define USB_FRAME_BUF_SIZE 1520
-static uint8_t usb_rx_frame[USB_FRAME_BUF_SIZE];
+uint8_t* usb_rx_frame; /* heap-allocated once in usb_eth_init() */
 static volatile uint16_t usb_rx_frame_pos = 0;
 static volatile uint16_t usb_rx_frame_len = 0;
 static volatile bool usb_rx_frame_ready = false;
@@ -240,6 +240,7 @@ static void ecm_build_mac_string(const uint8_t mac[6]) {
         free(ecm_str_mac);
     }
     ecm_str_mac = malloc(2 + 12 * 2);
+    if(!ecm_str_mac) return;
     ecm_str_mac->bLength = 2 + 12 * 2;
     ecm_str_mac->bDescriptorType = USB_DTYPE_STRING;
 

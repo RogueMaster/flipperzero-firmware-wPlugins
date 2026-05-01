@@ -1,0 +1,150 @@
+#pragma once
+
+#include "flipperham.h"
+#include "packet.h"
+
+#include <gui/modules/submenu.h>
+#include <gui/modules/text_input.h>
+#include <gui/modules/variable_item_list.h>
+#include <gui/modules/widget.h>
+#include <gui/view.h>
+#include <gui/view_dispatcher.h>
+#include <gui/gui.h>
+#include <gui/view_port.h>
+
+typedef struct FlipperHamApp {
+    Gui* gui;
+    ViewDispatcher* view_dispatcher;
+    Submenu* submenu;
+    Submenu* send_menu;
+    Submenu* bulletin_menu;
+    Submenu* status_menu;
+    Submenu* message_menu;
+    Submenu* message_edit_menu;
+    Submenu* position_menu;
+    Submenu* pos_action_menu;
+    Submenu* call_menu;
+    Submenu* book_menu;
+    Submenu* c2_menu;
+    Submenu* freq_menu;
+    VariableItemList* settings_menu;
+    VariableItemList* ham_menu;
+    VariableItemList* ham_tx_menu;
+    VariableItemList* ssid_menu;
+    VariableItemList* freq_edit_menu;
+    VariableItemList* pos_edit_menu;
+    TextInput* text_input;
+    Widget* readme_widget;
+    View* splash_view;
+    FuriTimer* splash_timer;
+    FuriTimer* splash_cycle_timer;
+    ViewPort* view_port;
+    volatile uint16_t wave_i;
+    volatile bool level;
+    volatile bool tx_started;
+    volatile bool tx_done;
+    volatile bool tx_allowed;
+    bool tx_ok;
+    bool show_done;
+    bool send_requested;
+    bool ham_ok;
+    uint8_t encoding_index;
+    uint8_t rf_mod;
+    uint8_t rf_dev;
+    uint8_t dbg_mod;
+    uint8_t dbg_dev;
+    uint8_t repeat_n;
+    uint16_t leadin_ms;
+    uint16_t preamble_ms;
+    uint8_t repeat_i;
+    bool repeat_wait;
+    bool repeat_cancel;
+    bool repeat_more;
+    Packet* pkt;
+    uint16_t* wave;
+    uint16_t wave_len;
+    double wave_carry;
+    double wave_pending;
+    double wave_osc_remain;
+    double wave_prev_h;
+    double pre_b;
+    double pre_h;
+    double pre_c;
+    double pre_a;
+    uint32_t pre_us;
+    uint8_t pre_k;
+    bool wave_is_mark;
+    uint32_t repeat_t0;
+    uint32_t repeat_to;
+    uint8_t return_view;
+    uint8_t splash_mode;
+    uint8_t splash_next_view;
+    char bulletin[TXT_N][TXT_LEN];
+    char status[TXT_N][TXT_LEN];
+    char message[TXT_N][TXT_LEN];
+    char calls[CALL_N][CALL_LEN];
+    char ham_calls[HAM_N][CALL_LEN];
+    char pos_name[TXT_N][TXT_LEN];
+    char pos_lat[TXT_N][POS_LEN];
+    char pos_lon[TXT_N][POS_LEN];
+    uint32_t freq[FREQ_N];
+    uint8_t bulletin_used[TXT_N];
+    uint8_t status_used[TXT_N];
+    uint8_t message_used[TXT_N];
+    uint8_t calls_used[CALL_N];
+    uint8_t pos_used[TXT_N];
+    uint8_t freq_used[FREQ_N];
+    uint8_t ham_ssid[HAM_N];
+    bool ham_has_ssid[HAM_N];
+    uint16_t ham_pass[HAM_N];
+    uint8_t bulletin_n;
+    uint8_t status_n;
+    uint8_t message_n;
+    uint8_t calls_n;
+    uint8_t ham_n;
+    uint8_t pos_n;
+    uint8_t freq_n;
+    uint8_t tx_freq_index;
+    bool f_bad;
+    uint8_t tx_msg_index;
+    uint8_t tx_type;
+    uint8_t bulletin_index;
+    uint8_t status_index;
+    uint8_t message_index;
+    uint8_t message_last_tx;
+    uint8_t pos_index;
+    uint8_t dst_call_index;
+    uint8_t dst_ssid;
+    uint8_t edit_call_index;
+    uint8_t book_call_index;
+    uint8_t ham_index;
+    uint8_t ham_tx_index;
+    uint8_t freq_index;
+    uint16_t bulletin_sel;
+    uint16_t status_sel;
+    uint16_t message_sel;
+    uint16_t position_sel;
+    uint16_t call_sel;
+    uint16_t book_sel;
+    uint16_t book_action_sel;
+    uint16_t freq_sel;
+    uint16_t ham_sel;
+    uint16_t ham_tx_sel;
+    uint8_t text_mode;
+    uint8_t text_view;
+    char b_edit[TXT_LEN];
+    char st_edit[TXT_LEN];
+    char m_edit[TXT_LEN];
+    char p_name_edit[TXT_LEN];
+    char p_lat_edit[POS_LEN];
+    char p_lon_edit[POS_LEN];
+    char c_edit[CALL_LEN];
+    char f_edit[16];
+    char aprs_path_edit[APRS_PATH_LEN];
+    char c2_h[24];
+    char readme_h[640];
+    bool debug_tx;
+    char freq_s[FREQ_N][16];
+    uint8_t aprs_path_index;
+    uint32_t freq_edit_hz;
+} FlipperHamApp;

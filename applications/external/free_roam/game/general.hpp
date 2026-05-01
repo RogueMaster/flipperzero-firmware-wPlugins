@@ -17,7 +17,8 @@ typedef enum {
     MenuSettingsMain = 0, // hovering over `Settings` in system menu
     MenuSettingsSound = 1, // sound on/off
     MenuSettingsVibration = 2, // vibration on/off
-    MenuSettingsLeave = 3, // leave game
+    MenuSettingsShowPlayer = 3, // show/hide local player
+    MenuSettingsLeave = 4, // leave game
 } MenuSettingsIndex;
 
 typedef enum {
@@ -36,6 +37,15 @@ typedef enum {
     GameStateSwitchingLevels = 2, // Game is switching levels
     GameStateLeavingGame = 3, // Game is leaving
 } GameState;
+
+typedef enum {
+    OnlineStateIdle = 0, // Not started — ready to create/join a session
+    OnlineStateFetchingSession, // HTTP request to create a game session in progress
+    OnlineStateConnecting, // WebSocket connecting to the game server
+    OnlineStatePlaying, // Active online game
+    OnlineStateJoiningExisting, // Joining an existing lobby (skip create)
+    OnlineStateError, // Connection or request error
+} OnlineGameState;
 
 inline bool toggleToBool(ToggleState state) noexcept {
     return state == ToggleOn;

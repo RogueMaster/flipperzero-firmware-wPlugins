@@ -27,16 +27,6 @@
 /* Chassis ID subtypes */
 #define LLDP_CHASSIS_SUBTYPE_MAC 4
 
-/* System capabilities bits */
-#define LLDP_CAP_OTHER     (1 << 0)
-#define LLDP_CAP_REPEATER  (1 << 1)
-#define LLDP_CAP_BRIDGE    (1 << 2)
-#define LLDP_CAP_WLAN_AP   (1 << 3)
-#define LLDP_CAP_ROUTER    (1 << 4)
-#define LLDP_CAP_TELEPHONE (1 << 5)
-#define LLDP_CAP_DOCSIS    (1 << 6)
-#define LLDP_CAP_STATION   (1 << 7)
-
 typedef struct {
     char system_name[LLDP_MAX_STRING];
     char port_id[LLDP_MAX_STRING];
@@ -47,7 +37,6 @@ typedef struct {
     uint16_t mgmt_vlan;
     uint16_t ttl;
     uint16_t capabilities;
-    uint16_t enabled_capabilities;
     bool valid;
     uint32_t last_seen_tick;
 } LldpNeighbor;

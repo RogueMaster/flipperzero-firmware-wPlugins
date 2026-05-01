@@ -30,9 +30,11 @@ void hid_init(App* app) {
         bt_set_status_changed_callback(app->bt, bt_status_changed_callback, app);
         app->ble_connected = false;
     }
+    app->hid_active = true;
 }
 
 void hid_deinit(App* app) {
+    if(!app->hid_active) return;
     if(app->transport == TransportUsb) {
         furi_hal_usb_set_config(app->usb_mode_prev, NULL);
     } else {
@@ -46,6 +48,13 @@ void hid_deinit(App* app) {
         if(app->notifications) {
             notification_internal_message(app->notifications, &sequence_reset_blue);
         }
+    }
+    app->hid_active = false;
+}
+
+void hid_ensure_init(App* app) {
+    if(!app->hid_active) {
+        hid_init(app);
     }
 }
 
@@ -104,6 +113,7 @@ void hid_mouse_release_btn(App* app, uint8_t btn) {
 }
 
 void hid_mouse_release_all(App* app) {
+    if(!app->hid_active) return;
     uint8_t all = HID_MOUSE_BTN_LEFT | HID_MOUSE_BTN_RIGHT | HID_MOUSE_BTN_WHEEL;
     hid_mouse_release_btn(app, all);
 }

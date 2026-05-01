@@ -1,5 +1,5 @@
 entry,status,name,type,params
-Version,+,87.1,,
+Version,+,87.7,,
 Header,+,applications/drivers/subghz/cc1101_ext/cc1101_ext_interconnect.h,,
 Header,+,applications/main/archive/helpers/archive_helpers_ext.h,,
 Header,+,applications/main/subghz/subghz_fap.h,,
@@ -1796,7 +1796,7 @@ Function,+,furi_hal_usb_is_locked,_Bool,
 Function,+,furi_hal_usb_lock,void,
 Function,+,furi_hal_usb_reinit,void,
 Function,+,furi_hal_usb_set_config,_Bool,"FuriHalUsbInterface*, void*"
-Function,-,furi_hal_usb_set_state_callback,void,"FuriHalUsbStateCallback, void*"
+Function,+,furi_hal_usb_set_state_callback,void,"FuriHalUsbStateCallback, void*"
 Function,+,furi_hal_usb_unlock,void,
 Function,+,furi_hal_version_do_i_belong_here,_Bool,
 Function,+,furi_hal_version_get_ble_local_device_name_ptr,const char*,
@@ -2286,11 +2286,14 @@ Function,+,iso15693_3_is_equal,_Bool,"const Iso15693_3Data*, const Iso15693_3Dat
 Function,+,iso15693_3_load,_Bool,"Iso15693_3Data*, FlipperFormat*, uint32_t"
 Function,+,iso15693_3_poller_activate,Iso15693_3Error,"Iso15693_3Poller*, Iso15693_3Data*"
 Function,+,iso15693_3_poller_get_blocks_security,Iso15693_3Error,"Iso15693_3Poller*, uint8_t*, uint16_t"
+Function,+,iso15693_3_poller_get_data,const Iso15693_3Data*,Iso15693_3Poller*
 Function,+,iso15693_3_poller_get_system_info,Iso15693_3Error,"Iso15693_3Poller*, Iso15693_3SystemInfo*"
 Function,+,iso15693_3_poller_inventory,Iso15693_3Error,"Iso15693_3Poller*, uint8_t*"
 Function,+,iso15693_3_poller_read_block,Iso15693_3Error,"Iso15693_3Poller*, uint8_t*, uint8_t, uint8_t"
 Function,+,iso15693_3_poller_read_blocks,Iso15693_3Error,"Iso15693_3Poller*, uint8_t*, uint16_t, uint8_t"
 Function,+,iso15693_3_poller_send_frame,Iso15693_3Error,"Iso15693_3Poller*, const BitBuffer*, BitBuffer*, uint32_t"
+Function,+,iso15693_3_poller_write_block,Iso15693_3Error,"Iso15693_3Poller*, const uint8_t*, uint8_t, uint8_t"
+Function,+,iso15693_3_poller_write_blocks,Iso15693_3Error,"Iso15693_3Poller*, const uint8_t*, uint16_t, uint8_t"
 Function,+,iso15693_3_reset,void,Iso15693_3Data*
 Function,+,iso15693_3_save,_Bool,"const Iso15693_3Data*, FlipperFormat*"
 Function,+,iso15693_3_set_uid,_Bool,"Iso15693_3Data*, const uint8_t*, size_t"
@@ -3230,6 +3233,8 @@ Function,+,slix_poller_get_random_number,SlixError,"SlixPoller*, SlixRandomNumbe
 Function,+,slix_poller_read_signature,SlixError,"SlixPoller*, SlixSignature*"
 Function,+,slix_poller_send_frame,SlixError,"SlixPoller*, const BitBuffer*, BitBuffer*, uint32_t"
 Function,+,slix_poller_set_password,SlixError,"SlixPoller*, SlixPasswordType, SlixPassword, SlixRandomNumber"
+Function,+,slix_poller_write_block,SlixError,"SlixPoller*, const uint8_t*, uint8_t, uint8_t"
+Function,+,slix_poller_write_blocks,SlixError,"SlixPoller*, const uint8_t*, uint16_t, uint8_t"
 Function,+,slix_reset,void,SlixData*
 Function,+,slix_save,_Bool,"const SlixData*, FlipperFormat*"
 Function,+,slix_set_uid,_Bool,"SlixData*, const uint8_t*, size_t"

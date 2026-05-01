@@ -28,6 +28,11 @@
 #define CAN_ID_DAS_STATUS     0x39B // 923  - DAS_status (AP state, nag, lane change, blind spot)
 #define CAN_ID_DAS_STATUS2    0x389 // 905  - DAS_status2 (ACC report, driver interaction)
 #define CAN_ID_DAS_SETTINGS   0x293 // 659  - DAS_settings (autosteer enable, steering weight, etc.)
+#define CAN_ID_DAS_AP_CONFIG  0x331 // 817  - DAS autopilot config (tier restore target, ~1 Hz)
+#define CAN_ID_GTW_CONFIG_ETH \
+    0x7FF // 2047 - GTW_carConfig on Ethernet/mixed bus (autopilot tier readback)
+#define CAN_ID_TRACK_MODE_SET \
+    0x313 // 787  - UI_trackModeSettings (track mode request, checksummed)
 #define CAN_ID_SCCM_LSTALK \
     0x249 // 585  - SCCM_leftStalk (high beam, turn signal, wiper wash — Party CAN, 3 bytes)
 #define CAN_ID_DI_TORQUE    0x108 // 264  - DI_torque (motor torque/power — Party CAN)
@@ -38,6 +43,9 @@
 #define CAN_ID_STEER_ANGLE  0x129 // 297  - SCCM_steeringAngleSensor (steering angle — Party CAN)
 #define CAN_ID_DAS_STEER    0x488 // 1160 - DAS_steeringControl (DAS steering request — Party CAN)
 #define CAN_ID_APS_EACMON   0x27D // 637  - APS_eacMonitor (steering permission — Party CAN)
+#define CAN_ID_ENERGY_CONS  0x33A // 826  - UI_ratedConsumption (energy Wh/km — Party CAN)
+#define CAN_ID_DRIVER_ASSIST \
+    0x3F8 // 1016 - UI_driverAssistControl (also follow distance — Party CAN)
 
 typedef enum {
     TeslaHW_Unknown = 0,
@@ -106,6 +114,26 @@ typedef struct {
     bool das_autosteer_on; // from 0x293 DAS_autosteerEnabled readback
     bool das_seen; // true once we've parsed at least one 0x39B
 
+    // --- GTW autopilot tier (from 0x7FF mux=2 on mixed bus) ---
+    // 0=NONE 1=HIGHWAY 2=ENHANCED 3=SELF_DRIVING 4=BASIC
+    // Source: ev-open-can-tools readGTWAutopilot()
+    int8_t gtw_autopilot_tier; // -1 = not yet read
+
+    // --- 0x7FF shield (ban defense) ---
+    // Snapshots of all 8 GTW_carConfig mux frames in "healthy" state.
+    // When shield is armed: any incoming 0x7FF that differs from snapshot
+    // is immediately retransmitted with the snapshot data, blocking
+    // server-side ban pushes at the CAN layer.
+    uint8_t gtw_snapshot[8][8]; // [mux][byte0..7], 64 bytes total
+    bool gtw_snapshot_valid[8]; // per-mux: has this mux been captured?
+    bool gtw_shield_armed; // true = actively blocking changes
+    uint32_t gtw_shield_blocks; // counter: how many frames we've blocked
+
+    // --- upstream feature flags ---
+    bool enhanced_autopilot; // when true, mux=1 also sets bit46 (EAP/summon)
+    bool speed_profile_locked; // when true, follow distance won't override profile
+    uint8_t hw4_offset; // HW4 mux=2 speed offset override (0 = no override)
+
     // --- DAS_control (0x2B9) — ACC / longitudinal state ---
     uint8_t das_acc_state; // 0-15 (0=cancel, 3=hold, 4=ACC_ON, 9=pause)
     float das_set_speed_kph; // set cruise speed (0.1 kph resolution)
@@ -134,6 +162,30 @@ typedef struct {
     // --- DAS_steeringControl (0x488) ---
     float das_steer_angle_req; // DAS requested angle
     uint8_t das_steer_type; // 0=none 1=angle_ctrl 2=LKA 3=ELK
+
+    // --- TLSSC Restore (0x331 DAS config spoof) ---
+    bool tlssc_restore; // read-modify-retransmit 0x331 to set tier=SELF_DRIVING
+    uint32_t tlssc_restore_count; // frames modified
+
+    // --- 0x7FF active tier override (force SELF_DRIVING) ---
+    bool gtw_tier_override; // actively write tier=3 on every 0x7FF mux=2
+
+    // --- 0x3F8 driver assist overrides (FUCKYOU-TESLA feature parity) ---
+    bool assist_nav_enable; // bit13 + bit48 + bit49: nav-based FSD routing
+    bool assist_hands_off; // bit14: UI-level hands-on disable
+    bool assist_dev_mode; // bit5: UI_dasDeveloper flag
+    bool assist_lhd_override; // bit40-41: force left-hand drive
+
+    // --- 0x3FD mux1 extras ---
+    bool assist_show_lane_graph; // bit45: lane visualization on non-FSD tier
+    bool assist_tlssc_bit38; // bit38 on mux0: explicit TLSSC enable (complementary to 0x331)
+
+    // --- telemetry disable (0x3F8 bit43) ---
+    bool assist_telemetry_off; // force UI_enableTripTelemetry=0
+
+    // --- energy consumption (0x33A, read-only) ---
+    float energy_wh_per_km;
+    bool energy_seen;
 
     // --- extras: write toggles (BETA, Service mode only) ---
     bool extra_hazard_lights;
@@ -243,6 +295,37 @@ void fsd_handle_das_status2(FSDState* state, const CANFRAME* frame);
  *  Source: opendbc tesla_model3_party.dbc. */
 void fsd_handle_das_settings(FSDState* state, const CANFRAME* frame);
 
+/** Parse GTW_carConfig (0x7FF) mux=2 — autopilot tier readback.
+ *  byte[5] bits 4:2 → 0=NONE 1=HIGHWAY 2=ENHANCED 3=SELF_DRIVING 4=BASIC.
+ *  Source: ev-open-can-tools readGTWAutopilot(). */
+void fsd_handle_gtw_autopilot_tier(FSDState* state, const CANFRAME* frame);
+
+/** 0x7FF shield — snapshot healthy state and block changes.
+ *  Call on every 0x7FF frame. When shield is not armed, captures the
+ *  current frame as the "healthy" snapshot. When armed, compares
+ *  incoming frame against snapshot and returns true if the frame was
+ *  modified (caller should retransmit the modified frame to override
+ *  the Gateway's banned version). */
+bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame);
+
+/** Modify 0x7FF mux=2 to force GTW_autopilot tier=SELF_DRIVING (3).
+ *  More aggressive than shield — actively writes tier instead of freezing.
+ *  Returns true if frame was modified. */
+bool fsd_handle_gtw_tier_override(FSDState* state, CANFRAME* frame);
+
+/** Modify 0x3F8 UI_driverAssistControl with region/nav/hands-off overrides.
+ *  Bits: 5 (devMode), 13+48+49 (nav FSD), 14 (handsOff), 40-41 (drivingSide).
+ *  Returns true if frame was modified (caller should retransmit). */
+bool fsd_handle_driver_assist_override(FSDState* state, CANFRAME* frame);
+
+/** Parse 0x33A UI_ratedConsumption — energy Wh/km. */
+void fsd_handle_energy_consumption(FSDState* state, const CANFRAME* frame);
+
+/** Modify UI_trackModeSettings (0x313) to set track mode ON.
+ *  byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn) + recalc checksum byte[7].
+ *  Source: ev-open-can-tools setTrackModeRequest(). */
+bool fsd_handle_track_mode_inject(FSDState* state, CANFRAME* frame);
+
 /** Build a SCCM_leftStalk (0x249) frame for high beam strobe.
  *  SCCM_highBeamStalkStatus (bit12|2) = 1 (PULL) for flash.
  *  3-byte frame, CRC in byte0, counter in byte1[3:0].
@@ -254,6 +337,13 @@ void fsd_build_highbeam_flash(CANFRAME* frame, uint8_t counter, bool flash_on);
  *  SCCM_turnIndicatorStalkStatus (bit16|3): 1=UP_1(right), 3=DOWN_1(left).
  *  Source: opendbc tesla_model3_party.dbc. */
 void fsd_build_turn_signal(CANFRAME* frame, uint8_t counter, uint8_t direction);
+
+/** Handle CAN ID 0x331 — TLSSC Restore via DAS config spoof.
+ *  Overwrites byte[0] lower 6 bits to 0x1B (DAS_autopilot=SELF_DRIVING,
+ *  DAS_autopilotBase=SELF_DRIVING). Triggers MCU reboot and restores
+ *  TLSSC toggle on banned vehicles.
+ *  Returns true if frame was modified (caller should retransmit). */
+bool fsd_handle_tlssc_restore(FSDState* state, CANFRAME* frame);
 
 /** Build a SCCM_leftStalk (0x249) frame for wiper wash button press.
  *  SCCM_washWipeButtonStatus (bit14|2): 1=1ST_DETENT, 2=2ND_DETENT.

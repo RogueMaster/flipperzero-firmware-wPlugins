@@ -122,6 +122,7 @@ static bool seos_load_keys_v2(Seos* seos, const char* filename) {
     uint8_t iv[16] = {0};
     memset(iv, 0, sizeof(iv));
     uint8_t output[16];
+    bool has_optional_write_key = true;
 
     do {
         furi_string_printf(path, "%s/%s%s", STORAGE_APP_DATA_PATH_PREFIX, filename, ".txt");
@@ -138,7 +139,11 @@ static bool seos_load_keys_v2(Seos* seos, const char* filename) {
         if(!flipper_format_read_hex(file, "SEOS_ADF1_PRIV_ENC", SEOS_ADF1_PRIV_ENC, 16)) break;
         if(!flipper_format_read_hex(file, "SEOS_ADF1_PRIV_MAC", SEOS_ADF1_PRIV_MAC, 16)) break;
         if(!flipper_format_read_hex(file, "SEOS_ADF1_READ", SEOS_ADF1_READ, 16)) break;
-        if(!flipper_format_read_hex(file, "SEOS_ADF1_WRITE", SEOS_ADF1_WRITE, 16)) break;
+        if(!flipper_format_read_hex(file, "SEOS_ADF1_WRITE", SEOS_ADF1_WRITE, 16)) {
+            // Special case: write keys are optional, zero the variable and continue anyways
+            memset(SEOS_ADF1_WRITE, 0, 16);
+            has_optional_write_key = false;
+        }
 
         // Decrypt the keys using the per-device key
         if(!furi_hal_crypto_enclave_ensure_key(FURI_HAL_CRYPTO_ENCLAVE_UNIQUE_KEY_SLOT)) {
@@ -159,7 +164,8 @@ static bool seos_load_keys_v2(Seos* seos, const char* filename) {
         if(furi_hal_crypto_decrypt(SEOS_ADF1_READ, output, sizeof(output))) {
             memcpy(SEOS_ADF1_READ, output, sizeof(SEOS_ADF1_READ));
         }
-        if(furi_hal_crypto_decrypt(SEOS_ADF1_WRITE, output, sizeof(output))) {
+        if(has_optional_write_key &&
+           furi_hal_crypto_decrypt(SEOS_ADF1_WRITE, output, sizeof(output))) {
             memcpy(SEOS_ADF1_WRITE, output, sizeof(SEOS_ADF1_WRITE));
         }
 
@@ -210,7 +216,10 @@ static bool seos_load_keys_v1(Seos* seos, const char* filename) {
         if(!flipper_format_read_hex(file, "SEOS_ADF1_PRIV_ENC", SEOS_ADF1_PRIV_ENC, 16)) break;
         if(!flipper_format_read_hex(file, "SEOS_ADF1_PRIV_MAC", SEOS_ADF1_PRIV_MAC, 16)) break;
         if(!flipper_format_read_hex(file, "SEOS_ADF1_READ", SEOS_ADF1_READ, 16)) break;
-        if(!flipper_format_read_hex(file, "SEOS_ADF1_WRITE", SEOS_ADF1_WRITE, 16)) break;
+        if(!flipper_format_read_hex(file, "SEOS_ADF1_WRITE", SEOS_ADF1_WRITE, 16)) {
+            // Special case: write keys are optional, zero the variable and continue anyways
+            memset(SEOS_ADF1_WRITE, 0, 16);
+        }
 
         parsed = true;
         seos->keys_version = file_version;

@@ -350,6 +350,16 @@ void seos_native_peripheral_process_message_reader(
         bit_buffer_append_bytes(response, SEOS_ADF_OID, SEOS_ADF_OID_LEN);
         bit_buffer_append_byte(response, 0x00);
         seos_native_peripheral->phase = SELECT_ADF;
+    } else if(
+        seos_native_peripheral->phase == SELECT_ADF &&
+        memcmp(rx_data, file_not_found, sizeof(file_not_found)) == 0) {
+        // Our ADF OID was rejected, close the connection
+        FURI_LOG_W(TAG, "Failed to match ADF OID");
+        bt_disconnect(seos_native_peripheral->bt);
+
+        // Revert UI to advertising state
+        view_dispatcher_send_custom_event(
+            seos_native_peripheral->seos->view_dispatcher, SeosCustomEventAdvertising);
     } else if(memcmp(rx_data, cd02, sizeof(cd02)) == 0) {
         BitBuffer* attribute_value = bit_buffer_alloc(rx_len);
         bit_buffer_append_bytes(attribute_value, rx_data, rx_len);

@@ -55,8 +55,6 @@ extern "C" {
  * @details If you want to display debug & processing message, Define _DHCP_DEBUG_ 
  * @note    If defined, it depends on <stdio.h>
  */
-#define _DHCP_DEBUG_
-
 /* Retry to processing DHCP */
 #define MAX_DHCP_RETRY 3 ///< Maximum retry count
 #define DHCP_WAIT_TIME 7 ///< Wait Time 10s

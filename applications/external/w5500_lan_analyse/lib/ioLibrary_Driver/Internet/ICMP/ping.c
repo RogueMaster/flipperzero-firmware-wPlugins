@@ -187,7 +187,7 @@ uint8_t ping_reply(uint8_t s, uint8_t* addr, uint16_t rlen) {
     uint16_t tmp_checksum;
     uint16_t len;
     uint16_t i;
-    uint8_t data_buf[128];
+    static uint8_t data_buf[128];
     uint16_t port = 3000;
     PINGMSGR PingReply;
     /* receive data from a destination */

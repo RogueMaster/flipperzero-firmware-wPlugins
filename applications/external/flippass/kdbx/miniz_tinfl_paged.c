@@ -1,12 +1,19 @@
 #include "miniz_tinfl.h"
 #include "memzero.h"
-#include "kdbx_protected.h"
 
 #include <furi.h>
-#include <furi_hal_random.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
+#define TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO 1
+#endif
+
+#if TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
+#include "kdbx_protected.h"
+#include <furi_hal_random.h>
+#endif
 
 #ifdef FURI_LOG_T
 #undef FURI_LOG_T
@@ -25,10 +32,16 @@
 extern "C" {
 #endif
 
-#if defined(__GNUC__) || defined(__clang__)
-#define TINFL_RUNTIME_ALLOCA(size) __builtin_alloca(size)
-#else
-#define TINFL_RUNTIME_ALLOCA(size) NULL
+#ifndef TINFL_PAGED_ENABLE_RAM
+#define TINFL_PAGED_ENABLE_RAM 1
+#endif
+
+#ifndef TINFL_PAGED_ENABLE_FILE
+#define TINFL_PAGED_ENABLE_FILE 1
+#endif
+
+#if !TINFL_PAGED_ENABLE_RAM && !TINFL_PAGED_ENABLE_FILE
+#error "At least one paged tinfl backend must be enabled."
 #endif
 
 #define TINFL_CR_BEGIN   \
@@ -136,9 +149,11 @@ extern "C" {
         num_bits -= code_len;                                                     \
     } while(0)
 
+#if TINFL_PAGED_ENABLE_RAM
 typedef struct {
     mz_uint8* pages[TINFL_PAGED_LZ_DICT_PAGE_COUNT];
 } tinfl_paged_dict;
+#endif
 
 typedef struct tinfl_paged_runtime_tag tinfl_paged_runtime;
 
@@ -204,10 +219,22 @@ typedef struct {
     bool fatal_failed;
     const char* storage_stage;
     bool page_initialized[TINFL_PAGED_LZ_DICT_PAGE_COUNT];
+    bool (*crypt_page)(
+        void* context,
+        uint16_t page_index,
+        uint8_t* page,
+        size_t page_size,
+        bool encrypt,
+        const uint8_t* expected_mac,
+        uint8_t* out_mac,
+        size_t mac_size);
+    void* crypt_context;
+#if TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
     uint8_t session_master[32];
     uint8_t enc_key[32];
     uint8_t mac_key[32];
     uint8_t nonce_prefix[4];
+#endif
     uint8_t* io_page;
     uint16_t io_page_index;
     bool io_page_valid;
@@ -253,6 +280,7 @@ static void tinfl_paged_telemetry_reset(tinfl_paged_telemetry* telemetry) {
     telemetry->storage_failed = 0;
 }
 
+#if FLIPPASS_ENABLE_GZIP_PAGED_TRACE && FLIPPASS_ENABLE_LOGS
 static void tinfl_debug_trace_telemetry(tinfl_paged_telemetry* telemetry, const char* event) {
     if(telemetry == NULL || telemetry->trace_callback == NULL || event == NULL) {
         return;
@@ -260,8 +288,14 @@ static void tinfl_debug_trace_telemetry(tinfl_paged_telemetry* telemetry, const 
 
     telemetry->trace_callback(event, telemetry, telemetry->trace_context);
 }
+#else
+#define tinfl_debug_trace_telemetry(telemetry, event) \
+    do {                                              \
+        UNUSED(telemetry);                            \
+    } while(0)
+#endif
 
-#if FLIPPASS_ENABLE_GZIP_PAGED_TRACE
+#if FLIPPASS_ENABLE_GZIP_PAGED_TRACE && FLIPPASS_ENABLE_LOGS
 static void tinfl_paged_trace(tinfl_paged_runtime* runtime, const char* event) {
     if(runtime == NULL || runtime->telemetry == NULL ||
        runtime->telemetry->trace_callback == NULL) {
@@ -426,6 +460,35 @@ static bool tinfl_file_cleanup_file(Storage* storage, const char* path) {
     return ok;
 }
 
+static bool tinfl_file_parent_dir(const char* file_path, char* out_dir, size_t out_dir_size) {
+    size_t path_len = 0U;
+    size_t dir_len = 0U;
+
+    if(file_path == NULL || out_dir == NULL || out_dir_size < 2U) {
+        return false;
+    }
+
+    path_len = strlen(file_path);
+    while(path_len > 1U && file_path[path_len - 1U] == '/') {
+        path_len--;
+    }
+    while(path_len > 0U && file_path[path_len - 1U] != '/') {
+        path_len--;
+    }
+    if(path_len == 0U) {
+        return false;
+    }
+
+    dir_len = path_len - 1U;
+    if(dir_len == 0U || dir_len >= out_dir_size) {
+        return false;
+    }
+
+    memcpy(out_dir, file_path, dir_len);
+    out_dir[dir_len] = '\0';
+    return true;
+}
+
 static void tinfl_file_dict_note_failure(
     tinfl_file_dict* dict,
     tinfl_paged_telemetry* telemetry,
@@ -455,15 +518,20 @@ static void tinfl_file_dict_note_budget_issue(
     }
 }
 
+#if TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
 static void tinfl_file_dict_derive_keys(tinfl_file_dict* dict) {
-    uint8_t hash[64];
+    static const uint8_t enc_label[4] = {'e', 'n', 'c', '1'};
+    static const uint8_t mac_label[4] = {'m', 'a', 'c', '1'};
+    uint8_t material[sizeof(dict->session_master) + sizeof(enc_label)];
 
     furi_assert(dict);
 
-    sha512_Raw(dict->session_master, sizeof(dict->session_master), hash);
-    memcpy(dict->enc_key, hash, sizeof(dict->enc_key));
-    memcpy(dict->mac_key, hash + sizeof(dict->enc_key), sizeof(dict->mac_key));
-    memzero(hash, sizeof(hash));
+    memcpy(material, dict->session_master, sizeof(dict->session_master));
+    memcpy(material + sizeof(dict->session_master), enc_label, sizeof(enc_label));
+    sha256_Raw(material, sizeof(material), dict->enc_key);
+    memcpy(material + sizeof(dict->session_master), mac_label, sizeof(mac_label));
+    sha256_Raw(material, sizeof(material), dict->mac_key);
+    memzero(material, sizeof(material));
 }
 
 static void
@@ -481,6 +549,7 @@ static void tinfl_file_dict_mac(
     const tinfl_file_dict* dict,
     uint16_t page_index,
     const uint8_t* ciphertext,
+    size_t page_size,
     uint8_t mac[TINFL_FILE_DICT_MAC_SIZE]) {
     HMAC_SHA256_CTX hmac_ctx;
     uint8_t page_le[4];
@@ -496,9 +565,55 @@ static void tinfl_file_dict_mac(
 
     hmac_sha256_Init(&hmac_ctx, dict->mac_key, sizeof(dict->mac_key));
     hmac_sha256_Update(&hmac_ctx, page_le, sizeof(page_le));
-    hmac_sha256_Update(&hmac_ctx, ciphertext, TINFL_PAGED_LZ_DICT_PAGE_SIZE);
+    hmac_sha256_Update(&hmac_ctx, ciphertext, (uint32_t)page_size);
     hmac_sha256_Final(&hmac_ctx, mac);
 }
+
+static bool tinfl_file_dict_local_crypt_page(
+    tinfl_file_dict* dict,
+    uint16_t page_index,
+    uint8_t* page,
+    size_t page_size,
+    bool encrypt,
+    const uint8_t* expected_mac,
+    uint8_t* out_mac,
+    size_t mac_size) {
+    uint8_t nonce[12];
+    uint8_t actual_mac[TINFL_FILE_DICT_MAC_SIZE];
+    bool ok = false;
+
+    furi_assert(dict);
+    furi_assert(page);
+
+    tinfl_file_dict_nonce(dict, page_index, nonce);
+    if(encrypt) {
+        if(out_mac == NULL || mac_size < sizeof(actual_mac)) {
+            goto cleanup;
+        }
+        if(!kdbx_chacha20_xor(
+               page, page_size, dict->enc_key, sizeof(dict->enc_key), nonce, sizeof(nonce), 0U)) {
+            goto cleanup;
+        }
+        tinfl_file_dict_mac(dict, page_index, page, page_size, out_mac);
+        ok = true;
+    } else {
+        if(expected_mac == NULL) {
+            goto cleanup;
+        }
+        tinfl_file_dict_mac(dict, page_index, page, page_size, actual_mac);
+        if(memcmp(actual_mac, expected_mac, sizeof(actual_mac)) != 0) {
+            goto cleanup;
+        }
+        ok = kdbx_chacha20_xor(
+            page, page_size, dict->enc_key, sizeof(dict->enc_key), nonce, sizeof(nonce), 0U);
+    }
+
+cleanup:
+    memzero(nonce, sizeof(nonce));
+    memzero(actual_mac, sizeof(actual_mac));
+    return ok;
+}
+#endif
 
 static uint32_t tinfl_file_dict_slot_offset(uint16_t page_index) {
     return (uint32_t)page_index * (TINFL_PAGED_LZ_DICT_PAGE_SIZE + TINFL_FILE_DICT_MAC_SIZE);
@@ -560,9 +675,6 @@ static bool tinfl_file_dict_load_plain_page_to_buffer(
     tinfl_paged_telemetry* telemetry,
     const char* seek_stage,
     const char* io_stage) {
-    uint8_t expected_mac[TINFL_FILE_DICT_MAC_SIZE];
-    uint8_t nonce[12];
-
     furi_assert(dict);
     furi_assert(out);
 
@@ -589,24 +701,25 @@ static bool tinfl_file_dict_load_plain_page_to_buffer(
         return false;
     }
 
-    tinfl_file_dict_mac(dict, page_index, out, expected_mac);
-    if(memcmp(expected_mac, dict->io_mac, sizeof(expected_mac)) != 0) {
-        memzero(expected_mac, sizeof(expected_mac));
-        tinfl_file_dict_note_failure(dict, telemetry, "window_verify");
-        return false;
+    bool crypt_ok = false;
+    if(dict->crypt_page != NULL) {
+        crypt_ok = dict->crypt_page(
+            dict->crypt_context,
+            page_index,
+            out,
+            TINFL_PAGED_LZ_DICT_PAGE_SIZE,
+            false,
+            dict->io_mac,
+            NULL,
+            0U);
+#if TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
+    } else {
+        crypt_ok = tinfl_file_dict_local_crypt_page(
+            dict, page_index, out, TINFL_PAGED_LZ_DICT_PAGE_SIZE, false, dict->io_mac, NULL, 0U);
+#endif
     }
-    memzero(expected_mac, sizeof(expected_mac));
-
-    tinfl_file_dict_nonce(dict, page_index, nonce);
-    if(!kdbx_chacha20_xor(
-           out,
-           TINFL_PAGED_LZ_DICT_PAGE_SIZE,
-           dict->enc_key,
-           sizeof(dict->enc_key),
-           nonce,
-           sizeof(nonce),
-           0U)) {
-        tinfl_file_dict_note_failure(dict, telemetry, "window_decrypt");
+    if(!crypt_ok) {
+        tinfl_file_dict_note_failure(dict, telemetry, "window_verify");
         return false;
     }
 
@@ -618,7 +731,6 @@ static bool tinfl_file_dict_write_page(
     uint16_t page_index,
     uint8_t* plain,
     tinfl_paged_telemetry* telemetry) {
-    uint8_t nonce[12];
     bool ok = false;
     bool encrypted = false;
 
@@ -635,19 +747,35 @@ static bool tinfl_file_dict_write_page(
             (unsigned long)memmgr_heap_get_max_free_block());
     }
 
-    tinfl_file_dict_nonce(dict, page_index, nonce);
     memcpy(dict->io_page, plain, TINFL_PAGED_LZ_DICT_PAGE_SIZE);
     if(dict->diag_page_write_count <= 16U) {
         tinfl_file_dict_trace_runtime(dict, "page_write_copy_ok");
     }
-    if(!kdbx_chacha20_xor(
-           dict->io_page,
-           TINFL_PAGED_LZ_DICT_PAGE_SIZE,
-           dict->enc_key,
-           sizeof(dict->enc_key),
-           nonce,
-           sizeof(nonce),
-           0U)) {
+    bool crypt_ok = false;
+    if(dict->crypt_page != NULL) {
+        crypt_ok = dict->crypt_page(
+            dict->crypt_context,
+            page_index,
+            dict->io_page,
+            TINFL_PAGED_LZ_DICT_PAGE_SIZE,
+            true,
+            NULL,
+            dict->io_mac,
+            sizeof(dict->io_mac));
+#if TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
+    } else {
+        crypt_ok = tinfl_file_dict_local_crypt_page(
+            dict,
+            page_index,
+            dict->io_page,
+            TINFL_PAGED_LZ_DICT_PAGE_SIZE,
+            true,
+            NULL,
+            dict->io_mac,
+            sizeof(dict->io_mac));
+#endif
+    }
+    if(!crypt_ok) {
         tinfl_file_dict_note_failure(dict, telemetry, "window_encrypt");
         return false;
     }
@@ -656,7 +784,6 @@ static bool tinfl_file_dict_write_page(
         tinfl_file_dict_trace_runtime(dict, "page_write_encrypt_ok");
     }
 
-    tinfl_file_dict_mac(dict, page_index, dict->io_page, dict->io_mac);
     if(dict->file == NULL) {
         tinfl_file_dict_note_failure(dict, telemetry, "window_open_write");
         goto cleanup;
@@ -1107,6 +1234,7 @@ static const tinfl_dict_ops tinfl_file_dict_ops = {
     .failed = tinfl_file_dict_failed,
 };
 
+#if TINFL_PAGED_ENABLE_RAM
 static bool tinfl_paged_dict_alloc(tinfl_paged_dict* dict, tinfl_paged_telemetry* telemetry) {
     memset(dict, 0, sizeof(*dict));
 
@@ -1147,6 +1275,67 @@ static void tinfl_paged_dict_free(tinfl_paged_dict* dict) {
     }
 }
 
+static tinfl_paged_dict* tinfl_paged_dict_alloc_heap(void) {
+    tinfl_paged_dict* dict = NULL;
+
+    if(memmgr_heap_get_max_free_block() < sizeof(*dict)) {
+        return NULL;
+    }
+
+    dict = malloc(sizeof(*dict));
+    if(dict != NULL) {
+        memset(dict, 0, sizeof(*dict));
+    }
+
+    return dict;
+}
+#endif
+
+static tinfl_file_dict* tinfl_file_dict_alloc_heap(void) {
+    tinfl_file_dict* dict = NULL;
+
+    if(memmgr_heap_get_max_free_block() < sizeof(*dict)) {
+        return NULL;
+    }
+
+    dict = malloc(sizeof(*dict));
+    if(dict != NULL) {
+        memset(dict, 0, sizeof(*dict));
+    }
+
+    return dict;
+}
+
+static tinfl_decompressor* tinfl_decompressor_alloc_heap(void) {
+    tinfl_decompressor* decomp = NULL;
+
+    if(memmgr_heap_get_max_free_block() < sizeof(*decomp)) {
+        return NULL;
+    }
+
+    decomp = malloc(sizeof(*decomp));
+    if(decomp != NULL) {
+        memset(decomp, 0, sizeof(*decomp));
+    }
+
+    return decomp;
+}
+
+static uint8_t* tinfl_input_buf_alloc_heap(void) {
+    uint8_t* input_buf = NULL;
+
+    if(memmgr_heap_get_max_free_block() < TINFL_PAGED_INPUT_CHUNK_BYTES) {
+        return NULL;
+    }
+
+    input_buf = malloc(TINFL_PAGED_INPUT_CHUNK_BYTES);
+    if(input_buf != NULL) {
+        memset(input_buf, 0, TINFL_PAGED_INPUT_CHUNK_BYTES);
+    }
+
+    return input_buf;
+}
+
 static bool tinfl_file_dict_alloc(
     tinfl_file_dict* dict,
     const tinfl_paged_file_config* config,
@@ -1161,10 +1350,18 @@ static bool tinfl_file_dict_alloc(
     memset(dict, 0, sizeof(*dict));
     dict->telemetry = telemetry;
 
-    if(file_path == NULL || minimum_cache_pages > preferred_cache_pages) {
+    if(file_path == NULL || config == NULL || minimum_cache_pages > preferred_cache_pages) {
         tinfl_file_dict_note_budget_issue(dict, telemetry, "window_config");
         return false;
     }
+    dict->crypt_page = config->crypt_page;
+    dict->crypt_context = config->crypt_context;
+#if !TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
+    if(dict->crypt_page == NULL) {
+        tinfl_file_dict_note_budget_issue(dict, telemetry, "window_config");
+        return false;
+    }
+#endif
 
     if(config != NULL && config->storage != NULL) {
         dict->storage = config->storage;
@@ -1223,9 +1420,16 @@ static bool tinfl_file_dict_alloc(
     }
 
     dict->file_path = file_path;
-    if(!storage_simply_mkdir(dict->storage, EXT_PATH("apps_data/flippass"))) {
-        tinfl_file_dict_note_failure(dict, telemetry, "window_mkdir");
-        return false;
+    {
+        char dir_path[96];
+        if(!tinfl_file_parent_dir(dict->file_path, dir_path, sizeof(dir_path))) {
+            tinfl_file_dict_note_failure(dict, telemetry, "window_dir");
+            return false;
+        }
+        if(!storage_simply_mkdir(dict->storage, dir_path)) {
+            tinfl_file_dict_note_failure(dict, telemetry, "window_mkdir");
+            return false;
+        }
     }
     tinfl_file_dict_trace_step(dict, telemetry, "window_mkdir_ok");
     if(!tinfl_file_cleanup_file(dict->storage, dict->file_path)) {
@@ -1250,9 +1454,13 @@ static bool tinfl_file_dict_alloc(
     }
     tinfl_file_dict_trace_step(dict, telemetry, "window_open_create_ok");
 
-    furi_hal_random_fill_buf(dict->session_master, sizeof(dict->session_master));
-    furi_hal_random_fill_buf(dict->nonce_prefix, sizeof(dict->nonce_prefix));
-    tinfl_file_dict_derive_keys(dict);
+#if TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
+    if(dict->crypt_page == NULL) {
+        furi_hal_random_fill_buf(dict->session_master, sizeof(dict->session_master));
+        furi_hal_random_fill_buf(dict->nonce_prefix, sizeof(dict->nonce_prefix));
+        tinfl_file_dict_derive_keys(dict);
+    }
+#endif
     tinfl_file_dict_trace_step(dict, telemetry, "window_keys_ok");
 
     return true;
@@ -1288,10 +1496,14 @@ static void tinfl_file_dict_free(tinfl_file_dict* dict) {
         dict->owns_storage = false;
     }
 
+    dict->crypt_page = NULL;
+    dict->crypt_context = NULL;
+#if TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO
     memzero(dict->session_master, sizeof(dict->session_master));
     memzero(dict->enc_key, sizeof(dict->enc_key));
     memzero(dict->mac_key, sizeof(dict->mac_key));
     memzero(dict->nonce_prefix, sizeof(dict->nonce_prefix));
+#endif
     if(dict->io_page != NULL) {
         memzero(dict->io_page, TINFL_PAGED_LZ_DICT_PAGE_SIZE);
         free(dict->io_page);
@@ -1302,6 +1514,7 @@ static void tinfl_file_dict_free(tinfl_file_dict* dict) {
     memzero(dict->io_mac, sizeof(dict->io_mac));
 }
 
+#if TINFL_PAGED_ENABLE_RAM
 static mz_uint8 tinfl_paged_dict_get(const tinfl_paged_dict* dict, size_t offset) {
     const size_t masked = offset & (TINFL_LZ_DICT_SIZE - 1U);
     const size_t page = masked / TINFL_PAGED_LZ_DICT_PAGE_SIZE;
@@ -1385,6 +1598,7 @@ static const tinfl_dict_ops tinfl_ram_dict_ops = {
     .copy_match = NULL,
     .failed = tinfl_ram_dict_failed,
 };
+#endif
 
 static void tinfl_clear_tree(tinfl_decompressor* r) {
     if(r->m_type == 0) {
@@ -1864,6 +2078,7 @@ common_exit:
     return status;
 }
 
+#if TINFL_PAGED_ENABLE_RAM
 int tinfl_decompress_mem_to_callback_paged_ex(
     const void* pIn_buf,
     size_t* pIn_buf_size,
@@ -1873,7 +2088,7 @@ int tinfl_decompress_mem_to_callback_paged_ex(
     tinfl_paged_telemetry* pTelemetry) {
     int result = 0;
     tinfl_decompressor* decomp = NULL;
-    tinfl_paged_dict dict;
+    tinfl_paged_dict* dict = NULL;
     tinfl_dict_view dict_view;
     tinfl_paged_runtime runtime;
     size_t in_buf_ofs = 0U;
@@ -1893,21 +2108,24 @@ int tinfl_decompress_mem_to_callback_paged_ex(
         return 0;
     }
 
-    if(!tinfl_paged_dict_alloc(&dict, pTelemetry)) {
+    dict = tinfl_paged_dict_alloc_heap();
+    if(dict == NULL || !tinfl_paged_dict_alloc(dict, pTelemetry)) {
         tinfl_paged_trace(&runtime, "alloc_failed");
+        free(dict);
         return 0;
     }
 
-    decomp = malloc(sizeof(*decomp));
+    decomp = tinfl_decompressor_alloc_heap();
     if(decomp == NULL) {
         tinfl_paged_trace(&runtime, "decomp_alloc_failed");
-        tinfl_paged_dict_free(&dict);
+        tinfl_paged_dict_free(dict);
+        free(dict);
         return 0;
     }
 
     tinfl_paged_trace(&runtime, "alloc_ok");
     dict_view.ops = &tinfl_ram_dict_ops;
-    dict_view.impl = &dict;
+    dict_view.impl = dict;
     tinfl_init(decomp);
     tinfl_paged_trace(&runtime, "begin");
 
@@ -1977,7 +2195,8 @@ int tinfl_decompress_mem_to_callback_paged_ex(
     }
 
     *pIn_buf_size = in_buf_ofs;
-    tinfl_paged_dict_free(&dict);
+    tinfl_paged_dict_free(dict);
+    free(dict);
     free(decomp);
     return result;
 }
@@ -1992,10 +2211,10 @@ int tinfl_decompress_reader_to_callback_paged_ex(
     tinfl_paged_telemetry* pTelemetry) {
     int result = 0;
     tinfl_decompressor* decomp = NULL;
-    tinfl_paged_dict dict;
+    tinfl_paged_dict* dict = NULL;
     tinfl_dict_view dict_view;
     tinfl_paged_runtime runtime;
-    uint8_t input_buf[TINFL_PAGED_INPUT_CHUNK_BYTES];
+    uint8_t* input_buf = NULL;
     size_t input_len = 0U;
     size_t input_ofs = 0U;
     size_t total_input = 0U;
@@ -2016,29 +2235,43 @@ int tinfl_decompress_reader_to_callback_paged_ex(
         return 0;
     }
 
-    if(!tinfl_paged_dict_alloc(&dict, pTelemetry)) {
+    dict = tinfl_paged_dict_alloc_heap();
+    if(dict == NULL || !tinfl_paged_dict_alloc(dict, pTelemetry)) {
         tinfl_paged_trace(&runtime, "alloc_failed");
+        free(dict);
         return 0;
     }
 
-    decomp = malloc(sizeof(*decomp));
+    decomp = tinfl_decompressor_alloc_heap();
     if(decomp == NULL) {
         tinfl_paged_trace(&runtime, "decomp_alloc_failed");
-        tinfl_paged_dict_free(&dict);
+        tinfl_paged_dict_free(dict);
+        free(dict);
+        return 0;
+    }
+
+    input_buf = tinfl_input_buf_alloc_heap();
+    if(input_buf == NULL) {
+        tinfl_paged_trace(&runtime, "input_alloc_failed");
+        tinfl_paged_dict_free(dict);
+        free(dict);
+        free(decomp);
         return 0;
     }
 
     tinfl_paged_trace(&runtime, "alloc_ok");
     dict_view.ops = &tinfl_ram_dict_ops;
-    dict_view.impl = &dict;
+    dict_view.impl = dict;
     tinfl_init(decomp);
     tinfl_paged_trace(&runtime, "begin");
 
     for(;;) {
         if(input_ofs >= input_len && !input_eof) {
             FURI_LOG_T(
-                TINFL_FILE_TAG, "file paged input request size=%u", (unsigned)sizeof(input_buf));
-            input_len = pGet_buf_func(input_buf, sizeof(input_buf), pGet_buf_user);
+                TINFL_FILE_TAG,
+                "file paged input request size=%u",
+                (unsigned)TINFL_PAGED_INPUT_CHUNK_BYTES);
+            input_len = pGet_buf_func(input_buf, TINFL_PAGED_INPUT_CHUNK_BYTES, pGet_buf_user);
             input_ofs = 0U;
             if(input_len == 0U) {
                 input_eof = true;
@@ -2132,11 +2365,14 @@ int tinfl_decompress_reader_to_callback_paged_ex(
     }
 
     *pIn_buf_size = total_input;
-    memzero(input_buf, sizeof(input_buf));
-    tinfl_paged_dict_free(&dict);
+    memzero(input_buf, TINFL_PAGED_INPUT_CHUNK_BYTES);
+    free(input_buf);
+    tinfl_paged_dict_free(dict);
+    free(dict);
     free(decomp);
     return result;
 }
+#endif
 
 int tinfl_decompress_reader_to_callback_file_paged_ex(
     tinfl_get_buf_func_ptr pGet_buf_func,
@@ -2149,10 +2385,7 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
     tinfl_decompressor* pDecomp_workspace,
     tinfl_paged_telemetry* pTelemetry) {
     int result = 0;
-    const uint32_t stack_space = furi_thread_get_stack_space(furi_thread_get_current_id());
-    const size_t decomp_size = sizeof(tinfl_decompressor);
     tinfl_decompressor* decomp = pDecomp_workspace;
-    bool decomp_on_stack = false;
     bool decomp_external = pDecomp_workspace != NULL;
     tinfl_file_dict* dict = NULL;
     tinfl_dict_view dict_view;
@@ -2183,26 +2416,16 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
 
     tinfl_debug_trace_telemetry(pTelemetry, "debug_file_paged_begin");
     TINFL_DEBUG_LOG(
-        "file_paged begin stack=%lu free=%lu max=%lu decomp=%lu dict=%lu",
-        (unsigned long)stack_space,
+        "file_paged begin free=%lu max=%lu decomp=%lu dict=%lu",
         (unsigned long)memmgr_get_free_heap(),
         (unsigned long)memmgr_heap_get_max_free_block(),
-        (unsigned long)decomp_size,
+        (unsigned long)sizeof(tinfl_decompressor),
         (unsigned long)sizeof(tinfl_file_dict));
 
     if(decomp_external) {
         memset(decomp, 0, sizeof(*decomp));
-    } else if(stack_space >= (decomp_size + 512U)) {
-        decomp = TINFL_RUNTIME_ALLOCA(sizeof(tinfl_decompressor));
-        if(decomp != NULL) {
-            memset(decomp, 0, sizeof(*decomp));
-            decomp_on_stack = true;
-        }
-    } else if(memmgr_heap_get_max_free_block() >= decomp_size) {
-        decomp = malloc(decomp_size);
-        if(decomp != NULL) {
-            memset(decomp, 0, decomp_size);
-        }
+    } else {
+        decomp = tinfl_decompressor_alloc_heap();
     }
 
     if(decomp == NULL) {
@@ -2216,17 +2439,13 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
     }
     tinfl_debug_trace_telemetry(pTelemetry, "debug_file_paged_decomp_ok");
     TINFL_DEBUG_LOG(
-        "file_paged decomp_ok stack=%u external=%u free=%lu max=%lu",
-        decomp_on_stack ? 1U : 0U,
+        "file_paged decomp_ok external=%u free=%lu max=%lu",
         decomp_external ? 1U : 0U,
         (unsigned long)memmgr_get_free_heap(),
         (unsigned long)memmgr_heap_get_max_free_block());
-    tinfl_paged_trace(
-        &runtime,
-        decomp_external ? "file_decomp_external" :
-                          (decomp_on_stack ? "file_decomp_stack" : "file_decomp_heap"));
+    tinfl_paged_trace(&runtime, decomp_external ? "file_decomp_external" : "file_decomp_heap");
 
-    input_buf = malloc(TINFL_PAGED_INPUT_CHUNK_BYTES);
+    input_buf = tinfl_input_buf_alloc_heap();
     if(input_buf == NULL) {
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "window_input_alloc");
         memzero(decomp, sizeof(*decomp));
@@ -2248,19 +2467,14 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
         (unsigned long)memmgr_heap_get_max_free_block());
 
     tinfl_paged_trace(&runtime, "file_dict_attempt");
-    if(memmgr_heap_get_max_free_block() >= sizeof(tinfl_file_dict)) {
-        dict = malloc(sizeof(tinfl_file_dict));
-        if(dict != NULL) {
-            memset(dict, 0, sizeof(*dict));
-        }
-    }
+    dict = tinfl_file_dict_alloc_heap();
     if(dict == NULL) {
         tinfl_paged_trace(&runtime, "file_dict_alloc_fail");
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "window_dict_alloc");
         memzero(input_buf, TINFL_PAGED_INPUT_CHUNK_BYTES);
         free(input_buf);
         memzero(decomp, sizeof(*decomp));
-        if(!decomp_external && !decomp_on_stack) {
+        if(!decomp_external) {
             free(decomp);
         }
         tinfl_debug_trace_telemetry(pTelemetry, "debug_file_paged_dict_fail");
@@ -2291,7 +2505,7 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
         memzero(input_buf, TINFL_PAGED_INPUT_CHUNK_BYTES);
         free(input_buf);
         memzero(decomp, sizeof(*decomp));
-        if(!decomp_external && !decomp_on_stack) {
+        if(!decomp_external) {
             free(decomp);
         }
         return 0;
@@ -2466,7 +2680,7 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
     tinfl_file_dict_free(dict);
     free(dict);
     memzero(decomp, sizeof(*decomp));
-    if(!decomp_external && !decomp_on_stack) {
+    if(!decomp_external) {
         free(decomp);
     }
     return result;
@@ -2482,17 +2696,9 @@ int tinfl_decompress_mem_to_callback_file_paged_ex(
     tinfl_decompressor* pDecomp_workspace,
     tinfl_paged_telemetry* pTelemetry) {
     int result = 0;
-    const uint32_t stack_space = furi_thread_get_stack_space(furi_thread_get_current_id());
-    const uint32_t stack_budget = 2048U;
-    const size_t decomp_size = sizeof(tinfl_decompressor);
-    const uint32_t stack_decomp_margin = 1024U;
     tinfl_decompressor* decomp = pDecomp_workspace;
-    bool decomp_on_stack = false;
     bool decomp_external = pDecomp_workspace != NULL;
     tinfl_file_dict* dict = NULL;
-    const size_t dict_size = sizeof(tinfl_file_dict);
-    const uint32_t stack_dict_margin = 2048U;
-    bool dict_on_stack = false;
     tinfl_dict_view dict_view;
     tinfl_paged_runtime runtime;
     size_t in_buf_ofs = 0U;
@@ -2514,60 +2720,35 @@ int tinfl_decompress_mem_to_callback_file_paged_ex(
 
     if(decomp_external) {
         memset(decomp, 0, sizeof(*decomp));
-    } else if(stack_space >= (stack_budget + decomp_size + stack_decomp_margin)) {
-        decomp = TINFL_RUNTIME_ALLOCA(sizeof(tinfl_decompressor));
-        if(decomp != NULL) {
-            memset(decomp, 0, sizeof(*decomp));
-            decomp_on_stack = true;
-        }
-    } else if(memmgr_heap_get_max_free_block() >= decomp_size) {
-        decomp = malloc(decomp_size);
-        if(decomp != NULL) {
-            memset(decomp, 0, decomp_size);
-        }
+    } else {
+        decomp = tinfl_decompressor_alloc_heap();
     }
 
     if(decomp == NULL) {
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "file_decomp_alloc");
         return 0;
     }
-    tinfl_paged_trace(
-        &runtime,
-        decomp_external ? "file_decomp_external" :
-                          (decomp_on_stack ? "file_decomp_stack" : "file_decomp_heap"));
+    tinfl_paged_trace(&runtime, decomp_external ? "file_decomp_external" : "file_decomp_heap");
 
     tinfl_paged_trace(&runtime, "file_dict_attempt");
-    if(stack_space >= (stack_budget + decomp_size + dict_size + stack_dict_margin)) {
-        dict = TINFL_RUNTIME_ALLOCA(sizeof(tinfl_file_dict));
-        if(dict != NULL) {
-            memset(dict, 0, sizeof(*dict));
-            dict_on_stack = true;
-        }
-    } else if(memmgr_heap_get_max_free_block() >= sizeof(tinfl_file_dict)) {
-        dict = malloc(sizeof(tinfl_file_dict));
-        if(dict != NULL) {
-            memset(dict, 0, sizeof(*dict));
-        }
-    }
+    dict = tinfl_file_dict_alloc_heap();
     if(dict == NULL) {
         tinfl_paged_trace(&runtime, "file_dict_alloc_fail");
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "window_dict_alloc");
         memzero(decomp, sizeof(*decomp));
-        if(!decomp_on_stack && !decomp_external) {
+        if(!decomp_external) {
             free(decomp);
         }
         return 0;
     }
-    tinfl_paged_trace(&runtime, dict_on_stack ? "file_dict_stack" : "file_dict_heap");
+    tinfl_paged_trace(&runtime, "file_dict_heap");
     tinfl_paged_trace(&runtime, "file_dict_config_begin");
     if(!tinfl_file_dict_alloc(dict, pFile_config, pTelemetry)) {
         tinfl_paged_trace(&runtime, "file_alloc_failed");
         tinfl_file_dict_free(dict);
-        if(!dict_on_stack) {
-            free(dict);
-        }
+        free(dict);
         memzero(decomp, sizeof(*decomp));
-        if(!decomp_on_stack && !decomp_external) {
+        if(!decomp_external) {
             free(decomp);
         }
         return 0;
@@ -2659,11 +2840,9 @@ int tinfl_decompress_mem_to_callback_file_paged_ex(
 
     *pIn_buf_size = in_buf_ofs;
     tinfl_file_dict_free(dict);
-    if(!dict_on_stack) {
-        free(dict);
-    }
+    free(dict);
     memzero(decomp, sizeof(*decomp));
-    if(!decomp_on_stack && !decomp_external) {
+    if(!decomp_external) {
         free(decomp);
     }
     return result;
@@ -2672,17 +2851,9 @@ int tinfl_decompress_mem_to_callback_file_paged_ex(
 int tinfl_file_paged_probe(
     const tinfl_paged_file_config* pFile_config,
     tinfl_paged_telemetry* pTelemetry) {
-    const uint32_t stack_space = furi_thread_get_stack_space(furi_thread_get_current_id());
-    const uint32_t stack_budget = 1536U;
     tinfl_decompressor* decomp = NULL;
-    const size_t decomp_size = sizeof(tinfl_decompressor);
-    const uint32_t stack_decomp_margin = 1024U;
-    bool decomp_on_stack = false;
     uint8_t* input_buf = NULL;
     tinfl_file_dict* dict = NULL;
-    const size_t dict_size = sizeof(tinfl_file_dict);
-    const uint32_t stack_dict_margin = 2048U;
-    bool dict_on_stack = false;
     int result = 0;
 
     tinfl_paged_telemetry_reset(pTelemetry);
@@ -2692,48 +2863,24 @@ int tinfl_file_paged_probe(
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "window_config");
         return 0;
     }
-    tinfl_paged_trace_telemetry(pTelemetry, "file_probe_stack_ok");
+    tinfl_paged_trace_telemetry(pTelemetry, "file_probe_heap_begin");
 
-    if(stack_space >= (stack_budget + decomp_size + stack_decomp_margin)) {
-        decomp = TINFL_RUNTIME_ALLOCA(sizeof(tinfl_decompressor));
-        if(decomp != NULL) {
-            memset(decomp, 0, sizeof(*decomp));
-            decomp_on_stack = true;
-        }
-    } else if(memmgr_heap_get_max_free_block() >= sizeof(tinfl_decompressor)) {
-        decomp = malloc(sizeof(tinfl_decompressor));
-        if(decomp != NULL) {
-            memset(decomp, 0, sizeof(*decomp));
-        }
-    }
+    decomp = tinfl_decompressor_alloc_heap();
     if(decomp == NULL) {
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "file_decomp_alloc");
         goto cleanup;
     }
-    tinfl_paged_trace_telemetry(
-        pTelemetry, decomp_on_stack ? "file_probe_decomp_stack" : "file_probe_decomp_heap");
+    tinfl_paged_trace_telemetry(pTelemetry, "file_probe_decomp_heap");
     tinfl_paged_trace_telemetry(pTelemetry, "file_probe_decomp_ok");
 
-    input_buf = malloc(TINFL_PAGED_INPUT_CHUNK_BYTES);
+    input_buf = tinfl_input_buf_alloc_heap();
     if(input_buf == NULL) {
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "window_input_alloc");
         goto cleanup;
     }
-    memset(input_buf, 0, TINFL_PAGED_INPUT_CHUNK_BYTES);
     tinfl_paged_trace_telemetry(pTelemetry, "file_probe_input_ok");
 
-    if(stack_space >= (stack_budget + decomp_size + dict_size + stack_dict_margin)) {
-        dict = TINFL_RUNTIME_ALLOCA(sizeof(tinfl_file_dict));
-        if(dict != NULL) {
-            memset(dict, 0, sizeof(*dict));
-            dict_on_stack = true;
-        }
-    } else if(memmgr_heap_get_max_free_block() >= sizeof(tinfl_file_dict)) {
-        dict = malloc(sizeof(tinfl_file_dict));
-        if(dict != NULL) {
-            memset(dict, 0, sizeof(*dict));
-        }
-    }
+    dict = tinfl_file_dict_alloc_heap();
     if(dict == NULL) {
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "window_dict_alloc");
         goto cleanup;
@@ -2752,9 +2899,7 @@ int tinfl_file_paged_probe(
 cleanup:
     if(dict != NULL) {
         tinfl_file_dict_free(dict);
-        if(!dict_on_stack) {
-            free(dict);
-        }
+        free(dict);
     }
     if(input_buf != NULL) {
         memzero(input_buf, TINFL_PAGED_INPUT_CHUNK_BYTES);
@@ -2762,14 +2907,13 @@ cleanup:
     }
     if(decomp != NULL) {
         memzero(decomp, sizeof(*decomp));
-        if(!decomp_on_stack) {
-            free(decomp);
-        }
+        free(decomp);
     }
 
     return result;
 }
 
+#if TINFL_PAGED_ENABLE_RAM
 int tinfl_decompress_mem_to_callback_paged(
     const void* pIn_buf,
     size_t* pIn_buf_size,
@@ -2779,6 +2923,7 @@ int tinfl_decompress_mem_to_callback_paged(
     return tinfl_decompress_mem_to_callback_paged_ex(
         pIn_buf, pIn_buf_size, pPut_buf_func, pPut_buf_user, flags, NULL);
 }
+#endif
 
 #ifdef __cplusplus
 }

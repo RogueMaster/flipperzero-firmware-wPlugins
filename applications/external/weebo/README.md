@@ -2,6 +2,8 @@
 
 A powerful Flipper Zero NTAG215 parser, writer, emulator, remixer, and duplicator, designed for enthusiasts who want to unlock the full potential of their NFC experience.
 
+![Demo Video](demo.mp4)
+
 ## `key_retail.bin`
 
 google "key_retail.bin" and you should be able to find kt.

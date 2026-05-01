@@ -1,15 +1,20 @@
 // protopirate_history.c
 #include "protopirate_history.h"
+#include "helpers/protopirate_storage.h"
 #include <lib/subghz/receiver.h>
-#include <flipper_format/flipper_format_i.h>
+#include <storage/storage.h>
+#include <string.h>
+#include <stdio.h>
+#include <furi.h>
 
-#define TAG "ProtoPirateHistory"
+#define TAG                          "ProtoPirateHistory"
+#define HISTORY_SCRATCH_TEXT_RESERVE 256U
+#define HISTORY_SCRATCH_PATH_RESERVE 128U
 
 typedef struct {
     FuriString* item_str;
-    FlipperFormat* flipper_format;
+    FuriString* capture_path;
     uint8_t type;
-    SubGhzRadioPreset* preset;
 } ProtoPirateHistoryItem;
 
 ARRAY_DEF(ProtoPirateHistoryItemArray, ProtoPirateHistoryItem, M_POD_OPLIST)
@@ -19,7 +24,37 @@ struct ProtoPirateHistory {
     uint16_t last_index;
     uint32_t last_update_timestamp;
     uint8_t code_last_hash_data;
+    uint32_t next_capture_seq;
+    Storage* storage;
+    FlipperFormat* loaded_ff;
+    int16_t loaded_idx;
+
+    FuriString* scratch_text;
+    FuriString* scratch_path;
 };
+
+void protopirate_history_release_scratch(ProtoPirateHistory* instance) {
+    furi_check(instance);
+    if(instance->loaded_ff) {
+        flipper_format_free(instance->loaded_ff);
+        instance->loaded_ff = NULL;
+    }
+    instance->loaded_idx = -1;
+}
+
+static void protopirate_history_item_free(ProtoPirateHistoryItem* item, bool delete_file) {
+    if(item->item_str) {
+        furi_string_free(item->item_str);
+        item->item_str = NULL;
+    }
+    if(item->capture_path) {
+        if(delete_file) {
+            protopirate_storage_delete_file(furi_string_get_cstr(item->capture_path));
+        }
+        furi_string_free(item->capture_path);
+        item->capture_path = NULL;
+    }
+}
 
 ProtoPirateHistory* protopirate_history_alloc(void) {
     ProtoPirateHistory* instance = malloc(sizeof(ProtoPirateHistory));
@@ -28,41 +63,61 @@ ProtoPirateHistory* protopirate_history_alloc(void) {
     instance->last_index = 0;
     instance->last_update_timestamp = 0;
     instance->code_last_hash_data = 0;
+    instance->next_capture_seq = (uint32_t)(furi_get_tick() & 0x0FFFFFFF);
+    if(instance->next_capture_seq == 0) {
+        instance->next_capture_seq = 1;
+    }
+    instance->storage = furi_record_open(RECORD_STORAGE);
+    instance->loaded_ff = NULL;
+    instance->loaded_idx = -1;
+
+    instance->scratch_text = furi_string_alloc();
+    furi_check(instance->scratch_text);
+    furi_string_reserve(instance->scratch_text, HISTORY_SCRATCH_TEXT_RESERVE);
+
+    instance->scratch_path = furi_string_alloc();
+    furi_check(instance->scratch_path);
+    furi_string_reserve(instance->scratch_path, HISTORY_SCRATCH_PATH_RESERVE);
+
     return instance;
 }
 
 void protopirate_history_free(ProtoPirateHistory* instance) {
     furi_check(instance);
+    protopirate_history_release_scratch(instance);
     for(size_t i = 0; i < ProtoPirateHistoryItemArray_size(instance->data); i++) {
         ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, i);
-        furi_string_free(item->item_str);
-        flipper_format_free(item->flipper_format);
-        if(item->preset) {
-            if(item->preset->name) {
-                furi_string_free(item->preset->name);
-            }
-            free(item->preset);
-        }
+        protopirate_history_item_free(item, false);
     }
     ProtoPirateHistoryItemArray_clear(instance->data);
+    protopirate_storage_wipe_history_cache();
+
+    if(instance->scratch_text) {
+        furi_string_free(instance->scratch_text);
+        instance->scratch_text = NULL;
+    }
+    if(instance->scratch_path) {
+        furi_string_free(instance->scratch_path);
+        instance->scratch_path = NULL;
+    }
+
+    if(instance->storage) {
+        furi_record_close(RECORD_STORAGE);
+        instance->storage = NULL;
+    }
     free(instance);
 }
 
 void protopirate_history_reset(ProtoPirateHistory* instance) {
     furi_check(instance);
+    protopirate_history_release_scratch(instance);
     for(size_t i = 0; i < ProtoPirateHistoryItemArray_size(instance->data); i++) {
         ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, i);
-        furi_string_free(item->item_str);
-        flipper_format_free(item->flipper_format);
-        if(item->preset) {
-            if(item->preset->name) {
-                furi_string_free(item->preset->name);
-            }
-            free(item->preset);
-        }
+        protopirate_history_item_free(item, false);
     }
     ProtoPirateHistoryItemArray_reset(instance->data);
     instance->last_index = 0;
+    protopirate_storage_wipe_history_cache();
 }
 
 uint16_t protopirate_history_get_item(ProtoPirateHistory* instance) {
@@ -75,23 +130,68 @@ uint16_t protopirate_history_get_last_index(ProtoPirateHistory* instance) {
     return instance->last_index;
 }
 
-// Helper function to free a single history item's resources
-static void protopirate_history_item_free(ProtoPirateHistoryItem* item) {
-    if(item->item_str) {
-        furi_string_free(item->item_str);
-        item->item_str = NULL;
+void protopirate_history_format_status_text(
+    ProtoPirateHistory* instance,
+    char* output,
+    size_t output_size) {
+    furi_check(instance);
+    furi_check(output);
+
+    if(output_size == 0) {
+        return;
     }
-    if(item->flipper_format) {
-        flipper_format_free(item->flipper_format);
-        item->flipper_format = NULL;
+
+    uint16_t n = protopirate_history_get_item(instance);
+    if(n >= PROTOPIRATE_HISTORY_MAX) {
+        snprintf(output, output_size, "FULL");
+    } else {
+        snprintf(output, output_size, "%u/%u", n, PROTOPIRATE_HISTORY_MAX);
     }
-    if(item->preset) {
-        if(item->preset->name) {
-            furi_string_free(item->preset->name);
-        }
-        free(item->preset);
-        item->preset = NULL;
+}
+
+void protopirate_history_get_status_text(ProtoPirateHistory* instance, FuriString* output) {
+    furi_check(instance);
+    furi_check(output);
+
+    char status_text[16];
+    protopirate_history_format_status_text(instance, status_text, sizeof(status_text));
+    furi_string_set_str(output, status_text);
+}
+
+bool protopirate_history_get_capture_path(
+    ProtoPirateHistory* instance,
+    uint16_t idx,
+    FuriString* out_path) {
+    furi_check(instance);
+    furi_check(out_path);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return false;
     }
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    if(!item->capture_path || furi_string_size(item->capture_path) == 0) {
+        return false;
+    }
+    furi_string_set(out_path, item->capture_path);
+    return true;
+}
+
+bool protopirate_history_capture_path_equals(
+    ProtoPirateHistory* instance,
+    uint16_t idx,
+    const char* path) {
+    furi_check(instance);
+
+    if(!path || idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return false;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    if(!item->capture_path || furi_string_size(item->capture_path) == 0) {
+        return false;
+    }
+
+    return strcmp(furi_string_get_cstr(item->capture_path), path) == 0;
 }
 
 bool protopirate_history_add_to_history(
@@ -101,9 +201,12 @@ bool protopirate_history_add_to_history(
     furi_check(instance);
     furi_check(context);
 
+    if(ProtoPirateHistoryItemArray_size(instance->data) >= PROTOPIRATE_HISTORY_MAX) {
+        return false;
+    }
+
     SubGhzProtocolDecoderBase* decoder_base = context;
 
-    // Check for duplicate (same hash within 500ms)
     if((instance->code_last_hash_data ==
         subghz_protocol_decoder_base_get_hash_data(decoder_base)) &&
        ((furi_get_tick() - instance->last_update_timestamp) < 500)) {
@@ -111,69 +214,78 @@ bool protopirate_history_add_to_history(
         return false;
     }
 
-    // If history is full, remove the oldest entry
-    if(ProtoPirateHistoryItemArray_size(instance->data) >= PROTOPIRATE_HISTORY_MAX) {
-        ProtoPirateHistoryItem* oldest = ProtoPirateHistoryItemArray_get(instance->data, 0);
-        if(oldest) {
-            protopirate_history_item_free(oldest);
-        }
-        ProtoPirateHistoryItemArray_pop_at(NULL, instance->data, 0);
-        FURI_LOG_D(TAG, "History full, removed oldest entry");
+    protopirate_history_release_scratch(instance);
+
+    furi_string_reset(instance->scratch_text);
+    furi_string_reset(instance->scratch_path);
+
+    subghz_protocol_decoder_base_get_string(decoder_base, instance->scratch_text);
+
+    FlipperFormat* temp_ff = flipper_format_string_alloc();
+    furi_check(temp_ff);
+
+    SubGhzProtocolStatus ser =
+        subghz_protocol_decoder_base_serialize(decoder_base, temp_ff, preset);
+    if(ser != SubGhzProtocolStatusOk) {
+        FURI_LOG_E(TAG, "Serialize failed");
+        flipper_format_free(temp_ff);
+        return false;
+    }
+
+    uint32_t seq = instance->next_capture_seq++;
+    bool saved = protopirate_storage_save_history_capture(temp_ff, seq, instance->scratch_path);
+    flipper_format_free(temp_ff);
+
+    if(!saved) {
+        FURI_LOG_E(TAG, "Failed to save history file");
+        return false;
     }
 
     instance->code_last_hash_data = subghz_protocol_decoder_base_get_hash_data(decoder_base);
     instance->last_update_timestamp = furi_get_tick();
 
-    // Create a new history item
     ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_push_raw(instance->data);
-    item->item_str = furi_string_alloc();
-    item->flipper_format = flipper_format_string_alloc();
+    item->item_str = furi_string_alloc_set(instance->scratch_text);
+    item->capture_path = furi_string_alloc_set(instance->scratch_path);
     item->type = 0;
-
-    // Copy preset
-    item->preset = malloc(sizeof(SubGhzRadioPreset));
-    item->preset->frequency = preset->frequency;
-    item->preset->name = furi_string_alloc();
-    if(preset->name) {
-        furi_string_set(item->preset->name, preset->name);
-    } else {
-        furi_string_set(item->preset->name, "UNKNOWN");
-    }
-    item->preset->data = preset->data;
-    item->preset->data_size = preset->data_size;
-
-    // Get string representation
-    FuriString* text = furi_string_alloc();
-    subghz_protocol_decoder_base_get_string(decoder_base, text);
-    furi_string_set(item->item_str, text);
-
-    // Serialize to flipper format
-    subghz_protocol_decoder_base_serialize(decoder_base, item->flipper_format, preset);
-
-    // Debug: Log what we're adding to history
-    flipper_format_rewind(item->flipper_format);
-    uint32_t debug_bit_count;
-    FuriString* debug_protocol = furi_string_alloc();
-    if(flipper_format_read_string(item->flipper_format, "Protocol", debug_protocol)) {
-        FURI_LOG_I(TAG, "History add - Protocol: %s", furi_string_get_cstr(debug_protocol));
-    }
-    flipper_format_rewind(item->flipper_format);
-    if(flipper_format_read_uint32(item->flipper_format, "Bit", &debug_bit_count, 1)) {
-        FURI_LOG_I(TAG, "History add - Bit count: %lu", debug_bit_count);
-    }
-    furi_string_free(debug_protocol);
-
-    furi_string_free(text);
 
     instance->last_index++;
 
     FURI_LOG_I(
         TAG,
-        "Added item %u to history (size: %zu)",
+        "Added item %u to history (size: %zu) path %s",
         instance->last_index,
-        ProtoPirateHistoryItemArray_size(instance->data));
+        ProtoPirateHistoryItemArray_size(instance->data),
+        furi_string_get_cstr(item->capture_path));
 
     return true;
+}
+
+void protopirate_history_delete_item(ProtoPirateHistory* instance, uint16_t idx) {
+    furi_check(instance);
+
+    size_t item_count = ProtoPirateHistoryItemArray_size(instance->data);
+    if(idx >= item_count) {
+        return;
+    }
+
+    if(instance->loaded_ff) {
+        if(instance->loaded_idx == (int16_t)idx) {
+            protopirate_history_release_scratch(instance);
+        } else if(instance->loaded_idx > (int16_t)idx) {
+            instance->loaded_idx--;
+        }
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    protopirate_history_item_free(item, true);
+    ProtoPirateHistoryItemArray_pop_at(NULL, instance->data, idx);
+
+    FURI_LOG_I(
+        TAG,
+        "Deleted history item %u (size: %zu)",
+        idx,
+        ProtoPirateHistoryItemArray_size(instance->data));
 }
 
 void protopirate_history_get_text_item_menu(
@@ -189,8 +301,6 @@ void protopirate_history_get_text_item_menu(
     }
 
     ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
-
-    // Get just the first line for the menu
     const char* str = furi_string_get_cstr(item->item_str);
     const char* newline = strchr(str, '\r');
     size_t len = 0;
@@ -205,17 +315,18 @@ void protopirate_history_get_text_item_menu(
         }
     }
 
-    // Add index prefix
     uint16_t display_idx = idx + 1;
     furi_string_printf(output, "%u. %.*s", display_idx, (int)len, str);
 }
 
-void protopirate_history_get_text_item(
+void protopirate_history_get_text_item_detail(
     ProtoPirateHistory* instance,
+    uint16_t idx,
     FuriString* output,
-    uint16_t idx) {
+    SubGhzEnvironment* environment) {
     furi_check(instance);
     furi_check(output);
+    UNUSED(environment);
 
     if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
         furi_string_set(output, "---");
@@ -240,8 +351,33 @@ FlipperFormat* protopirate_history_get_raw_data(ProtoPirateHistory* instance, ui
         return NULL;
     }
 
+    if(instance->loaded_idx == (int16_t)idx && instance->loaded_ff) {
+        return instance->loaded_ff;
+    }
+
+    protopirate_history_release_scratch(instance);
+
     ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
-    return item->flipper_format;
+    if(!item->capture_path || furi_string_size(item->capture_path) == 0) {
+        return NULL;
+    }
+
+    instance->loaded_ff = flipper_format_file_alloc(instance->storage);
+    furi_check(instance->loaded_ff);
+    if(!flipper_format_file_open_existing(
+           instance->loaded_ff, furi_string_get_cstr(item->capture_path))) {
+        FURI_LOG_E(
+            TAG, "Failed open history capture %s", furi_string_get_cstr(item->capture_path));
+        flipper_format_free(instance->loaded_ff);
+        instance->loaded_ff = NULL;
+        return NULL;
+    }
+    instance->loaded_idx = (int16_t)idx;
+    return instance->loaded_ff;
+}
+
+void protopirate_history_commit_loaded(ProtoPirateHistory* instance) {
+    furi_check(instance);
 }
 
 void protopirate_history_set_item_str(ProtoPirateHistory* instance, uint16_t idx, const char* str) {

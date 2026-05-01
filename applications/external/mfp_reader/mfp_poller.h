@@ -124,6 +124,12 @@ MfpError mfp_poller_auth_nonfirst(
     const MfpKey key,
     MfpSession* session);
 
+/** Probe the actual security level of the card.
+ *  Uses SAK as a fast heuristic (0x08/0x18 → SL1, 0x20 → likely SL3),
+ *  then sends an AuthFirstPart1 probe to confirm SL3 capability.
+ *  Must be called from inside the ISO14443-4A poller callback. */
+MfpError mfp_poller_probe_sl(void* iso4a_poller, uint8_t sak, MfpSecurityLevel* out_sl);
+
 /** Read one encrypted block. Must be called after mfp_poller_auth(). */
 MfpError mfp_poller_read_block(
     void* iso4a_poller,

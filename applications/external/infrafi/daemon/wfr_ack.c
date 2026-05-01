@@ -86,21 +86,21 @@ bool wfr_ack_send(int fd, bool success, const char* ip_str) {
     uint8_t pass = 0;
 
     /* START */
-    if(!send_rc6(fd, WFR_RC6_MAGIC | WFR_RC6_TYPE_START | pass, (uint8_t)payload_len)) {
+    if(!send_rc6(fd, WFR_FRAME_MAGIC | WFR_FRAME_TYPE_START | pass, (uint8_t)payload_len)) {
         return false;
     }
     delay_ms(WFR_RC6_INTER_MSG_MS);
 
     /* DATA — one byte per message */
     for(size_t i = 0; i < payload_len; i++) {
-        if(!send_rc6(fd, WFR_RC6_MAGIC | WFR_RC6_TYPE_DATA | pass, data[i])) {
+        if(!send_rc6(fd, WFR_FRAME_MAGIC | WFR_FRAME_TYPE_DATA | pass, data[i])) {
             return false;
         }
         delay_ms(WFR_RC6_INTER_MSG_MS);
     }
 
     /* END — CRC-8 */
-    if(!send_rc6(fd, WFR_RC6_MAGIC | WFR_RC6_TYPE_END | pass, crc)) {
+    if(!send_rc6(fd, WFR_FRAME_MAGIC | WFR_FRAME_TYPE_END | pass, crc)) {
         return false;
     }
 

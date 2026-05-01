@@ -27,8 +27,10 @@ typedef struct {
     uint32_t action_selected_index;
     size_t scroll_counter;
     bool has_parent;
+    bool show_other_action;
     bool action_menu_open;
     FlipPassDbBrowserMode mode;
+    FlipPassDbBrowserAddMenuKind add_menu_kind;
     FuriString* draw_string;
 } FlipPassDbBrowserViewModel;
 
@@ -36,6 +38,7 @@ struct FlipPassDbBrowserView {
     View* view;
     FuriTimer* scroll_timer;
     FlipPassDbBrowserViewCallback callback;
+    FlipPassDbBrowserViewBackFilter back_filter;
     void* callback_context;
 };
 
@@ -46,8 +49,62 @@ static const char* flippass_db_browser_action_labels[FlipPassDbBrowserActionCoun
     "Other",
 };
 
-static uint32_t flippass_db_browser_clamp_action_index(uint32_t index) {
-    return (index < FlipPassDbBrowserActionCount) ? index : 0U;
+static const char* flippass_db_browser_file_action_labels[] = {
+    "Modify",
+    "Config",
+    "Rename",
+    "Delete",
+};
+
+static const char* flippass_db_browser_create_action_labels[] = {
+    "Database",
+    "Directory",
+};
+
+static const char* flippass_db_browser_create_item_labels[] = {
+    "Group",
+    "Entry",
+};
+
+static bool flippass_db_browser_selected_is_file(const FlipPassDbBrowserViewModel* model);
+static bool flippass_db_browser_selected_is_add(const FlipPassDbBrowserViewModel* model);
+
+static uint32_t flippass_db_browser_file_action_count(void) {
+    return COUNT_OF(flippass_db_browser_file_action_labels);
+}
+
+static uint32_t flippass_db_browser_create_action_count(void) {
+    return COUNT_OF(flippass_db_browser_create_action_labels);
+}
+
+static const char* flippass_db_browser_create_action_label(
+    const FlipPassDbBrowserViewModel* model,
+    uint32_t index) {
+    if(model != NULL && model->add_menu_kind == FlipPassDbBrowserAddMenuKindItem) {
+        return flippass_db_browser_create_item_labels[index];
+    }
+
+    return flippass_db_browser_create_action_labels[index];
+}
+
+static uint32_t flippass_db_browser_action_count(const FlipPassDbBrowserViewModel* model) {
+    if(flippass_db_browser_selected_is_file(model)) {
+        return flippass_db_browser_file_action_count();
+    }
+
+    if(flippass_db_browser_selected_is_add(model)) {
+        return flippass_db_browser_create_action_count();
+    }
+
+    return (model != NULL && !model->show_other_action) ? FlipPassDbBrowserActionOther :
+                                                          FlipPassDbBrowserActionCount;
+}
+
+static uint32_t flippass_db_browser_clamp_action_index_for_model(
+    const FlipPassDbBrowserViewModel* model,
+    uint32_t index) {
+    const uint32_t action_count = flippass_db_browser_action_count(model);
+    return (action_count > 0U && index < action_count) ? index : 0U;
 }
 
 static bool flippass_db_browser_selected_is_group(const FlipPassDbBrowserViewModel* model) {
@@ -60,9 +117,25 @@ static bool flippass_db_browser_selected_is_entry(const FlipPassDbBrowserViewMod
            model->items[model->selected_index].type == FlipPassDbBrowserItemTypeEntry;
 }
 
+static bool flippass_db_browser_selected_is_file(const FlipPassDbBrowserViewModel* model) {
+    return model->item_count > 0U && model->selected_index < model->item_count &&
+           model->items[model->selected_index].type == FlipPassDbBrowserItemTypeFile;
+}
+
+static bool flippass_db_browser_selected_is_field(const FlipPassDbBrowserViewModel* model) {
+    return model->item_count > 0U && model->selected_index < model->item_count &&
+           model->items[model->selected_index].type == FlipPassDbBrowserItemTypeField;
+}
+
+static bool flippass_db_browser_selected_is_add(const FlipPassDbBrowserViewModel* model) {
+    return model->item_count > 0U && model->selected_index < model->item_count &&
+           model->items[model->selected_index].type == FlipPassDbBrowserItemTypeAdd;
+}
+
 static bool flippass_db_browser_selected_action_is_other(const FlipPassDbBrowserViewModel* model) {
-    return model != NULL && flippass_db_browser_clamp_action_index(model->action_selected_index) ==
-                                FlipPassDbBrowserActionOther;
+    return model != NULL && model->show_other_action &&
+           flippass_db_browser_clamp_action_index_for_model(model, model->action_selected_index) ==
+               FlipPassDbBrowserActionOther;
 }
 
 static bool flippass_db_browser_selected_is_actionable(const FlipPassDbBrowserViewModel* model) {
@@ -81,6 +154,15 @@ static void flippass_db_browser_view_draw_item_icon(
         break;
     case FlipPassDbBrowserItemTypeEntry:
         canvas_draw_icon(canvas, x, y, &I_C00_Password);
+        break;
+    case FlipPassDbBrowserItemTypeFile:
+        canvas_draw_icon(canvas, x, y, &I_Storage);
+        break;
+    case FlipPassDbBrowserItemTypeUp:
+        canvas_draw_icon(canvas, x, y, &I_back_10px);
+        break;
+    case FlipPassDbBrowserItemTypeAdd:
+        canvas_draw_icon(canvas, x, y, &I_Add);
         break;
     case FlipPassDbBrowserItemTypeField:
     case FlipPassDbBrowserItemTypeInfo:
@@ -129,7 +211,9 @@ static void flippass_db_browser_view_draw_list(Canvas* canvas, FlipPassDbBrowser
         uint8_t label_x = 4U;
         uint8_t label_width = show_scrollbar ? 116U : 121U;
 
-        if(type == FlipPassDbBrowserItemTypeGroup || type == FlipPassDbBrowserItemTypeEntry) {
+        if(type == FlipPassDbBrowserItemTypeGroup || type == FlipPassDbBrowserItemTypeEntry ||
+           type == FlipPassDbBrowserItemTypeFile || type == FlipPassDbBrowserItemTypeUp ||
+           type == FlipPassDbBrowserItemTypeAdd) {
             flippass_db_browser_view_draw_item_icon(
                 canvas, type, FLIPPASS_DB_BROWSER_ICON_X, (uint8_t)(y + 1U));
             label_x = FLIPPASS_DB_BROWSER_TEXT_X;
@@ -170,6 +254,8 @@ static void flippass_db_browser_view_draw_action_menu(
     const uint8_t box_y = 0U;
     const uint8_t box_w = 68U;
     const uint8_t box_h = 50U;
+    const bool file_menu = flippass_db_browser_selected_is_file(model);
+    const bool create_menu = flippass_db_browser_selected_is_add(model);
 
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_box(canvas, box_x + 1U, box_y + 1U, box_w - 2U, box_h - 2U);
@@ -178,22 +264,32 @@ static void flippass_db_browser_view_draw_action_menu(
 
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(
-        canvas, box_x + (box_w / 2U), box_y + 10U, AlignCenter, AlignBottom, "Type");
+        canvas,
+        box_x + (box_w / 2U),
+        box_y + 10U,
+        AlignCenter,
+        AlignBottom,
+        file_menu ? "Menu" : (create_menu ? "Create" : "Type"));
     canvas_draw_line(canvas, box_x + 1U, box_y + 12U, box_x + box_w - 2U, box_y + 12U);
 
     canvas_set_font(canvas, FontSecondary);
-    for(uint32_t index = 0U; index < FlipPassDbBrowserActionCount; index++) {
+    for(uint32_t index = 0U; index < flippass_db_browser_action_count(model); index++) {
         const uint8_t row_y = (uint8_t)(15U + index * 9U);
         const bool selected = model->action_selected_index == index;
+        const char* label = file_menu   ? flippass_db_browser_file_action_labels[index] :
+                            create_menu ? flippass_db_browser_create_action_label(model, index) :
+                                          flippass_db_browser_action_labels[index];
 
         if(selected) {
             canvas_draw_str(canvas, box_x + 4U, row_y + 7U, ">");
         }
 
-        canvas_draw_str(canvas, box_x + 11U, row_y + 7U, flippass_db_browser_action_labels[index]);
+        canvas_draw_str(canvas, box_x + 11U, row_y + 7U, label);
     }
 
-    if(flippass_db_browser_selected_action_is_other(model)) {
+    if(file_menu || create_menu) {
+        elements_button_center(canvas, "Select");
+    } else if(flippass_db_browser_selected_action_is_other(model)) {
         elements_button_center(canvas, "Open");
     } else {
         elements_button_left(canvas, "BT");
@@ -232,6 +328,17 @@ static void
         return;
     }
 
+    if(flippass_db_browser_selected_is_file(model)) {
+        elements_button_center(canvas, "Open");
+        elements_button_right(canvas, "Menu");
+        return;
+    }
+
+    if(flippass_db_browser_selected_is_add(model)) {
+        elements_button_center(canvas, "Create");
+        return;
+    }
+
     if(model->has_parent) {
         elements_button_right(canvas, "Up");
     }
@@ -266,9 +373,9 @@ static void flippass_db_browser_view_move_selection(FlipPassDbBrowserView* brows
         FlipPassDbBrowserViewModel * model,
         {
             if(model->action_menu_open) {
-                const uint32_t action_count = FlipPassDbBrowserActionCount;
-                const uint32_t current =
-                    flippass_db_browser_clamp_action_index(model->action_selected_index);
+                const uint32_t action_count = flippass_db_browser_action_count(model);
+                const uint32_t current = flippass_db_browser_clamp_action_index_for_model(
+                    model, model->action_selected_index);
                 model->action_selected_index = (delta > 0) ?
                                                    ((current + 1U) % action_count) :
                                                    ((current + action_count - 1U) % action_count);
@@ -297,38 +404,85 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
         return true;
     }
 
-    if(event->type != InputTypeShort) {
-        return false;
-    }
-
     FlipPassDbBrowserViewModel* model = view_get_model(browser->view);
     const bool action_menu_open = model->action_menu_open;
     const bool selected_group = flippass_db_browser_selected_is_group(model);
     const bool selected_entry = flippass_db_browser_selected_is_entry(model);
+    const bool selected_file = flippass_db_browser_selected_is_file(model);
+    const bool selected_field = flippass_db_browser_selected_is_field(model);
+    const bool selected_up = model->item_count > 0U && model->selected_index < model->item_count &&
+                             model->items[model->selected_index].type ==
+                                 FlipPassDbBrowserItemTypeUp;
+    const bool selected_add = flippass_db_browser_selected_is_add(model);
     const bool selected_actionable = flippass_db_browser_selected_is_actionable(model);
     const bool has_parent = model->has_parent;
     const bool selected_other_action = flippass_db_browser_selected_action_is_other(model);
     const bool direct_actions_mode = model->mode == FlipPassDbBrowserModeDirectActions;
+    const bool long_press = event->type == InputTypeLong;
     view_commit_model(browser->view, false);
 
+    if(event->type != InputTypeShort && !long_press) {
+        return false;
+    }
+
+    if(long_press && event->key == InputKeyOk && selected_actionable && !action_menu_open &&
+       !direct_actions_mode) {
+        if(selected_file) {
+            with_view_model(
+                browser->view,
+                FlipPassDbBrowserViewModel * mutable_model,
+                { mutable_model->action_menu_open = true; },
+                true);
+        }
+        flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventLongOk);
+        return true;
+    }
+
     if(action_menu_open) {
+        if(selected_file || selected_add) {
+            if(event->key == InputKeyOk && !long_press) {
+                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventSelectAction);
+                return true;
+            }
+
+            if(event->key == InputKeyBack) {
+                with_view_model(
+                    browser->view,
+                    FlipPassDbBrowserViewModel * mutable_model,
+                    { mutable_model->action_menu_open = false; },
+                    true);
+                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventCloseActionMenu);
+                return true;
+            }
+
+            return false;
+        }
+
         switch(event->key) {
         case InputKeyLeft:
             if(!selected_other_action) {
-                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventTypeBluetooth);
+                flippass_db_browser_view_emit(
+                    browser,
+                    long_press ? FlipPassDbBrowserEventTypeBluetoothLong :
+                                 FlipPassDbBrowserEventTypeBluetooth);
                 consumed = true;
             }
             break;
         case InputKeyOk:
-            flippass_db_browser_view_emit(
-                browser,
-                selected_other_action ? FlipPassDbBrowserEventOpenOther :
-                                        FlipPassDbBrowserEventShow);
-            consumed = true;
+            if(!long_press) {
+                flippass_db_browser_view_emit(
+                    browser,
+                    selected_other_action ? FlipPassDbBrowserEventOpenOther :
+                                            FlipPassDbBrowserEventShow);
+                consumed = true;
+            }
             break;
         case InputKeyRight:
             if(!selected_other_action) {
-                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventTypeUsb);
+                flippass_db_browser_view_emit(
+                    browser,
+                    long_press ? FlipPassDbBrowserEventTypeUsbLong :
+                                 FlipPassDbBrowserEventTypeUsb);
                 consumed = true;
             }
             break;
@@ -338,6 +492,7 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
                 FlipPassDbBrowserViewModel * mutable_model,
                 { mutable_model->action_menu_open = false; },
                 true);
+            flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventCloseActionMenu);
             consumed = true;
             break;
         default:
@@ -346,23 +501,34 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
         return consumed;
     }
 
+    if(event->key == InputKeyBack && browser->back_filter != NULL &&
+       browser->back_filter(browser->callback_context)) {
+        return true;
+    }
+
     if(direct_actions_mode) {
         switch(event->key) {
         case InputKeyLeft:
             if(selected_actionable) {
-                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventTypeBluetooth);
+                flippass_db_browser_view_emit(
+                    browser,
+                    long_press ? FlipPassDbBrowserEventTypeBluetoothLong :
+                                 FlipPassDbBrowserEventTypeBluetooth);
                 consumed = true;
             }
             break;
         case InputKeyOk:
-            if(selected_actionable) {
+            if(selected_actionable && !long_press) {
                 flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventShow);
                 consumed = true;
             }
             break;
         case InputKeyRight:
             if(selected_actionable) {
-                flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventTypeUsb);
+                flippass_db_browser_view_emit(
+                    browser,
+                    long_press ? FlipPassDbBrowserEventTypeUsbLong :
+                                 FlipPassDbBrowserEventTypeUsb);
                 consumed = true;
             }
             break;
@@ -389,7 +555,7 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
                 true);
             flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventOpenActionMenu);
             consumed = true;
-        } else if(selected_group) {
+        } else if(selected_group || selected_file || selected_up || selected_add || selected_field) {
             flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventEnter);
             consumed = true;
         }
@@ -397,6 +563,14 @@ static bool flippass_db_browser_view_input_callback(InputEvent* event, void* con
     case InputKeyRight:
         if(selected_group) {
             flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventEnter);
+            consumed = true;
+        } else if(selected_file) {
+            with_view_model(
+                browser->view,
+                FlipPassDbBrowserViewModel * mutable_model,
+                { mutable_model->action_menu_open = true; },
+                true);
+            flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventOpenActionMenu);
             consumed = true;
         } else if(!selected_entry && has_parent) {
             flippass_db_browser_view_emit(browser, FlipPassDbBrowserEventBack);
@@ -445,6 +619,7 @@ FlipPassDbBrowserView* flippass_db_browser_view_alloc(void) {
     browser->scroll_timer =
         furi_timer_alloc(flippass_db_browser_view_timer_callback, FuriTimerTypePeriodic, browser);
     browser->callback = NULL;
+    browser->back_filter = NULL;
     browser->callback_context = NULL;
 
     view_set_context(browser->view, browser);
@@ -496,6 +671,13 @@ void flippass_db_browser_view_set_callback(
     browser->callback_context = context;
 }
 
+void flippass_db_browser_view_set_back_filter(
+    FlipPassDbBrowserView* browser,
+    FlipPassDbBrowserViewBackFilter filter) {
+    furi_check(browser);
+    browser->back_filter = filter;
+}
+
 void flippass_db_browser_view_reset(FlipPassDbBrowserView* browser) {
     furi_check(browser);
 
@@ -510,8 +692,10 @@ void flippass_db_browser_view_reset(FlipPassDbBrowserView* browser) {
             model->action_selected_index = 0U;
             model->scroll_counter = 0U;
             model->has_parent = false;
+            model->show_other_action = true;
             model->action_menu_open = false;
             model->mode = FlipPassDbBrowserModeBrowse;
+            model->add_menu_kind = FlipPassDbBrowserAddMenuKindObject;
         },
         true);
 }
@@ -546,6 +730,14 @@ void flippass_db_browser_view_set_mode(FlipPassDbBrowserView* browser, FlipPassD
             model->scroll_counter = 0U;
         },
         true);
+}
+
+void flippass_db_browser_view_set_add_menu_kind(
+    FlipPassDbBrowserView* browser,
+    FlipPassDbBrowserAddMenuKind kind) {
+    furi_check(browser);
+    with_view_model(
+        browser->view, FlipPassDbBrowserViewModel * model, { model->add_menu_kind = kind; }, true);
 }
 
 void flippass_db_browser_view_add_item(
@@ -599,7 +791,10 @@ void flippass_db_browser_view_set_action_selected(FlipPassDbBrowserView* browser
     with_view_model(
         browser->view,
         FlipPassDbBrowserViewModel * model,
-        { model->action_selected_index = flippass_db_browser_clamp_action_index(index); },
+        {
+            model->action_selected_index =
+                flippass_db_browser_clamp_action_index_for_model(model, index);
+        },
         true);
 }
 
@@ -610,9 +805,27 @@ uint32_t flippass_db_browser_view_get_action_selected(const FlipPassDbBrowserVie
     with_view_model(
         browser->view,
         FlipPassDbBrowserViewModel * model,
-        { selected = flippass_db_browser_clamp_action_index(model->action_selected_index); },
+        {
+            selected = flippass_db_browser_clamp_action_index_for_model(
+                model, model->action_selected_index);
+        },
         false);
     return selected;
+}
+
+void flippass_db_browser_view_set_show_other_action(
+    FlipPassDbBrowserView* browser,
+    bool show_other_action) {
+    furi_check(browser);
+    with_view_model(
+        browser->view,
+        FlipPassDbBrowserViewModel * model,
+        {
+            model->show_other_action = show_other_action;
+            model->action_selected_index = flippass_db_browser_clamp_action_index_for_model(
+                model, model->action_selected_index);
+        },
+        true);
 }
 
 void flippass_db_browser_view_set_action_menu_open(FlipPassDbBrowserView* browser, bool open) {

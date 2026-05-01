@@ -24,6 +24,16 @@ static const char* flippass_other_field_safe_text(const char* value, const char*
 }
 
 static bool flippass_other_field_get_value(App* app, const char** out_value, FuriString* error) {
+    if(app->pending_other_otp_kind != FlipPassOtpKindNone) {
+        static char otp_code[FLIPPASS_OTP_CODE_MAX_CHARS + 1U];
+        if(!flippass_otp_generate_code(
+               app, app->active_entry, app->pending_other_otp_kind, false, otp_code, error)) {
+            return false;
+        }
+        *out_value = otp_code;
+        return true;
+    }
+
     return flippass_db_get_other_field_value(
         app,
         app->active_entry,
@@ -64,6 +74,7 @@ void flippass_other_field_begin_type_action(App* app, bool bluetooth, uint32_t r
 
     app->other_field_action_selected_index = (uint32_t)action;
     app->pending_entry_action = flippass_scene_other_field_actions_map_type_action(action);
+    flippass_typing_begin(app);
     flippass_entry_action_prepare_pending(app);
     flippass_progress_begin(app, "Typing Field", "Connecting", 5U);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewLoading);
@@ -105,9 +116,17 @@ void flippass_other_field_show_selected_value(App* app, uint32_t return_scene) {
 
 void flippass_other_field_run_pending_type_action(App* app, uint32_t failure_return_scene) {
     FuriString* error = furi_string_alloc();
+    const bool typed = flippass_entry_action_execute_pending(app, error);
+    const bool canceled = !typed && flippass_typing_should_cancel(app);
 
-    if(flippass_entry_action_execute_pending(app, error)) {
+    flippass_typing_end(app);
+
+    if(typed) {
         flippass_progress_update(app, "Done", "Field sent.", 100U);
+        flippass_progress_reset(app);
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, FlipPassScene_DbEntries);
+    } else if(canceled) {
         flippass_progress_reset(app);
         scene_manager_search_and_switch_to_previous_scene(
             app->scene_manager, FlipPassScene_DbEntries);
@@ -128,7 +147,8 @@ void flippass_scene_other_field_actions_on_enter(void* context) {
     App* app = context;
 
     if(app->active_entry == NULL ||
-       (app->pending_other_field_mask == 0U && app->pending_other_custom_field == NULL)) {
+       (app->pending_other_field_mask == 0U && app->pending_other_custom_field == NULL &&
+        app->pending_other_otp_kind == FlipPassOtpKindNone)) {
         flippass_scene_status_show(
             app,
             "No Field Selected",
@@ -196,4 +216,6 @@ bool flippass_scene_other_field_actions_on_event(void* context, SceneManagerEven
 void flippass_scene_other_field_actions_on_exit(void* context) {
     App* app = context;
     dialog_ex_reset(app->dialog_ex);
+    flippass_output_release_all(app);
+    flippass_output_cleanup(app);
 }

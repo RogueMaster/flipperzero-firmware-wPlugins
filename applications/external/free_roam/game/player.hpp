@@ -1,5 +1,7 @@
 #pragma once
 #include <furi.h>
+#include <set>
+#include <string>
 #include "engine/entity.hpp"
 #include "engine/game.hpp"
 #include "engine/level.hpp"
@@ -20,7 +22,8 @@ typedef enum {
     GameViewWelcome = 5, // welcome view
     GameViewLogin = 6, // login view
     GameViewRegistration = 7, // registration view
-    GameViewUserInfo = 8 // user info view
+    GameViewUserInfo = 8, // user info view
+    GameViewLobbyBrowser = 9 // browse/join online games
 } GameMainView;
 
 typedef enum {
@@ -55,11 +58,13 @@ typedef enum {
     RequestTypeLogin = 0, // Request login
     RequestTypeRegistration = 1, // Request registration
     RequestTypeUserInfo = 2, // Request user info
+    RequestTypeGameCreate = 3, // Request to create a game
+    RequestTypeGameList = 4, // Request list of active games
 } RequestType;
 
 class Player : public Entity {
 public:
-    Player();
+    Player(const char* name = "Player");
     ~Player();
 
     char player_name[64] = {0};
@@ -154,15 +159,33 @@ private:
     uint8_t levelSwitchCounter = 0; // counter for level switch delay
     std::unique_ptr<Loading> loading; // loading animation instance
     LoginStatus loginStatus = LoginNotStarted; // Current login status
+    OnlineGameState onlineGameState = OnlineStateIdle; // online game connection state
+    char onlineGameId[37] = {0}; // UUID of the active game session
+    uint16_t onlinePort = 0; // WebSocket port assigned by the server
+    // Lobby browser data
+    static const int MAX_LOBBY_ENTRIES = 8;
+    struct LobbyEntry {
+        char game_id[37];
+        char game_name[64];
+    };
+    LobbyEntry lobbyEntries[MAX_LOBBY_ENTRIES];
+    int lobbyCount = 0;
+    int lobbySelectedIndex = 0;
+    bool lobbyFetched = false;
     uint8_t rainFrame = 0; // frame counter for rain effect
     RegistrationStatus registrationStatus = RegistrationNotStarted; // Current registration status
+    ToggleState showPlayerToggle = ToggleOn; // show/hide local player toggle
     ToggleState soundToggle = ToggleOn; // sound toggle state
     UserInfoStatus userInfoStatus = UserInfoNotStarted; // Current user info status
     ToggleState vibrationToggle = ToggleOn; // vibration toggle state
     uint8_t welcomeFrame = 0; // frame counter for welcome animation
+    std::set<std::string>
+        remotePlayerNamePool; // stable name storage for dynamically spawned remote player entities
     //
     void drawGameLocalView(Draw* canvas); // draw the local game view
     void drawGameOnlineView(Draw* canvas); // draw the online game view
+    void
+        drawLobbyBrowserView(Draw* canvas); // draw the lobby browser view (list/join online games)
     void drawLobbyMenuView(Draw* canvas); // draw the lobby menu view
     void drawLoginView(Draw* canvas); // draw the login view
     void drawMenuType1(
@@ -184,4 +207,6 @@ private:
     Vector findSafeSpawnPosition(const char* levelName); // find a safe spawn position for a level
     bool isPositionSafe(Vector pos); // check if a position is safe (not in a wall)
     void switchLevels(Game* game); // switch levels based on the current dynamic map and level name
+    void updateEntitiesFromServer(
+        const char* json); // parse server entity state and update local entity positions
 };

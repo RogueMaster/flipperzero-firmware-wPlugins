@@ -28,7 +28,7 @@ uint8_t wfr_storage_list(
 bool wfr_storage_delete(Storage* storage, const char* filename);
 
 /* Load app settings from SD card. Returns false if file doesn't exist. */
-bool wfr_storage_load_settings(Storage* storage, bool* ack_enabled);
+bool wfr_storage_load_settings(Storage* storage, bool* ack_enabled, WfrIrProtocol* ir_protocol);
 
 /* Save app settings to SD card. */
-bool wfr_storage_save_settings(Storage* storage, bool ack_enabled);
+bool wfr_storage_save_settings(Storage* storage, bool ack_enabled, WfrIrProtocol ir_protocol);

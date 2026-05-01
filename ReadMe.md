@@ -5,8 +5,6 @@
 
 # IMPORTANT NOTE : This is a forked version of the RogueMaster CFW where the menus (Vertical, DSi, PS4...) are restored. There might be a delay after the official update release because of the time when seeing that. The official RogueMaster firmware page is [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins).
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0317-0022-0.420.0-f4f7318.tgz&channel=RM0317-0022-0.420.0-f4f7318&version=0.420.0&target=f7)
-
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
 <table><tr><th><div align="left">
@@ -28,56 +26,27 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a> 
 
-## Latest Updates - [PATREON: Latest Release RM0409-0025-0.420.0-11c872a](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM0430-1025-0.420.0-44d3d8d](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-04-09 00:25 EST`
-- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-04-09 00:25 EST`
-- Updated: [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
-- OFW: PR: [fix HID limits to support international keyboards & Japanese KB Layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
-- Updated: [Hold em v1.1 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
-- Added: [OpenShock v0.1 (By OpenShock Team)](https://github.com/OpenShock/FlipperZero)
-- Added: [RS41 Tracker v1.1 (By yeckel)](https://github.com/yeckel/RS41flipper)
-- Updated: [Theme Manager v1.6 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
-- Updated: [POCSAG Pager v1.4 (By XMasterx & Shmuma)](https://github.com/xMasterX/flipper-pager) (Version Only)
-- Added: [Agentic Remote USB/BT v0.27 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
-- Added: [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
-- Added: [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
-- Added: [InfraFi v1.0 (By amd989)](https://github.com/amd989/InfraFi)
-- Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
-- OFW: PR: [NFC: Fix BusFault in Write to Initial Card #4362 (By akrylysov)](https://github.com/flipperdevices/flipperzero-firmware/pull/4362)
-- Updated: [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
-- Updated: [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
-- Updated: [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
-- Updated: [Sub Duplicate Finder v1.2 (By Endika)](https://github.com/Endika/flipper-sub-dup)
-- Updated: [Apple Grabber v0.1 (By d7d8)](https://github.com/d7d8/apple-grabber)
-- Updated: [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper) (Version Only)
-- Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
-- Updated: [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
-- Added: [Miele Scout RX2 v1.0 (By kallevaravas)](https://github.com/kallevaravas/flipper-miele-scout)
-- Updated: [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
-- Updated: [ListEM v1.4 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
-- Added: [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
-- Updated: [FlipWorld v1.0.4 (By jblanked)](https://github.com/jblanked/FlipWorld) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- Updated: [Free Roam v0.5 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- Added: [Access Audit v1.5 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
-- Added: [FlipIRFreq v0.2 (By jsammarco)](https://github.com/jsammarco/FlipIRFreq)
-- Added: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
-- Added: [LAN Tester v2.4 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
-- Added: [Sonic Head ID v0.9 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
-- Added: [Tesla Mod v2.0 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Added: [Video Game Module Console v1.0 (By jblanked)](https://github.com/jblanked/Video-Game-Module-Console)
-- Added: [FlipPass v1.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
-- Added: [FlipperTrack v1.0 (By pinkpwningclub)](https://github.com/pinkpwningclub/flipperTrack)
-- Updated: [ProtoPirate v2.6 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) [Replace blocking dialog with non-blocking NeedSaving scene for exit confirmation (By mishamyte)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/23) [Expansion with Fiat, Mazda, Mitzubishi and Porche protocols (Originally By lupettohf) & Ford Fixed (By LeeroysHub) & Several Other Community Changes](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b377cee471cf61aaeff089c5ff194e1a13e8d94a) Different ProtoPirate Builds Enabled For Better Testing [FORD: Fix PANIC Button ENCODE and Counter Overflow in DECODE (By RalphWiggum)](https://protopirate.net/ProtoPirate/ProtoPirate/pulls/28)
-- Added: [Flight Monitor v1.0 (By kamylwnb)](https://github.com/kamylwnb/flight_monitor)
-- Updated: [Access Audit v1.8 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
-- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
-- Added: [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
-- Added: [TagTinker v1.3 (By i12bp8)](https://github.com/i12bp8/TagTinker)
-- Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest) [Added CSA,Quiet commands and moved all BLE spams (By Clawzman)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1177)
-- Added: [Click Recorder v1.0 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
-- Added: [MFP Reader v1.0 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
-- Updated: [Tesla Mod v2.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-04-30 10:25 EST`
+- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-04-30 10:25 EST`
+- NFC: [Add ISO15693-3 and SLIX write-back support (By DoniyorI)](https://github.com/DarkFlippers/unleashed-firmware/pull/984)
+- NFC: [Add new parsers SZPPK, SKPPK and SevPPK, upgrade Plantain parser, fix TwoCities parser (By mxcdoam)](https://github.com/DarkFlippers/unleashed-firmware/pull/981)
+- Sub-GHz: [Fix CAME TWEE repeats count for button click (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a5f6285e917240101bc86444ebf36a6b9f2b7e66)
+- NFC: [Fix MIR and other EMV cards crash on Read (By Dmitry422)](https://github.com/DarkFlippers/unleashed-firmware/commit/ecc3e78efa3b077ca4b37f67aff8ae6f8b1e9734)
+- Updated: [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
+- Updated: [Weebo v0.5 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer) Added Figures & [Add Amiibo cycling functionality while emulating (By sethgregory)](https://github.com/bettse/weebo/pull/11)
+- Added: [APRS TX v1.3.17 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
+- Updated: [ProtoPirate v2.9 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- Added: [FlipTok Live v1.0 (By kamylwnb)](https://github.com/kamylwnb/FlipTok_Live_Chat)
+- Updated: [CAN Commander v2.3.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
+- Updated: [SLI Writer v1.4 (By Julienbxl)](https://github.com/Julienbxl/SLI-Writer)
+- Added: [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
+- Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- Removed: [Sand Simulation v0.1 (By JJoeDev)](https://github.com/JJoeDev/FZSandSimulation)
+- Updated: [Tesla Mod v2.13.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [Ghouls v0.5 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- Updated: [FlipPass v2.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 
 <a name="release"></a>
 
@@ -311,6 +280,7 @@ $ ./fbt dolphin_ext
 - [Arduventure v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperArduventure)
 - [Arkanoid v1.2 (By gotnull)](https://github.com/gotnull/flipperzero-firmware-wPlugins)
 - [Asteroids v1.2 (By antirez)](https://github.com/antirez/flipper-asteroids)
+- [Avocado Zero v0.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - [Banana v0.4 (By DrEverr)](https://github.com/DrEverr/FlipperApps)
 - [Blackjack v0.1 (By RocketGod)](https://github.com/RocketGod-Git/Flipper-Zero-Blackjack)
 - [BlackJack v1.1 (By teeebor)](https://github.com/teeebor/flipper_games)
@@ -351,9 +321,11 @@ $ ./fbt dolphin_ext
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)
 - [FMatrix v0.3.5 (By misterwaztaken)](https://github.com/misterwaztaken/fmatrix)
 - [Fortune Cookie v0.1 (By evillero)](https://github.com/evillero/fortune_cookie)
+- [Free Roam v0.6 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Furious Birds v1.1 (By bmstr-ru)](https://github.com/bmstr-ru/furious-birds)
 - [Game of Life v1.3 (By Mad-MO)](https://github.com/Mad-MO/FlipperGoL)
 - [Geometry Dash v0.1 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-geometryflip)
+- [Ghouls v0.5 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Groks Adventure v0.15 (By DigiMancer3D)](https://github.com/DigiMancer3D/Groks_Adventure)
 - [Guess The Number v1.3 (By kWAYTV)](https://github.com/kWAYTV/guess-the-number-fz)
 - [Hangman v1.5 (By Evgeny Stepanischev & Eva Stepanischeva)](https://github.com/bolknote/Flipper-Zero-Hangman-Game)
@@ -362,6 +334,7 @@ $ ./fbt dolphin_ext
 - [Hirn - Crack Color Codes v0.2 (By fgreil)](https://github.com/fgreil/mitzi-hirn)
 - [Hold em v1.1 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
 - [Hunter Killer v1.0 (By josephburnett)](https://github.com/josephburnett/hunter-flipper)
+- [Impostor v0.1.3 (By Endika)](https://github.com/Endika/flipper-impostor-game)
 - [Infinite Tic Tac Toe v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/infinite_tic_tac_toe)
 - [Insults v1.0 (By ERSUCC)](https://github.com/ERSUCC/Flipper-Insults)
 - [JetPack v1.1 (by timstrasser)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1164e4d214efa38847e08c6387bf53578bc0d366)
@@ -386,6 +359,7 @@ $ ./fbt dolphin_ext
 - [Nah 2 da Nah Nah Nah v0.2 (By DigiMancer3D)](https://github.com/DigiMancer3D/nah2nah3)
 - [Network Defender v1.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Nu Pogodi! (Ну, погоди!) v1.3 (By sionyx)](https://github.com/sionyx/flipper_nupogodi)
+- [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - [Panis - A Grumpy Bread v0.1 (By fgreil)](https://github.com/fgreil/mitzi-panis)
 - [P1X Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [P1X Your Own Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
@@ -408,7 +382,6 @@ $ ./fbt dolphin_ext
 - [Rock Paper Scissors 2 v1.1 (By benwoo1110)](https://github.com/benwoo1110/rps-FlipperZero)
 - [Root of Life v1.2 (By Xorboo)](https://github.com/Xorboo/root-of-life)
 - [Rubiks Cube Scrambler v1.3 (By RaZeSloth)](https://github.com/RaZeSloth/flipperzero-rubiks-cube-scrambler)
-- [Sand Simulation v0.1 (By JJoeDev)](https://github.com/JJoeDev/FZSandSimulation)
 - [Scorched Tanks v1.3 (By jasniec)](https://github.com/jasniec/flipper-scorched-tanks-game)
 - [Secret Toggle (By nostrumuva)](https://github.com/nostrumuva/secret_toggle)
 - [Simon Says v0.2 (By SimplyMinimal)](https://github.com/SimplyMinimal/FlipperZero-SimonSays)
@@ -450,16 +423,18 @@ $ ./fbt dolphin_ext
 ## Apps / Plugins
 
 - [24Cxx Programmer v2.0 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
-- [Access Audit v1.8 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
+- [Access Audit v1.8.1 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 - [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
 - [Air Level v1.0 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/vgm/air_level) `Req: Video Game Module By Flipper Devices`
 - [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
+- [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
 - [Analog Output v0.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/dac)
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)
 - [Animation Switcher v1.0 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
+- [APRS TX v1.3.17 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - [ASCII Table v1.0 (By x10102)](https://github.com/x10102/flipper_ascii)
 - [Atari SIO Emulator v0.5 (By cepetr)](https://github.com/cepetr/sio2flip)
 - [ATM Player v1.0.8 (By apfxtech)](https://github.com/apfxtech/FlipperATM)
@@ -495,7 +470,7 @@ $ ./fbt dolphin_ext
 - [Calendar of weeks v0.1 (By fgreil)](https://github.com/fgreil/mitzi-cal-weeks)
 - [Calendar TECHART v1.1 (By techartdev)](https://github.com/techartdev/Calendar)
 - [Camera (By Z4urce)](https://github.com/Z4urce/flipper-camera) `Req: ESP32-CAM`
-- [CAN Commander v2.1.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
+- [CAN Commander v2.3.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
 - [CAN Tools v1.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/FlipperCANTools)
 - [CAN Transceiver v0.1 (By Chainmanner)](https://github.com/Chainmanner/Flipper-CAN-Transceiver)
 - [CANBUS v1.1.6.2 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) `Req: CANBUS By ElectronicCats`
@@ -514,6 +489,7 @@ $ ./fbt dolphin_ext
 - [Clock v1.2 (By kowalski7cc)](https://github.com/kowalski7cc/flipperzero-firmware/tree/clock-v1)
 - [CO2 Logger v0.4 (By harryob2)](https://github.com/harryob2/co2_logger) `Req: MH-Z19`
 - [Coffee-EEPROM (By wh00hw)](https://github.com/wh00hw/Coffee-EEPROM-FAP) For ethical pentest only.
+- [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey)
 - [Combo Cracker v0.5 (By CharlesTheGreat77)](https://github.com/CharlesTheGreat77/ComboCracker-FZ)
 - [Continuity Tester (By benallen-dev)](https://github.com/benallen-dev/flipper-zero-apps/tree/main/continuity)
 - [Cookie Clicker v1.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/hid/hid_cookie)
@@ -564,7 +540,7 @@ $ ./fbt dolphin_ext
 - [Fencing Test Box v0.1 (By aarjaneiro)](https://www.github.com/aarjaneiro/fencing_testbox)
 - [Financial Calculator v1.0 (By schaene)](https://github.com/schaene/Flipper-Financial-Calculator)
 - [FindMy Flipper v3.5.2 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/FindMyFlipper)
-- [Fire String v1.3 (By RyanAboueljoud)](https://github.com/RyanAboueljoud/Fire-String)
+- [Fire String v2.0 (By RyanAboueljoud)](https://github.com/RyanAboueljoud/Fire-String)
 - [Flame RNG v0.3 (By OrionW06)](https://github.com/OrionW06/Flame-RNG)
 - [Flashlight v1.2 (By xMasterX)](https://github.com/xMasterX/flipper-flashlight)
 - [Flight Monitor v1.0 (By kamylwnb)](https://github.com/kamylwnb/flight_monitor)
@@ -575,7 +551,7 @@ $ ./fbt dolphin_ext
 - [FlipMap v0.2.2 (By jblanked)](https://github.com/jblanked/FlipMap) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
 - [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
-- [FlipPass v1.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
+- [FlipPass v2.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
 - [FlipperPwn v1.6 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
@@ -583,6 +559,7 @@ $ ./fbt dolphin_ext
 - [FlipRPI v1.0 (By jblanked)](https://github.com/jblanked/FlipRPI) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipSocial v2.0.9 (By jblanked)](https://github.com/jblanked/FlipSocial) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipTelegram v1.0.1 (By jblanked)](https://github.com/jblanked/FlipTelegram) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- [FlipTok Live v1.0 (By kamylwnb)](https://github.com/kamylwnb/FlipTok_Live_Chat)
 - [FlipTrader v1.1.2 (By jblanked)](https://github.com/jblanked/FlipTrader) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipWeather v1.4 (By jblanked)](https://github.com/jblanked/FlipWeather) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipWifi v1.6.3 (By jblanked)](https://github.com/jblanked/FlipWiFi) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
@@ -610,7 +587,6 @@ $ ./fbt dolphin_ext
 - [FM Transmitter KT0803 v1.0 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter) `Req: KT0803`
 - [FMF2USBMIDI v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_Zero_FMF2USBMIDI)
 - [Ford Radio Codes v0.1 (By DavidB445)](https://github.com/DavidB445/fz_fordradiocodes)
-- [Free Roam v0.5 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Frequency Analyzer (External) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext)
 - [FRSScan v0.2 (By thecybermind)](https://github.com/thecybermind/frsscan)
 - [FZ nRF24 Jammer v1.4 (By W0rthlessS0ul)](https://github.com/W0rthlessS0ul/FZ_nRF24_jammer)
@@ -634,6 +610,8 @@ $ ./fbt dolphin_ext
 - [GPS v1.4 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
+- [Habit Flow v0.1.2 (By Endika)](https://github.com/Endika/flipper-habit-flow)
+- [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - [Hard Hat Brigade IR v0.1 (By Anomalous68)](https://github.com/Anomalous68/HHB-Flipper-App) `Req: Hard Hat Brigade Hat`
 - [HC-11 Modem v1.2 (By Giraut)](https://github.com/Giraut/flipper_zero_hc11_wireless_modem) `Req: HC-11`
 - [HEX Editor v1.3 (By dunaevai135)](https://github.com/dunaevai135/flipper-zero-hex_editor)
@@ -642,6 +620,7 @@ $ ./fbt dolphin_ext
 - [HID File Transfer v1.0 (By Kavakuo)](https://github.com/Kavakuo/HID-File-Transfer)
 - [Hitachi AC Remote v1.1 (By dogtopus)](https://github.com/dogtopus/flipperzero-hitachi-ac-remote)
 - [HTW AC Remote v1.1 (By sokogen)](https://github.com/sokogen/flipperzero-htw-ac-remote)
+- [HyperFocus Calc v0.1.1 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - [I2C Explorer v0.9 (By 4mb3rz)](https://github.com/4mb3rz/Flipper-I2C-Explorer)
 - [i2c Tools v1.2 (By NaejEL)](https://github.com/NaejEL/flipperzero-i2ctools)
 - [iButton Converter v1.1 (By Leptopt1los)](https://github.com/Leptopt1los/ibutton_converter)
@@ -652,7 +631,7 @@ $ ./fbt dolphin_ext
 - [Image Scroller v0.1 (By fgreil)](https://github.com/fgreil/mitzi-scroller)
 - [Image Viewer v0.1 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer)
 - [INA Meter v0.8 (By cepetr)](https://github.com/cepetr/flipper-tina)
-- [InfraFi v1.0 (By amd989)](https://github.com/amd989/InfraFi)
+- [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
 - [Intervalometer v1.2 (By theageoflove)](https://github.com/theageoflove/flipperzero-zeitraffer)
 - [IR Blaster v1.1 (By mateusz-szafraniec)](https://github.com/mateusz-szafraniec/flipperzero-IR_Blaster)
 - [IR Decoder v1.0 (By prplecake)](https://github.com/prplecake/f0/tree/master/infrared/apps/ir_decoder)
@@ -669,7 +648,7 @@ $ ./fbt dolphin_ext
 - [Key Copier v1.5 (By zinongli)](https://github.com/zinongli/KeyCopier)
 - [Lab401/DigiLab v1.1.1 (By lab-401 & tixlegeek)](https://github.com/lab-401/fzDigiLab)
 - [Lab401/Light MESSENGER v1.4.1 (By tixlegeek)](https://github.com/lab-401/fzLightMessenger/tree/main/401lightMessengerApp)
-- [LAN Tester v2.4 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
+- [LAN Tester v2.8 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
 - [LaserCat v1.1 (By DroWez)](https://github.com/DroWez/LaserCat)
 - [Lasko 2519 Timer v1.0 (By LN4CY)](https://github.com/LN4CY/lasko-2519-timer)
 - [LD2410 Human Detector v1.0 (By sistemasorp)](https://github.com/sistemasorp/flipper-ld2410_human_detector)
@@ -705,7 +684,7 @@ $ ./fbt dolphin_ext
 - [MFC Editor v1.0 (By TollyH)](https://github.com/TollyH/flipper-apps)
 - [MFDesfire Auth v1.0 (By Gatorixx)](https://github.com/Gatorixx/flipper-zero-legacy-authentication)
 - [Mfkey v4.1 (By noproto)](https://github.com/noproto/FlipperMfkey)
-- [MFP Reader v1.0 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
+- [MFP Reader v1.1 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 - [MH-Z19 CO2 Sensor v0.2 (By meshchaninov)](https://github.com/meshchaninov/flipper-zero-mh-z19)
 - [MH-Z19 UART (By skotopes)](https://github.com/skotopes/flipperzero_mhz19_uart)
 - [Mi Band NFC Writer v1.0 (By LucaTomei)](https://github.com/LucaTomei/flipper-miband-nfc-writer)
@@ -766,6 +745,7 @@ $ ./fbt dolphin_ext
 - [OpenPrintTag v1.0 (By Houzvicka)](https://github.com/Houzvicka/FlipperPrintTag)
 - [Orgasmotron v1.1 (By leedave)](https://github.com/leedave/Leeds-Flipper-Zero-Applications)
 - [Oscilloscope v0.4 (By anfractuosity)](https://github.com/anfractuosity/flipperscope)
+- [OSM Logger GPS v0.15 (By simongrossi)](https://github.com/simongrossi/flipperzero-osm-logger-gps)
 - [Paranoia WIP v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
 - [Password Generator v1.3 (By anakod)](https://github.com/anakod/flipper_passgen)
 - [Password Manager v1.2 (By Rrycbarm)](https://github.com/Rrycbarm/flipperZeroPasswordManager)
@@ -789,7 +769,7 @@ $ ./fbt dolphin_ext
 - [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
 - [Protocol Visualizer v1.3 (By antirez)](https://github.com/antirez/protoview)
-- [ProtoPirate v2.6 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- [ProtoPirate v2.9 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)
 - [Quac! v0.9.1 (By rdefeo)](https://github.com/rdefeo/quac)
@@ -859,10 +839,10 @@ $ ./fbt dolphin_ext
 - [SWD Probe v1.3 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T5577 Multiwriter v0.2 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer)
-- [TagTinker v1.3 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.2 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [Temp Sensors Reader 2.0 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
-- [Tesla Mod v2.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- [Tesla Mod v2.13.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - [Text To SAM v1.4 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)
 - [Text Viewer v1.6 (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ae4fc4a54febccb44b010c4025a99c2edef9a7f0)
 - [The C Prog. Language v0.2 (By armixz)](https://github.com/armixz/Flipper-Zero-The-C-Programming-Language)
@@ -877,6 +857,7 @@ $ ./fbt dolphin_ext
 - [TPMS Reader v0.2 (By wosk)](https://github.com/wosk/flipperzero-tpms)
 - [TuLlave v0.1 (By zqu4rtz)](https://github.com/zqu4rtz/FlipperApp-TuLlave)
 - [Tuning Fork v2.0 (By besya)](https://github.com/besya/flipperzero-tuning-fork)
+- [TV Remote v1.0 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
 - [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master)
 - [u-blox GPS v0.5 (By liamhays)](https://github.com/liamhays/ublox)
 - [UART Echo (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/831)
@@ -915,7 +896,7 @@ $ ./fbt dolphin_ext
 - [WHC SWIO Flasher v1.1 (By sukvojte)](https://github.com/sukvojte/wch_swio_flasher)
 - [Weather Station v2.0 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station)
 - [Web Crawler v1.0.1 (By jblanked)](https://github.com/jblanked/WebCrawler-FlipperZero) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- [Weebo v0.3 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
+- [Weebo v0.5 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
 - [Wendigo Bluetooth Tracker WIP v0.5.1 (By chris-bc)](https://github.com/chris-bc/wendigo) `WIP Req: ESP32`
 - [Wiegand Reader v1.4 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio)
 - [WiFi (Deauther) V2 (By Timmotools)](https://github.com/Timmotools/flipperzero_esp8266_deautherv2) `Req: ESP8266`
@@ -933,4 +914,4 @@ $ ./fbt dolphin_ext
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 - `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for wav/mp3 playback ($200 USD in ETH or BTC) (Don't think this is possible)
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0317-0022-0.420.0-f4f7318.tgz&channel=RM0317-0022-0.420.0-f4f7318&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0422-1127-0.420.0-960438b.tgz&channel=RM0422-1127-0.420.0-960438b&version=0.420.0&target=f7)

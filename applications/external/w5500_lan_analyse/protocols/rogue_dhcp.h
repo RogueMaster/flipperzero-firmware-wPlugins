@@ -7,7 +7,6 @@
 
 typedef struct {
     uint8_t server_ip[4];
-    uint8_t server_mac[6];
     uint8_t offered_ip[4];
     uint8_t gateway[4];
     uint8_t dns[4];

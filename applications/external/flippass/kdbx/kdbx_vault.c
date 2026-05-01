@@ -11,7 +11,7 @@
 #define KDBX_VAULT_OPEN_RETRIES        5U
 #define KDBX_VAULT_OPEN_RETRY_MS       20U
 
-#if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG
+#if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG && FLIPPASS_ENABLE_LOGS
 #define KDBX_VAULT_TRACE(...) FURI_LOG_T(__VA_ARGS__)
 #else
 #define KDBX_VAULT_TRACE(...) \
@@ -546,6 +546,15 @@ static void kdbx_vault_writer_release_pending(KDBXVaultWriter* writer) {
     writer->pending_owned = false;
 }
 
+static void kdbx_vault_writer_prepare_next_ref(KDBXVaultWriter* writer) {
+    furi_assert(writer);
+
+    memset(&writer->ref, 0, sizeof(writer->ref));
+    writer->pending_len = 0U;
+    writer->failed = (writer->vault == NULL) ||
+                     (writer->vault != NULL && writer->vault->storage_failed);
+}
+
 KDBXVault*
     kdbx_vault_alloc(KDBXVaultBackend backend, size_t* committed_bytes, size_t commit_limit) {
     return kdbx_vault_alloc_with_path(backend, NULL, committed_bytes, commit_limit);
@@ -776,6 +785,16 @@ void kdbx_vault_writer_set_file_streaming(KDBXVaultWriter* writer, bool enabled)
                                kdbx_vault_backend_uses_file(writer->vault->backend);
 }
 
+void kdbx_vault_writer_close(KDBXVaultWriter* writer) {
+    if(writer == NULL) {
+        return;
+    }
+
+    kdbx_vault_writer_close_stream_file(writer, true);
+    kdbx_vault_writer_release_pending(writer);
+    memzero(writer, sizeof(*writer));
+}
+
 void kdbx_vault_writer_abort(KDBXVaultWriter* writer) {
     if(writer == NULL) {
         return;
@@ -929,7 +948,10 @@ bool kdbx_vault_writer_write(KDBXVaultWriter* writer, const uint8_t* data, size_
     return !writer->failed;
 }
 
-bool kdbx_vault_writer_finish(KDBXVaultWriter* writer, KDBXFieldRef* out_ref) {
+static bool kdbx_vault_writer_finish_internal(
+    KDBXVaultWriter* writer,
+    KDBXFieldRef* out_ref,
+    bool keep_stream) {
     furi_assert(writer);
     furi_assert(out_ref);
 
@@ -939,12 +961,24 @@ bool kdbx_vault_writer_finish(KDBXVaultWriter* writer, KDBXFieldRef* out_ref) {
         return false;
     }
 
+    *out_ref = writer->ref;
+    if(keep_stream && writer->stream_file_mode) {
+        kdbx_vault_writer_prepare_next_ref(writer);
+        return !writer->failed;
+    }
+
     kdbx_vault_writer_close_stream_file(writer, true);
     kdbx_vault_writer_release_pending(writer);
-
-    *out_ref = writer->ref;
     memzero(writer, sizeof(*writer));
     return true;
+}
+
+bool kdbx_vault_writer_finish(KDBXVaultWriter* writer, KDBXFieldRef* out_ref) {
+    return kdbx_vault_writer_finish_internal(writer, out_ref, false);
+}
+
+bool kdbx_vault_writer_finish_keep_stream(KDBXVaultWriter* writer, KDBXFieldRef* out_ref) {
+    return kdbx_vault_writer_finish_internal(writer, out_ref, true);
 }
 
 void kdbx_vault_reader_reset(KDBXVaultReader* reader, KDBXVault* vault, const KDBXFieldRef* ref) {
@@ -1340,6 +1374,12 @@ bool kdbx_vault_stream_ref(
     const KDBXFieldRef* ref,
     KDBXVaultChunkCallback callback,
     void* context) {
+    const size_t scratch_size = KDBX_VAULT_RECORD_PLAIN_MAX + KDBX_VAULT_MAC_SIZE;
+    uint8_t* scratch = NULL;
+    uint8_t* ciphertext = NULL;
+    uint8_t* mac = NULL;
+    bool ok = true;
+
     furi_assert(vault);
     furi_assert(ref);
     furi_assert(callback);
@@ -1348,29 +1388,41 @@ bool kdbx_vault_stream_ref(
         return callback(NULL, 0U, context);
     }
 
+    scratch = malloc(scratch_size);
+    if(scratch == NULL) {
+        kdbx_vault_note_budget_failure(vault, "stream_ref_buffer", scratch_size);
+        return false;
+    }
+    ciphertext = scratch;
+    mac = scratch + KDBX_VAULT_RECORD_PLAIN_MAX;
+
     for(uint16_t index = 0U; index < ref->record_count; index++) {
         KDBXVaultRecordHeader header;
-        uint8_t ciphertext[KDBX_VAULT_RECORD_PLAIN_MAX];
-        uint8_t mac[KDBX_VAULT_MAC_SIZE];
 
         if(!kdbx_vault_record_read(vault, ref->first_record + index, &header, ciphertext, mac)) {
-            memzero(ciphertext, sizeof(ciphertext));
-            return false;
+            ok = false;
+            goto cleanup;
         }
 
         if(header.record_id != (ref->first_record + index) ||
-           header.plain_len != header.cipher_len || header.plain_len > sizeof(ciphertext)) {
-            memzero(ciphertext, sizeof(ciphertext));
-            return false;
+           header.plain_len != header.cipher_len ||
+           header.plain_len > KDBX_VAULT_RECORD_PLAIN_MAX) {
+            ok = false;
+            goto cleanup;
         }
 
         if(!kdbx_vault_process_record_plain(vault, &header, ciphertext, mac, callback, context)) {
-            memzero(ciphertext, sizeof(ciphertext));
-            return false;
+            ok = false;
+            goto cleanup;
         }
     }
 
-    return true;
+cleanup:
+    if(scratch != NULL) {
+        memzero(scratch, scratch_size);
+        free(scratch);
+    }
+    return ok;
 }
 
 bool kdbx_vault_promote_ram_to_file(KDBXVault* source, KDBXVault* target) {

@@ -20,9 +20,15 @@ enum {
     FlipPassSceneDbEntriesEventShowSelectedAction,
     FlipPassSceneDbEntriesEventExecuteUsbAction,
     FlipPassSceneDbEntriesEventExecuteBluetoothAction,
+    FlipPassSceneDbEntriesEventSelectUsbLayout,
+    FlipPassSceneDbEntriesEventSelectBluetoothLayout,
     FlipPassSceneDbEntriesEventOpenOtherFields,
+    FlipPassSceneDbEntriesEventEditSelected,
+    FlipPassSceneDbEntriesEventCloseActionMenu,
     FlipPassSceneDbEntriesEventRunPendingAction,
     FlipPassSceneDbEntriesEventConfirmCloseDatabase = 0x100U,
+    FlipPassSceneDbEntriesEventCreateGroup,
+    FlipPassSceneDbEntriesEventCreateEntry,
 };
 
 /**

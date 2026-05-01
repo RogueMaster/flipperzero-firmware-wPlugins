@@ -115,8 +115,12 @@ bool ntp_diag_query(const uint8_t server_ip[4], NtpDiagResult* result) {
                 uint32_t rtt_ms = t4_tick - t1_tick;
                 result->rtt_us = rtt_ms * 1000;
 
-                /* Offset: simplified estimate = RTT/2 (we don't have real NTP timestamps) */
-                result->offset_us = (int32_t)(rtt_ms * 500); /* half RTT as rough estimate */
+                /* Offset: simplified estimate = RTT/2 */
+                result->offset_us = (int32_t)(rtt_ms * 500);
+
+                /* Transmit timestamp (server time when reply was sent) */
+                uint32_t ntp_sec = read_u32_be(&pkt[40]);
+                result->unix_time = ntp_sec - 2208988800UL;
 
                 stratum_to_name(
                     result->stratum, result->stratum_name, sizeof(result->stratum_name));

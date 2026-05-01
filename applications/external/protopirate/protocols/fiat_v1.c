@@ -1,6 +1,8 @@
 #include "fiat_v1.h"
 #include <string.h>
 
+#define TAG "FiatProtocolV1"
+
 // Magneti Marelli BSI keyfob protocol (PCF7946)
 // Found on: Fiat Panda, Grande Punto (and possibly other Fiat/Lancia/Alfa ~2003-2012)
 //
@@ -10,7 +12,7 @@
 //   Type B (e.g. Grande Punto): te_short ~100us, te_long ~200us
 // TE is auto-detected from preamble pulse averaging.
 //
-// Frame layout (103-104 bits = 13 bytes):
+// Frame layout (104 bits = 13 bytes):
 //   Bytes 0-1:  0xFFFF/0xFFFC preamble residue
 //   Bytes 2-5:  Serial (32 bits)
 //   Byte 6:     [Button:4 | Epoch:4]
@@ -19,11 +21,11 @@
 //
 // Original implementation by @lupettohf
 
-#define FIAT_MARELLI_PREAMBLE_PULSE_MIN  50
-#define FIAT_MARELLI_PREAMBLE_PULSE_MAX  350
-#define FIAT_MARELLI_PREAMBLE_MIN        80
+#define FIAT_MARELLI_PREAMBLE_PULSE_MIN  35
+#define FIAT_MARELLI_PREAMBLE_PULSE_MAX  450
+#define FIAT_MARELLI_PREAMBLE_MIN        48
 #define FIAT_MARELLI_MAX_DATA_BITS       104
-#define FIAT_MARELLI_MIN_DATA_BITS       80
+#define FIAT_MARELLI_MIN_DATA_BITS       104
 #define FIAT_MARELLI_GAP_TE_MULT         4
 #define FIAT_MARELLI_SYNC_TE_MIN_MULT    4
 #define FIAT_MARELLI_SYNC_TE_MAX_MULT    12
@@ -31,6 +33,17 @@
 #define FIAT_MARELLI_RETX_SYNC_MIN       400
 #define FIAT_MARELLI_RETX_SYNC_MAX       2800
 #define FIAT_MARELLI_TE_TYPE_AB_BOUNDARY 180
+
+static uint8_t fiat_marelli_crc8(const uint8_t* data, size_t len) {
+    uint8_t crc = 0x03;
+    for(size_t i = 0; i < len; i++) {
+        crc ^= data[i];
+        for(uint8_t b = 0; b < 8; b++) {
+            crc = (crc & 0x80) ? ((crc << 1) ^ 0x01) : (crc << 1);
+        }
+    }
+    return crc;
+}
 
 static const SubGhzBlockConst subghz_protocol_fiat_marelli_const = {
     .te_short = 260,
@@ -44,7 +57,6 @@ typedef enum {
     FiatMarelliDecoderStepPreamble = 1,
     FiatMarelliDecoderStepSync = 2,
     FiatMarelliDecoderStepData = 3,
-    FiatMarelliDecoderStepRetxSync = 4,
 } FiatMarelliDecoderStep;
 
 struct SubGhzProtocolDecoderFiatMarelli {
@@ -66,6 +78,89 @@ struct SubGhzProtocolDecoderFiatMarelli {
     uint32_t te_detected;
 };
 
+static void fiat_marelli_set_state(
+    SubGhzProtocolDecoderFiatMarelli* instance,
+    FiatMarelliDecoderStep new_state,
+    const char* reason) {
+    UNUSED(reason);
+    instance->decoder_state = new_state;
+}
+
+static bool fiat_marelli_get_raw_bit(const uint8_t* raw, uint8_t bit_index) {
+    return (raw[bit_index / 8] >> (7 - (bit_index % 8))) & 1U;
+}
+
+static void fiat_marelli_set_raw_bit(uint8_t* raw, uint8_t bit_index, bool value) {
+    uint8_t byte_idx = bit_index / 8;
+    uint8_t mask = 1U << (7 - (bit_index % 8));
+    if(value) {
+        raw[byte_idx] |= mask;
+    } else {
+        raw[byte_idx] &= (uint8_t)(~mask);
+    }
+}
+
+static void fiat_marelli_rebuild_data_words_from_raw(SubGhzProtocolDecoderFiatMarelli* instance) {
+    instance->generic.data = 0;
+    instance->extra_data = 0;
+
+    for(uint8_t i = 0; i < 64; i++) {
+        instance->generic.data = (instance->generic.data << 1) |
+                                 (fiat_marelli_get_raw_bit(instance->raw_data, i) ? 1U : 0U);
+    }
+
+    for(uint8_t i = 64; i < FIAT_MARELLI_MAX_DATA_BITS; i++) {
+        instance->extra_data = (instance->extra_data << 1) |
+                               (fiat_marelli_get_raw_bit(instance->raw_data, i) ? 1U : 0U);
+    }
+
+    instance->bit_count = FIAT_MARELLI_MAX_DATA_BITS;
+    instance->generic.data_count_bit = FIAT_MARELLI_MAX_DATA_BITS;
+}
+
+static bool fiat_marelli_try_recover_tail_bits(SubGhzProtocolDecoderFiatMarelli* instance) {
+    if(instance->bit_count >= FIAT_MARELLI_MAX_DATA_BITS) {
+        return true;
+    }
+
+    if(instance->bit_count < (FIAT_MARELLI_MAX_DATA_BITS - 2)) {
+        return false;
+    }
+
+    uint8_t missing_bits = FIAT_MARELLI_MAX_DATA_BITS - instance->bit_count;
+    uint8_t variants = 1U << missing_bits;
+    uint8_t match_count = 0;
+    uint8_t matched_variant = 0;
+
+    for(uint8_t variant = 0; variant < variants; variant++) {
+        uint8_t trial[13];
+        memcpy(trial, instance->raw_data, sizeof(trial));
+
+        for(uint8_t i = 0; i < missing_bits; i++) {
+            bool bit = ((variant >> (missing_bits - 1 - i)) & 1U) != 0;
+            fiat_marelli_set_raw_bit(trial, instance->bit_count + i, bit);
+        }
+
+        uint8_t calc = fiat_marelli_crc8(trial, 12);
+        if(calc == trial[12]) {
+            match_count++;
+            matched_variant = variant;
+        }
+    }
+
+    if(match_count != 1) {
+        return false;
+    }
+
+    for(uint8_t i = 0; i < missing_bits; i++) {
+        bool bit = ((matched_variant >> (missing_bits - 1 - i)) & 1U) != 0;
+        fiat_marelli_set_raw_bit(instance->raw_data, instance->bit_count + i, bit);
+    }
+
+    fiat_marelli_rebuild_data_words_from_raw(instance);
+    return true;
+}
+
 static void fiat_marelli_prepare_data(SubGhzProtocolDecoderFiatMarelli* instance) {
     instance->bit_count = 0;
     instance->extra_data = 0;
@@ -74,7 +169,7 @@ static void fiat_marelli_prepare_data(SubGhzProtocolDecoderFiatMarelli* instance
     memset(instance->raw_data, 0, sizeof(instance->raw_data));
     manchester_advance(
         instance->manchester_state, ManchesterEventReset, &instance->manchester_state, NULL);
-    instance->decoder_state = FiatMarelliDecoderStepData;
+    fiat_marelli_set_state(instance, FiatMarelliDecoderStepData, "sync accepted");
 }
 
 static void fiat_marelli_rebuild_raw_data(SubGhzProtocolDecoderFiatMarelli* instance) {
@@ -108,8 +203,10 @@ static void fiat_marelli_rebuild_raw_data(SubGhzProtocolDecoderFiatMarelli* inst
 
 static const char* fiat_marelli_button_name(uint8_t btn) {
     switch(btn) {
+    case 0x8:
     case 0x7:
         return "Lock";
+    case 0x0:
     case 0xB:
         return "Unlock";
     case 0xD:
@@ -141,7 +238,7 @@ const SubGhzProtocolEncoder subghz_protocol_fiat_marelli_encoder = {
 const SubGhzProtocol fiat_v1_protocol = {
     .name = FIAT_MARELLI_PROTOCOL_NAME,
     .type = SubGhzProtocolTypeDynamic,
-    .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM | SubGhzProtocolFlag_Decodable |
+    .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM | SubGhzProtocolFlag_Decodable |
             SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save,
     .decoder = &subghz_protocol_fiat_marelli_decoder,
     .encoder = &subghz_protocol_fiat_marelli_encoder,
@@ -166,7 +263,7 @@ void subghz_protocol_decoder_fiat_marelli_free(void* context) {
 void subghz_protocol_decoder_fiat_marelli_reset(void* context) {
     furi_check(context);
     SubGhzProtocolDecoderFiatMarelli* instance = context;
-    instance->decoder_state = FiatMarelliDecoderStepReset;
+    fiat_marelli_set_state(instance, FiatMarelliDecoderStepReset, "decoder reset");
     instance->preamble_count = 0;
     instance->bit_count = 0;
     instance->extra_data = 0;
@@ -197,15 +294,12 @@ void subghz_protocol_decoder_fiat_marelli_feed(void* context, bool level, uint32
         if(level) {
             if(duration >= FIAT_MARELLI_PREAMBLE_PULSE_MIN &&
                duration <= FIAT_MARELLI_PREAMBLE_PULSE_MAX) {
-                instance->decoder_state = FiatMarelliDecoderStepPreamble;
+                fiat_marelli_set_state(instance, FiatMarelliDecoderStepPreamble, "preamble start");
                 instance->preamble_count = 1;
                 instance->te_sum = duration;
                 instance->te_count = 1;
                 instance->te_last = duration;
             }
-        } else if(duration > FIAT_MARELLI_RETX_GAP_MIN && instance->te_detected) {
-            instance->decoder_state = FiatMarelliDecoderStepRetxSync;
-            instance->te_last = duration;
         }
         break;
 
@@ -222,16 +316,18 @@ void subghz_protocol_decoder_fiat_marelli_feed(void* context, bool level, uint32
                 uint32_t gap_threshold = instance->te_detected * FIAT_MARELLI_GAP_TE_MULT;
 
                 if(duration > gap_threshold) {
-                    instance->decoder_state = FiatMarelliDecoderStepSync;
+                    fiat_marelli_set_state(instance, FiatMarelliDecoderStepSync, "gap detected");
                     instance->te_last = duration;
                 } else {
-                    instance->decoder_state = FiatMarelliDecoderStepReset;
+                    fiat_marelli_set_state(instance, FiatMarelliDecoderStepReset, "gap too short");
                 }
             } else {
-                instance->decoder_state = FiatMarelliDecoderStepReset;
+                fiat_marelli_set_state(
+                    instance, FiatMarelliDecoderStepReset, "preamble too short");
             }
         } else {
-            instance->decoder_state = FiatMarelliDecoderStepReset;
+            fiat_marelli_set_state(
+                instance, FiatMarelliDecoderStepReset, "invalid preamble pulse");
         }
         break;
 
@@ -243,20 +339,10 @@ void subghz_protocol_decoder_fiat_marelli_feed(void* context, bool level, uint32
             fiat_marelli_prepare_data(instance);
             instance->te_last = duration;
         } else {
-            instance->decoder_state = FiatMarelliDecoderStepReset;
+            fiat_marelli_set_state(instance, FiatMarelliDecoderStepReset, "sync timing mismatch");
         }
         break;
     }
-
-    case FiatMarelliDecoderStepRetxSync:
-        if(level && duration >= FIAT_MARELLI_RETX_SYNC_MIN &&
-           duration <= FIAT_MARELLI_RETX_SYNC_MAX) {
-            fiat_marelli_prepare_data(instance);
-            instance->te_last = duration;
-        } else {
-            instance->decoder_state = FiatMarelliDecoderStepReset;
-        }
-        break;
 
     case FiatMarelliDecoderStepData: {
         ManchesterEvent event = ManchesterEventReset;
@@ -297,26 +383,44 @@ void subghz_protocol_decoder_fiat_marelli_feed(void* context, bool level, uint32
                     frame_complete = true;
                 }
             }
-        } else if(instance->bit_count >= FIAT_MARELLI_MIN_DATA_BITS) {
+        } else if(instance->bit_count >= (FIAT_MARELLI_MAX_DATA_BITS - 2)) {
             frame_complete = true;
         } else {
-            instance->decoder_state = FiatMarelliDecoderStepReset;
+            fiat_marelli_set_state(
+                instance, FiatMarelliDecoderStepReset, "invalid manchester timing");
         }
 
         if(frame_complete) {
             instance->generic.data_count_bit = instance->bit_count;
 
-            instance->generic.serial =
-                ((uint32_t)instance->raw_data[2] << 24) | ((uint32_t)instance->raw_data[3] << 16) |
-                ((uint32_t)instance->raw_data[4] << 8) | ((uint32_t)instance->raw_data[5]);
-            instance->generic.btn = (instance->raw_data[6] >> 4) & 0x0F;
-            instance->generic.cnt = (instance->raw_data[7] >> 3) & 0x1F;
-
-            if(instance->base.callback) {
-                instance->base.callback(&instance->base, instance->base.context);
+            if(!fiat_marelli_try_recover_tail_bits(instance)) {
+                fiat_marelli_set_state(instance, FiatMarelliDecoderStepReset, "frame complete");
+                instance->te_last = duration;
+                break;
             }
 
-            instance->decoder_state = FiatMarelliDecoderStepReset;
+            bool crc_ok = true;
+
+            if(instance->bit_count >= FIAT_MARELLI_MAX_DATA_BITS) {
+                uint8_t calc = fiat_marelli_crc8(instance->raw_data, 12);
+                crc_ok = (calc == instance->raw_data[12]);
+            }
+
+            if(crc_ok) {
+                FURI_LOG_D(TAG, "Frame accepted (%u bits, CRC OK)", instance->bit_count);
+                instance->generic.serial = ((uint32_t)instance->raw_data[2] << 24) |
+                                           ((uint32_t)instance->raw_data[3] << 16) |
+                                           ((uint32_t)instance->raw_data[4] << 8) |
+                                           ((uint32_t)instance->raw_data[5]);
+                instance->generic.btn = (instance->raw_data[6] >> 4) & 0x0F;
+                instance->generic.cnt = (instance->raw_data[7] >> 3) & 0x1F;
+
+                if(instance->base.callback) {
+                    instance->base.callback(&instance->base, instance->base.context);
+                }
+            }
+
+            fiat_marelli_set_state(instance, FiatMarelliDecoderStepReset, "frame complete");
         }
 
         instance->te_last = duration;
@@ -375,6 +479,10 @@ SubGhzProtocolStatus
         subghz_protocol_fiat_marelli_const.min_count_bit_for_found);
 
     if(ret == SubGhzProtocolStatusOk) {
+        if(instance->generic.data_count_bit != FIAT_MARELLI_MAX_DATA_BITS) {
+            return SubGhzProtocolStatusErrorValueBitCount;
+        }
+
         uint32_t extra = 0;
         if(flipper_format_read_uint32(flipper_format, "Extra", &extra, 1)) {
             instance->extra_data = extra;
@@ -397,11 +505,15 @@ void subghz_protocol_decoder_fiat_marelli_get_string(void* context, FuriString* 
 
     uint8_t epoch = instance->raw_data[6] & 0x0F;
     uint8_t counter = (instance->raw_data[7] >> 3) & 0x1F;
-    const char* variant =
-        (instance->te_detected && instance->te_detected < FIAT_MARELLI_TE_TYPE_AB_BOUNDARY) ? "B" :
-                                                                                              "A";
     uint8_t scramble = (instance->raw_data[7] >> 1) & 0x03;
     uint8_t fixed = instance->raw_data[7] & 0x01;
+    const char* crc_state = "N/A";
+    uint8_t crc_value = instance->raw_data[12];
+
+    if(instance->bit_count >= 104) {
+        uint8_t calc = fiat_marelli_crc8(instance->raw_data, 12);
+        crc_state = (calc == instance->raw_data[12]) ? "OK" : "FAIL";
+    }
 
     furi_string_cat_printf(
         output,
@@ -410,7 +522,7 @@ void subghz_protocol_decoder_fiat_marelli_get_string(void* context, FuriString* 
         "Raw:%02X%02X Fixed:%X\r\n"
         "Sn:%08X Cnt:%02X\r\n"
         "Btn:%02X:[%s] Ep:%02X\r\n"
-        "Tp:%s TE:%lu\r\n",
+        "CRC:%02X [%s]\r\n",
         instance->generic.protocol_name,
         (int)instance->bit_count,
         instance->raw_data[8],
@@ -427,6 +539,6 @@ void subghz_protocol_decoder_fiat_marelli_get_string(void* context, FuriString* 
         (unsigned)instance->generic.btn,
         fiat_marelli_button_name(instance->generic.btn),
         (unsigned)epoch,
-        variant,
-        (unsigned long)instance->te_detected);
+        (unsigned)crc_value,
+        crc_state);
 }

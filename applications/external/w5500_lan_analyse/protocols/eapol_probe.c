@@ -94,7 +94,8 @@ bool eapol_probe_test(const uint8_t our_mac[6], EapolProbeResult* result) {
     /* Listen for response (up to 5 seconds) */
     uint32_t start = furi_get_tick();
     uint32_t timeout_ms = 5000;
-    uint8_t rx_buf[256];
+    /* Static to avoid 256B stack usage; worker is single-threaded */
+    static uint8_t rx_buf[256];
 
     /* Send EAPOL-Start 3 times with 1-second intervals for reliability */
     uint8_t sends = 1;

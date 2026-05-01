@@ -1,0 +1,17 @@
+/* Arctic Light — clean minimal white theme */
+body{font-family:-apple-system,sans-serif;background:#f5f7fa;color:#2d3748;margin:0;padding:16px}
+h1{color:#1a202c;margin:0 0 4px}
+.p{color:#718096;margin-bottom:12px;word-break:break-all}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:6px 8px;border-bottom:2px solid #4299e1;color:#2b6cb0}
+td{padding:5px 8px;border-bottom:1px solid #e2e8f0}
+a{color:#3182ce;text-decoration:none}
+.d{color:#2b6cb0;font-weight:bold}
+.s{color:#a0aec0;text-align:right}
+.a{white-space:nowrap}
+.a a{margin-left:8px;color:#e53e3e}
+.b{display:inline-block;padding:6px 14px;background:#4299e1;color:#fff;border:none;font-weight:bold;text-decoration:none;margin:2px;border-radius:4px}
+.bs{padding:3px 8px}
+.uf{margin:12px 0;padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px}
+.mf{margin:8px 0}
+.ft{margin-top:16px;color:#a0aec0}

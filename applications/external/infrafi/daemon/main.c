@@ -1,4 +1,5 @@
 #include "wfr_lirc.h"
+#include "wfr_evdev.h"
 #include "wfr_decode.h"
 #include "wfr_network.h"
 #include "wfr_ack.h"
@@ -23,6 +24,9 @@ static void print_usage(const char* prog) {
     fprintf(stderr, "Usage: %s [options]\n", prog);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -d, --device PATH       LIRC device for RX (default: /dev/lirc0)\n");
+    fprintf(
+        stderr,
+        "  -e, --evdev PATH        Use evdev input device for RX (NEC via MSC_RAW, FAB4-style bit order)\n");
     fprintf(
         stderr, "  -a, --ack-device PATH   LIRC device for ACK TX (default: same as --device)\n");
     fprintf(stderr, "  -f, --foreground        Run in foreground (don't daemonize)\n");
@@ -91,12 +95,14 @@ static void handle_credentials(const char* payload) {
 
 int main(int argc, char* argv[]) {
     const char* device = "/dev/lirc0";
+    const char* evdev_device = NULL;
     const char* ack_device = NULL;
     bool foreground = false;
     int log_level = LOG_INFO;
 
     static struct option long_opts[] = {
         {"device", required_argument, NULL, 'd'},
+        {"evdev", required_argument, NULL, 'e'},
         {"ack-device", required_argument, NULL, 'a'},
         {"foreground", no_argument, NULL, 'f'},
         {"verbose", no_argument, NULL, 'v'},
@@ -106,10 +112,13 @@ int main(int argc, char* argv[]) {
     };
 
     int opt;
-    while((opt = getopt_long(argc, argv, "d:a:fvVh", long_opts, NULL)) != -1) {
+    while((opt = getopt_long(argc, argv, "d:e:a:fvVh", long_opts, NULL)) != -1) {
         switch(opt) {
         case 'd':
             device = optarg;
+            break;
+        case 'e':
+            evdev_device = optarg;
             break;
         case 'a':
             ack_device = optarg;
@@ -135,19 +144,40 @@ int main(int argc, char* argv[]) {
     openlog("infrafid", LOG_PID | (foreground ? LOG_PERROR : 0), LOG_DAEMON);
     setlogmask(LOG_UPTO(log_level));
 
-    /* Default ACK device to same as RX device */
+    bool use_evdev = (evdev_device != NULL);
+    const char* rx_device = use_evdev ? evdev_device : device;
+
+    /* Default ACK device to LIRC device (not evdev — evdev can't transmit) */
     if(!ack_device) ack_device = device;
 
-    syslog(LOG_INFO, "infrafid %s starting (rx=%s, tx=%s)", INFRAFI_VERSION, device, ack_device);
+    if(use_evdev && strcmp(ack_device, "/dev/lirc0") == 0) {
+        syslog(
+            LOG_WARNING,
+            "infrafid: --evdev is active and ACK TX defaults to %s; set --ack-device if this host has no LIRC TX device",
+            ack_device);
+    }
+
+    syslog(
+        LOG_INFO,
+        "infrafid %s starting (rx=%s [%s], tx=%s)",
+        INFRAFI_VERSION,
+        rx_device,
+        use_evdev ? "evdev" : "lirc",
+        ack_device);
 
     struct sigaction sa = {0};
     sa.sa_handler = signal_handler;
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGINT, &sa, NULL);
 
-    int lirc_fd = wfr_lirc_open(device);
-    if(lirc_fd < 0) {
-        syslog(LOG_ERR, "failed to open LIRC device %s", device);
+    int rx_fd;
+    if(use_evdev) {
+        rx_fd = wfr_evdev_open(evdev_device);
+    } else {
+        rx_fd = wfr_lirc_open(device);
+    }
+    if(rx_fd < 0) {
+        syslog(LOG_ERR, "failed to open %s device %s", use_evdev ? "evdev" : "LIRC", rx_device);
         closelog();
         return 1;
     }
@@ -166,8 +196,15 @@ int main(int argc, char* argv[]) {
 
     while(running) {
         uint8_t address, command;
+        int rc;
 
-        if(wfr_lirc_read_scancode(lirc_fd, &address, &command) < 0) {
+        if(use_evdev) {
+            rc = wfr_evdev_read_scancode(rx_fd, &address, &command);
+        } else {
+            rc = wfr_lirc_read_scancode(rx_fd, &address, &command);
+        }
+
+        if(rc < 0) {
             if(!running) break;
             continue;
         }
@@ -181,7 +218,11 @@ int main(int argc, char* argv[]) {
 
     syslog(LOG_INFO, "infrafid shutting down");
     wfr_ack_close(ack_fd);
-    wfr_lirc_close(lirc_fd);
+    if(use_evdev) {
+        wfr_evdev_close(rx_fd);
+    } else {
+        wfr_lirc_close(rx_fd);
+    }
     closelog();
     return 0;
 }

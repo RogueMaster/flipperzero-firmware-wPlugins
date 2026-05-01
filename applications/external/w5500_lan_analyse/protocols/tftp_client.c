@@ -196,7 +196,9 @@ bool tftp_client_get(
             if(rx_len > 0) {
                 uint8_t from_ip[4];
                 uint16_t from_port;
-                int32_t recv_len = recvfrom(TFTP_SOCK, pkt, sizeof(pkt), from_ip, &from_port);
+                /* pkt is a pointer here (malloc'd 600 bytes), so we must pass
+                 * the explicit buffer size — sizeof(pkt) would be 4. */
+                int32_t recv_len = recvfrom(TFTP_SOCK, pkt, 600, from_ip, &from_port);
                 if(recv_len < 4) continue;
 
                 uint16_t opcode = read_u16_be(&pkt[0]);

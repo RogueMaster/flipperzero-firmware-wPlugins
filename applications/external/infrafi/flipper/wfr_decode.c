@@ -33,12 +33,12 @@ int wfr_ack_decode_feed(
     if(ack_check_timeout(dec)) return -1;
 
     /* Must have InfraFi magic in high nibble */
-    if((rc6_address & WFR_RC6_MAGIC_MASK) != WFR_RC6_MAGIC) return 0;
+    if((rc6_address & WFR_FRAME_MAGIC_MASK) != WFR_FRAME_MAGIC) return 0;
 
-    uint8_t frame_type = rc6_address & WFR_RC6_TYPE_MASK;
+    uint8_t frame_type = rc6_address & WFR_FRAME_TYPE_MASK;
 
     switch(frame_type) {
-    case WFR_RC6_TYPE_START: {
+    case WFR_FRAME_TYPE_START: {
         uint8_t total_len = rc6_command;
         if(total_len == 0) {
             FURI_LOG_W(TAG, "START with zero length");
@@ -62,7 +62,7 @@ int wfr_ack_decode_feed(
         return 0;
     }
 
-    case WFR_RC6_TYPE_DATA: {
+    case WFR_FRAME_TYPE_DATA: {
         if(!dec->in_transmission) return 0;
         if(dec->write_cursor >= dec->expected_len) return 0;
 
@@ -71,7 +71,7 @@ int wfr_ack_decode_feed(
         return 0;
     }
 
-    case WFR_RC6_TYPE_END: {
+    case WFR_FRAME_TYPE_END: {
         if(!dec->in_transmission) return 0;
 
         if(dec->write_cursor != dec->expected_len) {

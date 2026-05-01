@@ -19,5 +19,12 @@
 
 // FUNCTIONS
 FuriHalSpiBusHandle* spi_alloc();
+bool spi_send(FuriHalSpiBusHandle* spi, uint8_t* buffer, size_t len);
+bool spi_send_and_read(
+    FuriHalSpiBusHandle* spi,
+    uint8_t* action_address,
+    size_t addr_len,
+    uint8_t* data_read,
+    size_t read_len);
 
 #endif

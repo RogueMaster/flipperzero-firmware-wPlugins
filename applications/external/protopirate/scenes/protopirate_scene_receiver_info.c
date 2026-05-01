@@ -30,6 +30,11 @@ static bool psa_item_needs_bruteforce(ProtoPirateApp* app) {
     if(!ff) return false;
     FuriString* s = furi_string_alloc();
     flipper_format_rewind(ff);
+    if(!flipper_format_read_string(ff, "Protocol", s) || furi_string_cmp_str(s, "PSA") != 0) {
+        furi_string_free(s);
+        return false;
+    }
+    flipper_format_rewind(ff);
     bool has_key = flipper_format_read_string(ff, "Key", s);
     if(!has_key) {
         furi_string_free(s);
@@ -95,7 +100,8 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
         app->widget, 64, 0, AlignCenter, AlignTop, FontPrimary, furi_string_get_cstr(text));
 
     furi_string_reset(text);
-    protopirate_history_get_text_item(app->txrx->history, text, app->txrx->idx_menu_chosen);
+    protopirate_history_get_text_item_detail(
+        app->txrx->history, app->txrx->idx_menu_chosen, text, app->txrx->environment);
 
     bool is_psa = false;
     FlipperFormat* ff =
@@ -260,6 +266,12 @@ void protopirate_scene_receiver_info_on_enter(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
 
+    if(!protopirate_ensure_widget(app) || !protopirate_ensure_text_input(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
     is_emu_off = false;
 
     if(app->psa_bf_thread && app->psa_bf_state) {
@@ -320,6 +332,7 @@ static void psa_bf_finish_and_show_result(ProtoPirateApp* app) {
         protopirate_history_set_item_str(
             app->txrx->history, app->txrx->idx_menu_chosen, furi_string_get_cstr(new_str));
         furi_string_free(new_str);
+        protopirate_history_commit_loaded(app->txrx->history);
     }
     if(status == PSA_BF_STATUS_FOUND) {
         protopirate_receiver_info_show_bf_result(app, status, s);
@@ -522,19 +535,21 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
 
 #ifdef ENABLE_EMULATE_FEATURE
         if(event.event == ProtoPirateCustomEventReceiverInfoEmulate && !is_emu_off) {
-            FlipperFormat* ff =
-                protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
-            if(ff) {
-                if(protopirate_storage_save_temp(ff)) {
-                    FURI_LOG_I(TAG, "Saved temp for emulate");
-                    if(app->loaded_file_path) furi_string_free(app->loaded_file_path);
-                    app->loaded_file_path = furi_string_alloc_set_str(PROTOPIRATE_TEMP_FILE);
-                    scene_manager_next_scene(app->scene_manager, ProtoPirateSceneEmulate);
-                } else {
-                    notification_message(app->notifications, &sequence_error);
-                }
+            FuriString* hist_path = furi_string_alloc();
+            if(protopirate_history_get_capture_path(
+                   app->txrx->history, app->txrx->idx_menu_chosen, hist_path)) {
+                protopirate_history_release_scratch(app->txrx->history);
+                if(app->loaded_file_path) furi_string_free(app->loaded_file_path);
+                app->loaded_file_path = furi_string_alloc_set(hist_path);
+                furi_string_free(hist_path);
+                FURI_LOG_I(
+                    TAG,
+                    "Emulate from history file: %s",
+                    furi_string_get_cstr(app->loaded_file_path));
+                scene_manager_next_scene(app->scene_manager, ProtoPirateSceneEmulate);
             } else {
-                FURI_LOG_E(TAG, "No flipper format data for index %d", app->txrx->idx_menu_chosen);
+                furi_string_free(hist_path);
+                FURI_LOG_E(TAG, "No capture path for index %d", app->txrx->idx_menu_chosen);
                 notification_message(app->notifications, &sequence_error);
             }
             consumed = true;
@@ -549,4 +564,7 @@ void protopirate_scene_receiver_info_on_exit(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
     widget_reset(app->widget);
+    if(app->txrx && app->txrx->history) {
+        protopirate_history_release_scratch(app->txrx->history);
+    }
 }

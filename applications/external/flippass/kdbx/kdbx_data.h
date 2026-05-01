@@ -19,6 +19,7 @@ typedef struct KDBXCustomField {
     char* key;
     char* value;
     KDBXFieldRef value_ref;
+    bool protected_value;
     struct KDBXCustomField* next;
 } KDBXCustomField;
 
@@ -44,6 +45,8 @@ typedef struct KDBXEntry {
 
 typedef struct KDBXGroup {
     char* name;
+    char* uuid;
+    KDBXFieldRef uuid_ref;
     struct KDBXGroup* parent;
     struct KDBXGroup* children;
     struct KDBXGroup* next;
@@ -57,6 +60,9 @@ void kdbx_entry_free(KDBXEntry* entry);
 void kdbx_group_reset(KDBXGroup* group);
 void kdbx_entry_reset(KDBXEntry* entry);
 bool kdbx_group_set_name(KDBXGroup* group, KDBXArena* arena, const char* name);
+bool kdbx_group_set_uuid(KDBXGroup* group, KDBXArena* arena, const char* uuid);
+bool kdbx_group_set_uuid_ref(KDBXGroup* group, const KDBXFieldRef* ref);
+const KDBXFieldRef* kdbx_group_get_uuid_ref(const KDBXGroup* group);
 bool kdbx_entry_set_uuid(KDBXEntry* entry, KDBXArena* arena, const char* uuid);
 bool kdbx_entry_set_title(KDBXEntry* entry, KDBXArena* arena, const char* title);
 bool kdbx_entry_set_uuid_ref(KDBXEntry* entry, const KDBXFieldRef* ref);
@@ -73,8 +79,17 @@ KDBXCustomField* kdbx_entry_add_custom_field(
     KDBXArena* arena,
     const char* key,
     const KDBXFieldRef* ref);
+KDBXCustomField* kdbx_entry_add_custom_field_ex(
+    KDBXEntry* entry,
+    KDBXArena* arena,
+    const char* key,
+    const KDBXFieldRef* ref,
+    bool protected_value);
 const KDBXCustomField* kdbx_entry_get_custom_fields(const KDBXEntry* entry);
 const KDBXFieldRef* kdbx_custom_field_get_ref(const KDBXCustomField* field);
+bool kdbx_custom_field_set_key(KDBXCustomField* field, KDBXArena* arena, const char* key);
+bool kdbx_custom_field_set_ref(KDBXCustomField* field, const KDBXFieldRef* ref);
+void kdbx_custom_field_set_protected(KDBXCustomField* field, bool protected_value);
 bool kdbx_custom_field_is_loaded(const KDBXCustomField* field);
 bool kdbx_custom_field_set_loaded_text(KDBXCustomField* field, const char* value, size_t value_len);
 bool kdbx_custom_field_take_loaded_text(KDBXCustomField* field, char* value, size_t value_len);

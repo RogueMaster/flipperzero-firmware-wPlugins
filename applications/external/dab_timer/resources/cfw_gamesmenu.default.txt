@@ -12,6 +12,7 @@ GamesMenuList Version 0
 /ext/apps/Games/arduventure.fap
 /ext/apps/Games/arkanoid.fap
 /ext/apps/Games/asteroids.fap
+/ext/apps/Games/avocado_zero.fap
 /ext/apps/Games/banana.fap
 /ext/apps/Games/blackjack.fap
 /ext/apps/Games/blackjack_rg.fap
@@ -60,6 +61,7 @@ GamesMenuList Version 0
 /ext/apps/Games/heap_defence.fap
 /ext/apps/Games/holdem.fap
 /ext/apps/Games/hunter_flipper.fap
+/ext/apps/Games/impostor.fap
 /ext/apps/Games/infinite_tic_tac_toe.fap
 /ext/apps/Games/insults.fap
 /ext/apps/Games/jetpack.fap
@@ -81,6 +83,7 @@ GamesMenuList Version 0
 /ext/apps/Games/myblab.fap
 /ext/apps/Games/nah2nah3.fap
 /ext/apps/Games/nu_pogodi.fap
+/ext/apps/Games/oregon_trail.fap
 /ext/apps/Games/p1x_adventure.fap
 /ext/apps/Games/p1x_network_defender.fap
 /ext/apps/Games/p1x_your_own_adventure.fap
@@ -105,7 +108,6 @@ GamesMenuList Version 0
 /ext/apps/Games/rock_paper_scissors_2.fap
 /ext/apps/Games/roots_of_life.fap
 /ext/apps/Games/rubiks_cube_scrambler.fap
-/ext/apps/Games/sand_simulation.fap
 /ext/apps/Games/scorched_tanks.fap
 /ext/apps/Games/secret_toggle.fap
 /ext/apps/Games/simon_says.fap

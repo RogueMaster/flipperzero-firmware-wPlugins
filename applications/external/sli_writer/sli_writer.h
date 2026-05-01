@@ -2,11 +2,6 @@
 
 /* ============================================================================
  *  SLI Writer — Header
- *  - High-level scenes/worker flow preserved
- *  - Includes trimmed to match Unleashed / API 86 toolchain
- *  - Notes:
- *      * UID on ISO15693 is LSB->MSB on the wire; we keep that order internally.
- *      * FINALIZE payload toggle handled in .c via SLI_FINALIZE_WITH_PAYLOAD.
  * ========================================================================== */
 
 #include <furi.h>
@@ -22,11 +17,10 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/dialog_ex.h>
 #include <gui/modules/loading.h>
-#include <gui/scene_manager.h> /* <-- correct path for scene manager */
+#include <gui/scene_manager.h>
 
-#include <dialogs/dialogs.h> /* <-- generic dialogs (no file_browser header) */
+#include <dialogs/dialogs.h>
 #include <storage/storage.h>
-
 #include <toolbox/bit_buffer.h>
 
 #include <stdbool.h>
@@ -40,9 +34,20 @@
 #define SLI_MAGIC_BLOCK_SIZE      4
 #define SLI_MAGIC_MAX_BLOCKS      64
 
-/*  Some “magic” cards accept FINALIZE without payload.
- *  Default ON to preserve legacy behavior; can be toggled in the .c. */
-#define SLI_FINALIZE_WITH_PAYLOAD 1
+/* Path where the special (factory) UID is persisted on the SD card */
+#define SLI_SPECIAL_UID_PATH "/ext/apps_data/sli_writer/special_uid.bin"
+
+/* ============================================================================
+ *  Write modes
+ * ========================================================================== */
+
+typedef enum {
+    SliWriterModeNormal = 0, /* Standard Gen2 write (non-addressed)         */
+    SliWriterModeSaveUid = 1, /* Inventory only — save detected UID as special */
+    SliWriterModeSpecial = 2, /* Special write: restore factory UID first,
+                                  write blocks addressed (flags=0x62),
+                                  then set target UID                          */
+} SliWriterMode;
 
 /* ============================================================================
  *  Scenes / Views / Menu
@@ -64,30 +69,26 @@ typedef enum {
 } SliWriterView;
 
 typedef enum {
-    SliWriterSubmenuIndexWrite = 0, /* "Write NFC File" */
-    SliWriterSubmenuIndexTestMagic, /* "Test Magic INIT" */
-    SliWriterSubmenuIndexTestLL, /* "Test LL (Inventory)" */
-    SliWriterSubmenuIndexAbout, /* "About" */
+    SliWriterSubmenuIndexWrite = 0, /* "Write NFC File"       */
+    SliWriterSubmenuIndexSaveUid = 1, /* "Save Special UID"     */
+    SliWriterSubmenuIndexWriteSpec = 2, /* "Write Special"        */
+    SliWriterSubmenuIndexAbout = 3, /* "About"                */
 } SliWriterSubmenuIndex;
 
 typedef enum {
     SliWriterCustomEventWriteSuccess = 100,
     SliWriterCustomEventWriteError,
     SliWriterCustomEventParseError,
+    SliWriterCustomEventSaveUidSuccess,
 } SliWriterCustomEvent;
 
 /* ============================================================================
- *  Parsed .nfc data (kept LSB->MSB for UID to match RF order)
+ *  Parsed .nfc data
  * ========================================================================== */
 
 typedef struct {
-    /* UID byte order note:
-     * ISO15693 frames carry UID LSB->MSB. We keep that exact order here
-     * to avoid accidental mirroring when building RF payloads. */
-    uint8_t uid[8];
-
+    uint8_t uid[8]; /* MSB-first, as in the .nfc file               */
     uint8_t password_privacy[4];
-
     uint8_t data[SLI_MAGIC_MAX_BLOCKS * SLI_MAGIC_BLOCK_SIZE];
     uint8_t block_count;
     uint8_t block_size;
@@ -114,19 +115,21 @@ typedef struct {
     FuriString* file_path;
     FuriString* error_message;
 
-    /* Worker */
-    FuriThread* worker_thread;
-    bool worker_started; // <-- AJOUTER CETTE LIGNE
-
-    /* NFC (high-level) */
+    /* NFC */
     Nfc* nfc;
     bool nfc_started;
     NfcPoller* poller;
 
+    /* Write mode — set before starting the poller */
+    SliWriterMode write_mode;
+
     /* State */
-    bool test_mode;
     bool have_uid;
-    uint8_t detected_uid[8];
+    uint8_t detected_uid[8]; /* UID of the card currently in field  */
+
+    /* Special (factory) UID — persisted to SD card */
+    bool special_uid_saved;
+    uint8_t special_uid[8];
 
     /* Data to write */
     SliWriterNfcData nfc_data;
@@ -136,23 +139,16 @@ typedef struct {
  *  API
  * ========================================================================== */
 
-/* Lifecycle */
 SliWriterApp* sli_writer_app_alloc(void);
 void sli_writer_app_free(SliWriterApp* app);
 
-/* File parsing + actions (implemented in .c) */
 bool sli_writer_parse_nfc_file(SliWriterApp* app, const char* file_path);
-bool slix_writer_perform_write(SliWriterApp* app);
-bool slix_writer_perform_test(SliWriterApp* app);
+bool sli_writer_load_special_uid(SliWriterApp* app);
+bool sli_writer_save_special_uid(SliWriterApp* app);
 
-/* Worker */
-int32_t slix_writer_work_thread(void* context);
-
-/* UI callbacks */
 void sli_writer_submenu_callback(void* context, uint32_t index);
 void sli_writer_dialog_ex_callback(DialogExResult result, void* context);
 bool sli_writer_back_event_callback(void* context);
 bool sli_writer_custom_event_callback(void* context, uint32_t event);
 
-/* Entry point (FBT entry_point="sli_writer_app") */
 int32_t sli_writer_app(void* p);

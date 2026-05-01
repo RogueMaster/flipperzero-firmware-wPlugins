@@ -11,14 +11,26 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
     else
         state->speed_profile = 2;
     state->op_mode = OpMode_Active;
+    state->gtw_autopilot_tier = -1;
+    state->das_hands_on_state = 0xFF; // unseen — nag killer echoes conservatively
+    state->enhanced_autopilot = false;
+    state->speed_profile_locked = false;
+    state->hw4_offset = 0;
 }
 
 void fsd_handle_gtw_car_state(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
-    // GTW_updateInProgress sits at bit 48|2 in 0x318 (Tesla DBC).
-    // Treat any non-zero value as "OTA in progress" — be conservative.
-    uint8_t in_progress = (frame->buffer[6] >> 0) & 0x03;
-    state->tesla_ota_in_progress = (in_progress != 0);
+    // GTW_updateInProgress: bits 1:0 of byte 6.
+    // 0=No update, 1=Update available, 2=Installing, 3=Scheduled.
+    // Only value 2 (installing) should suspend TX. Value 1 (available) caused
+    // false positives on some firmware builds (issue #19).
+    uint8_t raw = (frame->buffer[6] >> 0) & 0x03;
+    bool in_progress = (raw == 2);
+    if(in_progress) {
+        state->tesla_ota_in_progress = true;
+    } else {
+        state->tesla_ota_in_progress = false;
+    }
 }
 
 bool fsd_can_transmit(const FSDState* state) {
@@ -88,6 +100,9 @@ TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame) {
     if(frame->canId != CAN_ID_GTW_CAR_CONFIG) return TeslaHW_Unknown;
     uint8_t das_hw = (frame->buffer[0] >> 6) & 0x03;
     switch(das_hw) {
+    case 0:
+    case 1:
+        return TeslaHW_Legacy; // HW1/HW2/EAP retrofit — uses 0x3EE/0x045
     case 2:
         return TeslaHW_HW3;
     case 3:
@@ -101,6 +116,7 @@ TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame) {
 
 void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 6) return;
+    if(state->speed_profile_locked) return; // upstream: speedProfileLocked
     uint8_t fd = (frame->buffer[5] & 0xE0) >> 5;
 
     if(state->hw_version == TeslaHW_HW3) {
@@ -148,6 +164,12 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
 
     if(mux == 0) state->fsd_enabled = fsd_ui;
 
+    // bit38 explicit TLSSC enable on mux=0 (complementary to 0x331)
+    if(mux == 0 && state->assist_tlssc_bit38 && state->fsd_enabled) {
+        fsd_set_bit(frame, 38, true);
+        modified = true;
+    }
+
     if(state->hw_version == TeslaHW_HW3) {
         if(mux == 0 && state->fsd_enabled) {
             int raw = (int)((frame->buffer[3] >> 1) & 0x3F) - 30;
@@ -163,6 +185,12 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
         }
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
+            if(state->enhanced_autopilot) {
+                fsd_set_bit(frame, 46, true);
+            }
+            if(state->assist_show_lane_graph) {
+                fsd_set_bit(frame, 45, true);
+            }
             state->nag_suppressed = true;
             modified = true;
         }
@@ -186,12 +214,23 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
             fsd_set_bit(frame, 47, true);
+            if(state->enhanced_autopilot) {
+                fsd_set_bit(frame, 46, true);
+            }
+            if(state->assist_show_lane_graph) {
+                fsd_set_bit(frame, 45, true);
+            }
             state->nag_suppressed = true;
             modified = true;
         }
         if(mux == 2) {
-            frame->buffer[7] &= ~(0x07 << 4);
-            frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 4);
+            frame->buffer[7] &= ~(0x07 << 5);
+            frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 5);
+            // HW4 speed offset runtime override
+            // Source: ev-open-can-tools hw4OffsetRuntime
+            if(state->hw4_offset > 0) {
+                frame->buffer[1] = (frame->buffer[1] & 0xC0) | (state->hw4_offset & 0x3F);
+            }
             modified = true;
         }
     }
@@ -324,7 +363,7 @@ void fsd_handle_di_speed(FSDState* state, const CANFRAME* frame) {
 // MSB at bit 19 (byte2 bit3), 12 bits → byte2[3:0] + byte1[7:0] ... complex big-endian
 
 void fsd_handle_epas_steering_mode(FSDState* state, const CANFRAME* frame) {
-    if(frame->data_lenght < 3) return;
+    if(frame->data_lenght < 4) return;
     // currentTuneMode: startBit=7, len=3, big-endian
     // In Motorola (big-endian) notation: MSB at bit 7 = byte0 bit7
     // 3 bits: byte0 bits [7:5]
@@ -402,9 +441,185 @@ void fsd_handle_das_status2(FSDState* state, const CANFRAME* frame) {
 
 void fsd_handle_das_settings(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 5) return;
-    // DAS_autosteerEnabled: bit38|1@0+ (big-endian)
-    // Motorola bit 38 → byte4 bit6
     state->das_autosteer_on = (frame->buffer[4] >> 6) & 0x01;
+}
+
+// --- GTW_carConfig (0x7FF / 2047) mux=2 — autopilot tier ---
+// Source: ev-open-can-tools readGTWAutopilot()
+// byte[5] bits 4:2 → 0=NONE 1=HIGHWAY 2=ENHANCED 3=SELF_DRIVING 4=BASIC
+
+void fsd_handle_gtw_autopilot_tier(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 6) return;
+    uint8_t mux = frame->buffer[0] & 0x07;
+    if(mux != 2) return;
+    state->gtw_autopilot_tier = (int8_t)((frame->buffer[5] >> 2) & 0x07);
+}
+
+// --- 0x7FF Shield (ban defense) ---
+//
+// Phase 1 (shield NOT armed): learn the "healthy" 0x7FF state by
+// capturing each mux frame. Once all 8 muxes are seen, the snapshot
+// is complete and can be armed.
+//
+// Phase 2 (shield armed): compare every incoming 0x7FF against the
+// snapshot. If ANY byte differs, overwrite the frame data with the
+// snapshot and return true — the caller retransmits immediately,
+// racing the Gateway's banned frame so the AP ECU sees our healthy
+// version.
+
+bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame) {
+    if(frame->data_lenght < 8) return false;
+    uint8_t mux = frame->buffer[0] & 0x07;
+
+    if(!state->gtw_shield_armed) {
+        // Learning phase: capture snapshot
+        if(!state->gtw_snapshot_valid[mux]) {
+            for(int i = 0; i < 8; i++)
+                state->gtw_snapshot[mux][i] = frame->buffer[i];
+            state->gtw_snapshot_valid[mux] = true;
+
+            // Auto-arm once all 8 muxes are captured
+            bool all_valid = true;
+            for(int m = 0; m < 8; m++) {
+                if(!state->gtw_snapshot_valid[m]) {
+                    all_valid = false;
+                    break;
+                }
+            }
+            if(all_valid) state->gtw_shield_armed = true;
+        }
+        return false;
+    }
+
+    // Armed: compare against snapshot
+    if(!state->gtw_snapshot_valid[mux]) return false;
+
+    bool changed = false;
+    for(int i = 0; i < 8; i++) {
+        if(frame->buffer[i] != state->gtw_snapshot[mux][i]) {
+            changed = true;
+            break;
+        }
+    }
+
+    if(changed) {
+        // Overwrite with healthy snapshot
+        for(int i = 0; i < 8; i++)
+            frame->buffer[i] = state->gtw_snapshot[mux][i];
+        state->gtw_shield_blocks++;
+        return true; // caller should retransmit
+    }
+
+    return false;
+}
+
+// --- 0x7FF Active Tier Override ---
+// Force GTW_autopilot to SELF_DRIVING (3) on every mux=2 frame.
+// More aggressive than Ban Shield — doesn't just freeze, actively writes.
+// Source: Shayennn/FUCKYOU-TESLA-FSD vehicle_logic.h
+
+bool fsd_handle_gtw_tier_override(FSDState* state, CANFRAME* frame) {
+    if(!state->gtw_tier_override) return false;
+    if(frame->data_lenght < 6) return false;
+    uint8_t mux = frame->buffer[0] & 0x07;
+    if(mux != 2) return false;
+
+    // byte[5] bits 4:2 = autopilot tier. Set to 3 (SELF_DRIVING).
+    uint8_t original = frame->buffer[5];
+    uint8_t modified = (original & ~0x1C) | (3 << 2);
+    if(modified == original) return false;
+
+    frame->buffer[5] = modified;
+    return true;
+}
+
+// --- 0x3F8 Driver Assist Override ---
+// Region unlock, nav FSD, hands-off, dev mode, driving side.
+// Source: Shayennn/FUCKYOU-TESLA-FSD HW3Handler/HW4Handler
+
+bool fsd_handle_driver_assist_override(FSDState* state, CANFRAME* frame) {
+    if(frame->data_lenght < 8) return false;
+    bool modified = false;
+
+    // bit5: UI_dasDeveloper
+    if(state->assist_dev_mode) {
+        fsd_set_bit(frame, 5, true);
+        modified = true;
+    }
+    // bit13: UI_driveOnMapsEnable
+    // bit48: UI_hasDriveOnNav
+    // bit49: UI_followNavRouteEnable
+    if(state->assist_nav_enable) {
+        fsd_set_bit(frame, 13, true);
+        fsd_set_bit(frame, 48, true);
+        fsd_set_bit(frame, 49, true);
+        modified = true;
+    }
+    // bit14: UI_handsOnRequirementDisable
+    if(state->assist_hands_off) {
+        fsd_set_bit(frame, 14, true);
+        modified = true;
+    }
+    // bit40-41: UI_drivingSide = 1 (LHD)
+    if(state->assist_lhd_override) {
+        fsd_set_bit(frame, 40, true);
+        fsd_set_bit(frame, 41, false);
+        modified = true;
+    }
+    // bit43: UI_enableTripTelemetry = 0 (disable trip data collection)
+    if(state->assist_telemetry_off) {
+        fsd_set_bit(frame, 43, false);
+        modified = true;
+    }
+
+    return modified;
+}
+
+// --- 0x33A Energy Consumption Parser ---
+
+void fsd_handle_energy_consumption(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 4) return;
+    uint16_t raw = ((uint16_t)frame->buffer[1] << 8) | frame->buffer[0];
+    state->energy_wh_per_km = raw * 0.1f;
+    state->energy_seen = true;
+}
+
+// --- TLSSC Restore (0x331 / 817) ---
+// Spoof DAS_autopilot + DAS_autopilotBase to SELF_DRIVING.
+// byte[0] lower 6 bits → 0x1B. Preserves upper 2 bits.
+// Source: community research in issue #18 (gauner1986, kp43h8, MiniCS).
+
+bool fsd_handle_tlssc_restore(FSDState* state, CANFRAME* frame) {
+    if(!state->tlssc_restore) return false;
+    if(frame->data_lenght < 1) return false;
+
+    uint8_t original = frame->buffer[0];
+    uint8_t modified = (original & 0xC0) | 0x1B;
+
+    if(modified == original) return false;
+
+    frame->buffer[0] = modified;
+    state->tlssc_restore_count++;
+    return true;
+}
+
+// --- Track Mode inject (0x313 / 787) ---
+// Source: ev-open-can-tools HW3Handler frame.id == 787
+// byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn)
+// checksum in byte[7] = computeVehicleChecksum
+
+bool fsd_handle_track_mode_inject(FSDState* state, CANFRAME* frame) {
+    if(frame->data_lenght < 8) return false;
+    if(state->op_mode != OpMode_Service) return false;
+    if(state->track_mode_state == 0) return false; // require explicit user toggle
+    // set track mode request ON
+    frame->buffer[0] = (frame->buffer[0] & 0xFC) | 0x01;
+    // recalculate Tesla vehicle checksum
+    uint16_t sum = (CAN_ID_TRACK_MODE_SET & 0xFF) + ((CAN_ID_TRACK_MODE_SET >> 8) & 0xFF);
+    for(int i = 0; i < 7; i++)
+        sum += frame->buffer[i];
+    frame->buffer[7] = (uint8_t)(sum & 0xFF);
+    return true;
 }
 
 // --- SCCM_leftStalk (0x249) builders — Party CAN, 3 bytes ---
@@ -530,15 +745,81 @@ void fsd_handle_das_steering(FSDState* state, const CANFRAME* frame) {
     state->das_steer_angle_req = raw * 0.1f - 1638.35f;
 }
 
-// --- Nag killer (CAN 880 counter+1 echo) ---
+// --- Nag killer (DAS-aware counter+1 echo) ---
+//
+// Improved from ev-open-can-tools PR #5 (zdenekbouresh):
+//
+// 1. DAS-aware gating: only echo when DAS_autopilotHandsOnState (from
+//    0x39B, already parsed in fsd_handle_das_status) indicates the car
+//    is actually demanding hands-on. States 0 (NOT_REQD) and 8
+//    (SUSPENDED) mean DAS is satisfied — no echo needed. This reduces
+//    spurious bus traffic from ~25 frames/sec to near-zero during normal
+//    driving.
+//
+// 2. Organic torque variation: replaces fixed 1.80 Nm with a smooth
+//    random walk [1.00-2.40 Nm] plus brief "grip pulses" [3.10-3.30 Nm]
+//    every ~5-9 seconds. A flat torque signal for 30+ minutes is a
+//    statistical impossibility from a real hand — this makes telemetry
+//    detection much harder.
+
+// xorshift32 PRNG — no stdlib dependency, deterministic, fast
+static uint32_t nag_prng_state = 0xDEADBEEF;
+static uint32_t nag_xorshift32(void) {
+    uint32_t x = nag_prng_state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    nag_prng_state = x;
+    return x;
+}
+
+// Torque random walk state
+static int16_t nag_torq_walk = 2230; // raw starting = 1.80 Nm
+static uint8_t nag_exc_frames = 0; // frames in grip excursion
+static uint16_t nag_frames_until_exc = 175; // frames until next excursion
 
 bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out) {
     if(frame->data_lenght < 8) return false;
     if(!state->nag_killer) return false;
 
-    // only act when handsOnLevel == 0 (no hands detected)
+    // Act on handsOnLevel 0 (nag imminent) and 3 (escalated alarm).
+    // Previous "hands_on != 0" guard silently skipped level 3, leaving the
+    // escalated alarm unsuppressed. Only skip when hands are actually
+    // detected (level 1).
     uint8_t hands_on = (frame->buffer[4] >> 6) & 0x03;
-    if(hands_on != 0) return false;
+    if(hands_on == 1) return false;
+
+    // DAS-aware gating: skip echo when DAS is satisfied or AP suspended.
+    // das_hands_on_state is parsed from 0x39B in fsd_handle_das_status().
+    // 0 = NOT_REQD (satisfied), 8 = SUSPENDED (AP paused).
+    // 0xFF = no DAS frame seen yet — echo conservatively as fallback.
+    uint8_t das = state->das_hands_on_state;
+    if(das == 0 || das == 8) return false;
+
+    // --- Organic torque variation ---
+    // torsionBarTorque encoding: tRaw = (Nm + 20.5) / 0.01
+    // d[2] lower nibble = tRaw >> 8, d[3] = tRaw & 0xFF
+    int16_t torq;
+    if(nag_exc_frames > 0) {
+        // Grip pulse: ~3.20 Nm ± small noise
+        torq = 2350 + (int16_t)((nag_xorshift32() % 41) - 20);
+        nag_exc_frames--;
+    } else {
+        // Normal random walk: step ±15 per frame
+        int16_t step = (int16_t)((nag_xorshift32() % 31) - 15);
+        nag_torq_walk += step;
+        if(nag_torq_walk < 2150) nag_torq_walk = 2150; // min ~1.00 Nm
+        if(nag_torq_walk > 2290) nag_torq_walk = 2290; // max ~2.40 Nm
+        torq = nag_torq_walk;
+
+        // Count down to next grip excursion
+        if(nag_frames_until_exc > 0) {
+            nag_frames_until_exc--;
+        } else {
+            nag_exc_frames = 3 + (nag_xorshift32() % 3); // 3-5 frames
+            nag_frames_until_exc = 125 + (nag_xorshift32() % 100); // 5-9 sec
+        }
+    }
 
     // build echo frame
     out->canId = CAN_ID_EPAS_STATUS;
@@ -548,9 +829,11 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
 
     out->buffer[0] = frame->buffer[0];
     out->buffer[1] = frame->buffer[1];
-    out->buffer[2] = 0x08;
-    out->buffer[3] = 0xB6; // torsionBarTorque = 1.80 Nm
-    out->buffer[4] = frame->buffer[4] | 0x40; // handsOnLevel = 1
+    out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torq >> 8) & 0x0F);
+    out->buffer[3] = (uint8_t)(torq & 0xFF);
+    // Clear existing handsOnLevel bits (7:6) before setting level=1.
+    // OR-ing 0x40 without clearing leaves level=3 unchanged on escalated frames.
+    out->buffer[4] = (frame->buffer[4] & ~0xC0u) | 0x40u;
     out->buffer[5] = frame->buffer[5];
 
     // counter + 1 (byte6 lower nibble)

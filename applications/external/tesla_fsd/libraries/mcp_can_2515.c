@@ -6,7 +6,7 @@ static bool read_register(FuriHalSpiBusHandle* spi, uint8_t address, uint8_t* da
     uint8_t instruction[] = {INSTRUCTION_READ, address};
     furi_hal_spi_acquire(spi);
     furi_hal_spi_bus_tx(spi, instruction, sizeof(instruction), TIMEOUT_SPI);
-    furi_hal_spi_bus_rx(spi, data, sizeof(data), TIMEOUT_SPI);
+    furi_hal_spi_bus_rx(spi, data, 1, TIMEOUT_SPI);
 
     furi_hal_spi_release(spi);
     return ret;
@@ -50,7 +50,7 @@ bool mcp_get_status(FuriHalSpiBusHandle* spi, uint8_t* data) {
     furi_hal_spi_acquire(spi);
     ret =
         (furi_hal_spi_bus_tx(spi, buff, sizeof(buff), TIMEOUT_SPI) &&
-         furi_hal_spi_bus_rx(spi, data, sizeof(data), TIMEOUT_SPI));
+         furi_hal_spi_bus_rx(spi, data, 1, TIMEOUT_SPI));
     furi_hal_spi_release(spi);
     return ret;
 }
@@ -305,6 +305,32 @@ void mcp_set_bitrate(FuriHalSpiBusHandle* spi, MCP_BITRATE bitrate, MCP_CLOCK cl
             break;
         }
         break;
+    case MCP_12MHZ:
+        // 12 MHz crystal (Waveshare RS485 CAN HAT)
+        // Source: arduino-CAN library GitHub issue, verified community values
+        switch(bitrate) {
+        case MCP_125KBPS:
+            cfg1 = 0x02;
+            cfg2 = 0xB5;
+            cfg3 = 0x01;
+            break;
+        case MCP_250KBPS:
+            cfg1 = 0x00;
+            cfg2 = 0xB5;
+            cfg3 = 0x01;
+            break;
+        case MCP_500KBPS:
+            cfg1 = 0x00;
+            cfg2 = 0xA2;
+            cfg3 = 0x02;
+            break;
+        case MCP_1000KBPS:
+            cfg1 = 0x00;
+            cfg2 = 0x80;
+            cfg3 = 0x01;
+            break;
+        }
+        break;
     case MCP_16MHZ:
         switch(bitrate) {
         case MCP_125KBPS:
@@ -466,6 +492,7 @@ void read_frame(FuriHalSpiBusHandle* spi, CANFRAME* frame, uint8_t read_instruct
     furi_hal_spi_bus_rx(spi, &data_ctrl, 1, TIMEOUT);
 
     frame->data_lenght = data_ctrl & MCP_DLC_MASK;
+    if(frame->data_lenght > 8) frame->data_lenght = 8;
     frame->req = (data_ctrl & MCP_RTR_MASK) ? 1 : 0;
 
     for(uint8_t i = 0; i < frame->data_lenght; i++) {
@@ -587,6 +614,7 @@ void write_dlc_register(FuriHalSpiBusHandle* spi, uint8_t address, CANFRAME* fra
 // write data in the registers
 void write_buffer(FuriHalSpiBusHandle* spi, uint8_t address, CANFRAME* frame) {
     uint8_t data_lenght = frame->data_lenght;
+    if(data_lenght > 8) data_lenght = 8;
 
     address = address + 5;
 
@@ -628,6 +656,7 @@ ERROR_CAN send_can_message(FuriHalSpiBusHandle* spi, CANFRAME* frame, uint8_t tx
     memset(&auxiliar_frame, 0, sizeof(CANFRAME));
     auxiliar_frame.canId = frame->canId;
     auxiliar_frame.data_lenght = frame->data_lenght;
+    if(auxiliar_frame.data_lenght > 8) auxiliar_frame.data_lenght = 8;
     auxiliar_frame.ext = frame->ext;
     auxiliar_frame.req = frame->req;
 
@@ -726,7 +755,12 @@ ERROR_CAN is_this_bitrate(MCP2515* mcp_can, MCP_BITRATE bitrate) {
 // This function works to alloc the struct
 MCP2515* mcp_alloc(MCP_MODE mode, MCP_CLOCK clck, MCP_BITRATE bitrate) {
     MCP2515* mcp_can = malloc(sizeof(MCP2515));
+    if(!mcp_can) return NULL;
     mcp_can->spi = spi_alloc();
+    if(!mcp_can->spi) {
+        free(mcp_can);
+        return NULL;
+    }
     mcp_can->mode = mode;
     mcp_can->bitRate = bitrate;
     mcp_can->clck = clck;
