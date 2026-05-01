@@ -11,7 +11,11 @@
 #include ENGINE_LOG_INCLUDE
 #endif
 
-#define PLAYER_SPEED_HORIZONTAL 0.15f
+#define PLAYER_SPEED_HORIZONTAL 0.2f
+
+#define TICKS_PER_DAY 2500
+
+#define ENEMY_SPAWN_MAX 3
 
 #define MINIMAP_DEFAULT false
 
