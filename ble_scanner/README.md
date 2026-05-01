@@ -90,7 +90,7 @@ BLE Scanner                [scanning]
 ----------------------------------
 RSSI MAC               Name
  -45 AA:BB:CC:DD:EE:FF MyPho
- -52 11:22:33:44:55:66 [AirTag!]
+ -52 11:22:33:44:55:66 !TAG!
  -68 77:88:99:AA:BB:CC
  -71 DD:EE:FF:00:11:22 Watch
  -83 DE:VI:CE:12:34:56 Speak
