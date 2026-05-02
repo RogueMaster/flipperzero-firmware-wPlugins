@@ -477,7 +477,7 @@ void GhoulsLevel::render(Game *game)
             uint8_t wi = idx - RENDER_WALL_OFFSET;
             Sprite3D *wallSpr = (wi < mapData.hWallCount) ? wallSprite : vWallSprite;
             wallSpr->setPosition((wi < mapData.hWallCount) ? mapData.hWallPositions[wi] : mapData.vWallPositions[wi - mapData.hWallCount]);
-            render3DSprite(wallSpr, game->draw, camPos, camDir, gameCamera->height);
+            render3DSprite(wallSpr, game->draw, camPos, camDir, gameCamera->height, true);
         }
         else
         {

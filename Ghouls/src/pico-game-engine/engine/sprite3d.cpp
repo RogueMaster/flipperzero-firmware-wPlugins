@@ -396,88 +396,60 @@ bool Sprite3D::createWall(float x, float y, float z, float width, float height, 
     return true;
 }
 
-static void scale_vertex(float &x, float &y, float &z, float scale_factor)
-{
-    x *= scale_factor;
-    y *= scale_factor;
-    z *= scale_factor;
-}
-
-static void rotateY_vertex(float &x, float &z, float angle)
-{
-    float cos_a = cosf(angle);
-    float sin_a = sinf(angle);
-    float orig_x = x; // Store original x
-    x = orig_x * cos_a - z * sin_a;
-    z = orig_x * sin_a + z * cos_a; // Use original x
-}
-
-static void translate_vertex(float &x, float &y, float &z, float dx, float dy, float dz)
-{
-    x += dx;
-    y += dy;
-    z += dz;
-}
-
 Triangle3D Sprite3D::getTransformedTriangle(uint16_t index, const Vector &camera_pos) const
 {
     if (index >= triangle_count)
         return Triangle3D();
 
-    Triangle3D transformed = *triangles[index];
+    Triangle3D t = *triangles[index];
 
-    // Apply transformations to each vertex
-    for (uint8_t v = 0; v < 3; v++)
-    {
-        switch (v)
-        {
-        case 0:
-        {
-            // Scale
-            scale_vertex(transformed.x1, transformed.y1, transformed.z1, scale_factor);
-            // Rotate around Y axis
-            rotateY_vertex(transformed.x1, transformed.z1, rotation_y);
-            // Translate to world position
-            translate_vertex(transformed.x1, transformed.y1, transformed.z1, position.x, position.z, position.y);
-            break;
-        }
-        case 1:
-        {
-            // Scale
-            scale_vertex(transformed.x2, transformed.y2, transformed.z2, scale_factor);
-            // Rotate around Y axis
-            rotateY_vertex(transformed.x2, transformed.z2, rotation_y);
-            // Translate to world position
-            translate_vertex(transformed.x2, transformed.y2, transformed.z2, position.x, position.z, position.y);
-            break;
-        }
-        case 2:
-        {
-            // Scale
-            scale_vertex(transformed.x3, transformed.y3, transformed.z3, scale_factor);
-            // Rotate around Y axis
-            rotateY_vertex(transformed.x3, transformed.z3, rotation_y);
-            // Translate to world position
-            translate_vertex(transformed.x3, transformed.y3, transformed.z3, position.x, position.z, position.y);
-            break;
-        }
-        default:
-            break;
-        };
-    }
+    // compute sin/cos once for all three vertices
+    const float cos_a = cosf(rotation_y);
+    const float sin_a = sinf(rotation_y);
 
-    // Check if triangle should be rendered
-    if (transformed.isFacingCamera(camera_pos))
+    // Vertex 1
+    t.x1 *= scale_factor;
+    t.y1 *= scale_factor;
+    t.z1 *= scale_factor;
+    float ox = t.x1;
+    t.x1 = ox * cos_a - t.z1 * sin_a;
+    t.z1 = ox * sin_a + t.z1 * cos_a;
+    t.x1 += position.x;
+    t.y1 += position.z;
+    t.z1 += position.y;
+
+    // Vertex 2
+    t.x2 *= scale_factor;
+    t.y2 *= scale_factor;
+    t.z2 *= scale_factor;
+    ox = t.x2;
+    t.x2 = ox * cos_a - t.z2 * sin_a;
+    t.z2 = ox * sin_a + t.z2 * cos_a;
+    t.x2 += position.x;
+    t.y2 += position.z;
+    t.z2 += position.y;
+
+    // Vertex 3
+    t.x3 *= scale_factor;
+    t.y3 *= scale_factor;
+    t.z3 *= scale_factor;
+    ox = t.x3;
+    t.x3 = ox * cos_a - t.z3 * sin_a;
+    t.z3 = ox * sin_a + t.z3 * cos_a;
+    t.x3 += position.x;
+    t.y3 += position.z;
+    t.z3 += position.y;
+
+    // set flag and return
+    t.set = t.isFacingCamera(camera_pos);
+    if (t.set)
     {
-        // Calculate distance for sorting
-        Vector center = transformed.getCenter();
+        Vector center = t.getCenter();
         float dx = center.x - camera_pos.x;
         float dz = center.z - camera_pos.y;
-        transformed.distance = sqrtf(dx * dx + dz * dz);
-
-        return transformed;
+        t.distance = sqrtf(dx * dx + dz * dz);
     }
-    return Triangle3D(); // Return empty triangle if not facing camera
+    return t;
 }
 
 bool Sprite3D::initializeAsHouse(Vector pos, float width, float height, float rot, uint16_t color, bool wireframe)
