@@ -515,23 +515,31 @@ void Level::stop()
 // Update all active entities
 void Level::update(Game *game)
 {
-    for (int i = 0; i < entity_count; i++)
+    for (int i = entity_count - 1; i >= 0; i--)
     {
-        Entity *ent = entities[i];
+        Entity *ent = getEntity(i);
+        if (!ent)
+            continue;
 
-        if (ent != nullptr && ent->is_active)
+        if (!ent->is_active)
         {
-            ent->update(game);
+            entity_remove(ent);
+            continue;
+        }
 
-            for (int j = 0; j < entity_count; j++)
-            {
-                if (entities[j] != nullptr &&
-                    entities[j] != ent &&
-                    is_collision(ent, entities[j]))
-                {
-                    ent->collision(entities[j], game);
-                }
-            }
+        ent->update(game);
+
+        for (int j = entity_count - 1; j > i; j--)
+        {
+            Entity *other = getEntity(j);
+            if (!other || !other->is_active || !is_collision(ent, other))
+                continue;
+
+            ent->collision(other, game);
+            if (!ent->is_active)
+                break;
+
+            other->collision(ent, game);
         }
     }
 }

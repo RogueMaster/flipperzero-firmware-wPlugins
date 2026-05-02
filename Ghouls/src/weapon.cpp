@@ -323,8 +323,8 @@ void Weapon::reset(Level *level)
 
     if (currentProjectile)
     {
-        level->entity_remove(currentProjectile);
-        // no need to delete, level already did
+        // set inactive and null our reference
+        currentProjectile->is_active = false;
         currentProjectile = nullptr;
     }
 }
@@ -382,12 +382,8 @@ void Weapon::update(Game *game)
             set3DSpriteRotation(rotation_angle);
         }
     }
-
-    // check for dead projectile
-    if (currentProjectile != nullptr && !currentProjectile->is_active)
+    else if (currentProjectile && !currentProjectile->is_active)
     {
-        currentLevel->entity_remove(currentProjectile);
-        // no need to delete, level already did
         currentProjectile = nullptr;
     }
 }

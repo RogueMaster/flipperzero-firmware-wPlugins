@@ -782,29 +782,35 @@ void GhoulsLevel::update(Game *game)
 #if SKY_RENDER_ALLOWED
     sky->tick();
 #endif
-
 #if GROUND_RENDER_ALLOWED
     ground->tick();
 #endif
 
-    for (int i = 0; i < getEntityCount(); i++)
+    for (int i = getEntityCount() - 1; i >= 0; i--)
     {
         Entity *ent = getEntity(i);
+        if (!ent)
+            continue;
 
-        if (ent != nullptr && ent->is_active)
+        if (!ent->is_active)
         {
-            ent->update(game);
+            entity_remove(ent);
+            continue;
+        }
 
-            for (int j = 0; j < getEntityCount(); j++)
-            {
-                Entity *other = getEntity(j);
-                if (other != nullptr &&
-                    other != ent &&
-                    is_collision(ent, other))
-                {
-                    ent->collision(other, game);
-                }
-            }
+        ent->update(game);
+
+        for (int j = getEntityCount() - 1; j > i; j--)
+        {
+            Entity *other = getEntity(j);
+            if (!other || !other->is_active || !is_collision(ent, other))
+                continue;
+
+            ent->collision(other, game);
+            if (!ent->is_active)
+                break;
+
+            other->collision(ent, game);
         }
     }
 }

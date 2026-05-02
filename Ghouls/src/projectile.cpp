@@ -86,7 +86,7 @@ void Projectile::collision(Entity *other, Game *game)
         if (otherHasDied)
         {
             // remove the enemy from the level
-            game->current_level->entity_remove(other);
+            other->is_active = false;
         }
 
         switch (projectileType)

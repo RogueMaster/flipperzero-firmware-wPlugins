@@ -356,7 +356,7 @@ bool GhoulsGame::removeGhoulsFromLevel()
         Entity *entity = level->getEntity(i);
         if (entity && entity->type == ENTITY_ENEMY)
         {
-            level->entity_remove(entity);
+            entity->is_active = false;
             i--; // Adjust index after removal
         }
     }

@@ -2513,7 +2513,7 @@ void Player::updateEntitiesFromServer(const char *csv)
                 Entity *e = currentLevel->getEntity(i);
                 if (e && e->name && strcmp(e->name, entity_name) == 0)
                 {
-                    currentLevel->entity_remove(e);
+                    e->is_active = false;
                     break;
                 }
             }
