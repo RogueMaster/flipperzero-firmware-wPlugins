@@ -6,6 +6,13 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-02
+
+### docs
+- **rayhunter_client**: Full re-trace review — no bugs found. All 1190 lines verified clean across rayhunter_uart.c, rayhunter_worker.c, and rayhunter.c. Buffer sizes (status_row[72], counters[32] exact-fit, footer[48], alert_msg[128], status_buf[64]), view lifecycle (3 views), ViewModelTypeLocking, teardown ordering, UART ISR/worker pipeline, threat keyword parsing, notification de-duplication, settings callbacks, timer daemon stack safety, and back-button handling all confirmed correct. Prior fixes (NULL context guard, volatile connected) verified present.
+
+---
+
 ## 2026-05-01
 
 ### docs
