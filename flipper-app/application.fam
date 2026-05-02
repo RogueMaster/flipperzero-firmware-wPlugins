@@ -1,0 +1,13 @@
+App(
+    appid="bitraw_analyzer",
+    name="BinRAW Analyzer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="bitraw_analyzer_app",
+    requires=["gui", "storage", "dialogs"],
+    stack_size=4 * 1024,
+    fap_category="Sub-GHz",
+    fap_icon="icons/icon_10x10.png",
+    fap_author="bitraw-analysis",
+    fap_version="1.0",
+    fap_description="Classify Flipper SubGhz BinRAW captures on-device",
+)
