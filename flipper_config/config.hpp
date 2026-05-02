@@ -6,10 +6,12 @@
 #include "Ghouls/src/pico-game-engine/engine_config.hpp"
 
 #include ENGINE_MEM_INCLUDE
-
+#include ENGINE_STORAGE_INCLUDE
 #ifdef ENGINE_LOG_INCLUDE
 #include ENGINE_LOG_INCLUDE
 #endif
+
+#define ASSETS_FOLDER STORAGE_EXT_PATH_PREFIX "/apps_data/ghouls/data/"
 
 #define PLAYER_SPEED_HORIZONTAL 0.2f
 
