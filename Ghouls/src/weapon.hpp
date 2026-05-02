@@ -42,7 +42,7 @@ public:
     bool isAmmoFull() const;             // Check if the ammo count is at maximum for this weapon type
     bool isHeld() const;                 // Check if the weapon is currently held by a player
     bool isTouched() const;              // Check if the weapon has been picked up at least once
-    void reset(Level *level);            // Reset the weapon's state
+    void reset();                        // Reset the weapon's state
     void setAmmo(uint16_t ammo);         // Set the current ammo count
     void setDamage(float damage);        // Set the damage this weapon will deal
     void setHeld(bool held);             // Set whether the weapon is currently held by a player

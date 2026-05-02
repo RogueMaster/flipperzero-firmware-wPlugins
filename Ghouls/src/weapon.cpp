@@ -317,7 +317,7 @@ void Weapon::makeShotgun(float height)
     sprite_3d->createCube(0, 0.42f * s, 0.72f * s, 0.02f * s, 0.03f * s, 0.02f * s, rgb565(0xff4400));
 }
 
-void Weapon::reset(Level *level)
+void Weapon::reset()
 {
     ammo = maxAmmo;
 
