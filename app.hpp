@@ -17,7 +17,7 @@
 #include "Ghouls/src/game.hpp"
 
 #define TAG "Ghouls"
-#define VERSION "0.5"
+#define VERSION "0.6"
 #define VERSION_TAG TAG " " VERSION
 #define APP_ID "ghouls"
 
