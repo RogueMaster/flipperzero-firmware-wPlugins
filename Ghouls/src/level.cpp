@@ -95,46 +95,16 @@ bool GhoulsLevel::collisionMapCheck(Vector new_position)
     if (currentDynamicMap == nullptr)
         return false;
 
-    // Check multiple points around the position to prevent clipping through walls
-    const float offset = 0.5f;
-    const uint8_t width = currentDynamicMap->getWidth();
-    const uint8_t height = currentDynamicMap->getHeight();
-
-    Vector checkPoints[] = {
-        new_position,                                             // Center
-        Vector(new_position.x - offset, new_position.y - offset), // Top-left
-        Vector(new_position.x + offset, new_position.y - offset), // Top-right
-        Vector(new_position.x - offset, new_position.y + offset), // Bottom-left
-        Vector(new_position.x + offset, new_position.y + offset)  // Bottom-right
-    };
-
-    Vector point;
-
-    for (int i = 0; i < 5; i++)
+    // Bounds checking
+    if (new_position.x >= currentDynamicMap->getWidth() ||
+        new_position.y >= currentDynamicMap->getHeight() ||
+        new_position.x < 0 ||
+        new_position.y < 0)
     {
-        point = checkPoints[i];
-
-        // Ensure we're checking within bounds
-        if (point.x < 0 || point.y < 0)
-            return true; // Collision (out of bounds)
-
-        uint8_t x = (uint8_t)point.x;
-        uint8_t y = (uint8_t)point.y;
-
-        // Bounds checking
-        if (x >= width || y >= height)
-        {
-            // Out of bounds, treat as collision
-            return true;
-        }
-
-        if (currentDynamicMap->getTile(x, y) != TILE_EMPTY)
-        {
-            return true;
-        }
+        return true;
     }
 
-    return false; // No collision detected
+    return currentDynamicMap->getTile(new_position.x, new_position.y) != TILE_EMPTY;
 }
 
 bool GhoulsLevel::initializeSprites()
@@ -351,16 +321,6 @@ void GhoulsLevel::render(Game *game)
         ground->render(game->draw);
 #endif
 
-    // Index encoding:
-    //   0 .. HOUSE_SPAWN_COUNT-1                              -> house
-    //   HOUSE_SPAWN_COUNT .. RENDER_WALL_OFFSET-1             -> tree
-    //   RENDER_WALL_OFFSET .. RENDER_ENTITY_OFFSET-1          -> wall segment
-    //   RENDER_ENTITY_OFFSET .. 255                           -> level entity
-    int RENDER_TREE_OFFSET = mapData.houseCount;
-    int RENDER_WALL_OFFSET = (mapData.houseCount + mapData.treeCount);
-    int RENDER_ENTITY_OFFSET = (mapData.houseCount + mapData.treeCount + mapData.hWallCount + mapData.vWallCount);
-    int MAX_RENDER_ITEMS = (mapData.houseCount + mapData.treeCount + mapData.hWallCount + mapData.vWallCount + 32);
-
     // build combined render list
     float *dists = renderDists;
     uint8_t *indices = renderIndices;
@@ -368,8 +328,8 @@ void GhoulsLevel::render(Game *game)
 
     if (renderEnv)
     {
-        // Houses (encoded index 0 .. HOUSE_SPAWN_COUNT-1)
-        for (int i = 0; i < mapData.houseCount && count < MAX_RENDER_ITEMS; i++)
+        // houses
+        for (uint8_t i = 0; i < mapData.houseCount && count < renderItemsMax; i++)
         {
             float dx = mapData.housePositions[i].x - camPos.x;
             float dy = mapData.housePositions[i].y - camPos.y;
@@ -377,12 +337,12 @@ void GhoulsLevel::render(Game *game)
             if (d2 > (float)FIELD_OF_VIEW_SQUARED)
                 continue;
             dists[count] = d2;
-            indices[count] = (uint8_t)i;
+            indices[count] = i;
             count++;
         }
 
-        // Trees (encoded index RENDER_TREE_OFFSET .. RENDER_WALL_OFFSET-1)
-        for (int i = 0; i < mapData.treeCount && count < MAX_RENDER_ITEMS; i++)
+        // trees
+        for (uint8_t i = 0; i < mapData.treeCount && count < renderItemsMax; i++)
         {
             float dx = mapData.treePositions[i].x - camPos.x;
             float dy = mapData.treePositions[i].y - camPos.y;
@@ -390,12 +350,12 @@ void GhoulsLevel::render(Game *game)
             if (d2 > (float)FIELD_OF_VIEW_SQUARED)
                 continue;
             dists[count] = d2;
-            indices[count] = (uint8_t)(RENDER_TREE_OFFSET + i);
+            indices[count] = mapData.houseCount + i;
             count++;
         }
 
-        // Wall segments (encoded index RENDER_WALL_OFFSET .. RENDER_ENTITY_OFFSET-1)
-        for (int i = 0; i < mapData.hWallCount && count < MAX_RENDER_ITEMS; i++)
+        // wall segments (horizontal)
+        for (uint8_t i = 0; i < mapData.hWallCount && count < renderItemsMax; i++)
         {
             float dx = mapData.hWallPositions[i].x - camPos.x;
             float dy = mapData.hWallPositions[i].y - camPos.y;
@@ -403,10 +363,12 @@ void GhoulsLevel::render(Game *game)
             if (d2 > (float)FIELD_OF_VIEW_SQUARED)
                 continue;
             dists[count] = d2;
-            indices[count] = (uint8_t)(RENDER_WALL_OFFSET + i); // hWall index
+            indices[count] = renderWallOffset + i; // hWall index
             count++;
         }
-        for (int i = 0; i < mapData.vWallCount && count < MAX_RENDER_ITEMS; i++)
+
+        // wall segments (vertical)
+        for (uint8_t i = 0; i < mapData.vWallCount && count < renderItemsMax; i++)
         {
             float dx = mapData.vWallPositions[i].x - camPos.x;
             float dy = mapData.vWallPositions[i].y - camPos.y;
@@ -414,13 +376,13 @@ void GhoulsLevel::render(Game *game)
             if (d2 > (float)FIELD_OF_VIEW_SQUARED)
                 continue;
             dists[count] = d2;
-            indices[count] = (uint8_t)(RENDER_WALL_OFFSET + mapData.hWallCount + i); // vWall index
+            indices[count] = renderWallOffset + mapData.hWallCount + i; // vWall index
             count++;
         }
     }
 
-    // Entities (encoded index RENDER_ENTITY_OFFSET + entity_list_index)
-    for (int i = 0; i < getEntityCount() && count < MAX_RENDER_ITEMS; i++)
+    // entities
+    for (int i = 0; i < getEntityCount() && count < renderItemsMax; i++)
     {
         Entity *e = getEntity(i);
         if (!e || !e->is_active)
@@ -428,7 +390,7 @@ void GhoulsLevel::render(Game *game)
         float dx = e->position.x - camPos.x;
         float dy = e->position.y - camPos.y;
         dists[count] = dx * dx + dy * dy;
-        indices[count] = (uint8_t)(RENDER_ENTITY_OFFSET + i);
+        indices[count] = (uint8_t)(renderEntityOffset + i);
         count++;
     }
 
@@ -455,26 +417,26 @@ void GhoulsLevel::render(Game *game)
     {
         const uint8_t idx = indices[i];
 
-        if (idx < RENDER_TREE_OFFSET)
+        if (idx < mapData.houseCount)
         {
             // House
             houseSprite->setPosition(mapData.housePositions[idx]);
             render3DSprite(houseSprite, game->draw, camPos, camDir, gameCamera->height);
         }
-        else if (idx < RENDER_WALL_OFFSET)
+        else if (idx < mapData.houseCount + mapData.treeCount)
         {
             // Tree
-            uint8_t ti = idx - RENDER_TREE_OFFSET;
+            uint8_t ti = idx - mapData.houseCount;
             treeSprite->setPosition(mapData.treePositions[ti]);
             render3DSprite(treeSprite, game->draw, camPos, camDir, gameCamera->height);
         }
-        else if (idx < RENDER_ENTITY_OFFSET)
+        else if (idx < renderEntityOffset)
         {
 #if (!WALL_RENDER_ALLOWED)
             continue;
 #endif
             // Wall segment
-            uint8_t wi = idx - RENDER_WALL_OFFSET;
+            uint8_t wi = idx - renderWallOffset;
             Sprite3D *wallSpr = (wi < mapData.hWallCount) ? wallSprite : vWallSprite;
             wallSpr->setPosition((wi < mapData.hWallCount) ? mapData.hWallPositions[wi] : mapData.vWallPositions[wi - mapData.hWallCount]);
             render3DSprite(wallSpr, game->draw, camPos, camDir, gameCamera->height, true);
@@ -482,7 +444,7 @@ void GhoulsLevel::render(Game *game)
         else
         {
             // Level entity
-            int ei = idx - RENDER_ENTITY_OFFSET;
+            int ei = idx - renderEntityOffset;
             Entity *ent = getEntity(ei);
             if (!ent || !ent->is_active)
                 continue;
@@ -754,7 +716,9 @@ bool GhoulsLevel::setMapPack(const map_data_t &newMapData)
         renderIndices = nullptr;
     }
     mapData = newMapData;
-    renderItemsMax = mapData.houseCount + mapData.treeCount + mapData.vWallCount + mapData.hWallCount + 32;
+    renderWallOffset = mapData.houseCount + mapData.treeCount;
+    renderEntityOffset = renderWallOffset + mapData.hWallCount + mapData.vWallCount;
+    renderItemsMax = renderWallOffset + mapData.vWallCount + mapData.hWallCount + 32;
     renderDists = ENGINE_MEM_NEW float[renderItemsMax];
     if (!renderDists)
     {

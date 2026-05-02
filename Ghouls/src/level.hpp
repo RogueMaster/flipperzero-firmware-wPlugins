@@ -60,5 +60,7 @@ private:
 
     float *renderDists = nullptr;
     uint8_t *renderIndices = nullptr;
-    int renderItemsMax = 0;
+    uint16_t renderEntityOffset = 0;
+    uint16_t renderItemsMax = 0;
+    uint8_t renderWallOffset = 0;
 };

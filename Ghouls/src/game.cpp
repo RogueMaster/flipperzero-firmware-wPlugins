@@ -102,21 +102,17 @@ Game *GhoulsGame::getGame() const
 
 Vector GhoulsGame::getRandomGhoulPosition(Level *level)
 {
-    // possible ghoul spawns
     GhoulsLevel *ghoulsLevel = static_cast<GhoulsLevel *>(level);
     map_data_t *mapData = ghoulsLevel->getMapData();
 
-    uint8_t randomIndex = 0;
     uint8_t attempts = 0;
+    uint8_t randomIndex = 0;
     do
     {
-        randomIndex = rand() % (mapData->ghoulCount);
+        randomIndex = rand() % mapData->ghoulCount;
         attempts++;
-        if (attempts > mapData->ghoulCount)
-        {
-            break;
-        }
-    } while (positionExistsInLevel(level, mapData->ghoulPositions[randomIndex]));
+    } while (positionExistsInLevel(level, mapData->ghoulPositions[randomIndex]) && attempts < mapData->ghoulCount);
+
     return mapData->ghoulPositions[randomIndex];
 }
 
@@ -126,28 +122,22 @@ EnemyType GhoulsGame::getRandomGhoulType() const
     const uint8_t randomIndex = rand() % (sizeof(ghoulTypes) / sizeof(ghoulTypes[0]));
     return ghoulTypes[randomIndex];
 }
-
 Vector GhoulsGame::getRandomWeaponPosition(Level *level)
 {
-    // possible weapon spawns
     GhoulsLevel *ghoulsLevel = static_cast<GhoulsLevel *>(level);
     map_data_t *mapData = ghoulsLevel->getMapData();
 
-    uint8_t randomIndex = 0;
     uint8_t attempts = 0;
     Vector candidate;
     do
     {
-        randomIndex = rand() % (mapData->weaponCount);
+        uint8_t randomIndex = rand() % mapData->weaponCount;
         candidate = mapData->weaponPositions[randomIndex];
         candidate.z = 0.5f;
         attempts++;
-        if (attempts > mapData->weaponCount)
-        {
-            break;
-        }
-    } while (positionExistsInLevel(level, candidate));
-    return mapData->weaponPositions[randomIndex];
+    } while (positionExistsInLevel(level, candidate) && attempts < mapData->weaponCount);
+
+    return candidate;
 }
 
 WeaponType GhoulsGame::getUniqueWeaponType(Level *level)
@@ -357,7 +347,6 @@ bool GhoulsGame::removeGhoulsFromLevel()
         if (entity && entity->type == ENTITY_ENEMY)
         {
             entity->is_active = false;
-            i--; // Adjust index after removal
         }
     }
     return true;
