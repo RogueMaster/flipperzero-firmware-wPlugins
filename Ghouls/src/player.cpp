@@ -1234,7 +1234,7 @@ void Player::drawTitleView(Draw *canvas)
     }
 
     // All files downloaded — transition to lobby menu
-    if (downloadFileIndex >= 11)
+    if (downloadFileIndex >= 16)
     {
         if (loading)
         {
@@ -1256,7 +1256,7 @@ void Player::drawTitleView(Draw *canvas)
         snprintf(path, sizeof(path), ASSETS_FOLDER "%s", downloadFiles[downloadFileIndex]);
 
         snprintf(downloadStatusText, sizeof(downloadStatusText),
-                 "Downloading asset (%d/11)", downloadFileIndex + 1);
+                 "Downloading asset (%d/16)", downloadFileIndex + 1);
 
         if (loading)
         {
