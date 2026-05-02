@@ -33,6 +33,7 @@ private:
     int lastInput = -1;                                                // Last input key pressed
     Player *player = nullptr;                                          // Player instance
     bool shouldExit = false;                                           // Flag to signal exit the game
+    char selectedMapFile[128] = {0};                                   // map file to load for the next local game
     int atoi(const char *nptr) { return (int)strtol(nptr, NULL, 10); } // convert string to integer
     Vector getRandomGhoulPosition(Level *level);                       // get a random position for spawning ghouls
     EnemyType getRandomGhoulType() const;                              // get a random enemy type for spawning ghouls
@@ -79,6 +80,7 @@ public:
     bool isRunning() const { return isGameRunning; }      // Check if the game engine is running
     void onGhoulDied();                                   // Called when a ghoul dies; spawns a replacement if round total not yet reached
     void resetInput() { lastInput = -1; }                 // Reset input after processing
+    void setSelectedMapFile(const char *filename);        // set the map file to use when starting the next local game
     bool soundAllowed() const;                            // Check if sound is allowed based on player settings
     bool startGame();                                     // start the actual game
     bool startGameOnline();                               // start the online multiplayer game

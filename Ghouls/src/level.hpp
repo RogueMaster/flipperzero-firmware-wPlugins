@@ -18,7 +18,7 @@ class GhoulsGame;
 class GhoulsLevel : public Level
 {
 public:
-    GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame);
+    GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame, const char *levelMapFilename = ASSETS_FOLDER "home.ghoulsmap");
     ~GhoulsLevel();
     bool collisionMapCheck(Vector new_position);
     map_data_t *getMapData() { return &mapData; }
@@ -30,8 +30,7 @@ public:
 #endif
     bool isPositionAvailable(Vector position);
     virtual void render(Game *game) override;
-    void renderMiniMap(Draw *canvas);
-    void renderMiniatureMiniMap(Draw *canvas);
+    void renderMiniMap(Draw *canvas, bool miniature = false);
     bool setMapPack(const char *filename);
     bool setMapPack(const map_data_t &newMapData);
     virtual void update(Game *game) override;

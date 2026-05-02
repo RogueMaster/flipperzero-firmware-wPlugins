@@ -6,7 +6,7 @@
 
 #define MAX_TREE_COUNT 64
 #define MAX_HOUSE_COUNT 32
-#define MAX_WALL_COUNT 32
+#define MAX_WALL_COUNT 64
 #define MAX_WEAPON_SPAWN 32 // only 4 weapons will spawn
 #define MAX_GHOUL_SPAWN 32  // only ENEMY_SPAWN_MAX ghouls will spawn at a time
 
@@ -48,5 +48,3 @@ typedef struct
 
 bool mapPackLoadFromFile(const char *filename, map_data_t *outMapData);
 bool mapPackSaveToFile(const char *filename, const map_data_t *mapData);
-
-extern const map_data_t defaultMapPack;

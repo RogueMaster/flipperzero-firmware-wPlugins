@@ -17,7 +17,11 @@ DynamicMap::DynamicMap(uint8_t w, uint8_t h, bool addBorder)
 
 DynamicMap::~DynamicMap()
 {
-    ENGINE_MEM_DELETE[] tileData;
+    if (tileData)
+    {
+        ENGINE_MEM_DELETE[] tileData;
+        tileData = nullptr;
+    }
 }
 
 bool DynamicMap::resize(uint8_t newW, uint8_t newH)
@@ -35,7 +39,11 @@ bool DynamicMap::resize(uint8_t newW, uint8_t newH)
         for (uint8_t x = 0; x < copyW; x++)
             newData[y * newW + x] = tileData[y * width + x];
 
-    ENGINE_MEM_DELETE[] tileData;
+    if (tileData)
+    {
+        ENGINE_MEM_DELETE[] tileData;
+        tileData = nullptr;
+    }
 
     tileData = newData;
     width = newW;
