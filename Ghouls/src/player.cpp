@@ -711,7 +711,12 @@ void Player::drawMapPackView(Draw *canvas)
     if (!mapPackLoaded)
     {
 #if defined(ENGINE_STORAGE_INCLUDE) && defined(ENGINE_STORAGE_FILE_LIST)
-        char rawFiles[MAX_MAP_PACK_FILES][256];
+        // char rawFiles[MAX_MAP_PACK_FILES][256];
+        char **rawFiles = (char **)ENGINE_MEM_MALLOC(sizeof(char *) * MAX_MAP_PACK_FILES);
+        for (uint16_t i = 0; i < MAX_MAP_PACK_FILES; i++)
+        {
+            rawFiles[i] = (char *)ENGINE_MEM_MALLOC(256);
+        }
         uint16_t count = ENGINE_STORAGE_FILE_LIST(ASSETS_FOLDER "*.ghoulsmap", rawFiles, 0, (uint16_t)MAX_MAP_PACK_FILES);
         mapPackCount = 0;
         for (uint16_t i = 0; i < count && mapPackCount < MAX_MAP_PACK_FILES; i++)
@@ -719,6 +724,11 @@ void Player::drawMapPackView(Draw *canvas)
             snprintf(mapPackFiles[mapPackCount], 64, "%s", rawFiles[i]);
             mapPackCount++;
         }
+        for (uint16_t i = 0; i < MAX_MAP_PACK_FILES; i++)
+        {
+            ENGINE_MEM_FREE(rawFiles[i]);
+        }
+        ENGINE_MEM_FREE(rawFiles);
 #endif
         if (mapPackCount == 0)
         {
