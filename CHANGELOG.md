@@ -6,6 +6,16 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-03
+
+### fix
+- **evil_ble**: Removed dead `devices[EVIL_BLE_MAX_DEVICES]` and `device_count` fields from EvilBleApp struct — scanner manages its own internal device array via mutex-protected accessors; the duplicate fields were never referenced, wasting ~2852 bytes of heap.
+
+### docs
+- **evil_ble**: Full re-trace review of all ~1150 lines. Buffer sizes (MAC 18B exact, status_buf 256B, device_labels 64B, clone_menu_label 48B, adv payload 31B), view lifecycle (3 views: 2 Submenus + TextBox), UART ISR/worker/DMB pipeline, scanner mutex discipline, extra_beacon clone engine config/start/stop, teardown ordering (beacon→scanner→UART→views→dispatcher→objects), back-button handling, and stack safety (main ~500/4096, UART ~630/2048) all confirmed correct.
+
+---
+
 ## 2026-05-02
 
 ### docs
