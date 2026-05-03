@@ -11,8 +11,11 @@ void bitraw_scene_result_on_enter(void* context) {
 }
 
 bool bitraw_scene_result_on_event(void* context, SceneManagerEvent event) {
-    UNUSED(context);
-    UNUSED(event);
+    BitrawApp* app = context;
+    if(event.type == SceneManagerEventTypeBack) {
+        return scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, BitrawSceneBrowser);
+    }
     return false;
 }
 

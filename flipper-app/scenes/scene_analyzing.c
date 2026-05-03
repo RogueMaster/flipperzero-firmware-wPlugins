@@ -72,6 +72,10 @@ void bitraw_scene_analyzing_on_enter(void* context) {
 
 bool bitraw_scene_analyzing_on_event(void* context, SceneManagerEvent event) {
     BitrawApp* app = context;
+    if(event.type == SceneManagerEventTypeBack) {
+        return scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, BitrawSceneBrowser);
+    }
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == BitrawCustomEventAnalyzeDone) {
             scene_manager_next_scene(app->scene_manager, BitrawSceneResult);
