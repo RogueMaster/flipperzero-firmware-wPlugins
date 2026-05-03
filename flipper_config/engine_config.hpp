@@ -4,8 +4,8 @@
 #define ENGINE_MAX_TRIANGLES_PER_SPRITE 32 // was 64
 
 // logging
-// #define ENGINE_LOG_INCLUDE "furi.h"
-#define ENGINE_LOG_INFO(...) // FURI_LOG_I("Ghouls", __VA_ARGS__) // (const char *format, ...) -> void
+#define ENGINE_LOG_INCLUDE "furi.h"
+#define ENGINE_LOG_INFO(...) FURI_LOG_I("Ghouls", __VA_ARGS__) // (const char *format, ...) -> void
 
 // memory
 #define ENGINE_MEM_INCLUDE "furi.h"
@@ -48,4 +48,6 @@
 
 // storage
 #define ENGINE_STORAGE_INCLUDE "flipper_config/storage.h"
-#define ENGINE_STORAGE_READ storage_read // (const char *file_path, void *buffer, size_t buffer_size) -> size_t bytes_read
+#define ENGINE_STORAGE_READ storage_read           // (const char *file_path, void *buffer, size_t buffer_size) -> size_t bytes_read
+#define ENGINE_STORAGE_WRITE storage_write         // (const char *file_path, const void *data, size_t data_size) -> bool success
+#define ENGINE_STORAGE_FILE_LIST storage_file_list // (const char *pattern, char output[][256], uint16_t offset, uint16_t max_files) -> uint16_t file_count
