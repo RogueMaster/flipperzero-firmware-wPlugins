@@ -25,19 +25,19 @@ Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float heigh
     case ENEMY_BULLY:
         this->makeBully(height);
         this->strength = 10.0f;
-        this->speed = SPEED_SCALE(0.1f);
+        this->speed = SPEED_SCALE(0.2f);
         this->attack_timer = SPEED_SCALE(200.0f);
         break;
     case ENEMY_CREEPER:
         this->makeCreeper(height);
         this->strength = 20.0f;
-        this->speed = SPEED_SCALE(0.05f);
+        this->speed = SPEED_SCALE(0.1f);
         this->attack_timer = SPEED_SCALE(320.0f);
         break;
     case ENEMY_PUNK:
         this->makePunk(height);
         this->strength = 15.0f;
-        this->speed = SPEED_SCALE(0.07f);
+        this->speed = SPEED_SCALE(0.14f);
         this->attack_timer = SPEED_SCALE(240.0f);
         break;
     default:

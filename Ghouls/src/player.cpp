@@ -2169,9 +2169,9 @@ void Player::render(Draw *canvas, Game *game)
             for (int i = 0; i < game->current_level->getEntityCount(); i++)
             {
                 Entity *entity = game->current_level->getEntity(i);
-                if (entity && !entity->is_active && !entity->is_player)
+                if (entity && !entity->is_visible && !entity->is_player)
                 {
-                    entity->is_active = true; // activate all entities
+                    entity->is_visible = true; // activate all entities
                 }
             }
             _state = GameStatePlaying;
@@ -2243,9 +2243,9 @@ void Player::render(Draw *canvas, Game *game)
             for (int i = 0; i < game->current_level->getEntityCount(); i++)
             {
                 Entity *entity = game->current_level->getEntity(i);
-                if (entity && entity->is_active && !entity->is_player)
+                if (entity && entity->is_visible && !entity->is_player)
                 {
-                    entity->is_active = false; // deactivate all entities
+                    entity->is_visible = false; // deactivate all entities
                 }
             }
             this->is_visible = false; // hide player entity in menu
