@@ -1,19 +1,20 @@
 #include "ground.hpp"
 
-Ground::Ground(GroundType type) : time(0), type(type)
+Ground::Ground() : gradient{}, time(0)
 {
+    memset(&gradient, 0, sizeof(gradient_color_t));
 }
 
 Ground::~Ground()
 {
+    // nothing to do...
 }
 
 void Ground::drawGradientGround(Draw *draw,
                                 uint8_t horizR, uint8_t horizG, uint8_t horizB,
                                 uint8_t botR, uint8_t botG, uint8_t botB)
 {
-    Vector screen = draw->getDisplaySize();
-    uint16_t groundHeight = (uint16_t)screen.y - GROUND_HORIZON_HEIGHT;
+    const uint16_t groundHeight = (uint16_t)draw->getDisplaySize().y - GROUND_HORIZON_HEIGHT;
 
     const int drdy = ((botR - horizR) * FIXED_POINT_SCALE) / groundHeight;
     const int dgdy = ((botG - horizG) * FIXED_POINT_SCALE) / groundHeight;
@@ -43,31 +44,53 @@ uint16_t Ground::makeRGB565(uint8_t r, uint8_t g, uint8_t b)
 
 void Ground::render(Draw *draw)
 {
-    switch (this->type)
+    drawGradientGround(draw,
+                       gradient.horizR, gradient.horizG, gradient.horizB,
+                       gradient.layerR, gradient.layerG, gradient.layerB);
+}
+
+void Ground::setGround(gradient_color_t groundGradient)
+{
+    this->gradient = groundGradient;
+}
+
+void Ground::setGroundType(GroundType groundType)
+{
+    switch (groundType)
     {
     case GROUND_GRASS:
-        drawGradientGround(draw,
-                           80, 110, 50,
-                           30, 55, 15);
+        this->gradient = {
+            .horizR = 80,
+            .horizG = 110,
+            .horizB = 50,
+            .layerR = 30,
+            .layerG = 55,
+            .layerB = 15,
+        };
         break;
     case GROUND_DIRT:
-        drawGradientGround(draw,
-                           200, 140, 70,
-                           140, 90, 40);
+        this->gradient = {
+            .horizR = 200,
+            .horizG = 140,
+            .horizB = 70,
+            .layerR = 140,
+            .layerG = 90,
+            .layerB = 40,
+        };
         break;
     case GROUND_DARK:
-        drawGradientGround(draw,
-                           60, 45, 25,
-                           22, 16, 8);
+        this->gradient = {
+            .horizR = 60,
+            .horizG = 45,
+            .horizB = 25,
+            .layerR = 22,
+            .layerG = 16,
+            .layerB = 8,
+        };
         break;
     default:
         break;
-    }
-}
-
-void Ground::setGroundType(GroundType newType)
-{
-    this->type = newType;
+    };
 }
 
 void Ground::tick()

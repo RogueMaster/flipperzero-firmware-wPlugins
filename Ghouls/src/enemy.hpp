@@ -21,7 +21,7 @@ class Enemy : public Entity
     void makePunk(float height);                                    // Create a punk enemy with the specified height
 
 public:
-    Enemy(const char *name, Vector position, EnemyType enemyType = ENEMY_BULLY, float height = 2.0f, float width = 1.5f, float rotation = 0.0f, Vector endPosition = Vector(-1, -1));
+    Enemy(const char *name, Vector position, EnemyType enemyType = ENEMY_BULLY, float height = 3.0f, float width = 2.0f, float rotation = 0.0f, Vector endPosition = Vector(-1, -1));
     ~Enemy() = default;
     void update(Game *game) override;
 };

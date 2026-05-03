@@ -4,6 +4,14 @@
 
 #define GITHUB_ASSETS_URL "https://raw.githubusercontent.com/jblanked/Ghouls/dev/src/assets/"
 
+#ifndef MAX_MAP_PACK_FILES
+#define MAX_MAP_PACK_FILES 5
+#endif
+
+#ifndef MAX_LOBBY_ENTRIES
+#define MAX_LOBBY_ENTRIES 4
+#endif
+
 #ifndef ASSETS_FOLDER
 #define ASSETS_FOLDER "assets/"
 #endif
@@ -62,20 +70,13 @@
 #define TICKS_PER_DAY 3600 // 60 seconds at 60fps
 #endif
 
-#define MAP_WIDTH 96
-#define MAP_HEIGHT 48
-
 #define MAP_WALL_HEIGHT 3.0f
 #define MAP_WALL_DEPTH 0.2f
+#define MAP_WALL_LENGTH 8
 
-#define MAP_OUTER_WALLS 4
-
-#define WALL_SEGMENT_SIZE 8.0f
-#define WALL_H_SEGMENT_COUNT ((MAP_WIDTH / 8) * 2)  // top + bottom walls
-#define WALL_V_SEGMENT_COUNT ((MAP_HEIGHT / 8) * 2) // left + right walls
-#define WALL_SEGMENT_COUNT (WALL_H_SEGMENT_COUNT + WALL_V_SEGMENT_COUNT)
-
+#ifndef ENEMY_SPAWN_MAX
 #define ENEMY_SPAWN_MAX 5 // about 10kb if max_triangles is set to 48
+#endif
 #define ENEMY_HEALTH_BASE 100
 #define ENEMY_HEALTH_INCREMENT 5
 #define ENEMY_STRENGTH_INCREMENT 1
@@ -84,14 +85,26 @@
 #define WEAPON_SPAWN_COUNT 4 // about 8kb if max_triangles is set to 48
 #define WEAPON_VIEW_HEIGHT 1.0f
 #define WEAPON_HIT_COLOR 0xfb4d
+#define WEAPON_GROUND_HEIGHT 0.75f
 
-#define TREE_SPAWN_COUNT 54
-#define TREE_COLOR 0x13e2
 #define TREE_TILE_SIZE 3
-
-#define HOUSE_SPAWN_COUNT 6
-#define HOUSE_COLOR 0xa0a1
 #define HOUSE_TILE_SIZE 3
+
+typedef struct
+{
+    char game_id[37];
+    char game_name[64];
+} lobby_entry_t;
+
+typedef struct
+{
+    uint8_t horizR;
+    uint8_t horizG;
+    uint8_t horizB;
+    uint8_t layerR;
+    uint8_t layerG;
+    uint8_t layerB;
+} gradient_color_t;
 
 typedef enum
 {

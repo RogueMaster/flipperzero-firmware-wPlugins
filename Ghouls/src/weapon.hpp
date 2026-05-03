@@ -35,12 +35,14 @@ public:
     void addMaxAmmo(uint16_t amount);    // add ammo to the max ammo count
     bool fire(Level *level);             // Attempt to fire the weapon, returns true if fired successfully
     uint16_t getAmmo() const;            // Get the current ammo count
+    uint16_t getAmmoDefault() const;     // Get the default starting ammo count for this weapon type
+    uint16_t getAmmoMax() const;         // Get the maximum ammo count for this weapon
     float getDamage() const;             // Get the damage this weapon will deal on hit
     WeaponType getWeaponType() const;    // Get the type of the weapon
     bool isAmmoFull() const;             // Check if the ammo count is at maximum for this weapon type
     bool isHeld() const;                 // Check if the weapon is currently held by a player
     bool isTouched() const;              // Check if the weapon has been picked up at least once
-    void reset(Level *level);            // Reset the weapon's state
+    void reset();                        // Reset the weapon's state
     void setAmmo(uint16_t ammo);         // Set the current ammo count
     void setDamage(float damage);        // Set the damage this weapon will deal
     void setHeld(bool held);             // Set whether the weapon is currently held by a player

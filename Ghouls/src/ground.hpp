@@ -12,16 +12,17 @@ typedef enum
 class Ground
 {
 public:
-    Ground(GroundType type);
+    Ground();
     ~Ground();
 
-    void render(Draw *draw);                // Render the ground using the provided Draw object
-    void setGroundType(GroundType newType); // Change the ground type
-    void tick();                            // advance the ground's internal time
+    void render(Draw *draw);                         // Render the ground using the provided Draw object
+    void setGround(gradient_color_t groundGradient); // Change the ground's gradient colors
+    void setGroundType(GroundType groundType);       // Change the ground type
+    void tick();                                     // advance the ground's internal time
 
 private:
+    gradient_color_t gradient;
     uint32_t time;
-    GroundType type;
 
     void drawGradientGround(Draw *draw,
                             uint8_t horizR, uint8_t horizG, uint8_t horizB,

@@ -47,4 +47,5 @@
 
 // storage
 // #define ENGINE_STORAGE_INCLUDE "example/storage.h"
-// #define ENGINE_STORAGE_READ storage_read // (const char *file_path, void *buffer, size_t buffer_size)
+// #define ENGINE_STORAGE_READ storage_read // (const char *file_path, void *buffer, size_t buffer_size) -> size_t
+// #define ENGINE_STORAGE_WRITE storage_write // (const char *file_path, void *buffer, size_t buffer_size) -> bool

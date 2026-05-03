@@ -152,7 +152,7 @@ void Game::start()
 {
     if (this->levels[0] == nullptr)
     {
-        ENGINE_LOG_INFO("Game::start called but no levels are defined");
+        ENGINE_LOG_INFO("Game::start called but no levels are defined\n");
         return;
     }
     this->current_level = this->levels[0];
@@ -174,7 +174,7 @@ void Game::stop()
 {
     if (!this->is_active)
     {
-        ENGINE_LOG_INFO("Game::stop called but game is not active");
+        ENGINE_LOG_INFO("Game::stop called but game is not active\n");
         return;
     }
 
@@ -203,7 +203,7 @@ void Game::update()
 {
     if (!this->is_active || this->current_level == nullptr)
     {
-        ENGINE_LOG_INFO("Game::update called but game is not active or current level is null");
+        ENGINE_LOG_INFO("Game::update called but game is not active or current level is null\n");
         return;
     }
 

@@ -1,3 +1,9 @@
+## v0.6
+- Added 4 new apps (Maze, Forest, Tron, and Graveyard)
+- Added a map pack system (maps can be created externally and loaded into the game via a .ghoulsmap file)
+- Added a map selection screen before the game starts
+- Updated wall collision to affect the whole area of the wall
+
 ## v0.5
 - Fixed the Loading class to center text
 - Updated ghouls to respect tree and house colliders (they now navigate around them instead of through them)

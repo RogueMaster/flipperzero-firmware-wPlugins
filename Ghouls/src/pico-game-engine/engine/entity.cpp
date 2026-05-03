@@ -234,7 +234,7 @@ void Entity::start(Game *game)
 {
     if (!game)
     {
-        ENGINE_LOG_INFO("Entity::start called with null game pointer");
+        ENGINE_LOG_INFO("Entity::start called with null game pointer\n");
         return;
     }
 

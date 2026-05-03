@@ -7,131 +7,31 @@
 #include <math.h>
 #include <stdio.h>
 
-// clang-format off
-const Vector GhoulsLevel::housePositions[HOUSE_SPAWN_COUNT] = {
-    Vector(12,  8),  // 0
-    Vector(12, 36),  // 1
-    Vector(36, 36),  // 2
-    Vector(72,  8),  // 3
-    Vector(72, 28),  // 4
-    Vector(84, 28),  // 5
-};
-
-const Vector GhoulsLevel::treePositions[TREE_SPAWN_COUNT] = {
-    Vector( 8,  2),  //  0: (2,  0)
-    Vector( 8, 44),  //  1: (2, 11)
-    Vector(12,  2),  //  2: (3,  0)
-    Vector(12, 44),  //  3: (3, 11)
-    Vector(16,  2),  //  4: (4,  0)
-    Vector(16, 44),  //  5: (4, 11)
-    Vector(20, 24),  //  6: (5,  6)
-    Vector(20, 28),  //  7: (5,  7)
-    Vector(28,  8),  //  8: (7,  2)
-    Vector(28, 12),  //  9: (7,  3)
-    Vector(28, 16),  // 10: (7,  4)
-    Vector(32,  8),  // 11: (8,  2)
-    Vector(32, 12),  // 12: (8,  3)
-    Vector(32, 16),  // 13: (8,  4)
-    Vector(36,  8),  // 14: (9,  2)
-    Vector(40,  8),  // 15: (10, 2)
-    Vector(40, 12),  // 16: (10, 3)
-    Vector(40, 16),  // 17: (10, 4)
-    Vector(44,  8),  // 18: (11, 2)
-    Vector(44, 12),  // 19: (11, 3)
-    Vector(44, 16),  // 20: (11, 4)
-    Vector(32, 44),  // 21: (8, 11)
-    Vector(36, 44),  // 22: (9, 11)
-    Vector(40, 44),  // 23: (10,11)
-    Vector(44, 24),  // 24: (11, 6)
-    Vector(44, 28),  // 25: (11, 7)
-    Vector(48,  2),  // 26: (12, 0)
-    Vector(52,  2),  // 27: (13, 0)
-    Vector(56,  2),  // 28: (14, 0)
-    Vector(64, 36),  // 29: (16, 9)
-    Vector(64, 44),  // 30: (16,11)
-    Vector(68, 36),  // 31: (17, 9)
-    Vector(68, 44),  // 32: (17,11)
-    Vector(72, 36),  // 33: (18, 9)
-    Vector(72, 44),  // 34: (18,11)
-    Vector(76,  2),  // 35: (19, 0)
-    Vector(80,  2),  // 36: (20, 0)
-    Vector(84,  2),  // 37: (21, 0)
-    Vector(88,  2),  // 38: (22, 0)
-    Vector(84, 36),  // 39: (21, 9)
-    Vector(88, 36),  // 40: (22, 9)
-    Vector(84, 44),  // 41: (21,11)
-    Vector(92,  2),  // 42: (23, 0)
-    Vector(92,  4),  // 43: (23, 1)
-    Vector(92,  8),  // 44: (23, 2)
-    Vector(92, 12),  // 45: (23, 3)
-    Vector(92, 16),  // 46: (23, 4)
-    Vector(92, 20),  // 47: (23, 5)
-    Vector(92, 24),  // 48: (23, 6)
-    Vector(92, 28),  // 49: (23, 7)
-    Vector(92, 32),  // 50: (23, 8)
-    Vector(92, 36),  // 51: (23, 9)
-    Vector(92, 40),  // 52: (23,10)
-    Vector(92, 44),  // 53: (23,11)
-};
-
-// MAP_WIDTH=96, MAP_HEIGHT=48
-const Vector GhoulsLevel::wallPositions[MAP_OUTER_WALLS] = {
-    Vector(48.0f,  0.5f),  // 0: top horizontal
-    Vector(48.0f, 47.5f),  // 1: bottom horizontal
-    Vector( 0.5f, 24.0f),  // 2: left vertical
-    Vector(95.5f, 24.0f),  // 3: right vertical
-};
-
-// WALL_SEGMENT_SIZE=8 → 12 h-segments per row, 6 v-segments per column
-// Indices 0–23: horizontal (top then bottom); 24–35: vertical (left then right)
-const Vector GhoulsLevel::wallSegmentPositions[WALL_SEGMENT_COUNT] = {
-    // top wall (y=0.5)
-    Vector( 4.0f,  0.5f), Vector(12.0f,  0.5f), Vector(20.0f,  0.5f), Vector(28.0f,  0.5f),
-    Vector(36.0f,  0.5f), Vector(44.0f,  0.5f), Vector(52.0f,  0.5f), Vector(60.0f,  0.5f),
-    Vector(68.0f,  0.5f), Vector(76.0f,  0.5f), Vector(84.0f,  0.5f), Vector(92.0f,  0.5f),
-    // bottom wall (y=47.5)
-    Vector( 4.0f, 47.5f), Vector(12.0f, 47.5f), Vector(20.0f, 47.5f), Vector(28.0f, 47.5f),
-    Vector(36.0f, 47.5f), Vector(44.0f, 47.5f), Vector(52.0f, 47.5f), Vector(60.0f, 47.5f),
-    Vector(68.0f, 47.5f), Vector(76.0f, 47.5f), Vector(84.0f, 47.5f), Vector(92.0f, 47.5f),
-    // left wall (x=0.5)
-    Vector( 0.5f,  4.0f), Vector( 0.5f, 12.0f), Vector( 0.5f, 20.0f),
-    Vector( 0.5f, 28.0f), Vector( 0.5f, 36.0f), Vector( 0.5f, 44.0f),
-    // right wall (x=95.5)
-    Vector(95.5f,  4.0f), Vector(95.5f, 12.0f), Vector(95.5f, 20.0f),
-    Vector(95.5f, 28.0f), Vector(95.5f, 36.0f), Vector(95.5f, 44.0f),
-};
-// clang-format on
-
-GhoulsLevel::GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame)
+GhoulsLevel::GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame, const char *levelMapFilename)
     : Level(name, size, game), ghoulsGame(ghoulsGame)
 {
-    if (!initializeSprites())
+    if (!setMapPack(levelMapFilename))
     {
-        ENGINE_LOG_INFO("[GhoulsLevel:constructor] Failed to initialize sprites for the level");
+        ENGINE_LOG_INFO("[GhoulsLevel:constructor] Failed to set default map pack for the level\n");
         return;
     }
-    currentDynamicMap = ENGINE_MEM_NEW DynamicMap("Online", MAP_WIDTH, MAP_HEIGHT, false, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
-    if (!currentDynamicMap)
-    {
-        ENGINE_LOG_INFO("[GhoulsGame:setDynamicMap] Failed to create map instance");
-        return;
-    }
-    registerSpritePositionsOnMap(currentDynamicMap);
 #if SKY_RENDER_ALLOWED
-    sky = ENGINE_MEM_NEW Sky(SKY_SUNNY);
+    sky = ENGINE_MEM_NEW Sky();
     if (!sky)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Sky instance");
+        ENGINE_LOG_INFO("[GhoulsLevel:constructor] Failed to create Sky instance\n");
         return;
     }
+    sky->setSky(mapData.skyDayGradient);
 #endif
 #if GROUND_RENDER_ALLOWED
-    ground = ENGINE_MEM_NEW Ground(GROUND_DIRT);
+    ground = ENGINE_MEM_NEW Ground();
     if (!ground)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:GhoulsGame] Failed to create Ground instance");
+        ENGINE_LOG_INFO("[GhoulsLevel:constructor] Failed to create Ground instance\n");
         return;
     }
+    ground->setGround(mapData.groundDayGradient);
 #endif
 }
 
@@ -176,6 +76,16 @@ GhoulsLevel::~GhoulsLevel()
         ENGINE_MEM_DELETE currentDynamicMap;
         currentDynamicMap = nullptr;
     }
+    if (renderDists)
+    {
+        ENGINE_MEM_DELETE[] renderDists;
+        renderDists = nullptr;
+    }
+    if (renderIndices)
+    {
+        ENGINE_MEM_DELETE[] renderIndices;
+        renderIndices = nullptr;
+    }
 
     ghoulsGame = nullptr;
 }
@@ -185,93 +95,82 @@ bool GhoulsLevel::collisionMapCheck(Vector new_position)
     if (currentDynamicMap == nullptr)
         return false;
 
-    // Check multiple points around the position to prevent clipping through walls
-    const float offset = 0.5f;
-    const uint8_t width = currentDynamicMap->getWidth();
-    const uint8_t height = currentDynamicMap->getHeight();
-
-    Vector checkPoints[] = {
-        new_position,                                             // Center
-        Vector(new_position.x - offset, new_position.y - offset), // Top-left
-        Vector(new_position.x + offset, new_position.y - offset), // Top-right
-        Vector(new_position.x - offset, new_position.y + offset), // Bottom-left
-        Vector(new_position.x + offset, new_position.y + offset)  // Bottom-right
-    };
-
-    Vector point;
-
-    for (int i = 0; i < 5; i++)
+    // Bounds checking
+    if (new_position.x >= currentDynamicMap->getWidth() ||
+        new_position.y >= currentDynamicMap->getHeight() ||
+        new_position.x < 0 ||
+        new_position.y < 0)
     {
-        point = checkPoints[i];
-
-        // Ensure we're checking within bounds
-        if (point.x < 0 || point.y < 0)
-            return true; // Collision (out of bounds)
-
-        uint8_t x = (uint8_t)point.x;
-        uint8_t y = (uint8_t)point.y;
-
-        // Bounds checking
-        if (x >= width || y >= height)
-        {
-            // Out of bounds, treat as collision
-            return true;
-        }
-
-        if (currentDynamicMap->getTile(x, y) != TILE_EMPTY)
-        {
-            return true;
-        }
+        return true;
     }
 
-    return false; // No collision detected
+    return currentDynamicMap->getTile(new_position.x, new_position.y) != TILE_EMPTY;
 }
 
 bool GhoulsLevel::initializeSprites()
 {
+    // cleanup first
+    if (houseSprite)
+    {
+        ENGINE_MEM_DELETE houseSprite;
+        houseSprite = nullptr;
+    }
+    if (treeSprite)
+    {
+        ENGINE_MEM_DELETE treeSprite;
+        treeSprite = nullptr;
+    }
+    if (wallSprite)
+    {
+        ENGINE_MEM_DELETE wallSprite;
+        wallSprite = nullptr;
+    }
+    if (vWallSprite)
+    {
+        ENGINE_MEM_DELETE vWallSprite;
+        vWallSprite = nullptr;
+    }
     // house
     houseSprite = ENGINE_MEM_NEW Sprite3D();
     if (!houseSprite)
     {
-        ENGINE_LOG_INFO("[GhoulsLevel:initializeSprites] Failed to create Sprite3D instance for house sprite");
+        ENGINE_LOG_INFO("[GhoulsLevel:initializeSprites] Failed to create Sprite3D instance for house sprite\n");
         return false;
     }
-    houseSprite->initializeAsHouse(Vector(), 3.0f, 3.0f, 0.0f, HOUSE_COLOR, WIREFRAME_ENABLED);
+    houseSprite->initializeAsHouse(Vector(), 3.0f, 3.0f, 0.0f, mapData.houseColor, WIREFRAME_ENABLED);
 
     // tree
     treeSprite = ENGINE_MEM_NEW Sprite3D();
     if (!treeSprite)
     {
-        ENGINE_LOG_INFO("[GhoulsLevel:initializeSprites] Failed to create Sprite3D instance for tree sprite");
+        ENGINE_LOG_INFO("[GhoulsLevel:initializeSprites] Failed to create Sprite3D instance for tree sprite\n");
         return false;
     }
-    treeSprite->initializeAsTree(Vector(), 4.0f, TREE_COLOR, WIREFRAME_ENABLED);
+    treeSprite->initializeAsTree(Vector(), 4.0f, mapData.treeColor, WIREFRAME_ENABLED);
 
     // horizontal wall (top/bottom borders: len = MAP_WIDTH, rotation = 0)
     wallSprite = ENGINE_MEM_NEW Sprite3D();
     if (!wallSprite)
     {
-        ENGINE_LOG_INFO("[GhoulsLevel:initializeSprites] Failed to create Sprite3D instance for horizontal wall sprite");
+        ENGINE_LOG_INFO("[GhoulsLevel:initializeSprites] Failed to create Sprite3D instance for horizontal wall sprite\n");
         return false;
     }
     wallSprite->setPosition(Vector(0, 0));
     wallSprite->setRotation(0.0f);
-    wallSprite->createWall(0, 0.75f, 0, 8.0f, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
+    wallSprite->createWall(0, 0.75f, 0, (float)MAP_WALL_LENGTH, MAP_WALL_HEIGHT, MAP_WALL_DEPTH, mapData.wallColor, WIREFRAME_ENABLED);
     wallSprite->setActive(true);
-    wallSprite->setWireframe(WIREFRAME_ENABLED);
 
     // vertical wall (left/right borders: segment width = 8, rotation = pi/2)
     vWallSprite = ENGINE_MEM_NEW Sprite3D();
     if (!vWallSprite)
     {
-        ENGINE_LOG_INFO("[GhoulsLevel:initializeSprites] Failed to create Sprite3D instance for vertical wall sprite");
+        ENGINE_LOG_INFO("[GhoulsLevel:initializeSprites] Failed to create Sprite3D instance for vertical wall sprite\n");
         return false;
     }
     vWallSprite->setPosition(Vector(0, 0));
     vWallSprite->setRotation((float)(M_PI / 2.0));
-    vWallSprite->createWall(0, 0.75f, 0, 8.0f, MAP_WALL_HEIGHT, MAP_WALL_DEPTH);
+    vWallSprite->createWall(0, 0.75f, 0, (float)MAP_WALL_LENGTH, MAP_WALL_HEIGHT, MAP_WALL_DEPTH, mapData.wallColor, WIREFRAME_ENABLED);
     vWallSprite->setActive(true);
-    vWallSprite->setWireframe(WIREFRAME_ENABLED);
 
     return true;
 }
@@ -279,17 +178,32 @@ bool GhoulsLevel::initializeSprites()
 bool GhoulsLevel::isPositionAvailable(Vector position)
 {
     // check houses
-    for (uint8_t i = 0; i < HOUSE_SPAWN_COUNT; i++)
+    for (uint8_t i = 0; i < mapData.houseCount; i++)
     {
-        if (position == housePositions[i])
+        if (position == mapData.housePositions[i])
         {
             return false;
         }
     }
     // check trees
-    for (uint8_t i = 0; i < TREE_SPAWN_COUNT; i++)
+    for (uint8_t i = 0; i < mapData.treeCount; i++)
     {
-        if (position == treePositions[i])
+        if (position == mapData.treePositions[i])
+        {
+            return false;
+        }
+    }
+    // check walls
+    for (uint8_t i = 0; i < mapData.hWallCount; i++)
+    {
+        if (position == mapData.hWallPositions[i])
+        {
+            return false;
+        }
+    }
+    for (uint8_t i = 0; i < mapData.vWallCount; i++)
+    {
+        if (position == mapData.vWallPositions[i])
         {
             return false;
         }
@@ -301,10 +215,10 @@ void GhoulsLevel::registerSpritePositionsOnMap(DynamicMap *map)
 {
     // Houses: fill the full HOUSE_TILE_SIZE x HOUSE_TILE_SIZE footprint centered on spawn
     const int hHalf = HOUSE_TILE_SIZE / 2;
-    for (uint8_t i = 0; i < HOUSE_SPAWN_COUNT; i++)
+    for (uint8_t i = 0; i < mapData.houseCount; i++)
     {
-        int cx = (int)housePositions[i].x;
-        int cy = (int)housePositions[i].y;
+        int cx = (int)mapData.housePositions[i].x;
+        int cy = (int)mapData.housePositions[i].y;
         for (int dy = -hHalf; dy <= hHalf; dy++)
         {
             for (int dx = -hHalf; dx <= hHalf; dx++)
@@ -319,10 +233,10 @@ void GhoulsLevel::registerSpritePositionsOnMap(DynamicMap *map)
 
     // Trees: fill the full TREE_TILE_SIZE x TREE_TILE_SIZE footprint centered on spawn
     const int tHalf = TREE_TILE_SIZE / 2;
-    for (uint8_t i = 0; i < TREE_SPAWN_COUNT; i++)
+    for (uint8_t i = 0; i < mapData.treeCount; i++)
     {
-        int cx = (int)treePositions[i].x;
-        int cy = (int)treePositions[i].y;
+        int cx = (int)mapData.treePositions[i].x;
+        int cy = (int)mapData.treePositions[i].y;
         for (int dy = -tHalf; dy <= tHalf; dy++)
         {
             for (int dx = -tHalf; dx <= tHalf; dx++)
@@ -335,9 +249,29 @@ void GhoulsLevel::registerSpritePositionsOnMap(DynamicMap *map)
         }
     }
 
-    for (uint8_t i = 0; i < MAP_OUTER_WALLS; i++)
+    // wall segments
+    const int wallHalf = MAP_WALL_LENGTH / 2;
+    for (uint8_t i = 0; i < mapData.hWallCount; i++)
     {
-        map->setTile(wallPositions[i].x, wallPositions[i].y, TILE_WALL);
+        int cx = (int)mapData.hWallPositions[i].x;
+        int cy = (int)mapData.hWallPositions[i].y;
+        for (int dx = -wallHalf; dx <= wallHalf; dx++)
+        {
+            int tx = cx + dx;
+            if (tx >= 0 && cy >= 0)
+                map->setTile((uint8_t)tx, (uint8_t)cy, TILE_WALL);
+        }
+    }
+    for (uint8_t i = 0; i < mapData.vWallCount; i++)
+    {
+        int cx = (int)mapData.vWallPositions[i].x;
+        int cy = (int)mapData.vWallPositions[i].y;
+        for (int dy = -wallHalf; dy <= wallHalf; dy++)
+        {
+            int ty = cy + dy;
+            if (cx >= 0 && ty >= 0)
+                map->setTile((uint8_t)cx, (uint8_t)ty, TILE_WALL);
+        }
     }
 }
 
@@ -388,54 +322,67 @@ void GhoulsLevel::render(Game *game)
 #endif
 
     // build combined render list
-    float dists[MAX_RENDER_ITEMS];
-    uint8_t indices[MAX_RENDER_ITEMS];
+    float *dists = renderDists;
+    uint8_t *indices = renderIndices;
     int count = 0;
 
     if (renderEnv)
     {
-        // Houses (encoded index 0 .. HOUSE_SPAWN_COUNT-1)
-        for (int i = 0; i < HOUSE_SPAWN_COUNT && count < MAX_RENDER_ITEMS; i++)
+        // houses
+        for (uint8_t i = 0; i < mapData.houseCount && count < renderItemsMax; i++)
         {
-            float dx = housePositions[i].x - camPos.x;
-            float dy = housePositions[i].y - camPos.y;
+            float dx = mapData.housePositions[i].x - camPos.x;
+            float dy = mapData.housePositions[i].y - camPos.y;
             float d2 = dx * dx + dy * dy;
             if (d2 > (float)FIELD_OF_VIEW_SQUARED)
                 continue;
             dists[count] = d2;
-            indices[count] = (uint8_t)i;
+            indices[count] = i;
             count++;
         }
 
-        // Trees (encoded index RENDER_TREE_OFFSET .. RENDER_WALL_OFFSET-1)
-        for (int i = 0; i < TREE_SPAWN_COUNT && count < MAX_RENDER_ITEMS; i++)
+        // trees
+        for (uint8_t i = 0; i < mapData.treeCount && count < renderItemsMax; i++)
         {
-            float dx = treePositions[i].x - camPos.x;
-            float dy = treePositions[i].y - camPos.y;
+            float dx = mapData.treePositions[i].x - camPos.x;
+            float dy = mapData.treePositions[i].y - camPos.y;
             float d2 = dx * dx + dy * dy;
             if (d2 > (float)FIELD_OF_VIEW_SQUARED)
                 continue;
             dists[count] = d2;
-            indices[count] = (uint8_t)(RENDER_TREE_OFFSET + i);
+            indices[count] = mapData.houseCount + i;
             count++;
         }
 
-        // Wall segments (encoded index RENDER_WALL_OFFSET .. RENDER_ENTITY_OFFSET-1)
-        for (int i = 0; i < WALL_SEGMENT_COUNT && count < MAX_RENDER_ITEMS; i++)
+        // wall segments (horizontal)
+        for (uint8_t i = 0; i < mapData.hWallCount && count < renderItemsMax; i++)
         {
-            float dx = wallSegmentPositions[i].x - camPos.x;
-            float dy = wallSegmentPositions[i].y - camPos.y;
+            float dx = mapData.hWallPositions[i].x - camPos.x;
+            float dy = mapData.hWallPositions[i].y - camPos.y;
             float d2 = dx * dx + dy * dy;
             if (d2 > (float)FIELD_OF_VIEW_SQUARED)
                 continue;
             dists[count] = d2;
-            indices[count] = (uint8_t)(RENDER_WALL_OFFSET + i);
+            indices[count] = renderWallOffset + i; // hWall index
+            count++;
+        }
+
+        // wall segments (vertical)
+        for (uint8_t i = 0; i < mapData.vWallCount && count < renderItemsMax; i++)
+        {
+            float dx = mapData.vWallPositions[i].x - camPos.x;
+            float dy = mapData.vWallPositions[i].y - camPos.y;
+            float d2 = dx * dx + dy * dy;
+            if (d2 > (float)FIELD_OF_VIEW_SQUARED)
+                continue;
+            dists[count] = d2;
+            indices[count] = renderWallOffset + mapData.hWallCount + i; // vWall index
             count++;
         }
     }
 
-    // Entities (encoded index RENDER_ENTITY_OFFSET + entity_list_index)
-    for (int i = 0; i < getEntityCount() && count < MAX_RENDER_ITEMS; i++)
+    // entities
+    for (int i = 0; i < getEntityCount() && count < renderItemsMax; i++)
     {
         Entity *e = getEntity(i);
         if (!e || !e->is_active)
@@ -443,7 +390,7 @@ void GhoulsLevel::render(Game *game)
         float dx = e->position.x - camPos.x;
         float dy = e->position.y - camPos.y;
         dists[count] = dx * dx + dy * dy;
-        indices[count] = (uint8_t)(RENDER_ENTITY_OFFSET + i);
+        indices[count] = (uint8_t)(renderEntityOffset + i);
         count++;
     }
 
@@ -470,34 +417,34 @@ void GhoulsLevel::render(Game *game)
     {
         const uint8_t idx = indices[i];
 
-        if (idx < RENDER_TREE_OFFSET)
+        if (idx < mapData.houseCount)
         {
             // House
-            houseSprite->setPosition(housePositions[idx]);
+            houseSprite->setPosition(mapData.housePositions[idx]);
             render3DSprite(houseSprite, game->draw, camPos, camDir, gameCamera->height);
         }
-        else if (idx < RENDER_WALL_OFFSET)
+        else if (idx < mapData.houseCount + mapData.treeCount)
         {
             // Tree
-            uint8_t ti = idx - RENDER_TREE_OFFSET;
-            treeSprite->setPosition(treePositions[ti]);
+            uint8_t ti = idx - mapData.houseCount;
+            treeSprite->setPosition(mapData.treePositions[ti]);
             render3DSprite(treeSprite, game->draw, camPos, camDir, gameCamera->height);
         }
-        else if (idx < RENDER_ENTITY_OFFSET)
+        else if (idx < renderEntityOffset)
         {
 #if (!WALL_RENDER_ALLOWED)
             continue;
 #endif
             // Wall segment
-            uint8_t wi = idx - RENDER_WALL_OFFSET;
-            Sprite3D *wallSpr = (wi < WALL_H_SEGMENT_COUNT) ? wallSprite : vWallSprite;
-            wallSpr->setPosition(wallSegmentPositions[wi]);
+            uint8_t wi = idx - renderWallOffset;
+            Sprite3D *wallSpr = (wi < mapData.hWallCount) ? wallSprite : vWallSprite;
+            wallSpr->setPosition((wi < mapData.hWallCount) ? mapData.hWallPositions[wi] : mapData.vWallPositions[wi - mapData.hWallCount]);
             render3DSprite(wallSpr, game->draw, camPos, camDir, gameCamera->height);
         }
         else
         {
             // Level entity
-            int ei = idx - RENDER_ENTITY_OFFSET;
+            int ei = idx - renderEntityOffset;
             Entity *ent = getEntity(ei);
             if (!ent || !ent->is_active)
                 continue;
@@ -551,161 +498,60 @@ void GhoulsLevel::render(Game *game)
     }
 }
 
-void GhoulsLevel::renderMiniMap(Draw *canvas)
+void GhoulsLevel::renderMiniMap(Draw *canvas, bool miniature)
 {
     const int sw = canvas->getDisplaySize().x;
     const int sh = canvas->getDisplaySize().y;
 
     if (currentDynamicMap == nullptr)
     {
-        canvas->setFont(FONT_SIZE_MEDIUM);
-        canvas->text(sw * 6 / 128, sh / 2, "No map loaded", 0x0000);
-        return; // No map to render
-    }
-
-    Vector mapPosition = Vector(sw * 3 / 128, sh * 3 / 64);
-    Vector mapSize = Vector(sw * 70 / 128, sh * 57 / 64);
-
-    // Background
-    canvas->fillRectangle(mapPosition.x, mapPosition.y, mapSize.x, mapSize.y, 0xFFFF);
-    canvas->rectangle(mapPosition.x, mapPosition.y, mapSize.x, mapSize.y, 0x0000);
-
-    const uint8_t width = currentDynamicMap->getWidth();
-    const uint8_t height = currentDynamicMap->getHeight();
-
-    // Scale factors: pixels per map tile
-    float scale_x = (float)mapSize.x / width;
-    float scale_y = (float)mapSize.y / height;
-
-    for (uint8_t ty = 0; ty < height; ty++)
-    {
-        for (uint8_t tx = 0; tx < width; tx++)
+        if (!miniature)
         {
-            TileType tile = currentDynamicMap->getTile(tx, ty);
-            if (tile == TILE_EMPTY)
-                continue;
-
-            uint16_t x = (uint16_t)(mapPosition.x + tx * scale_x);
-            uint16_t y = (uint16_t)(mapPosition.y + ty * scale_y);
-            uint16_t w = (uint16_t)(scale_x + 0.5f);
-            uint16_t h = (uint16_t)(scale_y + 0.5f);
-            if (w < 1)
-                w = 1;
-            if (h < 1)
-                h = 1;
-
-            switch (tile)
-            {
-            case TILE_HOUSE:
-                canvas->fillRectangle(x, y, w, h, HOUSE_COLOR);
-                break;
-            case TILE_TREE:
-                canvas->fillRectangle(x, y, w, h, TREE_COLOR);
-                break;
-            default:
-                canvas->fillRectangle(x, y, w, h, 0x0000);
-                break;
-            }
+            canvas->setFont(FONT_SIZE_MEDIUM);
+            canvas->text(sw * 6 / 128, sh / 2, "No map loaded", 0x0000);
         }
+        return;
     }
 
-    for (int i = 0; i < getEntityCount(); i++)
-    {
-        Entity *e = getEntity(i);
-        if (!e)
-            continue;
-        const EntityType type = (e) ? e->type : ENTITY_ICON;
-        if (type == ENTITY_PLAYER || type == ENTITY_ENEMY || type == ENTITY_NPC)
-        {
-            if (e->position.x >= 0 && e->position.y >= 0)
-            {
-                uint16_t ppx = (uint16_t)(mapPosition.x + e->position.x * scale_x);
-                uint16_t ppy = (uint16_t)(mapPosition.y + e->position.y * scale_y);
-                uint16_t color = 0x0000;
-
-                switch (type)
-                {
-                case ENTITY_PLAYER:
-                    color = PLAYER_MINIMAP_COLOR;
-                    break;
-                case ENTITY_ENEMY:
-                    color = ENEMY_MINIMAP_COLOR;
-                    break;
-                case ENTITY_NPC:
-                {
-                    color = WEAPON_MINIMAP_COLOR;
-                    Weapon *weapon = static_cast<Weapon *>(e);
-                    if (weapon && weapon->isHeld())
-                    {
-                        continue;
-                    }
-                    break;
-                }
-                default:
-                    break;
-                }
-
-                // 3x3 white square so the dot is visible over walls
-                canvas->fillRectangle(ppx - 1, ppy - 1, 3, 3, 0xFFFF);
-
-                // Direction arrow: line from centre out 4px in facing direction
-                if (e->direction.x != 0.0f || e->direction.y != 0.0f)
-                {
-                    if (type != ENTITY_NPC)
-                    {
-                        uint16_t tip_x = ppx + (uint16_t)(e->direction.x * 4.0f);
-                        uint16_t tip_y = ppy + (uint16_t)(e->direction.y * 4.0f);
-                        canvas->line(ppx, ppy, tip_x, tip_y, color);
-                        // Arrowhead: two lines from tip back to flanking points
-                        uint16_t base_x = tip_x - (uint16_t)(e->direction.x * 2.0f);
-                        uint16_t base_y = tip_y - (uint16_t)(e->direction.y * 2.0f);
-                        uint16_t perp_x = (uint16_t)(e->direction.y * 2.0f);
-                        uint16_t perp_y = (uint16_t)(-e->direction.x * 2.0f);
-                        canvas->line(tip_x, tip_y, base_x + perp_x, base_y + perp_y, color);
-                        canvas->line(tip_x, tip_y, base_x - perp_x, base_y - perp_y, color);
-                    }
-                    else
-                    {
-                        canvas->circle(ppx, ppy, 2, color);
-                    }
-                }
-
-                // Centre dot on top
-                canvas->pixel(ppx, ppy, color);
-            }
-        }
-    }
-}
-
-void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
-{
-    if (currentDynamicMap == nullptr)
-        return;
-
-    Player *player = ghoulsGame->getPlayer();
-    if (!player)
-        return;
-
-    // Find player position
-    const Vector playerPos = player->position;
-    const int sw = canvas->getDisplaySize().x;
-
-    // Small square in the top-left corner
-    const int mmLen = sw * 30 / 128; // square side length in pixels
-    const int mmX = sw * 2 / 128;    // left margin
-    const int mmY = sw * 2 / 128;    // top margin
-
-    // World-tile radius visible around the player
-    const float scale = (float)mmLen / (MINIMAP_VIEW_RADIUS * 2.0f);
-
-    // Background + border
-    canvas->fillRectangle(mmX, mmY, mmLen, mmLen, 0xFFFF);
-    canvas->rectangle(mmX, mmY, mmLen, mmLen, 0x0000);
+    // Widget geometry
+    int mmX, mmY, mmW, mmH;
+    Vector playerPos;
+    float scale_x, scale_y;
 
     const uint8_t mapW = currentDynamicMap->getWidth();
     const uint8_t mapH = currentDynamicMap->getHeight();
 
-    // Draw map tiles within the view window
+    if (miniature)
+    {
+        Player *player = ghoulsGame->getPlayer();
+        if (!player)
+            return;
+        playerPos = player->position;
+
+        const int mmLen = sw * 30 / 128;
+        mmX = sw * 2 / 128;
+        mmY = sw * 2 / 128;
+        mmW = mmLen;
+        mmH = mmLen;
+        const float s = (float)mmLen / (MINIMAP_VIEW_RADIUS * 2.0f);
+        scale_x = s;
+        scale_y = s;
+    }
+    else
+    {
+        mmX = sw * 3 / 128;
+        mmY = sh * 3 / 64;
+        mmW = sw * 70 / 128;
+        mmH = sh * 57 / 64;
+        scale_x = (float)mmW / mapW;
+        scale_y = (float)mmH / mapH;
+    }
+
+    // Background + border
+    canvas->fillRectangle(mmX, mmY, mmW, mmH, 0xFFFF);
+    canvas->rectangle(mmX, mmY, mmW, mmH, 0x0000);
+
+    // Draw tiles
     for (uint8_t ty = 0; ty < mapH; ty++)
     {
         for (uint8_t tx = 0; tx < mapW; tx++)
@@ -714,15 +560,25 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
             if (tile == TILE_EMPTY)
                 continue;
 
-            float relX = tx - playerPos.x;
-            float relY = ty - playerPos.y;
-            if (relX < -MINIMAP_VIEW_RADIUS || relX > MINIMAP_VIEW_RADIUS || relY < -MINIMAP_VIEW_RADIUS || relY > MINIMAP_VIEW_RADIUS)
-                continue;
+            uint16_t px, py;
+            if (miniature)
+            {
+                float relX = tx - playerPos.x;
+                float relY = ty - playerPos.y;
+                if (relX < -MINIMAP_VIEW_RADIUS || relX > MINIMAP_VIEW_RADIUS ||
+                    relY < -MINIMAP_VIEW_RADIUS || relY > MINIMAP_VIEW_RADIUS)
+                    continue;
+                px = (uint16_t)(mmX + (relX + MINIMAP_VIEW_RADIUS) * scale_x);
+                py = (uint16_t)(mmY + (relY + MINIMAP_VIEW_RADIUS) * scale_y);
+            }
+            else
+            {
+                px = (uint16_t)(mmX + tx * scale_x);
+                py = (uint16_t)(mmY + ty * scale_y);
+            }
 
-            uint16_t px = mmX + (uint16_t)((relX + MINIMAP_VIEW_RADIUS) * scale);
-            uint16_t py = mmY + (uint16_t)((relY + MINIMAP_VIEW_RADIUS) * scale);
-            uint16_t pw = (uint16_t)(scale + 0.5f);
-            uint16_t ph = (uint16_t)(scale + 0.5f);
+            uint16_t pw = (uint16_t)(scale_x + 0.5f);
+            uint16_t ph = (uint16_t)(scale_y + 0.5f);
             if (pw < 1)
                 pw = 1;
             if (ph < 1)
@@ -732,20 +588,20 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
             switch (tile)
             {
             case TILE_HOUSE:
-                color = HOUSE_COLOR;
+                color = mapData.houseColor;
                 break;
             case TILE_TREE:
-                color = TREE_COLOR;
+                color = mapData.treeColor;
                 break;
             default:
-                color = 0x0000;
+                color = mapData.wallColor;
                 break;
             }
             canvas->fillRectangle(px, py, pw, ph, color);
         }
     }
 
-    // Draw entities within the view window
+    // Draw entities
     for (int i = 0; i < getEntityCount(); i++)
     {
         Entity *e = getEntity(i);
@@ -755,10 +611,20 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
         if (type != ENTITY_PLAYER && type != ENTITY_ENEMY && type != ENTITY_NPC)
             continue;
 
-        float relX = e->position.x - playerPos.x;
-        float relY = e->position.y - playerPos.y;
-        if (relX < -MINIMAP_VIEW_RADIUS || relX > MINIMAP_VIEW_RADIUS || relY < -MINIMAP_VIEW_RADIUS || relY > MINIMAP_VIEW_RADIUS)
-            continue;
+        float relX = e->position.x - (miniature ? playerPos.x : 0.0f);
+        float relY = e->position.y - (miniature ? playerPos.y : 0.0f);
+
+        if (miniature)
+        {
+            if (relX < -MINIMAP_VIEW_RADIUS || relX > MINIMAP_VIEW_RADIUS ||
+                relY < -MINIMAP_VIEW_RADIUS || relY > MINIMAP_VIEW_RADIUS)
+                continue;
+        }
+        else
+        {
+            if (e->position.x < 0 || e->position.y < 0)
+                continue;
+        }
 
         if (type == ENTITY_NPC)
         {
@@ -767,8 +633,17 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
                 continue;
         }
 
-        uint16_t ppx = mmX + (uint16_t)((relX + MINIMAP_VIEW_RADIUS) * scale);
-        uint16_t ppy = mmY + (uint16_t)((relY + MINIMAP_VIEW_RADIUS) * scale);
+        uint16_t ppx, ppy;
+        if (miniature)
+        {
+            ppx = (uint16_t)(mmX + (relX + MINIMAP_VIEW_RADIUS) * scale_x);
+            ppy = (uint16_t)(mmY + (relY + MINIMAP_VIEW_RADIUS) * scale_y);
+        }
+        else
+        {
+            ppx = (uint16_t)(mmX + e->position.x * scale_x);
+            ppy = (uint16_t)(mmY + e->position.y * scale_y);
+        }
 
         uint16_t color;
         switch (type)
@@ -787,7 +662,7 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
         // 3x3 white halo so the dot is visible over walls
         canvas->fillRectangle(ppx - 1, ppy - 1, 3, 3, 0xFFFF);
 
-        // Direction arrow
+        // Direction arrow: line from centre out 4px in facing direction
         if (e->direction.x != 0.0f || e->direction.y != 0.0f)
         {
             if (type != ENTITY_NPC)
@@ -813,34 +688,93 @@ void GhoulsLevel::renderMiniatureMiniMap(Draw *canvas)
     }
 }
 
+bool GhoulsLevel::setMapPack(const char *filename)
+{
+    if (!mapPackLoadFromFile(filename, &mapData))
+    {
+        ENGINE_LOG_INFO("[GhoulsLevel:setMapPack] Failed to load map pack from file: %s\n", filename);
+        return false;
+    }
+    return setMapPack(mapData);
+}
+
+bool GhoulsLevel::setMapPack(const map_data_t &newMapData)
+{
+    if (currentDynamicMap)
+    {
+        ENGINE_MEM_DELETE currentDynamicMap;
+        currentDynamicMap = nullptr;
+    }
+    if (renderDists)
+    {
+        ENGINE_MEM_DELETE[] renderDists;
+        renderDists = nullptr;
+    }
+    if (renderIndices)
+    {
+        ENGINE_MEM_DELETE[] renderIndices;
+        renderIndices = nullptr;
+    }
+    mapData = newMapData;
+    renderWallOffset = mapData.houseCount + mapData.treeCount;
+    renderEntityOffset = renderWallOffset + mapData.hWallCount + mapData.vWallCount;
+    renderItemsMax = renderWallOffset + mapData.vWallCount + mapData.hWallCount + 32;
+    renderDists = ENGINE_MEM_NEW float[renderItemsMax];
+    if (!renderDists)
+    {
+        ENGINE_LOG_INFO("[GhoulsLevel:setMapPack] Failed to allocate memory for render distances array\n");
+        return false;
+    }
+    renderIndices = ENGINE_MEM_NEW uint8_t[renderItemsMax];
+    if (!renderIndices)
+    {
+        ENGINE_LOG_INFO("[GhoulsLevel:setMapPack] Failed to allocate memory for render indices array\n");
+        return false;
+    }
+    currentDynamicMap = ENGINE_MEM_NEW DynamicMap(mapData.width, mapData.height, false);
+    if (!currentDynamicMap)
+    {
+        ENGINE_LOG_INFO("[GhoulsLevel:setMapPack] Failed to create new DynamicMap instance with provided map data\n");
+        return false;
+    }
+    registerSpritePositionsOnMap(currentDynamicMap);
+    return initializeSprites();
+}
+
 void GhoulsLevel::update(Game *game)
 {
 #if SKY_RENDER_ALLOWED
     sky->tick();
 #endif
-
 #if GROUND_RENDER_ALLOWED
     ground->tick();
 #endif
 
-    for (int i = 0; i < getEntityCount(); i++)
+    for (int i = getEntityCount() - 1; i >= 0; i--)
     {
         Entity *ent = getEntity(i);
+        if (!ent)
+            continue;
 
-        if (ent != nullptr && ent->is_active)
+        if (!ent->is_active)
         {
-            ent->update(game);
+            entity_remove(ent);
+            continue;
+        }
 
-            for (int j = 0; j < getEntityCount(); j++)
-            {
-                Entity *other = getEntity(j);
-                if (other != nullptr &&
-                    other != ent &&
-                    is_collision(ent, other))
-                {
-                    ent->collision(other, game);
-                }
-            }
+        ent->update(game);
+
+        for (int j = getEntityCount() - 1; j > i; j--)
+        {
+            Entity *other = getEntity(j);
+            if (!other || !other->is_active || !is_collision(ent, other))
+                continue;
+
+            ent->collision(other, game);
+            if (!ent->is_active)
+                break;
+
+            other->collision(ent, game);
         }
     }
 }
