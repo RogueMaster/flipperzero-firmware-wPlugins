@@ -15,13 +15,13 @@
 
 #define PLAYER_SPEED_HORIZONTAL 0.2f
 
-#define TICKS_PER_DAY 2500
+#define TICKS_PER_DAY 3000
 
 #define ENEMY_SPAWN_MAX 3
 
 #define MINIMAP_DEFAULT false
 
-#define WALL_RENDER_ALLOWED false
+#define WALL_RENDER_ALLOWED true
 #define SKY_RENDER_ALLOWED false
 #define GROUND_RENDER_ALLOWED false
 
