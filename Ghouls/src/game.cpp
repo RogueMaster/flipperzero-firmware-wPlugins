@@ -133,7 +133,7 @@ Vector GhoulsGame::getRandomWeaponPosition(Level *level)
     {
         uint8_t randomIndex = rand() % mapData->weaponCount;
         candidate = mapData->weaponPositions[randomIndex];
-        candidate.z = 0.5f;
+        candidate.z = WEAPON_GROUND_HEIGHT;
         attempts++;
     } while (positionExistsInLevel(level, candidate) && attempts < mapData->weaponCount);
 
@@ -474,7 +474,7 @@ bool GhoulsGame::spawnWeapons(Level *level)
     for (uint8_t i = 0; i < WEAPON_SPAWN_COUNT; i++)
     {
         Vector weaponPosition = getRandomWeaponPosition(level);
-        weaponPosition.z = 0.5f;
+        weaponPosition.z = WEAPON_GROUND_HEIGHT;
         WeaponType weaponType = getUniqueWeaponType(level);
         if (weaponType == WEAPON_NONE)
         {

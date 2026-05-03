@@ -85,6 +85,7 @@
 #define WEAPON_SPAWN_COUNT 4 // about 8kb if max_triangles is set to 48
 #define WEAPON_VIEW_HEIGHT 1.0f
 #define WEAPON_HIT_COLOR 0xfb4d
+#define WEAPON_GROUND_HEIGHT 0.75f
 
 #define TREE_TILE_SIZE 3
 #define HOUSE_TILE_SIZE 3

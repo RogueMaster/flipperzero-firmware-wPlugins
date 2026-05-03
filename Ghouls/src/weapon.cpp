@@ -208,6 +208,8 @@ void Weapon::makeCrossbow(float height)
     sprite_3d->createCube(-0.06f * s, 0.14f * s, 0.32f * s, 0.04f * s, 0.14f * s, 0.04f * s, metalC);
     sprite_3d->createCube(0.06f * s, 0.14f * s, 0.32f * s, 0.04f * s, 0.14f * s, 0.04f * s, metalC);
     sprite_3d->createCube(0, 0.08f * s, 0.32f * s, 0.16f * s, 0.04f * s, 0.04f * s, metalC);
+
+    this->size.x = 0.80f * s * 2.0f;
 }
 
 void Weapon::makeRifle(float height)
@@ -245,6 +247,8 @@ void Weapon::makeRifle(float height)
     sprite_3d->createCube(0, 0.42f * s, 0.68f * s, 0.02f * s, 0.06f * s, 0.02f * s, rgb565(0xff4400));
     // Handguard
     sprite_3d->createCube(0, 0.32f * s, 0.22f * s, 0.09f * s, 0.08f * s, 0.18f * s, rgb565(0x333333));
+
+    this->size.x = 0.10f * s * 2.0f;
 }
 
 void Weapon::makeRocketLauncher(float height)
@@ -285,6 +289,8 @@ void Weapon::makeRocketLauncher(float height)
     sprite_3d->createCube(-0.02f * s, 0.52f * s, 0.22f * s, 0.04f * s, 0.04f * s, 0.04f * s, rgb565(0x333333));
     // Warning stripe
     sprite_3d->createCube(0.091f * s, 0.40f * s, 0.30f * s, 0.005f * s, 0.10f * s, 0.08f * s, rgb565(0xccaa00));
+
+    this->size.x = 0.22f * s * 2.0f;
 }
 
 void Weapon::makeShotgun(float height)
@@ -315,6 +321,8 @@ void Weapon::makeShotgun(float height)
     sprite_3d->createCube(0, 0.17f * s, -0.04f * s, 0.025f * s, 0.05f * s, 0.02f * s, rgb565(0x111111));
     // Front bead sight
     sprite_3d->createCube(0, 0.42f * s, 0.72f * s, 0.02f * s, 0.03f * s, 0.02f * s, rgb565(0xff4400));
+
+    this->size.x = 0.12f * s * 2.0f;
 }
 
 void Weapon::reset()
