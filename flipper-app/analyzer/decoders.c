@@ -55,7 +55,8 @@ static void aggregate_inner_runs(const SubFile* sub, RunAgg* a) {
 void decoders_detect_pwm(const SubFile* sub, PWMParams* out) {
     memset(out, 0, sizeof(*out));
 
-    RunAgg agg;
+    /* RunAgg is ~1 KB; keep off stack. Single-threaded use. */
+    static RunAgg agg;
     aggregate_inner_runs(sub, &agg);
 
     if(agg.one_total < 4 || agg.zero_total < 4) return;

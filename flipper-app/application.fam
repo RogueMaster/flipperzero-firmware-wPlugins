@@ -4,7 +4,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="bitraw_analyzer_app",
     requires=["gui", "storage", "dialogs"],
-    stack_size=4 * 1024,
+    stack_size=8 * 1024,
     fap_category="Sub-GHz",
     fap_icon="icons/icon_10x10.png",
     fap_author="bitraw-analysis",

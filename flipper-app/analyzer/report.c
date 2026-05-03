@@ -2,6 +2,20 @@
 #include "bits.h"
 #include <string.h>
 
+/* Stream hex bytes into a FuriString without a large stack buffer. */
+static void cat_hex_bits(FuriString* out, const uint8_t* bits, uint16_t len) {
+    if(len == 0) return;
+    uint16_t total_bits = (uint16_t)((len + 7u) / 8u * 8u);
+    for(uint16_t i = 0; i < total_bits; i += 8) {
+        uint8_t byte = 0;
+        for(uint8_t j = 0; j < 8; j++) {
+            uint8_t bit = (uint16_t)(i + j) < len ? bits[i + j] : 0;
+            byte = (uint8_t)((byte << 1) | (bit & 1u));
+        }
+        furi_string_cat_printf(out, i == 0 ? "%02X" : " %02X", byte);
+    }
+}
+
 #define SEP                                                       \
     "============================================================" \
     "\n"
@@ -104,9 +118,9 @@ void report_format(
                 furi_string_cat_printf(out, "%c", fv->pwm_decoded_bits[i] ? '1' : '0');
             }
             furi_string_cat_str(out, "\n");
-            char hex[BITRAW_MAX_DECODED_BITS / 8 * 4 + 8];
-            bits_to_hex(fv->pwm_decoded_bits, fv->pwm_decoded_count, hex, sizeof(hex));
-            furi_string_cat_printf(out, "  Payload hex  : %s\n", hex);
+            furi_string_cat_str(out, "  Payload hex  : ");
+            cat_hex_bits(out, fv->pwm_decoded_bits, fv->pwm_decoded_count);
+            furi_string_cat_str(out, "\n");
         }
     } else {
         furi_string_cat_str(out, "  PWM          : not detected\n");
@@ -132,10 +146,9 @@ void report_format(
             fv->manchester_decoded_count,
             bitraw_manchester_name(fv->manchester_convention),
             (double)(fv->manchester_error_rate * 100.0f));
-        char hex[BITRAW_MAX_MANCH_BITS / 8 * 4 + 8];
-        bits_to_hex(
-            fv->manchester_decoded_bits, fv->manchester_decoded_count, hex, sizeof(hex));
-        furi_string_cat_printf(out, "  Manch. hex   : %s\n", hex);
+        furi_string_cat_str(out, "  Manch. hex   : ");
+        cat_hex_bits(out, fv->manchester_decoded_bits, fv->manchester_decoded_count);
+        furi_string_cat_str(out, "\n");
     }
 
     if(fv->seg_count >= 2) {
