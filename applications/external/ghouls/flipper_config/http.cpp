@@ -147,6 +147,10 @@ bool http_file_download(const char* url, const char* destination_path) {
     flipperHttp->save_received_data = false;
     flipperHttp->is_bytes_request = true;
     flipperHttp->state = IDLE;
-    return flipper_http_request(
-        flipperHttp, BYTES, url, "{\"Content-Type\": \"application/octet-stream\"}", NULL);
+    if(!flipper_http_request(
+           flipperHttp, BYTES, url, "{\"Content-Type\": \"application/octet-stream\"}", NULL)) {
+        return false;
+    }
+    flipperHttp->state = RECEIVING;
+    return true;
 }

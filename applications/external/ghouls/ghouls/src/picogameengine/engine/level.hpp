@@ -48,7 +48,8 @@ public:
         Draw* draw,
         Vector player_pos,
         Vector player_dir,
-        float view_height);
+        float view_height,
+        bool clamp = false);
     void setClearAllowed(bool status) {
         clearAllowed = status;
     }

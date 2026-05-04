@@ -9,6 +9,6 @@ App(
     fap_category="GPIO/ESP32",
     fap_author="JBlanked",
     fap_weburl="https://github.com/jblanked/Ghouls-Flipper",
-    fap_version="0.5",
+    fap_version="0.6",
     fap_description="3D Round-based survival game",
 )

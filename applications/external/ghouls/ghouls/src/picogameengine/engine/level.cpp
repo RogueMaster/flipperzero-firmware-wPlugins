@@ -69,7 +69,7 @@ void Level::clear() {
 Entity** Level::collision_list(Entity* entity, int& count) const {
     count = 0;
     if(entity_count == 0) {
-        ENGINE_LOG_INFO("Level::collision_list called but no entities are present");
+        ENGINE_LOG_INFO("Level::collision_list called but no entities are present\n");
         return nullptr;
     }
 
@@ -86,19 +86,19 @@ Entity** Level::collision_list(Entity* entity, int& count) const {
 // Add an entity to the level
 void Level::entity_add(Entity* entity) {
     if(!entity) {
-        ENGINE_LOG_INFO("Level::entity_add called with null entity pointer");
+        ENGINE_LOG_INFO("Level::entity_add called with null entity pointer\n");
         return;
     }
 
     if(!this->gameRef) {
-        ENGINE_LOG_INFO("Level::entity_add called but level has no reference to game");
+        ENGINE_LOG_INFO("Level::entity_add called but level has no reference to game\n");
         return;
     }
 
     // Allocate a new array with size one greater than the current count
     Entity** newEntities = ENGINE_MEM_NEW Entity * [entity_count + 1];
     if(!newEntities) {
-        ENGINE_LOG_INFO("Level::entity_add failed to allocate memory for new entity array");
+        ENGINE_LOG_INFO("Level::entity_add failed to allocate memory for new entity array\n");
         return;
     }
 
@@ -125,7 +125,7 @@ void Level::entity_add(Entity* entity) {
 // Remove an entity from the level
 void Level::entity_remove(Entity* entity) {
     if(entity_count == 0) {
-        ENGINE_LOG_INFO("Level::entity_remove called but no entities are present");
+        ENGINE_LOG_INFO("Level::entity_remove called but no entities are present\n");
         return;
     }
 
@@ -138,7 +138,7 @@ void Level::entity_remove(Entity* entity) {
     }
 
     if(remove_index == -1) {
-        ENGINE_LOG_INFO("Level::entity_remove called but entity not found");
+        ENGINE_LOG_INFO("Level::entity_remove called but entity not found\n");
         return;
     }
 
@@ -370,7 +370,8 @@ void Level::render3DSprite(
     Draw* draw,
     Vector player_pos,
     Vector player_dir,
-    float view_height) {
+    float view_height,
+    bool clamp) {
     if(!sprite3d) return;
 
     // Get triangles from the 3D sprite and render them
@@ -379,85 +380,86 @@ void Level::render3DSprite(
     Vector screen_points[3];
     Vector vertex;
     Triangle3D triangle;
+    const Vector screenSize = draw->getDisplaySize();
     //
     const uint16_t triangle_count = sprite3d->getTriangleCount();
     for(uint16_t i = 0; i < triangle_count; i++) {
         triangle = sprite3d->getTransformedTriangle(i, player_pos);
         if(!triangle.set) continue;
 
-        // Only render triangles facing the camera
-        if(triangle.isFacingCamera(player_pos)) {
-            // Project 3D vertices to 2D screen coordinates
-            bool any_visible = false;
-            bool has_behind = false;
+        // Project 3D vertices to 2D screen coordinates
+        bool any_visible = false;
+        bool has_behind = false;
 
-            for(uint8_t j = 0; j < 3; j++) {
-                switch(j) {
-                case 0:
-                    vertex.x = triangle.x1;
-                    vertex.y = triangle.y1;
-                    vertex.z = triangle.z1;
-                    break;
-                case 1:
-                    vertex.x = triangle.x2;
-                    vertex.y = triangle.y2;
-                    vertex.z = triangle.z2;
-                    break;
-                case 2:
-                    vertex.x = triangle.x3;
-                    vertex.y = triangle.y3;
-                    vertex.z = triangle.z3;
-                    break;
-                default:
-                    vertex.x = 0;
-                    vertex.y = 0;
-                    vertex.z = 0;
-                    break;
-                };
+        for(uint8_t j = 0; j < 3; j++) {
+            switch(j) {
+            case 0:
+                vertex.x = triangle.x1;
+                vertex.y = triangle.y1;
+                vertex.z = triangle.z1;
+                break;
+            case 1:
+                vertex.x = triangle.x2;
+                vertex.y = triangle.y2;
+                vertex.z = triangle.z2;
+                break;
+            case 2:
+                vertex.x = triangle.x3;
+                vertex.y = triangle.y3;
+                vertex.z = triangle.z3;
+                break;
+            default:
+                vertex.x = 0;
+                vertex.y = 0;
+                vertex.z = 0;
+                break;
+            };
 
-                project3DTo2D(
-                    vertex,
-                    player_pos,
-                    player_dir,
-                    view_height,
-                    draw->getDisplaySize(),
-                    screen_points[j]);
+            project3DTo2D(
+                vertex, player_pos, player_dir, view_height, screenSize, screen_points[j]);
 
-                // Check if behind camera
-                if(screen_points[j].x == -1 && screen_points[j].y == -1) {
-                    has_behind = true;
-                } else {
-                    any_visible = true;
+            // Check if behind camera
+            if(screen_points[j].x == -1 && screen_points[j].y == -1) {
+                has_behind = true;
+            } else {
+                any_visible = true;
+            }
+        }
+
+        if(any_visible && !has_behind) {
+            if(clamp) {
+                for(uint8_t k = 0; k < 3; k++) {
+                    if(screen_points[k].x < 0) screen_points[k].x = 0;
+                    if(screen_points[k].y < 0) screen_points[k].y = 0;
+                    if(screen_points[k].x > screenSize.x) screen_points[k].x = screenSize.x;
+                    if(screen_points[k].y > screenSize.y) screen_points[k].y = screenSize.y;
                 }
             }
-
-            if(any_visible && !has_behind) {
-                draw->fillTriangle(
+            draw->fillTriangle(
+                screen_points[0].x,
+                screen_points[0].y,
+                screen_points[1].x,
+                screen_points[1].y,
+                screen_points[2].x,
+                screen_points[2].y,
+                triangle.color);
+            if(triangle.wireframe) {
+                // Compute a lighter outline color from the fill color
+                uint8_t r = (uint8_t)((triangle.color >> 11) & 0x1F);
+                uint8_t g = (uint8_t)((triangle.color >> 5) & 0x3F);
+                uint8_t b = (uint8_t)(triangle.color & 0x1F);
+                r = r + ((0x1F - r) >> 1);
+                g = g + ((0x3F - g) >> 1);
+                b = b + ((0x1F - b) >> 1);
+                const uint16_t outline_color = ((uint16_t)r << 11) | ((uint16_t)g << 5) | b;
+                draw->triangle(
                     screen_points[0].x,
                     screen_points[0].y,
                     screen_points[1].x,
                     screen_points[1].y,
                     screen_points[2].x,
                     screen_points[2].y,
-                    triangle.color);
-                if(triangle.wireframe) {
-                    // Compute a lighter outline color from the fill color
-                    uint8_t r = (uint8_t)((triangle.color >> 11) & 0x1F);
-                    uint8_t g = (uint8_t)((triangle.color >> 5) & 0x3F);
-                    uint8_t b = (uint8_t)(triangle.color & 0x1F);
-                    r = r + ((0x1F - r) >> 1);
-                    g = g + ((0x3F - g) >> 1);
-                    b = b + ((0x1F - b) >> 1);
-                    const uint16_t outline_color = ((uint16_t)r << 11) | ((uint16_t)g << 5) | b;
-                    draw->triangle(
-                        screen_points[0].x,
-                        screen_points[0].y,
-                        screen_points[1].x,
-                        screen_points[1].y,
-                        screen_points[2].x,
-                        screen_points[2].y,
-                        outline_color);
-                }
+                    outline_color);
             }
         }
     }
@@ -479,18 +481,25 @@ void Level::stop() {
 
 // Update all active entities
 void Level::update(Game* game) {
-    for(int i = 0; i < entity_count; i++) {
-        Entity* ent = entities[i];
+    for(int i = entity_count - 1; i >= 0; i--) {
+        Entity* ent = getEntity(i);
+        if(!ent) continue;
 
-        if(ent != nullptr && ent->is_active) {
-            ent->update(game);
+        if(!ent->is_active) {
+            entity_remove(ent);
+            continue;
+        }
 
-            for(int j = 0; j < entity_count; j++) {
-                if(entities[j] != nullptr && entities[j] != ent &&
-                   is_collision(ent, entities[j])) {
-                    ent->collision(entities[j], game);
-                }
-            }
+        ent->update(game);
+
+        for(int j = entity_count - 1; j > i; j--) {
+            Entity* other = getEntity(j);
+            if(!other || !other->is_active || !is_collision(ent, other)) continue;
+
+            ent->collision(other, game);
+            if(!ent->is_active) break;
+
+            other->collision(ent, game);
         }
     }
 }

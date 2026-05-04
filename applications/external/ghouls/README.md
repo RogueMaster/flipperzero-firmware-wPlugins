@@ -20,3 +20,9 @@ A simple 3D action-adventure game built with the Pico Game Engine. This is the F
 - Up/Down/Left/Right: Move
 - Center Button: Fire Weapon (if equipped)
 - Back Button: Open/Close Game Menu
+
+## Installation
+1. Ensure your WiFi Developer Board is flashed with FlipperHTTP v2.1.7 or higher
+2. Copy the contents of the "Assets" folder from "Ghouls/src/assets" to your SD card in "SD Card/apps_data/ghouls/data/"
+3. Add your WiFi and username/password credentials in the app settings
+4. Click "Run" from the app menu and enjoy!
