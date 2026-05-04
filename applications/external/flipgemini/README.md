@@ -9,7 +9,7 @@ Chat with Google's Gemini AI on your Flipper Zero! Original idea from https://gi
 ## Installation
 1. Flash FlipperHTTP to your Wi-Fi device if you haven't already and connect to your WiFi via the FlipperHTTP companion app.
 2. Grab your Gemini API key from Google.
-3. Download the FlipGemini app and enter your API key in the Settings (optionally you can create/edit "/ext/apps_data/flip_gemini/data/api_key.txt" on your Flipper's SD card).
+3. Download the FlipGemini app and enter your API key in the Settings (optionally you can create/edit "/ext/apps_data/flip_gemini/data/api_key.txt" on your Flipper's SD card but make sure to add an extra space at the end if you do or save it in the within the app afterwards).
 4. Start chatting with Gemini on your Flipper Zero!
 
 ## Connect Online
