@@ -39,6 +39,7 @@ struct FSDState {
     // ── Feature flags (runtime-toggleable) ───────────────────────────────────
     bool           force_fsd;               // bypass UI selection check
     bool           suppress_speed_chime;    // ISA chime suppress (HW4, 0x399)
+    bool           china_mode;              // bypass FSD UI selection check for China vehicles
     bool           emergency_vehicle_detect;// set bit59 in mux0 (HW4)
     bool           nag_killer;              // 0x370 counter+1 echo
     uint32_t       nag_echo_count;

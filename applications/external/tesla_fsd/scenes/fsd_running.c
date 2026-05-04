@@ -151,6 +151,7 @@ static int32_t fsd_running_worker(void* context) {
     bool shield_enabled = app->gtw_shield;
     state.gtw_shield_armed = false;
     state.tlssc_restore = app->tlssc_restore;
+    state.ap_first = app->ap_first;
     state.gtw_tier_override = app->gtw_tier_override;
     state.assist_nav_enable = app->assist_nav_enable;
     state.assist_hands_off = app->assist_hands_off;

@@ -69,6 +69,7 @@ typedef struct {
     uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz
     bool gtw_shield; // 0x7FF ban defense shield
     bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
+    bool ap_first; // 2026.14.x: delay injection until AP is engaged
     bool gtw_tier_override; // 0x7FF active tier=SELF_DRIVING override
 
     // driver assist overrides (0x3F8 + 0x3FD)

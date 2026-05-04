@@ -102,6 +102,10 @@ typedef struct {
     bool driver_brake_applied; // from 0x145 ESP_driverBrakeApply
     bool speed_seen; // true once we've parsed at least one 0x257
 
+    // --- AP-first mode (2026.14.x compatibility) ---
+    bool ap_first; // delay 0x3FD injection until AP is engaged
+    uint8_t das_ap_state; // DAS_autopilotState: 0=UNAVAIL 1=AVAIL 2=ACTIVE_NOMINAL 3+=active
+
     // --- DAS state (from 0x39B / 0x389 — Party CAN, read-only) ---
     uint8_t das_hands_on_state; // 0-15 (4-bit nag level from DAS, more precise than EPAS 2-bit)
     uint8_t das_lane_change; // 0-31 (5-bit auto lane change state)

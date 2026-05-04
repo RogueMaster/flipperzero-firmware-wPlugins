@@ -5,10 +5,8 @@
  * WS    :81  → pushes JSON state every 1 s; receives control commands
  *
  * All HTML/CSS/JS is embedded as a raw-string literal — no external CDN.
- * State is read directly from the FSDState pointer; controls write back to it.
- *
- * Single-threaded: both handleClient() and ws.loop() are called from loop()
- * after the CAN drain, so there is no concurrency issue.
+ * State is shared with the CAN task. Reads copy a locked snapshot; writes use
+ * the same FreeRTOS critical section as the CAN/button side.
  */
 
 #include "web_dashboard.h"
@@ -18,10 +16,14 @@
 #include <WebSocketsServer.h>
 #include <WiFi.h>
 #include <Arduino.h>
+#include <Update.h>
+#include <esp_ota_ops.h>
+#include <esp_partition.h>
 
 // ── Module state ──────────────────────────────────────────────────────────────
 static FSDState  *g_state = nullptr;   // shared with main
 static CanDriver *g_can   = nullptr;   // for setListenOnly()
+static portMUX_TYPE *g_state_mux = nullptr;
 
 static WebServer        g_http(80);
 static WebSocketsServer g_ws(81);
@@ -33,6 +35,43 @@ static uint32_t g_last_can_seen_ms = 0;
 static float    g_fps         = 0.0f;
 
 #define CAN_VEHICLE_ALIVE_MS 3000u
+#define OTA_ESP32_IMAGE_MAGIC 0xE9u
+#define OTA_AUTH_USER "admin"
+
+static void state_enter() {
+    if (g_state_mux) portENTER_CRITICAL(g_state_mux);
+}
+
+static void state_exit() {
+    if (g_state_mux) portEXIT_CRITICAL(g_state_mux);
+}
+
+static bool state_copy(FSDState *out) {
+    if (g_state == nullptr || out == nullptr) return false;
+    state_enter();
+    *out = *g_state;
+    state_exit();
+    return true;
+}
+
+static bool ap_has_password(const FSDState *state) {
+    return state != nullptr && strlen(state->wifi_pass) >= 8;
+}
+
+static bool require_admin_auth(bool challenge_browser = false) {
+    FSDState s;
+    if (!state_copy(&s) || !ap_has_password(&s)) {
+        g_http.send(403, "text/plain", "WiFi AP password required before OTA/restart");
+        return false;
+    }
+    if (g_http.authenticate(OTA_AUTH_USER, s.wifi_pass)) return true;
+    if (challenge_browser) {
+        g_http.requestAuthentication(BASIC_AUTH, "Tesla-FSD");
+    } else {
+        g_http.send(401, "text/plain", "Authentication failed");
+    }
+    return false;
+}
 
 // ── Embedded HTML/CSS/JS ──────────────────────────────────────────────────────
 // Tesla dark theme; mobile-first (max 480 px); WebSocket on :81
@@ -150,8 +189,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 input:checked+.sl2{background:var(--accent)}
 input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 
+/* ── OTA firmware update ── */
+.ota-file{display:none}.ota-progress{display:none;margin-top:12px}
+.ota-track{background:var(--card2);border-radius:8px;height:10px;overflow:hidden}
+.ota-bar{background:var(--accent);height:100%;width:0%;transition:width .2s}
+.ota-status{text-align:center;margin-top:8px;font-size:.85em;color:var(--text2)}
+.ota-bytes{text-align:center;margin-top:4px;font-size:.72em;color:var(--text3)}
+.ota-info{margin-top:10px;padding:10px 12px;background:rgba(77,171,247,.07);
+  border-radius:8px;border:1px solid rgba(77,171,247,.15);font-size:.72em;color:var(--text3);line-height:1.4}
+.btn-blue{background:rgba(77,171,247,.14);color:var(--blue);border:1px solid rgba(77,171,247,.3)}
+.btn-yellow{background:rgba(255,217,61,.14);color:var(--yellow);border:1px solid rgba(255,217,61,.3)}
+
 /* ── Footer ── */
 .foot{text-align:center;padding:16px 0 0;font-size:.64em;color:var(--text3)}
+
+/* ── Auth panel ── */
+.auth-panel,.confirm-panel{display:none;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:16px;margin-bottom:12px}
+.auth-panel.show,.confirm-panel.show{display:block}
+.auth-box{width:100%;background:transparent;border:0;
+  border-radius:0;padding:0;box-shadow:none}
+.auth-box h3{font-size:1.15em;text-align:center;margin-bottom:12px}
+.auth-msg{font-size:.82em;color:var(--text2);line-height:1.4;margin-bottom:14px}
+.auth-field{display:block;font-size:.75em;color:var(--text2);margin:10px 0 5px}
+.auth-input{width:100%;background:var(--card2);border:1px solid var(--border);
+  color:var(--text);border-radius:8px;padding:11px;font-size:1em}
+.auth-actions{display:flex;gap:10px;margin-top:16px}
+.auth-actions button{flex:1;margin:0}
 </style>
 </head>
 <body>
@@ -164,6 +228,32 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <div class="cdot" id="dot"></div>
 </div>
 <div id="connErr" class="err">Connection lost &mdash; retrying&hellip;</div>
+
+<div id="authPanel" class="auth-panel">
+  <div class="auth-box">
+    <h3>身份认证</h3>
+    <div class="auth-msg">请输入管理员账号和 WiFi AP 密码</div>
+    <label class="auth-field" for="authUser">用户名</label>
+    <input id="authUser" class="auth-input" type="text" value="admin" autocomplete="username">
+    <label class="auth-field" for="authPass">密码</label>
+    <input id="authPass" class="auth-input" type="password" autocomplete="current-password">
+    <div class="auth-actions">
+      <button type="button" class="btn-main btn-stop" onclick="cancelAuth()">取消</button>
+      <button type="button" class="btn-main btn-blue" onclick="submitAuth()">登录</button>
+    </div>
+  </div>
+</div>
+
+<div id="restartConfirmPanel" class="confirm-panel">
+  <div class="auth-box">
+    <h3>确认重启设备？</h3>
+    <div class="auth-msg">设备将立即重启，网页连接会短暂中断。</div>
+    <div class="auth-actions">
+      <button type="button" class="btn-main btn-stop" onclick="cancelRestartConfirm()">否</button>
+      <button type="button" class="btn-main btn-yellow" onclick="confirmRestart()">是</button>
+    </div>
+  </div>
+</div>
 
 <!-- OTA Warning -->
 <div id="otaBanner" class="ota">&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; CAN TX SUSPENDED</div>
@@ -252,6 +342,14 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <label class="sw"><input type="checkbox" id="swFsd" onchange="cmd('force_fsd',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
+    <span class="lbl">China Mode</span>
+    <label class="sw"><input type="checkbox" id="swChina" onchange="cmd('china_mode',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Suppress Chime</span>
+    <label class="sw"><input type="checkbox" id="swChime" onchange="cmd('suppress_speed_chime',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
     <span class="lbl">TLSSC Restore</span>
     <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
   </div>
@@ -283,6 +381,29 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <button class="btn-main btn-stop" onclick="saveWifi()" style="margin-top:12px">SAVE & RESTART WIFI</button>
 </div>
 
+<!-- OTA Update -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-c">U</div><h2>OTA Firmware Update</h2></div>
+  <div style="font-size:.75em;color:var(--text3);margin-bottom:12px;line-height:1.5">
+    Upload a .bin firmware file. Device will reboot after a successful update.
+  </div>
+  <form id="otaForm" enctype="multipart/form-data" style="margin:0">
+    <input type="file" id="otaFile" class="ota-file" accept=".bin" onchange="uploadFirmware()">
+    <button type="button" class="btn-main btn-blue" id="otaSelectBtn" onclick="selectFirmware(this)">
+      SELECT FIRMWARE (.bin)
+    </button>
+  </form>
+  <div id="otaProgress" class="ota-progress">
+    <div class="ota-track"><div id="otaBar" class="ota-bar"></div></div>
+    <div id="otaStatus" class="ota-status">Preparing...</div>
+    <div id="otaBytes" class="ota-bytes"></div>
+  </div>
+  <div id="otaRollbackInfo" class="ota-info">
+    <b style="color:var(--blue)">Partition Safety</b><br>
+    OTA writes to the next app partition when available. Keep USB reflashing available as a recovery path.
+  </div>
+</div>
+
 <!-- SD Card -->
 <div class="card">
   <div class="card-head"><div class="icon ic-d">S</div><h2>SD Card</h2></div>
@@ -309,13 +430,18 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <span class="lbl">WiFi Clients</span>
     <span id="wifiCl">--</span>
   </div>
+  <div class="row">
+    <span class="lbl">OTA Partition</span>
+    <span id="otaPartInfo" style="font-size:.78em;color:var(--text2)">--</span>
+  </div>
+  <button class="btn-main btn-yellow" onclick="restartDevice(this)" style="margin-top:12px">RESTART DEVICE</button>
 </div>
 
 <div class="foot">Tesla FSD ESP32 &middot; M5Stack ATOM Lite + ATOMIC CAN Base</div>
 </div><!-- /wrap -->
 
 <script>
-var ws,rt,busy=0,wifiOnce=false;
+var ws,rt,busy=0,wifiOnce=false,authHeader='',authAction=null,restartAnchor=null;
 var HW=['Unknown','Legacy','HW3','HW4'];
 var CIRC=326.73;
 
@@ -377,6 +503,8 @@ function upd(d){
   if(document.getElementById('swNag')) document.getElementById('swNag').checked=d.nag_killer;
   if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
   if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
+  if(document.getElementById('swChina')) document.getElementById('swChina').checked=d.china_mode;
+  if(document.getElementById('swChime')) document.getElementById('swChime').checked=d.suppress_speed_chime;
   if(document.getElementById('swTlssc')) document.getElementById('swTlssc').checked=d.tlssc_restore;
   if(document.getElementById('swDump')) document.getElementById('swDump').checked=!!d.can_dump;
   
@@ -412,6 +540,134 @@ function upd(d){
   if(document.getElementById('fwBuild')) document.getElementById('fwBuild').textContent=d.fw_build;
   if(document.getElementById('uptime')) document.getElementById('uptime').textContent=fmt(d.uptime_s||0);
   if(document.getElementById('wifiCl')) document.getElementById('wifiCl').textContent=d.wifi_clients||0;
+  var partEl=document.getElementById('otaPartInfo');
+  if(partEl && d.ota_partition){
+    var p=d.ota_partition;
+    var stateStr=(p.state===0)?'New':(p.state===1)?'Pending':(p.state===2)?'Valid':(p.state===3)?'Invalid':'State '+p.state;
+    partEl.textContent=p.running+' ('+stateStr+') - '+(p.has_ota?'OTA capable':'No OTA partition');
+    var info=document.getElementById('otaRollbackInfo');
+    if(info && !p.has_ota){
+      info.innerHTML='<b style="color:var(--red)">No OTA Partition</b><br>This build appears to be running from a factory/single app partition. Use an OTA partition table before relying on Web updates.';
+    }
+  }
+}
+
+function uploadFirmware(){
+  var input=document.getElementById('otaFile');
+  var file=input.files[0];
+  if(!file)return;
+  if(!file.name.endsWith('.bin')){alert('Error: Please select a .bin firmware file');input.value='';return;}
+  var MAX_SIZE=16*1024*1024;
+  if(file.size>MAX_SIZE){alert('Error: Firmware file too large (max 16MB)');input.value='';return;}
+  if(file.size<32768 && !confirm('Warning: This file is very small ('+Math.round(file.size/1024)+' KB).\nAre you sure it is a valid ESP32 firmware?')){input.value='';return;}
+  if(!confirm('Flash firmware: '+file.name+' ('+Math.round(file.size/1024)+' KB)?\n\nDevice will reboot after update.')){input.value='';return;}
+  var prog=document.getElementById('otaProgress'),bar=document.getElementById('otaBar'),status=document.getElementById('otaStatus'),bytes=document.getElementById('otaBytes'),btn=document.getElementById('otaSelectBtn');
+  prog.style.display='block';bar.style.width='0%';bar.style.background='var(--accent)';status.textContent='Uploading firmware...';status.style.color='var(--text2)';bytes.textContent='0 / '+Math.round(file.size/1024)+' KB';btn.disabled=true;btn.style.opacity='.5';
+  var xhr=new XMLHttpRequest();
+  xhr.upload.addEventListener('progress',function(e){if(e.lengthComputable){var pct=Math.round((e.loaded/e.total)*100);bar.style.width=pct+'%';status.textContent='Uploading: '+pct+'%';bytes.textContent=Math.round(e.loaded/1024)+' / '+Math.round(e.total/1024)+' KB';}});
+  xhr.addEventListener('load',function(){btn.disabled=false;btn.style.opacity='1';if(xhr.status===200&&xhr.responseText==='OK'){bar.style.width='100%';status.textContent='Upload complete - rebooting...';status.style.color='var(--accent)';var c=8;var t=setInterval(function(){c--;bytes.textContent='Reconnecting in '+c+'s...';if(c<=0){clearInterval(t);location.reload();}},1000);}else{bar.style.background='var(--red)';status.textContent='Update failed';status.style.color='var(--red)';bytes.textContent='Server response: '+(xhr.responseText||xhr.statusText||'Unknown error');input.value='';}});
+  xhr.addEventListener('error',function(){btn.disabled=false;btn.style.opacity='1';bar.style.background='var(--red)';status.textContent='Connection lost during upload';status.style.color='var(--red)';bytes.textContent='Check WiFi connection and try again';input.value='';});
+  xhr.addEventListener('timeout',function(){btn.disabled=false;btn.style.opacity='1';bar.style.background='var(--yellow)';status.textContent='Upload timed out';status.style.color='var(--yellow)';bytes.textContent='The device may have rebooted - check if new firmware is running';input.value='';});
+  var fd=new FormData();fd.append('firmware',file);xhr.open('POST','/update',true);xhr.setRequestHeader('Authorization',authHeader);xhr.timeout=120000;xhr.send(fd);
+}
+
+function selectFirmware(el){
+  requireAuth(function(){document.getElementById('otaFile').click();},el);
+}
+
+function restartDevice(el){
+  restartAnchor=el;
+  requireAuth(function(){showRestartConfirm(el);},el);
+}
+
+function movePanelNear(panel,anchor){
+  if(!panel || !anchor)return;
+  var card=anchor.closest?anchor.closest('.card'):null;
+  if(card && panel.parentNode!==card)card.appendChild(panel);
+}
+
+function showRestartConfirm(anchor){
+  var p=document.getElementById('restartConfirmPanel');
+  movePanelNear(p,anchor);
+  if(p)p.className='confirm-panel show';
+}
+
+function cancelRestartConfirm(){
+  var p=document.getElementById('restartConfirmPanel');
+  if(p)p.className='confirm-panel';
+}
+
+function confirmRestart(){
+  cancelRestartConfirm();
+  requestRestart();
+}
+
+function requestRestart(){
+  fetch('/restart',{headers:{Authorization:authHeader}}).then(function(r){
+    if(!r.ok){authHeader='';requireAuth(function(){showRestartConfirm(restartAnchor);},restartAnchor);return;}
+    alert('已触发设备重启');
+    setTimeout(function(){location.reload();},8000);
+  }).catch(function(){setTimeout(function(){location.reload();},8000);});
+}
+
+function requireAuth(action,anchor){
+  if(authHeader && checkAuth()){action();return;}
+  authHeader='';
+  authAction=action;
+  showAuth(anchor);
+}
+
+function showAuth(anchor){
+  var m=document.getElementById('authPanel');
+  var u=document.getElementById('authUser');
+  var p=document.getElementById('authPass');
+  movePanelNear(m,anchor);
+  if(u)u.value='admin';
+  if(p)p.value='';
+  if(m)m.className='auth-panel show';
+  setTimeout(function(){if(u)u.focus();},0);
+}
+
+function cancelAuth(){
+  authAction=null;
+  var m=document.getElementById('authPanel');
+  if(m)m.className='auth-panel';
+}
+
+function submitAuth(){
+  var u=document.getElementById('authUser');
+  var p=document.getElementById('authPass');
+  var user=u?u.value:'';
+  var pass=p?p.value:'';
+  if(!user || !pass)return;
+  authHeader='Basic '+btoa(user+':'+pass);
+  if(!checkAuth()){
+    authHeader='';
+    authFailed();
+    if(p){p.value='';p.focus();}
+    return;
+  }
+  var action=authAction;
+  cancelAuth();
+  if(action)action();
+}
+
+function checkAuth(){
+  try{
+    var xhr=new XMLHttpRequest();
+    xhr.open('GET','/auth',false);
+    xhr.setRequestHeader('Authorization',authHeader);
+    xhr.send(null);
+    return xhr.status===200;
+  }catch(e){
+    return false;
+  }
+}
+
+function authFailed(){
+  alert('Authentication failed');
+  var input=document.getElementById('otaFile');
+  if(input)input.value='';
 }
 
 function sdFormat(){
@@ -482,25 +738,42 @@ static String json_escape(const char *s) {
 
 // ── JSON builder ──────────────────────────────────────────────────────────────
 static String build_json() {
+    FSDState state;
+    if (!state_copy(&state)) return "{}";
+
     uint32_t uptime_s = (millis() - g_start_ms) / 1000;
     bool can_vehicle_detected = false;
-    if (g_state != nullptr && g_state->rx_count > 0) {
+    if (state.rx_count > 0) {
         can_vehicle_detected = (millis() - g_last_can_seen_ms) <= CAN_VEHICLE_ALIVE_MS;
     }
 
     // BMS sub-object
     char bms[128];
-    if (g_state->bms_seen) {
+    if (state.bms_seen) {
         snprintf(bms, sizeof(bms),
             "{\"seen\":true,\"voltage\":%.1f,\"current\":%.1f,"
             "\"soc\":%.1f,\"temp_min\":%d,\"temp_max\":%d}",
-            g_state->pack_voltage_v,
-            g_state->pack_current_a,
-            g_state->soc_percent,
-            (int)g_state->batt_temp_min_c,
-            (int)g_state->batt_temp_max_c);
+            state.pack_voltage_v,
+            state.pack_current_a,
+            state.soc_percent,
+            (int)state.batt_temp_min_c,
+            (int)state.batt_temp_max_c);
     } else {
         strcpy(bms, "{\"seen\":false}");
+    }
+
+    char ota_part[128] = {};
+    {
+        const esp_partition_t *running = esp_ota_get_running_partition();
+        const char *running_label = running ? running->label : "unknown";
+        esp_ota_img_states_t ota_state = ESP_OTA_IMG_UNDEFINED;
+        if (running) esp_ota_get_state_partition(running, &ota_state);
+        bool has_ota = (running &&
+            (running->subtype == ESP_PARTITION_SUBTYPE_APP_OTA_0 ||
+             running->subtype == ESP_PARTITION_SUBTYPE_APP_OTA_1));
+        snprintf(ota_part, sizeof(ota_part),
+            "{\"running\":\"%s\",\"state\":%d,\"has_ota\":%s}",
+            running_label, (int)ota_state, has_ota ? "true" : "false");
     }
 
     // fps as fixed-point string
@@ -508,33 +781,36 @@ static String build_json() {
     snprintf(fps_s, sizeof(fps_s), "%.1f", g_fps);
 
     String j;
-    j.reserve(512);
+    j.reserve(768);
     j  = "{";
-    j += "\"fsd_enabled\":";   j += g_state->fsd_enabled             ? "true" : "false"; j += ',';
-    j += "\"op_mode\":";       j += (int)g_state->op_mode;            j += ',';
-    j += "\"hw_version\":";    j += (int)g_state->hw_version;         j += ',';
-    j += "\"ota\":";           j += g_state->tesla_ota_in_progress    ? "true" : "false"; j += ',';
-    j += "\"nag_killer\":";    j += g_state->nag_killer               ? "true" : "false"; j += ',';
-    j += "\"bms_output\":";    j += g_state->bms_output               ? "true" : "false"; j += ',';
-    j += "\"force_fsd\":";     j += g_state->force_fsd                ? "true" : "false"; j += ',';
-    j += "\"tlssc_restore\":"; j += g_state->tlssc_restore            ? "true" : "false"; j += ',';
+    j += "\"fsd_enabled\":";   j += state.fsd_enabled                 ? "true" : "false"; j += ',';
+    j += "\"op_mode\":";       j += (int)state.op_mode;                j += ',';
+    j += "\"hw_version\":";    j += (int)state.hw_version;             j += ',';
+    j += "\"ota\":";           j += state.tesla_ota_in_progress        ? "true" : "false"; j += ',';
+    j += "\"nag_killer\":";    j += state.nag_killer                   ? "true" : "false"; j += ',';
+    j += "\"bms_output\":";    j += state.bms_output                   ? "true" : "false"; j += ',';
+    j += "\"force_fsd\":";     j += state.force_fsd                    ? "true" : "false"; j += ',';
+    j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
+    j += "\"suppress_speed_chime\":"; j += state.suppress_speed_chime  ? "true" : "false"; j += ',';
+    j += "\"tlssc_restore\":"; j += state.tlssc_restore                ? "true" : "false"; j += ',';
     j += "\"can_vehicle_detected\":"; j += can_vehicle_detected       ? "true" : "false"; j += ',';
-    j += "\"bms_hv_seen\":";   j += g_state->seen_bms_hv;              j += ',';
-    j += "\"bms_soc_seen\":";  j += g_state->seen_bms_soc;             j += ',';
-    j += "\"bms_thermal_seen\":"; j += g_state->seen_bms_thermal;       j += ',';
-    j += "\"rx_count\":";      j += g_state->rx_count;                 j += ',';
-    j += "\"tx_count\":";      j += g_state->frames_modified;          j += ',';
-    j += "\"crc_errors\":";    j += g_state->crc_err_count;            j += ',';
+    j += "\"bms_hv_seen\":";   j += state.seen_bms_hv;                 j += ',';
+    j += "\"bms_soc_seen\":";  j += state.seen_bms_soc;                j += ',';
+    j += "\"bms_thermal_seen\":"; j += state.seen_bms_thermal;          j += ',';
+    j += "\"rx_count\":";      j += state.rx_count;                    j += ',';
+    j += "\"tx_count\":";      j += state.frames_modified;             j += ',';
+    j += "\"crc_errors\":";    j += state.crc_err_count;               j += ',';
     j += "\"fps\":";           j += fps_s;                             j += ',';
     j += "\"bms\":";           j += bms;                               j += ',';
     j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
     j += "\"fw_build\":\"";    j += __DATE__;  j += ' '; j += __TIME__; j += "\",";
     j += "\"can_dump\":";      j += can_dump_active()                 ? "true" : "false"; j += ',';
-    j += "\"sleep_ms\":";     j += g_state->sleep_idle_ms;            j += ',';
-    j += "\"wifi_ssid\":\"";  j += json_escape(g_state->wifi_ssid);   j += "\",";
+    j += "\"sleep_ms\":";     j += state.sleep_idle_ms;               j += ',';
+    j += "\"wifi_ssid\":\"";  j += json_escape(state.wifi_ssid);      j += "\",";
     j += "\"wifi_pass\":\"***\",";
-    j += "\"wifi_hidden\":";  j += g_state->wifi_hidden               ? "true" : "false"; j += ',';
-    j += "\"wifi_clients\":";  j += (int)WiFi.softAPgetStationNum();
+    j += "\"wifi_hidden\":";  j += state.wifi_hidden                  ? "true" : "false"; j += ',';
+    j += "\"wifi_clients\":";  j += (int)WiFi.softAPgetStationNum();   j += ',';
+    j += "\"ota_partition\":"; j += ota_part;
     j += '}';
     return j;
 }
@@ -562,43 +838,91 @@ static void ws_event(uint8_t num, WStype_t type,
     if (vptr) vptr = strstr(vptr, ":") + 1;
 
     if (strstr(buf, "\"mode\"")) {
+        FSDState saved;
+        bool active = false;
+        state_enter();
         if (g_state->op_mode == OpMode_ListenOnly) {
             g_state->op_mode = OpMode_Active;
-            if (g_can) g_can->setListenOnly(false);
-            Serial.println("[Web] → Active mode");
+            active = true;
         } else {
             g_state->op_mode = OpMode_ListenOnly;
-            if (g_can) g_can->setListenOnly(true);
-            Serial.println("[Web] → Listen-Only mode");
         }
-        prefs_save(g_state);
+        saved = *g_state;
+        state_exit();
+        if (g_can) g_can->setListenOnly(!active);
+        Serial.println(active ? "[Web] → Active mode" : "[Web] → Listen-Only mode");
+        prefs_save(&saved);
     } else if (strstr(buf, "\"nag\"")) {
         if (vptr) {
             while (*vptr == ' ' || *vptr == ':') vptr++;
-            g_state->nag_killer = (strncmp(vptr, "true", 4) == 0);
-            Serial.printf("[Web] NAG Killer: %s\n", g_state->nag_killer ? "ON" : "OFF");
-            prefs_save(g_state);
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->nag_killer = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] NAG Killer: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
         }
     } else if (strstr(buf, "\"bms\"")) {
         if (vptr) {
             while (*vptr == ' ' || *vptr == ':') vptr++;
-            g_state->bms_output = (strncmp(vptr, "true", 4) == 0);
-            Serial.printf("[Web] BMS output: %s\n", g_state->bms_output ? "ON" : "OFF");
-            prefs_save(g_state);
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->bms_output = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] BMS output: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
         }
     } else if (strstr(buf, "\"tlssc_restore\"")) {
         if (vptr) {
             while (*vptr == ' ' || *vptr == ':') vptr++;
-            g_state->tlssc_restore = (strncmp(vptr, "true", 4) == 0);
-            Serial.printf("[Web] TLSSC Restore: %s\n", g_state->tlssc_restore ? "ON" : "OFF");
-            prefs_save(g_state);
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->tlssc_restore = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] TLSSC Restore: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
         }
     } else if (strstr(buf, "\"force_fsd\"")) {
         if (vptr) {
             while (*vptr == ' ' || *vptr == ':') vptr++;
-            g_state->force_fsd = (strncmp(vptr, "true", 4) == 0);
-            Serial.printf("[Web] Force FSD: %s\n", g_state->force_fsd ? "ON" : "OFF");
-            prefs_save(g_state);
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->force_fsd = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Force FSD: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"china_mode\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->china_mode = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] China Mode: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"suppress_speed_chime\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->suppress_speed_chime = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Suppress Speed Chime: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
         }
     } else if (strstr(buf, "\"dump\"")) {
         if (vptr) {
@@ -613,15 +937,21 @@ static void ws_event(uint8_t num, WStype_t type,
             while (*vptr == ' ' || *vptr == ':') vptr++;
             uint32_t val = (uint32_t)atoi(vptr);
             if (val >= 10000) { // minimum 10s
+                FSDState saved;
+                state_enter();
                 g_state->sleep_idle_ms = val;
+                saved = *g_state;
+                state_exit();
                 Serial.printf("[Web] Sleep timeout: %u ms\n", val);
-                prefs_save(g_state);
+                prefs_save(&saved);
             }
         }
     } else if (strstr(buf, "\"wifi_cfg\"")) {
         // Find the "value":{ object start
         const char *vobj = strstr(buf, "\"value\":");
         if (vobj) {
+            FSDState saved;
+            state_enter();
             char *s = strstr(vobj, "\"ssid\":\"");
             char *p = strstr(vobj, "\"pass\":\"");
             char *h = strstr(vobj, "\"hidden\":");
@@ -656,9 +986,11 @@ static void ws_event(uint8_t num, WStype_t type,
                 if (strncmp(h, "true", 4) == 0) g_state->wifi_hidden = true;
                 else if (strncmp(h, "false", 5) == 0) g_state->wifi_hidden = false;
             }
+            saved = *g_state;
+            state_exit();
             Serial.printf("[Web] WiFi config: SSID=\"%s\" PASS=*** HIDDEN=%d\n",
-                g_state->wifi_ssid, g_state->wifi_hidden);
-            prefs_save(g_state);
+                saved.wifi_ssid, saved.wifi_hidden);
+            prefs_save(&saved);
             delay(500);
             ESP.restart();
         }
@@ -675,23 +1007,181 @@ static void handle_status() {
     g_http.send(200, "application/json", build_json());
 }
 
+static void handle_auth() {
+    if (!require_admin_auth()) return;
+    g_http.send(200, "text/plain", "OK");
+}
+
 static void handle_sdformat() {
     String result = sd_format_card();
     g_http.send(200, "application/json", result);
 }
 
+static void handle_restart() {
+    if (!require_admin_auth()) return;
+    g_http.send(200, "text/plain", "OK");
+    delay(500);
+    ESP.restart();
+}
+
+// ── OTA Update handlers ───────────────────────────────────────────────────────
+static size_t ota_total_size = 0;
+static size_t ota_max_size = 0;
+static bool ota_error_flag = false;
+static bool ota_magic_checked = false;
+static const char *ota_error_msg = nullptr;
+
+static void handle_ota_upload() {
+    HTTPUpload& upload = g_http.upload();
+
+    if (upload.status == UPLOAD_FILE_START) {
+        Serial.printf("[OTA] Start: %s\n", upload.filename.c_str());
+        if (!require_admin_auth()) {
+            ota_error_flag = true;
+            ota_error_msg = "Authentication required";
+            return;
+        }
+        ota_error_flag = false;
+        ota_error_msg = nullptr;
+        ota_magic_checked = false;
+        ota_total_size = 0;
+        ota_max_size = 0;
+
+        if (!upload.filename.endsWith(".bin")) {
+            Serial.println("[OTA] ERROR: File must be .bin");
+            ota_error_flag = true;
+            ota_error_msg = "File must be .bin";
+            return;
+        }
+
+        size_t max_size = UPDATE_SIZE_UNKNOWN;
+        const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
+        if (partition != NULL) {
+            max_size = partition->size;
+            ota_max_size = partition->size;
+            Serial.printf("[OTA] Target partition: %s, size: %u bytes\n",
+                partition->label, (unsigned)max_size);
+        } else {
+            Serial.println("[OTA] ERROR: No OTA partition available");
+            ota_error_flag = true;
+            ota_error_msg = "No OTA partition available";
+            return;
+        }
+
+        if (!Update.begin(max_size, U_FLASH)) {
+            Update.printError(Serial);
+            Serial.println("[OTA] ERROR: Update.begin() failed");
+            ota_error_flag = true;
+            ota_error_msg = "Update.begin() failed";
+            return;
+        }
+
+        Serial.println("[OTA] Update started successfully");
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+        if (ota_error_flag) return;
+        if (!ota_magic_checked) {
+            if (upload.currentSize == 0 || upload.buf[0] != OTA_ESP32_IMAGE_MAGIC) {
+                Serial.println("[OTA] ERROR: Invalid ESP32 image magic byte");
+                ota_error_flag = true;
+                ota_error_msg = "Invalid ESP32 image magic byte";
+                Update.abort();
+                return;
+            }
+            ota_magic_checked = true;
+        }
+        if (ota_max_size > 0 && (ota_total_size + upload.currentSize) > ota_max_size) {
+            Serial.println("[OTA] ERROR: Firmware exceeds OTA partition size");
+            ota_error_flag = true;
+            ota_error_msg = "Firmware exceeds OTA partition size";
+            Update.abort();
+            return;
+        }
+
+        size_t written = Update.write(upload.buf, upload.currentSize);
+        if (written != upload.currentSize) {
+            Update.printError(Serial);
+            Serial.printf("[OTA] ERROR: Write failed, expected %u, wrote %u\n",
+                upload.currentSize, (unsigned)written);
+            ota_error_flag = true;
+            ota_error_msg = "Flash write failed";
+            return;
+        }
+
+        ota_total_size += upload.currentSize;
+        if (ota_total_size % 65536 == 0) {
+            Serial.printf("[OTA] Progress: %u bytes\n", (unsigned)ota_total_size);
+        }
+    } else if (upload.status == UPLOAD_FILE_END) {
+        if (ota_error_flag) {
+            Serial.println("[OTA] Upload aborted due to previous error");
+            Update.abort();
+            return;
+        }
+
+        if (Update.end(true)) {
+            Serial.printf("[OTA] Success: %u bytes total\n", (unsigned)ota_total_size);
+            if (!Update.isFinished()) {
+                Serial.println("[OTA] ERROR: Update not finished properly");
+                ota_error_flag = true;
+                ota_error_msg = "Update not finished properly";
+            }
+        } else {
+            Update.printError(Serial);
+            Serial.println("[OTA] ERROR: Update.end() failed");
+            ota_error_flag = true;
+            ota_error_msg = "Update.end() failed";
+        }
+    } else if (upload.status == UPLOAD_FILE_ABORTED) {
+        Serial.println("[OTA] Upload aborted by client");
+        Update.abort();
+        ota_error_flag = true;
+        ota_error_msg = "Upload aborted";
+    }
+}
+
+static void handle_ota_done() {
+    if (!require_admin_auth()) return;
+    if (ota_error_flag || Update.hasError()) {
+        String error_msg = "FAIL: ";
+        if (Update.hasError()) {
+            error_msg += "Error code " + String(Update.getError());
+        } else if (ota_error_msg != nullptr) {
+            error_msg += ota_error_msg;
+        } else {
+            error_msg += "Upload error";
+        }
+
+        Serial.printf("[OTA] %s\n", error_msg.c_str());
+        g_http.send(500, "text/plain", error_msg);
+        Update.abort();
+        return;
+    }
+
+    g_http.send(200, "text/plain", "OK");
+
+    Serial.println("[OTA] Firmware update successful!");
+    Serial.println("[OTA] Rebooting in 2 seconds...");
+
+    delay(2000);
+    ESP.restart();
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
-void web_dashboard_init(FSDState *state, CanDriver *can) {
+void web_dashboard_init(FSDState *state, CanDriver *can, portMUX_TYPE *state_mux) {
     g_state       = state;
     g_can         = can;
+    g_state_mux   = state_mux;
     g_start_ms    = millis();
     g_last_fps_ms = millis();
     g_last_rx     = state ? state->rx_count : 0;
     g_last_can_seen_ms = (state && state->rx_count > 0) ? millis() : 0;
 
-    g_http.on("/",           HTTP_GET, handle_root);
-    g_http.on("/api/status", HTTP_GET, handle_status);
-    g_http.on("/sdformat",   HTTP_GET, handle_sdformat);
+    g_http.on("/",           HTTP_GET,  handle_root);
+    g_http.on("/api/status", HTTP_GET,  handle_status);
+    g_http.on("/auth",       HTTP_GET,  handle_auth);
+    g_http.on("/sdformat",   HTTP_GET,  handle_sdformat);
+    g_http.on("/restart",    HTTP_GET,  handle_restart);
+    g_http.on("/update",     HTTP_POST, handle_ota_done, handle_ota_upload);
     g_http.begin();
 
     g_ws.begin();
@@ -709,7 +1199,9 @@ void web_dashboard_update() {
     // FPS calculation + 1 Hz WebSocket broadcast
     uint32_t now = millis();
     if ((now - g_last_fps_ms) >= 1000u) {
-        uint32_t rx = g_state->rx_count;
+        FSDState state;
+        if (!state_copy(&state)) return;
+        uint32_t rx = state.rx_count;
         float    dt = (now - g_last_fps_ms) / 1000.0f;
         if (rx != g_last_rx) g_last_can_seen_ms = now;
         g_fps        = (float)(rx - g_last_rx) / dt;

@@ -158,6 +158,11 @@ void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame) {
 
 bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
     if(frame->data_lenght < 8) return false;
+
+    // AP-first mode (2026.14.x): don't modify 0x3FD until AP is engaged.
+    // das_ap_state >= 2 means AP is active (ACTIVE_NOMINAL or higher).
+    if(state->ap_first && state->das_ap_state < 2) return false;
+
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
     bool modified = false;
@@ -409,6 +414,9 @@ void fsd_build_steering_tune_frame(CANFRAME* frame, uint8_t mode) {
 
 void fsd_handle_das_status(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
+    // DAS_autopilotState: bit12|4 → byte1 bits[7:4]
+    // 0=UNAVAIL 1=AVAIL 2=ACTIVE_NOMINAL 3=ACTIVE_MIN_DRIVER ...
+    state->das_ap_state = (frame->buffer[1] >> 4) & 0x0F;
     // DAS_autopilotHandsOnState: bit42|4 → byte5 bits[5:2]
     state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0F;
     // DAS_autoLaneChangeState: bit46|5 → byte5 bits[7:6] + byte6 bits[2:0]

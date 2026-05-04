@@ -19,9 +19,26 @@
 There are two places to tap the CAN bus. **The X179 connector is
 recommended** — it provides more signals and built-in 12V power.
 
-### OBD-II (16-pin) — under the steering column
+### OBD-II (16-pin) — Tesla-specific notes
 
-The standard automotive diagnostic port. Every car has one.
+The standard automotive diagnostic port. On Tesla the location and
+behavior differ by model and year:
+
+- **2017–2018 Model 3**: no OBD-II port. Use X052 instead (see below).
+- **2019+ Model 3 / 2020–April 2024 Model Y**: OBD-II J1962 port
+  exists, but it is **not under the steering column** — it sits in
+  the rear center console area and requires a Tesla-specific adapter
+  cable (e.g., OHP, EVTV, Cybertool) to expose a standard 16-pin
+  socket.
+- **April 2024+ Juniper Model Y / refreshed Model 3 Highland (later
+  builds)**: Tesla switched to **DoIP** (Diagnostic over IP) — the
+  diagnostic port now carries 100 Mbps Ethernet, **not** CAN.
+
+> [!CAUTION]
+> Do not connect a CAN-based OBD-II adapter or scan tool to a DoIP
+> port. The signal levels are incompatible and connecting a J1962-on-
+> CAN device into a DoIP-only port can damage the vehicle's diagnostic
+> module. If you have a 2024+ Juniper, tap X179 directly — see below.
 
 ```
     ┌──────────────────────────────┐
