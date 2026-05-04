@@ -1021,6 +1021,28 @@ static void text_input_backspace_cb(TextInputModel* model) {
     model->cursor_pos = delete_pos;
 }
 
+static void text_input_backspace_to_start_cb(TextInputModel* model) {
+    if(model->text_buffer == NULL || model->text_buffer_size == 0U) {
+        return;
+    }
+
+    if(model->clear_default_text) {
+        model->text_buffer[0] = '\0';
+        model->cursor_pos = 0U;
+        return;
+    }
+
+    const size_t text_length = strlen(model->text_buffer);
+    if(text_length == 0U || model->cursor_pos == 0U) {
+        return;
+    }
+
+    const size_t cursor_pos =
+        text_input_utf8_clamp_boundary(model->text_buffer, MIN(model->cursor_pos, text_length));
+    memmove(model->text_buffer, model->text_buffer + cursor_pos, text_length - cursor_pos + 1U);
+    model->cursor_pos = 0U;
+}
+
 static void text_input_draw_key(
     Canvas* canvas,
     const TextInputModel* model,
@@ -1265,7 +1287,9 @@ static void text_input_handle_ok(TextInput* text_input, TextInputModel* model, I
         switch_keyboard(model);
         break;
     case TextInputKeyActionBackspace:
-        if(!repeat) {
+        if(type == InputTypeLong) {
+            text_input_backspace_to_start_cb(model);
+        } else if(!repeat) {
             text_input_backspace_cb(model);
         }
         break;
@@ -1351,7 +1375,7 @@ static bool text_input_view_input_callback(InputEvent* event, void* context) {
             text_input_handle_ok(text_input, model, event->type);
             break;
         case InputKeyBack:
-            text_input_backspace_cb(model);
+            text_input_backspace_to_start_cb(model);
             break;
         default:
             consumed = false;

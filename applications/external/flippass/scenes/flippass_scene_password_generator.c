@@ -402,11 +402,9 @@ static void flippass_password_gen_update_harvest_view(App* app) {
     FlipPassPasswordGenPluginStatusV1 status = {0};
     char detail[80];
     uint8_t percent = 0U;
-    uint32_t remaining_seconds = 0U;
     const uint32_t now_tick = furi_get_tick();
     const uint32_t total_ticks = flippass_password_gen_total_ticks(app);
     const uint32_t elapsed_ticks = flippass_password_gen_elapsed_ticks(app, now_tick);
-    const uint32_t hz = furi_kernel_get_tick_frequency();
 
     if(descriptor != NULL && descriptor->entry_point != NULL) {
         const FlipPassPasswordGenPluginV1* plugin = descriptor->entry_point;
@@ -416,18 +414,15 @@ static void flippass_password_gen_update_harvest_view(App* app) {
     if(total_ticks > 0U) {
         const uint32_t clamped = elapsed_ticks < total_ticks ? elapsed_ticks : total_ticks;
         percent = (uint8_t)((clamped * 100U) / total_ticks);
-        const uint32_t remaining_ticks = total_ticks - clamped;
-        remaining_seconds = hz > 0U ? ((remaining_ticks + hz - 1U) / hz) : remaining_ticks;
     }
 
     snprintf(
         detail,
         sizeof(detail),
-        "Keys: %lu\nRF:%lu/%lu %lus",
+        "Keys: %lu\nRF:%lu/%lu",
         (unsigned long)status.input_events,
         (unsigned long)status.subghz_samples,
-        (unsigned long)status.subghz_edges,
-        (unsigned long)remaining_seconds);
+        (unsigned long)status.subghz_edges);
     flippass_progress_update(app, "Collecting entropy", detail, percent);
 }
 

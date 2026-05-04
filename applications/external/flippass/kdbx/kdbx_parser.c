@@ -1653,6 +1653,11 @@ bool kdbx_parser_get_aes_kdf_rounds(const KDBXParser* parser, uint64_t* out_roun
         return false;
     }
 
+    if(params.type == KDBXParserKdfTypeArgon2Unsupported) {
+        kdbx_parser_set_error((KDBXParser*)parser, KDBX_ARGON2_UNSUPPORTED_MESSAGE);
+        return false;
+    }
+
     if(params.type != KDBXParserKdfTypeAes || params.rounds == 0U) {
         kdbx_parser_set_error((KDBXParser*)parser, "This database uses an unsupported KDF.");
         return false;
@@ -1662,19 +1667,64 @@ bool kdbx_parser_get_aes_kdf_rounds(const KDBXParser* parser, uint64_t* out_roun
     return true;
 }
 
-bool kdbx_parser_derive_key(
+bool kdbx_parser_get_aes_kdf_salt(
+    const KDBXParser* parser,
+    uint8_t* out_salt,
+    size_t out_salt_size,
+    size_t* out_size) {
+    KDBXParserKdfParameters params;
+
+    furi_assert(parser);
+    furi_assert(out_salt);
+    furi_assert(out_size);
+
+    *out_size = 0U;
+    if(out_salt_size < 32U) {
+        kdbx_parser_set_error((KDBXParser*)parser, "FlipPass received a short KDF salt buffer.");
+        return false;
+    }
+
+    if(!parser->header_parsed) {
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "The database header is not ready for KDF inspection.");
+        return false;
+    }
+
+    if(!kdbx_parser_parse_kdf_parameters(parser, &params)) {
+        return false;
+    }
+
+    if(params.type == KDBXParserKdfTypeArgon2Unsupported) {
+        kdbx_parser_set_error((KDBXParser*)parser, KDBX_ARGON2_UNSUPPORTED_MESSAGE);
+        return false;
+    }
+
+    if(params.type != KDBXParserKdfTypeAes || params.salt == NULL || params.salt_size != 32U) {
+        kdbx_parser_set_error((KDBXParser*)parser, "This database uses an unsupported KDF.");
+        return false;
+    }
+
+    memcpy(out_salt, params.salt, params.salt_size);
+    *out_size = params.salt_size;
+    return true;
+}
+
+bool kdbx_parser_derive_key_with_transformed(
     const KDBXParser* parser,
     const char* password,
     uint8_t* cipher_key,
     size_t cipher_key_size,
     uint8_t* hmac_key,
-    size_t hmac_key_size) {
+    size_t hmac_key_size,
+    uint8_t* transformed_key_out,
+    size_t transformed_key_size) {
     furi_assert(parser);
     furi_assert(password);
     furi_assert(cipher_key);
     furi_assert(hmac_key);
 
-    if(cipher_key_size != 32 || hmac_key_size != 64) {
+    if(cipher_key_size != 32 || hmac_key_size != 64 ||
+       (transformed_key_out != NULL && transformed_key_size != 32U)) {
         FURI_LOG_E("KDBXParser", "Invalid requested cipher or HMAC key size");
         kdbx_parser_set_error(
             (KDBXParser*)parser, "FlipPass received invalid derived key buffer sizes.");
@@ -1693,6 +1743,10 @@ bool kdbx_parser_derive_key(
     memcpy(key_material + 32, transformed_key, 32);
     sha256_Raw(key_material, 64, cipher_key);
 
+    if(transformed_key_out != NULL) {
+        memcpy(transformed_key_out, transformed_key, 32U);
+    }
+
     key_material[64] = 1;
     sha512_Raw(key_material, sizeof(key_material), hmac_key);
     kdbx_parser_release_kdf_parameters((KDBXParser*)parser);
@@ -1700,4 +1754,15 @@ bool kdbx_parser_derive_key(
     memzero(key_material, sizeof(key_material));
     memzero(transformed_key, sizeof(transformed_key));
     return true;
+}
+
+bool kdbx_parser_derive_key(
+    const KDBXParser* parser,
+    const char* password,
+    uint8_t* cipher_key,
+    size_t cipher_key_size,
+    uint8_t* hmac_key,
+    size_t hmac_key_size) {
+    return kdbx_parser_derive_key_with_transformed(
+        parser, password, cipher_key, cipher_key_size, hmac_key, hmac_key_size, NULL, 0U);
 }

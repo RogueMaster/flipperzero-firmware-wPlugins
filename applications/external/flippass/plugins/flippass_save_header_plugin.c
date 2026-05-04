@@ -299,12 +299,21 @@ static bool flippass_save_header_build_header(
     return true;
 }
 
+static bool flippass_save_header_can_reuse_transformed(
+    const FlipPassSaveHeaderRequestV1* request,
+    const uint8_t kdf_salt[32]) {
+    return request != NULL && request->transformed_key != NULL &&
+           request->transformed_key_size == 32U && request->kdf_salt != NULL &&
+           request->kdf_salt_size == 32U && memcmp(request->kdf_salt, kdf_salt, 32U) == 0;
+}
+
 static bool flippass_save_header_derive_keys(
     FlipPassSaveHeaderContext* ctx,
     const uint8_t master_seed[32],
     const uint8_t kdf_salt[32],
     uint8_t cipher_key[32],
     uint8_t hmac_base[64],
+    uint8_t transformed_key_out[32],
     FuriString* error) {
     const FlipPassSaveHeaderRequestV1* request = NULL;
     uint8_t composite_key[32];
@@ -321,7 +330,19 @@ static bool flippass_save_header_derive_keys(
     furi_assert(kdf_salt);
     furi_assert(cipher_key);
     furi_assert(hmac_base);
+    furi_assert(transformed_key_out);
     furi_assert(error);
+
+    memzero(composite_key, sizeof(composite_key));
+    memzero(transformed_key, sizeof(transformed_key));
+    memzero(transformed_key_out, 32U);
+
+    if(flippass_save_header_can_reuse_transformed(request, kdf_salt)) {
+        memcpy(transformed_key, request->transformed_key, sizeof(transformed_key));
+        flippass_save_header_log_heap(ctx, "derive_reuse_transformed");
+        flippass_save_header_progress(ctx, "Key Derivation", "Reusing session key", 34U);
+        goto material_ready;
+    }
 
     if(request->composite_key == NULL || request->composite_key_size != sizeof(composite_key)) {
         furi_string_set_str(error, "FlipPass save key is unavailable.");
@@ -341,8 +362,7 @@ static bool flippass_save_header_derive_keys(
     if(progress_interval < 10000U) {
         progress_interval = 10000U;
     }
-    snprintf(
-        detail, sizeof(detail), "Rounds 0K/%luK", (unsigned long)(request->kdf_rounds / 1000ULL));
+    snprintf(detail, sizeof(detail), "Rounds 0%%");
     flippass_save_header_progress(ctx, "Key Derivation", detail, 8U);
 
     if(aes_encrypt_key256(kdf_salt, aes_ctx) != EXIT_SUCCESS) {
@@ -361,9 +381,9 @@ static bool flippass_save_header_derive_keys(
             snprintf(
                 detail,
                 sizeof(detail),
-                "Rounds %luK/%luK",
-                (unsigned long)(completed / 1000ULL),
-                (unsigned long)(request->kdf_rounds / 1000ULL));
+                "Rounds %u%%",
+                (unsigned int)flippass_save_header_progress_range(
+                    0U, 100U, completed, request->kdf_rounds));
             flippass_save_header_progress(
                 ctx,
                 "Key Derivation",
@@ -375,17 +395,22 @@ static bool flippass_save_header_derive_keys(
     flippass_save_header_log_heap(ctx, "derive_rounds_ok");
 
     sha256_Raw(composite_key, sizeof(composite_key), transformed_key);
+
+material_ready:
     memcpy(material, master_seed, 32U);
     memcpy(material + 32U, transformed_key, 32U);
     sha256_Raw(material, 64U, cipher_key);
     material[64U] = 1U;
     sha512_Raw(material, sizeof(material), hmac_base);
+    memcpy(transformed_key_out, transformed_key, 32U);
 
     memzero(composite_key, sizeof(composite_key));
     memzero(transformed_key, sizeof(transformed_key));
     memzero(material, sizeof(material));
-    memzero(aes_ctx, sizeof(*aes_ctx));
-    free(aes_ctx);
+    if(aes_ctx != NULL) {
+        memzero(aes_ctx, sizeof(*aes_ctx));
+        free(aes_ctx);
+    }
     return true;
 }
 
@@ -417,7 +442,12 @@ static bool flippass_save_header_run_internal(
     memset(work, 0, sizeof(*work));
 
     furi_hal_random_fill_buf(work->master_seed, sizeof(work->master_seed));
-    furi_hal_random_fill_buf(work->kdf_salt, sizeof(work->kdf_salt));
+    if(ctx->request->transformed_key != NULL && ctx->request->transformed_key_size == 32U &&
+       ctx->request->kdf_salt != NULL && ctx->request->kdf_salt_size == sizeof(work->kdf_salt)) {
+        memcpy(work->kdf_salt, ctx->request->kdf_salt, sizeof(work->kdf_salt));
+    } else {
+        furi_hal_random_fill_buf(work->kdf_salt, sizeof(work->kdf_salt));
+    }
     furi_hal_random_fill_buf(work->iv, iv_size);
 
     if(!flippass_save_header_build_header(
@@ -430,15 +460,23 @@ static bool flippass_save_header_run_internal(
            sizeof(work->header),
            &header_size) ||
        !flippass_save_header_derive_keys(
-           ctx, work->master_seed, work->kdf_salt, work->cipher_key, result->hmac_base, error)) {
+           ctx,
+           work->master_seed,
+           work->kdf_salt,
+           work->cipher_key,
+           result->hmac_base,
+           result->transformed_key,
+           error)) {
         flippass_save_header_set_error(ctx, error, "FlipPass could not assemble the KDBX header.");
         goto cleanup;
     }
 
     flippass_save_header_progress(ctx, "Writing Header", "Header hash and HMAC", 36U);
     memcpy(result->cipher_key, work->cipher_key, sizeof(result->cipher_key));
+    memcpy(result->kdf_salt, work->kdf_salt, sizeof(result->kdf_salt));
     memcpy(result->iv, work->iv, iv_size);
     result->iv_size = iv_size;
+    result->transformed_key_ready = true;
 
     sha256_Raw(work->header, header_size, work->header_sha);
     memset(work->header_hmac_input, 0xFF, 8U);

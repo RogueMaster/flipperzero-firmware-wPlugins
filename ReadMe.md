@@ -44,9 +44,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - Removed: [Sand Simulation v0.1 (By JJoeDev)](https://github.com/JJoeDev/FZSandSimulation)
-- Updated: [FlipPass v2.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - Updated: [Tesla Mod v2.14.0 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Ghouls v0.6 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- Updated: [FlipPass v2.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 
 <a name="release"></a>
 

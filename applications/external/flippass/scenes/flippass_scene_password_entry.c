@@ -14,6 +14,11 @@
 #include <stdio.h>
 #include <toolbox/path.h>
 
+static bool flippass_scene_password_entry_is_file_modify(const App* app) {
+    return app->editor_mode == FlipPassEditorModeModifyDatabase &&
+           app->editor_return_scene == FlipPassScene_FileBrowser;
+}
+
 static void flippass_scene_password_entry_set_header(App* app) {
     furi_assert(app);
 
@@ -48,10 +53,7 @@ static void flippass_scene_password_entry_set_header(App* app) {
         snprintf(
             app->password_header,
             sizeof(app->password_header),
-            (app->editor_mode == FlipPassEditorModeModifyDatabase &&
-             app->editor_return_scene == FlipPassScene_FileBrowser) ?
-                "Pass for Mod. %s" :
-                "Pass for %s",
+            flippass_scene_password_entry_is_file_modify(app) ? "Pass for Mod. %s" : "Pass for %s",
             furi_string_get_cstr(file_name));
     }
     furi_string_free(file_name);
@@ -105,6 +107,8 @@ static bool flippass_scene_password_entry_try_debug_unlock(App* app) {
             }
         }
 
+        app->allow_ext_vault_promotion = app->always_allow_ext ||
+                                         app->requested_vault_backend != KDBXVaultBackendRam;
         flippass_scene_password_entry_try_debug_bool(
             file, "allow_ext", allow_ext, &app->allow_ext_vault_promotion);
         flippass_scene_password_entry_try_debug_bool(
@@ -165,7 +169,8 @@ static void flippass_scene_password_entry_trigger_unlock(App* app, const char* p
  */
 static void flippass_scene_password_entry_callback(void* context) {
     App* app = context;
-    app->allow_ext_vault_promotion = app->requested_vault_backend != KDBXVaultBackendRam;
+    app->allow_ext_vault_promotion = app->always_allow_ext ||
+                                     app->requested_vault_backend != KDBXVaultBackendRam;
     flippass_scene_password_entry_trigger_unlock(app, app->text_buffer);
 }
 
@@ -264,8 +269,7 @@ bool flippass_scene_password_entry_on_event(void* context, SceneManagerEvent eve
             consumed = true;
             return consumed;
         }
-        if(app->editor_mode == FlipPassEditorModeModifyDatabase &&
-           app->editor_return_scene == FlipPassScene_FileBrowser && !app->database_loaded) {
+        if(flippass_scene_password_entry_is_file_modify(app) && !app->database_loaded) {
             app->editor_mode = FlipPassEditorModeNone;
             app->editor_text_target = FlipPassEditorTextTargetNone;
             app->editor_group = NULL;

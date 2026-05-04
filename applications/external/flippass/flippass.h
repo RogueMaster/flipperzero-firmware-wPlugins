@@ -41,6 +41,7 @@
 #define FLIPPASS_LOG_FILE_PATH                  EXT_PATH("apps_data/flippass/flippass.log")
 #define FLIPPASS_DEBUG_UNLOCK_FILE_PATH         EXT_PATH("apps_data/flippass/debug_unlock.txt")
 #define FLIPPASS_DEBUG_CREATE_FILE_PATH         EXT_PATH("apps_data/flippass/debug_empty_create.kdbx")
+#define FLIPPASS_DEBUG_SAVE_TRIGGER_FILE_PATH   EXT_PATH("apps_data/flippass/debug_save.txt")
 #define FLIPPASS_SYSTEM_LOG_FILE_PATH           EXT_PATH("apps_data/flippass/system_trace.log")
 #define FLIPPASS_SYSTEM_LOG_ENABLE_FILE_PATH    EXT_PATH("apps_data/flippass/system_trace.enable")
 #define FLIPPASS_BADUSB_LAYOUT_DIR              EXT_PATH("badusb/assets/layouts")
@@ -291,7 +292,16 @@ typedef struct {
         [FLIPPASS_SESSION_SECRET_SIZE]; /**< Composite KDBX credential sealed by the session key. */
     uint8_t database_save_key_mac
         [FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the sealed KDBX credential. */
+    uint8_t database_save_transformed_key_nonce
+        [FLIPPASS_SECURE_VALUE_NONCE_SIZE]; /**< Nonce for the session-sealed AES-KDF transformed key. */
+    uint8_t database_save_transformed_key_cipher
+        [FLIPPASS_SESSION_SECRET_SIZE]; /**< AES-KDF transformed key sealed by the session key. */
+    uint8_t database_save_transformed_key_mac
+        [FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the sealed AES-KDF transformed key. */
+    uint8_t database_save_kdf_salt[32]; /**< AES-KDF salt paired with the sealed transformed key. */
+    uint64_t database_save_kdf_rounds; /**< AES-KDF rounds paired with the sealed transformed key. */
     bool database_save_key_ready; /**< True when the sealed database credential can be unwrapped. */
+    bool database_save_transformed_key_ready; /**< True when a normal save can skip AES-KDF derivation. */
     bool parse_failed; /**< True once XML or data-model parsing hits a handled failure. */
     bool database_loaded; /**< True if the current database was parsed successfully. */
     bool database_dirty; /**< True once the unlocked session diverges from disk. */
@@ -314,6 +324,7 @@ typedef struct {
     uint32_t last_open_count; /**< Successful open count for the persisted last-open path. */
     bool keyboard_layout_configured; /**< True once FlipPass owns a persisted layout choice. */
     int16_t otp_time_zone_minutes; /**< Global UTC correction, in minutes, applied to TIMEOTP. */
+    bool always_allow_ext; /**< True when RAM-first unlock may promote to /ext without a prompt. */
     TextInput* text_input; /**< Pointer to the TextInput instance. */
     char text_buffer[TEXT_BUFFER_SIZE]; /**< Buffer for text input. */
     char password_header[FLIPPASS_PASSWORD_HEADER_SIZE]; /**< Persistent password-entry header text. */
@@ -362,6 +373,7 @@ typedef struct {
     uint16_t editor_idle_lock_minutes; /**< Draft global inactivity-lock timeout. */
     uint8_t editor_idle_unlock_attempts; /**< Draft Unlock Session attempt limit. */
     uint16_t editor_idle_exit_minutes; /**< Draft global inactivity-exit timeout. */
+    bool editor_always_allow_ext; /**< Draft global /ext promotion approval. */
     uint32_t editor_keyboard_layout_index; /**< Draft keyboard-layout item index. */
     bool editor_keyboard_layout_use_alt; /**< Draft keyboard layout uses Alt+NumPad. */
     bool editor_keyboard_layout_available; /**< True when config loaded layout choices. */
@@ -492,7 +504,13 @@ typedef struct App {
             uint8_t database_save_key_nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE];
             uint8_t database_save_key_cipher[FLIPPASS_SESSION_SECRET_SIZE];
             uint8_t database_save_key_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
+            uint8_t database_save_transformed_key_nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE];
+            uint8_t database_save_transformed_key_cipher[FLIPPASS_SESSION_SECRET_SIZE];
+            uint8_t database_save_transformed_key_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
+            uint8_t database_save_kdf_salt[32];
+            uint64_t database_save_kdf_rounds;
             bool database_save_key_ready;
+            bool database_save_transformed_key_ready;
             bool parse_failed;
             bool database_loaded;
             bool database_dirty;
@@ -513,6 +531,7 @@ typedef struct App {
             uint32_t last_open_count;
             bool keyboard_layout_configured;
             int16_t otp_time_zone_minutes;
+            bool always_allow_ext;
             TextInput* text_input;
             char text_buffer[TEXT_BUFFER_SIZE];
             char password_header[FLIPPASS_PASSWORD_HEADER_SIZE];
@@ -554,6 +573,7 @@ typedef struct App {
             uint16_t editor_idle_lock_minutes;
             uint8_t editor_idle_unlock_attempts;
             uint16_t editor_idle_exit_minutes;
+            bool editor_always_allow_ext;
             uint32_t editor_keyboard_layout_index;
             bool editor_keyboard_layout_use_alt;
             bool editor_keyboard_layout_available;
@@ -660,7 +680,18 @@ void flippass_clear_master_password(App* app);
 void flippass_make_password_composite_key(const char* password, uint8_t out_key[32]);
 void flippass_session_clear_credentials(App* app);
 bool flippass_session_store_save_key(App* app, const uint8_t save_key[32]);
+bool flippass_session_store_save_material(
+    App* app,
+    const uint8_t save_key[32],
+    const uint8_t* transformed_key,
+    const uint8_t* kdf_salt,
+    uint64_t kdf_rounds);
 bool flippass_session_copy_save_key(App* app, uint8_t out_key[32]);
+bool flippass_session_copy_save_transformed_key(
+    App* app,
+    uint8_t out_key[32],
+    uint8_t out_kdf_salt[32],
+    uint64_t* out_kdf_rounds);
 bool flippass_session_verify_password(App* app, const char* password);
 void flippass_reset_database(App* app);
 void flippass_close_database(App* app);
@@ -715,6 +746,14 @@ bool flippass_save_execute(
     uint32_t compression,
     uint64_t kdf_rounds,
     FuriString* error);
+bool flippass_save_current_database(
+    App* app,
+    const char* target_path,
+    const char* password,
+    FuriString* error);
+#if FLIPPASS_ENABLE_DEBUG_SAVE_HOOK
+bool flippass_debug_save_after_open(App* app, FuriString* error);
+#endif
 void flippass_db_mark_clean(App* app);
 void flippass_db_mark_dirty(App* app);
 bool flippass_db_create_new_database(

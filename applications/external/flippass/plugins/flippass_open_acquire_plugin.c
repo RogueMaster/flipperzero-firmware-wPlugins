@@ -125,6 +125,19 @@ static bool fp_open_acquire_run(
         fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
         goto cleanup;
     }
+    if(!kdbx_parser_get_aes_kdf_salt(
+           ctx.parser,
+           out_profile->kdf_salt,
+           sizeof(out_profile->kdf_salt),
+           &out_profile->kdf_salt_size)) {
+        const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
+        furi_string_set_str(
+            error,
+            (kdf_error != NULL && kdf_error[0] != '\0') ? kdf_error :
+                                                          "Unable to inspect the AES-KDF salt.");
+        fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
+        goto cleanup;
+    }
 
     {
         char profile_error[128] = {0};
@@ -138,13 +151,15 @@ static bool fp_open_acquire_run(
     fp_open_acquire_log(&ctx, "HEADER_OK");
     fp_open_acquire_progress(&ctx, "Key Derivation", "", 10U);
     kdbx_parser_set_kdf_progress_callback(ctx.parser, fp_open_acquire_kdf_progress, &ctx);
-    if(!kdbx_parser_derive_key(
+    if(!kdbx_parser_derive_key_with_transformed(
            ctx.parser,
            request->password,
            out_profile->cipher_key,
            sizeof(out_profile->cipher_key),
            out_profile->hmac_key,
-           sizeof(out_profile->hmac_key))) {
+           sizeof(out_profile->hmac_key),
+           out_profile->transformed_key,
+           sizeof(out_profile->transformed_key))) {
         const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
         furi_string_set_str(
             error,
@@ -154,6 +169,7 @@ static bool fp_open_acquire_run(
         fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
         goto cleanup;
     }
+    out_profile->transformed_key_ready = true;
 
     kdbx_parser_set_kdf_progress_callback(ctx.parser, NULL, NULL);
     {

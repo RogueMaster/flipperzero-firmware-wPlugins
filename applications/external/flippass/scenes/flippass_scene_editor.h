@@ -27,6 +27,7 @@ void flippass_editor_prepare_edit_custom_field(
     struct App* app,
     struct KDBXCustomField* field,
     struct FlipPassEditorCustomFieldDraft* draft);
+void flippass_scene_editor_trim_for_save(struct App* app);
 void flippass_scene_editor_on_enter(void* context);
 bool flippass_scene_editor_on_event(void* context, SceneManagerEvent event);
 void flippass_scene_editor_on_exit(void* context);

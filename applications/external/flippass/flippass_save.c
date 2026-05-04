@@ -3,11 +3,15 @@
 #include "kdbx/kdbx_constants.h"
 #include "kdbx/memzero.h"
 #include "plugins/flippass_save_plugin.h"
+#include "scenes/flippass_scene.h"
+#include "scenes/flippass_scene_db_entries.h"
+#include "scenes/flippass_scene_editor.h"
 
 #include <storage/storage.h>
-#include <toolbox/path.h>
 
 #include <string.h>
+
+#define FLIPPASS_SAVE_DATABASE_NAME_SIZE 64U
 
 typedef struct {
     App* app;
@@ -19,6 +23,41 @@ static uint64_t flippass_save_normalize_kdf_rounds(uint64_t rounds) {
     }
 
     return rounds;
+}
+
+static void flippass_save_extract_database_name(const char* path, char* out, size_t out_size) {
+    const char* segment = path;
+    const char* end = NULL;
+
+    furi_assert(path);
+    furi_assert(out);
+    furi_assert(out_size > 0U);
+
+    for(const char* cursor = path; *cursor != '\0'; cursor++) {
+        if(*cursor == '/' || *cursor == '\\') {
+            segment = cursor + 1;
+        }
+    }
+
+    end = segment + strlen(segment);
+    for(const char* cursor = end; cursor > segment; cursor--) {
+        if(cursor[-1] == '.') {
+            end = cursor - 1;
+            break;
+        }
+    }
+
+    size_t length = (end > segment) ? (size_t)(end - segment) : 0U;
+    if(length == 0U) {
+        segment = "Database";
+        length = strlen(segment);
+    }
+
+    if(length >= out_size) {
+        length = out_size - 1U;
+    }
+    memcpy(out, segment, length);
+    out[length] = '\0';
 }
 
 static void flippass_save_host_progress(
@@ -61,38 +100,76 @@ static bool flippass_save_host_copy_entry_uuid(
            flippass_db_copy_entry_uuid(host->app, entry, out, error);
 }
 
-static bool flippass_save_host_activate_entry(
-    void* context,
-    KDBXEntry* entry,
-    bool load_notes,
-    FuriString* error) {
-    FlipPassSaveHostContext* host = context;
-    return host != NULL && host->app != NULL &&
-           flippass_db_activate_entry(host->app, entry, load_notes, error);
-}
-
-static void flippass_save_host_deactivate_entry(void* context) {
-    FlipPassSaveHostContext* host = context;
-    if(host != NULL && host->app != NULL) {
-        flippass_db_deactivate_entry(host->app);
-    }
-}
-
-static bool flippass_save_host_ensure_custom_field(
-    void* context,
-    KDBXEntry* entry,
-    KDBXCustomField* field,
-    FuriString* error) {
-    FlipPassSaveHostContext* host = context;
-    return host != NULL && host->app != NULL &&
-           flippass_db_ensure_custom_field(host->app, entry, field, error);
-}
-
 static bool
     flippass_save_host_entry_has_field(void* context, const KDBXEntry* entry, uint32_t field_mask) {
     FlipPassSaveHostContext* host = context;
     UNUSED(host);
     return flippass_db_entry_has_field(entry, field_mask);
+}
+
+static bool flippass_save_host_stream_ref(
+    void* context,
+    const KDBXFieldRef* ref,
+    KDBXVaultChunkCallback callback,
+    void* callback_context,
+    FuriString* error) {
+    FlipPassSaveHostContext* host = context;
+
+    if(host == NULL || host->app == NULL || host->app->vault == NULL || ref == NULL ||
+       callback == NULL) {
+        if(error != NULL) {
+            furi_string_set_str(error, "The encrypted session vault is not available.");
+        }
+        return false;
+    }
+
+    if(kdbx_vault_ref_is_empty(ref)) {
+        return callback(NULL, 0U, callback_context);
+    }
+
+    KDBXVaultReader reader;
+    uint8_t chunk[128];
+    bool ok = true;
+    kdbx_vault_reader_reset(&reader, host->app->vault, ref);
+
+    while(ok) {
+        size_t chunk_size = 0U;
+        if(!kdbx_vault_reader_read(&reader, chunk, sizeof(chunk), &chunk_size)) {
+            ok = false;
+            break;
+        }
+        if(chunk_size == 0U) {
+            break;
+        }
+        if(!callback(chunk, chunk_size, callback_context)) {
+            ok = false;
+            break;
+        }
+        memzero(chunk, sizeof(chunk));
+    }
+
+    memzero(chunk, sizeof(chunk));
+    memzero(&reader, sizeof(reader));
+
+    if(!ok) {
+        if(error != NULL && furi_string_empty(error)) {
+            const char* failure = kdbx_vault_failure_reason(host->app->vault);
+            const char* reader_failure = kdbx_vault_last_reader_failure(host->app->vault);
+            if(reader_failure != NULL && reader_failure[0] != '\0') {
+                furi_string_printf(
+                    error,
+                    "The encrypted session vault could not stream a field (%s).",
+                    reader_failure);
+            } else {
+                furi_string_set_str(
+                    error,
+                    failure != NULL ? failure : "The encrypted session vault could not be read.");
+            }
+        }
+        return false;
+    }
+
+    return true;
 }
 
 static void flippass_save_remove_temp_file(const char* target_path) {
@@ -117,6 +194,8 @@ static void flippass_save_remove_temp_file(const char* target_path) {
 }
 
 static void flippass_save_unload_runtime_modules(App* app) {
+    flippass_db_deactivate_entry(app);
+    FLIPPASS_MEMORY_LOG(app, "save_after_entry_deactivate", 0U);
     flippass_output_cleanup(app);
     flippass_module_unload(app, FlipPassModuleSlotOutputUsb);
     flippass_module_unload(app, FlipPassModuleSlotOutputBle);
@@ -135,7 +214,45 @@ static void flippass_save_unload_runtime_modules(App* app) {
     flippass_module_unload(app, FlipPassModuleSlotOpenModel);
     flippass_module_unload(app, FlipPassModuleSlotSaveHeader);
     flippass_module_unload(app, FlipPassModuleSlotSaveWriter);
-    flippass_db_deactivate_entry(app);
+}
+
+static void flippass_save_trim_ui_for_save(App* app) {
+    const uint32_t current_scene = scene_manager_get_current_scene(app->scene_manager);
+
+    FLIPPASS_MEMORY_LOG(app, "save_before_ui_trim", 0U);
+    if(current_scene == FlipPassScene_DbEntries) {
+        flippass_scene_db_entries_trim_for_save(app);
+    } else if(current_scene == FlipPassScene_Editor) {
+        flippass_scene_editor_trim_for_save(app);
+    }
+    FLIPPASS_MEMORY_LOG(app, "save_after_ui_trim", 0U);
+}
+
+bool flippass_save_current_database(
+    App* app,
+    const char* target_path,
+    const char* password,
+    FuriString* error) {
+    furi_assert(app);
+
+    FLIPPASS_LOG_EVENT(
+        app,
+        "SAVE_REQUEST cipher=%lu compression=%lu kdf_rounds=%lu",
+        (unsigned long)app->database_cipher,
+        (unsigned long)app->database_compression,
+        (unsigned long)app->database_kdf_rounds);
+    flippass_save_trim_ui_for_save(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, AppViewLoading);
+    const bool ok = flippass_save_execute(
+        app,
+        target_path,
+        password,
+        app->database_cipher,
+        app->database_compression,
+        app->database_kdf_rounds,
+        error);
+    flippass_progress_reset(app);
+    return ok;
 }
 
 bool flippass_save_execute(
@@ -151,12 +268,15 @@ bool flippass_save_execute(
     const FlipPassSaveHeaderPluginV1* header_plugin = NULL;
     const FlipPassSavePluginV1* payload_plugin = NULL;
     uint8_t save_key[32];
+    uint8_t transformed_key[32];
+    uint8_t kdf_salt[32];
+    uint64_t transformed_kdf_rounds = 0U;
+    bool transformed_key_ready = false;
     FlipPassSaveHeaderResultV1 header_result;
+    char database_name[FLIPPASS_SAVE_DATABASE_NAME_SIZE];
     bool ok = false;
     bool header_temp_created = false;
     FuriString* load_error = furi_string_alloc();
-    FuriString* target_path_string = furi_string_alloc();
-    FuriString* database_name = furi_string_alloc();
 
     furi_assert(app);
     furi_assert(target_path);
@@ -166,16 +286,34 @@ bool flippass_save_execute(
         app,
         "save_execute_begin",
         sizeof(FlipPassSaveHostApiV1) + sizeof(FlipPassSaveStageHostApiV1) + sizeof(save_key) +
-            sizeof(header_result));
+            sizeof(header_result) + sizeof(database_name));
     memzero(save_key, sizeof(save_key));
+    memzero(transformed_key, sizeof(transformed_key));
+    memzero(kdf_salt, sizeof(kdf_salt));
     memzero(&header_result, sizeof(header_result));
+    memzero(database_name, sizeof(database_name));
 
     kdf_rounds = flippass_save_normalize_kdf_rounds(kdf_rounds);
     if(password != NULL && password[0] != '\0') {
+        FLIPPASS_LOG_EVENT(app, "SAVE_KEY_SOURCE password");
+        FLIPPASS_LOG_EVENT(app, "SAVE_KDF_SOURCE derive");
         flippass_make_password_composite_key(password, save_key);
     } else if(!flippass_session_copy_save_key(app, save_key)) {
         furi_string_set_str(error, "A save password is required.");
         goto cleanup;
+    } else {
+        FLIPPASS_LOG_EVENT(app, "SAVE_KEY_SOURCE session");
+        transformed_key_ready = flippass_session_copy_save_transformed_key(
+            app, transformed_key, kdf_salt, &transformed_kdf_rounds);
+        if(transformed_key_ready && transformed_kdf_rounds == kdf_rounds) {
+            FLIPPASS_LOG_EVENT(app, "SAVE_KDF_SOURCE session_transformed");
+        } else {
+            transformed_key_ready = false;
+            memzero(transformed_key, sizeof(transformed_key));
+            memzero(kdf_salt, sizeof(kdf_salt));
+            transformed_kdf_rounds = 0U;
+            FLIPPASS_LOG_EVENT(app, "SAVE_KDF_SOURCE derive");
+        }
     }
 
     if(app->root_group == NULL) {
@@ -183,11 +321,7 @@ bool flippass_save_execute(
         goto cleanup;
     }
 
-    furi_string_set_str(target_path_string, target_path);
-    path_extract_filename(target_path_string, database_name, true);
-    if(furi_string_empty(database_name)) {
-        furi_string_set_str(database_name, "Database");
-    }
+    flippass_save_extract_database_name(target_path, database_name, sizeof(database_name));
 
     flippass_save_unload_runtime_modules(app);
 
@@ -210,16 +344,18 @@ bool flippass_save_execute(
         .log = flippass_save_host_log,
         .copy_group_uuid = flippass_save_host_copy_group_uuid,
         .copy_entry_uuid = flippass_save_host_copy_entry_uuid,
-        .activate_entry = flippass_save_host_activate_entry,
-        .deactivate_entry = flippass_save_host_deactivate_entry,
-        .ensure_custom_field = flippass_save_host_ensure_custom_field,
         .entry_has_field = flippass_save_host_entry_has_field,
+        .stream_ref = flippass_save_host_stream_ref,
     };
     const FlipPassSaveHeaderRequestV1 header_request = {
         .api_version = FLIPPASS_SAVE_HEADER_PLUGIN_API_VERSION,
         .file_path = target_path,
         .composite_key = save_key,
         .composite_key_size = sizeof(save_key),
+        .transformed_key = transformed_key_ready ? transformed_key : NULL,
+        .transformed_key_size = transformed_key_ready ? sizeof(transformed_key) : 0U,
+        .kdf_salt = transformed_key_ready ? kdf_salt : NULL,
+        .kdf_salt_size = transformed_key_ready ? sizeof(kdf_salt) : 0U,
         .cipher = save_cipher,
         .compression = compression,
         .kdf_rounds = kdf_rounds,
@@ -266,7 +402,7 @@ bool flippass_save_execute(
         .iv = header_result.iv,
         .iv_size = header_result.iv_size,
         .root_group = app->root_group,
-        .database_name = furi_string_get_cstr(database_name),
+        .database_name = database_name,
         .cipher = save_cipher,
         .compression = compression,
     };
@@ -299,7 +435,12 @@ bool flippass_save_execute(
     flippass_module_unload(app, FlipPassModuleSlotSaveWriter);
 
     if(ok) {
-        if(!flippass_session_store_save_key(app, save_key)) {
+        if(!flippass_session_store_save_material(
+               app,
+               save_key,
+               header_result.transformed_key_ready ? header_result.transformed_key : NULL,
+               header_result.transformed_key_ready ? header_result.kdf_salt : NULL,
+               header_result.transformed_key_ready ? kdf_rounds : 0U)) {
             furi_string_set_str(
                 error,
                 "The database was saved, but the session credential could not be protected.");
@@ -327,9 +468,75 @@ cleanup:
     }
     memzero(&header_result, sizeof(header_result));
     memzero(save_key, sizeof(save_key));
+    memzero(transformed_key, sizeof(transformed_key));
+    memzero(kdf_salt, sizeof(kdf_salt));
     furi_string_free(load_error);
-    furi_string_free(target_path_string);
-    furi_string_free(database_name);
     FLIPPASS_MEMORY_LOG(app, "save_execute_end", 0U);
     return ok;
 }
+
+#if FLIPPASS_ENABLE_DEBUG_SAVE_HOOK
+bool flippass_debug_save_after_open(App* app, FuriString* error) {
+    Storage* storage = NULL;
+    KDBXEntry* entry = NULL;
+    bool triggered = false;
+    bool ok = false;
+
+    furi_assert(app);
+    furi_assert(error);
+
+    storage = furi_record_open(RECORD_STORAGE);
+    storage_simply_mkdir(storage, EXT_PATH("apps_data/flippass"));
+    triggered = storage_file_exists(storage, FLIPPASS_DEBUG_SAVE_TRIGGER_FILE_PATH);
+    if(triggered) {
+        storage_simply_remove(storage, FLIPPASS_DEBUG_SAVE_TRIGGER_FILE_PATH);
+    }
+    furi_record_close(RECORD_STORAGE);
+
+    if(!triggered) {
+        return true;
+    }
+
+    FLIPPASS_LOG_EVENT(
+        app,
+        "DEBUG_SAVE_HOOK_BEGIN path=%s key_ready=%u",
+        furi_string_get_cstr(app->file_path),
+        app->database_save_key_ready ? 1U : 0U);
+
+    if(app->root_group == NULL) {
+        furi_string_set_str(error, "No opened database is available for the debug save hook.");
+        goto finish;
+    }
+    if(app->current_group == NULL) {
+        app->current_group = app->root_group;
+    }
+
+    if(!flippass_db_create_entry(
+           app,
+           app->current_group,
+           "Debug Save Probe",
+           "debug",
+           "saved",
+           "",
+           "Low-interference save probe.",
+           "",
+           &entry,
+           error)) {
+        goto finish;
+    }
+
+    FLIPPASS_LOG_EVENT(app, "DEBUG_SAVE_HOOK_MUTATION_OK");
+    ok = flippass_save_current_database(app, furi_string_get_cstr(app->file_path), NULL, error);
+
+finish:
+    if(ok) {
+        FLIPPASS_LOG_EVENT(app, "DEBUG_SAVE_HOOK_OK");
+    } else {
+        const char* detail = !furi_string_empty(error) ? furi_string_get_cstr(error) :
+                                                         "Debug save hook failed.";
+        FLIPPASS_LOG_EVENT(app, "DEBUG_SAVE_HOOK_FAIL reason=%s", detail);
+        UNUSED(detail);
+    }
+    return ok;
+}
+#endif

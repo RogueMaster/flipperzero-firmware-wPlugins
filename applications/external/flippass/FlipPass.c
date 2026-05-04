@@ -26,15 +26,16 @@
 #include <string.h>
 #include <stdarg.h>
 
-#define TAG                                "FlipPass"
-#define FLIPPASS_SYSTEM_LOG_MAX_BYTES      (24U * 1024U)
-#define FLIPPASS_TYPING_BACK_SUPPRESS_MS   250U
-#define FLIPPASS_SCENE_TICK_MS             100U
-#define FLIPPASS_SECURE_STORE_SEED         "FlipPass sealed storage v1"
-#define FLIPPASS_SESSION_CREDENTIAL_SEED   "FlipPass session credential v1"
-#define FLIPPASS_SESSION_SAVE_KEY_LABEL    "database_save_key"
-#define FLIPPASS_BADUSB_SETTINGS_FILE_TYPE "Flipper BadUSB Settings File"
-#define FLIPPASS_BADUSB_SETTINGS_VERSION   1U
+#define TAG                                         "FlipPass"
+#define FLIPPASS_SYSTEM_LOG_MAX_BYTES               (24U * 1024U)
+#define FLIPPASS_TYPING_BACK_SUPPRESS_MS            250U
+#define FLIPPASS_SCENE_TICK_MS                      100U
+#define FLIPPASS_SECURE_STORE_SEED                  "FlipPass sealed storage v1"
+#define FLIPPASS_SESSION_CREDENTIAL_SEED            "FlipPass session credential v1"
+#define FLIPPASS_SESSION_SAVE_KEY_LABEL             "database_save_key"
+#define FLIPPASS_SESSION_SAVE_TRANSFORMED_KEY_LABEL "database_save_transformed_key"
+#define FLIPPASS_BADUSB_SETTINGS_FILE_TYPE          "Flipper BadUSB Settings File"
+#define FLIPPASS_BADUSB_SETTINGS_VERSION            1U
 
 #if FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG && FLIPPASS_ENABLE_LOGS
 #define FLIPPASS_STARTUP_LOG(app, ...) FLIPPASS_LOG_EVENT((app), __VA_ARGS__)
@@ -464,6 +465,72 @@ cleanup:
     return ok;
 }
 
+static void flippass_session_seal_key32(
+    const uint8_t session_key[FLIPPASS_SESSION_SECRET_SIZE],
+    const char* label,
+    const uint8_t value[32],
+    uint8_t nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE],
+    uint8_t cipher[32],
+    uint8_t mac[FLIPPASS_SECURE_VALUE_MAC_SIZE]) {
+    uint8_t enc_key[32];
+    uint8_t mac_key[32];
+
+    furi_assert(session_key);
+    furi_assert(label);
+    furi_assert(value);
+    furi_assert(nonce);
+    furi_assert(cipher);
+    furi_assert(mac);
+
+    furi_hal_random_fill_buf(nonce, FLIPPASS_SECURE_VALUE_NONCE_SIZE);
+    flippass_session_derive_keys(session_key, label, enc_key, mac_key);
+    memcpy(cipher, value, 32U);
+    flippass_secure_storage_xor(cipher, 32U, enc_key, nonce);
+    flippass_secure_storage_mac(label, mac_key, nonce, cipher, 32U, mac);
+
+    memzero(enc_key, sizeof(enc_key));
+    memzero(mac_key, sizeof(mac_key));
+}
+
+static bool flippass_session_unseal_key32(
+    const uint8_t session_key[FLIPPASS_SESSION_SECRET_SIZE],
+    const char* label,
+    const uint8_t nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE],
+    const uint8_t cipher[32],
+    const uint8_t mac[FLIPPASS_SECURE_VALUE_MAC_SIZE],
+    uint8_t out_key[32]) {
+    uint8_t enc_key[32];
+    uint8_t mac_key[32];
+    uint8_t expected_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
+    bool ok = false;
+
+    furi_assert(session_key);
+    furi_assert(label);
+    furi_assert(nonce);
+    furi_assert(cipher);
+    furi_assert(mac);
+    furi_assert(out_key);
+
+    flippass_session_derive_keys(session_key, label, enc_key, mac_key);
+    flippass_secure_storage_mac(label, mac_key, nonce, cipher, 32U, expected_mac);
+    if(!flippass_constant_time_equal(mac, expected_mac, sizeof(expected_mac))) {
+        goto cleanup;
+    }
+
+    memcpy(out_key, cipher, 32U);
+    flippass_secure_storage_xor(out_key, 32U, enc_key, nonce);
+    ok = true;
+
+cleanup:
+    if(!ok) {
+        memzero(out_key, 32U);
+    }
+    memzero(enc_key, sizeof(enc_key));
+    memzero(mac_key, sizeof(mac_key));
+    memzero(expected_mac, sizeof(expected_mac));
+    return ok;
+}
+
 void flippass_session_clear_credentials(App* app) {
     furi_assert(app);
 
@@ -472,19 +539,31 @@ void flippass_session_clear_credentials(App* app) {
     memzero(app->database_save_key_nonce, sizeof(app->database_save_key_nonce));
     memzero(app->database_save_key_cipher, sizeof(app->database_save_key_cipher));
     memzero(app->database_save_key_mac, sizeof(app->database_save_key_mac));
+    memzero(
+        app->database_save_transformed_key_nonce,
+        sizeof(app->database_save_transformed_key_nonce));
+    memzero(
+        app->database_save_transformed_key_cipher,
+        sizeof(app->database_save_transformed_key_cipher));
+    memzero(
+        app->database_save_transformed_key_mac, sizeof(app->database_save_transformed_key_mac));
+    memzero(app->database_save_kdf_salt, sizeof(app->database_save_kdf_salt));
+    app->database_save_kdf_rounds = 0U;
     app->database_save_key_ready = false;
+    app->database_save_transformed_key_ready = false;
 }
 
-bool flippass_session_store_save_key(App* app, const uint8_t save_key[32]) {
+bool flippass_session_store_save_material(
+    App* app,
+    const uint8_t save_key[32],
+    const uint8_t* transformed_key,
+    const uint8_t* kdf_salt,
+    uint64_t kdf_rounds) {
     uint8_t session_key[FLIPPASS_SESSION_SECRET_SIZE];
-    uint8_t enc_key[32];
-    uint8_t mac_key[32];
-    uint8_t credential_cipher[FLIPPASS_SESSION_SECRET_SIZE];
-    uint8_t credential_nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE];
-    uint8_t credential_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
     uint8_t wrapped_key[FLIPPASS_SESSION_SECRET_SIZE];
     uint8_t wrap_iv[FLIPPASS_SESSION_WRAP_IV_SIZE];
     bool ok = false;
+    const bool has_transformed = transformed_key != NULL && kdf_salt != NULL && kdf_rounds != 0U;
 
     furi_assert(app);
     furi_assert(save_key);
@@ -492,29 +571,33 @@ bool flippass_session_store_save_key(App* app, const uint8_t save_key[32]) {
     flippass_session_clear_credentials(app);
 
     furi_hal_random_fill_buf(session_key, sizeof(session_key));
-    furi_hal_random_fill_buf(credential_nonce, sizeof(credential_nonce));
     if(!flippass_session_wrap_key(session_key, wrap_iv, wrapped_key)) {
         goto cleanup;
     }
 
-    flippass_session_derive_keys(session_key, FLIPPASS_SESSION_SAVE_KEY_LABEL, enc_key, mac_key);
-    memcpy(credential_cipher, save_key, sizeof(credential_cipher));
-    flippass_secure_storage_xor(
-        credential_cipher, sizeof(credential_cipher), enc_key, credential_nonce);
-    flippass_secure_storage_mac(
+    flippass_session_seal_key32(
+        session_key,
         FLIPPASS_SESSION_SAVE_KEY_LABEL,
-        mac_key,
-        credential_nonce,
-        credential_cipher,
-        sizeof(credential_cipher),
-        credential_mac);
+        save_key,
+        app->database_save_key_nonce,
+        app->database_save_key_cipher,
+        app->database_save_key_mac);
+
+    if(has_transformed) {
+        flippass_session_seal_key32(
+            session_key,
+            FLIPPASS_SESSION_SAVE_TRANSFORMED_KEY_LABEL,
+            transformed_key,
+            app->database_save_transformed_key_nonce,
+            app->database_save_transformed_key_cipher,
+            app->database_save_transformed_key_mac);
+        memcpy(app->database_save_kdf_salt, kdf_salt, sizeof(app->database_save_kdf_salt));
+        app->database_save_kdf_rounds = kdf_rounds;
+        app->database_save_transformed_key_ready = true;
+    }
 
     memcpy(app->session_key_iv, wrap_iv, sizeof(app->session_key_iv));
     memcpy(app->session_key_cipher, wrapped_key, sizeof(app->session_key_cipher));
-    memcpy(app->database_save_key_nonce, credential_nonce, sizeof(app->database_save_key_nonce));
-    memcpy(
-        app->database_save_key_cipher, credential_cipher, sizeof(app->database_save_key_cipher));
-    memcpy(app->database_save_key_mac, credential_mac, sizeof(app->database_save_key_mac));
     app->database_save_key_ready = true;
     ok = true;
 
@@ -523,21 +606,17 @@ cleanup:
         flippass_session_clear_credentials(app);
     }
     memzero(session_key, sizeof(session_key));
-    memzero(enc_key, sizeof(enc_key));
-    memzero(mac_key, sizeof(mac_key));
-    memzero(credential_cipher, sizeof(credential_cipher));
-    memzero(credential_nonce, sizeof(credential_nonce));
-    memzero(credential_mac, sizeof(credential_mac));
     memzero(wrapped_key, sizeof(wrapped_key));
     memzero(wrap_iv, sizeof(wrap_iv));
     return ok;
 }
 
+bool flippass_session_store_save_key(App* app, const uint8_t save_key[32]) {
+    return flippass_session_store_save_material(app, save_key, NULL, NULL, 0U);
+}
+
 bool flippass_session_copy_save_key(App* app, uint8_t out_key[32]) {
     uint8_t session_key[FLIPPASS_SESSION_SECRET_SIZE];
-    uint8_t enc_key[32];
-    uint8_t mac_key[32];
-    uint8_t expected_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
     bool ok = false;
 
     furi_assert(app);
@@ -552,31 +631,67 @@ bool flippass_session_copy_save_key(App* app, uint8_t out_key[32]) {
         goto cleanup;
     }
 
-    flippass_session_derive_keys(session_key, FLIPPASS_SESSION_SAVE_KEY_LABEL, enc_key, mac_key);
-    flippass_secure_storage_mac(
+    ok = flippass_session_unseal_key32(
+        session_key,
         FLIPPASS_SESSION_SAVE_KEY_LABEL,
-        mac_key,
         app->database_save_key_nonce,
         app->database_save_key_cipher,
-        sizeof(app->database_save_key_cipher),
-        expected_mac);
-    if(!flippass_constant_time_equal(
-           app->database_save_key_mac, expected_mac, sizeof(expected_mac))) {
-        goto cleanup;
-    }
-
-    memcpy(out_key, app->database_save_key_cipher, sizeof(app->database_save_key_cipher));
-    flippass_secure_storage_xor(out_key, 32U, enc_key, app->database_save_key_nonce);
-    ok = true;
+        app->database_save_key_mac,
+        out_key);
 
 cleanup:
     if(!ok) {
         memzero(out_key, 32U);
     }
     memzero(session_key, sizeof(session_key));
-    memzero(enc_key, sizeof(enc_key));
-    memzero(mac_key, sizeof(mac_key));
-    memzero(expected_mac, sizeof(expected_mac));
+    return ok;
+}
+
+bool flippass_session_copy_save_transformed_key(
+    App* app,
+    uint8_t out_key[32],
+    uint8_t out_kdf_salt[32],
+    uint64_t* out_kdf_rounds) {
+    uint8_t session_key[FLIPPASS_SESSION_SECRET_SIZE];
+    bool ok = false;
+
+    furi_assert(app);
+    furi_assert(out_key);
+    furi_assert(out_kdf_salt);
+    furi_assert(out_kdf_rounds);
+
+    memzero(out_key, 32U);
+    memzero(out_kdf_salt, 32U);
+    *out_kdf_rounds = 0U;
+    if(!app->database_save_transformed_key_ready || app->database_save_kdf_rounds == 0U) {
+        return false;
+    }
+
+    if(!flippass_session_unwrap_key(app->session_key_iv, app->session_key_cipher, session_key)) {
+        goto cleanup;
+    }
+
+    if(!flippass_session_unseal_key32(
+           session_key,
+           FLIPPASS_SESSION_SAVE_TRANSFORMED_KEY_LABEL,
+           app->database_save_transformed_key_nonce,
+           app->database_save_transformed_key_cipher,
+           app->database_save_transformed_key_mac,
+           out_key)) {
+        goto cleanup;
+    }
+
+    memcpy(out_kdf_salt, app->database_save_kdf_salt, 32U);
+    *out_kdf_rounds = app->database_save_kdf_rounds;
+    ok = true;
+
+cleanup:
+    if(!ok) {
+        memzero(out_key, 32U);
+        memzero(out_kdf_salt, 32U);
+        *out_kdf_rounds = 0U;
+    }
+    memzero(session_key, sizeof(session_key));
     return ok;
 }
 
@@ -1684,6 +1799,10 @@ void flippass_save_settings(App* app) {
             "%ld",
             (long)app->otp_time_zone_minutes);
         flipper_format_write_string_cstr(file, "otp_time_zone_minutes", otp_time_zone_text);
+        {
+            const bool always_allow_ext = app->always_allow_ext;
+            flipper_format_write_bool(file, "always_allow_ext", &always_allow_ext, 1U);
+        }
         snprintf(
             idle_lock_text, sizeof(idle_lock_text), "%u", (unsigned int)app->idle_lock_minutes);
         flipper_format_write_string_cstr(file, "idle_lock_minutes", idle_lock_text);
@@ -1726,6 +1845,7 @@ static void flippass_load_settings(App* app) {
     app->keyboard_layout_configured = false;
     furi_string_reset(app->keyboard_layout_path);
     app->otp_time_zone_minutes = 0;
+    app->always_allow_ext = false;
     app->idle_lock_minutes = FLIPPASS_DEFAULT_IDLE_LOCK_MINUTES;
     app->idle_unlock_attempts = FLIPPASS_DEFAULT_IDLE_UNLOCK_ATTEMPTS;
     app->idle_exit_minutes = FLIPPASS_DEFAULT_IDLE_EXIT_MINUTES;
@@ -1795,6 +1915,9 @@ static void flippass_load_settings(App* app) {
                 }
             }
         }
+
+        flipper_format_rewind(file);
+        flipper_format_read_bool(file, "always_allow_ext", &app->always_allow_ext, 1U);
 
         flipper_format_rewind(file);
         if(flipper_format_read_string(file, "idle_lock_minutes", idle_lock) &&
@@ -1943,6 +2066,7 @@ static App* flippass_app_alloc(const char* args) {
     app->last_open_count = 0U;
     app->keyboard_layout_configured = false;
     app->otp_time_zone_minutes = 0;
+    app->always_allow_ext = false;
 
     app->text_input = text_input_alloc();
     view_dispatcher_add_view(
@@ -2055,6 +2179,7 @@ static App* flippass_app_alloc(const char* args) {
     app->editor_idle_lock_minutes = FLIPPASS_DEFAULT_IDLE_LOCK_MINUTES;
     app->editor_idle_unlock_attempts = FLIPPASS_DEFAULT_IDLE_UNLOCK_ATTEMPTS;
     app->editor_idle_exit_minutes = FLIPPASS_DEFAULT_IDLE_EXIT_MINUTES;
+    app->editor_always_allow_ext = false;
     app->editor_keyboard_layout_index = 0U;
     app->editor_keyboard_layout_use_alt = true;
     app->editor_keyboard_layout_available = false;
