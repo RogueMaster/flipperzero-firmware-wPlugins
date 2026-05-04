@@ -8,10 +8,15 @@ A Flipper Zero remote control for [Claude Code](https://docs.anthropic.com/en/do
 npx claupper
 ```
 
-This installs:
-- **Claude Code skill** — makes Claude present every decision as 3 numbered choices
-- **Flipper Zero apps** — BLE and USB `.fap` files ready to copy to your Flipper
-- **Macro presets** — pre-built command sets (default, debugging, workflow, etc.)
+Local-only setup. Copies three things from the npm package to your home directory; does **not** touch your Flipper Zero:
+
+| What | Where | Purpose |
+|------|-------|---------|
+| `SKILL.md` | `~/.claude/skills/claupper/` | Registers the `/claupper` Claude Code skill (3-option decision format) |
+| `claude_remote_ble.fap` + `claude_remote_usb.fap` | `~/claupper/` | Pre-built Flipper apps; you copy one to your SD card |
+| 7 macro preset `.txt` files | `~/claupper/macros/` | Editable command packs for the Macros menu |
+
+After running this you still need to **manually copy the `.fap` to your Flipper SD card** (see below). Running `npx claupper` again is safe — it just overwrites the same files.
 
 ## Usage
 
@@ -33,7 +38,7 @@ After running `npx claupper`, copy the right `.fap` to your Flipper's SD card:
 | Firmware | File | SD Path |
 |----------|------|---------|
 | Momentum / Unleashed | `~/claupper/claude_remote_ble.fap` | `apps/Bluetooth/` |
-| Stock | `~/claupper/claude_remote_usb.fap` | `apps/Tools/` |
+| Stock | `~/claupper/claude_remote_usb.fap` | `apps/USB/` |
 
 ### Macros (optional)
 

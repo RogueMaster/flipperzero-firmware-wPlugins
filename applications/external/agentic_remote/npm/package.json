@@ -1,6 +1,6 @@
 {
   "name": "claupper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "One-command setup for Claupper — a Flipper Zero remote for Claude Code",
   "bin": {
     "claupper": "./bin/claupper.js"

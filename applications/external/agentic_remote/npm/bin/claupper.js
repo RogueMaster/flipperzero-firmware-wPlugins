@@ -80,7 +80,7 @@ console.log('    Copy the .fap file to your Flipper SD card:');
 console.log('    - BLE (Momentum/Unleashed): ~/claupper/claude_remote_ble.fap');
 console.log('      -> SD/apps/Bluetooth/');
 console.log('    - USB (stock firmware):     ~/claupper/claude_remote_usb.fap');
-console.log('      -> SD/apps/Tools/\n');
+console.log('      -> SD/apps/USB/\n');
 console.log('  Macros (optional):');
 console.log('    Copy a macro preset to your Flipper SD card:');
 console.log('    ~/claupper/macros/default.txt -> SD/apps_data/claude_remote_ble/macros.txt\n');

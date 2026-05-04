@@ -14,12 +14,13 @@ Built by [Kasen Sansonetti](https://github.com/w3t-wr3) & [Wetware Labs](https:/
 npx claupper
 ```
 
-One command installs everything:
-- **Flipper Zero apps** → `~/claupper/` (BLE + USB `.fap` files)
-- **Macro presets** → `~/claupper/macros/` (7 preset packs)
-- **Claude Code skill** (optional) → `~/.claude/skills/claupper/` (activate with `/claupper`)
+This is a local-only setup script. It copies three things to your home directory; nothing is downloaded after the npm install, and your Flipper is not touched:
 
-Then copy the `.fap` to your Flipper's SD card and you're set.
+1. **Flipper apps** → `~/claupper/claude_remote_ble.fap` and `claude_remote_usb.fap` (pre-built binaries shipped with the package)
+2. **Macro presets** → `~/claupper/macros/*.txt` (7 text files you can edit)
+3. **Claude Code skill** → `~/.claude/skills/claupper/SKILL.md` (registers the `/claupper` command)
+
+After that you still need to **manually copy the `.fap` to your Flipper's SD card** (see [Setup](#setup) below). The npx command does not flash the Flipper, compile from source, or install Momentum/Unleashed firmware.
 
 ---
 
