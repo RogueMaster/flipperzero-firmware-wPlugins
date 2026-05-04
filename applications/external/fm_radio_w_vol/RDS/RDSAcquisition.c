@@ -171,6 +171,17 @@ static void rds_acquisition_adc_configure_regular_channel(RdsAcquisition* acquis
     LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, ll_channel);
 }
 
+static bool
+    rds_acquisition_try_realtime_block(RdsAcquisition* acquisition, const uint16_t* block) {
+    if(!acquisition || !acquisition->realtime_block_callback) return false;
+
+    return acquisition->realtime_block_callback(
+        block,
+        RDS_ACQ_BLOCK_SAMPLES,
+        acquisition->stats.adc_midpoint,
+        acquisition->realtime_callback_context);
+}
+
 static void rds_acquisition_dma_isr(void* context) {
     RdsAcquisition* acquisition = context;
     if(!acquisition || !acquisition->stats.running) return;
@@ -184,7 +195,9 @@ static void rds_acquisition_dma_isr(void* context) {
         LL_DMA_ClearFlag_HT1(RDS_ADC_DMA_INSTANCE);
         acquisition->stats.dma_half_events++;
         acquisition->stats.total_dma_blocks++;
-        if(acquisition->pending_half_blocks < RDS_ACQ_PENDING_LIMIT) {
+        if(rds_acquisition_try_realtime_block(acquisition, acquisition->dma_buffer)) {
+            /* Raw capture mode consumes this block immediately from DMA. */
+        } else if(acquisition->pending_half_blocks < RDS_ACQ_PENDING_LIMIT) {
             acquisition->pending_half_blocks++;
         } else {
             acquisition->stats.dropped_blocks++;
@@ -199,7 +212,10 @@ static void rds_acquisition_dma_isr(void* context) {
         LL_DMA_ClearFlag_TC1(RDS_ADC_DMA_INSTANCE);
         acquisition->stats.dma_full_events++;
         acquisition->stats.total_dma_blocks++;
-        if(acquisition->pending_full_blocks < RDS_ACQ_PENDING_LIMIT) {
+        if(rds_acquisition_try_realtime_block(
+               acquisition, &acquisition->dma_buffer[RDS_ACQ_BLOCK_SAMPLES])) {
+            /* Raw capture mode consumes this block immediately from DMA. */
+        } else if(acquisition->pending_full_blocks < RDS_ACQ_PENDING_LIMIT) {
             acquisition->pending_full_blocks++;
         } else {
             acquisition->stats.dropped_blocks++;
@@ -268,6 +284,16 @@ void rds_acquisition_init(
     acquisition->stats.block_samples = RDS_ACQ_BLOCK_SAMPLES;
 }
 
+void rds_acquisition_set_realtime_block_callback(
+    RdsAcquisition* acquisition,
+    RdsAcquisitionRealtimeBlockCallback realtime_block_callback,
+    void* realtime_callback_context) {
+    if(!acquisition) return;
+
+    acquisition->realtime_block_callback = realtime_block_callback;
+    acquisition->realtime_callback_context = realtime_callback_context;
+}
+
 void rds_acquisition_reset(RdsAcquisition* acquisition) {
     if(!acquisition) return;
 
@@ -307,7 +333,7 @@ bool rds_acquisition_start(RdsAcquisition* acquisition) {
 
     furi_hal_adc_configure_ex(
         acquisition->adc_handle,
-        FuriHalAdcScale2048,
+        FuriHalAdcScale2500,
         FuriHalAdcClockSync64,
         FuriHalAdcOversampleNone,
         FuriHalAdcSamplingtime12_5);
@@ -342,7 +368,7 @@ void rds_acquisition_stop(RdsAcquisition* acquisition) {
     }
 }
 
-void rds_acquisition_on_timer_tick(RdsAcquisition* acquisition) {
+void rds_acquisition_on_timer_tick(RdsAcquisition* acquisition, bool drain_all_pending) {
     if(!acquisition || !acquisition->adc_handle || !acquisition->stats.running) return;
 
     acquisition->timer_ticks++;
@@ -350,12 +376,16 @@ void rds_acquisition_on_timer_tick(RdsAcquisition* acquisition) {
 
     RdsAcquisitionBlockEvent event;
     size_t delivered_blocks = 0U;
-    const uint16_t pending_before = rds_acquisition_pending_block_count(acquisition);
-    size_t max_blocks_this_tick = 1U;
-    if(pending_before > RDS_ACQ_PENDING_LIMIT) {
-        max_blocks_this_tick = RDS_ACQ_MAX_BLOCKS_PER_TICK;
-    } else if(pending_before > (RDS_ACQ_PENDING_LIMIT / 2U)) {
-        max_blocks_this_tick = 2U;
+    size_t max_blocks_this_tick = SIZE_MAX;
+
+    if(!drain_all_pending) {
+        const uint16_t pending_before = rds_acquisition_pending_block_count(acquisition);
+        max_blocks_this_tick = 1U;
+        if(pending_before > RDS_ACQ_PENDING_LIMIT) {
+            max_blocks_this_tick = RDS_ACQ_MAX_BLOCKS_PER_TICK;
+        } else if(pending_before > (RDS_ACQ_PENDING_LIMIT / 2U)) {
+            max_blocks_this_tick = 2U;
+        }
     }
 
     while((event = rds_acquisition_pop_pending_block(acquisition)) != RdsAcquisitionBlockNone) {

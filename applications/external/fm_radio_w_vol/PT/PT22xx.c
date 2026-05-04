@@ -53,10 +53,7 @@ bool pt22xx_apply_state(const PT22xxState* state) {
     if(!state) return false;
 
     if(pt22xx_chip == PT22xxChipPT2259) {
-        bool ok = pt2259_set_mute(false);
-        ok = ok && pt2259_set_attenuation_db(state->muted ? 79 : state->attenuation_db);
-        ok = ok && pt2259_set_mute(state->muted);
-        return ok;
+        return pt2259_apply_state(state->muted ? 79 : state->attenuation_db, state->muted);
     } else {
         bool ok = pt2257_set_attenuation_db(state->muted ? 79 : state->attenuation_db);
         ok = ok && pt2257_mute(state->muted);

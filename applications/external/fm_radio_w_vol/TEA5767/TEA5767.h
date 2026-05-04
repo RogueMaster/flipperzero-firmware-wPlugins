@@ -49,13 +49,12 @@
 #define REG_3_ML   0x02 // Mute Left: 1 to mute the left audio channel and force mono, 0 to unmute
 #define REG_3_SWP1 0x01 // Software programmable port 1: 1 for HIGH, 0 for LOW
 
-#define REG_4       0x03 // Register 4 address
-#define REG_4_SWP2  0x80 // Software programmable port 2: 1 for HIGH, 0 for LOW
-#define REG_4_STBY  0x40 // Standby: 1 to activate standby mode, 0 to deactivate
-#define REG_4_BL    0x20 // Band Limits: 1 for Japanese FM band, 0 for US/Europe FM band
-#define REG_4_XTAL  0x10 // Clock frequency: Sets the clock frequency (see Table 16)
-#define REG_4_SMUTE 0x08 // Soft Mute: 1 to activate soft mute, 0 to deactivate
-#define REG_4_HCC   0x04 // High Cut Control: 1 to activate high cut control, 0 to deactivate
+#define REG_4      0x03 // Register 4 address
+#define REG_4_SWP2 0x80 // Software programmable port 2: 1 for HIGH, 0 for LOW
+#define REG_4_STBY 0x40 // Standby: 1 to activate standby mode, 0 to deactivate
+#define REG_4_BL   0x20 // Band Limits: 1 for Japanese FM band, 0 for US/Europe FM band
+#define REG_4_XTAL 0x10 // Clock frequency: Sets the clock frequency (see Table 16)
+#define REG_4_HCC  0x04 // High Cut Control: 1 to activate high cut control, 0 to deactivate
 #define REG_4_SNC \
     0x02 // Stereo Noise Cancelling: 1 to activate stereo noise cancelling, 0 to deactivate
 #define REG_4_SI \
@@ -72,6 +71,9 @@ struct RADIO_INFO {
     int signalLevel; // Signal level
     bool stereo; // Stereo or not
     bool muted; // Muted or not
+    bool ready; // Search/preset ready flag from read byte 1
+    bool bandLimit; // Band limit flag from read byte 1
+    uint8_t ifCounter; // 7-bit IF counter result from read byte 3
     char signalQuality[10]; // Field for signal quality text
 };
 
@@ -93,10 +95,6 @@ bool tea5767_set_snc(bool enabled);
 // De-emphasis time constant (DTC): 50us (EU) vs 75us (US)
 void tea5767_set_deemphasis_75us_enabled(bool enabled);
 bool tea5767_set_deemphasis_75us(bool enabled);
-
-// SoftMute (SMUTE)
-void tea5767_set_softmute_enabled(bool enabled);
-bool tea5767_set_softmute(bool enabled);
 
 // High Cut Control (HCC)
 void tea5767_set_high_cut_enabled(bool enabled);

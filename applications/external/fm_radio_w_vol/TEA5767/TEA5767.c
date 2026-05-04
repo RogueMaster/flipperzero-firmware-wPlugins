@@ -20,7 +20,6 @@
 
 static bool tea5767_snc_enabled = false;
 static bool tea5767_dtc_75us_enabled = false;
-static bool tea5767_softmute_enabled = true;
 static bool tea5767_hcc_enabled = false;
 static bool tea5767_force_mono_enabled = false;
 static uint8_t tea5767_last_write_regs[5];
@@ -83,8 +82,8 @@ bool tea5767_init(uint8_t* buffer) {
     buffer[0] = 0x00;
     buffer[1] = 0x00;
     buffer[2] = 0xB0 | (tea5767_force_mono_enabled ? REG_3_MS : 0);
-    buffer[3] = REG_4_XTAL | (tea5767_softmute_enabled ? REG_4_SMUTE : 0) |
-                (tea5767_hcc_enabled ? REG_4_HCC : 0) | (tea5767_snc_enabled ? REG_4_SNC : 0);
+    buffer[3] = REG_4_XTAL | (tea5767_hcc_enabled ? REG_4_HCC : 0) |
+                (tea5767_snc_enabled ? REG_4_SNC : 0);
     buffer[4] = (tea5767_dtc_75us_enabled ? REG_5_DTC : 0);
 
     result = tea5767_write_registers(buffer);
@@ -143,30 +142,6 @@ bool tea5767_set_deemphasis_75us(bool enabled) {
         buffer[REG_5] &= (uint8_t)~REG_5_DTC;
     }
 
-    return tea5767_write_registers(buffer);
-}
-
-void tea5767_set_softmute_enabled(bool enabled) {
-    tea5767_softmute_enabled = enabled;
-}
-
-bool tea5767_set_softmute(bool enabled) {
-    tea5767_softmute_enabled = enabled;
-
-    if(!tea5767_last_write_valid) {
-        float freq = tea5767_GetFreq();
-        if(freq < 0.0f) return false;
-        tea5767_SetFreqMHz(freq);
-        return true;
-    }
-
-    uint8_t buffer[5];
-    memcpy(buffer, tea5767_last_write_regs, 5);
-    if(enabled) {
-        buffer[REG_4] |= REG_4_SMUTE;
-    } else {
-        buffer[REG_4] &= (uint8_t)~REG_4_SMUTE;
-    }
     return tea5767_write_registers(buffer);
 }
 
@@ -251,7 +226,7 @@ bool tea5767_get_frequency(uint8_t* buffer, int* value) {
     if(buffer == NULL || value == NULL) return false; //NULL check
     if(tea5767_read_registers(buffer)) {
         frequency = ((buffer[REG_1] & REG_1_PLL) << 8) | buffer[1];
-        *value = (frequency * QUARTZ / 4 - FILTER) / 10000;
+        *value = (int)(((uint32_t)frequency * (uint32_t)QUARTZ / 4U - FILTER + 5000U) / 10000U);
         result = true;
     }
     return result;
@@ -272,7 +247,8 @@ bool tea5767_set_frequency(uint8_t* buffer, int value) {
         buffer[REG_4] &= ~REG_4_BL;
     }
 
-    uint16_t frequency = 4 * (value * 10000 + FILTER) / QUARTZ;
+    uint32_t pll_word = (4U * ((uint32_t)value * 10000U + FILTER) + (QUARTZ / 2U)) / QUARTZ;
+    uint16_t frequency = (uint16_t)pll_word;
     buffer[REG_1] =
         ((buffer[0] & ~REG_1_PLL) |
          ((frequency >> 8) & REG_1_PLL)); // Set the upper 8 bits of the PLL word
@@ -295,6 +271,10 @@ bool tea5767_get_radio_info(uint8_t* buffer, struct RADIO_INFO* info) {
 
     // Error handling: Check if buffer and info are not NULL
     if(buffer && info && tea5767_read_registers(buffer)) {
+        info->ready = (buffer[REG_1] & 0x80U) != 0U;
+        info->bandLimit = (buffer[REG_1] & 0x40U) != 0U;
+        info->ifCounter = buffer[REG_3] & 0x7FU;
+
         // TEA5767 read byte 3 (index 2) bit 7 = stereo indication (1=stereo, 0=mono).
         if(tea5767_force_mono_enabled) {
             info->stereo = false;
