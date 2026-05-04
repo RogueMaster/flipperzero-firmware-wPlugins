@@ -373,6 +373,7 @@ static JammerApp* jammer_app_alloc(void) {
 
     /* Worker */
     app->worker = jammer_worker_alloc(app->state, app->state_mutex);
+    furi_assert(app->worker);
     jammer_worker_set_callback(app->worker, jammer_alert_callback, app);
 
     return app;

@@ -192,6 +192,7 @@ static int32_t jammer_worker_thread(void* context) {
 
 JammerWorker* jammer_worker_alloc(JammerState* state, FuriMutex* mutex) {
     JammerWorker* worker = malloc(sizeof(JammerWorker));
+    furi_assert(worker);
     worker->thread = furi_thread_alloc_ex(TAG, 4096, jammer_worker_thread, worker);
     worker->running = false;
     worker->state = state;
