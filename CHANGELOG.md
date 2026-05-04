@@ -6,6 +6,16 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-04
+
+### fix
+- **subghz_jammer**: Added `furi_assert(worker)` after malloc in `jammer_worker_alloc` and `furi_assert(app->worker)` after `jammer_worker_alloc()` in `jammer_app_alloc` — ensures clean crash message on OOM rather than NULL deref deeper in init. Last unchecked worker allocation in the repo.
+
+### docs
+- **subghz_jammer**: Full re-trace review of all ~730 lines. CC1101 device init error paths, scan loop RSSI/window/threshold/consecutive/worst-freq logic, hysteresis behavior, mutex discipline (50ms worker timeout, FuriWaitForever in settings), short-circuit index protection, notification fire outside mutex, volatile on `running`, timer daemon stack safety (~58B), settings callbacks with SDK-clamped indices, 2 views lifecycle, teardown ordering (timer→worker→views→dispatcher→state→records), and back-button exit all confirmed correct.
+
+---
+
 ## 2026-05-03
 
 ### fix
