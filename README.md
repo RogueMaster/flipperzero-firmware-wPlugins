@@ -253,6 +253,7 @@ A: The app includes a database of 32 common SPI NOR flash chips and will auto-de
 
 ```
 flipper_suite/
+├── .github/workflows/build.yml  # CI: builds and lints all 13 FAPs
 ├── dist/                        # Pre-built .fap files (ready to install)
 ├── badusb_pro/                  # BadUSB Pro application
 ├── ble_scanner/                 # BLE Scanner application
@@ -261,7 +262,7 @@ flipper_suite/
 ├── flipperpwn/                  # FlipperPwn pentest framework
 ├── hid_exfil/                   # HID Exfil application
 ├── nfc_fuzzer/                  # NFC Fuzzer application
-├── rayhunter_client/            # Ray Hunter IMSI catcher dashboard
+├── rayhunter_client/            # Rayhunter IMSI catcher dashboard
 ├── rogue_ap_detector/           # Rogue AP / Evil Twin detector
 ├── spi_flash_dump/              # SPI Flash Dump application
 ├── subghz_jammer/               # SubGHz Jammer Detector
@@ -271,7 +272,10 @@ flipper_suite/
 ├── badusb_pro_sample_scripts/   # Sample DuckyScript files
 ├── ccid_emulator_sample_cards/  # Sample CCID card profiles
 ├── flipperpwn_modules/          # FlipperPwn payload modules (.fpwn)
-└── README.md
+├── build_all.sh                 # Build all 13 FAPs locally
+├── check_dist.sh                # Verify dist/ .fap files are current
+├── CHANGELOG.md                 # Project changelog
+└── TODO.md                      # Maintenance tracker
 ```
 
 Each application directory contains:
