@@ -7,6 +7,17 @@
 #define TAG "PassySceneReadCardSuccess"
 // Thank you proxmark code for your passport parsing
 
+static void
+    passy_print_country_specific_info(FuriString* out, const char* issuer, const char* info) {
+    furi_assert(issuer);
+    furi_assert(info);
+    furi_assert(out);
+
+    if(strncmp(issuer, "GEO", 3) == 0) {
+        furi_string_cat_printf(out, "Personal #: %.11s\n", info);
+    }
+}
+
 void passy_scene_read_success_on_enter(void* context) {
     Passy* passy = context;
 
@@ -41,16 +52,21 @@ void passy_scene_read_success_on_enter(void* context) {
                 FURI_LOG_D(TAG, "Received empty Payload");
             }
 
-            if(dg1->mrz.buf[0] == 'I' && dg1->mrz.buf[1] == 'P') {
+            const char* document_code = (const char*)dg1->mrz.buf;
+
+            if(strncmp(document_code, "IP", 2) == 0) {
                 furi_string_cat_printf(str, "Passport card (IP)\n");
-            } else if(dg1->mrz.buf[0] == 'I') {
+            } else if(document_code[0] == 'I') {
                 furi_string_cat_printf(str, "ID Card (I)\n");
-            } else if(dg1->mrz.buf[0] == 'P') {
+            } else if(document_code[0] == 'P') {
                 furi_string_cat_printf(str, "Passport book (P)\n");
-            } else if(dg1->mrz.buf[0] == 'A') {
+            } else if(document_code[0] == 'A') {
                 furi_string_cat_printf(str, "Residency Permit (A)\n");
+            } else if(strncmp(document_code, "TR", 2) == 0) {
+                furi_string_cat_printf(str, "Residency Permit (TR)\n");
             } else {
-                furi_string_cat_printf(str, "Unknown (%c%c)\n", dg1->mrz.buf[0], dg1->mrz.buf[1]);
+                furi_string_cat_printf(
+                    str, "Unknown (%c%c)\n", document_code[0], document_code[1]);
             }
 
             uint8_t td_variant = 0;
@@ -102,13 +118,16 @@ void passy_scene_read_success_on_enter(void* context) {
                 char* row_2 = (char*)dg1->mrz.buf + 30;
                 char* row_3 = (char*)dg1->mrz.buf + 60;
 
-                furi_string_cat_printf(str, "Issuing state: %.3s\n", row_1 + 2);
+                const char* issuing_state = row_1 + 2;
+
+                furi_string_cat_printf(str, "Issuing state: %.3s\n", issuing_state);
                 furi_string_cat_printf(str, "Nationality: %.3s\n", row_2 + 15);
                 furi_string_cat_printf(str, "Name: %s\n", name);
                 furi_string_cat_printf(str, "Doc Number: %.9s\n", row_1 + 5);
                 furi_string_cat_printf(str, "DoB: %.6s\n", row_2);
                 furi_string_cat_printf(str, "Sex: %.1s\n", row_2 + 7);
                 furi_string_cat_printf(str, "Expiry: %.6s\n", row_2 + 8);
+                passy_print_country_specific_info(str, issuing_state, row_1 + 15);
 
                 furi_string_cat_printf(str, "\n");
                 furi_string_cat_printf(str, "Raw data:\n");
