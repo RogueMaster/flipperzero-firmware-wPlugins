@@ -10,17 +10,24 @@ Built by [Kasen Sansonetti](https://github.com/w3t-wr3) & [Wetware Labs](https:/
 
 ## Install
 
+### The Flipper app
+
+Install from the **[Flipper App Catalog](https://lab.flipper.net/apps)** via qFlipper or the Flipper mobile app. The catalog handles deploying the `.fap` to your SD card. You can also grab the `.fap` directly from the [Releases](https://github.com/Wet-wr-Labs/claupper/releases) page.
+
+### The Claude Code skill (optional)
+
+If you want the `/claupper` skill and editable macro presets on your computer:
+
 ```bash
-npx claupper
+npx github:Wet-wr-Labs/claupper
 ```
 
-This is a local-only setup script. It copies three things to your home directory; nothing is downloaded after the npm install, and your Flipper is not touched:
+This is a local-only helper script. It copies two things to your home directory; nothing else is downloaded, and your Flipper is not touched:
 
-1. **Flipper apps** → `~/claupper/claude_remote_ble.fap` and `claude_remote_usb.fap` (pre-built binaries shipped with the package)
-2. **Macro presets** → `~/claupper/macros/*.txt` (7 text files you can edit)
-3. **Claude Code skill** → `~/.claude/skills/claupper/SKILL.md` (registers the `/claupper` command)
+1. **Claude Code skill** → `~/.claude/skills/claupper/SKILL.md` (registers the `/claupper` command)
+2. **Macro presets** → `~/claupper/macros/*.txt` (7 editable text files you can copy to your Flipper SD card)
 
-After that you still need to **manually copy the `.fap` to your Flipper's SD card** (see [Setup](#setup) below). The npx command does not flash the Flipper, compile from source, or install Momentum/Unleashed firmware.
+The script does not flash the Flipper, compile from source, install firmware, or download the `.fap` (use the catalog or Releases for that).
 
 ---
 
@@ -136,14 +143,14 @@ Same C source file, same features — compile-time `#ifdef` switching selects th
 
 ### BLE (Momentum / Unleashed)
 
-1. `npx claupper` (or grab from [Releases](https://github.com/Wet-wr-Labs/claupper/releases))
+1. Install from the [Flipper App Catalog](https://lab.flipper.net/apps), or grab from [Releases](https://github.com/Wet-wr-Labs/claupper/releases), or run `npx github:Wet-wr-Labs/claupper`
 2. Copy `claude_remote_ble.fap` to `SD/apps/Bluetooth/`
 3. Open **Apps → Bluetooth → Agentic Remote**
 4. Pair via Bluetooth on your computer
 
 ### USB (Stock Firmware)
 
-1. `npx claupper` (or grab from [Releases](https://github.com/Wet-wr-Labs/claupper/releases))
+1. Install from the [Flipper App Catalog](https://lab.flipper.net/apps), or grab from [Releases](https://github.com/Wet-wr-Labs/claupper/releases), or run `npx github:Wet-wr-Labs/claupper`
 2. Copy `claude_remote_usb.fap` to `SD/apps/USB/`
 3. Plug Flipper into your computer
 4. Open **Apps → USB → Agentic Remote USB**
@@ -169,7 +176,7 @@ ufbt launch APPID=claude_remote_usb     # deploy + run USB version
 ## Uninstall
 
 ```bash
-npx claupper --uninstall
+npx github:Wet-wr-Labs/claupper --uninstall
 ```
 
 Removes the Claude Code skill and `~/claupper/` directory. Does not remove `.fap` files already on your Flipper SD card.
@@ -207,7 +214,7 @@ See [`skill/claupper/SKILL.md`](skill/claupper/SKILL.md) for the full spec.
 | **v0.27** | Fix combo state leaking between modes, portrait macros screen (9 visible), hold-to-scroll in macros, hint bar shows both combos, macros Back returns to Remote |
 | **v0.26** | Dim backlight in remote modes, BLE default, triple-tap Ctrl+N, restored dictation, BLE release_all |
 | **v0.25** | Dual-transport toggle (Left+Down), BLE crash fix, macro improvements |
-| **v0.24** | Tour screen, Claude Code skill (`/claupper`), `npx claupper` installer |
+| **v0.24** | Tour screen, Claude Code skill (`/claupper`), `npx` installer |
 | **v0.23** | Settings (Haptics/LED/OS), Windows + Linux, macros, long-press Escape |
 | **v0.2** | Quiz mode with difficulty picker, Mac-style answer modal |
 | **v0.1** | Initial release — remote control, manual, double-click actions, voice dictation |
