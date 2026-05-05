@@ -22,9 +22,6 @@ typedef struct {
     uint32_t decim_step_q16;
     uint32_t samples_per_symbol_q16;
     uint32_t symbol_phase_q16;
-    int32_t timing_adjust_q16;
-    int32_t timing_adjust_limit_q16;
-    int32_t timing_error_avg_q8;
     uint32_t carrier_phase_q32;
     uint32_t carrier_step_q32;
     uint32_t pilot_phase_q32;
@@ -51,8 +48,6 @@ typedef struct {
     int32_t q_integrator;
     int32_t half_i_integrator;
     int32_t half_q_integrator;
-    uint32_t early_energy_acc;
-    uint32_t late_energy_acc;
     int32_t prev_i_symbol;
     int32_t prev_q_symbol;
     bool prev_symbol_valid;

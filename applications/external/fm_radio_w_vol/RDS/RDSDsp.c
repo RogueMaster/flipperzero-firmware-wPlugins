@@ -241,19 +241,6 @@ void rds_dsp_set_symbol_callback(RDSDsp* dsp, RdsDspSymbolCallback callback, voi
     dsp->symbol_callback_context = context;
 }
 
-static uint32_t rds_symbol_period_q16(const RDSDsp* dsp) {
-    int32_t period = (int32_t)dsp->samples_per_symbol_q16 + dsp->timing_adjust_q16;
-    int32_t min_period = (int32_t)dsp->samples_per_symbol_q16 - dsp->timing_adjust_limit_q16;
-    int32_t max_period = (int32_t)dsp->samples_per_symbol_q16 + dsp->timing_adjust_limit_q16;
-
-    period = rds_clamp_i32(period, min_period, max_period);
-    if(period < 0x00010000L) {
-        period = 0x00010000L;
-    }
-
-    return (uint32_t)period;
-}
-
 void rds_dsp_init(RDSDsp* dsp, uint32_t sample_rate_hz) {
     if(!dsp) return;
 
@@ -262,9 +249,6 @@ void rds_dsp_init(RDSDsp* dsp, uint32_t sample_rate_hz) {
     dsp->decim_phase = 0U;
     dsp->decim_step_q16 = (uint32_t)dsp->decim_factor << 16U;
     dsp->symbol_phase_q16 = 0U;
-    dsp->timing_adjust_q16 = 0;
-    dsp->timing_adjust_limit_q16 = 0;
-    dsp->timing_error_avg_q8 = 0;
     dsp->carrier_phase_q32 = 0U;
     dsp->pilot_phase_q32 = 0U;
     dsp->pilot_step_q32 = 0U;
@@ -290,8 +274,6 @@ void rds_dsp_init(RDSDsp* dsp, uint32_t sample_rate_hz) {
     dsp->q_integrator = 0;
     dsp->half_i_integrator = 0;
     dsp->half_q_integrator = 0;
-    dsp->early_energy_acc = 0U;
-    dsp->late_energy_acc = 0U;
     dsp->prev_i_symbol = 0;
     dsp->prev_q_symbol = 0;
     dsp->prev_symbol_valid = false;
@@ -339,7 +321,6 @@ void rds_dsp_init(RDSDsp* dsp, uint32_t sample_rate_hz) {
         dsp->pilot_max_step_q32 = rds_phase_step_q32(RDS_PILOT_TRACK_MAX_HZ, sample_rate_hz);
         dsp->pilot_step_q32 = dsp->pilot_nominal_step_q32;
         dsp->carrier_step_q32 = rds_carrier_step_q32_with_manual_offset(dsp, dsp->pilot_step_q32);
-        dsp->timing_adjust_limit_q16 = (int32_t)(dsp->samples_per_symbol_q16 >> 4U);
         dsp->cached_symbol_period_q16 = dsp->samples_per_symbol_q16;
     }
 }
@@ -348,8 +329,6 @@ void rds_dsp_reset(RDSDsp* dsp) {
     if(!dsp) return;
 
     dsp->symbol_phase_q16 = 0U;
-    dsp->timing_adjust_q16 = 0;
-    dsp->timing_error_avg_q8 = 0;
     dsp->decim_phase = 0U;
     dsp->carrier_phase_q32 = 0U;
     dsp->carrier_step_q32 =
@@ -375,8 +354,6 @@ void rds_dsp_reset(RDSDsp* dsp) {
     dsp->q_integrator = 0;
     dsp->half_i_integrator = 0;
     dsp->half_q_integrator = 0;
-    dsp->early_energy_acc = 0U;
-    dsp->late_energy_acc = 0U;
     dsp->prev_i_symbol = 0;
     dsp->prev_q_symbol = 0;
     dsp->prev_symbol_valid = false;
@@ -507,15 +484,6 @@ void rds_dsp_process_u16_samples(
             period_q16 = 0x00020000U;
         }
         uint32_t half_period_q16 = period_q16 >> 1U;
-        uint32_t edge_window_q16 = period_q16 >> 3U;
-        uint32_t phase_before = dsp->symbol_phase_q16;
-
-        if(phase_before < edge_window_q16) {
-            dsp->early_energy_acc += vector_mag_sample;
-        }
-        if(phase_before >= (period_q16 - edge_window_q16)) {
-            dsp->late_energy_acc += vector_mag_sample;
-        }
 
         dsp->symbol_phase_q16 += dsp->decim_step_q16;
 
@@ -597,37 +565,11 @@ void rds_dsp_process_u16_samples(
             dsp->prev_half_q_symbol = half_q;
             dsp->prev_half_symbol_valid = true;
 
-            int64_t timing_error64 =
-                (int64_t)dsp->late_energy_acc - (int64_t)dsp->early_energy_acc;
-            int32_t timing_error;
-            if(timing_error64 > INT32_MAX) {
-                timing_error = INT32_MAX;
-            } else if(timing_error64 < INT32_MIN) {
-                timing_error = INT32_MIN;
-            } else {
-                timing_error = (int32_t)timing_error64;
+            uint32_t phase_remainder_q16 = dsp->symbol_phase_q16 - period_q16;
+            if(phase_remainder_q16 >= period_q16) {
+                phase_remainder_q16 = period_q16 - 1U;
             }
-
-            int32_t phase_step = timing_error >> 10;
-            phase_step = rds_clamp_i32(phase_step, -1024, 1024);
-
-            if(rds_abs_i32(timing_error) < (dsp->avg_vector_mag_q8 >> 4U)) {
-                phase_step = 0;
-            }
-
-            dsp->symbol_phase_q16 += (uint32_t)phase_step;
-
-            dsp->timing_error_avg_q8 += (timing_error - dsp->timing_error_avg_q8) >> 6;
-            dsp->cached_symbol_period_q16 = rds_symbol_period_q16(dsp);
-            period_q16 = dsp->cached_symbol_period_q16;
-            if(period_q16 < 0x00020000U) {
-                period_q16 = 0x00020000U;
-            }
-            half_period_q16 = period_q16 >> 1U;
-
-            dsp->symbol_phase_q16 -= period_q16;
-            dsp->early_energy_acc = 0U;
-            dsp->late_energy_acc = 0U;
+            dsp->symbol_phase_q16 = phase_remainder_q16;
             dsp->half_symbol_phase = 0U;
         }
     }

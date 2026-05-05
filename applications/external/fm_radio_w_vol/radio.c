@@ -1683,8 +1683,6 @@ static void fmradio_rds_metadata_save(void) {
         (unsigned long)(drop_rate_pct_x100 % 100U));
     META_WRITE("pending_peak_blocks=%u\n", (unsigned)stats.pending_peak_blocks);
     META_WRITE("adc_overrun_count=%lu\n", (unsigned long)stats.adc_overrun_count);
-    META_WRITE("dsp_timing_adjust_q16=%ld\n", (long)rds_dsp.timing_adjust_q16);
-    META_WRITE("dsp_timing_error_avg=%ld\n", (long)rds_dsp.timing_error_avg_q8);
     META_WRITE(
         "dsp_symbol_confidence_avg_q16=%lu\n", (unsigned long)rds_dsp.symbol_confidence_avg_q16);
     META_WRITE(
