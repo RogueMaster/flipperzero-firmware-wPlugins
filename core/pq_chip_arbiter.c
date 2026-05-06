@@ -26,6 +26,11 @@
 #include <furi_hal_resources.h>
 #include <furi_hal_spi.h>
 
+/* furi_hal_spi_bus_handle_external_extra (CS=PC3, NRF24) lives in
+ * furi_hal_spi_config.c but is not always exported in SDK headers.
+ * Forward-declare it — present in firmware binary since 0.86. */
+extern FuriHalSpiBusHandle furi_hal_spi_bus_handle_external_extra;
+
 #define TAG "PqChipArbiter"
 
 /* ---------------------------------------------------------------------------
