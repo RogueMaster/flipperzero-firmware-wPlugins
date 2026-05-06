@@ -5,6 +5,40 @@ All notable changes to PINGEQUA RF Lab.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] — 2026-05-06
+
+Patch release — broader firmware compatibility + UI polish.
+
+### Fixed
+- **OFW compatibility**: chip arbiter rewritten to single-handle SPI design.
+  Previously used `furi_hal_spi_bus_handle_external_extra` which is a
+  Momentum-only symbol — CI rejected the FAP on OFW SDK with
+  `Symbols not resolved`. Now uses only the standard `external` handle
+  and manually toggles PA4/PC3 CS lines via GPIO. SPI timing, command
+  framing, and W_TX_PAYLOAD latch behavior all preserved. Two CS lines
+  still never simultaneously LOW (verified). Real-device regression
+  passed: BLE/WiFi jamming + Scanner + Sub-GHz Read clean exit all work.
+- **Jammer view spacing**: `2402/26/80MHz` (freq) and `@080 2480MHz N358`
+  (tag) rows had only 1px gap, `@` character visually cramped against
+  the freq row baseline. Bumped TAG_BASELINE 48→50 and BTM_DIV_Y 51→52
+  for 3px breathing space.
+- **Scanner CSV cosmetic**: `# Peak channel: 14 (2414 MHz, 32 hits)`
+  comment was being split into two columns by Excel CSV importer (comma
+  inside the comment). Replaced with semicolon `; 32 hits)`.
+
+### Changed
+- **CI**: `actions/checkout` v4→v5, `actions/setup-python` v5→v6 to run
+  on Node.js 24 (Node 20 is deprecated as of GitHub announcement; full
+  removal Sep 2026).
+- **Internal**: removed stray `module.elf.c` build artifact from repo root.
+
+### Notes for users
+- If you installed v0.5.0 on **OFW / Unleashed / RogueMaster** and it
+  refused to launch — that's the bug v0.5.1 fixes. Re-install from
+  Releases.
+- Momentum users: v0.5.0 worked fine; v0.5.1 has the same behavior
+  + UI polish.
+
 ## [0.5.0] — 2026-05-05
 
 Data export & settings persistence. v0.5.0 adds research-grade CSV export

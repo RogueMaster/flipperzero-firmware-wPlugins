@@ -6,7 +6,7 @@ App(
     requires=["gui", "storage", "notification"],
     stack_size=4 * 1024,
     fap_category="GPIO",
-    fap_version="0.5.0",
+    fap_version="0.5.1",
     fap_icon="icon.png",
     fap_author="PINGEQUA RF Toolkit",
     fap_description="NRF24 scanner + 7-mode jammer + CSV export + jammer session log + settings persistence",
