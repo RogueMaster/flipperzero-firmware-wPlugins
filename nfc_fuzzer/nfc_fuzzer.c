@@ -722,6 +722,7 @@ static NfcFuzzerApp* nfc_fuzzer_app_alloc(void) {
 
     /* Worker */
     app->worker = nfc_fuzzer_worker_alloc();
+    furi_assert(app->worker);
 
     /* Log path */
     app->log_path = NULL;
