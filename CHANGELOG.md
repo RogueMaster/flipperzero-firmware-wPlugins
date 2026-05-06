@@ -6,6 +6,16 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-06
+
+### fix
+- **nfc_fuzzer**: Added `furi_assert(app->worker)` after `nfc_fuzzer_worker_alloc()` in `nfc_fuzzer_app_alloc` — `nfc_fuzzer_worker_alloc` uniquely returns NULL on OOM instead of asserting internally (unlike all other 12 apps), so the caller needed an explicit assert. Without it, a NULL worker pointer would cause a confusing crash later in `worker_stop`/`worker_free`.
+
+### docs
+- **nfc_fuzzer**: Full re-trace review of all ~3350 lines across 3 source files. All 6 views lifecycle correct (ViewModelTypeLocking on fuzz_run), progress callback mutex-protected with heap-allocated hex buffers for SD card logging, results dynamic array bounded at 64×520B, worker_running set-before-start confirmed, listener/poller/NFC-B/FeliCa run loops all resource-clean on every exit path, TimingTracker rolling window correct, xorshift32 PRNG single-threaded, all 11 profiles × 4 strategies traced with data_len bounds verified (max 65B for Frame boundary). Stack: main ~200/4096, worker ~400/8192. Heap peak ~40KB.
+
+---
+
 ## 2026-05-04
 
 ### fix
