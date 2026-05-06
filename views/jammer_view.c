@@ -17,7 +17,6 @@
  */
 #include "jammer_view.h"
 
-#include <assets_icons.h> /* I_ButtonLeft_4x7 / Right_4x7 / Up_7x4 / Down_7x4 */
 #include <furi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,11 +42,49 @@
 #define BTM_DIV_Y        51
 #define FTR_BASELINE     62
 
-/* 按键图标尺寸常量(SDK 命名规范 _WxH). */
-#define ICON_HARROW_W    4   /* I_ButtonLeft/Right_4x7 */
+/* 按键图标尺寸常量 — 与实际绘制函数尺寸对应. */
+#define ICON_HARROW_W    4   /* draw_arrow_left/right: 4×7 */
 #define ICON_HARROW_H    7
-#define ICON_VARROW_W    7   /* I_ButtonUp/Down_7x4 */
+#define ICON_VARROW_W    7   /* draw_arrow_up/down: 7×4 */
 #define ICON_VARROW_H    4
+
+/* 4×7 左箭头 */
+static void draw_arrow_left(Canvas* canvas, int x, int y) {
+    canvas_draw_dot(canvas, x + 3, y);
+    canvas_draw_line(canvas, x + 2, y + 1, x + 3, y + 1);
+    canvas_draw_line(canvas, x + 1, y + 2, x + 3, y + 2);
+    canvas_draw_line(canvas, x,     y + 3, x + 3, y + 3);
+    canvas_draw_line(canvas, x + 1, y + 4, x + 3, y + 4);
+    canvas_draw_line(canvas, x + 2, y + 5, x + 3, y + 5);
+    canvas_draw_dot(canvas, x + 3, y + 6);
+}
+
+/* 4×7 右箭头 */
+static void draw_arrow_right(Canvas* canvas, int x, int y) {
+    canvas_draw_dot(canvas, x, y);
+    canvas_draw_line(canvas, x, y + 1, x + 1, y + 1);
+    canvas_draw_line(canvas, x, y + 2, x + 2, y + 2);
+    canvas_draw_line(canvas, x, y + 3, x + 3, y + 3);
+    canvas_draw_line(canvas, x, y + 4, x + 2, y + 4);
+    canvas_draw_line(canvas, x, y + 5, x + 1, y + 5);
+    canvas_draw_dot(canvas, x, y + 6);
+}
+
+/* 7×4 上箭头 */
+static void draw_arrow_up(Canvas* canvas, int x, int y) {
+    canvas_draw_dot(canvas,  x + 3, y);
+    canvas_draw_line(canvas, x + 2, y + 1, x + 4, y + 1);
+    canvas_draw_line(canvas, x + 1, y + 2, x + 5, y + 2);
+    canvas_draw_line(canvas, x,     y + 3, x + 6, y + 3);
+}
+
+/* 7×4 下箭头 */
+static void draw_arrow_down(Canvas* canvas, int x, int y) {
+    canvas_draw_line(canvas, x,     y,     x + 6, y);
+    canvas_draw_line(canvas, x + 1, y + 1, x + 5, y + 1);
+    canvas_draw_line(canvas, x + 2, y + 2, x + 4, y + 2);
+    canvas_draw_dot(canvas,  x + 3, y + 3);
+}
 
 /* ---------------------------------------------------------------------------
  * Model
@@ -193,24 +230,24 @@ static void jammer_view_draw_callback(Canvas* canvas, void* _model) {
     if(m->mode == JammerModeCwCustom) {
         /* CwCustom 才显示左右箭头(只有它能用 ←→ 调信道):
          * [<][>] Ch  [^][v] Mode  OK Run */
-        canvas_draw_icon(canvas, x, hy, &I_ButtonLeft_4x7);
+        draw_arrow_left(canvas, x, hy);
         x += ICON_HARROW_W + 1;
-        canvas_draw_icon(canvas, x, hy, &I_ButtonRight_4x7);
+        draw_arrow_right(canvas, x, hy);
         x += ICON_HARROW_W + 2;
         canvas_draw_str(canvas, x, FTR_BASELINE, "Ch");
         x += canvas_string_width(canvas, "Ch") + 4;
 
-        canvas_draw_icon(canvas, x, vy, &I_ButtonUp_7x4);
+        draw_arrow_up(canvas, x, vy);
         x += ICON_VARROW_W + 1;
-        canvas_draw_icon(canvas, x, vy, &I_ButtonDown_7x4);
+        draw_arrow_down(canvas, x, vy);
         x += ICON_VARROW_W + 2;
         canvas_draw_str(canvas, x, FTR_BASELINE, "Mode");
         x += canvas_string_width(canvas, "Mode") + 4;
     } else {
         /* [^][v] Mode  OK Run */
-        canvas_draw_icon(canvas, x, vy, &I_ButtonUp_7x4);
+        draw_arrow_up(canvas, x, vy);
         x += ICON_VARROW_W + 1;
-        canvas_draw_icon(canvas, x, vy, &I_ButtonDown_7x4);
+        draw_arrow_down(canvas, x, vy);
         x += ICON_VARROW_W + 2;
         canvas_draw_str(canvas, x, FTR_BASELINE, "Mode");
         x += canvas_string_width(canvas, "Mode") + 4;
