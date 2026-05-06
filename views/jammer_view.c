@@ -37,9 +37,10 @@
 #define MODE_BASELINE    22  /* FontPrimary 大字模式 */
 #define CHAN_BASELINE    32  /* FontPrimary 信道 */
 #define FREQ_BASELINE    40  /* FontSecondary 频率 */
-#define TAG_BASELINE     48  /* FontSecondary 频段标签 / chunk 数 */
+#define TAG_BASELINE     50  /* FontSecondary 频段标签 / chunk 数(原 48,下移 2px 给
+                              * @ 字符上半部留呼吸空间,避免视觉粘连 freq 行) */
 
-#define BTM_DIV_Y        51
+#define BTM_DIV_Y        52
 #define FTR_BASELINE     62
 
 /* 按键图标尺寸常量 — 与实际绘制函数尺寸对应. */
