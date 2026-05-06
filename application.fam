@@ -6,9 +6,10 @@ App(
     requires=["gui", "storage", "notification"],
     stack_size=4 * 1024,
     fap_category="GPIO",
-    fap_version="0.5.1",
+    fap_version=(0, 5),
     fap_icon="icon.png",
     fap_author="PINGEQUA RF Toolkit",
+    fap_weburl="https://github.com/pingequalab/rf-lab",
     fap_description="NRF24 scanner + 7-mode jammer + CSV export + jammer session log + settings persistence",
     # Phase 1.0 重写:Core / Scenes / Views 三层布局,无 fap_private_libs.
     # Phase 1.2 加 NRF24 Jammer + main_menu(规范 §13 Phase 5).
