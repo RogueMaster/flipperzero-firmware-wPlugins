@@ -29,7 +29,7 @@ NFC Tools can read and write your NFC tags.
 ## Other features
 - Erase Tag: Clears the NDEF content from the tag
 - Lock Tag: Permanently locks the tag as read-only (NTAG21x)
-- Format Memory: Write 0x00 on tag memory (NTAG / ICODE SLI(X) / Mifare Classic 1K+4K)
+- Format Memory: Write 0x00 on tag memory (NTAG, ICODE SLI/X, Mifare Classic 1K+4K)
 - Read Memory: Full memory dump with ASCII view
 - Set or remove Password: Password protection for NTAG21x
 - NFC Commands: Send raw APDU commands
@@ -44,4 +44,5 @@ NFC Tools can read and write your NFC tags.
 - ISO 14443-3A: Generic tags
 
 ## Credits
-Developer: [WAKDEV] (https://www.wakdev.com)
+Developer: WAKDEV
+Website: https://www.wakdev.com
