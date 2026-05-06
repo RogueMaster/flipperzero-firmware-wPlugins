@@ -22,3 +22,6 @@ build/
 # Internal-only docs (not for public repo)
 PUBLISH.md
 GITHUB_PUBLISH_OVERVIEW.md
+
+# 接力提示词(本地开发用,内含路径/未公开技术细节,不上 git)
+.handoff_*.md
