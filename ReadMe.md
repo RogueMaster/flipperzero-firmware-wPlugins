@@ -51,6 +51,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - ESP Flasher: [Bump Marauder v1.12.1 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.1)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32`
+- Updated: [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
 
 <a name="release"></a>
 
@@ -522,7 +523,7 @@ $ ./fbt dolphin_ext
 - [Enhanced Sub-Ghz Chat v1.3 (By twisted-pear)](https://github.com/twisted-pear/esubghz_chat)
 - [Enigma v1.1 (By xtruan)](https://github.com/xtruan/flipper-enigma)
 - [ESP32 Camera Suite v1.9 (By CodyTolene)](https://github.com/CodyTolene/Flipper-Zero-Camera-Suite)
-- [ESP Flasher v1.8 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
+- [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
 - [ESP WiFi Scanner v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-WiFi-Scanner_Module-ESP8266) `Req: ESP8266 or ESP32`
 - [ESP32 Gravity v0.6.0 (By chris-bc)](https://github.com/chris-bc/Flipper-Gravity) `Req: ESP32`
 - [ESP32 WIFI Mapping v0.2 (By carvilsi)](https://github.com/carvilsi/flipper0-wifi-map) `Req: ESP32` & [ESP32 FW](https://github.com/carvilsi/esp32-wifi-map)

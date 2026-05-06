@@ -5,5 +5,10 @@ typedef enum {
     EspFlasherEventStartConsole,
     EspFlasherEventStartKeyboard,
     EspFlasherEventStartFlasher,
-    EspFlasherEventRefreshSubmenu
+    EspFlasherEventRefreshSubmenu,
+    EspFlasherEventShowAddressInput, // show hex address text input for pending slot
+    EspFlasherEventAddrInputDone,    // address text input confirmed
+    EspFlasherEventShowPartConfirm,  // show partition address confirm widget
+    EspFlasherEventPartConfirmYes,   // user accepted parsed partition addresses
+    EspFlasherEventPartConfirmNo,    // user declined parsed partition addresses
 } EspFlasherCustomEvent;
