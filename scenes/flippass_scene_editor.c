@@ -1937,7 +1937,12 @@ static bool flippass_editor_crud_host_delete_custom_field(
 }
 
 static void flippass_editor_crud_host_save_settings(void* context) {
-    flippass_save_settings(context);
+    App* app = context;
+
+    if(app != NULL && app->editor_mode == FlipPassEditorModeRenameFile) {
+        flippass_derivation_cache_clear(app);
+    }
+    flippass_save_settings(app);
 }
 
 static void flippass_editor_crud_host_show_status(

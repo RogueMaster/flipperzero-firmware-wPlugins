@@ -34,6 +34,10 @@
 #define FLIPPASS_SESSION_CREDENTIAL_SEED "FlipPass session credential v1"
 #define FLIPPASS_SESSION_SAVE_KEY_LABEL "database_save_key"
 #define FLIPPASS_SESSION_SAVE_TRANSFORMED_KEY_LABEL "database_save_transformed_key"
+#define FLIPPASS_DERIVATION_CACHE_SEED "FlipPass derivation cache v1"
+#define FLIPPASS_DERIVATION_CACHE_KEY_PREFIX "derivation_cache"
+#define FLIPPASS_DERIVATION_CACHE_VALUE_LABEL "derivation_cache_value"
+#define FLIPPASS_DERIVATION_CACHE_VERSION "1"
 #define FLIPPASS_BADUSB_SETTINGS_FILE_TYPE "Flipper BadUSB Settings File"
 #define FLIPPASS_BADUSB_SETTINGS_VERSION 1U
 
@@ -708,6 +712,278 @@ bool flippass_session_verify_password(App* app, const char* password) {
 
     memzero(expected_key, sizeof(expected_key));
     memzero(stored_key, sizeof(stored_key));
+    return ok;
+}
+
+static void flippass_u64_to_le(uint64_t value, uint8_t out[8]) {
+    furi_assert(out);
+
+    for(size_t index = 0U; index < 8U; index++) {
+        out[index] = (uint8_t)((value >> (index * 8U)) & 0xFFU);
+    }
+}
+
+static bool flippass_parse_u64_decimal(const char* text, uint64_t* out_value) {
+    uint64_t value = 0U;
+
+    if(text == NULL || text[0] == '\0' || out_value == NULL) {
+        return false;
+    }
+
+    for(const char* cursor = text; *cursor != '\0'; cursor++) {
+        if(*cursor < '0' || *cursor > '9') {
+            return false;
+        }
+
+        const uint64_t digit = (uint64_t)(*cursor - '0');
+        if(value > (UINT64_MAX - digit) / 10U) {
+            return false;
+        }
+        value = (value * 10U) + digit;
+    }
+
+    *out_value = value;
+    return true;
+}
+
+void flippass_derivation_cache_clear(App* app) {
+    if(app == NULL) {
+        return;
+    }
+
+    memzero(app->derivation_cache_nonce, sizeof(app->derivation_cache_nonce));
+    memzero(app->derivation_cache_cipher, sizeof(app->derivation_cache_cipher));
+    memzero(app->derivation_cache_mac, sizeof(app->derivation_cache_mac));
+    memzero(app->derivation_cache_kdf_salt, sizeof(app->derivation_cache_kdf_salt));
+    app->derivation_cache_kdf_rounds = 0U;
+    app->derivation_cache_ready = false;
+    app->derivation_cache_save_requested = false;
+    app->derivation_cache_used = false;
+    app->derivation_cache_failed = false;
+}
+
+static bool flippass_derivation_cache_derive_keys(
+    const char* password,
+    const char* file_path,
+    const uint8_t kdf_salt[32],
+    uint64_t kdf_rounds,
+    bool create_if_missing,
+    uint8_t enc_key[32],
+    uint8_t mac_key[32]) {
+    uint8_t device_enc_key[32];
+    uint8_t device_mac_key[32];
+    uint8_t password_key[32];
+    uint8_t rounds_le[8];
+    uint8_t hash[64];
+    SHA512_CTX ctx;
+    bool ok = false;
+
+    if(password == NULL || password[0] == '\0' || file_path == NULL || file_path[0] == '\0' ||
+       kdf_salt == NULL || kdf_rounds == 0U || enc_key == NULL || mac_key == NULL) {
+        return false;
+    }
+
+    if(!flippass_secure_storage_derive_device_keys(
+           FLIPPASS_DERIVATION_CACHE_KEY_PREFIX,
+           create_if_missing,
+           device_enc_key,
+           device_mac_key)) {
+        goto cleanup;
+    }
+
+    flippass_make_password_composite_key(password, password_key);
+    flippass_u64_to_le(kdf_rounds, rounds_le);
+
+    sha512_Init(&ctx);
+    sha512_Update(
+        &ctx,
+        (const uint8_t*)FLIPPASS_DERIVATION_CACHE_SEED,
+        strlen(FLIPPASS_DERIVATION_CACHE_SEED));
+    sha512_Update(&ctx, password_key, sizeof(password_key));
+    sha512_Update(&ctx, device_enc_key, sizeof(device_enc_key));
+    sha512_Update(&ctx, device_mac_key, sizeof(device_mac_key));
+    sha512_Update(&ctx, (const uint8_t*)file_path, strlen(file_path));
+    sha512_Update(&ctx, kdf_salt, 32U);
+    sha512_Update(&ctx, rounds_le, sizeof(rounds_le));
+    sha512_Final(&ctx, hash);
+
+    memcpy(enc_key, hash, 32U);
+    memcpy(mac_key, hash + 32U, 32U);
+    ok = true;
+
+cleanup:
+    if(!ok) {
+        memzero(enc_key, 32U);
+        memzero(mac_key, 32U);
+    }
+    memzero(device_enc_key, sizeof(device_enc_key));
+    memzero(device_mac_key, sizeof(device_mac_key));
+    memzero(password_key, sizeof(password_key));
+    memzero(rounds_le, sizeof(rounds_le));
+    memzero(hash, sizeof(hash));
+    return ok;
+}
+
+static bool flippass_derivation_cache_set(
+    App* app,
+    const char* password,
+    const uint8_t transformed_key[32],
+    const uint8_t kdf_salt[32],
+    uint64_t kdf_rounds) {
+    uint8_t enc_key[32];
+    uint8_t mac_key[32];
+    uint8_t nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE];
+    uint8_t cipher[FLIPPASS_SESSION_SECRET_SIZE];
+    uint8_t mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
+    bool ok = false;
+
+    furi_assert(app);
+
+    if(app->file_path == NULL || furi_string_empty(app->file_path) || password == NULL ||
+       password[0] == '\0' || transformed_key == NULL || kdf_salt == NULL || kdf_rounds == 0U) {
+        return false;
+    }
+
+    if(!flippass_derivation_cache_derive_keys(
+           password,
+           furi_string_get_cstr(app->file_path),
+           kdf_salt,
+           kdf_rounds,
+           true,
+           enc_key,
+           mac_key)) {
+        goto cleanup;
+    }
+
+    furi_hal_random_fill_buf(nonce, sizeof(nonce));
+    memcpy(cipher, transformed_key, sizeof(cipher));
+    flippass_secure_storage_xor(cipher, sizeof(cipher), enc_key, nonce);
+    flippass_secure_storage_mac(
+        FLIPPASS_DERIVATION_CACHE_VALUE_LABEL, mac_key, nonce, cipher, sizeof(cipher), mac);
+
+    memcpy(app->derivation_cache_nonce, nonce, sizeof(app->derivation_cache_nonce));
+    memcpy(app->derivation_cache_cipher, cipher, sizeof(app->derivation_cache_cipher));
+    memcpy(app->derivation_cache_mac, mac, sizeof(app->derivation_cache_mac));
+    memcpy(app->derivation_cache_kdf_salt, kdf_salt, sizeof(app->derivation_cache_kdf_salt));
+    app->derivation_cache_kdf_rounds = kdf_rounds;
+    app->derivation_cache_ready = true;
+    app->derivation_cache_save_requested = false;
+    app->derivation_cache_used = false;
+    app->derivation_cache_failed = false;
+    ok = true;
+
+cleanup:
+    memzero(enc_key, sizeof(enc_key));
+    memzero(mac_key, sizeof(mac_key));
+    memzero(nonce, sizeof(nonce));
+    memzero(cipher, sizeof(cipher));
+    memzero(mac, sizeof(mac));
+    return ok;
+}
+
+bool flippass_derivation_cache_should_offer(const App* app) {
+    if(app == NULL || app->derivation_cache_ready || app->idle_lock_active ||
+       app->file_path == NULL || app->last_open_file_path == NULL ||
+       furi_string_empty(app->file_path) || furi_string_empty(app->last_open_file_path) ||
+       furi_string_cmp(app->last_open_file_path, app->file_path) != 0 ||
+       app->last_open_count == UINT32_MAX) {
+        return false;
+    }
+
+    const uint32_t next_open_count = app->last_open_count + 1U;
+    return next_open_count > 2U && ((next_open_count & (next_open_count - 1U)) == 0U);
+}
+
+bool flippass_derivation_cache_try_read(
+    App* app,
+    const char* password,
+    const char* file_path,
+    const uint8_t* kdf_salt,
+    size_t kdf_salt_size,
+    uint64_t kdf_rounds,
+    uint8_t out_transformed_key[32]) {
+    uint8_t enc_key[32];
+    uint8_t mac_key[32];
+    uint8_t expected_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
+    bool ok = false;
+
+    if(out_transformed_key != NULL) {
+        memzero(out_transformed_key, 32U);
+    }
+
+    if(app == NULL || out_transformed_key == NULL || !app->derivation_cache_ready ||
+       app->last_open_file_path == NULL || furi_string_empty(app->last_open_file_path) ||
+       file_path == NULL || file_path[0] == '\0' ||
+       strcmp(furi_string_get_cstr(app->last_open_file_path), file_path) != 0) {
+        return false;
+    }
+
+    if(password == NULL || password[0] == '\0' || kdf_salt == NULL || kdf_salt_size != 32U ||
+       kdf_rounds == 0U || app->derivation_cache_kdf_rounds != kdf_rounds ||
+       memcmp(app->derivation_cache_kdf_salt, kdf_salt, 32U) != 0) {
+        app->derivation_cache_failed = true;
+        return false;
+    }
+
+    if(!flippass_derivation_cache_derive_keys(
+           password, file_path, kdf_salt, kdf_rounds, false, enc_key, mac_key)) {
+        app->derivation_cache_failed = true;
+        goto cleanup;
+    }
+
+    flippass_secure_storage_mac(
+        FLIPPASS_DERIVATION_CACHE_VALUE_LABEL,
+        mac_key,
+        app->derivation_cache_nonce,
+        app->derivation_cache_cipher,
+        sizeof(app->derivation_cache_cipher),
+        expected_mac);
+    if(!flippass_constant_time_equal(
+           app->derivation_cache_mac, expected_mac, sizeof(expected_mac))) {
+        app->derivation_cache_failed = true;
+        goto cleanup;
+    }
+
+    memcpy(out_transformed_key, app->derivation_cache_cipher, 32U);
+    flippass_secure_storage_xor(out_transformed_key, 32U, enc_key, app->derivation_cache_nonce);
+    app->derivation_cache_used = true;
+    app->derivation_cache_failed = false;
+    ok = true;
+
+cleanup:
+    if(!ok) {
+        memzero(out_transformed_key, 32U);
+    }
+    memzero(enc_key, sizeof(enc_key));
+    memzero(mac_key, sizeof(mac_key));
+    memzero(expected_mac, sizeof(expected_mac));
+    return ok;
+}
+
+bool flippass_derivation_cache_store_from_session(App* app, const char* password) {
+    uint8_t transformed_key[32];
+    uint8_t kdf_salt[32];
+    uint64_t kdf_rounds = 0U;
+    bool ok = false;
+
+    furi_assert(app);
+
+    if(password == NULL || password[0] == '\0' ||
+       !flippass_session_copy_save_transformed_key(
+           app, transformed_key, kdf_salt, &kdf_rounds)) {
+        goto cleanup;
+    }
+
+    ok = flippass_derivation_cache_set(app, password, transformed_key, kdf_salt, kdf_rounds);
+
+cleanup:
+    if(!ok) {
+        flippass_derivation_cache_clear(app);
+    } else {
+        app->derivation_cache_save_requested = false;
+    }
+    memzero(transformed_key, sizeof(transformed_key));
+    memzero(kdf_salt, sizeof(kdf_salt));
     return ok;
 }
 
@@ -1764,6 +2040,7 @@ void flippass_record_successful_open(App* app) {
             app->last_open_count++;
         }
     } else {
+        flippass_derivation_cache_clear(app);
         furi_string_set(app->last_open_file_path, app->file_path);
         app->last_open_count = 1U;
     }
@@ -1782,6 +2059,7 @@ void flippass_save_settings(App* app) {
     FLIPPASS_MEMORY_LOG(app, "settings_after_delete", 0U);
     FlipperFormat* file = flipper_format_file_alloc(storage);
     char last_open_count_text[16];
+    char derivation_cache_rounds_text[24];
     char otp_time_zone_text[8];
     char idle_lock_text[8];
     char idle_attempts_text[8];
@@ -1817,6 +2095,38 @@ void flippass_save_settings(App* app) {
             flippass_secure_write_device_encrypted_string(
                 file, "last_open_count", last_open_count_text);
             FLIPPASS_MEMORY_LOG(app, "settings_count_written", 0U);
+            if(app->derivation_cache_ready && app->derivation_cache_kdf_rounds != 0U) {
+                snprintf(
+                    derivation_cache_rounds_text,
+                    sizeof(derivation_cache_rounds_text),
+                    "%llu",
+                    (unsigned long long)app->derivation_cache_kdf_rounds);
+                flipper_format_write_string_cstr(
+                    file, "derivation_cache_version", FLIPPASS_DERIVATION_CACHE_VERSION);
+                flipper_format_write_string_cstr(
+                    file, "derivation_cache_kdf_rounds", derivation_cache_rounds_text);
+                flipper_format_write_hex(
+                    file,
+                    "derivation_cache_kdf_salt",
+                    app->derivation_cache_kdf_salt,
+                    sizeof(app->derivation_cache_kdf_salt));
+                flipper_format_write_hex(
+                    file,
+                    "derivation_cache_nonce",
+                    app->derivation_cache_nonce,
+                    sizeof(app->derivation_cache_nonce));
+                flipper_format_write_hex(
+                    file,
+                    "derivation_cache_cipher",
+                    app->derivation_cache_cipher,
+                    sizeof(app->derivation_cache_cipher));
+                flipper_format_write_hex(
+                    file,
+                    "derivation_cache_mac",
+                    app->derivation_cache_mac,
+                    sizeof(app->derivation_cache_mac));
+                FLIPPASS_MEMORY_LOG(app, "settings_derivation_cache_written", 0U);
+            }
         }
         snprintf(
             otp_time_zone_text,
@@ -1862,6 +2172,8 @@ static void flippass_load_settings(App* app) {
     FuriString* keyboard_layout = furi_string_alloc();
     FuriString* legacy_last_file_path = furi_string_alloc();
     FuriString* last_open_count = furi_string_alloc();
+    FuriString* derivation_cache_version = furi_string_alloc();
+    FuriString* derivation_cache_rounds = furi_string_alloc();
     FuriString* otp_time_zone = furi_string_alloc();
     FuriString* idle_lock = furi_string_alloc();
     FuriString* idle_attempts = furi_string_alloc();
@@ -1873,6 +2185,7 @@ static void flippass_load_settings(App* app) {
 
     furi_string_reset(app->last_open_file_path);
     app->last_open_count = 0U;
+    flippass_derivation_cache_clear(app);
     app->keyboard_layout_configured = false;
     furi_string_reset(app->keyboard_layout_path);
     app->otp_time_zone_minutes = 0;
@@ -1901,6 +2214,57 @@ static void flippass_load_settings(App* app) {
                 strtoul(furi_string_get_cstr(last_open_count), &parse_end, 10);
             if(parse_end != NULL && *parse_end == '\0' && parsed <= UINT32_MAX) {
                 app->last_open_count = (uint32_t)parsed;
+            }
+        }
+
+        flipper_format_rewind(file);
+        if(flipper_format_read_string(
+               file, "derivation_cache_version", derivation_cache_version) &&
+           strcmp(furi_string_get_cstr(derivation_cache_version), FLIPPASS_DERIVATION_CACHE_VERSION) ==
+               0) {
+            uint64_t parsed_rounds = 0U;
+            bool cache_ok = false;
+
+            flipper_format_rewind(file);
+            if(flipper_format_read_string(
+                   file, "derivation_cache_kdf_rounds", derivation_cache_rounds) &&
+               flippass_parse_u64_decimal(
+                   furi_string_get_cstr(derivation_cache_rounds), &parsed_rounds) &&
+               parsed_rounds != 0U) {
+                flipper_format_rewind(file);
+                cache_ok = flipper_format_read_hex(
+                    file,
+                    "derivation_cache_kdf_salt",
+                    app->derivation_cache_kdf_salt,
+                    sizeof(app->derivation_cache_kdf_salt));
+                flipper_format_rewind(file);
+                cache_ok = cache_ok &&
+                           flipper_format_read_hex(
+                               file,
+                               "derivation_cache_nonce",
+                               app->derivation_cache_nonce,
+                               sizeof(app->derivation_cache_nonce));
+                flipper_format_rewind(file);
+                cache_ok = cache_ok &&
+                           flipper_format_read_hex(
+                               file,
+                               "derivation_cache_cipher",
+                               app->derivation_cache_cipher,
+                               sizeof(app->derivation_cache_cipher));
+                flipper_format_rewind(file);
+                cache_ok = cache_ok &&
+                           flipper_format_read_hex(
+                               file,
+                               "derivation_cache_mac",
+                               app->derivation_cache_mac,
+                               sizeof(app->derivation_cache_mac));
+            }
+
+            if(cache_ok) {
+                app->derivation_cache_kdf_rounds = parsed_rounds;
+                app->derivation_cache_ready = true;
+            } else {
+                flippass_derivation_cache_clear(app);
             }
         }
 
@@ -1998,6 +2362,7 @@ static void flippass_load_settings(App* app) {
 
     if(furi_string_empty(app->last_open_file_path)) {
         app->last_open_count = 0U;
+        flippass_derivation_cache_clear(app);
     }
     furi_string_set(app->file_path, app->last_open_file_path);
 
@@ -2007,6 +2372,8 @@ static void flippass_load_settings(App* app) {
     furi_string_free(keyboard_layout);
     furi_string_free(legacy_last_file_path);
     furi_string_free(last_open_count);
+    furi_string_free(derivation_cache_version);
+    furi_string_free(derivation_cache_rounds);
     furi_string_free(otp_time_zone);
     furi_string_free(idle_lock);
     furi_string_free(idle_attempts);
@@ -2151,6 +2518,7 @@ static App* flippass_app_alloc(const char* args) {
     app->database_compression   = KDBX_COMPRESSION_GZIP;
     app->database_kdf_rounds    = FLIPPASS_KDBX_DEFAULT_AES_KDF_ROUNDS;
     flippass_session_clear_credentials(app);
+    flippass_derivation_cache_clear(app);
     app->text_view_body         = furi_string_alloc();
     app->usb_expect_rpc_session_close = false;
     app->browser_selected_index = 0;

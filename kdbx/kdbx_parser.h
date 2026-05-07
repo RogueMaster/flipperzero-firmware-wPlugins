@@ -59,6 +59,14 @@ bool kdbx_parser_derive_key_with_transformed(
     size_t hmac_key_size,
     uint8_t* transformed_key,
     size_t transformed_key_size);
+bool kdbx_parser_derive_key_from_transformed(
+    const KDBXParser* parser,
+    const uint8_t* transformed_key,
+    size_t transformed_key_size,
+    uint8_t* cipher_key,
+    size_t cipher_key_size,
+    uint8_t* hmac_key,
+    size_t hmac_key_size);
 
 bool kdbx_parser_stream_payload(
     KDBXParser* parser,

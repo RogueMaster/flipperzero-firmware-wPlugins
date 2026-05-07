@@ -243,6 +243,32 @@ static void flippass_open_host_log(void* context, const char* message) {
     }
 }
 
+static bool flippass_open_host_read_cached_transformed_key(
+    void* context,
+    const char* password,
+    const char* file_path,
+    const uint8_t* kdf_salt,
+    size_t kdf_salt_size,
+    uint64_t kdf_rounds,
+    uint8_t* out_transformed_key,
+    size_t out_transformed_key_size) {
+    FlipPassOpenSession* session = context;
+
+    if(session == NULL || session->app == NULL || out_transformed_key == NULL ||
+       out_transformed_key_size != 32U) {
+        return false;
+    }
+
+    return flippass_derivation_cache_try_read(
+        session->app,
+        password,
+        file_path,
+        kdf_salt,
+        kdf_salt_size,
+        kdf_rounds,
+        out_transformed_key);
+}
+
 static void flippass_open_host_clear_paged_window_crypto(void* context) {
     FlipPassOpenSession* session = context;
     if(session == NULL) {
@@ -2154,6 +2180,9 @@ bool flippass_open_execute(App* app, FuriString* error) {
     furi_assert(app);
     furi_assert(error);
 
+    app->derivation_cache_used = false;
+    app->derivation_cache_failed = false;
+
     FLIPPASS_MEMORY_LOG(app, "open_begin", flippass_open_theoretical_session_bytes());
 
     if(!resume_from_staged_xml && app->master_password[0] == '\0') {
@@ -2249,6 +2278,7 @@ bool flippass_open_execute(App* app, FuriString* error) {
             .context = session,
             .progress = flippass_open_host_progress,
             .log = flippass_open_host_log,
+            .read_cached_transformed_key = flippass_open_host_read_cached_transformed_key,
         };
 
         if(!acquire_plugin->run(
@@ -2499,7 +2529,6 @@ bool flippass_open_execute(App* app, FuriString* error) {
            app->editor_return_scene == FlipPassScene_FileBrowser) {
             app->editor_database_password[0] = '\0';
         }
-        flippass_clear_master_password(app);
         flippass_progress_update(app, "Ready", "", 100U);
     }
 
@@ -2544,7 +2573,18 @@ cleanup:
     flippass_open_session_free(session);
     FLIPPASS_MEMORY_LOG(app, "open_session_freed", 0U);
     if(ok) {
+        if(app->derivation_cache_save_requested) {
+            if(flippass_derivation_cache_store_from_session(app, app->master_password)) {
+                FLIPPASS_LOG_EVENT(app, "DERIVATION_CACHE_STORED");
+            } else {
+                FLIPPASS_LOG_EVENT(app, "DERIVATION_CACHE_STORE_FAIL");
+            }
+        } else if(app->derivation_cache_failed) {
+            flippass_derivation_cache_clear(app);
+            FLIPPASS_LOG_EVENT(app, "DERIVATION_CACHE_CLEARED");
+        }
         flippass_record_successful_open(app);
+        flippass_clear_master_password(app);
     }
     return ok;
 }

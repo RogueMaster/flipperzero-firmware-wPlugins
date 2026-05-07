@@ -283,8 +283,17 @@ typedef struct {
     uint8_t database_save_transformed_key_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the sealed AES-KDF transformed key. */
     uint8_t database_save_kdf_salt[32]; /**< AES-KDF salt paired with the sealed transformed key. */
     uint64_t database_save_kdf_rounds; /**< AES-KDF rounds paired with the sealed transformed key. */
+    uint8_t derivation_cache_nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE]; /**< Nonce for the persistent transformed-key cache. */
+    uint8_t derivation_cache_cipher[FLIPPASS_SESSION_SECRET_SIZE]; /**< Persistent AES-KDF transformed key cache ciphertext. */
+    uint8_t derivation_cache_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the persistent transformed-key cache. */
+    uint8_t derivation_cache_kdf_salt[32]; /**< AES-KDF salt paired with the persistent transformed-key cache. */
+    uint64_t derivation_cache_kdf_rounds; /**< AES-KDF rounds paired with the persistent transformed-key cache. */
     bool database_save_key_ready; /**< True when the sealed database credential can be unwrapped. */
     bool database_save_transformed_key_ready; /**< True when a normal save can skip AES-KDF derivation. */
+    bool derivation_cache_ready; /**< True when a persistent transformed-key cache is available. */
+    bool derivation_cache_save_requested; /**< True when the user opted into saving the next successful derivation. */
+    bool derivation_cache_used; /**< True when the current open used the persistent transformed-key cache. */
+    bool derivation_cache_failed; /**< True when a stored cache entry was stale or failed validation. */
     bool parse_failed; /**< True once XML or data-model parsing hits a handled failure. */
     bool database_loaded; /**< True if the current database was parsed successfully. */
     bool database_dirty; /**< True once the unlocked session diverges from disk. */
@@ -477,8 +486,17 @@ typedef struct App {
             uint8_t database_save_transformed_key_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
             uint8_t database_save_kdf_salt[32];
             uint64_t database_save_kdf_rounds;
+            uint8_t derivation_cache_nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE];
+            uint8_t derivation_cache_cipher[FLIPPASS_SESSION_SECRET_SIZE];
+            uint8_t derivation_cache_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE];
+            uint8_t derivation_cache_kdf_salt[32];
+            uint64_t derivation_cache_kdf_rounds;
             bool database_save_key_ready;
             bool database_save_transformed_key_ready;
+            bool derivation_cache_ready;
+            bool derivation_cache_save_requested;
+            bool derivation_cache_used;
+            bool derivation_cache_failed;
             bool parse_failed;
             bool database_loaded;
             bool database_dirty;
@@ -661,6 +679,17 @@ bool flippass_session_copy_save_transformed_key(
     uint8_t out_kdf_salt[32],
     uint64_t* out_kdf_rounds);
 bool flippass_session_verify_password(App* app, const char* password);
+void flippass_derivation_cache_clear(App* app);
+bool flippass_derivation_cache_should_offer(const App* app);
+bool flippass_derivation_cache_try_read(
+    App* app,
+    const char* password,
+    const char* file_path,
+    const uint8_t* kdf_salt,
+    size_t kdf_salt_size,
+    uint64_t kdf_rounds,
+    uint8_t out_transformed_key[32]);
+bool flippass_derivation_cache_store_from_session(App* app, const char* password);
 void flippass_reset_database(App* app);
 void flippass_close_database(App* app);
 void flippass_set_status(App* app, const char* title, const char* message);

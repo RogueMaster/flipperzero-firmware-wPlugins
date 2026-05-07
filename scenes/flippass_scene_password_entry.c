@@ -14,6 +14,16 @@
 #include <stdio.h>
 #include <toolbox/path.h>
 
+typedef enum {
+    FlipPassPasswordEntryStateInput = 0,
+    FlipPassPasswordEntryStateDerivationPrompt,
+} FlipPassPasswordEntryState;
+
+static void flippass_scene_password_entry_dialog_callback(DialogExResult result, void* context) {
+    App* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, result);
+}
+
 static bool flippass_scene_password_entry_is_file_modify(const App* app) {
     return app->editor_mode == FlipPassEditorModeModifyDatabase &&
            app->editor_return_scene == FlipPassScene_FileBrowser;
@@ -150,18 +160,57 @@ static bool flippass_scene_password_entry_try_debug_unlock(App* app) {
 }
 #endif
 
-static void flippass_scene_password_entry_trigger_unlock(App* app, const char* password) {
+static void flippass_scene_password_entry_start_unlock(App* app) {
     furi_assert(app);
-    furi_assert(password);
 
     const KDBXVaultBackend requested_backend = app->requested_vault_backend;
     const bool allow_ext_promotion = app->allow_ext_vault_promotion;
     flippass_reset_database(app);
     app->requested_vault_backend = requested_backend;
     app->allow_ext_vault_promotion = allow_ext_promotion;
-    snprintf(app->master_password, sizeof(app->master_password), "%s", password);
     flippass_clear_text_buffer(app);
     scene_manager_next_scene(app->scene_manager, FlipPassScene_DbEntries);
+}
+
+static void flippass_scene_password_entry_trigger_unlock(App* app, const char* password) {
+    furi_assert(app);
+    furi_assert(password);
+
+    snprintf(app->master_password, sizeof(app->master_password), "%s", password);
+    flippass_scene_password_entry_start_unlock(app);
+}
+
+static void flippass_scene_password_entry_show_derivation_prompt(App* app) {
+    furi_assert(app);
+
+    scene_manager_set_scene_state(
+        app->scene_manager,
+        FlipPassScene_PasswordEntry,
+        FlipPassPasswordEntryStateDerivationPrompt);
+    dialog_ex_reset(app->dialog_ex);
+    dialog_ex_set_header(app->dialog_ex, "Save Derivation?", 64, 4, AlignCenter, AlignTop);
+    dialog_ex_set_text(
+        app->dialog_ex,
+        "Speed up future opens for this database?",
+        4,
+        18,
+        AlignLeft,
+        AlignTop);
+    dialog_ex_set_left_button_text(app->dialog_ex, "Yes");
+    dialog_ex_set_right_button_text(app->dialog_ex, "No");
+    dialog_ex_set_result_callback(app->dialog_ex, flippass_scene_password_entry_dialog_callback);
+    dialog_ex_set_context(app->dialog_ex, app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDialogEx);
+}
+
+static void flippass_scene_password_entry_finish_derivation_prompt(App* app, bool save_requested) {
+    furi_assert(app);
+
+    app->derivation_cache_save_requested = save_requested;
+    scene_manager_set_scene_state(
+        app->scene_manager, FlipPassScene_PasswordEntry, FlipPassPasswordEntryStateInput);
+    dialog_ex_reset(app->dialog_ex);
+    flippass_scene_password_entry_start_unlock(app);
 }
 
 /**
@@ -176,6 +225,13 @@ static void flippass_scene_password_entry_callback(void* context) {
     App* app = context;
     app->allow_ext_vault_promotion =
         app->always_allow_ext || app->requested_vault_backend != KDBXVaultBackendRam;
+    if(flippass_derivation_cache_should_offer(app)) {
+        snprintf(app->master_password, sizeof(app->master_password), "%s", app->text_buffer);
+        flippass_clear_text_buffer(app);
+        flippass_scene_password_entry_show_derivation_prompt(app);
+        return;
+    }
+
     flippass_scene_password_entry_trigger_unlock(app, app->text_buffer);
 }
 
@@ -219,6 +275,9 @@ static void flippass_scene_password_entry_idle_callback(void* context) {
 void flippass_scene_password_entry_on_enter(void* context) {
     App* app = context;
     flippass_clear_text_buffer(app);
+    app->derivation_cache_save_requested = false;
+    scene_manager_set_scene_state(
+        app->scene_manager, FlipPassScene_PasswordEntry, FlipPassPasswordEntryStateInput);
     app->debug_auto_continue_vault_fallback = false;
     FLIPPASS_LOG_EVENT(app, "SCENE password_entry");
     if(!app->close_test_logged) {
@@ -266,6 +325,30 @@ bool flippass_scene_password_entry_on_event(void* context, SceneManagerEvent eve
     App* app = context;
     bool consumed = false;
 
+    if(scene_manager_get_scene_state(app->scene_manager, FlipPassScene_PasswordEntry) ==
+       FlipPassPasswordEntryStateDerivationPrompt) {
+        if(event.type == SceneManagerEventTypeBack) {
+            flippass_scene_password_entry_finish_derivation_prompt(app, false);
+            return true;
+        }
+
+        if(event.type == SceneManagerEventTypeCustom) {
+            if(event.event == DialogExResultLeft) {
+                flippass_scene_password_entry_finish_derivation_prompt(app, true);
+                return true;
+            }
+
+            if(event.event == DialogExResultRight) {
+                flippass_scene_password_entry_finish_derivation_prompt(app, false);
+                return true;
+            }
+
+            if(event.event == DialogExResultCenter) {
+                return true;
+            }
+        }
+    }
+
     if(event.type == SceneManagerEventTypeBack) {
         flippass_clear_text_buffer(app);
         flippass_clear_master_password(app);
@@ -299,5 +382,6 @@ bool flippass_scene_password_entry_on_event(void* context, SceneManagerEvent eve
 void flippass_scene_password_entry_on_exit(void* context) {
     App* app = context;
     text_input_reset(app->text_input);
+    dialog_ex_reset(app->dialog_ex);
     flippass_clear_text_buffer(app);
 }

@@ -151,26 +151,72 @@ static bool fp_open_acquire_run(
 
     fp_open_acquire_log(&ctx, "HEADER_OK");
     fp_open_acquire_progress(&ctx, "Key Derivation", "", 10U);
-    kdbx_parser_set_kdf_progress_callback(ctx.parser, fp_open_acquire_kdf_progress, &ctx);
-    if(!kdbx_parser_derive_key_with_transformed(
-           ctx.parser,
-           request->password,
-           out_profile->cipher_key,
-           sizeof(out_profile->cipher_key),
-           out_profile->hmac_key,
-           sizeof(out_profile->hmac_key),
-           out_profile->transformed_key,
-           sizeof(out_profile->transformed_key))) {
-        const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
-        furi_string_set_str(
-            error,
-            (kdf_error != NULL && kdf_error[0] != '\0') ?
-                kdf_error :
-                "This database uses an unsupported or invalid KDF.");
-        fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
-        goto cleanup;
+    {
+        uint8_t cached_transformed_key[32];
+        const bool cache_hit =
+            host_api->read_cached_transformed_key != NULL &&
+            host_api->read_cached_transformed_key(
+                host_api->context,
+                request->password,
+                request->file_path,
+                out_profile->kdf_salt,
+                out_profile->kdf_salt_size,
+                out_profile->kdf_rounds,
+                cached_transformed_key,
+                sizeof(cached_transformed_key));
+
+        if(cache_hit) {
+            if(!kdbx_parser_derive_key_from_transformed(
+                   ctx.parser,
+                   cached_transformed_key,
+                   sizeof(cached_transformed_key),
+                   out_profile->cipher_key,
+                   sizeof(out_profile->cipher_key),
+                   out_profile->hmac_key,
+                   sizeof(out_profile->hmac_key))) {
+                const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
+                furi_string_set_str(
+                    error,
+                    (kdf_error != NULL && kdf_error[0] != '\0') ?
+                        kdf_error :
+                        "This database uses an unsupported or invalid KDF.");
+                memzero(cached_transformed_key, sizeof(cached_transformed_key));
+                fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
+                goto cleanup;
+            }
+            memcpy(
+                out_profile->transformed_key,
+                cached_transformed_key,
+                sizeof(out_profile->transformed_key));
+            out_profile->transformed_key_ready = true;
+            fp_open_acquire_progress(&ctx, "Key Derivation", "Cached", 35U);
+            fp_open_acquire_log(&ctx, "KEY_DERIVE_CACHE_OK");
+        } else {
+            kdbx_parser_set_kdf_progress_callback(ctx.parser, fp_open_acquire_kdf_progress, &ctx);
+            if(!kdbx_parser_derive_key_with_transformed(
+                   ctx.parser,
+                   request->password,
+                   out_profile->cipher_key,
+                   sizeof(out_profile->cipher_key),
+                   out_profile->hmac_key,
+                   sizeof(out_profile->hmac_key),
+                   out_profile->transformed_key,
+                   sizeof(out_profile->transformed_key))) {
+                const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
+                furi_string_set_str(
+                    error,
+                    (kdf_error != NULL && kdf_error[0] != '\0') ?
+                        kdf_error :
+                        "This database uses an unsupported or invalid KDF.");
+                memzero(cached_transformed_key, sizeof(cached_transformed_key));
+                fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
+                goto cleanup;
+            }
+            out_profile->transformed_key_ready = true;
+            kdbx_parser_set_kdf_progress_callback(ctx.parser, NULL, NULL);
+        }
+        memzero(cached_transformed_key, sizeof(cached_transformed_key));
     }
-    out_profile->transformed_key_ready = true;
 
     kdbx_parser_set_kdf_progress_callback(ctx.parser, NULL, NULL);
     {

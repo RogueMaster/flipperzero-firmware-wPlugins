@@ -1718,41 +1718,79 @@ bool kdbx_parser_derive_key_with_transformed(
     size_t hmac_key_size,
     uint8_t* transformed_key_out,
     size_t transformed_key_size) {
+    uint8_t transformed_key[32];
+    bool ok = false;
+
     furi_assert(parser);
     furi_assert(password);
     furi_assert(cipher_key);
     furi_assert(hmac_key);
 
-    if(cipher_key_size != 32 || hmac_key_size != 64 ||
-       (transformed_key_out != NULL && transformed_key_size != 32U)) {
-        FURI_LOG_E("KDBXParser", "Invalid requested cipher or HMAC key size");
+    if(transformed_key_out != NULL && transformed_key_size != 32U) {
+        FURI_LOG_E("KDBXParser", "Invalid requested transformed key size");
         kdbx_parser_set_error(
             (KDBXParser*)parser, "FlipPass received invalid derived key buffer sizes.");
         return false;
     }
-
-    uint8_t transformed_key[32];
-    uint8_t key_material[65];
 
     if(!kdbx_parser_derive_transformed_key(parser, password, transformed_key)) {
         memzero(transformed_key, sizeof(transformed_key));
         return false;
     }
 
-    memcpy(key_material, parser->header.master_seed, 32);
-    memcpy(key_material + 32, transformed_key, 32);
-    sha256_Raw(key_material, 64, cipher_key);
-
-    if(transformed_key_out != NULL) {
+    ok = kdbx_parser_derive_key_from_transformed(
+        parser,
+        transformed_key,
+        sizeof(transformed_key),
+        cipher_key,
+        cipher_key_size,
+        hmac_key,
+        hmac_key_size);
+    if(ok && transformed_key_out != NULL) {
         memcpy(transformed_key_out, transformed_key, 32U);
     }
 
+    memzero(transformed_key, sizeof(transformed_key));
+    return ok;
+}
+
+bool kdbx_parser_derive_key_from_transformed(
+    const KDBXParser* parser,
+    const uint8_t* transformed_key,
+    size_t transformed_key_size,
+    uint8_t* cipher_key,
+    size_t cipher_key_size,
+    uint8_t* hmac_key,
+    size_t hmac_key_size) {
+    uint8_t key_material[65];
+
+    furi_assert(parser);
+    furi_assert(transformed_key);
+    furi_assert(cipher_key);
+    furi_assert(hmac_key);
+
+    if(cipher_key_size != 32U || hmac_key_size != 64U || transformed_key_size != 32U) {
+        FURI_LOG_E("KDBXParser", "Invalid requested cipher, HMAC, or transformed key size");
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "FlipPass received invalid derived key buffer sizes.");
+        return false;
+    }
+
+    if(!parser->header_parsed) {
+        FURI_LOG_E("KDBXParser", "Header not parsed, cannot derive key");
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "The database header is not ready for key derivation.");
+        return false;
+    }
+
+    memcpy(key_material, parser->header.master_seed, 32U);
+    memcpy(key_material + 32U, transformed_key, 32U);
+    sha256_Raw(key_material, 64U, cipher_key);
     key_material[64] = 1;
     sha512_Raw(key_material, sizeof(key_material), hmac_key);
     kdbx_parser_release_kdf_parameters((KDBXParser*)parser);
 
     memzero(key_material, sizeof(key_material));
-    memzero(transformed_key, sizeof(transformed_key));
     return true;
 }
 

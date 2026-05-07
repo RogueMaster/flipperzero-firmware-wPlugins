@@ -382,6 +382,7 @@ static void flippass_file_browser_clear_last_open_if_matches(App* app, const cha
        strcmp(furi_string_get_cstr(app->last_open_file_path), path) == 0) {
         furi_string_reset(app->last_open_file_path);
         app->last_open_count = 0U;
+        flippass_derivation_cache_clear(app);
         flippass_save_settings(app);
     }
 
