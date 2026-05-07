@@ -21,7 +21,7 @@ def flippass_build_int(name, default):
 
 
 enable_logs = flippass_build_flag("FLIPPASS_BUILD_ENABLE_LOGS", 0)
-enable_system_trace_capture = flippass_build_flag("FLIPPASS_BUILD_ENABLE_SYSTEM_TRACE_CAPTURE", 1)
+enable_system_trace_capture = flippass_build_flag("FLIPPASS_BUILD_ENABLE_SYSTEM_TRACE_CAPTURE", 0)
 enable_gzip_paged_trace = flippass_build_flag("FLIPPASS_BUILD_ENABLE_GZIP_PAGED_TRACE", 0)
 enable_parser_furi_trace = flippass_build_flag("FLIPPASS_BUILD_ENABLE_PARSER_FURI_TRACE", 0)
 enable_verbose_unlock_log = flippass_build_flag("FLIPPASS_BUILD_ENABLE_VERBOSE_UNLOCK_LOG", 0)
