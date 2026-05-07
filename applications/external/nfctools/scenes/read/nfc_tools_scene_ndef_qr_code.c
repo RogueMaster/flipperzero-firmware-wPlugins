@@ -5,7 +5,7 @@
 
 typedef struct {
     uint8_t qrcode[QRCODEGEN_BUF_MAX];
-    bool    valid;
+    bool valid;
 } NfcToolsQrModel;
 
 static void nfc_tools_qr_draw_cb(Canvas* canvas, void* model_ptr) {
@@ -27,12 +27,14 @@ static void nfc_tools_qr_draw_cb(Canvas* canvas, void* model_ptr) {
     int total_modules = qr_size + 2 * qz_modules;
 
     int scale = 1;
-    if(total_modules * 3 <= 64)       scale = 3;
-    else if(total_modules * 2 <= 64)  scale = 2;
+    if(total_modules * 3 <= 64)
+        scale = 3;
+    else if(total_modules * 2 <= 64)
+        scale = 2;
 
     int total_px = total_modules * scale;
     int origin_x = (128 - total_px) / 2;
-    int origin_y = (64  - total_px) / 2;
+    int origin_y = (64 - total_px) / 2;
     if(origin_x < 0) origin_x = 0;
     if(origin_y < 0) origin_y = 0;
 
@@ -56,8 +58,7 @@ static void nfc_tools_qr_draw_cb(Canvas* canvas, void* model_ptr) {
 
 static bool nfc_tools_qr_input_cb(InputEvent* event, void* context) {
     NfcToolsApp* app = context;
-    if(event->type == InputTypeShort &&
-       (event->key == InputKeyBack || event->key == InputKeyOk)) {
+    if(event->type == InputTypeShort && (event->key == InputKeyBack || event->key == InputKeyOk)) {
         view_dispatcher_send_custom_event(app->view_dispatcher, 0);
         return true;
     }
@@ -91,10 +92,14 @@ void nfc_tools_scene_ndef_qr_code_on_enter(void* context) {
     static uint8_t s_qrcode[QRCODEGEN_BUF_MAX];
     bool valid = nfc_tools_qr_encode(rec->value, s_temp, s_qrcode);
 
-    with_view_model(app->qr_view, NfcToolsQrModel * m, {
-        m->valid = valid;
-        if(valid) memcpy(m->qrcode, s_qrcode, QRCODEGEN_BUF_MAX);
-    }, true);
+    with_view_model(
+        app->qr_view,
+        NfcToolsQrModel * m,
+        {
+            m->valid = valid;
+            if(valid) memcpy(m->qrcode, s_qrcode, QRCODEGEN_BUF_MAX);
+        },
+        true);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewQrCode);
 }

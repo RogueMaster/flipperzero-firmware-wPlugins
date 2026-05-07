@@ -23,17 +23,17 @@
 // ── Contexte du callback ──────────────────────────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
+    NfcToolsApp* app;
     FuriEventFlag* done;
-    bool           success;
-    char           err[80];
+    bool success;
+    char err[80];
 } LockTagCtx;
 
 // ── Callback nfc_poller_start_ex ──────────────────────────────────────────────
 
 static NfcCommand nfc_tools_lock_tag_cb(NfcGenericEventEx event, void* context) {
-    LockTagCtx*             ctx    = context;
-    MfUltralightPoller*     mfu    = (MfUltralightPoller*)event.poller;
+    LockTagCtx* ctx = context;
+    MfUltralightPoller* mfu = (MfUltralightPoller*)event.poller;
     Iso14443_3aPollerEvent* iso_ev = (Iso14443_3aPollerEvent*)event.parent_event_data;
 
     if(iso_ev->type != Iso14443_3aPollerEventTypeReady) {
@@ -44,13 +44,12 @@ static NfcCommand nfc_tools_lock_tag_cb(NfcGenericEventEx event, void* context) 
 
     // ── Step 1: identify type via GET_VERSION ────────────────────────────────
     MfUltralightVersion version = {};
-    MfUltralightType    type    = MfUltralightTypeOrigin;
+    MfUltralightType type = MfUltralightTypeOrigin;
     if(mf_ultralight_poller_read_version(mfu, &version) == MfUltralightErrorNone) {
         type = mf_ultralight_get_type_by_version(&version);
     }
 
-    if(type != MfUltralightTypeNTAG213 &&
-       type != MfUltralightTypeNTAG215 &&
+    if(type != MfUltralightTypeNTAG213 && type != MfUltralightTypeNTAG215 &&
        type != MfUltralightTypeNTAG216) {
         strlcpy(ctx->err, "Incompatible tag\nOnly NTAG213/215/216", sizeof(ctx->err));
         furi_event_flag_set(ctx->done, 1u);
@@ -73,9 +72,7 @@ static NfcCommand nfc_tools_lock_tag_cb(NfcGenericEventEx event, void* context) 
     const MfUltralightPage static_lock = {.data = {b0, b1, 0xFF, 0xFF}};
     err = mf_ultralight_poller_write_page(mfu, 2, &static_lock);
     if(err != MfUltralightErrorNone) {
-        snprintf(
-            ctx->err, sizeof(ctx->err),
-            "Lock failed\n(err:%d)\nRemove pwd first?", (int)err);
+        snprintf(ctx->err, sizeof(ctx->err), "Lock failed\n(err:%d)\nRemove pwd first?", (int)err);
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
     }
@@ -106,8 +103,11 @@ static NfcCommand nfc_tools_lock_tag_cb(NfcGenericEventEx event, void* context) 
         err = mf_ultralight_poller_write_page(mfu, dyn_page, &dyn_lock);
         if(err != MfUltralightErrorNone) {
             snprintf(
-                ctx->err, sizeof(ctx->err),
-                "Dyn lock failed\npage 0x%02X (err:%d)", dyn_page, (int)err);
+                ctx->err,
+                sizeof(ctx->err),
+                "Dyn lock failed\npage 0x%02X (err:%d)",
+                dyn_page,
+                (int)err);
             furi_event_flag_set(ctx->done, 1u);
             return NfcCommandStop;
         }
@@ -170,7 +170,7 @@ static int32_t nfc_tools_lock_tag_worker(void* context) {
 
     // Phase 3: lock in a single RF session
     LockTagCtx lock_ctx = {};
-    lock_ctx.app  = app;
+    lock_ctx.app = app;
     lock_ctx.done = furi_event_flag_alloc();
 
     NfcPoller* poller = nfc_poller_alloc(app->nfc, NfcProtocolMfUltralight);
@@ -186,9 +186,7 @@ static int32_t nfc_tools_lock_tag_worker(void* context) {
 
     if(lock_ctx.success) {
         notification_message(app->notifications, &sequence_success);
-        furi_string_set(
-            app->info_str,
-            NTS_STATUS_TAG_LOCKED_INFO);
+        furi_string_set(app->info_str, NTS_STATUS_TAG_LOCKED_INFO);
         view_dispatcher_send_custom_event(app->view_dispatcher, NfcToolsEventWriteSuccess);
     } else {
         notification_message(app->notifications, &sequence_error);
@@ -208,7 +206,7 @@ static void nfc_tools_lock_tag_stop_worker(NfcToolsApp* app) {
         furi_thread_free(app->worker_thread);
         furi_event_flag_free(app->worker_flags);
         app->worker_thread = NULL;
-        app->worker_flags  = NULL;
+        app->worker_flags = NULL;
     }
 }
 
@@ -219,10 +217,7 @@ void nfc_tools_scene_lock_tag_on_enter(void* context) {
 
     popup_reset(app->popup);
     popup_set_header(app->popup, NTS_POPUP_LOCK_TAG, 64, 10, AlignCenter, AlignCenter);
-    popup_set_text(
-        app->popup,
-        NTS_POPUP_LOCK_WARNING,
-        64, 32, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, NTS_POPUP_LOCK_WARNING, 64, 32, AlignCenter, AlignCenter);
 
     furi_string_reset(app->info_str);
 
@@ -235,23 +230,19 @@ void nfc_tools_scene_lock_tag_on_enter(void* context) {
 }
 
 bool nfc_tools_scene_lock_tag_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == NfcToolsEventWriteSuccess) {
             popup_set_header(app->popup, NTS_STATUS_TAG_LOCKED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 32, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 32, AlignCenter, AlignCenter);
             consumed = true;
         } else if(event.event == NfcToolsEventWriteFail) {
             popup_set_header(app->popup, NTS_ERR_FAILED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 32, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 32, AlignCenter, AlignCenter);
             consumed = true;
         }
     }

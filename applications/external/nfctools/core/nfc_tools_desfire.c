@@ -7,50 +7,46 @@
 // ── NFC Forum Type 4 Tag constants ───────────────────────────────────────────
 
 // ISO7816-4 DF Name : D2 76 00 00 85 01 01 (inline dans les APDUs)
-#define NDEF_AID_LEN  7U
+#define NDEF_AID_LEN 7U
 
 // Native DESFire AID (3 bytes little-endian) used during application creation
-static const uint8_t DESFIRE_NDEF_AID_LE[] = { 0x01, 0x00, 0x00 };
+static const uint8_t DESFIRE_NDEF_AID_LE[] = {0x01, 0x00, 0x00};
 
 // File IDs NFC Forum T4T
-#define CC_FILE_ID_HI    0xE1U
-#define CC_FILE_ID_LO    0x03U
-#define NDEF_FILE_ID_HI  0xE1U
-#define NDEF_FILE_ID_LO  0x04U
+#define CC_FILE_ID_HI   0xE1U
+#define CC_FILE_ID_LO   0x03U
+#define NDEF_FILE_ID_HI 0xE1U
+#define NDEF_FILE_ID_LO 0x04U
 
 // Fixed size of the CC file (NFC Forum T4T v2.0 = 15 bytes)
-#define CC_SIZE  15U
+#define CC_SIZE 15U
 
 // NDEF file size bounds, computed dynamically from the chip's free memory
-#define NDEF_FILE_MIN_SIZE   256U   // conservative minimum (EV1 2K loaded cards)
-#define NDEF_FILE_MAX_SIZE  8190U   // maximum (DESFire EV3 8K)
+#define NDEF_FILE_MIN_SIZE 256U // conservative minimum (EV1 2K loaded cards)
+#define NDEF_FILE_MAX_SIZE 8190U // maximum (DESFire EV3 8K)
 
 // Max chunk for UPDATE BINARY (conservative: < 59 bytes C-APDU limit)
-#define APDU_MAX_LC  54U
+#define APDU_MAX_LC 54U
 
 // Status words ISO7816-4
-#define SW1_OK         0x90U
-#define SW2_OK         0x00U
-#define SW1_NOT_FOUND  0x6AU
-#define SW2_NOT_FOUND  0x82U
+#define SW1_OK        0x90U
+#define SW2_OK        0x00U
+#define SW1_NOT_FOUND 0x6AU
+#define SW2_NOT_FOUND 0x82U
 
 // DESFire ISO-wrapped status words (CLA=0x90)
-#define DSW1_OK  0x91U
-#define DSW2_OK  0x00U
+#define DSW1_OK 0x91U
+#define DSW2_OK 0x00U
 
 // ── Helper: APDU exchange ─────────────────────────────────────────────────────
 
 typedef struct {
     uint8_t data[258];
-    size_t  len;
-    bool    ok;
+    size_t len;
+    bool ok;
 } ApduResp;
 
-static ApduResp apdu_exchange(
-    Iso14443_4aPoller* poller,
-    const uint8_t*     cmd,
-    size_t             cmd_len)
-{
+static ApduResp apdu_exchange(Iso14443_4aPoller* poller, const uint8_t* cmd, size_t cmd_len) {
     ApduResp resp = {0};
     BitBuffer* tx = bit_buffer_alloc(cmd_len);
     BitBuffer* rx = bit_buffer_alloc(258);
@@ -71,21 +67,17 @@ static ApduResp apdu_exchange(
 }
 
 static bool sw_ok(const ApduResp* r) {
-    return r->ok && r->len >= 2 &&
-           r->data[r->len - 2] == SW1_OK &&
-           r->data[r->len - 1] == SW2_OK;
+    return r->ok && r->len >= 2 && r->data[r->len - 2] == SW1_OK && r->data[r->len - 1] == SW2_OK;
 }
 
 static bool sw_not_found(const ApduResp* r) {
-    return r->ok && r->len >= 2 &&
-           r->data[r->len - 2] == SW1_NOT_FOUND &&
+    return r->ok && r->len >= 2 && r->data[r->len - 2] == SW1_NOT_FOUND &&
            r->data[r->len - 1] == SW2_NOT_FOUND;
 }
 
 // DESFire ISO-wrapped response: 91 00
 static bool dsw_ok(const ApduResp* r) {
-    return r->ok && r->len >= 2 &&
-           r->data[r->len - 2] == DSW1_OK &&
+    return r->ok && r->len >= 2 && r->data[r->len - 2] == DSW1_OK &&
            r->data[r->len - 1] == DSW2_OK;
 }
 
@@ -98,19 +90,16 @@ static bool dsw_ok(const ApduResp* r) {
 //   cc[11..12] > 0   : coherent MaxNDEF (positive user capacity)
 static bool cc_is_valid(const uint8_t* cc, size_t cc_len) {
     if(cc_len < CC_SIZE) return false;
-    return (cc[2]  == 0x20)
-        && (cc[7]  == 0x04)
-        && (cc[8]  == 0x06)
-        && (cc[9]  == NDEF_FILE_ID_HI)
-        && (cc[10] == NDEF_FILE_ID_LO)
-        && ((uint16_t)(((uint16_t)cc[11] << 8) | (uint16_t)cc[12]) > 0u);
+    return (cc[2] == 0x20) && (cc[7] == 0x04) && (cc[8] == 0x06) && (cc[9] == NDEF_FILE_ID_HI) &&
+           (cc[10] == NDEF_FILE_ID_LO) &&
+           ((uint16_t)(((uint16_t)cc[11] << 8) | (uint16_t)cc[12]) > 0u);
 }
 
 // ── Helpers ISO7816-4 ─────────────────────────────────────────────────────────
 
 // SELECT FILE by EF ID (P1=00, P2=0C: no response data)
 static bool t4t_select_file(Iso14443_4aPoller* poller, uint8_t fid_hi, uint8_t fid_lo) {
-    const uint8_t cmd[] = { 0x00, 0xA4, 0x00, 0x0C, 0x02, fid_hi, fid_lo };
+    const uint8_t cmd[] = {0x00, 0xA4, 0x00, 0x0C, 0x02, fid_hi, fid_lo};
     ApduResp r = apdu_exchange(poller, cmd, sizeof(cmd));
     return sw_ok(&r);
 }
@@ -118,17 +107,11 @@ static bool t4t_select_file(Iso14443_4aPoller* poller, uint8_t fid_hi, uint8_t f
 // READ BINARY from offset (up to 127 bytes per call)
 static bool t4t_read_binary(
     Iso14443_4aPoller* poller,
-    uint16_t           offset,
-    uint8_t            length,
-    uint8_t*           out,
-    size_t*            out_len)
-{
-    const uint8_t cmd[] = {
-        0x00, 0xB0,
-        (uint8_t)(offset >> 8),
-        (uint8_t)(offset & 0xFF),
-        length
-    };
+    uint16_t offset,
+    uint8_t length,
+    uint8_t* out,
+    size_t* out_len) {
+    const uint8_t cmd[] = {0x00, 0xB0, (uint8_t)(offset >> 8), (uint8_t)(offset & 0xFF), length};
     ApduResp r = apdu_exchange(poller, cmd, sizeof(cmd));
     if(!sw_ok(&r) || r.len < 2) return false;
     size_t dlen = r.len - 2;
@@ -140,16 +123,15 @@ static bool t4t_read_binary(
 // UPDATE BINARY: length <= APDU_MAX_LC
 static bool t4t_update_binary(
     Iso14443_4aPoller* poller,
-    uint16_t           offset,
-    const uint8_t*     data,
-    uint8_t            length)
-{
+    uint16_t offset,
+    const uint8_t* data,
+    uint8_t length) {
     uint8_t cmd[5 + APDU_MAX_LC];
-    cmd[0] = 0x00;              // CLA
-    cmd[1] = 0xD6;              // INS UPDATE BINARY
+    cmd[0] = 0x00; // CLA
+    cmd[1] = 0xD6; // INS UPDATE BINARY
     cmd[2] = (uint8_t)(offset >> 8);
     cmd[3] = (uint8_t)(offset & 0xFF);
-    cmd[4] = length;            // Lc
+    cmd[4] = length; // Lc
     memcpy(&cmd[5], data, length);
     ApduResp r = apdu_exchange(poller, cmd, 5u + length);
     return sw_ok(&r);
@@ -163,12 +145,10 @@ static bool t4t_update_binary(
 static uint32_t desfire_get_free_memory(Iso14443_4aPoller* poller) {
     // Case-2 ISO7816 format: CLA INS P1 P2 Le (5 bytes, no Lc)
     // Expected response: 3 LE bytes (24-bit free memory) + 91 00
-    const uint8_t cmd[] = { 0x90, 0x6E, 0x00, 0x00, 0x00 };
+    const uint8_t cmd[] = {0x90, 0x6E, 0x00, 0x00, 0x00};
     ApduResp r = apdu_exchange(poller, cmd, sizeof(cmd));
     if(!dsw_ok(&r) || r.len < 5) return 0u;
-    return (uint32_t)r.data[0]
-         | ((uint32_t)r.data[1] << 8)
-         | ((uint32_t)r.data[2] << 16);
+    return (uint32_t)r.data[0] | ((uint32_t)r.data[1] << 8) | ((uint32_t)r.data[2] << 16);
 }
 
 // Computes the optimal NDEF file size based on available free memory.
@@ -203,7 +183,7 @@ static bool desfire_create_ndef_app(Iso14443_4aPoller* poller, NfcToolsApp* app)
     {
         // SELECT PICC (AID 00 00 00) in native DeSFire mode.
         // Required before CREATE APPLICATION: needs PICC master context.
-        const uint8_t cmd[] = { 0x90, 0x5A, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00 };
+        const uint8_t cmd[] = {0x90, 0x5A, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00};
         ApduResp picc_sel = apdu_exchange(poller, cmd, sizeof(cmd));
         if(!dsw_ok(&picc_sel)) {
             if(picc_sel.ok && picc_sel.len >= 2) {
@@ -239,53 +219,89 @@ static bool desfire_create_ndef_app(Iso14443_4aPoller* poller, NfcToolsApp* app)
     {
         // Format EV3 : Lc=0x10 (16 bytes) avec KeySettings2 + NumOfISOFiles
         const uint8_t cmd_ev3[] = {
-            0x90, 0xCA, 0x00, 0x00, 0x10,
-            DESFIRE_NDEF_AID_LE[0], DESFIRE_NDEF_AID_LE[1], DESFIRE_NDEF_AID_LE[2],
-            0x0F,                           // KeySettings1
-            0x81,                           // NumOfKeys: ISO file IDs (bit7) + 1 DES key
-            0x03,                           // KeySettings2 (EV2/EV3): ISO FileIDs + DFName
-            0x02,                           // NumOfISOFiles (EV3): CC + NDEF
-            0x10, 0xE1,                     // ISO FileID of DF = E110h (LE, NFC Forum)
-            0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01, // ISO DFName
-            0x00                            // Le
+            0x90,
+            0xCA,
+            0x00,
+            0x00,
+            0x10,
+            DESFIRE_NDEF_AID_LE[0],
+            DESFIRE_NDEF_AID_LE[1],
+            DESFIRE_NDEF_AID_LE[2],
+            0x0F, // KeySettings1
+            0x81, // NumOfKeys: ISO file IDs (bit7) + 1 DES key
+            0x03, // KeySettings2 (EV2/EV3): ISO FileIDs + DFName
+            0x02, // NumOfISOFiles (EV3): CC + NDEF
+            0x10,
+            0xE1, // ISO FileID of DF = E110h (LE, NFC Forum)
+            0xD2,
+            0x76,
+            0x00,
+            0x00,
+            0x85,
+            0x01,
+            0x01, // ISO DFName
+            0x00 // Le
         };
         // Format EV2 : Lc=0x0F (15 bytes) avec KeySettings2
         const uint8_t cmd_ev2[] = {
-            0x90, 0xCA, 0x00, 0x00, 0x0F,
-            DESFIRE_NDEF_AID_LE[0], DESFIRE_NDEF_AID_LE[1], DESFIRE_NDEF_AID_LE[2],
-            0x0F,                           // KeySettings1
-            0x81,                           // NumOfKeys: ISO file IDs (bit7) + 1 DES key
-            0x03,                           // KeySettings2 (EV2): ISO FileIDs + DFName
-            0x10, 0xE1,                     // ISO FileID of DF = E110h (LE, NFC Forum)
-            0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01, // ISO DFName
-            0x00                            // Le
+            0x90,
+            0xCA,
+            0x00,
+            0x00,
+            0x0F,
+            DESFIRE_NDEF_AID_LE[0],
+            DESFIRE_NDEF_AID_LE[1],
+            DESFIRE_NDEF_AID_LE[2],
+            0x0F, // KeySettings1
+            0x81, // NumOfKeys: ISO file IDs (bit7) + 1 DES key
+            0x03, // KeySettings2 (EV2): ISO FileIDs + DFName
+            0x10,
+            0xE1, // ISO FileID of DF = E110h (LE, NFC Forum)
+            0xD2,
+            0x76,
+            0x00,
+            0x00,
+            0x85,
+            0x01,
+            0x01, // ISO DFName
+            0x00 // Le
         };
         // Format EV1 : Lc=0x0E (14 bytes), sans KeySettings2
         const uint8_t cmd_ev1[] = {
-            0x90, 0xCA, 0x00, 0x00, 0x0E,
-            DESFIRE_NDEF_AID_LE[0], DESFIRE_NDEF_AID_LE[1], DESFIRE_NDEF_AID_LE[2],
-            0x0F,                           // KeySettings1
-            0x81,                           // NumOfKeys: ISO file IDs (bit7) + 1 DES key
-            0x10, 0xE1,                     // ISO FileID of DF = E110h (LE, NFC Forum)
-            0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01, // ISO DFName
-            0x00                            // Le
+            0x90,
+            0xCA,
+            0x00,
+            0x00,
+            0x0E,
+            DESFIRE_NDEF_AID_LE[0],
+            DESFIRE_NDEF_AID_LE[1],
+            DESFIRE_NDEF_AID_LE[2],
+            0x0F, // KeySettings1
+            0x81, // NumOfKeys: ISO file IDs (bit7) + 1 DES key
+            0x10,
+            0xE1, // ISO FileID of DF = E110h (LE, NFC Forum)
+            0xD2,
+            0x76,
+            0x00,
+            0x00,
+            0x85,
+            0x01,
+            0x01, // ISO DFName
+            0x00 // Le
         };
 
-        // Local macro: true if the DESFire response is sw1=0x91, sw2=code
-        #define DSW_IS(resp, code) \
-            ((resp).ok && (resp).len >= 2 && \
-             (resp).data[(resp).len - 2] == 0x91U && \
-             (resp).data[(resp).len - 1] == (code))
+// Local macro: true if the DESFire response is sw1=0x91, sw2=code
+#define DSW_IS(resp, code)                                                   \
+    ((resp).ok && (resp).len >= 2 && (resp).data[(resp).len - 2] == 0x91U && \
+     (resp).data[(resp).len - 1] == (code))
 
-        // Inline subroutine: tries EV3 -> EV2 -> EV1 and returns the last response
-        #define TRY_CREATE(out_r) \
-            do { \
-                (out_r) = apdu_exchange(poller, cmd_ev3, sizeof(cmd_ev3)); \
-                if(DSW_IS((out_r), 0x7EU)) \
-                    (out_r) = apdu_exchange(poller, cmd_ev2, sizeof(cmd_ev2)); \
-                if(DSW_IS((out_r), 0x7EU)) \
-                    (out_r) = apdu_exchange(poller, cmd_ev1, sizeof(cmd_ev1)); \
-            } while(0)
+// Inline subroutine: tries EV3 -> EV2 -> EV1 and returns the last response
+#define TRY_CREATE(out_r)                                                                     \
+    do {                                                                                      \
+        (out_r) = apdu_exchange(poller, cmd_ev3, sizeof(cmd_ev3));                            \
+        if(DSW_IS((out_r), 0x7EU)) (out_r) = apdu_exchange(poller, cmd_ev2, sizeof(cmd_ev2)); \
+        if(DSW_IS((out_r), 0x7EU)) (out_r) = apdu_exchange(poller, cmd_ev1, sizeof(cmd_ev1)); \
+    } while(0)
 
         ApduResp r;
         TRY_CREATE(r);
@@ -297,9 +313,15 @@ static bool desfire_create_ndef_app(Iso14443_4aPoller* poller, NfcToolsApp* app)
         // cards (default PICC key = all zeros).
         if(DSW_IS(r, 0xDEU)) {
             const uint8_t del_cmd[] = {
-                0x90, 0xDA, 0x00, 0x00, 0x03,
-                DESFIRE_NDEF_AID_LE[0], DESFIRE_NDEF_AID_LE[1], DESFIRE_NDEF_AID_LE[2],
-                0x00  // Le
+                0x90,
+                0xDA,
+                0x00,
+                0x00,
+                0x03,
+                DESFIRE_NDEF_AID_LE[0],
+                DESFIRE_NDEF_AID_LE[1],
+                DESFIRE_NDEF_AID_LE[2],
+                0x00 // Le
             };
             ApduResp del = apdu_exchange(poller, del_cmd, sizeof(del_cmd));
             if(!dsw_ok(&del)) {
@@ -313,8 +335,8 @@ static bool desfire_create_ndef_app(Iso14443_4aPoller* poller, NfcToolsApp* app)
             TRY_CREATE(r);
         }
 
-        #undef TRY_CREATE
-        #undef DSW_IS
+#undef TRY_CREATE
+#undef DSW_IS
 
         if(!dsw_ok(&r)) {
             if(r.ok && r.len >= 2) {
@@ -349,10 +371,9 @@ static bool desfire_create_ndef_app(Iso14443_4aPoller* poller, NfcToolsApp* app)
 //
 // Returns true if everything succeeded without error.
 static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* app) {
-    // 91 DE = Duplicate: file already exists, we can continue
-    #define DSW_IS_DE(r) \
-        ((r).ok && (r).len >= 2 && \
-         (r).data[(r).len - 2] == 0x91U && (r).data[(r).len - 1] == 0xDEU)
+// 91 DE = Duplicate: file already exists, we can continue
+#define DSW_IS_DE(r) \
+    ((r).ok && (r).len >= 2 && (r).data[(r).len - 2] == 0x91U && (r).data[(r).len - 1] == 0xDEU)
 
     // -- 0. SELECT PICC MASTER + GET FREE MEMORY --------------------------------
     // Requires PICC master context (before selecting the NDEF app).
@@ -361,9 +382,7 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
     // from desfire_create_ndef_app, or we arrive from ISO mode after SELECT AID).
     uint16_t ndef_file_size = (uint16_t)NDEF_FILE_MIN_SIZE; // fallback
     {
-        const uint8_t master_cmd[] = {
-            0x90, 0x5A, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00
-        };
+        const uint8_t master_cmd[] = {0x90, 0x5A, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00};
         ApduResp picc_sel = apdu_exchange(poller, master_cmd, sizeof(master_cmd));
         if(dsw_ok(&picc_sel)) {
             // PICC master selected: we can query free memory.
@@ -379,10 +398,15 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
     // Required before native commands (90 CD, etc.).
     {
         const uint8_t cmd[] = {
-            0x90, 0x5A, 0x00, 0x00, 0x03,
-            DESFIRE_NDEF_AID_LE[0], DESFIRE_NDEF_AID_LE[1], DESFIRE_NDEF_AID_LE[2],
-            0x00
-        };
+            0x90,
+            0x5A,
+            0x00,
+            0x00,
+            0x03,
+            DESFIRE_NDEF_AID_LE[0],
+            DESFIRE_NDEF_AID_LE[1],
+            DESFIRE_NDEF_AID_LE[2],
+            0x00};
         ApduResp r = apdu_exchange(poller, cmd, sizeof(cmd));
         if(!dsw_ok(&r)) {
             furi_string_set(app->info_str, "SELECT APP (native)\nfailed");
@@ -390,10 +414,9 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
         }
     }
 
-    // Local macro: true if the DeSFire response is 91 7E (Length Error)
-    #define DSW_IS_7E(r) \
-        ((r).ok && (r).len >= 2 && \
-         (r).data[(r).len - 2] == 0x91U && (r).data[(r).len - 1] == 0x7EU)
+// Local macro: true if the DeSFire response is 91 7E (Length Error)
+#define DSW_IS_7E(r) \
+    ((r).ok && (r).len >= 2 && (r).data[(r).len - 2] == 0x91U && (r).data[(r).len - 1] == 0x7EU)
 
     // -- 2. CREATE CC FILE (tolerates 91 DE if file already exists) -------------
     // EV3 → EV2 strategy: EV3 requires 2 AdditionalAccessRights bytes (Lc=0x0B),
@@ -402,32 +425,48 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
     {
         // Format EV3: Lc=0x0B (with AdditionalAccessRights)
         const uint8_t cmd_ev3[] = {
-            0x90, 0xCD, 0x00, 0x00, 0x0B,
-            0x01,                          // FileNo DeSFire
-            CC_FILE_ID_HI, CC_FILE_ID_LO, // ISO FileID = E1 03
-            0x00,                          // CommSettings: plain
-            0xEE, 0xEE,                    // AccessRights: all free
-            (uint8_t)CC_SIZE, 0x00, 0x00,  // FileSize LE 24-bit = 15 bytes
-            0xFF, 0xFF,                    // AdditionalAccessRights (EV3): free
-            0x00
-        };
+            0x90,
+            0xCD,
+            0x00,
+            0x00,
+            0x0B,
+            0x01, // FileNo DeSFire
+            CC_FILE_ID_HI,
+            CC_FILE_ID_LO, // ISO FileID = E1 03
+            0x00, // CommSettings: plain
+            0xEE,
+            0xEE, // AccessRights: all free
+            (uint8_t)CC_SIZE,
+            0x00,
+            0x00, // FileSize LE 24-bit = 15 bytes
+            0xFF,
+            0xFF, // AdditionalAccessRights (EV3): free
+            0x00};
         // Format EV1/EV2: Lc=0x09 (without AdditionalAccessRights)
         const uint8_t cmd_ev2[] = {
-            0x90, 0xCD, 0x00, 0x00, 0x09,
-            0x01,                          // FileNo DeSFire
-            CC_FILE_ID_HI, CC_FILE_ID_LO, // ISO FileID = E1 03
-            0x00,                          // CommSettings: plain
-            0xEE, 0xEE,                    // AccessRights: all free
-            (uint8_t)CC_SIZE, 0x00, 0x00,  // FileSize LE 24-bit = 15 bytes
-            0x00
-        };
+            0x90,
+            0xCD,
+            0x00,
+            0x00,
+            0x09,
+            0x01, // FileNo DeSFire
+            CC_FILE_ID_HI,
+            CC_FILE_ID_LO, // ISO FileID = E1 03
+            0x00, // CommSettings: plain
+            0xEE,
+            0xEE, // AccessRights: all free
+            (uint8_t)CC_SIZE,
+            0x00,
+            0x00, // FileSize LE 24-bit = 15 bytes
+            0x00};
         ApduResp r = apdu_exchange(poller, cmd_ev3, sizeof(cmd_ev3));
         if(DSW_IS_7E(r)) {
             r = apdu_exchange(poller, cmd_ev2, sizeof(cmd_ev2));
         }
         if(!dsw_ok(&r) && !DSW_IS_DE(r)) {
             furi_string_printf(
-                app->info_str, "CREATE CC FILE\nfailed %02X %02X",
+                app->info_str,
+                "CREATE CC FILE\nfailed %02X %02X",
                 r.ok && r.len >= 2 ? (unsigned)r.data[r.len - 2] : 0u,
                 r.ok && r.len >= 2 ? (unsigned)r.data[r.len - 1] : 0u);
             return false;
@@ -442,29 +481,40 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
     {
         // Format EV3: Lc=0x0B (with AdditionalAccessRights)
         const uint8_t cmd_ev3[] = {
-            0x90, 0xCD, 0x00, 0x00, 0x0B,
-            0x02,                                              // FileNo DeSFire
-            NDEF_FILE_ID_HI, NDEF_FILE_ID_LO,                 // ISO FileID = E1 04
-            0x00,                                              // CommSettings: plain
-            0xEE, 0xEE,                                        // AccessRights: all free
-            (uint8_t)(ndef_file_size & 0xFFU),                 // FileSize LE 24-bit (byte 0)
-            (uint8_t)((ndef_file_size >> 8) & 0xFFU),          // FileSize LE 24-bit (byte 1)
-            0x00,                                              // FileSize LE 24-bit (byte 2)
-            0xFF, 0xFF,                                        // AdditionalAccessRights (EV3)
-            0x00
-        };
+            0x90,
+            0xCD,
+            0x00,
+            0x00,
+            0x0B,
+            0x02, // FileNo DeSFire
+            NDEF_FILE_ID_HI,
+            NDEF_FILE_ID_LO, // ISO FileID = E1 04
+            0x00, // CommSettings: plain
+            0xEE,
+            0xEE, // AccessRights: all free
+            (uint8_t)(ndef_file_size & 0xFFU), // FileSize LE 24-bit (byte 0)
+            (uint8_t)((ndef_file_size >> 8) & 0xFFU), // FileSize LE 24-bit (byte 1)
+            0x00, // FileSize LE 24-bit (byte 2)
+            0xFF,
+            0xFF, // AdditionalAccessRights (EV3)
+            0x00};
         // Format EV1/EV2: Lc=0x09 (without AdditionalAccessRights)
         const uint8_t cmd_ev2[] = {
-            0x90, 0xCD, 0x00, 0x00, 0x09,
-            0x02,                                              // FileNo DeSFire
-            NDEF_FILE_ID_HI, NDEF_FILE_ID_LO,                 // ISO FileID = E1 04
-            0x00,                                              // CommSettings: plain
-            0xEE, 0xEE,                                        // AccessRights: all free
-            (uint8_t)(ndef_file_size & 0xFFU),                 // FileSize LE 24-bit (byte 0)
-            (uint8_t)((ndef_file_size >> 8) & 0xFFU),          // FileSize LE 24-bit (byte 1)
-            0x00,                                              // FileSize LE 24-bit (byte 2)
-            0x00
-        };
+            0x90,
+            0xCD,
+            0x00,
+            0x00,
+            0x09,
+            0x02, // FileNo DeSFire
+            NDEF_FILE_ID_HI,
+            NDEF_FILE_ID_LO, // ISO FileID = E1 04
+            0x00, // CommSettings: plain
+            0xEE,
+            0xEE, // AccessRights: all free
+            (uint8_t)(ndef_file_size & 0xFFU), // FileSize LE 24-bit (byte 0)
+            (uint8_t)((ndef_file_size >> 8) & 0xFFU), // FileSize LE 24-bit (byte 1)
+            0x00, // FileSize LE 24-bit (byte 2)
+            0x00};
         ApduResp r = apdu_exchange(poller, cmd_ev3, sizeof(cmd_ev3));
         if(DSW_IS_7E(r)) {
             r = apdu_exchange(poller, cmd_ev2, sizeof(cmd_ev2));
@@ -473,7 +523,8 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
             ndef_file_created = true;
         } else if(!DSW_IS_DE(r)) {
             furi_string_printf(
-                app->info_str, "CREATE NDEF FILE\nfailed %02X %02X",
+                app->info_str,
+                "CREATE NDEF FILE\nfailed %02X %02X",
                 r.ok && r.len >= 2 ? (unsigned)r.data[r.len - 2] : 0u,
                 r.ok && r.len >= 2 ? (unsigned)r.data[r.len - 1] : 0u);
             return false;
@@ -496,28 +547,46 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
     // avoid overwriting valid NDEF content during a fallback pass.
     if(ndef_file_created) {
         const uint8_t nlen_init[] = {
-            0x90, 0x3D, 0x00, 0x00, 0x09,  // WRITE DATA (INS=0x3D)
-            0x02,                            // FileNo NDEF
-            0x00, 0x00, 0x00,               // Offset LE = 0
-            0x02, 0x00, 0x00,               // Length LE = 2 bytes
-            0x00, 0x00,                      // NLEN = 0x0000 (empty but valid tag)
-            0x00                             // Le
+            0x90,
+            0x3D,
+            0x00,
+            0x00,
+            0x09, // WRITE DATA (INS=0x3D)
+            0x02, // FileNo NDEF
+            0x00,
+            0x00,
+            0x00, // Offset LE = 0
+            0x02,
+            0x00,
+            0x00, // Length LE = 2 bytes
+            0x00,
+            0x00, // NLEN = 0x0000 (empty but valid tag)
+            0x00 // Le
         };
         apdu_exchange(poller, nlen_init, sizeof(nlen_init)); // non fatal
     }
 
-    #undef DSW_IS_7E
+#undef DSW_IS_7E
 
-    #undef DSW_IS_DE
+#undef DSW_IS_DE
 
     // -- 4. Switch to ISO mode: SELECT NDEF APPLICATION (00 A4) ---------------
     // Required before SELECT FILE (00 A4 00 0C) and ISO commands.
     {
         const uint8_t cmd[] = {
-            0x00, 0xA4, 0x04, 0x00, (uint8_t)NDEF_AID_LEN,
-            0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01,
-            0x00
-        };
+            0x00,
+            0xA4,
+            0x04,
+            0x00,
+            (uint8_t)NDEF_AID_LEN,
+            0xD2,
+            0x76,
+            0x00,
+            0x00,
+            0x85,
+            0x01,
+            0x01,
+            0x00};
         ApduResp r = apdu_exchange(poller, cmd, sizeof(cmd));
         if(!sw_ok(&r)) {
             furi_string_set(app->info_str, "ISO SELECT (files)\nfailed");
@@ -540,17 +609,21 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
     // part of the NDEF message itself.
     const uint16_t cc_max_ndef = ndef_file_size - 2u;
     const uint8_t cc_init[CC_SIZE] = {
-        0x00, (uint8_t)CC_SIZE,             // CC Length = 15
-        0x20,                               // Mapping version 2.0
-        0x00, 0x7F,                         // MLe : 127 bytes (max READ BINARY)
-        0x00, (uint8_t)APDU_MAX_LC,         // MLc : 54 bytes (max UPDATE BINARY)
-        0x04,                               // NDEF File Control TLV tag
-        0x06,                               // TLV length = 6
-        NDEF_FILE_ID_HI, NDEF_FILE_ID_LO,   // NDEF File ID = E1 04
-        (uint8_t)(cc_max_ndef >> 8),         // MaxNDEF HI = (file_size-2) >> 8
-        (uint8_t)(cc_max_ndef & 0xFFU),      // MaxNDEF LO = (file_size-2) & 0xFF
-        0x00,                               // Read access : libre
-        0x00,                               // Write access : libre
+        0x00,
+        (uint8_t)CC_SIZE, // CC Length = 15
+        0x20, // Mapping version 2.0
+        0x00,
+        0x7F, // MLe : 127 bytes (max READ BINARY)
+        0x00,
+        (uint8_t)APDU_MAX_LC, // MLc : 54 bytes (max UPDATE BINARY)
+        0x04, // NDEF File Control TLV tag
+        0x06, // TLV length = 6
+        NDEF_FILE_ID_HI,
+        NDEF_FILE_ID_LO, // NDEF File ID = E1 04
+        (uint8_t)(cc_max_ndef >> 8), // MaxNDEF HI = (file_size-2) >> 8
+        (uint8_t)(cc_max_ndef & 0xFFU), // MaxNDEF LO = (file_size-2) & 0xFF
+        0x00, // Read access : libre
+        0x00, // Write access : libre
     };
     if(!t4t_update_binary(poller, 0, cc_init, (uint8_t)CC_SIZE)) {
         furi_string_set(app->info_str, "CC init write\nfailed");
@@ -563,18 +636,18 @@ static bool desfire_ensure_ndef_files(Iso14443_4aPoller* poller, NfcToolsApp* ap
 // ── Main callback (ISO14443-4A) ───────────────────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
-    NfcPoller*     poller;
+    NfcToolsApp* app;
+    NfcPoller* poller;
     FuriEventFlag* done;
     const uint8_t* ndef_buf;
-    size_t         ndef_size;
-    bool           success;
+    size_t ndef_size;
+    bool success;
 } DesfireNdefCtx;
 
 static NfcCommand nfc_tools_desfire_ndef_write_cb(NfcGenericEvent event, void* context) {
-    DesfireNdefCtx*         ctx = context;
-    Iso14443_4aPollerEvent* ev  = event.event_data;
-    NfcToolsApp*            app = ctx->app;
+    DesfireNdefCtx* ctx = context;
+    Iso14443_4aPollerEvent* ev = event.event_data;
+    NfcToolsApp* app = ctx->app;
 
     if(ev->type != Iso14443_4aPollerEventTypeReady) {
         furi_string_set(app->info_str, "Tag contact error");
@@ -586,10 +659,19 @@ static NfcCommand nfc_tools_desfire_ndef_write_cb(NfcGenericEvent event, void* c
 
     // ── Step 1 : SELECT NDEF APPLICATION ─────────────────────────────────────
     const uint8_t sel_cmd[5 + NDEF_AID_LEN + 1] = {
-        0x00, 0xA4, 0x04, 0x00, (uint8_t)NDEF_AID_LEN,
-        0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01, // NDEF_AID inline
-        0x00
-    };
+        0x00,
+        0xA4,
+        0x04,
+        0x00,
+        (uint8_t)NDEF_AID_LEN,
+        0xD2,
+        0x76,
+        0x00,
+        0x00,
+        0x85,
+        0x01,
+        0x01, // NDEF_AID inline
+        0x00};
     ApduResp sel = apdu_exchange(poller, sel_cmd, sizeof(sel_cmd));
 
     if(sw_not_found(&sel)) {
@@ -634,9 +716,8 @@ static NfcCommand nfc_tools_desfire_ndef_write_cb(NfcGenericEvent event, void* c
     }
 
     uint8_t cc[CC_SIZE];
-    size_t  cc_read = 0;
-    if(!t4t_read_binary(poller, 0, (uint8_t)CC_SIZE, cc, &cc_read) ||
-       cc_read < CC_SIZE) {
+    size_t cc_read = 0;
+    if(!t4t_read_binary(poller, 0, (uint8_t)CC_SIZE, cc, &cc_read) || cc_read < CC_SIZE) {
         furi_string_set(app->info_str, "Read CC failed");
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
@@ -654,10 +735,9 @@ static NfcCommand nfc_tools_desfire_ndef_write_cb(NfcGenericEvent event, void* c
         }
         // Clean re-select of the app + CC
         ApduResp resel2 = apdu_exchange(poller, sel_cmd, sizeof(sel_cmd));
-        if(!sw_ok(&resel2) ||
-           !t4t_select_file(poller, CC_FILE_ID_HI, CC_FILE_ID_LO) ||
-           !t4t_read_binary(poller, 0, (uint8_t)CC_SIZE, cc, &cc_read) ||
-           cc_read < CC_SIZE || !cc_is_valid(cc, cc_read)) {
+        if(!sw_ok(&resel2) || !t4t_select_file(poller, CC_FILE_ID_HI, CC_FILE_ID_LO) ||
+           !t4t_read_binary(poller, 0, (uint8_t)CC_SIZE, cc, &cc_read) || cc_read < CC_SIZE ||
+           !cc_is_valid(cc, cc_read)) {
             furi_string_set(app->info_str, "CC invalid\n(repair failed)");
             furi_event_flag_set(ctx->done, 1u);
             return NfcCommandStop;
@@ -705,14 +785,14 @@ static NfcCommand nfc_tools_desfire_ndef_write_cb(NfcGenericEvent event, void* c
 
     // ── Step 4: Invalidate (length = 00 00) ──────────────────────────────────
     // Read the old NDEF length to erase any residual data
-    uint8_t  old_len_raw[2] = {0, 0};
-    size_t   old_len_got    = 0;
-    uint16_t old_ndef_len   = 0;
+    uint8_t old_len_raw[2] = {0, 0};
+    size_t old_len_got = 0;
+    uint16_t old_ndef_len = 0;
     if(t4t_read_binary(poller, 0, 2, old_len_raw, &old_len_got) && old_len_got >= 2) {
         old_ndef_len = ((uint16_t)old_len_raw[0] << 8) | old_len_raw[1];
     }
 
-    const uint8_t zeros[2] = { 0x00, 0x00 };
+    const uint8_t zeros[2] = {0x00, 0x00};
     if(!t4t_update_binary(poller, 0, zeros, 2)) {
         furi_string_set(app->info_str, "Invalidate failed");
         furi_event_flag_set(ctx->done, 1u);
@@ -726,13 +806,12 @@ static NfcCommand nfc_tools_desfire_ndef_write_cb(NfcGenericEvent event, void* c
             furi_event_flag_set(ctx->done, 1u);
             return NfcCommandStop;
         }
-        size_t   chunk  = ctx->ndef_size - written;
+        size_t chunk = ctx->ndef_size - written;
         if(chunk > APDU_MAX_LC) chunk = APDU_MAX_LC;
         uint16_t offset = (uint16_t)(2u + written);
 
         if(!t4t_update_binary(poller, offset, ctx->ndef_buf + written, (uint8_t)chunk)) {
-            furi_string_printf(
-                app->info_str, "Write failed\n@ offset %u", (unsigned)offset);
+            furi_string_printf(app->info_str, "Write failed\n@ offset %u", (unsigned)offset);
             furi_event_flag_set(ctx->done, 1u);
             return NfcCommandStop;
         }
@@ -746,26 +825,23 @@ static NfcCommand nfc_tools_desfire_ndef_write_cb(NfcGenericEvent event, void* c
         size_t gap_off = 2u + ctx->ndef_size;
         size_t gap_end = 2u + (size_t)old_ndef_len;
         while(gap_off < gap_end) {
-            size_t  remaining = gap_end - gap_off;
-            uint8_t chunk_sz  = (remaining > APDU_MAX_LC) ?
-                                (uint8_t)APDU_MAX_LC : (uint8_t)remaining;
+            size_t remaining = gap_end - gap_off;
+            uint8_t chunk_sz = (remaining > APDU_MAX_LC) ? (uint8_t)APDU_MAX_LC :
+                                                           (uint8_t)remaining;
             if(!t4t_update_binary(poller, (uint16_t)gap_off, zero_pad, chunk_sz)) break;
             gap_off += chunk_sz;
         }
     }
 
     const uint8_t len_bytes[2] = {
-        (uint8_t)(ctx->ndef_size >> 8),
-        (uint8_t)(ctx->ndef_size & 0xFF)
-    };
+        (uint8_t)(ctx->ndef_size >> 8), (uint8_t)(ctx->ndef_size & 0xFF)};
     if(!t4t_update_binary(poller, 0, len_bytes, 2)) {
         furi_string_set(app->info_str, "Validate failed");
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
     }
 
-    furi_string_printf(
-        app->info_str, "%u bytes written\nBack to exit", (unsigned)ctx->ndef_size);
+    furi_string_printf(app->info_str, "%u bytes written\nBack to exit", (unsigned)ctx->ndef_size);
     ctx->success = true;
     furi_event_flag_set(ctx->done, 1u);
     return NfcCommandStop;
@@ -773,38 +849,34 @@ static NfcCommand nfc_tools_desfire_ndef_write_cb(NfcGenericEvent event, void* c
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-bool nfc_tools_desfire_write_ndef(
-    NfcToolsApp*   app,
-    const uint8_t* ndef_data,
-    size_t         ndef_size)
-{
+bool nfc_tools_desfire_write_ndef(NfcToolsApp* app, const uint8_t* ndef_data, size_t ndef_size) {
     // The T4T NDEF file contains the raw NDEF message, without TLV encapsulation.
     // nfc_tools_ndef_build() produces TLV (Type 2/5 format): strip the
     // 03 [len] ... FE envelope before writing to the DESFire NDEF file.
-    const uint8_t* raw  = ndef_data;
-    size_t         rlen = ndef_size;
+    const uint8_t* raw = ndef_data;
+    size_t rlen = ndef_size;
 
     if(ndef_size >= 2 && ndef_data[0] == 0x03) {
         if(ndef_data[1] == 0xFF && ndef_size >= 5) {
             // 3-byte length: FF len_hi len_lo
             uint16_t len = ((uint16_t)ndef_data[2] << 8) | ndef_data[3];
-            raw  = ndef_data + 4;
+            raw = ndef_data + 4;
             rlen = (size_t)len;
             if(rlen > ndef_size - 4u) rlen = ndef_size - 4u; // safety bound
         } else {
             // 1-byte length
-            raw  = ndef_data + 2;
+            raw = ndef_data + 2;
             rlen = ndef_data[1];
             if(rlen > ndef_size - 2u) rlen = ndef_size - 2u; // safety bound
         }
     }
 
     DesfireNdefCtx ctx = {
-        .app       = app,
-        .done      = furi_event_flag_alloc(),
-        .ndef_buf  = raw,
+        .app = app,
+        .done = furi_event_flag_alloc(),
+        .ndef_buf = raw,
         .ndef_size = rlen,
-        .success   = false,
+        .success = false,
     };
     ctx.poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_4a);
     nfc_poller_start(ctx.poller, nfc_tools_desfire_ndef_write_cb, &ctx);
@@ -822,18 +894,18 @@ bool nfc_tools_desfire_write_ndef(
 // ── DESFire NDEF read (NFC Forum Type 4 Tag) ─────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
-    NfcPoller*     poller;
+    NfcToolsApp* app;
+    NfcPoller* poller;
     FuriEventFlag* done;
-    bool           success;
+    bool success;
 } DesfireNdefReadCtx;
 
-#define DESFIRE_READ_CHUNK  100U
+#define DESFIRE_READ_CHUNK 100U
 
 static NfcCommand nfc_tools_desfire_ndef_read_cb(NfcGenericEvent event, void* context) {
-    DesfireNdefReadCtx*     ctx = context;
-    Iso14443_4aPollerEvent* ev  = event.event_data;
-    NfcToolsApp*            app = ctx->app;
+    DesfireNdefReadCtx* ctx = context;
+    Iso14443_4aPollerEvent* ev = event.event_data;
+    NfcToolsApp* app = ctx->app;
 
     if(ev->type != Iso14443_4aPollerEventTypeReady) {
         furi_event_flag_set(ctx->done, 1u);
@@ -844,10 +916,19 @@ static NfcCommand nfc_tools_desfire_ndef_read_cb(NfcGenericEvent event, void* co
 
     // Step 1 : SELECT NDEF APPLICATION (D2 76 00 00 85 01 01)
     const uint8_t sel_cmd[5 + NDEF_AID_LEN + 1] = {
-        0x00, 0xA4, 0x04, 0x00, (uint8_t)NDEF_AID_LEN,
-        0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01,
-        0x00
-    };
+        0x00,
+        0xA4,
+        0x04,
+        0x00,
+        (uint8_t)NDEF_AID_LEN,
+        0xD2,
+        0x76,
+        0x00,
+        0x00,
+        0x85,
+        0x01,
+        0x01,
+        0x00};
     ApduResp sel = apdu_exchange(poller, sel_cmd, sizeof(sel_cmd));
     if(!sw_ok(&sel)) {
         furi_event_flag_set(ctx->done, 1u);
@@ -862,9 +943,8 @@ static NfcCommand nfc_tools_desfire_ndef_read_cb(NfcGenericEvent event, void* co
 
     // Step 3 : READ CC (15 bytes) et validation du TLV tag
     uint8_t cc[CC_SIZE];
-    size_t  cc_read = 0;
-    if(!t4t_read_binary(poller, 0, (uint8_t)CC_SIZE, cc, &cc_read) ||
-       !cc_is_valid(cc, cc_read)) {
+    size_t cc_read = 0;
+    if(!t4t_read_binary(poller, 0, (uint8_t)CC_SIZE, cc, &cc_read) || !cc_is_valid(cc, cc_read)) {
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
     }
@@ -880,7 +960,7 @@ static NfcCommand nfc_tools_desfire_ndef_read_cb(NfcGenericEvent event, void* co
 
     // Step 5: Read NDEF length (first 2 bytes of the file)
     uint8_t len_bytes[2];
-    size_t  len_read = 0;
+    size_t len_read = 0;
     if(!t4t_read_binary(poller, 0, 2, len_bytes, &len_read) || len_read < 2) {
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
@@ -903,13 +983,13 @@ static NfcCommand nfc_tools_desfire_ndef_read_cb(NfcGenericEvent event, void* co
     }
 
     uint16_t read_total = 0;
-    bool     read_ok    = true;
+    bool read_ok = true;
     while(read_total < ndef_len) {
         uint16_t remaining = ndef_len - read_total;
-        uint8_t  chunk     = (remaining > DESFIRE_READ_CHUNK) ?
-                             (uint8_t)DESFIRE_READ_CHUNK : (uint8_t)remaining;
-        uint16_t offset    = (uint16_t)(2u + read_total);
-        size_t   got       = 0;
+        uint8_t chunk = (remaining > DESFIRE_READ_CHUNK) ? (uint8_t)DESFIRE_READ_CHUNK :
+                                                           (uint8_t)remaining;
+        uint16_t offset = (uint16_t)(2u + read_total);
+        size_t got = 0;
 
         if(!t4t_read_binary(poller, offset, chunk, ndef_buf + read_total, &got) || got == 0) {
             read_ok = false;
@@ -928,9 +1008,7 @@ static NfcCommand nfc_tools_desfire_ndef_read_cb(NfcGenericEvent event, void* co
     // Format: 0x03 [len] [ndef_bytes] 0xFE
     //   - len <= 254: 1-byte length  -> overhead = 3 bytes
     //   - len >  254: 0xFF + 2 BE bytes -> overhead = 5 bytes
-    size_t tlv_len = (ndef_len <= 254u) ?
-                     ((size_t)ndef_len + 3u) :
-                     ((size_t)ndef_len + 5u);
+    size_t tlv_len = (ndef_len <= 254u) ? ((size_t)ndef_len + 3u) : ((size_t)ndef_len + 5u);
     uint8_t* tlv = malloc(tlv_len);
     if(!tlv) {
         free(ndef_buf);
@@ -964,8 +1042,8 @@ static NfcCommand nfc_tools_desfire_ndef_read_cb(NfcGenericEvent event, void* co
 
 bool nfc_tools_desfire_read_ndef(NfcToolsApp* app) {
     DesfireNdefReadCtx ctx = {
-        .app     = app,
-        .done    = furi_event_flag_alloc(),
+        .app = app,
+        .done = furi_event_flag_alloc(),
         .success = false,
     };
     ctx.poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_4a);

@@ -32,8 +32,7 @@ bool nfc_tools_ntag_format(NfcToolsApp* app) {
 
     uint16_t end_page = nfc_tools_ntag_format_end_page(type);
     if(end_page == 0) {
-        furi_string_set(
-            app->info_str, "Unsupported type\nfor formatting\n(UL11/UL21/MfulC...)");
+        furi_string_set(app->info_str, "Unsupported type\nfor formatting\n(UL11/UL21/MfulC...)");
         return false;
     }
 
@@ -47,8 +46,7 @@ bool nfc_tools_ntag_format(NfcToolsApp* app) {
             ok = false;
             break;
         }
-        if(mf_ultralight_poller_sync_write_page(app->nfc, p, &zero) !=
-           MfUltralightErrorNone) {
+        if(mf_ultralight_poller_sync_write_page(app->nfc, p, &zero) != MfUltralightErrorNone) {
             furi_string_printf(app->info_str, "Page error 0x%02X", (unsigned)p);
             ok = false;
             break;
@@ -70,29 +68,19 @@ bool nfc_tools_ntag_format(NfcToolsApp* app) {
 
 bool nfc_tools_ntag_dump(NfcToolsApp* app) {
     MfUltralightData* mful = mf_ultralight_alloc();
-    MfUltralightError err =
-        mf_ultralight_poller_sync_read_card(app->nfc, mful, NULL);
+    MfUltralightError err = mf_ultralight_poller_sync_read_card(app->nfc, mful, NULL);
 
     if(err != MfUltralightErrorNone) {
-        furi_string_cat_printf(
-            app->info_str, "Read error\ncode: %d\n", (int)err);
+        furi_string_cat_printf(app->info_str, "Read error\ncode: %d\n", (int)err);
         mf_ultralight_free(mful);
         return false;
     }
 
-    uint16_t pages_read  = mful->pages_read;
+    uint16_t pages_read = mful->pages_read;
     uint16_t pages_total = mf_ultralight_get_pages_total(app->mful_type);
 
-    furi_string_cat_printf(
-        app->info_str,
-        "%d/%d pages (4B)\n\n",
-        pages_read,
-        pages_total);
-    furi_string_cat_printf(
-        app->ndef_str,
-        "%d/%d pages - ASCII\n\n",
-        pages_read,
-        pages_total);
+    furi_string_cat_printf(app->info_str, "%d/%d pages (4B)\n\n", pages_read, pages_total);
+    furi_string_cat_printf(app->ndef_str, "%d/%d pages - ASCII\n\n", pages_read, pages_total);
 
     for(uint16_t p = 0; p < pages_total; p++) {
         if(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP) break;
@@ -101,11 +89,11 @@ bool nfc_tools_ntag_dump(NfcToolsApp* app) {
             const uint8_t* d = mful->page[p].data;
 
             furi_string_cat_printf(
-                app->info_str,
-                "[%02X] %02X %02X %02X %02X\n",
-                p, d[0], d[1], d[2], d[3]);
+                app->info_str, "[%02X] %02X %02X %02X %02X\n", p, d[0], d[1], d[2], d[3]);
 
-            furi_string_cat_printf(app->ndef_str, "[%02X] %c%c%c%c\n",
+            furi_string_cat_printf(
+                app->ndef_str,
+                "[%02X] %c%c%c%c\n",
                 p,
                 (d[0] >= 32 && d[0] < 127) ? (char)d[0] : '.',
                 (d[1] >= 32 && d[1] < 127) ? (char)d[1] : '.',

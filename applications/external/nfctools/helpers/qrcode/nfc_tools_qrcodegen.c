@@ -11,24 +11,26 @@
 // All versions 1-7 ECC-L have exactly one block.
 
 // Total codewords in the data module area (data + ECC), version 1-7
-static const uint16_t qr_total_cw[8] = { 0, 26, 44, 70, 100, 134, 172, 196 };
+static const uint16_t qr_total_cw[8] = {0, 26, 44, 70, 100, 134, 172, 196};
 
 // ECC codewords per block for ECC-L, version 1-7
-static const uint8_t qr_ecc_cw[8]    = { 0,  7, 10, 15,  20,  26,  18,  20 };
+static const uint8_t qr_ecc_cw[8] = {0, 7, 10, 15, 20, 26, 18, 20};
 
 // Data codewords = total - ECC, version 1-7
-static const uint8_t qr_data_cw[8]   = { 0, 19, 34, 55,  80, 108, 154, 176 };
+static const uint8_t qr_data_cw[8] = {0, 19, 34, 55, 80, 108, 154, 176};
 
 // Alignment pattern center coordinate for versions 2-7
 // (version 1 has none; versions 2-6 have one at coord; version 7 has three)
-static const uint8_t qr_align_coord[8] = { 0, 0, 18, 22, 26, 30, 34, 22 };
+static const uint8_t qr_align_coord[8] = {0, 0, 18, 22, 26, 30, 34, 22};
 
 // Remainder bits to append after codewords (0 for v1-v6, 0 for v7 also)
 // v7 actually has 0 remainder bits
-static const uint8_t qr_remainder[8] = { 0, 0, 7, 7, 7, 7, 7, 0 };
+static const uint8_t qr_remainder[8] = {0, 0, 7, 7, 7, 7, 7, 0};
 
 // Side length of QR code for version n
-static inline int qr_side(int ver) { return ver * 4 + 17; }
+static inline int qr_side(int ver) {
+    return ver * 4 + 17;
+}
 
 // ── GF(256) tables ────────────────────────────────────────────────────────────
 // Primitive polynomial: x^8 + x^4 + x^3 + x^2 + 1  (0x11D)
@@ -44,7 +46,8 @@ static void gf_init(void) {
         x <<= 1;
         if(x & 0x100) x ^= 0x11D;
     }
-    for(int i = 255; i < 512; i++) gf_exp[i] = gf_exp[i - 255];
+    for(int i = 255; i < 512; i++)
+        gf_exp[i] = gf_exp[i - 255];
     gf_log[0] = 0; // undefined but set to 0 to avoid ub
 }
 
@@ -72,11 +75,8 @@ static void rs_divisor(int nEcc, uint8_t gen[]) {
 }
 
 // Compute nEcc remainder bytes for dataLen data bytes.
-static void rs_remainder(
-    const uint8_t* data, int dataLen,
-    const uint8_t* gen, int nEcc,
-    uint8_t* ecc)
-{
+static void
+    rs_remainder(const uint8_t* data, int dataLen, const uint8_t* gen, int nEcc, uint8_t* ecc) {
     memset(ecc, 0, (size_t)nEcc);
     for(int i = 0; i < dataLen; i++) {
         uint8_t factor = data[i] ^ ecc[0];
@@ -89,13 +89,16 @@ static void rs_remainder(
 
 // ── Bit-stream builder ────────────────────────────────────────────────────────
 
-typedef struct { uint8_t* buf; int len; } BS;
+typedef struct {
+    uint8_t* buf;
+    int len;
+} BS;
 
 static void bs_append(BS* b, uint32_t val, int nbits) {
     for(int i = nbits - 1; i >= 0; i--) {
-        int bit  = (val >> i) & 1;
+        int bit = (val >> i) & 1;
         int byte = b->len / 8;
-        int pos  = 7 - (b->len % 8);
+        int pos = 7 - (b->len % 8);
         if(bit) b->buf[byte] |= (uint8_t)(1u << pos);
         b->len++;
     }
@@ -106,11 +109,13 @@ static void bs_append(BS* b, uint32_t val, int nbits) {
 // Module buffer: byte 0 = version (reserved), bytes 1+ = rows packed MSB-first.
 // We use  byte = 1 + i/8  so that module data NEVER aliases byte 0.
 static inline void qr_set(uint8_t* qr, int sz, int x, int y, bool v) {
-    int i    = y * sz + x;          // bit index within module area
-    int byte = 1 + i / 8;           // byte 0 is the version byte – skip it
-    int bit  = 7 - (i % 8);
-    if(v) qr[byte] |=  (uint8_t)(1u << bit);
-    else  qr[byte] &= ~(uint8_t)(1u << bit);
+    int i = y * sz + x; // bit index within module area
+    int byte = 1 + i / 8; // byte 0 is the version byte – skip it
+    int bit = 7 - (i % 8);
+    if(v)
+        qr[byte] |= (uint8_t)(1u << bit);
+    else
+        qr[byte] &= ~(uint8_t)(1u << bit);
 }
 static inline bool qr_get(const uint8_t* qr, int sz, int x, int y) {
     int i = y * sz + x;
@@ -159,8 +164,10 @@ static void draw_align(uint8_t* qr, uint8_t* fn, int sz, int cx, int cy) {
 static void draw_timing(uint8_t* qr, uint8_t* fn, int sz) {
     for(int i = 8; i < sz - 8; i++) {
         bool dark = (i % 2 == 0);
-        qr_set(qr, sz, i, 6, dark);  fn_set(fn, sz, i, 6);
-        qr_set(qr, sz, 6, i, dark);  fn_set(fn, sz, 6, i);
+        qr_set(qr, sz, i, 6, dark);
+        fn_set(fn, sz, i, 6);
+        qr_set(qr, sz, 6, i, dark);
+        fn_set(fn, sz, 6, i);
     }
 }
 
@@ -185,32 +192,49 @@ static void draw_format(uint8_t* qr, uint8_t* fn, int sz, int mask) {
     // Bits 0-5 at (x=8, y=0..5)
     for(int i = 0; i <= 5; i++) {
         bool d = (fw >> i) & 1;
-        qr_set(qr, sz, 8, i, d);  fn_set(fn, sz, 8, i);
+        qr_set(qr, sz, 8, i, d);
+        fn_set(fn, sz, 8, i);
     }
     // Bit 6 at (x=8, y=7)  — y=6 is timing
-    { bool d = (fw >> 6) & 1; qr_set(qr, sz, 8, 7, d); fn_set(fn, sz, 8, 7); }
+    {
+        bool d = (fw >> 6) & 1;
+        qr_set(qr, sz, 8, 7, d);
+        fn_set(fn, sz, 8, 7);
+    }
     // Bit 7 at (x=8, y=8)
-    { bool d = (fw >> 7) & 1; qr_set(qr, sz, 8, 8, d); fn_set(fn, sz, 8, 8); }
+    {
+        bool d = (fw >> 7) & 1;
+        qr_set(qr, sz, 8, 8, d);
+        fn_set(fn, sz, 8, 8);
+    }
     // Bit 8 at (x=7, y=8)  — x=6 is timing
-    { bool d = (fw >> 8) & 1; qr_set(qr, sz, 7, 8, d); fn_set(fn, sz, 7, 8); }
+    {
+        bool d = (fw >> 8) & 1;
+        qr_set(qr, sz, 7, 8, d);
+        fn_set(fn, sz, 7, 8);
+    }
     // Bits 9-14 at (x=5..0, y=8)
     for(int i = 9; i <= 14; i++) {
         bool d = (fw >> i) & 1;
-        qr_set(qr, sz, 14 - i, 8, d);  fn_set(fn, sz, 14 - i, 8);
+        qr_set(qr, sz, 14 - i, 8, d);
+        fn_set(fn, sz, 14 - i, 8);
     }
 
     // ── Copy 2 : top-right + bottom-left ─────────────────────────────────────
     // Bits 0-7 at (x=sz-1..sz-8, y=8)
     for(int i = 0; i <= 7; i++) {
         bool d = (fw >> i) & 1;
-        qr_set(qr, sz, sz - 1 - i, 8, d);  fn_set(fn, sz, sz - 1 - i, 8);
+        qr_set(qr, sz, sz - 1 - i, 8, d);
+        fn_set(fn, sz, sz - 1 - i, 8);
     }
     // Dark module always at (x=8, y=sz-8)
-    qr_set(qr, sz, 8, sz - 8, true);  fn_set(fn, sz, 8, sz - 8);
+    qr_set(qr, sz, 8, sz - 8, true);
+    fn_set(fn, sz, 8, sz - 8);
     // Bits 8-14 at (x=8, y=sz-7..sz-1)
     for(int i = 8; i <= 14; i++) {
         bool d = (fw >> i) & 1;
-        qr_set(qr, sz, 8, sz - 15 + i, d);  fn_set(fn, sz, 8, sz - 15 + i);
+        qr_set(qr, sz, 8, sz - 15 + i, d);
+        fn_set(fn, sz, 8, sz - 15 + i);
     }
 }
 
@@ -220,10 +244,9 @@ static void place_data(
     uint8_t* qr,
     const uint8_t* fn,
     int sz,
-    const uint8_t* cw,  // interleaved codewords (data + ECC)
-    int nBits,          // total bits to place
-    int mask)
-{
+    const uint8_t* cw, // interleaved codewords (data + ECC)
+    int nBits, // total bits to place
+    int mask) {
     int bitIdx = 0;
     for(int right = sz - 1; right >= 1; right -= 2) {
         if(right == 6) right = 5; // skip timing column
@@ -234,21 +257,36 @@ static void place_data(
                 int y = upward ? (sz - 1 - vert) : vert;
                 if(fn_get(fn, sz, x, y)) continue;
 
-                bool bit = (bitIdx < nBits) ?
-                    ((cw[bitIdx / 8] >> (7 - (bitIdx % 8))) & 1) : false;
+                bool bit = (bitIdx < nBits) ? ((cw[bitIdx / 8] >> (7 - (bitIdx % 8))) & 1) : false;
                 bitIdx++;
 
                 // Apply mask
                 bool inv = false;
                 switch(mask) {
-                case 0: inv = (y + x) % 2 == 0; break;
-                case 1: inv = y % 2 == 0; break;
-                case 2: inv = x % 3 == 0; break;
-                case 3: inv = (y + x) % 3 == 0; break;
-                case 4: inv = (y / 2 + x / 3) % 2 == 0; break;
-                case 5: inv = (y * x) % 2 + (y * x) % 3 == 0; break;
-                case 6: inv = ((y * x) % 2 + (y * x) % 3) % 2 == 0; break;
-                case 7: inv = ((y + x) % 2 + (y * x) % 3) % 2 == 0; break;
+                case 0:
+                    inv = (y + x) % 2 == 0;
+                    break;
+                case 1:
+                    inv = y % 2 == 0;
+                    break;
+                case 2:
+                    inv = x % 3 == 0;
+                    break;
+                case 3:
+                    inv = (y + x) % 3 == 0;
+                    break;
+                case 4:
+                    inv = (y / 2 + x / 3) % 2 == 0;
+                    break;
+                case 5:
+                    inv = (y * x) % 2 + (y * x) % 3 == 0;
+                    break;
+                case 6:
+                    inv = ((y * x) % 2 + (y * x) % 3) % 2 == 0;
+                    break;
+                case 7:
+                    inv = ((y + x) % 2 + (y * x) % 3) % 2 == 0;
+                    break;
                 }
                 qr_set(qr, sz, x, y, bit ^ inv);
             }
@@ -267,8 +305,16 @@ static int penalty(const uint8_t* qr, int sz) {
         bool cur = qr_get(qr, sz, 0, y);
         for(int x = 1; x < sz; x++) {
             bool m = qr_get(qr, sz, x, y);
-            if(m == cur) { run++; if(run == 5) score += 3; else if(run > 5) score++; }
-            else { cur = m; run = 1; }
+            if(m == cur) {
+                run++;
+                if(run == 5)
+                    score += 3;
+                else if(run > 5)
+                    score++;
+            } else {
+                cur = m;
+                run = 1;
+            }
         }
     }
     for(int x = 0; x < sz; x++) {
@@ -276,23 +322,33 @@ static int penalty(const uint8_t* qr, int sz) {
         bool cur = qr_get(qr, sz, x, 0);
         for(int y = 1; y < sz; y++) {
             bool m = qr_get(qr, sz, x, y);
-            if(m == cur) { run++; if(run == 5) score += 3; else if(run > 5) score++; }
-            else { cur = m; run = 1; }
+            if(m == cur) {
+                run++;
+                if(run == 5)
+                    score += 3;
+                else if(run > 5)
+                    score++;
+            } else {
+                cur = m;
+                run = 1;
+            }
         }
     }
 
     // Rule 2: 2×2 blocks
-    for(int y = 0; y < sz - 1; y++) for(int x = 0; x < sz - 1; x++) {
-        bool m = qr_get(qr, sz, x, y);
-        if(m == qr_get(qr, sz, x+1, y) &&
-           m == qr_get(qr, sz, x,   y+1) &&
-           m == qr_get(qr, sz, x+1, y+1)) score += 3;
-    }
+    for(int y = 0; y < sz - 1; y++)
+        for(int x = 0; x < sz - 1; x++) {
+            bool m = qr_get(qr, sz, x, y);
+            if(m == qr_get(qr, sz, x + 1, y) && m == qr_get(qr, sz, x, y + 1) &&
+               m == qr_get(qr, sz, x + 1, y + 1))
+                score += 3;
+        }
 
     // Rule 4: dark module ratio
     int dark = 0;
-    for(int y = 0; y < sz; y++) for(int x = 0; x < sz; x++)
-        if(qr_get(qr, sz, x, y)) dark++;
+    for(int y = 0; y < sz; y++)
+        for(int x = 0; x < sz; x++)
+            if(qr_get(qr, sz, x, y)) dark++;
     int pct = dark * 100 / (sz * sz);
     score += (abs(pct - 50) / 5) * 10;
 
@@ -303,9 +359,8 @@ static int penalty(const uint8_t* qr, int sz) {
 
 bool nfc_tools_qr_encode(
     const char* text,
-    uint8_t     tempBuffer[QRCODEGEN_BUF_MAX],
-    uint8_t     qrcode[QRCODEGEN_BUF_MAX])
-{
+    uint8_t tempBuffer[QRCODEGEN_BUF_MAX],
+    uint8_t qrcode[QRCODEGEN_BUF_MAX]) {
     gf_init();
 
     size_t textLen = strlen(text);
@@ -315,22 +370,25 @@ bool nfc_tools_qr_encode(
     // Byte mode: 4 (mode) + 8 (count) + textLen*8 (data) bits → needs ceil((12+textLen*8)/8) = textLen+2 bytes min
     int version = 0;
     for(int v = 1; v <= 7; v++) {
-        if((size_t)qr_data_cw[v] >= textLen + 2) { version = v; break; }
+        if((size_t)qr_data_cw[v] >= textLen + 2) {
+            version = v;
+            break;
+        }
     }
     if(version == 0) return false;
 
-    int sz       = qr_side(version);
-    int nData    = qr_data_cw[version];    // data codewords
-    int nEcc     = qr_ecc_cw[version];     // ECC codewords
-    int nTotal   = qr_total_cw[version];   // nData + nEcc
-    int remBits  = qr_remainder[version];  // remainder bits (0 for v1-v7)
+    int sz = qr_side(version);
+    int nData = qr_data_cw[version]; // data codewords
+    int nEcc = qr_ecc_cw[version]; // ECC codewords
+    int nTotal = qr_total_cw[version]; // nData + nEcc
+    int remBits = qr_remainder[version]; // remainder bits (0 for v1-v7)
     (void)remBits;
 
     // ── Build data codeword stream ────────────────────────────────────────────
     static uint8_t data[176]; // max nData for v7
     memset(data, 0, (size_t)nData);
-    BS bs = { data, 0 };
-    bs_append(&bs, 0x04, 4);            // byte mode
+    BS bs = {data, 0};
+    bs_append(&bs, 0x04, 4); // byte mode
     bs_append(&bs, (uint32_t)textLen, 8); // character count (8 bits for v1-v9)
     for(size_t i = 0; i < textLen; i++)
         bs_append(&bs, (uint8_t)text[i], 8);
@@ -338,9 +396,10 @@ bool nfc_tools_qr_encode(
     int spare = nData * 8 - bs.len;
     bs_append(&bs, 0, spare < 4 ? spare : 4);
     // Pad to byte boundary
-    while(bs.len % 8) bs_append(&bs, 0, 1);
+    while(bs.len % 8)
+        bs_append(&bs, 0, 1);
     // Pad codewords
-    static const uint8_t pad_bytes[2] = { 0xEC, 0x11 };
+    static const uint8_t pad_bytes[2] = {0xEC, 0x11};
     for(int pi = 0; bs.len < nData * 8; pi = (pi + 1) % 2)
         bs_append(&bs, pad_bytes[pi], 8);
 
@@ -365,13 +424,13 @@ bool nfc_tools_qr_encode(
 
     for(int m = 0; m < 8; m++) {
         memset(qrcode, 0, QRCODEGEN_BUF_MAX);
-        memset(fn_buf,  0, QRCODEGEN_BUF_MAX);
+        memset(fn_buf, 0, QRCODEGEN_BUF_MAX);
         qrcode[0] = (uint8_t)version;
 
         // Function patterns
-        draw_finder(qrcode, fn_buf, sz, 0, 0);           // top-left
-        draw_finder(qrcode, fn_buf, sz, sz - 7, 0);      // top-right
-        draw_finder(qrcode, fn_buf, sz, 0, sz - 7);      // bottom-left
+        draw_finder(qrcode, fn_buf, sz, 0, 0); // top-left
+        draw_finder(qrcode, fn_buf, sz, sz - 7, 0); // top-right
+        draw_finder(qrcode, fn_buf, sz, 0, sz - 7); // bottom-left
         draw_timing(qrcode, fn_buf, sz);
 
         if(version >= 2) {
@@ -380,8 +439,8 @@ bool nfc_tools_qr_encode(
                 draw_align(qrcode, fn_buf, sz, ac, ac);
             } else {
                 // v7: alignment patterns at (6,22), (22,6), (22,22)
-                draw_align(qrcode, fn_buf, sz,  6, 22);
-                draw_align(qrcode, fn_buf, sz, 22,  6);
+                draw_align(qrcode, fn_buf, sz, 6, 22);
+                draw_align(qrcode, fn_buf, sz, 22, 6);
                 draw_align(qrcode, fn_buf, sz, 22, 22);
             }
         }
@@ -391,7 +450,10 @@ bool nfc_tools_qr_encode(
         place_data(qrcode, fn_buf, sz, tempBuffer, nTotal * 8, m);
 
         int sc = penalty(qrcode, sz);
-        if(sc < best_score) { best_score = sc; memcpy(best, qrcode, QRCODEGEN_BUF_MAX); }
+        if(sc < best_score) {
+            best_score = sc;
+            memcpy(best, qrcode, QRCODEGEN_BUF_MAX);
+        }
     }
 
     memcpy(qrcode, best, QRCODEGEN_BUF_MAX);

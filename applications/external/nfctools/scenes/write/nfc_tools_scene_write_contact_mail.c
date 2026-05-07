@@ -9,7 +9,7 @@ static void nfc_tools_scene_write_contact_mail_callback(void* context) {
 
 void nfc_tools_scene_write_contact_mail_on_enter(void* context) {
     NfcToolsApp* app = context;
-    EmailInput*  ei  = app->email_input;
+    EmailInput* ei = app->email_input;
 
     email_input_set_header_text(ei, NTS_INPUT_EMAIL);
     app->ndef_buf5[0] = '\0';
@@ -27,8 +27,8 @@ void nfc_tools_scene_write_contact_mail_on_enter(void* context) {
 }
 
 bool nfc_tools_scene_write_contact_mail_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom && event.event == 0) {
         scene_manager_next_scene(app->scene_manager, NfcToolsSceneIdWriteContactUrl);

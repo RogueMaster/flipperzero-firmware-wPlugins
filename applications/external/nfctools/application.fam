@@ -4,10 +4,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="nfc_tools_app",
     targets=["f7"],
-    requires=["gui"],
     stack_size=4 * 1024,
-    fap_category="NFC",
-    fap_version=(1, 0),
     fap_icon="icons/icon.png",
     sources=[
         "core/*.c",
@@ -21,4 +18,9 @@ App(
         "views/special_input/*.c",
         "helpers/md5/*.c",
     ],
+    fap_category="NFC",
+    fap_author="wakdev",
+    fap_weburl="https://github.com/wakdev/nfctools-fz",
+    fap_version="1.0",
+    fap_description="NFC Tools can read and write your NFC tags.",
 )

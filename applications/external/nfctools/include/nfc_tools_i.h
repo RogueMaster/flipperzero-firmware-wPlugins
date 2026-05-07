@@ -40,8 +40,8 @@
 #define NFC_TOOLS_WORKER_FLAG_STOP     (1u << 1)
 
 // ── NDEF record structured storage ───────────────────────────────────────────
-#define NFC_TOOLS_MAX_NDEF_RECORDS  8
-#define NFC_TOOLS_NDEF_PAYLOAD_MAX  220  // raw payload truncated to 220 bytes
+#define NFC_TOOLS_MAX_NDEF_RECORDS 8
+#define NFC_TOOLS_NDEF_PAYLOAD_MAX 220 // raw payload truncated to 220 bytes
 
 typedef enum {
     NfcToolsNdefTypeUnknown = 0,
@@ -56,20 +56,20 @@ typedef enum {
 } NfcToolsNdefType;
 
 typedef struct {
-    uint8_t           tnf;
-    NfcToolsNdefType  type;
-    char              type_str[32];   // raw type (e.g. "U", "T", "application/vnd.wfa.wsc")
-    char              value[128];     // decoded value (URL, text…)
-    char              summary[40];    // one-liner for the submenu
-    uint8_t           payload[NFC_TOOLS_NDEF_PAYLOAD_MAX];
-    uint16_t          payload_len;    // actual length (before truncation)
-    bool              has_qr;         // true if a QR code is relevant
+    uint8_t tnf;
+    NfcToolsNdefType type;
+    char type_str[32]; // raw type (e.g. "U", "T", "application/vnd.wfa.wsc")
+    char value[128]; // decoded value (URL, text…)
+    char summary[40]; // one-liner for the submenu
+    uint8_t payload[NFC_TOOLS_NDEF_PAYLOAD_MAX];
+    uint16_t payload_len; // actual length (before truncation)
+    bool has_qr; // true if a QR code is relevant
 } NfcToolsNdefRecord;
 
 #define NFC_TOOLS_NDEF_BUF1_SIZE 128 // URL / text / WiFi SSID / Mail To / Contact Name
-#define NFC_TOOLS_NDEF_BUF2_SIZE 64  // WiFi password / Mail Subject / Contact Company
+#define NFC_TOOLS_NDEF_BUF2_SIZE 64 // WiFi password / Mail Subject / Contact Company
 #define NFC_TOOLS_NDEF_BUF3_SIZE 128 // Mail Body / Contact Address
-#define NFC_TOOLS_NDEF_BUF4_SIZE 64  // Contact Phone
+#define NFC_TOOLS_NDEF_BUF4_SIZE 64 // Contact Phone
 #define NFC_TOOLS_NDEF_BUF5_SIZE 128 // Contact Email
 #define NFC_TOOLS_NDEF_BUF6_SIZE 128 // Contact URL
 
@@ -81,9 +81,9 @@ typedef enum {
     NfcToolsViewEmailInput,
     NfcToolsViewMimeInput,
     NfcToolsViewSpecialInput,
-    NfcToolsViewSubmenu2,  // second submenu (NDEF records list in tag_info)
-    NfcToolsViewQrCode,    // custom QR code view
-    NfcToolsViewWidget,    // widget for record detail with button
+    NfcToolsViewSubmenu2, // second submenu (NDEF records list in tag_info)
+    NfcToolsViewQrCode, // custom QR code view
+    NfcToolsViewWidget, // widget for record detail with button
 } NfcToolsView;
 
 typedef enum {
@@ -96,23 +96,23 @@ typedef enum {
 
 typedef enum {
     NdefTypeUrl,
-    NdefTypeCustomUri,   // raw URI without prefix
+    NdefTypeCustomUri, // raw URI without prefix
     NdefTypeText,
     NdefTypeWifi,
     NdefTypeUnitLink, // https://unit.link/<alias>
-    NdefTypeMail,     // mailto:to[?subject=...][&body=...]
-    NdefTypePhone,    // tel:<number>
-    NdefTypeSms,            // sms:<number>[?body=<message>]
-    NdefTypeFacetime,       // facetime:<number or email>
-    NdefTypeFacetimeAudio,  // facetime-audio:<number or email>
-    NdefTypeBluetooth,  // Bluetooth Classic OOB (MAC address)
+    NdefTypeMail, // mailto:to[?subject=...][&body=...]
+    NdefTypePhone, // tel:<number>
+    NdefTypeSms, // sms:<number>[?body=<message>]
+    NdefTypeFacetime, // facetime:<number or email>
+    NdefTypeFacetimeAudio, // facetime-audio:<number or email>
+    NdefTypeBluetooth, // Bluetooth Classic OOB (MAC address)
     NdefTypeCustomData, // MIME arbitraire : Content-Type + Data
-    NdefTypeSocial,     // Social network: URL built from index + username
-    NdefTypeLocation,   // geo:latitude,longitude
-    NdefTypeContact,    // vCard 3.0: Name, Company, Address, Phone, Email, URL
-    NdefTypeSearch,     // Web search: engine + URL-encoded keyword
-    NdefTypeBitcoin,    // BIP-21: bitcoin:ADDRESS[?amount=...][&message=...]
-    NdefTypeEmpty,      // Erase: empty NDEF record
+    NdefTypeSocial, // Social network: URL built from index + username
+    NdefTypeLocation, // geo:latitude,longitude
+    NdefTypeContact, // vCard 3.0: Name, Company, Address, Phone, Email, URL
+    NdefTypeSearch, // Web search: engine + URL-encoded keyword
+    NdefTypeBitcoin, // BIP-21: bitcoin:ADDRESS[?amount=...][&message=...]
+    NdefTypeEmpty, // Erase: empty NDEF record
 } NdefType;
 
 typedef struct {
@@ -121,14 +121,14 @@ typedef struct {
     ViewDispatcher* view_dispatcher;
 
     Submenu* submenu;
-    Submenu* submenu2;  // for the NDEF records list
-    View*    qr_view;   // custom QR code view
-    Widget*  widget;    // widget for record detail (text + button)
+    Submenu* submenu2; // for the NDEF records list
+    View* qr_view; // custom QR code view
+    Widget* widget; // widget for record detail (text + button)
     Popup* popup;
     TextBox* text_box;
     TextInput* text_input;
-    EmailInput*   email_input;
-    MimeInput*    mime_input;
+    EmailInput* email_input;
+    MimeInput* mime_input;
     SpecialInput* special_input;
 
     NotificationApp* notifications;
@@ -140,7 +140,7 @@ typedef struct {
     NfcToolsSceneId scan_destination;
 
     uint8_t social_network_index; // index into nfc_tools_social_networks[]
-    uint8_t search_engine_index;  // index into nfc_tools_search_engines[]
+    uint8_t search_engine_index; // index into nfc_tools_search_engines[]
 
     NfcProtocol detected_protocol;
     uint8_t uid[10];
@@ -148,36 +148,36 @@ typedef struct {
     uint8_t sak;
     uint8_t atqa[2];
     MfClassicType mfc_type;
-    MfUltralightType    mful_type;
-    MfUltralightVersion mful_version;       // raw GET_VERSION (0x60) response
-    bool                mful_version_valid; // true if GET_VERSION responded
+    MfUltralightType mful_type;
+    MfUltralightVersion mful_version; // raw GET_VERSION (0x60) response
+    bool mful_version_valid; // true if GET_VERSION responded
 
     // ISO 15693 (ICODE SLI / SLIX / SLIX2 et compatibles)
     uint16_t iso15693_block_count;
-    uint8_t  iso15693_block_size; // actual size in bytes (SDK already adds +1)
-    uint8_t  iso15693_ic_ref;     // IC Reference byte (GET_SYSTEM_INFORMATION)
+    uint8_t iso15693_block_size; // actual size in bytes (SDK already adds +1)
+    uint8_t iso15693_ic_ref; // IC Reference byte (GET_SYSTEM_INFORMATION)
 
     // DESFire EV1 / EV2 / EV3
-    uint8_t  desfire_hw_major;         // 0x01=EV1, 0x12=EV2, 0x22=EV2XL, 0x33=EV3
+    uint8_t desfire_hw_major; // 0x01=EV1, 0x12=EV2, 0x22=EV2XL, 0x33=EV3
     uint32_t desfire_app_count;
-    bool     desfire_has_free_memory;
+    bool desfire_has_free_memory;
     uint32_t desfire_free_memory;
 
     // FeliCa (ISO 18092 / NFC-F)
-    uint8_t            felica_pmm[FELICA_PMM_SIZE]; // 8 bytes PMm
-    char               felica_ic_name[32];           // IC type string (e.g. "RC-S960")
-    uint8_t            felica_blocks_read;
-    uint8_t            felica_blocks_total;
+    uint8_t felica_pmm[FELICA_PMM_SIZE]; // 8 bytes PMm
+    char felica_ic_name[32]; // IC type string (e.g. "RC-S960")
+    uint8_t felica_blocks_read;
+    uint8_t felica_blocks_total;
     FelicaWorkflowType felica_workflow_type;
-    uint8_t            felica_write_block;           // block number for write (0-27)
+    uint8_t felica_write_block; // block number for write (0-27)
 
     FuriString* info_str;
     FuriString* ndef_str; // Parsed NDEF content during read (text)
 
     // Structured NDEF records
     NfcToolsNdefRecord ndef_records[NFC_TOOLS_MAX_NDEF_RECORDS];
-    uint8_t            ndef_record_count;
-    uint8_t            ndef_selected_record; // index selected for the detail view
+    uint8_t ndef_record_count;
+    uint8_t ndef_selected_record; // index selected for the detail view
 
     // NDEF write
     NdefType ndef_type;
@@ -191,6 +191,6 @@ typedef struct {
 
 // QR view helpers
 View* nfc_tools_qr_view_alloc(NfcToolsApp* app);
-void  nfc_tools_qr_view_free(View* view);
+void nfc_tools_qr_view_free(View* view);
 
 #endif /* NFC_TOOLS_I_H */

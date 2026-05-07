@@ -59,10 +59,10 @@ static int32_t nfc_tools_format_worker(void* context) {
             view_dispatcher_send_custom_event(app->view_dispatcher, NfcToolsEventWriteFail);
         }
 
-    // ── ISO 15693 (ICODE SLI / SLIX / SLIX2 et compatibles) ─────────────────
-    } else if(app->detected_protocol == NfcProtocolIso15693_3 ||
-              app->detected_protocol == NfcProtocolSlix) {
-
+        // ── ISO 15693 (ICODE SLI / SLIX / SLIX2 et compatibles) ─────────────────
+    } else if(
+        app->detected_protocol == NfcProtocolIso15693_3 ||
+        app->detected_protocol == NfcProtocolSlix) {
         bool use_slix = (app->detected_protocol == NfcProtocolSlix);
         bool ok = nfc_tools_icode_format(app, use_slix);
 
@@ -76,7 +76,7 @@ static int32_t nfc_tools_format_worker(void* context) {
             view_dispatcher_send_custom_event(app->view_dispatcher, NfcToolsEventWriteFail);
         }
 
-    // ── Mifare Classic 1K / 4K ───────────────────────────────────────────────
+        // ── Mifare Classic 1K / 4K ───────────────────────────────────────────────
     } else if(app->detected_protocol == NfcProtocolMfClassic) {
         bool ok = nfc_tools_mfc_format(app);
 
@@ -90,15 +90,13 @@ static int32_t nfc_tools_format_worker(void* context) {
             view_dispatcher_send_custom_event(app->view_dispatcher, NfcToolsEventWriteFail);
         }
 
-    // ── DESFire (formatting not supported) ──────────────────────────────────
+        // ── DESFire (formatting not supported) ──────────────────────────────────
     } else if(app->detected_protocol == NfcProtocolMfDesfire) {
         notification_message(app->notifications, &sequence_error);
-        furi_string_set(
-            app->info_str,
-            "DESFire detected\nFormatting not\nsupported");
+        furi_string_set(app->info_str, "DESFire detected\nFormatting not\nsupported");
         view_dispatcher_send_custom_event(app->view_dispatcher, NfcToolsEventWriteFail);
 
-    // ── Unsupported protocol ─────────────────────────────────────────────────
+        // ── Unsupported protocol ─────────────────────────────────────────────────
     } else {
         notification_message(app->notifications, &sequence_error);
         furi_string_printf(
@@ -120,7 +118,7 @@ static void nfc_tools_format_stop_worker(NfcToolsApp* app) {
         furi_thread_free(app->worker_thread);
         furi_event_flag_free(app->worker_flags);
         app->worker_thread = NULL;
-        app->worker_flags  = NULL;
+        app->worker_flags = NULL;
     }
 }
 
@@ -131,10 +129,7 @@ void nfc_tools_scene_format_tag_on_enter(void* context) {
 
     popup_reset(app->popup);
     popup_set_header(app->popup, NTS_POPUP_FORMAT_MEMORY, 64, 10, AlignCenter, AlignCenter);
-    popup_set_text(
-        app->popup,
-        NTS_POPUP_FORMAT_ALL,
-        64, 35, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, NTS_POPUP_FORMAT_ALL, 64, 35, AlignCenter, AlignCenter);
 
     furi_string_reset(app->info_str);
 
@@ -152,24 +147,18 @@ bool nfc_tools_scene_format_tag_on_event(void* context, SceneManagerEvent event)
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == NfcToolsEventScanSuccess) {
-            popup_set_header(
-                app->popup, NTS_POPUP_FORMATTING, 64, 10, AlignCenter, AlignCenter);
-            popup_set_text(
-                app->popup, NTS_POPUP_HOLD_TAG, 64, 35, AlignCenter, AlignCenter);
+            popup_set_header(app->popup, NTS_POPUP_FORMATTING, 64, 10, AlignCenter, AlignCenter);
+            popup_set_text(app->popup, NTS_POPUP_HOLD_TAG, 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         } else if(event.event == NfcToolsEventWriteSuccess) {
             popup_set_header(app->popup, NTS_STATUS_FORMATTED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 35, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         } else if(event.event == NfcToolsEventWriteFail) {
             popup_set_header(app->popup, NTS_ERR_FAILED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 35, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         }
     }

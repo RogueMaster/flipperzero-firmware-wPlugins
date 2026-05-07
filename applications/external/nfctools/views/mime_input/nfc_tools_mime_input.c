@@ -9,20 +9,20 @@ struct MimeInput {
 };
 
 typedef struct {
-    const char    text;
+    const char text;
     const uint8_t x;
     const uint8_t y;
 } MimeInputKey;
 
 typedef struct {
     const char* header;
-    char*       text_buffer;
-    size_t      text_buffer_size;
-    size_t      minimum_length;
-    bool        clear_default_text;
+    char* text_buffer;
+    size_t text_buffer_size;
+    size_t minimum_length;
+    bool clear_default_text;
 
     MimeInputCallback callback;
-    void*             callback_context;
+    void* callback_context;
 
     uint8_t selected_row;
     uint8_t selected_column;
@@ -32,50 +32,85 @@ typedef struct {
 // Identical to standard TextInput, EXCEPT the 3rd row:
 //   7  8  9  →  /  .  -   (useful for MIME types, e.g. text/plain)
 
-static const uint8_t keyboard_origin_x  = 1;
-static const uint8_t keyboard_origin_y  = 29;
+static const uint8_t keyboard_origin_x = 1;
+static const uint8_t keyboard_origin_y = 29;
 static const uint8_t keyboard_row_count = 3;
 
 #define ENTER_KEY     '\r'
 #define BACKSPACE_KEY '\b'
 
 static const MimeInputKey keyboard_keys_row_1[] = {
-    {'q', 1,   8}, {'w', 10,  8}, {'e', 19,  8}, {'r', 28,  8},
-    {'t', 37,  8}, {'y', 46,  8}, {'u', 55,  8}, {'i', 64,  8},
-    {'o', 73,  8}, {'p', 82,  8},
-    {'0', 91,  8}, {'1', 100, 8}, {'2', 110, 8}, {'3', 120, 8},
+    {'q', 1, 8},
+    {'w', 10, 8},
+    {'e', 19, 8},
+    {'r', 28, 8},
+    {'t', 37, 8},
+    {'y', 46, 8},
+    {'u', 55, 8},
+    {'i', 64, 8},
+    {'o', 73, 8},
+    {'p', 82, 8},
+    {'0', 91, 8},
+    {'1', 100, 8},
+    {'2', 110, 8},
+    {'3', 120, 8},
 };
 
 static const MimeInputKey keyboard_keys_row_2[] = {
-    {'a', 1,   20}, {'s', 10,  20}, {'d', 19,  20}, {'f', 28,  20},
-    {'g', 37,  20}, {'h', 46,  20}, {'j', 55,  20}, {'k', 64,  20},
-    {'l', 73,  20}, {BACKSPACE_KEY, 82, 12},
-    {'4', 100, 20}, {'5', 110, 20}, {'6', 120, 20},
+    {'a', 1, 20},
+    {'s', 10, 20},
+    {'d', 19, 20},
+    {'f', 28, 20},
+    {'g', 37, 20},
+    {'h', 46, 20},
+    {'j', 55, 20},
+    {'k', 64, 20},
+    {'l', 73, 20},
+    {BACKSPACE_KEY, 82, 12},
+    {'4', 100, 20},
+    {'5', 110, 20},
+    {'6', 120, 20},
 };
 
 static const MimeInputKey keyboard_keys_row_3[] = {
-    {'z', 1,   32}, {'x', 10,  32}, {'c', 19,  32}, {'v', 28,  32},
-    {'b', 37,  32}, {'n', 46,  32}, {'m', 55,  32},
-    {'_', 64,  32}, {ENTER_KEY, 74, 23},
-    {'/', 100, 32}, {'.', 110, 32}, {'-', 120, 32},
+    {'z', 1, 32},
+    {'x', 10, 32},
+    {'c', 19, 32},
+    {'v', 28, 32},
+    {'b', 37, 32},
+    {'n', 46, 32},
+    {'m', 55, 32},
+    {'_', 64, 32},
+    {ENTER_KEY, 74, 23},
+    {'/', 100, 32},
+    {'.', 110, 32},
+    {'-', 120, 32},
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 static uint8_t get_row_size(uint8_t row_index) {
     switch(row_index + 1) {
-    case 1:  return COUNT_OF(keyboard_keys_row_1);
-    case 2:  return COUNT_OF(keyboard_keys_row_2);
-    case 3:  return COUNT_OF(keyboard_keys_row_3);
-    default: furi_crash();
+    case 1:
+        return COUNT_OF(keyboard_keys_row_1);
+    case 2:
+        return COUNT_OF(keyboard_keys_row_2);
+    case 3:
+        return COUNT_OF(keyboard_keys_row_3);
+    default:
+        furi_crash();
     }
 }
 
 static const MimeInputKey* get_row(uint8_t row_index) {
     switch(row_index + 1) {
-    case 1:  return keyboard_keys_row_1;
-    case 2:  return keyboard_keys_row_2;
-    case 3:  return keyboard_keys_row_3;
-    default: furi_crash();
+    case 1:
+        return keyboard_keys_row_1;
+    case 2:
+        return keyboard_keys_row_2;
+    case 3:
+        return keyboard_keys_row_3;
+    default:
+        furi_crash();
     }
 }
 
@@ -102,8 +137,8 @@ static void draw_backspace_key(Canvas* canvas, uint8_t x, uint8_t y, bool select
         canvas_set_color(canvas, ColorWhite);
     }
     canvas_draw_line(canvas, x + 2, y + 4, x + 12, y + 4);
-    canvas_draw_line(canvas, x + 2, y + 4, x + 5,  y + 2);
-    canvas_draw_line(canvas, x + 2, y + 4, x + 5,  y + 6);
+    canvas_draw_line(canvas, x + 2, y + 4, x + 5, y + 2);
+    canvas_draw_line(canvas, x + 2, y + 4, x + 5, y + 6);
     canvas_draw_line(canvas, x + 12, y + 2, x + 12, y + 6);
     canvas_set_color(canvas, ColorBlack);
 }
@@ -125,11 +160,11 @@ static void draw_enter_key(Canvas* canvas, uint8_t x, uint8_t y, bool selected) 
 // ── Rendering ──────────────────────────────────────────────────────────────
 
 static void mime_input_view_draw_callback(Canvas* canvas, void* _model) {
-    MimeInputModel* model        = _model;
-    uint8_t         text_length  = model->text_buffer ? strlen(model->text_buffer) : 0;
-    uint8_t         needed_width = canvas_width(canvas) - 8;
-    uint8_t         start_pos    = 4;
-    const char*     text         = model->text_buffer;
+    MimeInputModel* model = _model;
+    uint8_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
+    uint8_t needed_width = canvas_width(canvas) - 8;
+    uint8_t start_pos = 4;
+    const char* text = model->text_buffer;
 
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
@@ -139,7 +174,7 @@ static void mime_input_view_draw_callback(Canvas* canvas, void* _model) {
 
     if(canvas_string_width(canvas, text) > needed_width) {
         canvas_draw_str(canvas, start_pos, 22, "...");
-        start_pos    += 6;
+        start_pos += 6;
         needed_width -= 8;
     }
     while(text != NULL && canvas_string_width(canvas, text) > needed_width) {
@@ -159,8 +194,8 @@ static void mime_input_view_draw_callback(Canvas* canvas, void* _model) {
     canvas_set_font(canvas, FontKeyboard);
 
     for(uint8_t row = 0; row < keyboard_row_count; row++) {
-        const uint8_t        col_count = get_row_size(row);
-        const MimeInputKey*  keys      = get_row(row);
+        const uint8_t col_count = get_row_size(row);
+        const MimeInputKey* keys = get_row(row);
 
         for(uint8_t col = 0; col < col_count; col++) {
             char key_char = keys[col].text;
@@ -168,17 +203,11 @@ static void mime_input_view_draw_callback(Canvas* canvas, void* _model) {
             if(key_char == ENTER_KEY) {
                 bool sel = (model->selected_row == row && model->selected_column == col);
                 draw_enter_key(
-                    canvas,
-                    keyboard_origin_x + keys[col].x,
-                    keyboard_origin_y + keys[col].y,
-                    sel);
+                    canvas, keyboard_origin_x + keys[col].x, keyboard_origin_y + keys[col].y, sel);
             } else if(key_char == BACKSPACE_KEY) {
                 bool sel = (model->selected_row == row && model->selected_column == col);
                 draw_backspace_key(
-                    canvas,
-                    keyboard_origin_x + keys[col].x,
-                    keyboard_origin_y + keys[col].y,
-                    sel);
+                    canvas, keyboard_origin_x + keys[col].x, keyboard_origin_y + keys[col].y, sel);
             } else {
                 bool selected = (model->selected_row == row && model->selected_column == col);
                 if(selected) {
@@ -187,7 +216,8 @@ static void mime_input_view_draw_callback(Canvas* canvas, void* _model) {
                         canvas,
                         keyboard_origin_x + keys[col].x - 1,
                         keyboard_origin_y + keys[col].y - 8,
-                        7, 10);
+                        7,
+                        10);
                     canvas_set_color(canvas, ColorWhite);
                 } else {
                     canvas_set_color(canvas, ColorBlack);
@@ -218,7 +248,7 @@ static void mime_input_backspace(MimeInputModel* model) {
 }
 
 static void mime_input_handle_ok(MimeInputModel* model, bool shift) {
-    char   selected    = get_selected_char(model);
+    char selected = get_selected_char(model);
     size_t text_length = strlen(model->text_buffer);
 
     bool toggle_case = (text_length == 0 || model->clear_default_text);
@@ -234,7 +264,7 @@ static void mime_input_handle_ok(MimeInputModel* model, bool shift) {
     } else {
         if(model->clear_default_text) text_length = 0;
         if(text_length < model->text_buffer_size - 1) {
-            model->text_buffer[text_length]     = selected;
+            model->text_buffer[text_length] = selected;
             model->text_buffer[text_length + 1] = '\0';
         }
     }
@@ -242,14 +272,13 @@ static void mime_input_handle_ok(MimeInputModel* model, bool shift) {
 }
 
 static bool mime_input_view_input_callback(InputEvent* event, void* context) {
-    MimeInput* mi      = context;
-    bool       consumed = false;
+    MimeInput* mi = context;
+    bool consumed = false;
 
     MimeInputModel* model = view_get_model(mi->view);
 
     if(event->type == InputTypeShort || event->type == InputTypeLong ||
        event->type == InputTypeRepeat) {
-
         consumed = true;
         switch(event->key) {
         case InputKeyUp:
@@ -325,15 +354,15 @@ void mime_input_reset(MimeInput* mi) {
         mi->view,
         MimeInputModel * model,
         {
-            model->header             = "";
-            model->selected_row       = 0;
-            model->selected_column    = 0;
-            model->minimum_length     = 1;
+            model->header = "";
+            model->selected_row = 0;
+            model->selected_column = 0;
+            model->minimum_length = 1;
             model->clear_default_text = false;
-            model->text_buffer        = NULL;
-            model->text_buffer_size   = 0;
-            model->callback           = NULL;
-            model->callback_context   = NULL;
+            model->text_buffer = NULL;
+            model->text_buffer_size = 0;
+            model->callback = NULL;
+            model->callback_context = NULL;
         },
         true);
 }
@@ -349,24 +378,24 @@ void mime_input_set_header_text(MimeInput* mi, const char* text) {
 }
 
 void mime_input_set_result_callback(
-    MimeInput*        mi,
+    MimeInput* mi,
     MimeInputCallback callback,
-    void*             callback_context,
-    char*             text_buffer,
-    size_t            text_buffer_size,
-    bool              clear_default_text) {
+    void* callback_context,
+    char* text_buffer,
+    size_t text_buffer_size,
+    bool clear_default_text) {
     furi_check(mi);
     with_view_model(
         mi->view,
         MimeInputModel * model,
         {
-            model->callback           = callback;
-            model->callback_context   = callback_context;
-            model->text_buffer        = text_buffer;
-            model->text_buffer_size   = text_buffer_size;
+            model->callback = callback;
+            model->callback_context = callback_context;
+            model->text_buffer = text_buffer;
+            model->text_buffer_size = text_buffer_size;
             model->clear_default_text = clear_default_text;
             if(text_buffer && text_buffer[0] != '\0') {
-                model->selected_row    = 2;
+                model->selected_row = 2;
                 model->selected_column = 8;
             }
         },
@@ -375,8 +404,5 @@ void mime_input_set_result_callback(
 
 void mime_input_set_minimum_length(MimeInput* mi, size_t minimum_length) {
     with_view_model(
-        mi->view,
-        MimeInputModel * model,
-        { model->minimum_length = minimum_length; },
-        true);
+        mi->view, MimeInputModel * model, { model->minimum_length = minimum_length; }, true);
 }

@@ -13,6 +13,6 @@ typedef struct {
 } NfcToolsSearchEngine;
 
 extern const NfcToolsSearchEngine nfc_tools_search_engines[];
-extern const uint8_t              nfc_tools_search_engines_count;
+extern const uint8_t nfc_tools_search_engines_count;
 
 #endif /* NFC_TOOLS_SEARCH_H */

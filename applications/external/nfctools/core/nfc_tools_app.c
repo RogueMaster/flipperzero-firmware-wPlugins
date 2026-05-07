@@ -25,6 +25,7 @@ static NfcToolsApp* nfc_tools_app_alloc(void) {
     app->scan_destination = NfcToolsSceneIdTagInfo;
 
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&nfc_tools_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -38,8 +39,7 @@ static NfcToolsApp* nfc_tools_app_alloc(void) {
         app->view_dispatcher, NfcToolsViewMainMenu, submenu_get_view(app->submenu));
 
     app->popup = popup_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, NfcToolsViewPopup, popup_get_view(app->popup));
+    view_dispatcher_add_view(app->view_dispatcher, NfcToolsViewPopup, popup_get_view(app->popup));
 
     app->text_box = text_box_alloc();
     view_dispatcher_add_view(
@@ -74,9 +74,10 @@ static NfcToolsApp* nfc_tools_app_alloc(void) {
 
     // Widget view (record detail with button)
     app->widget = widget_alloc();
-    view_dispatcher_add_view(app->view_dispatcher, NfcToolsViewWidget, widget_get_view(app->widget));
+    view_dispatcher_add_view(
+        app->view_dispatcher, NfcToolsViewWidget, widget_get_view(app->widget));
 
-    app->ndef_record_count   = 0;
+    app->ndef_record_count = 0;
     app->ndef_selected_record = 0;
 
     app->notifications = furi_record_open(RECORD_NOTIFICATION);

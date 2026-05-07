@@ -17,10 +17,7 @@
 //   2. Write CONFIG  = { 0x04, 0x00, 0x00, 0xFF }  ← AUTH0=0xFF → no protection
 //   3. Write PASSWORD = { 0xFF, 0xFF, 0xFF, 0xFF }  ← restore default password
 
-static bool ntag21x_get_pages(
-    MfUltralightType type,
-    uint8_t*         cfg_page,
-    uint8_t*         pwd_page) {
+static bool ntag21x_get_pages(MfUltralightType type, uint8_t* cfg_page, uint8_t* pwd_page) {
     switch(type) {
     case MfUltralightTypeNTAG213:
         *cfg_page = 0x29;
@@ -42,11 +39,11 @@ static bool ntag21x_get_pages(
 // ── Write callback context ────────────────────────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
+    NfcToolsApp* app;
     FuriEventFlag* done;
-    bool           success;
-    uint8_t        auth_bytes[4]; // auth password: MD5[0..3] or FF FF FF FF
-    char           err[80];
+    bool success;
+    uint8_t auth_bytes[4]; // auth password: MD5[0..3] or FF FF FF FF
+    char err[80];
 } RemovePasswordWriteCtx;
 
 // ── nfc_poller_start_ex callback ─────────────────────────────────────────────
@@ -57,8 +54,8 @@ typedef struct {
 //   4. PASSWORD ← { 0xFF, 0xFF, 0xFF, 0xFF }
 
 static NfcCommand nfc_tools_remove_password_write_cb(NfcGenericEventEx event, void* context) {
-    RemovePasswordWriteCtx* ctx    = context;
-    MfUltralightPoller*     mfu    = (MfUltralightPoller*)event.poller;
+    RemovePasswordWriteCtx* ctx = context;
+    MfUltralightPoller* mfu = (MfUltralightPoller*)event.poller;
     Iso14443_3aPollerEvent* iso_ev = (Iso14443_3aPollerEvent*)event.parent_event_data;
 
     if(iso_ev->type != Iso14443_3aPollerEventTypeReady) {
@@ -69,7 +66,7 @@ static NfcCommand nfc_tools_remove_password_write_cb(NfcGenericEventEx event, vo
 
     // ── Step 1: GET_VERSION → exact type ─────────────────────────────────────
     MfUltralightVersion version = {};
-    MfUltralightType    type    = MfUltralightTypeOrigin;
+    MfUltralightType type = MfUltralightTypeOrigin;
     if(mf_ultralight_poller_read_version(mfu, &version) == MfUltralightErrorNone) {
         type = mf_ultralight_get_type_by_version(&version);
     }
@@ -87,15 +84,12 @@ static NfcCommand nfc_tools_remove_password_write_cb(NfcGenericEventEx event, vo
     auth.password.data[1] = ctx->auth_bytes[1];
     auth.password.data[2] = ctx->auth_bytes[2];
     auth.password.data[3] = ctx->auth_bytes[3];
-    auth.skip_auth        = false;
+    auth.skip_auth = false;
 
     MfUltralightError auth_err = mf_ultralight_poller_auth_pwd(mfu, &auth);
     if(auth_err != MfUltralightErrorNone) {
         snprintf(
-            ctx->err,
-            sizeof(ctx->err),
-            "Auth failed (err:%d)\nWrong password?",
-            (int)auth_err);
+            ctx->err, sizeof(ctx->err), "Auth failed (err:%d)\nWrong password?", (int)auth_err);
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
     }
@@ -105,8 +99,8 @@ static NfcCommand nfc_tools_remove_password_write_cb(NfcGenericEventEx event, vo
     const MfUltralightPage cfg_data = {.data = {0x04, 0x00, 0x00, 0xFF}};
     MfUltralightError err = mf_ultralight_poller_write_page(mfu, cfg_page, &cfg_data);
     if(err != MfUltralightErrorNone) {
-        snprintf(ctx->err, sizeof(ctx->err),
-            "Config error\npage 0x%02X (err:%d)", cfg_page, (int)err);
+        snprintf(
+            ctx->err, sizeof(ctx->err), "Config error\npage 0x%02X (err:%d)", cfg_page, (int)err);
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
     }
@@ -115,8 +109,8 @@ static NfcCommand nfc_tools_remove_password_write_cb(NfcGenericEventEx event, vo
     const MfUltralightPage pwd_data = {.data = {0xFF, 0xFF, 0xFF, 0xFF}};
     err = mf_ultralight_poller_write_page(mfu, pwd_page, &pwd_data);
     if(err != MfUltralightErrorNone) {
-        snprintf(ctx->err, sizeof(ctx->err),
-            "Password error\npage 0x%02X (err:%d)", pwd_page, (int)err);
+        snprintf(
+            ctx->err, sizeof(ctx->err), "Password error\npage 0x%02X (err:%d)", pwd_page, (int)err);
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
     }
@@ -180,7 +174,7 @@ static int32_t nfc_tools_remove_password_worker(void* context) {
     // Empty field → default password { FF FF FF FF }
     // Non-empty field → MD5(text)[0..3]
     RemovePasswordWriteCtx write_ctx = {};
-    write_ctx.app  = app;
+    write_ctx.app = app;
     write_ctx.done = furi_event_flag_alloc();
 
     if(app->ndef_buf1[0] == '\0') {
@@ -212,9 +206,7 @@ static int32_t nfc_tools_remove_password_worker(void* context) {
 
     if(write_ctx.success) {
         notification_message(app->notifications, &sequence_success);
-        furi_string_set(
-            app->info_str,
-            NTS_STATUS_PROTECTION_REMOVED_FULL);
+        furi_string_set(app->info_str, NTS_STATUS_PROTECTION_REMOVED_FULL);
         view_dispatcher_send_custom_event(app->view_dispatcher, NfcToolsEventWriteSuccess);
     } else {
         notification_message(app->notifications, &sequence_error);
@@ -234,7 +226,7 @@ static void nfc_tools_remove_password_stop_worker(NfcToolsApp* app) {
         furi_thread_free(app->worker_thread);
         furi_event_flag_free(app->worker_flags);
         app->worker_thread = NULL;
-        app->worker_flags  = NULL;
+        app->worker_flags = NULL;
     }
 }
 
@@ -245,40 +237,33 @@ void nfc_tools_scene_remove_password_write_on_enter(void* context) {
 
     popup_reset(app->popup);
     popup_set_header(app->popup, NTS_POPUP_REMOVE_PASSWORD, 64, 10, AlignCenter, AlignCenter);
-    popup_set_text(
-        app->popup,
-        NTS_POPUP_APPROACH_NTAG,
-        64, 35, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, NTS_POPUP_APPROACH_NTAG, 64, 35, AlignCenter, AlignCenter);
 
     furi_string_reset(app->info_str);
 
     app->worker_flags = furi_event_flag_alloc();
-    app->worker_thread = furi_thread_alloc_ex(
-        "NfcToolsRmPwd", 2 * 1024, nfc_tools_remove_password_worker, app);
+    app->worker_thread =
+        furi_thread_alloc_ex("NfcToolsRmPwd", 2 * 1024, nfc_tools_remove_password_worker, app);
     furi_thread_start(app->worker_thread);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewPopup);
 }
 
 bool nfc_tools_scene_remove_password_write_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == NfcToolsEventWriteSuccess) {
             popup_set_header(
                 app->popup, NTS_STATUS_PROTECTION_REMOVED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 32, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 32, AlignCenter, AlignCenter);
             consumed = true;
         } else if(event.event == NfcToolsEventWriteFail) {
             popup_set_header(app->popup, NTS_ERR_FAILED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 32, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 32, AlignCenter, AlignCenter);
             consumed = true;
         }
     }

@@ -13,6 +13,6 @@ typedef struct {
 } NfcToolsSocialNetwork;
 
 extern const NfcToolsSocialNetwork nfc_tools_social_networks[];
-extern const uint8_t               nfc_tools_social_networks_count;
+extern const uint8_t nfc_tools_social_networks_count;
 
 #endif /* NFC_TOOLS_SOCIAL_H */

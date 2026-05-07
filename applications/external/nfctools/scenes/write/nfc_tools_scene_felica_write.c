@@ -15,7 +15,7 @@
 
 // Frame size before CRC :
 //  1 (len) + 1 (cmd) + 8 (IDm) + 1 (NumSvc) + 2 (SvcCode) + 1 (NumBlk) + 2 (BlkList) + 16 (data)
-#define FELICA_WRITE_FRAME_SIZE             (32U)
+#define FELICA_WRITE_FRAME_SIZE (32U)
 
 // ── Helper: hex nibble decode ────────────────────────────────────────────────
 
@@ -40,33 +40,30 @@ static bool felica_parse_data_bytes(const char* s, uint8_t* out) {
 // ── Contexte du worker ────────────────────────────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
-    NfcPoller*     nfc_poller;
+    NfcToolsApp* app;
+    NfcPoller* nfc_poller;
     FuriEventFlag* done;
-    uint8_t        block;
-    uint8_t        data[FELICA_BLOCK_SIZE];
-    bool           success;
+    uint8_t block;
+    uint8_t data[FELICA_BLOCK_SIZE];
+    bool success;
 } FelicaWriteCtx;
 
 // ── Callback NfcPoller ────────────────────────────────────────────────────────
 
 static NfcCommand nfc_tools_felica_write_cb(NfcGenericEvent event, void* context) {
-    FelicaWriteCtx*    ctx = context;
-    FelicaPollerEvent* ev  = event.event_data;
+    FelicaWriteCtx* ctx = context;
+    FelicaPollerEvent* ev = event.event_data;
 
     if(ev->type == FelicaPollerEventTypeRequestAuthContext) {
         ev->data->auth_context->skip_auth = true;
         return NfcCommandContinue;
     }
 
-    if(ev->type == FelicaPollerEventTypeReady ||
-       ev->type == FelicaPollerEventTypeIncomplete) {
-
+    if(ev->type == FelicaPollerEventTypeReady || ev->type == FelicaPollerEventTypeIncomplete) {
         NfcToolsApp* app = ctx->app;
 
         // Retrieve the IDm from data read by the poller
-        const FelicaData* felica =
-            (const FelicaData*)nfc_poller_get_data(ctx->nfc_poller);
+        const FelicaData* felica = (const FelicaData*)nfc_poller_get_data(ctx->nfc_poller);
         size_t idm_len = 0;
         const uint8_t* idm = felica_get_uid(felica, &idm_len);
         if(!idm || idm_len < FELICA_IDM_SIZE) {
@@ -86,11 +83,11 @@ static NfcCommand nfc_tools_felica_write_cb(NfcGenericEvent event, void* context
         bit_buffer_append_byte(tx, FELICA_WRITE_FRAME_SIZE); // length = 32
         bit_buffer_append_byte(tx, FELICA_CMD_WRITE_WITHOUT_ENCRYPTION);
         bit_buffer_append_bytes(tx, idm, FELICA_IDM_SIZE);
-        bit_buffer_append_byte(tx, 1);       // NumServices = 1
-        bit_buffer_append_byte(tx, svc_lo);  // ServiceCode LE low
-        bit_buffer_append_byte(tx, svc_hi);  // ServiceCode LE high
-        bit_buffer_append_byte(tx, 1);       // NumBlocks = 1
-        bit_buffer_append_byte(tx, 0x80);    // BlockListElement[0]: 2-byte, svc_idx=0
+        bit_buffer_append_byte(tx, 1); // NumServices = 1
+        bit_buffer_append_byte(tx, svc_lo); // ServiceCode LE low
+        bit_buffer_append_byte(tx, svc_hi); // ServiceCode LE high
+        bit_buffer_append_byte(tx, 1); // NumBlocks = 1
+        bit_buffer_append_byte(tx, 0x80); // BlockListElement[0]: 2-byte, svc_idx=0
         bit_buffer_append_byte(tx, ctx->block); // block number
         bit_buffer_append_bytes(tx, ctx->data, FELICA_BLOCK_SIZE);
 
@@ -113,9 +110,7 @@ static NfcCommand nfc_tools_felica_write_cb(NfcGenericEvent event, void* context
                 if(sf1 == 0 && sf2 == 0) {
                     ctx->success = true;
                     furi_string_printf(
-                        app->info_str,
-                        "Block S%02u written\nOK",
-                        (unsigned)ctx->block);
+                        app->info_str, "Block S%02u written\nOK", (unsigned)ctx->block);
                 } else {
                     furi_string_printf(
                         app->info_str,
@@ -132,10 +127,7 @@ static NfcCommand nfc_tools_felica_write_cb(NfcGenericEvent event, void* context
                     rx_len > 1 ? (unsigned)rx_data[1] : 0U);
             }
         } else {
-            furi_string_printf(
-                app->info_str,
-                "NFC error\ncode %d",
-                (int)nfc_err);
+            furi_string_printf(app->info_str, "NFC error\ncode %d", (int)nfc_err);
         }
 
         bit_buffer_free(tx);
@@ -166,9 +158,9 @@ static int32_t nfc_tools_felica_write_worker(void* context) {
     if(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP) return 0;
 
     FelicaWriteCtx wctx = {
-        .app     = app,
-        .done    = furi_event_flag_alloc(),
-        .block   = app->felica_write_block,
+        .app = app,
+        .done = furi_event_flag_alloc(),
+        .block = app->felica_write_block,
         .success = false,
     };
     memcpy(wctx.data, data_bytes, FELICA_BLOCK_SIZE);
@@ -204,7 +196,7 @@ static void nfc_tools_felica_write_stop_worker(NfcToolsApp* app) {
         furi_thread_free(app->worker_thread);
         furi_event_flag_free(app->worker_flags);
         app->worker_thread = NULL;
-        app->worker_flags  = NULL;
+        app->worker_flags = NULL;
     }
 }
 
@@ -214,10 +206,8 @@ void nfc_tools_scene_felica_write_on_enter(void* context) {
     NfcToolsApp* app = context;
 
     popup_reset(app->popup);
-    popup_set_header(app->popup, NTS_WRITE_TITLE_FELICA,
-                     64, 10, AlignCenter, AlignCenter);
-    popup_set_text(app->popup, NTS_POPUP_APPROACH_TAG,
-                   64, 35, AlignCenter, AlignCenter);
+    popup_set_header(app->popup, NTS_WRITE_TITLE_FELICA, 64, 10, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, NTS_POPUP_APPROACH_TAG, 64, 35, AlignCenter, AlignCenter);
 
     furi_string_reset(app->info_str);
 
@@ -235,16 +225,15 @@ bool nfc_tools_scene_felica_write_on_event(void* context, SceneManagerEvent even
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == NfcToolsEventWriteSuccess) {
-            popup_set_header(app->popup, NTS_STATUS_WRITE_COMPLETE,
-                             64, 10, AlignCenter, AlignCenter);
-            popup_set_text(app->popup, furi_string_get_cstr(app->info_str),
-                           64, 35, AlignCenter, AlignCenter);
+            popup_set_header(
+                app->popup, NTS_STATUS_WRITE_COMPLETE, 64, 10, AlignCenter, AlignCenter);
+            popup_set_text(
+                app->popup, furi_string_get_cstr(app->info_str), 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         } else if(event.event == NfcToolsEventWriteFail) {
-            popup_set_header(app->popup, NTS_ERR_FAILED,
-                             64, 10, AlignCenter, AlignCenter);
-            popup_set_text(app->popup, furi_string_get_cstr(app->info_str),
-                           64, 35, AlignCenter, AlignCenter);
+            popup_set_header(app->popup, NTS_ERR_FAILED, 64, 10, AlignCenter, AlignCenter);
+            popup_set_text(
+                app->popup, furi_string_get_cstr(app->info_str), 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         }
     }

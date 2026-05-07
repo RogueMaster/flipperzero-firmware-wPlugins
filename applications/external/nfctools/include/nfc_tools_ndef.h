@@ -13,10 +13,7 @@ extern "C" {
 void nfc_tools_ndef_parse_type2_tag(const uint8_t* data, size_t len, FuriString* out);
 
 // Populates app->ndef_records[] from the same TLV stream.
-void nfc_tools_ndef_parse_type2_tag_structured(
-    NfcToolsApp* app,
-    const uint8_t* data,
-    size_t len);
+void nfc_tools_ndef_parse_type2_tag_structured(NfcToolsApp* app, const uint8_t* data, size_t len);
 
 // ── NDEF Build ────────────────────────────────────────────────────────────────
 // Builds a raw NDEF message from app->ndef_buf1..6 according to app->ndef_type.

@@ -9,7 +9,7 @@ static void nfc_tools_scene_write_contact_url_callback(void* context) {
 
 void nfc_tools_scene_write_contact_url_on_enter(void* context) {
     NfcToolsApp* app = context;
-    MimeInput*   mi  = app->mime_input;
+    MimeInput* mi = app->mime_input;
 
     mime_input_set_header_text(mi, NTS_INPUT_WEBSITE);
     strlcpy(app->ndef_buf6, "https://", sizeof(app->ndef_buf6));
@@ -27,8 +27,8 @@ void nfc_tools_scene_write_contact_url_on_enter(void* context) {
 }
 
 bool nfc_tools_scene_write_contact_url_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom && event.event == 0) {
         scene_manager_next_scene(app->scene_manager, NfcToolsSceneIdWriteScan);

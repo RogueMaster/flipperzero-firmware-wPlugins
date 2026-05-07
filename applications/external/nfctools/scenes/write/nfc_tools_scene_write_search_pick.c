@@ -10,8 +10,8 @@ static void nfc_tools_scene_write_search_pick_callback(void* context, uint32_t i
 }
 
 void nfc_tools_scene_write_search_pick_on_enter(void* context) {
-    NfcToolsApp* app     = context;
-    Submenu*     submenu = app->submenu;
+    NfcToolsApp* app = context;
+    Submenu* submenu = app->submenu;
 
     submenu_reset(submenu);
     submenu_set_header(submenu, NTS_HEADER_SEARCH_ENGINE);
@@ -29,8 +29,8 @@ void nfc_tools_scene_write_search_pick_on_enter(void* context) {
 }
 
 bool nfc_tools_scene_write_search_pick_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         app->search_engine_index = (uint8_t)event.event;

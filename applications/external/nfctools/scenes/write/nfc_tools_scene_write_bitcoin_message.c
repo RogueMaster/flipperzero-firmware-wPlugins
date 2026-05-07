@@ -10,7 +10,7 @@ static void nfc_tools_scene_write_bitcoin_message_callback(void* context) {
 
 void nfc_tools_scene_write_bitcoin_message_on_enter(void* context) {
     NfcToolsApp* app = context;
-    TextInput*   ti  = app->text_input;
+    TextInput* ti = app->text_input;
 
     text_input_set_header_text(ti, NTS_INPUT_MESSAGE_OPT);
     app->ndef_buf3[0] = '\0';
@@ -28,8 +28,8 @@ void nfc_tools_scene_write_bitcoin_message_on_enter(void* context) {
 }
 
 bool nfc_tools_scene_write_bitcoin_message_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom && event.event == 0) {
         scene_manager_next_scene(app->scene_manager, NfcToolsSceneIdWriteScan);

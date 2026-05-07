@@ -36,11 +36,23 @@ void nfc_tools_scene_write_menu_on_enter(void* context) {
     submenu_add_item(
         submenu, NTS_WRITE_URL, NdefMenuItemUrl, nfc_tools_scene_write_menu_callback, app);
     submenu_add_item(
-        submenu, NTS_WRITE_CUSTOM_URI, NdefMenuItemCustomUri, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_CUSTOM_URI,
+        NdefMenuItemCustomUri,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
-        submenu, NTS_WRITE_UNIT_LINK, NdefMenuItemUnitLink, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_UNIT_LINK,
+        NdefMenuItemUnitLink,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
-        submenu, NTS_WRITE_SOCIAL_NETWORKS, NdefMenuItemSocial, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_SOCIAL_NETWORKS,
+        NdefMenuItemSocial,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
         submenu, NTS_WRITE_SEARCH, NdefMenuItemSearch, nfc_tools_scene_write_menu_callback, app);
     submenu_add_item(
@@ -48,30 +60,58 @@ void nfc_tools_scene_write_menu_on_enter(void* context) {
     submenu_add_item(
         submenu, NTS_WRITE_CONTACT, NdefMenuItemContact, nfc_tools_scene_write_menu_callback, app);
     submenu_add_item(
-        submenu, NTS_WRITE_PHONE_NUMBER, NdefMenuItemPhone, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_PHONE_NUMBER,
+        NdefMenuItemPhone,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
         submenu, NTS_WRITE_SMS, NdefMenuItemSms, nfc_tools_scene_write_menu_callback, app);
     submenu_add_item(
-        submenu, NTS_WRITE_FACETIME, NdefMenuItemFacetime, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_FACETIME,
+        NdefMenuItemFacetime,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
-        submenu, NTS_WRITE_FACETIME_AUDIO, NdefMenuItemFacetimeAudio, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_FACETIME_AUDIO,
+        NdefMenuItemFacetimeAudio,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
-        submenu, NTS_WRITE_LOCATION, NdefMenuItemLocation, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_LOCATION,
+        NdefMenuItemLocation,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
         submenu, NTS_WRITE_BITCOIN, NdefMenuItemBitcoin, nfc_tools_scene_write_menu_callback, app);
     submenu_add_item(
-        submenu, NTS_WRITE_BLUETOOTH, NdefMenuItemBluetooth, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_BLUETOOTH,
+        NdefMenuItemBluetooth,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
-        submenu, NTS_WRITE_WIFI_NETWORK, NdefMenuItemWifi, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_WIFI_NETWORK,
+        NdefMenuItemWifi,
+        nfc_tools_scene_write_menu_callback,
+        app);
     submenu_add_item(
-        submenu, NTS_WRITE_CUSTOM_DATA, NdefMenuItemCustomData, nfc_tools_scene_write_menu_callback, app);
+        submenu,
+        NTS_WRITE_CUSTOM_DATA,
+        NdefMenuItemCustomData,
+        nfc_tools_scene_write_menu_callback,
+        app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewMainMenu);
 }
 
 bool nfc_tools_scene_write_menu_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {

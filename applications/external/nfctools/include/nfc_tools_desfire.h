@@ -16,10 +16,7 @@ extern "C" {
 //
 // Returns true on success.
 // app->info_str contains the result message (success or error).
-bool nfc_tools_desfire_write_ndef(
-    NfcToolsApp*   app,
-    const uint8_t* ndef_data,
-    size_t         ndef_size);
+bool nfc_tools_desfire_write_ndef(NfcToolsApp* app, const uint8_t* ndef_data, size_t ndef_size);
 
 // ── NDEF Read (NFC Forum Type 4 Tag) ─────────────────────────────────────────
 // Reads the NDEF content of a DESFire tag via T4T APDUs (ISO14443-4A poller).

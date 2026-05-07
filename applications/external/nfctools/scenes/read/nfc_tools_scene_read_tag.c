@@ -16,9 +16,9 @@
 
 typedef struct {
     NfcToolsApp* app;
-    NfcPoller*   poller;
+    NfcPoller* poller;
     FuriEventFlag* done;
-    bool           success;
+    bool success;
 } Iso15693ReadCtx;
 
 static NfcCommand nfc_tools_iso15693_read_cb(NfcGenericEvent event, void* context) {
@@ -27,8 +27,7 @@ static NfcCommand nfc_tools_iso15693_read_cb(NfcGenericEvent event, void* contex
 
     if(ev->type == Iso15693_3PollerEventTypeReady) {
         NfcToolsApp* app = ctx->app;
-        const Iso15693_3Data* iso =
-            (const Iso15693_3Data*)nfc_poller_get_data(ctx->poller);
+        const Iso15693_3Data* iso = (const Iso15693_3Data*)nfc_poller_get_data(ctx->poller);
 
         // UID (8 bytes, most significant byte first in the SDK array)
         app->uid_len = ISO15693_3_UID_SIZE;
@@ -36,7 +35,7 @@ static NfcCommand nfc_tools_iso15693_read_cb(NfcGenericEvent event, void* contex
 
         // Memory info
         app->iso15693_block_count = iso15693_3_get_block_count(iso);
-        app->iso15693_block_size  = iso15693_3_get_block_size(iso);
+        app->iso15693_block_size = iso15693_3_get_block_size(iso);
 
         // IC Reference (enables precise SLI model identification)
         app->iso15693_ic_ref = iso->system_info.ic_ref;
@@ -44,10 +43,10 @@ static NfcCommand nfc_tools_iso15693_read_cb(NfcGenericEvent event, void* contex
         // NDEF ICODE read: block 0 = CC (factory, often locked).
         // The NDEF TLV starts at block 1 (NFC Forum T5T).
         if(app->iso15693_block_count > 1 && app->iso15693_block_size > 0) {
-            uint16_t bc  = app->iso15693_block_count;
-            uint8_t  bs  = app->iso15693_block_size;
+            uint16_t bc = app->iso15693_block_count;
+            uint8_t bs = app->iso15693_block_size;
             uint16_t start = 1; // skip the CC at block 0
-            size_t   len = (size_t)(bc - start) * bs;
+            size_t len = (size_t)(bc - start) * bs;
             uint8_t* buf = malloc(len);
             if(buf) {
                 for(uint16_t b = start; b < bc; b++) {
@@ -69,10 +68,10 @@ static NfcCommand nfc_tools_iso15693_read_cb(NfcGenericEvent event, void* contex
 // ── Callback + contexte DESFire ─────────────────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
-    NfcPoller*     poller;
+    NfcToolsApp* app;
+    NfcPoller* poller;
     FuriEventFlag* done;
-    bool           success;
+    bool success;
 } DesfireReadCtx;
 
 static NfcCommand nfc_tools_desfire_read_cb(NfcGenericEvent event, void* context) {
@@ -94,12 +93,12 @@ static NfcCommand nfc_tools_desfire_read_cb(NfcGenericEvent event, void* context
 
         // Free memory
         app->desfire_has_free_memory = d->free_memory.is_present;
-        app->desfire_free_memory     = d->free_memory.bytes_free;
+        app->desfire_free_memory = d->free_memory.bytes_free;
 
         // Nombre d'applications
         app->desfire_app_count = simple_array_get_count(d->application_ids);
 
-        app->sak     = 0;
+        app->sak = 0;
         app->atqa[0] = app->atqa[1] = 0;
 
         ctx->success = true;
@@ -112,24 +111,23 @@ static NfcCommand nfc_tools_desfire_read_cb(NfcGenericEvent event, void* context
 // ── Callback + contexte FeliCa ──────────────────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
-    NfcPoller*     poller;
+    NfcToolsApp* app;
+    NfcPoller* poller;
     FuriEventFlag* done;
-    bool           success;
+    bool success;
 } FelicaReadCtx;
 
 static NfcCommand nfc_tools_felica_read_cb(NfcGenericEvent event, void* context) {
-    FelicaReadCtx*     ctx = context;
-    FelicaPollerEvent* ev  = event.event_data;
+    FelicaReadCtx* ctx = context;
+    FelicaPollerEvent* ev = event.event_data;
 
     if(ev->type == FelicaPollerEventTypeRequestAuthContext) {
         ev->data->auth_context->skip_auth = true;
         return NfcCommandContinue;
     }
 
-    if(ev->type == FelicaPollerEventTypeReady ||
-       ev->type == FelicaPollerEventTypeIncomplete) {
-        NfcToolsApp*      app    = ctx->app;
+    if(ev->type == FelicaPollerEventTypeReady || ev->type == FelicaPollerEventTypeIncomplete) {
+        NfcToolsApp* app = ctx->app;
         const FelicaData* felica = (const FelicaData*)nfc_poller_get_data(ctx->poller);
 
         // IDm → UID
@@ -148,10 +146,10 @@ static NfcCommand nfc_tools_felica_read_cb(NfcGenericEvent event, void* context)
         furi_string_free(ic_str);
 
         // Blocs
-        app->felica_blocks_read    = felica->blocks_read;
-        app->felica_blocks_total   = felica->blocks_total;
-        app->felica_workflow_type  = felica->workflow_type;
-        app->sak                   = 0;
+        app->felica_blocks_read = felica->blocks_read;
+        app->felica_blocks_total = felica->blocks_total;
+        app->felica_workflow_type = felica->workflow_type;
+        app->sak = 0;
         app->atqa[0] = app->atqa[1] = 0;
 
         ctx->success = true;
@@ -200,31 +198,32 @@ static int32_t nfc_tools_read_worker(void* context) {
     }
 
     // Reset ISO 15693 fields + MfUltralight version + NDEF records
-    app->iso15693_block_count  = 0;
-    app->iso15693_block_size   = 0;
-    app->iso15693_ic_ref       = 0;
-    app->mful_version_valid    = false;
-    app->ndef_record_count     = 0;
-    app->ndef_selected_record  = 0;
+    app->iso15693_block_count = 0;
+    app->iso15693_block_size = 0;
+    app->iso15693_ic_ref = 0;
+    app->mful_version_valid = false;
+    app->ndef_record_count = 0;
+    app->ndef_selected_record = 0;
     furi_string_reset(app->ndef_str);
 
-    bool is_iso15693 = (app->detected_protocol == NfcProtocolIso15693_3 ||
-                        app->detected_protocol == NfcProtocolSlix);
-    bool is_desfire  = (app->detected_protocol == NfcProtocolMfDesfire);
-    bool is_felica   = (app->detected_protocol == NfcProtocolFelica);
+    bool is_iso15693 =
+        (app->detected_protocol == NfcProtocolIso15693_3 ||
+         app->detected_protocol == NfcProtocolSlix);
+    bool is_desfire = (app->detected_protocol == NfcProtocolMfDesfire);
+    bool is_felica = (app->detected_protocol == NfcProtocolFelica);
     bool ok = false;
 
     if(is_iso15693) {
         // ── Phase 2b : lecture ISO 15693 via NfcPoller ──────────────────────
         if(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP) return 0;
 
-        app->uid_len    = 0;
-        app->sak        = 0;
-        app->atqa[0]    = app->atqa[1] = 0;
+        app->uid_len = 0;
+        app->sak = 0;
+        app->atqa[0] = app->atqa[1] = 0;
 
         Iso15693ReadCtx iso_ctx = {
-            .app     = app,
-            .done    = furi_event_flag_alloc(),
+            .app = app,
+            .done = furi_event_flag_alloc(),
             .success = false,
         };
         iso_ctx.poller = nfc_poller_alloc(app->nfc, NfcProtocolIso15693_3);
@@ -242,12 +241,12 @@ static int32_t nfc_tools_read_worker(void* context) {
         if(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP) return 0;
 
         app->uid_len = 0;
-        app->sak     = 0;
+        app->sak = 0;
         app->atqa[0] = app->atqa[1] = 0;
 
         DesfireReadCtx desfire_ctx = {
-            .app     = app,
-            .done    = furi_event_flag_alloc(),
+            .app = app,
+            .done = furi_event_flag_alloc(),
             .success = false,
         };
         desfire_ctx.poller = nfc_poller_alloc(app->nfc, NfcProtocolMfDesfire);
@@ -272,13 +271,13 @@ static int32_t nfc_tools_read_worker(void* context) {
         if(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP) return 0;
 
         app->uid_len = 0;
-        app->sak     = 0;
+        app->sak = 0;
         app->atqa[0] = app->atqa[1] = 0;
         furi_string_reset(app->ndef_str);
 
         FelicaReadCtx felica_ctx = {
-            .app     = app,
-            .done    = furi_event_flag_alloc(),
+            .app = app,
+            .done = furi_event_flag_alloc(),
             .success = false,
         };
         felica_ctx.poller = nfc_poller_alloc(app->nfc, NfcProtocolFelica);
@@ -299,10 +298,8 @@ static int32_t nfc_tools_read_worker(void* context) {
         ok = nfc_poller_detect(iso_poller);
 
         if(ok) {
-            const Iso14443_3aData* iso =
-                (const Iso14443_3aData*)nfc_poller_get_data(iso_poller);
-            app->uid_len =
-                iso->uid_len < sizeof(app->uid) ? iso->uid_len : sizeof(app->uid);
+            const Iso14443_3aData* iso = (const Iso14443_3aData*)nfc_poller_get_data(iso_poller);
+            app->uid_len = iso->uid_len < sizeof(app->uid) ? iso->uid_len : sizeof(app->uid);
             memcpy(app->uid, iso->uid, app->uid_len);
             app->sak = iso->sak;
             memcpy(app->atqa, iso->atqa, sizeof(app->atqa));
@@ -316,9 +313,9 @@ static int32_t nfc_tools_read_worker(void* context) {
                     app->mfc_type = MfClassicType1k;
             }
         } else {
-            app->uid_len    = 0;
-            app->sak        = 0;
-            app->atqa[0]    = app->atqa[1] = 0;
+            app->uid_len = 0;
+            app->sak = 0;
+            app->atqa[0] = app->atqa[1] = 0;
         }
         nfc_poller_free(iso_poller);
 
@@ -329,11 +326,11 @@ static int32_t nfc_tools_read_worker(void* context) {
             MfUltralightVersion version = {};
             if(mf_ultralight_poller_sync_read_version(app->nfc, &version) ==
                MfUltralightErrorNone) {
-                app->mful_type          = mf_ultralight_get_type_by_version(&version);
-                app->mful_version       = version;
+                app->mful_type = mf_ultralight_get_type_by_version(&version);
+                app->mful_version = version;
                 app->mful_version_valid = true;
             } else {
-                app->mful_type          = MfUltralightTypeOrigin;
+                app->mful_type = MfUltralightTypeOrigin;
                 app->mful_version_valid = false;
             }
 
@@ -344,12 +341,13 @@ static int32_t nfc_tools_read_worker(void* context) {
                    MfUltralightErrorNone &&
                mful->pages_read > 4) {
                 size_t user_pages = mful->pages_read - 4;
-                size_t data_len   = user_pages * MF_ULTRALIGHT_PAGE_SIZE;
-                uint8_t* data     = malloc(data_len);
+                size_t data_len = user_pages * MF_ULTRALIGHT_PAGE_SIZE;
+                uint8_t* data = malloc(data_len);
                 for(size_t p = 0; p < user_pages; p++) {
-                    memcpy(data + p * MF_ULTRALIGHT_PAGE_SIZE,
-                           mful->page[4 + p].data,
-                           MF_ULTRALIGHT_PAGE_SIZE);
+                    memcpy(
+                        data + p * MF_ULTRALIGHT_PAGE_SIZE,
+                        mful->page[4 + p].data,
+                        MF_ULTRALIGHT_PAGE_SIZE);
                 }
                 nfc_tools_ndef_parse_type2_tag(data, data_len, app->ndef_str);
                 nfc_tools_ndef_parse_type2_tag_structured(app, data, data_len);
@@ -418,10 +416,8 @@ bool nfc_tools_scene_read_tag_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(app->scene_manager, app->scan_destination);
             consumed = true;
         } else if(event.event == NfcToolsEventScanTimeout) {
-            popup_set_header(
-                app->popup, NTS_ERR_NO_TAG, 64, 10, AlignCenter, AlignCenter);
-            popup_set_text(
-                app->popup, NTS_POPUP_BACK_TO_RETURN, 64, 40, AlignCenter, AlignCenter);
+            popup_set_header(app->popup, NTS_ERR_NO_TAG, 64, 10, AlignCenter, AlignCenter);
+            popup_set_text(app->popup, NTS_POPUP_BACK_TO_RETURN, 64, 40, AlignCenter, AlignCenter);
             consumed = true;
         }
     }

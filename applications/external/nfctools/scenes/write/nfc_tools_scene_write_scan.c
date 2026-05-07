@@ -51,11 +51,12 @@ static int32_t nfc_tools_ndef_write_worker(void* context) {
     }
 
     // Phase 3: verify that the tag is supported
-    bool is_mful     = (app->detected_protocol == NfcProtocolMfUltralight);
-    bool is_iso15693 = (app->detected_protocol == NfcProtocolIso15693_3 ||
-                        app->detected_protocol == NfcProtocolSlix);
-    bool is_mfc      = (app->detected_protocol == NfcProtocolMfClassic);
-    bool is_desfire  = (app->detected_protocol == NfcProtocolMfDesfire);
+    bool is_mful = (app->detected_protocol == NfcProtocolMfUltralight);
+    bool is_iso15693 =
+        (app->detected_protocol == NfcProtocolIso15693_3 ||
+         app->detected_protocol == NfcProtocolSlix);
+    bool is_mfc = (app->detected_protocol == NfcProtocolMfClassic);
+    bool is_desfire = (app->detected_protocol == NfcProtocolMfDesfire);
 
     if(!is_mful && !is_iso15693 && !is_mfc && !is_desfire) {
         free(ndef);
@@ -223,13 +224,8 @@ void nfc_tools_scene_write_scan_on_enter(void* context) {
 
     popup_reset(app->popup);
     popup_set_header(
-        app->popup,
-        nfc_tools_ndef_write_label(app->ndef_type),
-        64, 10, AlignCenter, AlignCenter);
-    popup_set_text(
-        app->popup,
-        NTS_POPUP_APPROACH_TAG,
-        64, 35, AlignCenter, AlignCenter);
+        app->popup, nfc_tools_ndef_write_label(app->ndef_type), 64, 10, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, NTS_POPUP_APPROACH_TAG, 64, 35, AlignCenter, AlignCenter);
 
     furi_string_reset(app->info_str);
 
@@ -247,24 +243,15 @@ bool nfc_tools_scene_write_scan_on_event(void* context, SceneManagerEvent event)
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == NfcToolsEventWriteSuccess) {
-            popup_set_header(app->popup, NTS_STATUS_WRITE_COMPLETE, 64, 10, AlignCenter, AlignCenter);
+            popup_set_header(
+                app->popup, NTS_STATUS_WRITE_COMPLETE, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64,
-                35,
-                AlignCenter,
-                AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         } else if(event.event == NfcToolsEventWriteFail) {
             popup_set_header(app->popup, NTS_ERR_FAILED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64,
-                35,
-                AlignCenter,
-                AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         }
     }

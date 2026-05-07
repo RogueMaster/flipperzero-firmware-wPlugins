@@ -18,10 +18,7 @@
 // CONFIG_DEFAULT_PWD    = { 0xFF, 0xFF, 0xFF, 0xFF }  ← used for auth
 // PASSWORD = MD5(text)[0..3]
 
-static bool ntag21x_get_pages(
-    MfUltralightType type,
-    uint8_t*         cfg_page,
-    uint8_t*         pwd_page) {
+static bool ntag21x_get_pages(MfUltralightType type, uint8_t* cfg_page, uint8_t* pwd_page) {
     switch(type) {
     case MfUltralightTypeNTAG213:
         *cfg_page = 0x29;
@@ -43,11 +40,11 @@ static bool ntag21x_get_pages(
 // ── Write callback context ────────────────────────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
+    NfcToolsApp* app;
     FuriEventFlag* done;
-    bool           success;
-    uint8_t        pwd_bytes[4]; // pre-computed MD5[0..3]
-    char           err[80];      // error message
+    bool success;
+    uint8_t pwd_bytes[4]; // pre-computed MD5[0..3]
+    char err[80]; // error message
 } SetPasswordWriteCtx;
 
 // ── nfc_poller_start_ex callback ─────────────────────────────────────────────
@@ -59,8 +56,8 @@ typedef struct {
 //   4. Write PASSWORD page
 
 static NfcCommand nfc_tools_set_password_write_cb(NfcGenericEventEx event, void* context) {
-    SetPasswordWriteCtx*    ctx    = context;
-    MfUltralightPoller*     mfu    = (MfUltralightPoller*)event.poller;
+    SetPasswordWriteCtx* ctx = context;
+    MfUltralightPoller* mfu = (MfUltralightPoller*)event.poller;
     Iso14443_3aPollerEvent* iso_ev = (Iso14443_3aPollerEvent*)event.parent_event_data;
 
     if(iso_ev->type != Iso14443_3aPollerEventTypeReady) {
@@ -71,7 +68,7 @@ static NfcCommand nfc_tools_set_password_write_cb(NfcGenericEventEx event, void*
 
     // ── Step 1: identify type via GET_VERSION ────────────────────────────────
     MfUltralightVersion version = {};
-    MfUltralightType    type    = MfUltralightTypeOrigin;
+    MfUltralightType type = MfUltralightTypeOrigin;
     if(mf_ultralight_poller_read_version(mfu, &version) == MfUltralightErrorNone) {
         type = mf_ultralight_get_type_by_version(&version);
     }
@@ -89,7 +86,7 @@ static NfcCommand nfc_tools_set_password_write_cb(NfcGenericEventEx event, void*
     auth.password.data[1] = 0xFF;
     auth.password.data[2] = 0xFF;
     auth.password.data[3] = 0xFF;
-    auth.skip_auth        = false;
+    auth.skip_auth = false;
 
     MfUltralightError auth_err = mf_ultralight_poller_auth_pwd(mfu, &auth);
     if(auth_err != MfUltralightErrorNone) {
@@ -106,7 +103,8 @@ static NfcCommand nfc_tools_set_password_write_cb(NfcGenericEventEx event, void*
     const MfUltralightPage cfg_data = {.data = {0x04, 0x00, 0x00, 0x00}};
     MfUltralightError err = mf_ultralight_poller_write_page(mfu, cfg_page, &cfg_data);
     if(err != MfUltralightErrorNone) {
-        snprintf(ctx->err, sizeof(ctx->err), "Config error\npage 0x%02X (err:%d)", cfg_page, (int)err);
+        snprintf(
+            ctx->err, sizeof(ctx->err), "Config error\npage 0x%02X (err:%d)", cfg_page, (int)err);
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
     }
@@ -116,7 +114,8 @@ static NfcCommand nfc_tools_set_password_write_cb(NfcGenericEventEx event, void*
         .data = {ctx->pwd_bytes[0], ctx->pwd_bytes[1], ctx->pwd_bytes[2], ctx->pwd_bytes[3]}};
     err = mf_ultralight_poller_write_page(mfu, pwd_page, &pwd_data);
     if(err != MfUltralightErrorNone) {
-        snprintf(ctx->err, sizeof(ctx->err), "Password error\npage 0x%02X (err:%d)", pwd_page, (int)err);
+        snprintf(
+            ctx->err, sizeof(ctx->err), "Password error\npage 0x%02X (err:%d)", pwd_page, (int)err);
         furi_event_flag_set(ctx->done, 1u);
         return NfcCommandStop;
     }
@@ -178,19 +177,16 @@ static int32_t nfc_tools_set_password_worker(void* context) {
 
     // ── Phase 3: pre-compute MD5(password)[0..3] ─────────────────────────────
     uint8_t md5_digest[16];
-    nfc_tools_md5(
-        (const uint8_t*)app->ndef_buf1,
-        strlen(app->ndef_buf1),
-        md5_digest);
+    nfc_tools_md5((const uint8_t*)app->ndef_buf1, strlen(app->ndef_buf1), md5_digest);
 
     // ── Phase 4: auth + write in a single RF session ─────────────────────────
     // nfc_poller_start_ex allows using the low-level MfUltralight poller API
     // (auth_pwd, write_page) within a single callback.
 
     SetPasswordWriteCtx write_ctx = {};
-    write_ctx.app       = app;
-    write_ctx.done      = furi_event_flag_alloc();
-    write_ctx.success   = false;
+    write_ctx.app = app;
+    write_ctx.done = furi_event_flag_alloc();
+    write_ctx.success = false;
     write_ctx.pwd_bytes[0] = md5_digest[0];
     write_ctx.pwd_bytes[1] = md5_digest[1];
     write_ctx.pwd_bytes[2] = md5_digest[2];
@@ -212,7 +208,10 @@ static int32_t nfc_tools_set_password_worker(void* context) {
         furi_string_printf(
             app->info_str,
             "Password set!\nMD5: %02X%02X%02X%02X\nBack to exit",
-            md5_digest[0], md5_digest[1], md5_digest[2], md5_digest[3]);
+            md5_digest[0],
+            md5_digest[1],
+            md5_digest[2],
+            md5_digest[3]);
         view_dispatcher_send_custom_event(app->view_dispatcher, NfcToolsEventWriteSuccess);
     } else {
         notification_message(app->notifications, &sequence_error);
@@ -232,7 +231,7 @@ static void nfc_tools_set_password_stop_worker(NfcToolsApp* app) {
         furi_thread_free(app->worker_thread);
         furi_event_flag_free(app->worker_flags);
         app->worker_thread = NULL;
-        app->worker_flags  = NULL;
+        app->worker_flags = NULL;
     }
 }
 
@@ -243,40 +242,33 @@ void nfc_tools_scene_set_password_write_on_enter(void* context) {
 
     popup_reset(app->popup);
     popup_set_header(app->popup, NTS_POPUP_SET_PASSWORD, 64, 10, AlignCenter, AlignCenter);
-    popup_set_text(
-        app->popup,
-        NTS_POPUP_APPROACH_NTAG,
-        64, 35, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, NTS_POPUP_APPROACH_NTAG, 64, 35, AlignCenter, AlignCenter);
 
     furi_string_reset(app->info_str);
 
     app->worker_flags = furi_event_flag_alloc();
-    app->worker_thread = furi_thread_alloc_ex(
-        "NfcToolsSetPwd", 2 * 1024, nfc_tools_set_password_worker, app);
+    app->worker_thread =
+        furi_thread_alloc_ex("NfcToolsSetPwd", 2 * 1024, nfc_tools_set_password_worker, app);
     furi_thread_start(app->worker_thread);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewPopup);
 }
 
 bool nfc_tools_scene_set_password_write_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == NfcToolsEventWriteSuccess) {
             popup_set_header(
                 app->popup, NTS_STATUS_PASSWORD_SET, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 32, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 32, AlignCenter, AlignCenter);
             consumed = true;
         } else if(event.event == NfcToolsEventWriteFail) {
             popup_set_header(app->popup, NTS_ERR_FAILED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 32, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 32, AlignCenter, AlignCenter);
             consumed = true;
         }
     }

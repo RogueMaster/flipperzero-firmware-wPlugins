@@ -5,8 +5,8 @@
 // Ex : "0600112233445566778899AABBCCDDEEFF" → bloc 6
 
 static bool felica_parse_input(NfcToolsApp* app) {
-    const char* s   = app->ndef_buf1;
-    size_t      len = strlen(s);
+    const char* s = app->ndef_buf1;
+    size_t len = strlen(s);
 
     if(len != 34) return false;
 
@@ -20,9 +20,8 @@ static bool felica_parse_input(NfcToolsApp* app) {
     // 32 hex chars (case-insensitive)
     for(size_t i = 2; i < 34; i++) {
         char c = s[i];
-        if(!((c >= '0' && c <= '9') ||
-             (c >= 'A' && c <= 'F') ||
-             (c >= 'a' && c <= 'f'))) return false;
+        if(!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+            return false;
     }
 
     app->felica_write_block = block;
@@ -72,9 +71,9 @@ bool nfc_tools_scene_felica_write_input_on_event(void* context, SceneManagerEven
             // Format invalide → popup d'erreur qui revient sur la saisie
             const char* err = (app->ndef_buf1[0] >= '0' && app->ndef_buf1[0] <= '9' &&
                                app->ndef_buf1[1] >= '0' && app->ndef_buf1[1] <= '9' &&
-                               (app->ndef_buf1[0] - '0') * 10 + (app->ndef_buf1[1] - '0') > 13)
-                                  ? NTS_ERR_FELICA_BLOCK_RANGE
-                                  : NTS_ERR_FELICA_FORMAT;
+                               (app->ndef_buf1[0] - '0') * 10 + (app->ndef_buf1[1] - '0') > 13) ?
+                                  NTS_ERR_FELICA_BLOCK_RANGE :
+                                  NTS_ERR_FELICA_FORMAT;
             popup_reset(app->popup);
             popup_set_header(app->popup, err, 64, 22, AlignCenter, AlignCenter);
             popup_set_timeout(app->popup, 2000);

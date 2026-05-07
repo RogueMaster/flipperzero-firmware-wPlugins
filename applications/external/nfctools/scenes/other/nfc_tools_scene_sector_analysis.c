@@ -12,28 +12,28 @@
 // ── Callback FeliCa pour dump des blocs S_PAD ──────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
-    NfcPoller*     poller;
+    NfcToolsApp* app;
+    NfcPoller* poller;
     FuriEventFlag* done;
-    bool           success;
+    bool success;
 } FelicaSectorCtx;
 
 static NfcCommand nfc_tools_felica_sector_cb(NfcGenericEvent event, void* context) {
-    FelicaSectorCtx*   ctx = context;
-    FelicaPollerEvent* ev  = event.event_data;
+    FelicaSectorCtx* ctx = context;
+    FelicaPollerEvent* ev = event.event_data;
 
     if(ev->type == FelicaPollerEventTypeRequestAuthContext) {
         ev->data->auth_context->skip_auth = true;
         return NfcCommandContinue;
     }
 
-    if(ev->type == FelicaPollerEventTypeReady ||
-       ev->type == FelicaPollerEventTypeIncomplete) {
-        NfcToolsApp*      app    = ctx->app;
+    if(ev->type == FelicaPollerEventTypeReady || ev->type == FelicaPollerEventTypeIncomplete) {
+        NfcToolsApp* app = ctx->app;
         const FelicaData* felica = (const FelicaData*)nfc_poller_get_data(ctx->poller);
 
-        const char* wf = (felica->workflow_type == FelicaLite) ? "Lite" :
-                         (felica->workflow_type == FelicaStandard) ? "Standard" : "Unknown";
+        const char* wf = (felica->workflow_type == FelicaLite)     ? "Lite" :
+                         (felica->workflow_type == FelicaStandard) ? "Standard" :
+                                                                     "Unknown";
         furi_string_cat_printf(
             app->info_str,
             "FeliCa %s\nBlocks: %u/%u\n\n",
@@ -69,8 +69,7 @@ static NfcCommand nfc_tools_felica_sector_cb(NfcGenericEvent event, void* contex
                 for(uint8_t j = 0; j < 16; j++) {
                     if(j == 8) furi_string_cat_str(app->ndef_str, "\n     ");
                     char c = (char)blk->data[j];
-                    furi_string_cat_printf(app->ndef_str, "%c",
-                        (c >= 32 && c < 127) ? c : '.');
+                    furi_string_cat_printf(app->ndef_str, "%c", (c >= 32 && c < 127) ? c : '.');
                 }
             } else {
                 furi_string_cat_str(app->ndef_str, " (locked)");
@@ -90,10 +89,10 @@ static NfcCommand nfc_tools_felica_sector_cb(NfcGenericEvent event, void* contex
 // ── Callback DESFire pour dump applications / fichiers ──────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
-    NfcPoller*     poller;
+    NfcToolsApp* app;
+    NfcPoller* poller;
     FuriEventFlag* done;
-    bool           success;
+    bool success;
 } DesfireSectorCtx;
 
 static NfcCommand nfc_tools_desfire_sector_cb(NfcGenericEvent event, void* context) {
@@ -101,38 +100,41 @@ static NfcCommand nfc_tools_desfire_sector_cb(NfcGenericEvent event, void* conte
     const MfDesfirePollerEvent* ev = event.event_data;
 
     if(ev->type == MfDesfirePollerEventTypeReadSuccess) {
-        NfcToolsApp*        app  = ctx->app;
-        const MfDesfireData* d   = (const MfDesfireData*)nfc_poller_get_data(ctx->poller);
+        NfcToolsApp* app = ctx->app;
+        const MfDesfireData* d = (const MfDesfireData*)nfc_poller_get_data(ctx->poller);
 
         uint32_t app_count = simple_array_get_count(d->application_ids);
 
         const char* type_str;
         switch(d->version.hw_major) {
-        case 0x01: type_str = "EV1";    break;
-        case 0x12: type_str = "EV2";    break;
-        case 0x22: type_str = "EV2 XL"; break;
-        case 0x33: type_str = "EV3";    break;
-        default:   type_str = "MF3ICD40"; break;
+        case 0x01:
+            type_str = "EV1";
+            break;
+        case 0x12:
+            type_str = "EV2";
+            break;
+        case 0x22:
+            type_str = "EV2 XL";
+            break;
+        case 0x33:
+            type_str = "EV3";
+            break;
+        default:
+            type_str = "MF3ICD40";
+            break;
         }
         furi_string_cat_printf(app->info_str, "DESFire %s\n", type_str);
         if(d->free_memory.is_present) {
             furi_string_cat_printf(
-                app->info_str,
-                "Free: %lu bytes\n",
-                (unsigned long)d->free_memory.bytes_free);
+                app->info_str, "Free: %lu bytes\n", (unsigned long)d->free_memory.bytes_free);
         }
-        furi_string_cat_printf(
-            app->info_str, "%lu application(s)\n\n", (unsigned long)app_count);
+        furi_string_cat_printf(app->info_str, "%lu application(s)\n\n", (unsigned long)app_count);
 
         for(uint32_t i = 0; i < app_count; i++) {
             const MfDesfireApplicationId* aid =
                 (const MfDesfireApplicationId*)simple_array_cget(d->application_ids, i);
             furi_string_cat_printf(
-                app->info_str,
-                "AID: %02X %02X %02X\n",
-                aid->data[0],
-                aid->data[1],
-                aid->data[2]);
+                app->info_str, "AID: %02X %02X %02X\n", aid->data[0], aid->data[1], aid->data[2]);
 
             const MfDesfireApplication* desfire_app = mf_desfire_get_application(d, aid);
             if(desfire_app) {
@@ -149,13 +151,27 @@ static NfcCommand nfc_tools_desfire_sector_cb(NfcGenericEvent event, void* conte
                     if(fs) {
                         const char* ftype;
                         switch(fs->type) {
-                        case MfDesfireFileTypeStandard:       ftype = "Std";  break;
-                        case MfDesfireFileTypeBackup:         ftype = "Bak";  break;
-                        case MfDesfireFileTypeValue:          ftype = "Val";  break;
-                        case MfDesfireFileTypeLinearRecord:   ftype = "LRec"; break;
-                        case MfDesfireFileTypeCyclicRecord:   ftype = "CRec"; break;
-                        case MfDesfireFileTypeTransactionMac: ftype = "TMac"; break;
-                        default:                              ftype = "?";    break;
+                        case MfDesfireFileTypeStandard:
+                            ftype = "Std";
+                            break;
+                        case MfDesfireFileTypeBackup:
+                            ftype = "Bak";
+                            break;
+                        case MfDesfireFileTypeValue:
+                            ftype = "Val";
+                            break;
+                        case MfDesfireFileTypeLinearRecord:
+                            ftype = "LRec";
+                            break;
+                        case MfDesfireFileTypeCyclicRecord:
+                            ftype = "CRec";
+                            break;
+                        case MfDesfireFileTypeTransactionMac:
+                            ftype = "TMac";
+                            break;
+                        default:
+                            ftype = "?";
+                            break;
                         }
 
                         if(fs->type == MfDesfireFileTypeStandard ||
@@ -166,8 +182,9 @@ static NfcCommand nfc_tools_desfire_sector_cb(NfcGenericEvent event, void* conte
                                 (unsigned)*fid,
                                 ftype,
                                 (unsigned long)fs->data.size);
-                        } else if(fs->type == MfDesfireFileTypeLinearRecord ||
-                                  fs->type == MfDesfireFileTypeCyclicRecord) {
+                        } else if(
+                            fs->type == MfDesfireFileTypeLinearRecord ||
+                            fs->type == MfDesfireFileTypeCyclicRecord) {
                             furi_string_cat_printf(
                                 app->info_str,
                                 "  F%02X %s sz:%lu max:%lu\n",
@@ -180,8 +197,7 @@ static NfcCommand nfc_tools_desfire_sector_cb(NfcGenericEvent event, void* conte
                                 app->info_str, "  F%02X %s\n", (unsigned)*fid, ftype);
                         }
                     } else {
-                        furi_string_cat_printf(
-                            app->info_str, "  F%02X\n", (unsigned)*fid);
+                        furi_string_cat_printf(app->info_str, "  F%02X\n", (unsigned)*fid);
                     }
                 }
             }
@@ -207,13 +223,14 @@ static int32_t nfc_tools_sector_worker(void* context) {
     if(app->detected_protocol == NfcProtocolMfClassic) {
         nfc_tools_mfc_dump(app);
 
-    // ── MF Ultralight / NTAG ────────────────────────────────────────────────
+        // ── MF Ultralight / NTAG ────────────────────────────────────────────────
     } else if(app->detected_protocol == NfcProtocolMfUltralight) {
         nfc_tools_ntag_dump(app);
 
-    // ── ISO 15693 (ICODE SLI / SLIX / SLIX2) ────────────────────────────────
-    } else if(app->detected_protocol == NfcProtocolIso15693_3 ||
-              app->detected_protocol == NfcProtocolSlix) {
+        // ── ISO 15693 (ICODE SLI / SLIX / SLIX2) ────────────────────────────────
+    } else if(
+        app->detected_protocol == NfcProtocolIso15693_3 ||
+        app->detected_protocol == NfcProtocolSlix) {
         bool ok = nfc_tools_icode_dump(app);
         if(!ok) {
             notification_message(app->notifications, &sequence_error);
@@ -221,12 +238,11 @@ static int32_t nfc_tools_sector_worker(void* context) {
             return 0;
         }
 
-    // ── DESFire EV1 / EV2 / EV3 ────────────────────────────────────────────
+        // ── DESFire EV1 / EV2 / EV3 ────────────────────────────────────────────
     } else if(app->detected_protocol == NfcProtocolMfDesfire) {
-
         DesfireSectorCtx desfire_ctx = {
-            .app     = app,
-            .done    = furi_event_flag_alloc(),
+            .app = app,
+            .done = furi_event_flag_alloc(),
             .success = false,
         };
         desfire_ctx.poller = nfc_poller_alloc(app->nfc, NfcProtocolMfDesfire);
@@ -244,12 +260,11 @@ static int32_t nfc_tools_sector_worker(void* context) {
             return 0;
         }
 
-    // ── FeliCa (ISO 18092 / NFC-F) ──────────────────────────────────────────
+        // ── FeliCa (ISO 18092 / NFC-F) ──────────────────────────────────────────
     } else if(app->detected_protocol == NfcProtocolFelica) {
-
         FelicaSectorCtx felica_ctx = {
-            .app     = app,
-            .done    = furi_event_flag_alloc(),
+            .app = app,
+            .done = furi_event_flag_alloc(),
             .success = false,
         };
         felica_ctx.poller = nfc_poller_alloc(app->nfc, NfcProtocolFelica);
@@ -267,7 +282,7 @@ static int32_t nfc_tools_sector_worker(void* context) {
             return 0;
         }
 
-    // ── Unsupported protocol ────────────────────────────────────────────────
+        // ── Unsupported protocol ────────────────────────────────────────────────
     } else {
         furi_string_cat_printf(
             app->info_str,
@@ -310,14 +325,9 @@ static void nfc_tools_sector_ascii_btn_cb(GuiButtonType result, InputType type, 
 static void nfc_tools_sector_show_hex(NfcToolsApp* app) {
     widget_reset(app->widget);
     widget_add_text_scroll_element(
-        app->widget, 0, 0, 128, 52,
-        furi_string_get_cstr(app->info_str));
+        app->widget, 0, 0, 128, 52, furi_string_get_cstr(app->info_str));
     widget_add_button_element(
-        app->widget,
-        GuiButtonTypeRight,
-        NTS_BTN_ASCII,
-        nfc_tools_sector_ascii_btn_cb,
-        app);
+        app->widget, GuiButtonTypeRight, NTS_BTN_ASCII, nfc_tools_sector_ascii_btn_cb, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewWidget);
 }
 
@@ -330,12 +340,11 @@ void nfc_tools_scene_sector_analysis_on_enter(void* context) {
 
     popup_reset(app->popup);
     popup_set_header(app->popup, NTS_POPUP_ANALYZING, 64, 10, AlignCenter, AlignCenter);
-    popup_set_text(
-        app->popup, NTS_POPUP_HOLD_TAG, 64, 38, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, NTS_POPUP_HOLD_TAG, 64, 38, AlignCenter, AlignCenter);
 
     app->worker_flags = furi_event_flag_alloc();
-    app->worker_thread = furi_thread_alloc_ex(
-        "NfcToolsSector", 2 * 1024, nfc_tools_sector_worker, app);
+    app->worker_thread =
+        furi_thread_alloc_ex("NfcToolsSector", 2 * 1024, nfc_tools_sector_worker, app);
     furi_thread_start(app->worker_thread);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewPopup);

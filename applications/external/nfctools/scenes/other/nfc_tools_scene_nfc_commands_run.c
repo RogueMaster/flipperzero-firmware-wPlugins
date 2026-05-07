@@ -27,11 +27,15 @@ static int hex_parse(const char* s, uint8_t* out, size_t max_out) {
     size_t count = 0;
     while(*s) {
         // Skip spaces
-        if(*s == ' ' || *s == '\t') { s++; continue; }
+        if(*s == ' ' || *s == '\t') {
+            s++;
+            continue;
+        }
         int hi = hex_nibble(*s++);
         if(hi < 0 || !*s) return -1;
         // Skip spaces between bytes
-        while(*s == ' ' || *s == '\t') s++;
+        while(*s == ' ' || *s == '\t')
+            s++;
         int lo = hex_nibble(*s++);
         if(lo < 0) return -1;
         if(count >= max_out) return -1;
@@ -43,21 +47,21 @@ static int hex_parse(const char* s, uint8_t* out, size_t max_out) {
 // ── Shared context ────────────────────────────────────────────────────────────
 
 typedef struct {
-    NfcToolsApp*   app;
+    NfcToolsApp* app;
     FuriEventFlag* done;
     const uint8_t* cmd;
-    size_t         cmd_len;
-    uint8_t        rsp[258]; // raw response (max APDU + 2 SW bytes)
-    size_t         rsp_len;
-    bool           success;
-    char           err[80];
+    size_t cmd_len;
+    uint8_t rsp[258]; // raw response (max APDU + 2 SW bytes)
+    size_t rsp_len;
+    bool success;
+    char err[80];
 } NfcCommandsCtx;
 
 // ── Callback ISO 14443-4A ─────────────────────────────────────────────────────
 
 static NfcCommand nfc_commands_iso4a_cb(NfcGenericEvent event, void* context) {
-    NfcCommandsCtx*         ctx = context;
-    Iso14443_4aPollerEvent* ev  = event.event_data;
+    NfcCommandsCtx* ctx = context;
+    Iso14443_4aPollerEvent* ev = event.event_data;
 
     if(ev->type != Iso14443_4aPollerEventTypeReady) {
         strlcpy(ctx->err, "Tag contact error", sizeof(ctx->err));
@@ -92,8 +96,8 @@ static NfcCommand nfc_commands_iso4a_cb(NfcGenericEvent event, void* context) {
 // ── Callback ISO 14443-3A ─────────────────────────────────────────────────────
 
 static NfcCommand nfc_commands_iso3a_cb(NfcGenericEvent event, void* context) {
-    NfcCommandsCtx*         ctx = context;
-    Iso14443_3aPollerEvent* ev  = event.event_data;
+    NfcCommandsCtx* ctx = context;
+    Iso14443_3aPollerEvent* ev = event.event_data;
 
     if(ev->type != Iso14443_3aPollerEventTypeReady) {
         strlcpy(ctx->err, "Tag contact error", sizeof(ctx->err));
@@ -109,8 +113,7 @@ static NfcCommand nfc_commands_iso3a_cb(NfcGenericEvent event, void* context) {
     bit_buffer_append_bytes(tx, ctx->cmd, ctx->cmd_len);
 
     // FWT = 200 000 clock cycles (~ 14 ms at 13.56 MHz)
-    Iso14443_3aError err =
-        iso14443_3a_poller_send_standard_frame(poller, tx, rx, 200000);
+    Iso14443_3aError err = iso14443_3a_poller_send_standard_frame(poller, tx, rx, 200000);
 
     if(err == Iso14443_3aErrorNone) {
         ctx->rsp_len = bit_buffer_get_size_bytes(rx);
@@ -140,20 +143,17 @@ static void nfc_commands_scan_callback(NfcScannerEvent event, void* context) {
 // ── Check whether the protocol uses ISO 14443-4A ─────────────────────────────
 
 static bool protocol_is_iso4a(NfcProtocol p) {
-    return p == NfcProtocolIso14443_4a ||
-           p == NfcProtocolMfDesfire   ||
-           p == NfcProtocolMfPlus;
+    return p == NfcProtocolIso14443_4a || p == NfcProtocolMfDesfire || p == NfcProtocolMfPlus;
 }
 
 // ── Format response into info_str ─────────────────────────────────────────────
 
 static void format_result(
-    NfcToolsApp*   app,
+    NfcToolsApp* app,
     const uint8_t* cmd,
-    size_t         cmd_len,
+    size_t cmd_len,
     const uint8_t* rsp,
-    size_t         rsp_len)
-{
+    size_t rsp_len) {
     furi_string_reset(app->info_str);
 
     // TX
@@ -180,14 +180,14 @@ static void format_result(
     if(rsp_len >= 2) {
         uint8_t sw1 = rsp[rsp_len - 2];
         uint8_t sw2 = rsp[rsp_len - 1];
-        const char* label =
-            (sw1 == 0x90 && sw2 == 0x00) ? "OK" :
-            (sw1 == 0x61)                 ? "More" :
-            (sw1 == 0x6A && sw2 == 0x82) ? "Not Found" :
-            (sw1 == 0x6A && sw2 == 0x86) ? "Bad P1/P2" :
-            (sw1 == 0x67 && sw2 == 0x00) ? "Wrong Len" :
-            (sw1 == 0x69 && sw2 == 0x82) ? "Security" :
-            (sw1 == 0x69 && sw2 == 0x85) ? "Conditions" : NULL;
+        const char* label = (sw1 == 0x90 && sw2 == 0x00) ? "OK" :
+                            (sw1 == 0x61)                ? "More" :
+                            (sw1 == 0x6A && sw2 == 0x82) ? "Not Found" :
+                            (sw1 == 0x6A && sw2 == 0x86) ? "Bad P1/P2" :
+                            (sw1 == 0x67 && sw2 == 0x00) ? "Wrong Len" :
+                            (sw1 == 0x69 && sw2 == 0x82) ? "Security" :
+                            (sw1 == 0x69 && sw2 == 0x85) ? "Conditions" :
+                                                           NULL;
 
         if(label)
             furi_string_cat_printf(app->info_str, "SW: %02X %02X [%s]", sw1, sw2, label);
@@ -236,22 +236,18 @@ static int32_t nfc_commands_worker(void* context) {
 
     // Phase 2: send the command
     NfcCommandsCtx cmd_ctx = {
-        .app     = app,
-        .done    = furi_event_flag_alloc(),
-        .cmd     = cmd_bytes,
+        .app = app,
+        .done = furi_event_flag_alloc(),
+        .cmd = cmd_bytes,
         .cmd_len = (size_t)cmd_len,
         .success = false,
     };
 
     bool is4a = protocol_is_iso4a(app->detected_protocol);
-    NfcProtocol poller_proto =
-        is4a ? NfcProtocolIso14443_4a : NfcProtocolIso14443_3a;
+    NfcProtocol poller_proto = is4a ? NfcProtocolIso14443_4a : NfcProtocolIso14443_3a;
 
     NfcPoller* poller = nfc_poller_alloc(app->nfc, poller_proto);
-    nfc_poller_start(
-        poller,
-        is4a ? nfc_commands_iso4a_cb : nfc_commands_iso3a_cb,
-        &cmd_ctx);
+    nfc_poller_start(poller, is4a ? nfc_commands_iso4a_cb : nfc_commands_iso3a_cb, &cmd_ctx);
 
     furi_event_flag_wait(cmd_ctx.done, 1u, FuriFlagWaitAny, 8000);
 
@@ -283,7 +279,7 @@ static void nfc_commands_stop_worker(NfcToolsApp* app) {
         furi_thread_free(app->worker_thread);
         furi_event_flag_free(app->worker_flags);
         app->worker_thread = NULL;
-        app->worker_flags  = NULL;
+        app->worker_flags = NULL;
     }
 }
 
@@ -299,20 +295,18 @@ void nfc_tools_scene_nfc_commands_run_on_enter(void* context) {
     furi_string_reset(app->info_str);
 
     app->worker_flags = furi_event_flag_alloc();
-    app->worker_thread =
-        furi_thread_alloc_ex("NfcToolsCmds", 2 * 1024, nfc_commands_worker, app);
+    app->worker_thread = furi_thread_alloc_ex("NfcToolsCmds", 2 * 1024, nfc_commands_worker, app);
     furi_thread_start(app->worker_thread);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewTextBox);
 }
 
 bool nfc_tools_scene_nfc_commands_run_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == NfcToolsEventWriteSuccess ||
-           event.event == NfcToolsEventWriteFail) {
+        if(event.event == NfcToolsEventWriteSuccess || event.event == NfcToolsEventWriteFail) {
             text_box_set_text(app->text_box, furi_string_get_cstr(app->info_str));
             consumed = true;
         }
