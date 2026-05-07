@@ -23,9 +23,9 @@
 
 /* CC1101 状态寄存器读取 header byte:R/W=1 + B=1 + addr.数据手册 §10.1.
  * 0x30 PARTNUM,0x31 VERSION. */
-#define CC1101_HDR_RD_STATUS(addr) ((uint8_t)(0xC0 | ((addr)&0x3F)))
-#define CC1101_REG_PARTNUM  0x30
-#define CC1101_REG_VERSION  0x31
+#define CC1101_HDR_RD_STATUS(addr) ((uint8_t)(0xC0 | ((addr) & 0x3F)))
+#define CC1101_REG_PARTNUM         0x30
+#define CC1101_REG_VERSION         0x31
 
 /* 期望值(数据手册 §29 Configuration Registers + 已知 silicon 版本). */
 #define CC1101_PARTNUM_EXPECTED 0x00
@@ -57,9 +57,8 @@ static bool cc1101_probe_and_quiet_cb(void* ctx) {
     pq_chip_spi_trx(tx, rx, 2, PQ_DETECT_WITH_TIMEOUT_MS);
     c->version = rx[1];
 
-    c->present =
-        (c->partnum == CC1101_PARTNUM_EXPECTED) &&
-        (c->version == CC1101_VERSION_OLD || c->version == CC1101_VERSION_NEW);
+    c->present = (c->partnum == CC1101_PARTNUM_EXPECTED) &&
+                 (c->version == CC1101_VERSION_OLD || c->version == CC1101_VERSION_NEW);
 
     /* 探测通过就立刻让 GD0 进高阻,后续 NRF24 owner 切换才不会打架. */
     if(c->present) {
@@ -76,9 +75,9 @@ typedef struct {
     PqNrf24* dev;
     uint8_t setup_aw;
     uint8_t status;
-    uint8_t rf_ch;     /* 默认 0x02 */
-    uint8_t rf_setup;  /* 默认 0x0F */
-    uint8_t config;    /* 默认 0x08 */
+    uint8_t rf_ch; /* 默认 0x02 */
+    uint8_t rf_setup; /* 默认 0x0F */
+    uint8_t config; /* 默认 0x08 */
     bool present;
 } Nrf24Ctx;
 
@@ -86,9 +85,9 @@ static bool nrf24_probe_cb(void* ctx) {
     Nrf24Ctx* c = ctx;
 
     /* 先读默认值寄存器(PoR 后 NRF24 应有这些非零默认值). */
-    c->rf_ch = pq_nrf24_read_reg(c->dev, NRF24_REG_RF_CH);       /* 默认 0x02 */
+    c->rf_ch = pq_nrf24_read_reg(c->dev, NRF24_REG_RF_CH); /* 默认 0x02 */
     c->rf_setup = pq_nrf24_read_reg(c->dev, NRF24_REG_RF_SETUP); /* 默认 0x0F */
-    c->config = pq_nrf24_read_reg(c->dev, NRF24_REG_CONFIG);     /* 默认 0x08 */
+    c->config = pq_nrf24_read_reg(c->dev, NRF24_REG_CONFIG); /* 默认 0x08 */
 
     /* 写 SETUP_AW = 0x03,读回. */
     pq_nrf24_write_reg(c->dev, NRF24_REG_SETUP_AW, NRF24_SETUP_AW_5BYTE);
@@ -123,8 +122,7 @@ PqDetectResult pq_board_detect(void) {
     /* --- NRF24 --- */
     PqNrf24* nrf = pq_nrf24_alloc(NULL);
     Nrf24Ctx nrf_ctx = {.dev = nrf};
-    bool nrf_callback_ok =
-        pq_chip_with_nrf24(nrf24_probe_cb, &nrf_ctx, PQ_DETECT_WITH_TIMEOUT_MS);
+    bool nrf_callback_ok = pq_chip_with_nrf24(nrf24_probe_cb, &nrf_ctx, PQ_DETECT_WITH_TIMEOUT_MS);
     r.nrf24_present = nrf_callback_ok && nrf_ctx.present;
     pq_nrf24_free(nrf);
 

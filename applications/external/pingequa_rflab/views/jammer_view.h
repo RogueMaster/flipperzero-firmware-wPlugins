@@ -39,13 +39,13 @@
  *   - AllBand  : 0..125  (全 2.4 GHz ISM 扫)
  */
 typedef enum {
-    JammerModeCwCustom = 0,    /* CW,用户自选信道                            */
-    JammerModeBleAdv,          /* CW,BLE adv 37/38/39 hop(盲扫)             */
-    JammerModeReactiveBle,     /* RPD 反应式 BLE adv(v0.4.x,首创)           */
-    JammerModeWifi1,           /* PayloadSpam,WiFi 1 ±7 MHz                 */
-    JammerModeWifi6,           /* PayloadSpam,WiFi 6 ±7 MHz                 */
-    JammerModeWifi11,          /* PayloadSpam,WiFi 11 ±7 MHz                */
-    JammerModeAllBand,         /* CW,全频 sweep 0..125                       */
+    JammerModeCwCustom = 0, /* CW,用户自选信道                            */
+    JammerModeBleAdv, /* CW,BLE adv 37/38/39 hop(盲扫)             */
+    JammerModeReactiveBle, /* RPD 反应式 BLE adv(v0.4.x,首创)           */
+    JammerModeWifi1, /* PayloadSpam,WiFi 1 ±7 MHz                 */
+    JammerModeWifi6, /* PayloadSpam,WiFi 6 ±7 MHz                 */
+    JammerModeWifi11, /* PayloadSpam,WiFi 11 ±7 MHz                */
+    JammerModeAllBand, /* CW,全频 sweep 0..125                       */
     JammerModeCount,
 } JammerMode;
 

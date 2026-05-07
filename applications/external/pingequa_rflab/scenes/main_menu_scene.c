@@ -15,7 +15,7 @@
 #include <furi.h>
 #include <gui/modules/submenu.h>
 
-#define TAG       "PqMainMenu"
+#define TAG        "PqMainMenu"
 #define SCENE_NAME "main_menu"
 
 /* Submenu item index = custom event id;数值与 enum 对齐. */
@@ -36,10 +36,8 @@ void main_menu_scene_on_enter(void* context) {
     Submenu* sm = app->main_menu_submenu;
     submenu_reset(sm);
     submenu_set_header(sm, "PINGEQUA RF Lab");
-    submenu_add_item(sm, "Channel Scanner", PqMainMenuItemScanner,
-                     main_menu_select_callback, app);
-    submenu_add_item(sm, "NRF24 Jammer", PqMainMenuItemJammer,
-                     main_menu_select_callback, app);
+    submenu_add_item(sm, "Channel Scanner", PqMainMenuItemScanner, main_menu_select_callback, app);
+    submenu_add_item(sm, "NRF24 Jammer", PqMainMenuItemJammer, main_menu_select_callback, app);
 
     /* 保留 Submenu 上次选中位置(scene_manager 切回时用户指针仍在原位). */
     submenu_set_selected_item(

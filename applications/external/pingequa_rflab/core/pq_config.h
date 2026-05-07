@@ -42,8 +42,8 @@ typedef enum {
 struct PqBoardConfig {
     uint16_t version;
     PqBoardType board_type;
-    uint8_t cc1101_csn_pin;    /* Flipper GPIO 头物理脚号(4 = PA4) */
-    uint8_t nrf24_csn_pin;     /* (7 = PC3) */
+    uint8_t cc1101_csn_pin; /* Flipper GPIO 头物理脚号(4 = PA4) */
+    uint8_t nrf24_csn_pin; /* (7 = PC3) */
     uint8_t shared_gd0_ce_pin; /* (6 = PB2) */
     uint32_t last_detect_ts;
 };

@@ -77,11 +77,9 @@ static void try_transition(PqApp* app) {
      * v1.2 起改跳 main_menu(规范 §6.2 v1.1+ 扩展点) — main_menu 再分流到
      * scanner / jammer. */
     if(app->detect.type == PQ_BOARD_PINGEQUA_2IN1) {
-        scene_manager_search_and_switch_to_another_scene(
-            app->scene_manager, PqSceneMainMenu);
+        scene_manager_search_and_switch_to_another_scene(app->scene_manager, PqSceneMainMenu);
     } else {
-        scene_manager_search_and_switch_to_another_scene(
-            app->scene_manager, PqSceneError);
+        scene_manager_search_and_switch_to_another_scene(app->scene_manager, PqSceneError);
     }
 }
 
@@ -101,8 +99,8 @@ void splash_scene_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, PqViewSplash);
 
     /* 2. Worker(低优先级,主线程不被阻塞). */
-    app->splash_worker = furi_thread_alloc_ex(
-        "PqSplashWorker", WORKER_STACK_SIZE, splash_worker_func, app);
+    app->splash_worker =
+        furi_thread_alloc_ex("PqSplashWorker", WORKER_STACK_SIZE, splash_worker_func, app);
     furi_thread_set_priority(app->splash_worker, FuriThreadPriorityLow);
     furi_thread_start(app->splash_worker);
 

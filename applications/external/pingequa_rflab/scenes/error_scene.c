@@ -25,10 +25,8 @@ void error_scene_on_enter(void* context) {
     dialog_ex_reset(app->error_dialog);
     dialog_ex_set_context(app->error_dialog, app);
     dialog_ex_set_result_callback(app->error_dialog, error_dialog_callback);
-    dialog_ex_set_header(
-        app->error_dialog, "Board Not Detected", 64, 2, AlignCenter, AlignTop);
-    dialog_ex_set_text(
-        app->error_dialog, app->detect.failure_hint, 64, 20, AlignCenter, AlignTop);
+    dialog_ex_set_header(app->error_dialog, "Board Not Detected", 64, 2, AlignCenter, AlignTop);
+    dialog_ex_set_text(app->error_dialog, app->detect.failure_hint, 64, 20, AlignCenter, AlignTop);
     dialog_ex_set_center_button_text(app->error_dialog, "Exit");
 
     view_dispatcher_switch_to_view(app->view_dispatcher, PqViewError);

@@ -23,7 +23,7 @@
 #include <string.h>
 
 /* 频段标签 — NRF24 信道到 BLE/WiFi 的映射(channel = MHz - 2400). */
-#define BLE_ADV_CH37_NRF 2  /* 2402 MHz */
+#define BLE_ADV_CH37_NRF 2 /* 2402 MHz */
 #define BLE_ADV_CH38_NRF 26 /* 2426 MHz */
 #define BLE_ADV_CH39_NRF 80 /* 2480 MHz */
 #define WIFI_1_NRF       12 /* 2412 MHz */
@@ -31,30 +31,31 @@
 #define WIFI_11_NRF      62 /* 2462 MHz */
 
 /* 垂直布局 — 所有 baseline 与 scanner_view 同范式(参考 views/scanner_view.c). */
-#define HDR_BASELINE     10  /* FontPrimary "JAMMER" 顶留 2 px 余量,防字顶剪 */
-#define HDR_DIV_Y        12
+#define HDR_BASELINE 10 /* FontPrimary "JAMMER" 顶留 2 px 余量,防字顶剪 */
+#define HDR_DIV_Y    12
 
-#define MODE_BASELINE    22  /* FontPrimary 大字模式 */
-#define CHAN_BASELINE    32  /* FontPrimary 信道 */
-#define FREQ_BASELINE    40  /* FontSecondary 频率 */
-#define TAG_BASELINE     50  /* FontSecondary 频段标签 / chunk 数(原 48,下移 2px 给
+#define MODE_BASELINE 22 /* FontPrimary 大字模式 */
+#define CHAN_BASELINE 32 /* FontPrimary 信道 */
+#define FREQ_BASELINE 40 /* FontSecondary 频率 */
+#define TAG_BASELINE \
+    50 /* FontSecondary 频段标签 / chunk 数(原 48,下移 2px 给
                               * @ 字符上半部留呼吸空间,避免视觉粘连 freq 行) */
 
-#define BTM_DIV_Y        52
-#define FTR_BASELINE     62
+#define BTM_DIV_Y    52
+#define FTR_BASELINE 62
 
 /* 按键图标尺寸常量 — 与实际绘制函数尺寸对应. */
-#define ICON_HARROW_W    4   /* draw_arrow_left/right: 4×7 */
-#define ICON_HARROW_H    7
-#define ICON_VARROW_W    7   /* draw_arrow_up/down: 7×4 */
-#define ICON_VARROW_H    4
+#define ICON_HARROW_W 4 /* draw_arrow_left/right: 4×7 */
+#define ICON_HARROW_H 7
+#define ICON_VARROW_W 7 /* draw_arrow_up/down: 7×4 */
+#define ICON_VARROW_H 4
 
 /* 4×7 左箭头 */
 static void draw_arrow_left(Canvas* canvas, int x, int y) {
     canvas_draw_dot(canvas, x + 3, y);
     canvas_draw_line(canvas, x + 2, y + 1, x + 3, y + 1);
     canvas_draw_line(canvas, x + 1, y + 2, x + 3, y + 2);
-    canvas_draw_line(canvas, x,     y + 3, x + 3, y + 3);
+    canvas_draw_line(canvas, x, y + 3, x + 3, y + 3);
     canvas_draw_line(canvas, x + 1, y + 4, x + 3, y + 4);
     canvas_draw_line(canvas, x + 2, y + 5, x + 3, y + 5);
     canvas_draw_dot(canvas, x + 3, y + 6);
@@ -73,18 +74,18 @@ static void draw_arrow_right(Canvas* canvas, int x, int y) {
 
 /* 7×4 上箭头 */
 static void draw_arrow_up(Canvas* canvas, int x, int y) {
-    canvas_draw_dot(canvas,  x + 3, y);
+    canvas_draw_dot(canvas, x + 3, y);
     canvas_draw_line(canvas, x + 2, y + 1, x + 4, y + 1);
     canvas_draw_line(canvas, x + 1, y + 2, x + 5, y + 2);
-    canvas_draw_line(canvas, x,     y + 3, x + 6, y + 3);
+    canvas_draw_line(canvas, x, y + 3, x + 6, y + 3);
 }
 
 /* 7×4 下箭头 */
 static void draw_arrow_down(Canvas* canvas, int x, int y) {
-    canvas_draw_line(canvas, x,     y,     x + 6, y);
+    canvas_draw_line(canvas, x, y, x + 6, y);
     canvas_draw_line(canvas, x + 1, y + 1, x + 5, y + 1);
     canvas_draw_line(canvas, x + 2, y + 2, x + 4, y + 2);
-    canvas_draw_dot(canvas,  x + 3, y + 3);
+    canvas_draw_dot(canvas, x + 3, y + 3);
 }
 
 /* ---------------------------------------------------------------------------
@@ -93,9 +94,10 @@ static void draw_arrow_down(Canvas* canvas, int x, int y) {
 
 typedef struct {
     JammerMode mode;
-    uint8_t cw_channel;     /* CW 用户选定 ch */
-    uint8_t cur_channel;    /* worker 上报的最近 sweep ch */
-    uint32_t chunk_count;   /* 累计 chunk(每 16 ch 一个 chunk,sweep 模式增长;CW 模式同样递增表 RUN tick) */
+    uint8_t cw_channel; /* CW 用户选定 ch */
+    uint8_t cur_channel; /* worker 上报的最近 sweep ch */
+    uint32_t
+        chunk_count; /* 累计 chunk(每 16 ch 一个 chunk,sweep 模式增长;CW 模式同样递增表 RUN tick) */
     bool running;
 } JammerViewModel;
 
@@ -119,40 +121,62 @@ static const char* band_tag_for_channel(uint8_t ch) {
 
 static const char* mode_label(JammerMode m) {
     switch(m) {
-    case JammerModeCwCustom:    return "CW";
-    case JammerModeBleAdv:      return "BLE Adv";
-    case JammerModeReactiveBle: return "BLE React";
-    case JammerModeWifi1:       return "WiFi 1";
-    case JammerModeWifi6:       return "WiFi 6";
-    case JammerModeWifi11:      return "WiFi 11";
-    case JammerModeAllBand:     return "ALL 2.4G";
-    default:                    return "?";
+    case JammerModeCwCustom:
+        return "CW";
+    case JammerModeBleAdv:
+        return "BLE Adv";
+    case JammerModeReactiveBle:
+        return "BLE React";
+    case JammerModeWifi1:
+        return "WiFi 1";
+    case JammerModeWifi6:
+        return "WiFi 6";
+    case JammerModeWifi11:
+        return "WiFi 11";
+    case JammerModeAllBand:
+        return "ALL 2.4G";
+    default:
+        return "?";
     }
 }
 
 /* 信道范围字符串(显示在 chan 行).返回 NULL = CwCustom 用 cw_channel 动态构造. */
 static const char* mode_chan_label(JammerMode m) {
     switch(m) {
-    case JammerModeBleAdv:      return "Adv 37/38/39";
-    case JammerModeReactiveBle: return "RPD 37/38/39";
-    case JammerModeWifi1:       return "Pilots ×4";
-    case JammerModeWifi6:       return "Pilots ×4";
-    case JammerModeWifi11:      return "Pilots ×4";
-    case JammerModeAllBand:     return "Ch 0-125";
-    default:                    return NULL;
+    case JammerModeBleAdv:
+        return "Adv 37/38/39";
+    case JammerModeReactiveBle:
+        return "RPD 37/38/39";
+    case JammerModeWifi1:
+        return "Pilots ×4";
+    case JammerModeWifi6:
+        return "Pilots ×4";
+    case JammerModeWifi11:
+        return "Pilots ×4";
+    case JammerModeAllBand:
+        return "Ch 0-125";
+    default:
+        return NULL;
     }
 }
 
 /* 频率范围字符串(显示在 freq 行).返回 NULL = CwCustom 用 cw_channel 动态构造. */
 static const char* mode_freq_label(JammerMode m) {
     switch(m) {
-    case JammerModeBleAdv:      return "2402/26/80 MHz";
-    case JammerModeReactiveBle: return "Listen+jam";
-    case JammerModeWifi1:       return "2412 \xb1 OFDM";
-    case JammerModeWifi6:       return "2437 \xb1 OFDM";
-    case JammerModeWifi11:      return "2462 \xb1 OFDM";
-    case JammerModeAllBand:     return "2400-2525 MHz";
-    default:                    return NULL;
+    case JammerModeBleAdv:
+        return "2402/26/80 MHz";
+    case JammerModeReactiveBle:
+        return "Listen+jam";
+    case JammerModeWifi1:
+        return "2412 \xb1 OFDM";
+    case JammerModeWifi6:
+        return "2437 \xb1 OFDM";
+    case JammerModeWifi11:
+        return "2462 \xb1 OFDM";
+    case JammerModeAllBand:
+        return "2400-2525 MHz";
+    default:
+        return NULL;
     }
 }
 
@@ -212,8 +236,13 @@ static void jammer_view_draw_callback(Canvas* canvas, void* _model) {
         const char* tag = band_tag_for_channel(m->cw_channel);
         if(tag != NULL) canvas_draw_str(canvas, 0, TAG_BASELINE, tag);
     } else if(m->running) {
-        snprintf(buf, sizeof(buf), "@%03u %dMHz N%lu",
-                 m->cur_channel, 2400 + m->cur_channel, (unsigned long)m->chunk_count);
+        snprintf(
+            buf,
+            sizeof(buf),
+            "@%03u %dMHz N%lu",
+            m->cur_channel,
+            2400 + m->cur_channel,
+            (unsigned long)m->chunk_count);
         canvas_draw_str(canvas, 0, TAG_BASELINE, buf);
     }
 

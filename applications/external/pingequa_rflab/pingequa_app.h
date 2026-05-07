@@ -40,7 +40,7 @@ typedef enum {
     PqSceneSplash,
     PqSceneMainMenu, /* v1.2 起作为 splash 落地后的总入口(规范 §6.2 v1.1+ 扩展点) */
     PqSceneScanner,
-    PqSceneJammer,   /* v1.2 NRF24 Jammer */
+    PqSceneJammer, /* v1.2 NRF24 Jammer */
     PqSceneError,
     PqSceneCount,
 } PqScene;
@@ -57,9 +57,9 @@ typedef enum {
 /** Custom event ID — 通过 view_dispatcher_send_custom_event 传递. */
 typedef enum {
     PqCustomEventSplashTick = 1, /* 50 ms 定时,UI 进度条刷新 */
-    PqCustomEventDetectDone,     /* splash worker 完成探测 */
-    PqCustomEventScanTick,       /* scanner worker 完成一次 sweep,触发 UI redraw */
-    PqCustomEventErrorExit,      /* error_scene 用户确认 → 退出 app */
+    PqCustomEventDetectDone, /* splash worker 完成探测 */
+    PqCustomEventScanTick, /* scanner worker 完成一次 sweep,触发 UI redraw */
+    PqCustomEventErrorExit, /* error_scene 用户确认 → 退出 app */
 } PqCustomEvent;
 
 /* ---------------------------------------------------------------------------
@@ -70,8 +70,8 @@ typedef enum {
 #define PQ_HITS_MAX     32 /* 饱和计数;0..32 映射到 0..47 像素柱高 */
 #define PQ_DECAY_EVERY  8 /* 每 8 sweep 全局 hits-- 一次 */
 
-#define PQ_DWELL_DEFAULT 150  /* µs,htotoo 实测合理值,稍高于 Tstby2a (130) */
-#define PQ_DWELL_MIN     130  /* NRF24 Tstby2a;低于此 RPD 不可靠 */
+#define PQ_DWELL_DEFAULT 150 /* µs,htotoo 实测合理值,稍高于 Tstby2a (130) */
+#define PQ_DWELL_MIN     130 /* NRF24 Tstby2a;低于此 RPD 不可靠 */
 #define PQ_DWELL_MAX     2000
 #define PQ_DWELL_STEP_S  10
 #define PQ_DWELL_STEP_L  50
@@ -114,7 +114,7 @@ struct PqApp {
     FuriThread* scan_thread;
     volatile bool scan_stop_requested;
     volatile bool scan_running; /* OK 键暂停/恢复;volatile 保证 worker 看到 GUI 写入 */
-    volatile bool auto_paused;  /* worker 因 max-hold 自动暂停;OK 键清零重扫 */
+    volatile bool auto_paused; /* worker 因 max-hold 自动暂停;OK 键清零重扫 */
 
     /* Scanner UI 状态. */
     uint8_t hits[PQ_NUM_CHANNELS];
@@ -128,12 +128,12 @@ struct PqApp {
     /* Jammer:worker 干扰线程 + 状态(规范 §13 Phase 5 / §16). */
     FuriThread* jammer_thread;
     volatile bool jammer_stop_requested;
-    volatile bool jammer_running;        /* OK 键启停,worker 观察并触发 start_cb / stop_cb */
-    volatile JammerMode jammer_mode;     /* CW / Sweep,worker + GUI 共读 */
-    volatile uint8_t jammer_cw_channel;  /* CW 用户当前选定 ch(0..125) */
-    volatile bool jammer_cw_dirty;       /* GUI 改 ch 后置 true,worker 下个 chunk 写 RF_CH 后清零 */
-    uint8_t jammer_sweep_cursor;         /* worker 内部:sweep 模式当前 ch */
-    uint32_t jammer_chunk_count;         /* worker 写,GUI 经 view 间接读 */
+    volatile bool jammer_running; /* OK 键启停,worker 观察并触发 start_cb / stop_cb */
+    volatile JammerMode jammer_mode; /* CW / Sweep,worker + GUI 共读 */
+    volatile uint8_t jammer_cw_channel; /* CW 用户当前选定 ch(0..125) */
+    volatile bool jammer_cw_dirty; /* GUI 改 ch 后置 true,worker 下个 chunk 写 RF_CH 后清零 */
+    uint8_t jammer_sweep_cursor; /* worker 内部:sweep 模式当前 ch */
+    uint32_t jammer_chunk_count; /* worker 写,GUI 经 view 间接读 */
 };
 
 /** FAP 入口点(application.fam 中 entry_point 字段). */

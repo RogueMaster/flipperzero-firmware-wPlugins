@@ -112,8 +112,8 @@ bool pq_nrf24_init_regs(PqNrf24* dev) {
     pq_nrf24_write_reg(dev, NRF24_REG_SETUP_AW, NRF24_SETUP_AW_5BYTE);
     uint8_t aw = pq_nrf24_read_reg(dev, NRF24_REG_SETUP_AW);
     if(aw != NRF24_SETUP_AW_5BYTE) {
-        FURI_LOG_W(TAG, "SETUP_AW writeback failed: got 0x%02X want 0x%02X", aw,
-                   NRF24_SETUP_AW_5BYTE);
+        FURI_LOG_W(
+            TAG, "SETUP_AW writeback failed: got 0x%02X want 0x%02X", aw, NRF24_SETUP_AW_5BYTE);
         return false;
     }
 
@@ -229,10 +229,10 @@ bool pq_nrf24_setup_payload_spam(PqNrf24* dev, uint8_t ch) {
 
     /* 预填一次 payload(让 CE HIGH 后立即有数据可发).
      * 32 字节 0xDEADBEEF × 8 — 模仿 huuck jammer.c WiFi 模式 ping_packet. */
-    static const uint8_t spam_payload[32] = {
-        0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE,
-        0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD,
-        0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF};
+    static const uint8_t spam_payload[32] = {0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF,
+                                             0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF,
+                                             0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF,
+                                             0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF};
     pq_nrf24_load_tx_payload_noack(dev, spam_payload, sizeof(spam_payload));
 
     return true;
@@ -314,10 +314,17 @@ void pq_nrf24_diag_log(PqNrf24* dev, const char* tag) {
      *           RF_SETUP=0x96 (CONT_WAVE|PLL_LOCK|RF_PWR=11)
      *           EN_AA=0
      *           FIFO_STATUS bit 5 (TX_FULL) 写 W_TX_PAYLOAD 后置 1 */
-    FURI_LOG_I(TAG,
-               "%s diag: CFG=0x%02X RF_SETUP=0x%02X RF_CH=%u "
-               "STATUS=0x%02X FIFO=0x%02X EN_AA=0x%02X",
-               tag, cfg, rf_setup, rf_ch, status, fifo, en_aa);
+    FURI_LOG_I(
+        TAG,
+        "%s diag: CFG=0x%02X RF_SETUP=0x%02X RF_CH=%u "
+        "STATUS=0x%02X FIFO=0x%02X EN_AA=0x%02X",
+        tag,
+        cfg,
+        rf_setup,
+        rf_ch,
+        status,
+        fifo,
+        en_aa);
 }
 
 void pq_nrf24_power_down(PqNrf24* dev) {

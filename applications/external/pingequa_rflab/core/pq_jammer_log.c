@@ -14,14 +14,22 @@
 
 static const char* mode_name_of(uint8_t idx) {
     switch(idx) {
-    case 0: return "CW Custom";
-    case 1: return "BLE Adv";
-    case 2: return "BLE React";
-    case 3: return "WiFi 1";
-    case 4: return "WiFi 6";
-    case 5: return "WiFi 11";
-    case 6: return "ALL 2.4G";
-    default: return "Unknown";
+    case 0:
+        return "CW Custom";
+    case 1:
+        return "BLE Adv";
+    case 2:
+        return "BLE React";
+    case 3:
+        return "WiFi 1";
+    case 4:
+        return "WiFi 6";
+    case 5:
+        return "WiFi 11";
+    case 6:
+        return "ALL 2.4G";
+    default:
+        return "Unknown";
     }
 }
 
@@ -47,8 +55,8 @@ bool pq_jammer_log_session(
     char path[96];
     uint32_t end_ms = furi_get_tick();
     uint32_t duration_ms = end_ms - start_ms;
-    snprintf(path, sizeof(path), "%s/session_%010lu.csv", PQ_JAMMER_LOG_DIR,
-             (unsigned long)start_ms);
+    snprintf(
+        path, sizeof(path), "%s/session_%010lu.csv", PQ_JAMMER_LOG_DIR, (unsigned long)start_ms);
 
     File* file = storage_file_alloc(storage);
     bool ok = false;
@@ -66,8 +74,7 @@ bool pq_jammer_log_session(
         if(!write_line(file, buf)) break;
         snprintf(buf, sizeof(buf), "# Mode index: %u\n", mode_index);
         if(!write_line(file, buf)) break;
-        snprintf(buf, sizeof(buf), "# CW channel: %u (~%d MHz)\n", cw_channel,
-                 2400 + cw_channel);
+        snprintf(buf, sizeof(buf), "# CW channel: %u (~%d MHz)\n", cw_channel, 2400 + cw_channel);
         if(!write_line(file, buf)) break;
         snprintf(buf, sizeof(buf), "# Start boot ms: %lu\n", (unsigned long)start_ms);
         if(!write_line(file, buf)) break;
@@ -75,12 +82,11 @@ bool pq_jammer_log_session(
         if(!write_line(file, buf)) break;
         snprintf(buf, sizeof(buf), "# Duration ms: %lu\n", (unsigned long)duration_ms);
         if(!write_line(file, buf)) break;
-        snprintf(buf, sizeof(buf), "# Total chunks (last run): %lu\n",
-                 (unsigned long)chunks);
+        snprintf(buf, sizeof(buf), "# Total chunks (last run): %lu\n", (unsigned long)chunks);
         if(!write_line(file, buf)) break;
         if(mode_index == JammerModeReactiveBle) {
-            snprintf(buf, sizeof(buf), "# Total reactive jams: %lu\n",
-                     (unsigned long)reactive_jams);
+            snprintf(
+                buf, sizeof(buf), "# Total reactive jams: %lu\n", (unsigned long)reactive_jams);
             if(!write_line(file, buf)) break;
         }
 
@@ -105,9 +111,14 @@ bool pq_jammer_log_session(
         if(!write_line(file, buf)) break;
 
         ok = true;
-        FURI_LOG_I(TAG, "logged session: mode=%s dur=%lums chunks=%lu jams=%lu → %s",
-                   mode_name, (unsigned long)duration_ms, (unsigned long)chunks,
-                   (unsigned long)reactive_jams, path);
+        FURI_LOG_I(
+            TAG,
+            "logged session: mode=%s dur=%lums chunks=%lu jams=%lu → %s",
+            mode_name,
+            (unsigned long)duration_ms,
+            (unsigned long)chunks,
+            (unsigned long)reactive_jams,
+            path);
     } while(0);
 
     if(!ok) FURI_LOG_E(TAG, "log write failed");

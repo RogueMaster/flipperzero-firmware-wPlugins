@@ -19,14 +19,14 @@
 
 /* §8.1 字段名常量 — 全部大写空格风格,与 Sub-GHz / IR 等官方文件一致.
  * 品牌名 PINGEQUA 全大写(用户口径,覆盖规范 §8.1 示例的 "Pingequa" 写法). */
-#define PQ_FILETYPE        "PINGEQUA Board Config"
-#define KEY_BOARD_TYPE     "Board Type"
-#define KEY_CC1101_CSN     "CC1101 CSN Pin"
-#define KEY_NRF24_CSN      "NRF24 CSN Pin"
-#define KEY_SHARED_GD0_CE  "Shared GD0/CE Pin"
-#define KEY_LAST_DETECT    "Last Detect"
+#define PQ_FILETYPE       "PINGEQUA Board Config"
+#define KEY_BOARD_TYPE    "Board Type"
+#define KEY_CC1101_CSN    "CC1101 CSN Pin"
+#define KEY_NRF24_CSN     "NRF24 CSN Pin"
+#define KEY_SHARED_GD0_CE "Shared GD0/CE Pin"
+#define KEY_LAST_DETECT   "Last Detect"
 
-#define BOARD_TYPE_2IN1_STR "PINGEQUA_2IN1"
+#define BOARD_TYPE_2IN1_STR    "PINGEQUA_2IN1"
 #define BOARD_TYPE_UNKNOWN_STR "UNKNOWN"
 
 /* ---------------------------------------------------------------------------
@@ -37,9 +37,9 @@ void pq_config_set_defaults(PqBoardConfig* cfg) {
     furi_check(cfg);
     cfg->version = PQ_CONFIG_VERSION;
     cfg->board_type = PQ_BOARD_PINGEQUA_2IN1;
-    cfg->cc1101_csn_pin = 4;     /* PA4 */
-    cfg->nrf24_csn_pin = 7;      /* PC3 */
-    cfg->shared_gd0_ce_pin = 6;  /* PB2 */
+    cfg->cc1101_csn_pin = 4; /* PA4 */
+    cfg->nrf24_csn_pin = 7; /* PC3 */
+    cfg->shared_gd0_ce_pin = 6; /* PB2 */
     cfg->last_detect_ts = 0;
 }
 
@@ -161,7 +161,8 @@ bool pq_config_save(const PqBoardConfig* cfg) {
 
         if(!flipper_format_write_header_cstr(ff, PQ_FILETYPE, PQ_CONFIG_VERSION)) break;
 
-        if(!flipper_format_write_string_cstr(ff, KEY_BOARD_TYPE, board_type_to_str(cfg->board_type))) {
+        if(!flipper_format_write_string_cstr(
+               ff, KEY_BOARD_TYPE, board_type_to_str(cfg->board_type))) {
             break;
         }
 

@@ -27,10 +27,10 @@
 #include <string.h>
 
 /* 几何 v3.6 — divider2 与 cursor 之间加 1px 间距(防边界 cursor 与 divider 视觉粘连) */
-#define CHART_X         1
+#define CHART_X 1
 
-#define HDR_BASELINE    7
-#define HDR_DIV1_Y      8
+#define HDR_BASELINE 7
+#define HDR_DIV1_Y   8
 
 #define MARKER_TOP      9
 #define MARKER_BOT      12
@@ -39,33 +39,33 @@
 #define CURSOR_BAND_TOP 15
 #define CURSOR_BAND_BOT 16
 
-#define CHART_Y_TOP     17
-#define CHART_Y_FLOOR   51
-#define CHART_H         (CHART_Y_FLOOR - CHART_Y_TOP) /* 34 px */
+#define CHART_Y_TOP   17
+#define CHART_Y_FLOOR 51
+#define CHART_H       (CHART_Y_FLOOR - CHART_Y_TOP) /* 34 px */
 
-#define BAR_DIV_Y       52
-#define FTR_BASELINE    62
+#define BAR_DIV_Y    52
+#define FTR_BASELINE 62
 /* y=53..56:gap 4px(原 5px,缩 1);y=57..62:footer;y=63:margin */
 
 /* 数据 + 缩放 */
-#define HITS_MAX        32
-#define MIN_BAR_H       3
-#define MIN_AUTOSCALE   8
-#define DWELL_DEFAULT   150
+#define HITS_MAX      32
+#define MIN_BAR_H     3
+#define MIN_AUTOSCALE 8
+#define DWELL_DEFAULT 150
 
 /* 频段映射 */
-#define WIFI_1_NRF      12
-#define WIFI_6_NRF      37
-#define WIFI_11_NRF     62
-#define BLE_37_NRF      2
-#define BLE_38_NRF      26
-#define BLE_39_NRF      80
+#define WIFI_1_NRF  12
+#define WIFI_6_NRF  37
+#define WIFI_11_NRF 62
+#define BLE_37_NRF  2
+#define BLE_38_NRF  26
+#define BLE_39_NRF  80
 
 /* Footer slots — Dwl 右对齐适应文字宽度,Cur 左移给 Dwl 留空间.
  *   worst case: Pk 0..40, Cur 44..74, Dwl 77..127(变宽,最坏 "Dwl:2000us" 50px) */
-#define SLOT_PK_X       0
-#define SLOT_CUR_X      44
-#define SLOT_DWL_R_X    127 /* 右对齐锚点 */
+#define SLOT_PK_X    0
+#define SLOT_CUR_X   44
+#define SLOT_DWL_R_X 127 /* 右对齐锚点 */
 
 /* ---------------------------------------------------------------------------
  * Model
@@ -95,16 +95,16 @@ struct ScannerView {
 /* WiFi ▲ 5×4 上指三角 — 顶部 1 像素尖,逐行加宽到 5 像素. */
 static inline void draw_wifi_marker(Canvas* canvas, uint8_t nrf_ch) {
     int x = CHART_X + nrf_ch;
-    canvas_draw_dot(canvas, x, MARKER_TOP);                                   /* y=9: 1 wide tip */
-    canvas_draw_line(canvas, x - 1, MARKER_TOP + 1, x + 1, MARKER_TOP + 1);   /* y=10: 3 wide */
-    canvas_draw_line(canvas, x - 2, MARKER_TOP + 2, x + 2, MARKER_TOP + 2);   /* y=11: 5 wide */
-    canvas_draw_line(canvas, x - 2, MARKER_TOP + 3, x + 2, MARKER_TOP + 3);   /* y=12: 5 wide base */
+    canvas_draw_dot(canvas, x, MARKER_TOP); /* y=9: 1 wide tip */
+    canvas_draw_line(canvas, x - 1, MARKER_TOP + 1, x + 1, MARKER_TOP + 1); /* y=10: 3 wide */
+    canvas_draw_line(canvas, x - 2, MARKER_TOP + 2, x + 2, MARKER_TOP + 2); /* y=11: 5 wide */
+    canvas_draw_line(canvas, x - 2, MARKER_TOP + 3, x + 2, MARKER_TOP + 3); /* y=12: 5 wide base */
 }
 
 /* BLE ■ 4×4 实心方块. */
 static inline void draw_ble_marker(Canvas* canvas, uint8_t nrf_ch) {
     int x = CHART_X + nrf_ch;
-    canvas_draw_box(canvas, x - 1, MARKER_TOP, 4, 4);                         /* x..x+3, y=9..12 */
+    canvas_draw_box(canvas, x - 1, MARKER_TOP, 4, 4); /* x..x+3, y=9..12 */
 }
 
 /* ▼ Cursor 5×2 — 顶 5px / 底 3px;边界 clamp 防止画到 chart 范围之外造成"divider 加粗"错觉. */
@@ -177,8 +177,7 @@ static void scanner_view_draw_callback(Canvas* canvas, void* _model) {
         int h = (hit * CHART_H) / HITS_MAX;
         if(h < MIN_BAR_H) h = MIN_BAR_H;
         if(h > CHART_H) h = CHART_H;
-        canvas_draw_line(
-            canvas, CHART_X + ch, CHART_Y_FLOOR, CHART_X + ch, CHART_Y_FLOOR - h);
+        canvas_draw_line(canvas, CHART_X + ch, CHART_Y_FLOOR, CHART_X + ch, CHART_Y_FLOOR - h);
     }
 
     /* === Cursor (over bars) === */
@@ -201,8 +200,8 @@ static void scanner_view_draw_callback(Canvas* canvas, void* _model) {
     int pk_w = canvas_string_width(canvas, buf_pk);
     int dwl_w = canvas_string_width(canvas, buf_dwl);
     int cur_w = canvas_string_width(canvas, buf_cur);
-    int avail_left = pk_w + 3;             /* 至少 3 px 间距给 Pk 让 */
-    int avail_right = 127 - dwl_w - 2;     /* 至少 2 px 间距给 Dwl 让 */
+    int avail_left = pk_w + 3; /* 至少 3 px 间距给 Pk 让 */
+    int avail_right = 127 - dwl_w - 2; /* 至少 2 px 间距给 Dwl 让 */
     int cur_x = (avail_left + avail_right) / 2 - cur_w / 2;
     if(cur_x < avail_left) cur_x = avail_left; /* 极端窄时贴左边 */
     canvas_draw_str(canvas, cur_x, FTR_BASELINE, buf_cur);

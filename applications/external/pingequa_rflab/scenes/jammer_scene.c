@@ -37,14 +37,14 @@
 #include <furi.h>
 #include <input/input.h>
 
-#define TAG                    "PqJammerScene"
-#define SCENE_NAME             "jammer"
-#define WORKER_STACK           2048      /* §11.1 上限 2048 */
-#define ARBITER_TIMEOUT_MS     200       /* start/stop 容忍较长 */
-#define ARBITER_CHUNK_TIMEOUT_MS 100     /* steady-state */
-#define WORKER_IDLE_YIELD_MS   50        /* idle 时让 GUI */
-#define WORKER_TICK_YIELD_MS   5         /* sweep chunk 后 yield(留 GUI 时间)  */
-#define CW_TICK_YIELD_MS       50        /* CW 模式 chunk 之间长 yield(硬件已在干扰) */
+#define TAG                      "PqJammerScene"
+#define SCENE_NAME               "jammer"
+#define WORKER_STACK             2048 /* §11.1 上限 2048 */
+#define ARBITER_TIMEOUT_MS       200 /* start/stop 容忍较长 */
+#define ARBITER_CHUNK_TIMEOUT_MS 100 /* steady-state */
+#define WORKER_IDLE_YIELD_MS     50 /* idle 时让 GUI */
+#define WORKER_TICK_YIELD_MS     5 /* sweep chunk 后 yield(留 GUI 时间)  */
+#define CW_TICK_YIELD_MS         50 /* CW 模式 chunk 之间长 yield(硬件已在干扰) */
 
 /* 会话级统计 — Scene 单例,static 安全.
  *   start_tick           : on_enter 设当前 boot ms,on_exit 算 duration
@@ -59,9 +59,9 @@ static struct {
  * --------------------------------------------------------------------------*/
 
 typedef enum {
-    JamEngineCw = 0,         /* CW: 寄存器配 CONT_WAVE+PLL_LOCK,FIFO 灌 0xFF */
-    JamEnginePayloadSpam,    /* W_TX_PAYLOAD_NOACK 持续 spam,普通 2Mbps RF_SETUP */
-    JamEngineReactive,       /* RPD 反应式:RX 监听 → 检测 → 切 TX 干扰 → 切回 RX */
+    JamEngineCw = 0, /* CW: 寄存器配 CONT_WAVE+PLL_LOCK,FIFO 灌 0xFF */
+    JamEnginePayloadSpam, /* W_TX_PAYLOAD_NOACK 持续 spam,普通 2Mbps RF_SETUP */
+    JamEngineReactive, /* RPD 反应式:RX 监听 → 检测 → 切 TX 干扰 → 切回 RX */
 } JamEngine;
 
 typedef struct {
@@ -75,8 +75,8 @@ typedef struct {
     uint8_t channel_count;
     uint8_t ch_first;
     uint8_t ch_last;
-    uint16_t dwell_us;       /* 每信道驻留时间(µs) */
-    uint8_t chunk_size;      /* 每 callback 跑的信道数 — 控制 §11.2 callback ≤ 50ms */
+    uint16_t dwell_us; /* 每信道驻留时间(µs) */
+    uint8_t chunk_size; /* 每 callback 跑的信道数 — 控制 §11.2 callback ≤ 50ms */
 } JammerProfile;
 
 /* BLE 广告频道(NRF24 channel = MHz - 2400):
@@ -95,65 +95,87 @@ static const uint8_t k_ble_adv_chs[] = {2, 26, 80};
  *
  * 比起盲扫整个 22 MHz WiFi 带宽 15 ch,pilot-aware 把所有能量打在 4 个最致命
  * 频点,等效干扰功率 +7.5 dB(实测 BER 0.4 阈值,Clancy 2011 paper). */
-static const uint8_t k_wifi1_pilots[]  = {5, 10, 14, 19};   /* 2405/2410/2414/2419 MHz */
-static const uint8_t k_wifi6_pilots[]  = {30, 35, 39, 44};  /* 2430/2435/2439/2444 MHz */
-static const uint8_t k_wifi11_pilots[] = {55, 60, 64, 69};  /* 2455/2460/2464/2469 MHz */
+static const uint8_t k_wifi1_pilots[] = {5, 10, 14, 19}; /* 2405/2410/2414/2419 MHz */
+static const uint8_t k_wifi6_pilots[] = {30, 35, 39, 44}; /* 2430/2435/2439/2444 MHz */
+static const uint8_t k_wifi11_pilots[] = {55, 60, 64, 69}; /* 2455/2460/2464/2469 MHz */
 
 static const JammerProfile k_profiles[JammerModeCount] = {
-    [JammerModeCwCustom] = {
-        .engine = JamEngineCw,
-        .channels = NULL, .channel_count = 0,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 0, .chunk_size = 1,
-    },
-    [JammerModeBleAdv] = {
-        .engine = JamEngineCw,
-        .channels = k_ble_adv_chs, .channel_count = 3,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 5000,    /* 5 ms / ch — 3 个 ch × 5 ms = 15ms chunk */
-        .chunk_size = 3,
-    },
-    [JammerModeReactiveBle] = {
-        /* v0.4.x:RPD 反应式 BLE — 监听 + 检测 + 反应干扰.
+    [JammerModeCwCustom] =
+        {
+            .engine = JamEngineCw,
+            .channels = NULL,
+            .channel_count = 0,
+            .ch_first = 0,
+            .ch_last = 0,
+            .dwell_us = 0,
+            .chunk_size = 1,
+        },
+    [JammerModeBleAdv] =
+        {
+            .engine = JamEngineCw,
+            .channels = k_ble_adv_chs,
+            .channel_count = 3,
+            .ch_first = 0,
+            .ch_last = 0,
+            .dwell_us = 5000, /* 5 ms / ch — 3 个 ch × 5 ms = 15ms chunk */
+            .chunk_size = 3,
+        },
+    [JammerModeReactiveBle] =
+        {
+            /* v0.4.x:RPD 反应式 BLE — 监听 + 检测 + 反应干扰.
          * 业内首创 Flipper NRF24 平台实现(参考 Brauer IEEE 7785169 概念). */
-        .engine = JamEngineReactive,
-        .channels = k_ble_adv_chs, .channel_count = 3,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 30000,   /* 30 ms / ch — 监听 + 反应循环上限,然后跳下个 BLE ch */
-        .chunk_size = 1,     /* 一次只在一个 ch 反应,下个 chunk 跳下个 ch */
-    },
-    [JammerModeWifi1] = {
-        /* v0.4.x:CW (max +20 dBm 连续) + 单 pilot/chunk + 长 dwell.
+            .engine = JamEngineReactive,
+            .channels = k_ble_adv_chs,
+            .channel_count = 3,
+            .ch_first = 0,
+            .ch_last = 0,
+            .dwell_us = 30000, /* 30 ms / ch — 监听 + 反应循环上限,然后跳下个 BLE ch */
+            .chunk_size = 1, /* 一次只在一个 ch 反应,下个 chunk 跳下个 ch */
+        },
+    [JammerModeWifi1] =
+        {
+            /* v0.4.x:CW (max +20 dBm 连续) + 单 pilot/chunk + 长 dwell.
          * 每 chunk 在 1 个 OFDM pilot 频点 sustained CW 25 ms,下个 chunk 跳下个 pilot.
          * 每 pilot 4 个 chunk 周期内有 25% TX 占空(高于之前 payload spam 4-pilot 滚的 14%),
          * 且 CW 能量集中在 1 MHz 带宽内,对 OFDM 单子载波损坏率最高. */
-        .engine = JamEngineCw,
-        .channels = k_wifi1_pilots, .channel_count = 4,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 25000,               /* 1 pilot × 25 ms / chunk = 25 ms callback (§11.2 上限内) */
-        .chunk_size = 1,                 /* 每 chunk 只打 1 个 pilot,下次跳下个 */
-    },
-    [JammerModeWifi6] = {
-        .engine = JamEngineCw,
-        .channels = k_wifi6_pilots, .channel_count = 4,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 25000,
-        .chunk_size = 1,
-    },
-    [JammerModeWifi11] = {
-        .engine = JamEngineCw,
-        .channels = k_wifi11_pilots, .channel_count = 4,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 25000,
-        .chunk_size = 1,
-    },
-    [JammerModeAllBand] = {
-        .engine = JamEngineCw,
-        .channels = NULL, .channel_count = 0,
-        .ch_first = 0, .ch_last = 125,
-        .dwell_us = 2000,                /* 2 ms / ch CW dwell */
-        .chunk_size = 16,                /* 16 × 2ms = 32ms < 50ms 上限 */
-    },
+            .engine = JamEngineCw,
+            .channels = k_wifi1_pilots,
+            .channel_count = 4,
+            .ch_first = 0,
+            .ch_last = 0,
+            .dwell_us = 25000, /* 1 pilot × 25 ms / chunk = 25 ms callback (§11.2 上限内) */
+            .chunk_size = 1, /* 每 chunk 只打 1 个 pilot,下次跳下个 */
+        },
+    [JammerModeWifi6] =
+        {
+            .engine = JamEngineCw,
+            .channels = k_wifi6_pilots,
+            .channel_count = 4,
+            .ch_first = 0,
+            .ch_last = 0,
+            .dwell_us = 25000,
+            .chunk_size = 1,
+        },
+    [JammerModeWifi11] =
+        {
+            .engine = JamEngineCw,
+            .channels = k_wifi11_pilots,
+            .channel_count = 4,
+            .ch_first = 0,
+            .ch_last = 0,
+            .dwell_us = 25000,
+            .chunk_size = 1,
+        },
+    [JammerModeAllBand] =
+        {
+            .engine = JamEngineCw,
+            .channels = NULL,
+            .channel_count = 0,
+            .ch_first = 0,
+            .ch_last = 125,
+            .dwell_us = 2000, /* 2 ms / ch CW dwell */
+            .chunk_size = 16, /* 16 × 2ms = 32ms < 50ms 上限 */
+        },
 };
 
 static const JammerProfile* profile_of(JammerMode m) {
@@ -178,9 +200,8 @@ static uint8_t profile_ch_at(const JammerProfile* p, uint8_t cursor) {
 
 /* 32 字节 0xDEADBEEF × 8 — Payload Spam 引擎喂 FIFO 用. */
 static const uint8_t k_spam_payload[32] = {
-    0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE,
-    0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD,
-    0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF,
+    0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF,
+    0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF,
 };
 
 /* ---------------------------------------------------------------------------
@@ -215,9 +236,8 @@ static bool jammer_start_cb(void* ctx) {
     pq_chip_nrf24_ce_set(false);
 
     /* 起点信道:CwCustom 用用户值,其他用 profile 第一信道. */
-    uint8_t initial_ch = (app->jammer_mode == JammerModeCwCustom)
-                             ? app->jammer_cw_channel
-                             : profile_ch_at(p, 0);
+    uint8_t initial_ch = (app->jammer_mode == JammerModeCwCustom) ? app->jammer_cw_channel :
+                                                                    profile_ch_at(p, 0);
 
     bool ok;
     switch(p->engine) {
@@ -235,8 +255,7 @@ static bool jammer_start_cb(void* ctx) {
         break;
     }
     if(!ok) {
-        FURI_LOG_E(TAG, "setup failed engine=%d mode=%d", (int)p->engine,
-                   (int)app->jammer_mode);
+        FURI_LOG_E(TAG, "setup failed engine=%d mode=%d", (int)p->engine, (int)app->jammer_mode);
         return false;
     }
 
@@ -305,8 +324,8 @@ static bool jammer_reactive_chunk_inner(PqApp* app, const JammerProfile* p) {
             pq_chip_nrf24_ce_set(false);
             pq_nrf24_react_to_tx(app->nrf);
             pq_chip_nrf24_ce_set(true);
-            furi_delay_us(130);                 /* Tstby2a + PA 稳定 */
-            furi_delay_us(2500);                /* sustained CW 2.5 ms — 覆盖当前包 + 等下一周期 */
+            furi_delay_us(130); /* Tstby2a + PA 稳定 */
+            furi_delay_us(2500); /* sustained CW 2.5 ms — 覆盖当前包 + 等下一周期 */
             pq_chip_nrf24_ce_set(false);
 
             /* 切回 RX 同 ch 继续监听. */
@@ -383,7 +402,7 @@ static bool jammer_chunk_cb(void* ctx) {
  * --------------------------------------------------------------------------*/
 
 typedef enum {
-    JamLocalIdle,   /* CE low,PWR_DOWN — 等待 user 按 OK */
+    JamLocalIdle, /* CE low,PWR_DOWN — 等待 user 按 OK */
     JamLocalActive, /* CE high,正在干扰 */
 } JamLocalState;
 
@@ -400,8 +419,8 @@ static int32_t jammer_worker_func(void* ctx) {
             if(pq_chip_with_nrf24(jammer_start_cb, app, ARBITER_TIMEOUT_MS)) {
                 local = JamLocalActive;
                 chunk_n = 0;
-                FURI_LOG_I(TAG, "jam start mode=%d ch=%u",
-                           (int)app->jammer_mode, app->jammer_cw_channel);
+                FURI_LOG_I(
+                    TAG, "jam start mode=%d ch=%u", (int)app->jammer_mode, app->jammer_cw_channel);
             } else {
                 /* 启动失败 → 强制回 stopped,提示 GUI. */
                 FURI_LOG_W(TAG, "start_cb timeout/fail");
@@ -442,10 +461,9 @@ static int32_t jammer_worker_func(void* ctx) {
             cur_ch = app->jammer_cw_channel;
         } else {
             uint8_t total = profile_count(p);
-            uint8_t prev_cursor =
-                (app->jammer_sweep_cursor == 0)
-                    ? (uint8_t)(total - 1)
-                    : (uint8_t)(app->jammer_sweep_cursor - 1); /* 上一刻 */
+            uint8_t prev_cursor = (app->jammer_sweep_cursor == 0) ?
+                                      (uint8_t)(total - 1) :
+                                      (uint8_t)(app->jammer_sweep_cursor - 1); /* 上一刻 */
             cur_ch = profile_ch_at(p, prev_cursor);
         }
         jammer_view_update_tick(app->jammer_view, cur_ch, chunk_n);
@@ -453,8 +471,8 @@ static int32_t jammer_worker_func(void* ctx) {
         /* Yield(R6:每 100 ms 检查停止信号):
          *   CwCustom : chunk 几乎瞬时 → 长 yield 不影响硬件持续发射
          *   多信道   : chunk 已含 dwell_us×chunk_size 的 TX 时间 → 短 yield 维持高占空比 */
-        furi_delay_ms((app->jammer_mode == JammerModeCwCustom) ? CW_TICK_YIELD_MS
-                                                               : WORKER_TICK_YIELD_MS);
+        furi_delay_ms(
+            (app->jammer_mode == JammerModeCwCustom) ? CW_TICK_YIELD_MS : WORKER_TICK_YIELD_MS);
     }
 
     /* 退出兜底:若仍 Active,做一次清理. */
@@ -472,8 +490,7 @@ static bool jammer_input_callback(InputEvent* event, void* ctx) {
     PqApp* app = ctx;
 
     const bool is_short = (event->type == InputTypeShort);
-    const bool is_long_or_rep =
-        (event->type == InputTypeLong) || (event->type == InputTypeRepeat);
+    const bool is_long_or_rep = (event->type == InputTypeLong) || (event->type == InputTypeRepeat);
     if(!is_short && !is_long_or_rep) return false;
 
     switch(event->key) {
@@ -485,9 +502,8 @@ static bool jammer_input_callback(InputEvent* event, void* ctx) {
             if(event->key == InputKeyUp) {
                 new_mode = (JammerMode)((app->jammer_mode + 1) % JammerModeCount);
             } else {
-                new_mode = (app->jammer_mode == 0)
-                               ? (JammerMode)(JammerModeCount - 1)
-                               : (JammerMode)(app->jammer_mode - 1);
+                new_mode = (app->jammer_mode == 0) ? (JammerMode)(JammerModeCount - 1) :
+                                                     (JammerMode)(app->jammer_mode - 1);
             }
             app->jammer_mode = new_mode;
             app->jammer_sweep_cursor = 0;
@@ -529,7 +545,7 @@ static bool jammer_input_callback(InputEvent* event, void* ctx) {
          * (规范 §6.1).on_exit 会 join worker + 清理. */
         if(is_short) {
             app->jammer_stop_requested = true; /* 提前发停信号,缩短 join 等待 */
-            app->jammer_running = false;       /* 让 worker 转 Idle */
+            app->jammer_running = false; /* 让 worker 转 Idle */
         }
         return false;
 

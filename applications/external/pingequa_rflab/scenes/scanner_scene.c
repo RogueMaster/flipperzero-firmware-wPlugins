@@ -22,17 +22,16 @@
 #include <input/input.h>
 #include <string.h>
 
-#define TAG                 "PqScannerScene"
-#define SCENE_NAME          "scanner"
-#define WORKER_STACK        2048
-#define WORKER_TIMEOUT_MS   100
-#define WORKER_PAUSE_MS     50
+#define TAG               "PqScannerScene"
+#define SCENE_NAME        "scanner"
+#define WORKER_STACK      2048
+#define WORKER_TIMEOUT_MS 100
+#define WORKER_PAUSE_MS   50
 
 /* CONFIG 用于"RX standby"模式:PWR_UP=1, PRIM_RX=1, IRQ 全 mask. */
-#define NRF24_RX_STANDBY_CFG                                   \
-    (NRF24_CONFIG_PWR_UP | NRF24_CONFIG_PRIM_RX |              \
-     NRF24_CONFIG_MASK_MAX_RT | NRF24_CONFIG_MASK_TX_DS |      \
-     NRF24_CONFIG_MASK_RX_DR)
+#define NRF24_RX_STANDBY_CFG                                                 \
+    (NRF24_CONFIG_PWR_UP | NRF24_CONFIG_PRIM_RX | NRF24_CONFIG_MASK_MAX_RT | \
+     NRF24_CONFIG_MASK_TX_DS | NRF24_CONFIG_MASK_RX_DR)
 
 /* ---------------------------------------------------------------------------
  * NRF24 设置:scene_on_enter 时一次性初始化寄存器
@@ -196,8 +195,13 @@ static bool scanner_input_callback(InputEvent* event, void* ctx) {
              * 导出后顶栏右上角 "SAVED!" 闪 ~1 秒(view 自动衰减). */
             char path[96] = {0};
             bool ok = pq_scan_export_csv(
-                app->hits, PQ_NUM_CHANNELS, app->peak_ch, app->dwell_us, app->sweep_count,
-                path, sizeof(path));
+                app->hits,
+                PQ_NUM_CHANNELS,
+                app->peak_ch,
+                app->dwell_us,
+                app->sweep_count,
+                path,
+                sizeof(path));
             if(ok) {
                 FURI_LOG_I(TAG, "scan exported: %s", path);
                 scanner_view_show_export_flash(app->scanner_view);
@@ -265,8 +269,8 @@ void scanner_scene_on_enter(void* context) {
     scanner_view_set_running(app->scanner_view, app->scan_running);
 
     /* Worker. */
-    app->scan_thread = furi_thread_alloc_ex(
-        "PqScanWorker", WORKER_STACK, scanner_worker_func, app);
+    app->scan_thread =
+        furi_thread_alloc_ex("PqScanWorker", WORKER_STACK, scanner_worker_func, app);
     furi_thread_set_priority(app->scan_thread, FuriThreadPriorityLow);
     furi_thread_start(app->scan_thread);
 }

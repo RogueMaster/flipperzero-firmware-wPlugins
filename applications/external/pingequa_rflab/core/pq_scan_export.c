@@ -71,8 +71,12 @@ bool pq_scan_export_csv(
         /* 注:`#` 注释行内不要带逗号 — Excel 默认把逗号视为列分隔符,会把单行
          * 注释拆成多列.用分号代替,Python pandas/Excel/Numbers 全部正常单行. */
         snprintf(
-            buf, sizeof(buf), "# Peak channel: %u (%d MHz; %u hits)\n", peak_ch,
-            2400 + peak_ch, peak_hits);
+            buf,
+            sizeof(buf),
+            "# Peak channel: %u (%d MHz; %u hits)\n",
+            peak_ch,
+            2400 + peak_ch,
+            peak_hits);
         if(!write_line(file, buf)) break;
 
         if(!write_line(file, "ch,freq_mhz,hits\n")) break;

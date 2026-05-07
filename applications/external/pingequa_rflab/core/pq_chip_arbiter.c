@@ -78,7 +78,7 @@ bool pq_chip_with_nrf24(PqChipCallback cb, void* ctx, uint32_t timeout_ms) {
      *    Activate 事件把 PA4(CC1101 CS)拉 LOW — 紧接着手工拉 HIGH 覆盖,
      *    再把 PC3(NRF24 CS)拉 LOW.两芯片 CS 互斥由此保证. */
     furi_hal_spi_acquire(&furi_hal_spi_bus_handle_external);
-    furi_hal_gpio_write(&gpio_ext_pa4, true);  /* PA4 = CC1101 CS HIGH(覆盖 Activate) */
+    furi_hal_gpio_write(&gpio_ext_pa4, true); /* PA4 = CC1101 CS HIGH(覆盖 Activate) */
     furi_hal_gpio_write(&gpio_ext_pc3, false); /* PC3 = NRF24  CS LOW (select) */
     m_active_cs = &gpio_ext_pc3;
 
@@ -145,7 +145,8 @@ bool pq_chip_spi_trx(const uint8_t* tx, uint8_t* rx, size_t size, uint32_t timeo
     if(tx == NULL) {
         uint8_t dummy[64];
         furi_check(size <= sizeof(dummy));
-        for(size_t i = 0; i < size; i++) dummy[i] = 0xFF;
+        for(size_t i = 0; i < size; i++)
+            dummy[i] = 0xFF;
         ok = furi_hal_spi_bus_trx(&furi_hal_spi_bus_handle_external, dummy, rx, size, timeout_ms);
     } else {
         ok = furi_hal_spi_bus_trx(

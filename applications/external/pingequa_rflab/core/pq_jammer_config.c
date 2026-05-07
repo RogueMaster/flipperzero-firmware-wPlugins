@@ -14,9 +14,9 @@
 
 #define TAG "PqJammerCfg"
 
-#define PQ_JAMMER_FILETYPE  "PINGEQUA Jammer State"
-#define KEY_MODE            "Mode"
-#define KEY_CW_CHANNEL      "CW Channel"
+#define PQ_JAMMER_FILETYPE "PINGEQUA Jammer State"
+#define KEY_MODE           "Mode"
+#define KEY_CW_CHANNEL     "CW Channel"
 
 #define NRF24_CHANNEL_MAX_LOCAL 125
 
@@ -24,7 +24,7 @@
  * 不必 #include views/jammer_view.h 在头文件里(避免循环依赖). */
 void pq_jammer_config_set_defaults(PqJammerState* st) {
     furi_check(st);
-    st->mode = 0;        /* JammerModeCwCustom */
+    st->mode = 0; /* JammerModeCwCustom */
     st->cw_channel = 42; /* ~2442 MHz */
 }
 

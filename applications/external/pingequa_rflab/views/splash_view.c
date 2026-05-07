@@ -47,6 +47,5 @@ View* splash_view_get_view(SplashView* sv) {
 void splash_view_set_progress(SplashView* sv, uint8_t progress) {
     furi_check(sv);
     if(progress > 100) progress = 100;
-    with_view_model(
-        sv->view, SplashViewModel * m, { m->progress = progress; }, true);
+    with_view_model(sv->view, SplashViewModel * m, { m->progress = progress; }, true);
 }

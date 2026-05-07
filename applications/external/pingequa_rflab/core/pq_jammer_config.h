@@ -21,7 +21,7 @@
 #define PQ_JAMMER_CONFIG_PATH    "/ext/apps_data/pingequa/jammer.conf"
 
 typedef struct {
-    uint8_t mode;       /* JammerMode 枚举值,持久化为整数 */
+    uint8_t mode; /* JammerMode 枚举值,持久化为整数 */
     uint8_t cw_channel; /* CW Custom 选定的 NRF24 ch (0..125) */
 } PqJammerState;
 

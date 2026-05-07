@@ -103,15 +103,14 @@ static PqApp* pq_app_alloc(void) {
 
     /* 2. ViewDispatcher / SceneManager. */
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&pq_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_custom_event_callback(
-        app->view_dispatcher, pq_app_custom_event_callback);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, pq_app_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, pq_app_back_event_callback);
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     /* 3. 配置:失败 fallback 默认值,继续启动. */
     pq_config_load(&app->cfg);
