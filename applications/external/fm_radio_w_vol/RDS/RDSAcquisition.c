@@ -18,6 +18,14 @@ typedef enum {
     RdsAcquisitionBlockFull,
 } RdsAcquisitionBlockEvent;
 
+static uint8_t rds_acquisition_ring_next(uint8_t index) {
+    index++;
+    if(index >= RDS_ACQ_RING_CAPACITY_BLOCKS) {
+        index = 0U;
+    }
+    return index;
+}
+
 static uint32_t rds_acquisition_map_channel(FuriHalAdcChannel channel) {
     switch(channel) {
     case FuriHalAdcChannel0:
@@ -105,7 +113,70 @@ static void rds_acquisition_timer_stop(void) {
 }
 
 static uint16_t rds_acquisition_pending_block_count(const RdsAcquisition* acquisition) {
-    return (uint16_t)acquisition->pending_half_blocks + (uint16_t)acquisition->pending_full_blocks;
+    return acquisition->pending_ring_count;
+}
+
+static bool rds_acquisition_queue_block_copy(RdsAcquisition* acquisition, const uint16_t* block) {
+    uint8_t slot;
+
+    if(!acquisition || !block) {
+        return false;
+    }
+
+    {
+        FURI_CRITICAL_ENTER();
+        if(acquisition->pending_ring_count >= RDS_ACQ_RING_CAPACITY_BLOCKS) {
+            FURI_CRITICAL_EXIT();
+            return false;
+        }
+        slot = acquisition->pending_ring_head;
+        FURI_CRITICAL_EXIT();
+    }
+
+    memcpy(
+        acquisition->pending_block_ring[slot],
+        block,
+        sizeof(acquisition->pending_block_ring[slot]));
+
+    {
+        FURI_CRITICAL_ENTER();
+        acquisition->pending_ring_head = rds_acquisition_ring_next(slot);
+        acquisition->pending_ring_count++;
+        FURI_CRITICAL_EXIT();
+    }
+    return true;
+}
+
+static bool
+    rds_acquisition_pop_pending_block_copy(RdsAcquisition* acquisition, uint16_t* out_block) {
+    uint8_t slot;
+
+    if(!acquisition || !out_block) {
+        return false;
+    }
+
+    {
+        FURI_CRITICAL_ENTER();
+        if(acquisition->pending_ring_count == 0U) {
+            FURI_CRITICAL_EXIT();
+            return false;
+        }
+        slot = acquisition->pending_ring_tail;
+        FURI_CRITICAL_EXIT();
+    }
+
+    memcpy(
+        out_block,
+        acquisition->pending_block_ring[slot],
+        sizeof(acquisition->pending_block_ring[slot]));
+
+    {
+        FURI_CRITICAL_ENTER();
+        acquisition->pending_ring_tail = rds_acquisition_ring_next(slot);
+        acquisition->pending_ring_count--;
+        FURI_CRITICAL_EXIT();
+    }
+    return true;
 }
 
 static void rds_acquisition_dma_disable(void) {
@@ -197,10 +268,10 @@ static void rds_acquisition_dma_isr(void* context) {
         acquisition->stats.total_dma_blocks++;
         if(rds_acquisition_try_realtime_block(acquisition, acquisition->dma_buffer)) {
             /* Raw capture mode consumes this block immediately from DMA. */
-        } else if(acquisition->pending_half_blocks < RDS_ACQ_PENDING_LIMIT) {
-            acquisition->pending_half_blocks++;
+        } else if(rds_acquisition_queue_block_copy(acquisition, acquisition->dma_buffer)) {
         } else {
             acquisition->stats.dropped_blocks++;
+            acquisition->stats.ring_overrun_count++;
         }
         uint16_t pending_blocks = rds_acquisition_pending_block_count(acquisition);
         if(pending_blocks > acquisition->stats.pending_peak_blocks) {
@@ -215,10 +286,11 @@ static void rds_acquisition_dma_isr(void* context) {
         if(rds_acquisition_try_realtime_block(
                acquisition, &acquisition->dma_buffer[RDS_ACQ_BLOCK_SAMPLES])) {
             /* Raw capture mode consumes this block immediately from DMA. */
-        } else if(acquisition->pending_full_blocks < RDS_ACQ_PENDING_LIMIT) {
-            acquisition->pending_full_blocks++;
+        } else if(rds_acquisition_queue_block_copy(
+                      acquisition, &acquisition->dma_buffer[RDS_ACQ_BLOCK_SAMPLES])) {
         } else {
             acquisition->stats.dropped_blocks++;
+            acquisition->stats.ring_overrun_count++;
         }
         uint16_t pending_blocks = rds_acquisition_pending_block_count(acquisition);
         if(pending_blocks > acquisition->stats.pending_peak_blocks) {
@@ -230,22 +302,6 @@ static void rds_acquisition_dma_isr(void* context) {
         LL_ADC_ClearFlag_OVR(ADC1);
         acquisition->stats.adc_overrun_count++;
     }
-}
-
-static RdsAcquisitionBlockEvent rds_acquisition_pop_pending_block(RdsAcquisition* acquisition) {
-    RdsAcquisitionBlockEvent event = RdsAcquisitionBlockNone;
-
-    FURI_CRITICAL_ENTER();
-    if(acquisition->pending_half_blocks > 0U) {
-        acquisition->pending_half_blocks--;
-        event = RdsAcquisitionBlockHalf;
-    } else if(acquisition->pending_full_blocks > 0U) {
-        acquisition->pending_full_blocks--;
-        event = RdsAcquisitionBlockFull;
-    }
-    FURI_CRITICAL_EXIT();
-
-    return event;
 }
 
 static void rds_acquisition_update_measured_rate(RdsAcquisition* acquisition) {
@@ -282,6 +338,7 @@ void rds_acquisition_init(
     acquisition->stats.adc_midpoint = adc_midpoint;
     acquisition->stats.dma_buffer_samples = RDS_ACQ_DMA_BUFFER_SAMPLES;
     acquisition->stats.block_samples = RDS_ACQ_BLOCK_SAMPLES;
+    acquisition->stats.ring_capacity_blocks = RDS_ACQ_RING_CAPACITY_BLOCKS;
 }
 
 void rds_acquisition_set_realtime_block_callback(
@@ -301,8 +358,9 @@ void rds_acquisition_reset(RdsAcquisition* acquisition) {
     acquisition->last_tick = acquisition->start_tick;
     acquisition->sample_count = 0U;
     acquisition->timer_ticks = 0U;
-    acquisition->pending_half_blocks = 0U;
-    acquisition->pending_full_blocks = 0U;
+    acquisition->pending_ring_head = 0U;
+    acquisition->pending_ring_tail = 0U;
+    acquisition->pending_ring_count = 0U;
 
     acquisition->stats.measured_sample_rate_hz = 0U;
     acquisition->stats.dma_half_events = 0U;
@@ -312,6 +370,7 @@ void rds_acquisition_reset(RdsAcquisition* acquisition) {
     acquisition->stats.dropped_blocks = 0U;
     acquisition->stats.pending_blocks = 0U;
     acquisition->stats.pending_peak_blocks = 0U;
+    acquisition->stats.ring_overrun_count = 0U;
     acquisition->stats.adc_overrun_count = 0U;
     acquisition->stats.samples_delivered = 0U;
 }
@@ -374,32 +433,28 @@ void rds_acquisition_on_timer_tick(RdsAcquisition* acquisition, bool drain_all_p
     acquisition->timer_ticks++;
     acquisition->last_tick = furi_get_tick();
 
-    RdsAcquisitionBlockEvent event;
+    uint16_t block_copy[RDS_ACQ_BLOCK_SAMPLES];
     size_t delivered_blocks = 0U;
     size_t max_blocks_this_tick = SIZE_MAX;
 
     if(!drain_all_pending) {
         const uint16_t pending_before = rds_acquisition_pending_block_count(acquisition);
         max_blocks_this_tick = 1U;
-        if(pending_before > RDS_ACQ_PENDING_LIMIT) {
+        if(pending_before >= RDS_ACQ_RING_CAPACITY_BLOCKS) {
             max_blocks_this_tick = RDS_ACQ_MAX_BLOCKS_PER_TICK;
-        } else if(pending_before > (RDS_ACQ_PENDING_LIMIT / 2U)) {
+        } else if(pending_before > (RDS_ACQ_RING_CAPACITY_BLOCKS / 2U)) {
             max_blocks_this_tick = 2U;
         }
     }
 
-    while((event = rds_acquisition_pop_pending_block(acquisition)) != RdsAcquisitionBlockNone) {
-        const uint16_t* block = (event == RdsAcquisitionBlockHalf) ?
-                                    acquisition->dma_buffer :
-                                    &acquisition->dma_buffer[RDS_ACQ_BLOCK_SAMPLES];
-
+    while(rds_acquisition_pop_pending_block_copy(acquisition, block_copy)) {
         acquisition->sample_count += RDS_ACQ_BLOCK_SAMPLES;
         acquisition->stats.delivered_blocks++;
         acquisition->stats.samples_delivered = acquisition->sample_count;
 
         if(acquisition->block_callback) {
             acquisition->block_callback(
-                block,
+                block_copy,
                 RDS_ACQ_BLOCK_SAMPLES,
                 acquisition->stats.adc_midpoint,
                 acquisition->callback_context);

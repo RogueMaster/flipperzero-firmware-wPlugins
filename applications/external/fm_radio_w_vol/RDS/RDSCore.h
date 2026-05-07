@@ -11,7 +11,7 @@
 #define RDS_PS_LEN             8U
 #define RDS_RT_LEN             64U
 #define RDS_EVENT_QUEUE_SIZE   8U
-#define RDS_PILOT_LEVEL_MIN_Q8 5120U
+#define RDS_PILOT_LEVEL_MIN_Q8 800U
 #define RDS_BAND_LEVEL_MIN_Q8  5120U
 #define RDS_PRESYNC_REQUIRED   3U
 

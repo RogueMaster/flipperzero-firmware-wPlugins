@@ -8,12 +8,51 @@
 
 #define RDS_PILOT_HZ           19000U
 #define RDS_CARRIER_NOMINAL_HZ 57000U
+#define RDS_HB1_TAPS           19U
+#define RDS_HB2_TAPS           31U
+#define RDS_HB3_TAPS           11U
+#define RDS_EN50067_FIR_TAPS   41U
 
 typedef void (*RdsDspSymbolCallback)(
     void* context,
     int32_t symbol_i,
     int32_t symbol_q,
     uint32_t confidence_q16);
+
+#ifdef HOST_BUILD
+typedef struct {
+    uint64_t dc_pilot_ns;
+    uint64_t carrier_mix_ns;
+    uint64_t hb1_ns;
+    uint64_t hb2_ns;
+    uint64_t hb3_ns;
+    uint64_t en50067_ns;
+    uint64_t symbol_core_ns;
+    uint64_t core_decode_ns;
+    uint32_t input_samples;
+    uint32_t hb1_outputs;
+    uint32_t hb2_outputs;
+    uint32_t hb3_outputs;
+    uint32_t symbol_events;
+} RdsDspProfile;
+#else
+typedef struct {
+    uint64_t dc_pilot_cycles;
+    uint64_t carrier_mix_cycles;
+    uint64_t hb1_cycles;
+    uint64_t hb2_cycles;
+    uint64_t hb3_cycles;
+    uint64_t en50067_cycles;
+    uint64_t symbol_core_cycles;
+    uint64_t core_decode_cycles;
+    uint32_t input_samples;
+    uint32_t hb1_outputs;
+    uint32_t hb2_outputs;
+    uint32_t hb3_outputs;
+    uint32_t symbol_events;
+    uint8_t cycle_counter_available;
+} RdsDspRuntimeProfile;
+#endif
 
 typedef struct {
     uint32_t sample_rate_hz;
@@ -36,14 +75,21 @@ typedef struct {
     int32_t pilot_prev_q_lpf_state;
     uint8_t pilot_update_div;
     int32_t dc_estimate_q8;
-    int32_t i_lpf_state;
-    int32_t q_lpf_state;
-    int32_t i_lpf_state2;
-    int32_t q_lpf_state2;
-    int32_t i_lpf_state3;
-    int32_t q_lpf_state3;
-    int32_t i_lpf_state4;
-    int32_t q_lpf_state4;
+    int16_t hb1_i_hist[RDS_HB1_TAPS * 2U] __attribute__((aligned(4)));
+    int16_t hb1_q_hist[RDS_HB1_TAPS * 2U] __attribute__((aligned(4)));
+    uint8_t hb1_head;
+    uint8_t hb1_phase;
+    int16_t hb2_i_hist[RDS_HB2_TAPS * 2U] __attribute__((aligned(4)));
+    int16_t hb2_q_hist[RDS_HB2_TAPS * 2U] __attribute__((aligned(4)));
+    uint8_t hb2_head;
+    uint8_t hb2_phase;
+    int16_t hb3_i_hist[RDS_HB3_TAPS * 2U] __attribute__((aligned(4)));
+    int16_t hb3_q_hist[RDS_HB3_TAPS * 2U] __attribute__((aligned(4)));
+    uint8_t hb3_head;
+    uint8_t hb3_phase;
+    int16_t en50067_i_hist[RDS_EN50067_FIR_TAPS * 2U] __attribute__((aligned(4)));
+    int16_t en50067_q_hist[RDS_EN50067_FIR_TAPS * 2U] __attribute__((aligned(4)));
+    uint8_t en50067_head;
     int32_t i_integrator;
     int32_t q_integrator;
     int32_t half_i_integrator;
@@ -81,6 +127,9 @@ typedef struct {
     uint8_t* bit_log;
     size_t bit_log_count;
     size_t bit_log_capacity;
+    RdsDspProfile profile;
+#else
+    RdsDspRuntimeProfile runtime_profile;
 #endif
 } RDSDsp;
 
@@ -98,3 +147,8 @@ void rds_dsp_process_u16_samples(
     const uint16_t* samples,
     size_t count,
     uint16_t adc_midpoint);
+
+#ifdef HOST_BUILD
+void rds_dsp_profile_reset(RDSDsp* dsp);
+void rds_dsp_profile_get(const RDSDsp* dsp, RdsDspProfile* out_profile);
+#endif

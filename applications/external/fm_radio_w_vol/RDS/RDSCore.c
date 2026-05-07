@@ -565,11 +565,10 @@ bool rds_core_consume_demod_bit(RDSCore* core, uint8_t bit, RdsBlock* decoded_bl
 
     if(!core) return false;
 
-    pilot_ok = (core->pilot_level_q8 >= RDS_PILOT_LEVEL_MIN_Q8) &&
-               (core->pilot_level_q8 >= (core->rds_band_level_q8 * 7U / 8U));
+    pilot_ok = (core->pilot_level_q8 >= RDS_PILOT_LEVEL_MIN_Q8);
     rds_ok = core->rds_band_level_q8 >= RDS_BAND_LEVEL_MIN_Q8;
 
-#ifdef HOST_BUILD
+#if defined(HOST_BUILD) && !defined(RDS_HOST_ENABLE_QUALITY_GATE)
     /* Disable quality gate for offline testing — pilot/rds ratio depends on
        generator parameters and doesn't reflect real antenna signal quality. */
     pilot_ok = true;

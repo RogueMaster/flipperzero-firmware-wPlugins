@@ -11,8 +11,8 @@
 #define RDS_ACQ_TARGET_SAMPLE_RATE_HZ RDS_DECODE_SAMPLE_RATE_HZ
 #define RDS_ACQ_DMA_BUFFER_SAMPLES    2048U
 #define RDS_ACQ_BLOCK_SAMPLES         1024U
+#define RDS_ACQ_RING_CAPACITY_BLOCKS  8U
 #define RDS_ACQ_TIMER_MS              2U
-#define RDS_ACQ_PENDING_LIMIT         24U
 #define RDS_ACQ_MAX_BLOCKS_PER_TICK   3U
 
 typedef void (*RdsAcquisitionBlockCallback)(
@@ -40,6 +40,8 @@ typedef struct {
     uint32_t dropped_blocks;
     uint16_t pending_blocks;
     uint16_t pending_peak_blocks;
+    uint16_t ring_capacity_blocks;
+    uint32_t ring_overrun_count;
     uint32_t adc_overrun_count;
     uint32_t samples_delivered;
     bool running;
@@ -58,8 +60,10 @@ typedef struct {
     uint32_t last_tick;
     uint32_t sample_count;
     uint32_t timer_ticks;
-    volatile uint16_t pending_half_blocks;
-    volatile uint16_t pending_full_blocks;
+    uint16_t pending_block_ring[RDS_ACQ_RING_CAPACITY_BLOCKS][RDS_ACQ_BLOCK_SAMPLES];
+    volatile uint8_t pending_ring_head;
+    volatile uint8_t pending_ring_tail;
+    volatile uint16_t pending_ring_count;
     RdsAcquisitionStats stats;
 } RdsAcquisition;
 
