@@ -1,0 +1,60 @@
+name: 🔌 Hardware Compatibility
+description: Report results from a non-PINGEQUA NRF24/CC1101 board, or PINGEQUA hardware variant
+title: "[Hardware] "
+labels: ["hardware", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ This app is officially built and tested only on the [PINGEQUA 2-in-1 RF Devboard](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=issue&utm_campaign=rflab&utm_content=hardware_template).
+
+        Other hardware may work but is unsupported. Use this template to share your experience so others can learn.
+
+  - type: input
+    id: hardware-name
+    attributes:
+      label: Hardware
+      description: Board name, vendor, link if available
+      placeholder: "vad7 NRF24 module / DIY breadboard with NRF24L01+ on PA4 / etc."
+    validations:
+      required: true
+
+  - type: input
+    id: nrf24-csn
+    attributes:
+      label: NRF24 CSN pin
+      description: Which Flipper GPIO pin is wired to NRF24 CSN
+      placeholder: "PC3 (default) / PA4 / other"
+    validations:
+      required: true
+
+  - type: input
+    id: nrf24-ce
+    attributes:
+      label: NRF24 CE pin
+      placeholder: "PB2 (default) / PB3 / other"
+
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - "Works (board detected, scan accurate)"
+        - "Partial (board detected but bars wrong/missing)"
+        - "Detection fails"
+        - "App crashes"
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-dump
+    attributes:
+      label: Error screen register dump (if any)
+      description: From the "Board Not Detected" screen
+      render: text
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Photos of your wiring, modifications, anything else

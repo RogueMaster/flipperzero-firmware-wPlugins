@@ -1,0 +1,6 @@
+Open-source 2.4 GHz spectrum analyzer for Flipper Zero. Plug-and-play across every firmware, designed for the PINGEQUA 2-in-1 RF Devboard.
+
+Repo: https://github.com/pingequa/pingequa_rf_toolkit
+Hardware: https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard
+License: MIT
+Size: 21 KB FAP

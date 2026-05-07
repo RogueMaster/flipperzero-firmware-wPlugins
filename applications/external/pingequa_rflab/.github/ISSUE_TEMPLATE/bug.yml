@@ -1,0 +1,96 @@
+name: 🐛 Bug Report
+description: Something is broken or behaving unexpectedly
+title: "[Bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please fill out the fields below — they help us reproduce and fix faster.
+
+        Before submitting, check the [FAQ](../docs/FAQ.md) and [Troubleshooting](../docs/TROUBLESHOOTING.md) — your issue may already be covered.
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Bottom of `application.fam` or About screen
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: firmware
+    attributes:
+      label: Flipper firmware
+      multiple: false
+      options:
+        - Momentum (mntm-dev)
+        - Momentum (mntm-stable)
+        - Unleashed
+        - RogueMaster
+        - Official (OFW)
+        - Xtreme
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: firmware-version
+    attributes:
+      label: Firmware version / commit
+      placeholder: "mntm-012-3.4.5"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: hardware
+    attributes:
+      label: Hardware
+      options:
+        - PINGEQUA 2-in-1 RF Devboard (officially supported)
+        - Other hardware (unsupported — please describe)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly. Include exact UI text shown if any.
+      placeholder: "After 5 minutes of scanning, the app crashed and Flipper rebooted."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: "Scanner should keep running indefinitely."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Plug in PINGEQUA 2-in-1 board
+        2. Launch app, wait through splash
+        3. Press right arrow 50 times rapidly
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-screen
+    attributes:
+      label: Error screen output (if any)
+      description: If the app showed "Board Not Detected" or other diagnostic, paste the exact text including register dumps.
+      render: text
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Photos, video, log captures, anything else.

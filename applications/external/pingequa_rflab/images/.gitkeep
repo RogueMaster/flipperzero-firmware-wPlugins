@@ -1,0 +1,18 @@
+# Image placeholder folder
+
+Replace these with actual screenshots / banner / GIFs.
+
+Recommended files:
+- banner.png         (1280×640 hero image, used in README)
+- scanner-running.png   (Flipper screen — scanner active)
+- scanner-maxhold.png   (Flipper screen — MAX HOLD state)
+- scanner-paused.png    (Flipper screen — PAUSE state)
+- error-screen.png      (Flipper screen — Board Not Detected)
+- ui-anatomy.png        (UI annotated with zone labels)
+- demo.gif              (10s animation: scanning + cursor + max hold)
+- product-shot.png      (Flipper + PINGEQUA board, photography)
+
+When ready:
+1. Place files in this folder
+2. Verify README and docs/ references resolve
+3. Delete this .gitkeep

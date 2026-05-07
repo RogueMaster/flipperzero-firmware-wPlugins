@@ -1,0 +1,43 @@
+name: ✨ Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! Check the [Roadmap](../README.md#roadmap) first — your idea may already be planned.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the user pain point.
+      placeholder: "I want to log my scans for later analysis on my PC..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      placeholder: "Add a 'Save' option in MAX HOLD mode that exports hits[] as CSV to /ext/apps_data/pingequa/scans/"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: "Could also add Bluetooth telemetry, but storage is simpler"
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority for you personally
+      options:
+        - Nice to have
+        - Would use regularly
+        - Blocking my workflow
+    validations:
+      required: true

@@ -1,0 +1,21 @@
+theme: jekyll-theme-cayman
+title: PINGEQUA RF Lab
+description: 2.4 GHz spectrum analyzer + 7-mode NRF24 jammer for Flipper Zero, real-device verified to disconnect BLE & 2.4G WiFi.
+show_downloads: true
+
+# Don't process these (they're for the FAP / project, not the docs site)
+exclude:
+  - core/
+  - scenes/
+  - views/
+  - dist/
+  - icon.png
+  - application.fam
+  - llms.txt
+  - press-kit/
+  - release-notes/
+  - GITHUB_PUBLISH_OVERVIEW.md
+  - PUBLISH.md
+  - CONTRIBUTING.md
+  - CODE_OF_CONDUCT.md
+  - SECURITY.md
