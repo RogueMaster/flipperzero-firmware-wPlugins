@@ -102,14 +102,12 @@ static void esp_flasher_scene_browse_callback(void* context, uint32_t index) {
         if(app->bin_file_path_boot[0] == '\0') {
             // if user didn't select a file, leave unselected
             app->selected_flash_options[SelectedFlashBoot] = false;
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         } else if(app->advanced_mode) {
             view_dispatcher_send_custom_event(
                 app->view_dispatcher, EspFlasherEventShowAddressInput);
         } else {
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         }
         break;
 
@@ -137,8 +135,7 @@ static void esp_flasher_scene_browse_callback(void* context, uint32_t index) {
         }
         if(app->bin_file_path_part[0] == '\0') {
             app->selected_flash_options[SelectedFlashPart] = false;
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         } else {
             // check whether the parse found any matching slots
             bool any_matched = false;
@@ -183,14 +180,12 @@ static void esp_flasher_scene_browse_callback(void* context, uint32_t index) {
         }
         if(app->bin_file_path_nvs[0] == '\0') {
             app->selected_flash_options[SelectedFlashNvs] = false;
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         } else if(app->advanced_mode) {
             view_dispatcher_send_custom_event(
                 app->view_dispatcher, EspFlasherEventShowAddressInput);
         } else {
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         }
         break;
 
@@ -216,14 +211,12 @@ static void esp_flasher_scene_browse_callback(void* context, uint32_t index) {
         }
         if(app->bin_file_path_boot_app0[0] == '\0') {
             app->selected_flash_options[SelectedFlashBootApp0] = false;
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         } else if(app->advanced_mode) {
             view_dispatcher_send_custom_event(
                 app->view_dispatcher, EspFlasherEventShowAddressInput);
         } else {
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         }
         break;
 
@@ -249,14 +242,12 @@ static void esp_flasher_scene_browse_callback(void* context, uint32_t index) {
         }
         if(app->bin_file_path_app_a[0] == '\0') {
             app->selected_flash_options[SelectedFlashAppA] = false;
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         } else if(app->advanced_mode) {
             view_dispatcher_send_custom_event(
                 app->view_dispatcher, EspFlasherEventShowAddressInput);
         } else {
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         }
         break;
 
@@ -282,14 +273,12 @@ static void esp_flasher_scene_browse_callback(void* context, uint32_t index) {
         }
         if(app->bin_file_path_app_b[0] == '\0') {
             app->selected_flash_options[SelectedFlashAppB] = false;
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         } else if(app->advanced_mode) {
             view_dispatcher_send_custom_event(
                 app->view_dispatcher, EspFlasherEventShowAddressInput);
         } else {
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         }
         break;
 
@@ -314,8 +303,7 @@ static void esp_flasher_scene_browse_callback(void* context, uint32_t index) {
         }
         if(app->bin_file_path_custom[0] == '\0') {
             app->selected_flash_options[SelectedFlashCustom] = false;
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, EspFlasherEventRefreshSubmenu);
+            view_dispatcher_send_custom_event(app->view_dispatcher, EspFlasherEventRefreshSubmenu);
         } else {
             view_dispatcher_send_custom_event(
                 app->view_dispatcher, EspFlasherEventShowAddressInput);
@@ -380,11 +368,11 @@ static void _parse_partition_file(EspFlasherApp* app, const char* filepath) {
         app->part_confirm_text + pos, sizeof(app->part_confirm_text) - pos, "Partition file:\n");
 
     while(storage_file_read(f, entry, PART_ENTRY_SIZE) == PART_ENTRY_SIZE) {
-        if(entry[0] == 0xFF) break;                                    // end of table padding
+        if(entry[0] == 0xFF) break; // end of table padding
         if(entry[0] == PART_MD5_MAGIC0 && entry[1] == PART_MD5_MAGIC0) continue; // MD5 entry
         if(entry[0] != PART_MAGIC_BYTE0 || entry[1] != PART_MAGIC_BYTE1) continue;
 
-        uint8_t type    = entry[2];
+        uint8_t type = entry[2];
         uint8_t subtype = entry[3];
         uint32_t offset = (uint32_t)entry[4] | ((uint32_t)entry[5] << 8) |
                           ((uint32_t)entry[6] << 16) | ((uint32_t)entry[7] << 24);
@@ -570,11 +558,7 @@ static void _refresh_submenu(EspFlasherApp* app) {
         submenu_add_item(
             submenu, str_nvs, SubmenuIndexNvs, esp_flasher_scene_browse_callback, app);
         submenu_add_item(
-            submenu,
-            str_boot_app0,
-            SubmenuIndexBootApp0,
-            esp_flasher_scene_browse_callback,
-            app);
+            submenu, str_boot_app0, SubmenuIndexBootApp0, esp_flasher_scene_browse_callback, app);
         submenu_add_item(
             submenu, str_app_a, SubmenuIndexAppA, esp_flasher_scene_browse_callback, app);
         submenu_add_item(
@@ -606,11 +590,7 @@ static void _refresh_submenu(EspFlasherApp* app) {
                                       STR_UNSELECT " " STR_BOOT;
         }
         submenu_add_item(
-            submenu,
-            strSelectBootloader,
-            SubmenuIndexBoot,
-            esp_flasher_scene_browse_callback,
-            app);
+            submenu, strSelectBootloader, SubmenuIndexBoot, esp_flasher_scene_browse_callback, app);
 
         submenu_add_item(
             submenu,
@@ -630,9 +610,8 @@ static void _refresh_submenu(EspFlasherApp* app) {
 
         submenu_add_item(
             submenu,
-            app->selected_flash_options[SelectedFlashBootApp0] ?
-                STR_SELECT " " STR_BOOT_APP0 :
-                STR_UNSELECT " " STR_BOOT_APP0,
+            app->selected_flash_options[SelectedFlashBootApp0] ? STR_SELECT " " STR_BOOT_APP0 :
+                                                                 STR_UNSELECT " " STR_BOOT_APP0,
             SubmenuIndexBootApp0,
             esp_flasher_scene_browse_callback,
             app);
@@ -673,11 +652,7 @@ static void _refresh_submenu(EspFlasherApp* app) {
                                                            "");
 
     submenu_add_item(
-        submenu,
-        str_flash_turbo,
-        SubmenuIndexFlashTurbo,
-        esp_flasher_scene_browse_callback,
-        app);
+        submenu, str_flash_turbo, SubmenuIndexFlashTurbo, esp_flasher_scene_browse_callback, app);
     submenu_add_item(
         submenu, str_flash, SubmenuIndexFlash, esp_flasher_scene_browse_callback, app);
 
@@ -690,23 +665,23 @@ void esp_flasher_scene_browse_on_enter(void* context) {
     EspFlasherApp* app = context;
 
     memset(app->selected_flash_options, 0, sizeof(app->selected_flash_options));
-    app->bin_file_path_boot[0]      = '\0';
-    app->bin_file_path_part[0]      = '\0';
-    app->bin_file_path_nvs[0]       = '\0';
+    app->bin_file_path_boot[0] = '\0';
+    app->bin_file_path_part[0] = '\0';
+    app->bin_file_path_nvs[0] = '\0';
     app->bin_file_path_boot_app0[0] = '\0';
-    app->bin_file_path_app_a[0]     = '\0';
-    app->bin_file_path_app_b[0]     = '\0';
-    app->bin_file_path_custom[0]    = '\0';
+    app->bin_file_path_app_a[0] = '\0';
+    app->bin_file_path_app_b[0] = '\0';
+    app->bin_file_path_custom[0] = '\0';
 
     // initialise slot addresses to standard defaults
-    app->boot_addr_manually_set                   = false;
-    app->custom_slot_addrs[SelectedFlashBoot]     = ESP_ADDR_BOOT;
-    app->custom_slot_addrs[SelectedFlashPart]     = ESP_ADDR_PART;
-    app->custom_slot_addrs[SelectedFlashNvs]      = ESP_ADDR_NVS;
+    app->boot_addr_manually_set = false;
+    app->custom_slot_addrs[SelectedFlashBoot] = ESP_ADDR_BOOT;
+    app->custom_slot_addrs[SelectedFlashPart] = ESP_ADDR_PART;
+    app->custom_slot_addrs[SelectedFlashNvs] = ESP_ADDR_NVS;
     app->custom_slot_addrs[SelectedFlashBootApp0] = ESP_ADDR_BOOT_APP0;
-    app->custom_slot_addrs[SelectedFlashAppA]     = ESP_ADDR_APP_A;
-    app->custom_slot_addrs[SelectedFlashAppB]     = ESP_ADDR_APP_B;
-    app->custom_slot_addrs[SelectedFlashCustom]   = 0x0;
+    app->custom_slot_addrs[SelectedFlashAppA] = ESP_ADDR_APP_A;
+    app->custom_slot_addrs[SelectedFlashAppB] = ESP_ADDR_APP_B;
+    app->custom_slot_addrs[SelectedFlashCustom] = 0x0;
 
     app->pending_addr_slot = -1;
     // advanced_mode intentionally not reset here so it persists across
@@ -725,19 +700,18 @@ bool esp_flasher_scene_browse_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == EspFlasherEventShowAddressInput) {
             // show text input so user can confirm or override the default address
             static const char* slot_header[] = {
-                [SelectedFlashS3Mode]   = NULL,
-                [SelectedFlashC5Mode]   = NULL,
-                [SelectedFlashBoot]     = "Bootloader offset (hex)",
-                [SelectedFlashPart]     = "Partition table offset (hex)",
-                [SelectedFlashNvs]      = "NVS offset (hex)",
+                [SelectedFlashS3Mode] = NULL,
+                [SelectedFlashC5Mode] = NULL,
+                [SelectedFlashBoot] = "Bootloader offset (hex)",
+                [SelectedFlashPart] = "Partition table offset (hex)",
+                [SelectedFlashNvs] = "NVS offset (hex)",
                 [SelectedFlashBootApp0] = "boot_app0 offset (hex)",
-                [SelectedFlashAppA]     = "Firmware A offset (hex)",
-                [SelectedFlashAppB]     = "Firmware B offset (hex)",
-                [SelectedFlashCustom]   = "Custom flash offset (hex)",
+                [SelectedFlashAppA] = "Firmware A offset (hex)",
+                [SelectedFlashAppB] = "Firmware B offset (hex)",
+                [SelectedFlashCustom] = "Custom flash offset (hex)",
             };
             const char* header =
-                (app->pending_addr_slot >= 0 &&
-                 app->pending_addr_slot < NUM_FLASH_OPTIONS &&
+                (app->pending_addr_slot >= 0 && app->pending_addr_slot < NUM_FLASH_OPTIONS &&
                  slot_header[app->pending_addr_slot] != NULL) ?
                     slot_header[app->pending_addr_slot] :
                     "Flash offset (hex)";

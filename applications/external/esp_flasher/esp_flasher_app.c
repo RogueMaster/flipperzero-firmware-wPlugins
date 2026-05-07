@@ -68,9 +68,7 @@ EspFlasherApp* esp_flasher_app_alloc() {
     // Text Input (for custom flash offset entry)
     app->text_input = text_input_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        EspFlasherAppViewTextInput,
-        text_input_get_view(app->text_input));
+        app->view_dispatcher, EspFlasherAppViewTextInput, text_input_get_view(app->text_input));
 
     app->flash_worker_busy = false;
 

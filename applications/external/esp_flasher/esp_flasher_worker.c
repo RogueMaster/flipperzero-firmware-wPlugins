@@ -166,13 +166,31 @@ static void _flash_all_files(EspFlasherApp* app) {
 
 #define NUM_FLASH_ITEMS 7
     FlashItem items[NUM_FLASH_ITEMS] = {
-        {SelectedFlashBoot,     "bootloader",      app->bin_file_path_boot,     app->custom_slot_addrs[SelectedFlashBoot]},
-        {SelectedFlashPart,     "partition table", app->bin_file_path_part,     app->custom_slot_addrs[SelectedFlashPart]},
-        {SelectedFlashNvs,      "NVS",             app->bin_file_path_nvs,      app->custom_slot_addrs[SelectedFlashNvs]},
-        {SelectedFlashBootApp0, "boot_app0",       app->bin_file_path_boot_app0,app->custom_slot_addrs[SelectedFlashBootApp0]},
-        {SelectedFlashAppA,     "firmware A",      app->bin_file_path_app_a,    app->custom_slot_addrs[SelectedFlashAppA]},
-        {SelectedFlashAppB,     "firmware B",      app->bin_file_path_app_b,    app->custom_slot_addrs[SelectedFlashAppB]},
-        {SelectedFlashCustom,   "custom data",     app->bin_file_path_custom,   app->custom_slot_addrs[SelectedFlashCustom]},
+        {SelectedFlashBoot,
+         "bootloader",
+         app->bin_file_path_boot,
+         app->custom_slot_addrs[SelectedFlashBoot]},
+        {SelectedFlashPart,
+         "partition table",
+         app->bin_file_path_part,
+         app->custom_slot_addrs[SelectedFlashPart]},
+        {SelectedFlashNvs, "NVS", app->bin_file_path_nvs, app->custom_slot_addrs[SelectedFlashNvs]},
+        {SelectedFlashBootApp0,
+         "boot_app0",
+         app->bin_file_path_boot_app0,
+         app->custom_slot_addrs[SelectedFlashBootApp0]},
+        {SelectedFlashAppA,
+         "firmware A",
+         app->bin_file_path_app_a,
+         app->custom_slot_addrs[SelectedFlashAppA]},
+        {SelectedFlashAppB,
+         "firmware B",
+         app->bin_file_path_app_b,
+         app->custom_slot_addrs[SelectedFlashAppB]},
+        {SelectedFlashCustom,
+         "custom data",
+         app->bin_file_path_custom,
+         app->custom_slot_addrs[SelectedFlashCustom]},
         /* if you add more entries, update NUM_FLASH_ITEMS above! */
     };
 
