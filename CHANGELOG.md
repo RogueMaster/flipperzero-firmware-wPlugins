@@ -6,6 +6,16 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-08
+
+### fix
+- **flipperpwn**: Fixed WiFi text input callback cleared by `text_input_reset` — both the AP scan OK handler (join password entry) and Evil Portal SSID entry called `text_input_reset` which nulls the result callback set during `fpwn_wifi_views_alloc`. After the reset, pressing OK on the text input did nothing. Added `text_input_set_result_callback` after each reset in both code paths.
+
+### docs
+- **flipperpwn**: Full re-trace review of all 8237 lines across 9 files (6 .c + 3 .h). All 17 views lifecycle correct (9 in flipperpwn.c + 8 in wifi_views.c), exec thread join-before-start guard, USB save/restore on entry/exit, back-stack navigation complete for all views. wifi_uart.c ISR non-blocking with volatile fields and DMB barriers. marauder.c mutex discipline correct with copy_* accessors. payload_engine.c 40+ command handlers all traced: STRING/STRINGLN bounded, EXFIL/EXFIL_USB CDC lifecycle correct, INJECT depth guard at 4, FOR/WHILE/REPEAT_BLOCK safety caps, IF/ELSE/IF_CONNECTED skip depth consistent. Stack: exec thread ~5.2KB worst case on 8KB.
+
+---
+
 ## 2026-05-06
 
 ### fix
