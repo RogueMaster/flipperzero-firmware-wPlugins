@@ -54,6 +54,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [NFC Tools v1.0 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - Added: [PINGEQUA RF Lab v0.5.1 (By pingequalab)](https://github.com/pingequalab/rf-lab)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
+- Updated: [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 
 <a name="release"></a>
 

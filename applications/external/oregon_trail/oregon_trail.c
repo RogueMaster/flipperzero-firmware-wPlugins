@@ -530,9 +530,9 @@ static int build_fort_items(FortItem items[], const GameState* gs) {
     for(int i = 0; i < gs->num_players && n < FORT_MAX_ITEMS; i++) {
         const Player* p = &gs->players[i];
         if(p->hp > 0.0f && p->hp < MAX_HP_F) {
-            items[n] = (FortItem){.money_delta = -20, .available = (t->money >= 20)};
+            items[n] = (FortItem){.money_delta = -25, .available = (t->money >= 25)};
             items[n].hp_delta[i] = 2.0f;
-            snprintf(items[n].label, 32, "Medicine: %s  $20", p->name);
+            snprintf(items[n].label, 32, "Medicine: %s  $25", p->name);
             n++;
         }
     }
@@ -896,7 +896,7 @@ static void game_reset(App* app) {
     app->gs.players[1].alive = true;
     app->gs.trail = (Trail){
         .food_lbs = 250,
-        .money = 124,
+        .money = 100,
         .day = 3,
         .month = 5,
         .miles = 0,
@@ -905,7 +905,9 @@ static void game_reset(App* app) {
         .recent_rain = false,
         .ammo = 20,
         .last_fort_visited = -1,
-        .rivers_visited = 0};
+        .rivers_visited = 0,
+        .grueling_days = 0,
+        .trail_hardship = 0};
     memset(&app->active_event, 0, sizeof(ActiveEvent));
     hunt_init(&app->hunt);
     day_init();
@@ -915,6 +917,7 @@ static void game_reset(App* app) {
     app->fort_cursor = 0;
     app->confirm_exit = false;
     app->gs.trail.rivers_visited = 0;
+    app->gs.trail.trail_hardship = 0;
 }
 
 // ── Game loop ─────────────────────────────────────────────────
@@ -936,7 +939,7 @@ int32_t oregon_trail_app(void* p) {
     app->gs.players[1].alive = true;
     app->gs.trail = (Trail){
         .food_lbs = 250,
-        .money = 124,
+        .money = 100,
         .day = 3,
         .month = 5,
         .miles = 0,
@@ -945,7 +948,9 @@ int32_t oregon_trail_app(void* p) {
         .recent_rain = false,
         .ammo = 20,
         .last_fort_visited = -1,
-        .rivers_visited = 0};
+        .rivers_visited = 0,
+        .grueling_days = 0,
+        .trail_hardship = 0};
 
     // Name edit state — cursor starts on "Start Game" (row 2)
     app->name_edit.cursor = 2;
@@ -1125,11 +1130,14 @@ int32_t oregon_trail_app(void* p) {
                 }
                 if(is_press && ev.key == InputKeyRight) {
                     if(app->confirm_exit) {
-                        app->confirm_exit = false; // Back cancels
+                        app->confirm_exit = false;
                     } else {
                         Region r = region_from_miles(app->gs.trail.miles);
                         bool off = (r != REGION_PRAIRIE && r != REGION_PLAINS);
+                        int saved_ammo = app->gs.trail.ammo; // ammo lives in Trail
+                        hunt_init(&app->hunt); // clears msg, meat, wolf flags
                         hunt_set_region(&app->hunt, off);
+                        app->gs.trail.ammo = saved_ammo; // restore — init doesn't touch Trail
                         app->gs.screen = SCREEN_HUNT;
                     }
                 }

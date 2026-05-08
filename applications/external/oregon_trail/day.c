@@ -350,6 +350,24 @@ static const EventDef EVENTS[] = {
         .weight_desert = 0,
     },
 
+    {
+        .header = "WILDFIRE!",
+        .body = {"Smoke fills the air.", "The trail is cut off.", "Wait for it to pass.", NULL},
+        .choices =
+            {
+                {"Wait 1 day", 1, 20, 0, 0.0f, false}, // 20 food lost, provisions used fighting it
+            },
+        .num_choices = 1,
+        .player_index = -1,
+        .weight_base = 0,
+        .weight_low_food = 0,
+        .weight_grueling = 0,
+        .weight_bad_weather = 5,
+        .weight_mountain = 0,
+        .weight_desert = 3, // also fires in desert
+        // primary trigger: forest zone via weather_risk[FOREST][Jul-Oct] = 2-6
+    },
+
     // ── Supplies warning ──────────────────────────────────────
     {
         .header = "! SUPPLIES LOW",
@@ -379,19 +397,31 @@ static const EventDef* pick_event(const GameState* gs) {
 
     bool low_food = gs->trail.food_lbs < 50;
     bool grueling = gs->trail.pace == 3;
-    int wrisks = weather_risk(&gs->trail); // 0–10
+    int wrisks = weather_risk(&gs->trail);
     Region region = region_from_miles(gs->trail.miles);
     bool in_mountain = (region == REGION_HIGH_PLAINS || region == REGION_MOUNTAINS);
     bool in_desert = (region == REGION_DESERT);
+    bool hardship = (gs->trail.trail_hardship > 0); // post-weather vulnerability
+    bool november = (gs->trail.month >= 11); // November: all illness doubled
 
     for(int i = 0; i < NUM_EVENTS; i++) {
-        weights[i] = EVENTS[i].weight_base + (low_food ? EVENTS[i].weight_low_food : 0) +
-                     (grueling ? EVENTS[i].weight_grueling : 0) +
-                     (wrisks * EVENTS[i].weight_bad_weather / 5) +
-                     (in_mountain ? EVENTS[i].weight_mountain : 0) +
-                     (in_desert ? EVENTS[i].weight_desert : 0);
-        if(weights[i] < 0) weights[i] = 0;
-        total += weights[i];
+        int w = EVENTS[i].weight_base + (low_food ? EVENTS[i].weight_low_food : 0) +
+                (grueling ? EVENTS[i].weight_grueling : 0) +
+                (wrisks * EVENTS[i].weight_bad_weather / 5) +
+                (in_mountain ? EVENTS[i].weight_mountain : 0) +
+                (in_desert ? EVENTS[i].weight_desert : 0);
+
+        // Hardship: illness weights doubled for 3 days after a weather event
+        if(hardship && (strncmp(EVENTS[i].header, "! ILLNESS", 9) == 0)) w *= 2;
+
+        // November: all illness and injury weights doubled on top of hardship
+        if(november && (strncmp(EVENTS[i].header, "! ILLNESS", 9) == 0 ||
+                        strncmp(EVENTS[i].header, "! INJURY", 8) == 0))
+            w = w * 3 / 2; // +50% on top
+
+        if(w < 0) w = 0;
+        weights[i] = w;
+        total += w;
     }
 
     if(total == 0) return NULL;
@@ -500,12 +530,18 @@ DayResult day_advance(GameState* gs, ActiveEvent* ev) {
         return DAY_STARVING;
     }
 
-    // Random event — fires roughly every 5-7 days on average
-    // Roll 1-10; event fires on 1-2 (20% chance per day).
-    // Grueling pace raises to 30%, low food raises to 35%.
-    int event_threshold = 2;
-    if(t->pace == 3) event_threshold++;
-    if(t->food_lbs < 50) event_threshold++;
+    // ── Tick down hardship ────────────────────────────────────
+    if(t->trail_hardship > 0) t->trail_hardship--;
+
+    // ── Random event roll ─────────────────────────────────────
+    // Base 30%, +20% grueling, +20% low food, +15% during hardship,
+    // +10% in October, +20% in November (stacks — November is brutal)
+    int event_threshold = 3;
+    if(t->pace == 3) event_threshold += 2;
+    if(t->food_lbs < 50) event_threshold += 2;
+    if(t->trail_hardship > 0) event_threshold += 2; // post-weather vulnerability
+    if(t->month == 10) event_threshold += 1;
+    if(t->month >= 11) event_threshold += 3; // November is punishing
 
     int roll = rng_range(1, 10);
     if(roll <= event_threshold) {
@@ -516,6 +552,17 @@ DayResult day_advance(GameState* gs, ActiveEvent* ev) {
             ev->scroll_y = 0;
             ev->choice_cursor = 0;
             ev->affected_player = pick_player(gs, def->player_index);
+
+            // Weather events trigger hardship cascade
+            if(strncmp(def->header, "BAD WEATHER", 11) == 0 ||
+               strncmp(def->header, "BLIZZARD", 8) == 0 ||
+               strncmp(def->header, "EARLY FROST", 11) == 0 ||
+               strncmp(def->header, "WILDFIRE!", 9) == 0) {
+                t->trail_hardship = 3;
+                // Blizzard forces pace back to steady
+                if(strncmp(def->header, "BLIZZARD", 8) == 0) t->pace = 1;
+            }
+
             return DAY_EVENT;
         }
     }
@@ -572,7 +619,7 @@ void day_rest(GameState* gs, int* food_used_out) {
     for(int i = 0; i < gs->num_players; i++)
         if(gs->players[i].hp > 0.0f) living++;
     int food_per = FOOD_PER_PLAYER_PER_DAY[t->rations];
-    int consumed = food_per * living;
+    int consumed = (food_per * 3 / 2) * living; // 1.5x normal — resting still eats
     t->food_lbs = (t->food_lbs > consumed) ? t->food_lbs - consumed : 0;
 
     for(int i = 0; i < gs->num_players; i++) {
