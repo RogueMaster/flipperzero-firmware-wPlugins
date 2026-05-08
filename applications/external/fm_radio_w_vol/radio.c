@@ -81,6 +81,7 @@ static void fmradio_controller_submenu_callback(void* context, uint32_t index);
 static bool fmradio_submenu_rebuild(FMRadio* app);
 #ifdef ENABLE_RDS
 static void fmradio_rds_on_tuned_frequency_changed(void);
+static void fmradio_rds_sync_offset_from_current_frequency(void);
 void fmradio_rds_process_adc_block(const uint16_t* samples, size_t count, uint16_t adc_midpoint);
 static void fmradio_rds_acquisition_block_callback(
     const uint16_t* samples,
@@ -687,6 +688,10 @@ static void fmradio_settings_load(void) {
     flipper_format_free(ff);
     furi_string_free(filetype);
     furi_record_close(RECORD_STORAGE);
+
+#ifdef ENABLE_RDS
+    fmradio_rds_sync_offset_from_current_frequency();
+#endif
 }
 
 static void fmradio_settings_save(void) {
@@ -1831,6 +1836,25 @@ static void fmradio_rds_set_manual_offset_centihz(int16_t offset_centihz) {
     fmradio_state_unlock();
 }
 
+static void fmradio_rds_sync_offset_from_current_frequency(void) {
+    uint32_t freq_10khz = fmradio_normalize_preset_freq_10khz(fmradio_get_current_freq_10khz());
+    int16_t offset_centihz = 0;
+    bool preset_found = false;
+
+    fmradio_state_lock();
+    for(uint8_t i = 0; i < preset_count; i++) {
+        if(preset_freq_10khz[i] == freq_10khz) {
+            preset_index = i;
+            offset_centihz = preset_carrier_offset_centihz[i];
+            preset_found = true;
+            break;
+        }
+    }
+    fmradio_state_unlock();
+
+    fmradio_rds_set_manual_offset_centihz(preset_found ? offset_centihz : 0);
+}
+
 static void fmradio_rds_update_ui_snapshot(void) {
     fmradio_state_lock();
     rds_sync_display = rds_core.sync_state;
@@ -1887,6 +1911,7 @@ static void fmradio_rds_on_tuned_frequency_changed(void) {
     fmradio_rds_clear_station_name();
     fmradio_rds_constellation_clear_history();
     if(fmradio_rds_pipeline_enabled()) {
+        fmradio_rds_sync_offset_from_current_frequency();
         rds_core_set_tick_ms(&rds_core, furi_get_tick());
         rds_core_restart_sync(&rds_core);
         fmradio_rds_refresh_runtime_sample_rate(true);
@@ -1991,8 +2016,10 @@ static int32_t fmradio_rds_dsp_worker(void* context) {
         if(!fmradio_rds_pipeline_enabled()) continue;
 #endif
 
-        const bool capture_drain_all = rds_capture_active || rds_capture_finalize_pending;
-        rds_acquisition_on_timer_tick(&rds_acquisition, capture_drain_all);
+        /* Timer flags are level-triggered, so a delayed worker can coalesce
+       multiple 2 ms ticks into one wake-up. Drain the backlog per wake-up
+       so RDS processing stays independent of the active UI view. */
+        rds_acquisition_on_timer_tick(&rds_acquisition, true);
     }
     return 0;
 }
