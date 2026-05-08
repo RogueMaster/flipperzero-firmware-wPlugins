@@ -39,6 +39,8 @@ To use this, you will need to configure your handheld or a gateway, like direwol
 
 To reduce the chance of accidental traffic on the live APRS network, the default identity is the clearly artificial callsign `FL1PER-0`, which, luckily enough, sits in a rarely used `F` block. That makes experimental packets easier to recognize and filter.
 
+9600 baud mode uses G3RUH modulation: direct FSK with scrambling (whitening).  At least 2.4 kHz deviation should be used.
+
 - If it doesn't work for you: enable debug mode, then press up/down to change deviation or left to toggle 2FSK/GFSK. Find a setting that works. It might take a few tries and different orientations for the first message to decode
 
 ## Build
