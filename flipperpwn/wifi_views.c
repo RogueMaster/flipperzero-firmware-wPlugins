@@ -318,6 +318,13 @@ static bool fpwn_wifi_scan_input(InputEvent* event, void* ctx) {
                         memset(app->wifi_text_buf, 0, sizeof(app->wifi_text_buf));
                         text_input_reset(app->wifi_text_input);
                         text_input_set_header_text(app->wifi_text_input, "Password (empty=open)");
+                        text_input_set_result_callback(
+                            app->wifi_text_input,
+                            fpwn_wifi_password_done,
+                            app,
+                            app->wifi_text_buf,
+                            sizeof(app->wifi_text_buf),
+                            false);
                         fpwn_set_current_view(FPwnViewWifiPassword);
                         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiPassword);
                     }
@@ -1239,6 +1246,13 @@ static void fpwn_wifi_menu_callback(void* ctx, uint32_t index) {
         memset(app->wifi_text_buf, 0, sizeof(app->wifi_text_buf));
         text_input_reset(app->wifi_text_input);
         text_input_set_header_text(app->wifi_text_input, "Portal SSID");
+        text_input_set_result_callback(
+            app->wifi_text_input,
+            fpwn_wifi_password_done,
+            app,
+            app->wifi_text_buf,
+            sizeof(app->wifi_text_buf),
+            false);
         fpwn_set_current_view(FPwnViewWifiPassword);
         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiPassword);
         break;
