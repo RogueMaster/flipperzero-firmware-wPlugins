@@ -29,8 +29,10 @@ ufbt launch                  # builds and launches automatically
 
 ## 2. Plug in the board
 
+> ⚠️ **Power off first.** Hot-swapping GPIO boards can damage the SPI bus on either chip.
+
 1. Power off your Flipper (hold Back ~2 seconds → Power off)
-2. Plug the PINGEQUA 2-in-1 board onto Flipper's GPIO header (the row of pins on top)
+2. Plug the PINGEQUA 2-in-1 board onto the **LEFT GPIO headers** — the 18-pin row on the top-left edge (not the right side)
 3. Power Flipper back on
 
 ## 3. Launch the app
