@@ -9,7 +9,6 @@ void nfc_tools_scene_write_custom_mime_on_enter(void* context) {
     NfcToolsApp* app   = context;
     MimeInput* input = app->mime_input;
     mime_input_set_header_text(input, NTS_INPUT_CONTENT_TYPE);
-    app->ndef_buf1[0] = '\0';
     mime_input_set_result_callback(
         input, nfc_tools_scene_write_custom_mime_callback, app,
         app->ndef_buf1, sizeof(app->ndef_buf1), false);

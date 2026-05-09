@@ -10,7 +10,6 @@ void nfc_tools_scene_write_contact_address_on_enter(void* context) {
     TextInput*   ti  = app->text_input;
 
     text_input_set_header_text(ti, NTS_INPUT_ADDRESS);
-    app->ndef_buf3[0] = '\0';
 
     text_input_set_result_callback(
         ti,

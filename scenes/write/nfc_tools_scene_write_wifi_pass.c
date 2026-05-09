@@ -10,7 +10,6 @@ void nfc_tools_scene_write_wifi_pass_on_enter(void* context) {
     TextInput* ti = app->text_input;
 
     text_input_set_header_text(ti, NTS_INPUT_WIFI_PASSWORD);
-    app->ndef_buf2[0] = '\0';
 
     text_input_set_result_callback(
         ti,

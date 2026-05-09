@@ -10,7 +10,6 @@ void nfc_tools_scene_write_contact_tel_on_enter(void* context) {
     TextInput*   ti  = app->text_input;
 
     text_input_set_header_text(ti, NTS_INPUT_PHONE);
-    strlcpy(app->ndef_buf4, "+", sizeof(app->ndef_buf4));
 
     text_input_set_result_callback(
         ti,

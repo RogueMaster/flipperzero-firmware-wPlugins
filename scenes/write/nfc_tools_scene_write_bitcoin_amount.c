@@ -14,7 +14,6 @@ void nfc_tools_scene_write_bitcoin_amount_on_enter(void* context) {
     EmailInput*  ei  = app->email_input;
 
     email_input_set_header_text(ei, NTS_INPUT_BTC_AMOUNT);
-    app->ndef_buf2[0] = '\0';
 
     email_input_set_result_callback(
         ei,
