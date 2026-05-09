@@ -81,17 +81,29 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 
 ## Install
 
+### 1. Mount the board (hardware)
+
+> ⚠️ **Always power off Flipper before inserting or removing the board** — hot-swapping the SPI bus can damage either chip.
+
+1. **Power OFF** your Flipper Zero (hold `Back` ~2 seconds → Power off)
+2. Insert the PINGEQUA 2-in-1 board onto the **LEFT GPIO headers** (the 18-pin row on the top-left edge)
+3. **Power ON** Flipper
+
+### 2. Install the app (software)
+
 **qFlipper drag-and-drop** (recommended):
 1. Download `pingequa_rf_toolkit.fap` from [Releases](../../releases) or [`dist/`](dist/)
 2. In qFlipper: drag into `/ext/apps/GPIO/`
 3. On Flipper: `Apps → GPIO → PINGEQUA RF Lab`
 
-**ufbt sideload**:
+Works on every modern firmware — **no additional setup required**.
+
+**ufbt sideload** (build from source):
 ```bash
 pip install --user ufbt
 ufbt update --channel=dev
-git clone https://github.com/pingequa/pingequa_rf_toolkit
-cd pingequa_rf_toolkit
+git clone https://github.com/pingequalab/rf-lab
+cd rf-lab
 ufbt launch
 ```
 
@@ -151,6 +163,35 @@ The app writes research-grade data to your Flipper SD card. Open with qFlipper, 
 **Jammer session CSV** contains mode, duration, total chunks, and (for BLE React) reactive jam count.
 
 Detailed walkthroughs: [docs/QUICKSTART.md](docs/QUICKSTART.md), [docs/UI_GUIDE.md](docs/UI_GUIDE.md), [docs/USE_CASES.md](docs/USE_CASES.md).
+
+---
+
+## Using Pingequa Hardware with Other Apps
+
+The PINGEQUA 2-in-1 board works with this official FAP **and** with third-party apps and Flipper's built-in radio tools — but the dual-chip layout uses non-default SPI pins, so other apps need a one-time setup.
+
+### Third-party NRF24 apps (NRF24 Sniffer, Mousejack, etc.)
+
+The Pingequa NRF24 chip is wired to the **Extra 7** SPI bus (rather than the conventional pin set). On **Momentum** firmware:
+
+1. From the main menu, navigate to **`Settings → Protocols → GPIO Pins`** (path may read `START → PROTOCOLS → GPIO PINS` on some menu variants)
+2. Set **NRF24 SPI** to **`Extra 7`**
+3. Launch your third-party NRF24 app normally
+
+> Some third-party apps hard-code different pin assignments and may show partial incompatibility. The official PINGEQUA RF Lab app (this one) handles routing transparently — **no setup needed**.
+
+### Official Sub-GHz app with Pingequa CC1101
+
+To use Flipper's built-in **Sub-GHz Read / Read External** through the longer-range Pingequa CC1101:
+
+1. Open **Sub-GHz** from the main menu
+2. Go to **`Radio Settings → Module`**
+3. Select **`External`**
+4. Use Sub-GHz normally — it now routes through the Pingequa CC1101
+
+> The `External` option is exposed on Momentum, Unleashed, and RogueMaster. Official Flipper firmware (OFW) has a similar `Read External` mode but no settings UI — use as-is.
+
+If you don't see `External`, see [docs/HARDWARE.md](docs/HARDWARE.md) for firmware-specific notes.
 
 ---
 
