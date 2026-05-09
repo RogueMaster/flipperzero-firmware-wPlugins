@@ -9,7 +9,6 @@ void nfc_tools_scene_write_custom_uri_on_enter(void* context) {
     NfcToolsApp* app   = context;
     SpecialInput* input = app->special_input;
     special_input_set_header_text(input, NTS_INPUT_URI);
-    app->ndef_buf1[0] = '\0';
     special_input_set_result_callback(
         input, nfc_tools_scene_write_custom_uri_callback, app,
         app->ndef_buf1, sizeof(app->ndef_buf1), false);

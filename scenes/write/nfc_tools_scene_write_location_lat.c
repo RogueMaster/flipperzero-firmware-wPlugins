@@ -9,7 +9,6 @@ void nfc_tools_scene_write_location_lat_on_enter(void* context) {
     NfcToolsApp* app   = context;
     EmailInput* input = app->email_input;
     email_input_set_header_text(input, NTS_INPUT_LATITUDE);
-    app->ndef_buf1[0] = '\0';
     email_input_set_result_callback(
         input, nfc_tools_scene_write_location_lat_callback, app,
         app->ndef_buf1, sizeof(app->ndef_buf1), false);
