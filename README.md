@@ -1,5 +1,10 @@
 An experimental APRS / AX.25 transmitter for Flipper Zero. Download it from the Releases section or [click here for 1.3.17](https://github.com/yo3gnd/flipper-zero-aprs-tx/releases/download/1.3.17/aprstx-1.3.17.fap). Coming soon to the Flipper App market.
 
+[![master](https://img.shields.io/github/actions/workflow/status/yo3gnd/flipper-zero-aprs-tx/master.yml?branch=master&label=master&logo=githubactions)](https://github.com/yo3gnd/flipper-zero-aprs-tx/actions/workflows/master.yml)
+[![tests](https://img.shields.io/github/actions/workflow/status/yo3gnd/flipper-zero-aprs-tx/tests.yml?branch=master&label=tests&logo=githubactions)](https://github.com/yo3gnd/flipper-zero-aprs-tx/actions/workflows/tests.yml)
+[![release](https://img.shields.io/github/v/release/yo3gnd/flipper-zero-aprs-tx?label=release)](https://github.com/yo3gnd/flipper-zero-aprs-tx/releases)
+[![license](https://img.shields.io/github/license/yo3gnd/flipper-zero-aprs-tx?label=license)](https://github.com/yo3gnd/flipper-zero-aprs-tx/blob/master/LICENSE)
+
 Idea and prototype by [Richard YO3GND](https://www.qrz.com/db/YO3GND) - [Read tech post](https://yo3gnd.ro/blog/2604a--flipper-zero-aprs-tx)
 
 There are plenty of audio APRS hacks that feed a handheld with audio from Flipper. This is not that. This is a SubGHZ hack that allows you to send something APRS-like using only the FZ. Decode success is still inconsistent; the signal is unconventional, imperfect, and heavily dependent on the receiver. Software seems to do fine with it (direwolf, qtmm). Some hardware decoders struggled. An UV878 works. It is malformed badly enough, losing phase information and bending the encoding to keep up with what the Flipper can do, that I am still surprised it works.
