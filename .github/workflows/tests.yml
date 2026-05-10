@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "app.c"
+      - "application.fam"
+      - ".github/workflows/tests.yml"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "app.c"
+      - "application.fam"
+      - ".github/workflows/tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-tests:
+    name: host unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Show compiler
+        run: cc --version
+
+      - name: Run host tests
+        run: sh tests/run.sh
