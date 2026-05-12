@@ -1,5 +1,6 @@
 #include "report.h"
 #include "bits.h"
+#include <stdio.h>
 #include <string.h>
 
 /* Stream hex bytes into a FuriString without a large stack buffer. */

@@ -14,6 +14,7 @@ static bool bitraw_custom_event_callback(void* context, uint32_t event) {
 
 static BitrawApp* bitraw_app_alloc(void) {
     BitrawApp* app = malloc(sizeof(BitrawApp));
+    furi_check(app, "BinRAW Analyzer: out of memory");
 
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);

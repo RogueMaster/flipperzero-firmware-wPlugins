@@ -145,7 +145,11 @@ static void process_line(
         sub->total_bit_header = (uint32_t)strtoul(skip_ws(trimmed + 4), NULL, 10);
     } else if(starts_with(trimmed, "Data_RAW:")) {
         char* hex = skip_ws(trimmed + 9);
-        decode_data_raw(hex, *pending_set ? *pending_bit_raw : 0u, sub, truncated);
+        if(!decode_data_raw(hex, *pending_set ? *pending_bit_raw : 0u, sub, truncated)) {
+            /* malloc failure for the segment buffer: flag as truncated so the
+             * caller sees something went wrong, and skip this Data_RAW line. */
+            *truncated = true;
+        }
         *pending_set = false;
         *pending_bit_raw = 0;
     }
