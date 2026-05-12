@@ -1,28 +1,50 @@
 #pragma once
 
-#include <gui/view.h>
-#include <stdbool.h>
-#include <stddef.h>
+// MimeInput — thin wrapper around the unified keyboard engine.
+// Provides the MIME-optimised keyboard: / and . on ABC row 2 left,
+// complete digit set 0–9 via the right column (7–9 on row 2 right).
+// See views/keyboard/nfc_tools_keyboard.h for implementation details.
 
-// Specialised MIME text keyboard: identical to TextInput but with
-// /  .  -  in place of 7  8  9 on the 3rd row.
+#include "../keyboard/nfc_tools_keyboard.h"
 
-typedef struct MimeInput MimeInput;
-typedef void (*MimeInputCallback)(void* context);
+// ── Type aliases (no changes required in existing scenes) ──────────────────
 
-MimeInput* mime_input_alloc(void);
-void       mime_input_free(MimeInput* mime_input);
-void       mime_input_reset(MimeInput* mime_input);
-View*      mime_input_get_view(MimeInput* mime_input);
+typedef Keyboard         MimeInput;
+typedef KeyboardCallback MimeInputCallback;
 
-void mime_input_set_header_text(MimeInput* mime_input, const char* text);
+// ── Inline forwarding functions ────────────────────────────────────────────
 
-void mime_input_set_result_callback(
-    MimeInput*        mime_input,
+static inline MimeInput* mime_input_alloc(void) {
+    return keyboard_alloc(KeyboardLayoutMime);
+}
+
+static inline void mime_input_free(MimeInput* mi) {
+    keyboard_free(mi);
+}
+
+static inline void mime_input_reset(MimeInput* mi) {
+    keyboard_reset(mi);
+}
+
+static inline View* mime_input_get_view(MimeInput* mi) {
+    return keyboard_get_view(mi);
+}
+
+static inline void mime_input_set_header_text(MimeInput* mi, const char* text) {
+    keyboard_set_header_text(mi, text);
+}
+
+static inline void mime_input_set_result_callback(
+    MimeInput*        mi,
     MimeInputCallback callback,
     void*             callback_context,
     char*             text_buffer,
     size_t            text_buffer_size,
-    bool              clear_default_text);
+    bool              clear_default_text) {
+    keyboard_set_result_callback(
+        mi, callback, callback_context, text_buffer, text_buffer_size, clear_default_text);
+}
 
-void mime_input_set_minimum_length(MimeInput* mime_input, size_t minimum_length);
+static inline void mime_input_set_minimum_length(MimeInput* mi, size_t minimum_length) {
+    keyboard_set_minimum_length(mi, minimum_length);
+}
