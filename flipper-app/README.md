@@ -40,7 +40,9 @@ ufbt vscode_dist         # generates .vscode/ with compile_commands.json
 ### Debug logs
 
 ```bash
-ufbt cli                 # connect to device; logs appear tagged [BitrawAnalyzer]
+ufbt cli                 # connect to device; logs appear tagged [BitRaw]
+                         # `log info` (default) shows stage checkpoints + heap
+                         # `log debug` adds per-segment + per-feature traces
 ```
 
 ## Usage

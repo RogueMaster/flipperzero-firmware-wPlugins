@@ -211,6 +211,25 @@ pytest tests/ -v
 
 ---
 
+## On-device (Flipper Zero FAP)
+
+The same classifier runs natively on the Flipper Zero — no laptop needed after flashing.
+
+```bash
+pip install ufbt
+ufbt update
+cd flipper-app
+ufbt launch    # build + deploy + run on connected Flipper
+```
+
+Or copy `flipper-app/dist/bitraw_analyzer.fap` to `/apps/Sub-GHz/` via qFlipper.
+
+Usage: open the app, pick a `.sub` from the file browser, read the report, press Back to pick another. Reports are auto-saved next to each capture as `<name>.report.txt`.
+
+See [flipper-app/README.md](flipper-app/README.md) for build options, on-device limits, and debug logging.
+
+---
+
 ## Supported frequencies
 
 315 MHz · 433.42 MHz · 433.92 MHz · 868.35 MHz · 915 MHz
