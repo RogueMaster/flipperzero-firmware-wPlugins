@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define TAG "BitRaw"
+
 /* Largest line we will buffer. 16KB bits worst case = ~6KB hex chars + spaces.
  * Round up to 8KB; longer lines are truncated with a flag. */
 #define LINE_BUF_SZ 8192
@@ -83,8 +85,17 @@ static bool decode_data_raw(
     }
     if(declared == 0) return true;
 
+    FURI_LOG_D(
+        TAG,
+        "  parse: seg[%u] malloc(%lu) (bit_raw=%lu)",
+        (unsigned)sub->segment_count,
+        (unsigned long)declared,
+        (unsigned long)bit_raw_count);
     uint8_t* buf = malloc(declared);
-    if(!buf) return false;
+    if(!buf) {
+        FURI_LOG_E(TAG, "  parse: seg[%u] malloc FAILED", (unsigned)sub->segment_count);
+        return false;
+    }
 
     uint32_t emitted = 0;
     int high = -1;
@@ -169,8 +180,10 @@ SubParseStatus sub_parser_parse(
         return SubParseErrorOpen;
     }
 
+    FURI_LOG_D(TAG, "parse: open ok path=%s", path);
     char* line = malloc(LINE_BUF_SZ);
     if(!line) {
+        FURI_LOG_E(TAG, "parse: line buf malloc(%d) FAILED", LINE_BUF_SZ);
         storage_file_close(file);
         storage_file_free(file);
         if(err_out) furi_string_cat_str(err_out, "Out of memory");

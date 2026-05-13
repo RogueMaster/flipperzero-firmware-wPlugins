@@ -1,10 +1,12 @@
 #include "features.h"
 #include "bits.h"
 #include "decoders.h"
+#include <furi.h>
 #include <math.h>
 #include <string.h>
 
 #define HIST_SIZE 256
+#define TAG "BitRaw"
 
 static void compute_dominant_runs(const SubFile* sub, FeatureVector* fv) {
     static uint16_t one_hist[HIST_SIZE];
@@ -144,31 +146,44 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
         fv->entropy = entropy;
     }
 
+    FURI_LOG_D(TAG, "  feat: dominant_runs begin");
     compute_dominant_runs(sub, fv);
+    FURI_LOG_D(TAG, "  feat: dominant_runs end");
 
+    FURI_LOG_D(TAG, "  feat: detect_pwm begin");
     decoders_detect_pwm(sub, &fv->pwm_params);
+    FURI_LOG_D(TAG, "  feat: detect_pwm end found=%d", fv->pwm_params.found);
 
     /* PWM-decode the FIRST segment's inner bits. */
+    FURI_LOG_D(TAG, "  feat: decode_pwm begin");
     if(sub->segment_count > 0 && fv->pwm_params.found) {
         const uint8_t* p = sub->segment_bits[0] + sub->inner_start[0];
         uint16_t inner_len = sub->inner_len[0];
         fv->pwm_decoded_count = decoders_decode_pwm(
             p, inner_len, &fv->pwm_params, fv->pwm_decoded_bits, BITRAW_MAX_DECODED_BITS);
     }
+    FURI_LOG_D(TAG, "  feat: decode_pwm end n=%u", fv->pwm_decoded_count);
 
     /* Preamble on first segment's inner bits. */
+    FURI_LOG_D(TAG, "  feat: preamble begin");
     if(sub->segment_count > 0) {
         const uint8_t* p = sub->segment_bits[0] + sub->inner_start[0];
         fv->preamble = bits_detect_preamble(p, sub->inner_len[0]);
     }
+    FURI_LOG_D(TAG, "  feat: preamble end");
 
+    FURI_LOG_D(TAG, "  feat: seg_similarity begin");
     fv->has_seg_similarity = bits_segment_similarity(sub, &fv->seg_similarity);
+    FURI_LOG_D(TAG, "  feat: seg_similarity end");
 
     /* Repeating subpattern across virtual concatenation of inner bits. */
+    FURI_LOG_D(TAG, "  feat: repeating begin");
     fv->repeating_subpattern_period =
         bits_find_repeating_subpattern_inner(sub, &fv->repeating_subpattern_reps);
+    FURI_LOG_D(TAG, "  feat: repeating end period=%u", fv->repeating_subpattern_period);
 
     /* Manchester decode on first segment inner. */
+    FURI_LOG_D(TAG, "  feat: manchester begin");
     if(sub->segment_count > 0 && sub->inner_len[0] > 0) {
         const uint8_t* p = sub->segment_bits[0] + sub->inner_start[0];
         fv->manchester_decoded_count = decoders_decode_manchester(
@@ -181,8 +196,10 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
     } else {
         fv->manchester_convention = ManchesterGEThomas;
     }
+    FURI_LOG_D(TAG, "  feat: manchester end n=%u", fv->manchester_decoded_count);
 
     /* Rolling code: PWM-decode all segments and compare. */
+    FURI_LOG_D(TAG, "  feat: rolling begin");
     decoders_detect_rolling_code(
         sub,
         &fv->pwm_params,
@@ -192,6 +209,7 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
         BITRAW_MAX_DIFF_POSITIONS,
         &fv->diff_position_count,
         &fv->diff_positions_truncated);
+    FURI_LOG_D(TAG, "  feat: rolling end");
 
     /* Scalar passthroughs. */
     fv->frequency = sub->frequency_hz;
