@@ -4,8 +4,8 @@
 
 typedef enum {
     FasMainIdxCreate = 0,
-    FasMainIdxImport,
     FasMainIdxChoose,
+    FasMainIdxImport,
     FasMainIdxDelete,
     FasMainIdxAbout,
 } FasMainMenuIdx;
@@ -23,8 +23,8 @@ void fas_scene_main_menu_on_enter(void* context) {
 
     menu_reset(app->menu);
     menu_add_item(app->menu, "Create Playlist", &I_create, FasMainIdxCreate, fas_main_menu_cb, app);
-    menu_add_item(app->menu, "Save Current Playlist", &I_import, FasMainIdxImport, fas_main_menu_cb, app);
     menu_add_item(app->menu, "Choose Playlist", &I_choose, FasMainIdxChoose, fas_main_menu_cb, app);
+    menu_add_item(app->menu, "Backup Playlist", &I_import, FasMainIdxImport, fas_main_menu_cb, app);
     menu_add_item(app->menu, "Delete Playlist", &I_delete, FasMainIdxDelete, fas_main_menu_cb, app);
     menu_add_item(app->menu, "About / Help",    &I_about,  FasMainIdxAbout,  fas_main_menu_cb, app);
     menu_set_selected_item(

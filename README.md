@@ -5,8 +5,8 @@ A Flipper Zero application for creating, managing, and switching **animation pla
 ## Menus
 
 - **Create Playlist** - Select animations, optionally fine-tune per-animation settings, then save as a named playlist.
-- **Save Current Playlist** - Snapshot the active animation set (/ext/dolphin/manifest.txt) as a named playlist.
 - **Choose Playlist** - Apply a saved playlist (overwrites manifest.txt).
+- **Backup Playlist** - Snapshot the active animation set (/ext/dolphin/manifest.txt) as a named playlist.
 - **Delete Playlist** - Remove any saved playlist.
 - **About / Help** - App info and help section.
 

@@ -3,7 +3,7 @@
 ## v1.1.0
 
 - Back up the previous manifest.txt to manifest.txt.bak before applying a playlist
-- New "Save Current Playlist" menu option saves the current manifest.txt as a named playlist
+- New "Backup Playlist" menu option saves the current manifest.txt as a named playlist
 
 ## v1.0.0
 
