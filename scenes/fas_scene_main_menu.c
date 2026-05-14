@@ -27,6 +27,8 @@ void fas_scene_main_menu_on_enter(void* context) {
     menu_add_item(app->menu, "Choose Playlist", &I_choose, FasMainIdxChoose, fas_main_menu_cb, app);
     menu_add_item(app->menu, "Delete Playlist", &I_delete, FasMainIdxDelete, fas_main_menu_cb, app);
     menu_add_item(app->menu, "About / Help",    &I_about,  FasMainIdxAbout,  fas_main_menu_cb, app);
+    menu_set_selected_item(
+        app->menu, scene_manager_get_scene_state(app->scene_manager, FasSceneMainMenu));
     view_dispatcher_switch_to_view(app->view_dispatcher, FasViewMenu);
 }
 
@@ -35,6 +37,7 @@ bool fas_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
     bool    consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
+        scene_manager_set_scene_state(app->scene_manager, FasSceneMainMenu, event.event);
         switch(event.event) {
         case FasMainIdxCreate:
             scene_manager_next_scene(app->scene_manager, FasSceneAnimList);
