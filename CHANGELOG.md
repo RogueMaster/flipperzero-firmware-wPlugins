@@ -1,6 +1,6 @@
 # CHANGELOG.md
 
-## Unreleased
+## v1.1.0
 
 - Back up the previous manifest.txt to manifest.txt.bak before applying a playlist
 - New "Import Manifest" menu option saves the current manifest.txt as a named playlist
