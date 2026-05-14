@@ -15,9 +15,10 @@
 #include "views/fas_list_view.h"
 
 /* ── Filesystem paths ─────────────────────────────────────────────────── */
-#define FAS_DOLPHIN_PATH   "/ext/dolphin"
-#define FAS_PLAYLISTS_PATH "/ext/apps_data/animation_switcher"
-#define FAS_MANIFEST_PATH  "/ext/dolphin/manifest.txt"
+#define FAS_DOLPHIN_PATH        "/ext/dolphin"
+#define FAS_PLAYLISTS_PATH      "/ext/apps_data/animation_switcher"
+#define FAS_MANIFEST_PATH       "/ext/dolphin/manifest.txt"
+#define FAS_MANIFEST_BACKUP_PATH "/ext/dolphin/manifest.txt.bak"
 
 /* ── Limits ───────────────────────────────────────────────────────────── */
 #define FAS_MAX_ANIMATIONS    128 // TODO Maybe increase this if possible?
@@ -71,10 +72,8 @@ typedef enum {
     FasEvtDeleteNo,
     FasEvtRebootYes,
     FasEvtRebootNo,
-    FasEvtMainCreate,
-    FasEvtMainChoose,
-    FasEvtMainDelete,
-    FasEvtMainAbout,
+    FasEvtOverwriteYes,
+    FasEvtOverwriteNo,
 } FasCustomEvent;
 
 /* ── Application context ──────────────────────────────────────────────── */
@@ -107,12 +106,18 @@ typedef struct {
 
     /* Flag: true when returning to AnimList scene from AnimSettings */
     bool returning_from_settings;
+
+    /* Flag: PlaylistName scene saves an imported manifest instead of the
+     * currently-selected animations when true. */
+    bool import_mode;
 } FasApp;
 
 /* ── Storage helpers (implemented in animation_switcher.c) ────── */
-void fas_ensure_playlists_dir(FasApp* app);
 bool fas_load_animations(FasApp* app);
 bool fas_load_playlists(FasApp* app);
 bool fas_save_playlist(FasApp* app, const char* name);
+bool fas_import_manifest(FasApp* app, const char* name);
 bool fas_delete_playlist(FasApp* app, int index);
 bool fas_apply_playlist(FasApp* app, int index);
+bool fas_manifest_exists(FasApp* app);
+bool fas_playlist_exists(FasApp* app, const char* name);
