@@ -211,6 +211,49 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
         &fv->diff_positions_truncated);
     FURI_LOG_D(TAG, "  feat: rolling end");
 
+    /* Inter-segment timing: trailing zeros of seg[i] + leading zeros of seg[i+1]
+     * times TE. 0 when single segment. */
+    FURI_LOG_D(TAG, "  feat: inter_seg begin");
+    fv->inter_segment_gap_us_mean = 0.0f;
+    fv->inter_segment_gap_us_var = 0.0f;
+    if(sub->segment_count >= 2 && sub->te_us > 0u) {
+        static float gaps[BITRAW_MAX_SEGMENTS];
+        uint16_t gn = 0;
+        for(uint16_t s = 0; s + 1 < sub->segment_count; s++) {
+            uint16_t raw_a = sub->segment_bit_lens[s];
+            const uint8_t* pa = sub->segment_bits[s];
+            uint16_t trail = 0;
+            for(uint16_t k = raw_a; k > 0; k--) {
+                if(pa[k - 1] == 0) trail++; else break;
+            }
+            uint16_t raw_b = sub->segment_bit_lens[s + 1];
+            const uint8_t* pb = sub->segment_bits[s + 1];
+            uint16_t lead = 0;
+            for(uint16_t k = 0; k < raw_b; k++) {
+                if(pb[k] == 0) lead++; else break;
+            }
+            gaps[gn++] = (float)(trail + lead) * (float)sub->te_us;
+        }
+        float sum = 0.0f;
+        for(uint16_t i = 0; i < gn; i++) sum += gaps[i];
+        float mean = gn ? sum / (float)gn : 0.0f;
+        float ssum = 0.0f;
+        for(uint16_t i = 0; i < gn; i++) {
+            float d = gaps[i] - mean;
+            ssum += d * d;
+        }
+        fv->inter_segment_gap_us_mean = mean;
+        fv->inter_segment_gap_us_var = gn ? ssum / (float)gn : 0.0f;
+    }
+    FURI_LOG_D(TAG, "  feat: inter_seg end");
+
+    /* Tri-state PWM detection. */
+    fv->pwm3_detected = decoders_detect_pwm3(sub, &fv->pwm3_symbol_count);
+
+    /* CRC trailer scan on PWM-decoded payload. */
+    fv->crc_valid = decoders_detect_crc(
+        fv->pwm_decoded_bits, fv->pwm_decoded_count, &fv->crc_kind);
+
     /* Scalar passthroughs. */
     fv->frequency = sub->frequency_hz;
     fv->te_us = (float)sub->te_us;

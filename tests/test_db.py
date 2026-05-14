@@ -56,3 +56,41 @@ def test_summary_stats():
         assert stats["by_class"]["NOISE"] == 1
     finally:
         os.unlink(db_path)
+
+
+def test_cluster_by_location_merges_nearby():
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    try:
+        db = WardriveDB(db_path)
+        # Three captures within ~20m of each other in Amsterdam, plus one in NYC
+        db.add_capture("a.sub", 433_920_000, 174.0, "GARAGE_REMOTE", "HIGH",
+                       52.3702, 4.8952, "", 0.9, "")
+        db.add_capture("b.sub", 433_920_000, 174.0, "GARAGE_REMOTE", "HIGH",
+                       52.37021, 4.89521, "", 0.9, "")
+        db.add_capture("c.sub", 433_920_000, 174.0, "TPMS", "HIGH",
+                       52.37022, 4.89523, "", 0.9, "")
+        db.add_capture("d.sub", 315_000_000, 100.0, "TPMS", "HIGH",
+                       40.7128, -74.0060, "", 0.9, "")
+        gj = db.cluster_by_location(radius_m=100.0)
+        assert gj["type"] == "FeatureCollection"
+        assert len(gj["features"]) == 2
+        counts = sorted(f["properties"]["count"] for f in gj["features"])
+        assert counts == [1, 3]
+        big = next(f for f in gj["features"] if f["properties"]["count"] == 3)
+        assert big["properties"]["dominant_class"] == "GARAGE_REMOTE"
+    finally:
+        os.unlink(db_path)
+
+
+def test_cluster_by_location_skips_zero_coords():
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    try:
+        db = WardriveDB(db_path)
+        db.add_capture("a.sub", 433_920_000, 174.0, "GARAGE_REMOTE", "HIGH",
+                       0.0, 0.0, "", 0.9, "")
+        gj = db.cluster_by_location(radius_m=50.0)
+        assert gj["features"] == []
+    finally:
+        os.unlink(db_path)

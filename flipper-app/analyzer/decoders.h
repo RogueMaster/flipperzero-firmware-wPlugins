@@ -39,3 +39,13 @@ void decoders_detect_rolling_code(
     uint16_t diff_cap,
     uint16_t* out_diff_count,
     bool* out_diff_truncated);
+
+/* Detect tri-state PWM: dominant pulse + three distinct gap buckets where the
+ * third bucket carries >=10% of zero-runs. Returns true and fills the symbol
+ * count when found. */
+bool decoders_detect_pwm3(const SubFile* sub, uint16_t* out_symbol_count);
+
+/* Scan PWM-decoded payload for CRC-8 (poly 0x07 or 0x31) or CRC-16-CCITT
+ * trailer. Sets *out_kind to 0=none, 1=CRC-8, 2=CRC-16-CCITT. Returns true
+ * when a valid trailer is found. */
+bool decoders_detect_crc(const uint8_t* decoded_bits, uint16_t len, uint8_t* out_kind);

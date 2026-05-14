@@ -56,6 +56,8 @@ typedef struct {
 typedef enum {
     ManchesterGEThomas = 0,
     ManchesterIEEE8023 = 1,
+    ManchesterDiffTransitionIsOne = 2,
+    ManchesterDiffTransitionIsZero = 3,
 } ManchesterConvention;
 
 typedef struct {
@@ -109,19 +111,36 @@ typedef struct {
     float lat;
     float lon;
     bool has_gps;
+
+    /* Inter-segment timing (TE us, estimated from padding). 0 when single segment. */
+    float inter_segment_gap_us_mean;
+    float inter_segment_gap_us_var;
+
+    /* Tri-state PWM detection (set when a third gap bucket carries >=10% of zero-runs). */
+    bool pwm3_detected;
+    uint16_t pwm3_symbol_count;
+
+    /* CRC trailer scan on PWM-decoded payload. */
+    bool crc_valid;
+    /* 0 = none, 1 = CRC-8, 2 = CRC-16-CCITT. */
+    uint8_t crc_kind;
 } FeatureVector;
 
 typedef enum {
     BitrawLabelNoise = 0,
     BitrawLabelAmrMeter,
     BitrawLabelTpms,
+    BitrawLabelWmbusMeter,
+    BitrawLabelHoneywell5800,
     BitrawLabelAlarmSensor,
     BitrawLabelShutterBlind,
+    BitrawLabelEnoceanSwitch,
     BitrawLabelDoorbell,
     BitrawLabelOutletSwitch,
     BitrawLabelGarageRemote,
     BitrawLabelKeyfobRemote,
     BitrawLabelWeatherStation,
+    BitrawLabelLoraBeacon,
     BitrawLabelUnknownStructured,
 } BitrawLabel;
 

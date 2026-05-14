@@ -1,5 +1,6 @@
 #include "report.h"
 #include "bits.h"
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -164,6 +165,27 @@ void report_format(
                 "  Code type    : FIXED (identical across all %u segments)\n",
                 fv->seg_count);
         }
+        if(fv->inter_segment_gap_us_mean > 0.0f) {
+            float jitter = fv->inter_segment_gap_us_var > 0.0f
+                               ? sqrtf(fv->inter_segment_gap_us_var)
+                               : 0.0f;
+            furi_string_cat_printf(
+                out,
+                "  Inter-seg gap: mean %.1f ms  (jitter %.1f ms)\n",
+                (double)(fv->inter_segment_gap_us_mean / 1000.0f),
+                (double)(jitter / 1000.0f));
+        }
+    }
+
+    if(fv->pwm3_detected) {
+        furi_string_cat_printf(
+            out, "  Tri-state PWM: detected (%u symbols)\n", fv->pwm3_symbol_count);
+    }
+    if(fv->crc_valid) {
+        furi_string_cat_printf(
+            out,
+            "  CRC          : %s valid\n",
+            fv->crc_kind == 1 ? "CRC-8" : "CRC-16-CCITT");
     }
 
     if(fv->has_gps) {

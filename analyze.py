@@ -9,11 +9,14 @@ Usage:
 """
 
 import argparse
+import csv
+import hashlib
 import json
 import math
 import os
 import pathlib
-from collections import Counter
+import statistics
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
 
@@ -97,6 +100,19 @@ class FeatureVector:
     # GPS (forwarded from SubFile)
     lat: float
     lon: float
+
+    # Inter-segment timing (estimated from trailing/leading zero padding × TE).
+    # Defaulted so older test fixtures that build FeatureVector by hand still work.
+    inter_segment_gap_us_mean: float = 0.0
+    inter_segment_gap_us_var: float = 0.0
+
+    # Optional 3-symbol PWM detection (tri-state PWM used by Genie/some CAME variants)
+    pwm3_detected: bool = False
+    pwm3_symbol_count: int = 0
+
+    # CRC detection on decoded payload (CRC-8 / CRC-16-CCITT trailer scan)
+    crc_valid: bool = False
+    crc_kind: str = ""
 
 
 @dataclass
@@ -314,12 +330,15 @@ def decode_pwm_bits(bits: list, pwm: object) -> list:
 
 def decode_manchester(bits: list) -> tuple:
     """
-    Decode Manchester-encoded bits. Tries both conventions, returns the better one.
+    Decode Manchester-encoded bits. Tries standard G.E.Thomas / IEEE 802.3 and
+    Differential Manchester, returns the lowest-error decoding.
     Returns (decoded_bits, convention_name, error_rate).
     Convention G.E.Thomas: 1=10, 0=01
     Convention IEEE 802.3: 1=01, 0=10
-    Odd-length input: trailing bit is silently dropped (only complete pairs decoded).
-    Invalid pairs (0,0 or 1,1) are counted as errors and not appended to output.
+    Differential Manchester: bit value = transition state at bit-cell boundary.
+    Odd-length input: trailing bit is silently dropped.
+    Invalid pairs (0,0 or 1,1) are counted as errors and not appended.
+    Standard conventions are preferred when error rates tie with Differential.
     """
     if len(bits) < 2:
         return [], "G.E.Thomas", 0.0
@@ -336,22 +355,52 @@ def decode_manchester(bits: list) -> tuple:
             elif a == 0 and b == 1:
                 decoded.append(0 if hi_is_one else 1)
             else:
-                # Invalid pair (0,0 or 1,1): not appended, counted as error
                 errors += 1
-        error_rate = errors / total  # total >= 1 guaranteed: len(bits) >= 2 checked above
+        error_rate = errors / total
         return decoded, error_rate
 
-    decoded_a, err_a = _try_convention(True)   # G.E.Thomas: 10=1
-    decoded_b, err_b = _try_convention(False)  # IEEE 802.3: 01=1
+    def _try_diff(transition_is_one: bool):
+        decoded = []
+        errors = 0
+        total = 0
+        prev_end = None
+        for i in range(0, len(bits) - 1, 2):
+            a, b = bits[i], bits[i + 1]
+            total += 1
+            if a == b:
+                errors += 1
+                prev_end = b
+                continue
+            if prev_end is not None:
+                transition = (a != prev_end)
+                decoded.append(1 if (transition == transition_is_one) else 0)
+            prev_end = b
+        error_rate = errors / total
+        return decoded, error_rate
 
+    decoded_a, err_a = _try_convention(True)
+    decoded_b, err_b = _try_convention(False)
+
+    # Standard tie-break (preserves prior behavior): lower error wins, else first pair.
     if err_a < err_b:
-        return decoded_a, "G.E.Thomas (1=high-low)", err_a
-    if err_b < err_a:
-        return decoded_b, "IEEE 802.3 (1=low-high)", err_b
-    # tied: use first valid pair to pick convention
-    if bits[0] == 1 and bits[1] == 0:
-        return decoded_a, "G.E.Thomas (1=high-low)", err_a
-    return decoded_b, "IEEE 802.3 (1=low-high)", err_b
+        std = (decoded_a, "G.E.Thomas (1=high-low)", err_a)
+    elif err_b < err_a:
+        std = (decoded_b, "IEEE 802.3 (1=low-high)", err_b)
+    elif bits[0] == 1 and bits[1] == 0:
+        std = (decoded_a, "G.E.Thomas (1=high-low)", err_a)
+    else:
+        std = (decoded_b, "IEEE 802.3 (1=low-high)", err_b)
+
+    decoded_c, err_c = _try_diff(True)
+    decoded_d, err_d = _try_diff(False)
+    diff = (decoded_c, "Differential Manchester (transition=1)", err_c)
+    if err_d < err_c:
+        diff = (decoded_d, "Differential Manchester (transition=0)", err_d)
+
+    # Prefer standard unless differential is strictly better.
+    if diff[2] < std[2]:
+        return diff[0], diff[1], diff[2]
+    return std[0], std[1], std[2]
 
 
 def detect_rolling_code(decoded_segs: list) -> dict:
@@ -471,6 +520,140 @@ def compute_segment_similarity(segs: list) -> object:
     return sum(similarities) / len(similarities)
 
 
+def compute_inter_segment_gaps_us(segs: list, te_us: float) -> tuple:
+    """Estimate inter-segment silence as (trailing zeros of seg[i] + leading
+    zeros of seg[i+1]) × TE. Returns (mean_us, variance_us). 0,0 if <2 segments."""
+    if len(segs) < 2 or te_us <= 0:
+        return 0.0, 0.0
+
+    def _leading_zeros(b):
+        n = 0
+        for v in b:
+            if v == 0:
+                n += 1
+            else:
+                break
+        return n
+
+    def _trailing_zeros(b):
+        n = 0
+        for v in reversed(b):
+            if v == 0:
+                n += 1
+            else:
+                break
+        return n
+
+    gaps_us = []
+    for i in range(len(segs) - 1):
+        bits = _trailing_zeros(segs[i]) + _leading_zeros(segs[i + 1])
+        gaps_us.append(bits * te_us)
+
+    mean = sum(gaps_us) / len(gaps_us)
+    var = sum((g - mean) ** 2 for g in gaps_us) / len(gaps_us)
+    return mean, var
+
+
+def detect_pwm3_params(runs: list) -> object:
+    """Detect tri-state PWM: dominant pulse + 3 distinct gap lengths.
+    Returns (short, mid, long, symbol_count) when the third bucket carries ≥10% of
+    zero-runs and bucket separation is clean; None otherwise."""
+    if not runs:
+        return None
+    one_runs = [length for val, length in runs if val == 1]
+    zero_runs = [length for val, length in runs if val == 0]
+    if len(one_runs) < 6 or len(zero_runs) < 6:
+        return None
+
+    one_counter = Counter(one_runs)
+    _, dom_count = one_counter.most_common(1)[0]
+    if dom_count / len(one_runs) < 0.60:
+        return None
+
+    zero_counter = Counter(zero_runs)
+    top_three = zero_counter.most_common(3)
+    if len(top_three) < 3:
+        return None
+    if top_three[2][1] / len(zero_runs) < 0.10:
+        return None
+
+    lens = sorted(l for l, _ in top_three)
+    short_g, mid_g, long_g = lens
+    if mid_g / max(short_g, 1) < 1.4 or long_g / max(mid_g, 1) < 1.4:
+        return None  # buckets too close to be truly tri-state
+
+    # Count tri-state symbols across runs (one-run + matching zero-run pairs).
+    def _classify(gap):
+        # Pick nearest bucket within ±25% tolerance.
+        for label, target in (("S", short_g), ("M", mid_g), ("L", long_g)):
+            if abs(gap - target) <= max(1, int(target * 0.25)):
+                return label
+        return None
+
+    symbols = 0
+    i = 0
+    while i < len(runs) - 1:
+        v, _ = runs[i]
+        nv, nl = runs[i + 1]
+        if v == 1 and nv == 0 and _classify(nl):
+            symbols += 1
+            i += 2
+        else:
+            i += 1
+
+    return (short_g, mid_g, long_g, symbols)
+
+
+def _crc8(data: bytes, poly: int = 0x07, init: int = 0x00) -> int:
+    """CRC-8 (SAE J1850 / Dallas-Maxim use poly 0x07 or 0x31; we try both)."""
+    crc = init
+    for b in data:
+        crc ^= b
+        for _ in range(8):
+            crc = ((crc << 1) ^ poly) & 0xFF if (crc & 0x80) else (crc << 1) & 0xFF
+    return crc
+
+
+def _crc16_ccitt(data: bytes, init: int = 0xFFFF) -> int:
+    crc = init
+    for b in data:
+        crc ^= b << 8
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x1021) & 0xFFFF if (crc & 0x8000) else (crc << 1) & 0xFFFF
+    return crc
+
+
+def _bits_to_bytes(bits: list) -> bytes:
+    """Pack MSB-first into bytes. Drops trailing partial byte."""
+    n = (len(bits) // 8) * 8
+    out = bytearray()
+    for i in range(0, n, 8):
+        b = 0
+        for j in range(8):
+            b = (b << 1) | (bits[i + j] & 1)
+        out.append(b)
+    return bytes(out)
+
+
+def detect_crc(decoded_bits: list) -> tuple:
+    """Scan for CRC-8 (poly 0x07) and CRC-16-CCITT trailers on decoded payload.
+    Returns (valid, kind). kind == '' when nothing matches."""
+    data = _bits_to_bytes(decoded_bits)
+    if len(data) < 2:
+        return False, ""
+    # CRC-8 over all-but-last byte: last byte should equal crc.
+    if len(data) >= 2:
+        for poly in (0x07, 0x31):
+            if _crc8(data[:-1], poly=poly) == data[-1]:
+                return True, "CRC-8"
+    if len(data) >= 3:
+        crc = _crc16_ccitt(data[:-2])
+        trailer = (data[-2] << 8) | data[-1]
+        if crc == trailer:
+            return True, "CRC-16-CCITT"
+    return False, ""
+
+
 def find_repeating_subpattern(bits: list, min_len: int = 8, max_len: int = 128):
     """
     Find shortest period p where bits[:p] repeats >= 2 times covering >= 50% of stream.
@@ -562,6 +745,17 @@ def extract_features(sub: SubFile) -> FeatureVector:
     else:
         rc_result = {"is_rolling": False, "is_fixed": False, "diff_positions": [], "truncated": False}
 
+    # Inter-segment timing (estimated from padding × TE)
+    gap_mean_us, gap_var_us = compute_inter_segment_gaps_us(sub.segments, float(sub.te_us))
+
+    # Tri-state PWM detection
+    pwm3 = detect_pwm3_params(all_runs)
+    pwm3_detected = pwm3 is not None
+    pwm3_symbol_count = pwm3[3] if pwm3 else 0
+
+    # CRC scan on decoded PWM payload
+    crc_valid, crc_kind = detect_crc(pwm_decoded_bits) if pwm_decoded_bits else (False, "")
+
     fv = FeatureVector(
         frequency=sub.frequency,
         te_us=float(sub.te_us),
@@ -593,6 +787,12 @@ def extract_features(sub: SubFile) -> FeatureVector:
         fixed_code=rc_result["is_fixed"],
         diff_positions=rc_result["diff_positions"],
         signal_quality=0.0,
+        inter_segment_gap_us_mean=gap_mean_us,
+        inter_segment_gap_us_var=gap_var_us,
+        pwm3_detected=pwm3_detected,
+        pwm3_symbol_count=pwm3_symbol_count,
+        crc_valid=crc_valid,
+        crc_kind=crc_kind,
         lat=sub.lat,
         lon=sub.lon,
     )
@@ -732,8 +932,11 @@ def classify_tpms(fv: FeatureVector) -> object:
             and fv.pwm_params.consistency > 0.85
             and fv.pwm_decoded_count < 80):
         return None  # clean PWM with short payload → likely remote, not TPMS
-    if fv.seg_similarity is not None and fv.seg_similarity > 0.92:
-        return None  # too identical → remote (TPMS rolling counters leave more variance)
+    # Hard reject only when high similarity AND rolling code (definitely a remote).
+    # Cheap fixed-address TPMS sensors burst identical payloads — still let them match.
+    if (fv.seg_similarity is not None and fv.seg_similarity > 0.92
+            and fv.rolling_code):
+        return None
 
     # Scoring
     if 50 <= fv.te_us <= 200:
@@ -777,6 +980,11 @@ def classify_tpms(fv: FeatureVector) -> object:
         warnings.append(
             "Single segment — cannot confirm repeat burst pattern; may be partial capture"
         )
+    if fv.seg_similarity is not None and fv.seg_similarity > 0.99:
+        warnings.append(
+            "Identical bursts (no rolling counter) — fixed-address TPMS or generic remote"
+        )
+        confidence = "LOW"
 
     return ClassificationResult(
         label="TPMS",
@@ -802,8 +1010,12 @@ def classify_alarm_sensor(fv: FeatureVector) -> object:
         return None
     if fv.seg_similarity is not None and fv.seg_similarity > 0.92:
         return None  # too identical → this is a remote
-    # High entropy is a hard requirement (encrypted payload)
-    if fv.entropy < 0.90:
+    # Entropy gate lowered from 0.90 → 0.80 so partially-redundant encrypted payloads
+    # still match (real 868MHz alarm captures often sit at 0.80–0.88).
+    # Tighter inner-bit floor compensates against false positives.
+    if fv.entropy < 0.80:
+        return None
+    if fv.mean_inner_size < 40:
         return None
 
     score = 0
@@ -815,10 +1027,12 @@ def classify_alarm_sensor(fv: FeatureVector) -> object:
     if 40 <= fv.mean_inner_size <= 120:
         score += 2
         reasons.append(f"[AS2] Inner size {fv.mean_inner_size:.0f} bits — alarm payload range (40–120)")
-    # AS3 always fires here: the entropy gate above guarantees entropy >= 0.90
     if fv.entropy >= 0.90:
         score += 2
         reasons.append(f"[AS3] entropy={fv.entropy:.3f} — high entropy consistent with encrypted payload")
+    elif fv.entropy >= 0.80:
+        score += 1
+        reasons.append(f"[AS3] entropy={fv.entropy:.3f} — elevated entropy consistent with partial-encryption alarm payload")
     if 0.40 <= fv.zero_ratio <= 0.75:
         score += 1
         reasons.append(f"[AS4] zero_ratio={fv.zero_ratio:.1%} — dense signal data")
@@ -855,34 +1069,37 @@ def classify_alarm_sensor(fv: FeatureVector) -> object:
 
 def classify_shutter_blind(fv: FeatureVector) -> object:
     """
-    Motorised blinds/shutters: Somfy RTS (433.42MHz), Nice, Faac.
+    Motorised blinds/shutters: Somfy RTS (433.42MHz), Nice (433.92MHz), Faac (868.35MHz).
     Note: Flipper tuned to 433.92MHz may capture 433.42MHz with reduced fidelity.
     """
-    # Primary: 433.42MHz (Somfy RTS)
-    # Secondary: 433.92MHz may catch it with ±500kHz tolerance
-    if fv.frequency not in {433_420_000, 433_920_000}:
+    if fv.frequency not in {433_420_000, 433_920_000, 868_350_000}:
         return None
-    if not (550 <= fv.te_us <= 700):
-        return None  # Somfy RTS TE ≈ 604µs
+    # Widened TE range (was 550–700) so ±10% tolerance / clone variants still match.
+    if not (500 <= fv.te_us <= 780):
+        return None
 
     reasons = [
-        f"[SB1] TE={fv.te_us:.0f}µs — matches Somfy RTS timing (TE≈604µs)",
+        f"[SB1] TE={fv.te_us:.0f}µs — matches blind/shutter remote timing (Somfy RTS ≈604µs)",
     ]
     hints = []
     warnings = []
 
     if 50 <= fv.total_inner_bits <= 80:
         reasons.append(f"[SB2] {fv.total_inner_bits} inner bits — Somfy RTS 56-bit payload range")
+
     if fv.frequency == 433_420_000:
         hints.append("433.42MHz → Somfy RTS confirmed frequency")
+        confidence = "MEDIUM"
+    elif fv.frequency == 868_350_000:
+        hints.append("868.35MHz → Faac SLH/XT or Nice Era profile")
+        confidence = "MEDIUM"
     else:
-        hints.append("433.92MHz capture — Somfy RTS is 433.42MHz; signal may be degraded")
-        warnings.append("Frequency offset ±500kHz: confirm with Flipper tuned to 433.42MHz")
+        hints.append("433.92MHz → Nice Evo or Somfy capture offset (RTS at 433.42MHz)")
+        warnings.append("433.92MHz: Nice Evo native; Somfy ±500kHz offset")
+        confidence = "LOW"
 
     if fv.seg_count >= 2:
-        hints.append(f"{fv.seg_count} segments — Somfy typically transmits frame 2× with pause")
-
-    confidence = "MEDIUM" if fv.frequency == 433_420_000 else "LOW"
+        hints.append(f"{fv.seg_count} segments — typically transmits frame 2× with pause")
 
     return ClassificationResult(
         label="SHUTTER_BLIND",
@@ -930,10 +1147,10 @@ def classify_doorbell(fv: FeatureVector) -> object:
 
 
 def classify_outlet_switch(fv: FeatureVector) -> object:
-    """Wireless power outlet / smart plug: PT2262-family, 3–4 repeats, 24-bit fixed code."""
+    """Wireless power outlet / smart plug: PT2262-family, 3–6 repeats, 24-bit fixed code."""
     if fv.frequency not in ISM_FREQS:
         return None
-    if not (3 <= fv.seg_count <= 4):
+    if not (3 <= fv.seg_count <= 6):
         return None
     if fv.seg_similarity is None or fv.seg_similarity < 0.97:
         return None  # outlet codes are perfectly identical
@@ -947,7 +1164,7 @@ def classify_outlet_switch(fv: FeatureVector) -> object:
         return None
 
     reasons = [
-        f"[O1] {fv.seg_count} repeats — wireless outlets typically transmit 3–4×",
+        f"[O1] {fv.seg_count} repeats — wireless outlets typically transmit 3–6×",
         f"[O2] Segment similarity {fv.seg_similarity:.1%} — perfectly identical (fixed code)",
         f"[O3] {fv.pwm_decoded_count} decoded bits — PT2262 24-bit fixed code",
         "[O4] No rolling code detected — consistent with static outlet address",
@@ -1043,6 +1260,14 @@ def classify_garage(fv: FeatureVector) -> object:
         sub_protocol.append("PT2262 family / short remote (code type indeterminate — need 2+ segments)")
     elif dc > 0:
         sub_protocol.append(f"Unrecognised frame ({dc} decoded bits)")
+
+    # TE-bucket sub-protocol hints (Skylink / Linear / Stanley families)
+    if 150 <= fv.te_us <= 180:
+        sub_protocol.append("TE ~165µs → Skylink-family remote")
+    elif 280 <= fv.te_us <= 380:
+        sub_protocol.append("TE ~330µs → Linear/Multicode-family remote")
+    elif 400 <= fv.te_us <= 600:
+        sub_protocol.append("TE ~500µs → Stanley/older garage remote")
 
     if fv.frequency == 315_000_000:
         sub_protocol.append("315MHz → North American garage/barrier/car remote")
@@ -1173,6 +1398,131 @@ def classify_keyfob(fv: FeatureVector) -> object:
     )
 
 
+def classify_wmbus(fv: FeatureVector) -> object:
+    """
+    Wireless M-Bus (wMBus) S-mode / T-mode utility meter at 868.95 MHz nominal.
+    Captured at 868.35 MHz with offset tolerance. Manchester encoded,
+    variable-length payload (64–500 bits typical), low decode-error rate.
+    """
+    if fv.frequency != 868_350_000:
+        return None
+    if fv.seg_count != 1:
+        return None
+    if fv.manchester_decoded_count < 64 or fv.manchester_decoded_count > 600:
+        return None
+    if fv.manchester_error_rate > 0.10:
+        return None
+
+    reasons = [
+        f"[WM1] 868MHz single-burst Manchester payload",
+        f"[WM2] {fv.manchester_decoded_count} decoded bits — wMBus typical 64–500",
+        f"[WM3] Manchester error rate {fv.manchester_error_rate:.0%} — clean decode",
+    ]
+    hints = ["wireless M-Bus (EN 13757-4) candidate"]
+    if fv.preamble.found and fv.preamble.length >= 16:
+        reasons.append(f"[WM4] {fv.preamble.length}-bit preamble — typical wMBus sync")
+        confidence = "MEDIUM"
+    else:
+        confidence = "LOW"
+
+    return ClassificationResult(
+        label="WMBUS_METER",
+        confidence=confidence,
+        sub_protocol=hints,
+        reasons=reasons,
+        warnings=["Brand/manufacturer requires DLL-layer CRC validation"],
+    )
+
+
+def classify_honeywell_5800(fv: FeatureVector) -> object:
+    """Honeywell 5800-series alarm sensors: 433.92 MHz or 915 MHz, ~150–250 µs TE,
+    clean PWM, 40–48 bit frame, high entropy."""
+    if fv.frequency not in {433_920_000, 915_000_000}:
+        return None
+    if fv.pwm_params is None or fv.pwm_params.consistency < 0.85:
+        return None
+    if not (150 <= fv.te_us <= 250):
+        return None
+    if not (40 <= fv.pwm_decoded_count <= 48):
+        return None
+    if fv.entropy < 0.85:
+        return None
+    if fv.seg_count > 4:
+        return None
+
+    reasons = [
+        f"[HW1] TE={fv.te_us:.0f}µs within Honeywell 5800 OOK range (150–250µs)",
+        f"[HW2] {fv.pwm_decoded_count} decoded bits — 5800 frame length",
+        f"[HW3] PWM consistency {fv.pwm_params.consistency:.0%} — clean modulation",
+        f"[HW4] entropy={fv.entropy:.3f} — encrypted alarm payload",
+    ]
+    freq_label = "915MHz (US)" if fv.frequency == 915_000_000 else "433.92MHz"
+    return ClassificationResult(
+        label="HONEYWELL_5800",
+        confidence="MEDIUM",
+        sub_protocol=[f"Honeywell 5800-series sensor at {freq_label}"],
+        reasons=reasons,
+        warnings=["Brand match by fingerprint only — confirm with CRC validation"],
+    )
+
+
+def classify_enocean(fv: FeatureVector) -> object:
+    """EnOcean self-powered switch at 868.35 MHz: 29–32 bit fixed PWM,
+    high consistency (≥0.95), 3–5 repeats."""
+    if fv.frequency != 868_350_000:
+        return None
+    if not (3 <= fv.seg_count <= 5):
+        return None
+    if fv.seg_similarity is None or fv.seg_similarity < 0.95:
+        return None
+    if fv.pwm_params is None or fv.pwm_params.consistency < 0.95:
+        return None
+    if not (28 <= fv.pwm_decoded_count <= 36):
+        return None
+    if fv.rolling_code:
+        return None
+
+    reasons = [
+        f"[EO1] 868.35MHz fixed-code burst, {fv.seg_count} repeats",
+        f"[EO2] PWM consistency {fv.pwm_params.consistency:.0%} — clean EnOcean modulation",
+        f"[EO3] {fv.pwm_decoded_count} decoded bits — EnOcean PTM frame range",
+        f"[EO4] Segment similarity {fv.seg_similarity:.1%} — identical repeats",
+    ]
+    return ClassificationResult(
+        label="ENOCEAN_SWITCH",
+        confidence="MEDIUM",
+        sub_protocol=["EnOcean PTM-style self-powered switch"],
+        reasons=reasons,
+        warnings=[],
+    )
+
+
+def classify_lora_beacon(fv: FeatureVector) -> object:
+    """LoRa-ish beacon: 868 MHz, long alternating preamble (>32 bits),
+    slow OOK timing (TE 500–1000 µs). Heuristic — true LoRa is FSK chirp;
+    this matches OOK-marker beacons that share the 868 ISM space."""
+    if fv.frequency != 868_350_000:
+        return None
+    if not fv.preamble.found or fv.preamble.length < 32:
+        return None
+    if not (500 <= fv.te_us <= 1000):
+        return None
+    if fv.total_inner_bits < 60:
+        return None
+
+    return ClassificationResult(
+        label="LORA_BEACON",
+        confidence="LOW",
+        sub_protocol=["868MHz long-preamble beacon (LoRa-adjacent OOK)"],
+        reasons=[
+            f"[LB1] {fv.preamble.length}-bit preamble — beacon sync pattern",
+            f"[LB2] TE={fv.te_us:.0f}µs — slow OOK consistent with beacon use",
+            f"[LB3] {fv.total_inner_bits} inner bits — sufficient payload",
+        ],
+        warnings=["OOK-mode heuristic; FSK chirp LoRa cannot be classified from .sub bits alone"],
+    )
+
+
 def classify_unknown_structured(fv: FeatureVector) -> object:
     """Fallback classifier — always returns a result."""
     structured_indicators = 0
@@ -1203,15 +1553,19 @@ def classify(fv: FeatureVector) -> ClassificationResult:
     """Run classifiers in priority order; return first match."""
     for fn in [
         classify_noise,
-        classify_amr_meter,      # long preamble + Manchester → distinct early exit
+        classify_amr_meter,         # long preamble + Manchester → distinct early exit
         classify_tpms,
+        classify_wmbus,             # 868 single-burst Manchester (after AMR)
+        classify_honeywell_5800,    # specific alarm fingerprint before generic ALARM
         classify_alarm_sensor,
-        classify_shutter_blind,  # TE≈600µs is unique enough to run early
+        classify_shutter_blind,     # TE≈600µs unique enough to run early
+        classify_enocean,           # 868 short PWM before generic doorbell/outlet
         classify_doorbell,
         classify_outlet_switch,
         classify_garage,
         classify_keyfob,
         classify_weather,
+        classify_lora_beacon,       # 868 long-preamble beacon fallback
         classify_unknown_structured,
     ]:
         result = fn(fv)
@@ -1255,6 +1609,80 @@ def _bits_to_hex(bits: list) -> str:
     return " ".join(result)
 
 
+_CALIBRATION_CACHE: dict = None  # populated lazily by load_calibration()
+
+
+def load_calibration(path: pathlib.Path = None) -> dict:
+    """Load empirical per-(label, confidence) accuracy table. Cached process-wide.
+
+    Schema: {"by_label_conf": {"LABEL.CONF": {"accuracy": float, "n": int}, ...}}
+    Returns {} if no file exists.
+    """
+    global _CALIBRATION_CACHE
+    if _CALIBRATION_CACHE is not None and path is None:
+        return _CALIBRATION_CACHE
+
+    candidates = []
+    if path is not None:
+        candidates.append(pathlib.Path(path))
+    else:
+        candidates.append(pathlib.Path.cwd() / "calibration.json")
+        candidates.append(pathlib.Path(__file__).parent / "calibration.json")
+        candidates.append(pathlib.Path(__file__).parent / "tests" / "fixtures" / "calibration.json")
+
+    data = {}
+    for p in candidates:
+        if p.is_file():
+            try:
+                data = json.loads(p.read_text())
+            except Exception:
+                data = {}
+            break
+
+    if path is None:
+        _CALIBRATION_CACHE = data
+    return data
+
+
+def _calibration_suffix(label: str, confidence: str) -> str:
+    cal = load_calibration()
+    entry = cal.get("by_label_conf", {}).get(f"{label}.{confidence}")
+    if not entry or entry.get("n", 0) < 3:
+        return ""
+    return f"  (~{entry['accuracy'] * 100:.0f}% measured, n={entry['n']})"
+
+
+def compute_calibration(records: list, truth: dict) -> dict:
+    """Compare predicted labels (from records) against truth dict and produce
+    a per-(label, confidence) calibration table. records is [(path, sub, fv, result), ...]."""
+    buckets: dict = defaultdict(lambda: {"correct": 0, "total": 0})
+    for path, _sub, _fv, result in records:
+        fname = os.path.basename(path)
+        if fname not in truth:
+            continue
+        key = f"{result.label}.{result.confidence}"
+        buckets[key]["total"] += 1
+        if truth[fname] == result.label:
+            buckets[key]["correct"] += 1
+    by_label_conf = {}
+    for key, b in buckets.items():
+        if b["total"] == 0:
+            continue
+        by_label_conf[key] = {
+            "accuracy": round(b["correct"] / b["total"], 4),
+            "n": b["total"],
+        }
+    return {
+        "by_label_conf": by_label_conf,
+        "generated_at": datetime_now_iso(),
+    }
+
+
+def datetime_now_iso() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat()
+
+
 def format_report(path: str, sub: SubFile, fv: FeatureVector, result: ClassificationResult) -> str:
     lines = []
     sep = "=" * 60
@@ -1265,7 +1693,7 @@ def format_report(path: str, sub: SubFile, fv: FeatureVector, result: Classifica
     lines.append("")
 
     lines.append(f"CLASSIFICATION : {result.label}")
-    lines.append(f"CONFIDENCE     : {result.confidence}")
+    lines.append(f"CONFIDENCE     : {result.confidence}{_calibration_suffix(result.label, result.confidence)}")
     if result.sub_protocol:
         first = True
         for hint in result.sub_protocol:
@@ -1333,6 +1761,17 @@ def format_report(path: str, sub: SubFile, fv: FeatureVector, result: Classifica
             lines.append(f"  Code type    : ROLLING (changes at {len(fv.diff_positions)} bit positions)")
         elif fv.fixed_code:
             lines.append(f"  Code type    : FIXED (identical across all {fv.seg_count} segments)")
+        if fv.inter_segment_gap_us_mean > 0:
+            jitter = math.sqrt(fv.inter_segment_gap_us_var)
+            lines.append(
+                f"  Inter-seg gap: mean {fv.inter_segment_gap_us_mean / 1000:.1f} ms"
+                f"  (jitter {jitter / 1000:.1f} ms)"
+            )
+
+    if fv.pwm3_detected:
+        lines.append(f"  Tri-state PWM: detected ({fv.pwm3_symbol_count} symbols)")
+    if fv.crc_valid:
+        lines.append(f"  CRC          : {fv.crc_kind} valid")
 
     if fv.lat != 0.0 or fv.lon != 0.0:
         lines.append(f"  Location     : {fv.lat:.6f}, {fv.lon:.6f}")
@@ -1391,12 +1830,100 @@ def format_json(path: str, sub: SubFile, fv: FeatureVector, result: Classificati
             ),
             "manchester_error_rate": round(fv.manchester_error_rate, 4),
             "manchester_convention": fv.manchester_convention if fv.manchester_decoded_count > 0 else None,
+            "inter_segment_gap_us_mean": round(fv.inter_segment_gap_us_mean, 1),
+            "inter_segment_gap_us_var": round(fv.inter_segment_gap_us_var, 1),
+            "pwm3_detected": fv.pwm3_detected,
+            "pwm3_symbol_count": fv.pwm3_symbol_count,
+            "crc_valid": fv.crc_valid,
+            "crc_kind": fv.crc_kind,
             "lat": fv.lat,
             "lon": fv.lon,
         },
         "reasoning": result.reasons,
         "warnings": result.warnings,
     }
+
+
+CSV_FIELDS = [
+    "filename", "classification", "confidence", "sub_protocol",
+    "frequency_hz", "te_us", "seg_count", "total_inner_bits",
+    "entropy", "zero_ratio", "signal_quality",
+    "rolling_code", "fixed_code", "pwm_decoded_hex",
+    "manchester_hex", "crc_valid", "crc_kind",
+    "inter_segment_gap_us_mean", "lat", "lon", "payload_sha256",
+]
+
+
+def _payload_sha256(fv: FeatureVector) -> str:
+    """Stable hash of the most informative decoded representation for dedup."""
+    if fv.pwm_decoded_bits:
+        return hashlib.sha256(bytes(fv.pwm_decoded_bits)).hexdigest()
+    if fv.manchester_decoded_bits and fv.manchester_error_rate < 0.30:
+        return hashlib.sha256(bytes(fv.manchester_decoded_bits)).hexdigest()
+    return ""
+
+
+def format_csv_row(path: str, fv: FeatureVector, result: ClassificationResult) -> dict:
+    return {
+        "filename": os.path.basename(path),
+        "classification": result.label,
+        "confidence": result.confidence,
+        "sub_protocol": "; ".join(result.sub_protocol),
+        "frequency_hz": fv.frequency,
+        "te_us": fv.te_us,
+        "seg_count": fv.seg_count,
+        "total_inner_bits": fv.total_inner_bits,
+        "entropy": round(fv.entropy, 4),
+        "zero_ratio": round(fv.zero_ratio, 4),
+        "signal_quality": round(fv.signal_quality, 4),
+        "rolling_code": fv.rolling_code,
+        "fixed_code": fv.fixed_code,
+        "pwm_decoded_hex": _bits_to_hex(fv.pwm_decoded_bits) if fv.pwm_decoded_bits else "",
+        "manchester_hex": (
+            _bits_to_hex(fv.manchester_decoded_bits)
+            if fv.manchester_decoded_bits and fv.manchester_error_rate < 0.30
+            else ""
+        ),
+        "crc_valid": fv.crc_valid,
+        "crc_kind": fv.crc_kind,
+        "inter_segment_gap_us_mean": round(fv.inter_segment_gap_us_mean, 1),
+        "lat": fv.lat,
+        "lon": fv.lon,
+        "payload_sha256": _payload_sha256(fv),
+    }
+
+
+def detect_anomalies(records: list) -> list:
+    """Return list of (filename, [anomaly_reason, ...]) for captures with any issue.
+
+    Flags: very low signal_quality, entropy outlier ±2σ within class, freq off-band.
+    """
+    by_class = defaultdict(list)
+    for path, _sub, fv, result in records:
+        by_class[result.label].append(fv.entropy)
+
+    medians = {cls: statistics.median(vs) for cls, vs in by_class.items() if len(vs) >= 3}
+    stdevs = {
+        cls: (statistics.pstdev(vs) if len(vs) >= 3 else 0.0)
+        for cls, vs in by_class.items()
+    }
+
+    flagged = []
+    for path, _sub, fv, result in records:
+        reasons = []
+        if fv.signal_quality < 0.30:
+            reasons.append(f"signal_quality={fv.signal_quality:.2f} (<0.30)")
+        if fv.frequency not in ISM_FREQS:
+            reasons.append(f"frequency {fv.frequency} Hz outside ISM bands")
+        med = medians.get(result.label)
+        sd = stdevs.get(result.label, 0.0)
+        if med is not None and sd > 0.02 and abs(fv.entropy - med) > 2 * sd:
+            reasons.append(
+                f"entropy={fv.entropy:.3f} is >2σ from {result.label} median {med:.3f}"
+            )
+        if reasons:
+            flagged.append((os.path.basename(path), reasons))
+    return flagged
 
 
 def format_geojson(records: list) -> dict:
@@ -1476,6 +2003,9 @@ def run_batch(
     summary_only: bool = False,
     geojson_out: pathlib.Path = None,
     db=None,
+    csv_out: pathlib.Path = None,
+    dedup: bool = False,
+    show_anomalies: bool = False,
 ) -> None:
     sub_files = sorted(directory.glob("*.sub"))
     if not sub_files:
@@ -1485,6 +2015,8 @@ def run_batch(
     results = []
     batch_json = []
     records = []
+    seen_hashes: dict = {}
+    dedup_skipped = 0
 
     for path in sub_files:
         try:
@@ -1493,7 +2025,17 @@ def run_batch(
             result = classify(fv)
             records.append((str(path), sub, fv, result))
 
-            if db is not None:
+            duplicate = False
+            if dedup:
+                phash = _payload_sha256(fv)
+                if phash:
+                    if phash in seen_hashes:
+                        duplicate = True
+                        dedup_skipped += 1
+                    else:
+                        seen_hashes[phash] = path.name
+
+            if db is not None and not duplicate:
                 db.add_capture(
                     filename=path.name,
                     frequency=fv.frequency,
@@ -1519,28 +2061,45 @@ def run_batch(
 
     if json_mode:
         print(json.dumps(batch_json, indent=2))
-        if geojson_out is not None:
-            gj = format_geojson(records)
-            with open(geojson_out, "w") as f:
-                json.dump(gj, f, indent=2)
-            print(f"GeoJSON written to {geojson_out} ({len(gj['features'])} geolocated captures)")
-        return
+    else:
+        # Summary table
+        print(f"\nBATCH SUMMARY  ({len(sub_files)} files)")
+        print("-" * 72)
+        print(f"{'FILE':<45} {'CLASS':<22} CONF")
+        print("-" * 72)
+        for fname, label, conf in results:
+            print(f"{fname:<45} {label:<22} {conf}")
+        print()
+        if dedup and dedup_skipped:
+            print(f"Dedup: skipped {dedup_skipped} duplicate payload(s) on DB insert.")
 
-    # Summary table
-    print(f"\nBATCH SUMMARY  ({len(sub_files)} files)")
-    print("-" * 72)
-    print(f"{'FILE':<45} {'CLASS':<22} CONF")
-    print("-" * 72)
-    for fname, label, conf in results:
-        print(f"{fname:<45} {label:<22} {conf}")
-    print()
+    if csv_out is not None:
+        rows = [format_csv_row(p, fv, r) for p, _s, fv, r in records]
+        with open(csv_out, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+            writer.writeheader()
+            writer.writerows(rows)
+        if not json_mode:
+            print(f"CSV written to {csv_out} ({len(rows)} rows)")
 
     if geojson_out is not None:
         gj = format_geojson(records)
         with open(geojson_out, "w") as f:
             json.dump(gj, f, indent=2)
-        geo_count = len(gj["features"])
-        print(f"GeoJSON written to {geojson_out} ({geo_count} geolocated captures)")
+        if not json_mode:
+            print(f"GeoJSON written to {geojson_out} ({len(gj['features'])} geolocated captures)")
+
+    if show_anomalies and not json_mode:
+        flagged = detect_anomalies(records)
+        if flagged:
+            print(f"\nANOMALIES ({len(flagged)} captures)")
+            print("-" * 72)
+            for fname, reasons in flagged:
+                print(f"  {fname}")
+                for r in reasons:
+                    print(f"    ! {r}")
+        else:
+            print("\nANOMALIES: none flagged")
 
 
 # ---------------------------------------------------------------------------
@@ -1575,12 +2134,49 @@ def main() -> None:
         metavar="SESSION.db",
         help="print summary statistics from an existing wardrive database and exit",
     )
+    parser.add_argument(
+        "--csv",
+        metavar="OUT.csv",
+        help="write one CSV row per capture (batch mode)",
+    )
+    parser.add_argument(
+        "--dedup",
+        action="store_true",
+        help="skip DB inserts when the same payload SHA-256 has already been seen this run",
+    )
+    parser.add_argument(
+        "--anomalies",
+        action="store_true",
+        help="print captures with low signal quality, off-band frequency, or class-outlier entropy",
+    )
+    parser.add_argument(
+        "--cluster-radius",
+        metavar="METERS",
+        type=float,
+        help="(with --db-summary) emit GeoJSON clusters of nearby captures within radius",
+    )
+    parser.add_argument(
+        "--cluster-out",
+        metavar="OUT.geojson",
+        help="(with --cluster-radius) destination GeoJSON file (default: clusters.geojson)",
+    )
+    parser.add_argument(
+        "--calibrate-from",
+        metavar="TRUTH.json",
+        help="(batch mode) read filename->true-label map, write calibration.json next to it",
+    )
     args = parser.parse_args()
 
     if args.db_summary:
         from wardrive_db import WardriveDB
         db = WardriveDB(args.db_summary)
         db.print_summary()
+        if args.cluster_radius is not None:
+            out = pathlib.Path(args.cluster_out) if args.cluster_out else pathlib.Path("clusters.geojson")
+            gj = db.cluster_by_location(args.cluster_radius)
+            with open(out, "w") as f:
+                json.dump(gj, f, indent=2)
+            print(f"Clusters (radius {args.cluster_radius:.0f} m) written to {out} ({len(gj['features'])} clusters)")
         db.close()
         return
 
@@ -1594,12 +2190,31 @@ def main() -> None:
 
     target = pathlib.Path(args.target)
     if target.is_dir():
+        if args.calibrate_from:
+            truth_path = pathlib.Path(args.calibrate_from)
+            truth = json.loads(truth_path.read_text())
+            if "labels" in truth:  # accept golden_labels.json shape
+                truth = {k: v[0] if isinstance(v, list) else v for k, v in truth["labels"].items()}
+            records = []
+            for p in sorted(target.glob("*.sub")):
+                sub = parse_sub_file(str(p))
+                fv = extract_features(sub)
+                result = classify(fv)
+                records.append((str(p), sub, fv, result))
+            cal = compute_calibration(records, truth)
+            out = pathlib.Path(__file__).parent / "calibration.json"
+            out.write_text(json.dumps(cal, indent=2) + "\n")
+            print(f"Calibration written to {out} ({len(cal['by_label_conf'])} buckets)")
+            return
         run_batch(
             target,
             json_mode=args.json,
             summary_only=args.summary_only,
             geojson_out=pathlib.Path(args.geojson) if args.geojson else None,
             db=db,
+            csv_out=pathlib.Path(args.csv) if args.csv else None,
+            dedup=args.dedup,
+            show_anomalies=args.anomalies,
         )
     elif target.is_file() and target.suffix == ".sub":
         run_single(target, json_mode=args.json, db=db)

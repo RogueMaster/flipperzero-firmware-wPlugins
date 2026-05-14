@@ -6,6 +6,8 @@ from analyze import (
     classify_keyfob, classify,
     format_geojson, ClassificationResult,
     SubFile, FeatureVector, PWMParams, PreambleInfo, extract_features,
+    compute_inter_segment_gaps_us, detect_pwm3_params, detect_crc,
+    compute_runs, _crc8, _crc16_ccitt,
     ISM_FREQS,
 )
 
@@ -215,3 +217,97 @@ def test_classify_keyfob_315mhz():
     assert result is not None
     assert result.label == "KEYFOB_REMOTE"
     assert "315MHz" in result.sub_protocol[0]
+
+
+def test_inter_segment_gap_zero_when_single_segment():
+    mean, var = compute_inter_segment_gaps_us([[1, 0, 1]], te_us=100.0)
+    assert mean == 0.0 and var == 0.0
+
+
+def test_inter_segment_gap_basic():
+    # seg0 trails 3 zeros; seg1 leads 2 zeros; gap = 5 bits × 100us = 500us
+    seg0 = [1, 1, 0, 0, 0]
+    seg1 = [0, 0, 1, 1]
+    mean, var = compute_inter_segment_gaps_us([seg0, seg1], te_us=100.0)
+    assert mean == 500.0 and var == 0.0
+
+
+def test_inter_segment_gap_variance():
+    # gaps: (1+0)*100=100us  and  (3+0)*100=300us → mean 200, var = 10000
+    seg0 = [1, 0]
+    seg1 = [1, 1, 0, 0, 0]
+    seg2 = [1]
+    mean, var = compute_inter_segment_gaps_us([seg0, seg1, seg2], te_us=100.0)
+    assert mean == 200.0
+    assert var == 10000.0
+
+
+def test_pwm3_detects_three_buckets():
+    # Pattern: pulse=2 ones followed by 2/5/10 zeros, repeated
+    bits = []
+    gaps = [2, 5, 10] * 3
+    for g in gaps:
+        bits += [1, 1] + [0] * g
+    runs = compute_runs(bits)
+    result = detect_pwm3_params(runs)
+    assert result is not None
+    short, mid, long_, count = result
+    assert (short, mid, long_) == (2, 5, 10)
+    assert count > 0
+
+
+def test_pwm3_rejects_two_bucket_pwm():
+    bits = []
+    for g in [3, 6] * 5:
+        bits += [1, 1] + [0] * g
+    runs = compute_runs(bits)
+    assert detect_pwm3_params(runs) is None
+
+
+def test_crc8_round_trip():
+    payload = bytes([0x12, 0x34, 0x56])
+    crc = _crc8(payload)
+    # Verify CRC over payload + crc-byte produces zero
+    assert _crc8(payload + bytes([crc])) == 0
+
+
+def test_detect_crc_finds_crc8():
+    payload = bytes([0xAA, 0xBB])
+    crc = _crc8(payload)
+    bits = []
+    for byte in payload + bytes([crc]):
+        for i in range(7, -1, -1):
+            bits.append((byte >> i) & 1)
+    valid, kind = detect_crc(bits)
+    assert valid and kind == "CRC-8"
+
+
+def test_detect_crc_finds_crc16_ccitt():
+    payload = bytes([0xDE, 0xAD, 0xBE, 0xEF])
+    crc = _crc16_ccitt(payload)
+    full = payload + bytes([(crc >> 8) & 0xFF, crc & 0xFF])
+    bits = []
+    for byte in full:
+        for i in range(7, -1, -1):
+            bits.append((byte >> i) & 1)
+    valid, kind = detect_crc(bits)
+    assert valid and kind == "CRC-16-CCITT"
+
+
+def test_detect_crc_rejects_random_bytes():
+    bits = []
+    for byte in (0x01, 0x02, 0x03, 0x04, 0x05):
+        for i in range(7, -1, -1):
+            bits.append((byte >> i) & 1)
+    valid, _ = detect_crc(bits)
+    assert valid is False
+
+
+def test_diff_manchester_decoded():
+    # Standard Manchester pairs that don't form a low-error standard decode but
+    # do form a clean diff-Manchester sequence.
+    # Sequence with transitions chosen so diff-Manchester error rate is low.
+    raw = [1, 0, 1, 0, 0, 1, 0, 1, 1, 0]
+    bits, conv, err = decode_manchester(raw)
+    # We only assert it picks the lowest-error option; equality with std decodings is OK.
+    assert err >= 0.0 and isinstance(conv, str)

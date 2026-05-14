@@ -1,6 +1,6 @@
 # Subhound
 
-Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 11 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
+Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 15 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
 
 ---
 
@@ -60,11 +60,19 @@ output:
   --summary-only        print batch summary table, skip per-file reports
   --json                emit JSON instead of human-readable text
   --geojson FILE        write a GeoJSON FeatureCollection to FILE
-                        (GPS coords from .sub Lat/Lon fields; zero-coord records excluded)
+  --csv FILE            write one CSV row per capture
+  --anomalies           flag captures w/ low quality, off-band freq, or class-outlier entropy
 
 logging:
   --db FILE             log every capture to an SQLite session database
   --db-summary FILE     print summary stats for an existing session database
+  --dedup               skip DB insert when same payload SHA-256 already seen this run
+  --cluster-radius M    (with --db-summary) emit GeoJSON of nearby-capture clusters
+  --cluster-out FILE    (with --cluster-radius) destination GeoJSON (default: clusters.geojson)
+
+calibration:
+  --calibrate-from FILE read filename→true-label JSON, write calibration.json
+                        (subsequent runs append "~XX% measured, n=K" to confidence line)
 ```
 
 ### Examples
@@ -93,15 +101,19 @@ python3 analyze.py wardrive_session/ --json --geojson out.geojson --db session.d
 | Label | Description | Typical frequencies |
 |---|---|---|
 | `NOISE` | No real signal — all zeros, too short, or near-flat | any |
-| `AMR_METER` | Automatic meter reading (gas / electric / water) | 433.92 MHz |
+| `AMR_METER` | Automatic meter reading (gas / electric / water) | 315, 868 MHz |
 | `TPMS` | Tyre pressure monitor (rolling FSK bursts) | 315, 433.92 MHz |
-| `ALARM_SENSOR` | Door / window / PIR sensor | 433.92 MHz |
-| `SHUTTER_BLIND` | Motorised shutter or blind remote | 433.92 MHz |
-| `DOORBELL` | Wireless doorbell (≥5 segment repeats) | 433.92 MHz |
-| `OUTLET_SWITCH` | Smart plug / RF outlet (3–4 segment repeats) | 433.92 MHz |
-| `GARAGE_REMOTE` | Garage door / parking barrier remote | 315, 433.92 MHz |
-| `KEYFOB_REMOTE` | Car or building keyfob | 433.92, 868 MHz |
+| `WMBUS_METER` | Wireless M-Bus utility meter (single Manchester burst) | 868 MHz |
+| `HONEYWELL_5800` | Honeywell 5800-series alarm sensor (specific fingerprint) | 433.92, 915 MHz |
+| `ALARM_SENSOR` | Generic alarm sensor (Visonic / DSC / others) | 433.92, 868 MHz |
+| `SHUTTER_BLIND` | Somfy RTS / Nice Evo / Faac motorised blind remote | 433.42, 433.92, 868 MHz |
+| `ENOCEAN_SWITCH` | EnOcean PTM self-powered switch | 868 MHz |
+| `DOORBELL` | Wireless doorbell (≥5 segment repeats) | 315, 433.92 MHz |
+| `OUTLET_SWITCH` | Smart plug / RF outlet (3–6 segment repeats) | 315, 433.92 MHz |
+| `GARAGE_REMOTE` | Garage / barrier / car remote (TE buckets hint at Skylink/Linear/Stanley) | 315, 433.92 MHz |
+| `KEYFOB_REMOTE` | Car or building keyfob | 315, 433.92 MHz |
 | `WEATHER_STATION` | Temperature / humidity sensor | 433.92 MHz |
+| `LORA_BEACON` | Long-preamble OOK beacon at 868 MHz (LoRa-adjacent) | 868 MHz |
 | `UNKNOWN_STRUCTURED` | Structured signal, unrecognised protocol | any |
 
 ---
@@ -201,13 +213,24 @@ Each `Data_RAW` line is treated as a separate **segment**. Bits are extracted MS
 
 ---
 
+## Decoders
+
+- **PWM** (2-symbol + optional 3-symbol tri-state for Genie/CAME variants)
+- **Manchester** — G.E.Thomas, IEEE 802.3, and Differential Manchester; lowest-error wins
+- **CRC** — CRC-8 (poly 0x07 / 0x31) and CRC-16-CCITT trailer scan on decoded payload
+- **Rolling-code detection** — per-position diff across PWM-decoded segments
+- **Inter-segment timing** — mean + jitter (ms) from padding × TE, surfaced in reports
+
 ## Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-22 tests covering: Manchester decoding (both conventions + tiebreak), rolling/fixed code detection, signal quality scoring, all classifiers, GeoJSON formatting, and database operations.
+60 tests: parity harness (locks current labels on `data/subfiles/`), Manchester decoding,
+rolling/fixed code, signal quality, every classifier, GeoJSON, CSV, CRC, tri-state PWM,
+inter-segment timing, spatial clustering, and DB operations. Regenerate parity goldens
+with `python3 tests/regen_golden.py` after intentional classifier changes.
 
 ---
 
@@ -224,7 +247,7 @@ ufbt launch    # build + deploy + run on connected Flipper
 
 Or copy `flipper-app/dist/bitraw_analyzer.fap` to `/apps/Sub-GHz/` via qFlipper.
 
-Usage: open the app, pick a `.sub` from the file browser, read the report, press Back to pick another. Reports are auto-saved next to each capture as `<name>.report.txt`.
+Usage: open the app, pick a `.sub` from the file browser, read the report, press Back to pick another. Two sidecars are auto-saved next to each capture: `<name>.report.txt` (human-readable) and `<name>.bra` (key=value metadata for desktop reimport).
 
 See [flipper-app/README.md](flipper-app/README.md) for build options, on-device limits, and debug logging.
 

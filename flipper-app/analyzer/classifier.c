@@ -152,7 +152,9 @@ static bool classify_tpms(const FeatureVector* fv, ClassificationResult* out) {
        fv->pwm_decoded_count < 80) {
         return false;
     }
-    if(fv->has_seg_similarity && fv->seg_similarity > 0.92f) {
+    /* Only hard-reject when high similarity AND rolling code (definite remote).
+     * Cheap fixed-address TPMS still allowed. */
+    if(fv->has_seg_similarity && fv->seg_similarity > 0.92f && fv->rolling_code) {
         return false;
     }
 
@@ -212,6 +214,12 @@ static bool classify_tpms(const FeatureVector* fv, ClassificationResult* out) {
         classifier_add_warning(
             out, "Single segment - cannot confirm repeat burst; may be partial capture");
     }
+    if(fv->has_seg_similarity && fv->seg_similarity > 0.99f) {
+        classifier_add_warning(
+            out,
+            "Identical bursts (no rolling counter) - fixed-address TPMS or generic remote");
+        conf = BitrawConfLow;
+    }
 
     out->label = BitrawLabelTpms;
     out->confidence = conf;
@@ -225,7 +233,10 @@ static bool classify_alarm_sensor(const FeatureVector* fv, ClassificationResult*
     if(fv->pwm_params.found && fv->pwm_params.consistency > 0.80f) return false;
     if(fv->seg_count > 3) return false;
     if(fv->has_seg_similarity && fv->seg_similarity > 0.92f) return false;
-    if(fv->entropy < 0.90f) return false;
+    /* Lowered from 0.90 -> 0.80: partial-redundancy encrypted alarms (real 868
+     * captures sit at 0.80-0.88). Tighter inner-bits floor blocks noise. */
+    if(fv->entropy < 0.80f) return false;
+    if(fv->mean_inner_size < 40.0f) return false;
 
     int score = 0;
     if(fv->te_us >= 100.0f && fv->te_us <= 400.0f) {
@@ -247,6 +258,12 @@ static bool classify_alarm_sensor(const FeatureVector* fv, ClassificationResult*
         classifier_add_reason(
             out,
             "[AS3] entropy=%.3f - high entropy consistent with encrypted payload",
+            (double)fv->entropy);
+    } else if(fv->entropy >= 0.80f) {
+        score += 1;
+        classifier_add_reason(
+            out,
+            "[AS3] entropy=%.3f - elevated entropy (partial-encryption alarm)",
             (double)fv->entropy);
     }
     if(fv->zero_ratio >= 0.40f && fv->zero_ratio <= 0.75f) {
@@ -294,11 +311,15 @@ static bool classify_alarm_sensor(const FeatureVector* fv, ClassificationResult*
 /* =========================== SHUTTER_BLIND ============================= */
 
 static bool classify_shutter_blind(const FeatureVector* fv, ClassificationResult* out) {
-    if(fv->frequency != 433420000u && fv->frequency != 433920000u) return false;
-    if(fv->te_us < 550.0f || fv->te_us > 700.0f) return false;
+    if(fv->frequency != 433420000u && fv->frequency != 433920000u &&
+       fv->frequency != 868350000u) {
+        return false;
+    }
+    /* Widened TE range (was 550-700) for ±10% clone tolerance. */
+    if(fv->te_us < 500.0f || fv->te_us > 780.0f) return false;
 
     classifier_add_reason(
-        out, "[SB1] TE=%.0fus - matches Somfy RTS timing (TE~604us)", (double)fv->te_us);
+        out, "[SB1] TE=%.0fus - blind/shutter timing (Somfy RTS ~604us)", (double)fv->te_us);
 
     if(fv->total_inner_bits >= 50 && fv->total_inner_bits <= 80) {
         classifier_add_reason(
@@ -306,20 +327,28 @@ static bool classify_shutter_blind(const FeatureVector* fv, ClassificationResult
             "[SB2] %lu inner bits - Somfy RTS 56-bit payload range",
             (unsigned long)fv->total_inner_bits);
     }
+
+    BitrawConfidence conf;
     if(fv->frequency == 433420000u) {
         classifier_add_hint(out, "433.42MHz -> Somfy RTS confirmed frequency");
+        conf = BitrawConfMedium;
+    } else if(fv->frequency == 868350000u) {
+        classifier_add_hint(out, "868.35MHz -> Faac SLH/XT or Nice Era profile");
+        conf = BitrawConfMedium;
     } else {
-        classifier_add_hint(out, "433.92MHz capture - Somfy RTS is 433.42MHz; may be degraded");
+        classifier_add_hint(out, "433.92MHz -> Nice Evo or Somfy capture offset");
         classifier_add_warning(
-            out, "Frequency offset +/-500kHz: confirm with Flipper tuned to 433.42MHz");
+            out, "433.92MHz: Nice Evo native; Somfy ±500kHz offset");
+        conf = BitrawConfLow;
     }
+
     if(fv->seg_count >= 2) {
         classifier_add_hint(
-            out, "%u segments - Somfy typically transmits 2x with pause", fv->seg_count);
+            out, "%u segments - typically transmits 2x with pause", fv->seg_count);
     }
 
     out->label = BitrawLabelShutterBlind;
-    out->confidence = fv->frequency == 433420000u ? BitrawConfMedium : BitrawConfLow;
+    out->confidence = conf;
     return true;
 }
 
@@ -361,14 +390,14 @@ static bool classify_doorbell(const FeatureVector* fv, ClassificationResult* out
 
 static bool classify_outlet_switch(const FeatureVector* fv, ClassificationResult* out) {
     if(!is_ism_freq(fv->frequency)) return false;
-    if(fv->seg_count < 3 || fv->seg_count > 4) return false;
+    if(fv->seg_count < 3 || fv->seg_count > 6) return false;
     if(!fv->has_seg_similarity || fv->seg_similarity < 0.97f) return false;
     if(!fv->pwm_params.found || fv->pwm_params.consistency < 0.80f) return false;
     if(fv->pwm_decoded_count < 24 || fv->pwm_decoded_count > 32) return false;
     if(fv->rolling_code) return false;
 
     classifier_add_reason(
-        out, "[O1] %u repeats - wireless outlets transmit 3-4x", fv->seg_count);
+        out, "[O1] %u repeats - wireless outlets transmit 3-6x", fv->seg_count);
     classifier_add_reason(
         out,
         "[O2] Segment similarity %.1f%% - perfectly identical (fixed code)",
@@ -486,6 +515,14 @@ static bool classify_garage(const FeatureVector* fv, ClassificationResult* out) 
     } else if(dc > 0) {
         classifier_add_hint(out, "Unrecognised frame (%u decoded bits)", dc);
     }
+    if(fv->te_us >= 150.0f && fv->te_us <= 180.0f) {
+        classifier_add_hint(out, "TE ~165us -> Skylink-family remote");
+    } else if(fv->te_us >= 280.0f && fv->te_us <= 380.0f) {
+        classifier_add_hint(out, "TE ~330us -> Linear/Multicode-family remote");
+    } else if(fv->te_us >= 400.0f && fv->te_us <= 600.0f) {
+        classifier_add_hint(out, "TE ~500us -> Stanley/older garage remote");
+    }
+
     if(fv->frequency == 315000000u) {
         classifier_add_hint(out, "315MHz -> N. American garage/barrier/car remote");
     } else {
@@ -626,6 +663,124 @@ static bool classify_weather(const FeatureVector* fv, ClassificationResult* out)
     return true;
 }
 
+/* ============================== WMBUS_METER =========================== */
+
+static bool classify_wmbus(const FeatureVector* fv, ClassificationResult* out) {
+    if(fv->frequency != 868350000u) return false;
+    if(fv->seg_count != 1) return false;
+    if(fv->manchester_decoded_count < 64 || fv->manchester_decoded_count > 600) return false;
+    if(fv->manchester_error_rate > 0.10f) return false;
+
+    classifier_add_reason(out, "[WM1] 868MHz single-burst Manchester payload");
+    classifier_add_reason(
+        out,
+        "[WM2] %u decoded bits - wMBus typical 64-500",
+        fv->manchester_decoded_count);
+    classifier_add_reason(
+        out,
+        "[WM3] Manchester error rate %.0f%% - clean decode",
+        (double)(fv->manchester_error_rate * 100.0f));
+
+    BitrawConfidence conf = BitrawConfLow;
+    if(fv->preamble.found && fv->preamble.length >= 16) {
+        classifier_add_reason(
+            out, "[WM4] %u-bit preamble - typical wMBus sync", fv->preamble.length);
+        conf = BitrawConfMedium;
+    }
+    classifier_add_hint(out, "wireless M-Bus (EN 13757-4) candidate");
+    classifier_add_warning(
+        out, "Manufacturer requires DLL-layer CRC validation");
+
+    out->label = BitrawLabelWmbusMeter;
+    out->confidence = conf;
+    return true;
+}
+
+/* =========================== HONEYWELL_5800 ============================ */
+
+static bool classify_honeywell_5800(const FeatureVector* fv, ClassificationResult* out) {
+    if(fv->frequency != 433920000u && fv->frequency != 915000000u) return false;
+    if(!fv->pwm_params.found || fv->pwm_params.consistency < 0.85f) return false;
+    if(fv->te_us < 150.0f || fv->te_us > 250.0f) return false;
+    if(fv->pwm_decoded_count < 40 || fv->pwm_decoded_count > 48) return false;
+    if(fv->entropy < 0.85f) return false;
+    if(fv->seg_count > 4) return false;
+
+    classifier_add_reason(
+        out, "[HW1] TE=%.0fus within Honeywell 5800 range (150-250us)", (double)fv->te_us);
+    classifier_add_reason(
+        out, "[HW2] %u decoded bits - 5800 frame length", fv->pwm_decoded_count);
+    classifier_add_reason(
+        out,
+        "[HW3] PWM consistency %.0f%% - clean modulation",
+        (double)(fv->pwm_params.consistency * 100.0f));
+    classifier_add_reason(
+        out, "[HW4] entropy=%.3f - encrypted alarm payload", (double)fv->entropy);
+
+    classifier_add_hint(
+        out,
+        fv->frequency == 915000000u ? "Honeywell 5800-series at 915MHz (US)"
+                                    : "Honeywell 5800-series at 433.92MHz");
+    classifier_add_warning(out, "Brand match by fingerprint only - confirm with CRC");
+
+    out->label = BitrawLabelHoneywell5800;
+    out->confidence = BitrawConfMedium;
+    return true;
+}
+
+/* =========================== ENOCEAN_SWITCH ============================ */
+
+static bool classify_enocean(const FeatureVector* fv, ClassificationResult* out) {
+    if(fv->frequency != 868350000u) return false;
+    if(fv->seg_count < 3 || fv->seg_count > 5) return false;
+    if(!fv->has_seg_similarity || fv->seg_similarity < 0.95f) return false;
+    if(!fv->pwm_params.found || fv->pwm_params.consistency < 0.95f) return false;
+    if(fv->pwm_decoded_count < 28 || fv->pwm_decoded_count > 36) return false;
+    if(fv->rolling_code) return false;
+
+    classifier_add_reason(
+        out, "[EO1] 868.35MHz fixed-code burst, %u repeats", fv->seg_count);
+    classifier_add_reason(
+        out,
+        "[EO2] PWM consistency %.0f%% - clean EnOcean modulation",
+        (double)(fv->pwm_params.consistency * 100.0f));
+    classifier_add_reason(
+        out, "[EO3] %u decoded bits - EnOcean PTM frame range", fv->pwm_decoded_count);
+    classifier_add_reason(
+        out,
+        "[EO4] Segment similarity %.1f%% - identical repeats",
+        (double)(fv->seg_similarity * 100.0f));
+
+    classifier_add_hint(out, "EnOcean PTM-style self-powered switch");
+    out->label = BitrawLabelEnoceanSwitch;
+    out->confidence = BitrawConfMedium;
+    return true;
+}
+
+/* ============================ LORA_BEACON ============================== */
+
+static bool classify_lora_beacon(const FeatureVector* fv, ClassificationResult* out) {
+    if(fv->frequency != 868350000u) return false;
+    if(!fv->preamble.found || fv->preamble.length < 32) return false;
+    if(fv->te_us < 500.0f || fv->te_us > 1000.0f) return false;
+    if(fv->total_inner_bits < 60) return false;
+
+    classifier_add_reason(
+        out, "[LB1] %u-bit preamble - beacon sync pattern", fv->preamble.length);
+    classifier_add_reason(
+        out, "[LB2] TE=%.0fus - slow OOK consistent with beacon", (double)fv->te_us);
+    classifier_add_reason(
+        out, "[LB3] %lu inner bits - sufficient payload", (unsigned long)fv->total_inner_bits);
+
+    classifier_add_hint(out, "868MHz long-preamble beacon (LoRa-adjacent OOK)");
+    classifier_add_warning(
+        out, "FSK chirp LoRa cannot be classified from .sub bits alone");
+
+    out->label = BitrawLabelLoraBeacon;
+    out->confidence = BitrawConfLow;
+    return true;
+}
+
 /* ======================== UNKNOWN_STRUCTURED =========================== */
 
 static bool classify_unknown_structured(const FeatureVector* fv, ClassificationResult* out) {
@@ -655,13 +810,17 @@ void classifier_run(const FeatureVector* fv, ClassificationResult* out) {
         classify_noise,
         classify_amr_meter,
         classify_tpms,
+        classify_wmbus,              /* 868 Manchester single-burst */
+        classify_honeywell_5800,     /* specific alarm before generic ALARM */
         classify_alarm_sensor,
         classify_shutter_blind,
+        classify_enocean,            /* 868 short PWM before doorbell/outlet */
         classify_doorbell,
         classify_outlet_switch,
         classify_garage,
         classify_keyfob,
         classify_weather,
+        classify_lora_beacon,        /* 868 long-preamble fallback */
         classify_unknown_structured,
     };
     for(size_t i = 0; i < sizeof(pipeline) / sizeof(pipeline[0]); i++) {

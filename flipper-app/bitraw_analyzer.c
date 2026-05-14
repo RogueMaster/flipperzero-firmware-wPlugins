@@ -95,6 +95,65 @@ static bool bitraw_save_sidecar(BitrawApp* app, FuriString* out_path) {
     return ok;
 }
 
+/* Write a machine-readable metadata sidecar (<stem>.bra) next to the .sub.
+ * Plain key=value lines so a desktop tool can reimport classifications later. */
+static bool bitraw_save_bra_metadata(BitrawApp* app) {
+    const char* src = furi_string_get_cstr(app->selected_path);
+    if(!src || !*src) return false;
+
+    FuriString* path = furi_string_alloc_set(src);
+    size_t dot = furi_string_search_rchar(path, '.', 0);
+    if(dot != FURI_STRING_FAILURE) furi_string_left(path, dot);
+    furi_string_cat_str(path, ".bra");
+
+    FuriString* body = furi_string_alloc();
+    furi_string_cat_printf(body, "label=%s\n", bitraw_label_name(app->result.label));
+    furi_string_cat_printf(
+        body, "confidence=%s\n", bitraw_confidence_name(app->result.confidence));
+    furi_string_cat_printf(body, "frequency_hz=%lu\n", (unsigned long)app->fv.frequency);
+    furi_string_cat_printf(body, "te_us=%.0f\n", (double)app->fv.te_us);
+    furi_string_cat_printf(body, "seg_count=%u\n", app->fv.seg_count);
+    furi_string_cat_printf(body, "signal_quality=%.3f\n", (double)app->fv.signal_quality);
+    furi_string_cat_printf(body, "rolling_code=%d\n", app->fv.rolling_code ? 1 : 0);
+    furi_string_cat_printf(body, "fixed_code=%d\n", app->fv.fixed_code ? 1 : 0);
+    furi_string_cat_printf(body, "crc_valid=%d\n", app->fv.crc_valid ? 1 : 0);
+    if(app->fv.pwm_decoded_count > 0) {
+        furi_string_cat_str(body, "payload_hex=");
+        uint16_t total_bits = (uint16_t)((app->fv.pwm_decoded_count + 7u) / 8u * 8u);
+        for(uint16_t i = 0; i < total_bits; i += 8) {
+            uint8_t byte = 0;
+            for(uint8_t j = 0; j < 8; j++) {
+                uint8_t bit =
+                    (uint16_t)(i + j) < app->fv.pwm_decoded_count ?
+                        app->fv.pwm_decoded_bits[i + j] : 0;
+                byte = (uint8_t)((byte << 1) | (bit & 1u));
+            }
+            furi_string_cat_printf(body, i == 0 ? "%02X" : " %02X", byte);
+        }
+        furi_string_cat_str(body, "\n");
+    }
+    if(app->fv.has_gps) {
+        furi_string_cat_printf(
+            body, "lat=%.6f\nlon=%.6f\n", (double)app->fv.lat, (double)app->fv.lon);
+    }
+
+    File* file = storage_file_alloc(app->storage);
+    bool ok = false;
+    if(storage_file_open(
+           file, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        const char* text = furi_string_get_cstr(body);
+        size_t len = strlen(text);
+        ok = storage_file_write(file, text, len) == len;
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    FURI_LOG_I(TAG, "bra sidecar: %s (%s)", furi_string_get_cstr(path), ok ? "ok" : "fail");
+
+    furi_string_free(body);
+    furi_string_free(path);
+    return ok;
+}
+
 static bool bitraw_run_analysis(BitrawApp* app) {
     sub_file_reset(&app->sub);
     furi_string_reset(app->parse_error);
@@ -137,6 +196,9 @@ static bool bitraw_run_analysis(BitrawApp* app) {
         saved ? "Report saved: %s\n" : "Report save FAILED: %s\n",
         furi_string_get_cstr(sidecar_path));
     furi_string_free(sidecar_path);
+
+    /* Machine-readable metadata sidecar (.bra) for desktop reimport. */
+    bitraw_save_bra_metadata(app);
 
     HEAPLOG("analyze-end");
     return true;

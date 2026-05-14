@@ -6,9 +6,11 @@ Native Flipper Zero app that classifies SubGhz BinRAW `.sub` captures on-device.
 
 1. Browse `.sub` files on the SD card (`/ext/subghz/`)
 2. Parse the capture (Frequency, TE, Bit_RAW / Data_RAW)
-3. Extract ~25 signal features (entropy, PWM params, Manchester decode, segment similarity, rolling-code detection, …)
-4. Run 11-stage classifier (NOISE → AMR_METER → TPMS → ALARM_SENSOR → SHUTTER_BLIND → DOORBELL → OUTLET_SWITCH → GARAGE_REMOTE → KEYFOB_REMOTE → WEATHER_STATION → UNKNOWN_STRUCTURED)
-5. Display a scrollable report on screen and save `<capture>.report.txt` next to the source file
+3. Extract ~30 signal features (entropy, PWM params, Manchester decode incl. Differential, tri-state PWM, segment similarity, inter-segment timing, rolling-code detection, CRC scan, …)
+4. Run 15-stage classifier: NOISE → AMR_METER → TPMS → WMBUS_METER → HONEYWELL_5800 → ALARM_SENSOR → SHUTTER_BLIND → ENOCEAN_SWITCH → DOORBELL → OUTLET_SWITCH → GARAGE_REMOTE → KEYFOB_REMOTE → WEATHER_STATION → LORA_BEACON → UNKNOWN_STRUCTURED
+5. Display a scrollable report on screen and save two sidecars next to the source file:
+   - `<capture>.report.txt` — full human-readable report
+   - `<capture>.bra` — machine-readable key=value metadata (label, confidence, freq, TE, payload_hex, GPS)
 
 The classifier logic and thresholds are a 1:1 port of [`analyze.py`](../analyze.py).
 
@@ -53,7 +55,7 @@ ufbt cli                 # connect to device; logs appear tagged [BitRaw]
 4. Scroll the report with Up/Down.
 5. Press Back to return to the file browser and analyze another file.
 
-The `.report.txt` sidecar is written automatically next to the `.sub` source.
+Both `.report.txt` and `.bra` sidecars are written automatically next to the `.sub` source.
 
 ## Known limits
 
@@ -76,14 +78,18 @@ Captures that exceed these limits are **not rejected** — they are analyzed wit
 |---|---|
 | NOISE | ≤2 set bits, <50 total bits, or >97% zeros |
 | AMR_METER | 315/868 MHz, long preamble, Manchester decode |
-| TPMS | ISM, TE 50–200 µs, 2–8 repeating segments, ~70–99% similarity |
-| ALARM_SENSOR | 433.92/868 MHz, entropy ≥0.90, no clean PWM, ≤3 segments |
-| SHUTTER_BLIND | 433.42/433.92 MHz, TE 550–700 µs |
+| TPMS | ISM, TE 50–200 µs, 2–8 repeating segments; fixed-address sensors warned |
+| WMBUS_METER | 868 MHz single Manchester burst, 64–600 bits, <10% errors |
+| HONEYWELL_5800 | 433.92/915 MHz, TE 150–250 µs, 40–48 bit PWM, high entropy |
+| ALARM_SENSOR | 433.92/868 MHz, entropy ≥0.80, ≥40 inner bits, no clean PWM, ≤3 segments |
+| SHUTTER_BLIND | 433.42/433.92/868 MHz, TE 500–780 µs (Somfy/Nice/Faac) |
+| ENOCEAN_SWITCH | 868 MHz, 3–5 identical repeats, ≥95% PWM consistency, 28–36 decoded bits |
 | DOORBELL | ISM, 5–10 identical repeats, PWM, 16–40 decoded bits |
-| OUTLET_SWITCH | ISM, 3–4 repeats, ≥97% similarity, 24–32 decoded bits, fixed code |
-| GARAGE_REMOTE | ISM, 2–6 repeats, ≥92% similarity, clean PWM preferred |
+| OUTLET_SWITCH | ISM, 3–6 repeats, ≥97% similarity, 24–32 decoded bits, fixed code |
+| GARAGE_REMOTE | ISM, 2–6 repeats, ≥92% similarity, clean PWM preferred; TE-bucket sub-hints |
 | KEYFOB_REMOTE | 315/433.92 MHz, PWM required, 16–48 decoded bits |
 | WEATHER_STATION | 433.92 MHz, TE 150–600 µs, entropy ≥0.85, no clean PWM |
+| LORA_BEACON | 868 MHz, preamble ≥32 bits, TE 500–1000 µs |
 | UNKNOWN_STRUCTURED | Fallback — always matches |
 
 ## Firmware compatibility

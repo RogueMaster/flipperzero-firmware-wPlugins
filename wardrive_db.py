@@ -2,7 +2,9 @@
 wardrive_db.py — SQLite session database for wardrive captures.
 """
 
+import math
 import sqlite3
+from collections import Counter
 from datetime import datetime, timezone
 
 
@@ -107,5 +109,59 @@ class WardriveDB:
             print(f"  {cls:<25} {count}")
         print()
 
+    def cluster_by_location(self, radius_m: float) -> dict:
+        """Single-linkage greedy clustering of geolocated captures.
+        Returns GeoJSON FeatureCollection with one Point per cluster.
+        Properties: count, dominant_class, classifications (dict)."""
+        rows = [r for r in self.get_all() if not (r["lat"] == 0.0 and r["lon"] == 0.0)]
+        if not rows:
+            return {"type": "FeatureCollection", "features": []}
+
+        clusters: list = []
+        for r in rows:
+            placed = False
+            for c in clusters:
+                if _haversine_m(r["lat"], r["lon"], c["lat"], c["lon"]) <= radius_m:
+                    n = c["count"]
+                    c["lat"] = (c["lat"] * n + r["lat"]) / (n + 1)
+                    c["lon"] = (c["lon"] * n + r["lon"]) / (n + 1)
+                    c["count"] = n + 1
+                    c["classes"][r["classification"]] += 1
+                    placed = True
+                    break
+            if not placed:
+                clusters.append({
+                    "lat": r["lat"],
+                    "lon": r["lon"],
+                    "count": 1,
+                    "classes": Counter({r["classification"]: 1}),
+                })
+
+        features = []
+        for c in clusters:
+            dominant = c["classes"].most_common(1)[0][0]
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [c["lon"], c["lat"]]},
+                "properties": {
+                    "count": c["count"],
+                    "dominant_class": dominant,
+                    "classifications": dict(c["classes"]),
+                    "cluster_radius_m": radius_m,
+                },
+            })
+        return {"type": "FeatureCollection", "features": features}
+
     def close(self) -> None:
         self._conn.close()
+
+
+def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance in metres between two WGS84 coordinates."""
+    r = 6_371_000.0
+    p1 = math.radians(lat1)
+    p2 = math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
