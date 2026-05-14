@@ -1,8 +1,19 @@
 <div align="center">
 
-<a href="https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=banner">
-  <img src="images/hardware_devboard.jpg" alt="PINGEQUA 2-in-1 RF Devboard — nRF24L01+ + CC1101 with antennas" width="55%" />
-</a>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=banner">
+        <img src="images/hardware_devboard.jpg" alt="PINGEQUA 2-in-1 RF Devboard hardware" width="100%" />
+      </a>
+      <br><sub><b>The Hardware</b> · 2-in-1 NRF24 + CC1101</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="images/quickstart_card.png" alt="QuickStart card shipped in the box — install + third-party app config" width="100%" />
+      <br><sub><b>The Card in the Box</b> · Quick reference for setup</sub>
+    </td>
+  </tr>
+</table>
 
 # PINGEQUA RF Lab
 
