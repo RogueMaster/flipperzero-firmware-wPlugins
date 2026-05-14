@@ -113,7 +113,6 @@ typedef struct {
 } FasApp;
 
 /* ── Storage helpers (implemented in animation_switcher.c) ────── */
-void fas_ensure_playlists_dir(FasApp* app);
 bool fas_load_animations(FasApp* app);
 bool fas_load_playlists(FasApp* app);
 bool fas_save_playlist(FasApp* app, const char* name);

@@ -63,5 +63,8 @@ dist/
 # VSCode configs
 .vscode/
 
+# ufbt build artifacts
+.ufbt/
+
 # TODO file
 TODO
