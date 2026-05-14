@@ -287,9 +287,10 @@ bool fas_apply_playlist(FasApp* app, int index) {
             FAS_PLAYLISTS_PATH, app->playlists[index].name);
 
     /* Back up the existing manifest before we replace it.  storage_common_copy
-     * refuses to overwrite, so remove any previous .bak first.  Both removes
-     * are best-effort: the source files may not exist yet. */
-    if(storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK) {
+     * refuses to overwrite, so remove any previous .bak first. */
+    bool had_manifest =
+        storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK;
+    if(had_manifest) {
         storage_simply_remove(app->storage, FAS_MANIFEST_BACKUP_PATH);
         storage_common_copy(app->storage, FAS_MANIFEST_PATH, FAS_MANIFEST_BACKUP_PATH);
     }
@@ -297,6 +298,11 @@ bool fas_apply_playlist(FasApp* app, int index) {
     storage_simply_remove(app->storage, FAS_MANIFEST_PATH);
 
     FS_Error err = storage_common_copy(app->storage, src, FAS_MANIFEST_PATH);
+    if(err != FSE_OK && had_manifest) {
+        /* Copy failed after we already deleted the live manifest.  Restore
+         * from the backup so the dolphin isn't left without a manifest. */
+        storage_common_copy(app->storage, FAS_MANIFEST_BACKUP_PATH, FAS_MANIFEST_PATH);
+    }
     return (err == FSE_OK);
 }
 
