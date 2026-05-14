@@ -262,9 +262,14 @@ bool fas_apply_playlist(FasApp* app, int index) {
     snprintf(src, sizeof(src), "%s/%s.txt",
             FAS_PLAYLISTS_PATH, app->playlists[index].name);
 
-    /* storage_common_copy will not overwrite an existing destination file,
-     * so we must remove the current manifest first.  We ignore the return
-     * value here because the file may legitimately not exist yet. */
+    /* Back up the existing manifest before we replace it.  storage_common_copy
+     * refuses to overwrite, so remove any previous .bak first.  Both removes
+     * are best-effort: the source files may not exist yet. */
+    if(storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK) {
+        storage_simply_remove(app->storage, FAS_MANIFEST_BACKUP_PATH);
+        storage_common_copy(app->storage, FAS_MANIFEST_PATH, FAS_MANIFEST_BACKUP_PATH);
+    }
+
     storage_simply_remove(app->storage, FAS_MANIFEST_PATH);
 
     FS_Error err = storage_common_copy(app->storage, src, FAS_MANIFEST_PATH);

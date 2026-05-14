@@ -15,9 +15,10 @@
 #include "views/fas_list_view.h"
 
 /* ── Filesystem paths ─────────────────────────────────────────────────── */
-#define FAS_DOLPHIN_PATH   "/ext/dolphin"
-#define FAS_PLAYLISTS_PATH "/ext/apps_data/animation_switcher"
-#define FAS_MANIFEST_PATH  "/ext/dolphin/manifest.txt"
+#define FAS_DOLPHIN_PATH        "/ext/dolphin"
+#define FAS_PLAYLISTS_PATH      "/ext/apps_data/animation_switcher"
+#define FAS_MANIFEST_PATH       "/ext/dolphin/manifest.txt"
+#define FAS_MANIFEST_BACKUP_PATH "/ext/dolphin/manifest.txt.bak"
 
 /* ── Limits ───────────────────────────────────────────────────────────── */
 #define FAS_MAX_ANIMATIONS    128 // TODO Maybe increase this if possible?

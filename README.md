@@ -47,6 +47,7 @@ When an animation is added without customising its settings, these defaults are 
 
 - **/ext/dolphin/** - Animation folders (read-only by this app)
 - **/ext/dolphin/manifest.txt** - Active animation manifest (overwritten on Apply)
+- **/ext/dolphin/manifest.txt.bak** - Backup of the previous manifest, written automatically before each Apply
 - **/ext/apps_data/animation_switcher/** - Saved playlist .txt files
 
 ## Building
@@ -58,6 +59,5 @@ Install and run ufbt - instructions on its official [GitHub page](https://github
 ## Roadmap
 
 - Manual manifest.txt import as a playlist
-- Automatic backup of the previous manifest.txt before applying a new playlist
 - Animation previewer screen
 - Increase maximum animation count beyond 128

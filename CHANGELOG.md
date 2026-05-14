@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## Unreleased
+
+- Back up the previous manifest.txt to manifest.txt.bak before applying a playlist
+
 ## v1.0.0
 
 Initial release:
