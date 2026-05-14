@@ -4,6 +4,7 @@
 
 typedef enum {
     FasMainIdxCreate = 0,
+    FasMainIdxImport,
     FasMainIdxChoose,
     FasMainIdxDelete,
     FasMainIdxAbout,
@@ -18,6 +19,7 @@ void fas_scene_main_menu_on_enter(void* context) {
     FasApp* app = context;
     menu_reset(app->menu);
     menu_add_item(app->menu, "Create Playlist", &I_create, FasMainIdxCreate, fas_main_menu_cb, app);
+    menu_add_item(app->menu, "Import Manifest", &I_create, FasMainIdxImport, fas_main_menu_cb, app);
     menu_add_item(app->menu, "Choose Playlist", &I_choose, FasMainIdxChoose, fas_main_menu_cb, app);
     menu_add_item(app->menu, "Delete Playlist", &I_delete, FasMainIdxDelete, fas_main_menu_cb, app);
     menu_add_item(app->menu, "About / Help",    &I_about,  FasMainIdxAbout,  fas_main_menu_cb, app);
@@ -32,6 +34,16 @@ bool fas_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
         switch(event.event) {
         case FasMainIdxCreate:
             scene_manager_next_scene(app->scene_manager, FasSceneAnimList);
+            consumed = true;
+            break;
+        case FasMainIdxImport:
+            /* Skip the flow entirely if there is nothing to import — leaves
+             * the user on the main menu rather than asking for a name and
+             * silently failing. */
+            if(fas_manifest_exists(app)) {
+                app->import_mode = true;
+                scene_manager_next_scene(app->scene_manager, FasScenePlaylistName);
+            }
             consumed = true;
             break;
         case FasMainIdxChoose:

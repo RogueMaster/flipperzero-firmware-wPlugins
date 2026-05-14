@@ -241,6 +241,30 @@ bool fas_save_playlist(FasApp* app, const char* name) {
 }
 
 /**
+ * Copy /ext/dolphin/manifest.txt into the playlists folder under the given
+ * name.  The manifest format already matches a saved playlist exactly, so no
+ * parsing is required.  Returns false if the manifest is missing or the copy
+ * fails.
+ */
+bool fas_import_manifest(FasApp* app, const char* name) {
+    if(!fas_manifest_exists(app)) return false;
+
+    char dst[FAS_PATH_LEN];
+    snprintf(dst, sizeof(dst), "%s/%s.txt", FAS_PLAYLISTS_PATH, name);
+
+    fas_ensure_playlists_dir(app);
+
+    /* storage_common_copy will not overwrite an existing destination file. */
+    storage_simply_remove(app->storage, dst);
+
+    return storage_common_copy(app->storage, FAS_MANIFEST_PATH, dst) == FSE_OK;
+}
+
+bool fas_manifest_exists(FasApp* app) {
+    return storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK;
+}
+
+/**
  * Remove a playlist file from the apps_data folder.
  */
 bool fas_delete_playlist(FasApp* app, int index) {

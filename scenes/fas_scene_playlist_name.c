@@ -31,16 +31,20 @@ bool fas_scene_playlist_name_on_event(void* context, SceneManagerEvent event) {
         event.event == FasEvtPlaylistNameDone) {
 
         if(strlen(app->text_input_buffer) > 0) {
-            fas_save_playlist(app, app->text_input_buffer);
-            /*
-             * Reset so the next "Create Playlist" starts completely fresh:
-             * clearing animation_count forces fas_load_animations() on re-entry.
-             */
-            app->animation_count      = 0;
-            app->returning_from_settings = false;
+            if(app->import_mode) {
+                fas_import_manifest(app, app->text_input_buffer);
+            } else {
+                fas_save_playlist(app, app->text_input_buffer);
+                /*
+                 * Reset so the next "Create Playlist" starts completely fresh:
+                 * clearing animation_count forces fas_load_animations() on re-entry.
+                 */
+                app->animation_count      = 0;
+                app->returning_from_settings = false;
+            }
         }
 
-        /* Return to the main menu */
+        /* Return to the main menu — on_exit clears import_mode. */
         scene_manager_search_and_switch_to_previous_scene(
             app->scene_manager, FasSceneMainMenu);
         consumed = true;
@@ -49,5 +53,6 @@ bool fas_scene_playlist_name_on_event(void* context, SceneManagerEvent event) {
 }
 
 void fas_scene_playlist_name_on_exit(void* context) {
-    UNUSED(context);
+    FasApp* app = context;
+    app->import_mode = false;
 }
