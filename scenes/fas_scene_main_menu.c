@@ -17,6 +17,10 @@ static void fas_main_menu_cb(void* context, uint32_t index) {
 
 void fas_scene_main_menu_on_enter(void* context) {
     FasApp* app = context;
+    /* Returning to the main menu is the canonical "back to neutral state"
+     * point; clear any transient flags here. */
+    app->import_mode = false;
+
     menu_reset(app->menu);
     menu_add_item(app->menu, "Create Playlist", &I_create, FasMainIdxCreate, fas_main_menu_cb, app);
     menu_add_item(app->menu, "Import Manifest", &I_create, FasMainIdxImport, fas_main_menu_cb, app);

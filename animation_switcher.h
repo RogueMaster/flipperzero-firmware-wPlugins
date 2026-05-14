@@ -72,11 +72,8 @@ typedef enum {
     FasEvtDeleteNo,
     FasEvtRebootYes,
     FasEvtRebootNo,
-    FasEvtMainCreate,
-    FasEvtMainImport,
-    FasEvtMainChoose,
-    FasEvtMainDelete,
-    FasEvtMainAbout,
+    FasEvtOverwriteYes,
+    FasEvtOverwriteNo,
 } FasCustomEvent;
 
 /* ── Application context ──────────────────────────────────────────────── */
@@ -124,3 +121,4 @@ bool fas_import_manifest(FasApp* app, const char* name);
 bool fas_delete_playlist(FasApp* app, int index);
 bool fas_apply_playlist(FasApp* app, int index);
 bool fas_manifest_exists(FasApp* app);
+bool fas_playlist_exists(FasApp* app, const char* name);

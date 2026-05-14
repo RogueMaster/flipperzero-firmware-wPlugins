@@ -264,6 +264,12 @@ bool fas_manifest_exists(FasApp* app) {
     return storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK;
 }
 
+bool fas_playlist_exists(FasApp* app, const char* name) {
+    char path[FAS_PATH_LEN];
+    snprintf(path, sizeof(path), "%s/%s.txt", FAS_PLAYLISTS_PATH, name);
+    return storage_common_stat(app->storage, path, NULL) == FSE_OK;
+}
+
 /**
  * Remove a playlist file from the apps_data folder.
  */
