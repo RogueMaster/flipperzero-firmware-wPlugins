@@ -17,60 +17,215 @@
         memmgr_get_free_heap(),                                         \
         memmgr_get_minimum_free_heap())
 
+/* Custom event IDs dispatched by Widget buttons / Submenu picks. */
+typedef enum {
+    BitrawEvtOpenSections = 100,
+    BitrawEvtOpenFullReport,
+    BitrawEvtOpenMetrics,
+    BitrawEvtOpenReasoning,
+    BitrawEvtOpenPayload,
+    BitrawEvtOpenManchester,
+    BitrawEvtOpenWarnings,
+} BitrawEvt;
+
+/* Tracks which view is showing so back-button can route per-view. */
+static BitrawView s_current_view;
+static BitrawView s_textbox_came_from;
+
+static void bitraw_switch_view(BitrawApp* app, BitrawView view) {
+    s_current_view = view;
+    view_dispatcher_switch_to_view(app->view_dispatcher, view);
+}
+
+/* ============================ summary card ============================ */
+
+static void summary_button_cb(GuiButtonType type, InputType input, void* context) {
+    if(input != InputTypeShort) return;
+    BitrawApp* app = context;
+    if(type == GuiButtonTypeLeft) {
+        /* Back to file picker. */
+        view_dispatcher_stop(app->view_dispatcher);
+    } else if(type == GuiButtonTypeCenter) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, BitrawEvtOpenSections);
+    } else {
+        view_dispatcher_send_custom_event(app->view_dispatcher, BitrawEvtOpenFullReport);
+    }
+}
+
+/* Persistent buffer for the scroll-text element. Widget element copies the
+ * char*'s value at render time, so this must outlive widget_reset cycles. */
+static char s_summary_body[256];
+
+/* Build the at-a-glance overview card. 128x64 canvas, hand-laid.
+ *
+ * Layout:
+ *   y=0-10  : classification label (FontPrimary, full width)
+ *   y=11-18 : confidence + warnings count (FontSecondary)
+ *   y=19    : horizontal separator
+ *   y=20-49 : scrollable body (30px high)
+ *   y=50-63 : button hints (Back / Menu / Full)
+ */
+static void bitraw_build_summary(BitrawApp* app) {
+    widget_reset(app->summary);
+
+    const char* label = bitraw_label_name(app->result.label);
+    const char* conf = bitraw_confidence_name(app->result.confidence);
+
+    /* Row 1: classification label on its own line. */
+    widget_add_string_element(
+        app->summary, 0, 0, AlignLeft, AlignTop, FontPrimary, label);
+
+    /* Row 2: confidence (left) + warnings indicator (right). */
+    widget_add_string_element(
+        app->summary, 0, 11, AlignLeft, AlignTop, FontSecondary, conf);
+    if(app->result.warning_count > 0) {
+        char warn[16];
+        snprintf(
+            warn, sizeof(warn), "!%u warning%s",
+            app->result.warning_count,
+            app->result.warning_count == 1 ? "" : "s");
+        widget_add_string_element(
+            app->summary, 127, 11, AlignRight, AlignTop, FontSecondary, warn);
+    }
+
+    /* Separator below the header. */
+    widget_add_line_element(app->summary, 0, 19, 127, 19);
+
+    /* Body: compact summary lines, scrollable when overflowing 30px. */
+    FuriString* body = furi_string_alloc();
+    report_format_summary_lines(&app->fv, &app->result, body);
+    /* Strip a trailing newline so the scroll element doesn't render an extra empty row. */
+    size_t blen = furi_string_size(body);
+    while(blen > 0 && furi_string_get_char(body, blen - 1) == '\n') {
+        furi_string_left(body, blen - 1);
+        blen--;
+    }
+    strncpy(s_summary_body, furi_string_get_cstr(body), sizeof(s_summary_body) - 1);
+    s_summary_body[sizeof(s_summary_body) - 1] = '\0';
+    furi_string_free(body);
+    widget_add_text_scroll_element(app->summary, 0, 21, 128, 28, s_summary_body);
+
+    /* Bottom button hints. Keep all three labels <=4 chars so they don't
+     * overlap on a 128px row (Center is rendered as a pill with padding). */
+    widget_add_button_element(
+        app->summary, GuiButtonTypeLeft, "Back", summary_button_cb, app);
+    widget_add_button_element(
+        app->summary, GuiButtonTypeCenter, "Menu", summary_button_cb, app);
+    widget_add_button_element(
+        app->summary, GuiButtonTypeRight, "Full", summary_button_cb, app);
+}
+
+/* ============================ sections menu =========================== */
+
+static void sections_item_cb(void* context, uint32_t event_id) {
+    BitrawApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, event_id);
+}
+
+static void bitraw_build_sections(BitrawApp* app) {
+    submenu_reset(app->sections);
+    submenu_set_header(app->sections, bitraw_label_name(app->result.label));
+
+    submenu_add_item(
+        app->sections, "Reasoning chain", BitrawEvtOpenReasoning, sections_item_cb, app);
+    submenu_add_item(
+        app->sections, "Key metrics", BitrawEvtOpenMetrics, sections_item_cb, app);
+
+    if(report_section_has_content(ReportSectionPayload, &app->fv, &app->result)) {
+        submenu_add_item(
+            app->sections, "Payload (hex + bits)", BitrawEvtOpenPayload, sections_item_cb, app);
+    }
+    if(report_section_has_content(ReportSectionManchester, &app->fv, &app->result)) {
+        submenu_add_item(
+            app->sections,
+            "Manchester decode",
+            BitrawEvtOpenManchester,
+            sections_item_cb,
+            app);
+    }
+    if(report_section_has_content(ReportSectionWarnings, &app->fv, &app->result)) {
+        char label[24];
+        snprintf(label, sizeof(label), "Warnings (%u)", app->result.warning_count);
+        submenu_add_item(
+            app->sections, label, BitrawEvtOpenWarnings, sections_item_cb, app);
+    }
+    submenu_add_item(
+        app->sections, "Full report", BitrawEvtOpenFullReport, sections_item_cb, app);
+}
+
+static void bitraw_show_section(BitrawApp* app, ReportSection section, BitrawView origin) {
+    furi_string_reset(app->section_text);
+    report_format_section(
+        section,
+        furi_string_get_cstr(app->selected_path),
+        &app->sub,
+        &app->fv,
+        &app->result,
+        app->section_text);
+    text_box_reset(app->text_box);
+    text_box_set_font(app->text_box, TextBoxFontText);
+    text_box_set_focus(app->text_box, TextBoxFocusStart);
+    text_box_set_text(app->text_box, furi_string_get_cstr(app->section_text));
+    s_textbox_came_from = origin;
+    bitraw_switch_view(app, BitrawViewTextBox);
+}
+
+/* ====================== custom event + navigation ===================== */
+
+static bool bitraw_custom_event_cb(void* context, uint32_t event) {
+    BitrawApp* app = context;
+    switch(event) {
+    case BitrawEvtOpenSections:
+        bitraw_switch_view(app, BitrawViewSections);
+        return true;
+    case BitrawEvtOpenFullReport:
+        text_box_reset(app->text_box);
+        text_box_set_font(app->text_box, TextBoxFontText);
+        text_box_set_focus(app->text_box, TextBoxFocusStart);
+        text_box_set_text(app->text_box, furi_string_get_cstr(app->report));
+        s_textbox_came_from =
+            (s_current_view == BitrawViewSections) ? BitrawViewSections : BitrawViewSummary;
+        bitraw_switch_view(app, BitrawViewTextBox);
+        return true;
+    case BitrawEvtOpenMetrics:
+        bitraw_show_section(app, ReportSectionMetrics, BitrawViewSections);
+        return true;
+    case BitrawEvtOpenReasoning:
+        bitraw_show_section(app, ReportSectionReasoning, BitrawViewSections);
+        return true;
+    case BitrawEvtOpenPayload:
+        bitraw_show_section(app, ReportSectionPayload, BitrawViewSections);
+        return true;
+    case BitrawEvtOpenManchester:
+        bitraw_show_section(app, ReportSectionManchester, BitrawViewSections);
+        return true;
+    case BitrawEvtOpenWarnings:
+        bitraw_show_section(app, ReportSectionWarnings, BitrawViewSections);
+        return true;
+    }
+    return false;
+}
+
 static bool bitraw_navigation_callback(void* context) {
     BitrawApp* app = context;
-    FURI_LOG_I(TAG, "nav: stop dispatcher");
-    view_dispatcher_stop(app->view_dispatcher);
-    return true;
+    switch(s_current_view) {
+    case BitrawViewLoading:
+        /* Don't interrupt analysis. */
+        return true;
+    case BitrawViewSummary:
+        view_dispatcher_stop(app->view_dispatcher);
+        return true;
+    case BitrawViewSections:
+        bitraw_switch_view(app, BitrawViewSummary);
+        return true;
+    case BitrawViewTextBox:
+        bitraw_switch_view(app, s_textbox_came_from);
+        return true;
+    }
+    return false;
 }
 
-static BitrawApp* bitraw_app_alloc(void) {
-    BitrawApp* app = malloc(sizeof(BitrawApp));
-    furi_check(app, "BinRAW Analyzer: out of memory");
-    memset(app, 0, sizeof(*app));
-
-    app->gui = furi_record_open(RECORD_GUI);
-    app->storage = furi_record_open(RECORD_STORAGE);
-    app->dialogs = furi_record_open(RECORD_DIALOGS);
-
-    app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_navigation_event_callback(
-        app->view_dispatcher, bitraw_navigation_callback);
-
-    app->text_box = text_box_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, BitrawViewTextBox, text_box_get_view(app->text_box));
-
-    app->selected_path = furi_string_alloc();
-    app->report = furi_string_alloc();
-    app->parse_error = furi_string_alloc();
-
-    sub_file_init(&app->sub);
-
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-
-    return app;
-}
-
-static void bitraw_app_free(BitrawApp* app) {
-    sub_file_reset(&app->sub);
-
-    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewTextBox);
-    text_box_free(app->text_box);
-    view_dispatcher_free(app->view_dispatcher);
-
-    furi_string_free(app->selected_path);
-    furi_string_free(app->report);
-    furi_string_free(app->parse_error);
-
-    furi_record_close(RECORD_DIALOGS);
-    furi_record_close(RECORD_STORAGE);
-    furi_record_close(RECORD_GUI);
-
-    free(app);
-}
+/* ========================== analysis + sidecar ======================== */
 
 static bool bitraw_save_sidecar(BitrawApp* app, FuriString* out_path) {
     const char* src = furi_string_get_cstr(app->selected_path);
@@ -95,8 +250,7 @@ static bool bitraw_save_sidecar(BitrawApp* app, FuriString* out_path) {
     return ok;
 }
 
-/* Write a machine-readable metadata sidecar (<stem>.bra) next to the .sub.
- * Plain key=value lines so a desktop tool can reimport classifications later. */
+/* Write a machine-readable metadata sidecar (<stem>.bra) next to the .sub. */
 static bool bitraw_save_bra_metadata(BitrawApp* app) {
     const char* src = furi_string_get_cstr(app->selected_path);
     if(!src || !*src) return false;
@@ -197,12 +351,85 @@ static bool bitraw_run_analysis(BitrawApp* app) {
         furi_string_get_cstr(sidecar_path));
     furi_string_free(sidecar_path);
 
-    /* Machine-readable metadata sidecar (.bra) for desktop reimport. */
     bitraw_save_bra_metadata(app);
 
     HEAPLOG("analyze-end");
     return true;
 }
+
+/* ============================ alloc / free ============================ */
+
+static BitrawApp* bitraw_app_alloc(void) {
+    BitrawApp* app = malloc(sizeof(BitrawApp));
+    furi_check(app, "BinRAW Analyzer: out of memory");
+    memset(app, 0, sizeof(*app));
+
+    app->gui = furi_record_open(RECORD_GUI);
+    app->storage = furi_record_open(RECORD_STORAGE);
+    app->dialogs = furi_record_open(RECORD_DIALOGS);
+
+    app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, bitraw_navigation_callback);
+    view_dispatcher_set_custom_event_callback(
+        app->view_dispatcher, bitraw_custom_event_cb);
+
+    app->loading = loading_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, BitrawViewLoading, loading_get_view(app->loading));
+
+    app->summary = widget_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, BitrawViewSummary, widget_get_view(app->summary));
+
+    app->sections = submenu_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, BitrawViewSections, submenu_get_view(app->sections));
+
+    app->text_box = text_box_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, BitrawViewTextBox, text_box_get_view(app->text_box));
+
+    app->selected_path = furi_string_alloc();
+    app->report = furi_string_alloc();
+    app->section_text = furi_string_alloc();
+    app->parse_error = furi_string_alloc();
+
+    sub_file_init(&app->sub);
+
+    view_dispatcher_attach_to_gui(
+        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+
+    return app;
+}
+
+static void bitraw_app_free(BitrawApp* app) {
+    sub_file_reset(&app->sub);
+
+    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewTextBox);
+    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewSections);
+    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewSummary);
+    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewLoading);
+    text_box_free(app->text_box);
+    submenu_free(app->sections);
+    widget_free(app->summary);
+    loading_free(app->loading);
+    view_dispatcher_free(app->view_dispatcher);
+
+    furi_string_free(app->selected_path);
+    furi_string_free(app->report);
+    furi_string_free(app->section_text);
+    furi_string_free(app->parse_error);
+
+    furi_record_close(RECORD_DIALOGS);
+    furi_record_close(RECORD_STORAGE);
+    furi_record_close(RECORD_GUI);
+
+    free(app);
+}
+
+/* ============================== run loop ============================== */
 
 static bool bitraw_pick_file(BitrawApp* app) {
     DialogsFileBrowserOptions options;
@@ -214,6 +441,17 @@ static bool bitraw_pick_file(BitrawApp* app) {
         dialog_file_browser_show(app->dialogs, app->selected_path, preselect, &options);
     furi_string_free(preselect);
     return picked;
+}
+
+static void bitraw_show_parse_error(BitrawApp* app, const char* fallback) {
+    const char* text =
+        !furi_string_empty(app->parse_error) ? furi_string_get_cstr(app->parse_error) : fallback;
+    text_box_reset(app->text_box);
+    text_box_set_font(app->text_box, TextBoxFontText);
+    text_box_set_focus(app->text_box, TextBoxFocusStart);
+    text_box_set_text(app->text_box, text);
+    s_textbox_came_from = BitrawViewSummary;
+    bitraw_switch_view(app, BitrawViewTextBox);
 }
 
 int32_t bitraw_analyzer_app(void* p) {
@@ -230,22 +468,23 @@ int32_t bitraw_analyzer_app(void* p) {
         }
         FURI_LOG_I(TAG, "loop: picked %s", furi_string_get_cstr(app->selected_path));
 
-        bool ok = bitraw_run_analysis(app);
-        const char* text;
-        if(ok) {
-            text = furi_string_get_cstr(app->report);
-        } else if(!furi_string_empty(app->parse_error)) {
-            text = furi_string_get_cstr(app->parse_error);
-        } else {
-            text = "Could not read .sub file";
-        }
-        FURI_LOG_I(TAG, "loop: show text (ok=%d, len=%u)", ok, (unsigned)strlen(text));
+        /* Briefly show the spinner so feedback is immediate. The synchronous
+         * analysis call below blocks the GUI thread; ViewDispatcher only
+         * paints once we yield (via view_dispatcher_run). For large captures
+         * the analysis itself can be ~1s — the loading view at least shows
+         * during the next event-tick gap before render. */
+        s_current_view = BitrawViewLoading;
+        view_dispatcher_switch_to_view(app->view_dispatcher, BitrawViewLoading);
 
-        text_box_reset(app->text_box);
-        text_box_set_font(app->text_box, TextBoxFontText);
-        text_box_set_focus(app->text_box, TextBoxFocusStart);
-        text_box_set_text(app->text_box, text);
-        view_dispatcher_switch_to_view(app->view_dispatcher, BitrawViewTextBox);
+        bool ok = bitraw_run_analysis(app);
+
+        if(ok) {
+            bitraw_build_summary(app);
+            bitraw_build_sections(app);
+            bitraw_switch_view(app, BitrawViewSummary);
+        } else {
+            bitraw_show_parse_error(app, "Could not read .sub file");
+        }
 
         FURI_LOG_I(TAG, "loop: dispatcher run");
         view_dispatcher_run(app->view_dispatcher);

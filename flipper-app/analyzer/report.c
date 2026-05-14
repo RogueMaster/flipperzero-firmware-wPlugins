@@ -47,23 +47,20 @@ static void freq_label(uint32_t hz, char* out, size_t cap) {
     }
 }
 
-void report_format(
+/* ------------------- section builders (composable) -------------------- */
+
+static void cat_header(
     const char* path,
-    const SubFile* sub,
-    const FeatureVector* fv,
     const ClassificationResult* result,
     FuriString* out) {
-    (void)sub;
-    char freq_buf[32];
-    freq_label(fv->frequency, freq_buf, sizeof(freq_buf));
-
     furi_string_cat_str(out, SEP);
     furi_string_cat_printf(out, "FILE: %s\n", basename_of(path));
     furi_string_cat_str(out, SEP);
     furi_string_cat_str(out, "\n");
 
     furi_string_cat_printf(out, "CLASSIFICATION : %s\n", bitraw_label_name(result->label));
-    furi_string_cat_printf(out, "CONFIDENCE     : %s\n", bitraw_confidence_name(result->confidence));
+    furi_string_cat_printf(
+        out, "CONFIDENCE     : %s\n", bitraw_confidence_name(result->confidence));
 
     for(uint8_t i = 0; i < result->hint_count; i++) {
         furi_string_cat_printf(
@@ -72,8 +69,12 @@ void report_format(
             i == 0 ? "SUB-PROTOCOL   :" : "               :",
             result->hints[i]);
     }
+}
 
-    furi_string_cat_str(out, "\n");
+static void cat_metrics(const FeatureVector* fv, FuriString* out) {
+    char freq_buf[32];
+    freq_label(fv->frequency, freq_buf, sizeof(freq_buf));
+
     furi_string_cat_str(out, "KEY METRICS\n");
     furi_string_cat_printf(out, "  Frequency    : %s\n", freq_buf);
     furi_string_cat_printf(
@@ -82,7 +83,6 @@ void report_format(
         (double)fv->te_us,
         (double)fv->bitrate_bps);
 
-    /* Segment sizes */
     furi_string_cat_printf(out, "  Segments     : %u  (sizes: ", fv->seg_count);
     for(uint16_t i = 0; i < fv->seg_count; i++) {
         furi_string_cat_printf(out, "%s%u", i ? ", " : "", fv->seg_sizes[i]);
@@ -114,16 +114,6 @@ void report_format(
             fv->pwm_params.long_gap,
             (double)(fv->pwm_params.consistency * 100.0f));
         furi_string_cat_printf(out, "  Decoded bits : %u\n", fv->pwm_decoded_count);
-        if(fv->pwm_decoded_count > 0) {
-            furi_string_cat_str(out, "  Payload bits : ");
-            for(uint16_t i = 0; i < fv->pwm_decoded_count; i++) {
-                furi_string_cat_printf(out, "%c", fv->pwm_decoded_bits[i] ? '1' : '0');
-            }
-            furi_string_cat_str(out, "\n");
-            furi_string_cat_str(out, "  Payload hex  : ");
-            cat_hex_bits(out, fv->pwm_decoded_bits, fv->pwm_decoded_count);
-            furi_string_cat_str(out, "\n");
-        }
     } else {
         furi_string_cat_str(out, "  PWM          : not detected\n");
     }
@@ -140,18 +130,6 @@ void report_format(
 
     furi_string_cat_printf(
         out, "  Signal qual  : %.0f%%\n", (double)(fv->signal_quality * 100.0f));
-
-    if(fv->manchester_decoded_count > 0 && fv->manchester_error_rate < 0.30f) {
-        furi_string_cat_printf(
-            out,
-            "  Manchester   : %u bits decoded [%s, %.0f%% errors]\n",
-            fv->manchester_decoded_count,
-            bitraw_manchester_name(fv->manchester_convention),
-            (double)(fv->manchester_error_rate * 100.0f));
-        furi_string_cat_str(out, "  Manch. hex   : ");
-        cat_hex_bits(out, fv->manchester_decoded_bits, fv->manchester_decoded_count);
-        furi_string_cat_str(out, "\n");
-    }
 
     if(fv->seg_count >= 2) {
         if(fv->rolling_code) {
@@ -192,12 +170,95 @@ void report_format(
         furi_string_cat_printf(
             out, "  Location     : %.6f, %.6f\n", (double)fv->lat, (double)fv->lon);
     }
+}
 
+static void cat_payload(const FeatureVector* fv, FuriString* out) {
+    if(!fv->pwm_params.found || fv->pwm_decoded_count == 0) {
+        furi_string_cat_str(out, "PAYLOAD\n  (no PWM payload decoded)\n");
+        return;
+    }
+    furi_string_cat_str(out, "PAYLOAD\n");
+    furi_string_cat_printf(out, "  Bits (%u): ", fv->pwm_decoded_count);
+    for(uint16_t i = 0; i < fv->pwm_decoded_count; i++) {
+        furi_string_cat_printf(out, "%c", fv->pwm_decoded_bits[i] ? '1' : '0');
+    }
+    furi_string_cat_str(out, "\n  Hex : ");
+    cat_hex_bits(out, fv->pwm_decoded_bits, fv->pwm_decoded_count);
     furi_string_cat_str(out, "\n");
+}
+
+static void cat_manchester(const FeatureVector* fv, FuriString* out) {
+    if(fv->manchester_decoded_count == 0 || fv->manchester_error_rate >= 0.30f) {
+        furi_string_cat_str(out, "MANCHESTER\n  (no clean Manchester decode)\n");
+        return;
+    }
+    furi_string_cat_printf(
+        out,
+        "MANCHESTER\n  %u bits decoded [%s, %.0f%% errors]\n  Hex : ",
+        fv->manchester_decoded_count,
+        bitraw_manchester_name(fv->manchester_convention),
+        (double)(fv->manchester_error_rate * 100.0f));
+    cat_hex_bits(out, fv->manchester_decoded_bits, fv->manchester_decoded_count);
+    furi_string_cat_str(out, "\n");
+}
+
+static void cat_reasoning(const ClassificationResult* result, FuriString* out) {
     furi_string_cat_str(out, "REASONING CHAIN\n");
     for(uint8_t i = 0; i < result->reason_count; i++) {
         furi_string_cat_printf(out, "  %s\n", result->reasons[i]);
     }
+}
+
+static void cat_warnings(const ClassificationResult* result, FuriString* out) {
+    if(result->warning_count == 0) {
+        furi_string_cat_str(out, "WARNINGS\n  (none)\n");
+        return;
+    }
+    furi_string_cat_str(out, "WARNINGS\n");
+    for(uint8_t i = 0; i < result->warning_count; i++) {
+        furi_string_cat_printf(out, "  ! %s\n", result->warnings[i]);
+    }
+}
+
+/* ----------------------------- public API ---------------------------- */
+
+void report_format(
+    const char* path,
+    const SubFile* sub,
+    const FeatureVector* fv,
+    const ClassificationResult* result,
+    FuriString* out) {
+    (void)sub;
+    cat_header(path, result, out);
+
+    furi_string_cat_str(out, "\n");
+    cat_metrics(fv, out);
+
+    /* Payload + Manchester are inline in the full report (preserving original
+     * .report.txt format). The metrics block already prints PWM stats; we append
+     * the bit-stream / hex blobs here. */
+    if(fv->pwm_params.found && fv->pwm_decoded_count > 0) {
+        furi_string_cat_str(out, "  Payload bits : ");
+        for(uint16_t i = 0; i < fv->pwm_decoded_count; i++) {
+            furi_string_cat_printf(out, "%c", fv->pwm_decoded_bits[i] ? '1' : '0');
+        }
+        furi_string_cat_str(out, "\n  Payload hex  : ");
+        cat_hex_bits(out, fv->pwm_decoded_bits, fv->pwm_decoded_count);
+        furi_string_cat_str(out, "\n");
+    }
+    if(fv->manchester_decoded_count > 0 && fv->manchester_error_rate < 0.30f) {
+        furi_string_cat_printf(
+            out,
+            "  Manchester   : %u bits decoded [%s, %.0f%% errors]\n  Manch. hex   : ",
+            fv->manchester_decoded_count,
+            bitraw_manchester_name(fv->manchester_convention),
+            (double)(fv->manchester_error_rate * 100.0f));
+        cat_hex_bits(out, fv->manchester_decoded_bits, fv->manchester_decoded_count);
+        furi_string_cat_str(out, "\n");
+    }
+
+    furi_string_cat_str(out, "\n");
+    cat_reasoning(result, out);
 
     if(result->warning_count > 0) {
         furi_string_cat_str(out, "\n");
@@ -208,4 +269,100 @@ void report_format(
     }
 
     furi_string_cat_str(out, "\n");
+}
+
+void report_format_section(
+    ReportSection section,
+    const char* path,
+    const SubFile* sub,
+    const FeatureVector* fv,
+    const ClassificationResult* result,
+    FuriString* out) {
+    (void)sub;
+    (void)path;
+    switch(section) {
+    case ReportSectionMetrics:
+        cat_metrics(fv, out);
+        break;
+    case ReportSectionReasoning:
+        cat_reasoning(result, out);
+        break;
+    case ReportSectionPayload:
+        cat_payload(fv, out);
+        break;
+    case ReportSectionManchester:
+        cat_manchester(fv, out);
+        break;
+    case ReportSectionWarnings:
+        cat_warnings(result, out);
+        break;
+    case ReportSectionFull:
+        report_format(path, sub, fv, result, out);
+        break;
+    }
+}
+
+bool report_section_has_content(
+    ReportSection section,
+    const FeatureVector* fv,
+    const ClassificationResult* result) {
+    switch(section) {
+    case ReportSectionMetrics:
+    case ReportSectionReasoning:
+    case ReportSectionFull:
+        return true;
+    case ReportSectionPayload:
+        return fv->pwm_params.found && fv->pwm_decoded_count > 0;
+    case ReportSectionManchester:
+        return fv->manchester_decoded_count > 0 && fv->manchester_error_rate < 0.30f;
+    case ReportSectionWarnings:
+        return result->warning_count > 0;
+    }
+    return false;
+}
+
+void report_format_summary_lines(
+    const FeatureVector* fv,
+    const ClassificationResult* result,
+    FuriString* out) {
+    char freq_buf[16];
+    freq_label(fv->frequency, freq_buf, sizeof(freq_buf));
+
+    /* Line 1: freq · TE · segs */
+    furi_string_cat_printf(
+        out,
+        "%s  TE %.0fus  %u seg\n",
+        freq_buf,
+        (double)fv->te_us,
+        fv->seg_count);
+
+    /* Line 2: signal quality · code type · similarity (when available) */
+    furi_string_cat_printf(out, "sig %.0f%%", (double)(fv->signal_quality * 100.0f));
+    if(fv->has_seg_similarity) {
+        furi_string_cat_printf(out, "  sim %.0f%%", (double)(fv->seg_similarity * 100.0f));
+    }
+    if(fv->rolling_code) {
+        furi_string_cat_printf(out, "  ROLL(%u)", fv->diff_position_count);
+    } else if(fv->fixed_code && fv->seg_count >= 2) {
+        furi_string_cat_str(out, "  FIXED");
+    }
+    furi_string_cat_str(out, "\n");
+
+    /* Line 3: first sub-protocol hint (if any) */
+    if(result->hint_count > 0) {
+        furi_string_cat_printf(out, "%s\n", result->hints[0]);
+    }
+
+    /* Line 4: CRC/Manchester/PWM3 flag, only if something interesting */
+    bool wrote_extra = false;
+    if(fv->crc_valid) {
+        furi_string_cat_printf(
+            out, "CRC %s ok", fv->crc_kind == 1 ? "8" : "16");
+        wrote_extra = true;
+    }
+    if(fv->pwm3_detected) {
+        furi_string_cat_str(out, wrote_extra ? "  +Tri-PWM" : "Tri-PWM detected");
+        wrote_extra = true;
+    }
+    if(wrote_extra) furi_string_cat_str(out, "\n");
 }
