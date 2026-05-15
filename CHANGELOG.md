@@ -8,8 +8,17 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ## 2026-05-15
 
+### fix
+- **flipperpwn_modules**: Bumped GUI r DELAY from 300ms to 500ms across all 21 `.fpwn` modules. Run dialog unreliable at 300ms on machines with AV hooks or older hardware.
+- **flipperpwn_modules/exploit/uac_bypass_fodhelper**: Changed `-Value "{{COMMAND}}"` to `-Value '{{COMMAND}}'`. Double quotes broke when COMMAND contained typical PowerShell strings with embedded double quotes.
+- **flipperpwn_modules/exploit/download_exec**: Added single quotes around `{{PAYLOAD_URL}}` in MAC/LINUX `curl` commands. Unquoted URLs with spaces or shell metacharacters would break.
+- **flipperpwn_modules/exploit/evil_twin**: Removed dead `TARGET_SSID` option (declared but never referenced). Quoted `{{PORTAL_URL}}` in LINUX `xdg-open` call.
+- **flipperpwn_modules/credential/fake_login**: Fixed Cancel button causing inescapable infinite loop — `ShowDialog()` always returned password text regardless of Cancel/OK. Now checks `DialogResult`, returns `$null` on Cancel, loop breaks on null. Also replaced deprecated `Get-WmiObject` with `Get-CimInstance`.
+- **flipperpwn_modules/post/persist_schtask**: Fixed incorrect documentation claiming no admin required. `schtasks /sc onlogon` requires admin. Changed PAYLOAD_PATH default from `C:\Windows\Temp\` to `%TEMP%\`.
+
 ### docs
 - **badusb_pro**: Full re-trace review of all 2900 lines across 3 source files. No bugs found. badusb_pro.c: 4 views lifecycle correct (Submenu + Widget + custom View + VariableItemList), ViewModelTypeLocking on execution view, worker join-before-reuse, USB save/restore with volatile usb_restored flag, all snprintf buffers verified, settings callbacks index-bounded. ducky_parser.c: ASCII→HID table 95 entries verified for US layout, parse_key_combo words[8]/keycodes[8] bounded, MOUSE_SCROLL strtol+INT8 clamp present. script_engine.c: substitute_vars output-bounded, all flow control depth-tracked, CALL depth guarded at 32, RESTART resets pc+call_depth, do_os_detect CapsLock toggle+timing+restore correct, completion releases all keys+consumer keys. Stack: GUI ~1160/4096, worker ~700/8192. All prior fixes verified present.
+- **flipperpwn_modules**: Full re-audit of all 21 `.fpwn` modules and 3 `.ds` sample scripts (last audited 2026-03-30). Re-traced all shell commands for correctness on current OS versions.
 
 ---
 
