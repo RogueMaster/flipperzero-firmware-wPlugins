@@ -6,6 +6,13 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-15
+
+### docs
+- **badusb_pro**: Full re-trace review of all 2900 lines across 3 source files. No bugs found. badusb_pro.c: 4 views lifecycle correct (Submenu + Widget + custom View + VariableItemList), ViewModelTypeLocking on execution view, worker join-before-reuse, USB save/restore with volatile usb_restored flag, all snprintf buffers verified, settings callbacks index-bounded. ducky_parser.c: ASCII→HID table 95 entries verified for US layout, parse_key_combo words[8]/keycodes[8] bounded, MOUSE_SCROLL strtol+INT8 clamp present. script_engine.c: substitute_vars output-bounded, all flow control depth-tracked, CALL depth guarded at 32, RESTART resets pc+call_depth, do_os_detect CapsLock toggle+timing+restore correct, completion releases all keys+consumer keys. Stack: GUI ~1160/4096, worker ~700/8192. All prior fixes verified present.
+
+---
+
 ## 2026-05-08
 
 ### fix
