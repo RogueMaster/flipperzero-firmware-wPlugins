@@ -629,12 +629,11 @@ void jammer_scene_on_exit(void* context) {
     };
     pq_jammer_config_save(&st);
 
-    /* 4. 写本次会话日志(/ext/apps_data/pingequa/jammer/session_<ts>.csv). */
+    /* 4. 写本次会话日志(v0.5.2 重构:有意义字段集,按模式条件输出). */
     pq_jammer_log_session(
         (uint8_t)app->jammer_mode,
         app->jammer_cw_channel,
         s_jam_session.start_tick,
-        app->jammer_chunk_count,
         s_jam_session.reactive_jams_total);
 
     /* 5. View 是 app-owned,scene 不释放. */

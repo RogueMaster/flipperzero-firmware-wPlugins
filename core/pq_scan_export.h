@@ -3,10 +3,13 @@
  * @brief Scanner 数据 CSV 导出 — Scanner 屏长按 OK 触发,把 126 通道 hit 数 +
  *        元数据写到 SD 卡,事后用电脑/Excel 分析频谱.
  *
- * 文件路径:/ext/apps_data/pingequa/scans/scan_<timestamp_ms>.csv
+ * 文件路径:/ext/apps_data/pingequa/scans/scan_<YYYY-MM-DD>_<HHMMSS>_ch<peak>.csv
+ *   - 日期在前 → qFlipper 文件列表按名排序即按时间排序
+ *   - 文件名带峰值通道,无需打开即知摘要
+ *   - RTC 未设时回退 scan_boot<tick>_ch<peak>.csv;同秒重名加 _1.._99 后缀
  * 文件格式(自描述,不依赖 FlipperFormat,直接 CSV 标准):
  *   # PINGEQUA RF Lab Scanner Export
- *   # Boot ms: 1234567
+ *   # Datetime: 2026-05-15 14:30:22
  *   # Sweep count: 4567
  *   # Dwell us: 150
  *   # Peak channel: 42 (2442 MHz, 32 hits)

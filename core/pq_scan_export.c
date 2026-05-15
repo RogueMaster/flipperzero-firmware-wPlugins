@@ -6,6 +6,7 @@
 #include "pq_scan_export.h"
 
 #include <furi.h>
+#include <furi_hal_rtc.h>
 #include <stdio.h>
 #include <storage/storage.h>
 
@@ -16,6 +17,29 @@
 static bool write_line(File* f, const char* s) {
     size_t len = strlen(s);
     return storage_file_write(f, s, (uint16_t)len) == len;
+}
+
+/* 文件名优先用 RTC 墙钟:scan_YYYY-MM-DD_HHMMSS_chNN.csv.日期在前 → qFlipper
+ * 文件列表按名排序即按时间排序;文件名自带峰值通道,无需打开即知摘要.
+ * RTC 未设(year<2024)时回退 scan_bootNNNNNNNNNN_chNN.csv,避免 1970 垃圾名.
+ * 同秒重名时加 _1.._99 后缀保唯一(furi_hal_rtc_get_datetime 仅秒级精度). */
+static void build_scan_filename(
+    Storage* storage, const DateTime* dt, uint8_t peak_ch, char* path, size_t path_sz) {
+    char base[96];
+    if(dt->year < 2024) {
+        snprintf(
+            base, sizeof(base), "%s/scan_boot%010lu_ch%u", PQ_SCAN_EXPORT_DIR,
+            (unsigned long)furi_get_tick(), peak_ch);
+    } else {
+        snprintf(
+            base, sizeof(base), "%s/scan_%04u-%02u-%02u_%02u%02u%02u_ch%u",
+            PQ_SCAN_EXPORT_DIR, dt->year, dt->month, dt->day, dt->hour, dt->minute,
+            dt->second, peak_ch);
+    }
+    snprintf(path, path_sz, "%s.csv", base);
+    for(int i = 1; i <= 99 && storage_file_exists(storage, path); i++) {
+        snprintf(path, path_sz, "%s_%d.csv", base, i);
+    }
 }
 
 bool pq_scan_export_csv(
@@ -38,11 +62,12 @@ bool pq_scan_export_csv(
     storage_simply_mkdir(storage, "/ext/apps_data/pingequa");
     storage_simply_mkdir(storage, PQ_SCAN_EXPORT_DIR);
 
-    /* 文件名用 furi_get_tick() 作时间戳(boot 起的 ms 数,不是 wall-clock,
-     * 但保证文件名唯一). */
-    char path[96];
-    uint32_t ts = furi_get_tick();
-    snprintf(path, sizeof(path), "%s/scan_%010lu.csv", PQ_SCAN_EXPORT_DIR, (unsigned long)ts);
+    /* 墙钟用于文件名 + header. */
+    DateTime dt;
+    furi_hal_rtc_get_datetime(&dt);
+
+    char path[128];
+    build_scan_filename(storage, &dt, peak_ch, path, sizeof(path));
 
     File* file = storage_file_alloc(storage);
     bool ok = false;
@@ -58,7 +83,13 @@ bool pq_scan_export_csv(
         /* Header 注释行(#) — 兼容 Excel / Python pandas read_csv 的 comment 选项. */
         if(!write_line(file, "# PINGEQUA RF Lab Scanner Export\n")) break;
 
-        snprintf(buf, sizeof(buf), "# Boot ms: %lu\n", (unsigned long)ts);
+        if(dt.year >= 2024) {
+            snprintf(
+                buf, sizeof(buf), "# Datetime: %04u-%02u-%02u %02u:%02u:%02u\n",
+                dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+        } else {
+            snprintf(buf, sizeof(buf), "# Datetime: (RTC not set)\n");
+        }
         if(!write_line(file, buf)) break;
 
         snprintf(buf, sizeof(buf), "# Sweep count: %u\n", sweep_count);
