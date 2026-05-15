@@ -22,6 +22,7 @@
 typedef enum {
     PqMainMenuItemScanner = 0,
     PqMainMenuItemJammer,
+    PqMainMenuItemAbout,
 } PqMainMenuItem;
 
 static void main_menu_select_callback(void* context, uint32_t index) {
@@ -39,6 +40,8 @@ void main_menu_scene_on_enter(void* context) {
     submenu_add_item(sm, "Channel Scanner", PqMainMenuItemScanner,
                      main_menu_select_callback, app);
     submenu_add_item(sm, "NRF24 Jammer", PqMainMenuItemJammer,
+                     main_menu_select_callback, app);
+    submenu_add_item(sm, "About", PqMainMenuItemAbout,
                      main_menu_select_callback, app);
 
     /* 保留 Submenu 上次选中位置(scene_manager 切回时用户指针仍在原位). */
@@ -61,6 +64,9 @@ bool main_menu_scene_on_event(void* context, SceneManagerEvent event) {
             return true;
         case PqMainMenuItemJammer:
             scene_manager_next_scene(app->scene_manager, PqSceneJammer);
+            return true;
+        case PqMainMenuItemAbout:
+            scene_manager_next_scene(app->scene_manager, PqSceneAbout);
             return true;
         default:
             return false;

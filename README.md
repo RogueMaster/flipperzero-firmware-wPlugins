@@ -24,7 +24,7 @@
 [![Platform](https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=flat-square)](https://flipperzero.one/)
 [![Release](https://img.shields.io/github/v/release/pingequalab/rf-lab?style=flat-square&color=success&label=release)](https://github.com/pingequalab/rf-lab/releases/latest)
 [![Firmware](https://img.shields.io/badge/firmware-OFW%20%7C%20Momentum%20%7C%20Unleashed%20%7C%20RogueMaster-blue?style=flat-square)](#firmware-compatibility)
-[![FAP size](https://img.shields.io/badge/FAP-40%20KB-success?style=flat-square)](dist/)
+[![FAP size](https://img.shields.io/badge/FAP-44%20KB-success?style=flat-square)](dist/)
 [![License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
 [![Hardware](https://img.shields.io/badge/hardware-PINGEQUA%202--in--1-000000?style=flat-square)](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=badge)
 

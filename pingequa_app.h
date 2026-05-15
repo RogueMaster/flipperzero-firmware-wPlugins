@@ -41,6 +41,7 @@ typedef enum {
     PqSceneMainMenu, /* v1.2 起作为 splash 落地后的总入口(规范 §6.2 v1.1+ 扩展点) */
     PqSceneScanner,
     PqSceneJammer,   /* v1.2 NRF24 Jammer */
+    PqSceneAbout,    /* v0.5.2 信息屏 — 品牌 + 引流 QR + 法律声明 */
     PqSceneError,
     PqSceneCount,
 } PqScene;
@@ -51,6 +52,7 @@ typedef enum {
     PqViewMainMenu,
     PqViewScanner,
     PqViewJammer,
+    PqViewAbout,
     PqViewError,
 } PqView;
 
@@ -104,6 +106,7 @@ struct PqApp {
     Submenu* main_menu_submenu;
     struct ScannerView* scanner_view;
     struct JammerView* jammer_view;
+    struct AboutView* about_view;
     DialogEx* error_dialog;
 
     /* Splash:worker 探测线程 + UI 进度 timer. */

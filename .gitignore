@@ -27,3 +27,6 @@ GITHUB_PUBLISH_OVERVIEW.md
 .handoff_*.md
 .roadmap.md
 _preview/
+
+# Claude 操作日志(本地副本,主版本在 NAS handoff/worklog.md)
+worklog.md
