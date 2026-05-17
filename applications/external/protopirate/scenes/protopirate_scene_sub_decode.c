@@ -91,13 +91,14 @@ static bool psa_subdecode_item_needs_bruteforce(ProtoPirateApp* app, uint16_t id
     if(!ff) return false;
     FuriString* s = furi_string_alloc();
     flipper_format_rewind(ff);
-    bool has_key = flipper_format_read_string(ff, "Key", s);
+    bool has_key = flipper_format_read_string(ff, FF_KEY, s);
     if(!has_key) {
         furi_string_free(s);
         return false;
     }
+    uint32_t serial = 0;
     flipper_format_rewind(ff);
-    bool has_serial = flipper_format_read_string(ff, "Serial", s);
+    bool has_serial = flipper_format_read_uint32(ff, FF_SERIAL, &serial, 1);
     furi_string_free(s);
     return !has_serial;
 }
@@ -619,7 +620,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 // Extract protocol name
                 FuriString* protocol = furi_string_alloc();
                 flipper_format_rewind(ff);
-                if(!flipper_format_read_string(ff, "Protocol", protocol)) {
+                if(!flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
                     furi_string_set_str(protocol, "Unknown");
                 }
 
@@ -704,12 +705,12 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                     protopirate_history_get_raw_data(ctx->history, ctx->selected_history_index);
                 if(ff) {
                     flipper_format_rewind(ff);
-                    flipper_format_insert_or_update_uint32(ff, "Serial", &s->decrypted_serial, 1);
+                    flipper_format_insert_or_update_uint32(ff, FF_SERIAL, &s->decrypted_serial, 1);
                     uint32_t btn = s->decrypted_button;
-                    flipper_format_insert_or_update_uint32(ff, "Btn", &btn, 1);
-                    flipper_format_insert_or_update_uint32(ff, "Cnt", &s->decrypted_counter, 1);
+                    flipper_format_insert_or_update_uint32(ff, FF_BTN, &btn, 1);
+                    flipper_format_insert_or_update_uint32(ff, FF_CNT, &s->decrypted_counter, 1);
                     uint32_t type = s->decrypted_type;
-                    flipper_format_insert_or_update_uint32(ff, "Type", &type, 1);
+                    flipper_format_insert_or_update_uint32(ff, FF_TYPE, &type, 1);
                     uint32_t crc_val = s->decrypted_crc;
                     flipper_format_insert_or_update_uint32(ff, "CRC", &crc_val, 1);
                     flipper_format_insert_or_update_uint32(ff, "Seed", &s->decrypted_seed, 1);
@@ -734,7 +735,6 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 protopirate_history_set_item_str(
                     ctx->history, ctx->selected_history_index, furi_string_get_cstr(new_str));
                 furi_string_free(new_str);
-                protopirate_history_commit_loaded(ctx->history);
                 notification_message(app->notifications, &sequence_success);
             }
             free(app->psa_bf_state);
@@ -827,7 +827,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 }
 
                 FURI_LOG_D(TAG, "ReadHeader: Reading protocol");
-                if(!flipper_format_read_string(ctx->ff, "Protocol", ctx->protocol_name)) {
+                if(!flipper_format_read_string(ctx->ff, FF_PROTOCOL, ctx->protocol_name)) {
                     furi_string_set(ctx->result, "Missing Protocol");
                     furi_string_set(ctx->error_info, "No protocol field");
                     break;
@@ -837,7 +837,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 flipper_format_rewind(ctx->ff);
                 flipper_format_read_header(ctx->ff, temp_str, &version);
                 ctx->frequency = 433920000;
-                flipper_format_read_uint32(ctx->ff, "Frequency", &ctx->frequency, 1);
+                flipper_format_read_uint32(ctx->ff, FF_FREQUENCY, &ctx->frequency, 1);
 
                 FURI_LOG_I(
                     TAG,
@@ -928,12 +928,12 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                     break;
                 }
 
-                if(!flipper_format_read_uint32(fff_data_file, "Frequency", &ctx->frequency, 1)) {
+                if(!flipper_format_read_uint32(fff_data_file, FF_FREQUENCY, &ctx->frequency, 1)) {
                     FURI_LOG_E(TAG, "Missing Frequency");
                     break;
                 }
 
-                if(!flipper_format_read_string(fff_data_file, "Preset", temp_str)) {
+                if(!flipper_format_read_string(fff_data_file, FF_PRESET, temp_str)) {
                     FURI_LOG_E(TAG, "Missing Preset");
                     break;
                 }
@@ -1219,7 +1219,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
 
                     FuriString* proto_str = furi_string_alloc();
                     flipper_format_rewind(ff);
-                    bool is_psa = flipper_format_read_string(ff, "Protocol", proto_str) &&
+                    bool is_psa = flipper_format_read_string(ff, FF_PROTOCOL, proto_str) &&
                                   furi_string_cmp_str(proto_str, "PSA") == 0;
                     furi_string_free(proto_str);
                     if(is_psa &&

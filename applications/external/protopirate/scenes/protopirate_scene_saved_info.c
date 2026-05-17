@@ -1,11 +1,10 @@
 // scenes/protopirate_scene_saved_info.c
 #include "../protopirate_app_i.h"
 #include "../helpers/protopirate_storage.h"
+#include "../protocols/protocols_common.h"
 #include "proto_pirate_icons.h"
 
 #define TAG "ProtoPirateSceneSavedInfo"
-
-static bool is_emu_off = false;
 
 static void protopirate_scene_saved_info_widget_callback(
     GuiButtonType result,
@@ -15,7 +14,7 @@ static void protopirate_scene_saved_info_widget_callback(
 
     if((result == GuiButtonTypeLeft) && (type == InputTypeShort)) {
 #ifdef ENABLE_EMULATE_FEATURE
-        if(!is_emu_off) {
+        if(!app->emulate_disabled_for_loaded) {
             view_dispatcher_send_custom_event(
                 app->view_dispatcher, ProtoPirateCustomEventSavedInfoEmulate);
         }
@@ -108,44 +107,41 @@ void protopirate_scene_saved_info_on_enter(void* context) {
 
     // Read fields
     uint32_t temp_data = 0;
-    // reset is_emu_off state before loading
-    is_emu_off = false;
+    app->emulate_disabled_for_loaded = false;
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_string(ff, "Protocol", temp_str)) {
+    if(flipper_format_read_string(ff, FF_PROTOCOL, temp_str)) {
         furi_string_cat_printf(info_str, "Protocol: %s\n", furi_string_get_cstr(temp_str));
     }
     if(furi_string_cmp_str(temp_str, "Scher-Khan") == 0) {
-        is_emu_off = true;
-    } else if(furi_string_cmp_str(temp_str, "Kia V5") == 0) {
-        is_emu_off = true;
+        app->emulate_disabled_for_loaded = true;
     }
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_uint32(ff, "Frequency", &temp_data, 1)) {
+    if(flipper_format_read_uint32(ff, FF_FREQUENCY, &temp_data, 1)) {
         furi_string_cat_printf(
             info_str, "Freq: %lu.%02lu MHz\n", temp_data / 1000000, (temp_data % 1000000) / 10000);
     }
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_string(ff, "Preset", temp_str)) {
+    if(flipper_format_read_string(ff, FF_PRESET, temp_str)) {
         // Convert full preset name to short name
-        const char* preset_name = preset_name_to_short(furi_string_get_cstr(temp_str));
+        const char* preset_name = pp_get_short_preset_name(furi_string_get_cstr(temp_str));
         furi_string_cat_printf(info_str, "Modulation: %s\n", preset_name);
     }
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_uint32(ff, "Serial", &temp_data, 1)) {
+    if(flipper_format_read_uint32(ff, FF_SERIAL, &temp_data, 1)) {
         furi_string_cat_printf(info_str, "Serial: %08lX\n", temp_data);
     }
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_uint32(ff, "Btn", &temp_data, 1)) {
+    if(flipper_format_read_uint32(ff, FF_BTN, &temp_data, 1)) {
         furi_string_cat_printf(info_str, "Button: %02X\n", (uint8_t)temp_data);
     }
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_uint32(ff, "Cnt", &temp_data, 1)) {
+    if(flipper_format_read_uint32(ff, FF_CNT, &temp_data, 1)) {
         furi_string_cat_printf(info_str, "Counter: %04lX\n", temp_data);
     }
 
@@ -160,7 +156,7 @@ void protopirate_scene_saved_info_on_enter(void* context) {
     }
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_uint32(ff, "Type", &temp_data, 1)) {
+    if(flipper_format_read_uint32(ff, FF_TYPE, &temp_data, 1)) {
         furi_string_cat_printf(info_str, "Type: %02X\n", (uint8_t)temp_data);
     }
 
@@ -170,7 +166,7 @@ void protopirate_scene_saved_info_on_enter(void* context) {
     }
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_string(ff, "Key", temp_str)) {
+    if(flipper_format_read_string(ff, FF_KEY, temp_str)) {
         furi_string_cat_printf(info_str, "Key1: %s\n", furi_string_get_cstr(temp_str));
     }
 
@@ -190,7 +186,7 @@ void protopirate_scene_saved_info_on_enter(void* context) {
     }
 
     flipper_format_rewind(ff);
-    if(flipper_format_read_string(ff, "Manufacture", temp_str)) {
+    if(flipper_format_read_string(ff, FF_MANUFACTURE, temp_str)) {
         furi_string_cat_printf(info_str, "Manufacture: %s\n", furi_string_get_cstr(temp_str));
     }
 
@@ -216,7 +212,7 @@ cleanup:
         widget_add_text_scroll_element(app->widget, 0, 0, 128, 50, furi_string_get_cstr(info_str));
 
 #ifdef ENABLE_EMULATE_FEATURE
-        if(!is_emu_off) {
+        if(!app->emulate_disabled_for_loaded) {
             widget_add_button_element(
                 app->widget,
                 GuiButtonTypeLeft,
@@ -253,8 +249,6 @@ bool protopirate_scene_saved_info_on_event(void* context, SceneManagerEvent even
         if(event.event == ProtoPirateCustomEventSavedInfoDelete) {
             FURI_LOG_I(TAG, "Delete requested");
             if(app->loaded_file_path && !furi_string_empty(app->loaded_file_path)) {
-                //Show the "Are you Sure" dialog.
-                app->dialogs = furi_record_open(RECORD_DIALOGS);
                 DialogMessage* message = dialog_message_alloc();
                 dialog_message_set_buttons(message, "Delete", NULL, "Keep");
                 dialog_message_set_icon(message, &I_WarningDolphin_45x42, 0, 12);
@@ -269,8 +263,6 @@ bool protopirate_scene_saved_info_on_event(void* context, SceneManagerEvent even
                     AlignTop);
                 DialogMessageButton dialog_result = dialog_message_show(app->dialogs, message);
                 dialog_message_free(message);
-                furi_record_close(RECORD_DIALOGS);
-                app->dialogs = NULL;
 
                 //Delete if the user said yes.
                 if(dialog_result == DialogMessageButtonLeft) {
@@ -282,7 +274,8 @@ bool protopirate_scene_saved_info_on_event(void* context, SceneManagerEvent even
             consumed = true;
         }
 #ifdef ENABLE_EMULATE_FEATURE
-        if(event.event == ProtoPirateCustomEventSavedInfoEmulate && !is_emu_off) {
+        if(event.event == ProtoPirateCustomEventSavedInfoEmulate &&
+           !app->emulate_disabled_for_loaded) {
             FURI_LOG_I(TAG, "Emulate requested");
             scene_manager_next_scene(app->scene_manager, ProtoPirateSceneEmulate);
             consumed = true;

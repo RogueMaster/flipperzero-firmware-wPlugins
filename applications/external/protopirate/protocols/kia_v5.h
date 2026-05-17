@@ -18,7 +18,6 @@ void* kia_protocol_decoder_v5_alloc(SubGhzEnvironment* environment);
 void kia_protocol_decoder_v5_free(void* context);
 void kia_protocol_decoder_v5_reset(void* context);
 void kia_protocol_decoder_v5_feed(void* context, bool level, uint32_t duration);
-uint8_t kia_protocol_decoder_v5_get_hash_data(void* context);
 SubGhzProtocolStatus kia_protocol_decoder_v5_serialize(
     void* context,
     FlipperFormat* flipper_format,
@@ -26,3 +25,7 @@ SubGhzProtocolStatus kia_protocol_decoder_v5_serialize(
 SubGhzProtocolStatus
     kia_protocol_decoder_v5_deserialize(void* context, FlipperFormat* flipper_format);
 void kia_protocol_decoder_v5_get_string(void* context, FuriString* output);
+
+void* kia_protocol_encoder_v5_alloc(SubGhzEnvironment* environment);
+SubGhzProtocolStatus
+    kia_protocol_encoder_v5_deserialize(void* context, FlipperFormat* flipper_format);

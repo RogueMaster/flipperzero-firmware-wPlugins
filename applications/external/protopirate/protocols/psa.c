@@ -1,4 +1,5 @@
 #include "psa.h"
+#include "protocols_common.h"
 
 #define TAG "PSAProtocol"
 
@@ -24,6 +25,10 @@ static const SubGhzBlockConst subghz_protocol_psa_const = {
 #define PSA_KEY2_BITS           0x50
 #define PSA_BUFFER_SIZE         48
 #define PSA_TE_LONG_300         0x12c
+#define PSA_UPLOAD_CAPACITY     325U
+_Static_assert(
+    PSA_UPLOAD_CAPACITY <= PP_SHARED_UPLOAD_CAPACITY,
+    "PSA_UPLOAD_CAPACITY exceeds shared upload slab");
 
 #define TEA_DELTA  0x9E3779B9U
 #define TEA_ROUNDS 32
@@ -135,7 +140,7 @@ struct SubGhzProtocolEncoderPSA {
 #endif
 const SubGhzProtocolDecoder subghz_protocol_psa_decoder = {
     .alloc = subghz_protocol_decoder_psa_alloc,
-    .free = subghz_protocol_decoder_psa_free,
+    .free = pp_decoder_free_default,
     .feed = subghz_protocol_decoder_psa_feed,
     .reset = subghz_protocol_decoder_psa_reset,
     .get_hash_data = subghz_protocol_decoder_psa_get_hash_data,
@@ -180,7 +185,6 @@ static uint8_t psa_calculate_tea_crc(uint32_t v0, uint32_t v1);
 static void psa_tea_encrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key);
 #endif
 static void psa_unpack_tea_result_to_buffer(uint8_t* buffer, uint32_t v0, uint32_t v1);
-static bool parse_hex_key_str(const char* str, uint64_t* out);
 
 #ifdef ENABLE_EMULATE_FEATURE
 static void psa_second_stage_xor_encrypt(uint8_t* buffer) {
@@ -371,9 +375,9 @@ static void psa_build_buffer_mode36(
 
     memset(buffer, 0, PSA_BUFFER_SIZE);
 
-    uint32_t v0 = ((instance->serial & 0xFFFFFF) << 8) | ((instance->counter >> 24) & 0xFF);
-    uint32_t v1 = ((instance->counter & 0xFFFFFF) << 8) | ((instance->button & 0xF) << 4) |
-                  (instance->crc & 0xFF);
+    uint32_t v0 = ((instance->serial & 0xFFFFFF) << 8) | ((instance->button & 0xF) << 4) |
+                  ((instance->counter >> 24) & 0xF);
+    uint32_t v1 = ((instance->counter & 0xFFFFFF) << 8) | (instance->crc & 0xFF);
 
     FURI_LOG_D(
         TAG, "Packed v0:0x%08lX v1:0x%08lX (before CRC)", (unsigned long)v0, (unsigned long)v1);
@@ -573,8 +577,7 @@ void* subghz_protocol_encoder_psa_alloc(SubGhzEnvironment* environment) {
         instance->base.protocol = &psa_protocol;
         instance->generic.protocol_name = instance->base.protocol->name;
 
-        instance->encoder.size_upload = 600;
-        instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
+        pp_encoder_buffer_ensure(instance, PSA_UPLOAD_CAPACITY);
         instance->encoder.repeat = 10;
         instance->encoder.front = 0;
         instance->encoder.is_running = false;
@@ -588,9 +591,6 @@ void subghz_protocol_encoder_psa_free(void* context) {
     furi_check(context);
     SubGhzProtocolEncoderPSA* instance = context;
 
-    if(instance->encoder.upload) {
-        free(instance->encoder.upload);
-    }
     free(instance);
 }
 
@@ -599,167 +599,52 @@ SubGhzProtocolStatus
     furi_check(context);
     SubGhzProtocolEncoderPSA* instance = context;
 
-    FURI_LOG_I(TAG, "=== ENCODER DESERIALIZE ===");
+    uint64_t key1 = 0;
+    if(!pp_flipper_read_hex_u64(flipper_format, FF_KEY, &key1)) {
+        return SubGhzProtocolStatusError;
+    }
+    instance->key1_low = (uint32_t)(key1 & 0xFFFFFFFFU);
+    instance->key1_high = (uint32_t)((key1 >> 32) & 0xFFFFFFFFU);
 
-    SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
-    FuriString* temp_str = furi_string_alloc();
-    uint8_t hex_buffer[8];
+    uint64_t key2 = 0;
+    if(!pp_flipper_read_hex_u64(flipper_format, "Key_2", &key2)) {
+        return SubGhzProtocolStatusError;
+    }
+    instance->key2_low = (uint32_t)(key2 & 0xFFFFFFFFU);
+    instance->validation_field = (uint16_t)(key2 & 0xFFFFU);
 
-    do {
-        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) {
-            if(!flipper_format_read_hex(flipper_format, "Key1", hex_buffer, 8)) {
-                FURI_LOG_E(TAG, "Failed to read Key1");
-                break;
-            }
-            instance->key1_low = ((uint32_t)hex_buffer[0] << 24) |
-                                 ((uint32_t)hex_buffer[1] << 16) | ((uint32_t)hex_buffer[2] << 8) |
-                                 (uint32_t)hex_buffer[3];
-            instance->key1_high = ((uint32_t)hex_buffer[4] << 24) |
-                                  ((uint32_t)hex_buffer[5] << 16) |
-                                  ((uint32_t)hex_buffer[6] << 8) | (uint32_t)hex_buffer[7];
-        } else {
-            const char* key_str = furi_string_get_cstr(temp_str);
-            uint64_t key1 = 0;
-            size_t str_len = strlen(key_str);
-            for(size_t i = 0; i < str_len && i < 16; i++) {
-                char c = key_str[i];
-                if(c == ' ') continue;
-                uint8_t nibble;
-                if(c >= '0' && c <= '9') {
-                    nibble = c - '0';
-                } else if(c >= 'A' && c <= 'F') {
-                    nibble = c - 'A' + 10;
-                } else if(c >= 'a' && c <= 'f') {
-                    nibble = c - 'a' + 10;
-                } else {
-                    break;
-                }
-                key1 = (key1 << 4) | nibble;
-            }
-            instance->key1_low = (uint32_t)(key1 & 0xFFFFFFFF);
-            instance->key1_high = (uint32_t)((key1 >> 32) & 0xFFFFFFFF);
-        }
+    uint32_t serial = UINT32_MAX;
+    uint32_t btn = UINT32_MAX;
+    uint32_t cnt = UINT32_MAX;
+    uint32_t type_val = UINT32_MAX;
+    pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, &type_val);
+    if(serial == UINT32_MAX || btn == UINT32_MAX || cnt == UINT32_MAX || type_val == UINT32_MAX) {
+        return SubGhzProtocolStatusError;
+    }
+    instance->serial = serial;
+    instance->counter = cnt;
+    instance->button = (uint8_t)(btn & 0xFFU);
+    instance->type = (uint8_t)(type_val & 0xFFU);
 
-        flipper_format_rewind(flipper_format);
-        if(flipper_format_read_string(flipper_format, "Key_2", temp_str)) {
-            const char* key2_str = furi_string_get_cstr(temp_str);
-            uint64_t key2 = 0;
-            size_t str_len = strlen(key2_str);
-            for(size_t i = 0; i < str_len && i < 16; i++) {
-                char c = key2_str[i];
-                if(c == ' ') continue;
-                uint8_t nibble;
-                if(c >= '0' && c <= '9') {
-                    nibble = c - '0';
-                } else if(c >= 'A' && c <= 'F') {
-                    nibble = c - 'A' + 10;
-                } else if(c >= 'a' && c <= 'f') {
-                    nibble = c - 'a' + 10;
-                } else {
-                    break;
-                }
-                key2 = (key2 << 4) | nibble;
-            }
-            instance->key2_low = (uint32_t)(key2 & 0xFFFFFFFF);
-            instance->validation_field = (uint16_t)(key2 & 0xFFFF);
-        } else {
-            uint32_t val_field_val;
-            if(flipper_format_read_uint32(flipper_format, "ValidationField", &val_field_val, 1)) {
-                instance->validation_field = (uint16_t)(val_field_val & 0xFFFF);
-                instance->key2_low = instance->validation_field;
-            } else {
-                uint8_t val_field[2];
-                if(flipper_format_read_hex(flipper_format, "ValidationField", val_field, 2)) {
-                    instance->validation_field = ((uint16_t)val_field[0] << 8) | val_field[1];
-                    instance->key2_low = instance->validation_field;
-                } else {
-                    FURI_LOG_E(TAG, "ValidationField not found");
-                    break;
-                }
-            }
-        }
+    uint32_t crc_val = 0;
+    flipper_format_rewind(flipper_format);
+    if(!flipper_format_read_uint32(flipper_format, "CRC", &crc_val, 1)) {
+        return SubGhzProtocolStatusError;
+    }
+    instance->crc = (uint16_t)(crc_val & 0xFFFFU);
 
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(flipper_format, "Serial", &instance->serial, 1)) {
-            FURI_LOG_E(TAG, "Serial not found");
-            break;
-        }
+    uint32_t seed_val = 0;
+    flipper_format_rewind(flipper_format);
+    if(!flipper_format_read_uint32(flipper_format, "Seed", &seed_val, 1)) {
+        return SubGhzProtocolStatusError;
+    }
+    instance->seed = (uint8_t)(seed_val & 0xFFU);
 
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(flipper_format, "Cnt", &instance->counter, 1)) {
-            FURI_LOG_E(TAG, "Counter not found");
-            break;
-        }
+    instance->mode = (instance->type == 0x36) ? 0x36 : 0x23;
 
-        flipper_format_rewind(flipper_format);
-        uint32_t btn_val = 0;
-        if(!flipper_format_read_uint32(flipper_format, "Btn", &btn_val, 1)) {
-            FURI_LOG_E(TAG, "Button not found");
-            break;
-        }
-        instance->button = (uint8_t)(btn_val & 0xFF);
-
-        flipper_format_rewind(flipper_format);
-        uint32_t type_val = 0;
-        if(!flipper_format_read_uint32(flipper_format, "Type", &type_val, 1)) {
-            FURI_LOG_E(TAG, "Type not found");
-            break;
-        }
-        instance->type = (uint8_t)(type_val & 0xFF);
-
-        flipper_format_rewind(flipper_format);
-        uint32_t crc_val = 0;
-        if(!flipper_format_read_uint32(flipper_format, "CRC", &crc_val, 1)) {
-            FURI_LOG_E(TAG, "CRC not found");
-            break;
-        }
-        instance->crc = (uint16_t)(crc_val & 0xFFFF);
-
-        flipper_format_rewind(flipper_format);
-        uint32_t seed_val = 0;
-        if(!flipper_format_read_uint32(flipper_format, "Seed", &seed_val, 1)) {
-            FURI_LOG_E(TAG, "Seed not found");
-            break;
-        }
-        instance->seed = (uint8_t)(seed_val & 0xFF);
-
-        instance->mode = instance->type;
-        if(instance->mode == 0x23 || instance->mode == 0) {
-            instance->mode = 0x23;
-        } else if(instance->mode == 0x36) {
-            instance->mode = 0x36;
-        } else {
-            instance->mode = 0x23;
-        }
-
-        FURI_LOG_I(TAG, "=== LOADED VALUES ===");
-        FURI_LOG_I(
-            TAG,
-            "Key1: %08lX%08lX",
-            (unsigned long)instance->key1_high,
-            (unsigned long)instance->key1_low);
-        FURI_LOG_I(
-            TAG,
-            "Key2: %04X (validation_field: %04X)",
-            (unsigned int)instance->key2_low,
-            (unsigned int)instance->validation_field);
-        FURI_LOG_I(
-            TAG,
-            "Serial: %06lX, Counter: %08lX, CRC: %02X, Button: %01X, Type/Mode: 0x%02X",
-            (unsigned long)instance->serial,
-            (unsigned long)instance->counter,
-            (unsigned int)instance->crc,
-            (unsigned int)instance->button,
-            (unsigned int)instance->mode);
-
-        psa_encoder_build_upload(instance);
-
-        instance->is_running = true;
-        ret = SubGhzProtocolStatusOk;
-    } while(false);
-
-    furi_string_free(temp_str);
-    return ret;
+    psa_encoder_build_upload(instance);
+    instance->is_running = true;
+    return SubGhzProtocolStatusOk;
 }
 
 void subghz_protocol_encoder_psa_stop(void* context) {
@@ -1136,43 +1021,18 @@ int32_t psa_brute_force_thread_entry(void* arg) {
     return 0;
 }
 
-static bool parse_hex_key_str(const char* str, uint64_t* out) {
-    *out = 0;
-    size_t len = str ? strlen(str) : 0;
-    if(len > 16) len = 16;
-    for(size_t i = 0; i < len; i++) {
-        char c = str[i];
-        if(c == ' ') continue;
-        uint8_t nibble;
-        if(c >= '0' && c <= '9')
-            nibble = c - '0';
-        else if(c >= 'A' && c <= 'F')
-            nibble = c - 'A' + 10;
-        else if(c >= 'a' && c <= 'f')
-            nibble = c - 'a' + 10;
-        else
-            return false;
-        *out = (*out << 4) | nibble;
-    }
-    return true;
-}
-
 bool psa_bf_state_from_flipper_format(PsaBfState* state, FlipperFormat* ff) {
     furi_check(state);
     furi_check(ff);
-    FuriString* temp = furi_string_alloc();
     bool ok = false;
     do {
-        flipper_format_rewind(ff);
-        if(!flipper_format_read_string(ff, "Key", temp)) break;
         uint64_t key1 = 0;
-        if(!parse_hex_key_str(furi_string_get_cstr(temp), &key1)) break;
+        if(!pp_flipper_read_hex_u64(ff, FF_KEY, &key1)) break;
         state->key1_low = (uint32_t)(key1 & 0xFFFFFFFF);
         state->key1_high = (uint32_t)((key1 >> 32) & 0xFFFFFFFF);
 
-        if(!flipper_format_read_string(ff, "Key_2", temp)) break;
         uint64_t key2 = 0;
-        if(!parse_hex_key_str(furi_string_get_cstr(temp), &key2)) break;
+        if(!pp_flipper_read_hex_u64(ff, "Key_2", &key2)) break;
         state->key2_low = (uint16_t)(key2 & 0xFFFF);
 
         state->cancel = 0;
@@ -1183,7 +1043,6 @@ bool psa_bf_state_from_flipper_format(PsaBfState* state, FlipperFormat* ff) {
         state->on_done_ctx = NULL;
         ok = true;
     } while(false);
-    furi_string_free(temp);
     return ok;
 }
 
@@ -1352,12 +1211,6 @@ void* subghz_protocol_decoder_psa_alloc(SubGhzEnvironment* environment) {
         instance->manchester_state = ManchesterStateMid1;
     }
     return instance;
-}
-
-void subghz_protocol_decoder_psa_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderPSA* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_psa_reset(void* context) {
@@ -1804,23 +1657,24 @@ SubGhzProtocolStatus subghz_protocol_decoder_psa_serialize(
 
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
     do {
-        if(!flipper_format_write_uint32(flipper_format, "Frequency", &preset->frequency, 1)) break;
-
-        if(!flipper_format_write_string_cstr(
-               flipper_format, "Preset", furi_string_get_cstr(preset->name)))
+        if(!flipper_format_write_uint32(flipper_format, FF_FREQUENCY, &preset->frequency, 1))
             break;
 
         if(!flipper_format_write_string_cstr(
-               flipper_format, "Protocol", instance->base.protocol->name))
+               flipper_format, FF_PRESET, furi_string_get_cstr(preset->name)))
+            break;
+
+        if(!flipper_format_write_string_cstr(
+               flipper_format, FF_PROTOCOL, instance->base.protocol->name))
             break;
 
         uint32_t bits = 128;
-        if(!flipper_format_write_uint32(flipper_format, "Bit", &bits, 1)) break;
+        if(!flipper_format_write_uint32(flipper_format, FF_BIT, &bits, 1)) break;
 
         char key1_str[20];
         uint64_t key1 = ((uint64_t)instance->key1_high << 32) | instance->key1_low;
         snprintf(key1_str, sizeof(key1_str), "%016llX", key1);
-        if(!flipper_format_write_string_cstr(flipper_format, "Key", key1_str)) break;
+        if(!flipper_format_write_string_cstr(flipper_format, FF_KEY, key1_str)) break;
 
         char key2_str[20];
         uint64_t key2 = ((uint64_t)instance->key2_high << 32) | instance->key2_low;
@@ -1831,18 +1685,16 @@ SubGhzProtocolStatus subghz_protocol_decoder_psa_serialize(
         flipper_format_write_uint32(flipper_format, "ValidationField", &val_field, 1);
 
         if(instance->decrypted == 0x50 && instance->decrypted_type != 0) {
-            flipper_format_write_uint32(flipper_format, "Serial", &instance->decrypted_serial, 1);
-
-            uint32_t btn_temp = instance->decrypted_button;
-            flipper_format_write_uint32(flipper_format, "Btn", &btn_temp, 1);
-
-            flipper_format_write_uint32(flipper_format, "Cnt", &instance->decrypted_counter, 1);
+            pp_serialize_fields(
+                flipper_format,
+                PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT | PP_FIELD_TYPE,
+                instance->decrypted_serial,
+                instance->decrypted_button,
+                instance->decrypted_counter,
+                instance->decrypted_type);
 
             uint32_t crc_temp = instance->decrypted_crc;
             flipper_format_write_uint32(flipper_format, "CRC", &crc_temp, 1);
-
-            uint32_t type_temp = instance->decrypted_type;
-            flipper_format_write_uint32(flipper_format, "Type", &type_temp, 1);
 
             flipper_format_write_uint32(flipper_format, "Seed", &instance->decrypted_seed, 1);
         }
@@ -1859,18 +1711,15 @@ SubGhzProtocolStatus
     SubGhzProtocolDecoderPSA* instance = context;
 
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
-    FuriString* temp_str = furi_string_alloc();
 
     do {
-        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) break;
         uint64_t key1 = 0;
-        if(!parse_hex_key_str(furi_string_get_cstr(temp_str), &key1)) break;
+        if(!pp_flipper_read_hex_u64(flipper_format, FF_KEY, &key1)) break;
         instance->key1_low = (uint32_t)(key1 & 0xFFFFFFFF);
         instance->key1_high = (uint32_t)((key1 >> 32) & 0xFFFFFFFF);
 
-        if(!flipper_format_read_string(flipper_format, "Key_2", temp_str)) break;
         uint64_t key2 = 0;
-        if(!parse_hex_key_str(furi_string_get_cstr(temp_str), &key2)) break;
+        if(!pp_flipper_read_hex_u64(flipper_format, "Key_2", &key2)) break;
         instance->key2_low = (uint32_t)(key2 & 0xFFFFFFFF);
         instance->key2_high = (uint32_t)((key2 >> 32) & 0xFFFFFFFF);
 
@@ -1880,8 +1729,6 @@ SubGhzProtocolStatus
 
         ret = SubGhzProtocolStatusOk;
     } while(false);
-
-    furi_string_free(temp_str);
     return ret;
 }
 

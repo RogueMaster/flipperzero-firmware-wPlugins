@@ -1,4 +1,5 @@
 #include "mazda_v0.h"
+#include "protocols_common.h"
 
 #include <string.h>
 
@@ -13,11 +14,14 @@ static const SubGhzBlockConst subghz_protocol_mazda_v0_const = {
     .min_count_bit_for_found = 64,
 };
 
-#define MAZDA_V0_UPLOAD_CAPACITY 0x184
-#define MAZDA_V0_GAP_US          0xCB20
-#define MAZDA_V0_SYNC_BYTE       0xD7
-#define MAZDA_V0_TAIL_BYTE       0x5A
-#define MAZDA_V0_PREAMBLE_ONES   16
+#define MAZDA_V0_UPLOAD_CAPACITY (((12U + 3U + 8U + 1U) * 16U) + 2U)
+_Static_assert(
+    MAZDA_V0_UPLOAD_CAPACITY <= PP_SHARED_UPLOAD_CAPACITY,
+    "MAZDA_V0_UPLOAD_CAPACITY exceeds shared upload slab");
+#define MAZDA_V0_GAP_US        0xCB20
+#define MAZDA_V0_SYNC_BYTE     0xD7
+#define MAZDA_V0_TAIL_BYTE     0x5A
+#define MAZDA_V0_PREAMBLE_ONES 16
 
 // =============================================================================
 // STRUCT DEFINITIONS
@@ -83,10 +87,10 @@ static SubGhzProtocolStatus mazda_v0_write_display(
 
 const SubGhzProtocolDecoder subghz_protocol_mazda_v0_decoder = {
     .alloc = subghz_protocol_decoder_mazda_v0_alloc,
-    .free = subghz_protocol_decoder_mazda_v0_free,
+    .free = pp_decoder_free_default,
     .feed = subghz_protocol_decoder_mazda_v0_feed,
     .reset = subghz_protocol_decoder_mazda_v0_reset,
-    .get_hash_data = subghz_protocol_decoder_mazda_v0_get_hash_data,
+    .get_hash_data = pp_decoder_hash_blocks,
     .serialize = subghz_protocol_decoder_mazda_v0_serialize,
     .deserialize = subghz_protocol_decoder_mazda_v0_deserialize,
     .get_string = subghz_protocol_decoder_mazda_v0_get_string,
@@ -95,10 +99,10 @@ const SubGhzProtocolDecoder subghz_protocol_mazda_v0_decoder = {
 #ifdef ENABLE_EMULATE_FEATURE
 const SubGhzProtocolEncoder subghz_protocol_mazda_v0_encoder = {
     .alloc = subghz_protocol_encoder_mazda_v0_alloc,
-    .free = subghz_protocol_encoder_mazda_v0_free,
+    .free = pp_encoder_free,
     .deserialize = subghz_protocol_encoder_mazda_v0_deserialize,
-    .stop = subghz_protocol_encoder_mazda_v0_stop,
-    .yield = subghz_protocol_encoder_mazda_v0_yield,
+    .stop = pp_encoder_stop,
+    .yield = pp_encoder_yield,
 };
 #else
 const SubGhzProtocolEncoder subghz_protocol_mazda_v0_encoder = {
@@ -122,31 +126,6 @@ const SubGhzProtocol mazda_v0_protocol = {
 // =============================================================================
 // HELPERS
 // =============================================================================
-
-static uint8_t mazda_v0_popcount8(uint8_t x) {
-    uint8_t count = 0;
-    while(x) {
-        count += x & 1;
-        x >>= 1;
-    }
-    return count;
-}
-
-static void mazda_v0_u64_to_bytes_be(uint64_t data, uint8_t bytes[8]) {
-    for(size_t i = 0; i < 8; i++) {
-        bytes[i] = (uint8_t)((data >> ((7 - i) * 8)) & 0xFF);
-    }
-}
-
-#ifdef ENABLE_EMULATE_FEATURE
-static uint64_t mazda_v0_bytes_to_u64_be(const uint8_t bytes[8]) {
-    uint64_t data = 0;
-    for(size_t i = 0; i < 8; i++) {
-        data = (data << 8) | bytes[i];
-    }
-    return data;
-}
-#endif
 
 static uint8_t mazda_v0_calculate_checksum(uint32_t serial, uint8_t button, uint32_t counter) {
     counter &= 0xFFFFFU;
@@ -188,9 +167,9 @@ static bool mazda_v0_get_event(uint32_t duration, bool level, ManchesterEvent* e
 
 static void mazda_v0_decode_key(SubGhzBlockGeneric* generic) {
     uint8_t data[8];
-    mazda_v0_u64_to_bytes_be(generic->data, data);
+    pp_u64_to_bytes_be(generic->data, data);
 
-    const bool parity = (mazda_v0_popcount8(data[7]) & 1) != 0;
+    const bool parity = subghz_protocol_blocks_parity8(data[7]) != 0;
     const uint8_t limit = parity ? 6 : 5;
     const uint8_t mask = data[limit];
 
@@ -232,7 +211,7 @@ static uint64_t mazda_v0_encode_key(uint32_t serial, uint8_t button, uint32_t co
     const uint8_t stored_5 = (data[6] & 0x55) | (data[5] & 0xAA);
     const uint8_t stored_6 = (data[6] & 0xAA) | (data[5] & 0x55);
     const uint8_t xor_mask = stored_5 ^ stored_6;
-    const bool replace_second = ((~mazda_v0_popcount8(data[7])) & 1) != 0;
+    const bool replace_second = subghz_protocol_blocks_parity8(data[7]) == 0;
     const uint8_t forward_mask = replace_second ? stored_5 : stored_6;
 
     data[5] = replace_second ? stored_5 : xor_mask;
@@ -242,7 +221,7 @@ static uint64_t mazda_v0_encode_key(uint32_t serial, uint8_t button, uint32_t co
         data[i] ^= forward_mask;
     }
 
-    return mazda_v0_bytes_to_u64_be(data);
+    return pp_bytes_to_u64_be(data);
 }
 
 static bool mazda_v0_encoder_add_level(
@@ -250,11 +229,9 @@ static bool mazda_v0_encoder_add_level(
     size_t* index,
     bool level,
     uint32_t duration) {
-    if(*index >= MAZDA_V0_UPLOAD_CAPACITY) {
-        return false;
-    }
-    instance->encoder.upload[(*index)++] = level_duration_make(level, duration);
-    return true;
+    size_t before = *index;
+    *index = pp_emit(instance->encoder.upload, before, MAZDA_V0_UPLOAD_CAPACITY, level, duration);
+    return *index > before;
 }
 
 static bool
@@ -262,28 +239,12 @@ static bool
     if(*index + 16 > MAZDA_V0_UPLOAD_CAPACITY) {
         return false;
     }
-
-    const uint32_t te = subghz_protocol_mazda_v0_const.te_short;
-
-    for(int8_t bit = 7; bit >= 0; bit--) {
-        const bool bit_value = ((value >> bit) & 1) != 0;
-        if(!bit_value) {
-            if(!mazda_v0_encoder_add_level(instance, index, false, te)) {
-                return false;
-            }
-            if(!mazda_v0_encoder_add_level(instance, index, true, te)) {
-                return false;
-            }
-        } else {
-            if(!mazda_v0_encoder_add_level(instance, index, true, te)) {
-                return false;
-            }
-            if(!mazda_v0_encoder_add_level(instance, index, false, te)) {
-                return false;
-            }
-        }
-    }
-
+    *index = pp_emit_byte_manchester(
+        instance->encoder.upload,
+        *index,
+        MAZDA_V0_UPLOAD_CAPACITY,
+        value,
+        subghz_protocol_mazda_v0_const.te_short);
     return true;
 }
 
@@ -336,17 +297,7 @@ static SubGhzProtocolStatus mazda_v0_write_display(
     FlipperFormat* flipper_format,
     const char* protocol_name,
     uint8_t button) {
-    SubGhzProtocolStatus status = SubGhzProtocolStatusOk;
-    FuriString* display = furi_string_alloc();
-
-    furi_string_printf(display, "%s - %s", protocol_name, mazda_v0_get_button_name(button));
-
-    if(!flipper_format_write_string_cstr(flipper_format, "Disp", furi_string_get_cstr(display))) {
-        status = SubGhzProtocolStatusErrorParserOthers;
-    }
-
-    furi_string_free(display);
-    return status;
+    return pp_write_display(flipper_format, protocol_name, mazda_v0_get_button_name(button));
 }
 
 // =============================================================================
@@ -363,20 +314,11 @@ void* subghz_protocol_encoder_mazda_v0_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &mazda_v0_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
     instance->encoder.repeat = 10;
-    instance->encoder.size_upload = 0;
     instance->encoder.front = 0;
     instance->encoder.is_running = false;
-    instance->encoder.upload = malloc(MAZDA_V0_UPLOAD_CAPACITY * sizeof(LevelDuration));
-    furi_check(instance->encoder.upload);
+    pp_encoder_buffer_ensure(instance, MAZDA_V0_UPLOAD_CAPACITY);
 
     return instance;
-}
-
-void subghz_protocol_encoder_mazda_v0_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderMazdaV0* instance = context;
-    free(instance->encoder.upload);
-    free(instance);
 }
 
 SubGhzProtocolStatus
@@ -387,25 +329,12 @@ SubGhzProtocolStatus
 
     instance->encoder.is_running = false;
     instance->encoder.front = 0;
-    instance->encoder.repeat = 10;
 
     do {
-        FuriString* temp_str = furi_string_alloc();
-        if(!temp_str) {
+        if(pp_verify_protocol_name(flipper_format, instance->base.protocol->name) !=
+           SubGhzProtocolStatusOk) {
             break;
         }
-
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_string(flipper_format, "Protocol", temp_str)) {
-            furi_string_free(temp_str);
-            break;
-        }
-
-        if(!furi_string_equal(temp_str, instance->base.protocol->name)) {
-            furi_string_free(temp_str);
-            break;
-        }
-        furi_string_free(temp_str);
 
         flipper_format_rewind(flipper_format);
         SubGhzProtocolStatus load_st = subghz_block_generic_deserialize_check_count_bit(
@@ -418,32 +347,15 @@ SubGhzProtocolStatus
 
         mazda_v0_decode_key(&instance->generic);
 
-        uint32_t u32 = 0;
+        uint32_t serial = instance->generic.serial;
+        uint32_t btn = instance->generic.btn;
+        uint32_t cnt = instance->generic.cnt;
+        pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+        instance->generic.serial = serial;
+        instance->generic.btn = (uint8_t)btn & 0x0FU;
+        instance->generic.cnt = cnt & 0xFFFFFU;
 
-        flipper_format_rewind(flipper_format);
-        if(flipper_format_read_uint32(flipper_format, "Serial", &u32, 1)) {
-            instance->generic.serial = u32;
-        }
-        flipper_format_rewind(flipper_format);
-        if(flipper_format_read_uint32(flipper_format, "Btn", &u32, 1)) {
-            instance->generic.btn = (uint8_t)u32;
-        }
-        flipper_format_rewind(flipper_format);
-        if(flipper_format_read_uint32(flipper_format, "Cnt", &u32, 1)) {
-            instance->generic.cnt = u32;
-        }
-
-        instance->serial = instance->generic.serial;
-        instance->button = instance->generic.btn;
-        instance->count = instance->generic.cnt;
-
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(
-               flipper_format, "Repeat", (uint32_t*)&instance->encoder.repeat, 1)) {
-            instance->encoder.repeat = 10;
-        }
-        instance->generic.btn &= 0x0FU;
-        instance->generic.cnt &= 0xFFFFFU;
+        instance->encoder.repeat = pp_encoder_read_repeat(flipper_format, 10);
 
         instance->generic.data = mazda_v0_encode_key(
             instance->generic.serial, instance->generic.btn, instance->generic.cnt);
@@ -456,15 +368,14 @@ SubGhzProtocolStatus
         if(!mazda_v0_build_upload(instance)) {
             break;
         }
-
         if(instance->encoder.size_upload == 0) {
             break;
         }
 
         flipper_format_rewind(flipper_format);
         uint8_t key_data[sizeof(uint64_t)];
-        mazda_v0_u64_to_bytes_be(instance->generic.data, key_data);
-        if(!flipper_format_update_hex(flipper_format, "Key", key_data, sizeof(key_data))) {
+        pp_u64_to_bytes_be(instance->generic.data, key_data);
+        if(!flipper_format_update_hex(flipper_format, FF_KEY, key_data, sizeof(key_data))) {
             break;
         }
 
@@ -481,30 +392,6 @@ SubGhzProtocolStatus
     return ret;
 }
 
-void subghz_protocol_encoder_mazda_v0_stop(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderMazdaV0* instance = context;
-    instance->encoder.is_running = false;
-}
-
-LevelDuration subghz_protocol_encoder_mazda_v0_yield(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderMazdaV0* instance = context;
-
-    if(!instance->encoder.is_running || instance->encoder.repeat == 0) {
-        instance->encoder.is_running = false;
-        return level_duration_reset();
-    }
-
-    LevelDuration out = instance->encoder.upload[instance->encoder.front];
-
-    if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
-        instance->encoder.front = 0;
-    }
-
-    return out;
-}
 #endif
 
 // =============================================================================
@@ -521,12 +408,6 @@ void* subghz_protocol_decoder_mazda_v0_alloc(SubGhzEnvironment* environment) {
     instance->generic.protocol_name = instance->base.protocol->name;
 
     return instance;
-}
-
-void subghz_protocol_decoder_mazda_v0_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderMazdaV0* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_mazda_v0_reset(void* context) {
@@ -629,13 +510,6 @@ void subghz_protocol_decoder_mazda_v0_feed(void* context, bool level, uint32_t d
     }
 }
 
-uint8_t subghz_protocol_decoder_mazda_v0_get_hash_data(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderMazdaV0* instance = context;
-    return subghz_protocol_blocks_get_hash_data(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
-}
-
 SubGhzProtocolStatus subghz_protocol_decoder_mazda_v0_serialize(
     void* context,
     FlipperFormat* flipper_format,
@@ -656,12 +530,13 @@ SubGhzProtocolStatus subghz_protocol_decoder_mazda_v0_serialize(
             mazda_v0_calculate_checksum(instance->serial, instance->button, instance->count);
         flipper_format_write_uint32(flipper_format, "Checksum", &chk, 1);
 
-        flipper_format_write_uint32(flipper_format, "Serial", &instance->serial, 1);
-
-        uint32_t temp = instance->button;
-        flipper_format_write_uint32(flipper_format, "Btn", &temp, 1);
-
-        flipper_format_write_uint32(flipper_format, "Cnt", &instance->count, 1);
+        pp_serialize_fields(
+            flipper_format,
+            PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT,
+            instance->serial,
+            instance->button,
+            instance->count,
+            0);
 
         ret = mazda_v0_write_display(
             flipper_format, instance->generic.protocol_name, instance->button);
@@ -681,17 +556,15 @@ SubGhzProtocolStatus
         subghz_protocol_mazda_v0_const.min_count_bit_for_found);
 
     if(ret == SubGhzProtocolStatusOk) {
-        flipper_format_rewind(flipper_format);
-
-        flipper_format_read_uint32(flipper_format, "Serial", &instance->serial, 1);
+        uint32_t serial = instance->serial;
+        uint32_t btn = instance->button;
+        uint32_t cnt = instance->count;
+        pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+        instance->serial = serial;
+        instance->button = (uint8_t)btn;
+        instance->count = cnt;
         instance->generic.serial = instance->serial;
-
-        uint32_t btn_temp = 0;
-        flipper_format_read_uint32(flipper_format, "Btn", &btn_temp, 1);
-        instance->button = (uint8_t)btn_temp;
         instance->generic.btn = instance->button;
-
-        flipper_format_read_uint32(flipper_format, "Cnt", &instance->count, 1);
         instance->generic.cnt = instance->count;
     }
 

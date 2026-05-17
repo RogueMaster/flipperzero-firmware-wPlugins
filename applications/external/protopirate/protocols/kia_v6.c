@@ -1,5 +1,6 @@
 #include "kia_v6.h"
 #include "../protopirate_app_i.h"
+#include "protocols_common.h"
 #include "keys.h"
 #include <furi.h>
 #include <string.h>
@@ -104,7 +105,7 @@ typedef enum {
 
 const SubGhzProtocolDecoder kia_protocol_v6_decoder = {
     .alloc = kia_protocol_decoder_v6_alloc,
-    .free = kia_protocol_decoder_v6_free,
+    .free = pp_decoder_free_default,
     .feed = kia_protocol_decoder_v6_feed,
     .reset = kia_protocol_decoder_v6_reset,
     .get_hash_data = kia_protocol_decoder_v6_get_hash_data,
@@ -116,10 +117,10 @@ const SubGhzProtocolDecoder kia_protocol_v6_decoder = {
 #ifdef ENABLE_EMULATE_FEATURE
 const SubGhzProtocolEncoder kia_protocol_v6_encoder = {
     .alloc = kia_protocol_encoder_v6_alloc,
-    .free = kia_protocol_encoder_v6_free,
+    .free = pp_encoder_free,
     .deserialize = kia_protocol_encoder_v6_deserialize,
-    .stop = kia_protocol_encoder_v6_stop,
-    .yield = kia_protocol_encoder_v6_yield,
+    .stop = pp_encoder_stop,
+    .yield = pp_encoder_yield,
 };
 #else
 const SubGhzProtocolEncoder kia_protocol_v6_encoder = {
@@ -140,22 +141,7 @@ const SubGhzProtocol kia_protocol_v6 = {
     .encoder = &kia_protocol_v6_encoder,
 };
 
-static uint8_t kia_v6_crc8(uint8_t* data, int len, uint8_t init, uint8_t polynomial) {
-    uint8_t crc = init;
-    uint8_t* pbVar3 = data;
-    while(pbVar3 != data + len) {
-        crc = crc ^ *pbVar3;
-        for(int j = 8; j > 0; j--) {
-            uint8_t bVar1 = (uint8_t)(crc << 1);
-            if((crc & 0x80) != 0) {
-                bVar1 = bVar1 ^ polynomial;
-            }
-            crc = bVar1;
-        }
-        pbVar3++;
-    }
-    return crc;
-}
+#define kia_v6_crc8(data, len) subghz_protocol_blocks_crc8((data), (len), 0x07, 0xFF)
 
 static uint8_t gf_mul2(uint8_t x) {
     return ((x >> 7) * 0x1b) ^ (x << 1);
@@ -287,7 +273,7 @@ static void aes128_encrypt(const uint8_t* expanded_key, uint8_t* data) {
     aes_addroundkey(state, &expanded_key[160]);
     memcpy(data, state, 16);
 }
-#endif // ENABLE_EMULATE_FEATURE
+#endif
 
 static void aes_key_expansion(const uint8_t* key, uint8_t* round_keys) {
     for(int i = 0; i < 16; i++) {
@@ -395,7 +381,7 @@ static void kia_v6_encrypt_payload(
     plain[10] = (cnt >> 8) & 0xFF;
     plain[11] = cnt & 0xFF;
     plain[12] = aes_sbox[cnt & 0xFF];
-    plain[15] = kia_v6_crc8(plain, 15, 0xFF, 0x07);
+    plain[15] = kia_v6_crc8(plain, 15);
 
     uint8_t aes_key[16];
     get_kia_v6_aes_key(aes_key);
@@ -447,15 +433,13 @@ static bool kia_v6_decrypt(SubGhzProtocolDecoderKiaV6* instance) {
 
     uint8_t aes_key[16];
     get_kia_v6_aes_key(aes_key);
-
     uint8_t expanded_key[176];
     aes_key_expansion(aes_key, expanded_key);
-
     aes128_decrypt(expanded_key, encrypted_data);
 
     uint8_t* decrypted = encrypted_data;
 
-    uint8_t calculated_crc = kia_v6_crc8(decrypted, 15, 0xFF, 0x07);
+    uint8_t calculated_crc = kia_v6_crc8(decrypted, 15);
     uint8_t stored_crc = decrypted[15];
 
     // Serial: bytes 4-6 as 24-bit big-endian
@@ -481,12 +465,6 @@ void* kia_protocol_decoder_v6_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &kia_protocol_v6;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
-}
-
-void kia_protocol_decoder_v6_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderKiaV6* instance = context;
-    free(instance);
 }
 
 void kia_protocol_decoder_v6_reset(void* context) {
@@ -694,33 +672,34 @@ SubGhzProtocolStatus kia_protocol_decoder_v6_serialize(
 
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
     do {
-        if(!flipper_format_write_uint32(flipper_format, "Frequency", &preset->frequency, 1)) break;
-
-        if(!flipper_format_write_string_cstr(
-               flipper_format, "Preset", furi_string_get_cstr(preset->name)))
+        if(!flipper_format_write_uint32(flipper_format, FF_FREQUENCY, &preset->frequency, 1))
             break;
 
         if(!flipper_format_write_string_cstr(
-               flipper_format, "Protocol", instance->generic.protocol_name))
+               flipper_format, FF_PRESET, furi_string_get_cstr(preset->name)))
+            break;
+
+        if(!flipper_format_write_string_cstr(
+               flipper_format, FF_PROTOCOL, instance->generic.protocol_name))
             break;
 
         uint32_t bits = kia_protocol_v6_const.min_count_bit_for_found;
-        if(!flipper_format_write_uint32(flipper_format, "Bit", &bits, 1)) break;
+        if(!flipper_format_write_uint32(flipper_format, FF_BIT, &bits, 1)) break;
 
         uint64_t key_data = ((uint64_t)instance->stored_part1_high << 32) |
                             instance->stored_part1_low;
         char key_str[20];
         snprintf(key_str, sizeof(key_str), "%016llX", key_data);
-        if(!flipper_format_write_string_cstr(flipper_format, "Key", key_str)) break;
+        if(!flipper_format_write_string_cstr(flipper_format, FF_KEY, key_str)) break;
 
-        uint32_t serial = instance->generic.serial;
-        if(!flipper_format_write_uint32(flipper_format, "Serial", &serial, 1)) break;
-
-        uint32_t btn = instance->generic.btn;
-        if(!flipper_format_write_uint32(flipper_format, "Btn", &btn, 1)) break;
-
-        uint32_t cnt = instance->generic.cnt;
-        if(!flipper_format_write_uint32(flipper_format, "Cnt", &cnt, 1)) break;
+        if(pp_serialize_fields(
+               flipper_format,
+               PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT,
+               instance->generic.serial,
+               instance->generic.btn,
+               instance->generic.cnt,
+               0) != SubGhzProtocolStatusOk)
+            break;
 
         uint32_t key2_low = instance->stored_part2_low;
         if(!flipper_format_write_uint32(flipper_format, "Key_2", &key2_low, 1)) break;
@@ -752,37 +731,7 @@ SubGhzProtocolStatus
             break;
         }
 
-        FuriString* temp_str = furi_string_alloc();
-
-        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) {
-            furi_string_free(temp_str);
-            break;
-        }
-
-        const char* key_str = furi_string_get_cstr(temp_str);
-        uint64_t key = 0;
-        size_t str_len = strlen(key_str);
-        size_t hex_pos = 0;
-
-        for(size_t i = 0; i < str_len && hex_pos < 16; i++) {
-            char c = key_str[i];
-            if(c == ' ') continue;
-
-            uint8_t nibble;
-            if(c >= '0' && c <= '9') {
-                nibble = c - '0';
-            } else if(c >= 'A' && c <= 'F') {
-                nibble = c - 'A' + 10;
-            } else if(c >= 'a' && c <= 'f') {
-                nibble = c - 'a' + 10;
-            } else {
-                furi_string_free(temp_str);
-                break;
-            }
-
-            key = (key << 4) | nibble;
-            hex_pos++;
-        }
+        uint64_t key = instance->generic.data;
 
         instance->stored_part1_low = (uint32_t)(key & 0xFFFFFFFF);
         instance->stored_part1_high = (uint32_t)((key >> 32) & 0xFFFFFFFF);
@@ -798,20 +747,17 @@ SubGhzProtocolStatus
             instance->data_part3 = (uint16_t)temp;
         }
 
-        if(flipper_format_read_uint32(flipper_format, "Serial", &temp, 1)) {
-            instance->generic.serial = temp;
-        }
-        if(flipper_format_read_uint32(flipper_format, "Btn", &temp, 1)) {
-            instance->generic.btn = (uint8_t)temp;
-        }
-        if(flipper_format_read_uint32(flipper_format, "Cnt", &temp, 1)) {
-            instance->generic.cnt = (uint16_t)temp;
-        }
+        uint32_t serial = instance->generic.serial;
+        uint32_t btn = instance->generic.btn;
+        uint32_t cnt = instance->generic.cnt;
+        pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+        instance->generic.serial = serial;
+        instance->generic.btn = (uint8_t)btn;
+        instance->generic.cnt = (uint16_t)cnt;
         if(flipper_format_read_uint32(flipper_format, "Fx", &temp, 1)) {
             instance->fx_field = (uint8_t)temp;
         }
 
-        furi_string_free(temp_str);
         ret = SubGhzProtocolStatusOk;
     } while(false);
 
@@ -868,6 +814,9 @@ void kia_protocol_decoder_v6_get_string(void* context, FuriString* output) {
 #define KIA_V6_TE_SHORT         200
 #define KIA_V6_TE_LONG          400
 #define KIA_V6_UPLOAD_SIZE      1928
+_Static_assert(
+    KIA_V6_UPLOAD_SIZE <= PP_SHARED_UPLOAD_CAPACITY,
+    "KIA_V6_UPLOAD_SIZE exceeds shared upload slab");
 
 static inline void
     kia_v6_encode_manchester_bit(LevelDuration* upload, size_t* index, bool bit, uint32_t te) {
@@ -980,126 +929,52 @@ void* kia_protocol_encoder_v6_alloc(SubGhzEnvironment* environment) {
     memset(instance, 0, sizeof(SubGhzProtocolEncoderKiaV6));
     instance->base.protocol = &kia_protocol_v6;
     instance->generic.protocol_name = instance->base.protocol->name;
-    instance->encoder.size_upload = 2000;
-    instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
-    if(!instance->encoder.upload) {
-        free(instance);
-        return NULL;
-    }
+    pp_encoder_buffer_ensure(instance, KIA_V6_UPLOAD_SIZE);
     instance->encoder.repeat = 10;
     instance->encoder.front = 0;
     instance->encoder.is_running = false;
     return instance;
 }
 
-void kia_protocol_encoder_v6_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderKiaV6* instance = context;
-    if(instance->encoder.upload) {
-        free(instance->encoder.upload);
-    }
-    free(instance);
-}
-
 SubGhzProtocolStatus
     kia_protocol_encoder_v6_deserialize(void* context, FlipperFormat* flipper_format) {
     furi_check(context);
     SubGhzProtocolEncoderKiaV6* instance = context;
-    SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
-    FuriString* temp_str = furi_string_alloc();
 
     instance->encoder.is_running = false;
     instance->encoder.front = 0;
-    instance->encoder.repeat = 10;
     instance->generic.data_count_bit = kia_protocol_v6_const.min_count_bit_for_found;
 
+    if(pp_verify_protocol_name(flipper_format, instance->base.protocol->name) !=
+       SubGhzProtocolStatusOk) {
+        return SubGhzProtocolStatusError;
+    }
+
+    uint32_t serial = 0;
+    uint32_t btn = UINT32_MAX;
+    uint32_t cnt = UINT32_MAX;
+    pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+    if(btn == UINT32_MAX || cnt == UINT32_MAX) {
+
+        return SubGhzProtocolStatusError;
+    }
+    instance->generic.serial = serial;
+    instance->generic.btn = (uint8_t)(btn & 0x0F);
+    instance->generic.cnt = cnt;
+
+    uint32_t fx_temp = 0;
     flipper_format_rewind(flipper_format);
-
-    do {
-        if(!flipper_format_read_string(flipper_format, "Protocol", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Protocol");
-            break;
-        }
-        if(!furi_string_equal(temp_str, instance->base.protocol->name)) {
-            FURI_LOG_E(TAG, "Wrong protocol: %s", furi_string_get_cstr(temp_str));
-            break;
-        }
-
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(flipper_format, "Serial", &instance->generic.serial, 1)) {
-            FURI_LOG_E(TAG, "Missing Serial");
-            break;
-        }
-        flipper_format_rewind(flipper_format);
-        uint32_t btn_temp;
-        if(!flipper_format_read_uint32(flipper_format, "Btn", &btn_temp, 1)) {
-            FURI_LOG_E(TAG, "Missing Btn");
-            break;
-        }
-        instance->generic.btn = (uint8_t)(btn_temp & 0x0F);
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(flipper_format, "Cnt", &instance->generic.cnt, 1)) {
-            FURI_LOG_E(TAG, "Missing Cnt");
-            break;
-        }
-
-        flipper_format_rewind(flipper_format);
-        uint32_t fx_temp = 0;
-        if(flipper_format_read_uint32(flipper_format, "Fx", &fx_temp, 1)) {
-            instance->fx_field = (uint8_t)(fx_temp & 0xFF);
-        } else {
-            FURI_LOG_W(TAG, "Missing Fx field, defaulting to 0");
-            instance->fx_field = 0;
-        }
-
-        flipper_format_rewind(flipper_format);
-        uint32_t repeat_val;
-        if(flipper_format_read_uint32(flipper_format, "Repeat", &repeat_val, 1)) {
-            instance->encoder.repeat = (int32_t)(repeat_val & 0x7FFFFFFF);
-        }
-
-#ifndef REMOVE_LOGS
-        FURI_LOG_I(
-            TAG,
-            "Encoder deserialize read: Fx=0x%02X Serial=0x%06lX Btn=%u Cnt=0x%08lX Repeat=%ld",
-            (unsigned int)instance->fx_field,
-            (unsigned long)instance->generic.serial,
-            (unsigned int)(instance->generic.btn & 0x0F),
-            (unsigned long)instance->generic.cnt,
-            (long)instance->encoder.repeat);
-#endif
-
-        kia_protocol_encoder_v6_build_upload(instance);
-        instance->encoder.is_running = true;
-        ret = SubGhzProtocolStatusOk;
-    } while(false);
-
-    furi_string_free(temp_str);
-    return ret;
-}
-
-void kia_protocol_encoder_v6_stop(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderKiaV6* instance = context;
-    instance->encoder.is_running = false;
-}
-
-LevelDuration kia_protocol_encoder_v6_yield(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderKiaV6* instance = context;
-
-    if(!instance->encoder.is_running || instance->encoder.repeat <= 0) {
-        instance->encoder.is_running = false;
-        return level_duration_reset();
+    if(flipper_format_read_uint32(flipper_format, "Fx", &fx_temp, 1)) {
+        instance->fx_field = (uint8_t)(fx_temp & 0xFF);
+    } else {
+        instance->fx_field = 0;
     }
 
-    LevelDuration ret = instance->encoder.upload[instance->encoder.front];
-    instance->encoder.front++;
-    if(instance->encoder.front >= instance->encoder.size_upload) {
-        instance->encoder.repeat--;
-        instance->encoder.front = 0;
-    }
-    return ret;
+    instance->encoder.repeat = (int32_t)(pp_encoder_read_repeat(flipper_format, 10) & 0x7FFFFFFF);
+
+    kia_protocol_encoder_v6_build_upload(instance);
+    instance->encoder.is_running = true;
+    return SubGhzProtocolStatusOk;
 }
 
-#endif
+#endif // ENABLE_EMULATE_FEATURE

@@ -44,12 +44,7 @@ void protopirate_history_get_text_item_detail(
     uint16_t idx,
     FuriString* output,
     SubGhzEnvironment* environment);
-SubGhzProtocolDecoderBase*
-    protopirate_history_get_decoder_base(ProtoPirateHistory* instance, uint16_t idx);
-
 FlipperFormat* protopirate_history_get_raw_data(ProtoPirateHistory* instance, uint16_t idx);
-
-void protopirate_history_commit_loaded(ProtoPirateHistory* instance);
 
 void protopirate_history_release_scratch(ProtoPirateHistory* instance);
 

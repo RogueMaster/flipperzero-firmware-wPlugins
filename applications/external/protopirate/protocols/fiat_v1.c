@@ -1,4 +1,5 @@
 #include "fiat_v1.h"
+#include "protocols_common.h"
 #include <string.h>
 
 #define TAG "FiatProtocolV1"
@@ -34,16 +35,7 @@
 #define FIAT_MARELLI_RETX_SYNC_MAX       2800
 #define FIAT_MARELLI_TE_TYPE_AB_BOUNDARY 180
 
-static uint8_t fiat_marelli_crc8(const uint8_t* data, size_t len) {
-    uint8_t crc = 0x03;
-    for(size_t i = 0; i < len; i++) {
-        crc ^= data[i];
-        for(uint8_t b = 0; b < 8; b++) {
-            crc = (crc & 0x80) ? ((crc << 1) ^ 0x01) : (crc << 1);
-        }
-    }
-    return crc;
-}
+#define fiat_marelli_crc8(data, len) subghz_protocol_blocks_crc8((data), (len), 0x01, 0x03)
 
 static const SubGhzBlockConst subghz_protocol_fiat_marelli_const = {
     .te_short = 260,
@@ -218,7 +210,7 @@ static const char* fiat_marelli_button_name(uint8_t btn) {
 
 const SubGhzProtocolDecoder subghz_protocol_fiat_marelli_decoder = {
     .alloc = subghz_protocol_decoder_fiat_marelli_alloc,
-    .free = subghz_protocol_decoder_fiat_marelli_free,
+    .free = pp_decoder_free_default,
     .feed = subghz_protocol_decoder_fiat_marelli_feed,
     .reset = subghz_protocol_decoder_fiat_marelli_reset,
     .get_hash_data = subghz_protocol_decoder_fiat_marelli_get_hash_data,
@@ -254,12 +246,6 @@ void* subghz_protocol_decoder_fiat_marelli_alloc(SubGhzEnvironment* environment)
     return instance;
 }
 
-void subghz_protocol_decoder_fiat_marelli_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderFiatMarelli* instance = context;
-    free(instance);
-}
-
 void subghz_protocol_decoder_fiat_marelli_reset(void* context) {
     furi_check(context);
     SubGhzProtocolDecoderFiatMarelli* instance = context;
@@ -287,7 +273,6 @@ void subghz_protocol_decoder_fiat_marelli_feed(void* context, bool level, uint32
     uint32_t te_long = te_short * 2;
     uint32_t te_delta = te_short / 2;
     if(te_delta < 30) te_delta = 30;
-    uint32_t diff;
 
     switch(instance->decoder_state) {
     case FiatMarelliDecoderStepReset:
@@ -345,18 +330,14 @@ void subghz_protocol_decoder_fiat_marelli_feed(void* context, bool level, uint32
     }
 
     case FiatMarelliDecoderStepData: {
-        ManchesterEvent event = ManchesterEventReset;
         bool frame_complete = false;
-
-        diff = (duration > te_short) ? (duration - te_short) : (te_short - duration);
-        if(diff < te_delta) {
-            event = level ? ManchesterEventShortLow : ManchesterEventShortHigh;
-        } else {
-            diff = (duration > te_long) ? (duration - te_long) : (te_long - duration);
-            if(diff < te_delta) {
-                event = level ? ManchesterEventLongLow : ManchesterEventLongHigh;
-            }
-        }
+        const SubGhzBlockConst fiat_v1_dyn = {
+            .te_short = (uint16_t)te_short,
+            .te_long = (uint16_t)te_long,
+            .te_delta = (uint16_t)te_delta,
+            .min_count_bit_for_found = 0,
+        };
+        ManchesterEvent event = pp_manchester_event(duration, level, &fiat_v1_dyn);
 
         if(event != ManchesterEventReset) {
             bool data_bit = false;
@@ -464,6 +445,10 @@ SubGhzProtocolStatus subghz_protocol_decoder_fiat_marelli_serialize(
 
         uint32_t te = instance->te_detected;
         flipper_format_write_uint32(flipper_format, "TE", &te, 1);
+
+        pp_flipper_update_or_insert_u32(flipper_format, FF_SERIAL, instance->generic.serial);
+        pp_flipper_update_or_insert_u32(flipper_format, FF_BTN, instance->generic.btn);
+        pp_flipper_update_or_insert_u32(flipper_format, FF_CNT, instance->generic.cnt);
     }
     return ret;
 }

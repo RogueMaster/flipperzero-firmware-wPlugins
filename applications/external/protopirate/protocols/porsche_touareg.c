@@ -1,4 +1,5 @@
 #include "porsche_touareg.h"
+#include "protocols_common.h"
 #include <string.h>
 
 // Original implementation by @lupettohf
@@ -136,7 +137,7 @@ static void porsche_cayenne_publish_frame(SubGhzProtocolDecoderPorscheCayenne* i
 
 const SubGhzProtocolDecoder subghz_protocol_porsche_cayenne_decoder = {
     .alloc = subghz_protocol_decoder_porsche_cayenne_alloc,
-    .free = subghz_protocol_decoder_porsche_cayenne_free,
+    .free = pp_decoder_free_default,
     .feed = subghz_protocol_decoder_porsche_cayenne_feed,
     .reset = subghz_protocol_decoder_porsche_cayenne_reset,
     .get_hash_data = subghz_protocol_decoder_porsche_cayenne_get_hash_data,
@@ -170,12 +171,6 @@ void* subghz_protocol_decoder_porsche_cayenne_alloc(SubGhzEnvironment* environme
     instance->base.protocol = &porsche_touareg_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
-}
-
-void subghz_protocol_decoder_porsche_cayenne_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderPorscheCayenne* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_porsche_cayenne_reset(void* context) {
@@ -299,12 +294,13 @@ SubGhzProtocolStatus subghz_protocol_decoder_porsche_cayenne_serialize(
     SubGhzProtocolStatus ret =
         subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
     if(ret == SubGhzProtocolStatusOk) {
-        uint32_t serial = instance->generic.serial & 0xFFFFFF;
-        flipper_format_write_uint32(flipper_format, "Serial", &serial, 1);
-        uint32_t cnt = instance->generic.cnt;
-        flipper_format_write_uint32(flipper_format, "Cnt", &cnt, 1);
-        uint32_t btn = instance->generic.btn;
-        flipper_format_write_uint32(flipper_format, "Btn", &btn, 1);
+        pp_serialize_fields(
+            flipper_format,
+            PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT,
+            instance->generic.serial & 0xFFFFFF,
+            instance->generic.btn,
+            instance->generic.cnt,
+            0);
     }
 
     return ret;
@@ -325,17 +321,17 @@ SubGhzProtocolStatus subghz_protocol_decoder_porsche_cayenne_deserialize(
         porsche_cayenne_parse_data(instance);
 
         uint32_t serial = 0;
-        if(flipper_format_read_uint32(flipper_format, "Serial", &serial, 1)) {
+        if(flipper_format_read_uint32(flipper_format, FF_SERIAL, &serial, 1)) {
             instance->generic.serial = serial & 0xFFFFFF;
         }
 
         uint32_t cnt = 0;
-        if(flipper_format_read_uint32(flipper_format, "Cnt", &cnt, 1)) {
+        if(flipper_format_read_uint32(flipper_format, FF_CNT, &cnt, 1)) {
             instance->generic.cnt = cnt;
         }
 
         uint32_t btn = 0;
-        if(flipper_format_read_uint32(flipper_format, "Btn", &btn, 1)) {
+        if(flipper_format_read_uint32(flipper_format, FF_BTN, &btn, 1)) {
             instance->generic.btn = (uint8_t)btn;
         }
     }

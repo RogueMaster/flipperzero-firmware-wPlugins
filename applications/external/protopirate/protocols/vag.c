@@ -1,40 +1,24 @@
 #include "vag.h"
 #include "aut64.h"
+#include "protocols_common.h"
 #include <string.h>
 #include <lib/subghz/subghz_keystore.h>
 
 #define TAG "VAGProtocol"
 
-#define VAG_ENCODER_UPLOAD_MAX_SIZE 680
-// uncomment to enable
-//#define VAG_CHECK_UPLOAD_OVERFLOW
+#define VAG_ENCODER_UPLOAD_TYPE12_SIZE 635
+#define VAG_ENCODER_UPLOAD_TYPE34_SIZE 518
+#define VAG_ENCODER_UPLOAD_MAX_SIZE    VAG_ENCODER_UPLOAD_TYPE12_SIZE
+_Static_assert(
+    VAG_ENCODER_UPLOAD_MAX_SIZE <= PP_SHARED_UPLOAD_CAPACITY,
+    "VAG_ENCODER_UPLOAD_MAX_SIZE exceeds shared upload slab");
 
-/* Manchester emit helper: one bit -> two half-bits */
-#define VAG_EMIT_MANCHESTER(u, idx, bit, te)                 \
-    do {                                                     \
-        if(bit) {                                            \
-            (u)[(idx)++] = level_duration_make(true, (te));  \
-            (u)[(idx)++] = level_duration_make(false, (te)); \
-        } else {                                             \
-            (u)[(idx)++] = level_duration_make(false, (te)); \
-            (u)[(idx)++] = level_duration_make(true, (te));  \
-        }                                                    \
-    } while(0)
-
-#ifdef VAG_CHECK_UPLOAD_OVERFLOW
-/* Guard against upload buffer overflow; set size_upload=0 on failure */
-#define VAG_UPLOAD_NEED(inst, idx, need)                                                    \
-    do {                                                                                    \
-        if(((idx) + (need)) > VAG_ENCODER_UPLOAD_MAX_SIZE) {                                \
-            FURI_LOG_E(                                                                     \
-                TAG, "Upload overflow (need=%u idx=%zu)", (unsigned)(need), (size_t)(idx)); \
-            (inst)->size_upload = 0;                                                        \
-            return;                                                                         \
-        }                                                                                   \
-    } while(0)
-#else
-#define VAG_UPLOAD_NEED(inst, idx, need)
-#endif
+static inline size_t
+    vag_emit_manchester_inv(LevelDuration* up, size_t i, size_t cap, bool bit_value, uint32_t te) {
+    i = pp_emit(up, i, cap, bit_value, te);
+    i = pp_emit(up, i, cap, !bit_value, te);
+    return i;
+}
 
 static const SubGhzBlockConst subghz_protocol_vag_const = {
     .te_short = 500,
@@ -519,7 +503,7 @@ static void vag_parse_data(SubGhzProtocolDecoderVAG* instance) {
 
 const SubGhzProtocolDecoder subghz_protocol_vag_decoder = {
     .alloc = subghz_protocol_decoder_vag_alloc,
-    .free = subghz_protocol_decoder_vag_free,
+    .free = pp_decoder_free_default,
     .feed = subghz_protocol_decoder_vag_feed,
     .reset = subghz_protocol_decoder_vag_reset,
     .get_hash_data = subghz_protocol_decoder_vag_get_hash_data,
@@ -566,12 +550,6 @@ void* subghz_protocol_decoder_vag_alloc(SubGhzEnvironment* environment) {
     protocol_vag_load_keys(APP_ASSETS_PATH("vag"));
 
     return instance;
-}
-
-void subghz_protocol_decoder_vag_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderVAG* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_vag_reset(void* context) {
@@ -914,20 +892,18 @@ SubGhzProtocolStatus subghz_protocol_decoder_vag_serialize(
         flipper_format_write_hex(flipper_format, "Key2", key2_bytes, 8);
         FURI_LOG_I(TAG, "Wrote Key2");
 
-        uint32_t type = instance->vag_type;
-        flipper_format_write_uint32(flipper_format, "Type", &type, 1);
+        uint32_t type_tmp = instance->vag_type;
+        flipper_format_write_uint32(flipper_format, FF_TYPE, &type_tmp, 1);
         FURI_LOG_I(TAG, "Wrote Type: %d", instance->vag_type);
 
         if(instance->decrypted) {
-            flipper_format_write_uint32(flipper_format, "Serial", &instance->serial, 1);
-            FURI_LOG_I(TAG, "Wrote Serial: %08lX", (unsigned long)instance->serial);
-
-            uint32_t btn_temp = instance->btn;
-            flipper_format_write_uint32(flipper_format, "Btn", &btn_temp, 1);
-            FURI_LOG_I(TAG, "Wrote Btn: %02X", instance->btn);
-
-            flipper_format_write_uint32(flipper_format, "Cnt", &instance->cnt, 1);
-            FURI_LOG_I(TAG, "Wrote Cnt: %06lX", (unsigned long)instance->cnt);
+            pp_serialize_fields(
+                flipper_format,
+                PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT,
+                instance->serial,
+                instance->btn,
+                instance->cnt,
+                0);
 
             uint32_t key_idx_temp = instance->key_idx;
             flipper_format_write_uint32(flipper_format, "KeyIdx", &key_idx_temp, 1);
@@ -968,7 +944,7 @@ SubGhzProtocolStatus
 
         uint32_t type = 0;
         flipper_format_rewind(flipper_format);
-        if(flipper_format_read_uint32(flipper_format, "Type", &type, 1)) {
+        if(flipper_format_read_uint32(flipper_format, FF_TYPE, &type, 1)) {
             instance->vag_type = (uint8_t)type;
         }
 
@@ -1077,7 +1053,7 @@ static void vag_encoder_build_type1(SubGhzProtocolEncoderVAG* instance) {
 
     size_t index = 0;
     LevelDuration* upload = instance->upload;
-    VAG_UPLOAD_NEED(instance, index, 700);
+    const size_t cap = VAG_ENCODER_UPLOAD_MAX_SIZE;
 
     uint8_t btn_byte = vag_btn_to_byte(instance->btn, 1);
     uint8_t dispatch = vag_get_dispatch_byte(btn_byte, 1);
@@ -1144,12 +1120,9 @@ static void vag_encoder_build_type1(SubGhzProtocolEncoderVAG* instance) {
     instance->key2_low = (key2_upper | key2_lower) & 0xFFFF;
     instance->key2_high = 0;
 
-    for(int i = 0; i < 220; i++) {
-        upload[index++] = level_duration_make(true, 300);
-        upload[index++] = level_duration_make(false, 300);
-    }
-    upload[index++] = level_duration_make(false, 300);
-    upload[index++] = level_duration_make(true, 300);
+    index = pp_emit_short_pairs(upload, index, cap, 300, 220);
+    index = pp_emit(upload, index, cap, false, 300);
+    index = pp_emit(upload, index, cap, true, 300);
 
     FURI_LOG_D(TAG, "Preamble: %zu pulses (220 cycles + 2 sync)", index);
 
@@ -1159,7 +1132,7 @@ static void vag_encoder_build_type1(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 15; i >= 0; i--) {
         bool bit = (prefix >> i) & 1;
-        VAG_EMIT_MANCHESTER(upload, index, bit, 300);
+        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Prefix 0x%04X: %zu pulses", prefix, index - prefix_start);
 
@@ -1178,7 +1151,7 @@ static void vag_encoder_build_type1(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 63; i >= 0; i--) {
         bool bit = (key1_inv >> i) & 1;
-        VAG_EMIT_MANCHESTER(upload, index, bit, 300);
+        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Key1: %zu pulses (64 bits)", index - key1_start);
 
@@ -1190,11 +1163,11 @@ static void vag_encoder_build_type1(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 15; i >= 0; i--) {
         bool bit = (key2_inv >> i) & 1;
-        VAG_EMIT_MANCHESTER(upload, index, bit, 300);
+        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Key2: %zu pulses (16 bits)", index - key2_start);
 
-    upload[index++] = level_duration_make(false, 6000);
+    index = pp_emit(upload, index, cap, false, 6000);
 
     instance->size_upload = index;
     FURI_LOG_I(TAG, "Type1 upload built: %zu pulses (expected: 635)", index);
@@ -1209,7 +1182,7 @@ static void vag_encoder_build_type2(SubGhzProtocolEncoderVAG* instance) {
 
     size_t index = 0;
     LevelDuration* upload = instance->upload;
-    VAG_UPLOAD_NEED(instance, index, 700);
+    const size_t cap = VAG_ENCODER_UPLOAD_MAX_SIZE;
 
     uint8_t btn_byte = vag_btn_to_byte(instance->btn, 2);
     uint8_t dispatch = vag_get_dispatch_byte(btn_byte, 2);
@@ -1287,12 +1260,9 @@ static void vag_encoder_build_type2(SubGhzProtocolEncoderVAG* instance) {
     instance->key2_low = (key2_upper | key2_lower) & 0xFFFF;
     instance->key2_high = 0;
 
-    for(int i = 0; i < 220; i++) {
-        upload[index++] = level_duration_make(true, 300);
-        upload[index++] = level_duration_make(false, 300);
-    }
-    upload[index++] = level_duration_make(false, 300);
-    upload[index++] = level_duration_make(true, 300);
+    index = pp_emit_short_pairs(upload, index, cap, 300, 220);
+    index = pp_emit(upload, index, cap, false, 300);
+    index = pp_emit(upload, index, cap, true, 300);
 
     FURI_LOG_D(TAG, "Preamble: %zu pulses (220 cycles + 2 sync)", index);
 
@@ -1302,7 +1272,7 @@ static void vag_encoder_build_type2(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 15; i >= 0; i--) {
         bool bit = (prefix >> i) & 1;
-        VAG_EMIT_MANCHESTER(upload, index, bit, 300);
+        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Prefix 0x%04X: %zu pulses", prefix, index - prefix_start);
 
@@ -1320,7 +1290,7 @@ static void vag_encoder_build_type2(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 63; i >= 0; i--) {
         bool bit = (key1_inv >> i) & 1;
-        VAG_EMIT_MANCHESTER(upload, index, bit, 300);
+        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Key1: %zu pulses", index - key1_start);
 
@@ -1332,11 +1302,11 @@ static void vag_encoder_build_type2(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 15; i >= 0; i--) {
         bool bit = (key2_inv >> i) & 1;
-        VAG_EMIT_MANCHESTER(upload, index, bit, 300);
+        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Key2: %zu pulses", index - key2_start);
 
-    upload[index++] = level_duration_make(false, 6000);
+    index = pp_emit(upload, index, cap, false, 6000);
 
     instance->size_upload = index;
     FURI_LOG_I(TAG, "Type2 upload built: %zu pulses (expected: 635)", index);
@@ -1347,7 +1317,7 @@ static void vag_encoder_build_type3_4(SubGhzProtocolEncoderVAG* instance) {
 
     size_t index = 0;
     LevelDuration* upload = instance->upload;
-    VAG_UPLOAD_NEED(instance, index, 600);
+    const size_t cap = VAG_ENCODER_UPLOAD_MAX_SIZE;
 
     uint8_t btn_byte = vag_btn_to_byte(instance->btn, instance->vag_type);
     uint8_t dispatch = vag_get_dispatch_byte(btn_byte, instance->vag_type);
@@ -1454,81 +1424,34 @@ static void vag_encoder_build_type3_4(SubGhzProtocolEncoderVAG* instance) {
 #ifndef REMOVE_LOGS
         size_t repeat_start = index;
 #endif
-        for(int i = 0; i < 45; i++) {
-            upload[index++] = level_duration_make(true, 500);
-            upload[index++] = level_duration_make(false, 500);
-        }
+        index = pp_emit_short_pairs(upload, index, cap, 500, 45);
         FURI_LOG_D(
             TAG, "Repeat %d: Preamble %zu pulses (45 cycles)", repeat + 1, index - repeat_start);
 
-        upload[index++] = level_duration_make(true, 1000);
-        upload[index++] = level_duration_make(false, 500);
+        index = pp_emit(upload, index, cap, true, 1000);
+        index = pp_emit(upload, index, cap, false, 500);
+        index = pp_emit_short_pairs(upload, index, cap, 750, 3);
 
-        for(int i = 0; i < 3; i++) {
-            upload[index++] = level_duration_make(true, 750);
-            upload[index++] = level_duration_make(false, 750);
-        }
 #ifndef REMOVE_LOGS
         size_t key1_start = index;
-        uint8_t consecutive_same = 0;
-
-        bool prev_level = true;
 #endif
-
         for(int i = 63; i >= 0; i--) {
             bool bit = (key1 >> i) & 1;
-#ifndef REMOVE_LOGS
-            bool first_level = bit ? true : false;
 
-            if(first_level == prev_level) {
-                consecutive_same++;
-            }
-#endif
-
-            if(bit) {
-                upload[index++] = level_duration_make(true, 500);
-                upload[index++] = level_duration_make(false, 500);
-#ifndef REMOVE_LOGS
-                prev_level = false;
-#endif
-            } else {
-                upload[index++] = level_duration_make(false, 500);
-                upload[index++] = level_duration_make(true, 500);
-#ifndef REMOVE_LOGS
-                prev_level = true;
-#endif
-            }
+            index = vag_emit_manchester_inv(upload, index, cap, bit, 500);
         }
-        FURI_LOG_D(
-            TAG,
-            "Repeat %d: Key1 %zu pulses (64 bits), %u double-width transitions",
-            repeat + 1,
-            index - key1_start,
-            consecutive_same);
+        FURI_LOG_D(TAG, "Repeat %d: Key1 %zu pulses (64 bits)", repeat + 1, index - key1_start);
+
 #ifndef REMOVE_LOGS
         size_t key2_start = index;
 #endif
-        bool last_level = false;
         for(int i = 15; i >= 0; i--) {
             bool bit = (key2 >> i) & 1;
-            VAG_EMIT_MANCHESTER(upload, index, bit, 500);
-            last_level = !bit;
+            index = vag_emit_manchester_inv(upload, index, cap, bit, 500);
         }
-        FURI_LOG_D(
-            TAG,
-            "Repeat %d: Key2 %zu pulses (16 bits), ends %s",
-            repeat + 1,
-            index - key2_start,
-            last_level ? "HIGH" : "LOW");
+        FURI_LOG_D(TAG, "Repeat %d: Key2 %zu pulses (16 bits)", repeat + 1, index - key2_start);
 
-        if(!last_level) {
-            upload[index++] = level_duration_make(false, 10000);
-            FURI_LOG_D(TAG, "Repeat %d: Gap 10000us LOW (consecutive with data)", repeat + 1);
-        } else {
-            upload[index++] = level_duration_make(false, 10000);
-            FURI_LOG_D(TAG, "Repeat %d: Gap 10000us LOW (after HIGH)", repeat + 1);
-        }
-
+        index = pp_emit(upload, index, cap, false, 10000);
         FURI_LOG_D(TAG, "Repeat %d: Total %zu pulses", repeat + 1, index - repeat_start);
     }
 
@@ -1615,8 +1538,7 @@ void* subghz_protocol_encoder_vag_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &vag_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
 
-    instance->upload = calloc(VAG_ENCODER_UPLOAD_MAX_SIZE, sizeof(LevelDuration));
-    furi_check(instance->upload);
+    instance->upload = pp_shared_upload_buffer();
     instance->repeat = 10;
     instance->is_running = false;
     instance->key_idx = 0xFF;
@@ -1631,7 +1553,7 @@ void* subghz_protocol_encoder_vag_alloc(SubGhzEnvironment* environment) {
 void subghz_protocol_encoder_vag_free(void* context) {
     furi_check(context);
     SubGhzProtocolEncoderVAG* instance = context;
-    free(instance->upload);
+    instance->upload = NULL;
     free(instance);
 }
 
@@ -1710,52 +1632,21 @@ SubGhzProtocolStatus
             (unsigned long)instance->key2_high,
             (unsigned long)instance->key2_low);
 
-        uint32_t type = 0;
+        uint32_t serial_val = instance->generic.serial;
+        uint32_t btn_val = instance->generic.btn;
+        uint32_t cnt_val = instance->generic.cnt;
+        uint32_t type_val = 0;
+        pp_encoder_read_fields(flipper_format, &serial_val, &btn_val, &cnt_val, &type_val);
+        instance->vag_type = (uint8_t)type_val;
+
+        uint32_t file_key_idx = 0xFF;
         flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(flipper_format, "Type", &type, 1)) {
-            FURI_LOG_W(TAG, "Type not found in file, will try to detect");
-            type = 0;
-        }
-        instance->vag_type = (uint8_t)type;
-        FURI_LOG_I(TAG, "Loaded Type: %d", instance->vag_type);
+        flipper_format_read_uint32(flipper_format, "KeyIdx", &file_key_idx, 1);
 
-        uint32_t file_serial = 0, file_cnt = 0, file_btn = 0, file_key_idx = 0xFF;
-
-        flipper_format_rewind(flipper_format);
-        bool has_serial = flipper_format_read_uint32(flipper_format, "Serial", &file_serial, 1);
-
-        flipper_format_rewind(flipper_format);
-        bool has_cnt = flipper_format_read_uint32(flipper_format, "Cnt", &file_cnt, 1);
-
-        flipper_format_rewind(flipper_format);
-        bool has_btn = flipper_format_read_uint32(flipper_format, "Btn", &file_btn, 1);
-
-        flipper_format_rewind(flipper_format);
-        bool has_key_idx = flipper_format_read_uint32(flipper_format, "KeyIdx", &file_key_idx, 1);
-
-        FURI_LOG_I(
-            TAG,
-            "Direct file read: Serial=%08lX(%s) Cnt=%06lX(%s) Btn=%02lX(%s) KeyIdx=%d(%s)",
-            (unsigned long)file_serial,
-            has_serial ? "found" : "MISSING",
-            (unsigned long)file_cnt,
-            has_cnt ? "found" : "MISSING",
-            (unsigned long)file_btn,
-            has_btn ? "found" : "MISSING",
-            (int)file_key_idx,
-            has_key_idx ? "found" : "MISSING");
-
-        FURI_LOG_I(
-            TAG,
-            "Generic values: Ser=%08lX Cnt=%06lX Btn=%02X",
-            (unsigned long)instance->generic.serial,
-            (unsigned long)instance->generic.cnt,
-            instance->generic.btn);
-
-        instance->serial = has_serial ? file_serial : instance->generic.serial;
-        instance->cnt = has_cnt ? file_cnt : instance->generic.cnt;
-        instance->btn = has_btn ? (uint8_t)file_btn : instance->generic.btn;
-        instance->key_idx = has_key_idx ? (uint8_t)file_key_idx : 0xFF;
+        instance->serial = serial_val;
+        instance->cnt = cnt_val;
+        instance->btn = (uint8_t)btn_val;
+        instance->key_idx = (uint8_t)file_key_idx;
 
         FURI_LOG_I(
             TAG,
@@ -1862,7 +1753,7 @@ SubGhzProtocolStatus
         key1_bytes[5] = (uint8_t)(instance->key1_low >> 16);
         key1_bytes[6] = (uint8_t)(instance->key1_low >> 8);
         key1_bytes[7] = (uint8_t)(instance->key1_low);
-        if(!flipper_format_update_hex(flipper_format, "Key", key1_bytes, 8)) {
+        if(!flipper_format_update_hex(flipper_format, FF_KEY, key1_bytes, 8)) {
             FURI_LOG_W(TAG, "Failed to update Key in file (non-fatal)");
         }
 
@@ -1877,40 +1768,11 @@ SubGhzProtocolStatus
             FURI_LOG_W(TAG, "Failed to update Key2 in file (non-fatal)");
         }
 
-        flipper_format_rewind(flipper_format);
-        uint32_t serial32 = instance->serial;
-        if(!flipper_format_update_uint32(flipper_format, "Serial", &serial32, 1)) {
-            flipper_format_rewind(flipper_format);
-            flipper_format_insert_or_update_uint32(flipper_format, "Serial", &serial32, 1);
-        }
-
-        flipper_format_rewind(flipper_format);
-        uint32_t cnt32 = instance->cnt;
-        if(!flipper_format_update_uint32(flipper_format, "Cnt", &cnt32, 1)) {
-            flipper_format_rewind(flipper_format);
-            flipper_format_insert_or_update_uint32(flipper_format, "Cnt", &cnt32, 1);
-        }
-
-        flipper_format_rewind(flipper_format);
-        uint32_t btn32 = instance->btn;
-        if(!flipper_format_update_uint32(flipper_format, "Btn", &btn32, 1)) {
-            flipper_format_rewind(flipper_format);
-            flipper_format_insert_or_update_uint32(flipper_format, "Btn", &btn32, 1);
-        }
-
-        flipper_format_rewind(flipper_format);
-        uint32_t key_idx32 = instance->key_idx;
-        if(!flipper_format_update_uint32(flipper_format, "KeyIdx", &key_idx32, 1)) {
-            flipper_format_rewind(flipper_format);
-            flipper_format_insert_or_update_uint32(flipper_format, "KeyIdx", &key_idx32, 1);
-        }
-
-        flipper_format_rewind(flipper_format);
-        uint32_t type32 = instance->vag_type;
-        if(!flipper_format_update_uint32(flipper_format, "Type", &type32, 1)) {
-            flipper_format_rewind(flipper_format);
-            flipper_format_insert_or_update_uint32(flipper_format, "Type", &type32, 1);
-        }
+        pp_flipper_update_or_insert_u32(flipper_format, FF_SERIAL, instance->serial);
+        pp_flipper_update_or_insert_u32(flipper_format, FF_CNT, instance->cnt);
+        pp_flipper_update_or_insert_u32(flipper_format, FF_BTN, instance->btn);
+        pp_flipper_update_or_insert_u32(flipper_format, "KeyIdx", instance->key_idx);
+        pp_flipper_update_or_insert_u32(flipper_format, FF_TYPE, instance->vag_type);
 
         FURI_LOG_I(
             TAG,

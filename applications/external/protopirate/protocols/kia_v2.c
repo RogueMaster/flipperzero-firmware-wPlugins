@@ -7,6 +7,11 @@
 
 #define KIA_V2_HEADER_PAIRS 252
 #define KIA_V2_TOTAL_BURSTS 2
+#define KIA_V2_UPLOAD_CAPACITY \
+    (KIA_V2_TOTAL_BURSTS * ((KIA_V2_HEADER_PAIRS * 2) + 1 + ((53U - 1U) * 2)))
+_Static_assert(
+    KIA_V2_UPLOAD_CAPACITY <= PP_SHARED_UPLOAD_CAPACITY,
+    "KIA_V2_UPLOAD_CAPACITY exceeds shared upload slab");
 
 static const SubGhzBlockConst kia_protocol_v2_const = {
     .te_short = 500,
@@ -38,22 +43,32 @@ typedef enum {
 
 const SubGhzProtocolDecoder kia_protocol_v2_decoder = {
     .alloc = kia_protocol_decoder_v2_alloc,
-    .free = kia_protocol_decoder_v2_free,
+    .free = pp_decoder_free_default,
     .feed = kia_protocol_decoder_v2_feed,
     .reset = kia_protocol_decoder_v2_reset,
-    .get_hash_data = kia_protocol_decoder_v2_get_hash_data,
+    .get_hash_data = pp_decoder_hash_blocks,
     .serialize = kia_protocol_decoder_v2_serialize,
     .deserialize = kia_protocol_decoder_v2_deserialize,
     .get_string = kia_protocol_decoder_v2_get_string,
 };
 
+#ifdef ENABLE_EMULATE_FEATURE
 const SubGhzProtocolEncoder kia_protocol_v2_encoder = {
     .alloc = kia_protocol_encoder_v2_alloc,
-    .free = kia_protocol_encoder_v2_free,
+    .free = pp_encoder_free,
     .deserialize = kia_protocol_encoder_v2_deserialize,
-    .stop = kia_protocol_encoder_v2_stop,
-    .yield = kia_protocol_encoder_v2_yield,
+    .stop = pp_encoder_stop,
+    .yield = pp_encoder_yield,
 };
+#else
+const SubGhzProtocolEncoder kia_protocol_v2_encoder = {
+    .alloc = NULL,
+    .free = NULL,
+    .deserialize = NULL,
+    .stop = NULL,
+    .yield = NULL,
+};
+#endif
 
 const SubGhzProtocol kia_protocol_v2 = {
     .name = KIA_PROTOCOL_V2_NAME,
@@ -85,9 +100,11 @@ static uint8_t kia_v2_calculate_crc(uint64_t data) {
 
     return (crc + 1) & 0x0F;
 }
+#ifdef ENABLE_EMULATE_FEATURE
 
 static void kia_protocol_encoder_v2_get_upload(SubGhzProtocolEncoderKiaV2* instance) {
     furi_check(instance);
+    if(instance->encoder.upload == NULL) return;
     size_t index = 0;
 
     uint8_t crc = kia_v2_calculate_crc(instance->generic.data);
@@ -133,6 +150,9 @@ static void kia_protocol_encoder_v2_get_upload(SubGhzProtocolEncoderKiaV2* insta
         instance->generic.data);
 }
 
+#endif
+#ifdef ENABLE_EMULATE_FEATURE
+
 void* kia_protocol_encoder_v2_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolEncoderKiaV2* instance = malloc(sizeof(SubGhzProtocolEncoderKiaV2));
@@ -141,20 +161,16 @@ void* kia_protocol_encoder_v2_alloc(SubGhzEnvironment* environment) {
     instance->generic.protocol_name = instance->base.protocol->name;
 
     instance->encoder.repeat = 10;
-    instance->encoder.size_upload = 1300;
-    instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
+    instance->encoder.size_upload = 0;
+    instance->encoder.upload = NULL;
     instance->encoder.is_running = false;
     instance->encoder.front = 0;
 
     return instance;
 }
 
-void kia_protocol_encoder_v2_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderKiaV2* instance = context;
-    free(instance->encoder.upload);
-    free(instance);
-}
+#endif
+#ifdef ENABLE_EMULATE_FEATURE
 
 SubGhzProtocolStatus
     kia_protocol_encoder_v2_deserialize(void* context, FlipperFormat* flipper_format) {
@@ -165,104 +181,31 @@ SubGhzProtocolStatus
     flipper_format_rewind(flipper_format);
 
     do {
-        FuriString* temp_str = furi_string_alloc();
-        if(!flipper_format_read_string(flipper_format, "Protocol", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Protocol");
-            furi_string_free(temp_str);
+        if(pp_verify_protocol_name(flipper_format, instance->base.protocol->name) !=
+           SubGhzProtocolStatusOk) {
+            FURI_LOG_E(TAG, "Missing or wrong Protocol");
             break;
         }
 
-        if(!furi_string_equal(temp_str, instance->base.protocol->name)) {
-            FURI_LOG_E(
-                TAG,
-                "Wrong protocol %s != %s",
-                furi_string_get_cstr(temp_str),
-                instance->base.protocol->name);
-            furi_string_free(temp_str);
-            break;
-        }
-        furi_string_free(temp_str);
-
-        uint32_t bit_count_temp;
-        if(!flipper_format_read_uint32(flipper_format, "Bit", &bit_count_temp, 1)) {
-            FURI_LOG_E(TAG, "Missing Bit");
-            break;
-        }
+        uint32_t bits = 0;
+        if(pp_encoder_read_bit(flipper_format, NULL, 0, &bits) != SubGhzProtocolStatusOk) break;
 
         instance->generic.data_count_bit = kia_protocol_v2_const.min_count_bit_for_found;
 
-        temp_str = furi_string_alloc();
-        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Key");
-            furi_string_free(temp_str);
-            break;
-        }
-
-        const char* key_str = furi_string_get_cstr(temp_str);
         uint64_t key = 0;
-        size_t str_len = strlen(key_str);
-        size_t hex_pos = 0;
-        for(size_t i = 0; i < str_len && hex_pos < 16; i++) {
-            char c = key_str[i];
-            if(c == ' ') continue;
-
-            uint8_t nibble;
-            if(c >= '0' && c <= '9') {
-                nibble = c - '0';
-            } else if(c >= 'A' && c <= 'F') {
-                nibble = c - 'A' + 10;
-            } else if(c >= 'a' && c <= 'f') {
-                nibble = c - 'a' + 10;
-            } else {
-                FURI_LOG_E(TAG, "Invalid hex character: %c", c);
-                furi_string_free(temp_str);
-                break;
-            }
-
-            key = (key << 4) | nibble;
-            hex_pos++;
-        }
-
-        furi_string_free(temp_str);
-
-        if(hex_pos != 16) {
-            FURI_LOG_E(TAG, "Invalid key length: %zu nibbles (expected 16)", hex_pos);
-            break;
-        }
+        if(!pp_flipper_read_hex_u64(flipper_format, FF_KEY, &key)) break;
 
         instance->generic.data = key;
-        FURI_LOG_I(TAG, "Parsed key: 0x%016llX", instance->generic.data);
+        if(instance->generic.data == 0) break;
 
-        if(instance->generic.data == 0) {
-            FURI_LOG_E(TAG, "Key is zero after parsing!");
-            break;
-        }
-
-        if(!flipper_format_read_uint32(flipper_format, "Serial", &instance->generic.serial, 1)) {
-            instance->generic.serial = (uint32_t)((instance->generic.data >> 20) & 0xFFFFFFFF);
-            FURI_LOG_I(TAG, "Extracted serial: 0x%08lX", instance->generic.serial);
-        } else {
-            FURI_LOG_I(TAG, "Read serial: 0x%08lX", instance->generic.serial);
-        }
-
-        uint32_t btn_temp;
-        if(flipper_format_read_uint32(flipper_format, "Btn", &btn_temp, 1)) {
-            instance->generic.btn = (uint8_t)btn_temp;
-            FURI_LOG_I(TAG, "Read button: 0x%02X", instance->generic.btn);
-        } else {
-            instance->generic.btn = (uint8_t)((instance->generic.data >> 16) & 0x0F);
-            FURI_LOG_I(TAG, "Extracted button: 0x%02X", instance->generic.btn);
-        }
-
-        uint32_t cnt_temp;
-        if(flipper_format_read_uint32(flipper_format, "Cnt", &cnt_temp, 1)) {
-            instance->generic.cnt = (uint16_t)cnt_temp;
-            FURI_LOG_I(TAG, "Read counter: 0x%03lX", (unsigned long)instance->generic.cnt);
-        } else {
-            uint16_t raw_count = (uint16_t)((instance->generic.data >> 4) & 0xFFF);
-            instance->generic.cnt = ((raw_count >> 4) | (raw_count << 8)) & 0xFFF;
-            FURI_LOG_I(TAG, "Extracted counter: 0x%03lX", (unsigned long)instance->generic.cnt);
-        }
+        uint32_t serial = UINT32_MAX;
+        uint32_t btn = UINT32_MAX;
+        uint32_t cnt = UINT32_MAX;
+        pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+        if(serial == UINT32_MAX || btn == UINT32_MAX || cnt == UINT32_MAX) break;
+        instance->generic.serial = serial;
+        instance->generic.btn = (uint8_t)btn;
+        instance->generic.cnt = (uint16_t)cnt;
 
         uint64_t new_data = 0;
 
@@ -288,12 +231,9 @@ SubGhzProtocolStatus
             (unsigned long)uVar6,
             (unsigned long long)instance->generic.data);
 
-        if(!flipper_format_read_uint32(
-               flipper_format, "Repeat", (uint32_t*)&instance->encoder.repeat, 1)) {
-            instance->encoder.repeat = 10;
-            FURI_LOG_D(TAG, "Repeat not found in file, using default 10");
-        }
+        instance->encoder.repeat = (int32_t)pp_encoder_read_repeat(flipper_format, 10);
 
+        pp_encoder_buffer_ensure(instance, KIA_V2_UPLOAD_CAPACITY);
         kia_protocol_encoder_v2_get_upload(instance);
 
         instance->encoder.is_running = true;
@@ -312,48 +252,7 @@ SubGhzProtocolStatus
     return ret;
 }
 
-void kia_protocol_encoder_v2_stop(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderKiaV2* instance = context;
-    instance->encoder.is_running = false;
-}
-
-LevelDuration kia_protocol_encoder_v2_yield(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderKiaV2* instance = context;
-
-    if(instance->encoder.repeat == 0 || !instance->encoder.is_running) {
-        FURI_LOG_D(
-            TAG,
-            "Encoder yield stopped: repeat=%u, is_running=%d",
-            instance->encoder.repeat,
-            instance->encoder.is_running);
-        instance->encoder.is_running = false;
-        return level_duration_reset();
-    }
-
-    LevelDuration ret = instance->encoder.upload[instance->encoder.front];
-
-    if(instance->encoder.front < 5 || instance->encoder.front == 0) {
-        FURI_LOG_D(
-            TAG,
-            "Encoder yield[%zu]: repeat=%u, size=%zu, level=%d, duration=%lu",
-            instance->encoder.front,
-            instance->encoder.repeat,
-            instance->encoder.size_upload,
-            level_duration_get_level(ret),
-            level_duration_get_duration(ret));
-    }
-
-    if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
-        instance->encoder.front = 0;
-        FURI_LOG_I(
-            TAG, "Encoder completed one cycle, remaining repeat=%u", instance->encoder.repeat);
-    }
-
-    return ret;
-}
+#endif
 
 void* kia_protocol_decoder_v2_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
@@ -361,12 +260,6 @@ void* kia_protocol_decoder_v2_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &kia_protocol_v2;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
-}
-
-void kia_protocol_decoder_v2_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderKiaV2* instance = context;
-    free(instance);
 }
 
 void kia_protocol_decoder_v2_reset(void* context) {
@@ -436,16 +329,8 @@ void kia_protocol_decoder_v2_feed(void* context, bool level, uint32_t duration) 
         break;
 
     case KiaV2DecoderStepCollectRawBits: {
-        ManchesterEvent event;
-
-        if(DURATION_DIFF(duration, kia_protocol_v2_const.te_short) <
-           kia_protocol_v2_const.te_delta) {
-            event = level ? ManchesterEventShortLow : ManchesterEventShortHigh;
-        } else if(
-            DURATION_DIFF(duration, kia_protocol_v2_const.te_long) <
-            kia_protocol_v2_const.te_delta) {
-            event = level ? ManchesterEventLongLow : ManchesterEventLongHigh;
-        } else {
+        ManchesterEvent event = pp_manchester_event(duration, level, &kia_protocol_v2_const);
+        if(event == ManchesterEventReset) {
             instance->decoder.parser_step = KiaV2DecoderStepReset;
             break;
         }
@@ -480,13 +365,6 @@ void kia_protocol_decoder_v2_feed(void* context, bool level, uint32_t duration) 
     }
 }
 
-uint8_t kia_protocol_decoder_v2_get_hash_data(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderKiaV2* instance = context;
-    return subghz_protocol_blocks_get_hash_data(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
-}
-
 SubGhzProtocolStatus kia_protocol_decoder_v2_serialize(
     void* context,
     FlipperFormat* flipper_format,
@@ -494,62 +372,28 @@ SubGhzProtocolStatus kia_protocol_decoder_v2_serialize(
     furi_check(context);
     SubGhzProtocolDecoderKiaV2* instance = context;
 
-    SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
+    SubGhzProtocolStatus ret =
+        subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
+    if(ret != SubGhzProtocolStatusOk) return ret;
 
-    do {
-        if(!flipper_format_write_uint32(flipper_format, "Frequency", &preset->frequency, 1)) {
-            break;
-        }
+    ret = pp_serialize_fields(
+        flipper_format,
+        PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT,
+        instance->generic.serial,
+        instance->generic.btn,
+        instance->generic.cnt,
+        0);
+    if(ret != SubGhzProtocolStatusOk) return ret;
 
-        const char* preset_name = furi_string_get_cstr(preset->name);
-        const char* short_preset = protopirate_get_short_preset_name(preset_name);
-        if(!flipper_format_write_string_cstr(flipper_format, "Preset", short_preset)) {
-            break;
-        }
-
-        if(!flipper_format_write_string_cstr(
-               flipper_format, "Protocol", instance->generic.protocol_name)) {
-            break;
-        }
-
-        uint32_t bits = instance->generic.data_count_bit;
-        if(!flipper_format_write_uint32(flipper_format, "Bit", &bits, 1)) {
-            break;
-        }
-
-        char key_str[20];
-        snprintf(key_str, sizeof(key_str), "%016llX", instance->generic.data);
-        if(!flipper_format_write_string_cstr(flipper_format, "Key", key_str)) {
-            break;
-        }
-
-        uint32_t crc = instance->generic.data & 0x0F;
-        if(!flipper_format_write_uint32(flipper_format, "CRC", &crc, 1)) {
-            break;
-        }
-
-        if(!flipper_format_write_uint32(flipper_format, "Serial", &instance->generic.serial, 1)) {
-            break;
-        }
-
-        uint32_t temp = instance->generic.btn;
-        if(!flipper_format_write_uint32(flipper_format, "Btn", &temp, 1)) {
-            break;
-        }
-
-        if(!flipper_format_write_uint32(flipper_format, "Cnt", &instance->generic.cnt, 1)) {
-            break;
-        }
-
-        uint32_t raw_count = (uint16_t)((instance->generic.data >> 4) & 0xFFF);
-        if(!flipper_format_write_uint32(flipper_format, "RawCnt", &raw_count, 1)) {
-            break;
-        }
-
-        ret = SubGhzProtocolStatusOk;
-    } while(false);
-
-    return ret;
+    uint32_t crc = instance->generic.data & 0x0F;
+    if(!flipper_format_write_uint32(flipper_format, "CRC", &crc, 1)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
+    uint32_t raw_count = (uint16_t)((instance->generic.data >> 4) & 0xFFF);
+    if(!flipper_format_write_uint32(flipper_format, "RawCnt", &raw_count, 1)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
+    return SubGhzProtocolStatusOk;
 }
 
 SubGhzProtocolStatus

@@ -5,8 +5,6 @@
 
 #define TAG "ProtoPirateReceiverInfo"
 
-static bool is_emu_off = false;
-
 static void protopirate_scene_receiver_info_widget_callback(
     GuiButtonType result,
     InputType type,
@@ -30,18 +28,19 @@ static bool psa_item_needs_bruteforce(ProtoPirateApp* app) {
     if(!ff) return false;
     FuriString* s = furi_string_alloc();
     flipper_format_rewind(ff);
-    if(!flipper_format_read_string(ff, "Protocol", s) || furi_string_cmp_str(s, "PSA") != 0) {
+    if(!flipper_format_read_string(ff, FF_PROTOCOL, s) || furi_string_cmp_str(s, "PSA") != 0) {
         furi_string_free(s);
         return false;
     }
     flipper_format_rewind(ff);
-    bool has_key = flipper_format_read_string(ff, "Key", s);
+    bool has_key = flipper_format_read_string(ff, FF_KEY, s);
     if(!has_key) {
         furi_string_free(s);
         return false;
     }
+    uint32_t serial = 0;
     flipper_format_rewind(ff);
-    bool has_serial = flipper_format_read_string(ff, "Serial", s);
+    bool has_serial = flipper_format_read_uint32(ff, FF_SERIAL, &serial, 1);
     furi_string_free(s);
     return !has_serial;
 }
@@ -109,14 +108,9 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
     if(ff) {
         FuriString* protocol = furi_string_alloc();
         flipper_format_rewind(ff);
-        if(flipper_format_read_string(ff, "Protocol", protocol)) {
+        if(flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
             if(furi_string_cmp_str(protocol, "PSA") == 0) is_psa = true;
-            if(furi_string_cmp_str(protocol, "Scher-Khan") == 0)
-                is_emu_off = true;
-            else if(furi_string_cmp_str(protocol, "Kia V5") == 0)
-                is_emu_off = true;
-            else
-                is_emu_off = false;
+            app->emulate_disabled_for_loaded = (furi_string_cmp_str(protocol, "Scher-Khan") == 0);
         }
         furi_string_free(protocol);
     }
@@ -191,7 +185,7 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
             app);
     }
 #ifdef ENABLE_EMULATE_FEATURE
-    else if(!is_emu_off) {
+    else if(!app->emulate_disabled_for_loaded) {
         widget_add_button_element(
             app->widget,
             GuiButtonTypeLeft,
@@ -250,7 +244,7 @@ static void protopirate_scene_receiver_info_widget_callback(
                     app->view_dispatcher, ProtoPirateCustomEventReceiverInfoBruteforceStart);
             }
 #ifdef ENABLE_EMULATE_FEATURE
-            else if(!is_emu_off) {
+            else if(!app->emulate_disabled_for_loaded) {
                 view_dispatcher_send_custom_event(
                     app->view_dispatcher, ProtoPirateCustomEventReceiverInfoEmulate);
             }
@@ -272,7 +266,7 @@ void protopirate_scene_receiver_info_on_enter(void* context) {
         return;
     }
 
-    is_emu_off = false;
+    app->emulate_disabled_for_loaded = false;
 
     if(app->psa_bf_thread && app->psa_bf_state) {
         if(app->psa_bf_state->status == PSA_BF_STATUS_RUNNING) {
@@ -302,12 +296,12 @@ static void psa_bf_finish_and_show_result(ProtoPirateApp* app) {
             protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
         if(ff) {
             flipper_format_rewind(ff);
-            flipper_format_insert_or_update_uint32(ff, "Serial", &s->decrypted_serial, 1);
+            flipper_format_insert_or_update_uint32(ff, FF_SERIAL, &s->decrypted_serial, 1);
             uint32_t btn = s->decrypted_button;
-            flipper_format_insert_or_update_uint32(ff, "Btn", &btn, 1);
-            flipper_format_insert_or_update_uint32(ff, "Cnt", &s->decrypted_counter, 1);
+            flipper_format_insert_or_update_uint32(ff, FF_BTN, &btn, 1);
+            flipper_format_insert_or_update_uint32(ff, FF_CNT, &s->decrypted_counter, 1);
             uint32_t type = s->decrypted_type;
-            flipper_format_insert_or_update_uint32(ff, "Type", &type, 1);
+            flipper_format_insert_or_update_uint32(ff, FF_TYPE, &type, 1);
             uint32_t crc_val = s->decrypted_crc;
             flipper_format_insert_or_update_uint32(ff, "CRC", &crc_val, 1);
             flipper_format_insert_or_update_uint32(ff, "Seed", &s->decrypted_seed, 1);
@@ -332,7 +326,6 @@ static void psa_bf_finish_and_show_result(ProtoPirateApp* app) {
         protopirate_history_set_item_str(
             app->txrx->history, app->txrx->idx_menu_chosen, furi_string_get_cstr(new_str));
         furi_string_free(new_str);
-        protopirate_history_commit_loaded(app->txrx->history);
     }
     if(status == PSA_BF_STATUS_FOUND) {
         protopirate_receiver_info_show_bf_result(app, status, s);
@@ -447,7 +440,7 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                 // Read protocol name for default filename
                 FuriString* protocol = furi_string_alloc();
                 flipper_format_rewind(ff);
-                if(!flipper_format_read_string(ff, "Protocol", protocol)) {
+                if(!flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
                     furi_string_set_str(protocol, "Unknown");
                 }
 
@@ -534,7 +527,8 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
         }
 
 #ifdef ENABLE_EMULATE_FEATURE
-        if(event.event == ProtoPirateCustomEventReceiverInfoEmulate && !is_emu_off) {
+        if(event.event == ProtoPirateCustomEventReceiverInfoEmulate &&
+           !app->emulate_disabled_for_loaded) {
             FuriString* hist_path = furi_string_alloc();
             if(protopirate_history_get_capture_path(
                    app->txrx->history, app->txrx->idx_menu_chosen, hist_path)) {

@@ -23,9 +23,14 @@
 #include <lib/subghz/transmitter.h>
 #include <lib/subghz/devices/devices.h>
 #include <lib/subghz/subghz_file_encoder_worker.h>
+#include <lib/flipper_application/plugins/plugin_manager.h>
+#include <lib/flipper_application/plugins/composite_resolver.h>
 #include <dialogs/dialogs.h>
 #include "defines.h"
+#include "protocols/protocols_common.h"
 #include "protocols/psa.h"
+#include "protocols/protocol_items.h"
+#include "protocols/protopirate_protocol_plugins.h"
 
 #define PROTOPIRATE_KEYSTORE_DIR_NAME APP_ASSETS_PATH("encrypted")
 
@@ -37,6 +42,10 @@ typedef struct {
     SubGhzReceiver* receiver;
     SubGhzRadioPreset* preset;
     const SubGhzProtocolRegistry* protocol_registry;
+    CompositeApiResolver* plugin_resolver;
+    PluginManager* protocol_plugin_manager;
+    const ProtoPirateProtocolPlugin* protocol_plugin;
+    ProtoPirateProtocolRegistryFilter protocol_registry_filter;
     ProtoPirateHistory* history;
     const SubGhzDevice* radio_device;
     ProtoPirateTxRxState txrx_state;
@@ -75,7 +84,12 @@ struct ProtoPirateApp {
     FuriString* save_protocol;
     uint16_t save_history_idx;
     bool save_from_saved_info;
+    bool emulate_disabled_for_loaded;
 };
+
+#ifdef ENABLE_EMULATE_FEATURE
+void protopirate_emulate_context_release(ProtoPirateApp* app);
+#endif
 
 typedef enum {
     ProtoPirateSetTypeFord_v0,
@@ -88,8 +102,6 @@ void protopirate_preset_init(
     uint32_t frequency,
     uint8_t* preset_data,
     size_t preset_data_size);
-
-const char* preset_name_to_short(const char* preset_name);
 
 void protopirate_get_frequency_modulation(
     ProtoPirateApp* app,

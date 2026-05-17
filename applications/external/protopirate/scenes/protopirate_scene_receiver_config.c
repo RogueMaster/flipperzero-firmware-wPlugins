@@ -124,7 +124,9 @@ static void protopirate_scene_receiver_config_set_preset(VariableItem* item) {
         subghz_setting_get_preset_data(app->setting, index),
         subghz_setting_get_preset_data_size(app->setting, index));
 
-    protopirate_refresh_protocol_registry(app, false);
+    if(!protopirate_refresh_protocol_registry(app, false)) {
+        notification_message(app->notifications, &sequence_error);
+    }
 }
 
 static void protopirate_scene_receiver_config_set_hopping_running(VariableItem* item) {

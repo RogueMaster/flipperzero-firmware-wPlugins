@@ -4,13 +4,13 @@
 #include <furi.h>
 #include <furi_hal.h>
 #include "protocols/protocol_items.h"
+#include "protocols/protocols_common.h"
 #include "helpers/protopirate_settings.h"
 #include "helpers/protopirate_storage.h"
 #include "protocols/keys.h"
 #include <string.h>
 
-#define TAG           "ProtoPirateApp"
-#define LOG_HEAP(msg) FURI_LOG_I(TAG, "%s - Free heap: %zu", msg, memmgr_get_free_heap())
+#define TAG "ProtoPirateApp"
 
 static bool protopirate_app_custom_event_callback(void* context, uint32_t event) {
     furi_check(context);
@@ -135,17 +135,28 @@ static void protopirate_radio_init_cleanup(ProtoPirateApp* app, bool devices_ini
         app->txrx->environment = NULL;
     }
 
+    if(app->txrx->protocol_plugin_manager) {
+        plugin_manager_free(app->txrx->protocol_plugin_manager);
+        app->txrx->protocol_plugin_manager = NULL;
+    }
+
+    if(app->txrx->plugin_resolver) {
+        composite_api_resolver_free(app->txrx->plugin_resolver);
+        app->txrx->plugin_resolver = NULL;
+    }
+
     if(devices_initialized) {
         subghz_devices_deinit();
     }
 
     app->txrx->protocol_registry = NULL;
+    app->txrx->protocol_plugin = NULL;
+    app->txrx->protocol_registry_filter = ProtoPirateProtocolRegistryFilterAM;
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
     app->radio_initialized = false;
 }
 
 ProtoPirateApp* protopirate_app_alloc() {
-    LOG_HEAP("Pre alloc");
     protopirate_storage_purge_temp_history_at_startup();
     ProtoPirateApp* app = malloc(sizeof(ProtoPirateApp));
     if(!app) {
@@ -154,12 +165,10 @@ ProtoPirateApp* protopirate_app_alloc() {
     }
     memset(app, 0, sizeof(ProtoPirateApp));
 
-    LOG_HEAP("Start alloc");
     FURI_LOG_I(TAG, "Allocating ProtoPirate Decoder App");
 
     // GUI
     app->gui = furi_record_open(RECORD_GUI);
-    LOG_HEAP("After GUI");
 
     // View Dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
@@ -177,7 +186,6 @@ ProtoPirateApp* protopirate_app_alloc() {
         app->view_dispatcher, protopirate_app_tick_event_callback, 100);
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-    LOG_HEAP("After ViewDispatcher");
 
     // Open Notification record
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
@@ -193,13 +201,12 @@ ProtoPirateApp* protopirate_app_alloc() {
     app->save_protocol = NULL;
     app->save_from_saved_info = false;
     app->save_history_idx = 0;
+    app->emulate_disabled_for_loaded = false;
     memset(app->save_filename, 0, sizeof(app->save_filename));
 
     // File Browser path
     app->file_path = furi_string_alloc();
     furi_string_set(app->file_path, PROTOPIRATE_APP_FOLDER);
-
-    LOG_HEAP("After basic views");
 
     // Load saved settings
     ProtoPirateSettings settings;
@@ -216,8 +223,6 @@ ProtoPirateApp* protopirate_app_alloc() {
     app->psa_bf_state = NULL;
     app->psa_bf_thread = NULL;
     subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user"));
-
-    LOG_HEAP("After subghz_setting");
 
     // Apply loaded frequency and preset, with validation
     uint32_t frequency = settings.frequency;
@@ -245,12 +250,16 @@ ProtoPirateApp* protopirate_app_alloc() {
     // Initialize TxRx structure with minimal setup
     app->lock = ProtoPirateLockOff;
     app->txrx = malloc(sizeof(ProtoPirateTxRx));
+    furi_check(app->txrx);
     memset(app->txrx, 0, sizeof(ProtoPirateTxRx));
 
     app->txrx->preset = malloc(sizeof(SubGhzRadioPreset));
+    furi_check(app->txrx->preset);
     app->txrx->preset->name = furi_string_alloc();
+    furi_check(app->txrx->preset->name);
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
     app->txrx->rx_key_state = ProtoPirateRxKeyStateIDLE;
+    app->txrx->protocol_registry_filter = ProtoPirateProtocolRegistryFilterAM;
 
     // Get preset name and data
     const char* preset_name = subghz_setting_get_preset_name(app->setting, preset_index);
@@ -274,11 +283,7 @@ ProtoPirateApp* protopirate_app_alloc() {
     app->txrx->hopper_timeout = 0;
     app->txrx->idx_menu_chosen = 0;
 
-    LOG_HEAP("After txrx basic setup");
-
     app->radio_initialized = false;
-
-    LOG_HEAP("App alloc complete (radio deferred)");
 
     return app;
 }
@@ -308,7 +313,6 @@ bool protopirate_radio_init(ProtoPirateApp* app) {
 
     // Fresh radio init - nothing was initialized before
     FURI_LOG_I(TAG, "Fresh radio init - allocating all components");
-    LOG_HEAP("Radio init start");
 
     // Create environment with our custom protocols
     app->txrx->environment = subghz_environment_alloc();
@@ -317,7 +321,6 @@ bool protopirate_radio_init(ProtoPirateApp* app) {
         protopirate_radio_init_cleanup(app, false);
         return false;
     }
-    LOG_HEAP("After environment alloc");
 
     app->txrx->protocol_registry = NULL;
 
@@ -329,12 +332,10 @@ bool protopirate_radio_init(ProtoPirateApp* app) {
 
     // Load keystores
     subghz_environment_load_keystore(app->txrx->environment, PROTOPIRATE_KEYSTORE_DIR_NAME);
-    LOG_HEAP("After keystore load");
 
     // Load ProtoPirate specific keys
     protopirate_keys_load(app->txrx->environment);
     FURI_LOG_I(TAG, "Loaded ProtoPirate secure keys");
-    LOG_HEAP("After keys load");
 
     // Initialize SubGhz devices
     subghz_devices_init();
@@ -370,8 +371,6 @@ bool protopirate_radio_init(ProtoPirateApp* app) {
 
     FURI_LOG_D(TAG, "Final state: radio_initialized=%d", app->radio_initialized);
 
-    LOG_HEAP("Radio init complete");
-
     return true;
 }
 
@@ -396,7 +395,6 @@ void protopirate_radio_deinit(ProtoPirateApp* app) {
         return;
     }
 
-    LOG_HEAP("Radio deinit start");
     bool devices_initialized = app->radio_initialized || (app->txrx->radio_device != NULL);
 
     // Make sure we're not receiving
@@ -439,6 +437,19 @@ void protopirate_radio_deinit(ProtoPirateApp* app) {
         FURI_LOG_D(TAG, "Environment was NULL, skipping free");
     }
 
+    if(app->txrx->protocol_plugin_manager) {
+        FURI_LOG_D(TAG, "Freeing protocol plugin manager %p", app->txrx->protocol_plugin_manager);
+        plugin_manager_free(app->txrx->protocol_plugin_manager);
+        app->txrx->protocol_plugin_manager = NULL;
+    }
+
+    if(app->txrx->plugin_resolver) {
+        FURI_LOG_D(TAG, "Freeing plugin resolver %p", app->txrx->plugin_resolver);
+        composite_api_resolver_free(app->txrx->plugin_resolver);
+        app->txrx->plugin_resolver = NULL;
+    }
+    app->txrx->protocol_plugin = NULL;
+
     if(app->txrx->history) {
         FURI_LOG_D(TAG, "Freeing history %p", app->txrx->history);
         protopirate_history_free(app->txrx->history);
@@ -459,7 +470,6 @@ void protopirate_radio_deinit(ProtoPirateApp* app) {
     app->radio_initialized = false;
 
     FURI_LOG_D(TAG, "Final state: radio_initialized=%d", app->radio_initialized);
-    LOG_HEAP("Radio deinit complete");
 }
 
 void protopirate_app_free(ProtoPirateApp* app) {
@@ -578,6 +588,12 @@ void protopirate_app_free(ProtoPirateApp* app) {
     free(app->txrx->preset);
 
     free(app->txrx);
+
+#ifdef ENABLE_EMULATE_FEATURE
+    protopirate_emulate_context_release(app);
+#endif
+
+    pp_shared_upload_release();
 
     // View dispatcher
     FURI_LOG_D(TAG, "Freeing view_dispatcher and scene_manager");
