@@ -52,6 +52,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz) [Support NDEF text records beyond 127 characters (By k0bura)](https://github.com/wakdev/nfctools-fz/pull/8)
 - Updated: [Tesla Mod v2.16.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - OFW: PR: [NFC FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
+- OFW: PR: [NFC: Add Write NDEF Tag action for NTAG21x #4372 (By epatel)](https://github.com/flipperdevices/flipperzero-firmware/pull/4372)
 
 <a name="release"></a>
 
@@ -194,8 +195,10 @@ $ ./fbt dolphin_ext
 - Infrared: Assets for Toto and BioBidet bidets.
 - Infrared: [Easy Learn (By jaylikesbunda & WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/pull/350)
 - Infrared: Universal AC, Audio, Fans & Projectors from [amec0e / Unleashed](https://github.com/DarkFlippers/unleashed-firmware)
+- NFC: [Add Write NDEF Tag action for NTAG21x #4372 (By epatel)](https://github.com/flipperdevices/flipperzero-firmware/pull/4372)
 - NFC: [Added additional aid GeldKarte (for emv) (thanks to haisenteck) (From Korai-Labs / ankris812)](https://github.com/Korai-Labs/Korai)
 - NFC: [Extra NFC Mifare Keys (By Korai-Labs / ankris812)](https://github.com/Korai-Labs/Korai)
+- NFC: [FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
 - NFC: [Parser / KDF for mizip and mykey updated & addition of hi and microel (By zProAle)](https://github.com/zProAle/my_flipper_kdf)
 - NFC: [Parser for Amusement IC (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4259)
 - NFC: [Parser for Banapass MFC 1k (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4260)
