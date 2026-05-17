@@ -95,7 +95,7 @@ All 21 modules: **Fixed** GUI r DELAY from 300ms to 500ms (2026-05-15). Windows 
 | exploit/msfvenom_stager | Audited | Clean. WIN-only. Defaults safe. |
 | exploit/uac_bypass_fodhelper | **Fixed** | COMMAND in double-quotes broke on typical PS strings (2026-05-15). Changed to single quotes. |
 | exploit/evil_twin | **Fixed** | Dead TARGET_SSID option removed (2026-05-15). LINUX xdg-open URL now quoted. |
-| post/add_user | Audited | USERNAME unquoted in 4 commands (breaks with spaces). `wmic` deprecated on Win11. |
+| post/add_user | **Fixed** | Quoted USERNAME in 4 commands (2026-05-17). Replaced deprecated `wmic` with `Set-LocalUser` (2026-05-17). |
 | post/disable_defender | Audited | Clean. Documents Tamper Protection limitation. |
 | post/persist_schtask | **Fixed** | Falsely claimed no admin needed (2026-05-15). `/sc onlogon` requires admin. Updated docs and changed PAYLOAD_PATH default from C:\Windows\Temp to %TEMP%. |
 | post/persist_startup | **Fixed** | OPTION default had spaces (2026-03-30). MAC plist XML-escaping issue for PAYLOAD_CMD with special chars (documented, not fixed). |

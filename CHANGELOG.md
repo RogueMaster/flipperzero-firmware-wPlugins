@@ -6,6 +6,16 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-17
+
+### fix
+- **flipperpwn_modules/post/add_user**: Quoted `{{USERNAME}}` in all 4 unquoted commands (`net user`, `net localgroup`, `reg add`). Usernames with spaces previously broke command parsing. Replaced deprecated `wmic useraccount` with PowerShell `Set-LocalUser -PasswordNeverExpires` (available since Win10 1607+/PS 5.1).
+
+### docs
+- **rogue_ap_detector**: Full re-trace review of all ~1400 lines across 3 source files. No bugs found. Buffer sizes correct, thread safety correct (volatile on all cross-thread fields, mutex on shared data, NULL context guard), view lifecycle correct (4 views), teardown order correct, stack usage safe (main ~200/4096, UART worker ~700/2048, timer ~60/1024).
+
+---
+
 ## 2026-05-15
 
 ### fix
