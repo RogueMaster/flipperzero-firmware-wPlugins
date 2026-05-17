@@ -955,7 +955,6 @@ SubGhzProtocolStatus
     uint32_t cnt = UINT32_MAX;
     pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
     if(btn == UINT32_MAX || cnt == UINT32_MAX) {
-
         return SubGhzProtocolStatusError;
     }
     instance->generic.serial = serial;
