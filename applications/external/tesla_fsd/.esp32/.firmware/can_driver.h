@@ -18,12 +18,22 @@ public:
     /** Non-blocking receive.  Fills frame and returns true if a frame was available. */
     virtual bool receive(CanFrame& frame) = 0;
 
-    /** Cumulative bus-error counter (rx_missed + bus_errors). */
+    /** Cumulative bus/TX-error counter.
+     *  TWAI: rx_missed + bus_errors + tx_failed.
+     *  MCP2515: number of sendMessage() failures (typically ALLTXBUSY). */
     virtual uint32_t errorCount() = 0;
+
+    /** Cumulative count of frames successfully transmitted on the bus. */
+    virtual uint32_t txCount() = 0;
 
     /** Switch between listen-only and normal TX mode at runtime.
      *  Implementations must reinitialise the hardware as needed. */
     virtual void setListenOnly(bool enable) = 0;
+
+    /** Whether the underlying CAN hardware was detected on the bus/SPI.
+     *  TWAI lives inside the SoC and is therefore always present.
+     *  MCP2515 returns true once the chip has answered an SPI probe. */
+    virtual bool hardwarePresent() { return true; }
 
     virtual ~CanDriver() = default;
 };

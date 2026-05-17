@@ -54,6 +54,11 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->force_fsd            = false;
     state->china_mode           = false;
     state->bms_output           = false;
+#if defined(BOARD_TTGO_DISPLAY)
+    state->display_enabled      = true;
+    state->display_brightness   = 50;
+    state->display_timeout_s    = 60;
+#endif
     state->sleep_idle_ms        = SLEEP_IDLE_MS;
 
     strncpy(state->wifi_ssid, "Tesla-FSD", sizeof(state->wifi_ssid));

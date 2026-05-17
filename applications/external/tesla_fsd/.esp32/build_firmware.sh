@@ -40,6 +40,7 @@ Available envs in this project:
   m5stack-atom-swap-pins
   esp32-mcp2515
   esp32-lilygo
+  ttgo-tdisplay
 EOF
 }
 
@@ -82,7 +83,7 @@ case "$ENV_NAME" in
         FLASH_MODE="dio"
         BAUD="921600"
         ;;
-    m5stack-atom|m5stack-atom-swap-pins|esp32-mcp2515|esp32-lilygo)
+    m5stack-atom|m5stack-atom-swap-pins|esp32-mcp2515|esp32-lilygo|ttgo-tdisplay)
         CHIP="esp32"
         BOOT_OFFSET="0x1000"
         FLASH_SIZE="4MB"

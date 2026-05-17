@@ -62,6 +62,7 @@ All CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_hand
 - **Connection Status** — green/red dot indicator with auto-reconnect on WebSocket disconnect
 - **Device Info** — firmware build date, uptime counter, WiFi client count
 - **REST API** — `GET /api/status` returns full JSON state
+- **TTGO T-Display dashboard** — optional on-board ST7789 status display for the `ttgo-tdisplay` build
 
 ### CAN Driver Abstraction
 
@@ -109,6 +110,7 @@ Any ESP32 board + CAN transceiver works. Pick the matching build env in `platfor
 | `m5stack-atom-swap-pins` | M5Stack ATOM Lite + ATOMIC CAN Base | TWAI | 19 / 22 | For boards with swapped silkscreen |
 | `esp32-mcp2515` | Generic ESP32 + MCP2515 module | MCP2515 SPI | SPI CS=5 | 8 MHz crystal |
 | `esp32-lilygo` | LilyGO T-CAN485 | TWAI | 27 / 26 | Built-in SN65HVD230 + SD slot |
+| `ttgo-tdisplay` | LilyGO/TTGO T-Display + MCP2515 | MCP2515 SPI | CS=33, SCK=25, MISO=26, MOSI=32 | Built-in ST7789 dashboard |
 | `waveshare-s3-can` | Waveshare ESP32-S3-RS485-CAN | TWAI | 15 / 16 | ESP32-S3, 8MB flash/PSRAM, USB-CDC |
 | generic | ESP32-C3/S3 Super Mini + SN65HVD230 | TWAI | any two pins | Override `PIN_CAN_TX` / `PIN_CAN_RX` |
 
@@ -123,6 +125,21 @@ On first boot every target prints its pin map as `[CFG] pins: LED=.. BUTTON=.. C
 ---
 
 ## Wiring
+
+### TTGO T-Display + MCP2515
+
+The T-Display LCD uses the board's default SPI pins, so the `ttgo-tdisplay` variant places the MCP2515 on a separate HSPI bus:
+
+| MCP2515 Pin | TTGO T-Display GPIO |
+|-------------|---------------------|
+| CS | 33 |
+| SCK | 25 |
+| MISO / SO | 26 |
+| MOSI / SI | 32 |
+| VCC | 3V3 or 5V, matching your module |
+| GND | GND |
+
+The built-in ST7789 display is enabled by default and can be toggled from the Web Dashboard.
 
 ### OBD-II (Primary — Plug & Play)
 

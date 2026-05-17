@@ -19,6 +19,11 @@ void prefs_load(FSDState *state) {
     state->precondition             = g_prefs.getBool("precond",false);
     state->emergency_vehicle_detect = g_prefs.getBool("emrg",   false);
     state->bms_output               = g_prefs.getBool("bms",    false);
+#if defined(BOARD_TTGO_DISPLAY)
+    state->display_enabled          = g_prefs.getBool("disp",   true);
+    state->display_brightness       = g_prefs.getUChar("disp_br", 50);
+    state->display_timeout_s        = g_prefs.getUInt("disp_to",  60);
+#endif
     state->sleep_idle_ms            = g_prefs.getUInt("sleep",  SLEEP_IDLE_MS);
 
     // WiFi
@@ -52,6 +57,11 @@ void prefs_save(const FSDState *state) {
     g_prefs.putBool("precond",state->precondition);
     g_prefs.putBool("emrg",   state->emergency_vehicle_detect);
     g_prefs.putBool("bms",    state->bms_output);
+#if defined(BOARD_TTGO_DISPLAY)
+    g_prefs.putBool("disp",   state->display_enabled);
+    g_prefs.putUChar("disp_br", state->display_brightness);
+    g_prefs.putUInt("disp_to",  state->display_timeout_s);
+#endif
     g_prefs.putUInt("sleep",  state->sleep_idle_ms);
 
     // WiFi

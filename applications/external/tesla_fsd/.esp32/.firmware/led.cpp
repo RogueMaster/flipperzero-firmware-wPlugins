@@ -1,18 +1,39 @@
 #include "led.h"
 #include "config.h"
+#include <Arduino.h>
+
+#if !defined(BOARD_TTGO_DISPLAY)
 #include <Adafruit_NeoPixel.h>
 
-// M5Stack ATOM Lite: single SK6812 (GRB order) on PIN_LED (GPIO27)
+// Smart LED for M5Stack, Lilygo T-CAN485, etc.
 static Adafruit_NeoPixel g_strip(1, PIN_LED, NEO_GRB + NEO_KHZ800);
+#endif
 
 void led_init() {
+#if defined(BOARD_TTGO_DISPLAY)
+    if (PIN_LED >= 0) {
+        pinMode(PIN_LED, OUTPUT);
+        digitalWrite(PIN_LED, HIGH); // Off (active-LOW)
+    }
+#else
     g_strip.begin();
     g_strip.setBrightness(25);  // keep dim — the ATOM LED is very bright
     g_strip.clear();
     g_strip.show();
+#endif
 }
 
 void led_set(LedColor color) {
+#if defined(BOARD_TTGO_DISPLAY)
+    if (PIN_LED < 0) return;
+    // Simple LED only supports ON/OFF.
+    // We'll use LED_OFF/LED_SLEEP as OFF, others as ON.
+    if (color == LED_OFF || color == LED_SLEEP) {
+        digitalWrite(PIN_LED, HIGH); // Off
+    } else {
+        digitalWrite(PIN_LED, LOW);  // On
+    }
+#else
     uint32_t c;
     if (color == LED_SLEEP) {
         g_strip.setBrightness(5);
@@ -37,6 +58,7 @@ void led_set(LedColor color) {
     }
     g_strip.setPixelColor(0, c);
     g_strip.show();
+#endif
 }
 
 void led_factory_blink() {

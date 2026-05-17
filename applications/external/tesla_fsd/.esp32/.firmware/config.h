@@ -27,6 +27,17 @@
   #define SD_MOSI            15
   #define SD_SCLK            14
   #define SD_CS              13
+#elif defined(BOARD_TTGO_DISPLAY)
+  #define PIN_LED            -1   // Blue LED is hardwired to charging IC (TP4054)
+  #define PIN_LCD_BL         4    // ST7789 backlight
+  #define PIN_LCD_POWER      22   // ST7789 power enable
+  #define PIN_BUTTON         0    // Right button
+  #define PIN_BUTTON2        35   // Left button (Display Sleep/Wake)
+  // Remap MCP2515 to unused pins to avoid SPI conflict with Display
+  #define PIN_MCP_MISO       32   // Use a 5v -> 3.3v voltage divider to prevent damage
+  #define PIN_MCP_SCK        33
+  #define PIN_MCP_MOSI       25
+  #define PIN_MCP_CS         26
 #else
   #ifndef PIN_CAN_TX
   #define PIN_CAN_TX   22   // TWAI TX → ATOMIC CAN Base TX
@@ -44,10 +55,18 @@
 
 // MCP2515 SPI — only used in CAN_DRIVER_MCP2515 build (generic ESP32)
 // Standard VSPI pins: SCK=18, MISO=19, MOSI=23, CS=5
+#ifndef PIN_MCP_CS
 #define PIN_MCP_CS   5
+#endif
+#ifndef PIN_MCP_SCK
 #define PIN_MCP_SCK  18
+#endif
+#ifndef PIN_MCP_MISO
 #define PIN_MCP_MISO 19
+#endif
+#ifndef PIN_MCP_MOSI
 #define PIN_MCP_MOSI 23
+#endif
 
 // MCP2515 oscillator: common Chinese modules use 8 MHz
 #define MCP_CRYSTAL_MHZ  MCP_8MHZ   // from autowp-mcp2515 CAN_CLOCK enum
