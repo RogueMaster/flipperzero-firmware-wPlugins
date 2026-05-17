@@ -83,7 +83,7 @@ All 21 modules: **Fixed** GUI r DELAY from 300ms to 500ms (2026-05-15). Windows 
 | recon/network_enum | Audited | Clean. Uses modern iproute2 commands on Linux. |
 | recon/wifi_enum | Audited | Clean. Minor: Linux reads wpa_supplicant.conf which may include passwords. |
 | recon/wifi_scan_report | Audited | Clean. Requires ESP32. |
-| recon/port_scan_report | Audited | Clean. Requires ESP32. SSIDs with spaces may not survive WIFI_JOIN parsing. |
+| recon/port_scan_report | **Fixed** | Added quoted SSID syntax `"{{SSID}}"` (2026-05-17). WIFI_JOIN parser now supports quoted SSIDs for names with spaces. |
 | credential/wifi_harvest | **Fixed** | Linux `sudo` → `sudo -n` to prevent password prompt hang (2026-05-17). MAC hardcodes en0 for WiFi (acceptable — en0 is WiFi on 99%+ of consumer Macs, fails gracefully if not). |
 | credential/ssh_keys | Audited | WIN line 490/512 bytes (near limit). |
 | credential/env_dump | Audited | Clean. |

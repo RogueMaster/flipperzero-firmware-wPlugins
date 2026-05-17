@@ -11,6 +11,7 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 ### fix
 - **flipperpwn_modules/post/add_user**: Quoted `{{USERNAME}}` in all 4 unquoted commands (`net user`, `net localgroup`, `reg add`). Usernames with spaces previously broke command parsing. Replaced deprecated `wmic useraccount` with PowerShell `Set-LocalUser -PasswordNeverExpires` (available since Win10 1607+/PS 5.1).
 - **flipperpwn_modules/credential/wifi_harvest**: Changed Linux `sudo` to `sudo -n` (non-interactive) to prevent payload from hanging on password prompt. Now fails silently if user lacks passwordless sudo, still works in CTF/lab environments with NOPASSWD.
+- **flipperpwn**: WIFI_JOIN command now supports quoted SSIDs for network names with spaces (e.g., `WIFI_JOIN "My Network" password`). Updated port_scan_report module to use quoted syntax.
 
 ### docs
 - **rogue_ap_detector**: Full re-trace review of all ~1400 lines across 3 source files. No bugs found. Buffer sizes correct, thread safety correct (volatile on all cross-thread fields, mutex on shared data, NULL context guard), view lifecycle correct (4 views), teardown order correct, stack usage safe (main ~200/4096, UART worker ~700/2048, timer ~60/1024).

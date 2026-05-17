@@ -1638,27 +1638,51 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         return;
     }
 
-    /* WIFI_JOIN <SSID> <PASSWORD> */
+    /* WIFI_JOIN <SSID> <PASSWORD>  or  WIFI_JOIN "<SSID with spaces>" <PASSWORD> */
     if(strncmp(line, "WIFI_JOIN ", 10) == 0) {
         if(!app->marauder || !app->wifi_uart || !fpwn_wifi_uart_is_connected(app->wifi_uart)) {
             FURI_LOG_W(TAG, "WIFI_JOIN: ESP32 not connected, skipping");
             return;
         }
         const char* args = line + 10;
-        /* Parse SSID (first token) and password (remainder after first space) */
-        const char* space = strchr(args, ' ');
+        /* Parse SSID and password. Supports quoted SSID for names with spaces:
+         *   WIFI_JOIN "My Network" password123
+         *   WIFI_JOIN SimpleSSID password123 */
         char ssid[33];
         char password[64];
-        if(space) {
-            size_t ssid_len = (size_t)(space - args);
-            if(ssid_len > 32) ssid_len = 32;
-            memcpy(ssid, args, ssid_len);
-            ssid[ssid_len] = '\0';
-            strncpy(password, space + 1, sizeof(password) - 1);
+        const char* pw_start = NULL;
+        if(args[0] == '"') {
+            const char* close_quote = strchr(args + 1, '"');
+            if(close_quote) {
+                size_t ssid_len = (size_t)(close_quote - (args + 1));
+                if(ssid_len > 32) ssid_len = 32;
+                memcpy(ssid, args + 1, ssid_len);
+                ssid[ssid_len] = '\0';
+                pw_start = close_quote + 1;
+                while(*pw_start == ' ') pw_start++;
+            } else {
+                strncpy(ssid, args + 1, sizeof(ssid) - 1);
+                ssid[sizeof(ssid) - 1] = '\0';
+                pw_start = NULL;
+            }
+        } else {
+            const char* space = strchr(args, ' ');
+            if(space) {
+                size_t ssid_len = (size_t)(space - args);
+                if(ssid_len > 32) ssid_len = 32;
+                memcpy(ssid, args, ssid_len);
+                ssid[ssid_len] = '\0';
+                pw_start = space + 1;
+            } else {
+                strncpy(ssid, args, sizeof(ssid) - 1);
+                ssid[sizeof(ssid) - 1] = '\0';
+                pw_start = NULL;
+            }
+        }
+        if(pw_start && *pw_start) {
+            strncpy(password, pw_start, sizeof(password) - 1);
             password[sizeof(password) - 1] = '\0';
         } else {
-            strncpy(ssid, args, sizeof(ssid) - 1);
-            ssid[sizeof(ssid) - 1] = '\0';
             password[0] = '\0';
         }
         /* Find matching AP index in scan results */
