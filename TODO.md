@@ -84,7 +84,7 @@ All 21 modules: **Fixed** GUI r DELAY from 300ms to 500ms (2026-05-15). Windows 
 | recon/wifi_enum | Audited | Clean. Minor: Linux reads wpa_supplicant.conf which may include passwords. |
 | recon/wifi_scan_report | Audited | Clean. Requires ESP32. |
 | recon/port_scan_report | Audited | Clean. Requires ESP32. SSIDs with spaces may not survive WIFI_JOIN parsing. |
-| credential/wifi_harvest | Audited | Linux `sudo` commands will prompt and hang (documented). MAC hardcodes en0 for WiFi. |
+| credential/wifi_harvest | **Fixed** | Linux `sudo` → `sudo -n` to prevent password prompt hang (2026-05-17). MAC hardcodes en0 for WiFi (acceptable — en0 is WiFi on 99%+ of consumer Macs, fails gracefully if not). |
 | credential/ssh_keys | Audited | WIN line 490/512 bytes (near limit). |
 | credential/env_dump | Audited | Clean. |
 | credential/browser_creds | **Fixed** | WIN line was 723 chars (split 2026-03-30). MAC line 497/512 bytes (near limit). |
