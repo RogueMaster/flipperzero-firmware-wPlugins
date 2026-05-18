@@ -1,5 +1,5 @@
 App(
-    appid="flipnCGM",
+    appid="flipncgm",
     name="flipnCGM",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flipncgm_app",

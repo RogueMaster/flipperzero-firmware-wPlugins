@@ -2,12 +2,11 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <nfc/nfc.h>
-#include <nfc/nfc_scanner.h>
+#include <nfc/nfc_poller.h>
 #include <nfc/protocols/iso15693_3/iso15693_3.h>
+#include <nfc/protocols/iso15693_3/iso15693_3_poller.h>
 #include <string.h>
 #include <stdio.h>
-
-#define TAG "flipnCGM"
 
 // 32-char alphabet for FreeStyle Libre serial decoding.
 // B, I, O, S omitted to avoid visual ambiguity with 8, 1, 0, 5.
@@ -27,14 +26,14 @@ typedef struct {
     ViewPort* view_port;
     FuriMessageQueue* event_queue;
     Nfc* nfc;
-    NfcScanner* scanner;
+    NfcPoller* poller;
     FuriMutex* mutex;
 } App;
 
 // Decode a FreeStyle Libre NFC UID to its 9-character ASCII serial number.
-// uid must be 8 bytes, MSB-first (uid[0]==0xE0, uid[1]==0x7A).
+// uid must be 8 bytes MSB-first (uid[0]==0xE0, uid[1]==0x7A).
 // Algorithm: treat uid[2..7] as a 48-bit big-endian integer, extract
-// 9 groups of 5 bits MSB-first, look up each in SERIAL_LOOKUP.
+// 9 groups of 5 bits MSB-first, look each up in SERIAL_LOOKUP.
 static void decode_libre_serial(const uint8_t* uid, char* out) {
     uint64_t value = 0;
     for(int i = 2; i <= 7; i++) {
@@ -89,42 +88,41 @@ static void input_callback(InputEvent* input_event, void* context) {
     furi_message_queue_put(app->event_queue, input_event, FuriWaitForever);
 }
 
-static void nfc_scanner_callback(NfcScannerEvent event, void* context) {
+static NfcCommand poller_callback(NfcGenericEvent event, void* context) {
     App* app = (App*)context;
+    Iso15693_3PollerEvent* poller_event = (Iso15693_3PollerEvent*)event.event_data;
 
-    if(event.type != NfcScannerEventTypeDetected) return;
+    if(poller_event->type == Iso15693_3PollerEventTypeReady) {
+        const Iso15693_3Data* iso_data =
+            (const Iso15693_3Data*)nfc_poller_get_data(app->poller);
+        const uint8_t* uid = iso_data->uid;
 
-    NfcProtocol protocol = nfc_device_get_protocol(event.data.nfc_device);
-    if(protocol != NfcProtocolIso15693_3) return;
-
-    const Iso15693_3Data* iso_data =
-        (const Iso15693_3Data*)nfc_device_get_data(event.data.nfc_device, NfcProtocolIso15693_3);
-
-    const uint8_t* uid = iso_data->uid;
-
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-
-    if(uid[0] == 0xE0 && uid[1] == 0x7A) {
-        decode_libre_serial(uid, app->serial);
-        snprintf(
-            app->uid_str,
-            sizeof(app->uid_str),
-            "%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X",
-            uid[0],
-            uid[1],
-            uid[2],
-            uid[3],
-            uid[4],
-            uid[5],
-            uid[6],
-            uid[7]);
-        app->state = AppStateResult;
-    } else {
-        app->state = AppStateNotALibre;
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        if(uid[0] == 0xE0 && uid[1] == 0x7A) {
+            decode_libre_serial(uid, app->serial);
+            snprintf(
+                app->uid_str,
+                sizeof(app->uid_str),
+                "%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X",
+                uid[0],
+                uid[1],
+                uid[2],
+                uid[3],
+                uid[4],
+                uid[5],
+                uid[6],
+                uid[7]);
+            app->state = AppStateResult;
+        } else {
+            app->state = AppStateNotALibre;
+        }
+        furi_mutex_release(app->mutex);
+        view_port_update(app->view_port);
+        // Reset so the poller keeps scanning for the next tag
+        return NfcCommandReset;
     }
 
-    furi_mutex_release(app->mutex);
-    view_port_update(app->view_port);
+    return NfcCommandContinue;
 }
 
 int32_t flipncgm_app(void* p) {
@@ -146,8 +144,8 @@ int32_t flipncgm_app(void* p) {
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 
     app->nfc = nfc_alloc();
-    app->scanner = nfc_scanner_alloc(app->nfc);
-    nfc_scanner_start(app->scanner, nfc_scanner_callback, app);
+    app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso15693_3);
+    nfc_poller_start(app->poller, poller_callback, app);
 
     InputEvent event;
     bool running = true;
@@ -161,9 +159,7 @@ int32_t flipncgm_app(void* p) {
                     break;
                 case InputKeyOk:
                     furi_mutex_acquire(app->mutex, FuriWaitForever);
-                    if(app->state != AppStateScanning) {
-                        app->state = AppStateScanning;
-                    }
+                    app->state = AppStateScanning;
                     furi_mutex_release(app->mutex);
                     view_port_update(app->view_port);
                     break;
@@ -174,8 +170,8 @@ int32_t flipncgm_app(void* p) {
         }
     }
 
-    nfc_scanner_stop(app->scanner);
-    nfc_scanner_free(app->scanner);
+    nfc_poller_stop(app->poller);
+    nfc_poller_free(app->poller);
     nfc_free(app->nfc);
 
     gui_remove_view_port(app->gui, app->view_port);
