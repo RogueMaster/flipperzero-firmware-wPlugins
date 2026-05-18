@@ -1,0 +1,16 @@
+App(
+    appid="i2c_tools_cli",
+    name="I2C Tools CLI",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="i2c_tools_cli_app",
+    requires=["gui", "cli"],
+    stack_size=4 * 1024,
+    order=175,
+    fap_icon="i2c_tools_cli.png",
+    fap_category="GPIO",
+    fap_icon_assets="images",
+    fap_author="Tristus1er (forked from @NaejEL)",
+    fap_weburl="https://github.com/Tristus1er/flipperzero-i2c-tools-cli",
+    fap_version="1.0",
+    fap_description="I2C scanner / sender / sniffer with N-byte read, HEX/ASCII view, and a serial CLI (i2c scan/probe/read/write).",
+)
