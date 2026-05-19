@@ -285,10 +285,11 @@ void ble_spam_stop_adv(Ctx* ctx) {
 }
 
 void ble_spam_set_custom_payload(Ctx* ctx, const uint8_t* data, uint8_t len) {
-    uint8_t copy = len <= 16 ? len : 16;
+    uint8_t copy = len < sizeof(ctx->byte_store) ? len : (uint8_t)sizeof(ctx->byte_store);
     memcpy(ctx->byte_store, data, copy);
     MagicbandCfg* mc = &attacks[CUSTOM_ATTACK_IDX].payload.cfg.magicband;
-    memcpy(mc->custom, data, copy);
+    uint8_t mc_copy = copy < sizeof(mc->custom) ? copy : (uint8_t)sizeof(mc->custom);
+    memcpy(mc->custom, data, mc_copy);
     mc->custom_len = copy;
     ctx->preset_index = CUSTOM_ATTACK_IDX;
 }
