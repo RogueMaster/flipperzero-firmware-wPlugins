@@ -6,6 +6,18 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-19
+
+### fix
+- **hid_exfil**: Fixed Linux cleanup not handling zsh shells — `history -c && history -w` is bash-only and a no-op in zsh. On Linux systems where the user's default shell is zsh, payload commands were saved to `~/.zsh_history`. Replaced with `rm -f ~/.bash_history ~/.zsh_history` + `unset HISTFILE`, matching the Mac cleanup pattern (fixed 2026-04-15).
+- **hid_exfil**: Replaced deprecated `Get-WmiObject` with `Get-CimInstance` in Windows sysinfo payload. `Get-WmiObject` was removed in PowerShell Core 6+ (still works in Windows PowerShell 5.1 but deprecated).
+- **hid_exfil**: Fixed `-Werror=comment` build failure — glob pattern `*.history` in a block comment contained `/*` which GCC interprets as a nested comment start. Rewrote as `(*.history)`.
+
+### docs
+- **hid_exfil**: Full re-trace review of all ~2000 lines across 3 source files. All snprintf buffers verified (line[64] fits all draw paths), 5 views lifecycle correct, worker thread safety correct (volatile on all cross-thread fields, ViewModelTypeLocking on execution view), LED dibit protocol correct (EOT snapshot-rewind, pre-flight CapsLock test), all 21 OS/payload combinations traced, stack usage safe (GUI ~300/4096, worker ~130/4096).
+
+---
+
 ## 2026-05-17
 
 ### fix
