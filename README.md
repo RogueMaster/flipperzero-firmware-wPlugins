@@ -25,11 +25,7 @@ Internal 10 kΩ pull-ups are enabled by the external I²C handle.
 
 **From the Flipper Application Catalog** — search for **I2C Tools CLI** on the [Flipper catalog](https://catalog.flipperzero.one/) and install through qFlipper or the mobile app.
 
-**From source (development)** — requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt).
-
-    ufbt              # build → dist/i2c_tools_cli.fap
-    ufbt launch       # build, upload, and start on a connected Flipper
-    ufbt cli          # open the serial CLI (type: i2c help)
+**From source (development)** — requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt). Then run **ufbt** to build the FAP into dist/i2c_tools_cli.fap, **ufbt launch** to build + upload + start on a connected Flipper, or **ufbt cli** to open the serial CLI (then type *i2c help*).
 
 ## Screenshots
 
@@ -46,11 +42,11 @@ Internal 10 kΩ pull-ups are enabled by the external I²C handle.
 
 ## CLI quick reference
 
-    i2c scan                                    # list addresses that ACK
-    i2c probe ADDR                              # present / absent
-    i2c read  ADDR REG COUNT {hex|ascii}        # write reg → read N bytes
-    i2c write ADDR REG BYTE {BYTE...}           # up to 32 payload bytes
-    i2c help
+- **i2c scan** — list addresses that ACK.
+- **i2c probe** *addr* — report present / absent for one address.
+- **i2c read** *addr* *reg* *count* *{hex | ascii}* — write the register, then read N bytes (default format: hex).
+- **i2c write** *addr* *reg* *byte* *{byte...}* — up to 32 payload bytes.
+- **i2c help** — print usage.
 
 All numeric arguments are hex (1A, 0x1A, 0X1a, …).
 
