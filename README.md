@@ -17,7 +17,7 @@ And other information of course!
 
 # Download the app first:
 
-https://github.com/Haw8411/magic-band-plus-lights/releases/download/v2.0.1/magicband_plus_lights.fap (or on the Flipper App)
+https://github.com/Haw8411/magic-band-plus-lights/releases/download/v2.0.2/magicband_plus_lights.fap (or on the Flipper App)
 
 # Part 1: What is this app anyway?
 
