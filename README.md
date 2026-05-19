@@ -27,17 +27,6 @@ Internal 10 kΩ pull-ups are enabled by the external I²C handle.
 
 **From source (development)** — requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt). Then run **ufbt** to build the FAP into dist/i2c_tools_cli.fap, **ufbt launch** to build + upload + start on a connected Flipper, or **ufbt cli** to open the serial CLI (then type *i2c help*).
 
-## Screenshots
-
-| | |
-|---|---|
-| Main menu | ![main](screenshots/01_main_menu.png) |
-| Scanner | ![scan](screenshots/02_scanner.png) |
-| Sender — read | ![read](screenshots/03_sender_read.png) |
-| Sender — write | ![write](screenshots/04_sender_write.png) |
-| Sniffer | ![sniff](screenshots/06_sniffer.png) |
-| Infos | ![infos](screenshots/07_infos.png) |
-
 ## CLI quick reference
 
 - **i2c scan** — list addresses that ACK.
