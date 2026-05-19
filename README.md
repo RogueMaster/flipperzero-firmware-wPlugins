@@ -29,8 +29,6 @@ Internal 10 kΩ pull-ups are enabled by the external I²C handle.
 
 ## Screenshots
 
-<!-- See screenshots/README.md for the full capture checklist (8 PNGs at 128×64). -->
-
 | | |
 |---|---|
 | Main menu | ![main](screenshots/01_main_menu.png) |
