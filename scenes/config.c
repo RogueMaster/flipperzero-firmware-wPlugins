@@ -10,10 +10,9 @@ void scene_config_on_enter(void* _ctx) {
     variable_item_list_reset(list);
     ctx->item_pp_color = NULL;
 
-    if(ctx->attack && ctx->attack->protocol && ctx->attack->protocol->extra_config
-       && ctx->attack->protocol->config_count
-       && ctx->attack->protocol->config_count(&ctx->attack->payload) > 0) {
-
+    if(ctx->attack && ctx->attack->protocol && ctx->attack->protocol->extra_config &&
+       ctx->attack->protocol->config_count &&
+       ctx->attack->protocol->config_count(&ctx->attack->payload) > 0) {
         ctx->fallback_config_enter = NULL;
         ctx->attack->protocol->extra_config(ctx);
 
@@ -27,7 +26,8 @@ void scene_config_on_enter(void* _ctx) {
 }
 
 bool scene_config_on_event(void* _ctx, SceneManagerEvent event) {
-    UNUSED(_ctx); UNUSED(event);
+    UNUSED(_ctx);
+    UNUSED(event);
     return false;
 }
 

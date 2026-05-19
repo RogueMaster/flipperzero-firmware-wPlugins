@@ -11,14 +11,13 @@ static void custom_save_cb(void* _ctx) {
 void scene_custom_on_enter(void* _ctx) {
     Ctx* ctx = _ctx;
 
-    byte_input_set_header_text(ctx->byte_input,
-        "MFR data (after 83 01 hdr):");
+    byte_input_set_header_text(ctx->byte_input, "MFR data (after 83 01 hdr):");
 
     // Initialize buffer with current custom payload so user can edit it
     byte_input_set_result_callback(
         ctx->byte_input,
         custom_save_cb,
-        NULL,   // changed cb not needed
+        NULL, // changed cb not needed
         ctx,
         ctx->byte_store,
         16);
@@ -27,7 +26,8 @@ void scene_custom_on_enter(void* _ctx) {
 }
 
 bool scene_custom_on_event(void* _ctx, SceneManagerEvent event) {
-    UNUSED(_ctx); UNUSED(event);
+    UNUSED(_ctx);
+    UNUSED(event);
     return false;
 }
 

@@ -12,92 +12,130 @@
 // Indices 0-4: fully configurable (hold OK or enter via menu).
 // Index 5+:    named presets.
 
-#define MB_ADV(TITLE,TEXT,CAT,IDX,COL5,VIBE) \
-    {.title=TITLE,.text=TEXT,.protocol=&protocol_magicband, \
-     .payload={.random_mac=true,.cfg.magicband={ \
-       .category=CAT,.index=IDX,.color5=COL5,.vibe=VIBE,.timing=0x8F}}}
+#define MB_ADV(TITLE, TEXT, CAT, IDX, COL5, VIBE)                                           \
+    {                                                                                       \
+        .title = TITLE, .text = TEXT, .protocol = &protocol_magicband,                      \
+        .payload =                                                                          \
+        {.random_mac = true,                                                                \
+         .cfg.magicband = {                                                                 \
+             .category = CAT, .index = IDX, .color5 = COL5, .vibe = VIBE, .timing = 0x8F} } \
+    }
 
 static Attack attacks[] = {
-// ── Configurable ──────────────────────────────────────────────────────────────
-{   // [0] Single Color – E9-05, hold OK to set color/vibe/mask/timing
-    .title="Single Color", .text="Hold OK: color/vibe/mask/timing",
-    .protocol=&protocol_magicband,
-    .payload={.random_mac=true,.cfg.magicband={
-        .category=MB_Cat_E905_Single,
-        .color5=0,   .vibe=0xB, .mask=0, .timing=0x8F,
-    }},
-},
-{   // [1] Dual Color – E9-06, hold OK to set outer/inner
-    .title="Dual Color", .text="Hold OK: outer+inner color",
-    .protocol=&protocol_magicband,
-    .payload={.random_mac=true,.cfg.magicband={
-        .category=MB_Cat_E906_Dual,
-        .color5_outer=21, .color5_inner=0, .vibe=0xB,
-    }},
-},
-{   // [2] RGB Custom – E9-08 6-bit, hold OK to set R/G/B
-    .title="RGB Color", .text="Hold OK: R/G/B (0-63 each)",
-    .protocol=&protocol_magicband,
-    .payload={.random_mac=true,.cfg.magicband={
-        .category=MB_Cat_E908_RGB,
-        .r6=63,.g6=0,.b6=0, .vibe=0,
-    }},
-},
-{   // [3] 5-LED Custom – E9-09, hold OK for per-LED colors
-    .title="5-LED Color", .text="Hold OK: per-LED palette",
-    .protocol=&protocol_magicband,
-    .payload={.random_mac=true,.cfg.magicband={
-        .category=MB_Cat_E909_5LED,
-        .led5={25,22,22,22,22}, .vibe=0,
-    }},
-},
-{   // [4] Custom Hex – MB_Cat_Custom, filled from Menu > Custom Command
-    .title="Custom Hex", .text="Menu > Custom Command to set",
-    .protocol=&protocol_magicband,
-    .payload={.random_mac=true,.cfg.magicband={
-        .category=MB_Cat_Custom,
-        .custom={0xE1,0x00,0xE9,0x05,0x00,0x8F,0x0E,0x00,0xB0},
-        .custom_len=9,
-    }},
-},
-// ── CC ping codes ─────────────────────────────────────────────────────────────
-MB_ADV("CC Ping",      "cc03 000000 – park ping",         MB_Cat_CC, 0, 0,0),
-MB_ADV("CC Fast Mode", "cc03 000100 – keeps band awake",  MB_Cat_CC, 1, 0,0),
-MB_ADV("CC RRC",       "cc03 132000 – Rock'n'Roller?",    MB_Cat_CC, 2, 0,0),
-// ── E9-0C animations ─────────────────────────────────────────────────────────
-MB_ADV("Blink White",  "E9-0C flash",               MB_Cat_E90C_Anim, 0, 0,0),
-MB_ADV("Orange Blink", "E9-0C orange flash",        MB_Cat_E90C_Anim, 1, 0,0),
-MB_ADV("Color Cycle",  "E9-0C 5-palette cycle",     MB_Cat_E90C_Anim, 2, 0,0),
-MB_ADV("Rainbow",      "E9-0C taste the rainbow",   MB_Cat_E90C_Anim, 3, 0,0),
-// ── Cross fade ───────────────────────────────────────────────────────────────
-MB_ADV("Cross Fade #1","E9-11 center vs ring",  MB_Cat_E911_Crossfade, 0, 0,0),
-MB_ADV("Cross Fade #2","E9-11 center vs ring",  MB_Cat_E911_Crossfade, 1, 0,0),
-MB_ADV("Cross Fade #3","E9-11 center vs ring",  MB_Cat_E911_Crossfade, 2, 0,0),
-MB_ADV("Cross Fade #4","E9-11 center vs ring",  MB_Cat_E911_Crossfade, 3, 0,0),
-MB_ADV("Cross Fade #5","E9-11 center vs ring",  MB_Cat_E911_Crossfade, 4, 0,0),
-MB_ADV("Cross Fade #6","E9-11 center vs ring",  MB_Cat_E911_Crossfade, 5, 0,0),
-MB_ADV("Cross Fade #7","E9-11 center vs ring",  MB_Cat_E911_Crossfade, 6, 0,0),
-// ── Circle + vibe ────────────────────────────────────────────────────────────
-MB_ADV("Circle+Vibe #1","E9-12 haptic circle",  MB_Cat_E912_CircVibe, 0, 0,0),
-MB_ADV("Circle+Vibe #2","E9-12 haptic circle",  MB_Cat_E912_CircVibe, 1, 0,0),
-MB_ADV("Circle+Vibe #3","E9-12 haptic circle",  MB_Cat_E912_CircVibe, 2, 0,0),
-// ── Other effects ────────────────────────────────────────────────────────────
-MB_ADV("Circle",       "E9-0B circle anim",     MB_Cat_E90B_Circle,   0, 0,0),
-MB_ADV("Alternating",  "E9-10 alt colors",      MB_Cat_E910_Alt,      0, 0,0),
-MB_ADV("E9-0E #1",     "E9-0E pattern 01",      MB_Cat_E90E,          0, 0,0),
-MB_ADV("E9-0E #2",     "E9-0E pattern 02",      MB_Cat_E90E,          1, 0,0),
-MB_ADV("E9-0E #3",     "E9-0E pattern 11",      MB_Cat_E90E,          2, 0,0),
-MB_ADV("E9-0E #4",     "E9-0E pattern 15",      MB_Cat_E90E,          3, 0,0),
-MB_ADV("E9-0E #5",     "E9-0E pattern 83",      MB_Cat_E90E,          4, 0,0),
-MB_ADV("E9-0F #1",     "E9-0F pattern 11",      MB_Cat_E90F,          0, 0,0),
-MB_ADV("E9-0F #2",     "E9-0F pattern 2A",      MB_Cat_E90F,          1, 0,0),
-MB_ADV("Anim 13 #1",   "E9-13 animation",       MB_Cat_E913_Anim,     0, 0,0),
-MB_ADV("Anim 13 #2",   "E9-13 animation",       MB_Cat_E913_Anim,     1, 0,0),
-MB_ADV("Anim 14 #1",   "E9-14 animation",       MB_Cat_E914_Anim,     0, 0,0),
-MB_ADV("Anim 14 #2",   "E9-14 animation",       MB_Cat_E914_Anim,     1, 0,0),
-MB_ADV("Anim 14 #3",   "E9-14 animation",       MB_Cat_E914_Anim,     2, 0,0),
-MB_ADV("Unknown 07 #1","E9-07 not yet decoded",  MB_Cat_E907_Unknown,  0, 0,0),
-MB_ADV("Unknown 07 #2","E9-07 not yet decoded",  MB_Cat_E907_Unknown,  1, 0,0),
+    // ── Configurable ──────────────────────────────────────────────────────────────
+    {
+        // [0] Single Color – E9-05, hold OK to set color/vibe/mask/timing
+        .title = "Single Color",
+        .text = "Hold OK: color/vibe/mask/timing",
+        .protocol = &protocol_magicband,
+        .payload =
+            {.random_mac = true,
+             .cfg.magicband =
+                 {
+                     .category = MB_Cat_E905_Single,
+                     .color5 = 0,
+                     .vibe = 0xB,
+                     .mask = 0,
+                     .timing = 0x8F,
+                 }},
+    },
+    {
+        // [1] Dual Color – E9-06, hold OK to set outer/inner
+        .title = "Dual Color",
+        .text = "Hold OK: outer+inner color",
+        .protocol = &protocol_magicband,
+        .payload =
+            {.random_mac = true,
+             .cfg.magicband =
+                 {
+                     .category = MB_Cat_E906_Dual,
+                     .color5_outer = 21,
+                     .color5_inner = 0,
+                     .vibe = 0xB,
+                 }},
+    },
+    {
+        // [2] RGB Custom – E9-08 6-bit, hold OK to set R/G/B
+        .title = "RGB Color",
+        .text = "Hold OK: R/G/B (0-63 each)",
+        .protocol = &protocol_magicband,
+        .payload =
+            {.random_mac = true,
+             .cfg.magicband =
+                 {
+                     .category = MB_Cat_E908_RGB,
+                     .r6 = 63,
+                     .g6 = 0,
+                     .b6 = 0,
+                     .vibe = 0,
+                 }},
+    },
+    {
+        // [3] 5-LED Custom – E9-09, hold OK for per-LED colors
+        .title = "5-LED Color",
+        .text = "Hold OK: per-LED palette",
+        .protocol = &protocol_magicband,
+        .payload =
+            {.random_mac = true,
+             .cfg.magicband =
+                 {
+                     .category = MB_Cat_E909_5LED,
+                     .led5 = {25, 22, 22, 22, 22},
+                     .vibe = 0,
+                 }},
+    },
+    {
+        // [4] Custom Hex – MB_Cat_Custom, filled from Menu > Custom Command
+        .title = "Custom Hex",
+        .text = "Menu > Custom Command to set",
+        .protocol = &protocol_magicband,
+        .payload =
+            {.random_mac = true,
+             .cfg.magicband =
+                 {
+                     .category = MB_Cat_Custom,
+                     .custom = {0xE1, 0x00, 0xE9, 0x05, 0x00, 0x8F, 0x0E, 0x00, 0xB0},
+                     .custom_len = 9,
+                 }},
+    },
+    // ── CC ping codes ─────────────────────────────────────────────────────────────
+    MB_ADV("CC Ping", "cc03 000000 – park ping", MB_Cat_CC, 0, 0, 0),
+    MB_ADV("CC Fast Mode", "cc03 000100 – keeps band awake", MB_Cat_CC, 1, 0, 0),
+    MB_ADV("CC RRC", "cc03 132000 – Rock'n'Roller?", MB_Cat_CC, 2, 0, 0),
+    // ── E9-0C animations ─────────────────────────────────────────────────────────
+    MB_ADV("Blink White", "E9-0C flash", MB_Cat_E90C_Anim, 0, 0, 0),
+    MB_ADV("Orange Blink", "E9-0C orange flash", MB_Cat_E90C_Anim, 1, 0, 0),
+    MB_ADV("Color Cycle", "E9-0C 5-palette cycle", MB_Cat_E90C_Anim, 2, 0, 0),
+    MB_ADV("Rainbow", "E9-0C taste the rainbow", MB_Cat_E90C_Anim, 3, 0, 0),
+    // ── Cross fade ───────────────────────────────────────────────────────────────
+    MB_ADV("Cross Fade #1", "E9-11 center vs ring", MB_Cat_E911_Crossfade, 0, 0, 0),
+    MB_ADV("Cross Fade #2", "E9-11 center vs ring", MB_Cat_E911_Crossfade, 1, 0, 0),
+    MB_ADV("Cross Fade #3", "E9-11 center vs ring", MB_Cat_E911_Crossfade, 2, 0, 0),
+    MB_ADV("Cross Fade #4", "E9-11 center vs ring", MB_Cat_E911_Crossfade, 3, 0, 0),
+    MB_ADV("Cross Fade #5", "E9-11 center vs ring", MB_Cat_E911_Crossfade, 4, 0, 0),
+    MB_ADV("Cross Fade #6", "E9-11 center vs ring", MB_Cat_E911_Crossfade, 5, 0, 0),
+    MB_ADV("Cross Fade #7", "E9-11 center vs ring", MB_Cat_E911_Crossfade, 6, 0, 0),
+    // ── Circle + vibe ────────────────────────────────────────────────────────────
+    MB_ADV("Circle+Vibe #1", "E9-12 haptic circle", MB_Cat_E912_CircVibe, 0, 0, 0),
+    MB_ADV("Circle+Vibe #2", "E9-12 haptic circle", MB_Cat_E912_CircVibe, 1, 0, 0),
+    MB_ADV("Circle+Vibe #3", "E9-12 haptic circle", MB_Cat_E912_CircVibe, 2, 0, 0),
+    // ── Other effects ────────────────────────────────────────────────────────────
+    MB_ADV("Circle", "E9-0B circle anim", MB_Cat_E90B_Circle, 0, 0, 0),
+    MB_ADV("Alternating", "E9-10 alt colors", MB_Cat_E910_Alt, 0, 0, 0),
+    MB_ADV("E9-0E #1", "E9-0E pattern 01", MB_Cat_E90E, 0, 0, 0),
+    MB_ADV("E9-0E #2", "E9-0E pattern 02", MB_Cat_E90E, 1, 0, 0),
+    MB_ADV("E9-0E #3", "E9-0E pattern 11", MB_Cat_E90E, 2, 0, 0),
+    MB_ADV("E9-0E #4", "E9-0E pattern 15", MB_Cat_E90E, 3, 0, 0),
+    MB_ADV("E9-0E #5", "E9-0E pattern 83", MB_Cat_E90E, 4, 0, 0),
+    MB_ADV("E9-0F #1", "E9-0F pattern 11", MB_Cat_E90F, 0, 0, 0),
+    MB_ADV("E9-0F #2", "E9-0F pattern 2A", MB_Cat_E90F, 1, 0, 0),
+    MB_ADV("Anim 13 #1", "E9-13 animation", MB_Cat_E913_Anim, 0, 0, 0),
+    MB_ADV("Anim 13 #2", "E9-13 animation", MB_Cat_E913_Anim, 1, 0, 0),
+    MB_ADV("Anim 14 #1", "E9-14 animation", MB_Cat_E914_Anim, 0, 0, 0),
+    MB_ADV("Anim 14 #2", "E9-14 animation", MB_Cat_E914_Anim, 1, 0, 0),
+    MB_ADV("Anim 14 #3", "E9-14 animation", MB_Cat_E914_Anim, 2, 0, 0),
+    MB_ADV("Unknown 07 #1", "E9-07 not yet decoded", MB_Cat_E907_Unknown, 0, 0, 0),
+    MB_ADV("Unknown 07 #2", "E9-07 not yet decoded", MB_Cat_E907_Unknown, 1, 0, 0),
 };
 
 #define ATTACKS_COUNT ((int)COUNT_OF(attacks))
@@ -105,14 +143,14 @@ MB_ADV("Unknown 07 #2","E9-07 not yet decoded",  MB_Cat_E907_Unknown,  1, 0,0),
 // ─── State ────────────────────────────────────────────────────────────────────
 
 typedef struct {
-    Ctx ctx;             // FIRST field — safe to cast (Ctx* ↔ State*)
+    Ctx ctx; // FIRST field — safe to cast (Ctx* ↔ State*)
     View* main_view;
     bool lock_warning;
     uint8_t lock_count;
     FuriTimer* lock_timer;
 
     bool advertising;
-    uint8_t delay;       // used for non-MB attacks (bruteforce etc.)
+    uint8_t delay; // used for non-MB attacks (bruteforce etc.)
     GapExtraBeaconConfig config;
     FuriThread* thread;
     bool ignore_bruteforce;
@@ -131,14 +169,18 @@ static uint16_t delays[] = {20, 50, 100, 200, 500};
 // ─── LED notification sequences ──────────────────────────────────────────────
 
 const NotificationSequence solid_message = {
-    &message_red_0, &message_green_255, &message_blue_255,
-    &message_do_not_reset, &message_delay_10, NULL,
+    &message_red_0,
+    &message_green_255,
+    &message_blue_255,
+    &message_do_not_reset,
+    &message_delay_10,
+    NULL,
 };
 NotificationMessage blink_message = {
     .type = NotificationMessageTypeLedBlinkStart,
     .data.led_blink = {.color = LightBlue | LightGreen, .on_time = 10, .period = 100},
 };
-const NotificationSequence blink_sequence = { &blink_message, &message_do_not_reset, NULL };
+const NotificationSequence blink_sequence = {&blink_message, &message_do_not_reset, NULL};
 
 static void start_blink(State* state) {
     if(!state->ctx.led_indicator) return;
@@ -169,8 +211,7 @@ static void fire_one(State* state, const uint8_t* pkt, uint8_t size) {
 }
 
 static void beacon_stop_if_active(void) {
-    if(furi_hal_bt_extra_beacon_is_active())
-        furi_check(furi_hal_bt_extra_beacon_stop());
+    if(furi_hal_bt_extra_beacon_is_active()) furi_check(furi_hal_bt_extra_beacon_stop());
 }
 
 // ─── Advertising thread ───────────────────────────────────────────────────────
@@ -185,9 +226,9 @@ static void beacon_stop_if_active(void) {
 // Without fast mode: standard stop/start MAC-cycling loop (original behavior).
 
 static int32_t adv_thread(void* _ctx) {
-    State* state  = _ctx;
-    int8_t idx    = state->ctx.preset_index;
-    Payload* payload  = &attacks[idx].payload;
+    State* state = _ctx;
+    int8_t idx = state->ctx.preset_index;
+    Payload* payload = &attacks[idx].payload;
     const Protocol* protocol = attacks[idx].protocol;
 
     // If this is the Custom Hex attack, copy the byte_store into the payload now
@@ -206,12 +247,11 @@ static int32_t adv_thread(void* _ctx) {
     uint8_t fm_size = (uint8_t)mb_build_fast_ping(fm_pkt);
 
     // ── PRE-WARM PHASE ──────────────────────────────────────────────────────
-    uint32_t prewarm_ms =
-        (uint32_t)mb_prewarm_secs[state->ctx.fast_mode_prewarm_idx] * 1000;
+    uint32_t prewarm_ms = (uint32_t)mb_prewarm_secs[state->ctx.fast_mode_prewarm_idx] * 1000;
 
     if(state->ctx.fast_mode && prewarm_ms > 0) {
         state->fast_mode_warming = true;
-        state->fast_mode_skip    = false;
+        state->fast_mode_skip = false;
         uint32_t start_tick = furi_get_tick();
 
         while(state->advertising && !state->fast_mode_skip) {
@@ -220,7 +260,7 @@ static int32_t adv_thread(void* _ctx) {
 
             state->fast_mode_prewarm_left_ms = prewarm_ms - elapsed;
             // Poke the view to redraw the countdown bar
-            with_view_model(state->main_view, State**m, { (void)m; }, true);
+            with_view_model(state->main_view, State * *m, { (void)m; }, true);
 
             beacon_stop_if_active();
             fire_one(state, fm_pkt, fm_size);
@@ -229,7 +269,7 @@ static int32_t adv_thread(void* _ctx) {
 
         state->fast_mode_warming = false;
         state->fast_mode_prewarm_left_ms = 0;
-        with_view_model(state->main_view, State**m, { (void)m; }, true);
+        with_view_model(state->main_view, State * *m, { (void)m; }, true);
         beacon_stop_if_active();
     }
 
@@ -239,7 +279,7 @@ static int32_t adv_thread(void* _ctx) {
     }
 
     // ── EFFECT PHASE ────────────────────────────────────────────────────────
-    uint8_t  pkt_size;
+    uint8_t pkt_size;
     uint8_t* pkt;
     protocol->make_packet(&pkt_size, &pkt, payload);
 
@@ -297,10 +337,10 @@ void ble_spam_set_custom_payload(Ctx* ctx, const uint8_t* data, uint8_t len) {
 
 static void draw_callback(Canvas* canvas, void* _ctx) {
     State* state = *(State**)_ctx;
-    int8_t  idx  = state->ctx.preset_index;
-    bool    is_attack = (idx >= 0 && idx < ATTACKS_COUNT);
-    const Attack*   attack   = is_attack ? &attacks[idx] : NULL;
-    const Payload*  payload  = attack ? &attack->payload : NULL;
+    int8_t idx = state->ctx.preset_index;
+    bool is_attack = (idx >= 0 && idx < ATTACKS_COUNT);
+    const Attack* attack = is_attack ? &attacks[idx] : NULL;
+    const Payload* payload = attack ? &attack->payload : NULL;
     const Protocol* protocol = attack ? attack->protocol : NULL;
     char str[40];
 
@@ -312,7 +352,7 @@ static void draw_callback(Canvas* canvas, void* _ctx) {
 
         // Progress bar
         uint32_t total_ms = (uint32_t)mb_prewarm_secs[state->ctx.fast_mode_prewarm_idx] * 1000;
-        uint32_t left_ms  = state->fast_mode_prewarm_left_ms;
+        uint32_t left_ms = state->fast_mode_prewarm_left_ms;
         if(total_ms > 0 && left_ms <= total_ms) {
             uint8_t fill = (uint8_t)(120 * (total_ms - left_ms) / total_ms);
             canvas_draw_frame(canvas, 4, 16, 120, 8);
@@ -320,8 +360,8 @@ static void draw_callback(Canvas* canvas, void* _ctx) {
         }
         snprintf(str, sizeof(str), "%lu s remaining", (unsigned long)(left_ms / 1000));
         canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignBottom, str);
-        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom,
-                                "Broadcasting CC fast ping...");
+        canvas_draw_str_aligned(
+            canvas, 64, 44, AlignCenter, AlignBottom, "Broadcasting CC fast ping...");
         elements_button_center(canvas, "Skip");
         return;
     }
@@ -340,7 +380,7 @@ static void draw_callback(Canvas* canvas, void* _ctx) {
             snprintf(str, sizeof(str), "%ims", delays[state->delay]);
             canvas_draw_str_aligned(canvas, 116, 12, AlignRight, AlignBottom, str);
         }
-        canvas_draw_icon(canvas, 119, 6,  &I_SmallArrowUp_3x5);
+        canvas_draw_icon(canvas, 119, 6, &I_SmallArrowUp_3x5);
         canvas_draw_icon(canvas, 119, 10, &I_SmallArrowDown_3x5);
     }
 
@@ -372,13 +412,19 @@ static void draw_callback(Canvas* canvas, void* _ctx) {
 
         if(mc && mc->category == MB_Cat_E905_Single) {
             uint8_t v = mc->vibe;
-            if(v) snprintf(str, sizeof(str), "%s + %s", mb_color_name(mc->color5), mb_vibe_name(v));
-            else  snprintf(str, sizeof(str), "%s", mb_color_name(mc->color5));
+            if(v)
+                snprintf(str, sizeof(str), "%s + %s", mb_color_name(mc->color5), mb_vibe_name(v));
+            else
+                snprintf(str, sizeof(str), "%s", mb_color_name(mc->color5));
             canvas_draw_str(canvas, 4, 46, str);
 
         } else if(mc && mc->category == MB_Cat_E906_Dual) {
-            snprintf(str, sizeof(str), "%s | %s",
-                     mb_color_name(mc->color5_outer), mb_color_name(mc->color5_inner));
+            snprintf(
+                str,
+                sizeof(str),
+                "%s | %s",
+                mb_color_name(mc->color5_outer),
+                mb_color_name(mc->color5_inner));
             canvas_draw_str(canvas, 4, 46, str);
 
         } else if(mc && mc->category == MB_Cat_E908_RGB) {
@@ -392,10 +438,12 @@ static void draw_callback(Canvas* canvas, void* _ctx) {
 
     // ── Bottom buttons ────────────────────────────────────────────────────────
     if(is_attack) {
-        if(idx > 0)              elements_button_left(canvas, "< Back");
-        else                     elements_button_left(canvas, "Menu");
+        if(idx > 0)
+            elements_button_left(canvas, "< Back");
+        else
+            elements_button_left(canvas, "Menu");
         elements_button_center(canvas, state->advertising ? "Stop" : "Send");
-        if(idx < ATTACKS_COUNT-1) elements_button_right(canvas, "Next >");
+        if(idx < ATTACKS_COUNT - 1) elements_button_right(canvas, "Next >");
     }
 
     // ── Keyboard lock warning overlay ─────────────────────────────────────────
@@ -414,7 +462,7 @@ static void draw_callback(Canvas* canvas, void* _ctx) {
 // ─── Input callback ───────────────────────────────────────────────────────────
 
 static bool input_callback(InputEvent* input, void* _ctx) {
-    View* view   = _ctx;
+    View* view = _ctx;
     State* state = *(State**)view_get_model(view);
     bool consumed = false;
 
@@ -426,8 +474,7 @@ static bool input_callback(InputEvent* input, void* _ctx) {
             furi_timer_set_thread_priority(FuriTimerThreadPriorityElevated);
             furi_timer_start(state->lock_timer, 1000);
         }
-        if(input->type == InputTypeShort && input->key == InputKeyBack)
-            state->lock_count++;
+        if(input->type == InputTypeShort && input->key == InputKeyBack) state->lock_count++;
         if(state->lock_count >= 3) {
             furi_timer_set_thread_priority(FuriTimerThreadPriorityElevated);
             furi_timer_start(state->lock_timer, 1);
@@ -451,10 +498,10 @@ static bool input_callback(InputEvent* input, void* _ctx) {
        input->type == InputTypeRepeat) {
         consumed = true;
 
-        int8_t  idx        = state->ctx.preset_index;
-        bool    is_attack  = (idx >= 0 && idx < ATTACKS_COUNT);
-        Payload* payload   = is_attack ? &attacks[idx].payload : NULL;
-        bool    advertising = state->advertising;
+        int8_t idx = state->ctx.preset_index;
+        bool is_attack = (idx >= 0 && idx < ATTACKS_COUNT);
+        Payload* payload = is_attack ? &attacks[idx].payload : NULL;
+        bool advertising = state->advertising;
 
         switch(input->key) {
         case InputKeyOk:
@@ -463,8 +510,7 @@ static bool input_callback(InputEvent* input, void* _ctx) {
                     // Hold OK → per-attack config
                     if(advertising) toggle_adv(state);
                     state->ctx.attack = &attacks[idx];
-                    scene_manager_set_scene_state(
-                        state->ctx.scene_manager, SceneConfig, 0);
+                    scene_manager_set_scene_state(state->ctx.scene_manager, SceneConfig, 0);
                     view_commit_model(view, consumed);
                     scene_manager_next_scene(state->ctx.scene_manager, SceneConfig);
                     return consumed;
@@ -478,8 +524,7 @@ static bool input_callback(InputEvent* input, void* _ctx) {
             if(is_attack && payload && payload->mode == PayloadModeBruteforce) {
                 payload->bruteforce.counter = 0;
                 payload->bruteforce.value =
-                    (payload->bruteforce.value + 1) %
-                    (1 << (payload->bruteforce.size * 8));
+                    (payload->bruteforce.value + 1) % (1 << (payload->bruteforce.size * 8));
             } else if(state->delay < COUNT_OF(delays) - 1) {
                 state->delay++;
                 if(advertising) start_blink(state);
@@ -490,8 +535,7 @@ static bool input_callback(InputEvent* input, void* _ctx) {
             if(is_attack && payload && payload->mode == PayloadModeBruteforce) {
                 payload->bruteforce.counter = 0;
                 payload->bruteforce.value =
-                    (payload->bruteforce.value - 1) %
-                    (1 << (payload->bruteforce.size * 8));
+                    (payload->bruteforce.value - 1) % (1 << (payload->bruteforce.size * 8));
             } else if(state->delay > 0) {
                 state->delay--;
                 if(advertising) start_blink(state);
@@ -500,11 +544,10 @@ static bool input_callback(InputEvent* input, void* _ctx) {
 
         case InputKeyLeft:
             if(input->type == InputTypeLong) {
-                state->ignore_bruteforce =
-                    payload ? (payload->mode != PayloadModeBruteforce) : true;
+                state->ignore_bruteforce = payload ? (payload->mode != PayloadModeBruteforce) :
+                                                     true;
             }
-            if(input->type == InputTypeShort || !is_attack ||
-               state->ignore_bruteforce ||
+            if(input->type == InputTypeShort || !is_attack || state->ignore_bruteforce ||
                !payload || payload->mode != PayloadModeBruteforce) {
                 if(advertising) toggle_adv(state);
                 if(idx > 0) {
@@ -524,7 +567,8 @@ static bool input_callback(InputEvent* input, void* _ctx) {
                     cfg->max_adv_interval_ms = delays[state->delay];
                     randomize_mac(state);
                     furi_check(furi_hal_bt_extra_beacon_set_config(cfg));
-                    uint8_t sz; uint8_t* p;
+                    uint8_t sz;
+                    uint8_t* p;
                     attacks[idx].protocol->make_packet(&sz, &p, payload);
                     furi_check(furi_hal_bt_extra_beacon_set_data(p, sz));
                     free(p);
@@ -541,11 +585,10 @@ static bool input_callback(InputEvent* input, void* _ctx) {
 
         case InputKeyRight:
             if(input->type == InputTypeLong) {
-                state->ignore_bruteforce =
-                    payload ? (payload->mode != PayloadModeBruteforce) : true;
+                state->ignore_bruteforce = payload ? (payload->mode != PayloadModeBruteforce) :
+                                                     true;
             }
-            if(input->type == InputTypeShort || !is_attack ||
-               state->ignore_bruteforce ||
+            if(input->type == InputTypeShort || !is_attack || state->ignore_bruteforce ||
                !payload || payload->mode != PayloadModeBruteforce) {
                 if(advertising) toggle_adv(state);
                 if(idx < ATTACKS_COUNT - 1) state->ctx.preset_index++;
@@ -557,7 +600,7 @@ static bool input_callback(InputEvent* input, void* _ctx) {
 
         case InputKeyBack:
             if(advertising) toggle_adv(state);
-            consumed = false;  // let scene manager handle back
+            consumed = false; // let scene manager handle back
             break;
 
         default:
@@ -574,12 +617,11 @@ static bool input_callback(InputEvent* input, void* _ctx) {
 static void lock_timer_callback(void* _ctx) {
     State* state = _ctx;
     if(state->lock_count < 3) {
-        notification_message_block(
-            state->ctx.notification, &sequence_display_backlight_off);
+        notification_message_block(state->ctx.notification, &sequence_display_backlight_off);
     } else {
         state->ctx.lock_keyboard = false;
     }
-    with_view_model(state->main_view, State**m, { (*m)->lock_warning = false; }, true);
+    with_view_model(state->main_view, State * *m, { (*m)->lock_warning = false; }, true);
     state->lock_count = 0;
     furi_timer_set_thread_priority(FuriTimerThreadPriorityNormal);
 }
@@ -593,7 +635,7 @@ static bool custom_event_callback(void* _ctx, uint32_t event) {
 static void tick_event_callback(void* _ctx) {
     State* state = _ctx;
     bool adv;
-    with_view_model(state->main_view, State**m, { adv = (*m)->advertising; }, adv);
+    with_view_model(state->main_view, State * *m, { adv = (*m)->advertising; }, adv);
     scene_manager_handle_tick_event(state->ctx.scene_manager);
 }
 static bool back_event_callback(void* _ctx) {
@@ -619,7 +661,7 @@ int32_t ble_spam(void* p) {
     // BLE config
     state->config.adv_channel_map = GapAdvChannelMapAll;
     state->config.adv_power_level = GapAdvPowerLevel_6dBm;
-    state->config.address_type    = GapAddressTypePublic;
+    state->config.address_type = GapAddressTypePublic;
 
     // Thread
     state->thread = furi_thread_alloc();
@@ -628,20 +670,20 @@ int32_t ble_spam(void* p) {
     furi_thread_set_stack_size(state->thread, 2048);
 
     // Ctx defaults
-    state->ctx.led_indicator         = true;
-    state->ctx.fast_mode             = false;
-    state->ctx.fast_mode_prewarm_idx = 3;   // default 15 s pre-warm
-    state->ctx.preset_index          = 0;
+    state->ctx.led_indicator = true;
+    state->ctx.fast_mode = false;
+    state->ctx.fast_mode_prewarm_idx = 3; // default 15 s pre-warm
+    state->ctx.preset_index = 0;
 
     // Initialize custom hex buffer with E9-05 Cyan as a sensible default
     {
-        static const uint8_t def[] = {0xE1,0x00,0xE9,0x05,0x00,0x8F,0x0E,0x00,0xB0};
+        static const uint8_t def[] = {0xE1, 0x00, 0xE9, 0x05, 0x00, 0x8F, 0x0E, 0x00, 0xB0};
         memcpy(state->ctx.byte_store, def, sizeof(def));
     }
 
     state->lock_timer = furi_timer_alloc(lock_timer_callback, FuriTimerTypeOnce, state);
 
-    state->ctx.notification  = furi_record_open(RECORD_NOTIFICATION);
+    state->ctx.notification = furi_record_open(RECORD_NOTIFICATION);
     Gui* gui = furi_record_open(RECORD_GUI);
     state->ctx.view_dispatcher = view_dispatcher_alloc();
 
@@ -654,7 +696,7 @@ int32_t ble_spam(void* p) {
     // Main (preset browser) view
     state->main_view = view_alloc();
     view_allocate_model(state->main_view, ViewModelTypeLocking, sizeof(State*));
-    with_view_model(state->main_view, State**m, { *m = state; }, false);
+    with_view_model(state->main_view, State * *m, { *m = state; }, false);
     view_set_context(state->main_view, state->main_view);
     view_set_draw_callback(state->main_view, draw_callback);
     view_set_input_callback(state->main_view, input_callback);
@@ -662,26 +704,28 @@ int32_t ble_spam(void* p) {
 
     // Byte input
     state->ctx.byte_input = byte_input_alloc();
-    view_dispatcher_add_view(state->ctx.view_dispatcher, ViewByteInput,
-        byte_input_get_view(state->ctx.byte_input));
+    view_dispatcher_add_view(
+        state->ctx.view_dispatcher, ViewByteInput, byte_input_get_view(state->ctx.byte_input));
 
     // Submenu
     state->ctx.submenu = submenu_alloc();
-    view_dispatcher_add_view(state->ctx.view_dispatcher, ViewSubmenu,
-        submenu_get_view(state->ctx.submenu));
+    view_dispatcher_add_view(
+        state->ctx.view_dispatcher, ViewSubmenu, submenu_get_view(state->ctx.submenu));
 
     // Text input
     state->ctx.text_input = text_input_alloc();
-    view_dispatcher_add_view(state->ctx.view_dispatcher, ViewTextInput,
-        text_input_get_view(state->ctx.text_input));
+    view_dispatcher_add_view(
+        state->ctx.view_dispatcher, ViewTextInput, text_input_get_view(state->ctx.text_input));
 
     // Variable item list
     state->ctx.variable_item_list = variable_item_list_alloc();
-    view_dispatcher_add_view(state->ctx.view_dispatcher, ViewVariableItemList,
+    view_dispatcher_add_view(
+        state->ctx.view_dispatcher,
+        ViewVariableItemList,
         variable_item_list_get_view(state->ctx.variable_item_list));
 
     view_dispatcher_attach_to_gui(state->ctx.view_dispatcher, gui, ViewDispatcherTypeFullscreen);
-    scene_manager_next_scene(state->ctx.scene_manager, SceneStart);  // open at main menu
+    scene_manager_next_scene(state->ctx.scene_manager, SceneStart); // open at main menu
     view_dispatcher_run(state->ctx.view_dispatcher);
 
     // ── Cleanup ───────────────────────────────────────────────────────────────
