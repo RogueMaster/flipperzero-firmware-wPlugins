@@ -6,7 +6,10 @@ void scene_main_on_enter(void* _ctx) {
 }
 
 bool scene_main_on_event(void* _ctx, SceneManagerEvent event) {
-    UNUSED(_ctx);
+    // Stop advertising before leaving this scene (safety)
+    if(event.type == SceneManagerEventTypeBack) {
+        ble_spam_stop_adv(_ctx);
+    }
     UNUSED(event);
     return false;
 }
