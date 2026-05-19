@@ -330,12 +330,7 @@ static void draw_callback(Canvas* canvas, void* _ctx) {
     canvas_set_font(canvas, FontSecondary);
     const Icon* icon = protocol ? protocol->icon : &I_ble_spam;
     canvas_draw_icon(canvas, 4 - (icon == &I_ble_spam), 3, icon);
-    canvas_draw_str(canvas, 14, 12, "MB+ Presets");
-
-    // Fast-mode indicator: small "FM" tag after title
-    if(state->ctx.fast_mode) {
-        canvas_draw_str(canvas, 80, 12, "[FM]");
-    }
+    canvas_draw_str(canvas, 14, 12, state->ctx.fast_mode ? "MB+(FM)" : "MB+ Presets");
 
     // Delay / interval indicator (top-right, above up/down arrows)
     if(is_attack) {
