@@ -13,5 +13,8 @@ jobs:
       - name: Install ufbt
         run: pip install ufbt
 
+      - name: Lint
+        run: ufbt lint
+
       - name: Build
         run: ufbt
