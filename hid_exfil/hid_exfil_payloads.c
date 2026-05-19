@@ -157,7 +157,7 @@ static const char* ps_clipboard =
 static const char* ps_sysinfo =
     "$hostname = $env:COMPUTERNAME\r\n"
     "$user = $env:USERNAME\r\n"
-    "$os = (Get-WmiObject Win32_OperatingSystem).Caption\r\n"
+    "$os = (Get-CimInstance Win32_OperatingSystem).Caption\r\n"
     "$ip = (Get-NetIPAddress -AddressFamily IPv4 | "
     "Where-Object { $_.InterfaceAlias -ne 'Loopback Pseudo-Interface 1' } | "
     "Select-Object -First 1).IPAddress\r\n"

