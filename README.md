@@ -1,13 +1,13 @@
 # I2C Tools CLI
 
-A Flipper Zero external application that exposes I²C tools through both a **GUI** and a **serial CLI** (`i2c <subcommand>` over `ufbt cli` / VCP).
+A Flipper Zero external application that exposes I²C tools through both a **GUI** and a **serial CLI** (the *i2c* command over *ufbt cli* / VCP).
 
 Forked from [NaejEL/flipperzero-i2ctools](https://github.com/NaejEL/flipperzero-i2ctools) (GPL-3.0). On top of the original scanner / sender / sniffer / infos views, this fork adds:
 
 - **N-byte read** in the sender view (1..32 bytes, adjusted via Long Left / Long Right);
 - **Write mode** toggle on the sender view (Long OK switches between READ and WRITE);
 - **HEX / ASCII** display toggle (Long Back), with scrollable result paging (Long Up / Long Down);
-- A **serial CLI** with subcommands `scan`, `probe`, `read`, `write`, `help`.
+- A **serial CLI** with subcommands **scan**, **probe**, **read**, **write**, **help**.
 
 > ⚠ The Flipper external GPIO is **3V3 only**. Connecting a 5 V bus directly to SCL/SDA can damage the device. Use a level shifter for 5 V peripherals.
 
@@ -19,7 +19,7 @@ Forked from [NaejEL/flipperzero-i2ctools](https://github.com/NaejEL/flipperzero-
 | C1 | SDA |
 | GND | GND |
 
-Internal 10 kΩ pull-ups are enabled by `furi_hal_i2c_acquire(&furi_hal_i2c_handle_external)`.
+Internal 10 kΩ pull-ups are enabled by the external I²C handle.
 
 ## Install
 
@@ -27,11 +27,9 @@ Internal 10 kΩ pull-ups are enabled by `furi_hal_i2c_acquire(&furi_hal_i2c_hand
 
 **From source (development)** — requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt).
 
-```sh
-ufbt              # build → dist/i2c_tools_cli.fap
-ufbt launch       # build, upload, and start on a connected Flipper
-ufbt cli          # open the serial CLI (type `i2c help`)
-```
+    ufbt              # build → dist/i2c_tools_cli.fap
+    ufbt launch       # build, upload, and start on a connected Flipper
+    ufbt cli          # open the serial CLI (type: i2c help)
 
 ## Screenshots
 
@@ -48,20 +46,18 @@ ufbt cli          # open the serial CLI (type `i2c help`)
 
 ## CLI quick reference
 
-```text
-i2c scan                                    # list addresses that ACK
-i2c probe <addr>                            # present / absent
-i2c read  <addr> <reg> <count> [hex|ascii]  # write reg → read N bytes
-i2c write <addr> <reg> <byte> [<byte>...]   # up to 32 payload bytes
-i2c help
-```
+    i2c scan                                    # list addresses that ACK
+    i2c probe <addr>                            # present / absent
+    i2c read  <addr> <reg> <count> [hex|ascii]  # write reg → read N bytes
+    i2c write <addr> <reg> <byte> [<byte>...]   # up to 32 payload bytes
+    i2c help
 
-All numeric arguments are hex (`1A`, `0x1A`, `0X1a`, …).
+All numeric arguments are hex (1A, 0x1A, 0X1a, …).
 
 ## Documentation
 
-- [User guide](docs/USER_GUIDE.md) — every GUI key combination + every CLI subcommand, with examples.
-- [Publishing guide](docs/PUBLISHING.md) — how this app is published to the Flipper Application Catalog and listed in `awesome-flipperzero`.
+- [User guide](docs/USER_GUIDE.md) — every GUI key combination and every CLI subcommand, with examples.
+- [Publishing guide](docs/PUBLISHING.md) — how this app is published to the Flipper Application Catalog and listed in awesome-flipperzero.
 - [CHANGELOG](CHANGELOG.md)
 
 ## License
