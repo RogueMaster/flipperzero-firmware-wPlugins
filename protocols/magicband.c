@@ -41,7 +41,7 @@ static const uint8_t TIMING_VALS[] = {0x8F, 0x09, 0x06, 0x04, 0x03};
 #define TIMING_COUNT 5
 
 // LED position labels for E9-09
-static const char* const LED_LABELS[] = {"Center", "Top-R", "Top-L", "Bot-R", "Bot-L"};
+static const char* const LED_LABELS[] = {"Center", "Top-R", "Bot-R", "Bot-L", "Top-L"};
 
 const char* mb_color_name(uint8_t c) {
     return COLORS[c & 0x1F];
@@ -101,8 +101,8 @@ static void build_e906(const MagicbandCfg* c, uint8_t out[10]) {
     out[4] = 0x00;
     out[5] = 0x22;
     out[6] = 0x0F;
-    out[7] = (uint8_t)(0x40 | (c->color5_outer & 0x1F));
-    out[8] = (uint8_t)(0x40 | (c->color5_inner & 0x1F));
+    out[7] = (uint8_t)(0x40 | (c->color5_inner & 0x1F));
+    out[8] = (uint8_t)(0x40 | (c->color5_outer & 0x1F));
     out[9] = c->vibe ? (uint8_t)((c->vibe << 4) | 0x0B) : 0xB0;
 }
 
@@ -574,6 +574,34 @@ typedef struct {
     uint8_t idx;
 } LEDCtx;
 static LEDCtx led_ctx[5];
+
+static void on_variant(VariableItem* item) {
+    MagicbandCfg* c = variable_item_get_context(item);
+    c->index = variable_item_get_current_value_index(item);
+    char buf[4];
+    snprintf(buf, sizeof(buf), "%u", c->index + 1);
+    variable_item_set_current_value_text(item, buf);
+}
+
+typedef struct {
+    MagicbandCategory cat;
+    uint8_t count;
+    const char* label;
+} VariantInfo;
+
+static const VariantInfo VARIANTS[] = {
+    {MB_Cat_CC, 3, "Code"},
+    {MB_Cat_E90C_Anim, 4, "Animation"},
+    {MB_Cat_E90E, 5, "Pattern"},
+    {MB_Cat_E90F, 2, "Pattern"},
+    {MB_Cat_E911_Crossfade, 7, "Fade"},
+    {MB_Cat_E912_CircVibe, 3, "Variant"},
+    {MB_Cat_E913_Anim, 2, "Animation"},
+    {MB_Cat_E914_Anim, 3, "Animation"},
+    {MB_Cat_E907_Unknown, 2, "Variant"},
+};
+#define VARIANTS_COUNT ((uint8_t)(sizeof(VARIANTS) / sizeof(VARIANTS[0])))
+
 static void on_led_color(VariableItem* item) {
     LEDCtx* lc = variable_item_get_context(item);
     lc->c->led5[lc->idx] = variable_item_get_current_value_index(item);
@@ -655,8 +683,24 @@ static void extra_config(Ctx* ctx) {
         add_item(l, "Vibrate", VIBE_COUNT, on_vibe, c, vibe_idx(c->vibe), mb_vibe_name(c->vibe));
         break;
 
-    default:
+    default: {
+        for(uint8_t i = 0; i < VARIANTS_COUNT; i++) {
+            if(VARIANTS[i].cat == c->category && VARIANTS[i].count > 1) {
+                char buf[4];
+                snprintf(buf, sizeof(buf), "%u", (c->index % VARIANTS[i].count) + 1);
+                add_item(
+                    l,
+                    VARIANTS[i].label,
+                    VARIANTS[i].count,
+                    on_variant,
+                    c,
+                    c->index % VARIANTS[i].count,
+                    buf);
+                break;
+            }
+        }
         break;
+    }
     }
 }
 

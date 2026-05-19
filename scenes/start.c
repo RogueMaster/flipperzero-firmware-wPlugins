@@ -1,9 +1,9 @@
 #include "../ble_spam.h"
 
 typedef enum {
-    StartBrowse,
+    StartBrowse = 0,
     StartSingleColor,
-    StartCustom,
+    StartCustomLights,
     StartSettings,
 } StartItem;
 
@@ -11,15 +11,15 @@ static void start_cb(void* _ctx, uint32_t index) {
     Ctx* ctx = _ctx;
     switch(index) {
     case StartBrowse:
-        // Stay at current preset_index (or reset to 0 if coming fresh)
+        ble_spam_select_attack(ctx, 5);
         scene_manager_next_scene(ctx->scene_manager, SceneMain);
         break;
     case StartSingleColor:
-        ctx->preset_index = 0; // attacks[0] is Single Color
-        scene_manager_next_scene(ctx->scene_manager, SceneMain);
+        ble_spam_select_attack(ctx, 0);
+        scene_manager_next_scene(ctx->scene_manager, SceneConfig);
         break;
-    case StartCustom:
-        scene_manager_next_scene(ctx->scene_manager, SceneCustom);
+    case StartCustomLights:
+        scene_manager_next_scene(ctx->scene_manager, SceneCustomLights);
         break;
     case StartSettings:
         scene_manager_next_scene(ctx->scene_manager, SceneSettings);
@@ -31,10 +31,10 @@ void scene_start_on_enter(void* _ctx) {
     Ctx* ctx = _ctx;
     submenu_reset(ctx->submenu);
     submenu_set_header(ctx->submenu, "MB+ Transmitter");
-    submenu_add_item(ctx->submenu, "Browse Presets", StartBrowse, start_cb, ctx);
-    submenu_add_item(ctx->submenu, "Single Color", StartSingleColor, start_cb, ctx);
-    submenu_add_item(ctx->submenu, "Custom Command", StartCustom, start_cb, ctx);
-    submenu_add_item(ctx->submenu, "Settings", StartSettings, start_cb, ctx);
+    submenu_add_item(ctx->submenu, "Browse Presets", StartBrowse,       start_cb, ctx);
+    submenu_add_item(ctx->submenu, "Single Color",   StartSingleColor,  start_cb, ctx);
+    submenu_add_item(ctx->submenu, "Custom Lights",  StartCustomLights, start_cb, ctx);
+    submenu_add_item(ctx->submenu, "Settings",       StartSettings,     start_cb, ctx);
     view_dispatcher_switch_to_view(ctx->view_dispatcher, ViewSubmenu);
 }
 

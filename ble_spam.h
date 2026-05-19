@@ -60,6 +60,8 @@ typedef struct {
 
     // OFW patch
     VariableItem* item_pp_color;
+    VariableItem*     item_send;
+    bool              config_in_prewarm;
 } Ctx;
 
 // ─── Helpers exposed for scene files ─────────────────────────────────────────
@@ -69,3 +71,7 @@ void ble_spam_stop_adv(Ctx* ctx);
 
 // Update the Custom Hex attack payload and jump preset_index to it
 void ble_spam_set_custom_payload(Ctx* ctx, const uint8_t* data, uint8_t len);
+void ble_spam_select_attack(Ctx* ctx, int8_t idx);
+void ble_spam_toggle_adv(Ctx* ctx);
+bool ble_spam_is_advertising(Ctx* ctx);
+bool ble_spam_is_warming(Ctx* ctx);

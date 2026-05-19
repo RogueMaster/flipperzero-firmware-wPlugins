@@ -324,6 +324,31 @@ void ble_spam_stop_adv(Ctx* ctx) {
     if(state->advertising) toggle_adv(state);
 }
 
+
+
+void ble_spam_toggle_adv(Ctx* ctx) {
+    State* state = (State*)ctx;
+    toggle_adv(state);
+}
+
+bool ble_spam_is_advertising(Ctx* ctx) {
+    State* state = (State*)ctx;
+    return state->advertising;
+}
+
+
+bool ble_spam_is_warming(Ctx* ctx) {
+    State* state = (State*)ctx;
+    return state->fast_mode_warming;
+}
+
+void ble_spam_select_attack(Ctx* ctx, int8_t idx) {
+    State* state = (State*)ctx;
+    if(state->advertising) toggle_adv(state);
+    ctx->preset_index = idx;
+    if(idx >= 0 && idx < ATTACKS_COUNT) ctx->attack = &attacks[idx];
+}
+
 void ble_spam_set_custom_payload(Ctx* ctx, const uint8_t* data, uint8_t len) {
     uint8_t copy = len < sizeof(ctx->byte_store) ? len : (uint8_t)sizeof(ctx->byte_store);
     memcpy(ctx->byte_store, data, copy);
@@ -672,8 +697,8 @@ int32_t ble_spam(void* p) {
 
     // Ctx defaults
     state->ctx.led_indicator = true;
-    state->ctx.fast_mode = false;
-    state->ctx.fast_mode_prewarm_idx = 3; // default 15 s pre-warm
+    state->ctx.fast_mode = true;
+    state->ctx.fast_mode_prewarm_idx = 2; // default 15 s pre-warm
     state->ctx.preset_index = 0;
 
     // Initialize custom hex buffer with E9-05 Cyan as a sensible default
