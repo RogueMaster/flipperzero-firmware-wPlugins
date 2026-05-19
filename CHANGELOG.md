@@ -2,7 +2,7 @@
 
 All notable changes to **I2C Tools CLI** are documented here. Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow MAJOR.MINOR.
 
-## [1.0] - 2026-05-14
+## Version 1.0 — 2026-05-14
 
 First release prepared for the Flipper Application Catalog.
 

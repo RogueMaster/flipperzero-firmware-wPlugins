@@ -47,9 +47,9 @@ Internal 10 kΩ pull-ups are enabled by the external I²C handle.
 ## CLI quick reference
 
     i2c scan                                    # list addresses that ACK
-    i2c probe <addr>                            # present / absent
-    i2c read  <addr> <reg> <count> [hex|ascii]  # write reg → read N bytes
-    i2c write <addr> <reg> <byte> [<byte>...]   # up to 32 payload bytes
+    i2c probe ADDR                              # present / absent
+    i2c read  ADDR REG COUNT {hex|ascii}        # write reg → read N bytes
+    i2c write ADDR REG BYTE {BYTE...}           # up to 32 payload bytes
     i2c help
 
 All numeric arguments are hex (1A, 0x1A, 0X1a, …).
