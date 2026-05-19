@@ -9,7 +9,7 @@ Forked from [NaejEL/flipperzero-i2ctools](https://github.com/NaejEL/flipperzero-
 - **HEX / ASCII** display toggle (Long Back), with scrollable result paging (Long Up / Long Down);
 - A **serial CLI** with subcommands **scan**, **probe**, **read**, **write**, **help**.
 
-> ⚠ The Flipper external GPIO is **3V3 only**. Connecting a 5 V bus directly to SCL/SDA can damage the device. Use a level shifter for 5 V peripherals.
+**⚠ Warning:** the Flipper external GPIO is **3V3 only**. Connecting a 5 V bus directly to SCL/SDA can damage the device. Use a level shifter for 5 V peripherals.
 
 ## Wiring
 
