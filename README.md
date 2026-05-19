@@ -23,7 +23,7 @@ Internal 10 kΩ pull-ups are enabled by the external I²C handle.
 
 ## Install
 
-**From the Flipper Application Catalog** — search for **I2C Tools CLI** on <https://catalog.flipperzero.one/> and install through qFlipper or the mobile app.
+**From the Flipper Application Catalog** — search for **I2C Tools CLI** on the [Flipper catalog](https://catalog.flipperzero.one/) and install through qFlipper or the mobile app.
 
 **From source (development)** — requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt).
 
