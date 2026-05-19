@@ -2,8 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/Tristus1er/flipperzero-i2c-tools-cli
-    # commit_sha is set per-release when opening the catalog PR (use the tag commit, e.g. v1.0).
-    commit_sha: REPLACE_WITH_RELEASE_COMMIT_SHA
+    commit_sha: 0e9cd9232f66c62413a11c5a1d882e3c63ee3254
     subdir: ""
 
 short_description: I2C scanner, sender and sniffer with N-byte read, HEX/ASCII view, and a serial CLI.

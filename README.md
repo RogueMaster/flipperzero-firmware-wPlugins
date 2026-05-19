@@ -23,13 +23,9 @@ Internal 10 kΩ pull-ups are enabled by `furi_hal_i2c_acquire(&furi_hal_i2c_hand
 
 ## Install
 
-### From the Flipper Application Catalog
+**From the Flipper Application Catalog** — search for **I2C Tools CLI** on <https://catalog.flipperzero.one/> and install through qFlipper or the mobile app.
 
-Search for **I2C Tools CLI** on <https://catalog.flipperzero.one/> and install through qFlipper or the mobile app.
-
-### From source (development)
-
-Requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt).
+**From source (development)** — requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt).
 
 ```sh
 ufbt              # build → dist/i2c_tools_cli.fap
