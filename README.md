@@ -17,7 +17,7 @@ And other information of course!
 
 # Download the app first:
 
-https://github.com/Haw8411/magic-band-plus-lights/releases/download/v1.0.0/magicband_plus_lights.fap (or on the Flipper App)
+https://github.com/Haw8411/magic-band-plus-lights/releases/download/v2.0.1/magicband_plus_lights.fap (or on the Flipper App)
 
 # Part 1: What is this app anyway?
 
@@ -31,11 +31,12 @@ In that command, the MagicBand is told multiple things:
 This app holds all *current* known MagicBand BLE Commands.
 
 # Part 2: How can I install it?
-There is 2 ways - both require downloading the .fap from the releases on this repository.
+There is 2 ways - downloading the .fap from the releases on this repository, or over the Flipper App Store in the Flipper App.
 
 This app can be put **wherever** you want in the Flipper's directory, but since it is a Bluetooth application, I recommend you put it in the Bluetooth folder.
 
-You can put it in by 2 ways: qFlipper or the Flipper mobile app. 
+You can put it in by 2 ways: qFlipper or the Flipper mobile app. You can install via https://lab.flipper.net or the Flipper Mobile app for the Flipper App Store.
+
 
 # Android
 "Well, I don't have a Flipper Zero, but you mentioned it working on a Android?"
@@ -44,7 +45,7 @@ It is VERY possible to get everything running & working on a Android - though, I
 This means you will have to **manually** input the Bluetooth codes & add them.
 
 *But how can I do that?*
-It's fairly easy to setup - you only need one app: nRF Connect. You can download this from the Google Play store.
+It's fairly easy to setup - you only need one app: nRF Connect. You can download this from the Google Play store, or any store of your cause.
 
 *Well, what do I do now?*
 1. Open the application
@@ -57,15 +58,15 @@ It's fairly easy to setup - you only need one app: nRF Connect. You can download
 8. I reccomend adding the "Trigger" first so you can ping the MagicBand.
 9. That's it! Slide the toggle on, and you don't need to change any of the data there.
 
+*Note: I haven't looked into Fast Mode on Android. You may need to wait.*
+
 # Why don't the lights come on???
 
-This can be due to multiple things - one specifically being the MagicBand off or it's battery is dead. You will need to turn it on/charge it for this to work.
+This can be due to multiple things - one specifically being the MagicBand off or it's battery is dead. You will need to turn it on/charge it for this to work. 
 
-*But it still doesn't work!*
+*But it still doesn't work, and it's charged and on!*
 
-Sometimes it takes a while to turn on. Especially with the Flipper. 
-
-The best thing that I have noticed is to double tap it - when your spinning color comes up, start it (Flipper) or enable it (Android). That has been the "solution"
+Make sure that in **Settings** -> **Fast Mode** is turned on and the amount is set to **15 seconds**
 
 # Can I modify it & add my own hex codes that I found?
 
@@ -81,9 +82,8 @@ And that's it!
 
 
 Credit to [wrenchathome]([url](https://github.com/wrenchathome/ofw_ble_spam)) for the BLE Spam code 
-(ChatGPT has helped a lot with the formation of the Flipper app, as I am fairly new to it.)
-(Thank you to the person who made the emcot.world guide, it has been a BIG help!)
-
+(ChatGPT & Claude has helped a lot with the formation of the Flipper app, as I am fairly new to coding C.)
+(Thank you to the person who made the emcot.world guide, it has been a BIG help and wouldn't be possible without it!)
 
 
 
