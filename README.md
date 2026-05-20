@@ -45,7 +45,7 @@ Read SPI NOR flash chips via the Flipper's GPIO header.
 - **Full Read with Verify**: Reads chip contents to SD card, then verifies by re-reading
 - **CRC32 Checksum**: Calculates and displays CRC32 after successful read
 - **Hex Preview**: Browse dumped data in a hex viewer on-device
-- **Adjustable SPI Speed**: 1 MHz or 4 MHz clock
+- **Adjustable SPI Speed**: Slow (~50 kHz), Medium (~250 kHz), or Fast (~1 MHz)
 
 **Wiring (3.3V logic, directly to Flipper GPIO header):**
 
