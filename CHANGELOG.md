@@ -6,6 +6,13 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-05-20
+
+### docs
+- **spi_flash_dump**: Full re-trace review of all 1926 lines across 3 source files + 2 headers. No bugs found. SPI Mode 0 bit-bang verified, 4-byte addressing correct for >16MB chips, GPIO pins PA4/PB3/PA7/PA6 no conflicts, all Storage API returns checked with file lifecycle correct on all paths, CRC32 computed in worker thread, hex viewer data heap-allocated with bounds-correct draw, 6 views lifecycle correct (ViewModelTypeLocking on both progress views), all snprintf buffers verified, uint64 casts on progress calculations, cross-thread safety verified, stack safe (main ~200/4096, worker ~562/4096, timer ~60/1024).
+
+---
+
 ## 2026-05-19
 
 ### fix
