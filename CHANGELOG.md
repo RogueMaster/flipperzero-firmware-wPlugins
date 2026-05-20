@@ -8,8 +8,15 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ## 2026-05-20
 
+### fix
+- **ccid_emulator_sample_cards/piv_emulator.ccid**: Fixed FASC-N TLV length in CHUID response — `30 19` (length=25) should be `30 18` (length=24). With length 25, the parser consumed the GUID tag byte `34` as FASC-N data, leaving invalid tag `10` at the next position. PIV readers would fail to parse the CHUID. Outer `53 3A` (58 bytes) remains correct since total inner TLV sum is 58 with corrected FASC-N length.
+- **evil_portal/pcap_capture.py**: Added `from __future__ import annotations` for Python 3.8+ compatibility. The `int | None` union syntax on line 217 requires Python 3.10+ without the future import, causing `TypeError` on older Kali/Debian systems.
+- **evil_portal/marauder_serial.py**: Removed unused `import struct`.
+- **README.md**: Fixed SPI Flash Dump speed options — said "1 MHz or 4 MHz" but the app has three speeds: Slow (~50 kHz), Medium (~250 kHz), Fast (~1 MHz). No 4 MHz option exists.
+
 ### docs
 - **spi_flash_dump**: Full re-trace review of all 1926 lines across 3 source files + 2 headers. No bugs found. SPI Mode 0 bit-bang verified, 4-byte addressing correct for >16MB chips, GPIO pins PA4/PB3/PA7/PA6 no conflicts, all Storage API returns checked with file lifecycle correct on all paths, CRC32 computed in worker thread, hex viewer data heap-allocated with bounds-correct draw, 6 views lifecycle correct (ViewModelTypeLocking on both progress views), all snprintf buffers verified, uint64 casts on progress calculations, cross-thread safety verified, stack safe (main ~200/4096, worker ~562/4096, timer ~60/1024).
+- **evil_portal**: Re-audited all 16 files (9 HTML portals, 5 .fpwn scripts, 2 Python tools). HTML portals clean (no JS, no external CDN, mobile-friendly). FPWN scripts critically non-functional: all 5 describe Marauder attack sequences (evilportal, BLE spam, PMKID, probe karma) but never send the actual commands — FlipperPwn's engine lacks a `WIFI_CMD` for arbitrary Marauder serial commands. Logged as Tier 7 feature request.
 
 ---
 
