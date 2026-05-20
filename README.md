@@ -9,8 +9,8 @@
       <br><sub><b>The Hardware</b> · 2-in-1 NRF24 + CC1101</sub>
     </td>
     <td align="center" width="50%">
-      <img src="images/quickstart_card.png" alt="QuickStart card shipped in the box — install + third-party app config" width="100%" />
-      <br><sub><b>The Card in the Box</b> · Quick reference for setup</sub>
+      <img src="images/demo.gif" alt="PINGEQUA RF Lab live demo — main menu navigation on Flipper Zero" width="100%" />
+      <br><sub><b>Live Demo</b> · Scanner · Jammer · About</sub>
     </td>
   </tr>
 </table>
@@ -72,13 +72,6 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 ---
 
 ## Screenshots
-
-<div align="center">
-  <img src="images/demo.gif" alt="PINGEQUA RF Lab demo — main menu navigation on Flipper Zero" width="320" /><br>
-  <sub><b>Live demo</b> · Scanner · Jammer · About</sub>
-</div>
-
-<br>
 
 <table>
   <tr>
