@@ -73,19 +73,32 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 
 ## Screenshots
 
+<div align="center">
+  <img src="images/demo.gif" alt="PINGEQUA RF Lab demo — main menu navigation on Flipper Zero" width="320" /><br>
+  <sub><b>Live demo</b> · Scanner · Jammer · About</sub>
+</div>
+
+<br>
+
 <table>
   <tr>
-    <td align="center" width="33%">
-      <img src="images/menu.png" alt="Main menu" width="240" /><br>
+    <td align="center" width="50%">
+      <img src="images/photo_menu.png" alt="PINGEQUA RF Lab main menu on Flipper Zero with the 2-in-1 board" width="300" /><br>
       <sub><b>Main Menu</b><br>Scanner · Jammer · About</sub>
     </td>
-    <td align="center" width="33%">
-      <img src="images/ChannelScanner.png" alt="Channel Scanner UI" width="240" /><br>
+    <td align="center" width="50%">
+      <img src="images/photo_scanner.png" alt="Channel Scanner running — live 2.4 GHz RPD spectrum" width="300" /><br>
       <sub><b>Channel Scanner</b><br>126-ch live RPD spectrum, max-hold</sub>
     </td>
-    <td align="center" width="33%">
-      <img src="images/NRF24Jammer.png" alt="NRF24 Jammer BLE React mode" width="240" /><br>
-      <sub><b>NRF24 Jammer (BLE React)</b><br>RPD reactive on adv ch 37/38/39</sub>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="images/photo_jammer.png" alt="NRF24 Jammer — WiFi pilot-aware OFDM mode at +20 dBm" width="300" /><br>
+      <sub><b>NRF24 Jammer</b><br>7 modes — WiFi pilot-aware OFDM shown</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="images/about.png" alt="About screen with scannable QR code to the shop" width="300" /><br>
+      <sub><b>About</b> (v0.5.2)<br>On-device QR to shop &amp; GitHub</sub>
     </td>
   </tr>
 </table>
