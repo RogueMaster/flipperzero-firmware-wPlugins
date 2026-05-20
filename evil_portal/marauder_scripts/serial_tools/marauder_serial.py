@@ -30,7 +30,6 @@ import time
 import threading
 import readline
 import glob
-import struct
 import datetime
 import argparse
 import serial

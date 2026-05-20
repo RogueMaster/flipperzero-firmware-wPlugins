@@ -29,6 +29,8 @@ Requirements:
 For authorized security testing only.
 """
 
+from __future__ import annotations
+
 import sys
 import os
 import re
