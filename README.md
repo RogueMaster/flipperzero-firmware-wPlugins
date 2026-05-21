@@ -1,4 +1,4 @@
-# Disney MagicBand + Lights at home
+## Disney MagicBand + Lights at home
 
 **Unofficial project.** Not affiliated with, endorsed, or sponsored by The Walt Disney Company.
 MagicBand and MagicBand+ are trademarks of Disney Enterprises, Inc. Names are used only to
@@ -15,11 +15,11 @@ This will detail:
 
 And other information of course!
 
-# Download the app first:
+## Download the app first:
 
 https://github.com/Haw8411/magic-band-plus-lights/releases/download/v2.0.2/magicband_plus_lights.fap (or on the Flipper App)
 
-# Part 1: What is this app anyway?
+## Part 1: What is this app anyway?
 
 At Disney World or Disney Land, they use something called **bluetooth beacons**. That basically is when it is advertising a BLE command that the MagicBands pick up.
 In that command, the MagicBand is told multiple things:
@@ -30,7 +30,7 @@ In that command, the MagicBand is told multiple things:
 
 This app holds all *current* known MagicBand BLE Commands.
 
-# Part 2: How can I install it?
+## Part 2: How can I install it?
 There is 2 ways - downloading the .fap from the releases on this repository, or over the Flipper App Store in the Flipper App.
 
 This app can be put **wherever** you want in the Flipper's directory, but since it is a Bluetooth application, I recommend you put it in the Bluetooth folder.
@@ -38,7 +38,7 @@ This app can be put **wherever** you want in the Flipper's directory, but since 
 You can put it in by 2 ways: qFlipper or the Flipper mobile app. You can install via https://lab.flipper.net or the Flipper Mobile app for the Flipper App Store.
 
 
-# Android
+## Android
 "Well, I don't have a Flipper Zero, but you mentioned it working on a Android?"
 
 It is VERY possible to get everything running & working on a Android - though, I am not going to make a Android application that hosts the commands
@@ -60,7 +60,7 @@ It's fairly easy to setup - you only need one app: nRF Connect. You can download
 
 *Note: I haven't looked into Fast Mode on Android. You may need to wait.*
 
-# Why don't the lights come on???
+## Why don't the lights come on???
 
 This can be due to multiple things - one specifically being the MagicBand off or it's battery is dead. You will need to turn it on/charge it for this to work. 
 
@@ -72,7 +72,7 @@ Make sure that in **Settings** -> **Fast Mode** is turned on and the amount is s
 
 Yes! This project is open source and avalible to everyone, so feel free to do whatever.
 
-# Where did you find all of the BLE codes?
+## Where did you find all of the BLE codes?
 
 There is a post on a website called emcot.world that has all of the codes that I have put in the app.
 
