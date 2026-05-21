@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: .vscode/
+  Remove: [-std=c++23]
+
