@@ -30,3 +30,6 @@ _preview/
 
 # Claude 操作日志(本地副本,主版本在 NAS handoff/worklog.md)
 worklog.md
+
+# 项目状态接续文档(含未公开 v0.6.0 计划/内部路径,主版本在 NAS handoff/)
+PROJECT_STATUS.md
