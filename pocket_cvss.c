@@ -1,206 +1,56 @@
 #include <furi.h>
 #include <gui/gui.h>
+#include <gui/modules/submenu.h>
 #include <gui/view.h>
 #include <gui/view_dispatcher.h>
 
+#include "cvss31.h"
+
+#include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 
 #define TAG "PocketCVSS"
 
 typedef enum {
-    PocketCvssScreenMenu,
-    PocketCvssScreenMetric,
-    PocketCvssScreenResult,
-    PocketCvssScreenExplain,
-    PocketCvssScreenSettings,
-    PocketCvssScreenAbout,
-} PocketCvssScreen;
+    PocketCvssViewMainMenu,
+    PocketCvssViewMetricMenu,
+    PocketCvssViewInfo,
+} PocketCvssViewId;
+
+typedef enum {
+    PocketCvssMainMenuNewScore,
+    PocketCvssMainMenuAbout,
+} PocketCvssMainMenuItem;
+
+typedef enum {
+    PocketCvssInfoResult,
+    PocketCvssInfoExplain,
+    PocketCvssInfoAbout,
+} PocketCvssInfoScreen;
 
 typedef struct {
-    const char* label;
-    const char* code;
-} Cvss31Option;
-
-typedef struct {
-    const char* title;
-    const char* metric_code;
-    uint8_t option_count;
-    Cvss31Option options[4];
-} Cvss31Metric;
-
-typedef struct {
-    PocketCvssScreen screen;
-    uint8_t menu_index;
-    uint8_t step;
-    uint8_t current_option;
-    uint8_t values[8];
-} PocketCvssModel;
+    PocketCvssInfoScreen screen;
+    Cvss31BaseVector vector;
+} PocketCvssInfoModel;
 
 typedef struct {
     Gui* gui;
     ViewDispatcher* dispatcher;
-    View* view;
+    Submenu* main_menu;
+    Submenu* metric_menu;
+    View* info_view;
+    Cvss31MetricId metric_id;
+    PocketCvssViewId current_view;
+    PocketCvssInfoScreen info_screen;
+    char metric_header[32];
 } PocketCvssApp;
 
-static const Cvss31Metric cvss31_metrics[] = {
-    {
-        .title = "Attack Vector",
-        .metric_code = "AV",
-        .option_count = 4,
-        .options = {{"Network", "N"}, {"Adjacent", "A"}, {"Local", "L"}, {"Physical", "P"}},
-    },
-    {
-        .title = "Attack Complexity",
-        .metric_code = "AC",
-        .option_count = 2,
-        .options = {{"Low", "L"}, {"High", "H"}},
-    },
-    {
-        .title = "Privileges Required",
-        .metric_code = "PR",
-        .option_count = 3,
-        .options = {{"None", "N"}, {"Low", "L"}, {"High", "H"}},
-    },
-    {
-        .title = "User Interaction",
-        .metric_code = "UI",
-        .option_count = 2,
-        .options = {{"None", "N"}, {"Required", "R"}},
-    },
-    {
-        .title = "Scope",
-        .metric_code = "S",
-        .option_count = 2,
-        .options = {{"Unchanged", "U"}, {"Changed", "C"}},
-    },
-    {
-        .title = "Confidentiality",
-        .metric_code = "C",
-        .option_count = 3,
-        .options = {{"None", "N"}, {"Low", "L"}, {"High", "H"}},
-    },
-    {
-        .title = "Integrity",
-        .metric_code = "I",
-        .option_count = 3,
-        .options = {{"None", "N"}, {"Low", "L"}, {"High", "H"}},
-    },
-    {
-        .title = "Availability",
-        .metric_code = "A",
-        .option_count = 3,
-        .options = {{"None", "N"}, {"Low", "L"}, {"High", "H"}},
-    },
-};
+static void pocket_cvss_metric_callback(void* context, uint32_t index);
+static void pocket_cvss_main_menu_callback(void* context, uint32_t index);
 
-static const char* pocket_cvss_menu_items[] = {
-    "New v3.1 Score",
-    "Settings",
-    "About",
-};
-
-static void pocket_cvss_reset_score(PocketCvssModel* model) {
-    model->step = 0;
-    model->current_option = 0;
-
-    model->values[0] = 0; /* AV:N */
-    model->values[1] = 0; /* AC:L */
-    model->values[2] = 1; /* PR:L */
-    model->values[3] = 0; /* UI:N */
-    model->values[4] = 0; /* S:U */
-    model->values[5] = 2; /* C:H */
-    model->values[6] = 2; /* I:H */
-    model->values[7] = 2; /* A:H */
-}
-
-static float pocket_cvss_pow15(float value) {
-    float result = 1.0f;
-
-    for(uint8_t i = 0; i < 15; i++) {
-        result *= value;
-    }
-
-    return result;
-}
-
-static float pocket_cvss_min(float a, float b) {
-    return a < b ? a : b;
-}
-
-static uint8_t pocket_cvss_roundup_tenths(float input) {
-    uint32_t scaled = (uint32_t)(input * 100000.0f + 0.5f);
-
-    if((scaled % 10000) == 0) {
-        return scaled / 10000;
-    }
-
-    return (scaled / 10000) + 1;
-}
-
-static uint8_t pocket_cvss_score_tenths(const PocketCvssModel* model) {
-    static const float attack_vector_weights[] = {0.85f, 0.62f, 0.55f, 0.20f};
-    static const float attack_complexity_weights[] = {0.77f, 0.44f};
-    static const float user_interaction_weights[] = {0.85f, 0.62f};
-    static const float impact_weights[] = {0.0f, 0.22f, 0.56f};
-
-    const uint8_t scope = model->values[4];
-    const float privilege_required_weights_unchanged[] = {0.85f, 0.62f, 0.27f};
-    const float privilege_required_weights_changed[] = {0.85f, 0.68f, 0.50f};
-
-    const float av = attack_vector_weights[model->values[0]];
-    const float ac = attack_complexity_weights[model->values[1]];
-    const float pr = scope == 0 ? privilege_required_weights_unchanged[model->values[2]] :
-                                  privilege_required_weights_changed[model->values[2]];
-    const float ui = user_interaction_weights[model->values[3]];
-    const float c = impact_weights[model->values[5]];
-    const float i = impact_weights[model->values[6]];
-    const float a = impact_weights[model->values[7]];
-
-    const float iss = 1.0f - ((1.0f - c) * (1.0f - i) * (1.0f - a));
-    const float impact =
-        scope == 0 ? 6.42f * iss : 7.52f * (iss - 0.029f) - 3.25f * pocket_cvss_pow15(iss - 0.02f);
-
-    if(impact <= 0.0f) {
-        return 0;
-    }
-
-    const float exploitability = 8.22f * av * ac * pr * ui;
-    const float raw_score = scope == 0 ? impact + exploitability :
-                                         1.08f * (impact + exploitability);
-
-    return pocket_cvss_roundup_tenths(pocket_cvss_min(raw_score, 10.0f));
-}
-
-static const char* pocket_cvss_severity(uint8_t score_tenths) {
-    if(score_tenths == 0) return "NONE";
-    if(score_tenths < 40) return "LOW";
-    if(score_tenths < 70) return "MEDIUM";
-    if(score_tenths < 90) return "HIGH";
-    return "CRITICAL";
-}
-
-static void pocket_cvss_format_metric_line(
-    const PocketCvssModel* model,
-    char* buffer,
-    size_t buffer_size,
-    uint8_t first,
-    uint8_t last) {
-    buffer[0] = '\0';
-
-    for(uint8_t i = first; i <= last; i++) {
-        const Cvss31Metric* metric = &cvss31_metrics[i];
-        const Cvss31Option* option = &metric->options[model->values[i]];
-
-        char token[12];
-        snprintf(token, sizeof(token), "%s:%s", metric->metric_code, option->code);
-
-        if(i != first) {
-            strlcat(buffer, " ", buffer_size);
-        }
-
-        strlcat(buffer, token, buffer_size);
-    }
+static void pocket_cvss_switch_to(PocketCvssApp* app, PocketCvssViewId view_id) {
+    app->current_view = view_id;
+    view_dispatcher_switch_to_view(app->dispatcher, view_id);
 }
 
 static void pocket_cvss_draw_ok_icon(Canvas* canvas, uint8_t x, uint8_t y) {
@@ -233,6 +83,11 @@ static void pocket_cvss_draw_footer(Canvas* canvas, const char* ok_text, const c
     }
 }
 
+static void pocket_cvss_draw_bullet(Canvas* canvas, uint8_t y, const char* text) {
+    canvas_draw_disc(canvas, 3, y - 3, 1);
+    canvas_draw_str(canvas, 8, y, text);
+}
+
 static void pocket_cvss_draw_severity_badge(Canvas* canvas, const char* severity) {
     canvas_set_font(canvas, FontSecondary);
     const uint8_t width = canvas_string_width(canvas, severity) + 8;
@@ -244,145 +99,49 @@ static void pocket_cvss_draw_severity_badge(Canvas* canvas, const char* severity
     canvas_set_color(canvas, ColorBlack);
 }
 
-static void pocket_cvss_draw_bullet(Canvas* canvas, uint8_t y, const char* text) {
-    canvas_draw_disc(canvas, 3, y - 3, 1);
-    canvas_draw_str(canvas, 8, y, text);
-}
+static void pocket_cvss_draw_result(Canvas* canvas, const Cvss31BaseVector* vector) {
+    char score_text[8];
+    char metric_line1[40];
+    char metric_line2[40];
+    const Cvss31Score score = cvss31_base_score(vector);
 
-static void pocket_cvss_draw_menu(Canvas* canvas, const PocketCvssModel* model) {
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 10, "PocketCVSS");
-
-    canvas_set_font(canvas, FontSecondary);
-    for(uint8_t i = 0; i < COUNT_OF(pocket_cvss_menu_items); i++) {
-        const uint8_t y = 26 + (i * 11);
-        const bool selected = i == model->menu_index;
-
-        if(selected) {
-            canvas_draw_box(canvas, 0, y - 8, 128, 10);
-            canvas_set_color(canvas, ColorWhite);
-        }
-
-        canvas_draw_str(canvas, 4, y, pocket_cvss_menu_items[i]);
-
-        if(selected) {
-            canvas_set_color(canvas, ColorBlack);
-        }
-    }
-
-    pocket_cvss_draw_footer(canvas, "Select", "Exit");
-}
-
-static void pocket_cvss_draw_metric(Canvas* canvas, const PocketCvssModel* model) {
-    const Cvss31Metric* metric = &cvss31_metrics[model->step];
-    char progress[8];
-    snprintf(progress, sizeof(progress), "%u/8", model->step + 1);
-
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 8, "PocketCVSS");
-    canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, progress);
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 21, metric->title);
-
-    canvas_set_font(canvas, FontSecondary);
-    const uint8_t first_option_y = metric->option_count > 3 ? 31 : 33;
-    const uint8_t option_step_y = metric->option_count > 3 ? 9 : 10;
-
-    for(uint8_t i = 0; i < metric->option_count; i++) {
-        const uint8_t y = first_option_y + (i * option_step_y);
-        const bool selected = i == model->current_option;
-
-        if(selected) {
-            canvas_draw_box(canvas, 0, y - 8, 128, option_step_y);
-            canvas_set_color(canvas, ColorWhite);
-        }
-
-        canvas_draw_str(canvas, 4, y, metric->options[i].label);
-
-        if(selected) {
-            canvas_set_color(canvas, ColorBlack);
-        }
-    }
-
-    if(metric->option_count <= 3) {
-        pocket_cvss_draw_footer(canvas, "Next", "Prev");
-    }
-}
-
-static void pocket_cvss_draw_result(Canvas* canvas, const PocketCvssModel* model) {
-    char score[8];
-    char line1[40];
-    char line2[40];
-    const uint8_t score_tenths = pocket_cvss_score_tenths(model);
-    const char* severity = pocket_cvss_severity(score_tenths);
-
-    snprintf(score, sizeof(score), "%u.%u", score_tenths / 10, score_tenths % 10);
-
-    pocket_cvss_format_metric_line(model, line1, sizeof(line1), 0, 3);
-    pocket_cvss_format_metric_line(model, line2, sizeof(line2), 4, 7);
+    cvss31_format_score(score_text, sizeof(score_text), score.tenths);
+    cvss31_format_metric_line(vector, metric_line1, sizeof(metric_line1), 0, 3);
+    cvss31_format_metric_line(vector, metric_line2, sizeof(metric_line2), 4, 7);
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 0, 8, "CVSS v3.1 Base");
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 25, score);
-    pocket_cvss_draw_severity_badge(canvas, severity);
+    canvas_draw_str(canvas, 0, 25, score_text);
+    pocket_cvss_draw_severity_badge(canvas, score.severity);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 36, "CVSS:3.1");
-    canvas_draw_str(canvas, 0, 45, line1);
-    canvas_draw_str(canvas, 0, 52, line2);
+    canvas_draw_str(canvas, 0, 36, "CVSS:3.1/...");
+    canvas_draw_str(canvas, 0, 45, metric_line1);
+    canvas_draw_str(canvas, 0, 52, metric_line2);
 
     pocket_cvss_draw_footer(canvas, "Explain", "Edit");
 }
 
-static void pocket_cvss_draw_explain(Canvas* canvas, const PocketCvssModel* model) {
+static void pocket_cvss_draw_explain(Canvas* canvas, const Cvss31BaseVector* vector) {
     char title[24];
     char metric_line[40];
-    const uint8_t score_tenths = pocket_cvss_score_tenths(model);
+    const Cvss31Score score = cvss31_base_score(vector);
 
-    snprintf(title, sizeof(title), "Why %s?", pocket_cvss_severity(score_tenths));
-    pocket_cvss_format_metric_line(model, metric_line, sizeof(metric_line), 0, 3);
+    snprintf(title, sizeof(title), "Why %s?", score.severity);
+    cvss31_format_metric_line(vector, metric_line, sizeof(metric_line), 0, 3);
 
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 0, 10, title);
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 0, 23, metric_line);
-
-    if(model->values[0] == 0) {
-        pocket_cvss_draw_bullet(canvas, 34, "Network reachable");
-    } else {
-        pocket_cvss_draw_bullet(canvas, 34, "Limited attack vector");
-    }
-
-    if(model->values[1] == 0) {
-        pocket_cvss_draw_bullet(canvas, 43, "Low complexity");
-    } else {
-        pocket_cvss_draw_bullet(canvas, 43, "High complexity");
-    }
-
-    if(model->values[5] == 2 || model->values[6] == 2 || model->values[7] == 2) {
-        pocket_cvss_draw_bullet(canvas, 52, "High C/I/A impact");
-    } else if(model->values[5] || model->values[6] || model->values[7]) {
-        pocket_cvss_draw_bullet(canvas, 52, "Partial C/I/A impact");
-    } else {
-        pocket_cvss_draw_bullet(canvas, 52, "No C/I/A impact");
-    }
-
+    pocket_cvss_draw_bullet(canvas, 31, cvss31_explain_attack_vector(vector));
+    pocket_cvss_draw_bullet(canvas, 38, cvss31_explain_attack_complexity(vector));
+    pocket_cvss_draw_bullet(canvas, 45, cvss31_explain_privileges_required(vector));
+    pocket_cvss_draw_bullet(canvas, 52, cvss31_explain_impact(vector));
     pocket_cvss_draw_footer(canvas, NULL, "Result");
-}
-
-static void pocket_cvss_draw_settings(Canvas* canvas) {
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 10, "Settings");
-
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 27, "TODO");
-    canvas_draw_str(canvas, 0, 38, "No settings yet.");
-
-    pocket_cvss_draw_footer(canvas, NULL, "Menu");
 }
 
 static void pocket_cvss_draw_about(Canvas* canvas) {
@@ -390,181 +149,303 @@ static void pocket_cvss_draw_about(Canvas* canvas) {
     canvas_draw_str(canvas, 0, 10, "PocketCVSS");
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 25, "v0.1");
-    canvas_draw_str(canvas, 0, 36, "CVSS v3.1 Base");
-    canvas_draw_str(canvas, 0, 47, "More soon.");
+    canvas_draw_str(canvas, 0, 24, "v0.1");
+    canvas_draw_str(canvas, 0, 35, "CVSS v3.1 Base");
+    canvas_draw_str(canvas, 0, 46, "Repo:");
+    canvas_draw_str(canvas, 28, 46, "github.com/vavkamil");
+    canvas_draw_str(canvas, 28, 53, "/pocket-cvss");
 
     pocket_cvss_draw_footer(canvas, NULL, "Menu");
 }
 
-static void pocket_cvss_draw(Canvas* canvas, void* model_context) {
-    const PocketCvssModel* model = model_context;
+static void pocket_cvss_info_draw(Canvas* canvas, void* model_context) {
+    const PocketCvssInfoModel* model = model_context;
 
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
 
-    if(model->screen == PocketCvssScreenMenu) {
-        pocket_cvss_draw_menu(canvas, model);
-    } else if(model->screen == PocketCvssScreenMetric) {
-        pocket_cvss_draw_metric(canvas, model);
-    } else if(model->screen == PocketCvssScreenResult) {
-        pocket_cvss_draw_result(canvas, model);
-    } else if(model->screen == PocketCvssScreenExplain) {
-        pocket_cvss_draw_explain(canvas, model);
-    } else if(model->screen == PocketCvssScreenSettings) {
-        pocket_cvss_draw_settings(canvas);
+    if(model->screen == PocketCvssInfoResult) {
+        pocket_cvss_draw_result(canvas, &model->vector);
+    } else if(model->screen == PocketCvssInfoExplain) {
+        pocket_cvss_draw_explain(canvas, &model->vector);
     } else {
         pocket_cvss_draw_about(canvas);
     }
 }
 
-static bool pocket_cvss_input(InputEvent* event, void* context) {
-    PocketCvssApp* app = context;
-    bool handled = false;
-    bool should_stop = false;
+static void pocket_cvss_show_result(PocketCvssApp* app) {
+    app->info_screen = PocketCvssInfoResult;
 
-    if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        { model->screen = PocketCvssInfoResult; },
+        true);
+
+    pocket_cvss_switch_to(app, PocketCvssViewInfo);
+}
+
+static void pocket_cvss_show_explain(PocketCvssApp* app) {
+    app->info_screen = PocketCvssInfoExplain;
+
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        { model->screen = PocketCvssInfoExplain; },
+        true);
+
+    pocket_cvss_switch_to(app, PocketCvssViewInfo);
+}
+
+static void pocket_cvss_show_about(PocketCvssApp* app) {
+    app->info_screen = PocketCvssInfoAbout;
+
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        { model->screen = PocketCvssInfoAbout; },
+        true);
+
+    pocket_cvss_switch_to(app, PocketCvssViewInfo);
+}
+
+static bool pocket_cvss_metric_previous(Cvss31MetricId metric_id, Cvss31MetricId* previous) {
+    if(metric_id == Cvss31MetricAttackVector || metric_id >= Cvss31MetricCount) {
         return false;
     }
 
-    with_view_model(
-        app->view,
-        PocketCvssModel * model,
-        {
-            if(model->screen == PocketCvssScreenMenu) {
-                if(event->key == InputKeyUp) {
-                    model->menu_index = model->menu_index == 0 ?
-                                            (uint8_t)(COUNT_OF(pocket_cvss_menu_items) - 1) :
-                                            model->menu_index - 1;
-                    handled = true;
-                } else if(event->key == InputKeyDown) {
-                    model->menu_index = (model->menu_index + 1) % COUNT_OF(pocket_cvss_menu_items);
-                    handled = true;
-                } else if(
-                    event->type == InputTypeShort &&
-                    (event->key == InputKeyOk || event->key == InputKeyRight)) {
-                    if(model->menu_index == 0) {
-                        pocket_cvss_reset_score(model);
-                        model->screen = PocketCvssScreenMetric;
-                    } else if(model->menu_index == 1) {
-                        model->screen = PocketCvssScreenSettings;
-                    } else {
-                        model->screen = PocketCvssScreenAbout;
-                    }
+    *previous = (Cvss31MetricId)(metric_id - 1);
+    return true;
+}
 
-                    handled = true;
-                } else if(event->type == InputTypeShort && event->key == InputKeyBack) {
-                    should_stop = true;
-                    handled = true;
-                }
-            } else if(model->screen == PocketCvssScreenMetric) {
-                const Cvss31Metric* metric = &cvss31_metrics[model->step];
-
-                if(event->key == InputKeyUp) {
-                    model->current_option = model->current_option == 0 ? metric->option_count - 1 :
-                                                                         model->current_option - 1;
-                    handled = true;
-                } else if(event->key == InputKeyDown) {
-                    model->current_option = (model->current_option + 1) % metric->option_count;
-                    handled = true;
-                } else if(
-                    event->type == InputTypeShort &&
-                    (event->key == InputKeyOk || event->key == InputKeyRight)) {
-                    model->values[model->step] = model->current_option;
-
-                    if(model->step == COUNT_OF(cvss31_metrics) - 1) {
-                        model->screen = PocketCvssScreenResult;
-                    } else {
-                        model->step++;
-                        model->current_option = model->values[model->step];
-                    }
-
-                    handled = true;
-                } else if(
-                    event->type == InputTypeShort &&
-                    (event->key == InputKeyBack || event->key == InputKeyLeft)) {
-                    model->values[model->step] = model->current_option;
-
-                    if(model->step == 0) {
-                        model->screen = PocketCvssScreenMenu;
-                    } else {
-                        model->step--;
-                        model->current_option = model->values[model->step];
-                    }
-
-                    handled = true;
-                }
-            } else if(model->screen == PocketCvssScreenResult) {
-                if(event->type == InputTypeShort &&
-                   (event->key == InputKeyOk || event->key == InputKeyRight)) {
-                    model->screen = PocketCvssScreenExplain;
-                    handled = true;
-                } else if(
-                    event->type == InputTypeShort &&
-                    (event->key == InputKeyBack || event->key == InputKeyLeft)) {
-                    model->screen = PocketCvssScreenMetric;
-                    model->step = COUNT_OF(cvss31_metrics) - 1;
-                    model->current_option = model->values[model->step];
-                    handled = true;
-                }
-            } else if(model->screen == PocketCvssScreenExplain) {
-                if(event->type == InputTypeShort) {
-                    model->screen = PocketCvssScreenResult;
-                    handled = true;
-                }
-            } else if(
-                model->screen == PocketCvssScreenSettings ||
-                model->screen == PocketCvssScreenAbout) {
-                if(event->type == InputTypeShort &&
-                   (event->key == InputKeyBack || event->key == InputKeyLeft ||
-                    event->key == InputKeyOk)) {
-                    model->screen = PocketCvssScreenMenu;
-                    handled = true;
-                }
-            }
-        },
-        handled);
-
-    if(should_stop) {
-        view_dispatcher_stop(app->dispatcher);
+static bool pocket_cvss_metric_next(Cvss31MetricId metric_id, Cvss31MetricId* next) {
+    if(metric_id >= Cvss31MetricAvailability) {
+        return false;
     }
 
-    return handled;
+    *next = (Cvss31MetricId)(metric_id + 1);
+    return true;
+}
+
+static void pocket_cvss_prepare_metric_menu(PocketCvssApp* app) {
+    const Cvss31Metric* metric = cvss31_metric_get(app->metric_id);
+
+    if(!metric) {
+        pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
+        return;
+    }
+
+    snprintf(
+        app->metric_header,
+        sizeof(app->metric_header),
+        "%u/%u %s",
+        (unsigned)app->metric_id + 1,
+        (unsigned)cvss31_metric_count(),
+        metric->title);
+
+    submenu_reset(app->metric_menu);
+    submenu_set_header(app->metric_menu, app->metric_header);
+
+    for(uint8_t i = 0; i < metric->option_count; i++) {
+        submenu_add_item(
+            app->metric_menu, metric->options[i].label, i, pocket_cvss_metric_callback, app);
+    }
+
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        {
+            submenu_set_selected_item(
+                app->metric_menu, cvss31_base_vector_get(&model->vector, app->metric_id));
+        },
+        false);
+}
+
+static void pocket_cvss_start_score(PocketCvssApp* app) {
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        { cvss31_base_vector_reset(&model->vector); },
+        true);
+
+    app->metric_id = Cvss31MetricAttackVector;
+    pocket_cvss_prepare_metric_menu(app);
+    pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+}
+
+static void pocket_cvss_metric_callback(void* context, uint32_t index) {
+    PocketCvssApp* app = context;
+    Cvss31MetricId next_metric;
+
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        {
+            if(index <= UINT8_MAX) {
+                cvss31_base_vector_set(&model->vector, app->metric_id, (uint8_t)index);
+            }
+        },
+        true);
+
+    if(!pocket_cvss_metric_next(app->metric_id, &next_metric)) {
+        pocket_cvss_show_result(app);
+    } else {
+        app->metric_id = next_metric;
+        pocket_cvss_prepare_metric_menu(app);
+        pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+    }
+}
+
+static void pocket_cvss_main_menu_callback(void* context, uint32_t index) {
+    PocketCvssApp* app = context;
+
+    if(index == PocketCvssMainMenuNewScore) {
+        pocket_cvss_start_score(app);
+    } else if(index == PocketCvssMainMenuAbout) {
+        pocket_cvss_show_about(app);
+    }
+}
+
+static bool pocket_cvss_info_input(InputEvent* event, void* context) {
+    PocketCvssApp* app = context;
+
+    if(event->type != InputTypeShort) {
+        return false;
+    }
+
+    if(app->current_view == PocketCvssViewInfo && app->info_screen == PocketCvssInfoResult) {
+        if(event->key == InputKeyOk || event->key == InputKeyRight) {
+            pocket_cvss_show_explain(app);
+            return true;
+        }
+
+        if(event->key == InputKeyBack || event->key == InputKeyLeft) {
+            app->metric_id = Cvss31MetricAvailability;
+            pocket_cvss_prepare_metric_menu(app);
+            pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            return true;
+        }
+    } else if(app->current_view == PocketCvssViewInfo && app->info_screen == PocketCvssInfoExplain) {
+        if(event->key == InputKeyBack || event->key == InputKeyLeft || event->key == InputKeyOk) {
+            pocket_cvss_show_result(app);
+            return true;
+        }
+    } else if(app->current_view == PocketCvssViewInfo && app->info_screen == PocketCvssInfoAbout) {
+        if(event->key == InputKeyBack || event->key == InputKeyLeft || event->key == InputKeyOk) {
+            pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool pocket_cvss_navigation_callback(void* context) {
+    PocketCvssApp* app = context;
+
+    if(app->current_view == PocketCvssViewMainMenu) {
+        view_dispatcher_stop(app->dispatcher);
+        return true;
+    }
+
+    if(app->current_view == PocketCvssViewMetricMenu) {
+        Cvss31MetricId previous_metric;
+
+        if(!pocket_cvss_metric_previous(app->metric_id, &previous_metric)) {
+            pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
+        } else {
+            app->metric_id = previous_metric;
+            pocket_cvss_prepare_metric_menu(app);
+            pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+        }
+
+        return true;
+    }
+
+    if(app->current_view == PocketCvssViewInfo) {
+        if(app->info_screen == PocketCvssInfoResult) {
+            app->metric_id = Cvss31MetricAvailability;
+            pocket_cvss_prepare_metric_menu(app);
+            pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+        } else if(app->info_screen == PocketCvssInfoExplain) {
+            pocket_cvss_show_result(app);
+        } else {
+            pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
+        }
+
+        return true;
+    }
+
+    pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
+    return true;
 }
 
 static PocketCvssApp* pocket_cvss_app_alloc(void) {
     PocketCvssApp* app = malloc(sizeof(PocketCvssApp));
+    furi_check(app);
+
     app->gui = furi_record_open(RECORD_GUI);
     app->dispatcher = view_dispatcher_alloc();
-    app->view = view_alloc();
+    app->main_menu = submenu_alloc();
+    app->metric_menu = submenu_alloc();
+    app->info_view = view_alloc();
+    furi_check(app->gui);
+    furi_check(app->dispatcher);
+    furi_check(app->main_menu);
+    furi_check(app->metric_menu);
+    furi_check(app->info_view);
 
-    view_allocate_model(app->view, ViewModelTypeLocking, sizeof(PocketCvssModel));
-    view_set_draw_callback(app->view, pocket_cvss_draw);
-    view_set_input_callback(app->view, pocket_cvss_input);
-    view_set_context(app->view, app);
+    app->metric_id = Cvss31MetricAttackVector;
+    app->current_view = PocketCvssViewMainMenu;
+    app->info_screen = PocketCvssInfoResult;
+    app->metric_header[0] = '\0';
+
+    view_allocate_model(app->info_view, ViewModelTypeLocking, sizeof(PocketCvssInfoModel));
+    view_set_draw_callback(app->info_view, pocket_cvss_info_draw);
+    view_set_input_callback(app->info_view, pocket_cvss_info_input);
+    view_set_context(app->info_view, app);
 
     with_view_model(
-        app->view,
-        PocketCvssModel * model,
+        app->info_view,
+        PocketCvssInfoModel * model,
         {
-            memset(model, 0, sizeof(PocketCvssModel));
-            model->screen = PocketCvssScreenMenu;
-            model->menu_index = 0;
-            pocket_cvss_reset_score(model);
+            model->screen = PocketCvssInfoResult;
+            cvss31_base_vector_reset(&model->vector);
         },
         false);
 
-    view_dispatcher_add_view(app->dispatcher, 0, app->view);
+    submenu_set_header(app->main_menu, "PocketCVSS");
+    submenu_add_item(
+        app->main_menu,
+        "New v3.1 Score",
+        PocketCvssMainMenuNewScore,
+        pocket_cvss_main_menu_callback,
+        app);
+    submenu_add_item(
+        app->main_menu, "About", PocketCvssMainMenuAbout, pocket_cvss_main_menu_callback, app);
+
+    view_dispatcher_set_event_callback_context(app->dispatcher, app);
+    view_dispatcher_set_navigation_event_callback(
+        app->dispatcher, pocket_cvss_navigation_callback);
+    view_dispatcher_add_view(
+        app->dispatcher, PocketCvssViewMainMenu, submenu_get_view(app->main_menu));
+    view_dispatcher_add_view(
+        app->dispatcher, PocketCvssViewMetricMenu, submenu_get_view(app->metric_menu));
+    view_dispatcher_add_view(app->dispatcher, PocketCvssViewInfo, app->info_view);
     view_dispatcher_attach_to_gui(app->dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-    view_dispatcher_switch_to_view(app->dispatcher, 0);
+    pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
 
     return app;
 }
 
 static void pocket_cvss_app_free(PocketCvssApp* app) {
-    view_dispatcher_remove_view(app->dispatcher, 0);
-    view_free_model(app->view);
-    view_free(app->view);
+    view_dispatcher_remove_view(app->dispatcher, PocketCvssViewMainMenu);
+    view_dispatcher_remove_view(app->dispatcher, PocketCvssViewMetricMenu);
+    view_dispatcher_remove_view(app->dispatcher, PocketCvssViewInfo);
+    view_free_model(app->info_view);
+    view_free(app->info_view);
+    submenu_free(app->metric_menu);
+    submenu_free(app->main_menu);
     view_dispatcher_free(app->dispatcher);
     furi_record_close(RECORD_GUI);
     free(app);

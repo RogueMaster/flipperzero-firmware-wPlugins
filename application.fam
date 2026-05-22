@@ -11,6 +11,6 @@ App(
     fap_version="0.1",
     fap_icon="pocket_cvss.png",  # 10x10 1-bit PNG
     fap_description="Offline CVSS v3.1 base calculator",
-    # fap_weburl="https://github.com/user/pocket_cvss",
+    fap_weburl="https://github.com/vavkamil/pocket-cvss",
     fap_icon_assets="images",  # Image assets to compile for this application
 )
