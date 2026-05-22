@@ -1,8 +1,10 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
+# Flipper application manifest for Pocket CVSS.
+#
+# Defines the external app ID, entry point, build sources, package metadata,
+# icon assets, and store-facing description used by the Flipper build system.
 App(
-    appid="pocket_cvss",  # Must be unique
-    name="PocketCVSS",  # Displayed in menus
+    appid="pocket_cvss",
+    name="Pocket CVSS",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="pocket_cvss_app",
     stack_size=4 * 1024,
@@ -13,5 +15,5 @@ App(
     fap_icon="pocket_cvss.png",  # 10x10 1-bit PNG
     fap_description="Offline CVSS v3.1 base calculator",
     fap_weburl="https://github.com/vavkamil/pocket-cvss",
-    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_icon_assets="images",
 )
