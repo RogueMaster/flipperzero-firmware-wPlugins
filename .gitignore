@@ -2,4 +2,6 @@ dist/
 .vscode/
 *.elf
 *.map
-docs/plan.md
+docs/
+.codex
+.agents
