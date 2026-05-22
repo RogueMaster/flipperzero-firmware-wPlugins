@@ -5,6 +5,22 @@ All notable changes to PINGEQUA RF Lab.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Renamed the transmit feature from "Jammer" to "Signal Generator"**
+  on every user-facing surface — the main-menu item (`NRF24 Signal Gen`),
+  the transmit-view header (`SIGNAL GEN`), the app description, and the
+  exported-data surface. Functionality is unchanged.
+  - Session-log directory `…/pingequa/jammer` → `…/pingequa/siggen`;
+    filename prefix `jam_…` → `siggen_…`.
+  - CSV header `Jammer Session` → `Signal Generator Session`; field
+    `reactive_jams` → `reactive_events`.
+  - Settings file `jammer.conf` → `siggen.conf`.
+  - **One-time migration note:** older `jammer.conf` and `…/jammer/` logs
+    are not read by the new build; jammer mode/channel resets to the
+    default (CW Custom @ ch 42) once on first launch after updating.
+
 ## [0.5.2] — 2026-05-15
 
 Minor release — readable export filenames + meaningful jammer log fields + new About screen with drive-traffic QR codes.
