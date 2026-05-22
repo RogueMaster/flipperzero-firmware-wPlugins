@@ -5,7 +5,7 @@ All notable changes to PINGEQUA RF Lab.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.3] — 2026-05-22
 
 ### Changed
 - **Renamed the transmit feature from "Jammer" to "Signal Generator"**

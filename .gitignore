@@ -33,3 +33,6 @@ worklog.md
 
 # 项目状态接续文档(含未公开 v0.6.0 计划/内部路径,主版本在 NAS handoff/)
 PROJECT_STATUS.md
+
+# 关键节点本地备份(backup-project.sh 产物)
+backups/

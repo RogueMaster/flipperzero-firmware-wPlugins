@@ -249,7 +249,8 @@ Other NRF24 boards may partially work but are unsupported. See [docs/HARDWARE.md
 | v0.4.0 | ✅ | RPD reactive BLE jam, WiFi pilot-aware OFDM, 7 jammer modes |
 | v0.5.0 | ✅ | CSV scan export, jammer session log, settings persistence |
 | v0.5.1 | ✅ | OFW compatibility — single-handle SPI arbiter, all firmwares |
-| **v0.5.2** | ✅ | **Readable export filenames, jammer log redesign, About screen + QR codes** |
+| v0.5.2 | ✅ | Readable export filenames, jammer log redesign, About screen + QR codes |
+| **v0.5.3** | ✅ | **In-app rename: transmit feature now displays as "Signal Generator" (neutral, instrument-grade naming)** |
 | v0.6.x | 🔜 next | **Shaped by community feedback** — candidates: cross-chip dual-band sweep (nRF24 2.4 GHz + CC1101 Sub-GHz in one view), spectrum CSV export, custom scan presets. [Tell us what you want](../../issues/new?template=feature.yml) |
 | v1.0.0 | planned | Polished release, full documentation set, Catalog submission |
 | v1.5.0 | concept | Companion mobile viewer over Bluetooth |

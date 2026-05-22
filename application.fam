@@ -6,7 +6,7 @@ App(
     requires=["gui", "storage", "notification"],
     stack_size=4 * 1024,
     fap_category="GPIO",
-    fap_version=(0, 5, 2),
+    fap_version=(0, 5, 3),
     fap_icon="icon.png",
     fap_author="PINGEQUA RF Toolkit",
     fap_weburl="https://github.com/pingequalab/rf-lab",
@@ -19,6 +19,8 @@ App(
     # v0.5.2 导出文件名改 RTC 墙钟可读命名(scan_<date>_<time>_chNN /
     #         jam_<date>_<time>_<mode>_<dur>s)+ Jammer log 重构(按模式条件
     #         输出有意义字段)+ 新增 About 三页(品牌+QR / GitHub+QR / Legal).
+    # v0.5.3 用户可见面 rebrand Jammer → Signal Generator(屏幕/导出/元数据;
+    #         代码标识符不动).数据路径 jammer→siggen,jammer.conf→siggen.conf.
     # 规范 §12 文件目录结构.
     sources=[
         "pingequa_app.c",
