@@ -39,7 +39,7 @@ void main_menu_scene_on_enter(void* context) {
     submenu_set_header(sm, "PINGEQUA RF Lab");
     submenu_add_item(sm, "Channel Scanner", PqMainMenuItemScanner,
                      main_menu_select_callback, app);
-    submenu_add_item(sm, "NRF24 Jammer", PqMainMenuItemJammer,
+    submenu_add_item(sm, "NRF24 Signal Gen", PqMainMenuItemJammer,
                      main_menu_select_callback, app);
     submenu_add_item(sm, "About", PqMainMenuItemAbout,
                      main_menu_select_callback, app);

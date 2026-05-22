@@ -2,20 +2,20 @@
  * @file pq_jammer_log.h
  * @brief Jammer 会话日志 — 每次退出 jammer 自动写一条 CSV 摘要,事后分析用.
  *
- * 文件路径:/ext/apps_data/pingequa/jammer/jam_<YYYY-MM-DD>_<HHMMSS>_<mode>_<dur>s.csv
+ * 文件路径:/ext/apps_data/pingequa/siggen/siggen_<YYYY-MM-DD>_<HHMMSS>_<mode>_<dur>s.csv
  *   - 日期在前 → qFlipper 文件列表按名排序即按时间排序
  *   - 文件名带模式短名 + 会话时长(秒),无需打开即知摘要
- *   - RTC 未设时回退 jam_boot<tick>_<mode>_<dur>s.csv;同秒重名加 _1.._99 后缀
+ *   - RTC 未设时回退 siggen_boot<tick>_<mode>_<dur>s.csv;同秒重名加 _1.._99 后缀
  *
  * 单文件格式(v0.5.2 重构,无重复段;pandas read_csv(comment='#') 可直读):
- *   # PINGEQUA RF Lab Jammer Session
+ *   # PINGEQUA RF Lab Signal Generator Session
  *   key,value
  *   datetime,2026-05-15 14:30:22
  *   mode,BLE React
  *   engine,Reactive
  *   target_freq_mhz,2402/2426/2480 (BLE adv)
  *   scene_duration_s,9.7
- *   reactive_jams,15           ← 仅 BLE React 模式输出
+ *   reactive_events,15         ← 仅 BLE React 模式输出
  * 或(CW Custom 模式):
  *   ...
  *   cw_channel,42              ← 仅 CW Custom 模式输出
@@ -30,7 +30,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PQ_JAMMER_LOG_DIR "/ext/apps_data/pingequa/jammer"
+#define PQ_JAMMER_LOG_DIR "/ext/apps_data/pingequa/siggen"
 
 /**
  * 写一条会话摘要.调用方在 jammer_scene_on_exit 自动调一次.
