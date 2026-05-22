@@ -10,6 +10,7 @@
 #include "glyphs.h"
 
 
+#define STRATAGEM_ITEM_HEIGHT 32
 #define SCROLL_INTERVAL (500)
 
 
