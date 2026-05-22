@@ -1,3 +1,10 @@
+/*
+ * Public CVSS v3.1 base scoring interface.
+ *
+ * Declares metric identifiers, metric/option/vector/score data structures, and
+ * the functions used by the app and tests to build vectors, compute scores,
+ * format display text, and retrieve short human-readable explanations.
+ */
 #pragma once
 
 #include <stdbool.h>

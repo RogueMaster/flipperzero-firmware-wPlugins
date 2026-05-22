@@ -1,3 +1,10 @@
+/*
+ * Standalone CVSS v3.1 scoring regression tests.
+ *
+ * Builds several known base vectors, verifies their calculated score and
+ * severity, and checks that formatted vector strings match the expected
+ * CVSS:3.1 notation. This can be compiled outside the Flipper firmware tree.
+ */
 #include "cvss31.h"
 
 #include <stdio.h>

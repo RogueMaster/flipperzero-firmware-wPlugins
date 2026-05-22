@@ -1,3 +1,11 @@
+/*
+ * Pocket CVSS Flipper application UI.
+ *
+ * Owns the app lifecycle, menu navigation, custom result/vector/about views,
+ * and user input flow for selecting CVSS v3.1 base metrics on-device. The
+ * scoring and vector formatting rules live in cvss31.c; this file focuses on
+ * presenting those rules through Flipper's GUI and ViewDispatcher APIs.
+ */
 #include <furi.h>
 #include <gui/gui.h>
 #include <gui/modules/submenu.h>

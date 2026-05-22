@@ -1,3 +1,10 @@
+/*
+ * CVSS v3.1 base metric implementation.
+ *
+ * Stores the supported base metrics and option codes, validates and mutates
+ * base vectors, computes the official CVSS v3.1 base score and severity, and
+ * formats scores, metric ranges, vectors, and short explanations for the UI.
+ */
 #include "cvss31.h"
 
 #include <stdio.h>
