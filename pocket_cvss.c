@@ -88,37 +88,35 @@ static void pocket_cvss_draw_bullet(Canvas* canvas, uint8_t y, const char* text)
     canvas_draw_str(canvas, 8, y, text);
 }
 
-static void pocket_cvss_draw_severity_badge(Canvas* canvas, const char* severity) {
-    canvas_set_font(canvas, FontSecondary);
-    const uint8_t width = canvas_string_width(canvas, severity) + 8;
-    const uint8_t x = 127 - width;
+static void pocket_cvss_draw_summary(Canvas* canvas, const Cvss31Score* score) {
+    char score_text[8];
 
-    canvas_draw_rbox(canvas, x, 14, width, 12, 2);
+    cvss31_format_score(score_text, sizeof(score_text), score->tenths);
+
+    canvas_draw_rbox(canvas, 0, 0, 128, 18, 3);
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_str_aligned(canvas, x + (width / 2), 24, AlignCenter, AlignBottom, severity);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 5, 14, score->severity);
+    canvas_draw_str_aligned(canvas, 123, 14, AlignRight, AlignBottom, score_text);
+
     canvas_set_color(canvas, ColorBlack);
 }
 
 static void pocket_cvss_draw_result(Canvas* canvas, const Cvss31BaseVector* vector) {
-    char score_text[8];
     char metric_line1[40];
     char metric_line2[40];
     const Cvss31Score score = cvss31_base_score(vector);
 
-    cvss31_format_score(score_text, sizeof(score_text), score.tenths);
     cvss31_format_metric_line(vector, metric_line1, sizeof(metric_line1), 0, 3);
     cvss31_format_metric_line(vector, metric_line2, sizeof(metric_line2), 4, 7);
 
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 8, "CVSS v3.1 Base");
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 25, score_text);
-    pocket_cvss_draw_severity_badge(canvas, score.severity);
+    pocket_cvss_draw_summary(canvas, &score);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 36, "CVSS:3.1/...");
-    canvas_draw_str(canvas, 0, 45, metric_line1);
+    canvas_draw_str(canvas, 0, 30, "CVSS 3.1 Base vector");
+    canvas_draw_line(canvas, 0, 33, 127, 33);
+    canvas_draw_str(canvas, 0, 43, metric_line1);
     canvas_draw_str(canvas, 0, 52, metric_line2);
 
     pocket_cvss_draw_footer(canvas, "Explain", "Edit");
