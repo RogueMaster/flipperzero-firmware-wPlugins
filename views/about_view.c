@@ -93,7 +93,7 @@ static void draw_page_brand(Canvas* canvas) {
     canvas_draw_line(canvas, 0, 12, 123, 12);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 24, "v0.5.2");
+    canvas_draw_str(canvas, 2, 24, "v0.5.3");
     canvas_draw_str(canvas, 2, 34, "nRF24 + CC1101");
     canvas_draw_str(canvas, 2, 44, "Precision Gear");
     canvas_draw_str(canvas, 2, 53, "for Hackers");
