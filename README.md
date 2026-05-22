@@ -10,7 +10,7 @@
     </td>
     <td align="center" width="50%">
       <img src="images/demo.gif" alt="PINGEQUA RF Lab live demo — main menu navigation on Flipper Zero" width="100%" />
-      <br><sub><b>Live Demo</b> · Scanner · Jammer · About</sub>
+      <br><sub><b>Live Demo</b> · Scanner · Signal Gen · About</sub>
     </td>
   </tr>
 </table>
@@ -76,8 +76,8 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="images/photo_menu.png" alt="PINGEQUA RF Lab main menu on Flipper Zero with the 2-in-1 board" width="300" /><br>
-      <sub><b>Main Menu</b><br>Scanner · Jammer · About</sub>
+      <img src="images/screen_menu.png" alt="PINGEQUA RF Lab main menu — Channel Scanner, NRF24 Signal Gen, About" width="300" /><br>
+      <sub><b>Main Menu</b><br>Scanner · Signal Gen · About</sub>
     </td>
     <td align="center" width="50%">
       <img src="images/photo_scanner.png" alt="Channel Scanner running — live 2.4 GHz RPD spectrum" width="300" /><br>
@@ -86,8 +86,8 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="images/photo_jammer.png" alt="NRF24 Jammer — WiFi pilot-aware OFDM mode at +20 dBm" width="300" /><br>
-      <sub><b>NRF24 Jammer</b><br>7 modes — WiFi pilot-aware OFDM shown</sub>
+      <img src="images/screen_siggen.png" alt="NRF24 Signal Gen — CW mode at +20 dBm on channel 42" width="300" /><br>
+      <sub><b>NRF24 Signal Gen</b><br>7 TX modes — CW shown</sub>
     </td>
     <td align="center" width="50%">
       <img src="images/about.png" alt="About screen with scannable QR code to the shop" width="300" /><br>
