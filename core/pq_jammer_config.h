@@ -2,8 +2,8 @@
  * @file pq_jammer_config.h
  * @brief Jammer 偏好持久化(规范 §8.2 数据目录).
  *
- * 文件路径:/ext/apps_data/pingequa/jammer.conf
- * 文件类型:PINGEQUA Jammer State (FlipperFormat 文本格式).
+ * 文件路径:/ext/apps_data/pingequa/siggen.conf
+ * 文件类型:PINGEQUA Signal Gen State (FlipperFormat 文本格式).
  *
  * v0.5.0 起记录用户上次进 jammer 的 mode + CW Custom 信道,下次进 jammer
  * 直接落到上次的状态(避免每次重选).加载失败回 default(JammerModeCwCustom @ 42).
@@ -18,7 +18,7 @@
  * 在 .c 文件里 cast (JammerMode). */
 
 #define PQ_JAMMER_CONFIG_VERSION 1
-#define PQ_JAMMER_CONFIG_PATH    "/ext/apps_data/pingequa/jammer.conf"
+#define PQ_JAMMER_CONFIG_PATH    "/ext/apps_data/pingequa/siggen.conf"
 
 typedef struct {
     uint8_t mode;       /* JammerMode 枚举值,持久化为整数 */

@@ -91,11 +91,11 @@ static void build_jammer_filename(
     char base[112];
     if(dt->year < 2024) {
         snprintf(
-            base, sizeof(base), "%s/jam_boot%010lu_%s_%lus", PQ_JAMMER_LOG_DIR,
+            base, sizeof(base), "%s/siggen_boot%010lu_%s_%lus", PQ_JAMMER_LOG_DIR,
             (unsigned long)furi_get_tick(), mode, dur_s);
     } else {
         snprintf(
-            base, sizeof(base), "%s/jam_%04u-%02u-%02u_%02u%02u%02u_%s_%lus",
+            base, sizeof(base), "%s/siggen_%04u-%02u-%02u_%02u%02u%02u_%s_%lus",
             PQ_JAMMER_LOG_DIR, dt->year, dt->month, dt->day, dt->hour, dt->minute,
             dt->second, mode, dur_s);
     }
@@ -138,7 +138,7 @@ bool pq_jammer_log_session(
         }
 
         /* 单 # 标题(便于人识别这是什么文件). */
-        if(!write_line(file, "# PINGEQUA RF Lab Jammer Session\n")) break;
+        if(!write_line(file, "# PINGEQUA RF Lab Signal Generator Session\n")) break;
 
         /* 单一 key,value 段 — 无重复.pandas read_csv(comment='#') 直读. */
         if(!write_line(file, "key,value\n")) break;
@@ -188,7 +188,7 @@ bool pq_jammer_log_session(
         /* reactive_jams —— 仅 BLE React 模式有意义. */
         if(mode_index == JammerModeReactiveBle) {
             snprintf(
-                buf, sizeof(buf), "reactive_jams,%lu\n", (unsigned long)reactive_jams);
+                buf, sizeof(buf), "reactive_events,%lu\n", (unsigned long)reactive_jams);
             if(!write_line(file, buf)) break;
         }
 

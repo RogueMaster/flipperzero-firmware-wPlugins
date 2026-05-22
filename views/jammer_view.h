@@ -3,7 +3,7 @@
  * @brief NRF24 Jammer 自定义 View(规范 §6.2 v1.2 + §12).
  *
  * 屏布局(128×64):
- *   y=0..7    Header — "JAMMER" + RUN/STOP 状态右对齐
+ *   y=0..7    Header — "SIGNAL GEN" + RUN/STOP 状态右对齐
  *   y=8       Divider 1
  *   y=10..20  Mode 大字:"CW" 或 "SWEEP"
  *   y=22..32  信道/范围:"Ch 042" 或 "0-125"
