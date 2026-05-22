@@ -1,0 +1,5 @@
+dist/
+.vscode/
+*.elf
+*.map
+docs/plan.md

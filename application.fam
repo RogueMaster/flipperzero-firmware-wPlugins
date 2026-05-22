@@ -1,0 +1,16 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="pocket_cvss",  # Must be unique
+    name="PocketCVSS",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pocket_cvss_app",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    # Optional values
+    fap_version="0.1",
+    fap_icon="pocket_cvss.png",  # 10x10 1-bit PNG
+    fap_description="Offline CVSS v3.1 base calculator",
+    # fap_weburl="https://github.com/user/pocket_cvss",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)
