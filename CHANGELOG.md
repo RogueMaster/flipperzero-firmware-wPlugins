@@ -2,11 +2,20 @@
 
 ## v0.2 - CVSS Examples
 
-- Added educational examples and a severity range reference.
-- Improved result, vector, navigation, and About screen layouts.
-- Added regression tests for CVSS scoring, real CVE vectors, and app examples.
-- Added GitHub Actions CI for host tests, formatting, and linting.
-- Refreshed README with badges, screenshots, and focused feature notes.
+### Added
+
+- Built-in CVSS examples for common vulnerability classes.
+- Severity range reference for quick CVSS v3.1 learning and score checks.
+- Regression coverage for CVSS scoring, real CVE vectors, and bundled examples.
+
+### Improved
+
+- Polished result, vector, navigation, and About screen layouts.
+- Refreshed README badges, screenshots, and feature summary.
+
+### Changed
+
+- Added GitHub Actions checks for host tests, formatting, and linting.
 
 ## v0.1 - Initial release
 
