@@ -68,18 +68,43 @@ static void pocket_cvss_metric_callback(void* context, uint32_t index);
 static void pocket_cvss_example_callback(void* context, uint32_t index);
 static void pocket_cvss_main_menu_callback(void* context, uint32_t index);
 
+/* Educational presets; real CVSS vectors depend on the exact vulnerable scenario. */
 static const PocketCvssExample pocket_cvss_examples[] = {
     {
-        .label = "10.0 RCE",
-        .values = {0, 0, 0, 0, 1, 2, 2, 2},
-    },
-    {
-        .label = "9.8 Auth Bypass",
+        .label = "9.8 RCE",
         .values = {0, 0, 0, 0, 0, 2, 2, 2},
     },
     {
-        .label = "6.5 DLS Bypass",
+        .label = "9.4 SQL Injection",
+        .values = {0, 0, 0, 0, 0, 2, 2, 1},
+    },
+    {
+        .label = "9.1 Auth Bypass",
+        .values = {0, 0, 0, 0, 0, 2, 2, 0},
+    },
+    {
+        .label = "8.6 SSRF",
+        .values = {0, 0, 0, 0, 1, 2, 0, 0},
+    },
+    {
+        .label = "6.5 IDOR/BOLA Read",
         .values = {0, 0, 1, 0, 0, 2, 0, 0},
+    },
+    {
+        .label = "6.1 Reflected XSS",
+        .values = {0, 0, 0, 1, 1, 1, 1, 0},
+    },
+    {
+        .label = "5.4 Stored XSS",
+        .values = {0, 0, 1, 1, 1, 1, 1, 0},
+    },
+    {
+        .label = "4.3 Open Redirect",
+        .values = {0, 0, 0, 1, 0, 0, 1, 0},
+    },
+    {
+        .label = "3.1 Debug Info Leak",
+        .values = {0, 1, 1, 0, 0, 1, 0, 0},
     },
 };
 
