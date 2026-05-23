@@ -1,9 +1,13 @@
 # Pocket CVSS
 
-[![Flipper Zero](https://img.shields.io/badge/Flipper%20Zero-app-orange)](https://flipperzero.one/)
-[![CVSS v3.1](https://img.shields.io/badge/CVSS-v3.1-blue)](https://www.first.org/cvss/v3.1/specification-document)
-[![CI](https://github.com/vavkamil/pocket-cvss/actions/workflows/ci.yml/badge.svg)](https://github.com/vavkamil/pocket-cvss/actions/workflows/ci.yml)
-[![GitHub stars](https://img.shields.io/github/stars/vavkamil/pocket-cvss?style=flat)](https://github.com/vavkamil/pocket-cvss/stargazers)
+<p align="center">
+  <a href="https://flipperzero.one/"><img alt="Flipper Zero app" src="https://img.shields.io/badge/Flipper%20Zero-app-blue"></a>
+  <a href="https://www.first.org/cvss/v3.1/specification-document"><img alt="CVSS v3.1" src="https://img.shields.io/badge/CVSS-v3.1-blue"></a>
+  <a href="https://github.com/vavkamil/pocket-cvss/deployments/activity_log?environment=github-pages"><img alt="Release status" src="https://img.shields.io/github/deployments/vavkamil/pocket-cvss/github-pages?logo=github&amp;label=release"></a>
+  <a href="https://github.com/vavkamil/pocket-cvss/actions/workflows/build.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/vavkamil/pocket-cvss/build.yml?branch=main&amp;label=build"></a>
+  <a href="https://github.com/vavkamil/pocket-cvss/actions/workflows/ci.yml"><img alt="Checks and tests status" src="https://img.shields.io/github/actions/workflow/status/vavkamil/pocket-cvss/ci.yml?branch=main&amp;label=checks%20%2F%20tests"></a>
+  <a href="https://github.com/vavkamil/pocket-cvss/stargazers"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/vavkamil/pocket-cvss"></a>
+</p>
 
 Pocket CVSS is a native Flipper Zero app for learning and calculating CVSS v3.1 Base
 scores offline.
@@ -11,12 +15,10 @@ scores offline.
 It provides a compact metric wizard, calculates the Base score, and shows the resulting
 severity and vector in a Flipper-friendly layout.
 
-<p>
-  <img src="screenshots/01_menu.png" width="256" alt="Pocket CVSS main menu">
-  <img src="screenshots/02_severity.png" width="256" alt="Pocket CVSS score result">
-  <img src="screenshots/03_examples.png" width="256" alt="Pocket CVSS examples menu">
-  <img src="screenshots/04_severity.png" width="256" alt="Pocket CVSS severity reference">
-</p>
+| | |
+|---|---|
+| <img src="screenshots/01_menu.png" width="256" alt="Pocket CVSS main menu"> | <img src="screenshots/02_examples.png" width="256" alt="Pocket CVSS examples menu"> |
+| <img src="screenshots/03_result.png" width="256" alt="Pocket CVSS score result"> | <img src="screenshots/04_severity.png" width="256" alt="Pocket CVSS severity reference"> |
 
 ## Features
 
