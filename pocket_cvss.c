@@ -40,10 +40,16 @@ typedef enum {
     PocketCvssInfoAbout,
 } PocketCvssInfoScreen;
 
+typedef enum {
+    PocketCvssResultOriginEditor,
+    PocketCvssResultOriginExamples,
+} PocketCvssResultOrigin;
+
 typedef struct {
     PocketCvssInfoScreen screen;
     Cvss31BaseVector vector;
     uint8_t result_scroll;
+    PocketCvssResultOrigin result_origin;
 } PocketCvssInfoModel;
 
 typedef struct {
@@ -208,7 +214,10 @@ static void pocket_cvss_draw_result(Canvas* canvas, const PocketCvssInfoModel* m
 
     pocket_cvss_draw_scrollbar(canvas, model->result_scroll);
 
-    pocket_cvss_draw_footer(canvas, "Vector", "Edit");
+    pocket_cvss_draw_footer(
+        canvas,
+        "Vector",
+        model->result_origin == PocketCvssResultOriginExamples ? "Examples" : "Edit");
 }
 
 static void pocket_cvss_draw_vector(Canvas* canvas, const Cvss31BaseVector* vector) {
@@ -360,6 +369,7 @@ static void pocket_cvss_start_score(PocketCvssApp* app) {
         {
             cvss31_base_vector_reset(&model->vector);
             model->result_scroll = 0;
+            model->result_origin = PocketCvssResultOriginEditor;
         },
         true);
 
@@ -369,7 +379,6 @@ static void pocket_cvss_start_score(PocketCvssApp* app) {
 }
 
 static void pocket_cvss_show_examples(PocketCvssApp* app) {
-    submenu_set_selected_item(app->examples_menu, 0);
     pocket_cvss_switch_to(app, PocketCvssViewExamplesMenu);
 }
 
@@ -410,6 +419,7 @@ static void pocket_cvss_example_callback(void* context, uint32_t index) {
         {
             pocket_cvss_set_vector(&model->vector, pocket_cvss_examples[index].values);
             model->result_scroll = 0;
+            model->result_origin = PocketCvssResultOriginExamples;
         },
         true);
 
@@ -459,9 +469,21 @@ static bool pocket_cvss_info_input(InputEvent* event, void* context) {
         }
 
         if(event->key == InputKeyBack || event->key == InputKeyLeft) {
-            app->metric_id = Cvss31MetricAvailability;
-            pocket_cvss_prepare_metric_menu(app);
-            pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            bool from_examples = false;
+
+            with_view_model(
+                app->info_view,
+                PocketCvssInfoModel * model,
+                { from_examples = model->result_origin == PocketCvssResultOriginExamples; },
+                false);
+
+            if(from_examples) {
+                pocket_cvss_show_examples(app);
+            } else {
+                app->metric_id = Cvss31MetricAvailability;
+                pocket_cvss_prepare_metric_menu(app);
+                pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            }
             return true;
         }
     } else if(app->current_view == PocketCvssViewInfo && app->info_screen == PocketCvssInfoVector) {
@@ -513,9 +535,21 @@ static bool pocket_cvss_navigation_callback(void* context) {
 
     if(app->current_view == PocketCvssViewInfo) {
         if(app->info_screen == PocketCvssInfoResult) {
-            app->metric_id = Cvss31MetricAvailability;
-            pocket_cvss_prepare_metric_menu(app);
-            pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            bool from_examples = false;
+
+            with_view_model(
+                app->info_view,
+                PocketCvssInfoModel * model,
+                { from_examples = model->result_origin == PocketCvssResultOriginExamples; },
+                false);
+
+            if(from_examples) {
+                pocket_cvss_show_examples(app);
+            } else {
+                app->metric_id = Cvss31MetricAvailability;
+                pocket_cvss_prepare_metric_menu(app);
+                pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            }
         } else if(app->info_screen == PocketCvssInfoVector) {
             pocket_cvss_show_result(app);
         } else {
@@ -563,6 +597,7 @@ static PocketCvssApp* pocket_cvss_app_alloc(void) {
             model->screen = PocketCvssInfoResult;
             cvss31_base_vector_reset(&model->vector);
             model->result_scroll = 0;
+            model->result_origin = PocketCvssResultOriginEditor;
         },
         false);
 
