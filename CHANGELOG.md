@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Moved C sources into `src/` and updated build, test, and CI paths.
+- Hardened CVSS metric and vector validation for invalid defensive inputs.
+- Added regression coverage for invalid metric IDs and corrupt vectors.
+
 ## v0.3 - UI Polish
 
 - Switched custom info screen footer hints to native Flipper button elements.

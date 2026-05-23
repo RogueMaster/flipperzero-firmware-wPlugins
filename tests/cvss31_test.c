@@ -75,6 +75,66 @@ static bool cvss31_test_case(const Cvss31ReferenceCase* test_case) {
     return true;
 }
 
+static bool cvss31_test_defensive_inputs(void) {
+    Cvss31BaseVector vector;
+    Cvss31Score score;
+    char vector_text[96] = "unchanged";
+
+    if(cvss31_metric_get((Cvss31MetricId)-1)) {
+        printf("FAIL defensive inputs: accepted negative metric id\n");
+        return false;
+    }
+
+    if(cvss31_metric_get(Cvss31MetricCount)) {
+        printf("FAIL defensive inputs: accepted metric count as metric id\n");
+        return false;
+    }
+
+    cvss31_base_vector_reset(&vector);
+
+    if(cvss31_base_vector_set(&vector, (Cvss31MetricId)-1, 0)) {
+        printf("FAIL defensive inputs: set accepted negative metric id\n");
+        return false;
+    }
+
+    if(cvss31_base_vector_get(&vector, (Cvss31MetricId)-1) != 0) {
+        printf("FAIL defensive inputs: get returned value for negative metric id\n");
+        return false;
+    }
+
+    vector.values[Cvss31MetricAttackVector] = 99;
+
+    if(cvss31_base_vector_is_valid(&vector)) {
+        printf("FAIL defensive inputs: corrupt vector reported valid\n");
+        return false;
+    }
+
+    score = cvss31_base_score(&vector);
+    if(score.tenths != 0 || strcmp(score.severity, "NONE") != 0) {
+        printf(
+            "FAIL defensive inputs: corrupt vector scored as %u.%u %s\n",
+            score.tenths / 10,
+            score.tenths % 10,
+            score.severity);
+        return false;
+    }
+
+    cvss31_format_vector(&vector, vector_text, sizeof(vector_text));
+    if(strcmp(vector_text, "") != 0) {
+        printf("FAIL defensive inputs: corrupt vector formatted as %s\n", vector_text);
+        return false;
+    }
+
+    snprintf(vector_text, sizeof(vector_text), "%s", "unchanged");
+    cvss31_format_metric_line(&vector, vector_text, sizeof(vector_text), 0, 1);
+    if(strcmp(vector_text, "") != 0) {
+        printf("FAIL defensive inputs: corrupt metric line formatted as %s\n", vector_text);
+        return false;
+    }
+
+    return true;
+}
+
 int main(void) {
     static const Cvss31ReferenceCase cases[] = {
         {
@@ -234,6 +294,12 @@ int main(void) {
         }
     }
 
-    printf("PASS %u CVSS v3.1 reference cases\n", (unsigned)(sizeof(cases) / sizeof(cases[0])));
+    if(!cvss31_test_defensive_inputs()) {
+        return 1;
+    }
+
+    printf(
+        "PASS %u CVSS v3.1 reference cases and defensive input checks\n",
+        (unsigned)(sizeof(cases) / sizeof(cases[0])));
     return 0;
 }

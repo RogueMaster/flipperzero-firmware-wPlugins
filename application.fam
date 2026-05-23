@@ -8,7 +8,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="pocket_cvss_app",
     stack_size=4 * 1024,
-    sources=["pocket_cvss.c", "cvss31.c"],
+    sources=["src/pocket_cvss.c", "src/cvss31.c"],
     targets=["f7"],
     fap_category="Tools",
     # Optional values
