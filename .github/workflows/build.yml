@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
 
       - name: Build with ufbt
-        uses: flipperdevices/flipperzero-ufbt-action@ac923ebbd9c8fa1ad19c23572c89136e7151a55f # v0.1.3
+        uses: flipperdevices/flipperzero-ufbt-action@e7cd34914e61ddc056acd8daaab96d8b4d4d9f55 # v0.1.4
         id: build-app
         with:
           sdk-channel: release
