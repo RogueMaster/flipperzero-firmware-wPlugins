@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
 
       - name: Build CVSS tests
-        run: cc -std=c11 -Wall -Wextra -I. tests/cvss31_test.c cvss31.c -o /tmp/pocket_cvss_tests
+        run: cc -std=c11 -Wall -Wextra -Isrc tests/cvss31_test.c src/cvss31.c -o /tmp/pocket_cvss_tests
 
       - name: Run CVSS tests
         run: /tmp/pocket_cvss_tests

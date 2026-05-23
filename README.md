@@ -51,7 +51,7 @@ ufbt launch
 Tests cover scoring, CVE vectors, and built-in examples:
 
 ```bash
-cc -std=c11 -Wall -Wextra -I. tests/cvss31_test.c cvss31.c -o /tmp/pocket_cvss_tests
+cc -std=c11 -Wall -Wextra -Isrc tests/cvss31_test.c src/cvss31.c -o /tmp/pocket_cvss_tests
 /tmp/pocket_cvss_tests
 ```
 
