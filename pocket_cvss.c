@@ -258,20 +258,23 @@ static void pocket_cvss_draw_about(Canvas* canvas) {
 }
 
 static void pocket_cvss_draw_severity(Canvas* canvas) {
+    canvas_draw_rbox(canvas, 0, 0, 128, 16, 2);
+    canvas_set_color(canvas, ColorWhite);
+
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 9, "Severity");
+    canvas_draw_str(canvas, 5, 13, "Severity");
+
+    canvas_set_color(canvas, ColorBlack);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 20, "0.0");
-    canvas_draw_str_aligned(canvas, 127, 20, AlignRight, AlignBottom, "None");
-    canvas_draw_str(canvas, 0, 28, "0.1 - 3.9");
-    canvas_draw_str_aligned(canvas, 127, 28, AlignRight, AlignBottom, "Low");
-    canvas_draw_str(canvas, 0, 36, "4.0 - 6.9");
-    canvas_draw_str_aligned(canvas, 127, 36, AlignRight, AlignBottom, "Medium");
-    canvas_draw_str(canvas, 0, 44, "7.0 - 8.9");
-    canvas_draw_str_aligned(canvas, 127, 44, AlignRight, AlignBottom, "High");
-    canvas_draw_str(canvas, 0, 52, "9.0 - 10.0");
-    canvas_draw_str_aligned(canvas, 127, 52, AlignRight, AlignBottom, "Critical");
+    canvas_draw_str(canvas, 0, 28, "Critical");
+    canvas_draw_str_aligned(canvas, 127, 28, AlignRight, AlignBottom, "9.0 - 10.0");
+    canvas_draw_str(canvas, 0, 36, "High");
+    canvas_draw_str_aligned(canvas, 127, 36, AlignRight, AlignBottom, "7.0 - 8.9");
+    canvas_draw_str(canvas, 0, 44, "Medium");
+    canvas_draw_str_aligned(canvas, 127, 44, AlignRight, AlignBottom, "4.0 - 6.9");
+    canvas_draw_str(canvas, 0, 52, "Low");
+    canvas_draw_str_aligned(canvas, 127, 52, AlignRight, AlignBottom, "0.1 - 3.9");
 
     pocket_cvss_draw_footer(canvas, NULL, "Menu");
 }
