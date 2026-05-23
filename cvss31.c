@@ -149,6 +149,7 @@ static void cvss31_append(char* buffer, size_t buffer_size, const char* text) {
 }
 
 static uint8_t cvss31_roundup_tenths(float input) {
+    /* CVSS v3.1 requires rounding up to one decimal place, not nearest rounding. */
     uint32_t scaled = (uint32_t)(input * 100000.0f + 0.5f);
 
     if((scaled % 10000) == 0) {
@@ -159,6 +160,7 @@ static uint8_t cvss31_roundup_tenths(float input) {
 }
 
 Cvss31Score cvss31_base_score(const Cvss31BaseVector* vector) {
+    /* Constants and formulas follow the official CVSS v3.1 Base Score specification. */
     static const float attack_vector_weights[] = {0.85f, 0.62f, 0.55f, 0.20f};
     static const float attack_complexity_weights[] = {0.77f, 0.44f};
     static const float user_interaction_weights[] = {0.85f, 0.62f};
