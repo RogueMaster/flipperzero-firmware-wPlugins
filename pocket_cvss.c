@@ -7,6 +7,7 @@
  * presenting those rules through Flipper's GUI and ViewDispatcher APIs.
  */
 #include <furi.h>
+#include <gui/elements.h>
 #include <gui/gui.h>
 #include <gui/modules/submenu.h>
 #include <gui/view.h>
@@ -23,6 +24,8 @@
 #endif
 #define POCKET_CVSS_RESULT_VISIBLE_ROWS 4
 #define POCKET_CVSS_RESULT_ROW_COUNT    CVSS31_METRIC_COUNT
+#define POCKET_CVSS_HEADER_HEIGHT       12
+#define POCKET_CVSS_HEADER_TEXT_Y       11
 
 typedef enum {
     PocketCvssViewMainMenu,
@@ -124,36 +127,32 @@ static void pocket_cvss_switch_to(PocketCvssApp* app, PocketCvssViewId view_id) 
     view_dispatcher_switch_to_view(app->dispatcher, view_id);
 }
 
-static void pocket_cvss_draw_ok_icon(Canvas* canvas, uint8_t x, uint8_t y) {
-    const uint8_t ok_icon[] = {0x18, 0x24, 0x42, 0x42, 0x42, 0x24, 0x18};
-
-    canvas_draw_xbm(canvas, x, y, 7, 7, ok_icon);
-}
-
-static void pocket_cvss_draw_back_icon(Canvas* canvas, uint8_t x, uint8_t y) {
-    const uint8_t back_icon[] = {0x04, 0x06, 0x7f, 0x46, 0x44, 0x40, 0x3c};
-
-    canvas_draw_xbm(canvas, x, y, 7, 7, back_icon);
-}
-
-static void pocket_cvss_draw_footer(Canvas* canvas, const char* ok_text, const char* back_text) {
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_line(canvas, 0, 54, 127, 54);
-
-    if(ok_text) {
-        pocket_cvss_draw_ok_icon(canvas, 5, 57);
-        canvas_draw_str(canvas, 17, 63, ok_text);
+static void pocket_cvss_draw_footer(
+    Canvas* canvas,
+    const char* left_text,
+    const char* center_text,
+    const char* right_text) {
+    if(left_text) {
+        elements_button_left(canvas, left_text);
     }
 
-    if(back_text) {
-        const uint8_t text_gap = 12;
-        const uint8_t icon_x =
-            ok_text ? 72 : (uint8_t)(127 - text_gap - canvas_string_width(canvas, back_text));
-        const uint8_t text_x = icon_x + text_gap;
-
-        pocket_cvss_draw_back_icon(canvas, icon_x, 57);
-        canvas_draw_str(canvas, text_x, 63, back_text);
+    if(center_text) {
+        elements_button_center(canvas, center_text);
     }
+
+    if(right_text) {
+        elements_button_right(canvas, right_text);
+    }
+}
+
+static void pocket_cvss_draw_header(Canvas* canvas, const char* title) {
+    canvas_draw_box(canvas, 0, 0, 128, POCKET_CVSS_HEADER_HEIGHT);
+    canvas_set_color(canvas, ColorWhite);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 5, POCKET_CVSS_HEADER_TEXT_Y, title);
+
+    canvas_set_color(canvas, ColorBlack);
 }
 
 static void pocket_cvss_draw_summary(Canvas* canvas, const Cvss31Score* score) {
@@ -163,13 +162,7 @@ static void pocket_cvss_draw_summary(Canvas* canvas, const Cvss31Score* score) {
     cvss31_format_score(score_text, sizeof(score_text), score->tenths);
     snprintf(summary_text, sizeof(summary_text), "%s %s", score_text, score->severity);
 
-    canvas_draw_rbox(canvas, 0, 0, 128, 16, 2);
-    canvas_set_color(canvas, ColorWhite);
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 5, 13, summary_text);
-
-    canvas_set_color(canvas, ColorBlack);
+    pocket_cvss_draw_header(canvas, summary_text);
 }
 
 static const Cvss31Option* opt(const Cvss31BaseVector* vector, Cvss31MetricId metric_id) {
@@ -195,9 +188,9 @@ static const char* pocket_cvss_row_label(Cvss31MetricId metric_id) {
 }
 
 static void pocket_cvss_draw_scrollbar(Canvas* canvas, uint8_t scroll) {
-    const uint8_t thumb_y = 18 + (scroll * 5);
+    const uint8_t thumb_y = 14 + (scroll * 5);
 
-    canvas_draw_line(canvas, 126, 18, 126, 53);
+    canvas_draw_line(canvas, 126, 14, 126, 51);
     canvas_draw_box(canvas, 125, thumb_y, 3, 16);
 }
 
@@ -210,7 +203,7 @@ static void pocket_cvss_draw_result(Canvas* canvas, const PocketCvssInfoModel* m
     canvas_set_font(canvas, FontSecondary);
     for(uint8_t i = 0; i < POCKET_CVSS_RESULT_VISIBLE_ROWS; i++) {
         const Cvss31MetricId metric_id = (Cvss31MetricId)(model->result_scroll + i);
-        const uint8_t row_y = 26 + (i * 9);
+        const uint8_t row_y = 22 + (i * 9);
 
         canvas_draw_str(canvas, 0, row_y, pocket_cvss_row_label(metric_id));
         canvas_draw_str_aligned(
@@ -219,10 +212,7 @@ static void pocket_cvss_draw_result(Canvas* canvas, const PocketCvssInfoModel* m
 
     pocket_cvss_draw_scrollbar(canvas, model->result_scroll);
 
-    pocket_cvss_draw_footer(
-        canvas,
-        "Vector",
-        model->result_origin == PocketCvssResultOriginExamples ? "Examples" : "Edit");
+    pocket_cvss_draw_footer(canvas, NULL, "Vector", NULL);
 }
 
 static void pocket_cvss_draw_vector(Canvas* canvas, const Cvss31BaseVector* vector) {
@@ -231,7 +221,7 @@ static void pocket_cvss_draw_vector(Canvas* canvas, const Cvss31BaseVector* vect
     pocket_cvss_draw_summary(canvas, &score);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 27, "CVSS:3.1");
+    canvas_draw_str(canvas, 0, 23, "CVSS:3.1");
 
     for(uint8_t i = 0; i < CVSS31_METRIC_COUNT; i++) {
         const Cvss31MetricId metric_id = (Cvss31MetricId)i;
@@ -240,10 +230,10 @@ static void pocket_cvss_draw_vector(Canvas* canvas, const Cvss31BaseVector* vect
         char token[8];
 
         snprintf(token, sizeof(token), "%s:%s", metric->metric_code, option->code);
-        canvas_draw_str(canvas, (i % 4) * 32, 40 + ((i / 4) * 11), token);
+        canvas_draw_str(canvas, (i % 4) * 32, 36 + ((i / 4) * 11), token);
     }
 
-    pocket_cvss_draw_footer(canvas, "Exit", "Result");
+    pocket_cvss_draw_footer(canvas, NULL, "Exit", NULL);
 }
 
 static void pocket_cvss_draw_about(Canvas* canvas) {
@@ -251,39 +241,31 @@ static void pocket_cvss_draw_about(Canvas* canvas) {
 
     snprintf(version_text, sizeof(version_text), "v%s", FAP_VERSION);
 
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 9, "Pocket CVSS");
+    pocket_cvss_draw_header(canvas, "About");
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 22, "Offline CVSS trainer");
-    canvas_draw_str_aligned(canvas, 127, 22, AlignRight, AlignBottom, version_text);
-    canvas_draw_line(canvas, 0, 27, 127, 27);
-    canvas_draw_str(canvas, 0, 39, "github.com");
-    canvas_draw_str(canvas, 0, 48, "vavkamil/pocket-cvss");
+    canvas_draw_str(canvas, 0, 27, "Pocket CVSS");
+    canvas_draw_str_aligned(canvas, 127, 27, AlignRight, AlignBottom, version_text);
+    canvas_draw_str(canvas, 0, 42, "github.com/vavkamil");
+    canvas_draw_str(canvas, 0, 57, "pocket-cvss");
 
-    pocket_cvss_draw_footer(canvas, NULL, "Menu");
+    pocket_cvss_draw_footer(canvas, NULL, NULL, NULL);
 }
 
 static void pocket_cvss_draw_severity(Canvas* canvas) {
-    canvas_draw_rbox(canvas, 0, 0, 128, 16, 2);
-    canvas_set_color(canvas, ColorWhite);
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 5, 13, "Severity");
-
-    canvas_set_color(canvas, ColorBlack);
+    pocket_cvss_draw_header(canvas, "Severity");
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 28, "Critical");
-    canvas_draw_str_aligned(canvas, 127, 28, AlignRight, AlignBottom, "9.0 - 10.0");
-    canvas_draw_str(canvas, 0, 36, "High");
-    canvas_draw_str_aligned(canvas, 127, 36, AlignRight, AlignBottom, "7.0 - 8.9");
-    canvas_draw_str(canvas, 0, 44, "Medium");
-    canvas_draw_str_aligned(canvas, 127, 44, AlignRight, AlignBottom, "4.0 - 6.9");
-    canvas_draw_str(canvas, 0, 52, "Low");
-    canvas_draw_str_aligned(canvas, 127, 52, AlignRight, AlignBottom, "0.1 - 3.9");
+    canvas_draw_str(canvas, 0, 25, "Critical");
+    canvas_draw_str_aligned(canvas, 127, 25, AlignRight, AlignBottom, "9.0 - 10.0");
+    canvas_draw_str(canvas, 0, 35, "High");
+    canvas_draw_str_aligned(canvas, 127, 35, AlignRight, AlignBottom, "7.0 - 8.9");
+    canvas_draw_str(canvas, 0, 45, "Medium");
+    canvas_draw_str_aligned(canvas, 127, 45, AlignRight, AlignBottom, "4.0 - 6.9");
+    canvas_draw_str(canvas, 0, 55, "Low");
+    canvas_draw_str_aligned(canvas, 127, 55, AlignRight, AlignBottom, "0.1 - 3.9");
 
-    pocket_cvss_draw_footer(canvas, NULL, "Menu");
+    pocket_cvss_draw_footer(canvas, NULL, NULL, NULL);
 }
 
 static void pocket_cvss_info_draw(Canvas* canvas, void* model_context) {
@@ -510,7 +492,7 @@ static bool pocket_cvss_info_input(InputEvent* event, void* context) {
             return true;
         }
 
-        if(event->key == InputKeyOk || event->key == InputKeyRight) {
+        if(event->key == InputKeyOk) {
             pocket_cvss_show_vector(app);
             return true;
         }
