@@ -1,6 +1,6 @@
-# PocketCVSS
+# Pocket CVSS
 
-PocketCVSS is a native Flipper Zero app for learning and calculating CVSS v3.1 Base
+Pocket CVSS is a native Flipper Zero app for learning and calculating CVSS v3.1 Base
 scores offline.
 
 It provides a compact metric wizard, calculates the Base score, and shows the resulting
@@ -12,6 +12,7 @@ Current scope:
 - Base score and severity calculation
 - Canonical vector formatting
 - Compact score explanations
+- Built-in example vectors
 
 ## Build
 
