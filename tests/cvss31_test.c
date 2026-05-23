@@ -112,6 +112,56 @@ int main(void) {
             .expected_severity = "MEDIUM",
             .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:U/C:L/I:L/A:N",
         },
+        /* Real-world CVE examples provided by CVEalert.io. */
+        {
+            .name = "CVE-2026-41940 cPanel WHM auth bypass",
+            .values = {0, 0, 0, 0, 0, 2, 2, 2},
+            .expected_tenths = 98,
+            .expected_severity = "CRITICAL",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        },
+        {
+            .name = "CVE-2025-54236 Adobe Commerce input validation",
+            .values = {0, 0, 0, 0, 0, 2, 2, 0},
+            .expected_tenths = 91,
+            .expected_severity = "CRITICAL",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+        },
+        {
+            .name = "CVE-2025-32432 Craft CMS RCE",
+            .values = {0, 0, 0, 0, 1, 2, 2, 2},
+            .expected_tenths = 100,
+            .expected_severity = "CRITICAL",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+        },
+        {
+            .name = "CVE-2025-68613 n8n expression RCE",
+            .values = {0, 0, 1, 0, 0, 2, 2, 2},
+            .expected_tenths = 88,
+            .expected_severity = "HIGH",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+        },
+        {
+            .name = "CVE-2025-29927 Next.js middleware auth bypass",
+            .values = {0, 0, 0, 0, 0, 2, 2, 0},
+            .expected_tenths = 91,
+            .expected_severity = "CRITICAL",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+        },
+        {
+            .name = "CVE-2024-43044 Jenkins remoting file read",
+            .values = {0, 0, 1, 0, 0, 2, 2, 2},
+            .expected_tenths = 88,
+            .expected_severity = "HIGH",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+        },
+        {
+            .name = "CVE-2024-12539 Elasticsearch DLS bypass",
+            .values = {0, 0, 1, 0, 0, 2, 0, 0},
+            .expected_tenths = 65,
+            .expected_severity = "MEDIUM",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+        },
     };
 
     for(size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
