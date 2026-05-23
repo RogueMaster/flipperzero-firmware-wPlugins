@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3 - UI Polish
+
+- Switched custom info screen footer hints to native Flipper button elements.
+- Tightened result, vector, About, and severity screen layouts.
+- Simplified About and severity screens to reduce visual clutter.
+
 ## v0.2 - CVSS Examples
 
 - Added built-in CVSS examples for common vulnerability classes.
