@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4
+
+- Added master PIN setup/unlock gate before vault access.
+- Replaced plaintext active vault storage with AES-GCM encrypted `vault.pv1`.
+- Migrates legacy plaintext `vault.tsv` once after PIN setup, then removes it after encrypted save succeeds.
+
 ## v0.3
 
 - Generated passwords are checked against saved vault entries before saving, so the app avoids duplicate generated passwords already in the vault.

@@ -6,18 +6,20 @@ Website: <https://ck42x.com>
 
 ## Flow
 
-1. `+ Add New Password`
-2. Enter account name
-3. Enter username
-4. Choose `Generate Password` or `Enter Custom`
-5. For generated passwords, choose a preset:
+1. First launch: set a master PIN. Existing legacy `vault.tsv` data is migrated into encrypted storage after setup.
+2. Later launches: unlock with the master PIN.
+3. `+ Add New Password`
+4. Enter account name
+5. Enter username
+6. Choose `Generate Password` or `Enter Custom`
+7. For generated passwords, choose a preset:
    - Memorable 16+ mix
    - Strict 16+ A/a/0/!
    - Long 20+ passphrase
    - No special char
-6. Save entry
-7. Select saved account to view username/password
-8. Press `Inject`, confirm, and the app HID-types the password only
+8. Save entry
+9. Select saved account to view username/password
+10. Press `Inject`, confirm, and the app HID-types the password only
 
 ## Branding
 
@@ -61,19 +63,23 @@ If USB automation is unavailable, copy `dist/ck42x_passvault.fap` to the Flipper
 
 Generated passwords use the Flipper RNG and the app checks generated passwords against saved entries before saving, so it will not intentionally create a duplicate generated password already in the vault.
 
-The vault file is stored in app data on the Flipper SD storage as TSV/plaintext for reliability and simplicity. That means anyone with access to the SD card or app data can read the saved passwords. Use it for passwords you are comfortable storing on the device in plaintext.
+v0.4 stores the active vault in app data as AES-GCM encrypted `vault.pv1` and gates vault access behind a master PIN. The key is derived in-app from the PIN and a per-vault random salt using a compact SHA-256 KDF. A fresh random AES-GCM nonce is used on each save.
 
-Recommended hardening before broader trust claims:
+If a legacy plaintext `vault.tsv` exists and no encrypted vault exists, first PIN setup imports it once, saves the encrypted vault, and removes the plaintext file after the encrypted save succeeds.
 
-- master unlock / PIN gate
-- encrypted vault storage
-- delete/edit entries from the UI
-- clear warning in the README and release notes
+This is still a small Flipper utility, not a hardened audited password manager. Device compromise, weak PINs, shoulder surfing, debug access, or modified firmware can still expose vault contents.
+
+Recommended hardening before stronger trust claims:
+
+- edit/delete entries from the UI
+- stronger/passphrase-based unlock UX
+- clearer recovery/export story
+- continued clear warnings in release notes
 
 ## Community release path
 
 1. Publish the source in a public GitHub repo, e.g. `ck42x/flipper-ck42x-passvault`.
 2. Include screenshots or a short demo GIF/video of add → generate → save → confirm HID type.
 3. Attach a built `.fap` to a GitHub Release so users do not need a build chain.
-4. Post to the Flipper Zero community as a transparent v0 prototype: useful field vault, opt-in HID typing, plaintext-storage caveat.
-5. After feedback, submit to community app catalogs only if their rules allow credential/password-manager tools and the security caveat is prominent.
+4. Post to the Flipper Zero community with clear wording: password tool, PIN-gated encrypted storage, explicit HID typing, and no hardened-manager overclaim.
+5. After feedback, keep the catalog copy accurate and avoid stronger trust claims until the UX/security model has been reviewed.

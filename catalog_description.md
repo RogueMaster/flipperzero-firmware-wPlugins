@@ -8,6 +8,6 @@ Generated passwords use the Flipper RNG. Before saving a generated password, the
 
 ## Security note
 
-v0.3 stores entries as plaintext TSV in Flipper app data. Anyone with access to the SD card or app data can read the saved passwords. Use it only for passwords you are comfortable storing on the device in plaintext.
+v0.4 stores the active vault as AES-GCM encrypted app data and requires a master PIN to unlock. On first setup it migrates legacy plaintext `vault.tsv` once, then removes it after the encrypted save succeeds.
 
-Planned hardening includes a master unlock/PIN gate, encrypted vault storage, and edit/delete flows in the UI.
+This is a small Flipper utility, not a hardened audited password manager: device compromise, weak PINs, shoulder surfing, or modified firmware can still expose vault contents.

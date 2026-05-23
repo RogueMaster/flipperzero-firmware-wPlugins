@@ -34,15 +34,15 @@ Suggested topics:
 
 > I built a small CK42X-branded Flipper Zero external app called **CK42X PassVault**.
 >
-> It is a field password vault + memorable password generator for the Flipper. You can add an account/username/password, generate readable passwords with a few presets, save entries locally, and then explicitly confirm before the Flipper types only the selected password over USB HID.
+> It is a PIN-gated Flipper password tool. You can add an account/username/password, generate readable random passwords with a few presets, save entries locally in encrypted app data, and explicitly confirm before the Flipper types only the selected password over USB HID.
 >
 > Repo / download: `<GitHub repo or release URL>`
 >
 > Website: https://ck42x.com
 >
-> Important security note: this is a v0 prototype. Entries are stored in app data as plaintext TSV for now, so do not put high-value real credentials in it yet. The next hardening gates are master unlock/PIN, encrypted storage, edit/delete UI, and better screenshots/docs.
+> Important security note: this is a small Flipper utility, not a hardened audited password manager. v0.4 encrypts the active vault with AES-GCM and requires a master PIN, but device compromise, weak PINs, shoulder surfing, or modified firmware can still expose contents. Next hardening gates include edit/delete UI, stronger unlock UX, and better screenshots/docs.
 >
-> I’m looking for feedback on the UX, safer storage direction, and whether this belongs in the official/community catalog once hardened.
+> I’m looking for feedback on the UX, storage model, unlock flow, and whether this belongs in the official/community catalog.
 
 ## Official Flipper App Catalog readiness checklist
 
@@ -58,7 +58,7 @@ Before submitting to `flipperdevices/flipper-application-catalog`:
 - [ ] `README.md` explains usage and caveats.
 - [ ] `changelog.md` exists.
 - [ ] qFlipper screenshots exist and are unmodified.
-- [ ] Security caveat is prominent: current v0 stores plaintext TSV.
+- [ ] Security caveat is prominent: v0.4 is PIN-gated/encrypted, but not an audited password manager.
 - [ ] Source repo commit SHA is stable.
 - [ ] Catalog `manifest.yml` is created under `applications/<category>/<appid>/`.
 - [ ] Catalog manifest validation passes.
@@ -66,10 +66,9 @@ Before submitting to `flipperdevices/flipper-application-catalog`:
 ## Recommended next hardening before broad catalog push
 
 1. Add delete/edit entries in-app.
-2. Add master unlock/PIN gate.
-3. Add encrypted vault storage.
-4. Add screenshots/demo GIF.
-5. Rename public-facing copy carefully so it does not overclaim as a hardened password manager.
+2. Improve unlock UX for stronger passphrases/recovery.
+3. Add screenshots/demo GIF.
+4. Rename public-facing copy carefully so it does not overclaim as a hardened password manager.
 
 ## Current local artifact
 

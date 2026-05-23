@@ -1,3 +1,8 @@
+v0.4:
+- added master PIN setup/unlock gate before vault access
+- replaced plaintext active vault storage with AES-GCM encrypted `vault.pv1`
+- first unlock setup migrates legacy plaintext `vault.tsv` once, then removes it after encrypted save succeeds
+
 v0.3:
 - generated passwords are checked against saved vault entries before saving to prevent duplicate generated passwords already in the vault
 - updated app/about/README wording to describe PassVault plainly as a password storage, generation, and USB HID typing tool
