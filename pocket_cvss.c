@@ -17,7 +17,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define TAG                             "PocketCVSS"
+#define TAG "PocketCVSS"
+#ifndef FAP_VERSION
+#define FAP_VERSION "dev"
+#endif
 #define POCKET_CVSS_RESULT_VISIBLE_ROWS 4
 #define POCKET_CVSS_RESULT_ROW_COUNT    CVSS31_METRIC_COUNT
 
@@ -244,12 +247,16 @@ static void pocket_cvss_draw_vector(Canvas* canvas, const Cvss31BaseVector* vect
 }
 
 static void pocket_cvss_draw_about(Canvas* canvas) {
+    char version_text[12];
+
+    snprintf(version_text, sizeof(version_text), "v%s", FAP_VERSION);
+
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 0, 9, "Pocket CVSS");
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 0, 22, "Offline CVSS trainer");
-    canvas_draw_str_aligned(canvas, 127, 22, AlignRight, AlignBottom, "v0.1");
+    canvas_draw_str_aligned(canvas, 127, 22, AlignRight, AlignBottom, version_text);
     canvas_draw_line(canvas, 0, 27, 127, 27);
     canvas_draw_str(canvas, 0, 39, "github.com");
     canvas_draw_str(canvas, 0, 48, "vavkamil/pocket-cvss");
