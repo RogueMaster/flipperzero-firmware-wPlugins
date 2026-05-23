@@ -69,17 +69,4 @@ If a legacy plaintext `vault.tsv` exists and no encrypted vault exists, first PI
 
 This is still a small Flipper utility, not a hardened audited password manager. Device compromise, weak PINs, shoulder surfing, debug access, or modified firmware can still expose vault contents.
 
-Recommended hardening before stronger trust claims:
 
-- edit/delete entries from the UI
-- stronger/passphrase-based unlock UX
-- clearer recovery/export story
-- continued clear warnings in release notes
-
-## Community release path
-
-1. Publish the source in a public GitHub repo, e.g. `ck42x/flipper-ck42x-passvault`.
-2. Include screenshots or a short demo GIF/video of add → generate → save → confirm HID type.
-3. Attach a built `.fap` to a GitHub Release so users do not need a build chain.
-4. Post to the Flipper Zero community with clear wording: password tool, PIN-gated encrypted storage, explicit HID typing, and no hardened-manager overclaim.
-5. After feedback, keep the catalog copy accurate and avoid stronger trust claims until the UX/security model has been reviewed.
