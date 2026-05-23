@@ -12,8 +12,8 @@
 Pocket CVSS is a native Flipper Zero app for offline CVSS v3.1 Base scoring and
 learning.
 
-Pick metrics in a compact wizard, then view the score, severity, vector, examples, and
-reference ranges in a Flipper-friendly layout.
+Calculate CVE severity offline, browse example vectors, and check CVSS score
+ranges in a Flipper-friendly layout.
 
 <table align="center">
   <tr>
