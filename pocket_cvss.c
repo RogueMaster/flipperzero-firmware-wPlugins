@@ -70,15 +70,15 @@ static void pocket_cvss_main_menu_callback(void* context, uint32_t index);
 
 static const PocketCvssExample pocket_cvss_examples[] = {
     {
-        .label = "9.8 Auth Bypass",
+        .label = " 9.8 Auth Bypass",
         .values = {0, 0, 0, 0, 0, 2, 2, 2},
     },
     {
-        .label = "10 RCE",
+        .label = "10.0 RCE",
         .values = {0, 0, 0, 0, 1, 2, 2, 2},
     },
     {
-        .label = "6.5 DLS Bypass",
+        .label = " 6.5 DLS Bypass",
         .values = {0, 0, 1, 0, 0, 2, 0, 0},
     },
 };
