@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-slim
+    name: CVSS tests
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Build CVSS tests
+        run: cc -std=c11 -Wall -Wextra -I. tests/cvss31_test.c cvss31.c -o /tmp/pocket_cvss_tests
+
+      - name: Run CVSS tests
+        run: /tmp/pocket_cvss_tests
+
+  ufbt-quality:
+    runs-on: ubuntu-latest
+    name: uFBT format and lint
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up uFBT
+        uses: flipperdevices/flipperzero-ufbt-action@e7cd34914e61ddc056acd8daaab96d8b4d4d9f55 # v0.1.4
+        with:
+          sdk-channel: release
+          task: setup
+
+      - name: Check formatting
+        run: |
+          ufbt format
+          git diff --exit-code
+
+      - name: Lint C sources
+        run: ufbt lint

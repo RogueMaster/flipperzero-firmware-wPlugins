@@ -11,7 +11,7 @@ App(
     sources=["pocket_cvss.c", "cvss31.c"],
     fap_category="Tools",
     # Optional values
-    fap_version="0.1",
+    fap_version="0.2",
     fap_icon="pocket_cvss.png",  # 10x10 1-bit PNG
     fap_description="Offline CVSS v3.1 base calculator",
     fap_weburl="https://github.com/vavkamil/pocket-cvss",

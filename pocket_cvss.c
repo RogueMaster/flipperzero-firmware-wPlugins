@@ -17,38 +17,57 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define TAG                             "PocketCVSS"
+#define TAG "PocketCVSS"
+#ifndef FAP_VERSION
+#define FAP_VERSION "dev"
+#endif
 #define POCKET_CVSS_RESULT_VISIBLE_ROWS 4
 #define POCKET_CVSS_RESULT_ROW_COUNT    CVSS31_METRIC_COUNT
 
 typedef enum {
     PocketCvssViewMainMenu,
     PocketCvssViewMetricMenu,
+    PocketCvssViewExamplesMenu,
     PocketCvssViewInfo,
 } PocketCvssViewId;
 
 typedef enum {
     PocketCvssMainMenuNewScore,
+    PocketCvssMainMenuExamples,
     PocketCvssMainMenuAbout,
+    PocketCvssMainMenuSeverity,
 } PocketCvssMainMenuItem;
 
 typedef enum {
     PocketCvssInfoResult,
     PocketCvssInfoVector,
     PocketCvssInfoAbout,
+    PocketCvssInfoSeverity,
 } PocketCvssInfoScreen;
+
+typedef enum {
+    PocketCvssResultOriginEditor,
+    PocketCvssResultOriginExamples,
+} PocketCvssResultOrigin;
 
 typedef struct {
     PocketCvssInfoScreen screen;
     Cvss31BaseVector vector;
     uint8_t result_scroll;
+    PocketCvssResultOrigin result_origin;
 } PocketCvssInfoModel;
+
+typedef struct {
+    const char* label;
+    uint8_t values[CVSS31_METRIC_COUNT];
+} PocketCvssExample;
 
 typedef struct {
     Gui* gui;
     ViewDispatcher* dispatcher;
     Submenu* main_menu;
     Submenu* metric_menu;
+    Submenu* examples_menu;
     View* info_view;
     Cvss31MetricId metric_id;
     PocketCvssViewId current_view;
@@ -57,7 +76,48 @@ typedef struct {
 } PocketCvssApp;
 
 static void pocket_cvss_metric_callback(void* context, uint32_t index);
+static void pocket_cvss_example_callback(void* context, uint32_t index);
 static void pocket_cvss_main_menu_callback(void* context, uint32_t index);
+
+/* Educational presets; real CVSS vectors depend on the exact vulnerable scenario. */
+static const PocketCvssExample pocket_cvss_examples[] = {
+    {
+        .label = "9.8 RCE",
+        .values = {0, 0, 0, 0, 0, 2, 2, 2},
+    },
+    {
+        .label = "9.4 SQL Injection",
+        .values = {0, 0, 0, 0, 0, 2, 2, 1},
+    },
+    {
+        .label = "9.1 Auth Bypass",
+        .values = {0, 0, 0, 0, 0, 2, 2, 0},
+    },
+    {
+        .label = "8.6 SSRF",
+        .values = {0, 0, 0, 0, 1, 2, 0, 0},
+    },
+    {
+        .label = "6.5 IDOR/BOLA Read",
+        .values = {0, 0, 1, 0, 0, 2, 0, 0},
+    },
+    {
+        .label = "6.1 Reflected XSS",
+        .values = {0, 0, 0, 1, 1, 1, 1, 0},
+    },
+    {
+        .label = "5.4 Stored XSS",
+        .values = {0, 0, 1, 1, 1, 1, 1, 0},
+    },
+    {
+        .label = "4.3 Open Redirect",
+        .values = {0, 0, 0, 1, 0, 0, 1, 0},
+    },
+    {
+        .label = "3.1 Debug Info Leak",
+        .values = {0, 1, 1, 0, 0, 1, 0, 0},
+    },
+};
 
 static void pocket_cvss_switch_to(PocketCvssApp* app, PocketCvssViewId view_id) {
     app->current_view = view_id;
@@ -78,7 +138,7 @@ static void pocket_cvss_draw_back_icon(Canvas* canvas, uint8_t x, uint8_t y) {
 
 static void pocket_cvss_draw_footer(Canvas* canvas, const char* ok_text, const char* back_text) {
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_line(canvas, 0, 55, 127, 55);
+    canvas_draw_line(canvas, 0, 54, 127, 54);
 
     if(ok_text) {
         pocket_cvss_draw_ok_icon(canvas, 5, 57);
@@ -86,8 +146,10 @@ static void pocket_cvss_draw_footer(Canvas* canvas, const char* ok_text, const c
     }
 
     if(back_text) {
-        const uint8_t icon_x = ok_text ? 72 : 8;
-        const uint8_t text_x = ok_text ? 84 : 20;
+        const uint8_t text_gap = 12;
+        const uint8_t icon_x =
+            ok_text ? 72 : (uint8_t)(127 - text_gap - canvas_string_width(canvas, back_text));
+        const uint8_t text_x = icon_x + text_gap;
 
         pocket_cvss_draw_back_icon(canvas, icon_x, 57);
         canvas_draw_str(canvas, text_x, 63, back_text);
@@ -113,6 +175,12 @@ static void pocket_cvss_draw_summary(Canvas* canvas, const Cvss31Score* score) {
 static const Cvss31Option* opt(const Cvss31BaseVector* vector, Cvss31MetricId metric_id) {
     const Cvss31Metric* metric = cvss31_metric_get(metric_id);
     return &metric->options[cvss31_base_vector_get(vector, metric_id)];
+}
+
+static void pocket_cvss_set_vector(Cvss31BaseVector* vector, const uint8_t* values) {
+    for(uint8_t i = 0; i < CVSS31_METRIC_COUNT; i++) {
+        cvss31_base_vector_set(vector, (Cvss31MetricId)i, values[i]);
+    }
 }
 
 static const char* pocket_cvss_row_label(Cvss31MetricId metric_id) {
@@ -142,20 +210,19 @@ static void pocket_cvss_draw_result(Canvas* canvas, const PocketCvssInfoModel* m
     canvas_set_font(canvas, FontSecondary);
     for(uint8_t i = 0; i < POCKET_CVSS_RESULT_VISIBLE_ROWS; i++) {
         const Cvss31MetricId metric_id = (Cvss31MetricId)(model->result_scroll + i);
-        char row[32];
+        const uint8_t row_y = 26 + (i * 9);
 
-        snprintf(
-            row,
-            sizeof(row),
-            "%s: %s",
-            pocket_cvss_row_label(metric_id),
-            opt(vector, metric_id)->label);
-        canvas_draw_str(canvas, 0, 26 + (i * 9), row);
+        canvas_draw_str(canvas, 0, row_y, pocket_cvss_row_label(metric_id));
+        canvas_draw_str_aligned(
+            canvas, 122, row_y, AlignRight, AlignBottom, opt(vector, metric_id)->label);
     }
 
     pocket_cvss_draw_scrollbar(canvas, model->result_scroll);
 
-    pocket_cvss_draw_footer(canvas, "Vector", "Edit");
+    pocket_cvss_draw_footer(
+        canvas,
+        "Vector",
+        model->result_origin == PocketCvssResultOriginExamples ? "Examples" : "Edit");
 }
 
 static void pocket_cvss_draw_vector(Canvas* canvas, const Cvss31BaseVector* vector) {
@@ -176,20 +243,45 @@ static void pocket_cvss_draw_vector(Canvas* canvas, const Cvss31BaseVector* vect
         canvas_draw_str(canvas, (i % 4) * 32, 40 + ((i / 4) * 11), token);
     }
 
-    pocket_cvss_draw_footer(canvas, NULL, "Result");
+    pocket_cvss_draw_footer(canvas, "Exit", "Result");
 }
 
 static void pocket_cvss_draw_about(Canvas* canvas) {
+    char version_text[12];
+
+    snprintf(version_text, sizeof(version_text), "v%s", FAP_VERSION);
+
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 9, "PocketCVSS");
+    canvas_draw_str(canvas, 0, 9, "Pocket CVSS");
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 0, 22, "Offline CVSS trainer");
-    canvas_draw_str(canvas, 0, 32, "CVSS v3.1 Base");
-    canvas_draw_str_aligned(canvas, 127, 32, AlignRight, AlignBottom, "v0.1");
-    canvas_draw_line(canvas, 0, 35, 127, 35);
-    canvas_draw_str(canvas, 0, 45, "github.com/vavkamil");
-    canvas_draw_str(canvas, 0, 53, "/pocket-cvss");
+    canvas_draw_str_aligned(canvas, 127, 22, AlignRight, AlignBottom, version_text);
+    canvas_draw_line(canvas, 0, 27, 127, 27);
+    canvas_draw_str(canvas, 0, 39, "github.com");
+    canvas_draw_str(canvas, 0, 48, "vavkamil/pocket-cvss");
+
+    pocket_cvss_draw_footer(canvas, NULL, "Menu");
+}
+
+static void pocket_cvss_draw_severity(Canvas* canvas) {
+    canvas_draw_rbox(canvas, 0, 0, 128, 16, 2);
+    canvas_set_color(canvas, ColorWhite);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 5, 13, "Severity");
+
+    canvas_set_color(canvas, ColorBlack);
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 0, 28, "Critical");
+    canvas_draw_str_aligned(canvas, 127, 28, AlignRight, AlignBottom, "9.0 - 10.0");
+    canvas_draw_str(canvas, 0, 36, "High");
+    canvas_draw_str_aligned(canvas, 127, 36, AlignRight, AlignBottom, "7.0 - 8.9");
+    canvas_draw_str(canvas, 0, 44, "Medium");
+    canvas_draw_str_aligned(canvas, 127, 44, AlignRight, AlignBottom, "4.0 - 6.9");
+    canvas_draw_str(canvas, 0, 52, "Low");
+    canvas_draw_str_aligned(canvas, 127, 52, AlignRight, AlignBottom, "0.1 - 3.9");
 
     pocket_cvss_draw_footer(canvas, NULL, "Menu");
 }
@@ -204,8 +296,10 @@ static void pocket_cvss_info_draw(Canvas* canvas, void* model_context) {
         pocket_cvss_draw_result(canvas, model);
     } else if(model->screen == PocketCvssInfoVector) {
         pocket_cvss_draw_vector(canvas, &model->vector);
-    } else {
+    } else if(model->screen == PocketCvssInfoAbout) {
         pocket_cvss_draw_about(canvas);
+    } else {
+        pocket_cvss_draw_severity(canvas);
     }
 }
 
@@ -240,6 +334,18 @@ static void pocket_cvss_show_about(PocketCvssApp* app) {
         app->info_view,
         PocketCvssInfoModel * model,
         { model->screen = PocketCvssInfoAbout; },
+        true);
+
+    pocket_cvss_switch_to(app, PocketCvssViewInfo);
+}
+
+static void pocket_cvss_show_severity(PocketCvssApp* app) {
+    app->info_screen = PocketCvssInfoSeverity;
+
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        { model->screen = PocketCvssInfoSeverity; },
         true);
 
     pocket_cvss_switch_to(app, PocketCvssViewInfo);
@@ -308,12 +414,17 @@ static void pocket_cvss_start_score(PocketCvssApp* app) {
         {
             cvss31_base_vector_reset(&model->vector);
             model->result_scroll = 0;
+            model->result_origin = PocketCvssResultOriginEditor;
         },
         true);
 
     app->metric_id = Cvss31MetricAttackVector;
     pocket_cvss_prepare_metric_menu(app);
     pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+}
+
+static void pocket_cvss_show_examples(PocketCvssApp* app) {
+    pocket_cvss_switch_to(app, PocketCvssViewExamplesMenu);
 }
 
 static void pocket_cvss_metric_callback(void* context, uint32_t index) {
@@ -339,13 +450,38 @@ static void pocket_cvss_metric_callback(void* context, uint32_t index) {
     }
 }
 
+static void pocket_cvss_example_callback(void* context, uint32_t index) {
+    PocketCvssApp* app = context;
+
+    if(index >= sizeof(pocket_cvss_examples) / sizeof(pocket_cvss_examples[0])) {
+        pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
+        return;
+    }
+
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        {
+            pocket_cvss_set_vector(&model->vector, pocket_cvss_examples[index].values);
+            model->result_scroll = 0;
+            model->result_origin = PocketCvssResultOriginExamples;
+        },
+        true);
+
+    pocket_cvss_show_result(app);
+}
+
 static void pocket_cvss_main_menu_callback(void* context, uint32_t index) {
     PocketCvssApp* app = context;
 
     if(index == PocketCvssMainMenuNewScore) {
         pocket_cvss_start_score(app);
+    } else if(index == PocketCvssMainMenuExamples) {
+        pocket_cvss_show_examples(app);
     } else if(index == PocketCvssMainMenuAbout) {
         pocket_cvss_show_about(app);
+    } else if(index == PocketCvssMainMenuSeverity) {
+        pocket_cvss_show_severity(app);
     }
 }
 
@@ -380,17 +516,36 @@ static bool pocket_cvss_info_input(InputEvent* event, void* context) {
         }
 
         if(event->key == InputKeyBack || event->key == InputKeyLeft) {
-            app->metric_id = Cvss31MetricAvailability;
-            pocket_cvss_prepare_metric_menu(app);
-            pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            bool from_examples = false;
+
+            with_view_model(
+                app->info_view,
+                PocketCvssInfoModel * model,
+                { from_examples = model->result_origin == PocketCvssResultOriginExamples; },
+                false);
+
+            if(from_examples) {
+                pocket_cvss_show_examples(app);
+            } else {
+                app->metric_id = Cvss31MetricAvailability;
+                pocket_cvss_prepare_metric_menu(app);
+                pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            }
             return true;
         }
     } else if(app->current_view == PocketCvssViewInfo && app->info_screen == PocketCvssInfoVector) {
-        if(event->key == InputKeyBack || event->key == InputKeyLeft || event->key == InputKeyOk) {
+        if(event->key == InputKeyOk) {
+            view_dispatcher_stop(app->dispatcher);
+            return true;
+        }
+
+        if(event->key == InputKeyBack || event->key == InputKeyLeft) {
             pocket_cvss_show_result(app);
             return true;
         }
-    } else if(app->current_view == PocketCvssViewInfo && app->info_screen == PocketCvssInfoAbout) {
+    } else if(
+        app->current_view == PocketCvssViewInfo &&
+        (app->info_screen == PocketCvssInfoAbout || app->info_screen == PocketCvssInfoSeverity)) {
         if(event->key == InputKeyBack || event->key == InputKeyLeft || event->key == InputKeyOk) {
             pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
             return true;
@@ -422,11 +577,28 @@ static bool pocket_cvss_navigation_callback(void* context) {
         return true;
     }
 
+    if(app->current_view == PocketCvssViewExamplesMenu) {
+        pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
+        return true;
+    }
+
     if(app->current_view == PocketCvssViewInfo) {
         if(app->info_screen == PocketCvssInfoResult) {
-            app->metric_id = Cvss31MetricAvailability;
-            pocket_cvss_prepare_metric_menu(app);
-            pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            bool from_examples = false;
+
+            with_view_model(
+                app->info_view,
+                PocketCvssInfoModel * model,
+                { from_examples = model->result_origin == PocketCvssResultOriginExamples; },
+                false);
+
+            if(from_examples) {
+                pocket_cvss_show_examples(app);
+            } else {
+                app->metric_id = Cvss31MetricAvailability;
+                pocket_cvss_prepare_metric_menu(app);
+                pocket_cvss_switch_to(app, PocketCvssViewMetricMenu);
+            }
         } else if(app->info_screen == PocketCvssInfoVector) {
             pocket_cvss_show_result(app);
         } else {
@@ -448,11 +620,13 @@ static PocketCvssApp* pocket_cvss_app_alloc(void) {
     app->dispatcher = view_dispatcher_alloc();
     app->main_menu = submenu_alloc();
     app->metric_menu = submenu_alloc();
+    app->examples_menu = submenu_alloc();
     app->info_view = view_alloc();
     furi_check(app->gui);
     furi_check(app->dispatcher);
     furi_check(app->main_menu);
     furi_check(app->metric_menu);
+    furi_check(app->examples_menu);
     furi_check(app->info_view);
 
     app->metric_id = Cvss31MetricAttackVector;
@@ -472,10 +646,11 @@ static PocketCvssApp* pocket_cvss_app_alloc(void) {
             model->screen = PocketCvssInfoResult;
             cvss31_base_vector_reset(&model->vector);
             model->result_scroll = 0;
+            model->result_origin = PocketCvssResultOriginEditor;
         },
         false);
 
-    submenu_set_header(app->main_menu, "PocketCVSS");
+    submenu_set_header(app->main_menu, "Pocket CVSS");
     submenu_add_item(
         app->main_menu,
         "New Score",
@@ -483,7 +658,29 @@ static PocketCvssApp* pocket_cvss_app_alloc(void) {
         pocket_cvss_main_menu_callback,
         app);
     submenu_add_item(
+        app->main_menu,
+        "Examples",
+        PocketCvssMainMenuExamples,
+        pocket_cvss_main_menu_callback,
+        app);
+    submenu_add_item(
         app->main_menu, "About", PocketCvssMainMenuAbout, pocket_cvss_main_menu_callback, app);
+    submenu_add_item(
+        app->main_menu,
+        "Severity",
+        PocketCvssMainMenuSeverity,
+        pocket_cvss_main_menu_callback,
+        app);
+
+    submenu_set_header(app->examples_menu, "Examples");
+    for(uint8_t i = 0; i < sizeof(pocket_cvss_examples) / sizeof(pocket_cvss_examples[0]); i++) {
+        submenu_add_item(
+            app->examples_menu,
+            pocket_cvss_examples[i].label,
+            i,
+            pocket_cvss_example_callback,
+            app);
+    }
 
     view_dispatcher_set_event_callback_context(app->dispatcher, app);
     view_dispatcher_set_navigation_event_callback(
@@ -492,6 +689,8 @@ static PocketCvssApp* pocket_cvss_app_alloc(void) {
         app->dispatcher, PocketCvssViewMainMenu, submenu_get_view(app->main_menu));
     view_dispatcher_add_view(
         app->dispatcher, PocketCvssViewMetricMenu, submenu_get_view(app->metric_menu));
+    view_dispatcher_add_view(
+        app->dispatcher, PocketCvssViewExamplesMenu, submenu_get_view(app->examples_menu));
     view_dispatcher_add_view(app->dispatcher, PocketCvssViewInfo, app->info_view);
     view_dispatcher_attach_to_gui(app->dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
@@ -502,9 +701,11 @@ static PocketCvssApp* pocket_cvss_app_alloc(void) {
 static void pocket_cvss_app_free(PocketCvssApp* app) {
     view_dispatcher_remove_view(app->dispatcher, PocketCvssViewMainMenu);
     view_dispatcher_remove_view(app->dispatcher, PocketCvssViewMetricMenu);
+    view_dispatcher_remove_view(app->dispatcher, PocketCvssViewExamplesMenu);
     view_dispatcher_remove_view(app->dispatcher, PocketCvssViewInfo);
     view_free_model(app->info_view);
     view_free(app->info_view);
+    submenu_free(app->examples_menu);
     submenu_free(app->metric_menu);
     submenu_free(app->main_menu);
     view_dispatcher_free(app->dispatcher);
@@ -515,11 +716,11 @@ static void pocket_cvss_app_free(PocketCvssApp* app) {
 int32_t pocket_cvss_app(void* p) {
     UNUSED(p);
 
-    FURI_LOG_I(TAG, "Starting PocketCVSS");
+    FURI_LOG_I(TAG, "Starting Pocket CVSS");
     PocketCvssApp* app = pocket_cvss_app_alloc();
     view_dispatcher_run(app->dispatcher);
     pocket_cvss_app_free(app);
-    FURI_LOG_I(TAG, "Stopped PocketCVSS");
+    FURI_LOG_I(TAG, "Stopped Pocket CVSS");
 
     return 0;
 }
