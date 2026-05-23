@@ -61,6 +61,10 @@ static const Cvss31Metric cvss31_metrics[] = {
     },
 };
 
+static bool cvss31_metric_id_is_valid(Cvss31MetricId metric_id) {
+    return (uint32_t)metric_id < CVSS31_METRIC_COUNT;
+}
+
 void cvss31_base_vector_reset(Cvss31BaseVector* vector) {
     if(!vector) {
         return;
@@ -115,7 +119,7 @@ bool cvss31_base_vector_is_valid(const Cvss31BaseVector* vector) {
 }
 
 const Cvss31Metric* cvss31_metric_get(Cvss31MetricId metric_id) {
-    return metric_id < Cvss31MetricCount ? &cvss31_metrics[metric_id] : NULL;
+    return cvss31_metric_id_is_valid(metric_id) ? &cvss31_metrics[metric_id] : NULL;
 }
 
 uint8_t cvss31_metric_count(void) {
@@ -168,7 +172,7 @@ Cvss31Score cvss31_base_score(const Cvss31BaseVector* vector) {
     static const float privilege_required_weights_unchanged[] = {0.85f, 0.62f, 0.27f};
     static const float privilege_required_weights_changed[] = {0.85f, 0.68f, 0.50f};
 
-    if(!vector) {
+    if(!cvss31_base_vector_is_valid(vector)) {
         return (Cvss31Score){.tenths = 0, .severity = cvss31_severity(0)};
     }
 
@@ -230,7 +234,7 @@ void cvss31_format_metric_line(
 
     buffer[0] = '\0';
 
-    if(!vector) {
+    if(!cvss31_base_vector_is_valid(vector)) {
         return;
     }
 
@@ -261,7 +265,7 @@ void cvss31_format_vector(const Cvss31BaseVector* vector, char* buffer, size_t b
 
     buffer[0] = '\0';
 
-    if(!vector) {
+    if(!cvss31_base_vector_is_valid(vector)) {
         return;
     }
 
