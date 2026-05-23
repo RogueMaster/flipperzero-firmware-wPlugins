@@ -10,6 +10,7 @@
 - Added standalone CVSS v3.1 regression tests with real-world CVE reference
   cases from CVEalert.io.
 - Added GitHub Actions CI for host-side tests plus uFBT format and lint checks.
+- Refreshed README with screenshots, focused features, and clearer test notes.
 
 ## v0.1
 

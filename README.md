@@ -6,14 +6,21 @@ scores offline.
 It provides a compact metric wizard, calculates the Base score, and shows the resulting
 severity and vector in a Flipper-friendly layout.
 
-Current scope:
+<p>
+  <img src="screenshots/01_menu.png" width="256" alt="Pocket CVSS main menu">
+  <img src="screenshots/02_severity.png" width="256" alt="Pocket CVSS score result">
+  <img src="screenshots/03_examples.png" width="256" alt="Pocket CVSS examples menu">
+  <img src="screenshots/04_vector.png" width="256" alt="Pocket CVSS vector screen">
+  <img src="screenshots/05_severity.png" width="256" alt="Pocket CVSS severity reference">
+</p>
 
-- CVSS v3.1 Base metrics
-- Base score and severity calculation
-- Canonical vector formatting
-- Compact score explanations
-- Built-in example vectors
-- CVSS severity range reference
+## Features
+
+- CVSS v3.1 Base metric wizard for offline scoring
+- Automatic score, severity, and canonical vector formatting
+- Built-in educational examples for common vulnerability classes
+- Severity range reference for quick learning
+- Compact Flipper-friendly result, vector, and navigation screens
 
 ## Build
 
@@ -29,7 +36,8 @@ ufbt launch
 
 ## Test
 
-The scoring engine can be checked on the host without building the Flipper app:
+Host-side tests cover the CVSS scoring engine, real CVE vectors from CVEalert.io,
+and the educational examples used by the app:
 
 ```bash
 cc -std=c11 -Wall -Wextra -I. tests/cvss31_test.c cvss31.c -o /tmp/pocket_cvss_tests
@@ -42,7 +50,3 @@ cc -std=c11 -Wall -Wextra -I. tests/cvss31_test.c cvss31.c -o /tmp/pocket_cvss_t
 ufbt format
 ufbt lint
 ```
-
-## License
-
-MIT

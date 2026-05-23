@@ -162,6 +162,70 @@ int main(void) {
             .expected_severity = "MEDIUM",
             .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
         },
+        /* Educational examples used by the app. */
+        {
+            .name = "example RCE",
+            .values = {0, 0, 0, 0, 0, 2, 2, 2},
+            .expected_tenths = 98,
+            .expected_severity = "CRITICAL",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        },
+        {
+            .name = "example SQL injection",
+            .values = {0, 0, 0, 0, 0, 2, 2, 1},
+            .expected_tenths = 94,
+            .expected_severity = "CRITICAL",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:L",
+        },
+        {
+            .name = "example auth bypass",
+            .values = {0, 0, 0, 0, 0, 2, 2, 0},
+            .expected_tenths = 91,
+            .expected_severity = "CRITICAL",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+        },
+        {
+            .name = "example SSRF",
+            .values = {0, 0, 0, 0, 1, 2, 0, 0},
+            .expected_tenths = 86,
+            .expected_severity = "HIGH",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N",
+        },
+        {
+            .name = "example IDOR BOLA read",
+            .values = {0, 0, 1, 0, 0, 2, 0, 0},
+            .expected_tenths = 65,
+            .expected_severity = "MEDIUM",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+        },
+        {
+            .name = "example reflected XSS",
+            .values = {0, 0, 0, 1, 1, 1, 1, 0},
+            .expected_tenths = 61,
+            .expected_severity = "MEDIUM",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+        },
+        {
+            .name = "example stored XSS",
+            .values = {0, 0, 1, 1, 1, 1, 1, 0},
+            .expected_tenths = 54,
+            .expected_severity = "MEDIUM",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N",
+        },
+        {
+            .name = "example open redirect",
+            .values = {0, 0, 0, 1, 0, 0, 1, 0},
+            .expected_tenths = 43,
+            .expected_severity = "MEDIUM",
+            .expected_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N",
+        },
+        {
+            .name = "example debug info leak",
+            .values = {0, 1, 1, 0, 0, 1, 0, 0},
+            .expected_tenths = 31,
+            .expected_severity = "LOW",
+            .expected_vector = "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:L/I:N/A:N",
+        },
     };
 
     for(size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
