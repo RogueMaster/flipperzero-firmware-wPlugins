@@ -1,0 +1,16 @@
+# Draft for flipperdevices/flipper-application-catalog
+# Target path after forking catalog repo:
+# applications/Tools/ck42x_passvault/manifest.yml
+#
+# Replace origin and commit_sha after publishing the public source repo.
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/ck42x/flipper-ck42x-passvault.git
+    commit_sha: TODO_REPLACE_WITH_FULL_SOURCE_REPO_COMMIT_SHA
+short_description: CK42X.com field password vault with memorable generator and opt-in HID password typing.
+description: "@README.md"
+changelog: "@changelog.md"
+screenshots:
+  - screenshots/ck42x-passvault-main.png

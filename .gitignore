@@ -1,0 +1,14 @@
+# uFBT / build outputs
+.ufbt/
+dist/
+build/
+release/
+*.elf
+*.map
+*.o
+
+# local/editor
+.vscode/
+.DS_Store
+__pycache__/
+*.pyc
