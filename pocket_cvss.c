@@ -32,12 +32,14 @@ typedef enum {
     PocketCvssMainMenuNewScore,
     PocketCvssMainMenuExamples,
     PocketCvssMainMenuAbout,
+    PocketCvssMainMenuSeverity,
 } PocketCvssMainMenuItem;
 
 typedef enum {
     PocketCvssInfoResult,
     PocketCvssInfoVector,
     PocketCvssInfoAbout,
+    PocketCvssInfoSeverity,
 } PocketCvssInfoScreen;
 
 typedef enum {
@@ -255,6 +257,25 @@ static void pocket_cvss_draw_about(Canvas* canvas) {
     pocket_cvss_draw_footer(canvas, NULL, "Menu");
 }
 
+static void pocket_cvss_draw_severity(Canvas* canvas) {
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 0, 9, "Severity");
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 0, 20, "0.0");
+    canvas_draw_str_aligned(canvas, 127, 20, AlignRight, AlignBottom, "None");
+    canvas_draw_str(canvas, 0, 28, "0.1 - 3.9");
+    canvas_draw_str_aligned(canvas, 127, 28, AlignRight, AlignBottom, "Low");
+    canvas_draw_str(canvas, 0, 36, "4.0 - 6.9");
+    canvas_draw_str_aligned(canvas, 127, 36, AlignRight, AlignBottom, "Medium");
+    canvas_draw_str(canvas, 0, 44, "7.0 - 8.9");
+    canvas_draw_str_aligned(canvas, 127, 44, AlignRight, AlignBottom, "High");
+    canvas_draw_str(canvas, 0, 52, "9.0 - 10.0");
+    canvas_draw_str_aligned(canvas, 127, 52, AlignRight, AlignBottom, "Critical");
+
+    pocket_cvss_draw_footer(canvas, NULL, "Menu");
+}
+
 static void pocket_cvss_info_draw(Canvas* canvas, void* model_context) {
     const PocketCvssInfoModel* model = model_context;
 
@@ -265,8 +286,10 @@ static void pocket_cvss_info_draw(Canvas* canvas, void* model_context) {
         pocket_cvss_draw_result(canvas, model);
     } else if(model->screen == PocketCvssInfoVector) {
         pocket_cvss_draw_vector(canvas, &model->vector);
-    } else {
+    } else if(model->screen == PocketCvssInfoAbout) {
         pocket_cvss_draw_about(canvas);
+    } else {
+        pocket_cvss_draw_severity(canvas);
     }
 }
 
@@ -301,6 +324,18 @@ static void pocket_cvss_show_about(PocketCvssApp* app) {
         app->info_view,
         PocketCvssInfoModel * model,
         { model->screen = PocketCvssInfoAbout; },
+        true);
+
+    pocket_cvss_switch_to(app, PocketCvssViewInfo);
+}
+
+static void pocket_cvss_show_severity(PocketCvssApp* app) {
+    app->info_screen = PocketCvssInfoSeverity;
+
+    with_view_model(
+        app->info_view,
+        PocketCvssInfoModel * model,
+        { model->screen = PocketCvssInfoSeverity; },
         true);
 
     pocket_cvss_switch_to(app, PocketCvssViewInfo);
@@ -435,6 +470,8 @@ static void pocket_cvss_main_menu_callback(void* context, uint32_t index) {
         pocket_cvss_show_examples(app);
     } else if(index == PocketCvssMainMenuAbout) {
         pocket_cvss_show_about(app);
+    } else if(index == PocketCvssMainMenuSeverity) {
+        pocket_cvss_show_severity(app);
     }
 }
 
@@ -496,7 +533,9 @@ static bool pocket_cvss_info_input(InputEvent* event, void* context) {
             pocket_cvss_show_result(app);
             return true;
         }
-    } else if(app->current_view == PocketCvssViewInfo && app->info_screen == PocketCvssInfoAbout) {
+    } else if(
+        app->current_view == PocketCvssViewInfo &&
+        (app->info_screen == PocketCvssInfoAbout || app->info_screen == PocketCvssInfoSeverity)) {
         if(event->key == InputKeyBack || event->key == InputKeyLeft || event->key == InputKeyOk) {
             pocket_cvss_switch_to(app, PocketCvssViewMainMenu);
             return true;
@@ -616,6 +655,12 @@ static PocketCvssApp* pocket_cvss_app_alloc(void) {
         app);
     submenu_add_item(
         app->main_menu, "About", PocketCvssMainMenuAbout, pocket_cvss_main_menu_callback, app);
+    submenu_add_item(
+        app->main_menu,
+        "Severity",
+        PocketCvssMainMenuSeverity,
+        pocket_cvss_main_menu_callback,
+        app);
 
     submenu_set_header(app->examples_menu, "Examples");
     for(uint8_t i = 0; i < sizeof(pocket_cvss_examples) / sizeof(pocket_cvss_examples[0]); i++) {

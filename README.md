@@ -13,6 +13,7 @@ Current scope:
 - Canonical vector formatting
 - Compact score explanations
 - Built-in example vectors
+- CVSS severity range reference
 
 ## Build
 

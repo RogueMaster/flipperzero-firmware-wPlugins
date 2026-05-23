@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Added built-in example vectors for faster CVSS score exploration.
+- Added built-in example vectors and severity range reference for faster CVSS
+  score exploration.
 - Improved result and navigation screens with a two-column score summary,
   polished About layout, consistent `Pocket CVSS` naming, and a Vector-screen
   Exit action.
