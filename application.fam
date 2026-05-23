@@ -7,7 +7,7 @@ App(
     entry_point="ck42x_passvault_app",
     stack_size=8 * 1024,
     fap_category="Tools",
-    fap_version="0.1.1",
+    fap_version="0.2",
     fap_icon="ck42x_passvault.png",
     fap_description="CK42X.com field password vault with memorable generator and opt-in HID password typing.",
     fap_author="CK42X",
