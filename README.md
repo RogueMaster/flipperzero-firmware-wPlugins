@@ -17,12 +17,12 @@ reference ranges in a Flipper-friendly layout.
 
 <table align="center">
   <tr>
-    <td><img src="screenshots/01_menu.png" width="256" alt="Pocket CVSS main menu"></td>
-    <td><img src="screenshots/02_examples.png" width="256" alt="Pocket CVSS examples menu"></td>
+    <td><img src="screenshots/01_result.png" width="256" alt="Pocket CVSS score result"></td>
+    <td><img src="screenshots/02_severity.png" width="256" alt="Pocket CVSS severity reference"></td>
   </tr>
   <tr>
-    <td><img src="screenshots/03_result.png" width="256" alt="Pocket CVSS score result"></td>
-    <td><img src="screenshots/04_severity.png" width="256" alt="Pocket CVSS severity reference"></td>
+    <td><img src="screenshots/03_examples.png" width="256" alt="Pocket CVSS examples menu"></td>
+    <td><img src="screenshots/04_menu.png" width="256" alt="Pocket CVSS main menu"></td>
   </tr>
 </table>
 
