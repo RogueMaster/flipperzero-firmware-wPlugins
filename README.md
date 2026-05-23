@@ -35,8 +35,8 @@ ufbt launch
 
 ## Test
 
-Host-side tests cover the CVSS scoring engine, real CVE vectors from CVEalert.io,
-and the educational examples used by the app:
+Host-side tests cover the CVSS scoring engine, real CVE vectors, and the educational
+examples used by the app:
 
 ```bash
 cc -std=c11 -Wall -Wextra -I. tests/cvss31_test.c cvss31.c -o /tmp/pocket_cvss_tests
