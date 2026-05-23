@@ -1,5 +1,5 @@
 # Subhound
-
+<img width="1924" height="1924" alt="image" src="https://github.com/user-attachments/assets/018aaa38-5762-43e6-abe4-bef1a641cdd3" />
 Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 15 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
 
 ---
@@ -256,5 +256,3 @@ See [flipper-app/README.md](flipper-app/README.md) for build options, on-device 
 ## Supported frequencies
 
 315 MHz · 433.42 MHz · 433.92 MHz · 868.35 MHz · 915 MHz
-
-<img width="1924" height="1924" alt="image" src="https://github.com/user-attachments/assets/018aaa38-5762-43e6-abe4-bef1a641cdd3" />
