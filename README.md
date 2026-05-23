@@ -10,8 +10,7 @@ severity and vector in a Flipper-friendly layout.
   <img src="screenshots/01_menu.png" width="256" alt="Pocket CVSS main menu">
   <img src="screenshots/02_severity.png" width="256" alt="Pocket CVSS score result">
   <img src="screenshots/03_examples.png" width="256" alt="Pocket CVSS examples menu">
-  <img src="screenshots/04_vector.png" width="256" alt="Pocket CVSS vector screen">
-  <img src="screenshots/05_severity.png" width="256" alt="Pocket CVSS severity reference">
+  <img src="screenshots/04_severity.png" width="256" alt="Pocket CVSS severity reference">
 </p>
 
 ## Features
