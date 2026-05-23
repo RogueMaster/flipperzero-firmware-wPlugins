@@ -1,17 +1,13 @@
 # Changelog
 
-## Unreleased
+## v0.2 - CVSS Examples
 
-- Added built-in example vectors and severity range reference for faster CVSS
-  score exploration.
-- Improved result and navigation screens with a two-column score summary,
-  polished About layout, consistent `Pocket CVSS` naming, and a Vector-screen
-  Exit action.
-- Added standalone CVSS v3.1 regression tests with real-world CVE reference
-  cases from CVEalert.io.
-- Added GitHub Actions CI for host-side tests plus uFBT format and lint checks.
-- Refreshed README with screenshots, focused features, and clearer test notes.
+- Added educational examples and a severity range reference.
+- Improved result, vector, navigation, and About screen layouts.
+- Added regression tests for CVSS scoring, real CVE vectors, and app examples.
+- Added GitHub Actions CI for host tests, formatting, and linting.
+- Refreshed README with badges, screenshots, and focused feature notes.
 
-## v0.1
+## v0.1 - Initial release
 
 - Initial Pocket CVSS release.

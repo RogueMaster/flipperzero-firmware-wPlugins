@@ -1,5 +1,10 @@
 # Pocket CVSS
 
+[![Flipper Zero](https://img.shields.io/badge/Flipper%20Zero-app-orange)](https://flipperzero.one/)
+[![CVSS v3.1](https://img.shields.io/badge/CVSS-v3.1-blue)](https://www.first.org/cvss/v3.1/specification-document)
+[![CI](https://github.com/vavkamil/pocket-cvss/actions/workflows/ci.yml/badge.svg)](https://github.com/vavkamil/pocket-cvss/actions/workflows/ci.yml)
+[![GitHub stars](https://img.shields.io/github/stars/vavkamil/pocket-cvss?style=flat)](https://github.com/vavkamil/pocket-cvss/stargazers)
+
 Pocket CVSS is a native Flipper Zero app for learning and calculating CVSS v3.1 Base
 scores offline.
 
