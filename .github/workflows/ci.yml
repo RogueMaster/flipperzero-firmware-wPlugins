@@ -10,13 +10,13 @@ on:
 permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   tests:
     runs-on: ubuntu-slim
-    name: Host tests
+    name: CVSS tests
     permissions:
       contents: read
 
