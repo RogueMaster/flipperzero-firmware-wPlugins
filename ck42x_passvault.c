@@ -122,6 +122,26 @@ static uint32_t ck_random_index(uint32_t max) {
     return furi_hal_random_get() % max;
 }
 
+static bool ck_password_exists(const CkApp* app, const char* password) {
+    if(!password || password[0] == '\0') return true;
+    for(uint8_t i = 0; i < app->entry_count; i++) {
+        if(strcmp(app->entries[i].password, password) == 0) return true;
+    }
+    return false;
+}
+
+static void ck_make_password_unique(CkApp* app, char* password, size_t password_size) {
+    if(!ck_password_exists(app, password)) return;
+
+    char base[CK_PASSWORD_LEN];
+    ck_copy(base, sizeof(base), password);
+
+    for(uint32_t suffix = 0; suffix < 1000; suffix++) {
+        snprintf(password, password_size, "%.*s-%03lu", 60, base, (unsigned long)suffix);
+        if(!ck_password_exists(app, password)) return;
+    }
+}
+
 static const char* const ck_adjs[] = {
     "Amber",
     "Atomic",
@@ -484,7 +504,7 @@ static void ck_show_about(CkApp* app) {
         32,
         AlignCenter,
         AlignCenter,
-        "Field password vault\nBuild. Code. Transmute.\nck42x.com",
+        "Password vault tool\nBuild. Code. Transmute.\nck42x.com",
         false);
     widget_add_button_element(
         app->widget, GuiButtonTypeLeft, "Back", ck_widget_button_callback, app);
@@ -575,6 +595,7 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         if(event == CkEventPresetLong) preset = CkPresetLong;
         if(event == CkEventPresetNoSymbol) preset = CkPresetNoSymbol;
         ck_generate_password(preset, app->draft.password, sizeof(app->draft.password));
+        ck_make_password_unique(app, app->draft.password, sizeof(app->draft.password));
         ck_show_save_dialog(app);
     } else if(event == CkEventWidgetBack) {
         ck_show_main(app);

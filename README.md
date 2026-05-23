@@ -1,6 +1,6 @@
 # CK42X PassVault for Flipper Zero
 
-A CK42X-branded external Flipper Zero app (`.fap`) that stores small field credentials on the Flipper SD/app-data area and can type a selected password as USB HID after explicit confirmation.
+A CK42X-branded external Flipper Zero app (`.fap`) that stores, generates, and types passwords from the Flipper after explicit confirmation.
 
 Website: <https://ck42x.com>
 
@@ -59,9 +59,11 @@ If USB automation is unavailable, copy `dist/ck42x_passvault.fap` to the Flipper
 
 ## Security note
 
-This is a field utility, not a hardened password manager. The vault file is stored in app data on the Flipper SD storage as TSV/plaintext for reliability and simplicity. Do not store high-value master passwords or production secrets unless you accept that risk.
+Generated passwords use the Flipper RNG and the app checks generated passwords against saved entries before saving, so it will not intentionally create a duplicate generated password already in the vault.
 
-Recommended v1 hardening before broader trust claims:
+The vault file is stored in app data on the Flipper SD storage as TSV/plaintext for reliability and simplicity. That means anyone with access to the SD card or app data can read the saved passwords. Use it for passwords you are comfortable storing on the device in plaintext.
+
+Recommended hardening before broader trust claims:
 
 - master unlock / PIN gate
 - encrypted vault storage

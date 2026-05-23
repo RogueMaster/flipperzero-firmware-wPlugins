@@ -1,17 +1,13 @@
 # CK42X PassVault
 
-CK42X PassVault is a small Flipper Zero field utility for storing a short list of local account entries, generating readable passwords, and typing a selected password over USB HID only after confirmation.
+CK42X PassVault is a Flipper Zero app for storing, generating, and typing passwords from the device.
 
-## Features
+It lets you save a small list of account entries, generate passwords from readable presets, and type a selected password over USB HID after explicit confirmation on the Flipper.
 
-- Add account, username, and password entries on the Flipper
-- Generate passwords with memorable, strict, long, and no-symbol presets
-- Select a saved entry and review it on-device
-- Explicit confirmation before HID password typing
-- CK42X.com branding and crowned bee app icon
+Generated passwords use the Flipper RNG. Before saving a generated password, the app checks it against the passwords already saved in the vault and changes it if needed so the generated password is unique within the current vault.
 
 ## Security note
 
-This version stores entries as plaintext TSV in Flipper app data. Treat it as a field utility and prototype, not as a hardened password manager for high-value secrets. Master unlock and encrypted storage are planned hardening steps.
+v0.3 stores entries as plaintext TSV in Flipper app data. Anyone with access to the SD card or app data can read the saved passwords. Use it only for passwords you are comfortable storing on the device in plaintext.
 
-Website: https://ck42x.com
+Planned hardening includes a master unlock/PIN gate, encrypted vault storage, and edit/delete flows in the UI.
