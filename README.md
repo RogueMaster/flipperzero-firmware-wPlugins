@@ -1,8 +1,11 @@
 # flipperzero-cli-bridge
 Allows CLI control from GUI, giving untethered access to sub-ghz chat, system diagnostics, and more.
+
+**Note: This repository has not been maintained since late 2024 due to a combination of both personal laziness and a desire to move on to other projects. Due to the involved and low-level nature of the stupid hacks present in this app, maintaining it is highly nontrivial, although please feel free to try fixing it and rebuilding against new firmware if you want (contributions are still welcome). However, [RogueMaster firmware](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/cli_bridge) may still be maintaining a working version of this app, so check there if interested. Thank you all for your interest in this project, and my sincere apologies for the state in which it has ended up.**
+
 # Installation
 ## Easy way - get a .fap file from the releases page
-Swing by the [releases](https://github.com/ranchordo/flipperzero-cli-bridge/releases) page, and download a pre-built .fap file for the latest flipperzero firmware. Use [qFlipper](https://flipperzero.one/update) to copy the .fap file into SD Card/apps/Tools/. MAKE SURE TO UPGRADE FLIPPERZERO FIRMWARE TO NEWEST VERSION BEFORE INSTALLING.
+Swing by the [releases](https://github.com/ranchordo/flipperzero-cli-bridge/releases) page, and download a pre-built .fap file for the latest flipperzero firmware. Use [qFlipper](https://flipperzero.one/update) to copy the .fap file into SD Card/apps/Tools/.
 ## Hard way - building from source
 The following commands will (probably) not work on Windows. If you run Windows, use wsl or a linux vm or something.
 ```sh
