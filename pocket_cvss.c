@@ -74,7 +74,7 @@ static const PocketCvssExample pocket_cvss_examples[] = {
         .values = {0, 0, 0, 0, 0, 2, 2, 2},
     },
     {
-        .label = "10.0 RCE",
+        .label = "10 RCE",
         .values = {0, 0, 0, 0, 1, 2, 2, 2},
     },
     {
