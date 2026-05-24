@@ -2,7 +2,7 @@
 
 App(
     appid="ck42x_passvault",
-    name="CK42X PassVault",
+    name="_PassVault",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="ck42x_passvault_app",
     stack_size=8 * 1024,
