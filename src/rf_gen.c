@@ -330,7 +330,7 @@ void txstart(FlipperHamApp *app)
     app->pre_us = 0;
     app->pre_k = 0;
     app->wave_is_mark = true;
-    app->scrambler_state = -1;
+    app->scrambler_state = 0x17373;
 
     if (!app->pkt)
         return;
