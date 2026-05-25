@@ -5,7 +5,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.0.0] — 2024
 
-### Added
 - Read Abbott FreeStyle Libre 1/2/3 serial numbers via ISO 15693 NFC
 - Display decoded 9-character ASCII serial number and raw UID
 - Audio feedback: ascending two-note chime on successful Libre read,
