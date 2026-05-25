@@ -5,7 +5,7 @@
  * draw_callback 内只读 model + canvas 调用,无计算/分配/SPI(§17.1 反模式 14).
  *
  * 屏布局(128×64):
- *   y=0..10   Header FontPrimary "JAMMER" + FontSecondary status (baseline=10)
+ *   y=0..10   Header FontPrimary "SIGNAL GEN" + FontSecondary status (baseline=10)
  *   y=12      Divider 1
  *   y=14..22  Mode FontPrimary "CW"/"SWEEP" + power FontSecondary (baseline=22)
  *   y=24..32  Channel FontPrimary "Ch 042"/"0-125" + sweep cursor (baseline=32)
@@ -31,7 +31,7 @@
 #define WIFI_11_NRF      62 /* 2462 MHz */
 
 /* 垂直布局 — 所有 baseline 与 scanner_view 同范式(参考 views/scanner_view.c). */
-#define HDR_BASELINE 10 /* FontPrimary "JAMMER" 顶留 2 px 余量,防字顶剪 */
+#define HDR_BASELINE 10 /* FontPrimary "SIGNAL GEN" 顶留 2 px 余量,防字顶剪 */
 #define HDR_DIV_Y    12
 
 #define MODE_BASELINE 22 /* FontPrimary 大字模式 */
@@ -166,7 +166,7 @@ static const char* mode_freq_label(JammerMode m) {
     case JammerModeBleAdv:
         return "2402/26/80 MHz";
     case JammerModeReactiveBle:
-        return "Listen+jam";
+        return "Listen+TX";
     case JammerModeWifi1:
         return "2412 \xb1 OFDM";
     case JammerModeWifi6:
@@ -192,7 +192,7 @@ static void jammer_view_draw_callback(Canvas* canvas, void* _model) {
 
     /* === Header === */
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, HDR_BASELINE, "JAMMER");
+    canvas_draw_str(canvas, 0, HDR_BASELINE, "SIGNAL GEN");
 
     canvas_set_font(canvas, FontSecondary);
     const char* status = m->running ? "RUN" : "STOP";

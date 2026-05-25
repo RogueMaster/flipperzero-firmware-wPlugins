@@ -5,6 +5,71 @@ All notable changes to PINGEQUA RF Lab.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] — 2026-05-22
+
+### Changed
+- **Renamed the transmit feature from "Jammer" to "Signal Generator"**
+  on every user-facing surface — the main-menu item (`NRF24 Signal Gen`),
+  the transmit-view header (`SIGNAL GEN`), the app description, and the
+  exported-data surface. Functionality is unchanged.
+  - Session-log directory `…/pingequa/jammer` → `…/pingequa/siggen`;
+    filename prefix `jam_…` → `siggen_…`.
+  - CSV header `Jammer Session` → `Signal Generator Session`; field
+    `reactive_jams` → `reactive_events`.
+  - Settings file `jammer.conf` → `siggen.conf`.
+  - **One-time migration note:** older `jammer.conf` and `…/jammer/` logs
+    are not read by the new build; jammer mode/channel resets to the
+    default (CW Custom @ ch 42) once on first launch after updating.
+
+## [0.5.2] — 2026-05-15
+
+Minor release — readable export filenames + meaningful jammer log fields + new About screen with drive-traffic QR codes.
+
+### Added
+- **About screen** (main-menu → About). Three pages, Up/Down to navigate,
+  Back to return. Right-edge progress-bar indicator shows current page.
+  - **Page 1 — Brand + Shop QR**: title, version, hardware identifier,
+    slogan "Precision Gear for Hackers", and a scannable QR encoding
+    `HTTPS://PINGEQUA.COM` (offline-generated bit array, no QR library at
+    runtime). Scan with any modern phone to open the shop.
+  - **Page 2 — GitHub QR**: a separate QR encoding
+    `HTTPS://GITHUB.COM/PINGEQUALAB/RF-LAB` so you can land on the
+    source repo from a single scan.
+  - **Page 3 — Legal**: concise authorized-testing notice + MIT license.
+
+### Changed
+- **Scanner CSV filenames** now use wall-clock + peak channel:
+  `scan_<YYYY-MM-DD>_<HHMMSS>_ch<peak>.csv`. Sorting by name in qFlipper
+  = sorting by time; filename itself summarizes the export.
+  - Falls back to `scan_boot<tick>_ch<peak>.csv` when RTC is not set
+    (avoids 1970 garbage names).
+  - Same-second collisions get `_1.._99` suffix.
+- **Jammer session log filenames** now: `jam_<YYYY-MM-DD>_<HHMMSS>_<mode>_<dur>s.csv`.
+  Mode short-name and scene duration in seconds embedded in the filename.
+- **Jammer session log fields rebuilt** for actual analysis value
+  (was: 100% redundant `#` header section + `key,value` section duplicating
+  every field; useless `start_boot_ms` / `end_boot_ms` / `mode_index`;
+  misleading `cw_channel` written for non-CW modes).
+  - Single `key,value` CSV section, no duplication.
+  - New fields: `datetime`, `engine` (CW or Reactive), `target_freq_mhz`
+    (e.g. `2405/2410/2414/2419 (WiFi ch1 pilots)` derived from profile),
+    `scene_duration_s` (one decimal, explicitly named so it isn't mistaken
+    for TX-active time).
+  - Conditional output: `cw_channel` + `cw_freq_mhz` only for CW Custom;
+    `reactive_jams` only for BLE React.
+  - Removed: redundant header block, `mode_index`, `start/end_boot_ms`,
+    `duration_ms`, `chunks` (which reset per OK cycle, misleading).
+- **Scanner CSV header**: added `# Datetime` line; dropped `# Boot ms`
+  (boot-relative ms is meaningless once wall-clock is present).
+
+### Notes for users
+- This release is purely additive on top of v0.5.1 — every existing
+  feature is preserved (7-mode jammer, Scanner CSV export, settings
+  persistence, OFW/Momentum/Unleashed/RogueMaster compatibility).
+- If you parsed the old jammer log format programmatically, the column
+  names changed. The new schema is documented in
+  [`core/pq_jammer_log.h`](core/pq_jammer_log.h).
+
 ## [0.5.1] — 2026-05-06
 
 Patch release — broader firmware compatibility + UI polish.

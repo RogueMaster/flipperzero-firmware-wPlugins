@@ -1,8 +1,19 @@
 <div align="center">
 
-<a href="https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=banner">
-  <img src="images/hardware_devboard.jpg" alt="PINGEQUA 2-in-1 RF Devboard — nRF24L01+ + CC1101 with antennas" width="55%" />
-</a>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=banner">
+        <img src="images/hardware_devboard.jpg" alt="PINGEQUA 2-in-1 RF Devboard hardware" width="100%" />
+      </a>
+      <br><sub><b>The Hardware</b> · 2-in-1 NRF24 + CC1101</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="images/demo.gif" alt="PINGEQUA RF Lab live demo — main menu navigation on Flipper Zero" width="100%" />
+      <br><sub><b>Live Demo</b> · Scanner · Signal Gen · About</sub>
+    </td>
+  </tr>
+</table>
 
 # PINGEQUA RF Lab
 
@@ -13,7 +24,7 @@
 [![Platform](https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=flat-square)](https://flipperzero.one/)
 [![Release](https://img.shields.io/github/v/release/pingequalab/rf-lab?style=flat-square&color=success&label=release)](https://github.com/pingequalab/rf-lab/releases/latest)
 [![Firmware](https://img.shields.io/badge/firmware-OFW%20%7C%20Momentum%20%7C%20Unleashed%20%7C%20RogueMaster-blue?style=flat-square)](#firmware-compatibility)
-[![FAP size](https://img.shields.io/badge/FAP-40%20KB-success?style=flat-square)](dist/)
+[![FAP size](https://img.shields.io/badge/FAP-44%20KB-success?style=flat-square)](dist/)
 [![License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
 [![Hardware](https://img.shields.io/badge/hardware-PINGEQUA%202--in--1-000000?style=flat-square)](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=badge)
 
@@ -32,6 +43,8 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
   - CW Custom · BLE Adv · **BLE React** (RPD reactive — first on Flipper NRF24) · WiFi 1/6/11 (pilot-aware OFDM) · ALL 2.4G
   - Real-device verified to disconnect BLE devices and 2.4 GHz WiFi within room range
   - **Auto session log** + **mode/channel persistence** (v0.5.0+)
+- **Human-readable export filenames** (v0.5.2+) — `scan_<date>_<time>_ch<peak>.csv` / `jam_<date>_<time>_<mode>_<dur>s.csv`. Sorting by name = sorting by time.
+- **On-device About screen** (v0.5.2+) — three pages, Up/Down to navigate, with scannable QR codes for the shop and GitHub repo so visitors can land on the right page with their phone.
 - **Plug-and-play across firmware** — Momentum, Unleashed, RogueMaster, Xtreme, and Official Flipper firmware. No firmware-specific patching.
 - **Clean exit** — other Flipper apps (Sub-GHz Read, NFC, Bad-USB) keep working perfectly after you exit
 
@@ -53,7 +66,7 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 | WiFi pilot-aware OFDM jamming (Clancy 2011) | ✅ | ❌ |
 | CSV scan export for analysis | ✅ | ❌ |
 | Continuous active development | ✅ | ⚠️ Often abandoned |
-| Compact FAP size | ✅ 40 KB | varies |
+| Compact FAP size | ✅ ~44 KB | varies |
 | Open source MIT license | ✅ | varies |
 
 ---
@@ -62,17 +75,23 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 
 <table>
   <tr>
-    <td align="center" width="33%">
-      <img src="images/menu.png" alt="Main menu" width="240" /><br>
-      <sub><b>Main Menu</b><br>Channel Scanner / NRF24 Jammer</sub>
+    <td align="center" width="50%">
+      <img src="images/screen_menu.png" alt="PINGEQUA RF Lab main menu — Channel Scanner, NRF24 Signal Gen, About" width="300" /><br>
+      <sub><b>Main Menu</b><br>Scanner · Signal Gen · About</sub>
     </td>
-    <td align="center" width="33%">
-      <img src="images/ChannelScanner.png" alt="Channel Scanner UI" width="240" /><br>
+    <td align="center" width="50%">
+      <img src="images/photo_scanner.png" alt="Channel Scanner running — live 2.4 GHz RPD spectrum" width="300" /><br>
       <sub><b>Channel Scanner</b><br>126-ch live RPD spectrum, max-hold</sub>
     </td>
-    <td align="center" width="33%">
-      <img src="images/NRF24Jammer.png" alt="NRF24 Jammer BLE React mode" width="240" /><br>
-      <sub><b>NRF24 Jammer (BLE React)</b><br>RPD reactive on adv ch 37/38/39</sub>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="images/screen_siggen.png" alt="NRF24 Signal Gen — CW mode at +20 dBm on channel 42" width="300" /><br>
+      <sub><b>NRF24 Signal Gen</b><br>7 TX modes — CW shown</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="images/about.png" alt="About screen with scannable QR code to the shop" width="300" /><br>
+      <sub><b>About</b> (v0.5.2)<br>On-device QR to shop &amp; GitHub</sub>
     </td>
   </tr>
 </table>
@@ -111,7 +130,7 @@ ufbt launch
 
 ## Usage
 
-Launch from `Apps → GPIO → PINGEQUA RF Lab`. Main menu offers **Scanner** or **Jammer**.
+Launch from `Apps → GPIO → PINGEQUA RF Lab`. Main menu offers **Scanner**, **Jammer**, or **About** (v0.5.2+).
 
 ### Scanner
 - ← / → moves the cursor (long-press = ±5 channels)
@@ -139,12 +158,16 @@ Launch from `Apps → GPIO → PINGEQUA RF Lab`. Main menu offers **Scanner** or
 
 The app writes research-grade data to your Flipper SD card. Open with qFlipper, Excel, Numbers, or `pandas.read_csv` (skip `#` comment lines):
 
+**Filenames embed RTC wall-clock + summary** (v0.5.2+) so sorting by name in qFlipper = sorting by time, and the filename itself tells you what's inside without opening it:
+
 ```
 /ext/apps_data/pingequa/
-├── jammer.conf                      ← Last jammer mode + channel (auto-restored)
-├── scans/scan_<boot_ms>.csv         ← Long-press OK in Scanner exports here
-└── jammer/session_<start_ms>.csv    ← Each Jammer session auto-logs here
+├── jammer.conf                                        ← Last jammer mode + channel (auto-restored)
+├── scans/scan_<YYYY-MM-DD>_<HHMMSS>_ch<peak>.csv      ← e.g. scan_2026-05-15_143022_ch42.csv
+└── jammer/jam_<YYYY-MM-DD>_<HHMMSS>_<mode>_<dur>s.csv ← e.g. jam_2026-05-15_143530_BLEreact_19s.csv
 ```
+
+When the RTC isn't set, filenames fall back to a boot-tick form (`scan_boot<tick>_ch<peak>.csv`) so you never see `1970-01-01` garbage names.
 
 <table>
   <tr>
@@ -159,8 +182,8 @@ The app writes research-grade data to your Flipper SD card. Open with qFlipper, 
   </tr>
 </table>
 
-**Scanner CSV** contains all 126 channel hits, peak channel, dwell, sweep count.
-**Jammer session CSV** contains mode, duration, total chunks, and (for BLE React) reactive jam count.
+**Scanner CSV** contains all 126 channel hits, peak channel, dwell, sweep count, and wall-clock datetime.
+**Jammer session CSV** (v0.5.2+ schema) carries `datetime`, `mode`, `engine`, derived `target_freq_mhz`, and `scene_duration_s` — with conditional `cw_channel` / `reactive_jams` only when the mode actually produces those values. No more redundant or misleading fields.
 
 Detailed walkthroughs: [docs/QUICKSTART.md](docs/QUICKSTART.md), [docs/UI_GUIDE.md](docs/UI_GUIDE.md), [docs/USE_CASES.md](docs/USE_CASES.md).
 
@@ -224,11 +247,13 @@ Other NRF24 boards may partially work but are unsupported. See [docs/HARDWARE.md
 | v0.2.0 | ✅ | Channel scanner, max-hold, WiFi/BLE markers |
 | v0.3.0 | ✅ | NRF24 jammer (CW + Sweep), main menu |
 | v0.4.0 | ✅ | RPD reactive BLE jam, WiFi pilot-aware OFDM, 7 jammer modes |
-| **v0.5.0** | ✅ | **CSV scan export, jammer session log, settings persistence** |
-| v0.6.x | 🔜 next | BLE protocol-aware (decode access address before jamming) |
-| v0.7.x | planned | Multi-waveform mixing, About scene, jam intensity UI |
-| v1.0.0 | planned | Polished release, multi-language UI (zh / en) |
-| v1.5.0 | planned | Companion mobile viewer over Bluetooth |
+| v0.5.0 | ✅ | CSV scan export, jammer session log, settings persistence |
+| v0.5.1 | ✅ | OFW compatibility — single-handle SPI arbiter, all firmwares |
+| v0.5.2 | ✅ | Readable export filenames, jammer log redesign, About screen + QR codes |
+| **v0.5.3** | ✅ | **In-app rename: transmit feature now displays as "Signal Generator" (neutral, instrument-grade naming)** |
+| v0.6.x | 🔜 next | **Shaped by community feedback** — candidates: cross-chip dual-band sweep (nRF24 2.4 GHz + CC1101 Sub-GHz in one view), spectrum CSV export, custom scan presets. [Tell us what you want](../../issues/new?template=feature.yml) |
+| v1.0.0 | planned | Polished release, full documentation set, Catalog submission |
+| v1.5.0 | concept | Companion mobile viewer over Bluetooth |
 | v2.0.0 | concept | Unified UI bridging NRF24 + CC1101 |
 
 [Vote on the roadmap](../../issues) · [Request a feature](../../issues/new?template=feature.yml)

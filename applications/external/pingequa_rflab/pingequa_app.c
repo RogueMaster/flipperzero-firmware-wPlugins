@@ -22,11 +22,13 @@
 #include "core/pq_chip_arbiter.h"
 #include "core/pq_config.h"
 #include "core/pq_scene_lifecycle.h"
+#include "scenes/about_scene.h"
 #include "scenes/error_scene.h"
 #include "scenes/jammer_scene.h"
 #include "scenes/main_menu_scene.h"
 #include "scenes/scanner_scene.h"
 #include "scenes/splash_scene.h"
+#include "views/about_view.h"
 #include "views/jammer_view.h"
 #include "views/scanner_view.h"
 #include "views/splash_view.h"
@@ -48,6 +50,7 @@ static void (*const pq_scene_on_enter_handlers[PqSceneCount])(void*) = {
     [PqSceneMainMenu] = main_menu_scene_on_enter,
     [PqSceneScanner] = scanner_scene_on_enter,
     [PqSceneJammer] = jammer_scene_on_enter,
+    [PqSceneAbout] = about_scene_on_enter,
     [PqSceneError] = error_scene_on_enter,
 };
 
@@ -56,6 +59,7 @@ static bool (*const pq_scene_on_event_handlers[PqSceneCount])(void*, SceneManage
     [PqSceneMainMenu] = main_menu_scene_on_event,
     [PqSceneScanner] = scanner_scene_on_event,
     [PqSceneJammer] = jammer_scene_on_event,
+    [PqSceneAbout] = about_scene_on_event,
     [PqSceneError] = error_scene_on_event,
 };
 
@@ -64,6 +68,7 @@ static void (*const pq_scene_on_exit_handlers[PqSceneCount])(void*) = {
     [PqSceneMainMenu] = main_menu_scene_on_exit,
     [PqSceneScanner] = scanner_scene_on_exit,
     [PqSceneJammer] = jammer_scene_on_exit,
+    [PqSceneAbout] = about_scene_on_exit,
     [PqSceneError] = error_scene_on_exit,
 };
 
@@ -144,6 +149,10 @@ static PqApp* pq_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, PqViewJammer, jammer_view_get_view(app->jammer_view));
 
+    app->about_view = about_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, PqViewAbout, about_view_get_view(app->about_view));
+
     app->error_dialog = dialog_ex_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, PqViewError, dialog_ex_get_view(app->error_dialog));
@@ -201,6 +210,10 @@ static void pq_app_free(PqApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, PqViewJammer);
     jammer_view_free(app->jammer_view);
     app->jammer_view = NULL;
+
+    view_dispatcher_remove_view(app->view_dispatcher, PqViewAbout);
+    about_view_free(app->about_view);
+    app->about_view = NULL;
 
     view_dispatcher_remove_view(app->view_dispatcher, PqViewError);
     dialog_ex_free(app->error_dialog);

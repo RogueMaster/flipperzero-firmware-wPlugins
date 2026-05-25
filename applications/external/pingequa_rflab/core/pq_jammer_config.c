@@ -14,7 +14,7 @@
 
 #define TAG "PqJammerCfg"
 
-#define PQ_JAMMER_FILETYPE "PINGEQUA Jammer State"
+#define PQ_JAMMER_FILETYPE "PINGEQUA Signal Gen State"
 #define KEY_MODE           "Mode"
 #define KEY_CW_CHANNEL     "CW Channel"
 
