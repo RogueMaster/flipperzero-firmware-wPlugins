@@ -12,7 +12,6 @@ void nfc_tools_scene_write_contact_mail_on_enter(void* context) {
     EmailInput* ei = app->email_input;
 
     email_input_set_header_text(ei, NTS_INPUT_EMAIL);
-    app->ndef_buf5[0] = '\0';
 
     email_input_set_result_callback(
         ei,

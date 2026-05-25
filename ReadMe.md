@@ -58,6 +58,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
 - Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
 - Updated: [PINGEQUA RF Lab v0.5.3 (By pingequalab)](https://github.com/pingequalab/rf-lab)
+- Updated: [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 
 <a name="release"></a>
 
@@ -739,7 +740,7 @@ $ ./fbt dolphin_ext
 - [NFC Relay v0.2 (By leommxj)](https://github.com/leommxj/nfc_relay)
 - [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
 - [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
-- [NFC Tools v1.0 (By wakdev)](https://github.com/wakdev/nfctools-fz)
+- [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - [NFC URL v1.0 (By y-dejong)](https://github.com/y-dejong/nfcurl)
 - [Nickname Generator v0.1 (By disaxq)](https://github.com/disaxq/Nickname-Generator)
 - [Nightstand Clock v1.2 (By nymda)](https://github.com/nymda/FlipperNightStand)

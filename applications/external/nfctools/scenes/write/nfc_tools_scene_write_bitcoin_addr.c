@@ -9,7 +9,6 @@ void nfc_tools_scene_write_bitcoin_addr_on_enter(void* context) {
     NfcToolsApp* app = context;
     SpecialInput* input = app->special_input;
     special_input_set_header_text(input, NTS_INPUT_BTC_ADDRESS);
-    app->ndef_buf1[0] = '\0';
     special_input_set_result_callback(
         input,
         nfc_tools_scene_write_bitcoin_addr_callback,

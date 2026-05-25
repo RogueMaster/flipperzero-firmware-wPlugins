@@ -13,6 +13,7 @@ App(
         "scenes/other/*.c",
         "scenes/read/*.c",
         "helpers/qrcode/*.c",
+        "views/keyboard/*.c",
         "views/email_input/*.c",
         "views/mime_input/*.c",
         "views/special_input/*.c",
@@ -21,6 +22,6 @@ App(
     fap_category="NFC",
     fap_author="wakdev",
     fap_weburl="https://github.com/wakdev/nfctools-fz",
-    fap_version="1.0",
+    fap_version="1.2",
     fap_description="NFC Tools can read and write your NFC tags.",
 )

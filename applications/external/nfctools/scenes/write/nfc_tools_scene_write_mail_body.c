@@ -13,7 +13,6 @@ void nfc_tools_scene_write_mail_body_on_enter(void* context) {
     TextInput* ti = app->text_input;
 
     text_input_set_header_text(ti, NTS_INPUT_MESSAGE_OPT);
-    app->ndef_buf3[0] = '\0';
 
     text_input_set_result_callback(
         ti,

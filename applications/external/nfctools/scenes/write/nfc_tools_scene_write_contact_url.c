@@ -12,7 +12,6 @@ void nfc_tools_scene_write_contact_url_on_enter(void* context) {
     MimeInput* mi = app->mime_input;
 
     mime_input_set_header_text(mi, NTS_INPUT_WEBSITE);
-    strlcpy(app->ndef_buf6, "https://", sizeof(app->ndef_buf6));
 
     mime_input_set_result_callback(
         mi,

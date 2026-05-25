@@ -9,7 +9,6 @@ void nfc_tools_scene_write_unit_link_on_enter(void* context) {
     NfcToolsApp* app = context;
     SpecialInput* input = app->special_input;
     special_input_set_header_text(input, NTS_INPUT_UNIT_LINK_ALIAS);
-    app->ndef_buf1[0] = '\0';
     special_input_set_result_callback(
         input,
         nfc_tools_scene_write_unit_link_callback,
