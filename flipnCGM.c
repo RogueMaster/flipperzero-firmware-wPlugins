@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2024 Daren Darrow
+// https://github.com/darendarrow/flipnCGM
+
 #include <furi.h>
 #include <furi_hal_rtc.h>
 #include <gui/gui.h>
