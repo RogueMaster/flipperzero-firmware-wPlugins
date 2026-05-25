@@ -22,7 +22,7 @@ App(
     # v0.5.0  — Scanner OK hits CSV / Jammer
     #         session / Settings jammer.
     # v0.5.2 RTC(scan_<date>_<time>_chNN /
-    #         jam_<date>_<time>_<mode>_<dur>s)+ Jammer log 
+    #         jam_<date>_<time>_<mode>_<dur>s)+ Jammer log
     #         About+QR / GitHub+QR / Legal).
     # v0.5.3 rebrand Jammer → Signal Generator;
     #         jammer→siggen,jammer.conf→siggen.conf.

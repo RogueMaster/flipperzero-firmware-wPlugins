@@ -18,28 +18,6 @@ App(
 )
 
 App(
-    appid="proto_pirate_emu",
-    name="ProtoPirate Emulate",
-    apptype=FlipperAppType.EXTERNAL,
-    targets=["f7"],
-    entry_point="protopirate_app",
-    fap_icon_assets_symbol="proto_pirate",
-    stack_size=2 * 1024,
-    cdefines=[
-        "ENABLE_EMULATE_FEATURE",
-    ],
-    fap_icon="images/protopirate_10px.png",
-    fap_icon_assets="images",
-    fap_file_assets="keystore",
-    fap_category="Sub-GHz",
-    fap_author="RocketGod-git",
-    fap_weburl="https://github.com/RocketGod-git/ProtoPirate",
-    #  fap_weburl="https://protopirate.net/ProtoPirate/ProtoPirate",
-    fap_version="3.0",
-    fap_description="Decode car key fob signals from Sub-GHz",
-)
-
-App(
     appid="proto_pirate_timing",
     name="ProtoPirate Timing Tuner",
     apptype=FlipperAppType.EXTERNAL,
