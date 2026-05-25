@@ -63,6 +63,9 @@ struct SubGhzProtocolDecoderChrysler_V0 {
 
     uint8_t check_ok;
     uint32_t sn_b;
+
+    uint16_t data_2;
+    uint8_t seed;
 };
 
 struct SubGhzProtocolEncoderChrysler_V0 {
@@ -75,6 +78,9 @@ struct SubGhzProtocolEncoderChrysler_V0 {
 
     uint8_t plain_a[9];
     uint8_t plain_b[9];
+
+    uint16_t data_2;
+    uint8_t seed;
 };
 
 static uint8_t chrysler_v0_reverse6(uint32_t value) {
@@ -133,10 +139,10 @@ static void chrysler_v0_decode_packet(SubGhzProtocolDecoderChrysler_V0* instance
     uint8_t key[8];
     uint8_t encoded[9];
     uint8_t decoded[9];
-    const uint16_t key2 = (uint16_t)instance->generic.data_2;
+    const uint16_t key2 = instance->data_2;
 
     pp_u64_to_bytes_be(instance->generic.data, key);
-    instance->generic.seed = chrysler_v0_reverse6(key[0] >> 2U);
+    instance->seed = chrysler_v0_reverse6(key[0] >> 2U);
 
     const uint8_t b1_xor_b6 = key[6] ^ key[1];
     const bool msb_set = (key[0] & 0x80U) != 0U;
@@ -178,10 +184,9 @@ static void chrysler_v0_decode_packet(SubGhzProtocolDecoderChrysler_V0* instance
     encoded[6] = key[7];
     encoded[7] = (uint8_t)(key2 >> 8U);
     encoded[8] = (uint8_t)(key2 & 0xFFU);
-    chrysler_v0_transform_block(
-        encoded, decoded, instance->generic.seed, instance->decoded_button);
+    chrysler_v0_transform_block(encoded, decoded, instance->seed, instance->decoded_button);
 
-    if(instance->generic.seed & 1U) {
+    if(instance->seed & 1U) {
         memcpy(instance->plain_b, decoded, sizeof(instance->plain_b));
         instance->plain_b_present = 1U;
 
@@ -192,9 +197,9 @@ static void chrysler_v0_decode_packet(SubGhzProtocolDecoderChrysler_V0* instance
         memcpy(instance->plain_a, decoded, sizeof(instance->plain_a));
         instance->plain_a_present = 1U;
 
-        instance->generic.cnt = (((uint32_t)(key[2] ^ key[1])) << 24U) |
-                                (((uint32_t)(key[3] ^ key[1])) << 16U) |
-                                (((uint32_t)(key[1] ^ key[4])) << 8U) | (key[0] & 0x0FU);
+        instance->generic.cnt = ((uint32_t)decoded[0] << 24U) |
+                                ((uint32_t)decoded[1] << 16U) |
+                                ((uint32_t)decoded[2] << 8U) | (uint32_t)decoded[3];
     }
 
     instance->generic.btn = instance->decoded_button;
@@ -368,14 +373,13 @@ SubGhzProtocolStatus
     }
 
     key2 = __builtin_bswap16(key2);
-    instance->generic.data_2 = key2;
+    instance->data_2 = key2;
 
     uint8_t key[8];
     pp_u64_to_bytes_be(instance->generic.data, key);
     const uint8_t b0 = key[0];
 
-    instance->generic.seed =
-        chrysler_v0_reverse6(((uint32_t)(instance->generic.data >> 56U)) >> 2U);
+    instance->seed = chrysler_v0_reverse6(((uint32_t)(instance->generic.data >> 56U)) >> 2U);
     instance->plain_header = (uint8_t)((instance->generic.data >> 56U) & 0x03U);
 
     if((b0 & 0x80U) == 0U) {
@@ -397,7 +401,7 @@ SubGhzProtocolStatus
     encoded[6] = key[7];
     encoded[7] = (uint8_t)(key2 >> 8U);
     encoded[8] = (uint8_t)(key2 & 0xFFU);
-    chrysler_v0_transform_block(encoded, generated, instance->generic.seed, instance->tx_button);
+    chrysler_v0_transform_block(encoded, generated, instance->seed, instance->tx_button);
 
     if(flipper_format_rewind(flipper_format) &&
        flipper_format_read_hex(flipper_format, "Plain_A", instance->plain_a, 9)) {
@@ -415,7 +419,7 @@ SubGhzProtocolStatus
     }
 
     uint32_t btn_u32 = 0;
-    uint32_t cnt_u32 = instance->generic.seed & 0x3FU;
+    uint32_t cnt_u32 = instance->seed & 0x3FU;
     pp_encoder_read_fields(flipper_format, NULL, &btn_u32, &cnt_u32, NULL);
 
     uint8_t tx_button = original_button;
@@ -433,8 +437,11 @@ SubGhzProtocolStatus
 
     uint32_t counter = cnt_u32 & 0x3FU;
 
-    const uint8_t counter_a = (uint8_t)(counter & 0x3FU);
-    instance->generic.seed = counter_a;
+    uint8_t counter_a = (uint8_t)(counter & 0x3FU);
+    if(counter_a & 1U) {
+        counter_a = (uint8_t)((counter_a - 1U) & 0x3FU);
+    }
+    instance->seed = counter_a;
     const uint8_t counter_b = (counter_a == 0U) ? 0x3FU : (uint8_t)(counter_a - 1U);
 
     uint8_t payload_a[10];
@@ -448,7 +455,7 @@ SubGhzProtocolStatus
     chrysler_v0_build_upload(instance, payload_a, payload_b);
 
     instance->generic.data = pp_bytes_to_u64_be(payload_a);
-    instance->generic.data_2 = ((uint16_t)payload_a[8] << 8U) | payload_a[9];
+    instance->data_2 = ((uint16_t)payload_a[8] << 8U) | payload_a[9];
 
     if(!flipper_format_rewind(flipper_format)) {
         return SubGhzProtocolStatusError;
@@ -461,7 +468,7 @@ SubGhzProtocolStatus
         return SubGhzProtocolStatusError;
     }
 
-    uint16_t key2_out = __builtin_bswap16((uint16_t)instance->generic.data_2);
+    uint16_t key2_out = __builtin_bswap16(instance->data_2);
     if(!flipper_format_update_hex(flipper_format, "Key_2", (uint8_t*)&key2_out, 2)) {
         return SubGhzProtocolStatusError;
     }
@@ -491,7 +498,8 @@ void subghz_protocol_decoder_chrysler_v0_reset(void* context) {
 
     SubGhzProtocolDecoderChrysler_V0* instance = context;
     instance->decoder.decode_data = 0;
-    instance->generic.data_2 = 0;
+    instance->data_2 = 0;
+    instance->seed = 0;
     instance->decoder.parser_step = Chrysler_V0DecoderStepReset;
     instance->decoder.decode_count_bit = 0;
     instance->packet_bit_count = 0;
@@ -525,7 +533,7 @@ void subghz_protocol_decoder_chrysler_v0_feed(void* context, bool level, uint32_
             if(chrysler_v0_is_short(instance->te_last)) {
                 instance->packet_bit_count++;
             } else if(instance->packet_bit_count > 0x0F) {
-                instance->generic.data_2 = 0;
+                instance->data_2 = 0;
                 instance->decoder.parser_step = Chrysler_V0DecoderStepData;
                 instance->decoder.decode_data = 1;
                 instance->decoder.decode_count_bit = 1;
@@ -538,7 +546,7 @@ void subghz_protocol_decoder_chrysler_v0_feed(void* context, bool level, uint32_
 
         if((duration > CHRYSLER_V0_TE_GAP) && (instance->packet_bit_count > 0x0F)) {
             instance->decoder.decode_data = 0;
-            instance->generic.data_2 = 0;
+            instance->data_2 = 0;
             instance->decoder.decode_count_bit = 0;
             instance->decoder.parser_step = Chrysler_V0DecoderStepData;
             break;
@@ -601,7 +609,7 @@ void subghz_protocol_decoder_chrysler_v0_feed(void* context, bool level, uint32_
             break;
         }
 
-        instance->generic.data_2 = (instance->generic.data_2 << 1U) | bit;
+        instance->data_2 = (uint16_t)((instance->data_2 << 1U) | bit);
         instance->decoder.decode_count_bit = new_count;
         if(new_count != CHRYSLER_V0_DECODE_BIT_COUNT) {
             break;
@@ -610,7 +618,7 @@ void subghz_protocol_decoder_chrysler_v0_feed(void* context, bool level, uint32_
         instance->generic.data = instance->decoder.decode_data;
         chrysler_v0_decoder_commit(instance);
         instance->decoder.decode_data = 0;
-        instance->generic.data_2 = 0;
+        instance->data_2 = 0;
         instance->decoder.decode_count_bit = 0;
         instance->decoder.parser_step = Chrysler_V0DecoderStepReset;
         instance->packet_bit_count = 0;
@@ -640,7 +648,7 @@ SubGhzProtocolStatus subghz_protocol_decoder_chrysler_v0_serialize(
         return SubGhzProtocolStatusErrorParserOthers;
     }
 
-    const uint16_t key2 = __builtin_bswap16((uint16_t)instance->generic.data_2);
+    const uint16_t key2 = __builtin_bswap16(instance->data_2);
     if(!flipper_format_write_hex(flipper_format, "Key_2", (const uint8_t*)&key2, 2)) {
         return SubGhzProtocolStatusErrorParserOthers;
     }
@@ -668,7 +676,7 @@ SubGhzProtocolStatus subghz_protocol_decoder_chrysler_v0_serialize(
                                                               instance->generic.cnt;
     pp_flipper_update_or_insert_u32(flipper_format, FF_SERIAL, serial_value);
     pp_flipper_update_or_insert_u32(flipper_format, FF_BTN, instance->decoded_button);
-    pp_flipper_update_or_insert_u32(flipper_format, FF_CNT, instance->generic.seed);
+    pp_flipper_update_or_insert_u32(flipper_format, FF_CNT, instance->seed);
 
     return status;
 }
@@ -694,7 +702,7 @@ SubGhzProtocolStatus
     }
 
     key2 = __builtin_bswap16(key2);
-    instance->generic.data_2 = key2;
+    instance->data_2 = key2;
     instance->packet_bit_count = CHRYSLER_V0_DECODE_BIT_COUNT;
     instance->decoder.decode_count_bit = CHRYSLER_V0_DECODE_BIT_COUNT;
     instance->generic.data_count_bit = CHRYSLER_V0_DECODE_BIT_COUNT;
@@ -727,12 +735,6 @@ void subghz_protocol_decoder_chrysler_v0_get_string(void* context, FuriString* o
     furi_check(context);
 
     SubGhzProtocolDecoderChrysler_V0* instance = context;
-    subghz_block_generic_global.current_cnt = instance->generic.seed;
-    subghz_block_generic_global.cnt_is_available = true;
-    subghz_block_generic_global.cnt_length_bit = 8;
-    subghz_block_generic_global.current_btn = instance->decoded_button;
-    subghz_block_generic_global.btn_is_available = true;
-    subghz_block_generic_global.btn_length_bit = 1;
 
     furi_string_cat_printf(
         output,
@@ -740,7 +742,7 @@ void subghz_protocol_decoder_chrysler_v0_get_string(void* context, FuriString* o
         instance->generic.protocol_name,
         instance->packet_bit_count,
         instance->generic.data,
-        (uint16_t)instance->generic.data_2);
+        instance->data_2);
 
     if(instance->plain_a_present) {
         if(instance->plain_b_present) {
@@ -758,9 +760,9 @@ void subghz_protocol_decoder_chrysler_v0_get_string(void* context, FuriString* o
 
     furi_string_cat_printf(
         output,
-        "Btn:%02X [%s] Cnt:%02lX\r\nChk:%s",
+        "Btn:%02X [%s] Cnt:%02X\r\nChk:%s",
         instance->decoded_button,
         chrysler_v0_get_button_name(instance->decoded_button),
-        instance->generic.seed,
+        instance->seed,
         instance->check_ok ? "OK" : "ERR");
 }

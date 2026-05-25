@@ -28,9 +28,12 @@
 #include <dialogs/dialogs.h>
 #include "defines.h"
 #include "protocols/protocols_common.h"
-#include "protocols/psa.h"
 #include "protocols/protocol_items.h"
 #include "protocols/protopirate_protocol_plugins.h"
+#ifdef ENABLE_EMULATE_FEATURE
+#include "scenes/plugins/protopirate_emulate_plugin.h"
+#endif
+#include "scenes/plugins/protopirate_psa_bf_plugin.h"
 
 #define PROTOPIRATE_KEYSTORE_DIR_NAME APP_ASSETS_PATH("encrypted")
 
@@ -78,13 +81,24 @@ struct ProtoPirateApp {
     ProtoPirateSettings settings;
     uint32_t start_tx_time;
     uint8_t tx_power;
-    PsaBfState* psa_bf_state;
-    FuriThread* psa_bf_thread;
     char save_filename[64];
     FuriString* save_protocol;
     uint16_t save_history_idx;
     bool save_from_saved_info;
     bool emulate_disabled_for_loaded;
+    bool emulate_feature_enabled;
+#ifdef ENABLE_EMULATE_FEATURE
+#define EMULATE_NAV_NONE     0U
+#define EMULATE_NAV_POP      1U
+#define EMULATE_NAV_STOP_APP 2U
+    CompositeApiResolver* emulate_plugin_resolver;
+    PluginManager* emulate_plugin_manager;
+    const ProtoPirateEmulatePlugin* emulate_plugin;
+    uint8_t emulate_nav_pending;
+#endif
+    CompositeApiResolver* psa_bf_plugin_resolver;
+    PluginManager* psa_bf_plugin_manager;
+    const ProtoPiratePsaBfPlugin* psa_bf_plugin;
 };
 
 #ifdef ENABLE_EMULATE_FEATURE

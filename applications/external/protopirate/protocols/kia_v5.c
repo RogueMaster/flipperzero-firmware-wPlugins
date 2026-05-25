@@ -13,9 +13,9 @@ static const SubGhzBlockConst kia_protocol_v5_const = {
 };
 
 static void build_keystore_from_mfkey(uint8_t* result) {
-    uint64_t ky = get_kia_v5_key();
+    uint64_t mfkey = get_kia_v5_key();
     for(int i = 0; i < 8; i++) {
-        result[i] = (ky >> ((7 - i) * 8)) & 0xFF;
+        result[i] = (uint8_t)((mfkey >> ((7 - i) * 8)) & 0xFFU);
     }
 }
 
@@ -78,6 +78,71 @@ static uint16_t mixer_decode(uint32_t encrypted) {
     }
     return (s0 + (s1 << 8)) & 0xFFFF;
 }
+
+#ifdef ENABLE_EMULATE_FEATURE
+static uint32_t mixer_encode(uint32_t serial, uint16_t counter, uint8_t button) {
+    build_keystore_from_mfkey(keystore_bytes);
+
+    uint8_t state_a = (uint8_t)(((serial >> 8) & 0x0FU) | ((button & 0x0FU) << 4));
+    uint8_t state_b = (uint8_t)((counter >> 8) & 0xFFU);
+    uint8_t state_c = (uint8_t)(serial & 0xFFU);
+    uint8_t state_d = (uint8_t)(counter & 0xFFU);
+
+    int ks_idx = 0;
+    for(int round_i = 0; round_i < 18; round_i++) {
+        uint8_t r = keystore_bytes[ks_idx] & 0xFFU;
+        ks_idx = (ks_idx + 1) & 0x07;
+
+        uint8_t running_d = state_d;
+        for(int step = 0; step < 8; step++) {
+            uint8_t base;
+            if((state_a & 0x80U) == 0) {
+                base = (state_a & 0x04U) == 0 ? 0x74U : 0x2EU;
+            } else {
+                base = (state_a & 0x04U) == 0 ? 0x3AU : 0x5CU;
+            }
+
+            if(state_c & 0x10U) {
+                base = (uint8_t)(((base >> 4) & 0x0FU) | ((base & 0x0FU) << 4));
+            }
+            if(state_b & 0x02U) {
+                base = (uint8_t)((base & 0x3FU) << 2);
+            }
+
+            uint8_t base_final = base;
+            if(running_d & 0x02U) {
+                base_final = (uint8_t)((base & 0x7FU) << 1);
+            }
+
+            const bool carry_b = (state_b & 0x01U) != 0;
+            const bool carry_c = (state_c & 0x01U) != 0;
+            const bool carry_a = (state_a & 0x01U) != 0;
+
+            uint8_t new_d = (uint8_t)(running_d >> 1);
+            if(carry_b) new_d |= 0x80U;
+
+            running_d ^= state_c;
+
+            state_b = (uint8_t)(state_b >> 1);
+            if(carry_c) state_b |= 0x80U;
+
+            state_c = (uint8_t)(state_c >> 1);
+            if(carry_a) state_c |= 0x80U;
+
+            const uint8_t feedback = (uint8_t)(((running_d ^ r) << 7) ^ base_final);
+            state_a = (uint8_t)(state_a >> 1);
+            if(feedback & 0x80U) state_a |= 0x80U;
+
+            r = (uint8_t)(r >> 1);
+            running_d = new_d;
+        }
+        state_d = running_d;
+    }
+
+    return ((uint32_t)state_a << 24) | ((uint32_t)state_c << 16) | ((uint32_t)state_b << 8) |
+           (uint32_t)state_d;
+}
+#endif
 
 struct SubGhzProtocolDecoderKiaV5 {
     SubGhzProtocolDecoderBase base;
@@ -177,9 +242,12 @@ static uint8_t kia_v5_calculate_crc(uint64_t data) {
 }
 
 void* kia_protocol_encoder_v5_alloc(SubGhzEnvironment* environment) {
-    UNUSED(environment);
     SubGhzProtocolEncoderKiaV5* instance = calloc(1, sizeof(SubGhzProtocolEncoderKiaV5));
     furi_check(instance);
+
+    if(environment) {
+        protopirate_keys_load(environment);
+    }
 
     instance->base.protocol = &kia_protocol_v5;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -261,15 +329,54 @@ SubGhzProtocolStatus
         return SubGhzProtocolStatusErrorValueBitCount;
     }
 
-    instance->replay_data = instance->generic.data;
+    uint32_t serial_v = UINT32_MAX;
+    uint32_t btn_v = UINT32_MAX;
+    uint32_t cnt_v = UINT32_MAX;
+    pp_encoder_read_fields(flipper_format, &serial_v, &btn_v, &cnt_v, NULL);
 
-    uint32_t crc_temp = 0;
-    flipper_format_rewind(flipper_format);
-    if(flipper_format_read_uint32(flipper_format, "CRC", &crc_temp, 1)) {
-        instance->replay_crc = (uint8_t)(crc_temp & 0x07U);
-    } else {
-        instance->replay_crc = kia_v5_calculate_crc(instance->replay_data);
+    uint64_t yek_captured = 0;
+    for(int i = 0; i < 8; i++) {
+        const uint8_t b = (uint8_t)((instance->generic.data >> (i * 8)) & 0xFFU);
+        yek_captured |= ((uint64_t)pp_reverse_bits8(b) << ((7 - i) * 8));
     }
+    if(serial_v == UINT32_MAX) {
+        serial_v = (uint32_t)((yek_captured >> 32) & 0x0FFFFFFFU);
+    }
+    if(btn_v == UINT32_MAX) {
+        btn_v = (uint32_t)((yek_captured >> 60) & 0x0FU);
+    }
+    if(cnt_v == UINT32_MAX) {
+        cnt_v = mixer_decode((uint32_t)(yek_captured & 0xFFFFFFFFU));
+    }
+
+    serial_v &= 0x0FFFFFFFU;
+    btn_v &= 0x0FU;
+    cnt_v &= 0xFFFFU;
+
+    const uint32_t mixer = mixer_encode(serial_v, (uint16_t)cnt_v, (uint8_t)btn_v);
+    const uint64_t yek_new =
+        ((uint64_t)btn_v << 60) | ((uint64_t)serial_v << 32) | (uint64_t)mixer;
+
+    uint64_t data_new = 0;
+    for(int i = 0; i < 8; i++) {
+        const uint8_t b = (uint8_t)((yek_new >> (i * 8)) & 0xFFU);
+        data_new |= ((uint64_t)pp_reverse_bits8(b) << ((7 - i) * 8));
+    }
+
+    instance->replay_data = data_new;
+    instance->generic.data = data_new;
+    instance->generic.serial = serial_v;
+    instance->generic.btn = (uint8_t)btn_v;
+    instance->generic.cnt = (uint16_t)cnt_v;
+    instance->replay_crc = kia_v5_calculate_crc(instance->replay_data);
+
+    FURI_LOG_I(
+        TAG,
+        "V5 enc reencrypt: sn=%07lX btn=%X cnt=%04lX mixer=%08lX",
+        (unsigned long)serial_v,
+        (unsigned)btn_v,
+        (unsigned long)cnt_v,
+        (unsigned long)mixer);
 
     instance->encoder.repeat = (int32_t)pp_encoder_read_repeat(flipper_format, 6);
 
@@ -320,8 +427,13 @@ static void kia_v5_add_bit(SubGhzProtocolDecoderKiaV5* instance, bool bit) {
 }
 
 void* kia_protocol_decoder_v5_alloc(SubGhzEnvironment* environment) {
-    UNUSED(environment);
     SubGhzProtocolDecoderKiaV5* instance = malloc(sizeof(SubGhzProtocolDecoderKiaV5));
+    furi_check(instance);
+    
+    if(environment) {
+        protopirate_keys_load(environment);
+    }
+
     instance->base.protocol = &kia_protocol_v5;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;

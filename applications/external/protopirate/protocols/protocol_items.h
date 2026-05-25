@@ -15,6 +15,7 @@
 #include "ford_v0.h"
 #include "ford_v1.h"
 #include "ford_v2.h"
+#include "ford_v3.h"
 #include "chrysler_v0.h"
 #include "fiat_v0.h"
 #include "fiat_v1.h"

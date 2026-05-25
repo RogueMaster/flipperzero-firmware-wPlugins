@@ -459,9 +459,14 @@ static bool kia_v6_decrypt(SubGhzProtocolDecoderKiaV6* instance) {
 }
 
 void* kia_protocol_decoder_v6_alloc(SubGhzEnvironment* environment) {
-    UNUSED(environment);
     SubGhzProtocolDecoderKiaV6* instance = malloc(sizeof(SubGhzProtocolDecoderKiaV6));
+    furi_check(instance);
     memset(instance, 0, sizeof(SubGhzProtocolDecoderKiaV6));
+
+    if(environment) {
+        protopirate_keys_load(environment);
+    }
+
     instance->base.protocol = &kia_protocol_v6;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
@@ -923,10 +928,14 @@ static void kia_protocol_encoder_v6_build_upload(SubGhzProtocolEncoderKiaV6* ins
 }
 
 void* kia_protocol_encoder_v6_alloc(SubGhzEnvironment* environment) {
-    UNUSED(environment);
     SubGhzProtocolEncoderKiaV6* instance = malloc(sizeof(SubGhzProtocolEncoderKiaV6));
     if(!instance) return NULL;
     memset(instance, 0, sizeof(SubGhzProtocolEncoderKiaV6));
+
+    if(environment) {
+        protopirate_keys_load(environment);
+    }
+
     instance->base.protocol = &kia_protocol_v6;
     instance->generic.protocol_name = instance->base.protocol->name;
     pp_encoder_buffer_ensure(instance, KIA_V6_UPLOAD_SIZE);

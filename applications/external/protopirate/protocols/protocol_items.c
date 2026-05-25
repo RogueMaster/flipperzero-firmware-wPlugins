@@ -171,6 +171,14 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_delta = 260,
         .min_count_bit = 104,
     },
+    // Ford V3: Manchester 240/480us
+    {
+        .name = FORD_PROTOCOL_V3_NAME,
+        .te_short = 240,
+        .te_long = 480,
+        .te_delta = 60,
+        .min_count_bit = 104,
+    },
     // Fiat V0: Manchester 200/400µs
     {
         .name = "Fiat V0",

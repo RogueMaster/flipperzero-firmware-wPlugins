@@ -7,6 +7,7 @@
 #include "protocols/protocols_common.h"
 #include "helpers/protopirate_settings.h"
 #include "helpers/protopirate_storage.h"
+#include "helpers/protopirate_psa_bf_host.h"
 #include "protocols/keys.h"
 #include <string.h>
 
@@ -215,13 +216,12 @@ ProtoPirateApp* protopirate_app_alloc() {
     // Apply auto-save setting
     app->auto_save = settings.auto_save;
     app->tx_power = settings.tx_power;
+    app->emulate_feature_enabled = settings.emulate_feature_enabled;
 
     // Init setting - KEEP THIS, it's small
     app->setting = subghz_setting_alloc();
     app->loaded_file_path = NULL;
     app->start_tx_time = 0;
-    app->psa_bf_state = NULL;
-    app->psa_bf_thread = NULL;
     subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user"));
 
     // Apply loaded frequency and preset, with validation
@@ -484,6 +484,7 @@ void protopirate_app_free(ProtoPirateApp* app) {
     settings.auto_save = app->auto_save;
     settings.tx_power = app->tx_power;
     settings.hopping_enabled = (app->txrx->hopper_state != ProtoPirateHopperStateOFF);
+    settings.emulate_feature_enabled = app->emulate_feature_enabled;
 
     // Find current preset index
     settings.preset_index = 0;
@@ -497,11 +498,12 @@ void protopirate_app_free(ProtoPirateApp* app) {
 
     FURI_LOG_I(
         TAG,
-        "Saving settings: freq=%lu, preset=%u, auto_save=%d, hopping=%d",
+        "Saving settings: freq=%lu, preset=%u, auto_save=%d, hopping=%d, emulate=%d",
         settings.frequency,
         settings.preset_index,
         settings.auto_save,
-        settings.hopping_enabled);
+        settings.hopping_enabled,
+        settings.emulate_feature_enabled);
 
     protopirate_settings_save(&settings);
 
@@ -567,16 +569,7 @@ void protopirate_app_free(ProtoPirateApp* app) {
         protopirate_view_receiver_free(app->protopirate_receiver);
     }
 
-    if(app->psa_bf_thread) {
-        if(app->psa_bf_state) app->psa_bf_state->cancel = 1;
-        furi_thread_join(app->psa_bf_thread);
-        furi_thread_free(app->psa_bf_thread);
-        app->psa_bf_thread = NULL;
-    }
-    if(app->psa_bf_state) {
-        free(app->psa_bf_state);
-        app->psa_bf_state = NULL;
-    }
+    protopirate_psa_bf_context_release(app);
 
     // Setting
     FURI_LOG_D(TAG, "Freeing subghz_setting");
@@ -635,22 +628,17 @@ int32_t protopirate_app(char* p) {
         protopirate_app->scene_manager,
         (load_saved) ? ProtoPirateSceneSavedInfo : ProtoPirateSceneStart);
 
-#ifdef ENABLE_EMULATE_FEATURE
     //We now jump straight to emulate scene from Browser. If the user wanted the key to look at, just click back.
-    //Makes it faster in my use case
     if(load_saved) {
-        view_dispatcher_send_custom_event(
-            protopirate_app->view_dispatcher, ProtoPirateCustomEventSavedInfoEmulate);
-        notification_message(protopirate_app->notifications, &sequence_success);
+        if(protopirate_app->emulate_feature_enabled) {
+            view_dispatcher_send_custom_event(
+                protopirate_app->view_dispatcher, ProtoPirateCustomEventSavedInfoEmulate);
+            notification_message(protopirate_app->notifications, &sequence_success);
+        } else {
+            view_dispatcher_send_custom_event(
+                protopirate_app->view_dispatcher, ProtoPirateCustomEventReceiverInfoSave);
+        }
     }
-#else
-    //We now jump straight to emulate scene from Browser. If the user wanted the key to look at, just click back.
-    //Makes it faster in my use case
-    if(load_saved) {
-        view_dispatcher_send_custom_event(
-            protopirate_app->view_dispatcher, ProtoPirateCustomEventReceiverInfoSave);
-    }
-#endif
 
     view_dispatcher_run(protopirate_app->view_dispatcher);
 

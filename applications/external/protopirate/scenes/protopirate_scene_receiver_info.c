@@ -1,6 +1,7 @@
 // scenes/protopirate_scene_receiver_info.c
 #include "../protopirate_app_i.h"
 #include "../helpers/protopirate_storage.h"
+#include "../helpers/protopirate_psa_bf_host.h"
 #include "proto_pirate_icons.h"
 
 #define TAG "ProtoPirateReceiverInfo"
@@ -14,80 +15,6 @@ static void protopirate_scene_receiver_info_text_input_callback(void* context) {
     ProtoPirateApp* app = context;
     view_dispatcher_send_custom_event(
         app->view_dispatcher, ProtoPirateCustomEventReceiverInfoSaveConfirm);
-}
-
-static void psa_bf_done_cb_receiver_info(void* context) {
-    ProtoPirateApp* app = context;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, ProtoPirateCustomEventPsaBruteforceComplete);
-}
-
-static bool psa_item_needs_bruteforce(ProtoPirateApp* app) {
-    FlipperFormat* ff =
-        protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
-    if(!ff) return false;
-    FuriString* s = furi_string_alloc();
-    flipper_format_rewind(ff);
-    if(!flipper_format_read_string(ff, FF_PROTOCOL, s) || furi_string_cmp_str(s, "PSA") != 0) {
-        furi_string_free(s);
-        return false;
-    }
-    flipper_format_rewind(ff);
-    bool has_key = flipper_format_read_string(ff, FF_KEY, s);
-    if(!has_key) {
-        furi_string_free(s);
-        return false;
-    }
-    uint32_t serial = 0;
-    flipper_format_rewind(ff);
-    bool has_serial = flipper_format_read_uint32(ff, FF_SERIAL, &serial, 1);
-    furi_string_free(s);
-    return !has_serial;
-}
-
-#define PSA_BF_PROGRESS_BAR_X 62
-#define PSA_BF_PROGRESS_BAR_W 64
-#define PSA_BF_PROGRESS_BAR_Y 24
-#define PSA_BF_PROGRESS_BAR_H 8
-
-static void protopirate_receiver_info_show_bf_progress(ProtoPirateApp* app) {
-    widget_reset(app->widget);
-    widget_add_icon_element(app->widget, 0, 5, &I_DolphinWait_59x54);
-    widget_add_string_element(
-        app->widget, 62, 0, AlignLeft, AlignTop, FontPrimary, "Bruteforcing...");
-    PsaBfState* s = app->psa_bf_state;
-    uint32_t cur = s->progress_current;
-    uint32_t total = s->progress_total;
-    uint32_t pct_tenths = total ? (uint32_t)((uint64_t)cur * 1000 / total) : 0;
-    if(pct_tenths > 1000) pct_tenths = 1000;
-
-    FuriString* pct_str =
-        furi_string_alloc_printf("%lu.%u%%", pct_tenths / 10, (unsigned)(pct_tenths % 10));
-    widget_add_string_element(
-        app->widget, 62, 12, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(pct_str));
-    furi_string_free(pct_str);
-
-    widget_add_frame_element(
-        app->widget,
-        PSA_BF_PROGRESS_BAR_X,
-        PSA_BF_PROGRESS_BAR_Y,
-        PSA_BF_PROGRESS_BAR_W,
-        PSA_BF_PROGRESS_BAR_H,
-        2);
-    static uint16_t bf_ri_frame = 0;
-    bf_ri_frame++;
-    uint8_t inner_w = PSA_BF_PROGRESS_BAR_W - 4;
-    uint8_t block_w = 16;
-    uint8_t travel = inner_w - block_w;
-    uint16_t phase = (bf_ri_frame * 2) % (uint16_t)(2 * travel);
-    uint8_t block_x = (phase <= travel) ? (uint8_t)phase : (uint8_t)(2 * travel - phase);
-    widget_add_frame_element(
-        app->widget,
-        PSA_BF_PROGRESS_BAR_X + 2 + block_x,
-        PSA_BF_PROGRESS_BAR_Y + 2,
-        block_w,
-        PSA_BF_PROGRESS_BAR_H - 4,
-        0);
 }
 
 static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
@@ -175,7 +102,11 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
             app->widget, 0, 11, AlignLeft, AlignTop, FontSecondary, text_str);
     }
 
-    bool psa_needs_bf = is_psa && psa_item_needs_bruteforce(app);
+    bool psa_needs_bf = false;
+    if(is_psa && protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin) {
+        psa_needs_bf = app->psa_bf_plugin->widget_left_should_bruteforce(
+            app, ProtoPiratePsaBfContextReceiverInfo);
+    }
     if(psa_needs_bf) {
         widget_add_button_element(
             app->widget,
@@ -183,9 +114,9 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
             "Brute force",
             protopirate_scene_receiver_info_widget_callback,
             app);
-    }
+    } else
 #ifdef ENABLE_EMULATE_FEATURE
-    else if(!app->emulate_disabled_for_loaded) {
+        if(app->emulate_feature_enabled && !app->emulate_disabled_for_loaded) {
         widget_add_button_element(
             app->widget,
             GuiButtonTypeLeft,
@@ -205,28 +136,8 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
     furi_string_free(text);
 }
 
-static void
-    protopirate_receiver_info_show_bf_result(ProtoPirateApp* app, uint8_t status, PsaBfState* s) {
-    UNUSED(s);
-    widget_reset(app->widget);
-    const char* title = (status == PSA_BF_STATUS_FOUND)     ? "Found!" :
-                        (status == PSA_BF_STATUS_CANCELLED) ? "Cancelled" :
-                                                              "Not found";
-    if(status == PSA_BF_STATUS_FOUND) {
-        widget_add_icon_element(app->widget, 0, 3, &I_DolphinDone_80x58);
-        widget_add_string_element(app->widget, 82, 32, AlignLeft, AlignCenter, FontPrimary, title);
-        widget_add_button_element(
-            app->widget,
-            GuiButtonTypeCenter,
-            "OK",
-            protopirate_scene_receiver_info_widget_callback,
-            app);
-    } else if(status == PSA_BF_STATUS_CANCELLED) {
-        widget_add_string_element(app->widget, 64, 0, AlignCenter, AlignTop, FontPrimary, title);
-        widget_add_icon_element(app->widget, (128 - 45) / 2, 14, &I_WarningDolphin_45x42);
-    } else {
-        widget_add_string_element(app->widget, 64, 0, AlignCenter, AlignTop, FontPrimary, title);
-    }
+void protopirate_receiver_info_rebuild_normal_widget(void* app) {
+    protopirate_receiver_info_build_normal_widget((ProtoPirateApp*)app);
 }
 
 static void protopirate_scene_receiver_info_widget_callback(
@@ -239,12 +150,14 @@ static void protopirate_scene_receiver_info_widget_callback(
             view_dispatcher_send_custom_event(
                 app->view_dispatcher, ProtoPirateCustomEventReceiverInfoSave);
         } else if(result == GuiButtonTypeLeft) {
-            if(!app->psa_bf_thread && psa_item_needs_bruteforce(app)) {
+            if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin &&
+               app->psa_bf_plugin->widget_left_should_bruteforce(
+                   app, ProtoPiratePsaBfContextReceiverInfo)) {
                 view_dispatcher_send_custom_event(
                     app->view_dispatcher, ProtoPirateCustomEventReceiverInfoBruteforceStart);
             }
 #ifdef ENABLE_EMULATE_FEATURE
-            else if(!app->emulate_disabled_for_loaded) {
+            else if(app->emulate_feature_enabled && !app->emulate_disabled_for_loaded) {
                 view_dispatcher_send_custom_event(
                     app->view_dispatcher, ProtoPirateCustomEventReceiverInfoEmulate);
             }
@@ -268,196 +181,58 @@ void protopirate_scene_receiver_info_on_enter(void* context) {
 
     app->emulate_disabled_for_loaded = false;
 
-    if(app->psa_bf_thread && app->psa_bf_state) {
-        if(app->psa_bf_state->status == PSA_BF_STATUS_RUNNING) {
-            protopirate_receiver_info_show_bf_progress(app);
-        } else {
-            protopirate_receiver_info_show_bf_result(
-                app, app->psa_bf_state->status, app->psa_bf_state);
+    if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin) {
+        if(app->psa_bf_plugin->is_running(app)) {
+            app->psa_bf_plugin->on_scene_enter(app, ProtoPiratePsaBfContextReceiverInfo);
+            view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
+            return;
         }
-        view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
-        return;
     }
 
     protopirate_receiver_info_build_normal_widget(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
 }
 
-static void psa_bf_finish_and_show_result(ProtoPirateApp* app) {
-    PsaBfState* s = app->psa_bf_state;
-    uint8_t status = s->status;
-    if(app->psa_bf_thread) {
-        furi_thread_join(app->psa_bf_thread);
-        furi_thread_free(app->psa_bf_thread);
-        app->psa_bf_thread = NULL;
-    }
-    if(status == PSA_BF_STATUS_FOUND) {
-        FlipperFormat* ff =
-            protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
-        if(ff) {
-            flipper_format_rewind(ff);
-            flipper_format_insert_or_update_uint32(ff, FF_SERIAL, &s->decrypted_serial, 1);
-            uint32_t btn = s->decrypted_button;
-            flipper_format_insert_or_update_uint32(ff, FF_BTN, &btn, 1);
-            flipper_format_insert_or_update_uint32(ff, FF_CNT, &s->decrypted_counter, 1);
-            uint32_t type = s->decrypted_type;
-            flipper_format_insert_or_update_uint32(ff, FF_TYPE, &type, 1);
-            uint32_t crc_val = s->decrypted_crc;
-            flipper_format_insert_or_update_uint32(ff, "CRC", &crc_val, 1);
-            flipper_format_insert_or_update_uint32(ff, "Seed", &s->decrypted_seed, 1);
-        }
-        FuriString* new_str = furi_string_alloc_printf(
-            "PSA 128bit\r\n"
-            "Key1:%08lX%08lX\r\n"
-            "Key2:%04X\r\n"
-            "Btn:%02X\r\n"
-            "Ser:%06lX\r\n"
-            "Cnt:%lX\r\n"
-            "Type:%02X\r\n"
-            "Sd:%06lX",
-            (unsigned long)s->key1_high,
-            (unsigned long)s->key1_low,
-            (unsigned int)(s->key2_low & 0xFFFF),
-            (unsigned int)s->decrypted_button,
-            (unsigned long)s->decrypted_serial,
-            (unsigned long)s->decrypted_counter,
-            (unsigned int)s->decrypted_type,
-            (unsigned long)s->decrypted_seed);
-        protopirate_history_set_item_str(
-            app->txrx->history, app->txrx->idx_menu_chosen, furi_string_get_cstr(new_str));
-        furi_string_free(new_str);
-    }
-    if(status == PSA_BF_STATUS_FOUND) {
-        protopirate_receiver_info_show_bf_result(app, status, s);
-
-    } else {
-        free(app->psa_bf_state);
-        app->psa_bf_state = NULL;
-        protopirate_receiver_info_show_bf_result(app, status, NULL);
-    }
-}
-
 bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent event) {
     ProtoPirateApp* app = context;
     bool consumed = false;
 
-    if(event.type == SceneManagerEventTypeBack) {
-        if(app->psa_bf_state && app->psa_bf_state->status == PSA_BF_STATUS_FOUND) {
-            protopirate_receiver_info_build_normal_widget(app);
-            free(app->psa_bf_state);
-            app->psa_bf_state = NULL;
-            consumed = true;
-        } else if(
-            app->psa_bf_thread && app->psa_bf_state &&
-            app->psa_bf_state->status == PSA_BF_STATUS_RUNNING) {
-            app->psa_bf_state->cancel = 1;
-            consumed = true;
+    if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin) {
+        if(app->psa_bf_plugin->is_running(app) ||
+           event.event == ProtoPirateCustomEventPsaBruteforceComplete ||
+           event.event == ProtoPirateCustomEventReceiverInfoBruteforceStart ||
+           event.event == ProtoPirateCustomEventReceiverInfoBruteforceCancel) {
+            consumed = app->psa_bf_plugin->on_scene_event(
+                app, ProtoPiratePsaBfContextReceiverInfo, event);
+            if(consumed) return true;
         }
-        return consumed;
-    }
-
-    if(event.type == SceneManagerEventTypeTick) {
-        if(app->psa_bf_thread && app->psa_bf_state) {
-            uint8_t bfst = app->psa_bf_state->status;
-            if(bfst == PSA_BF_STATUS_IDLE || bfst == PSA_BF_STATUS_RUNNING) {
-                protopirate_receiver_info_show_bf_progress(app);
-                consumed = true;
-            } else {
-                psa_bf_finish_and_show_result(app);
-                consumed = true;
-            }
+        if(event.type == SceneManagerEventTypeBack &&
+           app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextReceiverInfo, event)) {
+            return true;
         }
-        return consumed;
     }
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == ProtoPirateCustomEventPsaBruteforceComplete) {
-            if(app->psa_bf_state) {
-                psa_bf_finish_and_show_result(app);
-            }
-            consumed = true;
-            return consumed;
-        }
-
-        if(event.event == ProtoPirateCustomEventReceiverInfoBruteforceStart) {
-            FlipperFormat* ff =
-                protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
-            if(!ff || !psa_item_needs_bruteforce(app)) {
-                consumed = true;
-                return consumed;
-            }
-            PsaBfState* state = malloc(sizeof(PsaBfState));
-            if(!state) {
-                notification_message(app->notifications, &sequence_error);
-                consumed = true;
-                return consumed;
-            }
-            if(!psa_bf_state_from_flipper_format(state, ff)) {
-                free(state);
-                notification_message(app->notifications, &sequence_error);
-                consumed = true;
-                return consumed;
-            }
-            state->on_done = psa_bf_done_cb_receiver_info;
-            state->on_done_ctx = app;
-            app->psa_bf_state = state;
-            app->psa_bf_thread =
-                furi_thread_alloc_ex("PsaBf", 2048, psa_brute_force_thread_entry, state);
-            if(!app->psa_bf_thread) {
-                free(state);
-                app->psa_bf_state = NULL;
-                notification_message(app->notifications, &sequence_error);
-                consumed = true;
-                return consumed;
-            }
-            furi_thread_start(app->psa_bf_thread);
-            protopirate_receiver_info_show_bf_progress(app);
-            consumed = true;
-            return consumed;
-        }
-
-        if(event.event == ProtoPirateCustomEventReceiverInfoBruteforceCancel) {
-            if(app->psa_bf_state && app->psa_bf_state->status == PSA_BF_STATUS_FOUND) {
-                protopirate_receiver_info_build_normal_widget(app);
-                free(app->psa_bf_state);
-                app->psa_bf_state = NULL;
-            } else if(app->psa_bf_state && app->psa_bf_state->status == PSA_BF_STATUS_RUNNING) {
-                app->psa_bf_state->cancel = 1;
-            } else {
-                if(app->psa_bf_state) {
-                    psa_bf_finish_and_show_result(app);
-                }
-                scene_manager_previous_scene(app->scene_manager);
-            }
-            consumed = true;
-            return consumed;
-        }
-
         if(event.event == ProtoPirateCustomEventReceiverInfoSave) {
             FlipperFormat* ff =
                 protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
             if(ff) {
-                // Read protocol name for default filename
                 FuriString* protocol = furi_string_alloc();
                 flipper_format_rewind(ff);
                 if(!flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
                     furi_string_set_str(protocol, "Unknown");
                 }
 
-                // Clean protocol name for filename
                 furi_string_replace_all(protocol, "/", "_");
                 furi_string_replace_all(protocol, " ", "_");
 
-                // Get the next auto-generated filename (just the name part)
                 FuriString* auto_path = furi_string_alloc();
                 if(protopirate_storage_get_next_filename(
                        furi_string_get_cstr(protocol), auto_path)) {
-                    // Extract just the filename without folder and extension
                     const char* full = furi_string_get_cstr(auto_path);
                     const char* slash = strrchr(full, '/');
                     const char* name_start = slash ? slash + 1 : full;
 
-                    // Copy without extension
                     size_t name_len = strlen(name_start);
                     const char* dot = strrchr(name_start, '.');
                     if(dot) name_len = dot - name_start;
@@ -471,13 +246,11 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                 }
                 furi_string_free(auto_path);
 
-                // Store context for when text input confirms
                 if(app->save_protocol) furi_string_free(app->save_protocol);
-                app->save_protocol = protocol; // transfer ownership
+                app->save_protocol = protocol;
                 app->save_history_idx = app->txrx->idx_menu_chosen;
                 app->save_from_saved_info = false;
 
-                // Configure and show text input
                 text_input_reset(app->text_input);
                 text_input_set_header_text(app->text_input, "Save filename:");
                 text_input_set_result_callback(
@@ -486,7 +259,7 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                     app,
                     app->save_filename,
                     sizeof(app->save_filename),
-                    false); // don't clear default text
+                    false);
 
                 view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewTextInput);
             }
@@ -494,11 +267,9 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
         }
 
         if(event.event == ProtoPirateCustomEventReceiverInfoSaveConfirm) {
-            // User confirmed the filename in text input
             FlipperFormat* ff =
                 protopirate_history_get_raw_data(app->txrx->history, app->save_history_idx);
             if(ff) {
-                // Build full path: folder/filename.psf
                 FuriString* save_path = furi_string_alloc_printf(
                     "%s/%s%s",
                     PROTOPIRATE_APP_FOLDER,
@@ -515,20 +286,18 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                 furi_string_free(save_path);
             }
 
-            // Clean up save protocol string
             if(app->save_protocol) {
                 furi_string_free(app->save_protocol);
                 app->save_protocol = NULL;
             }
 
-            // Return to the receiver info widget
             view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
             consumed = true;
         }
 
 #ifdef ENABLE_EMULATE_FEATURE
         if(event.event == ProtoPirateCustomEventReceiverInfoEmulate &&
-           !app->emulate_disabled_for_loaded) {
+           app->emulate_feature_enabled && !app->emulate_disabled_for_loaded) {
             FuriString* hist_path = furi_string_alloc();
             if(protopirate_history_get_capture_path(
                    app->txrx->history, app->txrx->idx_menu_chosen, hist_path)) {
@@ -561,4 +330,5 @@ void protopirate_scene_receiver_info_on_exit(void* context) {
     if(app->txrx && app->txrx->history) {
         protopirate_history_release_scratch(app->txrx->history);
     }
+    protopirate_psa_bf_plugin_unload_if_idle(app);
 }

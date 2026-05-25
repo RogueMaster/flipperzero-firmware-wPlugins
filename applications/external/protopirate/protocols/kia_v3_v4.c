@@ -3,16 +3,27 @@
 #include "keeloq_common.h"
 #include "keys.h"
 #include "protocols_common.h"
+#include <lib/subghz/blocks/math.h>
 
 #define TAG "KiaV3V4"
 
 static const char* kia_version_names[] = {"Kia V4", "Kia V3"};
 
-#define KIA_V3_V4_PREAMBLE_PAIRS     16
-#define KIA_V3_V4_TOTAL_BURSTS       3
-#define KIA_V3_V4_INTER_BURST_GAP_US 10000
-#define KIA_V3_V4_SYNC_DURATION      1200
-#define KIA_V3_V4_UPLOAD_CAPACITY    536
+#define KIA_V3_V4_PREAMBLE_PAIRS  12U
+#define KIA_V3_V4_BIT_COUNT       64U
+#define KIA_V3_V4_CRC_BIT_COUNT   4U
+#define KIA_V3_V4_CRC_SWEEP_COUNT 16U
+#define KIA_V3_V4_SYNC_DURATION   1200U
+#define KIA_V3_V4_END_MARKER_US   800U
+#define KIA_V3_V4_DEFAULT_REPEAT  KIA_V3_V4_CRC_SWEEP_COUNT
+
+#define KIA_V3_V4_DATA_OFFSET ((KIA_V3_V4_PREAMBLE_PAIRS * 2U) + 2U) // 26
+#define KIA_V3_V4_CRC_OFFSET  (KIA_V3_V4_DATA_OFFSET + (KIA_V3_V4_BIT_COUNT * 2U))
+#define KIA_V3_V4_END_OFFSET  (KIA_V3_V4_CRC_OFFSET + (KIA_V3_V4_CRC_BIT_COUNT * 2U))
+#define KIA_V3_V4_BURST_ENTRIES (KIA_V3_V4_END_OFFSET + 2U)
+
+#define KIA_V3_V4_UPLOAD_CAPACITY KIA_V3_V4_BURST_ENTRIES
+
 _Static_assert(
     KIA_V3_V4_UPLOAD_CAPACITY <= PP_SHARED_UPLOAD_CAPACITY,
     "KIA_V3_V4_UPLOAD_CAPACITY exceeds shared upload slab");
@@ -52,6 +63,9 @@ typedef struct SubGhzProtocolEncoderKiaV3V4 {
 
     uint32_t encrypted;
     uint32_t decrypted;
+
+    uint8_t crc_iter;
+    uint8_t bursts_sent;
 } SubGhzProtocolEncoderKiaV3V4;
 
 typedef enum {
@@ -74,12 +88,29 @@ static void kia_v3_v4_add_raw_bit(SubGhzProtocolDecoderKiaV3V4* instance, bool b
 }
 
 #ifdef ENABLE_EMULATE_FEATURE
-static uint8_t kia_v3_v4_calculate_crc(uint8_t* bytes) {
-    uint8_t crc = 0;
-    for(int i = 0; i < 8; i++) {
-        crc ^= (bytes[i] & 0x0F) ^ (bytes[i] >> 4);
+static inline void kia_v3_v4_emit_bit_pwm(
+    LevelDuration* upload,
+    size_t* idx,
+    bool bit,
+    bool v4) {
+    const uint32_t te_short = kia_protocol_v3_v4_const.te_short;
+    const uint32_t te_long = kia_protocol_v3_v4_const.te_long;
+    const uint32_t first_us = bit ? te_short : te_long;
+    const uint32_t second_us = bit ? te_long : te_short;
+
+    if(v4) {
+        upload[(*idx)++] = level_duration_make(false, (int32_t)first_us);
+        upload[(*idx)++] = level_duration_make(true, (int32_t)second_us);
+    } else {
+        upload[(*idx)++] = level_duration_make(true, (int32_t)first_us);
+        upload[(*idx)++] = level_duration_make(false, (int32_t)second_us);
     }
-    return crc & 0x0F;
+}
+static uint64_t kia_v3_v4_build_tx_bitstream(SubGhzProtocolEncoderKiaV3V4* instance) {
+    const uint32_t serial_btn = (instance->serial & 0x0FFFFFFFU) |
+                                ((uint32_t)(instance->btn & 0x0FU) << 28);
+    const uint64_t key = ((uint64_t)serial_btn << 32) | (uint64_t)instance->encrypted;
+    return subghz_protocol_blocks_reverse_key(key, 64);
 }
 #endif
 
@@ -180,8 +211,12 @@ const SubGhzProtocol kia_protocol_v3_v4 = {
 #ifdef ENABLE_EMULATE_FEATURE
 
 void* kia_protocol_encoder_v3_v4_alloc(SubGhzEnvironment* environment) {
-    UNUSED(environment);
     SubGhzProtocolEncoderKiaV3V4* instance = malloc(sizeof(SubGhzProtocolEncoderKiaV3V4));
+    furi_check(instance);
+
+    if(environment) {
+        protopirate_keys_load(environment);
+    }
 
     instance->base.protocol = &kia_protocol_v3_v4;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -190,9 +225,11 @@ void* kia_protocol_encoder_v3_v4_alloc(SubGhzEnvironment* environment) {
     instance->btn = 0;
     instance->cnt = 0;
     instance->version = 0;
+    instance->crc_iter = 0;
+    instance->bursts_sent = 0;
 
     pp_encoder_buffer_ensure(instance, KIA_V3_V4_UPLOAD_CAPACITY);
-    instance->encoder.repeat = 40;
+    instance->encoder.repeat = (int32_t)KIA_V3_V4_DEFAULT_REPEAT;
     instance->encoder.front = 0;
     instance->encoder.is_running = false;
 
@@ -206,9 +243,9 @@ void* kia_protocol_encoder_v3_v4_alloc(SubGhzEnvironment* environment) {
 static void kia_protocol_encoder_v3_v4_build_packet(
     SubGhzProtocolEncoderKiaV3V4* instance,
     uint8_t* raw_bytes) {
-    // Build plaintext for encryption:
-    uint32_t plaintext = (instance->cnt & 0xFFFF) | ((instance->serial & 0xFF) << 16) |
-                         (0x1 << 24) | ((instance->btn & 0x0F) << 28);
+    uint32_t plaintext = (uint32_t)(instance->cnt & 0xFFFFU) |
+                         ((uint32_t)(instance->serial & 0x3FFU) << 16) |
+                         ((uint32_t)(instance->btn & 0x0FU) << 28);
 
     instance->decrypted = plaintext;
 
@@ -221,28 +258,21 @@ static void kia_protocol_encoder_v3_v4_build_packet(
         (unsigned long)plaintext,
         (unsigned long)encrypted);
 
-    // Decoder does: encrypted = (rev(b[3])<<24) | (rev(b[2])<<16) | (rev(b[1])<<8) | rev(b[0])
-    raw_bytes[0] = pp_reverse_bits8((encrypted >> 0) & 0xFF); // LSB
+    raw_bytes[0] = pp_reverse_bits8((encrypted >> 0) & 0xFF);
     raw_bytes[1] = pp_reverse_bits8((encrypted >> 8) & 0xFF);
     raw_bytes[2] = pp_reverse_bits8((encrypted >> 16) & 0xFF);
-    raw_bytes[3] = pp_reverse_bits8((encrypted >> 24) & 0xFF); // MSB
+    raw_bytes[3] = pp_reverse_bits8((encrypted >> 24) & 0xFF);
 
-    // Serial/button
-    uint32_t serial_btn = (instance->serial & 0x0FFFFFFF) |
+    uint32_t serial_btn = (instance->serial & 0x0FFFFFFFU) |
                           ((uint32_t)(instance->btn & 0x0F) << 28);
     raw_bytes[4] = pp_reverse_bits8((serial_btn >> 0) & 0xFF);
     raw_bytes[5] = pp_reverse_bits8((serial_btn >> 8) & 0xFF);
     raw_bytes[6] = pp_reverse_bits8((serial_btn >> 16) & 0xFF);
     raw_bytes[7] = pp_reverse_bits8((serial_btn >> 24) & 0xFF);
 
-    // CRC
-    uint8_t crc = kia_v3_v4_calculate_crc(raw_bytes);
-    raw_bytes[8] = (crc << 4);
-
-    // DEBUG: Log the exact raw bytes we're generating
     FURI_LOG_I(
         TAG,
-        "TX raw: %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+        "TX raw: %02X %02X %02X %02X %02X %02X %02X %02X",
         raw_bytes[0],
         raw_bytes[1],
         raw_bytes[2],
@@ -250,10 +280,8 @@ static void kia_protocol_encoder_v3_v4_build_packet(
         raw_bytes[4],
         raw_bytes[5],
         raw_bytes[6],
-        raw_bytes[7],
-        raw_bytes[8]);
+        raw_bytes[7]);
 
-    // Store in generic.data for display
     instance->generic.data = ((uint64_t)raw_bytes[0] << 56) | ((uint64_t)raw_bytes[1] << 48) |
                              ((uint64_t)raw_bytes[2] << 40) | ((uint64_t)raw_bytes[3] << 32) |
                              ((uint64_t)raw_bytes[4] << 24) | ((uint64_t)raw_bytes[5] << 16) |
@@ -262,11 +290,20 @@ static void kia_protocol_encoder_v3_v4_build_packet(
 
     FURI_LOG_I(
         TAG,
-        "Packet built: Serial=0x%07lX, Btn=0x%X, Cnt=0x%04X, CRC=0x%X",
+        "Packet built: Serial=0x%07lX, Btn=0x%X, Cnt=0x%04X",
         (unsigned long)instance->serial,
         instance->btn,
-        instance->cnt,
-        crc);
+        instance->cnt);
+}
+static void kia_protocol_encoder_v3_v4_patch_crc(SubGhzProtocolEncoderKiaV3V4* instance) {
+    if(!instance || !instance->encoder.upload) return;
+    const bool v4 = (instance->version == 0);
+    const uint8_t crc = instance->crc_iter & 0x0FU;
+    size_t idx = KIA_V3_V4_CRC_OFFSET;
+    for(int b = 3; b >= 0; b--) {
+        const bool bit = (crc >> b) & 1U;
+        kia_v3_v4_emit_bit_pwm(instance->encoder.upload, &idx, bit, v4);
+    }
 }
 
 #endif
@@ -275,80 +312,65 @@ static void kia_protocol_encoder_v3_v4_build_packet(
 static void kia_protocol_encoder_v3_v4_get_upload(SubGhzProtocolEncoderKiaV3V4* instance) {
     furi_check(instance);
 
-    uint8_t raw_bytes[9];
+    uint8_t raw_bytes[8];
     kia_protocol_encoder_v3_v4_build_packet(instance, raw_bytes);
 
-    if(instance->version == 1) {
-        for(int i = 0; i < 9; i++) {
-            raw_bytes[i] = ~raw_bytes[i];
-        }
-    }
+    const bool v4 = (instance->version == 0);
+    const uint64_t tx_key = kia_v3_v4_build_tx_bitstream(instance);
 
-    size_t index = 0;
+    size_t idx = 0;
+    LevelDuration* upload = instance->encoder.upload;
+    const uint32_t te_short = kia_protocol_v3_v4_const.te_short;
 
-    for(uint8_t burst = 0; burst < KIA_V3_V4_TOTAL_BURSTS; burst++) {
-        if(burst > 0) {
-            instance->encoder.upload[index++] =
-                level_duration_make(false, KIA_V3_V4_INTER_BURST_GAP_US);
-        }
-
-        // Preamble: alternating short pulses
-        for(int i = 0; i < KIA_V3_V4_PREAMBLE_PAIRS; i++) {
-            instance->encoder.upload[index++] =
-                level_duration_make(true, kia_protocol_v3_v4_const.te_short);
-            instance->encoder.upload[index++] =
-                level_duration_make(false, kia_protocol_v3_v4_const.te_short);
-        }
-
-        // Sync pulse - different for V3 vs V4
-        if(instance->version == 0) {
-            // V4: long HIGH, short LOW
-            instance->encoder.upload[index++] = level_duration_make(true, KIA_V3_V4_SYNC_DURATION);
-            instance->encoder.upload[index++] =
-                level_duration_make(false, kia_protocol_v3_v4_const.te_short);
+    for(uint32_t i = 0; i < KIA_V3_V4_PREAMBLE_PAIRS; i++) {
+        if(v4) {
+            upload[idx++] = level_duration_make(false, (int32_t)te_short);
+            upload[idx++] = level_duration_make(true, (int32_t)te_short);
         } else {
-            // V3: short HIGH, long LOW
-            instance->encoder.upload[index++] =
-                level_duration_make(true, kia_protocol_v3_v4_const.te_short);
-            instance->encoder.upload[index++] =
-                level_duration_make(false, KIA_V3_V4_SYNC_DURATION);
-        }
-
-        // Data bits - PWM encoding with complementary durations
-        for(int byte_idx = 0; byte_idx < 9; byte_idx++) {
-            int bits_in_byte = (byte_idx == 8) ? 4 : 8;
-
-            for(int bit_idx = 7; bit_idx >= (8 - bits_in_byte); bit_idx--) {
-                bool bit = (raw_bytes[byte_idx] >> bit_idx) & 1;
-
-                if(bit) {
-                    // bit 1: long HIGH, short LOW (total ~1200µs)
-                    instance->encoder.upload[index++] =
-                        level_duration_make(true, kia_protocol_v3_v4_const.te_long); // 800µs
-                    instance->encoder.upload[index++] =
-                        level_duration_make(false, kia_protocol_v3_v4_const.te_short); // 400µs
-                } else {
-                    // bit 0: short HIGH, long LOW (total ~1200µs)
-                    instance->encoder.upload[index++] =
-                        level_duration_make(true, kia_protocol_v3_v4_const.te_short); // 400µs
-                    instance->encoder.upload[index++] =
-                        level_duration_make(false, kia_protocol_v3_v4_const.te_long); // 800µs
-                }
-            }
+            upload[idx++] = level_duration_make(true, (int32_t)te_short);
+            upload[idx++] = level_duration_make(false, (int32_t)te_short);
         }
     }
 
-    //instance->encoder.upload[index++] = level_duration_make(false, KIA_V3_V4_INTER_BURST_GAP_US);
+    if(v4) {
+        upload[idx++] = level_duration_make(false, (int32_t)te_short);
+        upload[idx++] = level_duration_make(true, (int32_t)KIA_V3_V4_SYNC_DURATION);
+    } else {
+        upload[idx++] = level_duration_make(true, (int32_t)te_short);
+        upload[idx++] = level_duration_make(false, (int32_t)KIA_V3_V4_SYNC_DURATION);
+    }
 
-    instance->encoder.size_upload = index;
+    for(int i = 63; i >= 0; i--) {
+        const bool bit = (tx_key >> i) & 1ULL;
+        kia_v3_v4_emit_bit_pwm(upload, &idx, bit, v4);
+    }
+
+    const uint8_t crc = instance->crc_iter & 0x0FU;
+    for(int b = 3; b >= 0; b--) {
+        const bool bit = (crc >> b) & 1U;
+        kia_v3_v4_emit_bit_pwm(upload, &idx, bit, v4);
+    }
+
+    if(v4) {
+        upload[idx++] = level_duration_make(false, (int32_t)KIA_V3_V4_END_MARKER_US);
+        upload[idx++] = level_duration_make(true, (int32_t)KIA_V3_V4_END_MARKER_US);
+    } else {
+        upload[idx++] = level_duration_make(true, (int32_t)KIA_V3_V4_END_MARKER_US);
+        upload[idx++] = level_duration_make(false, (int32_t)KIA_V3_V4_END_MARKER_US);
+    }
+
+    furi_check(idx == KIA_V3_V4_BURST_ENTRIES);
+    instance->encoder.size_upload = idx;
     instance->encoder.front = 0;
 
     FURI_LOG_I(
         TAG,
-        "Upload built: %d bursts, size_upload=%zu, version=%s",
-        KIA_V3_V4_TOTAL_BURSTS,
+        "Upload built: size=%zu %s enc=0x%08lX tx=0x%016llX crc=0x%X",
         instance->encoder.size_upload,
-        instance->version == 0 ? "V4" : "V3");
+        v4 ? "V4" : "V3",
+        (unsigned long)instance->encrypted,
+        (unsigned long long)tx_key,
+        crc);
 }
 
 #endif
@@ -430,9 +452,12 @@ SubGhzProtocolStatus
             instance->version = 0;
         }
 
-        instance->encoder.repeat = (int32_t)pp_encoder_read_repeat(flipper_format, 40);
+        instance->encoder.repeat =
+            (int32_t)pp_encoder_read_repeat(flipper_format, KIA_V3_V4_DEFAULT_REPEAT);
 
-        // Build the upload
+        instance->crc_iter = 0;
+        instance->bursts_sent = 0;
+
         kia_protocol_encoder_v3_v4_get_upload(instance);
 
         instance->encoder.is_running = true;
@@ -494,21 +519,22 @@ LevelDuration kia_protocol_encoder_v3_v4_yield(void* context) {
 
     LevelDuration ret = instance->encoder.upload[instance->encoder.front];
 
-    if(instance->encoder.front < 5) {
-        FURI_LOG_D(
-            TAG,
-            "Encoder yield[%zu]: repeat=%u, level=%d, duration=%lu",
-            instance->encoder.front,
-            instance->encoder.repeat,
-            level_duration_get_level(ret),
-            level_duration_get_duration(ret));
-    }
-
     if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
+        instance->crc_iter = (uint8_t)((instance->crc_iter + 1U) & 0x0FU);
+        kia_protocol_encoder_v3_v4_patch_crc(instance);
         instance->encoder.front = 0;
-        FURI_LOG_I(
-            TAG, "Encoder completed one cycle, remaining repeat=%u", instance->encoder.repeat);
+        instance->encoder.repeat--;
+        if(instance->bursts_sent < KIA_V3_V4_CRC_SWEEP_COUNT) {
+            instance->bursts_sent++;
+        }
+        if(instance->encoder.repeat == 0) {
+            FURI_LOG_I(
+                TAG,
+                "CRC BF: %u/%u bursts transmitted (~%u ms)",
+                instance->bursts_sent,
+                KIA_V3_V4_CRC_SWEEP_COUNT,
+                (unsigned)(instance->bursts_sent * 94U));
+        }
     }
 
     return ret;
@@ -575,8 +601,13 @@ uint8_t kia_protocol_encoder_v3_v4_get_button(void* context) {
 // ============================================================================
 
 void* kia_protocol_decoder_v3_v4_alloc(SubGhzEnvironment* environment) {
-    UNUSED(environment);
     SubGhzProtocolDecoderKiaV3V4* instance = malloc(sizeof(SubGhzProtocolDecoderKiaV3V4));
+    furi_check(instance);
+
+    if(environment) {
+        protopirate_keys_load(environment);
+    }
+
     instance->base.protocol = &kia_protocol_v3_v4;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
@@ -805,42 +836,21 @@ void kia_protocol_decoder_v3_v4_get_string(void* context, FuriString* output) {
     uint32_t yek_hi = (uint32_t)(yek >> 32);
     uint32_t yek_lo = (uint32_t)(yek & 0xFFFFFFFF);
 
-    if(instance->version == 0) {
-        furi_string_cat_printf(
-            output,
-            "%s %dbit\r\n"
-            "Key:%08lX%08lX\r\n"
-            "Yek:%08lX%08lX\r\n"
-            "Serial:%07lX Btn:%01X CRC:%01X\r\n"
-            "Decr:%08lX Cnt:%04lX\r\n",
-            kia_version_names[instance->version],
-            instance->generic.data_count_bit,
-            key_hi,
-            key_lo,
-            yek_hi,
-            yek_lo,
-            instance->generic.serial,
-            instance->generic.btn,
-            instance->crc,
-            instance->decrypted,
-            instance->generic.cnt);
-    } else {
-        furi_string_cat_printf(
-            output,
-            "%s %dbit\r\n"
-            "Key:%08lX%08lX\r\n"
-            "Yek:%08lX%08lX\r\n"
-            "Serial:%07lX Btn:%01X\r\n"
-            "Decr:%08lX Cnt:%04lX\r\n",
-            kia_version_names[instance->version],
-            instance->generic.data_count_bit,
-            key_hi,
-            key_lo,
-            yek_hi,
-            yek_lo,
-            instance->generic.serial,
-            instance->generic.btn,
-            instance->decrypted,
-            instance->generic.cnt);
-    }
+    furi_string_cat_printf(
+        output,
+        "%s %dbit\r\n"
+        "Key:%08lX%08lX\r\n"
+        "Yek:%08lX%08lX\r\n"
+        "Serial:%07lX Btn:%01X\r\n"
+        "Cnt:%04lX CRC:%01X\r\n",
+        kia_version_names[instance->version],
+        instance->generic.data_count_bit,
+        key_hi,
+        key_lo,
+        yek_hi,
+        yek_lo,
+        instance->generic.serial,
+        instance->generic.btn,
+        instance->generic.cnt,
+        instance->crc);
 }

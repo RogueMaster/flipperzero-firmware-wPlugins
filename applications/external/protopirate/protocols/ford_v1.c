@@ -50,16 +50,23 @@ typedef enum {
 } FordV1DecoderStep;
 
 static const char* ford_v1_get_button_name(uint8_t btn);
+static void ford_v1_decode_with_flag(uint8_t* raw, size_t len, uint8_t flag_byte);
 static void ford_v1_decode(uint8_t* raw, size_t len);
+static void ford_v1_encode_inverse_block(uint8_t block[9]);
+static void ford_v1_encode_air_9bytes(const uint8_t* plain9, uint8_t* air9_out);
+static bool ford_v1_plain_from_air(const uint8_t air9[9], uint8_t plain9_out[9]);
+static void ford_v1_fields_from_plain(
+    const uint8_t plain9[9],
+    uint32_t* serial_out,
+    uint8_t* btn_out,
+    uint32_t* cnt_out);
 static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance);
 static bool ford_v1_try_last_byte_variants(SubGhzProtocolDecoderFordV1* instance);
-static bool ford_v1_postdecode_ok(const uint8_t* raw17);
 static bool ford_v1_extract_plain_from_raw(
     const uint8_t* raw17_in,
     uint8_t* plain9_out,
     uint8_t* raw17_canonical_out_opt);
 #ifdef ENABLE_EMULATE_FEATURE
-static void ford_v1_encode_air_9bytes(const uint8_t* plain9, uint8_t* air9_out);
 static void
     ford_v1_plain_apply_fields(uint8_t* plain9, uint32_t serial, uint8_t btn, uint32_t cnt);
 static void ford_v1_encoder_rebuild_raw_from_plain(uint8_t* raw17, const uint8_t* plain9);
@@ -126,19 +133,8 @@ static const char* ford_v1_get_button_name(uint8_t btn) {
     }
 }
 
-static void ford_v1_decode(uint8_t* raw, size_t len) {
+static void ford_v1_decode_with_flag(uint8_t* raw, size_t len, uint8_t flag_byte) {
     if(len < 9) return;
-
-    uint8_t endbyte = raw[8];
-    uint8_t parity_any = (endbyte != 0) ? 1 : 0;
-    uint8_t parity = 0;
-    uint8_t tmp = endbyte;
-    while(tmp) {
-        parity ^= (tmp & 1);
-        tmp >>= 1;
-    }
-
-    uint8_t flag_byte = parity_any ? parity : 0;
 
     if(flag_byte) {
         uint8_t xor_byte = raw[7];
@@ -157,6 +153,83 @@ static void ford_v1_decode(uint8_t* raw, size_t len) {
     uint8_t b7 = raw[7];
     raw[6] = (b6 & 0xAA) | (b7 & 0x55);
     raw[7] = (b7 & 0xAA) | (b6 & 0x55);
+}
+
+static void ford_v1_decode(uint8_t* raw, size_t len) {
+    if(len < 9) return;
+
+    uint8_t endbyte = raw[8];
+    uint8_t parity_any = (endbyte != 0) ? 1 : 0;
+    uint8_t parity = 0;
+    uint8_t tmp = endbyte;
+    while(tmp) {
+        parity ^= (tmp & 1);
+        tmp >>= 1;
+    }
+
+    uint8_t flag_byte = parity_any ? parity : 0;
+    ford_v1_decode_with_flag(raw, len, flag_byte);
+}
+
+static void ford_v1_encode_inverse_block(uint8_t block[9]) {
+    uint8_t sum = 0;
+    for(size_t i = 1; i <= 7; i++) {
+        sum = (uint8_t)(sum + block[i]);
+    }
+
+    const uint8_t p6 = block[6];
+    const uint8_t p7 = block[7];
+    const uint8_t post6 = (uint8_t)((p6 & 0xAAU) | (p7 & 0x55U));
+    const uint8_t post7 = (uint8_t)((p7 & 0xAAU) | (p6 & 0x55U));
+    const uint8_t xorv = (uint8_t)(post6 ^ post7);
+
+    uint8_t xor_byte;
+    if((__builtin_popcount((unsigned int)sum) & 1) != 0) {
+        block[6] = xorv;
+        block[7] = post7;
+        xor_byte = post7;
+    } else {
+        block[6] = post6;
+        block[7] = xorv;
+        xor_byte = post6;
+    }
+
+    for(size_t i = 1; i <= 5; i++) {
+        block[i] ^= xor_byte;
+    }
+}
+
+static void ford_v1_encode_air_9bytes(const uint8_t* plain9, uint8_t* air9_out) {
+    uint8_t block[9];
+    memcpy(block, plain9, 9);
+    ford_v1_encode_inverse_block(block);
+    memcpy(air9_out, block, 9);
+}
+
+static bool ford_v1_plain_from_air(const uint8_t air9[9], uint8_t plain9_out[9]) {
+    for(uint8_t flag = 0; flag < 2; flag++) {
+        uint8_t cand[9];
+        memcpy(cand, air9, 9);
+        ford_v1_decode_with_flag(cand, 9, flag);
+        uint8_t reair[9];
+        ford_v1_encode_air_9bytes(cand, reair);
+        if(memcmp(reair, air9, 9) == 0) {
+            memcpy(plain9_out, cand, 9);
+            return true;
+        }
+    }
+    return false;
+}
+
+static void ford_v1_fields_from_plain(
+    const uint8_t plain9[9],
+    uint32_t* serial_out,
+    uint8_t* btn_out,
+    uint32_t* cnt_out) {
+    *serial_out = ((uint32_t)plain9[1] << 24) | ((uint32_t)plain9[2] << 16) |
+                  ((uint32_t)plain9[3] << 8) | plain9[0];
+    *btn_out = (plain9[5] >> 4) & 0x0F;
+    *cnt_out = ((plain9[5] & 0x0F) << 16) | (plain9[6] << 8) | plain9[7];
 }
 
 static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance) {
@@ -211,10 +284,39 @@ static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance) {
 
     FURI_LOG_D(TAG, "CRC OK, decoding payload");
 
+    const uint8_t* const air9 = &raw[6];
     uint8_t decoded[9];
-    memcpy(decoded, &raw[6], 9);
+    bool strict_ok = false;
+    bool rolling_ok = false;
 
-    ford_v1_decode(decoded, 9);
+    uint8_t decoded_b0[9];
+    uint8_t decoded_b1[9];
+    memcpy(decoded_b0, air9, 9);
+    ford_v1_decode_with_flag(decoded_b0, 9, 0);
+    memcpy(decoded_b1, air9, 9);
+    ford_v1_decode_with_flag(decoded_b1, 9, 1);
+
+    if((decoded_b0[3] == raw[5]) && (decoded_b0[4] == raw[6])) {
+        memcpy(decoded, decoded_b0, 9);
+        strict_ok = true;
+        FURI_LOG_D(TAG, "Plain (cleartext) via strict branch 0");
+    } else if((decoded_b1[3] == raw[5]) && (decoded_b1[4] == raw[6])) {
+        memcpy(decoded, decoded_b1, 9);
+        strict_ok = true;
+        FURI_LOG_D(TAG, "Plain (cleartext) via strict branch 1");
+    } else if(ford_v1_plain_from_air(air9, decoded)) {
+        rolling_ok = true;
+        FURI_LOG_D(TAG, "Plain (encrypted) via encode round-trip");
+    } else {
+        memcpy(decoded, air9, 9);
+        ford_v1_decode(decoded, 9);
+        FURI_LOG_W(
+            TAG,
+            "Descramble unresolved (b0[3]=%02X b1[3]=%02X raw[5]=%02X); header-only",
+            decoded_b0[3],
+            decoded_b1[3],
+            raw[5]);
+    }
 
     FURI_LOG_D(
         TAG,
@@ -228,15 +330,6 @@ static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance) {
         decoded[6],
         decoded[7],
         decoded[8]);
-
-    if(decoded[3] != raw[5]) {
-        FURI_LOG_D(TAG, "Decode FAIL: decoded[3]=%02X != raw[5]=%02X", decoded[3], raw[5]);
-        return false;
-    }
-    if(decoded[4] != raw[6]) {
-        FURI_LOG_D(TAG, "Decode FAIL: decoded[4]=%02X != raw[6]=%02X", decoded[4], raw[6]);
-        return false;
-    }
 
     uint16_t recalc_crc = ford_v1_crc16(&raw[3], 12);
     instance->crc_calc = recalc_crc;
@@ -255,17 +348,21 @@ static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance) {
     instance->data2 = key2;
     instance->generic.data_count_bit = FORD_V1_DATA_BITS;
 
-    uint8_t btn = (decoded[5] >> 4) & 0x0F;
-    instance->generic.btn = btn;
-
-    uint32_t serial = ((uint32_t)decoded[1] << 24) | ((uint32_t)decoded[2] << 16) |
-                      ((uint32_t)decoded[3] << 8) | decoded[0];
-    instance->generic.serial = serial;
-
-    uint32_t cnt = ((decoded[5] & 0x0F) << 16) | (decoded[6] << 8) | decoded[7];
-    instance->generic.cnt = cnt;
-
-    instance->encryption_supported = 1;
+    if(strict_ok) {
+        ford_v1_fields_from_plain(
+            decoded,
+            &instance->generic.serial,
+            &instance->generic.btn,
+            &instance->generic.cnt);
+        instance->encryption_supported = 1;
+    } else {
+        instance->generic.serial = ((uint32_t)raw[3] << 24) | ((uint32_t)raw[4] << 16) |
+                                   ((uint32_t)raw[5] << 8) | raw[6];
+        instance->generic.btn = 0;
+        instance->generic.cnt = 0;
+        instance->encryption_supported = 0;
+        (void)rolling_ok;
+    }
 
     FURI_LOG_I(
         TAG,
@@ -313,13 +410,6 @@ static bool ford_v1_try_last_byte_variants(SubGhzProtocolDecoderFordV1* instance
     return false;
 }
 
-static bool ford_v1_postdecode_ok(const uint8_t* raw17) {
-    uint8_t dec[9];
-    memcpy(dec, &raw17[6], 9);
-    ford_v1_decode(dec, 9);
-    return (dec[3] == raw17[5]) && (dec[4] == raw17[6]);
-}
-
 static bool ford_v1_extract_plain_from_raw(
     const uint8_t* raw17_in,
     uint8_t* plain9_out,
@@ -343,16 +433,27 @@ static bool ford_v1_extract_plain_from_raw(
         return false;
     }
 
-    memcpy(plain9_out, &raw[6], 9);
-    ford_v1_decode(plain9_out, 9);
-    if(!ford_v1_postdecode_ok(raw)) {
-        return false;
+    for(uint8_t flag = 0; flag < 2; flag++) {
+        uint8_t cand[9];
+        memcpy(cand, &raw[6], 9);
+        ford_v1_decode_with_flag(cand, 9, flag);
+        if((cand[3] == raw[5]) && (cand[4] == raw[6])) {
+            memcpy(plain9_out, cand, 9);
+            if(raw17_canonical_out_opt) {
+                memcpy(raw17_canonical_out_opt, raw, FORD_V1_DATA_BYTES);
+            }
+            return true;
+        }
     }
 
-    if(raw17_canonical_out_opt) {
-        memcpy(raw17_canonical_out_opt, raw, FORD_V1_DATA_BYTES);
+    if(ford_v1_plain_from_air(&raw[6], plain9_out)) {
+        if(raw17_canonical_out_opt) {
+            memcpy(raw17_canonical_out_opt, raw, FORD_V1_DATA_BYTES);
+        }
+        return true;
     }
-    return true;
+
+    return false;
 }
 
 void* subghz_protocol_decoder_ford_v1_alloc(SubGhzEnvironment* environment) {
@@ -720,13 +821,8 @@ SubGhzProtocolStatus
         instance->generic.data = k1;
         instance->data2 = k2;
 
-        if(extract_ok) {
-            instance->encryption_supported = 1;
-        } else {
-            uint16_t calc_crc = ford_v1_crc16(&raw[3], 12);
-            uint16_t recv_crc = ((uint16_t)raw[15] << 8) | raw[16];
-            instance->encryption_supported = (calc_crc == recv_crc) ? 1 : 0;
-        }
+        instance->encryption_supported =
+            (extract_ok && (plain9_tmp[3] == raw[5]) && (plain9_tmp[4] == raw[6])) ? 1 : 0;
 
         memcpy(instance->raw_bytes, raw, FORD_V1_DATA_BYTES);
 
@@ -788,23 +884,34 @@ void subghz_protocol_decoder_ford_v1_get_string(void* context, FuriString* outpu
             (unsigned long)crc16,
             crc_ok ? "OK" : "ERR");
     } else {
-        uint16_t calc_crc = crc16;
-        (void)calc_crc;
+        uint8_t raw[FORD_V1_DATA_BYTES];
+        ford_v1_raw14_from_internal_keys(key1, key2, raw);
+        raw[15] = (uint8_t)((crc >> 8) & 0xFF);
+        raw[16] = (uint8_t)(crc & 0xFF);
+
+        uint16_t check_crc = ford_v1_crc16(&raw[3], 12);
+        bool crc_ok = (check_crc == crc16);
+
+        uint32_t device_id = ((uint32_t)raw[3] << 24) | ((uint32_t)raw[4] << 16) |
+                             ((uint32_t)raw[5] << 8) | raw[6];
 
         furi_string_cat_printf(
             output,
             "%s %dbit\r\n"
             "%014llX%06llX\r\n"
             "%010llX%04lX\r\n"
-            "CRC:%04lX [%s]\r\n",
+            "Sn:%08lX\r\n"
+            "CRC:%04lX [%s]\r\n"
+            "Encryption not supported !\r\n",
             instance->generic.protocol_name,
             instance->generic.data_count_bit,
             (unsigned long long)key1,
             (unsigned long long)(key2 >> 40),
             (unsigned long long)(key2 & 0xFFFFFFFFFFULL),
             (unsigned long)crc16,
+            (unsigned long)device_id,
             (unsigned long)crc16,
-            "ERR");
+            crc_ok ? "OK" : "ERR");
     }
 }
 
@@ -840,41 +947,6 @@ typedef struct SubGhzProtocolEncoderFordV1 {
     uint8_t plain_valid;
     uint8_t burst_idx;
 } SubGhzProtocolEncoderFordV1;
-
-static void ford_v1_encode_inverse_block(uint8_t block[9]) {
-    uint8_t sum = 0;
-    for(size_t i = 1; i <= 7; i++) {
-        sum = (uint8_t)(sum + block[i]);
-    }
-
-    const uint8_t p6 = block[6];
-    const uint8_t p7 = block[7];
-    const uint8_t post6 = (uint8_t)((p6 & 0xAAU) | (p7 & 0x55U));
-    const uint8_t post7 = (uint8_t)((p7 & 0xAAU) | (p6 & 0x55U));
-    const uint8_t xorv = (uint8_t)(post6 ^ post7);
-
-    uint8_t xor_byte;
-    if((__builtin_popcount((unsigned int)sum) & 1) != 0) {
-        block[6] = xorv;
-        block[7] = post7;
-        xor_byte = post7;
-    } else {
-        block[6] = post6;
-        block[7] = xorv;
-        xor_byte = post6;
-    }
-
-    for(size_t i = 1; i <= 5; i++) {
-        block[i] ^= xor_byte;
-    }
-}
-
-static void ford_v1_encode_air_9bytes(const uint8_t* plain9, uint8_t* air9_out) {
-    uint8_t block[9];
-    memcpy(block, plain9, 9);
-    ford_v1_encode_inverse_block(block);
-    memcpy(air9_out, block, 9);
-}
 
 static void
     ford_v1_plain_apply_fields(uint8_t* plain9, uint32_t serial, uint8_t btn, uint32_t cnt) {

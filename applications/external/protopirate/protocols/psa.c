@@ -1,4 +1,5 @@
 #include "psa.h"
+#include "psa_crypto.h"
 #include "protocols_common.h"
 
 #define TAG "PSAProtocol"
@@ -29,53 +30,6 @@ static const SubGhzBlockConst subghz_protocol_psa_const = {
 _Static_assert(
     PSA_UPLOAD_CAPACITY <= PP_SHARED_UPLOAD_CAPACITY,
     "PSA_UPLOAD_CAPACITY exceeds shared upload slab");
-
-#define TEA_DELTA  0x9E3779B9U
-#define TEA_ROUNDS 32
-
-typedef struct {
-    uint32_t s0[TEA_ROUNDS];
-    uint32_t s1[TEA_ROUNDS];
-} PsaTeaSchedule;
-
-static void psa_tea_build_schedule(const uint32_t* key, PsaTeaSchedule* out) {
-    for(int i = 0; i < TEA_ROUNDS; i++) {
-        uint32_t sum0 = (uint32_t)((uint64_t)i * TEA_DELTA);
-        uint32_t sum1 = (uint32_t)((uint64_t)(i + 1) * TEA_DELTA);
-        out->s0[i] = key[sum0 & 3] + sum0;
-        out->s1[i] = key[(sum1 >> 11) & 3] + sum1;
-    }
-}
-
-static inline void
-    psa_tea_encrypt_with_schedule(uint32_t* v0, uint32_t* v1, const PsaTeaSchedule* sched) {
-    for(int i = 0; i < TEA_ROUNDS; i++) {
-        *v0 += (sched->s0[i] ^ (((*v1 >> 5) ^ (*v1 << 4)) + *v1));
-        *v1 += (sched->s1[i] ^ (((*v0 >> 5) ^ (*v0 << 4)) + *v0));
-    }
-}
-
-#define PSA_BF1_CONST_U4 0x0E0F5C41U
-#define PSA_BF1_CONST_U5 0x0F5C4123U
-
-static const uint32_t PSA_BF1_KEY_SCHEDULE[4] = {
-    0x4A434915U,
-    0xD6743C2BU,
-    0x1F29D308U,
-    0xE6B79A64U,
-};
-
-static const uint32_t PSA_BF2_KEY_SCHEDULE[4] = {
-    0x4039C240U,
-    0xEDA92CABU,
-    0x4306C02AU,
-    0x02192A04U,
-};
-
-#define PSA_BF1_START 0x23000000U
-#define PSA_BF1_END   0x24000000U
-#define PSA_BF2_START 0xF3000000U
-#define PSA_BF2_END   0xF4000000U
 
 typedef enum {
     PSADecoderState0 = 0,
@@ -174,17 +128,7 @@ const SubGhzProtocol psa_protocol = {
     .encoder = &subghz_protocol_psa_encoder,
 };
 
-static void psa_setup_byte_buffer(
-    uint8_t* buffer,
-    uint32_t key1_low,
-    uint32_t key1_high,
-    uint32_t key2_low);
 static void psa_calculate_checksum(uint8_t* buffer);
-static uint8_t psa_calculate_tea_crc(uint32_t v0, uint32_t v1);
-#ifdef ENABLE_EMULATE_FEATURE
-static void psa_tea_encrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key);
-#endif
-static void psa_unpack_tea_result_to_buffer(uint8_t* buffer, uint32_t v0, uint32_t v1);
 
 #ifdef ENABLE_EMULATE_FEATURE
 static void psa_second_stage_xor_encrypt(uint8_t* buffer) {
@@ -382,31 +326,31 @@ static void psa_build_buffer_mode36(
     FURI_LOG_D(
         TAG, "Packed v0:0x%08lX v1:0x%08lX (before CRC)", (unsigned long)v0, (unsigned long)v1);
 
-    uint8_t crc = psa_calculate_tea_crc(v0, v1);
+    uint8_t crc = psa_crypto_tea_crc(v0, v1);
     v1 = (v1 & 0xFFFFFF00) | crc;
 
     FURI_LOG_D(
         TAG, "Calculated CRC: 0x%02X, v1 after CRC: 0x%08lX", (unsigned int)crc, (unsigned long)v1);
 
-    uint32_t bf_counter = PSA_BF1_START | (instance->serial & 0xFFFFFF);
+    uint32_t bf_counter = PSA_CRYPTO_BF1_START | (instance->serial & 0xFFFFFF);
     FURI_LOG_D(TAG, "BF counter: 0x%08lX (BF1_START | serial)", (unsigned long)bf_counter);
 
     uint32_t working_key[4];
 
-    uint32_t wk2 = PSA_BF1_CONST_U4;
+    uint32_t wk2 = PSA_CRYPTO_BF1_CONST_U4;
     uint32_t wk3 = bf_counter;
-    psa_tea_encrypt(&wk2, &wk3, PSA_BF1_KEY_SCHEDULE);
+    psa_crypto_tea_encrypt(&wk2, &wk3, psa_crypto_bf1_key_schedule);
 
     uint32_t wk0 = (bf_counter << 8) | 0x0E;
-    uint32_t wk1 = PSA_BF1_CONST_U5;
-    psa_tea_encrypt(&wk0, &wk1, PSA_BF1_KEY_SCHEDULE);
+    uint32_t wk1 = PSA_CRYPTO_BF1_CONST_U5;
+    psa_crypto_tea_encrypt(&wk0, &wk1, psa_crypto_bf1_key_schedule);
 
     working_key[0] = wk0;
     working_key[1] = wk1;
     working_key[2] = wk2;
     working_key[3] = wk3;
 
-    psa_tea_encrypt(&v0, &v1, working_key);
+    psa_crypto_tea_encrypt(&v0, &v1, working_key);
 
     FURI_LOG_D(TAG, "TEA encrypted v0:0x%08lX v1:0x%08lX", (unsigned long)v0, (unsigned long)v1);
     FURI_LOG_D(
@@ -417,7 +361,7 @@ static void psa_build_buffer_mode36(
         (unsigned long)working_key[2],
         (unsigned long)working_key[3]);
 
-    psa_unpack_tea_result_to_buffer(buffer, v0, v1);
+    psa_crypto_unpack_tea_result_to_buffer(buffer, v0, v1);
 
     if(preserve_buffer01 != NULL) {
         buffer[0] = preserve_buffer01[0];
@@ -465,7 +409,7 @@ static void psa_encoder_build_upload(SubGhzProtocolEncoderPSA* instance) {
 
     if(instance->key1_low != 0 || instance->key1_high != 0) {
         uint8_t orig_buffer[PSA_BUFFER_SIZE] = {0};
-        psa_setup_byte_buffer(
+        psa_crypto_setup_byte_buffer(
             orig_buffer, instance->key1_low, instance->key1_high, instance->key2_low);
         preserve_buffer01[0] = orig_buffer[0];
         preserve_buffer01[1] = orig_buffer[1];
@@ -685,25 +629,6 @@ static uint32_t psa_abs_diff(uint32_t a, uint32_t b) {
     }
 }
 
-static void psa_setup_byte_buffer(
-    uint8_t* buffer,
-    uint32_t key1_low,
-    uint32_t key1_high,
-    uint32_t key2_low) {
-    for(int i = 0; i < 8; i++) {
-        int shift = i * 8;
-        uint8_t byte_val;
-        if(shift < 32) {
-            byte_val = (uint8_t)((key1_low >> shift) & 0xFF);
-        } else {
-            byte_val = (uint8_t)((key1_high >> (shift - 32)) & 0xFF);
-        }
-        buffer[7 - i] = byte_val;
-    }
-    buffer[9] = (uint8_t)(key2_low & 0xFF);
-    buffer[8] = (uint8_t)((key2_low >> 8) & 0xFF);
-}
-
 static bool psa_direct_xor_allowed_by_key2(uint8_t key2_high_byte) {
     uint8_t lo = key2_high_byte & 0xf;
     if(lo < 3) return true;
@@ -741,74 +666,6 @@ static void psa_second_stage_xor_decrypt(uint8_t* buffer) {
     buffer[7] = temp[6] ^ temp[4] ^ temp[5];
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
-static void psa_tea_encrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key) {
-    uint32_t sum = 0;
-    for(int i = 0; i < TEA_ROUNDS; i++) {
-        uint32_t k_idx1 = sum & 3;
-        uint32_t temp = key[k_idx1] + sum;
-        sum = sum + TEA_DELTA;
-        *v0 = *v0 + (temp ^ (((*v1 >> 5) ^ (*v1 << 4)) + *v1));
-        uint32_t k_idx2 = (sum >> 11) & 3;
-        temp = key[k_idx2] + sum;
-        *v1 = *v1 + (temp ^ (((*v0 >> 5) ^ (*v0 << 4)) + *v0));
-    }
-}
-#endif
-
-static inline void psa_tea_decrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key) {
-    uint32_t sum = TEA_DELTA * TEA_ROUNDS;
-    for(int i = 0; i < TEA_ROUNDS; i++) {
-        uint32_t k_idx2 = (sum >> 11) & 3;
-        uint32_t temp = key[k_idx2] + sum;
-        sum = sum - TEA_DELTA;
-        *v1 = *v1 - (temp ^ (((*v0 >> 5) ^ (*v0 << 4)) + *v0));
-        uint32_t k_idx1 = sum & 3;
-        temp = key[k_idx1] + sum;
-        *v0 = *v0 - (temp ^ (((*v1 >> 5) ^ (*v1 << 4)) + *v1));
-    }
-}
-
-static void psa_prepare_tea_data(uint8_t* buffer, uint32_t* w0, uint32_t* w1) {
-    *w0 = ((uint32_t)buffer[3] << 16) | ((uint32_t)buffer[2] << 24) | ((uint32_t)buffer[4] << 8) |
-          (uint32_t)buffer[5];
-    *w1 = ((uint32_t)buffer[7] << 16) | ((uint32_t)buffer[6] << 24) | ((uint32_t)buffer[8] << 8) |
-          (uint32_t)buffer[9];
-}
-
-static uint8_t psa_calculate_tea_crc(uint32_t v0, uint32_t v1) {
-    uint32_t crc = ((v0 >> 24) & 0xFF) + ((v0 >> 16) & 0xFF) + ((v0 >> 8) & 0xFF) + (v0 & 0xFF);
-    crc += ((v1 >> 24) & 0xFF) + ((v1 >> 16) & 0xFF) + ((v1 >> 8) & 0xFF);
-    return (uint8_t)(crc & 0xFF);
-}
-
-static uint16_t psa_calculate_crc16_bf2(uint8_t* buffer, int length) {
-    uint16_t crc = 0;
-    for(int i = 0; i < length; i++) {
-        crc = crc ^ ((uint16_t)buffer[i] << 8);
-        for(int j = 0; j < 8; j++) {
-            if(crc & 0x8000) {
-                crc = (crc << 1) ^ 0x8005;
-            } else {
-                crc = crc << 1;
-            }
-            crc = crc & 0xFFFF;
-        }
-    }
-    return crc & 0xFFFF;
-}
-
-static void psa_unpack_tea_result_to_buffer(uint8_t* buffer, uint32_t v0, uint32_t v1) {
-    buffer[2] = (uint8_t)((v0 >> 24) & 0xFF);
-    buffer[3] = (uint8_t)((v0 >> 16) & 0xFF);
-    buffer[4] = (uint8_t)((v0 >> 8) & 0xFF);
-    buffer[5] = (uint8_t)(v0 & 0xFF);
-    buffer[6] = (uint8_t)((v1 >> 24) & 0xFF);
-    buffer[7] = (uint8_t)((v1 >> 16) & 0xFF);
-    buffer[8] = (uint8_t)((v1 >> 8) & 0xFF);
-    buffer[9] = (uint8_t)(v1 & 0xFF);
-}
-
 static void psa_extract_fields_mode23(uint8_t* buffer, SubGhzProtocolDecoderPSA* instance) {
     instance->decrypted_button = buffer[8] & 0xF;
     instance->decrypted_serial = ((uint32_t)buffer[3] << 8) | ((uint32_t)buffer[2] << 16) |
@@ -817,233 +674,6 @@ static void psa_extract_fields_mode23(uint8_t* buffer, SubGhzProtocolDecoderPSA*
     instance->decrypted_crc = (uint16_t)buffer[7];
     instance->decrypted_type = 0x23;
     instance->decrypted_seed = instance->decrypted_serial;
-}
-
-static void psa_extract_fields_mode36(uint8_t* buffer, SubGhzProtocolDecoderPSA* instance) {
-    instance->decrypted_button = (buffer[5] >> 4) & 0xF;
-    instance->decrypted_serial = ((uint32_t)buffer[3] << 8) | ((uint32_t)buffer[2] << 16) |
-                                 (uint32_t)buffer[4];
-    instance->decrypted_counter = ((uint32_t)buffer[7] << 8) | ((uint32_t)buffer[6] << 16) |
-                                  (uint32_t)buffer[8] | (((uint32_t)buffer[5] & 0xF) << 24);
-    instance->decrypted_crc = (uint16_t)buffer[9];
-    instance->decrypted_type = 0x36;
-    instance->decrypted_seed = instance->decrypted_serial;
-}
-
-static bool psa_brute_force_decrypt_bf1(
-    SubGhzProtocolDecoderPSA* instance,
-    uint8_t* buffer,
-    uint32_t w0,
-    uint32_t w1) {
-    PsaTeaSchedule bf1_sched;
-    psa_tea_build_schedule(PSA_BF1_KEY_SCHEDULE, &bf1_sched);
-
-    for(uint32_t counter = PSA_BF1_START; counter < PSA_BF1_END; counter++) {
-        uint32_t wk2 = PSA_BF1_CONST_U4;
-        uint32_t wk3 = counter;
-        psa_tea_encrypt_with_schedule(&wk2, &wk3, &bf1_sched);
-
-        uint32_t wk0 = (counter << 8) | 0x0E;
-        uint32_t wk1 = PSA_BF1_CONST_U5;
-        psa_tea_encrypt_with_schedule(&wk0, &wk1, &bf1_sched);
-
-        uint32_t working_key[4] = {wk0, wk1, wk2, wk3};
-
-        uint32_t dec_v0 = w0;
-        uint32_t dec_v1 = w1;
-        psa_tea_decrypt(&dec_v0, &dec_v1, working_key);
-
-        if((counter & 0xFFFFFF) == (dec_v0 >> 8)) {
-            uint8_t crc = psa_calculate_tea_crc(dec_v0, dec_v1);
-            if(crc == (dec_v1 & 0xFF)) {
-                psa_unpack_tea_result_to_buffer(buffer, dec_v0, dec_v1);
-                psa_extract_fields_mode36(buffer, instance);
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-static bool psa_brute_force_decrypt_bf2(
-    SubGhzProtocolDecoderPSA* instance,
-    uint8_t* buffer,
-    uint32_t w0,
-    uint32_t w1) {
-    for(uint32_t counter = PSA_BF2_START; counter < PSA_BF2_END; counter++) {
-        uint32_t working_key[4] = {
-            PSA_BF2_KEY_SCHEDULE[0] ^ counter,
-            PSA_BF2_KEY_SCHEDULE[1] ^ counter,
-            PSA_BF2_KEY_SCHEDULE[2] ^ counter,
-            PSA_BF2_KEY_SCHEDULE[3] ^ counter,
-        };
-
-        uint32_t dec_v0 = w0;
-        uint32_t dec_v1 = w1;
-        psa_tea_decrypt(&dec_v0, &dec_v1, working_key);
-
-        if((counter & 0xFFFFFF) == (dec_v0 >> 8)) {
-            psa_unpack_tea_result_to_buffer(buffer, dec_v0, dec_v1);
-
-            uint8_t crc_buffer[6] = {
-                (uint8_t)((dec_v0 >> 24) & 0xFF),
-                (uint8_t)((dec_v0 >> 8) & 0xFF),
-                (uint8_t)((dec_v0 >> 16) & 0xFF),
-                (uint8_t)(dec_v0 & 0xFF),
-                (uint8_t)((dec_v1 >> 24) & 0xFF),
-                (uint8_t)((dec_v1 >> 16) & 0xFF),
-            };
-            uint16_t crc16 = psa_calculate_crc16_bf2(crc_buffer, 6);
-
-            uint16_t expected_crc = (uint16_t)(dec_v1 & 0xFFFF);
-
-            if(crc16 == expected_crc) {
-                psa_extract_fields_mode36(buffer, instance);
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-static void psa_fill_bf_state_from_buffer(PsaBfState* state, uint8_t* buffer) {
-    state->decrypted_button = (buffer[5] >> 4) & 0xF;
-    state->decrypted_serial = ((uint32_t)buffer[3] << 8) | ((uint32_t)buffer[2] << 16) |
-                              (uint32_t)buffer[4];
-    state->decrypted_counter = ((uint32_t)buffer[7] << 8) | ((uint32_t)buffer[6] << 16) |
-                               (uint32_t)buffer[8] | (((uint32_t)buffer[5] & 0xF) << 24);
-    state->decrypted_crc = (uint16_t)buffer[9];
-    state->decrypted_seed = state->decrypted_serial;
-    state->decrypted_type = 0x36;
-}
-
-#define PSA_BF_PROGRESS_INTERVAL 4096U
-
-void psa_brute_force_run(PsaBfState* state) {
-    uint8_t buffer[48] = {0};
-    psa_setup_byte_buffer(buffer, state->key1_low, state->key1_high, state->key2_low);
-    uint32_t w0, w1;
-    psa_prepare_tea_data(buffer, &w0, &w1);
-
-    state->progress_current = 0;
-    state->progress_total = (PSA_BF1_END - PSA_BF1_START) + (PSA_BF2_END - PSA_BF2_START);
-    state->status = PSA_BF_STATUS_RUNNING;
-
-    PsaTeaSchedule bf1_sched;
-    psa_tea_build_schedule(PSA_BF1_KEY_SCHEDULE, &bf1_sched);
-
-    for(uint32_t counter = PSA_BF1_START; counter < PSA_BF1_END; counter++) {
-        if(state->cancel) {
-            state->status = PSA_BF_STATUS_CANCELLED;
-            return;
-        }
-        if((counter & (PSA_BF_PROGRESS_INTERVAL - 1)) == 0) {
-            state->progress_current = counter - PSA_BF1_START;
-        }
-
-        uint32_t wk2 = PSA_BF1_CONST_U4;
-        uint32_t wk3 = counter;
-        psa_tea_encrypt_with_schedule(&wk2, &wk3, &bf1_sched);
-        uint32_t wk0 = (counter << 8) | 0x0E;
-        uint32_t wk1 = PSA_BF1_CONST_U5;
-        psa_tea_encrypt_with_schedule(&wk0, &wk1, &bf1_sched);
-        uint32_t working_key[4] = {wk0, wk1, wk2, wk3};
-
-        uint32_t dec_v0 = w0;
-        uint32_t dec_v1 = w1;
-        psa_tea_decrypt(&dec_v0, &dec_v1, working_key);
-
-        if((counter & 0xFFFFFF) == (dec_v0 >> 8)) {
-            uint8_t crc = psa_calculate_tea_crc(dec_v0, dec_v1);
-            if(crc == (dec_v1 & 0xFF)) {
-                psa_unpack_tea_result_to_buffer(buffer, dec_v0, dec_v1);
-                psa_fill_bf_state_from_buffer(state, buffer);
-                state->progress_current = counter - PSA_BF1_START;
-                state->status = PSA_BF_STATUS_FOUND;
-                return;
-            }
-        }
-    }
-
-    state->progress_current = PSA_BF1_END - PSA_BF1_START;
-
-    for(uint32_t counter = PSA_BF2_START; counter < PSA_BF2_END; counter++) {
-        if(state->cancel) {
-            state->status = PSA_BF_STATUS_CANCELLED;
-            return;
-        }
-        if((counter & (PSA_BF_PROGRESS_INTERVAL - 1)) == 0) {
-            state->progress_current = (PSA_BF1_END - PSA_BF1_START) + (counter - PSA_BF2_START);
-        }
-
-        uint32_t working_key[4] = {
-            PSA_BF2_KEY_SCHEDULE[0] ^ counter,
-            PSA_BF2_KEY_SCHEDULE[1] ^ counter,
-            PSA_BF2_KEY_SCHEDULE[2] ^ counter,
-            PSA_BF2_KEY_SCHEDULE[3] ^ counter,
-        };
-        uint32_t dec_v0 = w0;
-        uint32_t dec_v1 = w1;
-        psa_tea_decrypt(&dec_v0, &dec_v1, working_key);
-
-        if((counter & 0xFFFFFF) == (dec_v0 >> 8)) {
-            psa_unpack_tea_result_to_buffer(buffer, dec_v0, dec_v1);
-            uint8_t crc_buffer[6] = {
-                (uint8_t)((dec_v0 >> 24) & 0xFF),
-                (uint8_t)((dec_v0 >> 8) & 0xFF),
-                (uint8_t)((dec_v0 >> 16) & 0xFF),
-                (uint8_t)(dec_v0 & 0xFF),
-                (uint8_t)((dec_v1 >> 24) & 0xFF),
-                (uint8_t)((dec_v1 >> 16) & 0xFF),
-            };
-            uint16_t crc16 = psa_calculate_crc16_bf2(crc_buffer, 6);
-            uint16_t expected_crc = (uint16_t)(dec_v1 & 0xFFFF);
-            if(crc16 == expected_crc) {
-                psa_fill_bf_state_from_buffer(state, buffer);
-                state->progress_current =
-                    (PSA_BF1_END - PSA_BF1_START) + (counter - PSA_BF2_START);
-                state->status = PSA_BF_STATUS_FOUND;
-                return;
-            }
-        }
-    }
-
-    state->status = PSA_BF_STATUS_NOT_FOUND;
-}
-
-int32_t psa_brute_force_thread_entry(void* arg) {
-    PsaBfState* state = arg;
-    psa_brute_force_run(state);
-
-    if(state->on_done) {
-        state->on_done(state->on_done_ctx);
-    }
-    return 0;
-}
-
-bool psa_bf_state_from_flipper_format(PsaBfState* state, FlipperFormat* ff) {
-    furi_check(state);
-    furi_check(ff);
-    bool ok = false;
-    do {
-        uint64_t key1 = 0;
-        if(!pp_flipper_read_hex_u64(ff, FF_KEY, &key1)) break;
-        state->key1_low = (uint32_t)(key1 & 0xFFFFFFFF);
-        state->key1_high = (uint32_t)((key1 >> 32) & 0xFFFFFFFF);
-
-        uint64_t key2 = 0;
-        if(!pp_flipper_read_hex_u64(ff, "Key_2", &key2)) break;
-        state->key2_low = (uint16_t)(key2 & 0xFFFF);
-
-        state->cancel = 0;
-        state->progress_current = 0;
-        state->progress_total = 0;
-        state->status = PSA_BF_STATUS_IDLE;
-        state->on_done = NULL;
-        state->on_done_ctx = NULL;
-        ok = true;
-    } while(false);
-    return ok;
 }
 
 static bool psa_direct_xor_decrypt(SubGhzProtocolDecoderPSA* instance, uint8_t* buffer) {
@@ -1098,7 +728,7 @@ static void psa_handle_decoded_frame(SubGhzProtocolDecoderPSA* instance, uint8_t
         (unsigned int)instance->validation_field);
 
     uint8_t buffer[PSA_BUFFER_SIZE] = {0};
-    psa_setup_byte_buffer(buffer, instance->key1_low, instance->key1_high, instance->key2_low);
+    psa_crypto_setup_byte_buffer(buffer, instance->key1_low, instance->key1_high, instance->key2_low);
     if(instance->mode_serialize != 0x36 && psa_direct_xor_decrypt(instance, buffer)) {
         instance->mode_serialize = 0x23;
         instance->decrypted = 0x50;
@@ -1136,7 +766,7 @@ static void psa_decrypt_router(SubGhzProtocolDecoderPSA* instance) {
 
     uint8_t buffer[PSA_BUFFER_SIZE] = {0};
 
-    psa_setup_byte_buffer(buffer, instance->key1_low, instance->key1_high, instance->key2_low);
+    psa_crypto_setup_byte_buffer(buffer, instance->key1_low, instance->key1_high, instance->key2_low);
 
     uint8_t key2_high_byte = buffer[8];
     uint8_t mode = instance->mode_serialize;
@@ -1180,22 +810,10 @@ static void psa_decrypt_router(SubGhzProtocolDecoderPSA* instance) {
             return;
         }
 
-        FURI_LOG_I(TAG, "Direct XOR skipped or failed - trying brute force...");
-        uint32_t w0, w1;
-        psa_prepare_tea_data(buffer, &w0, &w1);
-
-        if(psa_brute_force_decrypt_bf1(instance, buffer, w0, w1)) {
-            instance->mode_serialize = 0x36;
-            instance->decrypted = 0x50;
-            FURI_LOG_I(TAG, "BF1 brute force SUCCESS");
-            return;
-        }
-        if(psa_brute_force_decrypt_bf2(instance, buffer, w0, w1)) {
-            instance->mode_serialize = 0x36;
-            instance->decrypted = 0x50;
-            FURI_LOG_I(TAG, "BF2 brute force SUCCESS");
-            return;
-        }
+        FURI_LOG_I(TAG, "Direct XOR skipped or failed - TEA BF deferred to plugin");
+        instance->mode_serialize = 0x36;
+        instance->decrypted = 0x00;
+        return;
     }
 
     FURI_LOG_E(TAG, "=== ALL DECRYPTION ATTEMPTS FAILED ===");

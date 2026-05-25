@@ -47,6 +47,8 @@ typedef enum {
     // Need saving confirmation
     ProtoPirateCustomEventSceneStay,
     ProtoPirateCustomEventSceneExit,
+    // About scene
+    ProtoPirateCustomEventAboutToggleEmulate,
 } ProtoPirateCustomEvent;
 
 typedef enum {
