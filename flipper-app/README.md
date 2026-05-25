@@ -7,7 +7,7 @@ Native Flipper Zero app that classifies SubGhz BinRAW `.sub` captures on-device.
 1. Browse `.sub` files on the SD card (`/ext/subghz/`)
 2. Parse the capture (Frequency, TE, Bit_RAW / Data_RAW)
 3. Extract ~30 signal features (entropy, PWM params, Manchester decode incl. Differential, tri-state PWM, segment similarity, inter-segment timing, rolling-code detection, CRC scan, …)
-4. Run 15-stage classifier: NOISE → AMR_METER → TPMS → WMBUS_METER → HONEYWELL_5800 → ALARM_SENSOR → SHUTTER_BLIND → ENOCEAN_SWITCH → DOORBELL → OUTLET_SWITCH → GARAGE_REMOTE → KEYFOB_REMOTE → WEATHER_STATION → LORA_BEACON → UNKNOWN_STRUCTURED
+4. Run 17-stage classifier: NOISE → AMR_METER → TPMS → WMBUS_METER → HONEYWELL_5800 → ALARM_SENSOR → SHUTTER_BLIND → ENOCEAN_SWITCH → PT2262_REMOTE → EV1527_REMOTE → DOORBELL → OUTLET_SWITCH → GARAGE_REMOTE → KEYFOB_REMOTE → WEATHER_STATION → LORA_BEACON → UNKNOWN_STRUCTURED
 5. Display a scrollable report on screen and save two sidecars next to the source file:
    - `<capture>.report.txt` — full human-readable report
    - `<capture>.bra` — machine-readable key=value metadata (label, confidence, freq, TE, payload_hex, GPS)
@@ -84,6 +84,8 @@ Captures that exceed these limits are **not rejected** — they are analyzed wit
 | ALARM_SENSOR | 433.92/868 MHz, entropy ≥0.80, ≥40 inner bits, no clean PWM, ≤3 segments |
 | SHUTTER_BLIND | 433.42/433.92/868 MHz, TE 500–780 µs (Somfy/Nice/Faac) |
 | ENOCEAN_SWITCH | 868 MHz, 3–5 identical repeats, ≥95% PWM consistency, 28–36 decoded bits |
+| PT2262_REMOTE | ISM, tri-state PWM (8–16 symbols), fixed code, TE 100–450 µs |
+| EV1527_REMOTE | 433.92 MHz, 2-symbol PWM, 23–26 bits, ~3:1 gap ratio, fixed code, ≥3 repeats |
 | DOORBELL | ISM, 5–10 identical repeats, PWM, 16–40 decoded bits |
 | OUTLET_SWITCH | ISM, 3–6 repeats, ≥97% similarity, 24–32 decoded bits, fixed code |
 | GARAGE_REMOTE | ISM, 2–6 repeats, ≥92% similarity, clean PWM preferred; TE-bucket sub-hints |

@@ -141,6 +141,8 @@ typedef enum {
     BitrawLabelKeyfobRemote,
     BitrawLabelWeatherStation,
     BitrawLabelLoraBeacon,
+    BitrawLabelPt2262Remote,
+    BitrawLabelEv1527Remote,
     BitrawLabelUnknownStructured,
 } BitrawLabel;
 

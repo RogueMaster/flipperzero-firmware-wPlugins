@@ -3,7 +3,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from analyze import (
     decode_manchester, detect_rolling_code, compute_signal_quality,
     classify_alarm_sensor, classify_doorbell, classify_outlet_switch,
-    classify_keyfob, classify,
+    classify_keyfob, classify_pt2262, classify_ev1527, classify,
     format_geojson, ClassificationResult,
     SubFile, FeatureVector, PWMParams, PreambleInfo, extract_features,
     compute_inter_segment_gaps_us, detect_pwm3_params, detect_crc,
@@ -141,6 +141,81 @@ def test_classify_outlet_fires_for_3_4_repeats():
     result = classify_outlet_switch(fv)
     assert result is not None
     assert result.label == "OUTLET_SWITCH"
+
+
+# --- PT2262 (tri-state fixed-code) ---------------------------------------
+
+def test_pt2262_fires_on_tristate():
+    fv = _make_fv(seg_count=4, pwm_decoded=24, te=350.0)
+    fv.pwm3_detected = True
+    fv.pwm3_symbol_count = 12
+    result = classify_pt2262(fv)
+    assert result is not None
+    assert result.label == "PT2262_REMOTE"
+    assert result.confidence == "MEDIUM"
+
+def test_pt2262_skipped_without_tristate():
+    fv = _make_fv(seg_count=4, pwm_decoded=24)
+    fv.pwm3_detected = False
+    assert classify_pt2262(fv) is None
+
+def test_pt2262_skipped_on_rolling_code():
+    fv = _make_fv(seg_count=4, pwm_decoded=24, te=350.0)
+    fv.pwm3_detected = True
+    fv.pwm3_symbol_count = 12
+    fv.fixed_code = False
+    assert classify_pt2262(fv) is None
+
+def test_classify_routes_tristate_to_pt2262():
+    # End-to-end: a tri-state remote must beat the generic DOORBELL/GARAGE classifiers
+    fv = _make_fv(seg_count=4, pwm_decoded=24, te=350.0)
+    fv.pwm3_detected = True
+    fv.pwm3_symbol_count = 12
+    assert classify(fv).label == "PT2262_REMOTE"
+
+
+# --- EV1527 (2-symbol 24-bit fixed code) ---------------------------------
+
+def _ev1527_fv(seg_count=5):
+    fv = _make_fv(seg_count=seg_count, pwm_decoded=24, te=320.0)
+    fv.pwm_params = PWMParams(pulse_width=3, short_gap=4, long_gap=12, consistency=0.95)
+    fv.pwm3_detected = False
+    return fv
+
+def test_ev1527_fires_on_3to1_ratio():
+    result = classify_ev1527(_ev1527_fv(seg_count=5))
+    assert result is not None
+    assert result.label == "EV1527_REMOTE"
+    assert result.confidence == "MEDIUM"
+
+def test_ev1527_low_confidence_few_repeats():
+    result = classify_ev1527(_ev1527_fv(seg_count=3))
+    assert result is not None
+    assert result.confidence == "LOW"
+
+def test_ev1527_skipped_when_ratio_too_low():
+    # Default _make_fv pwm has long/short = 11/6 ≈ 1.8 → not EV1527
+    fv = _make_fv(seg_count=5, pwm_decoded=24)
+    fv.pwm3_detected = False
+    assert classify_ev1527(fv) is None
+
+def test_ev1527_skipped_off_frequency():
+    fv = _ev1527_fv(seg_count=5)
+    fv.frequency = 315_000_000
+    assert classify_ev1527(fv) is None
+
+def test_ev1527_skipped_on_tristate():
+    fv = _ev1527_fv(seg_count=5)
+    fv.pwm3_detected = True
+    assert classify_ev1527(fv) is None
+
+def test_classify_routes_ev1527():
+    assert classify(_ev1527_fv(seg_count=5)).label == "EV1527_REMOTE"
+
+def test_classify_plain_doorbell_not_stolen():
+    # No tri-state, ~1.8 gap ratio → still DOORBELL, not PT2262/EV1527
+    fv = _make_fv(seg_count=6, pwm_decoded=24)
+    assert classify(fv).label == "DOORBELL"
 
 def test_alarm_sensor_single_segment():
     fv = _make_fv(freq=433_920_000, te=150.0, seg_count=1, seg_sim=None,

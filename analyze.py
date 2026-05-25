@@ -1110,6 +1110,78 @@ def classify_shutter_blind(fv: FeatureVector) -> object:
     )
 
 
+def classify_pt2262(fv: FeatureVector) -> object:
+    """PT2262/PT2272 tri-state fixed-code remote: 12 tri-state symbols (0/1/float)
+    produce a 3rd gap bucket — the exclusive tri-state PWM signature. Fixed code,
+    repeated, ISM OOK at ~100–450µs TE. Runs before the generic doorbell/outlet/
+    garage classifiers that otherwise absorb it."""
+    if fv.frequency not in ISM_FREQS:
+        return None
+    if not fv.pwm3_detected:
+        return None
+    if fv.seg_count < 2:
+        return None
+    if not fv.fixed_code:
+        return None
+    if fv.pwm_params is None or fv.pwm_params.consistency < 0.75:
+        return None
+    if not (100 <= fv.te_us <= 450):
+        return None
+    if not (8 <= fv.pwm3_symbol_count <= 16):
+        return None
+
+    reasons = [
+        f"[PT1] Tri-state PWM ({fv.pwm3_symbol_count} symbols) — PT2262 0/1/float encoding",
+        f"[PT2] {fv.seg_count} repeats, fixed code — static address+data word",
+        f"[PT3] TE={fv.te_us:.0f}µs, PWM consistency {fv.pwm_params.consistency:.0%}",
+    ]
+    return ClassificationResult(
+        label="PT2262_REMOTE",
+        confidence="MEDIUM",
+        sub_protocol=["PT2262 tri-state fixed-code remote",
+                      "433.92MHz ISM" if fv.frequency == 433_920_000 else f"{_freq_label(fv.frequency)} ISM"],
+        reasons=reasons,
+        warnings=["Fixed code — this transmission may be vulnerable to replay attack"],
+    )
+
+
+def classify_ev1527(fv: FeatureVector) -> object:
+    """EV1527/HS1527 learning-code remote: 24-bit word (20-bit chip-burned address +
+    4-bit data), 2-symbol PWM with a distinctive ~1:3 short:long gap ratio. Fixed per
+    device, repeated. 433.92 MHz only (most common module band)."""
+    if fv.frequency != 433_920_000:
+        return None
+    if fv.pwm3_detected:
+        return None  # tri-state → PT2262, handled earlier
+    if fv.seg_count < 3:
+        return None
+    if not fv.fixed_code:
+        return None
+    if fv.pwm_params is None or fv.pwm_params.consistency < 0.85:
+        return None
+    if not (23 <= fv.pwm_decoded_count <= 26):
+        return None
+    if fv.entropy < 0.80:
+        return None
+    ratio = fv.pwm_params.long_gap / max(fv.pwm_params.short_gap, 1)
+    if not (2.3 <= ratio <= 4.0):
+        return None
+
+    confidence = "MEDIUM" if fv.seg_count >= 4 else "LOW"
+    reasons = [
+        f"[EV1] {fv.pwm_decoded_count}-bit word — EV1527 20-bit address + 4-bit data",
+        f"[EV2] Gap ratio {ratio:.1f}:1 — EV1527 short/long pulse signature",
+        f"[EV3] {fv.seg_count} repeats, fixed code, entropy={fv.entropy:.2f} (random chip address)",
+    ]
+    return ClassificationResult(
+        label="EV1527_REMOTE",
+        confidence=confidence,
+        sub_protocol=["EV1527/HS1527 learning-code remote", "433.92MHz ISM"],
+        reasons=reasons,
+        warnings=["Fixed code — this transmission may be vulnerable to replay attack"],
+    )
+
+
 def classify_doorbell(fv: FeatureVector) -> object:
     """Wireless doorbell: PT2262-family, 5–8 repeats, 24-bit fixed code."""
     if fv.frequency not in ISM_FREQS:
@@ -1560,6 +1632,8 @@ def classify(fv: FeatureVector) -> ClassificationResult:
         classify_alarm_sensor,
         classify_shutter_blind,     # TE≈600µs unique enough to run early
         classify_enocean,           # 868 short PWM before generic doorbell/outlet
+        classify_pt2262,            # tri-state fixed-code before generic doorbell/outlet/garage
+        classify_ev1527,            # 24-bit 3:1-ratio fixed-code before generic remotes
         classify_doorbell,
         classify_outlet_switch,
         classify_garage,

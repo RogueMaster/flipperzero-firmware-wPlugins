@@ -8,6 +8,6 @@ App(
     fap_category="Sub-GHz",
     fap_icon="icons/icon_10x10.png",
     fap_author="bitraw-analysis",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Classify Flipper SubGhz BinRAW captures on-device",
 )

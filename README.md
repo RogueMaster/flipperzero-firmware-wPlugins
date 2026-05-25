@@ -1,6 +1,7 @@
 # Subhound
 <img width="1924" height="1924" alt="image" src="https://github.com/user-attachments/assets/018aaa38-5762-43e6-abe4-bef1a641cdd3" />
-Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 15 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
+
+Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 17 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
 
 ---
 
@@ -108,6 +109,8 @@ python3 analyze.py wardrive_session/ --json --geojson out.geojson --db session.d
 | `ALARM_SENSOR` | Generic alarm sensor (Visonic / DSC / others) | 433.92, 868 MHz |
 | `SHUTTER_BLIND` | Somfy RTS / Nice Evo / Faac motorised blind remote | 433.42, 433.92, 868 MHz |
 | `ENOCEAN_SWITCH` | EnOcean PTM self-powered switch | 868 MHz |
+| `PT2262_REMOTE` | PT2262/PT2272 tri-state fixed-code remote | 315, 433.92 MHz |
+| `EV1527_REMOTE` | EV1527/HS1527 learning-code remote (24-bit) | 433.92 MHz |
 | `DOORBELL` | Wireless doorbell (≥5 segment repeats) | 315, 433.92 MHz |
 | `OUTLET_SWITCH` | Smart plug / RF outlet (3–6 segment repeats) | 315, 433.92 MHz |
 | `GARAGE_REMOTE` | Garage / barrier / car remote (TE buckets hint at Skylink/Linear/Stanley) | 315, 433.92 MHz |

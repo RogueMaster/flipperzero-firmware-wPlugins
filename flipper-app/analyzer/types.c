@@ -16,6 +16,8 @@ const char* bitraw_label_name(BitrawLabel label) {
     case BitrawLabelKeyfobRemote: return "KEYFOB_REMOTE";
     case BitrawLabelWeatherStation: return "WEATHER_STATION";
     case BitrawLabelLoraBeacon: return "LORA_BEACON";
+    case BitrawLabelPt2262Remote: return "PT2262_REMOTE";
+    case BitrawLabelEv1527Remote: return "EV1527_REMOTE";
     case BitrawLabelUnknownStructured: return "UNKNOWN_STRUCTURED";
     }
     return "UNKNOWN";

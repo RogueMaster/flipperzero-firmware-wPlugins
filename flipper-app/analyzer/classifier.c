@@ -352,6 +352,75 @@ static bool classify_shutter_blind(const FeatureVector* fv, ClassificationResult
     return true;
 }
 
+/* ============================== PT2262 ================================ */
+
+static bool classify_pt2262(const FeatureVector* fv, ClassificationResult* out) {
+    /* Tri-state (0/1/float) PWM is the exclusive PT2262 signature - no other
+     * classifier reads pwm3_detected. Runs before doorbell/outlet/garage. */
+    if(!is_ism_freq(fv->frequency)) return false;
+    if(!fv->pwm3_detected) return false;
+    if(fv->seg_count < 2) return false;
+    if(!fv->fixed_code) return false;
+    if(!fv->pwm_params.found || fv->pwm_params.consistency < 0.75f) return false;
+    if(fv->te_us < 100.0f || fv->te_us > 450.0f) return false;
+    if(fv->pwm3_symbol_count < 8 || fv->pwm3_symbol_count > 16) return false;
+
+    classifier_add_reason(
+        out, "[PT1] Tri-state PWM (%u symbols) - PT2262 0/1/float encoding", fv->pwm3_symbol_count);
+    classifier_add_reason(
+        out, "[PT2] %u repeats, fixed code - static address+data word", fv->seg_count);
+    classifier_add_reason(
+        out,
+        "[PT3] TE=%.0fus, PWM consistency %.0f%%",
+        (double)fv->te_us,
+        (double)(fv->pwm_params.consistency * 100.0f));
+
+    classifier_add_hint(out, "PT2262 tri-state fixed-code remote");
+    classifier_add_hint(
+        out, fv->frequency == 433920000u ? "433.92MHz ISM" : "ISM band");
+
+    out->label = BitrawLabelPt2262Remote;
+    out->confidence = BitrawConfMedium;
+    classifier_add_warning(
+        out, "Fixed code - this transmission may be vulnerable to replay");
+    return true;
+}
+
+/* ============================== EV1527 ================================ */
+
+static bool classify_ev1527(const FeatureVector* fv, ClassificationResult* out) {
+    /* 24-bit word (20-bit chip address + 4-bit data), 2-symbol PWM with ~1:3
+     * short:long gap ratio. 433.92 MHz only. */
+    if(fv->frequency != 433920000u) return false;
+    if(fv->pwm3_detected) return false; /* tri-state -> PT2262 */
+    if(fv->seg_count < 3) return false;
+    if(!fv->fixed_code) return false;
+    if(!fv->pwm_params.found || fv->pwm_params.consistency < 0.85f) return false;
+    if(fv->pwm_decoded_count < 23 || fv->pwm_decoded_count > 26) return false;
+    if(fv->entropy < 0.80f) return false;
+    float ratio = (float)fv->pwm_params.long_gap /
+                  (float)(fv->pwm_params.short_gap > 0 ? fv->pwm_params.short_gap : 1);
+    if(ratio < 2.3f || ratio > 4.0f) return false;
+
+    classifier_add_reason(
+        out, "[EV1] %u-bit word - EV1527 20-bit address + 4-bit data", fv->pwm_decoded_count);
+    classifier_add_reason(out, "[EV2] Gap ratio %.1f:1 - EV1527 short/long signature", (double)ratio);
+    classifier_add_reason(
+        out,
+        "[EV3] %u repeats, fixed code, entropy=%.2f (random chip address)",
+        fv->seg_count,
+        (double)fv->entropy);
+
+    classifier_add_hint(out, "EV1527/HS1527 learning-code remote");
+    classifier_add_hint(out, "433.92MHz ISM");
+
+    out->label = BitrawLabelEv1527Remote;
+    out->confidence = fv->seg_count >= 4 ? BitrawConfMedium : BitrawConfLow;
+    classifier_add_warning(
+        out, "Fixed code - this transmission may be vulnerable to replay");
+    return true;
+}
+
 /* ============================== DOORBELL =============================== */
 
 static bool classify_doorbell(const FeatureVector* fv, ClassificationResult* out) {
@@ -815,6 +884,8 @@ void classifier_run(const FeatureVector* fv, ClassificationResult* out) {
         classify_alarm_sensor,
         classify_shutter_blind,
         classify_enocean,            /* 868 short PWM before doorbell/outlet */
+        classify_pt2262,             /* tri-state fixed-code before generic remotes */
+        classify_ev1527,             /* 24-bit 3:1-ratio fixed-code before generic remotes */
         classify_doorbell,
         classify_outlet_switch,
         classify_garage,
