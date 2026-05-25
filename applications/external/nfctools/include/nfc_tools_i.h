@@ -34,7 +34,7 @@
 #include "views/special_input/nfc_tools_special_input.h"
 #include "helpers/md5/nfc_tools_md5.h"
 
-#define NFC_TOOLS_VERSION "1.2"
+#define NFC_TOOLS_VERSION FAP_VERSION
 
 #define NFC_TOOLS_WORKER_FLAG_DETECTED (1u << 0)
 #define NFC_TOOLS_WORKER_FLAG_STOP     (1u << 1)

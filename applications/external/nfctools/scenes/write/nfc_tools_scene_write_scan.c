@@ -33,7 +33,7 @@ static bool write_mful_pages(NfcToolsApp* app, const uint8_t* ndef, size_t ndef_
 
         MfUltralightPage page = {.data = {0, 0, 0, 0}};
         size_t offset = i * MF_ULTRALIGHT_PAGE_SIZE;
-        size_t chunk  = ndef_size - offset;
+        size_t chunk = ndef_size - offset;
         if(chunk > MF_ULTRALIGHT_PAGE_SIZE) chunk = MF_ULTRALIGHT_PAGE_SIZE;
         memcpy(page.data, ndef + offset, chunk);
 
@@ -52,8 +52,8 @@ static int32_t nfc_tools_ndef_write_worker(void* context) {
     NfcToolsApp* app = context;
 
     // Phase 1: build the NDEF buffer before touching NFC
-    size_t   ndef_size = 0;
-    uint8_t* ndef      = nfc_tools_ndef_build(app, &ndef_size);
+    size_t ndef_size = 0;
+    uint8_t* ndef = nfc_tools_ndef_build(app, &ndef_size);
 
     // Phase 2: detect a tag via NfcScanner (15 s timeout)
     NfcScanner* scanner = nfc_scanner_alloc(app->nfc);
@@ -82,11 +82,12 @@ static int32_t nfc_tools_ndef_write_worker(void* context) {
     }
 
     // Phase 3: verify that the tag is supported
-    bool is_mful     = (app->detected_protocol == NfcProtocolMfUltralight);
-    bool is_iso15693 = (app->detected_protocol == NfcProtocolIso15693_3 ||
-                        app->detected_protocol == NfcProtocolSlix);
-    bool is_mfc      = (app->detected_protocol == NfcProtocolMfClassic);
-    bool is_desfire  = (app->detected_protocol == NfcProtocolMfDesfire);
+    bool is_mful = (app->detected_protocol == NfcProtocolMfUltralight);
+    bool is_iso15693 =
+        (app->detected_protocol == NfcProtocolIso15693_3 ||
+         app->detected_protocol == NfcProtocolSlix);
+    bool is_mfc = (app->detected_protocol == NfcProtocolMfClassic);
+    bool is_desfire = (app->detected_protocol == NfcProtocolMfDesfire);
 
     if(!is_mful && !is_iso15693 && !is_mfc && !is_desfire) {
         free(ndef);
@@ -109,15 +110,14 @@ static int32_t nfc_tools_ndef_write_worker(void* context) {
     // once more — silently, with no intermediate UI update.
     // The STOP flag is checked both before the delay and after it so that a
     // user cancellation during the 200 ms window is handled immediately.
-#define RETRY_WRITE(ok_var, write_expr)                                                   \
-    do {                                                                                   \
-        if(!(ok_var) &&                                                                    \
-           !(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP)) {      \
-            furi_delay_ms(WRITE_RETRY_DELAY_MS);                                          \
-            if(!(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP)) {  \
-                (ok_var) = (write_expr);                                                   \
-            }                                                                              \
-        }                                                                                  \
+#define RETRY_WRITE(ok_var, write_expr)                                                           \
+    do {                                                                                          \
+        if(!(ok_var) && !(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP)) { \
+            furi_delay_ms(WRITE_RETRY_DELAY_MS);                                                  \
+            if(!(furi_event_flag_get(app->worker_flags) & NFC_TOOLS_WORKER_FLAG_STOP)) {          \
+                (ok_var) = (write_expr);                                                          \
+            }                                                                                     \
+        }                                                                                         \
     } while(0)
 
     // ── ISO 15693 path (ICODE SLI / SLIX / SLIX2) ──────────────────────────
@@ -241,7 +241,7 @@ static void nfc_tools_ndef_write_stop_worker(NfcToolsApp* app) {
         furi_thread_free(app->worker_thread);
         furi_event_flag_free(app->worker_flags);
         app->worker_thread = NULL;
-        app->worker_flags  = NULL;
+        app->worker_flags = NULL;
     }
 }
 
@@ -252,43 +252,34 @@ void nfc_tools_scene_write_scan_on_enter(void* context) {
 
     popup_reset(app->popup);
     popup_set_header(
-        app->popup,
-        nfc_tools_ndef_write_label(app->ndef_type),
-        64, 10, AlignCenter, AlignCenter);
-    popup_set_text(
-        app->popup,
-        NTS_POPUP_APPROACH_TAG,
-        64, 35, AlignCenter, AlignCenter);
+        app->popup, nfc_tools_ndef_write_label(app->ndef_type), 64, 10, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, NTS_POPUP_APPROACH_TAG, 64, 35, AlignCenter, AlignCenter);
 
     furi_string_reset(app->info_str);
 
-    app->worker_flags  = furi_event_flag_alloc();
-    app->worker_thread = furi_thread_alloc_ex(
-        "NfcToolsNdefWrite", 4 * 1024, nfc_tools_ndef_write_worker, app);
+    app->worker_flags = furi_event_flag_alloc();
+    app->worker_thread =
+        furi_thread_alloc_ex("NfcToolsNdefWrite", 4 * 1024, nfc_tools_ndef_write_worker, app);
     furi_thread_start(app->worker_thread);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcToolsViewPopup);
 }
 
 bool nfc_tools_scene_write_scan_on_event(void* context, SceneManagerEvent event) {
-    NfcToolsApp* app      = context;
-    bool         consumed = false;
+    NfcToolsApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == NfcToolsEventWriteSuccess) {
             popup_set_header(
                 app->popup, NTS_STATUS_WRITE_COMPLETE, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 35, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         } else if(event.event == NfcToolsEventWriteFail) {
             popup_set_header(app->popup, NTS_ERR_FAILED, 64, 10, AlignCenter, AlignCenter);
             popup_set_text(
-                app->popup,
-                furi_string_get_cstr(app->info_str),
-                64, 35, AlignCenter, AlignCenter);
+                app->popup, furi_string_get_cstr(app->info_str), 64, 35, AlignCenter, AlignCenter);
             consumed = true;
         }
     }

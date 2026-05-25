@@ -367,6 +367,10 @@ void handle_uart_rx_data(uint8_t* buf, size_t len, void* context) {
        state->uart_context->storageContext->HasOpenedFile) {
         static size_t bytes_since_sync = 0;
 
+        if(bytes_since_sync > 1024 && state->uart_context->storageContext->HasOpenedFile) {
+            bytes_since_sync = 0;
+        }
+
         size_t written =
             storage_file_write(state->uart_context->storageContext->log_file, buf, len);
 
@@ -886,12 +890,11 @@ bool uart_receive_data(
 
     // Set the view state before switching
     state->previous_view = state->current_view;
-    state->current_view = 5;
+    state->current_view = VIEW_TEXT_BOX;
 
-    // Process any pending events before view switch
     furi_delay_ms(5);
 
-    view_dispatcher_switch_to_view(view_dispatcher, 5);
+    view_dispatcher_switch_to_view(view_dispatcher, VIEW_TEXT_BOX);
 
     return true;
 }

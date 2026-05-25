@@ -8,7 +8,7 @@
 
 // ── Type aliases (no changes required in existing scenes) ──────────────────
 
-typedef Keyboard         SpecialInput;
+typedef Keyboard SpecialInput;
 typedef KeyboardCallback SpecialInputCallback;
 
 // ── Inline forwarding functions ────────────────────────────────────────────
@@ -34,12 +34,12 @@ static inline void special_input_set_header_text(SpecialInput* si, const char* t
 }
 
 static inline void special_input_set_result_callback(
-    SpecialInput*        si,
+    SpecialInput* si,
     SpecialInputCallback callback,
-    void*                callback_context,
-    char*                text_buffer,
-    size_t               text_buffer_size,
-    bool                 clear_default_text) {
+    void* callback_context,
+    char* text_buffer,
+    size_t text_buffer_size,
+    bool clear_default_text) {
     keyboard_set_result_callback(
         si, callback, callback_context, text_buffer, text_buffer_size, clear_default_text);
 }

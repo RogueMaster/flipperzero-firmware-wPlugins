@@ -29,7 +29,7 @@ void show_confirmation_dialog_ex(
     }
 
     // Don't try to show dialog if we're already in confirmation view
-    if(state->current_view == 7) {
+    if(state->current_view == VIEW_CONFIRMATION) {
         FURI_LOG_W("ConfDialog", "Already in confirmation view, ignoring");
         return;
     }
@@ -48,6 +48,9 @@ void show_confirmation_dialog_ex(
     }
 
     confirm_ctx->state = state;
+    if(state->active_confirm_context) {
+        free(state->active_confirm_context);
+    }
     state->active_confirm_context = confirm_ctx;
 
     // Set up the confirmation dialog
@@ -63,8 +66,8 @@ void show_confirmation_dialog_ex(
     FURI_LOG_D("ConfDialog", "Saved previous view: %d", state->previous_view);
 
     // Switch to confirmation view
-    view_dispatcher_switch_to_view(state->view_dispatcher, 7);
-    state->current_view = 7;
+    view_dispatcher_switch_to_view(state->view_dispatcher, VIEW_CONFIRMATION);
+    state->current_view = VIEW_CONFIRMATION;
     FURI_LOG_D("ConfDialog", "Switched to confirmation view");
 }
 

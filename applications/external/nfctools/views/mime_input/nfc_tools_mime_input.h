@@ -9,7 +9,7 @@
 
 // ── Type aliases (no changes required in existing scenes) ──────────────────
 
-typedef Keyboard         MimeInput;
+typedef Keyboard MimeInput;
 typedef KeyboardCallback MimeInputCallback;
 
 // ── Inline forwarding functions ────────────────────────────────────────────
@@ -35,12 +35,12 @@ static inline void mime_input_set_header_text(MimeInput* mi, const char* text) {
 }
 
 static inline void mime_input_set_result_callback(
-    MimeInput*        mi,
+    MimeInput* mi,
     MimeInputCallback callback,
-    void*             callback_context,
-    char*             text_buffer,
-    size_t            text_buffer_size,
-    bool              clear_default_text) {
+    void* callback_context,
+    char* text_buffer,
+    size_t text_buffer_size,
+    bool clear_default_text) {
     keyboard_set_result_callback(
         mi, callback, callback_context, text_buffer, text_buffer_size, clear_default_text);
 }

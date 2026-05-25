@@ -32,7 +32,7 @@
 typedef enum {
     KeyboardLayoutAlpha, // replaces SpecialInput
     KeyboardLayoutEmail, // replaces EmailInput
-    KeyboardLayoutMime,  // replaces MimeInput
+    KeyboardLayoutMime, // replaces MimeInput
 } KeyboardLayout;
 
 typedef struct Keyboard Keyboard;
@@ -41,7 +41,7 @@ typedef void (*KeyboardCallback)(void* context);
 // ── Lifecycle ──────────────────────────────────────────────────────────────
 
 Keyboard* keyboard_alloc(KeyboardLayout layout);
-void      keyboard_free(Keyboard* kb);
+void keyboard_free(Keyboard* kb);
 
 // Reset all state (selected cell, page, buffers) — call from scene on_exit.
 void keyboard_reset(Keyboard* kb);
@@ -58,12 +58,12 @@ void keyboard_set_header_text(Keyboard* kb, const char* text);
 // clear_default_text: if true the buffer content is shown highlighted and is
 // replaced by the first keystroke (useful for pre-filled defaults).
 void keyboard_set_result_callback(
-    Keyboard*        kb,
+    Keyboard* kb,
     KeyboardCallback callback,
-    void*            callback_context,
-    char*            text_buffer,
-    size_t           text_buffer_size,
-    bool             clear_default_text);
+    void* callback_context,
+    char* text_buffer,
+    size_t text_buffer_size,
+    bool clear_default_text);
 
 // Minimum number of characters required before OK fires the callback (default 1).
 void keyboard_set_minimum_length(Keyboard* kb, size_t minimum_length);

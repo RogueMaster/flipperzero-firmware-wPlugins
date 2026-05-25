@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.7.0
+
+- Fixed cancel button in confirmation dialogs returning to main menu instead of the correct sub-menu
+- Fixed `clear_pcap_files` not resetting the `HasOpenedFile` flag after closing the file handle, causing silent write failures on active captures
+- Fixed app crashing the entire device on SD card mkdir failure, now exits gracefully instead
+- Removed dead null check in `settings_storage_init` that could never be reached
+- Fixed sync timing counters never resetting between capture sessions
+- Fixed IR universals list query failing on slow UART connections due to using a fixed 200ms delay instead of a proper timeout loop
+- Fixed app info dialog showing empty text
+- Removed unreachable return statement in `settings_custom_event_callback`
+- Fixed critical resource leak on text_box allocation failure, early return now properly cleans up UART context, expansion protocol, OTG state and all allocated memory
+- Fixed NULL pointer dereference in `uart_storage_rx_callback` when `app` is NULL
+- Fixed memory leak in `show_app_info`, confirmation context now tracked in `active_confirm_context`
+- Fixed `SETTING_SHOW_INFO` event handler returning `false` instead of `true`
+- Fixed `show_confirmation_dialog_ex` overwriting `active_confirm_context` without freeing previous allocation
+- Fixed memory leak in `get_latest_log_file` on `realloc` failure
+- Fixed race condition in UART cleanup, capture streams now cleaned after thread join
+- Fixed missing NULL checks on `storage_file_alloc` in file clearing functions
+- Fixed missing NULL check on `context` in `show_app_info`
+- Fixed error path in core UI allocation leaking `RECORD_DIALOGS`, expansion protocol and OTG power state
+- Replaced all magic number view IDs with named ViewId enum constants across the entire codebase for readability and maintainability
+- Added navigate_to_view helper to centralize view switching logic, reducing back event callback from ~240 lines to ~55 lines
+- Added Flock Detection, Flock List, and Stop Flock Detection commands to WiFi Scanning menu
+
 ## v1.6.3
 
 - Fixed an issue where the text view would be empty
