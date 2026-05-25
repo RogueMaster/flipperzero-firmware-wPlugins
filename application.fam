@@ -7,5 +7,7 @@ App(
     fap_category="NFC",
     fap_version=(1, 0),
     fap_description="Read Abbott FreeStyle Libre CGM serial numbers via NFC",
-    fap_author="flipnCGM",
+    fap_author="Daren Darrow",
+    fap_weburl="https://github.com/darendarrow/flipnCGM",
+    fap_icon="images/flipncgm_icon.png",
 )

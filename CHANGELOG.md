@@ -1,0 +1,25 @@
+# Changelog
+
+All notable changes to flipnCGM are documented here.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+---
+
+## [1.0.0] — 2024
+
+### Added
+- Read Abbott FreeStyle Libre 1/2/3 serial numbers via ISO 15693 NFC
+- Display decoded 9-character ASCII serial number and raw UID
+- Audio feedback: ascending two-note chime on successful Libre read,
+  single low beep for unrecognised ISO 15693 tags
+- SD card logging to `/ext/flipncgm/flipncgm.log` with four levels:
+  Off, Error, Info, Debug
+- ISO 8601 timestamps in log entries with configurable UTC offset
+- UTC offset adjustable in 30-minute steps (−12:00 to +14:00) via
+  LEFT/RIGHT buttons; persists in `/ext/flipncgm/settings.ff`
+- Log level cycles with UP button; shown on scanning screen
+- Long-press Back exits reliably even when NFC stack is busy
+- NFC poller debounce (`scan_enabled` flag) prevents re-processing the
+  same tag in range until the user presses OK to re-arm
+- Separate log mutex so file I/O never blocks the GUI draw callback
+- 25 ms draw-callback mutex timeout prevents GUI thread from hanging
