@@ -274,8 +274,8 @@ bool protopirate_scene_saved_info_on_event(void* context, SceneManagerEvent even
             consumed = true;
         }
 #ifdef ENABLE_EMULATE_FEATURE
-        if(event.event == ProtoPirateCustomEventSavedInfoEmulate &&
-           app->emulate_feature_enabled && !app->emulate_disabled_for_loaded) {
+        if(event.event == ProtoPirateCustomEventSavedInfoEmulate && app->emulate_feature_enabled &&
+           !app->emulate_disabled_for_loaded) {
             FURI_LOG_I(TAG, "Emulate requested");
             scene_manager_next_scene(app->scene_manager, ProtoPirateSceneEmulate);
             consumed = true;

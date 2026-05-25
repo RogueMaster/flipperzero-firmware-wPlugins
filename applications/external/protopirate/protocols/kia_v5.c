@@ -354,8 +354,8 @@ SubGhzProtocolStatus
     cnt_v &= 0xFFFFU;
 
     const uint32_t mixer = mixer_encode(serial_v, (uint16_t)cnt_v, (uint8_t)btn_v);
-    const uint64_t yek_new =
-        ((uint64_t)btn_v << 60) | ((uint64_t)serial_v << 32) | (uint64_t)mixer;
+    const uint64_t yek_new = ((uint64_t)btn_v << 60) | ((uint64_t)serial_v << 32) |
+                             (uint64_t)mixer;
 
     uint64_t data_new = 0;
     for(int i = 0; i < 8; i++) {
@@ -429,7 +429,7 @@ static void kia_v5_add_bit(SubGhzProtocolDecoderKiaV5* instance, bool bit) {
 void* kia_protocol_decoder_v5_alloc(SubGhzEnvironment* environment) {
     SubGhzProtocolDecoderKiaV5* instance = malloc(sizeof(SubGhzProtocolDecoderKiaV5));
     furi_check(instance);
-    
+
     if(environment) {
         protopirate_keys_load(environment);
     }

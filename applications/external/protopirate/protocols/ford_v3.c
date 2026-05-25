@@ -83,8 +83,7 @@ static void ford_v3_parse_fields(SubGhzProtocolDecoderFordV3* instance) {
 
     instance->serial = ((uint32_t)b[1] << 24) | ((uint32_t)b[2] << 16) | ((uint32_t)b[3] << 8) |
                        (uint32_t)b[4];
-    instance->counter =
-        (uint16_t)((((uint16_t)(uint8_t)~b[7]) << 8) | (uint8_t)~b[8]);
+    instance->counter = (uint16_t)((((uint16_t)(uint8_t)~b[7]) << 8) | (uint8_t)~b[8]);
 
     instance->generic.serial = instance->serial;
     instance->generic.btn = (b[6] & 0x01U) ? FORD_V3_BTN_UNLOCK : FORD_V3_BTN_LOCK;
@@ -146,8 +145,7 @@ void subghz_protocol_decoder_ford_v3_feed(void* context, bool level, uint32_t du
             pp_is_long(duration, &subghz_protocol_ford_v3_const)) {
             instance->manchester_state = ManchesterStateMid1;
 
-            const ManchesterEvent event =
-                level ? ManchesterEventLongHigh : ManchesterEventLongLow;
+            const ManchesterEvent event = level ? ManchesterEventLongHigh : ManchesterEventLongLow;
 
             bool data_bit = false;
             const bool valid = manchester_advance(
@@ -177,11 +175,13 @@ void subghz_protocol_decoder_ford_v3_feed(void* context, bool level, uint32_t du
 
         ManchesterEvent event;
         if(level) {
-            event = pp_is_short(duration, &subghz_protocol_ford_v3_const) ? ManchesterEventShortHigh :
-                                                                           ManchesterEventLongHigh;
+            event = pp_is_short(duration, &subghz_protocol_ford_v3_const) ?
+                        ManchesterEventShortHigh :
+                        ManchesterEventLongHigh;
         } else {
-            event = pp_is_short(duration, &subghz_protocol_ford_v3_const) ? ManchesterEventShortLow :
-                                                                           ManchesterEventLongLow;
+            event = pp_is_short(duration, &subghz_protocol_ford_v3_const) ?
+                        ManchesterEventShortLow :
+                        ManchesterEventLongLow;
         }
 
         bool data_bit = false;
@@ -221,14 +221,11 @@ SubGhzProtocolStatus subghz_protocol_decoder_ford_v3_serialize(
 
     SubGhzProtocolDecoderFordV3* instance = context;
 
-    instance->generic.data = ((uint64_t)instance->raw_bytes[0] << 56) |
-                             ((uint64_t)instance->raw_bytes[1] << 48) |
-                             ((uint64_t)instance->raw_bytes[2] << 40) |
-                             ((uint64_t)instance->raw_bytes[3] << 32) |
-                             ((uint64_t)instance->raw_bytes[4] << 24) |
-                             ((uint64_t)instance->raw_bytes[5] << 16) |
-                             ((uint64_t)instance->raw_bytes[6] << 8) |
-                             (uint64_t)instance->raw_bytes[7];
+    instance->generic.data =
+        ((uint64_t)instance->raw_bytes[0] << 56) | ((uint64_t)instance->raw_bytes[1] << 48) |
+        ((uint64_t)instance->raw_bytes[2] << 40) | ((uint64_t)instance->raw_bytes[3] << 32) |
+        ((uint64_t)instance->raw_bytes[4] << 24) | ((uint64_t)instance->raw_bytes[5] << 16) |
+        ((uint64_t)instance->raw_bytes[6] << 8) | (uint64_t)instance->raw_bytes[7];
     instance->generic.data_count_bit = FORD_V3_DATA_BITS;
 
     SubGhzProtocolStatus ret =
@@ -254,9 +251,7 @@ SubGhzProtocolStatus
     SubGhzProtocolDecoderFordV3* instance = context;
 
     SubGhzProtocolStatus ret = subghz_block_generic_deserialize_check_count_bit(
-        &instance->generic,
-        flipper_format,
-        subghz_protocol_ford_v3_const.min_count_bit_for_found);
+        &instance->generic, flipper_format, subghz_protocol_ford_v3_const.min_count_bit_for_found);
 
     if(ret != SubGhzProtocolStatusOk) {
         return ret;

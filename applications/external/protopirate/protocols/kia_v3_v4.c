@@ -17,9 +17,9 @@ static const char* kia_version_names[] = {"Kia V4", "Kia V3"};
 #define KIA_V3_V4_END_MARKER_US   800U
 #define KIA_V3_V4_DEFAULT_REPEAT  KIA_V3_V4_CRC_SWEEP_COUNT
 
-#define KIA_V3_V4_DATA_OFFSET ((KIA_V3_V4_PREAMBLE_PAIRS * 2U) + 2U) // 26
-#define KIA_V3_V4_CRC_OFFSET  (KIA_V3_V4_DATA_OFFSET + (KIA_V3_V4_BIT_COUNT * 2U))
-#define KIA_V3_V4_END_OFFSET  (KIA_V3_V4_CRC_OFFSET + (KIA_V3_V4_CRC_BIT_COUNT * 2U))
+#define KIA_V3_V4_DATA_OFFSET   ((KIA_V3_V4_PREAMBLE_PAIRS * 2U) + 2U) // 26
+#define KIA_V3_V4_CRC_OFFSET    (KIA_V3_V4_DATA_OFFSET + (KIA_V3_V4_BIT_COUNT * 2U))
+#define KIA_V3_V4_END_OFFSET    (KIA_V3_V4_CRC_OFFSET + (KIA_V3_V4_CRC_BIT_COUNT * 2U))
 #define KIA_V3_V4_BURST_ENTRIES (KIA_V3_V4_END_OFFSET + 2U)
 
 #define KIA_V3_V4_UPLOAD_CAPACITY KIA_V3_V4_BURST_ENTRIES
@@ -88,11 +88,7 @@ static void kia_v3_v4_add_raw_bit(SubGhzProtocolDecoderKiaV3V4* instance, bool b
 }
 
 #ifdef ENABLE_EMULATE_FEATURE
-static inline void kia_v3_v4_emit_bit_pwm(
-    LevelDuration* upload,
-    size_t* idx,
-    bool bit,
-    bool v4) {
+static inline void kia_v3_v4_emit_bit_pwm(LevelDuration* upload, size_t* idx, bool bit, bool v4) {
     const uint32_t te_short = kia_protocol_v3_v4_const.te_short;
     const uint32_t te_long = kia_protocol_v3_v4_const.te_long;
     const uint32_t first_us = bit ? te_short : te_long;

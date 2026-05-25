@@ -178,7 +178,6 @@ static bool about_input_callback(InputEvent* event, void* context) {
                 app->view_dispatcher, ProtoPirateCustomEventAboutToggleEmulate);
         }
     } else if(event->key == EMULATE_TOGGLE_COMBO[0]) {
-
         g_state.combo_progress = 1;
     } else {
         g_state.combo_progress = 0;
@@ -194,12 +193,7 @@ static void about_show_emulate_toggle_popup(ProtoPirateApp* app) {
     dialog_message_set_buttons(message, NULL, "OK", NULL);
     dialog_message_set_icon(message, &I_WarningDolphin_45x42, 0, 12);
     dialog_message_set_header(
-        message,
-        now_enabled ? "Emulate Unlocked" : "Emulate Locked",
-        64,
-        0,
-        AlignCenter,
-        AlignTop);
+        message, now_enabled ? "Emulate Unlocked" : "Emulate Locked", 64, 0, AlignCenter, AlignTop);
     dialog_message_set_text(
         message,
         now_enabled ? "Transmission is\nnow enabled!" : "Transmission is\nnow disabled!",

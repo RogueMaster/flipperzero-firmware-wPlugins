@@ -29,8 +29,7 @@ static void bf_finish_and_show_result(void* app, ButtonCallback result_callback)
 
 static void psa_bf_done_cb(void* context) {
     if(g_host_api && g_host_api->send_custom_event) {
-        g_host_api->send_custom_event(
-            context, ProtoPirateCustomEventPsaBruteforceComplete);
+        g_host_api->send_custom_event(context, ProtoPirateCustomEventPsaBruteforceComplete);
     }
 }
 
@@ -105,8 +104,7 @@ static void bf_result_ok_callback(GuiButtonType result, InputType type, void* co
     void* app = context;
     if((type == InputTypeShort || type == InputTypeLong) && result == GuiButtonTypeCenter) {
         if(g_host_api && g_host_api->send_custom_event) {
-            g_host_api->send_custom_event(
-                app, ProtoPirateCustomEventReceiverInfoBruteforceCancel);
+            g_host_api->send_custom_event(app, ProtoPirateCustomEventReceiverInfoBruteforceCancel);
         }
     }
 }
@@ -204,8 +202,7 @@ static void bf_cancel_thread(void) {
 
 static bool plugin_needs_bruteforce(void* app, ProtoPiratePsaBfContext ctx) {
     FlipperFormat* ff = g_host_api->get_history_flipper_format(app);
-    return item_needs_bruteforce_from_ff(
-        ff, ctx == ProtoPiratePsaBfContextReceiverInfo);
+    return item_needs_bruteforce_from_ff(ff, ctx == ProtoPiratePsaBfContextReceiverInfo);
 }
 
 static bool plugin_is_running(void* app) {
@@ -255,10 +252,8 @@ static bool start_bruteforce(void* app) {
     return true;
 }
 
-static bool plugin_on_scene_event(
-    void* app,
-    ProtoPiratePsaBfContext ctx,
-    SceneManagerEvent event) {
+static bool
+    plugin_on_scene_event(void* app, ProtoPiratePsaBfContext ctx, SceneManagerEvent event) {
     g_active_ctx = ctx;
 
     if(event.type == SceneManagerEventTypeBack) {

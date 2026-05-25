@@ -92,4 +92,3 @@ void psa_crypto_unpack_tea_result_to_buffer(uint8_t* buffer, uint32_t v0, uint32
     buffer[8] = (uint8_t)((v1 >> 8) & 0xFF);
     buffer[9] = (uint8_t)(v1 & 0xFF);
 }
-

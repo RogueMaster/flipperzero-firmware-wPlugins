@@ -92,8 +92,7 @@ void protopirate_subdecode_psa_bf_complete_refresh(void* app) {
     SubDecodeContext* ctx = g_decode_ctx;
     if(!a || !ctx) return;
     ctx->state = DecodeStateShowSignalInfo;
-    view_dispatcher_send_custom_event(
-        a->view_dispatcher, ProtoPirateCustomEventSubDecodeUpdate);
+    view_dispatcher_send_custom_event(a->view_dispatcher, ProtoPirateCustomEventSubDecodeUpdate);
 }
 
 // Forward declaration
@@ -593,11 +592,9 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
         } else if(event.event == ProtoPirateCustomEventSubDecodeBruteforceStart) {
             app->txrx->idx_menu_chosen = ctx->selected_history_index;
             if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin &&
-               app->psa_bf_plugin->on_scene_event(
-                   app, ProtoPiratePsaBfContextSubDecode, event)) {
+               app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSubDecode, event)) {
                 if(app->psa_bf_plugin->is_running(app)) {
-                    view_dispatcher_switch_to_view(
-                        app->view_dispatcher, ProtoPirateViewWidget);
+                    view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
                 }
             }
             consumed = true;
@@ -606,8 +603,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
         } else if(event.event == ProtoPirateCustomEventPsaBruteforceComplete) {
             app->txrx->idx_menu_chosen = ctx->selected_history_index;
             if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin) {
-                app->psa_bf_plugin->on_scene_event(
-                    app, ProtoPiratePsaBfContextSubDecode, event);
+                app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSubDecode, event);
             }
             consumed = true;
             return consumed;
@@ -641,8 +637,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
         app->txrx->idx_menu_chosen = ctx->selected_history_index;
         if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin &&
            app->psa_bf_plugin->is_running(app) &&
-           app->psa_bf_plugin->on_scene_event(
-               app, ProtoPiratePsaBfContextSubDecode, event)) {
+           app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSubDecode, event)) {
             return consumed;
         }
 
@@ -1128,8 +1123,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
     } else if(event.type == SceneManagerEventTypeBack) {
         app->txrx->idx_menu_chosen = ctx->selected_history_index;
         if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin &&
-           app->psa_bf_plugin->on_scene_event(
-               app, ProtoPiratePsaBfContextSubDecode, event)) {
+           app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSubDecode, event)) {
             consumed = true;
             return consumed;
         }

@@ -404,23 +404,34 @@ static uint8_t emu_button_for_protocol(
     FlipperFormat* ff) {
     if(strcmp(protocol, KIA_PROTOCOL_V7_NAME) == 0) {
         switch(key) {
-        case InputKeyUp: return 0x01; // Lock
-        case InputKeyOk: return 0x02; // Unlock
-        case InputKeyDown: return 0x03; // Trunk
-        case InputKeyRight: return 0x08; // Panic
-        default: return original;
+        case InputKeyUp:
+            return 0x01; // Lock
+        case InputKeyOk:
+            return 0x02; // Unlock
+        case InputKeyDown:
+            return 0x03; // Trunk
+        case InputKeyRight:
+            return 0x08; // Panic
+        default:
+            return original;
         }
     }
     if(strcmp(protocol, "Kia V3/V4") == 0 || strcmp(protocol, "Kia V3") == 0 ||
        strcmp(protocol, "Kia V4") == 0 || strcmp(protocol, "KIA/HYU V3") == 0 ||
        strcmp(protocol, "KIA/HYU V4") == 0) {
         switch(key) {
-        case InputKeyUp: return 0x01;
-        case InputKeyOk: return 0x02;
-        case InputKeyDown: return 0x03;
-        case InputKeyLeft: return 0x04;
-        case InputKeyRight: return 0x08;
-        default: return original;
+        case InputKeyUp:
+            return 0x01;
+        case InputKeyOk:
+            return 0x02;
+        case InputKeyDown:
+            return 0x03;
+        case InputKeyLeft:
+            return 0x04;
+        case InputKeyRight:
+            return 0x08;
+        default:
+            return original;
         }
     }
     if(strstr(protocol, "Kia")) {
@@ -431,118 +442,188 @@ static uint8_t emu_button_for_protocol(
         }
         if(kia_v0_type == 2) {
             switch(key) {
-            case InputKeyUp: return 0x3; // Lock
-            case InputKeyOk: return 0x4; // Unlock
-            case InputKeyDown: return 0x2; // Boot
-            case InputKeyLeft: return 0x1; // Panic
-            default: return original;
+            case InputKeyUp:
+                return 0x3; // Lock
+            case InputKeyOk:
+                return 0x4; // Unlock
+            case InputKeyDown:
+                return 0x2; // Boot
+            case InputKeyLeft:
+                return 0x1; // Panic
+            default:
+                return original;
             }
         }
         if(kia_v0_type == 3) {
             switch(key) {
-            case InputKeyUp: return 1;
-            case InputKeyOk: return 2;
-            case InputKeyDown: return 3;
-            case InputKeyLeft: return 4;
-            case InputKeyRight: return 5;
-            default: return original;
+            case InputKeyUp:
+                return 1;
+            case InputKeyOk:
+                return 2;
+            case InputKeyDown:
+                return 3;
+            case InputKeyLeft:
+                return 4;
+            case InputKeyRight:
+                return 5;
+            default:
+                return original;
             }
         }
         switch(key) {
-        case InputKeyUp: return 0x1; // Lock
-        case InputKeyOk: return 0x2; // Unlock
-        case InputKeyDown: return 0x3; // Boot
-        case InputKeyLeft: return 0x4; // Panic
-        case InputKeyRight: return 0x8; // Horn/Lights?
-        default: return original;
+        case InputKeyUp:
+            return 0x1; // Lock
+        case InputKeyOk:
+            return 0x2; // Unlock
+        case InputKeyDown:
+            return 0x3; // Boot
+        case InputKeyLeft:
+            return 0x4; // Panic
+        case InputKeyRight:
+            return 0x8; // Horn/Lights?
+        default:
+            return original;
         }
     } else if(strstr(protocol, "VAG")) {
         if(original == 0x10 || original == 0x20 || original == 0x40) {
             switch(key) {
-            case InputKeyUp: return 0x20; // Lock
-            case InputKeyOk: return 0x10; // Unlock
-            case InputKeyDown: return 0x40; // Boot
-            default: return original;
+            case InputKeyUp:
+                return 0x20; // Lock
+            case InputKeyOk:
+                return 0x10; // Unlock
+            case InputKeyDown:
+                return 0x40; // Boot
+            default:
+                return original;
             }
         }
         switch(key) {
-        case InputKeyUp: return 0x2; // Lock
-        case InputKeyOk: return 0x1; // Unlock
-        case InputKeyDown: return 0x4; // Boot
-        case InputKeyLeft: return 0x8; // Panic
-        case InputKeyRight: return 0x3; // Un+Lk combo
-        default: return original;
+        case InputKeyUp:
+            return 0x2; // Lock
+        case InputKeyOk:
+            return 0x1; // Unlock
+        case InputKeyDown:
+            return 0x4; // Boot
+        case InputKeyLeft:
+            return 0x8; // Panic
+        case InputKeyRight:
+            return 0x3; // Un+Lk combo
+        default:
+            return original;
         }
     } else if(strstr(protocol, "Honda Static")) {
         switch(key) {
-        case InputKeyUp: return 0x1; // Lock
-        case InputKeyOk: return 0x2; // Unlock
-        case InputKeyDown: return 0x4; // Trunk
-        case InputKeyRight: return 0x5; // Remote Start
-        case InputKeyLeft: return 0x8; // Panic
-        default: return original;
+        case InputKeyUp:
+            return 0x1; // Lock
+        case InputKeyOk:
+            return 0x2; // Unlock
+        case InputKeyDown:
+            return 0x4; // Trunk
+        case InputKeyRight:
+            return 0x5; // Remote Start
+        case InputKeyLeft:
+            return 0x8; // Panic
+        default:
+            return original;
         }
     } else if(strstr(protocol, "Mazda")) {
         switch(key) {
-        case InputKeyUp: return 0x01; // Lock
-        case InputKeyOk: return 0x02; // Unlock
-        case InputKeyDown: return 0x04; // Trunk
-        case InputKeyRight: return 0x08; // Remote
-        default: return original;
+        case InputKeyUp:
+            return 0x01; // Lock
+        case InputKeyOk:
+            return 0x02; // Unlock
+        case InputKeyDown:
+            return 0x04; // Trunk
+        case InputKeyRight:
+            return 0x08; // Remote
+        default:
+            return original;
         }
     } else if(strstr(protocol, "Land Rover")) {
         switch(key) {
-        case InputKeyUp: return 0x02; // Lock
-        case InputKeyOk: return 0x04; // Unlock
-        default: return original;
+        case InputKeyUp:
+            return 0x02; // Lock
+        case InputKeyOk:
+            return 0x04; // Unlock
+        default:
+            return original;
         }
     } else if(strcmp(protocol, PSA_PROTOCOL_NAME) == 0 || strstr(protocol, "PSA")) {
         switch(key) {
-        case InputKeyUp: return 0x1; // Lock
-        case InputKeyOk: return 0x2; // Unlock
-        case InputKeyDown: return 0x4; // Trunk
-        case InputKeyLeft: return 0x8; // Panic
-        default: return original;
+        case InputKeyUp:
+            return 0x1; // Lock
+        case InputKeyOk:
+            return 0x2; // Unlock
+        case InputKeyDown:
+            return 0x4; // Trunk
+        case InputKeyLeft:
+            return 0x8; // Panic
+        default:
+            return original;
         }
     } else if(strstr(protocol, "Ford")) {
         if(strstr(protocol, FORD_PROTOCOL_V1_NAME)) {
             switch(key) {
-            case InputKeyUp: return 0x1; // Lock
-            case InputKeyOk: return 0x2; // Unlock
-            case InputKeyDown: return 0x4; // Trunk
-            case InputKeyLeft: return 0x8; // Panic
-            default: return original;
+            case InputKeyUp:
+                return 0x1; // Lock
+            case InputKeyOk:
+                return 0x2; // Unlock
+            case InputKeyDown:
+                return 0x4; // Trunk
+            case InputKeyLeft:
+                return 0x8; // Panic
+            default:
+                return original;
             }
         }
         switch(key) {
-        case InputKeyLeft: return 0x1; // Panic
-        case InputKeyUp: return 0x2; // Lock
-        case InputKeyOk: return 0x4; // Unlock
-        case InputKeyDown: return 0x8; // Boot
-        case InputKeyRight: return 0x10;
-        default: return original;
+        case InputKeyLeft:
+            return 0x1; // Panic
+        case InputKeyUp:
+            return 0x2; // Lock
+        case InputKeyOk:
+            return 0x4; // Unlock
+        case InputKeyDown:
+            return 0x8; // Boot
+        case InputKeyRight:
+            return 0x10;
+        default:
+            return original;
         }
     } else if(strstr(protocol, "Subaru")) {
         switch(key) {
-        case InputKeyUp: return 0x1; // Lock?
-        case InputKeyOk: return 0x2; // Unlock?
-        case InputKeyDown: return 0x3; // Boot?
-        case InputKeyLeft: return 0x4; // Panic?
-        case InputKeyRight: return 0x8;
-        default: return original;
+        case InputKeyUp:
+            return 0x1; // Lock?
+        case InputKeyOk:
+            return 0x2; // Unlock?
+        case InputKeyDown:
+            return 0x3; // Boot?
+        case InputKeyLeft:
+            return 0x4; // Panic?
+        case InputKeyRight:
+            return 0x8;
+        default:
+            return original;
         }
     } else if(strstr(protocol, "Chrysler")) {
         switch(key) {
-        case InputKeyUp: return 0x1; // Lock
-        case InputKeyOk: return 0x2; // Unlock
-        default: return original;
+        case InputKeyUp:
+            return 0x1; // Lock
+        case InputKeyOk:
+            return 0x2; // Unlock
+        default:
+            return original;
         }
     } else if(strstr(protocol, "Fiat V1")) {
         switch(key) {
-        case InputKeyUp: return 0x8; // Lock
-        case InputKeyOk: return 0x0; // Unlock
-        case InputKeyDown: return 0xD; // Trunk
-        default: return original;
+        case InputKeyUp:
+            return 0x8; // Lock
+        case InputKeyOk:
+            return 0x0; // Unlock
+        case InputKeyDown:
+            return 0xD; // Trunk
+        default:
+            return original;
         }
     } else if(strstr(protocol, "Fiat")) {
         return original;
@@ -561,8 +642,7 @@ static bool emulate_update_data(EmulateContext* ctx, uint8_t button) {
 
     flipper_format_rewind(ctx->flipper_format);
     uint32_t btn_value = button;
-    flipper_format_insert_or_update_uint32(
-        ctx->flipper_format, EMU_PRESET_KEY_BTN, &btn_value, 1);
+    flipper_format_insert_or_update_uint32(ctx->flipper_format, EMU_PRESET_KEY_BTN, &btn_value, 1);
     FURI_LOG_I(TAG, "Updated flipper format - Btn: 0x%02X", button);
 
     flipper_format_insert_or_update_uint32(
@@ -840,7 +920,8 @@ static void plugin_on_enter(void* context) {
     furi_string_free(preset_str);
 
     flipper_format_rewind(ctx->flipper_format);
-    if(!flipper_format_read_string(ctx->flipper_format, EMU_PRESET_KEY_PROTOCOL, ctx->protocol_name)) {
+    if(!flipper_format_read_string(
+           ctx->flipper_format, EMU_PRESET_KEY_PROTOCOL, ctx->protocol_name)) {
         FURI_LOG_E(TAG, "Failed to read protocol name");
         furi_string_set(ctx->protocol_name, "Unknown");
     }
@@ -1029,8 +1110,8 @@ static bool plugin_on_event(void* context, SceneManagerEvent event) {
 
         if(ctx && ctx->is_transmitting) {
             if(app->txrx->txrx_state == ProtoPirateTxRxStateTx) {
-                if((app->start_tx_time && ((furi_get_tick() - app->start_tx_time) >
-                                           emulate_min_tx_time(ctx))) &&
+                if((app->start_tx_time &&
+                    ((furi_get_tick() - app->start_tx_time) > emulate_min_tx_time(ctx))) &&
                    ctx->flag_stop_called) {
                     emu_stop_tx(app);
                     ctx->is_transmitting = false;

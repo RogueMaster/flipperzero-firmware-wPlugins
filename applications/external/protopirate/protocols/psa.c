@@ -728,7 +728,8 @@ static void psa_handle_decoded_frame(SubGhzProtocolDecoderPSA* instance, uint8_t
         (unsigned int)instance->validation_field);
 
     uint8_t buffer[PSA_BUFFER_SIZE] = {0};
-    psa_crypto_setup_byte_buffer(buffer, instance->key1_low, instance->key1_high, instance->key2_low);
+    psa_crypto_setup_byte_buffer(
+        buffer, instance->key1_low, instance->key1_high, instance->key2_low);
     if(instance->mode_serialize != 0x36 && psa_direct_xor_decrypt(instance, buffer)) {
         instance->mode_serialize = 0x23;
         instance->decrypted = 0x50;
@@ -766,7 +767,8 @@ static void psa_decrypt_router(SubGhzProtocolDecoderPSA* instance) {
 
     uint8_t buffer[PSA_BUFFER_SIZE] = {0};
 
-    psa_crypto_setup_byte_buffer(buffer, instance->key1_low, instance->key1_high, instance->key2_low);
+    psa_crypto_setup_byte_buffer(
+        buffer, instance->key1_low, instance->key1_high, instance->key2_low);
 
     uint8_t key2_high_byte = buffer[8];
     uint8_t mode = instance->mode_serialize;

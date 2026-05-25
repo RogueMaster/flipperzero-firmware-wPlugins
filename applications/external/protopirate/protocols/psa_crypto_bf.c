@@ -20,10 +20,8 @@ static void psa_bf_tea_build_schedule(const uint32_t* key, PsaTeaSchedule* out) 
     }
 }
 
-static inline void psa_bf_tea_encrypt_with_schedule(
-    uint32_t* v0,
-    uint32_t* v1,
-    const PsaTeaSchedule* sched) {
+static inline void
+    psa_bf_tea_encrypt_with_schedule(uint32_t* v0, uint32_t* v1, const PsaTeaSchedule* sched) {
     for(int i = 0; i < TEA_ROUNDS; i++) {
         *v0 += (sched->s0[i] ^ (((*v1 >> 5) ^ (*v1 << 4)) + *v1));
         *v1 += (sched->s1[i] ^ (((*v0 >> 5) ^ (*v0 << 4)) + *v0));
@@ -137,8 +135,8 @@ void psa_brute_force_run(PsaBfState* state) {
             uint16_t expected_crc = (uint16_t)(dec_v1 & 0xFFFF);
             if(crc16 == expected_crc) {
                 psa_bf_fill_state_from_buffer(state, buffer);
-                state->progress_current = (PSA_CRYPTO_BF1_END - PSA_CRYPTO_BF1_START) +
-                                          (counter - PSA_CRYPTO_BF2_START);
+                state->progress_current =
+                    (PSA_CRYPTO_BF1_END - PSA_CRYPTO_BF1_START) + (counter - PSA_CRYPTO_BF2_START);
                 state->status = PSA_BF_STATUS_FOUND;
                 return;
             }
