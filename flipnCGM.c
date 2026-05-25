@@ -5,6 +5,8 @@
 #include <nfc/nfc_poller.h>
 #include <nfc/protocols/iso15693_3/iso15693_3.h>
 #include <nfc/protocols/iso15693_3/iso15693_3_poller.h>
+#include <notification/notification.h>
+#include <notification/notification_messages.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -25,6 +27,7 @@ typedef struct {
     Gui* gui;
     ViewPort* view_port;
     FuriMessageQueue* event_queue;
+    NotificationApp* notifications;
     Nfc* nfc;
     NfcPoller* poller;
     FuriMutex* mutex;
@@ -113,8 +116,10 @@ static NfcCommand poller_callback(NfcGenericEvent event, void* context) {
                 uid[6],
                 uid[7]);
             app->state = AppStateResult;
+            notification_message(app->notifications, &sequence_success);
         } else {
             app->state = AppStateNotALibre;
+            notification_message(app->notifications, &sequence_error);
         }
         furi_mutex_release(app->mutex);
         view_port_update(app->view_port);
@@ -142,6 +147,8 @@ int32_t flipncgm_app(void* p) {
 
     app->gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
+
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     app->nfc = nfc_alloc();
     app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso15693_3);
@@ -173,6 +180,8 @@ int32_t flipncgm_app(void* p) {
     nfc_poller_stop(app->poller);
     nfc_poller_free(app->poller);
     nfc_free(app->nfc);
+
+    furi_record_close(RECORD_NOTIFICATION);
 
     gui_remove_view_port(app->gui, app->view_port);
     furi_record_close(RECORD_GUI);
