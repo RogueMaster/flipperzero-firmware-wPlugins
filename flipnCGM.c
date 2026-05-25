@@ -24,7 +24,7 @@ static const NotificationSequence sequence_cgm_success = {
     NULL,
 };
 
-// Single short low beep (~150ms) when a non-Libre tag is scanned.
+// Single short low beep (~100ms) when a non-Libre tag is scanned.
 static const NotificationSequence sequence_cgm_error = {
     &message_note_c3,
     &message_delay_100,
@@ -40,8 +40,8 @@ typedef enum {
 
 typedef struct {
     AppState state;
-    char serial[10];  // 9-char serial + null terminator
-    char uid_str[32]; // "E0:7A:xx:xx:xx:xx:xx:xx\0"
+    char serial[10];       // 9-char serial + null terminator
+    char uid_str[32];      // "E0:7A:xx:xx:xx:xx:xx:xx\0"
     Gui* gui;
     ViewPort* view_port;
     FuriMessageQueue* event_queue;
@@ -49,6 +49,7 @@ typedef struct {
     Nfc* nfc;
     NfcPoller* poller;
     FuriMutex* mutex;
+    volatile bool poller_running; // true while poller is active
 } App;
 
 // Decode a FreeStyle Libre NFC UID to its 9-character ASCII serial number.
@@ -68,7 +69,9 @@ static void decode_libre_serial(const uint8_t* uid, char* out) {
 
 static void draw_callback(Canvas* canvas, void* context) {
     App* app = (App*)context;
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    // Use a short timeout so the GUI thread never blocks indefinitely if the
+    // poller thread holds the mutex during an NFC transaction.
+    if(furi_mutex_acquire(app->mutex, 25) != FuriStatusOk) return;
 
     canvas_clear(canvas);
 
@@ -125,24 +128,23 @@ static NfcCommand poller_callback(NfcGenericEvent event, void* context) {
                 app->uid_str,
                 sizeof(app->uid_str),
                 "%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X",
-                uid[0],
-                uid[1],
-                uid[2],
-                uid[3],
-                uid[4],
-                uid[5],
-                uid[6],
-                uid[7]);
+                uid[0], uid[1], uid[2], uid[3],
+                uid[4], uid[5], uid[6], uid[7]);
             app->state = AppStateResult;
             notification_message(app->notifications, &sequence_cgm_success);
         } else {
             app->state = AppStateNotALibre;
             notification_message(app->notifications, &sequence_cgm_error);
         }
+        // Mark stopped before returning NfcCommandStop so cleanup knows
+        // not to call nfc_poller_stop() on an already-stopped poller.
+        app->poller_running = false;
         furi_mutex_release(app->mutex);
         view_port_update(app->view_port);
-        // Reset so the poller keeps scanning for the next tag
-        return NfcCommandReset;
+        // Stop after one read — avoids a tight reset loop when the tag
+        // stays in range, which can starve the input queue.
+        // The user presses OK to scan again.
+        return NfcCommandStop;
     }
 
     return NfcCommandContinue;
@@ -155,6 +157,7 @@ int32_t flipncgm_app(void* p) {
     furi_assert(app);
     memset(app, 0, sizeof(App));
     app->state = AppStateScanning;
+    app->poller_running = true;
 
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     app->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
@@ -177,25 +180,31 @@ int32_t flipncgm_app(void* p) {
 
     while(running) {
         if(furi_message_queue_get(app->event_queue, &event, 100) == FuriStatusOk) {
-            if(event.type == InputTypeShort) {
-                switch(event.key) {
-                case InputKeyBack:
-                    running = false;
-                    break;
-                case InputKeyOk:
-                    furi_mutex_acquire(app->mutex, FuriWaitForever);
+            // Handle both short and long Back presses so a held Back always exits.
+            if(event.key == InputKeyBack &&
+               (event.type == InputTypeShort || event.type == InputTypeLong)) {
+                running = false;
+            } else if(event.key == InputKeyOk && event.type == InputTypeShort) {
+                furi_mutex_acquire(app->mutex, FuriWaitForever);
+                if(app->state != AppStateScanning) {
                     app->state = AppStateScanning;
+                    app->poller_running = true;
                     furi_mutex_release(app->mutex);
-                    view_port_update(app->view_port);
-                    break;
-                default:
-                    break;
+                    // Restart the poller for the next scan.
+                    nfc_poller_start(app->poller, poller_callback, app);
+                } else {
+                    furi_mutex_release(app->mutex);
                 }
+                view_port_update(app->view_port);
             }
         }
     }
 
-    nfc_poller_stop(app->poller);
+    // Only stop the poller if it is still running — calling nfc_poller_stop()
+    // on an already-stopped poller is undefined behaviour and may crash.
+    if(app->poller_running) {
+        nfc_poller_stop(app->poller);
+    }
     nfc_poller_free(app->poller);
     nfc_free(app->nfc);
 
