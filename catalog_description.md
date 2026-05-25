@@ -24,7 +24,7 @@ A Flipper Zero application that reads Abbott FreeStyle Libre continuous glucose 
 - **UP** — Cycle log level: Off → Error → Info → Debug → Off
 - **LEFT / RIGHT** — Adjust UTC offset in 30-minute steps
 
-Log file is written to `/ext/flipncgm/flipncgm.log`. Log level and UTC offset are shown on the scanning screen and the UTC offset is saved automatically.
+Log file is written to /ext/flipncgm/flipncgm.log. Log level and UTC offset are shown on the scanning screen and the UTC offset is saved automatically.
 
 ## Compatibility
 
