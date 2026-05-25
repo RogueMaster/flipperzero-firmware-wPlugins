@@ -1,3 +1,40 @@
+## 2.14 — AP-First mode: 2026.14.x firmware compatibility
+
+- **AP-First mode** — Tesla 2026.14.x added a preflight check that blocks AP/TACC engagement if CAN injection is already active on 0x3FD. When AP-First is enabled, the app monitors `DAS_autopilotState` from `0x39B` and only starts injecting after AP is confirmed active. Nag killer, TLSSC Restore, and Ban Shield are unaffected (different CAN IDs).
+- **Telemetry Disable (beta)** — `UI_enableTripTelemetry=0` on `0x3F8` bit43 to disable trip data collection. Warning: may itself be a ban signal — use only with SIM pulled.
+- Thanks: @cquanu (first 2026.14.2 incompatibility report), @TzCoMe (telemetry disable research), ev-open-can-tools community (confirmed 14.x preflight behavior)
+
+## 2.13.1 — Bugfixes + Settings reorg
+
+- **Nag killer self-disabling on startup** — `das_hands_on_state` was zeroed by memset, causing DAS-aware gate to skip echoing entirely. Now initialized to 0xFF sentinel so nag killer echoes conservatively until `0x39B` arrives.
+- **Legacy→HW3 auto-upgrade was dead code** — MCP2515 hardware filters in Legacy mode blocked `0x3FD` at the chip level, so the upgrade trigger could never fire. Fixed: wide-open RXB1 for all modes + reprogram RXB0 from `0x3EE`→`0x3FD` after upgrade + mutex-guarded HW version update.
+- **Ban Shield + Tier Override double-send** — both could fire on the same `0x7FF` frame, sending two conflicting copies. Now mutually exclusive (shield takes priority).
+- **TLSSC bit38 fired without FSD gate** — applied on every mux-0 frame before `fsd_enabled` check. Added gate.
+- **ESP32 WiFi password overwrite** — web dashboard sent masked password `***` back to NVS, bricking WiFi AP on restart. Now skips password update if value is masked.
+- **Settings menu reorg** — Mode → Stable features → `-- Beta (report!) --` separator → Beta features → Hardware.
+
+## 2.13 — Competitive parity: region unlock, nav FSD, hands-off, lane graph, NVS persistence
+
+- **7 new CAN features**: Nav FSD Route (`0x3F8` bits 13/48/49), Hands-Off UI (`0x3F8` bit14), Dev Mode (`0x3F8` bit5), Force LHD (`0x3F8` bits 40-41), Lane Graph (`0x3FD` mux1 bit45), TLSSC bit38 (`0x3FD` mux0 bit38), Tier Override (`0x7FF` mux2 byte5 bits 4:2). All default OFF with Settings toggles.
+- **Energy consumption** (`0x33A` Wh/km) added to BMS dashboard.
+- **ESP32 major upgrade** (PR #40 by @dmagyar): NVS persistence for all toggles, WiFi SSID/password config via web dashboard, deep sleep on Lilygo T-CAN485, factory reset (5s button hold), improved NAG echo, WiFi password masked in JSON/Serial.
+- **README complete rewrite** — CAN IDs table (13 IDs), expanded FAQ, confirmed compatibility table, ESP32 board comparison.
+- Thanks: @dmagyar (ESP32 NVS/WiFi/deep-sleep PR), @THER4iN, @MiniCS, @kp43h8, @gauner1986, @nagotti — platform testing and ban research
+
+## 2.12.1 — Palladium S/X Legacy→HW3 auto-upgrade
+
+- **Palladium Model S/X auto-upgrade** — cars reporting `das_hw=0` (MCU2/HW3 retrofit) were stuck in Legacy mode, silently disabling FSD injection. Now auto-upgrades to HW3 when `0x3FD` frames appear on the bus, reprograms MCP2515 RXB0 filter from `0x3EE`→`0x3FD`, and preserves all user toggles across the upgrade.
+
+## 2.12 — Security hardening + Ban Shield fix
+
+- **RX/TX DLC buffer overflow** — MCP2515 driver trusted raw DLC values up to 15 (4-bit mask). SPI noise or a hostile CAN device could overflow the 8-byte frame buffer. Now clamped to 8.
+- **HW4 speed-profile bit offset** — both Flipper and ESP32 wrote speed profile to bits 4-6 of byte 7 on `0x3FD` mux=2. Upstream DBC reference uses bits 5-7. Fixed.
+- **OTA false positive** — now only suspends TX when `GTW_updateInProgress` raw value is 2 (installing), not any non-zero. Fixes false "OTA TX paused" on Model X/S and some firmware builds.
+- **HW auto-detect passive mode** — detection now uses `MCP_LISTENONLY` (was `MCP_NORMAL` which ACKed live bus frames) and respects user's crystal frequency setting.
+- **Ban Shield learning fix** — shield was immediately armed on scene entry since v2.9, skipping learning phase entirely. No healthy snapshots were captured. Fixed: starts unarmed, learns all 8 GTW_carConfig mux frames, then auto-arms.
+- **8 additional fixes** from adversarial code review: Track Mode safety gate, ESP32 HW4 misclassification race (50-frame threshold), `0x370` EPAS DLC validation, malloc NULL checks, sizeof(pointer) cleanup, SPI handle init.
+- Thanks: @ViPiMP (sizeof BusFault root cause), @dmagyar (Legacy HW + NAG fixes), @Symness (Ban Shield learning approach), @nagotti (OTA false positive testing)
+
 ## 2.11 — Legacy HW detection + NAG killer fixes
 
 - **Legacy HW detection fix** — `fsd_detect_hw_version()` fell through to `TeslaHW_Unknown` for `das_hw=0` and `das_hw=1`. MCU2/HW3 retrofit Model S/X reports `das_hw=0`, silently disabling FSD injection for this entire class of vehicle. Now correctly maps to `TeslaHW_Legacy`.

@@ -1,5 +1,8 @@
 [English](README.md) | [繁體中文](README_zh-TW.md) | [简体中文](README_zh-CN.md)
 
+> [!WARNING]
+> **本翻译可能落后于英文版。** 功能描述、CAN ID 表、硬件接线指南等以 [英文 README](README.md) 为准。如果你发现翻译与英文版不一致，欢迎提交 PR 修正。
+
 # Tesla Mod — Flipper Zero
 
 [![GitHub stars](https://img.shields.io/github/stars/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/stargazers)

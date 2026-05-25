@@ -27,8 +27,8 @@
 > - The ban downgrades `GTW_autopilot` tier from SELF_DRIVING (3) to ENHANCED (2) in `0x7FF` mux=2 byte[5] bits 4:2
 > - `0x3FD` mux=0 byte[4] bit 7 (TLSSC UI visible flag) is independently cleared
 > - `0x259 APP_fsdSuspendState` is set to SUSPENDED on banned cars
-> - The AP ECU reads entitlement over **Ethernet, not CAN** — shadow-injecting 0x7FF has no effect on the AP ECU's decision
-> - **TLSSC Restore (0x331)** can partially recover stop sign / traffic light control on Palladium and HW4 platforms, but does NOT restore full FSD
+> - The AP ECU's primary entitlement path appears to be **Ethernet** — shadow-injecting `0x7FF` alone does not override the ban. However, other CAN-side mechanisms DO affect AP behavior: **TLSSC Restore (0x331) + 0x3FD mux0 bit38** has been confirmed by @RoyRakete to reliably re-enable AP/TACC on banned HW3 / 2026.2.6 ([#18](https://github.com/hypery11/flipper-tesla-fsd/issues/18#issuecomment-4413430516))
+> - TLSSC Restore alone can partially recover stop sign / traffic light control on Palladium and HW4 platforms, but does NOT restore full FSD
 > - Ban enforcement is platform-specific: Intel HW3 is more aggressive than Palladium/HW4
 
 This project is published for testing, research, and educational purposes.
@@ -83,6 +83,10 @@ project's TX path can write to:
 - `0x331` `DAS_autopilotConfig` — overwrites byte[0] lower 6 bits to
   0x1B (SELF_DRIVING) for TLSSC Restore on banned vehicles; only when
   the user enables the TLSSC Restore setting
+- `0x3F8` `UI_driverAssistControl` — Nav FSD Route (bits 13/48/49),
+  Hands-Off (bit14), Dev Mode (bit5), Force LHD (bits 40-41),
+  Telemetry Off (bit43); only when the corresponding Settings toggle
+  is ON
 - `0x7FF` `GTW_carConfig` — retransmits the healthy snapshot when Ban
   Shield detects a server-side change; only when Ban Shield is armed
 
@@ -118,7 +122,12 @@ sure you're not perturbing the bus.
 
 Before each session:
 
-1. Pull the SIM card from the car (Model 3/Y: behind the glovebox)
+1. Disable cellular uplink — on cars with a physical SIM (some
+   pre-2024 builds), pull it from behind the glovebox. On cars with
+   eSIM (most 2024+ builds), disconnect the TCU modem (requires trim
+   removal) or park in a low-coverage area (underground garage,
+   metal-shielded structure). There is no user-facing "airplane mode"
+   toggle on Tesla.
 2. Disable WiFi on the car (Settings → WiFi → Forget all networks)
 3. Plug Flipper + Add-On into OBD-II
 4. Boot the app, **stay in Listen-Only**

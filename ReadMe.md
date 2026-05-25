@@ -55,6 +55,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Updated: [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - Updated: [ProtoPirate v3.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
 
 <a name="release"></a>
 

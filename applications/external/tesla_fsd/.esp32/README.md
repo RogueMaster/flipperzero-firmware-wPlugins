@@ -110,7 +110,7 @@ Any ESP32 board + CAN transceiver works. Pick the matching build env in `platfor
 | `m5stack-atom-swap-pins` | M5Stack ATOM Lite + ATOMIC CAN Base | TWAI | 19 / 22 | For boards with swapped silkscreen |
 | `esp32-mcp2515` | Generic ESP32 + MCP2515 module | MCP2515 SPI | SPI CS=5 | 8 MHz crystal |
 | `esp32-lilygo` | LilyGO T-CAN485 | TWAI | 27 / 26 | Built-in SN65HVD230 + SD slot |
-| `ttgo-tdisplay` | LilyGO/TTGO T-Display + MCP2515 | MCP2515 SPI | CS=33, SCK=25, MISO=26, MOSI=32 | Built-in ST7789 dashboard |
+| `ttgo-tdisplay` | LilyGO/TTGO T-Display + MCP2515 | MCP2515 SPI (HSPI) | CS=26, SCK=33, MISO=32, MOSI=25 | Built-in ST7789 dashboard, MISO needs 5V→3.3V divider |
 | `waveshare-s3-can` | Waveshare ESP32-S3-RS485-CAN | TWAI | 15 / 16 | ESP32-S3, 8MB flash/PSRAM, USB-CDC |
 | generic | ESP32-C3/S3 Super Mini + SN65HVD230 | TWAI | any two pins | Override `PIN_CAN_TX` / `PIN_CAN_RX` |
 
@@ -128,18 +128,27 @@ On first boot every target prints its pin map as `[CFG] pins: LED=.. BUTTON=.. C
 
 ### TTGO T-Display + MCP2515
 
-The T-Display LCD uses the board's default SPI pins, so the `ttgo-tdisplay` variant places the MCP2515 on a separate HSPI bus:
+The T-Display LCD already owns the board's default VSPI pins, so the `ttgo-tdisplay` variant places the MCP2515 on a separate HSPI bus:
 
-| MCP2515 Pin | TTGO T-Display GPIO |
-|-------------|---------------------|
-| CS | 33 |
-| SCK | 25 |
-| MISO / SO | 26 |
-| MOSI / SI | 32 |
-| VCC | 3V3 or 5V, matching your module |
-| GND | GND |
+| MCP2515 Pin | TTGO T-Display GPIO | Notes |
+|-------------|---------------------|-------|
+| CS | 26 | |
+| SCK | 33 | |
+| MISO / SO | 32 | **Needs 5 V → 3.3 V divider** if MCP2515 is powered from 5 V (most cheap modules are) |
+| MOSI / SI | 25 | |
+| INT | (unused) | |
+| VCC | 5 V | 5V for TJA1050-based modules; 3V3 only if your module supports it |
+| GND | GND | |
 
-The built-in ST7789 display is enabled by default and can be toggled from the Web Dashboard.
+> [!IMPORTANT]
+> Almost every commodity MCP2515 board on AliExpress runs the chip and
+> the TJA1050 transceiver from a 5 V rail and drives MISO at 5 V logic
+> levels. The ESP32 GPIOs are 3.3 V tolerant only — driving them at 5 V
+> shortens the chip's life and can latch up the SoC. Add a simple
+> resistor divider on the MISO line — see
+> [HARDWARE.md – MCP2515 MISO 5V to 3.3V voltage divider](../HARDWARE.md#mcp2515-miso-5v-to-33v-voltage-divider).
+
+The built-in ST7789 display is enabled by default and can be toggled from the Web Dashboard or by pushing the GPIO35 button.
 
 ### OBD-II (Primary — Plug & Play)
 
