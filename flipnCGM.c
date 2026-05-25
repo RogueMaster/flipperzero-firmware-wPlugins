@@ -9,15 +9,22 @@
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 #include <storage/storage.h>
+#include <flipper_format/flipper_format.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-#define FLIPNCGM_LOG_DIR  "/ext/flipncgm"
-#define FLIPNCGM_LOG_FILE "/ext/flipncgm/flipncgm.log"
-#define FLIPNCGM_LOG_BUF  256
+#define FLIPNCGM_LOG_DIR      "/ext/flipncgm"
+#define FLIPNCGM_LOG_FILE     "/ext/flipncgm/flipncgm.log"
+#define FLIPNCGM_SETTINGS_FILE "/ext/flipncgm/settings.ff"
+#define FLIPNCGM_LOG_BUF      256
+
+// UTC offset bounds: -12:00 (-720 min) to +14:00 (+840 min), 30-min steps.
+#define TZ_OFFSET_MIN_MINUTES (-720)
+#define TZ_OFFSET_MAX_MINUTES (840)
+#define TZ_OFFSET_STEP_MINUTES (30)
 
 // 32-char alphabet: B, I, O, S omitted to avoid visual ambiguity.
 static const char SERIAL_LOOKUP[32] = "0123456789ACDEFGHJKLMNPQRTUVWXYZ";
@@ -68,6 +75,7 @@ typedef enum {
 typedef struct {
     AppState    state;
     AppLogLevel log_level;
+    int32_t     utc_offset_minutes; // UTC offset in minutes, e.g. -300 = UTC-05:00
     char        serial[10];   // 9-char serial + null terminator
     char        uid_str[32];  // "E0:7A:xx:xx:xx:xx:xx:xx\0"
     bool        scan_enabled; // debounce: cleared after read, re-armed on OK
@@ -95,6 +103,43 @@ static void decode_libre_serial(const uint8_t* uid, char* out) {
     out[9] = '\0';
 }
 
+// ── Settings (UTC offset) ──────────────────────────────────────────────────
+
+static void settings_load(App* app) {
+    FlipperFormat* ff = flipper_format_file_alloc(app->storage);
+    if(flipper_format_file_open_existing(ff, FLIPNCGM_SETTINGS_FILE)) {
+        int32_t val = 0;
+        if(flipper_format_read_int32(ff, "UTC offset minutes", &val, 1)) {
+            // Clamp to valid range
+            if(val < TZ_OFFSET_MIN_MINUTES) val = TZ_OFFSET_MIN_MINUTES;
+            if(val > TZ_OFFSET_MAX_MINUTES) val = TZ_OFFSET_MAX_MINUTES;
+            app->utc_offset_minutes = val;
+        }
+        flipper_format_file_close(ff);
+    }
+    flipper_format_free(ff);
+}
+
+static void settings_save(App* app) {
+    FlipperFormat* ff = flipper_format_file_alloc(app->storage);
+    if(flipper_format_file_open_always(ff, FLIPNCGM_SETTINGS_FILE)) {
+        flipper_format_write_header_cstr(ff, "flipnCGM Settings", 1);
+        flipper_format_write_int32(ff, "UTC offset minutes", &app->utc_offset_minutes, 1);
+        flipper_format_file_close(ff);
+    }
+    flipper_format_free(ff);
+}
+
+// Format a UTC offset as "+HH:MM" or "-HH:MM" into buf (must be >= 16 bytes).
+static void format_tz(char* buf, size_t size, int32_t offset_minutes) {
+    char sign = offset_minutes >= 0 ? '+' : '-';
+    int32_t abs_min = offset_minutes >= 0 ? offset_minutes : -offset_minutes;
+    // Hours 0-14, minutes 0 or 30 — use int to satisfy -Wformat-truncation.
+    int hh = (int)(abs_min / 60);
+    int mm = (int)(abs_min % 60);
+    snprintf(buf, size, "%c%02d:%02d", sign, hh, mm);
+}
+
 // ── Logging ────────────────────────────────────────────────────────────────
 
 // Write a timestamped entry to the SD-card log file.
@@ -103,12 +148,16 @@ static void app_log_write(App* app, AppLogLevel level, const char* fmt, ...) {
     DateTime dt;
     furi_hal_rtc_get_datetime(&dt);
 
+    char tz_str[16];
+    format_tz(tz_str, sizeof(tz_str), app->utc_offset_minutes);
+
     char buf[FLIPNCGM_LOG_BUF];
     int hdr = snprintf(
         buf, sizeof(buf),
-        "%04u-%02u-%02u %02u:%02u:%02u [%s] ",
+        "%04u-%02u-%02u %02u:%02u:%02u%s [%s] ",
         dt.year, dt.month, dt.day,
         dt.hour, dt.minute, dt.second,
+        tz_str,
         LOG_LEVEL_TAGS[level]);
 
     if(hdr <= 0 || hdr >= (int)sizeof(buf) - 2) return;
@@ -160,14 +209,20 @@ static void draw_callback(Canvas* canvas, void* context) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "Hold a FreeStyle Libre");
         canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "sensor to back of Flipper");
-        // Log level indicator + toggle hint
+        // Status row: log level (left) and UTC offset (right)
         {
-            char log_str[32];
+            char log_str[16];
+            char tz_str[16];
+            char utc_str[24];
             snprintf(log_str, sizeof(log_str), "Log: %s", LOG_LEVEL_NAMES[app->log_level]);
-            canvas_draw_str_aligned(canvas, 0,   50, AlignLeft,   AlignCenter, log_str);
-            canvas_draw_str_aligned(canvas, 127, 50, AlignRight,  AlignCenter, "[^] cycle");
+            format_tz(tz_str, sizeof(tz_str), app->utc_offset_minutes);
+            snprintf(utc_str, sizeof(utc_str), "UTC%s", tz_str);
+            canvas_draw_str_aligned(canvas, 0,   46, AlignLeft,  AlignCenter, log_str);
+            canvas_draw_str_aligned(canvas, 127, 46, AlignRight, AlignCenter, utc_str);
         }
-        canvas_draw_str_aligned(canvas, 64, 61, AlignCenter, AlignCenter, "[BACK] exit");
+        // Button hints
+        canvas_draw_str_aligned(canvas, 0,   57, AlignLeft,  AlignCenter, "^:log  <>:UTC");
+        canvas_draw_str_aligned(canvas, 127, 57, AlignRight, AlignCenter, "Back:exit");
         break;
 
     case AppStateResult:
@@ -290,6 +345,7 @@ int32_t flipncgm_app(void* p) {
     // Storage — create log directory (no-op if it already exists).
     app->storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(app->storage, FLIPNCGM_LOG_DIR);
+    settings_load(app); // restore persisted UTC offset
 
     app->nfc    = nfc_alloc();
     app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso15693_3);
@@ -323,9 +379,9 @@ int32_t flipncgm_app(void* p) {
             } else if(event.key == InputKeyUp && event.type == InputTypeShort) {
                 // Cycle log level: Off → Error → Info → Debug → Off → …
                 furi_mutex_acquire(app->mutex, FuriWaitForever);
-                AppLogLevel prev  = app->log_level;
-                app->log_level    = (AppLogLevel)((app->log_level + 1) % AppLogCount);
-                AppLogLevel next  = app->log_level;
+                AppLogLevel prev = app->log_level;
+                app->log_level   = (AppLogLevel)((app->log_level + 1) % AppLogCount);
+                AppLogLevel next = app->log_level;
                 furi_mutex_release(app->mutex);
 
                 // If turning off: write farewell while still enabled (prev level).
@@ -337,6 +393,27 @@ int32_t flipncgm_app(void* p) {
                     app_log_write(app, AppLogInfo,
                         "Log level: %s -> %s", LOG_LEVEL_NAMES[prev], LOG_LEVEL_NAMES[next]);
                 }
+                view_port_update(app->view_port);
+
+            } else if((event.key == InputKeyLeft || event.key == InputKeyRight) &&
+                      event.type == InputTypeShort) {
+                // Adjust UTC offset in 30-minute steps.
+                furi_mutex_acquire(app->mutex, FuriWaitForever);
+                int32_t delta = (event.key == InputKeyRight)
+                                    ? TZ_OFFSET_STEP_MINUTES
+                                    : -TZ_OFFSET_STEP_MINUTES;
+                app->utc_offset_minutes += delta;
+                if(app->utc_offset_minutes < TZ_OFFSET_MIN_MINUTES)
+                    app->utc_offset_minutes = TZ_OFFSET_MIN_MINUTES;
+                if(app->utc_offset_minutes > TZ_OFFSET_MAX_MINUTES)
+                    app->utc_offset_minutes = TZ_OFFSET_MAX_MINUTES;
+                furi_mutex_release(app->mutex);
+
+                settings_save(app); // persist immediately
+
+                char tz_str[16];
+                format_tz(tz_str, sizeof(tz_str), app->utc_offset_minutes);
+                LOG_INFO(app, "UTC offset set to %s", tz_str);
                 view_port_update(app->view_port);
             }
         }
