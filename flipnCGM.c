@@ -14,6 +14,24 @@
 // B, I, O, S omitted to avoid visual ambiguity with 8, 1, 0, 5.
 static const char SERIAL_LOOKUP[32] = "0123456789ACDEFGHJKLMNPQRTUVWXYZ";
 
+// Brief two-note ascending chime (~200ms total) on successful Libre read.
+static const NotificationSequence sequence_cgm_success = {
+    &message_note_c5,
+    &message_delay_100,
+    &message_note_e5,
+    &message_delay_100,
+    &message_sound_off,
+    NULL,
+};
+
+// Single short low beep (~150ms) when a non-Libre tag is scanned.
+static const NotificationSequence sequence_cgm_error = {
+    &message_note_c3,
+    &message_delay_100,
+    &message_sound_off,
+    NULL,
+};
+
 typedef enum {
     AppStateScanning,
     AppStateResult,
@@ -116,10 +134,10 @@ static NfcCommand poller_callback(NfcGenericEvent event, void* context) {
                 uid[6],
                 uid[7]);
             app->state = AppStateResult;
-            notification_message(app->notifications, &sequence_success);
+            notification_message(app->notifications, &sequence_cgm_success);
         } else {
             app->state = AppStateNotALibre;
-            notification_message(app->notifications, &sequence_error);
+            notification_message(app->notifications, &sequence_cgm_error);
         }
         furi_mutex_release(app->mutex);
         view_port_update(app->view_port);
