@@ -4,14 +4,14 @@
 #include <gui/elements.h>
 #include <storage/storage.h>
 #include <notification/notification_messages.h>
-#include <string.h> 
+#include <string.h>
 
 // LFRFID Hardware libraries
 #include <lib/lfrfid/lfrfid_worker.h>
 #include <lib/lfrfid/protocols/lfrfid_protocols.h>
 #include <toolbox/protocols/protocol_dict.h>
 
-#define SETTINGS_PATH EXT_PATH("apps_data/h10301_writer/settings.dat")
+#define SETTINGS_PATH     EXT_PATH("apps_data/h10301_writer/settings.dat")
 #define WORKER_EV_SUCCESS (1 << 0)
 
 typedef enum {
@@ -27,10 +27,10 @@ typedef struct {
 typedef struct {
     uint32_t fc;
     uint32_t cn;
-    char status_msg[32];  
-    uint8_t edit_mode;    // 0 = FC, 1 = CN
-    uint32_t step_size;   // 1, 10, 100, 1000, 10000
-    
+    char status_msg[32];
+    uint8_t edit_mode; // 0 = FC, 1 = CN
+    uint32_t step_size; // 1, 10, 100, 1000, 10000
+
     // Non-blocking write state
     bool writing;
     uint8_t write_timer;
@@ -47,7 +47,7 @@ void save_settings(H10301WriterApp* app) {
         storage_common_mkdir(storage, EXT_PATH("apps_data/h10301_writer"));
         File* file = storage_file_alloc(storage);
         if(storage_file_open(file, SETTINGS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-            storage_file_write(file, app, sizeof(uint32_t) * 2); 
+            storage_file_write(file, app, sizeof(uint32_t) * 2);
         }
         storage_file_close(file);
         storage_file_free(file);
@@ -83,13 +83,13 @@ static void rfid_write_cb(LFRFIDWorkerWriteResult result, void* context) {
 
 void stop_writing(H10301WriterApp* app) {
     if(!app->writing) return;
-    
+
     lfrfid_worker_stop(app->worker);
     lfrfid_worker_stop_thread(app->worker);
     lfrfid_worker_free(app->worker);
     protocol_dict_free(app->dict);
     furi_event_flag_free(app->flags);
-    
+
     app->writing = false;
     app->write_timer = 0;
 }
@@ -104,7 +104,7 @@ void start_writing(H10301WriterApp* app) {
     size_t data_size = protocol_dict_get_data_size(app->dict, LFRFIDProtocolH10301);
     uint8_t* data = malloc(data_size);
     memset(data, 0, data_size);
-    
+
     if(data_size >= 3) {
         data[0] = (uint8_t)(app->fc & 0xFF);
         data[1] = (uint8_t)((app->cn >> 8) & 0xFF);
@@ -116,7 +116,7 @@ void start_writing(H10301WriterApp* app) {
 
     lfrfid_worker_start_thread(app->worker);
     lfrfid_worker_write_start(app->worker, LFRFIDProtocolH10301, rfid_write_cb, app->flags);
-    
+
     app->writing = true;
     app->write_timer = 25; // 25 ticks * 400ms = 10 seconds
     strlcpy(app->status_msg, "Hold card (10s)...", sizeof(app->status_msg));
@@ -124,11 +124,18 @@ void start_writing(H10301WriterApp* app) {
 
 // --- UI Rendering ---
 
-static void draw_number_highlight(Canvas* canvas, const char* label, uint32_t value, uint32_t step, bool is_active, bool blink, uint8_t y) {
+static void draw_number_highlight(
+    Canvas* canvas,
+    const char* label,
+    uint32_t value,
+    uint32_t step,
+    bool is_active,
+    bool blink,
+    uint8_t y) {
     char val_str[16];
     snprintf(val_str, sizeof(val_str), "%lu", (unsigned long)value);
-    
-    if (!is_active) {
+
+    if(!is_active) {
         char buf[32];
         snprintf(buf, sizeof(buf), "%s%s", label, val_str);
         canvas_draw_str(canvas, 10, y, buf);
@@ -141,32 +148,32 @@ static void draw_number_highlight(Canvas* canvas, const char* label, uint32_t va
     if(step >= 100) hl_len = 3;
     if(step >= 1000) hl_len = 4;
     if(step >= 10000) hl_len = 5;
-    
-    if (hl_len > val_len) hl_len = val_len;
+
+    if(hl_len > val_len) hl_len = val_len;
     int prefix_len = val_len - hl_len;
-    
+
     char prefix_str[32];
-    if (prefix_len > 0) {
+    if(prefix_len > 0) {
         snprintf(prefix_str, sizeof(prefix_str), "%s%.*s", label, prefix_len, val_str);
     } else {
         snprintf(prefix_str, sizeof(prefix_str), "%s", label);
     }
-    
+
     char hl_str[16];
     snprintf(hl_str, sizeof(hl_str), "%s", val_str + prefix_len);
-    
+
     uint16_t prefix_w = canvas_string_width(canvas, prefix_str);
     uint16_t hl_w = canvas_string_width(canvas, hl_str);
-    
+
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_str(canvas, 10, y, prefix_str);
-    
-    if (blink) {
+
+    if(blink) {
         canvas_draw_box(canvas, 10 + prefix_w - 1, y - 9, hl_w + 2, 12);
         canvas_set_color(canvas, ColorWhite);
     }
     canvas_draw_str(canvas, 10 + prefix_w, y, hl_str);
-    
+
     canvas_set_color(canvas, ColorBlack);
     char step_buf[16];
     snprintf(step_buf, sizeof(step_buf), " [S:%lu]", (unsigned long)step);
@@ -180,7 +187,7 @@ static void render_callback(Canvas* canvas, void* ctx) {
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 2, 11, "H10301 Writer");
-    
+
     canvas_set_font(canvas, FontSecondary);
     if(app->writing) {
         canvas_draw_str(canvas, 2, 22, "Writing in progress...");
@@ -189,11 +196,12 @@ static void render_callback(Canvas* canvas, void* ctx) {
         canvas_draw_str(canvas, 2, 22, "L/R: Step   U/D: Value");
         canvas_draw_str(canvas, 2, 33, "OK: Swap    Hold OK: Burn");
     }
-    
+
     bool blink = (furi_get_tick() / 400) % 2;
     draw_number_highlight(canvas, "FC: ", app->fc, app->step_size, app->edit_mode == 0, blink, 44);
-    draw_number_highlight(canvas, "Card: ", app->cn, app->step_size, app->edit_mode == 1, blink, 55);
-    
+    draw_number_highlight(
+        canvas, "Card: ", app->cn, app->step_size, app->edit_mode == 1, blink, 55);
+
     char buffer[64];
     snprintf(buffer, sizeof(buffer), "Status: %s", app->status_msg);
     canvas_draw_str(canvas, 2, 64, buffer);
@@ -220,7 +228,7 @@ int32_t h10301_writer_app(void* p) {
     H10301WriterApp* app = malloc(sizeof(H10301WriterApp));
     if(!app) return -1;
     load_settings(app);
-    app->edit_mode = 1; 
+    app->edit_mode = 1;
     app->step_size = 1;
     app->writing = false;
 
@@ -228,18 +236,18 @@ int32_t h10301_writer_app(void* p) {
     Gui* gui = furi_record_open(RECORD_GUI);
     ViewPort* view_port = view_port_alloc();
     NotificationApp* notif = furi_record_open(RECORD_NOTIFICATION);
-    
+
     view_port_draw_callback_set(view_port, render_callback, app);
     view_port_input_callback_set(view_port, input_callback, event_queue);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     FuriTimer* blink_timer = furi_timer_alloc(timer_callback, FuriTimerTypePeriodic, event_queue);
-    furi_timer_start(blink_timer, 400); 
+    furi_timer_start(blink_timer, 400);
 
     AppEvent event;
     while(1) {
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, FuriWaitForever);
-        
+
         if(event_status == FuriStatusOk) {
             // 1. Handle Success Check if writing
             if(app->writing) {
@@ -266,47 +274,52 @@ int32_t h10301_writer_app(void* p) {
                         break; // Exit app
                     }
                 }
-                
+
                 // Only allow editing if NOT writing
-                if(!app->writing && (event.input.type == InputTypeShort || event.input.type == InputTypeRepeat)) {
+                if(!app->writing &&
+                   (event.input.type == InputTypeShort || event.input.type == InputTypeRepeat)) {
                     if(event.input.key == InputKeyUp) {
                         if(app->edit_mode == 0) {
-                            app->fc = (app->fc + app->step_size > 255) ? 255 : app->fc + app->step_size;
+                            app->fc = (app->fc + app->step_size > 255) ? 255 :
+                                                                         app->fc + app->step_size;
                         } else {
-                            app->cn = (app->cn + app->step_size > 65535) ? 65535 : app->cn + app->step_size;
+                            app->cn = (app->cn + app->step_size > 65535) ?
+                                          65535 :
+                                          app->cn + app->step_size;
                         }
-                    }
-                    else if(event.input.key == InputKeyDown) {
+                    } else if(event.input.key == InputKeyDown) {
                         if(app->edit_mode == 0) {
                             app->fc = (app->fc >= app->step_size) ? app->fc - app->step_size : 0;
                         } else {
                             app->cn = (app->cn >= app->step_size) ? app->cn - app->step_size : 0;
                         }
-                    }
-                    else if(event.input.key == InputKeyLeft) {
+                    } else if(event.input.key == InputKeyLeft) {
                         if(app->step_size < 10000) app->step_size *= 10;
-                    }
-                    else if(event.input.key == InputKeyRight) {
+                    } else if(event.input.key == InputKeyRight) {
                         if(app->step_size > 1) app->step_size /= 10;
-                    }
-                    else if(event.input.key == InputKeyOk && event.input.type == InputTypeShort) {
+                    } else if(event.input.key == InputKeyOk && event.input.type == InputTypeShort) {
                         app->edit_mode = !app->edit_mode;
                         app->step_size = 1;
                     }
                 }
-                
-                if(!app->writing && event.input.key == InputKeyOk && event.input.type == InputTypeLong) {
+
+                if(!app->writing && event.input.key == InputKeyOk &&
+                   event.input.type == InputTypeLong) {
                     start_writing(app);
                 }
-            } 
-            
+            }
+
             // 3. Handle Timer Tick
             else if(event.type == EventTypeTick) {
                 if(app->writing) {
                     if(app->write_timer > 0) {
                         app->write_timer--;
                         int seconds = (app->write_timer * 400) / 1000;
-                        snprintf(app->status_msg, sizeof(app->status_msg), "Hold card (%ds)...", seconds);
+                        snprintf(
+                            app->status_msg,
+                            sizeof(app->status_msg),
+                            "Hold card (%ds)...",
+                            seconds);
                     } else {
                         stop_writing(app);
                         strlcpy(app->status_msg, "Write Timeout!", sizeof(app->status_msg));
@@ -314,7 +327,7 @@ int32_t h10301_writer_app(void* p) {
                     }
                 }
             }
-            
+
             view_port_update(view_port);
         }
     }

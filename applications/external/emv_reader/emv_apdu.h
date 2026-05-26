@@ -8,63 +8,57 @@
 extern "C" {
 #endif
 
-#define EMV_INS_SELECT         0xA4
-#define EMV_INS_READ_RECORD    0xB2
-#define EMV_INS_GPO            0xA8
-#define EMV_INS_GENERATE_AC    0xAE
-#define EMV_INS_GET_DATA       0xCA
-#define EMV_INS_INTERNAL_AUTH  0x88
+#define EMV_INS_SELECT        0xA4
+#define EMV_INS_READ_RECORD   0xB2
+#define EMV_INS_GPO           0xA8
+#define EMV_INS_GENERATE_AC   0xAE
+#define EMV_INS_GET_DATA      0xCA
+#define EMV_INS_INTERNAL_AUTH 0x88
 
-#define EMV_TAG_PAN            0x5A
-#define EMV_TAG_TRACK2_EQUIV   0x57
-#define EMV_TAG_HOLDER_NAME    0x5F20
-#define EMV_TAG_EXPIRY         0x5F24
-#define EMV_TAG_EFFECTIVE      0x5F25
-#define EMV_TAG_AID            0x4F
-#define EMV_TAG_APP_LABEL      0x50
-#define EMV_TAG_APP_PREFNAME   0x9F12
-#define EMV_TAG_AIP            0x82
-#define EMV_TAG_AFL            0x94
-#define EMV_TAG_PDOL           0x9F38
-#define EMV_TAG_ATC            0x9F36
-#define EMV_TAG_FCI_TEMPLATE   0x6F
-#define EMV_TAG_FCI_PROP_TPL   0xA5
-#define EMV_TAG_FCI_ISSUER     0xBF0C
-#define EMV_TAG_DIR_ENTRY      0x61
-#define EMV_TAG_RESPONSE_TPL2  0x77
-#define EMV_TAG_RESPONSE_TPL1  0x80
+#define EMV_TAG_PAN           0x5A
+#define EMV_TAG_TRACK2_EQUIV  0x57
+#define EMV_TAG_HOLDER_NAME   0x5F20
+#define EMV_TAG_EXPIRY        0x5F24
+#define EMV_TAG_EFFECTIVE     0x5F25
+#define EMV_TAG_AID           0x4F
+#define EMV_TAG_APP_LABEL     0x50
+#define EMV_TAG_APP_PREFNAME  0x9F12
+#define EMV_TAG_AIP           0x82
+#define EMV_TAG_AFL           0x94
+#define EMV_TAG_PDOL          0x9F38
+#define EMV_TAG_ATC           0x9F36
+#define EMV_TAG_FCI_TEMPLATE  0x6F
+#define EMV_TAG_FCI_PROP_TPL  0xA5
+#define EMV_TAG_FCI_ISSUER    0xBF0C
+#define EMV_TAG_DIR_ENTRY     0x61
+#define EMV_TAG_RESPONSE_TPL2 0x77
+#define EMV_TAG_RESPONSE_TPL1 0x80
 
-#define EMV_PPSE_NAME "2PAY.SYS.DDF01"
+#define EMV_PPSE_NAME     "2PAY.SYS.DDF01"
 #define EMV_PPSE_NAME_LEN 14
 
 extern const uint8_t EMV_AID_VISA[];
-extern const size_t  EMV_AID_VISA_LEN;
+extern const size_t EMV_AID_VISA_LEN;
 extern const uint8_t EMV_AID_VISA_DEBIT[];
-extern const size_t  EMV_AID_VISA_DEBIT_LEN;
+extern const size_t EMV_AID_VISA_DEBIT_LEN;
 extern const uint8_t EMV_AID_MASTERCARD[];
-extern const size_t  EMV_AID_MASTERCARD_LEN;
+extern const size_t EMV_AID_MASTERCARD_LEN;
 extern const uint8_t EMV_AID_MAESTRO[];
-extern const size_t  EMV_AID_MAESTRO_LEN;
+extern const size_t EMV_AID_MAESTRO_LEN;
 extern const uint8_t EMV_AID_AMEX[];
-extern const size_t  EMV_AID_AMEX_LEN;
+extern const size_t EMV_AID_AMEX_LEN;
 extern const uint8_t EMV_AID_DISCOVER[];
-extern const size_t  EMV_AID_DISCOVER_LEN;
+extern const size_t EMV_AID_DISCOVER_LEN;
 extern const uint8_t EMV_AID_JCB[];
-extern const size_t  EMV_AID_JCB_LEN;
+extern const size_t EMV_AID_JCB_LEN;
 extern const uint8_t EMV_AID_INTERAC[];
-extern const size_t  EMV_AID_INTERAC_LEN;
+extern const size_t EMV_AID_INTERAC_LEN;
 
 size_t emv_apdu_build_select_ppse(uint8_t* out, size_t out_size);
-size_t emv_apdu_build_select_aid(
-    const uint8_t* aid,
-    size_t aid_len,
-    uint8_t* out,
-    size_t out_size);
-size_t emv_apdu_build_gpo(
-    const uint8_t* pdol_data,
-    size_t pdol_len,
-    uint8_t* out,
-    size_t out_size);
+size_t
+    emv_apdu_build_select_aid(const uint8_t* aid, size_t aid_len, uint8_t* out, size_t out_size);
+size_t
+    emv_apdu_build_gpo(const uint8_t* pdol_data, size_t pdol_len, uint8_t* out, size_t out_size);
 size_t emv_apdu_build_read_record(uint8_t sfi, uint8_t record, uint8_t* out, size_t out_size);
 
 const char* emv_sw_describe(uint8_t sw1, uint8_t sw2);

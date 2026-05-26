@@ -42,22 +42,23 @@ size_t ber_tlv_read_length(const uint8_t* buf, size_t len, size_t* out_length) {
 
 static bool ber_tlv_is_constructed_tag(uint32_t tag) {
     uint8_t first;
-    if(tag > 0xFFFFFF) first = (uint8_t)(tag >> 24);
-    else if(tag > 0xFFFF) first = (uint8_t)(tag >> 16);
-    else if(tag > 0xFF) first = (uint8_t)(tag >> 8);
-    else first = (uint8_t)tag;
+    if(tag > 0xFFFFFF)
+        first = (uint8_t)(tag >> 24);
+    else if(tag > 0xFFFF)
+        first = (uint8_t)(tag >> 16);
+    else if(tag > 0xFF)
+        first = (uint8_t)(tag >> 8);
+    else
+        first = (uint8_t)tag;
     return (first & 0x20) != 0;
 }
 
-static bool ber_tlv_walk_inner(
-    const uint8_t* buf,
-    size_t len,
-    BerTlvCallback cb,
-    void* ctx,
-    int depth) {
+static bool
+    ber_tlv_walk_inner(const uint8_t* buf, size_t len, BerTlvCallback cb, void* ctx, int depth) {
     size_t pos = 0;
     while(pos < len) {
-        while(pos < len && (buf[pos] == 0x00 || buf[pos] == 0xFF)) pos++;
+        while(pos < len && (buf[pos] == 0x00 || buf[pos] == 0xFF))
+            pos++;
         if(pos >= len) break;
 
         uint32_t tag = 0;

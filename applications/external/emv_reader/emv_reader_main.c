@@ -14,12 +14,12 @@
 #include "ber_tlv.h"
 #include "emv_apdu.h"
 
-#define TAG "EmvReader"
-#define APDU_BUF_SIZE 264
+#define TAG              "EmvReader"
+#define APDU_BUF_SIZE    264
 #define RECORDS_BUF_SIZE 4096
-#define SAVE_DIR "/ext/apps_data/emv_reader"
-#define MAX_AIDS 8
-#define MAX_CVM_RULES 8
+#define SAVE_DIR         "/ext/apps_data/emv_reader"
+#define MAX_AIDS         8
+#define MAX_CVM_RULES    8
 
 typedef enum {
     UiStateIdle,
@@ -189,26 +189,36 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_set_font(canvas, FontSecondary);
             int y = 19;
             if(app->service_code[0]) {
-                snprintf(line, sizeof(line), "SC %s %s", app->service_code, app->service_code_desc);
-                canvas_draw_str(canvas, 2, y, line); y += 9;
+                snprintf(
+                    line, sizeof(line), "SC %s %s", app->service_code, app->service_code_desc);
+                canvas_draw_str(canvas, 2, y, line);
+                y += 9;
             }
             if(app->aip_present) {
-                snprintf(line, sizeof(line), "AIP %02X%02X %s",
-                    app->aip[0], app->aip[1],
+                snprintf(
+                    line,
+                    sizeof(line),
+                    "AIP %02X%02X %s",
+                    app->aip[0],
+                    app->aip[1],
                     app->aip_decoded[0] ? app->aip_decoded : "");
-                canvas_draw_str(canvas, 2, y, line); y += 9;
+                canvas_draw_str(canvas, 2, y, line);
+                y += 9;
             }
             if(app->atc_present) {
                 uint16_t atc = ((uint16_t)app->atc[0] << 8) | app->atc[1];
                 snprintf(line, sizeof(line), "ATC %u", atc);
-                canvas_draw_str(canvas, 2, y, line); y += 9;
+                canvas_draw_str(canvas, 2, y, line);
+                y += 9;
             }
             if(app->pin_status_str[0]) {
                 snprintf(line, sizeof(line), "PIN %s", app->pin_status_str);
-                canvas_draw_str(canvas, 2, y, line); y += 9;
+                canvas_draw_str(canvas, 2, y, line);
+                y += 9;
                 if(app->pin_analysis.status == EmvPinDeferredOnline ||
                    app->pin_analysis.status == EmvPinNever) {
-                    canvas_draw_str(canvas, 2, y, "(terminal limit applies)"); y += 9;
+                    canvas_draw_str(canvas, 2, y, "(terminal limit applies)");
+                    y += 9;
                 }
             }
             if(y == 19) canvas_draw_str(canvas, 2, 22, "(no fields decoded)");
@@ -222,13 +232,20 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             if(app->cvm_rules_count == 0) {
                 canvas_draw_str(canvas, 2, 22, "(no CVM list found)");
             } else {
-                snprintf(line, sizeof(line), "X=%lu Y=%lu (cents)",
-                    (unsigned long)app->cvm_amount_x, (unsigned long)app->cvm_amount_y);
+                snprintf(
+                    line,
+                    sizeof(line),
+                    "X=%lu Y=%lu (cents)",
+                    (unsigned long)app->cvm_amount_x,
+                    (unsigned long)app->cvm_amount_y);
                 canvas_draw_str(canvas, 2, 20, line);
                 int y = 30;
                 size_t shown = app->cvm_rules_count > 4 ? 4 : app->cvm_rules_count;
                 for(size_t i = 0; i < shown; i++) {
-                    snprintf(line, sizeof(line), "%s %s%s",
+                    snprintf(
+                        line,
+                        sizeof(line),
+                        "%s %s%s",
                         emv_cvm_method_label(app->cvm_rules[i].method),
                         emv_cvm_condition_label(app->cvm_rules[i].condition),
                         app->cvm_rules[i].fail_continues ? " >>" : "");
@@ -254,9 +271,13 @@ static void draw_callback(Canvas* canvas, void* ctx) {
                 int end = start + max_show;
                 if(end > (int)app->aids_count) end = app->aids_count;
                 for(int i = start; i < end; i++) {
-                    int n = snprintf(line, sizeof(line), "%s ",
+                    int n = snprintf(
+                        line,
+                        sizeof(line),
+                        "%s ",
                         emv_aid_label(app->aids[i].aid, app->aids[i].aid_len));
-                    for(uint8_t b = 0; b < app->aids[i].aid_len && n < (int)sizeof(line) - 3; b++) {
+                    for(uint8_t b = 0; b < app->aids[i].aid_len && n < (int)sizeof(line) - 3;
+                        b++) {
                         n += snprintf(line + n, sizeof(line) - n, "%02X", app->aids[i].aid[b]);
                     }
                     canvas_draw_str(canvas, 2, y, line);
@@ -291,7 +312,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str(canvas, 2, 64, "U/D scroll  L/R pages");
             break;
         }
-        default: break;
+        default:
+            break;
         }
         break;
     }
@@ -332,7 +354,8 @@ typedef struct {
 
 static bool aid_collect_cb(const BerTlvField* field, void* ctx) {
     AidCollectCtx* c = ctx;
-    if(field->tag == EMV_TAG_AID && field->length > 0 && field->length <= 16 && c->count < c->max) {
+    if(field->tag == EMV_TAG_AID && field->length > 0 && field->length <= 16 &&
+       c->count < c->max) {
         memcpy(c->entries[c->count].aid, field->value, field->length);
         c->entries[c->count].aid_len = field->length;
         c->count++;
@@ -380,9 +403,8 @@ static void parse_card_data(EmvReaderApp* app) {
             i++;
         }
         app->pan_str[i] = '\0';
-        if(app->expiry_str[0] == '\0' && app->track2_str[i] == '=' &&
-           app->track2_str[i + 1] && app->track2_str[i + 2] &&
-           app->track2_str[i + 3] && app->track2_str[i + 4]) {
+        if(app->expiry_str[0] == '\0' && app->track2_str[i] == '=' && app->track2_str[i + 1] &&
+           app->track2_str[i + 2] && app->track2_str[i + 3] && app->track2_str[i + 4]) {
             app->expiry_str[0] = app->track2_str[i + 3];
             app->expiry_str[1] = app->track2_str[i + 4];
             app->expiry_str[2] = '/';
@@ -416,20 +438,25 @@ static void parse_card_data(EmvReaderApp* app) {
         memcpy(app->cvm_list_buf, cvm_v, copy);
         app->cvm_list_len = copy;
         emv_parse_cvm_list(
-            app->cvm_list_buf, app->cvm_list_len,
-            app->cvm_rules, MAX_CVM_RULES, &app->cvm_rules_count,
-            &app->cvm_amount_x, &app->cvm_amount_y);
+            app->cvm_list_buf,
+            app->cvm_list_len,
+            app->cvm_rules,
+            MAX_CVM_RULES,
+            &app->cvm_rules_count,
+            &app->cvm_amount_x,
+            &app->cvm_amount_y);
     }
 
     if(app->track2_str[0]) {
-        if(emv_extract_service_code(app->track2_str, app->service_code, sizeof(app->service_code))) {
-            emv_service_code_describe(app->service_code, app->service_code_desc, sizeof(app->service_code_desc));
+        if(emv_extract_service_code(
+               app->track2_str, app->service_code, sizeof(app->service_code))) {
+            emv_service_code_describe(
+                app->service_code, app->service_code_desc, sizeof(app->service_code_desc));
         }
     }
 
-    app->pin_analysis = emv_analyze_pin(
-        app->aip_present, app->aip,
-        app->cvm_rules, app->cvm_rules_count);
+    app->pin_analysis =
+        emv_analyze_pin(app->aip_present, app->aip, app->cvm_rules, app->cvm_rules_count);
     emv_format_pin_status(&app->pin_analysis, app->pin_status_str, sizeof(app->pin_status_str));
 
     const char* label = emv_aid_label(app->aid, app->aid_len);
@@ -442,39 +469,36 @@ typedef struct {
     size_t len;
 } PdolDefault;
 
-static const uint8_t pdol_ttq[]       = {0x36, 0xA0, 0x40, 0x00};
-static const uint8_t pdol_amount[]    = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
+static const uint8_t pdol_ttq[] = {0x36, 0xA0, 0x40, 0x00};
+static const uint8_t pdol_amount[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
 static const uint8_t pdol_amt_other[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static const uint8_t pdol_country[]   = {0x08, 0x40};
-static const uint8_t pdol_tvr[]       = {0x00, 0x00, 0x00, 0x00, 0x00};
-static const uint8_t pdol_currency[]  = {0x08, 0x40};
-static const uint8_t pdol_txn_date[]  = {0x26, 0x05, 0x08};
-static const uint8_t pdol_txn_type[]  = {0x00};
-static const uint8_t pdol_un[]        = {0x01, 0x02, 0x03, 0x04};
+static const uint8_t pdol_country[] = {0x08, 0x40};
+static const uint8_t pdol_tvr[] = {0x00, 0x00, 0x00, 0x00, 0x00};
+static const uint8_t pdol_currency[] = {0x08, 0x40};
+static const uint8_t pdol_txn_date[] = {0x26, 0x05, 0x08};
+static const uint8_t pdol_txn_type[] = {0x00};
+static const uint8_t pdol_un[] = {0x01, 0x02, 0x03, 0x04};
 static const uint8_t pdol_term_type[] = {0x22};
 static const uint8_t pdol_term_caps[] = {0x60, 0x00, 0xF0, 0xA0, 0x01};
-static const uint8_t pdol_app_ver[]   = {0x00, 0x8C};
+static const uint8_t pdol_app_ver[] = {0x00, 0x8C};
 
 static const PdolDefault pdol_defaults[] = {
-    {0x9F66, pdol_ttq,       sizeof(pdol_ttq)},
-    {0x9F02, pdol_amount,    sizeof(pdol_amount)},
+    {0x9F66, pdol_ttq, sizeof(pdol_ttq)},
+    {0x9F02, pdol_amount, sizeof(pdol_amount)},
     {0x9F03, pdol_amt_other, sizeof(pdol_amt_other)},
-    {0x9F1A, pdol_country,   sizeof(pdol_country)},
-    {0x95,   pdol_tvr,       sizeof(pdol_tvr)},
-    {0x5F2A, pdol_currency,  sizeof(pdol_currency)},
-    {0x9A,   pdol_txn_date,  sizeof(pdol_txn_date)},
-    {0x9C,   pdol_txn_type,  sizeof(pdol_txn_type)},
-    {0x9F37, pdol_un,        sizeof(pdol_un)},
+    {0x9F1A, pdol_country, sizeof(pdol_country)},
+    {0x95, pdol_tvr, sizeof(pdol_tvr)},
+    {0x5F2A, pdol_currency, sizeof(pdol_currency)},
+    {0x9A, pdol_txn_date, sizeof(pdol_txn_date)},
+    {0x9C, pdol_txn_type, sizeof(pdol_txn_type)},
+    {0x9F37, pdol_un, sizeof(pdol_un)},
     {0x9F35, pdol_term_type, sizeof(pdol_term_type)},
     {0x9F40, pdol_term_caps, sizeof(pdol_term_caps)},
-    {0x9F09, pdol_app_ver,   sizeof(pdol_app_ver)},
+    {0x9F09, pdol_app_ver, sizeof(pdol_app_ver)},
 };
 
-static size_t build_pdol_data(
-    const uint8_t* pdol_req,
-    size_t pdol_req_len,
-    uint8_t* out,
-    size_t out_size) {
+static size_t
+    build_pdol_data(const uint8_t* pdol_req, size_t pdol_req_len, uint8_t* out, size_t out_size) {
     size_t out_pos = 0;
     size_t pos = 0;
     while(pos < pdol_req_len) {
@@ -561,8 +585,8 @@ static NfcCommand emv_poller_cb(NfcGenericEvent event, void* context) {
             size_t pdol_req_len = 0;
             if(ber_tlv_find(fci, fci_body, EMV_TAG_PDOL, &pdol_req, &pdol_req_len) &&
                pdol_req_len > 0) {
-                pdol_data_len = build_pdol_data(
-                    pdol_req, pdol_req_len, pdol_data, sizeof(pdol_data));
+                pdol_data_len =
+                    build_pdol_data(pdol_req, pdol_req_len, pdol_data, sizeof(pdol_data));
             }
         }
     }
@@ -579,8 +603,13 @@ static NfcCommand emv_poller_cb(NfcGenericEvent event, void* context) {
         if(resp_len < 4) {
             uint8_t s1 = resp_len >= 2 ? resp[resp_len - 2] : 0;
             uint8_t s2 = resp_len >= 1 ? resp[resp_len - 1] : 0;
-            snprintf(app->err_msg, sizeof(app->err_msg),
-                "GPO SW=%02X%02X pdol=%u", s1, s2, (unsigned)pdol_data_len);
+            snprintf(
+                app->err_msg,
+                sizeof(app->err_msg),
+                "GPO SW=%02X%02X pdol=%u",
+                s1,
+                s2,
+                (unsigned)pdol_data_len);
             goto fail;
         }
         size_t body = resp_len - 2;
@@ -646,8 +675,12 @@ static NfcCommand emv_poller_cb(NfcGenericEvent event, void* context) {
     parse_card_data(app);
 
     if(app->pan_str[0] == '\0' && app->track2_str[0] == '\0') {
-        snprintf(app->err_msg, sizeof(app->err_msg),
-            "No PAN; afl=%u rec=%u", (unsigned)app->afl_len, (unsigned)app->records_len);
+        snprintf(
+            app->err_msg,
+            sizeof(app->err_msg),
+            "No PAN; afl=%u rec=%u",
+            (unsigned)app->afl_len,
+            (unsigned)app->records_len);
         goto fail;
     }
 
@@ -685,17 +718,33 @@ static void save_session(EmvReaderApp* app) {
         int n;
         n = snprintf(buf, sizeof(buf), "EMV Reader dump\n");
         storage_file_write(file, buf, n);
-        n = snprintf(buf, sizeof(buf), "Card: %s\nPAN: %s\nExp: %s\nHolder: %s\nTrack2: %s\n",
-            app->card_label, app->pan_str, app->expiry_str, app->holder_str, app->track2_str);
+        n = snprintf(
+            buf,
+            sizeof(buf),
+            "Card: %s\nPAN: %s\nExp: %s\nHolder: %s\nTrack2: %s\n",
+            app->card_label,
+            app->pan_str,
+            app->expiry_str,
+            app->holder_str,
+            app->track2_str);
         storage_file_write(file, buf, n);
         if(app->service_code[0]) {
-            n = snprintf(buf, sizeof(buf), "ServiceCode: %s (%s)\n",
-                app->service_code, app->service_code_desc);
+            n = snprintf(
+                buf,
+                sizeof(buf),
+                "ServiceCode: %s (%s)\n",
+                app->service_code,
+                app->service_code_desc);
             storage_file_write(file, buf, n);
         }
         if(app->aip_present) {
-            n = snprintf(buf, sizeof(buf), "AIP: %02X%02X (%s)\n",
-                app->aip[0], app->aip[1], app->aip_decoded);
+            n = snprintf(
+                buf,
+                sizeof(buf),
+                "AIP: %02X%02X (%s)\n",
+                app->aip[0],
+                app->aip[1],
+                app->aip_decoded);
             storage_file_write(file, buf, n);
         }
         if(app->atc_present) {
@@ -711,8 +760,8 @@ static void save_session(EmvReaderApp* app) {
         n = snprintf(buf, sizeof(buf), "\nAIDs (%u):\n", app->aids_count);
         storage_file_write(file, buf, n);
         for(uint8_t i = 0; i < app->aids_count; i++) {
-            n = snprintf(buf, sizeof(buf), "  %s ",
-                emv_aid_label(app->aids[i].aid, app->aids[i].aid_len));
+            n = snprintf(
+                buf, sizeof(buf), "  %s ", emv_aid_label(app->aids[i].aid, app->aids[i].aid_len));
             storage_file_write(file, buf, n);
             for(uint8_t b = 0; b < app->aids[i].aid_len; b++) {
                 n = snprintf(buf, sizeof(buf), "%02X", app->aids[i].aid[b]);
@@ -722,11 +771,18 @@ static void save_session(EmvReaderApp* app) {
         }
 
         if(app->cvm_rules_count > 0) {
-            n = snprintf(buf, sizeof(buf), "\nCVM list (X=%lu Y=%lu):\n",
-                (unsigned long)app->cvm_amount_x, (unsigned long)app->cvm_amount_y);
+            n = snprintf(
+                buf,
+                sizeof(buf),
+                "\nCVM list (X=%lu Y=%lu):\n",
+                (unsigned long)app->cvm_amount_x,
+                (unsigned long)app->cvm_amount_y);
             storage_file_write(file, buf, n);
             for(size_t i = 0; i < app->cvm_rules_count; i++) {
-                n = snprintf(buf, sizeof(buf), "  %s if %s%s\n",
+                n = snprintf(
+                    buf,
+                    sizeof(buf),
+                    "  %s if %s%s\n",
                     emv_cvm_method_label(app->cvm_rules[i].method),
                     emv_cvm_condition_label(app->cvm_rules[i].condition),
                     app->cvm_rules[i].fail_continues ? " (fail->next)" : "");
@@ -848,11 +904,15 @@ int32_t emv_reader_app(void* p) {
                 app->hex_scroll = 0;
                 app->aids_scroll = 0;
             } else if(input.key == InputKeyDown) {
-                if(app->page == PageHex) app->hex_scroll++;
-                else if(app->page == PageAids && app->aids_scroll < (int)app->aids_count - 1) app->aids_scroll++;
+                if(app->page == PageHex)
+                    app->hex_scroll++;
+                else if(app->page == PageAids && app->aids_scroll < (int)app->aids_count - 1)
+                    app->aids_scroll++;
             } else if(input.key == InputKeyUp) {
-                if(app->page == PageHex && app->hex_scroll > 0) app->hex_scroll--;
-                else if(app->page == PageAids && app->aids_scroll > 0) app->aids_scroll--;
+                if(app->page == PageHex && app->hex_scroll > 0)
+                    app->hex_scroll--;
+                else if(app->page == PageAids && app->aids_scroll > 0)
+                    app->aids_scroll--;
             } else if(input.key == InputKeyBack) {
                 app->exit_requested = true;
             }

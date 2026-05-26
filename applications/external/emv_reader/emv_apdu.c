@@ -3,25 +3,26 @@
 #include <stdio.h>
 #include <string.h>
 
-const uint8_t EMV_AID_VISA[]       = {0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10};
-const size_t  EMV_AID_VISA_LEN     = 7;
+const uint8_t EMV_AID_VISA[] = {0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10};
+const size_t EMV_AID_VISA_LEN = 7;
 const uint8_t EMV_AID_VISA_DEBIT[] = {0xA0, 0x00, 0x00, 0x00, 0x03, 0x20, 0x10};
-const size_t  EMV_AID_VISA_DEBIT_LEN = 7;
+const size_t EMV_AID_VISA_DEBIT_LEN = 7;
 const uint8_t EMV_AID_MASTERCARD[] = {0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10};
-const size_t  EMV_AID_MASTERCARD_LEN = 7;
-const uint8_t EMV_AID_MAESTRO[]    = {0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60};
-const size_t  EMV_AID_MAESTRO_LEN  = 7;
-const uint8_t EMV_AID_AMEX[]       = {0xA0, 0x00, 0x00, 0x00, 0x25, 0x01};
-const size_t  EMV_AID_AMEX_LEN     = 6;
-const uint8_t EMV_AID_DISCOVER[]   = {0xA0, 0x00, 0x00, 0x01, 0x52, 0x30, 0x10};
-const size_t  EMV_AID_DISCOVER_LEN = 7;
-const uint8_t EMV_AID_JCB[]        = {0xA0, 0x00, 0x00, 0x00, 0x65, 0x10, 0x10};
-const size_t  EMV_AID_JCB_LEN      = 7;
-const uint8_t EMV_AID_INTERAC[]    = {0xA0, 0x00, 0x00, 0x02, 0x77, 0x10, 0x10};
-const size_t  EMV_AID_INTERAC_LEN  = 7;
+const size_t EMV_AID_MASTERCARD_LEN = 7;
+const uint8_t EMV_AID_MAESTRO[] = {0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60};
+const size_t EMV_AID_MAESTRO_LEN = 7;
+const uint8_t EMV_AID_AMEX[] = {0xA0, 0x00, 0x00, 0x00, 0x25, 0x01};
+const size_t EMV_AID_AMEX_LEN = 6;
+const uint8_t EMV_AID_DISCOVER[] = {0xA0, 0x00, 0x00, 0x01, 0x52, 0x30, 0x10};
+const size_t EMV_AID_DISCOVER_LEN = 7;
+const uint8_t EMV_AID_JCB[] = {0xA0, 0x00, 0x00, 0x00, 0x65, 0x10, 0x10};
+const size_t EMV_AID_JCB_LEN = 7;
+const uint8_t EMV_AID_INTERAC[] = {0xA0, 0x00, 0x00, 0x02, 0x77, 0x10, 0x10};
+const size_t EMV_AID_INTERAC_LEN = 7;
 
 size_t emv_apdu_build_select_ppse(uint8_t* out, size_t out_size) {
-    static const uint8_t ppse[] = {'2', 'P', 'A', 'Y', '.', 'S', 'Y', 'S', '.', 'D', 'D', 'F', '0', '1'};
+    static const uint8_t ppse[] = {
+        '2', 'P', 'A', 'Y', '.', 'S', 'Y', 'S', '.', 'D', 'D', 'F', '0', '1'};
     if(out_size < 5 + sizeof(ppse) + 1) return 0;
     out[0] = 0x00;
     out[1] = EMV_INS_SELECT;
@@ -33,11 +34,8 @@ size_t emv_apdu_build_select_ppse(uint8_t* out, size_t out_size) {
     return 5 + sizeof(ppse) + 1;
 }
 
-size_t emv_apdu_build_select_aid(
-    const uint8_t* aid,
-    size_t aid_len,
-    uint8_t* out,
-    size_t out_size) {
+size_t
+    emv_apdu_build_select_aid(const uint8_t* aid, size_t aid_len, uint8_t* out, size_t out_size) {
     if(!aid || aid_len == 0 || aid_len > 16) return 0;
     if(out_size < 5 + aid_len + 1) return 0;
     out[0] = 0x00;
@@ -50,11 +48,8 @@ size_t emv_apdu_build_select_aid(
     return 5 + aid_len + 1;
 }
 
-size_t emv_apdu_build_gpo(
-    const uint8_t* pdol_data,
-    size_t pdol_len,
-    uint8_t* out,
-    size_t out_size) {
+size_t
+    emv_apdu_build_gpo(const uint8_t* pdol_data, size_t pdol_len, uint8_t* out, size_t out_size) {
     size_t inner_len = 2 + pdol_len;
     if(out_size < 5 + inner_len + 1) return 0;
     if(pdol_len > 252) return 0;
@@ -159,14 +154,23 @@ bool emv_decode_track2(const uint8_t* track2, size_t len, char* out, size_t out_
 
 const char* emv_aid_label(const uint8_t* aid, size_t aid_len) {
     if(!aid) return "Unknown";
-    if(aid_len >= EMV_AID_VISA_LEN && memcmp(aid, EMV_AID_VISA, EMV_AID_VISA_LEN) == 0) return "Visa";
-    if(aid_len >= EMV_AID_VISA_DEBIT_LEN && memcmp(aid, EMV_AID_VISA_DEBIT, EMV_AID_VISA_DEBIT_LEN) == 0) return "Visa Debit";
-    if(aid_len >= EMV_AID_MASTERCARD_LEN && memcmp(aid, EMV_AID_MASTERCARD, EMV_AID_MASTERCARD_LEN) == 0) return "Mastercard";
-    if(aid_len >= EMV_AID_MAESTRO_LEN && memcmp(aid, EMV_AID_MAESTRO, EMV_AID_MAESTRO_LEN) == 0) return "Maestro";
-    if(aid_len >= EMV_AID_AMEX_LEN && memcmp(aid, EMV_AID_AMEX, EMV_AID_AMEX_LEN) == 0) return "Amex";
-    if(aid_len >= EMV_AID_DISCOVER_LEN && memcmp(aid, EMV_AID_DISCOVER, EMV_AID_DISCOVER_LEN) == 0) return "Discover";
+    if(aid_len >= EMV_AID_VISA_LEN && memcmp(aid, EMV_AID_VISA, EMV_AID_VISA_LEN) == 0)
+        return "Visa";
+    if(aid_len >= EMV_AID_VISA_DEBIT_LEN &&
+       memcmp(aid, EMV_AID_VISA_DEBIT, EMV_AID_VISA_DEBIT_LEN) == 0)
+        return "Visa Debit";
+    if(aid_len >= EMV_AID_MASTERCARD_LEN &&
+       memcmp(aid, EMV_AID_MASTERCARD, EMV_AID_MASTERCARD_LEN) == 0)
+        return "Mastercard";
+    if(aid_len >= EMV_AID_MAESTRO_LEN && memcmp(aid, EMV_AID_MAESTRO, EMV_AID_MAESTRO_LEN) == 0)
+        return "Maestro";
+    if(aid_len >= EMV_AID_AMEX_LEN && memcmp(aid, EMV_AID_AMEX, EMV_AID_AMEX_LEN) == 0)
+        return "Amex";
+    if(aid_len >= EMV_AID_DISCOVER_LEN && memcmp(aid, EMV_AID_DISCOVER, EMV_AID_DISCOVER_LEN) == 0)
+        return "Discover";
     if(aid_len >= EMV_AID_JCB_LEN && memcmp(aid, EMV_AID_JCB, EMV_AID_JCB_LEN) == 0) return "JCB";
-    if(aid_len >= EMV_AID_INTERAC_LEN && memcmp(aid, EMV_AID_INTERAC, EMV_AID_INTERAC_LEN) == 0) return "Interac";
+    if(aid_len >= EMV_AID_INTERAC_LEN && memcmp(aid, EMV_AID_INTERAC, EMV_AID_INTERAC_LEN) == 0)
+        return "Interac";
     return "Unknown AID";
 }
 
@@ -175,7 +179,11 @@ void emv_decode_aip(const uint8_t aip[2], char* out, size_t out_size) {
     out[0] = '\0';
     size_t pos = 0;
 
-    struct { uint8_t byte; uint8_t bit; const char* label; } flags[] = {
+    struct {
+        uint8_t byte;
+        uint8_t bit;
+        const char* label;
+    } flags[] = {
         {0, 0x40, "SDA"},
         {0, 0x20, "DDA"},
         {0, 0x10, "CVM"},
@@ -187,7 +195,8 @@ void emv_decode_aip(const uint8_t aip[2], char* out, size_t out_size) {
 
     for(size_t i = 0; i < sizeof(flags) / sizeof(flags[0]); i++) {
         if(aip[flags[i].byte] & flags[i].bit) {
-            int n = snprintf(out + pos, out_size - pos, "%s%s", pos > 0 ? "," : "", flags[i].label);
+            int n =
+                snprintf(out + pos, out_size - pos, "%s%s", pos > 0 ? "," : "", flags[i].label);
             if(n < 0 || (size_t)n >= out_size - pos) break;
             pos += n;
         }
@@ -199,7 +208,10 @@ bool emv_extract_service_code(const char* track2, char* out, size_t out_size) {
     if(!track2 || !out || out_size < 4) return false;
     const char* sep = NULL;
     for(const char* p = track2; *p; p++) {
-        if(*p == '=') { sep = p; break; }
+        if(*p == '=') {
+            sep = p;
+            break;
+        }
     }
     if(!sep) return false;
     if(!sep[1] || !sep[2] || !sep[3] || !sep[4] || !sep[5] || !sep[6] || !sep[7]) return false;
@@ -213,14 +225,11 @@ bool emv_extract_service_code(const char* track2, char* out, size_t out_size) {
 const char* emv_service_code_describe(const char* sc, char* buf, size_t buf_size) {
     if(!sc || !buf || buf_size == 0 || !sc[0] || !sc[1] || !sc[2]) return "";
     static const char* d1_lut[10] = {
-        NULL, "Intl", "IntlIC", NULL, NULL, "Natl", "NatlIC", "Priv", NULL, "Test"
-    };
+        NULL, "Intl", "IntlIC", NULL, NULL, "Natl", "NatlIC", "Priv", NULL, "Test"};
     static const char* d2_lut[10] = {
-        "Norm", NULL, "Issuer", NULL, "Issuer*", NULL, NULL, NULL, NULL, NULL
-    };
+        "Norm", NULL, "Issuer", NULL, "Issuer*", NULL, NULL, NULL, NULL, NULL};
     static const char* d3_lut[10] = {
-        "PIN", "Free", "Goods", "ATM", "Cash", "GoodsPIN", "PINpad", "GoodsPINpad", NULL, NULL
-    };
+        "PIN", "Free", "Goods", "ATM", "Cash", "GoodsPIN", "PINpad", "GoodsPINpad", NULL, NULL};
     int i1 = sc[0] - '0';
     int i2 = sc[1] - '0';
     int i3 = sc[2] - '0';
@@ -242,8 +251,10 @@ bool emv_parse_cvm_list(
     if(!cvm_buf || cvm_len < 8 || !out_rules || !out_count) return false;
 
     uint32_t ax = 0, ay = 0;
-    for(int i = 0; i < 4; i++) ax = (ax << 8) | cvm_buf[i];
-    for(int i = 0; i < 4; i++) ay = (ay << 8) | cvm_buf[4 + i];
+    for(int i = 0; i < 4; i++)
+        ax = (ax << 8) | cvm_buf[i];
+    for(int i = 0; i < 4; i++)
+        ay = (ay << 8) | cvm_buf[4 + i];
     if(out_amount_x) *out_amount_x = ax;
     if(out_amount_y) *out_amount_y = ay;
 
@@ -264,23 +275,30 @@ bool emv_parse_cvm_list(
 
 const char* emv_cvm_method_label(uint8_t method) {
     switch(method) {
-    case EmvCvmFailCardholder:        return "Fail";
-    case EmvCvmPlaintextPinIcc:       return "PIN/offline";
-    case EmvCvmPlaintextPinOnline:    return "PIN/online";
-    case EmvCvmPlaintextPinIccSig:    return "PIN/off+sig";
-    case EmvCvmEncipheredPinIcc:      return "PIN/off-enc";
-    case EmvCvmEncipheredPinIccSig:   return "PIN/off-enc+sig";
-    case EmvCvmSignature:             return "Signature";
-    case EmvCvmNoCvm:                 return "NoCVM";
-    default:                          return "Unknown";
+    case EmvCvmFailCardholder:
+        return "Fail";
+    case EmvCvmPlaintextPinIcc:
+        return "PIN/offline";
+    case EmvCvmPlaintextPinOnline:
+        return "PIN/online";
+    case EmvCvmPlaintextPinIccSig:
+        return "PIN/off+sig";
+    case EmvCvmEncipheredPinIcc:
+        return "PIN/off-enc";
+    case EmvCvmEncipheredPinIccSig:
+        return "PIN/off-enc+sig";
+    case EmvCvmSignature:
+        return "Signature";
+    case EmvCvmNoCvm:
+        return "NoCVM";
+    default:
+        return "Unknown";
     }
 }
 
 static bool cvm_is_pin_method(uint8_t method) {
-    return method == EmvCvmPlaintextPinIcc ||
-           method == EmvCvmPlaintextPinOnline ||
-           method == EmvCvmPlaintextPinIccSig ||
-           method == EmvCvmEncipheredPinIcc ||
+    return method == EmvCvmPlaintextPinIcc || method == EmvCvmPlaintextPinOnline ||
+           method == EmvCvmPlaintextPinIccSig || method == EmvCvmEncipheredPinIcc ||
            method == EmvCvmEncipheredPinIccSig;
 }
 
@@ -363,12 +381,18 @@ void emv_format_pin_status(const EmvPinAnalysis* a, char* out, size_t out_size) 
         snprintf(out, out_size, "always req by card");
         break;
     case EmvPinAbove:
-        snprintf(out, out_size, "card req >$%lu.%02lu",
+        snprintf(
+            out,
+            out_size,
+            "card req >$%lu.%02lu",
             (unsigned long)(a->threshold / 100),
             (unsigned long)(a->threshold % 100));
         break;
     case EmvPinBelow:
-        snprintf(out, out_size, "card req <$%lu.%02lu",
+        snprintf(
+            out,
+            out_size,
+            "card req <$%lu.%02lu",
             (unsigned long)(a->threshold / 100),
             (unsigned long)(a->threshold % 100));
         break;
@@ -387,15 +411,25 @@ void emv_format_pin_status(const EmvPinAnalysis* a, char* out, size_t out_size) 
 
 const char* emv_cvm_condition_label(uint8_t cond) {
     switch(cond) {
-    case EmvCvmCondAlways:             return "always";
-    case EmvCvmCondUnattendedCash:     return "unatt-cash";
-    case EmvCvmCondNotCashOrManual:    return "non-cash";
-    case EmvCvmCondManualCash:         return "manual-cash";
-    case EmvCvmCondPurchaseWithCashback: return "purch+cashback";
-    case EmvCvmCondIfBelowX:           return "if<X";
-    case EmvCvmCondIfAboveX:           return "if>X";
-    case EmvCvmCondIfBelowY:           return "if<Y";
-    case EmvCvmCondIfAboveY:           return "if>Y";
-    default:                           return "?";
+    case EmvCvmCondAlways:
+        return "always";
+    case EmvCvmCondUnattendedCash:
+        return "unatt-cash";
+    case EmvCvmCondNotCashOrManual:
+        return "non-cash";
+    case EmvCvmCondManualCash:
+        return "manual-cash";
+    case EmvCvmCondPurchaseWithCashback:
+        return "purch+cashback";
+    case EmvCvmCondIfBelowX:
+        return "if<X";
+    case EmvCvmCondIfAboveX:
+        return "if>X";
+    case EmvCvmCondIfBelowY:
+        return "if<Y";
+    case EmvCvmCondIfAboveY:
+        return "if>Y";
+    default:
+        return "?";
     }
 }

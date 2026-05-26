@@ -712,6 +712,7 @@ static KneeFlipApp* knee_flip_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     app->notification = furi_record_open(RECORD_NOTIFICATION);
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     app->menu = submenu_alloc();
     app->text_box = text_box_alloc();
     app->block_view = view_alloc();
