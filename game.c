@@ -1,13 +1,13 @@
 #include <stdint.h>
 
 #include <gui/modules/widget.h>
-#include <notification/notification.h>
 
 #include <stratahero_icons.h>
 
 #include "constants.h"
 #include "stratagems.h"
 #include "settings.h"
+#include "notifications.h"
 #include "glyphs.h"
 #include "game.h"
 
@@ -78,8 +78,6 @@ typedef struct {
 
 static void game_widget_navigate(StrataHeroGameWidget* widget, StrataHeroGameWidgetNavigationEvent event);
 static void game_widget_navigate_back(StrataHeroGameWidget* widget);
-static void notify_success(StrataHeroGameWidget* widget);
-static void notify_failure(StrataHeroGameWidget* widget);
 
 
 uint32_t get_time_delta(uint32_t old, uint32_t new) {
@@ -390,7 +388,12 @@ static bool input_callback(InputEvent* event, void* context) {
                 if (code_input != 0) {
                     const Stratagem* stratagem = model->round_stratagems[model->current_round_stratagem];
                     if (stratagem->code[model->current_code_progress] == code_input) {
-                        notify_success(widget);
+                        bool last = (model->current_code_progress + 1 >= model->current_code_length);
+                        if (last) {
+                            stratahero_code_complete_notification(widget->notification, &widget->settings);
+                        } else {
+                            stratahero_code_glyph_entry_success_notification(widget->notification, &widget->settings);
+                        }
                         with_widget_model(widget, model, {
                             model->current_code_progress++;
                             if (model->current_code_progress >= model->current_code_length) {
@@ -406,7 +409,7 @@ static bool input_callback(InputEvent* event, void* context) {
                             }
                         }, true);
                     } else {
-                        notify_failure(widget);
+                        stratahero_code_glyph_entry_failure_notification(widget->notification, &widget->settings);
                         furi_timer_start(widget->invalid_code_timer, INVALID_CODE_DELAY);
                         with_widget_model(widget, model, {
                             model->input_blocked = true;
@@ -539,70 +542,4 @@ static void game_widget_navigate_back(StrataHeroGameWidget* widget) {
     game_widget_navigate(widget, StrataHeroGameWidgetNavigationEvent_Back);
 }
 
-static NotificationSequence success_beep = {
-    &(NotificationMessage){ NotificationMessageTypeSoundOn, { .sound = { 400, 0.5 } } },
-    &(NotificationMessage){ NotificationMessageTypeDelay, { .delay = { 100 } } },
-    &(NotificationMessage){ NotificationMessageTypeSoundOff, {} },
-    NULL
-};
-
-static NotificationSequence success_vibro = {
-    &(NotificationMessage){ NotificationMessageTypeVibro, { .vibro = { true } } },
-    &(NotificationMessage){ NotificationMessageTypeDelay, { .delay = { 100 } } },
-    &(NotificationMessage){ NotificationMessageTypeVibro, { .vibro = { false } } },
-    NULL
-};
-
-static NotificationSequence success_beep_and_vibro = {
-    &(NotificationMessage){ NotificationMessageTypeSoundOn, { .sound = { 400, 0.5 } } },
-    &(NotificationMessage){ NotificationMessageTypeVibro, { .vibro = { true } } },
-    &(NotificationMessage){ NotificationMessageTypeDelay, { .delay = { 100 } } },
-    &(NotificationMessage){ NotificationMessageTypeSoundOff, {} },
-    &(NotificationMessage){ NotificationMessageTypeVibro, { .vibro = { false } } },
-    NULL
-};
-
-
-static NotificationSequence failure_beep = {
-    &(NotificationMessage){ NotificationMessageTypeSoundOn, { .sound = { 200, 0.5 } } },
-    &(NotificationMessage){ NotificationMessageTypeDelay, { .delay = { 500 } } },
-    &(NotificationMessage){ NotificationMessageTypeSoundOff, {} },
-    NULL
-};
-
-static NotificationSequence failure_vibro = {
-    &(NotificationMessage){ NotificationMessageTypeVibro, { .vibro = { true } } },
-    &(NotificationMessage){ NotificationMessageTypeDelay, { .delay = { 500 } } },
-    &(NotificationMessage){ NotificationMessageTypeVibro, { .vibro = { false } } },
-    NULL
-};
-
-static NotificationSequence failure_beep_and_vibro = {
-    &(NotificationMessage){ NotificationMessageTypeSoundOn, { .sound = { 200, 0.5 } } },
-    &(NotificationMessage){ NotificationMessageTypeVibro, { .vibro = { true } } },
-    &(NotificationMessage){ NotificationMessageTypeDelay, { .delay = { 500 } } },
-    &(NotificationMessage){ NotificationMessageTypeSoundOff, {} },
-    &(NotificationMessage){ NotificationMessageTypeVibro, { .vibro = { false } } },
-    NULL
-};
-
-static void notify_success(StrataHeroGameWidget* widget) {
-    if (widget->settings.sound_enabled && widget->settings.vibro_enabled) {
-        notification_message(widget->notification, &success_beep_and_vibro);
-    } else if (widget->settings.sound_enabled) {
-        notification_message(widget->notification, &success_beep);
-    } else if (widget->settings.vibro_enabled) {
-        notification_message(widget->notification, &success_vibro);
-    }
-}
-
-static void notify_failure(StrataHeroGameWidget* widget) {
-    if (widget->settings.sound_enabled && widget->settings.vibro_enabled) {
-        notification_message(widget->notification, &failure_beep_and_vibro);
-    } else if (widget->settings.sound_enabled) {
-        notification_message(widget->notification, &failure_beep);
-    } else if (widget->settings.vibro_enabled) {
-        notification_message(widget->notification, &failure_vibro);
-    }
-}
 

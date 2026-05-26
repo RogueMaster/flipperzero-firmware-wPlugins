@@ -1,6 +1,7 @@
 #include <gui/view.h>
 #include <gui/elements.h>
 #include <gui/modules/submenu.h>
+#include <notification/notification.h>
 
 #include <stratahero_icons.h>
 
@@ -9,6 +10,7 @@
 #include "stratagems.h"
 #include "catalog.h"
 #include "glyphs.h"
+#include "notifications.h"
 
 
 #define LONG_TEXT_SCROLL_DELAY 3
@@ -323,55 +325,36 @@ void stratagem_list_widget_set_selected_callback(
 
 struct StratagemDetailWidget {
     View* view;
+    StratagemTrainCallback train_callback;
+    void* train_callback_context;
 };
 
 typedef struct {
     const Stratagem* stratagem;
+    int horizontal_scroll_counter;
+    FuriTimer* scroll_timer;
 } StratagemDetailWidgetModel;
 
-static int detail_draw_title_wrapped(Canvas* canvas, int x, int y, int max_width, const char* str) {
-    const int line_h = 9;
-    char line[64] = "";
-    int cur_y = y;
-    const char* p = str;
+static void detail_scroll_timer_callback(void* context) {
+    StratagemDetailWidget* widget = context;
+    with_view_model(widget->view, StratagemDetailWidgetModel* model, {
+        model->horizontal_scroll_counter++;
+    }, true);
+}
 
-    while(p && *p) {
-        const char* space = p;
-        while(*space && *space != ' ') space++;
+static void stratagem_detail_widget_enter_callback(void* context) {
+    StratagemDetailWidget* widget = context;
+    with_view_model(widget->view, StratagemDetailWidgetModel* model, {
+        model->horizontal_scroll_counter = 0;
+        furi_timer_start(model->scroll_timer, SCROLL_INTERVAL);
+    }, false);
+}
 
-        char word[32];
-        int word_len = space - p;
-        if(word_len >= (int)sizeof(word)) word_len = (int)sizeof(word) - 1;
-        memcpy(word, p, word_len);
-        word[word_len] = '\0';
-
-        char candidate[128];
-        if(line[0]) {
-            snprintf(candidate, sizeof(candidate), "%s %s", line, word);
-        } else {
-            strncpy(candidate, word, sizeof(candidate) - 1);
-            candidate[sizeof(candidate) - 1] = '\0';
-        }
-
-        if(!line[0] || canvas_string_width(canvas, candidate) <= (size_t)max_width) {
-            strncpy(line, candidate, sizeof(line) - 1);
-            line[sizeof(line) - 1] = '\0';
-        } else {
-            canvas_draw_str_aligned(canvas, x, cur_y, AlignLeft, AlignTop, line);
-            cur_y += line_h;
-            strncpy(line, word, sizeof(line) - 1);
-            line[sizeof(line) - 1] = '\0';
-        }
-
-        p = *space ? space + 1 : NULL;
-    }
-
-    if(line[0]) {
-        canvas_draw_str_aligned(canvas, x, cur_y, AlignLeft, AlignTop, line);
-        cur_y += line_h;
-    }
-
-    return cur_y;
+static void stratagem_detail_widget_exit_callback(void* context) {
+    StratagemDetailWidget* widget = context;
+    with_view_model(widget->view, StratagemDetailWidgetModel* model, {
+        furi_timer_stop(model->scroll_timer);
+    }, false);
 }
 
 static void stratagem_detail_widget_draw_callback(Canvas* canvas, void* _model) {
@@ -387,27 +370,29 @@ static void stratagem_detail_widget_draw_callback(Canvas* canvas, void* _model) 
     int icon_w = icon_get_width(icon);
     int icon_h = icon_get_height(icon);
 
-    int icon_x = 4;
-    int icon_y = 4;
-    canvas_draw_icon(canvas, icon_x, icon_y, icon);
+    canvas_draw_icon(canvas, 4, 4, icon);
 
-    int title_x = icon_x + icon_w + 4;
-    // int title_bottom = detail_draw_title_wrapped(
-    //     canvas, title_x, icon_y, SCREEN_WIDTH - title_x - 2, stratagem->title);
-    detail_draw_title_wrapped(canvas, title_x, icon_y, SCREEN_WIDTH - title_x - 2, stratagem->title);
+    int title_x = 4 + icon_w + 4;
+    int title_w = SCREEN_WIDTH - title_x;
+    int scroll_offset = model->horizontal_scroll_counter < LONG_TEXT_SCROLL_DELAY
+        ? 0
+        : model->horizontal_scroll_counter - LONG_TEXT_SCROLL_DELAY;
+    FuriString* title = furi_string_alloc_set(stratagem->title);
+    elements_scrollable_text_line(canvas, title_x, 12, title_w, title, scroll_offset, false);
+    furi_string_free(title);
 
-    int cooldown_x = 4;
-    int cooldown_y = 4 + icon_h + 2;
+    int cooldown_x = title_x;
+    int cooldown_y = 17;
     int cooldown_icon_w = icon_get_width(&I_cooldown);
-    int cooldown_icon_h = icon_get_height(&I_cooldown);
     canvas_draw_icon(canvas, cooldown_x, cooldown_y, &I_cooldown);
     char buffer[32];
-    snprintf(buffer, sizeof(buffer)-1, "%ds", stratagem->cooldown);
+    snprintf(buffer, sizeof(buffer) - 1, "%ds", stratagem->cooldown);
     canvas_draw_str_aligned(canvas, cooldown_x + cooldown_icon_w + 2, cooldown_y + 2, AlignLeft, AlignTop, buffer);
 
-    int code_y = cooldown_y + cooldown_icon_h + 2;
     int code_len = strlen(stratagem->code);
-    int code_x = 4;
+    int code_x = (SCREEN_WIDTH - CODE_GLYPH_WIDTH * code_len) / 2;
+    if(code_x < 4) code_x = 4;
+    int code_y = 4 + icon_h + 4 + 2;
     for(int i = 0; i < code_len; i++) {
         const StrataHeroCodeGlyph* glyph = stratahero_get_code_glyph(stratagem->code[i]);
         if(glyph) {
@@ -415,6 +400,24 @@ static void stratagem_detail_widget_draw_callback(Canvas* canvas, void* _model) 
         }
         code_x += CODE_GLYPH_WIDTH;
     }
+
+    elements_button_right(canvas, "Train");
+}
+
+static bool stratagem_detail_widget_input_callback(InputEvent* event, void* context) {
+    StratagemDetailWidget* widget = context;
+    if(event->type != InputTypeShort) return false;
+    if(event->key != InputKeyRight) return false;
+
+    const Stratagem* stratagem = NULL;
+    with_view_model(widget->view, StratagemDetailWidgetModel* model, {
+        stratagem = model->stratagem;
+    }, false);
+
+    if(stratagem && widget->train_callback) {
+        widget->train_callback(stratagem, widget->train_callback_context);
+    }
+    return true;
 }
 
 StratagemDetailWidget* stratagem_detail_widget_alloc() {
@@ -422,11 +425,32 @@ StratagemDetailWidget* stratagem_detail_widget_alloc() {
     widget->view = view_alloc();
     view_set_context(widget->view, widget);
     view_set_draw_callback(widget->view, stratagem_detail_widget_draw_callback);
+    view_set_input_callback(widget->view, stratagem_detail_widget_input_callback);
+    view_set_enter_callback(widget->view, stratagem_detail_widget_enter_callback);
+    view_set_exit_callback(widget->view, stratagem_detail_widget_exit_callback);
     view_allocate_model(widget->view, ViewModelTypeLockFree, sizeof(StratagemDetailWidgetModel));
+    widget->train_callback = NULL;
+    widget->train_callback_context = NULL;
+    with_view_model(widget->view, StratagemDetailWidgetModel* model, {
+        model->horizontal_scroll_counter = 0;
+        model->scroll_timer = furi_timer_alloc(detail_scroll_timer_callback, FuriTimerTypePeriodic, widget);
+    }, false);
     return widget;
 }
 
+void stratagem_detail_widget_set_train_callback(
+    StratagemDetailWidget* widget,
+    StratagemTrainCallback callback,
+    void* context
+) {
+    widget->train_callback = callback;
+    widget->train_callback_context = context;
+}
+
 void stratagem_detail_widget_free(StratagemDetailWidget* widget) {
+    with_view_model(widget->view, StratagemDetailWidgetModel* model, {
+        furi_timer_free(model->scroll_timer);
+    }, false);
     view_free(widget->view);
     free(widget);
 }
@@ -438,6 +462,167 @@ View* stratagem_detail_widget_get_view(StratagemDetailWidget* widget) {
 void stratagem_detail_widget_set_stratagem(StratagemDetailWidget* widget, const Stratagem* stratagem) {
     with_view_model(widget->view, StratagemDetailWidgetModel* model, {
         model->stratagem = stratagem;
+        model->horizontal_scroll_counter = 0;
+    }, true);
+}
+
+
+// StratagemTrainWidget
+
+#define TRAIN_FLASH_DELAY 500
+
+struct StratagemTrainWidget {
+    View* view;
+    FuriTimer* flash_timer;
+    NotificationApp* notification;
+    StrataHeroSettings settings;
+};
+
+typedef struct {
+    const Stratagem* stratagem;
+    int code_progress;
+    bool input_blocked;
+} StratagemTrainWidgetModel;
+
+static void train_flash_timer_callback(void* context) {
+    StratagemTrainWidget* widget = context;
+    with_view_model(widget->view, StratagemTrainWidgetModel* model, {
+        model->input_blocked = false;
+        model->code_progress = 0;
+    }, true);
+}
+
+static void stratagem_train_widget_draw_callback(Canvas* canvas, void* _model) {
+    StratagemTrainWidgetModel* model = _model;
+    const Stratagem* stratagem = model->stratagem;
+
+    canvas_clear(canvas);
+    if(!stratagem) return;
+
+    const Icon* icon = stratagem->icon ? stratagem->icon : &I_no_icon_stratagem;
+    int icon_w = icon_get_width(icon);
+    int icon_h = icon_get_height(icon);
+    canvas_draw_icon(canvas, (SCREEN_WIDTH - icon_w) / 2, 4, icon);
+
+    int code_len = strlen(stratagem->code);
+    int code_x = (SCREEN_WIDTH - CODE_GLYPH_WIDTH * code_len) / 2;
+    if(code_x < 4) code_x = 4;
+    int code_y = 4 + icon_h + 6;
+
+    bool inverse = model->input_blocked;
+
+    for(int i = 0; i < code_len; i++) {
+        const StrataHeroCodeGlyph* glyph = stratahero_get_code_glyph(stratagem->code[i]);
+        if(glyph) {
+            const Icon* glyph_icon;
+            if(inverse) {
+                glyph_icon = glyph->inverse;
+            } else if(i < model->code_progress) {
+                glyph_icon = glyph->black;
+            } else {
+                glyph_icon = glyph->white;
+            }
+            canvas_draw_icon(canvas, code_x, code_y, glyph_icon);
+        }
+        code_x += CODE_GLYPH_WIDTH;
+        if(code_x > SCREEN_WIDTH - CODE_GLYPH_WIDTH) {
+            code_y += CODE_GLYPH_HEIGHT;
+            code_x = (SCREEN_WIDTH - CODE_GLYPH_WIDTH * (code_len - i - 1)) / 2;
+            if(code_x < 4) code_x = 4;
+        }
+    }
+}
+
+static bool stratagem_train_widget_input_callback(InputEvent* event, void* context) {
+    StratagemTrainWidget* widget = context;
+    if(event->type != InputTypeShort) return false;
+
+    char code_input = 0;
+    switch(event->key) {
+        case InputKeyLeft:  code_input = 'L'; break;
+        case InputKeyRight: code_input = 'R'; break;
+        case InputKeyUp:    code_input = 'U'; break;
+        case InputKeyDown:  code_input = 'D'; break;
+        default: break;
+    }
+
+    if(code_input == 0) return false;
+
+    bool success = false;
+    bool code_complete = false;
+    bool wrong = false;
+    with_view_model(widget->view, StratagemTrainWidgetModel* model, {
+        if(!model->input_blocked && model->stratagem) {
+            if(model->stratagem->code[model->code_progress] == code_input) {
+                model->code_progress++;
+                success = true;
+                if(model->code_progress >= (int)strlen(model->stratagem->code)) {
+                    model->code_progress = 0;
+                    code_complete = true;
+                }
+            } else {
+                model->input_blocked = true;
+                wrong = true;
+            }
+        }
+    }, true);
+
+    if(code_complete) {
+        stratahero_code_complete_notification(widget->notification, &widget->settings);
+    } else if(success) {
+        stratahero_code_glyph_entry_success_notification(widget->notification, &widget->settings);
+    }
+    if(wrong) {
+        stratahero_code_glyph_entry_failure_notification(widget->notification, &widget->settings);
+        furi_timer_start(widget->flash_timer, TRAIN_FLASH_DELAY);
+    }
+
+    return true;
+}
+
+static void stratagem_train_widget_exit_callback(void* context) {
+    StratagemTrainWidget* widget = context;
+    furi_timer_stop(widget->flash_timer);
+    with_view_model(widget->view, StratagemTrainWidgetModel* model, {
+        model->input_blocked = false;
+        model->code_progress = 0;
+    }, true);
+}
+
+StratagemTrainWidget* stratagem_train_widget_alloc() {
+    StratagemTrainWidget* widget = malloc(sizeof(StratagemTrainWidget));
+    widget->view = view_alloc();
+    view_set_context(widget->view, widget);
+    view_set_draw_callback(widget->view, stratagem_train_widget_draw_callback);
+    view_set_input_callback(widget->view, stratagem_train_widget_input_callback);
+    view_set_exit_callback(widget->view, stratagem_train_widget_exit_callback);
+    view_allocate_model(widget->view, ViewModelTypeLockFree, sizeof(StratagemTrainWidgetModel));
+    widget->flash_timer = furi_timer_alloc(train_flash_timer_callback, FuriTimerTypeOnce, widget);
+    widget->notification = furi_record_open(RECORD_NOTIFICATION);
+    return widget;
+}
+
+void stratagem_train_widget_free(StratagemTrainWidget* widget) {
+    furi_timer_stop(widget->flash_timer);
+    furi_timer_free(widget->flash_timer);
+    view_free(widget->view);
+    furi_record_close(RECORD_NOTIFICATION);
+    free(widget);
+}
+
+void stratagem_train_widget_set_settings(StratagemTrainWidget* widget, const StrataHeroSettings* settings) {
+    widget->settings = *settings;
+}
+
+View* stratagem_train_widget_get_view(StratagemTrainWidget* widget) {
+    return widget->view;
+}
+
+void stratagem_train_widget_set_stratagem(StratagemTrainWidget* widget, const Stratagem* stratagem) {
+    with_view_model(widget->view, StratagemTrainWidgetModel* model, {
+        model->stratagem = stratagem;
+        model->code_progress = 0;
+        model->input_blocked = false;
     }, true);
 }
 
