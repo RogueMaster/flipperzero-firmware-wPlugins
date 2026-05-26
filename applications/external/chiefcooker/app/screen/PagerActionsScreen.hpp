@@ -36,8 +36,7 @@ public:
         PagerDataGetter pagerGetter,
         PagerDecoder* decoder,
         PagerProtocol* protocol,
-        SubGhzModule* subghz
-    ) {
+        SubGhzModule* subghz) {
         this->config = config;
         this->getPager = pagerGetter;
         this->decoder = decoder;
@@ -55,14 +54,14 @@ public:
         submenu->SetOnReturnToViewHandler(HANDLER(&PagerActionsScreen::onReturn));
 
         submenu->AddItem(
-            resendToAllStr.format("Resend %d (%s) to ALL", actionValue, PagerActions::GetDescription(currentAction)),
-            HANDLER_1ARG(&PagerActionsScreen::resendToAll)
-        );
+            resendToAllStr.format(
+                "Resend %d (%s) to ALL", actionValue, PagerActions::GetDescription(currentAction)),
+            HANDLER_1ARG(&PagerActionsScreen::resendToAll));
 
         if(currentAction == UNKNOWN) {
             submenu->AddItem(
-                resendToCurrentStr.format("Resend only to pager %d", pagerNum), HANDLER_1ARG(&PagerActionsScreen::resendSingle)
-            );
+                resendToCurrentStr.format("Resend only to pager %d", pagerNum),
+                HANDLER_1ARG(&PagerActionsScreen::resendSingle));
         }
 
         String label;
@@ -74,9 +73,11 @@ public:
 
             const char* labelCstr;
             if(PagerActions::IsPagerActionSpecial(action)) {
-                labelCstr = label.format("Trigger action %s", PagerActions::GetDescription(action));
+                labelCstr =
+                    label.format("Trigger action %s", PagerActions::GetDescription(action));
             } else {
-                labelCstr = label.format("%s only pager %d", PagerActions::GetDescription(action), pagerNum);
+                labelCstr = label.format(
+                    "%s only pager %d", PagerActions::GetDescription(action), pagerNum);
             }
 
             submenu->AddItem(labelCstr, [this, action](uint32_t) { sendAction(action); });
@@ -89,7 +90,8 @@ private:
     void resendToAll(uint32_t) {
         currentPager = 0;
         transmittingBatch = true;
-        currentBatchFrequency = FrequencyManager::GetInstance()->GetFrequency(getPager()->frequency);
+        currentBatchFrequency =
+            FrequencyManager::GetInstance()->GetFrequency(getPager()->frequency);
 
         batchTransmissionScreen = new BatchTransmissionScreen(config->MaxPagerForBatchOrDetection);
         UiManager::GetInstance()->PushView(batchTransmissionScreen->GetView());
@@ -101,7 +103,8 @@ private:
     void resendSingle(uint32_t) {
         StoredPagerData* pager = getPager();
         uint32_t frequency = FrequencyManager::GetInstance()->GetFrequency(pager->frequency);
-        subghz->Transmit(protocol->CreatePayload(pager->data, pager->te, config->SignalRepeats), frequency);
+        subghz->Transmit(
+            protocol->CreatePayload(pager->data, pager->te, config->SignalRepeats), frequency);
 
         FlipperDolphin::Deed(DolphinDeedSubGhzSend);
     }
@@ -110,8 +113,9 @@ private:
         StoredPagerData* pager = getPager();
         uint32_t frequency = FrequencyManager::GetInstance()->GetFrequency(pager->frequency);
         subghz->Transmit(
-            protocol->CreatePayload(decoder->SetAction(pager->data, action), pager->te, config->SignalRepeats), frequency
-        );
+            protocol->CreatePayload(
+                decoder->SetAction(pager->data, action), pager->te, config->SignalRepeats),
+            frequency);
 
         FlipperDolphin::Deed(DolphinDeedSubGhzSend);
     }
@@ -120,9 +124,9 @@ private:
         StoredPagerData* pager = getPager();
         batchTransmissionScreen->SetProgress(currentPager, config->MaxPagerForBatchOrDetection);
         subghz->Transmit(
-            protocol->CreatePayload(decoder->SetPager(pager->data, currentPager), pager->te, config->SignalRepeats),
-            currentBatchFrequency
-        );
+            protocol->CreatePayload(
+                decoder->SetPager(pager->data, currentPager), pager->te, config->SignalRepeats),
+            currentBatchFrequency);
     }
 
     void txComplete() {

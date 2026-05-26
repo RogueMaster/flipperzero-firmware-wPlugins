@@ -27,7 +27,8 @@ static const uint32_t SCAN_FREQUENCIES[] = {
     434420000,
     868350000,
 };
-static const uint8_t SCAN_FREQUENCIES_COUNT = sizeof(SCAN_FREQUENCIES) / sizeof(SCAN_FREQUENCIES[0]);
+static const uint8_t SCAN_FREQUENCIES_COUNT =
+    sizeof(SCAN_FREQUENCIES) / sizeof(SCAN_FREQUENCIES[0]);
 
 static const int8_t RSSI_SENTINEL = -120;
 static const int8_t RSSI_BAR_MIN_DBM = -100;
@@ -119,7 +120,8 @@ private:
 
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 0, 9, statusLabel);
-        canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, isExternal ? "EXT" : "INT");
+        canvas_draw_str_aligned(
+            canvas, 127, 9, AlignRight, AlignBottom, isExternal ? "EXT" : "INT");
         canvas_draw_line(canvas, 0, 11, 127, 11);
 
         uint8_t order[SCAN_FREQUENCIES_COUNT];
@@ -144,7 +146,8 @@ private:
         char buf[16];
 
         canvas_set_font(canvas, FontBatteryPercent);
-        for(uint8_t r = 0; r < SCANNER_VISIBLE_ROWS && (r + scrollOffset) < SCAN_FREQUENCIES_COUNT; r++) {
+        for(uint8_t r = 0; r < SCANNER_VISIBLE_ROWS && (r + scrollOffset) < SCAN_FREQUENCIES_COUNT;
+            r++) {
             uint8_t ch = order[r + scrollOffset];
             int y = rowsTop + r * rowHeight;
             int textBaseline = y + 7;
@@ -155,7 +158,8 @@ private:
 
             uint32_t mhzWhole = SCAN_FREQUENCIES[ch] / 1000000;
             uint32_t mhzFrac = (SCAN_FREQUENCIES[ch] / 10000) % 100;
-            snprintf(buf, sizeof(buf), "%lu.%02lu", (unsigned long)mhzWhole, (unsigned long)mhzFrac);
+            snprintf(
+                buf, sizeof(buf), "%lu.%02lu", (unsigned long)mhzWhole, (unsigned long)mhzFrac);
             canvas_draw_str(canvas, 5, textBaseline, buf);
 
             const int barX = 33;
@@ -178,7 +182,8 @@ private:
                 }
 
                 snprintf(buf, sizeof(buf), "%d", rssiDbm[ch]);
-                canvas_draw_str_aligned(canvas, rssiRightEdge, textBaseline, AlignRight, AlignBottom, buf);
+                canvas_draw_str_aligned(
+                    canvas, rssiRightEdge, textBaseline, AlignRight, AlignBottom, buf);
             }
         }
 
@@ -189,8 +194,7 @@ private:
                 rowsTop,
                 SCANNER_VISIBLE_ROWS * rowHeight,
                 scrollOffset,
-                SCAN_FREQUENCIES_COUNT - SCANNER_VISIBLE_ROWS + 1
-            );
+                SCAN_FREQUENCIES_COUNT - SCANNER_VISIBLE_ROWS + 1);
         }
     }
 
@@ -213,7 +217,8 @@ private:
     }
 
     static void drawCallback(Canvas* canvas, void* model) {
-        FrequencyScannerUiView* uiView = (FrequencyScannerUiView*)((UiVIewPointerViewModel*)model)->uiVIew;
+        FrequencyScannerUiView* uiView =
+            (FrequencyScannerUiView*)((UiVIewPointerViewModel*)model)->uiVIew;
         uiView->draw(canvas);
     }
 
@@ -227,7 +232,10 @@ private:
     }
 };
 
-enum ScannerPhase { PHASE_SWEEP, PHASE_VERIFY };
+enum ScannerPhase {
+    PHASE_SWEEP,
+    PHASE_VERIFY
+};
 
 class FrequencyScannerScreen {
 private:
@@ -317,7 +325,8 @@ private:
         char buf[24];
         uint32_t mhzWhole = SCAN_FREQUENCIES[ch] / 1000000;
         uint32_t mhzFrac = (SCAN_FREQUENCIES[ch] / 10000) % 100;
-        snprintf(buf, sizeof(buf), "Verify %lu.%02lu", (unsigned long)mhzWhole, (unsigned long)mhzFrac);
+        snprintf(
+            buf, sizeof(buf), "Verify %lu.%02lu", (unsigned long)mhzWhole, (unsigned long)mhzFrac);
         scannerView->SetStatusLabel(buf);
 
         subghz->SetReceiveFrequency(SCAN_FREQUENCIES[ch]);
