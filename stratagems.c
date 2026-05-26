@@ -7,114 +7,133 @@ Stratagem STRATAGEM_REINFORCE = {
     .title = "Reinforce",
     .code = "UDRLU",
     .icon = &I_reinforce, 
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_RESUPLY = {
     .type = StratagemType_Ship,
     .title = "Resupply",
     .code = "DDUR",
     .icon = &I_resuply,
+    .cooldown = 180,
 };
 Stratagem STRATAGEM_SOS_BEACON = {
     .type = StratagemType_Ship,
     .title = "SoS Beacon",
     .code = "UDRU",
     .icon = &I_sos_beacon,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_EAGLE_REARM = {
     .type = StratagemType_Ship,
     .title = "Eagle Rearm",
     .code = "UULUR",
     .icon = &I_eagle_rearm,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_CALL_IN_SUPER_DESTROYER = {
     .type = StratagemType_Ship,
     .title = "Call In Super Destroyer",
     .code = "UUDDLRLR",
     .icon = &I_call_in_super_destroyer,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_HELLBOMB = {
     .type = StratagemType_Objective,
     .title = "Hellbomb",
     .code = "DULDURDU",
     .icon = &I_hellbomb,
+    .cooldown = 30,
 };
 Stratagem STRATAGEM_UPLOAD_DATA = {
     .type = StratagemType_Objective,
     .title = "Upload Data",
     .code = "LRUUU",
     .icon = &I_start_upload,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_SSSD_DELIVERY = {
     .type = StratagemType_Objective,
     .title = "SSSD Delivery",
     .code = "DDDDDUU",
     .icon = &I_start_upload,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_SUPER_EARTH_FLAG = {
     .type = StratagemType_Objective,
     .title = "Super Earth Flag",
     .code = "DUDU",
     .icon = &I_super_earth_flag,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_SEISMIC_PROBE = {
     .type = StratagemType_Objective,
     .title = "Seismic Probe",
     .code = "UULRDD",
     .icon = &I_seismic_probe,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_PROSPECTING_DRILL = {
     .type = StratagemType_Objective,
     .title = "Prospecting Drill",
     .code = "DDLRDD",
     .icon = &I_prospecting_drill,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_DARK_FLUID_VESSEL = {
     .type = StratagemType_Objective,
     .title = "Dark Fluid Vessel",
     .code = "ULRDUU",
     .icon = &I_dark_fluid_vessel,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_TECTONIC_DRILL = {
     .type = StratagemType_Objective,
     .title = "Tectonic Drill",
     .code = "UDUDUD",
     .icon = &I_prospecting_drill,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_HIVE_BREAKER_DRILL = {
     .type = StratagemType_Objective,
     .title = "Hive Breaker Drill",
     .code = "LUDRDD",
     .icon = &I_prospecting_drill,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_CARGO_CONTAINER = {
     .type = StratagemType_Objective,
     .title = "Cargo Container",
     .code = "UUDDRD",
     .icon = &I_cargo_container,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_REINFORCEMENT_PODS = {
     .type = StratagemType_Objective,
     .title = "Reinforcement Pods",
     .code = "LRUUU",
     .icon = &I_start_upload,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_SEAF_ARTILLERY = {
     .type = StratagemType_Objective,
     .title = "SEAF Artillery",
     .code = "RUUD",
     .icon = &I_orbital_precision_strike,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_ORBITAL_ILLUMINATION_FLARE = {
     .type = StratagemType_Other,
     .title = "Orbital Illumination Flare",
     .code = "RRLL",
     .icon = &I_orbital_illumination_flare,
+    .cooldown = 0,
 };
 Stratagem STRATAGEM_ORBITAL_PRECISION_STRIKE = {
     .type = StratagemType_OrbitalStrike,
     .title = "Oribtal Precision Strike",
     .code = "RRU",
     .icon = &I_orbital_precision_strike,
+    .cooldown = 90,
     .level = 1,
 };
 Stratagem STRATAGEM_ORBITAL_GATLING_BARRAGE = {
@@ -122,6 +141,7 @@ Stratagem STRATAGEM_ORBITAL_GATLING_BARRAGE = {
     .title = "Oribtal Gatling Barrage",
     .code = "RDLUU",
     .icon = &I_orbital_gatling_barrage,
+    .cooldown = 70,
     .level = 1,
 };
 Stratagem STRATAGEM_ORBITAL_GAS_STRIKE = {
@@ -129,6 +149,7 @@ Stratagem STRATAGEM_ORBITAL_GAS_STRIKE = {
     .title = "Oribtal Gas Strike",
     .code = "RRDR",
     .icon = &I_orbital_gas_strike,
+    .cooldown = 75,
     .level = 1,
 };
 Stratagem STRATAGEM_ORBITAL_120MM_HE_BARRAGE = {
@@ -136,6 +157,7 @@ Stratagem STRATAGEM_ORBITAL_120MM_HE_BARRAGE = {
     .title = "Oribtal 120mm HE Barrage",
     .code = "RRDLRD",
     .icon = &I_orbital_120mm_he_barrage,
+    .cooldown = 180,
     .level = 5,
 };
 Stratagem STRATAGEM_ORBITAL_AIRBURST_STRIKE = {
@@ -143,6 +165,7 @@ Stratagem STRATAGEM_ORBITAL_AIRBURST_STRIKE = {
     .title = "Oribtal Airburst Strike",
     .code = "RRR",
     .icon = &I_orbital_airburst_strike,
+    .cooldown = 100,
     .level = 5,
 };
 Stratagem STRATAGEM_ORBITAL_380MM_HE_BARRAGE = {
@@ -150,6 +173,7 @@ Stratagem STRATAGEM_ORBITAL_380MM_HE_BARRAGE = {
     .title = "Oribtal 380mm HE Barrage",
     .code = "RDUULDD",
     .icon = &I_orbital_380mm_he_barrage,
+    .cooldown = 240,
     .level = 8,
 };
 Stratagem STRATAGEM_ORBITAL_SMOKE_STRIKE = {
@@ -157,6 +181,7 @@ Stratagem STRATAGEM_ORBITAL_SMOKE_STRIKE = {
     .title = "Oribtal Smoke Strike",
     .code = "RRDU",
     .icon = &I_orbital_smoke_strike,
+    .cooldown = 75,
     .level = 8,
 };
 Stratagem STRATAGEM_ORBITAL_EMS_STRIKE = {
@@ -164,6 +189,7 @@ Stratagem STRATAGEM_ORBITAL_EMS_STRIKE = {
     .title = "Oribtal EMS Strike",
     .code = "RRLD",
     .icon = &I_orbital_ems_strike,
+    .cooldown = 75,
     .level = 5,
 };
 Stratagem STRATAGEM_ORBITAL_WALKING_BARRAGE = {
@@ -171,6 +197,7 @@ Stratagem STRATAGEM_ORBITAL_WALKING_BARRAGE = {
     .title = "Oribtal Walking Barrage",
     .code = "RDRDRD",
     .icon = &I_orbital_walking_barrage,
+    .cooldown = 240,
     .level = 10,
 };
 Stratagem STRATAGEM_ORBITAL_LASER = {
@@ -178,6 +205,7 @@ Stratagem STRATAGEM_ORBITAL_LASER = {
     .title = "Oribtal Laser",
     .code = "RDURD",
     .icon = &I_orbital_laser,
+    .cooldown = 300,
     .level = 15,
 };
 Stratagem STRATAGEM_ORBITAL_NAPALM_BARRAGE = {
@@ -185,6 +213,7 @@ Stratagem STRATAGEM_ORBITAL_NAPALM_BARRAGE = {
     .title = "Oribtal Napalm Barrage",
     .code = "RRDLRU",
     .icon = &I_orbital_napalm_barrage,
+    .cooldown = 240,
     .level = 18,
 };
 Stratagem STRATAGEM_ORBITAL_RAILCANNON_STRIKE = {
@@ -192,6 +221,7 @@ Stratagem STRATAGEM_ORBITAL_RAILCANNON_STRIKE = {
     .title = "Oribtal Railcannon Strike",
     .code = "RUDDR",
     .icon = &I_orbital_railcannon_strike,
+    .cooldown = 180,
     .level = 20,
 };
 Stratagem STRATAGEM_EAGLE_STRAFING_RUN = {
@@ -199,6 +229,7 @@ Stratagem STRATAGEM_EAGLE_STRAFING_RUN = {
     .title = "Eagle Strafing Run",
     .code = "URR",
     .icon = &I_eagle_strafing_run,
+    .cooldown = 15,
     .level = 1,
 };
 Stratagem STRATAGEM_EAGLE_AIRSTRIKE = {
@@ -206,6 +237,7 @@ Stratagem STRATAGEM_EAGLE_AIRSTRIKE = {
     .title = "Eagle Airstrike",
     .code = "URDR",
     .icon = &I_eagle_airstrike,
+    .cooldown = 15,
     .level = 1,
 };
 Stratagem STRATAGEM_EAGLE_CLUSTER_BOMB = {
@@ -213,6 +245,7 @@ Stratagem STRATAGEM_EAGLE_CLUSTER_BOMB = {
     .title = "Eagle Cluster Bomb",
     .code = "URDDR",
     .icon = &I_eagle_cluster_bomb,
+    .cooldown = 15,
     .level = 3,
 };
 Stratagem STRATAGEM_EAGLE_SMOKE_STRIKE = {
@@ -220,6 +253,7 @@ Stratagem STRATAGEM_EAGLE_SMOKE_STRIKE = {
     .title = "Eagle Smoke Strike",
     .code = "URUD",
     .icon = &I_eagle_smoke_strike,
+    .cooldown = 15,
     .level = 8,
 };
 Stratagem STRATAGEM_EAGLE_NAPALM_AIRSTRIKE = {
@@ -227,6 +261,7 @@ Stratagem STRATAGEM_EAGLE_NAPALM_AIRSTRIKE = {
     .title = "Eagle Napalm Airstrike",
     .code = "URDU",
     .icon = &I_eagle_napalm_strike,
+    .cooldown = 15,
     .level = 5,
 };
 Stratagem STRATAGEM_EAGLE_110MM_ROCKET_PODS = {
@@ -234,6 +269,7 @@ Stratagem STRATAGEM_EAGLE_110MM_ROCKET_PODS = {
     .title = "Eagle 110mm Rocket Pods",
     .code = "URUL",
     .icon = &I_eagle_110mm_rocket_pods,
+    .cooldown = 15,
     .level = 10,
 };
 Stratagem STRATAGEM_EAGLE_500KG_BOMB = {
@@ -241,6 +277,7 @@ Stratagem STRATAGEM_EAGLE_500KG_BOMB = {
     .title = "Eagle 500kg Bomb",
     .code = "URDDD",
     .icon = &I_eagle_500kg_bomb,
+    .cooldown = 15,
     .level = 15,
 };
 Stratagem STRATAGEM_MACHINE_GUN = {
@@ -248,6 +285,7 @@ Stratagem STRATAGEM_MACHINE_GUN = {
     .title = "Machine Gun",
     .code = "DLDUR",
     .icon = &I_machine_gun,
+    .cooldown = 480,
     .level = 1,
 };
 Stratagem STRATAGEM_EXPANDABLE_ANTI_TANK = {
@@ -255,6 +293,7 @@ Stratagem STRATAGEM_EXPANDABLE_ANTI_TANK = {
     .title = "Expandable Anti-Tank",
     .code = "DDLUR",
     .icon = &I_expendable_anti_tank,
+    .cooldown = 70,
     .level = 3,
 };
 Stratagem STRATAGEM_STALWART = {
@@ -262,6 +301,7 @@ Stratagem STRATAGEM_STALWART = {
     .title = "Stalwart",
     .code = "DLDUUL",
     .icon = &I_stalwart,
+    .cooldown = 480,
     .level = 1,
 };
 Stratagem STRATAGEM_LASER_CANNON = {
@@ -269,6 +309,7 @@ Stratagem STRATAGEM_LASER_CANNON = {
     .title = "Laser Cannon",
     .code = "DLDUL",
     .icon = &I_laser_cannon,
+    .cooldown = 480,
     .level = 5,
 };
 Stratagem STRATAGEM_ANTI_MATERIEL_RIFLE = {
@@ -276,6 +317,7 @@ Stratagem STRATAGEM_ANTI_MATERIEL_RIFLE = {
     .title = "Anti-Materiel Rifle",
     .code = "DLRUD",
     .icon = &I_anti_materiel_rifle,
+    .cooldown = 480,
     .level = 1,
 };
 Stratagem STRATAGEM_GRENADE_LAUNCHER = {
@@ -283,6 +325,7 @@ Stratagem STRATAGEM_GRENADE_LAUNCHER = {
     .title = "Grenade Launcher",
     .code = "DLULD",
     .icon = &I_grenade_launcher,
+    .cooldown = 480,
     .level = 5,
 };
 Stratagem STRATAGEM_RECOILLESS_RIFLE = {
@@ -290,6 +333,7 @@ Stratagem STRATAGEM_RECOILLESS_RIFLE = {
     .title = "Recoilless Rifle",
     .code = "DLRRL",
     .icon = &I_recoilless_rifle,
+    .cooldown = 480,
     .level = 5,
 };
 Stratagem STRATAGEM_FLAMETHROWER = {
@@ -297,6 +341,7 @@ Stratagem STRATAGEM_FLAMETHROWER = {
     .title = "Flamethrower",
     .code = "DLUDU",
     .icon = &I_flamethrower,
+    .cooldown = 480,
     .level = 10,
 };
 Stratagem STRATAGEM_HEAVY_MACHINE_GUN = {
@@ -304,6 +349,7 @@ Stratagem STRATAGEM_HEAVY_MACHINE_GUN = {
     .title = "Heavy Machine Gun",
     .code = "DLUDD",
     .icon = &I_heavy_machine_gun,
+    .cooldown = 480,
     .level = 12,
 };
 Stratagem STRATAGEM_AUTOCANNON = {
@@ -311,6 +357,7 @@ Stratagem STRATAGEM_AUTOCANNON = {
     .title = "Autocannon",
     .code = "DLDUUR",
     .icon = &I_autocannon,
+    .cooldown = 480,
     .level = 10,
 };
 Stratagem STRATAGEM_ARC_THROWER = {
@@ -318,6 +365,7 @@ Stratagem STRATAGEM_ARC_THROWER = {
     .title = "Arc Thrower",
     .code = "DRDULL",
     .icon = &I_arc_thrower,
+    .cooldown = 480,
     .level = 15,
 };
 Stratagem STRATAGEM_QUASAR_CANNON = {
@@ -325,6 +373,7 @@ Stratagem STRATAGEM_QUASAR_CANNON = {
     .title = "Quasar Cannon",
     .code = "DDULR",
     .icon = &I_quasar_cannon,
+    .cooldown = 480,
     .level = 18,
 };
 Stratagem STRATAGEM_AIRBURST_ROCKET_LAUNCHER = {
@@ -332,6 +381,7 @@ Stratagem STRATAGEM_AIRBURST_ROCKET_LAUNCHER = {
     .title = "Airburst Rocket Launcher",
     .code = "DUULR",
     .icon = &I_airburst_rocket_launcher,
+    .cooldown = 480,
     .level = 15,
 };
 Stratagem STRATAGEM_COMMANDO = {
@@ -339,6 +389,7 @@ Stratagem STRATAGEM_COMMANDO = {
     .title = "Commando",
     .code = "DLUDR",
     .icon = &I_commando,
+    .cooldown = 120,
     .level = 15,
 };
 Stratagem STRATAGEM_SPEAR = {
@@ -346,6 +397,7 @@ Stratagem STRATAGEM_SPEAR = {
     .title = "Spear",
     .code = "DDUDD",
     .icon = &I_spear,
+    .cooldown = 480,
     .level = 20,
 };
 Stratagem STRATAGEM_RAILGUN = {
@@ -353,6 +405,7 @@ Stratagem STRATAGEM_RAILGUN = {
     .title = "Railgun",
     .code = "DRDULR",
     .icon = &I_railgun,
+    .cooldown = 480,
     .level = 20,
 };
 Stratagem STRATAGEM_WASP_LAUNCHER = {
@@ -360,6 +413,7 @@ Stratagem STRATAGEM_WASP_LAUNCHER = {
     .title = "W.A.S.P. Launcher",
     .code = "DDUDR",
     .icon = &I_wasp_launcher,
+    .cooldown = 480,
     .level = 20,
 };
 Stratagem STRATAGEM_BREACHING_HAMMER = {
@@ -367,96 +421,112 @@ Stratagem STRATAGEM_BREACHING_HAMMER = {
     .title = "Breaching Hammer",
     .code = "DLRLU",
     .icon = &I_breaching_hammer,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_EPOCH = {
     .type = StratagemType_SupportWeapon,
     .title = "Epoch",
     .code = "DLULR",
     .icon = &I_epoch,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_BULLET_STORM = {
     .type = StratagemType_SupportWeapon,
     .title = "Bullet Storm",
     .code = "DLDRUL",
     .icon = &I_bullet_storm,
+    .cooldown = 70,
 };
 Stratagem STRATAGEM_SPEARGUN = {
     .type = StratagemType_SupportWeapon,
     .title = "Speargun",
     .code = "DRDLUR",
     .icon = &I_speargun,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_DEFOLIATION_TOOL = {
     .type = StratagemType_SupportWeapon,
     .title = "Defoliation Tool",
     .code = "DLRRD",
     .icon = &I_defoliation_tool,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_STERILIZER = {
     .type = StratagemType_SupportWeapon,
     .title = "Sterilizer",
     .code = "DLUDL",
     .icon = &I_sterilizer,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_EXPENDABLE_NAPALM = {
     .type = StratagemType_SupportWeapon,
     .title = "Expendable Napalm",
     .code = "DDLUL",
     .icon = &I_expendable_napalm,
+    .cooldown = 140,
 };
 Stratagem STRATAGEM_LEVELLER = {
     .type = StratagemType_SupportWeapon,
     .title = "Leveller",
     .code = "DDLUD",
     .icon = &I_leveller,
+    .cooldown = 140,
 };
 Stratagem STRATAGEM_DE_ESCALATOR = {
     .type = StratagemType_SupportWeapon,
     .title = "De-Escalator",
     .code = "DRULR",
     .icon = &I_de_escalator,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_BELT_FED_GRENADE_LAUNCHER = {
     .type = StratagemType_SupportWeapon,
     .title = "Belt-Fed Grenade Launcher",
     .code = "DLULUU",
     .icon = &I_belt_fed_grenade_launcher,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_C4_PACK = {
     .type = StratagemType_SupportWeapon,
     .title = "C4 Pack",
     .code = "DRUURU",
     .icon = &I_c4_pack,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_SOLO_SILO = {
     .type = StratagemType_SupportWeapon,
     .title = "Solo Silo",
     .code = "DURDD",
     .icon = &I_solo_silo,
+    .cooldown = 180,
 };
 Stratagem STRATAGEM_CREMATOR = {
     .type = StratagemType_SupportWeapon,
     .title = "Cremator",
     .code = "DDRDUU",
     .icon = &I_cremator,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_MAXIGUN = {
     .type = StratagemType_SupportWeapon,
     .title = "Maxigun",
     .code = "DLRDUU",
     .icon = &I_maxigun,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_ONE_TRUE_FLAG = {
     .type = StratagemType_SupportWeapon,
     .title = "One True Flag",
     .code = "DLRRU",
     .icon = &I_one_true_flag,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_ANTI_PERSONNEL_MINEFIELD = {
     .type = StratagemType_Emplacement,
     .title = "Anti-Personnel Minefield",
     .code = "DLUR",
     .icon = &I_anti_personnel_minefield,
+    .cooldown = 120,
     .level = 1,
 };
 Stratagem STRATAGEM_INCENDIARY_MINES = {
@@ -464,6 +534,7 @@ Stratagem STRATAGEM_INCENDIARY_MINES = {
     .title = "Incendiary Mines",
     .code = "DLLD",
     .icon = &I_incendiary_mines,
+    .cooldown = 120,
     .level = 8,
 };
 Stratagem STRATAGEM_ANTI_TANK_MINES = {
@@ -471,6 +542,7 @@ Stratagem STRATAGEM_ANTI_TANK_MINES = {
     .title = "Anti-Tank Mines",
     .code = "DLUU",
     .icon = &I_anti_tank_mines,
+    .cooldown = 120,
     .level = 15,
 };
 Stratagem STRATAGEM_SHIELD_GENERATOR_RELAY = {
@@ -478,6 +550,7 @@ Stratagem STRATAGEM_SHIELD_GENERATOR_RELAY = {
     .title = "Shield Generator Relay",
     .code = "DDLRLR",
     .icon = &I_shield_generator_relay,
+    .cooldown = 90,
     .level = 10,
 };
 Stratagem STRATAGEM_HMG_EMPLACEMENT = {
@@ -485,6 +558,7 @@ Stratagem STRATAGEM_HMG_EMPLACEMENT = {
     .title = "HMG Emplacement",
     .code = "DULRRL",
     .icon = &I_hmg_emplacement,
+    .cooldown = 180,
     .level = 10,
 };
 Stratagem STRATAGEM_GRENADIER_BATTLEMENT = {
@@ -492,6 +566,7 @@ Stratagem STRATAGEM_GRENADIER_BATTLEMENT = {
     .title = "Grenadier Battlement",
     .code = "DRDLR",
     .icon = &I_grenadier_battlement,
+    .cooldown = 120,
     .level = 15,
 };
 Stratagem STRATAGEM_GAS_MINES = {
@@ -499,6 +574,7 @@ Stratagem STRATAGEM_GAS_MINES = {
     .title = "Gas Mines",
     .code = "DLLR",
     .icon = &I_gas_mines,
+    .cooldown = 120,
     .level = 20,
 };
 Stratagem STRATAGEM_ANTI_TANK_EMPLACEMENT = {
@@ -506,12 +582,14 @@ Stratagem STRATAGEM_ANTI_TANK_EMPLACEMENT = {
     .title = "Anti-Tank Emplacement",
     .code = "DULRRR",
     .icon = &I_anti_tank_emplacement,
+    .cooldown = 180,
 };
 Stratagem STRATAGEM_MACHINE_GUN_SENTRY = {
     .type = StratagemType_Sentry,
     .title = "Machine Gun Sentry",
     .code = "DURRU",
     .icon = &I_machine_gun_sentry,
+    .cooldown = 90,
     .level = 1,
 };
 Stratagem STRATAGEM_GATLING_SENTRY = {
@@ -519,6 +597,7 @@ Stratagem STRATAGEM_GATLING_SENTRY = {
     .title = "Gatling Sentry",
     .code = "DURL",
     .icon = &I_gatling_sentry,
+    .cooldown = 150,
     .level = 5,
 };
 Stratagem STRATAGEM_AUTOCANNON_SENTRY = {
@@ -526,6 +605,7 @@ Stratagem STRATAGEM_AUTOCANNON_SENTRY = {
     .title = "Autocannon Sentry",
     .code = "DURULU",
     .icon = &I_autocannon_sentry,
+    .cooldown = 150,
     .level = 13,
 };
 Stratagem STRATAGEM_MORTAR_SENTRY = {
@@ -533,6 +613,7 @@ Stratagem STRATAGEM_MORTAR_SENTRY = {
     .title = "Mortar Sentry",
     .code = "DURRD",
     .icon = &I_mortar_sentry,
+    .cooldown = 180,
     .level = 8,
 };
 Stratagem STRATAGEM_ROCKET_SENTRY = {
@@ -540,6 +621,7 @@ Stratagem STRATAGEM_ROCKET_SENTRY = {
     .title = "Rocket Sentry",
     .code = "DURRL",
     .icon = &I_rocket_sentry,
+    .cooldown = 150,
     .level = 15,
 };
 Stratagem STRATAGEM_TESLA_TOWER = {
@@ -547,6 +629,7 @@ Stratagem STRATAGEM_TESLA_TOWER = {
     .title = "Tesla Tower",
     .code = "DURULR",
     .icon = &I_tesla_tower,
+    .cooldown = 120,
     .level = 15,
 };
 Stratagem STRATAGEM_EMS_MORTAR_SENTRY = {
@@ -554,6 +637,7 @@ Stratagem STRATAGEM_EMS_MORTAR_SENTRY = {
     .title = "EMS Mortar Sentry",
     .code = "DURDR",
     .icon = &I_ems_mortar_sentry,
+    .cooldown = 180,
     .level = 20,
 };
 Stratagem STRATAGEM_LASER_SENTRY = {
@@ -561,24 +645,28 @@ Stratagem STRATAGEM_LASER_SENTRY = {
     .title = "Laser Sentry",
     .code = "DURDUR",
     .icon = &I_laser_sentry,
+    .cooldown = 150,
 };
 Stratagem STRATAGEM_FLAME_SENTRY = {
     .type = StratagemType_Sentry,
     .title = "Flame Sentry",
     .code = "DURDUU",
     .icon = &I_flame_sentry,
+    .cooldown = 100,
 };
 Stratagem STRATAGEM_GAS_MORTAR_SENTRY = {
     .type = StratagemType_Sentry,
     .title = "Gas Mortar Sentry",
     .code = "DURDL",
     .icon = &I_gas_mortar_sentry,
+    .cooldown = 180,
 };
 Stratagem STRATAGEM_SUPPLY_PACK = {
     .type = StratagemType_Backpack,
     .title = "Supply Pack",
     .code = "DLDUUD",
     .icon = &I_supply_pack,
+    .cooldown = 480,
     .level = 1,
 };
 Stratagem STRATAGEM_JUMP_PACK = {
@@ -586,6 +674,7 @@ Stratagem STRATAGEM_JUMP_PACK = {
     .title = "Jump Pack",
     .code = "DUUDU",
     .icon = &I_jump_pack,
+    .cooldown = 480,
     .level = 8,
 };
 Stratagem STRATAGEM_BALLISTIC_SHIELD_BACKPACK = {
@@ -593,6 +682,7 @@ Stratagem STRATAGEM_BALLISTIC_SHIELD_BACKPACK = {
     .title = "Ballistic Shield Backpack",
     .code = "DLDDUL",
     .icon = &I_ballistic_shield_pack,
+    .cooldown = 240,
     .level = 12,
 };
 Stratagem STRATAGEM_GUARD_DOG = {
@@ -600,6 +690,7 @@ Stratagem STRATAGEM_GUARD_DOG = {
     .title = "Guard Dog",
     .code = "DULURD",
     .icon = &I_guard_dog,
+    .cooldown = 480,
     .level = 10,
 };
 Stratagem STRATAGEM_ROVER = {
@@ -607,6 +698,7 @@ Stratagem STRATAGEM_ROVER = {
     .title = "Rover",
     .code = "DULURR",
     .icon = &I_rover,
+    .cooldown = 480,
     .level = 10,
 };
 Stratagem STRATAGEM_SHIELD_GENERATOR_PACK = {
@@ -614,6 +706,7 @@ Stratagem STRATAGEM_SHIELD_GENERATOR_PACK = {
     .title = "Shield Generator Pack",
     .code = "DULRLR",
     .icon = &I_shield_generator_pack,
+    .cooldown = 480,
     .level = 20,
 };
 Stratagem STRATAGEM_DIRECTIONAL_SHIELD = {
@@ -621,48 +714,56 @@ Stratagem STRATAGEM_DIRECTIONAL_SHIELD = {
     .title = "Directional Shield",
     .code = "DULRUU",
     .icon = &I_directional_shield,
+    .cooldown = 300,
 };
 Stratagem STRATAGEM_HOT_DOG = {
     .type = StratagemType_Backpack,
     .title = "Hot Dog",
     .code = "DULULL",
     .icon = &I_hot_dog,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_PORTABLE_HELLBOMB = {
     .type = StratagemType_Backpack,
     .title = "Portable Hellbomb",
     .code = "DRUUU",
     .icon = &I_portable_hellbomb,
+    .cooldown = 300,
 };
 Stratagem STRATAGEM_K9 = {
     .type = StratagemType_Backpack,
     .title = "K-9",
     .code = "DULURL",
     .icon = &I_k9,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_HOVER_PACK = {
     .type = StratagemType_Backpack,
     .title = "Hover Pack",
     .code = "DUUDLR",
     .icon = &I_hover_pack,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_DOG_BREATH = {
     .type = StratagemType_Backpack,
     .title = "Dog Breath",
     .code = "DULURU",
     .icon = &I_dog_breath,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_WARP_PACK = {
     .type = StratagemType_Backpack,
     .title = "Warp Pack",
     .code = "DLRDLR",
     .icon = &I_warp_pack,
+    .cooldown = 480,
 };
 Stratagem STRATAGEM_PATRIOT_EXOSUIT = {
     .type = StratagemType_Vehicle,
     .title = "Patriot Exosuit",
     .code = "LDRULDD",
     .icon = &I_patriot_exosuit,
+    .cooldown = 600,
     .level = 25,
 };
 Stratagem STRATAGEM_EMANCIPATOR_EXOSUIT = {
@@ -670,6 +771,7 @@ Stratagem STRATAGEM_EMANCIPATOR_EXOSUIT = {
     .title = "Emancipator Exosuit",
     .code = "LDRULDU",
     .icon = &I_emancipator_exosuit,
+    .cooldown = 600,
     .level = 25,
 };
 Stratagem STRATAGEM_FAST_RECON_VEHICLE = {
@@ -677,6 +779,7 @@ Stratagem STRATAGEM_FAST_RECON_VEHICLE = {
     .title = "Fast Recon Vehicle",
     .code = "LDRDRDU",
     .icon = &I_fast_recon_vehicle,
+    .cooldown = 480,
     .level = 25,
 };
 Stratagem STRATAGEM_BASTION_MK_XVI = {
@@ -684,6 +787,7 @@ Stratagem STRATAGEM_BASTION_MK_XVI = {
     .title = "Bastion MK XVI",
     .code = "LDRDLDUDU",
     .icon = &I_bastion_mk_xvi,
+    .cooldown = 780,
     .level = 8,
 };
 Stratagem STRATAGEM_BREAKTHROUGH_EXOSUIT = {
@@ -691,12 +795,14 @@ Stratagem STRATAGEM_BREAKTHROUGH_EXOSUIT = {
     .title = "Breakthrough Exosuit",
     .code = "LDRLRDU",
     .icon = &I_breakthrough_exosuit,
+    .cooldown = 600,
 };
 Stratagem STRATAGEM_LUMBERER_EXOSUIT = {
     .type = StratagemType_Vehicle,
     .title = "Lumberer Exosuit",
     .code = "LDRURLU",
     .icon = &I_lumberer_exosuit,
+    .cooldown = 600,
 };
 
 
@@ -721,17 +827,18 @@ Stratagem* stratagems[] = {
     &STRATAGEM_SEAF_ARTILLERY,
 
     &STRATAGEM_ORBITAL_ILLUMINATION_FLARE,
+
     &STRATAGEM_ORBITAL_PRECISION_STRIKE,
     &STRATAGEM_ORBITAL_GATLING_BARRAGE,
-    &STRATAGEM_ORBITAL_GAS_STRIKE,
-    &STRATAGEM_ORBITAL_120MM_HE_BARRAGE,
     &STRATAGEM_ORBITAL_AIRBURST_STRIKE,
-    &STRATAGEM_ORBITAL_380MM_HE_BARRAGE,
+    &STRATAGEM_ORBITAL_GAS_STRIKE,
     &STRATAGEM_ORBITAL_SMOKE_STRIKE,
     &STRATAGEM_ORBITAL_EMS_STRIKE,
+    &STRATAGEM_ORBITAL_120MM_HE_BARRAGE,
+    &STRATAGEM_ORBITAL_380MM_HE_BARRAGE,
     &STRATAGEM_ORBITAL_WALKING_BARRAGE,
-    &STRATAGEM_ORBITAL_LASER,
     &STRATAGEM_ORBITAL_NAPALM_BARRAGE,
+    &STRATAGEM_ORBITAL_LASER,
     &STRATAGEM_ORBITAL_RAILCANNON_STRIKE,
 
     &STRATAGEM_EAGLE_STRAFING_RUN,
@@ -778,43 +885,43 @@ Stratagem* stratagems[] = {
     &STRATAGEM_ANTI_PERSONNEL_MINEFIELD,
     &STRATAGEM_INCENDIARY_MINES,
     &STRATAGEM_ANTI_TANK_MINES,
-    &STRATAGEM_SHIELD_GENERATOR_RELAY,
-    &STRATAGEM_HMG_EMPLACEMENT,
-    &STRATAGEM_GRENADIER_BATTLEMENT,
     &STRATAGEM_GAS_MINES,
+    &STRATAGEM_HMG_EMPLACEMENT,
     &STRATAGEM_ANTI_TANK_EMPLACEMENT,
+    &STRATAGEM_GRENADIER_BATTLEMENT,
+    &STRATAGEM_SHIELD_GENERATOR_RELAY,
 
     &STRATAGEM_MACHINE_GUN_SENTRY,
     &STRATAGEM_GATLING_SENTRY,
     &STRATAGEM_AUTOCANNON_SENTRY,
-    &STRATAGEM_MORTAR_SENTRY,
     &STRATAGEM_ROCKET_SENTRY,
-    &STRATAGEM_TESLA_TOWER,
+    &STRATAGEM_MORTAR_SENTRY,
     &STRATAGEM_EMS_MORTAR_SENTRY,
+    &STRATAGEM_GAS_MORTAR_SENTRY,
     &STRATAGEM_LASER_SENTRY,
     &STRATAGEM_FLAME_SENTRY,
-    &STRATAGEM_GAS_MORTAR_SENTRY,
+    &STRATAGEM_TESLA_TOWER,
 
     &STRATAGEM_SUPPLY_PACK,
     &STRATAGEM_JUMP_PACK,
-    &STRATAGEM_BALLISTIC_SHIELD_BACKPACK,
+    &STRATAGEM_HOVER_PACK,
+    &STRATAGEM_WARP_PACK,
     &STRATAGEM_GUARD_DOG,
     &STRATAGEM_ROVER,
+    &STRATAGEM_HOT_DOG,
+    &STRATAGEM_K9,
+    &STRATAGEM_DOG_BREATH,
+    &STRATAGEM_PORTABLE_HELLBOMB,
+    &STRATAGEM_BALLISTIC_SHIELD_BACKPACK,
     &STRATAGEM_SHIELD_GENERATOR_PACK,
     &STRATAGEM_DIRECTIONAL_SHIELD,
-    &STRATAGEM_HOT_DOG,
-    &STRATAGEM_PORTABLE_HELLBOMB,
-    &STRATAGEM_K9,
-    &STRATAGEM_HOVER_PACK,
-    &STRATAGEM_DOG_BREATH,
-    &STRATAGEM_WARP_PACK,
 
+    &STRATAGEM_FAST_RECON_VEHICLE,
     &STRATAGEM_PATRIOT_EXOSUIT,
     &STRATAGEM_EMANCIPATOR_EXOSUIT,
-    &STRATAGEM_FAST_RECON_VEHICLE,
-    &STRATAGEM_BASTION_MK_XVI,
     &STRATAGEM_BREAKTHROUGH_EXOSUIT,
     &STRATAGEM_LUMBERER_EXOSUIT,
+    &STRATAGEM_BASTION_MK_XVI,
 };
 
 uint32_t stratagems_count = sizeof(stratagems) / sizeof(*stratagems);

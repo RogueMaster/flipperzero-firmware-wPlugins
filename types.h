@@ -24,6 +24,7 @@ typedef struct {
     const char* title;
     const Icon* icon;
     const char* code;
+    uint16_t cooldown;
     uint8_t level;
 } Stratagem;
 
