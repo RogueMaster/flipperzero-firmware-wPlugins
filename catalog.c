@@ -11,6 +11,9 @@
 #include "glyphs.h"
 
 
+#define LONG_TEXT_SCROLL_DELAY 3
+
+
 struct StratagemTypesWidget {
     Submenu* menu;
     StratagemTypeSelectedCallback selected_callback;
@@ -130,12 +133,14 @@ static void stratagem_list_widget_view_draw_callback(Canvas* canvas, void* _mode
         canvas_set_font(canvas, FontSecondary);
         FuriString* title = furi_string_alloc_set(stratagem->title);
         elements_scrollable_text_line(
-            canvas, 32, offset_y + 12, SCREEN_WIDTH - 32 - 8,
+            canvas, 32, offset_y + 12, SCREEN_WIDTH - 32 - 10,
             title,
-            (i == model->selected_index) ? model->horizontal_scroll_counter : 0,
+            (i == model->selected_index)
+                ? (model->horizontal_scroll_counter < LONG_TEXT_SCROLL_DELAY ? 0 : model->horizontal_scroll_counter - LONG_TEXT_SCROLL_DELAY)
+                : 0,
             false
         );
-            // canvas_draw_str(canvas, 32, offset_y + 12, stratagem->title);
+
         furi_string_free(title);
 
         int code_glyph_offset = 32;
