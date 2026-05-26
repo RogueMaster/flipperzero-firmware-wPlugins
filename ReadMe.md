@@ -60,6 +60,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [PINGEQUA RF Lab v0.5.3 (By pingequalab)](https://github.com/pingequalab/rf-lab)
 - Updated: [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - Updated: [Ghost ESP v1.7.0 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
+- Updated: [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
 
 <a name="release"></a>
 
@@ -446,7 +447,7 @@ $ ./fbt dolphin_ext
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
 - [Analog Output v0.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/dac)
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)
-- [Animation Switcher v1.0 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
+- [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
 - [APRS TX v1.3.17 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - [ASCII Table v1.0 (By x10102)](https://github.com/x10102/flipper_ascii)
 - [Atari SIO Emulator v0.5 (By cepetr)](https://github.com/cepetr/sio2flip)

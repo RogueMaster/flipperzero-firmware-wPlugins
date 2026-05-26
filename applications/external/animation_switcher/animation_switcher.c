@@ -104,7 +104,7 @@ static void fas_app_free(FasApp* app) {
  * Storage helpers
  * ═══════════════════════════════════════════════════════════════════════ */
 
-void fas_ensure_playlists_dir(FasApp* app) {
+static void fas_ensure_playlists_dir(FasApp* app) {
     storage_simply_mkdir(app->storage, FAS_PLAYLISTS_PATH);
 }
 
@@ -239,6 +239,36 @@ bool fas_save_playlist(FasApp* app, const char* name) {
 }
 
 /**
+ * Copy /ext/dolphin/manifest.txt into the playlists folder under the given
+ * name.  The manifest format already matches a saved playlist exactly, so no
+ * parsing is required.  Returns false if the manifest is missing or the copy
+ * fails.
+ */
+bool fas_import_manifest(FasApp* app, const char* name) {
+    if(!fas_manifest_exists(app)) return false;
+
+    char dst[FAS_PATH_LEN];
+    snprintf(dst, sizeof(dst), "%s/%s.txt", FAS_PLAYLISTS_PATH, name);
+
+    fas_ensure_playlists_dir(app);
+
+    /* storage_common_copy will not overwrite an existing destination file. */
+    storage_simply_remove(app->storage, dst);
+
+    return storage_common_copy(app->storage, FAS_MANIFEST_PATH, dst) == FSE_OK;
+}
+
+bool fas_manifest_exists(FasApp* app) {
+    return storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK;
+}
+
+bool fas_playlist_exists(FasApp* app, const char* name) {
+    char path[FAS_PATH_LEN];
+    snprintf(path, sizeof(path), "%s/%s.txt", FAS_PLAYLISTS_PATH, name);
+    return storage_common_stat(app->storage, path, NULL) == FSE_OK;
+}
+
+/**
  * Remove a playlist file from the apps_data folder.
  */
 bool fas_delete_playlist(FasApp* app, int index) {
@@ -258,12 +288,23 @@ bool fas_apply_playlist(FasApp* app, int index) {
     char src[FAS_PATH_LEN];
     snprintf(src, sizeof(src), "%s/%s.txt", FAS_PLAYLISTS_PATH, app->playlists[index].name);
 
-    /* storage_common_copy will not overwrite an existing destination file,
-     * so we must remove the current manifest first.  We ignore the return
-     * value here because the file may legitimately not exist yet. */
+    /* Back up the existing manifest before we replace it.  storage_common_copy
+     * refuses to overwrite, so remove any previous .bak first. */
+    bool had_manifest =
+        storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK;
+    if(had_manifest) {
+        storage_simply_remove(app->storage, FAS_MANIFEST_BACKUP_PATH);
+        storage_common_copy(app->storage, FAS_MANIFEST_PATH, FAS_MANIFEST_BACKUP_PATH);
+    }
+
     storage_simply_remove(app->storage, FAS_MANIFEST_PATH);
 
     FS_Error err = storage_common_copy(app->storage, src, FAS_MANIFEST_PATH);
+    if(err != FSE_OK && had_manifest) {
+        /* Copy failed after we already deleted the live manifest.  Restore
+         * from the backup so the dolphin isn't left without a manifest. */
+        storage_common_copy(app->storage, FAS_MANIFEST_BACKUP_PATH, FAS_MANIFEST_PATH);
+    }
     return (err == FSE_OK);
 }
 
