@@ -36,6 +36,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 - Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
+- Added: [Trivia Zero v0.1.12 (By Endika)](https://github.com/Endika/flipper-trivia-zero)
 
 <a name="release"></a>
 
@@ -395,6 +396,7 @@ $ ./fbt dolphin_ext
 - [Tetris Modern v1.4 (By Alloy-Lou)](https://github.com/Alloy-Lou/all-the-plugins/tree/dev/base_pack/tetris_modern_game)
 - [Tic-Tac-Toe Multi v1.1 (By RouNNdeL)](https://github.com/RouNNdeL/flipper-tictactoe-multi)
 - [Tic Tac Toe v1.2 (By gotnull)](https://github.com/gotnull/flipperzero-firmware-wPlugins)
+- [Trivia Zero v0.1.12 (By Endika)](https://github.com/Endika/flipper-trivia-zero)
 - [UART Pong v1.0 (By Olejka)](https://github.com/TheSainEyereg/flipper-uart-pong)
 - [Ultimate Tic-Tac-Toe v1.1 (By Racso)](https://github.com/Racso/fzero-apps)
 - [Umpire Indicator v0.1 (By RocketGod)](https://github.com/RocketGod-Git/Flipper-Zero-Umpire-Indicator)

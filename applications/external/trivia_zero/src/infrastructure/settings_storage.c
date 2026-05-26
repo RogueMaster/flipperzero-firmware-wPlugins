@@ -11,7 +11,7 @@
 #endif
 #endif
 
-#define APPS_DATA_DIR "/ext/apps_data/flipper_trivia_zero"
+#define APPS_DATA_DIR "/ext/apps_data/trivia_zero"
 #define SETTINGS_PATH APPS_DATA_DIR "/settings"
 #define SETTINGS_HEADER "# trivia v1\n"
 

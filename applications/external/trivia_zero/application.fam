@@ -1,5 +1,5 @@
 App(
-    appid="flipper_trivia_zero",
+    appid="trivia_zero",
     name="Trivia Zero",
     apptype=FlipperAppType.EXTERNAL,
     sources=[
@@ -19,9 +19,9 @@ App(
     ],
     entry_point="trivia_zero_app",
     stack_size=4 * 1024,
-    fap_version="0.1.12",  # x-release-please-version
     fap_icon="icons/icon.icon",
     fap_category="Games",
     fap_author="Endika",
+    fap_version="0.1.12",
     fap_description="Bilingual flashcard trivia: random questions with reveal-on-OK, two languages shipped.",
 )
