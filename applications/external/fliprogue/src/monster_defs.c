@@ -20,16 +20,59 @@ static const FrMonsterDef monster_defs[FR_MON_MAX + 1] = {
 };
 
 static const uint8_t monster_pool[][8] = {
-    {FR_MON_RAT, FR_MON_RAT, FR_MON_RAT, FR_MON_RAT, FR_MON_KOBOLD, FR_MON_KOBOLD, FR_MON_BAT, FR_MON_BAT},
-    {FR_MON_SNAKE, FR_MON_SNAKE, FR_MON_KOBOLD, FR_MON_KOBOLD, FR_MON_GOBLIN, FR_MON_GOBLIN, FR_MON_BAT, FR_MON_BAT},
-    {FR_MON_GOBLIN, FR_MON_GOBLIN, FR_MON_ARCHER, FR_MON_ARCHER, FR_MON_WISP, FR_MON_WISP, FR_MON_BAT, FR_MON_BAT},
-    {FR_MON_SLIME, FR_MON_SLIME, FR_MON_ARCHER, FR_MON_ARCHER, FR_MON_BAT, FR_MON_BAT, FR_MON_WIGHT, FR_MON_WIGHT},
-    {FR_MON_OGRE, FR_MON_OGRE, FR_MON_CUBE, FR_MON_CUBE, FR_MON_WISP, FR_MON_WISP, FR_MON_WIGHT, FR_MON_WIGHT},
-    {FR_MON_OGRE, FR_MON_OGRE, FR_MON_CUBE, FR_MON_CUBE, FR_MON_ARCHER, FR_MON_DRAGON, FR_MON_WIGHT, FR_MON_WIGHT},
+    {FR_MON_RAT,
+     FR_MON_RAT,
+     FR_MON_RAT,
+     FR_MON_RAT,
+     FR_MON_KOBOLD,
+     FR_MON_KOBOLD,
+     FR_MON_BAT,
+     FR_MON_BAT},
+    {FR_MON_SNAKE,
+     FR_MON_SNAKE,
+     FR_MON_KOBOLD,
+     FR_MON_KOBOLD,
+     FR_MON_GOBLIN,
+     FR_MON_GOBLIN,
+     FR_MON_BAT,
+     FR_MON_BAT},
+    {FR_MON_GOBLIN,
+     FR_MON_GOBLIN,
+     FR_MON_ARCHER,
+     FR_MON_ARCHER,
+     FR_MON_WISP,
+     FR_MON_WISP,
+     FR_MON_BAT,
+     FR_MON_BAT},
+    {FR_MON_SLIME,
+     FR_MON_SLIME,
+     FR_MON_ARCHER,
+     FR_MON_ARCHER,
+     FR_MON_BAT,
+     FR_MON_BAT,
+     FR_MON_WIGHT,
+     FR_MON_WIGHT},
+    {FR_MON_OGRE,
+     FR_MON_OGRE,
+     FR_MON_CUBE,
+     FR_MON_CUBE,
+     FR_MON_WISP,
+     FR_MON_WISP,
+     FR_MON_WIGHT,
+     FR_MON_WIGHT},
+    {FR_MON_OGRE,
+     FR_MON_OGRE,
+     FR_MON_CUBE,
+     FR_MON_CUBE,
+     FR_MON_ARCHER,
+     FR_MON_DRAGON,
+     FR_MON_WIGHT,
+     FR_MON_WIGHT},
 };
 
 const FrMonsterDef* fr_monster_def(uint8_t type) {
-    if(type == 0 || type > FR_MON_MAX || monster_defs[type].hp == 0) return &monster_defs[FR_MON_RAT];
+    if(type == 0 || type > FR_MON_MAX || monster_defs[type].hp == 0)
+        return &monster_defs[FR_MON_RAT];
     return &monster_defs[type];
 }
 

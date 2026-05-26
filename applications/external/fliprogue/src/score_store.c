@@ -5,8 +5,8 @@
 
 #include <storage/storage.h>
 
-#define FR_SCORE_DIR EXT_PATH("apps_data/fliprogue")
-#define FR_SCORE_PATH EXT_PATH("apps_data/fliprogue/hiscores.txt")
+#define FR_SCORE_DIR     EXT_PATH("apps_data/fliprogue")
+#define FR_SCORE_PATH    EXT_PATH("apps_data/fliprogue/hiscores.txt")
 #define FR_SETTINGS_PATH EXT_PATH("apps_data/fliprogue/settings.txt")
 
 static void ensure_score_dir(Storage* storage) {
@@ -79,8 +79,10 @@ static void load_settings(AppContext* app, Storage* storage) {
     if(storage_file_open(file, FR_SETTINGS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         char line[16];
         if(read_line(file, line, sizeof(line))) {
-            if(strcmp(line, "sound=0") == 0) app->sound_enabled = false;
-            else if(strcmp(line, "sound=1") == 0) app->sound_enabled = true;
+            if(strcmp(line, "sound=0") == 0)
+                app->sound_enabled = false;
+            else if(strcmp(line, "sound=1") == 0)
+                app->sound_enabled = true;
         }
     }
     storage_file_free(file);
@@ -123,7 +125,8 @@ void record_score_if_done(AppContext* app) {
     entry.has_orb = app->game->player.has_orb;
     entry.class_id = app->game->player.class_id;
     entry.gold = app->game->player.gold;
-    const char* log = app->game->mode == FR_MODE_VICTORY ? "Escaped with the Orb." : fr_death_log(app->game);
+    const char* log = app->game->mode == FR_MODE_VICTORY ? "Escaped with the Orb." :
+                                                           fr_death_log(app->game);
     snprintf(entry.log, sizeof(entry.log), "%s", fr_last_log_phrases(log, 2));
     fr_score_insert(app->scores, &app->score_count, &entry);
     app->score_recorded = true;

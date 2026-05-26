@@ -24,11 +24,14 @@ uint8_t fr_fire_damage_roll(FrGame* game) {
 void fr_apply_fire_to_player(FrGame* game, uint8_t damage, uint8_t burning_turns) {
     uint8_t actual = fr_player_fire_damage(game, damage);
     if(actual > 0 && game->player.hp > 0) {
-        if(game->player.hp > actual) game->player.hp = (uint8_t)(game->player.hp - actual);
-        else game->player.hp = 0;
+        if(game->player.hp > actual)
+            game->player.hp = (uint8_t)(game->player.hp - actual);
+        else
+            game->player.hp = 0;
     }
     if(!fr_player_resists_fire(game) && burning_turns > 0) {
-        fr_apply_effect_to_player(&game->player, FR_FX_BURNING, FR_FX_BURNING_INDEX, burning_turns);
+        fr_apply_effect_to_player(
+            &game->player, FR_FX_BURNING, FR_FX_BURNING_INDEX, burning_turns);
     }
 }
 
@@ -43,7 +46,8 @@ void fr_fire_burst(FrGame* game, uint8_t cx, uint8_t cy) {
             uint8_t y = (uint8_t)y_i;
             uint8_t terrain = fr_get_terrain(game, x, y);
             if(terrain == FR_TERR_PUDDLE || terrain == FR_TERR_WATER || terrain == FR_TERR_SAND ||
-               terrain == FR_TERR_ICE || terrain == FR_TERR_SHRINE || fr_blocking_item_at(game, x, y)) {
+               terrain == FR_TERR_ICE || terrain == FR_TERR_SHRINE ||
+               fr_blocking_item_at(game, x, y)) {
                 hiss = true;
                 continue;
             }
@@ -55,8 +59,10 @@ void fr_fire_burst(FrGame* game, uint8_t cx, uint8_t cy) {
             }
             FrActor* actor = fr_actor_at(game, x, y);
             if(actor) {
-                fr_damage_actor_kind(game, actor, fr_fire_damage_roll(game), "Fire sears", FR_DAMAGE_BURST);
-                if(actor->active) fr_apply_effect_to_actor(actor, FR_FX_BURNING, FR_FX_BURNING_INDEX, 5);
+                fr_damage_actor_kind(
+                    game, actor, fr_fire_damage_roll(game), "Fire sears", FR_DAMAGE_BURST);
+                if(actor->active)
+                    fr_apply_effect_to_actor(actor, FR_FX_BURNING, FR_FX_BURNING_INDEX, 5);
             }
         }
     }
@@ -68,7 +74,8 @@ void fr_trigger_trap(FrGame* game, FrTrap* trap) {
     if(!trap || !trap->active) return;
     trap->active = false;
     if(trap->type == FR_TRAP_ARROW) {
-        fr_event_projectile(game, trap->source_x, trap->source_y, game->player.x, game->player.y, '-');
+        fr_event_projectile(
+            game, trap->source_x, trap->source_y, game->player.x, game->player.y, '-');
         uint8_t damage = 2;
         if(game->player.hp > damage) {
             game->player.hp = (uint8_t)(game->player.hp - damage);
@@ -78,7 +85,8 @@ void fr_trigger_trap(FrGame* game, FrTrap* trap) {
             fr_set_game_over(game, FR_DEATH_KILLED, "Killed by arrow trap.");
         }
     } else if(trap->type == FR_TRAP_FIRE) {
-        fr_event_projectile(game, trap->source_x, trap->source_y, game->player.x, game->player.y, '*');
+        fr_event_projectile(
+            game, trap->source_x, trap->source_y, game->player.x, game->player.y, '*');
         fr_log(game, "Oil jar bursts.");
         fr_fire_burst(game, trap->x, trap->y);
     } else if(trap->type == FR_TRAP_POISON) {

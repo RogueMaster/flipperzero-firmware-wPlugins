@@ -1,6 +1,6 @@
 #include "include/domain/category.h"
 
-static const char *const k_es[8] = {
+static const char* const k_es[8] = {
     "?",
     "Geografia",
     "Entretenimiento",
@@ -11,7 +11,7 @@ static const char *const k_es[8] = {
     "Cultura General",
 };
 
-static const char *const k_en[8] = {
+static const char* const k_en[8] = {
     "?",
     "Geography",
     "Entertainment",
@@ -22,8 +22,8 @@ static const char *const k_en[8] = {
     "General Knowledge",
 };
 
-const char *category_name(uint8_t category_id, Lang lang) {
-    if (category_id < 1u || category_id > 7u) {
+const char* category_name(uint8_t category_id, Lang lang) {
+    if(category_id < 1u || category_id > 7u) {
         return "?";
     }
     return (lang == LangEs) ? k_es[category_id] : k_en[category_id];

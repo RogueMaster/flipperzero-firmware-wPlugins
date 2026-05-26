@@ -6,7 +6,8 @@
 
 void fr_remove_inventory(FrGame* game, uint8_t index) {
     if(index >= game->player.inv_count) return;
-    for(uint8_t i = index; i + 1 < game->player.inv_count; i++) game->player.inv[i] = game->player.inv[i + 1];
+    for(uint8_t i = index; i + 1 < game->player.inv_count; i++)
+        game->player.inv[i] = game->player.inv[i + 1];
     game->player.inv_count--;
     memset(&game->player.inv[game->player.inv_count], 0, sizeof(game->player.inv[0]));
 }
@@ -27,7 +28,9 @@ uint8_t fr_inventory_used_count(const FrGame* game) {
     uint8_t count = 0;
     for(uint8_t i = 0; i < game->player.inv_count; i++) {
         const FrInvSlot* slot = &game->player.inv[i];
-        count = (uint8_t)(count + ((slot->type == FR_ITEM_POTION || slot->type == FR_ITEM_SCROLL) ? slot->amount : 1));
+        count = (uint8_t)(count + ((slot->type == FR_ITEM_POTION || slot->type == FR_ITEM_SCROLL) ?
+                                       slot->amount :
+                                       1));
     }
     return count;
 }
@@ -51,8 +54,11 @@ bool fr_add_inventory(FrGame* game, uint8_t type, uint8_t subtype, uint8_t amoun
     slot->type = type;
     slot->subtype = subtype;
     slot->amount = amount;
-    if(type == FR_ITEM_WAND) slot->flags = fr_wand_max_charges(subtype);
-    else if(type == FR_ITEM_TRINKET) slot->flags = fr_trinket_break_turns(subtype) > 0 ? FR_INV_CURSED : 0;
-    else slot->flags = 0;
+    if(type == FR_ITEM_WAND)
+        slot->flags = fr_wand_max_charges(subtype);
+    else if(type == FR_ITEM_TRINKET)
+        slot->flags = fr_trinket_break_turns(subtype) > 0 ? FR_INV_CURSED : 0;
+    else
+        slot->flags = 0;
     return true;
 }

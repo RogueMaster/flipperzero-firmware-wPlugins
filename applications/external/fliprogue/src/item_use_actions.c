@@ -1,6 +1,7 @@
 #include "game_internal.h"
 
-FrActionResult fr_use_inventory(FrGame* game, uint8_t index, uint8_t use_action, uint8_t tx, uint8_t ty) {
+FrActionResult
+    fr_use_inventory(FrGame* game, uint8_t index, uint8_t use_action, uint8_t tx, uint8_t ty) {
     game->log[0] = '\0';
     game->last_event = FR_EVENT_NONE;
     if(index >= game->player.inv_count) {
@@ -47,7 +48,8 @@ FrActionResult fr_use_inventory(FrGame* game, uint8_t index, uint8_t use_action,
     }
 
     if(slot.type == FR_ITEM_SCROLL && use_action == FR_USE_READ) {
-        if(slot.subtype == FR_SCROLL_BLINK && !fr_resolve_blink_destination(game, tx, ty, &tx, &ty)) {
+        if(slot.subtype == FR_SCROLL_BLINK &&
+           !fr_resolve_blink_destination(game, tx, ty, &tx, &ty)) {
             fr_log(game, "Nothing happens.");
             return (FrActionResult){FR_ACTION_BLOCKED};
         }
@@ -88,7 +90,8 @@ FrActionResult fr_use_inventory(FrGame* game, uint8_t index, uint8_t use_action,
             fr_log(game, "Blink.");
         } else if(slot.subtype == FR_SCROLL_MAPPING) {
             for(uint8_t y = 0; y < FR_MAP_H; y++) {
-                for(uint8_t x = 0; x < FR_MAP_W; x++) game->tiles[y][x] |= FR_TILE_EXPLORED;
+                for(uint8_t x = 0; x < FR_MAP_W; x++)
+                    game->tiles[y][x] |= FR_TILE_EXPLORED;
             }
             fr_reveal_secrets(game, game->player.x, game->player.y, 63);
             fr_log(game, "Map wakes.");
@@ -104,7 +107,9 @@ FrActionResult fr_use_inventory(FrGame* game, uint8_t index, uint8_t use_action,
             bool charged = false;
             for(uint8_t i = 0; i < game->player.inv_count; i++) {
                 if(i != index && game->player.inv[i].type == FR_ITEM_WAND) {
-                    uint8_t max = game->player.inv[i].flags ? game->player.inv[i].flags : fr_wand_max_charges(game->player.inv[i].subtype);
+                    uint8_t max = game->player.inv[i].flags ?
+                                      game->player.inv[i].flags :
+                                      fr_wand_max_charges(game->player.inv[i].subtype);
                     if(game->player.inv[i].amount < max) {
                         game->player.inv[i].amount = max;
                         game->player.inv[i].flags = max;
@@ -127,19 +132,24 @@ FrActionResult fr_use_inventory(FrGame* game, uint8_t index, uint8_t use_action,
             }
         } else if(slot.subtype == FR_SCROLL_REVEAL) {
             bool found = fr_reveal_secrets(game, game->player.x, game->player.y, 8);
-            if(found) fr_log(game, "Secrets wake.");
-            else success = false;
+            if(found)
+                fr_log(game, "Secrets wake.");
+            else
+                success = false;
         } else if(slot.subtype == FR_SCROLL_DECURSE) {
             bool cleared = false;
             for(uint8_t i = 0; i < game->player.inv_count; i++) {
-                if(game->player.inv[i].type == FR_ITEM_TRINKET && (game->player.inv[i].flags & FR_INV_CURSED) != 0) {
+                if(game->player.inv[i].type == FR_ITEM_TRINKET &&
+                   (game->player.inv[i].flags & FR_INV_CURSED) != 0) {
                     game->player.inv[i].flags &= (uint8_t)~FR_INV_CURSED;
                     cleared = true;
                     break;
                 }
             }
-            if(cleared) fr_log(game, "Curse cracks.");
-            else success = false;
+            if(cleared)
+                fr_log(game, "Curse cracks.");
+            else
+                success = false;
         } else if(slot.subtype == FR_SCROLL_CALL) {
             for(uint8_t i = 0; i < FR_MAX_ACTORS; i++) {
                 if(game->actors[i].active) fr_wake_actor_toward_player(game, &game->actors[i]);
@@ -163,10 +173,19 @@ FrActionResult fr_use_inventory(FrGame* game, uint8_t index, uint8_t use_action,
             return (FrActionResult){FR_ACTION_BLOCKED};
         }
         FrActor* actor = fr_actor_at(game, tx, ty);
-        uint8_t dmg = slot.subtype == FR_THROW_DART ? (uint8_t)(3 + fr_rand_u8(game, 3)) : (uint8_t)(1 + fr_rand_u8(game, 2));
-        if(game->player.class_id == FR_CLASS_RANGER && (game->player.perks & FR_PERK_5) != 0) dmg++;
-        if(actor) fr_damage_actor_kind(game, actor, dmg, slot.subtype == FR_THROW_DART ? "Dart hits" : "Stone hits", FR_DAMAGE_THROWN);
-        else fr_log(game, "Clatters.");
+        uint8_t dmg = slot.subtype == FR_THROW_DART ? (uint8_t)(3 + fr_rand_u8(game, 3)) :
+                                                      (uint8_t)(1 + fr_rand_u8(game, 2));
+        if(game->player.class_id == FR_CLASS_RANGER && (game->player.perks & FR_PERK_5) != 0)
+            dmg++;
+        if(actor)
+            fr_damage_actor_kind(
+                game,
+                actor,
+                dmg,
+                slot.subtype == FR_THROW_DART ? "Dart hits" : "Stone hits",
+                FR_DAMAGE_THROWN);
+        else
+            fr_log(game, "Clatters.");
         fr_consume_inventory(game, index);
         fr_finish_item_turn(game);
         return (FrActionResult){FR_ACTION_ZAP};
@@ -181,7 +200,8 @@ FrActionResult fr_use_inventory(FrGame* game, uint8_t index, uint8_t use_action,
         if(slot.subtype == FR_WAND_FIRE) {
             if(actor) {
                 fr_damage_actor_kind(game, actor, 2, "Fire bolt", FR_DAMAGE_PROJECTILE);
-                if(actor->active) fr_apply_effect_to_actor(actor, FR_FX_BURNING, FR_FX_BURNING_INDEX, 8);
+                if(actor->active)
+                    fr_apply_effect_to_actor(actor, FR_FX_BURNING, FR_FX_BURNING_INDEX, 8);
             }
             fr_log(game, "Fire bolt.");
         } else if(slot.subtype == FR_WAND_FROST) {

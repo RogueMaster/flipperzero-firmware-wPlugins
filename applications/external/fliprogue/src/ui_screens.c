@@ -11,9 +11,12 @@ void draw_title(Canvas* canvas, AppContext* app) {
     for(uint8_t i = 0; i < TITLE_MENU_COUNT; i++) {
         uint8_t y = (uint8_t)(27 + i * 8);
         char entry[24];
-        if(i == 0) snprintf(entry, sizeof(entry), "New game");
-        else if(i == 1) snprintf(entry, sizeof(entry), "High Scores");
-        else if(i == 2) snprintf(entry, sizeof(entry), "Help");
+        if(i == 0)
+            snprintf(entry, sizeof(entry), "New game");
+        else if(i == 1)
+            snprintf(entry, sizeof(entry), "High Scores");
+        else if(i == 2)
+            snprintf(entry, sizeof(entry), "Help");
         else {
             snprintf(
                 entry,
@@ -91,8 +94,9 @@ static bool inventory_slot_matches_tab(const FrInvSlot* slot, uint8_t tab) {
     if(tab == 1) return slot->type == FR_ITEM_POTION;
     if(tab == 2) return slot->type == FR_ITEM_SCROLL;
     if(tab == 3) return slot->type == FR_ITEM_WAND;
-    return slot->type == FR_ITEM_GEAR || slot->type == FR_ITEM_ARROWS || slot->type == FR_ITEM_ORB ||
-           slot->type == FR_ITEM_THROWABLE || slot->type == FR_ITEM_TRINKET;
+    return slot->type == FR_ITEM_GEAR || slot->type == FR_ITEM_ARROWS ||
+           slot->type == FR_ITEM_ORB || slot->type == FR_ITEM_THROWABLE ||
+           slot->type == FR_ITEM_TRINKET;
 }
 
 uint8_t inventory_visible_count(const FrGame* game, uint8_t tab) {
@@ -116,12 +120,14 @@ uint8_t inventory_slot_index_at(const FrGame* game, uint8_t tab, uint8_t visible
 static bool identify_slot_matches(const FrGame* game, uint8_t index, uint8_t source_index) {
     if(index >= game->player.inv_count || index == source_index) return false;
     const FrInvSlot* slot = &game->player.inv[index];
-    if(slot->type == FR_ITEM_POTION) return (game->player.known_potions & (uint16_t)(1u << slot->subtype)) == 0;
+    if(slot->type == FR_ITEM_POTION)
+        return (game->player.known_potions & (uint16_t)(1u << slot->subtype)) == 0;
     if(slot->type == FR_ITEM_SCROLL) {
         return !fr_player_knows_scrolls(game) &&
                (game->player.known_scrolls & (uint16_t)(1u << slot->subtype)) == 0;
     }
-    if(slot->type == FR_ITEM_TRINKET) return (game->player.known_trinkets & (uint16_t)(1u << slot->subtype)) == 0;
+    if(slot->type == FR_ITEM_TRINKET)
+        return (game->player.known_trinkets & (uint16_t)(1u << slot->subtype)) == 0;
     return false;
 }
 
@@ -149,11 +155,18 @@ void inventory_clamp_selection(AppContext* app) {
 }
 
 static void gear_piece(char* out, size_t out_size, const char* name, uint8_t level) {
-    if(level > 0) snprintf(out, out_size, "%s+%u", name, level);
-    else snprintf(out, out_size, "%s", name);
+    if(level > 0)
+        snprintf(out, out_size, "%s+%u", name, level);
+    else
+        snprintf(out, out_size, "%s", name);
 }
 
-static void inventory_gear_lines(const FrGame* game, char* line1, size_t line1_size, char* line2, size_t line2_size) {
+static void inventory_gear_lines(
+    const FrGame* game,
+    char* line1,
+    size_t line1_size,
+    char* line2,
+    size_t line2_size) {
     const FrPlayer* p = &game->player;
     char a[14];
     char b[14];
@@ -260,7 +273,9 @@ const char* item_choice_label(const FrInvSlot* slot, uint8_t choice) {
 }
 
 void draw_item_choice(Canvas* canvas, AppContext* app) {
-    FrInvSlot* slot = app->item_index < app->game->player.inv_count ? &app->game->player.inv[app->item_index] : NULL;
+    FrInvSlot* slot = app->item_index < app->game->player.inv_count ?
+                          &app->game->player.inv[app->item_index] :
+                          NULL;
     uint8_t count = item_choice_count(slot);
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_box(canvas, 16, 10, 96, 48);

@@ -26,12 +26,13 @@ void fr_reveal_actor(FrActor* actor) {
 
 static void fr_tick_effect_mask(uint8_t* hp, uint8_t* effects, uint8_t timer[8]) {
     if((*effects & FR_FX_BURNING) != 0 && *hp > 0) (*hp)--;
-    if((*effects & FR_FX_POISONED) != 0 && (timer[FR_FX_POISONED_INDEX] & 1u) == 0 && *hp > 0) (*hp)--;
+    if((*effects & FR_FX_POISONED) != 0 && (timer[FR_FX_POISONED_INDEX] & 1u) == 0 && *hp > 0)
+        (*hp)--;
 
     for(uint8_t i = 0; i < 8; i++) {
         if(timer[i] > 0) {
             timer[i]--;
-            if(timer[i] == 0) *effects &= (uint8_t)~(1u << i);
+            if(timer[i] == 0) *effects &= (uint8_t) ~(1u << i);
         }
     }
 }
@@ -59,7 +60,8 @@ uint8_t fr_hunger_state(const FrGame* game) {
 void fr_tick_hunger(FrGame* game) {
     uint8_t hunger_interval = game->player.has_orb ? 10 : 2;
     uint8_t starve_interval = game->player.has_orb ? 50 : 10;
-    if(fr_has_equipped_trinket(game, FR_TRINKET_LOCKET)) hunger_interval = (uint8_t)(hunger_interval + 1);
+    if(fr_has_equipped_trinket(game, FR_TRINKET_LOCKET))
+        hunger_interval = (uint8_t)(hunger_interval + 1);
     if(fr_has_equipped_trinket(game, FR_TRINKET_HUNGRY) && hunger_interval > 1) hunger_interval--;
     if((game->turn % hunger_interval) != 0) return;
     if(game->player.hunger > 0) game->player.hunger--;

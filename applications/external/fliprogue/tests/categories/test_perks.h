@@ -1,7 +1,8 @@
 #pragma once
 
 static void open_test_line(FrGame* game) {
-    for(uint8_t x = 4; x <= 10; x++) fr_set_terrain(game, x, 5, FR_TERR_FLOOR);
+    for(uint8_t x = 4; x <= 10; x++)
+        fr_set_terrain(game, x, 5, FR_TERR_FLOOR);
     fr_update_fov(game);
 }
 

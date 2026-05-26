@@ -11,7 +11,8 @@
 static void fr_actor_phase(FrGame* game) {
     if(game->player.cube_hp > 0) return;
     fr_actor_turns(game);
-    if(game->mode == FR_MODE_PLAYING && (game->player.effects & FR_FX_SLOWED) != 0) fr_actor_turns(game);
+    if(game->mode == FR_MODE_PLAYING && (game->player.effects & FR_FX_SLOWED) != 0)
+        fr_actor_turns(game);
     if(game->mode == FR_MODE_PLAYING) fr_warden_global_turn(game);
 }
 
@@ -25,9 +26,12 @@ void fr_finish_turn(FrGame* game) {
     fr_cube_tick(game);
     if(game->player.hp == 0) {
         uint8_t cause = FR_DEATH_KILLED;
-        if(fr_hunger_state(game) == FR_HUNGER_STARVING) cause = FR_DEATH_STARVED;
-        else if((game->player.effects & FR_FX_BURNING) != 0) cause = FR_DEATH_BURNED;
-        else if((game->player.effects & FR_FX_POISONED) != 0) cause = FR_DEATH_POISONED;
+        if(fr_hunger_state(game) == FR_HUNGER_STARVING)
+            cause = FR_DEATH_STARVED;
+        else if((game->player.effects & FR_FX_BURNING) != 0)
+            cause = FR_DEATH_BURNED;
+        else if((game->player.effects & FR_FX_POISONED) != 0)
+            cause = FR_DEATH_POISONED;
         fr_set_game_over(game, cause, "You died.");
         return;
     }

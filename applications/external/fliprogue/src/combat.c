@@ -34,7 +34,8 @@ void fr_set_game_over(FrGame* game, uint8_t cause, const char* fmt, ...) {
                 memcpy(combined, msg, msg_len);
                 combined[msg_len] = '\0';
             }
-            snprintf(game->death_log, sizeof(game->death_log), "%s", fr_last_log_phrases(combined, 3));
+            snprintf(
+                game->death_log, sizeof(game->death_log), "%s", fr_last_log_phrases(combined, 3));
         } else {
             snprintf(game->death_log, sizeof(game->death_log), "%s", fr_last_log_phrases(msg, 3));
         }
@@ -46,5 +47,6 @@ void fr_kill_actor(FrGame* game, FrActor* actor) {
     actor->hp = 0;
     actor->active = false;
     game->player.gold += actor->type == FR_MON_GOBLIN ? 3 : 1;
-    fr_award_xp(game, actor->type == FR_MON_YONDER_WARDEN ? 20 : (actor->type == FR_MON_DRAGON ? 8 : 1));
+    fr_award_xp(
+        game, actor->type == FR_MON_YONDER_WARDEN ? 20 : (actor->type == FR_MON_DRAGON ? 8 : 1));
 }

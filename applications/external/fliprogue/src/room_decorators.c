@@ -87,7 +87,8 @@ static void fr_decorate_grass(FrGame* game, const FrRoom* room) {
     for(uint8_t i = 0; i < 5; i++) {
         uint8_t gx = (uint8_t)(room->x + 1 + fr_rand_u8(game, (uint8_t)(room->w - 2)));
         uint8_t gy = (uint8_t)(room->y + 1 + fr_rand_u8(game, (uint8_t)(room->h - 2)));
-        if(fr_get_terrain(game, gx, gy) == FR_TERR_FLOOR) fr_set_terrain(game, gx, gy, FR_TERR_GRASS);
+        if(fr_get_terrain(game, gx, gy) == FR_TERR_FLOOR)
+            fr_set_terrain(game, gx, gy, FR_TERR_GRASS);
     }
 }
 
@@ -126,7 +127,8 @@ static void fr_decorate_sand(FrGame* game, const FrRoom* room) {
         }
     }
     for(uint8_t y2 = (uint8_t)(room->y + 1); y2 + 1 < room->y + room->h && placed < target; y2++) {
-        for(uint8_t x2 = (uint8_t)(room->x + 1); x2 + 1 < room->x + room->w && placed < target; x2++) {
+        for(uint8_t x2 = (uint8_t)(room->x + 1); x2 + 1 < room->x + room->w && placed < target;
+            x2++) {
             if(fr_get_terrain(game, x2, y2) != FR_TERR_FLOOR) continue;
             bool near_sand = false;
             static const int8_t dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
@@ -158,7 +160,8 @@ static void fr_decorate_shrine(FrGame* game, const FrRoom* room) {
     fr_place_shrine(game, x, y);
 }
 
-static bool fr_pocket_area_is_solid(const FrGame* game, uint8_t x0, uint8_t y0, uint8_t w, uint8_t h) {
+static bool
+    fr_pocket_area_is_solid(const FrGame* game, uint8_t x0, uint8_t y0, uint8_t w, uint8_t h) {
     if(x0 == 0 || y0 == 0 || x0 + w >= FR_MAP_W || y0 + h >= FR_MAP_H) return false;
     for(uint8_t y = y0; y < y0 + h; y++) {
         for(uint8_t x = x0; x < x0 + w; x++) {
@@ -189,14 +192,19 @@ static bool fr_decorate_grate_reward(FrGame* game, const FrRoom* room, const FrR
     }
 
     for(uint8_t y = pocket_y; y < pocket_y + 3; y++) {
-        for(uint8_t x = pocket_x; x < pocket_x + 3; x++) fr_set_terrain(game, x, y, FR_TERR_FLOOR);
+        for(uint8_t x = pocket_x; x < pocket_x + 3; x++)
+            fr_set_terrain(game, x, y, FR_TERR_FLOOR);
     }
     if(!fr_place_grate(game, grate_x, grate_y)) return false;
     fr_place_chest(game, (uint8_t)(pocket_x + 1), cy, false);
     if(fr_rand_u8(game, 2) == 0) {
         uint8_t guard_y = fr_rand_u8(game, 2) == 0 ? pocket_y : (uint8_t)(pocket_y + 2);
         if(fr_actor_at(game, (uint8_t)(pocket_x + 1), guard_y) == NULL) {
-            fr_spawn_actor(game, fr_rand_u8(game, 2) == 0 ? FR_MON_RAT : FR_MON_GOBLIN, (uint8_t)(pocket_x + 1), guard_y);
+            fr_spawn_actor(
+                game,
+                fr_rand_u8(game, 2) == 0 ? FR_MON_RAT : FR_MON_GOBLIN,
+                (uint8_t)(pocket_x + 1),
+                guard_y);
         }
     }
 
@@ -217,7 +225,8 @@ static void fr_maybe_place_lurker(FrGame* game, const FrRoom* room, uint8_t floo
     if(floor < 3 || (roll % 17u) != 0) return;
     for(uint8_t y = (uint8_t)(room->y + 1); y + 1 < room->y + room->h; y++) {
         for(uint8_t x = (uint8_t)(room->x + 1); x + 1 < room->x + room->w; x++) {
-            if(fr_get_terrain(game, x, y) != FR_TERR_GRASS && fr_get_terrain(game, x, y) != FR_TERR_PUDDLE) {
+            if(fr_get_terrain(game, x, y) != FR_TERR_GRASS &&
+               fr_get_terrain(game, x, y) != FR_TERR_PUDDLE) {
                 continue;
             }
             if(fr_actor_at(game, x, y) != NULL) continue;
@@ -279,7 +288,9 @@ static bool fr_decorate_flooded_pool(FrGame* game, const FrRoom* room) {
             if(x >= x0 && x <= x1 && y >= y0 && y <= y1) continue;
             if(x == 0 || y == 0 || x >= FR_MAP_W - 1 || y >= FR_MAP_H - 1) continue;
             uint8_t terrain = fr_get_terrain(game, x, y);
-            if(terrain == FR_TERR_WALL || terrain == FR_TERR_DOOR_CLOSED || terrain == FR_TERR_DOOR_OPEN) continue;
+            if(terrain == FR_TERR_WALL || terrain == FR_TERR_DOOR_CLOSED ||
+               terrain == FR_TERR_DOOR_OPEN)
+                continue;
             fr_set_shallow_border_if_floor(game, x, y);
         }
     }
@@ -352,13 +363,15 @@ void fr_apply_room_decorators(
     uint8_t puddle_room = fr_pick_decorator_room(game, room_count, used);
     fr_decorate_puddle(game, &rooms[puddle_room]);
 
-    uint8_t sand_room = room_count > 3 && !used[3] ? 3 : fr_pick_decorator_room(game, room_count, used);
+    uint8_t sand_room =
+        room_count > 3 && !used[3] ? 3 : fr_pick_decorator_room(game, room_count, used);
     used[sand_room] = true;
     fr_decorate_sand(game, &rooms[sand_room]);
 
     if(floor >= 4 && (special_type == FR_SPECIAL_FLOOR_FLOODED || fr_rand_u8(game, 3) == 0)) {
         uint8_t flood_room = fr_pick_flood_room(game, room_count, used);
-        if(fr_decorate_flooded_pool(game, &rooms[flood_room])) fr_maybe_spawn_eel_pack(game, &rooms[flood_room]);
+        if(fr_decorate_flooded_pool(game, &rooms[flood_room]))
+            fr_maybe_spawn_eel_pack(game, &rooms[flood_room]);
     }
 
     if(floor >= 2 && room_count > 4) {

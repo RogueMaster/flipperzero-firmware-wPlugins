@@ -31,9 +31,11 @@ static const FrTileSprite fire_spray_frames[4] = {
     {6, {1, 5, 2, 3, 3, 1, 4, 2, 5, 5, 3, 4}},
 };
 
-static void fr_draw_dot_sprite(Canvas* canvas, uint8_t sx, uint8_t sy, const FrTileSprite* sprite) {
+static void
+    fr_draw_dot_sprite(Canvas* canvas, uint8_t sx, uint8_t sy, const FrTileSprite* sprite) {
     for(uint8_t i = 0; i < sprite->count && i < sizeof(sprite->xy) / 2; i++) {
-        canvas_draw_dot(canvas, (uint8_t)(sx + sprite->xy[i * 2]), (uint8_t)(sy + sprite->xy[i * 2 + 1]));
+        canvas_draw_dot(
+            canvas, (uint8_t)(sx + sprite->xy[i * 2]), (uint8_t)(sy + sprite->xy[i * 2 + 1]));
     }
 }
 
@@ -45,7 +47,13 @@ static uint8_t fr_wall_variant(const FrGame* game, uint8_t x, uint8_t y) {
     return (uint8_t)(v & 3u);
 }
 
-static void fr_draw_wall_sprite(Canvas* canvas, const FrGame* game, uint8_t x, uint8_t y, uint8_t sx, uint8_t sy) {
+static void fr_draw_wall_sprite(
+    Canvas* canvas,
+    const FrGame* game,
+    uint8_t x,
+    uint8_t y,
+    uint8_t sx,
+    uint8_t sy) {
     uint8_t variant = fr_wall_variant(game, x, y);
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_box(canvas, sx, sy, TILE_PX, TILE_PX);
@@ -54,10 +62,12 @@ static void fr_draw_wall_sprite(Canvas* canvas, const FrGame* game, uint8_t x, u
         canvas_draw_dot(canvas, (uint8_t)(sx + 2), (uint8_t)(sy + 2));
         canvas_draw_dot(canvas, (uint8_t)(sx + 4), (uint8_t)(sy + 4));
     } else if(variant == 1) {
-        canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 1), (uint8_t)(sx + 4), (uint8_t)(sy + 1));
+        canvas_draw_line(
+            canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 1), (uint8_t)(sx + 4), (uint8_t)(sy + 1));
         canvas_draw_dot(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 3));
     } else if(variant == 2) {
-        canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 4), (uint8_t)(sx + 4), (uint8_t)(sy + 2));
+        canvas_draw_line(
+            canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 4), (uint8_t)(sx + 4), (uint8_t)(sy + 2));
     } else {
         canvas_draw_dot(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 1));
         canvas_draw_dot(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 2));
@@ -81,12 +91,14 @@ static void fr_draw_closed_door_sprite(
     uint8_t sy) {
     if(fr_door_has_side_walls(game, map_x, map_y)) {
         canvas_draw_frame(canvas, sx, (uint8_t)(sy + 1), TILE_PX, (uint8_t)(TILE_PX - 2));
-        canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 3), (uint8_t)(sx + 5), (uint8_t)(sy + 3));
+        canvas_draw_line(
+            canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 3), (uint8_t)(sx + 5), (uint8_t)(sy + 3));
         canvas_draw_dot(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 4));
         return;
     }
     canvas_draw_frame(canvas, (uint8_t)(sx + 1), sy, (uint8_t)(TILE_PX - 2), TILE_PX);
-    canvas_draw_line(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 1), (uint8_t)(sx + 3), (uint8_t)(sy + 5));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 1), (uint8_t)(sx + 3), (uint8_t)(sy + 5));
     canvas_draw_dot(canvas, (uint8_t)(sx + 4), (uint8_t)(sy + 3));
 }
 
@@ -137,7 +149,13 @@ static void fr_draw_puddle_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
     fr_draw_dot_sprite(canvas, sx, sy, &shallow_water_sprite);
 }
 
-static void fr_draw_deep_water_sprite(Canvas* canvas, uint8_t sx, uint8_t sy, uint8_t x, uint8_t y, uint8_t tick) {
+static void fr_draw_deep_water_sprite(
+    Canvas* canvas,
+    uint8_t sx,
+    uint8_t sy,
+    uint8_t x,
+    uint8_t y,
+    uint8_t tick) {
     uint8_t frame = (uint8_t)(((tick / 3u) + x + y) & 3u);
     fr_draw_dot_sprite(canvas, sx, sy, &deep_water_frames[frame]);
 }
@@ -148,30 +166,38 @@ static void fr_draw_sand_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
 
 static void fr_draw_ice_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
     fr_draw_dot_sprite(canvas, sx, sy, &ice_sprite);
-    canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 5), (uint8_t)(sx + 5), (uint8_t)(sy + 1));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 5), (uint8_t)(sx + 5), (uint8_t)(sy + 1));
 }
 
 static void fr_draw_stairs_down_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
     canvas_draw_line(canvas, sx, sy, (uint8_t)(sx + 5), sy);
-    canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 1), (uint8_t)(sx + 4), (uint8_t)(sy + 1));
-    canvas_draw_line(canvas, (uint8_t)(sx + 2), (uint8_t)(sy + 2), (uint8_t)(sx + 3), (uint8_t)(sy + 2));
-    canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 4), (uint8_t)(sx + 5), (uint8_t)(sy + 4));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 1), (uint8_t)(sx + 4), (uint8_t)(sy + 1));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 2), (uint8_t)(sy + 2), (uint8_t)(sx + 3), (uint8_t)(sy + 2));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 4), (uint8_t)(sx + 5), (uint8_t)(sy + 4));
     canvas_draw_line(canvas, sx, (uint8_t)(sy + 5), (uint8_t)(sx + 5), (uint8_t)(sy + 5));
 }
 
 static void fr_draw_stairs_up_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
     canvas_draw_line(canvas, (uint8_t)(sx + 2), sy, (uint8_t)(sx + 3), sy);
-    canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 1), (uint8_t)(sx + 4), (uint8_t)(sy + 1));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 1), (uint8_t)(sx + 4), (uint8_t)(sy + 1));
     canvas_draw_line(canvas, sx, (uint8_t)(sy + 2), (uint8_t)(sx + 5), (uint8_t)(sy + 2));
-    canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 4), (uint8_t)(sx + 5), (uint8_t)(sy + 4));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 4), (uint8_t)(sx + 5), (uint8_t)(sy + 4));
     canvas_draw_line(canvas, sx, (uint8_t)(sy + 5), (uint8_t)(sx + 5), (uint8_t)(sy + 5));
 }
 
 static void fr_draw_shrine_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
     canvas_draw_line(canvas, (uint8_t)(sx + 2), sy, (uint8_t)(sx + 4), sy);
     canvas_draw_line(canvas, (uint8_t)(sx + 3), sy, (uint8_t)(sx + 3), (uint8_t)(sy + 4));
-    canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 4), (uint8_t)(sx + 5), (uint8_t)(sy + 4));
-    canvas_draw_line(canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 5), (uint8_t)(sx + 5), (uint8_t)(sy + 5));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 4), (uint8_t)(sx + 5), (uint8_t)(sy + 4));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 1), (uint8_t)(sy + 5), (uint8_t)(sx + 5), (uint8_t)(sy + 5));
     canvas_draw_dot(canvas, (uint8_t)(sx + 2), (uint8_t)(sy + 2));
     canvas_draw_dot(canvas, (uint8_t)(sx + 4), (uint8_t)(sy + 2));
 }
@@ -181,21 +207,26 @@ static void fr_draw_chest_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
     uint8_t width = sx > 0 ? 8 : 7;
     uint8_t top = (uint8_t)(sy + 1);
     canvas_draw_frame(canvas, left, top, width, 6);
-    canvas_draw_line(canvas, left, (uint8_t)(top + 2), (uint8_t)(left + width - 1), (uint8_t)(top + 2));
+    canvas_draw_line(
+        canvas, left, (uint8_t)(top + 2), (uint8_t)(left + width - 1), (uint8_t)(top + 2));
     canvas_draw_line(canvas, (uint8_t)(left + 2), top, (uint8_t)(left + 3), (uint8_t)(top - 1));
     canvas_draw_line(canvas, (uint8_t)(left + 4), (uint8_t)(top - 1), (uint8_t)(left + 5), top);
     canvas_draw_dot(canvas, (uint8_t)(left + width / 2), (uint8_t)(top + 4));
 }
 
 static void fr_draw_arrows_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
-    canvas_draw_line(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 1), (uint8_t)(sx + 3), (uint8_t)(sy + 5));
-    canvas_draw_line(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 1), (uint8_t)(sx + 1), (uint8_t)(sy + 3));
-    canvas_draw_line(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 1), (uint8_t)(sx + 5), (uint8_t)(sy + 3));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 1), (uint8_t)(sx + 3), (uint8_t)(sy + 5));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 1), (uint8_t)(sx + 1), (uint8_t)(sy + 3));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 1), (uint8_t)(sx + 5), (uint8_t)(sy + 3));
 }
 
 static void fr_draw_dart_sprite(Canvas* canvas, uint8_t sx, uint8_t sy) {
     canvas_draw_dot(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 2));
-    canvas_draw_line(canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 4), (uint8_t)(sx + 2), (uint8_t)(sy + 5));
+    canvas_draw_line(
+        canvas, (uint8_t)(sx + 3), (uint8_t)(sy + 4), (uint8_t)(sx + 2), (uint8_t)(sy + 5));
 }
 
 bool fr_draw_terrain_sprite(

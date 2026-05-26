@@ -123,7 +123,8 @@ void fr_auto_close_doors(FrGame* game) {
                     int16_t nx = (int16_t)x + ox;
                     int16_t ny = (int16_t)y + oy;
                     if(nx < 0 || ny < 0 || nx >= FR_MAP_W || ny >= FR_MAP_H) continue;
-                    if(game->player.x == (uint8_t)nx && game->player.y == (uint8_t)ny) actor_near = true;
+                    if(game->player.x == (uint8_t)nx && game->player.y == (uint8_t)ny)
+                        actor_near = true;
                     if(fr_actor_at(game, (uint8_t)nx, (uint8_t)ny)) actor_near = true;
                 }
             }
@@ -134,7 +135,8 @@ void fr_auto_close_doors(FrGame* game) {
 
 void fr_update_fov(FrGame* game) {
     for(uint8_t y = 0; y < FR_MAP_H; y++) {
-        for(uint8_t x = 0; x < FR_MAP_W; x++) game->tiles[y][x] &= (uint8_t)~FR_TILE_VISIBLE;
+        for(uint8_t x = 0; x < FR_MAP_W; x++)
+            game->tiles[y][x] &= (uint8_t)~FR_TILE_VISIBLE;
     }
     uint8_t radius = (game->player.effects & FR_FX_BLIND) != 0 ? 2 : 8;
     uint8_t radius_sq = (uint8_t)(radius * radius);

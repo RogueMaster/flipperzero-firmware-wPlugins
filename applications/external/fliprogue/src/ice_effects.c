@@ -89,7 +89,8 @@ bool fr_try_ice_slide_player(FrGame* game, int8_t dx, int8_t dy) {
         if(nx_i < 0 || ny_i < 0 || nx_i >= FR_MAP_W || ny_i >= FR_MAP_H) break;
         uint8_t nx = (uint8_t)nx_i;
         uint8_t ny = (uint8_t)ny_i;
-        if(fr_get_terrain(game, nx, ny) != FR_TERR_ICE || fr_slide_player_blocked(game, nx, ny)) break;
+        if(fr_get_terrain(game, nx, ny) != FR_TERR_ICE || fr_slide_player_blocked(game, nx, ny))
+            break;
         game->player.x = nx;
         game->player.y = ny;
         moved = true;
@@ -118,7 +119,9 @@ bool fr_try_ice_slide_actor(FrGame* game, FrActor* actor, int8_t dx, int8_t dy) 
         if(nx_i < 0 || ny_i < 0 || nx_i >= FR_MAP_W || ny_i >= FR_MAP_H) break;
         uint8_t nx = (uint8_t)nx_i;
         uint8_t ny = (uint8_t)ny_i;
-        if(fr_get_terrain(game, nx, ny) != FR_TERR_ICE || fr_slide_actor_blocked(game, actor, nx, ny)) break;
+        if(fr_get_terrain(game, nx, ny) != FR_TERR_ICE ||
+           fr_slide_actor_blocked(game, actor, nx, ny))
+            break;
         actor->x = nx;
         actor->y = ny;
         moved = true;

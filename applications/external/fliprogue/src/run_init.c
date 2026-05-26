@@ -7,14 +7,16 @@
 #include <string.h>
 
 static void fr_generate_labels(FrGame* game) {
-    static const char* colors[] = {"Red", "Green", "Black", "Milky", "Amber", "Blue", "Grey", "Violet"};
+    static const char* colors[] = {
+        "Red", "Green", "Black", "Milky", "Amber", "Blue", "Grey", "Violet"};
     static const char* runes[] = {
-        "VEX", "MUR", "OOL", "LUMA", "DREG", "ZUN", "PAX", "KETH", "ZOL", "YON",
-        "ASH", "VEIL", "NIX", "ROOK", "VALE", "OM", "IX", "DUN", "HAL", "FER",
-        "NOX", "BRI", "THUL", "KOR", "SAR", "ULM", "QIR", "BAZ", "EKO", "JIN",
-        "ORR", "TYR", "MAK", "SIV",
+        "VEX", "MUR",  "OOL",  "LUMA", "DREG", "ZUN", "PAX", "KETH", "ZOL", "YON", "ASH",  "VEIL",
+        "NIX", "ROOK", "VALE", "OM",   "IX",   "DUN", "HAL", "FER",  "NOX", "BRI", "THUL", "KOR",
+        "SAR", "ULM",  "QIR",  "BAZ",  "EKO",  "JIN", "ORR", "TYR",  "MAK", "SIV",
     };
-    enum { RuneCount = sizeof(runes) / sizeof(runes[0]) };
+    enum {
+        RuneCount = sizeof(runes) / sizeof(runes[0])
+    };
     for(uint8_t i = 1; i < FR_POTION_MAX; i++) {
         uint8_t pick = (uint8_t)((i - 1 + game->seed) % 8);
         snprintf(game->potion_labels[i], FR_LABEL_SIZE, "%s Potion", colors[pick]);
@@ -40,7 +42,8 @@ static void fr_generate_labels(FrGame* game) {
             snprintf(game->trinket_labels[i], FR_LABEL_SIZE, "Charm %s", runes[pick]);
             bool unique = true;
             for(uint8_t prev = 1; prev < i; prev++) {
-                if(strcmp(game->trinket_labels[prev], game->trinket_labels[i]) == 0) unique = false;
+                if(strcmp(game->trinket_labels[prev], game->trinket_labels[i]) == 0)
+                    unique = false;
             }
             if(unique) break;
             pick = (uint8_t)((pick + 1) % RuneCount);

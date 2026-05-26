@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define SCORE_CAP 10
+#define SCORE_CAP      10
 #define SCORE_LOG_SIZE 40
 
 typedef struct {

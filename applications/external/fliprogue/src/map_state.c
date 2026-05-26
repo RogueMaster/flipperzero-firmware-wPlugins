@@ -32,7 +32,8 @@ uint8_t fr_get_terrain(const FrGame* game, uint8_t x, uint8_t y) {
 
 void fr_set_terrain(FrGame* game, uint8_t x, uint8_t y, uint8_t terrain) {
     if(!fr_in_bounds(x, y)) return;
-    game->tiles[y][x] = (uint8_t)((game->tiles[y][x] & ~FR_TILE_TERRAIN_MASK) | (terrain & FR_TILE_TERRAIN_MASK));
+    game->tiles[y][x] =
+        (uint8_t)((game->tiles[y][x] & ~FR_TILE_TERRAIN_MASK) | (terrain & FR_TILE_TERRAIN_MASK));
     fr_record_tile_delta(game, x, y);
 }
 

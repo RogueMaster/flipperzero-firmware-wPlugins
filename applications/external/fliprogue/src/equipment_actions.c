@@ -5,7 +5,8 @@
 #include "item_defs.h"
 
 bool fr_equip_trinket(FrGame* game, uint8_t index) {
-    if(index >= game->player.inv_count || game->player.inv[index].type != FR_ITEM_TRINKET) return false;
+    if(index >= game->player.inv_count || game->player.inv[index].type != FR_ITEM_TRINKET)
+        return false;
     FrInvSlot* equipped = fr_equipped_trinket_slot(game);
     if(equipped == &game->player.inv[index]) {
         if((equipped->flags & FR_INV_CURSED) != 0) {

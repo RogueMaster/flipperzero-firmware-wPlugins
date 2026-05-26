@@ -4,30 +4,39 @@
 
 int main(void) {
     Question q;
-    const char *line = "0\t6\tWhat year was Pelé born?\t1940";
+    const char* line = "0\t6\tWhat year was Pelé born?\t1940";
     assert(pack_parse_tsv_line(line, strlen(line), &q) == true);
     assert(q.id == 0u);
     assert(q.category_id == 6u);
     assert(strcmp(q.question, "What year was Pelé born?") == 0);
     assert(strcmp(q.answer, "1940") == 0);
 
-    const char *line_nl = "12\t1\tCapital of Spain?\tMadrid\n";
+    const char* line_nl = "12\t1\tCapital of Spain?\tMadrid\n";
     assert(pack_parse_tsv_line(line_nl, strlen(line_nl), &q) == true);
     assert(q.id == 12u && q.category_id == 1u);
     assert(strcmp(q.question, "Capital of Spain?") == 0);
     assert(strcmp(q.answer, "Madrid") == 0);
 
-    const char *bad = "1\t2\tonly three";
+    const char* bad = "1\t2\tonly three";
     assert(pack_parse_tsv_line(bad, strlen(bad), &q) == false);
 
-    const char *bad_id = "abc\t2\tQ\tA";
+    const char* bad_id = "abc\t2\tQ\tA";
     assert(pack_parse_tsv_line(bad_id, strlen(bad_id), &q) == false);
 
-    const char *bad_cat = "1\t99\tQ\tA";
+    const char* bad_cat = "1\t99\tQ\tA";
     assert(pack_parse_tsv_line(bad_cat, strlen(bad_cat), &q) == false);
 
     const uint8_t header_ok[] = {
-        'T', 'R', 'V', 'I', 0x01, 0x00, 0x03, 0x00, 0x00, 0x00,
+        'T',
+        'R',
+        'V',
+        'I',
+        0x01,
+        0x00,
+        0x03,
+        0x00,
+        0x00,
+        0x00,
     };
     PackIdxHeader h;
     assert(pack_idx_header_decode(header_ok, sizeof(header_ok), &h) == true);

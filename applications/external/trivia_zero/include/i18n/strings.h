@@ -20,4 +20,4 @@ typedef enum {
 Lang tz_locale_get(void);
 void tz_locale_set(Lang locale);
 
-const char *tz_str(TzStrId id);
+const char* tz_str(TzStrId id);

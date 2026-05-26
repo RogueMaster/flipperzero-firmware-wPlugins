@@ -9,7 +9,12 @@
 #include "placement.h"
 #include "status_effects.h"
 
-void fr_damage_actor_kind(FrGame* game, FrActor* actor, uint8_t damage, const char* verb, uint8_t kind) {
+void fr_damage_actor_kind(
+    FrGame* game,
+    FrActor* actor,
+    uint8_t damage,
+    const char* verb,
+    uint8_t kind) {
     if(!actor) return;
     fr_reveal_actor(actor);
     if(fr_actor_evades_player_hit(game, actor, kind)) return;
@@ -41,8 +46,7 @@ bool fr_force_push_actor(FrGame* game, FrActor* actor, int8_t dx, int8_t dy) {
     uint8_t nx = (uint8_t)nx_i;
     uint8_t ny = (uint8_t)ny_i;
     if(!fr_is_walkable(fr_get_terrain(game, nx, ny)) || fr_actor_at(game, nx, ny) ||
-       fr_blocking_item_at(game, nx, ny) ||
-       (game->player.x == nx && game->player.y == ny)) {
+       fr_blocking_item_at(game, nx, ny) || (game->player.x == nx && game->player.y == ny)) {
         fr_damage_actor_kind(game, actor, 1, "Wall hurts", FR_DAMAGE_BURST);
         return false;
     }

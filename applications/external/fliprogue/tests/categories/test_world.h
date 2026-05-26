@@ -191,7 +191,8 @@ static void test_v11_generated_grate_rewards_have_same_floor_unlocks(void) {
             if(has_key) {
                 for(uint8_t i = 0; i < FR_MAX_ITEMS; i++) {
                     if(game.items[i].active && game.items[i].type == FR_ITEM_KEY) {
-                        assert(fr_path_exists(&game, game.player.x, game.player.y, game.items[i].x, game.items[i].y));
+                        assert(fr_path_exists(
+                            &game, game.player.x, game.player.y, game.items[i].x, game.items[i].y));
                         break;
                     }
                 }
@@ -302,7 +303,8 @@ static void test_v11_special_floors_and_maze_template_keep_floor_contracts(void)
             }
             for(uint8_t i = 0; i < FR_MAX_TRAPS; i++) {
                 FrTrap* trap = &game.traps[i];
-                if(!trap->active || (trap->type != FR_TRAP_ARROW && trap->type != FR_TRAP_FIRE)) continue;
+                if(!trap->active || (trap->type != FR_TRAP_ARROW && trap->type != FR_TRAP_FIRE))
+                    continue;
                 assert(trap->source_x != trap->x || trap->source_y != trap->y);
                 assert(trap->dir_x != 0 || trap->dir_y != 0);
             }
@@ -471,7 +473,8 @@ static void test_v12_path_queue_overflow_fails_safely(void) {
     FrGame game;
     make_empty_test_room(&game);
     for(uint8_t y = 0; y < FR_MAP_H; y++) {
-        for(uint8_t x = 0; x < FR_MAP_W; x++) fr_set_terrain(&game, x, y, FR_TERR_FLOOR);
+        for(uint8_t x = 0; x < FR_MAP_W; x++)
+            fr_set_terrain(&game, x, y, FR_TERR_FLOOR);
     }
     assert(!fr_path_exists(&game, 1, 1, (uint8_t)(FR_MAP_W - 2), (uint8_t)(FR_MAP_H - 2)));
 }
@@ -483,7 +486,7 @@ static void test_v12_coarse_explored_does_not_restore_extra_walls(void) {
     fr_set_terrain(&game, 7, 4, FR_TERR_WALL);
     for(uint8_t y = 0; y < FR_MAP_H; y++) {
         for(uint8_t x = 0; x < FR_MAP_W; x++) {
-            game.tiles[y][x] &= (uint8_t)~(FR_TILE_VISIBLE | FR_TILE_EXPLORED);
+            game.tiles[y][x] &= (uint8_t) ~(FR_TILE_VISIBLE | FR_TILE_EXPLORED);
         }
     }
     game.tiles[4][6] |= FR_TILE_EXPLORED;
@@ -775,7 +778,8 @@ static void test_v11_terrain_fire_capacity_ticks_and_spread(void) {
     assert(!fr_terrain_fire_at(&capacity, 1, 5, 5));
     assert(fr_terrain_fire_at(&capacity, 4, 5, 5));
     capacity.floor = 1;
-    for(uint8_t i = 0; i < 6; i++) fr_tick_terrain_effects(&capacity);
+    for(uint8_t i = 0; i < 6; i++)
+        fr_tick_terrain_effects(&capacity);
     assert(fr_active_terrain_field_count(&capacity) == 0);
 }
 
@@ -813,7 +817,8 @@ static void test_v12_fire_extinguish_and_refresh_merge(void) {
     assert(fr_active_terrain_field_count(&merge) == 1);
     assert(fr_terrain_fire_at(&merge, merge.floor, 8, 5));
 
-    for(uint8_t i = 0; i < 6; i++) fr_refresh_or_expand_fire_field(&merge, merge.floor, 6, 5, 1);
+    for(uint8_t i = 0; i < 6; i++)
+        fr_refresh_or_expand_fire_field(&merge, merge.floor, 6, 5, 1);
     assert(fr_active_terrain_field_count(&merge) <= FR_TERRAIN_FIELD_CAP);
 }
 
@@ -916,10 +921,14 @@ static void test_v102_secret_search_radius_bump_reveal_and_generation(void) {
                 if((game.tiles[y][x] & FR_TILE_HIDDEN_DOOR) == 0) continue;
                 saw_secret = true;
                 uint8_t walkable_sides = 0;
-                if(terrain_is_walkable_for_test(fr_get_terrain(&game, (uint8_t)(x - 1), y))) walkable_sides++;
-                if(terrain_is_walkable_for_test(fr_get_terrain(&game, (uint8_t)(x + 1), y))) walkable_sides++;
-                if(terrain_is_walkable_for_test(fr_get_terrain(&game, x, (uint8_t)(y - 1)))) walkable_sides++;
-                if(terrain_is_walkable_for_test(fr_get_terrain(&game, x, (uint8_t)(y + 1)))) walkable_sides++;
+                if(terrain_is_walkable_for_test(fr_get_terrain(&game, (uint8_t)(x - 1), y)))
+                    walkable_sides++;
+                if(terrain_is_walkable_for_test(fr_get_terrain(&game, (uint8_t)(x + 1), y)))
+                    walkable_sides++;
+                if(terrain_is_walkable_for_test(fr_get_terrain(&game, x, (uint8_t)(y - 1))))
+                    walkable_sides++;
+                if(terrain_is_walkable_for_test(fr_get_terrain(&game, x, (uint8_t)(y + 1))))
+                    walkable_sides++;
                 assert(walkable_sides >= 2);
             }
         }
@@ -955,7 +964,8 @@ static void test_v11_water_gated_secret_rooms_are_reachable(void) {
                 for(uint8_t i = 0; i < 4; i++) {
                     uint8_t nx = (uint8_t)(x + dirs[i][0]);
                     uint8_t ny = (uint8_t)(y + dirs[i][1]);
-                    if(fr_get_terrain(&game, nx, ny) != FR_TERR_WATER && terrain_is_walkable_for_test(fr_get_terrain(&game, nx, ny))) {
+                    if(fr_get_terrain(&game, nx, ny) != FR_TERR_WATER &&
+                       terrain_is_walkable_for_test(fr_get_terrain(&game, nx, ny))) {
                         pocket_x = nx;
                         pocket_y = ny;
                     }
@@ -963,14 +973,18 @@ static void test_v11_water_gated_secret_rooms_are_reachable(void) {
                 for(uint8_t i = 0; i < FR_MAX_ITEMS; i++) {
                     FrItem* item = &game.items[i];
                     if(!item->active) continue;
-                    uint8_t dist = (uint8_t)(abs((int)item->x - (int)x) + abs((int)item->y - (int)y));
-                    if(dist <= 10 && fr_path_exists(&game, x, y, item->x, item->y)) reachable_loot = true;
+                    uint8_t dist =
+                        (uint8_t)(abs((int)item->x - (int)x) + abs((int)item->y - (int)y));
+                    if(dist <= 10 && fr_path_exists(&game, x, y, item->x, item->y))
+                        reachable_loot = true;
                 }
                 for(uint8_t i = 0; i < FR_MAX_ACTORS; i++) {
                     FrActor* actor = &game.actors[i];
                     if(!actor->active) continue;
-                    uint8_t dist = (uint8_t)(abs((int)actor->x - (int)pocket_x) + abs((int)actor->y - (int)pocket_y));
-                    if(dist <= 4 && fr_path_exists(&game, pocket_x, pocket_y, actor->x, actor->y)) nearby_guard = true;
+                    uint8_t dist = (uint8_t)(abs((int)actor->x - (int)pocket_x) +
+                                             abs((int)actor->y - (int)pocket_y));
+                    if(dist <= 4 && fr_path_exists(&game, pocket_x, pocket_y, actor->x, actor->y))
+                        nearby_guard = true;
                 }
                 assert(reachable_loot);
                 assert(!nearby_guard);

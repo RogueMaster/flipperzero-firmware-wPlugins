@@ -32,9 +32,8 @@ FrActionResult fr_try_direction(FrGame* game, int8_t dx, int8_t dy) {
             }
             if(game->player.class_id == FR_CLASS_RANGER) game->player.arrows--;
             if(game->player.class_id == FR_CLASS_MAGE) game->player.charges--;
-            uint8_t distance = (uint8_t)(
-                fr_abs_i8((int8_t)actor->x - (int8_t)game->player.x) +
-                fr_abs_i8((int8_t)actor->y - (int8_t)game->player.y));
+            uint8_t distance = (uint8_t)(fr_abs_i8((int8_t)actor->x - (int8_t)game->player.x) +
+                                         fr_abs_i8((int8_t)actor->y - (int8_t)game->player.y));
             uint8_t damage = fr_player_ranged_damage(game);
             if(game->player.class_id == FR_CLASS_RANGER && (game->player.perks & FR_PERK_4) != 0 &&
                distance >= 4) {
@@ -122,7 +121,8 @@ FrActionResult fr_move_player(FrGame* game, int8_t dx, int8_t dy) {
         }
         fr_damage_actor(game, actor, damage, "You hit");
         if(actor->active && shield_bash) fr_force_push_actor(game, actor, dx, dy);
-        if(!actor->active && game->player.class_id == FR_CLASS_WARRIOR && (game->player.perks & FR_PERK_4) != 0) {
+        if(!actor->active && game->player.class_id == FR_CLASS_WARRIOR &&
+           (game->player.perks & FR_PERK_4) != 0) {
             for(int8_t oy = -1; oy <= 1; oy++) {
                 for(int8_t ox = -1; ox <= 1; ox++) {
                     if(ox == 0 && oy == 0) continue;
@@ -212,7 +212,8 @@ FrActionResult fr_rest(FrGame* game) {
     game->log[0] = '\0';
     game->last_event = FR_EVENT_NONE;
     if(game->mode != FR_MODE_PLAYING) return (FrActionResult){FR_ACTION_BLOCKED};
-    if(fr_get_terrain(game, game->player.x, game->player.y) == FR_TERR_SHRINE) return fr_use_shrine(game);
+    if(fr_get_terrain(game, game->player.x, game->player.y) == FR_TERR_SHRINE)
+        return fr_use_shrine(game);
     if(fr_get_terrain(game, game->player.x, game->player.y) == FR_TERR_BUTTON) {
         fr_log(game, "Button clicks.");
         fr_open_grates_on_floor(game);
@@ -223,7 +224,8 @@ FrActionResult fr_rest(FrGame* game) {
         fr_log(game, "Too starved to wait.");
         return (FrActionResult){FR_ACTION_BLOCKED};
     }
-    if((game->turn % 3u) == 0 && game->player.hp < game->player.max_hp && fr_hunger_state(game) != FR_HUNGER_STARVING) {
+    if((game->turn % 3u) == 0 && game->player.hp < game->player.max_hp &&
+       fr_hunger_state(game) != FR_HUNGER_STARVING) {
         game->player.hp++;
         fr_log(game, "Rest. +1 HP.");
     } else {

@@ -210,7 +210,8 @@ const char* fr_inventory_hint(const FrGame* game, const FrInvSlot* slot) {
         }
     }
     if(slot->type == FR_ITEM_SCROLL) {
-        if(!fr_player_knows_scrolls(game) && !fr_item_knows_scroll(game, slot->subtype)) return "Unknown Scroll";
+        if(!fr_player_knows_scrolls(game) && !fr_item_knows_scroll(game, slot->subtype))
+            return "Unknown Scroll";
         switch(slot->subtype) {
         case FR_SCROLL_IDENTIFY:
             return "Names one lie.";
@@ -250,7 +251,8 @@ const char* fr_inventory_hint(const FrGame* game, const FrInvSlot* slot) {
         }
     }
     if(slot->type == FR_ITEM_WAND) return "Point. Spend zap.";
-    if(slot->type == FR_ITEM_THROWABLE) return slot->subtype == FR_THROW_DART ? "Sharp. One-way." : "Heavy answer.";
+    if(slot->type == FR_ITEM_THROWABLE)
+        return slot->subtype == FR_THROW_DART ? "Sharp. One-way." : "Heavy answer.";
     if(slot->type == FR_ITEM_ARROWS) return "Bow food.";
     if(slot->type == FR_ITEM_ORB) return "The Warden hears.";
     if(slot->type == FR_ITEM_FOOD) return "Eat. Keep going.";

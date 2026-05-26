@@ -2,9 +2,9 @@
 
 #include "game_logic.h"
 
-#define FR_ROOM_MAX 7
+#define FR_ROOM_MAX            7
 #define FR_ROOM_TEMPLATE_COUNT 5
-#define FR_ROOM_TEMPLATE_MAZE 4
+#define FR_ROOM_TEMPLATE_MAZE  4
 
 typedef struct {
     uint8_t x;

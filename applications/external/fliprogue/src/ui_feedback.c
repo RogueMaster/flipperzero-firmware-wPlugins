@@ -114,7 +114,8 @@ void feedback_reset_led(AppContext* app, bool force) {
 
 static bool hp_is_low(const FrGame* game) {
     if(game->player.max_hp == 0) return false;
-    return game->player.hp == 0 || (uint16_t)game->player.hp * 10u <= (uint16_t)game->player.max_hp * 3u;
+    return game->player.hp == 0 ||
+           (uint16_t)game->player.hp * 10u <= (uint16_t)game->player.max_hp * 3u;
 }
 
 static void feedback_send_led(
@@ -136,8 +137,9 @@ static void feedback_send_led(
 
 void feedback_update_led(AppContext* app, bool force) {
     if(!app->notifications || app->game->mode == FR_MODE_QUIT) return;
-    if(app->game->mode != FR_MODE_PLAYING || app->screen == UI_TITLE || app->screen == UI_CLASS_SELECT ||
-       app->screen == UI_SCORES || app->screen == UI_HELP_MENU || app->screen == UI_HELP_PAGE) {
+    if(app->game->mode != FR_MODE_PLAYING || app->screen == UI_TITLE ||
+       app->screen == UI_CLASS_SELECT || app->screen == UI_SCORES || app->screen == UI_HELP_MENU ||
+       app->screen == UI_HELP_PAGE) {
         feedback_reset_led(app, force);
         return;
     }
@@ -228,7 +230,8 @@ FeedbackBefore feedback_capture(AppContext* app) {
 
 static void feedback_after_action(AppContext* app, FeedbackBefore before, FrActionResult result) {
     if(!app->notifications) return;
-    bool did_hit = result.kind == FR_ACTION_ATTACK || result.kind == FR_ACTION_RANGED || result.kind == FR_ACTION_ZAP;
+    bool did_hit = result.kind == FR_ACTION_ATTACK || result.kind == FR_ACTION_RANGED ||
+                   result.kind == FR_ACTION_ZAP;
     bool was_hit = app->game->player.hp < before.hp;
     if(did_hit || was_hit) notification_message(app->notifications, &sequence_single_vibro);
     if(app->sound_enabled && app->game->player.level > before.level) {
@@ -291,7 +294,8 @@ static void consume_game_event(AppContext* app) {
         app->flash_x = app->game->event_x;
         app->flash_y = app->game->event_y;
         app->flash_ticks = 3;
-        if(app->notifications) notification_message(app->notifications, &sequence_trap_spotted_feedback);
+        if(app->notifications)
+            notification_message(app->notifications, &sequence_trap_spotted_feedback);
         app->game->last_event = FR_EVENT_NONE;
     }
 }

@@ -30,7 +30,8 @@ static uint8_t fr_path_first_dir_get(uint16_t pos) {
 static void fr_path_first_dir_set(uint16_t pos, uint8_t dir) {
     uint8_t shift = (uint8_t)((pos % 4) * 2);
     uint8_t mask = (uint8_t)(0x03u << shift);
-    path_first_dir[pos / 4] = (uint8_t)((path_first_dir[pos / 4] & (uint8_t)~mask) | ((dir & 0x03u) << shift));
+    path_first_dir[pos / 4] =
+        (uint8_t)((path_first_dir[pos / 4] & (uint8_t)~mask) | ((dir & 0x03u) << shift));
 }
 
 static bool fr_actor_path_can_enter(const FrActor* actor, uint8_t terrain) {
@@ -87,7 +88,12 @@ bool fr_find_path_step_current(
     return false;
 }
 
-bool fr_path_exists(const FrGame* game, uint8_t start_x, uint8_t start_y, uint8_t goal_x, uint8_t goal_y) {
+bool fr_path_exists(
+    const FrGame* game,
+    uint8_t start_x,
+    uint8_t start_y,
+    uint8_t goal_x,
+    uint8_t goal_y) {
     memset(path_seen, 0, sizeof(path_seen));
 
     uint16_t head = 0;
@@ -112,7 +118,8 @@ bool fr_path_exists(const FrGame* game, uint8_t start_x, uint8_t start_y, uint8_
             uint16_t next = (uint16_t)ny * FR_MAP_W + nx;
             if(fr_path_seen_get(next)) continue;
             uint8_t terrain = fr_get_terrain(game, nx, ny);
-            if(!fr_is_walkable(terrain) && (game->tiles[ny][nx] & FR_TILE_HIDDEN_DOOR) == 0) continue;
+            if(!fr_is_walkable(terrain) && (game->tiles[ny][nx] & FR_TILE_HIDDEN_DOOR) == 0)
+                continue;
             if(fr_blocking_item_at(game, nx, ny)) continue;
             if(tail >= FR_PATH_QUEUE_CAP) return false;
             fr_path_seen_set(next);
@@ -122,7 +129,12 @@ bool fr_path_exists(const FrGame* game, uint8_t start_x, uint8_t start_y, uint8_
     return false;
 }
 
-static bool fr_random_reachable_tile_impl(FrGame* game, uint8_t* x, uint8_t* y, uint8_t steps, bool reveal_hidden) {
+static bool fr_random_reachable_tile_impl(
+    FrGame* game,
+    uint8_t* x,
+    uint8_t* y,
+    uint8_t steps,
+    bool reveal_hidden) {
     uint8_t rx = *x;
     uint8_t ry = *y;
     uint8_t best_x = rx;

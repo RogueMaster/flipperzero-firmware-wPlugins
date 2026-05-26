@@ -149,7 +149,8 @@ static void test_v11_land_monsters_path_around_deep_water(void) {
     FrGame game;
     make_empty_test_room(&game);
     for(uint8_t y = 4; y <= 6; y++) {
-        for(uint8_t x = 4; x <= 8; x++) fr_set_terrain(&game, x, y, FR_TERR_WALL);
+        for(uint8_t x = 4; x <= 8; x++)
+            fr_set_terrain(&game, x, y, FR_TERR_WALL);
     }
     fr_set_terrain(&game, 5, 5, FR_TERR_FLOOR);
     fr_set_terrain(&game, 6, 5, FR_TERR_WATER);
@@ -256,7 +257,8 @@ static void test_v071_chase_paths_to_remembered_corner(void) {
     FrGame game;
     make_empty_test_room(&game);
     for(uint8_t y = 0; y < FR_MAP_H; y++) {
-        for(uint8_t x = 0; x < FR_MAP_W; x++) fr_set_terrain(&game, x, y, FR_TERR_WALL);
+        for(uint8_t x = 0; x < FR_MAP_W; x++)
+            fr_set_terrain(&game, x, y, FR_TERR_WALL);
     }
     fr_set_terrain(&game, 8, 5, FR_TERR_FLOOR);
     fr_set_terrain(&game, 7, 5, FR_TERR_FLOOR);
@@ -278,7 +280,8 @@ static void test_v071_chase_paths_to_remembered_corner(void) {
 static void test_v071_far_warden_moves_every_turn(void) {
     FrGame game;
     make_empty_test_room(&game);
-    for(uint8_t x = 4; x <= 20; x++) fr_set_terrain(&game, x, 5, FR_TERR_FLOOR);
+    for(uint8_t x = 4; x <= 20; x++)
+        fr_set_terrain(&game, x, 5, FR_TERR_FLOOR);
     game.player.x = 5;
     game.player.y = 5;
     game.turn = 0;
@@ -296,7 +299,8 @@ static void test_v071_warden_keeps_chasing_between_floors(void) {
     fr_game_init_class(&game, 909u, FR_CLASS_WARRIOR);
     fr_generate_floor(&game, FR_MAX_FLOORS);
     game.player.has_orb = 1;
-    FrActor* warden = fr_spawn_actor(&game, FR_MON_YONDER_WARDEN, game.player.x, (uint8_t)(game.player.y + 2));
+    FrActor* warden =
+        fr_spawn_actor(&game, FR_MON_YONDER_WARDEN, game.player.x, (uint8_t)(game.player.y + 2));
     assert(warden != NULL);
 
     uint8_t before_floor = 0;
@@ -313,9 +317,11 @@ static void test_v071_warden_keeps_chasing_between_floors(void) {
     assert(fr_ascend(&game).kind == FR_ACTION_DESCEND);
     assert(game.floor == FR_MAX_FLOORS - 1);
     for(uint8_t i = 0; i < FR_MAX_ACTORS; i++) {
-        if(game.actors[i].active && game.actors[i].type != FR_MON_YONDER_WARDEN) game.actors[i].active = false;
+        if(game.actors[i].active && game.actors[i].type != FR_MON_YONDER_WARDEN)
+            game.actors[i].active = false;
     }
-    for(uint8_t i = 0; i < 10; i++) assert(fr_rest(&game).kind == FR_ACTION_REST);
+    for(uint8_t i = 0; i < 10; i++)
+        assert(fr_rest(&game).kind == FR_ACTION_REST);
 
     uint8_t after_floor = 0;
     uint8_t after_x = 0;
@@ -392,7 +398,8 @@ static void test_v09_skeleton_dodges_projectiles_but_not_burst(void) {
     assert(fr_add_inventory(&game, FR_ITEM_SCROLL, FR_SCROLL_FIRE, 1));
     uint8_t hp_after_dodge = archer->hp;
     assert(fr_use_inventory(&game, 0, FR_USE_READ, archer->x, archer->y).kind == FR_ACTION_USE);
-    assert(!archer->active || archer->hp < hp_after_dodge || (archer->effects & FR_FX_BURNING) != 0);
+    assert(
+        !archer->active || archer->hp < hp_after_dodge || (archer->effects & FR_FX_BURNING) != 0);
 }
 
 static void test_v10_skeleton_archer_short_name_and_ranged_ai(void) {
@@ -424,7 +431,9 @@ static void test_v10_skeleton_archer_short_name_and_ranged_ai(void) {
     archer->memory = 20;
     assert(fr_rest(&kite).kind == FR_ACTION_REST);
     assert(kite.player.hp == kite.player.max_hp);
-    assert((uint8_t)(abs((int)archer->x - (int)kite.player.x) + abs((int)archer->y - (int)kite.player.y)) >= 2);
+    assert(
+        (uint8_t)(abs((int)archer->x - (int)kite.player.x) +
+                  abs((int)archer->y - (int)kite.player.y)) >= 2);
 }
 
 static void test_v09_cube_blocks_throwing_and_fire_burst_hits_inside(void) {
@@ -445,7 +454,9 @@ static void test_v09_cube_blocks_throwing_and_fire_burst_hits_inside(void) {
     assert(fr_add_inventory(&game, FR_ITEM_SCROLL, FR_SCROLL_FIRE, 1));
     uint8_t cube_hp = game.player.cube_hp;
     uint8_t player_hp = game.player.hp;
-    assert(fr_use_inventory(&game, 1, FR_USE_READ, game.player.x, game.player.y).kind == FR_ACTION_USE);
+    assert(
+        fr_use_inventory(&game, 1, FR_USE_READ, game.player.x, game.player.y).kind ==
+        FR_ACTION_USE);
     assert(game.player.cube_hp < cube_hp);
     assert(game.player.hp < player_hp);
 
@@ -552,9 +563,11 @@ static void test_v09_sleeping_monsters_wake_and_idle_monsters_wander(void) {
     FrGame roamer;
     make_empty_test_room(&roamer);
     for(uint8_t y = 0; y < FR_MAP_H; y++) {
-        for(uint8_t x = 0; x < FR_MAP_W; x++) fr_set_terrain(&roamer, x, y, FR_TERR_WALL);
+        for(uint8_t x = 0; x < FR_MAP_W; x++)
+            fr_set_terrain(&roamer, x, y, FR_TERR_WALL);
     }
-    for(uint8_t x = 2; x <= 30; x++) fr_set_terrain(&roamer, x, 5, FR_TERR_FLOOR);
+    for(uint8_t x = 2; x <= 30; x++)
+        fr_set_terrain(&roamer, x, 5, FR_TERR_FLOOR);
     roamer.player.x = 2;
     roamer.player.y = 5;
     roamer.player.hp = roamer.player.max_hp;
@@ -575,7 +588,9 @@ static void test_v09_sleeping_monsters_wake_and_idle_monsters_wander(void) {
             FrActor* actor = &generated.actors[i];
             if(!actor->active || (actor->flags & FR_ACTOR_ASLEEP) == 0) continue;
             saw_sleeping = true;
-            assert(actor->type == FR_MON_RAT || actor->type == FR_MON_BAT || actor->type == FR_MON_SNAKE);
+            assert(
+                actor->type == FR_MON_RAT || actor->type == FR_MON_BAT ||
+                actor->type == FR_MON_SNAKE);
         }
     }
     assert(saw_sleeping);
@@ -585,7 +600,8 @@ static void test_v091_bat_blink_can_land_behind_player(void) {
     FrGame game;
     make_empty_test_room(&game);
     for(uint8_t y = 0; y < FR_MAP_H; y++) {
-        for(uint8_t x = 0; x < FR_MAP_W; x++) fr_set_terrain(&game, x, y, FR_TERR_WALL);
+        for(uint8_t x = 0; x < FR_MAP_W; x++)
+            fr_set_terrain(&game, x, y, FR_TERR_WALL);
     }
     fr_set_terrain(&game, 5, 5, FR_TERR_FLOOR);
     fr_set_terrain(&game, 6, 5, FR_TERR_FLOOR);
@@ -607,7 +623,8 @@ static void test_v091_bat_cannot_attack_diagonal_without_blink(void) {
     FrGame game;
     make_empty_test_room(&game);
     for(uint8_t y = 0; y < FR_MAP_H; y++) {
-        for(uint8_t x = 0; x < FR_MAP_W; x++) fr_set_terrain(&game, x, y, FR_TERR_WALL);
+        for(uint8_t x = 0; x < FR_MAP_W; x++)
+            fr_set_terrain(&game, x, y, FR_TERR_WALL);
     }
     fr_set_terrain(&game, 5, 5, FR_TERR_FLOOR);
     fr_set_terrain(&game, 6, 6, FR_TERR_FLOOR);
@@ -641,7 +658,8 @@ static void test_v091_attacked_bat_keeps_pursuing(void) {
 
     game.player.x = 5;
     game.player.y = 6;
-    for(uint8_t i = 0; i < 3 && bat->active; i++) assert(fr_rest(&game).kind == FR_ACTION_REST);
+    for(uint8_t i = 0; i < 3 && bat->active; i++)
+        assert(fr_rest(&game).kind == FR_ACTION_REST);
     assert(!bat->active || (bat->flags & FR_ACTOR_ASLEEP) == 0);
     assert(!bat->active || (bat->memory > 0 || ((bat->flags & FR_ACTOR_CHASES) != 0)));
 }

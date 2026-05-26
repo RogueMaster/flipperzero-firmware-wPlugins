@@ -92,7 +92,8 @@ void draw_map(Canvas* canvas, AppContext* app) {
 
             if((tile & FR_TILE_EXPLORED) == 0) continue;
 
-            bool drew_terrain = fr_draw_terrain_sprite(canvas, game, mx, my, sx, sy, app->terrain_anim_tick);
+            bool drew_terrain =
+                fr_draw_terrain_sprite(canvas, game, mx, my, sx, sy, app->terrain_anim_tick);
             char glyph = drew_terrain ? '\0' : fr_tile_glyph(game, mx, my);
             fr_draw_fire_overlay(canvas, game, mx, my, sx, sy, app->terrain_anim_tick);
             if((tile & FR_TILE_VISIBLE) != 0) {
@@ -106,7 +107,8 @@ void draw_map(Canvas* canvas, AppContext* app) {
                     }
                     /* fallback: glyph = fr_item_glyph(item->type); */
                 }
-                if(actor && fr_actor_visible_to_player(game, actor)) glyph = fr_actor_glyph(actor->type);
+                if(actor && fr_actor_visible_to_player(game, actor))
+                    glyph = fr_actor_glyph(actor->type);
             }
             if(game->player.x == mx && game->player.y == my) glyph = '@';
             draw_glyph(canvas, sx, sy, glyph);
@@ -122,19 +124,23 @@ void draw_map(Canvas* canvas, AppContext* app) {
     }
 
     if(app->screen == UI_LOOK || app->screen == UI_TARGET) {
-        if(app->cursor_x >= cam_x && app->cursor_x < cam_x + APP_VIEW_W && app->cursor_y >= cam_y &&
-           app->cursor_y < cam_y + APP_VIEW_H) {
+        if(app->cursor_x >= cam_x && app->cursor_x < cam_x + APP_VIEW_W &&
+           app->cursor_y >= cam_y && app->cursor_y < cam_y + APP_VIEW_H) {
             uint8_t sx = (app->cursor_x - cam_x) * TILE_PX;
             uint8_t sy = MAP_Y + (app->cursor_y - cam_y) * TILE_PX;
             canvas_draw_frame(canvas, sx, sy, TILE_PX, TILE_PX);
         }
     }
-    if(app->fx_active && app->fx_x >= cam_x && app->fx_x < cam_x + APP_VIEW_W && app->fx_y >= cam_y &&
-       app->fx_y < cam_y + APP_VIEW_H) {
-        draw_glyph(canvas, (uint8_t)((app->fx_x - cam_x) * TILE_PX), (uint8_t)(MAP_Y + (app->fx_y - cam_y) * TILE_PX), app->fx_glyph);
+    if(app->fx_active && app->fx_x >= cam_x && app->fx_x < cam_x + APP_VIEW_W &&
+       app->fx_y >= cam_y && app->fx_y < cam_y + APP_VIEW_H) {
+        draw_glyph(
+            canvas,
+            (uint8_t)((app->fx_x - cam_x) * TILE_PX),
+            (uint8_t)(MAP_Y + (app->fx_y - cam_y) * TILE_PX),
+            app->fx_glyph);
     }
-    if(app->flash_ticks > 0 && app->flash_x >= cam_x && app->flash_x < cam_x + APP_VIEW_W && app->flash_y >= cam_y &&
-       app->flash_y < cam_y + APP_VIEW_H) {
+    if(app->flash_ticks > 0 && app->flash_x >= cam_x && app->flash_x < cam_x + APP_VIEW_W &&
+       app->flash_y >= cam_y && app->flash_y < cam_y + APP_VIEW_H) {
         canvas_draw_frame(
             canvas,
             (uint8_t)((app->flash_x - cam_x) * TILE_PX),
@@ -152,7 +158,8 @@ void draw_log(Canvas* canvas, const FrGame* game) {
 void draw_death_log(Canvas* canvas, const FrGame* game) {
     char lines[2][32];
     uint8_t count = fr_ui_death_log_lines(fr_death_log(game), lines, 2, 27);
-    for(uint8_t row = 0; row < count; row++) draw_text_center(canvas, (int)(39 + row * 8), lines[row]);
+    for(uint8_t row = 0; row < count; row++)
+        draw_text_center(canvas, (int)(39 + row * 8), lines[row]);
 }
 
 void draw_menu(Canvas* canvas, AppContext* app) {
@@ -261,9 +268,9 @@ void draw_callback(Canvas* canvas, void* ctx) {
             LOG_Y,
             AlignLeft,
             AlignTop,
-            app->target_action == FR_USE_ZAP ? "Choose where to ZAP." :
-                                                (app->target_action == FR_USE_THROW ? "Choose target." :
-                                                                                      "Choose target."));
+            app->target_action == FR_USE_ZAP ?
+                "Choose where to ZAP." :
+                (app->target_action == FR_USE_THROW ? "Choose target." : "Choose target."));
     } else {
         draw_log(canvas, app->game);
     }

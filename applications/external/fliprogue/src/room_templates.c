@@ -15,7 +15,8 @@ static uint32_t fr_mix_template_seed(uint32_t run_seed, uint8_t floor) {
 }
 
 uint8_t fr_room_template_id(uint32_t run_seed, uint8_t floor) {
-    if(fr_special_floor_type(run_seed, floor) == FR_SPECIAL_FLOOR_MAZE) return FR_ROOM_TEMPLATE_MAZE;
+    if(fr_special_floor_type(run_seed, floor) == FR_SPECIAL_FLOOR_MAZE)
+        return FR_ROOM_TEMPLATE_MAZE;
     return (uint8_t)(fr_mix_template_seed(run_seed, floor) % FR_ROOM_TEMPLATE_COUNT);
 }
 
@@ -37,7 +38,8 @@ static FrRoom fr_room_jitter(
     };
 }
 
-static void fr_build_template_classic(FrGame* game, FrRoom rooms[FR_ROOM_MAX], uint8_t* room_count) {
+static void
+    fr_build_template_classic(FrGame* game, FrRoom rooms[FR_ROOM_MAX], uint8_t* room_count) {
     *room_count = (uint8_t)(6 + fr_rand_u8(game, 2));
     rooms[0] = fr_room_jitter(game, 2, 3, 7, 5, 4, 19, 4, 4);
     rooms[1] = fr_room_jitter(game, 15, 2, 8, 5, 7, 7, 5, 4);

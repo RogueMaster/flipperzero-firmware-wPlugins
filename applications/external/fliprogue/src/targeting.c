@@ -48,7 +48,12 @@ bool fr_fear_direction(const FrGame* game, int8_t* dx, int8_t* dy) {
     return true;
 }
 
-bool fr_resolve_blink_destination(FrGame* game, uint8_t tx, uint8_t ty, uint8_t* out_x, uint8_t* out_y) {
+bool fr_resolve_blink_destination(
+    FrGame* game,
+    uint8_t tx,
+    uint8_t ty,
+    uint8_t* out_x,
+    uint8_t* out_y) {
     int16_t x = game->player.x;
     int16_t y = game->player.y;
     int16_t target_x = tx;
@@ -78,7 +83,8 @@ bool fr_resolve_blink_destination(FrGame* game, uint8_t tx, uint8_t ty, uint8_t*
 
         uint8_t ux = (uint8_t)x;
         uint8_t uy = (uint8_t)y;
-        if(!fr_is_walkable(fr_get_terrain(game, ux, uy)) || fr_blocking_item_at(game, ux, uy)) break;
+        if(!fr_is_walkable(fr_get_terrain(game, ux, uy)) || fr_blocking_item_at(game, ux, uy))
+            break;
         if(fr_actor_at(game, ux, uy) == NULL) {
             best_x = ux;
             best_y = uy;

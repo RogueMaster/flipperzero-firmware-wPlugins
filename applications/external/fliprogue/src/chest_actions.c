@@ -16,14 +16,15 @@
 
 static bool fr_chest_tile_ok(const FrGame* game, uint8_t x, uint8_t y) {
     uint8_t terrain = fr_get_terrain(game, x, y);
-    return fr_is_walkable(terrain) && terrain != FR_TERR_STAIRS_DOWN && terrain != FR_TERR_STAIRS_UP &&
-           terrain != FR_TERR_WATER;
+    return fr_is_walkable(terrain) && terrain != FR_TERR_STAIRS_DOWN &&
+           terrain != FR_TERR_STAIRS_UP && terrain != FR_TERR_WATER;
 }
 
 bool fr_place_chest(FrGame* game, uint8_t x, uint8_t y, bool mimic) {
     if(!fr_chest_tile_ok(game, x, y)) return false;
     if(game->player.x == x && game->player.y == y) return false;
-    if(fr_chest_at(game, x, y) != NULL || fr_actor_at(game, x, y) != NULL || fr_trap_at(game, x, y) != NULL) {
+    if(fr_chest_at(game, x, y) != NULL || fr_actor_at(game, x, y) != NULL ||
+       fr_trap_at(game, x, y) != NULL) {
         return false;
     }
     for(uint8_t i = 0; i < FR_MAX_ITEMS; i++) {
@@ -45,7 +46,8 @@ bool fr_place_chest(FrGame* game, uint8_t x, uint8_t y, bool mimic) {
 FrItem* fr_chest_at(FrGame* game, uint8_t x, uint8_t y) {
     for(uint8_t i = 0; i < FR_MAX_ITEMS; i++) {
         FrItem* item = &game->items[i];
-        if(item->active && item->type == FR_ITEM_CHEST && item->x == x && item->y == y) return item;
+        if(item->active && item->type == FR_ITEM_CHEST && item->x == x && item->y == y)
+            return item;
     }
     return NULL;
 }
@@ -65,7 +67,8 @@ uint8_t fr_chest_choice_count(const FrGame* game, const FrItem* chest) {
     return (chest->flags & FR_ITEM_FLAG_MIMIC) != 0 ? 0 : 3;
 }
 
-static uint8_t fr_chest_roll(const FrGame* game, const FrItem* chest, uint8_t choice, uint8_t limit) {
+static uint8_t
+    fr_chest_roll(const FrGame* game, const FrItem* chest, uint8_t choice, uint8_t limit) {
     uint32_t value = game->run_seed ^ ((uint32_t)game->floor * 1103515245u);
     value ^= ((uint32_t)chest->x + 17u) * 2654435761u;
     value ^= ((uint32_t)chest->y + 31u) * 2246822519u;
@@ -126,7 +129,8 @@ static FrActionResult fr_activate_mimic_chest(FrGame* game, FrItem* chest) {
 
 FrActionResult fr_bump_chest(FrGame* game, FrItem* chest) {
     game->log[0] = '\0';
-    if(!chest || !chest->active || chest->type != FR_ITEM_CHEST) return (FrActionResult){FR_ACTION_BLOCKED};
+    if(!chest || !chest->active || chest->type != FR_ITEM_CHEST)
+        return (FrActionResult){FR_ACTION_BLOCKED};
     if((chest->flags & FR_ITEM_FLAG_OPENED) != 0) {
         fr_log(game, "Empty chest.");
         return (FrActionResult){FR_ACTION_BLOCKED};
@@ -139,7 +143,8 @@ FrActionResult fr_bump_chest(FrGame* game, FrItem* chest) {
 FrActionResult fr_open_chest_choice(FrGame* game, FrItem* chest, uint8_t choice) {
     game->log[0] = '\0';
     if((chest->flags & FR_ITEM_FLAG_MIMIC) != 0) return fr_activate_mimic_chest(game, chest);
-    if(fr_chest_choice_count(game, chest) == 0 || choice >= 3) return (FrActionResult){FR_ACTION_BLOCKED};
+    if(fr_chest_choice_count(game, chest) == 0 || choice >= 3)
+        return (FrActionResult){FR_ACTION_BLOCKED};
 
     FrInvSlot slot = fr_chest_choice_slot(game, chest, choice);
     if(!fr_add_inventory(game, slot.type, slot.subtype, slot.amount)) {

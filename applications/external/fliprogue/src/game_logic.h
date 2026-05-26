@@ -3,51 +3,51 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define FR_MAP_W 64
-#define FR_MAP_H 32
-#define FR_VIEW_W 21
-#define FR_VIEW_H 8
-#define FR_MAX_ACTORS 24
-#define FR_MAX_ITEMS 32
-#define FR_MAX_TRAPS 8
-#define FR_TERRAIN_FIELD_CAP 3
-#define FR_INV_CAP 20
-#define FR_MAX_FLOORS 18
-#define FR_LOG_SIZE 64
-#define FR_LABEL_SIZE 16
-#define FR_EXPLORED_BYTES ((FR_MAP_W * FR_MAP_H + 7) / 8)
-#define FR_FLOOR_EXPLORED_W ((FR_MAP_W + 1) / 2)
-#define FR_FLOOR_EXPLORED_H ((FR_MAP_H + 1) / 2)
+#define FR_MAP_W                64
+#define FR_MAP_H                32
+#define FR_VIEW_W               21
+#define FR_VIEW_H               8
+#define FR_MAX_ACTORS           24
+#define FR_MAX_ITEMS            32
+#define FR_MAX_TRAPS            8
+#define FR_TERRAIN_FIELD_CAP    3
+#define FR_INV_CAP              20
+#define FR_MAX_FLOORS           18
+#define FR_LOG_SIZE             64
+#define FR_LABEL_SIZE           16
+#define FR_EXPLORED_BYTES       ((FR_MAP_W * FR_MAP_H + 7) / 8)
+#define FR_FLOOR_EXPLORED_W     ((FR_MAP_W + 1) / 2)
+#define FR_FLOOR_EXPLORED_H     ((FR_MAP_H + 1) / 2)
 #define FR_FLOOR_EXPLORED_BYTES ((FR_FLOOR_EXPLORED_W * FR_FLOOR_EXPLORED_H + 7) / 8)
-#define FR_MAX_TILE_DELTAS 48
+#define FR_MAX_TILE_DELTAS      48
 
 #define FR_TILE_TERRAIN_MASK 0x0F
-#define FR_TILE_VISIBLE 0x10
-#define FR_TILE_EXPLORED 0x20
-#define FR_TILE_HIDDEN_DOOR 0x40
+#define FR_TILE_VISIBLE      0x10
+#define FR_TILE_EXPLORED     0x20
+#define FR_TILE_HIDDEN_DOOR  0x40
 
-#define FR_DEATH_NONE 0
-#define FR_DEATH_KILLED 1
-#define FR_DEATH_STARVED 2
-#define FR_DEATH_BURNED 3
+#define FR_DEATH_NONE     0
+#define FR_DEATH_KILLED   1
+#define FR_DEATH_STARVED  2
+#define FR_DEATH_BURNED   3
 #define FR_DEATH_POISONED 4
 
-#define FR_EVENT_NONE 0
-#define FR_EVENT_DEW 1
-#define FR_EVENT_SECRET 2
+#define FR_EVENT_NONE           0
+#define FR_EVENT_DEW            1
+#define FR_EVENT_SECRET         2
 #define FR_EVENT_MON_PROJECTILE 3
-#define FR_EVENT_SNARE 4
-#define FR_EVENT_TRAP_SPOTTED 5
+#define FR_EVENT_SNARE          4
+#define FR_EVENT_TRAP_SPOTTED   5
 
 #define FR_ACTOR_CHASES 0x01
 #define FR_ACTOR_HIDDEN 0x02
 #define FR_ACTOR_ASLEEP 0x04
-#define FR_ACTOR_ROAMS 0x08
+#define FR_ACTOR_ROAMS  0x08
 
-#define FR_INV_EQUIPPED 0x01
-#define FR_INV_CURSED 0x02
+#define FR_INV_EQUIPPED     0x01
+#define FR_INV_CURSED       0x02
 #define FR_ITEM_FLAG_OPENED 0x40
-#define FR_ITEM_FLAG_MIMIC 0x80
+#define FR_ITEM_FLAG_MIMIC  0x80
 
 typedef enum {
     FR_MODE_TITLE = 0,
@@ -138,9 +138,9 @@ typedef enum {
     FR_POTION_MAX = 11,
 } FrPotion;
 
-#define FR_POTION_SPEED FR_POTION_QUICKNESS
-#define FR_POTION_SLOW FR_POTION_FROST
-#define FR_POTION_POISON FR_POTION_VENOM
+#define FR_POTION_SPEED     FR_POTION_QUICKNESS
+#define FR_POTION_SLOW      FR_POTION_FROST
+#define FR_POTION_POISON    FR_POTION_VENOM
 #define FR_POTION_CONFUSION FR_POTION_SMOKE
 
 typedef enum {
@@ -197,8 +197,8 @@ typedef enum {
 } FrWand;
 
 #define FR_WAND_SPARK FR_WAND_FIRE
-#define FR_WAND_SLOW FR_WAND_FROST
-#define FR_WAND_MARK FR_WAND_VENOM
+#define FR_WAND_SLOW  FR_WAND_FROST
+#define FR_WAND_MARK  FR_WAND_VENOM
 
 typedef enum {
     FR_THROW_NONE = 0,
@@ -253,14 +253,14 @@ enum {
     FR_FX_MARKED_INDEX = 7,
 };
 
-#define FR_FX_BURNING (1u << FR_FX_BURNING_INDEX)
+#define FR_FX_BURNING  (1u << FR_FX_BURNING_INDEX)
 #define FR_FX_POISONED (1u << FR_FX_POISONED_INDEX)
-#define FR_FX_STUNNED (1u << FR_FX_STUNNED_INDEX)
-#define FR_FX_SLOWED (1u << FR_FX_SLOWED_INDEX)
-#define FR_FX_AFRAID (1u << FR_FX_AFRAID_INDEX)
-#define FR_FX_BLIND (1u << FR_FX_BLIND_INDEX)
+#define FR_FX_STUNNED  (1u << FR_FX_STUNNED_INDEX)
+#define FR_FX_SLOWED   (1u << FR_FX_SLOWED_INDEX)
+#define FR_FX_AFRAID   (1u << FR_FX_AFRAID_INDEX)
+#define FR_FX_BLIND    (1u << FR_FX_BLIND_INDEX)
 #define FR_FX_CONFUSED (1u << FR_FX_CONFUSED_INDEX)
-#define FR_FX_MARKED (1u << FR_FX_MARKED_INDEX)
+#define FR_FX_MARKED   (1u << FR_FX_MARKED_INDEX)
 
 #define FR_SKILL_SLOT1 0x01
 #define FR_SKILL_SLOT2 0x02
@@ -467,7 +467,12 @@ bool fr_actor_visible_to_player(const FrGame* game, const FrActor* actor);
 bool fr_player_detects_trap(const FrGame* game, uint8_t x, uint8_t y);
 uint8_t fr_hidden_trap_detection_chance(const FrGame* game);
 bool fr_search_nearby(FrGame* game);
-bool fr_path_exists(const FrGame* game, uint8_t start_x, uint8_t start_y, uint8_t goal_x, uint8_t goal_y);
+bool fr_path_exists(
+    const FrGame* game,
+    uint8_t start_x,
+    uint8_t start_y,
+    uint8_t goal_x,
+    uint8_t goal_y);
 
 bool fr_add_inventory(FrGame* game, uint8_t type, uint8_t subtype, uint8_t amount);
 

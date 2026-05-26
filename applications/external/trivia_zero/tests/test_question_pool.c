@@ -6,7 +6,7 @@
 static uint32_t g_seq[8];
 static uint32_t g_seq_idx;
 
-static uint32_t stub_rng(void *ctx) {
+static uint32_t stub_rng(void* ctx) {
     (void)ctx;
     const uint32_t v = g_seq[g_seq_idx];
     g_seq_idx = (g_seq_idx + 1u) % 8u;

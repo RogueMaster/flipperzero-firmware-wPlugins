@@ -85,15 +85,26 @@ void fr_save_current_floor(FrGame* game) {
     }
 }
 
-bool fr_floor_actor_at_except(const FrFloorState* floor, uint8_t x, uint8_t y, uint8_t except_index) {
+bool fr_floor_actor_at_except(
+    const FrFloorState* floor,
+    uint8_t x,
+    uint8_t y,
+    uint8_t except_index) {
     for(uint8_t i = 0; i < FR_MAX_ACTORS; i++) {
         if(i == except_index) continue;
-        if(floor->actors[i].active && floor->actors[i].x == x && floor->actors[i].y == y) return true;
+        if(floor->actors[i].active && floor->actors[i].x == x && floor->actors[i].y == y)
+            return true;
     }
     return false;
 }
 
-void fr_init_floor_state(FrGame* game, uint8_t floor_id, uint8_t up_x, uint8_t up_y, uint8_t down_x, uint8_t down_y) {
+void fr_init_floor_state(
+    FrGame* game,
+    uint8_t floor_id,
+    uint8_t up_x,
+    uint8_t up_y,
+    uint8_t down_x,
+    uint8_t down_y) {
     if(floor_id == 0 || floor_id > FR_MAX_FLOORS) return;
     FrFloorState* floor = &game->floors[floor_id - 1];
     memset(floor, 0, sizeof(*floor));
@@ -137,7 +148,8 @@ void fr_apply_saved_floor_state(FrGame* game, uint8_t floor_id) {
                 for(uint8_t ox = 0; ox < 2; ox++) {
                     uint8_t x = (uint8_t)(cell_x + ox);
                     uint8_t y = (uint8_t)(cell_y + oy);
-                    if(x < FR_MAP_W && y < FR_MAP_H && fr_get_terrain(game, x, y) != FR_TERR_WALL) {
+                    if(x < FR_MAP_W && y < FR_MAP_H &&
+                       fr_get_terrain(game, x, y) != FR_TERR_WALL) {
                         game->tiles[y][x] |= FR_TILE_EXPLORED;
                     }
                 }

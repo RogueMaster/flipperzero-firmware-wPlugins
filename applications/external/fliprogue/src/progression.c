@@ -89,16 +89,22 @@ void fr_award_xp(FrGame* game, uint8_t amount) {
         if(game->player.level == 3) {
             game->player.skills |= FR_SKILL_SLOT1;
             game->player.pending_perks++;
-            if(game->player.class_id == FR_CLASS_WARRIOR) game->player.shield_lvl++;
-            else if(game->player.class_id == FR_CLASS_RANGER) game->player.arrows += 3;
-            else game->player.charges += 2;
+            if(game->player.class_id == FR_CLASS_WARRIOR)
+                game->player.shield_lvl++;
+            else if(game->player.class_id == FR_CLASS_RANGER)
+                game->player.arrows += 3;
+            else
+                game->player.charges += 2;
             fr_log(game, "Skill learned.");
         } else if(game->player.level == 6) {
             game->player.skills |= FR_SKILL_SLOT2;
             game->player.pending_perks++;
-            if(game->player.class_id == FR_CLASS_WARRIOR) game->player.sword_lvl++;
-            else if(game->player.class_id == FR_CLASS_RANGER) game->player.bow_lvl++;
-            else game->player.staff_lvl++;
+            if(game->player.class_id == FR_CLASS_WARRIOR)
+                game->player.sword_lvl++;
+            else if(game->player.class_id == FR_CLASS_RANGER)
+                game->player.bow_lvl++;
+            else
+                game->player.staff_lvl++;
             fr_log(game, "Deep skill.");
         }
     }

@@ -13,7 +13,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
-static void fr_append_status(char* text, size_t size, size_t* pos, const char* status, uint8_t* count) {
+static void
+    fr_append_status(char* text, size_t size, size_t* pos, const char* status, uint8_t* count) {
     if(*count >= 2 || *pos >= size) return;
     int written = snprintf(text + *pos, size - *pos, " %s.", status);
     if(written < 0) return;
@@ -66,7 +67,13 @@ const char* fr_look_text(FrGame* game, uint8_t x, uint8_t y) {
         size_t pos = (size_t)snprintf(text, sizeof(text), "%s.", fr_actor_name(actor->type));
         uint8_t count = 0;
         fr_append_effect_statuses(text, sizeof(text), &pos, actor->effects, false, &count);
-        if(count == 0) snprintf(text, sizeof(text), "%s: %s", fr_actor_name(actor->type), fr_actor_flavor(actor->type));
+        if(count == 0)
+            snprintf(
+                text,
+                sizeof(text),
+                "%s: %s",
+                fr_actor_name(actor->type),
+                fr_actor_flavor(actor->type));
         return text;
     }
 

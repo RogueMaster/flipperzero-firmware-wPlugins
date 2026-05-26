@@ -9,7 +9,8 @@ void fr_tick_trinkets(FrGame* game) {
         if(game->player.hp > 1) {
             uint8_t damage = (uint8_t)(1u + fr_rand_u8(game, 2));
             uint8_t max_damage = (uint8_t)(game->player.hp - 1u);
-            game->player.hp = (uint8_t)(game->player.hp - (damage > max_damage ? max_damage : damage));
+            game->player.hp =
+                (uint8_t)(game->player.hp - (damage > max_damage ? max_damage : damage));
         }
         for(uint8_t i = 0; i < FR_MAX_ACTORS; i++) {
             FrActor* actor = &game->actors[i];

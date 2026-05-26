@@ -19,26 +19,26 @@
 #include "ui_help.h"
 #include "ui_layout.h"
 
-#define TILE_PX 6
-#define SCREEN_W 128
-#define SCREEN_H 64
-#define MAP_Y 9
-#define APP_VIEW_W 21
-#define APP_VIEW_H 8
-#define LOG_Y 56
-#define TITLE_MENU_COUNT 4
-#define MENU_COUNT 5
-#define INV_TAB_COUNT 5
-#define INV_VISIBLE_ROWS 4
+#define TILE_PX            6
+#define SCREEN_W           128
+#define SCREEN_H           64
+#define MAP_Y              9
+#define APP_VIEW_W         21
+#define APP_VIEW_H         8
+#define LOG_Y              56
+#define TITLE_MENU_COUNT   4
+#define MENU_COUNT         5
+#define INV_TAB_COUNT      5
+#define INV_VISIBLE_ROWS   4
 #define SCORE_VISIBLE_ROWS 2
-#define HELP_VISIBLE_ROWS 4
-#define HELP_FRAME_Y 15
-#define HELP_FRAME_H 39
-#define HELP_ROW_Y 25
-#define HELP_ROW_STEP 8
-#define HOLD_REPEAT_MS 150
-#define DEW_PHASE_TICKS 3
-#define PARALYSIS_TICK_MS 250
+#define HELP_VISIBLE_ROWS  4
+#define HELP_FRAME_Y       15
+#define HELP_FRAME_H       39
+#define HELP_ROW_Y         25
+#define HELP_ROW_STEP      8
+#define HOLD_REPEAT_MS     150
+#define DEW_PHASE_TICKS    3
+#define PARALYSIS_TICK_MS  250
 
 typedef enum {
     UI_TITLE = 0,

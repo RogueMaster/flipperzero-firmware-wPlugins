@@ -48,7 +48,8 @@ static bool ui_blocks_sight(uint8_t terrain) {
            terrain == FR_TERR_GRASS;
 }
 
-static bool line_actor_in_view(AppContext* app, int8_t dx, int8_t dy, uint8_t* out_x, uint8_t* out_y) {
+static bool
+    line_actor_in_view(AppContext* app, int8_t dx, int8_t dy, uint8_t* out_x, uint8_t* out_y) {
     FrGame* game = app->game;
     camera_update(app);
     uint8_t x = game->player.x;
@@ -74,8 +75,11 @@ static bool line_actor_in_view(AppContext* app, int8_t dx, int8_t dy, uint8_t* o
     return false;
 }
 
-static void maybe_open_picked_charm(AppContext* app, uint8_t old_inv_count, FrActionResult result) {
-    if(result.kind != FR_ACTION_MOVE || app->screen != UI_PLAY || app->game->mode != FR_MODE_PLAYING) return;
+static void
+    maybe_open_picked_charm(AppContext* app, uint8_t old_inv_count, FrActionResult result) {
+    if(result.kind != FR_ACTION_MOVE || app->screen != UI_PLAY ||
+       app->game->mode != FR_MODE_PLAYING)
+        return;
     for(uint8_t i = old_inv_count; i < app->game->player.inv_count; i++) {
         if(app->game->player.inv[i].type != FR_ITEM_TRINKET) continue;
         app->item_index = i;
@@ -147,7 +151,8 @@ bool tick_visual_fx(AppContext* app) {
     if(app->screen == UI_PLAY) {
         app->terrain_anim_tick++;
         dirty = true;
-        if(app->game->mode == FR_MODE_PLAYING && (app->game->player.effects & FR_FX_STUNNED) != 0) {
+        if(app->game->mode == FR_MODE_PLAYING &&
+           (app->game->player.effects & FR_FX_STUNNED) != 0) {
             uint32_t now = furi_get_tick();
             if(app->paralysis_next_tick == 0) app->paralysis_next_tick = now + PARALYSIS_TICK_MS;
             if(now >= app->paralysis_next_tick) {
@@ -195,10 +200,14 @@ static bool is_direction_key(InputKey key) {
 static void key_to_direction(InputKey key, int8_t* dx, int8_t* dy) {
     *dx = 0;
     *dy = 0;
-    if(key == InputKeyUp) *dy = -1;
-    else if(key == InputKeyDown) *dy = 1;
-    else if(key == InputKeyLeft) *dx = -1;
-    else if(key == InputKeyRight) *dx = 1;
+    if(key == InputKeyUp)
+        *dy = -1;
+    else if(key == InputKeyDown)
+        *dy = 1;
+    else if(key == InputKeyLeft)
+        *dx = -1;
+    else if(key == InputKeyRight)
+        *dx = 1;
 }
 
 static void handle_play(AppContext* app, InputKey key, InputType type) {
@@ -226,7 +235,8 @@ static void handle_play(AppContext* app, InputKey key, InputType type) {
         key_to_direction(key, &dx, &dy);
         FrActionResult result = play_direction(app, dx, dy);
         app->next_hold_tick = now + HOLD_REPEAT_MS;
-        if(result.kind == FR_ACTION_ATTACK || result.kind == FR_ACTION_RANGED) app->hold_blocked = true;
+        if(result.kind == FR_ACTION_ATTACK || result.kind == FR_ACTION_RANGED)
+            app->hold_blocked = true;
         return;
     }
     if(type != InputTypeShort) return;
@@ -246,8 +256,7 @@ static void handle_play(AppContext* app, InputKey key, InputType type) {
     case InputKeyRight:
         play_direction(app, 1, 0);
         break;
-    case InputKeyOk:
-    {
+    case InputKeyOk: {
         FeedbackBefore before = feedback_capture(app);
         FrActionResult result = {FR_ACTION_NONE};
         FrItem* chest = fr_chest_at(app->game, app->game->player.x, app->game->player.y);
@@ -273,7 +282,9 @@ static void handle_play(AppContext* app, InputKey key, InputType type) {
         }
         if(fr_get_terrain(app->game, app->game->player.x, app->game->player.y) == FR_TERR_SHRINE) {
             result = fr_use_shrine(app->game);
-        } else if(fr_get_terrain(app->game, app->game->player.x, app->game->player.y) == FR_TERR_STAIRS_DOWN) {
+        } else if(
+            fr_get_terrain(app->game, app->game->player.x, app->game->player.y) ==
+            FR_TERR_STAIRS_DOWN) {
             uint8_t old_floor = app->game->floor;
             result = fr_descend(app->game);
             if(app->game->floor != old_floor || app->game->mode == FR_MODE_VICTORY) {
@@ -281,7 +292,9 @@ static void handle_play(AppContext* app, InputKey key, InputType type) {
                 app->cursor_y = app->game->player.y;
                 camera_center_on_player(app);
             }
-        } else if(fr_get_terrain(app->game, app->game->player.x, app->game->player.y) == FR_TERR_STAIRS_UP) {
+        } else if(
+            fr_get_terrain(app->game, app->game->player.x, app->game->player.y) ==
+            FR_TERR_STAIRS_UP) {
             uint8_t old_floor = app->game->floor;
             result = fr_ascend(app->game);
             if(app->game->floor != old_floor || app->game->mode == FR_MODE_VICTORY) {
@@ -317,7 +330,8 @@ static void handle_chest_choice(AppContext* app, InputKey key) {
         return;
     }
     if(key == InputKeyUp) {
-        app->selection = app->selection == 0 ? (uint8_t)(count - 1) : (uint8_t)(app->selection - 1);
+        app->selection = app->selection == 0 ? (uint8_t)(count - 1) :
+                                               (uint8_t)(app->selection - 1);
         return;
     }
     if(key == InputKeyDown) {
@@ -338,7 +352,8 @@ static void handle_menu(AppContext* app, InputKey key) {
         return;
     }
     if(key == InputKeyUp) {
-        app->selection = app->selection == 0 ? (uint8_t)(MENU_COUNT - 1) : (uint8_t)(app->selection - 1);
+        app->selection = app->selection == 0 ? (uint8_t)(MENU_COUNT - 1) :
+                                               (uint8_t)(app->selection - 1);
         return;
     }
     if(key == InputKeyDown) {
@@ -353,8 +368,7 @@ static void handle_menu(AppContext* app, InputKey key) {
         app->selection = 0;
         app->inv_tab = 0;
         break;
-    case 1:
-    {
+    case 1: {
         FeedbackBefore before = feedback_capture(app);
         FrActionResult result = fr_eat_food(app->game);
         app->screen = UI_PLAY;
@@ -385,7 +399,8 @@ static void handle_inventory(AppContext* app, InputKey key) {
         return;
     }
     if(key == InputKeyLeft) {
-        app->inv_tab = app->inv_tab == 0 ? (uint8_t)(INV_TAB_COUNT - 1) : (uint8_t)(app->inv_tab - 1);
+        app->inv_tab = app->inv_tab == 0 ? (uint8_t)(INV_TAB_COUNT - 1) :
+                                           (uint8_t)(app->inv_tab - 1);
         app->selection = 0;
         inventory_clamp_selection(app);
         return;
@@ -400,7 +415,8 @@ static void handle_inventory(AppContext* app, InputKey key) {
     uint8_t visible_count = inventory_visible_count(game, app->inv_tab);
     if(visible_count == 0) return;
     if(key == InputKeyUp) {
-        app->selection = app->selection == 0 ? (uint8_t)(visible_count - 1) : (uint8_t)(app->selection - 1);
+        app->selection = app->selection == 0 ? (uint8_t)(visible_count - 1) :
+                                               (uint8_t)(app->selection - 1);
         return;
     }
     if(key == InputKeyDown) {
@@ -445,7 +461,8 @@ static void handle_item_choice(AppContext* app, InputKey key) {
     FrInvSlot* slot = &game->player.inv[app->item_index];
     uint8_t count = item_choice_count(slot);
     if(key == InputKeyUp) {
-        app->selection = app->selection == 0 ? (uint8_t)(count - 1) : (uint8_t)(app->selection - 1);
+        app->selection = app->selection == 0 ? (uint8_t)(count - 1) :
+                                               (uint8_t)(app->selection - 1);
         return;
     }
     if(key == InputKeyDown) {
@@ -457,8 +474,8 @@ static void handle_item_choice(AppContext* app, InputKey key) {
     if(slot->type == FR_ITEM_POTION) {
         if(app->selection == 0) {
             FeedbackBefore before = feedback_capture(app);
-            FrActionResult result =
-                fr_use_inventory(game, app->item_index, FR_USE_QUAFF, game->player.x, game->player.y);
+            FrActionResult result = fr_use_inventory(
+                game, app->item_index, FR_USE_QUAFF, game->player.x, game->player.y);
             inventory_action_done(app, before, result);
         } else if(app->selection == 1) {
             app->target_index = app->item_index;
@@ -468,8 +485,8 @@ static void handle_item_choice(AppContext* app, InputKey key) {
             app->screen = UI_TARGET;
         } else {
             FeedbackBefore before = feedback_capture(app);
-            FrActionResult result =
-                fr_use_inventory(game, app->item_index, FR_USE_DROP, game->player.x, game->player.y);
+            FrActionResult result = fr_use_inventory(
+                game, app->item_index, FR_USE_DROP, game->player.x, game->player.y);
             inventory_action_done(app, before, result);
         }
         return;
@@ -497,10 +514,12 @@ static void handle_item_choice(AppContext* app, InputKey key) {
         app->screen = UI_TARGET;
     } else if(slot->type == FR_ITEM_TRINKET) {
         FeedbackBefore before = feedback_capture(app);
-        FrActionResult result = fr_use_inventory(game, app->item_index, FR_USE_EQUIP, game->player.x, game->player.y);
+        FrActionResult result =
+            fr_use_inventory(game, app->item_index, FR_USE_EQUIP, game->player.x, game->player.y);
         inventory_action_done(app, before, result);
-    } else if(slot->type == FR_ITEM_SCROLL && slot->subtype == FR_SCROLL_IDENTIFY &&
-              identify_visible_count(game, app->item_index) > 0) {
+    } else if(
+        slot->type == FR_ITEM_SCROLL && slot->subtype == FR_SCROLL_IDENTIFY &&
+        identify_visible_count(game, app->item_index) > 0) {
         app->target_index = app->item_index;
         app->selection = 0;
         app->screen = UI_IDENTIFY_PICK;
@@ -513,7 +532,8 @@ static void handle_item_choice(AppContext* app, InputKey key) {
     } else {
         FeedbackBefore before = feedback_capture(app);
         uint8_t action = slot->type == FR_ITEM_SCROLL ? FR_USE_READ : FR_USE_READ;
-        FrActionResult result = fr_use_inventory(game, app->item_index, action, game->player.x, game->player.y);
+        FrActionResult result =
+            fr_use_inventory(game, app->item_index, action, game->player.x, game->player.y);
         inventory_action_done(app, before, result);
     }
 }
@@ -532,7 +552,8 @@ static void handle_identify_pick(AppContext* app, InputKey key) {
         return;
     }
     if(key == InputKeyUp) {
-        app->selection = app->selection == 0 ? (uint8_t)(count - 1) : (uint8_t)(app->selection - 1);
+        app->selection = app->selection == 0 ? (uint8_t)(count - 1) :
+                                               (uint8_t)(app->selection - 1);
         return;
     }
     if(key == InputKeyDown) {
@@ -544,7 +565,8 @@ static void handle_identify_pick(AppContext* app, InputKey key) {
     uint8_t identify_index = identify_slot_index_at(game, app->target_index, app->selection);
     if(identify_index == 0xFF) return;
     FeedbackBefore before = feedback_capture(app);
-    FrActionResult result = fr_use_inventory(game, app->target_index, FR_USE_READ, identify_index, 0xFF);
+    FrActionResult result =
+        fr_use_inventory(game, app->target_index, FR_USE_READ, identify_index, 0xFF);
     inventory_action_done(app, before, result);
 }
 
@@ -572,9 +594,10 @@ static void handle_cursor_screen(AppContext* app, InputKey key) {
             FrInvSlot* target_slot = app->target_index < app->game->player.inv_count ?
                                          &app->game->player.inv[app->target_index] :
                                          NULL;
-            bool can_animate = target_slot != NULL &&
-                               !(target_slot->type == FR_ITEM_WAND && target_slot->amount == 0) &&
-                               !(app->game->player.cube_hp > 0 && app->target_action == FR_USE_THROW);
+            bool can_animate =
+                target_slot != NULL &&
+                !(target_slot->type == FR_ITEM_WAND && target_slot->amount == 0) &&
+                !(app->game->player.cube_hp > 0 && app->target_action == FR_USE_THROW);
             if(can_animate && (dx != 0 || dy != 0) &&
                (app->target_action == FR_USE_ZAP || app->target_action == FR_USE_THROW)) {
                 app->fx_active = true;
@@ -586,12 +609,14 @@ static void handle_cursor_screen(AppContext* app, InputKey key) {
                 app->fx_dy = dy;
                 app->fx_glyph = app->target_action == FR_USE_THROW ? '-' : '*';
             }
-            FrActionResult result =
-                fr_use_inventory(app->game, app->target_index, app->target_action, app->cursor_x, app->cursor_y);
+            FrActionResult result = fr_use_inventory(
+                app->game, app->target_index, app->target_action, app->cursor_x, app->cursor_y);
             app->screen = UI_PLAY;
             finish_action(app, before, result);
-        } else if(fr_actor_at(app->game, app->cursor_x, app->cursor_y) &&
-                  fr_actor_visible_to_player(app->game, fr_actor_at(app->game, app->cursor_x, app->cursor_y))) {
+        } else if(
+            fr_actor_at(app->game, app->cursor_x, app->cursor_y) &&
+            fr_actor_visible_to_player(
+                app->game, fr_actor_at(app->game, app->cursor_x, app->cursor_y))) {
             app->screen = UI_MONSTER_CARD;
         } else {
             app->screen = UI_PLAY;
@@ -664,7 +689,8 @@ static void handle_help_menu(AppContext* app, InputKey key) {
         return;
     }
     if(key == InputKeyUp) {
-        app->selection = app->selection == 0 ? (uint8_t)(HELP_TOPIC_COUNT - 1) : (uint8_t)(app->selection - 1);
+        app->selection = app->selection == 0 ? (uint8_t)(HELP_TOPIC_COUNT - 1) :
+                                               (uint8_t)(app->selection - 1);
     } else if(key == InputKeyDown) {
         app->selection = (uint8_t)((app->selection + 1) % HELP_TOPIC_COUNT);
     } else if(key == InputKeyOk) {
@@ -691,16 +717,16 @@ static void handle_help_page(AppContext* app, InputKey key) {
 }
 
 void handle_input(AppContext* app, InputEvent* event) {
-    if(event->type != InputTypeShort && event->type != InputTypeLong && event->type != InputTypeRepeat &&
-       event->type != InputTypeRelease) {
+    if(event->type != InputTypeShort && event->type != InputTypeLong &&
+       event->type != InputTypeRepeat && event->type != InputTypeRelease) {
         return;
     }
 
     if(app->screen == UI_TITLE) {
         if(event->type != InputTypeShort) return;
         if(event->key == InputKeyUp) {
-            app->selection =
-                app->selection == 0 ? (uint8_t)(TITLE_MENU_COUNT - 1) : (uint8_t)(app->selection - 1);
+            app->selection = app->selection == 0 ? (uint8_t)(TITLE_MENU_COUNT - 1) :
+                                                   (uint8_t)(app->selection - 1);
         } else if(event->key == InputKeyDown) {
             app->selection = (uint8_t)((app->selection + 1) % TITLE_MENU_COUNT);
         } else if((event->key == InputKeyLeft || event->key == InputKeyRight) && app->selection == 3) {
@@ -790,7 +816,8 @@ void handle_input(AppContext* app, InputEvent* event) {
     case UI_TARGET:
     case UI_MONSTER_CARD:
         if(app->screen == UI_MONSTER_CARD) {
-            if(event->type == InputTypeShort && (event->key == InputKeyOk || event->key == InputKeyBack)) {
+            if(event->type == InputTypeShort &&
+               (event->key == InputKeyOk || event->key == InputKeyBack)) {
                 app->screen = UI_LOOK;
             }
             break;

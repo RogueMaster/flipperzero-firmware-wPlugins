@@ -99,7 +99,8 @@ bool fr_place_trap(FrGame* game, uint8_t x, uint8_t y, uint8_t type) {
 
 FrTrap* fr_trap_at(FrGame* game, uint8_t x, uint8_t y) {
     for(uint8_t i = 0; i < FR_MAX_TRAPS; i++) {
-        if(game->traps[i].active && game->traps[i].x == x && game->traps[i].y == y) return &game->traps[i];
+        if(game->traps[i].active && game->traps[i].x == x && game->traps[i].y == y)
+            return &game->traps[i];
     }
     return NULL;
 }

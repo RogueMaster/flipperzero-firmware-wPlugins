@@ -24,10 +24,12 @@ static bool fr_score_before(const ScoreEntry* a, const ScoreEntry* b) {
 
 void fr_score_insert(ScoreEntry scores[SCORE_CAP], uint8_t* count, const ScoreEntry* entry) {
     uint8_t insert = 0;
-    while(insert < *count && !fr_score_before(entry, &scores[insert])) insert++;
+    while(insert < *count && !fr_score_before(entry, &scores[insert]))
+        insert++;
     if(insert < SCORE_CAP) {
         uint8_t end = *count < SCORE_CAP ? *count : (uint8_t)(SCORE_CAP - 1);
-        for(uint8_t i = end; i > insert; i--) scores[i] = scores[i - 1];
+        for(uint8_t i = end; i > insert; i--)
+            scores[i] = scores[i - 1];
         scores[insert] = *entry;
     }
     if(*count < SCORE_CAP) (*count)++;
@@ -62,12 +64,14 @@ bool fr_score_parse_main(const char* line, ScoreEntry* score) {
     strtoul(line, &end, 10);
     if(end == line || *end != '.') return false;
     const char* cursor = end + 1;
-    while(*cursor == ' ') cursor++;
+    while(*cursor == ' ')
+        cursor++;
     score->has_orb = 0;
     if(*cursor == '&') {
         score->has_orb = 1;
         cursor++;
-        while(*cursor == ' ') cursor++;
+        while(*cursor == ' ')
+            cursor++;
     }
     char class_glyph = *cursor;
     if(class_glyph != 'W' && class_glyph != 'R' && class_glyph != 'M') return false;
@@ -82,7 +86,8 @@ bool fr_score_parse_main(const char* line, ScoreEntry* score) {
 }
 
 void fr_score_parse_log(const char* line, ScoreEntry* score) {
-    while(*line == ' ') line++;
+    while(*line == ' ')
+        line++;
     snprintf(score->log, sizeof(score->log), "%s", fr_last_log_phrases(line, 2));
     size_t len = strlen(score->log);
     while(len > 0 && (score->log[len - 1] == '\n' || score->log[len - 1] == '\r')) {

@@ -36,7 +36,8 @@ static uint8_t max_pack_size_of_type(const FrGame* game, uint8_t type) {
             count = 0;
             for(uint8_t j = 0; j < FR_MAX_ACTORS; j++) {
                 const FrActor* other = &game->actors[j];
-                if(other->active && other->type == type && other->pack_id == actor->pack_id) count++;
+                if(other->active && other->type == type && other->pack_id == actor->pack_id)
+                    count++;
             }
         }
         if(count > max) max = count;
@@ -104,7 +105,12 @@ static bool find_plain_floor(const FrGame* game, uint8_t* out_x, uint8_t* out_y)
     return false;
 }
 
-static bool find_floor_next_to_wall(const FrGame* game, uint8_t* floor_x, uint8_t* floor_y, uint8_t* wall_x, uint8_t* wall_y) {
+static bool find_floor_next_to_wall(
+    const FrGame* game,
+    uint8_t* floor_x,
+    uint8_t* floor_y,
+    uint8_t* wall_x,
+    uint8_t* wall_y) {
     const int8_t dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
     for(uint8_t y = 1; y < FR_MAP_H - 1; y++) {
         for(uint8_t x = 1; x < FR_MAP_W - 1; x++) {

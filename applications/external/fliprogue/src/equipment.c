@@ -13,7 +13,10 @@ uint8_t fr_wand_max_charges(uint8_t wand) {
 }
 
 uint8_t fr_trinket_break_turns(uint8_t trinket) {
-    return trinket == FR_TRINKET_CINDER || trinket == FR_TRINKET_GLASS || trinket == FR_TRINKET_HUNGRY ? 250 : 0;
+    return trinket == FR_TRINKET_CINDER || trinket == FR_TRINKET_GLASS ||
+                   trinket == FR_TRINKET_HUNGRY ?
+               250 :
+               0;
 }
 
 FrInvSlot* fr_equipped_trinket_slot(FrGame* game) {

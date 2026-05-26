@@ -7,7 +7,7 @@ int main(void) {
      * "X.Y.Z" — but the exact value is owned by release-please, so the test
      * is intentionally version-agnostic. Do not hardcode a specific version
      * here, or every release-please bump will break the build. */
-    const char *v = APP_VERSION;
+    const char* v = APP_VERSION;
     assert(v[0] != '\0');
     assert(strlen(v) >= 5u);
     assert(strchr(v, '.') != NULL);

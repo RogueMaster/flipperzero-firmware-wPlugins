@@ -27,7 +27,7 @@ static void fr_cell_set(uint8_t cells[FR_EXPLORED_BYTES], uint8_t x, uint8_t y) 
 
 static void fr_cell_clear(uint8_t cells[FR_EXPLORED_BYTES], uint8_t x, uint8_t y) {
     uint16_t index = fr_cell_index(x, y);
-    cells[index / 8] &= (uint8_t)~(1u << (index & 7u));
+    cells[index / 8] &= (uint8_t) ~(1u << (index & 7u));
 }
 
 bool fr_terrain_field_cell_get(const FrTerrainField* field, uint8_t x, uint8_t y) {
@@ -53,7 +53,8 @@ bool fr_terrain_field_has_any_cell(const FrTerrainField* field) {
 static bool fr_fire_can_occupy_at(const FrGame* game, uint8_t x, uint8_t y) {
     uint8_t terrain = fr_get_terrain(game, x, y);
     if(fr_blocking_item_at(game, x, y)) return false;
-    return terrain == FR_TERR_FLOOR || terrain == FR_TERR_GRASS || terrain == FR_TERR_GRASS_TRAMPLED;
+    return terrain == FR_TERR_FLOOR || terrain == FR_TERR_GRASS ||
+           terrain == FR_TERR_GRASS_TRAMPLED;
 }
 
 FrTerrainField* fr_alloc_terrain_field(FrGame* game) {
@@ -91,16 +92,13 @@ void fr_ignite_fire_field(FrGame* game, uint8_t floor, uint8_t x, uint8_t y, uin
     }
 }
 
-static FrTerrainField* fr_find_fire_field_near(
-    FrGame* game,
-    uint8_t floor,
-    uint8_t cx,
-    uint8_t cy,
-    uint8_t radius) {
+static FrTerrainField*
+    fr_find_fire_field_near(FrGame* game, uint8_t floor, uint8_t cx, uint8_t cy, uint8_t radius) {
     int8_t r = (int8_t)radius;
     for(uint8_t i = 0; i < FR_TERRAIN_FIELD_CAP; i++) {
         FrTerrainField* field = &game->terrain_fields[i];
-        if(!field->active || field->type != FR_TERRAIN_FIELD_FIRE || field->floor != floor) continue;
+        if(!field->active || field->type != FR_TERRAIN_FIELD_FIRE || field->floor != floor)
+            continue;
         for(int8_t oy = -r; oy <= r; oy++) {
             for(int8_t ox = -r; ox <= r; ox++) {
                 int16_t x_i = (int16_t)cx + ox;
@@ -113,7 +111,12 @@ static FrTerrainField* fr_find_fire_field_near(
     return NULL;
 }
 
-void fr_refresh_or_expand_fire_field(FrGame* game, uint8_t floor, uint8_t x, uint8_t y, uint8_t base_radius) {
+void fr_refresh_or_expand_fire_field(
+    FrGame* game,
+    uint8_t floor,
+    uint8_t x,
+    uint8_t y,
+    uint8_t base_radius) {
     FrTerrainField* field = fr_find_fire_field_near(game, floor, x, y, (uint8_t)(base_radius + 1));
     uint8_t radius = field ? (uint8_t)(base_radius + 1) : base_radius;
     if(!field) {
@@ -145,7 +148,8 @@ void fr_refresh_or_expand_fire_field(FrGame* game, uint8_t floor, uint8_t x, uin
 bool fr_terrain_fire_at(const FrGame* game, uint8_t floor, uint8_t x, uint8_t y) {
     for(uint8_t i = 0; i < FR_TERRAIN_FIELD_CAP; i++) {
         const FrTerrainField* field = &game->terrain_fields[i];
-        if(!field->active || field->type != FR_TERRAIN_FIELD_FIRE || field->floor != floor) continue;
+        if(!field->active || field->type != FR_TERRAIN_FIELD_FIRE || field->floor != floor)
+            continue;
         if(fr_cell_get(field->cells, x, y)) return true;
     }
     return false;
@@ -159,7 +163,12 @@ uint8_t fr_active_terrain_field_count(const FrGame* game) {
     return count;
 }
 
-bool fr_fire_area_has_fire(const FrGame* game, uint8_t floor, uint8_t cx, uint8_t cy, uint8_t radius) {
+bool fr_fire_area_has_fire(
+    const FrGame* game,
+    uint8_t floor,
+    uint8_t cx,
+    uint8_t cy,
+    uint8_t radius) {
     int8_t r = (int8_t)radius;
     for(int8_t oy = -r; oy <= r; oy++) {
         for(int8_t ox = -r; ox <= r; ox++) {
@@ -177,7 +186,8 @@ bool fr_extinguish_fire_area(FrGame* game, uint8_t floor, uint8_t cx, uint8_t cy
     int8_t r = (int8_t)radius;
     for(uint8_t i = 0; i < FR_TERRAIN_FIELD_CAP; i++) {
         FrTerrainField* field = &game->terrain_fields[i];
-        if(!field->active || field->type != FR_TERRAIN_FIELD_FIRE || field->floor != floor) continue;
+        if(!field->active || field->type != FR_TERRAIN_FIELD_FIRE || field->floor != floor)
+            continue;
         for(int8_t oy = -r; oy <= r; oy++) {
             for(int8_t ox = -r; ox <= r; ox++) {
                 int16_t x_i = (int16_t)cx + ox;
@@ -249,7 +259,9 @@ void fr_tick_terrain_effects(FrGame* game) {
             field->active = false;
             continue;
         }
-        if(field->type == FR_TERRAIN_FIELD_FIRE) fr_tick_fire_field(game, field);
-        else if(field->type == FR_TERRAIN_FIELD_ICE) fr_tick_ice_field(game, field);
+        if(field->type == FR_TERRAIN_FIELD_FIRE)
+            fr_tick_fire_field(game, field);
+        else if(field->type == FR_TERRAIN_FIELD_ICE)
+            fr_tick_ice_field(game, field);
     }
 }

@@ -22,7 +22,8 @@ const char* fr_second_log_phrase(const char* text) {
     for(uint8_t i = 0; text[i] != '\0'; i++) {
         if(fr_log_ends_sentence(text[i])) {
             i++;
-            while(text[i] == ' ') i++;
+            while(text[i] == ' ')
+                i++;
             return &text[i];
         }
     }
@@ -30,7 +31,8 @@ const char* fr_second_log_phrase(const char* text) {
 }
 
 const char* fr_last_log_phrases(const char* text, uint8_t max_phrases) {
-    while(fr_log_sentence_count(text) > max_phrases) text = fr_second_log_phrase(text);
+    while(fr_log_sentence_count(text) > max_phrases)
+        text = fr_second_log_phrase(text);
     return text;
 }
 
@@ -149,8 +151,10 @@ uint8_t fr_player_damage(const FrGame* game) {
 }
 
 uint8_t fr_player_ranged_damage(const FrGame* game) {
-    if(game->player.class_id == FR_CLASS_RANGER) return (uint8_t)(2 + game->player.bow_lvl + game->player.dex / 3);
-    if(game->player.class_id == FR_CLASS_MAGE) return (uint8_t)(2 + game->player.staff_lvl + game->player.wil / 3);
+    if(game->player.class_id == FR_CLASS_RANGER)
+        return (uint8_t)(2 + game->player.bow_lvl + game->player.dex / 3);
+    if(game->player.class_id == FR_CLASS_MAGE)
+        return (uint8_t)(2 + game->player.staff_lvl + game->player.wil / 3);
     return 0;
 }
 

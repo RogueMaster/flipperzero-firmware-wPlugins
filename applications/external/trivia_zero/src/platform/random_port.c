@@ -7,7 +7,7 @@
 #endif
 #endif
 
-uint32_t tz_rng_u32(void *ctx) {
+uint32_t tz_rng_u32(void* ctx) {
     (void)ctx;
 #ifdef TZ_HAVE_FURI
     return furi_hal_random_get();

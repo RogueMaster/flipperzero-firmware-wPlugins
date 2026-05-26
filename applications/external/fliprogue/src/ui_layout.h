@@ -55,21 +55,25 @@ static inline uint8_t fr_ui_death_log_lines(
     uint8_t max_lines,
     uint8_t max_chars) {
     if(max_lines == 0 || max_chars == 0) return 0;
-    for(uint8_t i = 0; i < max_lines; i++) lines[i][0] = '\0';
+    for(uint8_t i = 0; i < max_lines; i++)
+        lines[i][0] = '\0';
     if(!text || text[0] == '\0') return 0;
 
     uint8_t line = 0;
     uint8_t used = 0;
     const char* cursor = text;
     while(*cursor != '\0' && line < max_lines) {
-        while(*cursor == ' ') cursor++;
+        while(*cursor == ' ')
+            cursor++;
         if(*cursor == '\0') break;
 
         const char* end = cursor;
-        while(*end != '\0' && *end != '.' && *end != '!' && *end != '?') end++;
+        while(*end != '\0' && *end != '.' && *end != '!' && *end != '?')
+            end++;
         if(*end != '\0') end++;
         size_t phrase_len = (size_t)(end - cursor);
-        while(phrase_len > 0 && cursor[phrase_len - 1] == ' ') phrase_len--;
+        while(phrase_len > 0 && cursor[phrase_len - 1] == ' ')
+            phrase_len--;
         if(phrase_len == 0) {
             cursor = end;
             continue;

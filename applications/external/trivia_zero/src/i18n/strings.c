@@ -2,7 +2,7 @@
 
 static Lang g_locale = LangEn;
 
-static const char *const k_en[TzStrCount] = {
+static const char* const k_en[TzStrCount] = {
     [TzStrMenuChangeLang] = "Change language",
     [TzStrMenuCredits] = "Credits",
     [TzStrMenuExit] = "Exit",
@@ -18,7 +18,7 @@ static const char *const k_en[TzStrCount] = {
     [TzStrCreditsRepoLine2] = "flipper-trivia-zero",
 };
 
-static const char *const k_es[TzStrCount] = {
+static const char* const k_es[TzStrCount] = {
     [TzStrMenuChangeLang] = "Cambiar idioma",
     [TzStrMenuCredits] = "Creditos",
     [TzStrMenuExit] = "Salir",
@@ -42,8 +42,8 @@ void tz_locale_set(Lang locale) {
     g_locale = (locale == LangEs) ? LangEs : LangEn;
 }
 
-const char *tz_str(TzStrId id) {
-    if ((unsigned)id >= (unsigned)TzStrCount) {
+const char* tz_str(TzStrId id) {
+    if((unsigned)id >= (unsigned)TzStrCount) {
         return "?";
     }
     return (g_locale == LangEs) ? k_es[id] : k_en[id];

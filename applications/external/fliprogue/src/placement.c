@@ -16,8 +16,8 @@ bool fr_item_exists_at(const FrGame* game, uint8_t x, uint8_t y) {
 bool fr_blocking_item_at(const FrGame* game, uint8_t x, uint8_t y) {
     for(uint8_t i = 0; i < FR_MAX_ITEMS; i++) {
         const FrItem* item = &game->items[i];
-        if(item->active && item->type == FR_ITEM_CHEST && (item->flags & FR_ITEM_FLAG_OPENED) == 0 &&
-           item->x == x && item->y == y) {
+        if(item->active && item->type == FR_ITEM_CHEST &&
+           (item->flags & FR_ITEM_FLAG_OPENED) == 0 && item->x == x && item->y == y) {
             return true;
         }
     }
@@ -26,8 +26,9 @@ bool fr_blocking_item_at(const FrGame* game, uint8_t x, uint8_t y) {
 
 bool fr_can_place_object(FrGame* game, uint8_t x, uint8_t y) {
     uint8_t terrain = fr_get_terrain(game, x, y);
-    if(!fr_is_walkable(terrain) || terrain == FR_TERR_DOOR_CLOSED || terrain == FR_TERR_STAIRS_DOWN ||
-       terrain == FR_TERR_STAIRS_UP || terrain == FR_TERR_WATER) {
+    if(!fr_is_walkable(terrain) || terrain == FR_TERR_DOOR_CLOSED ||
+       terrain == FR_TERR_STAIRS_DOWN || terrain == FR_TERR_STAIRS_UP ||
+       terrain == FR_TERR_WATER) {
         return false;
     }
     if(game->player.x == x && game->player.y == y) return false;
@@ -134,7 +135,9 @@ bool fr_find_wall_opposed_floor_in_room(
                         *wall_y = (uint8_t)wy_i;
                         return true;
                     }
-                    if(terrain != FR_TERR_FLOOR && terrain != FR_TERR_GRASS && terrain != FR_TERR_PUDDLE) break;
+                    if(terrain != FR_TERR_FLOOR && terrain != FR_TERR_GRASS &&
+                       terrain != FR_TERR_PUDDLE)
+                        break;
                     wx_i = (int16_t)(wx_i + dirs[dir][0]);
                     wy_i = (int16_t)(wy_i + dirs[dir][1]);
                 }
@@ -144,7 +147,11 @@ bool fr_find_wall_opposed_floor_in_room(
     return false;
 }
 
-bool fr_find_secret_wall_candidate_for_room(FrGame* game, const FrRoom* room, uint8_t* x, uint8_t* y) {
+bool fr_find_secret_wall_candidate_for_room(
+    FrGame* game,
+    const FrRoom* room,
+    uint8_t* x,
+    uint8_t* y) {
     if(!fr_room_is_large_enough(room, 4, 4)) return false;
     uint8_t candidates[4][2] = {
         {(uint8_t)(room->x - 1), (uint8_t)(room->y + room->h / 2)},
@@ -156,7 +163,8 @@ bool fr_find_secret_wall_candidate_for_room(FrGame* game, const FrRoom* room, ui
         uint8_t cx = candidates[i][0];
         uint8_t cy = candidates[i][1];
         if(!fr_in_bounds(cx, cy)) continue;
-        if(fr_get_terrain(game, cx, cy) == FR_TERR_WALL && (game->tiles[cy][cx] & FR_TILE_HIDDEN_DOOR) == 0) {
+        if(fr_get_terrain(game, cx, cy) == FR_TERR_WALL &&
+           (game->tiles[cy][cx] & FR_TILE_HIDDEN_DOOR) == 0) {
             *x = cx;
             *y = cy;
             return true;

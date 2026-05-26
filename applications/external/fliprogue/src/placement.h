@@ -21,4 +21,8 @@ bool fr_find_wall_opposed_floor_in_room(
     uint8_t* trigger_y,
     uint8_t* wall_x,
     uint8_t* wall_y);
-bool fr_find_secret_wall_candidate_for_room(FrGame* game, const FrRoom* room, uint8_t* x, uint8_t* y);
+bool fr_find_secret_wall_candidate_for_room(
+    FrGame* game,
+    const FrRoom* room,
+    uint8_t* x,
+    uint8_t* y);
