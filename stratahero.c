@@ -15,6 +15,7 @@
 #include "catalog.h"
 #include "glyphs.h"
 #include "game.h"
+#include "quiz.h"
 #include "splashscreen.h"
 
 
@@ -26,6 +27,8 @@ typedef enum {
     StrataHero_View_CatalogStratagems,
     StrataHero_View_CatalogStratagem,
     StrataHero_View_CatalogStratagemTrain,
+    StrataHero_View_QuizSettings,
+    StrataHero_View_Quiz,
     StrataHero_View_Settings,
     StrataHero_View_SaveSettingsConfirmation,
     StrataHero_ViewCount,
@@ -33,6 +36,7 @@ typedef enum {
 
 typedef enum {
     StrataHero_MainMenuEvent_Play,
+    StrataHero_MainMenuEvent_Quiz,
     StrataHero_MainMenuEvent_Catalog,
     StrataHero_MainMenuEvent_Settings,
 } StrataHeroMainMenuEvent;
@@ -54,6 +58,7 @@ typedef struct {
     StratagemTrainWidget* stratagem_train_widget;
 
     StrataHeroGameWidget* game_widget;
+    QuizWidget* quiz_widget;
     StrataHeroSettingsWidget* settings_widget;
 
     FuriTimer* invalid_code_timer;
@@ -104,6 +109,14 @@ static bool stratahero_view_dispatcher_navigation_callback(void* context) {
             stratahero_switch_view(app, StrataHero_View_CatalogStratagem);
             break;
 
+        case StrataHero_View_QuizSettings:
+            stratahero_switch_view(app, StrataHero_View_MainMenu);
+            break;
+
+        case StrataHero_View_Quiz:
+            stratahero_switch_view(app, StrataHero_View_MainMenu);
+            break;
+
         default:
             return false;
     }
@@ -132,6 +145,7 @@ static void settings_widget_changed_callback(StrataHeroSettings *settings, void*
     app->settings = *settings;
     stratahero_game_widget_set_settings(app->game_widget, settings);
     stratagem_train_widget_set_settings(app->stratagem_train_widget, settings);
+    quiz_widget_set_settings(app->quiz_widget, settings);
 }
 
 static void main_menu_event_callback(void* context, uint32_t index) {
@@ -142,6 +156,9 @@ static void main_menu_event_callback(void* context, uint32_t index) {
         case StrataHero_MainMenuEvent_Play:
             stratahero_switch_view(app, StrataHero_View_Game);
             break;
+        case StrataHero_MainMenuEvent_Quiz:
+            stratahero_switch_view(app, StrataHero_View_QuizSettings);
+            break;
         case StrataHero_MainMenuEvent_Catalog:
             stratahero_switch_view(app, StrataHero_View_CatalogStratagemTypes);
             break;
@@ -149,6 +166,14 @@ static void main_menu_event_callback(void* context, uint32_t index) {
             stratahero_switch_view(app, StrataHero_View_Settings);
             break;
     }
+}
+
+static void quiz_start_callback(void* context) {
+    stratahero_switch_view(context, StrataHero_View_Quiz);
+}
+
+static void quiz_navigation_callback(void* context) {
+    stratahero_switch_view(context, StrataHero_View_MainMenu);
 }
 
 static void stratagem_type_selected_callback(StratagemType type, void* context) {
@@ -177,6 +202,7 @@ StrataHeroApp* stratahero_app_alloc() {
 
     app->main_menu = submenu_alloc();
     submenu_add_item(app->main_menu, "Play", StrataHero_MainMenuEvent_Play, main_menu_event_callback, app);
+    submenu_add_item(app->main_menu, "Quiz", StrataHero_MainMenuEvent_Quiz, main_menu_event_callback, app);
     submenu_add_item(app->main_menu, "Stratagems", StrataHero_MainMenuEvent_Catalog, main_menu_event_callback, app);
     submenu_add_item(app->main_menu, "Settings", StrataHero_MainMenuEvent_Settings, main_menu_event_callback, app);
 
@@ -191,6 +217,11 @@ StrataHeroApp* stratahero_app_alloc() {
 
     app->stratagem_train_widget = stratagem_train_widget_alloc();
     stratagem_train_widget_set_settings(app->stratagem_train_widget, &app->settings);
+
+    app->quiz_widget = quiz_widget_alloc();
+    quiz_widget_set_settings(app->quiz_widget, &app->settings);
+    quiz_widget_set_start_callback(app->quiz_widget, quiz_start_callback, app);
+    quiz_widget_set_navigation_callback(app->quiz_widget, quiz_navigation_callback, app);
 
     app->game_widget = stratahero_game_widget_alloc();
     stratahero_game_widget_set_settings(app->game_widget, &app->settings);
@@ -214,6 +245,8 @@ StrataHeroApp* stratahero_app_alloc() {
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagems, stratagem_list_widget_get_view(app->stratagems_list_widget));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagem, stratagem_detail_widget_get_view(app->stratagem_detail_widget));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagemTrain, stratagem_train_widget_get_view(app->stratagem_train_widget));
+    view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_QuizSettings, quiz_widget_get_settings_view(app->quiz_widget));
+    view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_Quiz, quiz_widget_get_view(app->quiz_widget));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_Settings, stratahero_settings_widget_get_view(app->settings_widget));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_SaveSettingsConfirmation, stratahero_settings_widget_get_confirmation_view(app->settings_widget));
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, stratahero_view_dispatcher_navigation_callback);
@@ -231,6 +264,8 @@ void stratahero_app_run(StrataHeroApp* app) {
 void stratahero_app_free(StrataHeroApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_MainMenu);
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_Game);
+    view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_QuizSettings);
+    view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_Quiz);
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_CatalogStratagemTypes);
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_CatalogStratagemTrain);
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_CatalogStratagem);
@@ -241,6 +276,7 @@ void stratahero_app_free(StrataHeroApp* app) {
     view_dispatcher_free(app->view_dispatcher);
 
     stratahero_game_widget_free(app->game_widget);
+    quiz_widget_free(app->quiz_widget);
     stratahero_settings_widget_free(app->settings_widget);
     stratahero_splash_screen_free(app->splash_screen);
     stratagem_types_widget_free(app->stratagem_types_widget);
