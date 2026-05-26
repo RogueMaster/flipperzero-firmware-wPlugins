@@ -10,6 +10,7 @@
 
 #include "SelectCategoryScreen.hpp"
 #include "ScanStationsScreen.hpp"
+#include "FrequencyScannerScreen.hpp"
 
 class MainMenuScreen {
 private:
@@ -21,10 +22,9 @@ public:
         this->config = config;
 
         menuView = new SubMenuUiView("Chief Cooker");
-        menuView->AddItem(
-            "Scan for station signals", HANDLER_1ARG(&MainMenuScreen::scanStationsMenuPressed));
-        menuView->AddItem(
-            "Saved stations database", HANDLER_1ARG(&MainMenuScreen::stationDatabasePressed));
+        menuView->AddItem("Scan for station signals", HANDLER_1ARG(&MainMenuScreen::scanStationsMenuPressed));
+        menuView->AddItem("Find pager channel", HANDLER_1ARG(&MainMenuScreen::findPagerChannelPressed));
+        menuView->AddItem("Saved stations database", HANDLER_1ARG(&MainMenuScreen::stationDatabasePressed));
         menuView->AddItem("About / Manual", HANDLER_1ARG(&MainMenuScreen::aboutPressed));
         menuView->SetOnDestroyHandler(HANDLER(&MainMenuScreen::destroy));
     }
@@ -39,34 +39,35 @@ private:
         UiManager::GetInstance()->PushView((new ScanStationsScreen(config))->GetView());
     }
 
+    void findPagerChannelPressed(uint32_t) {
+        UiManager::GetInstance()->ShowLoading();
+        UiManager::GetInstance()->PushView((new FrequencyScannerScreen())->GetView());
+    }
+
     void stationDatabasePressed(uint32_t) {
         SubMenuUiView* savedMenuView = new SubMenuUiView("Select database");
-        savedMenuView->AddItem(
-            "Saved by you", HANDLER_1ARG(&MainMenuScreen::savedStationsPressed));
-        savedMenuView->AddItem(
-            "Autosaved", HANDLER_1ARG(&MainMenuScreen::autosavedStationsPressed));
+        savedMenuView->AddItem("Saved by you", HANDLER_1ARG(&MainMenuScreen::savedStationsPressed));
+        savedMenuView->AddItem("Autosaved", HANDLER_1ARG(&MainMenuScreen::autosavedStationsPressed));
         UiManager::GetInstance()->PushView(savedMenuView);
     }
 
     void savedStationsPressed(uint32_t) {
         UiManager::GetInstance()->ShowLoading();
         UiManager::GetInstance()->PushView(
-            (new SelectCategoryScreen(false, User, HANDLER_2ARG(&MainMenuScreen::categorySelected)))
-                ->GetView());
+            (new SelectCategoryScreen(false, User, HANDLER_2ARG(&MainMenuScreen::categorySelected)))->GetView()
+        );
     }
 
     void autosavedStationsPressed(uint32_t) {
         UiManager::GetInstance()->ShowLoading();
         UiManager::GetInstance()->PushView(
-            (new SelectCategoryScreen(
-                 false, Autosaved, HANDLER_2ARG(&MainMenuScreen::categorySelected)))
-                ->GetView());
+            (new SelectCategoryScreen(false, Autosaved, HANDLER_2ARG(&MainMenuScreen::categorySelected)))->GetView()
+        );
     }
 
     void categorySelected(CategoryType categoryType, const char* category) {
         UiManager::GetInstance()->ShowLoading();
-        UiManager::GetInstance()->PushView(
-            (new ScanStationsScreen(config, categoryType, category))->GetView());
+        UiManager::GetInstance()->PushView((new ScanStationsScreen(config, categoryType, category))->GetView());
     }
 
     void aboutPressed(uint32_t index) {

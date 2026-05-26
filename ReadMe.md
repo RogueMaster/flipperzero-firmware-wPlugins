@@ -64,6 +64,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [MagicBand Plus Lights v3.0 (By Haw8411)](https://github.com/Haw8411/magic-band-plus-lights)
 - Updated: [APRS TX v1.3.18 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx) [G3RUH (9600 baud) support (By cpacejo)](https://github.com/yo3gnd/flipper-zero-aprs-tx/pull/1)
 - Updated: [BMI Air Mouse v1.3 (By ginkage)](https://github.com/ginkage/FlippAirMouse/) `Req: BMI160 or GY-521` [Added support for MPU-6050 3-Axis Gyro and Accelerometer GY-521 (By MarcoPieroni)](https://github.com/ginkage/FlippAirMouse/pull/27)
+- Updated: [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker) [Add channel scanner, targeted RAM fixes, fix build script (By swimmer-303)](https://github.com/denr01/FZ-ChiefCooker/pull/4)
 
 <a name="release"></a>
 
@@ -497,7 +498,7 @@ $ ./fbt dolphin_ext
 - [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [CFW Settings v1.6 - Imported/Modified By RogueMaster (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ecf91524a956f773881d564c4ada833f844264ca)
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
-- [Chief Cooker v1.0 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)
+- [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)
 - [Chronometer (By nmrr)](https://github.com/nmrr/flipperzero-chronometer)
 - [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - [CLI Bridge v1.6 (By ranchordo)](https://github.com/ranchordo/flipperzero-cli-bridge)
