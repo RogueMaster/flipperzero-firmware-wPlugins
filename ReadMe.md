@@ -37,6 +37,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Added: [Trivia Zero v0.1.12 (By Endika)](https://github.com/Endika/flipper-trivia-zero)
+- Added: [FlipRogue v1.2 (By Abzac)](https://github.com/Abzac/fliprogue)
 
 <a name="release"></a>
 
@@ -309,6 +310,7 @@ $ ./fbt dolphin_ext
 - [Flight Assault v0.4 (By evillero)](https://github.com/evillero/flight_assault)
 - [Flipper Hero v1.4 (By mentoster)](https://github.com/mentoster/Flipper-hero)
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)
+- [FlipRogue v1.2 (By Abzac)](https://github.com/Abzac/fliprogue)
 - [FMatrix v0.3.5 (By misterwaztaken)](https://github.com/misterwaztaken/fmatrix)
 - [Fortune Cookie v0.1 (By evillero)](https://github.com/evillero/fortune_cookie)
 - [Free Roam v0.6 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
