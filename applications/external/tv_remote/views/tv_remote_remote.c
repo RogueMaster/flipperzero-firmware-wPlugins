@@ -574,10 +574,8 @@ static bool tv_remote_remote_input_callback(InputEvent* event, void* context) {
     if(event->type == InputTypeLong) {
         /* Determine which button the hold action sends */
         bool use_press =
-            ((event->key == InputKeyLeft || event->key == InputKeyRight) &&
-             app->lr_hold_repeat) ||
-            ((event->key == InputKeyUp || event->key == InputKeyDown) &&
-             app->ud_hold_repeat);
+            ((event->key == InputKeyLeft || event->key == InputKeyRight) && app->lr_hold_repeat) ||
+            ((event->key == InputKeyUp || event->key == InputKeyDown) && app->ud_hold_repeat);
         uint8_t eff_long = use_press ? eff_press : eff_hold;
 
         app->remote_held_long = true;
