@@ -31,6 +31,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-05-26 02:16 EST`
 - Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-05-26 02:16 EST`
 - Updated: [TV Remote v1.1 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
+- Updated: [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 
 <a name="release"></a>
 
@@ -594,7 +595,7 @@ $ ./fbt dolphin_ext
 - [GPS v1.4 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
-- [Habit Flow v0.1.2 (By Endika)](https://github.com/Endika/flipper-habit-flow)
+- [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - [Hard Hat Brigade IR v0.1 (By Anomalous68)](https://github.com/Anomalous68/HHB-Flipper-App) `Req: Hard Hat Brigade Hat`
 - [HC-11 Modem v1.2 (By Giraut)](https://github.com/Giraut/flipper_zero_hc11_wireless_modem) `Req: HC-11`

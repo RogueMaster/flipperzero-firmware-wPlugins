@@ -2,7 +2,8 @@ PROJECT_NAME = habit_flow
 
 FAP_APPID = flipper_habit_flow
 
-FLIPPER_FIRMWARE_PATH ?= /home/endika/flipperzero-firmware
+FLIPPER_FIRMWARE_PATH ?= /home/<YOUR_PATH>/flipperzero-firmware
+
 PWD = $(shell pwd)
 
 CC = gcc

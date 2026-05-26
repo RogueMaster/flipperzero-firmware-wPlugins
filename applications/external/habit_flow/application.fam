@@ -18,6 +18,6 @@ App(
     fap_category="Tools",
     fap_author="Endika",
     fap_weburl="https://github.com/Endika/flipper-habit-flow",
-    fap_version="0.1.2",
+    fap_version="0.1.3",
     fap_description="Offline habits on Flipper: goals, streaks, progress, SD storage, optional yesterday prompts.",
 )

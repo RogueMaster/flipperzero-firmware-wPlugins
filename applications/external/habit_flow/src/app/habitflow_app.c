@@ -23,6 +23,31 @@ void hf_switch(HabitFlowApp* app, HfViewId v) {
     view_dispatcher_switch_to_view(app->vd, v);
 }
 
+// Force the active custom view to repaint. Committing the model with update=true
+// runs the dispatcher's update callback, which calls view_port_update(). Without
+// this, in-view state changes never request a redraw and the screen only refreshes
+// when something external forces it (e.g. the Apps-menu loading animation).
+void hf_request_redraw(HabitFlowApp* app) {
+    View* v = NULL;
+    switch(app->current) {
+    case HfViewMain:
+        v = app->main;
+        break;
+    case HfViewDetail:
+        v = app->detail;
+        break;
+    case HfViewManage:
+        v = app->manage;
+        break;
+    case HfViewEdit:
+        v = app->edit;
+        break;
+    default:
+        return; // module views (text input, dialog, popup, widget) repaint themselves
+    }
+    with_view_model(v, HfCtx * m, { UNUSED(m); }, true);
+}
+
 static void dialog_result_cb(DialogExResult result, void* context);
 
 void hf_dialog_rebind(HabitFlowApp* app) {
