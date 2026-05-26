@@ -9,7 +9,7 @@ A [Flipper Zero](https://flipperzero.one) application that reads Abbott FreeStyl
 - Audio feedback on scan (short chime on success, low beep on unrecognised tag)
 - Configurable SD card logging with ISO 8601 timestamps and UTC offset
 - Four log levels: **Off**, **Error**, **Info**, **Debug**
-- UTC offset persists across app restarts (`/ext/flipncgm/settings.ff`)
+- UTC offset persists across app restarts (`/ext/apps_data/flipncgm/settings.ff`)
 
 ## Screenshots
 
@@ -60,7 +60,7 @@ ufbt launch   # build and sideload to a connected Flipper over USB
 Log level and UTC offset are shown on the scanning screen. The UTC offset is
 saved automatically and restored the next time the app is opened.
 
-**Log file:** `/ext/flipncgm/flipncgm.log`
+**Log file:** `/ext/apps_data/flipncgm/flipncgm.log`
 
 ```
 2024-06-01 14:23:45-05:00 [INF] flipnCGM started
@@ -96,7 +96,7 @@ omits **B, I, O, S** to avoid visual ambiguity:
 
 ### Settings file
 
-`/ext/flipncgm/settings.ff` is a standard [FlipperFormat](https://github.com/flipperdevices/flipperzero-firmware/tree/dev/lib/flipper_format)
+`/ext/apps_data/flipncgm/settings.ff` is a standard [FlipperFormat](https://github.com/flipperdevices/flipperzero-firmware/tree/dev/lib/flipper_format)
 key-value file:
 
 ```

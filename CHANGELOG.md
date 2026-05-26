@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 — 2025
+
+- Move SD card storage from /ext/flipncgm/ to /ext/apps_data/flipncgm/
+  per Flipper App Catalog guidelines
+- Log file is now at /ext/apps_data/flipncgm/flipncgm.log
+- Settings file is now at /ext/apps_data/flipncgm/settings.ff
+
 ## 1.0.0 — 2024
 
 - Read Abbott FreeStyle Libre 1/2/3 serial numbers via ISO 15693 NFC
