@@ -1,4 +1,4 @@
-#include "../magicband_plus_lights.h"
+#include "../ble_spam.h"
 
 void scene_main_on_enter(void* _ctx) {
     Ctx* ctx = _ctx;

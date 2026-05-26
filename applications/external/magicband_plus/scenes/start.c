@@ -31,10 +31,10 @@ void scene_start_on_enter(void* _ctx) {
     Ctx* ctx = _ctx;
     submenu_reset(ctx->submenu);
     submenu_set_header(ctx->submenu, "MB+ Transmitter");
-    submenu_add_item(ctx->submenu, "Browse Presets", StartBrowse, start_cb, ctx);
-    submenu_add_item(ctx->submenu, "Single Color", StartSingleColor, start_cb, ctx);
-    submenu_add_item(ctx->submenu, "Custom Lights", StartCustomLights, start_cb, ctx);
-    submenu_add_item(ctx->submenu, "Settings", StartSettings, start_cb, ctx);
+    submenu_add_item(ctx->submenu, "Browse Presets", StartBrowse,       start_cb, ctx);
+    submenu_add_item(ctx->submenu, "Single Color",   StartSingleColor,  start_cb, ctx);
+    submenu_add_item(ctx->submenu, "Custom Lights",  StartCustomLights, start_cb, ctx);
+    submenu_add_item(ctx->submenu, "Settings",       StartSettings,     start_cb, ctx);
     view_dispatcher_switch_to_view(ctx->view_dispatcher, ViewSubmenu);
 }
 

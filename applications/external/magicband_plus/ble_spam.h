@@ -60,8 +60,8 @@ typedef struct {
 
     // OFW patch
     VariableItem* item_pp_color;
-    VariableItem* item_send;
-    bool config_in_prewarm;
+    VariableItem*     item_send;
+    bool              config_in_prewarm;
 } Ctx;
 
 // ─── Helpers exposed for scene files ─────────────────────────────────────────
