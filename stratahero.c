@@ -11,7 +11,6 @@
 
 #include <stratahero_icons.h>
 #include "constants.h"
-#include "stratagems.h"
 #include "settings.h"
 #include "catalog.h"
 #include "glyphs.h"
@@ -47,8 +46,8 @@ typedef struct {
     StrataHeroSplashScreen* splash_screen;
     Submenu* main_menu;
 
-    Submenu* stratagem_types_menu;
-    StratagemListWidget* stratagems_list;
+    StratagemTypesWidget* stratagem_types_widget;
+    StratagemListWidget* stratagems_list_widget;
 
     StrataHeroGameWidget* game_widget;
     StrataHeroSettingsWidget* settings_widget;
@@ -139,11 +138,9 @@ static void main_menu_event_callback(void* context, uint32_t index) {
     }
 }
 
-static void stratagem_types_menu_event_callback(void* context, uint32_t index) {
-    furi_assert(context);
-
+static void stratagem_type_selected_callback(StratagemType type, void* context) {
     StrataHeroApp* app = context;
-    stratagem_list_widget_set_stratagem_type(app->stratagems_list, (StratagemType)index);
+    stratagem_list_widget_set_stratagem_type(app->stratagems_list_widget, type);
     stratahero_switch_view(app, StrataHero_View_CatalogStratagems);
 }
 
@@ -155,15 +152,13 @@ StrataHeroApp* stratahero_app_alloc() {
 
     app->main_menu = submenu_alloc();
     submenu_add_item(app->main_menu, "Play", StrataHero_MainMenuEvent_Play, main_menu_event_callback, app);
-    submenu_add_item(app->main_menu, "Catalog", StrataHero_MainMenuEvent_Catalog, main_menu_event_callback, app);
+    submenu_add_item(app->main_menu, "Stratagems", StrataHero_MainMenuEvent_Catalog, main_menu_event_callback, app);
     submenu_add_item(app->main_menu, "Settings", StrataHero_MainMenuEvent_Settings, main_menu_event_callback, app);
 
-    app->stratagem_types_menu = submenu_alloc();
-    for (int i=0; i < StratagemTypeCount; i++) {
-        submenu_add_item(app->stratagem_types_menu, get_stratagem_type_title((StratagemType)i), i, stratagem_types_menu_event_callback, app);
-    }
+    app->stratagem_types_widget = stratagem_types_widget_alloc();
+    stratagem_types_widget_set_selected_callback(app->stratagem_types_widget, stratagem_type_selected_callback, app);
 
-    app->stratagems_list = stratagem_list_widget_alloc();
+    app->stratagems_list_widget = stratagem_list_widget_alloc();
 
     app->game_widget = stratahero_game_widget_alloc();
     stratahero_game_widget_set_settings(app->game_widget, &app->settings);
@@ -183,8 +178,8 @@ StrataHeroApp* stratahero_app_alloc() {
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_SplashScreen, stratahero_splash_screen_get_view(app->splash_screen));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_MainMenu, submenu_get_view(app->main_menu));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_Game, stratahero_game_widget_get_view(app->game_widget));
-    view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagemTypes, submenu_get_view(app->stratagem_types_menu));
-    view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagems, stratagem_list_widget_get_view(app->stratagems_list));
+    view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagemTypes, stratagem_types_widget_get_view(app->stratagem_types_widget));
+    view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagems, stratagem_list_widget_get_view(app->stratagems_list_widget));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_Settings, stratahero_settings_widget_get_view(app->settings_widget));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_SaveSettingsConfirmation, stratahero_settings_widget_get_confirmation_view(app->settings_widget));
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, stratahero_view_dispatcher_navigation_callback);
@@ -212,8 +207,8 @@ void stratahero_app_free(StrataHeroApp* app) {
     stratahero_game_widget_free(app->game_widget);
     stratahero_settings_widget_free(app->settings_widget);
     stratahero_splash_screen_free(app->splash_screen);
-    submenu_free(app->stratagem_types_menu);
-    stratagem_list_widget_free(app->stratagems_list);
+    stratagem_types_widget_free(app->stratagem_types_widget);
+    stratagem_list_widget_free(app->stratagems_list_widget);
     submenu_free(app->main_menu);
     furi_record_close(RECORD_GUI);
 

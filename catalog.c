@@ -1,5 +1,6 @@
 #include <gui/view.h>
 #include <gui/elements.h>
+#include <gui/modules/submenu.h>
 
 #include <stratahero_icons.h>
 
@@ -8,6 +9,49 @@
 #include "stratagems.h"
 #include "catalog.h"
 #include "glyphs.h"
+
+
+struct StratagemTypesWidget {
+    Submenu* menu;
+    StratagemTypeSelectedCallback selected_callback;
+    void* selected_callback_context;
+};
+
+static void stratagem_types_submenu_callback(void* context, uint32_t index) {
+    StratagemTypesWidget* widget = context;
+    if (widget->selected_callback) {
+        widget->selected_callback((StratagemType)index, widget->selected_callback_context);
+    }
+}
+
+StratagemTypesWidget* stratagem_types_widget_alloc() {
+    StratagemTypesWidget* widget = malloc(sizeof(StratagemTypesWidget));
+    widget->menu = submenu_alloc();
+    for (int i = 0; i < StratagemTypeCount; i++) {
+        submenu_add_item(widget->menu, get_stratagem_type_title((StratagemType)i), i, stratagem_types_submenu_callback, widget);
+    }
+    widget->selected_callback = NULL;
+    widget->selected_callback_context = NULL;
+    return widget;
+}
+
+void stratagem_types_widget_free(StratagemTypesWidget* widget) {
+    submenu_free(widget->menu);
+    free(widget);
+}
+
+View* stratagem_types_widget_get_view(StratagemTypesWidget* widget) {
+    return submenu_get_view(widget->menu);
+}
+
+void stratagem_types_widget_set_selected_callback(
+    StratagemTypesWidget* widget,
+    StratagemTypeSelectedCallback callback,
+    void* context
+) {
+    widget->selected_callback = callback;
+    widget->selected_callback_context = context;
+}
 
 
 #define STRATAGEM_ITEM_HEIGHT 32
