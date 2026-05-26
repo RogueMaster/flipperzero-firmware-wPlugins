@@ -60,6 +60,8 @@ void stratagem_types_widget_set_selected_callback(
 
 struct StratagemListWidget {
     View* view;
+    StratagemSelectedCallback selected_callback;
+    void* selected_callback_context;
 };
 
 typedef struct {
@@ -162,12 +164,36 @@ static void stratagem_list_widget_view_draw_callback(Canvas* canvas, void* _mode
     canvas_draw_box(canvas, SCREEN_WIDTH - 3, handle_y, 3, handle_height);
 }
 
+static const Stratagem* stratagem_list_get_selected(StratagemListWidget* widget) {
+    StratagemType type;
+    int selected_index;
+    with_view_model(widget->view, StratagemListWidgetModel* model, {
+        type = model->stratagem_type;
+        selected_index = model->selected_index;
+    }, false);
+
+    int count = 0;
+    for (uint32_t i = 0; i < stratagems_count; i++) {
+        if (stratagems[i]->type == type) {
+            if (count == selected_index) return stratagems[i];
+            count++;
+        }
+    }
+    return NULL;
+}
+
 static bool stratagem_list_widget_input_callback(InputEvent* event, void* context) {
     StratagemListWidget* widget = context;
     if (event->type != InputTypeShort) return false;
 
     bool handled = false;
-    if (event->key == InputKeyDown) {
+    if (event->key == InputKeyOk && widget->selected_callback) {
+        const Stratagem* stratagem = stratagem_list_get_selected(widget);
+        if (stratagem) {
+            widget->selected_callback(stratagem, widget->selected_callback_context);
+        }
+        handled = true;
+    } else if (event->key == InputKeyDown) {
         with_view_model(
             widget->view,
             StratagemListWidgetModel* model,
@@ -235,6 +261,9 @@ StratagemListWidget* stratagem_list_widget_alloc() {
     view_set_enter_callback(widget->view, stratagem_list_widget_enter_callback);
     view_set_exit_callback(widget->view, stratagem_list_widget_exit_callback);
 
+    widget->selected_callback = NULL;
+    widget->selected_callback_context = NULL;
+
     with_view_model(widget->view, StratagemListWidgetModel* model, {
         model->selected_index = 0;
         model->vertical_scroll_offset = 0;
@@ -273,5 +302,137 @@ void stratagem_list_widget_free(StratagemListWidget* widget) {
     }, false);
     view_free(widget->view);
     free(widget);
+}
+
+void stratagem_list_widget_set_selected_callback(
+    StratagemListWidget* widget,
+    StratagemSelectedCallback callback,
+    void* context
+) {
+    widget->selected_callback = callback;
+    widget->selected_callback_context = context;
+}
+
+
+// StratagemDetailWidget
+
+struct StratagemDetailWidget {
+    View* view;
+};
+
+typedef struct {
+    const Stratagem* stratagem;
+} StratagemDetailWidgetModel;
+
+static int detail_draw_title_wrapped(Canvas* canvas, int x, int y, int max_width, const char* str) {
+    const int line_h = 9;
+    char line[64] = "";
+    int cur_y = y;
+    const char* p = str;
+
+    while(p && *p) {
+        const char* space = p;
+        while(*space && *space != ' ') space++;
+
+        char word[32];
+        int word_len = space - p;
+        if(word_len >= (int)sizeof(word)) word_len = (int)sizeof(word) - 1;
+        memcpy(word, p, word_len);
+        word[word_len] = '\0';
+
+        char candidate[128];
+        if(line[0]) {
+            snprintf(candidate, sizeof(candidate), "%s %s", line, word);
+        } else {
+            strncpy(candidate, word, sizeof(candidate) - 1);
+            candidate[sizeof(candidate) - 1] = '\0';
+        }
+
+        if(!line[0] || canvas_string_width(canvas, candidate) <= (size_t)max_width) {
+            strncpy(line, candidate, sizeof(line) - 1);
+            line[sizeof(line) - 1] = '\0';
+        } else {
+            canvas_draw_str_aligned(canvas, x, cur_y, AlignLeft, AlignTop, line);
+            cur_y += line_h;
+            strncpy(line, word, sizeof(line) - 1);
+            line[sizeof(line) - 1] = '\0';
+        }
+
+        p = *space ? space + 1 : NULL;
+    }
+
+    if(line[0]) {
+        canvas_draw_str_aligned(canvas, x, cur_y, AlignLeft, AlignTop, line);
+        cur_y += line_h;
+    }
+
+    return cur_y;
+}
+
+static void stratagem_detail_widget_draw_callback(Canvas* canvas, void* _model) {
+    StratagemDetailWidgetModel* model = _model;
+    const Stratagem* stratagem = model->stratagem;
+
+    canvas_clear(canvas);
+    if(!stratagem) return;
+
+    canvas_set_font(canvas, FontSecondary);
+
+    const Icon* icon = stratagem->icon ? stratagem->icon : &I_no_icon_stratagem;
+    int icon_w = icon_get_width(icon);
+    int icon_h = icon_get_height(icon);
+
+    int icon_x = 4;
+    int icon_y = 4;
+    canvas_draw_icon(canvas, icon_x, icon_y, icon);
+
+    int title_x = icon_x + icon_w + 4;
+    // int title_bottom = detail_draw_title_wrapped(
+    //     canvas, title_x, icon_y, SCREEN_WIDTH - title_x - 2, stratagem->title);
+    detail_draw_title_wrapped(canvas, title_x, icon_y, SCREEN_WIDTH - title_x - 2, stratagem->title);
+
+    int cooldown_x = 4;
+    int cooldown_y = 4 + icon_h + 2;
+    int cooldown_icon_w = icon_get_width(&I_cooldown);
+    int cooldown_icon_h = icon_get_height(&I_cooldown);
+    canvas_draw_icon(canvas, cooldown_x, cooldown_y, &I_cooldown);
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer)-1, "%ds", stratagem->cooldown);
+    canvas_draw_str_aligned(canvas, cooldown_x + cooldown_icon_w + 2, cooldown_y + 2, AlignLeft, AlignTop, buffer);
+
+    int code_y = cooldown_y + cooldown_icon_h + 2;
+    int code_len = strlen(stratagem->code);
+    int code_x = 4;
+    for(int i = 0; i < code_len; i++) {
+        const StrataHeroCodeGlyph* glyph = stratahero_get_code_glyph(stratagem->code[i]);
+        if(glyph) {
+            canvas_draw_icon(canvas, code_x, code_y, glyph->black);
+        }
+        code_x += CODE_GLYPH_WIDTH;
+    }
+}
+
+StratagemDetailWidget* stratagem_detail_widget_alloc() {
+    StratagemDetailWidget* widget = malloc(sizeof(StratagemDetailWidget));
+    widget->view = view_alloc();
+    view_set_context(widget->view, widget);
+    view_set_draw_callback(widget->view, stratagem_detail_widget_draw_callback);
+    view_allocate_model(widget->view, ViewModelTypeLockFree, sizeof(StratagemDetailWidgetModel));
+    return widget;
+}
+
+void stratagem_detail_widget_free(StratagemDetailWidget* widget) {
+    view_free(widget->view);
+    free(widget);
+}
+
+View* stratagem_detail_widget_get_view(StratagemDetailWidget* widget) {
+    return widget->view;
+}
+
+void stratagem_detail_widget_set_stratagem(StratagemDetailWidget* widget, const Stratagem* stratagem) {
+    with_view_model(widget->view, StratagemDetailWidgetModel* model, {
+        model->stratagem = stratagem;
+    }, true);
 }
 
