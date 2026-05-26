@@ -1,0 +1,710 @@
+<html>
+    <head>
+        <title>Volor Savanna</title>
+        <script>
+            function reset_js()
+            {
+                document.cookie = "name=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "character=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                clear_choices_js();
+            }
+
+            function clear_choices_js()
+            {
+                document.cookie = "random_cookie=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_0=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_1=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_2=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_4=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_5=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_6=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_7=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_8=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_9=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "hunter_list_10=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "warrior_list_0=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "warrior_list_1=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "warrior_list_2=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "warrior_list_3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "warrior_list_4=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "warrior_list_5=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "the_mighty_lion_list_0=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "the_mighty_lion_list_1=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "the_mighty_lion_list_2=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "the_mighty_lion_list_3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "the_mighty_lion_list_4=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "the_mighty_lion_list_5=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "the_mighty_lion_list_6=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "terrain_list_0=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "terrain_list_1=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "terrain_list_2=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "terrain_list_3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                document.cookie = "terrain_list_4=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+            }
+
+            function userName()
+            {
+                document.getElementById("my_text").innerHTML = "What is your name?";
+                let name = document.forms["choiceForm"]["choice_field"].value;
+                if (name != "")
+                {
+                    document.cookie = "name=" + name + "; Path=/;";
+                }
+            }
+
+            function choice_js()
+            {
+                if (document.cookie.includes("character=hunter"))
+                {
+                    hunter();
+                }
+
+                else if (document.cookie.includes("character=warrior"))
+                {
+                    warrior();
+                }
+
+                else if (document.cookie.includes("character=the_mighty_lion"))
+                {
+                    the_mighty_lion();
+                }
+
+                else if (document.cookie.includes("character=terrain"))
+                {
+                    terrain();
+                }
+                
+                else if (document.cookie.includes("name="))
+                {
+                    document.getElementById("my_text").innerHTML = "Welcome to Volor Savanna!<br>You are a member of an African Tribe!<br>Who do you want to be?<br><br>1- Hunter<br>2- Warrior<br>3- Crafter<br>4- Farmer<br>5- Medicine Person";
+                    
+                    let character = document.forms["choiceForm"]["choice_field"].value;
+
+                    if (character == "1")
+                    {
+                        document.cookie = "character=hunter; Path=/;";
+                        document.cookie = "hunter_list_0=" + 0 + "; Path=/;";
+                        location.reload();
+                    }
+
+                    if (character == "2")
+                    {
+                        document.cookie = "character=warrior; Path=/;";
+                        document.cookie = "warrior_list_0=" + 0 + "; Path=/;";
+                        location.reload();
+                    }
+                }
+
+                else
+                {
+                    userName();
+                }
+            }
+
+            function hunter()
+            {
+                if (document.cookie.includes("hunter_list_0=0"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to be a hunter!<br>Do you want to go hunt or stay put?<br><br>1- Hunt; 2- Stay put<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_1=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_1=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go hunt!<br>You have gone hunting.<br>You didn't find any food.<br>You return to your village.<br>Luckily, the farmer has enough crops to last your tribe a week.<br>Do you want to go hunt right away to make up lost time or do you choose to go eat?<br><br>1- Hunt; 2- Eat<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":<br>";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_2=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_1=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to stay put.<br>Unfortunately, your whole village parishes from hunger.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("hunter_list_2=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go hunt!<br>You go on a successful hunt that should last your tribe a month.<br>However, you are very tired and because you didn't eat, you have become very sick with malnutrition.<br>Unluckily for you, the tribes medicine women is very busy and has a lot of patients to take care of first.<br>Do you wish to wait for her or tough it out?<br><br>1- Wait for her; 2- Tough it out<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_3=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_2=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to eat.<br>You are fully fueled with energy.<br>Do you want to go hunting or play a game with the rest of your tribe?<br><br>1- Hunt; 2- Play a game with the rest of my tribe<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_4=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_3=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to wait for her.<br>Because You have chosen to wait for her patiently, she attends to you in a matter of a couple days.<br>You are better in a week.<br>Some white men have come to your tribe.<br>They're asking to trade you guns for some of your tribe's animal pelts.<br>Do you trade them pelts for guns?<br><br>1- Trade; 2- Not trade<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_5=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_3=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to tough it out.<br>Unfortunately, because of this, you die from malnutrition.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value)
+                }
+
+                if (document.cookie.includes("hunter_list_4=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to hunt.<br>You have found a bunch of zebras to eat.<br>Some white men are willing to trade your tribe rifles for some of your zebras.<br>Recently, there has been some highly wanted criminals that trade weapons and drugs on the black market.<br>The problem is, you don't know if that's them.<br>Do you trade?<br>What about decline the offer?<br>Or do you report them to the authorities?<br><br>1- Trade; 2- Decline the trade; 3- Report them to the authorities<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_6=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_4=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to play a game with the rest of your tribe.<br>Everyone has a good time and you guys have an awesome feast.<br>There is a hunting challenge that your tribe is having.<br>The challenge is to go hunt The Mighty Lion!<br>Do you want to go hunt The Mighty Lion with your tribe to win the challenge?<br><br>1- Yes; 2- No<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_7=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_5=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to trade.<br>They trade you guns.<br>Do you want to go hunt The Mighty Lion?<br><br>1- Yes; 2- No<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_8=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_5=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen not to trade.<br>Because of this they want to kill you.<br>Do you escape?<br><br>1- Find out!<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":<br>"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_9=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        rand = Math.floor(Math.random() * 2) + 1;
+                        document.cookie = "random_cookie=" + rand.toString() + "; Path=/;";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_6=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to trade.<br>Luckily, these aren't the criminals that are wanted.<br>A couple months later the white men settle here.<br>People keep on flooding into the white men's settlement.<br>Because of this your village becomes rich.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU WIN!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("hunter_list_6=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to decline the trade.<br>Unfortunately, these people have smallpox.<br>They transmit it to your tribe.<br>Because you tribe doesn't have any immunity against smallpox your whole tribe dies!<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("hunter_list_6=3"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to report them to the authorities.<br>These guys turn out to be the wanted criminals after all.<br>Your tribe gains importance in the African community because you turned these criminals into the authorities.<br>Do you want to go hunt The Mighty Lion?<br><br>1- Yes; 2- No<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "hunter_list_10=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("hunter_list_7=1"))
+                {
+                    clear_choices_js();
+                    document.cookie = "character=the_mighty_lion; Path=/;";
+                    document.cookie = "the_mighty_lion_list_0=0; Path=/;";
+                    location.reload();
+                }
+
+                if (document.cookie.includes("hunter_list_7=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen not to hunt The Mighty Lion.<br>Unfortunately, you die from malaria.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("hunter_list_8=1"))
+                {
+                    clear_choices_js();
+                    document.cookie = "character=the_mighty_lion; Path=/;";
+                    document.cookie = "the_mighty_lion_list_0=0; Path=/;";
+                    location.reload();
+                }
+
+                if (document.cookie.includes("hunter_list_8=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen not to hunt The Mighty Lion.<br>Unfortunately, a random lightning bolt from out of nowhere, probably from Zeus, kills you.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("hunter_list_9=1") && document.cookie.includes("random_cookie=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "Unfortunately, you don't escape.<br>They kill you on the spot with a feather.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("hunter_list_9=1") && document.cookie.includes("random_cookie=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You manage to escape.<br>You live a long and prosperous life!<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU WIN!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("hunter_list_10=1"))
+                {
+                    clear_choices_js();
+                    document.cookie = "character=the_mighty_lion; Path=/;";
+                    document.cookie = "the_mighty_lion_list_0=0; Path=/;";
+                    location.reload();
+                }
+
+                if (document.cookie.includes("hunter_list_10=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen not to hunt The Mighty Lion.<br>Unfortunately, a Chandra Planeswalker burns you to death<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+            }
+
+            function the_mighty_lion()
+            {
+                if (document.cookie.includes("the_mighty_lion_list_0=0"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to hunt The Mighty Lion.<br>You have been on your journey for about a week now.<br>The trail splits off into three sections.<br>Do you choose to go through the canyon?<br>How about the prairie?<br>Or what about keep continuing through the forest?<br><br>1- Canyon; 2- Prairie; 3- Forest<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "the_mighty_lion_list_1=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_1=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go through the canyon!<br>The canyon is the quickest route to The Mighty Lion.<br>Unfortunately, you're almost out of the canyon when a flash flood occurs.<br>You get wiped away instantly and you drown to death.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_1=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go through the prairie!<br>Which way do you travel?<br><br>1- Left; 2- Right<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "the_mighty_lion_list_2=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_1=3"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go through the forest!<br>You see a river.<br>Do you drink from it?<br><br>1- Yes; 2- No<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "the_mighty_lion_list_3=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_2=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go left.<br>Unfortunately, there are hyenas in front of you after only about an hour of walking.<br>They see you and kill you.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_2=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go right.<br>There are zebras in front of you after only about an hour of walking.<br>Do you kill them for food?<br><br>1- Yes; 2- No<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "the_mighty_lion_list_4=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_3=1"))
+                {
+                    clear_choices_js();
+                    document.cookie = "character=terrain; Path=/;";
+                    document.cookie = "terrain_list_0=0; Path=/;";
+                    location.reload();
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_3=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen not to drink from the river.<br>Your fellow warriors have.<br>The river doesn't make them sick because the river comes from a far off glacier.<br>Unfortunately, you cross the river and find no more water sources.<br>You die from dehydration.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_4=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to kill the zebras.<br>Because you have chosen to do this you don't go hungry.<br>Night falls.<br>Do you sleep on the ground or in a tree?<br><br>1- Ground; 2- Tree<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "the_mighty_lion_list_5=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_4=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen not to kill the zebras.<br>Unfortunately, because of this, you starve.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_5=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to sleep on the ground.<br>Unfortunately, a dingo comes up and gobbles you up.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_5=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to sleep in a tree.<br>No animals eat you.<br>You see a river.<br>Do you drink from it?<br><br>1- Yes; 2- No<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "the_mighty_lion_list_6=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_6=1"))
+                {
+                    clear_choices_js();
+                    document.cookie = "character=terrain; Path=/;";
+                    document.cookie = "terrain_list_0=0; Path=/;";
+                    location.reload();
+                }
+
+                if (document.cookie.includes("the_mighty_lion_list_6=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen not to drink from the river.<br>Your fellow warriors have.<br>The river doesn't make them sick because the river comes from a far off glacier.<br>Unfortunately, you cross the river and find no more water sources.<br>You die from dehydration.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+            }
+
+            function terrain()
+            {
+                if (document.cookie.includes("terrain_list_0=0"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to drink from the river.<br>Luckily, the water doesn't have any diseases or viruses.<br>You are full.<br>You need to cross the river.<br>However, the river is very deep.<br>You could make a temporary bridge but that would kill vital time to hunt The Mighty Lion.<br>The fastest way to cross the river is to make a raft.<br>What do you do?<br><br>1- Make a bridge; 2- Build a raft<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "terrain_list_1=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+                
+                if (document.cookie.includes("terrain_list_1=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to make a bridge.<br>Your patience pays off and you get across the river in no time!<br>The path splits in two.<br>Do you travel through the hills or the  hills?<br><br>1- Hills; 2- Extreme hills<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "terrain_list_2=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("terrain_list_1=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to build a raft.<br>Unfortunately, the river brings you to the rapids before you are able to reach the other side.<br>The rapids are heading towards a waterfall, so you panic.<br>You throw your paddle into the river.<br>You fall down the waterfall and hit the rocks at the bottom.<br>Your head splits open and you die!<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("terrain_list_2=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go through the hills.<br>You travel through the hills and see The Mighty Lion!<br>What weapon do you want to use?<br><br>1- Knife; 2- Bow and arrows; 3- Spear; 4- Gun<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "terrain_list_3=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("terrain_list_2=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go through the extreme hills.<br>You freeze to death.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("terrain_list_3=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to use your trusty knife to kill The Mighty Lion!<br>So, do you kill The Mighty Lion?<br><br>1- Find out!<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":<br>"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "terrain_list_4=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        rand = Math.floor(Math.random() * 2) + 1;
+                        document.cookie = "random_cookie=" + rand.toString() + "; Path=/;";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("terrain_list_3=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to use your mighty bow and arrows to kill The Mighty Lion!<br>So, do you kill The Mighty Lion?<br><br>1- Find out!<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":<br>"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "terrain_list_4=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        rand = Math.floor(Math.random() * 2) + 1;
+                        document.cookie = "random_cookie=" + rand.toString() + "; Path=/;";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("terrain_list_3=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to use your mighty bow and arrows to kill The Mighty Lion!<br>So, do you kill The Mighty Lion?<br><br>1- Find out!<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":<br>"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "terrain_list_4=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        rand = Math.floor(Math.random() * 2) + 1;
+                        document.cookie = "random_cookie=" + rand.toString() + "; Path=/;";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("terrain_list_3=3"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to use your powerful spear to kill The Mighty Lion<br>So, do you kill The Mighty Lion?<br><br>1- Find out!<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":<br>"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "terrain_list_4=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        rand = Math.floor(Math.random() * 2) + 1;
+                        document.cookie = "random_cookie=" + rand.toString() + "; Path=/;";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("terrain_list_3=4"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to use your overpowered gun to kill The Mighty Lion.<br>Unfortunately, your gun explodes in face.<br>You die.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("terrain_list_4=1") && document.cookie.includes("random_cookie=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You do not kill The Mighty Lion.<br>Unfortunately, The Mighty Lion eats you!<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("terrain_list_4=1") && document.cookie.includes("random_cookie=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You kill The Mighty Lion!<br>Your tribe celebrates!<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU WIN!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+            }
+
+            function warrior()
+            {
+                if (document.cookie.includes("warrior_list_0=0"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to be a warrior!<br>Do you want to go hunt The Mighty Lion or stay put?<br><br>1- Hunt The Mighty Lion; 2- Stay put<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "warrior_list_1=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("warrior_list_1=1"))
+                {
+                    clear_choices_js();
+                    document.cookie = "character=the_mighty_lion; Path=/;";
+                    document.cookie = "the_mighty_lion_list_0=0; Path=/;";
+                    location.reload();
+                }
+
+                if (document.cookie.includes("warrior_list_1=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to stay put.<br>Without warning a neighboring tribe attacks.<br>Do you choose to get your bow and arrows in your hut, or do you choose to fight them off with your knife on hand?<br><br>1- Go get my bow and arrows; 2- Use my knife<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "warrior_list_2=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("warrior_list_2=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to go get your bow and arrows.<br>Unfortunately, the enemy beats you to it and shoots you on the spot.<br>" + document.cookie.split(";")[0].split("name=")[1] + ", YOU LOSE!<br>THE END!"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+                }
+
+                if (document.cookie.includes("warrior_list_2=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to use your knife.<br>You are very skilled with a knife.<br>Eventually the enemy tribe retreats.<br>The chief has told you to go take a weekend off at the Big Pond.<br>You go to the Big Pond and enjoy it very much.<br>You see a crying baby by the side of the Big Pond.<br>Do you pick up the baby and bring him home or just ignore him?<br><br>1- Pick him up and bring him home; 2- Just ignore him<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "warrior_list_3=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("warrior_list_3=1"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to pick up the baby and bring him home.<br>The baby turns out to be an orphan.<br>His mother was killed by the enemy tribe and the baby was left by the Big Pond.<br>You raise him as your own.<br>He becomes a great warrior and you name him Bobert.<br>You need to go hunt down the enemy that attacked your tribe years ago.<br>Do you take your son with you?<br><br>1- Yes; 2- No<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":";
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "warrior_list_4=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        location.reload();
+                    }
+                }
+
+                if (document.cookie.includes("warrior_list_3=2"))
+                {
+                    document.getElementById("my_text").innerHTML = "You have chosen to just ignore him.<br>Do you choose to go after the enemy tribe with the few warriors you have left?<br><br>1- Yes; 2- No<br>Make your choice " + document.cookie.split(";")[0].split("name=")[1] + ":<br>"
+                    var new_choice = parseInt(document.forms["choiceForm"]["choice_field"].value);
+
+                    if (document.forms["choiceForm"]["choice_field"].value.trim() != "")
+                    {
+                        clear_choices_js();
+                        document.cookie = "warrior_list_5=" + new_choice + "; Path=/;";
+                        document.getElementById("choice_field").value = "";
+                        rand = Math.floor(Math.random() * 2) + 1;
+                        document.cookie = "random_cookie=" + rand.toString() + "; Path=/;";
+                        location.reload();
+                    }
+                }
+            }
+            
+        </script>
+    </head>
+
+    <body onload="choice_js()">
+        <strong id=my_text></strong>
+
+        <form name="choiceForm" action="/" onsubmit="return choice_js()" method="get">
+            <input type="text" id=choice_field name="choice_field" value="">
+            <input type="submit" value="Submit">
+        </form>
+
+        <form name="resetForm"  action="/" onsubmit="return reset_js()" method="get">
+            <input type="submit" value="RESET">
+        </form>
+    </body>
+</html>
