@@ -35,6 +35,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [HyperFocus Calc v0.1.2 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - Added: [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 - Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
+- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 
 <a name="release"></a>
 

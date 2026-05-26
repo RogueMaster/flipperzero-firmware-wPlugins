@@ -2,6 +2,7 @@ App(
     appid="fmradio_controller_pt2257",
     name="FM Radio w Vol [TEA+PT]",
     apptype=FlipperAppType.EXTERNAL,
+    sources=["*.c*", "!tools", "!hooks"],
     entry_point="fmradio_controller_app",
     stack_size=4 * 1024,
     fap_icon="radio.png",

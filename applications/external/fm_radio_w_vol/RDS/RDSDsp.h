@@ -141,6 +141,11 @@ int16_t rds_dsp_get_manual_carrier_offset_centihz(const RDSDsp* dsp);
 void rds_dsp_set_symbol_callback(RDSDsp* dsp, RdsDspSymbolCallback callback, void* context);
 uint32_t rds_dsp_get_carrier_hz_q8(const RDSDsp* dsp);
 
+/* One call processes a full acquisition block (typically RDS_ACQ_BLOCK_SAMPLES ==
+ * 1024 @ 125 kHz). Runs on the RdsDspWorker thread, not in the DMA ISR. Must stay
+ * fast enough on average that the acquisition ring (see RDSAcquisition.h) does
+ * not fill: sustained wall time per block should stay well below ~8.192 ms. */
+
 void rds_dsp_process_u16_samples(
     RDSDsp* dsp,
     RDSCore* core,

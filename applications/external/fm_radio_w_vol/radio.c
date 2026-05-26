@@ -68,6 +68,21 @@ static uint8_t pt_atten_db = 20;
 static bool pt_ready_cached = false;
 static bool pt_initialized_cached = false;
 
+/* Application exit flag — set true by the Back-button exit callback to make
+ * timer/worker/ISR callbacks early-return during shutdown. Defined here
+ * (before any helpers) so all guard checks can see it. */
+static volatile bool fmradio_app_exiting = false;
+
+/* RDS pipeline stop barrier — set true by main thread BEFORE tearing down the
+ * ADC/DMA producer (either on config change RDS ON->OFF or on app exit), and
+ * paired with a furi_delay_ms() drain delay. Worker DSP thread, DMA ISR and
+ * deferred block callbacks observe this flag and early-return, so by the time
+ * the main thread proceeds to stop the DMA / release ADC handle / free the
+ * capture ring, no other context is touching shared RDS state. Fixes the race
+ * condition where rds_capture_ring could be freed while the DSP worker or
+ * realtime ISR was still writing into it (use-after-free / HardFault). */
+static volatile bool rds_pipeline_stopping = false;
+
 static void fmradio_state_lock(void);
 static void fmradio_state_unlock(void);
 static uint32_t fmradio_get_current_freq_10khz(void);
@@ -93,10 +108,16 @@ static bool fmradio_rds_acquisition_realtime_block_callback(
     size_t count,
     uint16_t adc_midpoint,
     void* context);
-static bool fmradio_rds_adc_start(void);
 static void fmradio_rds_adc_stop(void);
 static void fmradio_rds_adc_timer_callback(void* context);
 static bool fmradio_rds_pipeline_enabled(void);
+static void fmradio_rds_pipeline_start(void);
+static void fmradio_rds_constellation_clear_history(void);
+static void fmradio_rds_symbol_callback(
+    void* context,
+    int32_t symbol_i,
+    int32_t symbol_q,
+    uint32_t confidence_q16);
 static void fmradio_rds_timer_stop(void);
 static void fmradio_rds_update_ui_snapshot(void);
 static const char* fmradio_rds_sync_short_text(RdsSyncState state);
@@ -158,6 +179,7 @@ static void fmradio_apply_pt_state(void) {
 }
 
 static void fmradio_apply_audio_output_state(void) {
+    if(fmradio_app_exiting) return;
     fmradio_state_lock();
     bool local_muted = current_volume;
     bool local_amp_power = amp_power_enabled;
@@ -255,7 +277,7 @@ static uint32_t tea_last_tune_tick = 0U;
 static struct RADIO_INFO tea_info_cached;
 static bool tea_info_valid = false;
 static bool tea_i2c_ready = false;
-static volatile bool fmradio_app_exiting = false;
+/* fmradio_app_exiting: defined earlier (line ~74) so helpers can early-return. */
 static uint32_t tea_info_read_count = 0;
 
 #ifdef ENABLE_RDS
@@ -291,6 +313,7 @@ static uint32_t rds_dsp_block_total_ms = 0U;
 static uint32_t rds_dsp_block_max_ms = 0U;
 static uint32_t rds_dsp_last_block_ms = 0U;
 #endif
+
 #endif
 
 // SEEK pacing / settling for TEA5767
@@ -943,6 +966,13 @@ static bool fmradio_rds_capture_trim_file_to_written_size(void) {
     const uint32_t bytes_written =
         rds_capture_written_blocks * RDS_ACQ_BLOCK_SAMPLES * RDS_CAPTURE_SAMPLE_BYTES;
 
+    /* The RAW file is preallocated to the full target size up front.
+       When capture reaches the full target, trimming is a no-op and some
+       cards/filesystem states intermittently fail the extra truncate step. */
+    if(bytes_written >= RDS_CAPTURE_TARGET_BYTES) {
+        return true;
+    }
+
     if(!storage_file_seek(rds_capture_file, bytes_written, true)) {
         return false;
     }
@@ -1306,6 +1336,9 @@ static bool fmradio_rds_acquisition_realtime_block_callback(
     UNUSED(adc_midpoint);
     UNUSED(context);
 
+    if(fmradio_app_exiting || rds_pipeline_stopping)
+        return false; // Skip during exit / pipeline stop
+
     if(!rds_capture_active || !rds_capture_ring) return false;
     if(count != RDS_ACQ_BLOCK_SAMPLES) return false;
 
@@ -1476,7 +1509,13 @@ static void fmradio_rds_capture_finish(void) {
         (unsigned long)rds_capture_target_blocks,
         rds_capture_error ? 1U : 0U);
 
-    if(!fmradio_rds_pipeline_enabled()) {
+    /* Double-stop guard: if the main thread is concurrently tearing down the
+     * RDS pipeline (rds_pipeline_stopping=true on config OFF or app exit) or
+     * already in app-exit, we must NOT also call fmradio_rds_adc_stop() from
+     * the writer thread. Otherwise two threads race inside
+     * rds_acquisition_stop() and double-release the ADC handle (HardFault).
+     * The main thread will perform the stop synchronously. */
+    if(!fmradio_rds_pipeline_enabled() && !rds_pipeline_stopping && !fmradio_app_exiting) {
         fmradio_rds_timer_stop();
         fmradio_rds_adc_stop();
     }
@@ -1505,6 +1544,12 @@ static int32_t fmradio_rds_capture_writer_thread_callback(void* context) {
         }
 
         while(true) {
+            if(fmradio_app_exiting) {
+                /* App is exiting: stop draining the ring even if blocks are
+                 * pending. The outer loop will then observe STOP flag and
+                 * break out of the writer thread cleanly. */
+                break;
+            }
             if(rds_capture_abort_pending) {
                 fmradio_rds_capture_abort_cleanup();
                 break;
@@ -1628,6 +1673,44 @@ static void fmradio_rds_runtime_reset(void) {
 #endif
 }
 
+/*
+ * NOTE: fmradio_rds_pipeline_start is called only during init or TEA startup.
+ * It does NOT execute on the hot path (ISR → decoder).
+ * The hot path remains: ADC ISR → fmradio_rds_acquisition_block_callback →
+ * rds_dsp_process_block → fmradio_rds_symbol_callback, staying under 8.192ms.
+ */
+static void fmradio_rds_pipeline_start(void) {
+    fmradio_rds_runtime_reset();
+
+    rds_core_set_tick_ms(&rds_core, furi_get_tick());
+    rds_core_reset(&rds_core);
+    rds_dsp_init(&rds_dsp, RDS_ACQ_TARGET_SAMPLE_RATE_HZ);
+    rds_dsp_set_symbol_callback(&rds_dsp, fmradio_rds_symbol_callback, NULL);
+    rds_dsp_set_manual_carrier_offset_centihz(&rds_dsp, rds_carrier_offset_centihz);
+
+    rds_acquisition_init(
+        &rds_acquisition,
+        rds_adc_pin,
+        rds_adc_channel,
+        RDS_ADC_FIXED_MIDPOINT,
+        fmradio_rds_acquisition_block_callback,
+        NULL);
+    rds_acquisition_set_realtime_block_callback(
+        &rds_acquisition, fmradio_rds_acquisition_realtime_block_callback, NULL);
+
+    /* Start acquisition (ADC/DMA) – timer will provide ticks for worker */
+    if(!rds_acquisition_start(&rds_acquisition)) {
+        FURI_LOG_E(TAG, "Failed to start RDS acquisition");
+    }
+
+    if(!fmradio_rds_capture_writer_start()) {
+        FURI_LOG_E(TAG, "Failed to start RDS capture writer");
+    }
+
+    fmradio_rds_clear_station_name();
+    fmradio_rds_constellation_clear_history();
+}
+
 static bool fmradio_rds_pipeline_enabled(void) {
     return rds_enabled || rds_debug_enabled;
 }
@@ -1647,6 +1730,7 @@ static void fmradio_rds_timer_stop(void) {
 }
 
 static void fmradio_rds_apply_runtime_state(bool reset_decoder) {
+    if(fmradio_app_exiting) return;
     RdsAcquisitionStats stats;
     rds_acquisition_get_stats(&rds_acquisition, &stats);
 
@@ -1661,15 +1745,33 @@ static void fmradio_rds_apply_runtime_state(bool reset_decoder) {
 
     if(fmradio_rds_pipeline_enabled() && tea_i2c_ready) {
         if(!stats.running) {
-            fmradio_rds_runtime_reset();
-            (void)fmradio_rds_adc_start();
+            fmradio_rds_pipeline_start(); // includes runtime reset, decoder init, acquisition init, writer start
         }
         fmradio_rds_timer_start();
     } else {
+        /* Stop pipeline barrier sequence — order matters:
+         *   1. Set rds_pipeline_stopping=true so worker DSP, DMA ISR realtime
+         *      callback and deferred block callback short-circuit.
+         *   2. Stop the 2 ms timer so no new TICK wake-ups arrive at the
+         *      worker.
+         *   3. Drain delay: 20 ms is comfortably longer than one DMA block
+         *      period (8.192 ms) plus DSP processing of a 1024-sample block,
+         *      so any worker iteration that started before step 1 finishes
+         *      cleanly before we tear down the producer.
+         *   4. Save meta (no-op when RDS_RUNTIME_META_ENABLED=0).
+         *   5. capture_stop() signals the writer thread to abort_cleanup
+         *      (which frees rds_capture_ring) — safe now, no producer.
+         *   6. adc_stop() unregisters DMA1 CH1 ISR, stops trigger timer +
+         *      ADC + DMA, releases ADC handle.
+         *   7. Clear barrier so a later ON transition can restart.
+         */
+        rds_pipeline_stopping = true;
         fmradio_rds_timer_stop();
+        furi_delay_ms(20);
         fmradio_rds_runtime_meta_save();
         fmradio_rds_capture_stop();
         fmradio_rds_adc_stop();
+        rds_pipeline_stopping = false;
     }
 }
 
@@ -1804,7 +1906,9 @@ static void fmradio_rds_symbol_callback(
     UNUSED(context);
     UNUSED(confidence_q16);
 
-    if(!rds_constellation_view_active) {
+    /* Record constellation history only when debug view is active.
+     * Guarded by rds_debug_enabled to avoid overhead in normal operation. */
+    if(!rds_debug_enabled || !rds_constellation_view_active) {
         return;
     }
 
@@ -1939,6 +2043,7 @@ static void fmradio_rds_process_events(void) {
 }
 
 void fmradio_rds_process_adc_block(const uint16_t* samples, size_t count, uint16_t adc_midpoint) {
+    if(fmradio_app_exiting || rds_pipeline_stopping) return;
     static uint8_t ui_snapshot_div = 0U;
 
 #if ENABLE_ADC_CAPTURE
@@ -1980,18 +2085,8 @@ static void fmradio_rds_acquisition_block_callback(
     uint16_t adc_midpoint,
     void* context) {
     UNUSED(context);
+    if(fmradio_app_exiting || rds_pipeline_stopping) return;
     fmradio_rds_process_adc_block(samples, count, adc_midpoint);
-}
-
-static bool fmradio_rds_adc_start(void) {
-    bool started = rds_acquisition_start(&rds_acquisition);
-    if(!started) {
-        FURI_LOG_W(TAG, "RDS acquisition start failed");
-    } else {
-        rds_runtime_sample_rate_hz = 0U;
-        fmradio_rds_refresh_runtime_sample_rate(true);
-    }
-    return started;
 }
 
 static void fmradio_rds_adc_stop(void) {
@@ -2004,10 +2099,15 @@ static int32_t fmradio_rds_dsp_worker(void* context) {
         uint32_t flags = furi_thread_flags_wait(
             RDS_DSP_WORKER_FLAG_TICK | RDS_DSP_WORKER_FLAG_STOP, FuriFlagWaitAny, FuriWaitForever);
         if(flags & FuriFlagError) continue;
-        if(flags & RDS_DSP_WORKER_FLAG_STOP) break;
+        if(flags & RDS_DSP_WORKER_FLAG_STOP) {
+            break;
+        }
         if(!(flags & RDS_DSP_WORKER_FLAG_TICK)) continue;
 
+        if(fmradio_app_exiting || rds_pipeline_stopping) continue;
+
 #if ENABLE_ADC_CAPTURE
+        if(fmradio_app_exiting || rds_pipeline_stopping) continue;
         fmradio_rds_capture_flush_to_sd();
         if(rds_capture_active) continue;
         if(!fmradio_rds_pipeline_enabled() && !rds_capture_active && !rds_capture_requested)
@@ -2019,6 +2119,9 @@ static int32_t fmradio_rds_dsp_worker(void* context) {
         /* Timer flags are level-triggered, so a delayed worker can coalesce
        multiple 2 ms ticks into one wake-up. Drain the backlog per wake-up
        so RDS processing stays independent of the active UI view. */
+        if(fmradio_app_exiting || rds_pipeline_stopping) {
+            continue; // Skip processing when exiting / pipeline stopping
+        }
         rds_acquisition_on_timer_tick(&rds_acquisition, true);
     }
     return 0;
@@ -2034,20 +2137,9 @@ static void fmradio_rds_dsp_worker_start(void) {
     rds_dsp_worker_thread_id = furi_thread_get_id(rds_dsp_worker_thread);
 }
 
-static void fmradio_rds_dsp_worker_stop(void) {
-    if(!rds_dsp_worker_thread) return;
-    FuriThreadId id = rds_dsp_worker_thread_id;
-    rds_dsp_worker_thread_id = NULL;
-    if(id) {
-        furi_thread_flags_set(id, RDS_DSP_WORKER_FLAG_STOP);
-    }
-    furi_thread_join(rds_dsp_worker_thread);
-    furi_thread_free(rds_dsp_worker_thread);
-    rds_dsp_worker_thread = NULL;
-}
-
 static void fmradio_rds_adc_timer_callback(void* context) {
     UNUSED(context);
+    if(fmradio_app_exiting) return;
     FuriThreadId id = rds_dsp_worker_thread_id;
     if(id) {
         furi_thread_flags_set(id, RDS_DSP_WORKER_FLAG_TICK);
@@ -2260,43 +2352,22 @@ typedef struct {
 
 // Callback for navigation events
 
+/* Back button on the top-level submenu.
+ *
+ * All shutdown work lives in fmradio_controller_free() — the single sequential
+ * exit path. Here we only:
+ *   1. flip fmradio_app_exiting so timer/worker callbacks early-return,
+ *   2. return VIEW_NONE so view_dispatcher_run() exits its event loop and
+ *      hands control back to fmradio_controller_app(), which then invokes
+ *      fmradio_controller_free() on the same (app main) thread.
+ *
+ * Doing teardown here AND in free() previously caused duplicated state
+ * mutations and a use-after-free race between the still-armed rds_adc_timer
+ * and the freed DSP worker thread. Centralising teardown in free() removes
+ * that race entirely. */
 static uint32_t fmradio_controller_navigation_exit_callback(void* context) {
     UNUSED(context);
-    FURI_LOG_I(TAG, "exit: enter");
     fmradio_app_exiting = true;
-    fmradio_audio_shutdown();
-    FURI_LOG_I(TAG, "exit: audio shutdown done");
-
-    // Pre-close shutdown path: stop RDS work without changing the persisted user setting.
-#ifdef ENABLE_RDS
-    if(rds_adc_timer_handle) {
-        furi_timer_stop(rds_adc_timer_handle);
-        rds_adc_timer_running = false;
-    }
-    FURI_LOG_I(TAG, "exit: adc timer stopped");
-    fmradio_rds_dsp_worker_stop();
-    FURI_LOG_I(TAG, "exit: dsp worker stopped");
-    fmradio_rds_runtime_meta_save();
-    FURI_LOG_I(TAG, "exit: runtime meta handled");
-    fmradio_rds_capture_stop();
-    FURI_LOG_I(TAG, "exit: capture stopped");
-    fmradio_rds_adc_stop();
-    FURI_LOG_I(TAG, "exit: adc stopped");
-#endif
-
-    uint8_t buffer[5]; // Create a buffer to hold the TEA5767 register values
-    FURI_LOG_I(TAG, "exit: before tea sleep");
-    tea5767_sleep(buffer); // Call the tea5767_sleep function, passing the buffer as an argument
-    FURI_LOG_I(TAG, "exit: after tea sleep");
-
-    // Persist last state (frequency/mute/attenuation)
-    FURI_LOG_I(TAG, "exit: before settings save");
-    fmradio_settings_save();
-    FURI_LOG_I(TAG, "exit: after settings save");
-    FURI_LOG_I(TAG, "exit: before presets save");
-    fmradio_presets_save();
-    FURI_LOG_I(TAG, "exit: after presets save");
-    FURI_LOG_I(TAG, "exit: return view none");
     return VIEW_NONE;
 }
 
@@ -2777,7 +2848,11 @@ static void fmradio_tick_callback(void* context) {
             fmradio_state_unlock();
 
             if(!was_ready) {
-                fmradio_rds_apply_runtime_state(false);
+                fmradio_rds_pipeline_start();
+                // Start timer so worker can begin processing
+                if(rds_adc_timer_handle && !rds_adc_timer_running) {
+                    fmradio_rds_timer_start();
+                }
             }
         } else {
             bool stop_rds = false;
@@ -3136,23 +3211,7 @@ FMRadio* fmradio_controller_alloc() {
     if(!fmradio_submenu_rebuild(app)) goto fail;
 
 #ifdef ENABLE_RDS
-    rds_core_set_tick_ms(&rds_core, furi_get_tick());
-    rds_core_reset(&rds_core);
-    rds_dsp_init(&rds_dsp, RDS_ACQ_TARGET_SAMPLE_RATE_HZ);
-    rds_dsp_set_symbol_callback(&rds_dsp, fmradio_rds_symbol_callback, NULL);
-    rds_dsp_set_manual_carrier_offset_centihz(&rds_dsp, rds_carrier_offset_centihz);
-    fmradio_rds_constellation_clear_history();
-    rds_acquisition_init(
-        &rds_acquisition,
-        rds_adc_pin,
-        rds_adc_channel,
-        RDS_ADC_FIXED_MIDPOINT,
-        fmradio_rds_acquisition_block_callback,
-        NULL);
-    rds_acquisition_set_realtime_block_callback(
-        &rds_acquisition, fmradio_rds_acquisition_realtime_block_callback, NULL);
-    if(!fmradio_rds_capture_writer_start()) goto fail;
-    fmradio_rds_clear_station_name();
+    fmradio_rds_pipeline_start();
 #endif
 
     // Apply backlight policy after loading settings
@@ -3318,46 +3377,137 @@ fail:
     return NULL;
 }
 
-// Free memory used by the application
+/* SINGLE sequential application teardown.
+ *
+ * This is the ONLY shutdown path. Called by fmradio_controller_app() after
+ * view_dispatcher_run() returns (which happens once
+ * fmradio_controller_navigation_exit_callback() returns VIEW_NONE). Runs on
+ * the app's main thread, same thread that owned the dispatcher loop.
+ *
+ * Phases are ordered so that for each pair (producer, consumer) the producer
+ * is fully stopped before its consumer is touched, and for each pair
+ * (notifier, listener) the notifier is fully freed (synchronously draining
+ * any in-flight callback) before the listener is freed.
+ *
+ *   1. Set exit flag (idempotent — exit_callback already did it)
+ *   2. Stop+FREE every timer (rds_adc_timer, tick_timer). furi_timer_free is
+ *      synchronous: after it returns, no callback can fire that would touch
+ *      thread IDs or app state. This kills the use-after-free race that was
+ *      causing null derefs at exit.
+ *   3. Stop ADC/DMA + signal capture writer abort (kills sample producers).
+ *   4. Stop+join+free worker threads (DSP worker, capture writer).
+ *   5. Hardware shutdown (PT22xx mute, PAM off) — pure I2C/GPIO, safe now.
+ *   6. Restore system state (backlight) and close NOTIFICATION record.
+ *   7. Free GUI resources (views, dispatcher, GUI record).
+ *   8. Free synchronisation primitives (state_mutex).
+ *   9. Free the app struct.
+ */
 void fmradio_controller_free(FMRadio* app) {
     if(!app) return;
 
-    FURI_LOG_I(TAG, "free: enter");
+    FURI_LOG_I(TAG, "free: enter (unified shutdown)");
+
+    /* Phase 1: signal exit (defensive — already true if exit_callback ran). */
     fmradio_app_exiting = true;
+
+    /* Phase 2: stop timers but DO NOT free them.
+     *
+     * furi_timer_free() is asynchronous in FreeRTOS timer service: it queues
+     * a delete command, and a pending callback (already queued before the
+     * stop) can fire after free(app) and deref the dangling app pointer.
+     *
+     * We only stop the timers here. The Flipper/FreeRTOS timer service
+     * automatically reclaims a deleted task's timers when the task
+     * (the app's main thread) exits. Because fmradio_app_exiting=true
+     * is already set, any late callback will early-return immediately.
+     *
+     * This kills the use-after-free race that caused the null deref / HardFault. */
 #ifdef ENABLE_RDS
-    /* Stop ADC + RDS pipeline FIRST so DSP worker no longer sources timer events */
     if(app->rds_adc_timer) {
         furi_timer_stop(app->rds_adc_timer);
-        furi_timer_free(app->rds_adc_timer);
+        // DO NOT furi_timer_free here — see comment above
         app->rds_adc_timer = NULL;
     }
-    rds_adc_timer_running = false;
     rds_adc_timer_handle = NULL;
-    fmradio_rds_dsp_worker_stop();
-    fmradio_rds_capture_stop();
-    fmradio_rds_capture_writer_stop();
-    fmradio_rds_adc_stop();
-    FURI_LOG_I(TAG, "free: rds pipeline stopped");
+    rds_adc_timer_running = false;
 #endif
-    /* Stop UI tick timer; tick_callback bails on fmradio_app_exiting so no I2C race */
+
     if(app->tick_timer) {
         furi_timer_stop(app->tick_timer);
-        furi_timer_free(app->tick_timer);
+        // DO NOT furi_timer_free here — see comment above
         app->tick_timer = NULL;
     }
-    FURI_LOG_I(TAG, "free: tick_timer freed");
+    FURI_LOG_I(TAG, "free: timers stopped (not freed)");
 
+    /* Wait for any in-flight timer callbacks to finish.
+     *
+     * furi_timer_stop() is asynchronous in FreeRTOS — a callback already
+     * queued in the timer service can still fire after stop() returns. We
+     * wait long enough to drain the longest timer period (tick=100ms) plus
+     * a safety margin. fmradio_app_exiting=true makes the callbacks
+     * early-return, but a callback that started BEFORE the flag was set
+     * can still be mid-execution holding state_mutex or I2C bus. */
+    furi_delay_ms(200);
+    FURI_LOG_I(TAG, "free: timer callback drain complete");
+
+#ifdef ENABLE_RDS
+    /* Phase 3: stop the ADC/DMA producer and signal the capture writer to
+     * abort. capture_stop() only flips flags and pokes the writer — cheap and
+     * synchronous. adc_stop() unregisters the DMA ISR, stops the trigger
+     * timer, releases the ADC handle: after it returns the sample ring stops
+     * growing.
+     *
+     * Drain barrier: set rds_pipeline_stopping=true and delay 20 ms so any
+     * worker DSP iteration / deferred block callback / realtime ISR callback
+     * already in flight observes the flag and exits before we tear down the
+     * producer. Without this barrier capture_stop() can free rds_capture_ring
+     * while the worker is still inside fmradio_rds_capture_write_block() or
+     * the realtime ISR is mid-memcpy, causing a HardFault on app exit when
+     * RDS was active. fmradio_app_exiting=true alone is not enough — by the
+     * time this code runs, an in-flight callback may have already passed its
+     * fmradio_app_exiting check. */
+    rds_pipeline_stopping = true;
+    furi_delay_ms(20);
+    fmradio_rds_capture_stop();
+    fmradio_rds_adc_stop();
+
+    /* Phase 4: stop and join the DSP worker, then the capture writer.
+     *
+     * No new TICK flags can arrive (the timer is freed). The worker will
+     * finish at most one bounded drain pass (the ring no longer refills) and
+     * return to its flag-wait, observe STOP, exit cleanly. Joining is now
+     * deadlock-free. */
+    if(rds_dsp_worker_thread) {
+        FuriThreadId dsp_wid = rds_dsp_worker_thread_id;
+        rds_dsp_worker_thread_id = NULL;
+        if(dsp_wid) {
+            furi_thread_flags_set(dsp_wid, RDS_DSP_WORKER_FLAG_STOP);
+        }
+        furi_thread_join(rds_dsp_worker_thread);
+        furi_thread_free(rds_dsp_worker_thread);
+        rds_dsp_worker_thread = NULL;
+    }
+
+    fmradio_rds_capture_writer_stop();
+    FURI_LOG_I(TAG, "free: rds pipeline stopped");
+#endif
+
+    /* Phase 5: hardware shutdown. Pure I2C/GPIO from the app main thread —
+     * no concurrent worker can touch PT22xx/PAM at this point. */
     fmradio_audio_shutdown();
-    FURI_LOG_I(TAG, "free: audio_shutdown done");
+    FURI_LOG_I(TAG, "free: audio shutdown done");
 
-    // Always restore auto backlight on exit
+    /* Phase 6: restore system state and close the NOTIFICATION record. */
     if(app->notifications) {
         notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
         furi_record_close(RECORD_NOTIFICATION);
         app->notifications = NULL;
     }
-    FURI_LOG_I(TAG, "free: notifications closed");
 
+    /* Phase 7: free GUI resources. The dispatcher event loop is already
+     * stopped (VIEW_NONE was returned from exit_callback), but views must
+     * still be removed from the dispatcher's view table before being freed
+     * so its internal bookkeeping stays consistent. */
     if(app->widget_about) {
         if(app->view_dispatcher)
             view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewAbout);
@@ -3390,20 +3540,21 @@ void fmradio_controller_free(FMRadio* app) {
         submenu_free(app->submenu);
         app->submenu = NULL;
     }
-    FURI_LOG_I(TAG, "free: views removed");
     if(app->view_dispatcher) {
         view_dispatcher_free(app->view_dispatcher);
         app->view_dispatcher = NULL;
     }
-    FURI_LOG_I(TAG, "free: dispatcher freed");
     furi_record_close(RECORD_GUI);
-    FURI_LOG_I(TAG, "free: gui closed");
+    FURI_LOG_I(TAG, "free: gui torn down");
 
+    /* Phase 8: free synchronisation primitives. Safe — nothing left can
+     * acquire state_mutex. */
     if(state_mutex) {
         furi_mutex_free(state_mutex);
         state_mutex = NULL;
     }
 
+    /* Phase 9: free the app struct. */
     free(app);
     FURI_LOG_I(TAG, "free: done");
 }

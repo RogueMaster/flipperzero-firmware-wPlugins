@@ -7,6 +7,42 @@
 #include <furi.h>
 #include <furi_hal.h>
 
+/*
+ * RDS acquisition — real-time pipeline and timing budget
+ * =======================================================
+ *
+ * Hardware path (STM32WB, see RDSAcquisition.c):
+ *   TIM1 @ 64 MHz -> TRGO at RDS_DECODE_SAMPLE_RATE_HZ (125 kHz nominal)
+ *   -> ADC1 regular conversion per trigger -> DMA1 CH1 circular into dma_buffer.
+ *
+ * Buffer geometry (must stay consistent with DMA HT/TC):
+ *   RDS_ACQ_DMA_BUFFER_SAMPLES = 2048  (two contiguous halves)
+ *   RDS_ACQ_BLOCK_SAMPLES      = 1024  (one DMA half or one logical block)
+ *
+ * Wall-clock block period:
+ *   1024 / 125000 s = 8.192 ms between consecutive HT or TC events.
+ *   A new logical block becomes available to software on that cadence; the ADC
+ *   does not wait for the CPU. If the ISR cannot queue the block (ring full) or
+ *   the deferred consumer cannot keep up on average, blocks are dropped
+ *   (dropped_blocks, ring_overrun_count) and/or ADC overrun may occur — the
+ *   effective sample rate reported in stats can fall below 125 kHz and the rest
+ *   of the app may appear sluggish under overload.
+ *
+ * ISR (rds_acquisition_dma_isr):
+ *   Keep minimal: TE/OVR bookkeeping, optional realtime_block_callback (must be
+ *   ISR-safe and bounded — used for raw ADC capture), else memcpy into
+ *   pending_block_ring (capacity RDS_ACQ_RING_CAPACITY_BLOCKS).
+ *
+ * Deferred path (radio.c "RdsDspWorker"):
+ *   Furi timer every RDS_ACQ_TIMER_MS wakes a low-priority worker thread, which
+ *   calls rds_acquisition_on_timer_tick(..., drain_all_pending=true): pop each
+ *   pending block, memcpy to stack, then block_callback (typically
+ *   rds_dsp_process_u16_samples + RDSCore). That full DSP+decode chain for one
+ *   1024-sample block must complete on average within ~8.192 ms so the ring does
+ *   not grow without bound; the 8-slot ring only absorbs multi-block scheduling
+ *   jitter if the worker eventually drains faster than the DMA produces.
+ */
+
 #define RDS_DECODE_SAMPLE_RATE_HZ     125000U
 #define RDS_ACQ_TARGET_SAMPLE_RATE_HZ RDS_DECODE_SAMPLE_RATE_HZ
 #define RDS_ACQ_DMA_BUFFER_SAMPLES    2048U
@@ -43,7 +79,6 @@ typedef struct {
     uint16_t ring_capacity_blocks;
     uint32_t ring_overrun_count;
     uint32_t adc_overrun_count;
-    uint32_t samples_delivered;
     bool running;
 } RdsAcquisitionStats;
 

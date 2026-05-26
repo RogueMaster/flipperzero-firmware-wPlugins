@@ -112,8 +112,3 @@ bool pt2257_mute(bool enable) {
     uint8_t msg[1] = {(uint8_t)(PT2257_EVC_MUTE | (enable ? 1 : 0))};
     return pt2257_write_bytes(msg, sizeof(msg));
 }
-
-bool pt2257_off(void) {
-    uint8_t msg[1] = {PT2257_EVC_OFF};
-    return pt2257_write_bytes(msg, sizeof(msg));
-}

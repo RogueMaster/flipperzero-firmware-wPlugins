@@ -23,4 +23,3 @@ bool pt2257_set_attenuation_left_db(uint8_t attenuation_db);
 bool pt2257_set_attenuation_right_db(uint8_t attenuation_db);
 
 bool pt2257_mute(bool enable);
-bool pt2257_off(void);
