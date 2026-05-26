@@ -3,7 +3,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://lh3.googleusercontent.com/d/1iYQlRQXM7nA4IAdcPwvcKRSTCMoi8tug' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://lh3.googleusercontent.com/d/1gjui0-UZNerG13PUblXjmr1YaSAjIf2k' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0422-1127-0.420.0-960438b.tgz&channel=RM0422-1127-0.420.0-960438b&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0526-0321-0.420.0-0e7e039.tgz&channel=RM0526-0321-0.420.0-0e7e039&version=0.420.0&target=f7)
 
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
@@ -30,41 +30,6 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-05-26 02:16 EST`
 - Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-05-26 02:16 EST`
-- NFC: [Add ISO15693-3 and SLIX write-back support (By DoniyorI)](https://github.com/DarkFlippers/unleashed-firmware/pull/984)
-- NFC: [Add new parsers SZPPK, SKPPK and SevPPK, upgrade Plantain parser, fix TwoCities parser (By mxcdoam)](https://github.com/DarkFlippers/unleashed-firmware/pull/981)
-- Sub-GHz: [Fix CAME TWEE repeats count for button click (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a5f6285e917240101bc86444ebf36a6b9f2b7e66)
-- NFC: [Fix MIR and other EMV cards crash on Read (By Dmitry422)](https://github.com/DarkFlippers/unleashed-firmware/commit/ecc3e78efa3b077ca4b37f67aff8ae6f8b1e9734)
-- Updated: [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
-- Updated: [Weebo v0.5 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer) Added Figures & [Add Amiibo cycling functionality while emulating (By sethgregory)](https://github.com/bettse/weebo/pull/11)
-- Added: [APRS TX v1.3.17 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
-- Added: [FlipTok Live v1.0 (By kamylwnb)](https://github.com/kamylwnb/FlipTok_Live_Chat)
-- Updated: [CAN Commander v2.3.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
-- Updated: [SLI Writer v1.4 (By Julienbxl)](https://github.com/Julienbxl/SLI-Writer)
-- Added: [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
-- Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
-- Removed: [Sand Simulation v0.1 (By JJoeDev)](https://github.com/JJoeDev/FZSandSimulation)
-- Updated: [Tesla Mod v2.14.0 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [Ghouls v0.6 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- Updated: [FlipPass v2.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
-- Updated: [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
-- ESP Flasher: [Bump Marauder v1.12.1 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.1)
-- Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32`
-- Updated: [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
-- Added: [NFC Tools v1.0 (By wakdev)](https://github.com/wakdev/nfctools-fz)
-- Added: [PINGEQUA RF Lab v0.5.1 (By pingequalab)](https://github.com/pingequalab/rf-lab)
-- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
-- Updated: [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
-- Updated: [ProtoPirate v3.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
-- Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
-- Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
-- Updated: [PINGEQUA RF Lab v0.5.3 (By pingequalab)](https://github.com/pingequalab/rf-lab)
-- Updated: [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
-- Updated: [Ghost ESP v1.7.0 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
-- Updated: [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
-- Updated: [APRS TX v1.3.18 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx) [G3RUH (9600 baud) support (By cpacejo)](https://github.com/yo3gnd/flipper-zero-aprs-tx/pull/1)
-- Updated: [BMI Air Mouse v1.3 (By ginkage)](https://github.com/ginkage/FlippAirMouse/) `Req: BMI160 or GY-521` [Added support for MPU-6050 3-Axis Gyro and Accelerometer GY-521 (By MarcoPieroni)](https://github.com/ginkage/FlippAirMouse/pull/27)
-- Updated: [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker) [Add channel scanner, targeted RAM fixes, fix build script (By swimmer-303)](https://github.com/denr01/FZ-ChiefCooker/pull/4)
-- Updated: [MagicBand Plus Lights v3.0 (By Haw8411)](https://github.com/Haw8411/magic-band-plus-lights)
 
 <a name="release"></a>
 
@@ -934,4 +899,4 @@ $ ./fbt dolphin_ext
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 - `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for wav/mp3 playback ($200 USD in ETH or BTC) (Don't think this is possible)
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0422-1127-0.420.0-960438b.tgz&channel=RM0422-1127-0.420.0-960438b&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0526-0321-0.420.0-0e7e039.tgz&channel=RM0526-0321-0.420.0-0e7e039&version=0.420.0&target=f7)
