@@ -78,7 +78,15 @@ static bool stratahero_view_dispatcher_navigation_callback(void* context) {
             break;
 
         case StrataHero_View_Settings:
-            stratahero_switch_view(app, StrataHero_View_MainMenu);
+            if (stratahero_settings_widget_has_pending_changes(app->settings_widget)) {
+                stratahero_switch_view(app, StrataHero_View_SaveSettingsConfirmation);
+            } else {
+                stratahero_switch_view(app, StrataHero_View_MainMenu);
+            }
+            break;
+
+        case StrataHero_View_SaveSettingsConfirmation:
+            stratahero_switch_view(app, StrataHero_View_Settings);
             break;
 
         case StrataHero_View_CatalogStratagems:
@@ -102,6 +110,16 @@ static void game_widget_navigation_callback(StrataHeroGameWidgetNavigationEvent 
             stratahero_view_dispatcher_navigation_callback(context);
             break;
     }
+}
+
+static void settings_widget_navigation_callback(void* context) {
+    stratahero_switch_view(context, StrataHero_View_MainMenu);
+}
+
+static void settings_widget_changed_callback(StrataHeroSettings *settings, void* context) {
+    StrataHeroApp* app = context;
+    app->settings = *settings;
+    stratahero_game_widget_set_settings(app->game_widget, settings);
 }
 
 static void main_menu_event_callback(void* context, uint32_t index) {
@@ -153,6 +171,9 @@ StrataHeroApp* stratahero_app_alloc() {
 
     // Settings
     app->settings_widget = stratahero_settings_widget_alloc();
+    stratahero_settings_widget_set_settings(app->settings_widget, &app->settings);
+    stratahero_settings_widget_set_navigation_callback(app->settings_widget, settings_widget_navigation_callback, app);
+    stratahero_settings_widget_set_settings_changed_callback(app->settings_widget, settings_widget_changed_callback, app);
 
     app->splash_screen = stratahero_splash_screen_alloc();
     stratahero_splash_screen_set_advance_callback(app->splash_screen, splash_screen_advance_callback, app);
@@ -165,6 +186,7 @@ StrataHeroApp* stratahero_app_alloc() {
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagemTypes, submenu_get_view(app->stratagem_types_menu));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_CatalogStratagems, stratagem_list_widget_get_view(app->stratagems_list));
     view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_Settings, stratahero_settings_widget_get_view(app->settings_widget));
+    view_dispatcher_add_view(app->view_dispatcher, StrataHero_View_SaveSettingsConfirmation, stratahero_settings_widget_get_confirmation_view(app->settings_widget));
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, stratahero_view_dispatcher_navigation_callback);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
@@ -182,6 +204,7 @@ void stratahero_app_free(StrataHeroApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_Game);
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_CatalogStratagemTypes);
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_CatalogStratagems);
+    view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_SaveSettingsConfirmation);
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_Settings);
     view_dispatcher_remove_view(app->view_dispatcher, StrataHero_View_SplashScreen);
     view_dispatcher_free(app->view_dispatcher);
