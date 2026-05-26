@@ -24,7 +24,9 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 _API_URL = "https://opentdb.com/api.php"
-_TOKEN_URL = "https://opentdb.com/api_token.php"  # noqa: S105 — API URL, not a credential
+_TOKEN_URL = (
+    "https://opentdb.com/api_token.php"  # noqa: S105 — API URL, not a credential
+)
 _PAGE_SIZE = 50
 _REQUEST_DELAY_SECONDS = 5.0  # OpenTDB enforces this; less triggers HTTP 429.
 _RATE_LIMIT_BACKOFFS = (10.0, 20.0, 40.0)  # progressive sleeps before each retry
@@ -36,7 +38,9 @@ _RESPONSE_TOKEN_EMPTY = 4
 
 
 class OpenTdbClient:
-    def __init__(self, cache_dir: Path, *, sleep_between: float = _REQUEST_DELAY_SECONDS) -> None:
+    def __init__(
+        self, cache_dir: Path, *, sleep_between: float = _REQUEST_DELAY_SECONDS
+    ) -> None:
         self._cache_dir = cache_dir
         self._sleep_between = sleep_between
 

@@ -44,8 +44,12 @@ def test_python_writer_output_is_consumable_by_c_parser(tmp_path: Path) -> None:
     expectations without needing on-device execution.
     """
     qs = [
-        BilingualQuestion(1, "¿Capital de España?", "Madrid", "Capital of Spain?", "Madrid"),
-        BilingualQuestion(6, "¿Año del primer Mundial?", "1930", "First World Cup year?", "1930"),
+        BilingualQuestion(
+            1, "¿Capital de España?", "Madrid", "Capital of Spain?", "Madrid"
+        ),
+        BilingualQuestion(
+            6, "¿Año del primer Mundial?", "1930", "First World Cup year?", "1930"
+        ),
         BilingualQuestion(7, "¿Qué es el H2O?", "Agua", "What is H2O?", "Water"),
     ]
     write_pack(qs, out_dir=tmp_path)

@@ -22,7 +22,11 @@ def test_sports_maps_to_deportes_y_ocio() -> None:
 
 
 def test_classic_entertainment_subcategories_map_to_entretenimiento() -> None:
-    for sub in ("Entertainment: Film", "Entertainment: Music", "Entertainment: Television"):
+    for sub in (
+        "Entertainment: Film",
+        "Entertainment: Music",
+        "Entertainment: Television",
+    ):
         assert map_opentdb_to_bucket(sub) == BucketId.ENTRETENIMIENTO
 
 

@@ -164,7 +164,9 @@ def _build_bilingual(
     post_filtered = 0
     total = len(mapped)
     cap_msg = f", capping at {limit}" if limit is not None else ""
-    print(f"translate: starting, {total} mapped questions to process{cap_msg}", flush=True)
+    print(
+        f"translate: starting, {total} mapped questions to process{cap_msg}", flush=True
+    )
     for idx, q in enumerate(mapped, start=1):
         if limit is not None and len(out) >= limit:
             print(f"translate: cap reached at {len(out)}, stopping early", flush=True)
@@ -181,12 +183,16 @@ def _build_bilingual(
         if q.source_lang == Lang.EN:
             question_en = q.question
             answer_en = q.answer
-            question_es = translator.translate(q.question, source=Lang.EN, target=Lang.ES)
+            question_es = translator.translate(
+                q.question, source=Lang.EN, target=Lang.ES
+            )
             answer_es = translator.translate(q.answer, source=Lang.EN, target=Lang.ES)
         else:
             question_es = q.question
             answer_es = q.answer
-            question_en = translator.translate(q.question, source=Lang.ES, target=Lang.EN)
+            question_en = translator.translate(
+                q.question, source=Lang.ES, target=Lang.EN
+            )
             answer_en = translator.translate(q.answer, source=Lang.ES, target=Lang.EN)
 
         # Post-translation length guard: ES tends to expand 15-25% over EN, so
@@ -204,9 +210,9 @@ def _build_bilingual(
         # Post-translation MC-phrasing guard: translations occasionally
         # introduce "cual de los siguientes..." phrasing on the ES side
         # that wasn't present in the EN source.
-        if is_multiple_choice_phrasing(question_es, answer_es) or is_multiple_choice_phrasing(
-            question_en, answer_en
-        ):
+        if is_multiple_choice_phrasing(
+            question_es, answer_es
+        ) or is_multiple_choice_phrasing(question_en, answer_en):
             post_filtered += 1
             continue
 

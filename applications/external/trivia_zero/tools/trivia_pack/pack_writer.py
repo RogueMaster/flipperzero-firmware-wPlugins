@@ -97,8 +97,14 @@ def write_pack(questions: Sequence[BilingualQuestion], out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     _validate_buckets(questions)
 
-    es_rows = [(_sanitize(q.question_es), _sanitize(q.answer_es), q.bucket_id) for q in questions]
-    en_rows = [(_sanitize(q.question_en), _sanitize(q.answer_en), q.bucket_id) for q in questions]
+    es_rows = [
+        (_sanitize(q.question_es), _sanitize(q.answer_es), q.bucket_id)
+        for q in questions
+    ]
+    en_rows = [
+        (_sanitize(q.question_en), _sanitize(q.answer_en), q.bucket_id)
+        for q in questions
+    ]
 
     _write_one(out_dir / "trivia_es.tsv", out_dir / "trivia_es.idx", es_rows)
     _write_one(out_dir / "trivia_en.tsv", out_dir / "trivia_en.idx", en_rows)
@@ -114,15 +120,23 @@ def _write_one(
     idx_path.write_bytes(_build_idx_bytes(offsets))
 
 
-def write_embedded_pack(questions: Sequence[BilingualQuestion], c_out_dir: Path) -> None:
+def write_embedded_pack(
+    questions: Sequence[BilingualQuestion], c_out_dir: Path
+) -> None:
     """Emits two C source files (one per language) that compile the pack into
     the FAP binary as `const` arrays. The runtime reads from these arrays via
     pointer arithmetic — no SD lookup, no auxiliary install step."""
     c_out_dir.mkdir(parents=True, exist_ok=True)
     _validate_buckets(questions)
 
-    es_rows = [(_sanitize(q.question_es), _sanitize(q.answer_es), q.bucket_id) for q in questions]
-    en_rows = [(_sanitize(q.question_en), _sanitize(q.answer_en), q.bucket_id) for q in questions]
+    es_rows = [
+        (_sanitize(q.question_es), _sanitize(q.answer_es), q.bucket_id)
+        for q in questions
+    ]
+    en_rows = [
+        (_sanitize(q.question_en), _sanitize(q.answer_en), q.bucket_id)
+        for q in questions
+    ]
 
     _emit_c_source(c_out_dir / "embedded_pack_es.c", "trivia_es", es_rows)
     _emit_c_source(c_out_dir / "embedded_pack_en.c", "trivia_en", en_rows)

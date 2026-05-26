@@ -26,9 +26,15 @@ def test_pipeline_translates_en_source_to_spanish(tmp_path: Path) -> None:
         by_lang={
             Lang.EN: [
                 RawQuestion(Lang.EN, "Geography", "Capital of Spain?", "Madrid"),
-                RawQuestion(Lang.EN, "Sports", "Who won Super Bowl XII?", "Cowboys"),  # blacklist
-                RawQuestion(Lang.EN, "Sports", "Who won the NFL MVP?", "X"),  # blacklist
-                RawQuestion(Lang.EN, "History", "Who painted the Mona Lisa?", "Da Vinci"),
+                RawQuestion(
+                    Lang.EN, "Sports", "Who won Super Bowl XII?", "Cowboys"
+                ),  # blacklist
+                RawQuestion(
+                    Lang.EN, "Sports", "Who won the NFL MVP?", "X"
+                ),  # blacklist
+                RawQuestion(
+                    Lang.EN, "History", "Who painted the Mona Lisa?", "Da Vinci"
+                ),
             ],
         }
     )
@@ -63,7 +69,9 @@ def test_pipeline_respects_limit(tmp_path: Path) -> None:
     blacklist_path.write_text("", encoding="utf-8")
     fake = _FakeOpenTdb(
         by_lang={
-            Lang.EN: [RawQuestion(Lang.EN, "Geography", f"Q{i}?", f"A{i}") for i in range(50)],
+            Lang.EN: [
+                RawQuestion(Lang.EN, "Geography", f"Q{i}?", f"A{i}") for i in range(50)
+            ],
         }
     )
     translator = StubTranslator(cache_path=tmp_path / "cache" / "translations.json")
@@ -76,7 +84,9 @@ def test_pipeline_respects_limit(tmp_path: Path) -> None:
         out_dir=out_dir,
         limit=10,
     )
-    assert len((out_dir / "trivia_en.tsv").read_text(encoding="utf-8").splitlines()) == 10
+    assert (
+        len((out_dir / "trivia_en.tsv").read_text(encoding="utf-8").splitlines()) == 10
+    )
 
 
 def test_pipeline_drops_multiple_choice_phrasing(tmp_path: Path) -> None:
