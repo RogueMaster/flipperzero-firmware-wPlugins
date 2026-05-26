@@ -1,0 +1,26 @@
+# uFBT build artifacts
+.ufbt/
+emv_reader/dist/
+**/dist/debug/
+**/.vscode/
+**/*.o
+**/*.elf
+**/*.d
+**/*.dbg.elf
+**/*.fap.dbg
+**/build/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local artifacts
+*.bak
+*.swp
+*~

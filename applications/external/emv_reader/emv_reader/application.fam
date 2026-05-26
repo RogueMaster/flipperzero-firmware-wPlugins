@@ -1,0 +1,13 @@
+App(
+    appid="emv_reader",
+    name="EMV Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="emv_reader_app",
+    requires=["gui", "nfc"],
+    stack_size=4 * 1024,
+    fap_category="NFC",
+    fap_author="emv-flipper",
+    fap_version="0.1",
+    fap_description="Read & parse EMV contactless cards (own cards only)",
+    sources=["*.c"],
+)
