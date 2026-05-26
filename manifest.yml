@@ -1,0 +1,22 @@
+# Apps Catalog manifest for BinRAW Analyzer.
+# This file does NOT belong in this repo at runtime — copy it into your fork of
+# flipperdevices/flipper-application-catalog at:
+#   applications/Sub-GHz/bitraw_analyzer/manifest.yml
+# then open a PR there.
+#
+# name, id, category, version, author, icon, short_description all come from
+# flipper-app/application.fam — do not duplicate them here.
+#
+# IMPORTANT: update commit_sha below to the SHA of the commit that contains
+# docs/changelog.md and the author/README fixes (i.e. AFTER you commit them).
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/maxwalks/subhound.git
+    commit_sha: REPLACE_WITH_FINAL_COMMIT_SHA
+    subdir: flipper-app
+short_description: Classify Flipper SubGhz BinRAW captures on-device
+description: "@README.md"
+changelog: "@./docs/changelog.md"
+screenshots:
+  - screenshots/ss0.png

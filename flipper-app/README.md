@@ -12,7 +12,7 @@ Native Flipper Zero app that classifies SubGhz BinRAW `.sub` captures on-device.
    - `<capture>.report.txt` — full human-readable report
    - `<capture>.bra` — machine-readable key=value metadata (label, confidence, freq, TE, payload_hex, GPS)
 
-The classifier logic and thresholds are a 1:1 port of [`analyze.py`](../analyze.py).
+The classifier logic and thresholds are a 1:1 port of [`analyze.py`](https://github.com/maxwalks/subhound/blob/main/analyze.py).
 
 ## Build & install
 
