@@ -1,0 +1,37 @@
+# uFBT and build outputs
+dist/
+build/
+.ufbt/
+*.fap
+*.elf
+*.dfu
+*.map
+
+# Generated IDE/build metadata
+.vscode/
+compile_commands.json
+
+# Python tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+
+# Editor files
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary logs and captures
+*.log
+*.tmp
+*.bak
+*.cast

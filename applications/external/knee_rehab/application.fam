@@ -1,0 +1,14 @@
+App(
+    appid="kneeflip_rehab",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="knee_flip_rehab_app",
+    fap_author="Darya Lok",
+    fap_category="Tools",
+    fap_description="Timer and counter for clinician-prescribed knee rehab routines",
+    fap_icon="icons/kneeflip_rehab_10px.png",
+    fap_version="0.1",
+    fap_weburl="https://github.com/daryalok/KneeFlip-Rehab",
+    name="KneeFlip Rehab",
+    requires=["gui", "notification"],
+    stack_size=8 * 1024,
+)
