@@ -1,0 +1,28 @@
+# Host unit tests (make test)
+*.o
+tests/*.o
+test_version
+
+# ufbt / GitHub Actions release build
+dist/
+.ufbt/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / swap
+*.swp
+*~
+.idea/
+
+# Python
+tools/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Pipeline caches (regenerable, not committed)
+data/_cache/
