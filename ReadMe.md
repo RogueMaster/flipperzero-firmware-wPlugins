@@ -33,6 +33,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [TV Remote v1.1 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
 - Updated: [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - Updated: [HyperFocus Calc v0.1.2 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
+- Added: [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 
 <a name="release"></a>
 
@@ -492,6 +493,7 @@ $ ./fbt dolphin_ext
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)
+- [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 - [Distance Sensor v1.2 (By privet971)](https://github.com/privet971/FlipperZeroApps/tree/main/usping) `Req: Parallax (3 wires) SKU 28015`
 - [Distance Sensor v1.1 (By Sanqui)](https://github.com/Sanqui/flipperzero-firmware/tree/hc_sr04) `Req: HC-SR04`
 - [Doc Viewer Lite v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/docviewlite)
