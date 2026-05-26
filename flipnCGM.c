@@ -20,9 +20,9 @@
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-#define FLIPNCGM_LOG_DIR      "/ext/flipncgm"
-#define FLIPNCGM_LOG_FILE     "/ext/flipncgm/flipncgm.log"
-#define FLIPNCGM_SETTINGS_FILE "/ext/flipncgm/settings.ff"
+#define FLIPNCGM_LOG_DIR      "/ext/apps_data/flipncgm"
+#define FLIPNCGM_LOG_FILE     "/ext/apps_data/flipncgm/flipncgm.log"
+#define FLIPNCGM_SETTINGS_FILE "/ext/apps_data/flipncgm/settings.ff"
 #define FLIPNCGM_LOG_BUF      256
 
 // UTC offset bounds: -12:00 (-720 min) to +14:00 (+840 min), 30-min steps.
