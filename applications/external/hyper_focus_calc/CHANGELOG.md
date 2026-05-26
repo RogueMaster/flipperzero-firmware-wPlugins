@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Endika/flipper-hyper-focus-calc/compare/v0.1.1...v0.1.2) (2026-05-25)
+
+
+### Bug Fixes
+
+* force UI redraw on in-view state changes ([e911e30](https://github.com/Endika/flipper-hyper-focus-calc/commit/e911e307addb877962869c8a7082da865956252c))
+
 ## [0.1.1](https://github.com/Endika/flipper-hyper-focus-calc/compare/v0.1.0...v0.1.1) (2026-04-17)
 
 

@@ -91,12 +91,35 @@ typedef struct {
 
 static void app_calc_refresh(HyperFocusApp* app);
 static void app_switch(HyperFocusApp* app, AppViewId v);
+static void app_request_redraw(HyperFocusApp* app);
 static void app_build_credits(HyperFocusApp* app);
 static bool app_navigation(void* context);
 
 static void app_switch(HyperFocusApp* app, AppViewId v) {
     app->current_view = v;
     view_dispatcher_switch_to_view(app->vd, v);
+}
+
+// Force the active custom view to repaint. Committing the model with update=true
+// runs the dispatcher's update callback, which calls view_port_update(). Without
+// this, in-view state changes never request a redraw and the screen only refreshes
+// when something external forces it (e.g. the Apps-menu loading animation).
+static void app_request_redraw(HyperFocusApp* app) {
+    View* v = NULL;
+    switch(app->current_view) {
+    case ViewCalc:
+        v = app->calc;
+        break;
+    case ViewSensorList:
+        v = app->sensor_list;
+        break;
+    case ViewSensorEdit:
+        v = app->sensor_edit;
+        break;
+    default:
+        return; // submenu, text input and widget repaint themselves
+    }
+    with_view_model(v, HfcViewCtx * m, { UNUSED(m); }, true);
 }
 
 static void app_build_credits(HyperFocusApp* app) {
@@ -159,6 +182,7 @@ static bool calc_input_cb(InputEvent* event, void* context) {
         return false;
     }
     app_calc_refresh(app);
+    app_request_redraw(app);
     return true;
 }
 
@@ -230,6 +254,7 @@ static bool sensor_list_input_cb(InputEvent* event, void* context) {
             app->list_sel--;
         }
         list_clamp_scroll(app);
+        app_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyDown) {
@@ -237,6 +262,7 @@ static bool sensor_list_input_cb(InputEvent* event, void* context) {
             app->list_sel++;
         }
         list_clamp_scroll(app);
+        app_request_redraw(app);
         return true;
     }
 
@@ -339,12 +365,14 @@ static bool sensor_edit_input_cb(InputEvent* event, void* context) {
         if(app->edit_row > 0) {
             app->edit_row--;
         }
+        app_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyDown) {
         if(app->edit_row < rmax) {
             app->edit_row++;
         }
+        app_request_redraw(app);
         return true;
     }
 
@@ -364,6 +392,7 @@ static bool sensor_edit_input_cb(InputEvent* event, void* context) {
             const float step = 0.001f;
             app->edit_buf.coc = hfc_round3(hfc_clamp_coc(app->edit_buf.coc + (float)sign * step));
         }
+        app_request_redraw(app);
         return true;
     }
 
