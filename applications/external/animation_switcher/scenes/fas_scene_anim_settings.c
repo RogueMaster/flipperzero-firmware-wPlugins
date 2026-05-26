@@ -23,45 +23,45 @@ static void set_text(VariableItem* item, int val) {
 /* ── Change callbacks ────────────────────────────────────────────────── */
 static void cb_min_butthurt(VariableItem* item) {
     FasApp* app = variable_item_get_context(item);
-    int     val = (int)variable_item_get_current_value_index(item) + MIN_BUTTHURT_MIN;
+    int val = (int)variable_item_get_current_value_index(item) + MIN_BUTTHURT_MIN;
     app->animations[app->current_anim_index].min_butthurt = val;
     set_text(item, val);
 }
 
 static void cb_max_butthurt(VariableItem* item) {
     FasApp* app = variable_item_get_context(item);
-    int     val = (int)variable_item_get_current_value_index(item) + MAX_BUTTHURT_MIN;
+    int val = (int)variable_item_get_current_value_index(item) + MAX_BUTTHURT_MIN;
     app->animations[app->current_anim_index].max_butthurt = val;
     set_text(item, val);
 }
 
 static void cb_min_level(VariableItem* item) {
     FasApp* app = variable_item_get_context(item);
-    int     val = (int)variable_item_get_current_value_index(item) + MIN_LEVEL_MIN;
+    int val = (int)variable_item_get_current_value_index(item) + MIN_LEVEL_MIN;
     app->animations[app->current_anim_index].min_level = val;
     set_text(item, val);
 }
 
 static void cb_max_level(VariableItem* item) {
     FasApp* app = variable_item_get_context(item);
-    int     val = (int)variable_item_get_current_value_index(item) + MAX_LEVEL_MIN;
+    int val = (int)variable_item_get_current_value_index(item) + MAX_LEVEL_MIN;
     app->animations[app->current_anim_index].max_level = val;
     set_text(item, val);
 }
 
 static void cb_weight(VariableItem* item) {
     FasApp* app = variable_item_get_context(item);
-    int     val = (int)variable_item_get_current_value_index(item) + WEIGHT_MIN;
+    int val = (int)variable_item_get_current_value_index(item) + WEIGHT_MIN;
     app->animations[app->current_anim_index].weight = val;
     set_text(item, val);
 }
 
 /* ── Scene handlers ───────────────────────────────────────────────────── */
 void fas_scene_anim_settings_on_enter(void* context) {
-    FasApp*    app  = context;
+    FasApp* app = context;
     AnimEntry* anim = &app->animations[app->current_anim_index];
     VariableItemList* vl = app->var_list;
-    VariableItem*     item;
+    VariableItem* item;
 
     variable_item_list_reset(vl);
 
@@ -72,41 +72,30 @@ void fas_scene_anim_settings_on_enter(void* context) {
 
     /* Min Butthurt */
     item = variable_item_list_add(
-        vl, "Min Butthurt",
-        MIN_BUTTHURT_MAX - MIN_BUTTHURT_MIN + 1,
-        cb_min_butthurt, app);
+        vl, "Min Butthurt", MIN_BUTTHURT_MAX - MIN_BUTTHURT_MIN + 1, cb_min_butthurt, app);
     variable_item_set_current_value_index(item, anim->min_butthurt - MIN_BUTTHURT_MIN);
     set_text(item, anim->min_butthurt);
 
     /* Max Butthurt */
     item = variable_item_list_add(
-        vl, "Max Butthurt",
-        MAX_BUTTHURT_MAX - MAX_BUTTHURT_MIN + 1,
-        cb_max_butthurt, app);
+        vl, "Max Butthurt", MAX_BUTTHURT_MAX - MAX_BUTTHURT_MIN + 1, cb_max_butthurt, app);
     variable_item_set_current_value_index(item, anim->max_butthurt - MAX_BUTTHURT_MIN);
     set_text(item, anim->max_butthurt);
 
     /* Min Level */
     item = variable_item_list_add(
-        vl, "Min Level",
-        MIN_LEVEL_MAX - MIN_LEVEL_MIN + 1,
-        cb_min_level, app);
+        vl, "Min Level", MIN_LEVEL_MAX - MIN_LEVEL_MIN + 1, cb_min_level, app);
     variable_item_set_current_value_index(item, anim->min_level - MIN_LEVEL_MIN);
     set_text(item, anim->min_level);
 
     /* Max Level */
     item = variable_item_list_add(
-        vl, "Max Level",
-        MAX_LEVEL_MAX - MAX_LEVEL_MIN + 1,
-        cb_max_level, app);
+        vl, "Max Level", MAX_LEVEL_MAX - MAX_LEVEL_MIN + 1, cb_max_level, app);
     variable_item_set_current_value_index(item, anim->max_level - MAX_LEVEL_MIN);
     set_text(item, anim->max_level);
 
     /* Weight */
-    item = variable_item_list_add(
-        vl, "Weight",
-        WEIGHT_MAX - WEIGHT_MIN + 1,
-        cb_weight, app);
+    item = variable_item_list_add(vl, "Weight", WEIGHT_MAX - WEIGHT_MIN + 1, cb_weight, app);
     variable_item_set_current_value_index(item, anim->weight - WEIGHT_MIN);
     set_text(item, anim->weight);
 

@@ -14,13 +14,9 @@ void fas_scene_overwrite_confirm_on_enter(void* context) {
     FasApp* app = context;
 
     dialog_ex_reset(app->dialog_ex);
-    dialog_ex_set_header(
-        app->dialog_ex, "Playlist Exists", 64, 10, AlignCenter, AlignCenter);
-    dialog_ex_set_text(
-        app->dialog_ex,
-        app->text_input_buffer,
-        64, 32, AlignCenter, AlignCenter);
-    dialog_ex_set_left_button_text(app->dialog_ex,  "No");
+    dialog_ex_set_header(app->dialog_ex, "Playlist Exists", 64, 10, AlignCenter, AlignCenter);
+    dialog_ex_set_text(app->dialog_ex, app->text_input_buffer, 64, 32, AlignCenter, AlignCenter);
+    dialog_ex_set_left_button_text(app->dialog_ex, "No");
     dialog_ex_set_right_button_text(app->dialog_ex, "Overwrite");
     dialog_ex_set_context(app->dialog_ex, app);
     dialog_ex_set_result_callback(app->dialog_ex, fas_overwrite_confirm_cb);
@@ -29,8 +25,8 @@ void fas_scene_overwrite_confirm_on_enter(void* context) {
 }
 
 bool fas_scene_overwrite_confirm_on_event(void* context, SceneManagerEvent event) {
-    FasApp* app      = context;
-    bool    consumed = false;
+    FasApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {
@@ -40,7 +36,7 @@ bool fas_scene_overwrite_confirm_on_event(void* context, SceneManagerEvent event
             } else {
                 fas_save_playlist(app, app->text_input_buffer);
                 /* Reset Create state so the next entry reloads fresh. */
-                app->animation_count         = 0;
+                app->animation_count = 0;
                 app->returning_from_settings = false;
             }
             scene_manager_search_and_switch_to_previous_scene(

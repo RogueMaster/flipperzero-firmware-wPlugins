@@ -290,8 +290,7 @@ bool fas_apply_playlist(FasApp* app, int index) {
 
     /* Back up the existing manifest before we replace it.  storage_common_copy
      * refuses to overwrite, so remove any previous .bak first. */
-    bool had_manifest =
-        storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK;
+    bool had_manifest = storage_common_stat(app->storage, FAS_MANIFEST_PATH, NULL) == FSE_OK;
     if(had_manifest) {
         storage_simply_remove(app->storage, FAS_MANIFEST_BACKUP_PATH);
         storage_common_copy(app->storage, FAS_MANIFEST_PATH, FAS_MANIFEST_BACKUP_PATH);

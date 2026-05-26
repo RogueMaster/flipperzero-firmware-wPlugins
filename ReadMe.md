@@ -61,6 +61,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - Updated: [Ghost ESP v1.7.0 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - Updated: [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
+- Updated: [MagicBand Plus Lights v3.0 (By Haw8411)](https://github.com/Haw8411/magic-band-plus-lights)
 
 <a name="release"></a>
 
@@ -681,7 +682,7 @@ $ ./fbt dolphin_ext
 - [LoRa Sample v1.1.3 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-SX1262-LoRa) `Req: SX1262 By ElectronicCats`
 - [LORA Terminal (By aafksab)](https://github.com/aafksab/LORA-Term)
 - [LoRadar v0.1 (By baptleduc)](https://github.com/baptleduc/flipper-loradar-app)
-- [MagicBand Plus Lights v1.0 (By Haw8411)](https://github.com/Haw8411/magic-band-plus-lights)
+- [MagicBand Plus Lights v3.0 (By Haw8411)](https://github.com/Haw8411/magic-band-plus-lights)
 - [MagSpoof v0.10 (By zacharyweiss)](https://github.com/zacharyweiss/magspoof_flipper)
 - [MALVEKE GAME BOY ADVANCE Cartridge v2.2 (By EstebanFuentealba)](https://github.com/EstebanFuentealba/MALVEKE-Flipper-Zero/tree/main/flipper_companion_apps/applications/external/malveke_gba_cartridge) `Req: Malveke`
 - [MALVEKE GAME BOY Cartridge (GB/GBC) v2.2 (By EstebanFuentealba)](https://github.com/EstebanFuentealba/MALVEKE-Flipper-Zero/tree/main/flipper_companion_apps/applications/external/malveke_gb_cartridge) `Req: Malveke`

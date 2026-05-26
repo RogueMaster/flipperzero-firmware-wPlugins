@@ -22,19 +22,23 @@ void fas_scene_main_menu_on_enter(void* context) {
     app->import_mode = false;
 
     menu_reset(app->menu);
-    menu_add_item(app->menu, "Create Playlist", &I_create, FasMainIdxCreate, fas_main_menu_cb, app);
-    menu_add_item(app->menu, "Choose Playlist", &I_choose, FasMainIdxChoose, fas_main_menu_cb, app);
-    menu_add_item(app->menu, "Backup Playlist", &I_import, FasMainIdxImport, fas_main_menu_cb, app);
-    menu_add_item(app->menu, "Delete Playlist", &I_delete, FasMainIdxDelete, fas_main_menu_cb, app);
-    menu_add_item(app->menu, "About / Help",    &I_about,  FasMainIdxAbout,  fas_main_menu_cb, app);
+    menu_add_item(
+        app->menu, "Create Playlist", &I_create, FasMainIdxCreate, fas_main_menu_cb, app);
+    menu_add_item(
+        app->menu, "Choose Playlist", &I_choose, FasMainIdxChoose, fas_main_menu_cb, app);
+    menu_add_item(
+        app->menu, "Backup Playlist", &I_import, FasMainIdxImport, fas_main_menu_cb, app);
+    menu_add_item(
+        app->menu, "Delete Playlist", &I_delete, FasMainIdxDelete, fas_main_menu_cb, app);
+    menu_add_item(app->menu, "About / Help", &I_about, FasMainIdxAbout, fas_main_menu_cb, app);
     menu_set_selected_item(
         app->menu, scene_manager_get_scene_state(app->scene_manager, FasSceneMainMenu));
     view_dispatcher_switch_to_view(app->view_dispatcher, FasViewMenu);
 }
 
 bool fas_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
-    FasApp* app      = context;
-    bool    consumed = false;
+    FasApp* app = context;
+    bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(app->scene_manager, FasSceneMainMenu, event.event);

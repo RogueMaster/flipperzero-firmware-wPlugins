@@ -10,6 +10,6 @@ App(
     fap_category="Bluetooth",
     fap_author="Henry Willis (Haw8411)",
     fap_weburl="https://github.com/Haw8411/magic-band-plus-lights",
-    fap_version="1.0.0",
+    fap_version="3.0.0",
     fap_description="Trigger light effects on compatible bands. Not affiliated with Disney.",
 )
