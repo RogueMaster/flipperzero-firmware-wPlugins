@@ -5,10 +5,10 @@
 #include <string.h>
 #include <stdbool.h>
 //#include <assets_icons.h>
-#include "ble_spam_icons.h"
+#include "magicband_plus_lights_icons.h"
 #include <furi_hal_random.h>
 #include <core/core_defines.h>
-#include "../ble_spam.h"
+#include "../magicband_plus_lights.h"
 
 typedef struct Payload Payload;
 

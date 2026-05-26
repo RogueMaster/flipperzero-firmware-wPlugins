@@ -1,4 +1,4 @@
-#include "../ble_spam.h"
+#include "../magicband_plus_lights.h"
 #include "protocols/_protocols.h"
 
 static void config_enter_cb(void* _ctx, uint32_t index) {

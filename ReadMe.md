@@ -61,10 +61,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - Updated: [Ghost ESP v1.7.0 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - Updated: [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
-- Updated: [MagicBand Plus Lights v3.0 (By Haw8411)](https://github.com/Haw8411/magic-band-plus-lights)
 - Updated: [APRS TX v1.3.18 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx) [G3RUH (9600 baud) support (By cpacejo)](https://github.com/yo3gnd/flipper-zero-aprs-tx/pull/1)
 - Updated: [BMI Air Mouse v1.3 (By ginkage)](https://github.com/ginkage/FlippAirMouse/) `Req: BMI160 or GY-521` [Added support for MPU-6050 3-Axis Gyro and Accelerometer GY-521 (By MarcoPieroni)](https://github.com/ginkage/FlippAirMouse/pull/27)
 - Updated: [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker) [Add channel scanner, targeted RAM fixes, fix build script (By swimmer-303)](https://github.com/denr01/FZ-ChiefCooker/pull/4)
+- Updated: [MagicBand Plus Lights v3.0 (By Haw8411)](https://github.com/Haw8411/magic-band-plus-lights)
 
 <a name="release"></a>
 

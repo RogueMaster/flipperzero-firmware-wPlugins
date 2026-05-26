@@ -1,4 +1,4 @@
-#include "ble_spam.h"
+#include "magicband_plus_lights.h"
 #include <gui/gui.h>
 #include <furi_hal_bt.h>
 #include <extra_beacon.h>
@@ -668,7 +668,7 @@ static bool back_event_callback(void* _ctx) {
 
 // ─── App entry point ─────────────────────────────────────────────────────────
 
-int32_t ble_spam(void* p) {
+int32_t magicband_plus_lights(void* p) {
     UNUSED(p);
 
     GapExtraBeaconConfig prev_cfg;

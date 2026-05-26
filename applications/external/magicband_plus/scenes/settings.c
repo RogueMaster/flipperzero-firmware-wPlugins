@@ -1,4 +1,4 @@
-#include "../ble_spam.h"
+#include "../magicband_plus_lights.h"
 
 typedef enum {
     SettingsFastMode = 0,
