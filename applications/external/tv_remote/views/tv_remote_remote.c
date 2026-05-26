@@ -572,18 +572,35 @@ static bool tv_remote_remote_input_callback(InputEvent* event, void* context) {
     }
 
     if(event->type == InputTypeLong) {
-        /* Start sending the hold/alt action */
+        /* Determine which button the hold action sends */
+        bool use_press =
+            ((event->key == InputKeyLeft || event->key == InputKeyRight) &&
+             app->lr_hold_repeat) ||
+            ((event->key == InputKeyUp || event->key == InputKeyDown) &&
+             app->ud_hold_repeat);
+        uint8_t eff_long = use_press ? eff_press : eff_hold;
+
         app->remote_held_long = true;
-        tv_remote_tx_start(app, eff_hold);
-        tv_remote_remote_update_model(app, (int8_t)eff_hold, true, app->remote_pressed_keys);
+        if(app->hold_continuous) {
+            /* Continuous TX until release */
+            tv_remote_tx_start(app, eff_long);
+            tv_remote_remote_update_model(app, (int8_t)eff_long, true, app->remote_pressed_keys);
+        } else {
+            /* Single burst and clear */
+            tv_remote_remote_update_model(app, (int8_t)eff_long, true, app->remote_pressed_keys);
+            tv_remote_ir_burst(app, eff_long);
+            tv_remote_remote_update_model(app, -1, false, app->remote_pressed_keys);
+        }
         return true;
     }
 
     if(event->type == InputTypeRelease) {
         app->remote_pressed_keys &= ~key_to_bit(event->key);
         if(app->remote_held_long) {
-            /* Was holding alt action – just stop it */
-            tv_remote_tx_stop(app);
+            /* Stop continuous TX if active; burst mode already stopped in Long handler */
+            if(app->hold_continuous) {
+                tv_remote_tx_stop(app);
+            }
         } else {
             /* Quick tap – show active ring section during burst */
             tv_remote_remote_update_model(app, (int8_t)eff_press, false, app->remote_pressed_keys);

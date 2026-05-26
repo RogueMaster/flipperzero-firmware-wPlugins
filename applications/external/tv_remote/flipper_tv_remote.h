@@ -135,7 +135,10 @@ struct TvRemoteApp {
 
     /* Settings */
     TvRemoteOrientation orientation;
-    bool button_swap; /**< True: short press = vol/ch, hold = directional (default is reversed). */
+    bool button_swap;       /**< True: short press = vol/ch, hold = directional (default is reversed). */
+    bool lr_hold_repeat;    /**< True: hold Left/Right sends the short-press (directional) button. */
+    bool ud_hold_repeat;    /**< True: hold Up/Down sends the short-press (directional) button. */
+    bool hold_continuous;   /**< True: hold action uses continuous TX; False: single burst. */
 
     /* Button storage */
     TvRemoteButton buttons[TV_BUTTON_COUNT];
