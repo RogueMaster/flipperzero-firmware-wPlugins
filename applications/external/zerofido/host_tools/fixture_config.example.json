@@ -1,0 +1,16 @@
+{
+  "autostart": false,
+  "device_match": {
+    "serial_contains": "",
+    "path_contains": "",
+    "vendor_id": 1155,
+    "product_id": 22337
+  },
+  "fixture": {
+    "known_pin": "",
+    "bootstrap_pin": "2468",
+    "changed_pin": "1357",
+    "rp_id_prefix": "zerofido-suite",
+    "username_prefix": "suite-user"
+  }
+}

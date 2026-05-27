@@ -1,0 +1,107 @@
+import os
+
+
+profile = os.environ.get("ZEROFIDO_PROFILE", "usb").lower()
+if profile not in ("usb", "nfc", "full"):
+    raise ValueError("ZEROFIDO_PROFILE must be one of: usb, nfc, full")
+
+def env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    value = value.lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    raise ValueError(f"{name} must be a boolean value")
+
+
+release_diagnostics = env_flag("ZEROFIDO_RELEASE_DIAGNOSTICS", False)
+usb_diagnostics = env_flag("ZEROFIDO_USB_DIAGNOSTICS", False)
+auto_accept_requests = env_flag("ZEROFIDO_AUTO_ACCEPT_REQUESTS", False)
+dev_screenshot = env_flag("ZEROFIDO_DEV_SCREENSHOT", False)
+dev_fido2_1 = env_flag("ZEROFIDO_DEV_FIDO2_1", False)
+packed_attestation = env_flag("ZEROFIDO_PACKED_ATTESTATION", True)
+
+cdefines = [
+    f"ZF_RELEASE_DIAGNOSTICS={1 if release_diagnostics else 0}",
+    f"ZF_USB_DIAGNOSTICS={1 if usb_diagnostics else 0}",
+    f"ZF_AUTO_ACCEPT_REQUESTS={1 if auto_accept_requests else 0}",
+    f"ZF_DEV_SCREENSHOT={1 if dev_screenshot else 0}",
+    f"ZF_DEV_FIDO2_1={1 if dev_fido2_1 else 0}",
+    f"ZF_PACKED_ATTESTATION={1 if packed_attestation else 0}",
+]
+sources = [
+    "*.c",
+    "!.git",
+    "!.github",
+    "!.idea",
+    "!.tmp",
+    "!.ufbt",
+    "!.venv",
+    "!.vscode",
+    "!__pycache__",
+    "!dist",
+    "!docs",
+    "!fixtures",
+    "!host_tools",
+    "!include",
+    "!metadata",
+    "!tests",
+    "!tools",
+    "!*_debug.c",
+    "!debug_*.c",
+    "!*_diag.c",
+    "!diag_*.c",
+    "!*_fixture.c",
+    "!fixture_*.c",
+    "!*_test.c",
+    "!test_*.c",
+]
+requires = [
+    "gui",
+    "storage",
+    "notification",
+]
+description = "FIDO2 for Flipper Zero"
+if profile == "usb":
+    cdefines.append("ZF_USB_ONLY")
+    sources.extend(
+        [
+            "!nfc_*.c",
+        ]
+    )
+elif profile == "nfc":
+    cdefines.append("ZF_NFC_ONLY")
+    sources.extend(
+        [
+            "!usb_hid_*.c",
+        ]
+    )
+    requires.append("nfc")
+    description = "FIDO2 for Flipper Zero"
+else:
+    requires.append("nfc")
+    description = "FIDO2 for Flipper Zero"
+
+if not release_diagnostics:
+    sources.append("!nfc_trace.c")
+if not usb_diagnostics:
+    sources.append("!zerofido_usb_diagnostics.c")
+
+App(
+    appid="zerofido",
+    name="ZeroFIDO",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="zerofido_main",
+    stack_size=4 * 1024,
+    sources=sources,
+    cdefines=cdefines,
+    requires=requires,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_description=description,
+    fap_author="Alex Stoyanov",
+    fap_version=(0, 7),
+)

@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "row_verdict_policy": {
+    "pass": "all listed scenarios passed",
+    "fail": "any listed scenario failed",
+    "blocked": "no listed scenario failed and at least one listed scenario was blocked",
+    "not_covered": "no listed scenario ran"
+  },
+  "rows": [
+    {
+      "id": "transport.init",
+      "section": "CTAPHID and U2F transport",
+      "surface": "CTAPHID_INIT",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["transport_init", "transport_exhaust_cids", "transport_resync"]
+    },
+    {
+      "id": "transport.ping",
+      "section": "CTAPHID and U2F transport",
+      "surface": "CTAPHID_PING",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["transport_ping"]
+    },
+    {
+      "id": "transport.cbor",
+      "section": "CTAPHID and U2F transport",
+      "surface": "CTAPHID_CBOR",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_get_info"]
+    },
+    {
+      "id": "transport.msg",
+      "section": "CTAPHID and U2F transport",
+      "surface": "CTAPHID_MSG",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["u2f_version", "u2f_register", "u2f_authenticate"]
+    },
+    {
+      "id": "transport.wink",
+      "section": "CTAPHID and U2F transport",
+      "surface": "CTAPHID_WINK",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["transport_wink"]
+    },
+    {
+      "id": "transport.cancel",
+      "section": "CTAPHID and U2F transport",
+      "surface": "CTAPHID_CANCEL",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["transport_cancel"]
+    },
+    {
+      "id": "transport.spurious_continuation",
+      "section": "CTAPHID and U2F transport",
+      "surface": "Spurious continuation packet",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["transport_spurious_continuation"]
+    },
+    {
+      "id": "transport.capabilities",
+      "section": "CTAPHID and U2F transport",
+      "surface": "Capability bits",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["transport_init"]
+    },
+    {
+      "id": "transport.u2f_apdu_validation",
+      "section": "CTAPHID and U2F transport",
+      "surface": "U2F APDU validation",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["u2f_invalid_apdu"]
+    },
+    {
+      "id": "ctap.get_info",
+      "section": "CTAP2 commands",
+      "surface": "GetInfo",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_get_info"]
+    },
+    {
+      "id": "ctap.make_credential_rk",
+      "section": "CTAP2 commands",
+      "surface": "MakeCredential with rk=true",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_make_credential_resident", "browser_register_direct", "browser_auth_discoverable"]
+    },
+    {
+      "id": "ctap.make_credential_nonresident",
+      "section": "CTAP2 commands",
+      "surface": "MakeCredential with rk=false or absent",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_make_credential_nonresident"]
+    },
+    {
+      "id": "ctap.exclude_list",
+      "section": "CTAP2 commands",
+      "surface": "excludeList hit",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_exclude_list"]
+    },
+    {
+      "id": "ctap.get_assertion_allow_list",
+      "section": "CTAP2 commands",
+      "surface": "GetAssertion with allow list",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_get_assertion_allow_list", "browser_auth_allow_list"]
+    },
+    {
+      "id": "ctap.get_assertion_discoverable",
+      "section": "CTAP2 commands",
+      "surface": "GetAssertion without allow list",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_get_assertion_discoverable", "browser_auth_discoverable"]
+    },
+    {
+      "id": "ctap.get_assertion_unsupported",
+      "section": "CTAP2 commands",
+      "surface": "GetAssertion unsupported options",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_unsupported_option_rk", "ctap_unsupported_option_uv"]
+    },
+    {
+      "id": "ctap.multiple_assertions",
+      "section": "CTAP2 commands",
+      "surface": "Multiple assertions",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_get_next_assertion"]
+    },
+    {
+      "id": "ctap.account_chooser",
+      "section": "CTAP2 commands",
+      "surface": "On-device account chooser",
+      "required": false,
+      "classification": "aligned",
+      "scenario_ids": []
+    },
+    {
+      "id": "clientpin.get_retries",
+      "section": "ClientPIN and UV",
+      "surface": "getRetries",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["clientpin_get_retries"]
+    },
+    {
+      "id": "clientpin.get_key_agreement",
+      "section": "ClientPIN and UV",
+      "surface": "getKeyAgreement",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["clientpin_get_key_agreement"]
+    },
+    {
+      "id": "clientpin.set_pin",
+      "section": "ClientPIN and UV",
+      "surface": "setPin",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["clientpin_set_pin"]
+    },
+    {
+      "id": "clientpin.change_pin",
+      "section": "ClientPIN and UV",
+      "surface": "changePin",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["clientpin_change_pin"]
+    },
+    {
+      "id": "clientpin.get_pin_token",
+      "section": "ClientPIN and UV",
+      "surface": "PIN token issuance",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["clientpin_get_pin_token", "clientpin_wrong_pin_retry"]
+    },
+    {
+      "id": "clientpin.empty_pin_auth_probe",
+      "section": "ClientPIN and UV",
+      "surface": "Empty pinAuth compatibility probe",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_empty_pin_auth_make_credential", "ctap_empty_pin_auth_get_assertion"]
+    },
+    {
+      "id": "clientpin.pin_uv_auth_param",
+      "section": "ClientPIN and UV",
+      "surface": "pinUvAuthParam verification",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_make_credential_with_pin_auth", "ctap_get_assertion_with_pin_auth"]
+    },
+    {
+      "id": "clientpin.uv_state",
+      "section": "ClientPIN and UV",
+      "surface": "UV state",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_make_credential_with_pin_auth", "ctap_get_assertion_with_pin_auth"]
+    },
+    {
+      "id": "clientpin.retry_lockout",
+      "section": "ClientPIN and UV",
+      "surface": "Retry/lockout persistence",
+      "required": true,
+      "classification": "intentional deviation",
+      "scenario_ids": ["clientpin_wrong_pin_retry", "clientpin_wrong_pin_auth_block", "clientpin_recovery"]
+    },
+    {
+      "id": "attestation.format",
+      "section": "Attestation and metadata",
+      "surface": "Attestation format",
+      "required": true,
+      "classification": "intentional deviation",
+      "scenario_ids": ["ctap_make_credential_resident", "browser_register_direct", "static_attestation_assets"]
+    },
+    {
+      "id": "attestation.none",
+      "section": "Attestation and metadata",
+      "surface": "attestation: none outcome",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["browser_register_none"]
+    },
+    {
+      "id": "attestation.aaguid",
+      "section": "Attestation and metadata",
+      "surface": "AAGUID",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_get_info", "ctap_make_credential_resident", "static_metadata_alignment"]
+    },
+    {
+      "id": "metadata.clientpin",
+      "section": "Attestation and metadata",
+      "surface": "Metadata clientPin",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["ctap_get_info", "static_metadata_alignment"]
+    },
+    {
+      "id": "attestation.enterprise",
+      "section": "Attestation and metadata",
+      "surface": "Enterprise attestation",
+      "required": true,
+      "classification": "aligned",
+      "scenario_ids": ["browser_register_none", "ctap_get_info"]
+    }
+  ]
+}

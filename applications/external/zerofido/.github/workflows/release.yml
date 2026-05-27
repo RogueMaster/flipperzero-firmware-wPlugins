@@ -1,0 +1,173 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to publish, for example v1.0.0"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark the GitHub release as a prerelease"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      UV_PYTHON: "3.14"
+      ZEROFIDO_RELEASE_DIAGNOSTICS: "0"
+      ZEROFIDO_USB_DIAGNOSTICS: "0"
+      ZEROFIDO_AUTO_ACCEPT_REQUESTS: "0"
+      ZEROFIDO_DEV_SCREENSHOT: "0"
+      ZEROFIDO_DEV_FIDO2_1: "0"
+      ZEROFIDO_PACKED_ATTESTATION: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: release
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TAG: ${{ inputs.tag }}
+          DISPATCH_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            tag="${DISPATCH_TAG}"
+            prerelease="${DISPATCH_PRERELEASE}"
+          else
+            tag="${GITHUB_REF_NAME}"
+            prerelease="false"
+          fi
+
+          if [[ ! "${tag}" =~ ^v[0-9]+(\.[0-9]+){1,2}([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Release tag must look like v1.0.0 or v1.0.0-rc.1"
+            exit 1
+          fi
+          if [[ "${prerelease}" != "true" && "${prerelease}" != "false" ]]; then
+            echo "::error::Prerelease must be true or false"
+            exit 1
+          fi
+
+          git fetch --force --tags
+          git rev-parse --verify --quiet "refs/tags/${tag}" >/dev/null || {
+            echo "::error::Tag ${tag} does not exist"
+            exit 1
+          }
+          git checkout --detach "${tag}"
+
+          printf 'tag=%s\n' "${tag}" >> "${GITHUB_OUTPUT}"
+          printf 'prerelease=%s\n' "${prerelease}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Sync tools
+        run: uv sync --locked
+
+      - name: Check release build defaults
+        run: uv run python -m unittest tests.app.test_application_manifest
+
+      - name: Build release profiles
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          for profile in nfc usb full; do
+            echo "Building ${profile}"
+            ZEROFIDO_PROFILE="${profile}" uv run python -m ufbt
+            uv run python host_tools/package_release.py \
+              --skip-build \
+              --allow-prebuilt-input \
+              --fap dist/zerofido.fap \
+              --output-fap "release/zerofido-${profile}-release.fap"
+          done
+
+      - name: Generate release metadata
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum zerofido-*-release.fap > SHA256SUMS
+          {
+            echo "# ZeroFIDO ${{ steps.release.outputs.tag }}"
+            echo
+            echo "Release-default profile builds:"
+            echo
+            echo "| Profile | Release FAP bytes |"
+            echo "| --- | ---: |"
+            for profile in nfc usb full; do
+              size="$(wc -c < "zerofido-${profile}-release.fap")"
+              echo "| ${profile} | ${size} |"
+            done
+            echo
+            echo "Build flags:"
+            echo
+            echo "- ZEROFIDO_RELEASE_DIAGNOSTICS=${ZEROFIDO_RELEASE_DIAGNOSTICS}"
+            echo "- ZEROFIDO_USB_DIAGNOSTICS=${ZEROFIDO_USB_DIAGNOSTICS}"
+            echo "- ZEROFIDO_AUTO_ACCEPT_REQUESTS=${ZEROFIDO_AUTO_ACCEPT_REQUESTS}"
+            echo "- ZEROFIDO_DEV_SCREENSHOT=${ZEROFIDO_DEV_SCREENSHOT}"
+            echo "- ZEROFIDO_DEV_FIDO2_1=${ZEROFIDO_DEV_FIDO2_1}"
+            echo "- ZEROFIDO_PACKED_ATTESTATION=${ZEROFIDO_PACKED_ATTESTATION}"
+          } > RELEASE_NOTES.md
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: zerofido-release-${{ steps.release.outputs.tag }}
+          if-no-files-found: error
+          path: |
+            release/zerofido-*-release.fap
+            release/SHA256SUMS
+            release/RELEASE_NOTES.md
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          args=(--title "ZeroFIDO ${RELEASE_TAG}" --notes-file release/RELEASE_NOTES.md --verify-tag)
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release edit "${RELEASE_TAG}" \
+              --title "ZeroFIDO ${RELEASE_TAG}" \
+              --notes-file release/RELEASE_NOTES.md \
+              --verify-tag
+            gh release upload "${RELEASE_TAG}" \
+              release/zerofido-*-release.fap \
+              release/SHA256SUMS \
+              --clobber
+          else
+            gh release create "${RELEASE_TAG}" \
+              release/zerofido-*-release.fap \
+              release/SHA256SUMS \
+              "${args[@]}"
+          fi
