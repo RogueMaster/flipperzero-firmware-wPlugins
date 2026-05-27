@@ -24,11 +24,12 @@ static const WmbusMVT k_mvt_hydrus[] = {
     {"HYD", 0x8B, 0x07},
     /* Note: (HYD,0x07,0x85) and (HYD,0x07,0x86) used to live here but
      * upstream wmbusmeters claims them for IZAR/PRIOS — see izar.c. */
-    { {0}, 0, 0 }
-};
+    {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_diehl_hydrus = {
-    .id = "diehl-hydrus", .title = "Diehl Hydrus water",
-    .mvt = k_mvt_hydrus, .decode = NULL,
+    .id = "diehl-hydrus",
+    .title = "Diehl Hydrus water",
+    .mvt = k_mvt_hydrus,
+    .decode = NULL,
 };
 
 /* ---- Diehl Sharky (heat / cooling) ---- */
@@ -39,21 +40,21 @@ static const WmbusMVT k_mvt_sharky[] = {
     {"DME", 0x41, 0x0D},
     {"HYD", 0x20, 0x04},
     {"SAP", 0x01, 0x04},
-    { {0}, 0, 0 }
-};
+    {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_diehl_sharky = {
-    .id = "diehl-sharky", .title = "Diehl Sharky heat",
-    .mvt = k_mvt_sharky, .decode = NULL,
+    .id = "diehl-sharky",
+    .title = "Diehl Sharky heat",
+    .mvt = k_mvt_sharky,
+    .decode = NULL,
 };
 
 /* ---- Diehl Aerius gas ---- */
-static const WmbusMVT k_mvt_aerius[] = {
-    {"DME", 0x30, 0x03},
-    { {0}, 0, 0 }
-};
+static const WmbusMVT k_mvt_aerius[] = {{"DME", 0x30, 0x03}, {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_diehl_aerius = {
-    .id = "diehl-aerius", .title = "Diehl Aerius gas",
-    .mvt = k_mvt_aerius, .decode = NULL,
+    .id = "diehl-aerius",
+    .title = "Diehl Aerius gas",
+    .mvt = k_mvt_aerius,
+    .decode = NULL,
 };
 
 /* ---- Generic Diehl water (DME 173, dme_07) ---- */
@@ -63,11 +64,12 @@ static const WmbusMVT k_mvt_diehl_water[] = {
     {"SAP", 0x00, 0x07},
     /* (SAP,0x15,0x07) is now in izar.c — that line of meters speaks
      * PRIOS, not raw OMS. */
-    { {0}, 0, 0 }
-};
+    {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_diehl_water = {
-    .id = "diehl-water", .title = "Diehl water",
-    .mvt = k_mvt_diehl_water, .decode = NULL,
+    .id = "diehl-water",
+    .title = "Diehl water",
+    .mvt = k_mvt_diehl_water,
+    .decode = NULL,
 };
 
 /* IZAR (Diehl/Sappel/Hydrometer water meters with PRIOS scrambling) lives

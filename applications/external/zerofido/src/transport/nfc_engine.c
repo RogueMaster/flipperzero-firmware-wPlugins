@@ -331,10 +331,8 @@ static void zf_transport_nfc_remember_complete_i_block_locked(ZfNfcTransportStat
             state->rx_complete_last_valid = false;
             state->rx_complete_last_len = 0U;
             state->rx_complete_last_response_len = 0U;
-            memset(state->rx_complete_last_payload, 0,
-                   sizeof(state->rx_complete_last_payload));
-            memset(state->rx_complete_last_response, 0,
-                   sizeof(state->rx_complete_last_response));
+            memset(state->rx_complete_last_payload, 0, sizeof(state->rx_complete_last_payload));
+            memset(state->rx_complete_last_response, 0, sizeof(state->rx_complete_last_response));
         }
         return;
     }
@@ -353,9 +351,10 @@ static void zf_transport_nfc_remember_complete_i_block_locked(ZfNfcTransportStat
     state->rx_complete_last_valid = true;
 }
 
-static bool zf_transport_nfc_is_duplicate_complete_i_block_locked(
-    const ZfNfcTransportState *state, uint8_t request_pcb, const uint8_t *payload,
-    size_t payload_len) {
+static bool zf_transport_nfc_is_duplicate_complete_i_block_locked(const ZfNfcTransportState *state,
+                                                                  uint8_t request_pcb,
+                                                                  const uint8_t *payload,
+                                                                  size_t payload_len) {
     if (!state || !state->rx_complete_last_valid || (!payload && payload_len > 0U) ||
         payload_len != state->rx_complete_last_len || state->rx_complete_last_response_len == 0U ||
         state->rx_complete_last_response_len > sizeof(state->rx_complete_last_response) ||
@@ -366,8 +365,7 @@ static bool zf_transport_nfc_is_duplicate_complete_i_block_locked(
         return false;
     }
 
-    return payload_len == 0U ||
-           memcmp(state->rx_complete_last_payload, payload, payload_len) == 0;
+    return payload_len == 0U || memcmp(state->rx_complete_last_payload, payload, payload_len) == 0;
 }
 
 static bool zf_transport_nfc_replay_complete_i_block_response_locked(ZfNfcTransportState *state) {
@@ -376,8 +374,7 @@ static bool zf_transport_nfc_replay_complete_i_block_response_locked(ZfNfcTransp
     uint8_t replay[ZF_NFC_LAST_TX_CAPACITY];
     bool sent = false;
 
-    if (!state || !state->rx_complete_last_valid ||
-        state->rx_complete_last_response_len == 0U ||
+    if (!state || !state->rx_complete_last_valid || state->rx_complete_last_response_len == 0U ||
         state->rx_complete_last_response_len > sizeof(state->rx_complete_last_response)) {
         return false;
     }
@@ -768,8 +765,7 @@ static NfcCommand zf_transport_nfc_handle_iso4_payload_locked(
     }
     zf_transport_nfc_set_frame_status("NFC I-block", request_pcb, payload, payload_len);
     if (zf_transport_nfc_handle_apdu_locked(app, state, payload, payload_len)) {
-        zf_transport_nfc_remember_complete_i_block_locked(state, request_pcb, payload,
-                                                          payload_len);
+        zf_transport_nfc_remember_complete_i_block_locked(state, request_pcb, payload, payload_len);
     }
     zf_transport_nfc_trace_apdu_after_response(payload, payload_len);
     furi_mutex_release(app->ui_mutex);

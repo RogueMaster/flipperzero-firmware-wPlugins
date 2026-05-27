@@ -32,6 +32,4 @@ bool wmbus_crc_verify_format_a(
 
 /* Format B: single CRC over the whole telegram (excluding the CRC bytes
  * themselves). Last 2 bytes of `frame` are the CRC. */
-bool wmbus_crc_verify_format_b(
-    const uint8_t* frame,
-    size_t frame_len);
+bool wmbus_crc_verify_format_b(const uint8_t* frame, size_t frame_len);

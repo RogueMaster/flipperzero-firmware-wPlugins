@@ -15,9 +15,7 @@ typedef enum {
     WmbusModule_Count,
 } WmbusModule;
 
-const SubGhzDevice* wmbus_radio_select(
-    const SubGhzDevice* current,
-    WmbusModule module);
+const SubGhzDevice* wmbus_radio_select(const SubGhzDevice* current, WmbusModule module);
 
 bool wmbus_radio_is_external(const SubGhzDevice* dev);
 

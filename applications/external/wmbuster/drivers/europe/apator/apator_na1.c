@@ -22,24 +22,27 @@
 #include <stdio.h>
 #include <stdint.h>
 
-static size_t decode_na1(uint16_t m, uint8_t v, uint8_t med,
-                         const uint8_t* a, size_t l,
-                         char* o, size_t cap) {
-    (void)m; (void)v; (void)med; (void)a;
+static size_t
+    decode_na1(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
+    (void)a;
     size_t pos = (size_t)snprintf(o, cap, "Apator NA-1 water\n");
-    pos += (size_t)snprintf(o + pos, cap - pos,
-                            "Bytes  %u\n"
-                            "Status  encrypted\n"
-                            "Need  per-meter key\n",
-                            (unsigned)l);
+    pos += (size_t)snprintf(
+        o + pos,
+        cap - pos,
+        "Bytes  %u\n"
+        "Status  encrypted\n"
+        "Need  per-meter key\n",
+        (unsigned)l);
     return pos;
 }
 
-static const WmbusMVT k_mvt[] = {
-    {"APA", 0x07, 0x14},
-    { {0}, 0, 0 }
-};
+static const WmbusMVT k_mvt[] = {{"APA", 0x07, 0x14}, {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_apator_na1 = {
-    .id = "apatorna1", .title = "Apator NA-1 water",
-    .mvt = k_mvt, .decode = decode_na1,
+    .id = "apatorna1",
+    .title = "Apator NA-1 water",
+    .mvt = k_mvt,
+    .decode = decode_na1,
 };

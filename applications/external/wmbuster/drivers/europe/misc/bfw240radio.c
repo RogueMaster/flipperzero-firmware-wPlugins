@@ -42,48 +42,60 @@ static int historic(int n, const uint8_t* c) {
     return (int)hi * 256 + lo;
 }
 
-static size_t decode_bfw(uint16_t m, uint8_t v, uint8_t med,
-                         const uint8_t* a, size_t l,
-                         char* o, size_t cap) {
-    (void)m; (void)v; (void)med;
+static size_t
+    decode_bfw(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
     size_t pos = (size_t)snprintf(o, cap, "BFW 240-Radio HCA\n");
     if(l < 40) {
-        pos += (size_t)snprintf(o + pos, cap - pos,
-                                "Bytes  %u\n"
-                                "Status  short frame\n", (unsigned)l);
+        pos += (size_t)snprintf(
+            o + pos,
+            cap - pos,
+            "Bytes  %u\n"
+            "Status  short frame\n",
+            (unsigned)l);
         return pos;
     }
-    int prev    = (int)a[4]  * 256 + a[5];
-    int current = (int)a[6]  * 256 + a[7];
+    int prev = (int)a[4] * 256 + a[5];
+    int current = (int)a[6] * 256 + a[7];
 
     /* Date BCD bytes are little-endian DD MM YY at offsets 37..39. */
-    pos += (size_t)snprintf(o + pos, cap - pos,
-                            "Now  %d HCA\n"
-                            "Prev mon  %d HCA\n"
-                            "Date  20%02X-%02X-%02X\n",
-                            current, prev,
-                            (unsigned)a[39],     /* YY */
-                            (unsigned)a[38],     /* MM */
-                            (unsigned)a[37]);    /* DD */
+    pos += (size_t)snprintf(
+        o + pos,
+        cap - pos,
+        "Now  %d HCA\n"
+        "Prev mon  %d HCA\n"
+        "Date  20%02X-%02X-%02X\n",
+        current,
+        prev,
+        (unsigned)a[39], /* YY */
+        (unsigned)a[38], /* MM */
+        (unsigned)a[37]); /* DD */
 
     /* Quick preview of the four most recent historic months — keeps the
      * screen useful while still hinting at the deeper data set. The full
      * 18-month series is recoverable from the raw-bytes view. */
-    pos += (size_t)snprintf(o + pos, cap - pos,
-                            "H1  %d\nH2  %d\nH3  %d\nH4  %d\n",
-                            historic(0, a), historic(1, a),
-                            historic(2, a), historic(3, a));
+    pos += (size_t)snprintf(
+        o + pos,
+        cap - pos,
+        "H1  %d\nH2  %d\nH3  %d\nH4  %d\n",
+        historic(0, a),
+        historic(1, a),
+        historic(2, a),
+        historic(3, a));
     return pos;
 }
 
 /* Replace the placeholder list previously in misc.c — we now have a real
  * decoder, so register the driver here and wire it through registry.c. */
 static const WmbusMVT k_mvt[] = {
-    {"BFW", 0x08, 0x02},   /* canonical wmbusmeters tuple              */
-    {"BFW", 0xFF, 0x08},   /* future-proof: any BFW HCA medium 0x08   */
-    { {0}, 0, 0 }
-};
+    {"BFW", 0x08, 0x02}, /* canonical wmbusmeters tuple              */
+    {"BFW", 0xFF, 0x08}, /* future-proof: any BFW HCA medium 0x08   */
+    {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_bfw_radio = {
-    .id = "bfw-240radio", .title = "BFW 240-Radio HCA",
-    .mvt = k_mvt, .decode = decode_bfw,
+    .id = "bfw-240radio",
+    .title = "BFW 240-Radio HCA",
+    .mvt = k_mvt,
+    .decode = decode_bfw,
 };

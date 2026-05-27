@@ -50,7 +50,8 @@ static inline bool zf_cbor_encoder_init_inline(ZfCborEncoder *enc, uint8_t *buf,
     enc->offset = 0;
     return true;
 }
-#define zf_cbor_encoder_init(enc, buf, capacity) zf_cbor_encoder_init_inline((enc), (buf), (capacity))
+#define zf_cbor_encoder_init(enc, buf, capacity)                                                   \
+    zf_cbor_encoder_init_inline((enc), (buf), (capacity))
 #endif
 #if defined(ZF_CBOR_IMPLEMENTATION)
 size_t zf_cbor_encoder_size(const ZfCborEncoder *enc);

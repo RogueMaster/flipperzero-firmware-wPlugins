@@ -262,8 +262,7 @@ uint8_t zf_ctap_parse_make_credential_extensions_map(ZfCborCursor *cursor, bool 
 
         case ZfCtapTextKeyHmacSecret: {
             if (saw_hmac_secret ||
-                !zf_ctap_hmac_secret_parse_make_credential_request(cursor,
-                                                                    hmac_secret_requested)) {
+                !zf_ctap_hmac_secret_parse_make_credential_request(cursor, hmac_secret_requested)) {
                 return ZF_CTAP_ERR_INVALID_CBOR;
             }
             saw_hmac_secret = true;

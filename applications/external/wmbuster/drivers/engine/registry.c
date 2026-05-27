@@ -31,7 +31,7 @@ extern const WmbusDriver wmbus_drv_diehl_hydrus;
 extern const WmbusDriver wmbus_drv_diehl_sharky;
 extern const WmbusDriver wmbus_drv_diehl_aerius;
 extern const WmbusDriver wmbus_drv_diehl_water;
-extern const WmbusDriver wmbus_drv_diehl_izar;        /* PRIOS LFSR  */
+extern const WmbusDriver wmbus_drv_diehl_izar; /* PRIOS LFSR  */
 
 /* === Reverse-engineered drivers ported from wmbusmeters .cc === */
 extern const WmbusDriver wmbus_drv_bmeters_hydrodigit;

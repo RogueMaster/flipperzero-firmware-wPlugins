@@ -192,19 +192,18 @@ bool zf_runtime_config_persist(Storage *storage, const ZfRuntimeConfig *config) 
     ZfRuntimeConfigFileRecord record = {
         .magic = ZF_RUNTIME_CONFIG_FILE_MAGIC,
         .version = ZF_RUNTIME_CONFIG_FILE_VERSION,
-        .flags = config
-                     ? (((ZF_AUTO_ACCEPT_REQUESTS && config->auto_accept_requests)
-                             ? ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS
-                             : 0U) |
-                        ZF_RUNTIME_CONFIG_FLAG_FIDO2_ENABLED)
-                     : 0U,
+        .flags = config ? (((ZF_AUTO_ACCEPT_REQUESTS && config->auto_accept_requests)
+                                ? ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS
+                                : 0U) |
+                           ZF_RUNTIME_CONFIG_FLAG_FIDO2_ENABLED)
+                        : 0U,
         .transport_mode = config ? (uint8_t)config->transport_mode
                                  : (uint8_t)zf_runtime_config_default_transport_mode(),
-        .fido2_profile = config ? (uint8_t)zf_fido2_profile_for_build(config->fido2_profile) :
-                                  (uint8_t)ZfFido2ProfileCtap2_0,
-        .attestation_mode =
-            config ? (uint8_t)zf_attestation_mode_for_build(config->attestation_mode) :
-                     (uint8_t)ZfAttestationModeNone,
+        .fido2_profile = config ? (uint8_t)zf_fido2_profile_for_build(config->fido2_profile)
+                                : (uint8_t)ZfFido2ProfileCtap2_0,
+        .attestation_mode = config
+                                ? (uint8_t)zf_attestation_mode_for_build(config->attestation_mode)
+                                : (uint8_t)ZfAttestationModeNone,
     };
 
     if (!storage || !config || !zf_fido2_profile_is_valid((uint8_t)config->fido2_profile) ||

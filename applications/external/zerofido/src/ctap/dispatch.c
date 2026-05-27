@@ -88,10 +88,8 @@ uint8_t zf_ctap_dispatch_command(ZerofidoApp *app, const ZfResolvedCapabilities 
         }
         pin_is_set = zf_ctap_pin_is_set(app);
 #if ZF_USB_DIAGNOSTICS
-        zf_usb_diag_logf(app->storage,
-                         "gi caps pin=%u token=%u proto2=%u f21=%u mcuvnr=%u u2f=%u",
-                         pin_is_set ? 1U : 0U,
-                         capabilities->pin_uv_auth_token_enabled ? 1U : 0U,
+        zf_usb_diag_logf(app->storage, "gi caps pin=%u token=%u proto2=%u f21=%u mcuvnr=%u u2f=%u",
+                         pin_is_set ? 1U : 0U, capabilities->pin_uv_auth_token_enabled ? 1U : 0U,
                          capabilities->pin_uv_auth_protocol_2_enabled ? 1U : 0U,
                          capabilities->advertise_fido_2_1 ? 1U : 0U,
                          capabilities->make_cred_uv_not_required ? 1U : 0U,

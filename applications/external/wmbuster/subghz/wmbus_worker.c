@@ -23,61 +23,53 @@
  * 3-of-6 decoder handles T1, while C1 frames carry 0xCD (Format A) or
  * 0x3D (Format B) right after sync, telling us which CRC verifier
  * to apply. */
-static const uint8_t k_preset_ct[] = {
-    0x06, 0x00,                 /* PKTLEN  = 0    (infinite, slicer handles)   */
-    0x07, 0x00,                 /* PKTCTRL1: no addr check                     */
-    0x08, 0x02,                 /* PKTCTRL0: infinite, no whitening            */
-    0x0B, 0x06, 0x0C, 0x00,     /* FSCTRL                                       */
-    0x10, 0x5B, 0x11, 0xF8,     /* MDMCFG4/3 — 99.97 kBaud                     */
-    0x12, 0x06,                 /* MDMCFG2: 2-FSK, 16/16 sync, no Manchester   */
-    0x13, 0x22, 0x14, 0xF8,     /* MDMCFG1/0                                    */
-    0x15, 0x44,                 /* DEVIATN: ±50 kHz                            */
-    0x17, 0x00,                 /* MCSM1: stay in RX after packet              */
-    0x18, 0x18,                 /* MCSM0: PO_TIMEOUT, auto-cal idle->rx        */
-    0x19, 0x16, 0x1A, 0x6C,     /* FOCCFG / BSCFG                              */
-    0x1B, 0x43, 0x1C, 0x40, 0x1D, 0x91,
-    0x21, 0x56, 0x22, 0x10,
-    0x23, 0xE9, 0x24, 0x2A, 0x25, 0x00, 0x26, 0x1F,
-    0x2C, 0x81, 0x2D, 0x35, 0x2E, 0x09,
-    0x04, 0x54, 0x05, 0x3D,     /* SYNC1:SYNC0 = 0x543D                        */
-    0x00, 0x00,
-    0xC0, 0,0,0,0,0,0,0,
+static const uint8_t
+    k_preset_ct[] =
+        {
+            0x06, 0x00, /* PKTLEN  = 0    (infinite, slicer handles)   */
+            0x07, 0x00, /* PKTCTRL1: no addr check                     */
+            0x08, 0x02, /* PKTCTRL0: infinite, no whitening            */
+            0x0B, 0x06, 0x0C, 0x00, /* FSCTRL                                       */
+            0x10, 0x5B, 0x11, 0xF8, /* MDMCFG4/3 — 99.97 kBaud                     */
+            0x12, 0x06, /* MDMCFG2: 2-FSK, 16/16 sync, no Manchester   */
+            0x13, 0x22, 0x14, 0xF8, /* MDMCFG1/0                                    */
+            0x15, 0x44, /* DEVIATN: ±50 kHz                            */
+            0x17, 0x00, /* MCSM1: stay in RX after packet              */
+            0x18, 0x18, /* MCSM0: PO_TIMEOUT, auto-cal idle->rx        */
+            0x19, 0x16, 0x1A, 0x6C, /* FOCCFG / BSCFG                              */
+            0x1B, 0x43, 0x1C, 0x40, 0x1D, 0x91, 0x21, 0x56, 0x22, 0x10,
+            0x23, 0xE9, 0x24, 0x2A, 0x25, 0x00, 0x26, 0x1F, 0x2C, 0x81,
+            0x2D, 0x35, 0x2E, 0x09, 0x04, 0x54, 0x05, 0x3D, /* SYNC1:SYNC0 = 0x543D                        */
+            0x00, 0x00, 0xC0, 0,    0,    0,    0,    0,    0,    0,
 };
 
 /* S1 — Manchester encoded at 32.768 kbit data (~65.536 kchip/s). */
 static const uint8_t k_preset_s1[] = {
-    0x06, 0x00, 0x07, 0x00, 0x08, 0x02,
-    0x0B, 0x06, 0x0C, 0x00,
-    0x10, 0x68, 0x11, 0x4A,
-    0x12, 0x06, 0x13, 0x22, 0x14, 0xF8,
-    0x15, 0x50,
-    0x17, 0x00, 0x18, 0x18,
-    0x19, 0x16, 0x1A, 0x6C,
-    0x1B, 0x43, 0x1C, 0x40, 0x1D, 0x91,
-    0x21, 0x56, 0x22, 0x10,
-    0x23, 0xE9, 0x24, 0x2A, 0x25, 0x00, 0x26, 0x1F,
-    0x2C, 0x81, 0x2D, 0x35, 0x2E, 0x09,
-    0x04, 0x76, 0x05, 0x96,
-    0x00, 0x00,
-    0xC0, 0,0,0,0,0,0,0,
+    0x06, 0x00, 0x07, 0x00, 0x08, 0x02, 0x0B, 0x06, 0x0C, 0x00, 0x10, 0x68, 0x11, 0x4A,
+    0x12, 0x06, 0x13, 0x22, 0x14, 0xF8, 0x15, 0x50, 0x17, 0x00, 0x18, 0x18, 0x19, 0x16,
+    0x1A, 0x6C, 0x1B, 0x43, 0x1C, 0x40, 0x1D, 0x91, 0x21, 0x56, 0x22, 0x10, 0x23, 0xE9,
+    0x24, 0x2A, 0x25, 0x00, 0x26, 0x1F, 0x2C, 0x81, 0x2D, 0x35, 0x2E, 0x09, 0x04, 0x76,
+    0x05, 0x96, 0x00, 0x00, 0xC0, 0,    0,    0,    0,    0,    0,    0,
 };
 
 /* RX-FIFO drain hook. Weak default for host tests; wmbus_hal_rx.c
  * overrides on-device. `external` picks the SPI handle. */
 __attribute__((weak)) size_t wmbus_hal_rx_drain(uint8_t* dst, size_t cap, bool external) {
-    (void)dst; (void)cap; (void)external;
+    (void)dst;
+    (void)cap;
+    (void)external;
     return 0;
 }
 
 struct WmbusWorker {
-    WmbusApp*       app;
-    FuriThread*     thread;
-    volatile bool   running;
-    WmbusMode       mode;
+    WmbusApp* app;
+    FuriThread* thread;
+    volatile bool running;
+    WmbusMode mode;
 
-    uint8_t         chip_buf[1024];   /* generous: max frame ~290 B + 3of6 expansion */
-    uint8_t         data_buf[WMBUS_MAX_FRAME];
-    uint8_t         payload_buf[WMBUS_MAX_FRAME];
+    uint8_t chip_buf[1024]; /* generous: max frame ~290 B + 3of6 expansion */
+    uint8_t data_buf[WMBUS_MAX_FRAME];
+    uint8_t payload_buf[WMBUS_MAX_FRAME];
 
     WmbusWorkerStats stats;
 };
@@ -126,7 +118,9 @@ void wmbus_worker_stop(WmbusWorker* w) {
     furi_thread_join(w->thread);
 }
 
-bool wmbus_worker_is_running(const WmbusWorker* w) { return w->running; }
+bool wmbus_worker_is_running(const WmbusWorker* w) {
+    return w->running;
+}
 
 /* Frame slicer.
  *
@@ -138,12 +132,12 @@ bool wmbus_worker_is_running(const WmbusWorker* w) { return w->running; }
  *   CT: peek byte[0]; route to C1 path on 0xCD/0x3D, else T1 path.
  * S1 is independent: Manchester-decoded NRZ then Format A. */
 typedef struct {
-    size_t  chip_bits;
-    size_t  needed_bytes;
-    bool    have_L;
-    bool    routed;                 /* mode decision finalised for this frame */
-    uint8_t route;                  /* 0 = T1/3of6, 1 = Format A NRZ, 2 = Format B NRZ */
-    int8_t  rssi;
+    size_t chip_bits;
+    size_t needed_bytes;
+    bool have_L;
+    bool routed; /* mode decision finalised for this frame */
+    uint8_t route; /* 0 = T1/3of6, 1 = Format A NRZ, 2 = Format B NRZ */
+    int8_t rssi;
 } Slicer;
 
 static void emit_format_a(WmbusWorker* w, const uint8_t* decoded, size_t len, int8_t rssi) {
@@ -171,13 +165,21 @@ static void slicer_route(WmbusWorker* w, Slicer* s) {
     if(w->mode == WmbusModeT1) {
         s->route = 0;
     } else if(w->mode == WmbusModeC1) {
-        if(b0 == 0xCD)      s->route = 1;
-        else if(b0 == 0x3D) s->route = 2;
-        else { s->chip_bits = 0; return; }
+        if(b0 == 0xCD)
+            s->route = 1;
+        else if(b0 == 0x3D)
+            s->route = 2;
+        else {
+            s->chip_bits = 0;
+            return;
+        }
     } else {
-        if(b0 == 0xCD)      s->route = 1;
-        else if(b0 == 0x3D) s->route = 2;
-        else                s->route = 0;
+        if(b0 == 0xCD)
+            s->route = 1;
+        else if(b0 == 0x3D)
+            s->route = 2;
+        else
+            s->route = 0;
     }
     s->routed = true;
 }
@@ -202,43 +204,60 @@ static void slicer_run_nrz(WmbusWorker* w, Slicer* s, bool format_b) {
     }
 
     if(avail >= s->needed_bytes) {
-        if(format_b) emit_format_b(w, buf, s->needed_bytes, s->rssi);
-        else         emit_format_a(w, buf, s->needed_bytes, s->rssi);
-        s->chip_bits = 0; s->have_L = false; s->routed = false;
+        if(format_b)
+            emit_format_b(w, buf, s->needed_bytes, s->rssi);
+        else
+            emit_format_a(w, buf, s->needed_bytes, s->rssi);
+        s->chip_bits = 0;
+        s->have_L = false;
+        s->routed = false;
     }
 }
 
 static void slicer_run_3of6(WmbusWorker* w, Slicer* s) {
     bool err = false;
-    size_t n = wmbus_3of6_decode(
-        w->chip_buf, s->chip_bits, w->data_buf, sizeof(w->data_buf), &err);
+    size_t n =
+        wmbus_3of6_decode(w->chip_buf, s->chip_bits, w->data_buf, sizeof(w->data_buf), &err);
     if(err) w->stats.three_of_six_err++;
     if(n < 1) return;
     if(!s->have_L) {
         size_t L = (size_t)w->data_buf[0];
         s->needed_bytes = L + 1;
         size_t ov = 2;
-        if(L > 9) { size_t rest = L - 9; ov += ((rest + 15) / 16) * 2; }
+        if(L > 9) {
+            size_t rest = L - 9;
+            ov += ((rest + 15) / 16) * 2;
+        }
         s->needed_bytes += ov;
         s->have_L = true;
     }
     if(n >= s->needed_bytes) {
         emit_format_a(w, w->data_buf, s->needed_bytes, s->rssi);
-        s->chip_bits = 0; s->have_L = false; s->routed = false;
+        s->chip_bits = 0;
+        s->have_L = false;
+        s->routed = false;
     }
 }
 
 static void slicer_run(WmbusWorker* w, Slicer* s) {
     if(w->mode == WmbusModeS1) {
         size_t bits = wmbus_manchester_decode(
-            w->chip_buf, s->chip_bits, WmbusManchesterIeee802,
-            w->data_buf, sizeof(w->data_buf) * 8, NULL);
+            w->chip_buf,
+            s->chip_bits,
+            WmbusManchesterIeee802,
+            w->data_buf,
+            sizeof(w->data_buf) * 8,
+            NULL);
         size_t n = bits / 8;
         if(n < 1) return;
-        if(!s->have_L) { s->needed_bytes = (size_t)w->data_buf[0] + 1; s->have_L = true; }
+        if(!s->have_L) {
+            s->needed_bytes = (size_t)w->data_buf[0] + 1;
+            s->have_L = true;
+        }
         if(n >= s->needed_bytes) {
             emit_format_a(w, w->data_buf, s->needed_bytes, s->rssi);
-            s->chip_bits = 0; s->have_L = false;
+            s->chip_bits = 0;
+            s->have_L = false;
         }
         return;
     }
@@ -248,15 +267,22 @@ static void slicer_run(WmbusWorker* w, Slicer* s) {
     if(!was_routed && s->routed) w->stats.sync_locks++;
     if(!s->routed) return;
     switch(s->route) {
-        case 0: slicer_run_3of6(w, s);            break;
-        case 1: slicer_run_nrz(w, s, false);      break;
-        case 2: slicer_run_nrz(w, s, true);       break;
+    case 0:
+        slicer_run_3of6(w, s);
+        break;
+    case 1:
+        slicer_run_nrz(w, s, false);
+        break;
+    case 2:
+        slicer_run_nrz(w, s, true);
+        break;
     }
 }
 
 static int32_t worker_thread(void* ctx) {
     WmbusWorker* w = (WmbusWorker*)ctx;
-    Slicer s; memset(&s, 0, sizeof(s));
+    Slicer s;
+    memset(&s, 0, sizeof(s));
 
     /* Internal radio uses furi_hal_subghz_* directly; the plugin
      * abstraction (subghz_devices_*) is only used for the external
@@ -275,13 +301,15 @@ static int32_t worker_thread(void* ctx) {
     if(is_external) {
         subghz_devices_reset(dev);
         subghz_devices_idle(dev);
-        subghz_devices_load_preset(
-            dev, FuriHalSubGhzPresetCustom, (uint8_t*)preset_for(w->mode));
+        subghz_devices_load_preset(dev, FuriHalSubGhzPresetCustom, (uint8_t*)preset_for(w->mode));
         subghz_devices_set_frequency(dev, f);
         subghz_devices_flush_rx(dev);
         subghz_devices_set_rx(dev);
     } else {
-        if(dev) { wmbus_radio_release(dev); dev = NULL; }
+        if(dev) {
+            wmbus_radio_release(dev);
+            dev = NULL;
+        }
         furi_hal_subghz_reset();
         furi_hal_subghz_load_custom_preset((uint8_t*)preset_for(w->mode));
         furi_hal_subghz_set_frequency_and_path(f);
@@ -293,8 +321,7 @@ static int32_t worker_thread(void* ctx) {
     while(w->running) {
         furi_delay_tick(1);
 
-        s.rssi = (int8_t)(is_external ? subghz_devices_get_rssi(dev)
-                                       : furi_hal_subghz_get_rssi());
+        s.rssi = (int8_t)(is_external ? subghz_devices_get_rssi(dev) : furi_hal_subghz_get_rssi());
 
         uint8_t buf[64];
         size_t got = wmbus_hal_rx_drain(buf, sizeof(buf), is_external);
@@ -307,7 +334,10 @@ static int32_t worker_thread(void* ctx) {
                 memcpy(&w->chip_buf[s.chip_bits / 8], buf, fits);
                 s.chip_bits += fits * 8;
             } else {
-                s.chip_bits = 0; s.have_L = false; s.needed_bytes = 0; s.routed = false;
+                s.chip_bits = 0;
+                s.have_L = false;
+                s.needed_bytes = 0;
+                s.routed = false;
             }
             slicer_run(w, &s);
         } else {
@@ -315,7 +345,10 @@ static int32_t worker_thread(void* ctx) {
             if(s.chip_bits > 0) {
                 idle_ticks++;
                 if(idle_ticks > 20) {
-                    s.chip_bits = 0; s.have_L = false; s.needed_bytes = 0; s.routed = false;
+                    s.chip_bits = 0;
+                    s.have_L = false;
+                    s.needed_bytes = 0;
+                    s.routed = false;
                     idle_ticks = 0;
                 }
             }

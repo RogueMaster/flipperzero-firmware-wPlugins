@@ -9,14 +9,16 @@
 #include <string.h>
 
 static const char* skip_ws(const char* p) {
-    while(*p == ' ' || *p == '\t') p++;
+    while(*p == ' ' || *p == '\t')
+        p++;
     return p;
 }
 
 static const char* take_word(const char* p, char* out, size_t cap) {
     p = skip_ws(p);
     size_t k = 0;
-    while(*p && *p != ' ' && *p != '\t' && *p != '\n' && k < cap - 1) out[k++] = *p++;
+    while(*p && *p != ' ' && *p != '\t' && *p != '\n' && k < cap - 1)
+        out[k++] = *p++;
     out[k] = 0;
     return p;
 }
@@ -24,16 +26,17 @@ static const char* take_word(const char* p, char* out, size_t cap) {
 static const char* take_rest(const char* p, char* out, size_t cap) {
     p = skip_ws(p);
     size_t k = 0;
-    while(*p && *p != '\n' && k < cap - 1) out[k++] = *p++;
-    while(k > 0 && (out[k-1] == ' ' || out[k-1] == '\t')) k--;
+    while(*p && *p != '\n' && k < cap - 1)
+        out[k++] = *p++;
+    while(k > 0 && (out[k - 1] == ' ' || out[k - 1] == '\t'))
+        k--;
     out[k] = 0;
     return p;
 }
 
 static bool keep_row(const char* label, const char* value) {
     if(!*value) return false;
-    if((!strcmp(label, "Rad") || !strcmp(label, "Room")) && !strcmp(value, "0.00 C"))
-        return false;
+    if((!strcmp(label, "Rad") || !strcmp(label, "Room")) && !strcmp(value, "0.00 C")) return false;
     return true;
 }
 
@@ -50,7 +53,10 @@ static size_t parse_rows(const char* text, DetailRow* rows, size_t cap) {
     while(*p && n < cap) {
         DetailRow row;
         p = take_word(p, row.label, sizeof(row.label));
-        if(!*row.label) { if(*p == '\n') p++; continue; }
+        if(!*row.label) {
+            if(*p == '\n') p++;
+            continue;
+        }
         p = take_rest(p, row.value, sizeof(row.value));
         if(*p == '\n') p++;
         if(keep_row(row.label, row.value)) rows[n++] = row;
@@ -77,9 +83,10 @@ void wmbus_view_detail_enter(void* ctx) {
         return;
     }
 
-    char m[4]; wmbus_manuf_decode(mt.manuf, m);
+    char m[4];
+    wmbus_manuf_decode(mt.manuf, m);
     const char* model = wmbus_engine_model_name(mt.manuf, mt.version, mt.medium);
-    const char* med   = wmbus_medium_str(mt.medium);
+    const char* med = wmbus_medium_str(mt.medium);
 
     char id_line[24];
     snprintf(id_line, sizeof(id_line), "%s %08lX", m, (unsigned long)mt.id);
@@ -87,19 +94,24 @@ void wmbus_view_detail_enter(void* ctx) {
     /* The id line above already shows the manufacturer code, so the
      * subtitle is just the model (when known) or the medium type. */
     char subtitle[28];
-    if(model)        snprintf(subtitle, sizeof(subtitle), "%s", model);
-    else if(med)     snprintf(subtitle, sizeof(subtitle), "%s", med);
-    else             subtitle[0] = 0;
+    if(model)
+        snprintf(subtitle, sizeof(subtitle), "%s", model);
+    else if(med)
+        snprintf(subtitle, sizeof(subtitle), "%s", med);
+    else
+        subtitle[0] = 0;
 
     const char* badge = "";
     if(mt.encrypted) {
-        if(mt.decrypted_ok)  badge = "DEC";
-        else if(mt.have_key) badge = "BAD";
-        else                 badge = "ENC";
+        if(mt.decrypted_ok)
+            badge = "DEC";
+        else if(mt.have_key)
+            badge = "BAD";
+        else
+            badge = "ENC";
     }
-    detail_canvas_set_header(app->detail_canvas, id_line, subtitle,
-                             mt.rssi, mt.telegram_count,
-                             mt.encrypted, badge);
+    detail_canvas_set_header(
+        app->detail_canvas, id_line, subtitle, mt.rssi, mt.telegram_count, mt.encrypted, badge);
 
     DetailRow rows[16];
     size_t n = parse_rows(mt.text, rows, 16);
@@ -112,7 +124,11 @@ void wmbus_view_detail_enter(void* ctx) {
 }
 
 bool wmbus_view_detail_event(void* ctx, SceneManagerEvent ev) {
-    (void)ctx; (void)ev; return false;
+    (void)ctx;
+    (void)ev;
+    return false;
 }
 
-void wmbus_view_detail_exit(void* ctx) { (void)ctx; }
+void wmbus_view_detail_exit(void* ctx) {
+    (void)ctx;
+}

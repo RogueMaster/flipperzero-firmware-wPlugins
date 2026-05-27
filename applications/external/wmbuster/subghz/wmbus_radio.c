@@ -35,18 +35,14 @@ static bool external_is_connected(void) {
     if(!was_on) otg_power_on();
 
     bool present = false;
-    const SubGhzDevice* d =
-        subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
+    const SubGhzDevice* d = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
     if(d) present = subghz_devices_is_connect(d);
 
     if(!was_on) otg_power_off();
     return present;
 }
 
-const SubGhzDevice* wmbus_radio_select(
-    const SubGhzDevice* current,
-    WmbusModule module) {
-
+const SubGhzDevice* wmbus_radio_select(const SubGhzDevice* current, WmbusModule module) {
     const SubGhzDevice* target = NULL;
     if(module == WmbusModuleExternal && external_is_connected()) {
         otg_power_on();
@@ -69,15 +65,13 @@ const SubGhzDevice* wmbus_radio_select(
 
 bool wmbus_radio_is_external(const SubGhzDevice* dev) {
     if(!dev) return false;
-    const SubGhzDevice* internal =
-        subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME);
+    const SubGhzDevice* internal = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME);
     return dev != internal;
 }
 
 void wmbus_radio_release(const SubGhzDevice* dev) {
     if(!dev) return;
-    const SubGhzDevice* internal =
-        subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME);
+    const SubGhzDevice* internal = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME);
     if(dev != internal) {
         subghz_devices_end(dev);
     }

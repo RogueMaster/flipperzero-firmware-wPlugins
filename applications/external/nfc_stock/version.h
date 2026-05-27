@@ -1,3 +1,3 @@
 #pragma once
 
-#define APP_VERSION "0.1.5" // x-release-please-version
+#define APP_VERSION FAP_VERSION // x-release-please-version

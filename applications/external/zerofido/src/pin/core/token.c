@@ -106,9 +106,8 @@ static bool zf_pin_token_rp_id_matches(const ZfClientPinState *state, const char
         return false;
     }
     if (state->pin_token_permissions_rp_id_set) {
-        matches = zf_crypto_constant_time_equal(
-            state->pin_token_permissions_rp_id_hash, rp_id_hash,
-            sizeof(state->pin_token_permissions_rp_id_hash));
+        matches = zf_crypto_constant_time_equal(state->pin_token_permissions_rp_id_hash, rp_id_hash,
+                                                sizeof(state->pin_token_permissions_rp_id_hash));
     } else {
         matches = true;
     }
@@ -160,16 +159,14 @@ uint8_t zerofido_pin_require_auth(Storage *storage, ZfClientPinState *state, boo
     *uv_verified = false;
 #if ZF_USB_DIAGNOSTICS
     zf_usb_diag_logf(storage, "pin auth start uv=%u hpa=%u hpp=%u proto=%u len=%u",
-                     uv_requested ? 1U : 0U, has_pin_auth ? 1U : 0U,
-                     has_pin_protocol ? 1U : 0U, (unsigned)pin_protocol,
-                     (unsigned)pin_auth_len);
+                     uv_requested ? 1U : 0U, has_pin_auth ? 1U : 0U, has_pin_protocol ? 1U : 0U,
+                     (unsigned)pin_protocol, (unsigned)pin_auth_len);
     zf_usb_diag_logf(storage,
                      "pin auth state pin=%u token=%u block=%u perm=%02X req=%02X scoped=%u "
                      "managed=%u rpset=%u",
                      state->pin_set ? 1U : 0U, state->pin_token_active ? 1U : 0U,
-                     state->pin_auth_blocked ? 1U : 0U,
-                     (unsigned)state->pin_token_permissions, (unsigned)required_permissions,
-                     state->pin_token_permissions_scoped ? 1U : 0U,
+                     state->pin_auth_blocked ? 1U : 0U, (unsigned)state->pin_token_permissions,
+                     (unsigned)required_permissions, state->pin_token_permissions_scoped ? 1U : 0U,
                      state->pin_token_permissions_managed ? 1U : 0U,
                      state->pin_token_permissions_rp_id_set ? 1U : 0U);
 #endif

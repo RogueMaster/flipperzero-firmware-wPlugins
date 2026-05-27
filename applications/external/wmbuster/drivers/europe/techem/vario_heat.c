@@ -16,12 +16,13 @@ static const WmbusMVT k_mvt[] = {
      * billing-period offsets are identical, so the Vario decoder
      * applies. */
     {"TCH", 0x28, 0x04},
-    { {0}, 0, 0 }
-};
+    {{0}, 0, 0}};
 
-static size_t decode(uint16_t m, uint8_t v, uint8_t med,
-                     const uint8_t* a, size_t l, char* o, size_t cap) {
-    (void)m; (void)v; (void)med;
+static size_t
+    decode(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
     return techem_decode_vario(a, l, o, cap);
 }
 

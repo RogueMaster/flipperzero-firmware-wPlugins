@@ -31,8 +31,8 @@ static bool read_rxbytes_stable(const FuriHalSpiBusHandle* h, uint8_t* out, bool
     const uint8_t addr = (uint8_t)(CC1101_READ | CC1101_BURST | CC1101_STATUS_RXBYTES);
     uint8_t prev = 0xFF;
     for(int i = 0; i < 4; i++) {
-        uint8_t tx[2] = { addr, 0 };
-        uint8_t rx[2] = { 0, 0 };
+        uint8_t tx[2] = {addr, 0};
+        uint8_t rx[2] = {0, 0};
         if(!furi_hal_spi_bus_trx(h, tx, rx, sizeof(tx), 100)) return false;
         if(i > 0 && rx[1] == prev) {
             *out = (uint8_t)(rx[1] & 0x7F);
@@ -48,9 +48,8 @@ static bool read_rxbytes_stable(const FuriHalSpiBusHandle* h, uint8_t* out, bool
 
 size_t wmbus_hal_rx_drain(uint8_t* dst, size_t cap, bool external) {
     if(!dst || cap == 0) return 0;
-    const FuriHalSpiBusHandle* h = external
-                                       ? &furi_hal_spi_bus_handle_external
-                                       : &furi_hal_spi_bus_handle_subghz;
+    const FuriHalSpiBusHandle* h = external ? &furi_hal_spi_bus_handle_external :
+                                              &furi_hal_spi_bus_handle_subghz;
 
     furi_hal_spi_acquire(h);
     uint8_t avail = 0;
@@ -66,9 +65,9 @@ size_t wmbus_hal_rx_drain(uint8_t* dst, size_t cap, bool external) {
          * need to signal the caller explicitly. */
         uint8_t sidle = (uint8_t)CC1101_STROBE_SIDLE;
         furi_hal_spi_bus_tx(h, &sidle, 1, 100);
-        uint8_t sfrx  = (uint8_t)CC1101_STROBE_SFRX;
+        uint8_t sfrx = (uint8_t)CC1101_STROBE_SFRX;
         furi_hal_spi_bus_tx(h, &sfrx, 1, 100);
-        uint8_t srx   = (uint8_t)CC1101_STROBE_SRX;
+        uint8_t srx = (uint8_t)CC1101_STROBE_SRX;
         furi_hal_spi_bus_tx(h, &srx, 1, 100);
         furi_hal_spi_release(h);
         return 0;

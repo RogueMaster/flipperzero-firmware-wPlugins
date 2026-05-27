@@ -396,14 +396,11 @@ static inline size_t zf_transport_nfc_run_u2f_adapter(ZerofidoApp *app, ZfNfcTra
     return response_len;
 }
 
-static bool zf_transport_nfc_send_encoded_u2f_immediate(ZerofidoApp *app,
-                                                        ZfNfcTransportState *state,
-                                                        const ZfNfcApdu *apdu,
-                                                        size_t u2f_request_len,
-                                                        const char *success_diag,
-                                                        const char *error_diag,
-                                                        bool auto_accept,
-                                                        bool caller_holds_ui_mutex) {
+static bool
+zf_transport_nfc_send_encoded_u2f_immediate(ZerofidoApp *app, ZfNfcTransportState *state,
+                                            const ZfNfcApdu *apdu, size_t u2f_request_len,
+                                            const char *success_diag, const char *error_diag,
+                                            bool auto_accept, bool caller_holds_ui_mutex) {
     bool old_auto_accept = false;
     size_t response_len = 0U;
 
@@ -416,8 +413,8 @@ static bool zf_transport_nfc_send_encoded_u2f_immediate(ZerofidoApp *app,
         furi_mutex_release(app->ui_mutex);
     }
 
-    response_len = zf_transport_nfc_run_u2f_adapter(app, state, u2f_request_len, success_diag,
-                                                    error_diag);
+    response_len =
+        zf_transport_nfc_run_u2f_adapter(app, state, u2f_request_len, success_diag, error_diag);
 
     if (auto_accept) {
         zerofido_ui_refresh_status(app);
@@ -428,8 +425,7 @@ static bool zf_transport_nfc_send_encoded_u2f_immediate(ZerofidoApp *app,
         }
     }
 
-    return zf_transport_nfc_send_u2f_response(app, state, apdu, app->transport_arena,
-                                              response_len);
+    return zf_transport_nfc_send_u2f_response(app, state, apdu, app->transport_arena, response_len);
 }
 
 static bool zf_transport_nfc_send_u2f_immediate(ZerofidoApp *app, ZfNfcTransportState *state,
@@ -439,9 +435,9 @@ static bool zf_transport_nfc_send_u2f_immediate(ZerofidoApp *app, ZfNfcTransport
         return zf_transport_nfc_send_status_word(state, ZF_NFC_SW_WRONG_LENGTH);
     }
 
-    return zf_transport_nfc_send_encoded_u2f_immediate(
-        app, state, apdu, u2f_request_len, "U2F immediate", "U2F error", true,
-        caller_holds_ui_mutex);
+    return zf_transport_nfc_send_encoded_u2f_immediate(app, state, apdu, u2f_request_len,
+                                                       "U2F immediate", "U2F error", true,
+                                                       caller_holds_ui_mutex);
 }
 
 static bool zf_transport_nfc_send_u2f_version_immediate(ZerofidoApp *app,

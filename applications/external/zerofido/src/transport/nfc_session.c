@@ -114,8 +114,7 @@ static void zf_transport_nfc_reset_exchange_internal_locked(ZfNfcTransportState 
     state->rx_complete_last_valid = false;
     state->rx_complete_last_cid_present = false;
     state->rx_complete_last_response_preserves_replay = false;
-    zf_crypto_secure_zero(state->rx_complete_last_payload,
-                          sizeof(state->rx_complete_last_payload));
+    zf_crypto_secure_zero(state->rx_complete_last_payload, sizeof(state->rx_complete_last_payload));
     zf_crypto_secure_zero(state->rx_complete_last_response,
                           sizeof(state->rx_complete_last_response));
     state->rx_chain_last_pcb = 0U;

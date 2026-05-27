@@ -13,12 +13,15 @@
 
 void wmbus_manuf_decode(uint16_t m, char out[4]) {
     out[0] = (char)(((m >> 10) & 0x1F) + 64);
-    out[1] = (char)(((m >> 5)  & 0x1F) + 64);
-    out[2] = (char)(( m        & 0x1F) + 64);
+    out[1] = (char)(((m >> 5) & 0x1F) + 64);
+    out[2] = (char)((m & 0x1F) + 64);
     out[3] = '\0';
 }
 
-static const struct { const char* code; const char* name; } k_manuf[] = {
+static const struct {
+    const char* code;
+    const char* name;
+} k_manuf[] = {
     /* --- water / heat / HCA majors (most-seen on EU radio) --- */
     {"KAM", "Kamstrup"},
     {"DME", "Diehl Metering"},
@@ -99,7 +102,7 @@ static const struct { const char* code; const char* name; } k_manuf[] = {
     {"INC", "Incotex"},
     {"INV", "Inventia"},
     {"ISA", "Iskra"},
-    {"IST", "ista"},                    /* HCA / heat allocator vendor */
+    {"IST", "ista"}, /* HCA / heat allocator vendor */
     {"IUS", "Itron US"},
     {"KAA", "Kamstrup A"},
     {"KHL", "Kohler"},
@@ -157,8 +160,9 @@ static const struct { const char* code; const char* name; } k_manuf[] = {
 };
 
 const char* wmbus_manuf_name(uint16_t m) {
-    char c[4]; wmbus_manuf_decode(m, c);
-    for(unsigned i = 0; i < sizeof(k_manuf)/sizeof(k_manuf[0]); i++)
+    char c[4];
+    wmbus_manuf_decode(m, c);
+    for(unsigned i = 0; i < sizeof(k_manuf) / sizeof(k_manuf[0]); i++)
         if(memcmp(c, k_manuf[i].code, 3) == 0) return k_manuf[i].name;
     return NULL;
 }

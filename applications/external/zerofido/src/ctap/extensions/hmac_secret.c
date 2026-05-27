@@ -50,9 +50,9 @@ uint8_t zf_ctap_hmac_secret_parse_get_assertion_input(ZfCborCursor *cursor,
 
         switch (key) {
         case 1:
-            if (!zf_ctap_parse_cose_p256_key_agreement(
-                    cursor, request->assertion.hmac_secret_platform_x,
-                    request->assertion.hmac_secret_platform_y)) {
+            if (!zf_ctap_parse_cose_p256_key_agreement(cursor,
+                                                       request->assertion.hmac_secret_platform_x,
+                                                       request->assertion.hmac_secret_platform_y)) {
                 return ZF_CTAP_ERR_INVALID_CBOR;
             }
             saw_key_agreement = true;

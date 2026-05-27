@@ -9,19 +9,19 @@
 #include <gui/scene_manager.h>
 #include <stdbool.h>
 
-void nfc_stock_scene_scan_on_enter(void *context);
-void nfc_stock_scene_scan_on_exit(void *context);
-bool nfc_stock_scene_scan_on_event(void *context, SceneManagerEvent event);
+void nfc_stock_scene_scan_on_enter(void* context);
+void nfc_stock_scene_scan_on_exit(void* context);
+bool nfc_stock_scene_scan_on_event(void* context, SceneManagerEvent event);
 
-void nfc_stock_scene_details_on_enter(void *context);
-bool nfc_stock_scene_details_on_event(void *context, SceneManagerEvent event);
-void nfc_stock_scene_details_on_exit(void *context);
+void nfc_stock_scene_details_on_enter(void* context);
+bool nfc_stock_scene_details_on_event(void* context, SceneManagerEvent event);
+void nfc_stock_scene_details_on_exit(void* context);
 
-void nfc_stock_scene_edit_on_enter(void *context);
-bool nfc_stock_scene_edit_on_event(void *context, SceneManagerEvent event);
-void nfc_stock_scene_edit_on_exit(void *context);
-bool nfc_stock_scene_edit_consume_nav_back(void *context);
+void nfc_stock_scene_edit_on_enter(void* context);
+bool nfc_stock_scene_edit_on_event(void* context, SceneManagerEvent event);
+void nfc_stock_scene_edit_on_exit(void* context);
+bool nfc_stock_scene_edit_consume_nav_back(void* context);
 
-void nfc_stock_scene_inventory_on_enter(void *context);
+void nfc_stock_scene_inventory_on_enter(void* context);
 
-void nfc_stock_ui_configure_settings(NfcStockUi *ui, NfcStockApp *app);
+void nfc_stock_ui_configure_settings(NfcStockUi* ui, NfcStockApp* app);

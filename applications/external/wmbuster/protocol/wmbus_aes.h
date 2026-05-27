@@ -16,8 +16,8 @@
 
 typedef struct {
     uint16_t m_field;
-    uint8_t  a_field[8];   /* ID(4) Ver(1) Type(1) AccessNo(1) reserved(1) */
-    uint8_t  access_no;
+    uint8_t a_field[8]; /* ID(4) Ver(1) Type(1) AccessNo(1) reserved(1) */
+    uint8_t access_no;
 } WmbusCryptoIvCtx;
 
 /* Build the 16-byte IV for Mode 5 (CBC). */
@@ -25,8 +25,11 @@ void wmbus_aes_build_iv5(const WmbusCryptoIvCtx* ctx, uint8_t iv[16]);
 
 /* Decrypt `in` of length `len` (must be multiple of 16) into `out`. */
 bool wmbus_aes_cbc_decrypt(
-    const uint8_t key[16], const uint8_t iv[16],
-    const uint8_t* in, size_t len, uint8_t* out);
+    const uint8_t key[16],
+    const uint8_t iv[16],
+    const uint8_t* in,
+    size_t len,
+    uint8_t* out);
 
 /* Verify the OMS plaintext prefix `0x2F 0x2F` to detect a successful
  * decryption. */

@@ -60,8 +60,8 @@ static bool zf_aes256_cbc_crypt(const uint8_t key[32], const uint8_t iv[16], con
 
     loaded = furi_hal_crypto_load_key(hal_key, hal_iv);
     if (loaded) {
-        ok = decrypt ? furi_hal_crypto_decrypt(hal_input, hal_output, size) :
-                       furi_hal_crypto_encrypt(hal_input, hal_output, size);
+        ok = decrypt ? furi_hal_crypto_decrypt(hal_input, hal_output, size)
+                     : furi_hal_crypto_encrypt(hal_input, hal_output, size);
         (void)furi_hal_crypto_unload_key();
     }
     if (ok) {

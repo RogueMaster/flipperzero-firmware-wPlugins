@@ -11,12 +11,13 @@ static const WmbusMVT k_mvt[] = {
     {"TCH", 0x43, 0x45},
     {"TCH", 0x43, 0x39},
     {"TCH", 0x43, 0x22},
-    { {0}, 0, 0 }
-};
+    {{0}, 0, 0}};
 
-static size_t decode(uint16_t m, uint8_t v, uint8_t med,
-                     const uint8_t* a, size_t l, char* o, size_t cap) {
-    (void)m; (void)v; (void)med;
+static size_t
+    decode(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
     return techem_decode_compact5(a, l, o, cap);
 }
 

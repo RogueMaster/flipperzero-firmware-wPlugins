@@ -14,7 +14,8 @@ void wmbus_aes_build_iv5(const WmbusCryptoIvCtx* ctx, uint8_t iv[16]) {
     iv[0] = (uint8_t)(ctx->m_field & 0xFF);
     iv[1] = (uint8_t)((ctx->m_field >> 8) & 0xFF);
     memcpy(&iv[2], ctx->a_field, 8);
-    for(int i = 10; i < 16; i++) iv[i] = ctx->access_no;
+    for(int i = 10; i < 16; i++)
+        iv[i] = ctx->access_no;
 }
 
 bool wmbus_aes_verify_2f2f(const uint8_t* p, size_t len) {
@@ -24,12 +25,16 @@ bool wmbus_aes_verify_2f2f(const uint8_t* p, size_t len) {
 #ifndef WMBUS_AES_SOFT
 
 bool wmbus_aes_cbc_decrypt(
-    const uint8_t key[16], const uint8_t iv[16],
-    const uint8_t* in, size_t len, uint8_t* out) {
+    const uint8_t key[16],
+    const uint8_t iv[16],
+    const uint8_t* in,
+    size_t len,
+    uint8_t* out) {
     if(len == 0 || (len & 0x0F)) return false;
     /* Ephemeral key+IV via furi_hal_crypto_load_key. The HW keeps it loaded
      * until the next load_key call or reset, so no explicit unload needed. */
-    uint8_t iv_copy[16]; memcpy(iv_copy, iv, 16);
+    uint8_t iv_copy[16];
+    memcpy(iv_copy, iv, 16);
     if(!furi_hal_crypto_load_key((uint8_t*)key, iv_copy)) return false;
     return furi_hal_crypto_decrypt((uint8_t*)in, out, len);
 }
@@ -39,9 +44,16 @@ bool wmbus_aes_cbc_decrypt(
 /* Minimal AES-128 software implementation (not used on device). */
 /* (Omitted here for brevity; add when running unit tests off-target.) */
 bool wmbus_aes_cbc_decrypt(
-    const uint8_t key[16], const uint8_t iv[16],
-    const uint8_t* in, size_t len, uint8_t* out) {
-    (void)key; (void)iv; (void)in; (void)len; (void)out;
+    const uint8_t key[16],
+    const uint8_t iv[16],
+    const uint8_t* in,
+    size_t len,
+    uint8_t* out) {
+    (void)key;
+    (void)iv;
+    (void)in;
+    (void)len;
+    (void)out;
     return false;
 }
 

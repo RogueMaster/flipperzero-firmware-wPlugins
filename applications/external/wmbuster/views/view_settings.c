@@ -4,10 +4,10 @@
 #include "../wmbus_app_i.h"
 #include <stdio.h>
 
-static const char* k_mode_names[]   = { "T1", "C1", "T+C", "S1" };
-static const char* k_filter_names[] = { "All", "Top 10", "Top 5", "Top 3" };
-static const char* k_sort_names[]   = { "Signal", "Recent", "ID", "Packets" };
-static const char* k_module_names[] = { "Internal", "External" };
+static const char* k_mode_names[] = {"T1", "C1", "T+C", "S1"};
+static const char* k_filter_names[] = {"All", "Top 10", "Top 5", "Top 3"};
+static const char* k_sort_names[] = {"Signal", "Recent", "ID", "Packets"};
+static const char* k_module_names[] = {"Internal", "External"};
 
 static uint32_t freq_for_mode(WmbusMode m) {
     return (m == WmbusModeS1) ? 868300000 : 868950000;
@@ -17,7 +17,7 @@ static void on_mode_change(VariableItem* it) {
     WmbusApp* app = variable_item_get_context(it);
     uint8_t i = variable_item_get_current_value_index(it);
     if(i >= WmbusMode_Count) i = 0;
-    app->settings.mode    = (WmbusMode)i;
+    app->settings.mode = (WmbusMode)i;
     app->settings.freq_hz = freq_for_mode((WmbusMode)i);
     variable_item_set_current_value_text(it, k_mode_names[i]);
 }
@@ -64,13 +64,11 @@ void wmbus_view_settings_enter(void* ctx) {
     variable_item_set_current_value_text(it, k_mode_names[app->settings.mode]);
 
     /* Top-N filters are useful when 100+ neighbour meters dominate. */
-    it = variable_item_list_add(app->var_list, "Filter", WmbusFilter_Count,
-                                on_filter_change, app);
+    it = variable_item_list_add(app->var_list, "Filter", WmbusFilter_Count, on_filter_change, app);
     variable_item_set_current_value_index(it, app->settings.filter);
     variable_item_set_current_value_text(it, k_filter_names[app->settings.filter]);
 
-    it = variable_item_list_add(app->var_list, "Sort by", WmbusSort_Count,
-                                on_sort_change, app);
+    it = variable_item_list_add(app->var_list, "Sort by", WmbusSort_Count, on_sort_change, app);
     variable_item_set_current_value_index(it, app->settings.sort);
     variable_item_set_current_value_text(it, k_sort_names[app->settings.sort]);
 
@@ -78,8 +76,8 @@ void wmbus_view_settings_enter(void* ctx) {
     variable_item_set_current_value_index(it, app->settings.logging ? 1 : 0);
     variable_item_set_current_value_text(it, app->settings.logging ? "On" : "Off");
 
-    it = variable_item_list_add(app->var_list, "Module", WmbusModule_Count_,
-                                on_module_change, app);
+    it =
+        variable_item_list_add(app->var_list, "Module", WmbusModule_Count_, on_module_change, app);
     variable_item_set_current_value_index(it, app->settings.module);
     variable_item_set_current_value_text(it, k_module_names[app->settings.module]);
 
@@ -87,7 +85,9 @@ void wmbus_view_settings_enter(void* ctx) {
 }
 
 bool wmbus_view_settings_event(void* ctx, SceneManagerEvent ev) {
-    (void)ctx; (void)ev; return false;
+    (void)ctx;
+    (void)ev;
+    return false;
 }
 
 void wmbus_view_settings_exit(void* ctx) {

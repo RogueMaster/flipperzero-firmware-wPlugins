@@ -40,9 +40,15 @@ static inline size_t oms_split_find_mfct(const uint8_t* a, size_t len) {
  * used for AES IV construction so the two paths agree. */
 static inline size_t oms_split_header_len(uint8_t ci) {
     switch(ci) {
-        case 0x7A: case 0x5A:                       return 4;   /* short header  */
-        case 0x72: case 0x53: case 0x8B:            return 12;  /* long header   */
-        default:                                    return 0;   /* proprietary   */
+    case 0x7A:
+    case 0x5A:
+        return 4; /* short header  */
+    case 0x72:
+    case 0x53:
+    case 0x8B:
+        return 12; /* long header   */
+    default:
+        return 0; /* proprietary   */
     }
 }
 
@@ -54,11 +60,15 @@ static inline size_t oms_split_header_len(uint8_t ci) {
  * we cannot strip the OMS short/long header that precedes the DIF/VIF
  * stream and the walker would emit garbage records for the header bytes. */
 static inline size_t oms_split_emit(
-    const char* title, uint8_t ci,
-    const uint8_t* apdu, size_t apdu_len,
-    char* out, size_t cap,
-    const uint8_t** mfct_out, size_t* mfct_len_out, size_t* mfct_off_out) {
-
+    const char* title,
+    uint8_t ci,
+    const uint8_t* apdu,
+    size_t apdu_len,
+    char* out,
+    size_t cap,
+    const uint8_t** mfct_out,
+    size_t* mfct_len_out,
+    size_t* mfct_off_out) {
     if(!out || cap == 0) return 0;
     size_t pos = (size_t)snprintf(out, cap, "%s\n", title ? title : "Meter");
     if(pos >= cap) return pos;
@@ -67,22 +77,22 @@ static inline size_t oms_split_emit(
     size_t hdr = oms_split_header_len(ci);
     if(hdr >= apdu_len) {
         if(mfct_off_out) *mfct_off_out = apdu_len;
-        if(mfct_out)     *mfct_out     = NULL;
+        if(mfct_out) *mfct_out = NULL;
         if(mfct_len_out) *mfct_len_out = 0;
         return pos;
     }
-    const uint8_t* body  = apdu + hdr;
-    size_t         blen  = apdu_len - hdr;
+    const uint8_t* body = apdu + hdr;
+    size_t blen = apdu_len - hdr;
 
     size_t cut = oms_split_find_mfct(body, blen);
     pos += wmbus_app_render(body, cut, out + pos, cap - pos);
 
     if(mfct_off_out) *mfct_off_out = cut + hdr; /* in original-apdu coords */
     if(cut + 1 < blen) {
-        if(mfct_out)     *mfct_out     = body + cut + 1;
+        if(mfct_out) *mfct_out = body + cut + 1;
         if(mfct_len_out) *mfct_len_out = blen - cut - 1;
     } else {
-        if(mfct_out)     *mfct_out     = NULL;
+        if(mfct_out) *mfct_out = NULL;
         if(mfct_len_out) *mfct_len_out = 0;
     }
     return pos;

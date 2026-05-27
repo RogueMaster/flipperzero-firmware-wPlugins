@@ -32,20 +32,16 @@ static void about_draw(Canvas* c, void* model) {
 
     /* Description: two short, secondary-font lines. */
     canvas_set_font(c, FontSecondary);
-    canvas_draw_str_aligned(c, 64, 14, AlignCenter, AlignTop,
-                            "EU wM-Bus listener");
-    canvas_draw_str_aligned(c, 64, 24, AlignCenter, AlignTop,
-                            "T1 . C1 . S1 . AES-128");
+    canvas_draw_str_aligned(c, 64, 14, AlignCenter, AlignTop, "EU wM-Bus listener");
+    canvas_draw_str_aligned(c, 64, 24, AlignCenter, AlignTop, "T1 . C1 . S1 . AES-128");
 
     /* Divider. */
     canvas_draw_line(c, 8, 36, 119, 36);
 
     /* GitHub link, bold, two-line. */
     canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, 64, 40, AlignCenter, AlignTop,
-                            "github.com/i12bp8");
-    canvas_draw_str_aligned(c, 64, 52, AlignCenter, AlignTop,
-                            "/wmbuster");
+    canvas_draw_str_aligned(c, 64, 40, AlignCenter, AlignTop, "github.com/i12bp8");
+    canvas_draw_str_aligned(c, 64, 52, AlignCenter, AlignTop, "/wmbuster");
 }
 
 static bool about_input(InputEvent* e, void* ctx) {
@@ -53,7 +49,7 @@ static bool about_input(InputEvent* e, void* ctx) {
     /* Only consume Back so the scene manager can pop us; let everything else
      * fall through to the default no-op. */
     if(e->type == InputTypeShort && e->key == InputKeyBack) {
-        return false;  /* let dispatcher handle navigation */
+        return false; /* let dispatcher handle navigation */
     }
     return false;
 }
@@ -73,4 +69,6 @@ void about_canvas_free(AboutCanvas* a) {
     free(a);
 }
 
-View* about_canvas_get_view(AboutCanvas* a) { return a->view; }
+View* about_canvas_get_view(AboutCanvas* a) {
+    return a->view;
+}

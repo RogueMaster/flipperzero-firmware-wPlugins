@@ -9,5 +9,5 @@
 typedef struct AboutCanvas AboutCanvas;
 
 AboutCanvas* about_canvas_alloc(void);
-void         about_canvas_free(AboutCanvas* a);
-View*        about_canvas_get_view(AboutCanvas* a);
+void about_canvas_free(AboutCanvas* a);
+View* about_canvas_get_view(AboutCanvas* a);

@@ -10,7 +10,8 @@
  * Returns true on success. */
 bool wmbus_log_telegram(
     Storage* storage,
-    const uint8_t* frame, size_t len,
+    const uint8_t* frame,
+    size_t len,
     int8_t rssi,
     const WmbusLinkFrame* link,
     const char* parsed_text);

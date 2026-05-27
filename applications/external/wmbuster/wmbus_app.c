@@ -57,14 +57,23 @@ static void on_tick_event(void* ctx) {
 }
 
 /* ------------- Start (root menu) scene ------------- */
-enum { StartIdxScan = 0, StartIdxSettings, StartIdxKeys, StartIdxAbout };
+enum {
+    StartIdxScan = 0,
+    StartIdxSettings,
+    StartIdxKeys,
+    StartIdxAbout
+};
 
 static void start_pick(void* ctx, uint32_t idx) {
     WmbusApp* app = ctx;
-    if(idx == StartIdxScan)          scene_manager_next_scene(app->scene_manager, WmbusSceneMeters);
-    else if(idx == StartIdxSettings) scene_manager_next_scene(app->scene_manager, WmbusSceneSettings);
-    else if(idx == StartIdxKeys)     scene_manager_next_scene(app->scene_manager, WmbusSceneKeys);
-    else if(idx == StartIdxAbout)    scene_manager_next_scene(app->scene_manager, WmbusSceneAbout);
+    if(idx == StartIdxScan)
+        scene_manager_next_scene(app->scene_manager, WmbusSceneMeters);
+    else if(idx == StartIdxSettings)
+        scene_manager_next_scene(app->scene_manager, WmbusSceneSettings);
+    else if(idx == StartIdxKeys)
+        scene_manager_next_scene(app->scene_manager, WmbusSceneKeys);
+    else if(idx == StartIdxAbout)
+        scene_manager_next_scene(app->scene_manager, WmbusSceneAbout);
 }
 
 /* ------------- About scene ------------- */
@@ -72,8 +81,14 @@ static void about_enter(void* ctx) {
     WmbusApp* app = ctx;
     view_dispatcher_switch_to_view(app->view_dispatcher, WmbusViewAbout);
 }
-static bool about_event(void* ctx, SceneManagerEvent e) { (void)ctx; (void)e; return false; }
-static void about_exit(void* ctx) { (void)ctx; }
+static bool about_event(void* ctx, SceneManagerEvent e) {
+    (void)ctx;
+    (void)e;
+    return false;
+}
+static void about_exit(void* ctx) {
+    (void)ctx;
+}
 
 static void start_enter(void* ctx) {
     WmbusApp* app = ctx;
@@ -82,46 +97,53 @@ static void start_enter(void* ctx) {
     wmbus_scanning_indicator_off(app);
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, WMBUS_APP_NAME);
-    submenu_add_item(app->submenu, "Scan",     StartIdxScan,     start_pick, app);
+    submenu_add_item(app->submenu, "Scan", StartIdxScan, start_pick, app);
     submenu_add_item(app->submenu, "Settings", StartIdxSettings, start_pick, app);
-    submenu_add_item(app->submenu, "Keys",     StartIdxKeys,     start_pick, app);
-    submenu_add_item(app->submenu, "About",    StartIdxAbout,    start_pick, app);
+    submenu_add_item(app->submenu, "Keys", StartIdxKeys, start_pick, app);
+    submenu_add_item(app->submenu, "About", StartIdxAbout, start_pick, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, WmbusViewSubmenu);
 }
 
-static bool start_event(void* ctx, SceneManagerEvent e) { (void)ctx; (void)e; return false; }
-static void start_exit(void* ctx) { WmbusApp* app = ctx; submenu_reset(app->submenu); }
+static bool start_event(void* ctx, SceneManagerEvent e) {
+    (void)ctx;
+    (void)e;
+    return false;
+}
+static void start_exit(void* ctx) {
+    WmbusApp* app = ctx;
+    submenu_reset(app->submenu);
+}
 
 /* ------------- Scene table ------------- */
-static void (* const k_on_enter[])(void*) = {
-    [WmbusSceneStart]    = start_enter,
-    [WmbusSceneMeters]   = wmbus_view_meters_enter,
-    [WmbusSceneDetail]   = wmbus_view_detail_enter,
+static void (*const k_on_enter[])(void*) = {
+    [WmbusSceneStart] = start_enter,
+    [WmbusSceneMeters] = wmbus_view_meters_enter,
+    [WmbusSceneDetail] = wmbus_view_detail_enter,
     [WmbusSceneSettings] = wmbus_view_settings_enter,
-    [WmbusSceneAbout]    = about_enter,
-    [WmbusSceneKeys]     = wmbus_view_keys_enter,
+    [WmbusSceneAbout] = about_enter,
+    [WmbusSceneKeys] = wmbus_view_keys_enter,
 };
-static bool (* const k_on_event[])(void*, SceneManagerEvent) = {
-    [WmbusSceneStart]    = start_event,
-    [WmbusSceneMeters]   = wmbus_view_meters_event,
-    [WmbusSceneDetail]   = wmbus_view_detail_event,
+static bool (*const k_on_event[])(void*, SceneManagerEvent) = {
+    [WmbusSceneStart] = start_event,
+    [WmbusSceneMeters] = wmbus_view_meters_event,
+    [WmbusSceneDetail] = wmbus_view_detail_event,
     [WmbusSceneSettings] = wmbus_view_settings_event,
-    [WmbusSceneAbout]    = about_event,
-    [WmbusSceneKeys]     = wmbus_view_keys_event,
+    [WmbusSceneAbout] = about_event,
+    [WmbusSceneKeys] = wmbus_view_keys_event,
 };
-static void (* const k_on_exit[])(void*) = {
-    [WmbusSceneStart]    = start_exit,
-    [WmbusSceneMeters]   = wmbus_view_meters_exit,
-    [WmbusSceneDetail]   = wmbus_view_detail_exit,
+static void (*const k_on_exit[])(void*) = {
+    [WmbusSceneStart] = start_exit,
+    [WmbusSceneMeters] = wmbus_view_meters_exit,
+    [WmbusSceneDetail] = wmbus_view_detail_exit,
     [WmbusSceneSettings] = wmbus_view_settings_exit,
-    [WmbusSceneAbout]    = about_exit,
-    [WmbusSceneKeys]     = wmbus_view_keys_exit,
+    [WmbusSceneAbout] = about_exit,
+    [WmbusSceneKeys] = wmbus_view_keys_exit,
 };
 static const SceneManagerHandlers k_scene_handlers = {
-    .on_enter_handlers  = k_on_enter,
-    .on_event_handlers  = k_on_event,
-    .on_exit_handlers   = k_on_exit,
-    .scene_num          = WmbusScene_Count,
+    .on_enter_handlers = k_on_enter,
+    .on_event_handlers = k_on_event,
+    .on_exit_handlers = k_on_exit,
+    .scene_num = WmbusScene_Count,
 };
 
 /* ------------- view_dispatcher event glue ------------- */
@@ -143,11 +165,11 @@ WmbusApp* wmbus_app_alloc(void) {
     memset(app, 0, sizeof(*app));
 
     /* Combined T+C is the broadest single-config receiver in the EU. */
-    app->settings.mode      = WmbusModeCT;
-    app->settings.freq_hz   = 868950000;
-    app->settings.logging   = false;
+    app->settings.mode = WmbusModeCT;
+    app->settings.freq_hz = 868950000;
+    app->settings.logging = false;
     app->settings.auto_decrypt = true;
-    app->settings.module    = WmbusModuleInternal_;
+    app->settings.module = WmbusModuleInternal_;
     app->selected = -1;
 
     subghz_devices_init();
@@ -162,7 +184,8 @@ WmbusApp* wmbus_app_alloc(void) {
     app->key_store = key_store_alloc(app->storage);
     key_store_load(app->key_store);
     app->view_dispatcher = view_dispatcher_alloc();
-    app->scene_manager   = scene_manager_alloc(&k_scene_handlers, app);
+    view_dispatcher_enable_queue(app->view_dispatcher);
+    app->scene_manager = scene_manager_alloc(&k_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, on_custom_event);
@@ -173,17 +196,23 @@ WmbusApp* wmbus_app_alloc(void) {
     app->var_list = variable_item_list_alloc();
     app->text_box = text_box_alloc();
     app->popup = popup_alloc();
-    app->scan_canvas   = scan_canvas_alloc();
+    app->scan_canvas = scan_canvas_alloc();
     app->detail_canvas = detail_canvas_alloc();
-    app->about_canvas  = about_canvas_alloc();
+    app->about_canvas = about_canvas_alloc();
 
-    view_dispatcher_add_view(app->view_dispatcher, WmbusViewSubmenu,      submenu_get_view(app->submenu));
-    view_dispatcher_add_view(app->view_dispatcher, WmbusViewSettings,     variable_item_list_get_view(app->var_list));
-    view_dispatcher_add_view(app->view_dispatcher, WmbusViewDetail,       text_box_get_view(app->text_box));
-    view_dispatcher_add_view(app->view_dispatcher, WmbusViewPopup,        popup_get_view(app->popup));
-    view_dispatcher_add_view(app->view_dispatcher, WmbusViewScan,         scan_canvas_get_view(app->scan_canvas));
-    view_dispatcher_add_view(app->view_dispatcher, WmbusViewDetailCanvas, detail_canvas_get_view(app->detail_canvas));
-    view_dispatcher_add_view(app->view_dispatcher, WmbusViewAbout,        about_canvas_get_view(app->about_canvas));
+    view_dispatcher_add_view(
+        app->view_dispatcher, WmbusViewSubmenu, submenu_get_view(app->submenu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, WmbusViewSettings, variable_item_list_get_view(app->var_list));
+    view_dispatcher_add_view(
+        app->view_dispatcher, WmbusViewDetail, text_box_get_view(app->text_box));
+    view_dispatcher_add_view(app->view_dispatcher, WmbusViewPopup, popup_get_view(app->popup));
+    view_dispatcher_add_view(
+        app->view_dispatcher, WmbusViewScan, scan_canvas_get_view(app->scan_canvas));
+    view_dispatcher_add_view(
+        app->view_dispatcher, WmbusViewDetailCanvas, detail_canvas_get_view(app->detail_canvas));
+    view_dispatcher_add_view(
+        app->view_dispatcher, WmbusViewAbout, about_canvas_get_view(app->about_canvas));
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
@@ -260,8 +289,12 @@ void wmbus_scanning_stop(WmbusApp* app) {
     }
 }
 
-void wmbus_scanning_indicator_off(WmbusApp* app) { led_off(app); }
-void wmbus_scanning_indicator_on (WmbusApp* app) { led_on(app); }
+void wmbus_scanning_indicator_off(WmbusApp* app) {
+    led_off(app);
+}
+void wmbus_scanning_indicator_on(WmbusApp* app) {
+    led_on(app);
+}
 
 /* ------------- Telegram callback (worker thread) ------------- */
 
@@ -285,8 +318,8 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
     /* Update meter row */
     WmbusMeter* mt = meters_db_upsert(app, link.M, link.id);
     mt->version = link.version;
-    mt->medium  = link.medium;
-    mt->rssi    = rssi;
+    mt->medium = link.medium;
+    mt->rssi = rssi;
     mt->encrypted = (link.enc_mode != 0);
     mt->decrypted_ok = false;
 
@@ -308,23 +341,26 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
             size_t hdr_off = 0;
             uint8_t a_field[8];
             switch(link.ci) {
-                case 0x7A: case 0x5A:
-                    hdr_off = 4;
-                    a_field[0] = (uint8_t)(link.id);
-                    a_field[1] = (uint8_t)(link.id >> 8);
-                    a_field[2] = (uint8_t)(link.id >> 16);
-                    a_field[3] = (uint8_t)(link.id >> 24);
-                    a_field[4] = link.version;
-                    a_field[5] = link.medium;
-                    a_field[6] = a_field[7] = 0;
-                    break;
-                case 0x72: case 0x53: case 0x8B:
-                    hdr_off = 10;
-                    if(link.apdu_len >= 6) memcpy(a_field, link.apdu, 6);
-                    a_field[6] = a_field[7] = 0;
-                    break;
-                default:
-                    hdr_off = 0;
+            case 0x7A:
+            case 0x5A:
+                hdr_off = 4;
+                a_field[0] = (uint8_t)(link.id);
+                a_field[1] = (uint8_t)(link.id >> 8);
+                a_field[2] = (uint8_t)(link.id >> 16);
+                a_field[3] = (uint8_t)(link.id >> 24);
+                a_field[4] = link.version;
+                a_field[5] = link.medium;
+                a_field[6] = a_field[7] = 0;
+                break;
+            case 0x72:
+            case 0x53:
+            case 0x8B:
+                hdr_off = 10;
+                if(link.apdu_len >= 6) memcpy(a_field, link.apdu, 6);
+                a_field[6] = a_field[7] = 0;
+                break;
+            default:
+                hdr_off = 0;
             }
             if(hdr_off > 0 && link.apdu_len > hdr_off) {
                 size_t ct_len = link.apdu_len - hdr_off;
@@ -337,9 +373,7 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
                     memcpy(ivx.a_field, a_field, 8);
                     uint8_t iv[16];
                     wmbus_aes_build_iv5(&ivx, iv);
-                    if(wmbus_aes_cbc_decrypt(
-                           key, iv,
-                           link.apdu + hdr_off, ct_len, s_plain)) {
+                    if(wmbus_aes_cbc_decrypt(key, iv, link.apdu + hdr_off, ct_len, s_plain)) {
                         if(wmbus_aes_verify_2f2f(s_plain, ct_len)) {
                             plain = s_plain + 2; /* skip 2F 2F filler */
                             plain_len = ct_len - 2;
@@ -357,10 +391,10 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
      * (an SD write can take 100 ms and would otherwise stall the GUI). */
     bool log_request = app->settings.logging;
     static uint8_t s_log_frame[WMBUS_MAX_FRAME];
-    static char    s_log_text[sizeof(((WmbusApp*)0)->last_text)];
+    static char s_log_text[sizeof(((WmbusApp*)0)->last_text)];
     static WmbusLinkFrame s_log_link;
-    static int8_t  s_log_rssi;
-    size_t  log_len = 0;
+    static int8_t s_log_rssi;
+    size_t log_len = 0;
 
     /* Driver dispatch — `wmbus_engine_find` is the only entry point.
      * It always returns a non-NULL driver (a sentinel "OMS payload"
@@ -372,11 +406,21 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
     const WmbusDriver* drv = wmbus_engine_find(link.M, link.version, link.medium);
     bool ci_is_oms = false;
     switch(link.ci) {
-    case 0x72: case 0x7A: case 0x78: case 0x79:
-    case 0x69: case 0x6B: case 0x6F: case 0x73:
-    case 0x8A: case 0x8B:
-    case 0x53: case 0x5A: case 0x5B:
-        ci_is_oms = true; break;
+    case 0x72:
+    case 0x7A:
+    case 0x78:
+    case 0x79:
+    case 0x69:
+    case 0x6B:
+    case 0x6F:
+    case 0x73:
+    case 0x8A:
+    case 0x8B:
+    case 0x53:
+    case 0x5A:
+    case 0x5B:
+        ci_is_oms = true;
+        break;
     default:
         ci_is_oms = false;
     }
@@ -384,13 +428,17 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
     if(link.enc_mode != 0 && !dec_ok) {
         /* Honest status line — never fabricate values for locked meters. */
         if(!key_found) {
-            snprintf(app->last_text, sizeof(app->last_text),
-                     "Locked (mode %u)\nNo key on file\nAdd to keys.csv\n",
-                     link.enc_mode);
+            snprintf(
+                app->last_text,
+                sizeof(app->last_text),
+                "Locked (mode %u)\nNo key on file\nAdd to keys.csv\n",
+                link.enc_mode);
         } else {
-            snprintf(app->last_text, sizeof(app->last_text),
-                     "Locked (mode %u)\nKey found, decrypt failed\nWrong key?\n",
-                     link.enc_mode);
+            snprintf(
+                app->last_text,
+                sizeof(app->last_text),
+                "Locked (mode %u)\nKey found, decrypt failed\nWrong key?\n",
+                link.enc_mode);
         }
     } else if(plain && plain_len) {
         if(dec_ok) {
@@ -423,27 +471,31 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
              * as a clean two-column row without overflow. The title line
              * encodes manuf+medium+CI so a developer reading a screenshot
              * has all the routing info to pen a driver. */
-            char  code[4]; wmbus_manuf_decode(link.M, code);
-            char* o   = app->last_text;
+            char code[4];
+            wmbus_manuf_decode(link.M, code);
+            char* o = app->last_text;
             size_t cap = sizeof(app->last_text);
-            size_t pos = (size_t)snprintf(o, cap, "%s %s CI=%02X\n",
-                                          code, wmbus_medium_str(link.medium),
-                                          link.ci);
-            pos += (size_t)snprintf(o + pos, cap - pos,
-                                    "Bytes  %u\n"
-                                    "Status  proprietary\n"
-                                    "Repo  i12bp8/wmbuster\n",
-                                    (unsigned)plain_len);
+            size_t pos = (size_t)snprintf(
+                o, cap, "%s %s CI=%02X\n", code, wmbus_medium_str(link.medium), link.ci);
+            pos += (size_t)snprintf(
+                o + pos,
+                cap - pos,
+                "Bytes  %u\n"
+                "Status  proprietary\n"
+                "Repo  i12bp8/wmbuster\n",
+                (unsigned)plain_len);
             size_t off = 0;
             int rows = 0;
             while(off < plain_len && rows < 4 && pos + 24 < cap) {
-                size_t n = plain_len - off; if(n > 6) n = 6;
-                pos += (size_t)snprintf(o + pos, cap - pos,
-                                        "Hex%02u ", (unsigned)off);
+                size_t n = plain_len - off;
+                if(n > 6) n = 6;
+                pos += (size_t)snprintf(o + pos, cap - pos, "Hex%02u ", (unsigned)off);
                 for(size_t k = 0; k < n && pos + 3 < cap; k++)
-                    pos += (size_t)snprintf(o + pos, cap - pos,
-                                            "%02X", plain[off + k]);
-                if(pos + 1 < cap) { o[pos++] = '\n'; o[pos] = 0; }
+                    pos += (size_t)snprintf(o + pos, cap - pos, "%02X", plain[off + k]);
+                if(pos + 1 < cap) {
+                    o[pos++] = '\n';
+                    o[pos] = 0;
+                }
                 off += n;
                 rows++;
             }
@@ -453,9 +505,13 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
              * and the legacy callback path is preserved for everything
              * else (see wmbus_engine_decode_ctx). */
             WmbusDecodeCtx ctx = {
-                .manuf = link.M, .version = link.version, .medium = link.medium,
-                .ci    = link.ci, .id     = link.id,
-                .apdu  = plain,   .apdu_len = plain_len,
+                .manuf = link.M,
+                .version = link.version,
+                .medium = link.medium,
+                .ci = link.ci,
+                .id = link.id,
+                .apdu = plain,
+                .apdu_len = plain_len,
             };
             wmbus_engine_decode_ctx(&ctx, app->last_text, sizeof(app->last_text));
         }
@@ -473,7 +529,10 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
     {
         size_t n = sizeof(mt->text) - 1;
         size_t i = 0;
-        while(i < n && app->last_text[i]) { mt->text[i] = app->last_text[i]; i++; }
+        while(i < n && app->last_text[i]) {
+            mt->text[i] = app->last_text[i];
+            i++;
+        }
         mt->text[i] = 0;
     }
 
@@ -487,10 +546,11 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
     if(app->last_text[0]) {
         const char* p = app->last_text;
         const char* nl = strchr(p, '\n');
-        if(nl && *(nl + 1)) p = nl + 1;     /* jump past the title line */
+        if(nl && *(nl + 1)) p = nl + 1; /* jump past the title line */
         size_t k = 0;
         while(k < sizeof(mt->last_value) - 1 && p[k] && p[k] != '\n') {
-            mt->last_value[k] = p[k]; k++;
+            mt->last_value[k] = p[k];
+            k++;
         }
         mt->last_value[k] = 0;
     }
@@ -506,8 +566,8 @@ void wmbus_app_on_telegram(WmbusApp* app, const uint8_t* fr, size_t len, int8_t 
     furi_mutex_release(app->lock);
 
     if(log_request && log_len) {
-        wmbus_log_telegram(app->storage, s_log_frame, log_len, s_log_rssi,
-                           &s_log_link, s_log_text);
+        wmbus_log_telegram(
+            app->storage, s_log_frame, log_len, s_log_rssi, &s_log_link, s_log_text);
     }
 
     /* Bump the GUI sequence counter so the tick handler redraws. */

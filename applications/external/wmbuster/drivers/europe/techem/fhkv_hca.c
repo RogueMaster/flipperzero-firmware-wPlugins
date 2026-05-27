@@ -20,12 +20,12 @@ static const WmbusMVT k_mvt[] = {
      * `fhkvdataiii` driver. */
     {"TCH", 0x80, 0x69},
     {"TCH", 0x80, 0x94},
-    { {0}, 0, 0 }
-};
+    {{0}, 0, 0}};
 
-static size_t decode(uint16_t m, uint8_t v, uint8_t med,
-                     const uint8_t* a, size_t l, char* o, size_t cap) {
-    (void)m; (void)med;
+static size_t
+    decode(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)med;
     return techem_decode_fhkv(v, a, l, o, cap);
 }
 

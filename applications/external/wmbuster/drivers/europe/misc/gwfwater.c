@@ -25,46 +25,50 @@
 #include <stdint.h>
 
 static size_t decode_gwf(const WmbusDecodeCtx* ctx, char* out, size_t cap) {
-    const uint8_t* m = NULL; size_t mlen = 0; size_t off = 0;
-    size_t pos = oms_split_emit("GWF water", ctx->ci,
-                                ctx->apdu, ctx->apdu_len,
-                                out, cap,
-                                &m, &mlen, &off);
+    const uint8_t* m = NULL;
+    size_t mlen = 0;
+    size_t off = 0;
+    size_t pos =
+        oms_split_emit("GWF water", ctx->ci, ctx->apdu, ctx->apdu_len, out, cap, &m, &mlen, &off);
     if(!m || mlen < 3) return pos;
 
     uint8_t type = m[0], a = m[1], b = m[2];
     if(type == 0x01) {
-        char alarms[20] = {0}; size_t ap = 0;
-#define APP(flag, txt) do { if((flag) && ap + sizeof(txt) < sizeof(alarms)) { \
-            if(ap) alarms[ap++] = ','; \
-            for(const char* s = txt; *s; s++) alarms[ap++] = *s; \
-            alarms[ap] = 0; \
-        } } while(0)
+        char alarms[20] = {0};
+        size_t ap = 0;
+#define APP(flag, txt)                                    \
+    do {                                                  \
+        if((flag) && ap + sizeof(txt) < sizeof(alarms)) { \
+            if(ap) alarms[ap++] = ',';                    \
+            for(const char* s = txt; *s; s++)             \
+                alarms[ap++] = *s;                        \
+            alarms[ap] = 0;                               \
+        }                                                 \
+    } while(0)
         APP(a & 0x02, "flow");
         APP(a & 0x08, "pipe");
         APP(a & 0x20, "batt");
         APP(a & 0x40, "back");
 #undef APP
-        pos += (size_t)snprintf(out + pos, cap - pos,
-                                "Alarms %s\n"
-                                "Mode  %s\n"
-                                "Batt  %.1f y\n",
-                                ap ? alarms : "OK",
-                                (b & 0x01) ? "saving" : "normal",
-                                (double)(b >> 3) / (double)2.0);
+        pos += (size_t)snprintf(
+            out + pos,
+            cap - pos,
+            "Alarms %s\n"
+            "Mode  %s\n"
+            "Batt  %.1f y\n",
+            ap ? alarms : "OK",
+            (b & 0x01) ? "saving" : "normal",
+            (double)(b >> 3) / (double)2.0);
     } else {
-        pos += (size_t)snprintf(out + pos, cap - pos,
-                                "MfctTyp %02X\n", (unsigned)type);
+        pos += (size_t)snprintf(out + pos, cap - pos, "MfctTyp %02X\n", (unsigned)type);
     }
     return pos;
 }
 
-static const WmbusMVT k_mvt[] = {
-    {"GWF", 0x0E, 0x01},
-    {"GWF", 0x07, 0x3C},
-    { {0}, 0, 0 }
-};
+static const WmbusMVT k_mvt[] = {{"GWF", 0x0E, 0x01}, {"GWF", 0x07, 0x3C}, {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_gwf_water = {
-    .id = "gwfwater", .title = "GWF water",
-    .mvt = k_mvt, .decode_ex = decode_gwf,
+    .id = "gwfwater",
+    .title = "GWF water",
+    .mvt = k_mvt,
+    .decode_ex = decode_gwf,
 };

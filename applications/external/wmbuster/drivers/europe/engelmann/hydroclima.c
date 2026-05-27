@@ -30,10 +30,9 @@ static double centi_temp(uint8_t lo, uint8_t hi) {
     return (double)v / (double)100.0;
 }
 
-static size_t append_pair_temp(char* o, size_t cap, size_t pos,
-                               const char* lbl, uint8_t lo, uint8_t hi) {
-    return pos + (size_t)snprintf(o + pos, cap - pos,
-                                  "%s  %.2f C\n", lbl, centi_temp(lo, hi));
+static size_t
+    append_pair_temp(char* o, size_t cap, size_t pos, const char* lbl, uint8_t lo, uint8_t hi) {
+    return pos + (size_t)snprintf(o + pos, cap - pos, "%s  %.2f C\n", lbl, centi_temp(lo, hi));
 }
 
 /* Heuristic: scan the OMS-prefix bytes for the marker `03 6E ..` which
@@ -47,11 +46,9 @@ static bool has_036e(const uint8_t* a, size_t cut) {
     return false;
 }
 
-static size_t decode_rkn0(char* o, size_t cap, size_t pos,
-                          const uint8_t* m, size_t l) {
+static size_t decode_rkn0(char* o, size_t cap, size_t pos, const uint8_t* m, size_t l) {
     if(l < 1) return pos;
-    pos += (size_t)snprintf(o + pos, cap - pos,
-                            "FrId  %02X\n", (unsigned)m[0]);
+    pos += (size_t)snprintf(o + pos, cap - pos, "FrId  %02X\n", (unsigned)m[0]);
     if(l < 9) return pos;
     /* Skip status (2), time (2), date (2) — surface only what fits. */
     pos = append_pair_temp(o, cap, pos, "AvgAmb", m[7], m[8]);
@@ -61,28 +58,26 @@ static size_t decode_rkn0(char* o, size_t cap, size_t pos,
     /* Skip max-date (2), num-measurements (2). */
     pos = append_pair_temp(o, cap, pos, "AvgAmbL", m[15], m[16]);
     if(l < 19) return pos;
-    pos = append_pair_temp(o, cap, pos, "AvgHtL",  m[17], m[18]);
+    pos = append_pair_temp(o, cap, pos, "AvgHtL", m[17], m[18]);
     return pos;
 }
 
-static size_t decode_rkn9(char* o, size_t cap, size_t pos,
-                          const uint8_t* m, size_t l) {
+static size_t decode_rkn9(char* o, size_t cap, size_t pos, const uint8_t* m, size_t l) {
     /* RKN9 starts with twelve consecutive 16-bit "last X month uc"
      * readings — surface the four most recent ones to fit on screen. */
     for(int month = 1; month <= 4 && (size_t)(month * 2 + 1) <= l; month++) {
-        uint16_t v = (uint16_t)m[(month - 1) * 2] |
-                     ((uint16_t)m[(month - 1) * 2 + 1] << 8);
-        pos += (size_t)snprintf(o + pos, cap - pos,
-                                "M-%d  %u u\n", month, (unsigned)v);
+        uint16_t v = (uint16_t)m[(month - 1) * 2] | ((uint16_t)m[(month - 1) * 2 + 1] << 8);
+        pos += (size_t)snprintf(o + pos, cap - pos, "M-%d  %u u\n", month, (unsigned)v);
     }
     return pos;
 }
 
 static size_t decode_hydroclima(const WmbusDecodeCtx* ctx, char* o, size_t cap) {
-    const uint8_t* m = NULL; size_t mlen = 0; size_t off = 0;
-    size_t pos = oms_split_emit("Engelmann Hydroclima", ctx->ci,
-                                ctx->apdu, ctx->apdu_len, o, cap,
-                                &m, &mlen, &off);
+    const uint8_t* m = NULL;
+    size_t mlen = 0;
+    size_t off = 0;
+    size_t pos = oms_split_emit(
+        "Engelmann Hydroclima", ctx->ci, ctx->apdu, ctx->apdu_len, o, cap, &m, &mlen, &off);
     if(!m || mlen < 1) return pos;
 
     if(has_036e(ctx->apdu, off))
@@ -98,9 +93,10 @@ static const WmbusMVT k_mvt[] = {
     {"DEV", 0x33, 0x08},
     {"DEV", 0x35, 0x08},
     {"DME", 0x70, 0x08},
-    { {0}, 0, 0 }
-};
+    {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_engelmann_hydroclima = {
-    .id = "hydroclima", .title = "Engelmann Hydroclima",
-    .mvt = k_mvt, .decode_ex = decode_hydroclima,
+    .id = "hydroclima",
+    .title = "Engelmann Hydroclima",
+    .mvt = k_mvt,
+    .decode_ex = decode_hydroclima,
 };

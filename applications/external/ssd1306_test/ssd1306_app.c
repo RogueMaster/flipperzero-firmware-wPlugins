@@ -79,7 +79,7 @@ typedef struct {
     FuriMutex* mutex;
 } App;
 
-#define PLANT_SAVE_PATH EXT_PATH("apps_data/ssd1306_test.sav")
+#define PLANT_SAVE_PATH  EXT_PATH("apps_data/ssd1306_test.sav")
 #define PLANT_SAVE_MAGIC 0xB07A81C5
 
 typedef struct {
@@ -87,7 +87,7 @@ typedef struct {
     uint32_t dead_until;
     uint8_t lockout_attempts;
     uint32_t magic;
-    
+
     // Growth persistence
     uint32_t growth;
     int32_t water;
@@ -95,14 +95,14 @@ typedef struct {
     int8_t rotation;
     uint8_t stress;
     uint8_t need;
-    
+
     // Timestamps for real-time updates
     uint32_t last_update_time;
     uint32_t need_change_time;
 } PlantSaveState;
 
 static void plant_crypt_data(uint8_t* data, size_t size) {
-    const char* key = "BotanicalObligationAES"; 
+    const char* key = "BotanicalObligationAES";
     size_t key_len = strlen(key);
     for(size_t i = 0; i < size; i++) {
         data[i] ^= key[i % key_len];
@@ -112,16 +112,16 @@ static void plant_crypt_data(uint8_t* data, size_t size) {
 static void save_plant_state(App* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
-    
+
     // Ensure apps_data exists
     storage_common_mkdir(storage, EXT_PATH("apps_data"));
-    
+
     if(storage_file_open(file, PLANT_SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         PlantSaveState state;
         state.is_dead = app->plant_is_dead;
         state.dead_until = app->plant_dead_until;
         state.lockout_attempts = app->plant_lockout_attempts;
-        
+
         // Save growth state
         state.growth = app->plant_growth;
         state.water = app->plant_water;
@@ -129,13 +129,13 @@ static void save_plant_state(App* app) {
         state.rotation = app->plant_rotation;
         state.stress = app->plant_stress;
         state.need = app->plant_need;
-        
+
         // Timestamp for real-time decay
         state.last_update_time = furi_hal_rtc_get_timestamp();
         state.need_change_time = app->plant_need_change_time;
-        
+
         state.magic = PLANT_SAVE_MAGIC;
-        
+
         plant_crypt_data((uint8_t*)&state, sizeof(state));
         storage_file_write(file, &state, sizeof(state));
     }
@@ -155,7 +155,7 @@ static void load_plant_state(App* app) {
                 app->plant_is_dead = state.is_dead;
                 app->plant_dead_until = state.dead_until;
                 app->plant_lockout_attempts = state.lockout_attempts;
-                
+
                 // Load growth state
                 app->plant_growth = state.growth;
                 app->plant_water = state.water;
@@ -163,36 +163,37 @@ static void load_plant_state(App* app) {
                 app->plant_rotation = state.rotation;
                 app->plant_stress = state.stress;
                 app->plant_need = state.need;
-                
+
                 app->plant_last_update_time = state.last_update_time;
                 app->plant_need_change_time = state.need_change_time;
-                
+
                 // Calculate real-time updates while app was closed
                 uint32_t now = furi_hal_rtc_get_timestamp();
                 if(app->plant_last_update_time > 0 && now > app->plant_last_update_time) {
                     uint32_t elapsed_seconds = now - app->plant_last_update_time;
-                    uint32_t ticks_elapsed = elapsed_seconds / 5;  // simulating 5-tick updates
-                    
+                    uint32_t ticks_elapsed = elapsed_seconds / 5; // simulating 5-tick updates
+
                     if(!app->plant_is_dead) {
                         // Slow decay while closed
-                        app->plant_water -= (ticks_elapsed / 2);  // -1 water per 10 sec
-                        app->plant_sun -= (ticks_elapsed / 4);    // -1 sun per 20 sec
-                        
+                        app->plant_water -= (ticks_elapsed / 2); // -1 water per 10 sec
+                        app->plant_sun -= (ticks_elapsed / 4); // -1 sun per 20 sec
+
                         // Withering on neglect
                         if(app->plant_stress > 20 && app->plant_growth > 0) {
-                            app->plant_growth -= (ticks_elapsed / 100);  // shrink slowly
+                            app->plant_growth -= (ticks_elapsed / 100); // shrink slowly
                         }
-                        
+
                         // Death from extreme neglect
-                        if(app->plant_water < -20 || app->plant_water > 120 || app->plant_stress > 40) {
+                        if(app->plant_water < -20 || app->plant_water > 120 ||
+                           app->plant_stress > 40) {
                             app->plant_is_dead = true;
                             app->plant_dead_until = now + (60 + (rand() % 241));
                             app->plant_growth = 0;
                         }
                     }
                 }
-                
-                app->plant_last_update_time = 0;  // will be set on close
+
+                app->plant_last_update_time = 0; // will be set on close
             }
         }
     }
@@ -201,50 +202,27 @@ static void load_plant_state(App* app) {
     furi_record_close(RECORD_STORAGE);
 }
 
-static const char* death_insults[] = {
-    "You murderer.",
-    "Try plastic pets.",
-    "Why are you like this.",
-    "I withered for you.",
-    "Demise on your hands.",
-    "Not a green thumb.",
-    "Brown thumb energy.",
-    "Photosynthesis failed.",
-    "I trusted you.",
-    "I was so young.",
-    "Cruel world.",
-    "Look what you did.",
-    "Are you proud?",
-    "I needed water.",
-    "Too much water.",
-    "You suffocated me.",
-    "I am compost.",
-    "Worm food now.",
-    "I gave you oxygen.",
-    "Is this a joke?",
-    "Do you even care?",
-    "My leaves are dry.",
-    "You're a monster.",
-    "Unbelievable.",
-    "Calling Mother Nature.",
-    "You disgust me.",
-    "Try a pet rock.",
-    "A rock would live.",
-    "You killed me.",
-    "Why. Just why.",
-    "Terrible at this.",
-    "Give up gardening.",
-    "Get a tamagotchi.",
-    "You'll kill that too.",
-    "I'm haunting you.",
-    "Ghost plant.",
-    "You bring ruin.",
-    "Despicable.",
-    "How could you?",
-    "I blame you entirely.",
-    "You're the worst.",
-    "42 ways to fail."
-};
+static const char* death_insults[] = {"You murderer.",          "Try plastic pets.",
+                                      "Why are you like this.", "I withered for you.",
+                                      "Demise on your hands.",  "Not a green thumb.",
+                                      "Brown thumb energy.",    "Photosynthesis failed.",
+                                      "I trusted you.",         "I was so young.",
+                                      "Cruel world.",           "Look what you did.",
+                                      "Are you proud?",         "I needed water.",
+                                      "Too much water.",        "You suffocated me.",
+                                      "I am compost.",          "Worm food now.",
+                                      "I gave you oxygen.",     "Is this a joke?",
+                                      "Do you even care?",      "My leaves are dry.",
+                                      "You're a monster.",      "Unbelievable.",
+                                      "Calling Mother Nature.", "You disgust me.",
+                                      "Try a pet rock.",        "A rock would live.",
+                                      "You killed me.",         "Why. Just why.",
+                                      "Terrible at this.",      "Give up gardening.",
+                                      "Get a tamagotchi.",      "You'll kill that too.",
+                                      "I'm haunting you.",      "Ghost plant.",
+                                      "You bring ruin.",        "Despicable.",
+                                      "How could you?",         "I blame you entirely.",
+                                      "You're the worst.",      "42 ways to fail."};
 #define NUM_DEATH_INSULTS 42
 
 static const char* monty_insults[] = {
@@ -289,8 +267,7 @@ static const char* monty_insults[] = {
     "Run away! Run away!",
     "We are the knights...",
     "...who say Ni!",
-    "Bring us a shrubbery!"
-};
+    "Bring us a shrubbery!"};
 #define NUM_MONTY_INSULTS 42
 
 // -- Plant need messages (16 per need) --
@@ -312,7 +289,7 @@ static const char* plant_need_messages[] = {
     "This is pathetic.",
     "Even cacti pity me.",
     "Water or I'm gone.",
-    
+
     // Sun (1)
     "I need more light.",
     "So. Very. Dark.",
@@ -330,7 +307,7 @@ static const char* plant_need_messages[] = {
     "Literally dying in dark.",
     "Even mushrooms laugh.",
     "Windows exist, use them.",
-    
+
     // Shade (2)
     "This light burns, ow.",
     "My leaves are bleached.",
@@ -348,7 +325,7 @@ static const char* plant_need_messages[] = {
     "Desert plant I'm not.",
     "Shade now, please.",
     "This is cruel.",
-    
+
     // Rotate Left (3)
     "Right side numb, move me.",
     "Phototropism failing here.",
@@ -366,7 +343,7 @@ static const char* plant_need_messages[] = {
     "Lopsided and cranky.",
     "Please spin me left.",
     "Right side abandoned.",
-    
+
     // Rotate Right (4)
     "Left side numb, move me.",
     "Phototropism failing here.",
@@ -386,7 +363,7 @@ static const char* plant_need_messages[] = {
     "Left side abandoned.",
 };
 #define NUM_NEED_MESSAGES 16
-#define NUM_NEED_TYPES 5
+#define NUM_NEED_TYPES    5
 
 static const char* weekday_names[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
@@ -730,16 +707,13 @@ static void render_clock_oled(App* app) {
 static void draw_leaf(SSD1306* d, int cx, int cy, int size, int angle) {
     (void)angle;
     // Simple leaf: two curved lines forming an ellipse
-    
-    
-    
-    
+
     // Draw leaf outline
     for(int i = -size; i <= size; i++) {
         int y_offset = (i * i) / (size * size + 1);
         int x_left = cx - (size - y_offset / 2);
         int x_right = cx + (size - y_offset / 2);
-        
+
         int actual_y = cy + i;
         if(actual_y >= 17 && actual_y < 64) {
             ssd1306_pixel(d, x_left, actual_y, true);
@@ -751,25 +725,25 @@ static void draw_leaf(SSD1306* d, int cx, int cy, int size, int angle) {
 // Helper: draw a flower (circle with petals)
 static void draw_flower(SSD1306* d, int cx, int cy, int petal_size) {
     if(cy < 17 || cy >= 64) return;
-    
+
     // Center circle
     for(int x = -2; x <= 2; x++) {
         for(int y = -2; y <= 2; y++) {
             int px = cx + x;
             int py = cy + y;
             if(px >= 0 && px < 128 && py >= 17 && py < 64) {
-                if(x*x + y*y <= 4) ssd1306_pixel(d, px, py, true);
+                if(x * x + y * y <= 4) ssd1306_pixel(d, px, py, true);
             }
         }
     }
-    
+
     // Petals (4 directions)
     for(int petal = 0; petal < 4; petal++) {
         int angle = petal * 90;
         float rad = (angle * 3.14159f) / 180.0f;
         int px = cx + (int)(petal_size * 1.5f * cosf((float)rad));
         int py = cy - (int)(petal_size * 1.5f * sinf((float)rad));
-        
+
         if(px >= 0 && px < 128 && py >= 17 && py < 64) {
             ssd1306_circle(d, px, py, petal_size);
         }
@@ -779,12 +753,12 @@ static void draw_flower(SSD1306* d, int cx, int cy, int petal_size) {
 // Helper: draw a petal cluster
 static void draw_petals(SSD1306* d, int cx, int cy, int num_petals) {
     if(cy < 17 || cy >= 64) return;
-    
+
     for(int i = 0; i < num_petals; i++) {
         float angle = (i * 360.0f) / num_petals * 3.14159f / 180.0f;
         int px = cx + (int)(5 * cosf((float)angle));
         int py = cy - (int)(5 * sinf((float)angle));
-        
+
         if(px >= 0 && px < 128 && py >= 17 && py < 64) {
             ssd1306_pixel(d, px, py, true);
             if(i % 2 == 0 && py - 1 >= 17) ssd1306_pixel(d, px, py - 1, true);
@@ -814,12 +788,7 @@ static void render_plant_oled(App* app) {
         uint32_t now = furi_hal_rtc_get_timestamp();
         uint32_t remaining = (app->plant_dead_until > now) ? (app->plant_dead_until - now) : 0;
         char time_str[32];
-        snprintf(
-            time_str,
-            sizeof(time_str),
-            "Wait: %lu m %lu s",
-            remaining / 60,
-            remaining % 60);
+        snprintf(time_str, sizeof(time_str), "Wait: %lu m %lu s", remaining / 60, remaining % 60);
         ssd1306_string(d, 2, 45, time_str);
 
         // draw gravestone
@@ -834,7 +803,8 @@ static void render_plant_oled(App* app) {
     }
 
     // Get current message for the need
-    const char* message = plant_need_messages[app->plant_need * NUM_NEED_MESSAGES + app->plant_need_message_idx];
+    const char* message =
+        plant_need_messages[app->plant_need * NUM_NEED_MESSAGES + app->plant_need_message_idx];
 
     // Draw hint text in the upper 16px (yellow bar zone) or top area
     if(app->yellow_bar_height > 0) {
@@ -860,12 +830,12 @@ static void render_plant_oled(App* app) {
 
     int cx = px;
     int cy = 45;
-    uint32_t seed = 0x12345678;  // deterministic seed for consistent shape
+    uint32_t seed = 0x12345678; // deterministic seed for consistent shape
 
     for(uint32_t i = 0; i < segments; i++) {
         seed = seed * 1664525 + 1013904223;
-        int dx = (seed >> 24) % 9 - 4;   // -4 to +4 sideways
-        int dy = (seed >> 20) % 4 + 1;   // 1 to 4 upwards
+        int dx = (seed >> 24) % 9 - 4; // -4 to +4 sideways
+        int dy = (seed >> 20) % 4 + 1; // 1 to 4 upwards
 
         int nx = cx + dx;
         int ny = cy - dy;
@@ -1531,15 +1501,16 @@ int32_t ssd1306_app_main(void* p) {
 
             if(!app->plant_is_dead) {
                 app->plant_ticks++;
-                
+
                 // Randomized 2-21 minute need timer
                 uint32_t now_epoch = furi_hal_rtc_get_timestamp();
-                uint32_t need_timer_seconds = (app->plant_need_change_time > 0) ? 
-                    (now_epoch - app->plant_need_change_time) : 0;
-                
+                uint32_t need_timer_seconds = (app->plant_need_change_time > 0) ?
+                                                  (now_epoch - app->plant_need_change_time) :
+                                                  0;
+
                 // 120 to 1260 seconds (2 to 21 minutes)
                 uint32_t need_threshold = 120 + (app->plant_need * 53 + (rand() % 200));
-                
+
                 if(need_timer_seconds > need_threshold) {
                     app->plant_need = rand() % 5;
                     app->plant_need_message_idx = 0;
@@ -1556,7 +1527,7 @@ int32_t ssd1306_app_main(void* p) {
                     if(app->plant_stress < 10 && app->plant_water > 10 && app->plant_water < 90) {
                         app->plant_growth++;
                     } else if(app->plant_stress > 20 && app->plant_growth > 0) {
-                        app->plant_growth--;  // shrinks/withers!
+                        app->plant_growth--; // shrinks/withers!
                     }
 
                     // Slow withering on neglect (very high stress or extreme conditions)

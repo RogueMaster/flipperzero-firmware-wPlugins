@@ -26,8 +26,10 @@ size_t wmbus_manchester_decode(
             v = 0;
         }
         size_t obit = i;
-        if(v) out[obit >> 3] |= (uint8_t)(1u << (7 - (obit & 7)));
-        else  out[obit >> 3] &= (uint8_t)~(1u << (7 - (obit & 7)));
+        if(v)
+            out[obit >> 3] |= (uint8_t)(1u << (7 - (obit & 7)));
+        else
+            out[obit >> 3] &= (uint8_t) ~(1u << (7 - (obit & 7)));
     }
     if(errors) *errors = err;
     return pairs;

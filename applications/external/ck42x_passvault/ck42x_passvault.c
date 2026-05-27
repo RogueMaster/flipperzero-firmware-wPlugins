@@ -1031,6 +1031,7 @@ static CkApp* ck_app_alloc(void) {
     app->storage = furi_record_open(RECORD_STORAGE);
 
     app->dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->dispatcher);
     app->submenu = submenu_alloc();
     app->text_input = text_input_alloc();
     app->widget = widget_alloc();

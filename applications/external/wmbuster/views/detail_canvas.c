@@ -27,29 +27,29 @@
 #include <string.h>
 #include <stdio.h>
 
-#define DETAIL_HEADER_H   18
-#define DETAIL_ROW_H      9
-#define DETAIL_LIST_TOP   (DETAIL_HEADER_H + 1)
-#define DETAIL_VISIBLE    ((64 - DETAIL_LIST_TOP) / DETAIL_ROW_H)
-#define DETAIL_MAX_ROWS   16
+#define DETAIL_HEADER_H          18
+#define DETAIL_ROW_H             9
+#define DETAIL_LIST_TOP          (DETAIL_HEADER_H + 1)
+#define DETAIL_VISIBLE           ((64 - DETAIL_LIST_TOP) / DETAIL_ROW_H)
+#define DETAIL_MAX_ROWS          16
 #define DETAIL_RAW_BYTES_PER_ROW 8
 #define DETAIL_RAW_MAX_BYTES     256
 
 typedef struct {
-    char     id_line[24];
-    char     subtitle[28];
-    int8_t   rssi;
+    char id_line[24];
+    char subtitle[28];
+    int8_t rssi;
     uint32_t telegram_count;
-    bool     encrypted;
-    char     badge[5];           /* "ENC", "DEC", "BAD" or empty           */
+    bool encrypted;
+    char badge[5]; /* "ENC", "DEC", "BAD" or empty           */
     DetailRow rows[DETAIL_MAX_ROWS];
-    size_t   row_count;
-    size_t   scroll;
+    size_t row_count;
+    size_t scroll;
     /* Raw mode: cached APDU + cursor for OK-toggled hex dump. */
-    uint8_t  apdu[DETAIL_RAW_MAX_BYTES];
-    size_t   apdu_len;
-    bool     raw_view;
-    size_t   raw_scroll;         /* row index into the dump grid             */
+    uint8_t apdu[DETAIL_RAW_MAX_BYTES];
+    size_t apdu_len;
+    bool raw_view;
+    size_t raw_scroll; /* row index into the dump grid             */
 } DetailModel;
 
 struct DetailCanvas {
@@ -76,18 +76,18 @@ static void draw_header(Canvas* c, const DetailModel* m) {
     /* Second line: subtitle + optional badge + packet count. */
     char tail[24];
     if(m->badge[0])
-        snprintf(tail, sizeof(tail), "%s %lu pkt",
-                 m->badge, (unsigned long)m->telegram_count);
+        snprintf(tail, sizeof(tail), "%s %lu pkt", m->badge, (unsigned long)m->telegram_count);
     else
-        snprintf(tail, sizeof(tail), "%lu pkt",
-                 (unsigned long)m->telegram_count);
+        snprintf(tail, sizeof(tail), "%lu pkt", (unsigned long)m->telegram_count);
     int tw = canvas_string_width(c, tail);
 
     /* Truncate subtitle to fit alongside the tail. */
     char sub[28];
-    strncpy(sub, m->subtitle, sizeof(sub) - 1); sub[sizeof(sub)-1] = 0;
+    strncpy(sub, m->subtitle, sizeof(sub) - 1);
+    sub[sizeof(sub) - 1] = 0;
     int max_sub_w = 128 - 4 - tw - 2;
-    while(canvas_string_width(c, sub) > max_sub_w && sub[0]) sub[strlen(sub) - 1] = 0;
+    while(canvas_string_width(c, sub) > max_sub_w && sub[0])
+        sub[strlen(sub) - 1] = 0;
 
     canvas_draw_str(c, 2, 17, sub);
     canvas_draw_str(c, 128 - tw - 2, 17, tail);
@@ -114,8 +114,7 @@ static void draw_rows(Canvas* c, const DetailModel* m) {
 
     if(m->row_count == 0) {
         canvas_set_font(c, FontSecondary);
-        canvas_draw_str_aligned(c, 64, 38, AlignCenter, AlignCenter,
-                                "(no data yet)");
+        canvas_draw_str_aligned(c, 64, 38, AlignCenter, AlignCenter, "(no data yet)");
         return;
     }
 
@@ -123,7 +122,7 @@ static void draw_rows(Canvas* c, const DetailModel* m) {
     if(end > m->row_count) end = m->row_count;
 
     bool has_scrollbar = m->row_count > DETAIL_VISIBLE;
-    int  right_edge   = has_scrollbar ? 122 : 126;
+    int right_edge = has_scrollbar ? 122 : 126;
 
     for(size_t i = m->scroll; i < end; i++) {
         int y = DETAIL_LIST_TOP + (int)(i - m->scroll) * DETAIL_ROW_H + DETAIL_ROW_H - 2;
@@ -135,7 +134,9 @@ static void draw_rows(Canvas* c, const DetailModel* m) {
          * pair. */
         if(r->label[0] == 0) {
             canvas_set_font(c, FontSecondary);
-            char tmp[32]; strncpy(tmp, r->value, sizeof(tmp) - 1); tmp[sizeof(tmp)-1] = 0;
+            char tmp[32];
+            strncpy(tmp, r->value, sizeof(tmp) - 1);
+            tmp[sizeof(tmp) - 1] = 0;
             fit_with_ellipsis(c, tmp, right_edge - 2);
             canvas_draw_str(c, 2, y, tmp);
             continue;
@@ -145,7 +146,8 @@ static void draw_rows(Canvas* c, const DetailModel* m) {
          * have a clean column to the right. */
         canvas_set_font(c, FontPrimary);
         char lbl[12];
-        strncpy(lbl, r->label, sizeof(lbl) - 1); lbl[sizeof(lbl)-1] = 0;
+        strncpy(lbl, r->label, sizeof(lbl) - 1);
+        lbl[sizeof(lbl) - 1] = 0;
         fit_with_ellipsis(c, lbl, 56);
         canvas_draw_str(c, 2, y, lbl);
 
@@ -153,7 +155,8 @@ static void draw_rows(Canvas* c, const DetailModel* m) {
          * remaining gutter so it can never bleed into the label. */
         canvas_set_font(c, FontSecondary);
         char val[24];
-        strncpy(val, r->value, sizeof(val) - 1); val[sizeof(val)-1] = 0;
+        strncpy(val, r->value, sizeof(val) - 1);
+        val[sizeof(val) - 1] = 0;
         int label_w = canvas_string_width(c, lbl);
         int max_val_w = right_edge - (2 + label_w + 4);
         if(max_val_w < 8) max_val_w = 8;
@@ -164,8 +167,12 @@ static void draw_rows(Canvas* c, const DetailModel* m) {
 
     if(has_scrollbar) {
         elements_scrollbar_pos(
-            c, 127, DETAIL_LIST_TOP, 64 - DETAIL_LIST_TOP,
-            m->scroll, m->row_count - DETAIL_VISIBLE + 1);
+            c,
+            127,
+            DETAIL_LIST_TOP,
+            64 - DETAIL_LIST_TOP,
+            m->scroll,
+            m->row_count - DETAIL_VISIBLE + 1);
     }
 }
 
@@ -178,8 +185,7 @@ static void draw_raw(Canvas* c, const DetailModel* m) {
 
     size_t total_rows = (m->apdu_len + DETAIL_RAW_BYTES_PER_ROW - 1) / DETAIL_RAW_BYTES_PER_ROW;
     if(total_rows == 0) {
-        canvas_draw_str_aligned(c, 64, 38, AlignCenter, AlignCenter,
-                                "(no payload)");
+        canvas_draw_str_aligned(c, 64, 38, AlignCenter, AlignCenter, "(no payload)");
         return;
     }
     bool has_scrollbar = total_rows > DETAIL_VISIBLE;
@@ -190,18 +196,21 @@ static void draw_raw(Canvas* c, const DetailModel* m) {
         int y = DETAIL_LIST_TOP + (int)(i - m->raw_scroll) * DETAIL_ROW_H + DETAIL_ROW_H - 2;
         size_t off = i * DETAIL_RAW_BYTES_PER_ROW;
         char line[40];
-        int  pos = snprintf(line, sizeof(line), "%02X ", (unsigned)off);
+        int pos = snprintf(line, sizeof(line), "%02X ", (unsigned)off);
         for(size_t k = 0; k < DETAIL_RAW_BYTES_PER_ROW && off + k < m->apdu_len; k++) {
-            pos += snprintf(line + pos, sizeof(line) - pos,
-                            "%02X", m->apdu[off + k]);
+            pos += snprintf(line + pos, sizeof(line) - pos, "%02X", m->apdu[off + k]);
         }
         canvas_draw_str(c, 2, y, line);
     }
 
     if(has_scrollbar) {
         elements_scrollbar_pos(
-            c, 127, DETAIL_LIST_TOP, 64 - DETAIL_LIST_TOP,
-            m->raw_scroll, total_rows - DETAIL_VISIBLE + 1);
+            c,
+            127,
+            DETAIL_LIST_TOP,
+            64 - DETAIL_LIST_TOP,
+            m->raw_scroll,
+            total_rows - DETAIL_VISIBLE + 1);
     }
 }
 
@@ -226,18 +235,21 @@ static void detail_view_draw(Canvas* c, void* m_) {
     const DetailModel* m = m_;
     canvas_clear(c);
     draw_header(c, m);
-    if(m->raw_view) draw_raw(c, m);
-    else            draw_rows(c, m);
+    if(m->raw_view)
+        draw_raw(c, m);
+    else
+        draw_rows(c, m);
     draw_ok_hint(c, m);
 }
 
 static bool detail_view_input(InputEvent* ev, void* ctx) {
     DetailCanvas* dc = ctx;
     if(ev->type != InputTypeShort && ev->type != InputTypeRepeat) return false;
-    if(ev->key != InputKeyUp && ev->key != InputKeyDown && ev->key != InputKeyOk)
-        return false;
+    if(ev->key != InputKeyUp && ev->key != InputKeyDown && ev->key != InputKeyOk) return false;
     bool need = false;
-    with_view_model(dc->view, DetailModel * m,
+    with_view_model(
+        dc->view,
+        DetailModel * m,
         {
             if(ev->key == InputKeyOk) {
                 /* Toggle decoded ↔ raw. Only meaningful when we actually
@@ -247,19 +259,25 @@ static bool detail_view_input(InputEvent* ev, void* ctx) {
                     need = true;
                 }
             } else if(m->raw_view) {
-                size_t total = (m->apdu_len + DETAIL_RAW_BYTES_PER_ROW - 1) / DETAIL_RAW_BYTES_PER_ROW;
+                size_t total =
+                    (m->apdu_len + DETAIL_RAW_BYTES_PER_ROW - 1) / DETAIL_RAW_BYTES_PER_ROW;
                 if(total > DETAIL_VISIBLE) {
                     if(ev->key == InputKeyUp && m->raw_scroll > 0) {
-                        m->raw_scroll--; need = true;
-                    } else if(ev->key == InputKeyDown &&
-                              m->raw_scroll + DETAIL_VISIBLE < total) {
-                        m->raw_scroll++; need = true;
+                        m->raw_scroll--;
+                        need = true;
+                    } else if(ev->key == InputKeyDown && m->raw_scroll + DETAIL_VISIBLE < total) {
+                        m->raw_scroll++;
+                        need = true;
                     }
                 }
             } else if(m->row_count > DETAIL_VISIBLE) {
-                if(ev->key == InputKeyUp && m->scroll > 0) { m->scroll--; need = true; }
-                else if(ev->key == InputKeyDown &&
-                        m->scroll + DETAIL_VISIBLE < m->row_count) { m->scroll++; need = true; }
+                if(ev->key == InputKeyUp && m->scroll > 0) {
+                    m->scroll--;
+                    need = true;
+                } else if(ev->key == InputKeyDown && m->scroll + DETAIL_VISIBLE < m->row_count) {
+                    m->scroll++;
+                    need = true;
+                }
             }
         },
         need);
@@ -285,15 +303,23 @@ void detail_canvas_free(DetailCanvas* dc) {
     free(dc);
 }
 
-View* detail_canvas_get_view(DetailCanvas* dc) { return dc->view; }
+View* detail_canvas_get_view(DetailCanvas* dc) {
+    return dc->view;
+}
 
-void detail_canvas_set_header(DetailCanvas* dc,
-                              const char* line1, const char* line2,
-                              int8_t rssi, uint32_t pkt, bool encrypted,
-                              const char* badge) {
-    with_view_model(dc->view, DetailModel * m,
+void detail_canvas_set_header(
+    DetailCanvas* dc,
+    const char* line1,
+    const char* line2,
+    int8_t rssi,
+    uint32_t pkt,
+    bool encrypted,
+    const char* badge) {
+    with_view_model(
+        dc->view,
+        DetailModel * m,
         {
-            strncpy(m->id_line,  line1 ? line1 : "", sizeof(m->id_line)  - 1);
+            strncpy(m->id_line, line1 ? line1 : "", sizeof(m->id_line) - 1);
             strncpy(m->subtitle, line2 ? line2 : "", sizeof(m->subtitle) - 1);
             m->id_line[sizeof(m->id_line) - 1] = 0;
             m->subtitle[sizeof(m->subtitle) - 1] = 0;
@@ -312,9 +338,12 @@ void detail_canvas_set_header(DetailCanvas* dc,
 
 void detail_canvas_set_rows(DetailCanvas* dc, const DetailRow* rows, size_t n) {
     if(n > DETAIL_MAX_ROWS) n = DETAIL_MAX_ROWS;
-    with_view_model(dc->view, DetailModel * m,
+    with_view_model(
+        dc->view,
+        DetailModel * m,
         {
-            for(size_t i = 0; i < n; i++) m->rows[i] = rows[i];
+            for(size_t i = 0; i < n; i++)
+                m->rows[i] = rows[i];
             m->row_count = n;
             if(m->scroll > n) m->scroll = 0;
             /* Always reset to decoded view when fields change so the user
@@ -324,15 +353,16 @@ void detail_canvas_set_rows(DetailCanvas* dc, const DetailRow* rows, size_t n) {
         true);
 }
 
-void detail_canvas_set_raw(DetailCanvas* dc,
-                           const uint8_t* apdu, size_t apdu_len) {
-    with_view_model(dc->view, DetailModel * m,
+void detail_canvas_set_raw(DetailCanvas* dc, const uint8_t* apdu, size_t apdu_len) {
+    with_view_model(
+        dc->view,
+        DetailModel * m,
         {
             size_t cap = sizeof(m->apdu);
-            size_t n   = (apdu && apdu_len) ? apdu_len : 0;
+            size_t n = (apdu && apdu_len) ? apdu_len : 0;
             if(n > cap) n = cap;
             if(n) memcpy(m->apdu, apdu, n);
-            m->apdu_len   = n;
+            m->apdu_len = n;
             m->raw_scroll = 0;
             /* Switching meters resets the toggle so the user lands on the
              * decoded view first. */

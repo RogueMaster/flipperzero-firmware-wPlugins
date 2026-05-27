@@ -13,7 +13,7 @@
 
 typedef enum {
     WmbusManchesterIeee802 = 0, /* 01->1, 10->0  (preferred) */
-    WmbusManchesterThomas  = 1, /* inverse        */
+    WmbusManchesterThomas = 1, /* inverse        */
 } WmbusManchesterPolarity;
 
 /* Decode `chip_bits` chip-level bits packed MSB-first into `chips`.

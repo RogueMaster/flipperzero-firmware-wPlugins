@@ -23,15 +23,22 @@
  * dimension is `frame[0xb] & 0x0F`; the six bytes XOR with the six
  * raw-volume bytes at frame[0xf..0x14]. */
 static const uint8_t k_xor[16][6] = {
-    { 117, 150, 122,  16,  26,  10 }, {  91, 127, 112,  19,  34,  19 },
-    { 179,  24, 185,  11, 142, 153 }, { 142, 125, 121,   7,  74,  22 },
-    { 181, 145,   7, 154, 203, 105 }, { 184, 163,  50, 161,  57,  14 },
-    { 189, 128, 156, 126,  96, 153 }, {  39,  92, 180, 196, 128, 163 },
-    {  48, 208,  10, 206,  25,   3 }, { 194,  76, 240,   5, 165, 134 },
-    {  84,  75,  22, 152,  17,  94 }, {  75, 238,  12, 201, 125, 162 },
-    { 135, 202,  74,  72, 228,  31 }, { 196, 135, 119,  46, 138, 232 },
-    { 227,  48, 189, 120,  87, 140 }, { 164, 154,  57, 111,  40,   5 }
-};
+    {117, 150, 122, 16, 26, 10},
+    {91, 127, 112, 19, 34, 19},
+    {179, 24, 185, 11, 142, 153},
+    {142, 125, 121, 7, 74, 22},
+    {181, 145, 7, 154, 203, 105},
+    {184, 163, 50, 161, 57, 14},
+    {189, 128, 156, 126, 96, 153},
+    {39, 92, 180, 196, 128, 163},
+    {48, 208, 10, 206, 25, 3},
+    {194, 76, 240, 5, 165, 134},
+    {84, 75, 22, 152, 17, 94},
+    {75, 238, 12, 201, 125, 162},
+    {135, 202, 74, 72, 228, 31},
+    {196, 135, 119, 46, 138, 232},
+    {227, 48, 189, 120, 87, 140},
+    {164, 154, 57, 111, 40, 5}};
 
 static int bcd2bin(uint8_t b) {
     return ((b >> 4) & 0x0F) * 10 + (b & 0x0F);
@@ -56,10 +63,11 @@ static size_t decode_rfmtx1(const WmbusDecodeCtx* ctx, char* out, size_t cap) {
      * frame[0xF..0x14] -> apdu[4..9], frame[28..33] -> apdu[17..22]. */
     if(legacy && l >= 23) {
         size_t pos = (size_t)snprintf(out, cap, "Sontex RFM-TX1\n");
-        uint8_t  k_idx = a[0] & 0x0F;
-        uint8_t  base  = a[0];
+        uint8_t k_idx = a[0] & 0x0F;
+        uint8_t base = a[0];
         uint8_t dec[6];
-        for(int i = 0; i < 6; i++) dec[i] = a[4 + i] ^ base ^ k_xor[k_idx][i];
+        for(int i = 0; i < 6; i++)
+            dec[i] = a[4 + i] ^ base ^ k_xor[k_idx][i];
 
         /* dec[0..1] carry status flags; the volume is BCD-packed across
          * dec[2..5] with each byte being the next *100 decade. */
@@ -73,12 +81,18 @@ static size_t decode_rfmtx1(const WmbusDecodeCtx* ctx, char* out, size_t cap) {
 
         /* Datetime: BCD seconds/minutes/hour/day/month/year. */
         if(l >= 23) {
-            int s  = bcd2bin(a[17]), mn = bcd2bin(a[18]), h = bcd2bin(a[19]);
-            int d  = bcd2bin(a[20]), mo = bcd2bin(a[21]);
-            int y  = 2000 + bcd2bin(a[22]);
-            pos += (size_t)snprintf(out + pos, cap - pos,
-                                    "Time  %04d-%02d-%02d %02d:%02d\n",
-                                    y, mo % 13, d % 32, h % 24, mn % 60);
+            int s = bcd2bin(a[17]), mn = bcd2bin(a[18]), h = bcd2bin(a[19]);
+            int d = bcd2bin(a[20]), mo = bcd2bin(a[21]);
+            int y = 2000 + bcd2bin(a[22]);
+            pos += (size_t)snprintf(
+                out + pos,
+                cap - pos,
+                "Time  %04d-%02d-%02d %02d:%02d\n",
+                y,
+                mo % 13,
+                d % 32,
+                h % 24,
+                mn % 60);
             (void)s;
         }
         return pos;
@@ -89,11 +103,10 @@ static size_t decode_rfmtx1(const WmbusDecodeCtx* ctx, char* out, size_t cap) {
     return wmbus_engine_render_oms("Sontex RFM-TX1", a, l, out, cap);
 }
 
-static const WmbusMVT k_mvt[] = {
-    {"BMT", 0x07, 0x05},
-    { {0}, 0, 0 }
-};
+static const WmbusMVT k_mvt[] = {{"BMT", 0x07, 0x05}, {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_sontex_rfmtx1 = {
-    .id = "rfmtx1", .title = "Sontex RFM-TX1",
-    .mvt = k_mvt, .decode_ex = decode_rfmtx1,
+    .id = "rfmtx1",
+    .title = "Sontex RFM-TX1",
+    .mvt = k_mvt,
+    .decode_ex = decode_rfmtx1,
 };

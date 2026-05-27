@@ -42,10 +42,10 @@ typedef struct {
     const char* name;
     const char* hex;
     const char* manuf;
-    uint8_t     version;
-    uint8_t     medium;
-    uint8_t     ci;
-    uint8_t     enc_mode;
+    uint8_t version;
+    uint8_t medium;
+    uint8_t ci;
+    uint8_t enc_mode;
 } Vec;
 
 /* Layout: L(1) C(1) M(2) ID(4) Ver(1) Type(1) CI(1) [APDU...]
@@ -53,26 +53,48 @@ typedef struct {
 static const Vec VECTORS[] = {
     /* TCH v0x6A HCA — mode-5 encrypted, short header (CI=0x7A).
      * AccessNo=0x78 Status=0x00 CW=0x2510 → enc_mode=(0x2510>>8)&0x1F=5. */
-    { "TCH v6A HCA encrypted",
-      "1d44685000000000" "6a08" "7a" "78001025"
-      "df9bacad4fce4ec76567571eb1f10bd22f3b5c",
-      "TCH", 0x6A, 0x08, 0x7A, 5 },
+    {"TCH v6A HCA encrypted",
+     "1d44685000000000"
+     "6a08"
+     "7a"
+     "78001025"
+     "df9bacad4fce4ec76567571eb1f10bd22f3b5c",
+     "TCH",
+     0x6A,
+     0x08,
+     0x7A,
+     5},
 
     /* TCH v0x6A HCA — same key shape, larger frame, CW=0x3000 → mode=0
      * (some Techem frames advertise no encryption in the CW even though
      * the body is scrambled by a proprietary preamble). */
-    { "TCH v6A HCA short CW=0x3000",
-      "4844685000000000" "6a08" "7a" "46003005" "1b09a52f",
-      "TCH", 0x6A, 0x08, 0x7A, 0 },
+    {"TCH v6A HCA short CW=0x3000",
+     "4844685000000000"
+     "6a08"
+     "7a"
+     "46003005"
+     "1b09a52f",
+     "TCH",
+     0x6A,
+     0x08,
+     0x7A,
+     0},
 
     /* TCH v0x52 heat-volumetric — CI=0xA2, proprietary, never encrypted.
      * Goes through the Techem driver, not the OMS walker. */
-    { "TCH v52 heat (proprietary CI=0xA2)",
-      "2d44685000000000" "5262" "a2" "0697340400d009000004000000",
-      "TCH", 0x52, 0x62, 0xA2, 0 },
+    {"TCH v52 heat (proprietary CI=0xA2)",
+     "2d44685000000000"
+     "5262"
+     "a2"
+     "0697340400d009000004000000",
+     "TCH",
+     0x52,
+     0x62,
+     0xA2,
+     0},
 };
 
-#define VCOUNT (sizeof(VECTORS)/sizeof(VECTORS[0]))
+#define VCOUNT (sizeof(VECTORS) / sizeof(VECTORS[0]))
 
 int main(void) {
     int failures = 0;
@@ -82,20 +104,23 @@ int main(void) {
         size_t n = hex2buf(v->hex, buf, sizeof(buf));
         WmbusLinkFrame f;
         bool ok = wmbus_link_parse(buf, n, &f);
-        char manuf[4]; wmbus_manuf_decode(f.M, manuf);
+        char manuf[4];
+        wmbus_manuf_decode(f.M, manuf);
 
-        bool pass =
-            ok &&
-            memcmp(manuf, v->manuf, 3) == 0 &&
-            f.version == v->version &&
-            f.medium  == v->medium &&
-            f.ci      == v->ci;
+        bool pass = ok && memcmp(manuf, v->manuf, 3) == 0 && f.version == v->version &&
+                    f.medium == v->medium && f.ci == v->ci;
 
         /* enc_mode check is informational; some vectors are too short
          * or use non-standard CIs where extraction returns 0. */
-        printf("[%s] %s  manuf=%s ver=0x%02X med=0x%02X ci=0x%02X enc=%u\n",
-               pass ? "PASS" : "FAIL", v->name,
-               manuf, f.version, f.medium, f.ci, f.enc_mode);
+        printf(
+            "[%s] %s  manuf=%s ver=0x%02X med=0x%02X ci=0x%02X enc=%u\n",
+            pass ? "PASS" : "FAIL",
+            v->name,
+            manuf,
+            f.version,
+            f.medium,
+            f.ci,
+            f.enc_mode);
         if(!pass) failures++;
     }
     printf("\n%u/%zu tests passed\n", (unsigned)(VCOUNT - failures), VCOUNT);

@@ -35,30 +35,32 @@ static int put(char* o, size_t cap, size_t pos, const char* fmt, ...) {
 static void date_g(uint16_t w, char* out, size_t cap) {
     int day = w & 0x1F;
     int mon = (w >> 8) & 0x0F;
-    int yr  = ((w >> 5) & 0x07) | (((w >> 12) & 0x0F) << 3);
-    if(!day || !mon || mon > 12) snprintf(out, cap, "-");
-    else snprintf(out, cap, "%04d-%02d-%02d", 2000 + yr, mon, day);
+    int yr = ((w >> 5) & 0x07) | (((w >> 12) & 0x0F) << 3);
+    if(!day || !mon || mon > 12)
+        snprintf(out, cap, "-");
+    else
+        snprintf(out, cap, "%04d-%02d-%02d", 2000 + yr, mon, day);
 }
 
-static size_t render_hca(const char* title, const uint8_t* a, size_t l,
-                         char* o, size_t cap) {
+static size_t render_hca(const char* title, const uint8_t* a, size_t l, char* o, size_t cap) {
     size_t pos = 0;
     if(l < 12) {
         pos += put(o, cap, pos, "%s\n", title);
         pos += put(o, cap, pos, "Bytes  %u\n", (unsigned)l);
         size_t n = l < 16 ? l : 16;
         pos += put(o, cap, pos, "Hex    ");
-        for(size_t i = 0; i < n; i++) pos += put(o, cap, pos, "%02X", a[i]);
+        for(size_t i = 0; i < n; i++)
+            pos += put(o, cap, pos, "%02X", a[i]);
         if(l > n) pos += put(o, cap, pos, "..");
         pos += put(o, cap, pos, "\n");
         return pos;
     }
-    uint16_t cur  = (uint16_t)(a[2] | (a[3] << 8));
+    uint16_t cur = (uint16_t)(a[2] | (a[3] << 8));
     uint16_t prev = (uint16_t)(a[4] | (a[5] << 8));
-    uint16_t d1   = (uint16_t)(a[6] | (a[7] << 8));
-    uint16_t d2   = (uint16_t)(a[8] | (a[9] << 8));
-    int8_t   tr   = (int8_t)a[10];
-    int8_t   th   = (int8_t)a[11];
+    uint16_t d1 = (uint16_t)(a[6] | (a[7] << 8));
+    uint16_t d2 = (uint16_t)(a[8] | (a[9] << 8));
+    int8_t tr = (int8_t)a[10];
+    int8_t th = (int8_t)a[11];
     char ds1[16], ds2[16];
     date_g(d1, ds1, sizeof(ds1));
     date_g(d2, ds2, sizeof(ds2));
@@ -68,24 +70,27 @@ static size_t render_hca(const char* title, const uint8_t* a, size_t l,
     pos += put(o, cap, pos, "Period %s\n", ds1);
     pos += put(o, cap, pos, "Prev   %s\n", ds2);
     if(tr > -40 && tr < 120)
-        pos += put(o, cap, pos, "Room   %d.%d C\n",
-                   tr / 2, (tr < 0 ? -tr : tr) % 2 ? 5 : 0);
-    if(th > -40)  /* int8_t max is 127, so the upper bound is implicit */
-        pos += put(o, cap, pos, "Rad    %d.%d C\n",
-                   th / 2, (th < 0 ? -th : th) % 2 ? 5 : 0);
+        pos += put(o, cap, pos, "Room   %d.%d C\n", tr / 2, (tr < 0 ? -tr : tr) % 2 ? 5 : 0);
+    if(th > -40) /* int8_t max is 127, so the upper bound is implicit */
+        pos += put(o, cap, pos, "Rad    %d.%d C\n", th / 2, (th < 0 ? -th : th) % 2 ? 5 : 0);
     return pos;
 }
 
 /* ---- Qundis Q-Caloric ---- */
 static const WmbusMVT k_mvt_qds[] = {
-    {"QDS", 0xFF, 0x08}, {"QDS", 0xFF, 0x04},
-    {"LSE", 0x18, 0x08}, {"LSE", 0x34, 0x08}, {"LSE", 0x35, 0x08},
-    {"ZRI", 0xFD, 0x08}, {"ZRI", 0xFC, 0x08},
-    { {0}, 0, 0 }
-};
-static size_t decode_qds(uint16_t m, uint8_t v, uint8_t med,
-                         const uint8_t* a, size_t l, char* o, size_t cap) {
-    (void)m; (void)v; (void)med;
+    {"QDS", 0xFF, 0x08},
+    {"QDS", 0xFF, 0x04},
+    {"LSE", 0x18, 0x08},
+    {"LSE", 0x34, 0x08},
+    {"LSE", 0x35, 0x08},
+    {"ZRI", 0xFD, 0x08},
+    {"ZRI", 0xFC, 0x08},
+    {{0}, 0, 0}};
+static size_t
+    decode_qds(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
     return render_hca("Qundis HCA", a, l, o, cap);
 }
 const WmbusDriver wmbus_drv_qundis_hca = {
@@ -96,14 +101,12 @@ const WmbusDriver wmbus_drv_qundis_hca = {
 };
 
 /* ---- ista doprimo / istameter ---- */
-static const WmbusMVT k_mvt_ist[] = {
-    {"IST", 0xFF, 0x08},
-    {"IST", 0xa9, 0x04},
-    { {0}, 0, 0 }
-};
-static size_t decode_ist(uint16_t m, uint8_t v, uint8_t med,
-                         const uint8_t* a, size_t l, char* o, size_t cap) {
-    (void)m; (void)v; (void)med;
+static const WmbusMVT k_mvt_ist[] = {{"IST", 0xFF, 0x08}, {"IST", 0xa9, 0x04}, {{0}, 0, 0}};
+static size_t
+    decode_ist(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
     return render_hca("ista HCA", a, l, o, cap);
 }
 const WmbusDriver wmbus_drv_ista_hca = {
@@ -114,13 +117,12 @@ const WmbusDriver wmbus_drv_ista_hca = {
 };
 
 /* ---- Brunata Futura+ ---- */
-static const WmbusMVT k_mvt_bra[] = {
-    {"BRA", 0xFF, 0x08},
-    { {0}, 0, 0 }
-};
-static size_t decode_bra(uint16_t m, uint8_t v, uint8_t med,
-                         const uint8_t* a, size_t l, char* o, size_t cap) {
-    (void)m; (void)v; (void)med;
+static const WmbusMVT k_mvt_bra[] = {{"BRA", 0xFF, 0x08}, {{0}, 0, 0}};
+static size_t
+    decode_bra(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
     return render_hca("Brunata HCA", a, l, o, cap);
 }
 const WmbusDriver wmbus_drv_brunata_hca = {

@@ -2,8 +2,22 @@
 
 /* EN 13757-4 Table 11: data nibble -> 6-bit chip code. */
 static const uint8_t k_nibble_to_chip[16] = {
-    0x16, 0x0D, 0x0E, 0x0B, 0x1C, 0x19, 0x1A, 0x13,
-    0x2C, 0x25, 0x26, 0x23, 0x34, 0x31, 0x32, 0x29,
+    0x16,
+    0x0D,
+    0x0E,
+    0x0B,
+    0x1C,
+    0x19,
+    0x1A,
+    0x13,
+    0x2C,
+    0x25,
+    0x26,
+    0x23,
+    0x34,
+    0x31,
+    0x32,
+    0x29,
 };
 
 /* Inverse table generated at first use, indexed by 6-bit chip value (0..63).
@@ -13,8 +27,10 @@ static uint8_t s_chip_to_nibble[64];
 static bool s_inv_ready;
 
 static void build_inverse(void) {
-    for(int i = 0; i < 64; i++) s_chip_to_nibble[i] = 0xFF;
-    for(int n = 0; n < 16; n++) s_chip_to_nibble[k_nibble_to_chip[n]] = (uint8_t)n;
+    for(int i = 0; i < 64; i++)
+        s_chip_to_nibble[i] = 0xFF;
+    for(int n = 0; n < 16; n++)
+        s_chip_to_nibble[k_nibble_to_chip[n]] = (uint8_t)n;
     s_inv_ready = true;
 }
 

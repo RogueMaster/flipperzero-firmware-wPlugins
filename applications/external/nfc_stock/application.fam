@@ -15,9 +15,11 @@ App(
     ],
     entry_point="nfc_stock_app",
     stack_size=8 * 1024,
-    fap_version="0.1.5",  # x-release-please-version
+    targets=["f7"],
     fap_icon="icons/icon.icon",
     fap_category="NFC",
     fap_author="Endika",
+    fap_weburl="https://github.com/Endika/flipper-nfc-stock",
+    fap_version="0.1.5",
     fap_description="Alpha build: manage inventory items via NFC tags",
 )

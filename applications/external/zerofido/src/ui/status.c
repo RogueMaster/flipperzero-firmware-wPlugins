@@ -214,7 +214,6 @@ static bool zf_status_refresh_model(ZerofidoApp *app, bool redraw, bool reload_c
             zf_ui_format_passkey_index_subtitle(&entries[i], snapshot.items[i].subtitle,
                                                 sizeof(snapshot.items[i].subtitle));
         }
-
     }
     zf_app_ui_scratch_release(app);
 
@@ -224,13 +223,13 @@ static bool zf_status_refresh_model(ZerofidoApp *app, bool redraw, bool reload_c
 
 static void zf_status_draw_scrollable_line(Canvas *canvas, FuriString *line, int32_t x, int32_t y,
                                            size_t width, const char *text, bool scroll) {
-    if (!line) return;
+    if (!line)
+        return;
 
     furi_string_set(line, text ? text : "");
-    elements_scrollable_text_line(canvas, x, y, width, line,
-                                  scroll ? (furi_get_tick() / ZF_HOME_TEXT_SCROLL_TICK_DIVISOR) :
-                                           0U,
-                                  !scroll);
+    elements_scrollable_text_line(
+        canvas, x, y, width, line,
+        scroll ? (furi_get_tick() / ZF_HOME_TEXT_SCROLL_TICK_DIVISOR) : 0U, !scroll);
 }
 
 static void zf_status_draw_callback(Canvas *canvas, void *model) {

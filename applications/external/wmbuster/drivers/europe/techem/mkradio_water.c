@@ -9,14 +9,12 @@
 #include "_compact.h"
 
 /* MK-Radio 3 — version 0x62/0x72 + medium 0x74. */
-static const WmbusMVT k_mvt_mk3[] = {
-    {"TCH", 0x62, 0x74},
-    {"TCH", 0x72, 0x74},
-    { {0}, 0, 0 }
-};
-static size_t decode_mk3(uint16_t m, uint8_t v, uint8_t med,
-                         const uint8_t* a, size_t l, char* o, size_t cap) {
-    (void)m; (void)v; (void)med;
+static const WmbusMVT k_mvt_mk3[] = {{"TCH", 0x62, 0x74}, {"TCH", 0x72, 0x74}, {{0}, 0, 0}};
+static size_t
+    decode_mk3(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
     return techem_decode_water(/* with_dates */ true, a, l, o, cap);
 }
 const WmbusDriver wmbus_drv_techem_mkradio3 = {
@@ -33,13 +31,14 @@ static const WmbusMVT k_mvt_mk4[] = {
     {"TCH", 0x62, 0x95},
     {"TCH", 0x72, 0x95},
     {"TCH", 0x95, 0x37},
-    {"TCH", 0x72, 0x50},   /* MK Radio 3a — wmbusmeters mkradio3a */
-    {"HYD", 0xFE, 0x06},   /* mkradio4a OEM rebadge */
-    { {0}, 0, 0 }
-};
-static size_t decode_mk4(uint16_t m, uint8_t v, uint8_t med,
-                         const uint8_t* a, size_t l, char* o, size_t cap) {
-    (void)m; (void)v; (void)med;
+    {"TCH", 0x72, 0x50}, /* MK Radio 3a — wmbusmeters mkradio3a */
+    {"HYD", 0xFE, 0x06}, /* mkradio4a OEM rebadge */
+    {{0}, 0, 0}};
+static size_t
+    decode_mk4(uint16_t m, uint8_t v, uint8_t med, const uint8_t* a, size_t l, char* o, size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
     return techem_decode_water(/* with_dates */ false, a, l, o, cap);
 }
 const WmbusDriver wmbus_drv_techem_mkradio4 = {

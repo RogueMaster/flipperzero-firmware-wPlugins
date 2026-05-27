@@ -42,8 +42,7 @@ bool zf_ctap_cred_protect_allows_assertion(uint8_t cred_protect, bool uv_verifie
     }
 }
 
-bool zf_ctap_cred_protect_encode_make_credential_output(ZfCborEncoder *enc,
-                                                        uint8_t cred_protect) {
+bool zf_ctap_cred_protect_encode_make_credential_output(ZfCborEncoder *enc, uint8_t cred_protect) {
     return zf_cbor_encode_text(enc, "credProtect") &&
            zf_cbor_encode_uint(enc, zf_ctap_cred_protect_effective(cred_protect));
 }

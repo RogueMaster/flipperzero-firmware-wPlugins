@@ -209,8 +209,8 @@ uint8_t zf_ctap_handle_make_credential(ZerofidoApp *app, ZfTransportSessionId se
     (void)attestation_mode;
     status = zf_ctap_build_none_make_credential_response_with_scratch(
         &scratch->work.response, scratch->request.rp_id, &scratch->record, uv_verified,
-        scratch->request.has_cred_protect, scratch->request.hmac_secret_requested, out, out_capacity,
-        out_len);
+        scratch->request.has_cred_protect, scratch->request.hmac_secret_requested, out,
+        out_capacity, out_len);
 #endif
     if (status != ZF_CTAP_SUCCESS) {
         goto cleanup;

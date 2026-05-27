@@ -5,6 +5,7 @@ profile = os.environ.get("ZEROFIDO_PROFILE", "usb").lower()
 if profile not in ("usb", "nfc", "full"):
     raise ValueError("ZEROFIDO_PROFILE must be one of: usb, nfc, full")
 
+
 def env_flag(name, default=False):
     value = os.environ.get(name)
     if value is None:
@@ -101,7 +102,8 @@ App(
     requires=requires,
     fap_icon="icon.png",
     fap_category="Tools",
-    fap_description=description,
     fap_author="Alex Stoyanov",
+    fap_weburl="https://github.com/MinorGlitch/zerofido",
     fap_version=(0, 7),
+    fap_description=description,
 )

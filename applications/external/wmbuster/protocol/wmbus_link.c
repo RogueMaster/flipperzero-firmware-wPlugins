@@ -69,12 +69,20 @@ bool wmbus_link_parse(const uint8_t* fr, size_t len, WmbusLinkFrame* out) {
 }
 
 void wmbus_link_to_str(const WmbusLinkFrame* f, char* out, size_t out_size) {
-    char m[4]; wmbus_manuf_decode(f->M, m);
+    char m[4];
+    wmbus_manuf_decode(f->M, m);
     const char* mn = wmbus_manuf_name(f->M);
     snprintf(
-        out, out_size,
+        out,
+        out_size,
         "%s %08lX v%02X %s C=%02X CI=%02X enc=%u%s%s",
-        m, (unsigned long)f->id, f->version, wmbus_medium_str(f->medium),
-        f->C, f->ci, f->enc_mode,
-        mn ? " (" : "", mn ? mn : "");
+        m,
+        (unsigned long)f->id,
+        f->version,
+        wmbus_medium_str(f->medium),
+        f->C,
+        f->ci,
+        f->enc_mode,
+        mn ? " (" : "",
+        mn ? mn : "");
 }

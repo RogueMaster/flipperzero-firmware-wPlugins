@@ -13,9 +13,9 @@
 typedef struct KeyStore KeyStore;
 
 KeyStore* key_store_alloc(Storage* storage);
-void      key_store_free(KeyStore* ks);
-bool      key_store_load(KeyStore* ks);
-bool      key_store_save(KeyStore* ks);
+void key_store_free(KeyStore* ks);
+bool key_store_load(KeyStore* ks);
+bool key_store_save(KeyStore* ks);
 
 /* Lookup by 16-bit M-field + 32-bit ID. Returns true if found. */
 bool key_store_lookup(KeyStore* ks, uint16_t m, uint32_t id, uint8_t out_key[16]);

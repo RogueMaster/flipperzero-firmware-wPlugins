@@ -18,7 +18,7 @@
 #include "../wmbus_app_i.h"
 
 WmbusWorker* wmbus_worker_alloc(WmbusApp* app);
-void         wmbus_worker_free(WmbusWorker* w);
+void wmbus_worker_free(WmbusWorker* w);
 
 void wmbus_worker_start(WmbusWorker* w, WmbusMode mode);
 void wmbus_worker_stop(WmbusWorker* w);
@@ -32,12 +32,12 @@ void wmbus_worker_inject(WmbusWorker* w, const uint8_t* raw, size_t len, int8_t 
  * at a glance whether the radio is hearing nothing (sync_locks=0) or
  * hearing plenty but failing CRC (sync_locks high, decoded low).         */
 typedef struct {
-    uint32_t sync_locks;        /* every time we found a fresh frame      */
-    uint32_t decoded_a;         /* Format A frames passing CRC            */
-    uint32_t decoded_b;         /* Format B frames passing CRC            */
-    uint32_t crc_fails;         /* sync ok, payload CRC failed            */
-    uint32_t three_of_six_err;  /* T-mode chip stream malformed           */
-    uint32_t fifo_overflows;    /* CC1101 RX FIFO ran full                */
+    uint32_t sync_locks; /* every time we found a fresh frame      */
+    uint32_t decoded_a; /* Format A frames passing CRC            */
+    uint32_t decoded_b; /* Format B frames passing CRC            */
+    uint32_t crc_fails; /* sync ok, payload CRC failed            */
+    uint32_t three_of_six_err; /* T-mode chip stream malformed           */
+    uint32_t fifo_overflows; /* CC1101 RX FIFO ran full                */
 } WmbusWorkerStats;
 
 void wmbus_worker_get_stats(const WmbusWorker* w, WmbusWorkerStats* out);
