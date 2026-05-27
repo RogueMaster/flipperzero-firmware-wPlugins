@@ -44,6 +44,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [KneeFlip Rehab v0.1 (By daryalok)](https://github.com/daryalok/KneeFlip-Rehab)
 - Updated: [FM Transmitter KT0803 v1.0 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter) `Req: KT0803`
 - Updated: [TV Remote v1.1 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
+- Updated: [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher) [Add C5 to Quickflash (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/db5409733b96a691396518fd2de03b3da1efeafd#diff-4247719a82512e95ac50d82a98eeb73901fc0986f2c8708b378f2ea3b7ddeea9) [Bump Marauder v1.12.2b.20260525 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/nightly_f8cf4ee)
 
 <a name="release"></a>
 
