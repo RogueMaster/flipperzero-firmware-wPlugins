@@ -56,11 +56,15 @@ class BtTransport(Transport):
             if adv_uuid in [u.lower() for u in adv_data.service_uuids]:
                 return True
             # Fallback: name prefix, for OS-level ad caches that strip service UUIDs.
-            return bool(name_prefix and device.name and device.name.startswith(name_prefix))
+            return bool(
+                name_prefix and device.name and device.name.startswith(name_prefix)
+            )
 
         log.info(
             "BT: scanning for Flipper (UUID %s or name prefix %r, timeout %.0fs)…",
-            config.FLIPPER_ADV_UUID, name_prefix, config.BT_SCAN_TIMEOUT,
+            config.FLIPPER_ADV_UUID,
+            name_prefix,
+            config.BT_SCAN_TIMEOUT,
         )
         device = await BleakScanner.find_device_by_filter(
             _is_flipper,
@@ -98,7 +102,11 @@ class BtTransport(Transport):
         log.info("BT: serial service found  TX=%s  RX=%s", self._tx_uuid, self._rx_uuid)
         log.info("BT: RX char properties: %s", rx_char.properties)
         mtu = getattr(self._client, "mtu_size", 23)
-        log.info("BT: negotiated MTU=%d  (write chunk=%d)", mtu, max(1, min(mtu - 3, config.BT_WRITE_CHUNK)))
+        log.info(
+            "BT: negotiated MTU=%d  (write chunk=%d)",
+            mtu,
+            max(1, min(mtu - 3, config.BT_WRITE_CHUNK)),
+        )
 
         await self._client.start_notify(self._tx_uuid, self._on_notify)
         self._closed = False

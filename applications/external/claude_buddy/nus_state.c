@@ -6,11 +6,11 @@
 #define TAG "NusState"
 
 /* 30 s of silence → assume the desktop bridge dropped. */
-#define HB_TIMEOUT_MS 30000
+#define HB_TIMEOUT_MS   30000
 /* Heart transient threshold — matches the ESP32 reference firmware. */
 #define HEART_WINDOW_MS 5000
 /* Tokens per level-up (Anthropic reference: 50 000). */
-#define LEVEL_TOKENS 50000u
+#define LEVEL_TOKENS    50000u
 
 /* ── helpers ────────────────────────────────────────────────── */
 

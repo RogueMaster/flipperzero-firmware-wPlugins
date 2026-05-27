@@ -20,12 +20,12 @@ extern "C" {
 #endif
 
 typedef struct {
-    uint32_t approvals;       /* total permission approvals */
-    uint32_t denies;          /* total permission denials */
-    uint32_t approvals_fast;  /* subset approved within 5 s of prompt appearing */
-    uint32_t tokens_seen;     /* max tokens value observed in any heartbeat */
-    uint32_t level;           /* floor(tokens_seen / 50000) — celebrate on increment */
-    uint32_t session_starts;  /* times total transitioned 0 → >0 */
+    uint32_t approvals; /* total permission approvals */
+    uint32_t denies; /* total permission denials */
+    uint32_t approvals_fast; /* subset approved within 5 s of prompt appearing */
+    uint32_t tokens_seen; /* max tokens value observed in any heartbeat */
+    uint32_t level; /* floor(tokens_seen / 50000) — celebrate on increment */
+    uint32_t session_starts; /* times total transitioned 0 → >0 */
 } NusStats;
 
 /* Load stats from disk (zeros on first run or read error). */

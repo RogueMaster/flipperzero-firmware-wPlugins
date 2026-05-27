@@ -47,11 +47,11 @@ typedef struct {
     bool* app_is_working; /* shared with App — we toggle on Busy entry/exit */
 
     BuddyState current;
-    uint32_t last_hb_tick;       /* furi ticks of the last heartbeat received */
-    uint32_t attention_tick;     /* tick when Attention entered; 0 otherwise */
-    char last_msg[64];           /* last heartbeat msg (for tool-call change detection) */
+    uint32_t last_hb_tick; /* furi ticks of the last heartbeat received */
+    uint32_t attention_tick; /* tick when Attention entered; 0 otherwise */
+    char last_msg[64]; /* last heartbeat msg (for tool-call change detection) */
     bool initialized;
-    bool sleep_timeout_fired;    /* guard so Sleep sound plays only once per drop */
+    bool sleep_timeout_fired; /* guard so Sleep sound plays only once per drop */
 } NusStateCtx;
 
 /* Initialize the context.  Safe to call multiple times (resets state). */

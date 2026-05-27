@@ -11,9 +11,9 @@
 // RU: Скорость симуляции хранится в миллисекундах между тиками.
 // EN: Simulation speed is stored as milliseconds between ticks.
 #define CELL_LAB_DEFAULT_DELAY_MS 70U
-#define CELL_LAB_MIN_DELAY_MS 15U
-#define CELL_LAB_MAX_DELAY_MS 220U
-#define CELL_LAB_DELAY_STEP_MS 10U
+#define CELL_LAB_MIN_DELAY_MS     15U
+#define CELL_LAB_MAX_DELAY_MS     220U
+#define CELL_LAB_DELAY_STEP_MS    10U
 
 typedef struct {
     // RU: Системные объекты Flipper: GUI, ViewPort, очередь ввода и mutex мира.
@@ -68,7 +68,8 @@ static void cell_lab_change_screen(CellLabApp* app, int8_t direction) {
     const CellLabScreen to_screen = cell_lab_next_screen(app->screen, direction);
 
     app->screen = to_screen;
-    cell_lab_transition_start(&app->transition, from_screen, to_screen, direction, furi_get_tick());
+    cell_lab_transition_start(
+        &app->transition, from_screen, to_screen, direction, furi_get_tick());
     cell_lab_show_hud(app);
 }
 
@@ -223,19 +224,12 @@ static void cell_lab_draw_callback(Canvas* canvas, void* context) {
 
         // RU: Если переход активен, рисуем две страницы со смещениями; иначе одну текущую.
         // EN: If transition is active, draw two offset pages; otherwise draw the current page.
-        if(cell_lab_transition_offsets(&app->transition, furi_get_tick(), &from_offset, &to_offset)) {
+        if(cell_lab_transition_offsets(
+               &app->transition, furi_get_tick(), &from_offset, &to_offset)) {
             cell_lab_screens_draw(
-                canvas,
-                app->world,
-                &screen_context,
-                app->transition.from_screen,
-                from_offset);
+                canvas, app->world, &screen_context, app->transition.from_screen, from_offset);
             cell_lab_screens_draw(
-                canvas,
-                app->world,
-                &screen_context,
-                app->transition.to_screen,
-                to_offset);
+                canvas, app->world, &screen_context, app->transition.to_screen, to_offset);
         } else {
             cell_lab_screens_draw(canvas, app->world, &screen_context, app->screen, 0);
         }

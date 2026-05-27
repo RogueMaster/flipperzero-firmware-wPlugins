@@ -4,9 +4,7 @@ import os
 import sys
 from pathlib import Path
 
-SOCKET_PATH = os.environ.get(
-    "FLIPPER_BRIDGE_SOCKET", "/tmp/claude-flipper-bridge.sock"
-)
+SOCKET_PATH = os.environ.get("FLIPPER_BRIDGE_SOCKET", "/tmp/claude-flipper-bridge.sock")
 
 SERIAL_BAUD = 115200
 
@@ -54,9 +52,9 @@ BT_NAME_CACHE = os.path.join(_plugin_data, "bt_name") if _plugin_data else ""
 FLIPPER_ADV_UUID = "00003082-0000-1000-8000-00805f9b34fb"
 # BT_DEVICE_NAME is a fallback for the rare case where the advertisement
 # does not include service UUIDs (e.g. OS-level advertisement caching).
-BT_DEVICE_NAME   = os.environ.get("FLIPPER_BT_NAME", "Flipper")
-BT_SCAN_TIMEOUT  = float(os.environ.get("FLIPPER_BT_SCAN_TIMEOUT", "10"))
-BT_WRITE_CHUNK   = 128  # max bytes per BLE write; capped to negotiated MTU-3 at runtime
+BT_DEVICE_NAME = os.environ.get("FLIPPER_BT_NAME", "Flipper")
+BT_SCAN_TIMEOUT = float(os.environ.get("FLIPPER_BT_SCAN_TIMEOUT", "10"))
+BT_WRITE_CHUNK = 128  # max bytes per BLE write; capped to negotiated MTU-3 at runtime
 
 # Dual CDC mode: Flipper exposes two serial ports.
 # Channel 0 = CLI (first port), Channel 1 = our app (second port).

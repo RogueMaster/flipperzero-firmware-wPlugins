@@ -28,28 +28,28 @@ typedef enum {
     UiEventPermAlways,
     UiEventPermDeny,
     UiEventPermEsc,
-    UiEventBackspace,    // short-press Back: send backspace
-    UiEventInterrupt,    // long-press Left: send Ctrl+C interrupt
-    UiEventToggleMute,   // long-press Down: toggle sound mute
-    UiEventYes,          // long-press Ok: type "yes" + enter
-    UiEventOpenInfo,     // long-press Right: open info menu
-    UiEventPageUp,       // transcript mode: page up
-    UiEventPageDown,     // transcript mode: page down
-    UiEventCtrlO,        // transcript mode: Ctrl+O
-    UiEventCtrlE,        // transcript mode: Ctrl+E
-    UiEventShiftTab,     // toggle plan mode (Shift+Tab)
+    UiEventBackspace, // short-press Back: send backspace
+    UiEventInterrupt, // long-press Left: send Ctrl+C interrupt
+    UiEventToggleMute, // long-press Down: toggle sound mute
+    UiEventYes, // long-press Ok: type "yes" + enter
+    UiEventOpenInfo, // long-press Right: open info menu
+    UiEventPageUp, // transcript mode: page up
+    UiEventPageDown, // transcript mode: page down
+    UiEventCtrlO, // transcript mode: Ctrl+O
+    UiEventCtrlE, // transcript mode: Ctrl+E
+    UiEventShiftTab, // toggle plan mode (Shift+Tab)
     UiEventToggleBleMode, // BLE profile toggled between Bridge and Desktop
 } UiEventType;
 
 typedef enum {
-    PoseIdle,      // default: periodic blink
+    PoseIdle, // default: periodic blink
     PoseListening, // eyes up, header shows REC indicator
-    PoseThinking,  // eyes right, animated dots above head
-    PoseHappy,     // squinted eyes + smile + sparkles, brief bounce (auto-resets)
-    PoseAlert,     // wide eyes, blinking ! + horizontal shake (auto-resets)
-    PoseSleeping,  // closed eyes, floating z
-    PoseExcited,   // arms raised, fast bounce, cycling sparkles (auto-resets)
-    PoseWorried,   // shifty eyes, sweat drop, gentle wobble (used on perm screen)
+    PoseThinking, // eyes right, animated dots above head
+    PoseHappy, // squinted eyes + smile + sparkles, brief bounce (auto-resets)
+    PoseAlert, // wide eyes, blinking ! + horizontal shake (auto-resets)
+    PoseSleeping, // closed eyes, floating z
+    PoseExcited, // arms raised, fast bounce, cycling sparkles (auto-resets)
+    PoseWorried, // shifty eyes, sweat drop, gentle wobble (used on perm screen)
 } CharacterPose;
 
 typedef void (*UiEventCallback)(UiEventType event, const char* data, void* context);
@@ -60,19 +60,19 @@ typedef struct {
      * Desktop mode word-wraps this across up to 3 lines via wrap_text()
      * in ui.c; Bridge mode shows it on a single line and relies on the
      * host to keep messages short. */
-    char text[64];    // primary status line
+    char text[64]; // primary status line
     char subtext[22]; // secondary info line (empty = hide; Bridge only)
-    bool connected;         // serial/flipper connected
-    bool claude_connected;  // claude code session active
-    bool muted;             // sound mute active (shown as indicator in header)
+    bool connected; // serial/flipper connected
+    bool claude_connected; // claude code session active
+    bool muted; // sound mute active (shown as indicator in header)
     bool space_hold_active; // true while Up long-press is held for hold-space input
-    uint8_t pose;           // CharacterPose
-    uint8_t anim_frame;     // animation counter (incremented by timer)
+    uint8_t pose; // CharacterPose
+    uint8_t anim_frame; // animation counter (incremented by timer)
     uint8_t transport_mode; // 0 = USB, 1 = BT (shown in header)
-    uint8_t rssi_bars;      // BLE signal bars 0–4 (only used when transport_mode == 1)
+    uint8_t rssi_bars; // BLE signal bars 0–4 (only used when transport_mode == 1)
 } StatusModel;
 
-#define MAX_MENU_ITEMS 256
+#define MAX_MENU_ITEMS    256
 #define MAX_MENU_ITEM_LEN 27
 
 typedef struct {
@@ -87,13 +87,13 @@ typedef struct {
      * far shorter strings; both fit. Word-wrapped in the draw callback. */
     char detail[64];
     uint8_t anim_frame;
-    uint8_t mode;         // 0 = once, 1 = always (persists across requests)
-    bool allow_always;    // show the Once/Always toggle (Bridge only — the
-                          // desktop wire protocol has no "always" decision)
+    uint8_t mode; // 0 = once, 1 = always (persists across requests)
+    bool allow_always; // show the Once/Always toggle (Bridge only — the
+        // desktop wire protocol has no "always" decision)
 } PermModel;
 
 typedef enum {
-    InfoPageMenu,   // top-level: Help / About / Transcript
+    InfoPageMenu, // top-level: Help / About / Transcript
     InfoPageHelp,
     InfoPageAbout,
     InfoPageTranscript,
@@ -101,9 +101,9 @@ typedef enum {
 
 typedef struct {
     InfoPage page;
-    int index;      // selected item on menu page
-    int scroll;     // vertical scroll offset (help / transcript)
-    int h_scroll;   // horizontal scroll offset, pixels (transcript only)
+    int index; // selected item on menu page
+    int scroll; // vertical scroll offset (help / transcript)
+    int h_scroll; // horizontal scroll offset, pixels (transcript only)
     uint8_t anim_frame; // animation counter for about page character
 } InfoModel;
 

@@ -117,7 +117,8 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
         roster_add_node(app, sender_id, p->rx_snr, p->rx_rssi);
         if(p->which_payload_variant == meshtastic_MeshPacket_decoded_tag) {
             const meshtastic_Data* d = &p->payload_variant.decoded;
-            if(d->portnum == meshtastic_PortNum_TEXT_MESSAGE_APP || d->portnum == meshtastic_PortNum_TELEMETRY_APP) {
+            if(d->portnum == meshtastic_PortNum_TEXT_MESSAGE_APP ||
+               d->portnum == meshtastic_PortNum_TELEMETRY_APP) {
                 pb_istream_t walk = pb_istream_from_buffer(frame, len);
                 bool found_payload = false;
                 while(walk.bytes_left > 0) {
@@ -137,15 +138,18 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                             bool pkt_eof;
                             if(!pb_decode_tag(&pkt_stream, &pkt_wt, &pkt_tag, &pkt_eof)) break;
                             if(pkt_eof) break;
-                            if(pkt_tag == meshtastic_MeshPacket_decoded_tag && pkt_wt == PB_WT_STRING) {
+                            if(pkt_tag == meshtastic_MeshPacket_decoded_tag &&
+                               pkt_wt == PB_WT_STRING) {
                                 uint32_t data_len;
                                 if(!pb_decode_varint32(&pkt_stream, &data_len)) break;
                                 if(data_len > pkt_stream.bytes_left) break;
                                 meshtastic_Data data_msg = meshtastic_Data_init_default;
                                 data_msg.payload.funcs.decode = payload_decode_cb;
                                 data_msg.payload.arg = &cap;
-                                pb_istream_t data_stream = pb_istream_from_buffer(pkt_stream.state, data_len);
-                                if(pb_decode(&data_stream, meshtastic_Data_fields, &data_msg)) found_payload = true;
+                                pb_istream_t data_stream =
+                                    pb_istream_from_buffer(pkt_stream.state, data_len);
+                                if(pb_decode(&data_stream, meshtastic_Data_fields, &data_msg))
+                                    found_payload = true;
                                 break;
                             } else {
                                 if(!pb_skip_field(&pkt_stream, pkt_wt)) break;
@@ -159,7 +163,8 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                 if(found_payload && cap.len > 0) {
                     if(d->portnum == meshtastic_PortNum_TEXT_MESSAGE_APP) {
                         size_t copy_len = cap.len;
-                        if(copy_len >= sizeof(app->last_rx_text)) copy_len = sizeof(app->last_rx_text) - 1;
+                        if(copy_len >= sizeof(app->last_rx_text))
+                            copy_len = sizeof(app->last_rx_text) - 1;
                         memcpy(app->last_rx_text, cap.buf, copy_len);
                         app->last_rx_text[copy_len] = '\0';
                         history_add(app, app->last_rx_text, sender_id, p->to, false);
@@ -180,8 +185,13 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
                         pb_istream_t is_tel = pb_istream_from_buffer(cap.buf, cap.len);
                         if(pb_decode(&is_tel, meshtastic_Telemetry_fields, &tel)) {
                             if(tel.which_variant == meshtastic_Telemetry_device_metrics_tag) {
-                                roster_update_telemetry(app, sender_id, tel.variant.device_metrics.battery_level, tel.variant.device_metrics.voltage);
-                                log_line(app, "RX: Telemetry from %08lX", (unsigned long)sender_id);
+                                roster_update_telemetry(
+                                    app,
+                                    sender_id,
+                                    tel.variant.device_metrics.battery_level,
+                                    tel.variant.device_metrics.voltage);
+                                log_line(
+                                    app, "RX: Telemetry from %08lX", (unsigned long)sender_id);
                             }
                         }
                     }
@@ -200,7 +210,8 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
 
 static void send_frame(ZeroMeshApp* app, const uint8_t* payload, size_t len) {
     if(!app || !app->serial) return;
-    uint8_t hdr[4] = {ZEROMESH_MAGIC0, ZEROMESH_MAGIC1, (uint8_t)((len >> 8) & 0xFF), (uint8_t)(len & 0xFF)};
+    uint8_t hdr[4] = {
+        ZEROMESH_MAGIC0, ZEROMESH_MAGIC1, (uint8_t)((len >> 8) & 0xFF), (uint8_t)(len & 0xFF)};
     furi_hal_serial_tx(app->serial, hdr, sizeof(hdr));
     furi_hal_serial_tx(app->serial, payload, len);
     app->tx_frames++;

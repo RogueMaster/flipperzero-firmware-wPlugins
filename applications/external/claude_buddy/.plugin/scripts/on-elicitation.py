@@ -12,7 +12,15 @@ SOCKET_PATH = "/tmp/claude-flipper-bridge.sock"
 def send_to_flipper(sound: str, text: str, subtext: str) -> None:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(SOCKET_PATH)
-    msg = json.dumps({"action": "notify", "sound": sound, "vibro": True, "text": text, "subtext": subtext})
+    msg = json.dumps(
+        {
+            "action": "notify",
+            "sound": sound,
+            "vibro": True,
+            "text": text,
+            "subtext": subtext,
+        }
+    )
     s.sendall(msg.encode())
     s.shutdown(socket.SHUT_WR)
     s.recv(4096)

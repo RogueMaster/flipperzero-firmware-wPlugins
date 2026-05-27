@@ -3,25 +3,9 @@
 #include <notification/notification_messages.h>
 
 const char* ringtone_names[] = {
-    "Off",
-    "Short",
-    "Double",
-    "Triple",
-    "Long",
-    "SOS",
-    "Chirp",
-    "Nokia",
-    "Descend",
-    "Bounce",
-    "Alert",
-    "Pulse",
-    "Siren",
-    "Beep3",
-    "Trill",
-    "Mario",
-    "LevelUp",
-    "Metric",
-    "Minimal",
+    "Off",   "Short",   "Double",  "Triple", "Long",    "SOS",   "Chirp",
+    "Nokia", "Descend", "Bounce",  "Alert",  "Pulse",   "Siren", "Beep3",
+    "Trill", "Mario",   "LevelUp", "Metric", "Minimal",
 };
 
 static const NotificationSequence seq_vibro_short = {

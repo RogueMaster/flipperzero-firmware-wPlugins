@@ -43,7 +43,7 @@ def extract_detail(tool_name: str, tool_input: dict) -> str:
         val = tool_input.get("url") or tool_input.get("query", "")
         for prefix in ("https://", "http://"):
             if val.startswith(prefix):
-                val = val[len(prefix):]
+                val = val[len(prefix) :]
                 break
         return val[:21]
     if tool_name == "Agent":
@@ -60,7 +60,6 @@ def main():
         hook_input = json.loads(sys.stdin.read())
     except (json.JSONDecodeError, EOFError):
         sys.exit(1)
-
 
     tool_name_raw = hook_input.get("tool_name", "Unknown")
     tool_input = hook_input.get("tool_input", {})
@@ -87,12 +86,16 @@ def main():
 
     # Dismissed on Flipper — defer to Claude's normal permission dialog
     if status == "ask":
-        print(json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "PermissionRequest",
-                "decision": {"behavior": "ask"},
-            }
-        }))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PermissionRequest",
+                        "decision": {"behavior": "ask"},
+                    }
+                }
+            )
+        )
         sys.exit(0)
 
     # Only act on explicit user decisions from Flipper

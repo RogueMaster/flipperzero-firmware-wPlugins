@@ -21,7 +21,6 @@ static bool json_get_string(const char* json, const char* key, char* out, int ou
     return true;
 }
 
-
 static bool json_get_bool(const char* json, const char* key, bool* out) {
     if(!json || !key || !out) return false;
     char pattern[80];
@@ -29,7 +28,8 @@ static bool json_get_bool(const char* json, const char* key, bool* out) {
     const char* start = strstr(json, pattern);
     if(!start) return false;
     start += strlen(pattern);
-    while(*start == ' ') start++;
+    while(*start == ' ')
+        start++;
     if(strncmp(start, "true", 4) == 0) {
         *out = true;
         return true;
@@ -47,7 +47,8 @@ static bool json_get_int(const char* json, const char* key, int* out) {
     const char* start = strstr(json, pattern);
     if(!start) return false;
     start += strlen(pattern);
-    while(*start == ' ') start++;
+    while(*start == ' ')
+        start++;
     char* end = NULL;
     long value = strtol(start, &end, 10);
     if(end == start) return false;
@@ -104,15 +105,13 @@ bool protocol_parse(const char* json_line, ProtocolMessage* msg) {
         json_get_string(d_start, "tool", msg->text, sizeof(msg->text));
         json_get_string(d_start, "detail", msg->text2, sizeof(msg->text2));
         break;
-    case MsgTypePing:
-        {
-            int rssi = 0;
-            if(json_get_int(d_start, "rssi", &rssi)) {
-                msg->has_rssi = true;
-                msg->rssi = (int16_t)rssi;
-            }
+    case MsgTypePing: {
+        int rssi = 0;
+        if(json_get_int(d_start, "rssi", &rssi)) {
+            msg->has_rssi = true;
+            msg->rssi = (int16_t)rssi;
         }
-        break;
+    } break;
     default:
         break;
     }
@@ -129,7 +128,8 @@ int protocol_build_hello(char* buf, int buf_size) {
     if(!buf || buf_size <= 0) return 0;
     const char* pet = furi_hal_version_get_name_ptr();
     return snprintf(
-        buf, buf_size,
+        buf,
+        buf_size,
         "{\"v\":1,\"t\":\"hello\",\"d\":{\"fw\":\"0.1.0\",\"bt\":\"%s\"}}\n",
         pet ? pet : "");
 }
@@ -137,9 +137,7 @@ int protocol_build_hello(char* buf, int buf_size) {
 int protocol_build_cmd(char* buf, int buf_size, const char* text) {
     if(!buf || buf_size <= 0) return 0;
     return snprintf(
-        buf, buf_size,
-        "{\"v\":1,\"t\":\"cmd\",\"d\":{\"text\":\"%s\"}}\n",
-        text ? text : "");
+        buf, buf_size, "{\"v\":1,\"t\":\"cmd\",\"d\":{\"text\":\"%s\"}}\n", text ? text : "");
 }
 
 int protocol_build_enter(char* buf, int buf_size) {
@@ -205,7 +203,8 @@ int protocol_build_shift_tab(char* buf, int buf_size) {
 int protocol_build_perm_resp(char* buf, int buf_size, bool allow, bool always, bool esc) {
     if(!buf || buf_size <= 0) return 0;
     return snprintf(
-        buf, buf_size,
+        buf,
+        buf_size,
         "{\"v\":1,\"t\":\"perm_resp\",\"d\":{\"allow\":%s,\"always\":%s,\"esc\":%s}}\n",
         allow ? "true" : "false",
         always ? "true" : "false",

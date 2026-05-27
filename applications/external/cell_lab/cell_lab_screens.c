@@ -136,13 +136,23 @@ static void cell_lab_draw_state(
         (unsigned)world->avg_radiation);
     cell_lab_draw_text(canvas, x_offset, 39, line);
 
-    snprintf(line, sizeof(line), "Toxin:%u Crowd:%u", (unsigned)world->avg_toxin, (unsigned)world->avg_crowding);
+    snprintf(
+        line,
+        sizeof(line),
+        "Toxin:%u Crowd:%u",
+        (unsigned)world->avg_toxin,
+        (unsigned)world->avg_crowding);
     cell_lab_draw_text(canvas, x_offset, 47, line);
 
     snprintf(line, sizeof(line), "Energy avg:%u", (unsigned)world->avg_energy);
     cell_lab_draw_text(canvas, x_offset, 55, line);
 
-    snprintf(line, sizeof(line), "Epoch:%lu Speed:%ums", (unsigned long)world->epoch, (unsigned)context->tick_delay_ms);
+    snprintf(
+        line,
+        sizeof(line),
+        "Epoch:%lu Speed:%ums",
+        (unsigned long)world->epoch,
+        (unsigned)context->tick_delay_ms);
     cell_lab_draw_text(canvas, x_offset, 63, line);
 }
 

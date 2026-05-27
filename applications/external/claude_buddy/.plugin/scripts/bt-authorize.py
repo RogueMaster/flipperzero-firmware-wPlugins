@@ -14,7 +14,9 @@ async def main():
     try:
         from bleak import BleakScanner
     except ImportError:
-        print("bleak not installed — run:  pip install bleak  (or: pip install '.[bt]')")
+        print(
+            "bleak not installed — run:  pip install bleak  (or: pip install '.[bt]')"
+        )
         sys.exit(1)
 
     print("Requesting Bluetooth access from macOS…")

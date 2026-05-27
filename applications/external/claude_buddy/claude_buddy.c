@@ -49,9 +49,8 @@ static void on_bt_connect(bool connected, void* context);
  * rebuilds the BT transport (USB handover, toggle mode, readvertise,
  * initial boot) gets the same behaviour. */
 static Transport* transport_ble_alloc(void* app_ctx) {
-    Transport* t = (app_settings_get_ble_mode() == BleModeDesktop)
-        ? transport_nus_alloc()
-        : transport_bt_alloc();
+    Transport* t = (app_settings_get_ble_mode() == BleModeDesktop) ? transport_nus_alloc() :
+                                                                     transport_bt_alloc();
     transport_bt_set_connect_callback(t, on_bt_connect, app_ctx);
     return t;
 }
@@ -59,12 +58,12 @@ static Transport* transport_ble_alloc(void* app_ctx) {
 #define SERIAL_QUEUE_SIZE 8
 
 enum {
-    CustomEventSerialMsg      = 100,
+    CustomEventSerialMsg = 100,
     // UI_CUSTOM_EVENT_TRANSITION = 101 is defined in ui.h
-    CustomEventUsbDisconnect  = 102,
-    CustomEventNusTick        = 103, // forward-declared below, see nus_tick_cb
+    CustomEventUsbDisconnect = 102,
+    CustomEventNusTick = 103, // forward-declared below, see nus_tick_cb
     CustomEventNusReadvertise = 104, // rebuild BLE transport to pick up new adv name
-    CustomEventBtLinkDown     = 105, // bridge-mode BT link dropped (bridge died)
+    CustomEventBtLinkDown = 105, // bridge-mode BT link dropped (bridge died)
 };
 
 typedef struct {
@@ -74,17 +73,17 @@ typedef struct {
     FuriMessageQueue* serial_queue;
     FuriTimer* usb_poll_timer; // non-NULL only in USB mode; polls for cable removal
     bool hello_sent;
-    bool muted;      // suppress all sounds (toggled by long-press Down)
-    bool is_working;    // blue LED active — alerts should flash cyan then return to blue
-    bool dictating;     // true while dictation is active (set by voice_start / cleared by voice_stop)
-    ProtocolMessage rx_msg_buf;     // Buffer for parsing on transport thread
+    bool muted; // suppress all sounds (toggled by long-press Down)
+    bool is_working; // blue LED active — alerts should flash cyan then return to blue
+    bool dictating; // true while dictation is active (set by voice_start / cleared by voice_stop)
+    ProtocolMessage rx_msg_buf; // Buffer for parsing on transport thread
     ProtocolMessage process_msg_buf; // Buffer for executing on GUI thread
     /* Kept off the BLE RX thread's stack — NusMessage is ~430 bytes and
      * was contributing to MemManage stack-overflow faults on long idle
      * sessions.  Single-threaded relative to itself (only the transport
      * RX callback writes here). */
     NusMessage nus_rx_buf;
-    char tx_buf[256];               // Shared TX building buffer (GUI thread)
+    char tx_buf[256]; // Shared TX building buffer (GUI thread)
     /* Cached at every transport_start so on_serial_data (transport thread)
      * can pick the right parser without doing file I/O per line. */
     BleMode current_ble_mode;
@@ -101,8 +100,8 @@ typedef struct {
 // Play a sound unless muted. Interrupt/mute toggle always plays regardless.
 static void app_notify(App* app, SoundType snd) {
     if(!app || !app->notifications) return;
-    if(!app->muted) notify_play(app->notifications, snd,
-        app->is_working ? LedStateWorking : LedStateOff);
+    if(!app->muted)
+        notify_play(app->notifications, snd, app->is_working ? LedStateWorking : LedStateOff);
 }
 
 /* ── Transport auto-detection ─────────────────────────────────── */
@@ -120,8 +119,7 @@ static bool detect_usb_cable(void) {
 static void usb_poll_cb(void* context) {
     App* app = context;
     if(!detect_usb_cable()) {
-        view_dispatcher_send_custom_event(
-            app->ui->view_dispatcher, CustomEventUsbDisconnect);
+        view_dispatcher_send_custom_event(app->ui->view_dispatcher, CustomEventUsbDisconnect);
     }
 }
 
@@ -138,8 +136,7 @@ static void on_bt_connect(bool connected, void* context) {
     App* app = context;
     if(!app || !app->ui || !app->ui->view_dispatcher) return;
     if(connected) return;
-    view_dispatcher_send_custom_event(
-        app->ui->view_dispatcher, CustomEventBtLinkDown);
+    view_dispatcher_send_custom_event(app->ui->view_dispatcher, CustomEventBtLinkDown);
 }
 
 /* ── NUS state-machine tick (timer thread) ───────────────────── */
@@ -226,14 +223,14 @@ static bool translate_nus_to_protocol(const NusMessage* in, ProtocolMessage* out
         out->hb_tokens_today = in->tokens_today;
         if(in->has_prompt) {
             out->type = MsgTypePerm;
-            strlcpy(out->text, in->prompt_tool[0] ? in->prompt_tool : "Permission",
-                    sizeof(out->text));
+            strlcpy(
+                out->text, in->prompt_tool[0] ? in->prompt_tool : "Permission", sizeof(out->text));
             strlcpy(out->text2, in->prompt_hint, sizeof(out->text2));
             strlcpy(out->perm_id, in->prompt_id, sizeof(out->perm_id));
         } else {
             out->type = MsgTypeAnthropicHB;
             const char* fallback = (in->running > 0) ? "Working..." :
-                                   (in->total > 0)   ? "Connected"  :
+                                   (in->total > 0)   ? "Connected" :
                                                        "Idle";
             strlcpy(out->text, in->msg[0] ? in->msg : fallback, sizeof(out->text));
         }
@@ -251,13 +248,30 @@ static bool translate_nus_to_protocol(const NusMessage* in, ProtocolMessage* out
         out->type = MsgTypeUnknown;
         const char* cmd = "";
         switch(in->kind) {
-        case NusMsgCmdStatus:     cmd = "status"; break;
-        case NusMsgCmdOwner:      cmd = "owner";  strlcpy(out->nus_name, in->name, sizeof(out->nus_name)); break;
-        case NusMsgCmdName:       cmd = "name";   strlcpy(out->nus_name, in->name, sizeof(out->nus_name)); break;
-        case NusMsgCmdUnpair:     cmd = "unpair"; break;
-        case NusMsgCmdCharBegin:  cmd = "char_begin"; strlcpy(out->nus_name, in->pack_name, sizeof(out->nus_name)); break;
-        case NusMsgCmdFile:       cmd = "file";       strlcpy(out->text, in->file_path, sizeof(out->text)); break;
-        case NusMsgCmdChunk:      cmd = "chunk";
+        case NusMsgCmdStatus:
+            cmd = "status";
+            break;
+        case NusMsgCmdOwner:
+            cmd = "owner";
+            strlcpy(out->nus_name, in->name, sizeof(out->nus_name));
+            break;
+        case NusMsgCmdName:
+            cmd = "name";
+            strlcpy(out->nus_name, in->name, sizeof(out->nus_name));
+            break;
+        case NusMsgCmdUnpair:
+            cmd = "unpair";
+            break;
+        case NusMsgCmdCharBegin:
+            cmd = "char_begin";
+            strlcpy(out->nus_name, in->pack_name, sizeof(out->nus_name));
+            break;
+        case NusMsgCmdFile:
+            cmd = "file";
+            strlcpy(out->text, in->file_path, sizeof(out->text));
+            break;
+        case NusMsgCmdChunk:
+            cmd = "chunk";
             /* Copy the base64 body out of the (transient) parse buffer so
              * the GUI thread can decode+write storage without racing. */
             if(in->chunk_body && in->chunk_body_len > 0) {
@@ -267,9 +281,14 @@ static bool translate_nus_to_protocol(const NusMessage* in, ProtocolMessage* out
                 out->menu_data[copy] = '\0';
             }
             break;
-        case NusMsgCmdFileEnd:    cmd = "file_end"; break;
-        case NusMsgCmdCharEnd:    cmd = "char_end"; break;
-        default: break;
+        case NusMsgCmdFileEnd:
+            cmd = "file_end";
+            break;
+        case NusMsgCmdCharEnd:
+            cmd = "char_end";
+            break;
+        default:
+            break;
         }
         strlcpy(out->pending_ack, cmd, sizeof(out->pending_ack));
         return true;
@@ -323,8 +342,12 @@ static void on_serial_data(const char* line, void* context) {
         FURI_LOG_D(
             TAG,
             "rx: kind=%d total=%d running=%d waiting=%d prompt=%d msg='%s'",
-            nus->kind, nus->total, nus->running, nus->waiting,
-            nus->has_prompt ? 1 : 0, nus->msg);
+            nus->kind,
+            nus->total,
+            nus->running,
+            nus->waiting,
+            nus->has_prompt ? 1 : 0,
+            nus->msg);
         /* Transcript is the only side effect that MUST happen inline —
          * the entries_body / turn_content_body pointers live inside the
          * parse-time JSON buffer and go stale after return.  The ring
@@ -369,16 +392,17 @@ static void process_message(App* app, ProtocolMessage* msg) {
     switch(msg->type) {
     case MsgTypeNotify: {
         SoundType snd = sound_from_string(msg->sound);
-        bool is_voice = (snd == SoundVoiceStart || snd == SoundVoiceStartLed ||
-                         snd == SoundVoiceStop || snd == SoundVoiceStopQuiet);
+        bool is_voice =
+            (snd == SoundVoiceStart || snd == SoundVoiceStartLed || snd == SoundVoiceStop ||
+             snd == SoundVoiceStopQuiet);
 
         // Non-LED sounds clear the working/compacting state (turn complete, error, interrupt, etc.)
         if(snd != SoundLedWorking && snd != SoundAlert && snd != SoundLedCompact) {
             app->is_working = false;
         }
 
-        if(!app->muted) notify_play(app->notifications, snd,
-            app->is_working ? LedStateWorking : LedStateOff);
+        if(!app->muted)
+            notify_play(app->notifications, snd, app->is_working ? LedStateWorking : LedStateOff);
 
         if(snd == SoundVoiceStart || snd == SoundVoiceStartLed) {
             app->dictating = true;
@@ -431,13 +455,14 @@ static void process_message(App* app, ProtocolMessage* msg) {
 
     case MsgTypeStatus:
         app->is_working = true;
-        notify_play(app->notifications, SoundLedWorking, LedStateOff); // LED-only, not subject to mute
+        notify_play(
+            app->notifications, SoundLedWorking, LedStateOff); // LED-only, not subject to mute
         ui_set_pose(app->ui, PoseThinking);
         ui_show_status2(
-                app->ui,
-                msg->text[0] ? msg->text : "Thinking...",
-                msg->text2[0] ? msg->text2 : NULL,
-                true);
+            app->ui,
+            msg->text[0] ? msg->text : "Thinking...",
+            msg->text2[0] ? msg->text2 : NULL,
+            true);
         break;
 
     case MsgTypeMenu:
@@ -451,9 +476,14 @@ static void process_message(App* app, ProtocolMessage* msg) {
         /* State-machine entry is idempotent — safe on every heartbeat. */
         if(desktop) {
             nus_state_on_heartbeat(
-                &app->nus_state, &app->nus_stats,
-                msg->hb_total, msg->hb_running, msg->hb_waiting,
-                /* has_prompt */ true, msg->text, 0);
+                &app->nus_state,
+                &app->nus_stats,
+                msg->hb_total,
+                msg->hb_running,
+                msg->hb_waiting,
+                /* has_prompt */ true,
+                msg->text,
+                0);
             /* Remember the prompt id for echo-back on the decision. */
             if(msg->perm_id[0]) {
                 strlcpy(app->last_perm_id, msg->perm_id, sizeof(app->last_perm_id));
@@ -524,9 +554,13 @@ static void process_message(App* app, ProtocolMessage* msg) {
             } else {
                 first = "Idle";
             }
-            snprintf(status_line, sizeof(status_line),
-                     "%s\nTokens: %luk\nToday: %luk",
-                     first, session_k, today_k);
+            snprintf(
+                status_line,
+                sizeof(status_line),
+                "%s\nTokens: %luk\nToday: %luk",
+                first,
+                session_k,
+                today_k);
             text = status_line;
         }
         ui_show_status2(app->ui, text, NULL, msg->hb_total > 0);
@@ -543,8 +577,7 @@ static void process_message(App* app, ProtocolMessage* msg) {
     if(msg->nus_time_epoch > 0) {
         /* {"time":[epoch,tz]} — set local wall time in Flipper RTC. */
         DateTime dt;
-        datetime_timestamp_to_datetime(
-            (uint32_t)(msg->nus_time_epoch + msg->nus_time_tz), &dt);
+        datetime_timestamp_to_datetime((uint32_t)(msg->nus_time_epoch + msg->nus_time_tz), &dt);
         furi_hal_rtc_set_datetime(&dt);
     }
     if(msg->pending_ack[0]) {
@@ -554,8 +587,7 @@ static void process_message(App* app, ProtocolMessage* msg) {
             app_settings_set_owner_name(msg->nus_name);
         } else if(strcmp(msg->pending_ack, "name") == 0) {
             app_settings_set_device_name(msg->nus_name);
-            view_dispatcher_send_custom_event(
-                app->ui->view_dispatcher, CustomEventNusReadvertise);
+            view_dispatcher_send_custom_event(app->ui->view_dispatcher, CustomEventNusReadvertise);
         } else if(strcmp(msg->pending_ack, "unpair") == 0) {
             transport_nus_forget_bonds();
         } else if(strcmp(msg->pending_ack, "char_begin") == 0) {
@@ -583,7 +615,9 @@ static void process_message(App* app, ProtocolMessage* msg) {
         int len = 0;
         if(strcmp(msg->pending_ack, "status") == 0) {
             len = nus_build_status_ack(
-                app->tx_buf, sizeof(app->tx_buf), "Claude",
+                app->tx_buf,
+                sizeof(app->tx_buf),
+                "Claude",
                 transport_nus_is_secure(),
                 &app->nus_stats);
         } else {
@@ -599,7 +633,8 @@ static bool on_custom_event(void* context, uint32_t event) {
     App* app = context;
     if(!app) return false;
     if(event == CustomEventSerialMsg) {
-        while(furi_message_queue_get(app->serial_queue, &app->process_msg_buf, 0) == FuriStatusOk) {
+        while(furi_message_queue_get(app->serial_queue, &app->process_msg_buf, 0) ==
+              FuriStatusOk) {
             process_message(app, &app->process_msg_buf);
         }
         return true;
@@ -778,8 +813,7 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
             /* Tally stats (persisted) + fire Heart if decision was fast. */
             nus_state_on_permission_decision(&app->nus_state, &app->nus_stats, allow);
         } else {
-            len = protocol_build_perm_resp(
-                app->tx_buf, sizeof(app->tx_buf), allow, always, esc);
+            len = protocol_build_perm_resp(app->tx_buf, sizeof(app->tx_buf), allow, always, esc);
         }
         transport_send(app->transport, app->tx_buf, len);
         ui_back_to_status(app->ui);
@@ -872,7 +906,6 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
 int32_t claude_buddy_app(void* p) {
     UNUSED(p);
 
-
     App* app = malloc(sizeof(App));
     furi_check(app != NULL);
     memset(app, 0, sizeof(App));
@@ -905,8 +938,7 @@ int32_t claude_buddy_app(void* p) {
      * Desktop mode overrides — it talks directly to Claude Desktop over
      * BLE and the USB/host-bridge path is never useful, so stay on BLE
      * regardless of cable state. */
-    bool use_bt = !detect_usb_cable() ||
-                  app_settings_get_ble_mode() == BleModeDesktop;
+    bool use_bt = !detect_usb_cable() || app_settings_get_ble_mode() == BleModeDesktop;
     app->transport = use_bt ? transport_ble_alloc(app) : transport_usb_alloc();
     app_on_transport_mode_changed(app, use_bt);
     ui_set_transport_mode(app->ui, use_bt);

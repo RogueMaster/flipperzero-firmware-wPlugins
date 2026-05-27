@@ -8,18 +8,18 @@
 
 #define CDC_CH       0
 #define RX_FLAG_DATA (1u << 0)
-#define USB_TX_CHUNK 64   /* USB FS bulk endpoint max packet size */
+#define USB_TX_CHUNK 64 /* USB FS bulk endpoint max packet size */
 
 typedef struct {
-    Transport          base;   /* MUST be first */
-    FuriThread*        rx_thread;
+    Transport base; /* MUST be first */
+    FuriThread* rx_thread;
     TransportRxCallback callback;
-    void*              callback_ctx;
+    void* callback_ctx;
     FuriHalUsbInterface* usb_mode_prev;
-    FuriMutex*         tx_mutex;
-    bool               running;
-    char               rx_buf[PROTOCOL_MAX_MSG_LEN];
-    int                rx_pos;
+    FuriMutex* tx_mutex;
+    bool running;
+    char rx_buf[PROTOCOL_MAX_MSG_LEN];
+    int rx_pos;
 } UsbTransport;
 
 /* ── RX thread ─────────────────────────────────────────────────── */
@@ -47,8 +47,7 @@ static int32_t usb_rx_thread(void* context) {
                 if(buf[i] == '\n') {
                     if(ut->rx_pos > 0) {
                         ut->rx_buf[ut->rx_pos] = '\0';
-                        if(ut->callback)
-                            ut->callback(ut->rx_buf, ut->callback_ctx);
+                        if(ut->callback) ut->callback(ut->rx_buf, ut->callback_ctx);
                         ut->rx_pos = 0;
                     }
                 } else if(ut->rx_pos < (int)sizeof(ut->rx_buf) - 1) {
@@ -65,21 +64,21 @@ static int32_t usb_rx_thread(void* context) {
 static void usb_start(Transport* t, TransportRxCallback cb, void* ctx) {
     if(!t) return;
     UsbTransport* ut = (UsbTransport*)t;
-    ut->callback     = cb;
+    ut->callback = cb;
     ut->callback_ctx = ctx;
-    ut->running      = true;
-    ut->rx_pos       = 0;
+    ut->running = true;
+    ut->rx_pos = 0;
 
     ut->usb_mode_prev = furi_hal_usb_get_config();
     furi_hal_usb_unlock();
     furi_check(furi_hal_usb_set_config(&usb_cdc_single, NULL));
 
     static CdcCallbacks cdc_cb = {
-        .tx_ep_callback    = NULL,
-        .rx_ep_callback    = cdc_rx_callback,
-        .state_callback    = NULL,
+        .tx_ep_callback = NULL,
+        .rx_ep_callback = cdc_rx_callback,
+        .state_callback = NULL,
         .ctrl_line_callback = NULL,
-        .config_callback   = NULL,
+        .config_callback = NULL,
     };
     furi_hal_cdc_set_callbacks(CDC_CH, &cdc_cb, ut);
     furi_thread_start(ut->rx_thread);
@@ -137,11 +136,11 @@ Transport* transport_usb_alloc(void) {
     UsbTransport* ut = malloc(sizeof(UsbTransport));
     furi_check(ut != NULL);
     memset(ut, 0, sizeof(UsbTransport));
-    ut->base.start   = usb_start;
-    ut->base.stop    = usb_stop;
-    ut->base.send    = usb_send;
+    ut->base.start = usb_start;
+    ut->base.stop = usb_stop;
+    ut->base.send = usb_send;
     ut->base.free_fn = usb_free;
-    ut->rx_thread    = furi_thread_alloc_ex("CdcSerialRx", 2048, usb_rx_thread, ut);
-    ut->tx_mutex     = furi_mutex_alloc(FuriMutexTypeNormal);
+    ut->rx_thread = furi_thread_alloc_ex("CdcSerialRx", 2048, usb_rx_thread, ut);
+    ut->tx_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     return (Transport*)ut;
 }

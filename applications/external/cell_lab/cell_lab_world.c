@@ -144,7 +144,8 @@ uint8_t cell_lab_world_radiation_at(const CellLabWorld* world, uint16_t x, uint1
     // RU: Радиация сильнее на свету и имеет движущуюся вертикальную "бурю".
     // EN: Radiation is stronger in light and has a moving vertical "storm".
     const uint16_t width = cell_lab_world_width(world);
-    const uint16_t storm_x = (uint16_t)((world->generation / 6U) + (world->climate_seed * 7U)) % width;
+    const uint16_t storm_x =
+        (uint16_t)((world->generation / 6U) + (world->climate_seed * 7U)) % width;
     const uint16_t dx_raw = (x > storm_x) ? (x - storm_x) : (storm_x - x);
     const uint16_t dx = (dx_raw > (width / 2U)) ? (width - dx_raw) : dx_raw;
     const uint8_t light = cell_lab_world_light_at(world, y);
@@ -161,7 +162,8 @@ uint8_t cell_lab_world_toxin_at(const CellLabWorld* world, uint16_t x, uint16_t 
     // RU: Токсины скапливаются в темных местах и пульсируют карманами.
     // EN: Toxins gather in dark places and pulse in pockets.
     const uint8_t darkness = (uint8_t)(15U - cell_lab_world_light_at(world, y));
-    const uint8_t pocket = (uint8_t)((x * 5U + y * 11U + (world->generation / 12U) + world->climate_seed) & 0x0FU);
+    const uint8_t pocket =
+        (uint8_t)((x * 5U + y * 11U + (world->generation / 12U) + world->climate_seed) & 0x0FU);
     uint8_t toxin = (uint8_t)((darkness * world->config.toxin_level) / 18U);
 
     if(pocket > 11U) {
@@ -235,7 +237,8 @@ static CellLabGenome cell_lab_mutate_genome(CellLabWorld* world, CellLabGenome g
         if(cell_lab_random(world) & 1U) {
             genome = (CellLabGenome)((genome & 0xFFF0U) | cell_lab_random_limit(world, 16));
         } else {
-            genome = (CellLabGenome)((genome & 0xFF0FU) | ((CellLabGenome)cell_lab_random_limit(world, 16) << 4));
+            genome = (CellLabGenome)((genome & 0xFF0FU) |
+                                     ((CellLabGenome)cell_lab_random_limit(world, 16) << 4));
         }
         world->mutations++;
     }
@@ -459,16 +462,18 @@ static int16_t cell_lab_score_place(
     const uint8_t temp = cell_lab_world_temperature_at(world, y);
     const uint8_t radiation = cell_lab_world_radiation_at(world, x, y);
     const uint8_t toxin = cell_lab_world_toxin_at(world, x, y);
-    const uint8_t light_match = (uint8_t)(15U - cell_lab_abs_diff(cell_lab_gene_light(genome), light));
-    const uint8_t temp_match = (uint8_t)(15U - cell_lab_abs_diff(cell_lab_gene_temp(genome), temp));
+    const uint8_t light_match =
+        (uint8_t)(15U - cell_lab_abs_diff(cell_lab_gene_light(genome), light));
+    const uint8_t temp_match =
+        (uint8_t)(15U - cell_lab_abs_diff(cell_lab_gene_temp(genome), temp));
     const uint8_t radiation_tolerance = (uint8_t)(5U + (cell_lab_gene_light(genome) / 2U) +
                                                   (cell_lab_gene_stress_resist(genome) * 4U));
     const uint8_t toxin_tolerance =
         (uint8_t)(4U + (metabolism * 2U) + (cell_lab_gene_stress_resist(genome) * 4U));
     const uint8_t radiation_stress =
         (radiation > radiation_tolerance) ? (uint8_t)(radiation - radiation_tolerance) : 0U;
-    const uint8_t toxin_stress =
-        (toxin > toxin_tolerance) ? (uint8_t)(toxin - toxin_tolerance) : 0U;
+    const uint8_t toxin_stress = (toxin > toxin_tolerance) ? (uint8_t)(toxin - toxin_tolerance) :
+                                                             0U;
     int16_t score = (int16_t)cell_lab_random_limit(world, 8);
 
     // RU: Базово любая клетка любит совпадение со своим светом и температурой.
@@ -550,7 +555,8 @@ static bool cell_lab_pick_target(
             kind = CellLabTargetKin;
             victim_energy = world->energy[index];
         } else if(
-            (world->cell[index] == CellLabCellFood) && (world->next_cell[index] == CellLabCellFood)) {
+            (world->cell[index] == CellLabCellFood) &&
+            (world->next_cell[index] == CellLabCellFood)) {
             kind = CellLabTargetFood;
         }
 
@@ -654,9 +660,9 @@ static void cell_lab_step_life(CellLabWorld* world, uint16_t x, uint16_t y) {
                                                   (cell_lab_gene_stress_resist(genome) * 4U));
     const uint8_t toxin_tolerance =
         (uint8_t)(4U + (metabolism * 2U) + (cell_lab_gene_stress_resist(genome) * 4U));
-    const uint8_t radiation_stress =
-        (local_radiation > radiation_tolerance) ? (uint8_t)(local_radiation - radiation_tolerance) :
-                                                   0U;
+    const uint8_t radiation_stress = (local_radiation > radiation_tolerance) ?
+                                         (uint8_t)(local_radiation - radiation_tolerance) :
+                                         0U;
     const uint8_t toxin_stress =
         (local_toxin > toxin_tolerance) ? (uint8_t)(local_toxin - toxin_tolerance) : 0U;
     const uint8_t crowding = cell_lab_live_neighbor_count(world, x, y);
@@ -787,10 +793,10 @@ static void cell_lab_step_life(CellLabWorld* world, uint16_t x, uint16_t y) {
     world->next_energy[target] = energy;
     world->next_genome[target] = genome;
 
-    const uint8_t reproduce_threshold = (uint8_t)(
-        world->config.reproduce_energy + (metabolism * 2U) +
-        (cell_lab_gene_stress_resist(genome) ? 3U : 0U) +
-        (cell_lab_gene_cannibal(genome) ? 2U : 0U));
+    const uint8_t reproduce_threshold =
+        (uint8_t)(world->config.reproduce_energy + (metabolism * 2U) +
+                  (cell_lab_gene_stress_resist(genome) ? 3U : 0U) +
+                  (cell_lab_gene_cannibal(genome) ? 2U : 0U));
 
     if(energy >= reproduce_threshold) {
         // RU: Размножение копирует геном с мутациями и делит энергию между родителем и ребенком.

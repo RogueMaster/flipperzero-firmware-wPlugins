@@ -4,6 +4,7 @@ import json
 import time
 import uuid
 
+
 def make_id() -> str:
     return uuid.uuid4().hex[:8]
 
@@ -30,7 +31,9 @@ def decode(line: bytes) -> dict | None:
     return None
 
 
-def notify_msg(sound: str, vibro: bool = True, text: str = "", subtext: str = "") -> bytes:
+def notify_msg(
+    sound: str, vibro: bool = True, text: str = "", subtext: str = ""
+) -> bytes:
     d: dict = {"sound": sound, "vibro": vibro, "text": text}
     if subtext:
         d["sub"] = subtext[:21]

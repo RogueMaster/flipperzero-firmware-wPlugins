@@ -57,5 +57,4 @@ void transport_nus_forget_bonds(void);
  * from here, dispatch a custom event to the GUI thread instead.  Only
  * meaningful on the Bridge-mode BT transport; no-op on USB and NUS. */
 typedef void (*TransportConnectCallback)(bool connected, void* context);
-void transport_bt_set_connect_callback(
-    Transport* t, TransportConnectCallback cb, void* context);
+void transport_bt_set_connect_callback(Transport* t, TransportConnectCallback cb, void* context);

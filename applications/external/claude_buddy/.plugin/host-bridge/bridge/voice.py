@@ -30,6 +30,7 @@ log = logging.getLogger(__name__)
 # Abstract interface
 # ---------------------------------------------------------------------------
 
+
 class DictationBackend(ABC):
     """Interface every dictation backend must implement."""
 
@@ -76,20 +77,26 @@ tell application "System Events"
     end tell
 end tell"""
 
-_MACOS_READ_SCRIPT   = _MACOS_SCRIPT.format(action="return n")
+_MACOS_READ_SCRIPT = _MACOS_SCRIPT.format(action="return n")
 _MACOS_TOGGLE_SCRIPT = _MACOS_SCRIPT.format(action="click anItem\nreturn")
 
 
 async def _run_applescript(script: str) -> str | None:
     try:
         proc = await asyncio.create_subprocess_exec(
-            "osascript", "-e", script,
+            "osascript",
+            "-e",
+            script,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
-            log.error("AppleScript failed (rc=%d): %s", proc.returncode, stderr.decode().strip())
+            log.error(
+                "AppleScript failed (rc=%d): %s",
+                proc.returncode,
+                stderr.decode().strip(),
+            )
             return None
         return stdout.decode().strip() or None
     except Exception as e:
@@ -121,6 +128,7 @@ class MacOSDictationBackend(DictationBackend):
 # Null backend (disabled / unsupported platform)
 # ---------------------------------------------------------------------------
 
+
 class NullDictationBackend(DictationBackend):
     """No-op backend used when dictation is disabled or unavailable."""
 
@@ -138,6 +146,7 @@ class NullDictationBackend(DictationBackend):
 # Custom shell-command backend
 # ---------------------------------------------------------------------------
 
+
 async def _run_shell(cmd: str) -> None:
     """Run *cmd* in a shell, logging any errors."""
     try:
@@ -148,7 +157,11 @@ async def _run_shell(cmd: str) -> None:
         )
         _, stderr = await proc.communicate()
         if proc.returncode != 0:
-            log.error("Dictation command failed (rc=%d): %s", proc.returncode, stderr.decode().strip())
+            log.error(
+                "Dictation command failed (rc=%d): %s",
+                proc.returncode,
+                stderr.decode().strip(),
+            )
     except Exception as e:
         log.error("Dictation command error: %s", e)
 
@@ -207,6 +220,7 @@ class CustomDictationBackend(DictationBackend):
 # Factory
 # ---------------------------------------------------------------------------
 
+
 def create_backend() -> DictationBackend:
     """Return the configured DictationBackend instance.
 
@@ -234,7 +248,9 @@ def create_backend() -> DictationBackend:
             )
         log.info(
             "Dictation backend: custom (start=%r stop=%r check=%r)",
-            start_cmd, config.DICTATION_STOP_CMD, config.DICTATION_CHECK_CMD,
+            start_cmd,
+            config.DICTATION_STOP_CMD,
+            config.DICTATION_CHECK_CMD,
         )
         return CustomDictationBackend(
             start_cmd=start_cmd,

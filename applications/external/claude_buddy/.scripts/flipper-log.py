@@ -31,14 +31,19 @@ def find_port() -> str | None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("-p", "--port")
-    ap.add_argument("--debug", action="store_true",
-                    help="send 'log debug' to the CLI before tailing")
+    ap.add_argument(
+        "--debug",
+        action="store_true",
+        help="send 'log debug' to the CLI before tailing",
+    )
     args = ap.parse_args()
 
     port = args.port or find_port()
     if not port:
-        print("No /dev/cu.usbmodemflip_* port found. Is the Flipper plugged in?",
-              file=sys.stderr)
+        print(
+            "No /dev/cu.usbmodemflip_* port found. Is the Flipper plugged in?",
+            file=sys.stderr,
+        )
         return 1
     print(f"Opening {port}…")
 

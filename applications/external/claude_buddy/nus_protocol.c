@@ -24,7 +24,8 @@ static const char* json_find_string(const char* json, const char* key, int* out_
     const char* p = strstr(json, pattern);
     if(!p) return NULL;
     p += n;
-    while(*p == ' ') p++;
+    while(*p == ' ')
+        p++;
     if(*p != '"') return NULL;
     p++; /* skip opening quote */
     const char* end = strchr(p, '"');
@@ -54,7 +55,8 @@ static bool json_get_int(const char* json, const char* key, int* out) {
     const char* start = strstr(json, pattern);
     if(!start) return false;
     start += n;
-    while(*start == ' ') start++;
+    while(*start == ' ')
+        start++;
     char* end = NULL;
     long v = strtol(start, &end, 10);
     if(end == start) return false;
@@ -75,7 +77,8 @@ static const char*
     const char* p = strstr(json, pattern);
     if(!p) return NULL;
     p += n;
-    while(*p == ' ') p++;
+    while(*p == ' ')
+        p++;
     if(*p != open) return NULL;
     const char* start = p + 1;
     int depth = 1;
@@ -95,7 +98,8 @@ static const char*
             continue;
         }
         if(in_str) continue;
-        if(*p == open) depth++;
+        if(*p == open)
+            depth++;
         else if(*p == close) {
             depth--;
             if(depth == 0) {
@@ -129,7 +133,8 @@ bool nus_protocol_parse(const char* json_line, NusMessage* msg) {
         json_get_int(json_line, "waiting", &msg->waiting);
         int tmp = 0;
         if(json_get_int(json_line, "tokens", &tmp) && tmp > 0) msg->tokens = (uint32_t)tmp;
-        if(json_get_int(json_line, "tokens_today", &tmp) && tmp > 0) msg->tokens_today = (uint32_t)tmp;
+        if(json_get_int(json_line, "tokens_today", &tmp) && tmp > 0)
+            msg->tokens_today = (uint32_t)tmp;
         json_get_string(json_line, "msg", msg->msg, sizeof(msg->msg));
         /* Entries body pointer is valid only during this call — caller
          * must consume before the JSON line is freed. */
@@ -247,8 +252,10 @@ bool nus_protocol_parse(const char* json_line, NusMessage* msg) {
  * Calls `cb` once per `"type":"text"` block with its "text" string body
  * (excluding quotes).  Returns number of blocks yielded. */
 int nus_protocol_foreach_turn_text(
-    const char* content_body, int content_body_len,
-    void (*cb)(const char* text, int text_len, void* ctx), void* ctx) {
+    const char* content_body,
+    int content_body_len,
+    void (*cb)(const char* text, int text_len, void* ctx),
+    void* ctx) {
     if(!content_body || content_body_len <= 0 || !cb) return 0;
 
     /* Each element is an object: walk with depth tracking, then for
@@ -258,19 +265,34 @@ int nus_protocol_foreach_turn_text(
     int count = 0;
 
     while(p < end) {
-        while(p < end && *p != '{') p++;
+        while(p < end && *p != '{')
+            p++;
         if(p >= end) break;
         const char* obj_start = p;
         int depth = 1;
         bool in_str = false, esc = false;
         p++;
         while(p < end && depth > 0) {
-            if(esc) { esc = false; p++; continue; }
-            if(*p == '\\') { esc = true; p++; continue; }
-            if(*p == '"') { in_str = !in_str; p++; continue; }
+            if(esc) {
+                esc = false;
+                p++;
+                continue;
+            }
+            if(*p == '\\') {
+                esc = true;
+                p++;
+                continue;
+            }
+            if(*p == '"') {
+                in_str = !in_str;
+                p++;
+                continue;
+            }
             if(!in_str) {
-                if(*p == '{') depth++;
-                else if(*p == '}') depth--;
+                if(*p == '{')
+                    depth++;
+                else if(*p == '}')
+                    depth--;
             }
             p++;
         }
@@ -316,14 +338,17 @@ int nus_build_perm_decision(char* buf, int buf_size, const char* id, bool allow)
 
 int nus_build_ack(char* buf, int buf_size, const char* cmd, uint32_t n) {
     if(!buf || buf_size <= 0 || !cmd) return 0;
-    int w = snprintf(
-        buf, buf_size, "{\"ack\":\"%s\",\"ok\":true,\"n\":%lu}\n",
-        cmd, (unsigned long)n);
+    int w =
+        snprintf(buf, buf_size, "{\"ack\":\"%s\",\"ok\":true,\"n\":%lu}\n", cmd, (unsigned long)n);
     return (w > 0 && w < buf_size) ? w : 0;
 }
 
 int nus_build_status_ack(
-    char* buf, int buf_size, const char* device_name, bool secure, const NusStats* stats) {
+    char* buf,
+    int buf_size,
+    const char* device_name,
+    bool secure,
+    const NusStats* stats) {
     if(!buf || buf_size <= 0) return 0;
 
     /* Read telemetry from furi_hal at build time so every status poll
@@ -342,7 +367,7 @@ int nus_build_status_ack(
 
     uint32_t appr = stats ? stats->approvals : 0;
     uint32_t deny = stats ? stats->denies : 0;
-    uint32_t lvl  = stats ? stats->level : 0;
+    uint32_t lvl = stats ? stats->level : 0;
     /* Velocity: approvals this session is approximate — we'd need a
      * session-start baseline to be exact.  Use a rough per-hour rate
      * over uptime as a stand-in. */

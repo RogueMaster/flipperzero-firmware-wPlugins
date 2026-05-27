@@ -24,7 +24,7 @@ typedef enum {
 } BleMode;
 
 #define APP_SETTINGS_NAME_MAX    32
-#define APP_SETTINGS_DEVNAME_MAX 18  /* matches FURI_HAL_VERSION_DEVICE_NAME_LENGTH */
+#define APP_SETTINGS_DEVNAME_MAX 18 /* matches FURI_HAL_VERSION_DEVICE_NAME_LENGTH */
 
 BleMode app_settings_get_ble_mode(void);
 /* Returns true on successful write. */

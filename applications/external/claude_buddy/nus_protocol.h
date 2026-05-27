@@ -56,8 +56,8 @@ typedef struct {
     int total;
     int running;
     int waiting;
-    uint32_t tokens;        /* cumulative since desktop start */
-    uint32_t tokens_today;  /* resets at local midnight */
+    uint32_t tokens; /* cumulative since desktop start */
+    uint32_t tokens_today; /* resets at local midnight */
     char msg[NUS_MSG_FIELD_LEN];
 
     /* Permission prompt embedded in heartbeat. */
@@ -83,11 +83,11 @@ typedef struct {
     int32_t time_tz_offset;
 
     /* Folder push payload fields (one-of, depending on NusMsgKind). */
-    char pack_name[32];         /* char_begin */
+    char pack_name[32]; /* char_begin */
     uint32_t pack_total;
-    char file_path[64];         /* file */
+    char file_path[64]; /* file */
     uint32_t file_size;
-    const char* chunk_body;     /* chunk — base64 string, body pointer */
+    const char* chunk_body; /* chunk — base64 string, body pointer */
     int chunk_body_len;
 } NusMessage;
 
@@ -97,8 +97,10 @@ bool nus_protocol_parse(const char* json_line, NusMessage* msg);
  * The text/text_len pointers are into the original JSON — consume
  * synchronously (don't capture for later). */
 int nus_protocol_foreach_turn_text(
-    const char* content_body, int content_body_len,
-    void (*cb)(const char* text, int text_len, void* ctx), void* ctx);
+    const char* content_body,
+    int content_body_len,
+    void (*cb)(const char* text, int text_len, void* ctx),
+    void* ctx);
 
 /* Build outgoing messages.  Each writes a complete line including the
  * trailing newline.  Returns bytes written, or 0 on overflow. */
@@ -114,7 +116,11 @@ static inline int nus_build_simple_ack(char* buf, int buf_size, const char* cmd)
  * name, sec flag, bat (pct/mV/mA/usb), sys (up/heap), stats (appr/deny/
  * vel/nap/lvl).  Values are read from furi_hal at call time. */
 int nus_build_status_ack(
-    char* buf, int buf_size, const char* device_name, bool secure, const NusStats* stats);
+    char* buf,
+    int buf_size,
+    const char* device_name,
+    bool secure,
+    const NusStats* stats);
 
 #ifdef __cplusplus
 }

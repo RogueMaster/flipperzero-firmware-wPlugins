@@ -12,11 +12,11 @@ STATS_PATH = "/tmp/claude-flipper-turn-stats.json"
 # Map tool names (or prefixes) to sound names.
 # Evaluated in order — first match wins.
 TOOL_SOUNDS = [
-    ({"Edit", "Write", "NotebookEdit"},         "enter"),   # file write: soft blip
-    ({"Bash"},                                   "cmd"),     # shell command: confirm tone
-    ({"WebFetch", "WebSearch"},                  "alert"),   # network: attention tone
-    ({"Read"},                                   "enter"),   # read-only: soft blip
-    ({"Glob", "Grep"},                           None),   # read-only: soft blip
+    ({"Edit", "Write", "NotebookEdit"}, "enter"),  # file write: soft blip
+    ({"Bash"}, "cmd"),  # shell command: confirm tone
+    ({"WebFetch", "WebSearch"}, "alert"),  # network: attention tone
+    ({"Read"}, "enter"),  # read-only: soft blip
+    ({"Glob", "Grep"}, None),  # read-only: soft blip
 ]
 
 
@@ -30,7 +30,15 @@ def sound_for_tool(tool_name: str) -> str | None:
 def send_to_flipper(sound: str, text: str = "", subtext: str = "") -> None:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(SOCKET_PATH)
-    msg = json.dumps({"action": "notify", "sound": sound, "vibro": False, "text": text, "subtext": subtext})
+    msg = json.dumps(
+        {
+            "action": "notify",
+            "sound": sound,
+            "vibro": False,
+            "text": text,
+            "subtext": subtext,
+        }
+    )
     s.sendall(msg.encode())
     s.shutdown(socket.SHUT_WR)
     s.recv(4096)
@@ -50,7 +58,7 @@ def tool_detail(tool_name: str, hook_input: dict) -> str:
         val = tool_input.get("url") or tool_input.get("query", "")
         for prefix in ("https://", "http://"):
             if val.startswith(prefix):
-                val = val[len(prefix):]
+                val = val[len(prefix) :]
                 break
         return val[:21]
     return ""
@@ -81,7 +89,9 @@ def main():
 
     # Track tool usage stats for the Stop hook summary
     try:
-        stats = json.loads(open(STATS_PATH).read()) if os.path.exists(STATS_PATH) else {}
+        stats = (
+            json.loads(open(STATS_PATH).read()) if os.path.exists(STATS_PATH) else {}
+        )
     except Exception:
         stats = {}
     stats[tool_name] = stats.get(tool_name, 0) + 1

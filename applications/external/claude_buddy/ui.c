@@ -81,8 +81,8 @@ static const char* default_menu_items[] = {
 
 // ── Layout ───────────────────────────────────────────────────────
 
-#define HDR_H  9   // inverted header bar height (y 0..8)
-#define FTR_Y  53  // footer separator y
+#define HDR_H 9 // inverted header bar height (y 0..8)
+#define FTR_Y 53 // footer separator y
 
 // ── Animation Timer ──────────────────────────────────────────────
 
@@ -195,7 +195,7 @@ static void draw_scrollbar(Canvas* canvas, int idx, int count, int y0, int y1) {
     if(bh < 4) bh = 4;
     int by = y0 + (idx * (h - bh)) / (count - 1);
     canvas_draw_line(canvas, 126, y0, 126, y1); // track
-    canvas_draw_box(canvas, 125, by, 3, bh);    // thumb
+    canvas_draw_box(canvas, 125, by, 3, bh); // thumb
 }
 
 // Button icon IDs (used by help page and status hint)
@@ -233,14 +233,18 @@ static void draw_claude(Canvas* canvas, int cx, int cy, uint8_t pose, uint8_t fr
     // ── Pose-specific body offsets ──
     if(pose == PoseHappy) {
         // Gentle bounce: up for first 4 frames
-        if(frame < 2) cy -= 2;
-        else if(frame < 4) cy -= 1;
+        if(frame < 2)
+            cy -= 2;
+        else if(frame < 4)
+            cy -= 1;
     }
     if(pose == PoseExcited) {
         // Fast bounce: repeating 4-frame cycle
         int ph = frame % 4;
-        if(ph == 0) cy -= 3;
-        else if(ph <= 2) cy -= 1;
+        if(ph == 0)
+            cy -= 3;
+        else if(ph <= 2)
+            cy -= 1;
     }
     if(pose == PoseAlert) {
         // Horizontal shake: ±1px alternating every 2 frames
@@ -358,10 +362,8 @@ static void draw_claude(Canvas* canvas, int cx, int cy, uint8_t pose, uint8_t fr
     case PoseHappy: {
         // Sparkle stars appear on each side after the bounce settles
         if(frame >= 4) {
-            if(frame % 5 < 4)
-                draw_sparkle(canvas, cx - 3, cy + 5);
-            if((frame + 2) % 5 < 4)
-                draw_sparkle(canvas, cx + 21, cy + 5);
+            if(frame % 5 < 4) draw_sparkle(canvas, cx - 3, cy + 5);
+            if((frame + 2) % 5 < 4) draw_sparkle(canvas, cx + 21, cy + 5);
         }
         break;
     }
@@ -373,8 +375,7 @@ static void draw_claude(Canvas* canvas, int cx, int cy, uint8_t pose, uint8_t fr
         const int8_t sp_dx[] = {-4, 21, 5, 14};
         const int8_t sp_dy[] = {4, 4, -5, -5};
         for(int i = 0; i < 4; i++) {
-            if((frame + i * 3) % 8 < 6)
-                draw_sparkle(canvas, cx + sp_dx[i], cy + sp_dy[i]);
+            if((frame + i * 3) % 8 < 6) draw_sparkle(canvas, cx + sp_dx[i], cy + sp_dy[i]);
         }
         break;
     }
@@ -396,24 +397,23 @@ static void draw_claude(Canvas* canvas, int cx, int cy, uint8_t pose, uint8_t fr
 
 // Greedy word-wrap. Fills `lines` (up to `max_lines` × `line_cap`), returns
 // the line count. Breaks at spaces where possible, otherwise mid-word.
-static int wrap_text(
-    Canvas* canvas,
-    const char* text,
-    int max_width,
-    char (*lines)[32],
-    int max_lines) {
+static int
+    wrap_text(Canvas* canvas, const char* text, int max_width, char (*lines)[32], int max_lines) {
     if(!canvas || !text || !*text || max_lines <= 0) return 0;
     int nlines = 0;
     const char* p = text;
     char buf[32];
     while(*p && nlines < max_lines) {
         const char* start = p;
-        int last_space = -1;      // index (relative to start) of last fit-so-far space
-        int fit = 0;              // chars that fit on this line
-        int newline_at = -1;      // index of forced break, if any
+        int last_space = -1; // index (relative to start) of last fit-so-far space
+        int fit = 0; // chars that fit on this line
+        int newline_at = -1; // index of forced break, if any
         int i = 0;
         while(start[i]) {
-            if(start[i] == '\n') { newline_at = i; break; }
+            if(start[i] == '\n') {
+                newline_at = i;
+                break;
+            }
             int len = i + 1;
             if(len >= (int)sizeof(buf)) break;
             memcpy(buf, start, len);
@@ -441,7 +441,8 @@ static int wrap_text(
         nlines++;
         p = start + cut;
         if(skip_newline && *p == '\n') p++;
-        while(*p == ' ') p++;
+        while(*p == ' ')
+            p++;
     }
     return nlines;
 }
@@ -512,11 +513,7 @@ static void status_draw(Canvas* canvas, void* model) {
             }
         } else {
             canvas_set_font(canvas, FontKeyboard);
-            canvas_draw_str_aligned(
-                canvas,
-                119, HDR_H / 2 + 1,
-                AlignRight, AlignCenter,
-                "USB");
+            canvas_draw_str_aligned(canvas, 119, HDR_H / 2 + 1, AlignRight, AlignCenter, "USB");
             canvas_set_font(canvas, FontSecondary);
         }
     }
@@ -555,8 +552,7 @@ static void status_draw(Canvas* canvas, void* model) {
          * the Claude character at x=4..~22, matches wrap_text's 97 px
          * width budget → right edge ≈ 127). */
         for(int i = 0; i < nlines; i++) {
-            canvas_draw_str_aligned(
-                canvas, 30, y0 + i * line_h, AlignLeft, AlignCenter, lines[i]);
+            canvas_draw_str_aligned(canvas, 30, y0 + i * line_h, AlignLeft, AlignCenter, lines[i]);
         }
     } else {
         bool has_sub = m->subtext[0] != '\0';
@@ -598,9 +594,8 @@ static void status_draw(Canvas* canvas, void* model) {
 static bool status_input(InputEvent* event, void* context) {
     if(!event || !context) return false;
     UiState* ui = context;
-    if(
-        event->type != InputTypeShort && event->type != InputTypeLong &&
-        event->type != InputTypeRelease)
+    if(event->type != InputTypeShort && event->type != InputTypeLong &&
+       event->type != InputTypeRelease)
         return false;
 
     if(event->key == InputKeyOk && event->type == InputTypeShort) {
@@ -654,9 +649,8 @@ static bool status_input(InputEvent* event, void* context) {
     if(event->key == InputKeyRight && event->type == InputTypeShort) {
         /* Desktop mode: commands menu is useless (no keystrokes), so short-
          * press goes to the info Menu — same as long-press. */
-        UiEventType evt = (app_settings_get_ble_mode() == BleModeDesktop)
-                              ? UiEventOpenInfo
-                              : UiEventOpenMenu;
+        UiEventType evt = (app_settings_get_ble_mode() == BleModeDesktop) ? UiEventOpenInfo :
+                                                                            UiEventOpenMenu;
         if(ui->event_callback) ui->event_callback(evt, NULL, ui->event_context);
         return true;
     }
@@ -747,8 +741,7 @@ static bool menu_input(InputEvent* event, void* context) {
     }
     if(event->key == InputKeyOk) {
         if(ui->event_callback && m->count > 0) {
-            ui->event_callback(
-                UiEventMenuSelect, m->items[m->index], ui->event_context);
+            ui->event_callback(UiEventMenuSelect, m->items[m->index], ui->event_context);
             // Promote selected item to top for convenient re-use
             if(m->index > 0) {
                 char tmp[MAX_MENU_ITEM_LEN];
@@ -773,7 +766,7 @@ static bool menu_input(InputEvent* event, void* context) {
 
 // ── Info View ────────────────────────────────────────────────────
 
-#define INFO_MENU_COUNT 5
+#define INFO_MENU_COUNT   5
 /* Order: BLE mode toggle on top, Help just before About.  The BLE row
  * is rendered dynamically — label shows the *current* mode so user
  * sees what's active and toggles to the other. */
@@ -782,15 +775,14 @@ static bool menu_input(InputEvent* event, void* context) {
 #define INFO_IDX_SHIFTTAB 2
 #define INFO_IDX_HELP     3
 #define INFO_IDX_ABOUT    4
-static const char* info_menu_items[INFO_MENU_COUNT] = {
-    NULL /* BLE mode */, "Transcript", "Shift+Tab", "Help", "About"};
+static const char* info_menu_items[INFO_MENU_COUNT] =
+    {NULL /* BLE mode */, "Transcript", "Shift+Tab", "Help", "About"};
 
 /* Shift+Tab is a Bridge-only action (the Flipper asks the host to send a
  * Shift+Tab keystroke into the active shell); in Desktop mode there is no
  * keystroke path, so hide the entry entirely. */
 static bool info_menu_item_visible(int idx) {
-    if(idx == INFO_IDX_SHIFTTAB && app_settings_get_ble_mode() == BleModeDesktop)
-        return false;
+    if(idx == INFO_IDX_SHIFTTAB && app_settings_get_ble_mode() == BleModeDesktop) return false;
     return true;
 }
 
@@ -831,30 +823,30 @@ typedef struct {
  * Esc, etc.  HelpBtnText entries render as plain-text lines (no icon)
  * so we can mix a title and install instructions with the button rows. */
 static const HelpEntry help_entries_bridge[] = {
-    {HelpBtnText,  false, "Button actions:"},
-    {HelpBtnUp,    false, "Voice dictation"},
-    {HelpBtnUp,    true,  "Hold-to-talk"},
-    {HelpBtnLeft,  false, "Interrupt (Esc)"},
-    {HelpBtnLeft,  true,  "Ctrl+C"},
+    {HelpBtnText, false, "Button actions:"},
+    {HelpBtnUp, false, "Voice dictation"},
+    {HelpBtnUp, true, "Hold-to-talk"},
+    {HelpBtnLeft, false, "Interrupt (Esc)"},
+    {HelpBtnLeft, true, "Ctrl+C"},
     {HelpBtnRight, false, "Cmd menu"},
-    {HelpBtnRight, true,  "Menu"},
-    {HelpBtnOk,    false, "Enter"},
-    {HelpBtnOk,    true,  "Yes + Enter"},
-    {HelpBtnDown,  false, "Down arrow"},
-    {HelpBtnDown,  true,  "Mute"},
-    {HelpBtnBack,  false, "Backspace"},
-    {HelpBtnBack,  true,  "Exit app"},
-    {HelpBtnText,  false, ""},
-    {HelpBtnText,  false, "Install plugin:"},
-    {HelpBtnText,  false, "```"},
-    {HelpBtnText,  false, "claude plugin marketplace"},
-    {HelpBtnText,  false, "add jxw1102/flipper-"},
-    {HelpBtnText,  false, "claude-buddy"},
-    {HelpBtnText,  false, ""},
-    {HelpBtnText,  false, "claude plugin install"},
-    {HelpBtnText,  false, "flipper-claude-buddy@"},
-    {HelpBtnText,  false, "flipper-claude-buddy"},
-    {HelpBtnText,  false, "```"},
+    {HelpBtnRight, true, "Menu"},
+    {HelpBtnOk, false, "Enter"},
+    {HelpBtnOk, true, "Yes + Enter"},
+    {HelpBtnDown, false, "Down arrow"},
+    {HelpBtnDown, true, "Mute"},
+    {HelpBtnBack, false, "Backspace"},
+    {HelpBtnBack, true, "Exit app"},
+    {HelpBtnText, false, ""},
+    {HelpBtnText, false, "Install plugin:"},
+    {HelpBtnText, false, "```"},
+    {HelpBtnText, false, "claude plugin marketplace"},
+    {HelpBtnText, false, "add jxw1102/flipper-"},
+    {HelpBtnText, false, "claude-buddy"},
+    {HelpBtnText, false, ""},
+    {HelpBtnText, false, "claude plugin install"},
+    {HelpBtnText, false, "flipper-claude-buddy@"},
+    {HelpBtnText, false, "flipper-claude-buddy"},
+    {HelpBtnText, false, "```"},
 };
 
 /* Desktop (NUS) mode: no keystroke path, so a button-mapping list is
@@ -873,12 +865,12 @@ static const char* help_text_desktop[] = {
     "Hold Back to quit app.",
 };
 #define HELP_DESKTOP_LINES ((int)(sizeof(help_text_desktop) / sizeof(help_text_desktop[0])))
-#define HELP_BRIDGE_LINES ((int)(sizeof(help_entries_bridge) / sizeof(help_entries_bridge[0])))
+#define HELP_BRIDGE_LINES  ((int)(sizeof(help_entries_bridge) / sizeof(help_entries_bridge[0])))
 
-#define HELP_VISIBLE    4
-#define HELP_LINE_H     10
-#define HELP_COLON_X    31
-#define HELP_DESC_X     36
+#define HELP_VISIBLE 4
+#define HELP_LINE_H  10
+#define HELP_COLON_X 31
+#define HELP_DESC_X  36
 
 // Small inline button icon at (x, baseline_y) — vertically centered with text
 static void draw_help_icon(Canvas* canvas, int x, int y, uint8_t button) {
@@ -915,8 +907,8 @@ static void draw_help_icon(Canvas* canvas, int x, int y, uint8_t button) {
         break;
     case HelpBtnBack: // ↩ (7w x 5h) — matches footer back icon
         canvas_draw_line(canvas, x, cy - 1, x + 5, cy - 1); // top bar
-        canvas_draw_line(canvas, x, cy - 1, x + 1, cy - 2);  // arrowhead up
-        canvas_draw_line(canvas, x, cy - 1, x + 1, cy);      // arrowhead down
+        canvas_draw_line(canvas, x, cy - 1, x + 1, cy - 2); // arrowhead up
+        canvas_draw_line(canvas, x, cy - 1, x + 1, cy); // arrowhead down
         canvas_draw_line(canvas, x + 5, cy - 1, x + 5, cy + 2); // vertical drop
         canvas_draw_line(canvas, x + 2, cy + 2, x + 5, cy + 2); // bottom bar
         break;
@@ -943,9 +935,8 @@ static void info_draw(Canvas* canvas, void* model) {
             vpos++;
             const char* label = info_menu_items[i];
             if(i == INFO_IDX_BLE) {
-                label = (app_settings_get_ble_mode() == BleModeDesktop)
-                            ? "Claude Desktop (BLE)"
-                            : "Claude Code (USB/BLE)";
+                label = (app_settings_get_ble_mode() == BleModeDesktop) ? "Claude Desktop (BLE)" :
+                                                                          "Claude Code (USB/BLE)";
             }
             canvas_set_font(canvas, FontSecondary);
             if(i == m->index) {
@@ -986,8 +977,7 @@ static void info_draw(Canvas* canvas, void* model) {
             y += HELP_LINE_H;
         }
         if(total > HELP_VISIBLE) {
-            draw_scrollbar(canvas, m->scroll, max_scroll + 1,
-                            HDR_H + 1, FTR_Y - 1);
+            draw_scrollbar(canvas, m->scroll, max_scroll + 1, HDR_H + 1, FTR_Y - 1);
         }
         draw_footer_sep(canvas);
         hint_back(canvas, "Back");
@@ -1008,8 +998,7 @@ static void info_draw(Canvas* canvas, void* model) {
         for(int i = 0; i < text_count && (text_start + i) < ABOUT_LINE_COUNT; i++) {
             int li = text_start + i;
             canvas_set_font(canvas, (li == 0) ? FontPrimary : FontSecondary);
-            canvas_draw_str_aligned(
-                canvas, 64, y, AlignCenter, AlignCenter, about_lines[li]);
+            canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignCenter, about_lines[li]);
             y += 9;
         }
         int about_max = 1 + ABOUT_LINE_COUNT - (ABOUT_VISIBLE + 1);
@@ -1067,8 +1056,7 @@ static void info_draw(Canvas* canvas, void* model) {
                 }
 
                 if(max_scroll > 0) {
-                    draw_scrollbar(canvas, start, max_scroll + 1,
-                                   HDR_H + 1, FTR_Y - 1);
+                    draw_scrollbar(canvas, start, max_scroll + 1, HDR_H + 1, FTR_Y - 1);
                 }
                 /* Horizontal scroll thumb: 3 px tall, straddling the
                  * footer separator (1 px above + the separator itself +
@@ -1171,9 +1159,8 @@ static bool info_input(InputEvent* event, void* context) {
             return true;
         }
     } else if(m->page == InfoPageHelp) {
-        int total = (app_settings_get_ble_mode() == BleModeDesktop)
-                        ? HELP_DESKTOP_LINES
-                        : HELP_BRIDGE_LINES;
+        int total = (app_settings_get_ble_mode() == BleModeDesktop) ? HELP_DESKTOP_LINES :
+                                                                      HELP_BRIDGE_LINES;
         int max_scroll = (total > HELP_VISIBLE) ? (total - HELP_VISIBLE) : 0;
         if(event->key == InputKeyUp && m->scroll > 0) {
             m->scroll--;
@@ -1300,8 +1287,8 @@ static void perm_draw(Canvas* canvas, void* model) {
 
     // Tool (one line, truncate if needed — tool names are short).
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, text_x + text_w / 2, HDR_H + 7,
-                            AlignCenter, AlignCenter, m->tool);
+    canvas_draw_str_aligned(
+        canvas, text_x + text_w / 2, HDR_H + 7, AlignCenter, AlignCenter, m->tool);
 
     // Hint — word-wrap under the tool.
     if(m->detail[0] != '\0') {
@@ -1312,11 +1299,10 @@ static void perm_draw(Canvas* canvas, void* model) {
         char lines[3][32];
         int nlines = wrap_text(canvas, m->detail, text_w, lines, max_lines);
         const int line_h = 8;
-        int y = HDR_H + 17;  // first hint line baseline
+        int y = HDR_H + 17; // first hint line baseline
         for(int i = 0; i < nlines; i++) {
             canvas_draw_str_aligned(
-                canvas, text_x + text_w / 2, y + i * line_h,
-                AlignCenter, AlignCenter, lines[i]);
+                canvas, text_x + text_w / 2, y + i * line_h, AlignCenter, AlignCenter, lines[i]);
         }
     }
 

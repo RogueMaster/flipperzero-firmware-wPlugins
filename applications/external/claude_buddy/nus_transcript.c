@@ -65,7 +65,8 @@ void nus_transcript_replace_from_entries(const char* body, int body_len) {
     const char* end = body + body_len;
     int n = 0;
     while(p < end && n < NUS_TRANSCRIPT_CAP) {
-        while(p < end && *p != '"') p++;
+        while(p < end && *p != '"')
+            p++;
         if(p >= end) break;
         const char* start = ++p;
         while(p < end && *p != '"') {

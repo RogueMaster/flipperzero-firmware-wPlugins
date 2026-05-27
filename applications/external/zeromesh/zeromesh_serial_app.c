@@ -31,18 +31,19 @@ int32_t zeromesh_serial_app(void* p) {
     app->notify_vibro = true;
     app->notify_led = true;
     app->notify_ringtone = RingtoneShort;
-    
+
     app->scroll_speed = 5;
     app->scroll_framerate = 5;
     app->lmh_mode = LMH_Scroll;
-    
+
     channel_init(app);
-    
+
     settings_load(app);
 
     snprintf(app->status, sizeof(app->status), "Connecting...");
 
-    for(int i = 0; i < LOG_LINES; i++) app->lines[i][0] = 0;
+    for(int i = 0; i < LOG_LINES; i++)
+        app->lines[i][0] = 0;
     app->line_head = 0;
 
     app->rx_stream = furi_stream_buffer_alloc(RX_STREAM_SIZE, 1);
@@ -64,16 +65,14 @@ int32_t zeromesh_serial_app(void* p) {
     request_info(app);
 
     uint32_t last_render = furi_get_tick();
-    const uint32_t frame_delays[] = {
-        1000, 500, 333, 250, 200,
-        166, 142, 125, 111, 100
-    };
+    const uint32_t frame_delays[] = {1000, 500, 333, 250, 200, 166, 142, 125, 111, 100};
 
     while(!app->stop_thread) {
         if(app->show_keyboard) {
             gui_remove_view_port(app->gui, app->vp);
 
             app->kb_dispatcher = view_dispatcher_alloc();
+            view_dispatcher_enable_queue(app->kb_dispatcher);
             app->text_input = text_input_alloc();
 
             text_input_set_header_text(app->text_input, "Send Message:");
@@ -88,7 +87,8 @@ int32_t zeromesh_serial_app(void* p) {
             view_dispatcher_add_view(app->kb_dispatcher, 0, text_input_get_view(app->text_input));
             view_set_previous_callback(text_input_get_view(app->text_input), kb_back_callback);
 
-            view_dispatcher_attach_to_gui(app->kb_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+            view_dispatcher_attach_to_gui(
+                app->kb_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
             view_dispatcher_switch_to_view(app->kb_dispatcher, 0);
             view_dispatcher_run(app->kb_dispatcher);
 
@@ -103,7 +103,7 @@ int32_t zeromesh_serial_app(void* p) {
         } else {
             uint32_t now = furi_get_tick();
             uint32_t frame_delay = frame_delays[app->scroll_framerate - 1];
-            
+
             if(now - last_render >= frame_delay) {
                 view_port_update(app->vp);
                 last_render = now;
@@ -114,7 +114,7 @@ int32_t zeromesh_serial_app(void* p) {
     }
 
     app->stop_thread = true;
-    
+
     settings_save(app);
 
     furi_thread_join(app->rx_thread);

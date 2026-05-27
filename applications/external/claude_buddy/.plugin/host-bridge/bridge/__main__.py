@@ -13,12 +13,15 @@ from .daemon import Daemon
 def _make_transport(name: str):
     if name == "ble":
         from .transport_bt import BtTransport
+
         return BtTransport()
     if name == "usb":
         from .transport_usb import UsbTransport
+
         return UsbTransport()
     # "auto": try USB first, fall back to BLE
     from .transport_auto import AutoTransport
+
     return AutoTransport()
 
 

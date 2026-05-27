@@ -18,23 +18,23 @@
 #include <bt/bt_service/bt.h>
 #include <profiles/serial_profile.h>
 
-#define TAG "BtTransport"
+#define TAG                   "BtTransport"
 #define BT_SERIAL_BUFFER_SIZE 512
-#define BT_TX_CHUNK 240  /* stay under BLE_SVC_SERIAL_CHAR_VALUE_LEN_MAX (243) */
+#define BT_TX_CHUNK           240 /* stay under BLE_SVC_SERIAL_CHAR_VALUE_LEN_MAX (243) */
 
 typedef struct {
-    Transport            base;   /* MUST be first */
-    Bt*                  bt;
+    Transport base; /* MUST be first */
+    Bt* bt;
     FuriHalBleProfileBase* profile;
-    TransportRxCallback  callback;
-    void*                callback_ctx;
+    TransportRxCallback callback;
+    void* callback_ctx;
     TransportConnectCallback connect_cb;
-    void*                connect_ctx;
-    bool                 connected;
-    bool                 hello_sent; /* track per-connection hello */
+    void* connect_ctx;
+    bool connected;
+    bool hello_sent; /* track per-connection hello */
     /* Line-buffered RX */
-    char                 rx_buf[PROTOCOL_MAX_MSG_LEN];
-    int                  rx_pos;
+    char rx_buf[PROTOCOL_MAX_MSG_LEN];
+    int rx_pos;
 } BtTransport;
 
 /* ── BLE event callbacks (BLE GAP thread — NOT GUI thread) ──── */
@@ -64,8 +64,7 @@ static uint16_t bt_serial_event_cb(SerialServiceEvent event, void* context) {
 
                     FURI_LOG_D(TAG, "RX line: %s", bt->rx_buf);
 
-                    if(bt->callback)
-                        bt->callback(bt->rx_buf, bt->callback_ctx);
+                    if(bt->callback) bt->callback(bt->rx_buf, bt->callback_ctx);
                     bt->rx_pos = 0;
                 }
             } else if(bt->rx_pos < (int)sizeof(bt->rx_buf) - 1) {
@@ -91,10 +90,7 @@ static void bt_status_changed_cb(BtStatus status, void* context) {
          * serial event callback with the RPC data handler.  Re-set our
          * callback here to reclaim control of incoming serial data. */
         ble_profile_serial_set_event_callback(
-            bt->profile,
-            BT_SERIAL_BUFFER_SIZE,
-            bt_serial_event_cb,
-            bt);
+            bt->profile, BT_SERIAL_BUFFER_SIZE, bt_serial_event_cb, bt);
     } else {
         if(bt->connected) {
             FURI_LOG_I(TAG, "BLE client disconnected");
@@ -116,11 +112,11 @@ static void bt_status_changed_cb(BtStatus status, void* context) {
 static void bt_start(Transport* t, TransportRxCallback cb, void* ctx) {
     if(!t) return;
     BtTransport* bt = (BtTransport*)t;
-    bt->callback     = cb;
+    bt->callback = cb;
     bt->callback_ctx = ctx;
-    bt->rx_pos       = 0;
-    bt->connected    = false;
-    bt->hello_sent   = false;
+    bt->rx_pos = 0;
+    bt->connected = false;
+    bt->hello_sent = false;
 
     bt->bt = furi_record_open(RECORD_BT);
 
@@ -140,10 +136,7 @@ static void bt_start(Transport* t, TransportRxCallback cb, void* ctx) {
 
     /* Set RX callback */
     ble_profile_serial_set_event_callback(
-        bt->profile,
-        BT_SERIAL_BUFFER_SIZE,
-        bt_serial_event_cb,
-        bt);
+        bt->profile, BT_SERIAL_BUFFER_SIZE, bt_serial_event_cb, bt);
 
     /* Start advertising */
     furi_hal_bt_start_advertising();
@@ -196,12 +189,12 @@ static void bt_free(Transport* t) {
 /* ── public factory ────────────────────────────────────────── */
 
 Transport* transport_bt_alloc(void) {
-    BtTransport* bt  = malloc(sizeof(BtTransport));
+    BtTransport* bt = malloc(sizeof(BtTransport));
     furi_check(bt != NULL);
     memset(bt, 0, sizeof(BtTransport));
-    bt->base.start   = bt_start;
-    bt->base.stop    = bt_stop;
-    bt->base.send    = bt_send;
+    bt->base.start = bt_start;
+    bt->base.stop = bt_stop;
+    bt->base.send = bt_send;
     bt->base.free_fn = bt_free;
     return (Transport*)bt;
 }
@@ -210,8 +203,7 @@ Transport* transport_bt_alloc(void) {
  * Callers should set it after alloc and before start; we match on the
  * start/stop vtable entries to be safe if called on a non-BT transport
  * (e.g. NUS or USB), in which case we just no-op. */
-void transport_bt_set_connect_callback(
-    Transport* t, TransportConnectCallback cb, void* context) {
+void transport_bt_set_connect_callback(Transport* t, TransportConnectCallback cb, void* context) {
     if(!t || t->start != bt_start) return;
     BtTransport* bt = (BtTransport*)t;
     bt->connect_cb = cb;

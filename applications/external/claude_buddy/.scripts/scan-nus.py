@@ -36,9 +36,7 @@ def fmt_device(device, adv) -> str:
     mfg = adv.manufacturer_data or {}
     mfg_str = ", ".join(f"0x{k:04x}={v.hex()}" for k, v in mfg.items()) or "(none)"
     svc_data = adv.service_data or {}
-    svc_data_str = (
-        ", ".join(f"{k}={v.hex()}" for k, v in svc_data.items()) or "(none)"
-    )
+    svc_data_str = ", ".join(f"{k}={v.hex()}" for k, v in svc_data.items()) or "(none)"
     tx_power = getattr(adv, "tx_power", None)
     platform_data = getattr(adv, "platform_data", None)
 
@@ -65,7 +63,11 @@ async def main(timeout: float, show_all: bool) -> int:
         snapshot = (
             adv.local_name,
             tuple(adv.service_uuids or []),
-            tuple(sorted(adv.manufacturer_data.items())) if adv.manufacturer_data else (),
+            (
+                tuple(sorted(adv.manufacturer_data.items()))
+                if adv.manufacturer_data
+                else ()
+            ),
             adv.rssi,
         )
         if prev == snapshot:
@@ -94,7 +96,8 @@ async def main(timeout: float, show_all: bool) -> int:
         await asyncio.sleep(timeout)
 
     matches = [
-        (addr, snap) for addr, snap in seen.items()
+        (addr, snap)
+        for addr, snap in seen.items()
         if matches_claude_filter(snap[0], list(snap[1]))
     ]
     print("-" * 72)

@@ -17,7 +17,12 @@ log = logging.getLogger(__name__)
 
 
 class Daemon:
-    def __init__(self, transport: Transport, dictation: DictationBackend | None = None, input_backend: InputBackend | None = None):
+    def __init__(
+        self,
+        transport: Transport,
+        dictation: DictationBackend | None = None,
+        input_backend: InputBackend | None = None,
+    ):
         self.serial = SerialConnection(transport)
         self.ipc = ClaudeIPC()
         self._dictation: DictationBackend = dictation or create_dictation_backend()
@@ -41,7 +46,9 @@ class Daemon:
 
         if msg_type == "hello":
             bt_name = data.get("bt", "")
-            log.info("Flipper connected: fw=%s bt=%s", data.get("fw", "?"), bt_name or "?")
+            log.info(
+                "Flipper connected: fw=%s bt=%s", data.get("fw", "?"), bt_name or "?"
+            )
             if bt_name and config.BT_NAME_CACHE:
                 try:
                     with open(config.BT_NAME_CACHE, "w") as f:
@@ -56,7 +63,9 @@ class Daemon:
                 log.info("Cancelling stale permission request")
                 self._perm_future.set_result(None)
             await self.serial.send(
-                protocol.notify_msg("ready", vibro=True, text="Claude Code", subtext="Connected")
+                protocol.notify_msg(
+                    "ready", vibro=True, text="Claude Code", subtext="Connected"
+                )
             )
             # Restore Claude state if already connected
             if self._claude_connected:
@@ -65,7 +74,11 @@ class Daemon:
             commands = self._load_commands()
             if commands:
                 menu_bytes = protocol.menu_msg(commands)
-                log.debug("Sending menu (%d commands, %d bytes)", len(commands), len(menu_bytes))
+                log.debug(
+                    "Sending menu (%d commands, %d bytes)",
+                    len(commands),
+                    len(menu_bytes),
+                )
                 await self.serial.send(menu_bytes)
             else:
                 log.warning("No commands loaded — menu not sent")
@@ -152,8 +165,13 @@ class Daemon:
             allowed = data.get("allow", False)
             always = data.get("always", False)
             esc = data.get("esc", False)
-            log.info("Flipper perm_resp: allow=%s always=%s esc=%s future=%s",
-                     allowed, always, esc, self._perm_future is not None)
+            log.info(
+                "Flipper perm_resp: allow=%s always=%s esc=%s future=%s",
+                allowed,
+                always,
+                esc,
+                self._perm_future is not None,
+            )
             if self._perm_future and not self._perm_future.done():
                 self._perm_future.set_result({"allow": allowed, "always": always})
             if esc:
@@ -166,7 +184,11 @@ class Daemon:
                 commands = self._load_commands()
                 if commands:
                     menu_bytes = protocol.menu_msg(commands)
-                    log.debug("Sending menu (%d commands, %d bytes)", len(commands), len(menu_bytes))
+                    log.debug(
+                        "Sending menu (%d commands, %d bytes)",
+                        len(commands),
+                        len(menu_bytes),
+                    )
                     await self.serial.send(menu_bytes)
                 if self._claude_connected:
                     await self.serial.send(protocol.state_msg(True))
@@ -267,18 +289,75 @@ class Daemon:
 
     # Built-in slash commands
     BUILTIN_COMMANDS = [
-        "/add-dir", "/agents", "/autofix-pr", "/batch", "/branch", "/btw", "/buddy",
-        "/chrome", "/claude-api", "/clear", "/color", "/compact", "/config", "/context",
-        "/copy", "/debug", "/desktop", "/diff", "/doctor", "/effort", "/exit", "/export",
-        "/extra-usage", "/fast", "/feedback", "/help", "/hooks", "/ide", "/init",
-        "/insights", "/install-github-app", "/install-slack-app", "/keybindings",
-        "/login", "/logout", "/loop", "/mcp", "/memory", "/mobile", "/model",
-        "/permissions", "/plan", "/plugin", "/powerup", "/release-notes",
-        "/reload-plugins", "/remote-control", "/remote-env", "/rename", "/resume",
-        "/review", "/rewind", "/sandbox", "/schedule", "/security-review", "/skills",
-        "/stats", "/status", "/statusline", "/stickers", "/tasks", "/team-onboarding",
-        "/teleport", "/terminal-setup", "/theme", "/ultraplan", "/update-config",
-        "/usage", "/voice",
+        "/add-dir",
+        "/agents",
+        "/autofix-pr",
+        "/batch",
+        "/branch",
+        "/btw",
+        "/buddy",
+        "/chrome",
+        "/claude-api",
+        "/clear",
+        "/color",
+        "/compact",
+        "/config",
+        "/context",
+        "/copy",
+        "/debug",
+        "/desktop",
+        "/diff",
+        "/doctor",
+        "/effort",
+        "/exit",
+        "/export",
+        "/extra-usage",
+        "/fast",
+        "/feedback",
+        "/help",
+        "/hooks",
+        "/ide",
+        "/init",
+        "/insights",
+        "/install-github-app",
+        "/install-slack-app",
+        "/keybindings",
+        "/login",
+        "/logout",
+        "/loop",
+        "/mcp",
+        "/memory",
+        "/mobile",
+        "/model",
+        "/permissions",
+        "/plan",
+        "/plugin",
+        "/powerup",
+        "/release-notes",
+        "/reload-plugins",
+        "/remote-control",
+        "/remote-env",
+        "/rename",
+        "/resume",
+        "/review",
+        "/rewind",
+        "/sandbox",
+        "/schedule",
+        "/security-review",
+        "/skills",
+        "/stats",
+        "/status",
+        "/statusline",
+        "/stickers",
+        "/tasks",
+        "/team-onboarding",
+        "/teleport",
+        "/terminal-setup",
+        "/theme",
+        "/ultraplan",
+        "/update-config",
+        "/usage",
+        "/voice",
     ]
 
     def _load_commands(self) -> list[str]:
@@ -319,7 +398,9 @@ class Daemon:
                         log.debug("  skill: %s -> %s", skill_md, name)
                         commands.add(name)
                     else:
-                        log.warning("  skill: %s — no name in frontmatter, skipped", skill_md)
+                        log.warning(
+                            "  skill: %s — no name in frontmatter, skipped", skill_md
+                        )
 
         # 3. Enabled plugins
         enabled = self._get_enabled_plugins(roots)
@@ -332,10 +413,20 @@ class Daemon:
                 plugins_base / "cache" / marketplace / plugin_key
             )
             if not plugin_dir:
-                log.warning("  plugin %s@%s — not found in marketplace or cache", plugin_key, marketplace)
+                log.warning(
+                    "  plugin %s@%s — not found in marketplace or cache",
+                    plugin_key,
+                    marketplace,
+                )
                 continue
             plugin_name = self._read_plugin_name(plugin_dir) or plugin_key
-            log.debug("  plugin %s@%s resolved to %s (name=%s)", plugin_key, marketplace, plugin_dir, plugin_name)
+            log.debug(
+                "  plugin %s@%s resolved to %s (name=%s)",
+                plugin_key,
+                marketplace,
+                plugin_dir,
+                plugin_name,
+            )
             # Plugin commands/*.md
             pcmd_dir = plugin_dir / "commands"
             if pcmd_dir.is_dir():
@@ -352,7 +443,10 @@ class Daemon:
                         log.debug("    plugin skill: %s -> %s", skill_md, name)
                         commands.add(name)
                     else:
-                        log.warning("    plugin skill: %s — no name in frontmatter, skipped", skill_md)
+                        log.warning(
+                            "    plugin skill: %s — no name in frontmatter, skipped",
+                            skill_md,
+                        )
 
         # Legacy: flipper-commands.txt
         for path in config.CUSTOM_COMMANDS_FILES:
@@ -376,8 +470,12 @@ class Daemon:
 
         result = sorted(self._cmd_map.keys())
         custom_count = len(result) - len(self.BUILTIN_COMMANDS)
-        log.info("Loaded %d commands (%d built-in + %d custom)",
-                 len(result), len(self.BUILTIN_COMMANDS), custom_count)
+        log.info(
+            "Loaded %d commands (%d built-in + %d custom)",
+            len(result),
+            len(self.BUILTIN_COMMANDS),
+            custom_count,
+        )
         return result
 
     @staticmethod
@@ -501,7 +599,9 @@ class Daemon:
                 log.info("Dictation ended outside bridge — syncing state")
                 self._dictating = False
                 await self.serial.send(
-                    protocol.notify_msg("voice_stop_quiet", vibro=False, text="Dictation stopped")
+                    protocol.notify_msg(
+                        "voice_stop_quiet", vibro=False, text="Dictation stopped"
+                    )
                 )
 
     async def _send_ctrl_c(self):
@@ -641,8 +741,12 @@ def _save_bt_name_to_plugin_config(bt_name: str) -> None:
     """
     settings_path = Path.home() / ".claude" / "settings.json"
     try:
-        settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
-        plugin_cfg = settings.setdefault("pluginConfigs", {}).setdefault("flipper-claude-buddy", {})
+        settings = (
+            json.loads(settings_path.read_text()) if settings_path.exists() else {}
+        )
+        plugin_cfg = settings.setdefault("pluginConfigs", {}).setdefault(
+            "flipper-claude-buddy", {}
+        )
         options = plugin_cfg.setdefault("options", {})
         if options.get("bluetoothName") == bt_name:
             return  # already up to date, skip the write

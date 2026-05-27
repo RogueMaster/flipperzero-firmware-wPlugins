@@ -38,14 +38,19 @@ void uart_open(ZeroMeshApp* app) {
     furi_hal_serial_init(app->serial, app->baud);
     furi_hal_serial_async_rx_start(app->serial, rx_cb, app, false);
 
-    log_line(app, "UART: %s @ %lu",
-             (app->uart_id == FuriHalSerialIdUsart) ? "USART" : "LPUART",
-             (unsigned long)app->baud);
+    log_line(
+        app,
+        "UART: %s @ %lu",
+        (app->uart_id == FuriHalSerialIdUsart) ? "USART" : "LPUART",
+        (unsigned long)app->baud);
 
     char status_msg[64];
-    snprintf(status_msg, sizeof(status_msg), "%s @ %lu",
-             (app->uart_id == FuriHalSerialIdUsart) ? "USART" : "LPUART",
-             (unsigned long)app->baud);
+    snprintf(
+        status_msg,
+        sizeof(status_msg),
+        "%s @ %lu",
+        (app->uart_id == FuriHalSerialIdUsart) ? "USART" : "LPUART",
+        (unsigned long)app->baud);
     set_status(app, status_msg);
 }
 

@@ -150,8 +150,8 @@ static void nus_stop(Transport* t) {
 static void nus_send(Transport* t, const char* data, int len) {
     if(!t || !data || len <= 0) return;
     NusTransport* nt = (NusTransport*)t;
-    FURI_LOG_D(TAG, "nus_send: len=%d connected=%d profile=%p",
-               len, nt->connected, (void*)nt->profile);
+    FURI_LOG_D(
+        TAG, "nus_send: len=%d connected=%d profile=%p", len, nt->connected, (void*)nt->profile);
     if(!nt->profile) {
         FURI_LOG_E(TAG, "nus_send: no profile, dropping %d bytes", len);
         return;

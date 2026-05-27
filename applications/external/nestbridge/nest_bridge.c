@@ -85,34 +85,76 @@ static const char* fan_labels[] = {
 };
 
 static const uint8_t fan_cmds[] = {
-    CMD_FAN_15, CMD_FAN_30, CMD_FAN_45,
-    CMD_FAN_1H, CMD_FAN_2H, CMD_FAN_4H,
-    CMD_FAN_8H, CMD_FAN_12H, CMD_FAN_OFF,
+    CMD_FAN_15,
+    CMD_FAN_30,
+    CMD_FAN_45,
+    CMD_FAN_1H,
+    CMD_FAN_2H,
+    CMD_FAN_4H,
+    CMD_FAN_8H,
+    CMD_FAN_12H,
+    CMD_FAN_OFF,
 };
 
 static const uint8_t icon_thermo[] = {
-    0b00011000, 0b00100100, 0b00100100, 0b00101100,
-    0b00101100, 0b01001110, 0b01001110, 0b00111100,
+    0b00011000,
+    0b00100100,
+    0b00100100,
+    0b00101100,
+    0b00101100,
+    0b01001110,
+    0b01001110,
+    0b00111100,
 };
 static const uint8_t icon_flame[] = {
-    0b00001000, 0b00011100, 0b00111010, 0b01110001,
-    0b01100011, 0b01100110, 0b00111110, 0b00011100,
+    0b00001000,
+    0b00011100,
+    0b00111010,
+    0b01110001,
+    0b01100011,
+    0b01100110,
+    0b00111110,
+    0b00011100,
 };
 static const uint8_t icon_snow[] = {
-    0b00011000, 0b01011010, 0b00111100, 0b11011011,
-    0b11011011, 0b00111100, 0b01011010, 0b00011000,
+    0b00011000,
+    0b01011010,
+    0b00111100,
+    0b11011011,
+    0b11011011,
+    0b00111100,
+    0b01011010,
+    0b00011000,
 };
 static const uint8_t icon_fan[] = {
-    0b01100110, 0b11110011, 0b11111111, 0b01111110,
-    0b01111110, 0b11111111, 0b11110011, 0b01100110,
+    0b01100110,
+    0b11110011,
+    0b11111111,
+    0b01111110,
+    0b01111110,
+    0b11111111,
+    0b11110011,
+    0b01100110,
 };
 static const uint8_t icon_power[] = {
-    0b00011000, 0b01111110, 0b11100111, 0b11000011,
-    0b11000011, 0b11100111, 0b01111110, 0b00011000,
+    0b00011000,
+    0b01111110,
+    0b11100111,
+    0b11000011,
+    0b11000011,
+    0b11100111,
+    0b01111110,
+    0b00011000,
 };
 static const uint8_t icon_heatcool[] = {
-    0b00001000, 0b00011100, 0b00111010, 0b01100001,
-    0b10000011, 0b01011100, 0b00111000, 0b00010000,
+    0b00001000,
+    0b00011100,
+    0b00111010,
+    0b01100001,
+    0b10000011,
+    0b01011100,
+    0b00111000,
+    0b00010000,
 };
 
 static const uint8_t* main_icons[] = {
@@ -154,8 +196,7 @@ typedef struct {
 static void draw_xbm(Canvas* canvas, int x, int y, const uint8_t* bmp) {
     for(int r = 0; r < 8; r++)
         for(int c = 0; c < 8; c++)
-            if(bmp[r] & (0x80 >> c))
-                canvas_draw_dot(canvas, x + c, y + r);
+            if(bmp[r] & (0x80 >> c)) canvas_draw_dot(canvas, x + c, y + r);
 }
 
 static void draw_header(Canvas* canvas, const char* title) {
@@ -169,12 +210,8 @@ static void draw_header(Canvas* canvas, const char* title) {
     canvas_draw_line(canvas, 0, 13, 128, 13);
 }
 
-static void draw_list(
-    Canvas* canvas,
-    const char** labels,
-    const uint8_t** icons,
-    int count,
-    int selected) {
+static void
+    draw_list(Canvas* canvas, const char** labels, const uint8_t** icons, int count, int selected) {
     // Start items below 13px header
     int start = selected - 1;
     if(start < 0) start = 0;
@@ -197,10 +234,8 @@ static void draw_list(
             canvas_draw_str(canvas, icons ? 14 : 4, y, labels[item]);
         }
     }
-    if(start > 0)
-        canvas_draw_triangle(canvas, 124, 17, 4, 4, CanvasDirectionTopToBottom);
-    if(start + 4 < count)
-        canvas_draw_triangle(canvas, 124, 62, 4, 4, CanvasDirectionBottomToTop);
+    if(start > 0) canvas_draw_triangle(canvas, 124, 17, 4, 4, CanvasDirectionTopToBottom);
+    if(start + 4 < count) canvas_draw_triangle(canvas, 124, 62, 4, 4, CanvasDirectionBottomToTop);
 }
 
 static void draw_callback(Canvas* canvas, void* ctx) {
@@ -239,7 +274,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Sending");
         char dots[5] = "    ";
-        for(uint8_t d = 0; d < (app->send_dots % 4); d++) dots[d] = '.';
+        for(uint8_t d = 0; d < (app->send_dots % 4); d++)
+            dots[d] = '.';
         canvas_draw_str_aligned(canvas, 64, 46, AlignCenter, AlignCenter, dots);
 
     } else if(app->state == StateSent) {
@@ -351,7 +387,8 @@ int32_t nest_bridge_app(void* p) {
                     case InputKeyBack:
                         running = false;
                         break;
-                    default: break;
+                    default:
+                        break;
                     }
 
                 } else if(app->state == StateModeMenu) {
@@ -372,7 +409,8 @@ int32_t nest_bridge_app(void* p) {
                     case InputKeyBack:
                         app->state = StateMenu;
                         break;
-                    default: break;
+                    default:
+                        break;
                     }
 
                 } else if(app->state == StateFanMenu) {
@@ -393,7 +431,8 @@ int32_t nest_bridge_app(void* p) {
                     case InputKeyBack:
                         app->state = StateMenu;
                         break;
-                    default: break;
+                    default:
+                        break;
                     }
 
                 } else if(app->state == StateSetTemp) {
@@ -414,7 +453,8 @@ int32_t nest_bridge_app(void* p) {
                     case InputKeyBack:
                         app->state = StateMenu;
                         break;
-                    default: break;
+                    default:
+                        break;
                     }
 
                 } else if(app->state == StateSent) {

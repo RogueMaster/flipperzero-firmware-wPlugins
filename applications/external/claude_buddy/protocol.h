@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define PROTOCOL_MAX_MSG_LEN 2048
+#define PROTOCOL_MAX_MSG_LEN   2048
 #define PROTOCOL_MAX_FIELD_LEN 64
 typedef enum {
     MsgTypeUnknown = 0,
@@ -35,8 +35,8 @@ typedef struct {
     MsgType type;
     char sound[32];
     bool vibro;
-    char text[PROTOCOL_MAX_FIELD_LEN];   // line1
-    char text2[PROTOCOL_MAX_FIELD_LEN];  // line2 (subtext)
+    char text[PROTOCOL_MAX_FIELD_LEN]; // line1
+    char text2[PROTOCOL_MAX_FIELD_LEN]; // line2 (subtext)
     char menu_data[PROTOCOL_MAX_MSG_LEN]; // pipe-delimited menu items
     bool claude_connected; // claude code session state
     bool has_rssi;
@@ -56,13 +56,13 @@ typedef struct {
     int hb_total;
     int hb_running;
     int hb_waiting;
-    uint32_t hb_tokens;        /* cumulative since desktop start */
-    uint32_t hb_tokens_today;  /* resets at local midnight */
+    uint32_t hb_tokens; /* cumulative since desktop start */
+    uint32_t hb_tokens_today; /* resets at local midnight */
     /* Per-kind payloads deferred to the GUI thread.  Keeping storage /
      * hardware side-effects off the BLE event callback thread avoids
      * deadlocks and long-blocking operations on that critical path. */
-    char nus_name[32];          /* cmd:owner, cmd:name */
-    int64_t nus_time_epoch;     /* cmd:time */
+    char nus_name[32]; /* cmd:owner, cmd:name */
+    int64_t nus_time_epoch; /* cmd:time */
     int32_t nus_time_tz;
 } ProtocolMessage;
 

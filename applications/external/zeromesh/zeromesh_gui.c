@@ -81,24 +81,24 @@ static void draw_str_ellipsis(Canvas* canvas, int x, int y, int max_w, const cha
 
 static int calculate_wrapped_lines(Canvas* canvas, const char* text, int max_w) {
     if(!text || !text[0]) return 1;
-    
+
     char line_buf[64];
     size_t text_len = strlen(text);
     size_t pos = 0;
     int lines = 0;
-    
+
     while(pos < text_len) {
         size_t line_len = 0;
         size_t last_space = 0;
-        
+
         while(pos + line_len < text_len) {
             line_buf[line_len] = text[pos + line_len];
             line_buf[line_len + 1] = '\0';
-            
+
             if(text[pos + line_len] == ' ') {
                 last_space = line_len;
             }
-            
+
             if(canvas_string_width(canvas, line_buf) > max_w) {
                 if(last_space > 0) {
                     line_len = last_space;
@@ -107,20 +107,21 @@ static int calculate_wrapped_lines(Canvas* canvas, const char* text, int max_w) 
                 }
                 break;
             }
-            
+
             line_len++;
             if(line_len >= sizeof(line_buf) - 1) break;
         }
-        
+
         if(line_len == 0 && pos < text_len) {
             line_len = 1;
         }
-        
+
         pos += line_len;
-        while(pos < text_len && text[pos] == ' ') pos++;
+        while(pos < text_len && text[pos] == ' ')
+            pos++;
         lines++;
     }
-    
+
     return lines > 0 ? lines : 1;
 }
 
@@ -132,26 +133,26 @@ static void draw_wrapped_text_in_bubble(
     const char* text,
     Color text_col) {
     if(!text || !text[0]) return;
-    
+
     canvas_set_color(canvas, text_col);
-    
+
     char line_buf[64];
     size_t text_len = strlen(text);
     size_t pos = 0;
     int current_y = y;
-    
+
     while(pos < text_len) {
         size_t line_len = 0;
         size_t last_space = 0;
-        
+
         while(pos + line_len < text_len) {
             line_buf[line_len] = text[pos + line_len];
             line_buf[line_len + 1] = '\0';
-            
+
             if(text[pos + line_len] == ' ') {
                 last_space = line_len;
             }
-            
+
             if(canvas_string_width(canvas, line_buf) > max_w) {
                 if(last_space > 0) {
                     line_len = last_space;
@@ -162,20 +163,21 @@ static void draw_wrapped_text_in_bubble(
                 }
                 break;
             }
-            
+
             line_len++;
             if(line_len >= sizeof(line_buf) - 1) break;
         }
-        
+
         if(line_len == 0 && pos < text_len) {
             line_buf[0] = text[pos];
             line_buf[1] = '\0';
             line_len = 1;
         }
-        
+
         canvas_draw_str(canvas, x, current_y, line_buf);
         pos += line_len;
-        while(pos < text_len && text[pos] == ' ') pos++;
+        while(pos < text_len && text[pos] == ' ')
+            pos++;
         current_y += 9;
     }
 }
@@ -209,25 +211,34 @@ void draw_header(Canvas* canvas, ZeroMeshApp* app, const char* title) {
     canvas_set_color(canvas, ColorBlack);
 }
 
-static void draw_message_bubble(Canvas* canvas, int x, int y, int max_w, const char* text, bool is_tx, uint32_t from_id, uint32_t phase_seed, ZeroMeshApp* app) {
+static void draw_message_bubble(
+    Canvas* canvas,
+    int x,
+    int y,
+    int max_w,
+    const char* text,
+    bool is_tx,
+    uint32_t from_id,
+    uint32_t phase_seed,
+    ZeroMeshApp* app) {
     canvas_set_font(canvas, FontSecondary);
 
     char sender[10];
     get_short_node_id(from_id, sender, sizeof(sender));
-    
+
     int sender_w = canvas_string_width(canvas, sender);
     int name_y = y;
     int bubble_y = y + 10;
-    
+
     const char* s = text ? text : "";
     uint16_t text_w = canvas_string_width(canvas, s);
-    
+
     int pad = 4;
     int inner_w = max_w - (pad * 2);
-    
+
     int bubble_h = 12;
     int bubble_w = text_w + (pad * 2);
-    
+
     if(app->lmh_mode == LMH_Wrap && text_w > inner_w) {
         int lines = calculate_wrapped_lines(canvas, s, inner_w);
         bubble_h = 2 + (lines * 9) + 2;
@@ -235,19 +246,19 @@ static void draw_message_bubble(Canvas* canvas, int x, int y, int max_w, const c
     } else if(bubble_w > max_w) {
         bubble_w = max_w;
     }
-    
+
     if(bubble_w < 20) bubble_w = 20;
-    
+
     int bx = is_tx ? (x + max_w - bubble_w) : x;
     int name_x = is_tx ? (bx + bubble_w - sender_w) : bx;
-    
+
     Color bubble_bg = is_tx ? ColorBlack : ColorWhite;
     Color text_col = is_tx ? ColorWhite : ColorBlack;
     Color name_col = is_tx ? ColorWhite : ColorBlack;
-    
+
     canvas_set_color(canvas, name_col);
     canvas_draw_str(canvas, name_x, name_y + 7, sender);
-    
+
     if(is_tx) {
         canvas_set_color(canvas, ColorBlack);
         canvas_draw_rbox(canvas, bx, bubble_y, bubble_w, bubble_h, 3);
@@ -257,10 +268,10 @@ static void draw_message_bubble(Canvas* canvas, int x, int y, int max_w, const c
         canvas_set_color(canvas, ColorBlack);
         canvas_draw_rframe(canvas, bx, bubble_y, bubble_w, bubble_h, 3);
     }
-    
+
     int inner_x = bx + pad;
     int baseline = bubble_y + 10;
-    
+
     if(text_w <= (uint16_t)inner_w) {
         canvas_set_color(canvas, text_col);
         canvas_draw_str(canvas, inner_x, baseline, s);
@@ -273,20 +284,20 @@ static void draw_message_bubble(Canvas* canvas, int x, int y, int max_w, const c
         uint16_t gap = 14;
         uint16_t cycle = text_w + gap;
         uint16_t off = (uint16_t)(step % cycle);
-        
+
         int32_t x1 = (int32_t)inner_x - (int32_t)off;
         int32_t x2 = x1 + (int32_t)cycle;
-        
+
         canvas_set_color(canvas, text_col);
         canvas_draw_str(canvas, (int)x1, baseline, s);
         canvas_draw_str(canvas, (int)x2, baseline, s);
-        
+
         canvas_set_color(canvas, bubble_bg);
         if(pad > 0) {
             canvas_draw_box(canvas, bx, bubble_y, pad, bubble_h);
             canvas_draw_box(canvas, bx + bubble_w - pad, bubble_y, pad, bubble_h);
         }
-        
+
         canvas_set_color(canvas, ColorWhite);
         if(bx > 0) {
             canvas_draw_box(canvas, 0, bubble_y, bx, bubble_h);
@@ -296,7 +307,7 @@ static void draw_message_bubble(Canvas* canvas, int x, int y, int max_w, const c
             canvas_draw_box(canvas, rx, bubble_y, 128 - rx, bubble_h);
         }
     }
-    
+
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -331,11 +342,11 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
     int available_height = 46;
     int y = 18;
     int visible_count = 0;
-    
+
     for(int i = broadcast_count - 1; i >= 0; i--) {
         uint8_t idx = broadcast_indices[i];
         Message* msg = &app->history.msgs[idx];
-        
+
         int msg_height = 16;
         if(app->lmh_mode == LMH_Wrap) {
             int text_w = canvas_string_width(canvas, msg->text);
@@ -345,7 +356,7 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
                 msg_height = 8 + (lines * 9) + 2;
             }
         }
-        
+
         if(y + msg_height <= available_height + 18) {
             visible_count++;
             y += msg_height;
@@ -353,9 +364,9 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
             break;
         }
     }
-    
+
     if(visible_count == 0) visible_count = 1;
-    
+
     if(broadcast_count <= visible_count) {
         app->msg_scroll_offset = 0;
     } else if(app->msg_scroll_offset > broadcast_count - visible_count) {
@@ -369,9 +380,10 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
     for(int i = 0; i < visible_count && (start_idx + i) < broadcast_count; i++) {
         uint8_t history_idx = broadcast_indices[start_idx + i];
         Message* msg = &app->history.msgs[history_idx];
-        
-        draw_message_bubble(canvas, 2, y, 124, msg->text, msg->is_tx, msg->from, (uint32_t)history_idx * 977u, app);
-        
+
+        draw_message_bubble(
+            canvas, 2, y, 124, msg->text, msg->is_tx, msg->from, (uint32_t)history_idx * 977u, app);
+
         if(app->lmh_mode == LMH_Wrap) {
             int text_w = canvas_string_width(canvas, msg->text);
             int inner_w = 116;
@@ -389,7 +401,8 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
     if(app->msg_scroll_offset > 0) {
         canvas_draw_str(canvas, 60, 62, "v");
     }
-    if(broadcast_count > visible_count && app->msg_scroll_offset < broadcast_count - visible_count) {
+    if(broadcast_count > visible_count &&
+       app->msg_scroll_offset < broadcast_count - visible_count) {
         canvas_draw_str(canvas, 60, 17, "^");
     }
 
@@ -474,9 +487,10 @@ static void render_logs(Canvas* canvas, ZeroMeshApp* app) {
     }
 
     int visible_lines = 5;
-    uint8_t start_idx = app->log_paused
-                            ? (app->line_head + LOG_LINES - app->log_scroll_offset - visible_lines) % LOG_LINES
-                            : (app->line_head + LOG_LINES - visible_lines) % LOG_LINES;
+    uint8_t start_idx =
+        app->log_paused ?
+            (app->line_head + LOG_LINES - app->log_scroll_offset - visible_lines) % LOG_LINES :
+            (app->line_head + LOG_LINES - visible_lines) % LOG_LINES;
 
     int y = 24;
     for(int i = 0; i < visible_lines; i++) {
@@ -617,8 +631,8 @@ void render_cb(Canvas* canvas, void* ctx) {
 static void setting_change(ZeroMeshApp* app, int direction) {
     switch(app->settings_cursor) {
     case SettingUart: {
-        FuriHalSerialId nid =
-            (app->uart_id == FuriHalSerialIdUsart) ? FuriHalSerialIdLpuart : FuriHalSerialIdUsart;
+        FuriHalSerialId nid = (app->uart_id == FuriHalSerialIdUsart) ? FuriHalSerialIdLpuart :
+                                                                       FuriHalSerialIdUsart;
         uart_reopen(app, nid, app->baud);
         break;
     }
@@ -668,7 +682,7 @@ static void setting_change(ZeroMeshApp* app, int direction) {
     default:
         break;
     }
-    
+
     settings_save(app);
 }
 

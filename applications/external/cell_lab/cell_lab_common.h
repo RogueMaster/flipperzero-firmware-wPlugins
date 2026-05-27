@@ -5,9 +5,9 @@
 
 // RU: Физический экран Flipper Zero; мир масштабируется размером клетки, но экран остается 128x64.
 // EN: Physical Flipper Zero screen; the world scales by cell size, while the screen stays 128x64.
-#define CELL_LAB_SCREEN_WIDTH 128U
+#define CELL_LAB_SCREEN_WIDTH  128U
 #define CELL_LAB_SCREEN_HEIGHT 64U
-#define CELL_LAB_MAX_CELLS (CELL_LAB_SCREEN_WIDTH * CELL_LAB_SCREEN_HEIGHT)
+#define CELL_LAB_MAX_CELLS     (CELL_LAB_SCREEN_WIDTH * CELL_LAB_SCREEN_HEIGHT)
 
 // RU: Маленький HUD всплывает после действий и не перекрывает мир постоянно.
 // EN: A small HUD appears after actions and does not permanently cover the world.

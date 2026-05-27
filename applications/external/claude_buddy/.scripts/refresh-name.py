@@ -27,8 +27,10 @@ async def main() -> int:
             name = adv.local_name or d.name or ""
             if NUS_UUID in uuids or name.lower().startswith("claude"):
                 target = d
-                print(f"  candidate: {d.address}  adv_name={adv.local_name!r}  "
-                      f"cached_name={d.name!r}  uuids={uuids}")
+                print(
+                    f"  candidate: {d.address}  adv_name={adv.local_name!r}  "
+                    f"cached_name={d.name!r}  uuids={uuids}"
+                )
                 break
 
     if not target:
