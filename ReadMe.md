@@ -51,6 +51,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test)
 - Added: [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
 - Added: [ZeroFIDO v0.7 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
+- Updated: [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 
 <a name="release"></a>
 
