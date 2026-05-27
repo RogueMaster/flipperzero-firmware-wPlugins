@@ -1,0 +1,77 @@
+name: Compatibility report
+description: Report whether a specific meter works (or doesn't) with wM-Buster.
+title: "[compat] <MANUF> <VERSION> <MEDIUM> — <works/partial/broken>"
+labels: ["compat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing! Compatibility reports are how this project
+        grows beyond the maintainer's own building.
+
+        Please **redact the device ID** (last 6 hex digits → `XXXXXX`)
+        before pasting any frames. Manufacturer code, version, medium,
+        and the raw frame body are fine to share.
+  - type: input
+    id: manuf
+    attributes:
+      label: Manufacturer (3-letter code shown in the app)
+      placeholder: "TCH, KAM, DME, QDS, IST, BRA, ELS, ..."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version byte (hex)
+      placeholder: "0x6A, 0x52, 0x95, ..."
+    validations:
+      required: true
+  - type: input
+    id: medium
+    attributes:
+      label: Medium / device-type byte (hex)
+      placeholder: "0x08 HCA, 0x07 water, 0x04 heat, ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode the meter transmits in
+      options:
+        - "T1 (3-of-6)"
+        - "C1-A (NRZ Format A)"
+        - "C1-B (NRZ Format B)"
+        - "S1 (Manchester)"
+        - "Unknown"
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: What happens in the app
+      options:
+        - "Decoded fully — values match the meter's display"
+        - "Detected, decoded, but values look wrong"
+        - "Detected, encrypted, no key tested"
+        - "Detected, encrypted, AES decrypt fails with known-good key"
+        - "Not detected at all"
+        - "App crashes or freezes"
+    validations:
+      required: true
+  - type: textarea
+    id: raw
+    attributes:
+      label: Raw frame (rtl_433 hex, ID redacted)
+      description: |
+        Capture with: `rtl_433 -f 868.95M -s 1.6M -R 104 -R 105 -F json`.
+        Paste the `data` field, replacing the ID's last 6 hex digits.
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Context that might matter (firmware version, country, building type, key length, ...)
+    validations:
+      required: false

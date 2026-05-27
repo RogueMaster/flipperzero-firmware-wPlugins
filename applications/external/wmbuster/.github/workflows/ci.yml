@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host-tests:
+    name: Host-side regression tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make -C tests check
+
+  build-fap:
+    name: Build .fap (ufbt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install --upgrade ufbt
+      - run: ufbt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wmbuster-fap
+          path: dist/wmbuster.fap

@@ -1,0 +1,56 @@
+name: Release
+
+# Triggered when a tag matching v*.*.* is pushed. Builds the .fap with
+# ufbt and attaches it to a GitHub Release auto-created from the tag.
+# The CHANGELOG entry for the tag is used as the release body.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build .fap and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ufbt
+        run: pip install --upgrade ufbt
+
+      - name: Run host-side tests
+        run: make -C tests check
+
+      - name: Build .fap
+        run: ufbt
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          awk -v ver="$tag" '
+            /^## \['"$tag"'\]/ { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "No CHANGELOG section for $tag; using auto-generated notes." > RELEASE_NOTES.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: wM-Buster ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          files: |
+            dist/wmbuster.fap

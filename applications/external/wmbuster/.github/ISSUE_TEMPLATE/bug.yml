@@ -1,0 +1,39 @@
+name: Bug report
+description: The app misbehaves, crashes, or shows clearly-wrong values.
+title: "[bug] <one-line summary>"
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What you saw
+      description: What did the app do that it shouldn't have?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: Steps + any RF environment specifics.
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Flipper firmware
+      placeholder: "Official 1.x / Momentum / Xtreme / RogueMaster — version"
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: wM-Buster version
+      placeholder: "1.0"
+    validations:
+      required: true

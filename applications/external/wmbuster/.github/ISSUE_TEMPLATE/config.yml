@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Compatibility / "does it work with my meter?"
+    url: https://github.com/i12bp8/wmbuster/issues/new?template=compat.yml
+    about: Please use the compatibility template so we can grow the support matrix.
