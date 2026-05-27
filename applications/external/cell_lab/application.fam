@@ -1,0 +1,13 @@
+App(
+    appid="cell_lab",
+    name="Cell Lab",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="cell_lab_app",
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_version="0.4",
+    fap_category="Games",
+    fap_description="A tiny pixel-world life simulator for Flipper Zero.",
+    fap_author="PilotOfAsuka",
+    fap_icon="cell_lab.png",
+)
