@@ -6,7 +6,7 @@ App(
     targets=["f7"],
     stack_size=2 * 1024,
     fap_icon="letterbeacon.png",
-    fap_category="Tools",
+    fap_category="RFID",
     fap_author="nmrr",
     fap_weburl="https://github.com/nmrr/flipperzero-rfidbeacon",
     fap_version="1.0",
