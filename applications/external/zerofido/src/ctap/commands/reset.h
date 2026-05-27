@@ -25,5 +25,8 @@
 typedef struct ZerofidoApp ZerofidoApp;
 
 /* Handles authenticatorReset, including user consent and runtime/store wipe. */
-uint8_t zf_ctap_handle_reset(ZerofidoApp *app, ZfTransportSessionId session_id, size_t request_len,
-                             size_t *out_len);
+uint8_t zf_ctap_handle_reset(
+    ZerofidoApp* app,
+    ZfTransportSessionId session_id,
+    size_t request_len,
+    size_t* out_len);

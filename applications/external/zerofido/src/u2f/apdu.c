@@ -20,65 +20,69 @@
 #include "apdu_internal.h"
 #include "status.h"
 
-static uint16_t u2f_validate_apdu_status(const uint8_t *buf, uint16_t len, uint8_t ins,
-                                         uint32_t expected_lc, bool allow_short) {
+static uint16_t u2f_validate_apdu_status(
+    const uint8_t* buf,
+    uint16_t len,
+    uint8_t ins,
+    uint32_t expected_lc,
+    bool allow_short) {
     U2fParsedApdu apdu = {0};
 
-    if (!u2f_parse_apdu_header(buf, len, allow_short, &apdu)) {
+    if(!u2f_parse_apdu_header(buf, len, allow_short, &apdu)) {
         return ZF_U2F_SW_WRONG_LENGTH;
     }
-    if (apdu.cla != 0x00) {
+    if(apdu.cla != 0x00) {
         return ZF_U2F_SW_CLA_NOT_SUPPORTED;
     }
-    if (apdu.ins != ins) {
+    if(apdu.ins != ins) {
         return ZF_U2F_SW_INS_NOT_SUPPORTED;
     }
-    if (apdu.lc != expected_lc) {
+    if(apdu.lc != expected_lc) {
         return ZF_U2F_SW_WRONG_LENGTH;
     }
 
     return 0;
 }
 
-static uint16_t u2f_validate_request_status(const uint8_t *buf, uint16_t request_len) {
-    if (request_len < 4) {
+static uint16_t u2f_validate_request_status(const uint8_t* buf, uint16_t request_len) {
+    if(request_len < 4) {
         return ZF_U2F_SW_WRONG_LENGTH;
     }
-    if (buf[0] != 0x00) {
+    if(buf[0] != 0x00) {
         return ZF_U2F_SW_CLA_NOT_SUPPORTED;
     }
-    if (buf[1] == U2F_CMD_VERSION) {
-        if (request_len == 4) {
+    if(buf[1] == U2F_CMD_VERSION) {
+        if(request_len == 4) {
             return 0;
         }
         return u2f_validate_apdu_status(buf, request_len, U2F_CMD_VERSION, 0, true);
     }
-    if (request_len < 5) {
+    if(request_len < 5) {
         return ZF_U2F_SW_WRONG_LENGTH;
     }
-    if (request_len < 7) {
+    if(request_len < 7) {
         return ZF_U2F_SW_WRONG_LENGTH;
     }
-    if (buf[1] == U2F_CMD_REGISTER) {
-        return u2f_validate_apdu_status(buf, request_len, U2F_CMD_REGISTER,
-                                        U2F_CHALLENGE_SIZE + U2F_APP_ID_SIZE, false);
+    if(buf[1] == U2F_CMD_REGISTER) {
+        return u2f_validate_apdu_status(
+            buf, request_len, U2F_CMD_REGISTER, U2F_CHALLENGE_SIZE + U2F_APP_ID_SIZE, false);
     }
-    if (buf[1] == U2F_CMD_AUTHENTICATE) {
+    if(buf[1] == U2F_CMD_AUTHENTICATE) {
         U2fParsedApdu apdu = {0};
-        if (!u2f_parse_apdu_header(buf, request_len, false, &apdu)) {
+        if(!u2f_parse_apdu_header(buf, request_len, false, &apdu)) {
             return ZF_U2F_SW_WRONG_LENGTH;
         }
-        if (apdu.p1 != U2fCheckOnly && apdu.p1 != U2fEnforce && apdu.p1 != U2fDontEnforce) {
+        if(apdu.p1 != U2fCheckOnly && apdu.p1 != U2fEnforce && apdu.p1 != U2fDontEnforce) {
             return ZF_U2F_SW_WRONG_DATA;
         }
-        if (apdu.lc < (U2F_CHALLENGE_SIZE + U2F_APP_ID_SIZE + 1)) {
+        if(apdu.lc < (U2F_CHALLENGE_SIZE + U2F_APP_ID_SIZE + 1)) {
             return ZF_U2F_SW_WRONG_LENGTH;
         }
-        if (apdu.data == NULL) {
+        if(apdu.data == NULL) {
             return ZF_U2F_SW_WRONG_LENGTH;
         }
         uint8_t key_handle_len = apdu.data[U2F_CHALLENGE_SIZE + U2F_APP_ID_SIZE];
-        if (apdu.lc != (uint32_t)(U2F_CHALLENGE_SIZE + U2F_APP_ID_SIZE + 1 + key_handle_len)) {
+        if(apdu.lc != (uint32_t)(U2F_CHALLENGE_SIZE + U2F_APP_ID_SIZE + 1 + key_handle_len)) {
             return ZF_U2F_SW_WRONG_LENGTH;
         }
         return 0;
@@ -92,9 +96,8 @@ static uint16_t u2f_validate_request_status(const uint8_t *buf, uint16_t request
  * allow_short is set. Le is parsed for validation but ignored by U2F command
  * handling.
  */
-bool u2f_parse_apdu_header(const uint8_t *buf, uint16_t len, bool allow_short,
-                           U2fParsedApdu *apdu) {
-    if (len < 4) {
+bool u2f_parse_apdu_header(const uint8_t* buf, uint16_t len, bool allow_short, U2fParsedApdu* apdu) {
+    if(len < 4) {
         return false;
     }
 
@@ -105,13 +108,13 @@ bool u2f_parse_apdu_header(const uint8_t *buf, uint16_t len, bool allow_short,
     apdu->data = NULL;
     apdu->lc = 0;
 
-    if (allow_short && len == 5) {
+    if(allow_short && len == 5) {
         return true;
     }
 
-    if (len >= 7 && buf[4] == 0x00) {
+    if(len >= 7 && buf[4] == 0x00) {
         uint32_t lc = ((uint32_t)buf[5] << 8) | buf[6];
-        if ((size_t)len != 7U + lc && (size_t)len != 9U + lc) {
+        if((size_t)len != 7U + lc && (size_t)len != 9U + lc) {
             return false;
         }
         apdu->data = &buf[7];
@@ -121,7 +124,7 @@ bool u2f_parse_apdu_header(const uint8_t *buf, uint16_t len, bool allow_short,
 
     {
         uint32_t lc = buf[4];
-        if ((size_t)len != 5U + lc && (size_t)len != 6U + lc) {
+        if((size_t)len != 5U + lc && (size_t)len != 6U + lc) {
             return false;
         }
         apdu->data = &buf[5];
@@ -130,47 +133,52 @@ bool u2f_parse_apdu_header(const uint8_t *buf, uint16_t len, bool allow_short,
     }
 }
 
-uint16_t u2f_validate_request(uint8_t *buf, uint16_t request_len) {
+uint16_t u2f_validate_request(uint8_t* buf, uint16_t request_len) {
     uint16_t status = u2f_validate_request_status(buf, request_len);
 
-    if (status != 0) {
+    if(status != 0) {
         return zf_u2f_write_status(buf, status);
     }
 
     return 0;
 }
 
-uint16_t u2f_validate_request_into_response(const uint8_t *request, uint16_t request_len,
-                                            uint8_t *response, uint16_t response_capacity) {
+uint16_t u2f_validate_request_into_response(
+    const uint8_t* request,
+    uint16_t request_len,
+    uint8_t* response,
+    uint16_t response_capacity) {
     uint16_t status = 0;
 
-    if (!request || !response || response_capacity < 2) {
+    if(!request || !response || response_capacity < 2) {
         return 0;
     }
 
     status = u2f_validate_request_status(request, request_len);
-    if (status != 0) {
+    if(status != 0) {
         return zf_u2f_write_status(response, status);
     }
 
     return 0;
 }
 
-bool u2f_request_needs_user_presence(const uint8_t *buf, uint16_t request_len,
-                                     const char **operation) {
-    if (!buf || request_len < 2 || !operation) {
+bool u2f_request_needs_user_presence(
+    const uint8_t* buf,
+    uint16_t request_len,
+    const char** operation) {
+    if(!buf || request_len < 2 || !operation) {
         return false;
     }
 
-    switch (buf[1]) {
+    switch(buf[1]) {
     case U2F_CMD_REGISTER:
         *operation = "Register";
         return true;
     case U2F_CMD_AUTHENTICATE:
-        if (request_len < 3) {
+        if(request_len < 3) {
             return false;
         }
-        if (buf[2] != U2fEnforce) {
+        if(buf[2] != U2fEnforce) {
             return false;
         }
         *operation = "Authenticate";

@@ -26,7 +26,7 @@
 #include <furi_hal_subghz.h>
 #include <lib/drivers/cc1101_regs.h>
 
-static bool read_rxbytes_stable(const FuriHalSpiBusHandle* h, uint8_t* out, bool* overflow) {
+static bool read_rxbytes_stable(FuriHalSpiBusHandle* h, uint8_t* out, bool* overflow) {
     /* Erratum: read STATUS_RXBYTES twice; only trust if equal. */
     const uint8_t addr = (uint8_t)(CC1101_READ | CC1101_BURST | CC1101_STATUS_RXBYTES);
     uint8_t prev = 0xFF;
@@ -48,8 +48,8 @@ static bool read_rxbytes_stable(const FuriHalSpiBusHandle* h, uint8_t* out, bool
 
 size_t wmbus_hal_rx_drain(uint8_t* dst, size_t cap, bool external) {
     if(!dst || cap == 0) return 0;
-    const FuriHalSpiBusHandle* h = external ? &furi_hal_spi_bus_handle_external :
-                                              &furi_hal_spi_bus_handle_subghz;
+    FuriHalSpiBusHandle* h = external ? &furi_hal_spi_bus_handle_external :
+                                        &furi_hal_spi_bus_handle_subghz;
 
     furi_hal_spi_acquire(h);
     uint8_t avail = 0;

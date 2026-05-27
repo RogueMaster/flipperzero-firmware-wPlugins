@@ -24,10 +24,10 @@ static const uint32_t zf_sha256_k[64] = {
     0x90BEFFFAUL, 0xA4506CEBUL, 0xBEF9A3F7UL, 0xC67178F2UL,
 };
 
-static void zf_sha256_zero(void *data, size_t size) {
-    volatile uint8_t *ptr = data;
+static void zf_sha256_zero(void* data, size_t size) {
+    volatile uint8_t* ptr = data;
 
-    while (size-- > 0U) {
+    while(size-- > 0U) {
         *ptr++ = 0;
     }
 }
@@ -36,25 +36,25 @@ static uint32_t zf_sha256_rotr(uint32_t value, uint8_t shift) {
     return (value >> shift) | (value << (32U - shift));
 }
 
-static uint32_t zf_sha256_load_be32(const uint8_t *data) {
+static uint32_t zf_sha256_load_be32(const uint8_t* data) {
     return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) |
            (uint32_t)data[3];
 }
 
-static void zf_sha256_store_be32(uint8_t *out, uint32_t value) {
+static void zf_sha256_store_be32(uint8_t* out, uint32_t value) {
     out[0] = (uint8_t)(value >> 24);
     out[1] = (uint8_t)(value >> 16);
     out[2] = (uint8_t)(value >> 8);
     out[3] = (uint8_t)value;
 }
 
-static void zf_sha256_store_be64(uint8_t *out, uint64_t value) {
-    for (size_t i = 0; i < 8U; ++i) {
+static void zf_sha256_store_be64(uint8_t* out, uint64_t value) {
+    for(size_t i = 0; i < 8U; ++i) {
         out[i] = (uint8_t)(value >> (56U - (i * 8U)));
     }
 }
 
-static void zf_sha256_transform(ZfSha256Context *ctx, const uint8_t block[64]) {
+static void zf_sha256_transform(ZfSha256Context* ctx, const uint8_t block[64]) {
     uint32_t w[64];
     uint32_t a = ctx->state[0];
     uint32_t b = ctx->state[1];
@@ -65,18 +65,18 @@ static void zf_sha256_transform(ZfSha256Context *ctx, const uint8_t block[64]) {
     uint32_t g = ctx->state[6];
     uint32_t h = ctx->state[7];
 
-    for (size_t i = 0; i < 16U; ++i) {
+    for(size_t i = 0; i < 16U; ++i) {
         w[i] = zf_sha256_load_be32(block + (i * 4U));
     }
-    for (size_t i = 16U; i < 64U; ++i) {
-        uint32_t s0 =
-            zf_sha256_rotr(w[i - 15U], 7) ^ zf_sha256_rotr(w[i - 15U], 18) ^ (w[i - 15U] >> 3);
-        uint32_t s1 =
-            zf_sha256_rotr(w[i - 2U], 17) ^ zf_sha256_rotr(w[i - 2U], 19) ^ (w[i - 2U] >> 10);
+    for(size_t i = 16U; i < 64U; ++i) {
+        uint32_t s0 = zf_sha256_rotr(w[i - 15U], 7) ^ zf_sha256_rotr(w[i - 15U], 18) ^
+                      (w[i - 15U] >> 3);
+        uint32_t s1 = zf_sha256_rotr(w[i - 2U], 17) ^ zf_sha256_rotr(w[i - 2U], 19) ^
+                      (w[i - 2U] >> 10);
         w[i] = w[i - 16U] + s0 + w[i - 7U] + s1;
     }
 
-    for (size_t i = 0; i < 64U; ++i) {
+    for(size_t i = 0; i < 64U; ++i) {
         uint32_t s1 = zf_sha256_rotr(e, 6) ^ zf_sha256_rotr(e, 11) ^ zf_sha256_rotr(e, 25);
         uint32_t ch = (e & f) ^ (~e & g);
         uint32_t temp1 = h + s1 + ch + zf_sha256_k[i] + w[i];
@@ -105,7 +105,7 @@ static void zf_sha256_transform(ZfSha256Context *ctx, const uint8_t block[64]) {
     zf_sha256_zero(w, sizeof(w));
 }
 
-void zf_sha256_init(ZfSha256Context *ctx) {
+void zf_sha256_init(ZfSha256Context* ctx) {
     memset(ctx, 0, sizeof(*ctx));
     ctx->state[0] = 0x6A09E667UL;
     ctx->state[1] = 0xBB67AE85UL;
@@ -117,15 +117,15 @@ void zf_sha256_init(ZfSha256Context *ctx) {
     ctx->state[7] = 0x5BE0CD19UL;
 }
 
-void zf_sha256_update(ZfSha256Context *ctx, const uint8_t *data, size_t size) {
-    if (!ctx || (!data && size > 0U)) {
+void zf_sha256_update(ZfSha256Context* ctx, const uint8_t* data, size_t size) {
+    if(!ctx || (!data && size > 0U)) {
         return;
     }
 
     ctx->bit_count += ((uint64_t)size) * 8U;
-    while (size > 0U) {
+    while(size > 0U) {
         size_t chunk = sizeof(ctx->buffer) - ctx->buffer_len;
-        if (chunk > size) {
+        if(chunk > size) {
             chunk = size;
         }
         memcpy(ctx->buffer + ctx->buffer_len, data, chunk);
@@ -133,19 +133,19 @@ void zf_sha256_update(ZfSha256Context *ctx, const uint8_t *data, size_t size) {
         data += chunk;
         size -= chunk;
 
-        if (ctx->buffer_len == sizeof(ctx->buffer)) {
+        if(ctx->buffer_len == sizeof(ctx->buffer)) {
             zf_sha256_transform(ctx, ctx->buffer);
             ctx->buffer_len = 0;
         }
     }
 }
 
-void zf_sha256_finish(ZfSha256Context *ctx, uint8_t out[32]) {
+void zf_sha256_finish(ZfSha256Context* ctx, uint8_t out[32]) {
     uint8_t tail[64] = {0};
     uint64_t message_bits = ctx->bit_count;
 
     tail[0] = 0x80;
-    if (ctx->buffer_len > 55U) {
+    if(ctx->buffer_len > 55U) {
         zf_sha256_update(ctx, tail, sizeof(ctx->buffer) - ctx->buffer_len);
         memset(tail, 0, sizeof(tail));
     }
@@ -153,7 +153,7 @@ void zf_sha256_finish(ZfSha256Context *ctx, uint8_t out[32]) {
     zf_sha256_store_be64(ctx->buffer + 56U, message_bits);
     zf_sha256_transform(ctx, ctx->buffer);
 
-    for (size_t i = 0; i < 8U; ++i) {
+    for(size_t i = 0; i < 8U; ++i) {
         zf_sha256_store_be32(out + (i * 4U), ctx->state[i]);
     }
     zf_sha256_zero(ctx, sizeof(*ctx));

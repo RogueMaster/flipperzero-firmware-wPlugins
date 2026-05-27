@@ -11,23 +11,23 @@
 #include <furi_hal_crypto.h>
 #include <string.h>
 
-#define ZF_AES_BLOCK_LEN 16U
-#define ZF_AES_KEY_LEN 32U
+#define ZF_AES_BLOCK_LEN   16U
+#define ZF_AES_KEY_LEN     32U
 #define ZF_AES_MAX_CBC_LEN 128U
 
-static void zf_aes_secure_zero(void *data, size_t size) {
-    volatile uint8_t *ptr = data;
+static void zf_aes_secure_zero(void* data, size_t size) {
+    volatile uint8_t* ptr = data;
 
-    if (!ptr) {
+    if(!ptr) {
         return;
     }
-    while (size-- > 0U) {
+    while(size-- > 0U) {
         *ptr++ = 0;
     }
 }
 
-static void zf_aes_bswap_words(uint8_t *out, const uint8_t *in, size_t size) {
-    for (size_t offset = 0; offset < size; offset += 4U) {
+static void zf_aes_bswap_words(uint8_t* out, const uint8_t* in, size_t size) {
+    for(size_t offset = 0; offset < size; offset += 4U) {
         out[offset + 0U] = in[offset + 3U];
         out[offset + 1U] = in[offset + 2U];
         out[offset + 2U] = in[offset + 1U];
@@ -35,21 +35,26 @@ static void zf_aes_bswap_words(uint8_t *out, const uint8_t *in, size_t size) {
     }
 }
 
-static bool zf_aes256_cbc_crypt(const uint8_t key[32], const uint8_t iv[16], const uint8_t *input,
-                                uint8_t *output, size_t size, bool decrypt) {
+static bool zf_aes256_cbc_crypt(
+    const uint8_t key[32],
+    const uint8_t iv[16],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size,
+    bool decrypt) {
     uint32_t hal_key_words[ZF_AES_KEY_LEN / sizeof(uint32_t)];
     uint32_t hal_iv_words[ZF_AES_BLOCK_LEN / sizeof(uint32_t)];
     uint32_t hal_input_words[ZF_AES_MAX_CBC_LEN / sizeof(uint32_t)];
     uint32_t hal_output_words[ZF_AES_MAX_CBC_LEN / sizeof(uint32_t)];
-    uint8_t *hal_key = (uint8_t *)hal_key_words;
-    uint8_t *hal_iv = (uint8_t *)hal_iv_words;
-    uint8_t *hal_input = (uint8_t *)hal_input_words;
-    uint8_t *hal_output = (uint8_t *)hal_output_words;
+    uint8_t* hal_key = (uint8_t*)hal_key_words;
+    uint8_t* hal_iv = (uint8_t*)hal_iv_words;
+    uint8_t* hal_input = (uint8_t*)hal_input_words;
+    uint8_t* hal_output = (uint8_t*)hal_output_words;
     bool loaded = false;
     bool ok = false;
 
-    if (!key || !iv || !input || !output || size == 0U || size > sizeof(hal_input_words) ||
-        (size % ZF_AES_BLOCK_LEN) != 0U) {
+    if(!key || !iv || !input || !output || size == 0U || size > sizeof(hal_input_words) ||
+       (size % ZF_AES_BLOCK_LEN) != 0U) {
         return false;
     }
 
@@ -59,12 +64,12 @@ static bool zf_aes256_cbc_crypt(const uint8_t key[32], const uint8_t iv[16], con
     memset(hal_output_words, 0, sizeof(hal_output_words));
 
     loaded = furi_hal_crypto_load_key(hal_key, hal_iv);
-    if (loaded) {
-        ok = decrypt ? furi_hal_crypto_decrypt(hal_input, hal_output, size)
-                     : furi_hal_crypto_encrypt(hal_input, hal_output, size);
+    if(loaded) {
+        ok = decrypt ? furi_hal_crypto_decrypt(hal_input, hal_output, size) :
+                       furi_hal_crypto_encrypt(hal_input, hal_output, size);
         (void)furi_hal_crypto_unload_key();
     }
-    if (ok) {
+    if(ok) {
         zf_aes_bswap_words(output, hal_output, size);
     }
 
@@ -75,24 +80,38 @@ static bool zf_aes256_cbc_crypt(const uint8_t key[32], const uint8_t iv[16], con
     return loaded && ok;
 }
 
-bool zf_aes256_cbc_encrypt(const uint8_t key[32], const uint8_t iv[16], const uint8_t *input,
-                           uint8_t *output, size_t size) {
+bool zf_aes256_cbc_encrypt(
+    const uint8_t key[32],
+    const uint8_t iv[16],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size) {
     return zf_aes256_cbc_crypt(key, iv, input, output, size, false);
 }
 
-bool zf_aes256_cbc_decrypt(const uint8_t key[32], const uint8_t iv[16], const uint8_t *input,
-                           uint8_t *output, size_t size) {
+bool zf_aes256_cbc_decrypt(
+    const uint8_t key[32],
+    const uint8_t iv[16],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size) {
     return zf_aes256_cbc_crypt(key, iv, input, output, size, true);
 }
 
-bool zf_aes256_cbc_zero_iv_encrypt(const uint8_t key[32], const uint8_t *input, uint8_t *output,
-                                   size_t size) {
+bool zf_aes256_cbc_zero_iv_encrypt(
+    const uint8_t key[32],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size) {
     const uint8_t iv[ZF_AES_BLOCK_LEN] = {0};
     return zf_aes256_cbc_encrypt(key, iv, input, output, size);
 }
 
-bool zf_aes256_cbc_zero_iv_decrypt(const uint8_t key[32], const uint8_t *input, uint8_t *output,
-                                   size_t size) {
+bool zf_aes256_cbc_zero_iv_decrypt(
+    const uint8_t key[32],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size) {
     const uint8_t iv[ZF_AES_BLOCK_LEN] = {0};
     return zf_aes256_cbc_decrypt(key, iv, input, output, size);
 }

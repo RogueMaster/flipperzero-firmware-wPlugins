@@ -28,9 +28,11 @@ bool zf_ctap_cred_protect_value_is_valid(uint64_t cred_protect) {
            cred_protect <= ZF_CRED_PROTECT_UV_REQUIRED;
 }
 
-bool zf_ctap_cred_protect_allows_assertion(uint8_t cred_protect, bool uv_verified,
-                                           bool uses_allow_list) {
-    switch (zf_ctap_cred_protect_effective(cred_protect)) {
+bool zf_ctap_cred_protect_allows_assertion(
+    uint8_t cred_protect,
+    bool uv_verified,
+    bool uses_allow_list) {
+    switch(zf_ctap_cred_protect_effective(cred_protect)) {
     case ZF_CRED_PROTECT_UV_OPTIONAL:
         return true;
     case ZF_CRED_PROTECT_UV_OPTIONAL_WITH_CRED_ID:
@@ -42,7 +44,7 @@ bool zf_ctap_cred_protect_allows_assertion(uint8_t cred_protect, bool uv_verifie
     }
 }
 
-bool zf_ctap_cred_protect_encode_make_credential_output(ZfCborEncoder *enc, uint8_t cred_protect) {
+bool zf_ctap_cred_protect_encode_make_credential_output(ZfCborEncoder* enc, uint8_t cred_protect) {
     return zf_cbor_encode_text(enc, "credProtect") &&
            zf_cbor_encode_uint(enc, zf_ctap_cred_protect_effective(cred_protect));
 }

@@ -25,8 +25,8 @@ typedef struct ZerofidoApp ZerofidoApp;
  * Private UI helpers used across view/status/approval modules. They assume the
  * caller already respects the UI mutex rules documented on public UI functions.
  */
-void zerofido_ui_dispatch_custom_event(ZerofidoApp *app, ZfCustomEvent event);
-void zerofido_ui_switch_to_view(ZerofidoApp *app, ZfViewId view_id);
-void zerofido_ui_show_interaction(ZerofidoApp *app);
-void zerofido_ui_hide_interaction(ZerofidoApp *app);
-bool zerofido_ui_ensure_view(ZerofidoApp *app, ZfViewId view_id);
+void zerofido_ui_dispatch_custom_event(ZerofidoApp* app, ZfCustomEvent event);
+void zerofido_ui_switch_to_view(ZerofidoApp* app, ZfViewId view_id);
+void zerofido_ui_show_interaction(ZerofidoApp* app);
+void zerofido_ui_hide_interaction(ZerofidoApp* app);
+bool zerofido_ui_ensure_view(ZerofidoApp* app, ZfViewId view_id);

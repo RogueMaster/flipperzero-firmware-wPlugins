@@ -11,4 +11,4 @@
 
 #include <nfc/protocols/nfc_generic_event.h>
 
-NfcCommand zf_transport_nfc_event_callback(NfcGenericEvent event, void *context);
+NfcCommand zf_transport_nfc_event_callback(NfcGenericEvent event, void* context);

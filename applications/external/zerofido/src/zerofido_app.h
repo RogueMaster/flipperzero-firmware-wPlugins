@@ -24,4 +24,4 @@
 #endif
 
 /* Flipper application entry point exported from the FAP. */
-ZF_EXPORT int32_t zerofido_main(void *p);
+ZF_EXPORT int32_t zerofido_main(void* p);

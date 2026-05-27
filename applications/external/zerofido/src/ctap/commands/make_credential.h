@@ -28,6 +28,11 @@ typedef struct ZerofidoApp ZerofidoApp;
  * Handles CTAP authenticatorMakeCredential from parse through approval,
  * credential generation, storage publication, and attestation response encoding.
  */
-uint8_t zf_ctap_handle_make_credential(ZerofidoApp *app, ZfTransportSessionId session_id,
-                                       const uint8_t *data, size_t data_len, uint8_t *out,
-                                       size_t out_capacity, size_t *out_len);
+uint8_t zf_ctap_handle_make_credential(
+    ZerofidoApp* app,
+    ZfTransportSessionId session_id,
+    const uint8_t* data,
+    size_t data_len,
+    uint8_t* out,
+    size_t out_capacity,
+    size_t* out_len);

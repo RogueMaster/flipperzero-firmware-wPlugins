@@ -24,9 +24,9 @@
 #define FURI_PACKED __attribute__((packed))
 #endif
 
-#define U2F_CMD_REGISTER 0x01
+#define U2F_CMD_REGISTER     0x01
 #define U2F_CMD_AUTHENTICATE 0x02
-#define U2F_CMD_VERSION 0x03
+#define U2F_CMD_VERSION      0x03
 
 typedef enum {
     U2fCheckOnly = 0x07,
@@ -34,14 +34,14 @@ typedef enum {
     U2fDontEnforce = 0x08,
 } U2fAuthMode;
 
-#define U2F_HASH_SIZE 32
-#define U2F_NONCE_SIZE 32
+#define U2F_HASH_SIZE      32
+#define U2F_NONCE_SIZE     32
 #define U2F_CHALLENGE_SIZE 32
-#define U2F_APP_ID_SIZE 32
+#define U2F_APP_ID_SIZE    32
 
-#define U2F_EC_KEY_SIZE 32
-#define U2F_EC_BIGNUM_SIZE 32
-#define U2F_EC_POINT_SIZE 65
+#define U2F_EC_KEY_SIZE           32
+#define U2F_EC_BIGNUM_SIZE        32
+#define U2F_EC_POINT_SIZE         65
 #define U2F_DER_SIGNATURE_MAX_LEN 72
 
 /*

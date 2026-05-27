@@ -22,5 +22,7 @@
 #include "../zerofido_types.h"
 
 /* Exposed to host tests so serialized record bytes can be inspected directly. */
-bool zf_store_record_format_encode(const ZfCredentialRecord *record, uint8_t *out,
-                                   size_t *out_size);
+bool zf_store_record_format_encode(
+    const ZfCredentialRecord* record,
+    uint8_t* out,
+    size_t* out_size);

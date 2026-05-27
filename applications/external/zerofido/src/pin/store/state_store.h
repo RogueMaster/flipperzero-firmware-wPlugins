@@ -33,10 +33,13 @@ typedef enum {
  * Persistent PIN state store. It stores the PIN hash, retry counters, and
  * fail-closed poison state separately from transient PIN token metadata.
  */
-void zf_pin_state_store_cleanup_temp(Storage *storage);
-ZfPinLoadStatus zf_pin_state_store_load(Storage *storage, uint8_t pin_hash[ZF_PIN_HASH_LEN],
-                                        uint8_t *pin_retries, uint8_t *pin_consecutive_mismatches,
-                                        bool *pin_auth_blocked);
-bool zf_pin_state_store_persist(Storage *storage, const ZfClientPinState *state);
-bool zf_pin_state_store_fail_closed(Storage *storage, const ZfClientPinState *state);
-bool zf_pin_state_store_clear(Storage *storage);
+void zf_pin_state_store_cleanup_temp(Storage* storage);
+ZfPinLoadStatus zf_pin_state_store_load(
+    Storage* storage,
+    uint8_t pin_hash[ZF_PIN_HASH_LEN],
+    uint8_t* pin_retries,
+    uint8_t* pin_consecutive_mismatches,
+    bool* pin_auth_blocked);
+bool zf_pin_state_store_persist(Storage* storage, const ZfClientPinState* state);
+bool zf_pin_state_store_fail_closed(Storage* storage, const ZfClientPinState* state);
+bool zf_pin_state_store_clear(Storage* storage);

@@ -29,7 +29,10 @@
  * Store bootstrap owns directory creation, startup index rebuild, temp cleanup,
  * and app-data wipe. Record encoding/decoding stays in record_format.
  */
-bool zf_store_bootstrap_ensure_app_data_dir(Storage *storage);
-bool zf_store_bootstrap_init_with_buffer(Storage *storage, ZfCredentialStore *store,
-                                         uint8_t *buffer, size_t buffer_size);
-bool zf_store_bootstrap_wipe_app_data(Storage *storage);
+bool zf_store_bootstrap_ensure_app_data_dir(Storage* storage);
+bool zf_store_bootstrap_init_with_buffer(
+    Storage* storage,
+    ZfCredentialStore* store,
+    uint8_t* buffer,
+    size_t buffer_size);
+bool zf_store_bootstrap_wipe_app_data(Storage* storage);

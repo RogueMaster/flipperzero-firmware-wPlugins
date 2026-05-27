@@ -34,11 +34,11 @@
 #include "nfc_protocol.h"
 #include "nfc_trace.h"
 
-#define ZF_NFC_WORKER_EVT_STOP (1U << 0)
+#define ZF_NFC_WORKER_EVT_STOP    (1U << 0)
 #define ZF_NFC_WORKER_EVT_REQUEST (1U << 1)
-#define ZF_NFC_WORKER_EVT_TRACE (1U << 2)
-#define ZF_NFC_TX_FRAME_CAPACITY 256U
-#define ZF_NFC_LAST_TX_CAPACITY ZF_NFC_TX_FRAME_CAPACITY
+#define ZF_NFC_WORKER_EVT_TRACE   (1U << 2)
+#define ZF_NFC_TX_FRAME_CAPACITY  256U
+#define ZF_NFC_LAST_TX_CAPACITY   ZF_NFC_TX_FRAME_CAPACITY
 
 typedef struct ZerofidoApp ZerofidoApp;
 
@@ -74,12 +74,12 @@ typedef enum {
  * from overwriting a newer APDU exchange.
  */
 typedef struct {
-    Nfc *nfc;
-    NfcListener *listener;
-    FuriMessageQueue *trace_queue;
-    Iso14443_4aListener *iso4_listener;
-    BitBuffer *tx_buffer;
-    Iso14443_4aData *iso14443_4a_data;
+    Nfc* nfc;
+    NfcListener* listener;
+    FuriMessageQueue* trace_queue;
+    Iso14443_4aListener* iso4_listener;
+    BitBuffer* tx_buffer;
+    Iso14443_4aData* iso14443_4a_data;
     bool listener_active;
     bool stopping;
     bool field_active;
@@ -108,7 +108,7 @@ typedef struct {
     uint8_t iso4_last_tx[ZF_NFC_LAST_TX_CAPACITY];
     uint8_t rx_complete_last_payload[ZF_NFC_MAX_RX_FRAME_INF_SIZE];
     uint8_t rx_complete_last_response[ZF_NFC_LAST_TX_CAPACITY];
-    const uint8_t *iso4_tx_chain_data;
+    const uint8_t* iso4_tx_chain_data;
     uint8_t iso_pcb;
     uint8_t iso_cid;
     uint8_t desfire_probe_frame;
@@ -139,22 +139,27 @@ typedef struct {
     uint32_t processing_generation;
     uint32_t last_visible_stage_tick;
     uint32_t post_success_cooldown_until_tick;
-    uint8_t *arena;
+    uint8_t* arena;
     size_t arena_capacity;
     ZfNfcReaderProfile reader_profile;
     size_t tx_frame_len;
 } ZfNfcTransportState;
 
 /* Adapter entry points for the NFC transport implementation. */
-int32_t zf_transport_nfc_worker(void *context);
-bool zf_transport_nfc_wake_request_worker(ZerofidoApp *app, ZfNfcTransportState *state,
-                                          bool caller_holds_ui_mutex);
-void zf_transport_nfc_stop(ZerofidoApp *app);
-void zf_transport_nfc_send_dispatch_result(ZerofidoApp *app,
-                                           const ZfProtocolDispatchRequest *request,
-                                           const ZfProtocolDispatchResult *result);
-bool zf_transport_nfc_wait_for_interaction(ZerofidoApp *app,
-                                           ZfTransportSessionId current_session_id, bool *approved);
-void zf_transport_nfc_notify_interaction_changed(ZerofidoApp *app);
-uint8_t zf_transport_nfc_poll_cbor_control(ZerofidoApp *app,
-                                           ZfTransportSessionId current_session_id);
+int32_t zf_transport_nfc_worker(void* context);
+bool zf_transport_nfc_wake_request_worker(
+    ZerofidoApp* app,
+    ZfNfcTransportState* state,
+    bool caller_holds_ui_mutex);
+void zf_transport_nfc_stop(ZerofidoApp* app);
+void zf_transport_nfc_send_dispatch_result(
+    ZerofidoApp* app,
+    const ZfProtocolDispatchRequest* request,
+    const ZfProtocolDispatchResult* result);
+bool zf_transport_nfc_wait_for_interaction(
+    ZerofidoApp* app,
+    ZfTransportSessionId current_session_id,
+    bool* approved);
+void zf_transport_nfc_notify_interaction_changed(ZerofidoApp* app);
+uint8_t
+    zf_transport_nfc_poll_cbor_control(ZerofidoApp* app, ZfTransportSessionId current_session_id);

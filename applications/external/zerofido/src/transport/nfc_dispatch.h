@@ -27,7 +27,13 @@
  * APDU dispatch validates SELECT/CTAP/U2F/NDEF traffic and queues protocol work
  * for the NFC worker when a request cannot be answered immediately.
  */
-bool zf_transport_nfc_handle_apdu(ZerofidoApp *app, ZfNfcTransportState *state,
-                                  const uint8_t *apdu_bytes, size_t apdu_len);
-bool zf_transport_nfc_handle_apdu_locked(ZerofidoApp *app, ZfNfcTransportState *state,
-                                         const uint8_t *apdu_bytes, size_t apdu_len);
+bool zf_transport_nfc_handle_apdu(
+    ZerofidoApp* app,
+    ZfNfcTransportState* state,
+    const uint8_t* apdu_bytes,
+    size_t apdu_len);
+bool zf_transport_nfc_handle_apdu_locked(
+    ZerofidoApp* app,
+    ZfNfcTransportState* state,
+    const uint8_t* apdu_bytes,
+    size_t apdu_len);

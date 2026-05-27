@@ -21,14 +21,14 @@
 
 #define ZF_U2F_STATUS_SIZE 2U
 
-#define ZF_U2F_SW_NO_ERROR 0x9000U
-#define ZF_U2F_SW_WRONG_LENGTH 0x6700U
+#define ZF_U2F_SW_NO_ERROR                 0x9000U
+#define ZF_U2F_SW_WRONG_LENGTH             0x6700U
 #define ZF_U2F_SW_CONDITIONS_NOT_SATISFIED 0x6985U
-#define ZF_U2F_SW_WRONG_DATA 0x6A80U
-#define ZF_U2F_SW_INS_NOT_SUPPORTED 0x6D00U
-#define ZF_U2F_SW_CLA_NOT_SUPPORTED 0x6E00U
+#define ZF_U2F_SW_WRONG_DATA               0x6A80U
+#define ZF_U2F_SW_INS_NOT_SUPPORTED        0x6D00U
+#define ZF_U2F_SW_CLA_NOT_SUPPORTED        0x6E00U
 
-static inline uint16_t zf_u2f_write_status(uint8_t *buf, uint16_t status) {
+static inline uint16_t zf_u2f_write_status(uint8_t* buf, uint16_t status) {
     buf[0] = (uint8_t)(status >> 8);
     buf[1] = (uint8_t)status;
     return ZF_U2F_STATUS_SIZE;

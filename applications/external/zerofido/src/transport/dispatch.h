@@ -36,12 +36,12 @@ typedef enum {
 typedef struct {
     ZfTransportSessionId session_id;
     ZfTransportProtocolKind protocol;
-    const uint8_t *payload;
+    const uint8_t* payload;
     size_t payload_len;
 } ZfProtocolDispatchRequest;
 
 typedef struct {
-    uint8_t *response;
+    uint8_t* response;
     size_t response_capacity;
     size_t response_len;
     bool send_transport_error;
@@ -53,7 +53,10 @@ typedef struct {
  * the protocol kind and arena; this function runs CTAP/U2F/WINK handling and
  * returns a transport-neutral dispatch result.
  */
-void zf_transport_dispatch_complete_message(ZerofidoApp *app, ZfTransportState *transport,
-                                            ZfTransportSessionId session_id,
-                                            ZfTransportProtocolKind protocol,
-                                            const uint8_t *payload, size_t payload_len);
+void zf_transport_dispatch_complete_message(
+    ZerofidoApp* app,
+    ZfTransportState* transport,
+    ZfTransportSessionId session_id,
+    ZfTransportProtocolKind protocol,
+    const uint8_t* payload,
+    size_t payload_len);

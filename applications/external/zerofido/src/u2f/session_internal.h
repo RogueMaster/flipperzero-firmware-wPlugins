@@ -34,5 +34,5 @@ typedef struct U2fData {
     bool ready;
     bool user_present;
     U2fEvtCallback callback;
-    void *context;
+    void* context;
 } U2fData;

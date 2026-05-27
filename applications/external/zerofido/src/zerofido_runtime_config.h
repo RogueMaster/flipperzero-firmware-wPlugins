@@ -79,23 +79,29 @@ typedef struct {
  * combines those preferences with compile-time transport/profile flags so
  * protocol dispatch and getInfo advertise the same effective behavior.
  */
-void zf_runtime_config_load_defaults(ZfRuntimeConfig *config);
-void zf_runtime_config_load(Storage *storage, ZfRuntimeConfig *config);
-bool zf_runtime_config_persist(Storage *storage, const ZfRuntimeConfig *config);
-void zf_runtime_config_apply(ZerofidoApp *app, const ZfRuntimeConfig *config);
-void zf_runtime_config_refresh_capabilities(ZerofidoApp *app);
-bool zf_runtime_config_set_auto_accept_requests(ZerofidoApp *app, Storage *storage, bool enabled);
-bool zf_runtime_config_set_fido2_enabled(ZerofidoApp *app, Storage *storage, bool enabled);
-bool zf_runtime_config_set_fido2_profile(ZerofidoApp *app, Storage *storage,
-                                         ZfFido2Profile profile);
-bool zf_runtime_config_set_attestation_mode(ZerofidoApp *app, Storage *storage,
-                                            ZfAttestationMode mode);
-bool zf_runtime_config_set_transport_mode(ZerofidoApp *app, Storage *storage, ZfTransportMode mode);
-void zf_runtime_config_resolve_capabilities(const ZfRuntimeConfig *config,
-                                            ZfResolvedCapabilities *capabilities);
-void zf_runtime_get_effective_capabilities(const ZerofidoApp *app,
-                                           ZfResolvedCapabilities *capabilities);
-bool zf_runtime_ctap_command_enabled(const ZerofidoApp *app, uint8_t cmd);
-const char *zf_transport_mode_name(ZfTransportMode mode);
-const char *zf_fido2_profile_name(ZfFido2Profile profile);
-const char *zf_attestation_mode_name(ZfAttestationMode mode);
+void zf_runtime_config_load_defaults(ZfRuntimeConfig* config);
+void zf_runtime_config_load(Storage* storage, ZfRuntimeConfig* config);
+bool zf_runtime_config_persist(Storage* storage, const ZfRuntimeConfig* config);
+void zf_runtime_config_apply(ZerofidoApp* app, const ZfRuntimeConfig* config);
+void zf_runtime_config_refresh_capabilities(ZerofidoApp* app);
+bool zf_runtime_config_set_auto_accept_requests(ZerofidoApp* app, Storage* storage, bool enabled);
+bool zf_runtime_config_set_fido2_enabled(ZerofidoApp* app, Storage* storage, bool enabled);
+bool zf_runtime_config_set_fido2_profile(
+    ZerofidoApp* app,
+    Storage* storage,
+    ZfFido2Profile profile);
+bool zf_runtime_config_set_attestation_mode(
+    ZerofidoApp* app,
+    Storage* storage,
+    ZfAttestationMode mode);
+bool zf_runtime_config_set_transport_mode(ZerofidoApp* app, Storage* storage, ZfTransportMode mode);
+void zf_runtime_config_resolve_capabilities(
+    const ZfRuntimeConfig* config,
+    ZfResolvedCapabilities* capabilities);
+void zf_runtime_get_effective_capabilities(
+    const ZerofidoApp* app,
+    ZfResolvedCapabilities* capabilities);
+bool zf_runtime_ctap_command_enabled(const ZerofidoApp* app, uint8_t cmd);
+const char* zf_transport_mode_name(ZfTransportMode mode);
+const char* zf_fido2_profile_name(ZfFido2Profile profile);
+const char* zf_attestation_mode_name(ZfAttestationMode mode);

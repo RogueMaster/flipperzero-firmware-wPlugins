@@ -24,13 +24,13 @@
 #include "zerofido_app_i.h"
 #include "zerofido_types.h"
 
-#define ZF_RUNTIME_CONFIG_FILE_PATH ZF_APP_DATA_DIR "/runtime_config.bin"
-#define ZF_RUNTIME_CONFIG_FILE_TEMP_PATH ZF_APP_DATA_DIR "/runtime_config.tmp"
-#define ZF_RUNTIME_CONFIG_FILE_MAGIC 0x5A465243UL
-#define ZF_RUNTIME_CONFIG_FILE_VERSION 4U
-#define ZF_RUNTIME_CONFIG_FILE_VERSION_3_SIZE 8U
+#define ZF_RUNTIME_CONFIG_FILE_PATH                 ZF_APP_DATA_DIR "/runtime_config.bin"
+#define ZF_RUNTIME_CONFIG_FILE_TEMP_PATH            ZF_APP_DATA_DIR "/runtime_config.tmp"
+#define ZF_RUNTIME_CONFIG_FILE_MAGIC                0x5A465243UL
+#define ZF_RUNTIME_CONFIG_FILE_VERSION              4U
+#define ZF_RUNTIME_CONFIG_FILE_VERSION_3_SIZE       8U
 #define ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS 0x01U
-#define ZF_RUNTIME_CONFIG_FLAG_FIDO2_ENABLED 0x02U
+#define ZF_RUNTIME_CONFIG_FLAG_FIDO2_ENABLED        0x02U
 
 /*
  * Versioned binary runtime config. Unknown flags or invalid enum values reject
@@ -91,7 +91,7 @@ static ZfAttestationMode zf_attestation_mode_for_build(ZfAttestationMode mode) {
 }
 
 static bool zf_attestation_mode_is_settable(ZfAttestationMode mode) {
-    if (!zf_attestation_mode_is_valid((uint8_t)mode)) {
+    if(!zf_attestation_mode_is_valid((uint8_t)mode)) {
         return false;
     }
 #if ZF_PACKED_ATTESTATION
@@ -101,8 +101,8 @@ static bool zf_attestation_mode_is_settable(ZfAttestationMode mode) {
 #endif
 }
 
-void zf_runtime_config_load_defaults(ZfRuntimeConfig *config) {
-    if (!config) {
+void zf_runtime_config_load_defaults(ZfRuntimeConfig* config) {
+    if(!config) {
         return;
     }
 
@@ -116,57 +116,57 @@ void zf_runtime_config_load_defaults(ZfRuntimeConfig *config) {
     config->attestation_mode = ZfAttestationModeNone;
 }
 
-void zf_runtime_config_load(Storage *storage, ZfRuntimeConfig *config) {
+void zf_runtime_config_load(Storage* storage, ZfRuntimeConfig* config) {
     ZfRuntimeConfigFileRecord record = {0};
     size_t size = 0;
 
     zf_runtime_config_load_defaults(config);
-    if (!storage || !config) {
+    if(!storage || !config) {
         return;
     }
-    zf_storage_recover_atomic_file(storage, ZF_RUNTIME_CONFIG_FILE_PATH,
-                                   ZF_RUNTIME_CONFIG_FILE_TEMP_PATH);
+    zf_storage_recover_atomic_file(
+        storage, ZF_RUNTIME_CONFIG_FILE_PATH, ZF_RUNTIME_CONFIG_FILE_TEMP_PATH);
 
-    if (!zf_storage_read_file(storage, ZF_RUNTIME_CONFIG_FILE_PATH, (uint8_t *)&record,
-                              sizeof(record), &size)) {
+    if(!zf_storage_read_file(
+           storage, ZF_RUNTIME_CONFIG_FILE_PATH, (uint8_t*)&record, sizeof(record), &size)) {
         return;
     }
-    if (size != ZF_RUNTIME_CONFIG_FILE_VERSION_3_SIZE && size != sizeof(record)) {
-        return;
-    }
-
-    if (record.magic != ZF_RUNTIME_CONFIG_FILE_MAGIC) {
+    if(size != ZF_RUNTIME_CONFIG_FILE_VERSION_3_SIZE && size != sizeof(record)) {
         return;
     }
 
-    if ((record.flags & ~(ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS |
-                          ZF_RUNTIME_CONFIG_FLAG_FIDO2_ENABLED)) != 0) {
+    if(record.magic != ZF_RUNTIME_CONFIG_FILE_MAGIC) {
         return;
     }
 
-    if (record.version == 1U) {
+    if((record.flags & ~(ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS |
+                         ZF_RUNTIME_CONFIG_FLAG_FIDO2_ENABLED)) != 0) {
+        return;
+    }
+
+    if(record.version == 1U) {
         config->transport_mode = zf_runtime_config_default_transport_mode();
         config->fido2_profile = ZfFido2ProfileCtap2_0;
         config->attestation_mode = ZfAttestationModeNone;
-    } else if (record.version == 2U) {
-        if (!zf_transport_mode_is_valid(record.transport_mode)) {
+    } else if(record.version == 2U) {
+        if(!zf_transport_mode_is_valid(record.transport_mode)) {
             return;
         }
         config->transport_mode = (ZfTransportMode)record.transport_mode;
-        if (record.fido2_profile != 0U) {
+        if(record.fido2_profile != 0U) {
             return;
         }
         config->fido2_profile = ZfFido2ProfileCtap2_0;
         config->attestation_mode = ZfAttestationModeNone;
-    } else if (record.version == 3U || record.version == ZF_RUNTIME_CONFIG_FILE_VERSION) {
-        if (!zf_transport_mode_is_valid(record.transport_mode) ||
-            !zf_fido2_profile_is_valid(record.fido2_profile)) {
+    } else if(record.version == 3U || record.version == ZF_RUNTIME_CONFIG_FILE_VERSION) {
+        if(!zf_transport_mode_is_valid(record.transport_mode) ||
+           !zf_fido2_profile_is_valid(record.fido2_profile)) {
             return;
         }
         config->transport_mode = (ZfTransportMode)record.transport_mode;
         config->fido2_profile = (ZfFido2Profile)record.fido2_profile;
-        if (record.version == ZF_RUNTIME_CONFIG_FILE_VERSION) {
-            if (size != sizeof(record) || !zf_attestation_mode_is_valid(record.attestation_mode)) {
+        if(record.version == ZF_RUNTIME_CONFIG_FILE_VERSION) {
+            if(size != sizeof(record) || !zf_attestation_mode_is_valid(record.attestation_mode)) {
                 return;
             }
             config->attestation_mode = (ZfAttestationMode)record.attestation_mode;
@@ -180,48 +180,51 @@ void zf_runtime_config_load(Storage *storage, ZfRuntimeConfig *config) {
     config->fido2_profile = zf_fido2_profile_for_build(config->fido2_profile);
     config->attestation_mode = zf_attestation_mode_for_build(config->attestation_mode);
 #if ZF_AUTO_ACCEPT_REQUESTS
-    config->auto_accept_requests =
-        (record.flags & ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS) != 0;
+    config->auto_accept_requests = (record.flags & ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS) !=
+                                   0;
 #else
     config->auto_accept_requests = false;
 #endif
     config->fido2_enabled = true;
 }
 
-bool zf_runtime_config_persist(Storage *storage, const ZfRuntimeConfig *config) {
+bool zf_runtime_config_persist(Storage* storage, const ZfRuntimeConfig* config) {
     ZfRuntimeConfigFileRecord record = {
         .magic = ZF_RUNTIME_CONFIG_FILE_MAGIC,
         .version = ZF_RUNTIME_CONFIG_FILE_VERSION,
-        .flags = config ? (((ZF_AUTO_ACCEPT_REQUESTS && config->auto_accept_requests)
-                                ? ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS
-                                : 0U) |
-                           ZF_RUNTIME_CONFIG_FLAG_FIDO2_ENABLED)
-                        : 0U,
-        .transport_mode = config ? (uint8_t)config->transport_mode
-                                 : (uint8_t)zf_runtime_config_default_transport_mode(),
-        .fido2_profile = config ? (uint8_t)zf_fido2_profile_for_build(config->fido2_profile)
-                                : (uint8_t)ZfFido2ProfileCtap2_0,
-        .attestation_mode = config
-                                ? (uint8_t)zf_attestation_mode_for_build(config->attestation_mode)
-                                : (uint8_t)ZfAttestationModeNone,
+        .flags = config ? (((ZF_AUTO_ACCEPT_REQUESTS && config->auto_accept_requests) ?
+                                ZF_RUNTIME_CONFIG_FLAG_AUTO_ACCEPT_REQUESTS :
+                                0U) |
+                           ZF_RUNTIME_CONFIG_FLAG_FIDO2_ENABLED) :
+                          0U,
+        .transport_mode = config ? (uint8_t)config->transport_mode :
+                                   (uint8_t)zf_runtime_config_default_transport_mode(),
+        .fido2_profile = config ? (uint8_t)zf_fido2_profile_for_build(config->fido2_profile) :
+                                  (uint8_t)ZfFido2ProfileCtap2_0,
+        .attestation_mode = config ?
+                                (uint8_t)zf_attestation_mode_for_build(config->attestation_mode) :
+                                (uint8_t)ZfAttestationModeNone,
     };
 
-    if (!storage || !config || !zf_fido2_profile_is_valid((uint8_t)config->fido2_profile) ||
-        !zf_attestation_mode_is_valid((uint8_t)config->attestation_mode) ||
-        !zf_storage_ensure_app_data_dir(storage)) {
+    if(!storage || !config || !zf_fido2_profile_is_valid((uint8_t)config->fido2_profile) ||
+       !zf_attestation_mode_is_valid((uint8_t)config->attestation_mode) ||
+       !zf_storage_ensure_app_data_dir(storage)) {
         return false;
     }
 
-    return zf_storage_write_file_atomic(storage, ZF_RUNTIME_CONFIG_FILE_PATH,
-                                        ZF_RUNTIME_CONFIG_FILE_TEMP_PATH, (const uint8_t *)&record,
-                                        sizeof(record));
+    return zf_storage_write_file_atomic(
+        storage,
+        ZF_RUNTIME_CONFIG_FILE_PATH,
+        ZF_RUNTIME_CONFIG_FILE_TEMP_PATH,
+        (const uint8_t*)&record,
+        sizeof(record));
 }
 
-static void zf_runtime_config_resolve_app_capabilities(ZerofidoApp *app,
-                                                       const ZfRuntimeConfig *config) {
+static void
+    zf_runtime_config_resolve_app_capabilities(ZerofidoApp* app, const ZfRuntimeConfig* config) {
     ZfRuntimeConfig effective_config;
 
-    if (!app || !config) {
+    if(!app || !config) {
         return;
     }
 
@@ -230,8 +233,8 @@ static void zf_runtime_config_resolve_app_capabilities(ZerofidoApp *app,
     effective_config.auto_accept_requests = false;
 #endif
     effective_config.fido2_profile = zf_fido2_profile_for_build(effective_config.fido2_profile);
-    if (effective_config.fido2_profile == ZfFido2ProfileCtap2_1Experimental &&
-        !zerofido_pin_is_set(&app->pin_state)) {
+    if(effective_config.fido2_profile == ZfFido2ProfileCtap2_1Experimental &&
+       !zerofido_pin_is_set(&app->pin_state)) {
         effective_config.fido2_profile = ZfFido2ProfileCtap2_0;
     }
 
@@ -245,8 +248,8 @@ static void zf_runtime_config_resolve_app_capabilities(ZerofidoApp *app,
  * CTAP 2.1 experimental is honored only in developer builds and only while a
  * PIN exists.
  */
-void zf_runtime_config_apply(ZerofidoApp *app, const ZfRuntimeConfig *config) {
-    if (!app || !config) {
+void zf_runtime_config_apply(ZerofidoApp* app, const ZfRuntimeConfig* config) {
+    if(!app || !config) {
         return;
     }
 
@@ -261,18 +264,18 @@ void zf_runtime_config_apply(ZerofidoApp *app, const ZfRuntimeConfig *config) {
     zf_runtime_config_resolve_app_capabilities(app, &app->runtime_config);
 }
 
-void zf_runtime_config_refresh_capabilities(ZerofidoApp *app) {
-    if (!app) {
+void zf_runtime_config_refresh_capabilities(ZerofidoApp* app) {
+    if(!app) {
         return;
     }
 
     zf_runtime_config_resolve_app_capabilities(app, &app->runtime_config);
 }
 
-bool zf_runtime_config_set_auto_accept_requests(ZerofidoApp *app, Storage *storage, bool enabled) {
+bool zf_runtime_config_set_auto_accept_requests(ZerofidoApp* app, Storage* storage, bool enabled) {
     ZfRuntimeConfig next_config;
 
-    if (!app) {
+    if(!app) {
         return false;
     }
 #if !ZF_AUTO_ACCEPT_REQUESTS
@@ -283,7 +286,7 @@ bool zf_runtime_config_set_auto_accept_requests(ZerofidoApp *app, Storage *stora
 
     next_config = app->runtime_config;
     next_config.auto_accept_requests = enabled;
-    if (!zf_runtime_config_persist(storage, &next_config)) {
+    if(!zf_runtime_config_persist(storage, &next_config)) {
         return false;
     }
 
@@ -291,17 +294,17 @@ bool zf_runtime_config_set_auto_accept_requests(ZerofidoApp *app, Storage *stora
     return true;
 }
 
-bool zf_runtime_config_set_fido2_enabled(ZerofidoApp *app, Storage *storage, bool enabled) {
+bool zf_runtime_config_set_fido2_enabled(ZerofidoApp* app, Storage* storage, bool enabled) {
     ZfRuntimeConfig next_config;
 
-    if (!app) {
+    if(!app) {
         return false;
     }
     (void)enabled;
 
     next_config = app->runtime_config;
     next_config.fido2_enabled = true;
-    if (!zf_runtime_config_persist(storage, &next_config)) {
+    if(!zf_runtime_config_persist(storage, &next_config)) {
         return false;
     }
 
@@ -309,25 +312,27 @@ bool zf_runtime_config_set_fido2_enabled(ZerofidoApp *app, Storage *storage, boo
     return true;
 }
 
-bool zf_runtime_config_set_fido2_profile(ZerofidoApp *app, Storage *storage,
-                                         ZfFido2Profile profile) {
+bool zf_runtime_config_set_fido2_profile(
+    ZerofidoApp* app,
+    Storage* storage,
+    ZfFido2Profile profile) {
     ZfRuntimeConfig next_config;
 
-    if (!app || !zf_fido2_profile_is_valid((uint8_t)profile)) {
+    if(!app || !zf_fido2_profile_is_valid((uint8_t)profile)) {
         return false;
     }
 #if !ZF_DEV_FIDO2_1
-    if (profile == ZfFido2ProfileCtap2_1Experimental) {
+    if(profile == ZfFido2ProfileCtap2_1Experimental) {
         return false;
     }
 #endif
-    if (profile == ZfFido2ProfileCtap2_1Experimental && !zerofido_pin_is_set(&app->pin_state)) {
+    if(profile == ZfFido2ProfileCtap2_1Experimental && !zerofido_pin_is_set(&app->pin_state)) {
         return false;
     }
 
     next_config = app->runtime_config;
     next_config.fido2_profile = profile;
-    if (!zf_runtime_config_persist(storage, &next_config)) {
+    if(!zf_runtime_config_persist(storage, &next_config)) {
         return false;
     }
 
@@ -335,17 +340,19 @@ bool zf_runtime_config_set_fido2_profile(ZerofidoApp *app, Storage *storage,
     return true;
 }
 
-bool zf_runtime_config_set_attestation_mode(ZerofidoApp *app, Storage *storage,
-                                            ZfAttestationMode mode) {
+bool zf_runtime_config_set_attestation_mode(
+    ZerofidoApp* app,
+    Storage* storage,
+    ZfAttestationMode mode) {
     ZfRuntimeConfig next_config;
 
-    if (!app || !zf_attestation_mode_is_settable(mode)) {
+    if(!app || !zf_attestation_mode_is_settable(mode)) {
         return false;
     }
 
     next_config = app->runtime_config;
     next_config.attestation_mode = mode;
-    if (!zf_runtime_config_persist(storage, &next_config)) {
+    if(!zf_runtime_config_persist(storage, &next_config)) {
         return false;
     }
 
@@ -353,17 +360,16 @@ bool zf_runtime_config_set_attestation_mode(ZerofidoApp *app, Storage *storage,
     return true;
 }
 
-bool zf_runtime_config_set_transport_mode(ZerofidoApp *app, Storage *storage,
-                                          ZfTransportMode mode) {
+bool zf_runtime_config_set_transport_mode(ZerofidoApp* app, Storage* storage, ZfTransportMode mode) {
     ZfRuntimeConfig next_config;
 
-    if (!app || !zf_transport_mode_is_valid((uint8_t)mode)) {
+    if(!app || !zf_transport_mode_is_valid((uint8_t)mode)) {
         return false;
     }
 
     next_config = app->runtime_config;
     next_config.transport_mode = mode;
-    if (!zf_runtime_config_persist(storage, &next_config)) {
+    if(!zf_runtime_config_persist(storage, &next_config)) {
         return false;
     }
 
@@ -376,12 +382,13 @@ bool zf_runtime_config_set_transport_mode(ZerofidoApp *app, Storage *storage,
  * the effective transport surface even when persisted config requests another
  * mode.
  */
-void zf_runtime_config_resolve_capabilities(const ZfRuntimeConfig *config,
-                                            ZfResolvedCapabilities *capabilities) {
+void zf_runtime_config_resolve_capabilities(
+    const ZfRuntimeConfig* config,
+    ZfResolvedCapabilities* capabilities) {
     bool usb_hid_enabled = false;
     bool nfc_enabled = false;
 
-    if (!config || !capabilities) {
+    if(!config || !capabilities) {
         return;
     }
 
@@ -406,8 +413,8 @@ void zf_runtime_config_resolve_capabilities(const ZfRuntimeConfig *config,
     capabilities->transport_cancel_enabled = usb_hid_enabled;
     capabilities->transport_wink_enabled = usb_hid_enabled && config->u2f_enabled;
     capabilities->fido2_profile = zf_fido2_profile_for_build(config->fido2_profile);
-    capabilities->advertise_fido_2_1 =
-        capabilities->fido2_profile == ZfFido2ProfileCtap2_1Experimental;
+    capabilities->advertise_fido_2_1 = capabilities->fido2_profile ==
+                                       ZfFido2ProfileCtap2_1Experimental;
 #if !ZF_DEV_FIDO2_1
     capabilities->advertise_fido_2_1 = false;
 #endif
@@ -415,8 +422,8 @@ void zf_runtime_config_resolve_capabilities(const ZfRuntimeConfig *config,
     capabilities->advertise_u2f_v2 = config->u2f_enabled;
     capabilities->pin_uv_auth_token_enabled = capabilities->advertise_fido_2_1;
     capabilities->pin_uv_auth_protocol_2_enabled = capabilities->advertise_fido_2_1;
-    capabilities->selection_enabled =
-        capabilities->fido2_enabled && capabilities->advertise_fido_2_1;
+    capabilities->selection_enabled = capabilities->fido2_enabled &&
+                                      capabilities->advertise_fido_2_1;
     capabilities->client_pin_token_requires_consent = capabilities->advertise_fido_2_1;
     capabilities->make_cred_uv_not_required = capabilities->advertise_fido_2_1;
     capabilities->advertise_usb_transport = usb_hid_enabled;
@@ -425,15 +432,16 @@ void zf_runtime_config_resolve_capabilities(const ZfRuntimeConfig *config,
     capabilities->attestation_mode = zf_attestation_mode_for_build(config->attestation_mode);
 }
 
-void zf_runtime_get_effective_capabilities(const ZerofidoApp *app,
-                                           ZfResolvedCapabilities *capabilities) {
+void zf_runtime_get_effective_capabilities(
+    const ZerofidoApp* app,
+    ZfResolvedCapabilities* capabilities) {
     ZfRuntimeConfig defaults;
 
-    if (!capabilities) {
+    if(!capabilities) {
         return;
     }
 
-    if (app && app->capabilities_resolved) {
+    if(app && app->capabilities_resolved) {
         *capabilities = app->capabilities;
         return;
     }
@@ -442,11 +450,11 @@ void zf_runtime_get_effective_capabilities(const ZerofidoApp *app,
     zf_runtime_config_resolve_capabilities(&defaults, capabilities);
 }
 
-bool zf_runtime_ctap_command_enabled(const ZerofidoApp *app, uint8_t cmd) {
+bool zf_runtime_ctap_command_enabled(const ZerofidoApp* app, uint8_t cmd) {
     ZfResolvedCapabilities capabilities;
 
     zf_runtime_get_effective_capabilities(app, &capabilities);
-    switch (cmd) {
+    switch(cmd) {
     case ZfCtapeCmdGetInfo:
     case ZfCtapeCmdMakeCredential:
     case ZfCtapeCmdGetAssertion:
@@ -462,8 +470,8 @@ bool zf_runtime_ctap_command_enabled(const ZerofidoApp *app, uint8_t cmd) {
     }
 }
 
-const char *zf_transport_mode_name(ZfTransportMode mode) {
-    switch (mode) {
+const char* zf_transport_mode_name(ZfTransportMode mode) {
+    switch(mode) {
     case ZfTransportModeNfc:
         return "NFC";
     case ZfTransportModeUsbHid:
@@ -472,8 +480,8 @@ const char *zf_transport_mode_name(ZfTransportMode mode) {
     }
 }
 
-const char *zf_fido2_profile_name(ZfFido2Profile profile) {
-    switch (profile) {
+const char* zf_fido2_profile_name(ZfFido2Profile profile) {
+    switch(profile) {
     case ZfFido2ProfileCtap2_1Experimental:
         return "2.1 exp";
     case ZfFido2ProfileCtap2_0:
@@ -482,8 +490,8 @@ const char *zf_fido2_profile_name(ZfFido2Profile profile) {
     }
 }
 
-const char *zf_attestation_mode_name(ZfAttestationMode mode) {
-    switch (mode) {
+const char* zf_attestation_mode_name(ZfAttestationMode mode) {
+    switch(mode) {
     case ZfAttestationModeNone:
         return "None";
 #if ZF_PACKED_ATTESTATION

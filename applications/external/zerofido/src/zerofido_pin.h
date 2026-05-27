@@ -56,26 +56,42 @@ typedef enum {
     ZfPinInitStorageError,
 } ZfPinInitResult;
 
-bool zerofido_pin_init(Storage *storage, ZfClientPinState *state);
-ZfPinInitResult zerofido_pin_init_with_result(Storage *storage, ZfClientPinState *state);
-bool zerofido_pin_is_set(const ZfClientPinState *state);
-bool zerofido_pin_is_auth_blocked(const ZfClientPinState *state);
-uint8_t zerofido_pin_get_retries(const ZfClientPinState *state);
-uint8_t zerofido_pin_verify_plaintext(Storage *storage, ZfClientPinState *state, const char *pin);
-uint8_t zerofido_pin_set_plaintext(Storage *storage, ZfClientPinState *state, const char *pin);
-uint8_t zerofido_pin_replace_plaintext(Storage *storage, ZfClientPinState *state,
-                                       const char *new_pin);
-bool zerofido_pin_resume_auth_attempts(Storage *storage, ZfClientPinState *state);
-bool zerofido_pin_clear(Storage *storage, ZfClientPinState *state);
-uint8_t zerofido_pin_handle_command(ZerofidoApp *app, const uint8_t *request, size_t request_len,
-                                    uint8_t *out, size_t out_capacity, size_t *out_len);
-uint8_t zerofido_pin_handle_command_with_session(ZerofidoApp *app, ZfTransportSessionId session_id,
-                                                 const uint8_t *request, size_t request_len,
-                                                 uint8_t *out, size_t out_capacity,
-                                                 size_t *out_len);
-uint8_t zerofido_pin_require_auth(Storage *storage, ZfClientPinState *state, bool uv_requested,
-                                  bool has_pin_auth,
-                                  const uint8_t client_data_hash[ZF_CLIENT_DATA_HASH_LEN],
-                                  const uint8_t *pin_auth, size_t pin_auth_len,
-                                  bool has_pin_protocol, uint64_t pin_protocol, const char *rp_id,
-                                  uint64_t required_permissions, bool *uv_verified);
+bool zerofido_pin_init(Storage* storage, ZfClientPinState* state);
+ZfPinInitResult zerofido_pin_init_with_result(Storage* storage, ZfClientPinState* state);
+bool zerofido_pin_is_set(const ZfClientPinState* state);
+bool zerofido_pin_is_auth_blocked(const ZfClientPinState* state);
+uint8_t zerofido_pin_get_retries(const ZfClientPinState* state);
+uint8_t zerofido_pin_verify_plaintext(Storage* storage, ZfClientPinState* state, const char* pin);
+uint8_t zerofido_pin_set_plaintext(Storage* storage, ZfClientPinState* state, const char* pin);
+uint8_t
+    zerofido_pin_replace_plaintext(Storage* storage, ZfClientPinState* state, const char* new_pin);
+bool zerofido_pin_resume_auth_attempts(Storage* storage, ZfClientPinState* state);
+bool zerofido_pin_clear(Storage* storage, ZfClientPinState* state);
+uint8_t zerofido_pin_handle_command(
+    ZerofidoApp* app,
+    const uint8_t* request,
+    size_t request_len,
+    uint8_t* out,
+    size_t out_capacity,
+    size_t* out_len);
+uint8_t zerofido_pin_handle_command_with_session(
+    ZerofidoApp* app,
+    ZfTransportSessionId session_id,
+    const uint8_t* request,
+    size_t request_len,
+    uint8_t* out,
+    size_t out_capacity,
+    size_t* out_len);
+uint8_t zerofido_pin_require_auth(
+    Storage* storage,
+    ZfClientPinState* state,
+    bool uv_requested,
+    bool has_pin_auth,
+    const uint8_t client_data_hash[ZF_CLIENT_DATA_HASH_LEN],
+    const uint8_t* pin_auth,
+    size_t pin_auth_len,
+    bool has_pin_protocol,
+    uint64_t pin_protocol,
+    const char* rp_id,
+    uint64_t required_permissions,
+    bool* uv_verified);

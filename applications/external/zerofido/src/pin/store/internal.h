@@ -27,13 +27,13 @@
  * ownership was stable; reusing that state makes readers report "incorrect PIN"
  * without ever issuing setPIN again.
  */
-#define ZF_PIN_FILE_PATH ZF_APP_DATA_DIR "/client_pin_v2.bin"
-#define ZF_PIN_FILE_TEMP_PATH ZF_APP_DATA_DIR "/client_pin_v2.tmp"
-#define ZF_PIN_FILE_MAGIC 0x50494E31UL
-#define ZF_PIN_FILE_VERSION 1U
+#define ZF_PIN_FILE_PATH              ZF_APP_DATA_DIR "/client_pin_v2.bin"
+#define ZF_PIN_FILE_TEMP_PATH         ZF_APP_DATA_DIR "/client_pin_v2.tmp"
+#define ZF_PIN_FILE_MAGIC             0x50494E31UL
+#define ZF_PIN_FILE_VERSION           1U
 #define ZF_PIN_FILE_FLAG_AUTH_BLOCKED 0x01U
-#define ZF_PIN_RETRY_SEAL_MAGIC 0x504E5231UL
-#define ZF_PIN_RETRY_SEAL_SIZE 32U
+#define ZF_PIN_RETRY_SEAL_MAGIC       0x504E5231UL
+#define ZF_PIN_RETRY_SEAL_SIZE        32U
 
 /*
  * Persisted PIN file format. The PIN hash is encrypted with the device unique

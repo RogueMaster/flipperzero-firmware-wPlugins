@@ -27,17 +27,17 @@
  * then the view dispatcher owns the foreground thread until exit triggers
  * transport shutdown and secret scrubbing.
  */
-int32_t zerofido_main(void *p) {
+int32_t zerofido_main(void* p) {
     UNUSED(p);
 
     zf_telemetry_log("main entry");
-    ZerofidoApp *app = zf_app_lifecycle_alloc();
-    if (!app) {
+    ZerofidoApp* app = zf_app_lifecycle_alloc();
+    if(!app) {
         zf_telemetry_log_oom("app alloc", sizeof(ZerofidoApp));
         return -1;
     }
 
-    if (!zf_app_lifecycle_open(app)) {
+    if(!zf_app_lifecycle_open(app)) {
         zf_telemetry_log("lifecycle open failed");
         zf_app_lifecycle_free(app);
         return -1;

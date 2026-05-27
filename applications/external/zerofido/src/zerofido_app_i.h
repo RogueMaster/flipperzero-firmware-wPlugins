@@ -134,7 +134,7 @@ typedef struct {
     uint32_t generation;
     uint32_t pending_hide_generation;
     uint32_t deadline;
-    FuriSemaphore *done;
+    FuriSemaphore* done;
     union {
         ZfApprovalPrompt approval;
         ZfAssertionSelectionPrompt selection;
@@ -142,38 +142,38 @@ typedef struct {
 } ZfApprovalRequest;
 
 typedef struct ZerofidoApp {
-    Gui *gui;
-    ViewDispatcher *view_dispatcher;
-    View *status_view;
-    Submenu *credentials_menu;
-    Submenu *settings_menu;
-    Submenu *pin_menu;
-    TextInput *pin_input_view;
-    DialogEx *pin_confirm_view;
-    View *credential_detail_view;
-    DialogEx *approval_view;
-    Storage *storage;
-    NotificationApp *notifications;
-    FuriTimer *notify_timer;
-    FuriThread *startup_thread;
-    FuriThread *worker_thread;
-    FuriMutex *ui_mutex;
+    Gui* gui;
+    ViewDispatcher* view_dispatcher;
+    View* status_view;
+    Submenu* credentials_menu;
+    Submenu* settings_menu;
+    Submenu* pin_menu;
+    TextInput* pin_input_view;
+    DialogEx* pin_confirm_view;
+    View* credential_detail_view;
+    DialogEx* approval_view;
+    Storage* storage;
+    NotificationApp* notifications;
+    FuriTimer* notify_timer;
+    FuriThread* startup_thread;
+    FuriThread* worker_thread;
+    FuriMutex* ui_mutex;
 #if !defined(ZF_USB_ONLY) && !defined(ZF_NFC_ONLY)
-    const ZfTransportAdapterOps *transport_adapter;
+    const ZfTransportAdapterOps* transport_adapter;
 #endif
 #ifndef ZF_NFC_ONLY
-    FuriHalUsbInterface *previous_usb;
+    FuriHalUsbInterface* previous_usb;
 #endif
-    void *transport_state;
+    void* transport_state;
 #ifndef ZF_NFC_ONLY
     ZfTransportState transport_state_storage;
 #endif
 #if defined(ZF_HOST_TEST) && !defined(ZF_USB_ONLY)
     ZfNfcTransportState transport_nfc_state_storage;
 #elif !defined(ZF_USB_ONLY)
-    ZfNfcTransportState *transport_nfc_state_storage;
+    ZfNfcTransportState* transport_nfc_state_storage;
 #endif
-    U2fData *u2f;
+    U2fData* u2f;
     ZfClientPinState pin_state;
     ZfRuntimeConfig runtime_config;
     ZfResolvedCapabilities capabilities;
@@ -191,8 +191,8 @@ typedef struct ZerofidoApp {
     uint32_t telemetry_next_idle_tick;
 #endif
 #if ZF_DEV_SCREENSHOT
-    FuriPubSub *dev_screenshot_input_events;
-    FuriPubSubSubscription *dev_screenshot_input_subscription;
+    FuriPubSub* dev_screenshot_input_events;
+    FuriPubSubSubscription* dev_screenshot_input_subscription;
     uint8_t dev_screenshot_frame[1024];
     size_t dev_screenshot_frame_size;
     uint32_t dev_screenshot_counter;
@@ -203,13 +203,13 @@ typedef struct ZerofidoApp {
     ZfViewId active_view;
     FuriThreadId ui_thread_id;
     char status_text[64];
-    uint8_t *transport_arena;
+    uint8_t* transport_arena;
     size_t transport_arena_size;
-    ZfCommandScratchArena *command_scratch;
+    ZfCommandScratchArena* command_scratch;
     size_t command_scratch_size;
     bool command_scratch_in_use;
-    ZfUiScratchArena *ui_scratch;
-    ZfPinBuffers *pin_buffers;
+    ZfUiScratchArena* ui_scratch;
+    ZfPinBuffers* pin_buffers;
     uint32_t credentials_selected_index;
     uint32_t settings_selected_index;
     uint32_t pin_menu_selected_index;
@@ -224,8 +224,8 @@ typedef struct ZerofidoApp {
 } ZerofidoApp;
 
 #ifndef ZF_USB_ONLY
-static inline ZfNfcTransportState *zf_app_nfc_transport_state(ZerofidoApp *app) {
-    if (!app) {
+static inline ZfNfcTransportState* zf_app_nfc_transport_state(ZerofidoApp* app) {
+    if(!app) {
         return NULL;
     }
 #ifdef ZF_HOST_TEST
@@ -235,8 +235,8 @@ static inline ZfNfcTransportState *zf_app_nfc_transport_state(ZerofidoApp *app) 
 #endif
 }
 
-static inline void zf_app_set_nfc_transport_state(ZerofidoApp *app, ZfNfcTransportState *state) {
-    if (!app) {
+static inline void zf_app_set_nfc_transport_state(ZerofidoApp* app, ZfNfcTransportState* state) {
+    if(!app) {
         return;
     }
 #ifdef ZF_HOST_TEST
@@ -248,16 +248,16 @@ static inline void zf_app_set_nfc_transport_state(ZerofidoApp *app, ZfNfcTranspo
 #endif
 
 /* Transport scratch is allocated only while a transport worker/session needs it. */
-static inline bool zf_app_transport_arena_acquire(ZerofidoApp *app) {
-    if (!app) {
+static inline bool zf_app_transport_arena_acquire(ZerofidoApp* app) {
+    if(!app) {
         return false;
     }
-    if (app->transport_arena) {
+    if(app->transport_arena) {
         return app->transport_arena_size >= ZF_TRANSPORT_ARENA_SIZE;
     }
 
     app->transport_arena = malloc(ZF_TRANSPORT_ARENA_SIZE);
-    if (!app->transport_arena) {
+    if(!app->transport_arena) {
         app->transport_arena_size = 0U;
         zf_telemetry_log_oom("transport arena", ZF_TRANSPORT_ARENA_SIZE);
         return false;
@@ -268,23 +268,23 @@ static inline bool zf_app_transport_arena_acquire(ZerofidoApp *app) {
     return true;
 }
 
-static inline size_t zf_app_transport_arena_capacity(const ZerofidoApp *app) {
+static inline size_t zf_app_transport_arena_capacity(const ZerofidoApp* app) {
     return app && app->transport_arena ? app->transport_arena_size : 0U;
 }
 
-static inline void zf_app_transport_arena_wipe(ZerofidoApp *app) {
-    if (!app || !app->transport_arena) {
+static inline void zf_app_transport_arena_wipe(ZerofidoApp* app) {
+    if(!app || !app->transport_arena) {
         return;
     }
 
-    volatile uint8_t *bytes = app->transport_arena;
-    for (size_t i = 0; i < app->transport_arena_size; ++i) {
+    volatile uint8_t* bytes = app->transport_arena;
+    for(size_t i = 0; i < app->transport_arena_size; ++i) {
         bytes[i] = 0;
     }
 }
 
-static inline void zf_app_transport_arena_release(ZerofidoApp *app) {
-    if (!app || !app->transport_arena) {
+static inline void zf_app_transport_arena_release(ZerofidoApp* app) {
+    if(!app || !app->transport_arena) {
         return;
     }
 
@@ -295,14 +295,14 @@ static inline void zf_app_transport_arena_release(ZerofidoApp *app) {
 }
 
 /* Command scratch is single-owner per operation and allocated only while active. */
-static inline void *zf_app_command_scratch_acquire(ZerofidoApp *app, size_t size) {
-    if (!app || size > ZF_COMMAND_SCRATCH_SIZE || app->command_scratch_in_use ||
-        app->command_scratch) {
+static inline void* zf_app_command_scratch_acquire(ZerofidoApp* app, size_t size) {
+    if(!app || size > ZF_COMMAND_SCRATCH_SIZE || app->command_scratch_in_use ||
+       app->command_scratch) {
         return NULL;
     }
 
     app->command_scratch = malloc(sizeof(*app->command_scratch));
-    if (!app->command_scratch) {
+    if(!app->command_scratch) {
         app->command_scratch_size = 0U;
         zf_telemetry_log_oom("command scratch", sizeof(*app->command_scratch));
         return NULL;
@@ -314,13 +314,13 @@ static inline void *zf_app_command_scratch_acquire(ZerofidoApp *app, size_t size
     return app->command_scratch->bytes;
 }
 
-static inline void zf_app_command_scratch_release(ZerofidoApp *app) {
-    if (!app || !app->command_scratch) {
+static inline void zf_app_command_scratch_release(ZerofidoApp* app) {
+    if(!app || !app->command_scratch) {
         return;
     }
 
-    volatile uint8_t *bytes = app->command_scratch->bytes;
-    for (size_t i = 0; i < sizeof(app->command_scratch->bytes); ++i) {
+    volatile uint8_t* bytes = app->command_scratch->bytes;
+    for(size_t i = 0; i < sizeof(app->command_scratch->bytes); ++i) {
         bytes[i] = 0;
     }
     free(app->command_scratch);
@@ -329,17 +329,17 @@ static inline void zf_app_command_scratch_release(ZerofidoApp *app) {
     app->command_scratch_size = 0;
 }
 
-static inline void zf_app_command_scratch_destroy(ZerofidoApp *app) {
-    if (!app) {
+static inline void zf_app_command_scratch_destroy(ZerofidoApp* app) {
+    if(!app) {
         return;
     }
 
-    if (app->command_scratch_in_use) {
+    if(app->command_scratch_in_use) {
         zf_app_command_scratch_release(app);
     }
-    if (app->command_scratch) {
-        volatile uint8_t *bytes = app->command_scratch->bytes;
-        for (size_t i = 0; i < sizeof(app->command_scratch->bytes); ++i) {
+    if(app->command_scratch) {
+        volatile uint8_t* bytes = app->command_scratch->bytes;
+        for(size_t i = 0; i < sizeof(app->command_scratch->bytes); ++i) {
             bytes[i] = 0;
         }
         free(app->command_scratch);
@@ -350,13 +350,13 @@ static inline void zf_app_command_scratch_destroy(ZerofidoApp *app) {
 }
 
 /* UI scratch is separate from command scratch because view callbacks run on the UI thread. */
-static inline void *zf_app_ui_scratch_acquire(ZerofidoApp *app, size_t size) {
-    if (!app || size > ZF_UI_SCRATCH_SIZE || app->ui_scratch) {
+static inline void* zf_app_ui_scratch_acquire(ZerofidoApp* app, size_t size) {
+    if(!app || size > ZF_UI_SCRATCH_SIZE || app->ui_scratch) {
         return NULL;
     }
 
     app->ui_scratch = malloc(sizeof(*app->ui_scratch));
-    if (!app->ui_scratch) {
+    if(!app->ui_scratch) {
         zf_telemetry_log_oom("ui scratch", sizeof(*app->ui_scratch));
         return NULL;
     }
@@ -365,13 +365,13 @@ static inline void *zf_app_ui_scratch_acquire(ZerofidoApp *app, size_t size) {
     return app->ui_scratch->bytes;
 }
 
-static inline void zf_app_ui_scratch_release(ZerofidoApp *app) {
-    if (!app || !app->ui_scratch) {
+static inline void zf_app_ui_scratch_release(ZerofidoApp* app) {
+    if(!app || !app->ui_scratch) {
         return;
     }
 
-    volatile uint8_t *bytes = app->ui_scratch->bytes;
-    for (size_t i = 0; i < sizeof(app->ui_scratch->bytes); ++i) {
+    volatile uint8_t* bytes = app->ui_scratch->bytes;
+    for(size_t i = 0; i < sizeof(app->ui_scratch->bytes); ++i) {
         bytes[i] = 0;
     }
     free(app->ui_scratch);

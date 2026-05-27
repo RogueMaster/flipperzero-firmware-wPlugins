@@ -35,18 +35,23 @@ typedef struct {
     ZfHmacSha256Scratch hmac_scratch;
 } ZfHmacSecretScratch;
 
-uint8_t zf_ctap_hmac_secret_parse_get_assertion_input(ZfCborCursor *cursor,
-                                                      ZfGetAssertionRequest *request);
-bool zf_ctap_hmac_secret_parse_make_credential_request(ZfCborCursor *cursor, bool *requested);
-bool zf_ctap_hmac_secret_encode_make_credential_output(ZfCborEncoder *enc, bool created);
+uint8_t zf_ctap_hmac_secret_parse_get_assertion_input(
+    ZfCborCursor* cursor,
+    ZfGetAssertionRequest* request);
+bool zf_ctap_hmac_secret_parse_make_credential_request(ZfCborCursor* cursor, bool* requested);
+bool zf_ctap_hmac_secret_encode_make_credential_output(ZfCborEncoder* enc, bool created);
 
 /*
  * Implements the hmac-secret getAssertion extension. It decrypts one or two
  * salts, selects the per-credential secret based on UV state, and returns the
  * encrypted extension output.
  */
-uint8_t zf_ctap_hmac_secret_build_extension(const ZfClientPinState *pin_state,
-                                            const ZfAssertionRequestData *request,
-                                            const ZfCredentialRecord *record, bool user_verified,
-                                            ZfHmacSecretScratch *scratch, uint8_t *out,
-                                            size_t out_capacity, size_t *out_len);
+uint8_t zf_ctap_hmac_secret_build_extension(
+    const ZfClientPinState* pin_state,
+    const ZfAssertionRequestData* request,
+    const ZfCredentialRecord* record,
+    bool user_verified,
+    ZfHmacSecretScratch* scratch,
+    uint8_t* out,
+    size_t out_capacity,
+    size_t* out_len);

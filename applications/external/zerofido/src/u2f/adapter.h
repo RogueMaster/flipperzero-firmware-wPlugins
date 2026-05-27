@@ -30,13 +30,17 @@ typedef struct ZerofidoApp ZerofidoApp;
  * owns lazy initialization, user-presence approval, and in-place APDU response
  * encoding for USB HID MSG and NFC U2F requests.
  */
-bool zf_u2f_adapter_init(ZerofidoApp *app);
-bool zf_u2f_adapter_ensure_init(ZerofidoApp *app);
+bool zf_u2f_adapter_init(ZerofidoApp* app);
+bool zf_u2f_adapter_ensure_init(ZerofidoApp* app);
 bool zf_u2f_adapter_ensure_attestation_assets(void);
-void zf_u2f_adapter_deinit(ZerofidoApp *app);
-bool zf_u2f_adapter_is_available(const ZerofidoApp *app);
-void zf_u2f_adapter_set_connected(ZerofidoApp *app, bool connected);
-size_t zf_u2f_adapter_handle_msg(ZerofidoApp *app, ZfTransportSessionId session_id,
-                                 const uint8_t *request, size_t request_len, uint8_t *response,
-                                 size_t response_capacity);
-void zf_u2f_adapter_wink(ZerofidoApp *app);
+void zf_u2f_adapter_deinit(ZerofidoApp* app);
+bool zf_u2f_adapter_is_available(const ZerofidoApp* app);
+void zf_u2f_adapter_set_connected(ZerofidoApp* app, bool connected);
+size_t zf_u2f_adapter_handle_msg(
+    ZerofidoApp* app,
+    ZfTransportSessionId session_id,
+    const uint8_t* request,
+    size_t request_len,
+    uint8_t* response,
+    size_t response_capacity);
+void zf_u2f_adapter_wink(ZerofidoApp* app);

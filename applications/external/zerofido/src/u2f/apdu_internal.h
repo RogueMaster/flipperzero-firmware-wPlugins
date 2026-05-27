@@ -27,9 +27,9 @@ typedef struct {
     uint8_t ins;
     uint8_t p1;
     uint8_t p2;
-    const uint8_t *data;
+    const uint8_t* data;
     uint32_t lc;
 } U2fParsedApdu;
 
 /* Internal APDU parser used by validation and response encoders. */
-bool u2f_parse_apdu_header(const uint8_t *buf, uint16_t len, bool allow_short, U2fParsedApdu *apdu);
+bool u2f_parse_apdu_header(const uint8_t* buf, uint16_t len, bool allow_short, U2fParsedApdu* apdu);

@@ -18,6 +18,6 @@ typedef struct {
     size_t buffer_len;
 } ZfSha256Context;
 
-void zf_sha256_init(ZfSha256Context *ctx);
-void zf_sha256_update(ZfSha256Context *ctx, const uint8_t *data, size_t size);
-void zf_sha256_finish(ZfSha256Context *ctx, uint8_t out[32]);
+void zf_sha256_init(ZfSha256Context* ctx);
+void zf_sha256_update(ZfSha256Context* ctx, const uint8_t* data, size_t size);
+void zf_sha256_finish(ZfSha256Context* ctx, uint8_t out[32]);

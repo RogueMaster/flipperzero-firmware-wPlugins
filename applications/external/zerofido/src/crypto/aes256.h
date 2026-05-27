@@ -12,11 +12,25 @@
 #include <stddef.h>
 #include <stdint.h>
 
-bool zf_aes256_cbc_encrypt(const uint8_t key[32], const uint8_t iv[16], const uint8_t *input,
-                           uint8_t *output, size_t size);
-bool zf_aes256_cbc_decrypt(const uint8_t key[32], const uint8_t iv[16], const uint8_t *input,
-                           uint8_t *output, size_t size);
-bool zf_aes256_cbc_zero_iv_encrypt(const uint8_t key[32], const uint8_t *input, uint8_t *output,
-                                   size_t size);
-bool zf_aes256_cbc_zero_iv_decrypt(const uint8_t key[32], const uint8_t *input, uint8_t *output,
-                                   size_t size);
+bool zf_aes256_cbc_encrypt(
+    const uint8_t key[32],
+    const uint8_t iv[16],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size);
+bool zf_aes256_cbc_decrypt(
+    const uint8_t key[32],
+    const uint8_t iv[16],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size);
+bool zf_aes256_cbc_zero_iv_encrypt(
+    const uint8_t key[32],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size);
+bool zf_aes256_cbc_zero_iv_decrypt(
+    const uint8_t key[32],
+    const uint8_t* input,
+    uint8_t* output,
+    size_t size);

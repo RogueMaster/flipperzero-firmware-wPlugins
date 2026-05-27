@@ -14,20 +14,20 @@
 typedef struct Storage Storage;
 
 #if ZF_USB_DIAGNOSTICS
-void zf_usb_diag_reset(Storage *storage);
-void zf_usb_diag_log(Storage *storage, const char *line);
-void zf_usb_diag_logf(Storage *storage, const char *fmt, ...);
+void zf_usb_diag_reset(Storage* storage);
+void zf_usb_diag_log(Storage* storage, const char* line);
+void zf_usb_diag_logf(Storage* storage, const char* fmt, ...);
 #else
-static inline void zf_usb_diag_reset(Storage *storage) {
+static inline void zf_usb_diag_reset(Storage* storage) {
     (void)storage;
 }
 
-static inline void zf_usb_diag_log(Storage *storage, const char *line) {
+static inline void zf_usb_diag_log(Storage* storage, const char* line) {
     (void)storage;
     (void)line;
 }
 
-static inline void zf_usb_diag_logf(Storage *storage, const char *fmt, ...) {
+static inline void zf_usb_diag_logf(Storage* storage, const char* fmt, ...) {
     (void)storage;
     (void)fmt;
 }
