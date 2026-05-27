@@ -7,7 +7,7 @@ App(
     fap_icon="icons/flo_10x10.png",
     fap_category="Tools",
     fap_icon_assets="icons",
-    fap_author="You",
-    fap_version="1.0",
+    fap_author="harimwoo",
+    fap_version=(1, 0),
     fap_description="Period and menstrual cycle tracker for women's health",
 )
