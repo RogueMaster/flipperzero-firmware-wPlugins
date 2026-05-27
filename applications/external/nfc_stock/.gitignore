@@ -1,0 +1,6 @@
+*.o
+test_logic
+*.fap
+.vscode/
+build/
+*.DS_Store

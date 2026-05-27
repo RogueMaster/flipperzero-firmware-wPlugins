@@ -1,0 +1,23 @@
+App(
+    appid="nfc_stock_manager",
+    name="NFC Stock Manager Alpha",
+    apptype=FlipperAppType.EXTERNAL,
+    sources=[
+        "main.c",
+        "src/scenes.c",
+        "src/domain/stock.c",
+        "src/persistence/stock_file.c",
+        "src/persistence/db.c",
+        "src/persistence/fs_compat.c",
+        "src/persistence/export.c",
+        "src/platform/storage_helper.c",
+        "src/ui/ui.c",
+    ],
+    entry_point="nfc_stock_app",
+    stack_size=8 * 1024,
+    fap_version="0.1.5",  # x-release-please-version
+    fap_icon="icons/icon.icon",
+    fap_category="NFC",
+    fap_author="Endika",
+    fap_description="Alpha build: manage inventory items via NFC tags",
+)
