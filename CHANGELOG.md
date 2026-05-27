@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Moved C sources into `src/` and updated build, test, and CI paths.
+- Moved C sources into src/ and updated build, test, and CI paths.
 - Hardened CVSS metric and vector validation for invalid defensive inputs.
 - Added regression coverage for invalid metric IDs and corrupt vectors.
 

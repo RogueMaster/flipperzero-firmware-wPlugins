@@ -1,7 +1,7 @@
 # Pocket CVSS
 
 <p align="center">
-  <a href="https://flipperzero.one/"><img alt="Flipper Zero app" src="https://img.shields.io/badge/Flipper%20Zero-app-blue"></a>
+  <a href="https://lab.flipper.net/apps/pocket_cvss"><img alt="Flipper Zero app" src="https://img.shields.io/badge/Flipper%20Zero-app-blue"></a>
   <a href="https://www.first.org/cvss/v3.1/specification-document"><img alt="CVSS v3.1" src="https://img.shields.io/badge/CVSS-v3.1-blue"></a>
   <a href="https://github.com/vavkamil/pocket-cvss/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/vavkamil/pocket-cvss?label=release&amp;color=green"></a>
   <a href="https://github.com/vavkamil/pocket-cvss/actions/workflows/build.yml"><img alt="Build success" src="https://img.shields.io/badge/build-success-brightgreen"></a>
