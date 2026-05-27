@@ -1,0 +1,12 @@
+App(
+    appid="nest_bridge",
+    name="NestBridge",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nest_bridge_app",
+    fap_category="GPIO",
+    fap_version=(1, 0),
+    fap_description="Control a NoLongerEvil Nest thermostat from your Flipper via BLE advertisements",
+    fap_author="Bibfortuna5057",
+    fap_weburl="https://github.com/Bibfortuna5057/NestBridge-Flipper",
+    fap_icon="nest_bridge_10px.png",
+)
