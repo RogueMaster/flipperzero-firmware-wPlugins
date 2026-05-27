@@ -1,0 +1,20 @@
+# Flipper application manifest for Pocket CVSS.
+#
+# Defines the external app ID, entry point, build sources, package metadata,
+# icon assets, and store-facing description used by the Flipper build system.
+App(
+    appid="pocket_cvss",
+    name="Pocket CVSS",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pocket_cvss_app",
+    stack_size=4 * 1024,
+    sources=["src/pocket_cvss.c", "src/cvss31.c"],
+    targets=["f7"],
+    fap_category="Tools",
+    # Optional values
+    fap_version="0.3",
+    fap_icon="pocket_cvss.png",  # 10x10 1-bit PNG
+    fap_description="Offline CVSS v3.1 base calculator",
+    fap_author="vavkamil",
+    fap_weburl="https://github.com/vavkamil/pocket-cvss",
+)
