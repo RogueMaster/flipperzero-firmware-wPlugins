@@ -1,0 +1,10 @@
+App(
+    appid="rfid_metal_detector",
+    name="RFID Metal Detector",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="metal_detector_app",
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    fap_icon="nail_icon.png",
+    sources=["src/*.c"],
+)
