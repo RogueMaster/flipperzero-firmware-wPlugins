@@ -1,7 +1,0 @@
-dist/
-.vscode/
-*.elf
-*.map
-docs/
-.codex
-.agents
