@@ -1,0 +1,14 @@
+App(
+    appid="ssd1306_test",
+    name="SSD1306 Test",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ssd1306_app_main",
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="icons",
+    fap_category="GPIO",
+    fap_author="martin bogomolni",
+    fap_version="1.0",
+    fap_description="Diagnostic tool for SSD1306 I2C OLED displays (128x64, yellow-bar and mono variants)",
+)

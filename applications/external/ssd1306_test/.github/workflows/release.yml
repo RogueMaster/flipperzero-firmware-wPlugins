@@ -1,0 +1,183 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build FAP and create release
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history needed for git log between tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install ufbt
+        run: pip install ufbt
+
+      - name: Pull Momentum firmware SDK
+        run: ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json
+
+      - name: Build FAP
+        run: ufbt
+
+      - name: Rename FAP to include tag
+        run: cp dist/ssd1306_test.fap dist/ssd1306_test_${{ github.ref_name }}.fap
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG="${{ github.ref_name }}"
+
+          # INSTALLING section appended to every release
+          INSTALLING=$(cat << 'INSTALL_EOF'
+
+          ## Installing
+
+          ### Option 1 — USB (recommended)
+          1. Connect your Flipper Zero via USB.
+          2. Close qFlipper, Flipper Lab, and any serial terminals — they block the port.
+          3. Download `ssd1306_test_TAG.fap` from the Assets section below.
+          4. Copy it to your Flipper's SD card at:
+             ```
+             SD Card/apps/GPIO/ssd1306_test.fap
+             ```
+          5. On the Flipper, navigate to **Apps → GPIO → SSD1306 Test**.
+
+          ### Option 2 — Build and deploy from source
+          ```sh
+          git clone https://github.com/martinbogo/ssd1306_test.git
+          cd ssd1306_test
+          make setup   # first time only — installs ufbt and Momentum SDK
+          make launch  # builds and deploys directly to a connected Flipper
+          ```
+          Requires Python 3. See [README](https://github.com/martinbogo/ssd1306_test#building) for platform-specific instructions.
+
+          ### Wiring
+          | OLED Pin | Flipper GPIO |
+          |----------|-------------|
+          | GND      | Pin 18 (GND) |
+          | VCC      | Pin 9 (3.3V) |
+          | SCL      | Pin 16 (C0)  |
+          | SDA      | Pin 15 (C1)  |
+          INSTALL_EOF
+          )
+          # Fix the tag placeholder in the INSTALLING section
+          INSTALLING="${INSTALLING//TAG/${TAG}}"
+
+          # Find the most recent published full (non-pre-release, non-draft) release
+          # excluding the current tag in case it was somehow already created
+          PREV_TAG=$(gh release list \
+            --exclude-pre-releases \
+            --exclude-drafts \
+            --limit 10 \
+            --json tagName \
+            --jq '.[].tagName' \
+            | grep -v "^${TAG}$" \
+            | head -1 || true)
+
+          if [ -z "$PREV_TAG" ]; then
+            # ---------------------------------------------------------------
+            # First full release: write a summary of the project from scratch
+            # ---------------------------------------------------------------
+            cat > release_notes.md << 'EOF'
+          ## SSD1306 Test — Initial Release
+
+          A diagnostic and creative tool for external SSD1306-based 128x64 I2C OLED
+          displays connected to the Flipper Zero GPIO header. Supports both monochrome
+          and yellow-bar (dual-color) display variants. Built for Momentum firmware.
+
+          ### Features included in this release
+
+          **Clock + Status Board**
+          - Large 7-segment style HH:MM clock with blinking colon and seconds
+          - Status bar showing battery level, charging indicator, day of week, and date
+          - Yellow-bar aware: renders filled status bar in the yellow zone on dual-color displays
+          - Shows Flipper device name at the bottom; updates every second automatically
+
+          **Test Patterns**
+          - All White / All Black, Checkerboard, Horizontal Lines, Vertical Lines
+          - Border, Color Zone Test (yellow/blue boundary), Page Fill, Dithered Gradient
+          - Shapes and Text rendering demo
+
+          **Brightness Control**
+          - Contrast adjustable from 0–255 with real-time preview bar
+
+          **Display Commands**
+          - Invert, Flip Horizontal, Flip Vertical, Force All Pixels, Display Power
+          - Variant toggle: monochrome vs yellow-bar
+
+          **Hardware Scrolling**
+          - Horizontal and diagonal scroll with 8 adjustable speed levels
+
+          **Display Info**
+          - Auto-detects I2C address (0x3C and 0x3D), live connection status
+          EOF
+            echo "$INSTALLING" >> release_notes.md
+
+          else
+            # ---------------------------------------------------------------
+            # Subsequent release: summarise commits since last full release
+            # ---------------------------------------------------------------
+            COMMITS=$(git log --pretty=format:"%s" "${PREV_TAG}..${TAG}")
+
+            ADDED=$(echo "$COMMITS"  | grep -iE "^(add|feat|new|implement|create)" | sed 's/^/- /' || true)
+            CHANGED=$(echo "$COMMITS" | grep -iE "^(update|change|refactor|improve|rename|expand|randomize|rewrite|rework)" | sed 's/^/- /' || true)
+            FIXED=$(echo "$COMMITS"  | grep -iE "^(fix|repair|resolve|correct|patch)" | sed 's/^/- /' || true)
+            REMOVED=$(echo "$COMMITS" | grep -iE "^(remove|delete|drop|revert)" | sed 's/^/- /' || true)
+            OTHER=$(echo "$COMMITS"  | grep -viE "^(add|feat|new|implement|create|update|change|refactor|improve|rename|expand|randomize|rewrite|rework|fix|repair|resolve|correct|patch|remove|delete|drop|revert)" | sed 's/^/- /' || true)
+
+            {
+              echo "## What's changed since ${PREV_TAG}"
+              echo ""
+              if [ -n "$ADDED" ]; then
+                echo "### Added"
+                echo "$ADDED"
+                echo ""
+              fi
+              if [ -n "$CHANGED" ]; then
+                echo "### Changed"
+                echo "$CHANGED"
+                echo ""
+              fi
+              if [ -n "$FIXED" ]; then
+                echo "### Fixed"
+                echo "$FIXED"
+                echo ""
+              fi
+              if [ -n "$REMOVED" ]; then
+                echo "### Removed"
+                echo "$REMOVED"
+                echo ""
+              fi
+              if [ -n "$OTHER" ]; then
+                echo "### Other"
+                echo "$OTHER"
+                echo ""
+              fi
+              echo "**Full changelog:** [\`${PREV_TAG}...${TAG}\`](https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG})"
+            } > release_notes.md
+            echo "$INSTALLING" >> release_notes.md
+          fi
+
+      - name: Create draft release
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file release_notes.md \
+            --draft \
+            "dist/ssd1306_test_${{ github.ref_name }}.fap"
