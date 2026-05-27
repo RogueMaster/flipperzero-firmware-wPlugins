@@ -27,10 +27,10 @@
 #define TV_REMOTE_APP_TAG       "TvRemote"
 #define TV_REMOTE_FILE_HEADER   "IR signals file"
 #define TV_REMOTE_FILE_VERSION  1
-#define TV_REMOTE_FILE_DIR      ANY_PATH("infrared")
+#define TV_REMOTE_FILE_DIR      EXT_PATH("infrared")
 #define TV_REMOTE_FILE_PREFIX   "tv_remote_"
 #define TV_REMOTE_NAME_MAX      24
-#define TV_REMOTE_SETTINGS_PATH ANY_PATH("infrared/tv_remote_settings.dat")
+#define TV_REMOTE_SETTINGS_PATH APP_DATA_PATH("tv_remote_settings.dat")
 
 /** Number of buttons the app can learn and replay. */
 #define TV_BUTTON_COUNT 14

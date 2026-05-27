@@ -90,12 +90,12 @@ Use **Up/Down** to navigate between settings and **Left/Right** (or **OK**) to c
 
 ## File storage
 
-Remotes and settings are saved to the **infrared/** folder on the SD card:
+Remotes are saved to the **infrared/** folder on the SD card. App settings are stored in the **apps_data/** folder:
 
 | Path | Contents |
 |---|---|
 | SD:/infrared/tv_remote_\<name\>.ir | Recorded IR signals for a named remote |
-| SD:/infrared/tv_remote_settings.dat | App settings (orientation preference) |
+| SD:/apps_data/flipper_tv_remote/tv_remote_settings.dat | App settings (orientation preference) |
 
 .ir files use the standard Flipper IR format and are fully compatible with the built-in Infrared app.
 

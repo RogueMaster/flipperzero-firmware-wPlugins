@@ -1,3 +1,11 @@
+## v1.1
+
+- New setting: **L/R Hold** — optionally make holding Left/Right send the same button as a short press (directional) instead of the alternate action
+- New setting: **U/D Hold** — same as above for Up/Down
+- New setting: **Hold TX** — choose between **Single** (one IR burst on hold, then stop) and **Continuous** (keep transmitting until the button is released)
+- Button Map now reflects the current L/R Hold and U/D Hold settings so displayed labels stay accurate
+- Fixed: app settings file moved from infrared/ to apps_data/flipper_tv_remote/ (correct isolated storage location)
+
 ## v1.0
 
 Initial release.
