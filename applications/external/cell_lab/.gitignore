@@ -1,8 +1,0 @@
-.DS_Store
-.vscode/
-.ufbt/
-build/
-dist/
-*.fap
-*.elf
-*.o
