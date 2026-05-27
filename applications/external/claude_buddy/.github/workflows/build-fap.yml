@@ -1,0 +1,39 @@
+name: Build Flipper App
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'flipper-app/**'
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ufbt
+        run: pip install ufbt
+
+      - name: Build FAP
+        run: cd flipper-app && ufbt build
+
+      - name: Upload FAP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude_buddy
+          path: ~/.ufbt/build/claude_buddy.fap
+
+      - name: Create release and attach FAP
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ~/.ufbt/build/claude_buddy.fap

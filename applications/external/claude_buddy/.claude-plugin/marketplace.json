@@ -1,0 +1,15 @@
+{
+  "name": "flipper-claude-buddy",
+  "owner": { "name": "jxw1102" },
+  "plugins": [
+    {
+      "name": "flipper-claude-buddy",
+      "description": "Flipper Zero hardware controller for Claude Code",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/jxw1102/flipper-claude-buddy.git",
+        "path": "plugin"
+      }
+    }
+  ]
+}

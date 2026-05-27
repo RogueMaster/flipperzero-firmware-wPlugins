@@ -1,0 +1,28 @@
+App(
+    appid="claude_buddy",
+    name="Claude Buddy",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="claude_buddy_app",
+    requires=["gui", "notification", "bt", "storage"],
+    stack_size=4 * 1024,
+    fap_version="0.6",
+    fap_icon="icons/claude_10x10.png",
+    fap_category="Bluetooth",
+    fap_description="Claude Code companion - physical remote control with audio feedback",
+    sources=[
+        "claude_buddy.c",
+        "protocol.c",
+        "serial.c",        # USB transport (transport_usb_alloc)
+        "transport_bt.c",  # BT transport  (transport_bt_alloc)
+        "nus_profile.c",   # Nordic UART Service profile (Claude Desktop/Cowork)
+        "transport_nus.c", # NUS transport (transport_nus_alloc)
+        "nus_protocol.c",  # Anthropic Hardware Buddy wire protocol
+        "nus_stats.c",     # Persisted Desktop-mode counters
+        "nus_state.c",     # Desktop-mode state machine (LED/audio)
+        "nus_transcript.c",# Desktop-mode transcript ring buffer
+        "nus_charpack.c",  # Folder-push receiver for character packs
+        "app_settings.c",  # Persisted per-app settings (BleMode)
+        "ui.c",
+        "notifications.c",
+    ],
+)

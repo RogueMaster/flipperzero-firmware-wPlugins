@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# Flipper build artifacts
+flipper-app/dist/
+flipper-app/.ufbt/
+
+# AI
+.claude
