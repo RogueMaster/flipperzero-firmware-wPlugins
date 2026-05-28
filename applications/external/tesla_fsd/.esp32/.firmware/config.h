@@ -9,12 +9,13 @@
 #define CAN_ID_GTW_CAR_STATE  0x318u  // 792  - GTW_carState:    OTA detection
 #define CAN_ID_EPAS_STATUS    0x370u  // 880  - EPAS3P_sysStatus: nag killer target
 #define CAN_ID_GTW_CAR_CONFIG 0x398u  // 920  - GTW_carConfig:   HW version detection
-#define CAN_ID_ISA_SPEED      0x399u  // 921  - ISA speed limit:  HW4 chime suppress
 #define CAN_ID_AP_LEGACY      0x3EEu  // 1006 - DAS_autopilot:   Legacy / HW1 / HW2
 #define CAN_ID_FOLLOW_DIST    0x3F8u  // 1016 - DAS_followDistance: speed profile source
 #define CAN_ID_DAS_AP_CONFIG  0x331u  // 817  - DAS autopilot config (tier restore target, ~1 Hz)
 #define CAN_ID_AP_CONTROL     0x3FDu  // 1021 - DAS_autopilotControl: HW3 / HW4 core
-#define CAN_ID_DAS_STATUS     0x39Bu  // 923  - DAS_status: AP hands-on state (nag gating)
+#define CAN_ID_DAS_STATUS_HW3 0x399u  // 921  - DAS_status on Legacy/HW3 AP/DAS
+#define CAN_ID_ISA_SPEED      0x399u  // 921  - ISA speed limit on HW4 only
+#define CAN_ID_DAS_STATUS_HW4 0x39Bu  // 923  - DAS_status on HW4 AP/DAS
 
 // ── GPIO ──────────────────────────────────────────────────────────────────────
 #if defined(BOARD_LILYGO)

@@ -203,6 +203,28 @@ And these "Vehicle CAN" signals are also writable on bus 6:
 - `0x3F5` VCFRONT_lighting (hazard, wiper)
 - `0x249` SCCM_leftStalk (high beam, turn signal)
 
+> [!IMPORTANT]
+> **Bus 6 is a *selectively forwarded* subset of Vehicle CAN, not the full bus.**
+> The gateway picks which Vehicle CAN signals to forward onto Bus 6 — the
+> list above is what's confirmed on Highland Model 3/Y firmware. Vehicle CAN
+> signals that are NOT in the forwarded list are invisible on pin 13/14.
+>
+> Notably **`0x3C2` `VCLEFT_switchStatus` is NOT forwarded onto Bus 6** —
+> this is the frame carrying the steering scroll-wheel inputs that the v2.15
+> "ScrollPress AP Engage" feature ([#82](https://github.com/hypery11/flipper-tesla-fsd/pull/82))
+> targets. If you tap X179 pin 13/14 you will not see `0x3C2` at all and
+> Scroll-Press injection will appear to do nothing.
+>
+> To inject `0x3C2`, tap either **X179 pin 9/10 (Vehicle CAN Bus 2 direct, full
+> Vehicle CAN traffic)** or **OBD-II pins 6/14 (also Vehicle CAN)**. @JakNo
+> verified `0x3C2` is visible on X179 pin 9/10 on Highland HW4, and
+> @jewelrylin confirmed the negative case on pin 13/14 in
+> [#73](https://github.com/hypery11/flipper-tesla-fsd/issues/73).
+>
+> A dual-CAN board (e.g. **LILYGO T-2CAN**) gives the full attack surface in
+> one device: Bus 6 for `0x3FD` / `0x370` / `0x3F8` / TLSSC, and Vehicle CAN
+> direct for `0x3C2`. Slated as a v2.16 platformio variant.
+
 **One bus, one connection, reads and writes almost everything.**
 
 This is how the 非凡指揮官 (Feifan Commander, 69K+ sales in China)

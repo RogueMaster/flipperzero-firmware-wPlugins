@@ -73,7 +73,7 @@
 
 ### AP-First mode (v2.14+, for 2026.14.x firmware)
 - Tesla 2026.14.x added a preflight check that blocks AP/TACC engagement if CAN injection is already active
-- When **AP-First** is enabled, the app monitors `DAS_autopilotState` from `0x39B` and only starts injecting `0x3FD` after AP is engaged
+- When **AP-First** is enabled, the app monitors `DAS_autopilotState` from `0x39B` and only starts injecting `0x3FD` after AP is engaged. On ESP32, the DAS status source follows detected HW version.
 - Nag killer, TLSSC Restore, and Ban Shield are unaffected (they target different CAN IDs)
 
 ### Diagnostics (read-only, no FSD required)
@@ -81,7 +81,7 @@
 - Vehicle speed, steering angle, motor torque, brake state
 - DAS status: autopilot state, hands-on nag level, lane change state, blind spot warning, FCW, vision speed limit
 - GTW autopilot tier readback (NONE/HIGHWAY/ENHANCED/SELF_DRIVING/BASIC)
-- OTA detection with debounce — auto-suspends TX during firmware updates
+- OTA detection with debounce — auto-suspends TX during firmware updates unless the explicit Ignore OTA override is enabled
 
 ### Settings (runtime toggles)
 
@@ -92,10 +92,11 @@
 | **Mode** | `Active` / `Listen-Only` / `Service`. Listen-Only is the **first-boot default** — MCP2515 is in hardware listen-only mode and physically cannot TX. |
 | **Nag Killer** | DAS-aware EPAS counter+1 echo with organic torque variation. |
 | **Force FSD** | Bypass the `isFSDSelectedInUI` check. Does not bypass Tesla's server-side entitlement — only affects local CAN frame flow. |
+| **Ignore OTA** | Allows CAN TX in Active mode even when `0x318` reports a Tesla OTA update in progress. Default is off. |
 | **TLSSC Restore** | 0x331 DAS config spoof to recover TLSSC on banned vehicles. Triggers MCU reboot. |
 | **AP-First (14.x)** | Delay 0x3FD injection until AP is engaged. Required for Tesla firmware 2026.14.x. |
 | **Ban Shield** | Rewrite `GTW_carConfig` (0x7FF) broadcasts back to a learned-healthy pattern. CAN-broadcast-layer mask only — does not undo NVRAM or backend-side ban flags. Defense-in-depth, no confirmed ban-prevention case ([#60](https://github.com/hypery11/flipper-tesla-fsd/issues/60)). |
-| **Suppress Chime** | Kill the ISA speed warning chime (HW4 only, `0x399`). |
+| **Suppress Chime** | Kill the ISA speed warning chime (HW4 only, `0x399`). On ESP32 this is active only after HW4 detection; Legacy/HW3 use `0x399` as DAS status instead. |
 | **Emerg. Vehicle** | Enable emergency vehicle detection flag (HW4 only, bit59). |
 | **Precondition** | Battery preheat trigger via `0x082`. |
 
@@ -141,6 +142,14 @@
 ### ESP32 (from $14)
 
 Full-featured ESP32 port with WiFi web dashboard, NVS settings persistence, deep sleep, and factory reset. Same CAN logic as the Flipper app.
+
+The ESP32 firmware maps AP/DAS status by detected hardware version:
+
+| Detected HW | `0x399` | `0x39B` | ISA speed chime |
+|-------------|---------|---------|-----------------|
+| Legacy HW1/HW2 | `DAS_status` | not used | disabled |
+| HW3 | `DAS_status` | not used | disabled |
+| HW4 | `ISA_SPEED` | `DAS_status` | enabled |
 
 | Board | Cost | Build target |
 |-------|------|-------------|
@@ -239,7 +248,7 @@ Single-bus read-modify-retransmit on Party CAN. No MITM, no second bus tap.
 |--------|------|-----------|------|
 | `0x331` | `DAS_autopilotConfig` | TX | TLSSC Restore — set tier to SELF_DRIVING |
 | `0x370` | `EPAS3P_sysStatus` | TX | Nag killer — counter+1 echo with organic torque |
-| `0x399` | `ISA_speedLimit` | TX | Speed chime suppression (HW4) |
+| `0x399` | `ISA_speedLimit` / `DAS_status` | TX/RX | ESP32 HW-dependent: Legacy/HW3 read DAS status here; HW4 uses ISA speed chime suppression |
 | `0x3FD` | `UI_autopilotControl` | TX | FSD unlock — bit46/60 (HW3/HW4), TLSSC bit38, lane graph bit45 |
 | `0x3F8` | `UI_driverAssistControl` | TX | Nav FSD route, hands-off, dev mode, LHD, telemetry (beta) |
 | `0x3EE` | `UI_autopilotControl` | TX | FSD unlock — Legacy HW1/HW2 |
@@ -247,7 +256,7 @@ Single-bus read-modify-retransmit on Party CAN. No MITM, no second bus tap.
 | `0x082` | `UI_tripPlanning` | TX | Battery preconditioning trigger |
 | `0x398` | `GTW_carConfig` | RX | HW version detection |
 | `0x318` | `GTW_carState` | RX | OTA detection (auto-suspend TX) |
-| `0x39B` | `DAS_status` | RX | AP state (for AP-First), nag level, lane change, blind spot |
+| `0x39B` | `DAS_status` | RX | ESP32 HW4 DAS status source; AP state (for AP-First), nag level, lane change, blind spot |
 | `0x132` | `BMS_hvBusStatus` | RX | Pack voltage / current |
 | `0x292` | `BMS_socStatus` | RX | State of charge |
 | `0x312` | `BMS_thermalStatus` | RX | Battery temperature |
