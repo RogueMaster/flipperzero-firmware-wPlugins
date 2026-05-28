@@ -1,0 +1,14 @@
+App(
+    appid="droidbeacon",
+    name="Droid Beacon",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="droidbeacon_app",
+    requires=["gui", "dialogs", "bt"],
+    stack_size=2 * 1024,
+    fap_icon="droidbeacon_icon.png",
+    fap_category="Bluetooth",
+    fap_author="Spandox",
+    fap_version="0.1.0",
+    fap_description="Emulate Galaxy's Edge BLE park location beacons for Droid Depot droids",
+    fap_icon_assets="icons",
+)
