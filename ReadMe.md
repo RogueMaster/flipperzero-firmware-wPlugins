@@ -28,8 +28,8 @@ This software is for experimental purposes only and is not meant for any illegal
 
 ## Latest Updates - [PATREON: Latest Release RM0527-2146-0.420.0-1fac781](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-05-27 21:46 EST`
-- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-05-27 21:46 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-05-27 23:44 EST`
+- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-05-27 23:44 EST`
 - Updated: [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - Updated: [HyperFocus Calc v0.1.2 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - Added: [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
@@ -67,7 +67,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
 - [uFBT: Fix .clangd config for IDEs besides VSCode (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/d3ba597539f806f8ab291d725a3b16a9364b644e)
 - Sub-GHz: [Add Allstar Firefly 318ALD31K protocol (18 bits, Static) (By jlaughter)](https://github.com/DarkFlippers/unleashed-firmware/pull/989)
-- Sub-GHz: [Faac SLH / Nice Flo Updates & Remove Duplicate Code from RAW & Canvas Buffer in API & Kinggates Logic Fix & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning & Sub-GHz upgrades (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/57500ccf3a39cef2617317d9e849afe5dca182ae)
+- Sub-GHz: [Faac SLH / Nice Flo Updates & Remove Duplicate Code from RAW & Canvas Buffer in API & Kinggates Logic Fix & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning & Sub-GHz upgrades (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/20d53d9c1d6882246cf6d9f3868b0a1cad8ef555)
 
 <a name="release"></a>
 
