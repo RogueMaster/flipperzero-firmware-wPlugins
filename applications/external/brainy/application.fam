@@ -1,0 +1,17 @@
+App(
+    appid="brainy",
+    name="Brainy",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="brainy",
+    requires=[
+        "gui",
+        "input",
+    ],
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Games",
+    fap_description="Classic Simon Says memory game. Follow the sequence of flashing buttons and sounds for as long as you can!",
+    fap_author="Deya Elkhawaldeh",
+    fap_weburl="https://github.com/deya-eldeen/flipperzero-brainy",
+    fap_version="1.1",
+)
