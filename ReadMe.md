@@ -48,18 +48,18 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [RFID Metal Detector v1.0 (By hnsvrdmn)](https://github.com/hnsvrdmn/flipper-rfid-metal-detector)
 - Added: [CK42X Passvault v0.4 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - Added: [NFC Stock v0.1.5 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
-- Added: [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test)
+- Added: [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
 - Added: [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
 - Added: [ZeroFIDO v0.7 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
 - Updated: [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - Added: [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
 - Added: [Cell Lab v1.1 (By PilotOfAsuka)](https://github.com/PilotOfAsuka/cell_lab_fliperzero)
 - Added: [FreeStyle Libre CGM v0.1 (By darendarrow)](https://github.com/darendarrow/flipnCGM)
-- Added: [NestBridge v1.0 (By Bibfortuna5057)](https://github.com/Bibfortuna5057/NestBridge-Flipper)
+- Added: [NestBridge v1.0 (By Bibfortuna5057)](https://github.com/Bibfortuna5057/NestBridge-Flipper) `Req: Nest Gen 2 Thermostat`
 - Added: [Pocket CVSS v0.3 (By vavkamil)](https://github.com/vavkamil/pocket-cvss)
-- Added: [ZeroMesh v2.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh)
+- Added: [ZeroMesh v2.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 - Fix Cell Lab reference in Game Menu (By RogueMaster)
-- Updated: [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test)
+- Updated: [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
 
 <a name="release"></a>
 
@@ -736,7 +736,7 @@ $ ./fbt dolphin_ext
 - [Mx2125 Dual-Axis Accelerometer (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio)
 - [Mx2125 Step Counter v1.0 (By 47lecoste a.k.a. grugnoymeme)](https://github.com/grugnoymeme/flipperzero-stepcounter-fap)
 - [Name Changer (By ESurge)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/488)
-- [NestBridge v1.0 (By Bibfortuna5057)](https://github.com/Bibfortuna5057/NestBridge-Flipper)
+- [NestBridge v1.0 (By Bibfortuna5057)](https://github.com/Bibfortuna5057/NestBridge-Flipper) `Req: Nest Gen 2 Thermostat`
 - [Netflix TV Remote v0.1 (By ablaran)](https://github.com/ablaran/NetflixTvRemote)
 - [Networking NFC + QR v1.0 (By DonJulve)](https://github.com/DonJulve/Networking_NFC_QR_Flipper_Zero)
 - [NFC/RFID Detector v1.4 (By Skorpionm)](https://github.com/flipperdevices/flipperzero-firmware/pull/2795)
@@ -854,7 +854,7 @@ $ ./fbt dolphin_ext
 - [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [SPI Mem Manager v1.4 (By drunkbatya)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/spi_mem_manager)
 - [SPI Terminal v0.4 (By janwiesemann)](https://github.com/janwiesemann/flipper-spi-terminal)
-- [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test)
+- [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
 - [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
 - [Sub Duplicate Finder v1.2 (By Endika)](https://github.com/Endika/flipper-sub-dup)
@@ -941,7 +941,7 @@ $ ./fbt dolphin_ext
 - [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max)
 - [ZeroFIDO v0.7 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
-- [ZeroMesh v2.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh)
+- [ZeroMesh v2.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
 ## Current Bounties $$ (Sorted By Difficulty - Easiest to Hardest)
 
