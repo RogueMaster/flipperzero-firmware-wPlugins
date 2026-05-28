@@ -65,6 +65,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
 - Added: [MR60FDA1 Radar v0.1 (By adamaratski)](https://github.com/adamaratski/flipperzero-r60afd1) `Req: MR60FDA1/MR60FDA2`
 - Added: [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
+- [uFBT: Fix .clangd config for IDEs besides VSCode (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/d3ba597539f806f8ab291d725a3b16a9364b644e)
 
 <a name="release"></a>
 
