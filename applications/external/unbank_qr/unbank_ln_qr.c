@@ -28,15 +28,15 @@
 #include "qrcodegen.h"
 
 /* ---- Config ---- */
-#define USER_LEN          96
-#define ADDR_LEN          128
-#define DEFAULT_USERNAME  "unbank"
-#define STORAGE_DIR       EXT_PATH("apps_data/unbank_ln_qr")
-#define NFC_OUTPUT_DIR    EXT_PATH("nfc/unbank")
-#define UNBANK_APP_URL    "unbank.com/open-app"
+#define USER_LEN         96
+#define ADDR_LEN         128
+#define DEFAULT_USERNAME "unbank"
+#define STORAGE_DIR      EXT_PATH("apps_data/unbank_ln_qr")
+#define NFC_OUTPUT_DIR   EXT_PATH("nfc/unbank")
+#define UNBANK_APP_URL   "unbank.com/open-app"
 
-#define ABOUT_TEXT \
-    "Unbank is a non-custodial exchange that allows users to " \
+#define ABOUT_TEXT                                              \
+    "Unbank is a non-custodial exchange that allows users to "  \
     "buy Bitcoin with cash or sell with ZERO fees on-chain or " \
     "via the lightning network. Learn more at unbank.com."
 
@@ -48,15 +48,15 @@ typedef enum {
 } Wallet;
 
 typedef struct {
-    const char* name;     /* display name */
-    const char* suffix;   /* domain incl. leading @ */
+    const char* name; /* display name */
+    const char* suffix; /* domain incl. leading @ */
     const char* filename; /* storage filename */
 } WalletInfo;
 
 static const WalletInfo WALLETS[WalletCount] = {
-    [WalletSpeed]  = {"Speed",             "@speed.app",            "speed.txt"},
-    [WalletStrike] = {"Strike",            "@strike.me",            "strike.txt"},
-    [WalletWoS]    = {"Wallet of Satoshi", "@walletofsatoshi.com",  "wos.txt"},
+    [WalletSpeed] = {"Speed", "@speed.app", "speed.txt"},
+    [WalletStrike] = {"Strike", "@strike.me", "strike.txt"},
+    [WalletWoS] = {"Wallet of Satoshi", "@walletofsatoshi.com", "wos.txt"},
 };
 
 typedef enum {
@@ -70,7 +70,7 @@ typedef enum {
     ViewIdNfcInstructions,
 } ViewId;
 
-#define SPLASH_DURATION_MS 1500
+#define SPLASH_DURATION_MS    1500
 #define CustomEventSplashDone 1
 
 typedef enum {
@@ -96,26 +96,26 @@ typedef struct {
 } NfcViewModel;
 
 struct App {
-    Gui*             gui;
+    Gui* gui;
     NotificationApp* notifications;
-    ViewDispatcher*  view_dispatcher;
-    Submenu*         main_menu;
-    Submenu*         wallet_picker;
-    Submenu*         wallet_menu;
-    TextInput*       text_input;
-    Widget*          about_widget;
-    View*            nfc_view;
-    View*            qr_view;
-    View*            splash_view;
-    FuriTimer*       splash_timer;
+    ViewDispatcher* view_dispatcher;
+    Submenu* main_menu;
+    Submenu* wallet_picker;
+    Submenu* wallet_menu;
+    TextInput* text_input;
+    Widget* about_widget;
+    View* nfc_view;
+    View* qr_view;
+    View* splash_view;
+    FuriTimer* splash_timer;
 
     /* State */
     ViewId current_view;
-    ViewId qr_back_target;  /* where Back from QR returns */
+    ViewId qr_back_target; /* where Back from QR returns */
     Wallet active_wallet;
 
     char usernames[WalletCount][USER_LEN];
-    char address[ADDR_LEN];       /* QR content + label */
+    char address[ADDR_LEN]; /* QR content + label */
 
     /* NFC instructions state */
     char nfc_saved_path[160];
@@ -125,7 +125,7 @@ struct App {
 
     uint8_t qr_buffer[qrcodegen_BUFFER_LEN_FOR_VERSION(qrcodegen_VERSION_MAX)];
     uint8_t qr_temp[qrcodegen_BUFFER_LEN_FOR_VERSION(qrcodegen_VERSION_MAX)];
-    bool    qr_ready;
+    bool qr_ready;
 };
 
 /* ---- Forwards ---- */
@@ -141,7 +141,8 @@ static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_pa
 /* ---- Util ---- */
 static size_t bounded_strlen(const char* s, size_t maxlen) {
     size_t i = 0;
-    while (i < maxlen && s[i] != '\0') i++;
+    while(i < maxlen && s[i] != '\0')
+        i++;
     return i;
 }
 
@@ -158,7 +159,7 @@ static void save_username(App* app, Wallet w) {
     path_for_wallet(w, path, sizeof(path));
 
     File* file = storage_file_alloc(storage);
-    if (storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+    if(storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         size_t len = bounded_strlen(app->usernames[w], USER_LEN);
         storage_file_write(file, app->usernames[w], len);
     }
@@ -176,18 +177,18 @@ static void load_username(App* app, Wallet w) {
     path_for_wallet(w, path, sizeof(path));
 
     File* file = storage_file_alloc(storage);
-    if (storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         char buf[USER_LEN];
         memset(buf, 0, USER_LEN);
         uint16_t bytes = storage_file_read(file, buf, USER_LEN - 1);
-        if (bytes > 0) {
+        if(bytes > 0) {
             buf[bytes] = '\0';
             int len = (int)bounded_strlen(buf, USER_LEN);
-            while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r' ||
-                               buf[len - 1] == ' '  || buf[len - 1] == '\t')) {
+            while(len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r' ||
+                              buf[len - 1] == ' ' || buf[len - 1] == '\t')) {
                 buf[--len] = '\0';
             }
-            if (len > 0) {
+            if(len > 0) {
                 strncpy(app->usernames[w], buf, USER_LEN - 1);
                 app->usernames[w][USER_LEN - 1] = '\0';
             }
@@ -199,7 +200,7 @@ static void load_username(App* app, Wallet w) {
 }
 
 static void load_all_usernames(App* app) {
-    for (int i = 0; i < WalletCount; i++) {
+    for(int i = 0; i < WalletCount; i++) {
         load_username(app, (Wallet)i);
     }
 }
@@ -237,7 +238,7 @@ static void qr_view_draw(Canvas* canvas, void* _model) {
 
     canvas_clear(canvas);
 
-    if (app->qr_ready) {
+    if(app->qr_ready) {
         int qr_size = qrcodegen_getSize(app->qr_buffer);
         /* Render every QR at the same on-screen size regardless of how many
          * modules it has, by distributing the target pixels across modules.
@@ -247,19 +248,16 @@ static void qr_view_draw(Canvas* canvas, void* _model) {
         int offset_x = (128 - target) / 2;
         int offset_y = 1;
 
-        for (int y = 0; y < qr_size; y++) {
+        for(int y = 0; y < qr_size; y++) {
             int py_start = (y * target) / qr_size;
-            int py_end   = ((y + 1) * target) / qr_size;
+            int py_end = ((y + 1) * target) / qr_size;
             int py_h = py_end - py_start;
-            for (int x = 0; x < qr_size; x++) {
-                if (qrcodegen_getModule(app->qr_buffer, x, y)) {
+            for(int x = 0; x < qr_size; x++) {
+                if(qrcodegen_getModule(app->qr_buffer, x, y)) {
                     int px_start = (x * target) / qr_size;
-                    int px_end   = ((x + 1) * target) / qr_size;
+                    int px_end = ((x + 1) * target) / qr_size;
                     int px_w = px_end - px_start;
-                    canvas_draw_box(canvas,
-                                    offset_x + px_start,
-                                    offset_y + py_start,
-                                    px_w, py_h);
+                    canvas_draw_box(canvas, offset_x + px_start, offset_y + py_start, px_w, py_h);
                 }
             }
         }
@@ -274,7 +272,7 @@ static void qr_view_draw(Canvas* canvas, void* _model) {
 
 static bool qr_view_input(InputEvent* event, void* context) {
     App* app = context;
-    if (event->type == InputTypeShort && event->key == InputKeyBack) {
+    if(event->type == InputTypeShort && event->key == InputKeyBack) {
         switch_to(app, app->qr_back_target);
         return true;
     }
@@ -292,19 +290,19 @@ static void draw_bank_silhouette(Canvas* canvas, int cx, int top_y) {
     int pillar_y = top_y + 8;
     int pillar_h = 10;
     canvas_draw_box(canvas, cx - 10, pillar_y, 2, pillar_h);
-    canvas_draw_box(canvas, cx - 4,  pillar_y, 2, pillar_h);
-    canvas_draw_box(canvas, cx + 2,  pillar_y, 2, pillar_h);
-    canvas_draw_box(canvas, cx + 8,  pillar_y, 2, pillar_h);
+    canvas_draw_box(canvas, cx - 4, pillar_y, 2, pillar_h);
+    canvas_draw_box(canvas, cx + 2, pillar_y, 2, pillar_h);
+    canvas_draw_box(canvas, cx + 8, pillar_y, 2, pillar_h);
     /* Base bar (22w x 3h) — matches architrave width */
     canvas_draw_box(canvas, cx - 11, pillar_y + pillar_h, 22, 3);
     /* Downward arrow narrowing to a 4px tip; matches cornice width at the top */
     int tri_y = pillar_y + pillar_h + 4;
-    canvas_draw_box(canvas, cx - 12, tri_y,     24, 1);
+    canvas_draw_box(canvas, cx - 12, tri_y, 24, 1);
     canvas_draw_box(canvas, cx - 10, tri_y + 1, 20, 1);
-    canvas_draw_box(canvas, cx - 8,  tri_y + 2, 16, 1);
-    canvas_draw_box(canvas, cx - 6,  tri_y + 3, 12, 1);
-    canvas_draw_box(canvas, cx - 4,  tri_y + 4,  8, 1);
-    canvas_draw_box(canvas, cx - 2,  tri_y + 5,  4, 1);
+    canvas_draw_box(canvas, cx - 8, tri_y + 2, 16, 1);
+    canvas_draw_box(canvas, cx - 6, tri_y + 3, 12, 1);
+    canvas_draw_box(canvas, cx - 4, tri_y + 4, 8, 1);
+    canvas_draw_box(canvas, cx - 2, tri_y + 5, 4, 1);
 }
 
 static void splash_view_draw(Canvas* canvas, void* _model) {
@@ -322,7 +320,7 @@ static void splash_view_draw(Canvas* canvas, void* _model) {
 static bool splash_view_input(InputEvent* event, void* context) {
     App* app = context;
     /* Any key press skips the splash */
-    if (event->type == InputTypeShort || event->type == InputTypePress) {
+    if(event->type == InputTypeShort || event->type == InputTypePress) {
         furi_timer_stop(app->splash_timer);
         view_dispatcher_send_custom_event(app->view_dispatcher, CustomEventSplashDone);
         return true;
@@ -337,7 +335,7 @@ static void splash_timer_callback(void* context) {
 
 static bool custom_event_callback(void* context, uint32_t event) {
     App* app = context;
-    if (event == CustomEventSplashDone) {
+    if(event == CustomEventSplashDone) {
         switch_to(app, ViewIdMainMenu);
         return true;
     }
@@ -348,28 +346,27 @@ static bool custom_event_callback(void* context, uint32_t event) {
 static void rebuild_main_menu(App* app) {
     submenu_reset(app->main_menu);
     submenu_set_header(app->main_menu, "BTCLN QR Generator");
-    submenu_add_item(app->main_menu, "Choose Wallet",   MainMenuChooseWallet,
-                     main_menu_callback, app);
-    submenu_add_item(app->main_menu, "Download Unbank", MainMenuDownloadApp,
-                     main_menu_callback, app);
-    submenu_add_item(app->main_menu, "About Unbank",    MainMenuAboutUnbank,
-                     main_menu_callback, app);
+    submenu_add_item(
+        app->main_menu, "Choose Wallet", MainMenuChooseWallet, main_menu_callback, app);
+    submenu_add_item(
+        app->main_menu, "Download Unbank", MainMenuDownloadApp, main_menu_callback, app);
+    submenu_add_item(app->main_menu, "About Unbank", MainMenuAboutUnbank, main_menu_callback, app);
 }
 
 static void main_menu_callback(void* context, uint32_t index) {
     App* app = context;
-    switch (index) {
-        case MainMenuChooseWallet:
-            switch_to(app, ViewIdWalletPicker);
-            break;
-        case MainMenuDownloadApp:
-            show_qr_text(app, UNBANK_APP_URL, ViewIdMainMenu);
-            break;
-        case MainMenuAboutUnbank:
-            switch_to(app, ViewIdAbout);
-            break;
-        default:
-            break;
+    switch(index) {
+    case MainMenuChooseWallet:
+        switch_to(app, ViewIdWalletPicker);
+        break;
+    case MainMenuDownloadApp:
+        show_qr_text(app, UNBANK_APP_URL, ViewIdMainMenu);
+        break;
+    case MainMenuAboutUnbank:
+        switch_to(app, ViewIdAbout);
+        break;
+    default:
+        break;
     }
 }
 
@@ -377,15 +374,15 @@ static void main_menu_callback(void* context, uint32_t index) {
 static void rebuild_wallet_picker(App* app) {
     submenu_reset(app->wallet_picker);
     submenu_set_header(app->wallet_picker, "Choose Wallet");
-    for (int i = 0; i < WalletCount; i++) {
-        submenu_add_item(app->wallet_picker, WALLETS[i].name, (uint32_t)i,
-                         wallet_picker_callback, app);
+    for(int i = 0; i < WalletCount; i++) {
+        submenu_add_item(
+            app->wallet_picker, WALLETS[i].name, (uint32_t)i, wallet_picker_callback, app);
     }
 }
 
 static void wallet_picker_callback(void* context, uint32_t index) {
     App* app = context;
-    if (index >= (uint32_t)WalletCount) return;
+    if(index >= (uint32_t)WalletCount) return;
     open_wallet_menu(app, (Wallet)index);
 }
 
@@ -393,12 +390,11 @@ static void wallet_picker_callback(void* context, uint32_t index) {
 static void rebuild_wallet_menu(App* app) {
     submenu_reset(app->wallet_menu);
     submenu_set_header(app->wallet_menu, WALLETS[app->active_wallet].name);
-    submenu_add_item(app->wallet_menu, "Show QR",        WalletMenuShowQr,
-                     wallet_menu_callback, app);
-    submenu_add_item(app->wallet_menu, "Edit Username",  WalletMenuEditUsername,
-                     wallet_menu_callback, app);
-    submenu_add_item(app->wallet_menu, "Write NFC Tag",  WalletMenuWriteNfc,
-                     wallet_menu_callback, app);
+    submenu_add_item(app->wallet_menu, "Show QR", WalletMenuShowQr, wallet_menu_callback, app);
+    submenu_add_item(
+        app->wallet_menu, "Edit Username", WalletMenuEditUsername, wallet_menu_callback, app);
+    submenu_add_item(
+        app->wallet_menu, "Write NFC Tag", WalletMenuWriteNfc, wallet_menu_callback, app);
 }
 
 static void open_wallet_menu(App* app, Wallet w) {
@@ -409,45 +405,42 @@ static void open_wallet_menu(App* app, Wallet w) {
 
 static void wallet_menu_callback(void* context, uint32_t index) {
     App* app = context;
-    switch (index) {
-        case WalletMenuShowQr:
-            compose_wallet_address(app);
-            app->qr_back_target = ViewIdWalletMenu;
-            generate_qr_from_address(app);
-            notification_message(app->notifications, &sequence_single_vibro);
-            switch_to(app, ViewIdQr);
-            break;
+    switch(index) {
+    case WalletMenuShowQr:
+        compose_wallet_address(app);
+        app->qr_back_target = ViewIdWalletMenu;
+        generate_qr_from_address(app);
+        notification_message(app->notifications, &sequence_single_vibro);
+        switch_to(app, ViewIdQr);
+        break;
 
-        case WalletMenuEditUsername: {
-            strncpy(app->edit_buffer, app->usernames[app->active_wallet], USER_LEN - 1);
-            app->edit_buffer[USER_LEN - 1] = '\0';
+    case WalletMenuEditUsername: {
+        strncpy(app->edit_buffer, app->usernames[app->active_wallet], USER_LEN - 1);
+        app->edit_buffer[USER_LEN - 1] = '\0';
 
-            snprintf(app->header_buffer, sizeof(app->header_buffer),
-                     "Username (+%s)", WALLETS[app->active_wallet].suffix);
+        snprintf(
+            app->header_buffer,
+            sizeof(app->header_buffer),
+            "Username (+%s)",
+            WALLETS[app->active_wallet].suffix);
 
-            text_input_reset(app->text_input);
-            text_input_set_header_text(app->text_input, app->header_buffer);
-            text_input_set_result_callback(
-                app->text_input,
-                text_input_done_callback,
-                app,
-                app->edit_buffer,
-                USER_LEN,
-                false);
-            switch_to(app, ViewIdTextInput);
-            break;
-        }
+        text_input_reset(app->text_input);
+        text_input_set_header_text(app->text_input, app->header_buffer);
+        text_input_set_result_callback(
+            app->text_input, text_input_done_callback, app, app->edit_buffer, USER_LEN, false);
+        switch_to(app, ViewIdTextInput);
+        break;
+    }
 
-        case WalletMenuWriteNfc: {
-            app->nfc_save_ok = write_nfc_tag_file(
-                app, app->active_wallet,
-                app->nfc_saved_path, sizeof(app->nfc_saved_path));
-            switch_to(app, ViewIdNfcInstructions);
-            break;
-        }
+    case WalletMenuWriteNfc: {
+        app->nfc_save_ok = write_nfc_tag_file(
+            app, app->active_wallet, app->nfc_saved_path, sizeof(app->nfc_saved_path));
+        switch_to(app, ViewIdNfcInstructions);
+        break;
+    }
 
-        default:
-            break;
+    default:
+        break;
     }
 }
 
@@ -457,7 +450,7 @@ static void text_input_done_callback(void* context) {
     Wallet w = app->active_wallet;
 
     size_t user_len = bounded_strlen(app->edit_buffer, USER_LEN);
-    if (user_len == 0) {
+    if(user_len == 0) {
         strncpy(app->usernames[w], DEFAULT_USERNAME, USER_LEN - 1);
         app->usernames[w][USER_LEN - 1] = '\0';
     } else {
@@ -473,10 +466,7 @@ static void build_about_widget(App* app) {
     widget_reset(app->about_widget);
     /* text_scroll wraps on word boundaries and scrolls with Up/Down */
     widget_add_text_scroll_element(
-        app->about_widget,
-        0, 0, 128, 64,
-        "\e#About Unbank\n"
-        ABOUT_TEXT);
+        app->about_widget, 0, 0, 128, 64, "\e#About Unbank\n" ABOUT_TEXT);
 }
 
 /* ---- NFC tag file writer ----
@@ -492,16 +482,16 @@ static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_pa
     size_t url_len = bounded_strlen(url, sizeof(url));
 
     /* Limit URL length to fit comfortably in NTAG213 user memory (144B) */
-    if (url_len > 130) url_len = 130;
+    if(url_len > 130) url_len = 130;
 
     /* Pick filename: lowercase wallet name with underscores */
     char fname[64];
     int fi = 0;
     const char* nm = WALLETS[w].name;
-    for (int i = 0; nm[i] && fi < (int)sizeof(fname) - 6; i++) {
+    for(int i = 0; nm[i] && fi < (int)sizeof(fname) - 6; i++) {
         char c = nm[i];
-        if (c >= 'A' && c <= 'Z') c = c + 32;
-        if (c == ' ') c = '_';
+        if(c >= 'A' && c <= 'Z') c = c + 32;
+        if(c == ' ') c = '_';
         fname[fi++] = c;
     }
     fname[fi] = '\0';
@@ -516,33 +506,45 @@ static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_pa
     File* file = storage_file_alloc(storage);
     bool success = false;
 
-    if (storage_file_open(file, out_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+    if(storage_file_open(file, out_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         /* Build the 45 pages (180 bytes) of NTAG213 memory */
         uint8_t mem[45 * 4];
         memset(mem, 0, sizeof(mem));
 
         /* Page 0-1: placeholder UID (the actual tag's UID is used on write) */
-        mem[0]  = 0x04; mem[1]  = 0x11; mem[2]  = 0x22; mem[3]  = 0x9D; /* UID0-2 + BCC0 */
-        mem[4]  = 0x33; mem[5]  = 0x44; mem[6]  = 0x55; mem[7]  = 0x66; /* UID3-6 */
+        mem[0] = 0x04;
+        mem[1] = 0x11;
+        mem[2] = 0x22;
+        mem[3] = 0x9D; /* UID0-2 + BCC0 */
+        mem[4] = 0x33;
+        mem[5] = 0x44;
+        mem[6] = 0x55;
+        mem[7] = 0x66; /* UID3-6 */
         /* Page 2: BCC1 + internal + lock bytes */
-        mem[8]  = 0xDD; mem[9]  = 0x48; mem[10] = 0x00; mem[11] = 0x00;
+        mem[8] = 0xDD;
+        mem[9] = 0x48;
+        mem[10] = 0x00;
+        mem[11] = 0x00;
         /* Page 3: Capability Container for NTAG213 with NDEF */
-        mem[12] = 0xE1; mem[13] = 0x10; mem[14] = 0x12; mem[15] = 0x00;
+        mem[12] = 0xE1;
+        mem[13] = 0x10;
+        mem[14] = 0x12;
+        mem[15] = 0x00;
 
         /* Page 4+: NDEF data */
         int p = 16; /* start of page 4 in mem[] */
-        mem[p++] = 0x03;                         /* NDEF TLV type */
-        mem[p++] = (uint8_t)(url_len + 5);       /* TLV length */
-        mem[p++] = 0xD1;                         /* NDEF: MB+ME+SR, TNF=well-known */
-        mem[p++] = 0x01;                         /* Type length */
-        mem[p++] = (uint8_t)(url_len + 1);       /* Payload length (prefix + URL) */
-        mem[p++] = 0x55;                         /* Type 'U' (URI) */
-        mem[p++] = 0x00;                         /* URI prefix code: none */
-        for (size_t i = 0; i < url_len && p < (int)sizeof(mem) - 1; i++) {
+        mem[p++] = 0x03; /* NDEF TLV type */
+        mem[p++] = (uint8_t)(url_len + 5); /* TLV length */
+        mem[p++] = 0xD1; /* NDEF: MB+ME+SR, TNF=well-known */
+        mem[p++] = 0x01; /* Type length */
+        mem[p++] = (uint8_t)(url_len + 1); /* Payload length (prefix + URL) */
+        mem[p++] = 0x55; /* Type 'U' (URI) */
+        mem[p++] = 0x00; /* URI prefix code: none */
+        for(size_t i = 0; i < url_len && p < (int)sizeof(mem) - 1; i++) {
             mem[p++] = (uint8_t)url[i];
         }
-        if (p < (int)sizeof(mem)) {
-            mem[p++] = 0xFE;                     /* TLV terminator */
+        if(p < (int)sizeof(mem)) {
+            mem[p++] = 0xFE; /* TLV terminator */
         }
 
         /* Write Flipper .nfc file header.
@@ -552,48 +554,50 @@ static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_pa
          *   - "Data format version: 2" is required.
          *   - Counter values are decimal uint32 (just "0"), Tearing is 1 hex byte.
          */
-        const char* header =
-            "Filetype: Flipper NFC device\n"
-            "Version: 4\n"
-            "Device type: NTAG/Ultralight\n"
-            "UID: 04 11 22 33 44 55 66\n"
-            "ATQA: 00 44\n"
-            "SAK: 00\n"
-            "Data format version: 2\n"
-            "NTAG/Ultralight type: NTAG213\n"
-            "Signature: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
-            " 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n"
-            "Mifare version: 00 04 04 02 01 00 0F 03\n"
-            "Counter 0: 0\n"
-            "Tearing 0: 00\n"
-            "Counter 1: 0\n"
-            "Tearing 1: 00\n"
-            "Counter 2: 0\n"
-            "Tearing 2: 00\n"
-            "Pages total: 45\n"
-            "Pages read: 45\n";
+        const char* header = "Filetype: Flipper NFC device\n"
+                             "Version: 4\n"
+                             "Device type: NTAG/Ultralight\n"
+                             "UID: 04 11 22 33 44 55 66\n"
+                             "ATQA: 00 44\n"
+                             "SAK: 00\n"
+                             "Data format version: 2\n"
+                             "NTAG/Ultralight type: NTAG213\n"
+                             "Signature: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+                             " 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n"
+                             "Mifare version: 00 04 04 02 01 00 0F 03\n"
+                             "Counter 0: 0\n"
+                             "Tearing 0: 00\n"
+                             "Counter 1: 0\n"
+                             "Tearing 1: 00\n"
+                             "Counter 2: 0\n"
+                             "Tearing 2: 00\n"
+                             "Pages total: 45\n"
+                             "Pages read: 45\n";
         storage_file_write(file, header, strlen(header));
 
         /* Write each page */
         char line[40];
         bool write_ok = true;
-        for (int page = 0; page < 45; page++) {
-            int n = snprintf(line, sizeof(line), "Page %d: %02X %02X %02X %02X\n",
-                             page,
-                             mem[page * 4 + 0],
-                             mem[page * 4 + 1],
-                             mem[page * 4 + 2],
-                             mem[page * 4 + 3]);
-            if (storage_file_write(file, line, n) != (uint16_t)n) {
+        for(int page = 0; page < 45; page++) {
+            int n = snprintf(
+                line,
+                sizeof(line),
+                "Page %d: %02X %02X %02X %02X\n",
+                page,
+                mem[page * 4 + 0],
+                mem[page * 4 + 1],
+                mem[page * 4 + 2],
+                mem[page * 4 + 3]);
+            if(storage_file_write(file, line, n) != (uint16_t)n) {
                 write_ok = false;
                 break;
             }
         }
         /* Trailing field required by current Flipper firmware */
         const char* footer = "Failed authentication attempts: 0\n";
-        if (write_ok) {
+        if(write_ok) {
             size_t flen = strlen(footer);
-            if (storage_file_write(file, footer, flen) != (uint16_t)flen) {
+            if(storage_file_write(file, footer, flen) != (uint16_t)flen) {
                 write_ok = false;
             }
         }
@@ -617,11 +621,16 @@ static void nfc_view_draw(Canvas* canvas, void* _model) {
     canvas_clear(canvas);
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop,
-                            app->nfc_save_ok ? "NFC File Saved" : "NFC Save Failed");
+    canvas_draw_str_aligned(
+        canvas,
+        64,
+        0,
+        AlignCenter,
+        AlignTop,
+        app->nfc_save_ok ? "NFC File Saved" : "NFC Save Failed");
 
     canvas_set_font(canvas, FontSecondary);
-    if (app->nfc_save_ok) {
+    if(app->nfc_save_ok) {
         canvas_draw_str(canvas, 2, 18, "1. Open NFC app");
         canvas_draw_str(canvas, 2, 27, "2. Saved -> unbank");
         canvas_draw_str(canvas, 2, 36, "3. Pick file & Write");
@@ -633,13 +642,12 @@ static void nfc_view_draw(Canvas* canvas, void* _model) {
     }
 
     /* Footer hint */
-    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom,
-                            "Press Back to return");
+    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Press Back to return");
 }
 
 static bool nfc_view_input(InputEvent* event, void* context) {
     App* app = context;
-    if (event->type == InputTypeShort && event->key == InputKeyBack) {
+    if(event->type == InputTypeShort && event->key == InputKeyBack) {
         switch_to(app, ViewIdWalletMenu);
         return true;
     }
@@ -656,34 +664,34 @@ static void switch_to(App* app, ViewId id) {
 /* ---- Back navigation ---- */
 static bool back_event_callback(void* context) {
     App* app = context;
-    switch (app->current_view) {
-        case ViewIdSplash:
-            /* Skip splash, go straight to main menu */
-            furi_timer_stop(app->splash_timer);
-            switch_to(app, ViewIdMainMenu);
-            return true;
-        case ViewIdMainMenu:
-            return false; /* exit app */
-        case ViewIdWalletPicker:
-            switch_to(app, ViewIdMainMenu);
-            return true;
-        case ViewIdWalletMenu:
-            switch_to(app, ViewIdWalletPicker);
-            return true;
-        case ViewIdQr:
-            switch_to(app, app->qr_back_target);
-            return true;
-        case ViewIdTextInput:
-            switch_to(app, ViewIdWalletMenu);
-            return true;
-        case ViewIdAbout:
-            switch_to(app, ViewIdMainMenu);
-            return true;
-        case ViewIdNfcInstructions:
-            switch_to(app, ViewIdWalletMenu);
-            return true;
-        default:
-            return false;
+    switch(app->current_view) {
+    case ViewIdSplash:
+        /* Skip splash, go straight to main menu */
+        furi_timer_stop(app->splash_timer);
+        switch_to(app, ViewIdMainMenu);
+        return true;
+    case ViewIdMainMenu:
+        return false; /* exit app */
+    case ViewIdWalletPicker:
+        switch_to(app, ViewIdMainMenu);
+        return true;
+    case ViewIdWalletMenu:
+        switch_to(app, ViewIdWalletPicker);
+        return true;
+    case ViewIdQr:
+        switch_to(app, app->qr_back_target);
+        return true;
+    case ViewIdTextInput:
+        switch_to(app, ViewIdWalletMenu);
+        return true;
+    case ViewIdAbout:
+        switch_to(app, ViewIdMainMenu);
+        return true;
+    case ViewIdNfcInstructions:
+        switch_to(app, ViewIdWalletMenu);
+        return true;
+    default:
+        return false;
     }
 }
 
@@ -695,8 +703,8 @@ int32_t unbank_ln_qr_app(void* p) {
     memset(app, 0, sizeof(App));
 
     load_all_usernames(app);
-    app->active_wallet  = WalletSpeed;
-    app->current_view   = ViewIdSplash;
+    app->active_wallet = WalletSpeed;
+    app->current_view = ViewIdSplash;
     app->qr_back_target = ViewIdMainMenu;
 
     app->gui = furi_record_open(RECORD_GUI);
@@ -720,30 +728,35 @@ int32_t unbank_ln_qr_app(void* p) {
     /* Main menu */
     app->main_menu = submenu_alloc();
     rebuild_main_menu(app);
-    view_dispatcher_add_view(app->view_dispatcher, ViewIdMainMenu, submenu_get_view(app->main_menu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, ViewIdMainMenu, submenu_get_view(app->main_menu));
 
     /* Wallet picker */
     app->wallet_picker = submenu_alloc();
     rebuild_wallet_picker(app);
-    view_dispatcher_add_view(app->view_dispatcher, ViewIdWalletPicker, submenu_get_view(app->wallet_picker));
+    view_dispatcher_add_view(
+        app->view_dispatcher, ViewIdWalletPicker, submenu_get_view(app->wallet_picker));
 
     /* Wallet menu (rebuilt on entry) */
     app->wallet_menu = submenu_alloc();
-    view_dispatcher_add_view(app->view_dispatcher, ViewIdWalletMenu, submenu_get_view(app->wallet_menu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, ViewIdWalletMenu, submenu_get_view(app->wallet_menu));
 
     /* Text input */
     app->text_input = text_input_alloc();
-    view_dispatcher_add_view(app->view_dispatcher, ViewIdTextInput, text_input_get_view(app->text_input));
+    view_dispatcher_add_view(
+        app->view_dispatcher, ViewIdTextInput, text_input_get_view(app->text_input));
 
     /* About widget */
     app->about_widget = widget_alloc();
     build_about_widget(app);
-    view_dispatcher_add_view(app->view_dispatcher, ViewIdAbout, widget_get_view(app->about_widget));
+    view_dispatcher_add_view(
+        app->view_dispatcher, ViewIdAbout, widget_get_view(app->about_widget));
 
     /* NFC instructions view (custom — only Back dismisses) */
     app->nfc_view = view_alloc();
     view_allocate_model(app->nfc_view, ViewModelTypeLocking, sizeof(NfcViewModel));
-    with_view_model(app->nfc_view, NfcViewModel* m, { m->app = app; }, false);
+    with_view_model(app->nfc_view, NfcViewModel * m, { m->app = app; }, false);
     view_set_context(app->nfc_view, app);
     view_set_draw_callback(app->nfc_view, nfc_view_draw);
     view_set_input_callback(app->nfc_view, nfc_view_input);
@@ -752,7 +765,7 @@ int32_t unbank_ln_qr_app(void* p) {
     /* QR view (custom) */
     app->qr_view = view_alloc();
     view_allocate_model(app->qr_view, ViewModelTypeLocking, sizeof(QrViewModel));
-    with_view_model(app->qr_view, QrViewModel* m, { m->app = app; }, false);
+    with_view_model(app->qr_view, QrViewModel * m, { m->app = app; }, false);
     view_set_context(app->qr_view, app);
     view_set_draw_callback(app->qr_view, qr_view_draw);
     view_set_input_callback(app->qr_view, qr_view_input);

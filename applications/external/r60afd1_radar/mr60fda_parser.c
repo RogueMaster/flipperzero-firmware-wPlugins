@@ -135,9 +135,8 @@ void mr60_apply(const Mr60Parser* p, Mr60RadarState* s) {
         if(p->cmd == 0x01 && p->length >= 1) {
             s->fall_detected = (p->data[0] != 0);
         } else if(p->cmd == 0x04 && p->length >= 4) {
-            s->residence_sec =
-                ((uint32_t)p->data[0] << 24) | ((uint32_t)p->data[1] << 16) |
-                ((uint32_t)p->data[2] << 8)  |  (uint32_t)p->data[3];
+            s->residence_sec = ((uint32_t)p->data[0] << 24) | ((uint32_t)p->data[1] << 16) |
+                               ((uint32_t)p->data[2] << 8) | (uint32_t)p->data[3];
         }
     } else if(p->ctrl == 0x85) {
         if(p->cmd == 0x02 && p->length >= 1) {

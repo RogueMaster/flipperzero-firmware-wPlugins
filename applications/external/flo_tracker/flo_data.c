@@ -107,8 +107,7 @@ const char* flo_month_name(uint8_t month) {
 
 const char* flo_month_name_short(uint8_t month) {
     static const char* names[] = {
-        "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+        "", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     if(month >= 1 && month <= 12) return names[month];
     return "???";
 }
@@ -170,8 +169,8 @@ static void flo_recalculate_cycle_stats(FloData* data) {
     int32_t diffs[FLO_MAX_PERIODS];
     uint8_t count = 0;
     for(uint8_t i = 0; i < data->period_count - 1; i++) {
-        int32_t diff = flo_date_diff_days(
-            data->periods[i + 1].start_date, data->periods[i].start_date);
+        int32_t diff =
+            flo_date_diff_days(data->periods[i + 1].start_date, data->periods[i].start_date);
         if(diff > 0 && diff < 60) {
             diffs[count] = diff;
             count++;
@@ -199,7 +198,8 @@ static void flo_recalculate_cycle_stats(FloData* data) {
     /* Integer sqrt approximation */
     int32_t variance = var_sum / count;
     uint8_t stddev = 0;
-    while((int32_t)(stddev + 1) * (stddev + 1) <= variance) stddev++;
+    while((int32_t)(stddev + 1) * (stddev + 1) <= variance)
+        stddev++;
     data->cycle_stddev = stddev;
 }
 

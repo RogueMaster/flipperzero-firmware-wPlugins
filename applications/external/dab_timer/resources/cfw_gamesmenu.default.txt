@@ -18,6 +18,7 @@ GamesMenuList Version 0
 /ext/apps/Games/blackjack_rg.fap
 /ext/apps/Games/bomberduck.fap
 /ext/apps/Games/bomberfox.fap
+/ext/apps/Games/brainy.fap
 /ext/apps/Games/bzzbzz.fap
 /ext/apps/Games/catacombs.fap
 /ext/apps/Games/cell_lab.fap

@@ -15,16 +15,16 @@ WIDTH, HEIGHT = 10, 10
 # Unbank bank silhouette: cornice + gap + architrave + 3 pillar rows
 # + base bar + downward arrow narrowing to a tip.
 rows = [
-    "##########",   # cornice
-    "..........",   # gap
-    "##########",   # architrave
-    "#..#..#..#",   # pillars
+    "##########",  # cornice
+    "..........",  # gap
+    "##########",  # architrave
+    "#..#..#..#",  # pillars
     "#..#..#..#",
     "#..#..#..#",
-    "##########",   # base bar
-    ".########.",   # arrow widest
+    "##########",  # base bar
+    ".########.",  # arrow widest
     "...####...",
-    "....##....",   # arrow tip
+    "....##....",  # arrow tip
 ]
 
 # Pack into PNG (1-bit grayscale)
@@ -34,31 +34,34 @@ raw = bytearray()
 for row in rows:
     raw.append(0)  # filter: None
     padded = row + "......"  # pad each 10-bit row to 16 bits
-    b1 = int(padded[0:8].replace('#', '0').replace('.', '1'), 2)
-    b2 = int(padded[8:16].replace('#', '0').replace('.', '1'), 2)
+    b1 = int(padded[0:8].replace("#", "0").replace(".", "1"), 2)
+    b2 = int(padded[8:16].replace("#", "0").replace(".", "1"), 2)
     raw.append(b1)
     raw.append(b2)
 
 compressed = zlib.compress(bytes(raw), 9)
 
+
 def chunk(tag, data):
     return (
-        struct.pack('>I', len(data))
+        struct.pack(">I", len(data))
         + tag
         + data
-        + struct.pack('>I', zlib.crc32(tag + data))
+        + struct.pack(">I", zlib.crc32(tag + data))
     )
 
-signature = b'\x89PNG\r\n\x1a\n'
-ihdr = chunk(b'IHDR', struct.pack('>IIBBBBB', WIDTH, HEIGHT, 1, 0, 0, 0, 0))
-idat = chunk(b'IDAT', compressed)
-iend = chunk(b'IEND', b'')
+
+signature = b"\x89PNG\r\n\x1a\n"
+ihdr = chunk(b"IHDR", struct.pack(">IIBBBBB", WIDTH, HEIGHT, 1, 0, 0, 0, 0))
+idat = chunk(b"IDAT", compressed)
+iend = chunk(b"IEND", b"")
 
 out = signature + ihdr + idat + iend
 
 import os
-out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icon.png')
-with open(out_path, 'wb') as f:
+
+out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.png")
+with open(out_path, "wb") as f:
     f.write(out)
 
 print(f"Wrote {len(out)} bytes to {out_path}")

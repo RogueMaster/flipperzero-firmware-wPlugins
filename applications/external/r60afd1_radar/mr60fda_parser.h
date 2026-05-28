@@ -40,32 +40,32 @@ typedef enum {
 
 typedef struct {
     Mr60State state;
-    uint8_t   ctrl;
-    uint8_t   cmd;
-    uint16_t  length;
-    uint16_t  data_idx;
-    uint8_t   data[MR60_MAX_PAYLOAD];
-    uint8_t   sum_acc;
+    uint8_t ctrl;
+    uint8_t cmd;
+    uint16_t length;
+    uint16_t data_idx;
+    uint8_t data[MR60_MAX_PAYLOAD];
+    uint8_t sum_acc;
 } Mr60Parser;
 
 // Decoded radar state — what the UI cares about.
 typedef struct {
-    bool     presence;
-    uint8_t  motion;          // 0=none, 1=static, 2=active
-    bool     fall_detected;
+    bool presence;
+    uint8_t motion; // 0=none, 1=static, 2=active
+    bool fall_detected;
     uint32_t residence_sec;
-    uint8_t  body_sign;       // 0x80/0x03 body movement energy (0..255)
-    uint16_t distance_cm;     // 0x80/0x04 distance to person, cm
-    int16_t  pos_x;           // 0x80/0x05 x position, cm (signed)
-    int16_t  pos_y;           // 0x80/0x05 y position, cm (signed)
+    uint8_t body_sign; // 0x80/0x03 body movement energy (0..255)
+    uint16_t distance_cm; // 0x80/0x04 distance to person, cm
+    int16_t pos_x; // 0x80/0x05 x position, cm (signed)
+    int16_t pos_y; // 0x80/0x05 y position, cm (signed)
     // 0x80/0x0E height zone detection
-    uint8_t  height[4];       // detection energy per 50cm zone
-    uint16_t height_total;    // total detection count from 0x0E frame
-    uint8_t  breath_rate;     // 0x81/0x02 breaths per minute
-    uint8_t  heart_rate;      // 0x85/0x02 beats per minute
+    uint8_t height[4]; // detection energy per 50cm zone
+    uint16_t height_total; // total detection count from 0x0E frame
+    uint8_t breath_rate; // 0x81/0x02 breaths per minute
+    uint8_t heart_rate; // 0x85/0x02 beats per minute
     uint32_t frames_total;
     uint32_t frames_bad;
-    uint32_t last_frame_ms;   // furi_get_tick() of last good frame
+    uint32_t last_frame_ms; // furi_get_tick() of last good frame
 } Mr60RadarState;
 
 void mr60_parser_reset(Mr60Parser* p);

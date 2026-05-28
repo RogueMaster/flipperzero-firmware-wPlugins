@@ -3,20 +3,26 @@
 
 // Base melody: G3 → A3 → B3 → C4 → B3 → A3 → G3 → F3
 static const float bg_notes[] = {
-    196.00f, 220.00f, 246.94f, 261.63f,
-    246.94f, 220.00f, 196.00f, 174.61f,
+    196.00f,
+    220.00f,
+    246.94f,
+    261.63f,
+    246.94f,
+    220.00f,
+    196.00f,
+    174.61f,
 };
 #define BG_NOTES_COUNT 8
 
 // Pitch slowly breathes up two semitones and back down every 30 s.
 // Phase changes every 5 s: each step is one semitone (×1.0595).
 static const float pitch_cycle[] = {
-    1.0000f,   // normal
-    1.0595f,   // +1 semitone
-    1.1225f,   // +2 semitones
-    1.0595f,   // +1 semitone
-    1.0000f,   // normal
-    0.9439f,   // -1 semitone
+    1.0000f, // normal
+    1.0595f, // +1 semitone
+    1.1225f, // +2 semitones
+    1.0595f, // +1 semitone
+    1.0000f, // normal
+    0.9439f, // -1 semitone
 };
 #define PITCH_CYCLE_COUNT 6
 
@@ -42,10 +48,10 @@ static int32_t bg_music_thread(void* ctx) {
 }
 
 void bg_music_start(BgMusic* music) {
-    music->idx     = 0;
-    music->active  = false;
+    music->idx = 0;
+    music->active = false;
     music->running = true;
-    music->thread  = furi_thread_alloc_ex("SimonBG", 512, bg_music_thread, music);
+    music->thread = furi_thread_alloc_ex("SimonBG", 512, bg_music_thread, music);
     furi_thread_set_priority(music->thread, FuriThreadPriorityLow);
     furi_thread_start(music->thread);
 }

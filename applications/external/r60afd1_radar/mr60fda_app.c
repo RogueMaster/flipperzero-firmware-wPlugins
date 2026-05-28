@@ -37,23 +37,23 @@ typedef enum {
 } EvType;
 
 typedef struct {
-    EvType     type;
+    EvType type;
     InputEvent input;
 } AppEvent;
 
 typedef struct {
-    FuriMessageQueue*    queue;
+    FuriMessageQueue* queue;
     FuriHalSerialHandle* serial;
-    FuriStreamBuffer*    rx;
-    FuriMutex*           mtx;
-    ViewPort*            vp;
-    Gui*                 gui;
+    FuriStreamBuffer* rx;
+    FuriMutex* mtx;
+    ViewPort* vp;
+    Gui* gui;
 
-    Mr60Parser           parser;
-    Mr60RadarState       state;
+    Mr60Parser parser;
+    Mr60RadarState state;
 
-    bool                 quit;
-    bool                 serial_error;
+    bool quit;
+    bool serial_error;
 } App;
 
 static void render(Canvas* c, void* ctx) {
@@ -80,8 +80,7 @@ static void render(Canvas* c, void* ctx) {
         return;
     }
 
-    const bool live = s.last_frame_ms &&
-                      (furi_get_tick() - s.last_frame_ms) < 2000;
+    const bool live = s.last_frame_ms && (furi_get_tick() - s.last_frame_ms) < 2000;
 
     /* ══ Header (inverted) ════════════════════════════════ */
     canvas_set_color(c, ColorBlack);
@@ -148,8 +147,10 @@ static void render(Canvas* c, void* ctx) {
     /* Motion */
     canvas_draw_str(c, 66, 30, "Mot");
     const char* mot = "none";
-    if(s.motion == 1) mot = "static";
-    else if(s.motion == 2) mot = "active";
+    if(s.motion == 1)
+        mot = "static";
+    else if(s.motion == 2)
+        mot = "active";
     canvas_draw_str_aligned(c, 126, 30, AlignRight, AlignBottom, mot);
 
     /* Fall — inverted alarm box when triggered */
@@ -180,12 +181,12 @@ static void render(Canvas* c, void* ctx) {
         // 6 bars
         static const uint8_t bar_h[6] = {2, 4, 6, 8, 10, 12};
         for(int i = 0; i < 6; i++) {
-            int x = 14 + i * 7;          // 5px bar + 2px gap
+            int x = 14 + i * 7; // 5px bar + 2px gap
             uint8_t h2 = bar_h[i];
-            int y = 63 - h2 + 1;          // grow upward from baseline y=63
+            int y = 63 - h2 + 1; // grow upward from baseline y=63
             if(val > (uint8_t)(i * 17)) { // filled
                 canvas_draw_box(c, x, y, 5, h2);
-            } else {                       // outline only
+            } else { // outline only
                 canvas_draw_frame(c, x, y, 5, h2);
             }
         }
@@ -218,9 +219,9 @@ int32_t mr60fda_app(void* arg) {
     memset(app, 0, sizeof(App));
     mr60_parser_reset(&app->parser);
 
-    app->mtx   = furi_mutex_alloc(FuriMutexTypeNormal);
+    app->mtx = furi_mutex_alloc(FuriMutexTypeNormal);
     app->queue = furi_message_queue_alloc(32, sizeof(AppEvent));
-    app->rx    = furi_stream_buffer_alloc(MR60_RX_BUFSIZE, 1);
+    app->rx = furi_stream_buffer_alloc(MR60_RX_BUFSIZE, 1);
 
     // GUI must be up before serial so error screen can be shown.
     app->vp = view_port_alloc();
@@ -239,9 +240,8 @@ int32_t mr60fda_app(void* arg) {
         view_port_update(app->vp);
         AppEvent e;
         while(furi_message_queue_get(app->queue, &e, FuriWaitForever) == FuriStatusOk) {
-            if(e.type == EvInput &&
-               e.input.type == InputTypeShort &&
-               e.input.key == InputKeyBack) break;
+            if(e.type == EvInput && e.input.type == InputTypeShort && e.input.key == InputKeyBack)
+                break;
         }
         furi_hal_power_disable_otg();
         gui_remove_view_port(app->gui, app->vp);
@@ -258,7 +258,8 @@ int32_t mr60fda_app(void* arg) {
 
     // Query current presence state (radar only reports on change).
     // 53 59 80 81 00 01 0F BD 54 43
-    static const uint8_t presence_query[] = {0x53,0x59,0x80,0x81,0x00,0x01,0x0F,0xBD,0x54,0x43};
+    static const uint8_t presence_query[] = {
+        0x53, 0x59, 0x80, 0x81, 0x00, 0x01, 0x0F, 0xBD, 0x54, 0x43};
     furi_hal_serial_tx(app->serial, presence_query, sizeof(presence_query));
 
     AppEvent e;

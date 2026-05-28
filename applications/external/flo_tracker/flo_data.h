@@ -3,10 +3,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define FLO_MAX_PERIODS 24
-#define FLO_DEFAULT_CYCLE_LENGTH 28
+#define FLO_MAX_PERIODS             24
+#define FLO_DEFAULT_CYCLE_LENGTH    28
 #define FLO_DEFAULT_PERIOD_DURATION 5
-#define FLO_SAVE_PATH APP_DATA_PATH("flo_data.bin")
+#define FLO_SAVE_PATH               APP_DATA_PATH("flo_data.bin")
 
 #define FLO_DATA_MAGIC 0x464C4F32 /* "FLO2" - v2 with weighted avg + stddev */
 
@@ -23,11 +23,11 @@ typedef struct {
 
 typedef struct {
     uint32_t magic;
-    uint8_t cycle_length;          /* average cycle length in days */
+    uint8_t cycle_length; /* average cycle length in days */
     uint8_t default_period_duration; /* default/average period duration */
-    uint8_t period_count;          /* number of logged periods */
-    uint8_t cycle_stddev;          /* standard deviation of cycle lengths */
-    bool auto_cycle_length;        /* true = auto-calculated, false = manual override */
+    uint8_t period_count; /* number of logged periods */
+    uint8_t cycle_stddev; /* standard deviation of cycle lengths */
+    bool auto_cycle_length; /* true = auto-calculated, false = manual override */
     FloPeriodEntry periods[FLO_MAX_PERIODS]; /* most recent first */
 } FloData;
 

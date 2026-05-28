@@ -60,11 +60,11 @@ typedef enum {
 } SimonState;
 
 typedef enum {
-    SimonBtnUp    = 0,
+    SimonBtnUp = 0,
     SimonBtnRight = 1,
-    SimonBtnDown  = 2,
-    SimonBtnLeft  = 3,
-    SimonBtnNone  = 0xFF,
+    SimonBtnDown = 2,
+    SimonBtnLeft = 3,
+    SimonBtnNone = 0xFF,
 } SimonBtn;
 
 typedef struct {
@@ -92,29 +92,29 @@ static const NotificationSequence seq_lose = {
 };
 
 typedef struct {
-    SimonState     state;
-    uint8_t        sequence[MAX_SEQUENCE];
-    uint8_t        seq_len;
-    uint8_t        show_step;
-    uint8_t        input_step;
-    SimonBtn       lit_btn;
-    uint32_t       high_score;
-    uint32_t       tick_phase;
-    ParticleSystem    particles;
-    BgMusic           music;
-    NotificationApp*  notifications;
-    FuriMutex*        mutex;
+    SimonState state;
+    uint8_t sequence[MAX_SEQUENCE];
+    uint8_t seq_len;
+    uint8_t show_step;
+    uint8_t input_step;
+    SimonBtn lit_btn;
+    uint32_t high_score;
+    uint32_t tick_phase;
+    ParticleSystem particles;
+    BgMusic music;
+    NotificationApp* notifications;
+    FuriMutex* mutex;
     FuriMessageQueue* queue;
-    bool           running;
+    bool running;
 } SimonApp;
 
 // ---- Audio ----------------------------------------------------------------
 
 static const float simon_freq[4] = {
-    659.25f,  // Up    — E5
-    783.99f,  // Right — G5
-    523.25f,  // Down  — C5
-    440.00f,  // Left  — A4
+    659.25f, // Up    — E5
+    783.99f, // Right — G5
+    523.25f, // Down  — C5
+    440.00f, // Left  — A4
 };
 
 static void play_tone(SimonBtn btn, uint32_t duration_ms) {
@@ -150,22 +150,22 @@ static void play_fail_sound(void) {
 // Cell 14×14, gap 3px → 48×48px span, centred on 128px → GRID_X=40
 
 #define BTN_SIZE 14
-#define BTN_PAD   3
+#define BTN_PAD  3
 #define GRID_X   40
-#define GRID_Y    8
+#define GRID_Y   8
 #define STEP     (BTN_SIZE + BTN_PAD)
 
 static const uint8_t btn_x[4] = {
-    GRID_X + STEP,      // Up    — centre column
-    GRID_X + 2 * STEP,  // Right — right column
-    GRID_X + STEP,      // Down  — centre column
-    GRID_X,             // Left  — left column
+    GRID_X + STEP, // Up    — centre column
+    GRID_X + 2 * STEP, // Right — right column
+    GRID_X + STEP, // Down  — centre column
+    GRID_X, // Left  — left column
 };
 static const uint8_t btn_y[4] = {
-    GRID_Y,             // Up    — top row
-    GRID_Y + STEP,      // Right — middle row
-    GRID_Y + 2 * STEP,  // Down  — bottom row
-    GRID_Y + STEP,      // Left  — middle row
+    GRID_Y, // Up    — top row
+    GRID_Y + STEP, // Right — middle row
+    GRID_Y + 2 * STEP, // Down  — bottom row
+    GRID_Y + STEP, // Left  — middle row
 };
 
 static void draw_arrow(Canvas* canvas, SimonBtn btn, uint8_t x, uint8_t y) {
@@ -173,23 +173,23 @@ static void draw_arrow(Canvas* canvas, SimonBtn btn, uint8_t x, uint8_t y) {
     uint8_t cy = y + BTN_SIZE / 2;
     switch(btn) {
     case SimonBtnUp:
-        canvas_draw_line(canvas, cx,     cy - 3, cx - 4, cy + 3);
-        canvas_draw_line(canvas, cx,     cy - 3, cx + 4, cy + 3);
+        canvas_draw_line(canvas, cx, cy - 3, cx - 4, cy + 3);
+        canvas_draw_line(canvas, cx, cy - 3, cx + 4, cy + 3);
         canvas_draw_line(canvas, cx - 4, cy + 3, cx + 4, cy + 3);
         break;
     case SimonBtnRight:
-        canvas_draw_line(canvas, cx + 3, cy,     cx - 3, cy - 4);
-        canvas_draw_line(canvas, cx + 3, cy,     cx - 3, cy + 4);
+        canvas_draw_line(canvas, cx + 3, cy, cx - 3, cy - 4);
+        canvas_draw_line(canvas, cx + 3, cy, cx - 3, cy + 4);
         canvas_draw_line(canvas, cx - 3, cy - 4, cx - 3, cy + 4);
         break;
     case SimonBtnDown:
-        canvas_draw_line(canvas, cx,     cy + 3, cx - 4, cy - 3);
-        canvas_draw_line(canvas, cx,     cy + 3, cx + 4, cy - 3);
+        canvas_draw_line(canvas, cx, cy + 3, cx - 4, cy - 3);
+        canvas_draw_line(canvas, cx, cy + 3, cx + 4, cy - 3);
         canvas_draw_line(canvas, cx - 4, cy - 3, cx + 4, cy - 3);
         break;
     case SimonBtnLeft:
-        canvas_draw_line(canvas, cx - 3, cy,     cx + 3, cy - 4);
-        canvas_draw_line(canvas, cx - 3, cy,     cx + 3, cy + 4);
+        canvas_draw_line(canvas, cx - 3, cy, cx + 3, cy - 4);
+        canvas_draw_line(canvas, cx - 3, cy, cx + 3, cy + 4);
         canvas_draw_line(canvas, cx + 3, cy - 4, cx + 3, cy + 4);
         break;
     default:
@@ -273,7 +273,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str_aligned(canvas, 1, 63, AlignLeft, AlignBottom, "Watch...");
         } else {
             char hint[12];
-            snprintf(hint, sizeof(hint), "%u/%u", (unsigned)app->input_step + 1, (unsigned)app->seq_len);
+            snprintf(
+                hint, sizeof(hint), "%u/%u", (unsigned)app->input_step + 1, (unsigned)app->seq_len);
             canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, hint);
         }
     }
@@ -306,14 +307,14 @@ static void add_to_sequence(SimonApp* app) {
 
 static void game_start(SimonApp* app) {
     srand((unsigned)furi_get_tick());
-    app->seq_len    = 1;
+    app->seq_len = 1;
     app->sequence[0] = (uint8_t)(rand() % 4);
-    app->show_step  = 0;
+    app->show_step = 0;
     app->input_step = 0;
-    app->lit_btn    = SimonBtnNone;
-    app->state      = SimonStateShowSequence;
+    app->lit_btn = SimonBtnNone;
+    app->state = SimonStateShowSequence;
     app->tick_phase = 0;
-    app->music.idx    = 0;
+    app->music.idx = 0;
     app->music.active = true;
 }
 
@@ -324,11 +325,11 @@ int32_t brainy(void* p) {
 
     SimonApp* app = malloc(sizeof(SimonApp));
     memset(app, 0, sizeof(SimonApp));
-    app->mutex    = furi_mutex_alloc(FuriMutexTypeNormal);
-    app->queue    = furi_message_queue_alloc(8, sizeof(SimonEvent));
-    app->state      = SimonStateTitle;
-    app->lit_btn    = SimonBtnNone;
-    app->running    = true;
+    app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    app->queue = furi_message_queue_alloc(8, sizeof(SimonEvent));
+    app->state = SimonStateTitle;
+    app->lit_btn = SimonBtnNone;
+    app->running = true;
     app->high_score = load_high_score();
 
     particle_system_init(&app->particles);
@@ -388,11 +389,20 @@ int32_t brainy(void* p) {
             if(app->state == SimonStateWaitInput && ie->type == InputTypeShort) {
                 SimonBtn pressed = SimonBtnNone;
                 switch(ie->key) {
-                case InputKeyUp:    pressed = SimonBtnUp;    break;
-                case InputKeyRight: pressed = SimonBtnRight; break;
-                case InputKeyDown:  pressed = SimonBtnDown;  break;
-                case InputKeyLeft:  pressed = SimonBtnLeft;  break;
-                default: break;
+                case InputKeyUp:
+                    pressed = SimonBtnUp;
+                    break;
+                case InputKeyRight:
+                    pressed = SimonBtnRight;
+                    break;
+                case InputKeyDown:
+                    pressed = SimonBtnDown;
+                    break;
+                case InputKeyLeft:
+                    pressed = SimonBtnLeft;
+                    break;
+                default:
+                    break;
                 }
 
                 if(pressed != SimonBtnNone) {
@@ -421,11 +431,12 @@ int32_t brainy(void* p) {
                                     app->high_score = app->seq_len - 1;
                                     save_high_score(app->high_score);
                                 }
-                                app->show_step  = 0;
+                                app->show_step = 0;
                                 app->input_step = 0;
-                                app->state      = SimonStateShowSequence;
+                                app->state = SimonStateShowSequence;
                                 app->tick_phase = 0;
-                                show_next_at = furi_get_tick() +
+                                show_next_at =
+                                    furi_get_tick() +
                                     (uint32_t)(SHOW_PAUSE_MS * 2 * get_speed_factor(app->seq_len));
                             }
                         }
@@ -450,9 +461,9 @@ int32_t brainy(void* p) {
         if(app->state == SimonStateShowSequence) {
             uint32_t now = furi_get_tick();
             if(now >= show_next_at) {
-                float sf       = get_speed_factor(app->seq_len);
-                uint32_t note_ms  = (uint32_t)(SHOW_DURATION_MS * sf);
-                uint32_t pause_ms = (uint32_t)(SHOW_PAUSE_MS    * sf);
+                float sf = get_speed_factor(app->seq_len);
+                uint32_t note_ms = (uint32_t)(SHOW_DURATION_MS * sf);
+                uint32_t pause_ms = (uint32_t)(SHOW_PAUSE_MS * sf);
                 if(app->tick_phase == 0) {
                     SimonBtn b = (SimonBtn)app->sequence[app->show_step];
                     app->lit_btn = b;

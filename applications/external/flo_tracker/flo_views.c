@@ -68,19 +68,18 @@ static void flo_status_draw(Canvas* canvas, void* _model) {
         if(fw_start_in <= 0 && fw_end_in >= 0) {
             canvas_draw_str(canvas, 2, 51, "Fertile window: NOW");
         } else if(fw_start_in > 0) {
-            snprintf(
-                buf,
-                sizeof(buf),
-                "Fertile window in %ld days",
-                (long)fw_start_in);
+            snprintf(buf, sizeof(buf), "Fertile window in %ld days", (long)fw_start_in);
             canvas_draw_str(canvas, 2, 51, buf);
         }
 
         /* Avg cycle with variability */
         if(data->cycle_stddev > 0) {
             snprintf(
-                buf, sizeof(buf), "Cycle: %u+/-%u days%s",
-                data->cycle_length, data->cycle_stddev,
+                buf,
+                sizeof(buf),
+                "Cycle: %u+/-%u days%s",
+                data->cycle_length,
+                data->cycle_stddev,
                 flo_is_cycle_irregular(data) ? " (!)" : "");
         } else {
             snprintf(buf, sizeof(buf), "Avg cycle: %u days", data->cycle_length);
@@ -98,11 +97,7 @@ static bool flo_status_input(InputEvent* event, void* context) {
 View* flo_status_view_alloc(FloData* data) {
     View* view = view_alloc();
     view_allocate_model(view, ViewModelTypeLocking, sizeof(FloStatusModel));
-    with_view_model(
-        view,
-        FloStatusModel * model,
-        { model->data = data; },
-        true);
+    with_view_model(view, FloStatusModel * model, { model->data = data; }, true);
     view_set_draw_callback(view, flo_status_draw);
     view_set_input_callback(view, flo_status_input);
     return view;
@@ -255,7 +250,10 @@ static void flo_log_draw(Canvas* canvas, void* _model) {
 
     /* Month */
     snprintf(
-        buf, sizeof(buf), "Month:    %u (%s)", model->date.month,
+        buf,
+        sizeof(buf),
+        "Month:    %u (%s)",
+        model->date.month,
         flo_month_name_short(model->date.month));
     canvas_draw_str(canvas, 4, 35, buf);
     if(model->field == 1) canvas_draw_str(canvas, 0, 35, ">");
@@ -317,8 +315,7 @@ static bool flo_log_input(InputEvent* event, void* context) {
                     if(model->date.month < 12) model->date.month++;
                     break;
                 case 2: {
-                    uint8_t max =
-                        flo_days_in_month(model->date.year, model->date.month);
+                    uint8_t max = flo_days_in_month(model->date.year, model->date.month);
                     if(model->date.day < max) model->date.day++;
                     break;
                 }
@@ -347,8 +344,7 @@ static bool flo_log_input(InputEvent* event, void* context) {
                 }
             }
             /* Clamp day to valid range after month/year change */
-            uint8_t max_day =
-                flo_days_in_month(model->date.year, model->date.month);
+            uint8_t max_day = flo_days_in_month(model->date.year, model->date.month);
             if(model->date.day > max_day) model->date.day = max_day;
         },
         true);
