@@ -1,0 +1,13 @@
+App(
+    appid="flo_tracker",
+    name="Flo Period Tracker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flo_tracker_app",
+    stack_size=2 * 1024,
+    fap_icon="icons/flo_10x10.png",
+    fap_category="Tools",
+    fap_icon_assets="icons",
+    fap_author="harimwoo",
+    fap_version=(1, 0),
+    fap_description="Period and menstrual cycle tracker for women's health",
+)
