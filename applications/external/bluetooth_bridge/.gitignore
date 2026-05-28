@@ -1,0 +1,13 @@
+.ufbt/
+build/
+dist/
+.vscode/
+*.o
+commit_hash.h
+*.elf
+*.fap
+*.d
+_test_rpc.py
+ble_rpc_update.py
+ble_update.py
+flipper_crash.log

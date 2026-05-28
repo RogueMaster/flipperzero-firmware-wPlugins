@@ -1,0 +1,78 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: install ufbt
+      run: pip install ufbt
+
+    - name: static checks
+      run: |
+        ENTRY=$(grep 'entry_point=' application.fam | sed 's/.*entry_point="\([^"]*\)".*/\1/')
+        grep -q "int32_t ${ENTRY}(void\* p)" bluetooth_bridge.c
+        OPENS=$(grep -c 'furi_record_open' bluetooth_bridge.c)
+        CLOSES=$(grep -c 'furi_record_close' bluetooth_bridge.c)
+        [ "$OPENS" -eq "$CLOSES" ]
+        grep -q 'bt_profile_restore_default' bluetooth_bridge.c
+
+    - name: generate commit hash
+      run: echo "#define COMMIT_HASH \"$(git rev-parse --short HEAD)\"" > commit_hash.h
+
+    - name: build
+      run: ufbt
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bluetooth_bridge.fap
+        path: dist/bluetooth_bridge.fap
+
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: bluetooth_bridge.fap
+
+    - name: get version
+      id: version
+      run: |
+        VERSION=$(grep 'fap_version=' application.fam | sed 's/.*fap_version="\([^"]*\)".*/\1/')
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+    - name: check if tag exists
+      id: check_tag
+      run: |
+        if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: create release
+      if: steps.check_tag.outputs.exists == 'false'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.tag }}
+        name: ${{ steps.version.outputs.tag }}
+        files: bluetooth_bridge.fap
+        generate_release_notes: true

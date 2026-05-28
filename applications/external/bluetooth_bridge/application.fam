@@ -1,0 +1,16 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="bluetooth_bridge",
+    name="Bluetooth Bridge",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="bluetooth_bridge_app",
+    stack_size=4 * 1024,
+    fap_category="Bluetooth",
+    fap_version="0.1",
+    fap_icon="bluetooth_bridge.png",
+    fap_description="Remote management of Flipper Zero over Bluetooth — bridges BLE serial to GPIO UART",
+    fap_author="vova",
+    fap_icon_assets="images",
+    requires=["bt", "storage", "loader"],
+)
