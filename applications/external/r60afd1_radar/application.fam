@@ -1,0 +1,17 @@
+App(
+    appid="mr60fda_radar",
+    name="MR60FDA Radar",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mr60fda_app",
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_author="Alexandr",
+    fap_version="0.1",
+    fap_description="Seeed R60AFD1 / MR60FDA fall detection radar viewer",
+    fap_icon="icon.png",
+    sources=[
+        "mr60fda_app.c",
+        "mr60fda_parser.c",
+    ],
+)

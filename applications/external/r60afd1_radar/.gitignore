@@ -1,0 +1,11 @@
+# uFBT build artifacts
+dist/
+.vscode/compile_commands.json
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
