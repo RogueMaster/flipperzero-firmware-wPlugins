@@ -79,7 +79,7 @@ typedef struct {
     FuriMutex* mutex;
 } App;
 
-#define PLANT_SAVE_PATH  EXT_PATH("apps_data/ssd1306_test.sav")
+#define PLANT_SAVE_PATH  EXT_PATH("apps_data/ssd1306_test/ssd1306_test.sav")
 #define PLANT_SAVE_MAGIC 0xB07A81C5
 
 typedef struct {
@@ -113,8 +113,9 @@ static void save_plant_state(App* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
-    // Ensure apps_data exists
+    // Ensure save directory exists
     storage_common_mkdir(storage, EXT_PATH("apps_data"));
+    storage_common_mkdir(storage, EXT_PATH("apps_data/ssd1306_test"));
 
     if(storage_file_open(file, PLANT_SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         PlantSaveState state;

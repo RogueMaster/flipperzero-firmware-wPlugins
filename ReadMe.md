@@ -58,6 +58,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [NestBridge v1.0 (By Bibfortuna5057)](https://github.com/Bibfortuna5057/NestBridge-Flipper)
 - Added: [Pocket CVSS v0.3 (By vavkamil)](https://github.com/vavkamil/pocket-cvss)
 - Added: [ZeroMesh v2.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh)
+- Fix Cell Lab reference in Game Menu (By RogueMaster)
+- Updated: [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test)
 
 <a name="release"></a>
 
