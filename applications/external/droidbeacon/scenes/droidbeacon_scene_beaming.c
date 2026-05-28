@@ -19,10 +19,10 @@ static bool start_beacon(DroidbeaconApp* app) {
     // Build the advertisement data — matches working JS script format:
     // Uint8Array([0x09, 0xFF, 0x83, 0x01, 0x0A, 0x04, XX, 0x02, 0xA6, 0x01])
     uint8_t adv_data[] = {
-        0x09,                  // AD length (9 bytes follow)
-        0xFF,                  // AD type: manufacturer specific
-        DISNEY_MFR_ID_LO,      // 0x83 — Disney mfr ID low byte
-        DISNEY_MFR_ID_HI,      // 0x01 — Disney mfr ID high byte
+        0x09, // AD length (9 bytes follow)
+        0xFF, // AD type: manufacturer specific
+        DISNEY_MFR_ID_LO, // 0x83 — Disney mfr ID low byte
+        DISNEY_MFR_ID_HI, // 0x01 — Disney mfr ID high byte
         beacon->payload[0],
         beacon->payload[1],
         beacon->payload[2],
@@ -35,10 +35,10 @@ static bool start_beacon(DroidbeaconApp* app) {
     GapExtraBeaconConfig config = {
         .min_adv_interval_ms = 50,
         .max_adv_interval_ms = 150,
-        .adv_channel_map     = GapAdvChannelMapAll,
-        .adv_power_level     = GapAdvPowerLevel_6dBm,
-        .address_type        = GapAddressTypePublic,
-        .address             = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC },
+        .adv_channel_map = GapAdvChannelMapAll,
+        .adv_power_level = GapAdvPowerLevel_6dBm,
+        .address_type = GapAddressTypePublic,
+        .address = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC},
     };
 
     if(!furi_hal_bt_extra_beacon_set_config(&config)) return false;
@@ -53,10 +53,14 @@ static void update_beaming_widget(DroidbeaconApp* app) {
 
     const DroidBeacon* beacon = &DROID_BEACONS[app->selected_beacon];
 
-    widget_add_string_element(app->beaming_widget, 64, 4,  AlignCenter, AlignTop, FontPrimary,   beacon->name);
-    widget_add_string_element(app->beaming_widget, 64, 20, AlignCenter, AlignTop, FontSecondary, beacon->description);
-    widget_add_string_element(app->beaming_widget, 64, 34, AlignCenter, AlignTop, FontSecondary, "Broadcasting...");
-    widget_add_button_element(app->beaming_widget, GuiButtonTypeLeft,  "Stop",    beaming_button_callback, app);
+    widget_add_string_element(
+        app->beaming_widget, 64, 4, AlignCenter, AlignTop, FontPrimary, beacon->name);
+    widget_add_string_element(
+        app->beaming_widget, 64, 20, AlignCenter, AlignTop, FontSecondary, beacon->description);
+    widget_add_string_element(
+        app->beaming_widget, 64, 34, AlignCenter, AlignTop, FontSecondary, "Broadcasting...");
+    widget_add_button_element(
+        app->beaming_widget, GuiButtonTypeLeft, "Stop", beaming_button_callback, app);
 }
 
 static void beaming_button_callback(GuiButtonType result, InputType type, void* context) {

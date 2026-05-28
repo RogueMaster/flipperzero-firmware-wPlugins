@@ -13,12 +13,18 @@ void droidbeacon_scene_splash_on_enter(void* context) {
     DroidbeaconApp* app = context;
 
     widget_reset(app->splash_widget);
-    widget_add_string_element(app->splash_widget, 64, 0,  AlignCenter, AlignTop, FontPrimary,   "Droid Beacon");
-    widget_add_string_element(app->splash_widget, 8,  12, AlignLeft,   AlignTop, FontSecondary, "Emulate Galaxy's Edge");
-    widget_add_string_element(app->splash_widget, 8,  22, AlignLeft,   AlignTop, FontSecondary, "park location beacons");
-    widget_add_string_element(app->splash_widget, 8,  32, AlignLeft,   AlignTop, FontSecondary, "for Droid Depot droids");
-    widget_add_string_element(app->splash_widget, 8,  42, AlignLeft,   AlignTop, FontSecondary, "DBAD: Don't use at Disney");
-    widget_add_button_element(app->splash_widget, GuiButtonTypeRight, "Next", splash_button_callback, app);
+    widget_add_string_element(
+        app->splash_widget, 64, 0, AlignCenter, AlignTop, FontPrimary, "Droid Beacon");
+    widget_add_string_element(
+        app->splash_widget, 8, 12, AlignLeft, AlignTop, FontSecondary, "Emulate Galaxy's Edge");
+    widget_add_string_element(
+        app->splash_widget, 8, 22, AlignLeft, AlignTop, FontSecondary, "park location beacons");
+    widget_add_string_element(
+        app->splash_widget, 8, 32, AlignLeft, AlignTop, FontSecondary, "for Droid Depot droids");
+    widget_add_string_element(
+        app->splash_widget, 8, 42, AlignLeft, AlignTop, FontSecondary, "DBAD: Don't use at Disney");
+    widget_add_button_element(
+        app->splash_widget, GuiButtonTypeRight, "Next", splash_button_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, DroidbeaconViewSplash);
 }

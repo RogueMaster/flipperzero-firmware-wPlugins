@@ -17,9 +17,13 @@ void droidbeacon_scene_result_on_enter(void* context) {
     popup_set_timeout(app->result_popup, 2000);
 
     popup_set_header(app->result_popup, "Beacon Stopped", 64, 10, AlignCenter, AlignTop);
-    popup_set_text(app->result_popup,
+    popup_set_text(
+        app->result_popup,
         DROID_BEACONS[app->selected_beacon].name,
-        64, 32, AlignCenter, AlignCenter);
+        64,
+        32,
+        AlignCenter,
+        AlignCenter);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, DroidbeaconViewResult);
 }

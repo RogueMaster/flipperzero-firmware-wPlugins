@@ -25,44 +25,44 @@
 typedef struct {
     const char* name;
     const char* description;
-    uint8_t     payload[6]; // the 6 location bytes after manufacturer ID
+    uint8_t payload[6]; // the 6 location bytes after manufacturer ID
 } DroidBeacon;
 
 static const DroidBeacon DROID_BEACONS[] = {
     {
         "Market",
         "Black Spire Outpost market",
-        { 0x0A, 0x04, 0x01, 0x02, 0xA6, 0x01 },
+        {0x0A, 0x04, 0x01, 0x02, 0xA6, 0x01},
     },
     {
         "Droid Depot",
         "Build your own droid",
-        { 0x0A, 0x04, 0x02, 0x02, 0xA6, 0x01 },
+        {0x0A, 0x04, 0x02, 0x02, 0xA6, 0x01},
     },
     {
         "Resistance",
         "Resistance base area",
-        { 0x0A, 0x04, 0x03, 0x02, 0xA6, 0x01 },
+        {0x0A, 0x04, 0x03, 0x02, 0xA6, 0x01},
     },
     {
         "Rides",
         "Rise of Resistance / Falcon",
-        { 0x0A, 0x04, 0x04, 0x02, 0xA6, 0x01 },
+        {0x0A, 0x04, 0x04, 0x02, 0xA6, 0x01},
     },
     {
         "Cantina",
         "Oga's Cantina",
-        { 0x0A, 0x04, 0x05, 0x02, 0xA6, 0x01 },
+        {0x0A, 0x04, 0x05, 0x02, 0xA6, 0x01},
     },
     {
         "Dok Ondar / Savi's",
         "Ancient relics & lightsabers",
-        { 0x0A, 0x04, 0x06, 0x02, 0xA6, 0x01 },
+        {0x0A, 0x04, 0x06, 0x02, 0xA6, 0x01},
     },
     {
         "First Order",
         "First Order territory",
-        { 0x0A, 0x04, 0x07, 0x02, 0xA6, 0x01 },
+        {0x0A, 0x04, 0x07, 0x02, 0xA6, 0x01},
     },
 };
 
@@ -108,19 +108,19 @@ typedef enum {
 
 // ── App state ────────────────────────────────────────────────────────────────
 typedef struct {
-    Gui*             gui;
-    ViewDispatcher*  view_dispatcher;
-    SceneManager*    scene_manager;
+    Gui* gui;
+    ViewDispatcher* view_dispatcher;
+    SceneManager* scene_manager;
     NotificationApp* notifications;
 
     // Views
-    Widget*  splash_widget;
+    Widget* splash_widget;
     Submenu* menu;
-    Widget*  beaming_widget;
-    Popup*   result_popup;
+    Widget* beaming_widget;
+    Popup* result_popup;
 
-// @FZGEN_BEGIN struct_fields
+    // @FZGEN_BEGIN struct_fields
     uint8_t selected_beacon;
-    bool    is_beaming;
-// @FZGEN_END struct_fields
+    bool is_beaming;
+    // @FZGEN_END struct_fields
 } DroidbeaconApp;

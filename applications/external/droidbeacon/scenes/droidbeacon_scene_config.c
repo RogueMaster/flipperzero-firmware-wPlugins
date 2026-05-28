@@ -24,6 +24,6 @@ static void (*const droidbeacon_on_exit_handlers[])(void*) = {
 const SceneManagerHandlers droidbeacon_scene_handlers = {
     .on_enter_handlers = droidbeacon_on_enter_handlers,
     .on_event_handlers = droidbeacon_on_event_handlers,
-    .on_exit_handlers  = droidbeacon_on_exit_handlers,
-    .scene_num         = DroidbeaconSceneCount,
+    .on_exit_handlers = droidbeacon_on_exit_handlers,
+    .scene_num = DroidbeaconSceneCount,
 };
