@@ -1,0 +1,15 @@
+App(
+    appid="unbank_ln_qr",
+    name="Unbank LN QR",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="unbank_ln_qr_app",
+    requires=["gui"],
+    stack_size=8 * 1024,
+    fap_category="Tools",
+    fap_icon="icon.png",
+    fap_author="Unbank",
+    fap_weburl="https://unbank.com",
+    fap_version="1.0",
+    fap_description="Display Lightning Address QR codes for receiving sats over the Lightning Network.",
+    sources=["*.c"],
+)
