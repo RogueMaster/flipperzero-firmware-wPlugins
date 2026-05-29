@@ -45,6 +45,7 @@ struct StrataHeroGameWidget {
     FuriTimer* gameplay_timer;
     FuriTimer* gameover_timer;
     FuriTimer* invalid_code_timer;
+    FuriTimer* score_popup_timer;
 
     StrataHeroGameWidgetNavigationCallback navigation_callback;
     void* navigation_callback_context;
@@ -72,6 +73,7 @@ typedef struct {
     int perfect_bonus;
 
     int score;
+    int score_popup_points;
 
     int stats_view_count;
 
@@ -201,6 +203,15 @@ static void invalid_code_timer_callback(void* context) {
     }, true);
 }
 
+static void score_popup_timer_callback(void* context) {
+    furi_assert(context);
+    StrataHeroGameWidget* widget = context;
+
+    with_widget_model(widget, model, {
+        model->score_popup_points = 0;
+    }, true);
+}
+
 
 static void draw_intro(Canvas* canvas, StrataHeroGameModel* model) {
     char buffer[32];
@@ -231,6 +242,12 @@ static void draw_gameplay(Canvas* canvas, StrataHeroGameModel* model) {
     canvas_set_font(canvas, FontPrimary);
     snprintf(buffer, sizeof(buffer)-1, "%d", model->score);
     canvas_draw_str_aligned(canvas, SCREEN_WIDTH, SCREEN_HEIGHT, AlignRight, AlignBottom, buffer);
+
+    if(model->score_popup_points > 0) {
+        snprintf(buffer, sizeof(buffer)-1, "+%d", model->score_popup_points);
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, SCREEN_WIDTH, SCREEN_HEIGHT - 12, AlignRight, AlignBottom, buffer);
+    }
 
     // Display stratagem queue
     int offset_x = 5;
@@ -425,9 +442,11 @@ static bool input_callback(InputEvent* event, void* context) {
                         with_widget_model(widget, model, {
                             model->current_code_progress++;
                             if (model->current_code_progress >= model->current_code_length) {
-
-                                model->score += model->current_code_length * 5;
+                                int points = model->current_code_length * 5;
+                                model->score += points;
                                 model->remaining_time += CODE_TIME_BONUS;
+                                model->score_popup_points = points;
+                                furi_timer_start(widget->score_popup_timer, 1000);
 
                                 next_code(model);
                                 if (model->current_view == GameView_Stats) {
@@ -524,6 +543,7 @@ static void exit_callback(void* context) {
     furi_timer_stop(widget->gameplay_timer);
     furi_timer_stop(widget->gameover_timer);
     furi_timer_stop(widget->invalid_code_timer);
+    furi_timer_stop(widget->score_popup_timer);
 }
 
 StrataHeroGameWidget* stratahero_game_widget_alloc() {
@@ -541,6 +561,7 @@ StrataHeroGameWidget* stratahero_game_widget_alloc() {
     widget->gameplay_timer = furi_timer_alloc(gameplay_timer_callback, FuriTimerTypePeriodic, widget);
     widget->gameover_timer = furi_timer_alloc(gameover_timer_callback, FuriTimerTypeOnce, widget);
     widget->invalid_code_timer = furi_timer_alloc(invalid_code_timer_callback, FuriTimerTypeOnce, widget);
+    widget->score_popup_timer = furi_timer_alloc(score_popup_timer_callback, FuriTimerTypeOnce, widget);
 
     widget->navigation_callback = NULL;
     widget->navigation_callback_context = NULL;
@@ -565,6 +586,9 @@ void stratahero_game_widget_free(StrataHeroGameWidget* widget) {
 
     furi_timer_stop(widget->invalid_code_timer);
     furi_timer_free(widget->invalid_code_timer);
+
+    furi_timer_stop(widget->score_popup_timer);
+    furi_timer_free(widget->score_popup_timer);
 
     view_free(widget->view);
     free(widget);
