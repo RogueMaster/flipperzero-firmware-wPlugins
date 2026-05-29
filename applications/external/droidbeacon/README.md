@@ -41,7 +41,7 @@ itself determines what reaction to perform.
 ---
 
 ## Building
-
+(You don't have to, the .fap file in the root here can be used directly by placing it in /ext/apps/Bluetooth/droidbeacon.fap)
 ```bash
 # Clone Unleashed firmware
 git clone --recursive https://github.com/DarkFlippers/unleashed-firmware
@@ -113,6 +113,13 @@ Beacon codes sourced from community research on r/GalaxysEdge.
 - The beacon broadcasts continuously until you press Stop or go back
 - Each location triggers different droid reactions — experiment!
 - Works with R2-series, R-series, and BB-series Droid Depot droids
+
+---
+
+## What is @FZGEN in the comments?
+
+I wrote a code generator (in perl) for Flipper Zero frameworks that takes care of most of the busy work or the event state machines.
+I will put it in https://github.com/spandox2/FZGEN really soon.
 
 ---
 
