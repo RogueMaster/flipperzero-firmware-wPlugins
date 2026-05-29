@@ -69,6 +69,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Add Allstar Firefly 318ALD31K protocol (18 bits, Static) (By jlaughter)](https://github.com/DarkFlippers/unleashed-firmware/pull/989)
 - Sub-GHz: [Faac SLH / Nice Flo Updates & Remove Duplicate Code from RAW & Canvas Buffer in API & Kinggates Logic Fix & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning & Sub-GHz upgrades (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/20d53d9c1d6882246cf6d9f3868b0a1cad8ef555)
 - HID App: [PTT improvements (By hryamzik)](https://github.com/DarkFlippers/unleashed-firmware/pull/996)
+- Updated: [NFC Seader v4.1 (By bettse)](https://github.com/bettse/seader)
 
 <a name="release"></a>
 
@@ -764,7 +765,7 @@ $ ./fbt dolphin_ext
 - [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
 - [NFC Playlist v3.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Playlist/tree/main)
 - [NFC Relay v0.2 (By leommxj)](https://github.com/leommxj/nfc_relay)
-- [NFC Seader v4.0 (By bettse)](https://github.com/bettse/seader)
+- [NFC Seader v4.1 (By bettse)](https://github.com/bettse/seader)
 - [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
 - [NFC Stock v0.1.5 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
 - [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
