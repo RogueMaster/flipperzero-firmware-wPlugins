@@ -76,6 +76,7 @@ typedef struct {
     int score_popup_points;
 
     int stats_view_count;
+    bool round_complete;
 
     GameView prev_view;
 } StrataHeroGameModel;
@@ -100,8 +101,8 @@ static void next_code(StrataHeroGameModel* model) {
     model->current_round_stratagem++;
     if (model->current_round_stratagem >= model->round_stratagems_count) {
         update_score(model);
-        model->current_view = GameView_Stats;
         model->stats_view_count = 0;
+        model->round_complete = true;
         return;
     }
     model->current_code_progress = 0;
@@ -138,6 +139,7 @@ static void next_round(StrataHeroGameModel* model) {
     model->round_stratagems_count = count;
     model->current_round_stratagem = 0;
     model->perfect_round = true;
+    model->round_complete = false;
 }
 
 static void intro_timer_callback(void* context) {
@@ -209,6 +211,11 @@ static void score_popup_timer_callback(void* context) {
 
     with_widget_model(widget, model, {
         model->score_popup_points = 0;
+        if(model->round_complete) {
+            model->round_complete = false;
+            model->current_view = GameView_Stats;
+            furi_timer_start(widget->stats_timer, STATS_DELAY);
+        }
     }, true);
 }
 
@@ -261,6 +268,8 @@ static void draw_gameplay(Canvas* canvas, StrataHeroGameModel* model) {
         canvas_draw_icon(canvas, offset_x, 5, icon);
         offset_x += icon_get_width(icon) + 5;
     }
+
+    if(model->round_complete) return;
 
     // Display current stratagem code
     const Stratagem* stratagem = model->round_stratagems[model->current_round_stratagem];
@@ -420,6 +429,7 @@ static bool input_callback(InputEvent* event, void* context) {
                     case InputKeyDown:  code_input = 'D'; break;
                     case InputKeyBack: {
                         furi_timer_stop(widget->gameplay_timer);
+                        furi_timer_stop(widget->score_popup_timer);
                         with_widget_model(widget, m, {
                             m->prev_view = GameView_Gameplay;
                             m->current_view = GameView_QuitConfirmation;
@@ -449,9 +459,8 @@ static bool input_callback(InputEvent* event, void* context) {
                                 furi_timer_start(widget->score_popup_timer, 1000);
 
                                 next_code(model);
-                                if (model->current_view == GameView_Stats) {
+                                if(model->round_complete) {
                                     furi_timer_stop(widget->gameplay_timer);
-                                    furi_timer_start(widget->stats_timer, STATS_DELAY);
                                 }
                             }
                         }, true);
@@ -486,14 +495,17 @@ static bool input_callback(InputEvent* event, void* context) {
             if (event->type == InputTypeShort) {
                 if(event->key == InputKeyLeft || event->key == InputKeyBack) {
                     GameView prev = model->prev_view;
+                    bool round_done = model->round_complete;
                     with_widget_model(widget, m, {
                         m->current_view = prev;
-                        if(prev == GameView_Gameplay) {
+                        if(prev == GameView_Gameplay && !round_done) {
                             m->last_tick_time = furi_get_tick();
                         }
                     }, true);
-                    if(prev == GameView_Gameplay) {
+                    if(prev == GameView_Gameplay && !round_done) {
                         furi_timer_start(widget->gameplay_timer, GAMEPLAY_TICK_INTERVAL);
+                    } else if(prev == GameView_Gameplay && round_done) {
+                        furi_timer_start(widget->score_popup_timer, 1000);
                     } else if(prev == GameView_Intro) {
                         furi_timer_start(widget->intro_timer, INTRO_DELAY);
                     } else if(prev == GameView_Stats) {
