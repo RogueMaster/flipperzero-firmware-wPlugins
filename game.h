@@ -22,3 +22,5 @@ void stratahero_game_widget_set_navigation_callback(
     void* context
 );
 
+int stratahero_game_widget_get_score(StrataHeroGameWidget* widget);
+

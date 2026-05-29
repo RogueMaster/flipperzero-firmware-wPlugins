@@ -637,6 +637,13 @@ void stratahero_game_widget_set_navigation_callback(
     widget->navigation_callback_context = context;
 }
 
+int stratahero_game_widget_get_score(StrataHeroGameWidget* widget) {
+    StrataHeroGameModel* model = view_get_model(widget->view);
+    int score = model->score;
+    view_commit_model(widget->view, false);
+    return score;
+}
+
 static void game_widget_navigate(StrataHeroGameWidget* widget, StrataHeroGameWidgetNavigationEvent event) {
     furi_check(widget);
     if (widget->navigation_callback) {

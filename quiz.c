@@ -574,3 +574,10 @@ void quiz_widget_set_navigation_callback(
     widget->navigation_callback = callback;
     widget->navigation_callback_context = context;
 }
+
+int quiz_widget_get_score(QuizWidget* widget) {
+    QuizWidgetModel* model = view_get_model(widget->view);
+    int score = model->correct_answers;
+    view_commit_model(widget->view, false);
+    return score;
+}

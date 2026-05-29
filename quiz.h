@@ -18,3 +18,5 @@ void quiz_widget_set_navigation_callback(
     QuizWidgetNavigationCallback callback,
     void* context
 );
+
+int quiz_widget_get_score(QuizWidget* widget);
