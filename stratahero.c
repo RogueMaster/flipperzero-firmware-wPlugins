@@ -120,7 +120,7 @@ static void stratahero_populate_highscores_widget(StrataHeroApp* app, bool is_qu
     widget_reset(widget);
     widget_add_string_element(widget, 64, 2, AlignCenter, AlignTop, FontPrimary, "Highscores");
 
-    if(scores->count == 0) {
+    if (scores->count == 0) {
         widget_add_string_element(widget, 64, 36, AlignCenter, AlignCenter, FontSecondary, "No scores yet");
     } else {
         for(int i = 0; i < scores->count; i++) {
@@ -174,7 +174,7 @@ static void name_entry_callback(void* context) {
 static void stratahero_handle_game_end(StrataHeroApp* app) {
     int score = stratahero_game_widget_get_score(app->game_widget);
     highscores_load(&app->game_scores, GAME_SCORES_PATH);
-    if(highscores_qualifies(&app->game_scores, score)) {
+    if (highscores_qualifies(&app->game_scores, score)) {
         stratahero_start_name_entry(app, score, false);
     } else {
         stratahero_switch_view(app, StrataHero_View_PlayMenu);
@@ -184,7 +184,7 @@ static void stratahero_handle_game_end(StrataHeroApp* app) {
 static void stratahero_handle_quiz_end(StrataHeroApp* app) {
     int score = quiz_widget_get_score(app->quiz_widget);
     highscores_load(&app->quiz_scores, QUIZ_SCORES_PATH);
-    if(highscores_qualifies(&app->quiz_scores, score)) {
+    if (highscores_qualifies(&app->quiz_scores, score)) {
         stratahero_start_name_entry(app, score, true);
     } else {
         stratahero_switch_view(app, StrataHero_View_QuizMenu);
@@ -195,7 +195,7 @@ static bool stratahero_view_dispatcher_navigation_callback(void* context) {
     furi_assert(context);
     StrataHeroApp* app = context;
 
-    switch(app->current_view) {
+    switch (app->current_view) {
         case StrataHero_View_MainMenu:
         case StrataHero_View_SplashScreen:
             view_dispatcher_stop(app->view_dispatcher);
@@ -215,7 +215,7 @@ static bool stratahero_view_dispatcher_navigation_callback(void* context) {
             break;
 
         case StrataHero_View_Settings:
-            if(stratahero_settings_widget_has_pending_changes(app->settings_widget)) {
+            if (stratahero_settings_widget_has_pending_changes(app->settings_widget)) {
                 stratahero_switch_view(app, StrataHero_View_SaveSettingsConfirmation);
             } else {
                 stratahero_switch_view(app, StrataHero_View_MainMenu);
@@ -263,7 +263,7 @@ static bool stratahero_view_dispatcher_navigation_callback(void* context) {
             break;
 
         case StrataHero_View_NameEntry:
-            if(app->pending_score_is_quiz) {
+            if (app->pending_score_is_quiz) {
                 stratahero_switch_view(app, StrataHero_View_QuizMenu);
             } else {
                 stratahero_switch_view(app, StrataHero_View_PlayMenu);
@@ -283,7 +283,7 @@ static void splash_screen_advance_callback(void* context) {
 
 static void game_widget_navigation_callback(StrataHeroGameWidgetNavigationEvent event, void* context) {
     StrataHeroApp* app = context;
-    switch(event) {
+    switch (event) {
         case StrataHeroGameWidgetNavigationEvent_Back:
             stratahero_handle_game_end(app);
             break;
@@ -305,7 +305,7 @@ static void settings_widget_changed_callback(StrataHeroSettings* settings, void*
 static void main_menu_event_callback(void* context, uint32_t index) {
     furi_assert(context);
     StrataHeroApp* app = context;
-    switch((StrataHeroMainMenuEvent)index) {
+    switch ((StrataHeroMainMenuEvent)index) {
         case StrataHero_MainMenuEvent_Play:
             stratahero_switch_view(app, StrataHero_View_PlayMenu);
             break;
@@ -324,7 +324,7 @@ static void main_menu_event_callback(void* context, uint32_t index) {
 static void play_menu_event_callback(void* context, uint32_t index) {
     furi_assert(context);
     StrataHeroApp* app = context;
-    switch((PlayMenuEvent)index) {
+    switch ((PlayMenuEvent)index) {
         case PlayMenu_Start:
             stratahero_switch_view(app, StrataHero_View_Game);
             break;
@@ -340,7 +340,7 @@ static void play_menu_event_callback(void* context, uint32_t index) {
 static void quiz_menu_event_callback(void* context, uint32_t index) {
     furi_assert(context);
     StrataHeroApp* app = context;
-    switch((QuizMenuEvent)index) {
+    switch ((QuizMenuEvent)index) {
         case QuizMenu_Start:
             stratahero_switch_view(app, StrataHero_View_QuizSettings);
             break;

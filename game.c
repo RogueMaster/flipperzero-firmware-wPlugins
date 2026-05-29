@@ -163,19 +163,19 @@ static void stats_timer_callback(void* context) {
     int hit_count = 0;
     with_widget_model(widget, model, {
         model->stats_view_count++;
-        if(model->stats_view_count >= 8) {
+        if (model->stats_view_count >= 8) {
             next_round(model);
             model->current_view = GameView_Intro;
             furi_timer_stop(widget->stats_timer);
             furi_timer_start(widget->intro_timer, INTRO_DELAY);
-        } else if(model->stats_view_count <= 4) {
+        } else if (model->stats_view_count <= 4) {
             hit_count = (model->stats_view_count == 4) ? 2 : 1;
         }
     }, true);
 
-    if(hit_count == 2) {
+    if (hit_count == 2) {
         stratahero_stats_final_hit_notification(widget->notification, &widget->settings);
-    } else if(hit_count == 1) {
+    } else if (hit_count == 1) {
         stratahero_stats_hit_notification(widget->notification, &widget->settings);
     }
 }
@@ -220,7 +220,7 @@ static void score_popup_timer_callback(void* context) {
 
     with_widget_model(widget, model, {
         model->score_popup_points = 0;
-        if(model->round_complete) {
+        if (model->round_complete) {
             model->round_complete = false;
             model->current_view = GameView_Stats;
             furi_timer_start(widget->stats_timer, STATS_DELAY);
@@ -259,7 +259,7 @@ static void draw_gameplay(Canvas* canvas, StrataHeroGameModel* model) {
     snprintf(buffer, sizeof(buffer)-1, "%d", model->score);
     canvas_draw_str_aligned(canvas, SCREEN_WIDTH, SCREEN_HEIGHT, AlignRight, AlignBottom, buffer);
 
-    if(model->score_popup_points > 0) {
+    if (model->score_popup_points > 0) {
         snprintf(buffer, sizeof(buffer)-1, "+%d", model->score_popup_points);
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, SCREEN_WIDTH, SCREEN_HEIGHT - 12, AlignRight, AlignBottom, buffer);
@@ -278,7 +278,7 @@ static void draw_gameplay(Canvas* canvas, StrataHeroGameModel* model) {
         offset_x += icon_get_width(icon) + 5;
     }
 
-    if(model->round_complete) return;
+    if (model->round_complete) return;
 
     // Display current stratagem code
     const Stratagem* stratagem = model->round_stratagems[model->current_round_stratagem];
@@ -468,7 +468,7 @@ static bool input_callback(InputEvent* event, void* context) {
                                 furi_timer_start(widget->score_popup_timer, 1000);
 
                                 next_code(model);
-                                if(model->round_complete) {
+                                if (model->round_complete) {
                                     furi_timer_stop(widget->gameplay_timer);
                                 }
                             }
@@ -502,26 +502,26 @@ static bool input_callback(InputEvent* event, void* context) {
 
         case GameView_QuitConfirmation: {
             if (event->type == InputTypeShort) {
-                if(event->key == InputKeyLeft || event->key == InputKeyBack) {
+                if (event->key == InputKeyLeft || event->key == InputKeyBack) {
                     GameView prev = model->prev_view;
                     bool round_done = model->round_complete;
                     with_widget_model(widget, m, {
                         m->current_view = prev;
-                        if(prev == GameView_Gameplay && !round_done) {
+                        if (prev == GameView_Gameplay && !round_done) {
                             m->last_tick_time = furi_get_tick();
                         }
                     }, true);
-                    if(prev == GameView_Gameplay && !round_done) {
+                    if (prev == GameView_Gameplay && !round_done) {
                         furi_timer_start(widget->gameplay_timer, GAMEPLAY_TICK_INTERVAL);
-                    } else if(prev == GameView_Gameplay && round_done) {
+                    } else if (prev == GameView_Gameplay && round_done) {
                         furi_timer_start(widget->score_popup_timer, 1000);
-                    } else if(prev == GameView_Intro) {
+                    } else if (prev == GameView_Intro) {
                         furi_timer_start(widget->intro_timer, INTRO_DELAY);
-                    } else if(prev == GameView_Stats) {
+                    } else if (prev == GameView_Stats) {
                         furi_timer_start(widget->stats_timer, STATS_DELAY);
                     }
                     handled = true;
-                } else if(event->key == InputKeyRight || event->key == InputKeyOk) {
+                } else if (event->key == InputKeyRight || event->key == InputKeyOk) {
                     with_widget_model(widget, m, {
                         m->current_view = GameView_GameOver;
                     }, true);

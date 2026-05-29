@@ -47,21 +47,21 @@ static NotificationSequence failure_beep_and_vibro = {
 };
 
 void stratahero_code_glyph_entry_success_notification(NotificationApp* notification, const StrataHeroSettings* settings) {
-    if(settings->sound_enabled && settings->vibro_enabled) {
+    if (settings->sound_enabled && settings->vibro_enabled) {
         notification_message(notification, &success_beep_and_vibro);
-    } else if(settings->sound_enabled) {
+    } else if (settings->sound_enabled) {
         notification_message(notification, &success_beep);
-    } else if(settings->vibro_enabled) {
+    } else if (settings->vibro_enabled) {
         notification_message(notification, &success_vibro);
     }
 }
 
 void stratahero_code_glyph_entry_failure_notification(NotificationApp* notification, const StrataHeroSettings* settings) {
-    if(settings->sound_enabled && settings->vibro_enabled) {
+    if (settings->sound_enabled && settings->vibro_enabled) {
         notification_message(notification, &failure_beep_and_vibro);
-    } else if(settings->sound_enabled) {
+    } else if (settings->sound_enabled) {
         notification_message(notification, &failure_beep);
-    } else if(settings->vibro_enabled) {
+    } else if (settings->vibro_enabled) {
         notification_message(notification, &failure_vibro);
     }
 }
@@ -154,31 +154,31 @@ static NotificationSequence stats_final_hit_beep_and_vibro = {
 };
 
 void stratahero_stats_final_hit_notification(NotificationApp* notification, const StrataHeroSettings* settings) {
-    if(settings->sound_enabled && settings->vibro_enabled) {
+    if (settings->sound_enabled && settings->vibro_enabled) {
         notification_message(notification, &stats_final_hit_beep_and_vibro);
-    } else if(settings->sound_enabled) {
+    } else if (settings->sound_enabled) {
         notification_message(notification, &stats_final_hit_beep);
-    } else if(settings->vibro_enabled) {
+    } else if (settings->vibro_enabled) {
         notification_message(notification, &stats_final_hit_vibro);
     }
 }
 
 void stratahero_stats_hit_notification(NotificationApp* notification, const StrataHeroSettings* settings) {
-    if(settings->sound_enabled && settings->vibro_enabled) {
+    if (settings->sound_enabled && settings->vibro_enabled) {
         notification_message(notification, &stats_hit_beep_and_vibro);
-    } else if(settings->sound_enabled) {
+    } else if (settings->sound_enabled) {
         notification_message(notification, &stats_hit_beep);
-    } else if(settings->vibro_enabled) {
+    } else if (settings->vibro_enabled) {
         notification_message(notification, &stats_hit_vibro);
     }
 }
 
 void stratahero_code_complete_notification(NotificationApp* notification, const StrataHeroSettings* settings) {
-    if(settings->sound_enabled && settings->vibro_enabled) {
+    if (settings->sound_enabled && settings->vibro_enabled) {
         notification_message(notification, &code_complete_beep_and_vibro);
-    } else if(settings->sound_enabled) {
+    } else if (settings->sound_enabled) {
         notification_message(notification, &code_complete_beep);
-    } else if(settings->vibro_enabled) {
+    } else if (settings->vibro_enabled) {
         notification_message(notification, &code_complete_vibro);
     }
 }
