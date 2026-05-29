@@ -488,9 +488,13 @@ QuizWidget* quiz_widget_alloc() {
     widget->max_errors_item = variable_item_list_add(
         widget->settings_list, "Max Attempts", 10, quiz_max_errors_changed, widget);
     variable_item_set_current_value_index(widget->max_errors_item, MAX_QUIZ_ERRORS); // index = count (0=No limit)
-    char err_text[4];
-    snprintf(err_text, sizeof(err_text), "%d", MAX_QUIZ_ERRORS);
-    variable_item_set_current_value_text(widget->max_errors_item, err_text);
+    if(MAX_QUIZ_ERRORS == 0) {
+        variable_item_set_current_value_text(widget->max_errors_item, "No limit");
+    } else {
+        char err_text[4];
+        snprintf(err_text, sizeof(err_text), "%d", MAX_QUIZ_ERRORS);
+        variable_item_set_current_value_text(widget->max_errors_item, err_text);
+    }
 
     variable_item_list_add(widget->settings_list, "Start Quiz", 0, NULL, NULL);
     variable_item_list_set_enter_callback(
