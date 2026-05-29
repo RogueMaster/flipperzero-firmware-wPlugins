@@ -525,6 +525,7 @@ static bool input_callback(InputEvent* event, void* context) {
                     with_widget_model(widget, m, {
                         m->current_view = GameView_GameOver;
                     }, true);
+                    furi_timer_start(widget->gameover_timer, GAMEOVER_DELAY);
                     handled = true;
                 }
             }
