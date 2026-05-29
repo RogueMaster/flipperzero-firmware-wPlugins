@@ -331,7 +331,7 @@ static void ck_make_password_unique(CkApp* app, char* password, size_t password_
     ck_copy(base, sizeof(base), password);
 
     for(uint32_t suffix = 0; suffix < 1000; suffix++) {
-        snprintf(password, password_size, "%.*s-%03lu", 60, base, (unsigned long)suffix);
+        snprintf(password, password_size, "%.*s%03lu", 60, base, (unsigned long)suffix);
         if(!ck_password_exists(app, password)) return;
     }
 }
@@ -390,12 +390,12 @@ static void ck_generate_password(CkPreset preset, char* out, size_t out_size) {
     char sym = ck_symbols[ck_random_index(strlen(ck_symbols))];
 
     if(preset == CkPresetMemorable) {
-        snprintf(out, out_size, "%s%s-%s%lu%c", a1, n1, n2, (unsigned long)num, sym);
+        snprintf(out, out_size, "%s%s%s%lu%c", a1, n1, n2, (unsigned long)num, sym);
     } else if(preset == CkPresetLong) {
         snprintf(
             out,
             out_size,
-            "%s-%s-%s%lu%c",
+            "%s%s%s%lu%c",
             a1,
             n1,
             n2,
@@ -424,7 +424,7 @@ static void ck_generate_password(CkPreset preset, char* out, size_t out_size) {
             }
         }
         tail[sizeof(tail) - 1] = '\0';
-        snprintf(out, out_size, "%s%s-%s", a1, n1, tail);
+        snprintf(out, out_size, "%s%s%s", a1, n1, tail);
     }
 }
 

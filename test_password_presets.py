@@ -5,9 +5,9 @@ These mirror the app's requirement promises: generated passwords are readable an
 import re
 
 samples = {
-    "memorable": "SolarTiger-River42!",
-    "strict": "AmberFalcon-Aq7!Zr3#",
-    "long": "Lunar-Raven-Summit742?",
+    "memorable": "SolarTigerRiver42!",
+    "strict": "AmberFalconAq7!Zr3#",
+    "long": "LunarRavenSummit742?",
     "no_symbol": "CyberMantisBright365",
 }
 
