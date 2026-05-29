@@ -107,10 +107,7 @@ static void next_code(StrataHeroGameModel* model) {
 static void next_round(StrataHeroGameModel* model) {
     model->current_round++;
 
-    int count = model->current_round;
-    if (count < MIN_STRATAGEMS_PER_ROUND) {
-        count = MIN_STRATAGEMS_PER_ROUND;
-    }
+    int count = model->current_round - 1 + MIN_STRATAGEMS_PER_ROUND;
     if (count > MAX_STRATAGEMS_PER_ROUND) {
         count = MAX_STRATAGEMS_PER_ROUND;
     }
