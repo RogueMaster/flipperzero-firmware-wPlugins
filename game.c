@@ -160,15 +160,24 @@ static void stats_timer_callback(void* context) {
     furi_assert(context);
     StrataHeroGameWidget* widget = context;
 
+    int hit_count = 0;
     with_widget_model(widget, model, {
         model->stats_view_count++;
-        if (model->stats_view_count >= 8) {
+        if(model->stats_view_count >= 8) {
             next_round(model);
             model->current_view = GameView_Intro;
             furi_timer_stop(widget->stats_timer);
             furi_timer_start(widget->intro_timer, INTRO_DELAY);
+        } else if(model->stats_view_count <= 4) {
+            hit_count = (model->stats_view_count == 4) ? 2 : 1;
         }
     }, true);
+
+    if(hit_count == 2) {
+        stratahero_stats_final_hit_notification(widget->notification, &widget->settings);
+    } else if(hit_count == 1) {
+        stratahero_stats_hit_notification(widget->notification, &widget->settings);
+    }
 }
 
 static void gameplay_timer_callback(void* context) {
