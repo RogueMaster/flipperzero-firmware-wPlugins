@@ -31,6 +31,7 @@ typedef enum {
     GameView_Gameplay,
     GameView_Stats,
     GameView_GameOver,
+    GameView_QuitConfirmation,
 } GameView;
 
 struct StrataHeroGameWidget {
@@ -73,6 +74,8 @@ typedef struct {
     int score;
 
     int stats_view_count;
+
+    GameView prev_view;
 } StrataHeroGameModel;
 
 
@@ -311,6 +314,22 @@ static void draw_stats(Canvas* canvas, StrataHeroGameModel* model) {
     }
 }
 
+static void draw_quit_confirmation(Canvas* canvas, StrataHeroGameModel* model) {
+    UNUSED(model);
+    canvas_clear(canvas);
+
+    canvas_draw_rframe(canvas, 14, 10, 100, 44, 4);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, SCREEN_WIDTH / 2, 17, AlignCenter, AlignTop, "Quit game?");
+
+    canvas_draw_line(canvas, 14, 32, 113, 32);
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 32, 39, AlignCenter, AlignTop, "< No");
+    canvas_draw_str_aligned(canvas, 96, 39, AlignCenter, AlignTop, "Yes >");
+}
+
 static void draw_game_over(Canvas* canvas, StrataHeroGameModel* model) {
     canvas_clear(canvas);
 
@@ -343,6 +362,10 @@ static void draw_callback(Canvas* canvas, void* _model) {
         case GameView_GameOver:
             draw_game_over(canvas, model);
             break;
+
+        case GameView_QuitConfirmation:
+            draw_quit_confirmation(canvas, model);
+            break;
     }
 }
 
@@ -356,7 +379,11 @@ static bool input_callback(InputEvent* event, void* context) {
     switch (model->current_view) {
         case GameView_Intro: {
             if (event->key == InputKeyBack && event->type == InputTypeShort) {
-                game_widget_navigate_back(widget);
+                furi_timer_stop(widget->intro_timer);
+                with_widget_model(widget, m, {
+                    m->prev_view = GameView_Intro;
+                    m->current_view = GameView_QuitConfirmation;
+                }, true);
                 handled = true;
             }
             break;
@@ -375,7 +402,11 @@ static bool input_callback(InputEvent* event, void* context) {
                     case InputKeyUp:    code_input = 'U'; break;
                     case InputKeyDown:  code_input = 'D'; break;
                     case InputKeyBack: {
-                        game_widget_navigate_back(widget);
+                        furi_timer_stop(widget->gameplay_timer);
+                        with_widget_model(widget, m, {
+                            m->prev_view = GameView_Gameplay;
+                            m->current_view = GameView_QuitConfirmation;
+                        }, true);
                         handled = true;
                         break;
                     }
@@ -422,8 +453,40 @@ static bool input_callback(InputEvent* event, void* context) {
 
         case GameView_Stats: {
             if (event->key == InputKeyBack && event->type == InputTypeShort) {
-                game_widget_navigate_back(widget);
+                furi_timer_stop(widget->stats_timer);
+                with_widget_model(widget, m, {
+                    m->prev_view = GameView_Stats;
+                    m->current_view = GameView_QuitConfirmation;
+                }, true);
                 handled = true;
+            }
+            break;
+        }
+
+        case GameView_QuitConfirmation: {
+            if (event->type == InputTypeShort) {
+                if(event->key == InputKeyLeft || event->key == InputKeyBack) {
+                    GameView prev = model->prev_view;
+                    with_widget_model(widget, m, {
+                        m->current_view = prev;
+                        if(prev == GameView_Gameplay) {
+                            m->last_tick_time = furi_get_tick();
+                        }
+                    }, true);
+                    if(prev == GameView_Gameplay) {
+                        furi_timer_start(widget->gameplay_timer, GAMEPLAY_TICK_INTERVAL);
+                    } else if(prev == GameView_Intro) {
+                        furi_timer_start(widget->intro_timer, INTRO_DELAY);
+                    } else if(prev == GameView_Stats) {
+                        furi_timer_start(widget->stats_timer, STATS_DELAY);
+                    }
+                    handled = true;
+                } else if(event->key == InputKeyRight || event->key == InputKeyOk) {
+                    with_widget_model(widget, m, {
+                        m->current_view = GameView_GameOver;
+                    }, true);
+                    handled = true;
+                }
             }
             break;
         }
