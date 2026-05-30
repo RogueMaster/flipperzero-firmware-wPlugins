@@ -34,6 +34,12 @@
 #define CK_HDR_LEN   (CK_MAGIC_LEN + CK_SALT_LEN + CK_NONCE_LEN + CK_TAG_LEN)
 
 static const uint8_t ck_vault_magic[CK_MAGIC_LEN] = {'C', 'K', 'P', 'V', '1', 0, 0, 0};
+static FuriHalUsbHidConfig ck_apple_keyboard_hid = {
+    .vid = 0x05AC,
+    .pid = 0x021E,
+    .manuf = "Apple",
+    .product = "Keyboard",
+};
 
 typedef struct {
     char account[CK_ACCOUNT_LEN];
@@ -810,7 +816,7 @@ static void ck_show_inject_confirm(CkApp* app) {
     dialog_ex_set_header(app->dialog, "HID Inject?", 64, 8, AlignCenter, AlignTop);
     dialog_ex_set_text(
         app->dialog,
-        "Focus the password field.\nRight types password only.\nLeft cancels.",
+        "Uses Apple keyboard ID\nto avoid macOS setup.\nFocus field, then Type.",
         4,
         20,
         AlignLeft,
@@ -867,7 +873,7 @@ static bool ck_inject_selected(CkApp* app) {
     if(app->selected < 0 || app->selected >= app->entry_count) return false;
     app->previous_usb = furi_hal_usb_get_config();
     if(app->previous_usb != &usb_hid) {
-        if(!furi_hal_usb_set_config(&usb_hid, NULL)) return false;
+        if(!furi_hal_usb_set_config(&usb_hid, &ck_apple_keyboard_hid)) return false;
         furi_delay_ms(800);
     }
 
