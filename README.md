@@ -21,6 +21,10 @@ Website: <https://ck42x.com>
 9. Select saved account to view username/password
 10. Press `Inject`, confirm, and the app HID-types the password only
 
+## macOS keyboard setup popup
+
+PassVault sets its HID typing interface to an Apple keyboard VID/PID (`05ac:021e Apple:Keyboard`) before injection. This is intended to avoid macOS Keyboard Setup Assistant stealing focus on Mac targets such as a Mac mini. If macOS still shows the setup dialog, cancel or complete it once, refocus the password field, and inject again.
+
 ## Branding
 
 The app icon is a Flipper-compatible 10x10 monochrome simplification of the CK42X crowned bee mark from `ck42x.com`. The full source logo reference is preserved in `ck42x_website_bee_crown.png` for provenance.
