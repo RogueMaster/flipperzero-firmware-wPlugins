@@ -23,7 +23,8 @@
 
 // ── Module state ──────────────────────────────────────────────────────────────
 static FSDState  *g_state = nullptr;   // shared with main
-static CanDriver *g_can   = nullptr;   // for setListenOnly()
+static CanDriver **g_can_buses = nullptr; // for setListenOnly()
+static uint8_t g_can_count = 0;
 static portMUX_TYPE *g_state_mux = nullptr;
 
 static WebServer        g_http(80);
@@ -118,6 +119,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   color:var(--red);font-weight:700;font-size:.9em;letter-spacing:.04em;
   animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* ── 14.x firmware warning (static, non-animated) ── */
+.warn14x{display:none;background:rgba(252,196,25,.08);border:1px solid rgba(252,196,25,.45);
+  border-radius:12px;padding:10px 14px;margin-bottom:12px;color:#fcc419;font-size:.82em;
+  line-height:1.4;text-align:left}
+.warn14x .w-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.warn14x .w-msg{flex:1}
+.warn14x .w-dismiss{background:transparent;border:1px solid rgba(252,196,25,.5);color:#fcc419;
+  padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.8em;font-weight:600;
+  white-space:nowrap}
+.warn14x .w-dismiss:hover{background:rgba(252,196,25,.15)}
 
 /* ── Error banner ── */
 .err{display:none;color:var(--red);text-align:center;font-size:.78em;padding:8px;
@@ -264,6 +276,22 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 
 <!-- OTA Warning -->
 <div id="otaBanner" class="ota">&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; CAN TX SUSPENDED</div>
+
+<!-- 2026.14.x Firmware Warning -->
+<div id="warn14x" class="warn14x">
+  <div class="w-row">
+    <div class="w-msg">
+      <strong>&#9888;&#xFE0F; 2026.14.x firmware enforcement active.</strong>
+      Tesla added a preflight check in 2026.14.x that disables autosteer
+      the moment any CAN frame touches <code>0x3FD</code>. Symptom on
+      the dash: <em>"Autopilot turning off"</em> appears within a second
+      of stalk engagement, then AP immediately disengages. Listen-Only
+      mode is safe. Enable <strong>AP-First</strong> in settings to delay
+      injection until AP is engaged. Dismiss if you're on pre-14.x firmware.
+    </div>
+    <button class="w-dismiss" onclick="cmd('14x_warning',false)">Dismiss</button>
+  </div>
+</div>
 
 <!-- FSD Status -->
 <div class="card">
@@ -568,6 +596,10 @@ function upd(d){
     otaB.style.display=d.ota?'block':'none';
     if(d.ota) otaB.innerHTML=d.ignore_ota?'&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; TX ALLOWED BY IGNORE OTA':'&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; CAN TX SUSPENDED';
   }
+
+  // 14.x firmware warning banner
+  var w14x=document.getElementById('warn14x');
+  if(w14x) w14x.style.display=d.firmware_14x_warning?'block':'none';
 
   // Mode button
   var act=d.op_mode===1;
@@ -1095,6 +1127,7 @@ static String build_json() {
     j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
     j += "\"suppress_speed_chime\":"; j += state.suppress_speed_chime  ? "true" : "false"; j += ',';
     j += "\"tlssc_restore\":"; j += state.tlssc_restore                ? "true" : "false"; j += ',';
+    j += "\"firmware_14x_warning\":"; j += state.firmware_14x_warning  ? "true" : "false"; j += ',';
 #if defined(BOARD_TTGO_DISPLAY)
     j += "\"display_enabled\":"; j += state.display_enabled             ? "true" : "false"; j += ',';
     j += "\"display_brightness\":"; j += state.display_brightness;      j += ',';
@@ -1163,7 +1196,9 @@ static void ws_event(uint8_t num, WStype_t type,
         }
         saved = *g_state;
         state_exit();
-        if (g_can) g_can->setListenOnly(!active);
+        for (uint8_t i = 0; i < g_can_count; i++) {
+            if (g_can_buses[i]) g_can_buses[i]->setListenOnly(!active);
+        }
         http_can_stream_set_enabled(!active);
         Serial.println(active ? "[Web] → Active mode" : "[Web] → Listen-Only mode");
         prefs_save(&saved);
@@ -1254,6 +1289,18 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] TLSSC Restore: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"14x_warning\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->firmware_14x_warning = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] 14.x Warning: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     } else if (strstr(buf, "\"force_fsd\"")) {
@@ -1555,9 +1602,13 @@ static void handle_ota_done() {
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
-void web_dashboard_init(FSDState *state, CanDriver *can, portMUX_TYPE *state_mux) {
+void web_dashboard_init(FSDState *state,
+                        CanDriver **can_buses,
+                        uint8_t can_count,
+                        portMUX_TYPE *state_mux) {
     g_state       = state;
-    g_can         = can;
+    g_can_buses   = can_buses;
+    g_can_count   = can_count;
     g_state_mux   = state_mux;
     g_start_ms    = millis();
     g_last_fps_ms = millis();

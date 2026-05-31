@@ -2,7 +2,7 @@
 #include "config.h"
 #include <Arduino.h>
 
-#if !defined(BOARD_TTGO_DISPLAY)
+#if !defined(BOARD_TTGO_DISPLAY) && (PIN_LED >= 0)
 #include <Adafruit_NeoPixel.h>
 
 // Smart LED for M5Stack, Lilygo T-CAN485, etc.
@@ -15,6 +15,8 @@ void led_init() {
         pinMode(PIN_LED, OUTPUT);
         digitalWrite(PIN_LED, HIGH); // Off (active-LOW)
     }
+#elif PIN_LED < 0
+    return;
 #else
     g_strip.begin();
     g_strip.setBrightness(25);  // keep dim — the ATOM LED is very bright
@@ -33,6 +35,9 @@ void led_set(LedColor color) {
     } else {
         digitalWrite(PIN_LED, LOW);  // On
     }
+#elif PIN_LED < 0
+    (void)color;
+    return;
 #else
     uint32_t c;
     if (color == LED_SLEEP) {

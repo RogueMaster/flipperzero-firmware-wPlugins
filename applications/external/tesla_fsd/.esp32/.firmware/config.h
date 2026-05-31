@@ -18,7 +18,22 @@
 #define CAN_ID_DAS_STATUS_HW4 0x39Bu  // 923  - DAS_status on HW4 AP/DAS
 
 // ── GPIO ──────────────────────────────────────────────────────────────────────
-#if defined(BOARD_LILYGO)
+#if defined(BOARD_LILYGO_T2CAN)
+  #define PIN_CAN_TX         7
+  #define PIN_CAN_RX         6
+  #define PIN_LED            -1
+  #define PIN_BUTTON         0    // BOOT button, active-LOW, internal pull-up
+  #define PIN_MCP_CS         10
+  #define PIN_MCP_SCK        12
+  #define PIN_MCP_MOSI       11
+  #define PIN_MCP_MISO       13
+  #define PIN_MCP_RST        9
+  #define PIN_MCP_INT        8
+  #ifndef MCP_CRYSTAL_MHZ
+  #define MCP_CRYSTAL_MHZ    MCP_16MHZ
+  #endif
+  #define PRECONDITION_TX_BUS_INDEX 0
+#elif defined(BOARD_LILYGO)
   #define PIN_CAN_TX         27
   #define PIN_CAN_RX         26
   #define PIN_CAN_SPEED_MODE 23   // SN65HVD230 Rs — must be LOW for TX+RX
@@ -68,9 +83,21 @@
 #ifndef PIN_MCP_MOSI
 #define PIN_MCP_MOSI 23
 #endif
+#ifndef PIN_MCP_RST
+#define PIN_MCP_RST  -1
+#endif
+#ifndef PIN_MCP_INT
+#define PIN_MCP_INT  -1
+#endif
+#ifndef PRECONDITION_TX_BUS_INDEX
+#define PRECONDITION_TX_BUS_INDEX 0
+#endif
 
-// MCP2515 oscillator: common Chinese modules use 8 MHz
+// MCP2515 oscillator. Generic breakout modules often use 8 MHz; LilyGO
+// T-2CAN's onboard MCP2515 uses a 16 MHz crystal.
+#ifndef MCP_CRYSTAL_MHZ
 #define MCP_CRYSTAL_MHZ  MCP_8MHZ   // from autowp-mcp2515 CAN_CLOCK enum
+#endif
 
 // ── Timing ────────────────────────────────────────────────────────────────────
 #define WIRING_WARN_MS        5000u   // Red LED / serial warning if no CAN after this

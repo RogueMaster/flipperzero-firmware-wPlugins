@@ -31,7 +31,8 @@ static void nag_killer_changed(VariableItem* item) {
     app->nag_killer = (idx == 1);
 }
 
-static const char* const op_mode_text[] = {"Active", "Listen", "Service"};
+// Order matches OpMode in fsd_types.h: ListenOnly=0, Active=1, Service=2.
+static const char* const op_mode_text[] = {"Listen", "Active", "Service"};
 static void op_mode_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
@@ -53,6 +54,13 @@ static void ap_first_changed(VariableItem* item) {
     app->ap_first = (idx == 1);
 }
 
+static void warning_14x_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->firmware_14x_warning = (idx == 1);
+}
+
 static void tlssc_restore_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
@@ -65,6 +73,13 @@ static void tier_override_changed(VariableItem* item) {
     uint8_t idx = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, toggle_text[idx]);
     app->gtw_tier_override = (idx == 1);
+}
+
+static void scroll_press_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->scroll_press_ap = (idx == 1);
 }
 
 static void nav_enable_changed(VariableItem* item) {
@@ -154,13 +169,15 @@ void tesla_fsd_scene_settings_on_enter(void* context) {
     ADD_TOGGLE("Force FSD", force_fsd_changed, force_fsd)
     ADD_TOGGLE("TLSSC Restore", tlssc_restore_changed, tlssc_restore)
     ADD_TOGGLE("AP-First (14.x)", ap_first_changed, ap_first)
-    ADD_TOGGLE("Ban Shield", shield_changed, gtw_shield)
+    ADD_TOGGLE("On 14.x?", warning_14x_changed, firmware_14x_warning)
+    ADD_TOGGLE("GTW Cfg Replay", shield_changed, gtw_shield)
     ADD_TOGGLE("Suppress Chime", chime_changed, suppress_speed_chime)
     ADD_TOGGLE("Emerg. Vehicle", emerg_changed, emergency_vehicle_detect)
     ADD_TOGGLE("Precondition", precondition_changed, precondition)
 
     // ── Beta features (report results in GitHub issues) ──
     variable_item_list_add(list, "-- Beta (report!) --", 0, NULL, NULL);
+    ADD_TOGGLE("ScrollPress AP", scroll_press_changed, scroll_press_ap)
     ADD_TOGGLE("Nav FSD Route", nav_enable_changed, assist_nav_enable)
     ADD_TOGGLE("TLSSC bit38", tlssc_bit38_changed, assist_tlssc_bit38)
     ADD_TOGGLE("Lane Graph", lane_graph_changed, assist_show_lane_graph)

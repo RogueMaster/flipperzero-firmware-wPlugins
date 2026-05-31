@@ -57,6 +57,10 @@ TeslaFSDApp* tesla_fsd_app_alloc(void) {
     app->emergency_vehicle_detect = false;
     app->nag_killer = false;
     app->precondition = false;
+    // 14.x firmware warning default ON (pessimistic) — most affected users don't
+    // know their firmware version, so the warning needs to reach them. Users who
+    // are sure they're on pre-14.x can disable it in Settings.
+    app->firmware_14x_warning = true;
     // First-boot default: Listen-Only. Forces the user to make an explicit
     // decision in Settings before any TX happens. Better for new users who
     // haven't read the README, and matches the safer default that the ESP32

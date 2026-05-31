@@ -14,7 +14,7 @@
 [![Flipper target](https://img.shields.io/badge/Flipper%20target-7%20%2F%20API%2087.1-orange?style=flat-square)](https://github.com/flipperdevices/flipperzero-firmware)
 [![Tracked on FSD CAN Mod Hub](https://img.shields.io/badge/tracked%20on-FSD%20CAN%20Mod%20Hub-orange?style=flat-square)](https://fsdcanmod.com/project/hypery11-flipper-zero)
 
-> **Open-source Tesla CAN bus toolkit for Flipper Zero and ESP32.** FSD region-gate bypass, TLSSC Restore for VIN-banned cars, nag killer with organic torque variation, Ban Shield, live BMS dashboard, and 30+ CAN handlers across Model 3, Model Y, Model S, and Model X. Supports HW3, HW4, and Legacy HW1/HW2. Free alternative to the $200+ S3XY Commander — total cost from **$14** with the [ESP32 port](https://github.com/hypery11/flipper-tesla-fsd/tree/main/esp32).
+> **Open-source Tesla CAN bus toolkit for Flipper Zero and ESP32.** FSD region-gate bypass, TLSSC Restore for VIN-banned cars, nag killer with organic torque variation, GTW Config Replay, live BMS dashboard, and 30+ CAN handlers across Model 3, Model Y, Model S, and Model X. Supports HW3, HW4, and Legacy HW1/HW2. Free alternative to the $200+ S3XY Commander — total cost from **$14** with the [ESP32 port](https://github.com/hypery11/flipper-tesla-fsd/tree/main/esp32).
 
 > [!IMPORTANT]
 > **An active FSD package is required for FSD features** — either purchased or subscribed. This tool enables FSD functionality at the CAN bus level, but the vehicle still needs a valid FSD entitlement from Tesla. Non-FSD features (nag killer, BMS dashboard, diagnostics) work without any subscription.
@@ -61,20 +61,28 @@
 - Does NOT restore full FSD visualization — only TLSSC (stop signs / traffic lights)
 - **Recommended banned-car combination**: enable **TLSSC Restore** + **TLSSC bit38** (`0x3FD` mux 0 bit 38) together — confirmed reliable on HW3 / 2026.2.6 by @RoyRakete ([#18](https://github.com/hypery11/flipper-tesla-fsd/issues/18#issuecomment-4413430516)). Either toggle alone is unreliable on some banned firmware; the pair re-enables AP/TACC engagement
 
-### Ban Shield (v2.9+)
-- Watches `GTW_carConfig` (`0x7FF`) and rewrites the bus broadcast back to its learned-healthy pattern in real time
+### GTW Config Replay (v2.9+, renamed from "Ban Shield" in v2.15)
+- Watches `GTW_carConfig` (`0x7FF`) and replays the learned-healthy bus broadcast in real time when the gateway emits a modified frame
 - Learns all 8 mux frames on first run, then auto-arms
-- **Important caveat:** this is a **CAN-broadcast-layer mask**, not entitlement-layer protection. Tesla's ban writes to GTW NVRAM (which survives reboots) and to server-side flags; Ban Shield only rewrites what other on-bus ECUs see, not the underlying NVRAM state or Tesla's backend record. No empirical case where Ban Shield prevented a ban has been confirmed — it is a defense-in-depth measure based on attack-surface analysis. See [#60](https://github.com/hypery11/flipper-tesla-fsd/issues/60) for the full honest writeup
+- **What it actually does:** broadcast-layer mask only. When armed, the AP ECU sees the replayed healthy frame instead of the gateway's modified one. Tesla's ban writes to GTW NVRAM (which survives reboots) and to server-side flags; this feature does not undo NVRAM state or backend records, only what other on-bus ECUs see in real time.
+- **What it doesn't do:** prevent bans, undo bans, or change Tesla's server-side entitlement record. No empirical case of ban prevention has been confirmed in 6 weeks of v2.9-v2.14 deployment. Honest framing per [#60](https://github.com/hypery11/flipper-tesla-fsd/issues/60) and [#67](https://github.com/hypery11/flipper-tesla-fsd/issues/67). The v2.14 name "Ban Shield" overpromised — the v2.15 rename reflects what the code actually does.
 
 ### Nag Killer (v2.1+)
 - DAS-aware gating — only echoes when DAS is actually demanding hands-on, zero bus traffic when DAS is satisfied
 - Organic torque variation — xorshift32 PRNG random walk in 1.00-2.40 Nm with grip pulse excursions to 3.10-3.30 Nm every 5-9 seconds
+- **On-demand grip pulse (v2.15+)** — when `handsOnLevel` rises into a nag-demand state (0 imminent / 3 escalated), an immediate grip pulse fires and the periodic schedule resets. Closes the 2-second yellow-escalation window that could open between scheduled pulses on v2.14 and earlier
 - EPAS counter+1 echo on `0x370` with level 0 (nag imminent) and level 3 (escalated alarm) suppression
 
 ### AP-First mode (v2.14+, for 2026.14.x firmware)
 - Tesla 2026.14.x added a preflight check that blocks AP/TACC engagement if CAN injection is already active
 - When **AP-First** is enabled, the app monitors `DAS_autopilotState` from `0x39B` and only starts injecting `0x3FD` after AP is engaged. On ESP32, the DAS status source follows detected HW version.
-- Nag killer, TLSSC Restore, and Ban Shield are unaffected (they target different CAN IDs)
+- Nag killer, TLSSC Restore, and GTW Config Replay are unaffected (they target different CAN IDs)
+
+### 14.x firmware warning (v2.15+)
+- **Default ON.** Flipper running scene replaces the BMS / flags line with `!14.x: TX may stop AP` whenever the warning toggle is enabled. ESP32 web dashboard shows a dismissible yellow banner at the top.
+- Pessimistic default: most users on 14.x firmware don't know they're affected until autosteer disengages mid-drive. The warning reaches them before they enable any TX feature.
+- Opt-out via the **On 14.x?** Settings toggle (Flipper) or the **Dismiss** button on the banner (ESP32, persisted in NVS). Disable if you are sure you're on pre-14.x firmware.
+- Regional caveat: enforcement intensity varies by market. Some regions (markets without Tesla direct presence) appear to enforce less aggressively. See [#73](https://github.com/hypery11/flipper-tesla-fsd/issues/73) for the running 14.x tracker.
 
 ### Diagnostics (read-only, no FSD required)
 - Live BMS dashboard: pack voltage, current, SoC, temperature range, **energy consumption (Wh/km)**
@@ -95,7 +103,7 @@
 | **Ignore OTA** | Allows CAN TX in Active mode even when `0x318` reports a Tesla OTA update in progress. Default is off. |
 | **TLSSC Restore** | 0x331 DAS config spoof to recover TLSSC on banned vehicles. Triggers MCU reboot. |
 | **AP-First (14.x)** | Delay 0x3FD injection until AP is engaged. Required for Tesla firmware 2026.14.x. |
-| **Ban Shield** | Rewrite `GTW_carConfig` (0x7FF) broadcasts back to a learned-healthy pattern. CAN-broadcast-layer mask only — does not undo NVRAM or backend-side ban flags. Defense-in-depth, no confirmed ban-prevention case ([#60](https://github.com/hypery11/flipper-tesla-fsd/issues/60)). |
+| **GTW Config Replay** | Replay learned-healthy `GTW_carConfig` (0x7FF) broadcasts when the gateway emits modified frames. CAN-broadcast-layer mask only — does not undo NVRAM or backend-side ban flags, does not prevent bans. Renamed from "Ban Shield" in v2.15 ([#60](https://github.com/hypery11/flipper-tesla-fsd/issues/60), [#67](https://github.com/hypery11/flipper-tesla-fsd/issues/67)). |
 | **Suppress Chime** | Kill the ISA speed warning chime (HW4 only, `0x399`). On ESP32 this is active only after HW4 detection; Legacy/HW3 use `0x399` as DAS status instead. |
 | **Emerg. Vehicle** | Enable emergency vehicle detection flag (HW4 only, bit59). |
 | **Precondition** | Battery preheat trigger via `0x082`. |
@@ -104,10 +112,11 @@
 
 | Setting | CAN ID | Description |
 |---------|--------|-------------|
+| **ScrollPress AP** | `0x3C2` mux=1 | **HW4-only, Service mode only.** Engages AP via a time-based, human-like scroll-wheel gesture (press ~250ms → scroll-up ~150ms → press ~250ms → scroll-up) on `swcRightPressed` (bits 12-13) + `swcRightScrollTicks` (bits 24-29), fired when `DAS_autopilotState` rises 0→1 — no `0x3FD` touch. First known 2026.14.x bypass; discovered + bench-verified on Highland HW4 / 2026.14.2 by @JakNo ([#43](https://github.com/hypery11/flipper-tesla-fsd/issues/43), timed flow [#82](https://github.com/hypery11/flipper-tesla-fsd/pull/82)). HW3 disabled in v2.15 after @DmitroPanteliuk's emergency-brake report on Intel HW3 2026.14.6 |
 | **Nav FSD Route** | `0x3F8` bits 13/48/49 | Enable nav-based FSD routing (EU/restricted regions) |
 | **TLSSC bit38** | `0x3FD` mux0 bit38 | Explicit TLSSC enable; pair with TLSSC Restore (0x331) as the recommended banned-car combo |
 | **Lane Graph** | `0x3FD` mux1 bit45 | UI_showLaneGraph — lane visualization on non-FSD tier |
-| **Tier Override** | `0x7FF` mux=2 | Force GTW_autopilot to SELF_DRIVING (more aggressive than Ban Shield) |
+| **Tier Override** | `0x7FF` mux=2 | Force GTW_autopilot to SELF_DRIVING (more aggressive than GTW Config Replay — actively writes rather than replays) |
 | **Dev Mode** | `0x3F8` bit5 | UI_dasDeveloper flag |
 | **Force LHD** | `0x3F8` bits 40-41 | UI_drivingSide signal override. **Empirically does not change FSD lane-side behavior** (tested on banned RHD HW3 / 2026.2.6 — values 0, 1, 2 all leave FSD on the LHD side; see [#66](https://github.com/hypery11/flipper-tesla-fsd/issues/66)). Likely a UI-only signal. **Slated for removal in v2.15** if no value-3 / DAS_settings counter-evidence surfaces |
 | **Hands-Off** | `0x3F8` bit14 | UI-level hands-on disable (second nag vector) |
@@ -252,11 +261,13 @@ Single-bus read-modify-retransmit on Party CAN. No MITM, no second bus tap.
 | `0x3FD` | `UI_autopilotControl` | TX | FSD unlock — bit46/60 (HW3/HW4), TLSSC bit38, lane graph bit45 |
 | `0x3F8` | `UI_driverAssistControl` | TX | Nav FSD route, hands-off, dev mode, LHD, telemetry (beta) |
 | `0x3EE` | `UI_autopilotControl` | TX | FSD unlock — Legacy HW1/HW2 |
-| `0x7FF` | `GTW_carConfig` | TX | Ban Shield freeze + active tier override |
+| `0x3C2` | `VCLEFT_switchStatus` | TX | ScrollPress AP — right-scroll injection on mux=1 (HW4, Service mode, beta) |
+| `0x7FF` | `GTW_carConfig` | TX | GTW Config Replay + active tier override |
 | `0x082` | `UI_tripPlanning` | TX | Battery preconditioning trigger |
 | `0x398` | `GTW_carConfig` | RX | HW version detection |
 | `0x318` | `GTW_carState` | RX | OTA detection (auto-suspend TX) |
-| `0x39B` | `DAS_status` | RX | ESP32 HW4 DAS status source; AP state (for AP-First), nag level, lane change, blind spot |
+| `0x399` | `DAS_status` (HW3/Legacy) / `ISA_speedLimit` (HW4) | RX/TX | HW-dispatched: pre-Highland HW3 reads as DAS_status (AP state + hands-on); HW4 keeps the chime-suppression write path |
+| `0x39B` | `DAS_status` | RX | HW4 + Highland HW3 — AP state (for AP-First), nag level, lane change, blind spot |
 | `0x132` | `BMS_hvBusStatus` | RX | Pack voltage / current |
 | `0x292` | `BMS_socStatus` | RX | State of charge |
 | `0x312` | `BMS_thermalStatus` | RX | Battery temperature |
@@ -275,7 +286,7 @@ No. Real-time frame modification. Unplug = back to stock.
 FSD features (TLSSC, traffic light/stop sign control) require the FSD entitlement from Tesla. Without it, the AP ECU has no neural network weights loaded. Non-FSD features (nag killer, BMS dashboard, speed chime suppress, diagnostics) work on any AP-capable car.
 
 **What about VIN-level bans?**
-Tesla has been banning VINs server-side since April 2026. The ban downgrades `GTW_autopilot` tier from SELF_DRIVING to ENHANCED and removes the TLSSC toggle. The **TLSSC Restore** feature (0x331) can recover stop sign/traffic light control on Palladium and HW4. See [issue #18](https://github.com/hypery11/flipper-tesla-fsd/issues/18) for the full research. The **Ban Shield** (0x7FF) can block ban pushes if the AP ECU reads 0x7FF from CAN.
+Tesla has been banning VINs server-side since April 2026. The ban downgrades `GTW_autopilot` tier from SELF_DRIVING to ENHANCED and removes the TLSSC toggle. The **TLSSC Restore** feature (0x331) can recover stop sign/traffic light control on Palladium and HW4. See [issue #18](https://github.com/hypery11/flipper-tesla-fsd/issues/18) for the full research. **GTW Config Replay** (0x7FF, formerly "Ban Shield") can replay the learned-healthy configuration in real time, but only at the CAN broadcast layer — it does not undo the underlying NVRAM or server-side state.
 
 **Flipper Zero vs ESP32 — which should I get?**
 ESP32 is cheaper ($14 vs $200+), has WiFi dashboard, NVS persistence, and deep sleep. Flipper is more portable and has a built-in screen. Both run the same CAN logic. If you don't already own a Flipper, get the ESP32.

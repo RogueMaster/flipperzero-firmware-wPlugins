@@ -67,10 +67,12 @@ typedef struct {
     bool precondition; // periodic 0x082 inject for battery preheat
     OpMode op_mode; // Active / ListenOnly / Service
     uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz
-    bool gtw_shield; // 0x7FF ban defense shield
+    bool gtw_shield; // 0x7FF GTW Config Replay — replay learned-healthy frames
     bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
     bool ap_first; // 2026.14.x: delay injection until AP is engaged
+    bool firmware_14x_warning; // 2026.14.x: show TX-disables-AP warning in running scene (default ON, opt-out for pre-14.x users)
     bool gtw_tier_override; // 0x7FF active tier=SELF_DRIVING override
+    bool scroll_press_ap; // 0x3C2 scroll-press AP engage (HW4-only, Service mode)
 
     // driver assist overrides (0x3F8 + 0x3FD)
     bool assist_nav_enable; // nav-based FSD routing (EU/restricted)

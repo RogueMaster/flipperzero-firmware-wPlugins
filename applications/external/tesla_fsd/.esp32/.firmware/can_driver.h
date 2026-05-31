@@ -1,6 +1,17 @@
 #pragma once
 
-#include "fsd_handler.h" // for CanFrame
+#include <stdint.h>
+#include "fsd_handler.h"  // for CanFrame
+
+enum CanBusId : uint8_t {
+    CAN_BUS_PRIMARY = 0,    // can0
+    CAN_BUS_SECONDARY = 1,  // can1
+    CAN_BUS_COUNT = 2,
+};
+
+static inline const char *can_bus_name(CanBusId bus) {
+    return bus == CAN_BUS_SECONDARY ? "can1" : "can0";
+}
 
 // ── Abstract CAN driver ───────────────────────────────────────────────────────
 // Implemented by TwaiDriver (CAN_DRIVER_TWAI) and Mcp2515Driver (CAN_DRIVER_MCP2515).
@@ -13,10 +24,10 @@ public:
     virtual bool begin(bool listen_only) = 0;
 
     /** Send one CAN frame.  Returns false when TX is not allowed (listen-only, bus-off, etc.). */
-    virtual bool send(const CanFrame& frame) = 0;
+    virtual bool send(const CanFrame &frame) = 0;
 
     /** Non-blocking receive.  Fills frame and returns true if a frame was available. */
-    virtual bool receive(CanFrame& frame) = 0;
+    virtual bool receive(CanFrame &frame) = 0;
 
     /** Cumulative bus/TX-error counter.
      *  TWAI: rx_missed + bus_errors + tx_failed.
@@ -40,4 +51,8 @@ public:
 
 /** Factory function — returns the driver selected at compile time.
  *  Caller owns the returned pointer. */
-CanDriver* can_driver_create();
+CanDriver *can_driver_create();
+
+/** Factory function for boards with two active CAN controllers.
+ *  Caller owns the returned pointer. */
+CanDriver *can_driver_create(CanBusId bus);

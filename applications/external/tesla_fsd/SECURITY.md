@@ -87,8 +87,16 @@ project's TX path can write to:
   Hands-Off (bit14), Dev Mode (bit5), Force LHD (bits 40-41),
   Telemetry Off (bit43); only when the corresponding Settings toggle
   is ON
-- `0x7FF` `GTW_carConfig` — retransmits the healthy snapshot when Ban
-  Shield detects a server-side change; only when Ban Shield is armed
+- `0x7FF` `GTW_carConfig` — replays the learned-healthy snapshot when
+  GTW Config Replay (formerly "Ban Shield") detects the gateway has
+  modified a frame; only when the feature is armed
+- `0x3C2` `VCLEFT_switchStatus` — on mux=1 frames, runs a time-based
+  scroll-wheel engage gesture: holds `swcRightPressed` (bits 12-13)
+  ~250 ms, emits `swcRightScrollTicks` up (bits 24-29) ~150 ms, holds
+  `swcRightPressed` ~250 ms, then one final scroll-up. Only when the
+  ScrollPress AP setting is ON, op mode is Service, HW is detected as
+  HW4, and `DAS_autopilotState` has transitioned from UNAVAIL to AVAIL
+  since the last firing. Does not write to `0x3FD`
 
 It does NOT write to:
 

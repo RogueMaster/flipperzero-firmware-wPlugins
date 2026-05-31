@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "fsd_handler.h"
+#include "can_driver.h"
 
 /**
  * HTTP CAN stream logger.
@@ -13,7 +14,7 @@
 
 void     http_can_stream_init();
 void     http_can_stream_update();
-void     http_can_stream_record(const CanFrame &frame);
+void     http_can_stream_record(CanBusId bus, const CanFrame &frame);
 void     http_can_stream_set_enabled(bool enabled);
 bool     http_can_stream_active();
 uint32_t http_can_stream_frames_sent();

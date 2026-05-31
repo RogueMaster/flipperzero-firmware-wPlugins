@@ -20,6 +20,7 @@ void prefs_load(FSDState *state) {
     state->precondition             = g_prefs.getBool("precond",false);
     state->emergency_vehicle_detect = g_prefs.getBool("emrg",   false);
     state->bms_output               = g_prefs.getBool("bms",    false);
+    state->firmware_14x_warning     = g_prefs.getBool("14x",    true);
 #if defined(BOARD_TTGO_DISPLAY)
     state->display_enabled          = g_prefs.getBool("disp",   true);
     state->display_brightness       = g_prefs.getUChar("disp_br", 50);
@@ -60,6 +61,7 @@ void prefs_save(const FSDState *state) {
     g_prefs.putBool("precond",state->precondition);
     g_prefs.putBool("emrg",   state->emergency_vehicle_detect);
     g_prefs.putBool("bms",    state->bms_output);
+    g_prefs.putBool("14x",    state->firmware_14x_warning);
 #if defined(BOARD_TTGO_DISPLAY)
     g_prefs.putBool("disp",   state->display_enabled);
     g_prefs.putUChar("disp_br", state->display_brightness);

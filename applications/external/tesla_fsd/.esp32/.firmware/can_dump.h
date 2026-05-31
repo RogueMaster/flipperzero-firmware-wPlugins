@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include "fsd_handler.h"
+#include "can_driver.h"
 
 /**
  * can_dump.h — SD-card CAN bus logger (Lilygo T-CAN485)
@@ -21,7 +22,7 @@
 void   can_dump_init();
 bool   can_dump_start();
 void   can_dump_stop();
-void   can_dump_record(const CanFrame &frame);
+void   can_dump_record(CanBusId bus, const CanFrame &frame);
 void   can_dump_tick(uint32_t now_ms);
 bool   can_dump_active();
 String sd_format_card();

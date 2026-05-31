@@ -20,10 +20,14 @@
  * Initialise HTTP and WebSocket servers.
  *
  * @param state      Pointer to the shared FSDState (read + written by command handler)
- * @param can        Pointer to the active CanDriver (used by mode-toggle command)
+ * @param can_buses  CAN drivers to switch between listen-only and active mode
+ * @param can_count  Number of entries in can_buses
  * @param state_mux  Spinlock protecting cross-core access to state
  */
-void web_dashboard_init(FSDState *state, CanDriver *can, portMUX_TYPE *state_mux);
+void web_dashboard_init(FSDState *state,
+                        CanDriver **can_buses,
+                        uint8_t can_count,
+                        portMUX_TYPE *state_mux);
 
 /** Service HTTP requests and WebSocket messages; broadcast state at 1 Hz. */
 void web_dashboard_update();

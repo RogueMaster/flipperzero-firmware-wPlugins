@@ -3,6 +3,11 @@ App(
     name="Tesla Mod",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="tesla_fsd_main",
+    sources=[
+        "*.c*",
+        "!test",
+        "!tools",
+    ],  # FAP build: exclude host-only tests (test/) and Python tooling (tools/)
     stack_size=8 * 1024,
     fap_icon="icon.png",
     fap_icon_assets="assets",

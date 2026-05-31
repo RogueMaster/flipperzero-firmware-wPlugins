@@ -92,9 +92,14 @@ static void fsd_update_display(TeslaFSDApp* app, uint32_t uptime_ms) {
         (unsigned long)state.crc_err_count);
     widget_add_string_element(app->widget, 2, 36, AlignLeft, AlignTop, FontSecondary, line3);
 
-    // Line 4: live BMS readout if we've seen any BMS frames, else feature flags
+    // Line 4: 14.x firmware warning takes priority, then BMS, then feature flags.
+    // 2026.14.x added an enforcement check that disables autosteer the moment any
+    // CAN injection touches 0x3FD. Warning is opt-out via the "On 14.x" toggle
+    // for users who know they're on pre-14.x firmware.
     char line4[48];
-    if(state.bms_seen) {
+    if(app->firmware_14x_warning) {
+        snprintf(line4, sizeof(line4), "!14.x: TX may stop AP");
+    } else if(state.bms_seen) {
         float kw = state.pack_voltage_v * state.pack_current_a / 1000.0f;
         snprintf(
             line4,
@@ -145,7 +150,7 @@ static int32_t fsd_running_worker(void* context) {
     state.extra_highbeam_strobe = app->extra_highbeam_strobe;
     state.extra_turn_left = app->extra_turn_left;
     state.extra_turn_right = app->extra_turn_right;
-    // Ban Shield: don't arm immediately — learn healthy state first.
+    // GTW Config Replay: don't arm immediately — learn healthy state first.
     // gtw_shield_armed starts false; fsd_handle_gtw_shield() auto-arms
     // after all 8 mux snapshots are captured.
     bool shield_enabled = app->gtw_shield;
@@ -153,6 +158,10 @@ static int32_t fsd_running_worker(void* context) {
     state.tlssc_restore = app->tlssc_restore;
     state.ap_first = app->ap_first;
     state.gtw_tier_override = app->gtw_tier_override;
+    state.scroll_press_ap = app->scroll_press_ap;
+    state.scroll_press_state = 0;
+    state.scroll_press_armed = false;
+    state.scroll_press_phase_ms = 0;
     state.assist_nav_enable = app->assist_nav_enable;
     state.assist_hands_off = app->assist_hands_off;
     state.assist_dev_mode = app->assist_dev_mode;
@@ -306,7 +315,7 @@ static int32_t fsd_running_worker(void* context) {
                 } else if(frame.canId == CAN_ID_ESP_STATUS) {
                     fsd_handle_esp_status(&state, &frame);
                 } else if(frame.canId == CAN_ID_DAS_STATUS) {
-                    fsd_handle_das_status(&state, &frame);
+                    fsd_handle_das_status_hw4(&state, &frame);
                 } else if(frame.canId == CAN_ID_DAS_STATUS2) {
                     fsd_handle_das_status2(&state, &frame);
                 } else if(frame.canId == CAN_ID_DAS_SETTINGS) {
@@ -319,9 +328,9 @@ static int32_t fsd_running_worker(void* context) {
                     fsd_handle_energy_consumption(&state, &frame);
                 } else if(frame.canId == CAN_ID_GTW_CONFIG_ETH) {
                     fsd_handle_gtw_autopilot_tier(&state, &frame);
-                    // Shield and tier override are mutually exclusive on the
-                    // same frame — shield freezes existing state, override
-                    // forces tier=3. Don't send two conflicting copies.
+                    // GTW Config Replay and Tier Override are mutually exclusive
+                    // on the same frame — replay re-emits the learned healthy state,
+                    // override forces tier=3. Don't send two conflicting copies.
                     if(shield_enabled) {
                         if(fsd_handle_gtw_shield(&state, &frame) && tx_allowed) {
                             send_can_frame(mcp, &frame);
@@ -376,9 +385,17 @@ static int32_t fsd_running_worker(void* context) {
                     if(fsd_handle_legacy_autopilot(&state, &frame) && tx_allowed) {
                         send_can_frame(mcp, &frame);
                     }
-                } else if(frame.canId == CAN_ID_ISA_SPEED && state.suppress_speed_chime) {
-                    if(fsd_handle_isa_speed_chime(&frame) && tx_allowed) {
-                        send_can_frame(mcp, &frame);
+                } else if(frame.canId == CAN_ID_ISA_SPEED) {
+                    // 0x399 is HW-dependent: HW4 = ISA chime, HW3/Legacy = DAS_status.
+                    // Suppress Chime is HW4-only because writing the HW4 ISA bits
+                    // on HW3 would corrupt the DAS_status payload.
+                    if(state.hw_version == TeslaHW_HW4) {
+                        if(state.suppress_speed_chime && fsd_handle_isa_speed_chime(&frame) &&
+                           tx_allowed) {
+                            send_can_frame(mcp, &frame);
+                        }
+                    } else {
+                        fsd_handle_das_status_hw3(&state, &frame);
                     }
                 } else if(frame.canId == CAN_ID_FOLLOW_DIST) {
                     fsd_handle_follow_distance(&state, &frame);
@@ -387,6 +404,10 @@ static int32_t fsd_running_worker(void* context) {
                     }
                 } else if(frame.canId == CAN_ID_AP_CONTROL) {
                     if(fsd_handle_autopilot_frame(&state, &frame) && tx_allowed) {
+                        send_can_frame(mcp, &frame);
+                    }
+                } else if(frame.canId == CAN_ID_VCLEFT_SWITCH) {
+                    if(fsd_handle_scroll_press_inject(&state, &frame, now) && tx_allowed) {
                         send_can_frame(mcp, &frame);
                     }
                 }

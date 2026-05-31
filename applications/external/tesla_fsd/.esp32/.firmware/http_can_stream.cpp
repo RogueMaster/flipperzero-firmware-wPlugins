@@ -11,6 +11,7 @@
 
 struct StreamFrame {
     uint32_t elapsed_ms;
+    CanBusId bus;
     CanFrame frame;
 };
 
@@ -281,14 +282,16 @@ static bool write_frame(const StreamFrame &item) {
     char line[72];
     int pos;
     if (item.frame.id <= 0x7FFu) {
-        pos = snprintf(line, sizeof(line), "(%lu.%06lu) can0 %03lX#",
+        pos = snprintf(line, sizeof(line), "(%lu.%06lu) %s %03lX#",
                        (unsigned long)sec,
                        (unsigned long)usec,
+                       can_bus_name(item.bus),
                        (unsigned long)item.frame.id);
     } else {
-        pos = snprintf(line, sizeof(line), "(%lu.%06lu) can0 %08lX#",
+        pos = snprintf(line, sizeof(line), "(%lu.%06lu) %s %08lX#",
                        (unsigned long)sec,
                        (unsigned long)usec,
+                       can_bus_name(item.bus),
                        (unsigned long)item.frame.id);
     }
     if (pos < 0 || pos >= (int)sizeof(line)) return false;
@@ -343,7 +346,7 @@ void http_can_stream_update() {
     flush_stream();
 }
 
-void http_can_stream_record(const CanFrame &frame) {
+void http_can_stream_record(CanBusId bus, const CanFrame &frame) {
     if (!g_enabled || !g_active || !g_client.connected()) return;
     if (!filter_matches(frame.id)) {
         g_filtered++;
@@ -357,6 +360,7 @@ void http_can_stream_record(const CanFrame &frame) {
 
     StreamFrame &slot = g_ring[g_head];
     slot.elapsed_ms = millis() - g_start_ms;
+    slot.bus = bus;
     slot.frame.id = frame.id;
     slot.frame.dlc = frame.dlc > 8 ? 8 : frame.dlc;
     memcpy(slot.frame.data, frame.data, slot.frame.dlc);

@@ -3,6 +3,7 @@
 
 #include "Spi_lib.h"
 #include "log_user.h"
+#include "../fsd_logic/fsd_types.h" // MAX_LEN + CANFRAME (hardware-free, shared with protocol core)
 
 #ifdef __LOG_USER_H_
 // for debugging errors
@@ -22,7 +23,7 @@
 #define CAN_IS_EXTENDED       0x80000000
 #define CAN_IS_REMOTE_REQUEST 0x40000000
 #define CAN_EXTENDED_ID       0x1FFFFFFF
-#define MAX_LEN               8
+// MAX_LEN now lives in fsd_logic/fsd_types.h (included above)
 
 // Mask of the bits
 static const uint8_t CANCTRL_REQOP = 0xE0;
@@ -328,14 +329,7 @@ typedef enum {
     MCP_20MHZ,
 } MCP_CLOCK;
 
-// This a struct to define the Can Frame
-typedef struct {
-    uint32_t canId;
-    uint8_t ext;
-    uint8_t req;
-    uint8_t data_lenght;
-    uint8_t buffer[MAX_LEN];
-} CANFRAME;
+// CANFRAME now lives in fsd_logic/fsd_types.h (included at the top of this header)
 
 // This Struct is to cinfig and work with the MCP2515 device
 typedef struct {
