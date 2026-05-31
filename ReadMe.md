@@ -71,6 +71,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - HID App: [PTT improvements (By hryamzik)](https://github.com/DarkFlippers/unleashed-firmware/pull/996)
 - Updated: [NFC Seader v4.1 (By bettse)](https://github.com/bettse/seader)
 - Updated: [CK42X Passvault v0.4.2 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
+- Updated: [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
+- Updated: [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 
 <a name="release"></a>
 

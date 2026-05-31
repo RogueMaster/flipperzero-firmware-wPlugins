@@ -26,19 +26,29 @@ typedef struct {
 static const double HOURS_TO_SECONDS = 3600.0;
 static const double DAYS_TO_SECONDS = 86400.0;
 static const double YEARS_TO_SECONDS = 31536000.0;
-static const double VELOCITY_MAX = 0.999;
+static const double VELOCITY_MAX = 9.99; // 999% light — deep FTL
+static const double FTL_ENTRY = 1.05; // Jump-to point crossing light barrier
+static const double SUBLUMINAL_CAP = 0.9999; // Last subluminal stop
+static const double VELOCITY_EXTREME_PRECISION = 0.9999;
+static const double VELOCITY_ULTRA_PRECISION = 0.999;
 static const double VELOCITY_HIGH_PRECISION = 0.99;
 static const double VELOCITY_MID_PRECISION = 0.90;
-static const double TIME_MIN = 0.1;
-static const double TIME_MAX = 999.9;
-static const double TIME_STEP = 0.1;
+static const double TWO = 2.0;
+static const double TIME_MAX = 999.0;
+static const double HALF = 0.5;
+static const double FIVE = 5.0;
 static const double VELOCITY_STEP_COARSE = 0.05;
 static const double VELOCITY_STEP_MEDIUM = 0.01;
 static const double VELOCITY_STEP_FINE = 0.001;
+static const double VELOCITY_STEP_ULTRA = 0.0001;
 static const double ZERO = 0.0;
 static const double ONE = 1.0;
 static const double SIXTY = 60.0;
 static const double HUNDRED = 100.0;
+static const double TEN = 10.0;
+static const double TWENTY_FOUR = 24.0;
+static const double GAMMA_CAP = 9999.0;
+static const double DENOM_GUARD = 0.001;
 
 // Physics calculations - verified formulas from CLAUDE.md
 static double lorentz_factor(double v_over_c) {
@@ -63,66 +73,108 @@ static double time_to_seconds(double value, TimeUnit unit) {
     }
 }
 
-// Format time difference with auto-scaling
+// Format time difference with auto-scaling (handles negative for FTL)
 static void format_time_difference(double diff_seconds, char* buffer, size_t buffer_size) {
+    const char* sign = "+";
+    if(diff_seconds < ZERO) {
+        sign = "-";
+        diff_seconds = -diff_seconds;
+    }
     if(diff_seconds < SIXTY) {
-        // Show seconds
         if(diff_seconds < ONE) {
-            snprintf(buffer, buffer_size, "+%.1fs", diff_seconds);
+            snprintf(buffer, buffer_size, "%s%.1fs", sign, diff_seconds);
         } else {
-            snprintf(buffer, buffer_size, "+%.0fs", diff_seconds);
+            snprintf(buffer, buffer_size, "%s%.0fs", sign, diff_seconds);
         }
     } else if(diff_seconds < HOURS_TO_SECONDS) {
-        // Show minutes
         double minutes = diff_seconds / SIXTY;
-        snprintf(buffer, buffer_size, "+%.1fm", minutes);
+        snprintf(buffer, buffer_size, "%s%.1fm", sign, minutes);
     } else if(diff_seconds < DAYS_TO_SECONDS) {
-        // Show hours
         double hours = diff_seconds / HOURS_TO_SECONDS;
-        snprintf(buffer, buffer_size, "+%.1fh", hours);
+        snprintf(buffer, buffer_size, "%s%.1fh", sign, hours);
     } else if(diff_seconds < YEARS_TO_SECONDS) {
-        // Show days
         double days = diff_seconds / DAYS_TO_SECONDS;
-        snprintf(buffer, buffer_size, "+%.1fd", days);
+        snprintf(buffer, buffer_size, "%s%.1fd", sign, days);
     } else {
         // Show years
         double years = diff_seconds / YEARS_TO_SECONDS;
         if(years >= HUNDRED) {
-            snprintf(
-                buffer, buffer_size, "+%.1gy", years); // Use %g for automatic scientific notation
+            snprintf(buffer, buffer_size, "%s%.0fy", sign, years);
         } else {
-            snprintf(buffer, buffer_size, "+%.1fy", years);
+            snprintf(buffer, buffer_size, "%s%.1fy", sign, years);
         }
     }
 }
 
-// Format velocity with adaptive precision
+// Format velocity as % of light speed — intuitive for everyone
 static void format_velocity(double v_c, char* buffer, size_t buffer_size) {
+    double pct = v_c * HUNDRED;
     if(v_c >= VELOCITY_MAX) {
-        snprintf(buffer, buffer_size, "0.999c MAX");
+        snprintf(buffer, buffer_size, "999%% MAX");
+    } else if(v_c >= FTL_ENTRY) {
+        snprintf(buffer, buffer_size, "%.0f%% FTL", pct);
+    } else if(v_c >= VELOCITY_EXTREME_PRECISION) {
+        snprintf(buffer, buffer_size, "%.3f%%", pct);
+    } else if(v_c >= VELOCITY_ULTRA_PRECISION) {
+        snprintf(buffer, buffer_size, "%.2f%%", pct);
     } else if(v_c >= VELOCITY_HIGH_PRECISION) {
-        snprintf(buffer, buffer_size, "%.3fc", v_c);
-    } else if(v_c >= VELOCITY_MID_PRECISION) {
-        snprintf(buffer, buffer_size, "%.2fc", v_c);
+        snprintf(buffer, buffer_size, "%.1f%%", pct);
     } else {
-        snprintf(buffer, buffer_size, "%.2fc", v_c);
+        snprintf(buffer, buffer_size, "%.0f%%", pct);
     }
 }
 
-// Format time value with unit
+// Format time value with unit — whole numbers for h/d, one decimal for years
 static void format_time(double value, TimeUnit unit, char* buffer, size_t buffer_size) {
     const char* unit_symbols[] = {"h", "d", "y"};
-    snprintf(buffer, buffer_size, "%.1f%s", value, unit_symbols[unit]);
+    if(unit == UNIT_YEARS) {
+        snprintf(buffer, buffer_size, "%.1f%s", value, unit_symbols[unit]);
+    } else {
+        snprintf(buffer, buffer_size, "%.0f%s", value, unit_symbols[unit]);
+    }
 }
 
 // Get velocity adjustment step based on current velocity
 static double get_velocity_step(double current_v) {
-    if(current_v < VELOCITY_MID_PRECISION) {
+    if(current_v >= FTL_ENTRY) {
+        return current_v < TWO ? VELOCITY_STEP_COARSE : VELOCITY_STEP_COARSE * FIVE;
+    } else if(current_v < VELOCITY_MID_PRECISION) {
         return VELOCITY_STEP_COARSE;
     } else if(current_v < VELOCITY_HIGH_PRECISION) {
         return VELOCITY_STEP_MEDIUM;
-    } else {
+    } else if(current_v < VELOCITY_ULTRA_PRECISION) {
         return VELOCITY_STEP_FINE;
+    } else if(current_v < VELOCITY_EXTREME_PRECISION) {
+        return VELOCITY_STEP_ULTRA;
+    } else {
+        return VELOCITY_STEP_ULTRA / TEN;
+    }
+}
+
+// Get time step and minimum based on unit — meaningful for space travel
+static double get_time_step(TimeUnit unit) {
+    switch(unit) {
+    case UNIT_HOURS:
+        return ONE; // 1h steps (Moon trip scale)
+    case UNIT_DAYS:
+        return FIVE; // 5d steps (inner solar system)
+    case UNIT_YEARS:
+        return HALF; // 0.5y steps (interstellar)
+    default:
+        return ONE;
+    }
+}
+
+static double get_time_min(TimeUnit unit) {
+    switch(unit) {
+    case UNIT_HOURS:
+        return ONE; // min 1h
+    case UNIT_DAYS:
+        return FIVE; // min 5d
+    case UNIT_YEARS:
+        return HALF; // min 0.5y
+    default:
+        return ONE;
     }
 }
 
@@ -141,21 +193,26 @@ static void dilate_draw_callback(Canvas* canvas, void* ctx) {
     char time_str[32];
     format_time(state->time_value, state->time_unit, time_str, sizeof(time_str));
 
-    // Calculate physics
+    // Calculate physics — subluminal or tachyonic (FTL)
     double traveler_seconds = time_to_seconds(state->time_value, state->time_unit);
-    double earth_seconds = traveler_seconds * lorentz_factor(state->velocity_c);
-    double diff_seconds = earth_seconds - traveler_seconds;
+    double gamma;
+    double earth_seconds;
+    bool is_ftl = state->velocity_c > ONE;
 
-    // Handle edge case: velocity at or above light speed
-    if(state->velocity_c >= ONE) {
-        canvas_draw_str(canvas, 2, 12, "SPEED:");
-        canvas_draw_str(canvas, 50, 12, "1.00c");
-        canvas_draw_str(canvas, 2, 24, "TIME:");
-        canvas_draw_str(canvas, 50, 24, time_str);
-        canvas_draw_line(canvas, 2, 28, 126, 28);
-        canvas_draw_str(canvas, 2, 48, "UNDEFINED");
-        return;
+    if(is_ftl) {
+        // Tachyonic regime: gamma = 1/sqrt(v^2/c^2 - 1)
+        // Earth ages LESS than you — dilation inverts
+        double v_sq = state->velocity_c * state->velocity_c;
+        double denom = v_sq - ONE;
+        if(denom <= ZERO) denom = DENOM_GUARD;
+        gamma = (double)(ONE / (double)sqrt(denom));
+        if(gamma > GAMMA_CAP) gamma = GAMMA_CAP;
+        earth_seconds = traveler_seconds * gamma;
+    } else {
+        gamma = lorentz_factor(state->velocity_c);
+        earth_seconds = traveler_seconds * gamma;
     }
+    double diff_seconds = earth_seconds - traveler_seconds;
 
     // Format results
     char earth_time_str[32];
@@ -185,23 +242,74 @@ static void dilate_draw_callback(Canvas* canvas, void* ctx) {
     // Format difference with auto-scaling
     format_time_difference(diff_seconds, diff_str, sizeof(diff_str));
 
-    // Display layout - fits within 128x64 screen
-    canvas_draw_str(canvas, 2, 12, "SPEED:");
-    canvas_draw_str(canvas, 50, 12, velocity_str);
+    // Display layout - control hints inline with input labels
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 38, 12, "\x18\x19"); // ▲▼ arrows
+    canvas_draw_str(canvas, 38, 24, "\x1b\x1a"); // ◄► arrows
+    canvas_set_font(canvas, FontPrimary);
 
-    canvas_draw_str(canvas, 2, 24, "TIME:");
-    canvas_draw_str(canvas, 50, 24, time_str);
+    canvas_draw_str(canvas, 2, 12, "LIGHT");
+    canvas_draw_str(canvas, 54, 12, velocity_str);
+
+    canvas_draw_str(canvas, 2, 24, "YOU");
+    canvas_draw_str(canvas, 54, 24, time_str);
 
     canvas_draw_line(canvas, 2, 28, 126, 28);
 
-    canvas_draw_str(canvas, 2, 40, "EARTH:");
-    canvas_draw_str(canvas, 50, 40, earth_time_str);
+    canvas_draw_str(canvas, 2, 40, "EARTH");
+    canvas_draw_str(canvas, 54, 40, earth_time_str);
 
-    // Only show difference if meaningful (> 0.1 seconds)
-    if(diff_seconds > TIME_MIN) {
-        canvas_draw_str(canvas, 2, 52, "DIFF:");
-        canvas_draw_str(canvas, 50, 52, diff_str);
+    // Show difference if meaningful (>1 second either direction)
+    double abs_diff = diff_seconds < ZERO ? -diff_seconds : diff_seconds;
+    if(abs_diff > ONE) {
+        canvas_draw_str(canvas, 2, 52, "DIFF");
+        canvas_draw_str(canvas, 54, 52, diff_str);
     }
+
+    // Lorentz factor / tachyonic factor with visual bar
+    canvas_set_font(canvas, FontSecondary);
+
+    // Show gamma value — subluminal: dilation factor, FTL: compression factor
+    char gamma_str[16];
+    if(is_ftl) {
+        // FTL: gamma < 1, show as fraction (Earth ages less)
+        if(gamma < VELOCITY_STEP_MEDIUM) {
+            snprintf(gamma_str, sizeof(gamma_str), "x%.3f", gamma);
+        } else {
+            snprintf(gamma_str, sizeof(gamma_str), "x%.2f", gamma);
+        }
+    } else if(gamma >= HUNDRED) {
+        snprintf(gamma_str, sizeof(gamma_str), "x%.0f", gamma);
+    } else if(gamma >= TEN) {
+        snprintf(gamma_str, sizeof(gamma_str), "x%.1f", gamma);
+    } else {
+        snprintf(gamma_str, sizeof(gamma_str), "x%.2f", gamma);
+    }
+    canvas_draw_str(canvas, 2, 63, gamma_str);
+
+    // Visual dilation bar
+    int bar_x = 42;
+    int bar_w = 84;
+    int bar_y = 56;
+    int bar_h = 7;
+    canvas_draw_frame(canvas, bar_x, bar_y, bar_w, bar_h);
+
+    double fill_frac;
+    if(is_ftl) {
+        // FTL: bar fills from right (gamma goes 1→0, more FTL = more compression)
+        fill_frac = ONE - gamma;
+    } else {
+        // Subluminal: bar fills from left (gamma goes 1→inf)
+        fill_frac = (gamma - ONE) / TWENTY_FOUR;
+    }
+    if(fill_frac > ONE) fill_frac = ONE;
+    if(fill_frac < ZERO) fill_frac = ZERO;
+    int fill_w = (int)(fill_frac * (double)(bar_w - 2));
+    if(fill_w > 0) {
+        canvas_draw_box(canvas, bar_x + 1, bar_y + 1, fill_w, bar_h - 2);
+    }
+
+    canvas_set_font(canvas, FontPrimary);
 }
 
 // Input callback for GUI
@@ -239,43 +347,57 @@ int32_t dilate_app(void* p) {
     InputEvent event;
     while(state->running) {
         if(furi_message_queue_get(event_queue, &event, 100) == FuriStatusOk) {
-            if(event.type == InputTypePress) {
+            if(event.type == InputTypePress || event.type == InputTypeRepeat) {
                 switch(event.key) {
                 case InputKeyUp:
-                    // Increase velocity with adaptive step
+                    // Increase velocity — jump the light barrier
                     state->velocity_c += get_velocity_step(state->velocity_c);
+                    if(state->velocity_c > SUBLUMINAL_CAP && state->velocity_c < FTL_ENTRY) {
+                        state->velocity_c = FTL_ENTRY;
+                    }
                     if(state->velocity_c > VELOCITY_MAX) {
-                        state->velocity_c = VELOCITY_MAX; // Cap at 0.999c
+                        state->velocity_c = VELOCITY_MAX;
                     }
                     break;
 
                 case InputKeyDown:
-                    // Decrease velocity with adaptive step
+                    // Decrease velocity — jump back below light barrier
                     state->velocity_c -= get_velocity_step(state->velocity_c);
+                    if(state->velocity_c > SUBLUMINAL_CAP && state->velocity_c < FTL_ENTRY) {
+                        state->velocity_c = SUBLUMINAL_CAP;
+                    }
                     if(state->velocity_c < ZERO) {
                         state->velocity_c = ZERO;
                     }
                     break;
 
                 case InputKeyRight:
-                    // Increase time duration
-                    state->time_value += TIME_STEP;
+                    // Increase time duration (step depends on unit)
+                    state->time_value += get_time_step(state->time_unit);
                     if(state->time_value > TIME_MAX) {
                         state->time_value = TIME_MAX;
                     }
                     break;
 
                 case InputKeyLeft:
-                    // Decrease time duration
-                    state->time_value -= TIME_STEP;
-                    if(state->time_value < TIME_MIN) {
-                        state->time_value = TIME_MIN;
+                    // Decrease time duration (step depends on unit)
+                    state->time_value -= get_time_step(state->time_unit);
+                    if(state->time_value < get_time_min(state->time_unit)) {
+                        state->time_value = get_time_min(state->time_unit);
                     }
                     break;
 
                 case InputKeyOk:
                     // Cycle time units: h → d → y → h
+                    // Snap value to nearest valid step for new unit
                     state->time_unit = (state->time_unit + 1) % UNIT_COUNT;
+                    {
+                        double step = get_time_step(state->time_unit);
+                        double mn = get_time_min(state->time_unit);
+                        state->time_value = step * (int)(state->time_value / step + HALF);
+                        if(state->time_value < mn) state->time_value = mn;
+                        if(state->time_value > TIME_MAX) state->time_value = TIME_MAX;
+                    }
                     break;
 
                 case InputKeyBack:
