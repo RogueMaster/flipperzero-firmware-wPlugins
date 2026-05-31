@@ -74,6 +74,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Updated: [Tesla Mod v2.14.0 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Added: [Infrared Playback v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
 
 <a name="release"></a>
 
@@ -672,6 +673,7 @@ $ ./fbt dolphin_ext
 - [Image Viewer v0.1 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer)
 - [INA Meter v0.8 (By cepetr)](https://github.com/cepetr/flipper-tina)
 - [InfraFi v1.2 (By amd989)](https://github.com/amd989/InfraFi)
+- [Infrared Playback v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
 - [Intervalometer v1.2 (By theageoflove)](https://github.com/theageoflove/flipperzero-zeitraffer)
 - [IR Blaster v1.1 (By mateusz-szafraniec)](https://github.com/mateusz-szafraniec/flipperzero-IR_Blaster)
 - [IR Decoder v1.0 (By prplecake)](https://github.com/prplecake/f0/tree/master/infrared/apps/ir_decoder)
