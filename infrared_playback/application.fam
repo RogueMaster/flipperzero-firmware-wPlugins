@@ -1,0 +1,18 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="infrared_playback",  # Must be unique
+    name="Infrared Playback",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="infrared_playback_app",
+    stack_size=2 * 1024,
+    fap_category="Infrared",
+    # Optional values
+    fap_version="0.1",
+    fap_icon="assets/icon.png",  # 10x10 1-bit PNG
+    fap_description="Implementation of the saved remote feature of the main infrared app with a fix for larger files and payloads",
+    fap_author="K. Diller",
+    fap_weburl="https://github.com/kdiller713/",
+    fap_icon_assets="assets",  # Image assets to compile for this application
+    fap_libs=["infrared"],
+)
