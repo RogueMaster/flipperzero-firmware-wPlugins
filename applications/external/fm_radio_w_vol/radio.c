@@ -296,7 +296,7 @@ static bool rds_constellation_view_active = false;
 static uint32_t rds_runtime_sample_rate_hz = 0U;
 static char rds_ps_display[RDS_PS_LEN + 1U];
 static RdsSyncState rds_sync_display = RdsSyncStateSearch;
-#define RDS_ADC_FIXED_MIDPOINT 2703U
+#define RDS_ADC_FIXED_MIDPOINT 2048U
 static const GpioPin* rds_adc_pin = &gpio_ext_pa4;
 static FuriHalAdcChannel rds_adc_channel = FuriHalAdcChannel9;
 static FuriTimer* rds_adc_timer_handle = NULL;
@@ -2790,8 +2790,12 @@ void fmradio_controller_pt_chip_change(VariableItem* item) {
 // Periodic background tick: I2C hot-plug check, debounced saves.
 // Runs every 250 ms via FuriTimer, independent of which view is active.
 static void fmradio_tick_callback(void* context) {
+    /* Guard FIRST — furi_timer_free() is async. A queued callback can fire
+     * after free(app), so dereferencing context before the exit check is a
+     * use-after-free → HardFault. Null-check context to catch the case where
+     * the timer was already freed but the callback was already queued. */
+    if(!context || fmradio_app_exiting) return;
     FMRadio* app = (FMRadio*)context;
-    if(fmradio_app_exiting) return;
     uint32_t now = furi_get_tick();
 
     // PT hot-plug (every ~500 ms)
@@ -2847,7 +2851,7 @@ static void fmradio_tick_callback(void* context) {
             tea_info_read_count++;
             fmradio_state_unlock();
 
-            if(!was_ready) {
+            if(!was_ready && fmradio_rds_pipeline_enabled()) {
                 fmradio_rds_pipeline_start();
                 // Start timer so worker can begin processing
                 if(rds_adc_timer_handle && !rds_adc_timer_running) {
@@ -3450,33 +3454,19 @@ void fmradio_controller_free(FMRadio* app) {
     furi_delay_ms(200);
     FURI_LOG_I(TAG, "free: timer callback drain complete");
 
-#ifdef ENABLE_RDS
-    /* Phase 3: stop the ADC/DMA producer and signal the capture writer to
-     * abort. capture_stop() only flips flags and pokes the writer — cheap and
-     * synchronous. adc_stop() unregisters the DMA ISR, stops the trigger
-     * timer, releases the ADC handle: after it returns the sample ring stops
-     * growing.
-     *
-     * Drain barrier: set rds_pipeline_stopping=true and delay 20 ms so any
-     * worker DSP iteration / deferred block callback / realtime ISR callback
-     * already in flight observes the flag and exits before we tear down the
-     * producer. Without this barrier capture_stop() can free rds_capture_ring
-     * while the worker is still inside fmradio_rds_capture_write_block() or
-     * the realtime ISR is mid-memcpy, causing a HardFault on app exit when
-     * RDS was active. fmradio_app_exiting=true alone is not enough — by the
-     * time this code runs, an in-flight callback may have already passed its
-     * fmradio_app_exiting check. */
-    rds_pipeline_stopping = true;
-    furi_delay_ms(20);
-    fmradio_rds_capture_stop();
-    fmradio_rds_adc_stop();
+    /* Extra drain to ensure no timer callback is mid-execution.
+     * Covers the case where a callback was queued just before the 200ms
+     * drain ended and is still holding state_mutex. */
+    furi_delay_ms(50);
+    FURI_LOG_I(TAG, "free: extra mutex safety drain");
 
-    /* Phase 4: stop and join the DSP worker, then the capture writer.
+#ifdef ENABLE_RDS
+    /* Phase 3: stop and join the DSP worker, then the capture writer.
      *
-     * No new TICK flags can arrive (the timer is freed). The worker will
-     * finish at most one bounded drain pass (the ring no longer refills) and
-     * return to its flag-wait, observe STOP, exit cleanly. Joining is now
-     * deadlock-free. */
+     * Worker exits before any pipeline resources are touched — no race between
+     * worker and capture writer on rds_capture_ring. Capture writer is the sole
+     * owner of ring free/close and runs to completion with ring still valid.
+     * No new TICK flags can arrive (the timer was stopped in Phase 2). */
     if(rds_dsp_worker_thread) {
         FuriThreadId dsp_wid = rds_dsp_worker_thread_id;
         rds_dsp_worker_thread_id = NULL;
@@ -3489,70 +3479,103 @@ void fmradio_controller_free(FMRadio* app) {
     }
 
     fmradio_rds_capture_writer_stop();
-    FURI_LOG_I(TAG, "free: rds pipeline stopped");
+    FURI_LOG_I(TAG, "free: DSP worker + capture writer stopped");
+
+    /* Phase 4: stop the ADC/DMA producer.
+     *
+     * Pipeline barrier is now defense-in-depth — the DSP worker already exited
+     * in Phase 3. The 20 ms drain covers any remaining ISR callbacks that may
+     * have been in-flight when rds_pipeline_stopping was set. adc_stop()
+     * unregisters the DMA ISR, stops the trigger timer, releases the ADC
+     * handle: after it returns no context can touch shared RDS state. */
+    rds_pipeline_stopping = true;
+    furi_delay_ms(20);
+    fmradio_rds_capture_stop();
+    fmradio_rds_adc_stop();
+    FURI_LOG_I(TAG, "free: RDS pipeline stopped");
 #endif
 
     /* Phase 5: hardware shutdown. Pure I2C/GPIO from the app main thread —
      * no concurrent worker can touch PT22xx/PAM at this point. */
+    FURI_LOG_I(TAG, "free: entering audio shutdown");
     fmradio_audio_shutdown();
     FURI_LOG_I(TAG, "free: audio shutdown done");
 
-    /* Phase 6: restore system state and close the NOTIFICATION record. */
-    if(app->notifications) {
+    /* Phase 6: restore system state and close the NOTIFICATION record.
+     * Defensive: check app and notifications pointer validity. */
+    if(app && app->notifications) {
+        FURI_LOG_I(TAG, "free: restoring backlight");
         notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
         furi_record_close(RECORD_NOTIFICATION);
         app->notifications = NULL;
+        FURI_LOG_I(TAG, "free: notification closed");
     }
 
     /* Phase 7: free GUI resources. The dispatcher event loop is already
      * stopped (VIEW_NONE was returned from exit_callback), but views must
      * still be removed from the dispatcher's view table before being freed
      * so its internal bookkeeping stays consistent. */
-    if(app->widget_about) {
+    FURI_LOG_I(TAG, "free: starting GUI teardown");
+    if(app && app->widget_about) {
+        FURI_LOG_I(TAG, "free: removing About view");
         if(app->view_dispatcher)
             view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewAbout);
         widget_free(app->widget_about);
         app->widget_about = NULL;
+        FURI_LOG_I(TAG, "free: About view freed");
     }
-    if(app->listen_view) {
+    if(app && app->listen_view) {
+        FURI_LOG_I(TAG, "free: removing Listen view");
         if(app->view_dispatcher)
             view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewListen);
         view_free(app->listen_view);
         app->listen_view = NULL;
+        FURI_LOG_I(TAG, "free: Listen view freed");
     }
 #ifdef ENABLE_RDS
-    if(app->constellation_view) {
+    if(app && app->constellation_view) {
+        FURI_LOG_I(TAG, "free: removing Constellation view");
         if(app->view_dispatcher)
             view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewConstellation);
         view_free(app->constellation_view);
         app->constellation_view = NULL;
+        FURI_LOG_I(TAG, "free: Constellation view freed");
     }
 #endif
-    if(app->variable_item_list_config) {
+    if(app && app->variable_item_list_config) {
+        FURI_LOG_I(TAG, "free: removing Config view");
         if(app->view_dispatcher)
             view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewConfigure);
         variable_item_list_free(app->variable_item_list_config);
         app->variable_item_list_config = NULL;
+        FURI_LOG_I(TAG, "free: Config view freed");
     }
-    if(app->submenu) {
+    if(app && app->submenu) {
+        FURI_LOG_I(TAG, "free: removing Submenu view");
         if(app->view_dispatcher)
             view_dispatcher_remove_view(app->view_dispatcher, FMRadioViewSubmenu);
         submenu_free(app->submenu);
         app->submenu = NULL;
+        FURI_LOG_I(TAG, "free: Submenu freed");
     }
-    if(app->view_dispatcher) {
+    if(app && app->view_dispatcher) {
+        FURI_LOG_I(TAG, "free: freeing view dispatcher");
         view_dispatcher_free(app->view_dispatcher);
         app->view_dispatcher = NULL;
+        FURI_LOG_I(TAG, "free: view dispatcher freed");
     }
-    furi_record_close(RECORD_GUI);
-    FURI_LOG_I(TAG, "free: gui torn down");
+    if(app) {
+        furi_record_close(RECORD_GUI);
+        FURI_LOG_I(TAG, "free: GUI record closed");
+    }
 
-    /* Phase 8: free synchronisation primitives. Safe — nothing left can
-     * acquire state_mutex. */
-    if(state_mutex) {
-        furi_mutex_free(state_mutex);
-        state_mutex = NULL;
-    }
+    /* Phase 8: skipped — let Flipper SDK reclaim mutex at thread exit.
+     *
+     * furi_mutex_free() is async in FreeRTOS — a pending timer callback
+     * may still hold the mutex. Freeing it causes NULL pointer dereference
+     * when the callback tries to release a freed mutex.
+     *
+     * Same pattern as timers (Phase 2): stop + drain + SDK reclaim at exit. */
 
     /* Phase 9: free the app struct. */
     free(app);

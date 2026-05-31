@@ -34,7 +34,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [HyperFocus Calc v0.1.2 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - Added: [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 - Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
-- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Added: [Trivia Zero v0.1.12 (By Endika)](https://github.com/Endika/flipper-trivia-zero)
 - Added: [FlipRogue v1.2 (By Abzac)](https://github.com/Abzac/fliprogue)
 - Added: [VolorSavanna v1.0 (By Invizabel)](https://github.com/Invizabel/VolorSavanna)
@@ -73,6 +72,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CK42X Passvault v0.4.2 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - Updated: [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - Updated: [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
+- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 
 <a name="release"></a>
 
