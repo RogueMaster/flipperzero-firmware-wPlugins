@@ -70,7 +70,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Faac SLH / Nice Flo Updates & Remove Duplicate Code from RAW & Canvas Buffer in API & Kinggates Logic Fix & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning & Sub-GHz upgrades (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/20d53d9c1d6882246cf6d9f3868b0a1cad8ef555)
 - HID App: [PTT improvements (By hryamzik)](https://github.com/DarkFlippers/unleashed-firmware/pull/996)
 - Updated: [NFC Seader v4.1 (By bettse)](https://github.com/bettse/seader)
-- Updated: [CK42X Passvault v0.4.1 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
+- Updated: [CK42X Passvault v0.4.2 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 
 <a name="release"></a>
 
@@ -511,7 +511,7 @@ $ ./fbt dolphin_ext
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
 - [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)
 - [Chronometer (By nmrr)](https://github.com/nmrr/flipperzero-chronometer)
-- [CK42X Passvault v0.4.1 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
+- [CK42X Passvault v0.4.2 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
 - [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - [CLI Bridge v1.6 (By ranchordo)](https://github.com/ranchordo/flipperzero-cli-bridge)

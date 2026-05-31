@@ -23,7 +23,7 @@ Website: <https://ck42x.com>
 
 ## macOS keyboard setup popup
 
-PassVault sets its HID typing interface to an Apple keyboard VID/PID (`05ac:021e Apple:Keyboard`) before injection. This is intended to avoid macOS Keyboard Setup Assistant stealing focus on Mac targets such as a Mac mini. If macOS still shows the setup dialog, cancel or complete it once, refocus the password field, and inject again.
+PassVault uses Flipper's standard HID keyboard typing path. On a fresh macOS target, Keyboard Setup Assistant may appear the first time the Flipper presents as a keyboard. If that happens, cancel or complete the setup dialog once, refocus the password field, and inject again.
 
 ## Branding
 
