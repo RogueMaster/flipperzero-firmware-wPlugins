@@ -33,6 +33,7 @@
 #define DEFAULT_USERNAME  "unbank"
 #define STORAGE_DIR       EXT_PATH("apps_data/unbank_ln_qr")
 #define NFC_OUTPUT_DIR    EXT_PATH("nfc/unbank")
+#define LAST_WALLET_FILE  EXT_PATH("apps_data/unbank_ln_qr/last_wallet.txt")
 #define UNBANK_APP_URL    "unbank.com/open-app"
 
 #define ABOUT_TEXT \
@@ -60,6 +61,31 @@ static const WalletInfo WALLETS[WalletCount] = {
 };
 
 typedef enum {
+    Ntag213 = 0,
+    Ntag215,
+    Ntag216,
+    NtagTypeCount,
+} NtagType;
+
+typedef struct {
+    const char* name;        /* display + file-header type label */
+    int         total_pages; /* total pages in user memory layout */
+    uint8_t     cc_size;     /* CC[2] byte (NDEF area size) */
+    uint8_t     mifare_ver;  /* byte 6 of Mifare version: storage size code */
+} NtagTypeInfo;
+
+/* Values from NXP NTAG datasheets:
+ *  NTAG213: CC=0x12 (144B), Mifare ver byte 6 = 0x0F
+ *  NTAG215: CC=0x3E (504B), Mifare ver byte 6 = 0x11
+ *  NTAG216: CC=0x6D (888B), Mifare ver byte 6 = 0x13
+ */
+static const NtagTypeInfo NTAG_TYPES[NtagTypeCount] = {
+    [Ntag213] = {"NTAG213", 45,  0x12, 0x0F},
+    [Ntag215] = {"NTAG215", 135, 0x3E, 0x11},
+    [Ntag216] = {"NTAG216", 231, 0x6D, 0x13},
+};
+
+typedef enum {
     ViewIdSplash = 0,
     ViewIdMainMenu,
     ViewIdWalletPicker,
@@ -67,6 +93,7 @@ typedef enum {
     ViewIdQr,
     ViewIdTextInput,
     ViewIdAbout,
+    ViewIdNfcTypePicker,
     ViewIdNfcInstructions,
 } ViewId;
 
@@ -75,6 +102,7 @@ typedef enum {
 
 typedef enum {
     MainMenuChooseWallet = 0,
+    MainMenuQuickQr,
     MainMenuDownloadApp,
     MainMenuAboutUnbank,
 } MainMenuItem;
@@ -102,6 +130,7 @@ struct App {
     Submenu*         main_menu;
     Submenu*         wallet_picker;
     Submenu*         wallet_menu;
+    Submenu*         nfc_type_picker;
     TextInput*       text_input;
     Widget*          about_widget;
     View*            nfc_view;
@@ -133,10 +162,12 @@ static void text_input_done_callback(void* context);
 static void main_menu_callback(void* context, uint32_t index);
 static void wallet_picker_callback(void* context, uint32_t index);
 static void wallet_menu_callback(void* context, uint32_t index);
+static void nfc_type_picker_callback(void* context, uint32_t index);
 static void switch_to(App* app, ViewId id);
 static void open_wallet_menu(App* app, Wallet w);
 static void show_qr_text(App* app, const char* text, ViewId back_target);
-static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_path_size);
+static bool write_nfc_tag_file(App* app, Wallet w, NtagType type,
+                               char* out_path, size_t out_path_size);
 
 /* ---- Util ---- */
 static size_t bounded_strlen(const char* s, size_t maxlen) {
@@ -202,6 +233,42 @@ static void load_all_usernames(App* app) {
     for (int i = 0; i < WalletCount; i++) {
         load_username(app, (Wallet)i);
     }
+}
+
+static void save_last_wallet(Wallet w) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_simply_mkdir(storage, STORAGE_DIR);
+    File* file = storage_file_alloc(storage);
+    if (storage_file_open(file, LAST_WALLET_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        char buf[4];
+        int n = snprintf(buf, sizeof(buf), "%d", (int)w);
+        storage_file_write(file, buf, (uint16_t)n);
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+}
+
+static Wallet load_last_wallet(void) {
+    Wallet result = WalletSpeed;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    if (storage_file_open(file, LAST_WALLET_FILE, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char buf[8];
+        memset(buf, 0, sizeof(buf));
+        uint16_t bytes = storage_file_read(file, buf, sizeof(buf) - 1);
+        if (bytes > 0) {
+            buf[bytes] = '\0';
+            int v = atoi(buf);
+            if (v >= 0 && v < WalletCount) {
+                result = (Wallet)v;
+            }
+        }
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    return result;
 }
 
 /* ---- QR ---- */
@@ -350,6 +417,8 @@ static void rebuild_main_menu(App* app) {
     submenu_set_header(app->main_menu, "BTCLN QR Generator");
     submenu_add_item(app->main_menu, "Choose Wallet",   MainMenuChooseWallet,
                      main_menu_callback, app);
+    submenu_add_item(app->main_menu, "Quick QR",        MainMenuQuickQr,
+                     main_menu_callback, app);
     submenu_add_item(app->main_menu, "Download Unbank", MainMenuDownloadApp,
                      main_menu_callback, app);
     submenu_add_item(app->main_menu, "About Unbank",    MainMenuAboutUnbank,
@@ -361,6 +430,14 @@ static void main_menu_callback(void* context, uint32_t index) {
     switch (index) {
         case MainMenuChooseWallet:
             switch_to(app, ViewIdWalletPicker);
+            break;
+        case MainMenuQuickQr:
+            app->active_wallet = load_last_wallet();
+            compose_wallet_address(app);
+            app->qr_back_target = ViewIdMainMenu;
+            generate_qr_from_address(app);
+            notification_message(app->notifications, &sequence_single_vibro);
+            switch_to(app, ViewIdQr);
             break;
         case MainMenuDownloadApp:
             show_qr_text(app, UNBANK_APP_URL, ViewIdMainMenu);
@@ -403,6 +480,7 @@ static void rebuild_wallet_menu(App* app) {
 
 static void open_wallet_menu(App* app, Wallet w) {
     app->active_wallet = w;
+    save_last_wallet(w);
     rebuild_wallet_menu(app);
     switch_to(app, ViewIdWalletMenu);
 }
@@ -438,17 +516,32 @@ static void wallet_menu_callback(void* context, uint32_t index) {
             break;
         }
 
-        case WalletMenuWriteNfc: {
-            app->nfc_save_ok = write_nfc_tag_file(
-                app, app->active_wallet,
-                app->nfc_saved_path, sizeof(app->nfc_saved_path));
-            switch_to(app, ViewIdNfcInstructions);
+        case WalletMenuWriteNfc:
+            switch_to(app, ViewIdNfcTypePicker);
             break;
-        }
 
         default:
             break;
     }
+}
+
+/* ---- NFC tag type picker ---- */
+static void rebuild_nfc_type_picker(App* app) {
+    submenu_reset(app->nfc_type_picker);
+    submenu_set_header(app->nfc_type_picker, "Select Tag Type");
+    for (int i = 0; i < NtagTypeCount; i++) {
+        submenu_add_item(app->nfc_type_picker, NTAG_TYPES[i].name,
+                         (uint32_t)i, nfc_type_picker_callback, app);
+    }
+}
+
+static void nfc_type_picker_callback(void* context, uint32_t index) {
+    App* app = context;
+    if (index >= (uint32_t)NtagTypeCount) return;
+    app->nfc_save_ok = write_nfc_tag_file(
+        app, app->active_wallet, (NtagType)index,
+        app->nfc_saved_path, sizeof(app->nfc_saved_path));
+    switch_to(app, ViewIdNfcInstructions);
 }
 
 /* ---- Text input ---- */
@@ -480,33 +573,48 @@ static void build_about_widget(App* app) {
 }
 
 /* ---- NFC tag file writer ----
- * Writes a Flipper .nfc file for an NTAG213 with an NDEF URL record
- * containing "lightning:<username><suffix>". The file is saved into
- * /ext/nfc/unbank/<wallet>.nfc so the Flipper NFC app can find it.
+ * Writes a Flipper .nfc file for an NTAG213/215/216 with an NDEF URL
+ * record containing "lightning:<username><suffix>". The file is saved
+ * into /ext/nfc/unbank/<wallet>_<ntagtype>.nfc.
  * Returns true if the file was written successfully.
  */
-static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_path_size) {
+static bool write_nfc_tag_file(App* app, Wallet w, NtagType type,
+                               char* out_path, size_t out_path_size) {
+    const NtagTypeInfo* info = &NTAG_TYPES[type];
+    const int total_pages = info->total_pages;
+    const size_t mem_size = (size_t)(total_pages * 4);
+
     /* Compose the URL */
-    char url[100];
+    char url[200];
     snprintf(url, sizeof(url), "lightning:%s%s", app->usernames[w], WALLETS[w].suffix);
     size_t url_len = bounded_strlen(url, sizeof(url));
 
-    /* Limit URL length to fit comfortably in NTAG213 user memory (144B) */
-    if (url_len > 130) url_len = 130;
+    /* Cap URL to NDEF area size (CC[2] * 8) minus TLV overhead */
+    size_t max_url = (size_t)(info->cc_size) * 8 - 7;
+    if (url_len > max_url) url_len = max_url;
 
-    /* Pick filename: lowercase wallet name with underscores */
-    char fname[64];
+    /* Pick filename: lowercase wallet name + ntag type with underscores */
+    char wname[32];
     int fi = 0;
     const char* nm = WALLETS[w].name;
-    for (int i = 0; nm[i] && fi < (int)sizeof(fname) - 6; i++) {
+    for (int i = 0; nm[i] && fi < (int)sizeof(wname) - 1; i++) {
         char c = nm[i];
         if (c >= 'A' && c <= 'Z') c = c + 32;
         if (c == ' ') c = '_';
-        fname[fi++] = c;
+        wname[fi++] = c;
     }
-    fname[fi] = '\0';
+    wname[fi] = '\0';
 
-    snprintf(out_path, out_path_size, "%s/%s.nfc", NFC_OUTPUT_DIR, fname);
+    char tname[16];
+    int ti = 0;
+    for (int i = 0; info->name[i] && ti < (int)sizeof(tname) - 1; i++) {
+        char c = info->name[i];
+        if (c >= 'A' && c <= 'Z') c = c + 32;
+        tname[ti++] = c;
+    }
+    tname[ti] = '\0';
+
+    snprintf(out_path, out_path_size, "%s/%s_%s.nfc", NFC_OUTPUT_DIR, wname, tname);
 
     /* Open storage and ensure dir exists */
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -516,68 +624,92 @@ static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_pa
     File* file = storage_file_alloc(storage);
     bool success = false;
 
-    if (storage_file_open(file, out_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        /* Build the 45 pages (180 bytes) of NTAG213 memory */
-        uint8_t mem[45 * 4];
-        memset(mem, 0, sizeof(mem));
+    uint8_t* mem = malloc(mem_size);
+    if (mem == NULL) {
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+    memset(mem, 0, mem_size);
 
-        /* Page 0-1: placeholder UID (the actual tag's UID is used on write) */
-        mem[0]  = 0x04; mem[1]  = 0x11; mem[2]  = 0x22; mem[3]  = 0x9D; /* UID0-2 + BCC0 */
-        mem[4]  = 0x33; mem[5]  = 0x44; mem[6]  = 0x55; mem[7]  = 0x66; /* UID3-6 */
-        /* Page 2: BCC1 + internal + lock bytes */
-        mem[8]  = 0xDD; mem[9]  = 0x48; mem[10] = 0x00; mem[11] = 0x00;
-        /* Page 3: Capability Container for NTAG213 with NDEF */
-        mem[12] = 0xE1; mem[13] = 0x10; mem[14] = 0x12; mem[15] = 0x00;
+    if (storage_file_open(file, out_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        /* Placeholder UID — the actual tag's UID is preserved on write.
+         * BCC bytes are computed below from the UID. */
+        const uint8_t uid[7] = {0x04, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+        const uint8_t bcc0 = 0x88 ^ uid[0] ^ uid[1] ^ uid[2];
+        const uint8_t bcc1 = uid[3] ^ uid[4] ^ uid[5] ^ uid[6];
+
+        /* Page 0: UID0..UID2 + BCC0 */
+        mem[0]  = uid[0]; mem[1]  = uid[1]; mem[2]  = uid[2]; mem[3]  = bcc0;
+        /* Page 1: UID3..UID6 */
+        mem[4]  = uid[3]; mem[5]  = uid[4]; mem[6]  = uid[5]; mem[7]  = uid[6];
+        /* Page 2: BCC1 + internal byte + static lock bytes (unlocked) */
+        mem[8]  = bcc1;   mem[9]  = 0x48;   mem[10] = 0x00;   mem[11] = 0x00;
+        /* Page 3: Capability Container for the selected NTAG type with NDEF */
+        mem[12] = 0xE1;   mem[13] = 0x10;   mem[14] = info->cc_size; mem[15] = 0x00;
 
         /* Page 4+: NDEF data */
-        int p = 16; /* start of page 4 in mem[] */
-        mem[p++] = 0x03;                         /* NDEF TLV type */
-        mem[p++] = (uint8_t)(url_len + 5);       /* TLV length */
-        mem[p++] = 0xD1;                         /* NDEF: MB+ME+SR, TNF=well-known */
-        mem[p++] = 0x01;                         /* Type length */
-        mem[p++] = (uint8_t)(url_len + 1);       /* Payload length (prefix + URL) */
-        mem[p++] = 0x55;                         /* Type 'U' (URI) */
-        mem[p++] = 0x00;                         /* URI prefix code: none */
-        for (size_t i = 0; i < url_len && p < (int)sizeof(mem) - 1; i++) {
+        int p = 16;
+        mem[p++] = 0x03;
+        mem[p++] = (uint8_t)(url_len + 5);
+        mem[p++] = 0xD1;
+        mem[p++] = 0x01;
+        mem[p++] = (uint8_t)(url_len + 1);
+        mem[p++] = 0x55;
+        mem[p++] = 0x00;
+        for (size_t i = 0; i < url_len && p < (int)mem_size - 1; i++) {
             mem[p++] = (uint8_t)url[i];
         }
-        if (p < (int)sizeof(mem)) {
-            mem[p++] = 0xFE;                     /* TLV terminator */
+        if (p < (int)mem_size) {
+            mem[p++] = 0xFE;
         }
 
-        /* Write Flipper .nfc file header.
-         * Matches the current firmware format:
-         *   - "Device type: NTAG/Ultralight" (family), with a separate
-         *     "NTAG/Ultralight type: NTAG213" line for the subtype.
-         *   - "Data format version: 2" is required.
-         *   - Counter values are decimal uint32 (just "0"), Tearing is 1 hex byte.
+        /* Config pages at end of memory.
+         * Layout (relative to lock_page):
+         *   lock_page + 0 : Dynamic lock bytes (3 bytes) + RFUI (0xBD)
+         *   lock_page + 1 : CFG_0 (MIRROR/AUTH0 — 0xFF = no protection)
+         *   lock_page + 2 : CFG_1 (default access settings)
+         *   lock_page + 3 : PWD  (default 0xFFFFFFFF)
+         *   lock_page + 4 : PACK + RFUI
          */
-        const char* header =
+        const int lock_page = total_pages - 5;
+        if (lock_page >= 4) {
+            int lp = lock_page * 4;
+            mem[lp + 0] = 0x00; mem[lp + 1] = 0x00; mem[lp + 2] = 0x00; mem[lp + 3] = 0xBD;
+            mem[lp + 4] = 0x04; mem[lp + 5] = 0x00; mem[lp + 6] = 0x00; mem[lp + 7] = 0xFF;
+            mem[lp + 8] = 0x00; mem[lp + 9] = 0x05; mem[lp +10] = 0x00; mem[lp +11] = 0x00;
+            mem[lp +12] = 0xFF; mem[lp +13] = 0xFF; mem[lp +14] = 0xFF; mem[lp +15] = 0xFF;
+            mem[lp +16] = 0x00; mem[lp +17] = 0x00; mem[lp +18] = 0x00; mem[lp +19] = 0x00;
+        }
+
+        char header[512];
+        int hlen = snprintf(header, sizeof(header),
             "Filetype: Flipper NFC device\n"
             "Version: 4\n"
             "Device type: NTAG/Ultralight\n"
-            "UID: 04 11 22 33 44 55 66\n"
+            "UID: %02X %02X %02X %02X %02X %02X %02X\n"
             "ATQA: 00 44\n"
             "SAK: 00\n"
             "Data format version: 2\n"
-            "NTAG/Ultralight type: NTAG213\n"
+            "NTAG/Ultralight type: %s\n"
             "Signature: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
             " 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n"
-            "Mifare version: 00 04 04 02 01 00 0F 03\n"
+            "Mifare version: 00 04 04 02 01 00 %02X 03\n"
             "Counter 0: 0\n"
             "Tearing 0: 00\n"
             "Counter 1: 0\n"
             "Tearing 1: 00\n"
             "Counter 2: 0\n"
             "Tearing 2: 00\n"
-            "Pages total: 45\n"
-            "Pages read: 45\n";
-        storage_file_write(file, header, strlen(header));
+            "Pages total: %d\n"
+            "Pages read: %d\n",
+            uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6],
+            info->name, info->mifare_ver, total_pages, total_pages);
+        storage_file_write(file, header, (uint16_t)hlen);
 
-        /* Write each page */
         char line[40];
         bool write_ok = true;
-        for (int page = 0; page < 45; page++) {
+        for (int page = 0; page < total_pages; page++) {
             int n = snprintf(line, sizeof(line), "Page %d: %02X %02X %02X %02X\n",
                              page,
                              mem[page * 4 + 0],
@@ -589,7 +721,6 @@ static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_pa
                 break;
             }
         }
-        /* Trailing field required by current Flipper firmware */
         const char* footer = "Failed authentication attempts: 0\n";
         if (write_ok) {
             size_t flen = strlen(footer);
@@ -600,6 +731,7 @@ static bool write_nfc_tag_file(App* app, Wallet w, char* out_path, size_t out_pa
         success = write_ok;
     }
 
+    free(mem);
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
@@ -679,6 +811,9 @@ static bool back_event_callback(void* context) {
         case ViewIdAbout:
             switch_to(app, ViewIdMainMenu);
             return true;
+        case ViewIdNfcTypePicker:
+            switch_to(app, ViewIdWalletMenu);
+            return true;
         case ViewIdNfcInstructions:
             switch_to(app, ViewIdWalletMenu);
             return true;
@@ -731,6 +866,11 @@ int32_t unbank_ln_qr_app(void* p) {
     app->wallet_menu = submenu_alloc();
     view_dispatcher_add_view(app->view_dispatcher, ViewIdWalletMenu, submenu_get_view(app->wallet_menu));
 
+    /* NFC tag type picker */
+    app->nfc_type_picker = submenu_alloc();
+    rebuild_nfc_type_picker(app);
+    view_dispatcher_add_view(app->view_dispatcher, ViewIdNfcTypePicker, submenu_get_view(app->nfc_type_picker));
+
     /* Text input */
     app->text_input = text_input_alloc();
     view_dispatcher_add_view(app->view_dispatcher, ViewIdTextInput, text_input_get_view(app->text_input));
@@ -773,11 +913,13 @@ int32_t unbank_ln_qr_app(void* p) {
     view_dispatcher_remove_view(app->view_dispatcher, ViewIdQr);
     view_dispatcher_remove_view(app->view_dispatcher, ViewIdTextInput);
     view_dispatcher_remove_view(app->view_dispatcher, ViewIdAbout);
+    view_dispatcher_remove_view(app->view_dispatcher, ViewIdNfcTypePicker);
     view_dispatcher_remove_view(app->view_dispatcher, ViewIdNfcInstructions);
 
     submenu_free(app->main_menu);
     submenu_free(app->wallet_picker);
     submenu_free(app->wallet_menu);
+    submenu_free(app->nfc_type_picker);
     text_input_free(app->text_input);
     widget_free(app->about_widget);
     view_free(app->nfc_view);
