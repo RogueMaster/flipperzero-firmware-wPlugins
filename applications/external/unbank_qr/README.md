@@ -19,13 +19,16 @@ tag file export for writing physical NFC stickers.
   and survive reboots and uninstall/reinstall.
 - **Equal-sized QR codes** — Every QR renders at the same on-screen
   size regardless of how much data is encoded, for a consistent look.
+- **Quick QR** — One tap shows the QR for the wallet you used last,
+  skipping the picker for repeat use.
 - **Manual refresh** — Tap any QR to regenerate it on demand.
 - **Haptic feedback** — A single vibration buzz confirms the QR is
   shown.
 - **NFC tag file export** — Generate a `.nfc` file for each wallet
-  that the stock Flipper NFC app can write to a blank NTAG213 sticker.
-  When someone taps the sticker with their phone, their Lightning
-  wallet opens with your address pre-filled.
+  with a selectable tag type (**NTAG213**, **NTAG215**, or
+  **NTAG216**) that the stock Flipper NFC app can write to a blank
+  sticker. When someone taps the sticker with their phone, their
+  Lightning wallet opens with your address pre-filled.
 - **Splash screen** — Brand intro on app launch with the Unbank
   silhouette and app name.
 - **Download Unbank QR** — Built-in QR pointing to
@@ -98,6 +101,16 @@ The app installs to **Apps → Tools → Unbank LN QR** on your Flipper.
 7. Anyone with a Lightning wallet can scan it to send you sats
 8. Press **Back** to return to the wallet menu
 
+### ⚡ Quick QR
+
+1. From the main menu, select **Quick QR**
+2. The QR for the wallet you used most recently appears instantly,
+   skipping the wallet picker
+3. Press **Back** to return to the main menu
+
+The last-used wallet is remembered on the SD card, so Quick QR keeps
+working across reboots.
+
 ### ⌨️ Edit your username
 
 1. From the main menu, go **Choose Wallet → [your wallet] → Edit Username**
@@ -129,13 +142,14 @@ You'll need a blank NTAG213, NTAG215, or NTAG216 sticker (≈ $5 for a
 10-pack on Amazon). Pre-programmed or write-protected tags won't work.
 
 1. From the main menu, go **Choose Wallet → [your wallet] → Write NFC Tag**
-2. The app saves a `.nfc` file to `SD:/nfc/unbank/[wallet].nfc`
-3. A confirmation screen shows the steps. Press **Back** to dismiss
-4. Open the built-in **NFC** app on your Flipper (Main menu → NFC)
-5. Go to **Saved → unbank →** the file for your wallet
-6. Tap **Write**
-7. Hold a blank NTAG sticker against the back of your Flipper
-8. Done — anyone tapping that sticker with their phone will see their
+2. Pick your tag type: **NTAG213**, **NTAG215**, or **NTAG216**
+3. The app saves a `.nfc` file to `SD:/nfc/unbank/[wallet]_[ntagtype].nfc`
+4. A confirmation screen shows the steps. Press **Back** to dismiss
+5. Open the built-in **NFC** app on your Flipper (Main menu → NFC)
+6. Go to **Saved → unbank →** the file for your wallet
+7. Tap **Write**
+8. Hold a blank NTAG sticker against the back of your Flipper
+9. Done — anyone tapping that sticker with their phone will see their
    Lightning wallet open with your address ready to send
 
 ---
@@ -197,9 +211,10 @@ plain `canvas_draw_*` calls, easy to tweak.
 - Uses standard Flipper SDK modules: `gui`, `storage`, `notification`
 - QR rendering uses non-uniform pixel scaling so every QR fills the
   same on-screen area regardless of how many modules it contains
-- NFC export format: NTAG213 with an NDEF URI record encoding
-  `lightning:user@host`. Compatible with iOS and Android's native
-  NFC reading
+- NFC export format: NTAG213/215/216 with an NDEF URI record encoding
+  `lightning:user@host`. The capability-container size, Mifare version
+  byte, BCC bytes, and factory config pages are set per tag type.
+  Compatible with iOS and Android's native NFC reading
 - The keyboard accepts letters, numbers, and underscore — the wallet
   suffix is appended automatically so you don't need to type `@` or `.`
 

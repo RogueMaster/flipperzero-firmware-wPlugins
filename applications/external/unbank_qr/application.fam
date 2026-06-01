@@ -9,6 +9,6 @@ App(
     fap_category="Tools",
     fap_author="Unbank",
     fap_weburl="https://github.com/shanzy39/Unbank-BTCLN-QR-Generator",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Display Lightning Address QR codes for receiving sats over the Lightning Network.",
 )
