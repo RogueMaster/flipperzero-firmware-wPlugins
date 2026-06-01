@@ -122,8 +122,9 @@ const SubGhzProtocolEncoder subghz_protocol_psa_encoder = {
 const SubGhzProtocol psa_protocol = {
     .name = PSA_PROTOCOL_NAME,
     .type = SubGhzProtocolTypeDynamic,
-    .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM | SubGhzProtocolFlag_FM |
-            SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Load,
+    .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM |
+            SubGhzProtocolFlag_FM | SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Save |
+            SubGhzProtocolFlag_Load,
     .decoder = &subghz_protocol_psa_decoder,
     .encoder = &subghz_protocol_psa_encoder,
 };

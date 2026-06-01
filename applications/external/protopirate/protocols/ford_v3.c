@@ -331,7 +331,8 @@ const SubGhzProtocolEncoder subghz_protocol_ford_v3_encoder = {
 const SubGhzProtocol ford_protocol_v3 = {
     .name = FORD_PROTOCOL_V3_NAME,
     .type = SubGhzProtocolTypeDynamic,
-    .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM | SubGhzProtocolFlag_Decodable |
+    .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
+            SubGhzProtocolFlag_Decodable |
             SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save,
     .decoder = &subghz_protocol_ford_v3_decoder,
     .encoder = &subghz_protocol_ford_v3_encoder,

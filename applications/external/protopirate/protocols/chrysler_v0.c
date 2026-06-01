@@ -316,7 +316,7 @@ const SubGhzProtocolEncoder subghz_protocol_chrysler_v0_encoder = {
 const SubGhzProtocol chrysler_protocol_v0 = {
     .name = CHRYSLER_PROTOCOL_V0_NAME,
     .type = SubGhzProtocolTypeDynamic,
-    .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_868 |
+    .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 |
             SubGhzProtocolFlag_AM | SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Save |
             SubGhzProtocolFlag_Load
 #ifdef ENABLE_EMULATE_FEATURE
