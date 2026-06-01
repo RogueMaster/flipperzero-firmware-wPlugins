@@ -51,7 +51,7 @@ typedef struct {
 } Protocols;
 
 // List of protocols names and appropriate CounterMode counts
-static Protocols protocols[] = {
+static const Protocols protocols[] = {
     {"Nice FloR-S", 3},
     {"CAME Atomo", 4},
     {"Alutech AT-4N", 3},

@@ -1,26 +1,36 @@
 App(
     appid="subghz",
     name="Sub-GHz",
-    apptype=FlipperAppType.APP,
+    apptype=FlipperAppType.MENUEXTERNAL,
     targets=["f7"],
     entry_point="subghz_app",
     icon="A_Sub1ghz_14",
     stack_size=3 * 1024,
     order=10,
-    # Sources separation breaks linking with subghz on internal, commented for now
-    # sources=[
-    #     "*.c",
-    #     "!helpers/subghz_gps.c",
-    #     "!helpers/minmea.c",
-    #     "!subghz_cli.c",
-    #     "!helpers/subghz_chat.c",
-    #     "!subghz_extended_freq.c",
-    # ],
+    # Sources separation breaks linking with subghz on internal
+    sources=[
+        "*.c",
+        "!subghz_fap.c",
+        "!subghz_gps.c",
+        "!minmea.c",
+        "!subghz_cli.c",
+        "!subghz_chat.c",
+        "!subghz_extended_freq.c",
+        "!subghz_gen_info.c",
+        "!subghz_txrx_create_protocol_key.c",
+        "!subghz_scene_set_button.c",
+        "!subghz_scene_set_counter.c",
+        "!subghz_scene_set_key.c",
+        "!subghz_scene_set_seed.c",
+        "!subghz_scene_set_serial.c",
+        "!subghz_scene_set_type.c",
+    ],
+    requires=["region"],
     resources="resources",
     fap_libs=["hwdrivers"],
     fap_icon="icon.png",
     fap_category="Sub-GHz",
-    sdk_headers=["subghz_fap.h"],
+    # sdk_headers=["subghz_fap.h"],
     #  Below is a list of the different modifications and updates that have been made to the current Frequency Analyzer
     #  [feedback mode (by darmiel)](https://github.com/darmiel/flipper-playlist/tree/feat/stealth-frequency-analyzer)
     #  [Quiet Mode (by Himura2la)](https://github.com/ClusterM/flipperzero-firmware/pull/1) (Link Dead)
@@ -33,16 +43,44 @@ App(
     #  [SubGHz Frequency analyzer fixes and improvements (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a00e57698dbb8893132a04a40e117dca7163805a)
 )
 
+# App(
+#     appid="subghz_fap",
+#     name="Sub-GHz",
+#     apptype=FlipperAppType.EXTERNAL,
+#     entry_point="subghz_fap",
+#     stack_size=3 * 1024,
+#     sources=["subghz_fap.c"],
+#     fap_icon="icon.png",
+#     fap_category="Sub-GHz",
+# )
+
 App(
-    appid="subghz_fap",
-    name="Sub-GHz",
+    appid="subghz_add_manually",
+    name="Sub-GHz Add Manually",
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
-    entry_point="subghz_fap",
+    entry_point="subghz_add_manually",
     stack_size=3 * 1024,
-    sources=["subghz_fap.c"],
-    fap_icon="icon.png",
-    fap_category="Sub-GHz",
+    sources=[
+        "subghz.c",
+        "subghz_i.c",
+        "helpers/subghz_gen_info.c",
+        "helpers/subghz_txrx.c",
+        "helpers/subghz_txrx_create_protocol_key.c",
+        "scenes/subghz_scene.c",
+        "scenes/subghz_scene_set_button.c",
+        "scenes/subghz_scene_set_counter.c",
+        "scenes/subghz_scene_set_key.c",
+        "scenes/subghz_scene_set_seed.c",
+        "scenes/subghz_scene_set_serial.c",
+        "scenes/subghz_scene_set_type.c",
+        "scenes/subghz_scene_save_name.c",
+        "scenes/subghz_scene_save_success.c",
+        "scenes/subghz_scene_show_error.c",
+        "scenes/subghz_scene_show_error_sub.c",
+    ],
+    cdefines=["SUBGHZ_ADD_MANUALLY"],
+    fap_category="assets",
 )
 
 App(
@@ -77,6 +115,6 @@ App(
     targets=["f7"],
     apptype=FlipperAppType.STARTUP,
     entry_point="subghz_extended_freq",
-    # sources=["subghz_extended_freq.c"],
+    sources=["subghz_extended_freq.c"],
     order=650,
 )

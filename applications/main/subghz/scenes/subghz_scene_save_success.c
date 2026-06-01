@@ -24,6 +24,12 @@ bool subghz_scene_save_success_on_event(void* context, SceneManagerEvent event) 
     SubGhz* subghz = context;
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == SubGhzCustomEventSceneSaveSuccess) {
+#ifdef SUBGHZ_ADD_MANUALLY
+            while(scene_manager_previous_scene(subghz->scene_manager))
+                ;
+            scene_manager_stop(subghz->scene_manager);
+            view_dispatcher_stop(subghz->view_dispatcher);
+#else
             if(!scene_manager_has_previous_scene(subghz->scene_manager, SubGhzSceneDecodeRAW)) {
                 if(!scene_manager_search_and_switch_to_previous_scene(
                        subghz->scene_manager, SubGhzSceneReceiver)) {
@@ -59,6 +65,7 @@ bool subghz_scene_save_success_on_event(void* context, SceneManagerEvent event) 
                     scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSaved);
                 }
             }
+#endif
             return true;
         }
     }

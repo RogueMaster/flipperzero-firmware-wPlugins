@@ -118,9 +118,6 @@ void subghz_scene_set_type_on_enter(void* context) {
             subghz->submenu, submenu_names[i], i, subghz_scene_set_type_submenu_callback, subghz);
     }
 
-    submenu_set_selected_item(
-        subghz->submenu, scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneSetType));
-
     view_dispatcher_switch_to_view(subghz->view_dispatcher, SubGhzViewIdMenu);
 }
 
@@ -289,8 +286,6 @@ bool subghz_scene_set_type_generate_protocol_from_infos(SubGhz* subghz) {
 
     if(generated_protocol) {
         subghz_file_name_clear(subghz);
-        scene_manager_set_scene_state(
-            subghz->scene_manager, SubGhzSceneSetType, SubGhzCustomEventManagerSet);
         scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSaveName);
     } else {
         furi_string_set(subghz->error_str, "Function requires\nan SD card with\nfresh databases.");
@@ -307,16 +302,15 @@ bool subghz_scene_set_type_on_event(void* context, SceneManagerEvent event) {
         if(event.event >= SetTypeMAX) {
             return false;
         }
-        scene_manager_set_scene_state(subghz->scene_manager, SubGhzSceneSetType, event.event);
 
         subghz_gen_info_reset(subghz->gen_info);
         subghz_scene_set_type_fill_generation_infos(subghz->gen_info, event.event);
 
-        if(scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneStart) ==
+        if(scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneSetType) ==
            SubmenuIndexAddManually) {
             generated_protocol = subghz_scene_set_type_generate_protocol_from_infos(subghz);
         } else if(
-            scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneStart) ==
+            scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneSetType) ==
             SubmenuIndexAddManuallyAdvanced) {
             switch(subghz->gen_info->type) {
             case GenData: // Key (u64)
