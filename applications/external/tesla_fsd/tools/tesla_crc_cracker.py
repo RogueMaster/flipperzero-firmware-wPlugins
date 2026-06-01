@@ -13,9 +13,12 @@ range) combination that reproduces the observed checksum on ALL frames.
 It tries, in order:
   1. Additive checksum  (sum(bytes) + optional CAN-ID fold) & 0xFF
      — what 0x370 / 0x3FD / 0x399 use; our handlers already do this.
-  2. CRC8 over a parameter sweep (poly × init × xorout × refin × refout),
-     optionally folding the CAN ID into the input, and optionally using the
-     frame's counter nibble as the init (a known Tesla trick).
+  2. CRC8 over a parameter sweep (poly × refin × refout) across every covered-
+     byte SUBSET, optionally folding the CAN ID into the input. It tries every
+     subset of the non-checksum bytes because real Tesla CRCs often cover only
+     some bytes (e.g. excluding a free-running counter/timestamp). init and
+     xorout are recovered together as one constant (they collapse for the
+     fixed-length frames seen here).
 
 The more distinct frames you give it, the fewer false matches survive. ~12+
 frames usually pins a unique parameter set.
@@ -27,9 +30,12 @@ Usage:
     # plain hex, one 8-byte frame per line: "00 11 22 33 44 55 66 AA"
     python3 tools/tesla_crc_cracker.py --id 0x485 --checksum-byte 7 frames.txt
 
-    # if the counter lives in a known nibble, point at it to also try
-    # "init = counter" variants:
-    python3 tools/tesla_crc_cracker.py --id 0x485 --counter-byte 6 --counter-mask 0x60 frames.txt
+    # the CRC's covered byte range is discovered automatically (every subset is
+    # swept), so you don't need to identify the counter/payload split yourself.
+    #
+    # Capture tip: grab the frame from the DIRECT vehicle bus (e.g. Tesla X179
+    # pin 9/10 or OBD-II), not a gateway-forwarded subset bus — forwarded frames
+    # may be re-emitted without the original counter/CRC.
 
 On success it prints the matching parameters plus ready-to-paste C and Python
 implementations so the result drops straight into a firmware handler.
@@ -38,8 +44,10 @@ No dependencies — pure stdlib.
 """
 
 import argparse
+import itertools
 import re
 import sys
+from collections import Counter
 
 
 # ── frame parsing ──────────────────────────────────────────────────────────────
@@ -82,15 +90,15 @@ def parse_frames(path, want_id):
 # ── checksum algorithms ────────────────────────────────────────────────────────
 
 
+def rev8(b):
+    b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4)
+    b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2)
+    b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1)
+    return b
+
+
 def crc8(data, poly, init, xorout, refin, refout):
     """Generic bitwise CRC8."""
-
-    def rev8(b):
-        b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4)
-        b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2)
-        b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1)
-        return b
-
     crc = init
     for byte in data:
         b = rev8(byte) if refin else byte
@@ -100,6 +108,18 @@ def crc8(data, poly, init, xorout, refin, refout):
     if refout:
         crc = rev8(crc)
     return crc ^ xorout
+
+
+def crc8_raw(data, poly, refin, refout):
+    """CRC8 with init=0 and xorout=0 — the building block for the affine subset
+    search below."""
+    crc = 0
+    for byte in data:
+        b = rev8(byte) if refin else byte
+        crc ^= b
+        for _ in range(8):
+            crc = ((crc << 1) ^ poly) & 0xFF if (crc & 0x80) else (crc << 1) & 0xFF
+    return rev8(crc) if refout else crc
 
 
 def covered_input(frame, csum_idx, id_bytes):
@@ -132,61 +152,56 @@ def try_additive(frames, csum_idx, can_id):
     return hits
 
 
-def try_crc8(frames, csum_idx, can_id, counter_byte, counter_mask):
-    """Sweep the CRC8 parameter space."""
+def try_crc8(frames, csum_idx, can_id):
+    """Find CRC8 parameters over any byte SUBSET of the frame.
+
+    Real Tesla CRCs often cover only some bytes (e.g. excluding a free-running
+    counter or timestamp), so this sweeps every non-empty subset of the
+    non-checksum bytes — not just "all of them," which is what trips up a naive
+    cracker. For a fixed covered length the init and xorout collapse into one
+    constant XOR, so per (subset, poly, refin, refout, id-prefix) we compute the
+    raw CRC (init=0) and require (raw XOR checksum) to be the SAME constant K on
+    every frame. The match is reported as init=0, xorout=K (one valid
+    parameterization; init folds into K). Requires uniform-length frames (the
+    caller enforces it).
+    """
     hits = []
     id_lo, id_hi = can_id & 0xFF, (can_id >> 8) & 0xFF
     id_prefix_opts = {"none": (), "id_lo": (id_lo,), "id_lo_hi": (id_lo, id_hi)}
+    n = len(frames[0])
+    positions = [i for i in range(n) if i != csum_idx]
+    targets = [f[csum_idx] for f in frames]
 
-    # init candidates: full 0..255 sweep, plus the per-frame counter value
-    init_modes = ["fixed"]
-    if counter_byte is not None:
-        init_modes.append("counter")
-
-    for prefix_name, id_bytes in id_prefix_opts.items():
-        inputs = [covered_input(f, csum_idx, id_bytes) for f in frames]
-        for poly in range(256):
-            for refin in (False, True):
-                for refout in (False, True):
-                    for xorout in (0x00, 0xFF):
-                        for init_mode in init_modes:
-                            if init_mode == "fixed":
-                                init_range = range(256)
-                            else:
-                                init_range = [None]  # init taken from counter
-                            for init in init_range:
-                                ok = True
-                                for f, inp in zip(frames, inputs):
-                                    if init_mode == "counter":
-                                        cnt = f[counter_byte] & counter_mask
-                                        # normalize to the low bits
-                                        while counter_mask and not (counter_mask & 1):
-                                            counter_mask >>= 1
-                                            cnt >>= 1
-                                        use_init = cnt
-                                    else:
-                                        use_init = init
-                                    if (
-                                        crc8(inp, poly, use_init, xorout, refin, refout)
-                                        != f[csum_idx]
-                                    ):
-                                        ok = False
-                                        break
-                                if ok:
-                                    hits.append(
-                                        (
-                                            "crc8",
-                                            {
-                                                "poly": poly,
-                                                "init": init,
-                                                "init_mode": init_mode,
-                                                "xorout": xorout,
-                                                "refin": refin,
-                                                "refout": refout,
-                                                "id_prefix": prefix_name,
-                                            },
-                                        )
+    # Larger subsets first: a CRC covering more bytes is far less likely to be a
+    # spurious match than a 1-byte "cover."
+    for r in range(len(positions), 0, -1):
+        for sub in itertools.combinations(positions, r):
+            for prefix_name, prefix in id_prefix_opts.items():
+                inputs = [bytes(list(prefix) + [f[i] for i in sub]) for f in frames]
+                for poly in range(256):
+                    for refin in (False, True):
+                        for refout in (False, True):
+                            k = crc8_raw(inputs[0], poly, refin, refout) ^ targets[0]
+                            ok = True
+                            for inp, t in zip(inputs[1:], targets[1:]):
+                                if (crc8_raw(inp, poly, refin, refout) ^ t) != k:
+                                    ok = False
+                                    break
+                            if ok:
+                                hits.append(
+                                    (
+                                        "crc8",
+                                        {
+                                            "poly": poly,
+                                            "init": 0x00,
+                                            "xorout": k,
+                                            "refin": refin,
+                                            "refout": refout,
+                                            "id_prefix": prefix_name,
+                                            "cover": list(sub),
+                                        },
                                     )
+                                )
     return hits
 
 
@@ -207,17 +222,20 @@ def emit_c(algo, p, can_id, csum_idx):
             f"    return (uint8_t)(s{fold} + 0x{p['const']:02X});\n"
             "}"
         )
-    prefix = {
-        "none": "",
-        "id_lo": f"    crc = crc8_step(crc, 0x{can_id & 0xFF:02X});\n",
-        "id_lo_hi": f"    crc = crc8_step(crc, 0x{can_id & 0xFF:02X});\n"
-        f"    crc = crc8_step(crc, 0x{(can_id >> 8) & 0xFF:02X});\n",
-    }[p["id_prefix"]]
-    init = "/* = counter */" if p["init_mode"] == "counter" else f"0x{p['init']:02X}"
+    cover = p.get("cover")
+    cover_str = (
+        ("bytes " + ",".join(str(b) for b in cover))
+        if cover is not None
+        else "all non-checksum bytes"
+    )
+    idnote = (
+        "" if p["id_prefix"] == "none" else f", prefixed with CAN id ({p['id_prefix']})"
+    )
     return (
-        f"// CRC8 poly=0x{p['poly']:02X} init={init} xorout=0x{p['xorout']:02X} "
-        f"refin={int(p['refin'])} refout={int(p['refout'])} id_prefix={p['id_prefix']}\n"
-        "// (use a standard bitwise CRC8 with these params; checksum byte excluded from input)"
+        f"// CRC8 poly=0x{p['poly']:02X} init=0x{p['init']:02X} xorout=0x{p['xorout']:02X} "
+        f"refin={int(p['refin'])} refout={int(p['refout'])}\n"
+        f"// covered input: {cover_str}{idnote}; checksum stored in byte {csum_idx}\n"
+        "// (standard bitwise CRC8 with these params over exactly the covered bytes)"
     )
 
 
@@ -231,18 +249,6 @@ def main():
         default=7,
         help="index of the checksum byte (default 7)",
     )
-    ap.add_argument(
-        "--counter-byte",
-        type=int,
-        default=None,
-        help="byte holding the rolling counter (enables init=counter trials)",
-    )
-    ap.add_argument(
-        "--counter-mask",
-        type=lambda x: int(x, 0),
-        default=0x0F,
-        help="mask for the counter bits (default 0x0F)",
-    )
     args = ap.parse_args()
 
     can_id = int(args.id, 16)
@@ -252,13 +258,23 @@ def main():
 
     # keep only distinct frames — duplicates add no constraint
     uniq = list(dict.fromkeys(frames))
+
+    # The CRC subset search needs uniform-length frames; keep the modal length.
+    lengths = Counter(len(f) for f in uniq)
+    modal_len = lengths.most_common(1)[0][0]
+    off_len = [f for f in uniq if len(f) != modal_len]
+    if off_len:
+        print(
+            f"NOTE: dropping {len(off_len)} frame(s) not of the modal length {modal_len}."
+        )
+        uniq = [f for f in uniq if len(f) == modal_len]
+
     csum = args.checksum_byte
-    bad = [f for f in uniq if len(f) <= csum]
-    if bad:
-        sys.exit(f"{len(bad)} frame(s) shorter than checksum byte index {csum}")
+    if csum >= modal_len:
+        sys.exit(f"--checksum-byte {csum} is out of range for {modal_len}-byte frames")
 
     print(
-        f"ID 0x{can_id:X}: {len(frames)} frames ({len(uniq)} distinct). "
+        f"ID 0x{can_id:X}: {len(frames)} frames ({len(uniq)} distinct, {modal_len} bytes). "
         f"Checksum byte = {csum}."
     )
     if len(uniq) < 6:
@@ -268,7 +284,7 @@ def main():
         )
 
     hits = try_additive(uniq, csum, can_id)
-    hits += try_crc8(uniq, csum, can_id, args.counter_byte, args.counter_mask)
+    hits += try_crc8(uniq, csum, can_id)
 
     if not hits:
         print("\nNo additive or CRC8 parameter set reproduces the checksum.")

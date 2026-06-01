@@ -140,6 +140,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .card{background:var(--card);border-radius:16px;padding:16px;
   margin-bottom:12px;border:1px solid var(--border)}
 .card-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.config-section{background:var(--card);border:1px solid var(--border);
+  border-radius:16px;margin-bottom:12px;overflow:hidden}
+.config-section summary{display:flex;align-items:center;gap:8px;list-style:none;
+  padding:16px;cursor:pointer;user-select:none}
+.config-section summary::-webkit-details-marker{display:none}
+.config-section summary:after{content:"";margin-left:auto;width:9px;height:9px;
+  border-right:2px solid var(--text2);border-bottom:2px solid var(--text2);
+  transform:rotate(45deg);transition:transform .2s}
+.config-section[open] summary:after{transform:rotate(225deg)}
+.config-section .config-body{padding:0 12px 12px}
+.config-section .card{border-radius:12px;margin-bottom:10px}
+.config-section .card:last-child{margin-bottom:0}
+.controls-fold{margin-top:10px;border-top:1px solid rgba(255,255,255,.04)}
+.controls-fold summary{position:relative;display:block;list-style:none;
+  padding:10px 28px 0 0;cursor:pointer;user-select:none;min-height:24px}
+.controls-fold summary::-webkit-details-marker{display:none}
+.controls-fold summary:after{content:"";position:absolute;right:4px;top:12px;width:9px;height:9px;
+  border-right:2px solid var(--text2);border-bottom:2px solid var(--text2);
+  transform:rotate(45deg);transition:transform .2s}
+.controls-fold[open] summary:after{transform:rotate(225deg);top:16px}
+.controls-fold[open] .control-summary{display:none}
+.control-summary{color:var(--text2);font-size:.76em;
+  display:block;max-width:calc(100% - 8px);white-space:normal;line-height:1.35;padding-right:8px}
+.controls-body{padding-top:8px}
 .icon{width:28px;height:28px;border-radius:8px;display:flex;
   align-items:center;justify-content:center;font-size:.85em;font-weight:700}
 .ic-s{background:rgba(0,212,170,.14);color:var(--accent)}
@@ -243,7 +267,7 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 <!-- Header -->
 <div class="hdr">
   <h1>Tesla FSD</h1>
-  <div class="sub">ESP32 CAN Controller &middot; 192.168.4.1</div>
+  <div class="sub">ESP32 CAN Controller &middot; <span id="deviceHost">device.local</span></div>
   <div class="cdot" id="dot"></div>
 </div>
 <div id="connErr" class="err">Connection lost &mdash; retrying&hellip;</div>
@@ -360,39 +384,13 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   </div>
 </div>
 
-<!-- HTTP CAN Log -->
-<div class="card">
-  <div class="card-head"><div class="icon ic-d">L</div><h2>HTTP CAN Log</h2></div>
-  <div class="row">
-    <span class="lbl">Stream</span>
-    <span class="pill off" id="httpLogSt"><span class="pd"></span>Idle</span>
-  </div>
-  <div class="row">
-    <span class="lbl">Filter IDs</span>
-    <input id="httpLogFilter" class="log-filter" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0x370, 0x3FD">
-  </div>
-  <div class="row">
-    <span class="lbl">Buffered</span>
-    <span id="httpLogBuf" style="font-size:.8em;color:var(--text2)">0 frames</span>
-  </div>
-  <div class="row">
-    <span class="lbl">Dropped</span>
-    <span id="httpLogDrop" style="font-size:.8em;color:var(--text2)">0 frames</span>
-  </div>
-  <div class="row">
-    <span class="lbl">Filtered</span>
-    <span id="httpLogFiltered" style="font-size:.8em;color:var(--text2)">0 frames</span>
-  </div>
-  <div id="httpLogInfo" class="log-info">Ready to collect a candump file in this browser.</div>
-  <div class="log-actions">
-    <button id="btnHttpLog" type="button" class="btn-main btn-blue" onclick="toggleHttpLog()">STREAM LOG AND SAVE</button>
-  </div>
-</div>
-
 <!-- Controls -->
-<div class="card">
+<div class="card controls-section">
   <div class="card-head"><div class="icon ic-c">C</div><h2>Controls</h2></div>
   <button id="btnMode" class="btn-main btn-act" onclick="toggleMode()">ACTIVATE FSD</button>
+<details class="controls-fold">
+  <summary><span id="controlsSummary" class="control-summary">Expand to setup</span></summary>
+  <div class="controls-body">
   <div class="row">
     <span class="lbl">Ignore OTA</span>
     <label class="sw"><input type="checkbox" id="swIgnoreOta" onchange="cmd('ignore_ota',this.checked)"><span class="sl2"></span></label>
@@ -453,11 +451,54 @@ R"rawliteral(
 )rawliteral"
 #endif
 R"rawliteral(
+  </div>
+</details>
+</div>
+
+<!-- Administration -->
+<details class="config-section">
+  <summary><div class="icon ic-c">A</div><div class="card-head" style="margin:0"><h2>Administration</h2></div></summary>
+  <div class="config-body">
+
+<!-- HTTP CAN Log -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-d">L</div><h2>HTTP CAN Log</h2></div>
+  <div class="row">
+    <span class="lbl">Stream</span>
+    <span class="pill off" id="httpLogSt"><span class="pd"></span>Idle</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Filter IDs</span>
+    <input id="httpLogFilter" class="log-filter" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0x370, 0x3FD">
+  </div>
+  <div class="row">
+    <span class="lbl">Buffered</span>
+    <span id="httpLogBuf" style="font-size:.8em;color:var(--text2)">0 frames</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Dropped</span>
+    <span id="httpLogDrop" style="font-size:.8em;color:var(--text2)">0 frames</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Filtered</span>
+    <span id="httpLogFiltered" style="font-size:.8em;color:var(--text2)">0 frames</span>
+  </div>
+  <div id="httpLogInfo" class="log-info">Ready to collect a candump file in this browser.</div>
+  <div class="log-actions">
+    <button id="btnHttpLog" type="button" class="btn-main btn-blue" onclick="toggleHttpLog()">STREAM LOG AND SAVE</button>
+  </div>
 </div>
 
 <!-- WiFi Config -->
 <div class="card">
   <div class="card-head"><div class="icon ic-c">W</div><h2>WiFi Configuration</h2></div>
+  <div class="ota-info" style="margin:0 0 10px">
+    The device starts its own access point by default. Optionally set a network below; when a network name is set, the device tries to connect to it on boot and starts its own access point if it cannot connect.
+  </div>
+  <div class="row">
+    <span class="lbl">Access Point</span>
+    <span style="font-size:.72em;color:var(--text3)">default</span>
+  </div>
   <div class="row">
     <span class="lbl">SSID</span>
     <input type="text" id="wifiSsid" maxlength="32" style="width:140px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right">
@@ -469,6 +510,18 @@ R"rawliteral(
   <div class="row">
     <span class="lbl">Stealth Mode (Hidden)</span>
     <label class="sw"><input type="checkbox" id="swWifiHid"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Connect to WiFi</span>
+    <span style="font-size:.72em;color:var(--text3)">optional</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Network Name</span>
+    <input type="text" id="wifiStaSsid" maxlength="32" style="width:140px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right">
+  </div>
+  <div class="row">
+    <span class="lbl">Network Password</span>
+    <input type="password" id="wifiStaPass" maxlength="64" style="width:140px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right">
   </div>
   <button class="btn-main btn-stop" onclick="saveWifi()" style="margin-top:12px">SAVE & RESTART WIFI</button>
 </div>
@@ -529,6 +582,9 @@ R"rawliteral(
   <button class="btn-main btn-yellow" onclick="restartDevice(this)" style="margin-top:12px">RESTART DEVICE</button>
 </div>
 
+  </div>
+</details>
+
 <div class="foot">Tesla FSD ESP32 &middot;
 )rawliteral"
 #if defined(BOARD_TTGO_DISPLAY)
@@ -546,6 +602,7 @@ var httpLogName='',httpLogReady=false,httpLogSaveUrl='';
 var httpLogAllowed=true;
 var HW=['Unknown','Legacy','HW3','HW4'];
 var CIRC=326.73;
+document.getElementById('deviceHost').textContent=location.host||location.hostname||'192.168.4.1';
 
 function initWifi(d){
   if(wifiOnce)return;
@@ -553,6 +610,8 @@ function initWifi(d){
   document.getElementById('wifiSsid').value=d.wifi_ssid||'';
   document.getElementById('wifiPass').value=d.wifi_pass||'';
   document.getElementById('swWifiHid').checked=!!d.wifi_hidden;
+  document.getElementById('wifiStaSsid').value=d.wifi_sta_ssid||'';
+  document.getElementById('wifiStaPass').value=d.wifi_sta_pass||'';
 }
 
 function fmt(s){
@@ -564,6 +623,22 @@ function pill(id,on,txt,warnClass){
   var e=document.getElementById(id);
   e.className='pill '+(warnClass||''+(on?'on':'off'));
   e.innerHTML='<span class="pd"></span>'+txt;
+}
+function updateControlsSummary(d){
+  var e=document.getElementById('controlsSummary');
+  if(!e)return;
+  var items=[];
+  if(d.op_mode===1)items.push('Active');
+  if(d.nag_killer)items.push('NAG Killer');
+  if(d.bms_output)items.push('BMS');
+  if(d.force_fsd)items.push('Force FSD');
+  if(d.china_mode)items.push('China');
+  if(d.suppress_speed_chime)items.push('Chime');
+  if(d.tlssc_restore)items.push('TLSSC');
+  if(d.display_enabled)items.push('Display');
+  if(d.can_dump)items.push('CAN Dump');
+  e.textContent=items.length?items.join(', '):'Expand to setup';
+  e.title=e.textContent;
 }
 function ring(p){
   var b=document.getElementById('socBar');
@@ -628,6 +703,7 @@ function upd(d){
   if(document.activeElement.id!=='numSleep' && document.getElementById('numSleep'))
     document.getElementById('numSleep').value=Math.floor((d.sleep_ms||0)/1000);
 
+  updateControlsSummary(d);
   pill('dumpSt',d.can_dump,d.can_dump?'Recording':'Idle');
 
   // CAN stats
@@ -827,11 +903,14 @@ function saveWifi(){
   var s=document.getElementById('wifiSsid').value;
   var p=document.getElementById('wifiPass').value;
   var h=document.getElementById('swWifiHid').checked;
+  var ss=document.getElementById('wifiStaSsid').value;
+  var sp=document.getElementById('wifiStaPass').value;
   if(s.length<1){alert('SSID required');return;}
-  if(p.length>0 && p.length<8){alert('Password must be 8+ chars');return;}
+  if(p!=='***' && p.length>0 && p.length<8){alert('Password must be 8+ chars');return;}
+  if(sp!=='***' && ss.length>0 && sp.length>0 && sp.length<8){alert('Network password must be 8+ chars');return;}
   if(confirm('WiFi settings will be updated and the device will restart.')){
     var b=document.activeElement; if(b&&b.tagName==='BUTTON'){b.disabled=true;b.textContent='SAVING...';}
-    cmd('wifi_cfg',{ssid:s,pass:p,hidden:h});
+    cmd('wifi_cfg',{ssid:s,pass:p,hidden:h,sta_ssid:ss,sta_pass:sp});
   }
 }
 function cmd(c,v){
@@ -1148,7 +1227,9 @@ static String build_json() {
     j += "\"can_dump\":";      j += can_dump_active()                 ? "true" : "false"; j += ',';
     j += "\"sleep_ms\":";     j += state.sleep_idle_ms;               j += ',';
     j += "\"wifi_ssid\":\"";  j += json_escape(state.wifi_ssid);      j += "\",";
-    j += "\"wifi_pass\":\"***\",";
+    j += "\"wifi_pass\":\"";  j += state.wifi_pass[0] ? "***" : "";  j += "\",";
+    j += "\"wifi_sta_ssid\":\""; j += json_escape(state.wifi_sta_ssid); j += "\",";
+    j += "\"wifi_sta_pass\":\""; j += state.wifi_sta_pass[0] ? "***" : ""; j += "\",";
     j += "\"wifi_hidden\":";  j += state.wifi_hidden                  ? "true" : "false"; j += ',';
     j += "\"wifi_clients\":";  j += (int)WiFi.softAPgetStationNum();   j += ',';
     j += "\"http_can_stream\":{";
@@ -1176,7 +1257,7 @@ static void ws_event(uint8_t num, WStype_t type,
     if (type != WStype_TEXT || g_state == nullptr || length == 0) return;
 
     // Use a slightly more robust way to find the value after the second colon
-    char buf[256] = {};
+    char buf[384] = {};
     size_t n = (length < sizeof(buf) - 1) ? length : sizeof(buf) - 1;
     memcpy(buf, payload, n);
 
@@ -1369,6 +1450,8 @@ static void ws_event(uint8_t num, WStype_t type,
             state_enter();
             char *s = strstr(vobj, "\"ssid\":\"");
             char *p = strstr(vobj, "\"pass\":\"");
+            char *ss = strstr(vobj, "\"sta_ssid\":\"");
+            char *sp = strstr(vobj, "\"sta_pass\":\"");
             char *h = strstr(vobj, "\"hidden\":");
             if (s) {
                 s += 8;
@@ -1395,6 +1478,31 @@ static void ws_event(uint8_t num, WStype_t type,
                     }
                 }
             }
+            if (ss) {
+                ss += 12;
+                char *end = strchr(ss, '\"');
+                if (end) {
+                    int len = end - ss;
+                    if (len > 32) len = 32;
+                    if (memchr(ss, '\\', len) == nullptr) {
+                        memcpy(g_state->wifi_sta_ssid, ss, len);
+                        g_state->wifi_sta_ssid[len] = '\0';
+                    }
+                }
+            }
+            if (sp) {
+                sp += 12;
+                char *end = strchr(sp, '\"');
+                if (end) {
+                    int len = end - sp;
+                    if (len > 64) len = 64;
+                    if (memchr(sp, '\\', len) == nullptr &&
+                        !(len == 3 && memcmp(sp, "***", 3) == 0)) {
+                        memcpy(g_state->wifi_sta_pass, sp, len);
+                        g_state->wifi_sta_pass[len] = '\0';
+                    }
+                }
+            }
             if (h) {
                 h += 9;
                 while (*h == ' ' || *h == ':') h++;
@@ -1403,8 +1511,8 @@ static void ws_event(uint8_t num, WStype_t type,
             }
             saved = *g_state;
             state_exit();
-            Serial.printf("[Web] WiFi config: SSID=\"%s\" PASS=*** HIDDEN=%d\n",
-                saved.wifi_ssid, saved.wifi_hidden);
+            Serial.printf("[Web] WiFi config: AP=\"%s\" STA=\"%s\" PASS=*** HIDDEN=%d\n",
+                saved.wifi_ssid, saved.wifi_sta_ssid, saved.wifi_hidden);
             prefs_save(&saved);
             delay(500);
             ESP.restart();

@@ -22,6 +22,7 @@
 #include "fsd_capture.h"
 #include "fsd_checksum.h"
 #include "fsd_handler.h"
+#include "fsd_profile.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -436,6 +437,569 @@ static void test_candump_format(void) {
         buf);
 }
 
+// ── 0x318 GTW_carState OTA detection (gates TX) ───────────────────────────────
+static void test_gtw_car_state(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CANFRAME f;
+    zero(&f);
+    f.data_lenght = 7;
+    f.buffer[6] = 2; // installing
+    fsd_handle_gtw_car_state(&s, &f);
+    CHECK(s.tesla_ota_in_progress, "OTA installing(2) -> in_progress");
+    f.buffer[6] = 1; // available — must NOT pause TX (issue #19 false positive)
+    fsd_handle_gtw_car_state(&s, &f);
+    CHECK(!s.tesla_ota_in_progress, "OTA available(1) -> not in_progress");
+    f.buffer[6] = 0;
+    fsd_handle_gtw_car_state(&s, &f);
+    CHECK(!s.tesla_ota_in_progress, "OTA none(0) -> not in_progress");
+}
+
+// ── 0x045 Legacy stalk + 0x3EE Legacy autopilot ───────────────────────────────
+static void test_legacy(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CANFRAME f;
+    zero(&f);
+    f.data_lenght = 2;
+    f.buffer[1] = (uint8_t)(0u << 5);
+    fsd_handle_legacy_stalk(&s, &f);
+    CHECK(s.speed_profile == 2, "legacy stalk pos0 -> 2 got %d", s.speed_profile);
+    f.buffer[1] = (uint8_t)(2u << 5);
+    fsd_handle_legacy_stalk(&s, &f);
+    CHECK(s.speed_profile == 1, "legacy stalk pos2 -> 1 got %d", s.speed_profile);
+    f.buffer[1] = (uint8_t)(4u << 5);
+    fsd_handle_legacy_stalk(&s, &f);
+    CHECK(s.speed_profile == 0, "legacy stalk pos4 -> 0 got %d", s.speed_profile);
+
+    s.force_fsd = true;
+    s.speed_profile = 2;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0; // mux0
+    CHECK(fsd_handle_legacy_autopilot(&s, &f), "legacy AP mux0 modified");
+    CHECK((f.buffer[5] & 0x40) != 0, "legacy AP mux0 bit46");
+    CHECK(((f.buffer[6] >> 1) & 0x03) == 2, "legacy AP mux0 speed profile");
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[2] = 0x08; // bit19 preset
+    CHECK(fsd_handle_legacy_autopilot(&s, &f), "legacy AP mux1 modified");
+    CHECK((f.buffer[2] & 0x08) == 0, "legacy AP mux1 bit19 cleared");
+
+    // AP-first timing gate (safety, ev-open-can-tools#66): with ap_first on, no
+    // 0x3EE inject until AP is engaged (das_ap_state >= 2).
+    memset(&s, 0, sizeof(s));
+    s.force_fsd = true;
+    s.ap_first = true;
+    s.das_ap_state = 0; // AP not yet active
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0; // mux0
+    CHECK(fsd_handle_legacy_autopilot(&s, &f) == false, "legacy AP-first blocks before AP active");
+    s.das_ap_state = 2; // AP active
+    CHECK(fsd_handle_legacy_autopilot(&s, &f), "legacy AP-first allows once AP active");
+}
+
+// ── 0x145 ESP_status brake ────────────────────────────────────────────────────
+static void test_esp_status(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CANFRAME f;
+    zero(&f);
+    f.data_lenght = 4;
+    f.buffer[3] = 0x20; // bits[6:5] != 0
+    fsd_handle_esp_status(&s, &f);
+    CHECK(s.driver_brake_applied, "esp brake applied");
+    f.buffer[3] = 0x00;
+    fsd_handle_esp_status(&s, &f);
+    CHECK(!s.driver_brake_applied, "esp no brake");
+}
+
+// ── DAS_status parsers (nag-killer gating source) ─────────────────────────────
+static void test_das_status(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CANFRAME f;
+    zero(&f);
+    f.data_lenght = 6;
+    f.buffer[0] = 0x03; // HW3 ap_state = 3 (low nibble)
+    f.buffer[5] = (uint8_t)(0x05 << 2); // hands_on = 5 (bits[5:2])
+    fsd_handle_das_status_hw3(&s, &f);
+    CHECK(s.das_ap_state == 3, "hw3 ap_state got %u", s.das_ap_state);
+    CHECK(s.das_hands_on_state == 5, "hw3 hands_on got %u", s.das_hands_on_state);
+    CHECK(s.das_seen, "hw3 das_seen");
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 7;
+    f.buffer[1] = (uint8_t)(0x02 << 4); // ap_state = 2 (bits[7:4])
+    f.buffer[5] = (uint8_t)(0x03 << 2); // hands_on = 3
+    f.buffer[4] = 0x02; // side_coll_warn = 2 (bits[1:0])
+    f.buffer[2] = 0xC0 | 0x05; // fcw = 3 (bits[7:6]), vision = 5 (bits[4:0])
+    fsd_handle_das_status_hw4(&s, &f);
+    CHECK(s.das_ap_state == 2, "hw4 ap_state got %u", s.das_ap_state);
+    CHECK(s.das_hands_on_state == 3, "hw4 hands_on got %u", s.das_hands_on_state);
+    CHECK(s.das_side_coll_warn == 2, "hw4 side_coll got %u", s.das_side_coll_warn);
+    CHECK(s.das_fcw == 3, "hw4 fcw got %u", s.das_fcw);
+    CHECK(s.das_vision_speed_lim == 5, "hw4 vision got %u", s.das_vision_speed_lim);
+    CHECK(s.das_seen, "hw4 das_seen");
+}
+
+// ── 0x7FF tier parse + active override ────────────────────────────────────────
+static void test_gtw_tier(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    s.gtw_autopilot_tier = -1;
+    CANFRAME f;
+    zero(&f);
+    f.data_lenght = 6;
+    f.buffer[0] = 2; // mux 2
+    f.buffer[5] = (uint8_t)(0x03 << 2); // tier = 3
+    fsd_handle_gtw_autopilot_tier(&s, &f);
+    CHECK(s.gtw_autopilot_tier == 3, "gtw tier parse got %d", s.gtw_autopilot_tier);
+    s.gtw_autopilot_tier = -1;
+    f.buffer[0] = 1; // wrong mux ignored
+    fsd_handle_gtw_autopilot_tier(&s, &f);
+    CHECK(s.gtw_autopilot_tier == -1, "gtw tier mux!=2 ignored");
+
+    s.gtw_tier_override = true;
+    zero(&f);
+    f.data_lenght = 6;
+    f.buffer[0] = 2;
+    f.buffer[5] = 0x00;
+    CHECK(fsd_handle_gtw_tier_override(&s, &f), "tier override modifies");
+    CHECK(
+        ((f.buffer[5] >> 2) & 0x07) == 3, "tier override -> 3 got %u", (f.buffer[5] >> 2) & 0x07);
+    s.gtw_tier_override = false;
+    f.buffer[5] = 0x00;
+    CHECK(fsd_handle_gtw_tier_override(&s, &f) == false, "tier override disabled -> noop");
+}
+
+// ── 0x3F8 driver-assist override bit map ──────────────────────────────────────
+static void test_driver_assist(void) {
+    FSDState s;
+    CANFRAME f;
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    s.assist_dev_mode = true;
+    CHECK(fsd_handle_driver_assist_override(&s, &f), "assist dev modifies");
+    CHECK((f.buffer[0] & 0x20) != 0, "assist dev bit5");
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    s.assist_nav_enable = true;
+    fsd_handle_driver_assist_override(&s, &f);
+    CHECK((f.buffer[1] & 0x20) != 0, "assist nav bit13");
+    CHECK((f.buffer[6] & 0x01) != 0, "assist nav bit48");
+    CHECK((f.buffer[6] & 0x02) != 0, "assist nav bit49");
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    s.assist_lhd_override = true;
+    fsd_handle_driver_assist_override(&s, &f);
+    CHECK((f.buffer[5] & 0x01) != 0, "assist lhd bit40 set");
+    CHECK((f.buffer[5] & 0x02) == 0, "assist lhd bit41 clear");
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[5] = 0x08; // bit43 preset
+    s.assist_telemetry_off = true;
+    fsd_handle_driver_assist_override(&s, &f);
+    CHECK((f.buffer[5] & 0x08) == 0, "assist telemetry bit43 cleared");
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    CHECK(fsd_handle_driver_assist_override(&s, &f) == false, "assist no flags -> noop");
+}
+
+// ── 0x7FF GTW Config Replay: learn -> arm -> replay ───────────────────────────
+static void test_gtw_shield(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    // Learning: feed all 8 mux frames; none transmit, arms after the 8th.
+    for(uint8_t m = 0; m < 8; m++) {
+        CANFRAME f;
+        zero(&f);
+        f.data_lenght = 8;
+        f.buffer[0] = m; // mux
+        f.buffer[3] = 0xAA; // "healthy" payload
+        CHECK(fsd_handle_gtw_shield(&s, &f) == false, "shield learning -> false (mux %u)", m);
+    }
+    CHECK(s.gtw_shield_armed, "shield armed after 8 mux snapshots");
+
+    // Armed, unchanged frame -> no replay.
+    CANFRAME ok;
+    zero(&ok);
+    ok.data_lenght = 8;
+    ok.buffer[0] = 0;
+    ok.buffer[3] = 0xAA;
+    CHECK(fsd_handle_gtw_shield(&s, &ok) == false, "shield unchanged -> false");
+
+    // Armed, tampered frame -> replay healthy snapshot.
+    CANFRAME bad;
+    zero(&bad);
+    bad.data_lenght = 8;
+    bad.buffer[0] = 0;
+    bad.buffer[3] = 0xBB; // gateway changed it
+    CHECK(fsd_handle_gtw_shield(&s, &bad), "shield tampered -> true (replay)");
+    CHECK(bad.buffer[3] == 0xAA, "shield restored byte3 to 0xAA got 0x%02X", bad.buffer[3]);
+    CHECK(s.gtw_shield_blocks == 1, "shield block counted");
+}
+
+// ── 0x3C2 Scroll-Press AP engage: timed state machine ─────────────────────────
+// Phase timings mirror the #defines in fsd_handler.c (PRESS1=250, SCROLL1=150,
+// PRESS2=250 ms). swcRightPressed -> byte1 bits[5:4]; scrollTicks -> byte3 bits[5:0].
+static void mux1(CANFRAME* f) {
+    zero(f);
+    f->data_lenght = 8;
+    f->buffer[0] = 1; // VCLEFT_switchStatusIndex mux=1
+}
+
+static void test_scroll_press(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW4;
+    s.op_mode = OpMode_Service;
+    s.scroll_press_ap = true;
+
+    CANFRAME f;
+
+    // Gates: HW4-only, Service-only, mux==1 only.
+    s.hw_version = TeslaHW_HW3;
+    mux1(&f);
+    CHECK(fsd_handle_scroll_press_inject(&s, &f, 0) == false, "scroll gated: not HW4");
+    s.hw_version = TeslaHW_HW4;
+    s.op_mode = OpMode_Active;
+    CHECK(fsd_handle_scroll_press_inject(&s, &f, 0) == false, "scroll gated: not Service");
+    s.op_mode = OpMode_Service;
+    mux1(&f);
+    f.buffer[0] = 2; // wrong mux
+    CHECK(fsd_handle_scroll_press_inject(&s, &f, 0) == false, "scroll gated: mux!=1");
+
+    // Arm on AP UNAVAIL(0), no fire yet.
+    s.das_ap_state = 0;
+    mux1(&f);
+    CHECK(fsd_handle_scroll_press_inject(&s, &f, 100) == false, "scroll arms on UNAVAIL, no fire");
+    CHECK(s.scroll_press_armed, "scroll armed");
+
+    // Rising edge UNAVAIL->AVAIL fires phase 1 (press).
+    s.das_ap_state = 1;
+    mux1(&f);
+    CHECK(fsd_handle_scroll_press_inject(&s, &f, 1000), "scroll phase1 fires");
+    CHECK((f.buffer[1] & 0x30) == 0x10, "scroll phase1 press bits got 0x%02X", f.buffer[1] & 0x30);
+    CHECK(s.scroll_press_state == 1, "scroll state==1");
+
+    // After >=250ms, phase1 -> phase2.
+    mux1(&f);
+    fsd_handle_scroll_press_inject(&s, &f, 1260);
+    CHECK(s.scroll_press_state == 2, "scroll -> state2 got %u", s.scroll_press_state);
+
+    // Phase2 emits scroll-up.
+    mux1(&f);
+    CHECK(fsd_handle_scroll_press_inject(&s, &f, 1260), "scroll phase2 fires");
+    CHECK(
+        (f.buffer[3] & 0x3F) == 0x01, "scroll phase2 scroll bits got 0x%02X", f.buffer[3] & 0x3F);
+
+    // After >=150ms, phase2 -> phase3.
+    mux1(&f);
+    fsd_handle_scroll_press_inject(&s, &f, 1420);
+    CHECK(s.scroll_press_state == 3, "scroll -> state3 got %u", s.scroll_press_state);
+
+    // After >=250ms, phase3 -> phase4.
+    mux1(&f);
+    fsd_handle_scroll_press_inject(&s, &f, 1680);
+    CHECK(s.scroll_press_state == 4, "scroll -> state4 got %u", s.scroll_press_state);
+
+    // Phase4 emits the final scroll and enters cooldown(5).
+    mux1(&f);
+    CHECK(fsd_handle_scroll_press_inject(&s, &f, 1700), "scroll phase4 fires");
+    CHECK((f.buffer[3] & 0x3F) == 0x01, "scroll phase4 scroll bits");
+    CHECK(s.scroll_press_state == 5, "scroll -> cooldown(5) got %u", s.scroll_press_state);
+
+    // Cooldown: no re-fire while AP stays engaged.
+    mux1(&f);
+    CHECK(fsd_handle_scroll_press_inject(&s, &f, 2000) == false, "scroll cooldown no fire");
+
+    // Re-arm only after AP returns to UNAVAIL.
+    s.das_ap_state = 0;
+    mux1(&f);
+    fsd_handle_scroll_press_inject(&s, &f, 2100);
+    CHECK(s.scroll_press_state == 0 && s.scroll_press_armed, "scroll re-armed after UNAVAIL");
+}
+
+// ── read-only Party-CAN parsers ───────────────────────────────────────────────
+static void test_misc_parsers(void) {
+    FSDState s;
+    CANFRAME f;
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 5;
+    f.buffer[1] = 0x20; // cruise_state = 2 (bits[6:4])
+    f.buffer[4] = 0x03; // park_brake = 3
+    f.buffer[3] = 0x06; // autopark = 3 (bits[4:1])
+    fsd_handle_di_state(&s, &f);
+    CHECK(s.di_cruise_state == 2, "di_state cruise got %u", s.di_cruise_state);
+    CHECK(s.di_park_brake_state == 3, "di_state park got %u", s.di_park_brake_state);
+    CHECK(s.di_autopark_state == 3, "di_state autopark got %u", s.di_autopark_state);
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 2;
+    f.buffer[0] = 0x00;
+    f.buffer[1] = 0x0C; // raw = 3072 -> 3072*0.25 - 750 = 18.0 Nm
+    fsd_handle_di_torque(&s, &f);
+    CHECK(fabs(s.di_torque_nm - 18.0f) < 0.1f, "di_torque got %.2f", (double)s.di_torque_nm);
+    CHECK(s.di_torque_seen, "di_torque seen");
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 7;
+    f.buffer[1] = 0x20; // buckle (bit5)
+    f.buffer[2] = 0xC0; // left (bit6) + right (bit7)
+    f.buffer[3] = 0x10; // door (bit4)
+    f.buffer[6] = 0x04; // high beam (bit2)
+    fsd_handle_ui_warning(&s, &f);
+    CHECK(s.ui_buckle_status, "ui buckle");
+    CHECK(s.ui_left_blinker && s.ui_right_blinker, "ui blinkers");
+    CHECK(s.ui_any_door_open, "ui door");
+    CHECK(s.ui_high_beam, "ui high beam");
+
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 3;
+    f.buffer[0] = 0xE8;
+    f.buffer[1] = 0x43; // set_speed raw = 0x3E8 = 1000 -> 100.0 kph; acc_state = 4
+    fsd_handle_das_control(&s, &f);
+    CHECK(
+        fabs(s.das_set_speed_kph - 100.0f) < 0.1f,
+        "das_control speed got %.1f",
+        (double)s.das_set_speed_kph);
+    CHECK(s.das_acc_state == 4, "das_control acc_state got %u", s.das_acc_state);
+}
+
+// ── remaining read-only parsers ───────────────────────────────────────────────
+static void test_readonly_parsers(void) {
+    FSDState s;
+    CANFRAME f;
+
+    // VCRIGHT_status (0x343): rear defrost = byte1 bits[2:0]
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 2;
+    f.buffer[1] = 0x02;
+    fsd_handle_vcright_status(&s, &f);
+    CHECK(s.rear_defrost_state == 2, "vcright defrost got %u", s.rear_defrost_state);
+
+    // DI_systemStatus (0x118): track mode = byte6[1:0], traction = byte5[2:0]
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 7;
+    f.buffer[6] = 0x02;
+    f.buffer[5] = 0x05;
+    fsd_handle_di_system_status(&s, &f);
+    CHECK(s.track_mode_state == 2, "di_sys track got %u", s.track_mode_state);
+    CHECK(s.traction_ctrl_mode == 5, "di_sys traction got %u", s.traction_ctrl_mode);
+
+    // EPAS3S_currentTuneMode (0x370): mode = byte0[7:5]; torsion = ((byte2&0x0F)<<8|byte3)*0.01-20.5
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 4;
+    f.buffer[0] = 0xA0; // bits[7:5] = 5
+    f.buffer[2] = 0x01;
+    f.buffer[3] = 0x90; // raw = 0x190 = 400 -> 4.0 - 20.5 = -16.5
+    fsd_handle_epas_steering_mode(&s, &f);
+    CHECK(s.steering_tune_mode == 5, "epas tune got %u", s.steering_tune_mode);
+    CHECK(
+        fabs(s.torsion_bar_torque_nm + 16.5f) < 0.05f,
+        "epas torsion got %.2f",
+        (double)s.torsion_bar_torque_nm);
+
+    // DAS_status2 (0x389): acc_report = byte3[6:2], activation_fail = byte1[7:6]
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 5;
+    f.buffer[3] = 0x14; // (0x14>>2)&0x1F = 5
+    f.buffer[1] = 0xC0; // (0xC0>>6)&3 = 3
+    fsd_handle_das_status2(&s, &f);
+    CHECK(s.das_acc_report == 5, "das2 acc_report got %u", s.das_acc_report);
+    CHECK(s.das_activation_fail == 3, "das2 activation_fail got %u", s.das_activation_fail);
+
+    // DAS_settings (0x293): autosteer = byte4[6]
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 5;
+    f.buffer[4] = 0x40;
+    fsd_handle_das_settings(&s, &f);
+    CHECK(s.das_autosteer_on, "das_settings autosteer on");
+
+    // SCCM_steeringAngle (0x129): int16 LE byte0-1 * 0.1
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 4;
+    f.buffer[0] = 0x64;
+    f.buffer[1] = 0x00; // raw = 100 -> 10.0 deg
+    fsd_handle_steering_angle(&s, &f);
+    CHECK(
+        fabs(s.steering_angle_deg - 10.0f) < 0.05f,
+        "steer angle got %.2f",
+        (double)s.steering_angle_deg);
+
+    // DAS_steeringControl (0x488): type = byte2[7:6]; angle = ((byte0&0x7F)<<8|byte1)*0.1-1638.35
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 3;
+    f.buffer[2] = 0xC0; // type = 3
+    f.buffer[0] = 0x40;
+    f.buffer[1] = 0x00; // raw = 0x4000 = 16384 -> 1638.4 - 1638.35 = 0.05
+    fsd_handle_das_steering(&s, &f);
+    CHECK(s.das_steer_type == 3, "das_steer type got %u", s.das_steer_type);
+    CHECK(
+        fabs(s.das_steer_angle_req - 0.05f) < 0.1f,
+        "das_steer angle got %.2f",
+        (double)s.das_steer_angle_req);
+
+    // UI_ratedConsumption (0x33A): raw = byte1<<8|byte0, * 0.1
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 4;
+    f.buffer[0] = 0x10;
+    f.buffer[1] = 0x00; // raw = 16 -> 1.6
+    fsd_handle_energy_consumption(&s, &f);
+    CHECK(fabs(s.energy_wh_per_km - 1.6f) < 0.05f, "energy got %.2f", (double)s.energy_wh_per_km);
+    CHECK(s.energy_seen, "energy seen");
+}
+
+// ── extras write handlers (Service-gated) + frame builders ────────────────────
+static void test_extras_and_builders(void) {
+    FSDState s;
+    CANFRAME f;
+
+    // Hazard inject: byte0[7:4] = 1, Service-gated.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Service;
+    s.extra_hazard_lights = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0x0F;
+    CHECK(fsd_handle_hazard_inject(&s, &f), "hazard modifies");
+    CHECK(f.buffer[0] == 0x1F, "hazard byte0 got 0x%02X exp 0x1F", f.buffer[0]);
+    s.op_mode = OpMode_Active; // gate
+    CHECK(fsd_handle_hazard_inject(&s, &f) == false, "hazard gated outside Service");
+
+    // Wiper off: byte0[7:4] = 0, Service-gated.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Service;
+    s.extra_wiper_off = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0xF5;
+    CHECK(fsd_handle_wiper_off(&s, &f), "wiper modifies");
+    CHECK(f.buffer[0] == 0x05, "wiper byte0 got 0x%02X exp 0x05", f.buffer[0]);
+
+    // Park frame builder (0x229).
+    zero(&f);
+    fsd_build_park_frame(&f);
+    CHECK(f.canId == CAN_ID_SCCM_RSTALK, "park id 0x229");
+    CHECK(f.data_lenght == 3, "park dlc 3");
+    CHECK(f.buffer[2] == 0x01, "park button pressed byte2");
+
+    // Steering tune frame builder (0x101).
+    zero(&f);
+    fsd_build_steering_tune_frame(&f, 3);
+    CHECK(f.canId == CAN_ID_GTW_EPAS_CTRL, "tune id 0x101");
+    CHECK(f.buffer[0] == (3 << 2), "tune byte0 got 0x%02X exp 0x0C", f.buffer[0]);
+
+    // Precondition frame builder (0x082).
+    zero(&f);
+    fsd_build_precondition_frame(&f);
+    CHECK(f.canId == CAN_ID_TRIP_PLANNING, "precond id 0x082");
+    CHECK(f.data_lenght == 8, "precond dlc 8");
+    CHECK(f.buffer[0] == 0x05, "precond byte0 got 0x%02X exp 0x05", f.buffer[0]);
+}
+
+// ── .cantest profile parser + send interlock ─────────────────────────────────
+static void test_profile(void) {
+    FsdProfileStep s;
+    char name[40];
+
+    // bare candump-style line
+    CHECK(
+        fsd_profile_parse_line("229#00112233445566AA", &s, NULL, 0) == FSD_PLINE_STEP,
+        "profile bare line -> step");
+    CHECK(s.can_id == 0x229, "profile id got 0x%lX", (unsigned long)s.can_id);
+    CHECK(s.dlc == 8, "profile dlc 8 got %u", s.dlc);
+    CHECK(s.data[0] == 0x00 && s.data[7] == 0xAA, "profile data bytes");
+    CHECK(s.repeat == 1 && s.delay_ms == 50, "profile defaults repeat=1 delay=50");
+
+    // repeat=/delay= suffixes
+    CHECK(
+        fsd_profile_parse_line("3FD#1000000000004000 repeat=20 delay=100", &s, NULL, 0) ==
+            FSD_PLINE_STEP,
+        "profile with suffixes");
+    CHECK(
+        s.can_id == 0x3FD && s.repeat == 20 && s.delay_ms == 100,
+        "profile r=%u d=%u",
+        s.repeat,
+        s.delay_ms);
+
+    // "delay=Nms" form + short dlc
+    CHECK(
+        fsd_profile_parse_line("370#0011 delay=250ms", &s, NULL, 0) == FSD_PLINE_STEP,
+        "profile delay=Nms");
+    CHECK(s.delay_ms == 250 && s.dlc == 2, "profile d=%u dlc=%u", s.delay_ms, s.dlc);
+
+    // a raw capture-log line (copy-from-capture loop) must parse
+    CHECK(
+        fsd_profile_parse_line("(1.234000) can0 370#0000000000000000", &s, NULL, 0) ==
+            FSD_PLINE_STEP,
+        "profile accepts candump line");
+    CHECK(s.can_id == 0x370 && s.dlc == 8, "profile candump id/dlc");
+
+    // name header, comment, blank
+    CHECK(
+        fsd_profile_parse_line("# Name: poke 229", &s, name, sizeof(name)) == FSD_PLINE_NAME,
+        "profile name header");
+    CHECK(strcmp(name, "poke 229") == 0, "profile name [%s]", name);
+    CHECK(
+        fsd_profile_parse_line("# just a note", &s, NULL, 0) == FSD_PLINE_EMPTY,
+        "profile comment");
+    CHECK(fsd_profile_parse_line("   ", &s, NULL, 0) == FSD_PLINE_EMPTY, "profile blank");
+
+    // malformed
+    CHECK(fsd_profile_parse_line("no hash here", &s, NULL, 0) == FSD_PLINE_ERROR, "profile no-#");
+    CHECK(fsd_profile_parse_line("229#0", &s, NULL, 0) == FSD_PLINE_ERROR, "profile odd hex");
+    CHECK(
+        fsd_profile_parse_line("229#001122334455667788", &s, NULL, 0) == FSD_PLINE_ERROR,
+        "profile >8 bytes");
+
+    // ── send interlock (fail-closed) ──
+    FSDState st;
+    memset(&st, 0, sizeof(st));
+    st.op_mode = OpMode_ListenOnly;
+    CHECK(fsd_profile_tx_allowed(&st, 1000) == false, "tx blocked in Listen-Only");
+    st.op_mode = OpMode_Active;
+    CHECK(fsd_profile_tx_allowed(&st, 1000) == false, "tx blocked: no speed seen (fail-closed)");
+    st.speed_seen = true;
+    st.last_speed_tick_ms = 1000;
+    st.vehicle_speed_kph = 0.0f;
+    CHECK(fsd_profile_tx_allowed(&st, 1500) == true, "tx allowed: active + fresh + stationary");
+    CHECK(fsd_profile_tx_allowed(&st, 3000) == false, "tx blocked: stale speed frame");
+    st.vehicle_speed_kph = 5.0f;
+    CHECK(fsd_profile_tx_allowed(&st, 1200) == false, "tx blocked: car moving");
+    st.vehicle_speed_kph = 0.0f;
+    st.op_mode = OpMode_Service;
+    st.last_speed_tick_ms = 1200;
+    CHECK(fsd_profile_tx_allowed(&st, 1300) == true, "tx allowed in Service when stationary");
+}
+
 // ── state init ────────────────────────────────────────────────────────────────
 static void test_state_init(void) {
     FSDState s;
@@ -461,6 +1025,18 @@ int main(void) {
     test_can_ops();
     test_additive_checksum();
     test_candump_format();
+    test_gtw_car_state();
+    test_legacy();
+    test_esp_status();
+    test_das_status();
+    test_gtw_tier();
+    test_driver_assist();
+    test_gtw_shield();
+    test_scroll_press();
+    test_misc_parsers();
+    test_readonly_parsers();
+    test_extras_and_builders();
+    test_profile();
     test_state_init();
 
     printf("\n%d passed, %d failed\n", g_pass, g_fail);

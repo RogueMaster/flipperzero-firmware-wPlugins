@@ -109,6 +109,7 @@
 #define FACTORY_RESET_HOLD_MS   5000u   // Hold duration to arm factory reset
 #define FACTORY_RESET_WINDOW_MS 20000u  // Clean-boot window during which reset is possible
 #define STATUS_PRINT_MS       5000u   // Periodic status line when Active
+#define WIFI_STA_CONNECT_TIMEOUT_MS 10000u // Max time to try configured infrastructure WiFi
 
 // OTA detection hardening on GTW_carState (0x318)
 // Some firmware versions keep non-zero states when no update is actively running.

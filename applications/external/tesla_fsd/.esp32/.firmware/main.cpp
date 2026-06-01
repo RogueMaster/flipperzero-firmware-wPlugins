@@ -130,6 +130,47 @@ static bool send_on_bus(CanBusId bus, const CanFrame &frame) {
     return driver ? driver->send(frame) : false;
 }
 
+static bool serial_cmd_equals(const char *cmd, const char *expected) {
+    while (*cmd && *expected) {
+        char a = *cmd++;
+        char b = *expected++;
+        if (a >= 'A' && a <= 'Z') a = (char)(a - 'A' + 'a');
+        if (a != b) return false;
+    }
+    return *cmd == '\0' && *expected == '\0';
+}
+
+static void serial_command_tick() {
+    static char buf[24];
+    static uint8_t len = 0;
+
+    while (Serial.available() > 0) {
+        char c = (char)Serial.read();
+        if (c == '\r' || c == '\n') {
+            if (len == 0) continue;
+            buf[len] = '\0';
+            len = 0;
+
+            if (serial_cmd_equals(buf, "ip") || serial_cmd_equals(buf, "wifi")) {
+                wifi_print_status();
+            } else if (serial_cmd_equals(buf, "help") || serial_cmd_equals(buf, "?")) {
+                Serial.println("[SER] Commands: ip");
+            } else {
+                Serial.println("[SER] Unknown command. Type: ip");
+            }
+            continue;
+        }
+
+        if (c < 32 || c > 126) continue;
+        if (len < sizeof(buf) - 1) {
+            buf[len++] = c;
+        } else {
+            len = 0;
+            Serial.println("[SER] Command too long");
+        }
+    }
+}
+
 static void apply_detected_hw(TeslaHWVersion hw, const char *reason) {
     if (hw == TeslaHW_Unknown) return;
     state_enter();
@@ -687,10 +728,11 @@ void setup() {
     Serial.println("[BTN] Double click : toggle BMS serial output");
     Serial.println("[LED] Blue=Listen  Green=Active  Yellow=OTA  Red=Error");
 
-    // ── WiFi AP + Web dashboard (non-fatal if WiFi fails) ─────────────────────
-    if (wifi_ap_init(&g_state)) {
+    // ── WiFi + Web dashboard (non-fatal if WiFi fails) ───────────────────────
+    if (wifi_init(&g_state)) {
         web_dashboard_init(&g_state, g_can, CAN_ACTIVE_BUS_COUNT, &g_state_mux);
         http_can_stream_set_enabled(state_snapshot().op_mode == OpMode_ListenOnly);
+        Serial.println("[SER] Type 'ip' in the serial monitor to print the WiFi address again");
     }
 }
 
@@ -704,6 +746,7 @@ void loop() {
     }
 
     button_tick();
+    serial_command_tick();
 
     // Drain all available CAN frames in one shot
     for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {

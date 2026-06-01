@@ -8,9 +8,13 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
 #include <storage/storage.h>
+#include <dialogs/dialogs.h>
 
 #include "libraries/mcp_can_2515.h"
 #include "fsd_logic/fsd_handler.h"
+#include "fsd_logic/fsd_profile.h"
+
+#define FSD_SEND_MAX_STEPS 48
 
 #define TESLA_FSD_VERSION FAP_VERSION
 
@@ -55,6 +59,14 @@ typedef struct {
     CANFRAME can_frame;
 
     Storage* storage;
+    DialogsApp* dialogs;
+
+    // Loaded .cantest SEND profile (user-authored test packets)
+    FsdProfileStep send_steps[FSD_SEND_MAX_STEPS];
+    uint8_t send_step_count;
+    char send_name[34];
+    bool send_armed; // set by the ARM button; worker sends when the interlock allows
+    uint32_t send_sent; // frames actually transmitted (for display/result)
 
     FuriThread* worker_thread;
     FuriMutex* mutex;

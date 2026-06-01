@@ -252,6 +252,14 @@ void fsd_handle_legacy_stalk(FSDState* state, const CANFRAME* frame) {
 
 bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame) {
     if(frame->data_lenght < 8) return false;
+
+    // AP-first (timing safety): don't inject FSD-enable until AP is engaged.
+    // Mirrors fsd_handle_autopilot_frame — the Legacy path was missing this gate.
+    // Injecting on 0x3EE before AP is stable is linked to a sharp steer-jerk at
+    // activation on some Legacy/HW3 cars (China FW 2026.8.3.6); see
+    // ev-open-can-tools#66. das_ap_state comes from 0x399 DAS_status (Legacy/HW3).
+    if(state->ap_first && state->das_ap_state < 2) return false;
+
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
     bool modified = false;

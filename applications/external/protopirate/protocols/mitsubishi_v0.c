@@ -121,8 +121,7 @@ const SubGhzProtocol mitsubishi_v0_protocol = {
     .name = MITSUBISHI_PROTOCOL_NAME,
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
-            SubGhzProtocolFlag_Decodable |
-            SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save,
+            SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save,
     .decoder = &subghz_protocol_mitsubishi_decoder,
     .encoder = &subghz_protocol_mitsubishi_encoder,
 };

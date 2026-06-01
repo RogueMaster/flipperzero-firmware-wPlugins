@@ -105,8 +105,7 @@ const SubGhzProtocol ford_protocol_v1 = {
     .name = FORD_PROTOCOL_V1_NAME,
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
-            SubGhzProtocolFlag_Decodable |
-            SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save
+            SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save
 #ifdef ENABLE_EMULATE_FEATURE
             | SubGhzProtocolFlag_Send
 #endif

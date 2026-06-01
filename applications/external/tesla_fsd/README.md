@@ -91,6 +91,10 @@
 - GTW autopilot tier readback (NONE/HIGHWAY/ENHANCED/SELF_DRIVING/BASIC)
 - OTA detection with debounce — auto-suspends TX during firmware updates unless the explicit Ignore OTA override is enabled
 
+### CAN Capture + Test Profiles (v2.16+)
+- **CAN Capture** — record every received frame to the SD card in candump format (`apps_data/tesla_mod/captures/`). Read-only; safe to run on any car. Feeds `tools/tesla_crc_cracker.py`.
+- **Send Test** — load a user-authored `.cantest` text profile from the SD card and replay your own frames. Defaults to dry-run; transmitting is hard-gated to a **parked, stationary** car (fail-closed) and re-checked before every frame. Result is logged for a bug report. Format + workflow: [docs/cantest-format.md](docs/cantest-format.md), example: [examples/example.cantest](examples/example.cantest).
+
 ### Settings (runtime toggles)
 
 **Stable (car-tested):**
@@ -306,7 +310,7 @@ For the Flipper: yes, any MCP2515-based module (Electronic Cats, generic boards)
 
 | Project | What it is | Hardware |
 |---------|------------|----------|
-| [ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools) | The upstream community project, now on GitHub. Formerly `Tesla-OPEN-CAN-MOD` on GitLab (group removed April 2026). | RP2040 CAN, Feather M4, ESP32 |
+| [ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools) | The upstream community project, now on GitHub. Formerly `Tesla-OPEN-CAN-MOD` on GitLab — that group was renamed to `ev-open-can-tools` (the GitLab repo is still live via redirect) and active development moved to GitHub. | RP2040 CAN, Feather M4, ESP32 |
 | [dzid26/ESP32-DualCAN](https://github.com/dzid26/ESP32-DualCAN) | "Dorky Commander" — open-source hardware alternative to the S3XY Commander | ESP32 + dual CAN |
 | [tuncasoftbildik/tesla-can-mod](https://github.com/tuncasoftbildik/tesla-can-mod) | Arduino reference implementation with frame templates | Arduino + MCP2515 |
 | [tumik/S3XY-candump](https://github.com/tumik/S3XY-candump) | Python CAN dump tool via S3XY Commander (Panda protocol) | Commander dongle |

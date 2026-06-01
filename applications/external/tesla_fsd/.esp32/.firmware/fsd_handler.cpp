@@ -59,6 +59,8 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     strncpy(state->wifi_ssid, "Tesla-FSD", sizeof(state->wifi_ssid));
     strncpy(state->wifi_pass, "12345678",  sizeof(state->wifi_pass));
     state->wifi_hidden = false;
+    state->wifi_sta_ssid[0] = '\0';
+    state->wifi_sta_pass[0] = '\0';
 }
 
 void fsd_apply_hw_version(FSDState *state, TeslaHWVersion hw) {

@@ -32,13 +32,16 @@ void prefs_load(FSDState *state) {
     if (g_prefs.isKey("wss")) g_prefs.getString("wss").toCharArray(state->wifi_ssid, sizeof(state->wifi_ssid));
     if (g_prefs.isKey("wsp")) g_prefs.getString("wsp").toCharArray(state->wifi_pass, sizeof(state->wifi_pass));
     state->wifi_hidden = g_prefs.getBool("wsh", false);
+    if (g_prefs.isKey("stas")) g_prefs.getString("stas").toCharArray(state->wifi_sta_ssid, sizeof(state->wifi_sta_ssid));
+    if (g_prefs.isKey("stap")) g_prefs.getString("stap").toCharArray(state->wifi_sta_pass, sizeof(state->wifi_sta_pass));
 
     state->op_mode = (OpMode)g_prefs.getUChar("mode", (uint8_t)OpMode_ListenOnly);
     
-    Serial.printf("[NVS] Loaded: NAG=%d IgnoreOTA=%d China=%d Chime=%d Sleep=%u SSID=\"%s\" HIDDEN=%d\n",
+    Serial.printf("[NVS] Loaded: NAG=%d IgnoreOTA=%d China=%d Chime=%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
                   state->nag_killer, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime,
-                  state->sleep_idle_ms, state->wifi_ssid, state->wifi_hidden);
+                  state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
+                  state->wifi_hidden);
     g_prefs.end();
 }
 
@@ -73,12 +76,15 @@ void prefs_save(const FSDState *state) {
     g_prefs.putString("wss",  state->wifi_ssid);
     g_prefs.putString("wsp",  state->wifi_pass);
     g_prefs.putBool("wsh",    state->wifi_hidden);
+    g_prefs.putString("stas", state->wifi_sta_ssid);
+    g_prefs.putString("stap", state->wifi_sta_pass);
 
     g_prefs.putUChar("mode",  (uint8_t)state->op_mode);
     
-    Serial.printf("[NVS] Saved: NAG=%d IgnoreOTA=%d China=%d Chime=%d Sleep=%u SSID=\"%s\" HIDDEN=%d\n",
+    Serial.printf("[NVS] Saved: NAG=%d IgnoreOTA=%d China=%d Chime=%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
                   state->nag_killer, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime,
-                  state->sleep_idle_ms, state->wifi_ssid, state->wifi_hidden);
+                  state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
+                  state->wifi_hidden);
     g_prefs.end();
 }

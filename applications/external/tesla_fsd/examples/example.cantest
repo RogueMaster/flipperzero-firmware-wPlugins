@@ -1,0 +1,31 @@
+# Tesla CAN Test profile (.cantest) — EXAMPLE. Edit before using.
+#
+# How to use:
+#   1. Edit this file on your computer in any text editor.
+#   2. Copy it to your Flipper SD card under:  apps_data/tesla_mod/tests/
+#   3. On the Flipper:  open the app  ->  "Send Test [BETA]"  ->  pick this file.
+#   4. It opens in DRY RUN (shows the frames, transmits NOTHING). Press the
+#      center button (ARM SEND) to transmit. The app only sends with the car
+#      PARKED and stationary and Mode = Active/Service — it refuses to transmit
+#      while the car is moving, and aborts mid-run if the car starts moving.
+#   5. The run is saved to  apps_data/tesla_mod/tests/results/  — attach that
+#      file to a GitHub issue to report what the frames did on your car.
+#
+# Safety: you are responsible for the frames you send. Test parked, with nobody
+# near the car, and only run profiles you understand. The parked/stationary
+# interlock prevents injection on a moving car; it does not make an arbitrary
+# frame safe.
+#
+# Line format:   ID#DATA  [repeat=N]  [delay=Nms]        (# starts a comment)
+#   ID#DATA    hex CAN id, '#', then 0..8 hex data bytes
+#   repeat=N   send the frame N times      (default 1)
+#   delay=N    milliseconds between sends  (default 50)
+#
+# A line copied straight from a CAN Capture log also parses, e.g.:
+#   (1.234000) can0 229#00112233445566AA
+#
+# Name: example — replace the frames below
+
+# ---- REPLACE THESE PLACEHOLDER FRAMES with what you want to test ----
+229#00112233445566AA repeat=5 delay=100
+3FD#1000000000004000 repeat=3 delay=200

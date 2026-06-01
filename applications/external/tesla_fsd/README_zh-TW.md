@@ -218,7 +218,7 @@ git clone https://github.com/hypery11/flipper-tesla-fsd.git applications_user/te
 
 | 專案 | 是什麼 | 硬體 |
 |------|--------|------|
-| [slxslx/tesla-open-can-mod-slx-repo](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo) | 原始 Tesla-OPEN-CAN-MOD 上游 namespace 被下架後事實上的接班 fork。範圍更廣 — 「general CAN mod tool, not just FSD」 | Adafruit RP2040 CAN、Feather M4、ESP32、M5Stack ATOMIC CAN |
+| [slxslx/tesla-open-can-mod-slx-repo](https://gitlab.com/slxslx/tesla-open-can-mod-slx-repo) | 原始 Tesla-OPEN-CAN-MOD namespace 改名搬到 ev-open-can-tools（GitLab 仍在、開發移往 GitHub）後的社群 fork。範圍更廣 — 「general CAN mod tool, not just FSD」 | Adafruit RP2040 CAN、Feather M4、ESP32、M5Stack ATOMIC CAN |
 | ESP32 移植 — PR [#6](https://github.com/hypery11/flipper-tesla-fsd/pull/6) by @elonleo | 把本專案 CAN 邏輯完整移植到 ESP32，內建 WiFi 網頁儀表板。~$14 的 Flipper + Add-On 替代方案 | M5Stack ATOM Lite + ATOMIC CAN、Waveshare ESP32-S3-RS485-CAN |
 | [tumik/S3XY-candump](https://github.com/tumik/S3XY-candump) | 用 enhauto S3XY Commander 當 Panda-protocol bridge 透過 WiFi dump 整條 Tesla CAN bus 的 Python 工具 | Commander dongle |
 | [dzid26/ESP32-DualCAN](https://github.com/dzid26/ESP32-DualCAN) | 「Dorky Commander」— 開源硬體版的 enhauto S3XY Commander | ESP32 + dual CAN |
