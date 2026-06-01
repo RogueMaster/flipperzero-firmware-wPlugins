@@ -7,6 +7,7 @@
 #include <gui/modules/widget.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
+#include <storage/storage.h>
 
 #include "libraries/mcp_can_2515.h"
 #include "fsd_logic/fsd_handler.h"
@@ -53,6 +54,8 @@ typedef struct {
     MCP2515* mcp_can;
     CANFRAME can_frame;
 
+    Storage* storage;
+
     FuriThread* worker_thread;
     FuriMutex* mutex;
 
@@ -73,6 +76,10 @@ typedef struct {
     bool firmware_14x_warning; // 2026.14.x: show TX-disables-AP warning in running scene (default ON, opt-out for pre-14.x users)
     bool gtw_tier_override; // 0x7FF active tier=SELF_DRIVING override
     bool scroll_press_ap; // 0x3C2 scroll-press AP engage (HW4-only, Service mode)
+
+    // CAN capture: log every RX frame to SD in candump-ASCII (feeds the cracker)
+    bool can_capture;
+    uint32_t capture_count; // worker-updated count of frames written this run
 
     // driver assist overrides (0x3F8 + 0x3FD)
     bool assist_nav_enable; // nav-based FSD routing (EU/restricted)

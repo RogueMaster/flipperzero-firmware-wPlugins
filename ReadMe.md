@@ -73,8 +73,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - Updated: [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
-- Updated: [Tesla Mod v2.14.0 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Added: [Infrared Playback v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
+- Updated: [Tesla Mod v2.14.0 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

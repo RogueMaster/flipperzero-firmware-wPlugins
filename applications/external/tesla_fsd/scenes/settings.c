@@ -146,6 +146,13 @@ static void precondition_changed(VariableItem* item) {
     app->precondition = (idx == 1);
 }
 
+static void can_capture_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->can_capture = (idx == 1);
+}
+
 // Helper macro to reduce boilerplate
 #define ADD_TOGGLE(label, callback, field)                           \
     item = variable_item_list_add(list, label, 2, callback, app);    \
@@ -174,6 +181,7 @@ void tesla_fsd_scene_settings_on_enter(void* context) {
     ADD_TOGGLE("Suppress Chime", chime_changed, suppress_speed_chime)
     ADD_TOGGLE("Emerg. Vehicle", emerg_changed, emergency_vehicle_detect)
     ADD_TOGGLE("Precondition", precondition_changed, precondition)
+    ADD_TOGGLE("CAN Capture", can_capture_changed, can_capture)
 
     // ── Beta features (report results in GitHub issues) ──
     variable_item_list_add(list, "-- Beta (report!) --", 0, NULL, NULL);
