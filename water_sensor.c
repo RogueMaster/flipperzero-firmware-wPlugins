@@ -24,13 +24,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignTop, "Water Sensor reader");
 
-
     snprintf(line, sizeof(line), "RAW: %u", app->raw);
     canvas_draw_str_aligned(canvas, 8, 24, AlignLeft, AlignTop, line);
 
     snprintf(line, sizeof(line), "V: %.1f mV", (double)app->mv);
     canvas_draw_str_aligned(canvas, 8, 36, AlignLeft, AlignTop, line);
-
 
     const float max_mv = 2000.0f;
     float progress = app->mv / max_mv;
@@ -64,9 +62,7 @@ int32_t water_sensor_main(void* p) {
     view_port_input_callback_set(app.view_port, input_callback, &app);
     gui_add_view_port(app.gui, app.view_port, GuiLayerFullscreen);
 
-    
     furi_hal_gpio_init(ADC_GPIO, GpioModeAnalog, GpioPullNo, GpioSpeedVeryHigh);
-
 
     app.adc = furi_hal_adc_acquire();
     furi_hal_adc_configure(app.adc);
