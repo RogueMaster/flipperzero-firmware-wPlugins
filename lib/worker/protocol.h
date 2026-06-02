@@ -53,6 +53,19 @@ uint8_t fuzzer_proto_get_def_emu_time();
 uint8_t fuzzer_proto_get_def_idle_time();
 
 /**
+ * Get minimum safe idle time (in 10ms units) for the current protocol.
+ * Both protocols can go to 0 (worker clamps to a tiny non-zero real delay).
+ * @return Minimum idle time
+ */
+uint8_t fuzzer_proto_get_min_idle_time();
+
+/**
+ * Get minimum emulation time (in 10ms units) for the current protocol.
+ * @return Minimum emulation time
+ */
+uint8_t fuzzer_proto_get_min_emu_time();
+
+/**
  * Get protocol name based on its index
  * @param index protocol index
  * @return pointer to a string containing the name

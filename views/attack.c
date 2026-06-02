@@ -20,10 +20,10 @@ struct FuzzerViewAttack {
 };
 
 typedef struct {
-    uint8_t time_delay; // 1 = 100ms
-    uint8_t time_delay_min; // 1 = 100ms
-    uint8_t emu_time; // 1 = 100ms
-    uint8_t emu_time_min; // 1 = 100ms
+    uint16_t time_delay; // 1 = 10ms
+    uint16_t time_delay_min; // 1 = 10ms
+    uint16_t emu_time; // 1 = 10ms
+    uint16_t emu_time_min; // 1 = 10ms
     bool td_emt_cursor; // false - time_delay, true - emu_time
     const char* attack_name;
     const char* protocol_name;
@@ -98,13 +98,21 @@ static void
 
         canvas_set_font(canvas, FontPrimary);
         snprintf(
-            temp_str, sizeof(temp_str), "%d.%d", model->time_delay / 10, model->time_delay % 10);
+            temp_str,
+            sizeof(temp_str),
+            "%d.%02d",
+            model->time_delay / 100,
+            model->time_delay % 100);
         canvas_draw_str_aligned(
             canvas, crt + LEFT_RIGHT_OFFSET + 3, y, AlignLeft, AlignBottom, temp_str);
 
         canvas_set_font(canvas, FontSecondary);
         snprintf(
-            temp_str, sizeof(temp_str), "EmT: %d.%d", model->emu_time / 10, model->emu_time % 10);
+            temp_str,
+            sizeof(temp_str),
+            "EmT: %d.%02d",
+            model->emu_time / 100,
+            model->emu_time % 100);
         canvas_draw_str_aligned(
             canvas, 128 - LEFT_RIGHT_OFFSET, y, AlignRight, AlignBottom, temp_str);
     } else {
@@ -112,14 +120,15 @@ static void
         snprintf(
             temp_str,
             sizeof(temp_str),
-            "TD: %d.%d",
-            model->time_delay / 10,
-            model->time_delay % 10);
+            "TD: %d.%02d",
+            model->time_delay / 100,
+            model->time_delay % 100);
 
         canvas_draw_str_aligned(canvas, LEFT_RIGHT_OFFSET, y, AlignLeft, AlignBottom, temp_str);
 
         canvas_set_font(canvas, FontPrimary);
-        snprintf(temp_str, sizeof(temp_str), "%d.%d", model->emu_time / 10, model->emu_time % 10);
+        snprintf(
+            temp_str, sizeof(temp_str), "%d.%02d", model->emu_time / 100, model->emu_time % 100);
         canvas_draw_str_aligned(
             canvas, 128 - LEFT_RIGHT_OFFSET, y, AlignRight, AlignBottom, temp_str);
         crt = canvas_string_width(canvas, temp_str);
@@ -132,7 +141,7 @@ static void
 }
 
 static void fuzzer_view_attack_draw_time_delays_str(Canvas* canvas, FuzzerViewAttackModel* model) {
-    char temp_str[20];
+    char temp_str[32];
     uint16_t crt;
     const uint16_t y = LINE_2_Y;
 
@@ -140,11 +149,11 @@ static void fuzzer_view_attack_draw_time_delays_str(Canvas* canvas, FuzzerViewAt
     snprintf(
         temp_str,
         sizeof(temp_str),
-        "TD: %d.%d Emt: %d.%d",
-        model->time_delay / 10,
-        model->time_delay % 10,
-        model->emu_time / 10,
-        model->emu_time % 10);
+        "TD: %d.%02d Emt: %d.%02d",
+        model->time_delay / 100,
+        model->time_delay % 100,
+        model->emu_time / 100,
+        model->emu_time % 100);
 
     crt = canvas_string_width(canvas, temp_str);
 
@@ -438,11 +447,14 @@ FuzzerViewAttack* fuzzer_view_attack_alloc() {
         FuzzerViewAttackModel * model,
         {
             model->time_delay = fuzzer_proto_get_def_idle_time();
-            model->time_delay_min = 1; // model->time_delay;
+            // Per-protocol floor: RFID is clamped to its ~0.10s firmware limit,
+            // iButton may go to 0.00s. See fuzzer_proto_get_min_idle_time().
+            model->time_delay_min = fuzzer_proto_get_min_idle_time();
 
             model->emu_time = fuzzer_proto_get_def_emu_time();
 
-            model->emu_time_min = 2; // model->emu_time;
+            // Customisable like the time delay: floor comes from the worker lib.
+            model->emu_time_min = fuzzer_proto_get_min_emu_time();
 
             model->uid_str = furi_string_alloc_set_str("Not_set");
             // malloc(ATTACK_SCENE_MAX_UID_LENGTH + 1);
@@ -474,9 +486,9 @@ View* fuzzer_view_attack_get_view(FuzzerViewAttack* view_attack) {
     return view_attack->view;
 }
 
-uint8_t fuzzer_view_attack_get_time_delay(FuzzerViewAttack* view) {
+uint16_t fuzzer_view_attack_get_time_delay(FuzzerViewAttack* view) {
     furi_assert(view);
-    uint8_t time_delay;
+    uint16_t time_delay;
 
     with_view_model(
         view->view, FuzzerViewAttackModel * model, { time_delay = model->time_delay; }, false);
@@ -484,9 +496,9 @@ uint8_t fuzzer_view_attack_get_time_delay(FuzzerViewAttack* view) {
     return time_delay;
 }
 
-uint8_t fuzzer_view_attack_get_emu_time(FuzzerViewAttack* view) {
+uint16_t fuzzer_view_attack_get_emu_time(FuzzerViewAttack* view) {
     furi_assert(view);
-    uint8_t emu_time;
+    uint16_t emu_time;
 
     with_view_model(
         view->view, FuzzerViewAttackModel * model, { emu_time = model->emu_time; }, false);

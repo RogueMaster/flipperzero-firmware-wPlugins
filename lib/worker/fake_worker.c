@@ -418,8 +418,8 @@ FuzzerWorker* fuzzer_worker_alloc() {
 
     memset(instance->payload, 0x00, sizeof(instance->payload));
 
-    instance->timer_idle_time_ms = PROTOCOL_DEF_IDLE_TIME * 100;
-    instance->timer_emu_time_ms = PROTOCOL_DEF_EMU_TIME * 100;
+    instance->timer_idle_time_ms = PROTOCOL_DEF_IDLE_TIME * 10;
+    instance->timer_emu_time_ms = PROTOCOL_DEF_EMU_TIME * 10;
 
     instance->timer =
         furi_timer_alloc(fuzzer_worker_on_tick_callback, FuriTimerTypeOnce, instance);
@@ -442,19 +442,22 @@ void fuzzer_worker_free(FuzzerWorker* instance) {
     free(instance);
 }
 
-bool fuzzer_worker_start(FuzzerWorker* instance, uint8_t idle_time, uint8_t emu_time) {
+bool fuzzer_worker_start(FuzzerWorker* instance, uint16_t idle_time, uint16_t emu_time) {
     furi_assert(instance);
 
     if(instance->attack_type < FuzzerWorkerAttackTypeMax) {
+        // idle_time / emu_time are in 10ms units. A user-selected 0 (shown as
+        // "0.00" in the UI) is clamped to a small non-zero real delay so the
+        // timer never fires with a 0-tick interval.
         if(idle_time == 0) {
-            instance->timer_idle_time_ms = 10;
+            instance->timer_idle_time_ms = FUZZ_WORKER_MIN_DELAY_MS;
         } else {
-            instance->timer_idle_time_ms = idle_time * 100;
+            instance->timer_idle_time_ms = idle_time * 10;
         }
         if(emu_time == 0) {
-            instance->timer_emu_time_ms = 10;
+            instance->timer_emu_time_ms = FUZZ_WORKER_MIN_DELAY_MS;
         } else {
-            instance->timer_emu_time_ms = emu_time * 100;
+            instance->timer_emu_time_ms = emu_time * 10;
         }
 
         FURI_LOG_D(

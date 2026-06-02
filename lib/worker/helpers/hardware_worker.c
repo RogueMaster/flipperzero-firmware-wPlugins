@@ -6,6 +6,37 @@
 #include <lib/lfrfid/lfrfid_dict_file.h>
 #include <lib/lfrfid/lfrfid_worker.h>
 
+#include <furi_hal_rfid.h>
+#include <toolbox/level_duration.h>
+#include <lib/toolbox/pulse_protocols/pulse_glue.h>
+
+// Direct-HAL emulation for RFID.
+//
+// The stock lfrfid_worker can't restart emulation faster than ~0.10s: since
+// firmware PR #3507 (2024-03) lfrfid_worker_emulate_start() does a hard
+// furi_check(mode == LFRFIDWorkerIdle), and lfrfid_worker_stop() is async with
+// up to a ~100ms return-to-idle latency, so a faster restart crashes.
+//
+// We bypass the worker entirely and drive furi_hal_rfid_tim_emulate_dma_*
+// ourselves on a private thread (same primitives the firmware worker uses
+// internally, all exported in the public API). furi_hal_rfid_tim_emulate_dma_stop()
+// is synchronous, so stop/restart costs microseconds and we hit the real
+// hardware timing floor with no firmware fork required.
+#define FUZZER_RFID_EMULATE_BUFFER_SIZE (1024)
+// How long the refill loop blocks before re-checking the stop flag (ms). Bounds
+// the stop latency; kept small so a fast TD never outruns teardown.
+#define FUZZER_RFID_EMU_RECEIVE_TIMEOUT (2)
+
+typedef struct {
+    uint32_t duration[FUZZER_RFID_EMULATE_BUFFER_SIZE];
+    uint32_t pulse[FUZZER_RFID_EMULATE_BUFFER_SIZE];
+} HwRfidEmulateBuffer;
+
+typedef enum {
+    HwRfidHalfTransfer,
+    HwRfidTransferComplete,
+} HwRfidEmulateDMAEvent;
+
 #else
 
 #include <lib/ibutton/ibutton_worker.h>
@@ -20,6 +51,8 @@ struct HardwareWorker {
     LFRFIDWorker* proto_worker;
     ProtocolId protocol_id;
     ProtocolDict* protocols_items;
+    FuriThread* emu_thread; // private direct-HAL emulation thread (NULL when idle)
+    volatile bool emu_stop; // request the emulation thread to stop
 #else
     iButtonWorker* proto_worker;
     iButtonProtocolId protocol_id;
@@ -34,6 +67,8 @@ HardwareWorker* hardware_worker_alloc() {
     instance->protocols_items = protocol_dict_alloc(lfrfid_protocols, LFRFIDProtocolMax);
 
     instance->proto_worker = lfrfid_worker_alloc(instance->protocols_items);
+    instance->emu_thread = NULL;
+    instance->emu_stop = false;
 #else
     instance->protocols_items = ibutton_protocols_alloc();
     instance->key =
@@ -76,9 +111,91 @@ void hardware_worker_stop_thread(HardwareWorker* instance) {
 #endif
 }
 
+#if defined(RFID_125_PROTOCOL)
+
+// DMA half/complete interrupt: forwards the refill request to the worker thread.
+static void hardware_worker_rfid_emulate_dma_isr(bool half, void* context) {
+    FuriStreamBuffer* stream = context;
+    uint32_t flag = half ? HwRfidHalfTransfer : HwRfidTransferComplete;
+    furi_stream_buffer_send(stream, &flag, sizeof(uint32_t), 0);
+}
+
+// Refill one half of the DMA buffer from the protocol encoder.
+static void hardware_worker_rfid_fill_half(
+    HardwareWorker* instance,
+    HwRfidEmulateBuffer* buffer,
+    PulseGlue* pulse_glue,
+    size_t start) {
+    for(size_t i = 0; i < (FUZZER_RFID_EMULATE_BUFFER_SIZE / 2); i++) {
+        bool pulse_pop = false;
+        while(!pulse_pop) {
+            LevelDuration level_duration =
+                protocol_dict_encoder_yield(instance->protocols_items, instance->protocol_id);
+            pulse_pop = pulse_glue_push(
+                pulse_glue,
+                level_duration_get_level(level_duration),
+                level_duration_get_duration(level_duration));
+        }
+        uint32_t duration, pulse;
+        pulse_glue_pop(pulse_glue, &duration, &pulse);
+        buffer->duration[start + i] = duration - 1;
+        buffer->pulse[start + i] = pulse;
+    }
+}
+
+// Private emulation thread: a port of lfrfid_worker_mode_emulate_process, but
+// owned by us so stop is synchronous (see header comment near the buffer defs).
+static int32_t hardware_worker_rfid_emulate_thread(void* context) {
+    HardwareWorker* instance = context;
+
+    HwRfidEmulateBuffer* buffer = malloc(sizeof(HwRfidEmulateBuffer));
+    FuriStreamBuffer* stream = furi_stream_buffer_alloc(sizeof(uint32_t), sizeof(uint32_t));
+    PulseGlue* pulse_glue = pulse_glue_alloc();
+
+    protocol_dict_encoder_start(instance->protocols_items, instance->protocol_id);
+
+    // Prefill the whole buffer before starting the DMA.
+    hardware_worker_rfid_fill_half(instance, buffer, pulse_glue, 0);
+    hardware_worker_rfid_fill_half(instance, buffer, pulse_glue, FUZZER_RFID_EMULATE_BUFFER_SIZE / 2);
+
+    furi_hal_rfid_tim_emulate_dma_start(
+        buffer->duration,
+        buffer->pulse,
+        FUZZER_RFID_EMULATE_BUFFER_SIZE,
+        hardware_worker_rfid_emulate_dma_isr,
+        stream);
+
+    while(!instance->emu_stop) {
+        uint32_t flag = 0;
+        size_t size = furi_stream_buffer_receive(
+            stream, &flag, sizeof(uint32_t), FUZZER_RFID_EMU_RECEIVE_TIMEOUT);
+
+        if(size == sizeof(uint32_t)) {
+            size_t start = (flag == HwRfidTransferComplete) ? (FUZZER_RFID_EMULATE_BUFFER_SIZE / 2) : 0;
+            hardware_worker_rfid_fill_half(instance, buffer, pulse_glue, start);
+        }
+    }
+
+    furi_hal_rfid_tim_emulate_dma_stop();
+
+    free(buffer);
+    furi_stream_buffer_free(stream);
+    pulse_glue_free(pulse_glue);
+    return 0;
+}
+
+#endif
+
 void hardware_worker_emulate_start(HardwareWorker* instance) {
 #if defined(RFID_125_PROTOCOL)
-    lfrfid_worker_emulate_start(instance->proto_worker, instance->protocol_id);
+    if(instance->emu_thread) {
+        // Already emulating; nothing to do.
+        return;
+    }
+    instance->emu_stop = false;
+    instance->emu_thread = furi_thread_alloc_ex(
+        "FuzzerRfidEmu", 2048, hardware_worker_rfid_emulate_thread, instance);
+    furi_thread_start(instance->emu_thread);
 #else
     ibutton_worker_emulate_start(instance->proto_worker, instance->key);
 #endif
@@ -86,7 +203,14 @@ void hardware_worker_emulate_start(HardwareWorker* instance) {
 
 void hardware_worker_stop(HardwareWorker* instance) {
 #if defined(RFID_125_PROTOCOL)
-    lfrfid_worker_stop(instance->proto_worker);
+    if(instance->emu_thread) {
+        instance->emu_stop = true;
+        // Synchronous: the refill loop notices emu_stop within
+        // FUZZER_RFID_EMU_RECEIVE_TIMEOUT ms, then stops the DMA and exits.
+        furi_thread_join(instance->emu_thread);
+        furi_thread_free(instance->emu_thread);
+        instance->emu_thread = NULL;
+    }
 #else
     ibutton_worker_stop(instance->proto_worker);
 #endif
