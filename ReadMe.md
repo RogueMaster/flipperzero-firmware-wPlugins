@@ -77,6 +77,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
 - Updated: [ProtoPirate v3.0.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Tesla Mod v2.16.1 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [VolorSavanna v1.0 (By Invizabel)](https://github.com/Invizabel/VolorSavanna)
 
 <a name="release"></a>
 
