@@ -3,8 +3,12 @@ App(
     name="Water Sensor reader",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="water_sensor_main",
-    requires=["gui","input"],
+    requires=["gui", "input"],
     stack_size=2 * 1024,
     fap_category="GPIO",
     fap_icon="images/icon.png",
+    fap_version="1.0",
+    fap_author="Matvey Strelov",
+    fap_weburl="https://github.com/MatveyStrelov/flipper-water-sensor",
+    fap_description="Reads an analog water sensor on GPIO pin C0 and shows the raw ADC value, voltage in mV, and a progress bar in real time.",
 )
