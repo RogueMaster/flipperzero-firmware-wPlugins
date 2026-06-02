@@ -250,6 +250,10 @@ static int32_t fsd_running_worker(void* context) {
 
         // Periodic CAN error register sample (~every 250ms)
         uint32_t now = furi_get_tick();
+
+        // AP-first stability debounce: stamp the last moment AP was not engaged,
+        // so fsd_ap_first_allows() can require AP to hold stable before injecting.
+        if(state.das_ap_state < 2) state.ap_unstable_tick_ms = now;
         if((now - last_err_check) >= furi_ms_to_ticks(250)) {
             uint8_t eflg = get_error(mcp);
             // EFLG bits 0/1 = RX0/RX1 overflow, bit 4 = receive error warn,
@@ -429,7 +433,7 @@ static int32_t fsd_running_worker(void* context) {
                 } else if(frame.canId == CAN_ID_STW_ACTN_RQ && state.hw_version == TeslaHW_Legacy) {
                     fsd_handle_legacy_stalk(&state, &frame);
                 } else if(frame.canId == CAN_ID_AP_LEGACY && state.hw_version == TeslaHW_Legacy) {
-                    if(fsd_handle_legacy_autopilot(&state, &frame) && tx_allowed) {
+                    if(fsd_handle_legacy_autopilot(&state, &frame, now) && tx_allowed) {
                         send_can_frame(mcp, &frame);
                     }
                 } else if(frame.canId == CAN_ID_ISA_SPEED) {
@@ -450,7 +454,7 @@ static int32_t fsd_running_worker(void* context) {
                         send_can_frame(mcp, &frame);
                     }
                 } else if(frame.canId == CAN_ID_AP_CONTROL) {
-                    if(fsd_handle_autopilot_frame(&state, &frame) && tx_allowed) {
+                    if(fsd_handle_autopilot_frame(&state, &frame, now) && tx_allowed) {
                         send_can_frame(mcp, &frame);
                     }
                 } else if(frame.canId == CAN_ID_VCLEFT_SWITCH) {

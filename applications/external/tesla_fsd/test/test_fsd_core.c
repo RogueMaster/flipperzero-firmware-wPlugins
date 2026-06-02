@@ -144,7 +144,7 @@ static void test_autopilot_hw4(void) {
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 0;
-    CHECK(fsd_handle_autopilot_frame(&s, &f), "HW4 mux0 reports modified");
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 mux0 reports modified");
     CHECK((f.buffer[5] & 0x40) != 0, "HW4 mux0 bit46 set");
     CHECK((f.buffer[7] & 0x10) != 0, "HW4 mux0 bit60 set");
     CHECK(s.fsd_enabled, "HW4 mux0 sets fsd_enabled");
@@ -154,7 +154,7 @@ static void test_autopilot_hw4(void) {
     f.data_lenght = 8;
     f.buffer[0] = 1;
     f.buffer[2] = 0x08; // pre-set bit19 so we prove it is cleared
-    CHECK(fsd_handle_autopilot_frame(&s, &f), "HW4 mux1 reports modified");
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 mux1 reports modified");
     CHECK((f.buffer[2] & 0x08) == 0, "HW4 mux1 bit19 cleared");
     CHECK((f.buffer[5] & 0x80) != 0, "HW4 mux1 bit47 set");
 
@@ -162,7 +162,7 @@ static void test_autopilot_hw4(void) {
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 2;
-    CHECK(fsd_handle_autopilot_frame(&s, &f), "HW4 mux2 reports modified");
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 mux2 reports modified");
     CHECK(
         ((f.buffer[7] >> 5) & 0x07) == 4,
         "HW4 mux2 speed_profile=4 got %u",
@@ -181,7 +181,7 @@ static void test_autopilot_hw3(void) {
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 0; // mux0
-    CHECK(fsd_handle_autopilot_frame(&s, &f), "HW3 mux0 reports modified");
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 mux0 reports modified");
     CHECK((f.buffer[5] & 0x40) != 0, "HW3 mux0 bit46 set");
     CHECK(
         ((f.buffer[6] >> 1) & 0x03) == 2,
@@ -477,28 +477,50 @@ static void test_legacy(void) {
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 0; // mux0
-    CHECK(fsd_handle_legacy_autopilot(&s, &f), "legacy AP mux0 modified");
+    CHECK(fsd_handle_legacy_autopilot(&s, &f, 0), "legacy AP mux0 modified");
     CHECK((f.buffer[5] & 0x40) != 0, "legacy AP mux0 bit46");
     CHECK(((f.buffer[6] >> 1) & 0x03) == 2, "legacy AP mux0 speed profile");
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 1; // mux1
     f.buffer[2] = 0x08; // bit19 preset
-    CHECK(fsd_handle_legacy_autopilot(&s, &f), "legacy AP mux1 modified");
+    CHECK(fsd_handle_legacy_autopilot(&s, &f, 0), "legacy AP mux1 modified");
     CHECK((f.buffer[2] & 0x08) == 0, "legacy AP mux1 bit19 cleared");
 
-    // AP-first timing gate (safety, ev-open-can-tools#66): with ap_first on, no
-    // 0x3EE inject until AP is engaged (das_ap_state >= 2).
+    // AP-first gate + stability debounce (ev-open-can-tools#66 / v3.0.2-beta.2):
+    // no 0x3EE inject until AP is engaged AND has held stable for AP_FIRST_STABLE_MS.
     memset(&s, 0, sizeof(s));
     s.force_fsd = true;
     s.ap_first = true;
-    s.das_ap_state = 0; // AP not yet active
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 0; // mux0
-    CHECK(fsd_handle_legacy_autopilot(&s, &f) == false, "legacy AP-first blocks before AP active");
-    s.das_ap_state = 2; // AP active
-    CHECK(fsd_handle_legacy_autopilot(&s, &f), "legacy AP-first allows once AP active");
+    s.das_ap_state = 0; // AP not engaged
+    CHECK(
+        fsd_handle_legacy_autopilot(&s, &f, 2000) == false,
+        "legacy AP-first: blocked, AP not engaged");
+    s.das_ap_state = 2; // engaged, but...
+    s.ap_unstable_tick_ms = 2000; // ...only just became stable
+    CHECK(
+        fsd_handle_legacy_autopilot(&s, &f, 2500) == false,
+        "legacy AP-first: blocked, not stable yet (500ms)");
+    CHECK(
+        fsd_handle_legacy_autopilot(&s, &f, 3000) != false,
+        "legacy AP-first: allowed, stable >= 1000ms");
+
+    // fsd_ap_first_allows() directly
+    FSDState g;
+    memset(&g, 0, sizeof(g));
+    CHECK(fsd_ap_first_allows(&g, 5000) == true, "ap_first off -> always allowed");
+    g.ap_first = true;
+    g.das_ap_state = 1;
+    CHECK(fsd_ap_first_allows(&g, 5000) == false, "ap_first: AVAIL(1) not enough");
+    g.das_ap_state = 2;
+    g.ap_unstable_tick_ms = 1000;
+    CHECK(fsd_ap_first_allows(&g, 1500) == false, "ap_first: 500ms < debounce -> block");
+    CHECK(fsd_ap_first_allows(&g, 2000) == true, "ap_first: 1000ms >= debounce -> allow");
+    g.das_ap_state = 3;
+    CHECK(fsd_ap_first_allows(&g, 5000) == true, "ap_first: active(3) + stable -> allow");
 }
 
 // ── 0x145 ESP_status brake ────────────────────────────────────────────────────

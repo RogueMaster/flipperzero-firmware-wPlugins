@@ -58,8 +58,10 @@ typedef struct FSDState {
     uint32_t last_speed_tick_ms; // ms clock when the last 0x257 was seen (TX interlock freshness)
 
     // --- AP-first mode (2026.14.x compatibility) ---
-    bool ap_first; // delay 0x3FD injection until AP is engaged
+    bool ap_first; // delay 0x3FD/0x3EE injection until AP is engaged AND stable
     uint8_t das_ap_state; // DAS_autopilotState: 0=UNAVAIL 1=AVAIL 2=ACTIVE_NOMINAL 3+=active
+    uint32_t
+        ap_unstable_tick_ms; // ms clock when das_ap_state was last < 2 (AP-first stability debounce)
 
     // --- Scroll-Press AP Engage (0x3C2 VCLEFT_switchStatus, HW4-only, Service mode) ---
     bool scroll_press_ap; // user toggle
