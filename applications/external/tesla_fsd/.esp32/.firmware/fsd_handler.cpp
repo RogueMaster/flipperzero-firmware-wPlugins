@@ -488,4 +488,19 @@ void fsd_handle_das_status_hw4(FSDState *state, const CanFrame *frame) {
         SIG_DAS_HW4_AP_STATE_MASK;
     state->ap_active = state->das_ap_state >= SIG_DAS_HW4_AP_ACTIVE_MIN;
     fsd_handle_das_status_common(state, frame);
+    state->das_hw4_status_seen = true;
+}
+
+// HW4 0x399 hands-on fallback — for HW4 trims that never broadcast 0x39B
+// (observed on a Juniper RWD, Bus 6, #100). 0x399 carries the hands-on field in
+// the same byte5[5:2] slot (verified against a captured nag run: 1→2→3 as the
+// visual nag escalates). Reads ONLY that field — not das_ap_state — because the
+// HW4 0x399 byte0 layout is unconfirmed (0x399 is the ISA chime there). Call
+// only when das_hw4_status_seen is false.
+void fsd_handle_das_handsonly_399(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc < 6) return;
+    state->das_hands_on_state =
+        (frame->data[SIG_DAS_HANDS_ON_STATE_BYTE] >> SIG_DAS_HANDS_ON_STATE_SHIFT) &
+        SIG_DAS_HANDS_ON_STATE_MASK;
+    state->das_seen = true;
 }

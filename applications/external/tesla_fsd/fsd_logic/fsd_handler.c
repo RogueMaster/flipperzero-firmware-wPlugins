@@ -456,6 +456,23 @@ void fsd_handle_das_status_hw4(FSDState* state, const CANFRAME* frame) {
     // DAS_visionOnlySpeedLimit: bit16|5 → byte2 bits[4:0], ×5 = kph
     state->das_vision_speed_lim = frame->buffer[2] & 0x1F;
     state->das_seen = true;
+    state->das_hw4_status_seen = true;
+}
+
+// HW4 0x399 hands-on fallback.
+//
+// Some HW4 trims (observed on a Juniper RWD, Bus 6 / X179 pin 13/14, #100)
+// never broadcast 0x39B; on those cars 0x399 carries the hands-on escalation in
+// the SAME byte5 bits[5:2] field as 0x39B (verified against a captured nag run:
+// the field steps 1→2→3 as the visual nag escalates). When 0x39B has not been
+// seen, read just that field from 0x399 so the nag gate isn't starved.
+//
+// Deliberately reads ONLY the hands-on field — not das_ap_state — because the
+// 0x399 byte0 layout on HW4 is not confirmed (0x399 is the ISA chime there).
+void fsd_handle_das_handsonly_399(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 6) return;
+    state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0Fu;
+    state->das_seen = true;
 }
 
 // --- DAS_status2 (0x389) parser: ACC report, activation failure ---

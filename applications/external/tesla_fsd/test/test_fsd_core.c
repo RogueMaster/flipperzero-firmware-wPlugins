@@ -566,6 +566,43 @@ static void test_das_status(void) {
     CHECK(s.das_fcw == 3, "hw4 fcw got %u", s.das_fcw);
     CHECK(s.das_vision_speed_lim == 5, "hw4 vision got %u", s.das_vision_speed_lim);
     CHECK(s.das_seen, "hw4 das_seen");
+    CHECK(s.das_hw4_status_seen, "hw4 das_hw4_status_seen set by 0x39B");
+
+    // hw3 parser must NOT set das_hw4_status_seen (it's the 0x39B-only gate).
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 6;
+    f.buffer[5] = (uint8_t)(0x02 << 2);
+    fsd_handle_das_status_hw3(&s, &f);
+    CHECK(!s.das_hw4_status_seen, "hw3 leaves das_hw4_status_seen false");
+
+    // HW4 0x399 hands-on fallback (#100): real captured nag frame from a Juniper
+    // RWD where 0x39B is absent — 010adf80b00ce1a5, byte5=0x0C -> hands_on=3.
+    memset(&s, 0, sizeof(s));
+    s.das_ap_state = 9; // sentinel: fallback must not touch ap_state
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0x01;
+    f.buffer[1] = 0x0a;
+    f.buffer[2] = 0xdf;
+    f.buffer[3] = 0x80;
+    f.buffer[4] = 0xb0;
+    f.buffer[5] = 0x0c;
+    f.buffer[6] = 0xe1;
+    f.buffer[7] = 0xa5;
+    fsd_handle_das_handsonly_399(&s, &f);
+    CHECK(s.das_hands_on_state == 3, "399 fallback hands_on got %u", s.das_hands_on_state);
+    CHECK(s.das_seen, "399 fallback sets das_seen");
+    CHECK(s.das_ap_state == 9, "399 fallback leaves das_ap_state untouched");
+    CHECK(!s.das_hw4_status_seen, "399 fallback does not set the 0x39B gate");
+
+    // too-short frame is ignored
+    memset(&s, 0, sizeof(s));
+    s.das_hands_on_state = 0xFF;
+    zero(&f);
+    f.data_lenght = 5;
+    fsd_handle_das_handsonly_399(&s, &f);
+    CHECK(s.das_hands_on_state == 0xFF, "399 fallback ignores short frame");
 }
 
 // ── 0x7FF tier parse + active override ────────────────────────────────────────

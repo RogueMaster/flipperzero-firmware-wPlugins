@@ -441,6 +441,13 @@ static int32_t fsd_running_worker(void* context) {
                     // Suppress Chime is HW4-only because writing the HW4 ISA bits
                     // on HW3 would corrupt the DAS_status payload.
                     if(state.hw_version == TeslaHW_HW4) {
+                        // HW4 trims that never broadcast 0x39B carry the hands-on
+                        // field on 0x399 (same byte5[5:2]); read it as a fallback
+                        // so the nag gate isn't starved. Read-only — the chime
+                        // suppress below still runs.
+                        if(!state.das_hw4_status_seen) {
+                            fsd_handle_das_handsonly_399(&state, &frame);
+                        }
                         if(state.suppress_speed_chime && fsd_handle_isa_speed_chime(&frame) &&
                            tx_allowed) {
                             send_can_frame(mcp, &frame);

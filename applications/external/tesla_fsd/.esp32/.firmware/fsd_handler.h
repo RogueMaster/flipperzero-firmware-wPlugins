@@ -85,3 +85,8 @@ void fsd_handle_das_status_hw3(FSDState *state, const CanFrame *frame);
 
 /** Parse DAS_status from HW4 0x39B — updates AP/speed/hands-on state. */
 void fsd_handle_das_status_hw4(FSDState *state, const CanFrame *frame);
+
+/** HW4 hands-on fallback: read only DAS_handsOnState (byte5[5:2]) from 0x399,
+ *  for HW4 trims that never broadcast 0x39B. Call only when das_hw4_status_seen
+ *  is false. Read-only, leaves das_ap_state untouched. */
+void fsd_handle_das_handsonly_399(FSDState *state, const CanFrame *frame);

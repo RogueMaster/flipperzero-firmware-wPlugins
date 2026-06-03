@@ -159,6 +159,10 @@ void fsd_handle_das_status_hw4(FSDState* state, const CANFRAME* frame);
 /** Pre-Highland HW3 / Legacy DAS_status parser (0x399, legacy CAN layout).
  *  Same frame ID as HW4 ISA_SPEED — caller dispatches by HW version. */
 void fsd_handle_das_status_hw3(FSDState* state, const CANFRAME* frame);
+/** HW4 hands-on fallback: read only DAS_handsOnState (byte5[5:2]) from 0x399.
+ *  For HW4 trims that never broadcast 0x39B; call only when das_hw4_status_seen
+ *  is false. Read-only, leaves das_ap_state untouched. */
+void fsd_handle_das_handsonly_399(FSDState* state, const CANFRAME* frame);
 
 /** Parse DAS_status2 (0x389) — ACC report, activation failure.
  *  Source: opendbc tesla_model3_party.dbc. */

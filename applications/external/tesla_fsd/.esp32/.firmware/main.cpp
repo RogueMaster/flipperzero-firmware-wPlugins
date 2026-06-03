@@ -433,6 +433,16 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         state_exit();
         return;
     }
+    // HW4 trims that never broadcast 0x39B carry the hands-on field on 0x399
+    // (same byte5[5:2]); read it as a fallback so the nag gate isn't starved.
+    // Read-only and non-returning — the ISA chime-suppress path below still
+    // handles 0x399 for HW4.
+    if (hw_uses_hw4_das_status(das_state.hw_version) &&
+        frame.id == CAN_ID_DAS_STATUS_HW3 && !das_state.das_hw4_status_seen) {
+        state_enter();
+        fsd_handle_das_handsonly_399(&g_state, &frame);
+        state_exit();
+    }
 
     // ── Beyond here only run when TX is allowed ───────────────────────────────
     state_enter();
