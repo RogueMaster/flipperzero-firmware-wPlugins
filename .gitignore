@@ -1,3 +1,9 @@
-.vscode/
 dist/
 TODO.md
+dist/*
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
