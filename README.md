@@ -33,12 +33,18 @@ cd unleashed-firmware
 # Drop this folder into applications_user/
 cp -r /path/to/kyberwrite applications_user/kyberwrite
 
-# Build and deploy over USB
-./fbt fap_deploy APPSRC=applications_user/kyberwrite
+# Build 
+./fbt fap_kyberwrite
+
+# build will be located at
+unleashed-firmware/build/f7-firmware-D/.extapps/kyberwrite.fap
+
+# DEPLOY (install)
+I use [Flipper Lab](https://lab.flipper.net/archive)
+Copy the compiled `.fap` (or the one I compiled at the root) to your Flipper at
+/ext/apps/RFID/kyberwrite.fap
 ```
 
-The compiled `.fap` lands on your Flipper at
-`/ext/apps/RFID/kyberwrite.fap`.
 
 ---
 
