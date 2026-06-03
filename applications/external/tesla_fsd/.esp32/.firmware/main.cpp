@@ -864,6 +864,27 @@ void loop() {
     // ── Web dashboard (after CAN to preserve CAN frame latency) ──────────────
     web_dashboard_update();
 
+    // ── Full-rate single-ID capture: drive the hardware acceptance filter ─────
+    // When a /stream is opened with exactly one ?ids= value, restrict the CAN
+    // controller to that id so its RX queue never overflows and every frame is
+    // captured at true full rate. Restore accept-all when the stream ends.
+    // Only ever single in Listen-Only (the stream is disabled in Active mode).
+    {
+        static bool     s_hw_filter_single = false;
+        static uint32_t s_hw_filter_id     = 0xFFFFFFFFu;
+        uint32_t want_id = 0;
+        bool want_single = http_can_stream_single_filter(&want_id);
+        if (want_single != s_hw_filter_single ||
+            (want_single && want_id != s_hw_filter_id)) {
+            for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+                if (g_can_ok[i] && g_can[i])
+                    g_can[i]->setAcceptanceFilter(want_single, want_id);
+            }
+            s_hw_filter_single = want_single;
+            s_hw_filter_id     = want_id;
+        }
+    }
+
 #if defined(BOARD_TTGO_DISPLAY)
     s = state_snapshot();
     display_set_enabled(s.display_enabled);

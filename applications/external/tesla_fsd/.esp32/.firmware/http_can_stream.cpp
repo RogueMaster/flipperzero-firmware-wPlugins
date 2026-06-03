@@ -382,6 +382,13 @@ bool http_can_stream_active() {
     return g_enabled && g_active && g_client.connected();
 }
 
+bool http_can_stream_single_filter(uint32_t *id_out) {
+    if (!g_enabled || !g_active || !g_client.connected()) return false;
+    if (g_filter_count != 1) return false;
+    if (id_out) *id_out = g_filter_ids[0];
+    return true;
+}
+
 uint32_t http_can_stream_frames_sent() {
     return g_sent;
 }

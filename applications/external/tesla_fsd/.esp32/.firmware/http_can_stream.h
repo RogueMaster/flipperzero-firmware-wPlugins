@@ -17,6 +17,11 @@ void     http_can_stream_update();
 void     http_can_stream_record(CanBusId bus, const CanFrame &frame);
 void     http_can_stream_set_enabled(bool enabled);
 bool     http_can_stream_active();
+
+/** When a stream is active with exactly one ?ids= filter id, report it so the
+ *  caller can install a hardware acceptance filter for full-rate single-ID
+ *  capture. Returns false (and leaves *id_out untouched) otherwise. */
+bool     http_can_stream_single_filter(uint32_t *id_out);
 uint32_t http_can_stream_frames_sent();
 uint32_t http_can_stream_frames_dropped();
 uint32_t http_can_stream_frames_filtered();

@@ -41,6 +41,14 @@ public:
      *  Implementations must reinitialise the hardware as needed. */
     virtual void setListenOnly(bool enable) = 0;
 
+    /** Restrict hardware reception to a single CAN id for full-rate single-ID
+     *  capture on a busy bus, or restore accept-all.
+     *  @param single  true = accept only @p id; false = accept all ids.
+     *  @param id      the standard 11-bit id to accept when @p single is true.
+     *  Default no-op: drivers that don't implement it keep accept-all and rely
+     *  on software filtering, which decimates a single id on a busy bus. */
+    virtual void setAcceptanceFilter(bool single, uint32_t id) { (void)single; (void)id; }
+
     /** Whether the underlying CAN hardware was detected on the bus/SPI.
      *  TWAI lives inside the SoC and is therefore always present.
      *  MCP2515 returns true once the chip has answered an SPI probe. */
