@@ -61,6 +61,7 @@ const SubGhzProtocol* const subghz_protocol_registry_items[] = {
     &subghz_protocol_keyfinder,
     &subghz_protocol_nord_ice,
     &subghz_protocol_allstar_firefly,
+    &subghz_protocol_telcoma_edge,
 };
 
 const SubGhzProtocolRegistry subghz_protocol_registry = {

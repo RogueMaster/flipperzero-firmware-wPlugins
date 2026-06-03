@@ -93,6 +93,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
 - Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) Included ProtoPirate Extra for all options enabled.
 - Updated: [Tesla Mod v2.16.3 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Sub-Ghz: [Add Telcoma/Cardin EDGE protocol (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1001)
 
 <a name="release"></a>
 
