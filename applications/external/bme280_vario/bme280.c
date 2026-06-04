@@ -36,8 +36,10 @@ static bool bme280_read_reg(BME280* dev, uint8_t reg, uint8_t* data, uint8_t siz
     bool ok = furi_hal_i2c_trx(
         &furi_hal_i2c_handle_external,
         dev->i2c_addr,
-        &reg,  1,      /* TX: адрес регистра */
-        data,  size,   /* RX: читаемые данные */
+        &reg,
+        1, /* TX: адрес регистра */
+        data,
+        size, /* RX: читаемые данные */
         BME280_I2C_TIMEOUT_MS);
     furi_hal_i2c_release(&furi_hal_i2c_handle_external);
     return ok;
@@ -51,10 +53,7 @@ static bool bme280_write_reg(BME280* dev, uint8_t reg, uint8_t value) {
     uint8_t buf[2] = {reg, value};
     furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
     bool ok = furi_hal_i2c_tx(
-        &furi_hal_i2c_handle_external,
-        dev->i2c_addr,
-        buf, 2,
-        BME280_I2C_TIMEOUT_MS);
+        &furi_hal_i2c_handle_external, dev->i2c_addr, buf, 2, BME280_I2C_TIMEOUT_MS);
     furi_hal_i2c_release(&furi_hal_i2c_handle_external);
     return ok;
 }
@@ -67,19 +66,19 @@ static bool bme280_read_calibration(BME280* dev) {
     /* --- Температура и давление: регистры 0x88..0x9F (24 байта) --- */
     if(!bme280_read_reg(dev, 0x88, buf, 24)) return false;
 
-    dev->calib.dig_T1 = (uint16_t)((uint16_t)buf[1]  << 8 | buf[0]);
-    dev->calib.dig_T2 = (int16_t) ((uint16_t)buf[3]  << 8 | buf[2]);
-    dev->calib.dig_T3 = (int16_t) ((uint16_t)buf[5]  << 8 | buf[4]);
+    dev->calib.dig_T1 = (uint16_t)((uint16_t)buf[1] << 8 | buf[0]);
+    dev->calib.dig_T2 = (int16_t)((uint16_t)buf[3] << 8 | buf[2]);
+    dev->calib.dig_T3 = (int16_t)((uint16_t)buf[5] << 8 | buf[4]);
 
-    dev->calib.dig_P1 = (uint16_t)((uint16_t)buf[7]  << 8 | buf[6]);
-    dev->calib.dig_P2 = (int16_t) ((uint16_t)buf[9]  << 8 | buf[8]);
-    dev->calib.dig_P3 = (int16_t) ((uint16_t)buf[11] << 8 | buf[10]);
-    dev->calib.dig_P4 = (int16_t) ((uint16_t)buf[13] << 8 | buf[12]);
-    dev->calib.dig_P5 = (int16_t) ((uint16_t)buf[15] << 8 | buf[14]);
-    dev->calib.dig_P6 = (int16_t) ((uint16_t)buf[17] << 8 | buf[16]);
-    dev->calib.dig_P7 = (int16_t) ((uint16_t)buf[19] << 8 | buf[18]);
-    dev->calib.dig_P8 = (int16_t) ((uint16_t)buf[21] << 8 | buf[20]);
-    dev->calib.dig_P9 = (int16_t) ((uint16_t)buf[23] << 8 | buf[22]);
+    dev->calib.dig_P1 = (uint16_t)((uint16_t)buf[7] << 8 | buf[6]);
+    dev->calib.dig_P2 = (int16_t)((uint16_t)buf[9] << 8 | buf[8]);
+    dev->calib.dig_P3 = (int16_t)((uint16_t)buf[11] << 8 | buf[10]);
+    dev->calib.dig_P4 = (int16_t)((uint16_t)buf[13] << 8 | buf[12]);
+    dev->calib.dig_P5 = (int16_t)((uint16_t)buf[15] << 8 | buf[14]);
+    dev->calib.dig_P6 = (int16_t)((uint16_t)buf[17] << 8 | buf[16]);
+    dev->calib.dig_P7 = (int16_t)((uint16_t)buf[19] << 8 | buf[18]);
+    dev->calib.dig_P8 = (int16_t)((uint16_t)buf[21] << 8 | buf[20]);
+    dev->calib.dig_P9 = (int16_t)((uint16_t)buf[23] << 8 | buf[22]);
 
     /* --- dig_H1: отдельный регистр 0xA1 --- */
     if(!bme280_read_reg(dev, 0xA1, buf, 1)) return false;
@@ -194,12 +193,15 @@ bool bme280_set_humid_oversample(BME280* dev, uint8_t os) {
  * Побочный эффект: обновляет dev->t_fine — нужен для расчёта P и H.
  */
 static int32_t bme280_compensate_temp(BME280* dev, int32_t adc_T) {
-    int32_t var1 = ((((adc_T >> 3) - ((int32_t)dev->calib.dig_T1 << 1))) *
-                    ((int32_t)dev->calib.dig_T2)) >> 11;
+    int32_t var1 =
+        ((((adc_T >> 3) - ((int32_t)dev->calib.dig_T1 << 1))) * ((int32_t)dev->calib.dig_T2)) >>
+        11;
 
     int32_t var2 = (((((adc_T >> 4) - (int32_t)dev->calib.dig_T1) *
-                      ((adc_T >> 4) - (int32_t)dev->calib.dig_T1)) >> 12) *
-                    (int32_t)dev->calib.dig_T3) >> 14;
+                      ((adc_T >> 4) - (int32_t)dev->calib.dig_T1)) >>
+                     12) *
+                    (int32_t)dev->calib.dig_T3) >>
+                   14;
 
     dev->t_fine = var1 + var2;
     return (dev->t_fine * 5 + 128) >> 8;
@@ -216,9 +218,9 @@ static uint32_t bme280_compensate_press(BME280* dev, int32_t adc_P) {
     int64_t var2 = var1 * var1 * (int64_t)dev->calib.dig_P6;
     var2 += (var1 * (int64_t)dev->calib.dig_P5) << 17;
     var2 += (int64_t)dev->calib.dig_P4 << 35;
-    var1  = ((var1 * var1 * (int64_t)dev->calib.dig_P3) >> 8) +
-             ((var1 * (int64_t)dev->calib.dig_P2) << 12);
-    var1  = (((int64_t)1 << 47) + var1) * (int64_t)dev->calib.dig_P1 >> 33;
+    var1 = ((var1 * var1 * (int64_t)dev->calib.dig_P3) >> 8) +
+           ((var1 * (int64_t)dev->calib.dig_P2) << 12);
+    var1 = (((int64_t)1 << 47) + var1) * (int64_t)dev->calib.dig_P1 >> 33;
 
     if(var1 == 0) return 0; /* Защита от деления на ноль */
 
@@ -226,7 +228,7 @@ static uint32_t bme280_compensate_press(BME280* dev, int32_t adc_P) {
     p = (((p << 31) - var2) * 3125) / var1;
     var1 = ((int64_t)dev->calib.dig_P9 * (p >> 13) * (p >> 13)) >> 25;
     var2 = ((int64_t)dev->calib.dig_P8 * p) >> 19;
-    p    = ((p + var1 + var2) >> 8) + ((int64_t)dev->calib.dig_P7 << 4);
+    p = ((p + var1 + var2) >> 8) + ((int64_t)dev->calib.dig_P7 << 4);
 
     return (uint32_t)p; /* Единицы: Па × 256 */
 }
@@ -240,19 +242,22 @@ static uint32_t bme280_compensate_press(BME280* dev, int32_t adc_P) {
 static uint32_t bme280_compensate_hum(BME280* dev, int32_t adc_H) {
     int32_t v = dev->t_fine - (int32_t)76800;
 
-    v = (((((adc_H << 14) -
-            ((int32_t)dev->calib.dig_H4 << 20) -
-            ((int32_t)dev->calib.dig_H5 * v)) +
-           (int32_t)16384) >> 15) *
+    v =
+        (((((adc_H << 14) - ((int32_t)dev->calib.dig_H4 << 20) - ((int32_t)dev->calib.dig_H5 * v)) +
+           (int32_t)16384) >>
+          15) *
          (((((((v * (int32_t)dev->calib.dig_H6) >> 10) *
-              (((v * (int32_t)dev->calib.dig_H3) >> 11) + (int32_t)32768)) >> 10) +
+              (((v * (int32_t)dev->calib.dig_H3) >> 11) + (int32_t)32768)) >>
+             10) +
             (int32_t)2097152) *
-           (int32_t)dev->calib.dig_H2 + 8192) >> 14));
+               (int32_t)dev->calib.dig_H2 +
+           8192) >>
+          14));
 
     v -= (((((v >> 15) * (v >> 15)) >> 7) * (int32_t)dev->calib.dig_H1) >> 4);
 
     /* Ограничиваем диапазон 0..100% */
-    if(v < 0)         v = 0;
+    if(v < 0) v = 0;
     if(v > 419430400) v = 419430400;
 
     return (uint32_t)(v >> 12); /* Единицы: % × 1024 */
@@ -264,7 +269,7 @@ bool bme280_read_sensor(BME280* dev, float* temperature, float* pressure, float*
     /* Ждём завершения текущего измерения.
      * Бит 3 регистра STATUS = 1 означает "идёт измерение".
      * Таймаут BME280_MEAS_TIMEOUT_MS защищает от зависания при сбое датчика. */
-    uint8_t  status  = 0;
+    uint8_t status = 0;
     uint32_t t_start = furi_get_tick();
 
     do {
@@ -289,24 +294,24 @@ bool bme280_read_sensor(BME280* dev, float* temperature, float* pressure, float*
      * 16-битное сырое значение влажности */
     int32_t adc_P = ((int32_t)buf[0] << 12) | ((int32_t)buf[1] << 4) | (buf[2] >> 4);
     int32_t adc_T = ((int32_t)buf[3] << 12) | ((int32_t)buf[4] << 4) | (buf[5] >> 4);
-    int32_t adc_H = ((int32_t)buf[6] << 8)  |  buf[7];
+    int32_t adc_H = ((int32_t)buf[6] << 8) | buf[7];
 
     /* Порядок важен: температура обновляет t_fine, который нужен для P и H */
-    int32_t  temp_raw  = bme280_compensate_temp(dev, adc_T);
+    int32_t temp_raw = bme280_compensate_temp(dev, adc_T);
     uint32_t press_raw = bme280_compensate_press(dev, adc_P);
-    uint32_t hum_raw   = bme280_compensate_hum(dev, adc_H);
+    uint32_t hum_raw = bme280_compensate_hum(dev, adc_H);
 
     /* Конвертируем в человекочитаемые единицы */
     if(temperature) {
-        *temperature   = (float)temp_raw / 100.0f;   /* 0.01°C → °C */
+        *temperature = (float)temp_raw / 100.0f; /* 0.01°C → °C */
         dev->temperature = *temperature;
     }
     if(pressure) {
-        *pressure   = (float)press_raw / 256.0f;     /* Па×256 → Па */
+        *pressure = (float)press_raw / 256.0f; /* Па×256 → Па */
         dev->pressure = *pressure;
     }
     if(humidity) {
-        *humidity   = (float)hum_raw / 1024.0f;      /* %×1024 → %  */
+        *humidity = (float)hum_raw / 1024.0f; /* %×1024 → %  */
         dev->humidity = *humidity;
     }
 

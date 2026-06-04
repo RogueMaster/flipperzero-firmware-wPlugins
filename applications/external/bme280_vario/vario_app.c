@@ -39,14 +39,14 @@
 #define SEA_LEVEL_PRESSURE 101325.0f
 
 /* ── Звук ─────────────────────────────────────────────────────────────── */
-#define VARIO_CLIMB_THRESHOLD  0.3f
+#define VARIO_CLIMB_THRESHOLD 0.3f
 #define VARIO_SINK_THRESHOLD  -0.9f
 
 /* ── Полоса вертикальной скорости (VBAR) ─────────────────────────────── */
 #define VBAR_X      4
 #define VBAR_W      6
-#define VBAR_CY    32    /* центр по Y */
-#define VBAR_HALF  26    /* полувысота шкалы в пикселях */
+#define VBAR_CY     32 /* центр по Y */
+#define VBAR_HALF   26 /* полувысота шкалы в пикселях */
 #define VBAR_MAX_MS 5.0f /* скорость при полном отклонении */
 
 /* ── График скоростей ─────────────────────────────────────────────────── */
@@ -64,16 +64,16 @@
  *   5.0..10.0  → 4
  *   >10.0      → 5
  */
-#define GRAPH_X    15    /* x начала графика (на 1px правее VBAR) */
-#define GRAPH_W   113    /* ширина в пикселях = 128 - GRAPH_X */
-#define GRAPH_CY   33    /* центральная линия графика по Y */
-#define GRAPH_TOP  18    /* верхняя граница области графика */
-#define GRAPH_BOT  49    /* нижняя граница области графика */
+#define GRAPH_X           15 /* x начала графика (на 1px правее VBAR) */
+#define GRAPH_W           113 /* ширина в пикселях = 128 - GRAPH_X */
+#define GRAPH_CY          33 /* центральная линия графика по Y */
+#define GRAPH_TOP         18 /* верхняя граница области графика */
+#define GRAPH_BOT         49 /* нижняя граница области графика */
 #define GRAPH_INTERVAL_MS 2000u /* интервал накопления одной точки */
 
 /* ── Лог ──────────────────────────────────────────────────────────────── */
 #define LOG_FILE        "/ext/VarioLog.csv"
-#define LOG_INTERVAL_MS 30000u  /* 30 секунд */
+#define LOG_INTERVAL_MS 30000u /* 30 секунд */
 
 /* ── Меню ─────────────────────────────────────────────────────────────── */
 /*
@@ -86,18 +86,18 @@
  * при нажатии OK переходим в режим menu_editing=true,
  * Up/Down меняют alt_correction ±10м, OK применяет и выходит из режима.
  */
-#define MENU_FONT_H    8
-#define MENU_ROW_STEP 14
-#define MENU_FIRST_Y  27
-#define MENU_FRAME_H  (MENU_FONT_H + 2)
-#define MENU_COUNT     3
+#define MENU_FONT_H       8
+#define MENU_ROW_STEP     14
+#define MENU_FIRST_Y      27
+#define MENU_FRAME_H      (MENU_FONT_H + 2)
+#define MENU_COUNT        3
 #define MENU_ROW_Y(i)     (MENU_FIRST_Y + (i) * MENU_ROW_STEP)
 #define MENU_FRAME_TOP(i) (MENU_ROW_Y(i) - MENU_FONT_H - 1)
 
 /* ── Настройки ────────────────────────────────────────────────────────── */
 typedef struct {
-    bool  sound_enabled;
-    bool  backlight_forced;
+    bool sound_enabled;
+    bool backlight_forced;
     float alt_correction; /* поправка высоты в метрах */
 } VarioSettings;
 
@@ -105,7 +105,7 @@ typedef struct {
 typedef struct {
     int8_t min_px; /* смещение min скорости от центра (отриц. = вниз) */
     int8_t max_px; /* смещение max скорости от центра (полож. = вверх) */
-    bool   valid;  /* true если данные есть */
+    bool valid; /* true если данные есть */
 } GraphPoint;
 
 /* ── Состояние приложения ─────────────────────────────────────────────── */
@@ -121,41 +121,41 @@ typedef struct {
     /* Данные датчика */
     float pressure;
     float temperature;
-    float altitude;     /* сырая высота из барометра */
+    float altitude; /* сырая высота из барометра */
     float vario;
     float varioS;
 
     /* Датчик */
-    bool    sensor_ready;
+    bool sensor_ready;
     BME280* bme280;
 
     /* Настройки и UI */
     VarioSettings settings;
-    bool          show_menu;
-    uint8_t       menu_selection;  /* 0..2 */
-    bool          menu_editing;    /* режим редактирования alt_correction */
-    float         alt_edit_value;  /* временное значение при редактировании */
+    bool show_menu;
+    uint8_t menu_selection; /* 0..2 */
+    bool menu_editing; /* режим редактирования alt_correction */
+    float alt_edit_value; /* временное значение при редактировании */
 
     /* Подсветка */
     uint32_t last_button_time;
 
     /* Лог */
-    uint32_t last_log_ms;      /* тик последней записи */
-    uint32_t app_start_ms;     /* тик запуска приложения */
+    uint32_t last_log_ms; /* тик последней записи */
+    uint32_t app_start_ms; /* тик запуска приложения */
 
     /* График */
     GraphPoint graph[GRAPH_W]; /* [0]=самый новый (левый), [W-1]=старый (правый) */
-    uint32_t   graph_last_ms;  /* тик последнего сбора точки */
-    float      graph_vmin;     /* минимум за текущий 2с интервал */
-    float      graph_vmax;     /* максимум за текущий 2с интервал */
-    bool       graph_has_data; /* есть ли данные в текущем интервале */
+    uint32_t graph_last_ms; /* тик последнего сбора точки */
+    float graph_vmin; /* минимум за текущий 2с интервал */
+    float graph_vmax; /* максимум за текущий 2с интервал */
+    bool graph_has_data; /* есть ли данные в текущем интервале */
 
     /* Синхронизация */
-    FuriMutex*    mutex;
+    FuriMutex* mutex;
     volatile bool running;
 } VarioData;
 
-static VarioData*       vario_data   = NULL;
+static VarioData* vario_data = NULL;
 static NotificationApp* notification = NULL;
 
 /* ── Вспомогательное ──────────────────────────────────────────────────── */
@@ -165,8 +165,8 @@ static float pressure2altitude(float pressure) {
 }
 
 static void kf_reset(float abs_val, float vel_val) {
-    vario_data->kf_x_abs     = abs_val;
-    vario_data->kf_x_vel     = vel_val;
+    vario_data->kf_x_abs = abs_val;
+    vario_data->kf_x_vel = vel_val;
     vario_data->kf_p_abs_abs = 1.0e9f;
     vario_data->kf_p_abs_vel = 0.0f;
     vario_data->kf_p_vel_vel = KF_VAR_ACCEL;
@@ -179,10 +179,10 @@ static void kf_reset(float abs_val, float vel_val) {
  */
 static int speed_to_px(float v) {
     float av = fabsf(v);
-    if(av < 0.5f)  return 0;
-    if(av < 1.0f)  return 1;
-    if(av < 2.0f)  return 2;
-    if(av < 5.0f)  return 3;
+    if(av < 0.5f) return 0;
+    if(av < 1.0f) return 1;
+    if(av < 2.0f) return 2;
+    if(av < 5.0f) return 3;
     if(av <= 10.0f) return 4;
     return 5;
 }
@@ -198,12 +198,10 @@ static bool bme280_init_sensor(void) {
     if(!vario_data->bme280) return false;
     memset(vario_data->bme280, 0, sizeof(BME280));
 
-    bool ok = bme280_init(vario_data->bme280, BME280_I2C_ADDRESS_1,
-                          &furi_hal_i2c_handle_external);
+    bool ok = bme280_init(vario_data->bme280, BME280_I2C_ADDRESS_1, &furi_hal_i2c_handle_external);
     if(!ok) {
         FURI_LOG_I(TAG, "0x76 failed, trying 0x77...");
-        ok = bme280_init(vario_data->bme280, BME280_I2C_ADDRESS_2,
-                         &furi_hal_i2c_handle_external);
+        ok = bme280_init(vario_data->bme280, BME280_I2C_ADDRESS_2, &furi_hal_i2c_handle_external);
     }
     if(!ok) {
         free(vario_data->bme280);
@@ -232,7 +230,7 @@ static void log_init(void) {
      * если файла нет, это нормально. */
     storage_simply_remove(storage, LOG_FILE);
     furi_record_close(RECORD_STORAGE);
-    vario_data->last_log_ms  = furi_get_tick();
+    vario_data->last_log_ms = furi_get_tick();
     vario_data->app_start_ms = furi_get_tick();
 }
 
@@ -251,12 +249,11 @@ static void log_to_file(void) {
     uint32_t elapsed_sec = (now - vario_data->app_start_ms) / 1000u;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    File*    file    = storage_file_alloc(storage);
+    File* file = storage_file_alloc(storage);
 
     if(storage_file_open(file, LOG_FILE, FSAM_WRITE, FSOM_OPEN_APPEND)) {
         char line[64];
-        snprintf(line, sizeof(line), "%lu;%.1f\n",
-                 (unsigned long)elapsed_sec, (double)alt);
+        snprintf(line, sizeof(line), "%lu;%.1f\n", (unsigned long)elapsed_sec, (double)alt);
         storage_file_write(file, line, strlen(line));
         storage_file_close(file);
     }
@@ -277,27 +274,27 @@ static void update_pressure(void) {
     if(!bme280_read_sensor(vario_data->bme280, &temp, &press, &humid)) return;
 
     float t_now = (float)furi_get_tick() / 1000.0f;
-    float dt    = t_now - last_time_kf;
+    float dt = t_now - last_time_kf;
     last_time_kf = t_now;
     if(dt <= 0.0f || dt > 1.0f) dt = 0.2f;
 
     furi_mutex_acquire(vario_data->mutex, FuriWaitForever);
 
     vario_data->temperature = temp;
-    vario_data->pressure    = press;
+    vario_data->pressure = press;
 
     /* Predict */
     vario_data->kf_x_abs += vario_data->kf_x_vel * dt;
-    float dt2 = dt*dt, dt3 = dt2*dt, dt4 = dt3*dt;
-    vario_data->kf_p_abs_abs += 2.0f*dt*vario_data->kf_p_abs_vel
-                              + dt2*vario_data->kf_p_vel_vel
-                              + vario_data->kf_var_accel*dt4/4.0f;
-    vario_data->kf_p_abs_vel += dt*vario_data->kf_p_vel_vel
-                              + vario_data->kf_var_accel*dt3/2.0f;
-    vario_data->kf_p_vel_vel += vario_data->kf_var_accel*dt2;
+    float dt2 = dt * dt, dt3 = dt2 * dt, dt4 = dt3 * dt;
+    vario_data->kf_p_abs_abs += 2.0f * dt * vario_data->kf_p_abs_vel +
+                                dt2 * vario_data->kf_p_vel_vel +
+                                vario_data->kf_var_accel * dt4 / 4.0f;
+    vario_data->kf_p_abs_vel +=
+        dt * vario_data->kf_p_vel_vel + vario_data->kf_var_accel * dt3 / 2.0f;
+    vario_data->kf_p_vel_vel += vario_data->kf_var_accel * dt2;
 
     /* Update */
-    float y     = press - vario_data->kf_x_abs;
+    float y = press - vario_data->kf_x_abs;
     float s_inv = 1.0f / (vario_data->kf_p_abs_abs + KF_VAR_MEASUREMENT);
     float k_abs = vario_data->kf_p_abs_abs * s_inv;
     float k_vel = vario_data->kf_p_abs_vel * s_inv;
@@ -309,8 +306,8 @@ static void update_pressure(void) {
 
     float altitude = pressure2altitude(vario_data->kf_x_abs);
     vario_data->altitude = altitude;
-    vario_data->vario  = (altitude -
-        pressure2altitude(vario_data->kf_x_abs - vario_data->kf_x_vel)) * 100.0f;
+    vario_data->vario =
+        (altitude - pressure2altitude(vario_data->kf_x_abs - vario_data->kf_x_vel)) * 100.0f;
     vario_data->varioS = 0.7f * vario_data->varioS + 0.3f * vario_data->vario;
 
     /* Обновляем мин/макс для текущего интервала графика */
@@ -340,8 +337,7 @@ static void graph_update(void) {
     furi_mutex_acquire(vario_data->mutex, FuriWaitForever);
 
     /* Сдвигаем буфер вправо (старые данные → конец) */
-    memmove(&vario_data->graph[1], &vario_data->graph[0],
-            sizeof(GraphPoint) * (GRAPH_W - 1));
+    memmove(&vario_data->graph[1], &vario_data->graph[0], sizeof(GraphPoint) * (GRAPH_W - 1));
 
     GraphPoint pt;
     if(vario_data->graph_has_data) {
@@ -355,11 +351,11 @@ static void graph_update(void) {
          * отрицательная скорость → вниз (положительный Y на экране) */
         pt.min_px = (int8_t)(vmin >= 0.0f ? px_min : -px_min);
         pt.max_px = (int8_t)(vmax >= 0.0f ? px_max : -px_max);
-        pt.valid  = true;
+        pt.valid = true;
     } else {
         pt.min_px = 0;
         pt.max_px = 0;
-        pt.valid  = false;
+        pt.valid = false;
     }
     vario_data->graph[0] = pt;
 
@@ -371,9 +367,9 @@ static void graph_update(void) {
 
 /* ── Звук ─────────────────────────────────────────────────────────────── */
 
-static bool     sound_speaker_owned = false;
-static uint32_t sound_next_beep     = 0;
-static uint32_t sound_beep_end      = 0;
+static bool sound_speaker_owned = false;
+static uint32_t sound_next_beep = 0;
+static uint32_t sound_beep_end = 0;
 
 static void sound_stop(void) {
     if(sound_speaker_owned) {
@@ -381,7 +377,7 @@ static void sound_stop(void) {
         furi_hal_speaker_release();
         sound_speaker_owned = false;
     }
-    sound_beep_end  = 0;
+    sound_beep_end = 0;
     sound_next_beep = 0;
 }
 
@@ -396,7 +392,7 @@ static void sound_update(void) {
         furi_hal_speaker_stop();
         furi_hal_speaker_release();
         sound_speaker_owned = false;
-        sound_beep_end      = 0;
+        sound_beep_end = 0;
     }
     if(now < sound_next_beep) return;
 
@@ -410,7 +406,7 @@ static void sound_update(void) {
         int freq = 1300 + (int)(vspeed * 100.0f);
         if(freq > 2300) freq = 2300;
         sound_next_beep = now + beep_ms + beep_ms / 4u;
-        sound_beep_end  = now + beep_ms;
+        sound_beep_end = now + beep_ms;
         if(furi_hal_speaker_acquire(10)) {
             sound_speaker_owned = true;
             furi_hal_speaker_start((float)freq, 1.0f);
@@ -422,7 +418,7 @@ static void sound_update(void) {
         int freq = 1000 + (int)(vspeed * 50.0f);
         if(freq < 300) freq = 300;
         sound_next_beep = now + beep_ms + beep_ms / 4u;
-        sound_beep_end  = now + beep_ms;
+        sound_beep_end = now + beep_ms;
         if(furi_hal_speaker_acquire(10)) {
             sound_speaker_owned = true;
             furi_hal_speaker_start((float)freq, 1.0f);
@@ -465,22 +461,24 @@ static void draw_vbar(Canvas* canvas, float vspeed) {
     canvas_draw_line(canvas, VBAR_X, VBAR_CY, VBAR_X + VBAR_W - 1, VBAR_CY);
 
     float clamped = vspeed;
-    if(clamped >  VBAR_MAX_MS) clamped =  VBAR_MAX_MS;
+    if(clamped > VBAR_MAX_MS) clamped = VBAR_MAX_MS;
     if(clamped < -VBAR_MAX_MS) clamped = -VBAR_MAX_MS;
     int fill_px = (int)(clamped / VBAR_MAX_MS * (float)VBAR_HALF);
 
     if(fill_px > 1) {
         int top = VBAR_CY - fill_px;
         for(int y = top; y < VBAR_CY; y++)
-            canvas_draw_line(canvas, VBAR_X+1, y, VBAR_X+VBAR_W-2, y);
-        for(int i = 0; i <= VBAR_W/2; i++)
-            canvas_draw_line(canvas, cx-i, top-(VBAR_W/2-i), cx+i, top-(VBAR_W/2-i));
+            canvas_draw_line(canvas, VBAR_X + 1, y, VBAR_X + VBAR_W - 2, y);
+        for(int i = 0; i <= VBAR_W / 2; i++)
+            canvas_draw_line(
+                canvas, cx - i, top - (VBAR_W / 2 - i), cx + i, top - (VBAR_W / 2 - i));
     } else if(fill_px < -1) {
         int bot = VBAR_CY - fill_px;
-        for(int y = VBAR_CY+1; y <= bot; y++)
-            canvas_draw_line(canvas, VBAR_X+1, y, VBAR_X+VBAR_W-2, y);
-        for(int i = 0; i <= VBAR_W/2; i++)
-            canvas_draw_line(canvas, cx-i, bot+(VBAR_W/2-i), cx+i, bot+(VBAR_W/2-i));
+        for(int y = VBAR_CY + 1; y <= bot; y++)
+            canvas_draw_line(canvas, VBAR_X + 1, y, VBAR_X + VBAR_W - 2, y);
+        for(int i = 0; i <= VBAR_W / 2; i++)
+            canvas_draw_line(
+                canvas, cx - i, bot + (VBAR_W / 2 - i), cx + i, bot + (VBAR_W / 2 - i));
     }
 }
 
@@ -522,8 +520,7 @@ static void draw_graph(Canvas* canvas) {
             if(y_max > GRAPH_BOT) y_max = GRAPH_BOT;
 
             canvas_draw_dot(canvas, x, y_min);
-            if(y_max != y_min)
-                canvas_draw_dot(canvas, x, y_max);
+            if(y_max != y_min) canvas_draw_dot(canvas, x, y_max);
         }
     }
 }
@@ -553,15 +550,15 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         if(vario_data->menu_selection == 0)
             canvas_draw_frame(canvas, 0, MENU_FRAME_TOP(0), 128, MENU_FRAME_H);
         canvas_draw_str(canvas, 4, MENU_ROW_Y(0), "Sound:");
-        canvas_draw_str(canvas, 90, MENU_ROW_Y(0),
-                        vario_data->settings.sound_enabled ? "ON" : "OFF");
+        canvas_draw_str(
+            canvas, 90, MENU_ROW_Y(0), vario_data->settings.sound_enabled ? "ON" : "OFF");
 
         /* Пункт 1: Backlight */
         if(vario_data->menu_selection == 1)
             canvas_draw_frame(canvas, 0, MENU_FRAME_TOP(1), 128, MENU_FRAME_H);
         canvas_draw_str(canvas, 4, MENU_ROW_Y(1), "Backlight:");
-        canvas_draw_str(canvas, 90, MENU_ROW_Y(1),
-                        vario_data->settings.backlight_forced ? "ON" : "OFF");
+        canvas_draw_str(
+            canvas, 90, MENU_ROW_Y(1), vario_data->settings.backlight_forced ? "ON" : "OFF");
 
         /* Пункт 2: Correct Alt. */
         if(vario_data->menu_selection == 2)
@@ -569,9 +566,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         canvas_draw_str(canvas, 4, MENU_ROW_Y(2), "Correct Alt.:");
 
         /* В режиме редактирования показываем временное значение */
-        float disp_corr = vario_data->menu_editing
-                          ? vario_data->alt_edit_value
-                          : vario_data->settings.alt_correction;
+        float disp_corr = vario_data->menu_editing ? vario_data->alt_edit_value :
+                                                     vario_data->settings.alt_correction;
         char cbuf[16];
         snprintf(cbuf, sizeof(cbuf), "%+.0fm", (double)disp_corr);
         canvas_draw_str(canvas, 95, MENU_ROW_Y(2), cbuf);
@@ -628,8 +624,6 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     /* Рисуем "m" после числа: позиция ~x=116 (после 113 + небольшой отступ) */
     canvas_draw_str(canvas, 115, 13, "m");
 
-
-
     /* ── График: y=16..47 ─────────────────────────────────────────────── */
     draw_graph(canvas);
 
@@ -667,19 +661,19 @@ static int32_t vario_worker(void* context) {
     UNUSED(context);
 
     sound_speaker_owned = false;
-    sound_next_beep     = 0;
-    sound_beep_end      = 0;
+    sound_next_beep = 0;
+    sound_beep_end = 0;
 
-    vario_data->settings.sound_enabled    = true;
+    vario_data->settings.sound_enabled = true;
     vario_data->settings.backlight_forced = false;
-    vario_data->settings.alt_correction   = 0.0f;
-    vario_data->last_button_time          = furi_get_tick();
-    vario_data->menu_selection            = 0;
-    vario_data->menu_editing              = false;
-    vario_data->alt_edit_value            = 0.0f;
-    vario_data->varioS                    = 0.0f;
-    vario_data->graph_last_ms             = furi_get_tick();
-    vario_data->graph_has_data            = false;
+    vario_data->settings.alt_correction = 0.0f;
+    vario_data->last_button_time = furi_get_tick();
+    vario_data->menu_selection = 0;
+    vario_data->menu_editing = false;
+    vario_data->alt_edit_value = 0.0f;
+    vario_data->varioS = 0.0f;
+    vario_data->graph_last_ms = furi_get_tick();
+    vario_data->graph_has_data = false;
     memset(vario_data->graph, 0, sizeof(vario_data->graph));
 
     /* Очищаем лог и запоминаем время старта */
@@ -741,7 +735,7 @@ int32_t vario_app(void* p) {
 
     vario_data = malloc(sizeof(VarioData));
     memset(vario_data, 0, sizeof(VarioData));
-    vario_data->mutex   = furi_mutex_alloc(FuriMutexTypeNormal);
+    vario_data->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     vario_data->running = true;
 
     ViewPort* view_port = view_port_alloc();
@@ -766,8 +760,8 @@ int32_t vario_app(void* p) {
             vario_data->last_button_time = furi_get_tick();
 
             /* Back вне меню = выход */
-            if(event.type == InputTypeShort && event.key == InputKeyBack
-               && !vario_data->show_menu) {
+            if(event.type == InputTypeShort && event.key == InputKeyBack &&
+               !vario_data->show_menu) {
                 vario_data->running = false;
                 furi_mutex_release(vario_data->mutex);
                 break;
@@ -791,28 +785,24 @@ int32_t vario_app(void* p) {
                             break;
                         case InputKeyLeft:
                             /* Отмена — возврат к сохранённому значению */
-                            vario_data->alt_edit_value =
-                                vario_data->settings.alt_correction;
+                            vario_data->alt_edit_value = vario_data->settings.alt_correction;
                             vario_data->menu_editing = false;
                             break;
                         case InputKeyRight:
                             /* Обнулить высоту: correction = -current_altitude,
                              * чтобы altitude + correction = 0 */
                             vario_data->alt_edit_value = -vario_data->altitude;
-                            vario_data->settings.alt_correction =
-                                vario_data->alt_edit_value;
+                            vario_data->settings.alt_correction = vario_data->alt_edit_value;
                             vario_data->menu_editing = false;
                             break;
                         case InputKeyOk:
                             /* Применяем поправку и выходим */
-                            vario_data->settings.alt_correction =
-                                vario_data->alt_edit_value;
+                            vario_data->settings.alt_correction = vario_data->alt_edit_value;
                             vario_data->menu_editing = false;
                             break;
                         case InputKeyBack:
                             /* Отмена — возврат к сохранённому значению */
-                            vario_data->alt_edit_value =
-                                vario_data->settings.alt_correction;
+                            vario_data->alt_edit_value = vario_data->settings.alt_correction;
                             vario_data->menu_editing = false;
                             break;
                         default:
@@ -823,7 +813,7 @@ int32_t vario_app(void* p) {
                         switch(event.key) {
                         case InputKeyUp:
                             vario_data->menu_selection =
-                                (vario_data->menu_selection + (MENU_COUNT-1u)) % MENU_COUNT;
+                                (vario_data->menu_selection + (MENU_COUNT - 1u)) % MENU_COUNT;
                             break;
                         case InputKeyDown:
                             vario_data->menu_selection =
@@ -841,8 +831,7 @@ int32_t vario_app(void* p) {
                                 break;
                             case 2:
                                 /* Входим в режим редактирования высоты */
-                                vario_data->alt_edit_value =
-                                    vario_data->settings.alt_correction;
+                                vario_data->alt_edit_value = vario_data->settings.alt_correction;
                                 vario_data->menu_editing = true;
                                 break;
                             default:
@@ -860,17 +849,16 @@ int32_t vario_app(void* p) {
                     /* Основной экран */
                     switch(event.key) {
                     case InputKeyUp:
-                        vario_data->settings.sound_enabled =
-                            !vario_data->settings.sound_enabled;
+                        vario_data->settings.sound_enabled = !vario_data->settings.sound_enabled;
                         break;
                     case InputKeyDown:
                         vario_data->settings.backlight_forced =
                             !vario_data->settings.backlight_forced;
                         break;
                     case InputKeyOk:
-                        vario_data->show_menu      = true;
+                        vario_data->show_menu = true;
                         vario_data->menu_selection = 0;
-                        vario_data->menu_editing   = false;
+                        vario_data->menu_editing = false;
                         break;
                     default:
                         break;

@@ -6,24 +6,29 @@
 #define UART_CH     (FuriHalSerialIdUsart)
 
 static const int gps_baudrates[6] = {4800, 9600, 19200, 38400, 57600, 115200};
-static int current_gps_baudrate   = 1;
+static int current_gps_baudrate = 1;
 
 typedef struct {
-    bool  valid;
+    bool valid;
     float latitude;
     float longitude;
     float speed_knots;
     float course;
     float altitude;
-    char  altitude_units;
-    int   fix_quality;
-    int   satellites_tracked;
-    int   time_hours;
-    int   time_minutes;
-    int   time_seconds;
+    char altitude_units;
+    int fix_quality;
+    int satellites_tracked;
+    int time_hours;
+    int time_minutes;
+    int time_seconds;
 } GpsStatus;
 
-typedef enum { MS, KPH, KNOTS, MPH } SpeedUnit;
+typedef enum {
+    MS,
+    KPH,
+    KNOTS,
+    MPH
+} SpeedUnit;
 
 typedef enum {
     VIEW_NORMAL,
@@ -41,21 +46,21 @@ typedef enum {
 } AppView;
 
 typedef struct {
-    FuriMutex*           mutex;
-    FuriThread*          thread;
-    FuriStreamBuffer*    rx_stream;
-    uint8_t              rx_buf[RX_BUF_SIZE];
-    NotificationApp*     notifications;
-    uint32_t             baudrate;
-    bool                 deep_sleep_enabled;
-    SpeedUnit            speed_units;
-    int                  tz_offset;
-    AppView              view_state;
+    FuriMutex* mutex;
+    FuriThread* thread;
+    FuriStreamBuffer* rx_stream;
+    uint8_t rx_buf[RX_BUF_SIZE];
+    NotificationApp* notifications;
+    uint32_t baudrate;
+    bool deep_sleep_enabled;
+    SpeedUnit speed_units;
+    int tz_offset;
+    AppView view_state;
     FuriHalSerialHandle* serial_handle;
-    GpsStatus            status;
+    GpsStatus status;
 } GpsUart;
 
-void     gps_uart_init_thread(GpsUart* gps_uart);
-void     gps_uart_deinit_thread(GpsUart* gps_uart);
+void gps_uart_init_thread(GpsUart* gps_uart);
+void gps_uart_deinit_thread(GpsUart* gps_uart);
 GpsUart* gps_uart_enable();
-void     gps_uart_disable(GpsUart* gps_uart);
+void gps_uart_disable(GpsUart* gps_uart);

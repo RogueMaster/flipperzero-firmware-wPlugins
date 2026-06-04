@@ -3,11 +3,11 @@ App(
     name="GPS Track",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="gps_app",
-    requires=["gui"],
     stack_size=4 * 1024,
     fap_icon="gps_10px.png",
     fap_category="GPIO",
     fap_author="xumbax",
-    fap_description="GPS NMEA tracker with breadcrumb navigation",
+    fap_weburl="https://github.com/xumbax/GPS-Track",
     fap_version="1.0",
+    fap_description="GPS NMEA tracker with breadcrumb navigation",
 )
