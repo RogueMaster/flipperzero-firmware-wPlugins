@@ -26,7 +26,7 @@ App(
         "!subghz_scene_set_type.c",
     ],
     resources="resources",
-    fap_libs=["assets","hwdrivers"],
+    fap_libs=["assets", "hwdrivers"],
     fap_icon="icon.png",
     fap_category="Sub-GHz",
     # sdk_headers=["subghz_fap.h"],
@@ -69,7 +69,7 @@ App(
         "scenes/subghz_scene_show_error_sub.c",
     ],
     cdefines=["SUBGHZ_ADD_MANUALLY"],
-    fap_libs=["assets","hwdrivers"],
+    fap_libs=["assets", "hwdrivers"],
     fap_icon="icon.png",
     fap_category="Sub-GHz",
 )
@@ -100,7 +100,7 @@ App(
         "scenes/subghz_scene_show_error_sub.c",
     ],
     cdefines=["SUBGHZ_ADD_MANUALLY", "SUBGHZ_ADD_MANUALLY_ADV"],
-    fap_libs=["assets","hwdrivers"],
+    fap_libs=["assets", "hwdrivers"],
     fap_icon="icon.png",
     fap_category="Sub-GHz",
 )

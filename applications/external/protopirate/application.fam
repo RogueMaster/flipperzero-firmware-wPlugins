@@ -9,12 +9,30 @@ App(
     fap_icon="images/protopirate_10px.png",
     fap_icon_assets="images",
     fap_file_assets="keystore",
+    fap_icon_assets_symbol="proto_pirate",
     fap_category="Sub-GHz",
     fap_author="RocketGod-git",
     fap_weburl="https://github.com/RocketGod-git/ProtoPirate",
     #  fap_weburl="https://protopirate.net/ProtoPirate/ProtoPirate",
     fap_version="3.0.2",
     fap_description="Decode car key fob signals from Sub-GHz",
+)
+
+App(
+    appid="proto_pirate_extra",
+    name="ProtoPirate Extra",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="protopirate_app",
+    stack_size=2 * 1024,
+    sources=["*.c*"],
+    fap_icon="images/protopirate_10px.png",
+    fap_icon_assets="images",
+    fap_file_assets="keystore",
+    fap_icon_assets_symbol="proto_pirate",
+    cdefines=["ENABLE_SUB_DECODE_SCENE", "ENABLE_TIMING_TUNER_SCENE"],
+    fap_category="Sub-GHz",
+    fap_version="3.0.2",
 )
 
 App(
