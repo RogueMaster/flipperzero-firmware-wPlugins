@@ -4,6 +4,7 @@
 #include "../fiat_v1.h"
 #include "../ford_v0.h"
 #include "../kia_v1.h"
+#include "../kia_v2.h"
 #include "../porsche_touareg.h"
 #include "../psa.h"
 #include "../subaru.h"
@@ -16,6 +17,7 @@ static const SubGhzProtocol* const protopirate_protocol_registry_am_items[] = {
     &fiat_v1_protocol,
     &ford_protocol_v0,
     &kia_protocol_v1,
+    &kia_protocol_v2,
     &porsche_touareg_protocol,
     &psa_protocol,
     &subaru_protocol,

@@ -75,9 +75,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - Added: [Infrared Playback v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
 - Updated: [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
-- Updated: [ProtoPirate v3.0.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [VolorSavanna v1.0 (By Invizabel)](https://github.com/Invizabel/VolorSavanna)
 - Updated: [Tesla Mod v2.16.3 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [ProtoPirate v3.0.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 

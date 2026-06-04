@@ -73,7 +73,7 @@ const SubGhzProtocolEncoder kia_protocol_v2_encoder = {
 const SubGhzProtocol kia_protocol_v2 = {
     .name = KIA_PROTOCOL_V2_NAME,
     .type = SubGhzProtocolTypeDynamic,
-    .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
+    .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save |
             SubGhzProtocolFlag_Send,
     .decoder = &kia_protocol_v2_decoder,
