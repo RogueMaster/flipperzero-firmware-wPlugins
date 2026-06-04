@@ -26,10 +26,10 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a> 
 
-## Latest Updates - [PATREON: Latest Release RM0602-0820-0.420.0-724e721](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM0604-1416-0.420.0-8000e1e](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-06-02 08:20 EST`
-- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-06-02 08:20 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-06-04 14:16 EST`
+- Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-06-04 14:16 EST`
 - Updated: [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - Updated: [HyperFocus Calc v0.1.2 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - Added: [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
@@ -86,8 +86,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sub-GHz app is now external on SD card, like on OFW (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/33671b91a98dd99786894af7dbf1f6c818032942)
 	- This was done to free some space on flash, which is always running out
 	- It means RAM consumption while using the Sub-GHz app has increased
-	- Usability remains mostly unaffected, our testing showed it can receive up to ~50 signals normally and ~10 signals with qFlipper / Flipper Mobile App connected
-	- You may experience some "out of memory" messages, this is inevitable as RAM eventually fragments and needs to be rearraged, simply resume as normal after the reboot
+	- Usability remains mostly unaffected, our testing showed it can receive up to about 50 signals normally and about 10 signals with qFlipper / Flipper Mobile App connected
+	- You may experience some --out of memory-- messages, this is inevitable as RAM eventually fragments and needs to be rearraged, simply resume as normal after the reboot
 - [Add Manually menu transparently refactored into a --separate app-- for lower RAM usage. (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/27015e81eac73323cc537ea41f78c2db41f80ca9)
 - Sub-GHz: [Add Manually + Add Manually Advanced to operate as separate FAPs & Other Merge Fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d0e609da6dd686a0af2fa202181947cbb16dceef)
 - Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
