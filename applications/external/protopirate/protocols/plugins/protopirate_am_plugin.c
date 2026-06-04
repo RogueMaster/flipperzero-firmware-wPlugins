@@ -10,12 +10,14 @@
 #include "../subaru.h"
 #include "../vag.h"
 #include "../star_line.h"
+#include "../honda_v1.h"
 
 static const SubGhzProtocol* const protopirate_protocol_registry_am_items[] = {
     &chrysler_protocol_v0,
     &fiat_protocol_v0,
     &fiat_v1_protocol,
     &ford_protocol_v0,
+    &honda_v1_protocol,
     &kia_protocol_v1,
     &kia_protocol_v2,
     &porsche_touareg_protocol,

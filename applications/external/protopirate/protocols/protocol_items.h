@@ -27,6 +27,7 @@
 #include "star_line.h"
 #include "psa.h"
 #include "honda_static.h"
+#include "honda_v1.h"
 
 typedef enum {
     ProtoPirateProtocolRegistryFilterAM = 0,

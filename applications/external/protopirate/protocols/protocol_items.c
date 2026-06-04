@@ -83,6 +83,14 @@ static const ProtoPirateProtocolTiming protocol_timings[] = {
         .te_delta = 120,
         .min_count_bit = 64,
     },
+    // Honda V1: Manchester 1000/2000µs
+    {
+        .name = HONDA_V1_PROTOCOL_NAME,
+        .te_short = 1000,
+        .te_long = 2000,
+        .te_delta = 400,
+        .min_count_bit = 64,
+    },
     // Kia V0: PWM 250/500µs — Kia 61bit, Suzuki 64bit, Honda V0 72bit
     {
         .name = "Kia V0",

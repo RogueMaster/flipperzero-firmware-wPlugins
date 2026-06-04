@@ -31,6 +31,7 @@ Protocols are split into **AM** and **FM** registries. The active registry is ch
 | Fiat V0                  | ✅       | ✅       | Manchester      | AM650      | Rolling Code (static emu only) | ❌            | 315.00 / 433.92 |
 | Fiat V1                  | ✅       | ❌       | Manchester      | AM650      | Rolling Code                   | CRC8         | 315.00 / 433.92 |
 | Ford V0                  | ✅       | ✅       | Manchester      | AM650      | Rolling Code                   | ✅ + Checksum | 315.00 / 433.92 |
+| Honda V1                 | ✅       | ✅       | Manchester      | AM650      | Rolling Code                   | CRC4         | 315.00 / 433.92 |
 | Kia V1                   | ✅       | ✅       | Manchester      | AM650      | Rolling Code                   | CRC4         | 315.00 / 433.92 |
 | Porsche Touareg          | ✅       | ❌       | PWM             | AM650      | Rolling Code                   | ❌            | 315.00 / 433.92 |
 | PSA (Peugeot/Citroen)    | ✅       | ✅       | Manchester      | AM650      | XTEA/XOR                       | CRC8         | 315.00 / 433.92 |

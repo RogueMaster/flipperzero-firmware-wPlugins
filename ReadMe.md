@@ -77,7 +77,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
 - Updated: [VolorSavanna v1.0 (By Invizabel)](https://github.com/Invizabel/VolorSavanna)
 - Updated: [Tesla Mod v2.16.3 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [ProtoPirate v3.0.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - Added: [Sub-GHz RAW Edit v1.3 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Added: [BME280 Vario v1.1 (By xumbax)](https://github.com/xumbax/flipper-vario) `Req: BME280`
@@ -92,6 +91,7 @@ This software is for experimental purposes only and is not meant for any illegal
 	- You may experience some "out of memory" messages, this is inevitable as RAM eventually fragments and needs to be rearraged, simply resume as normal after the reboot
 - [Add Manually menu transparently refactored into a --separate app-- for lower RAM usage. (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/27015e81eac73323cc537ea41f78c2db41f80ca9)
 - Sub-GHz: [Add Manually + Add Manually Advanced to operate as separate FAPs & Other Merge Fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d0e609da6dd686a0af2fa202181947cbb16dceef)
+- Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 
@@ -837,7 +837,7 @@ $ ./fbt dolphin_ext
 - [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
 - [Protocol Visualizer v1.3 (By antirez)](https://github.com/antirez/protoview)
-- [ProtoPirate v3.0.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)
 - [Quac! v0.9.1 (By rdefeo)](https://github.com/rdefeo/quac)

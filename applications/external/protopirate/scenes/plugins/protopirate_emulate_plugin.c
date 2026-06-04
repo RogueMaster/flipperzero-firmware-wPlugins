@@ -511,6 +511,19 @@ static uint8_t emu_button_for_protocol(
         default:
             return original;
         }
+    } else if(strstr(protocol, "Honda V1")) {
+        switch(key) {
+        case InputKeyUp:
+            return 0x08; // Lock
+        case InputKeyOk:
+            return 0x00; // Unlock
+        case InputKeyDown:
+            return 0x09; // Trunk
+        case InputKeyLeft:
+            return 0x0A; // Panic
+        default:
+            return original;
+        }
     } else if(strstr(protocol, "Honda Static")) {
         switch(key) {
         case InputKeyUp:
