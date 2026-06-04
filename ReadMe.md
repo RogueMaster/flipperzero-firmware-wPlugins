@@ -85,6 +85,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Revert protocol diffs from old OFW PR, sync to Unleashed (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/44d0e060c7bc025d728c1df4891857f6ce6e4980)
 - NFC: [Fix typo in SLIX poller (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/dafdae9a51ccbd73b28be8329a98d512c9665739)
 - Updated: [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
+- [Sub-GHz app is now external on SD card, like on OFW (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/33671b91a98dd99786894af7dbf1f6c818032942)
+	- This was done to free some space on flash, which is always running out
+	- It means RAM consumption while using the Sub-GHz app has increased
+	- Usability remains mostly unaffected, our testing showed it can receive up to ~50 signals normally and ~10 signals with qFlipper / Flipper Mobile App connected
+	- You may experience some "out of memory" messages, this is inevitable as RAM eventually fragments and needs to be rearraged, simply resume as normal after the reboot
+- [Add Manually menu transparently refactored into a --separate app-- for lower RAM usage. (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/27015e81eac73323cc537ea41f78c2db41f80ca9)
+- Sub-GHz: [Add Manually + Add Manually Advanced to operate as separate FAPs & Other Merge Fixes (By RogueMaster)]()
 
 <a name="release"></a>
 

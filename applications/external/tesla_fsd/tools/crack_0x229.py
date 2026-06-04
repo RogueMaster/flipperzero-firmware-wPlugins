@@ -54,7 +54,7 @@ from collections import Counter
 
 
 # ----------------------------------------------------------------------------- parsing
-LINE_RE = re.compile(r'\(([\d.]+)\)\s+\S+\s+([0-9A-Fa-f]+)#([0-9A-Fa-f]*)')
+LINE_RE = re.compile(r"\(([\d.]+)\)\s+\S+\s+([0-9A-Fa-f]+)#([0-9A-Fa-f]*)")
 
 
 def load_frames(lines, want_id):
@@ -66,7 +66,7 @@ def load_frames(lines, want_id):
             continue
         t = float(m.group(1))
         fid = int(m.group(2), 16)
-        data = bytes.fromhex(m.group(3)) if m.group(3) else b''
+        data = bytes.fromhex(m.group(3)) if m.group(3) else b""
         if want_id is None or fid == want_id:
             out.append((t, fid, data))
     return out
@@ -142,8 +142,8 @@ def detect_crc_byte(frames):
 def try_additive(samples, can_id):
     """samples: list of (cover_bytes, crc, counter). Tesla additive = (idlo+idhi+sum)&0xFF."""
     id_lo, id_hi = can_id & 0xFF, (can_id >> 8) & 0xFF
-    for fold in ('none', 'id', 'idlo'):
-        k0 = {'none': 0, 'id': id_lo + id_hi, 'idlo': id_lo}[fold]
+    for fold in ("none", "id", "idlo"):
+        k0 = {"none": 0, "id": id_lo + id_hi, "idlo": id_lo}[fold]
         const = None
         ok = True
         for cover, crc, _ in samples:
@@ -155,7 +155,7 @@ def try_additive(samples, can_id):
                 ok = False
                 break
         if ok:
-            return {'scheme': 'additive', 'fold': fold, 'offset': const}
+            return {"scheme": "additive", "fold": fold, "offset": const}
     return None
 
 
@@ -166,11 +166,11 @@ CANONICAL_POLYS = (0x2F, 0x1D, 0x07, 0x31, 0x9B, 0x39, 0xD5, 0x4D, 0x8C)
 def _cover_builders(can_id):
     id_lo, id_hi = can_id & 0xFF, (can_id >> 8) & 0xFF
     return {
-        'data':      lambda data: list(data),
-        'idlo+data': lambda data: [id_lo] + list(data),
-        'data+idlo': lambda data: list(data) + [id_lo],
-        'idbe+data': lambda data: [id_hi, id_lo] + list(data),
-        'data+idbe': lambda data: list(data) + [id_hi, id_lo],
+        "data": lambda data: list(data),
+        "idlo+data": lambda data: [id_lo] + list(data),
+        "data+idlo": lambda data: list(data) + [id_lo],
+        "idbe+data": lambda data: [id_hi, id_lo] + list(data),
+        "data+idbe": lambda data: list(data) + [id_hi, id_lo],
     }
 
 
@@ -249,9 +249,19 @@ def try_crc(samples, can_id):
     if plain:
         plain.sort(key=lambda c: (c[0] not in CANONICAL_POLYS, c[0]))
         poly, refin, refout, cname, k = plain[0]
-        return {'scheme': 'plain-crc8', 'poly': poly, 'init': 0, 'refin': refin,
-                'refout': refout, 'cover': cname, 'xorout': k, 'T': None,
-                'constrained_groups': None, 'holdout': None, 'n_fits': len(plain)}
+        return {
+            "scheme": "plain-crc8",
+            "poly": poly,
+            "init": 0,
+            "refin": refin,
+            "refout": refout,
+            "cover": cname,
+            "xorout": k,
+            "T": None,
+            "constrained_groups": None,
+            "holdout": None,
+            "n_fits": len(plain),
+        }
 
     # ---- 2. e2e-dataid (per-counter constant) — guarded ----
     e2e = []
@@ -259,62 +269,102 @@ def try_crc(samples, can_id):
         for refin in (False, True):
             for refout in (False, True):
                 for poly in range(1, 256):
-                    T, constrained = _per_counter(samples, poly, refin, refout, cover_of)
+                    T, constrained = _per_counter(
+                        samples, poly, refin, refout, cover_of
+                    )
                     if T is None or len(set(T.values())) < 2:
                         continue
-                    if constrained < 2:           # P0: under-constrained -> not trustworthy
+                    if constrained < 2:  # P0: under-constrained -> not trustworthy
                         continue
                     e2e.append((constrained, poly, refin, refout, cname, T))
     if e2e:
         e2e.sort(key=lambda c: (-c[0], c[1] not in CANONICAL_POLYS, c[1]))
         constrained, poly, refin, refout, cname, T = e2e[0]
         hold = _holdout(samples, poly, refin, refout, builders[cname])
-        return {'scheme': 'e2e-dataid', 'poly': poly, 'init': 0, 'refin': refin,
-                'refout': refout, 'cover': cname, 'xorout': None, 'T': T,
-                'constrained_groups': constrained, 'holdout': hold, 'n_fits': len(e2e)}
+        return {
+            "scheme": "e2e-dataid",
+            "poly": poly,
+            "init": 0,
+            "refin": refin,
+            "refout": refout,
+            "cover": cname,
+            "xorout": None,
+            "T": T,
+            "constrained_groups": constrained,
+            "holdout": hold,
+            "n_fits": len(e2e),
+        }
     return None
 
 
 # ----------------------------------------------------------------------------- report
 _COVER_EXPR = {
-    'data':      "list(data_no_crc)",
-    'idlo+data': "[ID_LO] + list(data_no_crc)",
-    'data+idlo': "list(data_no_crc) + [ID_LO]",
-    'idbe+data': "[ID_HI, ID_LO] + list(data_no_crc)",
-    'data+idbe': "list(data_no_crc) + [ID_HI, ID_LO]",
+    "data": "list(data_no_crc)",
+    "idlo+data": "[ID_LO] + list(data_no_crc)",
+    "data+idlo": "list(data_no_crc) + [ID_LO]",
+    "idbe+data": "[ID_HI, ID_LO] + list(data_no_crc)",
+    "data+idbe": "list(data_no_crc) + [ID_HI, ID_LO]",
 }
 
 
 def emit_injection_snippet(res, can_id):
-    if res['scheme'] == 'additive':
-        return (f"# additive: crc = ({res['offset']} + sum(cover[{res['fold']}])) & 0xFF\n"
-                "# (cover = the data bytes excluding the crc byte)")
-    cover = _COVER_EXPR[res['cover']]
-    head = (f"ID_LO, ID_HI = 0x{can_id & 0xFF:02X}, 0x{(can_id >> 8) & 0xFF:02X}\n"
-            f"# recovered: poly=0x{res['poly']:02X} init=0 (absorbed) "
-            f"refin={res['refin']} refout={res['refout']} cover={res['cover']}\n"
-            "# uses crc8_raw() from crack_0x229.py")
-    if res['scheme'] == 'plain-crc8':
-        return (head + "\n"
-                "def crc(data_no_crc):\n"
-                f"    return crc8_raw({cover}, 0x{res['poly']:02X}, 0, {res['refin']}, {res['refout']})"
-                f" ^ 0x{res['xorout']:02X}")
-    # e2e-dataid
-    tbl = "{" + ", ".join(f"0x{k:X}: 0x{v:02X}" for k, v in sorted(res['T'].items())) + "}"
-    return (head + "\n"
-            f"T = {tbl}\n"
-            "def crc(data_no_crc, counter):\n"
+    if res["scheme"] == "additive":
+        return (
+            f"# additive: crc = ({res['offset']} + sum(cover[{res['fold']}])) & 0xFF\n"
+            "# (cover = the data bytes excluding the crc byte)"
+        )
+    cover = _COVER_EXPR[res["cover"]]
+    head = (
+        f"ID_LO, ID_HI = 0x{can_id & 0xFF:02X}, 0x{(can_id >> 8) & 0xFF:02X}\n"
+        f"# recovered: poly=0x{res['poly']:02X} init=0 (absorbed) "
+        f"refin={res['refin']} refout={res['refout']} cover={res['cover']}\n"
+        "# uses crc8_raw() from crack_0x229.py"
+    )
+    if res["scheme"] == "plain-crc8":
+        return (
+            head + "\n"
+            "def crc(data_no_crc):\n"
             f"    return crc8_raw({cover}, 0x{res['poly']:02X}, 0, {res['refin']}, {res['refout']})"
-            " ^ T[counter]")
+            f" ^ 0x{res['xorout']:02X}"
+        )
+    # e2e-dataid
+    tbl = (
+        "{"
+        + ", ".join(f"0x{k:X}: 0x{v:02X}" for k, v in sorted(res["T"].items()))
+        + "}"
+    )
+    return (
+        head + "\n"
+        f"T = {tbl}\n"
+        "def crc(data_no_crc, counter):\n"
+        f"    return crc8_raw({cover}, 0x{res['poly']:02X}, 0, {res['refin']}, {res['refout']})"
+        " ^ T[counter]"
+    )
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Crack a Tesla counter+CRC frame (default 0x229).")
-    ap.add_argument('capture', nargs='?', help="candump file (omit to read stdin)")
-    ap.add_argument('--id', default='229', help="CAN id hex (default 229)")
-    ap.add_argument('--crc-byte', type=int, default=None, help="index of the CRC byte (auto if unset)")
-    ap.add_argument('--counter-byte', type=int, default=None, help="index of the counter byte (auto)")
-    ap.add_argument('--counter-mask', default='0x0F', help="counter mask within its byte (default 0x0F)")
+    ap = argparse.ArgumentParser(
+        description="Crack a Tesla counter+CRC frame (default 0x229)."
+    )
+    ap.add_argument("capture", nargs="?", help="candump file (omit to read stdin)")
+    ap.add_argument("--id", default="229", help="CAN id hex (default 229)")
+    ap.add_argument(
+        "--crc-byte",
+        type=int,
+        default=None,
+        help="index of the CRC byte (auto if unset)",
+    )
+    ap.add_argument(
+        "--counter-byte",
+        type=int,
+        default=None,
+        help="index of the counter byte (auto)",
+    )
+    ap.add_argument(
+        "--counter-mask",
+        default="0x0F",
+        help="counter mask within its byte (default 0x0F)",
+    )
     args = ap.parse_args()
 
     can_id = int(args.id, 16)
@@ -325,23 +375,39 @@ def main():
         src.close()
 
     if len(frames) < 4:
-        print(f"need >=4 frames for id 0x{can_id:X}, got {len(frames)}", file=sys.stderr)
+        print(
+            f"need >=4 frames for id 0x{can_id:X}, got {len(frames)}", file=sys.stderr
+        )
         return 2
 
     dlcs = Counter(len(d) for _, _, d in frames)
     dlc = dlcs.most_common(1)[0][0]
     frames = [(t, i, d) for t, i, d in frames if len(d) == dlc]  # keep the dominant DLC
-    print(f"id=0x{can_id:X}  frames={len(frames)}  dlc={dlc}  (dlc histogram {dict(dlcs)})")
+    print(
+        f"id=0x{can_id:X}  frames={len(frames)}  dlc={dlc}  (dlc histogram {dict(dlcs)})"
+    )
 
     crc_byte = args.crc_byte if args.crc_byte is not None else detect_crc_byte(frames)
-    counter_byte = args.counter_byte if args.counter_byte is not None else detect_counter_byte(frames, crc_byte)
+    counter_byte = (
+        args.counter_byte
+        if args.counter_byte is not None
+        else detect_counter_byte(frames, crc_byte)
+    )
     if counter_byte is None:
         counter_byte = crc_byte  # degenerate; e2e grouping just becomes plain-crc8
-        print("WARNING: no clean rolling counter detected; treating all frames as one group")
-    print(f"crc_byte=byte{crc_byte}  counter_byte=byte{counter_byte}  counter_mask=0x{counter_mask:02X}")
+        print(
+            "WARNING: no clean rolling counter detected; treating all frames as one group"
+        )
+    print(
+        f"crc_byte=byte{crc_byte}  counter_byte=byte{counter_byte}  counter_mask=0x{counter_mask:02X}"
+    )
     for bi in range(dlc):
         vals = Counter(d[bi] for _, _, d in frames)
-        tag = " <- crc" if bi == crc_byte else (" <- counter" if bi == counter_byte else "")
+        tag = (
+            " <- crc"
+            if bi == crc_byte
+            else (" <- counter" if bi == counter_byte else "")
+        )
         print(f"  byte{bi}: {len(vals)} distinct{tag}")
 
     # build sample tuples
@@ -358,34 +424,55 @@ def main():
     print()
     if not res:
         print("NO SCHEME RECOVERED.")
-        print("  - If the counter byte looks wrong, pass --counter-byte/--counter-mask.")
-        print("  - If frames came through truncated, recapture at full DLC (?ids= filter).")
-        print("  - Coverage tried: additive(+id folds), plain-CRC8 and AUTOSAR-E2E/Data-ID")
+        print(
+            "  - If the counter byte looks wrong, pass --counter-byte/--counter-mask."
+        )
+        print(
+            "  - If frames came through truncated, recapture at full DLC (?ids= filter)."
+        )
+        print(
+            "  - Coverage tried: additive(+id folds), plain-CRC8 and AUTOSAR-E2E/Data-ID"
+        )
         print("    over {data, ±id-lo, ±id-be}, all poly/init/refin/refout.")
         return 1
 
     print(f"*** RECOVERED: {res['scheme']} ***")
-    if res['scheme'] == 'additive':
+    if res["scheme"] == "additive":
         print(f"  fold={res['fold']}  offset=0x{res['offset']:02X}")
     else:
-        print(f"  poly=0x{res['poly']:02X} init=0 (absorbed) "
-              f"refin={res['refin']} refout={res['refout']} cover={res['cover']}  "
-              f"({res['n_fits']} equivalent fit(s))")
-        if res['scheme'] == 'e2e-dataid':
+        print(
+            f"  poly=0x{res['poly']:02X} init=0 (absorbed) "
+            f"refin={res['refin']} refout={res['refout']} cover={res['cover']}  "
+            f"({res['n_fits']} equivalent fit(s))"
+        )
+        if res["scheme"] == "e2e-dataid":
             print(f"  per-counter constant T[counter] (Data-ID + xorout, collapsed):")
-            print("   " + "  ".join(f"{k:X}:{v:02X}" for k, v in sorted(res['T'].items())))
-            print(f"  constraint strength: {res['constrained_groups']} counter group(s) "
-                  f"pinned by >=2 distinct data rows")
-            chk, mism = res['holdout']
-            verdict = "GENERALISES" if (chk > 0 and mism == 0) else \
-                      ("FAILS HOLD-OUT" if mism else "no held-out overlap")
-            print(f"  hold-out: fit on half, predicted {chk - mism}/{chk} of the other half "
-                  f"correctly -> {verdict}")
+            print(
+                "   " + "  ".join(f"{k:X}:{v:02X}" for k, v in sorted(res["T"].items()))
+            )
+            print(
+                f"  constraint strength: {res['constrained_groups']} counter group(s) "
+                f"pinned by >=2 distinct data rows"
+            )
+            chk, mism = res["holdout"]
+            verdict = (
+                "GENERALISES"
+                if (chk > 0 and mism == 0)
+                else ("FAILS HOLD-OUT" if mism else "no held-out overlap")
+            )
+            print(
+                f"  hold-out: fit on half, predicted {chk - mism}/{chk} of the other half "
+                f"correctly -> {verdict}"
+            )
             if chk == 0:
-                print("  WARNING: no held-out overlap — capture too sparse to confirm; "
-                      "recapture at full rate (?ids= filter) before trusting this.")
+                print(
+                    "  WARNING: no held-out overlap — capture too sparse to confirm; "
+                    "recapture at full rate (?ids= filter) before trusting this."
+                )
             elif mism:
-                print("  WARNING: scheme did NOT generalise — likely an over-fit on sparse data.")
+                print(
+                    "  WARNING: scheme did NOT generalise — likely an over-fit on sparse data."
+                )
         else:
             print(f"  xorout=0x{res['xorout']:02X}")
     print("\n--- injection helper ---")
@@ -393,5 +480,5 @@ def main():
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

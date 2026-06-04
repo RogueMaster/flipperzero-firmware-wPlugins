@@ -115,65 +115,6 @@ void subghz_txrx_set_preset(
     preset->data_size = preset_data_size;
 }
 
-uint8_t*
-    subghz_txrx_set_tx_power(uint8_t* preset_data, size_t preset_data_size, uint8_t tx_power) {
-#define PRESET_POWER_OFFSET_FM 8
-#define PRESET_POWER_OFFSET_AM 7
-#define TX_PATABLE_OFFSET_AM   8
-#define TX_PATABLE_COUNT       17
-
-    //I had to skip the +10dBM and -6dBm Values, use only ones AM/FM have in common.
-    //Highest Value is 12dBm for AM, 10 for FM. So Menu needs to reflect that.
-    static const uint8_t tx_pa_table[TX_PATABLE_COUNT] = {
-        0,
-        0xC0, //12dBm
-        0xCD, //7dBm
-        0x86, //5dBm
-        0x50, //0dBm
-        0x26, // -10dBm
-        0x1D, // -15dBm
-        0x17, //-20dBm
-        0x03, //-30dBm
-        0xC0, // 10dBm
-        0xC8, //7dBm
-        0x84, //5dBm
-        0x60, //0dBm
-        0x34, //-10dBm
-        0x1D, //-15dBm
-        0x0E, // -20dBm
-        0x12, //-30dBm
-    };
-
-    //Grab the AM and FM byte now, so we can do proper checks.
-    uint8_t fm_byte = preset_data[preset_data_size - PRESET_POWER_OFFSET_FM];
-    uint8_t am_byte = preset_data[preset_data_size - PRESET_POWER_OFFSET_AM];
-
-    //Set the TX Power Here in the CC1101 register...
-
-    //If we have both bytes 1st bytes set or none, this isnt a preset we can deal with here.
-    if(fm_byte && !am_byte) {
-        //Use FM Table
-        if(tx_power) {
-            preset_data[preset_data_size - PRESET_POWER_OFFSET_FM] =
-                tx_pa_table[TX_PATABLE_OFFSET_AM + tx_power];
-        } else {
-            preset_data[preset_data_size - PRESET_POWER_OFFSET_FM] =
-                tx_pa_table[1]; //Max Power 0xC0 10dBm
-        }
-    } else if(am_byte && !fm_byte) {
-        //Use AM Table
-        if(tx_power) {
-            preset_data[preset_data_size - PRESET_POWER_OFFSET_AM] = tx_pa_table[tx_power];
-        } else {
-            preset_data[preset_data_size - PRESET_POWER_OFFSET_AM] =
-                tx_pa_table[1]; //Max Power 0xC0 12dBm
-        }
-    }
-
-    //Pass back the preset_so we can call one liners.
-    return preset_data;
-}
-
 const char* subghz_txrx_get_preset_name(SubGhzTxRx* instance, const char* preset) {
     UNUSED(instance);
     const char* preset_name = "";

@@ -1,7 +1,6 @@
 #include "../subghz_i.h"
 #include "subghz_scene_start.h"
 #include <dolphin/dolphin.h>
-#include <loader/loader.h>
 
 #include <lib/subghz/protocols/raw.h>
 
@@ -79,23 +78,23 @@ bool subghz_scene_start_on_event(void* context, SceneManagerEvent event) {
         } else if(
             event.event == SubmenuIndexAddManually ||
             event.event == SubmenuIndexAddManuallyAdvanced) {
-            const char* arg = (event.event == SubmenuIndexAddManuallyAdvanced) ?
-                                  "AddManuallyAdvanced" :
-                                  "AddManually";
-            FuriString* self_path = furi_string_alloc();
-            Loader* loader = furi_record_open(RECORD_LOADER);
-            furi_check(loader_get_application_launch_path(loader, self_path));
-            loader_enqueue_launch(
-                loader,
-                EXT_PATH("apps/assets/subghz_add_manually.fap"),
-                arg,
-                LoaderDeferredLaunchFlagGui);
-            loader_enqueue_launch(
-                loader, furi_string_get_cstr(self_path), arg, LoaderDeferredLaunchFlagGui);
-            furi_record_close(RECORD_LOADER);
-            furi_string_free(self_path);
-            while(scene_manager_previous_scene(subghz->scene_manager))
-                ;
+            // const char* arg = (event.event == SubmenuIndexAddManuallyAdvanced) ?
+            // "AddManuallyAdvanced" :
+            // "AddManually";
+            // FuriString* self_path = furi_string_alloc();
+            // Loader* loader = furi_record_open(RECORD_LOADER);
+            // furi_check(loader_get_application_launch_path(loader, self_path));
+            // loader_enqueue_launch(
+            // loader,
+            // EXT_PATH("apps/assets/subghz_add_manually.fap"),
+            // arg,
+            // LoaderDeferredLaunchFlagGui);
+            // loader_enqueue_launch(
+            // loader, furi_string_get_cstr(self_path), arg, LoaderDeferredLaunchFlagGui);
+            // furi_record_close(RECORD_LOADER);
+            // furi_string_free(self_path);
+            // while(scene_manager_previous_scene(subghz->scene_manager))
+            // ;
             scene_manager_stop(subghz->scene_manager);
             view_dispatcher_stop(subghz->view_dispatcher);
             return true;

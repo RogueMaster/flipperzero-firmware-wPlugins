@@ -481,7 +481,11 @@ int32_t subghz_app(char* p) {
 }
 #else
 int32_t subghz_add_manually(void* p) {
-    enum SubmenuIndex add_manually_scene_state = 0;
+#ifndef SUBGHZ_ADD_MANUALLY_ADV
+    enum SubmenuIndex add_manually_scene_state = SubmenuIndexAddManually;
+#else
+    enum SubmenuIndex add_manually_scene_state = SubmenuIndexAddManuallyAdvanced;
+#endif
     if(p) {
         if(!strcmp(p, "AddManually")) {
             add_manually_scene_state = SubmenuIndexAddManually;
@@ -489,12 +493,12 @@ int32_t subghz_add_manually(void* p) {
             add_manually_scene_state = SubmenuIndexAddManuallyAdvanced;
         }
     }
-    if(!add_manually_scene_state) return 0;
+    // if(!add_manually_scene_state) return 0;
 
     bool alloc_for_tx = false;
     SubGhz* subghz = subghz_alloc(alloc_for_tx);
     UNUSED(subghz_rpc_command_callback);
-    UNUSED(subghz_load_custom_presets);
+    UNUSED(subghz_setting_load_custom_preset);
 
     scene_manager_set_scene_state(
         subghz->scene_manager, SubGhzSceneSetType, add_manually_scene_state);

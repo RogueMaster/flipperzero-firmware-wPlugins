@@ -5,7 +5,7 @@ enum SubmenuIndex {
     SubmenuIndexEdit,
     SubmenuIndexDelete,
     SubmenuIndexGeo,
-    SubmenuIndexSignalSettings
+    SubmenuIndexSignalSettings,
 };
 
 void subghz_scene_saved_menu_submenu_callback(void* context, uint32_t index) {
