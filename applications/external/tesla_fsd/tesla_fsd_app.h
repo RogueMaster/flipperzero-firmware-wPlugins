@@ -64,6 +64,7 @@ typedef struct {
     // Loaded .cantest SEND profile (user-authored test packets)
     FsdProfileStep send_steps[FSD_SEND_MAX_STEPS];
     uint8_t send_step_count;
+    uint8_t send_blocked; // count of safety-denied lines skipped at load (e.g. 0x229)
     char send_name[34];
     bool send_armed; // set by the ARM button; worker sends when the interlock allows
     uint32_t send_sent; // frames actually transmitted (for display/result)

@@ -76,7 +76,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Infrared Playback v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
 - Updated: [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
 - Updated: [VolorSavanna v1.0 (By Invizabel)](https://github.com/Invizabel/VolorSavanna)
-- Updated: [Tesla Mod v2.16.3 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - Added: [Sub-GHz RAW Edit v1.3 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Added: [BME280 Vario v1.1 (By xumbax)](https://github.com/xumbax/flipper-vario) `Req: BME280`
@@ -93,6 +92,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Add Manually + Add Manually Advanced to operate as separate FAPs & Other Merge Fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d0e609da6dd686a0af2fa202181947cbb16dceef)
 - Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
+- Updated: [Tesla Mod v2.16.3 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

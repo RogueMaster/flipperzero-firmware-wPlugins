@@ -989,11 +989,11 @@ static void test_profile(void) {
     FsdProfileStep s;
     char name[40];
 
-    // bare candump-style line
+    // bare candump-style line (non-denied id)
     CHECK(
-        fsd_profile_parse_line("229#00112233445566AA", &s, NULL, 0) == FSD_PLINE_STEP,
+        fsd_profile_parse_line("118#00112233445566AA", &s, NULL, 0) == FSD_PLINE_STEP,
         "profile bare line -> step");
-    CHECK(s.can_id == 0x229, "profile id got 0x%lX", (unsigned long)s.can_id);
+    CHECK(s.can_id == 0x118, "profile id got 0x%lX", (unsigned long)s.can_id);
     CHECK(s.dlc == 8, "profile dlc 8 got %u", s.dlc);
     CHECK(s.data[0] == 0x00 && s.data[7] == 0xAA, "profile data bytes");
     CHECK(s.repeat == 1 && s.delay_ms == 50, "profile defaults repeat=1 delay=50");
@@ -1038,6 +1038,18 @@ static void test_profile(void) {
     CHECK(
         fsd_profile_parse_line("229#001122334455667788", &s, NULL, 0) == FSD_PLINE_ERROR,
         "profile >8 bytes");
+
+    // safety denylist: 0x229 right stalk (gear / AP engage) must be blocked, never sent
+    CHECK(fsd_profile_id_blocked(0x229), "0x229 is on the denylist");
+    CHECK(!fsd_profile_id_blocked(0x3FD), "0x3FD is not denied");
+    CHECK(!fsd_profile_id_blocked(0x118), "0x118 is not denied");
+    CHECK(
+        fsd_profile_parse_line("229#460000", &s, NULL, 0) == FSD_PLINE_BLOCKED,
+        "profile 0x229 idle -> blocked");
+    CHECK(s.can_id == 0x229, "blocked step still names the id");
+    CHECK(
+        fsd_profile_parse_line("(0.085000) can0 229#B74000", &s, NULL, 0) == FSD_PLINE_BLOCKED,
+        "profile 0x229 candump pull-down -> blocked");
 
     // ── send interlock (fail-closed) ──
     FSDState st;

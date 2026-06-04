@@ -34,6 +34,14 @@ static uint32_t read_uint(const char** pp) {
     return v;
 }
 
+// Safety denylist — see header. Right stalk (gear / AP engage) must never be
+// transmittable from a loadable text profile.
+#define FSD_BLOCKED_RIGHT_STALK 0x229u
+
+bool fsd_profile_id_blocked(uint32_t can_id) {
+    return can_id == FSD_BLOCKED_RIGHT_STALK;
+}
+
 FsdProfileLineKind
     fsd_profile_parse_line(const char* line, FsdProfileStep* step, char* name_out, int name_cap) {
     while(*line == ' ' || *line == '\t')
@@ -112,6 +120,8 @@ FsdProfileLineKind
     step->delay_ms = delay;
     memset(step->data, 0, MAX_LEN);
     memcpy(step->data, data, (size_t)nb);
+    // Safety: a denied id parses fine but must never reach the transmitter.
+    if(fsd_profile_id_blocked(id)) return FSD_PLINE_BLOCKED;
     return FSD_PLINE_STEP;
 }
 

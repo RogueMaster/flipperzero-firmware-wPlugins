@@ -42,6 +42,7 @@ static bool load_send_profile(TeslaFSDApp* app) {
             storage_file_close(f);
 
             app->send_step_count = 0;
+            app->send_blocked = 0;
             app->send_name[0] = '\0';
             // Split on '\n' manually (strtok_r is not in the FAP API).
             char* p = buf;
@@ -53,6 +54,9 @@ static bool load_send_profile(TeslaFSDApp* app) {
                 FsdProfileLineKind k = fsd_profile_parse_line(p, &st, nm, sizeof(nm));
                 if(k == FSD_PLINE_STEP) {
                     app->send_steps[app->send_step_count++] = st;
+                } else if(k == FSD_PLINE_BLOCKED) {
+                    // safety-denied id (e.g. 0x229 right stalk): never load it
+                    if(app->send_blocked < 0xFF) app->send_blocked++;
                 } else if(k == FSD_PLINE_NAME) {
                     strncpy(app->send_name, nm, sizeof(app->send_name) - 1);
                     app->send_name[sizeof(app->send_name) - 1] = '\0';

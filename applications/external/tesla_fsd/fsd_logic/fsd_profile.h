@@ -10,10 +10,12 @@
  *
  * Line format (whitespace-separated, # starts a comment):
  *
- *     # Name: poke 0x229 park button
- *     229#00112233445566AA  repeat=20  delay=100
- *     3FD#1000000000004000
+ *     # Name: my test
+ *     3FD#1000000000004000  repeat=20  delay=100
+ *     118#0000000000000000
  *     (1.234) can0 370#0000000000000000      <- a raw candump line also works
+ *
+ *   (0x229 SCCM_rightStalk is refused on load — see fsd_profile_id_blocked.)
  *
  *   ID#DATA      hex CAN id, '#', hex data bytes (0..8 bytes). A leading
  *                "(timestamp) bus " candump prefix is ignored if present.
@@ -39,8 +41,18 @@ typedef enum {
     FSD_PLINE_EMPTY = 0, // blank line or plain comment — skip
     FSD_PLINE_NAME, // "# Name: ..." — name_out filled
     FSD_PLINE_STEP, // a frame to send — *step filled
+    FSD_PLINE_BLOCKED, // parsed OK but a safety-denied id — *step filled, must NOT send
     FSD_PLINE_ERROR, // malformed line
 } FsdProfileLineKind;
+
+// Safety denylist: ids whose semantics make them too dangerous to transmit from a
+// freeform loadable profile. 0x229 SCCM_rightStalk is the right stalk: a pulled-down
+// frame is a request to shift into DRIVE (and double-pull engages Autopilot) — on a
+// parked car that is a command to *leave* the stationary state the interlock just
+// confirmed, which the speed/timing interlock cannot catch (it gates timing, not
+// semantics). The benign park-button poke has its own built-in toggle and does not go
+// through the generic runner. Returns true if the id is blocked.
+bool fsd_profile_id_blocked(uint32_t can_id);
 
 // Parse a single profile line. See the format above. name_out (may be NULL) is
 // filled only for FSD_PLINE_NAME.

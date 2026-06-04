@@ -16,16 +16,20 @@
 # interlock prevents injection on a moving car; it does not make an arbitrary
 # frame safe.
 #
+# Blocked for safety: 0x229 (SCCM_rightStalk) cannot be sent from a profile — a
+# pulled-down 0x229 is a request to shift into DRIVE / engage Autopilot, which is
+# never safe to fire from a loadable text file. Such lines are skipped on load.
+#
 # Line format:   ID#DATA  [repeat=N]  [delay=Nms]        (# starts a comment)
 #   ID#DATA    hex CAN id, '#', then 0..8 hex data bytes
 #   repeat=N   send the frame N times      (default 1)
 #   delay=N    milliseconds between sends  (default 50)
 #
 # A line copied straight from a CAN Capture log also parses, e.g.:
-#   (1.234000) can0 229#00112233445566AA
+#   (1.234000) can0 3FD#1000000000004000
 #
 # Name: example — replace the frames below
 
 # ---- REPLACE THESE PLACEHOLDER FRAMES with what you want to test ----
-229#00112233445566AA repeat=5 delay=100
 3FD#1000000000004000 repeat=3 delay=200
+118#0000000000000000 repeat=5 delay=100
