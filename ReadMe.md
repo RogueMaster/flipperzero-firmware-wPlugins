@@ -91,7 +91,7 @@ This software is for experimental purposes only and is not meant for any illegal
 	- Usability remains mostly unaffected, our testing showed it can receive up to ~50 signals normally and ~10 signals with qFlipper / Flipper Mobile App connected
 	- You may experience some "out of memory" messages, this is inevitable as RAM eventually fragments and needs to be rearraged, simply resume as normal after the reboot
 - [Add Manually menu transparently refactored into a --separate app-- for lower RAM usage. (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/27015e81eac73323cc537ea41f78c2db41f80ca9)
-- Sub-GHz: [Add Manually + Add Manually Advanced to operate as separate FAPs & Other Merge Fixes (By RogueMaster)]()
+- Sub-GHz: [Add Manually + Add Manually Advanced to operate as separate FAPs & Other Merge Fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d0e609da6dd686a0af2fa202181947cbb16dceef)
 
 <a name="release"></a>
 
