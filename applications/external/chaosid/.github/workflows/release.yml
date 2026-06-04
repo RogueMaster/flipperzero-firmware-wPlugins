@@ -1,0 +1,75 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:        # permite rodar manual no painel Actions
+
+jobs:
+  build:
+    name: Build (${{ matrix.firmware.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false      # se um firmware falhar, o outro continua
+      matrix:
+        firmware:
+          - name: momentum
+            url: https://up.momentum-fw.dev/firmware/directory.json
+          - name: official
+            url: https://update.flipperzero.one/firmware/directory.json
+          # Adicione outros canais aqui:
+          # - name: unleashed
+          #   url: https://up.unleashedflip.com/directory.json
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install ufbt
+        run: pip install --upgrade ufbt
+
+      - name: Cache SDK
+        uses: actions/cache@v4
+        with:
+          path: .ufbt
+          key: ufbt-${{ matrix.firmware.name }}-${{ hashFiles('application.fam') }}
+          restore-keys: |
+            ufbt-${{ matrix.firmware.name }}-
+
+      - name: Build for ${{ matrix.firmware.name }}
+        run: |
+          ufbt update --index-url="${{ matrix.firmware.url }}"
+          ufbt -c
+          ufbt
+
+      - name: Rename FAP
+        run: cp dist/chaos_id.fap chaos_id-${{ matrix.firmware.name }}.fap
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chaos_id-${{ matrix.firmware.name }}
+          path: chaos_id-${{ matrix.firmware.name }}.fap
+          if-no-files-found: error
+
+  release:
+    name: Attach FAPs to release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # necessario pra atualizar release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Upload FAPs
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.fap
+          fail_on_unmatched_files: true

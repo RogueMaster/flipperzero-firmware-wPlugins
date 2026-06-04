@@ -1,0 +1,29 @@
+# ufbt - SDK e estado local (project-scoped via dotenv)
+.ufbt/
+.env
+
+# Build outputs
+dist/
+build/
+*.fap
+*.elf
+*.map
+*.bin
+
+# VS Code (gerado por `ufbt vscode_dist`, especifico da maquina)
+.vscode/
+
+# Python / venv (caso algum script auxiliar use)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor locks / temp
+*.swp
+*~
+.idea/
