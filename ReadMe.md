@@ -30,6 +30,7 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-06-04 14:16 EST`
 - Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-06-04 14:16 EST`
+- Added: [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
 
 <a name="release"></a>
 
@@ -469,6 +470,7 @@ $ ./fbt dolphin_ext
 - [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [CFW Settings v1.6 - Imported/Modified By RogueMaster (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ecf91524a956f773881d564c4ada833f844264ca)
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
+- [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
 - [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)
 - [Chronometer (By nmrr)](https://github.com/nmrr/flipperzero-chronometer)
 - [CK42X Passvault v0.4.2 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)

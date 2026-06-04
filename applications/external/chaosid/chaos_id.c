@@ -24,6 +24,7 @@ static ChaosIdApp* chaos_id_app_alloc(void) {
     app->storage = furi_record_open(RECORD_STORAGE);
 
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&chaos_id_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
