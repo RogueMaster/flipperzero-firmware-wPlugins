@@ -45,6 +45,14 @@ bool unitemp_DHT20_I2C_alloc(Sensor* sensor, char* args);
 bool unitemp_DHT20_init(Sensor* sensor);
 
 /**
+ * @brief Initializing the AHT10 sensor
+ *
+ * @param sensor Pointer to sensor
+ * @return True if initialization is successful
+ */
+bool unitemp_AHT10_init(Sensor* sensor);
+
+/**
  * @brief Deinitializing the sensor
  *
  * @param sensor Pointer to sensor

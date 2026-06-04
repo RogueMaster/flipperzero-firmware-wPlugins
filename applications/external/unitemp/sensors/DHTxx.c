@@ -72,7 +72,7 @@ const SensorModel AHT10 = {
     .polling_interval = 1000,
     .allocator = unitemp_DHT20_I2C_alloc,
     .mem_releaser = unitemp_DHT20_I2C_free,
-    .initializer = unitemp_DHT20_init,
+    .initializer = unitemp_AHT10_init,
     .deinitializer = unitemp_DHT20_I2C_deinit,
     .updater = unitemp_DHT20_I2C_update};
 const SensorModel AHT20 = {
@@ -148,6 +148,19 @@ bool unitemp_DHT20_init(Sensor* sensor) {
     data[0] = (sensor->model == &DHT20) ? 0xBE : 0xE1;
     data[1] = 0x08;
     if(!unitemp_i2c_write_array(i2c_sensor, 3, data)) return false;
+    furi_delay_ms(10);
+
+    return true;
+}
+
+bool unitemp_AHT10_init(Sensor* sensor) {
+    I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
+
+    uint8_t data[3] = {0b10111010, 0x00, 0x00};
+    if(!unitemp_i2c_write_array(i2c_sensor, 1, data)) return false;
+    furi_delay_ms(21);
+    data[0] = 0b11100001;
+    if(!unitemp_i2c_write_array(i2c_sensor, 1, data)) return false;
     furi_delay_ms(10);
 
     return true;
