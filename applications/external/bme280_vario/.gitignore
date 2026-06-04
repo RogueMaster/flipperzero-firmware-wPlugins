@@ -1,0 +1,26 @@
+# FBT build artifacts
+build/
+dist/
+*.fap
+*.fal
+*.elf
+*.o
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log

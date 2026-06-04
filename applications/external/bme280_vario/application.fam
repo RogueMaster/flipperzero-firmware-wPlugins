@@ -1,0 +1,15 @@
+App(
+    appid="vario",
+    name="Vario",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="vario_app",
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_icon="vario_icon.png",
+    fap_category="GPIO",
+    fap_description="Variometer for paragliding and hiking using BME280 pressure sensor",
+    fap_author="xumbax",
+    fap_weburl="https://github.com/xumbax/flipper-vario",
+    fap_version=(1, 1),
+    fap_icon_assets="images",
+)
