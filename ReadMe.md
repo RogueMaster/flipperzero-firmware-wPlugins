@@ -82,6 +82,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Sub-GHz RAW Edit v1.3 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Added: [BME280 Vario v1.1 (By xumbax)](https://github.com/xumbax/flipper-vario) `Req: BME280`
 - Added: [GPS Track v1.0 (By xumbax)](https://github.com/xumbax/GPS-Track) `Req: NMEA GPS Module`
+- Sub-GHz: [Revert protocol diffs from old OFW PR, sync to Unleashed (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/44d0e060c7bc025d728c1df4891857f6ce6e4980)
+- NFC: [Fix typo in SLIX poller (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/dafdae9a51ccbd73b28be8329a98d512c9665739)
+- Updated: [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
 
 <a name="release"></a>
 
@@ -958,7 +961,7 @@ $ ./fbt dolphin_ext
 - [WHC SWIO Flasher v1.1 (By sukvojte)](https://github.com/sukvojte/wch_swio_flasher)
 - [Weather Station v2.0 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station)
 - [Web Crawler v1.0.1 (By jblanked)](https://github.com/jblanked/WebCrawler-FlipperZero) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- [Weebo v0.5 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
+- [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
 - [Wendigo Bluetooth Tracker WIP v0.5.1 (By chris-bc)](https://github.com/chris-bc/wendigo) `WIP Req: ESP32`
 - [Wiegand Reader v1.4 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio)
 - [WiFi (Deauther) V2 (By Timmotools)](https://github.com/Timmotools/flipperzero_esp8266_deautherv2) `Req: ESP8266`
