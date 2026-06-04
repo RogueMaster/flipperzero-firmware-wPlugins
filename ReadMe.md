@@ -3,7 +3,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://lh3.googleusercontent.com/d/1iYQlRQXM7nA4IAdcPwvcKRSTCMoi8tug' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://lh3.googleusercontent.com/d/1gjui0-UZNerG13PUblXjmr1YaSAjIf2k' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0526-0321-0.420.0-0e7e039.tgz&channel=RM0526-0321-0.420.0-0e7e039&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0604-1502-0.420.0-39055e4.tgz&channel=RM0604-1502-0.420.0-39055e4&version=0.420.0&target=f7)
 
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
@@ -30,70 +30,6 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-06-04 14:16 EST`
 - Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-06-04 14:16 EST`
-- Updated: [Habit Flow v0.1.3 (By Endika)](https://github.com/Endika/flipper-habit-flow)
-- Updated: [HyperFocus Calc v0.1.2 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
-- Added: [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
-- Updated: [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
-- Added: [Trivia Zero v0.1.12 (By Endika)](https://github.com/Endika/flipper-trivia-zero)
-- Added: [FlipRogue v1.2 (By Abzac)](https://github.com/Abzac/fliprogue)
-- Added: [VolorSavanna v1.0 (By Invizabel)](https://github.com/Invizabel/VolorSavanna)
-- Added: [EMV Reader v0.1 (By AmsaOne)](https://github.com/AmsaOne/Flipper-EMV-Reader)
-- Added: [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)
-- Added: [Anim Previewer v1.0 (By H4W9)](https://github.com/H4W9/AnimationPreviewerFlipperApp)
-- Added: [KneeFlip Rehab v0.1 (By daryalok)](https://github.com/daryalok/KneeFlip-Rehab)
-- Updated: [FM Transmitter KT0803 v1.0 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter) `Req: KT0803`
-- Updated: [TV Remote v1.1 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
-- Updated: [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher) [Add C5 to Quickflash (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/db5409733b96a691396518fd2de03b3da1efeafd#diff-4247719a82512e95ac50d82a98eeb73901fc0986f2c8708b378f2ea3b7ddeea9) [Bump Marauder v1.12.2b.20260525 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/nightly_f8cf4ee)
-- Added: [RFID Metal Detector v1.0 (By hnsvrdmn)](https://github.com/hnsvrdmn/flipper-rfid-metal-detector)
-- Added: [CK42X Passvault v0.4 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
-- Added: [NFC Stock v0.1.5 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
-- Added: [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
-- Added: [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
-- Added: [ZeroFIDO v0.7 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
-- Updated: [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
-- Added: [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
-- Added: [Cell Lab v1.1 (By PilotOfAsuka)](https://github.com/PilotOfAsuka/cell_lab_fliperzero)
-- Added: [FreeStyle Libre CGM v0.1 (By darendarrow)](https://github.com/darendarrow/flipnCGM)
-- Added: [NestBridge v1.0 (By Bibfortuna5057)](https://github.com/Bibfortuna5057/NestBridge-Flipper) `Req: Nest Gen 2 Thermostat`
-- Added: [Pocket CVSS v0.3 (By vavkamil)](https://github.com/vavkamil/pocket-cvss)
-- Added: [ZeroMesh v2.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
-- Fix Cell Lab reference in Game Menu (By RogueMaster)
-- Updated: [SSD1306 Test v1.0 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
-- Added: [Brainy v1.1 (By deya-eldeen)](https://github.com/deya-eldeen/flipperzero-brainy)
-- Added: [Flo Tracker v1.0 (By harimwoo)](https://github.com/harimwoo/flipper-flo-tracker)
-- Added: [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
-- Added: [MR60FDA1 Radar v0.1 (By adamaratski)](https://github.com/adamaratski/flipperzero-r60afd1) `Req: MR60FDA1/MR60FDA2`
-- Added: [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
-- [uFBT: Fix .clangd config for IDEs besides VSCode (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/d3ba597539f806f8ab291d725a3b16a9364b644e)
-- Sub-GHz: [Add Allstar Firefly 318ALD31K protocol (18 bits, Static) (By jlaughter)](https://github.com/DarkFlippers/unleashed-firmware/pull/989)
-- Sub-GHz: [Faac SLH / Nice Flo Updates & Remove Duplicate Code from RAW & Canvas Buffer in API & Kinggates Logic Fix & Add all 0x0s and all 0xFs KeeLoq MF codes for normal and simple learning & Sub-GHz upgrades (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/20d53d9c1d6882246cf6d9f3868b0a1cad8ef555)
-- HID App: [PTT improvements (By hryamzik)](https://github.com/DarkFlippers/unleashed-firmware/pull/996)
-- Updated: [NFC Seader v4.1 (By bettse)](https://github.com/bettse/seader)
-- Updated: [CK42X Passvault v0.4.2 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
-- Updated: [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
-- Updated: [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
-- Updated: [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
-- Added: [Infrared Playback v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
-- Updated: [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
-- Updated: [VolorSavanna v1.0 (By Invizabel)](https://github.com/Invizabel/VolorSavanna)
-- Updated: [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
-- Added: [Sub-GHz RAW Edit v1.3 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
-- Added: [BME280 Vario v1.1 (By xumbax)](https://github.com/xumbax/flipper-vario) `Req: BME280`
-- Added: [GPS Track v1.0 (By xumbax)](https://github.com/xumbax/GPS-Track) `Req: NMEA GPS Module`
-- Sub-GHz: [Revert protocol diffs from old OFW PR, sync to Unleashed (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/44d0e060c7bc025d728c1df4891857f6ce6e4980)
-- NFC: [Fix typo in SLIX poller (By Willy-JL)](https://github.com/Next-Flip/Momentum-Firmware/commit/dafdae9a51ccbd73b28be8329a98d512c9665739)
-- Updated: [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
-- [Sub-GHz app is now external on SD card, like on OFW (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/33671b91a98dd99786894af7dbf1f6c818032942)
-	- This was done to free some space on flash, which is always running out
-	- It means RAM consumption while using the Sub-GHz app has increased
-	- Usability remains mostly unaffected, our testing showed it can receive up to about 50 signals normally and about 10 signals with qFlipper / Flipper Mobile App connected
-	- You may experience some --out of memory-- messages, this is inevitable as RAM eventually fragments and needs to be rearraged, simply resume as normal after the reboot
-- [Add Manually menu transparently refactored into a --separate app-- for lower RAM usage. (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/27015e81eac73323cc537ea41f78c2db41f80ca9)
-- Sub-GHz: [Add Manually + Add Manually Advanced to operate as separate FAPs & Other Merge Fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d0e609da6dd686a0af2fa202181947cbb16dceef)
-- Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip)
-- Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) Included ProtoPirate Extra for all options enabled.
-- Updated: [Tesla Mod v2.16.4 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Sub-Ghz: [Add Telcoma/Cardin EDGE protocol (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1001)
 
 <a name="release"></a>
 
@@ -991,4 +927,4 @@ $ ./fbt dolphin_ext
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 - `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for wav/mp3 playback ($200 USD in ETH or BTC) (Don't think this is possible)
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0526-0321-0.420.0-0e7e039.tgz&channel=RM0526-0321-0.420.0-0e7e039&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0604-1502-0.420.0-39055e4.tgz&channel=RM0604-1502-0.420.0-39055e4&version=0.420.0&target=f7)
