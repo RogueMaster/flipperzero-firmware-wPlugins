@@ -41,9 +41,11 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
 
     // Feature flags: nag killer and chime suppress default ON; others OFF
     state->nag_killer           = true;
+    state->continuous_ap        = false;
     state->suppress_speed_chime = true;
     state->ignore_ota           = false;
     state->emergency_vehicle_detect = false;
+    state->fsd_unlock           = false;
     state->force_fsd            = false;
     state->china_mode           = false;
     state->bms_output           = false;
@@ -169,7 +171,7 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
 
     if (state->hw_version == TeslaHW_HW3) {
         // ── HW3 ──────────────────────────────────────────────────────────────
-        if (mux == CAN_MUX_0 && state->fsd_enabled) {
+        if (mux == CAN_MUX_0 && state->fsd_unlock && state->fsd_enabled) {
             // Compute speed offset from current speed signal (bits 6:1 of byte 3)
             int raw = (int)((frame->data[SIG_AP_HW3_SPEED_RAW_BYTE] >>
                              SIG_AP_HW3_SPEED_RAW_SHIFT) &
@@ -189,13 +191,13 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
                           SIG_AP_SPEED_PROFILE_SHIFT);
             modified = true;
         }
-        if (mux == CAN_MUX_1) {
+        if (mux == CAN_MUX_1 && state->nag_killer) {
             // Nag suppression via bit 19 (clear = no hands-on-wheel request)
             set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);
             state->nag_suppressed = true;
             modified = true;
         }
-        if (mux == CAN_MUX_2 && state->fsd_enabled) {
+        if (mux == CAN_MUX_2 && state->fsd_unlock && state->fsd_enabled) {
             // Write speed offset into bits 7:6 of byte 0 and bits 5:0 of byte 1
             frame->data[SIG_AP_HW3_SPEED_OFFSET_LOW_BYTE] &=
                 (uint8_t)(~SIG_AP_HW3_SPEED_OFFSET_LOW_MASK);
@@ -210,20 +212,20 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
         }
     } else {
         // ── HW4 ──────────────────────────────────────────────────────────────
-        if (mux == CAN_MUX_0 && state->fsd_enabled) {
+        if (mux == CAN_MUX_0 && state->fsd_unlock && state->fsd_enabled) {
             set_bit(frame, SIG_AP_FSD_ENABLE_BIT, true);       // FSD activation
             set_bit(frame, SIG_AP_HW4_FSD_ENABLE_BIT, true);   // HW4 additional FSD bit
             if (state->emergency_vehicle_detect)
                 set_bit(frame, SIG_AP_HW4_EMERGENCY_VEHICLE_BIT, true);
             modified = true;
         }
-        if (mux == CAN_MUX_1) {
+        if (mux == CAN_MUX_1 && state->nag_killer) {
             set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);      // clear hands-on-wheel nag
             set_bit(frame, SIG_AP_HW4_NAG_CONFIRM_BIT, true); // HW4 nag-suppression confirmation bit
             state->nag_suppressed = true;
             modified = true;
         }
-        if (mux == CAN_MUX_2) {
+        if (mux == CAN_MUX_2 && state->fsd_unlock) {
             // Write speed profile into bits 6:4 of byte 7
             frame->data[SIG_AP_HW4_SPEED_PROFILE_BYTE] &=
                 (uint8_t)(~(SIG_AP_HW4_SPEED_PROFILE_MASK << SIG_AP_HW4_SPEED_PROFILE_SHIFT));
@@ -262,7 +264,7 @@ bool fsd_handle_legacy_autopilot(FSDState *state, CanFrame *frame) {
 
     if (mux == CAN_MUX_0) state->fsd_enabled = fsd_ui;
 
-    if (mux == CAN_MUX_0 && state->fsd_enabled) {
+    if (mux == CAN_MUX_0 && state->fsd_unlock && state->fsd_enabled) {
         set_bit(frame, SIG_AP_FSD_ENABLE_BIT, true);
         // Speed profile in bits 2:1 of byte 6 (same encoding as HW3)
         frame->data[SIG_AP_SPEED_PROFILE_BYTE] &= (uint8_t)(~SIG_AP_SPEED_PROFILE_MASK);
@@ -271,7 +273,7 @@ bool fsd_handle_legacy_autopilot(FSDState *state, CanFrame *frame) {
                       SIG_AP_SPEED_PROFILE_SHIFT);
         modified = true;
     }
-    if (mux == CAN_MUX_1) {
+    if (mux == CAN_MUX_1 && state->nag_killer) {
         set_bit(frame, SIG_AP_NAG_CLEAR_BIT, false);
         state->nag_suppressed = true;
         modified = true;
@@ -389,6 +391,28 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
     return true;
 }
 
+void fsd_handle_epas_status(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc <= SIG_EPAS_TORQUE_LOW_BYTE) return;
+
+    uint16_t raw_torque =
+        ((uint16_t)(frame->data[SIG_EPAS_TORQUE_HIGH_BYTE] &
+                    SIG_EPAS_TORQUE_HIGH_VALUE_MASK) << SIG_EPAS_TORQUE_HIGH_SHIFT) |
+        (uint16_t)(frame->data[SIG_EPAS_TORQUE_LOW_BYTE] & SIG_EPAS_TORQUE_LOW_MASK);
+
+    state->torsion_bar_torque_nm =
+        (float)raw_torque * SIG_EPAS_TORQUE_SCALE_NM + SIG_EPAS_TORQUE_OFFSET_NM;
+    state->torsion_bar_torque_seen = true;
+}
+
+void fsd_handle_esp_status(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc <= SIG_ESP_DRIVER_BRAKE_BYTE) return;
+    uint8_t brake =
+        (frame->data[SIG_ESP_DRIVER_BRAKE_BYTE] >> SIG_ESP_DRIVER_BRAKE_SHIFT) &
+        SIG_ESP_DRIVER_BRAKE_MASK;
+    state->driver_brake_applied = brake != 0u;
+    state->brake_status_seen = true;
+}
+
 // ── BMS read-only parsers ─────────────────────────────────────────────────────
 
 void fsd_handle_bms_hv(FSDState *state, const CanFrame *frame) {
@@ -405,10 +429,12 @@ void fsd_handle_bms_hv(FSDState *state, const CanFrame *frame) {
 }
 
 void fsd_handle_bms_soc(FSDState *state, const CanFrame *frame) {
-    if (frame->dlc < 2) return;
-    // SoC: 10-bit little-endian (bits 9:0 across bytes 1:0), LSB = 0.1 %
-    uint16_t raw = ((uint16_t)(frame->data[SIG_BMS_SOC_H_BYTE] & SIG_BMS_SOC_H_MASK) << 8) |
-                   frame->data[SIG_BMS_SOC_L_BYTE];
+    if (frame->dlc < 3) return;
+    // Car display SOC: SOCUI292, bit10|10, LSB = 0.1 %.
+    uint16_t raw =
+        (((uint16_t)frame->data[SIG_BMS_SOC_UI_HIGH_BYTE] << (8 - SIG_BMS_SOC_UI_LOW_SHIFT)) |
+         (frame->data[SIG_BMS_SOC_UI_LOW_BYTE] >> SIG_BMS_SOC_UI_LOW_SHIFT)) &
+        SIG_BMS_SOC_UI_MASK;
     state->soc_percent = raw * SIG_BMS_SOC_SCALE;
     state->bms_seen = true;
 }
@@ -455,6 +481,15 @@ static void fsd_handle_das_status_common(FSDState *state, const CanFrame *frame)
 
     state->das_speed_limit_1 = frame->data[SIG_DAS_SPEED_LIMIT_BYTE_1];
     state->das_speed_limit_2 = frame->data[SIG_DAS_SPEED_LIMIT_BYTE_2];
+    uint8_t vision_raw =
+        frame->data[SIG_DAS_VISION_SPEED_LIMIT_BYTE] & SIG_DAS_VISION_SPEED_LIMIT_MASK;
+    if (vision_raw != 0u && vision_raw != SIG_DAS_VISION_SPEED_LIMIT_NONE) {
+        state->vision_speed_limit_kph =
+            (float)vision_raw * SIG_DAS_VISION_SPEED_LIMIT_SCALE_KPH;
+        state->speed_limit_kph = state->vision_speed_limit_kph;
+        state->speed_limit_source = SpeedLimitSource_Vision;
+        state->speed_limit_seen = true;
+    }
 
     // DAS_autopilotHandsOnState: byte5 bits[5:2].
     state->das_hands_on_state =
@@ -464,6 +499,7 @@ static void fsd_handle_das_status_common(FSDState *state, const CanFrame *frame)
     state->das_counter = frame->data[SIG_DAS_COUNTER_BYTE];
     state->das_checksum = frame->data[SIG_DAS_CHECKSUM_BYTE];
     state->das_seen = true;
+    state->ap_ready = state->das_ap_state == 2u;
 }
 
 // ── DAS status — nag killer gating / AP active status ────────────────────────
@@ -503,4 +539,165 @@ void fsd_handle_das_handsonly_399(FSDState *state, const CanFrame *frame) {
         (frame->data[SIG_DAS_HANDS_ON_STATE_BYTE] >> SIG_DAS_HANDS_ON_STATE_SHIFT) &
         SIG_DAS_HANDS_ON_STATE_MASK;
     state->das_seen = true;
+}
+
+static bool action_pulse_due(uint32_t now_ms, uint32_t last_ms) {
+    return last_ms == 0u || (uint32_t)(now_ms - last_ms) > 300u;
+}
+
+static bool gear_pos_is_up(uint8_t pos) {
+    return pos == SIG_GEAR_LEVER_HALF_UP || pos == SIG_GEAR_LEVER_FULL_UP;
+}
+
+static bool gear_pos_is_down(uint8_t pos) {
+    return pos == SIG_GEAR_LEVER_HALF_DOWN || pos == SIG_GEAR_LEVER_FULL_DOWN;
+}
+
+static bool gear_same_direction(uint8_t a, uint8_t b) {
+    return (gear_pos_is_up(a) && gear_pos_is_up(b)) ||
+           (gear_pos_is_down(a) && gear_pos_is_down(b));
+}
+
+static uint8_t gear_stronger_pos(uint8_t current, uint8_t next) {
+    if (current == SIG_GEAR_LEVER_CENTER) return next;
+    if (!gear_same_direction(current, next)) return next;
+    if (next == SIG_GEAR_LEVER_FULL_UP || next == SIG_GEAR_LEVER_FULL_DOWN) return next;
+    return current;
+}
+
+static void emit_gear_lever_action(FSDState *state, uint8_t pos, uint32_t now_ms) {
+    if (pos == SIG_GEAR_LEVER_FULL_UP &&
+        action_pulse_due(now_ms, state->stalk_full_up_ms)) {
+        state->stalk_full_up_ms = now_ms;
+    }
+}
+
+void fsd_handle_gear_lever(FSDState *state, const CanFrame *frame, uint32_t now_ms) {
+    static bool active = false;
+    static uint8_t best_pos = SIG_GEAR_LEVER_CENTER;
+    static uint32_t last_seen_ms = 0;
+
+    if (frame->dlc < 2) return;
+
+    uint8_t pos =
+        (frame->data[SIG_GEAR_LEVER_POS_BYTE] >> SIG_GEAR_LEVER_POS_SHIFT) &
+        SIG_GEAR_LEVER_POS_MASK;
+
+    if (pos > SIG_GEAR_LEVER_FULL_DOWN) return;
+
+    if (active && last_seen_ms != 0u && (uint32_t)(now_ms - last_seen_ms) > 500u) {
+        emit_gear_lever_action(state, best_pos, last_seen_ms);
+        active = false;
+        best_pos = SIG_GEAR_LEVER_CENTER;
+    }
+
+    if (pos == SIG_GEAR_LEVER_CENTER) {
+        if (active) {
+            emit_gear_lever_action(state, best_pos, now_ms);
+            active = false;
+            best_pos = SIG_GEAR_LEVER_CENTER;
+        }
+        return;
+    }
+
+    if (!active || !gear_same_direction(best_pos, pos)) {
+        if (active) emit_gear_lever_action(state, best_pos, last_seen_ms);
+        active = true;
+        best_pos = pos;
+    } else {
+        best_pos = gear_stronger_pos(best_pos, pos);
+    }
+    last_seen_ms = now_ms;
+}
+
+void fsd_handle_ui_map_data(FSDState *state, const CanFrame *frame, uint32_t now_ms) {
+    if (frame->dlc < 2) return;
+    uint8_t raw =
+        frame->data[SIG_UI_MAP_SPEED_LIMIT_BYTE] & SIG_UI_MAP_SPEED_LIMIT_MASK;
+    if (raw == SIG_UI_MAP_SPEED_LIMIT_UNKNOWN ||
+        raw == SIG_UI_MAP_SPEED_LIMIT_UNLIMITED ||
+        raw == SIG_UI_MAP_SPEED_LIMIT_SNA) {
+        return;
+    }
+
+    if (raw == 1u) {
+        state->map_speed_limit_kph = 5.0f;
+    } else if (raw == SIG_UI_MAP_SPEED_LIMIT_7_KPH) {
+        state->map_speed_limit_kph = 7.0f;
+    } else {
+        state->map_speed_limit_kph = (float)(raw - 1u) * 5.0f;
+    }
+    state->speed_limit_kph = state->map_speed_limit_kph;
+    state->speed_limit_source = SpeedLimitSource_Map;
+    state->speed_limit_seen = true;
+    state->speed_limit_last_ms = now_ms;
+}
+
+void fsd_handle_das_status2(FSDState *state, const CanFrame *frame, uint32_t now_ms) {
+    if (frame->dlc < 2) return;
+    uint16_t raw =
+        ((uint16_t)(frame->data[SIG_DAS_ACC_SPEED_LIMIT_HIGH_BYTE] &
+                    SIG_DAS_ACC_SPEED_LIMIT_HIGH_MASK) << 8) |
+        frame->data[SIG_DAS_ACC_SPEED_LIMIT_LOW_BYTE];
+    if (raw == SIG_DAS_ACC_SPEED_LIMIT_NONE || raw == SIG_DAS_ACC_SPEED_LIMIT_SNA) return;
+
+    float kph = (float)raw * SIG_DAS_ACC_SPEED_LIMIT_SCALE_MPH * MPH_TO_KPH;
+    state->acc_speed_limit_kph = kph;
+    if (!state->speed_limit_seen || state->speed_limit_source == SpeedLimitSource_None) {
+        state->speed_limit_kph = kph;
+        state->speed_limit_source = SpeedLimitSource_Acc;
+        state->speed_limit_seen = true;
+        state->speed_limit_last_ms = now_ms;
+    }
+}
+
+void fsd_handle_das_control(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc < 2) return;
+    uint16_t raw =
+        ((uint16_t)(frame->data[SIG_DAS_CONTROL_SET_SPEED_HIGH_BYTE] &
+                    SIG_DAS_CONTROL_SET_SPEED_HIGH_MASK) << 8) |
+        frame->data[SIG_DAS_CONTROL_SET_SPEED_LOW_BYTE];
+    if (raw == SIG_DAS_CONTROL_SET_SPEED_SNA) return;
+
+    state->cruise_set_speed_kph = (float)raw * SIG_DAS_CONTROL_SET_SPEED_SCALE_KPH;
+    state->cruise_set_speed_seen = true;
+}
+
+void fsd_handle_vcfront_lighting(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc < 1) return;
+    uint8_t left_request =
+        (frame->data[0] >> SIG_VCFRONT_INDICATOR_LEFT_SHIFT) & SIG_VCFRONT_INDICATOR_MASK;
+    uint8_t right_request =
+        (frame->data[0] >> SIG_VCFRONT_INDICATOR_RIGHT_SHIFT) & SIG_VCFRONT_INDICATOR_MASK;
+
+    state->left_turn_active = left_request != SIG_VCFRONT_INDICATOR_OFF;
+    state->right_turn_active = right_request != SIG_VCFRONT_INDICATOR_OFF;
+    state->left_turn_status_seen = true;
+    state->right_turn_status_seen = true;
+    state->turn_status_seen = true;
+}
+
+bool fsd_build_gear_lever_frame(CanFrame *frame, uint8_t gear_pos, uint8_t counter) {
+    static const uint8_t NEUTRAL_CRC_BY_COUNTER[16] = {
+        0x46u, 0x44u, 0x52u, 0x6Du, 0x43u, 0x41u, 0xDDu, 0xF9u,
+        0x4Cu, 0xA5u, 0xF6u, 0x8Cu, 0x49u, 0x2Fu, 0x31u, 0x3Bu,
+    };
+    static const uint8_t POSITION_CRC_XOR[5] = {
+        0x00u, // center
+        0xE0u, // half up
+        0xEFu, // full up
+        0x0Fu, // half down
+        0xF1u, // full down
+    };
+
+    if (gear_pos > SIG_GEAR_LEVER_FULL_DOWN) return false;
+
+    counter &= SIG_GEAR_LEVER_COUNTER_MASK;
+    memset(frame, 0, sizeof(CanFrame));
+    frame->id = CAN_ID_SCCM_RSTALK;
+    frame->dlc = 3;
+    frame->data[1] = (uint8_t)((gear_pos << SIG_GEAR_LEVER_POS_SHIFT) | counter);
+    frame->data[2] = 0x00u;
+    frame->data[0] = NEUTRAL_CRC_BY_COUNTER[counter] ^ POSITION_CRC_XOR[gear_pos];
+    return true;
 }

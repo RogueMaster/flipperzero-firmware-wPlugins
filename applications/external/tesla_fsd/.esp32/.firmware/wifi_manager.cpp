@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <Arduino.h>
 
-static void wifi_print_dashboard_url(const String &ip) {
+static void wifi_print_urls(const String &ip) {
     Serial.printf("[WiFi] Dashboard: http://%s\n", ip.c_str());
     Serial.printf("[WiFi] HTTP CAN stream: http://%s:82/stream\n", ip.c_str());
 }
@@ -17,7 +17,7 @@ bool wifi_ap_init(const FSDState *state) {
             state->wifi_ssid,
             state->wifi_hidden ? " (HIDDEN)" : "",
             ip.c_str());
-        wifi_print_dashboard_url(ip);
+        wifi_print_urls(ip);
     } else {
         Serial.println("[WiFi] AP start FAILED — continuing without web");
     }
@@ -47,11 +47,11 @@ static bool wifi_sta_init(const FSDState *state) {
         String ip = WiFi.localIP().toString();
         Serial.printf("[WiFi] STA connected: \"%s\"\n", state->wifi_sta_ssid);
         Serial.printf("[WiFi] Device IP address: %s\n", ip.c_str());
-        wifi_print_dashboard_url(ip);
+        wifi_print_urls(ip);
         return true;
     }
 
-    Serial.printf("[WiFi] STA connect failed status=%d — starting AP\n",
+    Serial.printf("[WiFi] STA connect failed status=%d — falling back to AP\n",
                   (int)WiFi.status());
     WiFi.disconnect(true);
     delay(100);
@@ -71,7 +71,7 @@ void wifi_print_status() {
         String ip = WiFi.localIP().toString();
         Serial.printf("[WiFi] Mode: STA connected to \"%s\"\n", WiFi.SSID().c_str());
         Serial.printf("[WiFi] Device IP address: %s\n", ip.c_str());
-        wifi_print_dashboard_url(ip);
+        wifi_print_urls(ip);
         return;
     }
 
@@ -79,7 +79,7 @@ void wifi_print_status() {
         String ip = WiFi.softAPIP().toString();
         Serial.printf("[WiFi] Mode: AP \"%s\"\n", WiFi.softAPSSID().c_str());
         Serial.printf("[WiFi] Device IP address: %s\n", ip.c_str());
-        wifi_print_dashboard_url(ip);
+        wifi_print_urls(ip);
         return;
     }
 

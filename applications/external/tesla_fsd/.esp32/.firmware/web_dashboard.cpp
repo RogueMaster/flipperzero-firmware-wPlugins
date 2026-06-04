@@ -259,6 +259,15 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 .log-filter{width:210px;max-width:60%;background:var(--card2);border:1px solid var(--border);
   color:var(--text);border-radius:6px;padding:6px 8px;font-size:.8em;text-align:right}
 .log-filter::placeholder{color:var(--text3)}
+.action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.action-dot{display:inline-flex;align-items:center;gap:7px;color:var(--text2);font-size:.78em}
+.blinkdot{width:10px;height:10px;border-radius:50%;background:var(--text3);box-shadow:none;transition:.15s}
+.blinkdot.hit{background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.test-btn{padding:10px 8px;border-radius:10px;border:1px solid rgba(77,171,247,.3);
+  background:rgba(77,171,247,.12);color:var(--blue);font-size:.74em;font-weight:700}
+.test-btn:disabled{opacity:.4;color:var(--text3);border-color:var(--border);background:var(--card2)}
+.metric{font-size:.95em;font-weight:700;font-variant-numeric:tabular-nums}
+.metric small{font-size:.72em;color:var(--text3);font-weight:600}
 </style>
 </head>
 <body>
@@ -387,17 +396,25 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 <!-- Controls -->
 <div class="card controls-section">
   <div class="card-head"><div class="icon ic-c">C</div><h2>Controls</h2></div>
-  <button id="btnMode" class="btn-main btn-act" onclick="toggleMode()">ACTIVATE FSD</button>
+  <button id="btnMode" class="btn-main btn-act" onclick="toggleMode()">Activate</button>
 <details class="controls-fold">
-  <summary><span id="controlsSummary" class="control-summary">Expand to setup</span></summary>
+  <summary><span id="controlsSummary" class="control-summary">...</span></summary>
   <div class="controls-body">
   <div class="row">
     <span class="lbl">Ignore OTA</span>
     <label class="sw"><input type="checkbox" id="swIgnoreOta" onchange="cmd('ignore_ota',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
+    <span class="lbl">FSD Unlock</span>
+    <label class="sw"><input type="checkbox" id="swFsdUnlock" onchange="cmd('fsd_unlock',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
     <span class="lbl">NAG Killer</span>
     <label class="sw"><input type="checkbox" id="swNag" onchange="cmd('nag',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Continuous AP</span>
+    <label class="sw"><input type="checkbox" id="swContinuousAp" onchange="cmd('continuous_ap',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
     <span class="lbl">BMS Display</span>
@@ -492,7 +509,7 @@ R"rawliteral(
 <!-- WiFi Config -->
 <div class="card">
   <div class="card-head"><div class="icon ic-c">W</div><h2>WiFi Configuration</h2></div>
-  <div class="ota-info" style="margin:0 0 10px">
+  <div class="log-info" style="margin-bottom:10px">
     The device starts its own access point by default. Optionally set a network below; when a network name is set, the device tries to connect to it on boot and starts its own access point if it cannot connect.
   </div>
   <div class="row">
@@ -624,16 +641,28 @@ function pill(id,on,txt,warnClass){
   e.className='pill '+(warnClass||''+(on?'on':'off'));
   e.innerHTML='<span class="pd"></span>'+txt;
 }
+function dot(id,on){
+  var e=document.getElementById(id);
+  if(e)e.className='blinkdot'+(on?' hit':'');
+}
+function speedText(v,seen,source){
+  if(!seen)return '--';
+  var src=source?'<small> '+source+'</small>':'';
+  return Math.round(v)+' km/h'+src;
+}
 function updateControlsSummary(d){
   var e=document.getElementById('controlsSummary');
   if(!e)return;
   var items=[];
   if(d.op_mode===1)items.push('Active');
+  if(d.ignore_ota)items.push('Ignore OTA');
+  if(d.fsd_unlock)items.push('FSD Unlock');
   if(d.nag_killer)items.push('NAG Killer');
+  if(d.continuous_ap)items.push('Continuous AP');
   if(d.bms_output)items.push('BMS');
   if(d.force_fsd)items.push('Force FSD');
   if(d.china_mode)items.push('China');
-  if(d.suppress_speed_chime)items.push('Chime');
+  if(d.isa_speed_enabled&&d.suppress_speed_chime)items.push('Chime');
   if(d.tlssc_restore)items.push('TLSSC');
   if(d.display_enabled)items.push('Display');
   if(d.can_dump)items.push('CAN Dump');
@@ -680,13 +709,15 @@ function upd(d){
   var act=d.op_mode===1;
   var btn=document.getElementById('btnMode');
   if(btn){
-    btn.textContent=act?'STOP FSD  \u2192  Listen-Only':'ACTIVATE FSD  \u2192  Active';
+    btn.textContent=act?'Deactivate':'Activate';
     btn.className='btn-main '+(act?'btn-stop':'btn-act');
   }
 
   // Switches sync
   if(document.getElementById('swIgnoreOta')) document.getElementById('swIgnoreOta').checked=d.ignore_ota;
+  if(document.getElementById('swFsdUnlock')) document.getElementById('swFsdUnlock').checked=d.fsd_unlock;
   if(document.getElementById('swNag')) document.getElementById('swNag').checked=d.nag_killer;
+  if(document.getElementById('swContinuousAp')) document.getElementById('swContinuousAp').checked=d.continuous_ap;
   if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
   if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
   if(document.getElementById('swChina')) document.getElementById('swChina').checked=d.china_mode;
@@ -906,8 +937,8 @@ function saveWifi(){
   var ss=document.getElementById('wifiStaSsid').value;
   var sp=document.getElementById('wifiStaPass').value;
   if(s.length<1){alert('SSID required');return;}
-  if(p!=='***' && p.length>0 && p.length<8){alert('Password must be 8+ chars');return;}
-  if(sp!=='***' && ss.length>0 && sp.length>0 && sp.length<8){alert('Network password must be 8+ chars');return;}
+  if(p!=='***' && p.length>0 && p.length<8){alert('Password must be empty or 8+ chars');return;}
+  if(sp!=='***' && ss.length>0 && sp.length>0 && sp.length<8){alert('Network password must be empty or 8+ chars');return;}
   if(confirm('WiFi settings will be updated and the device will restart.')){
     var b=document.activeElement; if(b&&b.tagName==='BUTTON'){b.disabled=true;b.textContent='SAVING...';}
     cmd('wifi_cfg',{ssid:s,pass:p,hidden:h,sta_ssid:ss,sta_pass:sp});
@@ -1189,8 +1220,7 @@ static String build_json() {
         (state.hw_version == TeslaHW_HW3) ? "HW3: DAS 0x399" :
         (state.hw_version == TeslaHW_Legacy) ? "Legacy: DAS 0x399" :
         "Waiting for HW detection";
-
-    j.reserve(900);
+    j.reserve(1500);
     j  = "{";
     j += "\"fsd_enabled\":";   j += state.fsd_enabled                 ? "true" : "false"; j += ',';
     j += "\"ap_active\":";     j += state.ap_active                   ? "true" : "false"; j += ',';
@@ -1200,7 +1230,9 @@ static String build_json() {
     j += "\"ap_das_profile\":\""; j += ap_das_profile;                 j += "\",";
     j += "\"isa_speed_enabled\":"; j += isa_speed_enabled              ? "true" : "false"; j += ',';
     j += "\"ignore_ota\":";    j += state.ignore_ota                   ? "true" : "false"; j += ',';
+    j += "\"fsd_unlock\":";    j += state.fsd_unlock                   ? "true" : "false"; j += ',';
     j += "\"nag_killer\":";    j += state.nag_killer                   ? "true" : "false"; j += ',';
+    j += "\"continuous_ap\":"; j += state.continuous_ap                 ? "true" : "false"; j += ',';
     j += "\"bms_output\":";    j += state.bms_output                   ? "true" : "false"; j += ',';
     j += "\"force_fsd\":";     j += state.force_fsd                    ? "true" : "false"; j += ',';
     j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
@@ -1228,9 +1260,9 @@ static String build_json() {
     j += "\"sleep_ms\":";     j += state.sleep_idle_ms;               j += ',';
     j += "\"wifi_ssid\":\"";  j += json_escape(state.wifi_ssid);      j += "\",";
     j += "\"wifi_pass\":\"";  j += state.wifi_pass[0] ? "***" : "";  j += "\",";
+    j += "\"wifi_hidden\":";  j += state.wifi_hidden                  ? "true" : "false"; j += ',';
     j += "\"wifi_sta_ssid\":\""; j += json_escape(state.wifi_sta_ssid); j += "\",";
     j += "\"wifi_sta_pass\":\""; j += state.wifi_sta_pass[0] ? "***" : ""; j += "\",";
-    j += "\"wifi_hidden\":";  j += state.wifi_hidden                  ? "true" : "false"; j += ',';
     j += "\"wifi_clients\":";  j += (int)WiFi.softAPgetStationNum();   j += ',';
     j += "\"http_can_stream\":{";
     j += "\"active\":";       j += http_can_stream_active()           ? "true" : "false"; j += ',';
@@ -1257,7 +1289,7 @@ static void ws_event(uint8_t num, WStype_t type,
     if (type != WStype_TEXT || g_state == nullptr || length == 0) return;
 
     // Use a slightly more robust way to find the value after the second colon
-    char buf[384] = {};
+    char buf[256] = {};
     size_t n = (length < sizeof(buf) - 1) ? length : sizeof(buf) - 1;
     memcpy(buf, payload, n);
 
@@ -1295,6 +1327,18 @@ static void ws_event(uint8_t num, WStype_t type,
             Serial.printf("[Web] Ignore OTA: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
+    } else if (strstr(buf, "\"fsd_unlock\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->fsd_unlock = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] FSD Unlock: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
     } else if (strstr(buf, "\"nag\"")) {
         if (vptr) {
             while (*vptr == ' ' || *vptr == ':') vptr++;
@@ -1305,6 +1349,18 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] NAG Killer: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"continuous_ap\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->continuous_ap = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Continuous AP: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     }
@@ -1450,9 +1506,9 @@ static void ws_event(uint8_t num, WStype_t type,
             state_enter();
             char *s = strstr(vobj, "\"ssid\":\"");
             char *p = strstr(vobj, "\"pass\":\"");
+            char *h = strstr(vobj, "\"hidden\":");
             char *ss = strstr(vobj, "\"sta_ssid\":\"");
             char *sp = strstr(vobj, "\"sta_pass\":\"");
-            char *h = strstr(vobj, "\"hidden\":");
             if (s) {
                 s += 8;
                 char *end = strchr(s, '\"');
@@ -1478,6 +1534,12 @@ static void ws_event(uint8_t num, WStype_t type,
                     }
                 }
             }
+            if (h) {
+                h += 9;
+                while (*h == ' ' || *h == ':') h++;
+                if (strncmp(h, "true", 4) == 0) g_state->wifi_hidden = true;
+                else if (strncmp(h, "false", 5) == 0) g_state->wifi_hidden = false;
+            }
             if (ss) {
                 ss += 12;
                 char *end = strchr(ss, '\"');
@@ -1502,12 +1564,6 @@ static void ws_event(uint8_t num, WStype_t type,
                         g_state->wifi_sta_pass[len] = '\0';
                     }
                 }
-            }
-            if (h) {
-                h += 9;
-                while (*h == ' ' || *h == ':') h++;
-                if (strncmp(h, "true", 4) == 0) g_state->wifi_hidden = true;
-                else if (strncmp(h, "false", 5) == 0) g_state->wifi_hidden = false;
             }
             saved = *g_state;
             state_exit();

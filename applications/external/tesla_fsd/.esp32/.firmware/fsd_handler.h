@@ -63,6 +63,12 @@ bool fsd_handle_isa_speed_chime(CanFrame *frame);
  *  Writes result into *out.  Returns true if echo should be sent. */
 bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out);
 
+/** Parse EPAS3P_sysStatus (0x370) steering torque. */
+void fsd_handle_epas_status(FSDState *state, const CanFrame *frame);
+
+/** Parse ESP_status (0x145) brake pedal state. */
+void fsd_handle_esp_status(FSDState *state, const CanFrame *frame);
+
 /** Parse BMS_hvBusStatus (0x132) — updates pack_voltage_v / pack_current_a. */
 void fsd_handle_bms_hv(FSDState *state, const CanFrame *frame);
 
@@ -87,6 +93,24 @@ void fsd_handle_das_status_hw3(FSDState *state, const CanFrame *frame);
 void fsd_handle_das_status_hw4(FSDState *state, const CanFrame *frame);
 
 /** HW4 hands-on fallback: read only DAS_handsOnState (byte5[5:2]) from 0x399,
- *  for HW4 trims that never broadcast 0x39B. Call only when das_hw4_status_seen
- *  is false. Read-only, leaves das_ap_state untouched. */
+ *  for HW4 trims that never broadcast 0x39B. Call only when
+ *  das_hw4_status_seen is false. Read-only, leaves das_ap_state untouched. */
 void fsd_handle_das_handsonly_399(FSDState *state, const CanFrame *frame);
+
+/** Parse GearLever / right stalk 0x229 for right-stalk detents. */
+void fsd_handle_gear_lever(FSDState *state, const CanFrame *frame, uint32_t now_ms);
+
+/** Parse UI_driverAssistMapData 0x238 map/location speed limit. */
+void fsd_handle_ui_map_data(FSDState *state, const CanFrame *frame, uint32_t now_ms);
+
+/** Parse DAS_status2 0x389 ACC speed-limit readback. */
+void fsd_handle_das_status2(FSDState *state, const CanFrame *frame, uint32_t now_ms);
+
+/** Parse DAS_control 0x2B9 cruise/AP set speed. */
+void fsd_handle_das_control(FSDState *state, const CanFrame *frame);
+
+/** Parse VCFRONT_lighting 0x3F5 turn signal request state. */
+void fsd_handle_vcfront_lighting(FSDState *state, const CanFrame *frame);
+
+/** Build GearLever / right stalk 0x229 with rolling counter and CRC byte. */
+bool fsd_build_gear_lever_frame(CanFrame *frame, uint8_t gear_pos, uint8_t counter);

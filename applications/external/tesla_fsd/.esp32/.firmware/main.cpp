@@ -50,6 +50,11 @@ static CanBusId bus_id_from_index(uint8_t index) {
     return index == 1 ? CAN_BUS_SECONDARY : CAN_BUS_PRIMARY;
 }
 
+static CanBusId configured_bus_from_index(uint8_t index) {
+    if (index >= CAN_ACTIVE_BUS_COUNT) index = 0u;
+    return bus_id_from_index(index);
+}
+
 static uint8_t bus_index(CanBusId bus) {
     return bus == CAN_BUS_SECONDARY ? 1u : 0u;
 }
@@ -88,46 +93,6 @@ static bool frame_looks_like_hw3_das_status(const CanFrame &frame) {
 
     return ap_state <= SIG_DAS_HW3_AP_ACTIVE_STATE &&
            hands_on <= SIG_DAS_HANDS_ON_SUSPENDED;
-}
-
-static void can_set_all_listen_only(bool listen_only) {
-    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
-        if (g_can[i]) g_can[i]->setListenOnly(listen_only);
-    }
-}
-
-static bool can_any_ok() {
-    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
-        if (g_can_ok[i]) return true;
-    }
-    return false;
-}
-
-static uint32_t can_total_error_count() {
-    uint32_t total = 0;
-    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
-        if (g_can[i]) total += g_can[i]->errorCount();
-    }
-    return total;
-}
-
-static uint32_t can_total_tx_count() {
-    uint32_t total = 0;
-    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
-        if (g_can[i]) total += g_can[i]->txCount();
-    }
-    return total;
-}
-
-static CanDriver *can_for_bus(CanBusId bus) {
-    uint8_t index = bus_index(bus);
-    if (index >= CAN_ACTIVE_BUS_COUNT) return nullptr;
-    return g_can[index];
-}
-
-static bool send_on_bus(CanBusId bus, const CanFrame &frame) {
-    CanDriver *driver = can_for_bus(bus);
-    return driver ? driver->send(frame) : false;
 }
 
 static bool serial_cmd_equals(const char *cmd, const char *expected) {
@@ -171,6 +136,379 @@ static void serial_command_tick() {
     }
 }
 
+static void can_set_all_listen_only(bool listen_only) {
+    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+        if (g_can[i]) g_can[i]->setListenOnly(listen_only);
+    }
+}
+
+static bool can_any_ok() {
+    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+        if (g_can_ok[i]) return true;
+    }
+    return false;
+}
+
+static uint32_t can_total_error_count() {
+    uint32_t total = 0;
+    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+        if (g_can[i]) total += g_can[i]->errorCount();
+    }
+    return total;
+}
+
+static uint32_t can_total_tx_count() {
+    uint32_t total = 0;
+    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+        if (g_can[i]) total += g_can[i]->txCount();
+    }
+    return total;
+}
+
+static CanDriver *can_for_bus(CanBusId bus) {
+    uint8_t index = bus_index(bus);
+    if (index >= CAN_ACTIVE_BUS_COUNT) return nullptr;
+    return g_can[index];
+}
+
+static bool send_on_bus(CanBusId bus, const CanFrame &frame) {
+    CanDriver *driver = can_for_bus(bus);
+    return driver ? driver->send(frame) : false;
+}
+
+static bool send_generated_frame(CanBusId bus, const CanFrame &frame) {
+    return send_on_bus(bus, frame);
+}
+
+static bool send_modified_frame(CanBusId bus, const CanFrame &frame) {
+    return send_on_bus(bus, frame);
+}
+
+static uint8_t g_last_gear_counter = 0;
+static bool g_last_gear_counter_valid = false;
+static uint32_t g_last_gear_counter_ms = 0;
+
+enum ContinuousApFlowState : uint8_t {
+    ContAp_Idle = 0,
+    ContAp_WaitSignalOff,
+    ContAp_WaitApReady,
+    ContAp_Attempting,
+};
+
+static ContinuousApFlowState g_cont_ap_state = ContAp_Idle;
+static uint32_t g_cont_ap_signal_off_ms = 0;
+static uint32_t g_cont_ap_attempt_ms = 0;
+static uint32_t g_cont_ap_torque_high_ms = 0;
+static uint32_t g_cont_ap_last_brake_ms = 0;
+static uint32_t g_cont_ap_last_stalk_full_up_ms = 0;
+static uint8_t g_cont_ap_attempts = 0;
+static bool g_cont_ap_last_ap_active = false;
+
+static constexpr uint8_t GEAR_SEQUENCE_MAX = 4;
+static uint8_t g_gear_sequence[GEAR_SEQUENCE_MAX] = {};
+static uint8_t g_gear_sequence_len = 0;
+static uint8_t g_gear_sequence_index = 0;
+static uint32_t g_gear_sequence_progress_ms = 0;
+static uint32_t g_gear_sequence_next_ms = 0;
+
+static CanBusId preferred_generated_bus(uint32_t frame_id) {
+    if (frame_id == CAN_ID_SCCM_RSTALK)
+        return configured_bus_from_index(GEAR_LEVER_TX_BUS_INDEX);
+    return CAN_BUS_PRIMARY;
+}
+
+static bool gear_sequence_active() {
+    return g_gear_sequence_index < g_gear_sequence_len;
+}
+
+static void clear_gear_sequence() {
+    g_gear_sequence_len = 0;
+    g_gear_sequence_index = 0;
+    g_gear_sequence_progress_ms = 0;
+    g_gear_sequence_next_ms = 0;
+}
+
+static bool cached_gear_counter_is_fresh(uint32_t now) {
+    return g_last_gear_counter_valid &&
+           g_last_gear_counter_ms != 0u &&
+           (uint32_t)(now - g_last_gear_counter_ms) <= GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS;
+}
+
+static bool send_gear_position_from_cached_counter(uint8_t gear_pos, const char *name) {
+    uint32_t now = millis();
+    if (!cached_gear_counter_is_fresh(now)) return false;
+
+    FSDState s = state_snapshot();
+    if (!fsd_can_transmit(&s)) return false;
+
+    CanFrame f;
+    uint8_t next_counter =
+        (uint8_t)((g_last_gear_counter + 1u) & SIG_GEAR_LEVER_COUNTER_MASK);
+    if (!fsd_build_gear_lever_frame(&f, gear_pos, next_counter)) return false;
+
+    bool sent = send_generated_frame(preferred_generated_bus(CAN_ID_SCCM_RSTALK), f);
+    if (sent) {
+        uint32_t age_ms = now - g_last_gear_counter_ms;
+        g_last_gear_counter = next_counter;
+        g_last_gear_counter_ms = now;
+        Serial.printf("[%s] 0x229 pos=%u immediate TX on %s (cached age=%lu ms)\n",
+                      name,
+                      (unsigned)gear_pos,
+                      can_bus_name(preferred_generated_bus(CAN_ID_SCCM_RSTALK)),
+                      (unsigned long)age_ms);
+    }
+    return sent;
+}
+
+static bool send_next_gear_sequence_from_cached_counter(const char *name) {
+    if (!gear_sequence_active()) return false;
+    uint8_t gear_pos = g_gear_sequence[g_gear_sequence_index];
+    if (!send_gear_position_from_cached_counter(gear_pos, name)) return false;
+    g_gear_sequence_index++;
+    g_gear_sequence_progress_ms = millis();
+    if (!gear_sequence_active()) clear_gear_sequence();
+    else g_gear_sequence_next_ms = millis() + GEAR_SEQUENCE_STEP_MS;
+    return true;
+}
+
+static bool gear_sequence_timed_out(uint32_t now) {
+    return gear_sequence_active() &&
+           g_gear_sequence_progress_ms != 0u &&
+           (uint32_t)(now - g_gear_sequence_progress_ms) > GEAR_SEQUENCE_TIMEOUT_MS;
+}
+
+static bool gear_sequence_tick(uint32_t now, const char *name) {
+    if (!gear_sequence_active()) return false;
+    if (g_gear_sequence_next_ms != 0u &&
+        (int32_t)(now - g_gear_sequence_next_ms) < 0) {
+        return false;
+    }
+    return send_next_gear_sequence_from_cached_counter(name);
+}
+
+static bool arm_gear_ap_double_press_sequence(uint32_t now) {
+    g_gear_sequence[0] = SIG_GEAR_LEVER_FULL_DOWN;
+    g_gear_sequence[1] = SIG_GEAR_LEVER_CENTER;
+    g_gear_sequence[2] = SIG_GEAR_LEVER_FULL_DOWN;
+    g_gear_sequence[3] = SIG_GEAR_LEVER_CENTER;
+    g_gear_sequence_len = 4;
+    g_gear_sequence_index = 0;
+    g_gear_sequence_progress_ms = now;
+    g_gear_sequence_next_ms = now;
+    return gear_sequence_tick(now, "CONT-AP");
+}
+
+#if defined(CAN_DRIVER_T2CAN_DUAL)
+static void debug_log_bus_stats() {
+    Serial.printf("[CAN] RX can0=%lu can1=%lu TX can0=%lu can1=%lu Err can0=%lu can1=%lu\n",
+                  (unsigned long)(g_can[0] ? g_can[0]->rxCount() : 0),
+                  (unsigned long)(g_can[1] ? g_can[1]->rxCount() : 0),
+                  (unsigned long)(g_can[0] ? g_can[0]->txCount() : 0),
+                  (unsigned long)(g_can[1] ? g_can[1]->txCount() : 0),
+                  (unsigned long)(g_can[0] ? g_can[0]->errorCount() : 0),
+                  (unsigned long)(g_can[1] ? g_can[1]->errorCount() : 0));
+}
+#endif
+
+static const char *hw_to_str(TeslaHWVersion hw) {
+    switch (hw) {
+        case TeslaHW_HW4:    return "HW4";
+        case TeslaHW_HW3:    return "HW3";
+        case TeslaHW_Legacy: return "Legacy";
+        default:             return "?";
+    }
+}
+
+static uint8_t epas_hands_on_level(const CanFrame &frame) {
+    return (frame.data[SIG_EPAS_HANDS_ON_BYTE] >> SIG_EPAS_HANDS_ON_SHIFT) &
+           SIG_EPAS_HANDS_ON_MASK;
+}
+
+static uint8_t epas_counter(const CanFrame &frame) {
+    return frame.data[SIG_EPAS_COUNTER_BYTE] & SIG_EPAS_COUNTER_MASK;
+}
+
+static void debug_log_das_status(CanBusId bus, uint32_t source_id, const FSDState &state) {
+    static bool initialized = false;
+    static uint32_t last_ms = 0;
+    static CanBusId last_bus = CAN_BUS_PRIMARY;
+    static uint32_t last_source_id = 0;
+    static TeslaHWVersion last_hw = TeslaHW_Unknown;
+    static bool last_ap_active = false;
+    static uint8_t last_ap_state = 0;
+    static uint8_t last_hands_state = 0;
+
+    uint32_t now = millis();
+    bool changed =
+        !initialized ||
+        last_bus != bus ||
+        last_source_id != source_id ||
+        last_hw != state.hw_version ||
+        last_ap_active != state.ap_active ||
+        last_ap_state != state.das_ap_state ||
+        last_hands_state != state.das_hands_on_state;
+
+    if (!changed && (now - last_ms) < 5000u) return;
+
+    Serial.printf("[DAS] bus=%s src=0x%03lX hw=%s ap=%s ap_state=%u hands=%u lane=%u cnt=%u chk=0x%02X\n",
+                  can_bus_name(bus),
+                  (unsigned long)source_id,
+                  hw_to_str(state.hw_version),
+                  state.ap_active ? "ON" : "wait",
+                  state.das_ap_state,
+                  state.das_hands_on_state,
+                  state.das_lane_change_state,
+                  state.das_counter,
+                  state.das_checksum);
+
+    initialized = true;
+    last_ms = now;
+    last_bus = bus;
+    last_source_id = source_id;
+    last_hw = state.hw_version;
+    last_ap_active = state.ap_active;
+    last_ap_state = state.das_ap_state;
+    last_hands_state = state.das_hands_on_state;
+}
+
+static void debug_log_bms_seen(CanBusId bus, uint32_t frame_id, const FSDState &state) {
+    static bool seen[CAN_ACTIVE_BUS_COUNT][3] = {};
+    uint8_t bus_i = bus_index(bus);
+    uint8_t id_i;
+    if (frame_id == CAN_ID_BMS_HV_BUS) {
+        id_i = 0;
+    } else if (frame_id == CAN_ID_BMS_SOC) {
+        id_i = 1;
+    } else if (frame_id == CAN_ID_BMS_THERMAL) {
+        id_i = 2;
+    } else {
+        return;
+    }
+    if (bus_i >= CAN_ACTIVE_BUS_COUNT || seen[bus_i][id_i]) return;
+    seen[bus_i][id_i] = true;
+
+    Serial.printf("[BMS] first %s frame=0x%03lX hv=%lu soc=%lu thermal=%lu\n",
+                  can_bus_name(bus),
+                  (unsigned long)frame_id,
+                  (unsigned long)state.seen_bms_hv,
+                  (unsigned long)state.seen_bms_soc,
+                  (unsigned long)state.seen_bms_thermal);
+}
+
+typedef enum {
+    NagDebug_Disabled = 0,
+    NagDebug_ApInactive,
+    NagDebug_HandsOk,
+    NagDebug_DasSatisfied,
+    NagDebug_NotFired,
+    NagDebug_TxBlocked,
+    NagDebug_BuiltNoTx,
+    NagDebug_TxFailed,
+    NagDebug_TxEcho,
+} NagDebugReason;
+
+static const char *nag_debug_reason_name(NagDebugReason reason) {
+    switch (reason) {
+        case NagDebug_Disabled:     return "disabled";
+        case NagDebug_ApInactive:   return "ap_inactive";
+        case NagDebug_HandsOk:      return "hands_ok";
+        case NagDebug_DasSatisfied: return "das_satisfied";
+        case NagDebug_NotFired:     return "not_fired";
+        case NagDebug_TxBlocked:    return "tx_blocked";
+        case NagDebug_BuiltNoTx:    return "built_no_tx";
+        case NagDebug_TxFailed:     return "tx_failed";
+        case NagDebug_TxEcho:       return "tx_echo";
+        default:                    return "?";
+    }
+}
+
+static NagDebugReason nag_debug_reason(const FSDState &state,
+                                       uint8_t epas_hands,
+                                       bool fired,
+                                       bool tx_allowed,
+                                       bool sent) {
+    if (fired) {
+        if (sent) return NagDebug_TxEcho;
+        return tx_allowed ? NagDebug_TxFailed : NagDebug_BuiltNoTx;
+    }
+    if (!tx_allowed) return NagDebug_TxBlocked;
+    if (!state.nag_killer) return NagDebug_Disabled;
+    if (!state.ap_active) return NagDebug_ApInactive;
+    if (epas_hands == SIG_EPAS_HANDS_ON_OK) return NagDebug_HandsOk;
+    if (state.das_seen &&
+        (state.das_hands_on_state == SIG_DAS_HANDS_ON_NOT_REQUIRED ||
+         state.das_hands_on_state == SIG_DAS_HANDS_ON_SUSPENDED)) {
+        return NagDebug_DasSatisfied;
+    }
+    return NagDebug_NotFired;
+}
+
+static void debug_log_nag_decision(CanBusId bus,
+                                   const CanFrame &frame,
+                                   const CanFrame &echo,
+                                   bool fired,
+                                   bool tx_allowed,
+                                   bool sent,
+                                   const FSDState &before,
+                                   const FSDState &after) {
+    static bool initialized = false;
+    static uint32_t last_ms = 0;
+    static CanBusId last_bus = CAN_BUS_PRIMARY;
+    static NagDebugReason last_reason = NagDebug_NotFired;
+    static uint8_t last_epas_hands = 0xFFu;
+    static uint8_t last_das_hands = 0xFFu;
+    static bool last_ap_active = false;
+
+    uint32_t now = millis();
+    uint8_t hands = epas_hands_on_level(frame);
+    NagDebugReason reason = nag_debug_reason(before, hands, fired, tx_allowed, sent);
+    bool nag_relevant = fired || hands != SIG_EPAS_HANDS_ON_OK;
+    bool changed =
+        !initialized ||
+        last_bus != bus ||
+        last_reason != reason ||
+        last_epas_hands != hands ||
+        last_das_hands != before.das_hands_on_state ||
+        last_ap_active != before.ap_active;
+
+    if (!nag_relevant && !changed) return;
+    if (!changed && (now - last_ms) < 1000u) return;
+
+    if (fired) {
+        Serial.printf("[NAG] bus=%s %s epas_lvl=%u cnt=%u tx=%u ap=%u das_seen=%u das=%u echo_cnt=%u echo_chk=0x%02X echoes=%lu\n",
+                      can_bus_name(bus),
+                      nag_debug_reason_name(reason),
+                      hands,
+                      epas_counter(frame),
+                      tx_allowed ? 1 : 0,
+                      before.ap_active ? 1 : 0,
+                      before.das_seen ? 1 : 0,
+                      before.das_hands_on_state,
+                      epas_counter(echo),
+                      echo.data[7],
+                      (unsigned long)after.nag_echo_count);
+    } else {
+        Serial.printf("[NAG] bus=%s skip=%s epas_lvl=%u cnt=%u tx=%u ap=%u das_seen=%u das=%u echoes=%lu\n",
+                      can_bus_name(bus),
+                      nag_debug_reason_name(reason),
+                      hands,
+                      epas_counter(frame),
+                      tx_allowed ? 1 : 0,
+                      before.ap_active ? 1 : 0,
+                      before.das_seen ? 1 : 0,
+                      before.das_hands_on_state,
+                      (unsigned long)after.nag_echo_count);
+    }
+
+    initialized = true;
+    last_ms = now;
+    last_bus = bus;
+    last_reason = reason;
+    last_epas_hands = hands;
+    last_das_hands = before.das_hands_on_state;
+    last_ap_active = before.ap_active;
+}
+
 static void apply_detected_hw(TeslaHWVersion hw, const char *reason) {
     if (hw == TeslaHW_Unknown) return;
     state_enter();
@@ -186,6 +524,290 @@ static void apply_detected_hw(TeslaHWVersion hw, const char *reason) {
         (hw == TeslaHW_HW3) ? "HW3" : "Legacy";
     Serial.printf("[HW] Auto-detected: %s (%s)\n", hw_str, reason);
     can_dump_log("HW  auto-detected: %s (%s)", hw_str, reason);
+}
+
+static const char *continuous_ap_state_name(ContinuousApFlowState state) {
+    switch (state) {
+        case ContAp_WaitSignalOff: return "wait_signal_off";
+        case ContAp_WaitApReady:   return "wait_ap_ready";
+        case ContAp_Attempting:    return "attempting";
+        case ContAp_Idle:
+        default:                   return "idle";
+    }
+}
+
+static void continuous_ap_reset(const char *reason) {
+    if (g_cont_ap_state != ContAp_Idle || g_cont_ap_attempts != 0u) {
+        Serial.printf("[CONT-AP] stop: %s (state=%s attempts=%u)\n",
+                      reason,
+                      continuous_ap_state_name(g_cont_ap_state),
+                      (unsigned)g_cont_ap_attempts);
+    }
+    g_cont_ap_state = ContAp_Idle;
+    g_cont_ap_signal_off_ms = 0u;
+    g_cont_ap_attempt_ms = 0u;
+    g_cont_ap_torque_high_ms = 0u;
+    g_cont_ap_attempts = 0u;
+    clear_gear_sequence();
+}
+
+static bool continuous_ap_turn_signal_active(const FSDState &s) {
+    return s.turn_status_seen && (s.left_turn_active || s.right_turn_active);
+}
+
+static bool continuous_ap_turn_signal_off(const FSDState &s) {
+    return s.turn_status_seen && !s.left_turn_active && !s.right_turn_active;
+}
+
+static bool continuous_ap_steering_torque_high(const FSDState &s) {
+    if (!s.torsion_bar_torque_seen) return false;
+    return s.torsion_bar_torque_nm >= CONT_AP_STEERING_TORQUE_ABORT_NM ||
+           s.torsion_bar_torque_nm <= -CONT_AP_STEERING_TORQUE_ABORT_NM;
+}
+
+static bool continuous_ap_torque_allows(uint32_t now, const FSDState &s) {
+    if (!continuous_ap_steering_torque_high(s)) {
+        g_cont_ap_torque_high_ms = 0u;
+        return true;
+    }
+
+    if (g_cont_ap_torque_high_ms == 0u) {
+        g_cont_ap_torque_high_ms = now;
+        if (g_cont_ap_state != ContAp_Idle) {
+            Serial.printf("[CONT-AP] steering torque high %.2f Nm; waiting\n",
+                          s.torsion_bar_torque_nm);
+        }
+    }
+
+    if (g_cont_ap_state != ContAp_Idle &&
+        (uint32_t)(now - g_cont_ap_torque_high_ms) > CONT_AP_STEERING_TORQUE_TIMEOUT_MS) {
+        Serial.printf("[CONT-AP] steering torque high timeout %.2f Nm\n",
+                      s.torsion_bar_torque_nm);
+        continuous_ap_reset("steering torque high");
+    }
+    return false;
+}
+
+static bool continuous_ap_brake_recent(uint32_t now, const FSDState &s) {
+    if (s.driver_brake_applied) return true;
+    return g_cont_ap_last_brake_ms != 0u &&
+           (uint32_t)(now - g_cont_ap_last_brake_ms) <= CONT_AP_BRAKE_RECENT_MS;
+}
+
+static bool continuous_ap_brake_allows(uint32_t now, const FSDState &s) {
+    // Fail closed: the brake kill switch reads 0x145 (ESP_status). Until at least
+    // one 0x145 frame is seen we cannot prove the pedal is released, so refuse to
+    // engage rather than silently dropping the interlock on a bus without 0x145.
+    if (!s.brake_status_seen) {
+        if (g_cont_ap_state != ContAp_Idle) {
+            Serial.println("[CONT-AP] brake status (0x145) not seen; refusing to engage");
+            continuous_ap_reset("brake status unseen");
+        }
+        return false;
+    }
+    if (!continuous_ap_brake_recent(now, s)) return true;
+
+    if (g_cont_ap_state != ContAp_Idle) {
+        Serial.println("[CONT-AP] brake pedal kill switch");
+        continuous_ap_reset("brake pedal");
+    }
+    return false;
+}
+
+static bool continuous_ap_stalk_stop_recent(uint32_t now, const FSDState &s) {
+    uint32_t last = s.stalk_full_up_ms;
+    if (g_cont_ap_last_stalk_full_up_ms != 0u &&
+        (last == 0u || (int32_t)(g_cont_ap_last_stalk_full_up_ms - last) > 0)) {
+        last = g_cont_ap_last_stalk_full_up_ms;
+    }
+    return last != 0u && (uint32_t)(now - last) <= CONT_AP_STALK_STOP_RECENT_MS;
+}
+
+static bool continuous_ap_stalk_stop_allows(uint32_t now, const FSDState &s) {
+    if (!continuous_ap_stalk_stop_recent(now, s)) return true;
+
+    if (g_cont_ap_state != ContAp_Idle) {
+        Serial.println("[CONT-AP] right stalk full-up kill switch");
+        continuous_ap_reset("right stalk full-up");
+    }
+    return false;
+}
+
+static void continuous_ap_hw3_legacy_start_attempt(uint32_t now) {
+    g_cont_ap_attempts++;
+    g_cont_ap_attempt_ms = now;
+    g_cont_ap_state = ContAp_Attempting;
+    bool sent_now = arm_gear_ap_double_press_sequence(now);
+    Serial.printf("[CONT-AP] attempt %u/%u: 0x229 full-down double press armed on %s%s\n",
+                  (unsigned)g_cont_ap_attempts,
+                  (unsigned)CONT_AP_MAX_RETRIES,
+                  can_bus_name(preferred_generated_bus(CAN_ID_SCCM_RSTALK)),
+                  sent_now ? " (first frame sent immediately)" : " (waiting for fresh live counter)");
+}
+
+static void continuous_ap_tick_hw3_legacy(uint32_t now,
+                                          const FSDState &s,
+                                          bool ap_disabled_now) {
+    bool torque_allows = continuous_ap_torque_allows(now, s);
+    bool brake_allows = continuous_ap_brake_allows(now, s);
+    bool stalk_stop_allows = continuous_ap_stalk_stop_allows(now, s);
+
+    if (ap_disabled_now) {
+        Serial.printf("[CONT-AP] AP disabled torque=%s%.2f Nm brake=%u stalk_stop=%u turn_active=%u left=%u right=%u\n",
+                      s.torsion_bar_torque_seen ? "" : "unseen:",
+                      s.torsion_bar_torque_seen ? s.torsion_bar_torque_nm : 0.0f,
+                      continuous_ap_brake_recent(now, s) ? 1u : 0u,
+                      continuous_ap_stalk_stop_recent(now, s) ? 1u : 0u,
+                      continuous_ap_turn_signal_active(s) ? 1u : 0u,
+                      s.left_turn_active ? 1u : 0u,
+                      s.right_turn_active ? 1u : 0u);
+    }
+
+    if (ap_disabled_now && continuous_ap_turn_signal_active(s)) {
+        if (!brake_allows) {
+            Serial.println("[CONT-AP] AP disabled with turn signal active, but brake pedal was pressed");
+            return;
+        }
+        if (!stalk_stop_allows) {
+            Serial.println("[CONT-AP] AP disabled with turn signal active, but right stalk full-up was pressed");
+            return;
+        }
+        if (!torque_allows) {
+            Serial.printf("[CONT-AP] AP disabled with turn signal active, but steering torque is high %.2f Nm\n",
+                          s.torsion_bar_torque_nm);
+            return;
+        }
+        g_cont_ap_state = ContAp_WaitSignalOff;
+        g_cont_ap_signal_off_ms = 0u;
+        g_cont_ap_attempt_ms = 0u;
+        g_cont_ap_attempts = 0u;
+        clear_gear_sequence();
+        Serial.println("[CONT-AP] AP disabled while turn signal active; waiting for turn signal off");
+    }
+
+    switch (g_cont_ap_state) {
+        case ContAp_Idle:
+            return;
+
+        case ContAp_WaitSignalOff:
+            if (s.ap_active) {
+                continuous_ap_reset("AP already active");
+                return;
+            }
+            if (!brake_allows) return;
+            if (!stalk_stop_allows) return;
+            if (!torque_allows) return;
+            if (continuous_ap_turn_signal_off(s)) {
+                g_cont_ap_signal_off_ms = now;
+                g_cont_ap_state = ContAp_WaitApReady;
+                Serial.println("[CONT-AP] turn signal off; waiting for AP ready");
+            }
+            return;
+
+        case ContAp_WaitApReady:
+            if (s.ap_active) {
+                continuous_ap_reset("AP already active");
+                return;
+            }
+            if ((uint32_t)(now - g_cont_ap_signal_off_ms) > CONT_AP_READY_TIMEOUT_MS) {
+                continuous_ap_reset("AP ready timeout");
+                return;
+            }
+            if (!brake_allows) return;
+            if (!stalk_stop_allows) return;
+            if (!torque_allows) return;
+            if (s.ap_ready) {
+                continuous_ap_hw3_legacy_start_attempt(now);
+            }
+            return;
+
+        case ContAp_Attempting:
+            if (!brake_allows) return;
+            if (!stalk_stop_allows) return;
+            if (!torque_allows) return;
+            gear_sequence_tick(now, "CONT-AP");
+            if (gear_sequence_timed_out(now)) {
+                Serial.println("[CONT-AP] 0x229 sequence timeout");
+                clear_gear_sequence();
+            } else if (gear_sequence_active()) {
+                return;
+            }
+            if (s.ap_active) {
+                continuous_ap_reset("AP active");
+                return;
+            }
+            if ((uint32_t)(now - g_cont_ap_attempt_ms) < CONT_AP_ATTEMPT_RESULT_MS) {
+                return;
+            }
+            if (g_cont_ap_attempts >= CONT_AP_MAX_RETRIES) {
+                continuous_ap_reset("retry limit");
+                return;
+            }
+            if (!s.ap_ready) {
+                if ((uint32_t)(now - g_cont_ap_signal_off_ms) > CONT_AP_READY_TIMEOUT_MS) {
+                    continuous_ap_reset("AP ready timeout");
+                } else {
+                    g_cont_ap_state = ContAp_WaitApReady;
+                    Serial.println("[CONT-AP] AP not ready after attempt; waiting again");
+                }
+                return;
+            }
+            continuous_ap_hw3_legacy_start_attempt(now);
+            return;
+    }
+}
+
+static void continuous_ap_hw4_start_attempt(uint32_t now) {
+    (void)now;
+    // TODO: implement HW4 re-engage frame sequence once HW4 control signals are identified.
+}
+
+static bool continuous_ap_hw4_reengage_allowed(uint32_t now, const FSDState &s) {
+    (void)now;
+    (void)s;
+    // TODO: implement HW4-specific kill switches and preconditions.
+    return false;
+}
+
+static void continuous_ap_tick_hw4(uint32_t now,
+                                   const FSDState &s,
+                                   bool ap_disabled_now) {
+    // TODO: implement HW4 Continuous AP using HW4 turn/AP controls instead of stalk frames.
+    if (ap_disabled_now &&
+        continuous_ap_turn_signal_active(s) &&
+        continuous_ap_hw4_reengage_allowed(now, s)) {
+        continuous_ap_hw4_start_attempt(now);
+    }
+}
+
+static void continuous_ap_tick(uint32_t now) {
+    FSDState s = state_snapshot();
+    bool ap_disabled_now = g_cont_ap_last_ap_active && !s.ap_active;
+    g_cont_ap_last_ap_active = s.ap_active;
+
+    if (!s.continuous_ap) {
+        continuous_ap_reset("disabled");
+        return;
+    }
+
+    if (!fsd_can_transmit(&s)) {
+        continuous_ap_reset("TX disabled");
+        return;
+    }
+
+    switch (s.hw_version) {
+        case TeslaHW_HW4:
+            continuous_ap_tick_hw4(now, s, ap_disabled_now);
+            return;
+        case TeslaHW_HW3:
+        case TeslaHW_Legacy:
+            continuous_ap_tick_hw3_legacy(now, s, ap_disabled_now);
+            return;
+        case TeslaHW_Unknown:
+        default:
+            continuous_ap_reset("HW unknown");
+            return;
+    }
 }
 
 // ── Button state machine ──────────────────────────────────────────────────────
@@ -434,14 +1056,78 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         return;
     }
     // HW4 trims that never broadcast 0x39B carry the hands-on field on 0x399
-    // (same byte5[5:2]); read it as a fallback so the nag gate isn't starved.
-    // Read-only and non-returning — the ISA chime-suppress path below still
-    // handles 0x399 for HW4.
+    // (same byte5[5:2]); read it as a fallback so the nag gate isn't starved (#100).
+    // Read-only and non-returning — the ISA chime-suppress path still handles 0x399.
     if (hw_uses_hw4_das_status(das_state.hw_version) &&
         frame.id == CAN_ID_DAS_STATUS_HW3 && !das_state.das_hw4_status_seen) {
         state_enter();
         fsd_handle_das_handsonly_399(&g_state, &frame);
         state_exit();
+    }
+
+    // ── Continuous AP HW3/Legacy state parsers (read-only, always) ──────────
+    if (frame.id == CAN_ID_SCCM_RSTALK) {
+        FSDState s = state_snapshot();
+        if (s.hw_version != TeslaHW_HW3 && s.hw_version != TeslaHW_Legacy) return;
+        uint32_t now_ms = millis();
+        if (frame.dlc > SIG_GEAR_LEVER_POS_BYTE) {
+            uint8_t gear_pos =
+                (frame.data[SIG_GEAR_LEVER_POS_BYTE] >> SIG_GEAR_LEVER_POS_SHIFT) &
+                SIG_GEAR_LEVER_POS_MASK;
+            if (gear_pos == SIG_GEAR_LEVER_FULL_UP) {
+                g_cont_ap_last_stalk_full_up_ms = now_ms;
+            }
+        }
+        state_enter();
+        fsd_handle_gear_lever(&g_state, &frame, now_ms);
+        if (g_state.stalk_full_up_ms != 0u &&
+            (g_cont_ap_last_stalk_full_up_ms == 0u ||
+             (int32_t)(g_state.stalk_full_up_ms - g_cont_ap_last_stalk_full_up_ms) > 0)) {
+            g_cont_ap_last_stalk_full_up_ms = g_state.stalk_full_up_ms;
+        }
+        state_exit();
+        if (frame.dlc > SIG_GEAR_LEVER_COUNTER_BYTE) {
+            g_last_gear_counter =
+                frame.data[SIG_GEAR_LEVER_COUNTER_BYTE] & SIG_GEAR_LEVER_COUNTER_MASK;
+            g_last_gear_counter_valid = true;
+            g_last_gear_counter_ms = now_ms;
+        }
+        if (frame.dlc > SIG_GEAR_LEVER_COUNTER_BYTE) {
+            if (gear_sequence_active() && fsd_can_transmit(&s)) gear_sequence_tick(now_ms, "CONT-AP");
+        }
+        return;
+    }
+    if (frame.id == CAN_ID_UI_MAP_DATA) {
+        state_enter();
+        fsd_handle_ui_map_data(&g_state, &frame, millis());
+        state_exit();
+        return;
+    }
+    if (frame.id == CAN_ID_DAS_STATUS2) {
+        state_enter();
+        fsd_handle_das_status2(&g_state, &frame, millis());
+        state_exit();
+        return;
+    }
+    if (frame.id == CAN_ID_DAS_CONTROL) {
+        state_enter();
+        fsd_handle_das_control(&g_state, &frame);
+        state_exit();
+        return;
+    }
+    if (frame.id == CAN_ID_VCFRONT_LIGHT) {
+        state_enter();
+        fsd_handle_vcfront_lighting(&g_state, &frame);
+        state_exit();
+        return;
+    }
+    if (frame.id == CAN_ID_ESP_STATUS) {
+        uint32_t now_ms = millis();
+        state_enter();
+        fsd_handle_esp_status(&g_state, &frame);
+        if (g_state.driver_brake_applied) g_cont_ap_last_brake_ms = now_ms;
+        state_exit();
+        return;
     }
 
     // ── Beyond here only run when TX is allowed ───────────────────────────────
@@ -453,6 +1139,7 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (frame.id == CAN_ID_EPAS_STATUS) {
         CanFrame echo;
         state_enter();
+        fsd_handle_epas_status(&g_state, &frame);
         bool fired = tx ? fsd_handle_nag_killer(&g_state, &frame, &echo) : false;
         state_exit();
         if (fired) {
@@ -639,8 +1326,13 @@ void setup() {
 #endif
 
 #if defined(CAN_DRIVER_T2CAN_DUAL)
-    Serial.printf("[CFG] pins: LED=%d BUTTON=%d CAN0_TX=%d CAN0_RX=%d MCP_CS=%d MCP_SCK=%d\n",
-                  PIN_LED, PIN_BUTTON, PIN_CAN_TX, PIN_CAN_RX, PIN_MCP_CS, PIN_MCP_SCK);
+    Serial.printf("[CFG] pins: LED=%d BUTTON=%d can0_TX=%d can0_RX=%d can1_CS=%d can1_SCK=%d can1_MISO=%d can1_MOSI=%d\n",
+                  PIN_LED, PIN_BUTTON, PIN_CAN_TX, PIN_CAN_RX,
+                  PIN_MCP_CS, PIN_MCP_SCK, PIN_MCP_MISO, PIN_MCP_MOSI);
+    Serial.printf("[CFG] TX route: modified frames -> source bus, generated precondition -> %s\n",
+                  can_bus_name(configured_bus_from_index(PRECONDITION_TX_BUS_INDEX)));
+    Serial.printf("[CFG] Continuous AP gear TX route: 0x229 -> %s\n",
+                  can_bus_name(preferred_generated_bus(CAN_ID_SCCM_RSTALK)));
 #elif defined(CAN_DRIVER_TWAI)
     Serial.printf("[CFG] pins: LED=%d BUTTON=%d CAN_TX=%d CAN_RX=%d\n",
                   PIN_LED, PIN_BUTTON, PIN_CAN_TX, PIN_CAN_RX);
@@ -664,6 +1356,7 @@ void setup() {
     g_state.nag_killer            = true;
     g_state.suppress_speed_chime  = true;
     g_state.ignore_ota            = false;
+    g_state.fsd_unlock            = false;
     g_state.emergency_vehicle_detect = false;
     g_state.force_fsd             = false;
     g_state.china_mode            = false;
@@ -742,7 +1435,7 @@ void setup() {
     if (wifi_init(&g_state)) {
         web_dashboard_init(&g_state, g_can, CAN_ACTIVE_BUS_COUNT, &g_state_mux);
         http_can_stream_set_enabled(state_snapshot().op_mode == OpMode_ListenOnly);
-        Serial.println("[SER] Type 'ip' in the serial monitor to print the WiFi address again");
+        Serial.println("[SER] Type 'ip' in the serial monitor to print WiFi URLs again");
     }
 }
 
@@ -778,6 +1471,8 @@ void loop() {
         last_err_ms = now;
     }
 
+    continuous_ap_tick(now);
+
     // ── Precondition frame injection ──────────────────────────────────────────
     static uint32_t last_precond_ms = 0;
     FSDState s = state_snapshot();
@@ -785,7 +1480,7 @@ void loop() {
         (now - last_precond_ms) >= PRECOND_INTERVAL_MS) {
         CanFrame pf;
         fsd_build_precondition_frame(&pf);
-        send_on_bus(bus_id_from_index(PRECONDITION_TX_BUS_INDEX), pf);
+        send_generated_frame(configured_bus_from_index(PRECONDITION_TX_BUS_INDEX), pf);
         last_precond_ms = now;
     }
 
@@ -815,12 +1510,14 @@ void loop() {
             (s.hw_version == TeslaHW_HW3)    ? "HW3"    :
             (s.hw_version == TeslaHW_Legacy)  ? "Legacy" : "?";
         Serial.printf(
-            "[STA] HW:%-6s AP:%-4s FSD_UI:%-4s NAG:%-10s OTA:%-3s "
+            "[STA] HW:%-6s AP:%-4s FSD_UI:%-4s Unlock:%-3s NAG:%-3s Echo:%lu OTA:%-3s "
             "Profile:%d  RX:%lu TX:%lu Mod:%lu Err:%lu\n",
             hw_str,
             s.ap_active       ? "ON"         : "wait",
             s.fsd_enabled     ? "ON"         : "wait",
-            s.nag_suppressed  ? "suppressed"  : "active",
+            s.fsd_unlock      ? "ON"         : "off",
+            s.nag_killer      ? "ON"         : "off",
+            (unsigned long)s.nag_echo_count,
             s.tesla_ota_in_progress ? "YES"  : "no",
             s.speed_profile,
             (unsigned long)s.rx_count,
@@ -877,21 +1574,37 @@ void loop() {
     // ── Full-rate single-ID capture: drive the hardware acceptance filter ─────
     // When a /stream is opened with exactly one ?ids= value, restrict the CAN
     // controller to that id so its RX queue never overflows and every frame is
-    // captured at true full rate. Restore accept-all when the stream ends.
-    // Only ever single in Listen-Only (the stream is disabled in Active mode).
+    // captured at true full rate. If ?bus=can0/can1 is present, scope the
+    // hardware filter to that controller only. Restore accept-all when the
+    // stream ends. Only ever single in Listen-Only (stream is disabled in Active).
     {
-        static bool     s_hw_filter_single = false;
-        static uint32_t s_hw_filter_id     = 0xFFFFFFFFu;
+        static bool     s_hw_filter_single[CAN_ACTIVE_BUS_COUNT] = {};
+        static uint32_t s_hw_filter_id[CAN_ACTIVE_BUS_COUNT] = {};
+        static bool     s_hw_filter_initialized = false;
+        if (!s_hw_filter_initialized) {
+            for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+                s_hw_filter_id[i] = 0xFFFFFFFFu;
+            }
+            s_hw_filter_initialized = true;
+        }
+
         uint32_t want_id = 0;
         bool want_single = http_can_stream_single_filter(&want_id);
-        if (want_single != s_hw_filter_single ||
-            (want_single && want_id != s_hw_filter_id)) {
-            for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
-                if (g_can_ok[i] && g_can[i])
-                    g_can[i]->setAcceptanceFilter(want_single, want_id);
+        CanBusId want_bus = CAN_BUS_PRIMARY;
+        bool want_bus_filter = http_can_stream_bus_filter(&want_bus);
+
+        for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+            CanBusId bus = bus_id_from_index(i);
+            bool bus_want_single = want_single && (!want_bus_filter || bus == want_bus);
+            uint32_t bus_want_id = bus_want_single ? want_id : 0u;
+            if (bus_want_single != s_hw_filter_single[i] ||
+                (bus_want_single && bus_want_id != s_hw_filter_id[i])) {
+                if (g_can_ok[i] && g_can[i]) {
+                    g_can[i]->setAcceptanceFilter(bus_want_single, bus_want_id);
+                    s_hw_filter_single[i] = bus_want_single;
+                    s_hw_filter_id[i] = bus_want_id;
+                }
             }
-            s_hw_filter_single = want_single;
-            s_hw_filter_id     = want_id;
         }
     }
 

@@ -26,6 +26,7 @@ class TwaiDriver : public CanDriver {
     bool     listen_only_ = false;
     bool     installed_   = false;
     uint32_t tx_count_    = 0;
+    uint32_t rx_count_    = 0;
     bool     filter_single_ = false;  // accept only filter_id_ when true
     uint32_t filter_id_     = 0;      // standard 11-bit id for single-id capture
 
@@ -34,9 +35,8 @@ class TwaiDriver : public CanDriver {
             (gpio_num_t)tx_pin_,
             (gpio_num_t)rx_pin_,
             listen_only ? TWAI_MODE_LISTEN_ONLY : TWAI_MODE_NORMAL);
-        // Queue depths: 64 RX (a busy Vehicle CAN can deliver thousands of
-        // frames/s; a deeper queue cuts controller-level drops between loop
-        // iterations), 5 TX.
+        // Queue depths: 64 RX (busy Vehicle CAN can deliver thousands of
+        // frames/s; a deeper queue cuts controller-level drops), 5 TX.
         g.rx_queue_len = 64;
         g.tx_queue_len = 5;
 
@@ -102,6 +102,7 @@ public:
         frame.id  = msg.identifier;
         frame.dlc = msg.data_length_code;
         memcpy(frame.data, msg.data, frame.dlc);
+        rx_count_++;
         return true;
     }
 
@@ -112,6 +113,8 @@ public:
     }
 
     uint32_t txCount() override { return tx_count_; }
+
+    uint32_t rxCount() override { return rx_count_; }
 
     void setListenOnly(bool enable) override {
         if (listen_only_ == enable) return;
@@ -172,6 +175,7 @@ class Mcp2515Driver : public CanDriver {
     bool     chip_detected_ = false;
     uint32_t err_count_    = 0;
     uint32_t tx_count_     = 0;
+    uint32_t rx_count_     = 0;
 
 public:
 #if defined(BOARD_TTGO_DISPLAY)
@@ -284,6 +288,7 @@ public:
         frame.id  = f.can_id & CAN_EFF_MASK;
         frame.dlc = f.can_dlc;
         memcpy(frame.data, f.data, f.can_dlc);
+        rx_count_++;
         return true;
     }
 
@@ -292,6 +297,8 @@ public:
     }
 
     uint32_t txCount() override { return tx_count_; }
+
+    uint32_t rxCount() override { return rx_count_; }
 
     void setListenOnly(bool enable) override {
         if (!installed_ || listen_only_ == enable) return;
@@ -320,7 +327,7 @@ public:
         for (uint8_t i = 0; i < 6; i++) {
             ok &= (mcp_.setFilter(rxf[i], false, fid) == MCP2515::ERROR_OK);
         }
-        // setFilter* leave the chip in CONFIG mode — restore the prior run mode.
+        // setFilter* leave the chip in CONFIG mode; restore the prior run mode.
         MCP2515::ERROR merr = listen_only_ ? mcp_.setListenOnlyMode() : mcp_.setNormalMode();
         ok &= (merr == MCP2515::ERROR_OK);
         if (!ok) {

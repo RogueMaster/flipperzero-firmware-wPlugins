@@ -310,7 +310,7 @@ For the Flipper: yes, any MCP2515-based module (Electronic Cats, generic boards)
 
 | Project | What it is | Hardware |
 |---------|------------|----------|
-| [ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools) | The upstream community project, now on GitHub. Formerly `Tesla-OPEN-CAN-MOD` on GitLab — that group was renamed to `ev-open-can-tools` (the GitLab repo is still live via redirect) and active development moved to GitHub. | RP2040 CAN, Feather M4, ESP32 |
+| [ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools) | The upstream community project. Active development is on GitHub (v3.0.x, GPL-3.0). Formerly `Tesla-OPEN-CAN-MOD` on GitLab; that group was renamed to `ev-open-can-tools` and the GitLab repo is now dormant (0 open issues/MRs, last commit 2026-04-25) — track the GitHub repo. | RP2040 CAN, Feather M4, ESP32 |
 | [dzid26/ESP32-DualCAN](https://github.com/dzid26/ESP32-DualCAN) | "Dorky Commander" — open-source hardware alternative to the S3XY Commander | ESP32 + dual CAN |
 | [tuncasoftbildik/tesla-can-mod](https://github.com/tuncasoftbildik/tesla-can-mod) | Arduino reference implementation with frame templates | Arduino + MCP2515 |
 | [tumik/S3XY-candump](https://github.com/tumik/S3XY-candump) | Python CAN dump tool via S3XY Commander (Panda protocol) | Commander dongle |

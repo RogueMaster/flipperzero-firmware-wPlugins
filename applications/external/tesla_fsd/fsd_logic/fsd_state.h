@@ -13,6 +13,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef enum {
+    SpeedLimitSource_None = 0,
+    SpeedLimitSource_Map,
+    SpeedLimitSource_Vision,
+    SpeedLimitSource_Acc,
+} SpeedLimitSource;
+
 typedef struct FSDState {
     TeslaHWVersion hw_version;
     int speed_profile;
@@ -22,11 +29,13 @@ typedef struct FSDState {
     uint32_t frames_modified;
 
     bool force_fsd;
+    bool fsd_unlock; // enables core 0x3FD/0x3EE FSD activation TX
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
     bool nag_killer; // CAN 880 counter echo method
     uint32_t nag_echo_count;
     bool nag_demand_active; // true while handsOnLevel == 0 or 3 — edge-detect source for on-demand grip pulse
+    bool continuous_ap; // re-enable AP after AP drops while turn signal is active
 
     // operation mode + diagnostics
     OpMode op_mode;
@@ -53,7 +62,10 @@ typedef struct FSDState {
     uint8_t ui_speed; // from 0x257 DI_uiSpeed (8-bit, display value)
     uint8_t steering_tune_mode; // from 0x370 EPAS3S_currentTuneMode (0-6)
     float torsion_bar_torque_nm; // from 0x370 EPAS3S_torsionBarTorque
+    bool torsion_bar_torque_seen;
     bool driver_brake_applied; // from 0x145 ESP_driverBrakeApply
+    bool brake_status_seen; // true once a 0x145 ESP_status frame is parsed
+        // (lets the continuous-AP brake interlock fail closed)
     bool speed_seen; // true once we've parsed at least one 0x257
     uint32_t last_speed_tick_ms; // ms clock when the last 0x257 was seen (TX interlock freshness)
 
@@ -190,9 +202,9 @@ typedef struct FSDState {
     // Wi-Fi (ESP32 web dashboard)
     char wifi_ssid[33]; // max 32 chars + null
     char wifi_pass[65]; // max 64 chars + null
+    char wifi_sta_ssid[33]; // optional station SSID
+    char wifi_sta_pass[65]; // optional station password
     bool wifi_hidden;
-    char wifi_sta_ssid[33]; // optional infrastructure WiFi SSID
-    char wifi_sta_pass[65]; // optional infrastructure WiFi password
 
     // 2026.14.x firmware warning (persisted in NVS on ESP32)
     bool firmware_14x_warning;
@@ -203,6 +215,24 @@ typedef struct FSDState {
     uint8_t das_lane_change_state;
     uint8_t das_counter;
     uint8_t das_checksum;
+
+    // Continuous AP / read-only driver-assist state
+    uint32_t stalk_full_up_ms;
+    bool ap_ready;
+    bool cruise_set_speed_seen;
+    float cruise_set_speed_kph;
+    bool speed_limit_seen;
+    float speed_limit_kph;
+    SpeedLimitSource speed_limit_source;
+    uint32_t speed_limit_last_ms;
+    bool left_turn_active;
+    bool right_turn_active;
+    bool left_turn_status_seen;
+    bool right_turn_status_seen;
+    bool turn_status_seen;
+    float map_speed_limit_kph;
+    float vision_speed_limit_kph;
+    float acc_speed_limit_kph;
 
     // T-Display (ESP32 BOARD_TTGO_DISPLAY); kept unconditionally so the struct
     // layout is identical across boards.

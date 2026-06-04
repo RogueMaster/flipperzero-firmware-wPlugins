@@ -29,6 +29,8 @@ static uint16_t   g_tail = 0;
 static StreamFrame g_ring[HTTP_CAN_STREAM_RING_SIZE];
 static uint32_t   g_filter_ids[HTTP_CAN_STREAM_MAX_FILTER_IDS];
 static uint8_t    g_filter_count = 0;
+static bool       g_bus_filter_enabled = false;
+static CanBusId   g_bus_filter = CAN_BUS_PRIMARY;
 
 static uint16_t ring_next(uint16_t index) {
     return (uint16_t)((index + 1u) % HTTP_CAN_STREAM_RING_SIZE);
@@ -52,8 +54,14 @@ static void ring_reset() {
     g_tail = 0;
 }
 
-static void filter_reset() {
+static void id_filter_reset() {
     g_filter_count = 0;
+}
+
+static void stream_filter_reset() {
+    g_filter_count = 0;
+    g_bus_filter_enabled = false;
+    g_bus_filter = CAN_BUS_PRIMARY;
 }
 
 static bool filter_matches(uint32_t id) {
@@ -93,7 +101,7 @@ static bool url_decode(char *s) {
 }
 
 static bool parse_filter(char *filter) {
-    filter_reset();
+    id_filter_reset();
     if (filter == nullptr || filter[0] == '\0') return true;
     if (!url_decode(filter)) return false;
 
@@ -137,21 +145,46 @@ static bool parse_filter(char *filter) {
     }
 }
 
+static bool parse_bus_filter(char *filter) {
+    if (filter == nullptr || filter[0] == '\0') return false;
+    if (!url_decode(filter)) return false;
+
+    for (char *p = filter; *p; p++) {
+        if (*p >= 'A' && *p <= 'Z') *p = (char)(*p - 'A' + 'a');
+    }
+
+    if (strcmp(filter, "can0") == 0 || strcmp(filter, "0") == 0 ||
+        strcmp(filter, "primary") == 0) {
+        g_bus_filter_enabled = true;
+        g_bus_filter = CAN_BUS_PRIMARY;
+        return true;
+    }
+    if (strcmp(filter, "can1") == 0 || strcmp(filter, "1") == 0 ||
+        strcmp(filter, "secondary") == 0) {
+        g_bus_filter_enabled = true;
+        g_bus_filter = CAN_BUS_SECONDARY;
+        return true;
+    }
+    return false;
+}
+
 static bool configure_filter_from_path(char *path) {
     char *query = strchr(path, '?');
     if (query == nullptr) {
-        filter_reset();
+        stream_filter_reset();
         return true;
     }
 
     *query++ = '\0';
-    filter_reset();
+    stream_filter_reset();
     char *param = query;
     while (param != nullptr && *param != '\0') {
         char *next = strchr(param, '&');
         if (next) *next++ = '\0';
         if (strncmp(param, "ids=", 4) == 0) {
-            return parse_filter(param + 4);
+            if (!parse_filter(param + 4)) return false;
+        } else if (strncmp(param, "bus=", 4) == 0) {
+            if (!parse_bus_filter(param + 4)) return false;
         }
         param = next;
     }
@@ -200,8 +233,10 @@ static void begin_stream(WiFiClient &client) {
     g_client.print("X-Content-Type-Options: nosniff\r\n");
     g_client.print("Connection: close\r\n\r\n");
     g_active = true;
-    Serial.printf("[HTTP-CAN] Stream started on :%u/stream filter_ids=%u\n",
-                  HTTP_CAN_STREAM_PORT, g_filter_count);
+    Serial.printf("[HTTP-CAN] Stream started on :%u/stream filter_ids=%u bus=%s\n",
+                  HTTP_CAN_STREAM_PORT,
+                  g_filter_count,
+                  g_bus_filter_enabled ? can_bus_name(g_bus_filter) : "all");
 }
 
 static bool parse_request_path(WiFiClient &client, char *path, size_t path_len) {
@@ -249,17 +284,23 @@ static void accept_client() {
     uint8_t old_filter_count = g_filter_count;
     uint32_t old_filter_ids[HTTP_CAN_STREAM_MAX_FILTER_IDS];
     memcpy(old_filter_ids, g_filter_ids, sizeof(old_filter_ids));
+    bool old_bus_filter_enabled = g_bus_filter_enabled;
+    CanBusId old_bus_filter = g_bus_filter;
 
     if (!configure_filter_from_path(path)) {
         g_filter_count = old_filter_count;
         memcpy(g_filter_ids, old_filter_ids, sizeof(g_filter_ids));
-        send_response(incoming, 400, "Bad Request", "Invalid ids filter\n");
+        g_bus_filter_enabled = old_bus_filter_enabled;
+        g_bus_filter = old_bus_filter;
+        send_response(incoming, 400, "Bad Request", "Invalid stream filter\n");
         return;
     }
 
     if (strcmp(path, "/stream") != 0 && strcmp(path, "/canlog/stream") != 0) {
         g_filter_count = old_filter_count;
         memcpy(g_filter_ids, old_filter_ids, sizeof(g_filter_ids));
+        g_bus_filter_enabled = old_bus_filter_enabled;
+        g_bus_filter = old_bus_filter;
         send_response(incoming, 404, "Not Found", "Not Found\n");
         return;
     }
@@ -348,6 +389,10 @@ void http_can_stream_update() {
 
 void http_can_stream_record(CanBusId bus, const CanFrame &frame) {
     if (!g_enabled || !g_active || !g_client.connected()) return;
+    if (g_bus_filter_enabled && bus != g_bus_filter) {
+        g_filtered++;
+        return;
+    }
     if (!filter_matches(frame.id)) {
         g_filtered++;
         return;
@@ -386,6 +431,13 @@ bool http_can_stream_single_filter(uint32_t *id_out) {
     if (!g_enabled || !g_active || !g_client.connected()) return false;
     if (g_filter_count != 1) return false;
     if (id_out) *id_out = g_filter_ids[0];
+    return true;
+}
+
+bool http_can_stream_bus_filter(CanBusId *bus_out) {
+    if (!g_enabled || !g_active || !g_client.connected()) return false;
+    if (!g_bus_filter_enabled) return false;
+    if (bus_out) *bus_out = g_bus_filter;
     return true;
 }
 

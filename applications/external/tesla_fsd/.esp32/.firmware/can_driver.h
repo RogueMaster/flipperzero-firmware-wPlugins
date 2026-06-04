@@ -37,6 +37,9 @@ public:
     /** Cumulative count of frames successfully transmitted on the bus. */
     virtual uint32_t txCount() = 0;
 
+    /** Cumulative count of frames received from the bus. */
+    virtual uint32_t rxCount() = 0;
+
     /** Switch between listen-only and normal TX mode at runtime.
      *  Implementations must reinitialise the hardware as needed. */
     virtual void setListenOnly(bool enable) = 0;
