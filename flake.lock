@@ -1,0 +1,48 @@
+{
+  "nodes": {
+    "f6-appkit": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780691175,
+        "narHash": "sha256-QiuxFxTFBI0aPuFksvbJR2ffJSNM7vvXXPlXc5D6iCw=",
+        "owner": "dappermint",
+        "repo": "wlipurk-appkit",
+        "rev": "ef5455cd3b2a1b33ad20ca43f489604f95a3f981",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dappermint",
+        "repo": "wlipurk-appkit",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1780365719,
+        "narHash": "sha256-QfWfccTN+70ZQ4m2qlU9PiKfz2Yppq94058iJyARNwc=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "ffa10e26ae11d676b2db836259889f1f571cb14f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "f6-appkit": "f6-appkit",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
