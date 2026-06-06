@@ -13,7 +13,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/maxwalks/subhound.git
-    commit_sha: REPLACE_WITH_FINAL_COMMIT_SHA
+    commit_sha: 2186edea5312c79c19d37b7e527267856d30c319
     subdir: flipper-app
 short_description: Classify Flipper SubGhz BinRAW captures on-device
 description: "@README.md"
