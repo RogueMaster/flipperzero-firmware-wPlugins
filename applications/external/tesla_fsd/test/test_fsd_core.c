@@ -373,6 +373,36 @@ static void test_nag_killer(void) {
     s.das_hands_on_state = 0xFF;
     s.nag_killer = false;
     CHECK(fsd_handle_nag_killer(&s, &in, &out2) == false, "nag skips when disabled");
+
+    // --- DAS escalation edge re-arms the grip pulse even when EPAS handsOnLevel
+    //     is frozen at 0 (HW4 Juniper trims, #100). das stepping up must fire a
+    //     fresh strong pulse on each rising edge, not just once. ---
+    FSDState e;
+    memset(&e, 0, sizeof(e));
+    e.nag_killer = true;
+    e.das_prev_hands_on_state = 0xFF;
+    CANFRAME ein, eout;
+    zero(&ein);
+    ein.data_lenght = 8;
+    ein.buffer[4] = 0x00; // handsOnLevel frozen at 0, as on the affected trims
+
+    // hold das=2 and drain any in-flight grip pulse until torque is in walk range
+    // (pulse ~2350, walk clamped to <=2290) so the next edge is detectable.
+    e.das_hands_on_state = 2;
+    int ntorq = 9999;
+    for(int i = 0; i < 30 && ntorq > 2290; i++) {
+        zero(&eout);
+        fsd_handle_nag_killer(&e, &ein, &eout);
+        ntorq = ((eout.buffer[2] & 0x0F) << 8) | eout.buffer[3];
+    }
+    CHECK(ntorq <= 2290, "nag drained to walk range before edge, torq=%d", ntorq);
+
+    // das 2 -> 3 rising edge must fire a fresh grip pulse despite frozen handsOnLevel
+    e.das_hands_on_state = 3;
+    zero(&eout);
+    CHECK(fsd_handle_nag_killer(&e, &ein, &eout), "nag echo on das 2->3 edge");
+    int ntorq2 = ((eout.buffer[2] & 0x0F) << 8) | eout.buffer[3];
+    CHECK(ntorq2 > 2290, "das 2->3 re-arms grip pulse (#100), torq=%d", ntorq2);
 }
 
 // ── shared stateless ops (china_mode path the Flipper wrapper can't reach) ────

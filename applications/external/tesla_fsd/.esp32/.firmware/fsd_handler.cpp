@@ -37,6 +37,7 @@ static bool is_fsd_selected(const CanFrame *frame, bool force_fsd, bool china_mo
 void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     memset(state, 0, sizeof(FSDState));
     fsd_apply_hw_version(state, hw);
+    state->das_prev_hands_on_state = 0xFF;  // nag escalation-edge baseline (#100)
     state->op_mode    = OpMode_ListenOnly;  // safe default — never TX on boot
 
     // Feature flags: nag killer and chime suppress default ON; others OFF
@@ -335,12 +336,28 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
                        SIG_EPAS_HANDS_ON_MASK;
     if (hands_on == SIG_EPAS_HANDS_ON_OK) return false;
 
-    // DAS-aware gating — skip echo when DAS itself is satisfied.
-    if (state->das_seen) {
-        uint8_t das = state->das_hands_on_state;
-        if (das == SIG_DAS_HANDS_ON_NOT_REQUIRED || das == SIG_DAS_HANDS_ON_SUSPENDED)
-            return false;
+    // DAS-aware gating + escalation-edge tracking. Track das every frame so a
+    // satisfied (0) wave resets the baseline for the next 0->2 rising edge (#100).
+    uint8_t das = state->das_hands_on_state;
+    uint8_t das_prev = state->das_prev_hands_on_state;
+    state->das_prev_hands_on_state = das;
+    if (state->das_seen &&
+        (das == SIG_DAS_HANDS_ON_NOT_REQUIRED || das == SIG_DAS_HANDS_ON_SUSPENDED))
+        return false;
+
+    // On-demand grip pulse — fire a strong excursion when a nag demand appears,
+    // via EPAS handsOnLevel (0=imminent, 3=escalated) OR a DAS escalation edge.
+    // On some HW4 trims (#100) EPAS byte4 is frozen at 0, so the only signal that
+    // moves is das stepping 0->2->3; the DAS edge re-arms the pulse on each wave.
+    // Mirrors the Flipper fsd_handle_nag_killer logic. Source: #100. The ESP32
+    // path previously had no on-demand pulse at all (only the periodic walk).
+    bool das_escalation = state->das_seen && (das_prev == 0xFFu || das > das_prev);
+    bool demand_now = (hands_on == 0u || hands_on == 3u);
+    if ((das_escalation || (demand_now && !state->nag_demand_active)) && nag_exc_frames == 0) {
+        nag_exc_frames       = (uint8_t)(3u + (nag_xorshift32() % 3u));
+        nag_frames_until_exc = (uint16_t)(125u + (nag_xorshift32() % 100u));
     }
+    state->nag_demand_active = demand_now;
 
     // Organic torque random walk
     int16_t torq;

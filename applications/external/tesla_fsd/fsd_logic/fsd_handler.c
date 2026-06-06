@@ -15,6 +15,7 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
     state->op_mode = OpMode_Active;
     state->gtw_autopilot_tier = -1;
     state->das_hands_on_state = 0xFF; // unseen — nag killer echoes conservatively
+    state->das_prev_hands_on_state = 0xFF; // escalation-edge baseline (#100)
     state->enhanced_autopilot = false;
     state->speed_profile_locked = false;
     state->hw4_offset = 0;
@@ -951,6 +952,11 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     // 0 = NOT_REQD (satisfied), 8 = SUSPENDED (AP paused).
     // 0xFF = no DAS frame seen yet — echo conservatively as fallback.
     uint8_t das = state->das_hands_on_state;
+    // Track das across every frame (including the satisfied/suspended early-return
+    // below) so a 0 (NOT_REQD) wave resets the escalation baseline and the next
+    // 0->2 jump still registers as a rising edge. Source: #100.
+    uint8_t das_prev = state->das_prev_hands_on_state;
+    state->das_prev_hands_on_state = das;
     if(das == 0 || das == 8) return false;
 
     // On-demand grip pulse: fire an immediate excursion when handsOnLevel
@@ -959,8 +965,16 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     // 2-second escalation get there first when a nag arrived between pulses.
     // Resets the periodic cooldown so we don't double-pulse.
     // Source: @deftdawg variant tested on 2016 MX HW3 in #70.
+    //
+    // Also re-arm on a DAS escalation edge: on some HW4 trims (#100) EPAS
+    // handsOnLevel (byte4) is frozen at 0 the whole hands-off window, so the only
+    // nag signal that moves is das_hands_on_state stepping 0->2->3. Without this
+    // the pulse fires once and never re-arms, letting the 2nd wave escalate to
+    // yellow (das 0/8 already returned above; 0xFF = unseen).
+    // Source: @jewelrylin / @DrStrangeglovebox on-car data in #100.
+    bool das_escalation = (das != 0xFF) && (das_prev == 0xFF || das > das_prev);
     bool demand_now = (hands_on == 0 || hands_on == 3);
-    if(demand_now && !state->nag_demand_active && nag_exc_frames == 0) {
+    if((das_escalation || (demand_now && !state->nag_demand_active)) && nag_exc_frames == 0) {
         nag_exc_frames = 3 + (nag_xorshift32() % 3); // 3-5 frame pulse
         nag_frames_until_exc = 125 + (nag_xorshift32() % 100); // reset 5-9 s cooldown
     }

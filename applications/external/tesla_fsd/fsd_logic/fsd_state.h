@@ -84,6 +84,7 @@ typedef struct FSDState {
 
     // --- DAS state (from 0x39B / 0x389 — Party CAN, read-only) ---
     uint8_t das_hands_on_state; // 0-15 (4-bit nag level from DAS, more precise than EPAS 2-bit)
+    uint8_t das_prev_hands_on_state; // last das_hands_on_state, for the nag escalation edge (#100)
     uint8_t das_lane_change; // 0-31 (5-bit auto lane change state)
     uint8_t das_side_coll_warn; // 0-3  (side collision / blind spot warning)
     uint8_t das_side_coll_avoid; // 0-3  (side collision avoidance active)

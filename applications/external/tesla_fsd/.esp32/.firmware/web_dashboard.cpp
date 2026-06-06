@@ -319,8 +319,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
       the moment any CAN frame touches <code>0x3FD</code>. Symptom on
       the dash: <em>"Autopilot turning off"</em> appears within a second
       of stalk engagement, then AP immediately disengages. Listen-Only
-      mode is safe. Enable <strong>AP-First</strong> in settings to delay
-      injection until AP is engaged. Dismiss if you're on pre-14.x firmware.
+      mode is safe. <strong>AP-First</strong> (delay injection until AP is
+      engaged) is on the Flipper build only right now — on the ESP32, engage
+      AP from the stalk first, then turn on injection. Dismiss if you're on
+      pre-14.x firmware.
     </div>
     <button class="w-dismiss" onclick="cmd('14x_warning',false)">Dismiss</button>
   </div>
