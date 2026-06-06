@@ -124,13 +124,15 @@ uint16_t decoders_decode_pwm(
     while(i < len) {
         uint8_t v1 = bits[i];
         uint16_t l1 = 1;
-        while((i + l1) < len && bits[i + l1] == v1) l1++;
+        while((i + l1) < len && bits[i + l1] == v1)
+            l1++;
         uint16_t i_next = (uint16_t)(i + l1);
 
         if(i_next >= len) break;
         uint8_t v2 = bits[i_next];
         uint16_t l2 = 1;
-        while((i_next + l2) < len && bits[i_next + l2] == v2) l2++;
+        while((i_next + l2) < len && bits[i_next + l2] == v2)
+            l2++;
 
         if(v1 == 1 && v2 == 0) {
             float l2f = (float)l2;
@@ -198,8 +200,7 @@ static uint16_t try_manchester_diff(
         }
         if(have_prev) {
             bool transition = (a != prev_end);
-            uint8_t bit_val =
-                (uint8_t)((transition == transition_is_one) ? 1u : 0u);
+            uint8_t bit_val = (uint8_t)((transition == transition_is_one) ? 1u : 0u);
             if(out_n < out_cap) out[out_n++] = bit_val;
         }
         prev_end = b;
@@ -229,14 +230,13 @@ uint16_t decoders_decode_manchester(
     static uint8_t scratch_c[SUBHOUND_MAX_MANCH_BITS];
     static uint8_t scratch_d[SUBHOUND_MAX_MANCH_BITS];
     float err_a = 0.0f, err_b = 0.0f, err_c = 0.0f, err_d = 0.0f;
-    uint16_t na = try_manchester_convention(
-        bits, len, true, scratch_a, SUBHOUND_MAX_MANCH_BITS, &err_a);
-    uint16_t nb = try_manchester_convention(
-        bits, len, false, scratch_b, SUBHOUND_MAX_MANCH_BITS, &err_b);
-    uint16_t nc = try_manchester_diff(
-        bits, len, true, scratch_c, SUBHOUND_MAX_MANCH_BITS, &err_c);
-    uint16_t nd = try_manchester_diff(
-        bits, len, false, scratch_d, SUBHOUND_MAX_MANCH_BITS, &err_d);
+    uint16_t na =
+        try_manchester_convention(bits, len, true, scratch_a, SUBHOUND_MAX_MANCH_BITS, &err_a);
+    uint16_t nb =
+        try_manchester_convention(bits, len, false, scratch_b, SUBHOUND_MAX_MANCH_BITS, &err_b);
+    uint16_t nc = try_manchester_diff(bits, len, true, scratch_c, SUBHOUND_MAX_MANCH_BITS, &err_c);
+    uint16_t nd =
+        try_manchester_diff(bits, len, false, scratch_d, SUBHOUND_MAX_MANCH_BITS, &err_d);
 
     /* Standard tie-break (matches analyze.py behaviour). */
     bool pick_a_over_b;
@@ -250,8 +250,7 @@ uint16_t decoders_decode_manchester(
     float std_err = pick_a_over_b ? err_a : err_b;
     uint16_t std_n = pick_a_over_b ? na : nb;
     const uint8_t* std_buf = pick_a_over_b ? scratch_a : scratch_b;
-    ManchesterConvention std_conv =
-        pick_a_over_b ? ManchesterGEThomas : ManchesterIEEE8023;
+    ManchesterConvention std_conv = pick_a_over_b ? ManchesterGEThomas : ManchesterIEEE8023;
 
     /* Pick lower-error diff convention. */
     float diff_err;
@@ -303,14 +302,20 @@ bool decoders_detect_pwm3(const SubFile* sub, uint16_t* out_symbol_count) {
         uint16_t c = agg.zero_hist[i];
         if(c == 0) continue;
         if(c > g1c) {
-            g3l = g2l; g3c = g2c;
-            g2l = g1l; g2c = g1c;
-            g1l = i;  g1c = c;
+            g3l = g2l;
+            g3c = g2c;
+            g2l = g1l;
+            g2c = g1c;
+            g1l = i;
+            g1c = c;
         } else if(c > g2c) {
-            g3l = g2l; g3c = g2c;
-            g2l = i;  g2c = c;
+            g3l = g2l;
+            g3c = g2c;
+            g2l = i;
+            g2c = c;
         } else if(c > g3c) {
-            g3l = i; g3c = c;
+            g3l = i;
+            g3c = c;
         }
     }
     if(g3c == 0) return false;
@@ -321,7 +326,9 @@ bool decoders_detect_pwm3(const SubFile* sub, uint16_t* out_symbol_count) {
     for(int i = 0; i < 2; i++) {
         for(int j = i + 1; j < 3; j++) {
             if(lens[j] < lens[i]) {
-                uint16_t t = lens[i]; lens[i] = lens[j]; lens[j] = t;
+                uint16_t t = lens[i];
+                lens[i] = lens[j];
+                lens[j] = t;
             }
         }
     }
@@ -331,9 +338,12 @@ bool decoders_detect_pwm3(const SubFile* sub, uint16_t* out_symbol_count) {
     if((float)long_g / (float)mid_g < 1.4f) return false;
 
     /* Count tri-state symbols across runs (one-run + matching zero-run). */
-    uint16_t tol_s = short_g / 4u; if(tol_s < 1) tol_s = 1;
-    uint16_t tol_m = mid_g / 4u;   if(tol_m < 1) tol_m = 1;
-    uint16_t tol_l = long_g / 4u;  if(tol_l < 1) tol_l = 1;
+    uint16_t tol_s = short_g / 4u;
+    if(tol_s < 1) tol_s = 1;
+    uint16_t tol_m = mid_g / 4u;
+    if(tol_m < 1) tol_m = 1;
+    uint16_t tol_l = long_g / 4u;
+    if(tol_l < 1) tol_l = 1;
     uint16_t symbols = 0;
 
     for(uint16_t s = 0; s < sub->segment_count; s++) {
@@ -344,16 +354,21 @@ bool decoders_detect_pwm3(const SubFile* sub, uint16_t* out_symbol_count) {
         while(i < inner_len) {
             uint8_t v1 = p[i];
             uint16_t l1 = 1;
-            while((i + l1) < inner_len && p[i + l1] == v1) l1++;
+            while((i + l1) < inner_len && p[i + l1] == v1)
+                l1++;
             uint16_t inext = (uint16_t)(i + l1);
             if(inext >= inner_len) break;
             uint8_t v2 = p[inext];
             uint16_t l2 = 1;
-            while((inext + l2) < inner_len && p[inext + l2] == v2) l2++;
+            while((inext + l2) < inner_len && p[inext + l2] == v2)
+                l2++;
             if(v1 == 1 && v2 == 0) {
-                int diff_s = (int)l2 - (int)short_g; if(diff_s < 0) diff_s = -diff_s;
-                int diff_m = (int)l2 - (int)mid_g;   if(diff_m < 0) diff_m = -diff_m;
-                int diff_l = (int)l2 - (int)long_g;  if(diff_l < 0) diff_l = -diff_l;
+                int diff_s = (int)l2 - (int)short_g;
+                if(diff_s < 0) diff_s = -diff_s;
+                int diff_m = (int)l2 - (int)mid_g;
+                if(diff_m < 0) diff_m = -diff_m;
+                int diff_l = (int)l2 - (int)long_g;
+                if(diff_l < 0) diff_l = -diff_l;
                 if((uint16_t)diff_s <= tol_s || (uint16_t)diff_m <= tol_m ||
                    (uint16_t)diff_l <= tol_l) {
                     symbols++;
@@ -454,8 +469,8 @@ void decoders_detect_rolling_code(
     for(uint16_t s = 0; s < sub->segment_count; s++) {
         const uint8_t* inner = sub->segment_bits[s] + sub->inner_start[s];
         uint16_t inner_len = sub->inner_len[s];
-        lens[s] = decoders_decode_pwm(
-            inner, inner_len, pwm, decoded[s], SUBHOUND_MAX_DECODED_BITS);
+        lens[s] =
+            decoders_decode_pwm(inner, inner_len, pwm, decoded[s], SUBHOUND_MAX_DECODED_BITS);
         if(lens[s] < min_len) min_len = lens[s];
         if(lens[s] > max_len) max_len = lens[s];
     }

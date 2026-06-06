@@ -5,11 +5,7 @@
 /* Strip leading and trailing zero bits. Returns the inclusive [start, end)
  * range into `bits` of the inner content. If the result is empty, *out_start
  * and *out_len are both set to 0. */
-void bits_strip_padding(
-    const uint8_t* bits,
-    uint16_t len,
-    uint16_t* out_start,
-    uint16_t* out_len);
+void bits_strip_padding(const uint8_t* bits, uint16_t len, uint16_t* out_start, uint16_t* out_len);
 
 /* Shannon entropy of a binary stream, normalized to [0,1] (max == 1.0). */
 float bits_entropy(const uint8_t* bits, uint32_t len);
@@ -28,11 +24,7 @@ float bits_zero_ratio(const uint8_t* bits, uint32_t len);
 typedef bool (*BitsRunCallback)(uint8_t value, uint16_t length, void* ctx);
 
 /* Run-length-encode a contiguous bit buffer, invoking cb for each run. */
-void bits_for_each_run(
-    const uint8_t* bits,
-    uint32_t len,
-    BitsRunCallback cb,
-    void* ctx);
+void bits_for_each_run(const uint8_t* bits, uint32_t len, BitsRunCallback cb, void* ctx);
 
 /* Pack bits MSB-first into bytes. Output is a hex string with single
  * spaces between bytes. Writes at most cap-1 bytes plus null terminator.
@@ -50,6 +42,4 @@ bool bits_segment_similarity(const SubFile* sub, float* out_value);
 /* Find shortest period p in [min_len, max_len] where bits[:p] repeats
  * >= 2 times covering >= 50% of the stream. Returns 0 if not found.
  * Walks a virtual concatenation of inner segments via the SubFile. */
-uint16_t bits_find_repeating_subpattern_inner(
-    const SubFile* sub,
-    uint16_t* out_reps);
+uint16_t bits_find_repeating_subpattern_inner(const SubFile* sub, uint16_t* out_reps);

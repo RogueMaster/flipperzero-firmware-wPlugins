@@ -15,10 +15,10 @@
 #define SUBHOUND_TAG "Subhound"
 
 typedef enum {
-    SubhoundViewLoading,   /* spinner during parse + features + classify */
-    SubhoundViewSummary,   /* Widget: overview card (landing view) */
-    SubhoundViewSections,  /* Submenu: drill-down chooser */
-    SubhoundViewTextBox,   /* per-section detail OR full report */
+    SubhoundViewLoading, /* spinner during parse + features + classify */
+    SubhoundViewSummary, /* Widget: overview card (landing view) */
+    SubhoundViewSections, /* Submenu: drill-down chooser */
+    SubhoundViewTextBox, /* per-section detail OR full report */
 } SubhoundView;
 
 typedef struct {
@@ -33,8 +33,8 @@ typedef struct {
     Loading* loading;
 
     FuriString* selected_path;
-    FuriString* report;          /* full report - written to .report.txt sidecar */
-    FuriString* section_text;    /* scratch for per-section TextBox content */
+    FuriString* report; /* full report - written to .report.txt sidecar */
+    FuriString* section_text; /* scratch for per-section TextBox content */
     FuriString* parse_error;
 
     SubFile sub;

@@ -23,8 +23,5 @@ void sub_file_reset(SubFile* sub);
  * SUBHOUND_MAX_SEGMENTS, or total bits beyond SUBHOUND_MAX_TOTAL_BITS cause
  * truncation and `sub->truncated = true` (not a hard error).
  */
-SubParseStatus sub_parser_parse(
-    Storage* storage,
-    const char* path,
-    SubFile* sub,
-    FuriString* err_out);
+SubParseStatus
+    sub_parser_parse(Storage* storage, const char* path, SubFile* sub, FuriString* err_out);

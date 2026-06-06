@@ -3,25 +3,23 @@
 #include <stdio.h>
 #include <string.h>
 
-void bits_strip_padding(
-    const uint8_t* bits,
-    uint16_t len,
-    uint16_t* out_start,
-    uint16_t* out_len) {
+void bits_strip_padding(const uint8_t* bits, uint16_t len, uint16_t* out_start, uint16_t* out_len) {
     if(len == 0) {
         *out_start = 0;
         *out_len = 0;
         return;
     }
     uint16_t start = 0;
-    while(start < len && bits[start] == 0) start++;
+    while(start < len && bits[start] == 0)
+        start++;
     if(start == len) {
         *out_start = 0;
         *out_len = 0;
         return;
     }
     uint16_t end = (uint16_t)(len - 1);
-    while(end > start && bits[end] == 0) end--;
+    while(end > start && bits[end] == 0)
+        end--;
     *out_start = start;
     *out_len = (uint16_t)(end - start + 1);
 }
@@ -29,7 +27,8 @@ void bits_strip_padding(
 float bits_entropy(const uint8_t* bits, uint32_t len) {
     if(len == 0) return 0.0f;
     uint32_t ones = 0;
-    for(uint32_t i = 0; i < len; i++) ones += bits[i] ? 1u : 0u;
+    for(uint32_t i = 0; i < len; i++)
+        ones += bits[i] ? 1u : 0u;
     uint32_t zeros = len - ones;
     float entropy = 0.0f;
     if(ones > 0) {
@@ -46,15 +45,12 @@ float bits_entropy(const uint8_t* bits, uint32_t len) {
 float bits_zero_ratio(const uint8_t* bits, uint32_t len) {
     if(len == 0) return 1.0f;
     uint32_t zeros = 0;
-    for(uint32_t i = 0; i < len; i++) zeros += bits[i] ? 0u : 1u;
+    for(uint32_t i = 0; i < len; i++)
+        zeros += bits[i] ? 0u : 1u;
     return (float)zeros / (float)len;
 }
 
-void bits_for_each_run(
-    const uint8_t* bits,
-    uint32_t len,
-    BitsRunCallback cb,
-    void* ctx) {
+void bits_for_each_run(const uint8_t* bits, uint32_t len, BitsRunCallback cb, void* ctx) {
     if(len == 0) return;
     uint8_t cur = bits[0];
     uint16_t count = 1;
@@ -151,9 +147,7 @@ bool bits_segment_similarity(const SubFile* sub, float* out_value) {
     return true;
 }
 
-uint16_t bits_find_repeating_subpattern_inner(
-    const SubFile* sub,
-    uint16_t* out_reps) {
+uint16_t bits_find_repeating_subpattern_inner(const SubFile* sub, uint16_t* out_reps) {
     *out_reps = 0;
 
     /* Build a small temporary buffer of all inner bits concatenated. We cap

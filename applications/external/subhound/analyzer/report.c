@@ -18,7 +18,7 @@ static void cat_hex_bits(FuriString* out, const uint8_t* bits, uint16_t len) {
     }
 }
 
-#define SEP                                                       \
+#define SEP                                                        \
     "============================================================" \
     "\n"
 
@@ -38,7 +38,8 @@ static void freq_label(uint32_t hz, char* out, size_t cap) {
             char* dot = strchr(out, '.');
             if(dot) {
                 char* end = out + strlen(out) - 1;
-                while(end > dot && *end == '0') *end-- = 0;
+                while(end > dot && *end == '0')
+                    *end-- = 0;
                 if(end == dot) *end = 0;
             }
         }
@@ -49,10 +50,7 @@ static void freq_label(uint32_t hz, char* out, size_t cap) {
 
 /* ------------------- section builders (composable) -------------------- */
 
-static void cat_header(
-    const char* path,
-    const ClassificationResult* result,
-    FuriString* out) {
+static void cat_header(const char* path, const ClassificationResult* result, FuriString* out) {
     furi_string_cat_str(out, SEP);
     furi_string_cat_printf(out, "FILE: %s\n", basename_of(path));
     furi_string_cat_str(out, SEP);
@@ -64,10 +62,7 @@ static void cat_header(
 
     for(uint8_t i = 0; i < result->hint_count; i++) {
         furi_string_cat_printf(
-            out,
-            "%s %s\n",
-            i == 0 ? "SUB-PROTOCOL   :" : "               :",
-            result->hints[i]);
+            out, "%s %s\n", i == 0 ? "SUB-PROTOCOL   :" : "               :", result->hints[i]);
     }
 }
 
@@ -139,14 +134,11 @@ static void cat_metrics(const FeatureVector* fv, FuriString* out) {
                 fv->diff_position_count);
         } else if(fv->fixed_code) {
             furi_string_cat_printf(
-                out,
-                "  Code type    : FIXED (identical across all %u segments)\n",
-                fv->seg_count);
+                out, "  Code type    : FIXED (identical across all %u segments)\n", fv->seg_count);
         }
         if(fv->inter_segment_gap_us_mean > 0.0f) {
-            float jitter = fv->inter_segment_gap_us_var > 0.0f
-                               ? sqrtf(fv->inter_segment_gap_us_var)
-                               : 0.0f;
+            float jitter =
+                fv->inter_segment_gap_us_var > 0.0f ? sqrtf(fv->inter_segment_gap_us_var) : 0.0f;
             furi_string_cat_printf(
                 out,
                 "  Inter-seg gap: mean %.1f ms  (jitter %.1f ms)\n",
@@ -161,9 +153,7 @@ static void cat_metrics(const FeatureVector* fv, FuriString* out) {
     }
     if(fv->crc_valid) {
         furi_string_cat_printf(
-            out,
-            "  CRC          : %s valid\n",
-            fv->crc_kind == 1 ? "CRC-8" : "CRC-16-CCITT");
+            out, "  CRC          : %s valid\n", fv->crc_kind == 1 ? "CRC-8" : "CRC-16-CCITT");
     }
 
     if(fv->has_gps) {
@@ -330,11 +320,7 @@ void report_format_summary_lines(
 
     /* Line 1: freq · TE · segs */
     furi_string_cat_printf(
-        out,
-        "%s  TE %.0fus  %u seg\n",
-        freq_buf,
-        (double)fv->te_us,
-        fv->seg_count);
+        out, "%s  TE %.0fus  %u seg\n", freq_buf, (double)fv->te_us, fv->seg_count);
 
     /* Line 2: signal quality · code type · similarity (when available) */
     furi_string_cat_printf(out, "sig %.0f%%", (double)(fv->signal_quality * 100.0f));
@@ -356,8 +342,7 @@ void report_format_summary_lines(
     /* Line 4: CRC/Manchester/PWM3 flag, only if something interesting */
     bool wrote_extra = false;
     if(fv->crc_valid) {
-        furi_string_cat_printf(
-            out, "CRC %s ok", fv->crc_kind == 1 ? "8" : "16");
+        furi_string_cat_printf(out, "CRC %s ok", fv->crc_kind == 1 ? "8" : "16");
         wrote_extra = true;
     }
     if(fv->pwm3_detected) {

@@ -35,8 +35,8 @@ static void reset_result(ClassificationResult* r) {
 }
 
 static bool is_ism_freq(uint32_t hz) {
-    return hz == 315000000u || hz == 433420000u || hz == 433920000u ||
-           hz == 434420000u || hz == 868350000u || hz == 915000000u;
+    return hz == 315000000u || hz == 433420000u || hz == 433920000u || hz == 434420000u ||
+           hz == 868350000u || hz == 915000000u;
 }
 
 /* ============================== NOISE ================================== */
@@ -117,8 +117,7 @@ static bool classify_amr_meter(const FeatureVector* fv, ClassificationResult* ou
     }
     if(fv->seg_count == 1) {
         score += 1;
-        classifier_add_reason(
-            out, "[AMR5] Single burst - ERT meters transmit once per interval");
+        classifier_add_reason(out, "[AMR5] Single burst - ERT meters transmit once per interval");
     }
 
     if(score < 4) {
@@ -148,8 +147,7 @@ static bool classify_amr_meter(const FeatureVector* fv, ClassificationResult* ou
 static bool classify_tpms(const FeatureVector* fv, ClassificationResult* out) {
     if(!is_ism_freq(fv->frequency)) return false;
 
-    if(fv->pwm_params.found && fv->pwm_params.consistency > 0.85f &&
-       fv->pwm_decoded_count < 80) {
+    if(fv->pwm_params.found && fv->pwm_params.consistency > 0.85f && fv->pwm_decoded_count < 80) {
         return false;
     }
     /* Only hard-reject when high similarity AND rolling code (definite remote).
@@ -166,8 +164,7 @@ static bool classify_tpms(const FeatureVector* fv, ClassificationResult* out) {
     }
     if(fv->seg_count >= 2 && fv->seg_count <= 8) {
         score += 2;
-        classifier_add_reason(
-            out, "[T2] %u segments - TPMS sensors repeat 3-8x", fv->seg_count);
+        classifier_add_reason(out, "[T2] %u segments - TPMS sensors repeat 3-8x", fv->seg_count);
     }
     if(fv->mean_inner_size >= 60.0f && fv->mean_inner_size <= 200.0f) {
         score += 2;
@@ -186,7 +183,8 @@ static bool classify_tpms(const FeatureVector* fv, ClassificationResult* out) {
     if(fv->zero_ratio >= 0.80f && fv->zero_ratio <= 0.97f) {
         score += 1;
         classifier_add_reason(
-            out, "[T5] zero_ratio=%.1f%% - typical preamble/silence framing",
+            out,
+            "[T5] zero_ratio=%.1f%% - typical preamble/silence framing",
             (double)(fv->zero_ratio * 100.0f));
     }
     if(fv->entropy >= 0.35f && fv->entropy <= 0.75f) {
@@ -216,8 +214,7 @@ static bool classify_tpms(const FeatureVector* fv, ClassificationResult* out) {
     }
     if(fv->has_seg_similarity && fv->seg_similarity > 0.99f) {
         classifier_add_warning(
-            out,
-            "Identical bursts (no rolling counter) - fixed-address TPMS or generic remote");
+            out, "Identical bursts (no rolling counter) - fixed-address TPMS or generic remote");
         conf = SubhoundConfLow;
     }
 
@@ -242,9 +239,7 @@ static bool classify_alarm_sensor(const FeatureVector* fv, ClassificationResult*
     if(fv->te_us >= 100.0f && fv->te_us <= 400.0f) {
         score += 2;
         classifier_add_reason(
-            out,
-            "[AS1] TE=%.0fus - alarm sensor OOK range (100-400us)",
-            (double)fv->te_us);
+            out, "[AS1] TE=%.0fus - alarm sensor OOK range (100-400us)", (double)fv->te_us);
     }
     if(fv->mean_inner_size >= 40.0f && fv->mean_inner_size <= 120.0f) {
         score += 2;
@@ -269,8 +264,7 @@ static bool classify_alarm_sensor(const FeatureVector* fv, ClassificationResult*
     if(fv->zero_ratio >= 0.40f && fv->zero_ratio <= 0.75f) {
         score += 1;
         classifier_add_reason(
-            out, "[AS4] zero_ratio=%.1f%% - dense signal data",
-            (double)(fv->zero_ratio * 100.0f));
+            out, "[AS4] zero_ratio=%.1f%% - dense signal data", (double)(fv->zero_ratio * 100.0f));
     }
     if(fv->seg_count <= 2) {
         score += 1;
@@ -303,16 +297,14 @@ static bool classify_alarm_sensor(const FeatureVector* fv, ClassificationResult*
 
     out->label = SubhoundLabelAlarmSensor;
     out->confidence = score >= 8 ? SubhoundConfMedium : SubhoundConfLow;
-    classifier_add_warning(
-        out, "Cannot confirm alarm brand without protocol-specific CRC check");
+    classifier_add_warning(out, "Cannot confirm alarm brand without protocol-specific CRC check");
     return true;
 }
 
 /* =========================== SHUTTER_BLIND ============================= */
 
 static bool classify_shutter_blind(const FeatureVector* fv, ClassificationResult* out) {
-    if(fv->frequency != 433420000u && fv->frequency != 433920000u &&
-       fv->frequency != 868350000u) {
+    if(fv->frequency != 433420000u && fv->frequency != 433920000u && fv->frequency != 868350000u) {
         return false;
     }
     /* Widened TE range (was 550-700) for ±10% clone tolerance. */
@@ -337,14 +329,12 @@ static bool classify_shutter_blind(const FeatureVector* fv, ClassificationResult
         conf = SubhoundConfMedium;
     } else {
         classifier_add_hint(out, "433.92MHz -> Nice Evo or Somfy capture offset");
-        classifier_add_warning(
-            out, "433.92MHz: Nice Evo native; Somfy ±500kHz offset");
+        classifier_add_warning(out, "433.92MHz: Nice Evo native; Somfy ±500kHz offset");
         conf = SubhoundConfLow;
     }
 
     if(fv->seg_count >= 2) {
-        classifier_add_hint(
-            out, "%u segments - typically transmits 2x with pause", fv->seg_count);
+        classifier_add_hint(out, "%u segments - typically transmits 2x with pause", fv->seg_count);
     }
 
     out->label = SubhoundLabelShutterBlind;
@@ -366,7 +356,9 @@ static bool classify_pt2262(const FeatureVector* fv, ClassificationResult* out) 
     if(fv->pwm3_symbol_count < 8 || fv->pwm3_symbol_count > 16) return false;
 
     classifier_add_reason(
-        out, "[PT1] Tri-state PWM (%u symbols) - PT2262 0/1/float encoding", fv->pwm3_symbol_count);
+        out,
+        "[PT1] Tri-state PWM (%u symbols) - PT2262 0/1/float encoding",
+        fv->pwm3_symbol_count);
     classifier_add_reason(
         out, "[PT2] %u repeats, fixed code - static address+data word", fv->seg_count);
     classifier_add_reason(
@@ -376,13 +368,11 @@ static bool classify_pt2262(const FeatureVector* fv, ClassificationResult* out) 
         (double)(fv->pwm_params.consistency * 100.0f));
 
     classifier_add_hint(out, "PT2262 tri-state fixed-code remote");
-    classifier_add_hint(
-        out, fv->frequency == 433920000u ? "433.92MHz ISM" : "ISM band");
+    classifier_add_hint(out, fv->frequency == 433920000u ? "433.92MHz ISM" : "ISM band");
 
     out->label = SubhoundLabelPt2262Remote;
     out->confidence = SubhoundConfMedium;
-    classifier_add_warning(
-        out, "Fixed code - this transmission may be vulnerable to replay");
+    classifier_add_warning(out, "Fixed code - this transmission may be vulnerable to replay");
     return true;
 }
 
@@ -404,7 +394,8 @@ static bool classify_ev1527(const FeatureVector* fv, ClassificationResult* out) 
 
     classifier_add_reason(
         out, "[EV1] %u-bit word - EV1527 20-bit address + 4-bit data", fv->pwm_decoded_count);
-    classifier_add_reason(out, "[EV2] Gap ratio %.1f:1 - EV1527 short/long signature", (double)ratio);
+    classifier_add_reason(
+        out, "[EV2] Gap ratio %.1f:1 - EV1527 short/long signature", (double)ratio);
     classifier_add_reason(
         out,
         "[EV3] %u repeats, fixed code, entropy=%.2f (random chip address)",
@@ -416,8 +407,7 @@ static bool classify_ev1527(const FeatureVector* fv, ClassificationResult* out) 
 
     out->label = SubhoundLabelEv1527Remote;
     out->confidence = fv->seg_count >= 4 ? SubhoundConfMedium : SubhoundConfLow;
-    classifier_add_warning(
-        out, "Fixed code - this transmission may be vulnerable to replay");
+    classifier_add_warning(out, "Fixed code - this transmission may be vulnerable to replay");
     return true;
 }
 
@@ -439,8 +429,7 @@ static bool classify_doorbell(const FeatureVector* fv, ClassificationResult* out
     classifier_add_reason(
         out, "[D3] %u decoded bits - PT2262 fixed-code family", fv->pwm_decoded_count);
     if(fv->te_us >= 100.0f && fv->te_us <= 400.0f) {
-        classifier_add_reason(
-            out, "[D4] TE=%.0fus - OOK doorbell range", (double)fv->te_us);
+        classifier_add_reason(out, "[D4] TE=%.0fus - OOK doorbell range", (double)fv->te_us);
     }
 
     classifier_add_hint(out, "PT2262 fixed-code doorbell");
@@ -465,8 +454,7 @@ static bool classify_outlet_switch(const FeatureVector* fv, ClassificationResult
     if(fv->pwm_decoded_count < 24 || fv->pwm_decoded_count > 32) return false;
     if(fv->rolling_code) return false;
 
-    classifier_add_reason(
-        out, "[O1] %u repeats - wireless outlets transmit 3-6x", fv->seg_count);
+    classifier_add_reason(out, "[O1] %u repeats - wireless outlets transmit 3-6x", fv->seg_count);
     classifier_add_reason(
         out,
         "[O2] Segment similarity %.1f%% - perfectly identical (fixed code)",
@@ -477,11 +465,9 @@ static bool classify_outlet_switch(const FeatureVector* fv, ClassificationResult
         out, "[O4] No rolling code detected - consistent with static outlet address");
 
     classifier_add_hint(out, "PT2262 wireless outlet/switch");
-    classifier_add_hint(
-        out, fv->frequency == 433920000u ? "433.92MHz ISM" : "315MHz ISM");
+    classifier_add_hint(out, fv->frequency == 433920000u ? "433.92MHz ISM" : "315MHz ISM");
     classifier_add_warning(
-        out,
-        "Cannot distinguish outlet from short garage/barrier remote without brand DB");
+        out, "Cannot distinguish outlet from short garage/barrier remote without brand DB");
 
     out->label = SubhoundLabelOutletSwitch;
     out->confidence = SubhoundConfLow;
@@ -550,11 +536,7 @@ static bool classify_garage(const FeatureVector* fv, ClassificationResult* out) 
         uint16_t shown = fv->diff_position_count < 8 ? fv->diff_position_count : 8;
         for(uint16_t i = 0; i < shown; i++) {
             int n = snprintf(
-                buf + pos,
-                sizeof(buf) - pos,
-                "%s%u",
-                i ? "," : "",
-                fv->diff_positions[i]);
+                buf + pos, sizeof(buf) - pos, "%s%u", i ? "," : "", fv->diff_positions[i]);
             if(n < 0 || (size_t)n >= sizeof(buf) - pos) break;
             pos += (size_t)n;
         }
@@ -564,8 +546,7 @@ static bool classify_garage(const FeatureVector* fv, ClassificationResult* out) 
             buf,
             fv->diff_position_count > 8 ? "..." : "");
     } else if(fv->fixed_code && fv->seg_count >= 2) {
-        classifier_add_reason(
-            out, "[G8] FIXED CODE - identical payload (potentially replayable)");
+        classifier_add_reason(out, "[G8] FIXED CODE - identical payload (potentially replayable)");
         classifier_add_warning(
             out, "Fixed code detected - this transmission may be vulnerable to replay");
     }
@@ -600,7 +581,8 @@ static bool classify_garage(const FeatureVector* fv, ClassificationResult* out) 
 
     if(fv->seg_count > 1) {
         uint32_t sum = 0;
-        for(uint16_t i = 0; i < fv->seg_count; i++) sum += fv->seg_sizes[i];
+        for(uint16_t i = 0; i < fv->seg_count; i++)
+            sum += fv->seg_sizes[i];
         float mean = (float)sum / (float)fv->seg_count;
         for(uint16_t i = 0; i < fv->seg_count; i++) {
             if((float)fv->seg_sizes[i] > mean * 3.0f) {
@@ -694,8 +676,7 @@ static bool classify_weather(const FeatureVector* fv, ClassificationResult* out)
     if(fv->zero_ratio >= 0.40f && fv->zero_ratio <= 0.75f) {
         rules++;
         classifier_add_reason(
-            out, "[W4] zero_ratio=%.1f%% - dense signal data",
-            (double)(fv->zero_ratio * 100.0f));
+            out, "[W4] zero_ratio=%.1f%% - dense signal data", (double)(fv->zero_ratio * 100.0f));
     }
     if(fv->entropy >= 0.85f) {
         rules++;
@@ -742,9 +723,7 @@ static bool classify_wmbus(const FeatureVector* fv, ClassificationResult* out) {
 
     classifier_add_reason(out, "[WM1] 868MHz single-burst Manchester payload");
     classifier_add_reason(
-        out,
-        "[WM2] %u decoded bits - wMBus typical 64-500",
-        fv->manchester_decoded_count);
+        out, "[WM2] %u decoded bits - wMBus typical 64-500", fv->manchester_decoded_count);
     classifier_add_reason(
         out,
         "[WM3] Manchester error rate %.0f%% - clean decode",
@@ -757,8 +736,7 @@ static bool classify_wmbus(const FeatureVector* fv, ClassificationResult* out) {
         conf = SubhoundConfMedium;
     }
     classifier_add_hint(out, "wireless M-Bus (EN 13757-4) candidate");
-    classifier_add_warning(
-        out, "Manufacturer requires DLL-layer CRC validation");
+    classifier_add_warning(out, "Manufacturer requires DLL-layer CRC validation");
 
     out->label = SubhoundLabelWmbusMeter;
     out->confidence = conf;
@@ -777,8 +755,7 @@ static bool classify_honeywell_5800(const FeatureVector* fv, ClassificationResul
 
     classifier_add_reason(
         out, "[HW1] TE=%.0fus within Honeywell 5800 range (150-250us)", (double)fv->te_us);
-    classifier_add_reason(
-        out, "[HW2] %u decoded bits - 5800 frame length", fv->pwm_decoded_count);
+    classifier_add_reason(out, "[HW2] %u decoded bits - 5800 frame length", fv->pwm_decoded_count);
     classifier_add_reason(
         out,
         "[HW3] PWM consistency %.0f%% - clean modulation",
@@ -788,8 +765,8 @@ static bool classify_honeywell_5800(const FeatureVector* fv, ClassificationResul
 
     classifier_add_hint(
         out,
-        fv->frequency == 915000000u ? "Honeywell 5800-series at 915MHz (US)"
-                                    : "Honeywell 5800-series at 433.92MHz");
+        fv->frequency == 915000000u ? "Honeywell 5800-series at 915MHz (US)" :
+                                      "Honeywell 5800-series at 433.92MHz");
     classifier_add_warning(out, "Brand match by fingerprint only - confirm with CRC");
 
     out->label = SubhoundLabelHoneywell5800;
@@ -807,8 +784,7 @@ static bool classify_enocean(const FeatureVector* fv, ClassificationResult* out)
     if(fv->pwm_decoded_count < 28 || fv->pwm_decoded_count > 36) return false;
     if(fv->rolling_code) return false;
 
-    classifier_add_reason(
-        out, "[EO1] 868.35MHz fixed-code burst, %u repeats", fv->seg_count);
+    classifier_add_reason(out, "[EO1] 868.35MHz fixed-code burst, %u repeats", fv->seg_count);
     classifier_add_reason(
         out,
         "[EO2] PWM consistency %.0f%% - clean EnOcean modulation",
@@ -834,16 +810,14 @@ static bool classify_lora_beacon(const FeatureVector* fv, ClassificationResult* 
     if(fv->te_us < 500.0f || fv->te_us > 1000.0f) return false;
     if(fv->total_inner_bits < 60) return false;
 
-    classifier_add_reason(
-        out, "[LB1] %u-bit preamble - beacon sync pattern", fv->preamble.length);
+    classifier_add_reason(out, "[LB1] %u-bit preamble - beacon sync pattern", fv->preamble.length);
     classifier_add_reason(
         out, "[LB2] TE=%.0fus - slow OOK consistent with beacon", (double)fv->te_us);
     classifier_add_reason(
         out, "[LB3] %lu inner bits - sufficient payload", (unsigned long)fv->total_inner_bits);
 
     classifier_add_hint(out, "868MHz long-preamble beacon (LoRa-adjacent OOK)");
-    classifier_add_warning(
-        out, "FSK chirp LoRa cannot be classified from .sub bits alone");
+    classifier_add_warning(out, "FSK chirp LoRa cannot be classified from .sub bits alone");
 
     out->label = SubhoundLabelLoraBeacon;
     out->confidence = SubhoundConfLow;
@@ -862,9 +836,8 @@ static bool classify_unknown_structured(const FeatureVector* fv, ClassificationR
     classifier_add_reason(
         out,
         "[U1] %s",
-        indicators >= 3
-            ? "Signal has structure but does not match any known device profile"
-            : "Ambiguous: partial signal or unrecognised modulation");
+        indicators >= 3 ? "Signal has structure but does not match any known device profile" :
+                          "Ambiguous: partial signal or unrecognised modulation");
 
     out->label = SubhoundLabelUnknownStructured;
     out->confidence = SubhoundConfLow;
@@ -879,19 +852,19 @@ void classifier_run(const FeatureVector* fv, ClassificationResult* out) {
         classify_noise,
         classify_amr_meter,
         classify_tpms,
-        classify_wmbus,              /* 868 Manchester single-burst */
-        classify_honeywell_5800,     /* specific alarm before generic ALARM */
+        classify_wmbus, /* 868 Manchester single-burst */
+        classify_honeywell_5800, /* specific alarm before generic ALARM */
         classify_alarm_sensor,
         classify_shutter_blind,
-        classify_enocean,            /* 868 short PWM before doorbell/outlet */
-        classify_pt2262,             /* tri-state fixed-code before generic remotes */
-        classify_ev1527,             /* 24-bit 3:1-ratio fixed-code before generic remotes */
+        classify_enocean, /* 868 short PWM before doorbell/outlet */
+        classify_pt2262, /* tri-state fixed-code before generic remotes */
+        classify_ev1527, /* 24-bit 3:1-ratio fixed-code before generic remotes */
         classify_doorbell,
         classify_outlet_switch,
         classify_garage,
         classify_keyfob,
         classify_weather,
-        classify_lora_beacon,        /* 868 long-preamble fallback */
+        classify_lora_beacon, /* 868 long-preamble fallback */
         classify_unknown_structured,
     };
     for(size_t i = 0; i < sizeof(pipeline) / sizeof(pipeline[0]); i++) {

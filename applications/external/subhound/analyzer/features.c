@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define HIST_SIZE 256
-#define TAG "Subhound"
+#define TAG       "Subhound"
 
 static void compute_dominant_runs(const SubFile* sub, FeatureVector* fv) {
     static uint16_t one_hist[HIST_SIZE];
@@ -22,16 +22,16 @@ static void compute_dominant_runs(const SubFile* sub, FeatureVector* fv) {
     uint32_t total_one_runs = 0;
     uint32_t total_zero_runs = 0;
 
-#define PUSH_RUN(v, len)                                            \
-    do {                                                            \
-        if(v) {                                                     \
-            if((len) < HIST_SIZE) one_hist[(len)]++;                \
-            total_one_runs++;                                       \
-        } else {                                                    \
-            if((len) < HIST_SIZE) zero_hist[(len)]++;               \
-            total_zero_runs++;                                      \
-        }                                                           \
-        if((len) < HIST_SIZE) unique_lengths_seen[(len)]++;         \
+#define PUSH_RUN(v, len)                                    \
+    do {                                                    \
+        if(v) {                                             \
+            if((len) < HIST_SIZE) one_hist[(len)]++;        \
+            total_one_runs++;                               \
+        } else {                                            \
+            if((len) < HIST_SIZE) zero_hist[(len)]++;       \
+            total_zero_runs++;                              \
+        }                                                   \
+        if((len) < HIST_SIZE) unique_lengths_seen[(len)]++; \
     } while(0)
 
     for(uint16_t s = 0; s < sub->segment_count; s++) {
@@ -79,8 +79,7 @@ static void compute_dominant_runs(const SubFile* sub, FeatureVector* fv) {
 
     fv->dominant_1run = dom1;
     fv->dominant_0run = dom0;
-    fv->run_variety =
-        total_runs ? (float)unique / (float)total_runs : 0.0f;
+    fv->run_variety = total_runs ? (float)unique / (float)total_runs : 0.0f;
 }
 
 void features_extract(SubFile* sub, FeatureVector* fv) {
@@ -106,9 +105,8 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
 
     fv->total_bits = total_bits;
     fv->total_inner_bits = total_inner_bits;
-    fv->mean_inner_size = sub->segment_count
-                              ? (float)total_inner_bits / (float)sub->segment_count
-                              : 0.0f;
+    fv->mean_inner_size =
+        sub->segment_count ? (float)total_inner_bits / (float)sub->segment_count : 0.0f;
 
     /* Zero ratio across raw bits (all segments). */
     {
@@ -130,7 +128,8 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
             uint16_t inner_len = sub->inner_len[s];
             if(inner_len == 0) continue;
             const uint8_t* p = sub->segment_bits[s] + sub->inner_start[s];
-            for(uint16_t i = 0; i < inner_len; i++) ones += p[i] ? 1u : 0u;
+            for(uint16_t i = 0; i < inner_len; i++)
+                ones += p[i] ? 1u : 0u;
         }
         fv->inner_set_bits = ones;
         uint32_t zeros = total_inner_bits - ones;
@@ -224,18 +223,25 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
             const uint8_t* pa = sub->segment_bits[s];
             uint16_t trail = 0;
             for(uint16_t k = raw_a; k > 0; k--) {
-                if(pa[k - 1] == 0) trail++; else break;
+                if(pa[k - 1] == 0)
+                    trail++;
+                else
+                    break;
             }
             uint16_t raw_b = sub->segment_bit_lens[s + 1];
             const uint8_t* pb = sub->segment_bits[s + 1];
             uint16_t lead = 0;
             for(uint16_t k = 0; k < raw_b; k++) {
-                if(pb[k] == 0) lead++; else break;
+                if(pb[k] == 0)
+                    lead++;
+                else
+                    break;
             }
             gaps[gn++] = (float)(trail + lead) * (float)sub->te_us;
         }
         float sum = 0.0f;
-        for(uint16_t i = 0; i < gn; i++) sum += gaps[i];
+        for(uint16_t i = 0; i < gn; i++)
+            sum += gaps[i];
         float mean = gn ? sum / (float)gn : 0.0f;
         float ssum = 0.0f;
         for(uint16_t i = 0; i < gn; i++) {
@@ -251,8 +257,8 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
     fv->pwm3_detected = decoders_detect_pwm3(sub, &fv->pwm3_symbol_count);
 
     /* CRC trailer scan on PWM-decoded payload. */
-    fv->crc_valid = decoders_detect_crc(
-        fv->pwm_decoded_bits, fv->pwm_decoded_count, &fv->crc_kind);
+    fv->crc_valid =
+        decoders_detect_crc(fv->pwm_decoded_bits, fv->pwm_decoded_count, &fv->crc_kind);
 
     /* Scalar passthroughs. */
     fv->frequency = sub->frequency_hz;
@@ -266,9 +272,9 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
     {
         float components[4];
         float inner_ratio =
-            fv->total_inner_bits == 0
-                ? 0.0f
-                : (float)fv->total_inner_bits / (float)(fv->total_bits ? fv->total_bits : 1u);
+            fv->total_inner_bits == 0 ?
+                0.0f :
+                (float)fv->total_inner_bits / (float)(fv->total_bits ? fv->total_bits : 1u);
         float c0 = inner_ratio * 2.5f;
         if(c0 > 1.0f) c0 = 1.0f;
         components[0] = c0;
@@ -282,7 +288,8 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
             components[3] = 0.15f;
         }
         float sum = 0.0f;
-        for(int i = 0; i < 4; i++) sum += components[i];
+        for(int i = 0; i < 4; i++)
+            sum += components[i];
         fv->signal_quality = sum / 4.0f;
         /* round to 3 decimals to match Python */
         fv->signal_quality = roundf(fv->signal_quality * 1000.0f) / 1000.0f;

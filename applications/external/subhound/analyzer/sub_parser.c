@@ -31,14 +31,17 @@ static int hex_nibble(char c) {
 }
 
 static char* skip_ws(char* s) {
-    while(*s == ' ' || *s == '\t') s++;
+    while(*s == ' ' || *s == '\t')
+        s++;
     return s;
 }
 
 static char* trim_inplace(char* s) {
-    while(*s == ' ' || *s == '\t') s++;
+    while(*s == ' ' || *s == '\t')
+        s++;
     char* end = s + strlen(s);
-    while(end > s && (end[-1] == ' ' || end[-1] == '\t')) end--;
+    while(end > s && (end[-1] == ' ' || end[-1] == '\t'))
+        end--;
     *end = 0;
     return s;
 }
@@ -47,11 +50,8 @@ static bool starts_with(const char* s, const char* prefix) {
     return strncmp(s, prefix, strlen(prefix)) == 0;
 }
 
-static bool decode_data_raw(
-    const char* hex,
-    uint32_t bit_raw_count,
-    SubFile* sub,
-    bool* truncated_out) {
+static bool
+    decode_data_raw(const char* hex, uint32_t bit_raw_count, SubFile* sub, bool* truncated_out) {
     if(sub->segment_count >= SUBHOUND_MAX_SEGMENTS) {
         *truncated_out = true;
         return true;
@@ -166,11 +166,8 @@ static void process_line(
     }
 }
 
-SubParseStatus sub_parser_parse(
-    Storage* storage,
-    const char* path,
-    SubFile* sub,
-    FuriString* err_out) {
+SubParseStatus
+    sub_parser_parse(Storage* storage, const char* path, SubFile* sub, FuriString* err_out) {
     sub_file_reset(sub);
 
     File* file = storage_file_alloc(storage);
@@ -210,13 +207,7 @@ SubParseStatus sub_parser_parse(
                 line[line_len] = 0;
                 char* trimmed = trim_inplace(line);
                 process_line(
-                    trimmed,
-                    sub,
-                    &pending_bit_raw,
-                    &pending_set,
-                    &have_freq,
-                    &have_te,
-                    &truncated);
+                    trimmed, sub, &pending_bit_raw, &pending_set, &have_freq, &have_te, &truncated);
                 line_len = 0;
                 line_overflowed = false;
             } else if(!line_overflowed && line_len + 1 < LINE_BUF_SZ) {
@@ -231,13 +222,7 @@ SubParseStatus sub_parser_parse(
         line[line_len] = 0;
         char* trimmed = trim_inplace(line);
         process_line(
-            trimmed,
-            sub,
-            &pending_bit_raw,
-            &pending_set,
-            &have_freq,
-            &have_te,
-            &truncated);
+            trimmed, sub, &pending_bit_raw, &pending_set, &have_freq, &have_te, &truncated);
     }
 
     free(line);
