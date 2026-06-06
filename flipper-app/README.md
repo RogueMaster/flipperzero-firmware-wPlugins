@@ -2,6 +2,12 @@
 
 Native Flipper Zero app that classifies SubGhz BinRAW `.sub` captures on-device. No desktop required after flashing.
 
+## Screenshots
+
+| Summary | Sections (top) | File browser | Sections (bottom) | Payload detail |
+|---|---|---|---|---|
+| ![Summary](screenshots/ss0.png) | ![Sections top](screenshots/ss1.png) | ![Browser](screenshots/ss2.png) | ![Sections bottom](screenshots/ss3.png) | ![Payload](screenshots/ss4.png) |
+
 ## What it does
 
 1. Browse `.sub` files on the SD card (`/ext/subghz/`)
