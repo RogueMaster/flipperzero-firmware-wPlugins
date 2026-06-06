@@ -18,9 +18,10 @@ GamesMenuList Version 0
 /ext/apps/Games/blackjack_rg.fap
 /ext/apps/Games/bomberduck.fap
 /ext/apps/Games/bomberfox.fap
+/ext/apps/Games/brainy.fap
 /ext/apps/Games/bzzbzz.fap
 /ext/apps/Games/catacombs.fap
-/ext/apps/Games/cells_sim_app.fap
+/ext/apps/Games/cell_lab.fap
 /ext/apps/Games/checkers.fap
 /ext/apps/Games/chess.fap
 /ext/apps/Games/chess_clock.fap
@@ -47,6 +48,7 @@ GamesMenuList Version 0
 /ext/apps/Games/flipper_hero.fap
 /ext/apps/Games/flappy_bird.fap
 /ext/apps/Games/flippy_road.fap
+/ext/apps/Games/fliprogue.fap
 /ext/apps/Games/fmatrix.fap
 /ext/apps/Games/fortune_cookie.fap
 /ext/apps/Games/furious_birds.fap
@@ -131,12 +133,14 @@ GamesMenuList Version 0
 /ext/apps/Games/tic_tac_toe_multi.fap
 /ext/apps/Games/tictactoe.fap
 /ext/apps/Games/trex_runner.fap
+/ext/apps/Games/trivia_zero.fap
 /ext/apps/Games/ultimate_tic_tac_toe.fap
 /ext/apps/Games/umpire_indicator.fap
 /ext/apps/GPIO/VGM/vgm_air_mouse.fap
 /ext/apps/Games/vexed.fap
 /ext/apps/GPIO/VGM/video_game_module_tool.fap
 /ext/apps/Games/videopoker.fap
+/ext/apps/Games/volorsavanna.fap
 /ext/apps/Games/wave.fap
 /ext/apps/Games/wolfenduino.fap
 /ext/apps/Games/yapinvaders.fap

@@ -9,13 +9,14 @@ the road". Please be conservative.
 ### Step 1 — Build it
 
 ```bash
-git clone --recursive https://github.com/flipperdevices/flipperzero-firmware.git
-cd flipperzero-firmware
-git clone https://github.com/hypery11/flipper-tesla-fsd.git applications_user/tesla_fsd
-./fbt fap_tesla_fsd
+pip install ufbt
+git clone https://github.com/hypery11/flipper-tesla-fsd.git
+cd flipper-tesla-fsd
+ufbt
 ```
 
-The output `.fap` lands in `dist/<arch>-<api>/apps/GPIO/tesla_fsd.fap`.
+The output `.fap` lands in `dist/`. If you need the full firmware SDK
+instead of `ufbt`, see the [ufbt docs](https://github.com/flipperdevices/flipperzero-ufbt).
 
 ### Step 2 — Test in Listen-Only mode first
 

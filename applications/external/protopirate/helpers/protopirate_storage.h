@@ -12,70 +12,6 @@
 #define PROTOPIRATE_CACHE_FOLDER     APP_DATA_PATH("cache")
 #define PROTOPIRATE_HISTORY_FOLDER   APP_DATA_PATH("cache/history")
 
-// Helper: failed read
-#define PROTOPIRATE_FAIL_READ(_k)                           \
-    do {                                                    \
-        FURI_LOG_E("ProtoPirate", "Read failed: %s", (_k)); \
-        status = false;                                     \
-        goto cleanup;                                       \
-    } while(0)
-
-// Helper: failed write
-#define PROTOPIRATE_FAIL_WRITE(_k)                           \
-    do {                                                     \
-        FURI_LOG_E("ProtoPirate", "Write failed: %s", (_k)); \
-        status = false;                                      \
-        goto cleanup;                                        \
-    } while(0)
-
-// Helper: read and write optional string
-#define PROTOPIRATE_COPY_STRING_OPTIONAL(_k)                                  \
-    do {                                                                      \
-        flipper_format_rewind(flipper_format);                                \
-        if(flipper_format_read_string(flipper_format, (_k), string_value)) {  \
-            if(!flipper_format_write_string(save_file, (_k), string_value)) { \
-                PROTOPIRATE_FAIL_WRITE((_k));                                 \
-            }                                                                 \
-        }                                                                     \
-    } while(0)
-
-// Helper: read and write optional u32
-#define PROTOPIRATE_COPY_U32_OPTIONAL(_k)                                         \
-    do {                                                                          \
-        flipper_format_rewind(flipper_format);                                    \
-        if(flipper_format_read_uint32(flipper_format, (_k), &uint32_value, 1)) {  \
-            if(!flipper_format_write_uint32(save_file, (_k), &uint32_value, 1)) { \
-                PROTOPIRATE_FAIL_WRITE((_k));                                     \
-            }                                                                     \
-        }                                                                         \
-    } while(0)
-
-// Helper: read and write string if present
-#define PROTOPIRATE_COPY_STRING_IF_PRESENT(_k)                                         \
-    do {                                                                               \
-        flipper_format_rewind(flipper_format);                                         \
-        if(flipper_format_get_value_count(flipper_format, (_k), &uint32_array_size) && \
-           uint32_array_size > 0) {                                                    \
-            if(!flipper_format_read_string(flipper_format, (_k), string_value)) {      \
-                PROTOPIRATE_FAIL_READ((_k));                                           \
-            }                                                                          \
-            if(!flipper_format_write_string(save_file, (_k), string_value)) {          \
-                PROTOPIRATE_FAIL_WRITE((_k));                                          \
-            }                                                                          \
-        }                                                                              \
-    } while(0)
-
-// Helper: read and write optional hex array
-#define PROTOPIRATE_COPY_HEX_FIXED_OPTIONAL(_k, _buf, _len)                  \
-    do {                                                                     \
-        flipper_format_rewind(flipper_format);                               \
-        if(flipper_format_read_hex(flipper_format, (_k), (_buf), (_len))) {  \
-            if(!flipper_format_write_hex(save_file, (_k), (_buf), (_len))) { \
-                PROTOPIRATE_FAIL_WRITE((_k));                                \
-            }                                                                \
-        }                                                                    \
-    } while(0)
-
 // Initialize storage (create folder if needed)
 bool protopirate_storage_init(void);
 
@@ -119,3 +55,5 @@ bool protopirate_storage_save_history_capture(
     FlipperFormat* flipper_format,
     uint32_t seq,
     FuriString* out_path);
+
+void protopirate_storage_build_history_path(uint32_t seq, FuriString* out);

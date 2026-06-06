@@ -203,6 +203,8 @@ static bool fp_rpc_host_unlock(
         app->requested_vault_backend = backend_value;
     }
 
+    app->allow_ext_vault_promotion = app->always_allow_ext ||
+                                     app->requested_vault_backend != KDBXVaultBackendRam;
     snprintf(app->master_password, sizeof(app->master_password), "%s", password);
     const bool ok = flippass_open_execute(app, error);
     if(ok) {

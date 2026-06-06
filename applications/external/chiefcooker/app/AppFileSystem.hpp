@@ -79,7 +79,7 @@ public:
         if(dir != NULL) {
             char fileName[MAX_FILENAME_LENGTH];
             while(dir->GetNextDir(fileName, MAX_FILENAME_LENGTH)) {
-                char* category = new char[strlen(fileName)];
+                char* category = new char[strlen(fileName) + 1];
                 strcpy(category, fileName);
                 categoryList->push_front(category);
                 categoriesLoaded++;

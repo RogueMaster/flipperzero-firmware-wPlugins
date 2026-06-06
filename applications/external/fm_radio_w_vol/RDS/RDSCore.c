@@ -80,7 +80,7 @@ static void rds_core_ensure_correction_table(void) {
     rds_core_build_syndrome_tables();
 
     rds_correction_table_count = rds_core_build_burst_correction_table(
-        rds_correction_table, RDS_BURST_CORRECTION_MAX_ENTRIES, 2U);
+        rds_correction_table, RDS_BURST_CORRECTION_MAX_ENTRIES, 3U);
 
     for(size_t i = 0; i < 1024U; i++) {
         rds_correction_best_by_syndrome[i] = -1;
@@ -338,9 +338,14 @@ static void rds_core_parse_group_0(RDSCore* core, const RdsGroup* group) {
     const uint16_t block_d = group->blocks[3].data16;
     const uint16_t pi = group->blocks[0].data16;
     const uint8_t segment = (uint8_t)(block_b & 0x03U);
+    const uint8_t segment_bit = (uint8_t)(1U << segment);
+    const size_t segment_index = (size_t)segment * 2U;
     const uint8_t pty = (uint8_t)((block_b >> 5U) & 0x1FU);
     const bool tp = ((block_b >> 10U) & 0x01U) != 0U;
     const bool ta = ((block_b >> 4U) & 0x01U) != 0U;
+    const char segment_char0 = (char)((block_d >> 8U) & 0xFFU);
+    const char segment_char1 = (char)(block_d & 0xFFU);
+    const bool was_ready = core->program.ps_ready;
 
     if(core->program.pi != pi) {
         core->program.pi = pi;
@@ -357,22 +362,29 @@ static void rds_core_parse_group_0(RDSCore* core, const RdsGroup* group) {
     core->program.tp = tp;
     core->program.ta = ta;
 
-    core->program.ps_candidate[segment * 2U] = (char)((block_d >> 8U) & 0xFFU);
-    core->program.ps_candidate[segment * 2U + 1U] = (char)(block_d & 0xFFU);
-    core->program.ps_candidate[RDS_PS_LEN] = '\0';
-    core->ps_segment_mask |= (uint8_t)(1U << segment);
+    if(core->program.ps_candidate[segment_index] == segment_char0 &&
+       core->program.ps_candidate[segment_index + 1U] == segment_char1) {
+        bool changed = core->program.ps[segment_index] != segment_char0 ||
+                       core->program.ps[segment_index + 1U] != segment_char1;
 
-    // Incremental PS: copy each segment immediately so partial names show on UI.
-    core->program.ps[segment * 2U] = core->program.ps_candidate[segment * 2U];
-    core->program.ps[segment * 2U + 1U] = core->program.ps_candidate[segment * 2U + 1U];
-    core->program.ps[RDS_PS_LEN] = '\0';
-    core->program.ps_ready = true;
-    core->ps_updates++;
-    rds_core_emit_event(core, RdsEventTypePsUpdated);
+        core->ps_segment_mask |= segment_bit;
+        core->program.ps[segment_index] = segment_char0;
+        core->program.ps[segment_index + 1U] = segment_char1;
+        core->program.ps[RDS_PS_LEN] = '\0';
+        core->program.ps_ready = (core->ps_segment_mask == RDS_FULL_PS_SEGMENT_MASK);
 
-    if(core->ps_segment_mask == RDS_FULL_PS_SEGMENT_MASK) {
-        core->ps_segment_mask = 0U;
+        if(changed || (!was_ready && core->program.ps_ready)) {
+            core->ps_updates++;
+            rds_core_emit_event(core, RdsEventTypePsUpdated);
+        }
+    } else {
+        core->program.ps_candidate[segment_index] = segment_char0;
+        core->program.ps_candidate[segment_index + 1U] = segment_char1;
+        core->ps_segment_mask &= (uint8_t)~segment_bit;
+        core->program.ps_ready = false;
     }
+
+    core->program.ps_candidate[RDS_PS_LEN] = '\0';
 }
 
 static void rds_core_parse_group_2(RDSCore* core, const RdsGroup* group) {
@@ -553,11 +565,10 @@ bool rds_core_consume_demod_bit(RDSCore* core, uint8_t bit, RdsBlock* decoded_bl
 
     if(!core) return false;
 
-    pilot_ok = (core->pilot_level_q8 >= RDS_PILOT_LEVEL_MIN_Q8) &&
-               ((core->pilot_level_q8 * 2U) > (core->rds_band_level_q8 * 3U));
+    pilot_ok = (core->pilot_level_q8 >= RDS_PILOT_LEVEL_MIN_Q8);
     rds_ok = core->rds_band_level_q8 >= RDS_BAND_LEVEL_MIN_Q8;
 
-#ifdef HOST_BUILD
+#if defined(HOST_BUILD) && !defined(RDS_HOST_ENABLE_QUALITY_GATE)
     /* Disable quality gate for offline testing — pilot/rds ratio depends on
        generator parameters and doesn't reflect real antenna signal quality. */
     pilot_ok = true;
@@ -708,7 +719,7 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
 
     switch(core->sync_state) {
     case RdsSyncStateSearch:
-        if(block->status == RdsBlockStatusValid) {
+        if(rds_core_is_block_status_ok(block->status)) {
             core->sync_state = RdsSyncStatePreSync;
             core->expected_next_block = rds_core_next_block_type(block->type);
             core->block_index_in_group = rds_core_group_index_from_block_type(block->type);
@@ -718,7 +729,6 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
         }
         break;
     case RdsSyncStatePreSync:
-        // Accept corrected blocks for sync confirmation.
         if(rds_core_is_block_status_ok(block->status) &&
            rds_core_block_type_matches_expected(block->type, core->expected_next_block)) {
             core->presync_consecutive++;
@@ -742,7 +752,13 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
                 }
             }
         } else {
-            rds_core_restart_sync(core);
+            core->sync_state = RdsSyncStateSearch;
+            core->expected_next_block = RdsBlockTypeUnknown;
+            core->block_index_in_group = 0U;
+            core->flywheel_errors = 0U;
+            core->presync_consecutive = 0U;
+            core->bit_phase = 0;
+            core->slip_retry_pending = false;
         }
         break;
     case RdsSyncStateSync:
@@ -757,6 +773,7 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
             // Try bit-slip repair before giving up on this block.
             RdsBlock repaired_block = {0};
             bool repaired = false;
+            bool structural_miss = rds_core_is_block_status_ok(block->status);
 
             if(rds_core_try_bit_slip_repair(core, &repaired_block, block->raw26) &&
                rds_core_is_block_status_ok(repaired_block.status) &&
@@ -771,9 +788,23 @@ void rds_core_handle_block(RDSCore* core, const RdsBlock* block) {
             }
 
             if(!repaired) {
-                core->expected_next_block = rds_core_next_block_type(core->expected_next_block);
-                core->block_index_in_group =
-                    rds_core_group_index_from_block_type(core->expected_next_block);
+                rds_core_reset_group(&core->current_group);
+
+                if(structural_miss) {
+                    core->sync_state = RdsSyncStatePreSync;
+                    core->expected_next_block = rds_core_next_block_type(block->type);
+                    core->block_index_in_group = rds_core_group_index_from_block_type(block->type);
+                    core->bit_phase = 0;
+                    core->presync_consecutive = 1U;
+                    core->presync_attempts++;
+                    core->flywheel_errors = 0U;
+                } else {
+                    core->expected_next_block =
+                        rds_core_next_block_type(core->expected_next_block);
+                    core->block_index_in_group =
+                        rds_core_group_index_from_block_type(core->expected_next_block);
+                }
+
                 core->slip_retry_pending = false;
             }
         }

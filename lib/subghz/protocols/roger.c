@@ -275,7 +275,6 @@ SubGhzProtocolStatus
 
         subghz_protocol_roger_check_remote_controller(&instance->generic);
         subghz_protocol_encoder_roger_get_upload(instance);
-        instance->encoder.front = 0;
 
         uint8_t key_data[sizeof(uint64_t)] = {0};
         for(size_t i = 0; i < sizeof(uint64_t); i++) {
@@ -295,7 +294,6 @@ SubGhzProtocolStatus
 void subghz_protocol_encoder_roger_stop(void* context) {
     SubGhzProtocolEncoderRoger* instance = context;
     instance->encoder.is_running = false;
-    instance->encoder.front = 0;
 }
 
 LevelDuration subghz_protocol_encoder_roger_yield(void* context) {

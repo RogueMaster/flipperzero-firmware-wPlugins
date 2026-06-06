@@ -1,0 +1,14 @@
+App(
+    appid="pocket_cvss",
+    name="Pocket CVSS",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pocket_cvss_app",
+    stack_size=4 * 1024,
+    sources=["src/pocket_cvss.c", "src/cvss31.c"],
+    fap_icon="pocket_cvss.png",
+    fap_category="Tools",
+    fap_author="vavkamil",
+    fap_weburl="https://github.com/vavkamil/pocket-cvss",
+    fap_version="0.3",
+    fap_description="Offline CVSS v3.1 base calculator",
+)

@@ -1,6 +1,6 @@
 #include "ford_v1.h"
 #include "../protopirate_app_i.h"
-#include <stdio.h>
+#include "protocols_common.h"
 #include <string.h>
 
 #define TAG "FordProtocolV1"
@@ -50,17 +50,23 @@ typedef enum {
 } FordV1DecoderStep;
 
 static const char* ford_v1_get_button_name(uint8_t btn);
-static uint16_t ford_v1_crc16(const uint8_t* data, size_t len);
+static void ford_v1_decode_with_flag(uint8_t* raw, size_t len, uint8_t flag_byte);
 static void ford_v1_decode(uint8_t* raw, size_t len);
+static void ford_v1_encode_inverse_block(uint8_t block[9]);
+static void ford_v1_encode_air_9bytes(const uint8_t* plain9, uint8_t* air9_out);
+static bool ford_v1_plain_from_air(const uint8_t air9[9], uint8_t plain9_out[9]);
+static void ford_v1_fields_from_plain(
+    const uint8_t plain9[9],
+    uint32_t* serial_out,
+    uint8_t* btn_out,
+    uint32_t* cnt_out);
 static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance);
 static bool ford_v1_try_last_byte_variants(SubGhzProtocolDecoderFordV1* instance);
-static bool ford_v1_postdecode_ok(const uint8_t* raw17);
 static bool ford_v1_extract_plain_from_raw(
     const uint8_t* raw17_in,
     uint8_t* plain9_out,
     uint8_t* raw17_canonical_out_opt);
 #ifdef ENABLE_EMULATE_FEATURE
-static void ford_v1_encode_air_9bytes(const uint8_t* plain9, uint8_t* air9_out);
 static void
     ford_v1_plain_apply_fields(uint8_t* plain9, uint32_t serial, uint8_t btn, uint32_t cnt);
 static void ford_v1_encoder_rebuild_raw_from_plain(uint8_t* raw17, const uint8_t* plain9);
@@ -68,7 +74,7 @@ static void ford_v1_encoder_rebuild_raw_from_plain(uint8_t* raw17, const uint8_t
 
 const SubGhzProtocolDecoder subghz_protocol_ford_v1_decoder = {
     .alloc = subghz_protocol_decoder_ford_v1_alloc,
-    .free = subghz_protocol_decoder_ford_v1_free,
+    .free = pp_decoder_free_default,
     .feed = subghz_protocol_decoder_ford_v1_feed,
     .reset = subghz_protocol_decoder_ford_v1_reset,
     .get_hash_data = subghz_protocol_decoder_ford_v1_get_hash_data,
@@ -80,10 +86,10 @@ const SubGhzProtocolDecoder subghz_protocol_ford_v1_decoder = {
 #ifdef ENABLE_EMULATE_FEATURE
 const SubGhzProtocolEncoder subghz_protocol_ford_v1_encoder = {
     .alloc = subghz_protocol_encoder_ford_v1_alloc,
-    .free = subghz_protocol_encoder_ford_v1_free,
+    .free = pp_encoder_free,
     .deserialize = subghz_protocol_encoder_ford_v1_deserialize,
-    .stop = subghz_protocol_encoder_ford_v1_stop,
-    .yield = subghz_protocol_encoder_ford_v1_yield,
+    .stop = pp_encoder_stop,
+    .yield = pp_encoder_yield,
 };
 #else
 const SubGhzProtocolEncoder subghz_protocol_ford_v1_encoder = {
@@ -98,8 +104,8 @@ const SubGhzProtocolEncoder subghz_protocol_ford_v1_encoder = {
 const SubGhzProtocol ford_protocol_v1 = {
     .name = FORD_PROTOCOL_V1_NAME,
     .type = SubGhzProtocolTypeDynamic,
-    .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM | SubGhzProtocolFlag_Decodable |
-            SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save
+    .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
+            SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save
 #ifdef ENABLE_EMULATE_FEATURE
             | SubGhzProtocolFlag_Send
 #endif
@@ -107,6 +113,8 @@ const SubGhzProtocol ford_protocol_v1 = {
     .decoder = &subghz_protocol_ford_v1_decoder,
     .encoder = &subghz_protocol_ford_v1_encoder,
 };
+
+#define ford_v1_crc16(data, len) subghz_protocol_blocks_crc16((data), (len), 0x1021, 0x0000)
 
 static const char* ford_v1_get_button_name(uint8_t btn) {
     switch(btn) {
@@ -125,35 +133,8 @@ static const char* ford_v1_get_button_name(uint8_t btn) {
     }
 }
 
-static uint16_t ford_v1_crc16(const uint8_t* data, size_t len) {
-    uint16_t crc = 0x0000;
-    for(size_t i = 0; i < len; i++) {
-        crc ^= ((uint16_t)data[i] << 8);
-        for(int bit = 0; bit < 8; bit++) {
-            if(crc & 0x8000) {
-                crc = (crc << 1) ^ 0x1021;
-            } else {
-                crc <<= 1;
-            }
-            crc &= 0xFFFF;
-        }
-    }
-    return crc;
-}
-
-static void ford_v1_decode(uint8_t* raw, size_t len) {
+static void ford_v1_decode_with_flag(uint8_t* raw, size_t len, uint8_t flag_byte) {
     if(len < 9) return;
-
-    uint8_t endbyte = raw[8];
-    uint8_t parity_any = (endbyte != 0) ? 1 : 0;
-    uint8_t parity = 0;
-    uint8_t tmp = endbyte;
-    while(tmp) {
-        parity ^= (tmp & 1);
-        tmp >>= 1;
-    }
-
-    uint8_t flag_byte = parity_any ? parity : 0;
 
     if(flag_byte) {
         uint8_t xor_byte = raw[7];
@@ -172,6 +153,83 @@ static void ford_v1_decode(uint8_t* raw, size_t len) {
     uint8_t b7 = raw[7];
     raw[6] = (b6 & 0xAA) | (b7 & 0x55);
     raw[7] = (b7 & 0xAA) | (b6 & 0x55);
+}
+
+static void ford_v1_decode(uint8_t* raw, size_t len) {
+    if(len < 9) return;
+
+    uint8_t endbyte = raw[8];
+    uint8_t parity_any = (endbyte != 0) ? 1 : 0;
+    uint8_t parity = 0;
+    uint8_t tmp = endbyte;
+    while(tmp) {
+        parity ^= (tmp & 1);
+        tmp >>= 1;
+    }
+
+    uint8_t flag_byte = parity_any ? parity : 0;
+    ford_v1_decode_with_flag(raw, len, flag_byte);
+}
+
+static void ford_v1_encode_inverse_block(uint8_t block[9]) {
+    uint8_t sum = 0;
+    for(size_t i = 1; i <= 7; i++) {
+        sum = (uint8_t)(sum + block[i]);
+    }
+
+    const uint8_t p6 = block[6];
+    const uint8_t p7 = block[7];
+    const uint8_t post6 = (uint8_t)((p6 & 0xAAU) | (p7 & 0x55U));
+    const uint8_t post7 = (uint8_t)((p7 & 0xAAU) | (p6 & 0x55U));
+    const uint8_t xorv = (uint8_t)(post6 ^ post7);
+
+    uint8_t xor_byte;
+    if((__builtin_popcount((unsigned int)sum) & 1) != 0) {
+        block[6] = xorv;
+        block[7] = post7;
+        xor_byte = post7;
+    } else {
+        block[6] = post6;
+        block[7] = xorv;
+        xor_byte = post6;
+    }
+
+    for(size_t i = 1; i <= 5; i++) {
+        block[i] ^= xor_byte;
+    }
+}
+
+static void ford_v1_encode_air_9bytes(const uint8_t* plain9, uint8_t* air9_out) {
+    uint8_t block[9];
+    memcpy(block, plain9, 9);
+    ford_v1_encode_inverse_block(block);
+    memcpy(air9_out, block, 9);
+}
+
+static bool ford_v1_plain_from_air(const uint8_t air9[9], uint8_t plain9_out[9]) {
+    for(uint8_t flag = 0; flag < 2; flag++) {
+        uint8_t cand[9];
+        memcpy(cand, air9, 9);
+        ford_v1_decode_with_flag(cand, 9, flag);
+        uint8_t reair[9];
+        ford_v1_encode_air_9bytes(cand, reair);
+        if(memcmp(reair, air9, 9) == 0) {
+            memcpy(plain9_out, cand, 9);
+            return true;
+        }
+    }
+    return false;
+}
+
+static void ford_v1_fields_from_plain(
+    const uint8_t plain9[9],
+    uint32_t* serial_out,
+    uint8_t* btn_out,
+    uint32_t* cnt_out) {
+    *serial_out = ((uint32_t)plain9[1] << 24) | ((uint32_t)plain9[2] << 16) |
+                  ((uint32_t)plain9[3] << 8) | plain9[0];
+    *btn_out = (plain9[5] >> 4) & 0x0F;
+    *cnt_out = ((plain9[5] & 0x0F) << 16) | (plain9[6] << 8) | plain9[7];
 }
 
 static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance) {
@@ -226,10 +284,39 @@ static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance) {
 
     FURI_LOG_D(TAG, "CRC OK, decoding payload");
 
+    const uint8_t* const air9 = &raw[6];
     uint8_t decoded[9];
-    memcpy(decoded, &raw[6], 9);
+    bool strict_ok = false;
+    bool rolling_ok = false;
 
-    ford_v1_decode(decoded, 9);
+    uint8_t decoded_b0[9];
+    uint8_t decoded_b1[9];
+    memcpy(decoded_b0, air9, 9);
+    ford_v1_decode_with_flag(decoded_b0, 9, 0);
+    memcpy(decoded_b1, air9, 9);
+    ford_v1_decode_with_flag(decoded_b1, 9, 1);
+
+    if((decoded_b0[3] == raw[5]) && (decoded_b0[4] == raw[6])) {
+        memcpy(decoded, decoded_b0, 9);
+        strict_ok = true;
+        FURI_LOG_D(TAG, "Plain (cleartext) via strict branch 0");
+    } else if((decoded_b1[3] == raw[5]) && (decoded_b1[4] == raw[6])) {
+        memcpy(decoded, decoded_b1, 9);
+        strict_ok = true;
+        FURI_LOG_D(TAG, "Plain (cleartext) via strict branch 1");
+    } else if(ford_v1_plain_from_air(air9, decoded)) {
+        rolling_ok = true;
+        FURI_LOG_D(TAG, "Plain (encrypted) via encode round-trip");
+    } else {
+        memcpy(decoded, air9, 9);
+        ford_v1_decode(decoded, 9);
+        FURI_LOG_W(
+            TAG,
+            "Descramble unresolved (b0[3]=%02X b1[3]=%02X raw[5]=%02X); header-only",
+            decoded_b0[3],
+            decoded_b1[3],
+            raw[5]);
+    }
 
     FURI_LOG_D(
         TAG,
@@ -243,15 +330,6 @@ static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance) {
         decoded[6],
         decoded[7],
         decoded[8]);
-
-    if(decoded[3] != raw[5]) {
-        FURI_LOG_D(TAG, "Decode FAIL: decoded[3]=%02X != raw[5]=%02X", decoded[3], raw[5]);
-        return false;
-    }
-    if(decoded[4] != raw[6]) {
-        FURI_LOG_D(TAG, "Decode FAIL: decoded[4]=%02X != raw[6]=%02X", decoded[4], raw[6]);
-        return false;
-    }
 
     uint16_t recalc_crc = ford_v1_crc16(&raw[3], 12);
     instance->crc_calc = recalc_crc;
@@ -270,17 +348,18 @@ static bool ford_v1_process_data(SubGhzProtocolDecoderFordV1* instance) {
     instance->data2 = key2;
     instance->generic.data_count_bit = FORD_V1_DATA_BITS;
 
-    uint8_t btn = (decoded[5] >> 4) & 0x0F;
-    instance->generic.btn = btn;
-
-    uint32_t serial = ((uint32_t)decoded[1] << 24) | ((uint32_t)decoded[2] << 16) |
-                      ((uint32_t)decoded[3] << 8) | decoded[0];
-    instance->generic.serial = serial;
-
-    uint32_t cnt = ((decoded[5] & 0x0F) << 16) | (decoded[6] << 8) | decoded[7];
-    instance->generic.cnt = cnt;
-
-    instance->encryption_supported = 1;
+    if(strict_ok) {
+        ford_v1_fields_from_plain(
+            decoded, &instance->generic.serial, &instance->generic.btn, &instance->generic.cnt);
+        instance->encryption_supported = 1;
+    } else {
+        instance->generic.serial = ((uint32_t)raw[3] << 24) | ((uint32_t)raw[4] << 16) |
+                                   ((uint32_t)raw[5] << 8) | raw[6];
+        instance->generic.btn = 0;
+        instance->generic.cnt = 0;
+        instance->encryption_supported = 0;
+        (void)rolling_ok;
+    }
 
     FURI_LOG_I(
         TAG,
@@ -328,13 +407,6 @@ static bool ford_v1_try_last_byte_variants(SubGhzProtocolDecoderFordV1* instance
     return false;
 }
 
-static bool ford_v1_postdecode_ok(const uint8_t* raw17) {
-    uint8_t dec[9];
-    memcpy(dec, &raw17[6], 9);
-    ford_v1_decode(dec, 9);
-    return (dec[3] == raw17[5]) && (dec[4] == raw17[6]);
-}
-
 static bool ford_v1_extract_plain_from_raw(
     const uint8_t* raw17_in,
     uint8_t* plain9_out,
@@ -358,16 +430,27 @@ static bool ford_v1_extract_plain_from_raw(
         return false;
     }
 
-    memcpy(plain9_out, &raw[6], 9);
-    ford_v1_decode(plain9_out, 9);
-    if(!ford_v1_postdecode_ok(raw)) {
-        return false;
+    for(uint8_t flag = 0; flag < 2; flag++) {
+        uint8_t cand[9];
+        memcpy(cand, &raw[6], 9);
+        ford_v1_decode_with_flag(cand, 9, flag);
+        if((cand[3] == raw[5]) && (cand[4] == raw[6])) {
+            memcpy(plain9_out, cand, 9);
+            if(raw17_canonical_out_opt) {
+                memcpy(raw17_canonical_out_opt, raw, FORD_V1_DATA_BYTES);
+            }
+            return true;
+        }
     }
 
-    if(raw17_canonical_out_opt) {
-        memcpy(raw17_canonical_out_opt, raw, FORD_V1_DATA_BYTES);
+    if(ford_v1_plain_from_air(&raw[6], plain9_out)) {
+        if(raw17_canonical_out_opt) {
+            memcpy(raw17_canonical_out_opt, raw, FORD_V1_DATA_BYTES);
+        }
+        return true;
     }
-    return true;
+
+    return false;
 }
 
 void* subghz_protocol_decoder_ford_v1_alloc(SubGhzEnvironment* environment) {
@@ -377,12 +460,6 @@ void* subghz_protocol_decoder_ford_v1_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &ford_protocol_v1;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
-}
-
-void subghz_protocol_decoder_ford_v1_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderFordV1* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_ford_v1_reset(void* context) {
@@ -610,21 +687,6 @@ static uint16_t ford_v1_crc16_from_key3_bytes(const uint8_t key3[4]) {
     return (uint16_t)(crc & 0xFFFFU);
 }
 
-static bool ford_v1_flipper_read_serial_u32(FlipperFormat* ff, uint32_t* out_serial) {
-    flipper_format_rewind(ff);
-    if(flipper_format_read_uint32(ff, "Serial", out_serial, 1)) {
-        return true;
-    }
-    uint8_t ser_be[4];
-    flipper_format_rewind(ff);
-    if(flipper_format_read_hex(ff, "Serial", ser_be, sizeof(ser_be))) {
-        *out_serial = ((uint32_t)ser_be[0] << 24) | ((uint32_t)ser_be[1] << 16) |
-                      ((uint32_t)ser_be[2] << 8) | (uint32_t)ser_be[3];
-        return true;
-    }
-    return false;
-}
-
 static uint64_t ford_v1_u64_from_be_key8(const uint8_t key8[8]) {
     uint64_t v = 0;
     for(int i = 0; i < 8; i++) {
@@ -692,20 +754,20 @@ SubGhzProtocolStatus subghz_protocol_decoder_ford_v1_serialize(
     if(ret == SubGhzProtocolStatusOk) {
         uint32_t ser_w = instance->generic.serial;
         flipper_format_rewind(flipper_format);
-        flipper_format_insert_or_update_uint32(flipper_format, "Serial", &ser_w, 1);
+        flipper_format_insert_or_update_uint32(flipper_format, FF_SERIAL, &ser_w, 1);
         uint32_t btn_w = instance->generic.btn;
         flipper_format_rewind(flipper_format);
-        flipper_format_insert_or_update_uint32(flipper_format, "Btn", &btn_w, 1);
+        flipper_format_insert_or_update_uint32(flipper_format, FF_BTN, &btn_w, 1);
         uint32_t cnt_w = instance->generic.cnt;
         flipper_format_rewind(flipper_format);
-        flipper_format_insert_or_update_uint32(flipper_format, "Cnt", &cnt_w, 1);
+        flipper_format_insert_or_update_uint32(flipper_format, FF_CNT, &cnt_w, 1);
 
         uint8_t key1_bytes[8];
         for(int i = 0; i < 8; i++) {
             key1_bytes[i] = (uint8_t)(instance->generic.data >> (56 - i * 8));
         }
         flipper_format_rewind(flipper_format);
-        flipper_format_insert_or_update_hex(flipper_format, "Key", key1_bytes, 8);
+        flipper_format_insert_or_update_hex(flipper_format, FF_KEY, key1_bytes, 8);
 
         uint8_t key2_bytes[8];
         for(int i = 0; i < 8; i++) {
@@ -734,7 +796,7 @@ SubGhzProtocolStatus
     if(ret == SubGhzProtocolStatusOk) {
         flipper_format_rewind(flipper_format);
         uint8_t key1_bytes[8] = {0};
-        flipper_format_read_hex(flipper_format, "Key", key1_bytes, 8);
+        flipper_format_read_hex(flipper_format, FF_KEY, key1_bytes, 8);
 
         flipper_format_rewind(flipper_format);
         uint8_t key2_bytes[8] = {0};
@@ -756,28 +818,21 @@ SubGhzProtocolStatus
         instance->generic.data = k1;
         instance->data2 = k2;
 
-        if(extract_ok) {
-            instance->encryption_supported = 1;
-        } else {
-            uint16_t calc_crc = ford_v1_crc16(&raw[3], 12);
-            uint16_t recv_crc = ((uint16_t)raw[15] << 8) | raw[16];
-            instance->encryption_supported = (calc_crc == recv_crc) ? 1 : 0;
-        }
+        instance->encryption_supported =
+            (extract_ok && (plain9_tmp[3] == raw[5]) && (plain9_tmp[4] == raw[6])) ? 1 : 0;
 
         memcpy(instance->raw_bytes, raw, FORD_V1_DATA_BYTES);
 
-        uint32_t u32 = 0;
-        if(ford_v1_flipper_read_serial_u32(flipper_format, &u32)) {
-            instance->generic.serial = u32;
+        uint32_t serial = UINT32_MAX;
+        uint32_t btn = UINT32_MAX;
+        uint32_t cnt = UINT32_MAX;
+        pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+        if(serial == UINT32_MAX || btn == UINT32_MAX || cnt == UINT32_MAX) {
+            return SubGhzProtocolStatusErrorParserOthers;
         }
-        flipper_format_rewind(flipper_format);
-        if(flipper_format_read_uint32(flipper_format, "Btn", &u32, 1)) {
-            instance->generic.btn = (uint8_t)u32;
-        }
-        flipper_format_rewind(flipper_format);
-        if(flipper_format_read_uint32(flipper_format, "Cnt", &u32, 1)) {
-            instance->generic.cnt = u32;
-        }
+        instance->generic.serial = serial;
+        instance->generic.btn = (uint8_t)btn;
+        instance->generic.cnt = cnt;
     }
 
     return ret;
@@ -826,42 +881,54 @@ void subghz_protocol_decoder_ford_v1_get_string(void* context, FuriString* outpu
             (unsigned long)crc16,
             crc_ok ? "OK" : "ERR");
     } else {
-        uint16_t calc_crc = crc16;
-        (void)calc_crc;
+        uint8_t raw[FORD_V1_DATA_BYTES];
+        ford_v1_raw14_from_internal_keys(key1, key2, raw);
+        raw[15] = (uint8_t)((crc >> 8) & 0xFF);
+        raw[16] = (uint8_t)(crc & 0xFF);
+
+        uint16_t check_crc = ford_v1_crc16(&raw[3], 12);
+        bool crc_ok = (check_crc == crc16);
+
+        uint32_t device_id = ((uint32_t)raw[3] << 24) | ((uint32_t)raw[4] << 16) |
+                             ((uint32_t)raw[5] << 8) | raw[6];
 
         furi_string_cat_printf(
             output,
             "%s %dbit\r\n"
             "%014llX%06llX\r\n"
             "%010llX%04lX\r\n"
-            "CRC:%04lX [%s]\r\n",
+            "Sn:%08lX\r\n"
+            "CRC:%04lX [%s]\r\n"
+            "Encryption not supported !\r\n",
             instance->generic.protocol_name,
             instance->generic.data_count_bit,
             (unsigned long long)key1,
             (unsigned long long)(key2 >> 40),
             (unsigned long long)(key2 & 0xFFFFFFFFFFULL),
             (unsigned long)crc16,
+            (unsigned long)device_id,
             (unsigned long)crc16,
-            "ERR");
+            crc_ok ? "OK" : "ERR");
     }
 }
 
 #ifdef ENABLE_EMULATE_FEATURE
 
-#define FORD_V1_ENC_UPLOAD_U32   0x1932U
-#define FORD_V1_ENC_UPLOAD_ALLOC 0x64D0U
-#define FORD_V1_ENC_BURST_U32    0x433U
-#define FORD_V1_ENC_BURST_COUNT  6U
+#define FORD_V1_ENC_BURST_COUNT    6U
+#define FORD_V1_ENC_PREAMBLE_PAIRS 400U
+#define FORD_V1_ENC_BURST_LD_COUNT \
+    ((FORD_V1_ENC_PREAMBLE_PAIRS * 2U) + 2U + (FORD_V1_DATA_BYTES * 16U) + 1U)
+_Static_assert(
+    FORD_V1_ENC_BURST_LD_COUNT <= PP_SHARED_UPLOAD_CAPACITY,
+    "FORD_V1_ENC_BURST_LD_COUNT exceeds shared upload slab");
+#define FORD_V1_ENC_SYNC_SHORT_US 65U
+#define FORD_V1_ENC_SYNC_LONG_US  130U
+#define FORD_V1_ENC_GAP_REPEAT_US 50000U
+#define FORD_V1_ENC_GAP_LAST_US   260U
 
-#if(FORD_V1_ENC_BURST_U32 * FORD_V1_ENC_BURST_COUNT) != FORD_V1_ENC_UPLOAD_U32
+#if FORD_V1_ENC_BURST_LD_COUNT != 0x433U
 #error Ford V1 encoder burst layout constants out of sync
 #endif
-#define FORD_V1_ENC_LD_PREAM_A    0x80000082U
-#define FORD_V1_ENC_LD_PREAM_B    0x40000082U
-#define FORD_V1_ENC_LD_SYNC_LO    0x40000041U
-#define FORD_V1_ENC_LD_GAP_REPEAT 0x4000C350U
-#define FORD_V1_ENC_LD_GAP_LAST   0x40000104U
-#define FORD_V1_ENC_MANCHESTER_OR 0x41U
 
 static const uint8_t ford_v1_encoder_burst_pkt4_vals[6] = {0x08, 0x00, 0x10, 0x08, 0x00, 0x10};
 
@@ -875,54 +942,8 @@ typedef struct SubGhzProtocolEncoderFordV1 {
     uint8_t raw_tx[FORD_V1_DATA_BYTES];
     uint8_t encryption_supported;
     uint8_t plain_valid;
+    uint8_t burst_idx;
 } SubGhzProtocolEncoderFordV1;
-
-static void ford_v1_plain9_get_fields(
-    const uint8_t plain9[9],
-    uint32_t* serial,
-    uint8_t* btn,
-    uint32_t* cnt) {
-    *serial = ((uint32_t)plain9[1] << 24) | ((uint32_t)plain9[2] << 16) |
-              ((uint32_t)plain9[3] << 8) | (uint32_t)plain9[0];
-    *btn = (uint8_t)((plain9[5] >> 4) & 0x0FU);
-    *cnt = ((uint32_t)(plain9[5] & 0x0FU) << 16) | ((uint32_t)plain9[6] << 8) |
-           (uint32_t)plain9[7];
-}
-
-static void ford_v1_encode_inverse_block(uint8_t block[9]) {
-    uint8_t sum = 0;
-    for(size_t i = 1; i <= 7; i++) {
-        sum = (uint8_t)(sum + block[i]);
-    }
-
-    const uint8_t p6 = block[6];
-    const uint8_t p7 = block[7];
-    const uint8_t post6 = (uint8_t)((p6 & 0xAAU) | (p7 & 0x55U));
-    const uint8_t post7 = (uint8_t)((p7 & 0xAAU) | (p6 & 0x55U));
-    const uint8_t xorv = (uint8_t)(post6 ^ post7);
-
-    uint8_t xor_byte;
-    if((__builtin_popcount((unsigned int)sum) & 1) != 0) {
-        block[6] = xorv;
-        block[7] = post7;
-        xor_byte = post7;
-    } else {
-        block[6] = post6;
-        block[7] = xorv;
-        xor_byte = post6;
-    }
-
-    for(size_t i = 1; i <= 5; i++) {
-        block[i] ^= xor_byte;
-    }
-}
-
-static void ford_v1_encode_air_9bytes(const uint8_t* plain9, uint8_t* air9_out) {
-    uint8_t block[9];
-    memcpy(block, plain9, 9);
-    ford_v1_encode_inverse_block(block);
-    memcpy(air9_out, block, 9);
-}
 
 static void
     ford_v1_plain_apply_fields(uint8_t* plain9, uint32_t serial, uint8_t btn, uint32_t cnt) {
@@ -1009,91 +1030,38 @@ static void ford_v1_encoder_patch_key1_low_bits(SubGhzProtocolEncoderFordV1* ins
     instance->generic.data = (k & 0xFFFFFFFF00000000ULL) | (uint64_t)lo;
 }
 
-static void ford_v1_encoder_build_upload(SubGhzProtocolEncoderFordV1* instance) {
-    uint32_t* const upload_u32 = (uint32_t*)instance->encoder.upload;
+static void ford_v1_encoder_build_burst(SubGhzProtocolEncoderFordV1* instance, uint8_t burst_idx) {
+    LevelDuration* const upload = instance->encoder.upload;
     uint8_t pkt[FORD_V1_DATA_BYTES];
     memcpy(pkt, instance->raw_tx, FORD_V1_DATA_BYTES);
 
-    const uint32_t pat_a = FORD_V1_ENC_LD_PREAM_A;
-    const uint32_t pat_b = FORD_V1_ENC_LD_PREAM_B;
-    const uint32_t sync_word = FORD_V1_ENC_LD_PREAM_A;
-    const uint32_t sync_lo = FORD_V1_ENC_LD_SYNC_LO;
+    pkt[4] = ford_v1_encoder_burst_pkt4_vals[burst_idx];
+    uint16_t crcw = ford_v1_crc16(&pkt[3], 12);
+    pkt[15] = (uint8_t)(crcw >> 8);
+    pkt[16] = (uint8_t)(crcw & 0xFFU);
 
-    int i6 = 0;
-    uint32_t* r7 = (uint32_t*)((uint8_t*)upload_u32 + 0xc80);
-    unsigned burst_idx = 0;
-
-    furi_check(sizeof(ford_v1_encoder_burst_pkt4_vals) == FORD_V1_ENC_BURST_COUNT);
-
-    for(;;) {
-        furi_check(burst_idx < FORD_V1_ENC_BURST_COUNT);
-        pkt[4] = ford_v1_encoder_burst_pkt4_vals[burst_idx];
-        uint16_t crcw = ford_v1_crc16(&pkt[3], 12);
-        pkt[15] = (uint8_t)(crcw >> 8);
-        pkt[16] = (uint8_t)(crcw & 0xFFU);
-        {
-            char hx[40];
-            size_t o = 0;
-            for(size_t u = 0; u < FORD_V1_DATA_BYTES && o + 2 < sizeof(hx); u++) {
-                int n = snprintf(hx + o, sizeof(hx) - o, "%02X", pkt[u]);
-                if(n <= 0) break;
-                o += (size_t)n;
-            }
-            FURI_LOG_I(TAG, "Encoder TX burst %u/6 raw17=%s", (unsigned)(burst_idx + 1U), hx);
-        }
-        FURI_LOG_D(
-            TAG,
-            "Encoder TX build burst %u/%u: pkt[4]=%02X CRC=%04X raw[0..3]=%02X%02X%02X%02X",
-            (unsigned)(burst_idx + 1U),
-            (unsigned)FORD_V1_ENC_BURST_COUNT,
-            (unsigned)pkt[4],
-            (unsigned)crcw,
-            (unsigned)pkt[0],
-            (unsigned)pkt[1],
-            (unsigned)pkt[2],
-            (unsigned)pkt[3]);
-        burst_idx++;
-
-        uint32_t* pu19 = r7 - 800;
-        while(pu19 != r7) {
-            pu19[0] = pat_a;
-            pu19[1] = pat_b;
-            pu19 += 2;
-        }
-        r7[1] = sync_lo;
-        r7[0] = sync_word;
-
-        int ip = i6 + 0x322;
-        for(int by = 0; by < FORD_V1_DATA_BYTES; by++) {
-            uint8_t b = pkt[by];
-            uint32_t* pu10 = upload_u32 + ip;
-            for(int bit_i = 7; bit_i >= 0; bit_i--) {
-                uint32_t w_hi_pair;
-                uint32_t w_lo_pair;
-                if(((b >> bit_i) & 1) == 0) {
-                    w_hi_pair = (2U << 30) | FORD_V1_ENC_MANCHESTER_OR;
-                    w_lo_pair = (1U << 30) | FORD_V1_ENC_MANCHESTER_OR;
-                } else {
-                    w_hi_pair = (1U << 30) | FORD_V1_ENC_MANCHESTER_OR;
-                    w_lo_pair = (2U << 30) | FORD_V1_ENC_MANCHESTER_OR;
-                }
-                pu10[0] = w_lo_pair;
-                pu10[1] = w_hi_pair;
-                pu10 += 2;
-            }
-            ip += 0x10;
-        }
-
-        i6 += (int)FORD_V1_ENC_BURST_U32;
-        if(i6 == (int)FORD_V1_ENC_UPLOAD_U32) {
-            break;
-        }
-        r7[0x112] = FORD_V1_ENC_LD_GAP_REPEAT;
-        r7 = (uint32_t*)((uint8_t*)r7 + 0x10cc);
+    size_t index = 0;
+    for(size_t i = 0; i < FORD_V1_ENC_PREAMBLE_PAIRS; i++) {
+        upload[index++] = level_duration_make(true, FORD_V1_ENC_SYNC_LONG_US);
+        upload[index++] = level_duration_make(false, FORD_V1_ENC_SYNC_LONG_US);
     }
-    r7[0x112] = FORD_V1_ENC_LD_GAP_LAST;
+    upload[index++] = level_duration_make(true, FORD_V1_ENC_SYNC_LONG_US);
+    upload[index++] = level_duration_make(false, FORD_V1_ENC_SYNC_SHORT_US);
 
-    instance->encoder.size_upload = FORD_V1_ENC_UPLOAD_U32;
+    for(size_t by = 0; by < FORD_V1_DATA_BYTES; by++) {
+        uint8_t b = pkt[by];
+        for(int bit_i = 7; bit_i >= 0; bit_i--) {
+            bool bit = ((b >> bit_i) & 1U) != 0U;
+            upload[index++] = level_duration_make(bit, FORD_V1_ENC_SYNC_SHORT_US);
+            upload[index++] = level_duration_make(!bit, FORD_V1_ENC_SYNC_SHORT_US);
+        }
+    }
+
+    upload[index++] = level_duration_make(
+        false,
+        (burst_idx + 1U == FORD_V1_ENC_BURST_COUNT) ? FORD_V1_ENC_GAP_LAST_US :
+                                                      FORD_V1_ENC_GAP_REPEAT_US);
+    instance->encoder.size_upload = FORD_V1_ENC_BURST_LD_COUNT;
     instance->encoder.front = 0;
 }
 
@@ -1104,19 +1072,11 @@ void* subghz_protocol_encoder_ford_v1_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &ford_protocol_v1;
     instance->generic.protocol_name = instance->base.protocol->name;
     instance->encoder.repeat = 10;
-    instance->encoder.size_upload = 0;
     instance->encoder.front = 0;
     instance->encoder.is_running = false;
-    instance->encoder.upload = malloc(FORD_V1_ENC_UPLOAD_ALLOC);
-    furi_check(instance->encoder.upload);
+    instance->burst_idx = 0;
+    pp_encoder_buffer_ensure(instance, FORD_V1_ENC_BURST_LD_COUNT);
     return instance;
-}
-
-void subghz_protocol_encoder_ford_v1_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderFordV1* instance = context;
-    free(instance->encoder.upload);
-    free(instance);
 }
 
 SubGhzProtocolStatus
@@ -1129,22 +1089,18 @@ SubGhzProtocolStatus
     instance->encoder.front = 0;
     instance->encoder.repeat = 10;
     instance->plain_valid = 0;
-
-    FuriString* temp_str = furi_string_alloc();
-    furi_check(temp_str);
+    instance->burst_idx = 0;
 
     do {
         flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_string(flipper_format, "Protocol", temp_str)) {
-            break;
-        }
-        if(!furi_string_equal(temp_str, instance->base.protocol->name)) {
+        if(pp_verify_protocol_name(flipper_format, instance->base.protocol->name) !=
+           SubGhzProtocolStatusOk) {
             break;
         }
 
         flipper_format_rewind(flipper_format);
         uint8_t key1_bytes[8] = {0};
-        if(!flipper_format_read_hex(flipper_format, "Key", key1_bytes, 8)) {
+        if(!flipper_format_read_hex(flipper_format, FF_KEY, key1_bytes, 8)) {
             break;
         }
         flipper_format_rewind(flipper_format);
@@ -1195,34 +1151,14 @@ SubGhzProtocolStatus
         ford_v1_encoder_keys_from_raw(instance);
 
         {
-            uint32_t ser_fb = 0;
-            uint32_t cnt_fb = 0;
-            uint8_t btn_fb = 0;
-            ford_v1_plain9_get_fields(instance->plain9, &ser_fb, &btn_fb, &cnt_fb);
-
-            uint32_t u32 = 0;
-            if(ford_v1_flipper_read_serial_u32(flipper_format, &u32)) {
-                instance->generic.serial = u32;
-            } else {
-                instance->generic.serial = ser_fb;
-            }
-
-            flipper_format_rewind(flipper_format);
-            if(flipper_format_read_uint32(flipper_format, "Btn", &u32, 1)) {
-                instance->generic.btn = (uint8_t)u32;
-            } else {
-                instance->generic.btn = btn_fb;
-            }
-
-            flipper_format_rewind(flipper_format);
-            if(flipper_format_read_uint32(flipper_format, "Cnt", &u32, 1)) {
-                instance->generic.cnt = u32;
-            } else {
-                instance->generic.cnt = cnt_fb;
-            }
-
-            instance->generic.cnt &= 0xFFFFFU;
-            instance->generic.btn &= 0x0FU;
+            uint32_t serial = UINT32_MAX;
+            uint32_t btn = UINT32_MAX;
+            uint32_t cnt = UINT32_MAX;
+            pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+            if(serial == UINT32_MAX || btn == UINT32_MAX || cnt == UINT32_MAX) break;
+            instance->generic.serial = serial;
+            instance->generic.btn = (uint8_t)(btn & 0x0FU);
+            instance->generic.cnt = cnt & 0xFFFFFU;
         }
 
         {
@@ -1241,74 +1177,27 @@ SubGhzProtocolStatus
 
         ford_v1_encoder_patch_key1_low_bits(instance);
 
-        flipper_format_rewind(flipper_format);
-        uint32_t repeat_tmp = 10;
-        if(flipper_format_read_uint32(flipper_format, "Repeat", &repeat_tmp, 1)) {
-            instance->encoder.repeat = repeat_tmp;
-        } else {
-            instance->encoder.repeat = 10;
-        }
+        instance->encoder.repeat = pp_encoder_read_repeat(flipper_format, 10);
 
-        ford_v1_encoder_build_upload(instance);
+        ford_v1_encoder_build_burst(instance, instance->burst_idx);
 
         {
             flipper_format_rewind(flipper_format);
             flipper_format_insert_or_update_uint32(
-                flipper_format, "Serial", &instance->generic.serial, 1);
+                flipper_format, FF_SERIAL, &instance->generic.serial, 1);
             uint32_t btn_store = instance->generic.btn;
             flipper_format_rewind(flipper_format);
-            flipper_format_insert_or_update_uint32(flipper_format, "Btn", &btn_store, 1);
+            flipper_format_insert_or_update_uint32(flipper_format, FF_BTN, &btn_store, 1);
             uint32_t cnt_store = instance->generic.cnt;
             flipper_format_rewind(flipper_format);
-            flipper_format_insert_or_update_uint32(flipper_format, "Cnt", &cnt_store, 1);
+            flipper_format_insert_or_update_uint32(flipper_format, FF_CNT, &cnt_store, 1);
         }
 
         instance->encoder.is_running = true;
         ret = SubGhzProtocolStatusOk;
     } while(false);
 
-    furi_string_free(temp_str);
     return ret;
 }
 
-void subghz_protocol_encoder_ford_v1_stop(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderFordV1* instance = context;
-    instance->encoder.is_running = false;
-}
-
-LevelDuration subghz_protocol_encoder_ford_v1_yield(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderFordV1* instance = context;
-
-    if(!instance->encoder.is_running || instance->encoder.repeat == 0) {
-        instance->encoder.is_running = false;
-        return level_duration_reset();
-    }
-
-    LevelDuration ret = instance->encoder.upload[instance->encoder.front];
-
-    if(++instance->encoder.front == instance->encoder.size_upload) {
-        FURI_LOG_D(
-            TAG,
-            "Encoder yield: finished one full %lu-word frame (all %u bursts); repeats_left=%u",
-            (unsigned long)instance->encoder.size_upload,
-            (unsigned)FORD_V1_ENC_BURST_COUNT,
-            (unsigned)instance->encoder.repeat - 1U);
-        instance->encoder.repeat--;
-        instance->encoder.front = 0;
-    } else if(instance->encoder.front <= 4U) {
-        uint32_t raw_word;
-        memcpy(&raw_word, &ret, sizeof(raw_word));
-        FURI_LOG_D(
-            TAG,
-            "Encoder yield[%lu/%lu]: LevelDuration u32=0x%08lX",
-            (unsigned long)instance->encoder.front - 1UL,
-            (unsigned long)instance->encoder.size_upload,
-            (unsigned long)raw_word);
-    }
-
-    return ret;
-}
-
-#endif
+#endif // ENABLE_EMULATE_FEATURE

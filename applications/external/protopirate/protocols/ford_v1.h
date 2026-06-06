@@ -34,10 +34,7 @@ void subghz_protocol_decoder_ford_v1_get_string(void* context, FuriString* outpu
 
 #ifdef ENABLE_EMULATE_FEATURE
 void* subghz_protocol_encoder_ford_v1_alloc(SubGhzEnvironment* environment);
-void subghz_protocol_encoder_ford_v1_free(void* context);
 SubGhzProtocolStatus
     subghz_protocol_encoder_ford_v1_deserialize(void* context, FlipperFormat* flipper_format);
-void subghz_protocol_encoder_ford_v1_stop(void* context);
-LevelDuration subghz_protocol_encoder_ford_v1_yield(void* context);
 extern const SubGhzProtocolEncoder subghz_protocol_ford_v1_encoder;
 #endif

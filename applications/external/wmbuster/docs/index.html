@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>wM-Buster — wireless M-Bus listener for Flipper Zero</title>
+<meta name="description" content="Passive wireless M-Bus listener for the Flipper Zero. Reads EU utility meters on the 868 MHz band. Open-source, GPLv3-licensed, receive-only." />
+<meta name="theme-color" content="#0a1320" />
+
+<!-- Open Graph -->
+<meta property="og:title" content="wM-Buster — wireless M-Bus listener for Flipper Zero" />
+<meta property="og:description" content="Passive wireless M-Bus listener for the Flipper Zero. EU utility meters on the 868 MHz band. Receive-only." />
+<meta property="og:image" content="banner.png" />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg:        #0a1320;        /* deep navy from banner          */
+    --bg-soft:   #11192a;
+    --bg-card:   #15203a;
+    --border:    #243352;
+    --grid:      rgba(255, 122, 24, 0.06);
+    --fg:        #f5e9d8;        /* warm cream                     */
+    --fg-muted:  #8aa0c2;
+    --accent:    #ff7a18;        /* primary amber from banner      */
+    --accent-2:  #ffb04d;        /* glow / highlight               */
+    --danger:    #ef4444;
+    --ok:        #22c55e;
+    --info:      #4cc4ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                  Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Subtle pixel-grid backdrop matching the banner art-style. */
+  body::before {
+    content: ""; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none; z-index: 0;
+    mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+            mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre, .mono {
+    font-family: "VT323", ui-monospace, "JetBrains Mono", "Fira Code",
+                 "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 17px;
+  }
+  .pixel {
+    font-family: "Press Start 2P", monospace;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  /* Top nav */
+  header.nav {
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(14px);
+    background: rgba(10, 19, 32, 0.82);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 1100px; margin: 0 auto;
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .brand {
+    font-family: "Press Start 2P", monospace;
+    font-size: 14px; color: var(--accent);
+    text-shadow: 0 0 12px rgba(255, 122, 24, 0.4);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .brand .dot {
+    width: 10px; height: 10px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    image-rendering: pixelated;
+  }
+  .nav-links { margin-left: auto; display: flex; gap: 22px; }
+  .nav-links a { color: var(--fg-muted); font-size: 14px; }
+  .nav-links a:hover { color: var(--accent-2); text-decoration: none; }
+
+  main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 0 48px;
+    text-align: center;
+  }
+  .hero-banner {
+    width: 100%;
+    max-width: 1024px;
+    margin: 0 auto 36px;
+    display: block;
+    image-rendering: pixelated;
+    border-radius: 6px;
+    box-shadow:
+      0 0 0 1px var(--border),
+      0 28px 60px -20px rgba(255, 122, 24, 0.25),
+      0 12px 30px rgba(0, 0, 0, 0.5);
+  }
+  .hero .tag {
+    display: inline-block;
+    padding: 5px 14px; margin-bottom: 18px;
+    border: 1px solid var(--border); border-radius: 999px;
+    font-size: 11px; color: var(--fg-muted);
+    text-transform: uppercase; letter-spacing: 0.18em;
+    font-family: "VT323", monospace; font-size: 14px;
+  }
+  .hero p.lead {
+    font-size: 19px; color: var(--fg-muted);
+    max-width: 720px; margin: 0 auto 36px;
+  }
+  .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 24px; border-radius: 4px;
+    font-family: "Press Start 2P", monospace;
+    font-size: 12px; letter-spacing: 0.04em;
+    border: 2px solid var(--border);
+    background: var(--bg-soft); color: var(--fg);
+    transition: transform .12s ease, border-color .12s ease,
+                background .12s ease, box-shadow .12s ease;
+    text-transform: uppercase;
+  }
+  .btn:hover {
+    text-decoration: none; transform: translate(-1px, -1px);
+    border-color: var(--accent);
+    box-shadow: 4px 4px 0 var(--accent);
+  }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #1a0a00;
+  }
+  .btn-primary:hover {
+    background: var(--accent-2); border-color: var(--accent-2);
+    box-shadow: 4px 4px 0 var(--accent);
+    color: #1a0a00;
+  }
+
+  .badges { margin-top: 32px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .badges img { height: 22px; }
+
+  /* Screenshots */
+  .shots {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+    margin: 24px 0 0;
+  }
+  .shots img {
+    width: 100%; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    image-rendering: pixelated;
+  }
+  @media (max-width: 720px) { .shots { grid-template-columns: 1fr; } }
+
+  /* Section blocks */
+  section.block { padding: 64px 0; border-top: 1px solid var(--border); }
+  section.block h2 {
+    font-family: "Press Start 2P", monospace;
+    font-size: clamp(18px, 2.6vw, 24px);
+    color: var(--accent);
+    margin: 0 0 20px;
+    text-shadow: 0 0 20px rgba(255, 122, 24, 0.25);
+  }
+  section.block p { color: var(--fg-muted); max-width: 780px; }
+
+  /* Feature grid */
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px; margin-top: 32px;
+  }
+  .card {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 22px;
+    transition: border-color .15s ease, transform .15s ease,
+                box-shadow .15s ease;
+    position: relative;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px -16px rgba(255, 122, 24, 0.4);
+  }
+  .card h3 {
+    margin: 0 0 8px; font-size: 15px; color: var(--fg);
+    font-family: "Press Start 2P", monospace; font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+  .card p { color: var(--fg-muted); font-size: 14px; margin: 0; }
+  .card .glyph {
+    font-family: "VT323", monospace; font-size: 28px;
+    color: var(--accent); display: block; margin-bottom: 6px;
+    line-height: 1;
+  }
+
+  /* Callouts */
+  .callout {
+    border-left: 4px solid;
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin: 22px 0;
+    background: var(--bg-soft);
+  }
+  .callout strong {
+    display: block; margin-bottom: 6px;
+    font-family: "Press Start 2P", monospace;
+    font-size: 11px; letter-spacing: 0.06em;
+  }
+  .callout.warn   { border-color: var(--accent); }
+  .callout.warn strong   { color: var(--accent); }
+  .callout.danger { border-color: var(--danger); }
+  .callout.danger strong { color: var(--danger); }
+  .callout.tip    { border-color: var(--ok);     }
+  .callout.tip strong    { color: var(--ok);     }
+  .callout.info   { border-color: var(--info);   }
+  .callout.info strong   { color: var(--info);   }
+
+  /* Code block */
+  pre {
+    background: #06101e;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--fg);
+  }
+  pre code { color: inherit; }
+
+  /* Mode table */
+  table {
+    width: 100%; border-collapse: collapse; margin-top: 20px;
+    background: var(--bg-card); border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+  th {
+    background: var(--bg-soft); color: var(--accent);
+    font-family: "Press Start 2P", monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255, 122, 24, 0.04); }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 56px;
+    padding: 36px 24px 56px;
+    text-align: center;
+    color: var(--fg-muted);
+    font-size: 13px;
+    position: relative; z-index: 1;
+  }
+  footer .sniff {
+    font-family: "Press Start 2P", monospace;
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    margin-bottom: 18px;
+    text-shadow: 0 0 14px rgba(255, 122, 24, 0.4);
+  }
+  footer a { color: var(--fg-muted); }
+  footer .links { margin-top: 8px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand"><span class="dot"></span> wM-Buster</span>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#legal">Legal</a>
+      <a href="https://github.com/i12bp8/wmbuster">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <img class="hero-banner" src="banner.png"
+       alt="wM-Buster — Ghostbuster-style pixel-art dolphin sniffing a smart meter"/>
+  <span class="tag">Flipper Zero · 868 MHz · receive-only</span>
+  <p class="lead">
+    A passive wireless M-Bus listener that decodes heat, water, gas,
+    electricity and heat-cost-allocator telegrams on the 868 MHz band —
+    using the on-board CC1101 or an external GPIO module.
+  </p>
+
+  <div class="cta">
+    <a class="btn btn-primary" href="https://github.com/i12bp8/wmbuster/releases/latest">
+      Download .fap
+    </a>
+    <a class="btn" href="https://github.com/i12bp8/wmbuster">
+      Source on GitHub
+    </a>
+    <a class="btn" href="https://github.com/i12bp8/wmbuster/blob/main/DISCLAIMER.md">
+      Disclaimer
+    </a>
+  </div>
+
+  <div class="badges">
+    <a href="https://github.com/i12bp8/wmbuster/actions/workflows/ci.yml"><img src="https://github.com/i12bp8/wmbuster/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
+    <a href="https://github.com/i12bp8/wmbuster/releases/latest"><img src="https://img.shields.io/github/v/release/i12bp8/wmbuster?include_prereleases&sort=semver" alt="Latest release"/></a>
+    <a href="https://github.com/i12bp8/wmbuster/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="GPLv3"/></a>
+    <img src="https://img.shields.io/badge/Flipper%20Zero-firmware%20API%2087.1-orange?logo=flipper" alt="Flipper firmware"/>
+    <img src="https://img.shields.io/badge/radio-RX%20only-success" alt="RX only"/>
+  </div>
+</section>
+
+<div class="callout danger">
+  <strong>Use only on meters you own.</strong>
+  Decrypting or analysing someone else's meter is illegal in most
+  jurisdictions. wM-Buster is a research and self-service tool — please
+  read the
+  <a href="https://github.com/i12bp8/wmbuster/blob/main/DISCLAIMER.md">full disclaimer</a>
+  before you install.
+</div>
+
+<div class="shots">
+  <img src="demoscan.png"    alt="Live meter scan" />
+  <img src="demodetails.png" alt="Per-meter detail" />
+</div>
+
+<section class="block" id="features">
+  <h2>What it does</h2>
+  <p>
+    Pure receive, no transmit. Built around the CC1101's chip-level FIFO
+    and a software slicer that handles every OMS-compliant link mode used
+    in the EU.
+  </p>
+  <div class="grid">
+    <div class="card">
+      <span class="glyph">&gt;_</span>
+      <h3>Four EU modes</h3>
+      <p>T1 (3-of-6), C1 (NRZ Format A/B auto-routed), combined T+C on a single chip config, and S1 Manchester.</p>
+    </div>
+    <div class="card">
+      <span class="glyph">[!]</span>
+      <h3>EN 13757-3 walker</h3>
+      <p>DIF/VIF parser covering energy, volume, mass, power, flow, temperatures, pressure, dates, HCA units, and more.</p>
+    </div>
+    <div class="card">
+      <span class="glyph">{*}</span>
+      <h3>AES-128 mode 5</h3>
+      <p>Drop a <code>keys.csv</code> on the SD card and encrypted meters automatically decrypt to readable rows on screen.</p>
+    </div>
+    <div class="card">
+      <span class="glyph">+/-</span>
+      <h3>Manufacturer drivers</h3>
+      <p>Techem, Kamstrup, Diehl/IZAR, Qundis/ista/Brunata, BMeters, Engelmann, Sontex, Zenner, Apator, GWF, BFW…</p>
+    </div>
+    <div class="card">
+      <span class="glyph">[#]</span>
+      <h3>SD logging</h3>
+      <p>Raw and parsed telegrams streamed to <code>/ext/apps_data/wmbuster/</code> for offline analysis with rtl_433 or wmbusmeters.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="install">
+  <h2>Install</h2>
+  <div class="callout tip">
+    <strong>Quick path</strong>
+    Pre-built <code>.fap</code> for every release on the
+    <a href="https://github.com/i12bp8/wmbuster/releases">Releases</a> page.
+    Drop <code>wmbuster.fap</code> into <code>/ext/apps/Sub-GHz/</code> on
+    your Flipper's SD card and launch from
+    <code>Apps &rarr; Sub-GHz &rarr; wM-Buster</code>.
+  </div>
+
+  <h3 style="font-family: 'Press Start 2P', monospace; font-size: 13px; color: var(--accent); margin-top: 28px;">Build from source</h3>
+<pre><code># install ufbt (Flipper's build tool)
+pip install --upgrade ufbt
+ufbt update --channel=release
+
+# clone &amp; build
+git clone https://github.com/i12bp8/wmbuster.git
+cd wmbuster
+ufbt                # produces dist/wmbuster.fap
+ufbt launch         # flash + start on a connected Flipper
+
+# run host-side regression tests (no Flipper required)
+make -C tests check</code></pre>
+</section>
+
+<section class="block" id="modes">
+  <h2>Mode selection</h2>
+  <p>T+C is the default and runs both T-mode (3-of-6) and C-mode (NRZ
+     Format A &amp; B) on a single chip configuration via post-sync byte
+     detection.</p>
+  <table>
+    <thead>
+      <tr><th>Mode</th><th>Frequency</th><th>Bit rate</th><th>Encoding</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>T1</td>  <td>868.95 MHz</td><td>100 kchip/s</td>  <td>3-of-6</td>               <td>Older Techem firmware</td></tr>
+      <tr><td>C1</td>  <td>868.95 MHz</td><td>100 kbit/s</td>   <td>NRZ Format A/B auto</td>  <td>Newer Techem, most Kamstrup</td></tr>
+      <tr><td>T+C</td> <td>868.95 MHz</td><td>100 kbit/s</td>   <td>T1 or C1, auto-detect</td><td><strong>Default</strong> — broadest</td></tr>
+      <tr><td>S1</td>  <td>868.30 MHz</td><td>32.768 kbit/s</td><td>Manchester</td>           <td>Legacy water / gas</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="block" id="contributing">
+  <h2>Contribute</h2>
+  <p>Adding a manufacturer driver is intentionally a small job — most are
+     <strong>one C file, ~50 lines</strong>: drop it in
+     <code>drivers/europe/&lt;vendor&gt;/&lt;name&gt;.c</code>, add it to
+     <code>application.fam</code> and the registry. A worked walkthrough
+     for porting from <code>wmbusmeters</code> lives in
+     <a href="https://github.com/i12bp8/wmbuster/blob/main/drivers/CONTRIBUTING.md">drivers/CONTRIBUTING.md</a>.</p>
+
+  <div class="callout warn">
+    <strong>Data hygiene</strong>
+    Don't include real telegrams or AES keys from real meters in issues
+    or PRs. Use the public wmbusmeters reference telegrams or synthesise
+    a frame.
+  </div>
+</section>
+
+<section class="block" id="legal">
+  <h2>Legal &amp; safety</h2>
+  <p>wM-Buster is dual-use research software. Receive-only operation on
+     868 MHz is licence-exempt under ETSI EN 300 220 and equivalents, but
+     <strong>operating</strong> the app remains your responsibility. You
+     must not point it at meters you do not own without documented
+     authorisation from the meter operator.</p>
+
+  <div class="callout danger">
+    <strong>Read the full disclaimer</strong>
+    <a href="https://github.com/i12bp8/wmbuster/blob/main/DISCLAIMER.md">DISCLAIMER.md</a>
+    covers permitted use, prohibited use, AES-key policy, no-warranty,
+    and indemnification. By installing wM-Buster you accept those terms.
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="sniff">Who ya gonna sniff?</div>
+  Released under the GNU GPL v3.0 or later ·
+  Not affiliated with Flipper Devices, the OMS Group, or any meter manufacturer.
+  <div class="links">
+    <a href="https://github.com/i12bp8/wmbuster">GitHub</a>
+    <a href="https://github.com/i12bp8/wmbuster/releases">Releases</a>
+    <a href="https://github.com/i12bp8/wmbuster/blob/main/CHANGELOG.md">Changelog</a>
+    <a href="https://github.com/i12bp8/wmbuster/blob/main/DISCLAIMER.md">Disclaimer</a>
+    <a href="https://github.com/i12bp8/wmbuster/blob/main/LICENSE">License</a>
+  </div>
+</footer>
+
+</body>
+</html>

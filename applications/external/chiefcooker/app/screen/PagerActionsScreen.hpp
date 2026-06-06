@@ -25,7 +25,6 @@ private:
     String headerStr;
     String resendToAllStr;
     String resendToCurrentStr;
-    String** actionsStrings;
 
     uint32_t currentBatchFrequency;
     uint32_t currentPager = 0;
@@ -65,25 +64,23 @@ public:
                 HANDLER_1ARG(&PagerActionsScreen::resendSingle));
         }
 
-        actionsStrings = new String*[decoder->GetSupportedActionsCount()];
-        for(size_t actionIndex = 0, i = 0; actionIndex < PagerActionCount; actionIndex++) {
+        String label;
+        for(size_t actionIndex = 0; actionIndex < PagerActionCount; actionIndex++) {
             PagerAction action = static_cast<enum PagerAction>(actionIndex);
             if(!decoder->IsSupported(action)) {
                 continue;
             }
 
+            const char* labelCstr;
             if(PagerActions::IsPagerActionSpecial(action)) {
-                actionsStrings[i] =
-                    new String("Trigger action %s", PagerActions::GetDescription(action));
+                labelCstr =
+                    label.format("Trigger action %s", PagerActions::GetDescription(action));
             } else {
-                actionsStrings[i] =
-                    new String("%s only pager %d", PagerActions::GetDescription(action), pagerNum);
+                labelCstr = label.format(
+                    "%s only pager %d", PagerActions::GetDescription(action), pagerNum);
             }
 
-            submenu->AddItem(actionsStrings[i]->cstr(), [this, action](uint32_t) {
-                sendAction(action);
-            });
-            i++;
+            submenu->AddItem(labelCstr, [this, action](uint32_t) { sendAction(action); });
         }
 
         subghz->SetTransmitCompleteHandler(HANDLER(&PagerActionsScreen::txComplete));
@@ -152,10 +149,6 @@ private:
 
     void destroy() {
         subghz->SetTransmitCompleteHandler(NULL);
-        for(size_t i = 0; i < decoder->GetSupportedActionsCount(); i++) {
-            delete actionsStrings[i];
-        }
-        delete[] actionsStrings;
         delete this;
     }
 

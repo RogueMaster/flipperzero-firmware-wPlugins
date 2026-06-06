@@ -4,16 +4,23 @@ import struct
 import time
 import asyncio
 import threading
+import json
+import os
 from tkinter import *
-from tkinter import ttk, messagebox
+from tkinter import ttk, filedialog, messagebox
 
 
+# --- Automatyczna instalacja zależności ---
 def install_package(package: str):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 
 def check_and_install_dependencies() -> bool:
-    required = {"TikTokLive": "TikTokLive", "bleak": "bleak"}
+    required = {
+        "TikTokLive": "TikTokLive",
+        "bleak": "bleak",
+        "playsound": "playsound==1.2.2",
+    }
     missing = []
     for import_name, pkg_name in required.items():
         try:
@@ -22,7 +29,7 @@ def check_and_install_dependencies() -> bool:
             missing.append(pkg_name)
 
     if missing:
-        print("Missing dependencies – installing...")
+        print("Brakujące biblioteki – instalowanie...")
         for pkg in missing:
             try:
                 install_package(pkg)
@@ -34,13 +41,11 @@ def check_and_install_dependencies() -> bool:
 
 
 if not check_and_install_dependencies():
-    print("\nFailed to install dependencies.")
-    print("Run manually: pip install TikTokLive bleak")
+    print("\nBłąd instalacji. Uruchom ręcznie: pip install TikTokLive bleak")
     sys.exit(1)
 
 from bleak import BleakClient, BleakScanner
 from TikTokLive import TikTokLiveClient
-from TikTokLive.client.web.web_settings import WebDefaults
 from TikTokLive.events import (
     ConnectEvent,
     DisconnectEvent,
@@ -50,21 +55,18 @@ from TikTokLive.events import (
     FollowEvent,
 )
 
+# --- Konfiguracja Pakietów ---
 USERNAME_LEN = 17
 MESSAGE_LEN = 65
-
 PACKET_FORMAT = f"<B{USERNAME_LEN}s{MESSAGE_LEN}s"
-PACKET_SIZE = struct.calcsize(PACKET_FORMAT)
-
 MSG_TYPE_CHAT = 0
 MSG_TYPE_LIKE = 1
 MSG_TYPE_GIFT = 2
 MSG_TYPE_FOLLOW = 3
 
-SERIAL_SERVICE_UUID = "8fe5b3d5-2e7f-4a98-2a48-7acc60fe0000"
 SERIAL_RX_CHAR_UUID = "19ed82ae-ed21-4c9d-4145-228e62fe0000"
-DEVICE_NAME_PREFIX = "FlipTok"
-
+# Zmienione na "Flip", aby było bardziej elastyczne
+DEVICE_NAME_PREFIX = "Flip"
 CONFIG_FILE = "tiktok_server_config.json"
 
 _TRANSLIT_MAP = {
@@ -86,67 +88,11 @@ _TRANSLIT_MAP = {
     "Ś": "S",
     "Ź": "Z",
     "Ż": "Z",
-    "á": "a",
-    "à": "a",
-    "â": "a",
-    "ä": "a",
-    "ã": "a",
-    "å": "a",
-    "æ": "ae",
-    "ç": "c",
-    "é": "e",
-    "è": "e",
-    "ê": "e",
-    "ë": "e",
-    "í": "i",
-    "ì": "i",
-    "î": "i",
-    "ï": "i",
-    "ñ": "n",
-    "ô": "o",
-    "ö": "o",
-    "õ": "o",
-    "ø": "o",
-    "ú": "u",
-    "ù": "u",
-    "û": "u",
-    "ü": "u",
-    "ý": "y",
-    "ÿ": "y",
-    "Á": "A",
-    "À": "A",
-    "Â": "A",
-    "Ä": "A",
-    "Ã": "A",
-    "Å": "A",
-    "Æ": "AE",
-    "Ç": "C",
-    "É": "E",
-    "È": "E",
-    "Ê": "E",
-    "Ë": "E",
-    "Í": "I",
-    "Ì": "I",
-    "Î": "I",
-    "Ï": "I",
-    "Ñ": "N",
-    "Ô": "O",
-    "Ö": "O",
-    "Õ": "O",
-    "Ø": "O",
-    "Ú": "U",
-    "Ù": "U",
-    "Û": "U",
-    "Ü": "U",
-    "Ý": "Y",
 }
 
 
 def transliterate(text: str) -> str:
-    result = []
-    for ch in text:
-        result.append(_TRANSLIT_MAP.get(ch, ch))
-    return "".join(result)
+    return "".join(_TRANSLIT_MAP.get(ch, ch) for ch in text)
 
 
 def build_packet(msg_type: int, username: str, message: str) -> bytes:
@@ -165,453 +111,337 @@ class TikTokServerGUI:
     def __init__(self, root: Tk):
         self.root = root
         self.root.title("FlipTok Live → Flipper Zero")
-        self.root.geometry("520x800")
+        self.root.geometry("520x850")
         self.root.resizable(False, False)
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.running = False
-        self.flipper_address = None
-        self.ble_client = None
-        self._ble_loop = None
         self._pending_packets = None
-        self._dedup_cache: list = []
-        self._tiktok_connected_at: float = 0.0
-        self._lock = threading.Lock()
+        self._tiktok_connected_at = 0.0
+        self._msg_count = 0
+        self._gift_sound_str = ""  # thread-safe kopia ścieżki dźwięku
 
-        self._tts_queue: list = []
+        # TTS Worker
+        self._tts_queue = []
         self._tts_lock = threading.Lock()
         self._tts_thread = threading.Thread(target=self._tts_worker, daemon=True)
         self._tts_thread.start()
 
         self._build_ui()
-        self.log("Ready. Enter TikTok username and click START.")
+        self.log("Gotowy. Upewnij się, że Flipper ma włączony BT.")
 
     def _build_ui(self):
-        header = Frame(self.root, bg="#010101", height=110)
+        header = Frame(self.root, bg="#010101", height=100)
         header.pack(fill=X, padx=8, pady=6)
         header.pack_propagate(False)
-
         Label(header, text="♪", font=("Arial", 36), bg="#010101", fg="#fe2c55").pack(
             side=LEFT, padx=16
         )
-
         info = Frame(header, bg="#010101")
         info.pack(side=LEFT, fill=Y, pady=10)
         Label(
             info,
             text="FlipTok Live",
-            font=("Arial", 18, "bold"),
+            font=("Arial", 16, "bold"),
             bg="#010101",
             fg="white",
         ).pack(anchor=W)
         Label(
-            info,
-            text="Chat → Flipper Zero",
-            font=("Arial", 11),
-            bg="#010101",
-            fg="#69c9d0",
-        ).pack(anchor=W)
-        Label(
-            info, text="by Dr.Mosfet", font=("Arial", 9), bg="#010101", fg="#888"
+            info, text="by Dr.Mosfet", font=("Arial", 8), bg="#010101", fg="#888"
         ).pack(anchor=W)
 
-        cfg = LabelFrame(self.root, text="Configuration", font=("Arial", 10, "bold"))
+        cfg = LabelFrame(self.root, text="Konfiguracja", font=("Arial", 10, "bold"))
         cfg.pack(fill=X, padx=8, pady=4)
 
-        Label(cfg, text="TikTok username (without @):").grid(
+        Label(cfg, text="TikTok Username:").grid(
             row=0, column=0, sticky=W, padx=10, pady=5
         )
-        self.username_entry = Entry(cfg, width=32)
-        self.username_entry.grid(row=0, column=1, padx=10, pady=5)
-        self.username_entry.insert(0, self._load_username())
+        self.username_entry = Entry(cfg, width=30)
+        self.username_entry.grid(row=0, column=1, padx=10)
 
-        Button(
-            cfg,
-            text="Save",
-            command=self._save_username,
-            bg="#4CAF50",
-            fg="white",
-            width=8,
-        ).grid(row=0, column=2, padx=6)
-
-        Label(cfg, text="EulerStream API key:").grid(
+        Label(cfg, text="Sign API Key:").grid(
             row=1, column=0, sticky=W, padx=10, pady=5
         )
-        self.apikey_entry = Entry(cfg, width=32, show="*")
-        self.apikey_entry.grid(row=1, column=1, padx=10, pady=5)
-        self.apikey_entry.insert(0, self._load_apikey())
-        Label(
-            cfg,
-            text="(optional, free at eulerstream.com)",
-            fg="gray",
-            font=("Arial", 8),
-        ).grid(row=2, column=0, columnspan=3, sticky=W, padx=10, pady=(0, 4))
+        self.apikey_entry = Entry(cfg, width=30, show="*")
+        self.apikey_entry.grid(row=1, column=1, padx=10)
 
-        self._flipper_var = BooleanVar(value=self._load_flipper())
+        saved_data = self._load_config()
+        self.username_entry.insert(0, saved_data.get("username", ""))
+        self.apikey_entry.insert(0, saved_data.get("api_key", ""))
+
+        self._gift_sound_path = StringVar(value=saved_data.get("gift_sound_path", ""))
+        Label(cfg, text="Dźwięk prezentu:").grid(
+            row=2, column=0, sticky=W, padx=10, pady=5
+        )
+        gift_frame = Frame(cfg)
+        gift_frame.grid(row=2, column=1, sticky=W, padx=10)
+        self.gift_sound_entry = Entry(
+            gift_frame, textvariable=self._gift_sound_path, width=26, state="readonly"
+        )
+        self.gift_sound_entry.pack(side=LEFT, fill=X, expand=True)
+        Button(gift_frame, text="Wybierz", command=self._select_gift_sound).pack(
+            side=LEFT, padx=4
+        )
+
+        self._flipper_var = BooleanVar(value=True)
         Checkbutton(
-            cfg,
-            text="\U0001f3ae Send to Flipper Zero (via BLE)",
-            variable=self._flipper_var,
-            font=("Arial", 10),
-        ).grid(row=3, column=0, columnspan=3, sticky=W, padx=10, pady=(2, 6))
+            cfg, text="Połącz z Flipperem przez BLE", variable=self._flipper_var
+        ).grid(row=3, columnspan=2, sticky=W, padx=10)
 
         status_frame = LabelFrame(self.root, text="Status", font=("Arial", 10, "bold"))
         status_frame.pack(fill=X, padx=8, pady=4)
+        self.lbl_flipper = Label(status_frame, text="Flipper: Rozłączony", fg="red")
+        self.lbl_flipper.pack(anchor=W, padx=10)
+        self.lbl_tiktok = Label(status_frame, text="TikTok: Rozłączony", fg="red")
+        self.lbl_tiktok.pack(anchor=W, padx=10)
+        self.lbl_msgs = Label(status_frame, text="Wysłano pakietów: 0")
+        self.lbl_msgs.pack(anchor=W, padx=10)
 
-        self.lbl_flipper = Label(
-            status_frame, text="Flipper:  Not connected", fg="red", font=("Arial", 10)
-        )
-        self.lbl_flipper.pack(anchor=W, padx=10, pady=2)
-
-        self.lbl_tiktok = Label(
-            status_frame, text="TikTok:   Not connected", fg="red", font=("Arial", 10)
-        )
-        self.lbl_tiktok.pack(anchor=W, padx=10, pady=2)
-
-        self.lbl_msgs = Label(status_frame, text="Messages: 0 sent", font=("Arial", 10))
-        self.lbl_msgs.pack(anchor=W, padx=10, pady=2)
-
-        log_frame = LabelFrame(self.root, text="Log", font=("Arial", 10, "bold"))
+        log_frame = LabelFrame(self.root, text="Logi")
         log_frame.pack(fill=BOTH, expand=True, padx=8, pady=4)
-
-        sb = Scrollbar(log_frame)
-        sb.pack(side=RIGHT, fill=Y)
         self.log_text = Text(
-            log_frame,
-            height=16,
-            yscrollcommand=sb.set,
-            bg="#111",
-            fg="#eee",
-            font=("Courier", 9),
-            insertbackground="white",
+            log_frame, height=12, bg="#111", fg="#eee", font=("Courier", 9)
         )
         self.log_text.pack(fill=BOTH, expand=True)
-        sb.config(command=self.log_text.yview)
+
+        tts_frame = LabelFrame(self.root, text="Opcje")
+        tts_frame.pack(fill=X, padx=8, pady=4)
+        self._tts_var = BooleanVar(value=False)
+        Checkbutton(tts_frame, text="Czytaj czat (TTS)", variable=self._tts_var).pack(
+            side=LEFT, padx=10
+        )
 
         btn_frame = Frame(self.root)
-        btn_frame.pack(fill=X, padx=8, pady=8)
-
+        btn_frame.pack(fill=X, padx=8, pady=10)
         self.btn_start = Button(
             btn_frame,
             text="START",
             command=self.start,
             bg="#fe2c55",
             fg="white",
-            font=("Arial", 13, "bold"),
+            font=("Arial", 12, "bold"),
             height=2,
         )
         self.btn_start.pack(side=LEFT, expand=True, fill=X, padx=4)
-
         self.btn_stop = Button(
             btn_frame,
             text="STOP",
             command=self.stop,
-            bg="#333",
-            fg="white",
-            font=("Arial", 13, "bold"),
-            height=2,
             state=DISABLED,
+            font=("Arial", 12, "bold"),
+            height=2,
         )
         self.btn_stop.pack(side=RIGHT, expand=True, fill=X, padx=4)
 
-        tts_frame = LabelFrame(
-            self.root, text="Text-to-Speech", font=("Arial", 10, "bold")
-        )
-        tts_frame.pack(fill=X, padx=8, pady=(0, 6))
-
-        row0 = Frame(tts_frame)
-        row0.pack(fill=X, padx=6, pady=(4, 2))
-        self._tts_var = BooleanVar(value=False)
-        Checkbutton(
-            row0,
-            text="\U0001f50a Read chat aloud (TTS)",
-            variable=self._tts_var,
-            font=("Arial", 10),
-        ).pack(side=LEFT)
-
-        row1 = Frame(tts_frame)
-        row1.pack(fill=X, padx=6, pady=2)
-        Label(row1, text="Voice:", font=("Arial", 9)).pack(side=LEFT)
-        self._tts_voice_var = StringVar(value="auto")
-        self._tts_voice_cb = ttk.Combobox(
-            row1, textvariable=self._tts_voice_var, state="readonly", width=36
-        )
-        self._tts_voice_cb["values"] = ["auto"]
-        self._tts_voice_cb.pack(side=LEFT, padx=6)
-        Button(
-            row1, text="Refresh", font=("Arial", 8), command=self._refresh_voices
-        ).pack(side=LEFT)
-
-        row2 = Frame(tts_frame)
-        row2.pack(fill=X, padx=6, pady=(2, 6))
-        Label(row2, text="Speed:", font=("Arial", 9)).pack(side=LEFT)
-        self._tts_rate_var = IntVar(value=160)
-        Scale(
-            row2,
-            from_=80,
-            to=300,
-            orient=HORIZONTAL,
-            variable=self._tts_rate_var,
-            length=180,
-            tickinterval=0,
-            showvalue=True,
-        ).pack(side=LEFT, padx=6)
-        Label(row2, text="wpm", font=("Arial", 9)).pack(side=LEFT)
-
-        row3 = Frame(tts_frame)
-        row3.pack(fill=X, padx=6, pady=(0, 6))
-        Button(
-            row3,
-            text="▶ Test TTS",
-            font=("Arial", 9),
-            bg="#555",
-            fg="white",
-            command=lambda: self._speak(
-                "Hello! FlipTok Live is working. Comments will be read aloud."
-            ),
-        ).pack(side=LEFT, padx=2)
-
-        self.root.after(500, self._refresh_voices)
-
-        self._msg_count = 0
-
-    def _load_username(self) -> str:
-        import os, json
-
+    def _load_config(self):
         if os.path.exists(CONFIG_FILE):
             try:
-                with open(CONFIG_FILE) as f:
-                    return json.load(f).get("username", "")
-            except Exception:
-                pass
-        return ""
+                with open(CONFIG_FILE, "r") as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
 
-    def _load_apikey(self) -> str:
-        import os, json
-
-        if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE) as f:
-                    return json.load(f).get("api_key", "")
-            except Exception:
-                pass
-        return ""
-
-    def _load_flipper(self) -> bool:
-        import os, json
-
-        if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE) as f:
-                    return json.load(f).get("use_flipper", True)
-            except Exception:
-                pass
-        return True
-
-    def _save_username(self):
-        import json
-
-        username = self.username_entry.get().strip().lstrip("@")
-        api_key = self.apikey_entry.get().strip()
-        use_flipper = self._flipper_var.get()
+    def _save_config(self):
+        data = {
+            "username": self.username_entry.get().strip(),
+            "api_key": self.apikey_entry.get().strip(),
+            "gift_sound_path": self._gift_sound_path.get().strip(),
+        }
         with open(CONFIG_FILE, "w") as f:
-            json.dump(
-                {"username": username, "api_key": api_key, "use_flipper": use_flipper},
-                f,
-            )
-        self.log("Configuration saved.")
+            json.dump(data, f)
 
-    def _refresh_voices(self):
-        try:
-            import subprocess
+    def _select_gift_sound(self):
+        path = filedialog.askopenfilename(
+            title="Wybierz plik dźwiękowy prezentu",
+            filetypes=[
+                ("Audio files", "*.wav *.mp3 *.ogg *.flac"),
+                ("WAV files", "*.wav"),
+                ("All files", "*.*"),
+            ],
+        )
+        if path:
+            self._gift_sound_path.set(path)
+            self._gift_sound_str = path  # thread-safe kopia
+            self._save_config()
+            self._safe_log(f"Wybrano dźwięk prezentu: {os.path.basename(path)}")
 
-            ps = (
-                "Add-Type -AssemblyName System.Speech; "
-                "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-                "$s.GetInstalledVoices() | ForEach-Object { $_.VoiceInfo.Name }"
-            )
-            result = subprocess.run(
-                ["powershell", "-NoProfile", "-Command", ps],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            voices = [
-                v.strip() for v in result.stdout.strip().splitlines() if v.strip()
-            ]
-            self._tts_voices_list = [None] + voices
-            self._tts_voice_cb["values"] = ["auto"] + voices
-            self._tts_voice_cb.set("auto")
-        except Exception as e:
-            self.log(f"TTS voice list error: {e}")
-
-    def _tts_worker(self):
-        while True:
-            text = None
-            with self._tts_lock:
-                if self._tts_queue:
-                    text = self._tts_queue.pop(0)
-            if text:
-                try:
-                    import subprocess
-
-                    rate = self._tts_rate_var.get()
-                    voice_idx = self._tts_voice_cb.current()
-                    voices_list = getattr(self, "_tts_voices_list", [None])
-                    voice_name = (
-                        voices_list[voice_idx]
-                        if voice_idx > 0 and voice_idx < len(voices_list)
-                        else None
-                    )
-
-                    safe_text = text.replace("'", " ")
-
-                    voice_cmd = (
-                        f"$s.SelectVoice('{voice_name}'); " if voice_name else ""
-                    )
-                    ps = (
-                        "Add-Type -AssemblyName System.Speech; "
-                        "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-                        f"$s.Rate = {self._rate_to_sapi(rate)}; "
-                        f"{voice_cmd}"
-                        f"$s.Speak('{safe_text}');"
-                    )
-                    subprocess.run(
-                        ["powershell", "-NoProfile", "-Command", ps], timeout=30
-                    )
-                except Exception:
-                    pass
-            else:
-                time.sleep(0.1)
-
-    @staticmethod
-    def _rate_to_sapi(wpm: int) -> int:
-        rate = int((wpm - 150) / 15)
-        return max(-10, min(10, rate))
-
-    def _speak(self, text: str):
-        if not self._tts_var.get():
+    def _play_gift_sound(self, path: str):
+        if not path or not os.path.exists(path):
             return
-        with self._tts_lock:
-            if len(self._tts_queue) < 5:
-                self._tts_queue.append(text)
+        threading.Thread(
+            target=self._play_sound_thread, args=(path,), daemon=True
+        ).start()
+
+    def _play_sound_thread(self, path: str):
+        try:
+            from playsound import playsound
+
+            playsound(path, block=True)
+        except Exception as e:
+            self._safe_log(f"Błąd odtwarzania dźwięku: {e}")
+            self._safe_log(f"Błąd odtwarzania dźwięku: {e}")
 
     def log(self, msg: str):
-        ts = time.strftime("%H:%M:%S")
-        self.log_text.insert(END, f"[{ts}] {msg}\n")
+        self.log_text.insert(END, f"[{time.strftime('%H:%M:%S')}] {msg}\n")
         self.log_text.see(END)
-        self.root.update_idletasks()
 
     def _safe_log(self, msg: str):
         self.root.after(0, lambda: self.log(msg))
 
-    def _set_label(self, widget: Label, text: str, color: str):
+    def _set_label(self, widget, text, color):
         self.root.after(0, lambda: widget.config(text=text, fg=color))
 
     def start(self):
-        username = self.username_entry.get().strip().lstrip("@")
-        if not username:
-            messagebox.showerror("Error", "Enter a TikTok username first.")
+        user = self.username_entry.get().strip().lstrip("@")
+        if not user:
+            messagebox.showerror("Błąd", "Wpisz nazwę użytkownika TikTok!")
             return
-
-        self._save_username()
+        if not self._gift_sound_path.get():
+            if messagebox.askyesno(
+                "Dźwięk prezentu",
+                "Nie ustawiono pliku dźwiękowego prezentu. Wybrać teraz?",
+            ):
+                self._select_gift_sound()
+        self._save_config()
         self.running = True
+        self._gift_sound_str = self._gift_sound_path.get()  # snapshot przed wątkiem
         self.btn_start.config(state=DISABLED)
         self.btn_stop.config(state=NORMAL)
-        self.username_entry.config(state=DISABLED)
-        self._msg_count = 0
-
-        self.log(f"Starting… username: @{username}")
-
-        t = threading.Thread(target=self._run_event_loop, args=(username,), daemon=True)
-        t.start()
+        threading.Thread(target=self._run_event_loop, args=(user,), daemon=True).start()
 
     def stop(self):
         self.running = False
         self.btn_start.config(state=NORMAL)
         self.btn_stop.config(state=DISABLED)
-        self.username_entry.config(state=NORMAL)
-        self._set_label(self.lbl_flipper, "Flipper:  Not connected", "red")
-        self._set_label(self.lbl_tiktok, "TikTok:   Not connected", "red")
-        self.log("Stopped.")
 
-    def _run_event_loop(self, username: str):
+    def _run_event_loop(self, username):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        self._ble_loop = loop
-        self._pending_packets = (
-            asyncio.Queue(maxsize=20) if self._flipper_var.get() else None
-        )
+        self._pending_packets = asyncio.Queue()
         try:
-            loop.run_until_complete(self._main(username))
+            loop.run_until_complete(self._main_logic(username))
         except Exception as e:
-            self._safe_log(f"Fatal error: {e}")
+            self._safe_log(f"Błąd pętli: {e}")
         finally:
             loop.close()
 
-    async def _main(self, username: str):
-        if not self._flipper_var.get():
-            self._set_label(self.lbl_flipper, "Flipper:  Disabled", "gray")
-            await self._run_tiktok(username)
-            return
+    async def _main_logic(self, username):
+        if self._flipper_var.get():
+            self._safe_log("Skanowanie Bluetooth (5s)...")
+            devices = await BleakScanner.discover(timeout=5.0)
 
-        while self.running:
+            # Logowanie wszystkich urządzeń dla ułatwienia diagnozy
+            for d in devices:
+                self._safe_log(f" Widzę: {d.name or 'Nieznany'} [{d.address}]")
+
+            target = next(
+                (d for d in devices if d.name and DEVICE_NAME_PREFIX in d.name), None
+            )
+
+            if target:
+                self._safe_log(f"Łączenie z: {target.name}...")
+                try:
+                    async with BleakClient(target.address) as client:
+                        self._set_label(
+                            self.lbl_flipper, f"Flipper: {target.name}", "green"
+                        )
+                        send_task = asyncio.create_task(self._send_to_ble(client))
+                        await self._run_tiktok(username)
+                        await send_task
+                except Exception as e:
+                    self._safe_log(f"Błąd połączenia BLE: {e}")
+            else:
+                self._safe_log("Nie znaleziono Flippera w pobliżu.")
+                self._set_label(self.lbl_flipper, "Flipper: Nie znaleziono", "orange")
+                await self._run_tiktok(username)
+        else:
+            self._safe_log("Flipper wyłączony. Uruchamiam tylko TikTok.")
+            self._set_label(self.lbl_flipper, "Flipper: Wyłączony", "orange")
+            await self._run_tiktok(username)
+            while self.running:
+                await asyncio.sleep(1.0)
+
+    async def _run_tiktok(self, username: str):
+        api_key = self.apikey_entry.get().strip()
+        if api_key:
+            from TikTokLive.client.web.web_settings import WebDefaults
+
+            WebDefaults.tiktok_sign_api_key = api_key
+        else:
+            self._safe_log(
+                "Uwaga: nie ustawiono Sign API Key. Korzystam z domyślnego serwera sign."
+            )
+
+        client = TikTokLiveClient(unique_id=username)
+
+        @client.on(ConnectEvent)
+        async def on_connect(_):
+            self._safe_log(f"TikTok Połączony: @{username}")
+            self._set_label(self.lbl_tiktok, f"TikTok: @{username} LIVE", "green")
+            self._tiktok_connected_at = time.monotonic()
+
+        @client.on(CommentEvent)
+        async def on_comment(event: CommentEvent):
+            if time.monotonic() - self._tiktok_connected_at < 2.0:
+                return
+            # NAPRAWA BŁĘDU nickName
+            u = (event.user_info.nickname or event.user_info.unique_id or "User")[:16]
+            m = (event.comment or "")[:64]
+            self._safe_log(f"[CHAT] {u}: {m}")
+            if self._tts_var.get():
+                self._speak(m)
+            await self._queue_packet(MSG_TYPE_CHAT, u, m)
+
+        @client.on(GiftEvent)
+        async def on_gift(event: GiftEvent):
             try:
-                self._safe_log("Scanning for Flipper Zero…")
-                address = await self._find_flipper()
-                if not address:
-                    self._safe_log("Flipper not found. Retrying in 5s…")
+                u = (
+                    getattr(event.user, "nickname", None)
+                    or getattr(event.user, "unique_id", None)
+                    or "User"
+                )[:16]
+                g = getattr(event.gift, "name", None) or "Gift"
+                # Odtwarzaj dźwięk przy każdym gifcie (również podczas streaka)
+                self._safe_log(f"[GIFT] {u} wysłał {g}")
+                if self._gift_sound_str:
+                    self._play_gift_sound(self._gift_sound_str)
+                # Pakiet BLE tylko na końcu streaka lub gdy nie-streakable
+                is_streakable = getattr(event.gift, "streakable", False)
+                is_streaking = getattr(event, "streaking", False)
+                if not is_streakable or not is_streaking:
+                    await self._queue_packet(MSG_TYPE_GIFT, u, f"Prezent: {g}")
+            except Exception as e:
+                self._safe_log(f"[GIFT] błąd obsługi: {e}")
+
+        retry = 0
+        while self.running and retry < 3:
+            try:
+                await client.start()
+                return
+            except Exception as e:
+                self._safe_log(f"Błąd TikTok: {e}")
+                if retry < 2 and (
+                    "SIGN_NOT_200" in str(e)
+                    or "sign" in str(e).lower()
+                    or "503" in str(e)
+                ):
+                    retry += 1
+                    self._safe_log("Błąd Sign API. Ponawiam próbę za 5 sekund...")
                     await asyncio.sleep(5)
                     continue
+                break
 
-                self.flipper_address = address
-                self._set_label(self.lbl_flipper, f"Flipper:  {address}", "green")
-                self._safe_log(f"Flipper found: {address}")
+        self._safe_log(
+            "Nie udało się połączyć z TikTok. Sprawdź klucz Sign API lub spróbuj później."
+        )
 
-                async with BleakClient(address) as client:
-                    if not client.is_connected:
-                        self._safe_log("BLE connection failed, retrying…")
-                        await asyncio.sleep(3)
-                        continue
+    async def _queue_packet(self, p_type, user, msg):
+        if self._pending_packets and self.running:
+            packet = build_packet(p_type, user, msg)
+            await self._pending_packets.put(packet)
 
-                    self._safe_log("BLE connected! Starting TikTok listener…")
-
-                    tiktok_task = asyncio.create_task(self._run_tiktok(username))
-                    send_task = asyncio.create_task(self._send_loop(client))
-                    keepalive_task = asyncio.create_task(self._keepalive_loop())
-
-                    done, pending = await asyncio.wait(
-                        [tiktok_task, send_task, keepalive_task],
-                        return_when=asyncio.FIRST_COMPLETED,
-                    )
-                    for t in pending:
-                        t.cancel()
-
-            except Exception as e:
-                self._safe_log(f"Error: {e}")
-                self._set_label(self.lbl_flipper, "Flipper:  Disconnected", "red")
-                self._set_label(self.lbl_tiktok, "TikTok:   Disconnected", "red")
-                await asyncio.sleep(5)
-
-    async def _find_flipper(self):
-        devices = await BleakScanner.discover(timeout=8.0)
-        for d in devices:
-            if d.name and DEVICE_NAME_PREFIX in d.name:
-                return d.address
-        return None
-
-    async def _keepalive_loop(self):
-        while self.running:
-            await asyncio.sleep(15)
-            if self._pending_packets is not None:
-                try:
-                    self._pending_packets.put_nowait(
-                        build_packet(MSG_TYPE_GIFT, "keepalive", "ping")
-                    )
-                except asyncio.QueueFull:
-                    pass
-
-    async def _send_loop(self, client: BleakClient):
+    async def _send_to_ble(self, client: BleakClient):
         while self.running and client.is_connected:
             try:
                 packet = await asyncio.wait_for(
@@ -620,122 +450,38 @@ class TikTokServerGUI:
                 await client.write_gatt_char(
                     SERIAL_RX_CHAR_UUID, packet, response=False
                 )
-                await asyncio.sleep(0.08)
                 self._msg_count += 1
                 self.root.after(
                     0,
-                    lambda c=self._msg_count: self.lbl_msgs.config(
-                        text=f"Messages: {c} sent"
+                    lambda: self.lbl_msgs.config(
+                        text=f"Wysłano pakietów: {self._msg_count}"
                     ),
                 )
+                await asyncio.sleep(0.1)
             except asyncio.TimeoutError:
-                pass
-            except Exception as e:
-                self._safe_log(f"BLE send error: {e}")
+                continue
+            except:
                 break
 
-    def _is_duplicate(
-        self, msg_type: int, username: str, message: str, window: float = 3.0
-    ) -> bool:
-        key = (msg_type, username, message)
-        now = time.monotonic()
-        self._dedup_cache = [(k, t) for k, t in self._dedup_cache if now - t < window]
-        for k, _ in self._dedup_cache:
-            if k == key:
-                return True
-        self._dedup_cache.append((key, now))
-        return False
+    def _speak(self, text):
+        with self._tts_lock:
+            self._tts_queue.append(text)
 
-    async def _run_tiktok(self, username: str):
-        self._safe_log(f"Connecting to @{username}'s live stream…")
-
-        api_key = self.apikey_entry.get().strip()
-        if api_key:
-            from TikTokLive.client.web.web_settings import WebDefaults
-
-            WebDefaults.tiktok_sign_api_key = api_key
-        client = TikTokLiveClient(unique_id=username)
-
-        @client.on(ConnectEvent)
-        async def on_connect(event: ConnectEvent):
-            self._safe_log(f"Connected to @{username} live!")
-            self._set_label(self.lbl_tiktok, f"TikTok:   @{username} LIVE", "green")
-            self._tiktok_connected_at = time.monotonic()
-            self._safe_log("Discarding backlog for 3s…")
-
-        @client.on(DisconnectEvent)
-        async def on_disconnect(event: DisconnectEvent):
-            self._safe_log("TikTok stream disconnected.")
-            self._set_label(self.lbl_tiktok, "TikTok:   Disconnected", "orange")
-
-        @client.on(CommentEvent)
-        async def on_comment(event: CommentEvent):
-            if time.monotonic() - self._tiktok_connected_at < 3.0:
-                return
-            user = (event.user.nickname or event.user.unique_id or "?")[:16]
-            msg = (event.comment or "")[:64]
-            if self._is_duplicate(MSG_TYPE_CHAT, user, msg):
-                return
-            self._safe_log(f"[CHAT] {user}: {msg}")
-            self._speak(f"{user} says: {msg}")
-            if self._pending_packets is not None:
-                try:
-                    self._pending_packets.put_nowait(
-                        build_packet(MSG_TYPE_CHAT, user, msg)
-                    )
-                except asyncio.QueueFull:
-                    self._safe_log("[SKIP] Queue full, dropping message")
-
-        @client.on(LikeEvent)
-        async def on_like(event: LikeEvent):
-            pass
-
-        @client.on(GiftEvent)
-        async def on_gift(event: GiftEvent):
-            user = (event.user.nickname or event.user.unique_id or "?")[:16]
-            gift = getattr(event, "gift", None)
-            name = getattr(gift, "name", "gift")[:32] if gift else "gift"
-            count = getattr(gift, "repeat_count", 1) if gift else 1
-            msg = f"{name} x{count}"
-            if self._is_duplicate(MSG_TYPE_GIFT, user, msg):
-                return
-            self._safe_log(f"[GIFT] {user}: {msg}")
-            if self._pending_packets is not None:
-                try:
-                    self._pending_packets.put_nowait(
-                        build_packet(MSG_TYPE_GIFT, user, msg)
-                    )
-                except asyncio.QueueFull:
-                    pass
-
-        @client.on(FollowEvent)
-        async def on_follow(event: FollowEvent):
-            user = (event.user.nickname or event.user.unique_id or "?")[:16]
-            msg = "followed"
-            if self._is_duplicate(MSG_TYPE_FOLLOW, user, msg, window=10.0):
-                return
-            self._safe_log(f"[FOLLOW] {user}")
-            if self._pending_packets is not None:
-                try:
-                    self._pending_packets.put_nowait(
-                        build_packet(MSG_TYPE_FOLLOW, user, msg)
-                    )
-                except asyncio.QueueFull:
-                    pass
-
-        try:
-            await client.start()
-        except Exception as e:
-            self._safe_log(f"TikTok error: {e}")
-            self._set_label(self.lbl_tiktok, "TikTok:   Error", "red")
-
-        while self.running:
-            await asyncio.sleep(1)
+    def _tts_worker(self):
+        while True:
+            msg = None
+            with self._tts_lock:
+                if self._tts_queue:
+                    msg = self._tts_queue.pop(0)
+            if msg:
+                clean = msg.replace("'", "").replace('"', "")
+                cmd = f"Add-Type -AssemblyName System.Speech; $s = New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak('{clean}')"
+                subprocess.run(["powershell", "-Command", cmd], capture_output=True)
+            else:
+                time.sleep(0.2)
 
     def on_closing(self):
-        if self.running:
-            self.stop()
-            time.sleep(0.5)
+        self.running = False
         self.root.destroy()
 
 

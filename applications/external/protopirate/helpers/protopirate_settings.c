@@ -3,6 +3,8 @@
 #include <storage/storage.h>
 #include <flipper_format/flipper_format.h>
 #include <furi.h>
+#include "../defines.h"
+#include "../protocols/protocols_common.h"
 
 #define TAG "ProtoPirateSettings"
 
@@ -15,6 +17,7 @@ void protopirate_settings_set_defaults(ProtoPirateSettings* settings) {
     settings->tx_power = 0;
     settings->auto_save = false;
     settings->hopping_enabled = false;
+    settings->emulate_feature_enabled = false;
 }
 
 void protopirate_settings_load(ProtoPirateSettings* settings) {
@@ -54,7 +57,7 @@ void protopirate_settings_load(ProtoPirateSettings* settings) {
         furi_string_free(header);
 
         // Read frequency
-        if(!flipper_format_read_uint32(ff, "Frequency", &settings->frequency, 1)) {
+        if(!flipper_format_read_uint32(ff, FF_FREQUENCY, &settings->frequency, 1)) {
             FURI_LOG_W(TAG, "Failed to read frequency, using default");
             settings->frequency = 433920000;
         }
@@ -91,13 +94,21 @@ void protopirate_settings_load(ProtoPirateSettings* settings) {
         }
         settings->hopping_enabled = (hopping_temp == 1);
 
+        uint32_t emulate_temp = 0;
+        if(!flipper_format_read_uint32(ff, "EmulateFeature", &emulate_temp, 1)) {
+            FURI_LOG_I(TAG, "EmulateFeature key missing, defaulting to disabled");
+            emulate_temp = 0;
+        }
+        settings->emulate_feature_enabled = (emulate_temp == 1);
+
         FURI_LOG_I(
             TAG,
-            "Settings loaded: freq=%lu, preset=%u, auto_save=%d, hopping=%d",
+            "Settings loaded: freq=%lu, preset=%u, auto_save=%d, hopping=%d, emulate=%d",
             settings->frequency,
             settings->preset_index,
             settings->auto_save,
-            settings->hopping_enabled);
+            settings->hopping_enabled,
+            settings->emulate_feature_enabled);
 
     } while(false);
 
@@ -124,7 +135,7 @@ void protopirate_settings_save(ProtoPirateSettings* settings) {
             break;
         }
 
-        if(!flipper_format_write_uint32(ff, "Frequency", &settings->frequency, 1)) {
+        if(!flipper_format_write_uint32(ff, FF_FREQUENCY, &settings->frequency, 1)) {
             FURI_LOG_E(TAG, "Failed to write frequency");
             break;
         }
@@ -153,13 +164,20 @@ void protopirate_settings_save(ProtoPirateSettings* settings) {
             break;
         }
 
+        uint32_t emulate_temp = settings->emulate_feature_enabled ? 1 : 0;
+        if(!flipper_format_write_uint32(ff, "EmulateFeature", &emulate_temp, 1)) {
+            FURI_LOG_E(TAG, "Failed to write emulate feature flag");
+            break;
+        }
+
         FURI_LOG_I(
             TAG,
-            "Settings saved: freq=%lu, preset=%u, auto_save=%d, hopping=%d",
+            "Settings saved: freq=%lu, preset=%u, auto_save=%d, hopping=%d, emulate=%d",
             settings->frequency,
             settings->preset_index,
             settings->auto_save,
-            settings->hopping_enabled);
+            settings->hopping_enabled,
+            settings->emulate_feature_enabled);
 
     } while(false);
 

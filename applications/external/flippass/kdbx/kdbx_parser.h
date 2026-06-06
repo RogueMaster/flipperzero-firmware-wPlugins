@@ -39,6 +39,11 @@ void kdbx_parser_set_kdf_progress_callback(
     KDBXParserKdfProgressCallback callback,
     void* context);
 bool kdbx_parser_get_aes_kdf_rounds(const KDBXParser* parser, uint64_t* out_rounds);
+bool kdbx_parser_get_aes_kdf_salt(
+    const KDBXParser* parser,
+    uint8_t* out_salt,
+    size_t out_salt_size,
+    size_t* out_size);
 bool kdbx_parser_derive_key(
     const KDBXParser* parser,
     const char* password,
@@ -46,6 +51,15 @@ bool kdbx_parser_derive_key(
     size_t cipher_key_size,
     uint8_t* hmac_key,
     size_t hmac_key_size);
+bool kdbx_parser_derive_key_with_transformed(
+    const KDBXParser* parser,
+    const char* password,
+    uint8_t* cipher_key,
+    size_t cipher_key_size,
+    uint8_t* hmac_key,
+    size_t hmac_key_size,
+    uint8_t* transformed_key,
+    size_t transformed_key_size);
 
 bool kdbx_parser_stream_payload(
     KDBXParser* parser,

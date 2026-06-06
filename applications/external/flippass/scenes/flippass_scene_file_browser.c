@@ -348,6 +348,7 @@ static void flippass_file_browser_prepare_config(App* app) {
     app->editor_idle_unlock_attempts = app->idle_unlock_attempts;
     app->editor_idle_exit_minutes = app->idle_exit_minutes;
     app->editor_otp_time_zone_minutes = app->otp_time_zone_minutes;
+    app->editor_always_allow_ext = app->always_allow_ext;
     app->editor_keyboard_layout_index = 0U;
     app->editor_keyboard_layout_use_alt = app->keyboard_layout_path == NULL ||
                                           furi_string_empty(app->keyboard_layout_path);

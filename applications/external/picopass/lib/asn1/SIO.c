@@ -28,7 +28,7 @@ static asn_TYPE_member_t asn_MBR_SIO_1[] = {
 		},
 	{ ATF_NOFLAGS, 0, offsetof(struct SIO, unknown5),
 		(ASN_TAG_CLASS_CONTEXT | (5 << 2)),
-		-1,	/* IMPLICIT tag at current level */
+		+1,	/* EXPLICIT tag at current level */
 		&asn_DEF_NULL,
 		0,
 		{ 0, 0, 0 },
@@ -55,7 +55,7 @@ static asn_TYPE_member_t asn_MBR_SIO_1[] = {
 		},
 	{ ATF_NOFLAGS, 0, offsetof(struct SIO, unknown9),
 		(ASN_TAG_CLASS_CONTEXT | (9 << 2)),
-		-1,	/* IMPLICIT tag at current level */
+		+1,	/* EXPLICIT tag at current level */
 		&asn_DEF_NULL,
 		0,
 		{ 0, 0, 0 },

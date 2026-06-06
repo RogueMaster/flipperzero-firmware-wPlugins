@@ -1,0 +1,2 @@
+httpx==0.28.1
+anthropic==0.102.0

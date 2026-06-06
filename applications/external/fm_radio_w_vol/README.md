@@ -1,15 +1,19 @@
-<p align="center">
-  <img src="images/logo.png" alt="Project logo" width="330"/>
-</p>
+![Project logo](images/logo.png)
 
 # flipperzero-radio-with-volume-control
-Flipper Zero external app for TEA5767 FM reception, PT2257/PT2259-S audio control, and RDS decoding from the TEA5767 MPXO path.
+
+Flipper Zero external app and hardware project for TEA5767 FM reception, PT2257/PT2259-S audio control, PAM8406 output stage, and working RDS decode from the TEA5767 MPXO path. The current PCB v1.1 product name is **FReD FM - Flipper Zero FM + RDS Radio Board**.
 
 ## Table of Contents
+
 - [Quick Start](#quick-start)
+- [Project Status](#project-status)
 - [Features](#features)
 - [Controls](#controls)
+- [Current UI](#current-ui)
 - [Config Options](#config-options)
+- [Manual RDS Carrier Offset](#manual-rds-carrier-offset)
+- [RDS Debug Capture](#rds-debug-capture)
 - [Build and Release](#build-and-release)
 - [Hardware](#hardware)
 - [PCB (Current Revision)](#pcb-current-revision)
@@ -23,260 +27,302 @@ Flipper Zero external app for TEA5767 FM reception, PT2257/PT2259-S audio contro
 ## Quick Start
 
 Linux/macOS (developer workflow with `ufbt`):
+
 - From the project directory: `ufbt update && ufbt build && ufbt launch`
 - This builds, installs, and launches the app over USB.
 
 Windows (qFlipper):
+
 - Download the `.fap` from the latest GitHub Release.
 - Open `qFlipper` and connect your Flipper Zero.
-- Copy the `.fap` to: `/ext/apps/GPIO/`
+- Copy the `.fap` to `/ext/apps/GPIO/`.
 - Run it on Flipper from `Applications -> GPIO`.
+
+## Project Status
+
+PCB v1.1 is now the main hardware revision for this project.
+
+- PCB v1.1 is the finished board revision intended for sale and ongoing support.
+- PCB v1.0 is now a legacy revision kept for archive and partial backward compatibility notes.
+- The v1.1 hardware goal is considered achieved: TEA5767 receive path, PT volume control, PAM8406 output stage, and RDS decode all work on the finished board.
+- Audio quality on PCB v1.1 is clean. The input filter and separate LDO rails removed the audible switching-noise problem seen in earlier hardware iterations.
+- Stereo playback is confirmed on the finished v1.1 board.
+- RDS decode is now considered successful on real captures from the v1.1 MPXO path.
+
+Software target and compatibility:
+
+- The current firmware is written primarily for PCB v1.1.
+- PCB v1.0 remains partially compatible, but does not provide the full v1.1 RDS path.
+- TEA5767-only builds still work for users who only want FM tuning without the full dedicated PCB.
 
 ## Features
 
-- TEA5767 FM control with manual tune (`76.0–108.0 MHz`) and seek step.
-- RDS receive path from TEA5767 MPXO on `PA4`, with in-app `RDS` enable/disable option.
-- PT2257/PT2259-S volume control and mute over I2C.
-- Manual PT chip protocol selection in app config (`PT2257`, `PT2259-S`).
-- Preset storage on SD card (`settings.fff`, `presets.fff`).
-- Live TEA5767 audio options (`SNC`, `De-emph`, `SoftMute`, `HighCut`, `Mono`) plus `RDS` toggle in config.
-- Backlight keep-on option for long listening sessions.
-- RDS support will continue to be tuned and validated on PCB v1.1 after PCB design and PCBA production complete.
+- TEA5767 FM control with manual tune (`76.0-108.0 MHz`) and seek.
+- PT2257 and PT2259-S support for audio attenuation and mute over I2C.
+- PAM8406 control from Flipper GPIO for power, mute, and Class AB/Class D mode selection.
+- MPXO-based RDS receive path on `PA4`, including real-time decode and optional debug capture.
+- RDS decode pipeline targeting pilot-derived carrier recovery (`carrier = 3 * pilot`).
+- RDS decoding architecture conceptually inspired by the classic `SAA6588` block design, implemented fully in software on Flipper Zero.
+- Constellation Visualizer view of the recovered `DBPSK` constellation (enabled by `RDS Debug`) with manual carrier offset control in `0.01 Hz` steps, bounded to `+/- 6.0 Hz`.
+- Numbered RAW/meta debug dumps for offline analysis and decoder tuning.
+- Preset storage and persistent app settings on SD card.
+- Support-oriented debug workflow: if RDS is weak or unstable, users can send RAW/meta pairs for analysis.
 
 ## Controls
 
-- `Left/Right` (short): tune `-/+ 0.1 MHz` (`76.0–108.0`).
-- `Left/Right` (hold): single-step seek to next/previous station (from current, `+/-0.1 MHz` offset).
-- `OK` (short): toggle PT mute.
-- `OK` (hold): save current frequency to preset (no duplicates; overwrites current slot if full).
-- `Up/Down` (short): preset next/previous (or built-in frequency list if no presets exist).
-- `Up/Down` (hold): volume up/down (PT attenuation).
-- `Back`: return (`Listen -> Menu`, `Menu -> Exit`).
+- `Left/Right` (short): tune `- / + 0.1 MHz`.
+- `Left/Right` (hold): seek previous / next station.
+- `OK` (short): mute or unmute audio.
+- `OK` (hold): save or select the current preset.
+- `Up/Down` (short): next or previous saved preset from `presets.fff`.
+- `Up/Down` (hold or repeat): volume up/down by changing PT attenuation.
+- `Back`: return to menu or exit the app.
+
+Constellation view (`Menu -> Constellation Visualizer`, visible when `RDS Debug = On`):
+
+- Top row: frequency (left), PS (center), carrier offset (right).
+- `Left/Right` (short): carrier manual offset `- / + 0.01 Hz`.
+- `Up/Down` (short): next/previous preset and restore both frequency and saved offset.
+- `OK` (short): save/select preset with current frequency and current offset.
+- `OK` (hold): create a numbered RAW/meta dump pair.
+- Bottom status: transient capture/save status (`REC %`, `REC WR`, `REC OK`, `REC ERR`, `SAVE`).
+
+## Current UI
+
+The current listen screen is intentionally compact.
+
+- Top line: station name from RDS PS if available, otherwise `Radio FM`.
+- Frequency line: current tuned frequency.
+- Audio line: `A:MT`, `A:ST`, or `A:MO`, plus current attenuation in dB.
+- Tuning line: IF counter and IF error. The former `RF:` area is intentionally left empty in normal mode.
+- With `RDS Debug` enabled, the tuning line shows compact RDS sync state as `R:<state>` in that empty area.
+- RSSI line: current TEA5767 signal level and quality.
+
+When `RDS Debug` is enabled, a separate Constellation view is also available from the main menu.
 
 ## Config Options
 
-Open with: `Menu -> Config`
+Open with `Menu -> Config`.
 
-- `Freq (MHz)`: jump to a frequency from the built-in list and tune immediately.
-- `Volume`: toggles mute/unmute (same as `OK` short in listen view).
-- `PT Chip`: select PT control protocol (`PT2257`, `PT2259-S`).
-- `Backlight`: keep Flipper display backlight on while app runs.
 - `SNC`: TEA5767 Stereo Noise Cancelling.
-- `De-emph`: TEA5767 de-emphasis (`50us` EU / `75us` US).
-- `SoftMute`: TEA5767 SoftMute.
-- `HighCut`: TEA5767 High Cut control.
-- `Mono`: TEA5767 force mono mode.
-- `RDS`: enable or disable the MPXO-based RDS decoder path.
+- `De-emph`: TEA5767 de-emphasis (`50us` or `75us`).
+- `HighCut`: TEA5767 high-cut filter.
+- `Mono`: force mono reception.
+- `Backlight`: keep Flipper backlight on while the app runs.
+- `RDS`: enable or disable the RDS pipeline. This is now saved in settings and defaults to `On` if no saved setting exists.
+- `RDS Debug`: enables compact debug information in the listen view and adds `Constellation Visualizer` in the main menu.
+- `Volume`: mute/unmute from the config screen.
+- `PT Chip`: select `PT2257` or `PT2259-S` protocol.
+- `Amp Power`: enable or disable the PAM8406 output stage.
+- `Amp Mode`: choose `AB` or `D`.
+
+## Manual RDS Carrier Offset
+
+The RDS demodulator derives the 57 kHz carrier from the stereo pilot (`carrier = 3 * pilot`). The Constellation Visualizer shows the recovered `DBPSK` symbol constellation after that demodulation stage. The view also adds a manual fine offset on top of the recovered carrier. It is deliberately manual: the value is useful for seeing how the `DBPSK` constellation rotates and why each station, receiver position, and local RF environment can need a slightly different correction.
+
+The offset is stored per preset, so a saved station restores both frequency and its tuned RDS offset. There is no automatic PLL/autoset layer in this app; the manual control is part diagnostic tool, part educational view into the demodulator.
+
+## RDS Debug Capture
+
+When `RDS Debug` is enabled, holding `OK` in `Constellation Visualizer` creates a numbered dump pair on the SD card:
+
+- RAW path pattern: `/ext/apps_data/fmradio_controller_pt2257/rds_capture_u16le_0001.raw`
+- Meta path pattern: `/ext/apps_data/fmradio_controller_pt2257/rds_capture_meta_0001.txt`
+
+Each new dump increments the index instead of overwriting the previous files.
+
+These files are intended for support and decoder tuning:
+
+- If RDS does not work well on a given station, send the matching RAW/meta pair.
+- The RAW file captures the ADC stream from the MPXO path.
+- The meta file records frequency, midpoint, measured sample rate, DMA stats, write stats, and capture status.
 
 ## Build and Release
 
 This is a Flipper Zero external app (`application.fam`).
 
 Local build workflows:
+
 - `ufbt` (recommended):
   - `ufbt build`
   - `ufbt launch`
-  - Note: do not pass `.fap` path to `ufbt launch` in this setup.
 - `fbt`:
   - Clone Flipper firmware repo.
-  - Copy/link this app into `applications_user/`.
+  - Copy or link this app into `applications_user/`.
   - Run `./fbt fap_fmradio_controller_pt2257`.
 
 Automated releases (GitHub Actions):
+
 - Workflow: `.github/workflows/release.yml`
-- Version scheme: `0.9+pt2257.<GITHUB_RUN_NUMBER>`
-  - Example: `0.9+pt2257.123`
-- Release tag: `v0.9-pt2257.<GITHUB_RUN_NUMBER>`
+- Release tag scheme remains repository-managed and may be adjusted independently from hardware revision numbering.
 
 ## Hardware
 
 ### Supported Boards
-- TEA5767 external FM receiver module
-- PT2259-S is the intended onboard audio-control IC for both PCB v1.0 and PCB v1.1
-- PT2257 remains supported in firmware for prototyping and bench testing
-- Current released hardware revision: PCB v1.0 with PT2259-S onboard
-- Next hardware revision in progress: PCB v1.1, also planned around PT2259-S onboard
 
-Hardware direction for PCB v1.1:
-- TEA5767 remains the only external radio module.
-- PT2259-S remains the dedicated onboard volume-control IC, as in PCB v1.0.
-- The external PAM module is removed from the design.
-- Common PAM8403 modules are still cheap and easy to buy, but the PAM8403 device itself has `NRND / EOL` status.
-- PCB v1.1 moves toward an onboard PAM8406 implementation based on a currently active amplifier family.
-- The PAM8406 stage is planned as an onboard PCB v1.1 block with reserved control from Flipper GPIO.
+- TEA5767 external FM module.
+- PT2259-S is the intended onboard volume-control IC for the dedicated PCB revisions.
+- PT2257 remains supported for prototype and bench setups.
+- PCB v1.1 is the current main board revision.
+- PCB v1.0 is retained as a legacy reference revision.
 
-### PT2257 vs PT2259-S
-This app now treats **PT2257** and **PT2259-S** as separate control protocols.
+### Audio Chain
 
-- PT chip selection is manual in app config: `Menu -> Config -> PT Chip`.
-- PT2259-S is the target IC for the dedicated PCB revisions documented here.
-- PT2257 support is retained for prototype boards and bench setups.
-- PT2257 is likely `EOL`, but it is still easy to source in a convenient 8-pin package, which makes it practical for quick breadboard and adapter-board testing.
-- PT address is fixed to `0x88` for the dedicated PCB revision documented here.
-- PT2259-S support uses its own startup and mute sequence.
+Current production direction:
+
+- TEA5767 L/R -> onboard PT stage -> onboard PAM8406 -> speakers
+- TEA5767 MPXO -> MCP6001 front-end -> `PA4` ADC for RDS
+
+Confirmed on PCB v1.1:
+
+- Filter + LDO separation removed the audible switching-noise problem from the Flipper 5 V rail.
+- Audio playback is clean and stereo.
+- The onboard PAM8406 stage works as the main amplifier path.
 
 ### TEA5767 Module Pinout
+
 - `3V3` (pin 9) -> TEA5767 VCC
 - `GND` (pin 18) -> TEA5767 GND
 - `SCL` (C0, pin 16) -> TEA5767 SCL
 - `SDA` (C1, pin 15) -> TEA5767 SDA
-- `PA4` (pin 4) -> MPXO / RDS ADC path on the v1.1 design
+- `PA4` (pin 4) -> MPXO / RDS ADC path on PCB v1.1
 
 ### PT2257 / PT2259-S Interface
-- PT control is handled over the same I2C bus as TEA5767.
-- `SCL` (C0, pin 16) -> PT2257 / PT2259-S SCL
-- `SDA` (C1, pin 15) -> PT2257 / PT2259-S SDA
-- PT2259-S is the onboard choice for PCB v1.0 and the planned PCB v1.1 successor.
-- PT2257 remains supported by firmware mainly for prototype work, where its 8-pin package is convenient.
-- Firmware volume control is selected manually in app config, depending on whether the test setup uses PT2257 or PT2259-S.
 
-### PAM8403 Legacy Module Interface
-- Used by legacy external builds and by the currently released v1.0 hardware workflow.
-- `5V` (pin 1) -> PAM8403 module VCC
-- `GND` (pin 8 or pin 18) -> PAM8403 module GND
-- PT audio outputs -> PAM8403 module L/R inputs
-- PAM8403 module speaker outputs -> speakers
+- PT control shares the I2C bus with TEA5767.
+- `SCL` (C0, pin 16) -> PT SCL
+- `SDA` (C1, pin 15) -> PT SDA
+- PT address is fixed to `0x88` on the dedicated PCB.
 
-### PAM8406 v1.1 Integration Interface
-- Used by the planned PCB v1.1 design instead of a separate external PAM module.
-- PAM8406 is powered from the filtered onboard 5 V audio rail.
-- Audio input path: onboard PT stage -> PAM8406 input stage.
-- Audio output path: PAM8406 speaker outputs -> speakers.
-- Control path reserved on Flipper GPIO: `PAM_MUTE`, `PAM_SHDN`, `PAM_MODE_ABD`.
+### PAM8406 GPIO Control on PCB v1.1
 
-### Audio Hardware Direction
-TEA5767 line output still needs downstream audio hardware. For the current hardware roadmap:
+- `PB3` / Flipper pin 5 -> `PAM_MUTE`
+- `PB2` / Flipper pin 6 -> `PAM_MODE_ABD`
+- `PC3` / Flipper pin 7 -> `PAM_SHDN`
 
-- PCB v1.0 is the currently released board.
-- PCB v1.1 keeps TEA5767 as the external module.
-- PT2259-S remains onboard.
-- The separate external PAM amplifier module is replaced by an onboard PAM8406 stage.
-- PAM8406 is the planned onboard successor to the legacy external PAM8403 module approach.
+Mode logic used by the firmware:
 
-### Audio Chain Direction
-Target signal flow for PCB v1.1:
+- `MODE HIGH` -> Class D
+- `MODE LOW` -> Class AB
 
-- TEA5767 L/R -> onboard PT stage -> onboard PAM8406 -> speakers
-- TEA5767 MPXO -> MCP6001 front-end -> `PA4` ADC for RDS
-- The RDS direction is inspired specifically by the Philips `SAA6588` family (`SAA6588` / `SAA6588T`) used as a reference RDS decoder architecture.
-- Because the classic `SAA6588` path is no longer a practical choice due to `EOL / NRND` availability status, the Flipper implementation aims to replace that logic in software using its own DSP, DMA, and CPU resources.
-- That part is still an innovation path in progress and will only be considered validated after confirmation on PCB v1.1 hardware.
-- Detailed MPX/RDS notes are in [schematics/rds_mpx_plan.md](schematics/rds_mpx_plan.md). The document is in Polish because the author is a native Polish speaker and uses it as the primary design note.
+The firmware writes mode before releasing shutdown, which matches the intended safe startup sequence.
 
-Planned PAM8406 control model on PCB v1.1:
+### Compatibility Notes
 
-- These control lines are reserved in the v1.1 hardware plan and are not yet active in released firmware.
-- `PAM_MUTE` on `PB3` / Flipper pin 5: planned shared mute together with the PT stage
-- `PAM_SHDN` on `PB2` / Flipper pin 6: planned amplifier power enable / shutdown
-- `PAM_MODE_ABD` on `PC3` / Flipper pin 7: planned Class AB / Class D selection
-
-Legacy external builds can still use a separate amplifier module, but that is no longer the main hardware direction for this project.
+- PCB v1.1 is the fully supported feature-complete revision.
+- PCB v1.0 is not the main revision anymore.
+- Minimal TEA-only setups can still use the FM control portion of the app.
+- Prototype setups with PT2257 remain supported.
 
 ## PCB (Current Revision)
 
-PCB v1.0 is available now on Tindie:
-- [Flipper Zero FM Radio Board with PT Volume Control](https://www.tindie.com/products/electronicstore/flipper-zero-fm-radio-board-with-pt-volume-control/)
+Product name:
 
-This revision is fully usable and available for purchase, but it is still the first hardware release.
-- PCB v1.0 requires three quick manual post-factory fixes.
-- More details about the current revision, store availability, and ordering are on the Tindie listing.
-- There is no released hardware revision newer than v1.0 at this time.
-- PCB v1.1 is the planned successor with expanded hardware capabilities.
-- PCB v1.1 has already been ordered for PCBA and is currently awaiting delivery and hardware testing.
-- Expected wait time for delivery and first validation is about 20 days.
-- If PCB v1.1 testing goes well, it is planned to be offered on Tindie in the same store listing path where PCB v1.0 is currently available.
-- Documentation and hardware updates for v1.1 are still in progress.
-- Detailed PCB v1.1 notes are in [schematics/pcb_v1_1_design_notes.md](schematics/pcb_v1_1_design_notes.md). That document is in Polish because it is the working hardware note set for the project author.
+- **FReD FM - Flipper Zero FM + RDS Radio Board**
+- **FReD** stands for **Flipper Radio Experimental Decoder**.
+- The name fits the board because PCB v1.1 is not only an FM receiver. With the companion software it is also a small RDS learning and experimentation platform with live `DBPSK` constellation view, manual carrier-offset testing, and real-station debug capture.
 
-Assets:
-- Schematic (SVG, 2026-02-25): [schematics/svg/schematic_radio_tea5767_pt2257_2026-02-25.svg](schematics/svg/schematic_radio_tea5767_pt2257_2026-02-25.svg)
-- PCB Gerbers (ZIP): [schematics/zip/gerber_radio_tea5767_pt2257_2026-02-25.zip](schematics/zip/gerber_radio_tea5767_pt2257_2026-02-25.zip)
-- PCB project/export (ZIP): [schematics/zip/pcb_radio_tea5767_pt2257_2026-02-25.zip](schematics/zip/pcb_radio_tea5767_pt2257_2026-02-25.zip)
+Current main revision:
 
-Current PCB photo:
+- PCB v1.1 is now the main hardware revision for this project.
+- PCB v1.1 is the revision intended for current Tindie sales.
+- PCB v1.0 is retained only as the older archive / legacy revision.
 
-![PCB v1.0 photo](images/pcb/IMG_20260326_150826497~3.jpg)
+Tindie listing:
 
-PCB v1.0 render front (top):
+- [FReD FM - Flipper Zero FM + RDS Radio Board](https://www.tindie.com/products/electronicstore/flipper-zero-fm-radio-board-with-pt-volume-control/)
 
-![PCB front](images/pcb/pcb_front_2026-02-25.jpeg)
 
-PCB v1.0 render back (bottom):
+### PCB v1.1 Summary
 
-![PCB back](images/pcb/pcb_back_2026-02-25.jpeg)
+- One dedicated board combines TEA5767 tuning, PT-controlled volume, PAM8406 speaker drive, and the MPXO path for RDS.
+- PCB v1.1 is the sale/support revision, not just a lab prototype.
+- Separate filtering and cleaner power handling fixed the switching-noise problem seen on earlier hardware.
+- Real hardware playback is confirmed as clean stereo on the finished board.
 
-PCB v1.1 status renders:
+### RDS MPX Summary
 
-Top view:
+- RDS is taken from the TEA5767 MPXO output, conditioned by the onboard analog front-end, and brought into the Flipper ADC on `PA4`.
+- The decoder derives the RDS carrier from the stereo pilot using `carrier = 3 * pilot`, bounded to the standard `57000 +/- 6 Hz` window.
+- The demodulation path is conceptually inspired by the `SAA6588` architecture: pilot-locked carrier recovery, `DBPSK` demodulation, block sync, and correction implemented in software.
+- The Constellation Visualizer shows the recovered `DBPSK` constellation, which makes carrier trim and station quality visible on the device.
+- The Constellation view adds a manual fine trim in `0.01 Hz` steps and stores that offset per preset.
+- The app can save numbered RAW/meta captures, which makes real-station debug and offline tuning practical.
+- Real captures from the PCB v1.1 MPXO path now decode valid RDS on finished hardware.
 
-![PCB v1.1 top view](images/pcb/1_1/1_capture-2026-04-15T13_19_23.801Z.jpeg)
+### PCB v1.1 Photos
 
-Front render:
+| Full assembly version | Real PCB | Tindie sell option |
+| --- | --- | --- |
+| ![PCB v1.1 full assembly version](images/pcb/1_1/full_assambly_version.jpg) | ![PCB v1.1 real PCB view](images/pcb/1_1/real_pcb_view.jpg) | ![PCB v1.1 Tindie sell option](images/pcb/1_1/sell_option_div.jpg) |
 
-![PCB v1.1 front render](images/pcb/1_1/2_front_capture-2026-04-15T13_18_40.008Z.jpeg)
+### PCB v1.1 Renders
 
-Back render:
-
-![PCB v1.1 back render](images/pcb/1_1/3_back_capture-2026-04-15T13_18_26.673Z.jpeg)
+| Top render | Front render | Back render |
+| --- | --- | --- |
+| ![PCB v1.1 top render](images/pcb/1_1/1_capture-2026-04-15T13_19_23.801Z.jpeg) | ![PCB v1.1 front render](images/pcb/1_1/2_front_capture-2026-04-15T13_18_26.673Z.jpeg) | ![PCB v1.1 back render](images/pcb/1_1/3_back_capture-2026-04-15T13_18_40.008Z.jpeg) |
 
 ## App Screenshots
 
-Main radio view:
+Current PCB v1.1 / current-UI screenshots:
 
-![Main radio view](images/Screenshot-20260223-115745.png)
+|  |  |  |  |
+| --- | --- | --- | --- |
+| ![Current UI screenshot 1](images/Screenshot-20260504-131512.png) | ![Current UI screenshot 2](images/Screenshot-20260504-131541.png) | ![Current UI screenshot 3](images/Screenshot-20260504-131734.png) | ![Current UI screenshot 4](images/Screenshot-20260504-145422.png) |
+| ![Current UI screenshot 5](images/Screenshot-20260504-145933.png) | ![Current UI screenshot 6](images/Screenshot-20260504-145949.png) | ![Current UI screenshot 7](images/Screenshot-20260504-145958.png) | ![Current UI screenshot 8](images/Screenshot-20260504-150029.png) |
+| ![Current UI screenshot 9](images/Screenshot-20260504-150048.png) | ![Current UI screenshot 10](images/Screenshot-20260504-150058.png) | ![Current UI screenshot 11](images/Screenshot-20260504-150108.png) | ![Current UI screenshot 12](images/Screenshot-20260504-150129.png) |
+| ![Current UI screenshot 13](images/Screenshot-20260504-150144.png) | ![Current UI screenshot 14](images/Screenshot-20260504-162131.png) |  |  |
 
-Menu view:
-
-![Menu view](images/Screenshot-20260223-115810.png)
-
-Config details:
-
-![Config details 1](images/Screenshot-20260223-115842.png)
-![Config details 2](images/Screenshot-20260223-115942.png)
-![Config details 3](images/Screenshot-20260223-115959.png)
+These screenshots cover the current listening screen, menu flow, config pages, preset handling, and the RDS/Constellation workflow on PCB v1.1.
 
 ## Persistent Settings
 
 Settings file:
+
 - Path: `/ext/apps_data/fmradio_controller_pt2257/settings.fff`
-- Keys:
-  - `Freq10kHz` (e.g. `8810` for `88.10 MHz`)
-  - `PtAttenDb` (`0..79`)
-  - `PtMuted` (`true/false`)
-  - `TeaSNC` (bool)
-  - `TeaDeemph75us` (bool)
-  - `TeaSoftMute` (bool)
-  - `TeaHighCut` (bool)
-  - `TeaForceMono` (bool)
-  - `BacklightKeepOn` (bool)
+
+Saved keys:
+
+- `Freq10kHz`
+- `PtAttenDb`
+- `PtMuted`
+- `PtChipType`
+- `TeaSNC`
+- `TeaDeemph75us`
+- `TeaHighCut`
+- `TeaForceMono`
+- `BacklightKeepOn`
+- `RdsEnabled`
+- `RdsDebugEnabled`
+- `AmpPower`
+- `AmpModeClassD`
+
+Default behavior when a setting is missing:
+
+- `RDS` defaults to `On`.
+- `RDS Debug` defaults to `Off`.
 
 Presets file:
-- Path: `/ext/apps_data/fmradio_controller_pt2257/presets.fff`
-- Keys:
-  - `Count`
-  - `Freq10kHz` (array)
-  - `Index`
 
-Additional setting:
-- `RdsEnabled` (`true/false`)
+- Path: `/ext/apps_data/fmradio_controller_pt2257/presets.fff`
+- Keys: `Count`, `Freq10kHz`, `Index`
 
 ## TEA5767 Audio Tuning
 
-### SNC (Stereo Noise Cancelling)
-- `Menu -> Config -> SNC`
-- `On`: can reduce hiss/noise on weak stations.
+### SNC
+
+- `On`: can reduce hiss/noise on weaker stations.
 - `Off`: can sound more natural on strong stereo stations.
 
-### De-emphasis (DTC)
-- `Menu -> Config -> De-emph`
+### De-emphasis
+
 - `50us` is typical for EU.
 - `75us` is typical for US.
 
-### Live Options
-These options can be toggled while listening:
-- `SoftMute`
-- `HighCut`
-- `Mono`
+### HighCut / Mono
+
+- These are live TEA5767 receive-path options and can change how marginal stations sound.
+- On strong local stations they may have little audible effect.
 
 ## Provenance and Licensing
 
@@ -286,10 +332,12 @@ These options can be toggled while listening:
 - **Maintained by**: pchmielewski1
 - **License**: GPLv3 (see `LICENSE`)
 
-If you publish binaries (e.g. `.fap`) built from modified sources, publish the corresponding source for that exact version/tag and keep attribution.
+If you publish binaries built from modified sources, publish the corresponding source for that exact version and keep attribution.
 
 ## References
-App inspired by [Radio](https://github.com/mathertel/Radio) project for Arduino.
+
+App inspired by [Radio](https://github.com/mathertel/Radio) for Arduino.
 
 ## Acknowledgements
+
 Special thanks to [Derek Jamison](https://github.com/jamisonderek) for [Flipper Zero Tutorials](https://github.com/jamisonderek/flipper-zero-tutorials), and [Oleksii Kutuzov](https://github.com/oleksiikutuzov) for [Lightmeter](https://github.com/oleksiikutuzov/flipperzero-lightmeter), used as an app template.

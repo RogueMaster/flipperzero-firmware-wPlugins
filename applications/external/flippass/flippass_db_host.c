@@ -384,7 +384,7 @@ bool flippass_db_load_with_backend(App* app, KDBXVaultBackend backend, FuriStrin
     furi_assert(error);
 
     app->requested_vault_backend = backend;
-    app->allow_ext_vault_promotion = backend != KDBXVaultBackendRam;
+    app->allow_ext_vault_promotion = app->always_allow_ext || backend != KDBXVaultBackendRam;
     return flippass_open_execute(app, error);
 }
 

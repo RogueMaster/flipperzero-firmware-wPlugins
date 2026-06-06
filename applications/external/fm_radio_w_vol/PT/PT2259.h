@@ -10,3 +10,4 @@ bool pt2259_is_device_ready(void);
 bool pt2259_init(void);
 bool pt2259_set_attenuation_db(uint8_t attenuation_db);
 bool pt2259_set_mute(bool enable);
+bool pt2259_apply_state(uint8_t attenuation_db, bool muted);

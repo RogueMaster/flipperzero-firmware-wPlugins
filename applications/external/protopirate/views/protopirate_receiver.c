@@ -5,7 +5,6 @@
 #include <input/input.h>
 #include <gui/elements.h>
 #include <furi.h>
-#include <math.h>
 
 #include "proto_pirate_icons.h"
 
@@ -39,9 +38,45 @@ typedef struct {
     bool sub_decode_mode;
 } ProtoPirateReceiverModel;
 
+typedef struct {
+    int8_t x;
+    int8_t y;
+} RadarPoint;
+
+static const RadarPoint radar_points[] = {
+    {32, 0},
+    {30, 12},
+    {23, 23},
+    {12, 30},
+    {0, 32},
+    {-12, 30},
+    {-23, 23},
+    {-30, 12},
+    {-32, 0},
+    {-30, -12},
+    {-23, -23},
+    {-12, -30},
+    {0, -32},
+    {12, -30},
+    {23, -23},
+    {30, -12},
+};
+
 static size_t protopirate_view_receiver_item_count(ProtoPirateReceiverModel* model) {
     furi_check(model);
     return model->history ? protopirate_history_get_item(model->history) : 0U;
+}
+
+static void protopirate_view_radar_point(
+    uint8_t center_x,
+    uint8_t center_y,
+    uint8_t radius,
+    uint8_t idx,
+    int32_t* x,
+    int32_t* y) {
+    const RadarPoint* p = &radar_points[idx & 0x0F];
+    *x = center_x + ((int32_t)radius * p->x) / 32;
+    *y = center_y + ((int32_t)radius * p->y) / 32;
 }
 
 static void protopirate_view_rssi_draw(Canvas* canvas, ProtoPirateReceiverModel* model) {
@@ -246,95 +281,49 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
     } else {
         //Are we in Radar View or FLipper View Mode?
         if(!model->dolphin_view) {
-            // Cool animated radar with expanding dots
-            int center_x = 64;
-            int center_y = 22;
-
-            // Three waves of expanding circles with different speeds
-            for(int wave = 0; wave < 3; wave++) {
-                // Calculate radius for this wave with offset
-                int base_radius = ((animation_frame + wave * 32) % 96) / 3;
-
+            const uint8_t center_x = 64;
+            const uint8_t center_y = 22;
+            for(uint8_t wave = 0; wave < 3; wave++) {
+                uint8_t base_radius = ((animation_frame + wave * 32) % 96) / 3;
                 if(base_radius < 28) {
-                    // Calculate fade based on distance from center
-                    int dot_density = 24 - (base_radius / 2);
-
-                    // Draw circle with dots
-                    for(int angle = 0; angle < 360; angle += (360 / dot_density)) {
-                        float rad = (angle + wave * 15) * 3.14159 / 180.0;
-                        int x = center_x + base_radius * cosf(rad);
-                        int y = center_y + base_radius * sinf(rad);
-
-                        // Only draw if within bounds and create fade effect
+                    uint8_t dot_count = base_radius < 10 ? 16 : (base_radius < 20 ? 8 : 4);
+                    uint8_t step = COUNT_OF(radar_points) / dot_count;
+                    for(uint8_t i = 0; i < dot_count; i++) {
+                        int32_t x;
+                        int32_t y;
+                        protopirate_view_radar_point(
+                            center_x, center_y, base_radius, i * step + wave * 2, &x, &y);
                         if(x > 0 && x < 128 && y > 0 && y < 48) {
-                            // Dots get smaller/fade as they expand
-                            if(base_radius < 10) {
-                                canvas_draw_dot(canvas, x, y);
-                                // Double dot for inner circles for brightness
-                                if(base_radius < 5) {
-                                    canvas_draw_dot(canvas, x + 1, y);
-                                }
-                            } else if(base_radius < 20) {
-                                // Skip some dots for fade effect
-                                if(angle % 30 == 0) {
-                                    canvas_draw_dot(canvas, x, y);
-                                }
-                            } else {
-                                // Very sparse dots at edge
-                                if(angle % 60 == 0) {
-                                    canvas_draw_dot(canvas, x, y);
-                                }
-                            }
+                            canvas_draw_dot(canvas, x, y);
+                            if(base_radius < 5) canvas_draw_dot(canvas, x + 1, y);
                         }
                     }
                 }
             }
 
-            // Static guide circles (very faint)
-            for(int angle = 0; angle < 360; angle += 45) {
-                float rad = angle * 3.14159f / 180.0f;
-                canvas_draw_dot(canvas, center_x + 15 * cosf(rad), center_y + 15 * sinf(rad));
+            for(uint8_t i = 0; i < COUNT_OF(radar_points); i += 2) {
+                int32_t x;
+                int32_t y;
+                protopirate_view_radar_point(center_x, center_y, 15, i, &x, &y);
+                canvas_draw_dot(canvas, x, y);
             }
 
-            // Rotating sweep line with glow effect
-            float sweep_angle = (animation_frame * 3.75f) * 3.14159f / 180.0f;
-
-            // Main sweep line
-            int sweep_x = center_x + 22 * cosf(sweep_angle);
-            int sweep_y = center_y + 22 * sinf(sweep_angle);
-            canvas_draw_line(canvas, center_x, center_y, sweep_x, sweep_y);
-
-            // Sweep "glow" - additional lines at slight offsets
-            float glow_angle1 = sweep_angle - 0.05f;
-            float glow_angle2 = sweep_angle + 0.05f;
-            canvas_draw_line(
-                canvas,
-                center_x,
-                center_y,
-                center_x + 20 * cosf(glow_angle1),
-                center_y + 20 * sinf(glow_angle1));
-            canvas_draw_line(
-                canvas,
-                center_x,
-                center_y,
-                center_x + 20 * cosf(glow_angle2),
-                center_y + 20 * sinf(glow_angle2));
-
-            // Sweep trail (fading dots)
-            for(int i = 1; i <= 12; i++) {
-                float trail_angle = sweep_angle - (i * 0.15f);
-                int trail_radius = 22 - i;
-                if(trail_radius > 0) {
-                    int trail_x = center_x + trail_radius * cosf(trail_angle);
-                    int trail_y = center_y + trail_radius * sinf(trail_angle);
-                    // Only draw every other dot in trail for fade effect
-                    if(i % 2 == 0 || i < 4) {
-                        canvas_draw_dot(canvas, trail_x, trail_y);
-                    }
-                }
+            uint8_t sweep_idx = animation_frame / 6;
+            for(int8_t i = -1; i <= 1; i++) {
+                int32_t x;
+                int32_t y;
+                protopirate_view_radar_point(
+                    center_x, center_y, i ? 20 : 22, sweep_idx + i, &x, &y);
+                canvas_draw_line(canvas, center_x, center_y, x, y);
+            }
+            for(uint8_t i = 1; i <= 8; i++) {
+                int32_t x;
+                int32_t y;
+                protopirate_view_radar_point(
+                    center_x, center_y, 22 - i * 2, sweep_idx - i, &x, &y);
+                if(i < 3 || !(i & 1)) canvas_draw_dot(canvas, x, y);
             }
 
-            // Pulsing center
             int pulse = (animation_frame % 32);
             if(pulse < 16) {
                 canvas_draw_disc(canvas, center_x, center_y, 2);
@@ -549,7 +538,7 @@ ProtoPirateReceiver* protopirate_view_receiver_alloc(bool auto_save) {
             model->lock_count = 0;
             model->auto_save = auto_save;
             model->animation_frame = 0;
-            model->dolphin_view = false;
+            model->dolphin_view = true;
             model->sub_decode_mode = false;
         },
         true);

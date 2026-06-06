@@ -40,6 +40,7 @@ typedef struct {
     bool off_plains;
     bool gored;
     bool gored_by_wolf;
+    bool fled_wolf;
     char msg[20];
     uint32_t msg_timer_ms;
     uint32_t spawn_timer_ms;
@@ -54,4 +55,4 @@ void hunt_update(HuntState* h, uint32_t dt_ms, GameState* gs);
 void hunt_fire(HuntState* h, GameState* gs);
 void hunt_back_penalty(HuntState* h, GameState* gs); // wolf bite on early exit
 void hunt_draw(Canvas* c, const HuntState* h, const GameState* gs);
-void hunt_draw_gored_card(Canvas* c, bool by_wolf);
+void hunt_draw_gored_card(Canvas* c, bool by_wolf, bool fled);

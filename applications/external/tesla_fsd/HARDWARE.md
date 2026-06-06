@@ -8,6 +8,7 @@
 | M5Stack ATOM Lite + ATOMIC CAN → X179 | ~$13-15 | X179 4-wire | 1 (bus 6) | Yes | Plug & play, no soldering |
 | **LILYGO T-2CAN ESP32-S3** → X179 | **~$24** | X179 4-wire (+ spare CAN2) | **2 independent** | Yes | Future-proof, dual-CAN ready |
 | **LILYGO T-CAN485** → X179 | **~$15** | X179 4-wire | 1 (SN65HVD230) | Yes | SD card CAN dump, tested on Model X/S |
+| **LILYGO TTGO T-Display + MCP2515** → X179 | **~$20** | X179 4-wire (+12 V→5 V buck or USB-C) | 1 (MCP2515) | Yes | On-board 1.14" ST7789 status display |
 | Waveshare ESP32-S3-RS485-CAN → X179 | ~$18 | X179 4-wire | 1 (TWAI) | Yes | All-in-one board |
 | Flipper Zero + Electronic Cats CAN Add-On → OBD-II | ~$234 | OBD-II plug | 1 (Party CAN) | No | If you already own a Flipper |
 | Flipper Zero + generic MCP2515 → OBD-II | ~$202-205 | OBD-II wire | 1 (Party CAN) | No | Budget Flipper option |
@@ -19,9 +20,26 @@
 There are two places to tap the CAN bus. **The X179 connector is
 recommended** — it provides more signals and built-in 12V power.
 
-### OBD-II (16-pin) — under the steering column
+### OBD-II (16-pin) — Tesla-specific notes
 
-The standard automotive diagnostic port. Every car has one.
+The standard automotive diagnostic port. On Tesla the location and
+behavior differ by model and year:
+
+- **2017–2018 Model 3**: no OBD-II port. Use X052 instead (see below).
+- **2019+ Model 3 / 2020–April 2024 Model Y**: OBD-II J1962 port
+  exists, but it is **not under the steering column** — it sits in
+  the rear center console area and requires a Tesla-specific adapter
+  cable (e.g., OHP, EVTV, Cybertool) to expose a standard 16-pin
+  socket.
+- **April 2024+ Juniper Model Y / refreshed Model 3 Highland (later
+  builds)**: Tesla switched to **DoIP** (Diagnostic over IP) — the
+  diagnostic port now carries 100 Mbps Ethernet, **not** CAN.
+
+> [!CAUTION]
+> Do not connect a CAN-based OBD-II adapter or scan tool to a DoIP
+> port. The signal levels are incompatible and connecting a J1962-on-
+> CAN device into a DoIP-only port can damage the vehicle's diagnostic
+> module. If you have a 2024+ Juniper, tap X179 directly — see below.
 
 ```
     ┌──────────────────────────────┐
@@ -98,18 +116,73 @@ panel behind the rear armrest. Two versions exist:
 **4 separate CAN bus pairs** on one connector. Pin 13/14 (bus 6) is
 what aftermarket products (Feifan Commander, enhauto, etc.) connect to.
 
-#### X179 26-pin (2024+ Highland Model 3 / Juniper Model Y)
+#### 26-pin rear connector — two variants
+
+The 26-pin rear connector ships in two electrical configurations
+depending on production date. **They are not interchangeable.**
+
+> [!NOTE]
+> The connector name is unsettled. The 20-pin variant is documented as
+> X179 in community sources, but Tesla service documentation may use a
+> different identifier for the 26-pin. If you find the official name
+> in a Tesla service doc, please open an issue with the reference and
+> we will update.
+
+##### Pre-April 2024 builds (CAN)
+
+Confirmed on community testing of 2021–2023 Model 3/Y and early 2024
+Highland / Juniper builds.
 
 | Pin | Signal | Notes |
 |-----|--------|-------|
-| **13** | **CAN-H** | Bus 6 (same as 20-pin) |
+| **13** | **CAN-H** | Bus 6 (Gateway-forwarded) |
 | **14** | **CAN-L** | Bus 6 |
 | **15** | **+12V** | Power (red wire, 2mm²) |
 | 18 | CAN-H | Vehicle CAN (blue wire) |
 | 19 | CAN-L | Vehicle CAN (yellow wire) |
 | **26** | **GND** | Ground (black wire, 2mm²) |
 
-### Why X179 Pin 13/14 is the best single connection point
+##### Post-April 2024 builds (mixed DoIP / CAN)
+
+> [!CAUTION]
+> Tesla migrated several pin pairs from CAN to **DoIP (100 Mbps
+> Ethernet)** in April 2024 — coinciding with the EU's OBD compliance
+> deadline. This migration appears to apply at least to EU-region
+> builds and likely beyond, but the exact scope is **not yet pinned
+> down** (see SOP variants below). **Do not assume your 26-pin
+> follows the pre-April 2024 layout — oscilloscope-verify before
+> powering up a transceiver.**
+
+The classification axis is April 2024 production date and region, **not**
+Juniper-or-not. A pre-Juniper EU-build Model Y from the same window
+shows the same DoIP migration as Juniper builds.
+
+Confirmed by @0n3-70uch via oscilloscope measurements on a Berlin-built
+EU Model Y (pre-Juniper, post-April-2024 production) running 2026.14.3
+(issue [#52](https://github.com/hypery11/flipper-tesla-fsd/issues/52)):
+
+| Pin | Signal on this car |
+|-----|--------------------|
+| 9 / 10 | DoIP (Ethernet) — **not** CAN |
+| 12 / 13 | DoIP (Ethernet) — **not** CAN |
+| **18 / 19** | **Vehicle CAN — only working CAN pair** |
+| 15 | +12V (unchanged) |
+| 26 | GND (unchanged) |
+
+This is a **single empirical data point** and may not generalise to
+every post-April-2024 build. @TianzeWang notes (issue [#52](https://github.com/hypery11/flipper-tesla-fsd/issues/52))
+that Tesla's [Model Y Electrical Reference](https://service.tesla.com/docs/ModelY/ElectricalReference/)
+distinguishes between **Berlin Juniper (SOP8)** and **Shanghai Juniper
+(SOP9)** — pin maps may differ further by SOP variant. Until a
+broader sweep is published, the safe recommendation on any 2024+
+build is:
+
+1. **Oscilloscope-verify** every pair before connecting a transceiver.
+2. If the 120 Ω differential-signal check fails on pin 13/14, the
+   pair is likely DoIP — try pin 18/19 instead.
+3. The +12V (pin 15) and GND (pin 26) appear stable across SOPs.
+
+### Why X179 Pin 13/14 is the best single connection point (pre-April 2024 only)
 
 The Gateway forwards signals from **multiple internal CAN buses** onto
 bus 6 (pin 13/14). Community testing confirms that the following
@@ -130,17 +203,100 @@ And these "Vehicle CAN" signals are also writable on bus 6:
 - `0x3F5` VCFRONT_lighting (hazard, wiper)
 - `0x249` SCCM_leftStalk (high beam, turn signal)
 
+> [!IMPORTANT]
+> **Bus 6 is a *selectively forwarded* subset of Vehicle CAN, not the full bus.**
+> The gateway picks which Vehicle CAN signals to forward onto Bus 6 — the
+> list above is what's confirmed on Highland Model 3/Y firmware. Vehicle CAN
+> signals that are NOT in the forwarded list are invisible on pin 13/14.
+>
+> Notably **`0x3C2` `VCLEFT_switchStatus` is NOT forwarded onto Bus 6** —
+> this is the frame carrying the steering scroll-wheel inputs that the v2.15
+> "ScrollPress AP Engage" feature ([#82](https://github.com/hypery11/flipper-tesla-fsd/pull/82))
+> targets. If you tap X179 pin 13/14 you will not see `0x3C2` at all and
+> Scroll-Press injection will appear to do nothing.
+>
+> To inject `0x3C2`, tap either **X179 pin 9/10 (Vehicle CAN Bus 2 direct, full
+> Vehicle CAN traffic)** or **OBD-II pins 6/14 (also Vehicle CAN)**. @JakNo
+> verified `0x3C2` is visible on X179 pin 9/10 on Highland HW4, and
+> @jewelrylin confirmed the negative case on pin 13/14 in
+> [#73](https://github.com/hypery11/flipper-tesla-fsd/issues/73).
+>
+> A dual-CAN board (e.g. **LILYGO T-2CAN**) gives the full attack surface in
+> one device: Bus 6 for `0x3FD` / `0x370` / `0x3F8` / TLSSC, and Vehicle CAN
+> direct for `0x3C2`. Slated as a v2.16 platformio variant.
+
 **One bus, one connection, reads and writes almost everything.**
 
 This is how the 非凡指揮官 (Feifan Commander, 69K+ sales in China)
 achieves its full feature set with just 4 wires:
 
 ```
-X179 Pin 13 → CAN-H ─┐
+X179 Pin 13 → CAN-H ──┐
 X179 Pin 14 → CAN-L ──┤── CAN module (MCP2515 / TWAI)
 X179 Pin 15 → 12V ────┤── buck converter → 3.3V/5V
 X179 Pin 20 → GND ────┘   (26-pin: use Pin 26 for GND)
 ```
+
+### X179 — 20-pin (Model S / Model X with HW3 + MCU2)
+
+Pre-Plaid HW3 Model S and Model X cars (MCU2 generation) expose their
+own X179 connector behind the rear centre console. It is a 20-position
+shell but with a different physical layout and a different bus
+assignment than the Model 3/Y X179 above — top row is 11 cavities
+numbered right-to-left from 1 to 11, bottom row is 9 cavities numbered
+right-to-left from 12 to 20.
+
+**View: female connector looking in from the rear (i.e. from the wire
+side / pin-entry side, not the mating face).** If you flip the
+connector around to look at the mating face the layout mirrors
+left/right, so always confirm cavity numbers against the moulded
+numbers on the housing before crimping anything.
+
+```
+     ╭───────────────────────────────────────────────╮
+     │  11  10   9   8   7   6   5   4   3   2   1   │
+     │  20  19  18      17  16  15       14  13  12  │
+     ╰───────────────────────────────────────────────╯
+```
+
+Full pinout (the four pins this firmware uses are bolded):
+
+| PIN | Signal | Notes |
+| :---: | :---: | :--- |
+| **1** | **+12 V** | **Supply for the ESP32 / buck converter** |
+| 2   | CAN+ BFT | Ultrasonics, falcon-wing doors, liftgate |
+| 3   | CAN- BFT | "   |
+| 4   | CAN+ TH | Cabin HVAC, pack heat-pump, powertrain cooling — separated from safety-critical traffic |
+| 5   | CAN- TH | "   |
+| 6   | —   | —   |
+| 7   | CNF+ | Falcon sensors (ultrasonic, pinch, etc.) |
+| 8   | CNF- | "   |
+| 9   | CAN+ BD | Seat / door control |
+| 10  | CAN- BD | "   |
+| 11  | —   | —   |
+| 12  | —   | —   |
+| **13** | **CAN+ CH** | **ABS, EPAS, ESP, electric park brake — carries the 0x370 EPAS frame the nag-killer modifies** |
+| **14** | **CAN- CH** | **"** |
+| 15  | —   | —   |
+| 16  | —   | —   |
+| 17  | —   | —   |
+| 18  | CAN+ PT | DI front, THC, APE (Autopilot ECU), charge-port logic — backbone for motor control, HV battery management, charging, regen braking |
+| 19  | CAN- PT | "   |
+| **20** | **GND** | **Chassis ground** |
+For Tesla FSD Unlock the four pins you need are **1, 13, 14, 20**:
+
+```
+X179 Pin 1  → +12 V ─┐
+X179 Pin 13 → CAN-H ──┤── CAN module (MCP2515 / TWAI)
+X179 Pin 14 → CAN-L ──┤── buck converter → 5 V (or USB-C as in Setup D Option 2)
+X179 Pin 20 → GND   ──┘
+```
+
+Pins 13/14 land on **Chassis CAN**, which is where EPAS3P_sysStatus
+(0x370 — the nag-killer target) lives on this generation. The Power
+Train bus on pins 18/19 carries APE / autopilot traffic but is not
+required for the nag-killer-only use case — most Model S/X HW3 owners
+tap pins 13/14 only.
 
 ---
 
@@ -191,7 +347,111 @@ Party CAN for redundancy, or a second X179 bus pair).
 This is the recommended board for anyone who wants headroom for
 dual-bus features in a future firmware update.
 
-### Setup D — Flipper Zero + CAN Add-On (~$210)
+### Setup D — LILYGO TTGO T-Display + MCP2515 (~$20)
+
+A multi-board build (T-Display + MCP2515 module + optional XY-3606 buck
+converter) that runs the same firmware as every other variant **and
+adds a 1.14" colour ST7789 LCD on the T-Display itself** so you can see
+RX/TX/FPS/NAG status without opening a phone. In its current bare-board
+form there are several wires running between the boards — putting them
+in a 3D-printed case is left as an exercise.
+
+![T-Display Setup D](images/T-Display_MCP2515-CAN.png)
+
+| Component | Price |
+|-----------|-------|
+| [LILYGO TTGO T-Display ESP32 (1.14" ST7789, USB-C)](https://lilygo.cc/products/lilygo%C2%AE-ttgo-t-display-1-14-inch-lcd-esp32-control-board) | ~$10-12 |
+| Generic MCP2515 + TJA1050 module (8 MHz crystal, 5 V) | ~$2-4 |
+| 2× ¼ W resistors for MISO divider (1× 2.2 kΩ + 1× 3.3 kΩ, see below) | <$0.10 |
+| X179 pigtail cable (4-wire) | ~$3-5 |
+| Power: either an [XY-3606 12 V → 5 V buck converter](https://www.aliexpress.com/wholesale-xy3606.html) **or** a USB-C cable to the centre-console USB port | ~$2 / ~$3 |
+| **Total** | **~$17-26** |
+
+#### Pin map
+
+The T-Display LCD owns the board's default VSPI (TFT_CS=5, TFT_SCLK=18,
+TFT_MOSI=19, TFT_DC=16, TFT_RST=23, TFT_BL=4), so the MCP2515 lives on
+HSPI on the right-hand pin header:
+
+| MCP2515 pin | T-Display GPIO | Notes |
+|-------------|----------------|-------|
+| CS | 26 | |
+| SCK | 33 | |
+| **SO (MISO)** | **32** | **Through 5 V → 3.3 V divider** — see below |
+| SI (MOSI) | 25 | 3.3 V out from the ESP32 — MCP2515 input is 5 V tolerant, no divider |
+| INT | not connected | Polled, no interrupt wire needed |
+| VCC | T-Display **5V** pin | Required for TJA1050 transceiver to drive the differential CAN pair correctly |
+| GND | T-Display GND | Common ground with the X179/buck/USB-C supply |
+
+Build with `pio run -e ttgo-tdisplay -t upload`. On first boot the LCD
+prints `Tesla FSD Unlock` then a live status page (HW version, mode,
+RX/TX counters, FPS, NAG indicator).
+
+#### On-board buttons
+
+The T-Display has two tactile push-buttons on the front face, one on
+each side of the USB-C connector (between the LCD and the USB port):
+
+| Button | GPIO | Default action | Extra |
+|--------|------|----------------|-------|
+| **Left** (GPIO35) | `PIN_BUTTON2` | Single press: **toggle display on/off** (sleep/wake the LCD; CAN processing keeps running) | — |
+| **Right** (GPIO0, also the Boot button) | `PIN_BUTTON` | Single press: **toggle Listen-Only ↔ Active** (i.e. enable/disable bus TX) | Double-press: toggle BMS serial output. Long-press 3 s: toggle NAG killer. Hold 5 s during the 20 s post-boot window: factory-reset NVS. |
+
+The on-screen `Mode:` text (cyan `LISTEN` ↔ green `ACTIVE`) and the
+`NAG` indicator next to it follow the right button immediately.
+
+#### Powering the T-Display in the car
+
+Pick **one** of the two options below — never wire both at the same
+time, the T-Display has no power-path arbitration between the USB-C and
+the 5 V pin.
+
+**Option 1 — XY-3606 buck converter from X179 12 V**
+
+Permanent install, fully integrated into the X179 harness. The XY-3606
+is a tiny adjustable buck regulator that accepts 5 – 36 V in and is set
+once with the on-board trim pot to output 5.0 V at up to ~2 A.
+
+```
+                                ┌──────────── 5V → T-Display "5V" pin
+X179 Pin 1  (+12 V) ─── IN+ ────┤ XY-3606
+                                │ buck
+X179 Pin 20 (GND)   ─── IN- ────┤  (set
+                                │  Vout
+                                │  = 5.0 V)
+                                └──────────── GND → T-Display GND
+                                                  + MCP2515 GND
+X179 Pin 13 (CAN-H) ──────────────────────── MCP2515 CAN-H
+X179 Pin 14 (CAN-L) ──────────────────────── MCP2515 CAN-L
+```
+
+Set the buck output to 5.0 V **before** wiring it to the T-Display
+(turn the multi-turn pot while measuring the OUT terminals with a
+multimeter). The factory default is often 12 V → instant magic smoke
+on the ESP32 if you skip this step.
+
+**Option 2 — USB-C cable from the centre console USB port**
+
+Easiest temporary install — no soldering on the power rail at all. Run
+a USB-C cable from a centre console USB port to the T-Display's USB-C
+connector. The T-Display's CH340 USB-serial chip handles 5 V input and
+powers both the ESP32 and (via the 5V pin) the MCP2515 module. The USB
+cable also carries ground, so no separate GND wire to X179 is needed.
+
+```
+Centre console USB-C ────────── T-Display USB-C
+                                       │
+                                       └── 5V pin ── MCP2515 VCC
+                                       └── GND    ── MCP2515 GND
+X179 Pin 13 (CAN-H) ─────────────────────────────── MCP2515 CAN-H
+X179 Pin 14 (CAN-L) ─────────────────────────────── MCP2515 CAN-L
+```
+
+Note: the centre console USB ports power down when the car sleeps, so
+the T-Display will power-cycle on every wake — this is fine for daily
+driving but loses the in-RAM RX/TX counters between trips.
+
+### Setup E — Flipper Zero + CAN Add-On (~$210)
 
 The original reference platform. Connect to **OBD-II** (not X179) using
 the Electronic Cats CAN Bus Add-On or a generic MCP2515 module.
@@ -213,6 +473,72 @@ OBD-II wiring (Party CAN only):
 
 The Flipper can also be wired to X179 instead of OBD-II for bus 6
 access, but the cable run from the rear console to the Flipper is long.
+
+### MCP2515 MISO 5V to 3.3V voltage divider
+
+Almost every commodity MCP2515 module sold on AliExpress / Amazon
+(MCP2515 + TJA1050 daughterboard, 8 MHz crystal) is hard-wired for
+**5 V VCC** because the TJA1050 transceiver needs 5 V to swing the
+differential CAN pair. The MCP2515 controller therefore runs from 5 V
+too, and its **MISO output drives a 5 V high level**.
+
+ESP32 GPIOs are **3.3 V tolerant only**. Feeding a 5 V signal into a
+3.3 V GPIO clamps it through the SoC's ESD diodes — best case it
+shortens the ESP32's life, worst case it latches up and bricks the
+chip. Three options, in order of how strongly we recommend them:
+
+1. **Resistor divider** (~$0.05, recommended) — works on any module.
+2. **Bidirectional level shifter board** (e.g. TXS0108E, ~$1) — useful
+   if you also want to wire the INT pin or want a tidier build.
+3. **3.3 V-only MCP2515 module** (e.g. NiRen, JOY-iT SBC-CAN01 with
+   TJA1051T/3) — no divider needed but harder to source.
+
+Only **MISO** needs the divider. MOSI, SCK and CS are driven by the
+ESP32 at 3.3 V and the MCP2515 reads them just fine (its input
+threshold is well below 3.3 V).
+
+#### Two-resistor divider on MISO
+
+Use any two resistors whose ratio is roughly 0.65 — i.e. R2 / (R1+R2)
+≈ 3.3 / 5.0. Common values that work:
+
+| R1 (top) | R2 (bottom) | Output (5 V in) | Notes |
+|----------|-------------|------------------|-------|
+| **2.2 kΩ** | **3.3 kΩ** | **3.00 V** | **Recommended** — canonical "Arduino → 3.3 V" pair, in every starter kit |
+| 2 kΩ | 3.3 kΩ | 3.11 V | Equivalent — use if you have 2 kΩ but not 2.2 kΩ |
+| 1 kΩ | 2 kΩ | 3.33 V | Equivalent, draws ~1.7 mA — both values in nearly every assortment kit |
+| 10 kΩ | 22 kΩ | 3.44 V | **Avoid** — too high impedance for 8 MHz SPI, edges round off |
+
+Wire it like this between the MCP2515 SO pin and the ESP32 MISO GPIO:
+
+```
+                R1 = 2.2 kΩ
+MCP2515 SO ─────/\/\/\─────┬──── ESP32 MISO (3.3 V max)
+                           │
+                           /
+                           \  R2 = 3.3 kΩ
+                           /
+                           \
+                           │
+                          GND
+```
+
+Build it on a tiny scrap of perfboard inline with the SO wire, or
+solder it directly across the MCP2515 module's SO header pin. Heat-
+shrink the joint and you're done.
+
+#### Verification
+
+Before powering the ESP32 with the MCP2515 connected, with **only** the
+MCP2515 module powered from 5 V, idle the SPI bus and probe the
+divider's output with a multimeter:
+
+- MCP2515 SO pin (before divider): should idle high at ~4.7–5.0 V
+- ESP32 MISO pin (after divider): should be 3.0–3.4 V
+
+If the divider output is below 2.5 V or above 3.6 V, double-check the
+resistor values and the wiring direction (R1 on the MCP2515 side, R2
+to GND).
 
 ### Termination resistor
 

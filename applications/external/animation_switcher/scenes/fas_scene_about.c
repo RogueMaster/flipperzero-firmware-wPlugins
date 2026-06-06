@@ -1,7 +1,7 @@
 #include "../animation_switcher.h"
 #include "fas_scene.h"
 
-#define FAS_VERSION   "1.0"
+#define FAS_VERSION   "1.1"
 #define FAS_AUTHOR    "SLK"
 #define FAS_GH_AUTHOR "github.com/lsalik2/"
 #define FAS_REPO      "FlipperAnimationSwitcher"

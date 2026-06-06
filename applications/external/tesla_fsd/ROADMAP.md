@@ -5,6 +5,32 @@ actions whose CAN frame templates are already documented in public sources
 and can be implemented on our existing MCP2515 + Flipper stack without any
 new hardware or vendor firmware.
 
+## v2.15 — locked, in PR review (target: early June 2026)
+
+The v2.15 stack is feature-complete and waiting on on-car verification
+before tagging beta. Public PR set:
+
+- **PR #82** — `0x3C2` Scroll-Press AP Engage (HW4-only, first confirmed 2026.14.x bypass) — needs @JakNo / pin-9/10 on-car verify
+- **PR #83** — On-demand grip pulse nag killer enhancement — needs @deftdawg on-car verify on MX HW3
+- **PR #84** — 14.x firmware warning banner (Flipper + ESP32, default ON, dismissible) — docs-style; ready to merge
+- **PR #81** — Ban Shield → GTW Config Replay rename (honest framing, NVS-key preserved) — needs @bruvv review (#67)
+- **PR #97** — Flipper HW3 0x399 DAS_status parser fix (mirror of merged ESP32 #92) — needs HW3 user verify
+
+Already landed in main (ESP32 side):
+- vrs11 PR #92 — HW3 0x399 DAS_status fix + `can_signals.h` refactor
+- vrs11 PR #94 — HTTP CAN log stream (port 82, candump-compatible)
+- vrs11 PR #93 — Ignore OTA toggle (cherry-picked after rebase)
+
+## v2.16 — candidate backlog (post v2.15 ship)
+
+Open tracker issues, contributions welcome:
+
+- **#95** — `0x229 SCCM_rightStalk` AP engage for pre-Highland HW3 (physical stalk cars). Sibling to v2.15's `0x3C2` HW4 path; requires counter + Tesla CRC handling. Source: @JakNo in [#43](https://github.com/hypery11/flipper-tesla-fsd/issues/43#issuecomment-4529411812). Gated on v2.15 HW3 DAS readback (#92, merged) being stable before exposing a new injection path on top of it.
+- **#96** — LILYGO T-2CAN dual-CAN platformio env (`help wanted`). Single-board solution that carries Bus 6 (existing feature set) + Vehicle CAN Bus 2 direct (`0x3C2` and future `0x229`). Needs board owner for pinout verification.
+- **HW3 `0x3C2` retest with v2.15 code** — @DmitroPanteliuk's earlier HW3 negative test (emergency brake on 2026.14.6) may have been caused by `0x399`-vs-`0x39B` DAS readback failure, now fixed in #92. Retest with v2.15 ESP32 code before deciding whether to expose `0x3C2` on HW3.
+- **L2 nag trigger investigation** — @deftdawg flagged that residual 2-second yellow nags still appear on the on-demand grip pulse path. L2 (transitional / "marginal hands") may be the missing trigger. Needs CAN capture of L1→L2 transitions on a banned car before deciding to add to the trigger set — acting on L1 directly is a fingerprint risk.
+- **OpenWRT spoofing AP** — @vadimpelau raised the question of DNS-spoofing Tesla domains to keep maps/multimedia alive while reducing ban risk. Marginal improvement for ban prevention given Tesla's mutual-TLS-pinning on telemetry paths, but useful for UX. If anyone has a working OpenWRT writeup that handles cert pinning, drop in [#80](https://github.com/hypery11/flipper-tesla-fsd/issues/80).
+
 ## Already shipped (v2.3.0)
 
 - FSD unlock HW3/HW4/Legacy (`0x3FD` / `0x3EE`)

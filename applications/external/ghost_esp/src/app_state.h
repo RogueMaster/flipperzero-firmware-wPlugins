@@ -14,6 +14,33 @@
 
 #define INPUT_BUFFER_SIZE 128
 
+typedef enum {
+    VIEW_MAIN = 0,
+    VIEW_WIFI = 1,
+    VIEW_BLE = 2,
+    VIEW_GPS = 3,
+    VIEW_SETTINGS_CONFIG = 4,
+    VIEW_SETTINGS = VIEW_SETTINGS_CONFIG,
+    VIEW_TEXT_BOX = 5,
+    VIEW_TEXT_INPUT = 6,
+    VIEW_CONFIRMATION = 7,
+    VIEW_SETTINGS_ACTIONS = 8,
+    VIEW_WIFI_SCANNING = 10,
+    VIEW_WIFI_CAPTURE = 11,
+    VIEW_WIFI_ATTACK = 12,
+    VIEW_WIFI_NETWORK = 13,
+    VIEW_WIFI_SETTINGS = 14,
+    VIEW_AERIAL = 15,
+    VIEW_BLE_SCANNING = 20,
+    VIEW_BLE_CAPTURE = 21,
+    VIEW_BLE_ATTACK = 22,
+    VIEW_IR = 30,
+    VIEW_IR_REMOTES = 31,
+    VIEW_IR_BUTTONS = 32,
+    VIEW_IR_UNIVERSALS = 33,
+    VIEW_STATUS_IDLE = 40,
+} ViewId;
+
 typedef struct {
     bool enabled; // Master switch for filtering
     bool show_ble_status;

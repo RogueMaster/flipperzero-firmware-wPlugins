@@ -74,6 +74,7 @@ typedef struct FlipperHamApp {
     uint32_t pre_us;
     uint8_t pre_k;
     bool wave_is_mark;
+    uint32_t scrambler_state;
     uint32_t repeat_t0;
     uint32_t repeat_to;
     uint8_t return_view;

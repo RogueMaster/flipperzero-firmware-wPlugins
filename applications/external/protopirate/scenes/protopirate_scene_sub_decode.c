@@ -5,6 +5,7 @@
 #include "../helpers/radio_device_loader.h"
 #include "../helpers/raw_file_reader.h"
 #include "../protopirate_history.h"
+#include "../helpers/protopirate_psa_bf_host.h"
 #include "core/core_defines.h"
 #include "core/record.h"
 #include "storage/storage.h"
@@ -86,69 +87,12 @@ static void protopirate_scene_sub_decode_update_receiver_statusbar(
         app->protopirate_receiver, frequency_str, modulation_str, history_stat_str, is_external);
 }
 
-static bool psa_subdecode_item_needs_bruteforce(ProtoPirateApp* app, uint16_t idx) {
-    FlipperFormat* ff = protopirate_history_get_raw_data(app->txrx->history, idx);
-    if(!ff) return false;
-    FuriString* s = furi_string_alloc();
-    flipper_format_rewind(ff);
-    bool has_key = flipper_format_read_string(ff, "Key", s);
-    if(!has_key) {
-        furi_string_free(s);
-        return false;
-    }
-    flipper_format_rewind(ff);
-    bool has_serial = flipper_format_read_string(ff, "Serial", s);
-    furi_string_free(s);
-    return !has_serial;
-}
-
-#define SD_BF_PROGRESS_BAR_X 62
-#define SD_BF_PROGRESS_BAR_W 64
-#define SD_BF_PROGRESS_BAR_Y 24
-#define SD_BF_PROGRESS_BAR_H 8
-
-static void sub_decode_show_psa_bf_progress(ProtoPirateApp* app) {
-    widget_reset(app->widget);
-    widget_add_icon_element(app->widget, 0, 5, &I_DolphinWait_59x54);
-    widget_add_string_element(
-        app->widget, 62, 0, AlignLeft, AlignTop, FontPrimary, "Bruteforcing...");
-    PsaBfState* s = app->psa_bf_state;
-    uint32_t cur = s->progress_current;
-    uint32_t total = s->progress_total;
-    uint32_t pct_tenths = total ? (uint32_t)((uint64_t)cur * 1000 / total) : 0;
-    if(pct_tenths > 1000) pct_tenths = 1000;
-    FuriString* pct_str =
-        furi_string_alloc_printf("%lu.%u%%", pct_tenths / 10, (unsigned)(pct_tenths % 10));
-    widget_add_string_element(
-        app->widget, 62, 12, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(pct_str));
-    furi_string_free(pct_str);
-    widget_add_frame_element(
-        app->widget,
-        SD_BF_PROGRESS_BAR_X,
-        SD_BF_PROGRESS_BAR_Y,
-        SD_BF_PROGRESS_BAR_W,
-        SD_BF_PROGRESS_BAR_H,
-        2);
-    static uint16_t bf_sd_frame = 0;
-    bf_sd_frame++;
-    uint8_t inner_w = SD_BF_PROGRESS_BAR_W - 4;
-    uint8_t block_w = 16;
-    uint8_t travel = inner_w - block_w;
-    uint16_t phase = (bf_sd_frame * 2) % (uint16_t)(2 * travel);
-    uint8_t block_x = (phase <= travel) ? (uint8_t)phase : (uint8_t)(2 * travel - phase);
-    widget_add_frame_element(
-        app->widget,
-        SD_BF_PROGRESS_BAR_X + 2 + block_x,
-        SD_BF_PROGRESS_BAR_Y + 2,
-        block_w,
-        SD_BF_PROGRESS_BAR_H - 4,
-        0);
-}
-
-static void psa_bf_done_cb_sub_decode(void* context) {
-    ProtoPirateApp* app = context;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, ProtoPirateCustomEventPsaBruteforceComplete);
+void protopirate_subdecode_psa_bf_complete_refresh(void* app) {
+    ProtoPirateApp* a = (ProtoPirateApp*)app;
+    SubDecodeContext* ctx = g_decode_ctx;
+    if(!a || !ctx) return;
+    ctx->state = DecodeStateShowSignalInfo;
+    view_dispatcher_send_custom_event(a->view_dispatcher, ProtoPirateCustomEventSubDecodeUpdate);
 }
 
 // Forward declaration
@@ -619,7 +563,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 // Extract protocol name
                 FuriString* protocol = furi_string_alloc();
                 flipper_format_rewind(ff);
-                if(!flipper_format_read_string(ff, "Protocol", protocol)) {
+                if(!flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
                     furi_string_set_str(protocol, "Unknown");
                 }
 
@@ -646,102 +590,21 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
             }
             consumed = true;
         } else if(event.event == ProtoPirateCustomEventSubDecodeBruteforceStart) {
-            if(app->psa_bf_thread) {
-                consumed = true;
-                return consumed;
-            }
-            FlipperFormat* ff =
-                protopirate_history_get_raw_data(ctx->history, ctx->selected_history_index);
-            if(!ff || !psa_subdecode_item_needs_bruteforce(app, ctx->selected_history_index)) {
-                consumed = true;
-                return consumed;
-            }
-            PsaBfState* state = malloc(sizeof(PsaBfState));
-            if(!state) {
-                notification_message(app->notifications, &sequence_error);
-                consumed = true;
-                return consumed;
-            }
-            if(!psa_bf_state_from_flipper_format(state, ff)) {
-                free(state);
-                notification_message(app->notifications, &sequence_error);
-                consumed = true;
-                return consumed;
-            }
-            state->on_done = psa_bf_done_cb_sub_decode;
-            state->on_done_ctx = app;
             app->txrx->idx_menu_chosen = ctx->selected_history_index;
-            app->psa_bf_state = state;
-            app->psa_bf_thread =
-                furi_thread_alloc_ex("PsaBf", 2048, psa_brute_force_thread_entry, state);
-            if(!app->psa_bf_thread) {
-                free(state);
-                app->psa_bf_state = NULL;
-                notification_message(app->notifications, &sequence_error);
-                consumed = true;
-                return consumed;
+            if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin &&
+               app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSubDecode, event)) {
+                if(app->psa_bf_plugin->is_running(app)) {
+                    view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
+                }
             }
-            furi_thread_start(app->psa_bf_thread);
-            sub_decode_show_psa_bf_progress(app);
-            view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
             consumed = true;
             return consumed;
 
         } else if(event.event == ProtoPirateCustomEventPsaBruteforceComplete) {
-            if(!app->psa_bf_state) {
-                consumed = true;
-                return consumed;
+            app->txrx->idx_menu_chosen = ctx->selected_history_index;
+            if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin) {
+                app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSubDecode, event);
             }
-            PsaBfState* s = app->psa_bf_state;
-            uint8_t status = s->status;
-            if(app->psa_bf_thread) {
-                furi_thread_join(app->psa_bf_thread);
-                furi_thread_free(app->psa_bf_thread);
-                app->psa_bf_thread = NULL;
-            }
-            if(status == PSA_BF_STATUS_FOUND) {
-                FlipperFormat* ff =
-                    protopirate_history_get_raw_data(ctx->history, ctx->selected_history_index);
-                if(ff) {
-                    flipper_format_rewind(ff);
-                    flipper_format_insert_or_update_uint32(ff, "Serial", &s->decrypted_serial, 1);
-                    uint32_t btn = s->decrypted_button;
-                    flipper_format_insert_or_update_uint32(ff, "Btn", &btn, 1);
-                    flipper_format_insert_or_update_uint32(ff, "Cnt", &s->decrypted_counter, 1);
-                    uint32_t type = s->decrypted_type;
-                    flipper_format_insert_or_update_uint32(ff, "Type", &type, 1);
-                    uint32_t crc_val = s->decrypted_crc;
-                    flipper_format_insert_or_update_uint32(ff, "CRC", &crc_val, 1);
-                    flipper_format_insert_or_update_uint32(ff, "Seed", &s->decrypted_seed, 1);
-                }
-                FuriString* new_str = furi_string_alloc_printf(
-                    "PSA 128bit\r\n"
-                    "Key1:%08lX%08lX\r\n"
-                    "Key2:%04X\r\n"
-                    "Btn:%02X\r\n"
-                    "Ser:%06lX\r\n"
-                    "Cnt:%lX\r\n"
-                    "Type:%02X\r\n"
-                    "Sd:%06lX",
-                    (unsigned long)s->key1_high,
-                    (unsigned long)s->key1_low,
-                    (unsigned int)(s->key2_low & 0xFFFF),
-                    (unsigned int)s->decrypted_button,
-                    (unsigned long)s->decrypted_serial,
-                    (unsigned long)s->decrypted_counter,
-                    (unsigned int)s->decrypted_type,
-                    (unsigned long)s->decrypted_seed);
-                protopirate_history_set_item_str(
-                    ctx->history, ctx->selected_history_index, furi_string_get_cstr(new_str));
-                furi_string_free(new_str);
-                protopirate_history_commit_loaded(ctx->history);
-                notification_message(app->notifications, &sequence_success);
-            }
-            free(app->psa_bf_state);
-            app->psa_bf_state = NULL;
-            ctx->state = DecodeStateShowSignalInfo;
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, ProtoPirateCustomEventSubDecodeUpdate);
             consumed = true;
             return consumed;
 
@@ -771,12 +634,11 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
         consumed = true;
         ctx->animation_frame++;
 
-        if(app->psa_bf_thread && app->psa_bf_state) {
-            uint8_t bfst = app->psa_bf_state->status;
-            if(bfst == PSA_BF_STATUS_IDLE || bfst == PSA_BF_STATUS_RUNNING) {
-                sub_decode_show_psa_bf_progress(app);
-                return consumed;
-            }
+        app->txrx->idx_menu_chosen = ctx->selected_history_index;
+        if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin &&
+           app->psa_bf_plugin->is_running(app) &&
+           app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSubDecode, event)) {
+            return consumed;
         }
 
         FURI_LOG_D(TAG, "Tick: state=%d, frame=%u", ctx->state, ctx->animation_frame);
@@ -827,7 +689,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 }
 
                 FURI_LOG_D(TAG, "ReadHeader: Reading protocol");
-                if(!flipper_format_read_string(ctx->ff, "Protocol", ctx->protocol_name)) {
+                if(!flipper_format_read_string(ctx->ff, FF_PROTOCOL, ctx->protocol_name)) {
                     furi_string_set(ctx->result, "Missing Protocol");
                     furi_string_set(ctx->error_info, "No protocol field");
                     break;
@@ -837,7 +699,7 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                 flipper_format_rewind(ctx->ff);
                 flipper_format_read_header(ctx->ff, temp_str, &version);
                 ctx->frequency = 433920000;
-                flipper_format_read_uint32(ctx->ff, "Frequency", &ctx->frequency, 1);
+                flipper_format_read_uint32(ctx->ff, FF_FREQUENCY, &ctx->frequency, 1);
 
                 FURI_LOG_I(
                     TAG,
@@ -928,12 +790,12 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
                     break;
                 }
 
-                if(!flipper_format_read_uint32(fff_data_file, "Frequency", &ctx->frequency, 1)) {
+                if(!flipper_format_read_uint32(fff_data_file, FF_FREQUENCY, &ctx->frequency, 1)) {
                     FURI_LOG_E(TAG, "Missing Frequency");
                     break;
                 }
 
-                if(!flipper_format_read_string(fff_data_file, "Preset", temp_str)) {
+                if(!flipper_format_read_string(fff_data_file, FF_PRESET, temp_str)) {
                     FURI_LOG_E(TAG, "Missing Preset");
                     break;
                 }
@@ -1219,17 +1081,24 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
 
                     FuriString* proto_str = furi_string_alloc();
                     flipper_format_rewind(ff);
-                    bool is_psa = flipper_format_read_string(ff, "Protocol", proto_str) &&
+                    bool is_psa = flipper_format_read_string(ff, FF_PROTOCOL, proto_str) &&
                                   furi_string_cmp_str(proto_str, "PSA") == 0;
                     furi_string_free(proto_str);
-                    if(is_psa &&
-                       psa_subdecode_item_needs_bruteforce(app, ctx->selected_history_index)) {
-                        widget_add_button_element(
-                            app->widget,
-                            GuiButtonTypeLeft,
-                            "Brute force",
-                            protopirate_scene_sub_decode_widget_callback,
-                            app);
+                    if(is_psa) {
+                        app->txrx->idx_menu_chosen = ctx->selected_history_index;
+                        bool needs_bf = false;
+                        if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin) {
+                            needs_bf = app->psa_bf_plugin->needs_bruteforce(
+                                app, ProtoPiratePsaBfContextSubDecode);
+                        }
+                        if(needs_bf) {
+                            widget_add_button_element(
+                                app->widget,
+                                GuiButtonTypeLeft,
+                                "Brute force",
+                                protopirate_scene_sub_decode_widget_callback,
+                                app);
+                        }
                     }
                 }
 
@@ -1252,9 +1121,9 @@ bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent even
             view_commit_model(app->view_about, true);
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        if(app->psa_bf_thread && app->psa_bf_state &&
-           app->psa_bf_state->status == PSA_BF_STATUS_RUNNING) {
-            app->psa_bf_state->cancel = 1;
+        app->txrx->idx_menu_chosen = ctx->selected_history_index;
+        if(protopirate_psa_bf_plugin_ensure_loaded(app) && app->psa_bf_plugin &&
+           app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSubDecode, event)) {
             consumed = true;
             return consumed;
         }
@@ -1281,16 +1150,7 @@ void protopirate_scene_sub_decode_on_exit(void* context) {
 
     subghz_receiver_set_rx_callback(app->txrx->receiver, NULL, NULL);
 
-    if(app->psa_bf_thread) {
-        if(app->psa_bf_state) app->psa_bf_state->cancel = 1;
-        furi_thread_join(app->psa_bf_thread);
-        furi_thread_free(app->psa_bf_thread);
-        app->psa_bf_thread = NULL;
-    }
-    if(app->psa_bf_state) {
-        free(app->psa_bf_state);
-        app->psa_bf_state = NULL;
-    }
+    protopirate_psa_bf_context_release(app);
 
     if(g_decode_ctx) {
         if(g_decode_ctx->raw_reader) {

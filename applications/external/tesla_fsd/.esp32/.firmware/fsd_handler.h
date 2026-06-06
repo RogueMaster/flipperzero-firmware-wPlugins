@@ -4,91 +4,24 @@
 #include <stdbool.h>
 #include "config.h"
 
-// ── CAN frame (shared by all drivers) ────────────────────────────────────────
-struct CanFrame {
-    uint32_t id;
-    uint8_t  dlc;
-    uint8_t  data[8];
-};
+// ── CAN frame ─────────────────────────────────────────────────────────────────
+// Unified with the Flipper build: CanFrame is the shared CANFRAME
+// (fsd_logic/fsd_types.h). Its anonymous unions expose id/dlc/data here and
+// canId/data_lenght/buffer on the Flipper side over the same storage, so this
+// firmware's existing frame.id / frame.dlc / frame.data accessors are unchanged.
+#include "../../fsd_logic/fsd_types.h"
+typedef CANFRAME CanFrame;
 
 // ── Hardware version ──────────────────────────────────────────────────────────
-typedef enum {
-    TeslaHW_Unknown = 0,
-    TeslaHW_Legacy,   // HW1 / HW2
-    TeslaHW_HW3,
-    TeslaHW_HW4,
-} TeslaHWVersion;
+// TeslaHWVersion and OpMode are defined in the shared fsd_types.h (included
+// above). OpMode is numbered ListenOnly=0, Active=1, Service=2 — the
+// ListenOnly/Active values match what this firmware already persists in NVS.
 
 // ── Operation mode ────────────────────────────────────────────────────────────
-typedef enum {
-    OpMode_ListenOnly = 0,  // default on boot: no TX
-    OpMode_Active,          // TX enabled
-} OpMode;
+// (OpMode: see fsd_types.h)
 
-// ── Full FSD state ────────────────────────────────────────────────────────────
-struct FSDState {
-    TeslaHWVersion hw_version;
-    int            speed_profile;   // 0-4 depending on HW
-    int            speed_offset;    // HW3 only, 0-100
-
-    bool           fsd_enabled;     // true when car's UI has FSD selected (mux0)
-    bool           nag_suppressed;  // true after first nag-killer echo sent
-
-    uint32_t       frames_modified; // TX counter
-
-    // ── Feature flags (runtime-toggleable) ───────────────────────────────────
-    bool           force_fsd;               // bypass UI selection check
-    bool           suppress_speed_chime;    // ISA chime suppress (HW4, 0x399)
-    bool           emergency_vehicle_detect;// set bit59 in mux0 (HW4)
-    bool           nag_killer;              // 0x370 counter+1 echo
-    uint32_t       nag_echo_count;
-
-    // ── Mode + diagnostics ────────────────────────────────────────────────────
-    OpMode         op_mode;
-    bool           tesla_ota_in_progress;   // pause TX during OTA
-    uint8_t        ota_raw_state;           // raw GTW_updateInProgress bits [1:0]
-    uint8_t        ota_assert_count;        // consecutive "in-progress" samples
-    uint8_t        ota_clear_count;         // consecutive "not in-progress" samples
-    uint32_t       crc_err_count;           // CAN bus error counter
-    uint32_t       rx_count;                // total frames seen (wiring check)
-    uint32_t       seen_gtw_car_state;      // 0x318 seen count
-    uint32_t       seen_gtw_car_config;     // 0x398 seen count
-    uint32_t       seen_ap_control;         // 0x3FD seen count
-    uint32_t       seen_bms_hv;             // 0x132 seen count
-    uint32_t       seen_bms_soc;            // 0x292 seen count
-    uint32_t       seen_bms_thermal;        // 0x312 seen count
-
-    // ── BMS read-only sniff ───────────────────────────────────────────────────
-    bool           bms_output;       // print BMS data to serial
-    bool           bms_seen;
-    float          pack_voltage_v;
-    float          pack_current_a;
-    float          soc_percent;
-    int8_t         batt_temp_min_c;
-    int8_t         batt_temp_max_c;
-
-    // ── Precondition trigger ──────────────────────────────────────────────────
-    bool           precondition;     // periodically inject 0x082
-
-    // ── Deep sleep ────────────────────────────────────────────────────────────
-    uint32_t       sleep_idle_ms;    // CAN silence before entering deep sleep
-
-    // ── WiFi ──────────────────────────────────────────────────────────────────
-    char           wifi_ssid[33];    // max 32 chars + null
-    char           wifi_pass[65];    // max 64 chars + null
-    bool           wifi_hidden;
-
-    // ── TLSSC Restore (0x331 DAS config spoof) ──────────────────────────────
-    bool           tlssc_restore;
-    uint32_t       tlssc_restore_count;
-
-    // ── DAS status (0x39B) — nag killer gating ───────────────────────────────
-    // 0=NOT_REQD, 8=SUSPENDED — both mean DAS is satisfied, skip echo.
-    // das_seen starts false; if 0x39B is absent from the tapped bus the nag
-    // killer falls back to EPAS-level-only gating (conservative echo).
-    bool           das_seen;
-    uint8_t        das_hands_on_state;
-};
+// ── Full FSD state (shared with the Flipper build) ────────────────────────────
+#include "../../fsd_logic/fsd_state.h"
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -122,13 +55,19 @@ void fsd_handle_legacy_stalk(FSDState *state, const CanFrame *frame);
  *  Returns true if frame was modified and should be re-sent. */
 bool fsd_handle_legacy_autopilot(FSDState *state, CanFrame *frame);
 
-/** Modify ISA speed limit frame (0x399) to suppress speed chime (HW4).
+/** Modify ISA speed limit frame (0x399, HW4 only) to suppress speed chime.
  *  Returns true if frame was modified and should be re-sent. */
 bool fsd_handle_isa_speed_chime(CanFrame *frame);
 
 /** Build an echo of EPAS3P_sysStatus (0x370) with counter+1 and handsOnLevel=1.
  *  Writes result into *out.  Returns true if echo should be sent. */
 bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out);
+
+/** Parse EPAS3P_sysStatus (0x370) steering torque. */
+void fsd_handle_epas_status(FSDState *state, const CanFrame *frame);
+
+/** Parse ESP_status (0x145) brake pedal state. */
+void fsd_handle_esp_status(FSDState *state, const CanFrame *frame);
 
 /** Parse BMS_hvBusStatus (0x132) — updates pack_voltage_v / pack_current_a. */
 void fsd_handle_bms_hv(FSDState *state, const CanFrame *frame);
@@ -147,5 +86,31 @@ void fsd_build_precondition_frame(CanFrame *frame);
  *  Returns true if frame was modified and should be re-sent. */
 bool fsd_handle_tlssc_restore(FSDState *state, CanFrame *frame);
 
-/** Parse DAS_status (0x39B) — updates das_hands_on_state for nag killer gating. */
-void fsd_handle_das_status(FSDState *state, const CanFrame *frame);
+/** Parse DAS_status from Legacy/HW3 0x399 — updates AP/speed/hands-on state. */
+void fsd_handle_das_status_hw3(FSDState *state, const CanFrame *frame);
+
+/** Parse DAS_status from HW4 0x39B — updates AP/speed/hands-on state. */
+void fsd_handle_das_status_hw4(FSDState *state, const CanFrame *frame);
+
+/** HW4 hands-on fallback: read only DAS_handsOnState (byte5[5:2]) from 0x399,
+ *  for HW4 trims that never broadcast 0x39B. Call only when
+ *  das_hw4_status_seen is false. Read-only, leaves das_ap_state untouched. */
+void fsd_handle_das_handsonly_399(FSDState *state, const CanFrame *frame);
+
+/** Parse GearLever / right stalk 0x229 for right-stalk detents. */
+void fsd_handle_gear_lever(FSDState *state, const CanFrame *frame, uint32_t now_ms);
+
+/** Parse UI_driverAssistMapData 0x238 map/location speed limit. */
+void fsd_handle_ui_map_data(FSDState *state, const CanFrame *frame, uint32_t now_ms);
+
+/** Parse DAS_status2 0x389 ACC speed-limit readback. */
+void fsd_handle_das_status2(FSDState *state, const CanFrame *frame, uint32_t now_ms);
+
+/** Parse DAS_control 0x2B9 cruise/AP set speed. */
+void fsd_handle_das_control(FSDState *state, const CanFrame *frame);
+
+/** Parse VCFRONT_lighting 0x3F5 turn signal request state. */
+void fsd_handle_vcfront_lighting(FSDState *state, const CanFrame *frame);
+
+/** Build GearLever / right stalk 0x229 with rolling counter and CRC byte. */
+bool fsd_build_gear_lever_frame(CanFrame *frame, uint8_t gear_pos, uint8_t counter);

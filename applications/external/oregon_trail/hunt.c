@@ -23,7 +23,7 @@ static const SpeciesParams PARAMS[5] = {
     [SPECIES_RABBIT] =
         {.base_y = 29, .y_amp = 5, .y_spd = 0.00140f, .x_spd = 0.034f, .meat_lo = 2, .meat_hi = 6},
     [SPECIES_DEER] =
-        {.base_y = 22, .y_amp = 7, .y_spd = 0.00080f, .x_spd = 0.020f, .meat_lo = 40, .meat_hi = 80},
+        {.base_y = 22, .y_amp = 7, .y_spd = 0.00080f, .x_spd = 0.020f, .meat_lo = 25, .meat_hi = 50},
     [SPECIES_BUFFALO] =
         {.base_y = 23,
          .y_amp = 6,
@@ -32,12 +32,7 @@ static const SpeciesParams PARAMS[5] = {
          .meat_lo = 100,
          .meat_hi = 200},
     [SPECIES_ELK] =
-        {.base_y = 22,
-         .y_amp = 7,
-         .y_spd = 0.00080f,
-         .x_spd = 0.018f,
-         .meat_lo = 50,
-         .meat_hi = 100},
+        {.base_y = 22, .y_amp = 7, .y_spd = 0.00080f, .x_spd = 0.018f, .meat_lo = 30, .meat_hi = 60},
     [SPECIES_WOLF] =
         {.base_y = 26, .y_amp = 8, .y_spd = 0.00120f, .x_spd = 0.028f, .meat_lo = 20, .meat_hi = 40},
 };
@@ -153,7 +148,7 @@ void hunt_init(HuntState* h) {
     h->pending_sound = -1;
     for(int i = 0; i < MAX_ANIMALS; i++) {
         (void)spawn_animal(&h->animals[i], h->off_plains);
-        h->animals[i].x = 50.0f + i * 32.0f;
+        h->animals[i].x = 140.0f + i * 40.0f; // stagger off-screen: 140, 180, 220
     }
 }
 
@@ -281,7 +276,6 @@ void hunt_update(HuntState* h, uint32_t dt_ms, GameState* gs) {
 
 void hunt_back_penalty(HuntState* h, GameState* gs) {
     if(!h->wolf_was_on_screen) return;
-    // Wolf gave chase — first living player takes 1 HP
     for(int i = 0; i < gs->num_players; i++) {
         if(gs->players[i].hp > 0.0f) {
             gs->players[i].hp -= 1.0f;
@@ -289,9 +283,8 @@ void hunt_back_penalty(HuntState* h, GameState* gs) {
             break;
         }
     }
-    // Show as gored card so player sees the consequence
     h->gored = true;
-    h->gored_by_wolf = true;
+    h->fled_wolf = true; // distinct card from mauling
 }
 
 void hunt_fire(HuntState* h, GameState* gs) {
@@ -308,7 +301,7 @@ void hunt_draw(Canvas* c, const HuntState* h, const GameState* gs) {
     canvas_set_color(c, ColorBlack);
 
     if(h->gored) {
-        hunt_draw_gored_card(c, h->gored_by_wolf);
+        hunt_draw_gored_card(c, h->gored_by_wolf, h->fled_wolf);
         return;
     }
 
@@ -379,25 +372,36 @@ void hunt_draw(Canvas* c, const HuntState* h, const GameState* gs) {
     canvas_draw_str_aligned(c, 127, 56, AlignRight, AlignTop, "OK:Fire  Back:Exit Hunt");
 }
 
-void hunt_draw_gored_card(Canvas* c, bool by_wolf) {
+void hunt_draw_gored_card(Canvas* c, bool by_wolf, bool fled) {
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
     canvas_draw_frame(c, 0, 0, 128, 64);
     canvas_draw_box(c, 1, 1, 126, 10);
     canvas_set_color(c, ColorWhite);
-    canvas_draw_str_aligned(
-        c, 64, 2, AlignCenter, AlignTop, by_wolf ? "!! MAULED !!" : "!! GORED !!");
-    canvas_set_color(c, ColorBlack);
     canvas_set_font(c, FontSecondary);
-    if(by_wolf) {
+
+    if(fled) {
+        canvas_draw_str_aligned(c, 64, 2, AlignCenter, AlignTop, "WOLF GAVE CHASE!");
+        canvas_set_color(c, ColorBlack);
+        canvas_draw_str_aligned(c, 64, 13, AlignCenter, AlignTop, "You fled the hunt.");
+        canvas_draw_str_aligned(c, 64, 21, AlignCenter, AlignTop, "A wolf caught up");
+        canvas_draw_str_aligned(c, 64, 29, AlignCenter, AlignTop, "and took a bite.");
+        canvas_draw_str_aligned(c, 64, 43, AlignCenter, AlignTop, "HP -1");
+    } else if(by_wolf) {
+        canvas_draw_str_aligned(c, 64, 2, AlignCenter, AlignTop, "!! MAULED !!");
+        canvas_set_color(c, ColorBlack);
         canvas_draw_str_aligned(c, 64, 13, AlignCenter, AlignTop, "You were mauled");
         canvas_draw_str_aligned(c, 64, 21, AlignCenter, AlignTop, "by a wolf. Don't");
         canvas_draw_str_aligned(c, 64, 29, AlignCenter, AlignTop, "be a chew toy!");
+        canvas_draw_str_aligned(c, 64, 43, AlignCenter, AlignTop, "HP -2");
     } else {
+        canvas_draw_str_aligned(c, 64, 2, AlignCenter, AlignTop, "!! GORED !!");
+        canvas_set_color(c, ColorBlack);
         canvas_draw_str_aligned(c, 64, 13, AlignCenter, AlignTop, "You were gored by a");
         canvas_draw_str_aligned(c, 64, 21, AlignCenter, AlignTop, "buffalo. We should");
         canvas_draw_str_aligned(c, 64, 29, AlignCenter, AlignTop, "put up warning signs!");
+        canvas_draw_str_aligned(c, 64, 43, AlignCenter, AlignTop, "HP -2");
     }
-    canvas_draw_str_aligned(c, 64, 43, AlignCenter, AlignTop, "HP -2");
+
     canvas_draw_str_aligned(c, 64, 53, AlignCenter, AlignTop, "OK: Continue");
 }

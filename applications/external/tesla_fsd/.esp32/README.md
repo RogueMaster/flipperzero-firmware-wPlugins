@@ -33,8 +33,9 @@ All CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_hand
 - HW3/HW4/Legacy auto-detection via `0x398` GTW_carConfig
 - NAG Killer (EPAS `0x370` counter+1 echo with handsOnLevel spoofing)
 - Speed profile mapping from follow-distance stalk
-- OTA update detection and automatic TX suspension
-- ISA speed warning chime suppression (HW4)
+- OTA update detection with automatic TX suspension by default, plus an explicit Ignore OTA override
+- HW-based AP/DAS mapping for Legacy/HW3 vs HW4 signal layouts
+- ISA speed warning chime suppression (HW4 only)
 - BMS data parsing logic (voltage, current, SOC, temperature) — currently not reliable in real use
 - Battery precondition trigger
 - CRC/checksum recalculation after frame modification
@@ -53,8 +54,10 @@ All CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_hand
 - **Battery SOC Ring** — animated circular progress bar with color coding (green >60%, yellow >30%, red ≤30%)
 - **BMS Live Data UI hooks** — fields exist in UI/API, but BMS section is currently not working reliably on tested vehicle setup
 - **CAN Bus Stats** — RX frame count, TX modified count, CRC errors, frames/second
+- **HTTP CAN Log Stream** — phone-friendly candump collection via dashboard button; device streams CAN frames over HTTP on port 82 and the browser saves the collected `.dump` file on Stop
 - **Web Controls** — toggle buttons for:
   - Activate/Stop FSD (Listen-Only ↔ Active mode switch)
+  - Ignore OTA on/off (allows Active mode TX during a detected Tesla OTA)
   - NAG Killer on/off
   - BMS serial output on/off
   - Force FSD toggle
@@ -62,12 +65,25 @@ All CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_hand
 - **Connection Status** — green/red dot indicator with auto-reconnect on WebSocket disconnect
 - **Device Info** — firmware build date, uptime counter, WiFi client count
 - **REST API** — `GET /api/status` returns full JSON state
+- **TTGO T-Display dashboard** — optional on-board ST7789 status display for the `ttgo-tdisplay` build
 
 ### CAN Driver Abstraction
 
 Dual CAN driver support (compile-time switch):
 - **ESP32 TWAI** — for M5Stack ATOM Lite + ATOMIC CAN Base (CA-IS3050G transceiver)
 - **MCP2515 SPI** — for generic ESP32 + MCP2515 CAN module setups
+
+### HW-Based AP/DAS Mapping
+
+The AP/DAS status source is selected at runtime from the detected Tesla hardware version:
+
+| Detected HW | DAS status | ISA_SPEED / chime suppress |
+|-------------|------------|-----------------------------|
+| Legacy HW1/HW2 | `0x399` | Disabled; `0x399` is treated as DAS status |
+| HW3 | `0x399` | Disabled; `0x399` is treated as DAS status |
+| HW4 | `0x39B` | Enabled on `0x399` |
+
+This avoids a manual AP/DAS profile. The dashboard hides the chime toggle until HW4 is detected.
 
 ---
 
@@ -78,10 +94,11 @@ Dual CAN driver support (compile-time switch):
 | **FSD Unlock** | `0x3FD` mux0 | bit46 = 1 activates FSD (HW3/HW4/Legacy) |
 | **NAG Killer** | `0x370` | Suppresses hands-on-wheel reminder |
 | **Speed Profile** | `0x3FD` mux2 | Follow-distance stalk maps to speed offset |
-| **ISA Chime Suppress** | `0x399` | Kills speed warning chime (HW4 only) |
+| **DAS Status** | `0x399` or `0x39B` | Runtime HW version selects status source |
+| **ISA Chime Suppress** | `0x399` | HW4 only; disabled for Legacy/HW3 because `0x399` is DAS status |
 | **Battery Precondition** | `0x082` | Frame builder implemented; no user control exposed yet |
 | **BMS Dashboard** | `0x132`/`0x292`/`0x312` | Parsing/UI path implemented, but currently not working reliably |
-| **OTA Protection** | `0x318` | Auto-stops TX when OTA update detected |
+| **OTA Protection** | `0x318` | Auto-stops TX when OTA update detected unless Ignore OTA is enabled |
 | **HW Auto-Detect** | `0x398` | Reads GTW_carConfig for HW version |
 | **Listen-Only Mode** | — | Default on boot, passive monitoring only |
 | **Wiring Check** | — | rx_count + CRC error monitoring |
@@ -109,6 +126,7 @@ Any ESP32 board + CAN transceiver works. Pick the matching build env in `platfor
 | `m5stack-atom-swap-pins` | M5Stack ATOM Lite + ATOMIC CAN Base | TWAI | 19 / 22 | For boards with swapped silkscreen |
 | `esp32-mcp2515` | Generic ESP32 + MCP2515 module | MCP2515 SPI | SPI CS=5 | 8 MHz crystal |
 | `esp32-lilygo` | LilyGO T-CAN485 | TWAI | 27 / 26 | Built-in SN65HVD230 + SD slot |
+| `ttgo-tdisplay` | LilyGO/TTGO T-Display + MCP2515 | MCP2515 SPI (HSPI) | CS=26, SCK=33, MISO=32, MOSI=25 | Built-in ST7789 dashboard, MISO needs 5V→3.3V divider |
 | `waveshare-s3-can` | Waveshare ESP32-S3-RS485-CAN | TWAI | 15 / 16 | ESP32-S3, 8MB flash/PSRAM, USB-CDC |
 | generic | ESP32-C3/S3 Super Mini + SN65HVD230 | TWAI | any two pins | Override `PIN_CAN_TX` / `PIN_CAN_RX` |
 
@@ -123,6 +141,30 @@ On first boot every target prints its pin map as `[CFG] pins: LED=.. BUTTON=.. C
 ---
 
 ## Wiring
+
+### TTGO T-Display + MCP2515
+
+The T-Display LCD already owns the board's default VSPI pins, so the `ttgo-tdisplay` variant places the MCP2515 on a separate HSPI bus:
+
+| MCP2515 Pin | TTGO T-Display GPIO | Notes |
+|-------------|---------------------|-------|
+| CS | 26 | |
+| SCK | 33 | |
+| MISO / SO | 32 | **Needs 5 V → 3.3 V divider** if MCP2515 is powered from 5 V (most cheap modules are) |
+| MOSI / SI | 25 | |
+| INT | (unused) | |
+| VCC | 5 V | 5V for TJA1050-based modules; 3V3 only if your module supports it |
+| GND | GND | |
+
+> [!IMPORTANT]
+> Almost every commodity MCP2515 board on AliExpress runs the chip and
+> the TJA1050 transceiver from a 5 V rail and drives MISO at 5 V logic
+> levels. The ESP32 GPIOs are 3.3 V tolerant only — driving them at 5 V
+> shortens the chip's life and can latch up the SoC. Add a simple
+> resistor divider on the MISO line — see
+> [HARDWARE.md – MCP2515 MISO 5V to 3.3V voltage divider](../HARDWARE.md#mcp2515-miso-5v-to-33v-voltage-divider).
+
+The built-in ST7789 display is enabled by default and can be toggled from the Web Dashboard or by pushing the GPIO35 button.
 
 ### OBD-II (Primary — Plug & Play)
 
@@ -143,6 +185,8 @@ Located in the rear center console area:
 
 ## CAN Bus Details
 
+Most IDs are common. The AP/DAS status and ISA-speed meaning depends on the detected Tesla hardware version.
+
 | CAN ID | Name | Purpose |
 |--------|------|---------|
 | `0x045` | STW_ACTN_RQ | Steering stalk (Legacy follow distance) |
@@ -153,10 +197,17 @@ Located in the rear center console area:
 | `0x318` | GTW_CAR_STATE | Vehicle state (OTA detection) |
 | `0x370` | EPAS_STATUS | EPAS status (NAG killer target) |
 | `0x398` | GTW_CAR_CONFIG | HW version detection |
-| `0x399` | ISA_SPEED | Speed warning chime (HW4) |
 | `0x3EE` | AP_LEGACY | Autopilot control (Legacy / HW1 / HW2) |
 | `0x3F8` | FOLLOW_DIST | Follow distance / speed profile |
 | `0x3FD` | AP_CONTROL | **Autopilot control (HW3/HW4) — core** |
+
+HW-specific IDs:
+
+| Detected HW | `0x399` | `0x39B` |
+|-------------|---------|---------|
+| Legacy HW1/HW2 | `DAS_STATUS` — AP / Autosteer state, speed-limit data, hands-on / lane-change state | Not used |
+| HW3 | `DAS_STATUS` — AP / Autosteer state, speed-limit data, hands-on / lane-change state | Not used |
+| HW4 | `ISA_SPEED` — speed warning chime | `DAS_STATUS` — AP / hands-on state (NAG killer gating) |
 
 Bus speed: **500 kbps**
 
@@ -238,7 +289,7 @@ pio device monitor -b 115200
 |-------|-------|
 | 🔵 Blue | Listen-Only (passive monitoring) |
 | 🟢 Green | Active (FSD enabled, transmitting) |
-| 🟡 Yellow | OTA detected (TX suspended) |
+| 🟡 Yellow | OTA detected |
 | 🔴 Red | Error (no CAN signal / CRC errors) |
 
 ### WiFi Dashboard
@@ -246,13 +297,15 @@ pio device monitor -b 115200
 1. Connect phone to WiFi: **Tesla-FSD** (password: **12345678**)
 2. Open browser: **http://192.168.4.1**
 3. Monitor and control everything from the web UI
-4. REST API available at `http://192.168.4.1/api/status`
+4. Tap **STREAM LOG AND SAVE** to collect a CAN log on the phone; tap **STOP COLLECTING**, then **SAVE LOG FILE** to save it as a candump `.dump` file
+5. REST API available at `http://192.168.4.1/api/status`
+6. Raw CAN stream endpoint: `http://192.168.4.1:82/stream`
 
 ---
 
 ## Safety
 
-- **OTA Protection** — automatically stops all CAN TX when a software update is detected on `0x318`
+- **OTA Protection** — automatically stops all CAN TX when a software update is detected on `0x318`; Ignore OTA can override this in Active mode
 - **Listen-Only default** — device will not modify any CAN frames until explicitly switched to Active mode
 - **Wiring diagnostics** — monitors rx_count and CRC error counter; red LED if no CAN traffic
 - **DLC validation** — checks frame data length before parsing to prevent buffer overflows
@@ -283,6 +336,7 @@ esp32/
 ├── .firmware/
 │   ├── main.cpp            — Init, button handling, main loop
 │   ├── fsd_handler.cpp/h   — CAN protocol logic (ported from hypery11)
+│   ├── http_can_stream.cpp/h — HTTP candump-compatible CAN stream
 │   ├── can_driver.cpp/h    — CAN driver abstraction (TWAI / MCP2515)
 │   ├── wifi_manager.cpp/h  — WiFi AP setup
 │   ├── web_dashboard.cpp/h — HTTP server + WebSocket + embedded UI

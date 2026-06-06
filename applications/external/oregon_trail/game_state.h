@@ -71,7 +71,8 @@ typedef struct {
     int ammo;
     int last_fort_visited;
     uint8_t rivers_visited;
-    int grueling_days; // consecutive days at grueling pace → oxen fatigue
+    int grueling_days;
+    int trail_hardship; // days of post-weather vulnerability (cascading events)
 } Trail;
 
 // ── Master game state ─────────────────────────────────────────

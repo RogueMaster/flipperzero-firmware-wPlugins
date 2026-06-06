@@ -9,6 +9,6 @@ App(
     fap_category="Infrared",
     fap_author="jmanion0139",
     fap_weburl="https://github.com/jmanion0139/flipper_tv_remote",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Record TV remote buttons and use Flipper as a TV remote",
 )

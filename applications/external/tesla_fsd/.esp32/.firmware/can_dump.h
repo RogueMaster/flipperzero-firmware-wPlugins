@@ -1,12 +1,14 @@
 #pragma once
 #include <Arduino.h>
+#include "can_driver.h"
 #include "fsd_handler.h"
+#include "can_driver.h"
 
 /**
  * can_dump.h — SD-card CAN bus logger (Lilygo T-CAN485)
  *
  * Logs all received CAN frames to SD card in candump ASCII format:
- *   (elapsed_s.elapsed_us) can0 ID#DATA
+ *   (elapsed_s.elapsed_us) canX ID#DATA
  *
  * Directory layout:
  *   /dumps/00001/candump_0.dump
@@ -21,7 +23,7 @@
 void   can_dump_init();
 bool   can_dump_start();
 void   can_dump_stop();
-void   can_dump_record(const CanFrame &frame);
+void   can_dump_record(CanBusId bus, const CanFrame &frame);
 void   can_dump_tick(uint32_t now_ms);
 bool   can_dump_active();
 String sd_format_card();

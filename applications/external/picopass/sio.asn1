@@ -15,10 +15,10 @@ PACS ::= SEQUENCE {
 SIO ::= SEQUENCE {
   rid [1] OCTET STRING,
   unknown3 [3] OCTET STRING OPTIONAL,
-  unknown5 [5] NULL,
+  unknown5 [5] EXPLICIT NULL,
   key [6] Key,
   pacs [7] PACS,
-  unknown9 [9] NULL
+  unknown9 [9] EXPLICIT NULL
 }
 
 END

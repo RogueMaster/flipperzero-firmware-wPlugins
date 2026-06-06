@@ -15,6 +15,12 @@ static const SubGhzBlockConst subghz_protocol_star_line_const = {
     .min_count_bit_for_found = 64,
 };
 
+#define STAR_LINE_MIN_COUNT_BIT   64U
+#define STAR_LINE_UPLOAD_CAPACITY ((6U * 2U) + (STAR_LINE_MIN_COUNT_BIT * 2U))
+_Static_assert(
+    STAR_LINE_UPLOAD_CAPACITY <= PP_SHARED_UPLOAD_CAPACITY,
+    "STAR_LINE_UPLOAD_CAPACITY exceeds shared upload slab");
+
 struct SubGhzProtocolDecoderStarLine {
     SubGhzProtocolDecoderBase base;
 
@@ -54,20 +60,30 @@ const SubGhzProtocolDecoder subghz_protocol_star_line_decoder = {
     .feed = subghz_protocol_decoder_star_line_feed,
     .reset = subghz_protocol_decoder_star_line_reset,
 
-    .get_hash_data = subghz_protocol_decoder_star_line_get_hash_data,
+    .get_hash_data = pp_decoder_hash_blocks,
     .serialize = subghz_protocol_decoder_star_line_serialize,
     .deserialize = subghz_protocol_decoder_star_line_deserialize,
     .get_string = subghz_protocol_decoder_star_line_get_string,
 };
 
+#ifdef ENABLE_EMULATE_FEATURE
 const SubGhzProtocolEncoder subghz_protocol_star_line_encoder = {
     .alloc = subghz_protocol_encoder_star_line_alloc,
     .free = subghz_protocol_encoder_star_line_free,
 
     .deserialize = subghz_protocol_encoder_star_line_deserialize,
-    .stop = subghz_protocol_encoder_star_line_stop,
-    .yield = subghz_protocol_encoder_star_line_yield,
+    .stop = pp_encoder_stop,
+    .yield = pp_encoder_yield,
 };
+#else
+const SubGhzProtocolEncoder subghz_protocol_star_line_encoder = {
+    .alloc = NULL,
+    .free = NULL,
+    .deserialize = NULL,
+    .stop = NULL,
+    .yield = NULL,
+};
+#endif
 
 const SubGhzProtocol subghz_protocol_star_line = {
     .name = SUBGHZ_PROTOCOL_STAR_LINE_NAME,
@@ -89,9 +105,11 @@ static void subghz_protocol_star_line_check_remote_controller(
     SubGhzBlockGeneric* instance,
     SubGhzKeystore* keystore,
     const char** manufacture_name);
+#ifdef ENABLE_EMULATE_FEATURE
 
 void* subghz_protocol_encoder_star_line_alloc(SubGhzEnvironment* environment) {
     SubGhzProtocolEncoderStarLine* instance = malloc(sizeof(SubGhzProtocolEncoderStarLine));
+    furi_check(instance);
 
     instance->base.protocol = &subghz_protocol_star_line;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -100,20 +118,23 @@ void* subghz_protocol_encoder_star_line_alloc(SubGhzEnvironment* environment) {
     instance->manufacture_from_file = furi_string_alloc();
 
     instance->encoder.repeat = 40;
-    instance->encoder.size_upload = 256;
-    instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
+    pp_encoder_buffer_ensure(instance, STAR_LINE_UPLOAD_CAPACITY);
     instance->encoder.is_running = false;
 
     return instance;
 }
 
+#endif
+#ifdef ENABLE_EMULATE_FEATURE
+
 void subghz_protocol_encoder_star_line_free(void* context) {
     furi_check(context);
     SubGhzProtocolEncoderStarLine* instance = context;
     furi_string_free(instance->manufacture_from_file);
-    free(instance->encoder.upload);
     free(instance);
 }
+
+#endif
 
 /** 
  * Key generation from simple data
@@ -220,6 +241,7 @@ bool subghz_protocol_star_line_create_data(
  * @param instance Pointer to a SubGhzProtocolEncoderKeeloq instance
  * @return true On success
  */
+#ifdef ENABLE_EMULATE_FEATURE
 static bool subghz_protocol_encoder_star_line_get_upload(
     SubGhzProtocolEncoderStarLine* instance,
     uint8_t btn) {
@@ -239,33 +261,24 @@ static bool subghz_protocol_encoder_star_line_get_upload(
         instance->encoder.size_upload = size_upload;
     }
 
-    //Send header
-    for(uint8_t i = 6; i > 0; i--) {
-        instance->encoder.upload[index++] =
-            level_duration_make(true, (uint32_t)subghz_protocol_star_line_const.te_long * 2);
-        instance->encoder.upload[index++] =
-            level_duration_make(false, (uint32_t)subghz_protocol_star_line_const.te_long * 2);
-    }
+    LevelDuration* up = instance->encoder.upload;
+    const size_t cap = STAR_LINE_UPLOAD_CAPACITY;
+    const uint32_t te_short = (uint32_t)subghz_protocol_star_line_const.te_short;
+    const uint32_t te_long = (uint32_t)subghz_protocol_star_line_const.te_long;
 
-    //Send key data
+    index = pp_emit_short_pairs(up, index, cap, te_long * 2U, 6);
+
     for(uint8_t i = instance->generic.data_count_bit; i > 0; i--) {
-        if(bit_read(instance->generic.data, i - 1)) {
-            //send bit 1
-            instance->encoder.upload[index++] =
-                level_duration_make(true, (uint32_t)subghz_protocol_star_line_const.te_long);
-            instance->encoder.upload[index++] =
-                level_duration_make(false, (uint32_t)subghz_protocol_star_line_const.te_long);
-        } else {
-            //send bit 0
-            instance->encoder.upload[index++] =
-                level_duration_make(true, (uint32_t)subghz_protocol_star_line_const.te_short);
-            instance->encoder.upload[index++] =
-                level_duration_make(false, (uint32_t)subghz_protocol_star_line_const.te_short);
-        }
+        const uint32_t te = bit_read(instance->generic.data, i - 1) ? te_long : te_short;
+        index = pp_emit(up, index, cap, true, te);
+        index = pp_emit(up, index, cap, false, te);
     }
 
     return true;
 }
+
+#endif
+#ifdef ENABLE_EMULATE_FEATURE
 
 static SubGhzProtocolStatus subghz_protocol_encoder_star_line_serialize(
     SubGhzProtocolEncoderStarLine* instance,
@@ -277,38 +290,38 @@ static SubGhzProtocolStatus subghz_protocol_encoder_star_line_serialize(
 
     do {
         if(!flipper_format_insert_or_update_string_cstr(
-               flipper_format, "Protocol", instance->generic.protocol_name)) {
+               flipper_format, FF_PROTOCOL, instance->generic.protocol_name)) {
             break;
         }
 
         uint32_t bits = instance->generic.data_count_bit;
-        if(!flipper_format_insert_or_update_uint32(flipper_format, "Bit", &bits, 1)) {
+        if(!flipper_format_insert_or_update_uint32(flipper_format, FF_BIT, &bits, 1)) {
             break;
         }
 
         char key_str[20];
         snprintf(key_str, sizeof(key_str), "%016llX", instance->generic.data);
-        if(!flipper_format_insert_or_update_string_cstr(flipper_format, "Key", key_str)) {
+        if(!flipper_format_insert_or_update_string_cstr(flipper_format, FF_KEY, key_str)) {
             break;
         }
 
         if(!flipper_format_insert_or_update_uint32(
-               flipper_format, "Serial", &instance->generic.serial, 1)) {
+               flipper_format, FF_SERIAL, &instance->generic.serial, 1)) {
             break;
         }
 
         uint32_t temp = instance->generic.btn;
-        if(!flipper_format_insert_or_update_uint32(flipper_format, "Btn", &temp, 1)) {
+        if(!flipper_format_insert_or_update_uint32(flipper_format, FF_BTN, &temp, 1)) {
             break;
         }
 
         if(!flipper_format_insert_or_update_uint32(
-               flipper_format, "Cnt", &instance->generic.cnt, 1)) {
+               flipper_format, FF_CNT, &instance->generic.cnt, 1)) {
             break;
         }
 
         if(!flipper_format_insert_or_update_string_cstr(
-               flipper_format, "Manufacture", instance->manufacture_name)) {
+               flipper_format, FF_MANUFACTURE, instance->manufacture_name)) {
             break;
         }
 
@@ -319,177 +332,66 @@ static SubGhzProtocolStatus subghz_protocol_encoder_star_line_serialize(
     //SubGhzProtocolStatus ret = subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
 }
 
+#endif
+#ifdef ENABLE_EMULATE_FEATURE
+
 SubGhzProtocolStatus
     subghz_protocol_encoder_star_line_deserialize(void* context, FlipperFormat* flipper_format) {
     furi_check(context);
     SubGhzProtocolEncoderStarLine* instance = context;
-    SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
+
+    if(pp_verify_protocol_name(flipper_format, instance->base.protocol->name) !=
+       SubGhzProtocolStatusOk) {
+        return SubGhzProtocolStatusError;
+    }
+
+    uint32_t bits = 0;
+    if(pp_encoder_read_bit(flipper_format, NULL, 0, &bits) != SubGhzProtocolStatusOk) {
+        return SubGhzProtocolStatusErrorValueBitCount;
+    }
+    instance->generic.data_count_bit = subghz_protocol_star_line_const.min_count_bit_for_found;
+
+    uint64_t key = 0;
+    if(!pp_flipper_read_hex_u64(flipper_format, FF_KEY, &key)) {
+        return SubGhzProtocolStatusError;
+    }
+    instance->generic.data = key;
+    if(instance->generic.data == 0) return SubGhzProtocolStatusError;
+
+    uint32_t serial = UINT32_MAX;
+    uint32_t btn = UINT32_MAX;
+    uint32_t cnt = UINT32_MAX;
+    pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+    if(serial == UINT32_MAX || btn == UINT32_MAX || cnt == UINT32_MAX) {
+        return SubGhzProtocolStatusError;
+    }
+    instance->generic.serial = serial;
+    instance->generic.btn = (uint8_t)btn;
+    instance->generic.cnt = (uint16_t)cnt;
+
+    instance->encoder.repeat = pp_encoder_read_repeat(flipper_format, 40);
 
     flipper_format_rewind(flipper_format);
-
-    do {
-        FuriString* temp_str = furi_string_alloc();
-        if(!flipper_format_read_string(flipper_format, "Protocol", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Protocol");
-            furi_string_free(temp_str);
-            break;
-        }
-
-        if(!furi_string_equal(temp_str, instance->base.protocol->name)) {
-            FURI_LOG_E(
-                TAG,
-                "Wrong protocol %s != %s",
-                furi_string_get_cstr(temp_str),
-                instance->base.protocol->name);
-            furi_string_free(temp_str);
-            break;
-        }
-        furi_string_free(temp_str);
-
-        uint32_t bit_count_temp;
-        if(!flipper_format_read_uint32(flipper_format, "Bit", &bit_count_temp, 1)) {
-            FURI_LOG_E(TAG, "Missing Bit");
-            break;
-        }
-
-        instance->generic.data_count_bit = subghz_protocol_star_line_const.min_count_bit_for_found;
-
-        temp_str = furi_string_alloc();
-        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Key");
-            furi_string_free(temp_str);
-            break;
-        }
-
-        const char* key_str = furi_string_get_cstr(temp_str);
-        uint64_t key = 0;
-        size_t str_len = strlen(key_str);
-        size_t hex_pos = 0;
-        for(size_t i = 0; i < str_len && hex_pos < 16; i++) {
-            char c = key_str[i];
-            if(c == ' ') continue;
-
-            uint8_t nibble;
-            if(c >= '0' && c <= '9') {
-                nibble = c - '0';
-            } else if(c >= 'A' && c <= 'F') {
-                nibble = c - 'A' + 10;
-            } else if(c >= 'a' && c <= 'f') {
-                nibble = c - 'a' + 10;
-            } else {
-                FURI_LOG_E(TAG, "Invalid hex character: %c", c);
-                furi_string_free(temp_str);
-                break;
-            }
-
-            key = (key << 4) | nibble;
-            hex_pos++;
-        }
-
-        furi_string_free(temp_str);
-
-        if(hex_pos != 16) {
-            FURI_LOG_E(TAG, "Invalid key length: %zu nibbles (expected 16)", hex_pos);
-            break;
-        }
-
-        instance->generic.data = key;
-        FURI_LOG_I(TAG, "Parsed key: 0x%016llX", instance->generic.data);
-
-        if(instance->generic.data == 0) {
-            FURI_LOG_E(TAG, "Key is zero after parsing!");
-            break;
-        }
-
-        if(!flipper_format_read_uint32(flipper_format, "Serial", &instance->generic.serial, 1)) {
-            instance->generic.serial = instance->generic.data >> 24;
-            FURI_LOG_I(TAG, "Extracted serial: 0x%08lX", instance->generic.serial);
-        } else {
-            FURI_LOG_I(TAG, "Read serial: 0x%08lX", instance->generic.serial);
-        }
-
-        uint32_t btn_temp;
-        if(flipper_format_read_uint32(flipper_format, "Btn", &btn_temp, 1)) {
-            instance->generic.btn = (uint8_t)btn_temp;
-            FURI_LOG_I(TAG, "Read button: 0x%02X", instance->generic.btn);
-        } else {
-            instance->generic.btn = (instance->generic.data >> 16) & 0xFF;
-            FURI_LOG_I(TAG, "Extracted button: 0x%02X", instance->generic.btn);
-        }
-
-        uint32_t cnt_temp;
-        if(flipper_format_read_uint32(flipper_format, "Cnt", &cnt_temp, 1)) {
-            instance->generic.cnt = (uint16_t)cnt_temp;
-            FURI_LOG_I(TAG, "Read counter: 0x%03lX", (unsigned long)instance->generic.cnt);
-        }
-
-        if(!flipper_format_read_uint32(
-               flipper_format, "Repeat", (uint32_t*)&instance->encoder.repeat, 1)) {
-            instance->encoder.repeat = 40;
-            FURI_LOG_D(
-                TAG, "Repeat not found in file, using default 40 for continuous transmission");
-        }
-        if(!flipper_format_rewind(flipper_format)) {
-            FURI_LOG_E(TAG, "Rewind error");
-            break;
-        }
-        // Read manufacturer from file
-        if(flipper_format_read_string(
-               flipper_format, "Manufacture", instance->manufacture_from_file)) {
-            instance->manufacture_name = furi_string_get_cstr(instance->manufacture_from_file);
-            instance->keystore->mfname = instance->manufacture_name;
-        } else {
-            FURI_LOG_D(TAG, "ENCODER: Missing Manufacture");
-        }
-
-        subghz_protocol_star_line_check_remote_controller(
-            &instance->generic, instance->keystore, &instance->manufacture_name);
-
-        subghz_protocol_encoder_star_line_get_upload(instance, instance->generic.btn);
-
-        subghz_protocol_encoder_star_line_serialize(instance, flipper_format);
-
-        instance->encoder.is_running = true;
-
-        FURI_LOG_I(
-            TAG,
-            "Encoder deserialized: repeat=%u, size_upload=%zu, is_running=%d, front=%zu",
-            instance->encoder.repeat,
-            instance->encoder.size_upload,
-            instance->encoder.is_running,
-            instance->encoder.front);
-
-        ret = SubGhzProtocolStatusOk;
-    } while(false);
-
-    return ret;
-}
-
-void subghz_protocol_encoder_star_line_stop(void* context) {
-    SubGhzProtocolEncoderStarLine* instance = context;
-    instance->encoder.is_running = false;
-}
-
-LevelDuration subghz_protocol_encoder_star_line_yield(void* context) {
-    SubGhzProtocolEncoderStarLine* instance = context;
-
-    if(instance->encoder.repeat == 0 || !instance->encoder.is_running) {
-        instance->encoder.is_running = false;
-        return level_duration_reset();
+    if(flipper_format_read_string(
+           flipper_format, FF_MANUFACTURE, instance->manufacture_from_file)) {
+        instance->manufacture_name = furi_string_get_cstr(instance->manufacture_from_file);
+        instance->keystore->mfname = instance->manufacture_name;
     }
 
-    LevelDuration ret = instance->encoder.upload[instance->encoder.front];
+    subghz_protocol_star_line_check_remote_controller(
+        &instance->generic, instance->keystore, &instance->manufacture_name);
 
-    if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
-        instance->encoder.front = 0;
-    }
+    subghz_protocol_encoder_star_line_get_upload(instance, instance->generic.btn);
+    subghz_protocol_encoder_star_line_serialize(instance, flipper_format);
 
-    return ret;
+    instance->encoder.is_running = true;
+    return SubGhzProtocolStatusOk;
 }
 
+#endif
 void* subghz_protocol_decoder_star_line_alloc(SubGhzEnvironment* environment) {
     SubGhzProtocolDecoderStarLine* instance = malloc(sizeof(SubGhzProtocolDecoderStarLine));
+    furi_check(instance);
     instance->base.protocol = &subghz_protocol_star_line;
     instance->generic.protocol_name = instance->base.protocol->name;
 
@@ -775,13 +677,6 @@ static void subghz_protocol_star_line_check_remote_controller(
     instance->btn = key_fix >> 24;
 }
 
-uint8_t subghz_protocol_decoder_star_line_get_hash_data(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderStarLine* instance = context;
-    return subghz_protocol_blocks_get_hash_data(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
-}
-
 SubGhzProtocolStatus subghz_protocol_decoder_star_line_serialize(
     void* context,
     FlipperFormat* flipper_format,
@@ -796,51 +691,51 @@ SubGhzProtocolStatus subghz_protocol_decoder_star_line_serialize(
     do {
         if(preset != NULL) {
             if(!flipper_format_insert_or_update_uint32(
-                   flipper_format, "Frequency", &preset->frequency, 1)) {
+                   flipper_format, FF_FREQUENCY, &preset->frequency, 1)) {
                 break;
             }
 
             const char* preset_name = furi_string_get_cstr(preset->name);
-            const char* short_preset = protopirate_get_short_preset_name(preset_name);
+            const char* short_preset = pp_get_short_preset_name(preset_name);
             if(!flipper_format_insert_or_update_string_cstr(
-                   flipper_format, "Preset", short_preset)) {
+                   flipper_format, FF_PRESET, short_preset)) {
                 break;
             }
         }
 
         if(!flipper_format_insert_or_update_string_cstr(
-               flipper_format, "Protocol", instance->generic.protocol_name)) {
+               flipper_format, FF_PROTOCOL, instance->generic.protocol_name)) {
             break;
         }
 
         uint32_t bits = instance->generic.data_count_bit;
-        if(!flipper_format_insert_or_update_uint32(flipper_format, "Bit", &bits, 1)) {
+        if(!flipper_format_insert_or_update_uint32(flipper_format, FF_BIT, &bits, 1)) {
             break;
         }
 
         char key_str[20];
         snprintf(key_str, sizeof(key_str), "%016llX", instance->generic.data);
-        if(!flipper_format_insert_or_update_string_cstr(flipper_format, "Key", key_str)) {
+        if(!flipper_format_insert_or_update_string_cstr(flipper_format, FF_KEY, key_str)) {
             break;
         }
 
         if(!flipper_format_insert_or_update_uint32(
-               flipper_format, "Serial", &instance->generic.serial, 1)) {
+               flipper_format, FF_SERIAL, &instance->generic.serial, 1)) {
             break;
         }
 
         uint32_t temp = instance->generic.btn;
-        if(!flipper_format_insert_or_update_uint32(flipper_format, "Btn", &temp, 1)) {
+        if(!flipper_format_insert_or_update_uint32(flipper_format, FF_BTN, &temp, 1)) {
             break;
         }
 
         if(!flipper_format_insert_or_update_uint32(
-               flipper_format, "Cnt", &instance->generic.cnt, 1)) {
+               flipper_format, FF_CNT, &instance->generic.cnt, 1)) {
             break;
         }
 
         if(!flipper_format_insert_or_update_string_cstr(
-               flipper_format, "Manufacture", instance->manufacture_name)) {
+               flipper_format, FF_MANUFACTURE, instance->manufacture_name)) {
             break;
         }
 
@@ -860,68 +755,23 @@ SubGhzProtocolStatus
     flipper_format_rewind(flipper_format);
 
     do {
-        FuriString* temp_str = furi_string_alloc();
-        if(!flipper_format_read_string(flipper_format, "Protocol", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Protocol");
-            furi_string_free(temp_str);
+        if(pp_verify_protocol_name(flipper_format, instance->base.protocol->name) !=
+           SubGhzProtocolStatusOk) {
+            FURI_LOG_E(TAG, "Missing or wrong Protocol");
             break;
         }
-
-        if(!furi_string_equal(temp_str, instance->base.protocol->name)) {
-            FURI_LOG_E(
-                TAG,
-                "Wrong protocol %s != %s",
-                furi_string_get_cstr(temp_str),
-                instance->base.protocol->name);
-            furi_string_free(temp_str);
-            break;
-        }
-        furi_string_free(temp_str);
 
         uint32_t bit_count_temp;
-        if(!flipper_format_read_uint32(flipper_format, "Bit", &bit_count_temp, 1)) {
+        if(!flipper_format_read_uint32(flipper_format, FF_BIT, &bit_count_temp, 1)) {
             FURI_LOG_E(TAG, "Missing Bit");
             break;
         }
 
         instance->generic.data_count_bit = subghz_protocol_star_line_const.min_count_bit_for_found;
 
-        temp_str = furi_string_alloc();
-        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Key");
-            furi_string_free(temp_str);
-            break;
-        }
-
-        const char* key_str = furi_string_get_cstr(temp_str);
         uint64_t key = 0;
-        size_t str_len = strlen(key_str);
-        size_t hex_pos = 0;
-        for(size_t i = 0; i < str_len && hex_pos < 16; i++) {
-            char c = key_str[i];
-            if(c == ' ') continue;
-
-            uint8_t nibble;
-            if(c >= '0' && c <= '9') {
-                nibble = c - '0';
-            } else if(c >= 'A' && c <= 'F') {
-                nibble = c - 'A' + 10;
-            } else if(c >= 'a' && c <= 'f') {
-                nibble = c - 'a' + 10;
-            } else {
-                FURI_LOG_E(TAG, "Invalid hex character: %c", c);
-                furi_string_free(temp_str);
-                break;
-            }
-
-            key = (key << 4) | nibble;
-            hex_pos++;
-        }
-
-        furi_string_free(temp_str);
-
-        if(hex_pos != 16) {
-            FURI_LOG_E(TAG, "Invalid key length: %zu nibbles (expected 16)", hex_pos);
+        if(!pp_flipper_read_hex_u64(flipper_format, FF_KEY, &key)) {
+            FURI_LOG_E(TAG, "Missing Key");
             break;
         }
 
@@ -933,27 +783,24 @@ SubGhzProtocolStatus
             break;
         }
 
-        if(!flipper_format_read_uint32(flipper_format, "Serial", &instance->generic.serial, 1)) {
-            instance->generic.serial = instance->generic.data >> 24;
-            FURI_LOG_I(TAG, "Extracted serial: 0x%08lX", instance->generic.serial);
-        } else {
-            FURI_LOG_I(TAG, "Read serial: 0x%08lX", instance->generic.serial);
+        if(!flipper_format_read_uint32(flipper_format, FF_SERIAL, &instance->generic.serial, 1)) {
+            FURI_LOG_E(TAG, "Missing Serial");
+            break;
         }
 
         uint32_t btn_temp;
-        if(flipper_format_read_uint32(flipper_format, "Btn", &btn_temp, 1)) {
-            instance->generic.btn = (uint8_t)btn_temp;
-            FURI_LOG_I(TAG, "Read button: 0x%02X", instance->generic.btn);
-        } else {
-            instance->generic.btn = (instance->generic.data >> 16) & 0xFF;
-            FURI_LOG_I(TAG, "Extracted button: 0x%02X", instance->generic.btn);
+        if(!flipper_format_read_uint32(flipper_format, FF_BTN, &btn_temp, 1)) {
+            FURI_LOG_E(TAG, "Missing Btn");
+            break;
         }
+        instance->generic.btn = (uint8_t)btn_temp;
 
         uint32_t cnt_temp;
-        if(flipper_format_read_uint32(flipper_format, "Cnt", &cnt_temp, 1)) {
-            instance->generic.cnt = (uint16_t)cnt_temp;
-            FURI_LOG_I(TAG, "Read counter: 0x%03lX", (unsigned long)instance->generic.cnt);
+        if(!flipper_format_read_uint32(flipper_format, FF_CNT, &cnt_temp, 1)) {
+            FURI_LOG_E(TAG, "Missing Cnt");
+            break;
         }
+        instance->generic.cnt = (uint16_t)cnt_temp;
 
         if(!flipper_format_rewind(flipper_format)) {
             FURI_LOG_E(TAG, "Rewind error");
@@ -961,7 +808,7 @@ SubGhzProtocolStatus
         }
         // Read manufacturer from file
         if(flipper_format_read_string(
-               flipper_format, "Manufacture", instance->manufacture_from_file)) {
+               flipper_format, FF_MANUFACTURE, instance->manufacture_from_file)) {
             instance->manufacture_name = furi_string_get_cstr(instance->manufacture_from_file);
             instance->keystore->mfname = instance->manufacture_name;
         } else {

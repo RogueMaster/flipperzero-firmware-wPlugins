@@ -2,11 +2,15 @@
 #include "picopass_poller_i.h"
 
 #include "../loclass/optimized_cipher.h"
+#include "../picopass_keys.h"
 
 #include <furi/furi.h>
+#include <furi_hal.h>
+#include <mbedtls/des.h>
 #include <toolbox/version.h>
 
-#define TAG "Picopass"
+#define TAG             "Picopass"
+#define MKF_BLOCK_INDEX 18
 
 typedef NfcCommand (*PicopassPollerStateHandler)(PicopassPoller* instance);
 
@@ -399,6 +403,8 @@ NfcCommand picopass_poller_auth_handler(PicopassPoller* instance) {
                 instance->state = PicopassPollerStateReadBlock;
             } else if(instance->mode == PicopassPollerModeWrite) {
                 instance->state = PicopassPollerStateWriteBlock;
+            } else if(instance->mode == PicopassPollerModeClean) {
+                instance->state = PicopassPollerStateClean;
             } else {
                 instance->state = PicopassPollerStateWriteKey;
             }
@@ -585,6 +591,134 @@ NfcCommand picopass_poller_write_key_handler(PicopassPoller* instance) {
     return command;
 }
 
+NfcCommand picopass_poller_clean_handler(PicopassPoller* instance) {
+    NfcCommand command = NfcCommandContinue;
+
+    do {
+        // 1. Read MKF block (block 18)
+        PicopassBlock block18 = {};
+        PicopassError error = picopass_poller_read_block(instance, MKF_BLOCK_INDEX, &block18);
+        if(error != PicopassErrorNone) {
+            FURI_LOG_E(TAG, "Failed to read MKF block: %d", error);
+            instance->state = PicopassPollerStateFail;
+            break;
+        }
+
+        FURI_LOG_D(
+            TAG,
+            "MKF block: %02x%02x%02x%02x%02x%02x%02x%02x",
+            block18.data[0],
+            block18.data[1],
+            block18.data[2],
+            block18.data[3],
+            block18.data[4],
+            block18.data[5],
+            block18.data[6],
+            block18.data[7]);
+
+        // 2. Decrypt MKF block with CSN-based 3DES key (CSN || suffix)
+        uint8_t des3_key[16];
+        memcpy(des3_key, instance->serial_num.data, PICOPASS_BLOCK_LEN);
+        memcpy(des3_key + PICOPASS_BLOCK_LEN, picopass_mkf_3des_suffix, PICOPASS_BLOCK_LEN);
+
+        uint8_t decrypted[PICOPASS_BLOCK_LEN];
+        mbedtls_des3_context ctx;
+        mbedtls_des3_init(&ctx);
+        mbedtls_des3_set2key_dec(&ctx, des3_key);
+        mbedtls_des3_crypt_ecb(&ctx, block18.data, decrypted);
+        mbedtls_des3_free(&ctx);
+
+        FURI_LOG_D(
+            TAG,
+            "Decrypted MKF: %02x%02x%02x%02x%02x%02x%02x%02x",
+            decrypted[0],
+            decrypted[1],
+            decrypted[2],
+            decrypted[3],
+            decrypted[4],
+            decrypted[5],
+            decrypted[6],
+            decrypted[7]);
+
+        // 3. Validate MKF marker: bytes 0 and 4 must be 0xCD
+        if(decrypted[0] != 0xCD || decrypted[4] != 0xCD) {
+            FURI_LOG_W(TAG, "Not a MKF tag (marker mismatch)");
+            instance->state = PicopassPollerStateFail;
+            break;
+        }
+
+        // 4. Build new MKF block with blank flag and fresh timestamp
+        uint8_t new_mkf[PICOPASS_BLOCK_LEN];
+        new_mkf[0] = 0xCD; // marker
+        new_mkf[1] = decrypted[1]; // preserve SN
+        new_mkf[2] = decrypted[2];
+        new_mkf[3] = decrypted[3];
+
+        DateTime datetime;
+        furi_hal_rtc_get_datetime(&datetime);
+
+        uint32_t lower = 0xCD800000; // marker + blank flag (bit 23)
+        lower |= (datetime.day & 0x1F);
+        lower |= ((datetime.month & 0xF) << 5);
+        lower |= (((datetime.year - 2000) & 0x1F) << 9);
+        lower |= 0x1C000; // version bits
+
+        new_mkf[4] = (lower >> 24) & 0xFF;
+        new_mkf[5] = (lower >> 16) & 0xFF;
+        new_mkf[6] = (lower >> 8) & 0xFF;
+        new_mkf[7] = lower & 0xFF;
+
+        // 5. Encrypt new MKF block
+        uint8_t encrypted_mkf[PICOPASS_BLOCK_LEN];
+        mbedtls_des3_init(&ctx);
+        mbedtls_des3_set2key_enc(&ctx, des3_key);
+        mbedtls_des3_crypt_ecb(&ctx, new_mkf, encrypted_mkf);
+        mbedtls_des3_free(&ctx);
+
+        // 6. Write blocks 6-18 (0xFF for 6-17, encrypted MKF for 18)
+        for(uint8_t block_num = 6; block_num <= MKF_BLOCK_INDEX; block_num++) {
+            PicopassBlock write_block = {};
+            if(block_num == MKF_BLOCK_INDEX) {
+                memcpy(write_block.data, encrypted_mkf, PICOPASS_BLOCK_LEN);
+            } else {
+                memset(write_block.data, 0xFF, PICOPASS_BLOCK_LEN);
+            }
+
+            uint8_t data[9] = {};
+            data[0] = block_num;
+            memcpy(&data[1], write_block.data, PICOPASS_BLOCK_LEN);
+            loclass_doMAC_N(data, sizeof(data), instance->div_key, instance->mac.data);
+
+            FURI_LOG_D(
+                TAG,
+                "Clean write block %d: %02x%02x%02x%02x%02x%02x%02x%02x",
+                block_num,
+                write_block.data[0],
+                write_block.data[1],
+                write_block.data[2],
+                write_block.data[3],
+                write_block.data[4],
+                write_block.data[5],
+                write_block.data[6],
+                write_block.data[7]);
+
+            error = picopass_poller_write_block(instance, block_num, &write_block, &instance->mac);
+            if(error != PicopassErrorNone) {
+                FURI_LOG_E(TAG, "Failed to write block %d: %d", block_num, error);
+                instance->state = PicopassPollerStateFail;
+                break;
+            }
+        }
+
+        if(instance->state == PicopassPollerStateFail) break;
+
+        FURI_LOG_I(TAG, "MKF tag cleaned successfully");
+        instance->state = PicopassPollerStateSuccess;
+    } while(false);
+
+    return command;
+}
+
 NfcCommand picopass_poller_success_handler(PicopassPoller* instance) {
     NfcCommand command = NfcCommandContinue;
 
@@ -629,6 +763,7 @@ static const PicopassPollerStateHandler picopass_poller_state_handler[PicopassPo
     [PicopassPollerStateWriteBlock] = picopass_poller_write_block_handler,
     [PicopassPollerStateWriteKey] = picopass_poller_write_key_handler,
     [PicopassPollerStateParseCredential] = picopass_poller_parse_credential_handler,
+    [PicopassPollerStateClean] = picopass_poller_clean_handler,
     [PicopassPollerStateSuccess] = picopass_poller_success_handler,
     [PicopassPollerStateFail] = picopass_poller_fail_handler,
     [PicopassPollerStateAuthFail] = picopass_poller_auth_fail_handler,

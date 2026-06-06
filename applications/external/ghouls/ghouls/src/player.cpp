@@ -15,7 +15,7 @@ Player::Player(const char* user_name, const char* user_pass)
     : Entity(username, ENTITY_PLAYER, Vector(4, 20), Vector(1.0f, 2.0f), nullptr) {
     sprite_3d = ENGINE_MEM_NEW Sprite3D();
     if(!sprite_3d) {
-        ENGINE_LOG_INFO("[Player:Player] Failed to create Sprite3D for player");
+        ENGINE_LOG_INFO("[Player:Player] Failed to create Sprite3D for player\n");
         return;
     }
     sprite_3d_type = SPRITE_3D_CUSTOM;
@@ -76,14 +76,14 @@ void Player::collision(Entity* other, Game* game) {
     {
         Weapon* weapon = static_cast<Weapon*>(other);
         if(!weapon) {
-            ENGINE_LOG_INFO("[Player:collision] Failed to cast collided NPC to Weapon");
+            ENGINE_LOG_INFO("[Player:collision] Failed to cast collided NPC to Weapon\n");
             return;
         }
         if(weapon->isHeld()) {
             return; // already held
         }
         if(!equipWeapon(game->current_level, weapon)) {
-            ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s", weapon->name);
+            ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s\n", weapon->name);
             return;
         }
         if(soundToggle == ToggleOn && ghoulsGame) {
@@ -109,17 +109,22 @@ void Player::collision(Entity* other, Game* game) {
 }
 
 // clang-format off
-const char *Player::downloadFiles[11] = {
+const char *Player::downloadFiles[16] = {
     "ambience.wav",
     "crossbow.wav",
     "ghouls-growl-loud.wav",
+    "forest.ghoulsmap",
     "ghouls-growl-medium.wav",
     "ghouls-growl-soft.wav",
     "ghouls-growling.wav",
+    "graveyard.ghoulsmap",
+    "home.ghoulsmap",
+    "maze.ghoulsmap",
     "menu-click.wav",
     "rifle.wav",
     "rocket-launcher.wav",
     "shotgun.wav",
+    "tron.ghoulsmap",
     "weapon-pickup.wav",
 };
 // clang-format on
@@ -157,6 +162,9 @@ void Player::drawCurrentView(Draw* canvas) {
         break;
     case GameViewUserInfo:
         drawUserInfoView(canvas);
+        break;
+    case GameViewMapPack:
+        drawMapPackView(canvas);
         break;
     default:
         canvas->fillScreen(0xFFFF);
@@ -212,7 +220,7 @@ void Player::drawGameOnlineView(Draw* canvas) {
             userRequest(RequestTypeUpdateStats);
         }
         if(!HTTP_WEBSOCKET_STOP()) {
-            ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to stop WebSocket");
+            ENGINE_LOG_INFO("[Player:drawGameOnlineView] Failed to stop WebSocket\n");
         }
         onlineGameState = OnlineStateIdle;
         ghoulsGame->endGame();
@@ -268,8 +276,7 @@ void Player::drawGameOnlineView(Draw* canvas) {
 
                     char* game_id_str = get_json_value("game_id", response);
                     if(game_id_str) {
-                        strncpy(onlineGameId, game_id_str, sizeof(onlineGameId) - 1);
-                        onlineGameId[sizeof(onlineGameId) - 1] = '\0';
+                        snprintf(onlineGameId, sizeof(onlineGameId), "%s", game_id_str);
                         ::ENGINE_MEM_FREE(game_id_str);
                     }
                     char* websocket_url = (char*)ENGINE_MEM_MALLOC(128);
@@ -291,12 +298,12 @@ void Player::drawGameOnlineView(Draw* canvas) {
                     ::ENGINE_MEM_FREE(websocket_url);
                 } else {
                     ENGINE_LOG_INFO(
-                        "[Player:drawGameOnlineView] Missing 'port' in game session response");
+                        "[Player:drawGameOnlineView] Missing 'port' in game session response\n");
                     onlineGameState = OnlineStateError;
                 }
             } else {
                 ENGINE_LOG_INFO(
-                    "[Player:drawGameOnlineView] Failed to load game_session response");
+                    "[Player:drawGameOnlineView] Failed to load game_session response\n");
                 onlineGameState = OnlineStateError;
             }
             ::ENGINE_MEM_FREE(response);
@@ -385,7 +392,7 @@ void Player::drawGameOnlineView(Draw* canvas) {
         HTTP_GET_WEBSOCKET_RESPONSE(buffer, sizeof(buffer));
         if(buffer[0] != '\0') {
             if(strcmp(buffer, "[SOCKET/STOPPED]") == 0) {
-                ENGINE_LOG_INFO("[Player:drawGameOnlineView] WebSocket stopped unexpectedly");
+                ENGINE_LOG_INFO("[Player:drawGameOnlineView] WebSocket stopped unexpectedly\n");
                 onlineGameState = OnlineStateError;
             } else {
                 updateEntitiesFromServer(buffer);
@@ -471,7 +478,7 @@ void Player::drawGameOnlineView(Draw* canvas) {
 
     default:
         ENGINE_LOG_INFO(
-            "[Player:drawGameOnlineView] Unknown online game state: %d", onlineGameState);
+            "[Player:drawGameOnlineView] Unknown online game state: %d\n", onlineGameState);
         break;
     }
 }
@@ -514,10 +521,8 @@ void Player::drawLobbyBrowserView(Draw* canvas) {
                     char* gname = get_json_value("game_name", entry);
 
                     if(gid && gname) {
-                        strncpy(lobbyEntries[lobbyCount].game_id, gid, 36);
-                        lobbyEntries[lobbyCount].game_id[36] = '\0';
-                        strncpy(lobbyEntries[lobbyCount].game_name, gname, 63);
-                        lobbyEntries[lobbyCount].game_name[63] = '\0';
+                        snprintf(lobbyEntries[lobbyCount].game_id, 37, "%s", gid);
+                        snprintf(lobbyEntries[lobbyCount].game_name, 64, "%s", gname);
                         lobbyCount++;
                     }
                     if(gid) ::ENGINE_MEM_FREE(gid);
@@ -584,6 +589,79 @@ void Player::drawLobbyBrowserView(Draw* canvas) {
 void Player::drawLobbyMenuView(Draw* canvas) {
     // draw lobby text
     drawMenuType1(canvas, currentLobbyMenuIndex, "Local", "Online");
+}
+
+void Player::drawMapPackView(Draw* canvas) {
+    const int sw = canvas->getDisplaySize().x;
+    const int sh = canvas->getDisplaySize().y;
+
+    // Load the list of .ghoulsmap files once per visit
+    if(!mapPackLoaded) {
+#if defined(ENGINE_STORAGE_INCLUDE) && defined(ENGINE_STORAGE_FILE_LIST)
+        // char rawFiles[MAX_MAP_PACK_FILES][256];
+        char** rawFiles = (char**)ENGINE_MEM_MALLOC(sizeof(char*) * MAX_MAP_PACK_FILES);
+        for(uint16_t i = 0; i < MAX_MAP_PACK_FILES; i++) {
+            rawFiles[i] = (char*)ENGINE_MEM_MALLOC(256);
+        }
+        uint16_t count = ENGINE_STORAGE_FILE_LIST(
+            ASSETS_FOLDER "*.ghoulsmap", rawFiles, 0, (uint16_t)MAX_MAP_PACK_FILES);
+        mapPackCount = 0;
+        for(uint16_t i = 0; i < count && mapPackCount < MAX_MAP_PACK_FILES; i++) {
+            snprintf(mapPackFiles[mapPackCount], 64, "%s", rawFiles[i]);
+            mapPackCount++;
+        }
+        for(uint16_t i = 0; i < MAX_MAP_PACK_FILES; i++) {
+            ENGINE_MEM_FREE(rawFiles[i]);
+        }
+        ENGINE_MEM_FREE(rawFiles);
+#endif
+        if(mapPackCount == 0) {
+            // use default map
+            snprintf(mapPackFiles[0], 64, "%s", "home.ghoulsmap");
+            mapPackCount = 1;
+        }
+        mapPackSelectedIndex = 0;
+        mapPackLoaded = true;
+    }
+
+    canvas->fillScreen(0xFFFF);
+    drawRainEffect(canvas);
+
+    canvas->setFont(FONT_SIZE_MEDIUM);
+    canvas->text(sw * 30 / 128, sh * 5 / 64, "Select Map", 0x0000);
+
+    const int maxVisible = 4;
+    const int lineH = sh * 11 / 64;
+    const int startY = sh * 17 / 64;
+
+    int scrollOffset = 0;
+    if(mapPackSelectedIndex >= maxVisible) scrollOffset = mapPackSelectedIndex - maxVisible + 1;
+
+    canvas->setFont(FONT_SIZE_SMALL);
+    for(int i = scrollOffset; i < mapPackCount && (i - scrollOffset) < maxVisible; i++) {
+        int y = startY + (i - scrollOffset) * lineH;
+
+        if(i == mapPackSelectedIndex) {
+            canvas->fillRectangle(0, y, sw, lineH, 0x0000);
+            canvas->setColor(0xFFFF);
+        } else {
+            canvas->setColor(0x0000);
+        }
+
+        // strip extension
+        char displayName[64];
+        snprintf(displayName, 64, "%s", mapPackFiles[i]);
+        char* dot = strrchr(displayName, '.');
+        if(dot) *dot = '\0';
+
+        canvas->text(sw * 4 / 128, y + lineH * 6 / 11, displayName);
+        canvas->setColor(0x0000);
+    }
+
+    // scroll indicators
+    if(scrollOffset > 0) canvas->text(sw * 120 / 128, sh * 20 / 64, "^", 0x0000);
+    if(scrollOffset + maxVisible < mapPackCount)
+        canvas->text(sw * 120 / 128, sh * 55 / 64, "v", 0x0000);
 }
 
 void Player::drawLoginView(Draw* canvas) {
@@ -923,7 +1001,7 @@ void Player::drawRegistrationView(Draw* canvas) {
             char* response = (char*)ENGINE_MEM_MALLOC(256);
             if(!response) {
                 ENGINE_LOG_INFO(
-                    "[Player:drawRegistrationView] Failed to allocate memory for registration response");
+                    "[Player:drawRegistrationView] Failed to allocate memory for registration response\n");
                 registrationStatus = RegistrationRequestError;
                 return;
             }
@@ -983,14 +1061,14 @@ void Player::drawTitleView(Draw* canvas) {
     if(!loading) {
         loading = ENGINE_MEM_NEW Loading(canvas);
         if(!loading) {
-            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to create loading animation");
+            ENGINE_LOG_INFO("[Player:drawTitleView] Failed to create loading animation\n");
             leaveGame = ToggleOn;
             return;
         }
     }
 
     // All files downloaded — transition to lobby menu
-    if(downloadFileIndex >= 11) {
+    if(downloadFileIndex >= 16) {
         if(loading) {
             loading->stop();
         }
@@ -1011,7 +1089,7 @@ void Player::drawTitleView(Draw* canvas) {
         snprintf(
             downloadStatusText,
             sizeof(downloadStatusText),
-            "Downloading asset (%d/11)",
+            "Downloading asset (%d/16)",
             downloadFileIndex + 1);
 
         if(loading) {
@@ -1022,7 +1100,7 @@ void Player::drawTitleView(Draw* canvas) {
             downloadInProgress = true;
         } else {
             ENGINE_LOG_INFO(
-                "[Player:drawTitleView] Failed to start download for %s",
+                "[Player:drawTitleView] Failed to start download for %s\n",
                 downloadFiles[downloadFileIndex]);
             leaveGame = ToggleOn;
         }
@@ -1065,7 +1143,7 @@ void Player::drawUserInfoView(Draw* canvas) {
             char* response = (char*)ENGINE_MEM_MALLOC(512);
             if(!response) {
                 ENGINE_LOG_INFO(
-                    "[Player:drawUserInfoView] Failed to allocate memory for user info response");
+                    "[Player:drawUserInfoView] Failed to allocate memory for user info response\n");
                 userInfoStatus = UserInfoRequestError;
                 if(loading) {
                     loading->stop();
@@ -1078,7 +1156,7 @@ void Player::drawUserInfoView(Draw* canvas) {
                 // they're in! let's go
                 char* game_stats = get_json_value("game_stats", response);
                 if(!game_stats) {
-                    ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse game_stats");
+                    ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse game_stats\n");
                     userInfoStatus = UserInfoParseError;
                     if(loading) {
                         loading->stop();
@@ -1098,7 +1176,7 @@ void Player::drawUserInfoView(Draw* canvas) {
                 char* health_regen = get_json_value("health_regen", game_stats);
                 if(!username || !level || !xp || !health || !strength || !max_health ||
                    !health_regen) {
-                    ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse user info");
+                    ENGINE_LOG_INFO("[Player:drawUserInfoView] Failed to parse user info\n");
                     userInfoStatus = UserInfoParseError;
                     if(username) ::ENGINE_MEM_FREE(username);
                     if(level) ::ENGINE_MEM_FREE(level);
@@ -1224,11 +1302,11 @@ void Player::drawWelcomeView(Draw* canvas) {
 
 bool Player::equipWeapon(Level* level, Weapon* weapon) {
     if(!weapon) {
-        ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip null weapon");
+        ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip null weapon\n");
         return false;
     }
     if(!level) {
-        ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip weapon without level");
+        ENGINE_LOG_INFO("[Player:equipWeapon] Cannot equip weapon without level\n");
         return false;
     }
     if(equippedWeapon) {
@@ -1405,7 +1483,8 @@ bool Player::hasAssets() const {
     return true;
 #else
     uint16_t buffer[16];
-    size_t bytes_read = ENGINE_STORAGE_READ(ASSETS_FOLDER "ambience.wav", buffer, sizeof(buffer));
+    size_t bytes_read =
+        ENGINE_STORAGE_READ(ASSETS_FOLDER "home.ghoulsmap", buffer, sizeof(buffer));
     return bytes_read > 0;
 #endif
 }
@@ -1552,16 +1631,50 @@ void Player::processInput() {
             currentLobbyMenuIndex = LobbyMenuOnline; // Switch to online menu
             break;
         case INPUT_KEY_CENTER:
-            // 1. Switch to GameViewUserInfo
-            // 2. Make a userRequest(RequestTypeUserInfo) call
-            // 3. Set userInfoStatus = UserInfoWaiting
-            // The user info view will then load player stats and transition to the selected game mode
+            if(currentLobbyMenuIndex == LobbyMenuLocal) {
+                // Local: go to map pack selection first
+                mapPackLoaded = false; // reload file list each time
+                currentMainView = GameViewMapPack;
+            } else {
+                // Online: fetch user info then connect
+                currentMainView = GameViewUserInfo;
+                userInfoStatus = UserInfoWaiting;
+                userRequest(RequestTypeUserInfo);
+            }
+            break;
+        case INPUT_KEY_BACK:
+            currentMainView = GameViewTitle;
+            break;
+        default:
+            break;
+        }
+        break;
+
+    case GameViewMapPack:
+        switch(currentInput) {
+        case INPUT_KEY_UP:
+            if(mapPackSelectedIndex > 0) mapPackSelectedIndex--;
+            break;
+        case INPUT_KEY_DOWN:
+            if(mapPackSelectedIndex < mapPackCount - 1) mapPackSelectedIndex++;
+            break;
+        case INPUT_KEY_CENTER:
+            // Store selected map file then load user stats
+            if(ghoulsGame && mapPackCount > 0) {
+                char fullPath[128];
+                snprintf(
+                    fullPath,
+                    sizeof(fullPath),
+                    ASSETS_FOLDER "%s",
+                    mapPackFiles[mapPackSelectedIndex]);
+                ghoulsGame->setSelectedMapFile(fullPath);
+            }
             currentMainView = GameViewUserInfo;
             userInfoStatus = UserInfoWaiting;
             userRequest(RequestTypeUserInfo);
             break;
         case INPUT_KEY_BACK:
-            currentMainView = GameViewTitle;
+            currentMainView = GameViewLobbyMenu;
             break;
         default:
             break;
@@ -1587,8 +1700,7 @@ void Player::processInput() {
             } else {
                 // Join an existing lobby
                 int idx = lobbySelectedIndex - 1;
-                strncpy(onlineGameId, lobbyEntries[idx].game_id, sizeof(onlineGameId) - 1);
-                onlineGameId[sizeof(onlineGameId) - 1] = '\0';
+                snprintf(onlineGameId, sizeof(onlineGameId), "%s", lobbyEntries[idx].game_id);
                 onlinePort = 80;
                 onlineGameState = OnlineStateJoiningExisting;
                 currentMainView = GameViewGameOnline;
@@ -1772,8 +1884,8 @@ void Player::render(Draw* canvas, Game* game) {
             // make entities active again
             for(int i = 0; i < game->current_level->getEntityCount(); i++) {
                 Entity* entity = game->current_level->getEntity(i);
-                if(entity && !entity->is_active && !entity->is_player) {
-                    entity->is_active = true; // activate all entities
+                if(entity && !entity->is_visible && !entity->is_player) {
+                    entity->is_visible = true; // activate all entities
                 }
             }
             _state = GameStatePlaying;
@@ -1794,7 +1906,7 @@ void Player::render(Draw* canvas, Game* game) {
         if(showMiniMapToggle == ToggleOn) {
             GhoulsLevel* level = ghoulsGame->getCurrentLevel();
             if(level) {
-                level->renderMiniatureMiniMap(canvas);
+                level->renderMiniMap(canvas, true);
             }
         }
 
@@ -1846,8 +1958,8 @@ void Player::render(Draw* canvas, Game* game) {
             // make entities inactive
             for(int i = 0; i < game->current_level->getEntityCount(); i++) {
                 Entity* entity = game->current_level->getEntity(i);
-                if(entity && entity->is_active && !entity->is_player) {
-                    entity->is_active = false; // deactivate all entities
+                if(entity && entity->is_visible && !entity->is_player) {
+                    entity->is_visible = false; // deactivate all entities
                 }
             }
             this->is_visible = false; // hide player entity in menu
@@ -2076,7 +2188,7 @@ void Player::updateEntitiesFromServer(const char* csv) {
             for(int i = 0; i < currentLevel->getEntityCount(); i++) {
                 Entity* e = currentLevel->getEntity(i);
                 if(e && e->name && strcmp(e->name, entity_name) == 0) {
-                    currentLevel->entity_remove(e);
+                    e->is_active = false;
                     break;
                 }
             }
@@ -2168,7 +2280,7 @@ void Player::userRequest(RequestType requestType) {
     // Create JSON payload for login/registration
     char* payload = (char*)ENGINE_MEM_MALLOC(256);
     if(!payload) {
-        ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for payload");
+        ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for payload\n");
         return;
     }
     snprintf(
@@ -2181,7 +2293,8 @@ void Player::userRequest(RequestType requestType) {
                "POST",
                "{\"Content-Type\":\"application/json\"}",
                payload)) {
-            ENGINE_LOG_INFO("[Player:userRequest] Login request failed for user: %s", this->name);
+            ENGINE_LOG_INFO(
+                "[Player:userRequest] Login request failed for user: %s\n", this->name);
             loginStatus = LoginRequestError;
         }
         break;
@@ -2202,7 +2315,7 @@ void Player::userRequest(RequestType requestType) {
         }
         char* url = (char*)ENGINE_MEM_MALLOC(128);
         if(!url) {
-            ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for url");
+            ENGINE_LOG_INFO("[Player:userRequest] Failed to allocate memory for url\n");
             userInfoStatus = UserInfoRequestError;
             ENGINE_MEM_FREE(authHeader);
             ENGINE_MEM_FREE(payload);
@@ -2299,13 +2412,13 @@ void Player::userRequest(RequestType requestType) {
                "POST",
                authHeader,
                stats_payload)) {
-            ENGINE_LOG_INFO("[Player:userRequest] Failed to update user stats");
+            ENGINE_LOG_INFO("[Player:userRequest] Failed to update user stats\n");
         }
         ENGINE_MEM_FREE(authHeader);
         ENGINE_MEM_FREE(stats_payload);
     } break;
     default:
-        ENGINE_LOG_INFO("[Player:userRequest] Unknown request type: %d", requestType);
+        ENGINE_LOG_INFO("[Player:userRequest] Unknown request type: %d\n", requestType);
         loginStatus = LoginRequestError;
         registrationStatus = RegistrationRequestError;
         userInfoStatus = UserInfoRequestError;

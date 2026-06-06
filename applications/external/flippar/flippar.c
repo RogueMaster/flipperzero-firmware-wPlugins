@@ -71,7 +71,7 @@ static const FlipParSetupField flippar_setup_field_order[] = {
 };
 
 typedef struct {
-    uint8_t dummy;
+    uint32_t redraw_counter;
 } FlipParViewModel;
 
 typedef struct {
@@ -145,6 +145,14 @@ typedef struct {
 
 static FlipParApp* g_flippar_app = NULL;
 
+static void flippar_request_redraw(FlipParApp* app) {
+    if(!app || !app->main_view) return;
+
+    FlipParViewModel* model = view_get_model(app->main_view);
+    model->redraw_counter++;
+    view_commit_model(app->main_view, true);
+}
+
 static void flippar_finish_splash(FlipParApp* app) {
     if(!app || app->screen != FlipParScreenSplash) return;
 
@@ -153,6 +161,7 @@ static void flippar_finish_splash(FlipParApp* app) {
     }
 
     app->screen = app->splash_target_screen;
+    flippar_request_redraw(app);
 }
 
 static void flippar_set_save_result(FlipParApp* app, bool success, const char* path) {
@@ -166,6 +175,7 @@ static void flippar_set_save_result(FlipParApp* app, bool success, const char* p
     }
 
     app->screen = FlipParScreenSaveResult;
+    flippar_request_redraw(app);
 }
 
 static void flippar_splash_timer_callback(void* context) {
@@ -558,6 +568,7 @@ static void flippar_reset_scorecard(FlipParApp* app) {
     app->scroll_row_offset = 0;
     app->confirm_new_game_yes = false;
     flippar_normalize_state(app);
+    flippar_request_redraw(app);
 }
 
 static bool flippar_build_save_path(Storage* storage, char* path, size_t path_size) {
@@ -710,11 +721,13 @@ static void flippar_adjust_selected_value(FlipParApp* app, int8_t delta) {
 
     *target = (uint8_t)value;
     flippar_save_current_state(app);
+    flippar_request_redraw(app);
 }
 
 static void flippar_toggle_grid_lines(FlipParApp* app) {
     app->show_grid_lines = !app->show_grid_lines;
     flippar_save_current_state(app);
+    flippar_request_redraw(app);
 }
 
 static void flippar_draw_scorecard_grid_lines(
@@ -1130,29 +1143,34 @@ static uint32_t flippar_main_view_previous(void* context) {
     if(app->screen == FlipParScreenGrid) {
         app->screen = FlipParScreenSetup;
         flippar_save_current_state(app);
+        flippar_request_redraw(app);
         return FlipParViewMain;
     }
 
     if(app->screen == FlipParScreenConfirmNewGame) {
         app->screen = FlipParScreenSetup;
         app->confirm_new_game_yes = false;
+        flippar_request_redraw(app);
         return FlipParViewMain;
     }
 
     if(app->screen == FlipParScreenSaveResult) {
         app->screen = FlipParScreenSetup;
+        flippar_request_redraw(app);
         return FlipParViewMain;
     }
 
     if(app->screen == FlipParScreenLock) {
         if(app->lock_back_presses < 2) {
             app->lock_back_presses++;
+            flippar_request_redraw(app);
             return FlipParViewMain;
         }
 
         app->screen = FlipParScreenSetup;
         app->lock_back_presses = 0;
         flippar_save_current_state(app);
+        flippar_request_redraw(app);
         return FlipParViewMain;
     }
 
@@ -1181,6 +1199,7 @@ static void flippar_name_input_done(void* context) {
 
     flippar_save_current_state(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, FlipParViewMain);
+    flippar_request_redraw(app);
 }
 
 static void flippar_open_name_editor(FlipParApp* app, uint8_t player_index) {
@@ -1219,6 +1238,7 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
         if(event->type == InputTypeShort || event->type == InputTypeRepeat ||
            event->type == InputTypeLong) {
             app->screen = FlipParScreenSetup;
+            flippar_request_redraw(app);
             return true;
         }
         return false;
@@ -1232,6 +1252,7 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
         if(event->type == InputTypeShort || event->type == InputTypeRepeat ||
            event->type == InputTypeLong) {
             app->lock_back_presses = 0;
+            flippar_request_redraw(app);
         }
         return true;
     }
@@ -1245,12 +1266,14 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
                 app->setup_field = flippar_setup_field_order[setup_field_position - 1];
             }
             flippar_save_current_state(app);
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyDown) {
             if((setup_field_position + 1) < flippar_setup_field_count()) {
                 app->setup_field = flippar_setup_field_order[setup_field_position + 1];
             }
             flippar_save_current_state(app);
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyLeft) {
             if(app->setup_field == FlipParFieldHoles && app->holes > 1) {
@@ -1268,6 +1291,7 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
             }
             flippar_normalize_state(app);
             flippar_save_current_state(app);
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyRight) {
             if(app->setup_field == FlipParFieldHoles && app->holes < FLIPPAR_MAX_HOLES) {
@@ -1284,6 +1308,7 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
             }
             flippar_normalize_state(app);
             flippar_save_current_state(app);
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyOk) {
             if(app->setup_field == FlipParFieldNames) {
@@ -1295,9 +1320,11 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
                 app->scroll_row_offset = 0;
                 app->scroll_hole_offset = 0;
                 flippar_save_current_state(app);
+                flippar_request_redraw(app);
             } else if(app->setup_field == FlipParFieldNewGame) {
                 app->screen = FlipParScreenConfirmNewGame;
                 app->confirm_new_game_yes = false;
+                flippar_request_redraw(app);
             } else if(app->setup_field == FlipParFieldGridLines) {
                 flippar_toggle_grid_lines(app);
             } else if(app->setup_field == FlipParFieldSave) {
@@ -1306,6 +1333,7 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
                 app->screen = FlipParScreenLock;
                 app->lock_back_presses = 0;
                 flippar_save_current_state(app);
+                flippar_request_redraw(app);
             }
             return true;
         }
@@ -1314,12 +1342,15 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
 
         if(event->key == InputKeyLeft || event->key == InputKeyRight) {
             app->confirm_new_game_yes = !app->confirm_new_game_yes;
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyUp) {
             app->confirm_new_game_yes = true;
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyDown) {
             app->confirm_new_game_yes = false;
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyOk) {
             if(app->confirm_new_game_yes) {
@@ -1328,6 +1359,7 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
             } else {
                 app->screen = FlipParScreenSetup;
                 app->confirm_new_game_yes = false;
+                flippar_request_redraw(app);
             }
             return true;
         }
@@ -1339,15 +1371,19 @@ static bool flippar_main_view_input(InputEvent* event, void* context) {
 
         if(event->key == InputKeyLeft) {
             if(app->selected_col > 0) app->selected_col--;
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyRight) {
             if(app->selected_col + 1 < app->holes) app->selected_col++;
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyUp) {
             if(app->selected_row > 0) app->selected_row--;
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyDown) {
             if(app->selected_row < app->players) app->selected_row++;
+            flippar_request_redraw(app);
             return true;
         } else if(event->key == InputKeyOk) {
             if(event->type == InputTypeLong) {

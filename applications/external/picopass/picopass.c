@@ -235,20 +235,13 @@ bool picopass_is_memset(const uint8_t* data, const uint8_t pattern, size_t size)
     return result;
 }
 
-int32_t picopass_app(const char* p) {
+int32_t picopass_app(void* p) {
+    UNUSED(p);
     picopass_migrate_from_old_folder();
 
     Picopass* picopass = picopass_alloc();
 
-    PicopassScene start_scene = PicopassSceneStart;
-    if(p) {
-        furi_string_set(picopass->dev->load_path, p);
-        if(picopass_device_load(picopass->dev, picopass->dev->load_path)) {
-            start_scene = PicopassSceneSavedMenu;
-        }
-    }
-
-    scene_manager_next_scene(picopass->scene_manager, start_scene);
+    scene_manager_next_scene(picopass->scene_manager, PicopassSceneStart);
 
     view_dispatcher_run(picopass->view_dispatcher);
 

@@ -5,7 +5,8 @@
 #include <furi.h>
 
 #define SUBGHZ_HISTORY_MAX       65535 // uint16_t index max, ram limit below
-#define SUBGHZ_HISTORY_FREE_HEAP (10240 * (3 - MIN(rpc_get_sessions_count(instance->rpc), 2U)))
+// #define SUBGHZ_HISTORY_FREE_HEAP (23624 * (1 - MIN(rpc_get_sessions_count(instance->rpc), 1U)))
+#define SUBGHZ_HISTORY_FREE_HEAP (4 * 1024)
 
 #define TAG "SubGhzHistory"
 
@@ -199,11 +200,11 @@ bool subghz_history_get_text_space_left(
     furi_assert(instance);
     if(!ignore_full) {
         if(memmgr_get_free_heap() < SUBGHZ_HISTORY_FREE_HEAP) {
-            if(output != NULL) furi_string_printf(output, "    Memory is FULL");
+            if(output != NULL) furi_string_set(output, "Memory is FULL");
             return true;
         }
         if(instance->last_index_write == SUBGHZ_HISTORY_MAX) {
-            if(output != NULL) furi_string_printf(output, "     History is FULL");
+            if(output != NULL) furi_string_set(output, "History is FULL");
             return true;
         }
     }
@@ -307,13 +308,6 @@ bool subghz_history_add_to_history(
         }
         if(!strcmp(furi_string_get_cstr(instance->tmp_string), "KeeLoq")) {
             furi_string_set(instance->tmp_string, "KL ");
-            if(!flipper_format_read_string(item->flipper_string, "Manufacture", text)) {
-                FURI_LOG_E(TAG, "Missing Protocol");
-                break;
-            }
-            furi_string_cat(instance->tmp_string, text);
-        } else if(!strcmp(furi_string_get_cstr(instance->tmp_string), "Star Line")) {
-            furi_string_set(instance->tmp_string, "SL ");
             if(!flipper_format_read_string(item->flipper_string, "Manufacture", text)) {
                 FURI_LOG_E(TAG, "Missing Protocol");
                 break;

@@ -26,7 +26,6 @@
 #include "app_state.h"
 
 // Include the header where settings_custom_event_callback is declared
-#include "settings_ui.h"
 
 #define UART_INIT_STACK_SIZE 2048
 #define UART_INIT_TIMEOUT_MS 1500 // ms
@@ -90,12 +89,17 @@ int32_t ghost_esp_app(void* p) {
     view_dispatcher_enable_queue(state->view_dispatcher);
     state->main_menu = main_menu_alloc();
     if(!state->view_dispatcher || !state->main_menu) {
-        // Clean up and exit if core components fail
         if(state->view_dispatcher) view_dispatcher_free(state->view_dispatcher);
         if(state->main_menu) main_menu_free(state->main_menu);
+        if(state->dialogs) furi_record_close(RECORD_DIALOGS);
         free(state->textBoxBuffer);
         free(state->input_buffer);
         free(state);
+        expansion_enable(expansion);
+        furi_record_close(RECORD_EXPANSION);
+        if(furi_hal_power_is_otg_enabled() && !otg_was_enabled) {
+            furi_hal_power_disable_otg();
+        }
         return -1;
     }
 
@@ -177,70 +181,97 @@ int32_t ghost_esp_app(void* p) {
     if(state->view_dispatcher) {
         if(state->main_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 0, main_menu_get_view(state->main_menu));
+                state->view_dispatcher, VIEW_MAIN, main_menu_get_view(state->main_menu));
         if(state->wifi_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 1, submenu_get_view(state->wifi_menu));
+                state->view_dispatcher, VIEW_WIFI, submenu_get_view(state->wifi_menu));
         if(state->ble_menu)
-            view_dispatcher_add_view(state->view_dispatcher, 2, submenu_get_view(state->ble_menu));
+            view_dispatcher_add_view(
+                state->view_dispatcher, VIEW_BLE, submenu_get_view(state->ble_menu));
         if(state->gps_menu)
-            view_dispatcher_add_view(state->view_dispatcher, 3, submenu_get_view(state->gps_menu));
+            view_dispatcher_add_view(
+                state->view_dispatcher, VIEW_GPS, submenu_get_view(state->gps_menu));
         if(state->aerial_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 15, submenu_get_view(state->aerial_menu));
+                state->view_dispatcher, VIEW_AERIAL, submenu_get_view(state->aerial_menu));
         if(state->settings_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 4, variable_item_list_get_view(state->settings_menu));
+                state->view_dispatcher,
+                VIEW_SETTINGS,
+                variable_item_list_get_view(state->settings_menu));
         if(state->text_box)
             view_dispatcher_add_view(
-                state->view_dispatcher, 5, text_box_get_view(state->text_box));
+                state->view_dispatcher, VIEW_TEXT_BOX, text_box_get_view(state->text_box));
         if(state->text_input)
             view_dispatcher_add_view(
-                state->view_dispatcher, 6, text_input_get_view(state->text_input));
+                state->view_dispatcher, VIEW_TEXT_INPUT, text_input_get_view(state->text_input));
         if(state->confirmation_view)
             view_dispatcher_add_view(
-                state->view_dispatcher, 7, confirmation_view_get_view(state->confirmation_view));
+                state->view_dispatcher,
+                VIEW_CONFIRMATION,
+                confirmation_view_get_view(state->confirmation_view));
         if(state->settings_actions_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 8, submenu_get_view(state->settings_actions_menu));
+                state->view_dispatcher,
+                VIEW_SETTINGS_ACTIONS,
+                submenu_get_view(state->settings_actions_menu));
         if(state->wifi_scanning_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 10, submenu_get_view(state->wifi_scanning_menu));
+                state->view_dispatcher,
+                VIEW_WIFI_SCANNING,
+                submenu_get_view(state->wifi_scanning_menu));
         if(state->wifi_capture_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 11, submenu_get_view(state->wifi_capture_menu));
+                state->view_dispatcher,
+                VIEW_WIFI_CAPTURE,
+                submenu_get_view(state->wifi_capture_menu));
         if(state->wifi_attack_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 12, submenu_get_view(state->wifi_attack_menu));
+                state->view_dispatcher,
+                VIEW_WIFI_ATTACK,
+                submenu_get_view(state->wifi_attack_menu));
         if(state->wifi_network_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 13, submenu_get_view(state->wifi_network_menu));
+                state->view_dispatcher,
+                VIEW_WIFI_NETWORK,
+                submenu_get_view(state->wifi_network_menu));
         if(state->wifi_settings_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 14, submenu_get_view(state->wifi_settings_menu));
+                state->view_dispatcher,
+                VIEW_WIFI_SETTINGS,
+                submenu_get_view(state->wifi_settings_menu));
         if(state->status_idle_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 40, submenu_get_view(state->status_idle_menu));
+                state->view_dispatcher,
+                VIEW_STATUS_IDLE,
+                submenu_get_view(state->status_idle_menu));
         if(state->ble_scanning_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 20, submenu_get_view(state->ble_scanning_menu));
+                state->view_dispatcher,
+                VIEW_BLE_SCANNING,
+                submenu_get_view(state->ble_scanning_menu));
         if(state->ble_capture_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 21, submenu_get_view(state->ble_capture_menu));
+                state->view_dispatcher,
+                VIEW_BLE_CAPTURE,
+                submenu_get_view(state->ble_capture_menu));
         if(state->ble_attack_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 22, submenu_get_view(state->ble_attack_menu));
+                state->view_dispatcher, VIEW_BLE_ATTACK, submenu_get_view(state->ble_attack_menu));
         if(state->ir_menu)
-            view_dispatcher_add_view(state->view_dispatcher, 30, submenu_get_view(state->ir_menu));
+            view_dispatcher_add_view(
+                state->view_dispatcher, VIEW_IR, submenu_get_view(state->ir_menu));
         if(state->ir_remotes_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 31, submenu_get_view(state->ir_remotes_menu));
+                state->view_dispatcher, VIEW_IR_REMOTES, submenu_get_view(state->ir_remotes_menu));
         if(state->ir_buttons_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 32, submenu_get_view(state->ir_buttons_menu));
+                state->view_dispatcher, VIEW_IR_BUTTONS, submenu_get_view(state->ir_buttons_menu));
         if(state->ir_universals_menu)
             view_dispatcher_add_view(
-                state->view_dispatcher, 33, submenu_get_view(state->ir_universals_menu));
+                state->view_dispatcher,
+                VIEW_IR_UNIVERSALS,
+                submenu_get_view(state->ir_universals_menu));
 
         view_dispatcher_set_custom_event_callback(
             state->view_dispatcher, settings_custom_event_callback);
@@ -248,7 +279,7 @@ int32_t ghost_esp_app(void* p) {
 
     if(!state->text_box) {
         FURI_LOG_E("Main", "Text box allocation failed!");
-        return -1; // Don't try to fuck with broken UI
+        goto cleanup;
     }
 
     text_view_attach_input_handler(state);
@@ -269,6 +300,7 @@ int32_t ghost_esp_app(void* p) {
         view_dispatcher_run(state->view_dispatcher);
     }
 
+cleanup:
     // ---- Start Cleanup Sequence ----
     FURI_LOG_I("Ghost_ESP", "Starting cleanup sequence...");
 
@@ -292,7 +324,6 @@ int32_t ghost_esp_app(void* p) {
     // Clean up UART context (this will also handle storage cleanup)
     if(state && state->uart_context) {
         FURI_LOG_I("Ghost_ESP", "Freeing UART context...");
-        uart_cleanup_capture_streams(state->uart_context); // Ensure capture streams are freed
         uart_free(state->uart_context);
         state->uart_context = NULL;
         FURI_LOG_I("Ghost_ESP", "UART context freed.");
@@ -301,29 +332,44 @@ int32_t ghost_esp_app(void* p) {
     // Remove views from dispatcher
     if(state && state->view_dispatcher) {
         FURI_LOG_I("Ghost_ESP", "Removing views from dispatcher...");
-        if(state->main_menu) view_dispatcher_remove_view(state->view_dispatcher, 0);
-        if(state->wifi_menu) view_dispatcher_remove_view(state->view_dispatcher, 1);
-        if(state->ble_menu) view_dispatcher_remove_view(state->view_dispatcher, 2);
-        if(state->gps_menu) view_dispatcher_remove_view(state->view_dispatcher, 3);
-        if(state->settings_menu) view_dispatcher_remove_view(state->view_dispatcher, 4);
-        if(state->text_box) view_dispatcher_remove_view(state->view_dispatcher, 5);
-        if(state->text_input) view_dispatcher_remove_view(state->view_dispatcher, 6);
-        if(state->confirmation_view) view_dispatcher_remove_view(state->view_dispatcher, 7);
-        if(state->settings_actions_menu) view_dispatcher_remove_view(state->view_dispatcher, 8);
-        if(state->wifi_scanning_menu) view_dispatcher_remove_view(state->view_dispatcher, 10);
-        if(state->wifi_capture_menu) view_dispatcher_remove_view(state->view_dispatcher, 11);
-        if(state->wifi_attack_menu) view_dispatcher_remove_view(state->view_dispatcher, 12);
-        if(state->wifi_network_menu) view_dispatcher_remove_view(state->view_dispatcher, 13);
-        if(state->wifi_settings_menu) view_dispatcher_remove_view(state->view_dispatcher, 14);
-        if(state->aerial_menu) view_dispatcher_remove_view(state->view_dispatcher, 15);
-        if(state->status_idle_menu) view_dispatcher_remove_view(state->view_dispatcher, 40);
-        if(state->ble_scanning_menu) view_dispatcher_remove_view(state->view_dispatcher, 20);
-        if(state->ble_capture_menu) view_dispatcher_remove_view(state->view_dispatcher, 21);
-        if(state->ble_attack_menu) view_dispatcher_remove_view(state->view_dispatcher, 22);
-        if(state->ir_menu) view_dispatcher_remove_view(state->view_dispatcher, 30);
-        if(state->ir_remotes_menu) view_dispatcher_remove_view(state->view_dispatcher, 31);
-        if(state->ir_buttons_menu) view_dispatcher_remove_view(state->view_dispatcher, 32);
-        if(state->ir_universals_menu) view_dispatcher_remove_view(state->view_dispatcher, 33);
+        if(state->main_menu) view_dispatcher_remove_view(state->view_dispatcher, VIEW_MAIN);
+        if(state->wifi_menu) view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI);
+        if(state->ble_menu) view_dispatcher_remove_view(state->view_dispatcher, VIEW_BLE);
+        if(state->gps_menu) view_dispatcher_remove_view(state->view_dispatcher, VIEW_GPS);
+        if(state->settings_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_SETTINGS);
+        if(state->text_box) view_dispatcher_remove_view(state->view_dispatcher, VIEW_TEXT_BOX);
+        if(state->text_input) view_dispatcher_remove_view(state->view_dispatcher, VIEW_TEXT_INPUT);
+        if(state->confirmation_view)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_CONFIRMATION);
+        if(state->settings_actions_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_SETTINGS_ACTIONS);
+        if(state->wifi_scanning_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_SCANNING);
+        if(state->wifi_capture_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_CAPTURE);
+        if(state->wifi_attack_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_ATTACK);
+        if(state->wifi_network_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_NETWORK);
+        if(state->wifi_settings_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_SETTINGS);
+        if(state->aerial_menu) view_dispatcher_remove_view(state->view_dispatcher, VIEW_AERIAL);
+        if(state->status_idle_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_STATUS_IDLE);
+        if(state->ble_scanning_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_BLE_SCANNING);
+        if(state->ble_capture_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_BLE_CAPTURE);
+        if(state->ble_attack_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_BLE_ATTACK);
+        if(state->ir_menu) view_dispatcher_remove_view(state->view_dispatcher, VIEW_IR);
+        if(state->ir_remotes_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_IR_REMOTES);
+        if(state->ir_buttons_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_IR_BUTTONS);
+        if(state->ir_universals_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_IR_UNIVERSALS);
         FURI_LOG_I("Ghost_ESP", "Views removed.");
         view_dispatcher_free(state->view_dispatcher);
         state->view_dispatcher = NULL;

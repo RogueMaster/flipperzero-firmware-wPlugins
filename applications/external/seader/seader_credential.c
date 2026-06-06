@@ -333,14 +333,20 @@ bool seader_credential_save_agnostic(SeaderCredential* cred, const char* name) {
 }
 
 bool seader_credential_save_picopass(SeaderCredential* cred, const char* name) {
-    uint8_t debit_key[PICOPASS_BLOCK_LEN] = {0xe3, 0xf3, 0x07, 0x84, 0x4a, 0x0b, 0x62, 0x04};
+    uint8_t debit_key[PICOPASS_BLOCK_LEN];
     uint8_t pacs_cfg[PICOPASS_BLOCK_LEN] = {0x03, 0x03, 0x03, 0x03, 0x00, 0x03, 0xe0, 0x14};
 
     bool saved = false;
     bool withSIO = cred->save_format == SeaderCredentialSaveFormatSR;
-    if(withSIO) {
-        loclass_iclass_calc_div_key(cred->diversifier, picopass_iclass_key, debit_key, false);
+
+    // when downgrading from a non-picopass the diversifier is empty, so use a fake csn
+    const uint8_t* csn = cred->diversifier;
+    if(memcmp(cred->diversifier, seader_picopass_zero, PICOPASS_BLOCK_LEN) == 0) {
+        csn = seader_picopass_fake_csn;
     }
+
+    // Kd is diversified from the csn that gets written to block 0
+    loclass_iclass_calc_div_key(csn, picopass_iclass_key, debit_key, false);
 
     FlipperFormat* file = flipper_format_file_alloc(cred->storage);
     FuriString* temp_str = furi_string_alloc();
@@ -363,23 +369,9 @@ bool seader_credential_save_picopass(SeaderCredential* cred, const char* name) {
             furi_string_printf(temp_str, "Block %d", i);
             switch(i) {
             case CSN_INDEX:
-                if(memcmp(cred->diversifier, seader_picopass_zero, PICOPASS_BLOCK_LEN) == 0) {
-                    // when doing a downgrade from a non-picopass, we need to use a fake csn
-                    if(!flipper_format_write_hex(
-                           file,
-                           furi_string_get_cstr(temp_str),
-                           seader_picopass_fake_csn,
-                           sizeof(seader_picopass_fake_csn))) {
-                        block_saved = false;
-                    }
-                } else {
-                    if(!flipper_format_write_hex(
-                           file,
-                           furi_string_get_cstr(temp_str),
-                           cred->diversifier,
-                           PICOPASS_BLOCK_LEN)) {
-                        block_saved = false;
-                    }
+                if(!flipper_format_write_hex(
+                       file, furi_string_get_cstr(temp_str), csn, PICOPASS_BLOCK_LEN)) {
+                    block_saved = false;
                 }
                 break;
             case EPURSE_INDEX:

@@ -71,29 +71,30 @@ static uint16_t round_u16_even(double value);
 static const char* aprs_path_pick(FlipperHamApp* app);
 static void presetpick(uint8_t mod, uint8_t dev);
 
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d00_async_regs, 0x04, 0x83, 0x67, 0x00)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d01_async_regs, 0x04, 0x83, 0x67, 0x01)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d02_async_regs, 0x04, 0x83, 0x67, 0x02)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d03_async_regs, 0x04, 0x83, 0x67, 0x03)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d04_async_regs, 0x04, 0x83, 0x67, 0x04)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d05_async_regs, 0x04, 0x83, 0x67, 0x05)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d06_async_regs, 0x04, 0x83, 0x67, 0x06)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d07_async_regs, 0x04, 0x83, 0x67, 0x07)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d15_async_regs, 0x04, 0x83, 0x67, 0x15)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d00_async_regs, 0x04, 0x83, 0x68, 0x00)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d01_async_regs, 0x04, 0x83, 0x68, 0x01)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d02_async_regs, 0x04, 0x83, 0x68, 0x02)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d03_async_regs, 0x04, 0x83, 0x68, 0x03)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d04_async_regs, 0x04, 0x83, 0x68, 0x04)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d05_async_regs, 0x04, 0x83, 0x68, 0x05)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d06_async_regs, 0x04, 0x83, 0x68, 0x06)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d07_async_regs, 0x04, 0x83, 0x68, 0x07)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d15_async_regs, 0x04, 0x83, 0x68, 0x15)
 
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d00_async_regs, 0x14, 0x83, 0x67, 0x00)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d01_async_regs, 0x14, 0x83, 0x67, 0x01)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d02_async_regs, 0x14, 0x83, 0x67, 0x02)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d03_async_regs, 0x14, 0x83, 0x67, 0x03)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d04_async_regs, 0x14, 0x83, 0x67, 0x04)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d05_async_regs, 0x14, 0x83, 0x67, 0x05)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d06_async_regs, 0x14, 0x83, 0x67, 0x06)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d07_async_regs, 0x14, 0x83, 0x67, 0x07)
-FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d15_async_regs, 0x14, 0x83, 0x67, 0x15)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d00_async_regs, 0x14, 0x83, 0x68, 0x00)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d01_async_regs, 0x14, 0x83, 0x68, 0x01)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d02_async_regs, 0x14, 0x83, 0x68, 0x02)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d03_async_regs, 0x14, 0x83, 0x68, 0x03)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d04_async_regs, 0x14, 0x83, 0x68, 0x04)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d05_async_regs, 0x14, 0x83, 0x68, 0x05)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d06_async_regs, 0x14, 0x83, 0x68, 0x06)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d07_async_regs, 0x14, 0x83, 0x68, 0x07)
+FLIPPERHAM_ASYNC_PRESET(flipperham_preset_gfsk_d15_async_regs, 0x14, 0x83, 0x68, 0x15)
 
 const FlipperHamModemProfile flipperham_modem_profiles[] = {
-    {"300bd", 300, 1600, 1800},
-    {"1200bd", 1200, 1200, 2200},
+    {"300bd", 300, 1600, 1800, 0},
+    {"1200bd", 1200, 1200, 2200, 0},
+    {"9600bd", 9600, 0, 0, FHMP_DIRECT_FSK | FHMP_SCRAMBLING_G3RUH},
 };
 
 const FlipperHamPreset flipperham_presets[] = {
@@ -172,6 +173,19 @@ static bool wave_add(FlipperHamApp* app, double value) {
     return true;
 }
 
+static bool wave_extend(FlipperHamApp* app, double value) {
+    uint16_t pulse;
+
+    if(!app->wave) return false;
+    if(app->wave_len == 0) return wave_add(app, value);
+
+    value += app->wave[app->wave_len - 1] + app->wave_carry;
+    pulse = round_u16_even(value);
+    app->wave_carry = value - pulse;
+    app->wave[app->wave_len - 1] = pulse;
+    return true;
+}
+
 static uint16_t round_u16_even(double value) {
     uint16_t whole;
     double frac;
@@ -195,6 +209,19 @@ static bool wave_put(FlipperHamApp* app, uint8_t bit) {
 
     profile = &flipperham_modem_profiles[app->encoding_index];
     bit_us = 1000000.0 / profile->baud;
+
+    if((profile->flags & FHMP_SCRAMBLING_G3RUH) != 0) {
+        const uint32_t ss = app->scrambler_state;
+        bit = (bit ^ (ss >> 11) ^ (ss >> 16)) & 1;
+        app->scrambler_state = (ss << 1) | bit;
+    }
+
+    if((profile->flags & FHMP_DIRECT_FSK) != 0) {
+        if(bit == 0)
+            return wave_add(app, bit_us);
+        else
+            return wave_extend(app, bit_us);
+    }
 
     if(bit == 0) {
         app->wave_is_mark = !app->wave_is_mark;
@@ -274,6 +301,7 @@ void txstart(FlipperHamApp* app) {
     app->pre_us = 0;
     app->pre_k = 0;
     app->wave_is_mark = true;
+    app->scrambler_state = 0x17373;
 
     if(!app->pkt) return;
     if(!app->wave) return;

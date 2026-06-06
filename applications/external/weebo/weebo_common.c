@@ -14,7 +14,7 @@ void weebo_calculate_pwd(uint8_t* uid, uint8_t* pwd) {
 void weebo_remix(Weebo* weebo) {
     uint8_t PWD[4];
     uint8_t UID[8];
-    uint8_t modified[NTAG215_SIZE];
+    uint8_t modified[AMIIBO_BUFFER_SIZE];
     MfUltralightData* data = mf_ultralight_alloc();
     nfc_device_copy_data(weebo->nfc_device, NfcProtocolMfUltralight, data);
 
@@ -27,18 +27,29 @@ void weebo_remix(Weebo* weebo) {
     memcpy(weebo->figure + NFC3D_UID_OFFSET, UID, 8);
     memcpy(data->iso14443_3a_data->uid, UID, 7);
 
+    // NTAG I2C Plus 2K ("v3") spans 146 pages and keeps a non-amiibo block in the
+    // middle that pack() does not touch, so preserve the original bytes first;
+    // NTAG215/v2 use 130 contiguous pages.
+    bool tag_v3 = (data->type == MfUltralightTypeNTAGI2CPlus2K);
+    size_t amiibo_pages = tag_v3 ? AMIIBO_V3_PAGES : 130;
+    for(size_t i = 0; i < amiibo_pages; i++) {
+        memcpy(
+            modified + i * MF_ULTRALIGHT_PAGE_SIZE, data->page[i].data, MF_ULTRALIGHT_PAGE_SIZE);
+    }
+
     //pack
-    nfc3d_amiibo_pack(&weebo->keys, weebo->figure, modified);
+    nfc3d_amiibo_pack(&weebo->keys, weebo->figure, modified, tag_v3);
 
     //copy data in
-    for(size_t i = 0; i < 130; i++) {
+    for(size_t i = 0; i < amiibo_pages; i++) {
         memcpy(
             data->page[i].data, modified + i * MF_ULTRALIGHT_PAGE_SIZE, MF_ULTRALIGHT_PAGE_SIZE);
     }
 
     //new pwd
     weebo_calculate_pwd(data->iso14443_3a_data->uid, PWD);
-    memcpy(data->page[133].data, PWD, sizeof(PWD));
+    uint8_t pwd_page = mf_ultralight_get_pwd_page_num(data->type);
+    memcpy(data->page[pwd_page].data, PWD, sizeof(PWD));
 
     //set data
     nfc_device_set_data(weebo->nfc_device, NfcProtocolMfUltralight, data);

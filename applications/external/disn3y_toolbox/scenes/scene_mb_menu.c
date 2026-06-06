@@ -1,0 +1,78 @@
+#include "../disn3y_toolbox_app.h"
+
+#define MB_MENU_EVENT_PRESETS (MagicBandCodeTypeCount)
+#define MB_MENU_EVENT_ABOUT   (MagicBandCodeTypeCount + 1)
+
+static void disn3y_toolbox_app_scene_mb_menu_submenu_callback(void* context, uint32_t index) {
+    Disn3yToolboxApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, index);
+}
+
+void disn3y_toolbox_app_scene_mb_menu_on_enter(void* context) {
+    Disn3yToolboxApp* app = context;
+    Submenu* submenu = app->submenu;
+
+    submenu_set_header(submenu, "MagicBand+ Beacon");
+
+    for(uint32_t i = 0; i < MagicBandCodeTypeCount; i++) {
+        submenu_add_item(
+            submenu,
+            magicband_code_info[i].name,
+            i,
+            disn3y_toolbox_app_scene_mb_menu_submenu_callback,
+            app);
+    }
+
+    submenu_add_item(
+        submenu,
+        "Presets",
+        MB_MENU_EVENT_PRESETS,
+        disn3y_toolbox_app_scene_mb_menu_submenu_callback,
+        app);
+    submenu_add_item(
+        submenu,
+        "About",
+        MB_MENU_EVENT_ABOUT,
+        disn3y_toolbox_app_scene_mb_menu_submenu_callback,
+        app);
+
+    uint32_t selected =
+        scene_manager_get_scene_state(app->scene_manager, Disn3yToolboxAppSceneMbMenu);
+    submenu_set_selected_item(submenu, selected);
+
+    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewSubmenu);
+}
+
+bool disn3y_toolbox_app_scene_mb_menu_on_event(void* context, SceneManagerEvent event) {
+    Disn3yToolboxApp* app = context;
+    bool consumed = false;
+
+    if(event.type == SceneManagerEventTypeCustom) {
+        if(event.event == MB_MENU_EVENT_PRESETS) {
+            scene_manager_set_scene_state(
+                app->scene_manager, Disn3yToolboxAppSceneMbMenu, event.event);
+            scene_manager_set_scene_state(app->scene_manager, Disn3yToolboxAppSceneMbPresets, 0);
+            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneMbPresets);
+            consumed = true;
+        } else if(event.event == MB_MENU_EVENT_ABOUT) {
+            scene_manager_set_scene_state(
+                app->scene_manager, Disn3yToolboxAppSceneMbMenu, event.event);
+            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneMbAbout);
+            consumed = true;
+        } else if(event.event < MagicBandCodeTypeCount) {
+            scene_manager_set_scene_state(
+                app->scene_manager, Disn3yToolboxAppSceneMbMenu, event.event);
+            scene_manager_set_scene_state(app->scene_manager, Disn3yToolboxAppSceneMbConfig, 0);
+            app->selected_code_type = (MagicBandCodeType)event.event;
+            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneMbConfig);
+            consumed = true;
+        }
+    }
+
+    return consumed;
+}
+
+void disn3y_toolbox_app_scene_mb_menu_on_exit(void* context) {
+    Disn3yToolboxApp* app = context;
+    submenu_reset(app->submenu);
+}

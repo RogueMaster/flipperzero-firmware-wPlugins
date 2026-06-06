@@ -81,6 +81,9 @@
 ### OFW TO ADD: [#4292](https://github.com/flipperdevices/flipperzero-firmware/pull/4292)
 ### OFW TO ADD: [#4284](https://github.com/flipperdevices/flipperzero-firmware/pull/4284) [#4305](https://github.com/flipperdevices/flipperzero-firmware/pull/4305)
 ### OFW TO ADD: [#4312](https://github.com/flipperdevices/flipperzero-firmware/pull/4312)
+- [DopeFlipper & other ck42x apps](https://github.com/lordbuffcloud/flipper-ck42x-dopeflipper)
+- [i2c tools cli](https://github.com/Tristus1er/flipperzero-i2c-tools-cli)
+- [Bluetooth Bridge v0.1 (By excitoon)](https://github.com/excitoon/zero-bluetooth-bridge)
 
 ## WISH LIST ITEMS:
 - Battery Type moved to Power Settings

@@ -2140,10 +2140,14 @@ bool flippass_open_execute(App* app, FuriString* error) {
     size_t resume_scratch_plain_size = app->pending_gzip_plain_size;
     const bool resume_from_staged_xml = resume_scratch_vault != NULL && allow_ext_promotion;
     uint8_t resume_save_key[32];
+    uint8_t resume_transformed_key[32];
+    uint8_t resume_kdf_salt[32];
+    uint64_t resume_transformed_kdf_rounds = 0U;
     uint64_t resume_kdf_rounds = app->database_kdf_rounds;
     FlipPassKdbxCipher resume_cipher = app->database_cipher;
     uint32_t resume_compression = app->database_compression;
     bool resume_save_key_ready = false;
+    bool resume_transformed_key_ready = false;
     bool ok = false;
     bool trace_capture_suspended = false;
 
@@ -2168,8 +2172,12 @@ bool flippass_open_execute(App* app, FuriString* error) {
     session->allow_ext_promotion = allow_ext_promotion;
     session->resume_from_staged_xml = resume_from_staged_xml;
     memzero(resume_save_key, sizeof(resume_save_key));
+    memzero(resume_transformed_key, sizeof(resume_transformed_key));
+    memzero(resume_kdf_salt, sizeof(resume_kdf_salt));
     if(resume_from_staged_xml) {
         resume_save_key_ready = flippass_session_copy_save_key(app, resume_save_key);
+        resume_transformed_key_ready = flippass_session_copy_save_transformed_key(
+            app, resume_transformed_key, resume_kdf_salt, &resume_transformed_kdf_rounds);
     }
 
     app->pending_gzip_scratch_vault = NULL;
@@ -2205,7 +2213,12 @@ bool flippass_open_execute(App* app, FuriString* error) {
         app->database_compression = resume_compression;
         app->database_kdf_rounds = resume_kdf_rounds;
         if(resume_save_key_ready) {
-            if(!flippass_session_store_save_key(app, resume_save_key)) {
+            if(!flippass_session_store_save_material(
+                   app,
+                   resume_save_key,
+                   resume_transformed_key_ready ? resume_transformed_key : NULL,
+                   resume_transformed_key_ready ? resume_kdf_salt : NULL,
+                   resume_transformed_key_ready ? resume_transformed_kdf_rounds : 0U)) {
                 furi_string_set_str(error, "Unable to protect the resumed database credential.");
                 goto cleanup;
             }
@@ -2268,7 +2281,19 @@ bool flippass_open_execute(App* app, FuriString* error) {
                                        session->open_profile.kdf_rounds :
                                        FLIPPASS_KDBX_DEFAULT_AES_KDF_ROUNDS;
         if(session->open_profile.composite_key_ready) {
-            if(!flippass_session_store_save_key(app, session->open_profile.composite_key)) {
+            const uint8_t* transformed_key =
+                (session->open_profile.transformed_key_ready &&
+                 session->open_profile.kdf_salt_size == sizeof(session->open_profile.kdf_salt)) ?
+                    session->open_profile.transformed_key :
+                    NULL;
+            const uint8_t* kdf_salt = transformed_key != NULL ? session->open_profile.kdf_salt :
+                                                                NULL;
+            if(!flippass_session_store_save_material(
+                   app,
+                   session->open_profile.composite_key,
+                   transformed_key,
+                   kdf_salt,
+                   transformed_key != NULL ? app->database_kdf_rounds : 0U)) {
                 furi_string_set_str(error, "Unable to protect the database credential.");
                 goto cleanup;
             }
@@ -2449,7 +2474,19 @@ bool flippass_open_execute(App* app, FuriString* error) {
                                            session->open_profile.kdf_rounds :
                                            FLIPPASS_KDBX_DEFAULT_AES_KDF_ROUNDS;
             if(session->open_profile.composite_key_ready && !app->database_save_key_ready) {
-                if(!flippass_session_store_save_key(app, session->open_profile.composite_key)) {
+                const uint8_t* transformed_key = (session->open_profile.transformed_key_ready &&
+                                                  session->open_profile.kdf_salt_size ==
+                                                      sizeof(session->open_profile.kdf_salt)) ?
+                                                     session->open_profile.transformed_key :
+                                                     NULL;
+                const uint8_t* kdf_salt =
+                    transformed_key != NULL ? session->open_profile.kdf_salt : NULL;
+                if(!flippass_session_store_save_material(
+                       app,
+                       session->open_profile.composite_key,
+                       transformed_key,
+                       kdf_salt,
+                       transformed_key != NULL ? app->database_kdf_rounds : 0U)) {
                     furi_string_set_str(error, "Unable to protect the database credential.");
                     ok = false;
                     goto cleanup;
@@ -2485,6 +2522,8 @@ cleanup:
         kdbx_vault_free(resume_scratch_vault);
     }
     memzero(resume_save_key, sizeof(resume_save_key));
+    memzero(resume_transformed_key, sizeof(resume_transformed_key));
+    memzero(resume_kdf_salt, sizeof(resume_kdf_salt));
     if(trace_capture_suspended) {
         flippass_system_log_capture_resume();
     }

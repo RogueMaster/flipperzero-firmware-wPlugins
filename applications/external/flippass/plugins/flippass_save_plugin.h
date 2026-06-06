@@ -10,11 +10,11 @@ extern "C" {
 #endif
 
 #define FLIPPASS_SAVE_HEADER_PLUGIN_APP_ID      "flippass_save_header"
-#define FLIPPASS_SAVE_HEADER_PLUGIN_API_VERSION 1u
+#define FLIPPASS_SAVE_HEADER_PLUGIN_API_VERSION 2u
 #define FLIPPASS_SAVE_PLUGIN_APP_ID             "flippass_save_writer"
-#define FLIPPASS_SAVE_PLUGIN_API_VERSION        3u
+#define FLIPPASS_SAVE_PLUGIN_API_VERSION        4u
 #define FLIPPASS_SAVE_STAGE_HOST_API_VERSION    1u
-#define FLIPPASS_SAVE_HOST_API_VERSION          3u
+#define FLIPPASS_SAVE_HOST_API_VERSION          4u
 
 typedef enum {
     FlipPassSaveCipherAes256 = 0,
@@ -28,6 +28,10 @@ typedef struct {
     const char* file_path;
     const uint8_t* composite_key;
     size_t composite_key_size;
+    const uint8_t* transformed_key;
+    size_t transformed_key_size;
+    const uint8_t* kdf_salt;
+    size_t kdf_salt_size;
     FlipPassSaveCipher cipher;
     uint32_t compression;
     uint64_t kdf_rounds;
@@ -36,8 +40,11 @@ typedef struct {
 typedef struct {
     uint8_t cipher_key[32];
     uint8_t hmac_base[64];
+    uint8_t transformed_key[32];
+    uint8_t kdf_salt[32];
     uint8_t iv[16];
     size_t iv_size;
+    bool transformed_key_ready;
 } FlipPassSaveHeaderResultV1;
 
 typedef struct {
@@ -86,14 +93,13 @@ typedef struct {
         const KDBXEntry* entry,
         FuriString* out,
         FuriString* error);
-    bool (*activate_entry)(void* context, KDBXEntry* entry, bool load_notes, FuriString* error);
-    void (*deactivate_entry)(void* context);
-    bool (*ensure_custom_field)(
-        void* context,
-        KDBXEntry* entry,
-        KDBXCustomField* field,
-        FuriString* error);
     bool (*entry_has_field)(void* context, const KDBXEntry* entry, uint32_t field_mask);
+    bool (*stream_ref)(
+        void* context,
+        const KDBXFieldRef* ref,
+        KDBXVaultChunkCallback callback,
+        void* callback_context,
+        FuriString* error);
 } FlipPassSaveHostApiV1;
 
 typedef struct {

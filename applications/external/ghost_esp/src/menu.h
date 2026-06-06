@@ -45,5 +45,6 @@ void show_ir_menu(AppState* state);
 
 bool text_view_input_handler(InputEvent* event, void* context);
 void text_view_attach_input_handler(AppState* state);
+void navigate_to_view(AppState* state, uint8_t view_id);
 
 // 6675636B796F7564656B69

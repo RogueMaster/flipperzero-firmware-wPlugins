@@ -15,6 +15,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
+#include <gui/modules/text_input.h>
 
 #include <esp_flasher_icons.h>
 #include <storage/storage.h>
@@ -61,6 +62,7 @@ struct EspFlasherApp {
     VariableItemList* var_item_list;
     Widget* widget;
     Submenu* submenu;
+    TextInput* text_input;
 
     EspFlasherUart* uart;
     bool turbospeed;
@@ -80,6 +82,18 @@ struct EspFlasherApp {
     char bin_file_path_app_a[100];
     char bin_file_path_app_b[100];
     char bin_file_path_custom[100];
+
+    // Per-slot flash addresses (initialized to defaults, overridable by user)
+    uint32_t custom_slot_addrs[NUM_FLASH_OPTIONS];
+    bool boot_addr_manually_set; // true if user explicitly set bootloader address
+    int pending_addr_slot; // slot index awaiting address input (-1 = none)
+    char addr_input_str[12]; // hex address string buffer for TextInput
+    bool advanced_mode; // show custom addresses and Custom slot
+
+    // Partition file parse results (populated when user selects a partition file)
+    uint32_t parsed_slot_addrs[NUM_FLASH_OPTIONS]; // 0 = slot not found in file
+    char part_confirm_text[512]; // formatted text for confirm widget
+
     FuriThread* flash_worker;
     bool flash_worker_busy;
 };

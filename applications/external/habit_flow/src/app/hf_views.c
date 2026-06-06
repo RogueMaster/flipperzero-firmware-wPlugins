@@ -161,6 +161,7 @@ bool hf_views_main_input(InputEvent* event, void* context) {
             app->list_sel--;
         }
         hf_main_clamp_scroll(app);
+        hf_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyDown) {
@@ -168,6 +169,7 @@ bool hf_views_main_input(InputEvent* event, void* context) {
             app->list_sel++;
         }
         hf_main_clamp_scroll(app);
+        hf_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyOk) {
@@ -250,6 +252,8 @@ bool hf_views_detail_input(InputEvent* event, void* context) {
             popup_set_timeout(app->popup_mastered, 2000);
             popup_enable_timeout(app->popup_mastered);
             hf_switch(app, HfViewPopupMastered);
+        } else {
+            hf_request_redraw(app);
         }
         return true;
     }
@@ -316,11 +320,13 @@ bool hf_views_manage_input(InputEvent* event, void* context) {
     if(event->key == InputKeyUp && app->manage_sel > 0) {
         app->manage_sel--;
         hf_manage_clamp(app);
+        hf_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyDown && app->manage_sel + 1 < total) {
         app->manage_sel++;
         hf_manage_clamp(app);
+        hf_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyOk) {
@@ -393,12 +399,14 @@ bool hf_views_edit_input(InputEvent* event, void* context) {
         if(app->edit_row > 0) {
             app->edit_row--;
         }
+        hf_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyDown) {
         if(app->edit_row < rmax) {
             app->edit_row++;
         }
+        hf_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyLeft || event->key == InputKeyRight) {
@@ -413,6 +421,7 @@ bool hf_views_edit_input(InputEvent* event, void* context) {
             }
             app->edit_buf.goal_days = (uint16_t)g;
         }
+        hf_request_redraw(app);
         return true;
     }
     if(event->key == InputKeyOk) {

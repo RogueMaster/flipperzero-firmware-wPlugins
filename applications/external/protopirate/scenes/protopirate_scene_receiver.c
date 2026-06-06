@@ -84,7 +84,7 @@ static void protopirate_scene_receiver_callback(
                 }
 
                 flipper_format_rewind(ff);
-                if(!flipper_format_read_string(ff, "Protocol", protocol)) {
+                if(!flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
                     furi_string_set_str(protocol, "Unknown");
                 }
 
@@ -129,12 +129,18 @@ static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
         return;
     }
 
+    protopirate_rx_stack_resume_after_tx(app);
+    if(!app->txrx->receiver) {
+        FURI_LOG_E(TAG, "SubGhz receiver unavailable — staying on receiver in degraded mode");
+        notification_message(app->notifications, &sequence_error);
+        return;
+    }
+
     if(!app->txrx->worker) {
         app->txrx->worker = subghz_worker_alloc();
         if(!app->txrx->worker) {
-            FURI_LOG_E(TAG, "Failed to allocate worker!");
+            FURI_LOG_E(TAG, "Failed to allocate worker — staying on receiver in degraded mode");
             notification_message(app->notifications, &sequence_error);
-            scene_manager_previous_scene(app->scene_manager);
             return;
         }
         subghz_worker_set_overrun_callback(
@@ -143,13 +149,7 @@ static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
             app->txrx->worker, (SubGhzWorkerPairCallback)subghz_receiver_decode);
     }
 
-    protopirate_rx_stack_resume_after_tx(app);
-    if(!app->txrx->receiver) {
-        FURI_LOG_E(TAG, "SubGhz receiver unavailable — cannot start RX");
-        notification_message(app->notifications, &sequence_error);
-        scene_manager_previous_scene(app->scene_manager);
-        return;
-    }
+    subghz_receiver_reset(app->txrx->receiver);
 
     subghz_worker_set_context(app->txrx->worker, app->txrx->receiver);
     subghz_receiver_set_rx_callback(app->txrx->receiver, protopirate_scene_receiver_callback, app);

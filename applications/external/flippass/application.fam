@@ -22,7 +22,7 @@ def flippass_build_int(name, default):
 
 enable_logs = flippass_build_flag("FLIPPASS_BUILD_ENABLE_LOGS", 0)
 enable_system_trace_capture = flippass_build_flag(
-    "FLIPPASS_BUILD_ENABLE_SYSTEM_TRACE_CAPTURE", 0
+    "FLIPPASS_BUILD_ENABLE_SYSTEM_TRACE_CAPTURE", 1
 )
 enable_gzip_paged_trace = flippass_build_flag(
     "FLIPPASS_BUILD_ENABLE_GZIP_PAGED_TRACE", 0
@@ -55,6 +55,7 @@ enable_debug_unlock_hook = flippass_build_flag(
 enable_debug_create_hook = flippass_build_flag(
     "FLIPPASS_BUILD_ENABLE_DEBUG_CREATE_HOOK", 0
 )
+enable_debug_save_hook = flippass_build_flag("FLIPPASS_BUILD_ENABLE_DEBUG_SAVE_HOOK", 0)
 enable_app_rpc = flippass_build_flag("FLIPPASS_BUILD_ENABLE_APP_RPC", 0)
 stack_size_kib = flippass_build_int("FLIPPASS_BUILD_STACK_SIZE_KIB", 8)
 
@@ -74,6 +75,7 @@ common_cdefines = [
     f"FLIPPASS_ENABLE_KEYBOARD_LAYOUT={enable_keyboard_layout}",
     f"FLIPPASS_ENABLE_DEBUG_UNLOCK_HOOK={enable_debug_unlock_hook}",
     f"FLIPPASS_ENABLE_DEBUG_CREATE_HOOK={enable_debug_create_hook}",
+    f"FLIPPASS_ENABLE_DEBUG_SAVE_HOOK={enable_debug_save_hook}",
     f"FLIPPASS_ENABLE_APP_RPC={enable_app_rpc}",
 ]
 
@@ -82,7 +84,7 @@ App(
     name="FlipPass",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flippass_app",
-    cdefines=common_cdefines,
+    cdefines=common_cdefines + ["KDBX_PROTECTED_ENABLE_SALSA20=0"],
     fap_icon="icons/icon.png",
     fap_icon_assets="icons",
     stack_size=stack_size_kib * 1024,
@@ -204,7 +206,8 @@ App(
     entry_point="flippass_open_stream_plugin_ep",
     requires=["flippass"],
     fal_embedded=True,
-    cdefines=common_cdefines,
+    cdefines=common_cdefines
+    + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0", "KDBX_PROTECTED_ENABLE_SALSA20=0"],
     sources=[
         "plugins/flippass_open_stream_plugin.c",
         "kdbx/kdbx_open_profile.c",
@@ -295,7 +298,8 @@ App(
     entry_point="flippass_save_plugin_ep",
     requires=["flippass"],
     fal_embedded=True,
-    cdefines=common_cdefines,
+    cdefines=common_cdefines
+    + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0", "KDBX_PROTECTED_ENABLE_SALSA20=0"],
     sources=[
         "plugins/flippass_save_plugin.c",
         "kdbx/kdbx_protected.c",

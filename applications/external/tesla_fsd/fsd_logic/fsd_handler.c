@@ -1,4 +1,6 @@
 #include "fsd_handler.h"
+#include "fsd_checksum.h"
+#include "fsd_can_ops.h"
 #include <string.h>
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
@@ -13,6 +15,7 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
     state->op_mode = OpMode_Active;
     state->gtw_autopilot_tier = -1;
     state->das_hands_on_state = 0xFF; // unseen — nag killer echoes conservatively
+    state->das_prev_hands_on_state = 0xFF; // escalation-edge baseline (#100)
     state->enhanced_autopilot = false;
     state->speed_profile_locked = false;
     state->hw4_offset = 0;
@@ -75,25 +78,16 @@ void fsd_build_precondition_frame(CANFRAME* frame) {
 }
 
 void fsd_set_bit(CANFRAME* frame, int bit, bool value) {
-    if(bit < 0 || bit >= 64) return;
-    int byte_idx = bit / 8;
-    int bit_idx = bit % 8;
-    uint8_t mask = (uint8_t)(1U << bit_idx);
-    if(value) {
-        frame->buffer[byte_idx] |= mask;
-    } else {
-        frame->buffer[byte_idx] &= (uint8_t)(~mask);
-    }
+    tesla_set_bit(frame->buffer, bit, value);
 }
 
 uint8_t fsd_read_mux_id(const CANFRAME* frame) {
-    return frame->buffer[0] & 0x07;
+    return tesla_read_mux(frame->buffer);
 }
 
 bool fsd_is_selected_in_ui(const CANFRAME* frame, bool force_fsd) {
-    if(force_fsd) return true;
-    if(frame->data_lenght < 5) return false;
-    return (frame->buffer[4] >> 6) & 0x01;
+    // Flipper has no china_mode field; pass false (behavior unchanged).
+    return tesla_is_fsd_selected(frame->buffer, frame->data_lenght, force_fsd, false);
 }
 
 TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame) {
@@ -156,8 +150,21 @@ void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame) {
     }
 }
 
-bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame) {
+bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms) {
+    if(!state->ap_first) return true; // gate off -> always allow
+    if(state->das_ap_state < 2) return false; // AP not engaged yet
+    // AP engaged: require it to have held stable for the debounce window.
+    return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
+}
+
+bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
+
+    // AP-first (2026.14.x): don't modify 0x3FD until AP is engaged AND has been
+    // stable for AP_FIRST_STABLE_MS — injecting on the activation edge is linked
+    // to a steer-jerk (ev-open-can-tools#66 / v3.0.2-beta.2).
+    if(!fsd_ap_first_allows(state, now_ms)) return false;
+
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
     bool modified = false;
@@ -252,8 +259,16 @@ void fsd_handle_legacy_stalk(FSDState* state, const CANFRAME* frame) {
         state->speed_profile = 0;
 }
 
-bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame) {
+bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
+
+    // AP-first (timing safety): don't inject FSD-enable on 0x3EE until AP is
+    // engaged and stable. The Legacy path was missing this gate; injecting on
+    // the activation edge is linked to a steer-jerk on some Legacy/HW3 cars
+    // (China FW 2026.8.3.6); see ev-open-can-tools#66. das_ap_state comes from
+    // 0x399 DAS_status (Legacy/HW3).
+    if(!fsd_ap_first_allows(state, now_ms)) return false;
+
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
     bool modified = false;
@@ -281,11 +296,7 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame) {
 bool fsd_handle_isa_speed_chime(CANFRAME* frame) {
     if(frame->data_lenght < 8) return false;
     frame->buffer[1] |= 0x20;
-    uint8_t sum = 0;
-    for(int i = 0; i < 7; i++)
-        sum += frame->buffer[i];
-    sum += (CAN_ID_ISA_SPEED & 0xFF) + (CAN_ID_ISA_SPEED >> 8);
-    frame->buffer[7] = sum & 0xFF;
+    frame->buffer[7] = tesla_additive_checksum(CAN_ID_ISA_SPEED, frame->buffer, 7);
     return true;
 }
 
@@ -404,11 +415,33 @@ void fsd_build_steering_tune_frame(CANFRAME* frame, uint8_t mode) {
     frame->buffer[0] = (mode & 0x07) << 2;
 }
 
-// --- DAS_status (0x39B) parser: AP state, blind spot, FCW, speed limit ---
-// opendbc tesla_model3_party.dbc — all little-endian
+// --- DAS_status parser: AP state, blind spot, FCW, speed limit ---
+//
+// HW-dependent CAN ID + byte layout:
+//   Pre-Highland HW3 / Legacy: 0x399 (legacy CAN map per opendbc/tesla_can.dbc)
+//   Highland HW3 / HW4:        0x39B (party CAN map per opendbc/tesla_model3_party.dbc)
+//
+// HW3 layout (0x399, legacy):
+//   byte 0 low nibble = DAS_autopilotState   (2=available, 3=engaged)
+//   byte 5 bits[5:2]  = DAS_handsOnState     (matches HW4 position)
+//
+// HW4 layout (0x39B, party): full multi-signal parser below.
+//
+// v2.14 silently broke pre-Highland HW3 users by reading 0x39B only.
+// Caller dispatches by hw_version in scenes/fsd_running.c.
 
-void fsd_handle_das_status(FSDState* state, const CANFRAME* frame) {
+void fsd_handle_das_status_hw3(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 6) return;
+    state->das_ap_state = frame->buffer[0] & 0x0Fu;
+    state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0Fu;
+    state->das_seen = true;
+}
+
+void fsd_handle_das_status_hw4(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
+    // DAS_autopilotState: bit12|4 → byte1 bits[7:4]
+    // 0=UNAVAIL 1=AVAIL 2=ACTIVE_NOMINAL 3=ACTIVE_MIN_DRIVER ...
+    state->das_ap_state = (frame->buffer[1] >> 4) & 0x0F;
     // DAS_autopilotHandsOnState: bit42|4 → byte5 bits[5:2]
     state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0F;
     // DAS_autoLaneChangeState: bit46|5 → byte5 bits[7:6] + byte6 bits[2:0]
@@ -423,6 +456,23 @@ void fsd_handle_das_status(FSDState* state, const CANFRAME* frame) {
     state->das_fcw = (frame->buffer[2] >> 6) & 0x03;
     // DAS_visionOnlySpeedLimit: bit16|5 → byte2 bits[4:0], ×5 = kph
     state->das_vision_speed_lim = frame->buffer[2] & 0x1F;
+    state->das_seen = true;
+    state->das_hw4_status_seen = true;
+}
+
+// HW4 0x399 hands-on fallback.
+//
+// Some HW4 trims (observed on a Juniper RWD, Bus 6 / X179 pin 13/14, #100)
+// never broadcast 0x39B; on those cars 0x399 carries the hands-on escalation in
+// the SAME byte5 bits[5:2] field as 0x39B (verified against a captured nag run:
+// the field steps 1→2→3 as the visual nag escalates). When 0x39B has not been
+// seen, read just that field from 0x399 so the nag gate isn't starved.
+//
+// Deliberately reads ONLY the hands-on field — not das_ap_state — because the
+// 0x399 byte0 layout on HW4 is not confirmed (0x399 is the ISA chime there).
+void fsd_handle_das_handsonly_399(FSDState* state, const CANFRAME* frame) {
+    if(frame->data_lenght < 6) return;
+    state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0Fu;
     state->das_seen = true;
 }
 
@@ -455,17 +505,21 @@ void fsd_handle_gtw_autopilot_tier(FSDState* state, const CANFRAME* frame) {
     state->gtw_autopilot_tier = (int8_t)((frame->buffer[5] >> 2) & 0x07);
 }
 
-// --- 0x7FF Shield (ban defense) ---
+// --- 0x7FF GTW Config Replay (formerly "Ban Shield") ---
 //
-// Phase 1 (shield NOT armed): learn the "healthy" 0x7FF state by
-// capturing each mux frame. Once all 8 muxes are seen, the snapshot
-// is complete and can be armed.
+// Phase 1 (NOT armed): learn the "healthy" 0x7FF state by capturing
+// each mux frame. Once all 8 muxes are seen, the snapshot is complete
+// and the replayer auto-arms.
 //
-// Phase 2 (shield armed): compare every incoming 0x7FF against the
-// snapshot. If ANY byte differs, overwrite the frame data with the
-// snapshot and return true — the caller retransmits immediately,
-// racing the Gateway's banned frame so the AP ECU sees our healthy
+// Phase 2 (armed): compare every incoming 0x7FF against the snapshot.
+// If ANY byte differs, replay the snapshot bytes into the frame and
+// return true — the caller retransmits immediately, racing the
+// gateway's modified frame so the AP ECU sees the learned-healthy
 // version.
+//
+// This is a CAN-broadcast-layer mask only. It does not undo NVRAM
+// changes the gateway has already written, nor any backend-side
+// entitlement flags. Honest framing per #60.
 
 bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame) {
     if(frame->data_lenght < 8) return false;
@@ -515,7 +569,8 @@ bool fsd_handle_gtw_shield(FSDState* state, CANFRAME* frame) {
 
 // --- 0x7FF Active Tier Override ---
 // Force GTW_autopilot to SELF_DRIVING (3) on every mux=2 frame.
-// More aggressive than Ban Shield — doesn't just freeze, actively writes.
+// More aggressive than GTW Config Replay — doesn't just replay learned state,
+// actively writes tier=3 regardless of what the gateway broadcasts.
 // Source: Shayennn/FUCKYOU-TESLA-FSD vehicle_logic.h
 
 bool fsd_handle_gtw_tier_override(FSDState* state, CANFRAME* frame) {
@@ -615,11 +670,115 @@ bool fsd_handle_track_mode_inject(FSDState* state, CANFRAME* frame) {
     // set track mode request ON
     frame->buffer[0] = (frame->buffer[0] & 0xFC) | 0x01;
     // recalculate Tesla vehicle checksum
-    uint16_t sum = (CAN_ID_TRACK_MODE_SET & 0xFF) + ((CAN_ID_TRACK_MODE_SET >> 8) & 0xFF);
-    for(int i = 0; i < 7; i++)
-        sum += frame->buffer[i];
-    frame->buffer[7] = (uint8_t)(sum & 0xFF);
+    frame->buffer[7] = tesla_additive_checksum(CAN_ID_TRACK_MODE_SET, frame->buffer, 7);
     return true;
+}
+
+// --- Scroll-Press AP Engage (0x3C2, HW4-only) ---
+//
+// Per @JakNo's bench testing in #43: injecting the right-scrollwheel-down
+// sequence on VCLEFT_switchStatus mux=1 engages AP and the car treats it as
+// indistinguishable from a physical scrollwheel press. No counter, no CRC —
+// just replace the swcRightPressed bit-pair in 4 consecutive mux=1 frames.
+//
+// State machine across 0x3C2 mux=1 frames:
+//   state=0, armed=false  : initial; wait for das_ap_state==0 before arming
+//   state=0, armed=true   : armed; will fire when das_ap_state transitions to 1
+//   state=1..4            : actively firing frame N of the sequence
+//   state=5               : cooldown; wait for das_ap_state==0 before re-arming
+//
+// Sequence: swcRightPressed = 1, 2, 2, 1 across 4 consecutive frames.
+// Field is bits 12-13 of the 64-bit frame = byte 1 bits 4-5.
+
+// VCLEFT_switchStatus mux=1 signal positions (opendbc tesla_model3_vehicle.dbc):
+//   swcRightPressed    : startbit 12, 2 bits  → byte 1 bits 4-5
+//   swcRightScrollTicks: startbit 24, 6 bits signed → byte 3 bits 0-5
+#define SCROLL_SWC_PRESSED_PRESSED 1u // "pressed" value (per @JakNo bench; pending re-confirm)
+#define SCROLL_SWC_SCROLLTICKS_UP \
+    1u // one detent up; 6-bit signed (+1). Direction pending @JakNo confirm
+// Phase durations per @JakNo's #82 flow (milliseconds, approximate — tune on-car)
+#define SCROLL_T_PRESS1_MS  250u
+#define SCROLL_T_SCROLL1_MS 150u
+#define SCROLL_T_PRESS2_MS  250u
+
+static void scroll_set_pressed(CANFRAME* frame, uint8_t v) {
+    frame->buffer[1] = (frame->buffer[1] & ~0x30u) | ((v & 0x03u) << 4);
+}
+
+static void scroll_set_scrollticks(CANFRAME* frame, uint8_t v) {
+    frame->buffer[3] = (frame->buffer[3] & ~0x3Fu) | (v & 0x3Fu);
+}
+
+bool fsd_handle_scroll_press_inject(FSDState* state, CANFRAME* frame, uint32_t now_ms) {
+    if(!state->scroll_press_ap) return false;
+    if(state->hw_version != TeslaHW_HW4) return false; // HW4-only per v2.15 scope
+    if(state->op_mode != OpMode_Service) return false; // Service mode safety gate
+    if(frame->data_lenght < 4) return false; // need byte 3 for scrollTicks
+
+    // VCLEFT_switchStatusIndex (mux) at byte 0 bits 0-1. Right-scroll lives on mux=1.
+    uint8_t mux = frame->buffer[0] & 0x03;
+    if(mux != 1) return false;
+
+    uint8_t ap = state->das_ap_state;
+
+    // Arm tracking: require a UNAVAIL observation before any fire, then before each re-fire.
+    if(ap == 0) {
+        state->scroll_press_armed = true;
+        if(state->scroll_press_state == 5) {
+            state->scroll_press_state = 0; // cooldown cleared, ready to re-arm
+        }
+    }
+
+    // Rising-edge fire trigger: AP UNAVAIL(0)→AVAIL(1) while armed.
+    if(state->scroll_press_state == 0 && state->scroll_press_armed && ap == 1) {
+        state->scroll_press_state = 1; // enter phase 1 (press1)
+        state->scroll_press_armed = false;
+        state->scroll_press_phase_ms = now_ms;
+    }
+
+    if(state->scroll_press_state < 1 || state->scroll_press_state > 4) {
+        return false;
+    }
+
+    uint32_t elapsed = now_ms - state->scroll_press_phase_ms;
+    bool modified = false;
+
+    switch(state->scroll_press_state) {
+    case 1: // 1st press, hold for ~250 ms
+        scroll_set_pressed(frame, SCROLL_SWC_PRESSED_PRESSED);
+        modified = true;
+        if(elapsed >= SCROLL_T_PRESS1_MS) {
+            state->scroll_press_state = 2;
+            state->scroll_press_phase_ms = now_ms;
+        }
+        break;
+    case 2: // scroll up, hold for ~150 ms
+        scroll_set_scrollticks(frame, SCROLL_SWC_SCROLLTICKS_UP);
+        modified = true;
+        if(elapsed >= SCROLL_T_SCROLL1_MS) {
+            state->scroll_press_state = 3;
+            state->scroll_press_phase_ms = now_ms;
+        }
+        break;
+    case 3: // 2nd press, hold for ~250 ms
+        scroll_set_pressed(frame, SCROLL_SWC_PRESSED_PRESSED);
+        modified = true;
+        if(elapsed >= SCROLL_T_PRESS2_MS) {
+            state->scroll_press_state = 4;
+            state->scroll_press_phase_ms = now_ms;
+        }
+        break;
+    case 4: // final scroll up, single frame, then cooldown
+        scroll_set_scrollticks(frame, SCROLL_SWC_SCROLLTICKS_UP);
+        modified = true;
+        state->scroll_press_state = 5; // cooldown until AP drops to UNAVAIL
+        break;
+    default:
+        return false;
+    }
+
+    if(modified) state->frames_modified++;
+    return modified;
 }
 
 // --- SCCM_leftStalk (0x249) builders — Party CAN, 3 bytes ---
@@ -631,9 +790,7 @@ bool fsd_handle_track_mode_inject(FSDState* state, CANFRAME* frame) {
 //   byte2[2:0]: SCCM_turnIndicatorStalkStatus (0=IDLE 1=UP1 2=UP2 3=DN1 4=DN2)
 
 static void sccm_left_calc_crc(CANFRAME* frame) {
-    frame->buffer[0] = ((CAN_ID_SCCM_LSTALK & 0xFF) + ((CAN_ID_SCCM_LSTALK >> 8) & 0xFF) +
-                        frame->buffer[1] + frame->buffer[2]) &
-                       0xFF;
+    frame->buffer[0] = tesla_additive_checksum(CAN_ID_SCCM_LSTALK, &frame->buffer[1], 2);
 }
 
 void fsd_build_highbeam_flash(CANFRAME* frame, uint8_t counter, bool flash_on) {
@@ -750,7 +907,7 @@ void fsd_handle_das_steering(FSDState* state, const CANFRAME* frame) {
 // Improved from ev-open-can-tools PR #5 (zdenekbouresh):
 //
 // 1. DAS-aware gating: only echo when DAS_autopilotHandsOnState (from
-//    0x39B, already parsed in fsd_handle_das_status) indicates the car
+//    0x39B/0x399, already parsed in fsd_handle_das_status_hw3/hw4) indicates the car
 //    is actually demanding hands-on. States 0 (NOT_REQD) and 8
 //    (SUSPENDED) mean DAS is satisfied — no echo needed. This reduces
 //    spurious bus traffic from ~25 frames/sec to near-zero during normal
@@ -790,11 +947,38 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     if(hands_on == 1) return false;
 
     // DAS-aware gating: skip echo when DAS is satisfied or AP suspended.
-    // das_hands_on_state is parsed from 0x39B in fsd_handle_das_status().
+    // das_hands_on_state is parsed from 0x39B (HW4) or 0x399 (HW3) in
+    // fsd_handle_das_status_hw4 / fsd_handle_das_status_hw3.
     // 0 = NOT_REQD (satisfied), 8 = SUSPENDED (AP paused).
     // 0xFF = no DAS frame seen yet — echo conservatively as fallback.
     uint8_t das = state->das_hands_on_state;
+    // Track das across every frame (including the satisfied/suspended early-return
+    // below) so a 0 (NOT_REQD) wave resets the escalation baseline and the next
+    // 0->2 jump still registers as a rising edge. Source: #100.
+    uint8_t das_prev = state->das_prev_hands_on_state;
+    state->das_prev_hands_on_state = das;
     if(das == 0 || das == 8) return false;
+
+    // On-demand grip pulse: fire an immediate excursion when handsOnLevel
+    // rises into a nag-demand state (0=imminent, 3=escalated). v2.14 only
+    // emitted grip pulses on a fixed 5-9 s schedule, which let the yellow
+    // 2-second escalation get there first when a nag arrived between pulses.
+    // Resets the periodic cooldown so we don't double-pulse.
+    // Source: @deftdawg variant tested on 2016 MX HW3 in #70.
+    //
+    // Also re-arm on a DAS escalation edge: on some HW4 trims (#100) EPAS
+    // handsOnLevel (byte4) is frozen at 0 the whole hands-off window, so the only
+    // nag signal that moves is das_hands_on_state stepping 0->2->3. Without this
+    // the pulse fires once and never re-arms, letting the 2nd wave escalate to
+    // yellow (das 0/8 already returned above; 0xFF = unseen).
+    // Source: @jewelrylin / @DrStrangeglovebox on-car data in #100.
+    bool das_escalation = (das != 0xFF) && (das_prev == 0xFF || das > das_prev);
+    bool demand_now = (hands_on == 0 || hands_on == 3);
+    if((das_escalation || (demand_now && !state->nag_demand_active)) && nag_exc_frames == 0) {
+        nag_exc_frames = 3 + (nag_xorshift32() % 3); // 3-5 frame pulse
+        nag_frames_until_exc = 125 + (nag_xorshift32() % 100); // reset 5-9 s cooldown
+    }
+    state->nag_demand_active = demand_now;
 
     // --- Organic torque variation ---
     // torsionBarTorque encoding: tRaw = (Nm + 20.5) / 0.01
@@ -842,11 +1026,7 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     out->buffer[6] = (frame->buffer[6] & 0xF0) | cnt;
 
     // checksum: sum(byte0..6) + 0x70 + 0x03 (CAN ID 0x370 split)
-    uint16_t sum = 0;
-    for(int i = 0; i < 7; i++)
-        sum += out->buffer[i];
-    sum += (CAN_ID_EPAS_STATUS & 0xFF) + (CAN_ID_EPAS_STATUS >> 8);
-    out->buffer[7] = (uint8_t)(sum & 0xFF);
+    out->buffer[7] = tesla_additive_checksum(CAN_ID_EPAS_STATUS, out->buffer, 7);
 
     state->nag_echo_count++;
     state->nag_suppressed = true;

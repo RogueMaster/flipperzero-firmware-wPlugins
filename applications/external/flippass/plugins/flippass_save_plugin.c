@@ -50,6 +50,16 @@ typedef struct {
     uint32_t progress_next_payload_size;
 } FlipPassSavePluginContext;
 
+typedef struct {
+    FlipPassSavePluginContext* ctx;
+    FlipPassSaveChunkCallback callback;
+    void* callback_context;
+    FuriString* error;
+    bool protected_value;
+    uint8_t triplet[3];
+    size_t triplet_len;
+} FlipPassSaveValueStreamContext;
+
 static void flippass_save_progress(
     FlipPassSavePluginContext* ctx,
     const char* stage,
@@ -248,56 +258,167 @@ static bool flippass_save_payload_emit_xml_escaped(
     return true;
 }
 
-static bool flippass_save_payload_emit_protected_value(
-    FlipPassSavePluginContext* ctx,
+static bool flippass_save_payload_emit_xml_escaped_bytes(
     FlipPassSaveChunkCallback callback,
     void* callback_context,
-    const char* text) {
-    static const char alphabet[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    const uint8_t* input = (const uint8_t*)(text != NULL ? text : "");
-    const size_t input_size = text != NULL ? strlen(text) : 0U;
-    uint8_t triplet[3];
-    size_t triplet_len = 0U;
-
-    for(size_t index = 0U; index < input_size; index++) {
-        uint8_t byte = input[index];
-        char quartet[4];
-
-        if(!kdbx_protected_stream_apply(&ctx->protected_stream, &byte, 1U)) {
-            return false;
-        }
-
-        triplet[triplet_len++] = byte;
-        if(triplet_len == 3U) {
-            const uint32_t triple = ((uint32_t)triplet[0] << 16) | ((uint32_t)triplet[1] << 8) |
-                                    (uint32_t)triplet[2];
-            quartet[0] = alphabet[(triple >> 18) & 0x3FU];
-            quartet[1] = alphabet[(triple >> 12) & 0x3FU];
-            quartet[2] = alphabet[(triple >> 6) & 0x3FU];
-            quartet[3] = alphabet[triple & 0x3FU];
-            if(!flippass_save_payload_emit(callback, callback_context, quartet, sizeof(quartet))) {
+    const uint8_t* data,
+    size_t data_size) {
+    for(size_t index = 0U; index < data_size; index++) {
+        switch((char)data[index]) {
+        case '&':
+            if(!flippass_save_payload_emit_cstr(callback, callback_context, "&amp;")) {
                 return false;
             }
-            triplet_len = 0U;
+            break;
+        case '<':
+            if(!flippass_save_payload_emit_cstr(callback, callback_context, "&lt;")) {
+                return false;
+            }
+            break;
+        case '>':
+            if(!flippass_save_payload_emit_cstr(callback, callback_context, "&gt;")) {
+                return false;
+            }
+            break;
+        case '"':
+            if(!flippass_save_payload_emit_cstr(callback, callback_context, "&quot;")) {
+                return false;
+            }
+            break;
+        case '\'':
+            if(!flippass_save_payload_emit_cstr(callback, callback_context, "&apos;")) {
+                return false;
+            }
+            break;
+        default:
+            if(!flippass_save_payload_emit(callback, callback_context, &data[index], 1U)) {
+                return false;
+            }
+            break;
         }
     }
 
-    if(triplet_len > 0U) {
-        char quartet[4];
-        const uint32_t triple = ((uint32_t)triplet[0] << 16) |
-                                ((triplet_len > 1U ? triplet[1] : 0U) << 8) |
-                                (triplet_len > 2U ? triplet[2] : 0U);
-        quartet[0] = alphabet[(triple >> 18) & 0x3FU];
-        quartet[1] = alphabet[(triple >> 12) & 0x3FU];
-        quartet[2] = (triplet_len > 1U) ? alphabet[(triple >> 6) & 0x3FU] : '=';
-        quartet[3] = (triplet_len > 2U) ? alphabet[triple & 0x3FU] : '=';
-        if(!flippass_save_payload_emit(callback, callback_context, quartet, sizeof(quartet))) {
+    return true;
+}
+
+static bool flippass_save_payload_emit_protected_triplet(FlipPassSaveValueStreamContext* stream) {
+    static const char alphabet[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    char quartet[4];
+
+    furi_assert(stream);
+    furi_assert(stream->triplet_len == 3U);
+
+    const uint32_t triple = ((uint32_t)stream->triplet[0] << 16) |
+                            ((uint32_t)stream->triplet[1] << 8) | (uint32_t)stream->triplet[2];
+    quartet[0] = alphabet[(triple >> 18) & 0x3FU];
+    quartet[1] = alphabet[(triple >> 12) & 0x3FU];
+    quartet[2] = alphabet[(triple >> 6) & 0x3FU];
+    quartet[3] = alphabet[triple & 0x3FU];
+    stream->triplet_len = 0U;
+    memzero(stream->triplet, sizeof(stream->triplet));
+    return flippass_save_payload_emit(
+        stream->callback, stream->callback_context, quartet, sizeof(quartet));
+}
+
+static bool
+    flippass_save_payload_emit_value_chunk(const uint8_t* data, size_t data_size, void* context) {
+    FlipPassSaveValueStreamContext* stream = context;
+
+    if(stream == NULL || stream->ctx == NULL || stream->callback == NULL) {
+        return false;
+    }
+
+    if(data_size == 0U) {
+        return true;
+    }
+
+    if(!stream->protected_value) {
+        const bool ok = flippass_save_payload_emit_xml_escaped_bytes(
+            stream->callback, stream->callback_context, data, data_size);
+        if(!ok) {
+            flippass_save_set_error(
+                stream->ctx, stream->error, "FlipPass could not serialize a KDBX field.");
+        }
+        return ok;
+    }
+
+    for(size_t index = 0U; index < data_size; index++) {
+        uint8_t byte = data[index];
+        if(!kdbx_protected_stream_apply(&stream->ctx->protected_stream, &byte, 1U)) {
+            flippass_save_set_error(
+                stream->ctx, stream->error, "FlipPass could not protect a KDBX field.");
+            return false;
+        }
+
+        stream->triplet[stream->triplet_len++] = byte;
+        if(stream->triplet_len == 3U && !flippass_save_payload_emit_protected_triplet(stream)) {
+            flippass_save_set_error(
+                stream->ctx, stream->error, "FlipPass could not serialize a protected field.");
             return false;
         }
     }
 
     return true;
+}
+
+static bool flippass_save_payload_finish_value_stream(FlipPassSaveValueStreamContext* stream) {
+    static const char alphabet[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    char quartet[4];
+
+    if(stream == NULL || !stream->protected_value || stream->triplet_len == 0U) {
+        return true;
+    }
+
+    const uint32_t triple = ((uint32_t)stream->triplet[0] << 16) |
+                            ((stream->triplet_len > 1U ? stream->triplet[1] : 0U) << 8) |
+                            (stream->triplet_len > 2U ? stream->triplet[2] : 0U);
+    quartet[0] = alphabet[(triple >> 18) & 0x3FU];
+    quartet[1] = alphabet[(triple >> 12) & 0x3FU];
+    quartet[2] = (stream->triplet_len > 1U) ? alphabet[(triple >> 6) & 0x3FU] : '=';
+    quartet[3] = (stream->triplet_len > 2U) ? alphabet[triple & 0x3FU] : '=';
+    stream->triplet_len = 0U;
+    memzero(stream->triplet, sizeof(stream->triplet));
+    return flippass_save_payload_emit(
+        stream->callback, stream->callback_context, quartet, sizeof(quartet));
+}
+
+static bool flippass_save_payload_emit_ref_value(
+    FlipPassSavePluginContext* ctx,
+    FlipPassSaveChunkCallback callback,
+    void* callback_context,
+    const KDBXFieldRef* ref,
+    bool protected_value,
+    FuriString* error) {
+    FlipPassSaveValueStreamContext stream = {
+        .ctx = ctx,
+        .callback = callback,
+        .callback_context = callback_context,
+        .error = error,
+        .protected_value = protected_value,
+    };
+
+    if(ref == NULL) {
+        flippass_save_set_error(ctx, error, "FlipPass could not locate a deferred field.");
+        return false;
+    }
+
+    if(!ctx->host_api->stream_ref(
+           ctx->host_api->context, ref, flippass_save_payload_emit_value_chunk, &stream, error)) {
+        if(furi_string_empty(error)) {
+            flippass_save_set_error(ctx, error, "FlipPass could not read a deferred field.");
+        }
+        memzero(&stream, sizeof(stream));
+        return false;
+    }
+
+    const bool ok = flippass_save_payload_finish_value_stream(&stream);
+    if(!ok && furi_string_empty(error)) {
+        flippass_save_set_error(ctx, error, "FlipPass could not finish a deferred field.");
+    }
+    memzero(&stream, sizeof(stream));
+    return ok;
 }
 
 static bool flippass_save_build_time_base64(char out[16]) {
@@ -404,10 +525,47 @@ static bool flippass_save_payload_emit_entry_string(
     }
 
     if(protected_value) {
-        if(!flippass_save_payload_emit_protected_value(ctx, callback, callback_context, value)) {
+        FlipPassSaveValueStreamContext stream = {
+            .ctx = ctx,
+            .callback = callback,
+            .callback_context = callback_context,
+            .error = ctx->error_detail,
+            .protected_value = true,
+        };
+        const uint8_t* bytes = (const uint8_t*)(value != NULL ? value : "");
+        const size_t bytes_size = value != NULL ? strlen(value) : 0U;
+        const bool ok = flippass_save_payload_emit_value_chunk(bytes, bytes_size, &stream) &&
+                        flippass_save_payload_finish_value_stream(&stream);
+        memzero(&stream, sizeof(stream));
+        if(!ok) {
             return false;
         }
     } else if(!flippass_save_payload_emit_xml_escaped(callback, callback_context, value)) {
+        return false;
+    }
+
+    return flippass_save_payload_emit_cstr(callback, callback_context, "</Value></String>");
+}
+
+static bool flippass_save_payload_emit_entry_ref_string(
+    FlipPassSavePluginContext* ctx,
+    FlipPassSaveChunkCallback callback,
+    void* callback_context,
+    const char* key,
+    const KDBXFieldRef* ref,
+    bool protected_value,
+    FuriString* error) {
+    if(!flippass_save_payload_emit_cstr(callback, callback_context, "<String><Key>") ||
+       !flippass_save_payload_emit_xml_escaped(callback, callback_context, key) ||
+       !flippass_save_payload_emit_cstr(
+           callback,
+           callback_context,
+           protected_value ? "</Key><Value Protected=\"True\">" : "</Key><Value>")) {
+        return false;
+    }
+
+    if(!flippass_save_payload_emit_ref_value(
+           ctx, callback, callback_context, ref, protected_value, error)) {
         return false;
     }
 
@@ -753,14 +911,35 @@ static bool
     return true;
 }
 
+static const KDBXFieldRef*
+    flippass_save_entry_field_ref(const KDBXEntry* entry, uint32_t field_mask) {
+    if(entry == NULL) {
+        return NULL;
+    }
+
+    switch(field_mask) {
+    case KDBXEntryFieldUsername:
+        return &entry->username_ref;
+    case KDBXEntryFieldPassword:
+        return &entry->password_ref;
+    case KDBXEntryFieldUrl:
+        return &entry->url_ref;
+    case KDBXEntryFieldNotes:
+        return &entry->notes_ref;
+    case KDBXEntryFieldAutotype:
+        return &entry->autotype_ref;
+    default:
+        return NULL;
+    }
+}
+
 static bool flippass_save_payload_emit_entry(
     FlipPassSavePluginContext* ctx,
     FlipPassSaveChunkCallback callback,
     void* callback_context,
     KDBXEntry* entry,
     FuriString* error) {
-    if(!ctx->host_api->copy_entry_uuid(ctx->host_api->context, entry, ctx->uuid, error) ||
-       !ctx->host_api->activate_entry(ctx->host_api->context, entry, true, error)) {
+    if(!ctx->host_api->copy_entry_uuid(ctx->host_api->context, entry, ctx->uuid, error)) {
         return false;
     }
 
@@ -771,65 +950,90 @@ static bool flippass_save_payload_emit_entry(
        !flippass_save_payload_emit_times(ctx, callback, callback_context) ||
        !flippass_save_payload_emit_entry_string(
            ctx, callback, callback_context, "Title", entry->title, false)) {
-        ctx->host_api->deactivate_entry(ctx->host_api->context);
         return false;
     }
 
     if(ctx->host_api->entry_has_field(ctx->host_api->context, entry, KDBXEntryFieldUsername) &&
-       !flippass_save_payload_emit_entry_string(
-           ctx, callback, callback_context, "UserName", entry->username, false)) {
-        ctx->host_api->deactivate_entry(ctx->host_api->context);
+       !flippass_save_payload_emit_entry_ref_string(
+           ctx,
+           callback,
+           callback_context,
+           "UserName",
+           flippass_save_entry_field_ref(entry, KDBXEntryFieldUsername),
+           false,
+           error)) {
         return false;
     }
 
     if(ctx->host_api->entry_has_field(ctx->host_api->context, entry, KDBXEntryFieldPassword) &&
-       !flippass_save_payload_emit_entry_string(
-           ctx, callback, callback_context, "Password", entry->password, true)) {
-        ctx->host_api->deactivate_entry(ctx->host_api->context);
+       !flippass_save_payload_emit_entry_ref_string(
+           ctx,
+           callback,
+           callback_context,
+           "Password",
+           flippass_save_entry_field_ref(entry, KDBXEntryFieldPassword),
+           true,
+           error)) {
         return false;
     }
 
     if(ctx->host_api->entry_has_field(ctx->host_api->context, entry, KDBXEntryFieldUrl) &&
-       !flippass_save_payload_emit_entry_string(
-           ctx, callback, callback_context, "URL", entry->url, false)) {
-        ctx->host_api->deactivate_entry(ctx->host_api->context);
+       !flippass_save_payload_emit_entry_ref_string(
+           ctx,
+           callback,
+           callback_context,
+           "URL",
+           flippass_save_entry_field_ref(entry, KDBXEntryFieldUrl),
+           false,
+           error)) {
         return false;
     }
 
     if(ctx->host_api->entry_has_field(ctx->host_api->context, entry, KDBXEntryFieldNotes) &&
-       !flippass_save_payload_emit_entry_string(
-           ctx, callback, callback_context, "Notes", entry->notes, false)) {
-        ctx->host_api->deactivate_entry(ctx->host_api->context);
+       !flippass_save_payload_emit_entry_ref_string(
+           ctx,
+           callback,
+           callback_context,
+           "Notes",
+           flippass_save_entry_field_ref(entry, KDBXEntryFieldNotes),
+           false,
+           error)) {
         return false;
     }
 
     for(KDBXCustomField* field = entry->custom_fields; field != NULL; field = field->next) {
-        if(!ctx->host_api->ensure_custom_field(ctx->host_api->context, entry, field, error) ||
-           !flippass_save_payload_emit_entry_string(
-               ctx, callback, callback_context, field->key, field->value, field->protected_value)) {
-            ctx->host_api->deactivate_entry(ctx->host_api->context);
+        if(!flippass_save_payload_emit_entry_ref_string(
+               ctx,
+               callback,
+               callback_context,
+               field->key,
+               &field->value_ref,
+               field->protected_value,
+               error)) {
             return false;
         }
     }
 
-    if(ctx->host_api->entry_has_field(ctx->host_api->context, entry, KDBXEntryFieldAutotype) &&
-       entry->autotype_sequence != NULL && entry->autotype_sequence[0] != '\0') {
+    if(ctx->host_api->entry_has_field(ctx->host_api->context, entry, KDBXEntryFieldAutotype)) {
         if(!flippass_save_payload_emit_cstr(
                callback,
                callback_context,
                "<AutoType><Enabled>True</Enabled><DataTransferObfuscation>0</DataTransferObfuscation><DefaultSequence>") ||
-           !flippass_save_payload_emit_xml_escaped(
-               callback, callback_context, entry->autotype_sequence) ||
+           !flippass_save_payload_emit_ref_value(
+               ctx,
+               callback,
+               callback_context,
+               flippass_save_entry_field_ref(entry, KDBXEntryFieldAutotype),
+               false,
+               error) ||
            !flippass_save_payload_emit_cstr(
                callback,
                callback_context,
                "</DefaultSequence><Association><Window/><KeystrokeSequence/></Association></AutoType>")) {
-            ctx->host_api->deactivate_entry(ctx->host_api->context);
             return false;
         }
     }
 
-    ctx->host_api->deactivate_entry(ctx->host_api->context);
     return flippass_save_payload_emit_cstr(callback, callback_context, "</Entry>");
 }
 
@@ -892,6 +1096,7 @@ static bool flippass_save_stream_payload(
     void* callback_context,
     FuriString* error) {
     uint8_t inner_key[64];
+    uint8_t inner_material[KDBX_PROTECTED_STREAM_MATERIAL_MAX];
     uint8_t inner_header_alg[4] = {3U, 0U, 0U, 0U};
     uint8_t inner_field_header[5];
     const char* database_name =
@@ -912,13 +1117,19 @@ static bool flippass_save_stream_payload(
     }
 
     furi_hal_random_fill_buf(inner_key, sizeof(inner_key));
-    if(!kdbx_protected_stream_init(
-           &ctx->protected_stream, KDBXProtectedStreamChaCha20, inner_key, sizeof(inner_key))) {
+    sha512_Raw(inner_key, sizeof(inner_key), inner_material);
+    if(!kdbx_protected_stream_init_prederived(
+           &ctx->protected_stream,
+           KDBXProtectedStreamChaCha20,
+           inner_material,
+           KDBX_PROTECTED_STREAM_CHACHA20_MATERIAL_SIZE)) {
         memzero(inner_key, sizeof(inner_key));
+        memzero(inner_material, sizeof(inner_material));
         flippass_save_set_error(
             ctx, error, "FlipPass could not initialize the inner protected stream.");
         return false;
     }
+    memzero(inner_material, sizeof(inner_material));
 
     inner_field_header[0] = 1U;
     inner_field_header[1] = 4U;
@@ -1097,8 +1308,7 @@ static bool flippass_save_plugin_run(
        request->hmac_base == NULL || request->hmac_base_size != 64U || request->iv == NULL ||
        request->iv_size != expected_iv_size || request->root_group == NULL ||
        host_api->copy_group_uuid == NULL || host_api->copy_entry_uuid == NULL ||
-       host_api->activate_entry == NULL || host_api->deactivate_entry == NULL ||
-       host_api->ensure_custom_field == NULL || host_api->entry_has_field == NULL ||
+       host_api->entry_has_field == NULL || host_api->stream_ref == NULL ||
        (request->compression != KDBX_COMPRESSION_NONE &&
         request->compression != KDBX_COMPRESSION_GZIP)) {
         if(error != NULL) {

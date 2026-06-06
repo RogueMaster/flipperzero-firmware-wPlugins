@@ -27,7 +27,6 @@ void* kia_protocol_decoder_v7_alloc(SubGhzEnvironment* environment);
 void kia_protocol_decoder_v7_free(void* context);
 void kia_protocol_decoder_v7_reset(void* context);
 void kia_protocol_decoder_v7_feed(void* context, bool level, uint32_t duration);
-uint8_t kia_protocol_decoder_v7_get_hash_data(void* context);
 SubGhzProtocolStatus kia_protocol_decoder_v7_serialize(
     void* context,
     FlipperFormat* flipper_format,
@@ -38,9 +37,6 @@ void kia_protocol_decoder_v7_get_string(void* context, FuriString* output);
 
 #ifdef ENABLE_EMULATE_FEATURE
 void* kia_protocol_encoder_v7_alloc(SubGhzEnvironment* environment);
-void kia_protocol_encoder_v7_free(void* context);
 SubGhzProtocolStatus
     kia_protocol_encoder_v7_deserialize(void* context, FlipperFormat* flipper_format);
-void kia_protocol_encoder_v7_stop(void* context);
-LevelDuration kia_protocol_encoder_v7_yield(void* context);
 #endif

@@ -13,6 +13,7 @@ typedef struct {
     uint8_t tx_power;
     bool auto_save;
     bool hopping_enabled;
+    bool emulate_feature_enabled;
 } ProtoPirateSettings;
 
 void protopirate_settings_load(ProtoPirateSettings* settings);

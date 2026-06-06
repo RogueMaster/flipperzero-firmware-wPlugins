@@ -65,6 +65,11 @@ EspFlasherApp* esp_flasher_app_alloc() {
     view_dispatcher_add_view(
         app->view_dispatcher, EspFlasherAppViewSubmenu, submenu_get_view(app->submenu));
 
+    // Text Input (for custom flash offset entry)
+    app->text_input = text_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, EspFlasherAppViewTextInput, text_input_get_view(app->text_input));
+
     app->flash_worker_busy = false;
 
     app->reset = false;
@@ -72,6 +77,14 @@ EspFlasherApp* esp_flasher_app_alloc() {
     app->quickflash = false;
 
     app->turbospeed = false;
+
+    app->pending_addr_slot = -1;
+    app->boot_addr_manually_set = false;
+    memset(app->custom_slot_addrs, 0, sizeof(app->custom_slot_addrs));
+    app->addr_input_str[0] = '\0';
+    app->advanced_mode = false;
+    memset(app->parsed_slot_addrs, 0, sizeof(app->parsed_slot_addrs));
+    app->part_confirm_text[0] = '\0';
 
     scene_manager_next_scene(app->scene_manager, EspFlasherSceneStart);
 
@@ -94,11 +107,13 @@ void esp_flasher_app_free(EspFlasherApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, EspFlasherAppViewConsoleOutput);
     view_dispatcher_remove_view(app->view_dispatcher, EspFlasherAppViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, EspFlasherAppViewSubmenu);
+    view_dispatcher_remove_view(app->view_dispatcher, EspFlasherAppViewTextInput);
 
     widget_free(app->widget);
     text_box_free(app->text_box);
     furi_string_free(app->text_box_store);
     submenu_free(app->submenu);
+    text_input_free(app->text_input);
     variable_item_list_free(app->var_item_list);
 
     // View dispatcher

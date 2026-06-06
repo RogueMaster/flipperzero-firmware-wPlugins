@@ -1,0 +1,14 @@
+[project]
+name = "flipper-claude-buddy-bridge"
+version = "0.6.0"
+description = "Host bridge daemon connecting Flipper Zero to Claude Code"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "pyserial>=3.5",
+    "pyserial-asyncio>=0.6",
+    "bleak>=0.21",
+]
+
+[project.scripts]
+flipper-bridge = "bridge.__main__:main"

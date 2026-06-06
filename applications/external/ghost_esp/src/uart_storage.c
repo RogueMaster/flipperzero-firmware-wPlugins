@@ -205,7 +205,7 @@ void uart_storage_rx_callback(uint8_t* buf, size_t len, void* context) {
             "Storage",
             "Invalid parameters in storage callback: app=%p, storageContext=%p, buf=%p, len=%zu",
             (void*)app,
-            (void*)app->storageContext,
+            app ? (void*)app->storageContext : NULL,
             (void*)buf,
             len);
         return;
@@ -247,8 +247,14 @@ void uart_storage_rx_callback(uint8_t* buf, size_t len, void* context) {
     }
     FURI_LOG_D("Storage", "Data Checksum (XOR): 0x%02X", checksum);
 
-    // Periodic sync every ~8KB to balance between safety and performance with detailed logging
+    // Periodic sync every ~8KB to balance between safety and performance
     static size_t bytes_since_sync = 0;
+
+    // Reset counter if this is the first write to a new file session
+    if(bytes_since_sync > 8192 && app->storageContext->HasOpenedFile) {
+        bytes_since_sync = 0;
+    }
+
     bytes_since_sync += len;
     FURI_LOG_D("Storage", "Accumulated %zu bytes since last sync", bytes_since_sync);
     if(bytes_since_sync >= 8192) {

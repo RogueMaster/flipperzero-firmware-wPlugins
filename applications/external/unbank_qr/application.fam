@@ -1,0 +1,14 @@
+App(
+    appid="unbank_ln_qr",
+    name="Unbank LN QR",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="unbank_ln_qr_app",
+    stack_size=8 * 1024,
+    fap_icon="icon.png",
+    sources=["*.c"],
+    fap_category="Tools",
+    fap_author="Unbank",
+    fap_weburl="https://github.com/shanzy39/Unbank-BTCLN-QR-Generator",
+    fap_version="1.1",
+    fap_description="Display Lightning Address QR codes for receiving sats over the Lightning Network.",
+)

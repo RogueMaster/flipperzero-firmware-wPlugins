@@ -78,7 +78,7 @@ void seos_central_notify(void* context, const uint8_t* buffer, size_t buffer_len
     bit_buffer_append_bytes(seos_central->rx_buffer, buffer + 1, buffer_len - 1);
 
     // Only parse if end-of-message flag found
-    if((flags & BLE_FLAG_EOM) == BLE_FLAG_EOM) return;
+    if((flags & BLE_FLAG_EOM) != BLE_FLAG_EOM) return;
 
     BitBuffer* response = bit_buffer_alloc(128);
 

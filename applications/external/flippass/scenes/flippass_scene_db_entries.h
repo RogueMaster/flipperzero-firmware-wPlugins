@@ -53,6 +53,16 @@ void flippass_scene_db_entries_on_enter(void* context);
 bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event);
 
 /**
+ * @brief Release database-browser UI caches before a memory-sensitive save.
+ *
+ * The unlocked KDBX model remains owned by the app. This only drops the
+ * rebuildable scene item map and visible browser rows.
+ *
+ * @param app Application context.
+ */
+void flippass_scene_db_entries_trim_for_save(struct App* app);
+
+/**
  * @brief Handler for the on_exit event of the database entries scene.
  *
  * This function is called when the scene is exited. It clears the shared
