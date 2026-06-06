@@ -1,9 +1,7 @@
 # Subhound
 <img width="1924" height="1924" alt="image" src="https://github.com/user-attachments/assets/018aaa38-5762-43e6-abe4-bef1a641cdd3" />
 
-**Subhound tells you what a Flipper Zero SubGHz capture actually is.** Point it at a BinRAW `.sub` file and it identifies the signal — garage remote, TPMS, weather station, utility meter, alarm sensor, and 12 more — with a confidence level, a step-by-step reasoning chain, and a sub-protocol hint.
-
-It runs two ways from one shared rule set: a **desktop Python tool** for batch triage, and a **native Flipper FAP** so you can classify on-device with no laptop.
+Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 17 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
 
 ---
 
