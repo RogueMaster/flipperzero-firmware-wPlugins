@@ -1,0 +1,26 @@
+{
+  "_comment": "Baseline labels for data/subfiles/ — regenerate with `python3 tests/regen_golden.py` after intentional classifier changes. Do not edit by hand.",
+  "labels": {
+    "BinRAW_2026-01-22_17,23,48.sub": ["NOISE", "HIGH"],
+    "BinRAW_2026-04-09_15,33,13.sub": ["NOISE", "HIGH"],
+    "BinRAW_2026-04-09_19,53,57.sub": ["TPMS", "HIGH"],
+    "BinRAW_2026-04-09_19,55,51.sub": ["TPMS", "MEDIUM"],
+    "BinRAW_2026-04-09_19,56,24.sub": ["GARAGE_REMOTE", "HIGH"],
+    "BinRAW_2026-04-09_19,57,54.sub": ["UNKNOWN_STRUCTURED", "LOW"],
+    "BinRAW_2026-04-09_20,04,17.sub": ["WEATHER_STATION", "MEDIUM"],
+    "BinRAW_2026-04-10_21,53,58.sub": ["KEYFOB_REMOTE", "MEDIUM"],
+    "BinRAW_2026-04-12_19,32,55.sub": ["GARAGE_REMOTE", "LOW"],
+    "BinRAW_2026-04-12_19,33,02.sub": ["KEYFOB_REMOTE", "LOW"],
+    "BinRAW_2026-04-12_19,39,48.sub": ["UNKNOWN_STRUCTURED", "LOW"],
+    "BinRAW_2026-04-12_19,39,50.sub": ["NOISE", "HIGH"],
+    "BinRAW_2026-04-12_19,42,54.sub": ["NOISE", "HIGH"],
+    "BinRAW_2026-04-12_19,43,56.sub": ["UNKNOWN_STRUCTURED", "LOW"],
+    "BinRAW_2026-04-12_19,46,24.sub": ["AMR_METER", "LOW"],
+    "BinRAW_2026-04-12_19,46,50.sub": ["UNKNOWN_STRUCTURED", "LOW"],
+    "BinRAW_2026-04-12_19,47,03.sub": ["WEATHER_STATION", "MEDIUM"],
+    "BinRAW_2026-04-12_19,47,27.sub": ["WEATHER_STATION", "MEDIUM"],
+    "BinRAW_2026-04-12_19,47,47.sub": ["TPMS", "MEDIUM"],
+    "BinRAW_2026-04-12_19,48,43.sub": ["KEYFOB_REMOTE", "MEDIUM"],
+    "BinRAW_2026-04-12_19,50,18.sub": ["WEATHER_STATION", "MEDIUM"]
+  }
+}
