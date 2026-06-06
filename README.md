@@ -152,48 +152,6 @@ REASONING CHAIN
 
 ---
 
-## Wardrive workflow
-
-1. **Capture** — walk or drive with Flipper Zero in BinRAW SubGhz mode
-2. **Dump files** — copy `.sub` files from SD card to laptop
-3. **Triage** — `python3 analyze.py captures/ --summary-only` to see what's there
-4. **Deep dive** — run individual files for full reasoning chains and sub-protocol hints
-5. **Log session** — `--db session.db` persists every capture with GPS coords, classification, payload hex, and signal quality
-6. **Map it** — `--geojson session.geojson` → load into QGIS, uMap, or Felt
-
-```bash
-# Full wardrive pipeline
-python3 analyze.py captures/ \
-    --db 2026-04-12-session.db \
-    --geojson 2026-04-12-session.geojson
-
-# Review session
-python3 analyze.py --db-summary 2026-04-12-session.db
-```
-
----
-
-## Session database schema
-
-```
-captures (
-    id            INTEGER PRIMARY KEY,
-    captured_at   TEXT,       -- UTC ISO-8601
-    filename      TEXT,
-    frequency     INTEGER,    -- Hz
-    te_us         REAL,       -- microseconds
-    classification TEXT,
-    confidence    TEXT,       -- HIGH / MEDIUM / LOW
-    lat           REAL,
-    lon           REAL,
-    payload_hex   TEXT,
-    signal_quality REAL,      -- 0.0–1.0
-    sub_protocol  TEXT
-)
-```
-
----
-
 ## .sub file format (reference)
 
 Subhound expects the Flipper Zero **SubGhz Key File v1** BinRAW format:
