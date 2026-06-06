@@ -44,11 +44,15 @@ bool ac_remote_load_settings(ACRemoteAppSettings* app_state) {
         if(!flipper_format_read_uint32(ff, "Mode", &app_state->mode, 1)) break;
         if(app_state->mode > HvacSamsungModeAuto) break;
         if(!flipper_format_read_uint32(ff, "Temperature", &app_state->temperature, 1)) break;
-        if(app_state->temperature > HVAC_SAMSUNG_TEMPERATURE_MAX) break;
+        if(app_state->temperature < HVAC_SAMSUNG_TEMPERATURE_MIN ||
+           app_state->temperature > HVAC_SAMSUNG_TEMPERATURE_MAX)
+            break;
         if(!flipper_format_read_uint32(ff, "Fan", &app_state->fan, 1)) break;
         if(app_state->fan > HvacSamsungFanHigh) break;
         if(!flipper_format_read_uint32(ff, "Swing", &app_state->swing, 1)) break;
+        if(app_state->swing > 1) break;
         if(!flipper_format_read_uint32(ff, "Power", &app_state->power, 1)) break;
+        if(app_state->power > 1) break;
         success = true;
     } while(false);
     furi_record_close(RECORD_STORAGE);
@@ -187,7 +191,7 @@ void ac_remote_scene_samsung_on_enter(void* context) {
         context);
     ac_remote_panel_add_icon(ac_remote_panel, 38, 105, &I_swing_text_20x5);
 
-    ac_remote_panel_add_label(ac_remote_panel, 0, 6, 11, FontPrimary, "Samsung AC");
+    ac_remote_panel_add_label(ac_remote_panel, 0, 6, 11, FontPrimary, "GNUSMAS");
 
     ac_remote_displayed_temperature(&ac_remote->app_state, buffer, sizeof(buffer));
     ac_remote_panel_add_label(ac_remote_panel, label_temperature, 4, 82, FontKeyboard, buffer);

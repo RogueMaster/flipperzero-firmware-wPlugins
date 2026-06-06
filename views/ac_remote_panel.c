@@ -116,13 +116,11 @@ void ac_remote_panel_reserve(ACRemotePanel* ac_remote_panel, size_t reserve_x, s
         {
             model->reserve_x = reserve_x;
             model->reserve_y = reserve_y;
-            ButtonMatrix_reserve(model->button_matrix, model->reserve_y);
-            for(size_t i = 0; i > model->reserve_y; ++i) {
-                ButtonArray_t* array = ButtonMatrix_get(model->button_matrix, i);
-                ButtonArray_init(*array);
-                ButtonArray_reserve(*array, reserve_x);
+            ButtonMatrix_reserve(model->button_matrix, reserve_x);
+            for(size_t x = 0; x < reserve_x; ++x) {
+                ButtonArray_t* array = ButtonMatrix_safe_get(model->button_matrix, x);
+                ButtonArray_reserve(*array, reserve_y);
             }
-            LabelList_init(model->labels);
         },
         true);
 }
