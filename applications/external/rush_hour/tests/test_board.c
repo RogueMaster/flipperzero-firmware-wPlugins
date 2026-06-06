@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 // Red H len2 at (2,0); a vertical blocker V len3 at (0,3).
-static void setup_simple(TutuBoard *b) {
+static void setup_simple(TutuBoard* b) {
     TutuPiece p[2] = {
         {2, 0, 2, TUTU_H}, // red
         {0, 3, 3, TUTU_V}, // blocker spanning rows 0..2 at col 3
@@ -14,18 +14,18 @@ static void setup_simple(TutuBoard *b) {
 static void test_occupancy(void) {
     TutuBoard b;
     setup_simple(&b);
-    assert(tutu_board_cell_occupied(&b, 2, 0, -1));  // red
-    assert(tutu_board_cell_occupied(&b, 2, 1, -1));  // red second cell
+    assert(tutu_board_cell_occupied(&b, 2, 0, -1)); // red
+    assert(tutu_board_cell_occupied(&b, 2, 1, -1)); // red second cell
     assert(!tutu_board_cell_occupied(&b, 2, 2, -1)); // empty
-    assert(tutu_board_cell_occupied(&b, 2, 3, -1));  // blocker bottom cell
-    assert(!tutu_board_cell_occupied(&b, 2, 3, 1));  // ignoring the blocker -> empty
+    assert(tutu_board_cell_occupied(&b, 2, 3, -1)); // blocker bottom cell
+    assert(!tutu_board_cell_occupied(&b, 2, 3, 1)); // ignoring the blocker -> empty
 }
 
 static void test_move_legality(void) {
     TutuBoard b;
     setup_simple(&b);
     assert(!tutu_board_can_move(&b, TUTU_RED, -1)); // red at col0 cannot go left
-    assert(tutu_board_can_move(&b, TUTU_RED, +1));  // can move right to col1..2
+    assert(tutu_board_can_move(&b, TUTU_RED, +1)); // can move right to col1..2
     assert(tutu_board_move(&b, TUTU_RED, +1));
     assert(b.pieces[TUTU_RED].c == 1);
     // now red occupies cols 1,2; col3 is the blocker -> cannot move right
@@ -65,7 +65,7 @@ static void test_known_solution_solves(void) {
     TutuPiece p[1] = {{2, 0, 2, TUTU_H}};
     TutuBoard b;
     tutu_board_init(&b, p, 1);
-    for (int i = 0; i < 4; i++)
+    for(int i = 0; i < 4; i++)
         assert(tutu_board_move(&b, TUTU_RED, +1));
     assert(tutu_board_won(&b));
 }

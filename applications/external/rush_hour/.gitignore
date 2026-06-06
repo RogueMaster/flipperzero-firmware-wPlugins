@@ -1,6 +1,0 @@
-*.o
-test_board
-test_progress
-test_levels_data
-/dist
-local.mk
