@@ -224,19 +224,19 @@ uint16_t decoders_decode_manchester(
 
     /* Try all four conventions into temporary buffers, then commit the
      * best (standard preferred on tie). */
-    static uint8_t scratch_a[BITRAW_MAX_MANCH_BITS];
-    static uint8_t scratch_b[BITRAW_MAX_MANCH_BITS];
-    static uint8_t scratch_c[BITRAW_MAX_MANCH_BITS];
-    static uint8_t scratch_d[BITRAW_MAX_MANCH_BITS];
+    static uint8_t scratch_a[SUBHOUND_MAX_MANCH_BITS];
+    static uint8_t scratch_b[SUBHOUND_MAX_MANCH_BITS];
+    static uint8_t scratch_c[SUBHOUND_MAX_MANCH_BITS];
+    static uint8_t scratch_d[SUBHOUND_MAX_MANCH_BITS];
     float err_a = 0.0f, err_b = 0.0f, err_c = 0.0f, err_d = 0.0f;
     uint16_t na = try_manchester_convention(
-        bits, len, true, scratch_a, BITRAW_MAX_MANCH_BITS, &err_a);
+        bits, len, true, scratch_a, SUBHOUND_MAX_MANCH_BITS, &err_a);
     uint16_t nb = try_manchester_convention(
-        bits, len, false, scratch_b, BITRAW_MAX_MANCH_BITS, &err_b);
+        bits, len, false, scratch_b, SUBHOUND_MAX_MANCH_BITS, &err_b);
     uint16_t nc = try_manchester_diff(
-        bits, len, true, scratch_c, BITRAW_MAX_MANCH_BITS, &err_c);
+        bits, len, true, scratch_c, SUBHOUND_MAX_MANCH_BITS, &err_c);
     uint16_t nd = try_manchester_diff(
-        bits, len, false, scratch_d, BITRAW_MAX_MANCH_BITS, &err_d);
+        bits, len, false, scratch_d, SUBHOUND_MAX_MANCH_BITS, &err_d);
 
     /* Standard tie-break (matches analyze.py behaviour). */
     bool pick_a_over_b;
@@ -398,7 +398,7 @@ bool decoders_detect_crc(const uint8_t* decoded_bits, uint16_t len, uint8_t* out
     uint16_t nbytes = (uint16_t)(len / 8u);
     if(nbytes < 2) return false;
 
-    static uint8_t bytes[BITRAW_MAX_DECODED_BITS / 8 + 1];
+    static uint8_t bytes[SUBHOUND_MAX_DECODED_BITS / 8 + 1];
     for(uint16_t i = 0; i < nbytes; i++) {
         uint8_t v = 0;
         for(int j = 0; j < 8; j++) {
@@ -445,8 +445,8 @@ void decoders_detect_rolling_code(
 
     if(!pwm || !pwm->found || sub->segment_count < 2) return;
 
-    static uint8_t decoded[BITRAW_MAX_SEGMENTS][BITRAW_MAX_DECODED_BITS];
-    uint16_t lens[BITRAW_MAX_SEGMENTS] = {0};
+    static uint8_t decoded[SUBHOUND_MAX_SEGMENTS][SUBHOUND_MAX_DECODED_BITS];
+    uint16_t lens[SUBHOUND_MAX_SEGMENTS] = {0};
 
     uint16_t min_len = UINT16_MAX;
     uint16_t max_len = 0;
@@ -455,7 +455,7 @@ void decoders_detect_rolling_code(
         const uint8_t* inner = sub->segment_bits[s] + sub->inner_start[s];
         uint16_t inner_len = sub->inner_len[s];
         lens[s] = decoders_decode_pwm(
-            inner, inner_len, pwm, decoded[s], BITRAW_MAX_DECODED_BITS);
+            inner, inner_len, pwm, decoded[s], SUBHOUND_MAX_DECODED_BITS);
         if(lens[s] < min_len) min_len = lens[s];
         if(lens[s] > max_len) max_len = lens[s];
     }

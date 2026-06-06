@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG "BitRaw"
+#define TAG "Subhound"
 
 /* Largest line we will buffer. 16KB bits worst case = ~6KB hex chars + spaces.
  * Round up to 8KB; longer lines are truncated with a flag. */
@@ -52,7 +52,7 @@ static bool decode_data_raw(
     uint32_t bit_raw_count,
     SubFile* sub,
     bool* truncated_out) {
-    if(sub->segment_count >= BITRAW_MAX_SEGMENTS) {
+    if(sub->segment_count >= SUBHOUND_MAX_SEGMENTS) {
         *truncated_out = true;
         return true;
     }
@@ -61,7 +61,7 @@ static bool decode_data_raw(
     for(uint16_t i = 0; i < sub->segment_count; i++) {
         already += sub->segment_bit_lens[i];
     }
-    if(already >= BITRAW_MAX_TOTAL_BITS) {
+    if(already >= SUBHOUND_MAX_TOTAL_BITS) {
         *truncated_out = true;
         return true;
     }
@@ -75,12 +75,12 @@ static bool decode_data_raw(
         declared = (nibbles / 2u) * 8u;
     }
 
-    if(declared > BITRAW_MAX_BITS_PER_SEG) {
-        declared = BITRAW_MAX_BITS_PER_SEG;
+    if(declared > SUBHOUND_MAX_BITS_PER_SEG) {
+        declared = SUBHOUND_MAX_BITS_PER_SEG;
         *truncated_out = true;
     }
-    if(already + declared > BITRAW_MAX_TOTAL_BITS) {
-        declared = BITRAW_MAX_TOTAL_BITS - already;
+    if(already + declared > SUBHOUND_MAX_TOTAL_BITS) {
+        declared = SUBHOUND_MAX_TOTAL_BITS - already;
         *truncated_out = true;
     }
     if(declared == 0) return true;
@@ -141,8 +141,8 @@ static void process_line(
         *have_te = true;
     } else if(starts_with(trimmed, "Preset:")) {
         char* v = skip_ws(trimmed + 7);
-        strncpy(sub->preset, v, BITRAW_MAX_PRESET_LEN - 1);
-        sub->preset[BITRAW_MAX_PRESET_LEN - 1] = 0;
+        strncpy(sub->preset, v, SUBHOUND_MAX_PRESET_LEN - 1);
+        sub->preset[SUBHOUND_MAX_PRESET_LEN - 1] = 0;
     } else if(starts_with(trimmed, "Lat:")) {
         sub->lat = strtof(skip_ws(trimmed + 4), NULL);
         if(sub->lat != 0.0f) sub->has_gps = true;

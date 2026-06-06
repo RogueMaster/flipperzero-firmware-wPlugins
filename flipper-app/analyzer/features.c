@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define HIST_SIZE 256
-#define TAG "BitRaw"
+#define TAG "Subhound"
 
 static void compute_dominant_runs(const SubFile* sub, FeatureVector* fv) {
     static uint16_t one_hist[HIST_SIZE];
@@ -160,7 +160,7 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
         const uint8_t* p = sub->segment_bits[0] + sub->inner_start[0];
         uint16_t inner_len = sub->inner_len[0];
         fv->pwm_decoded_count = decoders_decode_pwm(
-            p, inner_len, &fv->pwm_params, fv->pwm_decoded_bits, BITRAW_MAX_DECODED_BITS);
+            p, inner_len, &fv->pwm_params, fv->pwm_decoded_bits, SUBHOUND_MAX_DECODED_BITS);
     }
     FURI_LOG_D(TAG, "  feat: decode_pwm end n=%u", fv->pwm_decoded_count);
 
@@ -190,7 +190,7 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
             p,
             sub->inner_len[0],
             fv->manchester_decoded_bits,
-            BITRAW_MAX_MANCH_BITS,
+            SUBHOUND_MAX_MANCH_BITS,
             &fv->manchester_convention,
             &fv->manchester_error_rate);
     } else {
@@ -206,7 +206,7 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
         &fv->rolling_code,
         &fv->fixed_code,
         fv->diff_positions,
-        BITRAW_MAX_DIFF_POSITIONS,
+        SUBHOUND_MAX_DIFF_POSITIONS,
         &fv->diff_position_count,
         &fv->diff_positions_truncated);
     FURI_LOG_D(TAG, "  feat: rolling end");
@@ -217,7 +217,7 @@ void features_extract(SubFile* sub, FeatureVector* fv) {
     fv->inter_segment_gap_us_mean = 0.0f;
     fv->inter_segment_gap_us_var = 0.0f;
     if(sub->segment_count >= 2 && sub->te_us > 0u) {
-        static float gaps[BITRAW_MAX_SEGMENTS];
+        static float gaps[SUBHOUND_MAX_SEGMENTS];
         uint16_t gn = 0;
         for(uint16_t s = 0; s + 1 < sub->segment_count; s++) {
             uint16_t raw_a = sub->segment_bit_lens[s];

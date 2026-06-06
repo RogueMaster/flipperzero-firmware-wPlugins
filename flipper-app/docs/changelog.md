@@ -1,3 +1,6 @@
+v1.2:
+renamed app to Subhound
+
 v1.1:
 added PT2262 and EV1527 fixed-code remote classifiers
 

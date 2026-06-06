@@ -1,7 +1,7 @@
-# Apps Catalog manifest for BinRAW Analyzer.
+# Apps Catalog manifest for Subhound.
 # This file does NOT belong in this repo at runtime — copy it into your fork of
 # flipperdevices/flipper-application-catalog at:
-#   applications/Sub-GHz/bitraw_analyzer/manifest.yml
+#   applications/Sub-GHz/subhound/manifest.yml
 # then open a PR there.
 #
 # name, id, category, version, author, icon, short_description all come from

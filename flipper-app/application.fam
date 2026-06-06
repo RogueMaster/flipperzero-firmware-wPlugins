@@ -1,13 +1,13 @@
 App(
-    appid="bitraw_analyzer",
-    name="BinRAW Analyzer",
+    appid="subhound",
+    name="Subhound",
     apptype=FlipperAppType.EXTERNAL,
-    entry_point="bitraw_analyzer_app",
+    entry_point="subhound_app",
     requires=["gui", "storage", "dialogs"],
     stack_size=8 * 1024,
     fap_category="Sub-GHz",
     fap_icon="icons/icon_10x10.png",
     fap_author="maxwalks",
-    fap_version="1.1",
+    fap_version="1.2",
     fap_description="Classify Flipper SubGhz BinRAW captures on-device",
 )

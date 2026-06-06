@@ -157,8 +157,8 @@ uint16_t bits_find_repeating_subpattern_inner(
     *out_reps = 0;
 
     /* Build a small temporary buffer of all inner bits concatenated. We cap
-     * total inner bits to BITRAW_MAX_TOTAL_BITS at parse time, so this fits. */
-    static uint8_t scratch[BITRAW_MAX_TOTAL_BITS];
+     * total inner bits to SUBHOUND_MAX_TOTAL_BITS at parse time, so this fits. */
+    static uint8_t scratch[SUBHOUND_MAX_TOTAL_BITS];
     uint32_t n = 0;
     for(uint16_t s = 0; s < sub->segment_count; s++) {
         uint16_t start = sub->inner_start[s];

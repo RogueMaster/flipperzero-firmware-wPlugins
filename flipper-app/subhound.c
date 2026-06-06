@@ -1,13 +1,13 @@
-#include "bitraw_analyzer_app.h"
+#include "subhound_app.h"
 #include "analyzer/sub_parser.h"
 #include "analyzer/features.h"
 #include "analyzer/classifier.h"
 #include "analyzer/report.h"
 #include <string.h>
 
-#define TAG "BitRaw"
+#define TAG "Subhound"
 
-#define BITRAW_DEFAULT_BROWSE_PATH EXT_PATH("subghz")
+#define SUBHOUND_DEFAULT_BROWSE_PATH EXT_PATH("subghz")
 
 #define HEAPLOG(stage)                                                  \
     FURI_LOG_I(                                                         \
@@ -19,20 +19,20 @@
 
 /* Custom event IDs dispatched by Widget buttons / Submenu picks. */
 typedef enum {
-    BitrawEvtOpenSections = 100,
-    BitrawEvtOpenFullReport,
-    BitrawEvtOpenMetrics,
-    BitrawEvtOpenReasoning,
-    BitrawEvtOpenPayload,
-    BitrawEvtOpenManchester,
-    BitrawEvtOpenWarnings,
-} BitrawEvt;
+    SubhoundEvtOpenSections = 100,
+    SubhoundEvtOpenFullReport,
+    SubhoundEvtOpenMetrics,
+    SubhoundEvtOpenReasoning,
+    SubhoundEvtOpenPayload,
+    SubhoundEvtOpenManchester,
+    SubhoundEvtOpenWarnings,
+} SubhoundEvt;
 
 /* Tracks which view is showing so back-button can route per-view. */
-static BitrawView s_current_view;
-static BitrawView s_textbox_came_from;
+static SubhoundView s_current_view;
+static SubhoundView s_textbox_came_from;
 
-static void bitraw_switch_view(BitrawApp* app, BitrawView view) {
+static void subhound_switch_view(SubhoundApp* app, SubhoundView view) {
     s_current_view = view;
     view_dispatcher_switch_to_view(app->view_dispatcher, view);
 }
@@ -41,14 +41,14 @@ static void bitraw_switch_view(BitrawApp* app, BitrawView view) {
 
 static void summary_button_cb(GuiButtonType type, InputType input, void* context) {
     if(input != InputTypeShort) return;
-    BitrawApp* app = context;
+    SubhoundApp* app = context;
     if(type == GuiButtonTypeLeft) {
         /* Back to file picker. */
         view_dispatcher_stop(app->view_dispatcher);
     } else if(type == GuiButtonTypeCenter) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, BitrawEvtOpenSections);
+        view_dispatcher_send_custom_event(app->view_dispatcher, SubhoundEvtOpenSections);
     } else {
-        view_dispatcher_send_custom_event(app->view_dispatcher, BitrawEvtOpenFullReport);
+        view_dispatcher_send_custom_event(app->view_dispatcher, SubhoundEvtOpenFullReport);
     }
 }
 
@@ -65,11 +65,11 @@ static char s_summary_body[256];
  *   y=20-49 : scrollable body (30px high)
  *   y=50-63 : button hints (Back / Menu / Full)
  */
-static void bitraw_build_summary(BitrawApp* app) {
+static void subhound_build_summary(SubhoundApp* app) {
     widget_reset(app->summary);
 
-    const char* label = bitraw_label_name(app->result.label);
-    const char* conf = bitraw_confidence_name(app->result.confidence);
+    const char* label = subhound_label_name(app->result.label);
+    const char* conf = subhound_confidence_name(app->result.confidence);
 
     /* Row 1: classification label on its own line. */
     widget_add_string_element(
@@ -118,28 +118,28 @@ static void bitraw_build_summary(BitrawApp* app) {
 /* ============================ sections menu =========================== */
 
 static void sections_item_cb(void* context, uint32_t event_id) {
-    BitrawApp* app = context;
+    SubhoundApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, event_id);
 }
 
-static void bitraw_build_sections(BitrawApp* app) {
+static void subhound_build_sections(SubhoundApp* app) {
     submenu_reset(app->sections);
-    submenu_set_header(app->sections, bitraw_label_name(app->result.label));
+    submenu_set_header(app->sections, subhound_label_name(app->result.label));
 
     submenu_add_item(
-        app->sections, "Reasoning chain", BitrawEvtOpenReasoning, sections_item_cb, app);
+        app->sections, "Reasoning chain", SubhoundEvtOpenReasoning, sections_item_cb, app);
     submenu_add_item(
-        app->sections, "Key metrics", BitrawEvtOpenMetrics, sections_item_cb, app);
+        app->sections, "Key metrics", SubhoundEvtOpenMetrics, sections_item_cb, app);
 
     if(report_section_has_content(ReportSectionPayload, &app->fv, &app->result)) {
         submenu_add_item(
-            app->sections, "Payload (hex + bits)", BitrawEvtOpenPayload, sections_item_cb, app);
+            app->sections, "Payload (hex + bits)", SubhoundEvtOpenPayload, sections_item_cb, app);
     }
     if(report_section_has_content(ReportSectionManchester, &app->fv, &app->result)) {
         submenu_add_item(
             app->sections,
             "Manchester decode",
-            BitrawEvtOpenManchester,
+            SubhoundEvtOpenManchester,
             sections_item_cb,
             app);
     }
@@ -147,13 +147,13 @@ static void bitraw_build_sections(BitrawApp* app) {
         char label[24];
         snprintf(label, sizeof(label), "Warnings (%u)", app->result.warning_count);
         submenu_add_item(
-            app->sections, label, BitrawEvtOpenWarnings, sections_item_cb, app);
+            app->sections, label, SubhoundEvtOpenWarnings, sections_item_cb, app);
     }
     submenu_add_item(
-        app->sections, "Full report", BitrawEvtOpenFullReport, sections_item_cb, app);
+        app->sections, "Full report", SubhoundEvtOpenFullReport, sections_item_cb, app);
 }
 
-static void bitraw_show_section(BitrawApp* app, ReportSection section, BitrawView origin) {
+static void subhound_show_section(SubhoundApp* app, ReportSection section, SubhoundView origin) {
     furi_string_reset(app->section_text);
     report_format_section(
         section,
@@ -167,59 +167,59 @@ static void bitraw_show_section(BitrawApp* app, ReportSection section, BitrawVie
     text_box_set_focus(app->text_box, TextBoxFocusStart);
     text_box_set_text(app->text_box, furi_string_get_cstr(app->section_text));
     s_textbox_came_from = origin;
-    bitraw_switch_view(app, BitrawViewTextBox);
+    subhound_switch_view(app, SubhoundViewTextBox);
 }
 
 /* ====================== custom event + navigation ===================== */
 
-static bool bitraw_custom_event_cb(void* context, uint32_t event) {
-    BitrawApp* app = context;
+static bool subhound_custom_event_cb(void* context, uint32_t event) {
+    SubhoundApp* app = context;
     switch(event) {
-    case BitrawEvtOpenSections:
-        bitraw_switch_view(app, BitrawViewSections);
+    case SubhoundEvtOpenSections:
+        subhound_switch_view(app, SubhoundViewSections);
         return true;
-    case BitrawEvtOpenFullReport:
+    case SubhoundEvtOpenFullReport:
         text_box_reset(app->text_box);
         text_box_set_font(app->text_box, TextBoxFontText);
         text_box_set_focus(app->text_box, TextBoxFocusStart);
         text_box_set_text(app->text_box, furi_string_get_cstr(app->report));
         s_textbox_came_from =
-            (s_current_view == BitrawViewSections) ? BitrawViewSections : BitrawViewSummary;
-        bitraw_switch_view(app, BitrawViewTextBox);
+            (s_current_view == SubhoundViewSections) ? SubhoundViewSections : SubhoundViewSummary;
+        subhound_switch_view(app, SubhoundViewTextBox);
         return true;
-    case BitrawEvtOpenMetrics:
-        bitraw_show_section(app, ReportSectionMetrics, BitrawViewSections);
+    case SubhoundEvtOpenMetrics:
+        subhound_show_section(app, ReportSectionMetrics, SubhoundViewSections);
         return true;
-    case BitrawEvtOpenReasoning:
-        bitraw_show_section(app, ReportSectionReasoning, BitrawViewSections);
+    case SubhoundEvtOpenReasoning:
+        subhound_show_section(app, ReportSectionReasoning, SubhoundViewSections);
         return true;
-    case BitrawEvtOpenPayload:
-        bitraw_show_section(app, ReportSectionPayload, BitrawViewSections);
+    case SubhoundEvtOpenPayload:
+        subhound_show_section(app, ReportSectionPayload, SubhoundViewSections);
         return true;
-    case BitrawEvtOpenManchester:
-        bitraw_show_section(app, ReportSectionManchester, BitrawViewSections);
+    case SubhoundEvtOpenManchester:
+        subhound_show_section(app, ReportSectionManchester, SubhoundViewSections);
         return true;
-    case BitrawEvtOpenWarnings:
-        bitraw_show_section(app, ReportSectionWarnings, BitrawViewSections);
+    case SubhoundEvtOpenWarnings:
+        subhound_show_section(app, ReportSectionWarnings, SubhoundViewSections);
         return true;
     }
     return false;
 }
 
-static bool bitraw_navigation_callback(void* context) {
-    BitrawApp* app = context;
+static bool subhound_navigation_callback(void* context) {
+    SubhoundApp* app = context;
     switch(s_current_view) {
-    case BitrawViewLoading:
+    case SubhoundViewLoading:
         /* Don't interrupt analysis. */
         return true;
-    case BitrawViewSummary:
+    case SubhoundViewSummary:
         view_dispatcher_stop(app->view_dispatcher);
         return true;
-    case BitrawViewSections:
-        bitraw_switch_view(app, BitrawViewSummary);
+    case SubhoundViewSections:
+        subhound_switch_view(app, SubhoundViewSummary);
         return true;
-    case BitrawViewTextBox:
-        bitraw_switch_view(app, s_textbox_came_from);
+    case SubhoundViewTextBox:
+        subhound_switch_view(app, s_textbox_came_from);
         return true;
     }
     return false;
@@ -227,7 +227,7 @@ static bool bitraw_navigation_callback(void* context) {
 
 /* ========================== analysis + sidecar ======================== */
 
-static bool bitraw_save_sidecar(BitrawApp* app, FuriString* out_path) {
+static bool subhound_save_sidecar(SubhoundApp* app, FuriString* out_path) {
     const char* src = furi_string_get_cstr(app->selected_path);
     if(!src || !*src) return false;
 
@@ -251,7 +251,7 @@ static bool bitraw_save_sidecar(BitrawApp* app, FuriString* out_path) {
 }
 
 /* Write a machine-readable metadata sidecar (<stem>.bra) next to the .sub. */
-static bool bitraw_save_bra_metadata(BitrawApp* app) {
+static bool subhound_save_bra_metadata(SubhoundApp* app) {
     const char* src = furi_string_get_cstr(app->selected_path);
     if(!src || !*src) return false;
 
@@ -261,9 +261,9 @@ static bool bitraw_save_bra_metadata(BitrawApp* app) {
     furi_string_cat_str(path, ".bra");
 
     FuriString* body = furi_string_alloc();
-    furi_string_cat_printf(body, "label=%s\n", bitraw_label_name(app->result.label));
+    furi_string_cat_printf(body, "label=%s\n", subhound_label_name(app->result.label));
     furi_string_cat_printf(
-        body, "confidence=%s\n", bitraw_confidence_name(app->result.confidence));
+        body, "confidence=%s\n", subhound_confidence_name(app->result.confidence));
     furi_string_cat_printf(body, "frequency_hz=%lu\n", (unsigned long)app->fv.frequency);
     furi_string_cat_printf(body, "te_us=%.0f\n", (double)app->fv.te_us);
     furi_string_cat_printf(body, "seg_count=%u\n", app->fv.seg_count);
@@ -308,7 +308,7 @@ static bool bitraw_save_bra_metadata(BitrawApp* app) {
     return ok;
 }
 
-static bool bitraw_run_analysis(BitrawApp* app) {
+static bool subhound_run_analysis(SubhoundApp* app) {
     sub_file_reset(&app->sub);
     furi_string_reset(app->parse_error);
     furi_string_reset(app->report);
@@ -344,14 +344,14 @@ static bool bitraw_run_analysis(BitrawApp* app) {
     report_format(path, &app->sub, &app->fv, &app->result, app->report);
 
     FuriString* sidecar_path = furi_string_alloc();
-    bool saved = bitraw_save_sidecar(app, sidecar_path);
+    bool saved = subhound_save_sidecar(app, sidecar_path);
     furi_string_cat_printf(
         app->report,
         saved ? "Report saved: %s\n" : "Report save FAILED: %s\n",
         furi_string_get_cstr(sidecar_path));
     furi_string_free(sidecar_path);
 
-    bitraw_save_bra_metadata(app);
+    subhound_save_bra_metadata(app);
 
     HEAPLOG("analyze-end");
     return true;
@@ -359,9 +359,9 @@ static bool bitraw_run_analysis(BitrawApp* app) {
 
 /* ============================ alloc / free ============================ */
 
-static BitrawApp* bitraw_app_alloc(void) {
-    BitrawApp* app = malloc(sizeof(BitrawApp));
-    furi_check(app, "BinRAW Analyzer: out of memory");
+static SubhoundApp* subhound_app_alloc(void) {
+    SubhoundApp* app = malloc(sizeof(SubhoundApp));
+    furi_check(app, "Subhound: out of memory");
     memset(app, 0, sizeof(*app));
 
     app->gui = furi_record_open(RECORD_GUI);
@@ -371,25 +371,25 @@ static BitrawApp* bitraw_app_alloc(void) {
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(
-        app->view_dispatcher, bitraw_navigation_callback);
+        app->view_dispatcher, subhound_navigation_callback);
     view_dispatcher_set_custom_event_callback(
-        app->view_dispatcher, bitraw_custom_event_cb);
+        app->view_dispatcher, subhound_custom_event_cb);
 
     app->loading = loading_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, BitrawViewLoading, loading_get_view(app->loading));
+        app->view_dispatcher, SubhoundViewLoading, loading_get_view(app->loading));
 
     app->summary = widget_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, BitrawViewSummary, widget_get_view(app->summary));
+        app->view_dispatcher, SubhoundViewSummary, widget_get_view(app->summary));
 
     app->sections = submenu_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, BitrawViewSections, submenu_get_view(app->sections));
+        app->view_dispatcher, SubhoundViewSections, submenu_get_view(app->sections));
 
     app->text_box = text_box_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, BitrawViewTextBox, text_box_get_view(app->text_box));
+        app->view_dispatcher, SubhoundViewTextBox, text_box_get_view(app->text_box));
 
     app->selected_path = furi_string_alloc();
     app->report = furi_string_alloc();
@@ -404,13 +404,13 @@ static BitrawApp* bitraw_app_alloc(void) {
     return app;
 }
 
-static void bitraw_app_free(BitrawApp* app) {
+static void subhound_app_free(SubhoundApp* app) {
     sub_file_reset(&app->sub);
 
-    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewTextBox);
-    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewSections);
-    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewSummary);
-    view_dispatcher_remove_view(app->view_dispatcher, BitrawViewLoading);
+    view_dispatcher_remove_view(app->view_dispatcher, SubhoundViewTextBox);
+    view_dispatcher_remove_view(app->view_dispatcher, SubhoundViewSections);
+    view_dispatcher_remove_view(app->view_dispatcher, SubhoundViewSummary);
+    view_dispatcher_remove_view(app->view_dispatcher, SubhoundViewLoading);
     text_box_free(app->text_box);
     submenu_free(app->sections);
     widget_free(app->summary);
@@ -431,38 +431,38 @@ static void bitraw_app_free(BitrawApp* app) {
 
 /* ============================== run loop ============================== */
 
-static bool bitraw_pick_file(BitrawApp* app) {
+static bool subhound_pick_file(SubhoundApp* app) {
     DialogsFileBrowserOptions options;
     dialog_file_browser_set_basic_options(&options, ".sub", NULL);
-    options.base_path = BITRAW_DEFAULT_BROWSE_PATH;
+    options.base_path = SUBHOUND_DEFAULT_BROWSE_PATH;
 
-    FuriString* preselect = furi_string_alloc_set(BITRAW_DEFAULT_BROWSE_PATH);
+    FuriString* preselect = furi_string_alloc_set(SUBHOUND_DEFAULT_BROWSE_PATH);
     bool picked =
         dialog_file_browser_show(app->dialogs, app->selected_path, preselect, &options);
     furi_string_free(preselect);
     return picked;
 }
 
-static void bitraw_show_parse_error(BitrawApp* app, const char* fallback) {
+static void subhound_show_parse_error(SubhoundApp* app, const char* fallback) {
     const char* text =
         !furi_string_empty(app->parse_error) ? furi_string_get_cstr(app->parse_error) : fallback;
     text_box_reset(app->text_box);
     text_box_set_font(app->text_box, TextBoxFontText);
     text_box_set_focus(app->text_box, TextBoxFocusStart);
     text_box_set_text(app->text_box, text);
-    s_textbox_came_from = BitrawViewSummary;
-    bitraw_switch_view(app, BitrawViewTextBox);
+    s_textbox_came_from = SubhoundViewSummary;
+    subhound_switch_view(app, SubhoundViewTextBox);
 }
 
-int32_t bitraw_analyzer_app(void* p) {
+int32_t subhound_app(void* p) {
     UNUSED(p);
     FURI_LOG_I(TAG, "=== app start ===");
-    BitrawApp* app = bitraw_app_alloc();
+    SubhoundApp* app = subhound_app_alloc();
     HEAPLOG("post-alloc");
 
     while(true) {
         FURI_LOG_I(TAG, "loop: file picker");
-        if(!bitraw_pick_file(app)) {
+        if(!subhound_pick_file(app)) {
             FURI_LOG_I(TAG, "loop: picker cancelled, exit");
             break;
         }
@@ -473,17 +473,17 @@ int32_t bitraw_analyzer_app(void* p) {
          * paints once we yield (via view_dispatcher_run). For large captures
          * the analysis itself can be ~1s — the loading view at least shows
          * during the next event-tick gap before render. */
-        s_current_view = BitrawViewLoading;
-        view_dispatcher_switch_to_view(app->view_dispatcher, BitrawViewLoading);
+        s_current_view = SubhoundViewLoading;
+        view_dispatcher_switch_to_view(app->view_dispatcher, SubhoundViewLoading);
 
-        bool ok = bitraw_run_analysis(app);
+        bool ok = subhound_run_analysis(app);
 
         if(ok) {
-            bitraw_build_summary(app);
-            bitraw_build_sections(app);
-            bitraw_switch_view(app, BitrawViewSummary);
+            subhound_build_summary(app);
+            subhound_build_sections(app);
+            subhound_switch_view(app, SubhoundViewSummary);
         } else {
-            bitraw_show_parse_error(app, "Could not read .sub file");
+            subhound_show_parse_error(app, "Could not read .sub file");
         }
 
         FURI_LOG_I(TAG, "loop: dispatcher run");
@@ -491,7 +491,7 @@ int32_t bitraw_analyzer_app(void* p) {
         FURI_LOG_I(TAG, "loop: dispatcher returned (back pressed)");
     }
 
-    bitraw_app_free(app);
+    subhound_app_free(app);
     FURI_LOG_I(TAG, "=== app exit ===");
     return 0;
 }

@@ -1,7 +1,9 @@
 # Subhound
 <img width="1924" height="1924" alt="image" src="https://github.com/user-attachments/assets/018aaa38-5762-43e6-abe4-bef1a641cdd3" />
 
-Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 17 ISM-band signal types with a full reasoning chain, scoring, and optional wardrive logging.
+**Subhound tells you what a Flipper Zero SubGHz capture actually is.** Point it at a BinRAW `.sub` file and it identifies the signal — garage remote, TPMS, weather station, utility meter, alarm sensor, and 12 more — with a confidence level, a step-by-step reasoning chain, and a sub-protocol hint.
+
+It runs two ways from one shared rule set: a **desktop Python tool** for batch triage, and a **native Flipper FAP** so you can classify on-device with no laptop.
 
 ---
 
@@ -21,8 +23,8 @@ Python 3.10+ and numpy are required. No other dependencies.
 
 ```bash
 pip install numpy
-git clone https://github.com/maxwalks/BinRAW_Analyzer
-cd BinRAW_Analyzer
+git clone https://github.com/maxwalks/subhound
+cd subhound
 ```
 
 Optional (run tests):
@@ -55,44 +57,34 @@ python3 analyze.py data/subfiles/ --summary-only
 usage: analyze.py [target] [options]
 
 positional:
-  target                .sub file or directory (omit when using --db-summary)
+  target                .sub file or directory of .sub files
 
 output:
   --summary-only        print batch summary table, skip per-file reports
   --json                emit JSON instead of human-readable text
-  --geojson FILE        write a GeoJSON FeatureCollection to FILE
-  --csv FILE            write one CSV row per capture
+  --csv FILE            write one CSV row per capture (batch mode)
   --anomalies           flag captures w/ low quality, off-band freq, or class-outlier entropy
-
-logging:
-  --db FILE             log every capture to an SQLite session database
-  --db-summary FILE     print summary stats for an existing session database
-  --dedup               skip DB insert when same payload SHA-256 already seen this run
-  --cluster-radius M    (with --db-summary) emit GeoJSON of nearby-capture clusters
-  --cluster-out FILE    (with --cluster-radius) destination GeoJSON (default: clusters.geojson)
 
 calibration:
   --calibrate-from FILE read filename→true-label JSON, write calibration.json
                         (subsequent runs append "~XX% measured, n=K" to confidence line)
 ```
 
+Pick the mode that fits: a bare `target` gives full per-file reports (great for one capture),
+`--summary-only` collapses a folder into one table, and `--json` / `--csv` produce
+machine-readable output for a whole batch.
+
 ### Examples
 
 ```bash
-# JSON output for a single file
+# Full report for a single file
+python3 analyze.py capture.sub
+
+# JSON for a single file
 python3 analyze.py capture.sub --json
 
-# Batch classify + write map
-python3 analyze.py wardrive_session/ --geojson session.geojson
-
-# Log to database while classifying
-python3 analyze.py wardrive_session/ --db session.db
-
-# Database summary
-python3 analyze.py --db-summary session.db
-
-# All at once
-python3 analyze.py wardrive_session/ --json --geojson out.geojson --db session.db
+# Batch a folder to a CSV table
+python3 analyze.py captures/ --summary-only --csv captures.csv
 ```
 
 ---
@@ -188,10 +180,10 @@ Each `Data_RAW` line is treated as a separate **segment**. Bits are extracted MS
 pytest tests/ -v
 ```
 
-60 tests: parity harness (locks current labels on `data/subfiles/`), Manchester decoding,
-rolling/fixed code, signal quality, every classifier, GeoJSON, CSV, CRC, tri-state PWM,
-inter-segment timing, spatial clustering, and DB operations. Regenerate parity goldens
-with `python3 tests/regen_golden.py` after intentional classifier changes.
+The suite covers the parity harness (locks current labels on `data/subfiles/`), Manchester
+decoding, rolling/fixed code, signal quality, every classifier, CSV output, CRC, tri-state
+PWM, and inter-segment timing. Regenerate parity goldens with `python3 tests/regen_golden.py`
+after intentional classifier changes.
 
 ---
 
@@ -206,7 +198,7 @@ cd flipper-app
 ufbt launch    # build + deploy + run on connected Flipper
 ```
 
-Or copy `flipper-app/dist/bitraw_analyzer.fap` to `/apps/Sub-GHz/` via qFlipper.
+Or copy `flipper-app/dist/subhound.fap` to `/apps/Sub-GHz/` via qFlipper.
 
 Usage: open the app, pick a `.sub` from the file browser, read the report, press Back to pick another. Two sidecars are auto-saved next to each capture: `<name>.report.txt` (human-readable) and `<name>.bra` (key=value metadata for desktop reimport).
 

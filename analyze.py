@@ -2000,65 +2000,16 @@ def detect_anomalies(records: list) -> list:
     return flagged
 
 
-def format_geojson(records: list) -> dict:
-    """
-    Build a GeoJSON FeatureCollection from a list of (path, sub, fv, result) tuples.
-    Only includes records with non-zero GPS coordinates.
-    """
-    features = []
-    for path, sub, fv, result in records:
-        if fv.lat == 0.0 and fv.lon == 0.0:
-            continue
-        feature = {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [fv.lon, fv.lat],  # GeoJSON is [lon, lat]
-            },
-            "properties": {
-                "file": os.path.basename(path),
-                "classification": result.label,
-                "confidence": result.confidence,
-                "sub_protocol": result.sub_protocol,
-                "frequency_hz": fv.frequency,
-                "te_us": fv.te_us,
-                "signal_quality": round(fv.signal_quality, 4),
-                "rolling_code": fv.rolling_code,
-                "fixed_code": fv.fixed_code,
-                "pwm_decoded_hex": _bits_to_hex(fv.pwm_decoded_bits) if fv.pwm_decoded_bits else None,
-            },
-        }
-        features.append(feature)
-
-    return {
-        "type": "FeatureCollection",
-        "features": features,
-    }
-
-
 # ---------------------------------------------------------------------------
 # Runners
 # ---------------------------------------------------------------------------
 
-def run_single(path: pathlib.Path, json_mode: bool = False, db=None) -> tuple:
+def run_single(path: pathlib.Path, json_mode: bool = False) -> tuple:
     """Process a single file. Returns (label, confidence, error_or_None)."""
     try:
         sub = parse_sub_file(str(path))
         fv = extract_features(sub)
         result = classify(fv)
-        if db is not None:
-            db.add_capture(
-                filename=path.name,
-                frequency=fv.frequency,
-                te_us=fv.te_us,
-                classification=result.label,
-                confidence=result.confidence,
-                lat=fv.lat,
-                lon=fv.lon,
-                payload_hex=_bits_to_hex(fv.pwm_decoded_bits),
-                signal_quality=fv.signal_quality,
-                sub_protocol="; ".join(result.sub_protocol),
-            )
         if json_mode:
             print(json.dumps(format_json(str(path), sub, fv, result), indent=2))
         else:
@@ -2075,10 +2026,7 @@ def run_batch(
     directory: pathlib.Path,
     json_mode: bool = False,
     summary_only: bool = False,
-    geojson_out: pathlib.Path = None,
-    db=None,
     csv_out: pathlib.Path = None,
-    dedup: bool = False,
     show_anomalies: bool = False,
 ) -> None:
     sub_files = sorted(directory.glob("*.sub"))
@@ -2089,8 +2037,6 @@ def run_batch(
     results = []
     batch_json = []
     records = []
-    seen_hashes: dict = {}
-    dedup_skipped = 0
 
     for path in sub_files:
         try:
@@ -2099,29 +2045,6 @@ def run_batch(
             result = classify(fv)
             records.append((str(path), sub, fv, result))
 
-            duplicate = False
-            if dedup:
-                phash = _payload_sha256(fv)
-                if phash:
-                    if phash in seen_hashes:
-                        duplicate = True
-                        dedup_skipped += 1
-                    else:
-                        seen_hashes[phash] = path.name
-
-            if db is not None and not duplicate:
-                db.add_capture(
-                    filename=path.name,
-                    frequency=fv.frequency,
-                    te_us=fv.te_us,
-                    classification=result.label,
-                    confidence=result.confidence,
-                    lat=fv.lat,
-                    lon=fv.lon,
-                    payload_hex=_bits_to_hex(fv.pwm_decoded_bits),
-                    signal_quality=fv.signal_quality,
-                    sub_protocol="; ".join(result.sub_protocol),
-                )
             if json_mode:
                 batch_json.append(format_json(str(path), sub, fv, result))
             elif not summary_only:
@@ -2144,8 +2067,6 @@ def run_batch(
         for fname, label, conf in results:
             print(f"{fname:<45} {label:<22} {conf}")
         print()
-        if dedup and dedup_skipped:
-            print(f"Dedup: skipped {dedup_skipped} duplicate payload(s) on DB insert.")
 
     if csv_out is not None:
         rows = [format_csv_row(p, fv, r) for p, _s, fv, r in records]
@@ -2155,13 +2076,6 @@ def run_batch(
             writer.writerows(rows)
         if not json_mode:
             print(f"CSV written to {csv_out} ({len(rows)} rows)")
-
-    if geojson_out is not None:
-        gj = format_geojson(records)
-        with open(geojson_out, "w") as f:
-            json.dump(gj, f, indent=2)
-        if not json_mode:
-            print(f"GeoJSON written to {geojson_out} ({len(gj['features'])} geolocated captures)")
 
     if show_anomalies and not json_mode:
         flagged = detect_anomalies(records)
@@ -2194,45 +2108,14 @@ def main() -> None:
         help="batch mode: print only the summary table, no per-file reports",
     )
     parser.add_argument(
-        "--geojson",
-        metavar="OUTPUT.geojson",
-        help="write GeoJSON FeatureCollection of geolocated captures to this file",
-    )
-    parser.add_argument(
-        "--db",
-        metavar="SESSION.db",
-        help="append all classified captures to this SQLite wardrive database",
-    )
-    parser.add_argument(
-        "--db-summary",
-        metavar="SESSION.db",
-        help="print summary statistics from an existing wardrive database and exit",
-    )
-    parser.add_argument(
         "--csv",
         metavar="OUT.csv",
         help="write one CSV row per capture (batch mode)",
     )
     parser.add_argument(
-        "--dedup",
-        action="store_true",
-        help="skip DB inserts when the same payload SHA-256 has already been seen this run",
-    )
-    parser.add_argument(
         "--anomalies",
         action="store_true",
         help="print captures with low signal quality, off-band frequency, or class-outlier entropy",
-    )
-    parser.add_argument(
-        "--cluster-radius",
-        metavar="METERS",
-        type=float,
-        help="(with --db-summary) emit GeoJSON clusters of nearby captures within radius",
-    )
-    parser.add_argument(
-        "--cluster-out",
-        metavar="OUT.geojson",
-        help="(with --cluster-radius) destination GeoJSON file (default: clusters.geojson)",
     )
     parser.add_argument(
         "--calibrate-from",
@@ -2241,26 +2124,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if args.db_summary:
-        from wardrive_db import WardriveDB
-        db = WardriveDB(args.db_summary)
-        db.print_summary()
-        if args.cluster_radius is not None:
-            out = pathlib.Path(args.cluster_out) if args.cluster_out else pathlib.Path("clusters.geojson")
-            gj = db.cluster_by_location(args.cluster_radius)
-            with open(out, "w") as f:
-                json.dump(gj, f, indent=2)
-            print(f"Clusters (radius {args.cluster_radius:.0f} m) written to {out} ({len(gj['features'])} clusters)")
-        db.close()
-        return
-
     if args.target is None:
-        parser.error("target is required unless --db-summary is used")
-
-    db = None
-    if args.db:
-        from wardrive_db import WardriveDB
-        db = WardriveDB(args.db)
+        parser.error("target is required")
 
     target = pathlib.Path(args.target)
     if target.is_dir():
@@ -2284,19 +2149,13 @@ def main() -> None:
             target,
             json_mode=args.json,
             summary_only=args.summary_only,
-            geojson_out=pathlib.Path(args.geojson) if args.geojson else None,
-            db=db,
             csv_out=pathlib.Path(args.csv) if args.csv else None,
-            dedup=args.dedup,
             show_anomalies=args.anomalies,
         )
     elif target.is_file() and target.suffix == ".sub":
-        run_single(target, json_mode=args.json, db=db)
+        run_single(target, json_mode=args.json)
     else:
         parser.error(f"Not a .sub file or directory: {args.target}")
-
-    if db is not None:
-        db.close()
 
 
 if __name__ == "__main__":

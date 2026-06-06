@@ -58,9 +58,9 @@ static void cat_header(
     furi_string_cat_str(out, SEP);
     furi_string_cat_str(out, "\n");
 
-    furi_string_cat_printf(out, "CLASSIFICATION : %s\n", bitraw_label_name(result->label));
+    furi_string_cat_printf(out, "CLASSIFICATION : %s\n", subhound_label_name(result->label));
     furi_string_cat_printf(
-        out, "CONFIDENCE     : %s\n", bitraw_confidence_name(result->confidence));
+        out, "CONFIDENCE     : %s\n", subhound_confidence_name(result->confidence));
 
     for(uint8_t i = 0; i < result->hint_count; i++) {
         furi_string_cat_printf(
@@ -196,7 +196,7 @@ static void cat_manchester(const FeatureVector* fv, FuriString* out) {
         out,
         "MANCHESTER\n  %u bits decoded [%s, %.0f%% errors]\n  Hex : ",
         fv->manchester_decoded_count,
-        bitraw_manchester_name(fv->manchester_convention),
+        subhound_manchester_name(fv->manchester_convention),
         (double)(fv->manchester_error_rate * 100.0f));
     cat_hex_bits(out, fv->manchester_decoded_bits, fv->manchester_decoded_count);
     furi_string_cat_str(out, "\n");
@@ -251,7 +251,7 @@ void report_format(
             out,
             "  Manchester   : %u bits decoded [%s, %.0f%% errors]\n  Manch. hex   : ",
             fv->manchester_decoded_count,
-            bitraw_manchester_name(fv->manchester_convention),
+            subhound_manchester_name(fv->manchester_convention),
             (double)(fv->manchester_error_rate * 100.0f));
         cat_hex_bits(out, fv->manchester_decoded_bits, fv->manchester_decoded_count);
         furi_string_cat_str(out, "\n");

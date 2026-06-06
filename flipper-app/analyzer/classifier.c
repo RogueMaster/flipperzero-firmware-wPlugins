@@ -4,28 +4,28 @@
 #include <string.h>
 
 void classifier_add_reason(ClassificationResult* r, const char* fmt, ...) {
-    if(r->reason_count >= BITRAW_MAX_REASONS) return;
+    if(r->reason_count >= SUBHOUND_MAX_REASONS) return;
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(r->reasons[r->reason_count], BITRAW_MAX_REASON_LEN, fmt, ap);
+    vsnprintf(r->reasons[r->reason_count], SUBHOUND_MAX_REASON_LEN, fmt, ap);
     va_end(ap);
     r->reason_count++;
 }
 
 void classifier_add_hint(ClassificationResult* r, const char* fmt, ...) {
-    if(r->hint_count >= BITRAW_MAX_HINTS) return;
+    if(r->hint_count >= SUBHOUND_MAX_HINTS) return;
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(r->hints[r->hint_count], BITRAW_MAX_HINT_LEN, fmt, ap);
+    vsnprintf(r->hints[r->hint_count], SUBHOUND_MAX_HINT_LEN, fmt, ap);
     va_end(ap);
     r->hint_count++;
 }
 
 void classifier_add_warning(ClassificationResult* r, const char* fmt, ...) {
-    if(r->warning_count >= BITRAW_MAX_WARNINGS) return;
+    if(r->warning_count >= SUBHOUND_MAX_WARNINGS) return;
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(r->warnings[r->warning_count], BITRAW_MAX_WARNING_LEN, fmt, ap);
+    vsnprintf(r->warnings[r->warning_count], SUBHOUND_MAX_WARNING_LEN, fmt, ap);
     va_end(ap);
     r->warning_count++;
 }
@@ -45,15 +45,15 @@ static bool classify_noise(const FeatureVector* fv, ClassificationResult* out) {
     uint32_t set_bits = fv->inner_set_bits;
 
     if(set_bits <= 2) {
-        out->label = BitrawLabelNoise;
-        out->confidence = BitrawConfHigh;
+        out->label = SubhoundLabelNoise;
+        out->confidence = SubhoundConfHigh;
         classifier_add_reason(
             out, "[N0] Only %lu set bit(s) - effectively empty capture", (unsigned long)set_bits);
         return true;
     }
     if(fv->total_bits < 50) {
-        out->label = BitrawLabelNoise;
-        out->confidence = BitrawConfHigh;
+        out->label = SubhoundLabelNoise;
+        out->confidence = SubhoundConfHigh;
         classifier_add_reason(
             out,
             "[N1] Only %lu bits total - too short to be a real signal",
@@ -61,8 +61,8 @@ static bool classify_noise(const FeatureVector* fv, ClassificationResult* out) {
         return true;
     }
     if(fv->zero_ratio > 0.97f && set_bits < 20) {
-        out->label = BitrawLabelNoise;
-        out->confidence = BitrawConfHigh;
+        out->label = SubhoundLabelNoise;
+        out->confidence = SubhoundConfHigh;
         classifier_add_reason(
             out,
             "[N2] zero_ratio=%.1f%%, only %lu set bits - background noise",
@@ -71,8 +71,8 @@ static bool classify_noise(const FeatureVector* fv, ClassificationResult* out) {
         return true;
     }
     if(fv->seg_count == 1 && fv->zero_ratio > 0.95f && fv->entropy < 0.25f) {
-        out->label = BitrawLabelNoise;
-        out->confidence = BitrawConfHigh;
+        out->label = SubhoundLabelNoise;
+        out->confidence = SubhoundConfHigh;
         classifier_add_reason(
             out,
             "[N3] Single segment, zero_ratio=%.1f%% > 95%%, entropy=%.3f < 0.25",
@@ -136,8 +136,8 @@ static bool classify_amr_meter(const FeatureVector* fv, ClassificationResult* ou
             out, "Manchester payload: %u bits decoded", fv->manchester_decoded_count);
     }
 
-    out->label = BitrawLabelAmrMeter;
-    out->confidence = score >= 7 ? BitrawConfMedium : BitrawConfLow;
+    out->label = SubhoundLabelAmrMeter;
+    out->confidence = score >= 7 ? SubhoundConfMedium : SubhoundConfLow;
     classifier_add_warning(
         out, "AMR identification requires CRC validation against ERT/IRTIS spec");
     return true;
@@ -201,13 +201,13 @@ static bool classify_tpms(const FeatureVector* fv, ClassificationResult* out) {
         return false;
     }
 
-    BitrawConfidence conf;
+    SubhoundConfidence conf;
     if(fv->frequency == 315000000u) {
         classifier_add_hint(out, "315MHz -> North American TPMS standard");
-        conf = score >= 8 ? BitrawConfHigh : (score >= 6 ? BitrawConfMedium : BitrawConfLow);
+        conf = score >= 8 ? SubhoundConfHigh : (score >= 6 ? SubhoundConfMedium : SubhoundConfLow);
     } else {
         classifier_add_hint(out, "433.92MHz -> European TPMS standard");
-        conf = score >= 6 ? BitrawConfMedium : BitrawConfLow;
+        conf = score >= 6 ? SubhoundConfMedium : SubhoundConfLow;
     }
 
     if(fv->seg_count == 1) {
@@ -218,10 +218,10 @@ static bool classify_tpms(const FeatureVector* fv, ClassificationResult* out) {
         classifier_add_warning(
             out,
             "Identical bursts (no rolling counter) - fixed-address TPMS or generic remote");
-        conf = BitrawConfLow;
+        conf = SubhoundConfLow;
     }
 
-    out->label = BitrawLabelTpms;
+    out->label = SubhoundLabelTpms;
     out->confidence = conf;
     return true;
 }
@@ -301,8 +301,8 @@ static bool classify_alarm_sensor(const FeatureVector* fv, ClassificationResult*
         classifier_add_hint(out, "433.92MHz -> alarm sensor ISM band");
     }
 
-    out->label = BitrawLabelAlarmSensor;
-    out->confidence = score >= 8 ? BitrawConfMedium : BitrawConfLow;
+    out->label = SubhoundLabelAlarmSensor;
+    out->confidence = score >= 8 ? SubhoundConfMedium : SubhoundConfLow;
     classifier_add_warning(
         out, "Cannot confirm alarm brand without protocol-specific CRC check");
     return true;
@@ -328,18 +328,18 @@ static bool classify_shutter_blind(const FeatureVector* fv, ClassificationResult
             (unsigned long)fv->total_inner_bits);
     }
 
-    BitrawConfidence conf;
+    SubhoundConfidence conf;
     if(fv->frequency == 433420000u) {
         classifier_add_hint(out, "433.42MHz -> Somfy RTS confirmed frequency");
-        conf = BitrawConfMedium;
+        conf = SubhoundConfMedium;
     } else if(fv->frequency == 868350000u) {
         classifier_add_hint(out, "868.35MHz -> Faac SLH/XT or Nice Era profile");
-        conf = BitrawConfMedium;
+        conf = SubhoundConfMedium;
     } else {
         classifier_add_hint(out, "433.92MHz -> Nice Evo or Somfy capture offset");
         classifier_add_warning(
             out, "433.92MHz: Nice Evo native; Somfy ±500kHz offset");
-        conf = BitrawConfLow;
+        conf = SubhoundConfLow;
     }
 
     if(fv->seg_count >= 2) {
@@ -347,7 +347,7 @@ static bool classify_shutter_blind(const FeatureVector* fv, ClassificationResult
             out, "%u segments - typically transmits 2x with pause", fv->seg_count);
     }
 
-    out->label = BitrawLabelShutterBlind;
+    out->label = SubhoundLabelShutterBlind;
     out->confidence = conf;
     return true;
 }
@@ -379,8 +379,8 @@ static bool classify_pt2262(const FeatureVector* fv, ClassificationResult* out) 
     classifier_add_hint(
         out, fv->frequency == 433920000u ? "433.92MHz ISM" : "ISM band");
 
-    out->label = BitrawLabelPt2262Remote;
-    out->confidence = BitrawConfMedium;
+    out->label = SubhoundLabelPt2262Remote;
+    out->confidence = SubhoundConfMedium;
     classifier_add_warning(
         out, "Fixed code - this transmission may be vulnerable to replay");
     return true;
@@ -414,8 +414,8 @@ static bool classify_ev1527(const FeatureVector* fv, ClassificationResult* out) 
     classifier_add_hint(out, "EV1527/HS1527 learning-code remote");
     classifier_add_hint(out, "433.92MHz ISM");
 
-    out->label = BitrawLabelEv1527Remote;
-    out->confidence = fv->seg_count >= 4 ? BitrawConfMedium : BitrawConfLow;
+    out->label = SubhoundLabelEv1527Remote;
+    out->confidence = fv->seg_count >= 4 ? SubhoundConfMedium : SubhoundConfLow;
     classifier_add_warning(
         out, "Fixed code - this transmission may be vulnerable to replay");
     return true;
@@ -450,8 +450,8 @@ static bool classify_doorbell(const FeatureVector* fv, ClassificationResult* out
         classifier_add_hint(out, "315MHz -> North American doorbell");
     }
 
-    out->label = BitrawLabelDoorbell;
-    out->confidence = BitrawConfMedium;
+    out->label = SubhoundLabelDoorbell;
+    out->confidence = SubhoundConfMedium;
     return true;
 }
 
@@ -483,8 +483,8 @@ static bool classify_outlet_switch(const FeatureVector* fv, ClassificationResult
         out,
         "Cannot distinguish outlet from short garage/barrier remote without brand DB");
 
-    out->label = BitrawLabelOutletSwitch;
-    out->confidence = BitrawConfLow;
+    out->label = SubhoundLabelOutletSwitch;
+    out->confidence = SubhoundConfLow;
     return true;
 }
 
@@ -535,11 +535,11 @@ static bool classify_garage(const FeatureVector* fv, ClassificationResult* out) 
             (double)(fv->zero_ratio * 100.0f));
     }
 
-    BitrawConfidence conf;
+    SubhoundConfidence conf;
     if(strong_count >= 1) {
-        conf = BitrawConfHigh;
+        conf = SubhoundConfHigh;
     } else {
-        conf = BitrawConfLow;
+        conf = SubhoundConfLow;
         classifier_add_warning(
             out, "Near-identical repeats but no clean PWM - encoding ambiguous");
     }
@@ -614,7 +614,7 @@ static bool classify_garage(const FeatureVector* fv, ClassificationResult* out) 
         }
     }
 
-    out->label = BitrawLabelGarageRemote;
+    out->label = SubhoundLabelGarageRemote;
     out->confidence = conf;
     return true;
 }
@@ -662,8 +662,8 @@ static bool classify_keyfob(const FeatureVector* fv, ClassificationResult* out) 
         classifier_add_hint(out, "433.92MHz -> EU/Asian car keyfob / short-range remote");
     }
 
-    out->label = BitrawLabelKeyfobRemote;
-    out->confidence = rules >= 4 ? BitrawConfMedium : BitrawConfLow;
+    out->label = SubhoundLabelKeyfobRemote;
+    out->confidence = rules >= 4 ? SubhoundConfMedium : SubhoundConfLow;
     return true;
 }
 
@@ -708,11 +708,11 @@ static bool classify_weather(const FeatureVector* fv, ClassificationResult* out)
             out, "Clean PWM detected - weather usually uses Manchester or non-uniform OOK");
     }
 
-    BitrawConfidence conf;
+    SubhoundConfidence conf;
     if(rules >= 5) {
-        conf = BitrawConfMedium;
+        conf = SubhoundConfMedium;
     } else if(rules >= 3) {
-        conf = BitrawConfLow;
+        conf = SubhoundConfLow;
     } else {
         out->reason_count = 0;
         out->warning_count = 0;
@@ -727,7 +727,7 @@ static bool classify_weather(const FeatureVector* fv, ClassificationResult* out)
         classifier_add_hint(out, "TE ~336us -> generic 433MHz sensor (Lacrosse/similar)");
     }
 
-    out->label = BitrawLabelWeatherStation;
+    out->label = SubhoundLabelWeatherStation;
     out->confidence = conf;
     return true;
 }
@@ -750,17 +750,17 @@ static bool classify_wmbus(const FeatureVector* fv, ClassificationResult* out) {
         "[WM3] Manchester error rate %.0f%% - clean decode",
         (double)(fv->manchester_error_rate * 100.0f));
 
-    BitrawConfidence conf = BitrawConfLow;
+    SubhoundConfidence conf = SubhoundConfLow;
     if(fv->preamble.found && fv->preamble.length >= 16) {
         classifier_add_reason(
             out, "[WM4] %u-bit preamble - typical wMBus sync", fv->preamble.length);
-        conf = BitrawConfMedium;
+        conf = SubhoundConfMedium;
     }
     classifier_add_hint(out, "wireless M-Bus (EN 13757-4) candidate");
     classifier_add_warning(
         out, "Manufacturer requires DLL-layer CRC validation");
 
-    out->label = BitrawLabelWmbusMeter;
+    out->label = SubhoundLabelWmbusMeter;
     out->confidence = conf;
     return true;
 }
@@ -792,8 +792,8 @@ static bool classify_honeywell_5800(const FeatureVector* fv, ClassificationResul
                                     : "Honeywell 5800-series at 433.92MHz");
     classifier_add_warning(out, "Brand match by fingerprint only - confirm with CRC");
 
-    out->label = BitrawLabelHoneywell5800;
-    out->confidence = BitrawConfMedium;
+    out->label = SubhoundLabelHoneywell5800;
+    out->confidence = SubhoundConfMedium;
     return true;
 }
 
@@ -821,8 +821,8 @@ static bool classify_enocean(const FeatureVector* fv, ClassificationResult* out)
         (double)(fv->seg_similarity * 100.0f));
 
     classifier_add_hint(out, "EnOcean PTM-style self-powered switch");
-    out->label = BitrawLabelEnoceanSwitch;
-    out->confidence = BitrawConfMedium;
+    out->label = SubhoundLabelEnoceanSwitch;
+    out->confidence = SubhoundConfMedium;
     return true;
 }
 
@@ -845,8 +845,8 @@ static bool classify_lora_beacon(const FeatureVector* fv, ClassificationResult* 
     classifier_add_warning(
         out, "FSK chirp LoRa cannot be classified from .sub bits alone");
 
-    out->label = BitrawLabelLoraBeacon;
-    out->confidence = BitrawConfLow;
+    out->label = SubhoundLabelLoraBeacon;
+    out->confidence = SubhoundConfLow;
     return true;
 }
 
@@ -866,8 +866,8 @@ static bool classify_unknown_structured(const FeatureVector* fv, ClassificationR
             ? "Signal has structure but does not match any known device profile"
             : "Ambiguous: partial signal or unrecognised modulation");
 
-    out->label = BitrawLabelUnknownStructured;
-    out->confidence = BitrawConfLow;
+    out->label = SubhoundLabelUnknownStructured;
+    out->confidence = SubhoundConfLow;
     return true;
 }
 
@@ -900,7 +900,7 @@ void classifier_run(const FeatureVector* fv, ClassificationResult* out) {
     }
     /* Should never reach here */
     reset_result(out);
-    out->label = BitrawLabelUnknownStructured;
-    out->confidence = BitrawConfLow;
+    out->label = SubhoundLabelUnknownStructured;
+    out->confidence = SubhoundConfLow;
     classifier_add_reason(out, "No classifier matched");
 }

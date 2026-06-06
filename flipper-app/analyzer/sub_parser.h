@@ -19,8 +19,8 @@ void sub_file_reset(SubFile* sub);
  * converts each Bit_RAW/Data_RAW pair into one segment of MSB-first bits.
  *
  * On any error, an explanatory string is appended to *err_out (caller may pass
- * NULL). Bits beyond BITRAW_MAX_BITS_PER_SEG, segments beyond
- * BITRAW_MAX_SEGMENTS, or total bits beyond BITRAW_MAX_TOTAL_BITS cause
+ * NULL). Bits beyond SUBHOUND_MAX_BITS_PER_SEG, segments beyond
+ * SUBHOUND_MAX_SEGMENTS, or total bits beyond SUBHOUND_MAX_TOTAL_BITS cause
  * truncation and `sub->truncated = true` (not a hard error).
  */
 SubParseStatus sub_parser_parse(

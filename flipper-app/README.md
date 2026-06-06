@@ -1,4 +1,4 @@
-# BinRAW Analyzer — Flipper Zero FAP
+# Subhound — Flipper Zero FAP
 
 Native Flipper Zero app that classifies SubGhz BinRAW `.sub` captures on-device. No desktop required after flashing.
 
@@ -20,7 +20,7 @@ The classifier logic and thresholds are a 1:1 port of [`analyze.py`](https://git
 pip install ufbt
 ufbt update              # download SDK once (~50 MB)
 cd flipper-app
-ufbt                     # builds dist/bitraw_analyzer.fap
+ufbt                     # builds dist/subhound.fap
 ```
 
 ### Deploy
@@ -31,7 +31,7 @@ Connect your Flipper via USB, then:
 ufbt launch              # build + deploy + run
 ```
 
-Or copy `dist/bitraw_analyzer.fap` to `/apps/Sub-GHz/` on the SD card via qFlipper.
+Or copy `dist/subhound.fap` to `/apps/Sub-GHz/` on the SD card via qFlipper.
 
 ### IDE integration
 
@@ -42,7 +42,7 @@ ufbt vscode_dist         # generates .vscode/ with compile_commands.json
 ### Debug logs
 
 ```bash
-ufbt cli                 # connect to device; logs appear tagged [BitRaw]
+ufbt cli                 # connect to device; logs appear tagged [Subhound]
                          # `log info` (default) shows stage checkpoints + heap
                          # `log debug` adds per-segment + per-feature traces
 ```

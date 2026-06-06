@@ -4,7 +4,7 @@ from analyze import (
     decode_manchester, detect_rolling_code, compute_signal_quality,
     classify_alarm_sensor, classify_doorbell, classify_outlet_switch,
     classify_keyfob, classify_pt2262, classify_ev1527, classify,
-    format_geojson, ClassificationResult,
+    ClassificationResult,
     SubFile, FeatureVector, PWMParams, PreambleInfo, extract_features,
     compute_inter_segment_gaps_us, detect_pwm3_params, detect_crc,
     compute_runs, _crc8, _crc16_ccitt,
@@ -242,29 +242,6 @@ def test_alarm_sensor_rejects_low_entropy():
 def _make_result(label="NOISE"):
     return ClassificationResult(label=label, confidence="HIGH",
                                 sub_protocol=[], reasons=[], warnings=[])
-
-def test_geojson_skips_zero_coords():
-    fv = _make_fv()
-    fv.lat = 0.0
-    fv.lon = 0.0
-    result = _make_result("TPMS")
-    gj = format_geojson([("test.sub", None, fv, result)])
-    assert gj["type"] == "FeatureCollection"
-    assert gj["features"] == []  # zero coords excluded
-
-def test_geojson_includes_gps_record():
-    fv = _make_fv()
-    fv.lat = 52.3702
-    fv.lon = 4.8952
-    result = _make_result("GARAGE_REMOTE")
-    gj = format_geojson([("path/to/test.sub", None, fv, result)])
-    assert len(gj["features"]) == 1
-    feat = gj["features"][0]
-    # GeoJSON coordinates are [lon, lat]
-    assert feat["geometry"]["coordinates"] == [4.8952, 52.3702]
-    assert feat["properties"]["classification"] == "GARAGE_REMOTE"
-    assert feat["properties"]["file"] == "test.sub"
-
 
 def test_manchester_single_bit_no_crash():
     bits, convention, error_rate = decode_manchester([1])

@@ -12,14 +12,14 @@
 
 #include "analyzer/types.h"
 
-#define BITRAW_TAG "BitRaw"
+#define SUBHOUND_TAG "Subhound"
 
 typedef enum {
-    BitrawViewLoading,   /* spinner during parse + features + classify */
-    BitrawViewSummary,   /* Widget: overview card (landing view) */
-    BitrawViewSections,  /* Submenu: drill-down chooser */
-    BitrawViewTextBox,   /* per-section detail OR full report */
-} BitrawView;
+    SubhoundViewLoading,   /* spinner during parse + features + classify */
+    SubhoundViewSummary,   /* Widget: overview card (landing view) */
+    SubhoundViewSections,  /* Submenu: drill-down chooser */
+    SubhoundViewTextBox,   /* per-section detail OR full report */
+} SubhoundView;
 
 typedef struct {
     Gui* gui;
@@ -40,4 +40,4 @@ typedef struct {
     SubFile sub;
     FeatureVector fv;
     ClassificationResult result;
-} BitrawApp;
+} SubhoundApp;
