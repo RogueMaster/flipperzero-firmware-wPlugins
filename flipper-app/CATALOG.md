@@ -2,8 +2,6 @@
 
 Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 17 ISM-band signal types — garage remotes, TPMS, weather stations, utility meters, alarm sensors, and more — with a full reasoning chain, confidence scoring, and a sub-protocol hint.
 
-Runs natively on the Flipper. No desktop required after flashing.
-
 ## What it does
 
 1. Browses `.sub` files on the SD card under `/ext/subghz/`.
