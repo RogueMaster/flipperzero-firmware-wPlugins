@@ -863,7 +863,7 @@ static uint32_t prompt_back_cb(void* ctx) {
 static bool prompt_filename(Gui* gui, char* namebuf, size_t buflen) {
     PromptCtx pc = {.vd = NULL, .confirmed = false};
     ViewDispatcher* vd = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(*vd);
+    view_dispatcher_enable_queue(vd);
     pc.vd = vd;
 
     TextInput* ti = text_input_alloc();
