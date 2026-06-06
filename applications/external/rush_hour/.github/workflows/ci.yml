@@ -1,0 +1,23 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: sudo apt-get update && sudo apt-get install -y build-essential cppcheck clang-format
+      - name: Linter
+        run: make linter
+      - name: Format check
+        run: git ls-files '*.c' '*.h' | grep -v 'levels_data\.h' | xargs clang-format --dry-run --Werror
+      - name: Host tests
+        run: make test
+      - name: Bank header in sync with levels.json
+        run: |
+          node tools/gen-levels-header.mjs
+          git diff --exit-code src/data/levels_data.h

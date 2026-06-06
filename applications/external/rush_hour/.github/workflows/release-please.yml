@@ -1,0 +1,81 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          # A PAT (RELEASE_PLEASE_TOKEN) lets the bot's merge re-trigger workflows
+          # so the release is cut without a manual nudge. Falls back to the default
+          # token (the re-dispatch step below still closes the loop without a PAT).
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      # Auto-merge the release PR (rebase). Try native auto-merge, then an immediate
+      # rebase-merge, then a fast-forward of main via the API. Then wait for MERGED,
+      # tidy the branch, and re-dispatch so the merged release is picked up even when
+      # the merge push itself does not trigger a workflow (default-token case).
+      - if: ${{ steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW: ${{ github.workflow }}
+          PR_JSON: ${{ steps.release.outputs.pr }}
+        run: |
+          PR=$(echo "$PR_JSON" | jq -r .number)
+          BRANCH=$(echo "$PR_JSON" | jq -r .headBranchName)
+          gh pr merge --rebase --auto -R "$REPO" "$PR" \
+            || gh pr merge --rebase -R "$REPO" "$PR" \
+            || gh api -X PATCH "repos/$REPO/git/refs/heads/main" \
+                 -f sha="$(gh api "repos/$REPO/git/refs/heads/$BRANCH" --jq .object.sha)"
+          for _ in $(seq 1 30); do
+            STATE=$(gh pr view "$PR" -R "$REPO" --json state --jq .state)
+            [ "$STATE" = "MERGED" ] && break
+            sleep 2
+          done
+          gh api -X DELETE "repos/$REPO/git/refs/heads/$BRANCH" 2>/dev/null || true
+          gh workflow run "$WORKFLOW" -R "$REPO" --ref main
+
+      # When a release is actually published, build the FAP and attach it.
+      - if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v4
+
+      - name: Build FAP
+        id: ufbt
+        if: ${{ steps.release.outputs.release_created }}
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          sdk-channel: dev
+
+      - name: Upload FAP to release
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          faps=(dist/*.fap)
+          if [ ${#faps[@]} -eq 0 ]; then
+            echo "::error::No .fap in dist/. ufbt output was:"
+            echo "${{ steps.ufbt.outputs.fap-artifacts }}"
+            ls -la dist/ 2>&1 || true
+            find . -name '*.fap' -print 2>/dev/null || true
+            exit 1
+          fi
+          gh release upload "${{ steps.release.outputs.tag_name }}" "${faps[@]}"
