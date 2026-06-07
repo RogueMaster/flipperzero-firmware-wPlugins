@@ -38,11 +38,11 @@ This is an application for the **Flipper Zero** device that tracks the time elap
 ---
 ## 💻 Code Structure
 
-* `nie_pale.c`: The complete application source file.
-* `nie_pale()`: The main entry point that initializes the storage records, sets up the GUI viewport, and runs the primary application loop.
-* `draw()`: The rendering callback responsible for drawing the layout of the counter screen, the menu, the multi-stage confirmation pop-ups, and the exit message.
-* `input_callback()`: Processes all button presses, managing the states between the live counter, menu switching, and confirmation handling.
-* `check_milestone()`: Monitored during the loop to check if the elapsed time has passed a threshold, triggering a visual status update and appending it to the log.
-* `reset_session()`: Handles resetting the internal timer states, overwriting the timestamp configuration, and logging the reset event to the SD card.
-* `load_start_timestamp()` / `save_start_timestamp()`: Low-level functions utilizing the Storage API to read and write the binary state file (`/ext/apps/Health/nie_pale_start.bin`).
-* `append_log()` / `clear_log()`: Manages the text-based event tracking system saved under `/ext/apps/Health/nie_pale_log.txt`.
+* **nie_pale.c**: The complete application source file.
+* **nie_pale()**: The main entry point that initializes the storage records, sets up the GUI viewport, and runs the primary application loop.
+* **draw()**: The rendering callback responsible for drawing the layout of the counter screen, the menu, the multi-stage confirmation pop-ups, and the exit message.
+* **input_callback()**: Processes all button presses, managing the states between the live counter, menu switching, and confirmation handling.
+* **check_milestone()**: Monitored during the loop to check if the elapsed time has passed a threshold, triggering a visual status update and appending it to the log.
+* **reset_session()**: Handles resetting the internal timer states, overwriting the timestamp configuration, and logging the reset event to the SD card.
+* **load_start_timestamp()** / **save_start_timestamp()**: Low-level functions utilizing the Storage API to read and write the binary state file under **/ext/apps/Health/nie_pale_start.bin**.
+* **append_log()** / **clear_log()**: Manages the text-based event tracking system saved under **/ext/apps/Health/nie_pale_log.txt**.
