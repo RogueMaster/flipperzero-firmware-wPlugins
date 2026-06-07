@@ -37,6 +37,7 @@ typedef struct {
     char current_date[32];
     char current_time[32];
     char zegnaj[100];
+    char logo[30];
 } NiePaleApp;
 
 static void clear_log(Storage* storage) {
@@ -191,6 +192,8 @@ static void draw(Canvas* canvas, void* context) {
     if(app->is_exit) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, app->zegnaj);
+        canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, app->logo);
+
         return;
     }
 
@@ -372,7 +375,8 @@ int32_t nie_pale(void* p) {
         .current_time = "",
         .confirm_active = false,
         .napewno = false,
-        .zegnaj = "NOT WORTH IT !!!"};
+        .zegnaj = "NOT WORTH IT !!!",
+        .logo = " Dr.Mosfet"};
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(!storage) {
