@@ -6,7 +6,7 @@
 
 #include "ip_input_view.h"
 #include "../network_subnet.h"
-#define CHAR_WIDTH 7
+#define SUB_CHAR_WIDTH 7
 
 static void increment_active_digit(IpInputViewModel* m) {
     uint32_t temp_octet;
@@ -84,16 +84,16 @@ static void ip_input_view_draw(Canvas* canvas, void* model) {
         case SecondOctet:
         case ThirdOctet:
         case CIDR:
-            canvas_draw_str(canvas, 2 + (inc)*CHAR_WIDTH, 30, i == CIDR ? "/" : ".");
+            canvas_draw_str(canvas, 2 + (inc)*SUB_CHAR_WIDTH, 30, i == CIDR ? "/" : ".");
             inc += 1;
         }
         proc_active_digit = i == m->active_digit;
         if(proc_active_digit) {
-            canvas_draw_box(canvas, 1 + (inc)*CHAR_WIDTH, 22, 7, 10);
+            canvas_draw_box(canvas, 1 + (inc)*SUB_CHAR_WIDTH, 22, 7, 10);
             canvas_invert_color(canvas);
         }
         snprintf(buf, sizeof(buf), "%d", m->octets_and_cidr_digits[i]);
-        canvas_draw_str(canvas, 2 + (inc)*CHAR_WIDTH, 30, buf);
+        canvas_draw_str(canvas, 2 + (inc)*SUB_CHAR_WIDTH, 30, buf);
         inc += 1;
         if(proc_active_digit) {
             canvas_invert_color(canvas);
