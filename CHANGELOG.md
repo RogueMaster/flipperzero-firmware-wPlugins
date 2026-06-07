@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1] - 2026-06-08
+ [0.1] - 2026-06-08
 
-### Added
+**Added:**
 - Initial release of Smoke Free application for Flipper Zero.
 - Real-time time counter (days, hours, minutes, seconds).
 - Persistent storage for start timestamp on SD card.
