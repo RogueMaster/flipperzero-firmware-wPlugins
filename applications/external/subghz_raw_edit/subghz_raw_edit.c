@@ -24,6 +24,12 @@
 #define DUR_CLAMP         32000
 #define LOAD_HEAP_RESERVE 12288
 
+#define KEELOQ_TE_US           400
+#define KEELOQ_GUARD_US        1000
+#define KEELOQ_PREAMBLE_PULSES 12
+#define KEELOQ_HEADER_GAP_TE   10
+#define KEELOQ_MAX_KEY_BYTES   16
+
 #define APP_VERSION FAP_VERSION
 #define APP_REPO    "github.com/Lechnio/SubGHz-RAW-Edit"
 
@@ -233,6 +239,7 @@ static void auto_detect(App* a) {
     int32_t last_edge = 0;
     int32_t best_a = -1, best_b = -1;
     int32_t best_len = 0;
+    int32_t best_gap = 0;
 
     for(size_t i = 0; i < a->sd.count; i++) {
         int32_t ad = iabs32(a->sd.data[i]);
@@ -247,6 +254,7 @@ static void auto_detect(App* a) {
                     best_len = seglen;
                     best_a = seg_start;
                     best_b = last_edge;
+                    best_gap = ad;
                 }
                 seg_start = -1;
             }
@@ -261,6 +269,7 @@ static void auto_detect(App* a) {
         if(seglen >= MIN_FRAME_US && seglen > best_len) {
             best_a = seg_start;
             best_b = last_edge;
+            best_gap = 0;
         }
     }
 
@@ -273,11 +282,21 @@ static void auto_detect(App* a) {
         return;
     }
 
+    /* Extend B into the trailing inter-frame gap so the auto-selected frame
+     * keeps the end-of-frame silence that decoders (KeeLoq, ...) require to
+     * finalize a frame. Without it the selection ends on the last bit and the
+     * saved capture won't decode (it had to be widened by hand). Any positive
+     * extension is enough: write_selection emits the whole gap sample once the
+     * marker lands inside it. Limit it to KEELOQ_GUARD_US so the marker/view
+     * stay tidy and never reach into the next frame. */
+    int32_t gap_keep = best_gap;
+    if(gap_keep > KEELOQ_GUARD_US) gap_keep = KEELOQ_GUARD_US;
+
     int32_t pad = (best_b - best_a) / 6 + 500;
     a->marker_a = best_a;
-    a->marker_b = best_b;
+    a->marker_b = best_b + gap_keep;
     a->view_start = best_a - pad * 3;
-    a->view_end = best_b + pad * 3;
+    a->view_end = a->marker_b + pad * 3;
     clamp_view(a);
 }
 
@@ -328,6 +347,89 @@ static bool append_sample(SubData* sd, int32_t v) {
     return true;
 }
 
+typedef enum {
+    SubFormatRaw,
+    SubFormatKeeloq,
+} SubFormat;
+
+static bool is_hex_digit(char c) {
+    return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+}
+
+static size_t parse_hex_bytes(const char* s, uint8_t* out, size_t max_bytes) {
+    size_t n = 0;
+    while(*s && n < max_bytes) {
+        while(*s == ' ' || *s == '\t')
+            s++;
+        if(!s[0] || !s[1]) break;
+        if(!is_hex_digit(s[0]) || !is_hex_digit(s[1])) break;
+        char hex[3] = {s[0], s[1], '\0'};
+        out[n++] = (uint8_t)strtoul(hex, NULL, 16);
+        s += 2;
+    }
+    return n;
+}
+
+static bool
+    synthesize_keeloq(SubData* sd, const uint8_t* key, size_t key_len, uint16_t bit_count) {
+    if(key_len == 0 || bit_count == 0 || bit_count > key_len * 8) return false;
+
+    size_t needed = (KEELOQ_PREAMBLE_PULSES * 2) + ((size_t)bit_count * 2) + 2;
+    if(needed > MAX_SAMPLES) return false;
+
+    if(sd->cap < needed) {
+        size_t new_bytes = needed * sizeof(int16_t);
+        if(memmgr_get_free_heap() < new_bytes + LOAD_HEAP_RESERVE) {
+            sd->out_of_memory = true;
+            return false;
+        }
+        int16_t* grown = realloc(sd->data, new_bytes);
+        if(!grown) {
+            sd->out_of_memory = true;
+            return false;
+        }
+        sd->data = grown;
+        sd->cap = needed;
+    }
+
+    sd->count = 0;
+    sd->truncated = false;
+
+    for(int i = 0; i < KEELOQ_PREAMBLE_PULSES; i++) {
+        if(!append_sample(sd, KEELOQ_TE_US)) return false;
+        if(!append_sample(sd, -KEELOQ_TE_US)) return false;
+    }
+
+    sd->data[sd->count - 1] = -(int16_t)(KEELOQ_HEADER_GAP_TE * KEELOQ_TE_US);
+
+    /* Data bits. Flipper's KeeLoq encoder transmits the 64-bit value MSB-first
+     * (front=0 sends bit 63), and the .sub "Key:" hex stream is written with
+     * byte 0 = MSB of the uint64_t. So we iterate bytes left-to-right,
+     * MSB-first within each byte. */
+    for(uint16_t b = 0; b < bit_count; b++) {
+        size_t byte_idx = b / 8;
+        size_t bit_in_byte = 7 - (b % 8);
+        bool is_one = (key[byte_idx] >> bit_in_byte) & 1;
+        if(is_one) {
+            if(!append_sample(sd, 2 * KEELOQ_TE_US)) return false;
+            if(!append_sample(sd, -KEELOQ_TE_US)) return false;
+        } else {
+            if(!append_sample(sd, KEELOQ_TE_US)) return false;
+            if(!append_sample(sd, -2 * KEELOQ_TE_US)) return false;
+        }
+    }
+
+    /* End-of-frame guard. Flipper's KeeLoq decoder only declares success when
+     * it sees a timing mismatch *after* accumulating 64 bits. A trailing short
+     * ON followed by a long OFF (the classic 39*Te HCS300 guard) lands the
+     * decoder in CheckDuration, fails to match either bit pattern, and
+     * triggers the count-check that emits the "found" callback. */
+    if(!append_sample(sd, KEELOQ_TE_US)) return false;
+    if(!append_sample(sd, -(int32_t)KEELOQ_GUARD_US)) return false;
+
+    return true;
+}
+
 static bool load_sub(Storage* storage, const char* path, SubData* sd) {
     memset(sd, 0, sizeof(*sd));
     sd->frequency = 433920000;
@@ -357,6 +459,11 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
         return false;
     }
     sd->cap = est;
+
+    char protocol[32] = {0};
+    uint16_t bit_count = 0;
+    uint8_t key_bytes[KEELOQ_MAX_KEY_BYTES];
+    size_t key_len = 0;
 
     LineReader lr = {.file = f, .len = 0, .pos = 0, .eof = false};
     FuriString* line = furi_string_alloc();
@@ -388,12 +495,31 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
                 p++;
             strncpy(sd->preset, p, sizeof(sd->preset) - 1);
             sd->preset[sizeof(sd->preset) - 1] = '\0';
+        } else if(strncmp(s, "Protocol:", 9) == 0) {
+            const char* p = s + 9;
+            while(*p == ' ')
+                p++;
+            strncpy(protocol, p, sizeof(protocol) - 1);
+            protocol[sizeof(protocol) - 1] = '\0';
+        } else if(strncmp(s, "Bit:", 4) == 0) {
+            bit_count = (uint16_t)strtoul(s + 4, NULL, 10);
+        } else if(strncmp(s, "Key:", 4) == 0) {
+            const char* p = s + 4;
+            while(*p == ' ')
+                p++;
+            key_len = parse_hex_bytes(p, key_bytes, KEELOQ_MAX_KEY_BYTES);
         }
     }
 
     furi_string_free(line);
     storage_file_close(f);
     storage_file_free(f);
+
+    if(sd->count == 0 && key_len > 0 && bit_count > 0) {
+        if(strcmp(protocol, "KeeLoq") == 0) {
+            synthesize_keeloq(sd, key_bytes, key_len, bit_count);
+        }
+    }
 
     if(sd->data && sd->count > 0 && sd->count < sd->cap) {
         int16_t* shrunk = realloc(sd->data, sd->count * sizeof(int16_t));
@@ -1014,7 +1140,7 @@ static void run_editor(Storage* storage, DialogsApp* dialogs) {
         } else {
             dialog_message_set_header(m, "Sub-GHz RAW Edit", 64, 4, AlignCenter, AlignTop);
             dialog_message_set_text(
-                m, "Not a RAW capture\nor file is empty", 64, 32, AlignCenter, AlignCenter);
+                m, "Unsupported protocol or file is empty", 64, 32, AlignCenter, AlignCenter);
         }
         dialog_message_set_buttons(m, NULL, NULL, "OK");
         dialog_message_show(dialogs, m);

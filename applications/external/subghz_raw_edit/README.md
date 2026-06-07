@@ -14,6 +14,14 @@ a long recording full of repeats and noise becomes a single tidy frame.
 > **Receive/analysis only.** This app never transmits. It only reads, displays
 > and rewrites files you already have on the SD card.
 
+## Supported protocols
+Sub-GHz-RAW-Edit allows to display signals of `.sub` files in following protocols:
+- RAW
+- KeeLoq
+
+As the `Save` option always writes output `.sub` files in `RAW` format,
+its able to transform already recognized signals (protocols) back to `RAW` again.
+
 ## Screenshots
 
 Zooming from the full activity envelope all the way down to individual pulses,
@@ -196,4 +204,4 @@ RAW_Data: 257 -926 637 -526 ...
   real frame (a few hundred edges), but noise fills it in seconds. For example, an
   `AM650` capture at `433.92` MHz in a noisy area hits the limit around a ~105 KB
   25–30 s file. If you want to load longer RAWs just use `AM270` which won't
-  that much noise.
+  make that much noise.
