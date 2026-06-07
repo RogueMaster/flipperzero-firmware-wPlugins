@@ -8,6 +8,6 @@ All notable changes to this project will be documented in this file.
 - Initial release of Smoke Free application for Flipper Zero.
 - Real-time time counter (days, hours, minutes, seconds).
 - Persistent storage for start timestamp on SD card.
-- Text logging system (`nie_pale_log.txt`) for tracking milestones and resets.
+- Text logging system "nie_pale_log.txt" for tracking milestones and resets.
 - Multi-stage double-confirmation system to prevent accidental counter resets.
 - Milestone notifications for 1h, 12h, 1d, and 7d.
