@@ -30,6 +30,8 @@
 #define KEELOQ_HEADER_GAP_TE 10
 #define KEELOQ_MAX_KEY_BYTES 16
 
+#define MERGE_GAP_US 15000
+
 #define APP_VERSION "1.4"
 #define APP_REPO "github.com/Lechnio/SubGHz-RAW-Edit"
 
@@ -652,6 +654,49 @@ static bool load_sub(Storage *storage, const char *path, SubData *sd)
         run = 0x7FFFFFFF;
     sd->total_us = (int32_t)run;
     return sd->count >= 2;
+}
+
+static void recompute_total_us(SubData *sd)
+{
+    int64_t run = 0;
+    for (size_t i = 0; i < sd->count; i++)
+        run += iabs32(sd->data[i]);
+    if (run > 0x7FFFFFFF)
+        run = 0x7FFFFFFF;
+    sd->total_us = (int32_t)run;
+}
+
+static bool merge_ensure_cap(SubData *sd, size_t need)
+{
+    if (need <= sd->cap)
+        return true;
+
+    if (need > MAX_SAMPLES)
+        return false;
+
+    size_t new_bytes = need * sizeof(int16_t);
+    if (memmgr_get_free_heap() < new_bytes + LOAD_HEAP_RESERVE)
+        return false;
+
+    int16_t *grown = realloc(sd->data, new_bytes);
+    if (!grown)
+        return false;
+
+    sd->data = grown;
+    sd->cap = need;
+    return true;
+}
+
+static bool merge_append(SubData *dst, const SubData *src, bool add_separator)
+{
+    size_t extra = src->count + (add_separator ? 1 : 0);
+    if (!merge_ensure_cap(dst, dst->count + extra))
+        return false;
+    if (add_separator)
+        append_sample(dst, -MERGE_GAP_US);
+    for (size_t i = 0; i < src->count; i++)
+        append_sample(dst, src->data[i]);
+    return true;
 }
 
 static void propose_edit_name(Storage *st, App *a, char *out, size_t outlen)
@@ -1297,75 +1342,28 @@ static void do_cut_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Dialo
     furi_message_queue_reset(queue);
 }
 
-static void run_editor(Storage *storage, DialogsApp *dialogs)
+static void run_editor_session(
+    Gui *gui,
+    ViewPort *vp,
+    FuriMessageQueue *queue,
+    Storage *storage,
+    DialogsApp *dialogs,
+    App *app,
+    bool auto_select)
 {
-    App *app = malloc(sizeof(App));
-    memset(app, 0, sizeof(App));
-    app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
-
-    FuriString *path = furi_string_alloc_set(SUBGHZ_DIR);
-    DialogsFileBrowserOptions br;
-    dialog_file_browser_set_basic_options(&br, ".sub", &I_sub1_10px);
-    br.base_path = SUBGHZ_DIR;
-    bool picked = dialog_file_browser_show(dialogs, path, path, &br);
-
-    if (!picked)
-        goto cleanup;
-
-    {
-        const char *full = furi_string_get_cstr(path);
-        const char *slash = strrchr(full, '/');
-        const char *nm = slash ? slash + 1 : full;
-        strncpy(app->basename, nm, sizeof(app->basename) - 1);
-        char *dot = strrchr(app->basename, '.');
-        if (dot)
-            *dot = '\0';
-    }
-
-    Gui *gui = furi_record_open(RECORD_GUI);
-    ViewPort *vp = view_port_alloc();
-    FuriMessageQueue *queue = furi_message_queue_alloc(8, sizeof(InputEvent));
-    view_port_draw_callback_set(vp, draw_cb, app);
-    view_port_input_callback_set(vp, input_cb, queue);
-    app->loading = true;
-    gui_add_view_port(gui, vp, GuiLayerFullscreen);
-    view_port_update(vp);
-
-    bool loaded = load_sub(storage, furi_string_get_cstr(path), &app->sd);
-
-    if (app->sd.out_of_memory || !loaded)
-    {
-        gui_remove_view_port(gui, vp);
-        view_port_free(vp);
-        furi_message_queue_free(queue);
-        furi_record_close(RECORD_GUI);
-
-        DialogMessage *m = dialog_message_alloc();
-        if (app->sd.out_of_memory)
-        {
-            dialog_message_set_header(m, "Out of memory", 64, 2, AlignCenter, AlignTop);
-            dialog_message_set_text(
-                m,
-                "Not enough free RAM to\nload this capture.\nReboot Flipper, then\nopen the app first.",
-                64,
-                34,
-                AlignCenter,
-                AlignCenter);
-        }
-        else
-        {
-            dialog_message_set_header(m, "Sub-GHz RAW Edit", 64, 4, AlignCenter, AlignTop);
-            dialog_message_set_text(
-                m, "Unsupported protocol or file is empty", 64, 32, AlignCenter, AlignCenter);
-        }
-        dialog_message_set_buttons(m, NULL, NULL, "OK");
-        dialog_message_show(dialogs, m);
-        dialog_message_free(m);
-        goto cleanup;
-    }
-
     app->loading = false;
-    auto_detect(app);
+    if (auto_select)
+    {
+        auto_detect(app);
+    }
+    else
+    {
+        app->marker_a = 0;
+        app->marker_b = app->sd.total_us;
+        app->view_start = 0;
+        app->view_end = app->sd.total_us > 0 ? app->sd.total_us : 1;
+        clamp_view(app);
+    }
     recompute_overview(app);
     recompute_activity(app);
     furi_message_queue_reset(queue);
@@ -1506,6 +1504,194 @@ static void run_editor(Storage *storage, DialogsApp *dialogs)
             view_port_update(vp);
         }
     }
+}
+
+static void run_editor(Storage *storage, DialogsApp *dialogs)
+{
+    App *app = malloc(sizeof(App));
+    memset(app, 0, sizeof(App));
+    app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+
+    FuriString *path = furi_string_alloc_set(SUBGHZ_DIR);
+    DialogsFileBrowserOptions br;
+    dialog_file_browser_set_basic_options(&br, ".sub", &I_sub1_10px);
+    br.base_path = SUBGHZ_DIR;
+    bool picked = dialog_file_browser_show(dialogs, path, path, &br);
+
+    if (!picked)
+        goto cleanup;
+
+    {
+        const char *full = furi_string_get_cstr(path);
+        const char *slash = strrchr(full, '/');
+        const char *nm = slash ? slash + 1 : full;
+        strncpy(app->basename, nm, sizeof(app->basename) - 1);
+        char *dot = strrchr(app->basename, '.');
+        if (dot)
+            *dot = '\0';
+    }
+
+    Gui *gui = furi_record_open(RECORD_GUI);
+    ViewPort *vp = view_port_alloc();
+    FuriMessageQueue *queue = furi_message_queue_alloc(8, sizeof(InputEvent));
+    view_port_draw_callback_set(vp, draw_cb, app);
+    view_port_input_callback_set(vp, input_cb, queue);
+    app->loading = true;
+    gui_add_view_port(gui, vp, GuiLayerFullscreen);
+    view_port_update(vp);
+
+    bool loaded = load_sub(storage, furi_string_get_cstr(path), &app->sd);
+
+    if (app->sd.out_of_memory || !loaded)
+    {
+        gui_remove_view_port(gui, vp);
+        view_port_free(vp);
+        furi_message_queue_free(queue);
+        furi_record_close(RECORD_GUI);
+
+        DialogMessage *m = dialog_message_alloc();
+        if (app->sd.out_of_memory)
+        {
+            dialog_message_set_header(m, "Out of memory", 64, 2, AlignCenter, AlignTop);
+            dialog_message_set_text(
+                m,
+                "Not enough free RAM to\nload this capture.\nReboot Flipper, then\nopen the app first.",
+                64,
+                34,
+                AlignCenter,
+                AlignCenter);
+        }
+        else
+        {
+            dialog_message_set_header(m, "Sub-GHz RAW Edit", 64, 4, AlignCenter, AlignTop);
+            dialog_message_set_text(
+                m, "Unsupported protocol or file is empty", 64, 32, AlignCenter, AlignCenter);
+        }
+        dialog_message_set_buttons(m, NULL, NULL, "OK");
+        dialog_message_show(dialogs, m);
+        dialog_message_free(m);
+        goto cleanup;
+    }
+
+    run_editor_session(gui, vp, queue, storage, dialogs, app, true);
+
+    gui_remove_view_port(gui, vp);
+    view_port_free(vp);
+    furi_message_queue_free(queue);
+    furi_record_close(RECORD_GUI);
+
+cleanup:
+    furi_string_free(path);
+
+    if (app->sd.data)
+        free(app->sd.data);
+
+    if (app->undo_data)
+        free(app->undo_data);
+
+    furi_mutex_free(app->mutex);
+    free(app);
+}
+
+static void run_merge(Storage *storage, DialogsApp *dialogs)
+{
+    App *app = malloc(sizeof(App));
+    memset(app, 0, sizeof(App));
+    app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+
+    FuriString *path = furi_string_alloc_set(SUBGHZ_DIR);
+    int added = 0;
+    bool oom = false;
+    bool full = false;
+
+    while (true)
+    {
+        DialogsFileBrowserOptions br;
+        dialog_file_browser_set_basic_options(&br, ".sub", &I_sub1_10px);
+        br.base_path = SUBGHZ_DIR;
+        if (!dialog_file_browser_show(dialogs, path, path, &br))
+            break;
+
+        SubData tmp;
+        bool ok = load_sub(storage, furi_string_get_cstr(path), &tmp);
+        if (tmp.out_of_memory)
+        {
+            if (tmp.data)
+                free(tmp.data);
+
+            oom = true;
+            break;
+        }
+
+        if (!ok)
+        {
+            if (tmp.data)
+                free(tmp.data);
+
+            continue;
+        }
+
+        if (added == 0)
+        {
+            app->sd.frequency = tmp.frequency;
+            strncpy(app->sd.preset, tmp.preset, sizeof(app->sd.preset) - 1);
+            app->sd.preset[sizeof(app->sd.preset) - 1] = '\0';
+        }
+
+        bool appended = merge_append(&app->sd, &tmp, added > 0);
+        free(tmp.data);
+        if (!appended)
+        {
+            full = true;
+            break;
+        }
+        added++;
+
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Added %d file(s).", added);
+        DialogMessage *m = dialog_message_alloc();
+        dialog_message_set_header(m, "Merge .sub files", 64, 2, AlignCenter, AlignTop);
+        dialog_message_set_text(m, msg, 64, 30, AlignCenter, AlignCenter);
+        dialog_message_set_buttons(m, "Done", NULL, "Add more");
+        DialogMessageButton btn = dialog_message_show(dialogs, m);
+        dialog_message_free(m);
+        if (btn != DialogMessageButtonRight)
+            break;
+    }
+
+    if (added > 0)
+        recompute_total_us(&app->sd);
+
+    if (app->sd.count < 2)
+    {
+        if (oom)
+        {
+            DialogMessage *m = dialog_message_alloc();
+            dialog_message_set_header(m, "Merge .sub files", 64, 2, AlignCenter, AlignTop);
+            dialog_message_set_text(m, "Out of memory.", 64, 32, AlignCenter, AlignCenter);
+            dialog_message_set_buttons(m, NULL, NULL, "OK");
+            dialog_message_show(dialogs, m);
+            dialog_message_free(m);
+        }
+        goto cleanup;
+    }
+
+    strncpy(app->basename, "merged", sizeof(app->basename) - 1);
+
+    Gui *gui = furi_record_open(RECORD_GUI);
+    ViewPort *vp = view_port_alloc();
+    FuriMessageQueue *queue = furi_message_queue_alloc(8, sizeof(InputEvent));
+    view_port_draw_callback_set(vp, draw_cb, app);
+    view_port_input_callback_set(vp, input_cb, queue);
+    gui_add_view_port(gui, vp, GuiLayerFullscreen);
+
+    if (full)
+    {
+        snprintf(app->status, sizeof(app->status), "Buffer full, truncated");
+        app->status_until = furi_get_tick() + 2500;
+    }
+
+    run_editor_session(gui, vp, queue, storage, dialogs, app, false);
 
     gui_remove_view_port(gui, vp);
     view_port_free(vp);
@@ -1534,8 +1720,16 @@ typedef enum
 typedef enum
 {
     MenuItemSelectFile,
+    MenuItemMergeFiles,
     MenuItemAbout,
 } MenuItemId;
+
+typedef enum
+{
+    MenuActionNone = 0,
+    MenuActionEdit,
+    MenuActionMerge,
+} MenuAction;
 
 typedef struct
 {
@@ -1544,7 +1738,7 @@ typedef struct
     Widget *widget;
     Storage *storage;
     DialogsApp *dialogs;
-    bool launch_editor;
+    MenuAction action;
 } Menu;
 
 static void menu_submenu_cb(void *context, uint32_t index)
@@ -1552,7 +1746,12 @@ static void menu_submenu_cb(void *context, uint32_t index)
     Menu *menu = context;
     if (index == MenuItemSelectFile)
     {
-        menu->launch_editor = true;
+        menu->action = MenuActionEdit;
+        view_dispatcher_stop(menu->view_dispatcher);
+    }
+    else if (index == MenuItemMergeFiles)
+    {
+        menu->action = MenuActionMerge;
         view_dispatcher_stop(menu->view_dispatcher);
     }
     else if (index == MenuItemAbout)
@@ -1614,6 +1813,7 @@ int32_t subghz_raw_edit_app(void *p)
 
     submenu_set_header(menu->submenu, "Sub-GHz RAW Edit");
     submenu_add_item(menu->submenu, "Select .sub file", MenuItemSelectFile, menu_submenu_cb, menu);
+    submenu_add_item(menu->submenu, "Merge .sub files", MenuItemMergeFiles, menu_submenu_cb, menu);
     submenu_add_item(menu->submenu, "About", MenuItemAbout, menu_submenu_cb, menu);
 
     menu_build_about(menu);
@@ -1629,13 +1829,17 @@ int32_t subghz_raw_edit_app(void *p)
     bool running = true;
     while (running)
     {
-        menu->launch_editor = false;
+        menu->action = MenuActionNone;
         view_dispatcher_switch_to_view(menu->view_dispatcher, MenuViewSubmenu);
         view_dispatcher_run(menu->view_dispatcher);
 
-        if (menu->launch_editor)
+        if (menu->action == MenuActionEdit)
         {
             run_editor(menu->storage, menu->dialogs);
+        }
+        else if (menu->action == MenuActionMerge)
+        {
+            run_merge(menu->storage, menu->dialogs);
         }
         else
         {
