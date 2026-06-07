@@ -1,0 +1,11 @@
+dist/*
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+
+*.ignored.*
+**/.DS_Store
+**.out
