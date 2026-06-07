@@ -1,17 +1,14 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
 App(
-    appid="network_subnet",  # Must be unique
-    name="Network Subnet Helper",  # Displayed in menus
+    appid="network_subnet",
+    name="Network Subnet Helper",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="network_subnet_app",
     stack_size=2 * 1024,
-    fap_category="tools",
-    # Optional values
-    fap_version="0.1",
-    fap_icon="network_subnet.png",  # 10x10 1-bit PNG
-    fap_description="An app to help with IPv4 Subnets",
+    fap_icon="network_subnet.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
     fap_author="aaumkar",
     fap_weburl="https://github.com/aaumkar/network_subnet",
-    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_version="0.1",
+    fap_description="An app to help with IPv4 Subnets",
 )

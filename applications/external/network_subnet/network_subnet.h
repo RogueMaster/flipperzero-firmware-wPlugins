@@ -6,7 +6,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/view.h>
 
-#define TAG "--NetworkSubnet--"
+#define TAG "NetworkSubnet"
 
 typedef struct {
     uint32_t network_addr; // first address  (host bits zeroed)
