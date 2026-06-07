@@ -32,10 +32,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-06-06 19:35 EST`
 - Added: [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
 - Updated: [Tesla Mod v2.16.5 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Added: [Rush Hour v0.1.4 (By Endika)](https://github.com/Endika/flipper-tutu)
 - Added: [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound)
 - Added: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
+- Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 
 <a name="release"></a>
 
