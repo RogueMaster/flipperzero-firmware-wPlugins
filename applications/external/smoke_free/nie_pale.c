@@ -9,9 +9,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TAG        "SmokeFree"
-#define START_FILE "/ext/apps/Health/nie_pale_start.bin"
-#define LOG_FILE   "/ext/apps/Health/nie_pale_log.txt"
+#define TAG              "SmokeFree"
+#define SMOKEFREE_FOLDER EXT_PATH("apps_data/smoke_free")
+#define START_FILE       SMOKEFREE_FOLDER "/nie_pale_start.bin"
+#define LOG_FILE         SMOKEFREE_FOLDER "/nie_pale_log.txt"
 
 typedef enum {
     NiePaleModeNoSmoke = 0,
@@ -384,6 +385,9 @@ int32_t nie_pale(void* p) {
         strncpy(app.saved_text, "Error: cannot open Storage", sizeof(app.saved_text) - 1);
     } else {
         app.storage = storage;
+        if(!storage_simply_mkdir(app.storage, SMOKEFREE_FOLDER)) {
+            strncpy(app.saved_text, "Error: cannot create folder", sizeof(app.saved_text) - 1);
+        }
         uint32_t start_ts = 0;
 
         if(load_start_timestamp(storage, &start_ts)) {
