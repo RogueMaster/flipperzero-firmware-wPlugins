@@ -35,8 +35,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Rush Hour v0.1.4 (By Endika)](https://github.com/Endika/flipper-tutu)
 - Added: [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound)
 - Added: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
-- Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Added: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
+- Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 
 <a name="release"></a>
 
