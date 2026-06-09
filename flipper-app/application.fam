@@ -9,5 +9,6 @@ App(
     fap_icon="icons/icon_10x10.png",
     fap_author="maxwalks",
     fap_version="1.2",
+    fap_icon_assets="assets",
     fap_description="Classify Flipper SubGhz BinRAW captures on-device",
 )

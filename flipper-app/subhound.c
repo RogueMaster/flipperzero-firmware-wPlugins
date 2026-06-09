@@ -5,17 +5,22 @@
 #include "analyzer/report.h"
 #include <string.h>
 
+#include "subhound_icons.h"
+
 #define TAG "Subhound"
 
 #define SUBHOUND_DEFAULT_BROWSE_PATH EXT_PATH("subghz")
 
-#define HEAPLOG(stage)                                                  \
-    FURI_LOG_I(                                                         \
-        TAG,                                                            \
-        "heap[%s]: free=%zu min=%zu",                                   \
-        stage,                                                          \
-        memmgr_get_free_heap(),                                         \
+#define HEAPLOG(stage)                \
+    FURI_LOG_I(                       \
+        TAG,                          \
+        "heap[%s]: free=%zu min=%zu", \
+        stage,                        \
+        memmgr_get_free_heap(),       \
         memmgr_get_minimum_free_heap())
+
+#undef HEAPLOG
+#define HEAPLOG(...) ((void)0)
 
 /* Custom event IDs dispatched by Widget buttons / Submenu picks. */
 typedef enum {
@@ -72,16 +77,16 @@ static void subhound_build_summary(SubhoundApp* app) {
     const char* conf = subhound_confidence_name(app->result.confidence);
 
     /* Row 1: classification label on its own line. */
-    widget_add_string_element(
-        app->summary, 0, 0, AlignLeft, AlignTop, FontPrimary, label);
+    widget_add_string_element(app->summary, 0, 0, AlignLeft, AlignTop, FontPrimary, label);
 
     /* Row 2: confidence (left) + warnings indicator (right). */
-    widget_add_string_element(
-        app->summary, 0, 11, AlignLeft, AlignTop, FontSecondary, conf);
+    widget_add_string_element(app->summary, 0, 11, AlignLeft, AlignTop, FontSecondary, conf);
     if(app->result.warning_count > 0) {
         char warn[16];
         snprintf(
-            warn, sizeof(warn), "!%u warning%s",
+            warn,
+            sizeof(warn),
+            "!%u warning%s",
             app->result.warning_count,
             app->result.warning_count == 1 ? "" : "s");
         widget_add_string_element(
@@ -107,12 +112,9 @@ static void subhound_build_summary(SubhoundApp* app) {
 
     /* Bottom button hints. Keep all three labels <=4 chars so they don't
      * overlap on a 128px row (Center is rendered as a pill with padding). */
-    widget_add_button_element(
-        app->summary, GuiButtonTypeLeft, "Back", summary_button_cb, app);
-    widget_add_button_element(
-        app->summary, GuiButtonTypeCenter, "Menu", summary_button_cb, app);
-    widget_add_button_element(
-        app->summary, GuiButtonTypeRight, "Full", summary_button_cb, app);
+    widget_add_button_element(app->summary, GuiButtonTypeLeft, "Back", summary_button_cb, app);
+    widget_add_button_element(app->summary, GuiButtonTypeCenter, "Menu", summary_button_cb, app);
+    widget_add_button_element(app->summary, GuiButtonTypeRight, "Full", summary_button_cb, app);
 }
 
 /* ============================ sections menu =========================== */
@@ -128,8 +130,7 @@ static void subhound_build_sections(SubhoundApp* app) {
 
     submenu_add_item(
         app->sections, "Reasoning chain", SubhoundEvtOpenReasoning, sections_item_cb, app);
-    submenu_add_item(
-        app->sections, "Key metrics", SubhoundEvtOpenMetrics, sections_item_cb, app);
+    submenu_add_item(app->sections, "Key metrics", SubhoundEvtOpenMetrics, sections_item_cb, app);
 
     if(report_section_has_content(ReportSectionPayload, &app->fv, &app->result)) {
         submenu_add_item(
@@ -137,17 +138,12 @@ static void subhound_build_sections(SubhoundApp* app) {
     }
     if(report_section_has_content(ReportSectionManchester, &app->fv, &app->result)) {
         submenu_add_item(
-            app->sections,
-            "Manchester decode",
-            SubhoundEvtOpenManchester,
-            sections_item_cb,
-            app);
+            app->sections, "Manchester decode", SubhoundEvtOpenManchester, sections_item_cb, app);
     }
     if(report_section_has_content(ReportSectionWarnings, &app->fv, &app->result)) {
         char label[24];
         snprintf(label, sizeof(label), "Warnings (%u)", app->result.warning_count);
-        submenu_add_item(
-            app->sections, label, SubhoundEvtOpenWarnings, sections_item_cb, app);
+        submenu_add_item(app->sections, label, SubhoundEvtOpenWarnings, sections_item_cb, app);
     }
     submenu_add_item(
         app->sections, "Full report", SubhoundEvtOpenFullReport, sections_item_cb, app);
@@ -183,8 +179,8 @@ static bool subhound_custom_event_cb(void* context, uint32_t event) {
         text_box_set_font(app->text_box, TextBoxFontText);
         text_box_set_focus(app->text_box, TextBoxFocusStart);
         text_box_set_text(app->text_box, furi_string_get_cstr(app->report));
-        s_textbox_came_from =
-            (s_current_view == SubhoundViewSections) ? SubhoundViewSections : SubhoundViewSummary;
+        s_textbox_came_from = (s_current_view == SubhoundViewSections) ? SubhoundViewSections :
+                                                                         SubhoundViewSummary;
         subhound_switch_view(app, SubhoundViewTextBox);
         return true;
     case SubhoundEvtOpenMetrics:
@@ -239,8 +235,7 @@ static bool subhound_save_sidecar(SubhoundApp* app, FuriString* out_path) {
 
     File* file = storage_file_alloc(app->storage);
     bool ok = false;
-    if(storage_file_open(
-           file, furi_string_get_cstr(out_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+    if(storage_file_open(file, furi_string_get_cstr(out_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         const char* text = furi_string_get_cstr(app->report);
         size_t len = strlen(text);
         ok = storage_file_write(file, text, len) == len;
@@ -277,9 +272,9 @@ static bool subhound_save_bra_metadata(SubhoundApp* app) {
         for(uint16_t i = 0; i < total_bits; i += 8) {
             uint8_t byte = 0;
             for(uint8_t j = 0; j < 8; j++) {
-                uint8_t bit =
-                    (uint16_t)(i + j) < app->fv.pwm_decoded_count ?
-                        app->fv.pwm_decoded_bits[i + j] : 0;
+                uint8_t bit = (uint16_t)(i + j) < app->fv.pwm_decoded_count ?
+                                  app->fv.pwm_decoded_bits[i + j] :
+                                  0;
                 byte = (uint8_t)((byte << 1) | (bit & 1u));
             }
             furi_string_cat_printf(body, i == 0 ? "%02X" : " %02X", byte);
@@ -293,8 +288,7 @@ static bool subhound_save_bra_metadata(SubhoundApp* app) {
 
     File* file = storage_file_alloc(app->storage);
     bool ok = false;
-    if(storage_file_open(
-           file, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+    if(storage_file_open(file, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         const char* text = furi_string_get_cstr(body);
         size_t len = strlen(text);
         ok = storage_file_write(file, text, len) == len;
@@ -317,8 +311,7 @@ static bool subhound_run_analysis(SubhoundApp* app) {
 
     const char* path = furi_string_get_cstr(app->selected_path);
     FURI_LOG_I(TAG, "parse: %s", path);
-    SubParseStatus status =
-        sub_parser_parse(app->storage, path, &app->sub, app->parse_error);
+    SubParseStatus status = sub_parser_parse(app->storage, path, &app->sub, app->parse_error);
     FURI_LOG_I(
         TAG,
         "parse end status=%d segs=%u truncated=%d",
@@ -336,8 +329,7 @@ static bool subhound_run_analysis(SubhoundApp* app) {
 
     if(app->sub.truncated) {
         classifier_add_warning(
-            &app->result,
-            "Capture exceeded on-device limits - analysis used a truncated subset");
+            &app->result, "Capture exceeded on-device limits - analysis used a truncated subset");
     }
 
     FURI_LOG_I(TAG, "report");
@@ -372,8 +364,7 @@ static SubhoundApp* subhound_app_alloc(void) {
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, subhound_navigation_callback);
-    view_dispatcher_set_custom_event_callback(
-        app->view_dispatcher, subhound_custom_event_cb);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, subhound_custom_event_cb);
 
     app->loading = loading_alloc();
     view_dispatcher_add_view(
@@ -398,8 +389,7 @@ static SubhoundApp* subhound_app_alloc(void) {
 
     sub_file_init(&app->sub);
 
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     return app;
 }
@@ -433,12 +423,11 @@ static void subhound_app_free(SubhoundApp* app) {
 
 static bool subhound_pick_file(SubhoundApp* app) {
     DialogsFileBrowserOptions options;
-    dialog_file_browser_set_basic_options(&options, ".sub", NULL);
+    dialog_file_browser_set_basic_options(&options, ".sub", &I_sub1_10px);
     options.base_path = SUBHOUND_DEFAULT_BROWSE_PATH;
 
     FuriString* preselect = furi_string_alloc_set(SUBHOUND_DEFAULT_BROWSE_PATH);
-    bool picked =
-        dialog_file_browser_show(app->dialogs, app->selected_path, preselect, &options);
+    bool picked = dialog_file_browser_show(app->dialogs, app->selected_path, preselect, &options);
     furi_string_free(preselect);
     return picked;
 }
