@@ -38,6 +38,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
 - Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Sub-GHz: Small Telcoma Edge Fixes (By xMasterX)
+- Added: [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 
 <a name="release"></a>
 
@@ -388,6 +389,7 @@ $ ./fbt dolphin_ext
 - [Space Impact WIP v0.2 (By Ka3u6y6a)](https://github.com/Ka3u6y6a/flipper-zero-space-impact)
 - [Space Impact II v1.0.2 (By Erbonator3000 & VoidXH)](https://github.com/Erbonator3000/Flipper-Zero-Space-Impact-II)
 - [Space Invaders v0.1 (By PavelZurek)](https://github.com/PavelZurek/flipperzero-space-invaders)
+- [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 - [Strategem Zero v0.1 (By nymda)](https://github.com/nymda/StratagemZero)
 - [Sudoku v1.2 (By profelis)](https://github.com/profelis/fz-sudoku)
 - [SUPER-CHIP Emulator (By Milk-Cool)](https://github.com/Milk-Cool/fz-schip)

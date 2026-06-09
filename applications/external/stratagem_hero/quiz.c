@@ -43,7 +43,7 @@ typedef struct {
 
     // Settings (synced from VariableItemList)
     int time_limit_index; // 0-3
-    int max_errors;       // 0=no limit, 1-9
+    int max_errors; // 0=no limit, 1-9
 
     // Time bar
     uint32_t question_start_tick;
@@ -51,7 +51,7 @@ typedef struct {
 
     // Current question
     const Stratagem* options[QUIZ_OPTIONS_COUNT]; // 0=Up, 1=Right, 2=Left, 3=Down
-    int correct_option;  // 0-3
+    int correct_option; // 0-3
     int selected_option; // -1=timeout/none, 0-3
 
     // Score
@@ -77,10 +77,8 @@ struct QuizWidget {
     void* navigation_callback_context;
 };
 
-
 // Forward declarations
 static void quiz_generate_question(QuizWidget* widget);
-
 
 static void quiz_navigate_back(QuizWidget* widget) {
     furi_timer_stop(widget->answer_timer);
@@ -96,9 +94,8 @@ static void quiz_go_to_results(QuizWidget* widget) {
     furi_timer_stop(widget->answer_timer);
     furi_timer_stop(widget->time_limit_timer);
     furi_timer_stop(widget->time_bar_timer);
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        model->view_state = QuizView_Results;
-    }, true);
+    with_view_model(
+        widget->view, QuizWidgetModel * model, { model->view_state = QuizView_Results; }, true);
     furi_timer_start(widget->results_timer, QUIZ_RESULTS_HOLD_MS);
 }
 
@@ -106,20 +103,24 @@ static void quiz_process_selection(QuizWidget* widget, int option_index) {
     bool is_correct = false;
     bool game_over = false;
 
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        furi_timer_stop(widget->time_limit_timer);
-        furi_timer_stop(widget->time_bar_timer);
-        model->selected_option = option_index;
-        model->view_state = QuizView_Answer;
-        model->rounds_played++;
-        is_correct = (option_index >= 0) && (option_index == model->correct_option);
-        if(is_correct) {
-            model->correct_answers++;
-        } else if(model->max_errors > 0) {
-            model->errors_remaining--;
-        }
-        game_over = (model->max_errors > 0) && (model->errors_remaining <= 0);
-    }, true);
+    with_view_model(
+        widget->view,
+        QuizWidgetModel * model,
+        {
+            furi_timer_stop(widget->time_limit_timer);
+            furi_timer_stop(widget->time_bar_timer);
+            model->selected_option = option_index;
+            model->view_state = QuizView_Answer;
+            model->rounds_played++;
+            is_correct = (option_index >= 0) && (option_index == model->correct_option);
+            if(is_correct) {
+                model->correct_answers++;
+            } else if(model->max_errors > 0) {
+                model->errors_remaining--;
+            }
+            game_over = (model->max_errors > 0) && (model->errors_remaining <= 0);
+        },
+        true);
 
     if(is_correct) {
         stratahero_code_complete_notification(widget->notification, &widget->settings);
@@ -131,15 +132,16 @@ static void quiz_process_selection(QuizWidget* widget, int option_index) {
     UNUSED(game_over);
 }
 
-
 // Timer callbacks
 
 static void quiz_answer_timer_callback(void* context) {
     QuizWidget* widget = context;
     bool game_over = false;
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        game_over = (model->max_errors > 0) && (model->errors_remaining <= 0);
-    }, false);
+    with_view_model(
+        widget->view,
+        QuizWidgetModel * model,
+        { game_over = (model->max_errors > 0) && (model->errors_remaining <= 0); },
+        false);
     if(game_over) {
         quiz_go_to_results(widget);
     } else {
@@ -157,19 +159,18 @@ static void quiz_time_limit_timer_callback(void* context) {
 
 static void quiz_time_bar_timer_callback(void* context) {
     QuizWidget* widget = context;
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        UNUSED(model);
-    }, true);
+    with_view_model(widget->view, QuizWidgetModel * model, { UNUSED(model); }, true);
 }
-
 
 // Question generation
 
 static void quiz_generate_question(QuizWidget* widget) {
     int time_limit_index;
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        time_limit_index = model->time_limit_index;
-    }, false);
+    with_view_model(
+        widget->view,
+        QuizWidgetModel * model,
+        { time_limit_index = model->time_limit_index; },
+        false);
 
     // Pick QUIZ_OPTIONS_COUNT unique stratagems
     const Stratagem* chosen[QUIZ_OPTIONS_COUNT] = {NULL};
@@ -181,7 +182,10 @@ static void quiz_generate_question(QuizWidget* widget) {
         if(!candidate || !candidate->icon) continue;
         bool dup = false;
         for(int j = 0; j < chosen_count; j++) {
-            if(chosen[j] == candidate || chosen[j]->icon == candidate->icon) { dup = true; break; }
+            if(chosen[j] == candidate || chosen[j]->icon == candidate->icon) {
+                dup = true;
+                break;
+            }
         }
         if(!dup) chosen[chosen_count++] = candidate;
     }
@@ -192,9 +196,15 @@ static void quiz_generate_question(QuizWidget* widget) {
             if(!candidate->icon) continue;
             bool dup = false;
             for(int k = 0; k < i; k++) {
-                if(chosen[k] == candidate || chosen[k]->icon == candidate->icon) { dup = true; break; }
+                if(chosen[k] == candidate || chosen[k]->icon == candidate->icon) {
+                    dup = true;
+                    break;
+                }
             }
-            if(!dup) { chosen[i] = candidate; break; }
+            if(!dup) {
+                chosen[i] = candidate;
+                break;
+            }
         }
     }
 
@@ -202,14 +212,19 @@ static void quiz_generate_question(QuizWidget* widget) {
     uint32_t limit_ms = time_limit_values_ms[time_limit_index];
     uint32_t limit_ticks = limit_ms; // 1 tick = 1ms on Flipper
 
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        for(int i = 0; i < QUIZ_OPTIONS_COUNT; i++) model->options[i] = chosen[i];
-        model->correct_option = correct;
-        model->selected_option = -1;
-        model->view_state = QuizView_Question;
-        model->time_limit_ticks = limit_ticks;
-        model->question_start_tick = furi_get_tick();
-    }, true);
+    with_view_model(
+        widget->view,
+        QuizWidgetModel * model,
+        {
+            for(int i = 0; i < QUIZ_OPTIONS_COUNT; i++)
+                model->options[i] = chosen[i];
+            model->correct_option = correct;
+            model->selected_option = -1;
+            model->view_state = QuizView_Question;
+            model->time_limit_ticks = limit_ticks;
+            model->question_start_tick = furi_get_tick();
+        },
+        true);
 
     if(limit_ms > 0) {
         furi_timer_start(widget->time_limit_timer, limit_ms);
@@ -217,16 +232,20 @@ static void quiz_generate_question(QuizWidget* widget) {
     }
 }
 
-
 // Draw helpers
 
 static const Icon* quiz_button_icon(int option_index) {
     switch(option_index) {
-        case 0: return &I_up_button;
-        case 1: return &I_right_button;
-        case 2: return &I_left_button;
-        case 3: return &I_down_button;
-        default: return &I_up_button;
+    case 0:
+        return &I_up_button;
+    case 1:
+        return &I_right_button;
+    case 2:
+        return &I_left_button;
+    case 3:
+        return &I_down_button;
+    default:
+        return &I_up_button;
     }
 }
 
@@ -236,17 +255,18 @@ static void quiz_draw_option(
     int option_idx,
     const Stratagem* stratagem,
     bool highlight,
-    bool outline
-) {
+    bool outline) {
     int cx = col * QUIZ_OPTION_COL_W;
 
     if(highlight) {
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rbox(canvas, cx + 1, QUIZ_OPTIONS_Y + 1, QUIZ_OPTION_COL_W - 2, QUIZ_OPTION_H - 2, 3);
+        canvas_draw_rbox(
+            canvas, cx + 1, QUIZ_OPTIONS_Y + 1, QUIZ_OPTION_COL_W - 2, QUIZ_OPTION_H - 2, 3);
         canvas_set_color(canvas, ColorWhite);
     } else if(outline) {
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rframe(canvas, cx + 1, QUIZ_OPTIONS_Y + 1, QUIZ_OPTION_COL_W - 2, QUIZ_OPTION_H - 2, 3);
+        canvas_draw_rframe(
+            canvas, cx + 1, QUIZ_OPTIONS_Y + 1, QUIZ_OPTION_COL_W - 2, QUIZ_OPTION_H - 2, 3);
     }
 
     // Directional button icon at top of cell
@@ -277,7 +297,8 @@ static void quiz_draw_question_screen(Canvas* canvas, QuizWidgetModel* model, bo
         if(code_x < 0) code_x = 0;
         for(int i = 0; i < code_len; i++) {
             const StrataHeroCodeGlyph* glyph = stratahero_get_code_glyph(code[i]);
-            if(glyph) canvas_draw_icon(canvas, code_x + i * CODE_GLYPH_WIDTH, QUIZ_CODE_Y, glyph->black);
+            if(glyph)
+                canvas_draw_icon(canvas, code_x + i * CODE_GLYPH_WIDTH, QUIZ_CODE_Y, glyph->black);
         }
     }
 
@@ -286,7 +307,8 @@ static void quiz_draw_question_screen(Canvas* canvas, QuizWidgetModel* model, bo
         char err_buf[4];
         snprintf(err_buf, sizeof(err_buf) - 1, "%d", model->errors_remaining);
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, SCREEN_WIDTH - 2, QUIZ_CODE_Y, AlignRight, AlignTop, err_buf);
+        canvas_draw_str_aligned(
+            canvas, SCREEN_WIDTH - 2, QUIZ_CODE_Y, AlignRight, AlignTop, err_buf);
     }
 
     // Options in a single row
@@ -325,7 +347,8 @@ static void quiz_draw_question_screen(Canvas* canvas, QuizWidgetModel* model, bo
     if(!in_answer && model->time_limit_ticks > 0) {
         uint32_t elapsed = furi_get_tick() - model->question_start_tick;
         if(elapsed < model->time_limit_ticks) {
-            int bar_w = (int)((model->time_limit_ticks - elapsed) * SCREEN_WIDTH / model->time_limit_ticks);
+            int bar_w = (int)((model->time_limit_ticks - elapsed) * SCREEN_WIDTH /
+                              model->time_limit_ticks);
             if(bar_w > 0) {
                 canvas_draw_line(canvas, 0, QUIZ_TIME_BAR_Y, bar_w - 1, QUIZ_TIME_BAR_Y);
             }
@@ -349,18 +372,17 @@ static void quiz_draw_callback(Canvas* canvas, void* _model) {
     QuizWidgetModel* model = _model;
     canvas_clear(canvas);
     switch(model->view_state) {
-        case QuizView_Question:
-            quiz_draw_question_screen(canvas, model, false);
-            break;
-        case QuizView_Answer:
-            quiz_draw_question_screen(canvas, model, true);
-            break;
-        case QuizView_Results:
-            quiz_draw_results(canvas, model);
-            break;
+    case QuizView_Question:
+        quiz_draw_question_screen(canvas, model, false);
+        break;
+    case QuizView_Answer:
+        quiz_draw_question_screen(canvas, model, true);
+        break;
+    case QuizView_Results:
+        quiz_draw_results(canvas, model);
+        break;
     }
 }
-
 
 // VariableItemList callbacks
 
@@ -368,9 +390,8 @@ static void quiz_time_limit_changed(VariableItem* item) {
     QuizWidget* widget = variable_item_get_context(item);
     int index = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, time_limit_labels[index]);
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        model->time_limit_index = index;
-    }, false);
+    with_view_model(
+        widget->view, QuizWidgetModel * model, { model->time_limit_index = index; }, false);
 }
 
 static void quiz_max_errors_changed(VariableItem* item) {
@@ -383,25 +404,32 @@ static void quiz_max_errors_changed(VariableItem* item) {
         snprintf(buf, sizeof(buf), "%d", index);
         variable_item_set_current_value_text(item, buf);
     }
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        model->max_errors = index; // 0 = no limit, 1-9 = attempt count
-    }, false);
+    with_view_model(
+        widget->view,
+        QuizWidgetModel * model,
+        {
+            model->max_errors = index; // 0 = no limit, 1-9 = attempt count
+        },
+        false);
 }
 
 static void quiz_settings_enter_callback(void* context, uint32_t index) {
     QuizWidget* widget = context;
     if(index == 2) { // "Start Quiz" item
-        with_view_model(widget->view, QuizWidgetModel* model, {
-            model->errors_remaining = model->max_errors;
-            model->rounds_played = 0;
-            model->correct_answers = 0;
-        }, false);
+        with_view_model(
+            widget->view,
+            QuizWidgetModel * model,
+            {
+                model->errors_remaining = model->max_errors;
+                model->rounds_played = 0;
+                model->correct_answers = 0;
+            },
+            false);
         if(widget->start_callback) {
             widget->start_callback(widget->start_callback_context);
         }
     }
 }
-
 
 // Input callback
 
@@ -415,39 +443,46 @@ static bool quiz_input_callback(InputEvent* event, void* context) {
     }
 
     QuizViewState view_state;
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        view_state = model->view_state;
-    }, false);
+    with_view_model(
+        widget->view, QuizWidgetModel * model, { view_state = model->view_state; }, false);
 
     switch(view_state) {
-        case QuizView_Question: {
-            int option = -1;
-            switch(event->key) {
-                case InputKeyUp:    option = 0; break;
-                case InputKeyRight: option = 1; break;
-                case InputKeyLeft:  option = 2; break;
-                case InputKeyDown:  option = 3; break;
-                default: break;
-            }
-            if(option >= 0) {
-                quiz_process_selection(widget, option);
-                return true;
-            }
-            return false;
-        }
-
-        case QuizView_Answer:
-            return false;
-
-        case QuizView_Results:
-            quiz_navigate_back(widget);
-            return true;
-
+    case QuizView_Question: {
+        int option = -1;
+        switch(event->key) {
+        case InputKeyUp:
+            option = 0;
+            break;
+        case InputKeyRight:
+            option = 1;
+            break;
+        case InputKeyLeft:
+            option = 2;
+            break;
+        case InputKeyDown:
+            option = 3;
+            break;
         default:
-            return false;
+            break;
+        }
+        if(option >= 0) {
+            quiz_process_selection(widget, option);
+            return true;
+        }
+        return false;
+    }
+
+    case QuizView_Answer:
+        return false;
+
+    case QuizView_Results:
+        quiz_navigate_back(widget);
+        return true;
+
+    default:
+        return false;
     }
 }
-
 
 // Lifecycle callbacks
 
@@ -463,7 +498,6 @@ static void quiz_exit_callback(void* context) {
     furi_timer_stop(widget->time_limit_timer);
     furi_timer_stop(widget->time_bar_timer);
 }
-
 
 // Public API
 
@@ -487,7 +521,8 @@ QuizWidget* quiz_widget_alloc() {
 
     widget->max_errors_item = variable_item_list_add(
         widget->settings_list, "Max Attempts", 10, quiz_max_errors_changed, widget);
-    variable_item_set_current_value_index(widget->max_errors_item, MAX_QUIZ_ERRORS); // index = count (0=No limit)
+    variable_item_set_current_value_index(
+        widget->max_errors_item, MAX_QUIZ_ERRORS); // index = count (0=No limit)
     if(MAX_QUIZ_ERRORS == 0) {
         variable_item_set_current_value_text(widget->max_errors_item, "No limit");
     } else {
@@ -513,19 +548,24 @@ QuizWidget* quiz_widget_alloc() {
     widget->navigation_callback = NULL;
     widget->navigation_callback_context = NULL;
 
-    with_view_model(widget->view, QuizWidgetModel* model, {
-        model->view_state = QuizView_Question;
-        model->time_limit_index = 0;
-        model->max_errors = MAX_QUIZ_ERRORS;
-        model->time_limit_ticks = 0;
-        model->question_start_tick = 0;
-        model->errors_remaining = MAX_QUIZ_ERRORS;
-        model->rounds_played = 0;
-        model->correct_answers = 0;
-        model->correct_option = 0;
-        model->selected_option = -1;
-        for(int i = 0; i < QUIZ_OPTIONS_COUNT; i++) model->options[i] = NULL;
-    }, false);
+    with_view_model(
+        widget->view,
+        QuizWidgetModel * model,
+        {
+            model->view_state = QuizView_Question;
+            model->time_limit_index = 0;
+            model->max_errors = MAX_QUIZ_ERRORS;
+            model->time_limit_ticks = 0;
+            model->question_start_tick = 0;
+            model->errors_remaining = MAX_QUIZ_ERRORS;
+            model->rounds_played = 0;
+            model->correct_answers = 0;
+            model->correct_option = 0;
+            model->selected_option = -1;
+            for(int i = 0; i < QUIZ_OPTIONS_COUNT; i++)
+                model->options[i] = NULL;
+        },
+        false);
 
     return widget;
 }
@@ -557,11 +597,7 @@ void quiz_widget_set_settings(QuizWidget* widget, const StrataHeroSettings* sett
     widget->settings = *settings;
 }
 
-void quiz_widget_set_start_callback(
-    QuizWidget* widget,
-    QuizStartCallback callback,
-    void* context
-) {
+void quiz_widget_set_start_callback(QuizWidget* widget, QuizStartCallback callback, void* context) {
     widget->start_callback = callback;
     widget->start_callback_context = context;
 }
@@ -569,8 +605,7 @@ void quiz_widget_set_start_callback(
 void quiz_widget_set_navigation_callback(
     QuizWidget* widget,
     QuizWidgetNavigationCallback callback,
-    void* context
-) {
+    void* context) {
     widget->navigation_callback = callback;
     widget->navigation_callback_context = context;
 }

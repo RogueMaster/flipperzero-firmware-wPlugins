@@ -17,19 +17,19 @@ static bool splash_screen_input_callback(InputEvent* event, void* context) {
     StrataHeroSplashScreen* screen = context;
 
     bool handled = false;
-    if (event->type == InputTypePress) {
-        switch (event->key) {
-            case InputKeyLeft:
-            case InputKeyRight:
-            case InputKeyUp:
-            case InputKeyDown:
-            case InputKeyOk:
-                stratahero_splash_screen_advance(screen);
-                handled = true;
-                break;
+    if(event->type == InputTypePress) {
+        switch(event->key) {
+        case InputKeyLeft:
+        case InputKeyRight:
+        case InputKeyUp:
+        case InputKeyDown:
+        case InputKeyOk:
+            stratahero_splash_screen_advance(screen);
+            handled = true;
+            break;
 
-            default:
-                break;
+        default:
+            break;
         }
     }
 
@@ -43,10 +43,13 @@ StrataHeroSplashScreen* stratahero_splash_screen_alloc() {
     screen->advance_callback_context = NULL;
 
     widget_add_icon_element(screen->widget, 35, 5, &I_logo);
-    widget_add_string_element(screen->widget, 64, 30, AlignCenter, AlignTop, FontPrimary, "Helldivers");
-    widget_add_string_element(screen->widget, 64, 40, AlignCenter, AlignTop, FontPrimary, "Stratagem Hero");
+    widget_add_string_element(
+        screen->widget, 64, 30, AlignCenter, AlignTop, FontPrimary, "Helldivers");
+    widget_add_string_element(
+        screen->widget, 64, 40, AlignCenter, AlignTop, FontPrimary, "Stratagem Hero");
 
-    widget_add_string_element(screen->widget, 64, 55, AlignCenter, AlignTop, FontSecondary, "Press any key");
+    widget_add_string_element(
+        screen->widget, 64, 55, AlignCenter, AlignTop, FontSecondary, "Press any key");
     View* view = widget_get_view(screen->widget);
     view_set_context(view, screen);
     view_set_input_callback(view, splash_screen_input_callback);
@@ -64,7 +67,7 @@ View* stratahero_splash_screen_get_view(StrataHeroSplashScreen* screen) {
 
 static void stratahero_splash_screen_advance(StrataHeroSplashScreen* screen) {
     furi_check(screen);
-    if (screen->advance_callback) {
+    if(screen->advance_callback) {
         screen->advance_callback(screen->advance_callback_context);
     }
 }
@@ -72,8 +75,7 @@ static void stratahero_splash_screen_advance(StrataHeroSplashScreen* screen) {
 void stratahero_splash_screen_set_advance_callback(
     StrataHeroSplashScreen* screen,
     StrataHeroSplashScreenAdvanceCallback callback,
-    void* context
-) {
+    void* context) {
     furi_check(screen);
     screen->advance_callback = callback;
     screen->advance_callback_context = context;

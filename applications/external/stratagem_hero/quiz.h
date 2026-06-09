@@ -16,7 +16,6 @@ void quiz_widget_set_start_callback(QuizWidget* widget, QuizStartCallback callba
 void quiz_widget_set_navigation_callback(
     QuizWidget* widget,
     QuizWidgetNavigationCallback callback,
-    void* context
-);
+    void* context);
 
 int quiz_widget_get_score(QuizWidget* widget);

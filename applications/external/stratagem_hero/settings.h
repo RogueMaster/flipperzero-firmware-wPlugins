@@ -25,16 +25,16 @@ View* stratahero_settings_widget_get_confirmation_view(StrataHeroSettingsWidget*
 bool stratahero_settings_widget_has_pending_changes(StrataHeroSettingsWidget* widget);
 StrataHeroSettings* stratahero_settings_widget_get_settings(StrataHeroSettingsWidget* widget);
 
-void stratahero_settings_widget_set_settings(StrataHeroSettingsWidget* widget, StrataHeroSettings* settings);
+void stratahero_settings_widget_set_settings(
+    StrataHeroSettingsWidget* widget,
+    StrataHeroSettings* settings);
 
 void stratahero_settings_widget_set_navigation_callback(
     StrataHeroSettingsWidget* widget,
     StrataHeroSettingsNavigationCallback callback,
-    void* context
-);
+    void* context);
 
 void stratahero_settings_widget_set_settings_changed_callback(
     StrataHeroSettingsWidget* widget,
     StrataHeroSettingsSettingsChangedCallback callback,
-    void* context
-);
+    void* context);

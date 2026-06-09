@@ -3,10 +3,10 @@
 #include <stratahero_icons.h>
 
 Stratagem STRATAGEM_REINFORCE = {
-    .type = StratagemType_Ship, 
+    .type = StratagemType_Ship,
     .title = "Reinforce",
     .code = "UDRLU",
-    .icon = &I_reinforce, 
+    .icon = &I_reinforce,
     .cooldown = 0,
 };
 Stratagem STRATAGEM_RESUPLY = {
@@ -805,7 +805,6 @@ Stratagem STRATAGEM_LUMBERER_EXOSUIT = {
     .cooldown = 600,
 };
 
-
 Stratagem* stratagems[] = {
     &STRATAGEM_REINFORCE,
     &STRATAGEM_RESUPLY,
@@ -927,21 +926,30 @@ Stratagem* stratagems[] = {
 uint32_t stratagems_count = sizeof(stratagems) / sizeof(*stratagems);
 
 const char* get_stratagem_type_title(StratagemType type) {
-    switch (type) {
-        case StratagemType_Ship: return "Ship";
-        case StratagemType_Objective: return "Objectives";
-        case StratagemType_Other: return "Other";
-        case StratagemType_SupportWeapon: return "Support Weapons";
-        case StratagemType_OrbitalStrike: return "Orbital Strikes";
-        case StratagemType_EagleStrike: return "Eagle Strikes";
-        case StratagemType_Emplacement: return "Emplacements";
-        case StratagemType_Sentry: return "Sentries";
-        case StratagemType_Backpack: return "Backpacks";
-        case StratagemType_Vehicle: return "Vehicles";
-        case StratagemTypeCount: return "";
+    switch(type) {
+    case StratagemType_Ship:
+        return "Ship";
+    case StratagemType_Objective:
+        return "Objectives";
+    case StratagemType_Other:
+        return "Other";
+    case StratagemType_SupportWeapon:
+        return "Support Weapons";
+    case StratagemType_OrbitalStrike:
+        return "Orbital Strikes";
+    case StratagemType_EagleStrike:
+        return "Eagle Strikes";
+    case StratagemType_Emplacement:
+        return "Emplacements";
+    case StratagemType_Sentry:
+        return "Sentries";
+    case StratagemType_Backpack:
+        return "Backpacks";
+    case StratagemType_Vehicle:
+        return "Vehicles";
+    case StratagemTypeCount:
+        return "";
     }
 
     return "Unknown";
 }
-
-

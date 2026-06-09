@@ -3,7 +3,7 @@
 #include <furi.h>
 
 #define HIGHSCORE_NAME_LEN 20
-#define HIGHSCORES_COUNT 5
+#define HIGHSCORES_COUNT   5
 
 typedef struct {
     char name[HIGHSCORE_NAME_LEN + 1];

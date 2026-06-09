@@ -13,5 +13,4 @@ View* stratahero_splash_screen_get_view(StrataHeroSplashScreen* screen);
 void stratahero_splash_screen_set_advance_callback(
     StrataHeroSplashScreen* screen,
     StrataHeroSplashScreenAdvanceCallback callback,
-    void* context
-);
+    void* context);

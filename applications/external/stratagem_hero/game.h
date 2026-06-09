@@ -14,13 +14,13 @@ StrataHeroGameWidget* stratahero_game_widget_alloc();
 void stratahero_game_widget_free(StrataHeroGameWidget* widget);
 View* stratahero_game_widget_get_view(StrataHeroGameWidget* widget);
 
-void stratahero_game_widget_set_settings(StrataHeroGameWidget* widget, StrataHeroSettings* settings);
+void stratahero_game_widget_set_settings(
+    StrataHeroGameWidget* widget,
+    StrataHeroSettings* settings);
 
 void stratahero_game_widget_set_navigation_callback(
     StrataHeroGameWidget* widget,
     StrataHeroGameWidgetNavigationCallback callback,
-    void* context
-);
+    void* context);
 
 int stratahero_game_widget_get_score(StrataHeroGameWidget* widget);
-

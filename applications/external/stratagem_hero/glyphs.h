@@ -1,6 +1,6 @@
 #pragma once
 
-#define CODE_GLYPH_WIDTH 12
+#define CODE_GLYPH_WIDTH  12
 #define CODE_GLYPH_HEIGHT 12
 
 typedef struct Icon Icon;
