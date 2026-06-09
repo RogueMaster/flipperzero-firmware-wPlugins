@@ -89,6 +89,7 @@ This is a list of metro cards and transit systems that need support or have part
 | **T-Mobilitat**    | 🇪🇸 Barcelona, Spain                          | ISO 14443-4A      |
 | **Troika**         | 🇷🇺 Moscow, Russia                            | MIFARE Classic    |
 | **Trt**            | 🇨🇳 Tianjin, China                            | MIFARE Ultralight |
+| **Ventra**         | 🇺🇸 Chicago, IL, USA                          | MIFARE Ultralight |
 
 
 
@@ -118,6 +119,7 @@ This is a list of metro cards and transit systems that need support or have part
 - **T-Money Parser:** [@justus-perlwitz](https://github.com/justus-perlwitz)
 - **Troika Parser:** [@gornekich](https://github.com/gornekich)
 - **TRT Parser:** [@luu176](https://github.com/luu176), [@zinongli](https://github.com/zinongli)
+- **Ventra Parser**: [@hazardousvoltage](https://github.com/hazardousvoltage), [@FatherDivine](https://github.com/FatherDivine)
 - **v1.1 Memory Safety:** [@FatherDivine](https://github.com/FatherDivine)
 
 ---

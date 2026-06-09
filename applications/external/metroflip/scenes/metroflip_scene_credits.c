@@ -40,6 +40,7 @@ void metroflip_scene_credits_on_enter(void* context) {
     furi_string_cat_printf(str, "T-Money Parser:\nJustus Perlwitz\n\n");
     furi_string_cat_printf(str, "Troika Parser:\ngornekich\n\n");
     furi_string_cat_printf(str, "TRT Parser:\nluu176, zinongli\n\n");
+    furi_string_cat_printf(str, "Ventra Parser:\nhazardousvoltage, FatherDivine\n\n");
     furi_string_cat_printf(str, "\e#v2.0 Fixes:\n\n");
     furi_string_cat_printf(str, "Memory Safety:\nFatherDivine\n\n");
 

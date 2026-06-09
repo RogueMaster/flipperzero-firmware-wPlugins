@@ -29,6 +29,7 @@ This is a list of metro cards and transit systems that are supported.
 - **T-Mobilitat**
 - **Troika**
 - **Trt**
+- **Ventra**
 
 ## Credits:
 - **App Author**: luu176
@@ -55,4 +56,5 @@ This is a list of metro cards and transit systems that are supported.
 - **T-Money Parser**: Justus Perlwitz
 - **Troika Parser**: gornekich
 - **TRT Parser**: luu176, zinongli
+- **Ventra Parser**: hazardousvoltage, FatherDivine
 - **v1.1 Memory Safety**: FatherDivine
