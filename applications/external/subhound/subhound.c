@@ -5,6 +5,8 @@
 #include "analyzer/report.h"
 #include <string.h>
 
+#include "subhound_icons.h"
+
 #define TAG "Subhound"
 
 #define SUBHOUND_DEFAULT_BROWSE_PATH EXT_PATH("subghz")
@@ -16,6 +18,9 @@
         stage,                        \
         memmgr_get_free_heap(),       \
         memmgr_get_minimum_free_heap())
+
+#undef HEAPLOG
+#define HEAPLOG(...) ((void)0)
 
 /* Custom event IDs dispatched by Widget buttons / Submenu picks. */
 typedef enum {
@@ -419,7 +424,7 @@ static void subhound_app_free(SubhoundApp* app) {
 
 static bool subhound_pick_file(SubhoundApp* app) {
     DialogsFileBrowserOptions options;
-    dialog_file_browser_set_basic_options(&options, ".sub", NULL);
+    dialog_file_browser_set_basic_options(&options, ".sub", &I_sub1_10px);
     options.base_path = SUBHOUND_DEFAULT_BROWSE_PATH;
 
     FuriString* preselect = furi_string_alloc_set(SUBHOUND_DEFAULT_BROWSE_PATH);

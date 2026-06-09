@@ -37,8 +37,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
 - Added: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
 - Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
-- Sub-GHz: Small Telcoma Edge Fixes (By xMasterX)
+- Sub-GHz: [Small Telcoma Edge Fixes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/pull/1001)
 - Added: [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
+- Updated: [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound) [Sub-GHz icon for files (By xMasterX)](https://github.com/flipperdevices/flipper-application-catalog/pull/1078#issuecomment-4654569251)
 
 <a name="release"></a>
 

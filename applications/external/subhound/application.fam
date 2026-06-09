@@ -6,6 +6,7 @@ App(
     entry_point="subhound_app",
     stack_size=8 * 1024,
     fap_icon="icons/icon_10x10.png",
+    fap_icon_assets="assets",
     fap_category="Sub-GHz",
     fap_author="maxwalks",
     fap_weburl="https://github.com/maxwalks/subhound",
