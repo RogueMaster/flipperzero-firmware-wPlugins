@@ -1,57 +1,20 @@
 #include "../lfrfid_i.h"
-#include <dialogs/dialogs.h>
-
-#define LFRFID_PAGE0_MAX_SIZE 8
-#define LFRFID_PAGE1_MAX_SIZE 4
 
 void lfrfid_scene_wipe_t5577_confirm_on_enter(void* context) {
     LfRfid* app = context;
-    //SceneManager* scene_manager = app->scene_manager;
-
-    DialogMessage* message = dialog_message_alloc();
-    dialog_message_set_header(
-        message, "This will delete all T5577 user blocks data.", 0, 0, AlignLeft, AlignTop);
-    dialog_message_set_buttons(message, NULL, NULL, "Yes");
-    dialog_message_set_text(
-        message,
-        "Are you sure?",
-        SCREEN_WIDTH_CENTER,
-        SCREEN_HEIGHT_CENTER,
-        AlignCenter,
-        AlignCenter);
-    /*DialogMessageButton dialog_result =*/dialog_message_show(app->dialogs, message);
-    dialog_message_free(message);
-    //if (dialog_result == DialogMessageButtonLeft)
-    //	scene_manager_next_scene(scene_manager, LfRfidSceneExtraActions);
-    //    //scene_manager_search_and_switch_to_previous_scene(
-    //    //    scene_manager, LfRfidSceneExtraActions);
-
-    //message = dialog_message_alloc();
-    //dialog_message_set_header(message, "Use test-mode access?", 0, 0, AlignLeft, AlignTop);
-    //dialog_message_set_buttons(message, "Yes", NULL, "No");
-    //dialog_message_set_text(message, "This is advanced special write mode, if available", SCREEN_WIDTH_CENTER,
-    //	SCREEN_HEIGHT_CENTER, AlignCenter, AlignCenter);
-    //DialogMessageButton dialog_result = dialog_message_show(app->dialogs, message);
-    //dialog_message_free(message);
-    //if (dialog_result == DialogMessageButtonLeft)
-    //	app->extra_options |= LfRfidTestModeAccess;
-    //else
-    //    app->extra_options &= ~LfRfidTestModeAccess;
-
     Widget* widget = app->widget;
 
     widget_add_button_element(widget, GuiButtonTypeLeft, "Exit", lfrfid_widget_callback, app);
-    widget_add_button_element(widget, GuiButtonTypeRight, "Start", lfrfid_widget_callback, app);
-    widget_add_string_multiline_element(
-        widget, 64, 22, AlignCenter, AlignBottom, FontPrimary, "Apply tag to\nFlipper's back");
+    widget_add_button_element(widget, GuiButtonTypeRight, "Wipe", lfrfid_widget_callback, app);
+    widget_add_string_element(widget, 64, 3, AlignCenter, AlignTop, FontPrimary, "Wipe T5577");
     widget_add_string_multiline_element(
         widget,
         64,
-        45,
+        19,
         AlignCenter,
-        AlignBottom,
+        AlignTop,
         FontSecondary,
-        "And don't move it\nwhile process is running");
+        "Erases all data. Tag won't\nread until re-written.\nHold still while running");
 
     view_dispatcher_switch_to_view(app->view_dispatcher, LfRfidViewWidget);
 }
@@ -68,8 +31,9 @@ bool lfrfid_scene_wipe_t5577_confirm_on_event(void* context, SceneManagerEvent e
         if(event.event == GuiButtonTypeLeft) {
             scene_manager_search_and_switch_to_previous_scene(
                 scene_manager, LfRfidSceneExtraActions);
-        } else if(event.event == GuiButtonTypeRight)
+        } else if(event.event == GuiButtonTypeRight) {
             scene_manager_next_scene(scene_manager, LfRfidSceneWipeT5577);
+        }
     }
 
     return consumed;
