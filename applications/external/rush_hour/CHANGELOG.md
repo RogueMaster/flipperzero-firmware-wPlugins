@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/Endika/flipper-tutu/compare/v0.1.4...v0.1.5) (2026-06-09)
+
+
+### Bug Fixes
+
+* **assets:** downscale catalog screenshots to 512x256 device resolution ([fba6fef](https://github.com/Endika/flipper-tutu/commit/fba6fef85a9ca040492086fc698e20791dc75a07))
+
 ## [0.1.4](https://github.com/Endika/flipper-tutu/compare/v0.1.3...v0.1.4) (2026-06-06)
 
 

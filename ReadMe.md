@@ -43,6 +43,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated RFID with [Support of Hitag Micro chips (8265/8210/H5.5) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1002) and [Wipe T5577 (reset to blank, with read-back verification) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1003) instead of [Hitag #2658 (By blackvault88)](https://github.com/flipperdevices/flipperzero-firmware/pull/2658) and the wipe from [3 new T5577 extra actions: Set/clear custom pw; write block; wipe #678 (By plgcoder)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/678) to match UL more
 - Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip) [Port Ventra-UL parser (By hazardousvoltage)](https://github.com/Next-Flip/Momentum-Apps/pull/79)
 - Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- Updated: [Rush Hour v0.1.5 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
 
 <a name="release"></a>
 
@@ -381,7 +382,7 @@ $ ./fbt dolphin_ext
 - [Rock Paper Scissors 2 v1.1 (By benwoo1110)](https://github.com/benwoo1110/rps-FlipperZero)
 - [Root of Life v1.2 (By Xorboo)](https://github.com/Xorboo/root-of-life)
 - [Rubiks Cube Scrambler v1.3 (By RaZeSloth)](https://github.com/RaZeSloth/flipperzero-rubiks-cube-scrambler)
-- [Rush Hour v0.1.4 (By Endika)](https://github.com/Endika/flipper-tutu)
+- [Rush Hour v0.1.5 (By Endika)](https://github.com/Endika/flipper-tutu)
 - [Scorched Tanks v1.3 (By jasniec)](https://github.com/jasniec/flipper-scorched-tanks-game)
 - [Secret Toggle (By nostrumuva)](https://github.com/nostrumuva/secret_toggle)
 - [Simon Says v0.2 (By SimplyMinimal)](https://github.com/SimplyMinimal/FlipperZero-SimonSays)
