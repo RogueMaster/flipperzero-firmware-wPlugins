@@ -4,7 +4,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="nie_pale",
     stack_size=3 * 1024,
-    fap_category="Health",
+    fap_category="Tools",
     fap_description="Tracks time without smoking. Saves data to SD card.",
     fap_author="Dr.Mosfet",
     fap_version="0.1",
