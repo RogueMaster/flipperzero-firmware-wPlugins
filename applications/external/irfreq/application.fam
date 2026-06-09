@@ -9,5 +9,5 @@ App(
     fap_author="jsammarco",
     fap_weburl="https://github.com/jsammarco/FlipIRFreq",
     fap_version="0.2",
-    fap_description="Transmit IR in carrier or low-frequency pulse modes with burst or continuous output.",
+    fap_description="Send IR in carrier or low-frequency pulse modes with adjustable frequency, duty cycle, and output.",
 )
