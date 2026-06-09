@@ -34,6 +34,15 @@ void fsd_apply_hw_version(FSDState *state, TeslaHWVersion hw);
 /** Returns true if current state allows transmitting CAN frames. */
 bool fsd_can_transmit(const FSDState *state);
 
+/** AP-First stability window (ms): AP must hold engaged this long before AP/FSD/nag
+ *  injection is allowed when ap_first is on. */
+#define AP_FIRST_STABLE_MS 1000u
+
+/** AP-First gate: true if injection is allowed now. When ap_first is off, always
+ *  true. When on, requires das_ap_state >= 2 stable for AP_FIRST_STABLE_MS.
+ *  now_ms = millis(); ap_unstable_tick_ms is stamped whenever das_ap_state < 2. */
+bool fsd_ap_first_allows(const FSDState *state, uint32_t now_ms);
+
 /** Read GTW_carConfig (0x398) to detect HW version.
  *  Returns TeslaHW_Unknown if frame is not 0x398 or version unrecognised. */
 TeslaHWVersion fsd_detect_hw_version(const CanFrame *frame);

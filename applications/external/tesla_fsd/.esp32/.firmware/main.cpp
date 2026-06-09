@@ -983,6 +983,9 @@ static void update_led() {
 static void process_frame(CanBusId bus, const CanFrame &frame) {
     state_enter();
     g_state.rx_count++;
+    // AP-First stability debounce: stamp the last time AP was not engaged, so
+    // fsd_ap_first_allows() can require AP held stable for AP_FIRST_STABLE_MS (#100/#108).
+    if (g_state.das_ap_state < 2u) g_state.ap_unstable_tick_ms = millis();
     if (frame.id == CAN_ID_GTW_CAR_STATE)  g_state.seen_gtw_car_state++;
     if (frame.id == CAN_ID_GTW_CAR_CONFIG) g_state.seen_gtw_car_config++;
     if (frame.id == CAN_ID_AP_CONTROL)     g_state.seen_ap_control++;
@@ -1133,6 +1136,9 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     // ── Beyond here only run when TX is allowed ───────────────────────────────
     state_enter();
     bool tx = fsd_can_transmit(&g_state);
+    // AP-First (#100/#108): when enabled, hold AP/FSD/nag injection until AP is
+    // engaged and stable. Gates 0x3FD / 0x3EE / 0x370 below; off by default.
+    bool ap_ok = fsd_ap_first_allows(&g_state, millis());
     state_exit();
 
     // NAG killer — build echo only when TX is currently allowed.
@@ -1140,7 +1146,7 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         CanFrame echo;
         state_enter();
         fsd_handle_epas_status(&g_state, &frame);
-        bool fired = tx ? fsd_handle_nag_killer(&g_state, &frame, &echo) : false;
+        bool fired = (tx && ap_ok) ? fsd_handle_nag_killer(&g_state, &frame, &echo) : false;
         state_exit();
         if (fired) {
             uint8_t lvl     = (frame.data[4] >> 6) & 0x03;
@@ -1169,7 +1175,7 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         state_enter();
         bool modified = fsd_handle_legacy_autopilot(&g_state, &f);
         state_exit();
-        if (modified && tx) send_on_bus(bus, f);
+        if (modified && tx && ap_ok) send_on_bus(bus, f);
         return;
     }
 
@@ -1238,7 +1244,7 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         state_enter();
         bool modified = fsd_handle_autopilot_frame(&g_state, &f);
         state_exit();
-        if (modified && tx) send_on_bus(bus, f);
+        if (modified && tx && ap_ok) send_on_bus(bus, f);
         return;
     }
 }

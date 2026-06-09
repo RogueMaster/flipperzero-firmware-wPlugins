@@ -85,6 +85,17 @@ bool fsd_can_transmit(const FSDState *state) {
     return true;
 }
 
+// AP-First gate (parity with the Flipper). When ap_first is on, hold AP/FSD/nag
+// injection until AP is engaged (das_ap_state >= 2) AND has held stable for
+// AP_FIRST_STABLE_MS — injecting on the activation edge is what trips the
+// 2026.14.x preflight (steer-jerk + AP disengage). now_ms = millis(),
+// ap_unstable_tick_ms is stamped whenever das_ap_state < 2.
+bool fsd_ap_first_allows(const FSDState *state, uint32_t now_ms) {
+    if (!state->ap_first) return true;             // gate off -> always allow
+    if (state->das_ap_state < 2u) return false;    // AP not engaged yet
+    return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
+}
+
 // ── HW version detection from GTW_carConfig (0x398) ──────────────────────────
 
 TeslaHWVersion fsd_detect_hw_version(const CanFrame *frame) {
