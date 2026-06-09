@@ -300,30 +300,30 @@ def _validate_app_imports(target, source, env):
             "app_api_accumulator_sub",
             "app_api_accumulator_mul",
         ),
-        # js_app app_api_table, js_event_loop_api_table, js_gui_api_table
-        ("js_",): (
-            "js_delay_with_flags",
-            "js_event_loop_get_loop",
-            "js_flags_set",
-            "js_flags_wait",
-            "js_gui_make_view_factory",
-            "js_module_get",
-            # test_js
-        ),
         # metroflip_api_table
         (
+            "atr_plugin",
             "bip_plugin",
             "calypso_plugin",
             "charliecard_plugin",
             "clipper_plugin",
             "gocard_plugin",
+            "intertic_plugin",
             "itso_plugin",
             "metromoney_plugin",
             "myki_plugin",
+            "nol_plugin",
             "opal_plugin",
+            "renfe_regular_plugin",
+            "renfe_sum10_plugin",
             "smartrider_plugin",
             "suica_plugin",
+            "tmobilitat_plugin",
+            "tmoney_plugin",
             "troika_plugin",
+            "trt_plugin",
+            "two_cities_plugin",
+            "ventra_plugin",
         ): (
             "metroflip_",
             "bit_slice_to_dec",
@@ -376,10 +376,12 @@ def _validate_app_imports(target, source, env):
             "memset_s",
             "token_info_",
         ),
-        # unit_tests_api_table
-        ("test_js",): (
-            "js_thread_run",
-            "js_thread_stop",
+        # protopirate app_api_table
+        ("proto_pirate_",): (
+            "protopirate_am_plugin",
+            "protopirate_fm_plugin",
+            "protopirate_emulate_plugin",
+            "protopirate_psa_bf_plugin",
         ),
     }
     ignore_syms = []

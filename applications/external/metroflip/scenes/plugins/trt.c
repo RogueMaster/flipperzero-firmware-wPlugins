@@ -1,6 +1,8 @@
 // Flipper Zero parser for for Tianjin Railway Transit (TRT)
 // https://en.wikipedia.org/wiki/Tianjin_Metro
 // Reverse engineering and parser development by @Torron (Github: @zinongli) and added to Metroflip by @Lupin (Github: @luu176)
+//
+// Change by (Github: @hazardousvoltage) to integrate with shared MfUL poller.  Should work, but needs TRT testing.
 
 #include <flipper_application.h>
 #include "../../metroflip_i.h"
@@ -147,6 +149,8 @@ static void trt_on_enter(Metroflip* app) {
             mf_ultralight_free(ultralight_data);
         }
         flipper_format_free(ff);
+    } else if(app->ultralight_data_ready) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
     } else {
         FURI_LOG_I(TAG, "TRT not loaded");
         // Setup view

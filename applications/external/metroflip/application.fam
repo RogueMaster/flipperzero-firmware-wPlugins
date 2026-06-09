@@ -206,3 +206,12 @@ App(
     sources=["scenes/plugins/trt.c"],
     fal_embedded=True,
 )
+
+App(
+    appid="ventra_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="ventra_plugin_ep",
+    requires=["metroflip"],
+    sources=["scenes/plugins/ventra.c"],
+    fal_embedded=True,
+)

@@ -156,4 +156,5 @@ void metroflip_scene_parse_on_exit(void* context) {
 
     app->is_desfire = false;
     app->data_loaded = false;
+    app->ultralight_data_ready = false;
 }

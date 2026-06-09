@@ -1,3 +1,6 @@
+// Deprecated: Ventra parsing has moved to the Metroflip application.
+// This legacy parser may be removed in a future release.
+//
 // Parser for CTA Ventra Ultralight cards
 // Made by @hazardousvoltage
 // Based on my own research, with...

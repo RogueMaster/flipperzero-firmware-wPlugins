@@ -65,6 +65,8 @@ void metroflip_scene_supported_on_enter(void* context) {
         submenu, "T-Mobilitat (Catalonia)", 18, metroflip_scene_supported_submenu_callback, app);
     submenu_add_item(
         submenu, "TRT (Tianjin)", 19, metroflip_scene_supported_submenu_callback, app);
+    submenu_add_item(
+        submenu, "Ventra (Chicago)", 20, metroflip_scene_supported_submenu_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewSubmenu);
 }

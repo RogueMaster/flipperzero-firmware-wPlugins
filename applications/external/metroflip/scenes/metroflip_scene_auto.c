@@ -8,8 +8,10 @@
 #include <nfc/protocols/mf_classic/mf_classic_poller.h>
 #include "keys.h"
 #include "desfire.h"
+#include "ventra.h"
 #include <nfc/protocols/mf_desfire/mf_desfire_poller.h>
 #include <lib/nfc/protocols/mf_desfire/mf_desfire.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight_poller.h>
 #include <lib/nfc/protocols/iso14443_4a/iso14443_4a.h>
 #include <lib/nfc/protocols/iso14443_4a/iso14443_4a_poller.h>
 #include "../api/metroflip/metroflip_api.h"
@@ -70,6 +72,47 @@ static bool scan_anim_input(InputEvent* event, void* context) {
 static uint32_t scan_anim_previous(void* context) {
     UNUSED(context);
     return VIEW_NONE;
+}
+
+static NfcCommand
+    metroflip_scene_detect_ultralight_poller_callback(NfcGenericEvent event, void* context) {
+    furi_assert(event.protocol == NfcProtocolMfUltralight);
+
+    Metroflip* app = context;
+    const MfUltralightPollerEvent* ultralight_event = event.event_data;
+
+    if(ultralight_event->type == MfUltralightPollerEventTypeReadSuccess) {
+        nfc_device_set_data(
+            app->nfc_device, NfcProtocolMfUltralight, nfc_poller_get_data(app->poller));
+        const MfUltralightData* data =
+            nfc_device_get_data(app->nfc_device, NfcProtocolMfUltralight);
+
+        if(metroflip_ventra_detect(data)) {
+            app->card_type = "ventra";
+            app->ultralight_data_ready = true;
+            FURI_LOG_I(TAG, "Detected: Ventra Ultralight");
+            view_dispatcher_send_custom_event(
+                app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        } else if(data->pages_read == data->pages_total) {
+            app->card_type = "trt";
+            app->ultralight_data_ready = true;
+            FURI_LOG_I(TAG, "Detected: non-Ventra Ultralight, routing to TRT");
+            view_dispatcher_send_custom_event(
+                app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        } else {
+            view_dispatcher_send_custom_event(
+                app->view_dispatcher, MetroflipCustomEventPollerFail);
+        }
+
+        return NfcCommandStop;
+    } else if(ultralight_event->type == MfUltralightPollerEventTypeAuthRequest) {
+        ultralight_event->data->auth_context.skip_auth = true;
+    } else if(ultralight_event->type == MfUltralightPollerEventTypeReadFailed) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerFail);
+        return NfcCommandStop;
+    }
+
+    return NfcCommandContinue;
 }
 
 static NfcCommand
@@ -217,6 +260,8 @@ void metroflip_scene_auto_on_enter(void* context) {
     dolphin_deed(DolphinDeedNfcRead);
 
     app->sec_num = 0;
+    app->ultralight_data_ready = false;
+    nfc_device_clear(app->nfc_device);
 
     /* Configure scan animation view (allocated in metroflip_alloc) */
     view_set_draw_callback(app->scan_anim, scan_anim_draw);
@@ -269,6 +314,7 @@ bool metroflip_scene_auto_on_event(void* context, SceneManagerEvent event) {
             view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
             nfc_poller_stop(app->poller);
             nfc_poller_free(app->poller);
+            app->poller = NULL;
             scene_manager_next_scene(app->scene_manager, MetroflipSceneParse);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
@@ -284,6 +330,11 @@ bool metroflip_scene_auto_on_event(void* context, SceneManagerEvent event) {
             }
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
+            if(app->poller) {
+                nfc_poller_stop(app->poller);
+                nfc_poller_free(app->poller);
+                app->poller = NULL;
+            }
             if(app->scan_anim) {
                 with_view_model(
                     app->scan_anim, ScanAnimModel * m, { m->status = "Read failed"; }, true);
@@ -399,9 +450,10 @@ bool metroflip_scene_auto_on_event(void* context, SceneManagerEvent event) {
             } else if(proto == NfcProtocolMfUltralight) {
                 popup_set_header(popup, "MIFARE UL\ndetected!", 68, 30, AlignLeft, AlignTop);
                 FURI_LOG_I(TAG, "Protocol is MfUl");
-                app->card_type = "trt";
                 app->is_desfire = false;
-                scene_manager_next_scene(app->scene_manager, MetroflipSceneParse);
+                app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfUltralight);
+                nfc_poller_start(
+                    app->poller, metroflip_scene_detect_ultralight_poller_callback, app);
                 consumed = true;
             } else if(proto == NfcProtocolInvalid) {
                 app->card_type = "Unknown Card";

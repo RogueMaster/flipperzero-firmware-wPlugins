@@ -32,6 +32,10 @@ static bool metroflip_back_event_callback(void* context) {
 Metroflip* metroflip_alloc() {
     Metroflip* app = malloc(sizeof(Metroflip));
     app->gui = furi_record_open(RECORD_GUI);
+    app->poller = NULL;
+    app->scanner = NULL;
+    app->auto_mode = false;
+    app->ultralight_data_ready = false;
     //nfc device
     app->nfc = nfc_alloc();
     app->nfc_device = nfc_device_alloc();
