@@ -55,6 +55,10 @@ bool gen1a_poller_detect(Nfc* nfc);
 
 Gen1aPoller* gen1a_poller_alloc(Nfc* nfc);
 
+// Sets the target UID length (4 or 7) for wipe: controls the block-0 layout and the
+// all-zero UID written. Values other than 7 are treated as 4.
+void gen1a_poller_set_uid_len(Gen1aPoller* instance, uint8_t uid_len);
+
 void gen1a_poller_free(Gen1aPoller* instance);
 
 void gen1a_poller_start(Gen1aPoller* instance, Gen1aPollerCallback callback, void* context);

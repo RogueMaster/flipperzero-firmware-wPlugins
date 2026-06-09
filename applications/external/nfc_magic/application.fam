@@ -8,7 +8,7 @@ App(
     fap_icon="assets/Nfc_10px.png",
     fap_category="NFC",
     fap_icon_assets="assets",
-    fap_version="1.15.1",
+    fap_version="1.15.2",
     fap_description="Application for writing to NFC tags with modifiable sector 0",
     #  [NFC Magic Gen4 Support #2238 (By nullableVoidPtr)](https://github.com/flipperdevices/flipperzero-firmware/pull/2238)
     #  [rework #67 (By gornekich)](https://github.com/flipperdevices/flipperzero-good-faps/pull/67)
@@ -22,4 +22,5 @@ App(
     #  [Gen1 backdoor read support #228 (By Astrrra)](https://github.com/flipperdevices/flipperzero-good-faps/pull/228)
     #  [Update nfc_magic_scene_not_magic.c #232 (By equipter)](https://github.com/flipperdevices/flipperzero-good-faps/pull/232)
     #  v1.15.1: [Ultimate Magic Gen4 Max Block Number Set Incorrectly for the NTAG Protocol (By alfie65536)](https://github.com/flipperdevices/flipperzero-good-faps/pull/284)
+    #  v1.15.2: [Gen2 CUID/static-nonce detection, Gen1 4b/7b UID, length-aware wipe & write guard (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/219)
 )

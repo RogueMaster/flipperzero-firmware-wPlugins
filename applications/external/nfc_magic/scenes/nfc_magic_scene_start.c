@@ -22,7 +22,7 @@ void nfc_magic_scene_start_on_enter(void* context) {
         instance);
     submenu_add_item(
         submenu,
-        "Gen4 Actions",
+        "Gen 4 Actions",
         SubmenuIndexGen4ActionsMenu,
         nfc_magic_scene_start_submenu_callback,
         instance);

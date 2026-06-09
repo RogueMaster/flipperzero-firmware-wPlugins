@@ -24,7 +24,7 @@ void nfc_magic_scene_gen4_show_cfg_on_enter(void* context) {
         furi_string_cat_printf(output, "%02X%02X ", config->data_raw[i], config->data_raw[i + 1]);
     }
 
-    widget_add_string_element(widget, 3, 4, AlignLeft, AlignTop, FontPrimary, "Gen4 Config");
+    widget_add_string_element(widget, 3, 4, AlignLeft, AlignTop, FontPrimary, "Gen 4 Config");
 
     widget_add_text_scroll_element(widget, 3, 17, 124, 50, furi_string_get_cstr(output));
 
