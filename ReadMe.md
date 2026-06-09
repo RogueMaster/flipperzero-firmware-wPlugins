@@ -37,6 +37,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
 - Added: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
 - Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- Sub-GHz: Small Telcoma Edge Fixes (By xMasterX)
 
 <a name="release"></a>
 
