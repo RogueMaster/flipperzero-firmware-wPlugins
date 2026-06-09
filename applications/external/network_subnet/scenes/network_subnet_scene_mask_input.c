@@ -3,7 +3,7 @@
 #include "../scenes/scenes.h"
 
 void network_subnet_scene_mask_input_on_enter(void* context) {
-    FURI_LOG_D(TAG, "In on_enter of mask_input");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "In on_enter of mask_input");
     furi_assert(context);
     NetworkSubnetApp* app = context;
     with_view_model(
@@ -54,7 +54,10 @@ bool network_subnet_scene_mask_input_on_event(void* context, SceneManagerEvent e
                             app->subnet_mask[octet_counter] = temp_octet;
                             three_counter = 0;
                             FURI_LOG_D(
-                                TAG, "calculated subnet %d to be %d", octet_counter, temp_octet);
+                                NETWORK_SUBNET_TAG,
+                                "calculated subnet %d to be %d",
+                                octet_counter,
+                                temp_octet);
                             octet_counter += 1;
                             temp_octet = 0;
                         }

@@ -6,7 +6,7 @@
 
 #include "mask_input_view.h"
 #include "../network_subnet.h"
-#define SUB_CHAR_WIDTH 7
+#define LOCAL_CHAR_WIDTH 7
 
 static void increment_active_digit(MaskInputViewModel* m) {
     uint32_t temp_octet;
@@ -64,16 +64,16 @@ static void mask_input_view_draw(Canvas* canvas, void* model) {
         case FirstOctet:
         case SecondOctet:
         case ThirdOctet:
-            canvas_draw_str(canvas, 2 + (inc)*SUB_CHAR_WIDTH, 30, ".");
+            canvas_draw_str(canvas, 2 + (inc)*LOCAL_CHAR_WIDTH, 30, ".");
             inc += 1;
         }
         proc_active_digit = i == m->active_digit;
         if(proc_active_digit) {
-            canvas_draw_box(canvas, 1 + (inc)*SUB_CHAR_WIDTH, 22, 7, 10);
+            canvas_draw_box(canvas, 1 + (inc)*LOCAL_CHAR_WIDTH, 22, 7, 10);
             canvas_invert_color(canvas);
         }
         snprintf(buf, sizeof(buf), "%d", m->octect_digits[i]);
-        canvas_draw_str(canvas, 2 + (inc)*SUB_CHAR_WIDTH, 30, buf);
+        canvas_draw_str(canvas, 2 + (inc)*LOCAL_CHAR_WIDTH, 30, buf);
         inc += 1;
         if(proc_active_digit) {
             canvas_invert_color(canvas);

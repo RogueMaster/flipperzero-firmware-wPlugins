@@ -43,7 +43,8 @@ bool network_subnet_scene_menu_on_event(void* context, SceneManagerEvent event) 
             break;
         case EventMenuMaskSelected:
             FURI_LOG_D(
-                TAG, "Menu mask selected and now setting next scene to NetworkSubnetSceneIpInput");
+                NETWORK_SUBNET_TAG,
+                "Menu mask selected and now setting next scene to NetworkSubnetSceneIpInput");
             scene_manager_next_scene(app->scene_manager, NetworkSubnetSceneMaskInput);
             consumed = true;
             break;

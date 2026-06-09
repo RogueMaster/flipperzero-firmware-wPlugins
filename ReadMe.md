@@ -31,7 +31,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-06-09 01:10 EST`
 - Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-06-09 01:10 EST`
 - Added: [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
-- Updated: [Tesla Mod v2.16.5 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Added: [Rush Hour v0.1.4 (By Endika)](https://github.com/Endika/flipper-tutu)
 - Added: [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound)
 - Added: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
@@ -44,6 +43,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip) [Port Ventra-UL parser (By hazardousvoltage)](https://github.com/Next-Flip/Momentum-Apps/pull/79)
 - Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Rush Hour v0.1.5 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
+- Updated: [Tesla Mod v2.16.5 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (ESP32 Firmware Update Only)
+- Updated: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet) (No Significant Changes)
 
 <a name="release"></a>
 

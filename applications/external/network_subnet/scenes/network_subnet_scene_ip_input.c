@@ -4,7 +4,7 @@
 #include "../core/subnet_math.h"
 
 void network_subnet_scene_ip_input_on_enter(void* context) {
-    FURI_LOG_D(TAG, "In on_enter of ip_input");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "In on_enter of ip_input");
     furi_assert(context);
     NetworkSubnetApp* app = context;
     app->cidr = count_number_of_continuous_ones(ip_to_u32(app->subnet_mask));
@@ -25,7 +25,7 @@ void network_subnet_scene_ip_input_on_enter(void* context) {
                     three_counter = 0;
                 }
             }
-            FURI_LOG_D(TAG, "received cidr %d", app->cidr);
+            FURI_LOG_D(NETWORK_SUBNET_TAG, "received cidr %d", app->cidr);
             m->octets_and_cidr_digits[12] = (int)app->cidr / 10;
             m->octets_and_cidr_digits[13] = (int)app->cidr % 10;
             m->active_digit = 0;
@@ -42,7 +42,7 @@ bool network_subnet_scene_ip_input_on_event(void* context, SceneManagerEvent eve
     case SceneManagerEventTypeCustom:
         switch(event.event) {
         case EventIpConfirmed:
-            FURI_LOG_D(TAG, "received eventIpConfirmed event");
+            FURI_LOG_D(NETWORK_SUBNET_TAG, "received eventIpConfirmed event");
             with_view_model(
                 app->ip_input_view,
                 IpInputViewModel * m,
@@ -60,14 +60,17 @@ bool network_subnet_scene_ip_input_on_event(void* context, SceneManagerEvent eve
                             app->ip[octet_counter] = temp_octet;
                             three_counter = 0;
                             FURI_LOG_D(
-                                TAG, "calculated octet %d to be %d", octet_counter, temp_octet);
+                                NETWORK_SUBNET_TAG,
+                                "calculated octet %d to be %d",
+                                octet_counter,
+                                temp_octet);
                             octet_counter += 1;
                             temp_octet = 0;
                         }
                     }
                     app->cidr = m->octets_and_cidr_digits[12] * 10 + m->octets_and_cidr_digits[13];
                     u32_to_ip(cidr_to_mask(app->cidr), app->subnet_mask);
-                    FURI_LOG_D(TAG, "calculated cidr %d", app->cidr);
+                    FURI_LOG_D(NETWORK_SUBNET_TAG, "calculated cidr %d", app->cidr);
                 },
                 false);
             scene_manager_next_scene(app->scene_manager, NetworkSubnetSceneResult);

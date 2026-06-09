@@ -6,7 +6,7 @@
 
 #include "ip_input_view.h"
 #include "../network_subnet.h"
-#define SUB_CHAR_WIDTH 7
+#define LOCAL_CHAR_WIDTH 7
 
 static void increment_active_digit(IpInputViewModel* m) {
     uint32_t temp_octet;
@@ -27,7 +27,7 @@ static void increment_active_digit(IpInputViewModel* m) {
         }
 
         temp_octet = 0;
-        FURI_LOG_D(TAG, "running octet from %d to %d", upper_lim - 3, upper_lim);
+        FURI_LOG_D(NETWORK_SUBNET_TAG, "running octet from %d to %d", upper_lim - 3, upper_lim);
         for(int i = upper_lim - 3; i < upper_lim; i++) {
             if(i == m->active_digit) {
                 temp_octet = temp_octet + (m->octets_and_cidr_digits[i] + 1) * hundred;
@@ -36,7 +36,7 @@ static void increment_active_digit(IpInputViewModel* m) {
             }
             hundred = hundred / 10;
         }
-        FURI_LOG_D(TAG, "octect value %ld", temp_octet);
+        FURI_LOG_D(NETWORK_SUBNET_TAG, "octect value %ld", temp_octet);
         if(temp_octet < 256) {
             m->octets_and_cidr_digits[m->active_digit] += 1;
         }
@@ -84,16 +84,16 @@ static void ip_input_view_draw(Canvas* canvas, void* model) {
         case SecondOctet:
         case ThirdOctet:
         case CIDR:
-            canvas_draw_str(canvas, 2 + (inc)*SUB_CHAR_WIDTH, 30, i == CIDR ? "/" : ".");
+            canvas_draw_str(canvas, 2 + (inc)*LOCAL_CHAR_WIDTH, 30, i == CIDR ? "/" : ".");
             inc += 1;
         }
         proc_active_digit = i == m->active_digit;
         if(proc_active_digit) {
-            canvas_draw_box(canvas, 1 + (inc)*SUB_CHAR_WIDTH, 22, 7, 10);
+            canvas_draw_box(canvas, 1 + (inc)*LOCAL_CHAR_WIDTH, 22, 7, 10);
             canvas_invert_color(canvas);
         }
         snprintf(buf, sizeof(buf), "%d", m->octets_and_cidr_digits[i]);
-        canvas_draw_str(canvas, 2 + (inc)*SUB_CHAR_WIDTH, 30, buf);
+        canvas_draw_str(canvas, 2 + (inc)*LOCAL_CHAR_WIDTH, 30, buf);
         inc += 1;
         if(proc_active_digit) {
             canvas_invert_color(canvas);
@@ -112,7 +112,7 @@ static void ip_input_view_draw(Canvas* canvas, void* model) {
 static bool ip_input_view_input(InputEvent* event, void* context) {
     bool consumed = false;
     NetworkSubnetApp* app = context;
-    FURI_LOG_D(TAG, "procesing input on_input in ip_input");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "procesing input on_input in ip_input");
     with_view_model(
         app->ip_input_view,
         IpInputViewModel * m,
@@ -162,7 +162,7 @@ static bool ip_input_view_input(InputEvent* event, void* context) {
         true // redraw
     );
     if(event->key == InputKeyOk && event->type == InputTypeShort) {
-        FURI_LOG_D(TAG, "calling EventIpConfirmed Event");
+        FURI_LOG_D(NETWORK_SUBNET_TAG, "calling EventIpConfirmed Event");
         view_dispatcher_send_custom_event(app->view_dispatcher, EventIpConfirmed);
     }
     return consumed;

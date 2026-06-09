@@ -22,8 +22,8 @@ static bool view_dispatcher_nav_callback(void* context) {
 
 static NetworkSubnetApp* allocate_and_init() {
     // allocate
-    FURI_LOG_D(TAG, "App started");
-    FURI_LOG_D(TAG, "Allocating now");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "App started");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Allocating now");
     NetworkSubnetApp* app = malloc(sizeof(NetworkSubnetApp));
 
     app->cidr = 24;
@@ -36,72 +36,72 @@ static NetworkSubnetApp* allocate_and_init() {
     app->subnet_mask[2] = 255;
     app->subnet_mask[3] = 0;
 
-    FURI_LOG_D(TAG, "App allocated");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "App allocated");
     app->scene_manager = scene_manager_alloc(&network_subnet_scene_handlers, app);
-    FURI_LOG_D(TAG, "Scene Manager Allocated");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Scene Manager Allocated");
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_enable_queue(app->view_dispatcher);
-    FURI_LOG_D(TAG, "View Dispatcher allocated");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "View Dispatcher allocated");
     app->submenu = submenu_alloc();
-    FURI_LOG_D(TAG, "Submenu Allocated");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Submenu Allocated");
     app->result_view = result_view_alloc();
-    FURI_LOG_T(TAG, "Result view allocated");
+    FURI_LOG_T(NETWORK_SUBNET_TAG, "Result view allocated");
     app->ip_input_view = ip_input_view_alloc(app);
-    FURI_LOG_T(TAG, "IP input view");
+    FURI_LOG_T(NETWORK_SUBNET_TAG, "IP input view");
     app->mask_input_view = mask_input_view_alloc(app);
-    FURI_LOG_T(TAG, "IP input view");
+    FURI_LOG_T(NETWORK_SUBNET_TAG, "IP input view");
 
     // prepare
     Gui* gui = furi_record_open(RECORD_GUI);
-    FURI_LOG_D(TAG, "GUI Record Opened");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "GUI Record Opened");
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    FURI_LOG_D(TAG, "Attached VD to GUI");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Attached VD to GUI");
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, view_dispatcher_custom_event_callback);
-    FURI_LOG_D(TAG, "Registered custom event allback");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Registered custom event allback");
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, view_dispatcher_nav_callback);
-    FURI_LOG_D(TAG, "Registered nav callback");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Registered nav callback");
     view_dispatcher_add_view(app->view_dispatcher, ViewIdMenu, submenu_get_view(app->submenu));
-    FURI_LOG_D(TAG, "Adding view");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Adding view");
     view_dispatcher_add_view(app->view_dispatcher, ViewIdIpInput, app->ip_input_view);
-    FURI_LOG_D(TAG, "Adding view ip input view");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Adding view ip input view");
     view_dispatcher_add_view(app->view_dispatcher, ViewIdResult, app->result_view);
-    FURI_LOG_D(TAG, "Adding view result view");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Adding view result view");
     view_dispatcher_add_view(app->view_dispatcher, ViewIdMaskInput, app->mask_input_view);
-    FURI_LOG_D(TAG, "Adding mask input view");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Adding mask input view");
     return app;
 }
 
 static void clean_and_free(NetworkSubnetApp* app) {
     // free
 
-    FURI_LOG_D(TAG, "Starting Freeing the memory");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Starting Freeing the memory");
     view_dispatcher_remove_view(app->view_dispatcher, ViewIdMaskInput);
-    FURI_LOG_D(TAG, "mask input view removed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "mask input view removed");
     view_dispatcher_remove_view(app->view_dispatcher, ViewIdIpInput);
-    FURI_LOG_D(TAG, "ip input view removed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "ip input view removed");
     view_dispatcher_remove_view(app->view_dispatcher, ViewIdMenu);
-    FURI_LOG_D(TAG, "menu view removed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "menu view removed");
     view_dispatcher_remove_view(app->view_dispatcher, ViewIdResult);
-    FURI_LOG_D(TAG, "result view removed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "result view removed");
     submenu_free(app->submenu);
-    FURI_LOG_D(TAG, "Submenu freed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Submenu freed");
     result_view_free(app->result_view);
-    FURI_LOG_D(TAG, "Result view freed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Result view freed");
     ip_input_view_free(app->ip_input_view);
-    FURI_LOG_D(TAG, "Ip input view freed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Ip input view freed");
     mask_input_view_free(app->mask_input_view);
-    FURI_LOG_D(TAG, "mask view freed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "mask view freed");
     view_dispatcher_free(app->view_dispatcher);
-    FURI_LOG_D(TAG, "vd freed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "vd freed");
     scene_manager_free(app->scene_manager);
-    FURI_LOG_D(TAG, "sm freed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "sm freed");
     furi_record_close(RECORD_GUI);
-    FURI_LOG_D(TAG, "gui closed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "gui closed");
     free(app);
-    FURI_LOG_D(TAG, "remaining app freed");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "remaining app freed");
 }
 
 int32_t network_subnet_app(void* p) {
@@ -109,11 +109,11 @@ int32_t network_subnet_app(void* p) {
     NetworkSubnetApp* app = allocate_and_init();
 
     // start
-    FURI_LOG_D(TAG, "Setting next scene");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Setting next scene");
     scene_manager_next_scene(app->scene_manager, NetworkSubnetSceneSubMenu);
-    FURI_LOG_D(TAG, "Starting VD");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "Starting VD");
     view_dispatcher_run(app->view_dispatcher);
-    FURI_LOG_D(TAG, "VD ended");
+    FURI_LOG_D(NETWORK_SUBNET_TAG, "VD ended");
 
     clean_and_free(app);
     return 0;
