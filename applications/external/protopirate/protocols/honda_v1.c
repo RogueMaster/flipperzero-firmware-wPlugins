@@ -62,12 +62,14 @@ static const char* const honda_v1_button_names[HONDA_V1_BUTTON_MAX + 1U] = {
     [HondaV1ButtonPanic] = "Panic",
 };
 
+#ifdef ENABLE_EMULATE_FEATURE
 static const uint32_t honda_v1_button_codes[HONDA_V1_BUTTON_MAX + 1U] = {
     [HondaV1ButtonUnlock] = 0x00080808,
     [HondaV1ButtonLock] = 0x00088888,
     [HondaV1ButtonTrunk] = 0x00099190,
     [HondaV1ButtonPanic] = 0x000FA7A0,
 };
+#endif
 
 struct SubGhzProtocolDecoderHondaV1 {
     SubGhzProtocolDecoderBase base;
@@ -107,12 +109,14 @@ static const char* honda_v1_button_name(uint8_t b) {
     return "Unknown";
 }
 
+#ifdef ENABLE_EMULATE_FEATURE
 static uint32_t honda_v1_button_code(uint8_t button) {
     if(!honda_v1_button_valid(button)) {
         return HONDA_V1_BUTTON_FALLBACK_CODE;
     }
     return honda_v1_button_codes[button];
 }
+#endif
 
 static bool honda_v1_duration_is(uint32_t d, uint32_t t) {
     return (d >= t) ? ((d - t) <= HONDA_V1_TE_DELTA) : ((t - d) <= HONDA_V1_TE_DELTA);
@@ -173,6 +177,7 @@ static void honda_v1_decode_fields(SubGhzBlockGeneric* generic) {
     generic->data_count_bit = HONDA_V1_BIT_COUNT;
 }
 
+#ifdef ENABLE_EMULATE_FEATURE
 static uint64_t honda_v1_build_key(uint32_t serial, uint8_t button, uint16_t counter) {
     const uint32_t table = honda_v1_button_code(button);
     const uint32_t low = ((table & HONDA_V1_COUNTER_MASK) << 16U) | counter;
@@ -180,6 +185,7 @@ static uint64_t honda_v1_build_key(uint32_t serial, uint8_t button, uint16_t cou
 
     return ((uint64_t)high << 32U) | low;
 }
+#endif
 
 static void honda_v1_state_reset(SubGhzProtocolDecoderHondaV1* instance) {
     instance->step = HondaV1DecoderStepReset;
