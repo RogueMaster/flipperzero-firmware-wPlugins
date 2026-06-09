@@ -53,7 +53,8 @@ typedef enum {
 #define DEBUG_PRESS_COUNT   3
 #define DEBUG_PRESS_TIMEOUT 1000
 
-#define LOG_FILE_PATH      "/ext/apps_data/alcohol_sensor/measuring.log"
+#define LOG_FOLDER_PATH    APP_DATA_PATH("")
+#define LOG_FILE_PATH      LOG_FOLDER_PATH "/measuring.log"
 #define LOG_LINES_PER_PAGE 4
 #define LOG_LINE_HEIGHT    10
 
@@ -235,7 +236,7 @@ static void free_log(Mq3App* app) {
 static void save_to_log(float mgl) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(storage) {
-        storage_common_mkdir(storage, "/ext/apps_data/alcohol_sensor");
+        storage_common_mkdir(storage, LOG_FOLDER_PATH);
         FuriString* log_line = furi_string_alloc();
         Stream* stream = file_stream_alloc(storage);
         if(file_stream_open(stream, LOG_FILE_PATH, FSAM_READ_WRITE, FSOM_OPEN_APPEND)) {
