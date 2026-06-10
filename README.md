@@ -10,9 +10,13 @@ The Application stores amount of particles between launches. RadSens counts part
 </div>
 
 ## App Controls
-- Up button turns on and off vibration mode when every new particle generates vibration impulse.
+- OK button turns on and off vibration mode when every new particle generates vibration impulse.
+- Up and Down buttons change RadSens sensitivity in steps of `5 imp/uR`.
 - Right button switches to Plot Mode.
 - Left button gets back to Measurement Mode.
+
+Current sensitivity is shown in Measurement Mode as `S:<value>`. The application writes the new
+coefficient back to the RadSens module, so it is used for subsequent measurements.
 
 ## About RadSens
 
