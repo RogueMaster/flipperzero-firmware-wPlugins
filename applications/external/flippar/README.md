@@ -37,7 +37,7 @@ FlipPar is a Flipper Zero external app for tracking golf or disc golf rounds on-
 
 ## Controls
 
-### Setup screen
+## Setup screen
 
 - `Up` / `Down`: move between setup fields
 - `Left` / `Right`: change holes, players, or selected player name slot
@@ -47,7 +47,7 @@ FlipPar is a Flipper Zero external app for tracking golf or disc golf rounds on-
 - `OK` on `Save Score Sheet`: export the current round
 - `OK` on `Lock Screen`: show the last played hole summary and require 3 `Back` presses to exit
 
-### Score grid
+## Score grid
 
 - `Left` / `Right`: move between holes
 - `Up` / `Down`: move between par row and player rows
