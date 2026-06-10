@@ -1,10 +1,10 @@
 # Subhound
 
-Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 17 ISM-band signal types — garage remotes, TPMS, weather stations, utility meters, alarm sensors, and more — with a full reasoning chain, confidence scoring, and a sub-protocol hint.
+Automated classifier for Flipper Zero BinRAW '.sub' captures. Identifies 17 ISM-band signal types — garage remotes, TPMS, weather stations, utility meters, alarm sensors, and more — with a full reasoning chain, confidence scoring, and a sub-protocol hint.
 
 ## What it does
 
-1. Browses `.sub` files on the SD card under `/ext/subghz/`.
+1. Browses '.sub' files on the SD card under '/ext/subghz/'.
 2. Parses the capture and extracts around 30 signal features — entropy, PWM parameters, Manchester decode, segment similarity, rolling-code detection, CRC scan.
 3. Runs a 17-stage classifier and picks the first matching label.
 4. Shows a scrollable on-screen report — summary, reasoning chain, key metrics, decoded payload, warnings, and the full text view.
@@ -13,7 +13,7 @@ Automated classifier for Flipper Zero BinRAW `.sub` captures. Identifies 17 ISM-
 ## Usage
 
 1. Open Subhound from the Sub-GHz apps menu.
-2. Pick a `.sub` capture in the file browser.
+2. Pick a '.sub' capture in the file browser.
 3. Press OK — the app parses and classifies immediately.
 4. Drill into any section from the menu, or open the full report.
 5. Press Back to analyze another capture.
