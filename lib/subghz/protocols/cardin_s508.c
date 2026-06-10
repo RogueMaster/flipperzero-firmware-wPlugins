@@ -141,8 +141,9 @@ void subghz_protocol_decoder_cardin_s508_reset(void* context) {
 /* One decoded Manchester bit: while hunting, slide it into the 12-bit window and
  * watch for the sync; once locked, shift it into the 128-bit payload and publish
  * a frame when 128 bits are in. */
-static void
-    subghz_protocol_decoder_cardin_s508_add_bit(SubGhzProtocolDecoderCardinS508* instance, bool bit) {
+static void subghz_protocol_decoder_cardin_s508_add_bit(
+    SubGhzProtocolDecoderCardinS508* instance,
+    bool bit) {
     if(!instance->sync_locked) {
         instance->sync_shift = ((instance->sync_shift << 1) | (bit ? 1u : 0u)) &
                                CARDIN_S508_SYNC_MASK;
