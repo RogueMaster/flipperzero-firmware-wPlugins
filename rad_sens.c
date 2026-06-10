@@ -6,9 +6,26 @@ typedef enum {
     WorkerEventReserved = (1 << 0), // Reserved for StreamBuffer internal event
     WorkerEventStop = (1 << 1),
     WorkerEventTick = (1 << 2),
+    WorkerEventSensitivityUp = (1 << 3),
+    WorkerEventSensitivityDown = (1 << 4),
 } WorkerEventFlags;
 
-#define WORKER_EVENTS_MASK (WorkerEventStop | WorkerEventTick)
+#define WORKER_EVENTS_MASK \
+    (WorkerEventStop | WorkerEventTick | WorkerEventSensitivityUp | WorkerEventSensitivityDown)
+#define RAD_SENS_DEFAULT_SENSITIVITY 105
+#define RAD_SENS_SENSITIVITY_STEP 5
+
+static uint16_t rad_sens_adjust_sensitivity(uint16_t current, int32_t delta) {
+    int32_t next = (current ? current : RAD_SENS_DEFAULT_SENSITIVITY) + delta;
+
+    if(next < 1) {
+        next = 1;
+    } else if(next > UINT16_MAX) {
+        next = UINT16_MAX;
+    }
+
+    return next;
+}
 
 static void rad_sens_view_draw_battery(Canvas* canvas, RadSensModel* model) {
     if(model->info.gauge_is_ok) {
@@ -26,11 +43,15 @@ static void rad_sens_view_draw_info(Canvas* canvas, RadSensModel* model) {
         furi_string_alloc_printf("%0.1f", ((double)model->dyn_intensity / 10));
     FuriString* stat_intensity = furi_string_alloc_printf(
         "Static intensity: %0.1f uR/h", ((double)model->stat_intensity / 10));
-    FuriString* impulse_count = furi_string_alloc_printf("Impulses: %ld", model->impulse_count);
+    FuriString* impulse_count =
+        furi_string_alloc_printf("Impulses: %lu", (unsigned long)model->impulse_count);
+    FuriString* header = model->sensitivity ?
+                             furi_string_alloc_printf("RadSens S:%u", model->sensitivity) :
+                             furi_string_alloc_printf("RadSens S:--");
 
     canvas_set_font(canvas, FontSecondary);
     uint8_t height = canvas_current_font_height(canvas);
-    canvas_draw_str(canvas, 0, height, "RadSens connected");
+    canvas_draw_str(canvas, 0, height, furi_string_get_cstr(header));
 
     canvas_set_font(canvas, FontBigNumbers);
     uint8_t width_dyn = canvas_string_width(canvas, furi_string_get_cstr(dyn_intensity));
@@ -49,6 +70,7 @@ static void rad_sens_view_draw_info(Canvas* canvas, RadSensModel* model) {
     canvas_draw_str(canvas, 0, 64 - 1 * height, furi_string_get_cstr(stat_intensity));
     canvas_draw_str(canvas, 0, 64 - 0 * height, furi_string_get_cstr(impulse_count));
 
+    furi_string_free(header);
     furi_string_free(dyn_intensity);
     furi_string_free(stat_intensity);
     furi_string_free(impulse_count);
@@ -164,17 +186,52 @@ static bool rad_sens_view_input_callback(InputEvent* event, void* context) {
     furi_assert(app);
     bool consumed = false;
 
-    if(event->type == InputTypeShort) {
+    if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
         switch(event->key) {
-        case InputKeyUp:
+        case InputKeyOk:
+            if(event->type == InputTypeShort) {
+                with_view_model(
+                    app->view,
+                    RadSensModel * model,
+                    {
+                        model->vibro_on = !model->vibro_on;
+                    },
+                    true);
+            }
             consumed = true;
-            app->model->vibro_on = !app->model->vibro_on;
             break;
         case InputKeyRight:
-            app->model->show_history = true;
+            if(event->type == InputTypeShort) {
+                with_view_model(
+                    app->view,
+                    RadSensModel * model,
+                    {
+                        model->show_history = true;
+                    },
+                    true);
+            }
+            consumed = true;
             break;
         case InputKeyLeft:
-            app->model->show_history = false;
+            if(event->type == InputTypeShort) {
+                with_view_model(
+                    app->view,
+                    RadSensModel * model,
+                    {
+                        model->show_history = false;
+                    },
+                    true);
+            }
+            consumed = true;
+            break;
+        case InputKeyUp:
+            furi_thread_flags_set(furi_thread_get_id(app->worker_thread), WorkerEventSensitivityUp);
+            consumed = true;
+            break;
+        case InputKeyDown:
+            furi_thread_flags_set(
+                furi_thread_get_id(app->worker_thread), WorkerEventSensitivityDown);
+            consumed = true;
             break;
         default:
             break;
@@ -203,6 +260,33 @@ static int32_t rad_sens_worker(void* context) {
         furi_check((events & FuriFlagError) == 0);
 
         if(events & WorkerEventStop) break;
+        if(events & (WorkerEventSensitivityUp | WorkerEventSensitivityDown)) {
+            bool done = false;
+            int32_t delta = 0;
+
+            if(events & WorkerEventSensitivityUp) {
+                delta += RAD_SENS_SENSITIVITY_STEP;
+            }
+            if(events & WorkerEventSensitivityDown) {
+                delta -= RAD_SENS_SENSITIVITY_STEP;
+            }
+
+            with_view_model(
+                app->view,
+                RadSensModel * model,
+                {
+                    uint16_t sensitivity = rad_sens_adjust_sensitivity(model->sensitivity, delta);
+                    done = rad_sens_set_sensitivity(sensitivity);
+                    if(done) {
+                        done = rad_sens_read_data(model);
+                    }
+                },
+                true);
+
+            if(!done) {
+                notification_message(app->notification, &sequence_notification_fail);
+            }
+        }
         if(events & WorkerEventTick) {
             bool done = false;
             uint16_t new_impulse_count = 0;
@@ -317,6 +401,7 @@ static RadSensApp* rad_sens_app_alloc() {
             model->connected = false;
             model->dyn_intensity = 0;
             model->stat_intensity = 0;
+            model->sensitivity = 0;
             model->new_impulse_count = 0;
             model->impulse_count = rad_sens_load_value();
 
@@ -366,6 +451,7 @@ static void rad_sens_app_free(RadSensApp* app) {
             model->connected = false;
             model->dyn_intensity = 0;
             model->stat_intensity = 0;
+            model->sensitivity = 0;
             model->impulse_count = 0;
         },
         true);
