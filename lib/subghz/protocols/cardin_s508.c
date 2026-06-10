@@ -74,10 +74,12 @@ const SubGhzProtocolDecoder subghz_protocol_cardin_s508_decoder = {
     .free = subghz_protocol_decoder_cardin_s508_free,
     .feed = subghz_protocol_decoder_cardin_s508_feed,
     .reset = subghz_protocol_decoder_cardin_s508_reset,
-    .get_hash_data = subghz_protocol_decoder_cardin_s508_get_hash_data,
+    .get_hash_data = NULL,
+    .get_hash_data_long = subghz_protocol_decoder_cardin_s508_get_hash_data,
     .serialize = subghz_protocol_decoder_cardin_s508_serialize,
     .deserialize = subghz_protocol_decoder_cardin_s508_deserialize,
     .get_string = subghz_protocol_decoder_cardin_s508_get_string,
+    .get_string_brief = NULL,
 };
 
 /* Decode-only: no encoder. Mirrors the iDo 117/111 decode-only protocol. */
@@ -223,12 +225,12 @@ void subghz_protocol_decoder_cardin_s508_feed(void* context, bool level, uint32_
     }
 }
 
-uint8_t subghz_protocol_decoder_cardin_s508_get_hash_data(void* context) {
+uint32_t subghz_protocol_decoder_cardin_s508_get_hash_data(void* context) {
     furi_assert(context);
     SubGhzProtocolDecoderCardinS508* instance = context;
     /* hash the low 64 payload bits; every press rolls all 128 bits, so this is
      * unique per press while deduping the repeats of a single press */
-    return subghz_protocol_blocks_get_hash_data(&instance->decoder, sizeof(uint64_t));
+    return subghz_protocol_blocks_get_hash_data_long(&instance->decoder, sizeof(uint64_t));
 }
 
 SubGhzProtocolStatus subghz_protocol_decoder_cardin_s508_serialize(

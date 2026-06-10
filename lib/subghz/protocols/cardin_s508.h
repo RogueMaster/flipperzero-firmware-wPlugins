@@ -81,7 +81,7 @@ void subghz_protocol_decoder_cardin_s508_feed(void* context, bool level, uint32_
  * @param context Pointer to a SubGhzProtocolDecoderCardinS508 instance
  * @return hash Hash sum
  */
-uint8_t subghz_protocol_decoder_cardin_s508_get_hash_data(void* context);
+uint32_t subghz_protocol_decoder_cardin_s508_get_hash_data(void* context);
 
 /**
  * Serialize data SubGhzProtocolDecoderCardinS508.
