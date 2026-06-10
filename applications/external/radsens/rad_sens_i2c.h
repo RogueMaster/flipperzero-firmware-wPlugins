@@ -7,9 +7,11 @@
 #define RAD_SENS_DYN_INTENSITY_RG  0x03
 #define RAD_SENS_STAT_INTENSITY_RG 0x06
 #define RAD_SENS_IMP_CNT_RG        0x09
+#define RAD_SENS_SENSITIVITY_RG    0x12
 
 // External I2C BUS
 #define I2C_BUS &furi_hal_i2c_handle_external
 
 typedef struct RadSensModel RadSensModel;
 bool rad_sens_read_data(RadSensModel* model);
+bool rad_sens_set_sensitivity(uint16_t sensitivity);
