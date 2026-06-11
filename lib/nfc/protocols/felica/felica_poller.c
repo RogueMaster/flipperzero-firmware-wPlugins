@@ -305,9 +305,12 @@ NfcCommand felica_poller_state_handler_traverse_standard_system(FelicaPoller* in
         }
 
         if(len == 0x0E) {
+            uint16_t code_end =
+                (uint16_t)(list_service_payload[2] | (list_service_payload[3] << 8));
             FelicaArea* area = felica_area_array_push_raw(area_buffer);
             memset(area, 0, sizeof *area);
             area->code = code_begin;
+            area->end_code = code_end;
             area->first_idx = (uint16_t)felica_service_array_size(service_buffer);
             area->last_idx = 0;
         } else {
@@ -352,6 +355,60 @@ NfcCommand felica_poller_state_handler_traverse_standard_system(FelicaPoller* in
         "Services found: %lu, Areas found: %lu",
         simple_array_get_count(system->services),
         simple_array_get_count(system->areas));
+
+    // Request key versions for system (0xFFFF), all areas, and all services.
+    // FeliCa spec limits n ≤ 32 per Request Service command; batch if needed.
+    do {
+        uint32_t svc_count = simple_array_get_count(system->services);
+        uint32_t area_cnt = simple_array_get_count(system->areas);
+        uint32_t total = 1 + area_cnt + svc_count;
+
+        uint16_t* codes = malloc(total * sizeof(uint16_t));
+        uint16_t* key_vers = malloc(total * sizeof(uint16_t));
+
+        codes[0] = 0xFFFF; // system key version sentinel
+        for(uint32_t i = 0; i < area_cnt; i++)
+            codes[1 + i] = ((const FelicaArea*)simple_array_cget(system->areas, i))->code;
+        for(uint32_t i = 0; i < svc_count; i++)
+            codes[1 + area_cnt + i] =
+                ((const FelicaService*)simple_array_cget(system->services, i))->code;
+
+        bool all_ok = true;
+        for(uint32_t offset = 0; offset < total; offset += FELICA_REQUEST_SERVICE_MAX_NODES) {
+            uint32_t remaining = total - offset;
+            uint8_t batch = (remaining > FELICA_REQUEST_SERVICE_MAX_NODES) ?
+                                FELICA_REQUEST_SERVICE_MAX_NODES :
+                                (uint8_t)remaining;
+            FelicaError err =
+                felica_poller_request_service(instance, codes + offset, batch, key_vers + offset);
+            if(err != FelicaErrorNone) {
+                FURI_LOG_W(TAG, "Request service failed (offset=%lu, err=%d)", offset, err);
+                for(uint32_t i = offset; i < total; i++)
+                    key_vers[i] = 0;
+                all_ok = false;
+                break;
+            }
+        }
+
+        if(all_ok) {
+            system->key_version = key_vers[0];
+            for(uint32_t i = 0; i < area_cnt; i++)
+                ((FelicaArea*)simple_array_get(system->areas, i))->key_version = key_vers[1 + i];
+            for(uint32_t i = 0; i < svc_count; i++)
+                ((FelicaService*)simple_array_get(system->services, i))->key_version =
+                    key_vers[1 + area_cnt + i];
+            FURI_LOG_I(TAG, "System key version: %04X", system->key_version);
+        } else {
+            system->key_version = 0;
+            for(uint32_t i = 0; i < area_cnt; i++)
+                ((FelicaArea*)simple_array_get(system->areas, i))->key_version = 0;
+            for(uint32_t i = 0; i < svc_count; i++)
+                ((FelicaService*)simple_array_get(system->services, i))->key_version = 0;
+        }
+
+        free(codes);
+        free(key_vers);
+    } while(false);
 
     felica_service_array_clear(service_buffer);
     felica_area_array_clear(area_buffer);
