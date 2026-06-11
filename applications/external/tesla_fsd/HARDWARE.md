@@ -225,6 +225,19 @@ And these "Vehicle CAN" signals are also writable on bus 6:
 > one device: Bus 6 for `0x3FD` / `0x370` / `0x3F8` / TLSSC, and Vehicle CAN
 > direct for `0x3C2`. Slated as a v2.16 platformio variant.
 
+> [!IMPORTANT]
+> **On HW4-modern, `0x370` EPAS3P_sysStatus is the mirror case of `0x3C2`: it is
+> absent from Vehicle CAN (X179 pin 9/10/11).** Dual-CAN captures on two cars —
+> @jewelrylin's Juniper RWD (0 / 20,760 frames over 60 s on pin 9/10) and
+> @DrStrangeglovebox's MYP Giga Berlin (0 / 2,653 on pin 10/11) — confirm `0x370`
+> only appears on **Bus 6 (pin 13/14)** as the gateway-forwarded copy. The EPAS
+> module does **not** receive `0x370` on Vehicle CAN on these trims, so relocating
+> the nag echo from Bus 6 to Vehicle CAN does **not** reach EPAS — it is not a
+> viable nag-killer pivot for HW4-modern. The only remaining X179 location that
+> could carry the EPAS-side frame is **Chassis Bus 3 (pin 18/19)**; until a
+> Listen-Only capture there confirms it, the 14.x HW4 nag path stays open. See
+> [#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100).
+
 **One bus, one connection, reads and writes almost everything.**
 
 This is how the 非凡指揮官 (Feifan Commander, 69K+ sales in China)

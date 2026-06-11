@@ -92,6 +92,20 @@ bool fsd_is_selected_in_ui(const CANFRAME* frame, bool force_fsd) {
 
 TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame) {
     if(frame->canId != CAN_ID_GTW_CAR_CONFIG) return TeslaHW_Unknown;
+    // Some HW4 trims (Juniper/Giga) forward an all-zero 0x398 stub on the
+    // gateway copy that reaches Bus 6 — only the mux byte ever moves. An empty
+    // GTW_carConfig carries no real das_hw; reading it as 0 would mislabel the
+    // car as Legacy and route it through the 0x3EE path. The real HW4 marker
+    // lives on Vehicle CAN (0x39B). Treat an all-zero payload as Unknown so
+    // detection falls through to the live markers instead of a stub.
+    bool all_zero = true;
+    for(uint8_t i = 0; i < frame->data_lenght && i < 8u; i++) {
+        if(frame->buffer[i] != 0u) {
+            all_zero = false;
+            break;
+        }
+    }
+    if(all_zero) return TeslaHW_Unknown;
     uint8_t das_hw = (frame->buffer[0] >> 6) & 0x03;
     switch(das_hw) {
     case 0:

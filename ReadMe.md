@@ -50,7 +50,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Radiation Sensor v1.0 (By sionyx)](https://github.com/sionyx/flipper_radsens) `Req: RadSens` [Add sensitivity control (By frydaykg)](https://github.com/sionyx/flipper_radsens/pull/1)
 - Updated: [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - Updated: [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz) [Support NDEF text records beyond 127 characters (By k0bura)](https://github.com/wakdev/nfctools-fz/pull/8)
-- Updated: [Tesla Mod v2.16.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (ESP32 Firmware Update Only)
+- Updated: [Tesla Mod v2.16.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

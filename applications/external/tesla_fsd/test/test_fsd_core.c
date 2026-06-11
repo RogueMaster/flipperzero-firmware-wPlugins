@@ -98,10 +98,26 @@ static void test_detect_hw(void) {
     CHECK(fsd_detect_hw_version(&f) == TeslaHW_HW3, "das_hw=2 -> HW3");
     f.buffer[0] = 0xC0; // 0b11 = 3
     CHECK(fsd_detect_hw_version(&f) == TeslaHW_HW4, "das_hw=3 -> HW4");
+    // Real Legacy car: das_hw=0/1 but GTW_carConfig is populated (VIN/options),
+    // so a non-zero config byte distinguishes it from the all-zero stub below.
+    f.buffer[3] = 0x55; // some real config payload
     f.buffer[0] = 0x00; // 0
-    CHECK(fsd_detect_hw_version(&f) == TeslaHW_Legacy, "das_hw=0 -> Legacy");
+    CHECK(fsd_detect_hw_version(&f) == TeslaHW_Legacy, "das_hw=0 + payload -> Legacy");
     f.buffer[0] = 0x40; // 1
-    CHECK(fsd_detect_hw_version(&f) == TeslaHW_Legacy, "das_hw=1 -> Legacy");
+    CHECK(fsd_detect_hw_version(&f) == TeslaHW_Legacy, "das_hw=1 + payload -> Legacy");
+    // All-zero 0x398 stub (HW4 Juniper/Giga gateway copy on Bus 6): must NOT be
+    // read as das_hw=0 -> Legacy; fall through to live markers instead.
+    zero(&f);
+    f.canId = CAN_ID_GTW_CAR_CONFIG;
+    f.data_lenght = 8;
+    CHECK(fsd_detect_hw_version(&f) == TeslaHW_Unknown, "all-zero 0x398 stub -> Unknown");
+    // Guard boundary: a populated frame with das_hw=0 (byte0 low bits set, e.g.
+    // a real config/mux value) is NOT all-zero, so it still classifies Legacy —
+    // the guard must only fire on a fully empty payload, never over-fire.
+    f.buffer[0] = 0x05; // byte0 nonzero, das_hw bits (7:6) = 0
+    CHECK(
+        fsd_detect_hw_version(&f) == TeslaHW_Legacy,
+        "das_hw=0 populated -> Legacy (guard no over-fire)");
     f.canId = 0x123; // wrong id
     CHECK(fsd_detect_hw_version(&f) == TeslaHW_Unknown, "wrong id -> Unknown");
 }
