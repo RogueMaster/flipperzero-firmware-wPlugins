@@ -303,7 +303,7 @@ static void kb_draw_page(Canvas* canvas, uint8_t x, uint8_t y, bool sel, uint8_t
 
 static void kb_draw_callback(Canvas* canvas, void* _model) {
     KbModel* model = _model;
-    uint8_t text_length = model->text_buffer ? (uint8_t)strlen(model->text_buffer) : 0;
+    size_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
     uint8_t needed_width = (uint8_t)(canvas_width(canvas) - 8);
     uint8_t start_pos = 4;
     const char* text = model->text_buffer;
@@ -380,7 +380,7 @@ static void kb_draw_callback(Canvas* canvas, void* _model) {
 
 static void kb_backspace(KbModel* model) {
     // If default text is selected, treat it as a single unit to delete
-    uint8_t len = model->clear_default_text ? 1 : (uint8_t)strlen(model->text_buffer);
+    size_t len = model->clear_default_text ? 1 : strlen(model->text_buffer);
     if(len > 0) model->text_buffer[len - 1] = '\0';
 }
 

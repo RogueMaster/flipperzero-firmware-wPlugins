@@ -50,6 +50,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Add Cardin S508 rolling-code decoder (decode-only) (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1004)
 - Updated: [Radiation Sensor v1.0 (By sionyx)](https://github.com/sionyx/flipper_radsens) `Req: RadSens` [Add sensitivity control (By frydaykg)](https://github.com/sionyx/flipper_radsens/pull/1)
 - Updated: [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
+- Updated: [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz) [Support NDEF text records beyond 127 characters (By k0bura)](https://github.com/wakdev/nfctools-fz/pull/8)
 
 <a name="release"></a>
 
@@ -758,7 +759,7 @@ $ ./fbt dolphin_ext
 - [NFC Seader v4.1 (By bettse)](https://github.com/bettse/seader)
 - [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
 - [NFC Stock v0.1.5 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
-- [NFC Tools v1.2 (By wakdev)](https://github.com/wakdev/nfctools-fz)
+- [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - [NFC URL v1.0 (By y-dejong)](https://github.com/y-dejong/nfcurl)
 - [Nickname Generator v0.1 (By disaxq)](https://github.com/disaxq/Nickname-Generator)
 - [Nightstand Clock v1.2 (By nymda)](https://github.com/nymda/FlipperNightStand)

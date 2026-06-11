@@ -59,14 +59,14 @@ typedef struct {
     uint8_t tnf;
     NfcToolsNdefType type;
     char type_str[32]; // raw type (e.g. "U", "T", "application/vnd.wfa.wsc")
-    char value[128]; // decoded value (URL, text…)
+    char value[1024]; // decoded value (URL, text…)
     char summary[40]; // one-liner for the submenu
     uint8_t payload[NFC_TOOLS_NDEF_PAYLOAD_MAX];
     uint16_t payload_len; // actual length (before truncation)
     bool has_qr; // true if a QR code is relevant
 } NfcToolsNdefRecord;
 
-#define NFC_TOOLS_NDEF_BUF1_SIZE 128 // URL / text / WiFi SSID / Mail To / Contact Name
+#define NFC_TOOLS_NDEF_BUF1_SIZE 1024 // URL / text / WiFi SSID / Mail To / Contact Name
 #define NFC_TOOLS_NDEF_BUF2_SIZE 64 // WiFi password / Mail Subject / Contact Company
 #define NFC_TOOLS_NDEF_BUF3_SIZE 128 // Mail Body / Contact Address
 #define NFC_TOOLS_NDEF_BUF4_SIZE 64 // Contact Phone
