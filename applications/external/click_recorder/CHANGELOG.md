@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.2 - 2026-06-11
+## Update catalog images
+- See https://github.com/flipperdevices/flipper-application-catalog/pull/1016#issuecomment-4658689300
+
 # 1.1 - 2026-04-10
 ## Catalog ready
 - Add screenshots for catalog
