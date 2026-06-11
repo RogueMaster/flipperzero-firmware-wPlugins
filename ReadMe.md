@@ -46,11 +46,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet) (No Significant Changes)
 - Updated: [NFC Magic v1.15.2 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) [Gen2 CUID/static-nonce detection, Gen1 4b/7b UID, length-aware wipe & write guard (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/219)
 - Added: [MQ-3 Alcometer v1.0 (By serjantlk)](https://github.com/serjantlk/MQ-3-Alcometer) `Req: MQ-3 Breathalyzer` [Sold Here](https://flipperaddons.com/product/mq-3-alkotester)
-- Updated: [Tesla Mod v2.16.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (ESP32 Firmware Update Only)
 - Sub-GHz: [Add Cardin S508 rolling-code decoder (decode-only) (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1004)
 - Updated: [Radiation Sensor v1.0 (By sionyx)](https://github.com/sionyx/flipper_radsens) `Req: RadSens` [Add sensitivity control (By frydaykg)](https://github.com/sionyx/flipper_radsens/pull/1)
 - Updated: [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - Updated: [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz) [Support NDEF text records beyond 127 characters (By k0bura)](https://github.com/wakdev/nfctools-fz/pull/8)
+- Updated: [Tesla Mod v2.16.6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (ESP32 Firmware Update Only)
 
 <a name="release"></a>
 

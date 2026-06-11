@@ -227,11 +227,18 @@ static int32_t fsd_running_worker(void* context) {
         storage_common_mkdir(app->storage, "/ext/apps_data/tesla_mod");
         storage_common_mkdir(app->storage, "/ext/apps_data/tesla_mod/captures");
         char cap_path[80];
+        DateTime dt;
+        furi_hal_rtc_get_datetime(&dt);
         snprintf(
             cap_path,
             sizeof(cap_path),
-            "/ext/apps_data/tesla_mod/captures/cap_%lu.log",
-            (unsigned long)furi_get_tick());
+            "/ext/apps_data/tesla_mod/captures/cap_%04u%02u%02u_%02u%02u%02u.log",
+            dt.year,
+            dt.month,
+            dt.day,
+            dt.hour,
+            dt.minute,
+            dt.second);
         cap_file = storage_file_alloc(app->storage);
         if(!storage_file_open(cap_file, cap_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
             storage_file_free(cap_file);
