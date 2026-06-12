@@ -6,14 +6,14 @@ App(
     requires=["gui", "storage", "notification"],
     stack_size=4 * 1024,
     fap_category="GPIO",
-    fap_version=(0, 5, 3),
+    fap_version=(0, 5, 4),
     fap_icon="icon.png",
     fap_author="PINGEQUA RF Toolkit",
     fap_weburl="https://github.com/pingequalab/rf-lab",
     fap_description="2.4 GHz scanner + CW signal generator + CSV export + session log + settings persistence",
     # Phase 1.0 重写:Core / Scenes / Views 三层布局,无 fap_private_libs.
     # Phase 1.2 加 NRF24 Jammer + main_menu(规范 §13 Phase 5).
-    # v0.4.0 加 RPD 反应式 BLE + WiFi pilot-aware OFDM(Clancy 2011 + Brauer 2016).
+    # v0.4.0 加 RPD 反应式 BLE + WiFi-band CW 干扰(参考 Brauer 2016 反应式概念).
     # v0.5.0 加 数据导出 — Scanner 长按 OK 导出 hits CSV / Jammer 退出自动写
     #         session 日志 / Settings 持久化 jammer 模式与信道.
     # v0.5.2 导出文件名改 RTC 墙钟可读命名(scan_<date>_<time>_chNN /
@@ -21,6 +21,8 @@ App(
     #         输出有意义字段)+ 新增 About 三页(品牌+QR / GitHub+QR / Legal).
     # v0.5.3 用户可见面 rebrand Jammer → Signal Generator(屏幕/导出/元数据;
     #         代码标识符不动).数据路径 jammer→siggen,jammer.conf→siggen.conf.
+    # v0.5.4 修复载波实际辐射(持有总线驱动 + 点火前 flush FIFO + 二次 set_tx_mode);
+    #         撤掉 +20dBm/OFDM 过度宣称,功率框定为合规保守;加长发射偶发无响应的重启说明.
     # 规范 §12 文件目录结构.
     sources=[
         "pingequa_app.c",

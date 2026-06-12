@@ -5,7 +5,7 @@ All notable changes to PINGEQUA RF Lab.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.4] — 2026-06-12
 
 ### Fixed
 - **Signal Generator (NRF24) produced little or no measurable RF effect** —
@@ -30,6 +30,26 @@ versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
   - All non-reactive modes hop the constant carrier across their band
     (CW Custom single freq; BLE Adv {2,26,80}; WiFi 1/6/11 ch 1–23 / 26–48 /
     51–73; ALL 0–125). Live mode-switching re-ignites within the held session.
+  - **TX FIFO is now flushed before each ignition.** In CONT_WAVE the dummy
+    payload is never consumed, so repeated fires / live mode-switches filled
+    the FIFO (`TX_FULL`) and silently dropped the ignition payload — the
+    carrier would "stop transmitting mid-session". Now flushed first.
+    Device-verified ignition registers: `RF_SETUP=0x9E`
+    (`CONT_WAVE|PLL_LOCK|RF_PWR=11`), `CFG=0x02`, FIFO loaded.
+
+### Changed
+- **Honest power presentation.** Removed the on-screen `+20 dBm` label and the
+  `+20 dBm` / `pilot-aware OFDM (Clancy 2011)` / "room range" claims from the
+  README/FAQ. The WiFi modes are continuous-carrier band hops (ch 1–23 / 26–48
+  / 51–73). Output power is intentionally kept conservative — the firmware does
+  not drive the radio to its electrical maximum — to stay within a defensible
+  envelope for the regulated 2.4 GHz band.
+
+### Known limitations
+- The multi-channel modes (BLE Adv / WiFi 1·6·11 / ALL / BLE React) can stop
+  responding during a long continuous transmit run — hold **Left + Back**
+  (~5 s) to reboot. **CW Custom** (single channel) is the most robust for
+  sustained use; use the sweep modes in shorter bursts.
 
 ## [0.5.3] — 2026-05-22
 
