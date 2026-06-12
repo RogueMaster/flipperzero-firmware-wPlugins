@@ -5,7 +5,6 @@ App(
     entry_point="fcc_id_lookup_app",
     stack_size=8 * 1024,
     fap_icon="fcc_id_lookup_icon.png",
-    fap_file_assets="files",
     sources=["fcc_id_lookup.c"],
     fap_category="Tools",
     fap_author="lrehmann",
