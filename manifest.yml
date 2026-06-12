@@ -1,0 +1,43 @@
+# Manifiesto para el Flipper Application Catalog.
+#
+# Este archivo NO se queda en este repo al publicar: se copia a un fork de
+# https://github.com/flipperdevices/flipper-application-catalog en la ruta
+#   applications/Tools/san_morse/manifest.yml
+# Ver PUBLISHING.md para los pasos completos.
+#
+# Pendientes antes de enviar el PR (marcados con TODO):
+#   - origin: URL publica real del repo
+#   - commit_sha: SHA completo (40 caracteres) del commit a publicar
+#   - screenshots/ss0.png: captura hecha con qFlipper (sin re-escalar)
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/TODO-usuario/san-morse-flipper.git # TODO
+    commit_sha: TODO0000000000000000000000000000000000000 # TODO: 40 chars
+
+short_description: Morse con arbol de decision como guia y texto a Morse
+
+description: |
+  Aprende y escribe codigo Morse sin saberte los codigos de memoria.
+
+  **Arbol de decision:** la pantalla muestra el arbol dicotomico del Morse
+  (E/T, I/A/N/M, ...) y el boton OK funciona como llave telegrafica: soltar
+  rapido es punto, mantener es raya. Siempre ves en que nodo estas y que
+  caracter te da el siguiente simbolo. Una pausa corta confirma la letra y
+  una pausa larga agrega espacio, con cuenta regresiva visible. Los numeros
+  y signos estan en el nivel 5: la vista hace zoom para mostrarlos.
+
+  **Texto a Morse:** escribe un texto y se reproduce con sonido, LED y
+  vibracion, resaltando el caracter y el simbolo actual, con velocidad
+  ajustable en vivo.
+
+  **Ajustes persistentes:** volumen, tono, vibracion, LED, velocidad WPM,
+  umbral punto/raya y tiempos de confirmacion.
+
+changelog: "@./docs/changelog.md"
+
+screenshots:
+  - screenshots/ss0.png # TODO: capturar con qFlipper
+
+# name, id, category, version, author e icon se toman de application.fam
