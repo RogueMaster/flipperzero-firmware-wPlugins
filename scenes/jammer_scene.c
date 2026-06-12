@@ -15,8 +15,10 @@
  *   旧实现把每个 chunk 包进 pq_chip_with_nrf24(每次 acquire→cb→release),恒载波
  *   被反复"释放/重夺总线"打断 → 实测真机上起振不稳定甚至完全不发.
  *   新实现改用"独占持有总线会话"(pq_chip_nrf24_session_begin/end):OK 启动后
- *   acquire 一次、整段持有,CE 常高;worker 在紧贴循环里只连写 RF_CH 跳频,全程
- *   不释放总线 —— 与 huuck 的 while{for(ch) write(RF_CH)} 一致.
+ *   acquire 一次、整段持有,CE 常高;worker 在紧贴循环里连写 RF_CH 跳频,全程
+ *   不释放总线(持有总线 + CE 常高的会话模型同 huuck).多信道跳频每跳加 dwell_us
+ *   驻留(本实现优化:让合成器在新频点稳定起振,见 jammer_const_carrier_hop_batch),
+ *   单频 CwCustom 则载波常驻不跳.
  *   恒载波起振用 huuck 的"灌 32B FIFO 后再做一次 set_tx_mode(CE LOW→HIGH 二次
  *   脉冲)"点火动作(见 jammer_start_const_carrier),旧实现只有单次 CE 上升沿.
  *
@@ -47,8 +49,12 @@
 #define ARBITER_TIMEOUT_MS     200       /* cc1101 sleep / 一次性 init_regs 用 */
 #define WORKER_IDLE_YIELD_MS   50        /* idle 时让 GUI */
 #define CW_TICK_YIELD_MS       20        /* 单频恒载波:载波已常发,只需周期 yield 给 GUI */
-#define HOP_BATCH              128       /* 多信道:每跑 128 次 RF_CH 跳频回查停止标志
-                                          * (~5ms 一次;紧贴 huuck 的无延时跳频循环) */
+#define HOP_BATCH              128       /* 多信道无驻留(dwell_us=0)时的回查批量(兜底) */
+#define CW_HOP_DWELL_FLOOR_US  130       /* 合成器重锁下限:nRF24L01+ Tstby2a ~130µs
+                                          * (Nordic DS §6.1.7).每跳驻留低于此,载波在
+                                          * 新频点来不及稳定起振 → 能量被"涂抹"而非落地 */
+#define CW_HOP_BATCH_BUDGET_US 15000     /* 每 batch 墙钟上限;到点回 worker 循环查
+                                          * 停止/切模式标志(保持 ≤ §11.2 callback 预算) */
 #define NRF24_CW_LEVEL_MAX     3         /* RF_PWR=11 → 0 dBm at die(PA 模块拉满) */
 
 /* 会话级统计 — Scene 单例,static 安全.
@@ -90,12 +96,14 @@ typedef struct {
  *   BLE 39 = 2480 MHz → ch 80 */
 static const uint8_t k_ble_adv_chs[] = {2, 26, 80};
 
-/* WiFi 信道范围(NRF24 ch = MHz - 2400),恒载波在整段内快速跳频铺能量:
+/* WiFi 信道范围(NRF24 ch = MHz - 2400),恒载波在整段内跳频铺能量:
  *   WiFi 1  → ch 1..23  (2401..2423,中心 2412 ±11)
  *   WiFi 6  → ch 26..48 (2426..2448,中心 2437)
  *   WiFi 11 → ch 51..73 (2451..2473,中心 2462)
- * 用 ch_first..ch_last 连续区间表达;dwell_us/chunk_size 在恒载波驱动模型下不再
- * 参与(跳频在持有总线的紧循环里无延时连写 RF_CH,见 jammer_const_carrier_hop_batch). */
+ * 用 ch_first..ch_last 连续区间表达.dwell_us = 每信道驻留(µs):写完 RF_CH 后等
+ * 合成器在该频点稳定起振再跳下一个(见 jammer_const_carrier_hop_batch);驻留必须
+ * ≥ CW_HOP_DWELL_FLOOR_US,否则载波来不及站稳.信道越多驻留越短(平衡覆盖 vs 能量).
+ * chunk_size 在恒载波模型下不参与(批量由墙钟预算 / dwell 动态算). */
 
 static const JammerProfile k_profiles[JammerModeCount] = {
     [JammerModeCwCustom] = {
@@ -108,7 +116,8 @@ static const JammerProfile k_profiles[JammerModeCount] = {
         .engine = JamEngineCw,
         .channels = k_ble_adv_chs, .channel_count = 3,
         .ch_first = 0, .ch_last = 0,
-        .dwell_us = 0, .chunk_size = 1,
+        .dwell_us = 600,   /* 3 ch × 600µs → 全程 ~1.8ms 重访;覆盖一个 BLE adv 包(~376µs) */
+        .chunk_size = 1,
     },
     [JammerModeReactiveBle] = {
         /* v0.4.x:RPD 反应式 BLE — 监听 + 检测 + 反应干扰.
@@ -123,25 +132,29 @@ static const JammerProfile k_profiles[JammerModeCount] = {
         .engine = JamEngineCw,
         .channels = NULL, .channel_count = 0,
         .ch_first = 1, .ch_last = 23,
-        .dwell_us = 0, .chunk_size = 1,
+        .dwell_us = 350,   /* 23 ch × 350µs → ~8ms 重访整段 20MHz */
+        .chunk_size = 1,
     },
     [JammerModeWifi6] = {
         .engine = JamEngineCw,
         .channels = NULL, .channel_count = 0,
         .ch_first = 26, .ch_last = 48,
-        .dwell_us = 0, .chunk_size = 1,
+        .dwell_us = 350,
+        .chunk_size = 1,
     },
     [JammerModeWifi11] = {
         .engine = JamEngineCw,
         .channels = NULL, .channel_count = 0,
         .ch_first = 51, .ch_last = 73,
-        .dwell_us = 0, .chunk_size = 1,
+        .dwell_us = 350,
+        .chunk_size = 1,
     },
     [JammerModeAllBand] = {
         .engine = JamEngineCw,
         .channels = NULL, .channel_count = 0,
         .ch_first = 0, .ch_last = 125,   /* 全 2.4G ISM */
-        .dwell_us = 0, .chunk_size = 1,
+        .dwell_us = 150,   /* 126 ch × 150µs → ~19ms 扫完全段(广覆盖,密度低) */
+        .chunk_size = 1,
     },
 };
 
@@ -328,10 +341,11 @@ static void jammer_engine_setup(PqApp* app, JammerMode mode) {
     app->jammer_cw_dirty = false;
 }
 
-/* 恒载波运行 batch — 总线持有、CE 常高全程不打断(huuck 紧贴跳频).
+/* 恒载波运行 batch — 总线持有、CE 常高全程不打断.
  *   CwCustom : 停在用户信道(随 ←→ 改频);载波由 CE 常高 + 会话持有维持,
  *              这里只需周期 yield 给 GUI.
- *   多信道   : 在信道集内无延时连写 RF_CH 跳 HOP_BATCH 次,把载波铺满整段. */
+ *   多信道   : 在信道集内跳频,每跳驻留 dwell_us 让合成器在新频点稳定起振再跳,
+ *              而非零延时连写(零延时下 PLL 一直在追、never settle,能量被涂抹掉). */
 static void jammer_const_carrier_hop_batch(PqApp* app, JammerMode mode) {
     const JammerProfile* p = profile_of(mode);
 
@@ -348,9 +362,18 @@ static void jammer_const_carrier_hop_batch(PqApp* app, JammerMode mode) {
     uint8_t total = profile_count(p);
     if(total == 0) return;
 
+    /* 每信道驻留 dwell_us:写完 RF_CH 后停留,让合成器在新频点重锁稳定 + 辐射,
+     * 再跳下一个.单批跳数按墙钟预算 / dwell 动态算,控制单批 ≤ ~15ms,到点回
+     * worker 循环查停止/切模式标志(dwell=0 退化回旧的零延时批量,作兜底). */
+    uint16_t dwell = p->dwell_us;
+    if(dwell && dwell < CW_HOP_DWELL_FLOOR_US) dwell = CW_HOP_DWELL_FLOOR_US;
+    uint32_t hops = dwell ? (CW_HOP_BATCH_BUDGET_US / dwell) : HOP_BATCH;
+    if(hops < 1) hops = 1;
+
     uint8_t cursor = app->jammer_sweep_cursor;
-    for(uint32_t i = 0; i < HOP_BATCH; i++) {
+    for(uint32_t i = 0; i < hops; i++) {
         pq_nrf24_set_channel_fast(app->nrf, profile_ch_at(p, cursor));
+        if(dwell) furi_delay_us(dwell); /* 合成器在该频点稳定 + 辐射 */
         cursor = (uint8_t)((cursor + 1) % total);
     }
     app->jammer_sweep_cursor = cursor;
