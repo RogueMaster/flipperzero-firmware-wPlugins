@@ -14,7 +14,7 @@ App(
     fap_category="GPIO",
     fap_author="PINGEQUA RF Toolkit",
     fap_weburl="https://github.com/pingequalab/rf-lab",
-    fap_version="0.5.3",
+    fap_version="0.5.4",
     fap_description="2.4 GHz scanner + CW signal generator + CSV export + session log + settings persistence",
     # Phase 1.0 :Core / Scenes / Views fap_private_libs.
     # Phase 1.2 NRF24 Jammer + main_menu(13 Phase 5).
@@ -26,4 +26,6 @@ App(
     #         About+QR / GitHub+QR / Legal).
     # v0.5.3 rebrand Jammer - Signal Generator;
     #         jammer-siggen,jammer.conf-siggen.conf.
+    # v0.5.4 flush FIFO + set_tx_mode;
+    #         +20dBm/OFDM
 )

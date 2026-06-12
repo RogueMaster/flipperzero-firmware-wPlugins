@@ -41,6 +41,7 @@ typedef enum {
 static PqOwner m_last_owner = PqOwnerNone;
 static bool m_initialized = false;
 static bool m_in_callback = false;
+static bool m_nrf24_session = false; /* 独占持有 nRF24 总线整个会话(huuck 模型) */
 static const GpioPin* m_active_cs = NULL; /* 当前事务实际 CS 引脚 */
 
 /* ---------------------------------------------------------------------------
@@ -60,6 +61,7 @@ void pq_chip_arbiter_init(const PqBoardConfig* cfg) {
 
     m_last_owner = PqOwnerNone;
     m_in_callback = false;
+    m_nrf24_session = false;
     m_active_cs = NULL;
     m_initialized = true;
 }
@@ -124,14 +126,14 @@ bool pq_chip_with_cc1101(PqChipCallback cb, void* ctx, uint32_t timeout_ms) {
 
 void pq_chip_nrf24_ce_set(bool high) {
     furi_check(m_initialized);
-    furi_check(m_in_callback);
+    furi_check(m_in_callback || m_nrf24_session);
     furi_check(m_active_cs == &gpio_ext_pc3);
     furi_hal_gpio_write(&gpio_ext_pb2, high);
 }
 
 bool pq_chip_spi_trx(const uint8_t* tx, uint8_t* rx, size_t size, uint32_t timeout_ms) {
     furi_check(m_initialized);
-    furi_check(m_in_callback);
+    furi_check(m_in_callback || m_nrf24_session);
     furi_check(m_active_cs != NULL);
     furi_check(size > 0);
 
@@ -158,8 +160,54 @@ bool pq_chip_spi_trx(const uint8_t* tx, uint8_t* rx, size_t size, uint32_t timeo
     return ok;
 }
 
+/* ---------------------------------------------------------------------------
+ * 独占持有会话 — jammer 用(huuck FlipperZeroNRFJammer 驱动模型)
+ *
+ * 与 pq_chip_with_nrf24 的差别:那是"每次回调 acquire→cb→release";会话则是
+ * "acquire 一次、整段持有",期间 CE 常高 + 总线不释放,恒载波不会被打断.
+ * begin 后可直接调 pq_chip_spi_trx / pq_chip_nrf24_ce_set(无须包在回调里).
+ * begin / end / 期间所有访问必须在同一线程(FreeRTOS owner-tracked mutex,E2).
+ * --------------------------------------------------------------------------*/
+
+void pq_chip_nrf24_session_begin(void) {
+    furi_check(m_initialized);
+    furi_check(!m_in_callback);
+    furi_check(!m_nrf24_session);
+
+    /* PB2 → NRF24 CE 模式(OutputPushPull),起始 standby LOW. */
+    furi_hal_gpio_init(&gpio_ext_pb2, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
+    furi_hal_gpio_write(&gpio_ext_pb2, false);
+
+    /* 独占持有 external bus 整个会话. */
+    furi_hal_spi_acquire(&furi_hal_spi_bus_handle_external);
+    furi_hal_gpio_write(&gpio_ext_pa4, true); /* PA4 = CC1101 CS HIGH(deselect) */
+    furi_hal_gpio_write(&gpio_ext_pc3, true); /* PC3 = NRF24 CSN HIGH(空闲;每事务内拉低) */
+    m_active_cs = &gpio_ext_pc3;
+    m_nrf24_session = true;
+    m_last_owner = PqOwnerNrf24;
+}
+
+void pq_chip_nrf24_session_end(void) {
+    if(!m_nrf24_session) return;
+    furi_hal_gpio_write(&gpio_ext_pc3, true); /* CSN HIGH */
+    furi_hal_gpio_write(&gpio_ext_pb2, false); /* CE LOW */
+    m_active_cs = NULL;
+    m_nrf24_session = false;
+    furi_hal_spi_release(&furi_hal_spi_bus_handle_external);
+    m_last_owner = PqOwnerNrf24;
+}
+
 void pq_chip_arbiter_force_release(void) {
     if(!m_initialized) return;
+
+    /* 独占会话兜底(正常路径下 worker 已 session_end,此处极少触发). */
+    if(m_nrf24_session) {
+        furi_hal_gpio_write(&gpio_ext_pc3, true);
+        furi_hal_gpio_write(&gpio_ext_pb2, false);
+        m_active_cs = NULL;
+        m_nrf24_session = false;
+        furi_hal_spi_release(&furi_hal_spi_bus_handle_external);
+    }
 
     /* 若当前持有 handle,release(Deactivate 驱 PA4 HIGH + 清三线).
      * 同时确保 PC3(NRF24 CS)回 HIGH. */

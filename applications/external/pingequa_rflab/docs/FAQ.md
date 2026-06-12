@@ -74,7 +74,7 @@ Not in v0.3.0. CSV export is planned for v0.4.0 — see [Roadmap](../README.md#r
 
 ### Does the Jammer work on every channel?
 
-Yes — CW (constant wave) mode allows targeting any channel 0–125 (2400–2525 MHz). Sweep mode hops through all 126 channels in chunks. Power is fixed at the NRF24L01+'s maximum +20 dBm in v0.3.0; configurable power UI is planned for v0.4.0.
+Yes — CW (constant wave) mode allows targeting any channel 0–125 (2400–2525 MHz). Sweep mode hops through all 126 channels in chunks. **Output power is deliberately restrained to respect the legal transmit-power limits for the 2.4 GHz band** — the firmware does not drive the radio to its electrical maximum. As a result the transmit range is modest by design (close range), which is an intentional compliance choice rather than a limitation.
 
 ## Hardware
 

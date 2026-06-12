@@ -154,6 +154,12 @@ bool pq_nrf24_setup_cw(PqNrf24* dev, uint8_t ch) {
      * 典 1.5 ms,worst 4.5 ms,我们取整到 NRF24_TPD2STBY_MS = 2 ms). */
     furi_delay_ms(NRF24_TPD2STBY_MS);
 
+    /* 先清 TX FIFO —— CONT_WAVE 模式下 FIFO 里的 dummy 包不会被真正发走,反复
+     * 启停会逐次累积:第 4 次起 FIFO 满(3 包),后续 W_TX_PAYLOAD 被静默丢弃
+     * (TX_FULL),"灌 FIFO 触发辐射"这一脚踢失效 → 同一会话里测着测着就不发了
+     * (间歇性失效根因之一).setup_payload_spam / setup_reactive 同理已 flush. */
+    pq_nrf24_flush_tx(dev);
+
     /* 关键步骤:写 32 字节 dummy 0xFF 进 TX FIFO,触发 nRF24L01+ CW 实际辐射.
      * 缺这一步只配 RF_SETUP 的 CONT_WAVE+PLL_LOCK 不会出射载波(nRF24L01+
      * 变种特有的 quirk;huuck nrf24_startConstCarrier 与 RF24 Arduino 库旧版
@@ -310,10 +316,15 @@ void pq_nrf24_diag_log(PqNrf24* dev, const char* tag) {
     uint8_t fifo = pq_nrf24_read_reg(dev, NRF24_REG_FIFO_STATUS);
     uint8_t en_aa = pq_nrf24_read_reg(dev, NRF24_REG_EN_AA);
 
-    /* 预期 CW: CFG=0x72 (PWR_UP|MASK_ALL_IRQ, EN_CRC=0, PRIM_RX=0)
-     *           RF_SETUP=0x96 (CONT_WAVE|PLL_LOCK|RF_PWR=11)
-     *           EN_AA=0
-     *           FIFO_STATUS bit 5 (TX_FULL) 写 W_TX_PAYLOAD 后置 1 */
+    /* 预期值(tag="const_carrier",即 jammer_start_const_carrier 点火后,真机实测核对过):
+     *   CFG=0x02      PWR_UP=1, PRIM_RX=0(TX), EN_CRC=0(IRQ 未 mask)
+     *   RF_SETUP=0x9E CONT_WAVE|PLL_LOCK|RF_DR_HIGH(2M)|RF_PWR=11
+     *                 注:RMW (setup&0xF8) 保留了 init 的 RF_SETUP=0x0E 里的 RF_DR_HIGH,
+     *                 故是 0x9E 而非 0x96(与 huuck startConstCarrier 一致)
+     *   EN_AA=0x00
+     *   FIFO=0x01     TX_EMPTY=0(32B 0xFF 已灌,载波有源);只灌 1 slot 故 TX_FULL 仍=0
+     *   STATUS=0x0E   无残留 IRQ flag,RX FIFO 空
+     * (tag="reactive_setup" 走 setup_reactive,寄存器另一组,不适用此预期) */
     FURI_LOG_I(
         TAG,
         "%s diag: CFG=0x%02X RF_SETUP=0x%02X RF_CH=%u "

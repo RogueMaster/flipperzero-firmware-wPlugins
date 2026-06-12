@@ -5,6 +5,52 @@ All notable changes to PINGEQUA RF Lab.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] — 2026-06-12
+
+### Fixed
+- **Signal Generator (NRF24) produced little or no measurable RF effect** —
+  rewrote the jammer's SPI/CE driving model to match the proven-working
+  [huuck/FlipperZeroNRFJammer](https://github.com/huuck/FlipperZeroNRFJammer).
+  - Root cause was **not** the engine choice (constant-carrier vs payload):
+    it was the bus-arbitration layer. The old worker wrapped every channel
+    hop in `pq_chip_with_nrf24` (acquire → callback → release **per chunk**)
+    with 5–50 ms yields between, so the constant carrier was repeatedly
+    interrupted by bus release/re-acquire — starting unreliably or not at
+    all. huuck instead **acquires the SPI bus once and holds it**, keeps CE
+    high, and runs a tight `RF_CH`-hopping loop.
+  - New **held-session driver model** (`pq_chip_nrf24_session_begin/end`):
+    while jamming, the worker owns the external SPI bus for the whole run,
+    keeps CE high, and hops `RF_CH` in a tight uninterrupted loop. CC1101 is
+    asleep during the jammer scene, so exclusive bus ownership is safe; the
+    scanner and other scenes keep using the per-callback arbiter.
+  - Constant-carrier start is now a faithful port of huuck's
+    `startConstCarrier`, including the **second `set_tx_mode` (CE LOW→HIGH
+    re-pulse) after loading the FIFO** — the documented ignition step the
+    old single-edge `setup_cw` was missing.
+  - All non-reactive modes hop the constant carrier across their band
+    (CW Custom single freq; BLE Adv {2,26,80}; WiFi 1/6/11 ch 1–23 / 26–48 /
+    51–73; ALL 0–125). Live mode-switching re-ignites within the held session.
+  - **TX FIFO is now flushed before each ignition.** In CONT_WAVE the dummy
+    payload is never consumed, so repeated fires / live mode-switches filled
+    the FIFO (`TX_FULL`) and silently dropped the ignition payload — the
+    carrier would "stop transmitting mid-session". Now flushed first.
+    Device-verified ignition registers: `RF_SETUP=0x9E`
+    (`CONT_WAVE|PLL_LOCK|RF_PWR=11`), `CFG=0x02`, FIFO loaded.
+
+### Changed
+- **Honest power presentation.** Removed the on-screen `+20 dBm` label and the
+  `+20 dBm` / `pilot-aware OFDM (Clancy 2011)` / "room range" claims from the
+  README/FAQ. The WiFi modes are continuous-carrier band hops (ch 1–23 / 26–48
+  / 51–73). Output power is intentionally kept conservative — the firmware does
+  not drive the radio to its electrical maximum — to stay within a defensible
+  envelope for the regulated 2.4 GHz band.
+
+### Known limitations
+- The multi-channel modes (BLE Adv / WiFi 1·6·11 / ALL / BLE React) can stop
+  responding during a long continuous transmit run — hold **Left + Back**
+  (~5 s) to reboot. **CW Custom** (single channel) is the most robust for
+  sustained use; use the sweep modes in shorter bursts.
+
 ## [0.5.3] — 2026-05-22
 
 ### Changed

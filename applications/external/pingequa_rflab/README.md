@@ -40,8 +40,8 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 
 - **2.4 GHz spectrum analyzer** — 126 channels real-time with WiFi 1/6/11 + BLE 37/38/39 band markers, max-hold, microsecond dwell tuning, cursor inspection, **CSV scan export** (long-press OK, v0.5.0+)
 - **NRF24 jammer with 7 modes** (v0.4.0+):
-  - CW Custom · BLE Adv · **BLE React** (RPD reactive — first on Flipper NRF24) · WiFi 1/6/11 (pilot-aware OFDM) · ALL 2.4G
-  - Real-device verified to disconnect BLE devices and 2.4 GHz WiFi within room range
+  - CW Custom · BLE Adv · **BLE React** (RPD reactive — first on Flipper NRF24) · WiFi 1/6/11 (CW band hop) · ALL 2.4G
+  - Disrupts nearby BLE / 2.4 GHz WiFi at close range
   - **Auto session log** + **mode/channel persistence** (v0.5.0+)
 - **Human-readable export filenames** (v0.5.2+) — `scan_<date>_<time>_ch<peak>.csv` / `jam_<date>_<time>_<mode>_<dur>s.csv`. Sorting by name = sorting by time.
 - **On-device About screen** (v0.5.2+) — three pages, Up/Down to navigate, with scannable QR codes for the shop and GitHub repo so visitors can land on the right page with their phone.
@@ -61,9 +61,9 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 | WiFi 1/6/11 + BLE 37/38/39 frequency markers | ✅ | ❌ |
 | Adjustable dwell time (130–2000 µs) | ✅ | ⚠️ Usually fixed |
 | Cursor channel inspection with live readout | ✅ | ❌ Rare |
-| NRF24 jammer (7 modes incl. RPD reactive + WiFi pilot-aware) | ✅ | ❌ Usually CW only, separate app |
+| NRF24 jammer (7 modes incl. RPD reactive + WiFi band hop) | ✅ | ❌ Usually CW only, separate app |
 | RPD-driven reactive BLE jamming | ✅ | ❌ |
-| WiFi pilot-aware OFDM jamming (Clancy 2011) | ✅ | ❌ |
+| WiFi-band CW jamming (ch 1 / 6 / 11) | ✅ | ❌ |
 | CSV scan export for analysis | ✅ | ❌ |
 | Continuous active development | ✅ | ⚠️ Often abandoned |
 | Compact FAP size | ✅ ~44 KB | varies |
@@ -86,7 +86,7 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="images/screen_siggen.png" alt="NRF24 Signal Gen — CW mode at +20 dBm on channel 42" width="300" /><br>
+      <img src="images/screen_siggen.png" alt="NRF24 Signal Gen — CW mode on channel 42" width="300" /><br>
       <sub><b>NRF24 Signal Gen</b><br>7 TX modes — CW shown</sub>
     </td>
     <td align="center" width="50%">
@@ -145,14 +145,15 @@ Launch from `Apps → GPIO → PINGEQUA RF Lab`. Main menu offers **Scanner**, *
   1. **CW Custom** — single channel CW, ←/→ adjusts ±1 / ±5
   2. **BLE Adv** — blind CW hop {37, 38, 39}
   3. **BLE React** ★ — RPD-driven reactive jam (listens, jams on detection — 1st on Flipper NRF24)
-  4. **WiFi 1** — pilot-aware OFDM jam (4 pilots, +7.5 dB efficient per Clancy 2011)
-  5. **WiFi 6** — same for WiFi channel 6
-  6. **WiFi 11** — same for WiFi channel 11
+  4. **WiFi 1** — CW hop across the WiFi-1 band (ch 1–23)
+  5. **WiFi 6** — CW hop across the WiFi-6 band (ch 26–48)
+  6. **WiFi 11** — CW hop across the WiFi-11 band (ch 51–73)
   7. **ALL 2.4G** — full-band CW sweep
 - ← / → adjusts CW Custom channel (no-op in other modes)
 - OK starts / stops
-- Back returns to main menu — **session auto-logs** to `/ext/apps_data/pingequa/jammer/session_<ts>.csv` (mode, duration, chunks, reactive jam count) and **mode/channel persists** for next launch (v0.5.0+).
-- Real-device verified: BLE devices and 2.4G WiFi can be disconnected within room range.
+- Back returns to main menu — **session auto-logs** to `/ext/apps_data/pingequa/siggen/siggen_<ts>.csv` (mode, duration, chunks, reactive jam count) and **mode/channel persists** for next launch (v0.5.0+).
+- Disrupts nearby BLE / 2.4 GHz WiFi at close range.
+- **Note:** during a long continuous transmit run the radio may occasionally stop responding — hold **Left + Back** (~5 s) to reboot, then relaunch. **CW Custom** is the most robust for long sessions; use the multi-channel sweep modes in shorter bursts.
 
 ### Data Export (v0.5.0+)
 
@@ -246,11 +247,12 @@ Other NRF24 boards may partially work but are unsupported. See [docs/HARDWARE.md
 |---|:---:|---|
 | v0.2.0 | ✅ | Channel scanner, max-hold, WiFi/BLE markers |
 | v0.3.0 | ✅ | NRF24 jammer (CW + Sweep), main menu |
-| v0.4.0 | ✅ | RPD reactive BLE jam, WiFi pilot-aware OFDM, 7 jammer modes |
+| v0.4.0 | ✅ | RPD reactive BLE jam, WiFi-band CW jam, 7 jammer modes |
 | v0.5.0 | ✅ | CSV scan export, jammer session log, settings persistence |
 | v0.5.1 | ✅ | OFW compatibility — single-handle SPI arbiter, all firmwares |
 | v0.5.2 | ✅ | Readable export filenames, jammer log redesign, About screen + QR codes |
-| **v0.5.3** | ✅ | **In-app rename: transmit feature now displays as "Signal Generator" (neutral, instrument-grade naming)** |
+| v0.5.3 | ✅ | In-app rename: transmit feature now displays as "Signal Generator" (neutral, instrument-grade naming) |
+| **v0.5.4** | ✅ | **Signal Generator now actually radiates (held-bus driver + FIFO-flush ignition); honest power wording; long-run reboot note** |
 | v0.6.x | 🔜 next | **Shaped by community feedback** — candidates: cross-chip dual-band sweep (nRF24 2.4 GHz + CC1101 Sub-GHz in one view), spectrum CSV export, custom scan presets. [Tell us what you want](../../issues/new?template=feature.yml) |
 | v1.0.0 | planned | Polished release, full documentation set, Catalog submission |
 | v1.5.0 | concept | Companion mobile viewer over Bluetooth |
@@ -276,7 +278,11 @@ Other NRF24 boards may partially work but are unsupported. See [docs/HARDWARE.md
 
 ## Legal Notice
 
-PINGEQUA RF Lab includes opt-in **transmit features (NRF24 Jammer)** — the Channel Scanner is passive listen-only, but the 7 Jammer modes actively transmit on 2.4 GHz at up to +20 dBm. Active RF emission in the unlicensed 2.4 GHz band is regulated (FCC §15 in the US, ETSI EN 300 328 in the EU, equivalent elsewhere).
+PINGEQUA RF Lab includes opt-in **transmit features (NRF24 Jammer)** — the Channel Scanner is passive listen-only, but the 7 Jammer modes actively transmit on the 2.4 GHz ISM band.
+
+> **On output power.** The 2.4 GHz band is power-regulated (FCC §15 in the US, ETSI EN 300 328 in the EU, equivalent elsewhere). **To respect those legal limits, the firmware deliberately restrains output power and does not drive the radio to its electrical maximum.** This is an intentional compliance choice — the transmit range is correspondingly modest by design, not a defect.
+
+You are responsible for compliance with your local regulations. Use only on hardware and networks you own or have authorization to test. The authors accept no liability for misuse.
 
 You are responsible for compliance with your local regulations. Use only on hardware and networks you own or have authorization to test. The authors accept no liability for misuse.
 

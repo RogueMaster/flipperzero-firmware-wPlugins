@@ -108,7 +108,7 @@ bool pq_nrf24_init_regs(PqNrf24* dev);
  * 配置成 Constant Wave 干扰发射模式(NRF24L01+ datasheet §6.4 / Nordic AN).
  *   - EN_AA / EN_RXADDR / SETUP_RETR = 0(纯 TX,无协议层)
  *   - RF_CH = ch(自动 clamp 到 0..NRF24_CHANNEL_MAX)
- *   - RF_SETUP = CONT_WAVE | PLL_LOCK | RF_PWR=11(0 dBm at die,PA 模块拉到 +20)
+ *   - RF_SETUP = CONT_WAVE | PLL_LOCK | RF_PWR=11(RF_PWR 满档;实际辐射经板载 PA,固件不声明具体 dBm)
  *   - CONFIG = PWR_UP(PRIM_RX=0)
  *   - 内部 furi_delay_ms(NRF24_TPD2STBY_MS) 等待 PWR_DOWN→Standby
  *
@@ -176,7 +176,7 @@ bool pq_nrf24_setup_payload_spam(PqNrf24* dev, uint8_t ch);
  *   4. RPD=1 检测到载波(目标 BLE 设备开始发包):
  *      a. CE low
  *      b. react_to_tx() 切 CW 模式(写 RF_SETUP + CONFIG)
- *      c. CE high → 130 µs → 进 TX(PA 锁定 +20 dBm)
+ *      c. CE high → 130 µs → 进 TX(PA + PLL 锁定)
  *      d. 持续 ~300 µs CW 干扰脉冲(刚好压到 BLE adv 包中段)
  *      e. CE low
  *      f. react_to_rx(ch) 切回 RX 监听
@@ -201,7 +201,7 @@ bool pq_nrf24_setup_reactive(PqNrf24* dev, uint8_t ch);
  *   - CONFIG: 清 PRIM_RX 位(进 TX),保留 PWR_UP/IRQ mask
  *   - TX FIFO 已在 setup_reactive 阶段预填,无需重新 load
  *
- * 调用后:上层 CE=HIGH + 等 130 µs Tstby2a 即开始 +20 dBm CW 输出.
+ * 调用后:上层 CE=HIGH + 等 130 µs Tstby2a 即开始 CW 输出.
  */
 void pq_nrf24_react_to_tx(PqNrf24* dev);
 
