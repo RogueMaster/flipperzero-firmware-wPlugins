@@ -226,6 +226,11 @@ static void jammer_start_const_carrier(PqApp* app, uint8_t ch, uint8_t level) {
     cfg &= (uint8_t)~NRF24_CONFIG_EN_CRC;
     pq_nrf24_write_reg(nrf, NRF24_REG_CONFIG, cfg);
 
+    /* 灌 FIFO 前先 flush TX:CONT_WAVE 下 dummy 包不会被真正发走,反复点火/运行中切
+     * 模式会逐次累积,第 4 次起 FIFO 满(TX_FULL),后续 W_TX_PAYLOAD 被静默丢弃 →
+     * 点火"踢一脚"失效,同一会话测着测着就不发了(间歇性失效根因;真机实测切几次后
+     * FIFO=0x21 已 TX_FULL.sibling pq_nrf24_setup_cw 早有此 flush,jammer 路径漏了). */
+    pq_nrf24_flush_tx(nrf);
     uint8_t dummy[32];
     memset(dummy, 0xFF, sizeof(dummy));
     pq_nrf24_load_tx_payload(nrf, dummy, sizeof(dummy));
