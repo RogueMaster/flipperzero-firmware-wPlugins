@@ -58,6 +58,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FCC ID Lookup v0.1 (By lrehmann)](https://github.com/lrehmann/fcc-id-lookup-flipper)
 - Updated: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
 - Updated: [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
+- Sub-GHz: [Fix endless TX causing RAW files to be transmitted and crash the system (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/30d939d52fb02ebbbf1aabe743dfb573f45fc6ee)
+- NFC: [Show MIFARE Ultralight/NTAG PWD & PACK in full info view (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1010)
+- NFC: [Show MIFARE Ultralight/NTAG PWD & PACK on read screen too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1011)
 
 <a name="release"></a>
 
