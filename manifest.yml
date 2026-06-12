@@ -8,7 +8,6 @@
 # Pendientes antes de enviar el PR (marcados con TODO):
 #   - origin: URL publica real del repo
 #   - commit_sha: SHA completo (40 caracteres) del commit a publicar
-#   - screenshots/ss0.png: captura hecha con qFlipper (sin re-escalar)
 
 sourcecode:
   type: git
@@ -16,28 +15,32 @@ sourcecode:
     origin: https://github.com/TODO-usuario/san-morse-flipper.git # TODO
     commit_sha: TODO0000000000000000000000000000000000000 # TODO: 40 chars
 
-short_description: Morse con arbol de decision como guia y texto a Morse
+short_description: Morse code trainer with a decision-tree guide and text-to-Morse playback
 
 description: |
-  Aprende y escribe codigo Morse sin saberte los codigos de memoria.
+  Learn and write Morse code without memorizing the codes first.
 
-  **Arbol de decision:** la pantalla muestra el arbol dicotomico del Morse
-  (E/T, I/A/N/M, ...) y el boton OK funciona como llave telegrafica: soltar
-  rapido es punto, mantener es raya. Siempre ves en que nodo estas y que
-  caracter te da el siguiente simbolo. Una pausa corta confirma la letra y
-  una pausa larga agrega espacio, con cuenta regresiva visible. Los numeros
-  y signos estan en el nivel 5: la vista hace zoom para mostrarlos.
+  **Decision tree:** the screen shows the dichotomic Morse tree (E/T,
+  I/A/N/M, ...) and the OK button works as a telegraph key: quick release
+  is a dot, holding is a dash. You always see which node you are on and
+  which character the next symbol would give you. A short pause commits
+  the letter and a longer pause adds a space, with a visible countdown.
+  Numbers and signs live on level 5: the view zooms in to show them.
 
-  **Texto a Morse:** escribe un texto y se reproduce con sonido, LED y
-  vibracion, resaltando el caracter y el simbolo actual, con velocidad
-  ajustable en vivo.
+  **Text to Morse:** type a text and play it back with sound, LED and
+  vibration, highlighting the current character and symbol, with live
+  adjustable speed.
 
-  **Ajustes persistentes:** volumen, tono, vibracion, LED, velocidad WPM,
-  umbral punto/raya y tiempos de confirmacion.
+  **Persistent settings:** language (English/Spanish), volume, tone,
+  vibration, LED, WPM speed, dot/dash threshold and commit timings.
 
 changelog: "@./docs/changelog.md"
 
 screenshots:
-  - screenshots/ss0.png # TODO: capturar con qFlipper
+  - screenshots/ss0.png
+  - screenshots/ss1.png
+  - screenshots/ss2.png
+  - screenshots/ss3.png
+  - screenshots/ss4.png
 
 # name, id, category, version, author e icon se toman de application.fam

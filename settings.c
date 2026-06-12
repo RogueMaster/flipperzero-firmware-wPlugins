@@ -12,6 +12,7 @@ typedef struct {
 } SettingsBlob;
 
 void morse_settings_default(MorseSettings* s) {
+    s->lang = 0; // espanol
     s->sound = true;
     s->vibro = true;
     s->led = true;
@@ -24,7 +25,7 @@ void morse_settings_default(MorseSettings* s) {
 }
 
 static bool settings_valid(const MorseSettings* s) {
-    return s->wpm >= 5 && s->wpm <= 35 && s->volume <= 3 && s->tone_hz >= 200 &&
+    return s->lang <= 1 && s->wpm >= 5 && s->wpm <= 35 && s->volume <= 3 && s->tone_hz >= 200 &&
            s->tone_hz <= 2000 && s->dit_ms >= 100 && s->dit_ms <= 1000 &&
            s->letter_gap_ms <= 5000 && s->word_gap_ms <= 10000;
 }

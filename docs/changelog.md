@@ -1,10 +1,11 @@
 ## 1.0
 
-Version inicial:
+Initial release:
 
-- Arbol de decision Morse interactivo con OK como llave telegrafica
-  (corto = punto, mantener = raya) y confirmacion de letras por pausa.
-- Numeros y signos en el nivel 5 del arbol, con zoom automatico.
-- Texto a Morse: reproduccion con sonido, LED y vibracion.
-- Ajustes persistentes: volumen, tono, vibracion, LED, velocidad WPM y
-  tiempos de la llave.
+- Interactive Morse decision tree with OK as a telegraph key
+  (quick release = dot, hold = dash) and pause-based letter commit.
+- Numbers and signs on tree level 5, with automatic zoom.
+- Text to Morse: playback with sound, LED and vibration.
+- English / Spanish interface.
+- Persistent settings: language, volume, tone, vibration, LED, WPM speed
+  and key timings.

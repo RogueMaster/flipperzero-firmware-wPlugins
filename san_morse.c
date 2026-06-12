@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "i18n.h"
 #include "morse.h"
 #include "player.h"
 #include "settings.h"
@@ -42,6 +43,7 @@ typedef enum {
 } MenuIndex;
 
 typedef enum {
+    SetItemLang,
     SetItemSound,
     SetItemVolume,
     SetItemTone,
@@ -69,6 +71,7 @@ typedef struct {
     FuriTimer* tree_timer;
     bool tree_tone; // altavoz adquirido mientras OK esta presionado
     MorseSettings settings;
+    uint8_t settings_list_lang; // idioma con el que se construyo la lista
 
     char input_text[INPUT_TEXT_MAX];
     char tree_text[TREE_TEXT_MAX];
@@ -89,6 +92,7 @@ typedef struct {
 
 typedef struct {
     const char* text;
+    const I18nStrings* tr;
     MorsePlayerState state;
     size_t pos;
     int8_t sym;
@@ -97,45 +101,9 @@ typedef struct {
     bool vibro;
 } PlayModel;
 
-static const char* about_text =
-    "San Morse 1.0\n"
-    "\n"
-    "ARBOL DE DECISION\n"
-    "OK es la llave Morse:\n"
-    "soltar rapido = punto\n"
-    "mantener = raya\n"
-    "Pausa corta confirma\n"
-    "la letra; pausa larga\n"
-    "agrega un espacio.\n"
-    "Izq = confirmar ya\n"
-    "Der = reproducir\n"
-    "Arriba = deshacer /\n"
-    " borrar letra\n"
-    "Abajo = espacio\n"
-    "Atras = inicio / menu\n"
-    "Los numeros y signos\n"
-    "estan un nivel mas\n"
-    "abajo: al llegar al\n"
-    "nivel 4 la vista hace\n"
-    "zoom y los muestra.\n"
-    "\n"
-    "TEXTO A MORSE\n"
-    "Escribe un texto y se\n"
-    "reproduce con sonido,\n"
-    "luz y vibracion.\n"
-    "\n"
-    "REPRODUCCION\n"
-    "OK = pausa / repetir\n"
-    "Arriba/Abajo = WPM\n"
-    "Izq = sonido si/no\n"
-    "Der = vibracion si/no\n"
-    "Atras = detener\n"
-    "\n"
-    "AJUSTES\n"
-    "Volumen, tono, LED,\n"
-    "vibracion, velocidad\n"
-    "y tiempos de la llave.\n"
-    "Se guardan en la SD.\n";
+static const I18nStrings* tr_app(SanMorseApp* app) {
+    return i18n_get(&app->settings);
+}
 
 // ---------------------------------------------------------------- navegacion
 
@@ -175,7 +143,7 @@ static void tree_draw_callback(Canvas* canvas, void* model) {
 
     // Barra de estado: texto escrito (izq) + secuencia actual (der)
     if(m->len == 0 && m->cur == 0 && !m->key_down) {
-        canvas_draw_str(canvas, 0, 8, "OK: corto=.  mantener=-");
+        canvas_draw_str(canvas, 0, 8, i18n_get(m->settings)->hint_key);
     } else {
         const char* tail = m->buffer;
         while(*tail && canvas_string_width(canvas, tail) > 88) tail++;
@@ -507,6 +475,7 @@ static void play_model_refresh(SanMorseApp* app) {
         PlayModel * m,
         {
             m->text = app->play_text;
+            m->tr = tr_app(app);
             m->state = morse_player_get_state(app->player);
             m->pos = morse_player_get_position(app->player);
             m->sym = morse_player_get_symbol(app->player);
@@ -528,16 +497,17 @@ static void play_draw_callback(Canvas* canvas, void* model) {
     canvas_set_color(canvas, ColorBlack);
     canvas_set_font(canvas, FontSecondary);
 
+    const I18nStrings* tr = m->tr ? m->tr : &i18n_strings[0];
     const char* status = "...";
     switch(m->state) {
     case MorsePlayerStatePlaying:
-        status = "Reproduciendo";
+        status = tr->play_playing;
         break;
     case MorsePlayerStatePaused:
-        status = "Pausado";
+        status = tr->play_paused;
         break;
     case MorsePlayerStateFinished:
-        status = "Fin";
+        status = tr->play_done;
         break;
     default:
         break;
@@ -611,11 +581,11 @@ static void play_draw_callback(Canvas* canvas, void* model) {
     }
 
     // Pie: estados de sonido/vibracion y accion de OK
-    canvas_draw_str(canvas, 0, 63, m->sound ? "Son:SI" : "Son:no");
-    canvas_draw_str(canvas, 40, 63, m->vibro ? "Vib:SI" : "Vib:no");
-    const char* ok_hint = "OK:pausa";
-    if(m->state == MorsePlayerStateFinished) ok_hint = "OK:repetir";
-    if(m->state == MorsePlayerStatePaused) ok_hint = "OK:seguir";
+    canvas_draw_str(canvas, 0, 63, m->sound ? tr->snd_on : tr->snd_off);
+    canvas_draw_str(canvas, 40, 63, m->vibro ? tr->vib_on : tr->vib_off);
+    const char* ok_hint = tr->play_ok_pause;
+    if(m->state == MorsePlayerStateFinished) ok_hint = tr->play_ok_repeat;
+    if(m->state == MorsePlayerStatePaused) ok_hint = tr->play_ok_resume;
     canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, ok_hint);
 }
 
@@ -673,7 +643,6 @@ static void play_exit_callback(void* context) {
 
 // --------------------------------------------------------------- ajustes
 
-static const char* const onoff_text[2] = {"NO", "SI"};
 static const char* const volume_text[4] = {"25%", "50%", "75%", "100%"};
 static const uint16_t tone_values[] = {440, 500, 600, 700, 800};
 static const uint16_t dit_values[] = {150, 200, 250, 300, 350, 400};
@@ -695,9 +664,9 @@ static void item_text_ms(VariableItem* item, uint16_t ms) {
     variable_item_set_current_value_text(item, buf);
 }
 
-static void item_text_sec(VariableItem* item, uint16_t ms) {
+static void item_text_sec(VariableItem* item, uint16_t ms, const char* off_text) {
     if(ms == 0) {
-        variable_item_set_current_value_text(item, "NO");
+        variable_item_set_current_value_text(item, off_text);
         return;
     }
     char buf[12];
@@ -705,11 +674,29 @@ static void item_text_sec(VariableItem* item, uint16_t ms) {
     variable_item_set_current_value_text(item, buf);
 }
 
+static void item_text_onoff(VariableItem* item, SanMorseApp* app, bool on) {
+    const I18nStrings* tr = tr_app(app);
+    variable_item_set_current_value_text(item, on ? tr->val_on : tr->val_off);
+}
+
+// El cambio de idioma re-etiqueta menu y ayuda al instante; la propia lista
+// de ajustes se reconstruye al volver a abrirla (no es seguro reconstruirla
+// desde el callback de uno de sus items).
+static void rebuild_menu_and_about(SanMorseApp* app);
+
+static void setting_lang_changed(VariableItem* item) {
+    SanMorseApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    app->settings.lang = idx;
+    variable_item_set_current_value_text(item, i18n_lang_names[idx]);
+    rebuild_menu_and_about(app);
+}
+
 static void setting_sound_changed(VariableItem* item) {
     SanMorseApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, onoff_text[idx]);
     app->settings.sound = idx;
+    item_text_onoff(item, app, idx);
 }
 
 static void setting_volume_changed(VariableItem* item) {
@@ -731,15 +718,15 @@ static void setting_tone_changed(VariableItem* item) {
 static void setting_vibro_changed(VariableItem* item) {
     SanMorseApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, onoff_text[idx]);
     app->settings.vibro = idx;
+    item_text_onoff(item, app, idx);
 }
 
 static void setting_led_changed(VariableItem* item) {
     SanMorseApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, onoff_text[idx]);
     app->settings.led = idx;
+    item_text_onoff(item, app, idx);
 }
 
 static void setting_wpm_changed(VariableItem* item) {
@@ -762,23 +749,27 @@ static void setting_letter_gap_changed(VariableItem* item) {
     SanMorseApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     app->settings.letter_gap_ms = letter_gap_values[idx];
-    item_text_sec(item, letter_gap_values[idx]);
+    item_text_sec(item, letter_gap_values[idx], tr_app(app)->val_off);
 }
 
 static void setting_word_gap_changed(VariableItem* item) {
     SanMorseApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     app->settings.word_gap_ms = word_gap_values[idx];
-    item_text_sec(item, word_gap_values[idx]);
+    item_text_sec(item, word_gap_values[idx], tr_app(app)->val_off);
 }
 
 // Refleja app->settings en la lista (al abrir Ajustes, por si WPM/sonido/
 // vibracion cambiaron desde la vista de reproduccion).
 static void settings_sync_items(SanMorseApp* app) {
     MorseSettings* s = &app->settings;
+    const I18nStrings* tr = tr_app(app);
+
+    variable_item_set_current_value_index(app->set_items[SetItemLang], s->lang);
+    variable_item_set_current_value_text(app->set_items[SetItemLang], i18n_lang_names[s->lang]);
 
     variable_item_set_current_value_index(app->set_items[SetItemSound], s->sound);
-    variable_item_set_current_value_text(app->set_items[SetItemSound], onoff_text[s->sound]);
+    item_text_onoff(app->set_items[SetItemSound], app, s->sound);
 
     variable_item_set_current_value_index(app->set_items[SetItemVolume], s->volume);
     variable_item_set_current_value_text(app->set_items[SetItemVolume], volume_text[s->volume]);
@@ -791,10 +782,10 @@ static void settings_sync_items(SanMorseApp* app) {
     variable_item_set_current_value_text(app->set_items[SetItemTone], buf);
 
     variable_item_set_current_value_index(app->set_items[SetItemVibro], s->vibro);
-    variable_item_set_current_value_text(app->set_items[SetItemVibro], onoff_text[s->vibro]);
+    item_text_onoff(app->set_items[SetItemVibro], app, s->vibro);
 
     variable_item_set_current_value_index(app->set_items[SetItemLed], s->led);
-    variable_item_set_current_value_text(app->set_items[SetItemLed], onoff_text[s->led]);
+    item_text_onoff(app->set_items[SetItemLed], app, s->led);
 
     variable_item_set_current_value_index(app->set_items[SetItemWpm], s->wpm - 5);
     snprintf(buf, sizeof(buf), "%u", s->wpm);
@@ -808,33 +799,38 @@ static void settings_sync_items(SanMorseApp* app) {
     idx = value_index_u16(letter_gap_values, VALUE_COUNT(letter_gap_values), s->letter_gap_ms);
     s->letter_gap_ms = letter_gap_values[idx];
     variable_item_set_current_value_index(app->set_items[SetItemLetterGap], idx);
-    item_text_sec(app->set_items[SetItemLetterGap], s->letter_gap_ms);
+    item_text_sec(app->set_items[SetItemLetterGap], s->letter_gap_ms, tr->val_off);
 
     idx = value_index_u16(word_gap_values, VALUE_COUNT(word_gap_values), s->word_gap_ms);
     s->word_gap_ms = word_gap_values[idx];
     variable_item_set_current_value_index(app->set_items[SetItemWordGap], idx);
-    item_text_sec(app->set_items[SetItemWordGap], s->word_gap_ms);
+    item_text_sec(app->set_items[SetItemWordGap], s->word_gap_ms, tr->val_off);
 }
 
 static void settings_build_items(SanMorseApp* app) {
     VariableItemList* list = app->settings_list;
+    const I18nStrings* tr = tr_app(app);
+    app->settings_list_lang = app->settings.lang;
+    app->set_items[SetItemLang] =
+        variable_item_list_add(list, tr->set_lang, 2, setting_lang_changed, app);
     app->set_items[SetItemSound] =
-        variable_item_list_add(list, "Sonido", 2, setting_sound_changed, app);
+        variable_item_list_add(list, tr->set_sound, 2, setting_sound_changed, app);
     app->set_items[SetItemVolume] =
-        variable_item_list_add(list, "Volumen", 4, setting_volume_changed, app);
+        variable_item_list_add(list, tr->set_volume, 4, setting_volume_changed, app);
     app->set_items[SetItemTone] = variable_item_list_add(
-        list, "Tono", VALUE_COUNT(tone_values), setting_tone_changed, app);
+        list, tr->set_tone, VALUE_COUNT(tone_values), setting_tone_changed, app);
     app->set_items[SetItemVibro] =
-        variable_item_list_add(list, "Vibracion", 2, setting_vibro_changed, app);
-    app->set_items[SetItemLed] = variable_item_list_add(list, "LED", 2, setting_led_changed, app);
+        variable_item_list_add(list, tr->set_vibro, 2, setting_vibro_changed, app);
+    app->set_items[SetItemLed] =
+        variable_item_list_add(list, tr->set_led, 2, setting_led_changed, app);
     app->set_items[SetItemWpm] =
-        variable_item_list_add(list, "Velocidad WPM", 31, setting_wpm_changed, app);
+        variable_item_list_add(list, tr->set_wpm, 31, setting_wpm_changed, app);
     app->set_items[SetItemDit] = variable_item_list_add(
-        list, "Umbral raya", VALUE_COUNT(dit_values), setting_dit_changed, app);
+        list, tr->set_dit, VALUE_COUNT(dit_values), setting_dit_changed, app);
     app->set_items[SetItemLetterGap] = variable_item_list_add(
-        list, "Confirma letra", VALUE_COUNT(letter_gap_values), setting_letter_gap_changed, app);
+        list, tr->set_letter_gap, VALUE_COUNT(letter_gap_values), setting_letter_gap_changed, app);
     app->set_items[SetItemWordGap] = variable_item_list_add(
-        list, "Espacio auto", VALUE_COUNT(word_gap_values), setting_word_gap_changed, app);
+        list, tr->set_word_gap, VALUE_COUNT(word_gap_values), setting_word_gap_changed, app);
     settings_sync_items(app);
 }
 
@@ -854,7 +850,7 @@ static void menu_callback(void* context, uint32_t index) {
         view_dispatcher_switch_to_view(app->view_dispatcher, ViewIdTree);
         break;
     case MenuIndexText:
-        text_input_set_header_text(app->text_input, "Texto a reproducir");
+        text_input_set_header_text(app->text_input, tr_app(app)->input_header);
         text_input_set_result_callback(
             app->text_input,
             text_input_done_callback,
@@ -865,7 +861,12 @@ static void menu_callback(void* context, uint32_t index) {
         view_dispatcher_switch_to_view(app->view_dispatcher, ViewIdTextInput);
         break;
     case MenuIndexSettings:
-        settings_sync_items(app);
+        if(app->settings_list_lang != app->settings.lang) {
+            variable_item_list_reset(app->settings_list);
+            settings_build_items(app);
+        } else {
+            settings_sync_items(app);
+        }
         view_dispatcher_switch_to_view(app->view_dispatcher, ViewIdSettings);
         break;
     case MenuIndexAbout:
@@ -874,6 +875,20 @@ static void menu_callback(void* context, uint32_t index) {
     default:
         break;
     }
+}
+
+// Reconstruye los textos que dependen del idioma fuera de la lista de
+// ajustes (menu principal y ayuda); es seguro porque no estan activos.
+static void rebuild_menu_and_about(SanMorseApp* app) {
+    const I18nStrings* tr = tr_app(app);
+    submenu_reset(app->submenu);
+    submenu_set_header(app->submenu, "San Morse");
+    submenu_add_item(app->submenu, tr->menu_tree, MenuIndexTree, menu_callback, app);
+    submenu_add_item(app->submenu, tr->menu_text, MenuIndexText, menu_callback, app);
+    submenu_add_item(app->submenu, tr->menu_settings, MenuIndexSettings, menu_callback, app);
+    submenu_add_item(app->submenu, tr->menu_about, MenuIndexAbout, menu_callback, app);
+    widget_reset(app->about);
+    widget_add_text_scroll_element(app->about, 0, 0, 128, 64, tr->about);
 }
 
 // ----------------------------------------------------------------- app
@@ -894,13 +909,8 @@ int32_t san_morse_app(void* p) {
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
-    // Menu
+    // Menu (los items se agregan en rebuild_menu_and_about)
     app->submenu = submenu_alloc();
-    submenu_set_header(app->submenu, "San Morse");
-    submenu_add_item(app->submenu, "Arbol de decision", MenuIndexTree, menu_callback, app);
-    submenu_add_item(app->submenu, "Texto a Morse", MenuIndexText, menu_callback, app);
-    submenu_add_item(app->submenu, "Ajustes", MenuIndexSettings, menu_callback, app);
-    submenu_add_item(app->submenu, "Ayuda", MenuIndexAbout, menu_callback, app);
     view_set_previous_callback(submenu_get_view(app->submenu), nav_exit_callback);
     view_dispatcher_add_view(app->view_dispatcher, ViewIdMenu, submenu_get_view(app->submenu));
 
@@ -951,11 +961,12 @@ int32_t san_morse_app(void* p) {
     view_dispatcher_add_view(
         app->view_dispatcher, ViewIdSettings, variable_item_list_get_view(app->settings_list));
 
-    // Ayuda
+    // Ayuda (el texto se agrega en rebuild_menu_and_about)
     app->about = widget_alloc();
-    widget_add_text_scroll_element(app->about, 0, 0, 128, 64, about_text);
     view_set_previous_callback(widget_get_view(app->about), nav_menu_callback);
     view_dispatcher_add_view(app->view_dispatcher, ViewIdAbout, widget_get_view(app->about));
+
+    rebuild_menu_and_about(app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ViewIdMenu);
     view_dispatcher_run(app->view_dispatcher);

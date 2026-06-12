@@ -1,78 +1,83 @@
 # San Morse — Flipper Zero
 
-App de código Morse pensada para aprender mientras escribes: muestra el **árbol de
-decisión** del Morse en pantalla como guía, en lugar de exigir que ya te sepas los
-códigos. También convierte texto a Morse y lo reproduce.
+A Morse code app designed for learning while you write: it shows the Morse
+**decision tree** on screen as a guide, instead of requiring you to know the
+codes beforehand. It also converts text to Morse and plays it back.
 
-## Modos
+The interface is available in **English and Spanish** (Settings → Language).
 
-### Árbol de decisión
-Se dibuja el árbol dicotómico completo (E/T → I/A/N/M → …) y el botón **OK
-funciona como una llave telegráfica**: mientras lo mantienes presionado suena el
-tono y se enciende el LED, y al soltarlo se marca el símbolo según la duración:
+![Decision tree](screenshots/ss0.png)
 
-| Botón | Acción |
+## Modes
+
+### Decision tree
+The full dichotomic Morse tree is drawn on screen (E/T → I/A/N/M → …) and the
+**OK button works as a telegraph key**: while you hold it the tone plays and
+the LED lights up, and on release the symbol is decided by press duration:
+
+| Button | Action |
 |---|---|
-| OK soltado rápido (<250 ms) | punto (·) — baja a la rama izquierda |
-| OK mantenido | raya (−) — baja a la rama derecha |
-| *pausa de ~1.5 s* | confirma la letra del nodo actual (automático) |
-| *pausa de ~4 s* | agrega un espacio (automático) |
-| ◄ Izquierda | confirma la letra ya, sin esperar la pausa |
-| ► Derecha | reproduce en Morse lo que llevas escrito |
-| ▲ Arriba | deshace el último símbolo; en el inicio borra la última letra |
-| ▼ Abajo | espacio manual |
-| Atrás | cancela la letra en curso; otra vez para salir al menú |
+| OK quick release (<250 ms) | dot (·) — descend to the left branch |
+| OK held | dash (−) — descend to the right branch |
+| *~1.5 s pause* | commits the current node's letter (automatic) |
+| *~4 s pause* | adds a space (automatic) |
+| ◄ Left | commit the letter now, without waiting |
+| ► Right | play back what you have written, in Morse |
+| ▲ Up | undo the last symbol; at the root, delete the last letter |
+| ▼ Down | manual space |
+| Back | cancel the current letter; again to exit to the menu |
 
-El nodo actual se muestra invertido y sus dos hijos enmarcados, así ves en todo
-momento qué letra te daría el siguiente punto o raya. Mientras mantienes OK, el
-símbolo en la esquina superior derecha cambia de `·` a `−` al cruzar el umbral, y
-una barra bajo el texto muestra la cuenta regresiva para confirmar la letra
-(línea continua) o el espacio (línea punteada).
+The current node is shown inverted and its two children framed, so you always
+see which character the next dot or dash would give you. While holding OK, the
+symbol in the top-right corner switches from `·` to `−` when you cross the
+threshold, and a bar under the text shows the countdown to commit the letter
+(solid line) or the space (dotted line).
 
-**Números y signos:** están en el nivel 5 del árbol (`2 = ··−−−`, `7 = −−···`…).
-Al llegar al nivel 4 la vista hace zoom al subárbol y los muestra: los dígitos
-0–9 y los signos `& + = / (` cuelgan de las posiciones del cuarto nivel
-(incluidas las que no tienen letra latina, que se dibujan como puntos).
+**Numbers and signs** live on level 5 of the tree (`2 = ··−−−`, `7 = −−···`…).
+When you reach level 4 the view zooms into the subtree and shows them: digits
+0–9 and the signs `& + = / (` hang from the fourth-level positions (including
+the ones with no Latin letter, drawn as dots).
 
-### Ajustes
-Desde el menú, con valores persistentes en la SD (`apps_data/san_morse`):
+### Text to Morse
+Type a text with the Flipper keyboard and it is played back with **sound, LED
+and vibration**, highlighting the current character and symbol on screen.
 
-| Ajuste | Valores |
+During playback:
+
+| Button | Action |
 |---|---|
-| Sonido / Vibración / LED | sí / no |
-| Volumen | 25–100 % |
-| Tono | 440–800 Hz |
-| Velocidad | 5–35 WPM |
-| Umbral raya | 150–400 ms (cuánto mantener OK para que sea raya) |
-| Confirma letra | NO (solo manual con ◄) o 0.8–3 s |
-| Espacio auto | NO o 2–8 s |
+| OK | pause / resume / replay |
+| ▲ / ▼ | speed (5–35 WPM) |
+| ◄ | sound on/off |
+| ► | vibration on/off |
+| Back | stop and return |
 
-### Texto a Morse
-Escribes un texto con el teclado del Flipper y se reproduce con **sonido, LED y
-vibración**, resaltando en pantalla el carácter y el símbolo actual.
+### Settings
+From the menu, persisted to the SD card (`apps_data/san_morse`):
 
-Durante la reproducción:
-
-| Botón | Acción |
+| Setting | Values |
 |---|---|
-| OK | pausa / continuar / repetir |
-| ▲ / ▼ | velocidad (5–35 WPM) |
-| ◄ | sonido sí/no |
-| ► | vibración sí/no |
-| Atrás | detener y volver |
+| Language | English / Español |
+| Sound / Vibration / LED | on / off |
+| Volume | 25–100 % |
+| Tone | 440–800 Hz |
+| Speed | 5–35 WPM |
+| Dash threshold | 150–400 ms (how long to hold OK for a dash) |
+| Commit letter | OFF (manual only, with ◄) or 0.8–3 s |
+| Auto space | OFF or 2–8 s |
 
-## Compilar
+## Building
 
 ```bash
 pip install --user ufbt
 cd san-morse-flipper
-ufbt          # genera dist/san_morse.fap
+ufbt          # produces dist/san_morse.fap
 ```
 
-Con el Flipper conectado por USB: `ufbt launch` (compila, instala y abre la app).
+With the Flipper connected over USB: `ufbt launch` (builds, installs and opens
+the app). You can also copy `dist/san_morse.fap` to the SD card under
+`apps/Tools/`.
 
-También puedes copiar `dist/san_morse.fap` a la tarjeta SD en `apps/Tools/`.
-
-> Compilado contra el firmware oficial (release). Si usas otro firmware
-> (Momentum, Unleashed…), apunta ufbt a su SDK, por ejemplo:
+> Built against the official (release) firmware. If you run a custom firmware
+> (Momentum, Unleashed…), point ufbt at its SDK, e.g.:
 > `ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json`

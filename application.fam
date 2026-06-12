@@ -9,5 +9,5 @@ App(
     fap_icon="icons/san_morse_10px.png",
     fap_version="1.0",
     fap_author="sanjorge",
-    fap_description="Morse con arbol de decision como guia y texto a Morse",
+    fap_description="Morse trainer with a decision-tree guide and text-to-Morse playback",
 )

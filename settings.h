@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 typedef struct {
+    uint8_t lang; // 0 = espanol, 1 = ingles
     bool sound;
     bool vibro;
     bool led;
