@@ -3,33 +3,26 @@
 Pasos para que la app aparezca en el catalogo oficial (la tienda de apps de
 qFlipper y https://lab.flipper.net/apps).
 
-## 1. Repo publico
+## 1. Repo publico — HECHO
 
-```bash
-gh repo create san-morse-flipper --public --source . --push
-# o crea el repo en GitHub y:
-# git remote add origin https://github.com/<usuario>/san-morse-flipper.git
-# git push -u origin master
-```
+`https://github.com/sanjorgek/san-morse-flipper`
 
-## 2. Capturas de pantalla
+## 2. Capturas de pantalla — HECHO
 
-Con el Flipper conectado y la app abierta, usa el boton de captura de
-**qFlipper** (icono de camara). Guarda al menos una como
-`screenshots/ss0.png` **sin cambiar resolucion ni formato** (el catalogo
-rechaza imagenes re-escaladas). Sugerencia: una del arbol de decision y otra
-de la reproduccion. Commitea y pushea.
+`screenshots/ss0.png` … `ss4.png`, capturas de qFlipper sin modificar
+(512x256). Si las regeneras, **no cambies resolucion ni formato** (el
+catalogo rechaza imagenes re-escaladas).
 
-## 3. Completar manifest.yml
+## 3. Completar manifest.yml — HECHO
 
-- `origin`: URL real del repo (`https://github.com/<usuario>/san-morse-flipper.git`)
-- `commit_sha`: SHA completo del ultimo commit pusheado (`git rev-parse HEAD`)
+- `origin`: `https://github.com/sanjorgek/san-morse-flipper.git`
+- `commit_sha`: SHA completo del commit pusheado a publicar
+  (`git rev-parse HEAD` tras el push)
 
 ## 4. Enviar al catalogo
 
 1. Haz fork de https://github.com/flipperdevices/flipper-application-catalog
-2. Copia `manifest.yml` (sin los comentarios TODO) a
-   `applications/Tools/san_morse/manifest.yml`
+2. Copia `manifest.yml` a `applications/Tools/san_morse/manifest.yml`
 3. Valida localmente (opcional, desde el fork):
    ```bash
    pip install -r tools/requirements.txt

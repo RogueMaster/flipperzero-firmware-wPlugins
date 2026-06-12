@@ -16,9 +16,9 @@
 #include "player.h"
 #include "settings.h"
 
-#define TREE_TEXT_MAX 64
+#define TREE_TEXT_MAX  64
 #define INPUT_TEXT_MAX 128
-#define TREE_TICK_MS 50
+#define TREE_TICK_MS   50
 
 typedef enum {
     TreeGapNone, // sin cuenta regresiva activa
@@ -126,7 +126,8 @@ static uint32_t nav_play_return_callback(void* context) {
 
 static uint8_t tree_node_level(uint8_t idx) {
     uint8_t level = 0;
-    while(idx >= ((1u << (level + 1)) - 1)) level++;
+    while(idx >= ((1u << (level + 1)) - 1))
+        level++;
     return level;
 }
 
@@ -146,7 +147,8 @@ static void tree_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str(canvas, 0, 8, i18n_get(m->settings)->hint_key);
     } else {
         const char* tail = m->buffer;
-        while(*tail && canvas_string_width(canvas, tail) > 88) tail++;
+        while(*tail && canvas_string_width(canvas, tail) > 88)
+            tail++;
         canvas_draw_str(canvas, 0, 8, tail);
         uint16_t w = canvas_string_width(canvas, tail);
         canvas_draw_line(canvas, w + 1, 9, w + 4, 9); // cursor
@@ -157,7 +159,8 @@ static void tree_draw_callback(Canvas* canvas, void* model) {
             seq[sl++] = (i & 1) ? '.' : '-';
         }
         char seq_fwd[8];
-        for(uint8_t i = 0; i < sl; i++) seq_fwd[i] = seq[sl - 1 - i];
+        for(uint8_t i = 0; i < sl; i++)
+            seq_fwd[i] = seq[sl - 1 - i];
         if(m->key_down) {
             // simbolo en curso segun cuanto lleva presionado
             bool dah = (now - m->key_down_tick) >= furi_ms_to_ticks(m->settings->dit_ms);
@@ -289,8 +292,7 @@ static void tree_tick_callback(void* context) {
                     word_gap = app->settings.letter_gap_ms + 1000;
                 }
                 if(now - m->last_release_tick >= furi_ms_to_ticks(word_gap)) {
-                    if(m->len > 0 && m->buffer[m->len - 1] != ' ' &&
-                       m->len < TREE_TEXT_MAX - 1) {
+                    if(m->len > 0 && m->buffer[m->len - 1] != ' ' && m->len < TREE_TEXT_MAX - 1) {
                         m->buffer[m->len++] = ' ';
                         m->buffer[m->len] = 0;
                     }
@@ -341,14 +343,13 @@ static bool tree_input_callback(InputEvent* event, void* context) {
                 TreeModel * m,
                 {
                     if(m->key_down) {
-                        bool dah =
-                            (now - m->key_down_tick) >= furi_ms_to_ticks(app->settings.dit_ms);
+                        bool dah = (now - m->key_down_tick) >=
+                                   furi_ms_to_ticks(app->settings.dit_ms);
                         uint8_t child = m->cur * 2 + (dah ? 2 : 1);
                         if(child < MORSE_TREE_NODES) m->cur = child;
                         m->key_down = false;
                         m->last_release_tick = now;
-                        m->gap_phase =
-                            app->settings.letter_gap_ms ? TreeGapLetter : TreeGapNone;
+                        m->gap_phase = app->settings.letter_gap_ms ? TreeGapLetter : TreeGapNone;
                     }
                 },
                 true);
@@ -556,7 +557,8 @@ static void play_draw_callback(Canvas* canvas, void* model) {
     size_t start = (pos > 9) ? pos - 9 : 0;
     char win[24];
     size_t n = 0;
-    for(size_t i = start; i < len && n < 21; i++, n++) win[n] = m->text[i];
+    for(size_t i = start; i < len && n < 21; i++, n++)
+        win[n] = m->text[i];
     win[n] = 0;
     canvas_draw_str(canvas, 2, 48, win);
 
@@ -852,12 +854,7 @@ static void menu_callback(void* context, uint32_t index) {
     case MenuIndexText:
         text_input_set_header_text(app->text_input, tr_app(app)->input_header);
         text_input_set_result_callback(
-            app->text_input,
-            text_input_done_callback,
-            app,
-            app->input_text,
-            INPUT_TEXT_MAX,
-            false);
+            app->text_input, text_input_done_callback, app, app->input_text, INPUT_TEXT_MAX, false);
         view_dispatcher_switch_to_view(app->view_dispatcher, ViewIdTextInput);
         break;
     case MenuIndexSettings:
@@ -956,8 +953,7 @@ int32_t san_morse_app(void* p) {
     // Ajustes
     app->settings_list = variable_item_list_alloc();
     settings_build_items(app);
-    view_set_previous_callback(
-        variable_item_list_get_view(app->settings_list), nav_menu_callback);
+    view_set_previous_callback(variable_item_list_get_view(app->settings_list), nav_menu_callback);
     view_dispatcher_add_view(
         app->view_dispatcher, ViewIdSettings, variable_item_list_get_view(app->settings_list));
 

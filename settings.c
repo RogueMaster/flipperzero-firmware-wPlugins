@@ -3,7 +3,7 @@
 #include <furi.h>
 #include <storage/storage.h>
 
-#define SETTINGS_PATH APP_DATA_PATH("settings.bin")
+#define SETTINGS_PATH  APP_DATA_PATH("settings.bin")
 #define SETTINGS_MAGIC 0x31524D53u // "SMR1"
 
 typedef struct {
