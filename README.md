@@ -278,7 +278,11 @@ Other NRF24 boards may partially work but are unsupported. See [docs/HARDWARE.md
 
 ## Legal Notice
 
-PINGEQUA RF Lab includes opt-in **transmit features (NRF24 Jammer)** — the Channel Scanner is passive listen-only, but the 7 Jammer modes actively transmit on the 2.4 GHz ISM band. **Output power is intentionally kept conservative** — the firmware deliberately does not drive the radio to its electrical maximum, to stay within a defensible envelope for this regulated band. Active RF emission in the unlicensed 2.4 GHz band is regulated (FCC §15 in the US, ETSI EN 300 328 in the EU, equivalent elsewhere).
+PINGEQUA RF Lab includes opt-in **transmit features (NRF24 Jammer)** — the Channel Scanner is passive listen-only, but the 7 Jammer modes actively transmit on the 2.4 GHz ISM band.
+
+> **On output power.** The 2.4 GHz band is power-regulated (FCC §15 in the US, ETSI EN 300 328 in the EU, equivalent elsewhere). **To respect those legal limits, the firmware deliberately restrains output power and does not drive the radio to its electrical maximum.** This is an intentional compliance choice — the transmit range is correspondingly modest by design, not a defect.
+
+You are responsible for compliance with your local regulations. Use only on hardware and networks you own or have authorization to test. The authors accept no liability for misuse.
 
 You are responsible for compliance with your local regulations. Use only on hardware and networks you own or have authorization to test. The authors accept no liability for misuse.
 
