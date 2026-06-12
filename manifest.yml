@@ -12,7 +12,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/sanjorgek/san-morse-flipper.git
-    commit_sha: 0cc15aad988b50eed78e44fef00a763acdd52967
+    commit_sha: f7dcf0559060b98044b205f2a965eda38f49d12d
 
 short_description: Morse code trainer with a decision-tree guide and text-to-Morse playback
 
