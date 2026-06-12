@@ -49,10 +49,14 @@ static const char* mode_shortname_of(uint8_t idx) {
     }
 }
 
-/* Engine 类型 —— 描述 worker 怎么干扰的.profile 表里目前只用到 CW + Reactive
- * 两种(jammer_scene.c:102-157 JamEngine);PayloadSpam 引擎已在 v0.4.x 弃用. */
+/* Engine 类型 —— 描述 worker 怎么干扰的(jammer_scene.c profile 表 JamEngine):
+ *   CwCustom    → CW       (单频恒载波)
+ *   ReactiveBle → Reactive (RPD 反应式)
+ *   其余        → Spam     (PayloadSpam 全段发包洪泛,v0.5.x 起) */
 static const char* mode_engine_of(uint8_t idx) {
-    return (idx == JammerModeReactiveBle) ? "Reactive" : "CW";
+    if(idx == JammerModeReactiveBle) return "Reactive";
+    if(idx == JammerModeCwCustom) return "CW";
+    return "Spam";
 }
 
 /* 目标频率描述 —— 从 profile 表硬编码(jammer_scene.c:82-100 channel 集).
@@ -62,10 +66,10 @@ static const char* mode_target_freq_of(uint8_t idx) {
     switch(idx) {
     case JammerModeBleAdv:      return "2402/2426/2480 (BLE adv)";
     case JammerModeReactiveBle: return "2402/2426/2480 (BLE adv)";
-    case JammerModeWifi1:       return "2405/2410/2414/2419 (WiFi ch1 pilots)";
-    case JammerModeWifi6:       return "2430/2435/2439/2444 (WiFi ch6 pilots)";
-    case JammerModeWifi11:      return "2455/2460/2464/2469 (WiFi ch11 pilots)";
-    case JammerModeAllBand:     return "2400-2525 sweep";
+    case JammerModeWifi1:       return "2401-2423 (WiFi ch1 flood)";
+    case JammerModeWifi6:       return "2426-2448 (WiFi ch6 flood)";
+    case JammerModeWifi11:      return "2451-2473 (WiFi ch11 flood)";
+    case JammerModeAllBand:     return "2400-2525 flood";
     default:                    return NULL; /* CwCustom — 调用方推导 */
     }
 }

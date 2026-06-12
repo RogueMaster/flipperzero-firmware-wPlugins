@@ -154,6 +154,12 @@ bool pq_nrf24_setup_cw(PqNrf24* dev, uint8_t ch) {
      * 典 1.5 ms,worst 4.5 ms,我们取整到 NRF24_TPD2STBY_MS = 2 ms). */
     furi_delay_ms(NRF24_TPD2STBY_MS);
 
+    /* 先清 TX FIFO —— CONT_WAVE 模式下 FIFO 里的 dummy 包不会被真正发走,反复
+     * 启停会逐次累积:第 4 次起 FIFO 满(3 包),后续 W_TX_PAYLOAD 被静默丢弃
+     * (TX_FULL),"灌 FIFO 触发辐射"这一脚踢失效 → 同一会话里测着测着就不发了
+     * (间歇性失效根因之一).setup_payload_spam / setup_reactive 同理已 flush. */
+    pq_nrf24_flush_tx(dev);
+
     /* 关键步骤:写 32 字节 dummy 0xFF 进 TX FIFO,触发 nRF24L01+ CW 实际辐射.
      * 缺这一步只配 RF_SETUP 的 CONT_WAVE+PLL_LOCK 不会出射载波(nRF24L01+
      * 变种特有的 quirk;huuck nrf24_startConstCarrier 与 RF24 Arduino 库旧版

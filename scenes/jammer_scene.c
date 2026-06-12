@@ -2,19 +2,24 @@
  * @file jammer_scene.c
  * @brief NRF24 Jammer 实现.规范 §13 Phase 5 + §16.1/§16.2 + §17 反模式.
  *
- * 6 种预设(views/jammer_view.h JammerMode):
- *   CwCustom : CW @ 用户自选 ch          (CW 引擎,单 ch 静态)
- *   BleAdv   : CW hop {2, 26, 80}        (CW 引擎,3 ch 循环)
- *   Wifi1    : Spam @ NRF ch 1..23       (PayloadSpam 引擎,23 ch ±11 MHz 扫)
- *   Wifi6    : Spam @ NRF ch 26..48      (同上,中心 2437 MHz)
- *   Wifi11   : Spam @ NRF ch 51..73      (同上,中心 2462 MHz)
- *   AllBand  : CW sweep 0..125           (CW 引擎,全频)
+ * 7 种预设(views/jammer_view.h JammerMode):
+ *   CwCustom    : CW @ 用户自选 ch       (CW 引擎,单 ch 静态 — 信号发生器单频用途)
+ *   BleAdv      : Spam flood {2, 26, 80} (PayloadSpam 引擎,3 个 BLE adv ch 高速复访)
+ *   ReactiveBle : RPD 反应式             (Reactive 引擎)
+ *   Wifi1       : Spam flood ch 1..23    (PayloadSpam 引擎,2401..2423 MHz 全段洪泛)
+ *   Wifi6       : Spam flood ch 26..48   (同上,中心 2437 MHz)
+ *   Wifi11      : Spam flood ch 51..73   (同上,中心 2462 MHz)
+ *   AllBand     : Spam flood 0..125      (PayloadSpam 引擎,全 2.4G 洪泛)
  *
  * 引擎层差异:
  *   CW          : pq_nrf24_setup_cw(RF_SETUP CONT_WAVE+PLL_LOCK + 32B 0xFF FIFO);
- *                 worker 仅每 chunk 写 RF_CH 即可换频.CE 持续 HIGH.
- *   PayloadSpam : pq_nrf24_setup_payload_spam(RF_SETUP 普通 2 Mbps);worker 每
- *                 chunk 写 RF_CH + W_TX_PAYLOAD_NOACK 32B 0xDEADBEEF×8 刷 FIFO.
+ *                 worker 仅每 chunk 写 RF_CH 即可换频.CE 持续 HIGH.单频窄音.
+ *   PayloadSpam : pq_nrf24_setup_payload_spam(RF_SETUP 2 Mbps + 最大功率);worker 每
+ *                 chunk 高速跳 RF_CH + W_TX_PAYLOAD_NOACK 32B 灌 FIFO,宽带调制能量
+ *                 洪泛全段.对照 CiferTech/hugorezende nRF24 jammer 的发包洪泛技法:
+ *                 单频 CW 易被 BLE/WiFi AFH 自适应跳频绕开、且 CONT_WAVE 在部分芯片
+ *                 (含 Si24R1 克隆)不稳定;全段发包洪泛无处可逃,实测干扰强得多.
+ *   Reactive    : pq_nrf24_setup_reactive(RX 监听 RPD → 检测 → 切 TX 反应干扰).
  *
  * 线程模型(§16.1):
  *   主线程 (GUI) : jammer_input_callback 处理按键,直接写 app 字段 + 调 view setter.
@@ -45,6 +50,9 @@
 #define WORKER_IDLE_YIELD_MS   50        /* idle 时让 GUI */
 #define WORKER_TICK_YIELD_MS   5         /* sweep chunk 后 yield(留 GUI 时间)  */
 #define CW_TICK_YIELD_MS       50        /* CW 模式 chunk 之间长 yield(硬件已在干扰) */
+#define FLOOD_DWELL_US         200       /* PayloadSpam 每信道驻留 ≈1 包空中时间;偏小=复访更快 */
+#define FLOOD_CHUNK            80        /* 每 chunk 跳+发 80 次(≈25–32ms,§11.2 ≤50ms 内),
+                                          * 跨信道范围循环复访逼近连续洪泛 */
 
 /* 会话级统计 — Scene 单例,static 安全.
  *   start_tick           : on_enter 设当前 boot ms,on_exit 算 duration
@@ -85,19 +93,11 @@ typedef struct {
  *   BLE 39 = 2480 MHz → ch 80 */
 static const uint8_t k_ble_adv_chs[] = {2, 26, 80};
 
-/* WiFi pilot-aware 信道集(Clancy 2011 IEEE 5962467 + 7.5 dB 等效干扰增益):
- *
- * 802.11g OFDM 64 子载波,pilot 在子载波索引 ±7 和 ±21,间隔 312.5 kHz:
- *   ±7 × 312.5 kHz = ±2.2 MHz 处
- *   ±21 × 312.5 kHz = ±6.6 MHz 处
- * 这 4 个 pilot 是接收机 channel estimation / phase tracking 的锚,损坏后整
- * 个 OFDM 解调失败.NRF24 1 MHz 带宽刚好覆盖 pilot ±0.5 MHz.
- *
- * 比起盲扫整个 22 MHz WiFi 带宽 15 ch,pilot-aware 把所有能量打在 4 个最致命
- * 频点,等效干扰功率 +7.5 dB(实测 BER 0.4 阈值,Clancy 2011 paper). */
-static const uint8_t k_wifi1_pilots[]  = {5, 10, 14, 19};   /* 2405/2410/2414/2419 MHz */
-static const uint8_t k_wifi6_pilots[]  = {30, 35, 39, 44};  /* 2430/2435/2439/2444 MHz */
-static const uint8_t k_wifi11_pilots[] = {55, 60, 64, 69};  /* 2455/2460/2464/2469 MHz */
+/* v0.5.x:WiFi 模式从"CW 打 4 个 OFDM pilot"改回"PayloadSpam 全段发包洪泛".
+ * pilot-aware(Clancy 2011)理论上功率增益漂亮,但实现退化成 4 点 CW 慢跳(每点
+ * 25 ms),单频窄音易被 AFH 绕开、且 CONT_WAVE 在部分芯片(含 Si24R1 克隆)不稳定;
+ * 实测发包洪泛覆盖整段 22 MHz 干扰强得多(对照 Si24R1 + nRF24 jammer 实测).
+ * WiFi 信道范围在 profile 表里用 ch_first..ch_last 连续区间表达,不再需要 pilot 列表. */
 
 static const JammerProfile k_profiles[JammerModeCount] = {
     [JammerModeCwCustom] = {
@@ -107,11 +107,11 @@ static const JammerProfile k_profiles[JammerModeCount] = {
         .dwell_us = 0, .chunk_size = 1,
     },
     [JammerModeBleAdv] = {
-        .engine = JamEngineCw,
+        .engine = JamEnginePayloadSpam,
         .channels = k_ble_adv_chs, .channel_count = 3,
         .ch_first = 0, .ch_last = 0,
-        .dwell_us = 5000,    /* 5 ms / ch — 3 个 ch × 5 ms = 15ms chunk */
-        .chunk_size = 3,
+        .dwell_us = FLOOD_DWELL_US,
+        .chunk_size = FLOOD_CHUNK,   /* 3 个 adv ch 高速循环复访洪泛 */
     },
     [JammerModeReactiveBle] = {
         /* v0.4.x:RPD 反应式 BLE — 监听 + 检测 + 反应干扰.
@@ -123,36 +123,35 @@ static const JammerProfile k_profiles[JammerModeCount] = {
         .chunk_size = 1,     /* 一次只在一个 ch 反应,下个 chunk 跳下个 ch */
     },
     [JammerModeWifi1] = {
-        /* v0.4.x:CW (max +20 dBm 连续) + 单 pilot/chunk + 长 dwell.
-         * 每 chunk 在 1 个 OFDM pilot 频点 sustained CW 25 ms,下个 chunk 跳下个 pilot.
-         * 每 pilot 4 个 chunk 周期内有 25% TX 占空(高于之前 payload spam 4-pilot 滚的 14%),
-         * 且 CW 能量集中在 1 MHz 带宽内,对 OFDM 单子载波损坏率最高. */
-        .engine = JamEngineCw,
-        .channels = k_wifi1_pilots, .channel_count = 4,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 25000,               /* 1 pilot × 25 ms / chunk = 25 ms callback (§11.2 上限内) */
-        .chunk_size = 1,                 /* 每 chunk 只打 1 个 pilot,下次跳下个 */
+        /* v0.5.x:PayloadSpam 全段发包洪泛 — 2401..2423 MHz(WiFi ch1 中心 2412 ±11). */
+        .engine = JamEnginePayloadSpam,
+        .channels = NULL, .channel_count = 0,
+        .ch_first = 1, .ch_last = 23,
+        .dwell_us = FLOOD_DWELL_US,
+        .chunk_size = FLOOD_CHUNK,
     },
     [JammerModeWifi6] = {
-        .engine = JamEngineCw,
-        .channels = k_wifi6_pilots, .channel_count = 4,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 25000,
-        .chunk_size = 1,
+        /* 2426..2448 MHz,中心 2437. */
+        .engine = JamEnginePayloadSpam,
+        .channels = NULL, .channel_count = 0,
+        .ch_first = 26, .ch_last = 48,
+        .dwell_us = FLOOD_DWELL_US,
+        .chunk_size = FLOOD_CHUNK,
     },
     [JammerModeWifi11] = {
-        .engine = JamEngineCw,
-        .channels = k_wifi11_pilots, .channel_count = 4,
-        .ch_first = 0, .ch_last = 0,
-        .dwell_us = 25000,
-        .chunk_size = 1,
+        /* 2451..2473 MHz,中心 2462. */
+        .engine = JamEnginePayloadSpam,
+        .channels = NULL, .channel_count = 0,
+        .ch_first = 51, .ch_last = 73,
+        .dwell_us = FLOOD_DWELL_US,
+        .chunk_size = FLOOD_CHUNK,
     },
     [JammerModeAllBand] = {
-        .engine = JamEngineCw,
+        .engine = JamEnginePayloadSpam,
         .channels = NULL, .channel_count = 0,
-        .ch_first = 0, .ch_last = 125,
-        .dwell_us = 2000,                /* 2 ms / ch CW dwell */
-        .chunk_size = 16,                /* 16 × 2ms = 32ms < 50ms 上限 */
+        .ch_first = 0, .ch_last = 125,   /* 全 2.4G ISM 发包洪泛 */
+        .dwell_us = FLOOD_DWELL_US,
+        .chunk_size = FLOOD_CHUNK,
     },
 };
 

@@ -5,6 +5,26 @@ All notable changes to PINGEQUA RF Lab.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Signal Generator (NRF24) produced little or no measurable RF effect.**
+  Root cause: every non-reactive mode had been routed through the
+  `CONT_WAVE` constant-carrier engine. A single unmodulated tone is easily
+  evaded by BLE/WiFi adaptive frequency hopping, and `CONT_WAVE` is
+  unreliable on common nRF24L01+ clones (e.g. Si24R1) — so on-air output
+  ranged from intermittent to nothing.
+  - **BLE Adv / WiFi 1·6·11 / ALL 2.4G now use the payload-flood engine**
+    (`W_TX_PAYLOAD_NOACK` at max power, 2 Mbps), continuously hopping and
+    flooding the full target band — the technique used by the proven-strong
+    reference nRF24 jammers. WiFi modes flood the whole ±11 MHz channel
+    (ch 1–23 / 26–48 / 51–73) instead of 4 static OFDM pilots.
+  - **`setup_cw` now flushes the TX FIFO** before the dummy-payload "kick".
+    Without it, repeated start/stop in one session accumulated stale FIFO
+    entries until full, silently dropping the kick write — a second cause
+    of intermittent carrier dropout. CW Custom (single-frequency signal
+    generator) is otherwise unchanged.
+
 ## [0.5.3] — 2026-05-22
 
 ### Changed

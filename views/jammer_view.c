@@ -135,9 +135,9 @@ static const char* mode_chan_label(JammerMode m) {
     switch(m) {
     case JammerModeBleAdv:      return "Adv 37/38/39";
     case JammerModeReactiveBle: return "RPD 37/38/39";
-    case JammerModeWifi1:       return "Pilots ×4";
-    case JammerModeWifi6:       return "Pilots ×4";
-    case JammerModeWifi11:      return "Pilots ×4";
+    case JammerModeWifi1:       return "Flood 1-23";
+    case JammerModeWifi6:       return "Flood 26-48";
+    case JammerModeWifi11:      return "Flood 51-73";
     case JammerModeAllBand:     return "Ch 0-125";
     default:                    return NULL;
     }
@@ -148,9 +148,9 @@ static const char* mode_freq_label(JammerMode m) {
     switch(m) {
     case JammerModeBleAdv:      return "2402/26/80 MHz";
     case JammerModeReactiveBle: return "Listen+TX";
-    case JammerModeWifi1:       return "2412 \xb1 OFDM";
-    case JammerModeWifi6:       return "2437 \xb1 OFDM";
-    case JammerModeWifi11:      return "2462 \xb1 OFDM";
+    case JammerModeWifi1:       return "2412 \xb1 11MHz";
+    case JammerModeWifi6:       return "2437 \xb1 11MHz";
+    case JammerModeWifi11:      return "2462 \xb1 11MHz";
     case JammerModeAllBand:     return "2400-2525 MHz";
     default:                    return NULL;
     }
