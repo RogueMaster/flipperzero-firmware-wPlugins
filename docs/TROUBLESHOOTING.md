@@ -59,6 +59,17 @@ Both chips down → board likely not connected. If only CC1101 fails but NRF24 w
 
 ## App freezes / unresponsive
 
+### Signal Generator stops responding during a long transmit run
+
+During a prolonged, high-duty continuous transmit session the 2.4 GHz radio can occasionally stop responding. Recovery:
+
+1. **Hold `Left` + `Back` together for ~5 seconds** to reboot the Flipper.
+2. Relaunch the app — your last mode/channel is restored automatically.
+
+Tips to avoid it:
+- For long, continuous use, prefer **CW Custom** (single channel) — it is the most robust mode.
+- Use the multi-channel sweep modes (BLE Adv / WiFi / ALL) in **shorter bursts** rather than leaving them running for many minutes.
+
 ### Buttons stop working after several presses
 
 **Should not happen on v0.2.0+** — fixed by worker yield + volatile `dwell_us`. If you see it:

@@ -7,7 +7,7 @@
  * 屏布局(128×64):
  *   y=0..10   Header FontPrimary "SIGNAL GEN" + FontSecondary status (baseline=10)
  *   y=12      Divider 1
- *   y=14..22  Mode FontPrimary "CW"/"SWEEP" + power FontSecondary (baseline=22)
+ *   y=14..22  Mode FontPrimary "CW"/"SWEEP" (baseline=22)
  *   y=24..32  Channel FontPrimary "Ch 042"/"0-125" + sweep cursor (baseline=32)
  *   y=34..40  Freq FontSecondary (baseline=40)
  *   y=42..48  Band tag / chunks FontSecondary (baseline=48)
@@ -179,10 +179,7 @@ static void jammer_view_draw_callback(Canvas* canvas, void* _model) {
     /* === Mode (FontPrimary 大字) === */
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 0, MODE_BASELINE, mode_label(m->mode));
-
-    /* 右侧:+20 dBm 固定标(规范 §3.2 决策表) */
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 127, MODE_BASELINE, AlignRight, AlignBottom, "+20dBm");
+    /* 不在屏上标功率值(避免 overclaim;输出功率出于合规保守,不声明具体 dBm). */
 
     /* === Channel / Range (FontPrimary)=== */
     canvas_set_font(canvas, FontPrimary);
