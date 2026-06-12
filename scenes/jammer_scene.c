@@ -3,29 +3,27 @@
  * @brief NRF24 Jammer 实现.规范 §13 Phase 5 + §16.1/§16.2 + §17 反模式.
  *
  * 7 种预设(views/jammer_view.h JammerMode):
- *   CwCustom    : CW @ 用户自选 ch       (CW 引擎,单 ch 静态 — 信号发生器单频用途)
- *   BleAdv      : Spam flood {2, 26, 80} (PayloadSpam 引擎,3 个 BLE adv ch 高速复访)
- *   ReactiveBle : RPD 反应式             (Reactive 引擎)
- *   Wifi1       : Spam flood ch 1..23    (PayloadSpam 引擎,2401..2423 MHz 全段洪泛)
- *   Wifi6       : Spam flood ch 26..48   (同上,中心 2437 MHz)
- *   Wifi11      : Spam flood ch 51..73   (同上,中心 2462 MHz)
- *   AllBand     : Spam flood 0..125      (PayloadSpam 引擎,全 2.4G 洪泛)
+ *   CwCustom    : 恒载波 @ 用户自选 ch   (单频,信号发生器用途)
+ *   BleAdv      : 恒载波跳 {2, 26, 80}   (BLE adv 37/38/39)
+ *   ReactiveBle : RPD 反应式             (RX 监听 → 检测 → 切 TX 干扰)
+ *   Wifi1       : 恒载波跳 ch 1..23      (2401..2423 MHz)
+ *   Wifi6       : 恒载波跳 ch 26..48     (中心 2437)
+ *   Wifi11      : 恒载波跳 ch 51..73     (中心 2462)
+ *   AllBand     : 恒载波跳 0..125        (全 2.4G)
  *
- * 引擎层差异:
- *   CW          : pq_nrf24_setup_cw(RF_SETUP CONT_WAVE+PLL_LOCK + 32B 0xFF FIFO);
- *                 worker 仅每 chunk 写 RF_CH 即可换频.CE 持续 HIGH.单频窄音.
- *   PayloadSpam : pq_nrf24_setup_payload_spam(RF_SETUP 2 Mbps + 最大功率);worker 每
- *                 chunk 高速跳 RF_CH + W_TX_PAYLOAD_NOACK 32B 灌 FIFO,宽带调制能量
- *                 洪泛全段.对照 CiferTech/hugorezende nRF24 jammer 的发包洪泛技法:
- *                 单频 CW 易被 BLE/WiFi AFH 自适应跳频绕开、且 CONT_WAVE 在部分芯片
- *                 (含 Si24R1 克隆)不稳定;全段发包洪泛无处可逃,实测干扰强得多.
- *   Reactive    : pq_nrf24_setup_reactive(RX 监听 RPD → 检测 → 切 TX 反应干扰).
+ * 驱动模型(v0.5.x 重写 — 忠实对照 huuck/FlipperZeroNRFJammer):
+ *   旧实现把每个 chunk 包进 pq_chip_with_nrf24(每次 acquire→cb→release),恒载波
+ *   被反复"释放/重夺总线"打断 → 实测真机上起振不稳定甚至完全不发.
+ *   新实现改用"独占持有总线会话"(pq_chip_nrf24_session_begin/end):OK 启动后
+ *   acquire 一次、整段持有,CE 常高;worker 在紧贴循环里只连写 RF_CH 跳频,全程
+ *   不释放总线 —— 与 huuck 的 while{for(ch) write(RF_CH)} 一致.
+ *   恒载波起振用 huuck 的"灌 32B FIFO 后再做一次 set_tx_mode(CE LOW→HIGH 二次
+ *   脉冲)"点火动作(见 jammer_start_const_carrier),旧实现只有单次 CE 上升沿.
  *
  * 线程模型(§16.1):
- *   主线程 (GUI) : jammer_input_callback 处理按键,直接写 app 字段 + 调 view setter.
- *   worker 线程  : 本地状态机 Idle ↔ Active;Active 时按 profile.engine 分支.
- *   芯片访问     : 全部经 pq_chip_with_nrf24 callback(M3/M11);CE 经
- *                  pq_chip_nrf24_ce_set(M15);单 callback ≤ 50 ms(§11.2 / M10).
+ *   主线程 (GUI) : jammer_input_callback 处理按键,只写 app 字段 + 调 view setter.
+ *   worker 线程  : 持有总线会话 + 状态机 Idle↔Active;Active 紧贴跳频/反应循环.
+ *   芯片访问     : 会话期间直接 pq_chip_spi_trx / pq_chip_nrf24_ce_set(同一线程).
  */
 #include "jammer_scene.h"
 
@@ -41,18 +39,17 @@
 
 #include <furi.h>
 #include <input/input.h>
+#include <string.h>
 
 #define TAG                    "PqJammerScene"
 #define SCENE_NAME             "jammer"
 #define WORKER_STACK           2048      /* §11.1 上限 2048 */
-#define ARBITER_TIMEOUT_MS     200       /* start/stop 容忍较长 */
-#define ARBITER_CHUNK_TIMEOUT_MS 100     /* steady-state */
+#define ARBITER_TIMEOUT_MS     200       /* cc1101 sleep / 一次性 init_regs 用 */
 #define WORKER_IDLE_YIELD_MS   50        /* idle 时让 GUI */
-#define WORKER_TICK_YIELD_MS   5         /* sweep chunk 后 yield(留 GUI 时间)  */
-#define CW_TICK_YIELD_MS       50        /* CW 模式 chunk 之间长 yield(硬件已在干扰) */
-#define FLOOD_DWELL_US         200       /* PayloadSpam 每信道驻留 ≈1 包空中时间;偏小=复访更快 */
-#define FLOOD_CHUNK            80        /* 每 chunk 跳+发 80 次(≈25–32ms,§11.2 ≤50ms 内),
-                                          * 跨信道范围循环复访逼近连续洪泛 */
+#define CW_TICK_YIELD_MS       20        /* 单频恒载波:载波已常发,只需周期 yield 给 GUI */
+#define HOP_BATCH              128       /* 多信道:每跑 128 次 RF_CH 跳频回查停止标志
+                                          * (~5ms 一次;紧贴 huuck 的无延时跳频循环) */
+#define NRF24_CW_LEVEL_MAX     3         /* RF_PWR=11 → 0 dBm at die(PA 模块拉满) */
 
 /* 会话级统计 — Scene 单例,static 安全.
  *   start_tick           : on_enter 设当前 boot ms,on_exit 算 duration
@@ -93,11 +90,12 @@ typedef struct {
  *   BLE 39 = 2480 MHz → ch 80 */
 static const uint8_t k_ble_adv_chs[] = {2, 26, 80};
 
-/* v0.5.x:WiFi 模式从"CW 打 4 个 OFDM pilot"改回"PayloadSpam 全段发包洪泛".
- * pilot-aware(Clancy 2011)理论上功率增益漂亮,但实现退化成 4 点 CW 慢跳(每点
- * 25 ms),单频窄音易被 AFH 绕开、且 CONT_WAVE 在部分芯片(含 Si24R1 克隆)不稳定;
- * 实测发包洪泛覆盖整段 22 MHz 干扰强得多(对照 Si24R1 + nRF24 jammer 实测).
- * WiFi 信道范围在 profile 表里用 ch_first..ch_last 连续区间表达,不再需要 pilot 列表. */
+/* WiFi 信道范围(NRF24 ch = MHz - 2400),恒载波在整段内快速跳频铺能量:
+ *   WiFi 1  → ch 1..23  (2401..2423,中心 2412 ±11)
+ *   WiFi 6  → ch 26..48 (2426..2448,中心 2437)
+ *   WiFi 11 → ch 51..73 (2451..2473,中心 2462)
+ * 用 ch_first..ch_last 连续区间表达;dwell_us/chunk_size 在恒载波驱动模型下不再
+ * 参与(跳频在持有总线的紧循环里无延时连写 RF_CH,见 jammer_const_carrier_hop_batch). */
 
 static const JammerProfile k_profiles[JammerModeCount] = {
     [JammerModeCwCustom] = {
@@ -107,11 +105,10 @@ static const JammerProfile k_profiles[JammerModeCount] = {
         .dwell_us = 0, .chunk_size = 1,
     },
     [JammerModeBleAdv] = {
-        .engine = JamEnginePayloadSpam,
+        .engine = JamEngineCw,
         .channels = k_ble_adv_chs, .channel_count = 3,
         .ch_first = 0, .ch_last = 0,
-        .dwell_us = FLOOD_DWELL_US,
-        .chunk_size = FLOOD_CHUNK,   /* 3 个 adv ch 高速循环复访洪泛 */
+        .dwell_us = 0, .chunk_size = 1,
     },
     [JammerModeReactiveBle] = {
         /* v0.4.x:RPD 反应式 BLE — 监听 + 检测 + 反应干扰.
@@ -119,39 +116,32 @@ static const JammerProfile k_profiles[JammerModeCount] = {
         .engine = JamEngineReactive,
         .channels = k_ble_adv_chs, .channel_count = 3,
         .ch_first = 0, .ch_last = 0,
-        .dwell_us = 30000,   /* 30 ms / ch — 监听 + 反应循环上限,然后跳下个 BLE ch */
-        .chunk_size = 1,     /* 一次只在一个 ch 反应,下个 chunk 跳下个 ch */
+        .dwell_us = 30000,   /* 反应循环时间上限,逻辑在 jammer_reactive_chunk_inner 内 */
+        .chunk_size = 1,
     },
     [JammerModeWifi1] = {
-        /* v0.5.x:PayloadSpam 全段发包洪泛 — 2401..2423 MHz(WiFi ch1 中心 2412 ±11). */
-        .engine = JamEnginePayloadSpam,
+        .engine = JamEngineCw,
         .channels = NULL, .channel_count = 0,
         .ch_first = 1, .ch_last = 23,
-        .dwell_us = FLOOD_DWELL_US,
-        .chunk_size = FLOOD_CHUNK,
+        .dwell_us = 0, .chunk_size = 1,
     },
     [JammerModeWifi6] = {
-        /* 2426..2448 MHz,中心 2437. */
-        .engine = JamEnginePayloadSpam,
+        .engine = JamEngineCw,
         .channels = NULL, .channel_count = 0,
         .ch_first = 26, .ch_last = 48,
-        .dwell_us = FLOOD_DWELL_US,
-        .chunk_size = FLOOD_CHUNK,
+        .dwell_us = 0, .chunk_size = 1,
     },
     [JammerModeWifi11] = {
-        /* 2451..2473 MHz,中心 2462. */
-        .engine = JamEnginePayloadSpam,
+        .engine = JamEngineCw,
         .channels = NULL, .channel_count = 0,
         .ch_first = 51, .ch_last = 73,
-        .dwell_us = FLOOD_DWELL_US,
-        .chunk_size = FLOOD_CHUNK,
+        .dwell_us = 0, .chunk_size = 1,
     },
     [JammerModeAllBand] = {
-        .engine = JamEnginePayloadSpam,
+        .engine = JamEngineCw,
         .channels = NULL, .channel_count = 0,
-        .ch_first = 0, .ch_last = 125,   /* 全 2.4G ISM 发包洪泛 */
-        .dwell_us = FLOOD_DWELL_US,
-        .chunk_size = FLOOD_CHUNK,
+        .ch_first = 0, .ch_last = 125,   /* 全 2.4G ISM */
+        .dwell_us = 0, .chunk_size = 1,
     },
 };
 
@@ -175,15 +165,8 @@ static uint8_t profile_ch_at(const JammerProfile* p, uint8_t cursor) {
     return (uint8_t)(p->ch_first + (cursor % count));
 }
 
-/* 32 字节 0xDEADBEEF × 8 — Payload Spam 引擎喂 FIFO 用. */
-static const uint8_t k_spam_payload[32] = {
-    0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE,
-    0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD,
-    0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF,
-};
-
 /* ---------------------------------------------------------------------------
- * 芯片操作回调(必须在 pq_chip_with_nrf24 内执行)
+ * 一次性回调(经 pq_chip_with_* 执行,on_enter 用)
  * --------------------------------------------------------------------------*/
 
 /* on_enter 一次性:走 baseline init_regs(含 SETUP_AW writeback 校验,确认芯片
@@ -205,61 +188,51 @@ static bool cc1101_sleep_cb(void* ctx) {
     return true;
 }
 
-/* 进入 Active:按 profile.engine 分发 setup,然后 CE high + Tstby2a wait. */
-static bool jammer_start_cb(void* ctx) {
-    PqApp* app = ctx;
-    const JammerProfile* p = profile_of(app->jammer_mode);
+/* ---------------------------------------------------------------------------
+ * 恒载波点火(独占持有会话内调用)— 忠实移植 huuck nrf24.c
+ * --------------------------------------------------------------------------*/
 
-    /* 起始确保 CE LOW(防 setup 期间发射). */
+/* huuck nrf24_set_tx_mode:CE LOW → 清 STATUS → CONFIG(PRIM_RX=0, PWR_UP) → CE HIGH.
+ * 关键是它末尾的 CE 上升沿;startConstCarrier 调两次,第二次在灌完 FIFO 后点火. */
+static void jammer_tx_mode(PqApp* app) {
     pq_chip_nrf24_ce_set(false);
-
-    /* 起点信道:CwCustom 用用户值,其他用 profile 第一信道. */
-    uint8_t initial_ch = (app->jammer_mode == JammerModeCwCustom)
-                             ? app->jammer_cw_channel
-                             : profile_ch_at(p, 0);
-
-    bool ok;
-    switch(p->engine) {
-    case JamEngineCw:
-        ok = pq_nrf24_setup_cw(app->nrf, initial_ch);
-        break;
-    case JamEnginePayloadSpam:
-        ok = pq_nrf24_setup_payload_spam(app->nrf, initial_ch);
-        break;
-    case JamEngineReactive:
-        ok = pq_nrf24_setup_reactive(app->nrf, initial_ch);
-        break;
-    default:
-        ok = false;
-        break;
-    }
-    if(!ok) {
-        FURI_LOG_E(TAG, "setup failed engine=%d mode=%d", (int)p->engine,
-                   (int)app->jammer_mode);
-        return false;
-    }
-
-    /* CE HIGH 启动 TX. */
+    pq_nrf24_write_reg(app->nrf, NRF24_REG_STATUS,
+                       NRF24_STATUS_MAX_RT | NRF24_STATUS_TX_DS);
+    uint8_t cfg = pq_nrf24_read_reg(app->nrf, NRF24_REG_CONFIG);
+    cfg &= (uint8_t)~NRF24_CONFIG_PRIM_RX; /* 进 TX */
+    cfg |= NRF24_CONFIG_PWR_UP;
+    pq_nrf24_write_reg(app->nrf, NRF24_REG_CONFIG, cfg);
     pq_chip_nrf24_ce_set(true);
-
-    /* Tstby2a = 130 µs(datasheet §6.1.7 Table 16):CE 拉高后到 PLL/PA 完全锁定. */
-    furi_delay_us(130);
-
-    /* 诊断:回读寄存器验证 SPI 写入真生效 — 用 ufbt cli + log 命令看输出. */
-    pq_nrf24_diag_log(app->nrf, "start_cb");
-
-    /* 重置 sweep 起点 + 清 dirty. */
-    app->jammer_sweep_cursor = 0;
-    app->jammer_cw_dirty = false;
-    return true;
 }
 
-/* 退出 Active:CE low + PWR_DOWN. */
-static bool jammer_stop_cb(void* ctx) {
-    PqApp* app = ctx;
-    pq_chip_nrf24_ce_set(false);
-    pq_nrf24_power_down(app->nrf);
-    return true;
+/* huuck nrf24_startConstCarrier 的忠实移植(read-modify-write 配 RF_SETUP/CONFIG,
+ * 灌 32B 0xFF FIFO,再二次 set_tx_mode 点火).level=3 → RF_PWR=11 满功率. */
+static void jammer_start_const_carrier(PqApp* app, uint8_t ch, uint8_t level) {
+    PqNrf24* nrf = app->nrf;
+
+    jammer_tx_mode(app); /* set_tx_mode #1 */
+
+    pq_nrf24_write_reg(nrf, NRF24_REG_RF_CH, ch);
+
+    uint8_t setup = pq_nrf24_read_reg(nrf, NRF24_REG_RF_SETUP);
+    setup = (uint8_t)((setup & 0xF8) | ((level & 0x3) << 1)); /* 置 RF_PWR */
+    pq_nrf24_write_reg(nrf, NRF24_REG_RF_SETUP, setup);
+    setup |= NRF24_RF_SETUP_CONT_WAVE | NRF24_RF_SETUP_PLL_LOCK;
+    pq_nrf24_write_reg(nrf, NRF24_REG_RF_SETUP, setup);
+
+    pq_nrf24_write_reg(nrf, NRF24_REG_EN_AA, 0x00);
+
+    uint8_t cfg = pq_nrf24_read_reg(nrf, NRF24_REG_CONFIG);
+    cfg &= (uint8_t)~NRF24_CONFIG_EN_CRC;
+    pq_nrf24_write_reg(nrf, NRF24_REG_CONFIG, cfg);
+
+    uint8_t dummy[32];
+    memset(dummy, 0xFF, sizeof(dummy));
+    pq_nrf24_load_tx_payload(nrf, dummy, sizeof(dummy));
+
+    jammer_tx_mode(app); /* set_tx_mode #2 — 灌完 FIFO 后点火 */
+
+    pq_nrf24_diag_log(nrf, "const_carrier");
 }
 
 /* RPD 反应式 chunk(Reactive engine) — 监听 RPD,检测到载波 sustained jam 当前 ch.
@@ -331,134 +304,119 @@ static bool jammer_reactive_chunk_inner(PqApp* app, const JammerProfile* p) {
     return true;
 }
 
-/* Steady-state chunk — 按 profile 分发:
- *   CwCustom         : 仅 dirty 时写 RF_CH(用户改了 ch);callback < 1 ms
- *   其他 CW 模式     : profile.chunk_size 个 ch,每 ch 写 RF_CH + dwell_us
- *   PayloadSpam 模式 : 同上 + 每 ch 额外 W_TX_PAYLOAD_NOACK 32B 0xDEADBEEF×8
- *   Reactive 模式    : 转入 jammer_reactive_chunk_inner */
-static bool jammer_chunk_cb(void* ctx) {
-    PqApp* app = ctx;
-    const JammerProfile* p = profile_of(app->jammer_mode);
-
-    /* Reactive engine:专门走 RPD 监听+反应循环. */
+/* 进入 Active(或运行中切模式)时,按引擎在持有的会话里做一次 setup. */
+static void jammer_engine_setup(PqApp* app, JammerMode mode) {
+    const JammerProfile* p = profile_of(mode);
+    uint8_t ch0 = (mode == JammerModeCwCustom) ? app->jammer_cw_channel
+                                               : profile_ch_at(p, 0);
+    /* 重配寄存器前先 CE LOW(运行中切模式时上一引擎可能 CE 仍高). */
+    pq_chip_nrf24_ce_set(false);
     if(p->engine == JamEngineReactive) {
-        return jammer_reactive_chunk_inner(app, p);
+        pq_nrf24_setup_reactive(app->nrf, ch0);
+        pq_chip_nrf24_ce_set(true);
+        furi_delay_us(130); /* Tstby2a 进 RX */
+        pq_nrf24_diag_log(app->nrf, "reactive_setup");
+    } else {
+        jammer_start_const_carrier(app, ch0, NRF24_CW_LEVEL_MAX);
+    }
+    app->jammer_sweep_cursor = 0;
+    app->jammer_cw_dirty = false;
+}
+
+/* 恒载波运行 batch — 总线持有、CE 常高全程不打断(huuck 紧贴跳频).
+ *   CwCustom : 停在用户信道(随 ←→ 改频);载波由 CE 常高 + 会话持有维持,
+ *              这里只需周期 yield 给 GUI.
+ *   多信道   : 在信道集内无延时连写 RF_CH 跳 HOP_BATCH 次,把载波铺满整段. */
+static void jammer_const_carrier_hop_batch(PqApp* app, JammerMode mode) {
+    const JammerProfile* p = profile_of(mode);
+
+    if(mode == JammerModeCwCustom) {
+        pq_nrf24_set_channel_fast(app->nrf, app->jammer_cw_channel);
+        app->jammer_cw_dirty = false;
+        app->jammer_chunk_count++;
+        jammer_view_update_tick(app->jammer_view, app->jammer_cw_channel,
+                                app->jammer_chunk_count);
+        furi_delay_ms(CW_TICK_YIELD_MS); /* 总线持有 + CE 高 → 载波持续;仅 yield GUI */
+        return;
     }
 
-    /* CwCustom 特例:静态 CW,用户调 ch 才需重写 RF_CH. */
-    if(app->jammer_mode == JammerModeCwCustom) {
-        if(app->jammer_cw_dirty) {
-            pq_nrf24_set_channel_fast(app->nrf, app->jammer_cw_channel);
-            app->jammer_cw_dirty = false;
-        }
-        return true;
-    }
-
-    /* 多信道模式:跑 chunk_size 个 ch. */
     uint8_t total = profile_count(p);
-    if(total == 0) return true;
+    if(total == 0) return;
 
     uint8_t cursor = app->jammer_sweep_cursor;
-    for(int i = 0; i < p->chunk_size; i++) {
-        uint8_t ch = profile_ch_at(p, cursor);
-        pq_nrf24_set_channel_fast(app->nrf, ch);
-
-        /* PayloadSpam:每 ch 重新刷 FIFO(huuck WiFi 模式同).
-         * CW 模式:FIFO 在 setup_cw 阶段已填,worker 不重写. */
-        if(p->engine == JamEnginePayloadSpam) {
-            pq_nrf24_load_tx_payload_noack(app->nrf, k_spam_payload, sizeof(k_spam_payload));
-        }
-
-        if(p->dwell_us > 0) furi_delay_us(p->dwell_us);
-
+    for(uint32_t i = 0; i < HOP_BATCH; i++) {
+        pq_nrf24_set_channel_fast(app->nrf, profile_ch_at(p, cursor));
         cursor = (uint8_t)((cursor + 1) % total);
     }
     app->jammer_sweep_cursor = cursor;
-    return true;
+    app->jammer_chunk_count++;
+
+    uint8_t prev = (cursor == 0) ? (uint8_t)(total - 1) : (uint8_t)(cursor - 1);
+    jammer_view_update_tick(app->jammer_view, profile_ch_at(p, prev),
+                            app->jammer_chunk_count);
 }
 
 /* ---------------------------------------------------------------------------
  * Worker 线程 — 本地状态机
  * --------------------------------------------------------------------------*/
 
-typedef enum {
-    JamLocalIdle,   /* CE low,PWR_DOWN — 等待 user 按 OK */
-    JamLocalActive, /* CE high,正在干扰 */
-} JamLocalState;
-
 static int32_t jammer_worker_func(void* ctx) {
     PqApp* app = ctx;
-    JamLocalState local = JamLocalIdle;
-    uint32_t chunk_n = 0;
+    bool active = false;                      /* 独占持有会话是否已开(= 正在干扰) */
+    JammerMode active_mode = JammerModeCount; /* 无效哨兵,迫使首帧 setup */
 
     while(!app->jammer_stop_requested) {
         const bool want_run = app->jammer_running;
 
-        /* 状态转换:Idle → Active. */
-        if(want_run && local == JamLocalIdle) {
-            if(pq_chip_with_nrf24(jammer_start_cb, app, ARBITER_TIMEOUT_MS)) {
-                local = JamLocalActive;
-                chunk_n = 0;
-                FURI_LOG_I(TAG, "jam start mode=%d ch=%u",
-                           (int)app->jammer_mode, app->jammer_cw_channel);
-            } else {
-                /* 启动失败 → 强制回 stopped,提示 GUI. */
-                FURI_LOG_W(TAG, "start_cb timeout/fail");
-                app->jammer_running = false;
-                jammer_view_set_running(app->jammer_view, false);
-                furi_delay_ms(WORKER_IDLE_YIELD_MS);
-            }
+        /* Idle → Active:开独占会话(acquire 一次,整段持有)+ 按模式点火. */
+        if(want_run && !active) {
+            pq_chip_nrf24_session_begin();
+            active_mode = app->jammer_mode;
+            jammer_engine_setup(app, active_mode);
+            active = true;
+            FURI_LOG_I(TAG, "jam start (held session) mode=%d ch=%u",
+                       (int)active_mode, app->jammer_cw_channel);
             continue;
         }
 
-        /* 状态转换:Active → Idle. */
-        if(!want_run && local == JamLocalActive) {
-            pq_chip_with_nrf24(jammer_stop_cb, app, ARBITER_TIMEOUT_MS);
-            local = JamLocalIdle;
-            FURI_LOG_I(TAG, "jam stop chunks=%lu", (unsigned long)chunk_n);
+        /* Active → Idle:停发 + 关会话(release 总线). */
+        if(!want_run && active) {
+            pq_chip_nrf24_ce_set(false);
+            pq_nrf24_power_down(app->nrf);
+            pq_chip_nrf24_session_end();
+            active = false;
+            FURI_LOG_I(TAG, "jam stop chunks=%lu",
+                       (unsigned long)app->jammer_chunk_count);
             continue;
         }
 
         /* Idle 等待. */
-        if(local == JamLocalIdle) {
+        if(!active) {
             furi_delay_ms(WORKER_IDLE_YIELD_MS);
             continue;
         }
 
-        /* Active steady-state:跑一个 chunk. */
-        if(!pq_chip_with_nrf24(jammer_chunk_cb, app, ARBITER_CHUNK_TIMEOUT_MS)) {
-            FURI_LOG_W(TAG, "chunk_cb timeout, retry");
-            furi_delay_ms(WORKER_IDLE_YIELD_MS);
+        /* 运行中实时切模式(↑↓ 改 app->jammer_mode):会话内重新 setup,不必停发. */
+        if(app->jammer_mode != active_mode) {
+            active_mode = app->jammer_mode;
+            jammer_engine_setup(app, active_mode);
             continue;
         }
-        chunk_n++;
-        app->jammer_chunk_count = chunk_n;
 
-        /* 推送 view tick — 多信道模式上报当前 cursor 命中位置;CwCustom 上报 user ch. */
-        const JammerProfile* p = profile_of(app->jammer_mode);
-        uint8_t cur_ch;
-        if(app->jammer_mode == JammerModeCwCustom) {
-            cur_ch = app->jammer_cw_channel;
+        /* Active 稳态:跑一个 batch(总线持有,CE 常高全程不打断). */
+        const JammerProfile* p = profile_of(active_mode);
+        if(p->engine == JamEngineReactive) {
+            jammer_reactive_chunk_inner(app, p);
         } else {
-            uint8_t total = profile_count(p);
-            uint8_t prev_cursor =
-                (app->jammer_sweep_cursor == 0)
-                    ? (uint8_t)(total - 1)
-                    : (uint8_t)(app->jammer_sweep_cursor - 1); /* 上一刻 */
-            cur_ch = profile_ch_at(p, prev_cursor);
+            jammer_const_carrier_hop_batch(app, active_mode);
         }
-        jammer_view_update_tick(app->jammer_view, cur_ch, chunk_n);
-
-        /* Yield(R6:每 100 ms 检查停止信号):
-         *   CwCustom : chunk 几乎瞬时 → 长 yield 不影响硬件持续发射
-         *   多信道   : chunk 已含 dwell_us×chunk_size 的 TX 时间 → 短 yield 维持高占空比 */
-        furi_delay_ms((app->jammer_mode == JammerModeCwCustom) ? CW_TICK_YIELD_MS
-                                                               : WORKER_TICK_YIELD_MS);
     }
 
-    /* 退出兜底:若仍 Active,做一次清理. */
-    if(local == JamLocalActive) {
-        pq_chip_with_nrf24(jammer_stop_cb, app, ARBITER_TIMEOUT_MS * 2);
+    /* 退出兜底:若仍持有会话,停发 + 释放. */
+    if(active) {
+        pq_chip_nrf24_ce_set(false);
+        pq_nrf24_power_down(app->nrf);
+        pq_chip_nrf24_session_end();
     }
     return 0;
 }
@@ -571,7 +529,8 @@ void jammer_scene_on_enter(void* context) {
     /* Alloc nrf24 driver(scene 拥有生命期;exit 时 free). */
     app->nrf = pq_nrf24_alloc(&app->cfg);
 
-    /* 一次性 baseline init(SETUP_AW 验证).start_cb 之后再做 CW 专属配置. */
+    /* 一次性 baseline init(SETUP_AW 验证芯片活着).真正的恒载波点火在 worker
+     * 开独占会话后做(jammer_engine_setup → jammer_start_const_carrier). */
     if(!pq_chip_with_nrf24(jammer_init_cb, app, ARBITER_TIMEOUT_MS)) {
         FURI_LOG_E(TAG, "init_regs failed; → error scene");
         scene_manager_next_scene(app->scene_manager, PqSceneError);

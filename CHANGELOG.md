@@ -8,22 +8,28 @@ versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
-- **Signal Generator (NRF24) produced little or no measurable RF effect.**
-  Root cause: every non-reactive mode had been routed through the
-  `CONT_WAVE` constant-carrier engine. A single unmodulated tone is easily
-  evaded by BLE/WiFi adaptive frequency hopping, and `CONT_WAVE` is
-  unreliable on common nRF24L01+ clones (e.g. Si24R1) — so on-air output
-  ranged from intermittent to nothing.
-  - **BLE Adv / WiFi 1·6·11 / ALL 2.4G now use the payload-flood engine**
-    (`W_TX_PAYLOAD_NOACK` at max power, 2 Mbps), continuously hopping and
-    flooding the full target band — the technique used by the proven-strong
-    reference nRF24 jammers. WiFi modes flood the whole ±11 MHz channel
-    (ch 1–23 / 26–48 / 51–73) instead of 4 static OFDM pilots.
-  - **`setup_cw` now flushes the TX FIFO** before the dummy-payload "kick".
-    Without it, repeated start/stop in one session accumulated stale FIFO
-    entries until full, silently dropping the kick write — a second cause
-    of intermittent carrier dropout. CW Custom (single-frequency signal
-    generator) is otherwise unchanged.
+- **Signal Generator (NRF24) produced little or no measurable RF effect** —
+  rewrote the jammer's SPI/CE driving model to match the proven-working
+  [huuck/FlipperZeroNRFJammer](https://github.com/huuck/FlipperZeroNRFJammer).
+  - Root cause was **not** the engine choice (constant-carrier vs payload):
+    it was the bus-arbitration layer. The old worker wrapped every channel
+    hop in `pq_chip_with_nrf24` (acquire → callback → release **per chunk**)
+    with 5–50 ms yields between, so the constant carrier was repeatedly
+    interrupted by bus release/re-acquire — starting unreliably or not at
+    all. huuck instead **acquires the SPI bus once and holds it**, keeps CE
+    high, and runs a tight `RF_CH`-hopping loop.
+  - New **held-session driver model** (`pq_chip_nrf24_session_begin/end`):
+    while jamming, the worker owns the external SPI bus for the whole run,
+    keeps CE high, and hops `RF_CH` in a tight uninterrupted loop. CC1101 is
+    asleep during the jammer scene, so exclusive bus ownership is safe; the
+    scanner and other scenes keep using the per-callback arbiter.
+  - Constant-carrier start is now a faithful port of huuck's
+    `startConstCarrier`, including the **second `set_tx_mode` (CE LOW→HIGH
+    re-pulse) after loading the FIFO** — the documented ignition step the
+    old single-edge `setup_cw` was missing.
+  - All non-reactive modes hop the constant carrier across their band
+    (CW Custom single freq; BLE Adv {2,26,80}; WiFi 1/6/11 ch 1–23 / 26–48 /
+    51–73; ALL 0–125). Live mode-switching re-ignites within the held session.
 
 ## [0.5.3] — 2026-05-22
 

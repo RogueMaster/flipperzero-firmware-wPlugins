@@ -73,6 +73,22 @@ bool pq_chip_with_cc1101(PqChipCallback cb, void* ctx, uint32_t timeout_ms);
  */
 void pq_chip_nrf24_ce_set(bool high);
 
+/**
+ * 独占持有 nRF24 总线的会话(huuck FlipperZeroNRFJammer 驱动模型).
+ *
+ * pq_chip_with_nrf24 是"每次回调 acquire→cb→release";会话是"acquire 一次、
+ * 整段持有",期间 CE 可持续 HIGH、总线不释放 —— 用于 jammer 恒载波/连续发射,
+ * 避免每 chunk 释放总线打断载波(实测对 nRF24L01+ 恒载波起振/维持至关重要).
+ *
+ * begin 之后,可直接调用 pq_chip_spi_trx() / pq_chip_nrf24_ce_set()(无须再包在
+ * with_nrf24 回调里).begin / end / 期间的所有访问必须在同一线程(规范 E2,
+ * FreeRTOS owner-tracked mutex).end 释放总线、CSN/CE 复位.
+ *
+ * 约束:不可与 pq_chip_with_* 嵌套;会话期间其它芯片不可访问总线.
+ */
+void pq_chip_nrf24_session_begin(void);
+void pq_chip_nrf24_session_end(void);
+
 #include <stddef.h>
 
 /**
