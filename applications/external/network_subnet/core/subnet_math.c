@@ -53,6 +53,6 @@ void subnet_calculate(
         break;
     default:
         *out_broadcast = ip_number | (~mask);
-        *out_host_count = *out_broadcast - ip_number;
+        *out_host_count = *out_broadcast - *out_network;
     }
 }
