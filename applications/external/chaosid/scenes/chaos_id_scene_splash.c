@@ -31,9 +31,9 @@ void chaos_id_scene_splash_on_enter(void* context) {
     ChaosIdApp* app = context;
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "ChaosID");
-    submenu_add_item(app->submenu, "Iniciar Scan", SplashIndexScan, splash_submenu_callback, app);
-    submenu_add_item(app->submenu, "Historico", SplashIndexHistory, splash_submenu_callback, app);
-    submenu_add_item(app->submenu, "Sobre", SplashIndexAbout, splash_submenu_callback, app);
+    submenu_add_item(app->submenu, "Start Scan", SplashIndexScan, splash_submenu_callback, app);
+    submenu_add_item(app->submenu, "History", SplashIndexHistory, splash_submenu_callback, app);
+    submenu_add_item(app->submenu, "About", SplashIndexAbout, splash_submenu_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, ChaosIdViewMenu);
 }
 

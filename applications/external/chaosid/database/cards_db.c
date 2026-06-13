@@ -21,17 +21,17 @@ const CardProfile cards_db[] = {
         .attack_vector = "Clone direto p/ T5577",
         .year_broken = "N/A",
         .risk = CardRiskTrivial,
-        .notes = "Read-only de fabrica. UID de 40 bits. Onipresente em condominios.",
+        .notes = "Read-only from factory. 40-bit UID. Common in residential access.",
     },
     {
         .protocol = "HID Prox (H10301)",
         .frequency = CardFreqLF,
-        .typical_use = "Cracha corporativo (legado)",
+        .typical_use = "Corporate badge (legacy)",
         .crypto = "Nenhuma (formato proprietario)",
         .attack_vector = "Clone p/ T5577, brute force facility code",
         .year_broken = "2007 (DEFCON)",
         .risk = CardRiskTrivial,
-        .notes = "26 bits = 8 facility + 16 card. Sem autenticacao.",
+        .notes = "26 bits = 8 facility + 16 card. No authentication.",
     },
     {
         .protocol = "Indala",
@@ -41,22 +41,22 @@ const CardProfile cards_db[] = {
         .attack_vector = "Clone direto, sniff a distancia",
         .year_broken = "N/A",
         .risk = CardRiskTrivial,
-        .notes = "Variantes 26, 27 e 64 bits. Comum em sistemas antigos.",
+        .notes = "Variants 26, 27 and 64 bits. Common in legacy systems.",
     },
     {
         .protocol = "AWID",
         .frequency = CardFreqLF,
-        .typical_use = "Cracha corporativo",
+        .typical_use = "Corporate badge",
         .crypto = "Nenhuma",
         .attack_vector = "Clone p/ T5577",
         .year_broken = "N/A",
         .risk = CardRiskTrivial,
-        .notes = "Formatos 26 e 50 bits. Sem rolling code.",
+        .notes = "26 and 50 bit formats. No rolling code.",
     },
     {
         .protocol = "T5577",
         .frequency = CardFreqLF,
-        .typical_use = "Cartao em branco / emulador",
+        .typical_use = "Blank card / emulator",
         .crypto = "Password opcional (32 bits)",
         .attack_vector = "Brute force de password",
         .year_broken = "N/A",
@@ -68,22 +68,22 @@ const CardProfile cards_db[] = {
     {
         .protocol = "MIFARE Classic 1K",
         .frequency = CardFreqHF,
-        .typical_use = "Transporte publico, cracha, hotel",
+        .typical_use = "Public transit, badge, hotel access",
         .crypto = "Crypto1 (NXP, proprietaria)",
         .attack_vector = "Nested / Darkside / MFKey32 / Hardnested",
         .year_broken = "2008 (Nohl & Plotz)",
         .risk = CardRiskBroken,
-        .notes = "16 setores x 4 blocos. Bilhete unico SP/RJ, VEM Recife.",
+        .notes = "16 sectors x 4 blocks. Widely deployed in transit and corporate access.",
     },
     {
         .protocol = "MIFARE Classic 4K",
         .frequency = CardFreqHF,
-        .typical_use = "Cracha corporativo de alta capacidade",
+        .typical_use = "High-capacity corporate badge",
         .crypto = "Crypto1",
         .attack_vector = "Nested / Hardnested",
         .year_broken = "2008",
         .risk = CardRiskBroken,
-        .notes = "40 setores. Mesma quebra do 1K, dump demora mais.",
+        .notes = "40 sectors. Same crypto break as 1K, dump takes longer.",
     },
     {
         .protocol = "MIFARE Ultralight",
@@ -93,15 +93,15 @@ const CardProfile cards_db[] = {
         .attack_vector = "Leitura/escrita direta",
         .year_broken = "N/A",
         .risk = CardRiskTrivial,
-        .notes = "64 bytes EEPROM. Sem autenticacao. Counter monotonico opcional.",
+        .notes = "64-byte EEPROM. No authentication. Optional monotonic counter.",
     },
     {
         .protocol = "MIFARE Ultralight C",
         .frequency = CardFreqHF,
         .typical_use = "Tickets de maior valor",
-        .crypto = "3DES (chave de 16 bytes)",
-        .attack_vector = "Brute force se chave default; sniff handshake",
-        .year_broken = "Parcial (chaves default)",
+        .crypto = "3DES (16-byte key)",
+        .attack_vector = "Brute force if default key; sniff handshake",
+        .year_broken = "Partial (default keys)",
         .risk = CardRiskBroken,
         .notes = "192 bytes. Autenticacao opcional, frequentemente desativada.",
     },
@@ -110,7 +110,7 @@ const CardProfile cards_db[] = {
         .frequency = CardFreqHF,
         .typical_use = "NFC tags, marketing, Amiibo",
         .crypto = "Password 32 bits opcional",
-        .attack_vector = "Brute force password, leitura direta sem pwd",
+        .attack_vector = "Brute force password, direct read without pwd",
         .year_broken = "N/A",
         .risk = CardRiskTrivial,
         .notes = "144/504/888 bytes. Amiibo usa NTAG215.",
@@ -118,9 +118,9 @@ const CardProfile cards_db[] = {
     {
         .protocol = "MIFARE DESFire EV1",
         .frequency = CardFreqHF,
-        .typical_use = "Transporte, cracha governamental",
+        .typical_use = "Transit, government badge",
         .crypto = "AES-128 / 3DES",
-        .attack_vector = "Side channel (lab); chaves fracas",
+        .attack_vector = "Side channel (lab); weak keys",
         .year_broken = "Side-channel apenas",
         .risk = CardRiskHardened,
         .notes = "App-based, ate 28 apps. Se mal configurado, vira MIFARE Classic.",
@@ -128,7 +128,7 @@ const CardProfile cards_db[] = {
     {
         .protocol = "MIFARE DESFire EV2/EV3",
         .frequency = CardFreqHF,
-        .typical_use = "Pagamento, transporte, ID nacional",
+        .typical_use = "Payment, transit, national ID",
         .crypto = "AES-128, Secure Messaging",
         .attack_vector = "Nenhum publico viavel",
         .year_broken = "-",
@@ -138,8 +138,8 @@ const CardProfile cards_db[] = {
     {
         .protocol = "iCLASS Standard",
         .frequency = CardFreqHF,
-        .typical_use = "Cracha HID corporativo",
-        .crypto = "3DES com chave mestra HID",
+        .typical_use = "HID corporate badge",
+        .crypto = "3DES with HID master key",
         .attack_vector = "Chave mestra vazou (Meriac 2010)",
         .year_broken = "2010",
         .risk = CardRiskBroken,
@@ -148,7 +148,7 @@ const CardProfile cards_db[] = {
     {
         .protocol = "FeliCa (Sony)",
         .frequency = CardFreqHF,
-        .typical_use = "Transporte JP (Suica, Pasmo), pgto",
+        .typical_use = "Transit JP (Suica, Pasmo), payments",
         .crypto = "Proprietaria (DES-based)",
         .attack_vector = "Nenhum publico relevante",
         .year_broken = "-",
@@ -163,7 +163,7 @@ const CardProfile cards_db[] = {
         .attack_vector = "Leitura/escrita direta",
         .year_broken = "N/A",
         .risk = CardRiskTrivial,
-        .notes = "Alcance maior (~1m). ICODE SLIX e variante comum.",
+        .notes = "Longer range (~1m). ICODE SLIX is a common variant.",
     },
 };
 
@@ -264,13 +264,13 @@ const CardProfile* cards_db_find_by_nfc_name(const char* name) {
 const char* card_risk_label(CardRisk risk) {
     switch(risk) {
     case CardRiskTrivial:
-        return "TRIVIAL - clonavel";
+        return "TRIVIAL - clonable";
     case CardRiskBroken:
-        return "QUEBRADA - viavel";
+        return "BROKEN - feasible";
     case CardRiskHardened:
-        return "ENDURECIDA - ok";
+        return "HARDENED - ok";
     default:
-        return "DESCONHECIDO";
+        return "UNKNOWN";
     }
 }
 

@@ -6,10 +6,8 @@
 // the terms of the GNU General Public License as published by the Free
 // Software Foundation, either version 3 of the License, or (at your option)
 // any later version. See <https://www.gnu.org/licenses/gpl-3.0.html>.
-
 #include "../chaos_id_app.h"
 #include "chaos_id_scene.h"
-
 void chaos_id_scene_about_on_enter(void* context) {
     ChaosIdApp* app = context;
     widget_reset(app->widget);
@@ -20,19 +18,32 @@ void chaos_id_scene_about_on_enter(void* context) {
         14,
         128,
         50,
-        "Perito forense de cartoes\n"
-        "LF (125 kHz) + HF (13.56 MHz)\n"
+        "Forensic card identifier\n"
+        "LF 125 kHz + HF 13.56 MHz\n"
         "\n"
-        "Identifica protocolo, expoe\n"
-        "vetor de ataque e nivel de\n"
-        "risco do cartao detectado.\n"
+        "Identifies the protocol,\n"
+        "exposes attack vector and\n"
+        "risk level of each card.\n"
+        "\n"
+        "For security research and\n"
+        "physical access control\n"
+        "audit.\n"
         "\n"
         "by Cafe com Solda\n"
-        "Chaos IAM series\n"
-        "v0.1 - POC");
+        "GPLv3+\n"
+        "v0.6\n"
+        "\n"
+        "- - - - - - - - - - -\n"
+        "\n"
+        "Flipper Zero is banned\n"
+        "by ANATEL in Brazil.\n"
+        "\n"
+        "Written in Brazil\n"
+        "anyway.\n"
+        "\n"
+        "Isso eh Brasil. <br>");
     view_dispatcher_switch_to_view(app->view_dispatcher, ChaosIdViewWidget);
 }
-
 bool chaos_id_scene_about_on_event(void* context, SceneManagerEvent event) {
     ChaosIdApp* app = context;
     bool consumed = false;
@@ -42,7 +53,6 @@ bool chaos_id_scene_about_on_event(void* context, SceneManagerEvent event) {
     }
     return consumed;
 }
-
 void chaos_id_scene_about_on_exit(void* context) {
     ChaosIdApp* app = context;
     widget_reset(app->widget);

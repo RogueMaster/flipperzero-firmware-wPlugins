@@ -68,7 +68,7 @@ static void lf_read_callback(LFRFIDWorkerReadResult result, ProtocolId protocol,
     if(app->last_result) {
         view_dispatcher_send_custom_event(app->view_dispatcher, ChaosIdCustomEventCardFound);
     } else {
-        FURI_LOG_W("ChaosID", "LF detectado mas nao mapeado: '%s'", proto_name);
+        FURI_LOG_W("ChaosID", "LF detected but not mapped: '%s'", proto_name);
         view_dispatcher_send_custom_event(app->view_dispatcher, ChaosIdCustomEventScanFailed);
     }
 }
@@ -78,7 +78,7 @@ static void start_phase_lf(ChaosIdApp* app) {
     app->lf_done = false;
 
     popup_reset(app->popup);
-    popup_set_header(app->popup, "Aproxime o cartao", 64, 10, AlignCenter, AlignTop);
+    popup_set_header(app->popup, "Place the card", 64, 10, AlignCenter, AlignTop);
     popup_set_text(app->popup, "Lendo LF (125 kHz)...", 64, 35, AlignCenter, AlignTop);
 
     // lf_dict e lf_worker ja alocados em chaos_id_app_alloc (app-lifetime)
@@ -124,7 +124,7 @@ static void start_phase_hf(ChaosIdApp* app) {
     app->hf_done = false;
 
     popup_reset(app->popup);
-    popup_set_header(app->popup, "Aproxime o cartao", 64, 10, AlignCenter, AlignTop);
+    popup_set_header(app->popup, "Place the card", 64, 10, AlignCenter, AlignTop);
     popup_set_text(app->popup, "Lendo HF (13.56 MHz)...", 64, 35, AlignCenter, AlignTop);
 
     // app->nfc ja alocado em chaos_id_app_alloc (app-lifetime)
@@ -246,7 +246,7 @@ bool chaos_id_scene_scanning_on_event(void* context, SceneManagerEvent event) {
                 view_dispatcher_send_custom_event(
                     app->view_dispatcher, ChaosIdCustomEventCardFound);
             } else {
-                FURI_LOG_W("ChaosID", "HF nao mapeado no DB: '%s'", proto_name);
+                FURI_LOG_W("ChaosID", "HF not mapped in DB: '%s'", proto_name);
                 view_dispatcher_send_custom_event(
                     app->view_dispatcher, ChaosIdCustomEventScanFailed);
             }
@@ -290,9 +290,9 @@ bool chaos_id_scene_scanning_on_event(void* context, SceneManagerEvent event) {
             stop_lf_worker(app);
             stop_hf_scanner(app);
             popup_reset(app->popup);
-            popup_set_header(app->popup, "Nada detectado", 64, 12, AlignCenter, AlignTop);
+            popup_set_header(app->popup, "Nothing detected", 64, 12, AlignCenter, AlignTop);
             popup_set_text(
-                app->popup, "Reposicione o cartao\ne tente de novo", 64, 32, AlignCenter, AlignTop);
+                app->popup, "Reposition the card\nand try again", 64, 32, AlignCenter, AlignTop);
             popup_set_timeout(app->popup, 1500);
             popup_enable_timeout(app->popup);
             consumed = true;

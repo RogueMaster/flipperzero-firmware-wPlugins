@@ -2,9 +2,9 @@
 // Copyright (C) 2026 Cafe com Solda / Cristiano Santana
 //
 // MIFARE Classic dictionary attack scene.
-// Testa ~20 chaves default publicas em cada setor x key type.
-// Tipico cartao corporativo / transporte brasileiro cai em 5-30s
-// porque nunca trocaram a chave de fabrica.
+// Tests ~20 public default keys against each sector x key type.
+// Typical corporate or transit cards fall in 5-30s
+// because the factory keys were never rotated.
 
 #include "../chaos_id_app.h"
 #include "chaos_id_scene.h"
@@ -14,7 +14,7 @@
 #include <nfc/protocols/mf_classic/mf_classic_poller_sync.h>
 
 // =========================================================================
-// Dicionario de chaves default publicas conhecidas
+// Dictionary of known public default keys
 // =========================================================================
 
 static const uint8_t default_keys[][MF_CLASSIC_KEY_SIZE] = {
@@ -52,7 +52,7 @@ static int32_t attack_thread_run(void* arg) {
     ChaosIdApp* app = arg;
     AttackContext* ctx = &app->attack;
 
-    // 1. Detectar o tipo (1k/4k/Mini) - serve tambem pra validar cartao no campo
+    // 1. Detect the type (1k/4k/Mini) - also validates the card is in the field
     MfClassicError err = mf_classic_poller_sync_detect_type(app->nfc, &ctx->type);
     if(err != MfClassicErrorNone) {
         FURI_LOG_W("ChaosID", "[attack] detect_type falhou: err=%d", (int)err);
@@ -69,7 +69,7 @@ static int32_t attack_thread_run(void* arg) {
         ctx->total_sectors,
         (unsigned)DEFAULT_KEYS_COUNT);
 
-    // 2. Loop principal: setor x key_type x chave
+    // 2. Main loop: sector x key_type x key
     for(uint8_t s = 0; s < ctx->total_sectors && !ctx->stop; s++) {
         ctx->current_sector = s;
         uint8_t sector_trailer = mf_classic_get_sector_trailer_num_by_sector(s);
@@ -116,7 +116,7 @@ static int32_t attack_thread_run(void* arg) {
             }
         }
 
-        // Atualiza UI a cada setor concluido
+        // Update UI after each sector finishes
         view_dispatcher_send_custom_event(app->view_dispatcher, ChaosIdCustomEventAttackProgress);
     }
 
@@ -148,7 +148,7 @@ static void update_progress_popup(ChaosIdApp* app) {
     snprintf(
         buf,
         sizeof(buf),
-        "Setor %u/%u\nChaves OK: %u",
+        "Sector %u/%u\nKeys OK: %u",
         ctx->current_sector + 1,
         ctx->total_sectors,
         ctx->keys_found);
@@ -162,40 +162,34 @@ static void show_final_result(ChaosIdApp* app) {
         popup_reset(app->popup);
         popup_set_header(app->popup, "Falha", 64, 12, AlignCenter, AlignTop);
         popup_set_text(
-            app->popup,
-            "Cartao nao detectado.\nReposicione e tente.",
-            64,
-            32,
-            AlignCenter,
-            AlignTop);
+            app->popup, "Card not detected.\nReposition and retry.", 64, 32, AlignCenter, AlignTop);
         return;
     }
 
     widget_reset(app->widget);
-    widget_add_string_element(app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary, "Resultado");
+    widget_add_string_element(app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary, "Result");
 
     FuriString* text = furi_string_alloc();
-    furi_string_cat_printf(text, "Tipo: %s\n", mfc_type_label(ctx->type));
+    furi_string_cat_printf(text, "Type: %s\n", mfc_type_label(ctx->type));
     furi_string_cat_printf(
-        text, "Chaves OK: %u/%u\n", ctx->keys_found, (unsigned)(ctx->total_sectors * 2));
+        text, "Keys OK: %u/%u\n", ctx->keys_found, (unsigned)(ctx->total_sectors * 2));
     furi_string_cat_printf(
-        text, "Setores 100%%: %u/%u\n\n", ctx->sectors_fully_cracked, ctx->total_sectors);
+        text, "Sectors 100%%: %u/%u\n\n", ctx->sectors_fully_cracked, ctx->total_sectors);
 
     if(ctx->sectors_fully_cracked == ctx->total_sectors) {
         furi_string_cat_str(
             text,
-            "*** TOTALMENTE CLONAVEL ***\nDicionario default\nresolve esse cartao\nem 30 segundos.\n");
+            "*** FULLY CLONABLE ***\nDefault dictionary\ncracks this card\nin 30 seconds.\n");
     } else if(ctx->sectors_fully_cracked > 0) {
-        furi_string_cat_str(
-            text, "PARCIALMENTE QUEBRADO\nNested attack pode\ncompletar o resto.\n");
+        furi_string_cat_str(text, "PARTIALLY BROKEN\nNested attack can\nfinish the rest.\n");
     } else if(ctx->keys_found > 0) {
-        furi_string_cat_str(text, "Algumas chaves caem.\nNested attack pega o resto.\n");
+        furi_string_cat_str(text, "Some keys recovered.\nNested attack can finish the rest.\n");
     } else {
         furi_string_cat_str(
-            text, "Sem chaves default.\nResistente a dicionario.\nNested necessario.\n");
+            text, "No default keys.\nResistant to dictionary.\nNested required.\n");
     }
 
-    // Lista chaves encontradas
+    // List recovered keys
     if(ctx->keys_found > 0) {
         furi_string_cat_str(text, "\nChaves:\n");
         for(uint8_t s = 0; s < ctx->total_sectors; s++) {
@@ -245,8 +239,8 @@ void chaos_id_scene_attack_on_enter(void* context) {
 
     // UI inicial
     popup_reset(app->popup);
-    popup_set_header(app->popup, "Investigando", 64, 10, AlignCenter, AlignTop);
-    popup_set_text(app->popup, "Mantenha o cartao\nno Flipper", 64, 35, AlignCenter, AlignTop);
+    popup_set_header(app->popup, "Investigating", 64, 10, AlignCenter, AlignTop);
+    popup_set_text(app->popup, "Hold the card\non the Flipper", 64, 35, AlignCenter, AlignTop);
     view_dispatcher_switch_to_view(app->view_dispatcher, ChaosIdViewScanning);
 
     // Spawn worker thread

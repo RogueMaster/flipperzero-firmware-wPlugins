@@ -20,8 +20,9 @@
 
 #define TAG "FccIdLookup"
 
-#define FCC_DB_PATH              APP_ASSETS_PATH("fcc_freq_v2.bin")
-#define FCC_DB_SETUP_HINT        "Copy BIN file into /ext/apps_assets/fcc_id_lookup to install the database."
+#define FCC_DB_PATH APP_ASSETS_PATH("fcc_freq_v2.bin")
+#define FCC_DB_SETUP_HINT \
+    "Copy BIN file into /ext/apps_assets/fcc_id_lookup to install the database."
 #define FCC_DB_MAGIC             "FCCFRQ2"
 #define FCC_DB_VERSION           2U
 #define FCC_DB_HEADER_SIZE       168U

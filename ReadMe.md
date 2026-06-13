@@ -57,6 +57,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [PINGEQUA RF Lab v0.5.4 (By pingequalab)](https://github.com/pingequalab/rf-lab)
 - Added: [FCC ID Lookup v0.1 (By lrehmann)](https://github.com/lrehmann/fcc-id-lookup-flipper)
 - Updated: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
+- Updated: [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
 
 <a name="release"></a>
 

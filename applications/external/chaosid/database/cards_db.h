@@ -14,7 +14,7 @@
 
 typedef enum {
     CardRiskTrivial, // clona em segundos com qualquer Flipper / Proxmark
-    CardRiskBroken, // crypto quebrada, requer ataque mas e' viavel
+    CardRiskBroken, // crypto broken, requires attack but feasible
     CardRiskHardened, // considerado seguro hoje (se bem implementado)
     CardRiskUnknown,
 } CardRisk;
@@ -27,8 +27,8 @@ typedef enum {
 typedef struct {
     const char* protocol; // "MIFARE Classic 1K"
     CardFrequency frequency;
-    const char* typical_use; // "Transporte, cracha corporativo"
-    const char* crypto; // "Crypto1 (proprietaria, quebrada)"
+    const char* typical_use; // "Transit, corporate badge"
+    const char* crypto; // "Crypto1 (proprietary, broken)"
     const char* attack_vector; // "Nested / Darkside / MFKey32"
     const char* year_broken; // "2008" ou "-"
     CardRisk risk;
