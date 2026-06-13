@@ -1,3 +1,5 @@
+Install from the Flipper App Catalog: https://lab.flipper.net/apps/anki_remote
+
 # What does Anki-Remote do?
 
 It lets you assign any keyboard key to each button on your Flipper Zero and use it as a BLE (Bluetooth Low Energy) remote. Key mappings are saved to the SD card inside the apps_data folder.
