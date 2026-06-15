@@ -1,6 +1,0 @@
-.vscode/
-build/
-*.json
-*.elf
-*.o
-*.d

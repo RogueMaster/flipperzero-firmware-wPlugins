@@ -3,7 +3,10 @@ App(
     name="LED Ring & Matrix Studio",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="arcoiris_main",
-    requires=["gui", "gpio"],
     stack_size=2 * 1024,
-    order=20,
+    fap_category="GPIO",
+    fap_author="xfwluna",
+    fap_weburl="https://github.com/xfwluna/led_ring_matrix_studio",
+    fap_version="0.1",
+    fap_description="An advanced, low-level hardware tester for WS2812B / SK6812 NeoPixel circular rings and square matrices, built natively for the Flipper Zero.",
 )

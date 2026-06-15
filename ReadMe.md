@@ -62,6 +62,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Show MIFARE Ultralight/NTAG PWD & PACK in full info view (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1010)
 - NFC: [Show MIFARE Ultralight/NTAG PWD & PACK on read screen too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1011)
 - Added: [San Morse v1.0 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
+- Added: [LED Ring & Matrix Studio v0.1 (By xfwluna)](https://github.com/xfwluna/led_ring_matrix_studio) `Req: WS2812B / SK6812 NeoPixel`
 
 <a name="release"></a>
 
@@ -695,6 +696,7 @@ $ ./fbt dolphin_ext
 - [LD2410 Human Detector v1.0 (By sistemasorp)](https://github.com/sistemasorp/flipper-ld2410_human_detector)
 - [LED Blinker v1.0 (By Cupprum)](https://github.com/Cupprum/Blinker)
 - [LED Pulsator (By leedave)](https://github.com/leedave/Leeds-Flipper-Zero-Applications)
+- [LED Ring & Matrix Studio v0.1 (By xfwluna)](https://github.com/xfwluna/led_ring_matrix_studio) `Req: WS2812B / SK6812 NeoPixel`
 - [LEGO Dimensions Toy Pad v0.5 (By SegerEnd)](https://github.com/SegerEnd/Flipper-Zero-LD-Toypad-Emulator)
 - [Letter Beacon v1.0 (By nmrr)](https://github.com/nmrr/flipperzero-rfidbeacon)
 - [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
