@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAYAN_DECODER_MIN_VALUE 0
-#define MAYAN_DECODER_MAX_VALUE 9999
-#define MAYAN_DECODER_QUEUE_SIZE 8
+#define MAYAN_DECODER_MIN_VALUE   0
+#define MAYAN_DECODER_MAX_VALUE   9999
+#define MAYAN_DECODER_QUEUE_SIZE  8
 #define MAYAN_DECODER_EDIT_DIGITS 4
 
 typedef enum {
@@ -61,7 +61,8 @@ static void mayan_decoder_draw_shell(Canvas* canvas, int32_t center_x, int32_t t
     canvas_draw_dot(canvas, center_x + 2, top_y + 2);
 }
 
-static void mayan_decoder_draw_digit(Canvas* canvas, int32_t digit, int32_t center_x, int32_t top_y) {
+static void
+    mayan_decoder_draw_digit(Canvas* canvas, int32_t digit, int32_t center_x, int32_t top_y) {
     furi_assert(digit >= 0);
     furi_assert(digit < 20);
 
@@ -281,7 +282,8 @@ static void mayan_decoder_change_edit_digit(MayanDecoderApp* app, int32_t delta)
     view_port_update(app->view_port);
 }
 
-static void mayan_decoder_handle_splash(MayanDecoderApp* app, const InputEvent* event, bool* running) {
+static void
+    mayan_decoder_handle_splash(MayanDecoderApp* app, const InputEvent* event, bool* running) {
     if(event->key == InputKeyBack) {
         *running = false;
         return;
@@ -291,7 +293,8 @@ static void mayan_decoder_handle_splash(MayanDecoderApp* app, const InputEvent* 
     view_port_update(app->view_port);
 }
 
-static void mayan_decoder_handle_main(MayanDecoderApp* app, const InputEvent* event, bool* running) {
+static void
+    mayan_decoder_handle_main(MayanDecoderApp* app, const InputEvent* event, bool* running) {
     switch(event->key) {
     case InputKeyUp:
     case InputKeyRight:
@@ -370,7 +373,8 @@ int32_t mayan_decoder_app(void* p) {
     bool running = true;
     InputEvent event;
     while(running) {
-        const FuriStatus status = furi_message_queue_get(app->input_queue, &event, FuriWaitForever);
+        const FuriStatus status =
+            furi_message_queue_get(app->input_queue, &event, FuriWaitForever);
         if(status != FuriStatusOk) {
             continue;
         }

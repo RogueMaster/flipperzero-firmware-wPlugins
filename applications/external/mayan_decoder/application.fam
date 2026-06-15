@@ -4,14 +4,11 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="mayan_decoder_app",
     stack_size=2 * 1024,
-    requires=[
-        "gui",
-    ],
-    fap_category="Tools",
     fap_icon="assets/icon.png",
     fap_icon_assets="assets",
+    fap_category="Tools",
     fap_author="Roger F5",
-    fap_description="Decimal to Mayan numeral converter with direct numeric input",
     fap_weburl="https://github.com/RogerF5-Security/Mayan_decoder",
     fap_version="1.1",
+    fap_description="Decimal to Mayan numeral converter with direct numeric input",
 )

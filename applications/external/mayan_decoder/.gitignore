@@ -1,7 +1,0 @@
-dist/
-.ufbt/
-.vscode/
-*.fap
-*.elf
-*.map
-*.log
