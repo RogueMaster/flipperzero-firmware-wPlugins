@@ -61,6 +61,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Fix endless TX causing RAW files to be transmitted and crash the system (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/30d939d52fb02ebbbf1aabe743dfb573f45fc6ee)
 - NFC: [Show MIFARE Ultralight/NTAG PWD & PACK in full info view (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1010)
 - NFC: [Show MIFARE Ultralight/NTAG PWD & PACK on read screen too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1011)
+- Added: [San Morse v1.0 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
 
 <a name="release"></a>
 
@@ -844,6 +845,7 @@ $ ./fbt dolphin_ext
 - [Rubiks Cube Timer v0.0.2 (By KHOPAN)](https://github.com/KHOPAN/Cuber-Zero)
 - [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
 - [SAM (By Unknown)][Original?](https://github.com/ctoth/SAM)
+- [San Morse v1.0 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
 - [SD Info v0.1 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/SD-Info-For-Flipper-Zero)
 - [SD SPI v0.5 (By Gl1tchub)](https://github.com/Gl1tchub/Flipperzero-SD-SPI) `Req: External SD Board`
 - [Segment Clock v1.1 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/Segment-Clock-For-Flipper-Zero)
