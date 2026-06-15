@@ -63,6 +63,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Show MIFARE Ultralight/NTAG PWD & PACK on read screen too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1011)
 - Added: [San Morse v1.0 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
 - Added: [LED Ring & Matrix Studio v0.1 (By xfwluna)](https://github.com/xfwluna/led_ring_matrix_studio) `Req: WS2812B / SK6812 NeoPixel`
+- OFW: PR: [Fix typo in SLIX-L unlock menu (By jobgaspersic)](https://github.com/flipperdevices/flipperzero-firmware/pull/4385)
 
 <a name="release"></a>
 
