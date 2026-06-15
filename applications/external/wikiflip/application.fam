@@ -1,0 +1,14 @@
+App(
+    appid="wikiflip",
+    name="WikiFlip",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="wikiflip_app",
+    cdefines=["APP_WIKIFLIP"],
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_icon="images/wikiflip_10px.png",
+    fap_category="Tools",
+    fap_description="Offline cybersecurity dictionary for Flipper Zero",
+    fap_author="Roger Arana",
+    fap_version="1.1",
+)

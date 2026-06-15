@@ -1,0 +1,8 @@
+.vscode/
+dist/
+*.elf
+*.fap
+*.map
+*.o
+*.d
+__pycache__/
