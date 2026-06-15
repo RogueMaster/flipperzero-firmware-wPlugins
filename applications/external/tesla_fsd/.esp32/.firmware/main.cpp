@@ -1465,6 +1465,8 @@ void loop() {
         while (g_can[i]->receive(frame)) {
             process_frame(bus, frame);
         }
+        // Recover a bus-off controller so RX resumes without a manual toggle (#108).
+        g_can[i]->serviceHealth();
     }
 
     // ── Periodic error counter refresh (~every 250 ms) ────────────────────────

@@ -57,6 +57,12 @@ public:
      *  MCP2515 returns true once the chip has answered an SPI probe. */
     virtual bool hardwarePresent() { return true; }
 
+    /** Periodic health service — call once per main-loop iteration.
+     *  TWAI: detects a bus-off controller (TX errors exceeded the limit) and
+     *  drives the ESP-IDF recovery sequence so RX resumes without a manual
+     *  Deactivate/Activate toggle. No-op while the bus is healthy. */
+    virtual void serviceHealth() {}
+
     virtual ~CanDriver() = default;
 };
 

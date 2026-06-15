@@ -342,6 +342,7 @@ static uint32_t nag_prng_state       = 0xDEADBEEFu;
 static int16_t  nag_torq_walk        = 2230;   // raw init ≈ 1.80 Nm
 static uint8_t  nag_exc_frames       = 0;
 static uint16_t nag_frames_until_exc = 175;
+static int16_t  nag_faithful_walk    = 2050;   // EPAS-faithful: raw 2050 = 0.00 Nm
 
 static uint32_t nag_xorshift32() {
     uint32_t x = nag_prng_state;
@@ -386,7 +387,18 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
 
     // Organic torque random walk
     int16_t torq;
-    if (nag_exc_frames > 0) {
+    if (state->nag_epas_faithful) {
+        // v2.17 EPAS-faithful (#100): mirror the in-the-wild 0x370 scheme that
+        // passes the 2026.14.x content preflight — torsionBarTorque centred at
+        // ~0 Nm with large LIVE variance (measured mean 0.31 Nm, stdev 1.48 Nm)
+        // and handsOnLevel NEVER forced. Mean-reverting walk around raw 2050.
+        int16_t step = (int16_t)((int)(nag_xorshift32() % 81u) - 40);
+        nag_faithful_walk += step;
+        nag_faithful_walk += (int16_t)((2050 - nag_faithful_walk) / 16);
+        if (nag_faithful_walk < 1780) nag_faithful_walk = 1780;  // ~-2.7 Nm
+        if (nag_faithful_walk > 2500) nag_faithful_walk = 2500;  // ~+4.5 Nm
+        torq = nag_faithful_walk;
+    } else if (nag_exc_frames > 0) {
         // Grip pulse: ~3.20 Nm ± noise
         torq = 2350 + (int16_t)((int)(nag_xorshift32() % 41u) - 20);
         nag_exc_frames--;
@@ -414,9 +426,15 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
         (uint8_t)((torq >> SIG_EPAS_TORQUE_HIGH_SHIFT) &
                   SIG_EPAS_TORQUE_HIGH_VALUE_MASK);
     out->data[SIG_EPAS_TORQUE_LOW_BYTE] = (uint8_t)(torq & SIG_EPAS_TORQUE_LOW_MASK);
-    out->data[SIG_EPAS_HANDS_ON_BYTE] =
-        (frame->data[SIG_EPAS_HANDS_ON_BYTE] & (uint8_t)(~SIG_EPAS_HANDS_ON_CLEAR_MASK)) |
-        SIG_EPAS_HANDS_ON_SPOOF_VALUE;  // handsOnLevel = 1
+    if (state->nag_epas_faithful) {
+        // Preserve the real handsOnLevel — the working scheme never forces it;
+        // setting it is what the 14.x content check appears to detect (#100).
+        out->data[SIG_EPAS_HANDS_ON_BYTE] = frame->data[SIG_EPAS_HANDS_ON_BYTE];
+    } else {
+        out->data[SIG_EPAS_HANDS_ON_BYTE] =
+            (frame->data[SIG_EPAS_HANDS_ON_BYTE] & (uint8_t)(~SIG_EPAS_HANDS_ON_CLEAR_MASK)) |
+            SIG_EPAS_HANDS_ON_SPOOF_VALUE;  // handsOnLevel = 1
+    }
     out->data[5] = frame->data[5];
 
     // counter+1: lower nibble of byte 6

@@ -948,6 +948,7 @@ static uint32_t nag_xorshift32(void) {
 static int16_t nag_torq_walk = 2230; // raw starting = 1.80 Nm
 static uint8_t nag_exc_frames = 0; // frames in grip excursion
 static uint16_t nag_frames_until_exc = 175; // frames until next excursion
+static int16_t nag_faithful_walk = 2050; // EPAS-faithful mode: raw 2050 = 0.00 Nm
 
 bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out) {
     if(frame->data_lenght < 8) return false;
@@ -998,7 +999,21 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     // torsionBarTorque encoding: tRaw = (Nm + 20.5) / 0.01
     // d[2] lower nibble = tRaw >> 8, d[3] = tRaw & 0xFF
     int16_t torq;
-    if(nag_exc_frames > 0) {
+    if(state->nag_epas_faithful) {
+        // v2.17 EPAS-faithful (#100): mirror the in-the-wild 0x370 scheme that
+        // passes the 2026.14.x content preflight. Measured from a 22.6k-frame
+        // capture of a working commander: torsionBarTorque centred at ~0 Nm with
+        // large LIVE variance (mean 0.31 Nm, stdev 1.48 Nm), and handsOnLevel
+        // never set. Hypothesis: the DAS keys on a live, varying torque signal —
+        // not a static push or a hands-on flag — and flipping handsOnLevel is the
+        // tell the 14.x check catches. Mean-reverting random walk around raw 2050.
+        int16_t step = (int16_t)((nag_xorshift32() % 81) - 40); // ±40/frame
+        nag_faithful_walk += step;
+        nag_faithful_walk += (int16_t)((2050 - nag_faithful_walk) / 16); // pull to 0 Nm
+        if(nag_faithful_walk < 1780) nag_faithful_walk = 1780; // ~-2.7 Nm
+        if(nag_faithful_walk > 2500) nag_faithful_walk = 2500; // ~+4.5 Nm
+        torq = nag_faithful_walk;
+    } else if(nag_exc_frames > 0) {
         // Grip pulse: ~3.20 Nm ± small noise
         torq = 2350 + (int16_t)((nag_xorshift32() % 41) - 20);
         nag_exc_frames--;
@@ -1029,9 +1044,15 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     out->buffer[1] = frame->buffer[1];
     out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torq >> 8) & 0x0F);
     out->buffer[3] = (uint8_t)(torq & 0xFF);
-    // Clear existing handsOnLevel bits (7:6) before setting level=1.
-    // OR-ing 0x40 without clearing leaves level=3 unchanged on escalated frames.
-    out->buffer[4] = (frame->buffer[4] & ~0xC0u) | 0x40u;
+    if(state->nag_epas_faithful) {
+        // Preserve the real handsOnLevel (the working scheme never forces it —
+        // setting it is what the 14.x content check appears to detect).
+        out->buffer[4] = frame->buffer[4];
+    } else {
+        // Clear existing handsOnLevel bits (7:6) before setting level=1.
+        // OR-ing 0x40 without clearing leaves level=3 unchanged on escalated frames.
+        out->buffer[4] = (frame->buffer[4] & ~0xC0u) | 0x40u;
+    }
     out->buffer[5] = frame->buffer[5];
 
     // counter + 1 (byte6 lower nibble)

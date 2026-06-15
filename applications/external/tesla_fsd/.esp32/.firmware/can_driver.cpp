@@ -29,6 +29,7 @@ class TwaiDriver : public CanDriver {
     uint32_t rx_count_    = 0;
     bool     filter_single_ = false;  // accept only filter_id_ when true
     uint32_t filter_id_     = 0;      // standard 11-bit id for single-id capture
+    bool     recovering_    = false;  // true while a bus-off recovery is in flight
 
     bool install_and_start(bool listen_only) {
         twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(
@@ -60,6 +61,7 @@ class TwaiDriver : public CanDriver {
         }
         installed_    = true;
         listen_only_  = listen_only;
+        recovering_   = false;  // fresh controller, no recovery pending
         return true;
     }
 
@@ -68,6 +70,7 @@ class TwaiDriver : public CanDriver {
         twai_stop();
         twai_driver_uninstall();
         installed_ = false;
+        recovering_ = false;
     }
 
 public:
@@ -110,6 +113,32 @@ public:
         twai_status_info_t info;
         if (twai_get_status_info(&info) != ESP_OK) return 0;
         return info.rx_missed_count + info.bus_error_count + info.tx_failed_count;
+    }
+
+    // Bus-off auto-recovery. Without this, once TX errors push the TWAI TEC past
+    // the limit the controller goes BUS_OFF and twai_receive() stops returning
+    // frames forever (RX frames/s drops to 0) until a manual mode toggle reinstalls
+    // the driver (#108). Acts only in the BUS_OFF/RECOVERING states; a healthy bus
+    // hits the first early-return and this is a no-op.
+    void serviceHealth() override {
+        if (!installed_) return;
+        twai_status_info_t info;
+        if (twai_get_status_info(&info) != ESP_OK) return;
+        if (info.state == TWAI_STATE_BUS_OFF && !recovering_) {
+            // BUS_OFF -> RECOVERING; controller auto-advances to STOPPED after
+            // observing 128 occurrences of 11 consecutive recessive bits.
+            if (twai_initiate_recovery() == ESP_OK) {
+                recovering_ = true;
+                Serial.printf("[CAN] %s bus-off detected — initiating recovery\n", label_);
+            }
+        } else if (recovering_ && info.state == TWAI_STATE_STOPPED) {
+            // Recovery complete — restart so RX/TX resume with the existing
+            // filter and listen-only configuration.
+            if (twai_start() == ESP_OK) {
+                recovering_ = false;
+                Serial.printf("[CAN] %s bus recovered — restarted\n", label_);
+            }
+        }
     }
 
     uint32_t txCount() override { return tx_count_; }

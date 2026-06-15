@@ -86,6 +86,7 @@ typedef struct {
     bool gtw_shield; // 0x7FF GTW Config Replay — replay learned-healthy frames
     bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
     bool ap_first; // 2026.14.x: delay injection until AP is engaged
+    bool nag_epas_faithful; // 2026.14.x experimental: mirror the in-the-wild 0x370 scheme (no handsOnLevel flip; torque centred at 0 Nm with live variance)
     bool firmware_14x_warning; // 2026.14.x: show TX-disables-AP warning in running scene (default ON, opt-out for pre-14.x users)
     bool gtw_tier_override; // 0x7FF active tier=SELF_DRIVING override
     bool scroll_press_ap; // 0x3C2 scroll-press AP engage (HW4-only, Service mode)

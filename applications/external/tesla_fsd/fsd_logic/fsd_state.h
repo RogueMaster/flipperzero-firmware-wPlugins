@@ -33,6 +33,10 @@ typedef struct FSDState {
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
     bool nag_killer; // CAN 880 counter echo method
+    bool nag_epas_faithful; // v2.17 experimental: mirror the in-the-wild 0x370
+        // scheme (no handsOnLevel flip; torque centred at
+        // 0 Nm with live variance) to pass the 2026.14.x
+        // content preflight. Default off — see #100.
     uint32_t nag_echo_count;
     bool nag_demand_active; // true while handsOnLevel == 0 or 3 — edge-detect source for on-demand grip pulse
     bool continuous_ap; // re-enable AP after AP drops while turn signal is active

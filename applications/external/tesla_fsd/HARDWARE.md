@@ -182,6 +182,33 @@ build is:
    pair is likely DoIP — try pin 18/19 instead.
 3. The +12V (pin 15) and GND (pin 26) appear stable across SOPs.
 
+##### Post-SOP10 builds — third CAN pair relocated + Chassis moved to a new left port
+
+> [!CAUTION]
+> On newer Model Y, the diagnostic **connector part is unchanged (same 20
+> cavities, an old cable physically fits), but the bus-to-pin mapping changed
+> and one bus left this port entirely.** Verified against Tesla's official
+> electrical reference across SOP6–SOP11 and reported by @mamixsystem in
+> [discussion #114](https://github.com/hypery11/flipper-tesla-fsd/discussions/114):
+>
+> - The **third CAN pair moved from pins 13–14 to pins 4–5**, and that pair is
+>   now **Body CAN, not Chassis CAN**.
+> - **Chassis CAN was relocated to a new left-side port (X177)** — pins 13–14,
+>   green wires, off the Body Controller Left.
+> - The right port now carries Party + Body + Vehicle CAN; everyday functions
+>   on Party/Vehicle CAN (PRND, regen, climate, lighting) are unaffected, which
+>   is why an old kit still "mostly works" on a new car.
+>
+> Rollout (Tesla SOP dates): **Berlin 2026-04-01 (SOP10)**, Austin 2025-12-04,
+> Fremont 2025-12-09, **Shanghai 2026-03-25 (SOP11)**. Physical check: on a new
+> car pins **4–5 are populated (violet)** and 13–14 empty; on an old car it's
+> the reverse (13–14 populated, green).
+>
+> **Implication for EPAS / nag work:** the planned Chassis-CAN Listen-Only
+> capture (see [#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100))
+> is **not on X179 pin 18/19 on post-SOP10 cars** — Chassis now lives on the
+> left port **X177**. Tap there, not the right port, on these builds.
+
 ### Why X179 Pin 13/14 is the best single connection point (pre-April 2024 only)
 
 The Gateway forwards signals from **multiple internal CAN buses** onto

@@ -423,6 +423,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <label class="sw"><input type="checkbox" id="swApFirst" onchange="cmd('ap_first',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
+    <span class="lbl">Nag EPAS-faithful (14.x, exp.)</span>
+    <label class="sw"><input type="checkbox" id="swNagF" onchange="cmd('nag_faithful',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
     <span class="lbl">BMS Display</span>
     <label class="sw"><input type="checkbox" id="swBms" onchange="cmd('bms',this.checked)"><span class="sl2"></span></label>
   </div>
@@ -726,6 +730,7 @@ function upd(d){
   if(document.getElementById('swNag')) document.getElementById('swNag').checked=d.nag_killer;
   if(document.getElementById('swContinuousAp')) document.getElementById('swContinuousAp').checked=d.continuous_ap;
   if(document.getElementById('swApFirst')) document.getElementById('swApFirst').checked=d.ap_first;
+  if(document.getElementById('swNagF')) document.getElementById('swNagF').checked=d.nag_faithful;
   if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
   if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
   if(document.getElementById('swChina')) document.getElementById('swChina').checked=d.china_mode;
@@ -1242,6 +1247,7 @@ static String build_json() {
     j += "\"nag_killer\":";    j += state.nag_killer                   ? "true" : "false"; j += ',';
     j += "\"continuous_ap\":"; j += state.continuous_ap                 ? "true" : "false"; j += ',';
     j += "\"ap_first\":";      j += state.ap_first                      ? "true" : "false"; j += ',';
+    j += "\"nag_faithful\":";  j += state.nag_epas_faithful             ? "true" : "false"; j += ',';
     j += "\"bms_output\":";    j += state.bms_output                   ? "true" : "false"; j += ',';
     j += "\"force_fsd\":";     j += state.force_fsd                    ? "true" : "false"; j += ',';
     j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
@@ -1382,6 +1388,18 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] AP-First: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"nag_faithful\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->nag_epas_faithful = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Nag EPAS-faithful: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     }

@@ -421,6 +421,67 @@ static void test_nag_killer(void) {
     CHECK(ntorq2 > 2290, "das 2->3 re-arms grip pulse (#100), torq=%d", ntorq2);
 }
 
+// ── 0x370 nag killer EPAS-faithful mode (v2.17, #100): mirror the in-the-wild
+//    scheme — never flip handsOnLevel, torque centred at 0 Nm with live variance,
+//    valid counter + checksum. ───────────────────────────────────────────────
+static void test_nag_killer_faithful(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    s.nag_killer = true;
+    s.nag_epas_faithful = true; // experimental v2.17 path
+    s.das_hands_on_state = 0xFF;
+
+    CANFRAME in;
+    zero(&in);
+    in.data_lenght = 8;
+    in.buffer[4] = 0x00; // real handsOnLevel = 0 (hands off)
+    in.buffer[6] = 0x05; // counter = 5
+
+    long sum_raw = 0;
+    int n = 0, min_raw = 99999, max_raw = -1, hands_set = 0, csum_ok = 0;
+    int counter_ok = 0;
+    for(int i = 0; i < 600; i++) {
+        in.buffer[6] = (in.buffer[6] & 0xF0) | ((5 + i) & 0x0F);
+        CANFRAME out;
+        zero(&out);
+        if(!fsd_handle_nag_killer(&s, &in, &out)) continue;
+        // handsOnLevel must NEVER be forced in faithful mode
+        if(((out.buffer[4] >> 6) & 0x03) != 0) hands_set++;
+        // counter is input+1
+        if((out.buffer[6] & 0x0F) == (((5 + i) + 1) & 0x0F)) counter_ok++;
+        // checksum self-consistent
+        uint16_t cs = (CAN_ID_EPAS_STATUS & 0xFF) + (CAN_ID_EPAS_STATUS >> 8);
+        for(int b = 0; b < 7; b++)
+            cs += out.buffer[b];
+        if(out.buffer[7] == (uint8_t)(cs & 0xFF)) csum_ok++;
+        int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
+        sum_raw += raw;
+        n++;
+        if(raw < min_raw) min_raw = raw;
+        if(raw > max_raw) max_raw = raw;
+    }
+    CHECK(n > 0, "faithful: echoes emitted (%d)", n);
+    CHECK(hands_set == 0, "faithful: handsOnLevel NEVER forced (%d violations)", hands_set);
+    CHECK(counter_ok == n, "faithful: counter+1 every frame (%d/%d)", counter_ok, n);
+    CHECK(csum_ok == n, "faithful: checksum valid every frame (%d/%d)", csum_ok, n);
+    // Torque centred near raw 2050 (0 Nm) — mean within ±0.5 Nm (±50 raw).
+    int mean_raw = (int)(sum_raw / n);
+    CHECK(
+        mean_raw > 2000 && mean_raw < 2100,
+        "faithful: torque centred ~0 Nm (mean raw %d)",
+        mean_raw);
+    // And genuinely varies (not a flat signal): spread > 1 Nm (100 raw).
+    CHECK(
+        (max_raw - min_raw) > 100,
+        "faithful: torque has live variance (span raw %d)",
+        max_raw - min_raw);
+    CHECK(
+        min_raw >= 1780 && max_raw <= 2500,
+        "faithful: torque within clamp [1780,2500] (%d..%d)",
+        min_raw,
+        max_raw);
+}
+
 // ── shared stateless ops (china_mode path the Flipper wrapper can't reach) ────
 static void test_can_ops(void) {
     uint8_t data[8] = {0};
@@ -1139,6 +1200,7 @@ int main(void) {
     test_track_mode_crc();
     test_sccm_crc();
     test_nag_killer();
+    test_nag_killer_faithful();
     test_can_ops();
     test_additive_checksum();
     test_candump_format();
