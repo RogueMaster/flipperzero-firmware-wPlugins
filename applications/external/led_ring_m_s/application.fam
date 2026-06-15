@@ -1,0 +1,9 @@
+App(
+    appid="led_ring_matrix_studio",
+    name="LED Ring & Matrix Studio",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="arcoiris_main",
+    requires=["gui", "gpio"],
+    stack_size=2 * 1024,
+    order=20,
+)
