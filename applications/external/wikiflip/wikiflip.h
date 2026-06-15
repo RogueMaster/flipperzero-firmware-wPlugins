@@ -3,9 +3,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define WIKIFLIP_APP_VERSION "1.1"
-#define WIKIFLIP_SCREEN_WIDTH 128
-#define WIKIFLIP_SCREEN_HEIGHT 64
+#define WIKIFLIP_APP_VERSION       FAP_VERSION
+#define WIKIFLIP_SCREEN_WIDTH      128
+#define WIKIFLIP_SCREEN_HEIGHT     64
 #define WIKIFLIP_ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 typedef enum {

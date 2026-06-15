@@ -971,6 +971,7 @@ static WikiFlipApp* wikiflip_alloc(void) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     app->categories_menu = submenu_alloc();
     app->terms_menu = submenu_alloc();
     app->definition_widget = widget_alloc();
@@ -981,7 +982,8 @@ static WikiFlipApp* wikiflip_alloc(void) {
     app->current_view = WikiFlipViewCategories;
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, wikiflip_navigation_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, wikiflip_navigation_callback);
 
     view_dispatcher_add_view(
         app->view_dispatcher, WikiFlipViewCategories, submenu_get_view(app->categories_menu));

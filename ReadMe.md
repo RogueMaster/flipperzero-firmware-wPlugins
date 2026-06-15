@@ -64,6 +64,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [San Morse v1.0 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
 - Added: [LED Ring & Matrix Studio v0.1 (By xfwluna)](https://github.com/xfwluna/led_ring_matrix_studio) `Req: WS2812B / SK6812 NeoPixel`
 - OFW: PR: [Fix typo in SLIX-L unlock menu (By jobgaspersic)](https://github.com/flipperdevices/flipperzero-firmware/pull/4385)
+- Added: [WikiFlip v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
 
 <a name="release"></a>
 
@@ -962,6 +963,7 @@ $ ./fbt dolphin_ext
 - [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest)
 - [Wifi Mapping (By carvilsi)](https://github.com/carvilsi/flipper0-wifi-map/tree/main) `Req: ESP32`
 - [Wii EC Analyzer v1.1 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_WiiEC)
+- [WikiFlip v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
 - [Wire Tester v1.1 (By unixispower)](https://gitlab.com/unixispower/flipper-wire-tester)
 - [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
 - [WS2812B LED Tester v1.9 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/ws2812b_tester)
