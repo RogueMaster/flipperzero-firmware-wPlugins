@@ -65,8 +65,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [WikiFlip v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
 - Added: [Mayan Decoder v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/Mayan_decoder)
 - Updated: [Tesla Mod v2.16.7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - NFC: [Add Bambu Lab filament spool parser (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1012)
+- Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 
 <a name="release"></a>
 

@@ -25,11 +25,8 @@
 #define DUR_CLAMP         32000
 #define LOAD_HEAP_RESERVE 12288
 
-#define KEELOQ_TE_US           400
-#define KEELOQ_GUARD_US        1500
-#define KEELOQ_PREAMBLE_PULSES 12
-#define KEELOQ_HEADER_GAP_TE   10
-#define KEELOQ_MAX_KEY_BYTES   16
+#define MAX_KEY_BYTES   16
+#define GAP_KEEP_MAX_US 1500
 
 #define MERGE_GAP_US    15000
 #define MERGE_MAX_FILES 16
@@ -37,6 +34,7 @@
 
 #define APP_VERSION FAP_VERSION
 #define APP_REPO    "github.com/Lechnio/SubGHz-RAW-Edit"
+#define APP_NAME    "Sub-GHz RAW Edit"
 
 #define SCREEN_W_PX  128
 #define SCREEN_H_PX  64
@@ -68,6 +66,7 @@ typedef struct {
     char preset[48];
     bool truncated;
     bool out_of_memory;
+    bool synthesized;
 } SubData;
 
 typedef enum {
@@ -240,6 +239,17 @@ static void recompute_overview(App* a) {
 
 static void auto_detect(App* a) {
     int32_t total = a->sd.total_us;
+
+    if(a->sd.synthesized) {
+        a->marker_a = 0;
+        a->marker_b = total;
+        a->view_start = 0;
+        a->view_end = total > 0 ? total : 1;
+        clamp_view(a);
+
+        return;
+    }
+
     if(total < 1 || a->sd.count < 2) {
         a->view_start = 0;
         a->view_end = total > 0 ? total : 1;
@@ -308,10 +318,10 @@ static void auto_detect(App* a) {
      * finalize a frame. Without it the selection ends on the last bit and the
      * saved capture won't decode (it had to be widened by hand). Any positive
      * extension is enough: write_selection emits the whole gap sample once the
-     * marker lands inside it. Limit it to KEELOQ_GUARD_US so the marker/view
+     * marker lands inside it. Limit it to GAP_KEEP_MAX_US so the marker/view
      * stay tidy and never reach into the next frame. */
     int32_t gap_keep = best_gap;
-    if(gap_keep > KEELOQ_GUARD_US) gap_keep = KEELOQ_GUARD_US;
+    if(gap_keep > GAP_KEEP_MAX_US) gap_keep = GAP_KEEP_MAX_US;
 
     int32_t pad = (best_b - best_a) / 6 + 500;
     a->marker_a = best_a;
@@ -413,11 +423,87 @@ static void* safe_realloc(void* ptr, size_t size) {
     return realloc(ptr, size);
 }
 
-static bool
-    synthesize_keeloq(SubData* sd, const uint8_t* key, size_t key_len, uint16_t bit_count) {
-    if(key_len == 0 || bit_count == 0 || bit_count > key_len * 8) return false;
+typedef enum {
+    EncPWM = 0,
+    EncManchester,
+} BitEnc;
 
-    size_t needed = (KEELOQ_PREAMBLE_PULSES * 2) + ((size_t)bit_count * 2) + 2;
+/* Physical-layer parameters per protocol. The Key field already holds the raw
+ * on-air bits; only timing/shape differs. Verify values against the protocol's
+ * SubGhzBlockConst in firmware before adding a row.
+ *
+ * To add a protocol: append ONE row to PROTOS[] below. Nothing else to touch -
+ * load/merge look it up by the Protocol: name. Columns:
+ *   name        : must match the Protocol: field in the .sub
+ *   enc         : EncPWM or EncManchester
+ *   te_short    : base unit, us (PWM short pulse / Manchester half-bit)
+ *   te_long     : PWM long pulse, us (ignored for Manchester)
+ *   preamble    : leading (te_short,-te_short) pairs; 0 = none
+ *   header_gap  : low after preamble, us; 0 = keep last pair's -te_short
+ *   guard_us    : sync gap (te_short high + this low). For preamble-less
+ *                 protocols it is emitted BOTH before and after the data so a
+ *                 single frame is self-delimited and decodes in isolation.
+ *   short_is_one: PWM -> short high = bit 1; Manchester -> bit 1 = rising edge
+ *   msb_first   : bit order of the Key field (true for most) */
+typedef struct {
+    const char* name;
+    BitEnc enc;
+    uint16_t te_short;
+    uint16_t te_long;
+    uint8_t preamble_pairs;
+    uint16_t header_gap;
+    uint16_t guard_us;
+    bool short_is_one;
+    bool msb_first;
+} ProtoParams;
+
+static const ProtoParams PROTOS[] = {
+    {"KeeLoq", EncPWM, 400, 800, 12, 4000, 1500, true, true},
+    {"Princeton", EncPWM, 390, 1170, 0, 0, 12000, false, true},
+};
+
+static const ProtoParams* find_proto(const char* name) {
+    for(size_t i = 0; i < sizeof(PROTOS) / sizeof(PROTOS[0]); i++)
+        if(strcmp(PROTOS[i].name, name) == 0) return &PROTOS[i];
+
+    return NULL;
+}
+
+static bool key_bit_at(
+    const uint8_t* key,
+    size_t total_bits,
+    uint16_t bit_count,
+    uint16_t b,
+    bool msb_first) {
+    size_t abs_bit = msb_first ? (total_bits - bit_count + b) : (total_bits - 1 - b);
+    return (key[abs_bit / 8] >> (7 - (abs_bit % 8))) & 1;
+}
+
+static bool synthesize_generic(
+    SubData* sd,
+    const ProtoParams* pp,
+    const uint8_t* key,
+    size_t key_len,
+    uint16_t bit_count,
+    uint16_t te_override) {
+    if(!pp || key_len == 0 || bit_count == 0 || bit_count > key_len * 8) return false;
+
+    int32_t te_s = pp->te_short;
+    int32_t te_l = pp->te_long;
+    int32_t guard = pp->guard_us;
+    if(te_override > 0) {
+        te_l = te_l * (int32_t)te_override / te_s;
+        guard = guard * (int32_t)te_override / te_s;
+        te_s = te_override;
+    }
+
+    /* Preamble-less protocols (Princeton etc.) sync on the guard gap, so the
+     * data needs a guard on BOTH sides to be decodable as a lone frame. The
+     * leading one is a plain low gap (silence before the signal) - no high
+     * pulse, so it doesn't render as a stub sticking out in front of the data. */
+    bool lead_guard = (pp->preamble_pairs == 0) && (guard > 0);
+
+    size_t needed = ((size_t)pp->preamble_pairs * 2) + ((size_t)bit_count * 2) + 4;
     if(needed > MAX_SAMPLES) return false;
 
     if(sd->cap < needed) {
@@ -434,46 +520,57 @@ static bool
     sd->count = 0;
     sd->truncated = false;
 
-    for(int i = 0; i < KEELOQ_PREAMBLE_PULSES; i++) {
-        if(!append_sample(sd, KEELOQ_TE_US)) return false;
+    if(lead_guard && !append_sample(sd, -guard)) return false;
 
-        if(!append_sample(sd, -KEELOQ_TE_US)) return false;
+    for(int i = 0; i < pp->preamble_pairs; i++) {
+        if(!append_sample(sd, te_s) || !append_sample(sd, -te_s)) return false;
     }
 
-    sd->data[sd->count - 1] = -(int16_t)(KEELOQ_HEADER_GAP_TE * KEELOQ_TE_US);
+    if(pp->preamble_pairs > 0 && pp->header_gap > 0)
+        sd->data[sd->count - 1] = -(int16_t)pp->header_gap;
 
-    /* Data bits, MSB-first across the byte stream (byte 0 = MSB of the Key).
-     *
-     * PWM polarity (verified by diffing a Flipper-native Elmes RAW against this
-     * output): Flipper reads a SHORT high pulse as bit "1" and a LONG high pulse
-     * as bit "0". Emitting the reverse made every synthesized frame decode to
-     * the bit-complement of the key, so Flipper saw a valid 64-bit KeeLoq frame
-     * but no manufacturer ever matched ("Unknown").
-     *   bit "1" = Te ON, 2*Te OFF   (short high)
-     *   bit "0" = 2*Te ON, Te OFF   (long high) */
-    for(uint16_t b = 0; b < bit_count; b++) {
-        size_t byte_idx = b / 8;
-        size_t bit_in_byte = 7 - (b % 8);
-        bool is_one = (key[byte_idx] >> bit_in_byte) & 1;
-        if(is_one) {
-            if(!append_sample(sd, KEELOQ_TE_US)) return false;
+    size_t total_bits = key_len * 8;
 
-            if(!append_sample(sd, -2 * KEELOQ_TE_US)) return false;
-        } else {
-            if(!append_sample(sd, 2 * KEELOQ_TE_US)) return false;
+    if(pp->enc == EncManchester) {
+        /* 2 half-bits per data bit; merge adjacent equal levels into one pulse. */
+        int prev = -1;
+        int32_t run = 0;
+        for(uint16_t b = 0; b < bit_count; b++) {
+            bool one = key_bit_at(key, total_bits, bit_count, b, pp->msb_first);
+            int first = (one == pp->short_is_one) ? 0 : 1;
+            for(int half = 0; half < 2; half++) {
+                int lvl = half == 0 ? first : !first;
+                if(lvl == prev) {
+                    run += te_s;
+                } else {
+                    if(prev != -1 && !append_sample(sd, prev ? run : -run)) return false;
 
-            if(!append_sample(sd, -KEELOQ_TE_US)) return false;
+                    prev = lvl;
+                    run = te_s;
+                }
+            }
+        }
+
+        if(prev != -1 && !append_sample(sd, prev ? run : -run)) return false;
+    } else {
+        /* PWM. Polarity (short high = bit 1 for KeeLoq) verified vs a native RAW. */
+        int32_t one_hi = pp->short_is_one ? te_s : te_l;
+        int32_t one_lo = pp->short_is_one ? te_l : te_s;
+        int32_t zero_hi = pp->short_is_one ? te_l : te_s;
+        int32_t zero_lo = pp->short_is_one ? te_s : te_l;
+
+        for(uint16_t b = 0; b < bit_count; b++) {
+            bool is_one = key_bit_at(key, total_bits, bit_count, b, pp->msb_first);
+
+            if(!append_sample(sd, is_one ? one_hi : zero_hi)) return false;
+
+            if(!append_sample(sd, -(is_one ? one_lo : zero_lo))) return false;
         }
     }
 
-    /* End-of-frame guard. Flipper's KeeLoq decoder only declares success when
-     * it sees a timing mismatch *after* accumulating 64 bits. A trailing short
-     * ON followed by a long OFF (the classic 39*Te HCS300 guard) lands the
-     * decoder in CheckDuration, fails to match either bit pattern, and
-     * triggers the count-check that emits the "found" callback. */
-    if(!append_sample(sd, KEELOQ_TE_US)) return false;
-
-    if(!append_sample(sd, -(int32_t)KEELOQ_GUARD_US)) return false;
+    if(guard > 0) {
+        if(!append_sample(sd, te_s) || !append_sample(sd, -guard)) return false;
+    }
 
     return true;
 }
@@ -563,7 +660,7 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
      * ~4.4-5.4 bytes per sample (number text + sign + space), so fsize/4 is a
      * tight upper bound: well under the old fsize/2 (~2x) over-allocation, yet
      * still above the real count so normal captures aren't truncated. Decoded
-     * files (KeeLoq etc.) are tiny; synthesize_keeloq grows the buffer if it
+     * files (KeeLoq etc.) are tiny; synthesize_generic grows the buffer if it
      * needs more. */
     size_t est = (size_t)(fsize / 4) + 64;
     if(est > MAX_SAMPLES) est = MAX_SAMPLES;
@@ -580,7 +677,8 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
 
     char protocol[32] = {0};
     uint16_t bit_count = 0;
-    uint8_t key_bytes[KEELOQ_MAX_KEY_BYTES];
+    uint16_t te_val = 0;
+    uint8_t key_bytes[MAX_KEY_BYTES];
     size_t key_len = 0;
 
     LineReader lr = {.file = f, .len = 0, .pos = 0, .eof = false};
@@ -625,12 +723,14 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
             protocol[sizeof(protocol) - 1] = '\0';
         } else if(strncmp(s, "Bit:", 4) == 0) {
             bit_count = (uint16_t)strtoul(s + 4, NULL, 10);
+        } else if(strncmp(s, "TE:", 3) == 0) {
+            te_val = (uint16_t)strtoul(s + 3, NULL, 10);
         } else if(strncmp(s, "Key:", 4) == 0) {
             const char* p = s + 4;
             while(*p == ' ')
                 p++;
 
-            key_len = parse_hex_bytes(p, key_bytes, KEELOQ_MAX_KEY_BYTES);
+            key_len = parse_hex_bytes(p, key_bytes, MAX_KEY_BYTES);
         }
     }
 
@@ -639,9 +739,8 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
     storage_file_free(f);
 
     if(sd->count == 0 && key_len > 0 && bit_count > 0) {
-        if(strcmp(protocol, "KeeLoq") == 0) {
-            synthesize_keeloq(sd, key_bytes, key_len, bit_count);
-        }
+        const ProtoParams* pp = find_proto(protocol);
+        if(pp) sd->synthesized = synthesize_generic(sd, pp, key_bytes, key_len, bit_count, te_val);
     }
 
     if(sd->data && sd->count > 0 && sd->count < sd->cap) {
@@ -708,7 +807,7 @@ static size_t count_sub_samples(
     size_t raw_count = 0;
     char protocol[32] = {0};
     uint16_t bit_count = 0;
-    uint8_t key_bytes[KEELOQ_MAX_KEY_BYTES];
+    uint8_t key_bytes[MAX_KEY_BYTES];
     size_t key_len = 0;
 
     while(lr_read_line(&lr, line)) {
@@ -751,7 +850,7 @@ static size_t count_sub_samples(
             while(*q == ' ')
                 q++;
 
-            key_len = parse_hex_bytes(q, key_bytes, KEELOQ_MAX_KEY_BYTES);
+            key_len = parse_hex_bytes(q, key_bytes, MAX_KEY_BYTES);
         }
     }
 
@@ -764,13 +863,13 @@ static size_t count_sub_samples(
         return raw_count;
     }
 
-    /* Decoded KeeLoq: predict the synthesized frame length. Must stay in sync
-     * with synthesize_keeloq (preamble pairs + data-bit pairs + 2-sample guard)
+    /* Decoded protocol: predict the synthesized frame length. Must stay in sync
+     * with synthesize_generic (preamble pairs + data-bit pairs + 2-sample guard)
      * and its validity guard (bit_count <= key_len * 8). */
-    if(strcmp(protocol, "KeeLoq") == 0 && key_len > 0 && bit_count > 0 &&
-       bit_count <= key_len * 8) {
+    const ProtoParams* pp = find_proto(protocol);
+    if(pp && key_len > 0 && bit_count > 0 && bit_count <= key_len * 8) {
         *is_raw = false;
-        return (size_t)KEELOQ_PREAMBLE_PULSES * 2 + (size_t)bit_count * 2 + 2;
+        return (size_t)pp->preamble_pairs * 2 + (size_t)bit_count * 2 + 4;
     }
 
     return 0;
@@ -880,11 +979,16 @@ static bool write_selection(Storage* st, App* a, const char* savename) {
         return false;
     }
 
-    while(i0 < i1 && a->sd.data[i0] < 0)
-        i0++;
+    /* A synthesized frame is exact - keep its leading guard (a low gap) and
+     * trailing guard verbatim. The trims below would strip the leading silence
+     * (making preamble-less protocols like Princeton undecodable) so skip them. */
+    if(!a->sd.synthesized) {
+        while(i0 < i1 && a->sd.data[i0] < 0)
+            i0++;
 
-    while(i1 > i0 && a->sd.data[i1] > 0)
-        i1--;
+        while(i1 > i0 && a->sd.data[i1] > 0)
+            i1--;
+    }
 
     if(i0 >= i1) {
         snprintf(a->status, sizeof(a->status), "Range too small");
@@ -1610,7 +1714,7 @@ static void run_editor(Storage* storage, DialogsApp* dialogs) {
                 AlignCenter,
                 AlignCenter);
         } else {
-            dialog_message_set_header(m, "Sub-GHz RAW Edit", 64, 4, AlignCenter, AlignTop);
+            dialog_message_set_header(m, APP_NAME, 64, 4, AlignCenter, AlignTop);
             dialog_message_set_text(
                 m, "Unsupported protocol or file is empty", 64, 32, AlignCenter, AlignCenter);
         }
@@ -1724,7 +1828,7 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
             DialogMessage* m = dialog_message_alloc();
             dialog_message_set_header(m, "Unsupported file", 64, 2, AlignCenter, AlignTop);
             dialog_message_set_text(
-                m, "Need a RAW or decoded\nKeeLoq .sub.", 64, 34, AlignCenter, AlignCenter);
+                m, "Unsupported protocol or file is empty", 64, 34, AlignCenter, AlignCenter);
             dialog_message_set_buttons(m, NULL, NULL, "OK");
             dialog_message_show(dialogs, m);
             dialog_message_free(m);
@@ -1928,29 +2032,41 @@ static uint32_t submenu_back_cb(void* context) {
 }
 
 static void menu_build_about(Menu* menu) {
-    widget_add_text_scroll_element(
+    int title_h = FONT_SIZE_PX * 2;
+    widget_add_text_box_element(
         menu->widget,
         0,
         0,
         SCREEN_W_PX,
-        64,
-        "\e#Sub-GHz RAW Edit\e#\n"
-        "Version " APP_VERSION "\n"
+        title_h,
+        AlignCenter,
+        AlignBottom,
+        "\e#\e!     Sub-GHz RAW Edit     \e!\n",
+        false);
+
+    int scroll_element_offset = title_h + GAP_PX;
+    widget_add_text_scroll_element(
+        menu->widget,
+        0,
+        scroll_element_offset,
+        SCREEN_W_PX,
+        SCREEN_H_PX - scroll_element_offset,
+        "\e#Version " APP_VERSION "\n"
+        "Enjoyed? Leave a star:\n"
+        "" APP_REPO "\n"
         "\n"
-        "Trim a RAW .sub to one\n"
-        "clean frame (auto-find,\n"
-        "A/B, cut, save).\n"
+        "A tiny on-device waveform\n"
+        "editor for Flipper Zero that\n"
+        "trims RAW .sub captures\n"
+        "down to just the part\n"
+        "you care about.\n"
         "\n"
-        "Merge: join several\n"
-        ".sub into one.\n"
+        "Supported protocols:\n"
+        "- RAW\n"
+        "- KeeLoq\n"
+        "- Princeton\n"
         "\n"
-        "Opens a decoded KeeLoq\n"
-        ".sub as RAW too.\n"
-        "\n"
-        "RX/analysis only - never\n"
-        "transmits.\n"
-        "\n"
-        "by Lechnio\n" APP_REPO "\n");
+        "Full documentation available on the GitHub.");
 }
 
 int32_t subghz_raw_edit_app(void* p) {
@@ -1971,7 +2087,7 @@ int32_t subghz_raw_edit_app(void* p) {
     menu->widget = widget_alloc();
     menu->config_list = variable_item_list_alloc();
 
-    submenu_set_header(menu->submenu, "Sub-GHz RAW Edit");
+    submenu_set_header(menu->submenu, APP_NAME);
     submenu_add_item(menu->submenu, "Select .sub file", MenuItemSelectFile, menu_submenu_cb, menu);
     submenu_add_item(menu->submenu, "Merge .sub files", MenuItemMergeFiles, menu_submenu_cb, menu);
     submenu_add_item(menu->submenu, "Config", MenuItemConfig, menu_submenu_cb, menu);

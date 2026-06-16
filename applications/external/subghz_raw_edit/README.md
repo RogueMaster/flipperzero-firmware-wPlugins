@@ -18,6 +18,7 @@ a long recording full of repeats and noise becomes a single tidy frame.
 Sub-GHz-RAW-Edit allows to display signals of `.sub` files in following protocols:
 - RAW
 - KeeLoq
+- Princeton
 
 As the `Save` option always writes output `.sub` files in `RAW` format,
 its able to transform already recognized signals (protocols) back to `RAW` again.
