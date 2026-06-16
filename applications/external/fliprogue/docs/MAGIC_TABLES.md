@@ -1,6 +1,6 @@
-# FlipRogue v1.2 Magic Tables
+# FlipRogue v1.2.1 Magic Tables
 
-These tables match the current v1.2 implementation in `src/`.
+These tables match the current v1.2.1 implementation in `src/`.
 
 Unknown potions use generated color labels such as `Red Potion`. Unknown
 scrolls appear in inventory as `Scroll RUNE RUNE`, while pickup logs keep only
@@ -212,5 +212,5 @@ Lone or last-pack monsters below 30% HP have a 15% chance to break and flee for
 | Shrine | Statue sprite / `T` fallback | Solid old god statue with short bump interaction text. |
 | Chest | Chest sprite / `H` fallback | Blocking choose-one item popup; opened chest stays visible but inert; rare Mimic variant skips the menu and attacks. |
 
-Deferred ideas remain out of scope for v1.2: gas propagation, chasms/falling,
+Deferred ideas remain out of scope for v1.2.*: gas propagation, chasms/falling,
 floating item water physics, and merchants.

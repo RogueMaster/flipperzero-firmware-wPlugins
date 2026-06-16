@@ -1,5 +1,8 @@
 # Changelog
 
+v1.2.1:
+- Fixed OK interaction priority so stairs, shrines, and other current-tile actions win over adjacent chests.
+
 v1.2:
 - Reduced saved-floor and pathfinding RAM pressure for more stable device runs.
 - Fixed coarse saved exploration revealing extra remembered wall tiles.

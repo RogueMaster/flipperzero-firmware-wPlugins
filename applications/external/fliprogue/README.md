@@ -45,7 +45,7 @@ quick deaths, and just enough dungeon texture to make the tiny screen feel old.
 > on device. Sorry about that; if it happens, restart the app right away and try
 > another run.
 
-## v1.2 Scope
+## v1.2.* Scope
 
 The current release is the first public-ready build. Highlights:
 
@@ -120,7 +120,7 @@ and Back to cancel.
 - HP 0 ends the run. Victory is taking the Orb back to the surface stairs.
 
 There is no gas, chasm, floating-item water physics, or merchant economy in
-v1.2.
+v1.2.1.
 
 ## Build
 

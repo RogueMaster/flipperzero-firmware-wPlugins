@@ -83,6 +83,16 @@ Small content slices to consider after the architecture is calmer:
 - chests with a compact choose-what-to-take menu, not automatic bulk pickup;
 - primitive merchants with a tiny inventory and simple prices, preferably one clear screen rather than a full shop simulator.
 
+## v1.2.1 Notes
+
+v1.2.1 is a tiny interaction-priority patch.
+
+- Pressing OK now resolves the current tile first, then adjacent chests, then
+  rest. Standing on stairs near a chest should use the stairs instead of opening
+  the chest menu.
+- This keeps chest bump/OK behavior intact while matching the `Stairs down.
+  Press OK.` log prompt.
+
 ## v1.2 Notes
 
 v1.2 is a stability and release-polish update after the first public-ready

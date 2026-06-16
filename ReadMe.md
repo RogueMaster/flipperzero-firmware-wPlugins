@@ -67,6 +67,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.16.7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - NFC: [Add Bambu Lab filament spool parser (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1012)
 - Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- Updated: [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
 
 <a name="release"></a>
 
@@ -345,7 +346,7 @@ $ ./fbt dolphin_ext
 - [Flight Assault v0.4 (By evillero)](https://github.com/evillero/flight_assault)
 - [Flipper Hero v1.4 (By mentoster)](https://github.com/mentoster/Flipper-hero)
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)
-- [FlipRogue v1.2 (By Abzac)](https://github.com/Abzac/fliprogue)
+- [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
 - [FMatrix v0.3.5 (By misterwaztaken)](https://github.com/misterwaztaken/fmatrix)
 - [Fortune Cookie v0.1 (By evillero)](https://github.com/evillero/fortune_cookie)
 - [Free Roam v0.6 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
