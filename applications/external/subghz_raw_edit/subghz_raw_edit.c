@@ -12,6 +12,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/text_input.h>
+#include <gui/modules/variable_item_list.h>
 
 #include "subghz_raw_edit_icons.h"
 
@@ -477,6 +478,74 @@ static bool
     return true;
 }
 
+/* Snap each pulse to the nearest multiple of a base unit Te, removing timing
+ * jitter and cumulative drift. Te is found by an iterative least-squares fit
+ * |dur| ~ m*Te; gaps and noise (outside the data window) are left alone. */
+static bool g_normalize_jitter = false;
+
+#define JITTER_DATA_MIN_US 60
+#define JITTER_DATA_MAX_US 3000
+#define JITTER_FIT_ITERS   8
+
+static void normalize_jitter(SubData* sd) {
+    if(!sd || !sd->data || sd->count < 8) return;
+
+    int64_t sum_all = 0;
+    size_t n_all = 0;
+    for(size_t i = 0; i < sd->count; i++) {
+        int32_t a = iabs32(sd->data[i]);
+        if(a >= JITTER_DATA_MIN_US && a <= JITTER_DATA_MAX_US) {
+            sum_all += a;
+            n_all++;
+        }
+    }
+    if(n_all == 0) return;
+
+    int32_t mean_all = (int32_t)(sum_all / (int64_t)n_all);
+    int64_t sum_short = 0;
+    size_t n_short = 0;
+    for(size_t i = 0; i < sd->count; i++) {
+        int32_t a = iabs32(sd->data[i]);
+        if(a >= JITTER_DATA_MIN_US && a <= mean_all) {
+            sum_short += a;
+            n_short++;
+        }
+    }
+
+    float te = (n_short > 0) ? (float)sum_short / (float)n_short : (float)mean_all;
+    if(te < 1.0f) return;
+
+    for(int it = 0; it < JITTER_FIT_ITERS; it++) {
+        float num = 0.0f, den = 0.0f;
+        for(size_t i = 0; i < sd->count; i++) {
+            int32_t a = iabs32(sd->data[i]);
+            if(a < JITTER_DATA_MIN_US || a > JITTER_DATA_MAX_US) continue;
+
+            int m = (int)((float)a / te + 0.5f);
+            if(m < 1) m = 1;
+
+            num += (float)m * (float)a;
+            den += (float)m * (float)m;
+        }
+        if(den <= 0.0f) return;
+
+        te = num / den;
+    }
+
+    for(size_t i = 0; i < sd->count; i++) {
+        int32_t a = iabs32(sd->data[i]);
+        if(a < JITTER_DATA_MIN_US || a > JITTER_DATA_MAX_US) continue;
+
+        int m = (int)((float)a / te + 0.5f);
+        if(m < 1) m = 1;
+
+        int32_t mag = (int32_t)((float)m * te + 0.5f);
+        if(mag > DUR_CLAMP) mag = DUR_CLAMP;
+
+        sd->data[i] = (int16_t)(sd->data[i] < 0 ? -mag : mag);
+    }
+}
+
 static bool load_sub(Storage* storage, const char* path, SubData* sd) {
     memset(sd, 0, sizeof(*sd));
     sd->frequency = 433920000;
@@ -582,6 +651,8 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
             sd->cap = sd->count;
         }
     }
+
+    if(g_normalize_jitter) normalize_jitter(sd);
 
     int64_t run = 0;
     for(size_t i = 0; i < sd->count; i++)
@@ -1153,7 +1224,7 @@ static void draw_cb(Canvas* c, void* ctx) {
     canvas_draw_str(c, 0, LINE2_BASE, l2);
 
     snprintf(l1, sizeof(l1), "View: %s", zb);
-    snprintf(l2, sizeof(l2), "Selected: %s", sl);
+    snprintf(l2, sizeof(l2), "Marked: %s", sl);
     canvas_draw_str_aligned(c, SCREEN_W_PX - 1, 56, AlignRight, AlignBottom, l1);
     canvas_draw_str_aligned(
         c, SCREEN_W_PX - 1, 56 + FONT_SIZE_PX + 1, AlignRight, AlignBottom, l2);
@@ -1752,6 +1823,8 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
     for(int i = 0; i < n; i++)
         fill_sub_into(storage, paths[i], &app->sd, is_raw_arr[i], i > 0);
 
+    if(g_normalize_jitter) normalize_jitter(&app->sd);
+
     gui_remove_view_port(gui, load_vp);
     free(paths);
 
@@ -1785,11 +1858,13 @@ cleanup:
 typedef enum {
     MenuViewSubmenu,
     MenuViewAbout,
+    MenuViewConfig,
 } MenuViewId;
 
 typedef enum {
     MenuItemSelectFile,
     MenuItemMergeFiles,
+    MenuItemConfig,
     MenuItemAbout,
 } MenuItemId;
 
@@ -1803,6 +1878,7 @@ typedef struct {
     ViewDispatcher* view_dispatcher;
     Submenu* submenu;
     Widget* widget;
+    VariableItemList* config_list;
     Storage* storage;
     DialogsApp* dialogs;
     MenuAction action;
@@ -1816,6 +1892,8 @@ static void menu_submenu_cb(void* context, uint32_t index) {
     } else if(index == MenuItemMergeFiles) {
         menu->action = MenuActionMerge;
         view_dispatcher_stop(menu->view_dispatcher);
+    } else if(index == MenuItemConfig) {
+        view_dispatcher_switch_to_view(menu->view_dispatcher, MenuViewConfig);
     } else if(index == MenuItemAbout) {
         view_dispatcher_switch_to_view(menu->view_dispatcher, MenuViewAbout);
     }
@@ -1824,6 +1902,24 @@ static void menu_submenu_cb(void* context, uint32_t index) {
 static uint32_t about_back_cb(void* context) {
     UNUSED(context);
     return MenuViewSubmenu;
+}
+
+static uint32_t config_back_cb(void* context) {
+    UNUSED(context);
+    return MenuViewSubmenu;
+}
+
+static void config_norm_changed_cb(VariableItem* item) {
+    uint8_t idx = variable_item_get_current_value_index(item);
+    g_normalize_jitter = (idx != 0);
+    variable_item_set_current_value_text(item, idx ? "ON" : "OFF");
+}
+
+static void menu_build_config(Menu* menu) {
+    VariableItem* it = variable_item_list_add(
+        menu->config_list, "Normalize jitter", 2, config_norm_changed_cb, menu);
+    variable_item_set_current_value_index(it, g_normalize_jitter ? 1 : 0);
+    variable_item_set_current_value_text(it, g_normalize_jitter ? "ON" : "OFF");
 }
 
 static uint32_t submenu_back_cb(void* context) {
@@ -1873,21 +1969,27 @@ int32_t subghz_raw_edit_app(void* p) {
     view_dispatcher_enable_queue(menu->view_dispatcher);
     menu->submenu = submenu_alloc();
     menu->widget = widget_alloc();
+    menu->config_list = variable_item_list_alloc();
 
     submenu_set_header(menu->submenu, "Sub-GHz RAW Edit");
     submenu_add_item(menu->submenu, "Select .sub file", MenuItemSelectFile, menu_submenu_cb, menu);
     submenu_add_item(menu->submenu, "Merge .sub files", MenuItemMergeFiles, menu_submenu_cb, menu);
+    submenu_add_item(menu->submenu, "Config", MenuItemConfig, menu_submenu_cb, menu);
     submenu_add_item(menu->submenu, "About", MenuItemAbout, menu_submenu_cb, menu);
 
     menu_build_about(menu);
+    menu_build_config(menu);
 
     view_set_previous_callback(submenu_get_view(menu->submenu), submenu_back_cb);
     view_set_previous_callback(widget_get_view(menu->widget), about_back_cb);
+    view_set_previous_callback(variable_item_list_get_view(menu->config_list), config_back_cb);
 
     view_dispatcher_attach_to_gui(menu->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_add_view(
         menu->view_dispatcher, MenuViewSubmenu, submenu_get_view(menu->submenu));
     view_dispatcher_add_view(menu->view_dispatcher, MenuViewAbout, widget_get_view(menu->widget));
+    view_dispatcher_add_view(
+        menu->view_dispatcher, MenuViewConfig, variable_item_list_get_view(menu->config_list));
 
     bool running = true;
     while(running) {
@@ -1906,8 +2008,10 @@ int32_t subghz_raw_edit_app(void* p) {
 
     view_dispatcher_remove_view(menu->view_dispatcher, MenuViewSubmenu);
     view_dispatcher_remove_view(menu->view_dispatcher, MenuViewAbout);
+    view_dispatcher_remove_view(menu->view_dispatcher, MenuViewConfig);
     submenu_free(menu->submenu);
     widget_free(menu->widget);
+    variable_item_list_free(menu->config_list);
     view_dispatcher_free(menu->view_dispatcher);
 
     furi_record_close(RECORD_GUI);
