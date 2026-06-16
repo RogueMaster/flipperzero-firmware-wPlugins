@@ -52,7 +52,3 @@ jobs:
           files: dist/*.fap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: false
-          files: dist/*.fap
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
