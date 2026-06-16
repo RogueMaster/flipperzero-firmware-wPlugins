@@ -7,7 +7,7 @@ void draw_title(Canvas* canvas, AppContext* app) {
     canvas_set_font(canvas, FontPrimary);
     draw_text_center(canvas, 2, "FlipRogue");
     canvas_set_font(canvas, FontSecondary);
-    draw_text_center(canvas, 13, "v1.2");
+    draw_text_center(canvas, 13, "v1.2.1");
     for(uint8_t i = 0; i < TITLE_MENU_COUNT; i++) {
         uint8_t y = (uint8_t)(27 + i * 8);
         char entry[24];

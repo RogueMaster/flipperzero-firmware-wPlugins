@@ -201,6 +201,33 @@ static void key_to_direction(InputKey key, int8_t* dx, int8_t* dy) {
     else if(key == InputKeyRight) *dx = 1;
 }
 
+static bool try_current_tile_interaction(AppContext* app, FrActionResult* result) {
+    uint8_t terrain = fr_get_terrain(app->game, app->game->player.x, app->game->player.y);
+    if(terrain == FR_TERR_STAIRS_DOWN) {
+        uint8_t old_floor = app->game->floor;
+        *result = fr_descend(app->game);
+        if(app->game->floor != old_floor || app->game->mode == FR_MODE_VICTORY) {
+            app->cursor_x = app->game->player.x;
+            app->cursor_y = app->game->player.y;
+            camera_center_on_player(app);
+        }
+        return true;
+    } else if(terrain == FR_TERR_STAIRS_UP) {
+        uint8_t old_floor = app->game->floor;
+        *result = fr_ascend(app->game);
+        if(app->game->floor != old_floor || app->game->mode == FR_MODE_VICTORY) {
+            app->cursor_x = app->game->player.x;
+            app->cursor_y = app->game->player.y;
+            camera_center_on_player(app);
+        }
+        return true;
+    } else if(terrain == FR_TERR_SHRINE) {
+        *result = fr_use_shrine(app->game);
+        return true;
+    }
+    return false;
+}
+
 static void handle_play(AppContext* app, InputKey key, InputType type) {
     if(type == InputTypeLong && key == InputKeyOk) {
         app->screen = UI_LOOK;
@@ -250,6 +277,11 @@ static void handle_play(AppContext* app, InputKey key, InputType type) {
     {
         FeedbackBefore before = feedback_capture(app);
         FrActionResult result = {FR_ACTION_NONE};
+        if(try_current_tile_interaction(app, &result)) {
+            finish_action(app, before, result);
+            break;
+        }
+
         FrItem* chest = fr_chest_at(app->game, app->game->player.x, app->game->player.y);
         if(!chest) {
             static const int8_t dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
@@ -271,27 +303,7 @@ static void handle_play(AppContext* app, InputKey key, InputType type) {
             app->screen = UI_CHEST_CHOICE;
             break;
         }
-        if(fr_get_terrain(app->game, app->game->player.x, app->game->player.y) == FR_TERR_SHRINE) {
-            result = fr_use_shrine(app->game);
-        } else if(fr_get_terrain(app->game, app->game->player.x, app->game->player.y) == FR_TERR_STAIRS_DOWN) {
-            uint8_t old_floor = app->game->floor;
-            result = fr_descend(app->game);
-            if(app->game->floor != old_floor || app->game->mode == FR_MODE_VICTORY) {
-                app->cursor_x = app->game->player.x;
-                app->cursor_y = app->game->player.y;
-                camera_center_on_player(app);
-            }
-        } else if(fr_get_terrain(app->game, app->game->player.x, app->game->player.y) == FR_TERR_STAIRS_UP) {
-            uint8_t old_floor = app->game->floor;
-            result = fr_ascend(app->game);
-            if(app->game->floor != old_floor || app->game->mode == FR_MODE_VICTORY) {
-                app->cursor_x = app->game->player.x;
-                app->cursor_y = app->game->player.y;
-                camera_center_on_player(app);
-            }
-        } else {
-            result = fr_rest(app->game);
-        }
+        result = fr_rest(app->game);
         finish_action(app, before, result);
         break;
     }
