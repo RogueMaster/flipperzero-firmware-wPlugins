@@ -57,8 +57,9 @@ def feifan_checksum(data7):
     return (sum(data7) + CHECKSUM_CONST) & 0xFF
 
 
-def build_0x370(counter, torque1=0x00, torque2=0x00,
-                byte0=0x11, byte2=0x08, byte4=0x1F, byte5=0x00):
+def build_0x370(
+    counter, torque1=0x00, torque2=0x00, byte0=0x11, byte2=0x08, byte4=0x1F, byte5=0x00
+):
     """Build a full 8-byte 0x370 frame with a valid counter + checksum.
 
     counter: 0..15 (placed in byte6 low nibble)
@@ -70,7 +71,7 @@ def build_0x370(counter, torque1=0x00, torque2=0x00,
         torque1 & 0xFF,
         byte2 & 0xFF,
         torque2 & 0xFF,
-        byte4 & 0x3F,            # keep bits[7:6]=0 -> handsOnLevel stays 0
+        byte4 & 0x3F,  # keep bits[7:6]=0 -> handsOnLevel stays 0
         byte5 & 0xFF,
         counter & 0x0F,
     ]
@@ -87,7 +88,7 @@ def _parse_dump(path):
         if len(hexpart) < 16:
             continue
         try:
-            yield bytes(int(hexpart[i:i + 2], 16) for i in range(0, 16, 2))
+            yield bytes(int(hexpart[i : i + 2], 16) for i in range(0, 16, 2))
         except ValueError:
             continue
 
@@ -113,8 +114,10 @@ def _validate(path):
     print(f"frames:            {total}")
     print(f"checksum matches:  {ok}/{total} ({100*ok/total:.1f}%)")
     print(f"counter +1 steps:  {counter_steps_ok}/{total-1}")
-    print(f"handsOnLevel != 0: {handsonlevel_nonzero} "
-          f"({'EPAS-style, flag never forced' if handsonlevel_nonzero == 0 else 'flag is being set'})")
+    print(
+        f"handsOnLevel != 0: {handsonlevel_nonzero} "
+        f"({'EPAS-style, flag never forced' if handsonlevel_nonzero == 0 else 'flag is being set'})"
+    )
     return 0 if ok == total else 2
 
 
@@ -125,7 +128,6 @@ if __name__ == "__main__":
     print("Feifan 0x370 reference encoder (no dump given — demo mode)\n")
     print(f"  checksum constant = 0x{CHECKSUM_CONST:02X} (id 0x370: 0x70+0x03)\n")
     for ctr in range(4):
-        frame = build_0x370(ctr, torque1=0xFE, torque2=0xF7,
-                            byte4=0x1F, byte5=0xA9)
+        frame = build_0x370(ctr, torque1=0xFE, torque2=0xF7, byte4=0x1F, byte5=0xA9)
         print(f"  counter={ctr:X}: " + frame.hex().upper())
     print("\nUsage: feifan_0x370.py <candump.log>   # validate checksum on a capture")
