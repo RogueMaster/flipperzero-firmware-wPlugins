@@ -66,9 +66,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Mayan Decoder v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/Mayan_decoder)
 - Updated: [Tesla Mod v2.16.7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - NFC: [Add Bambu Lab filament spool parser (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1012)
-- Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Updated: [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
 - Updated: [TV Remote v1.2 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote) [Ability to import saved .ir files from the Flipper's built-in Infrared app (or any standard Flipper IR library file) and map their signals to the TV Remote buttons (By BentheGameWolf)](https://github.com/jmanion0139/flipper_tv_remote/pull/3)
+- Updated: [Sub-GHz RAW Edit v1.4 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 
 <a name="release"></a>
 

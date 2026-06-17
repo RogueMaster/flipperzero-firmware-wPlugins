@@ -200,6 +200,12 @@ static void recompute_activity(App* a) {
 
         if(s1 < a->view_start || s0 > a->view_end) continue;
 
+        /* The first sample has no transition before it; when it is a leading gap
+         * (a synthesized frame's leading guard) counting it as an edge paints a
+         * lone 1px bar before the silence. Skip it so the gap reads as blank. */
+        if (i == 0 && a->sd.data[i] < 0)
+            continue;
+
         int x = (int)(((int64_t)(s0 - a->view_start) * SCREEN_W_PX) / span);
 
         if(x < 0) x = 0;
