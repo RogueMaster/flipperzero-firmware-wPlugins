@@ -224,12 +224,12 @@ sources.extend(
 )
 
 # Link-Time Optimization for firmware dfu only, we are desperately out of flash space
-# if ENV["COMPACT"]:
-#     fwenv.Append(
-#         CCFLAGS=[
-#             "-flto",
-#         ],
-#     )
+if ENV["COMPACT"]:
+    fwenv.Append(
+        CCFLAGS=[
+            "-flto",
+        ],
+    )
 
 # Debug
 # print(fwenv.Dump())
