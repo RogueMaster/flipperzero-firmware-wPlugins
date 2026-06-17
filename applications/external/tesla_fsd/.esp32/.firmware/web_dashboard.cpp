@@ -755,10 +755,7 @@ function upd(d){
   if(document.getElementById('txCnt')) document.getElementById('txCnt').textContent=(d.tx_count||0).toLocaleString();
   if(document.getElementById('crcErr')) document.getElementById('crcErr').textContent=d.crc_errors||0;
   if(document.getElementById('fps')) document.getElementById('fps').textContent=(d.fps||0.0).toFixed(1);
-  httpLogAllowed=d.op_mode!==1;
-  if(!httpLogAllowed&&httpLogRunning){
-    stopHttpLog('HTTP CAN log stopped because device entered Active mode.');
-  }
+  httpLogAllowed=true; // capture works in both modes — needed to log through an Activate (#108)
   if(!httpLogRunning)setHttpLogUi(false);
   if(!httpLogRunning){
     if(httpLogReady){
@@ -1327,7 +1324,7 @@ static void ws_event(uint8_t num, WStype_t type,
         for (uint8_t i = 0; i < g_can_count; i++) {
             if (g_can_buses[i]) g_can_buses[i]->setListenOnly(!active);
         }
-        http_can_stream_set_enabled(!active);
+        http_can_stream_set_enabled(true);  // capture works in both modes now (#108)
         Serial.println(active ? "[Web] → Active mode" : "[Web] → Listen-Only mode");
         prefs_save(&saved);
     } else if (strstr(buf, "\"ignore_ota\"")) {

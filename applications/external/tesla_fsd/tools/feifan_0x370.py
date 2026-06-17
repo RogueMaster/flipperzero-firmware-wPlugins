@@ -37,11 +37,13 @@ checksum by +1 (a true CRC8 would not).
 This module is the reference encoder for the v2.17 nag-killer redesign. Run with
 a candump path to re-validate the checksum against a capture.
 
-SAFETY: injecting steering torque during FSD is dangerous. A bad disengagement
-on these cars has been reported to trip the efuses and disable drive, regen and
-power steering until serviced (@DrStrangeglovebox, #100). Test only in a safe,
-empty area with hands ready. This file is a research reference, not a
-ready-to-run injector.
+SAFETY: injecting steering torque during FSD carries risk. Test only in a safe,
+empty area with hands ready. Severity note (@DrStrangeglovebox, #100): the
+forced-disengagement / tripped-efuse behaviour was observed only on FSD v13 (an
+error the car triggers), not v14, and the fuses reset on their own after the car
+sleeps ~20 minutes — no service required. Less severe than first reported, but
+still treat a disengagement as potentially leaving the car briefly unpowered.
+This file is a research reference, not a ready-to-run injector.
 """
 
 import sys

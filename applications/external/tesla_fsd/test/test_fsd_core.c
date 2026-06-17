@@ -362,7 +362,7 @@ static void test_nag_killer(void) {
 
     CANFRAME out;
     zero(&out);
-    CHECK(fsd_handle_nag_killer(&s, &in, &out), "nag echo emitted on level 0");
+    CHECK(fsd_handle_nag_killer(&s, &in, &out, 1000u), "nag echo emitted on level 0");
     CHECK(out.canId == CAN_ID_EPAS_STATUS, "nag echo id 0x370");
     CHECK(out.data_lenght == 8, "nag echo dlc 8");
     CHECK(((out.buffer[4] >> 6) & 0x03) == 1, "nag spoofs handsOnLevel=1");
@@ -382,13 +382,13 @@ static void test_nag_killer(void) {
     CANFRAME out2;
     zero(&out2);
     in.buffer[4] = 0x40; // handsOnLevel = 1 (hands detected)
-    CHECK(fsd_handle_nag_killer(&s, &in, &out2) == false, "nag skips when hands detected");
+    CHECK(fsd_handle_nag_killer(&s, &in, &out2, 1000u) == false, "nag skips when hands detected");
     in.buffer[4] = 0x00;
     s.das_hands_on_state = 0; // DAS satisfied
-    CHECK(fsd_handle_nag_killer(&s, &in, &out2) == false, "nag skips when DAS satisfied");
+    CHECK(fsd_handle_nag_killer(&s, &in, &out2, 1000u) == false, "nag skips when DAS satisfied");
     s.das_hands_on_state = 0xFF;
     s.nag_killer = false;
-    CHECK(fsd_handle_nag_killer(&s, &in, &out2) == false, "nag skips when disabled");
+    CHECK(fsd_handle_nag_killer(&s, &in, &out2, 1000u) == false, "nag skips when disabled");
 
     // --- DAS escalation edge re-arms the grip pulse even when EPAS handsOnLevel
     //     is frozen at 0 (HW4 Juniper trims, #100). das stepping up must fire a
@@ -408,7 +408,7 @@ static void test_nag_killer(void) {
     int ntorq = 9999;
     for(int i = 0; i < 30 && ntorq > 2290; i++) {
         zero(&eout);
-        fsd_handle_nag_killer(&e, &ein, &eout);
+        fsd_handle_nag_killer(&e, &ein, &eout, 1000u);
         ntorq = ((eout.buffer[2] & 0x0F) << 8) | eout.buffer[3];
     }
     CHECK(ntorq <= 2290, "nag drained to walk range before edge, torq=%d", ntorq);
@@ -416,71 +416,97 @@ static void test_nag_killer(void) {
     // das 2 -> 3 rising edge must fire a fresh grip pulse despite frozen handsOnLevel
     e.das_hands_on_state = 3;
     zero(&eout);
-    CHECK(fsd_handle_nag_killer(&e, &ein, &eout), "nag echo on das 2->3 edge");
+    CHECK(fsd_handle_nag_killer(&e, &ein, &eout, 1000u), "nag echo on das 2->3 edge");
     int ntorq2 = ((eout.buffer[2] & 0x0F) << 8) | eout.buffer[3];
     CHECK(ntorq2 > 2290, "das 2->3 re-arms grip pulse (#100), torq=%d", ntorq2);
 }
 
-// ── 0x370 nag killer EPAS-faithful mode (v2.17, #100): mirror the in-the-wild
-//    scheme — never flip handsOnLevel, torque centred at 0 Nm with live variance,
-//    valid counter + checksum. ───────────────────────────────────────────────
+// ── 0x370 nag killer EPAS-faithful (Mode-C) mode (v2.17, #100): demand-state
+//    machine — AP-state gate, state-2 mild walk after 2 s delay, state-3 strong
+//    ramp after 1 s pause, handsOnLevel derived from torque magnitude. ─────────
+#define RAWABS(r) ((r) >= 2048 ? (r) - 2048 : 2048 - (r))
 static void test_nag_killer_faithful(void) {
     FSDState s;
     memset(&s, 0, sizeof(s));
     s.nag_killer = true;
-    s.nag_epas_faithful = true; // experimental v2.17 path
-    s.das_hands_on_state = 0xFF;
+    s.nag_epas_faithful = true;
+    s.das_ap_state = 3; // AP active
+    s.steering_angle_deg = 0.0f; // dir = +1 -> positive torque band
 
-    CANFRAME in;
+    CANFRAME in, out;
     zero(&in);
     in.data_lenght = 8;
-    in.buffer[4] = 0x00; // real handsOnLevel = 0 (hands off)
-    in.buffer[6] = 0x05; // counter = 5
+    in.buffer[6] = 0x05;
+    uint32_t t = 100000u;
 
-    long sum_raw = 0;
-    int n = 0, min_raw = 99999, max_raw = -1, hands_set = 0, csum_ok = 0;
-    int counter_ok = 0;
-    for(int i = 0; i < 600; i++) {
-        in.buffer[6] = (in.buffer[6] & 0xF0) | ((5 + i) & 0x0F);
-        CANFRAME out;
+    // AP-state gate: no inject when AP not active.
+    s.das_ap_state = 0;
+    s.das_hands_on_state = 2;
+    zero(&out);
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, t) == false, "faithful: no inject when AP inactive");
+    s.das_ap_state = 3;
+
+    // Demand satisfied (state 0): no inject (also resets state memory).
+    s.das_hands_on_state = 0;
+    zero(&out);
+    CHECK(fsd_handle_nag_killer(&s, &in, &out, t) == false, "faithful: no inject in state 0");
+
+    // State 2: 2 s idle delay holds injection off.
+    s.das_hands_on_state = 2;
+    zero(&out);
+    CHECK(fsd_handle_nag_killer(&s, &in, &out, t) == false, "faithful: state2 enters delay");
+    zero(&out);
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, t + 1500u) == false,
+        "faithful: state2 still in 2s delay");
+
+    // After 2 s: mild torque in +0.5..+2.0 Nm band, handsOnLevel derived, counter+1, checksum.
+    int any = 0, minraw = 99999, maxraw = -1, lvl_ok = 1, cnt_ok = 1, csum_ok = 1;
+    for(uint32_t dt = 2100; dt < 6000; dt += 50) {
+        in.buffer[6] = (in.buffer[6] & 0xF0) | ((5 + dt / 50) & 0x0F);
         zero(&out);
-        if(!fsd_handle_nag_killer(&s, &in, &out)) continue;
-        // handsOnLevel must NEVER be forced in faithful mode
-        if(((out.buffer[4] >> 6) & 0x03) != 0) hands_set++;
-        // counter is input+1
-        if((out.buffer[6] & 0x0F) == (((5 + i) + 1) & 0x0F)) counter_ok++;
-        // checksum self-consistent
+        if(!fsd_handle_nag_killer(&s, &in, &out, t + dt)) continue;
+        any = 1;
+        int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
+        if(raw < minraw) minraw = raw;
+        if(raw > maxraw) maxraw = raw;
+        uint8_t lvl = (out.buffer[4] >> 6) & 0x03;
+        uint8_t exp = (RAWABS(raw) >= 200) ? 2 : (RAWABS(raw) >= 100) ? 1 : 0;
+        if(lvl != exp) lvl_ok = 0;
+        if((out.buffer[6] & 0x0F) != (((5 + dt / 50) + 1) & 0x0F)) cnt_ok = 0;
         uint16_t cs = (CAN_ID_EPAS_STATUS & 0xFF) + (CAN_ID_EPAS_STATUS >> 8);
         for(int b = 0; b < 7; b++)
             cs += out.buffer[b];
-        if(out.buffer[7] == (uint8_t)(cs & 0xFF)) csum_ok++;
-        int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
-        sum_raw += raw;
-        n++;
-        if(raw < min_raw) min_raw = raw;
-        if(raw > max_raw) max_raw = raw;
+        if(out.buffer[7] != (uint8_t)(cs & 0xFF)) csum_ok = 0;
     }
-    CHECK(n > 0, "faithful: echoes emitted (%d)", n);
-    CHECK(hands_set == 0, "faithful: handsOnLevel NEVER forced (%d violations)", hands_set);
-    CHECK(counter_ok == n, "faithful: counter+1 every frame (%d/%d)", counter_ok, n);
-    CHECK(csum_ok == n, "faithful: checksum valid every frame (%d/%d)", csum_ok, n);
-    // Torque centred near raw 2050 (0 Nm) — mean within ±0.5 Nm (±50 raw).
-    int mean_raw = (int)(sum_raw / n);
+    CHECK(any, "faithful state2: injects after 2 s delay");
     CHECK(
-        mean_raw > 2000 && mean_raw < 2100,
-        "faithful: torque centred ~0 Nm (mean raw %d)",
-        mean_raw);
-    // And genuinely varies (not a flat signal): spread > 1 Nm (100 raw).
-    CHECK(
-        (max_raw - min_raw) > 100,
-        "faithful: torque has live variance (span raw %d)",
-        max_raw - min_raw);
-    CHECK(
-        min_raw >= 1780 && max_raw <= 2500,
-        "faithful: torque within clamp [1780,2500] (%d..%d)",
-        min_raw,
-        max_raw);
+        minraw >= 2098 && maxraw <= 2248,
+        "faithful state2: mild band +0.5..+2.0Nm (%d..%d)",
+        minraw,
+        maxraw);
+    CHECK(lvl_ok, "faithful: handsOnLevel derived from torque magnitude");
+    CHECK(cnt_ok, "faithful: counter+1 every injected frame");
+    CHECK(csum_ok, "faithful: checksum valid every injected frame");
+
+    // State 3 (strong): 1 s pause, then ramp/hold toward 2.1 Nm with handsOnLevel 2.
+    s.das_hands_on_state = 3;
+    uint32_t ts = t + 7000u;
+    zero(&out);
+    CHECK(fsd_handle_nag_killer(&s, &in, &out, ts) == false, "faithful state3: 1 s pause holds");
+    int got_strong = 0, got_level2 = 0;
+    for(uint32_t dt = 1100; dt < 3500; dt += 50) {
+        zero(&out);
+        if(!fsd_handle_nag_killer(&s, &in, &out, ts + dt)) continue;
+        int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
+        if(RAWABS(raw) >= 180) got_strong = 1; // reaches near 2.1 Nm
+        if(((out.buffer[4] >> 6) & 0x03) == 2) got_level2 = 1;
+    }
+    CHECK(got_strong, "faithful state3: ramps to strong ~2.1 Nm");
+    CHECK(got_level2, "faithful state3: handsOnLevel reaches 2");
 }
+#undef RAWABS
 
 // ── shared stateless ops (china_mode path the Flipper wrapper can't reach) ────
 static void test_can_ops(void) {

@@ -81,8 +81,14 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
 bool fsd_handle_isa_speed_chime(CANFRAME* frame);
 
 /** Handle CAN ID 0x370 - EPAS nag killer (counter+1 echo).
- *  Builds a new frame in out_frame. Returns true if should be sent. */
-bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out_frame);
+ *  Builds a new frame in out_frame. Returns true if should be sent.
+ *  now_ms is a millisecond clock used by the EPAS-faithful (Mode-C) path's
+ *  demand-state timing; the legacy path ignores it. */
+bool fsd_handle_nag_killer(
+    FSDState* state,
+    const CANFRAME* frame,
+    CANFRAME* out_frame,
+    uint32_t now_ms);
 
 /** Handle CAN ID 0x318 - GTW_carState - update OTA-in-progress flag in state. */
 void fsd_handle_gtw_car_state(FSDState* state, const CANFRAME* frame);

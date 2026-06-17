@@ -70,7 +70,8 @@ bool fsd_handle_isa_speed_chime(CanFrame *frame);
 
 /** Build an echo of EPAS3P_sysStatus (0x370) with counter+1 and handsOnLevel=1.
  *  Writes result into *out.  Returns true if echo should be sent. */
-bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out);
+bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out,
+                           uint32_t now_ms);
 
 /** Parse EPAS3P_sysStatus (0x370) steering torque. */
 void fsd_handle_epas_status(FSDState *state, const CanFrame *frame);

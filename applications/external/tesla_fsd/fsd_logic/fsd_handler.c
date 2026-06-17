@@ -948,11 +948,148 @@ static uint32_t nag_xorshift32(void) {
 static int16_t nag_torq_walk = 2230; // raw starting = 1.80 Nm
 static uint8_t nag_exc_frames = 0; // frames in grip excursion
 static uint16_t nag_frames_until_exc = 175; // frames until next excursion
-static int16_t nag_faithful_walk = 2050; // EPAS-faithful mode: raw 2050 = 0.00 Nm
+// ── EPAS-faithful (Mode-C) nag path (v2.17, #100) ───────────────────────────
+// A demand-state-driven steering-torque model ported from the nicolozak
+// "Mode C" reference (surfaced by @ssw0209-sys, #100), which works in the wild
+// on 2026.14.x. Unlike the legacy killer (forces handsOnLevel=1 + steady torque),
+// this derives handsOnLevel FROM the synthetic torque magnitude so the frame is
+// internally consistent, escalates torque with DAS hands-on demand, and directs
+// it opposite the steering angle. Raw torque: 2048 = 0 Nm, raw = 2048 + Nm*100.
+static uint8_t nag_hands_level_from_raw(int16_t raw) {
+    int16_t a = (raw >= 2048) ? (raw - 2048) : (2048 - raw);
+    if(a >= 200) return 2; // |torque| >= 2.0 Nm
+    if(a >= 100) return 1; // |torque| >= 1.0 Nm
+    return 0;
+}
 
-bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out) {
+static bool
+    nag_faithful_modec(FSDState* state, const CANFRAME* frame, CANFRAME* out, uint32_t now_ms) {
+    uint8_t das = state->das_hands_on_state; // DAS hands-on demand state
+
+    // ── transition memory ──
+    static uint8_t prev_das = 0xFF;
+    static uint32_t s1_enter_ms = 0;
+    static uint32_t s2_enter_ms = 0;
+    static uint32_t strong_enter_ms = 0;
+    static int16_t last_raw = 2048;
+    static uint8_t last_level = 0;
+    static uint32_t s2_hold_until_ms = 0;
+    static int16_t s2_hold_raw = 2048;
+    static uint8_t s2_hold_level = 0;
+    static bool s2_level2_active = false;
+    static int16_t mild_walk = 2048;
+
+    bool is_strong = (das == 3 || das == 4 || das == 5);
+    bool prev_strong = (prev_das == 3 || prev_das == 4 || prev_das == 5);
+    if(prev_das != 1 && das == 1) {
+        s1_enter_ms = now_ms;
+    }
+    if(das != 1) {
+        s1_enter_ms = 0;
+    }
+    if(prev_das != 2 && das == 2) {
+        s2_enter_ms = now_ms;
+    }
+    if(das != 2) {
+        s2_enter_ms = 0;
+        s2_hold_until_ms = 0;
+        s2_level2_active = false;
+    }
+    if(!prev_strong && is_strong) {
+        strong_enter_ms = now_ms;
+    }
+    if(!is_strong) {
+        strong_enter_ms = 0;
+    }
+    prev_das = das;
+
+    // Global gate: AP active, and demand state not satisfied/suspended.
+    if(state->das_ap_state < 2u || das == 0 || das == 8 || das == 15) {
+        last_raw = 2048;
+        last_level = 0;
+        return false; // pass the real EPAS frame through unmodified
+    }
+
+    int dir = (state->steering_angle_deg > 0.0f) ? -1 : 1; // oppose steering
+    int16_t torque;
+    uint8_t level;
+
+    if(das == 1) {
+        // Idle, but hold the last injected value for a 500 ms grace after dropping
+        // from an active demand state to avoid an abrupt cutoff.
+        if(s1_enter_ms != 0 && (now_ms - s1_enter_ms) < 500u) {
+            torque = last_raw;
+            level = last_level;
+        } else {
+            last_raw = 2048;
+            last_level = 0;
+            return false;
+        }
+    } else if(das == 2) {
+        // Mild demand: 2 s idle delay, then a mild random walk in the band
+        // opposite the steering angle.
+        if(s2_enter_ms != 0 && (now_ms - s2_enter_ms) < 2000u) return false;
+        if(now_ms < s2_hold_until_ms) {
+            torque = s2_hold_raw;
+            level = s2_hold_level;
+        } else {
+            int16_t lo = (dir < 0) ? 1848 : 2098; // -2.0 Nm..-0.5 Nm / +0.5..+2.0
+            int16_t hi = (dir < 0) ? 1998 : 2248;
+            if(mild_walk < lo || mild_walk > hi) mild_walk = (int16_t)((lo + hi) / 2);
+            mild_walk += (int16_t)((nag_xorshift32() % 25u) - 12); // ±12/frame
+            if(mild_walk < lo) mild_walk = lo;
+            if(mild_walk > hi) mild_walk = hi;
+            torque = mild_walk;
+            level = nag_hands_level_from_raw(torque);
+            int16_t a = (torque >= 2048) ? (torque - 2048) : (2048 - torque);
+            bool l2 = (a >= 200);
+            if(l2 && !s2_level2_active) { // latch first level-2 crossing for 1 s
+                s2_hold_until_ms = now_ms + 1000u;
+                s2_hold_raw = torque;
+                s2_hold_level = 2;
+            }
+            s2_level2_active = l2;
+        }
+    } else {
+        // Strong demand (3/4/5): 1 s pause, then ramp 0->2.1 Nm over 500 ms and
+        // hold, on a 1.5 s cycle, opposite the steering angle.
+        if(strong_enter_ms != 0 && (now_ms - strong_enter_ms) < 1000u) return false;
+        uint32_t active_ms = (strong_enter_ms == 0) ? 0u : (now_ms - strong_enter_ms - 1000u);
+        uint16_t phase = (uint16_t)(active_ms % 1500u);
+        int16_t mag = 210; // 2.1 Nm
+        if(phase < 500u) mag = (int16_t)(((int32_t)phase * 210) / 500);
+        torque = (int16_t)(2048 + dir * mag);
+        level = nag_hands_level_from_raw(torque);
+    }
+
+    last_raw = torque;
+    last_level = level;
+
+    out->canId = CAN_ID_EPAS_STATUS;
+    out->data_lenght = 8;
+    out->ext = 0;
+    out->req = 0;
+    out->buffer[0] = frame->buffer[0];
+    out->buffer[1] = frame->buffer[1];
+    out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torque >> 8) & 0x0F);
+    out->buffer[3] = (uint8_t)(torque & 0xFF);
+    out->buffer[4] = (frame->buffer[4] & ~0xC0u) | (uint8_t)((level & 0x03u) << 6);
+    out->buffer[5] = frame->buffer[5];
+    uint8_t cnt = (frame->buffer[6] & 0x0F);
+    cnt = (cnt + 1) & 0x0F;
+    out->buffer[6] = (frame->buffer[6] & 0xF0) | cnt;
+    out->buffer[7] = tesla_additive_checksum(CAN_ID_EPAS_STATUS, out->buffer, 7);
+    state->nag_echo_count++;
+    state->nag_suppressed = true;
+    return true;
+}
+
+bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
     if(!state->nag_killer) return false;
+
+    // v2.17 EPAS-faithful (Mode-C) path takes over the whole decision.
+    if(state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);
 
     // Act on handsOnLevel 0 (nag imminent) and 3 (escalated alarm).
     // Previous "hands_on != 0" guard silently skipped level 3, leaving the
@@ -999,21 +1136,7 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     // torsionBarTorque encoding: tRaw = (Nm + 20.5) / 0.01
     // d[2] lower nibble = tRaw >> 8, d[3] = tRaw & 0xFF
     int16_t torq;
-    if(state->nag_epas_faithful) {
-        // v2.17 EPAS-faithful (#100): mirror the in-the-wild 0x370 scheme that
-        // passes the 2026.14.x content preflight. Measured from a 22.6k-frame
-        // capture of a working commander: torsionBarTorque centred at ~0 Nm with
-        // large LIVE variance (mean 0.31 Nm, stdev 1.48 Nm), and handsOnLevel
-        // never set. Hypothesis: the DAS keys on a live, varying torque signal —
-        // not a static push or a hands-on flag — and flipping handsOnLevel is the
-        // tell the 14.x check catches. Mean-reverting random walk around raw 2050.
-        int16_t step = (int16_t)((nag_xorshift32() % 81) - 40); // ±40/frame
-        nag_faithful_walk += step;
-        nag_faithful_walk += (int16_t)((2050 - nag_faithful_walk) / 16); // pull to 0 Nm
-        if(nag_faithful_walk < 1780) nag_faithful_walk = 1780; // ~-2.7 Nm
-        if(nag_faithful_walk > 2500) nag_faithful_walk = 2500; // ~+4.5 Nm
-        torq = nag_faithful_walk;
-    } else if(nag_exc_frames > 0) {
+    if(nag_exc_frames > 0) {
         // Grip pulse: ~3.20 Nm ± small noise
         torq = 2350 + (int16_t)((nag_xorshift32() % 41) - 20);
         nag_exc_frames--;
@@ -1044,15 +1167,9 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     out->buffer[1] = frame->buffer[1];
     out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torq >> 8) & 0x0F);
     out->buffer[3] = (uint8_t)(torq & 0xFF);
-    if(state->nag_epas_faithful) {
-        // Preserve the real handsOnLevel (the working scheme never forces it —
-        // setting it is what the 14.x content check appears to detect).
-        out->buffer[4] = frame->buffer[4];
-    } else {
-        // Clear existing handsOnLevel bits (7:6) before setting level=1.
-        // OR-ing 0x40 without clearing leaves level=3 unchanged on escalated frames.
-        out->buffer[4] = (frame->buffer[4] & ~0xC0u) | 0x40u;
-    }
+    // Clear existing handsOnLevel bits (7:6) before setting level=1.
+    // OR-ing 0x40 without clearing leaves level=3 unchanged on escalated frames.
+    out->buffer[4] = (frame->buffer[4] & ~0xC0u) | 0x40u;
     out->buffer[5] = frame->buffer[5];
 
     // counter + 1 (byte6 lower nibble)

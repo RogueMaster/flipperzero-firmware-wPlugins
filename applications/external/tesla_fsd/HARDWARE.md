@@ -89,6 +89,34 @@ Pinout not yet confirmed — if you test it, please report in an issue.
 Tesla's own service/diagnostic connector. Requires removing a trim
 panel behind the rear armrest. Two versions exist:
 
+> [!IMPORTANT]
+> **The X179 pin→bus map is NOT fixed across builds — verify it on your own car.**
+> At least four distinct electrical configurations now exist (20-pin; pre-Apr-2024
+> 26-pin; the post-SOP10 layout in [#114](https://github.com/hypery11/flipper-tesla-fsd/discussions/114);
+> and a Party/Vehicle/Chassis-on-the-right layout). Model-year inference is
+> unreliable.
+>
+> **The deterministic check is the car's Service Mode → CAN Port page**, which lists
+> each pin's bus by name, keyed to the harness part number. On harness `1933903-XX`
+> (Model Y Juniper RWD, 2025, 2026.14.3), @jewelrylin pulled it from Service Mode
+> ([#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)):
+>
+> | X179 pin | Bus |
+> |---|---|
+> | 2 / 3 | Party CAN |
+> | 9 / 10 | Vehicle CAN |
+> | **13 / 14** | **Chassis CAN** (green wire) — **not "Bus 6"** |
+> | 20 | GND |
+>
+> This **relabels** much of the "Bus 6 on pin 13/14" framing below: on this harness
+> 13/14 is Chassis CAN, which is why `0x370 EPAS3P` shows there at 100 Hz with full
+> counter continuity (EPAS lives on Chassis) — it was never a gateway-forwarded
+> subset. **`0x370` is on Chassis CAN, not Vehicle CAN** — if you tap Vehicle CAN
+> (9/10) you will not see `0x370` and the nag killer has nothing to echo. Tap the
+> pair your Service Mode page labels Chassis. The Feifan commander is a 3-CAN device
+> (CAN1/2/3) matching X179's three pairs; Party CAN (2/3) is the one bus not yet
+> swept for its injection footprint.
+
 #### X179 20-pin (2021–2023 Model 3/Y)
 
 ```

@@ -851,7 +851,7 @@ static void dispatch_clicks(int n) {
         saved = g_state;
         state_exit();
         can_set_all_listen_only(!active);
-        http_can_stream_set_enabled(!active);
+        http_can_stream_set_enabled(true);  // capture works in both modes now (#108)
         Serial.println(active ? "[BTN] → Active mode" : "[BTN] → Listen-Only mode");
         can_dump_log(active ? "MODE switched to Active — TX enabled" : "MODE switched to Listen-Only — TX disabled");
         prefs_save(&saved);
@@ -995,9 +995,12 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     state_exit();
 
     can_dump_record(bus, frame);
-    if (state_snapshot().op_mode == OpMode_ListenOnly) {
-        http_can_stream_record(bus, frame);
-    }
+    // Record to the web stream in BOTH modes so a capture can run *through* an
+    // Activate (needed to catch the steer-jerk transient, #108). Recording is a
+    // cheap ring-buffer write and only does anything when a client is connected.
+    // Injection safety is preserved by never installing the single-ID hardware
+    // filter in Active mode (see the acceptance-filter block in loop()).
+    http_can_stream_record(bus, frame);
 #if defined(BOARD_LILYGO)
     g_last_can_rx_ms = millis();
     g_sleep_warned   = false;
@@ -1146,7 +1149,7 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         CanFrame echo;
         state_enter();
         fsd_handle_epas_status(&g_state, &frame);
-        bool fired = (tx && ap_ok) ? fsd_handle_nag_killer(&g_state, &frame, &echo) : false;
+        bool fired = (tx && ap_ok) ? fsd_handle_nag_killer(&g_state, &frame, &echo, millis()) : false;
         state_exit();
         if (fired) {
             uint8_t lvl     = (frame.data[4] >> 6) & 0x03;
@@ -1440,7 +1443,7 @@ void setup() {
     // ── WiFi + Web dashboard (non-fatal if WiFi fails) ───────────────────────
     if (wifi_init(&g_state)) {
         web_dashboard_init(&g_state, g_can, CAN_ACTIVE_BUS_COUNT, &g_state_mux);
-        http_can_stream_set_enabled(state_snapshot().op_mode == OpMode_ListenOnly);
+        http_can_stream_set_enabled(true);  // capture works in both modes now (#108)
         Serial.println("[SER] Type 'ip' in the serial monitor to print WiFi URLs again");
     }
 }
@@ -1601,9 +1604,15 @@ void loop() {
         CanBusId want_bus = CAN_BUS_PRIMARY;
         bool want_bus_filter = http_can_stream_bus_filter(&want_bus);
 
+        // Never install the single-ID hardware filter in Active mode — it would
+        // restrict the controller to one id and starve injection's RX path. A
+        // single-ID capture during Active silently falls back to software
+        // filtering (lower rate, but injection stays intact). Multi-ID captures
+        // are software-filtered anyway and run at full effect in both modes.
+        bool allow_hw_filter = (state_snapshot().op_mode == OpMode_ListenOnly);
         for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
             CanBusId bus = bus_id_from_index(i);
-            bool bus_want_single = want_single && (!want_bus_filter || bus == want_bus);
+            bool bus_want_single = want_single && allow_hw_filter && (!want_bus_filter || bus == want_bus);
             uint32_t bus_want_id = bus_want_single ? want_id : 0u;
             if (bus_want_single != s_hw_filter_single[i] ||
                 (bus_want_single && bus_want_id != s_hw_filter_id[i])) {

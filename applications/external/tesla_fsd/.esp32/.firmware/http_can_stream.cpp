@@ -417,9 +417,9 @@ void http_can_stream_set_enabled(bool enabled) {
     g_enabled = enabled;
     if (!g_enabled) {
         close_stream();
-        Serial.println("[HTTP-CAN] Stream disabled in Active mode");
+        Serial.println("[HTTP-CAN] Stream disabled");
     } else {
-        Serial.println("[HTTP-CAN] Stream enabled in Listen-Only mode");
+        Serial.println("[HTTP-CAN] Stream enabled");
     }
 }
 

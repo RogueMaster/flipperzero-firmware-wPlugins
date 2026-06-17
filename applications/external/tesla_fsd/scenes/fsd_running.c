@@ -434,7 +434,8 @@ static int32_t fsd_running_worker(void* context) {
                     // Nag killer TX (if enabled)
                     if(state.nag_killer) {
                         CANFRAME echo;
-                        if(fsd_handle_nag_killer(&state, &frame, &echo) && tx_allowed) {
+                        if(fsd_handle_nag_killer(&state, &frame, &echo, furi_get_tick()) &&
+                           tx_allowed) {
                             send_can_frame(mcp, &echo);
                         }
                     }

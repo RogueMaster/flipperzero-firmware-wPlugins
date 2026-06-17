@@ -342,8 +342,6 @@ static uint32_t nag_prng_state       = 0xDEADBEEFu;
 static int16_t  nag_torq_walk        = 2230;   // raw init ≈ 1.80 Nm
 static uint8_t  nag_exc_frames       = 0;
 static uint16_t nag_frames_until_exc = 175;
-static int16_t  nag_faithful_walk    = 2050;   // EPAS-faithful: raw 2050 = 0.00 Nm
-
 static uint32_t nag_xorshift32() {
     uint32_t x = nag_prng_state;
     x ^= x << 13;
@@ -353,9 +351,118 @@ static uint32_t nag_xorshift32() {
     return x;
 }
 
-bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out) {
+// EPAS-faithful (Mode-C) path — mirror of the Flipper fsd_handler.c logic (#100):
+// demand-state-driven torque, handsOnLevel derived from torque magnitude, direction
+// opposite steering. Raw 2048 = 0 Nm, raw = 2048 + Nm*100.
+static uint8_t nag_hands_level_from_raw(int16_t raw) {
+    int16_t a = (raw >= 2048) ? (raw - 2048) : (2048 - raw);
+    if (a >= 200) return 2;
+    if (a >= 100) return 1;
+    return 0;
+}
+
+static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
+                               CanFrame *out, uint32_t now_ms) {
+    uint8_t das = state->das_hands_on_state;
+
+    static uint8_t  prev_das        = 0xFF;
+    static uint32_t s1_enter_ms     = 0;
+    static uint32_t s2_enter_ms     = 0;
+    static uint32_t strong_enter_ms = 0;
+    static int16_t  last_raw        = 2048;
+    static uint8_t  last_level      = 0;
+    static uint32_t s2_hold_until_ms = 0;
+    static int16_t  s2_hold_raw     = 2048;
+    static uint8_t  s2_hold_level   = 0;
+    static bool     s2_level2_active = false;
+    static int16_t  mild_walk       = 2048;
+
+    bool is_strong   = (das == 3 || das == 4 || das == 5);
+    bool prev_strong = (prev_das == 3 || prev_das == 4 || prev_das == 5);
+    if (prev_das != 1 && das == 1) s1_enter_ms = now_ms;
+    if (das != 1) s1_enter_ms = 0;
+    if (prev_das != 2 && das == 2) s2_enter_ms = now_ms;
+    if (das != 2) { s2_enter_ms = 0; s2_hold_until_ms = 0; s2_level2_active = false; }
+    if (!prev_strong && is_strong) strong_enter_ms = now_ms;
+    if (!is_strong) strong_enter_ms = 0;
+    prev_das = das;
+
+    if (state->das_ap_state < 2u || das == 0 || das == 8 || das == 15) {
+        last_raw = 2048; last_level = 0;
+        return false;
+    }
+
+    int dir = (state->steering_angle_deg > 0.0f) ? -1 : 1;
+    int16_t torque;
+    uint8_t level;
+
+    if (das == 1) {
+        if (s1_enter_ms != 0 && (now_ms - s1_enter_ms) < 500u) {
+            torque = last_raw; level = last_level;
+        } else {
+            last_raw = 2048; last_level = 0;
+            return false;
+        }
+    } else if (das == 2) {
+        if (s2_enter_ms != 0 && (now_ms - s2_enter_ms) < 2000u) return false;
+        if (now_ms < s2_hold_until_ms) {
+            torque = s2_hold_raw; level = s2_hold_level;
+        } else {
+            int16_t lo = (dir < 0) ? 1848 : 2098;
+            int16_t hi = (dir < 0) ? 1998 : 2248;
+            if (mild_walk < lo || mild_walk > hi) mild_walk = (int16_t)((lo + hi) / 2);
+            mild_walk += (int16_t)((int)(nag_xorshift32() % 25u) - 12);
+            if (mild_walk < lo) mild_walk = lo;
+            if (mild_walk > hi) mild_walk = hi;
+            torque = mild_walk;
+            level = nag_hands_level_from_raw(torque);
+            int16_t a = (torque >= 2048) ? (torque - 2048) : (2048 - torque);
+            bool l2 = (a >= 200);
+            if (l2 && !s2_level2_active) {
+                s2_hold_until_ms = now_ms + 1000u; s2_hold_raw = torque; s2_hold_level = 2;
+            }
+            s2_level2_active = l2;
+        }
+    } else {
+        if (strong_enter_ms != 0 && (now_ms - strong_enter_ms) < 1000u) return false;
+        uint32_t active_ms = (strong_enter_ms == 0) ? 0u : (now_ms - strong_enter_ms - 1000u);
+        uint16_t phase = (uint16_t)(active_ms % 1500u);
+        int16_t mag = 210;
+        if (phase < 500u) mag = (int16_t)(((int32_t)phase * 210) / 500);
+        torque = (int16_t)(2048 + dir * mag);
+        level = nag_hands_level_from_raw(torque);
+    }
+
+    last_raw = torque; last_level = level;
+
+    out->id  = CAN_ID_EPAS_STATUS;
+    out->dlc = 8;
+    out->data[0] = frame->data[0];
+    out->data[1] = frame->data[1];
+    out->data[SIG_EPAS_TORQUE_HIGH_BYTE] =
+        (frame->data[SIG_EPAS_TORQUE_HIGH_BYTE] & SIG_EPAS_TORQUE_HIGH_KEEP_MASK) |
+        (uint8_t)((torque >> SIG_EPAS_TORQUE_HIGH_SHIFT) & SIG_EPAS_TORQUE_HIGH_VALUE_MASK);
+    out->data[SIG_EPAS_TORQUE_LOW_BYTE] = (uint8_t)(torque & SIG_EPAS_TORQUE_LOW_MASK);
+    out->data[SIG_EPAS_HANDS_ON_BYTE] =
+        (frame->data[SIG_EPAS_HANDS_ON_BYTE] & (uint8_t)(~SIG_EPAS_HANDS_ON_CLEAR_MASK)) |
+        (uint8_t)((level & SIG_EPAS_HANDS_ON_MASK) << SIG_EPAS_HANDS_ON_SHIFT);
+    out->data[5] = frame->data[5];
+    uint8_t cnt = (frame->data[SIG_EPAS_COUNTER_BYTE] & SIG_EPAS_COUNTER_MASK);
+    cnt = (cnt + 1u) & SIG_EPAS_COUNTER_MASK;
+    out->data[SIG_EPAS_COUNTER_BYTE] =
+        (frame->data[SIG_EPAS_COUNTER_BYTE] & SIG_EPAS_COUNTER_KEEP_MASK) | cnt;
+    out->data[7] = tesla_additive_checksum(CAN_ID_EPAS_STATUS, out->data, 7);
+    state->nag_echo_count++;
+    state->nag_suppressed = true;
+    return true;
+}
+
+bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out,
+                           uint32_t now_ms) {
     if (frame->dlc < 8)     return false;
     if (!state->nag_killer) return false;
+
+    if (state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);
 
     // EPAS handsOnLevel: bits 7:6 of byte 4.  Skip only when level==1 (hands OK).
     uint8_t hands_on = (frame->data[SIG_EPAS_HANDS_ON_BYTE] >> SIG_EPAS_HANDS_ON_SHIFT) &
@@ -387,18 +494,7 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
 
     // Organic torque random walk
     int16_t torq;
-    if (state->nag_epas_faithful) {
-        // v2.17 EPAS-faithful (#100): mirror the in-the-wild 0x370 scheme that
-        // passes the 2026.14.x content preflight — torsionBarTorque centred at
-        // ~0 Nm with large LIVE variance (measured mean 0.31 Nm, stdev 1.48 Nm)
-        // and handsOnLevel NEVER forced. Mean-reverting walk around raw 2050.
-        int16_t step = (int16_t)((int)(nag_xorshift32() % 81u) - 40);
-        nag_faithful_walk += step;
-        nag_faithful_walk += (int16_t)((2050 - nag_faithful_walk) / 16);
-        if (nag_faithful_walk < 1780) nag_faithful_walk = 1780;  // ~-2.7 Nm
-        if (nag_faithful_walk > 2500) nag_faithful_walk = 2500;  // ~+4.5 Nm
-        torq = nag_faithful_walk;
-    } else if (nag_exc_frames > 0) {
+    if (nag_exc_frames > 0) {
         // Grip pulse: ~3.20 Nm ± noise
         torq = 2350 + (int16_t)((int)(nag_xorshift32() % 41u) - 20);
         nag_exc_frames--;
@@ -426,15 +522,9 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
         (uint8_t)((torq >> SIG_EPAS_TORQUE_HIGH_SHIFT) &
                   SIG_EPAS_TORQUE_HIGH_VALUE_MASK);
     out->data[SIG_EPAS_TORQUE_LOW_BYTE] = (uint8_t)(torq & SIG_EPAS_TORQUE_LOW_MASK);
-    if (state->nag_epas_faithful) {
-        // Preserve the real handsOnLevel — the working scheme never forces it;
-        // setting it is what the 14.x content check appears to detect (#100).
-        out->data[SIG_EPAS_HANDS_ON_BYTE] = frame->data[SIG_EPAS_HANDS_ON_BYTE];
-    } else {
-        out->data[SIG_EPAS_HANDS_ON_BYTE] =
-            (frame->data[SIG_EPAS_HANDS_ON_BYTE] & (uint8_t)(~SIG_EPAS_HANDS_ON_CLEAR_MASK)) |
-            SIG_EPAS_HANDS_ON_SPOOF_VALUE;  // handsOnLevel = 1
-    }
+    out->data[SIG_EPAS_HANDS_ON_BYTE] =
+        (frame->data[SIG_EPAS_HANDS_ON_BYTE] & (uint8_t)(~SIG_EPAS_HANDS_ON_CLEAR_MASK)) |
+        SIG_EPAS_HANDS_ON_SPOOF_VALUE;  // handsOnLevel = 1
     out->data[5] = frame->data[5];
 
     // counter+1: lower nibble of byte 6
