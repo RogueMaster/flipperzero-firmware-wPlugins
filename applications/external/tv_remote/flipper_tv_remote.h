@@ -24,13 +24,14 @@
 #include <flipper_format/flipper_format.h>
 #include <lib/toolbox/saved_struct.h>
 
-#define TV_REMOTE_APP_TAG       "TvRemote"
-#define TV_REMOTE_FILE_HEADER   "IR signals file"
-#define TV_REMOTE_FILE_VERSION  1
-#define TV_REMOTE_FILE_DIR      EXT_PATH("infrared")
-#define TV_REMOTE_FILE_PREFIX   "tv_remote_"
-#define TV_REMOTE_NAME_MAX      24
-#define TV_REMOTE_SETTINGS_PATH APP_DATA_PATH("tv_remote_settings.dat")
+#define TV_REMOTE_APP_TAG         "TvRemote"
+#define TV_REMOTE_FILE_HEADER     "IR signals file"
+#define TV_REMOTE_FILE_VERSION    1
+#define TV_REMOTE_FILE_DIR        EXT_PATH("infrared")
+#define TV_REMOTE_FILE_PREFIX     "tv_remote_"
+#define TV_REMOTE_NAME_MAX        24
+#define TV_REMOTE_SOURCE_NAME_MAX 64
+#define TV_REMOTE_SETTINGS_PATH   APP_DATA_PATH("tv_remote_settings.dat")
 
 /** Number of buttons the app can learn and replay. */
 #define TV_BUTTON_COUNT 14
@@ -71,6 +72,9 @@ typedef enum {
     TvRemoteViewButtonMap,
     TvRemoteViewSettings,
     TvRemoteViewAbout,
+    TvRemoteViewImportFileSelect,
+    TvRemoteViewImportButtonSelect,
+    TvRemoteViewImportSignalSelect,
 } TvRemoteViewId;
 
 /** Main menu item indices. */
@@ -81,6 +85,7 @@ typedef enum {
     TvRemoteMenuButtonMap,
     TvRemoteMenuSettings,
     TvRemoteMenuAbout,
+    TvRemoteMenuImport,
 } TvRemoteMenuItem;
 
 /** What action to perform when a remote is selected in the picker. */
@@ -98,6 +103,16 @@ typedef enum {
 
 /** Opaque app context type. */
 typedef struct TvRemoteApp TvRemoteApp;
+
+/** Temporary state for importing a saved IR file. */
+typedef struct {
+    char source_path[256]; /**< Full path to the selected .ir file. */
+    char** source_names; /**< Signal names found in the source file. */
+    size_t source_count;
+    int16_t map[TV_BUTTON_COUNT]; /**< Source index mapped to each TV button, or -1. */
+    char new_remote_name[TV_REMOTE_NAME_MAX + 1];
+    uint8_t selected_button; /**< TV button currently being mapped. */
+} TvRemoteImportState;
 
 /** Stored IR signal: either a decoded (parsed) message or raw timings. */
 typedef struct {
@@ -132,6 +147,8 @@ struct TvRemoteApp {
     View* button_map_view;
     View* settings_view;
     View* about_view;
+    Submenu* import_button_submenu;
+    Submenu* import_signal_submenu;
 
     /* Settings */
     TvRemoteOrientation orientation;
@@ -167,10 +184,16 @@ struct TvRemoteApp {
     /* Back-button double-tap detection */
     FuriTimer* back_timer; /**< One-shot timer for deferred single-tap Back. */
     bool back_pending; /**< True while waiting for possible double-tap. */
+
+    /* Import from saved IR file */
+    TvRemoteImportState import;
 };
 
 /** Canonical button names (must match .ir file entries). */
 extern const char* const tv_remote_button_names[TV_BUTTON_COUNT];
+
+/* ---- Navigation callbacks ---- */
+uint32_t tv_remote_back_to_import_callback(void* context);
 
 /* ---- App lifecycle ---- */
 TvRemoteApp* tv_remote_app_alloc(void);
@@ -184,6 +207,16 @@ bool tv_remote_app_load_named(TvRemoteApp* app, const char* name);
 void tv_remote_scan_remotes(TvRemoteApp* app);
 void tv_remote_free_remote_names(TvRemoteApp* app);
 bool tv_remote_delete_remote(TvRemoteApp* app, const char* name);
+bool tv_remote_list_ir_file_signals(const char* path, char*** names_out, size_t* count_out);
+void tv_remote_free_source_names(TvRemoteImportState* import);
+bool tv_remote_import_load_source_signal(TvRemoteApp* app, size_t source_index, TvButton target);
+bool tv_remote_import_save_mapped_remote(TvRemoteApp* app, const char* name);
 
+/* ---- Import helpers ---- */
+void tv_remote_import_reset(TvRemoteImportState* import);
+
+/* ---- IR file picker entry point ---- */
+bool tv_remote_import_run_file_browser(TvRemoteApp* app);
+void tv_remote_import_build_button_submenu(TvRemoteApp* app);
 /* ---- Entry point ---- */
 int32_t flipper_tv_remote_app(void* p);

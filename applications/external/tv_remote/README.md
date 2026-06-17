@@ -2,6 +2,19 @@
 
 Turn your Flipper Zero into a fully functional TV remote. Record buttons from any IR remote and replay them from your Flipper — no original remote needed.
 
+## 🍴 This is a fork of the original project
+
+**Original repo:** https://github.com/jmanion0139/flipper_tv_remote
+
+**Pull request to upstream:** https://github.com/jmanion0139/flipper_tv_remote/pull/3
+
+### ⭐ Key change in this fork: Import saved `.ir` files
+
+This fork adds the ability to **import saved `.ir` files** from the Flipper's built-in Infrared app (or any standard Flipper IR library file) and **map their signals to the TV Remote buttons**.
+
+- Original app: only learns signals directly from a physical IR remote.
+- This fork: lets you pick any existing `.ir` file and assign its named signals to Power, Volume, Channel, D-pad, OK, Back, Home, etc.
+
 ## What it does
 
 flipper_tv_remote lets you save the IR signals from any TV remote and replay them through your Flipper Zero's built-in IR blaster. You can store as many remotes as you like, each with a name you choose.
@@ -35,11 +48,22 @@ Want to build from source? See [docs/build-instructions.md](docs/build-instructi
 | Item | What it does |
 |---|---|
 | **Learn Remote** | Record a new remote or overwrite an existing one |
+| **Import from IR** | Import a saved `.ir` file and map its signals to TV buttons |
 | **Use Remote** | Choose a saved remote and control your TV |
 | **Delete Remote** | Remove a saved remote from the SD card |
 | **Button Map** | View the full button reference (press vs hold) |
 | **Settings** | Change the screen orientation |
 | **About** | Author and license info |
+
+## Importing a saved `.ir` file
+
+1. Select **Import from IR** from the main menu.
+2. Use the file browser to pick any `.ir` file from `/ext/infrared/` on your SD card.
+3. The app will show a list of TV buttons. Select a button to map.
+4. Choose which signal from the `.ir` file should be assigned to that button.
+5. Use **Auto-map names** to automatically match common signal names (e.g. `POWER`, `VOL+`, `CH+`).
+6. Select **Save imported remote** and enter a name.
+7. The new remote is saved as `tv_remote_<name>.ir` and can be used like any learned remote.
 
 ## Learning a remote
 
