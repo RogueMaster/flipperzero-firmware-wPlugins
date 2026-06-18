@@ -45,8 +45,11 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: "MQ-3 Alcometer ${{ github.ref_name }}"
           body: |
-            ## Что нового в этой версии?
-            *Опишите изменения здесь*
+           ## Что нового в этой версии?
+  - Первый публичный релиз
+  - Измерение алкоголя в mg/l
+  - Автоматическая калибровка
+  - Ведение лога измерений
           draft: false
           prerelease: false
           files: dist/*.fap
