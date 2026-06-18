@@ -372,6 +372,7 @@ static bool
     // Page 1: Card Info
     // =====================================================================
     uint8_t p = metroflip_card_view_add_page(view, "Card Info");
+    uint8_t info_page = p;
 
     const char* card_type = renfe_regular_detect_card_type(data);
     snprintf(val, sizeof(val), "%.23s", card_type);
@@ -382,6 +383,30 @@ static bool
         (mf_classic_is_block_read(data, 12) && data->block[12].data[0] == 0xE8 &&
          data->block[12].data[1] == 0x03);
     metroflip_card_view_add_field(view, p, is_bono ? "Trips" : "Status", val, true);
+
+    metroflip_card_view_add_field(
+        view,
+        p,
+        "Format",
+        (data->type == MfClassicType1k) ? "Mifare Classic 1K" : "Mifare Classic 4K",
+        false);
+
+    if(data->iso14443_3a_data && data->iso14443_3a_data->uid_len > 0) {
+        const uint8_t* uid = data->iso14443_3a_data->uid;
+        size_t uid_len = data->iso14443_3a_data->uid_len;
+        size_t pos = 0;
+        val[0] = '\0';
+        for(size_t i = 0; i < uid_len && pos < sizeof(val) - 3; i++) {
+            pos += (size_t)snprintf(val + pos, sizeof(val) - pos, i ? " %02X" : "%02X", uid[i]);
+        }
+        metroflip_card_view_add_field(view, p, "UID", val, false);
+    } else if(mf_classic_is_block_read(data, 0)) {
+        const uint8_t* b0 = data->block[0].data;
+        snprintf(val, sizeof(val), "%02X %02X %02X %02X", b0[0], b0[1], b0[2], b0[3]);
+        metroflip_card_view_add_field(view, p, "UID", val, false);
+    } else {
+        metroflip_card_view_add_field(view, p, "UID", "N/A", false);
+    }
 
     char disp_region[24];
     renfe_format_region(region, disp_region, sizeof(disp_region));
@@ -582,6 +607,51 @@ static bool
                     metroflip_card_view_add_field(view, hp, "Station", val, false);
                 }
             }
+
+            // Fare detail (byte 7: 0x10 = standard fare)
+            if(bd[7] != 0x00 && bd[7] != 0xFF) {
+                metroflip_card_view_add_field(
+                    view, hp, "Fare", (bd[7] == 0x10) ? "Standard" : "Special", false);
+            }
+
+            // Source block of this entry
+            snprintf(val, sizeof(val), "%d", bn);
+            metroflip_card_view_add_field(view, hp, "Block", val, false);
+        }
+
+        // Bono cards with no decodable history: show raw trip data blocks
+        if(is_bono && trip_num == 0) {
+            static const int bono_raw_blocks[] = {4, 5, 6, 7, 8};
+            uint8_t rp = metroflip_card_view_add_page(view, "Bono Raw Data");
+            if(rp != UINT8_MAX) {
+                metroflip_card_view_add_field(
+                    view, rp, "", "History format not yet decoded", false);
+                char lbl[METROFLIP_CARD_VIEW_LABEL_LEN];
+                for(size_t i = 0; i < sizeof(bono_raw_blocks) / sizeof(bono_raw_blocks[0]); i++) {
+                    int bn = bono_raw_blocks[i];
+                    if(bn >= max_block || !mf_classic_is_block_read(data, bn)) continue;
+                    const uint8_t* bd = data->block[bn].data;
+                    snprintf(lbl, sizeof(lbl), "B%02d", bn);
+                    for(int j = 0; j < 8; j++) {
+                        snprintf(val + j * 2, 3, "%02X", bd[j]);
+                    }
+                    metroflip_card_view_add_field(view, rp, lbl, val, false);
+                    for(int j = 0; j < 8; j++) {
+                        snprintf(val + j * 2, 3, "%02X", bd[j + 8]);
+                    }
+                    metroflip_card_view_add_field(view, rp, "", val, false);
+                }
+            }
+        }
+
+        // History availability status (not shown for Ida/Vuelta cards)
+        bool is_ida_vuelta =
+            (mf_classic_is_block_read(data, 12) &&
+             ((data->block[12].data[0] == 0xE4 && data->block[12].data[1] == 0x02) ||
+              (data->block[12].data[0] == 0x04 && data->block[12].data[1] == 0x01)));
+        if(!is_ida_vuelta) {
+            metroflip_card_view_add_field(
+                view, info_page, "History", (trip_num > 0) ? "Available" : "Empty", false);
         }
     }
 
@@ -630,6 +700,14 @@ static void renfe_regular_on_enter(Metroflip* app) {
                 view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
             if(should_free) mf_classic_free(mfc_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
     } else {
         Widget* widget = app->widget;

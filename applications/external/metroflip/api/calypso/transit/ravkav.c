@@ -5,7 +5,7 @@
 #include "ravkav_i.h"
 
 const char* get_ravkav_issuer(int issuer) {
-    if(RAVKAV_ISSUERS_LIST[issuer]) {
+    if(issuer >= 0 && issuer < (int)COUNT_OF(RAVKAV_ISSUERS_LIST) && RAVKAV_ISSUERS_LIST[issuer]) {
         return RAVKAV_ISSUERS_LIST[issuer];
     } else {
         // Use static buffer to avoid memory leak

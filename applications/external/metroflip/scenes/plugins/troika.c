@@ -1531,6 +1531,32 @@ static bool troika_get_card_config(TroikaCardConfig* config, MfClassicType type)
     return success;
 }
 
+/* Add every "Label: value" line of parsed text as a card-view field; lines
+ * without a separator become plain text fields. Balance lines are bolded. */
+static void troika_add_text_as_fields(View* view, uint8_t page, FuriString* text) {
+    const char* s = furi_string_get_cstr(text);
+    while(*s) {
+        const char* nl = strchr(s, '\n');
+        size_t len = nl ? (size_t)(nl - s) : strlen(s);
+        if(len > 0) {
+            char line[64];
+            if(len > sizeof(line) - 1) len = sizeof(line) - 1;
+            memcpy(line, s, len);
+            line[len] = '\0';
+            char* sep = strstr(line, ": ");
+            if(sep) {
+                *sep = '\0';
+                bool highlight = (strcmp(line, "Balance") == 0);
+                metroflip_card_view_add_field(view, page, line, sep + 2, highlight);
+            } else {
+                metroflip_card_view_add_field(view, page, "", line, false);
+            }
+        }
+        if(!nl) break;
+        s = nl + 1;
+    }
+}
+
 /* Parse MIFARE Classic data and populate card view */
 static bool troika_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
     // Verify card type
@@ -1616,90 +1642,22 @@ static bool troika_display_card_view(const MfClassicData* data, Metroflip* app, 
         metroflip_card_view_add_field(view, p, "Trips Left", val, true);
     }
 
-    /* Section pages: one page per transport section with its parsed details.
-     * Because each section can have many lines of detail (depending on layout),
-     * we display the full parsed text as a widget fallback for "Details" and
-     * put key fields into card view pages. */
+    /* Section pages: one page per transport section, showing every line the
+     * mosgortrans parser produced (pages scroll, so nothing is dropped). */
 
-    /* Metro section */
     if(is_metro_data_present && !furi_string_empty(metro_result)) {
-        uint32_t m_number = 0;
-        bool m_has_balance = false, m_has_trips = false;
-        uint32_t m_balance = 0;
-        uint16_t m_trips = 0;
-        bool m_got = troika_extract_block_summary(
-            &data->block[32], &m_number, &m_has_balance, &m_balance, &m_has_trips, &m_trips);
-
         p = metroflip_card_view_add_page(view, "Metro");
-        if(m_got && m_number != 0) {
-            snprintf(val, sizeof(val), "%010lu", m_number);
-            metroflip_card_view_add_field(view, p, "Number", val, false);
-        }
-        if(m_has_balance) {
-            if(m_balance >= 100)
-                snprintf(val, sizeof(val), "%lu rub", m_balance / 100);
-            else
-                snprintf(val, sizeof(val), "%lu rub", m_balance);
-            metroflip_card_view_add_field(view, p, "Balance", val, true);
-        }
-        if(m_has_trips) {
-            snprintf(val, sizeof(val), "%u", m_trips);
-            metroflip_card_view_add_field(view, p, "Trips Left", val, true);
-        }
+        troika_add_text_as_fields(view, p, metro_result);
     }
 
-    /* Ediny (Ground) section */
     if(is_ground_data_present && !furi_string_empty(ground_result)) {
-        uint32_t g_number = 0;
-        bool g_has_balance = false, g_has_trips = false;
-        uint32_t g_balance = 0;
-        uint16_t g_trips = 0;
-        bool g_got = troika_extract_block_summary(
-            &data->block[28], &g_number, &g_has_balance, &g_balance, &g_has_trips, &g_trips);
-
         p = metroflip_card_view_add_page(view, "Ediny");
-        if(g_got && g_number != 0) {
-            snprintf(val, sizeof(val), "%010lu", g_number);
-            metroflip_card_view_add_field(view, p, "Number", val, false);
-        }
-        if(g_has_balance) {
-            if(g_balance >= 100)
-                snprintf(val, sizeof(val), "%lu rub", g_balance / 100);
-            else
-                snprintf(val, sizeof(val), "%lu rub", g_balance);
-            metroflip_card_view_add_field(view, p, "Balance", val, true);
-        }
-        if(g_has_trips) {
-            snprintf(val, sizeof(val), "%u", g_trips);
-            metroflip_card_view_add_field(view, p, "Trips Left", val, true);
-        }
+        troika_add_text_as_fields(view, p, ground_result);
     }
 
-    /* TAT section */
     if(is_tat_data_present && !furi_string_empty(tat_result)) {
-        uint32_t t_number = 0;
-        bool t_has_balance = false, t_has_trips = false;
-        uint32_t t_balance = 0;
-        uint16_t t_trips = 0;
-        bool t_got = troika_extract_block_summary(
-            &data->block[16], &t_number, &t_has_balance, &t_balance, &t_has_trips, &t_trips);
-
         p = metroflip_card_view_add_page(view, "TAT");
-        if(t_got && t_number != 0) {
-            snprintf(val, sizeof(val), "%010lu", t_number);
-            metroflip_card_view_add_field(view, p, "Number", val, false);
-        }
-        if(t_has_balance) {
-            if(t_balance >= 100)
-                snprintf(val, sizeof(val), "%lu rub", t_balance / 100);
-            else
-                snprintf(val, sizeof(val), "%lu rub", t_balance);
-            metroflip_card_view_add_field(view, p, "Balance", val, true);
-        }
-        if(t_has_trips) {
-            snprintf(val, sizeof(val), "%u", t_trips);
-            metroflip_card_view_add_field(view, p, "Trips Left", val, true);
-        }
+        troika_add_text_as_fields(view, p, tat_result);
     }
 
     furi_string_free(tat_result);
@@ -1779,22 +1737,11 @@ static NfcCommand troika_poller_callback(NfcGenericEvent event, void* context) {
             app->sec_num++;
         }
     } else if(mfc_event->type == MfClassicPollerEventTypeSuccess) {
-        const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-
-        if(!troika_display_card_view(mfc_data, app, false)) {
-            FURI_LOG_I(TAG, "Unknown card type");
-            FuriString* parsed_data = furi_string_alloc();
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-            Widget* widget = app->widget;
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            furi_string_free(parsed_data);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        }
-
-        metroflip_app_blink_stop(app);
+        nfc_device_set_data(
+            app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         FURI_LOG_I(TAG, "fail");
@@ -1828,8 +1775,17 @@ static void troika_on_enter(Metroflip* app) {
             }
 
             mf_classic_free(mfc_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
         Popup* popup = app->popup;
         popup_set_header(
@@ -1848,7 +1804,22 @@ static bool troika_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfClassicData* mfc_data =
+                nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
+            if(!troika_display_card_view(mfc_data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
             popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
@@ -1881,6 +1852,7 @@ static void troika_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

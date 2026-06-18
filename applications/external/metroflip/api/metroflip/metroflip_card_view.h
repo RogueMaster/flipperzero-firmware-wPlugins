@@ -6,13 +6,18 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define METROFLIP_CARD_VIEW_MAX_FIELDS  5
-#define METROFLIP_CARD_VIEW_MAX_PAGES   16
-#define METROFLIP_CARD_VIEW_LABEL_LEN   16
-#define METROFLIP_CARD_VIEW_VALUE_LEN   24
+#define METROFLIP_CARD_VIEW_LABEL_LEN   20
+#define METROFLIP_CARD_VIEW_VALUE_LEN   32
 #define METROFLIP_CARD_VIEW_HEADER_LEN  24
 #define METROFLIP_CARD_VIEW_TITLE_LEN   20
 #define METROFLIP_CARD_VIEW_ANIM_FRAMES 3
+
+/* Pages and fields are allocated dynamically: a page holds as many fields
+   as the card needs (vertically scrollable), and a card holds as many pages
+   as it needs. 254 is the bookkeeping ceiling (UINT8_MAX is the add_page
+   failure sentinel), far beyond any real card. */
+#define METROFLIP_CARD_VIEW_MAX_PAGES  254
+#define METROFLIP_CARD_VIEW_MAX_FIELDS 254
 
 typedef struct {
     char label[METROFLIP_CARD_VIEW_LABEL_LEN];
@@ -22,8 +27,9 @@ typedef struct {
 
 typedef struct {
     char header[METROFLIP_CARD_VIEW_HEADER_LEN];
-    MetroflipCardField fields[METROFLIP_CARD_VIEW_MAX_FIELDS];
+    MetroflipCardField* fields;
     uint8_t field_count;
+    uint8_t field_capacity;
 } MetroflipCardPage;
 
 typedef struct {
@@ -31,11 +37,12 @@ typedef struct {
     const Icon* icon;
     const Icon* anim[METROFLIP_CARD_VIEW_ANIM_FRAMES]; // animation frames (NULL = no anim)
     uint8_t anim_frame;
-    MetroflipCardPage pages[METROFLIP_CARD_VIEW_MAX_PAGES];
+    MetroflipCardPage* pages;
     uint8_t page_count;
+    uint8_t page_capacity;
     uint8_t current_page;
-    int8_t scroll_y; // lines scrolled (0 = top)
-    uint8_t total_lines; // set by draw callback for scroll clamping
+    int16_t scroll_y; // lines scrolled (0 = top)
+    uint16_t total_lines; // set by draw callback for scroll clamping
     bool show_save;
     bool show_delete;
 } MetroflipCardViewModel;

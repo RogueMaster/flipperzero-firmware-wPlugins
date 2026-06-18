@@ -27,7 +27,15 @@ void metroflip_scene_parse_on_enter(void* context) {
     }
 
     /* ATR sub-detection: T-Mobilitat vs T-Money vs unknown */
-    if((strcmp(app->card_type, "atr") == 0) && app->hist_bytes_count > 0) {
+    if(strcmp(app->card_type, "atr") == 0) {
+        if(app->hist_bytes_count == 0) {
+            /* No historical bytes (e.g. phone-emulated cards). Re-loading the
+               atr plugin would just re-read zero bytes and fire AtrComplete
+               again, looping forever (issue #71 follow-up). */
+            FURI_LOG_I(TAG, "ATR card without historical bytes - unknown");
+            view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventWrongCard);
+            return;
+        }
         FURI_LOG_I(TAG, "Tag is either T-Mobilitat or T-Money");
         if(app->hist_bytes[0] == 0x2A && app->hist_bytes[1] == 0x26) {
             FURI_LOG_I(TAG, "Card is T-Mobilitat");
@@ -35,8 +43,6 @@ void metroflip_scene_parse_on_enter(void* context) {
         } else if(app->hist_bytes[0] == 0x04 && app->hist_bytes[1] == 0x09) {
             FURI_LOG_I(TAG, "Card is T-Money");
             app->card_type = "tmoney";
-            view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventWrongCard);
-            return;
         } else {
             view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventWrongCard);
             return;
@@ -102,8 +108,10 @@ bool metroflip_scene_parse_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(app->scene_manager, MetroflipSceneParse);
             return true;
         } else if(event.event == MetroflipCustomEventTick) {
-            /* Animate card view icon */
-            if(app->card_view && view_get_model(app->card_view)) {
+            /* Animate card view icon. Note: no view_get_model() check here -
+               on a Locking model it would take the model mutex and never
+               release it (deadlock). */
+            if(app->card_view) {
                 with_view_model(
                     app->card_view,
                     MetroflipCardViewModel * m,
@@ -156,5 +164,4 @@ void metroflip_scene_parse_on_exit(void* context) {
 
     app->is_desfire = false;
     app->data_loaded = false;
-    app->ultralight_data_ready = false;
 }

@@ -76,7 +76,7 @@ static void
     snprintf(out, out_len, "%04lu-%02lu-%02lu %02lu:%02lu", year, month, day, hours, mins);
 }
 
-/* Get concession type string */
+/* Get concession type string, NULL if unknown (caller shows raw value) */
 static const char* gocard_concession_str(unsigned short concession_type) {
     switch(concession_type) {
     case CHILD:
@@ -84,7 +84,7 @@ static const char* gocard_concession_str(unsigned short concession_type) {
     case ADULT:
         return "Adult";
     default:
-        return "Unknown";
+        return NULL;
     }
 }
 
@@ -128,8 +128,12 @@ static bool gocard_display_card_view(const MfClassicData* data, Metroflip* app, 
     gocard_format_time(config_block, 4, data, val, sizeof(val));
     metroflip_card_view_add_field(view, p, "Expiry", val, false);
 
-    metroflip_card_view_add_field(
-        view, p, "Concession", gocard_concession_str(concession_type), false);
+    const char* concession = gocard_concession_str(concession_type);
+    if(!concession) {
+        snprintf(val, sizeof(val), "0x%X", concession_type);
+        concession = val;
+    }
+    metroflip_card_view_add_field(view, p, "Concession", concession, false);
 
     if(has_travel_pass) {
         metroflip_card_view_add_field(view, p, "Travel Pass", "Available", false);
@@ -198,14 +202,30 @@ static void gocard_on_enter(Metroflip* app) {
             }
 
             mf_classic_free(mfc_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
-        // Setup view
-        Popup* popup = app->popup;
-        popup_set_header(
-            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
-        popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
+        // Live reading is not implemented for go card
+        Widget* widget = app->widget;
+        widget_add_text_scroll_element(
+            widget,
+            0,
+            0,
+            128,
+            52,
+            "\e#go card\n\nLive reading not\nsupported.\n\nSave the card with\nthe NFC app, then\nopen the file here.");
+        widget_add_button_element(
+            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
     }
 }
 
@@ -242,11 +262,6 @@ static void gocard_on_exit(Metroflip* app) {
     widget_reset(app->widget);
     popup_reset(app->popup);
     metroflip_app_blink_stop(app);
-
-    if(app->poller && !app->data_loaded) {
-        nfc_poller_stop(app->poller);
-        nfc_poller_free(app->poller);
-    }
 }
 
 /* Actual implementation of app<>plugin interface */

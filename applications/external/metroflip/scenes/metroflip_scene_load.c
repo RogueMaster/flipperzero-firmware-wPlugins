@@ -7,36 +7,14 @@
 #include "../api/suica/suica_loading.h"
 #define TAG "Metroflip:Scene:Load"
 #include "keys.h"
-#include "ventra.h"
 #include <nfc/protocols/mf_classic/mf_classic.h>
 #include <nfc/protocols/mf_ultralight/mf_ultralight.h>
-
-// Not real happy about the clunky handling of current-vs-legacy dumps below, but
-// I decline to make it worse.
-static bool
-    metroflip_load_ultralight(FlipperFormat* format, Metroflip* app, const char* file_path) {
-    flipper_format_file_close(format);
-    if(!flipper_format_file_open_existing(format, file_path)) return false;
-
-    MfUltralightData* data = mf_ultralight_alloc();
-    const bool loaded = mf_ultralight_load(data, format, 2);
-    if(loaded) {
-        app->card_type = metroflip_ventra_detect(data) ? "ventra" : "trt";
-        app->is_desfire = false;
-        app->data_loaded = true;
-        FURI_LOG_I(TAG, "Detected Ultralight type: %s", app->card_type);
-    }
-
-    mf_ultralight_free(data);
-    return loaded;
-}
 
 void metroflip_scene_load_on_enter(void* context) {
     Metroflip* app = (Metroflip*)context;
 
     // Initial state
     app->data_loaded = false;
-    app->ultralight_data_ready = false;
     app->card_type = "unknown"; // Default card type
 
     // Show "Parsing" popup so main menu doesn't flash during file loading
@@ -167,10 +145,20 @@ void metroflip_scene_load_on_enter(void* context) {
                     strcmp(protocol_name, "Mifare Ultralight") == 0 ||
                     strcmp(protocol_name, "NTAG") == 0 ||
                     strcmp(protocol_name, "NTAG/Ultralight") == 0) {
-                    // Route Ultralight dumps using the same detector as live scans.  Maintain existing
-                    // (mis)behavior of assuming any Ultralight that isn't Ventra is TRT.  I don't have
-                    // TRT to test with and improve the heuristic.
-                    metroflip_load_ultralight(format, app, furi_string_get_cstr(file_path));
+                    flipper_format_file_close(format);
+                    flipper_format_file_open_existing(format, furi_string_get_cstr(file_path));
+
+                    MfUltralightData* ul_data = mf_ultralight_alloc();
+                    if(mf_ultralight_load(ul_data, format, 2)) {
+                        // Route to the same plugin live Ultralight scans use.
+                        // (There is no "ventra" plugin - the old mapping made
+                        // every saved Ultralight file fail to load.)
+                        app->card_type = "trt";
+                        app->is_desfire = false;
+                        app->data_loaded = true;
+                        FURI_LOG_I(TAG, "Loaded: Ultralight card");
+                    }
+                    mf_ultralight_free(ul_data);
                 }
             } else {
                 const char* card_str = furi_string_get_cstr(card_type_str);
@@ -201,9 +189,6 @@ void metroflip_scene_load_on_enter(void* context) {
                     app->mfc_card_type = CARD_TYPE_RENFE_SUM10;
                     app->data_loaded = true;
                     app->is_desfire = false;
-                } else if(strcmp(card_str, "ventra") == 0 || strcmp(card_str, "trt") == 0) {
-                    // If legacy save is typed as ventra or trt, route into UL detector
-                    metroflip_load_ultralight(format, app, furi_string_get_cstr(file_path));
                 } else {
                     app->card_type = "unknown";
                     app->data_loaded = false;

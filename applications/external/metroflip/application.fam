@@ -3,7 +3,7 @@ App(
     name="Metroflip",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="metroflip",
-    stack_size=2 * 1024,
+    stack_size=4 * 1024,
     fap_icon="icon.png",
     fap_icon_assets="images",
     fap_file_assets="files",
@@ -145,20 +145,20 @@ App(
 )
 
 App(
-    appid="renfe_regular_plugin",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="renfe_regular_plugin_ep",
-    requires=["metroflip"],
-    sources=["scenes/plugins/renfe_regular.c"],
-    fal_embedded=True,
-)
-
-App(
     appid="tmoney_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="tmoney_plugin_ep",
     requires=["metroflip"],
     sources=["scenes/plugins/tmoney.c"],
+    fal_embedded=True,
+)
+
+App(
+    appid="renfe_regular_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="renfe_regular_plugin_ep",
+    requires=["metroflip"],
+    sources=["scenes/plugins/renfe_regular.c"],
     fal_embedded=True,
 )
 

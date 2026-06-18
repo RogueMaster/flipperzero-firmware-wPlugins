@@ -39,7 +39,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 - Updated: [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound) [Sub-GHz icon for files (By xMasterX)](https://github.com/flipperdevices/flipper-application-catalog/pull/1078#issuecomment-4654569251)
 - Updated RFID with [Support of Hitag Micro chips (8265/8210/H5.5) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1002) and [Wipe T5577 (reset to blank, with read-back verification) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1003) instead of [Hitag #2658 (By blackvault88)](https://github.com/flipperdevices/flipperzero-firmware/pull/2658) and the wipe from [3 new T5577 extra actions: Set/clear custom pw; write block; wipe #678 (By plgcoder)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/678) to match UL more
-- Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip) [Port Ventra-UL parser (By hazardousvoltage)](https://github.com/Next-Flip/Momentum-Apps/pull/79)
 - Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Rush Hour v0.1.5 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
 - Updated: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet) (No Significant Changes)
@@ -72,6 +71,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Seader v4.1.1 (By bettse)](https://github.com/bettse/seader)
 - Updated: [Sub-GHz RAW Edit v1.6 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Updated: [Multi Converter v1.2 (By theisolinearchip)](https://github.com/theisolinearchip) [fix: correct Fahrenheit label in multi converter (By SSDWGG)](https://github.com/xMasterX/all-the-plugins/pull/220)
+- Updated: [Metroflip v2.0 (By luu176)](https://github.com/luu176/Metroflip) [Port Ventra-UL parser (By hazardousvoltage)](https://github.com/Next-Flip/Momentum-Apps/pull/79)
 
 <a name="release"></a>
 

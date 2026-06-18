@@ -72,27 +72,17 @@ static bool myki_display_card_view(const MfDesfireData* data, Metroflip* app, bo
     snprintf(card_string, sizeof(card_string), "%llu", card_number);
 
     // Stylise card number according to the physical card: 1 5 4 4 1
-    // Group into two display fields to fit within value length limits
-    char card_top[METROFLIP_CARD_VIEW_VALUE_LEN];
-    char card_bottom[METROFLIP_CARD_VIEW_VALUE_LEN];
-
-    // First field: "X XXXXX" (groups 1 and 2)
+    char card_display[METROFLIP_CARD_VIEW_VALUE_LEN];
     snprintf(
-        card_top,
-        sizeof(card_top),
-        "%c %c%c%c%c%c",
+        card_display,
+        sizeof(card_display),
+        "%c %c%c%c%c%c %c%c%c%c %c%c%c%c %c",
         card_string[0],
         card_string[1],
         card_string[2],
         card_string[3],
         card_string[4],
-        card_string[5]);
-
-    // Second field: "XXXX XXXX X" (groups 3, 4, and 5)
-    snprintf(
-        card_bottom,
-        sizeof(card_bottom),
-        "%c%c%c%c %c%c%c%c %c",
+        card_string[5],
         card_string[6],
         card_string[7],
         card_string[8],
@@ -110,8 +100,7 @@ static bool myki_display_card_view(const MfDesfireData* data, Metroflip* app, bo
     /* Page: Card Info */
     uint8_t p = metroflip_card_view_add_page(view, "Card Info");
 
-    metroflip_card_view_add_field(view, p, "Card No.", card_top, false);
-    metroflip_card_view_add_field(view, p, "", card_bottom, false);
+    metroflip_card_view_add_field(view, p, "Card No.", card_display, false);
 
     /* Button configuration */
     if(from_file) {
@@ -134,23 +123,12 @@ static NfcCommand myki_poller_callback(NfcGenericEvent event, void* context) {
     if(mf_desfire_event->type == MfDesfirePollerEventTypeReadSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfDesfire, nfc_poller_get_data(app->poller));
-        const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
-
-        if(!myki_display_card_view(data, app, false)) {
-            FURI_LOG_I(TAG, "Unknown card type");
-            Widget* widget = app->widget;
-            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
-            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            furi_string_free(s);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        }
-
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mf_desfire_event->type == MfDesfirePollerEventTypeReadFailed) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerFail);
         command = NfcCommandContinue;
     }
 
@@ -179,8 +157,17 @@ static void myki_on_enter(Metroflip* app) {
             }
 
             mf_desfire_free(data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
         // Setup view
         Popup* popup = app->popup;
@@ -201,7 +188,21 @@ static bool myki_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
+            if(!myki_display_card_view(data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
             popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
@@ -233,6 +234,7 @@ static void myki_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

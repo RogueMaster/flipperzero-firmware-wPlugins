@@ -306,6 +306,15 @@ void Describe_Usage_4(uint8_t* UsageAB, uint64_t ContractMediumEndDate, FuriStri
         EventValidityTimeFirstStamp % 60);
 }
 
+static void intertic_format_uid(const St25tbData* data, char* out, size_t out_size) {
+    size_t pos = 0;
+    out[0] = '\0';
+    for(size_t i = 0; i < ST25TB_UID_SIZE && pos + 3 < out_size; i++) {
+        if(i > 0) out[pos++] = ' ';
+        pos += snprintf(out + pos, out_size - pos, "%02X", data->uid[i]);
+    }
+}
+
 static bool intertic_display_card_view(const St25tbData* data, Metroflip* app, bool from_file) {
     // Get distribution data
     uint8_t big_endian_file_buffer[64];
@@ -453,9 +462,31 @@ static bool intertic_display_card_view(const St25tbData* data, Metroflip* app, b
             44,
             16);
         break;
-    default:
+    default: {
         FURI_LOG_I(TAG, "Unknown PID");
-        return false;
+        /* Main still displayed the UID and the raw PID for unknown
+               product types - keep that information visible */
+        View* view = metroflip_card_view_alloc(app);
+        metroflip_card_view_set_title(view, "Intertic");
+
+        char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+        uint8_t p = metroflip_card_view_add_page(view, "Card Info");
+
+        intertic_format_uid(data, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "UID", val, false);
+
+        snprintf(val, sizeof(val), "0x%02llX", PID);
+        metroflip_card_view_add_field(view, p, "Unknown PID", val, false);
+
+        if(from_file) {
+            metroflip_card_view_set_delete(view, true);
+        } else {
+            metroflip_card_view_set_save(view, true);
+        }
+
+        metroflip_card_view_show(app);
+        return true;
+    }
     }
 
     uint64_t countryISOCode =
@@ -486,23 +517,28 @@ static bool intertic_display_card_view(const St25tbData* data, Metroflip* app, b
     uint8_t p = metroflip_card_view_add_page(view, "Card Info");
 
     if(entry) {
-        snprintf(val, sizeof(val), "%.23s", entry->city);
+        snprintf(val, sizeof(val), "%.31s", entry->city);
         metroflip_card_view_add_field(view, p, "City", val, false);
 
-        snprintf(val, sizeof(val), "%.23s", entry->system);
+        snprintf(val, sizeof(val), "%.31s", entry->system);
         metroflip_card_view_add_field(view, p, "System", val, false);
-    } else {
-        snprintf(val, sizeof(val), "0x%03llX", organizationalAuthority);
-        metroflip_card_view_add_field(view, p, "Authority", val, false);
-
-        snprintf(val, sizeof(val), "%llu", contractProvider);
-        metroflip_card_view_add_field(view, p, "Provider", val, false);
     }
+
+    /* Main always showed the raw authority/provider codes */
+    snprintf(val, sizeof(val), "0x%03llX", organizationalAuthority);
+    metroflip_card_view_add_field(view, p, "Authority", val, false);
+
+    snprintf(val, sizeof(val), "%llu", contractProvider);
+    metroflip_card_view_add_field(view, p, "Provider", val, false);
 
     snprintf(val, sizeof(val), "%llu", contractApplicationVersionNumber);
     metroflip_card_view_add_field(view, p, "App Version", val, false);
 
-    metroflip_card_view_add_field(view, p, "Country", "France", false);
+    snprintf(val, sizeof(val), "0x%03llX (France)", countryISOCode);
+    metroflip_card_view_add_field(view, p, "Country", val, false);
+
+    intertic_format_uid(data, val, sizeof(val));
+    metroflip_card_view_add_field(view, p, "UID", val, false);
 
     /* Page: Status */
     p = metroflip_card_view_add_page(view, "Status");
@@ -522,9 +558,11 @@ static bool intertic_display_card_view(const St25tbData* data, Metroflip* app, b
         metroflip_card_view_add_field(view, p, "End Date", val, false);
     }
 
-    /* Usage pages - add full details for each usage buffer */
-    if(entry && entry->usage) {
-        /* Helper: add usage detail pages for one usage buffer */
+    /* Usage pages - add full details for each usage buffer. Main described
+       both usage blocks for every card, falling back to the _1 layout when
+       the network is not indexed or has no usage variant. */
+    {
+        const char* usage_variant = (entry && entry->usage) ? entry->usage : "_1";
         for(int ab = 0; ab < 2; ab++) {
             uint8_t* usage_buf = (ab == 0) ? usageA : usageB;
             const char* usage_label = (ab == 0) ? "Usage A" : "Usage B";
@@ -545,7 +583,7 @@ static bool intertic_display_card_view(const St25tbData* data, Metroflip* app, b
             metroflip_card_view_add_field(view, p, "Time", val, false);
 
             /* Extract variant-specific fields */
-            if(strcmp(entry->usage, "_1_1") == 0) {
+            if(strcmp(usage_variant, "_1_1") == 0) {
                 uint64_t nature = extract_bits(usage_buf, 0, 20, 29, 5);
                 uint64_t type = extract_bits(usage_buf, 0, 20, 34, 5);
                 uint64_t vehicleId = extract_bits(usage_buf, 0, 20, 50, 16);
@@ -572,7 +610,7 @@ static bool intertic_display_card_view(const St25tbData* data, Metroflip* app, b
                 snprintf(val, sizeof(val), "%02llu:%02llu", validity / 60, validity % 60);
                 metroflip_card_view_add_field(view, p2, "Valid From", val, false);
 
-            } else if(strcmp(entry->usage, "_1_2") == 0) {
+            } else if(strcmp(usage_variant, "_1_2") == 0) {
                 uint64_t count = extract_bits(usage_buf, 0, 20, 21, 6);
                 uint64_t nature = extract_bits(usage_buf, 0, 20, 30, 4);
                 uint64_t type = extract_bits(usage_buf, 0, 20, 34, 4);
@@ -590,31 +628,27 @@ static bool intertic_display_card_view(const St25tbData* data, Metroflip* app, b
                     nature_str = "Urban Bus";
                 else if(nature == 0x1)
                     nature_str = "Tramway";
-                snprintf(val, sizeof(val), "%.23s", nature_str);
+                snprintf(val, sizeof(val), "0x%llx (%s)", nature, nature_str);
                 metroflip_card_view_add_field(view, p, "Mode", val, false);
+
+                snprintf(val, sizeof(val), "0x%llx", type);
+                metroflip_card_view_add_field(view, p, "Type", val, false);
 
                 char hdr2[24];
                 snprintf(hdr2, sizeof(hdr2), "%s Detail", usage_label);
                 uint8_t p2 = metroflip_card_view_add_page(view, hdr2);
-                snprintf(
-                    val,
-                    sizeof(val),
-                    "V%u R%u T0x%x",
-                    (unsigned)vehicleId,
-                    (unsigned)routeId,
-                    (unsigned)type);
-                metroflip_card_view_add_field(view, p2, "Veh/Rte/Typ", val, false);
-                snprintf(val, sizeof(val), "D%u %up", (unsigned)direction, (unsigned)passengers);
-                metroflip_card_view_add_field(view, p2, "Dir/Pax", val, false);
-                snprintf(
-                    val,
-                    sizeof(val),
-                    "%02u:%02u",
-                    (unsigned)(validity / 60),
-                    (unsigned)(validity % 60));
+                snprintf(val, sizeof(val), "%llu", vehicleId);
+                metroflip_card_view_add_field(view, p2, "Vehicle", val, false);
+                snprintf(val, sizeof(val), "%llu", routeId);
+                metroflip_card_view_add_field(view, p2, "Route", val, false);
+                snprintf(val, sizeof(val), "%llu", direction);
+                metroflip_card_view_add_field(view, p2, "Direction", val, false);
+                snprintf(val, sizeof(val), "%llu", passengers);
+                metroflip_card_view_add_field(view, p2, "Passengers", val, false);
+                snprintf(val, sizeof(val), "%02llu:%02llu", validity / 60, validity % 60);
                 metroflip_card_view_add_field(view, p2, "Valid From", val, false);
 
-            } else if(strcmp(entry->usage, "_2") == 0) {
+            } else if(strcmp(usage_variant, "_2") == 0) {
                 uint64_t nature = extract_bits(usage_buf, 0, 20, 29, 5);
                 uint64_t type = extract_bits(usage_buf, 0, 20, 34, 5);
                 uint64_t routeId = extract_bits(usage_buf, 0, 20, 50, 14);
@@ -637,15 +671,19 @@ static bool intertic_display_card_view(const St25tbData* data, Metroflip* app, b
                 snprintf(val, sizeof(val), "%02llu:%02llu", validity / 60, validity % 60);
                 metroflip_card_view_add_field(view, p2, "Valid From", val, false);
 
-            } else if(strcmp(entry->usage, "_1") == 0 || strcmp(entry->usage, "_3") == 0) {
-                uint64_t validity = extract_bits(usage_buf, 0, 20, 86, 11);
-                if(strcmp(entry->usage, "_3") == 0)
-                    validity = extract_bits(usage_buf, 0, 20, 48, 11);
+            } else if(strcmp(usage_variant, "_3") == 0) {
+                uint64_t validity = extract_bits(usage_buf, 0, 20, 48, 11);
                 snprintf(val, sizeof(val), "%02llu:%02llu", validity / 60, validity % 60);
                 metroflip_card_view_add_field(view, p, "Valid From", val, false);
 
-            } else if(strcmp(entry->usage, "_4") == 0) {
+            } else if(strcmp(usage_variant, "_4") == 0) {
                 uint64_t validity = extract_bits(usage_buf, 0, 20, 84, 11);
+                snprintf(val, sizeof(val), "%02llu:%02llu", validity / 60, validity % 60);
+                metroflip_card_view_add_field(view, p, "Valid From", val, false);
+
+            } else {
+                /* "_1" and unknown variants - main's Describe_Usage_1 fallback */
+                uint64_t validity = extract_bits(usage_buf, 0, 20, 86, 11);
                 snprintf(val, sizeof(val), "%02llu:%02llu", validity / 60, validity % 60);
                 metroflip_card_view_add_field(view, p, "Valid From", val, false);
             }
@@ -705,8 +743,17 @@ static void intertic_on_enter(Metroflip* app) {
             }
 
             st25tb_free(st25tb_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
         FURI_LOG_I(TAG, "Star not loaded");
         // Setup view
@@ -778,6 +825,7 @@ static void intertic_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

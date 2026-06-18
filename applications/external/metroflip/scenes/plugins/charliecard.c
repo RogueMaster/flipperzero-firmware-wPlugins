@@ -1077,43 +1077,33 @@ static bool
             metroflip_card_view_add_field(view, p, "Expiry", val, false);
         }
 
-        /* Transaction history pages (2 transactions per page, max 5 pages) */
-        for(int i = 0; i < CHARLIE_N_TRANSACTION_HISTORY; i += 2) {
+        /* Transaction history pages (one transaction per page) */
+        for(int i = 0; i < CHARLIE_N_TRANSACTION_HISTORY; i++) {
             char hdr[METROFLIP_CARD_VIEW_HEADER_LEN];
-            snprintf(hdr, sizeof(hdr), "Transactions %d-%d", i + 1, i + 2);
+            snprintf(hdr, sizeof(hdr), "Transaction %d", i + 1);
 
             p = metroflip_card_view_add_page(view, hdr);
 
-            /* First transaction of pair */
-            Transaction* t1 = &transactions[i];
-            char amt1[METROFLIP_CARD_VIEW_VALUE_LEN];
-            snprintf(
-                amt1,
-                sizeof(amt1),
-                "%s$%u.%02u",
-                !!(t1->g_flag & 0x1) ? "-" : "+",
-                t1->fare.dollars,
-                t1->fare.cents);
-            metroflip_card_view_add_field(view, p, "Amount", amt1, true);
+            Transaction* t = &transactions[i];
 
-            charlie_location_to_str(t1, val, sizeof(val));
+            charlie_format_datetime(&t->date, val, sizeof(val));
+            metroflip_card_view_add_field(view, p, "Date", val, false);
+
+            snprintf(
+                val,
+                sizeof(val),
+                "%s$%u.%02u",
+                !!(t->g_flag & 0x1) ? "-" : "+",
+                t->fare.dollars,
+                t->fare.cents);
+            metroflip_card_view_add_field(view, p, "Amount", val, true);
+
+            charlie_location_to_str(t, val, sizeof(val));
             metroflip_card_view_add_field(view, p, "Location", val, false);
 
-            /* Second transaction of pair */
-            if(i + 1 < CHARLIE_N_TRANSACTION_HISTORY) {
-                Transaction* t2 = &transactions[i + 1];
-                char amt2[METROFLIP_CARD_VIEW_VALUE_LEN];
-                snprintf(
-                    amt2,
-                    sizeof(amt2),
-                    "%s$%u.%02u",
-                    !!(t2->g_flag & 0x1) ? "-" : "+",
-                    t2->fare.dollars,
-                    t2->fare.cents);
-                metroflip_card_view_add_field(view, p, "Amount", amt2, true);
-
-                charlie_location_to_str(t2, val, sizeof(val));
-                metroflip_card_view_add_field(view, p, "Location", val, false);
+            if(is_debug()) {
+                snprintf(val, sizeof(val), "%x %x", t->g_flag, t->f_flag);
+                metroflip_card_view_add_field(view, p, "Flags", val, false);
             }
         }
 
@@ -1134,12 +1124,7 @@ static bool
                     snprintf(val, sizeof(val), "%u", passes[i].pre);
                     metroflip_card_view_add_field(view, p, "Pre", val, false);
 
-                    const char* post_name;
-                    if(get_map_item(passes[i].post, charliecard_types, kNumTypes, &post_name)) {
-                        snprintf(val, sizeof(val), "%s", post_name);
-                    } else {
-                        snprintf(val, sizeof(val), "%u", passes[i].post);
-                    }
+                    charlie_type_to_str(passes[i].post, val, sizeof(val));
                     metroflip_card_view_add_field(view, p, "Post", val, false);
 
                     charlie_format_datetime(&passes[i].date, val, sizeof(val));
@@ -1206,22 +1191,9 @@ static NfcCommand
     } else if(mfc_event->type == MfClassicPollerEventTypeSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
-        const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-
-        dolphin_deed(DolphinDeedNfcReadSuccess);
-
-        if(!charliecard_display_card_view(mfc_data, app, false)) {
-            FURI_LOG_I(TAG, "Unknown card type");
-            Widget* widget = app->widget;
-            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
-            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            furi_string_free(s);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        }
-
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         FURI_LOG_I(TAG, "fail");
@@ -1255,8 +1227,17 @@ static void charliecard_on_enter(Metroflip* app) {
             }
 
             mf_classic_free(mfc_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
         Popup* popup = app->popup;
         popup_set_header(
@@ -1275,7 +1256,23 @@ static bool charliecard_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            dolphin_deed(DolphinDeedNfcReadSuccess);
+            const MfClassicData* mfc_data =
+                nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
+            if(!charliecard_display_card_view(mfc_data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
             popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
@@ -1308,6 +1305,7 @@ static void charliecard_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

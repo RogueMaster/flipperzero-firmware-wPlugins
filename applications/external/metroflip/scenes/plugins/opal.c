@@ -38,23 +38,25 @@ static const MfDesfireApplicationId opal_app_id = {.data = {0x31, 0x45, 0x53}};
 
 static const MfDesfireFileId opal_file_id = 0x07;
 
-static const char* opal_modes[5] = {"Rail / Metro", "Ferry / LR", "Bus", "Unknown", "Manly Ferry"};
+static const char* opal_modes[5] =
+    {"Rail / Metro", "Ferry / Light Rail", "Bus", "Unknown mode", "Manly Ferry"};
 
+// Strings kept <= 31 chars (METROFLIP_CARD_VIEW_VALUE_LEN - 1).
 static const char* opal_usages[14] = {
     "New / Unused",
-    "Tap on: new",
-    "Tap on: xfer same",
-    "Tap on: xfer other",
+    "Tap on: new journey",
+    "Tap on: transfer same mode",
+    "Tap on: transfer other mode",
     NULL,
     NULL,
     NULL,
-    "Tap off: distance",
-    "Tap off: flat",
-    "Auto tap off",
-    "Tap off: no start",
+    "Tap off: distance fare",
+    "Tap off: flat fare",
+    "Auto tap off: failed to tap off",
+    "Tap off: trip without start",
     "Tap off: reversal",
     "Tap on: rejected",
-    "Unknown",
+    "Unknown usage",
 };
 
 // Opal file 0x7 structure. Assumes a little-endian CPU.
@@ -129,7 +131,7 @@ static bool opal_display_card_view(const MfDesfireData* data, Metroflip* app, bo
     const uint8_t s2 = opal->serial / 10000000;
     const uint16_t s3 = (opal->serial / 1000) % 10000;
     const uint16_t s4 = opal->serial % 1000;
-    snprintf(val, sizeof(val), "308522%02u%04u%03u%u", s2, s3, s4, opal->check_digit);
+    snprintf(val, sizeof(val), "3085 22%02u %04u %03u%u", s2, s3, s4, opal->check_digit);
     metroflip_card_view_add_field(view, p, "Serial", val, false);
 
     const bool neg = (opal->balance < 0);
@@ -176,6 +178,9 @@ static bool opal_display_card_view(const MfDesfireData* data, Metroflip* app, bo
     snprintf(val, sizeof(val), "%u", opal->weekly_journeys);
     metroflip_card_view_add_field(view, p, "Wk Trips", val, false);
 
+    snprintf(val, sizeof(val), "%u", opal->txn_number);
+    metroflip_card_view_add_field(view, p, "Txn Number", val, false);
+
     /* Buttons */
     if(from_file) {
         metroflip_card_view_set_delete(view, true);
@@ -197,23 +202,12 @@ static NfcCommand opal_poller_callback(NfcGenericEvent event, void* context) {
     if(mf_desfire_event->type == MfDesfirePollerEventTypeReadSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfDesfire, nfc_poller_get_data(app->poller));
-        const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
-
-        if(!opal_display_card_view(data, app, false)) {
-            FURI_LOG_I(TAG, "Unknown card type");
-            Widget* widget = app->widget;
-            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
-            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            furi_string_free(s);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        }
-
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mf_desfire_event->type == MfDesfirePollerEventTypeReadFailed) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerFail);
         command = NfcCommandContinue;
     }
 
@@ -241,8 +235,17 @@ static void opal_on_enter(Metroflip* app) {
             }
 
             mf_desfire_free(data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
         Popup* popup = app->popup;
         popup_set_header(
@@ -261,7 +264,21 @@ static bool opal_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
+            if(!opal_display_card_view(data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
             popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
@@ -294,6 +311,7 @@ static void opal_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

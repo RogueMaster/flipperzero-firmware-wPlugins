@@ -70,9 +70,7 @@ extern uint8_t select_app[8];
 /*****  calypso *****/
 int get_calypso_node_offset(const char* binary_string, const char* key, CalypsoApp* structure);
 const char* get_network_string(CALYPSO_CARD_TYPE card_type);
-void metroflip_back_button_widget_callback(GuiButtonType result, InputType type, void* context);
-void metroflip_next_button_widget_callback(GuiButtonType result, InputType type, void* context);
-void calypso_save_button_widget_callback(GuiButtonType result, InputType type, void* context);
+const char* get_country_string(int country_num);
 bool is_calypso_node_present(const char* binary_string, const char* key, CalypsoApp* structure);
 int get_calypso_node_size(const char* key, CalypsoApp* structure);
 void free_calypso_structure(CalypsoApp* structure);

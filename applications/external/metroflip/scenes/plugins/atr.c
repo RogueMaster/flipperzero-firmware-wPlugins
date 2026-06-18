@@ -38,11 +38,13 @@ static void atr_on_enter(Metroflip* app) {
     popup_set_header(popup, "Parsing...", 68, 30, AlignLeft, AlignTop);
     popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-    // Start worker
-    app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_4a);
-    nfc_poller_start(app->poller, atr_poller_callback_iso14443_4a, app);
-
+    // Start worker (live scan only - on_exit only frees the poller when
+    // !data_loaded, so allocating it unconditionally would leak a running
+    // poller past plugin unload)
     if(!app->data_loaded) {
+        app->poller = nfc_poller_alloc(app->nfc, NfcProtocolIso14443_4a);
+        nfc_poller_start(app->poller, atr_poller_callback_iso14443_4a, app);
+
         popup_reset(app->popup);
         popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
@@ -59,6 +61,7 @@ static bool atr_on_event(Metroflip* app, SceneManagerEvent event) {
             notification_message(notification, &sequence_set_vibro_on);
             delay(50);
             notification_message(notification, &sequence_reset_vibro);
+            furi_record_close(RECORD_NOTIFICATION);
             const Iso14443_4aData* data =
                 nfc_device_get_data(app->nfc_device, NfcProtocolIso14443_4a);
             // Clear stale historical bytes from previous scans
@@ -72,9 +75,12 @@ static bool atr_on_event(Metroflip* app, SceneManagerEvent event) {
                 memcpy(
                     app->hist_bytes, hist_bytes, MIN(hist_bytes_count, sizeof(app->hist_bytes)));
                 app->hist_bytes_count = MIN(hist_bytes_count, sizeof(app->hist_bytes));
+                view_dispatcher_send_custom_event(
+                    app->view_dispatcher, MetroflipCustomEventAtrComplete);
+            } else {
+                view_dispatcher_send_custom_event(
+                    app->view_dispatcher, MetroflipCustomEventWrongCard);
             }
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, MetroflipCustomEventAtrComplete);
             consumed = true;
         } else if(event.event == MetroflipPollerEventTypeCardDetect) {
             Popup* popup = app->popup;

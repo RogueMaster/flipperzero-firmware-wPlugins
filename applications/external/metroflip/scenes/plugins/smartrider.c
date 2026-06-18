@@ -306,7 +306,6 @@ static NfcCommand smartrider_poller_callback(NfcGenericEvent event, void* contex
     NfcCommand command = NfcCommandContinue;
     const MfClassicPollerEvent* mfc_event = event.event_data;
     Metroflip* app = context;
-    FuriString* parsed_data = furi_string_alloc();
 
     if(mfc_event->type == MfClassicPollerEventTypeCardDetected) {
         view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventCardDetected);
@@ -333,16 +332,23 @@ static NfcCommand smartrider_poller_callback(NfcGenericEvent event, void* contex
         char card_type[] = "SmartRider";
 
         switch(manage) {
-        case MISSING_KEYFILE:
+        case MISSING_KEYFILE: {
+            // The widget copies the text, so the string can be freed right away
+            FuriString* parsed_data = furi_string_alloc();
             handle_keyfile_case(app, "No keys found", "Missing keyfile", parsed_data, card_type);
+            furi_string_free(parsed_data);
             command = NfcCommandStop;
             break;
+        }
 
-        case INCOMPLETE_KEYFILE:
+        case INCOMPLETE_KEYFILE: {
+            FuriString* parsed_data = furi_string_alloc();
             handle_keyfile_case(
                 app, "Incomplete keyfile", "incomplete keyfile", parsed_data, card_type);
+            furi_string_free(parsed_data);
             command = NfcCommandStop;
             break;
+        }
 
         case SUCCESSFUL:
             mf_classic_key_cache_load(app->mfc_key_cache, uid, uid_len);
@@ -365,22 +371,9 @@ static NfcCommand smartrider_poller_callback(NfcGenericEvent event, void* contex
     } else if(mfc_event->type == MfClassicPollerEventTypeSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
-        const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        dolphin_deed(DolphinDeedNfcReadSuccess);
-
-        if(!smartrider_display_card_view(mfc_data, app, false)) {
-            FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-            Widget* widget = app->widget;
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        }
-
-        furi_string_free(parsed_data);
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         FURI_LOG_I(TAG, "fail");
@@ -414,8 +407,17 @@ static void smartrider_on_enter(Metroflip* app) {
             }
 
             mf_classic_free(mfc_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
         Popup* popup = app->popup;
         popup_set_header(
@@ -434,7 +436,23 @@ static bool smartrider_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            dolphin_deed(DolphinDeedNfcReadSuccess);
+            const MfClassicData* mfc_data =
+                nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
+            if(!smartrider_display_card_view(mfc_data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
             popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
@@ -467,6 +485,7 @@ static void smartrider_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

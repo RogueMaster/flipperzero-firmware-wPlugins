@@ -73,6 +73,19 @@ static bool tmobilitat_display_card_view(Metroflip* app) {
 }
 
 static void tmobilitat_on_enter(Metroflip* app) {
+    if(app->data_loaded) {
+        // Card data comes from scan-time ATR historical bytes; saved files are not supported
+        FURI_LOG_E(TAG, "Saved files are not supported for this card: %s", app->file_path);
+        Widget* widget = app->widget;
+        widget_reset(widget);
+        widget_add_text_scroll_element(
+            widget, 0, 0, 128, 64, "\e#Error\nSaved files are not\nsupported for this card.");
+        widget_add_button_element(
+            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+        return;
+    }
+
     if(!tmobilitat_display_card_view(app)) {
         FURI_LOG_I(TAG, "Unknown card type");
         Widget* widget = app->widget;

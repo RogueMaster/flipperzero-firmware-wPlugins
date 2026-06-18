@@ -246,8 +246,8 @@ static void format_ts_1900(uint32_t ts, char* out, size_t len) {
     FuriString* d = furi_string_alloc();
     locale_format_date(d, &tm, locale_get_date_format(), "-");
     FuriString* t = furi_string_alloc();
-    locale_format_time(t, &tm, locale_get_time_format(), false);
-    snprintf(out, len, "%s %s", furi_string_get_cstr(d), furi_string_get_cstr(t));
+    locale_format_time(t, &tm, locale_get_time_format(), true);
+    snprintf(out, len, "%s %s (UTC)", furi_string_get_cstr(d), furi_string_get_cstr(t));
     furi_string_free(d);
     furi_string_free(t);
 }
@@ -261,6 +261,8 @@ static bool clipper_add_ride_page(View* view, const uint8_t* record, uint8_t rid
 
     const char* agency_name;
     if(!get_map_item(agency_id, agency_names, kNumAgencies, &agency_name)) agency_name = "Unknown";
+
+    uint16_t vehicle_id = get_u16be(&record[0x0a]);
 
     int16_t fare_raw = get_i16be(&record[6]);
     bool _neg;
@@ -292,10 +294,23 @@ static bool clipper_add_ride_page(View* view, const uint8_t* record, uint8_t rid
     snprintf(val, sizeof(val), "$%d.%02u", fare_usd, fare_cents);
     metroflip_card_view_add_field(view, p, "Fare", val, true);
 
-    metroflip_card_view_add_field(view, p, "Board", zone_on, false);
+    snprintf(val, sizeof(val), "%s (%04x)", agency_name, agency_id);
+    metroflip_card_view_add_field(view, p, "Agency", val, false);
+
+    snprintf(val, sizeof(val), "%s (%04x)", zone_on, zone_on_id);
+    metroflip_card_view_add_field(view, p, "Board", val, false);
+
+    if(vehicle_id != 0) {
+        snprintf(val, sizeof(val), "%u", vehicle_id);
+        metroflip_card_view_add_field(view, p, "Vehicle", val, false);
+    }
 
     if(time_off != 0) {
-        metroflip_card_view_add_field(view, p, "Exit", zone_off, false);
+        snprintf(val, sizeof(val), "%s (%04x)", zone_off, zone_off_id);
+        metroflip_card_view_add_field(view, p, "Exit", val, false);
+
+        format_ts_1900(time_off, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Exit time", val, false);
     }
 
     return true;
@@ -349,6 +364,8 @@ static bool clipper_display_card_view(const MfDesfireData* data, Metroflip* app,
     if(info.last_updated_tm_1900 != 0) {
         format_ts_1900(info.last_updated_tm_1900, val, sizeof(val));
         metroflip_card_view_add_field(view, p, "Updated", val, false);
+    } else {
+        metroflip_card_view_add_field(view, p, "Updated", "Never", false);
     }
 
     /* Page: Details */
@@ -402,23 +419,12 @@ static NfcCommand clipper_poller_callback(NfcGenericEvent event, void* context) 
     if(mf_desfire_event->type == MfDesfirePollerEventTypeReadSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfDesfire, nfc_poller_get_data(app->poller));
-        const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
-
-        if(!clipper_display_card_view(data, app, false)) {
-            FURI_LOG_I(TAG, "Unknown card type");
-            Widget* widget = app->widget;
-            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
-            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            furi_string_free(s);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        }
-
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mf_desfire_event->type == MfDesfirePollerEventTypeReadFailed) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerFail);
         command = NfcCommandContinue;
     }
 
@@ -447,8 +453,17 @@ static void clipper_on_enter(Metroflip* app) {
             }
 
             mf_desfire_free(data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
         Popup* popup = app->popup;
         popup_set_header(
@@ -467,7 +482,21 @@ static bool clipper_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
+            if(!clipper_display_card_view(data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
             popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
@@ -500,6 +529,7 @@ static void clipper_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

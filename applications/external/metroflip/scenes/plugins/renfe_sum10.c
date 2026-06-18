@@ -18,6 +18,11 @@
 #include "../../metroflip_plugins.h"
 
 #define TAG "Metroflip:Scene:RenfeSum10"
+typedef struct {
+    uint8_t block_data[16];
+    uint32_t timestamp;
+    int block_number;
+} HistoryEntry;
 
 // Station name cache structure
 #define MAX_STATION_NAME_LENGTH 20
@@ -40,6 +45,8 @@ static StationCache* station_cache = NULL;
 // Forward declarations for helper functions
 static bool renfe_sum10_is_history_entry(const uint8_t* block_data);
 static uint32_t renfe_sum10_extract_timestamp(const uint8_t* block_data);
+static void renfe_sum10_sort_history_entries(HistoryEntry* entries, int count);
+static const char* renfe_sum10_transaction_type_name(uint8_t transaction_type);
 static bool renfe_sum10_has_history_data(const MfClassicData* data);
 static bool renfe_sum10_load_station_file(const char* region);
 static const char* renfe_sum10_get_station_name_from_cache(uint16_t station_code);
@@ -395,6 +402,32 @@ static uint32_t renfe_sum10_extract_timestamp(const uint8_t* block_data) {
 
     return timestamp;
 }
+// Sort history entries manually (newest first)
+static void renfe_sum10_sort_history_entries(HistoryEntry* entries, int count) {
+    if(!entries || count <= 1) return;
+
+    for(int i = 0; i < count - 1; i++) {
+        for(int j = 0; j < count - 1 - i; j++) {
+            bool should_swap = false;
+
+            if(entries[j].timestamp < entries[j + 1].timestamp) {
+                should_swap = true;
+            } else if(entries[j].timestamp == entries[j + 1].timestamp) {
+                if(entries[j].block_number < entries[j + 1].block_number) {
+                    should_swap = true;
+                }
+            }
+
+            if(should_swap) {
+                // Swap entries
+                HistoryEntry temp = entries[j];
+                entries[j] = entries[j + 1];
+                entries[j + 1] = temp;
+            }
+        }
+    }
+}
+
 // Clear the station cache
 static void renfe_sum10_clear_station_cache(void) {
     if(station_cache) {
@@ -789,6 +822,37 @@ static const char* renfe_sum10_get_zone_name(uint16_t zone_code) {
     }
 }
 
+// Map a history entry transaction type byte to its display name
+// 0x13=Entry, 0x1A=Exit, 0x1E=Transfer, 0x16=Validation, 0x33=Top-up, etc.
+static const char* renfe_sum10_transaction_type_name(uint8_t transaction_type) {
+    switch(transaction_type) {
+    case 0x13:
+        return "Entry";
+    case 0x1A:
+        return "Exit";
+    case 0x1E:
+        return "Transfer";
+    case 0x16:
+        return "Validation";
+    case 0x17:
+        return "Inspection";
+    case 0x23:
+        return "Discount";
+    case 0x2A:
+        return "Penalty";
+    case 0x33:
+        return "Top-up";
+    case 0x3A:
+        return "Charge";
+    case 0x18:
+        return "Check";
+    case 0x2B:
+        return "Special";
+    default:
+        return "Unknown";
+    }
+}
+
 typedef struct {
     uint8_t data_sector;
     const MfClassicKeyPair* keys;
@@ -934,14 +998,26 @@ static bool
     } else if(mf_classic_is_block_read(data, 0)) {
         const uint8_t* block0 = data->block[0].data;
         if(block0 != NULL) {
-            snprintf(
-                val,
-                sizeof(val),
-                "%02X %02X %02X %02X",
-                block0[0],
-                block0[1],
-                block0[2],
-                block0[3]);
+            if(block0[0] == 0x88) {
+                // 7-byte UID: Skip cascade tag (0x88), take next 3 bytes
+                snprintf(
+                    val,
+                    sizeof(val),
+                    "%02X %02X %02X XX XX XX XX",
+                    block0[1],
+                    block0[2],
+                    block0[3]);
+            } else {
+                // 4-byte UID
+                snprintf(
+                    val,
+                    sizeof(val),
+                    "%02X %02X %02X %02X",
+                    block0[0],
+                    block0[1],
+                    block0[2],
+                    block0[3]);
+            }
             metroflip_card_view_add_field(view, p, "UID", val, false);
         }
     }
@@ -979,7 +1055,7 @@ static bool
                 // Try to extract surname from Block 14
                 if(mf_classic_is_block_read(data, 14)) {
                     const uint8_t* block14 = data->block[14].data;
-                    char surname_buffer[24] = {0};
+                    char surname_buffer[32] = {0}; // Increased buffer for both surnames
                     bool has_valid_surname = false;
                     size_t surname_pos = 0;
                     int words_found = 0;
@@ -1061,12 +1137,13 @@ static bool
                     }
 
                     if(has_valid_surname && surname_pos >= 3) {
-                        snprintf(val, sizeof(val), "%.10s %.12s", name_buffer, surname_buffer);
+                        // .15 precision keeps name+space+surname within the 32-char value
+                        snprintf(val, sizeof(val), "%.15s %.15s", name_buffer, surname_buffer);
                     } else {
-                        snprintf(val, sizeof(val), "%.23s", name_buffer);
+                        snprintf(val, sizeof(val), "%s", name_buffer);
                     }
                 } else {
-                    snprintf(val, sizeof(val), "%.23s", name_buffer);
+                    snprintf(val, sizeof(val), "%s", name_buffer);
                 }
                 metroflip_card_view_add_field(view, p, "Holder", val, false);
             }
@@ -1076,7 +1153,7 @@ static bool
     // Origin station
     const char* origin_station = renfe_sum10_get_origin_station(data);
     if(origin_station && strcmp(origin_station, "Unknown") != 0) {
-        snprintf(val, sizeof(val), "%.23s", origin_station);
+        snprintf(val, sizeof(val), "%s", origin_station);
         metroflip_card_view_add_field(view, p, "Origin", val, false);
     } else {
         metroflip_card_view_add_field(view, p, "Origin", "Unknown", false);
@@ -1101,7 +1178,7 @@ static bool
             }
         }
     }
-    snprintf(val, sizeof(val), "%.23s", zone_name ? zone_name : "N/A");
+    snprintf(val, sizeof(val), "%s", zone_name ? zone_name : "N/A");
     metroflip_card_view_add_field(view, p, "Zone", val, false);
 
     // Trips
@@ -1120,10 +1197,87 @@ static bool
     }
 
     // History status
-    if(renfe_sum10_has_history_data(data)) {
+    bool has_history = renfe_sum10_has_history_data(data);
+    if(has_history) {
         metroflip_card_view_add_field(view, p, "History", "Available", false);
     } else {
         metroflip_card_view_add_field(view, p, "History", "Empty", false);
+    }
+
+    /* Page: Travel History (sorted newest first, one field per trip) */
+    if(has_history) {
+        // Define specific blocks that contain history
+        int history_blocks[] = {18, 22, 28, 29, 30, 44, 45, 46};
+        int num_blocks = sizeof(history_blocks) / sizeof(history_blocks[0]);
+        int max_blocks = (data->type == MfClassicType1k) ? 64 : 256;
+
+        HistoryEntry history_entries[sizeof(history_blocks) / sizeof(history_blocks[0])];
+        int history_count = 0;
+
+        // Collect all valid history entries with strict validation
+        for(int i = 0; i < num_blocks; i++) {
+            int block = history_blocks[i];
+
+            // Check if block number is within valid range for this card type
+            if(block >= max_blocks) {
+                continue;
+            }
+
+            // Check if block was actually read
+            if(!mf_classic_is_block_read(data, block)) {
+                continue;
+            }
+
+            const uint8_t* block_data = data->block[block].data;
+            if(!block_data) {
+                continue;
+            }
+
+            // Use strict block-specific validation to avoid false positives
+            if(renfe_sum10_is_travel_history_block(block_data, block)) {
+                memcpy(history_entries[history_count].block_data, block_data, 16);
+                history_entries[history_count].timestamp =
+                    renfe_sum10_extract_timestamp(block_data);
+                history_entries[history_count].block_number = block;
+                history_count++;
+            }
+        }
+
+        if(history_count > 0) {
+            // Sort the history entries by timestamp (newest first)
+            renfe_sum10_sort_history_entries(history_entries, history_count);
+
+            char header[METROFLIP_CARD_VIEW_HEADER_LEN];
+            // & 0xFF bounds the value so -Wformat-truncation knows it fits
+            snprintf(header, sizeof(header), "History (%d trips)", history_count & 0xFF);
+            p = metroflip_card_view_add_page(view, header);
+            metroflip_card_view_add_field(view, p, "", "(Most recent first)", false);
+
+            for(int i = 0; i < history_count; i++) {
+                const uint8_t* entry_data = history_entries[i].block_data;
+
+                // Interpret transaction type from first byte
+                const char* type_name = renfe_sum10_transaction_type_name(entry_data[0]);
+
+                // Extract station code (bytes 9-10) - read as big-endian
+                uint16_t station_code = (entry_data[9] << 8) | entry_data[10];
+                const char* station_name = renfe_sum10_get_station_name_dynamic(station_code);
+
+                if(station_code != 0x0000 && strlen(station_name) > 0) {
+                    if(strcmp(station_name, "Unknown") == 0) {
+                        snprintf(val, sizeof(val), "%s - Unknown (%04X)", type_name, station_code);
+                    } else {
+                        snprintf(val, sizeof(val), "%s - %s", type_name, station_name);
+                    }
+                } else {
+                    snprintf(val, sizeof(val), "%s", type_name);
+                }
+
+                char label[METROFLIP_CARD_VIEW_LABEL_LEN];
+                snprintf(label, sizeof(label), "Trip %d", i + 1);
+                metroflip_card_view_add_field(view, p, label, val, false);
+            }
+        }
     }
 
     /* Buttons */
@@ -1208,27 +1362,10 @@ static NfcCommand renfe_sum10_poller_callback(NfcGenericEvent event, void* conte
             app->sec_num = 0;
         }
     } else if(mfc_event->type == MfClassicPollerEventTypeSuccess) {
-        if(!app->nfc_device) {
-            return NfcCommandStop;
-        }
-
-        const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        if(!mfc_data) {
-            return NfcCommandStop;
-        }
-
-        if(!renfe_sum10_display_card_view(mfc_data, app, false)) {
-            FURI_LOG_I(TAG, "Unknown card type");
-            Widget* widget = app->widget;
-            FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
-            widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            furi_string_free(s);
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        }
-
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. The data was
+           already captured into app->nfc_device during the sector reads. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         command = NfcCommandStop;
@@ -1273,6 +1410,14 @@ static void renfe_sum10_on_enter(Metroflip* app) {
             }
 
             if(should_free_mfc_data) mf_classic_free(mfc_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
     } else {
         // Setup view
@@ -1307,7 +1452,23 @@ static bool renfe_sum10_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfClassicData* mfc_data =
+                app->nfc_device ? nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic) :
+                                  NULL;
+            if(!mfc_data || !renfe_sum10_display_card_view(mfc_data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             if(app->popup) {
                 Popup* popup = app->popup;
                 popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);

@@ -1,8 +1,6 @@
 // Flipper Zero parser for for Tianjin Railway Transit (TRT)
 // https://en.wikipedia.org/wiki/Tianjin_Metro
 // Reverse engineering and parser development by @Torron (Github: @zinongli) and added to Metroflip by @Lupin (Github: @luu176)
-//
-// Change by (Github: @hazardousvoltage) to integrate with shared MfUL poller.  Should work, but needs TRT testing.
 
 #include <flipper_application.h>
 #include "../../metroflip_i.h"
@@ -147,10 +145,17 @@ static void trt_on_enter(Metroflip* app) {
             }
 
             mf_ultralight_free(ultralight_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
-    } else if(app->ultralight_data_ready) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        furi_record_close(RECORD_STORAGE);
     } else {
         FURI_LOG_I(TAG, "TRT not loaded");
         // Setup view
@@ -227,6 +232,7 @@ static void trt_on_exit(Metroflip* app) {
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 
     // Clear view

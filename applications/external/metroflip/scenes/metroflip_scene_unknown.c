@@ -48,7 +48,9 @@ bool metroflip_scene_unknown_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MetroflipCustomEventTick) {
-            if(app->card_view && view_get_model(app->card_view)) {
+            /* Note: no view_get_model() here - on a Locking model it would
+               take the model mutex and never release it (deadlock). */
+            if(app->card_view) {
                 with_view_model(
                     app->card_view,
                     MetroflipCardViewModel * m,

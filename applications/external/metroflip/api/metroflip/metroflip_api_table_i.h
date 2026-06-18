@@ -51,9 +51,7 @@ static constexpr auto metroflip_api_table = sort(create_array_t<sym_entry>(
     // calypso
     API_METHOD(get_calypso_node_offset, int, (const char*, const char*, CalypsoApp*)),
     API_METHOD(get_network_string, const char*, (CALYPSO_CARD_TYPE)),
-    API_METHOD(metroflip_back_button_widget_callback, void, (GuiButtonType, InputType, void*)),
-    API_METHOD(metroflip_next_button_widget_callback, void, (GuiButtonType, InputType, void*)),
-    API_METHOD(calypso_save_button_widget_callback, void, (GuiButtonType, InputType, void*)),
+    API_METHOD(get_country_string, const char*, (int)),
     API_METHOD(is_calypso_node_present, bool, (const char*, const char*, CalypsoApp*)),
     API_METHOD(get_calypso_node_size, int, (const char*, CalypsoApp*)),
     API_METHOD(free_calypso_structure, void, (CalypsoApp*)),
