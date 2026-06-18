@@ -74,8 +74,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip) [Port Ventra-UL parser (By hazardousvoltage)](https://github.com/Next-Flip/Momentum-Apps/pull/79) Many UI & Core Fixes (By luu176)
 - Updated: [Access Audit v1.9 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 - Added: [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
-- Added: [Flipcraft v2.1 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
+- Added: [Flipcraft v2.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Added: [Dallas Tester v0.1 (By mishamyte)](https://github.com/mishamyte/flipper-dallas-tester)
+- ESP Flasher: [Bump Marauder v1.12.2 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.2)
 
 <a name="release"></a>
 
@@ -352,7 +353,7 @@ $ ./fbt dolphin_ext
 - [Five Nights at Flippers v1.3 (By sillygir1)](https://github.com/sillygir1/flipperzero-fnaf)
 - [Flappy Bird v1.5 (By DroomOne)](https://github.com/DroomOne/flipperzero-firmware/tree/dev/applications/flappy_bird)
 - [Flight Assault v0.4 (By evillero)](https://github.com/evillero/flight_assault)
-- [Flipcraft v2.1 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
+- [Flipcraft v2.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - [Flipper Hero v1.4 (By mentoster)](https://github.com/mentoster/Flipper-hero)
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)
 - [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
