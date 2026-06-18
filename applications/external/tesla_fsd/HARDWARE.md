@@ -112,10 +112,15 @@ panel behind the rear armrest. Two versions exist:
 > 13/14 is Chassis CAN, which is why `0x370 EPAS3P` shows there at 100 Hz with full
 > counter continuity (EPAS lives on Chassis) — it was never a gateway-forwarded
 > subset. **`0x370` is on Chassis CAN, not Vehicle CAN** — if you tap Vehicle CAN
-> (9/10) you will not see `0x370` and the nag killer has nothing to echo. Tap the
-> pair your Service Mode page labels Chassis. The Feifan commander is a 3-CAN device
-> (CAN1/2/3) matching X179's three pairs; Party CAN (2/3) is the one bus not yet
-> swept for its injection footprint.
+> (9/10) you will not see `0x370`. The Feifan commander is a 3-CAN device
+> (CAN1/2/3) matching X179's three pairs.
+>
+> **For the nag killer, tap Party CAN (pins 2/3).** @SkyRaax runs the nag killer on
+> 2/3 on an M3 HW4 2026.20 with all other features on 13/14 (via a dual-CAN LilyGO
+> T-2CAN), and it works ([#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)).
+> A single-CAN board tapped on the wrong pair (Chassis or Vehicle) gives the nag
+> killer nothing to act on — the common cause of "nag killer does nothing on HW4."
+> Confirm which pin is Party on your harness via **Service Mode → CAN Port**.
 
 #### X179 20-pin (2021–2023 Model 3/Y)
 
