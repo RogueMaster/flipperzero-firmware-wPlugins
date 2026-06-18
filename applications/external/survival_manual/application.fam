@@ -1,0 +1,13 @@
+App(
+    appid="survival_manual",
+    name="Survival Manual",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="survival_manual_app",
+    stack_size=8 * 1024,
+    fap_category="Tools",
+    fap_icon="icon.png",
+    fap_file_assets="assets",
+    fap_author="Louis",
+    fap_version="1.0",
+    fap_description="Offline survival reference. 37 chapters from the libre Survival Manual (US Army FM 21-76, public domain).",
+)

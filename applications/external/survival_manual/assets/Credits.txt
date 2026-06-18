@@ -1,0 +1,33 @@
+Collaboration is wonderful. Together we can achieve great things!
+
+== INDIRECT CONTRIBUTORS ==
+
+First I want to thank some names that did not directly contribute to this app - but still where really important for it as the project might not have started without them:
+
+- My parents - I would not be alive and the same human without you
+- Josha Bach - for a wonderful school of thought
+- Sadhguru - for teaching inner engineering / yoga and a lot of wise words
+- Jah Shaka - for opening the gates to spirituality and musical healing
+- Vitalik Buterin and Vlad Zamfir for a potentially awesome future fabric and hope
+- Linus Torvalds - not sure if more for git or linux
+- Edward Snowden - for shining light into darkness
+- Jacque Fresco - for wonderful visions of the future
+- c-base spacestation - for being an inspirational space
+- chaos communication events - for being an inspirational time
+- This list is not meant to be complete! I don't want to have it too long so nobody reads it anymore ;-)
+
+== GRAPHICS ==
+
+- Our awesome material icon is from Michael Cook (cookicons)
+- The icons for the chapters are material icons from Google
+- Vector images from George Butter
+- Most graphics embedded in the texts are from the field manual - but I already got contacted by illustrators - we might see more soon here ;-)
+
+== PROOF READERS AND CONTRIBUTORS ==
+
+- Michael Peng has started to correct some of the wording mistakes and bad grammar - thanks a lot!
+- Simon Descarpentries contributed to Apps, MultiTools and Power pages, proof read dangerous arthropods part, and reported various typos and mistakes.
+
+== LIBRARIES / CODE ==
+
+- Kotlin as language ( Big up to JetBrains - love this language  coming soon
