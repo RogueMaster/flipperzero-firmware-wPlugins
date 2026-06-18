@@ -1,0 +1,29 @@
+name: Build App with Unleashed Firmware
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Build the FAP against the Unleashed SDK.
+      - name: Build FAP with Unleashed Firmware
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
+        id: build-app
+        with:
+          sdk-index-url: https://up.unleashedflip.com/directory.json
+          sdk-channel: dev
+
+      # Upload the built FAP as an artifact.
+      - name: Upload FAP artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+          if-no-files-found: error

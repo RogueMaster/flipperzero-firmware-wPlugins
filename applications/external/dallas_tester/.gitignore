@@ -1,0 +1,21 @@
+# ufbt / fbt build artifacts
+dist/
+.ufbt/
+build/
+*.fap
+*.elf
+*.map
+*.o
+*.bin
+
+# editors
+.vscode/
+.idea/
+
+# python
+__pycache__/
+*.pyc
+
+# os
+.DS_Store
+Thumbs.db

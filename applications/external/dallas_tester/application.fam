@@ -1,0 +1,14 @@
+App(
+    appid="dallas_tester",
+    name="Dallas Tester",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="dallas_tester_app",
+    stack_size=2 * 1024,
+    fap_icon_assets="assets",
+    fap_description="Read-only tester for Dallas iButton keys/blanks: measures the 1-Wire presence-detect low time (tPDL) with the DWT cycle counter, with range/jitter, tPDH and the family code. Never writes to the key.",
+    fap_version="0.1",
+    fap_author="mishamyte",
+    fap_icon="icon.png",
+    fap_category="iButton",
+)
