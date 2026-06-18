@@ -31,7 +31,7 @@ All 125 kHz RFID cards trigger `legacy_family` and `identifier_only_pattern`. Th
 
 Crypto1 has been publicly broken since 2008 (CRYPTO1 attacks, Darkside, Nested). Any MIFARE Classic deployment should be treated as compromised.
 
-When a Classic card is scanned, the app actively attempts to authenticate sector 0 using common default keys (`FFFFFFFFFFFF` and `A0A1A2A3A4A5`). If either succeeds, the `default_keys` rule fires and the report includes an explicit note. A card with default keys scores 85/100 instead of the standard 70/100.
+When a Classic card is scanned, the app actively attempts to authenticate sector 0 against a set of well-known public keys (factory transport, NXP MAD, NFC Forum NDEF, and common vendor defaults — see [rules.md](rules.md#active-scan-findings) for the full list). If any succeeds, the `default_keys` rule fires (+15) and the report includes an explicit note. A Classic 1K with default keys scores 75/100 instead of the standard 60/100.
 
 ---
 

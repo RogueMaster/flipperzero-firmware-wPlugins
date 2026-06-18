@@ -23,6 +23,7 @@ Tap a card, get an instant risk score and plain-English advice. Save a named ses
 - **SD card reports**: timestamped `.txt` report saved to `/ext/apps_data/access_audit/` with per-card UID, SAK/ATQA, advice, and session-level advisory
 - **On-device report viewer**: browse, scroll, and delete saved reports without leaving the app
 - **NFC + RFID + iCLASS**: Left/Right cycles between 13.56 MHz NFC, 125 kHz RFID, and HID iCLASS scanning
+- **Active default-key check**: MIFARE Classic sector 0 is tested against 8 well-known public keys (factory transport, NXP MAD, NFC Forum NDEF, and common vendor defaults). A match raises the `default_keys` finding — flagged on the result screen and in the report. Non-destructive: no sector data is read and the card is halted immediately
 
 ---
 
@@ -68,7 +69,7 @@ ufbt
 | Screen | Controls |
 |---|---|
 | Scan | Tap/hold card · **Left/Right** cycle NFC → RFID → iCLASS · **Up** view reports · **Back** exit |
-| Result | **OK** rescan · **Back** save session and proceed to naming |
+| Result | **OK** rescan · **Back** save session and proceed to naming · shows `! Default key readable` when sector 0 authenticated with a default key |
 | Name session | QWERTY keyboard · **OK key** save with name · **Back** skip naming / backspace |
 | Reports list | **Up/Down** scroll · **OK** open · **Back** return to scan |
 | Report viewer | **Up/Down** scroll lines · **Back** return to list · **Hold Back** delete report |
@@ -99,11 +100,12 @@ ufbt
 
 1. The NFC scanner detects which protocols the card supports.
 2. The richest available poller is started (DESFire → Plus → Ultralight → ISO14443-3a).
-3. The poller reads the UID and card-specific metadata without authentication; no sectors are unlocked, no data is modified.
-4. For HID iCLASS, a proprietary ACTALL → IDENTIFY → SELECT → READ block 1 exchange runs over the ISO15693 RF channel to obtain the CSN and memory variant.
-5. The observation is scored against eight named rules (see [docs/rules.md](docs/rules.md)).
-6. Results are displayed on screen and appended to the session buffer.
-7. On save, the session is written as a `.txt` report with per-card advice and a session-level advisory.
+3. The poller reads the UID and card-specific metadata without unlocking or modifying any data.
+4. For MIFARE Classic, sector 0 is actively tested against a short list of well-known default keys (key A and key B). The card is halted immediately and no sector data is read; a match raises the `default_keys` finding.
+5. For HID iCLASS, a proprietary ACTALL → IDENTIFY → SELECT → READ block 1 exchange runs over the ISO15693 RF channel to obtain the CSN and memory variant.
+6. The observation is scored against eight named rules (see [docs/rules.md](docs/rules.md)).
+7. Results are displayed on screen and appended to the session buffer.
+8. On save, the session is written as a `.txt` report with per-card advice and a session-level advisory.
 
 ---
 

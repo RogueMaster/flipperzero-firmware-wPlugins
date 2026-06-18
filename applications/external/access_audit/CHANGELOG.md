@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.9.0]: Expanded MIFARE Classic default key dictionary
+
+### Changed
+- **MIFARE Classic default key check now covers 8 well-known public keys** (was 2) (#35): added the NXP MAD key A (`A0A1A2A3A4A5` was already present), the NFC Forum NDEF public key `D3F7D3F7D3F7`, the all-zero `000000000000`, and common vendor defaults `A0B0C0D0E0F0`, `A1B1C1D1E1F1`, `B0B1B2B3B4B5`, `AABBCCDDEEFF`, alongside the factory transport key `FFFFFFFFFFFF`. Each is tried as both key A and key B against sector 0, the loop stops at the first match, and the list is capped under 10 keys so the active auth scan stays fast. Key list documented in `docs/rules.md`
+
+### Added
+- **Default-key finding shown on the result screen**: when sector 0 authenticates with a default key, the result screen now shows "! Default key readable" in place of the controls hint, surfacing the active-scan finding on-device instead of only in the saved report
+
+### Fixed
+- Corrected the documented default-key scores: a MIFARE Classic 1K with default keys scores **75/100** (legacy 35 + identifier 35 + default_keys 15 − crypto1 10), not 65/100 as previously stated in `docs/rules.md` and `docs/scoring.md`; `docs/card-types.md` was also updated from stale pre-`crypto1_breakable` values (85/70) to the current 75/60
+
 ## [1.8.1]: MIFARE Classic scan fix
 
 ### Fixed

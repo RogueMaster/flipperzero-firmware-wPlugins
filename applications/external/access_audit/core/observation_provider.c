@@ -518,14 +518,12 @@ static NfcCommand mf_plus_poller_cb(NfcGenericEvent event, void* context) {
  * MfClassic poller callback  (runs on NFC worker thread)
  *
  * Uses MfClassicPollerModeRead. The poller fires RequestReadSector starting
- * from sector 0. On that event we manually call mf_classic_poller_auth with
- * two well-known default keys (FFFFFFFFFFFF and A0A1A2A3A4A5, both key types)
- * and record whether any succeeded. We then halt the card and stop — no full
- * sector read is performed and no card data is retained.
- *
- * Default keys checked (in order):
- *   FFFFFFFFFFFF key A, FFFFFFFFFFFF key B
- *   A0A1A2A3A4A5 key A, A0A1A2A3A4A5 key B
+ * from sector 0. On that event we manually call mf_classic_poller_auth against
+ * a list of well-known public keys (each tried as both key A and key B) and
+ * record whether any succeeded. We then halt the card and stop — no full sector
+ * read is performed and no card data is retained. The loop stops at the first
+ * key that authenticates. See DEFAULT_KEYS below for the full list (factory
+ * transport, NXP MAD, NFC Forum NDEF, and common vendor defaults).
  * -------------------------------------------------------------------------
  */
 
@@ -553,18 +551,30 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
 
     if(cl_event->type == MfClassicPollerEventTypeRequestReadSector &&
        cl_event->data->read_sector_request_data.sector_num == 0) {
+        /* Well-known public MIFARE Classic keys checked against sector 0.
+         * Each is tried as both key A and key B. Kept under 10 so the auth
+         * loop stays fast; these cover the keys overwhelmingly seen in the
+         * field on cards that were never re-keyed. */
         static const uint8_t DEFAULT_KEYS[][MF_CLASSIC_KEY_SIZE] = {
-            {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, /* FFFFFFFFFFFF */
-            {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5}, /* A0A1A2A3A4A5 */
+            {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, /* FFFFFFFFFFFF — factory transport default */
+            {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5}, /* A0A1A2A3A4A5 — MAD key A (NXP AN10787)   */
+            {0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7}, /* D3F7D3F7D3F7 — NFC Forum NDEF public key */
+            {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /* 000000000000 — blanked / all-zero key    */
+            {0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0}, /* A0B0C0D0E0F0 — common vendor default      */
+            {0xA1, 0xB1, 0xC1, 0xD1, 0xE1, 0xF1}, /* A1B1C1D1E1F1 — common vendor default      */
+            {0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5}, /* B0B1B2B3B4B5 — common vendor default      */
+            {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}, /* AABBCCDDEEFF — common vendor default      */
         };
         static const MfClassicKeyType KEY_TYPES[] = {MfClassicKeyTypeA, MfClassicKeyTypeB};
+        const size_t num_keys = sizeof(DEFAULT_KEYS) / sizeof(DEFAULT_KEYS[0]);
+        const size_t num_key_types = sizeof(KEY_TYPES) / sizeof(KEY_TYPES[0]);
 
         MfClassicPoller* cl_poller = (MfClassicPoller*)event.instance;
         MfClassicAuthContext auth_ctx;
         bool default_key_found = false;
 
-        for(size_t k = 0; k < 2 && !default_key_found; k++) {
-            for(size_t t = 0; t < 2 && !default_key_found; t++) {
+        for(size_t k = 0; k < num_keys && !default_key_found; k++) {
+            for(size_t t = 0; t < num_key_types && !default_key_found; t++) {
                 MfClassicKey key;
                 memcpy(key.data, DEFAULT_KEYS[k], MF_CLASSIC_KEY_SIZE);
                 MfClassicError err =

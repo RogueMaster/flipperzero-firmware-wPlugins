@@ -72,13 +72,19 @@ UID could not be extracted. The observation cannot be fully assessed.
 
 ### `default_keys`
 
-Fires when sector 0 on a MIFARE Classic card was authenticated using a well-known default key. Indicates the card keys have never been changed from factory defaults.
+Fires when sector 0 on a MIFARE Classic card was authenticated using a well-known public key. Indicates the card keys have never been changed from a publicly documented default.
 
 Keys checked (key A and key B for each):
-- `FFFFFFFFFFFF` - factory default for all sectors on a new card
-- `A0A1A2A3A4A5` - common key A default in NXP reference deployments
+- `FFFFFFFFFFFF` - factory transport default for all sectors on a new card
+- `A0A1A2A3A4A5` - MAD key A (NXP AN10787 application directory)
+- `D3F7D3F7D3F7` - NFC Forum NDEF public key
+- `000000000000` - blanked / all-zero key
+- `A0B0C0D0E0F0` - common vendor default
+- `A1B1C1D1E1F1` - common vendor default
+- `B0B1B2B3B4B5` - common vendor default
+- `AABBCCDDEEFF` - common vendor default
 
-This rule requires an active authentication attempt. A note is written to the report indicating the finding came from an active scan.
+The list is intentionally capped (under 10 keys) so the active auth loop completes quickly. The check stops at the first key that authenticates. This rule requires an active authentication attempt. A note is written to the report indicating the finding came from an active scan.
 
 **Score contribution:** +15 · **Max severity:** HIGH
 
@@ -134,7 +140,7 @@ Matches:
 |---|---|---|---|
 | EM4100 | legacy_family, identifier_only_pattern | 70 | HIGH RISK |
 | MIFARE Classic 1K | legacy_family, identifier_only_pattern, crypto1_breakable | 60 | HIGH RISK |
-| MIFARE Classic 1K (default keys) | legacy_family, identifier_only_pattern, default_keys, crypto1_breakable | 65 | HIGH RISK |
+| MIFARE Classic 1K (default keys) | legacy_family, identifier_only_pattern, default_keys, crypto1_breakable | 75 | HIGH RISK |
 | MIFARE Plus SL1 | legacy_family, identifier_only_pattern | 70 | HIGH RISK |
 | HID iCLASS Legacy 2k | legacy_family, identifier_only_pattern | 70 | HIGH RISK |
 | MIFARE Plus SL2 | identifier_only_pattern, modern_crypto | 15 | MODERATE |

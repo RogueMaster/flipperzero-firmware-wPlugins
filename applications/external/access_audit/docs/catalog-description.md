@@ -16,7 +16,7 @@ Tap a card, get an instant risk score and plain-English advice. Save a named ses
 - **SD card reports**: timestamped .txt report saved to /ext/apps_data/access_audit/ with per-card UID, SAK/ATQA, advice, and session-level advisory
 - **On-device report viewer**: browse, scroll, and delete saved reports without leaving the app
 - **NFC + RFID + iCLASS**: Left/Right cycles between 13.56 MHz NFC, 125 kHz RFID, and HID iCLASS scanning
-- **Active key check**: MIFARE Classic cards are tested against common default keys; if sector 0 is readable with factory defaults the report flags it as a critical finding
+- **Active key check**: MIFARE Classic sector 0 is tested against 8 well-known public keys (factory transport, NXP MAD, NFC Forum NDEF, common vendor defaults); a match is flagged on the result screen and in the report as a critical finding. Non-destructive — no sector data is read
 
 ## Installation
 
@@ -28,7 +28,7 @@ To build from source, install [uFBT](https://github.com/flipperdevices/flipperze
 
 **Scan screen**: tap or hold a card to the Flipper. Left/Right cycles between NFC, RFID, and iCLASS modes. Up opens the report list. Back exits.
 
-**Result screen**: shows the card type, UID, risk score (0-100), risk label, and plain-English advice. OK rescans. Back prompts to save the session.
+**Result screen**: shows the card type, UID, risk score (0-100), risk label, and plain-English advice. If sector 0 authenticated with a default key, the screen flags it ("! Default key readable"). OK rescans. Back prompts to save the session.
 
 **Reports**: sessions are saved as named .txt files on the SD card. The on-device viewer lets you scroll through past reports and delete them.
 

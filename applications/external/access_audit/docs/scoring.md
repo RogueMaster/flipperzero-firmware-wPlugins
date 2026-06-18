@@ -89,7 +89,7 @@ If both `modern_crypto` and `legacy_family` fire simultaneously (which cannot ha
 
 **Result: HIGH RISK · 60/100**
 
-> If sector 0 authenticates with a default key, `default_keys` also fires (+15), raising the score to 65/100.
+> If sector 0 authenticates with a default key, `default_keys` also fires (+15), raising the score to 75/100.
 
 ---
 

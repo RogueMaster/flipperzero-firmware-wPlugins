@@ -10,7 +10,7 @@ App(
     fap_category="NFC",
     fap_author="luu176",
     fap_weburl="https://github.com/luu176/Metroflip",
-    fap_version="2.0",
+    fap_version="2.0.3",
     fap_description="An implementation of metrodroid on the flipper",
     #  v0.4.9: [Suica Widget with raw block readings (By zinongli)](https://github.com/zinongli/Metroflip/commit/9940ea93f0052a8057977aa9fe84dce06c247682) Works With OFW PR [NFC: FeliCa Protocol Expose Read Block API and Allow Specifying Service #4074 (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4074)
     #  v0.4.20: [Suica adjusted for refactor (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b63758a96d61d70eaa0216612d2e72b8d9d6e867)
