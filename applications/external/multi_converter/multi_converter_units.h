@@ -71,7 +71,7 @@ static const MultiConverterUnit multi_converter_unit_far = {
     1,
     10,
     "FAR\0",
-    "Fahernheit\0",
+    "Fahrenheit\0",
     multi_converter_unit_temperature_convert,
     multi_converter_unit_temperature_allowed};
 static const MultiConverterUnit multi_converter_unit_kel = {

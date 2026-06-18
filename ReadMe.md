@@ -71,6 +71,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - REVERT: Sub-GHz: [Sub-GHz app is now external on SD card, like on OFW (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/33671b91a98dd99786894af7dbf1f6c818032942) (This was causing a crash)
 - Updated: [NFC Seader v4.1.1 (By bettse)](https://github.com/bettse/seader)
 - Updated: [Sub-GHz RAW Edit v1.6 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- Updated: [Multi Converter v1.2 (By theisolinearchip)](https://github.com/theisolinearchip) [fix: correct Fahrenheit label in multi converter (By SSDWGG)](https://github.com/xMasterX/all-the-plugins/pull/220)
 
 <a name="release"></a>
 
