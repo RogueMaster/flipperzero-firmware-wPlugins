@@ -777,7 +777,7 @@ Stratagem STRATAGEM_PATRIOT_EXOSUIT = {
     .title = "Patriot Exosuit",
     .code = "LDRULDD",
     .icon = &I_patriot_exosuit,
-    .cooldown = 600,
+    .cooldown = 420,
     .level = 25,
 };
 Stratagem STRATAGEM_EMANCIPATOR_EXOSUIT = {
@@ -785,7 +785,7 @@ Stratagem STRATAGEM_EMANCIPATOR_EXOSUIT = {
     .title = "Emancipator Exosuit",
     .code = "LDRULDU",
     .icon = &I_emancipator_exosuit,
-    .cooldown = 600,
+    .cooldown = 420,
     .level = 25,
 };
 Stratagem STRATAGEM_FAST_RECON_VEHICLE = {
@@ -809,14 +809,14 @@ Stratagem STRATAGEM_BREAKTHROUGH_EXOSUIT = {
     .title = "Breakthrough Exosuit",
     .code = "LDRLRDU",
     .icon = &I_breakthrough_exosuit,
-    .cooldown = 600,
+    .cooldown = 420,
 };
 Stratagem STRATAGEM_LUMBERER_EXOSUIT = {
     .type = StratagemType_Vehicle,
     .title = "Lumberer Exosuit",
     .code = "LDRURLU",
     .icon = &I_lumberer_exosuit,
-    .cooldown = 600,
+    .cooldown = 420,
 };
 
 
