@@ -113,6 +113,8 @@ bool seader_scene_start_on_event(void* context, SceneManagerEvent event) {
                 SeaderSamKeyProbeStatusUnknown,
                 NULL,
                 0U,
+                false,
+                false,
                 seader->sam_key_label,
                 sizeof(seader->sam_key_label));
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamMissing);
@@ -126,6 +128,8 @@ bool seader_scene_start_on_event(void* context, SceneManagerEvent event) {
                 SeaderSamKeyProbeStatusUnknown,
                 NULL,
                 0U,
+                false,
+                false,
                 seader->sam_key_label,
                 sizeof(seader->sam_key_label));
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamWrong);

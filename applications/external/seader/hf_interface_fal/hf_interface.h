@@ -4,13 +4,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "../hf_bridge_policy.h"
 #include "../protocol/picopass_poller.h"
 #include "../seader_credential_type.h"
 #include <lib/nfc/nfc.h>
 #include <nfc/nfc_device.h>
 
 #define HF_PLUGIN_APP_ID      "plugin_hf"
-#define HF_PLUGIN_API_VERSION 1
+#define HF_PLUGIN_API_VERSION 2
 
 typedef enum {
     PluginHfStageCardDetect = 0,
@@ -30,7 +31,7 @@ typedef struct {
     PluginHfActionType type;
     uint8_t* data;
     size_t len;
-    uint16_t timeout;
+    uint32_t timeout;
     uint8_t format[3];
 } PluginHfAction;
 
@@ -45,6 +46,11 @@ typedef struct {
         const uint8_t* ats,
         uint8_t ats_len);
     void (*send_nfc_rx)(void* host_ctx, uint8_t* buffer, size_t len);
+    void (*send_nfc_rx_status)(
+        void* host_ctx,
+        uint8_t* buffer,
+        size_t len,
+        SeaderHfBridgeRfStatus status);
     void (*run_conversation)(void* host_ctx);
     void (*set_stage)(void* host_ctx, PluginHfStage stage);
     PluginHfStage (*get_stage)(void* host_ctx);
@@ -69,7 +75,8 @@ typedef struct {
         uint8_t* rx_data,
         size_t rx_capacity,
         size_t* rx_len,
-        uint32_t fwt_fc);
+        uint32_t fwt_fc,
+        SeaderHfBridgeRfStatus* status);
 
     /* Optional UX hook for richer read failure text. */
     void (*set_read_error)(void* host_ctx, const char* text);

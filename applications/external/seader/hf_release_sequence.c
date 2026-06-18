@@ -23,6 +23,7 @@ void seader_hf_release_sequence_run(SeaderHfReleaseSequence* sequence) {
     seader_hf_release_callback_invoke(sequence->host_picopass_release, sequence->context);
     seader_hf_release_callback_invoke(sequence->plugin_free, sequence->context);
     seader_hf_release_callback_invoke(sequence->plugin_manager_unload, sequence->context);
+    seader_hf_release_callback_invoke(sequence->host_nfc_release, sequence->context);
     /* Reset worker-visible session state before publishing Unloaded/None. */
     seader_hf_release_callback_invoke(sequence->worker_reset, sequence->context);
     if(sequence->hf_session_state) {

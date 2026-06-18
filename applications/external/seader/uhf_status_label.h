@@ -9,6 +9,7 @@ typedef enum {
     SeaderUhfProbeStatusUnknown = 0,
     SeaderUhfProbeStatusSuccess,
     SeaderUhfProbeStatusFailed,
+    SeaderUhfProbeStatusHidden,
 } SeaderUhfProbeStatus;
 
 void seader_uhf_status_label_format(

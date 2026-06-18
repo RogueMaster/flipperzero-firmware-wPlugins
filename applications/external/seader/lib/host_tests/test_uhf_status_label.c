@@ -13,6 +13,17 @@ static MunitResult test_formats_none(const MunitParameter params[], void* fixtur
     return MUNIT_OK;
 }
 
+static MunitResult test_formats_hidden_as_empty(const MunitParameter params[], void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    char label[SEADER_UHF_STATUS_LABEL_MAX_LEN] = {'X'};
+    seader_uhf_status_label_format(
+        SeaderUhfProbeStatusHidden, true, true, true, true, label, sizeof(label));
+    munit_assert_string_equal(label, "");
+    return MUNIT_OK;
+}
+
 static MunitResult test_formats_probing_and_failed_states(
     const MunitParameter params[],
     void* fixture) {
@@ -116,6 +127,7 @@ static MunitResult test_small_buffer_for_none_is_safe(const MunitParameter param
 
 static MunitTest test_uhf_status_label_cases[] = {
     {(char*)"/none", test_formats_none, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/hidden", test_formats_hidden_as_empty, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/probing-failed", test_formats_probing_and_failed_states, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/supported-key-states", test_formats_supported_key_states, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/longest-fits", test_longest_supported_label_fits_buffer, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},

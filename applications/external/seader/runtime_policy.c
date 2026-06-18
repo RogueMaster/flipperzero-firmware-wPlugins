@@ -162,3 +162,13 @@ void seader_runtime_reset_hf_mode(
         *hf_mode_active = false;
     }
 }
+
+void seader_runtime_cancel_hf_type_prompt(
+    bool* hf_mode_active,
+    SeaderCredentialType* selected_read_type,
+    SeaderCredentialType detected_types[],
+    size_t detected_capacity,
+    size_t* detected_type_count) {
+    seader_runtime_reset_hf_mode(
+        hf_mode_active, selected_read_type, detected_types, detected_capacity, detected_type_count);
+}

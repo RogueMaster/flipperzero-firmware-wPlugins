@@ -12,7 +12,10 @@ static uint8_t fwChecks = 3;
 void seader_scene_sam_present_submenu_callback(void* context, uint32_t index);
 
 static void seader_scene_sam_present_rebuild_menu(Seader* seader, uint32_t selected_item) {
-    Submenu* submenu = seader->submenu;
+    Submenu* submenu = seader_get_submenu(seader);
+    if(!submenu) {
+        return;
+    }
     submenu_reset(submenu);
 
     submenu_add_item(
@@ -110,8 +113,10 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == SeaderWorkerEventHfTeardownComplete) {
             consumed = seader_hf_finish_teardown_action(seader);
         } else if(event.event == SeaderCustomEventSamStatusUpdated) {
-            seader_scene_sam_present_rebuild_menu(
-                seader, submenu_get_selected_item(seader->submenu));
+            Submenu* submenu = seader_get_submenu(seader);
+            if(submenu) {
+                seader_scene_sam_present_rebuild_menu(seader, submenu_get_selected_item(submenu));
+            }
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -122,8 +127,10 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
         }
         if(fwChecks > 0 && seader->sam_version[0] != 0 && seader->sam_version[1] != 0) {
             fwChecks--;
-            seader_scene_sam_present_rebuild_menu(
-                seader, submenu_get_selected_item(seader->submenu));
+            Submenu* submenu = seader_get_submenu(seader);
+            if(submenu) {
+                seader_scene_sam_present_rebuild_menu(seader, submenu_get_selected_item(submenu));
+            }
         }
     }
 
@@ -132,5 +139,7 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
 
 void seader_scene_sam_present_on_exit(void* context) {
     Seader* seader = context;
-    submenu_reset(seader->submenu);
+    if(seader->submenu) {
+        submenu_reset(seader->submenu);
+    }
 }

@@ -11,6 +11,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "hf_bridge_policy.h"
+#include "hf_read_lifecycle.h"
+
 typedef struct Seader Seader;
 typedef struct SeaderPollerContainer SeaderPollerContainer;
 
@@ -30,10 +33,19 @@ NfcCommand seader_worker_card_detect(
     uint8_t ats_len);
 
 void seader_send_nfc_rx(Seader* seader, uint8_t* buffer, size_t len);
+void seader_send_nfc_rx_status(
+    Seader* seader,
+    uint8_t* buffer,
+    size_t len,
+    SeaderHfBridgeRfStatus status);
 void seader_send_no_card_detected(Seader* seader);
 bool seader_sam_can_accept_card(const Seader* seader);
 bool seader_sam_has_active_card(const Seader* seader);
 void seader_sam_force_idle_for_recovery(Seader* seader);
+void seader_abort_active_read_with_reason(
+    Seader* seader,
+    SeaderHfReadFailureReason reason,
+    const char* detail);
 
 bool seader_process_success_response_i(
     Seader* seader,

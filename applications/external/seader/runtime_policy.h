@@ -50,3 +50,9 @@ void seader_runtime_reset_hf_mode(
     SeaderCredentialType detected_types[],
     size_t detected_capacity,
     size_t* detected_type_count);
+void seader_runtime_cancel_hf_type_prompt(
+    bool* hf_mode_active,
+    SeaderCredentialType* selected_read_type,
+    SeaderCredentialType detected_types[],
+    size_t detected_capacity,
+    size_t* detected_type_count);

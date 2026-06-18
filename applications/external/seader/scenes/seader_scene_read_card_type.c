@@ -20,7 +20,10 @@ void seader_scene_read_card_type_submenu_callback(void* context, uint32_t index)
 
 void seader_scene_read_card_type_on_enter(void* context) {
     Seader* seader = context;
-    Submenu* submenu = seader->submenu;
+    Submenu* submenu = seader_get_submenu(seader);
+    if(!submenu) {
+        return;
+    }
     const SeaderCredentialType* detected_types = seader_hf_mode_get_detected_types(seader);
     const size_t detected_type_count = seader_hf_mode_get_detected_type_count(seader);
 
@@ -63,5 +66,7 @@ bool seader_scene_read_card_type_on_event(void* context, SceneManagerEvent event
 
 void seader_scene_read_card_type_on_exit(void* context) {
     Seader* seader = context;
-    submenu_reset(seader->submenu);
+    if(seader->submenu) {
+        submenu_reset(seader->submenu);
+    }
 }

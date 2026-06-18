@@ -91,6 +91,17 @@ static MunitResult test_status_decode_time_extension(const MunitParameter params
     return MUNIT_OK;
 }
 
+static MunitResult test_decode_le32_accepts_unaligned_bytes(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    const uint8_t frame[] = {0xAA, 0x78, 0x56, 0x34, 0x12, 0xBB};
+    munit_assert_uint32(seader_ccid_decode_le32(frame + 1), ==, 0x12345678U);
+    return MUNIT_OK;
+}
+
 static MunitResult test_find_start_skips_nak_triplet(const MunitParameter params[], void* fixture) {
     (void)params;
     (void)fixture;
@@ -152,10 +163,50 @@ static MunitResult test_data_block_route(const MunitParameter params[], void* fi
     /* CCID says "bSlot identifies which ICC slot is being addressed"; protocol 00h is T=0 and 01h is T=1. */
     munit_assert_int(seader_ccid_route_data_block(true, 0, 0, 0), ==, SeaderCcidDataRouteSamT0);
     munit_assert_int(seader_ccid_route_data_block(true, 0, 0, 1), ==, SeaderCcidDataRouteSamT1);
+    munit_assert_int(seader_ccid_route_data_block(true, 1, 1, 1), ==, SeaderCcidDataRouteSamT1);
     munit_assert_int(
         seader_ccid_route_data_block(false, 0, 0, 1), ==, SeaderCcidDataRouteAtrRecognition);
     munit_assert_int(
         seader_ccid_route_data_block(true, 0, 1, 1), ==, SeaderCcidDataRouteWrongSlotError);
+    return MUNIT_OK;
+}
+
+static MunitResult test_payload_match_requires_exact_length(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    const uint8_t expected[] = {0x3b, 0x90, 0x96, 0x91};
+    const uint8_t exact[] = {0x3b, 0x90, 0x96, 0x91};
+    const uint8_t short_payload_with_matching_prefix[] = {0x3b, 0x90, 0x96, 0x91};
+    const uint8_t long_payload[] = {0x3b, 0x90, 0x96, 0x91, 0x00};
+    const uint8_t wrong_payload[] = {0x3b, 0x90, 0x96, 0x92};
+
+    munit_assert_true(seader_ccid_payload_matches_exact(
+        exact, sizeof(exact), expected, sizeof(expected)));
+    munit_assert_false(seader_ccid_payload_matches_exact(
+        short_payload_with_matching_prefix, sizeof(short_payload_with_matching_prefix) - 1U, expected, sizeof(expected)));
+    munit_assert_false(seader_ccid_payload_matches_exact(
+        long_payload, sizeof(long_payload), expected, sizeof(expected)));
+    munit_assert_false(seader_ccid_payload_matches_exact(
+        wrong_payload, sizeof(wrong_payload), expected, sizeof(expected)));
+    munit_assert_false(
+        seader_ccid_payload_matches_exact(NULL, sizeof(exact), expected, sizeof(expected)));
+    munit_assert_false(
+        seader_ccid_payload_matches_exact(exact, sizeof(exact), NULL, sizeof(expected)));
+    return MUNIT_OK;
+}
+
+static MunitResult test_control_frame_size_includes_transport_header(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    munit_assert_size(seader_ccid_control_frame_size(0U), ==, 12U);
+    munit_assert_size(seader_ccid_control_frame_size(5U), ==, 17U);
+    munit_assert_size(seader_ccid_control_frame_size(7U), ==, 19U);
     return MUNIT_OK;
 }
 
@@ -197,6 +248,12 @@ static MunitTest test_ccid_cases[] = {
      NULL,
      MUNIT_TEST_OPTION_NONE,
      NULL},
+    {(char*)"/frame/decode-le32-unaligned",
+     test_decode_le32_accepts_unaligned_bytes,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
     {(char*)"/frame/find-start-skips-nak-triplet",
      test_find_start_skips_nak_triplet,
      NULL,
@@ -217,6 +274,18 @@ static MunitTest test_ccid_cases[] = {
      NULL},
     {(char*)"/routing/data-block-route",
      test_data_block_route,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {(char*)"/payload/match-requires-exact-length",
+     test_payload_match_requires_exact_length,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {(char*)"/frame/control-size-includes-header",
+     test_control_frame_size_includes_transport_header,
      NULL,
      NULL,
      MUNIT_TEST_OPTION_NONE,

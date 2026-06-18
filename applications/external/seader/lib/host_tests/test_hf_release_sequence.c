@@ -33,6 +33,10 @@ static void record_manager_unload(void* context) {
     record_call(context, "plugin-manager-unload");
 }
 
+static void record_host_nfc_release(void* context) {
+    record_call(context, "host-nfc-release");
+}
+
 static void record_worker_reset(void* context) {
     record_call(context, "worker-reset");
 }
@@ -55,6 +59,7 @@ static MunitResult test_release_sequence_orders_operations_and_finalizes_state(
         .host_picopass_release = record_picopass_release,
         .plugin_free = record_plugin_free,
         .plugin_manager_unload = record_manager_unload,
+        .host_nfc_release = record_host_nfc_release,
         .worker_reset = record_worker_reset,
     };
 
@@ -62,13 +67,14 @@ static MunitResult test_release_sequence_orders_operations_and_finalizes_state(
 
     munit_assert_int(hf_state, ==, SeaderHfSessionStateUnloaded);
     munit_assert_int(mode_runtime, ==, SeaderModeRuntimeNone);
-    munit_assert_uint(recorder.index, ==, 6);
+    munit_assert_uint(recorder.index, ==, 7);
     munit_assert_string_equal(recorder.calls[0], "plugin-stop");
     munit_assert_string_equal(recorder.calls[1], "host-poller-release");
     munit_assert_string_equal(recorder.calls[2], "picopass-release");
     munit_assert_string_equal(recorder.calls[3], "plugin-free");
     munit_assert_string_equal(recorder.calls[4], "plugin-manager-unload");
-    munit_assert_string_equal(recorder.calls[5], "worker-reset");
+    munit_assert_string_equal(recorder.calls[5], "host-nfc-release");
+    munit_assert_string_equal(recorder.calls[6], "worker-reset");
     return MUNIT_OK;
 }
 

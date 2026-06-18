@@ -1,6 +1,7 @@
 #ifdef SEADER_HOST_TEST
 #include "lib/host_tests/t_1_host_env.h"
 #else
+#include "sam_api.h"
 #include "t_1.h"
 #endif
 
@@ -277,6 +278,13 @@ bool seader_recv_t1(Seader* seader, CCID_Message* message) {
 
     case SeaderT1ActionRetransmit:
         seader_send_t1(seader_uart, NULL, 0);
+        return false;
+
+    case SeaderT1ActionResourceExhausted:
+        FURI_LOG_W(TAG, "T=1 chained APDU allocation failed");
+        seader_t1_reset_link_state(t1);
+        seader_abort_active_read_with_reason(
+            seader, SeaderHfReadFailureReasonResourceExhausted, NULL);
         return false;
 
     case SeaderT1ActionNone:

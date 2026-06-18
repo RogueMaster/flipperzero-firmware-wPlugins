@@ -10,6 +10,7 @@
 #include <furi_hal.h>
 
 #include "t_1_logic.h"
+#include "uart_tx_logic.h"
 
 // https://ww1.microchip.com/downloads/en/DeviceDoc/00001561C.pdf
 #define SEADER_UART_RX_BUF_SIZE (272)
@@ -50,9 +51,8 @@ struct SeaderUartBridge {
     FuriThread* tx_thread;
 
     FuriStreamBuffer* rx_stream;
+    FuriMessageQueue* tx_queue;
     FuriHalSerialHandle* serial_handle;
-
-    FuriSemaphore* tx_sem;
 
     SeaderUartState st;
 

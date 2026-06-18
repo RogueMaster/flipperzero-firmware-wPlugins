@@ -4,6 +4,10 @@
 #include <string.h>
 
 static const uint8_t oid_elite_ice[] = {0x03, 0x01, 0x07, 0x01, 0x38};
+static const uint8_t oid_standard_encryption_key[] =
+    {0x2B, 0x06, 0x01, 0x04, 0x01, 0x81, 0xE4, 0x38, 0x01, 0x01, 0x02, 0x01, 0x0C, 0x03, 0x01};
+static const uint8_t oid_standard_signature_key[] =
+    {0x2B, 0x06, 0x01, 0x04, 0x01, 0x81, 0xE4, 0x38, 0x01, 0x01, 0x02, 0x01, 0x0C, 0x02, 0x01};
 static const uint8_t oid_uhf_tags_config[] = {0x03, 0x01, 0x07, 0x03, 0x0B, 0x00};
 static const uint8_t oid_monza4qt_access_key[] = {
     0x2B,
@@ -42,6 +46,47 @@ static const uint8_t oid_higgs3_access_key[] = {
     0x01,
     0x01};
 
+static void seader_uhf_snmp_probe_advance_after_standard_signature(SeaderUhfSnmpProbe* probe) {
+    probe->standard_pacs_keys_probed = true;
+    if(probe->supports_uhf) {
+        probe->stage = SeaderUhfSnmpProbeStageReadTagConfig;
+    } else {
+        probe->stage = SeaderUhfSnmpProbeStageDone;
+    }
+}
+
+static bool seader_uhf_snmp_probe_mark_standard_key_missing(SeaderUhfSnmpProbe* probe) {
+    if(probe->stage == SeaderUhfSnmpProbeStageReadStandardEncryptionKey) {
+        probe->standard_encryption_key_present = false;
+        probe->stage = SeaderUhfSnmpProbeStageReadStandardSignatureKey;
+        return true;
+    }
+
+    if(probe->stage == SeaderUhfSnmpProbeStageReadStandardSignatureKey) {
+        probe->standard_signature_key_present = false;
+        seader_uhf_snmp_probe_advance_after_standard_signature(probe);
+        return true;
+    }
+
+    return false;
+}
+
+static bool seader_uhf_snmp_probe_key_missing_error(
+    uint32_t error_code,
+    const uint8_t* data,
+    size_t data_len) {
+    return error_code == 0x11U && data_len >= 2U &&
+           ((data[0] == 0x2EU && data[1] == 0x00U) || (data[0] == 0x37U && data[1] == 0x00U) ||
+            (data[0] == 0x39U && data[1] == 0x00U));
+}
+
+static bool seader_uhf_snmp_probe_key_present_error(
+    uint32_t error_code,
+    const uint8_t* data,
+    size_t data_len) {
+    return error_code == 0x06U && data_len >= 2U && data[0] == 0x69U && data[1] == 0x82U;
+}
+
 static void seader_uhf_snmp_probe_advance_after_tag_config(SeaderUhfSnmpProbe* probe) {
     if(probe->has_monza4qt) {
         probe->stage = SeaderUhfSnmpProbeStageReadMonza4QtKey;
@@ -64,6 +109,7 @@ void seader_uhf_snmp_probe_init(SeaderUhfSnmpProbe* probe) {
     if(!probe) return;
     memset(probe, 0, sizeof(*probe));
     probe->stage = SeaderUhfSnmpProbeStageDiscovery;
+    probe->supports_uhf = true;
 }
 
 bool seader_uhf_snmp_probe_build_next_request(
@@ -89,6 +135,36 @@ bool seader_uhf_snmp_probe_build_next_request(
             probe->usm_engine_time,
             oid_elite_ice,
             sizeof(oid_elite_ice),
+            scratch,
+            scratch_capacity,
+            message,
+            message_capacity,
+            message_len);
+    case SeaderUhfSnmpProbeStageReadStandardEncryptionKey:
+        return seader_snmp_build_get_data_request(
+            probe->usm_engine_id_storage,
+            probe->usm_engine_id_len,
+            probe->usm_username_storage,
+            probe->usm_username_len,
+            probe->usm_engine_boots,
+            probe->usm_engine_time,
+            oid_standard_encryption_key,
+            sizeof(oid_standard_encryption_key),
+            scratch,
+            scratch_capacity,
+            message,
+            message_capacity,
+            message_len);
+    case SeaderUhfSnmpProbeStageReadStandardSignatureKey:
+        return seader_snmp_build_get_data_request(
+            probe->usm_engine_id_storage,
+            probe->usm_engine_id_len,
+            probe->usm_username_storage,
+            probe->usm_username_len,
+            probe->usm_engine_boots,
+            probe->usm_engine_time,
+            oid_standard_signature_key,
+            sizeof(oid_standard_signature_key),
             scratch,
             scratch_capacity,
             message,
@@ -156,6 +232,9 @@ bool seader_uhf_snmp_probe_consume_response(
         return false;
     }
     if(view.error_status != 0U) {
+        if(seader_uhf_snmp_probe_mark_standard_key_missing(probe)) {
+            return true;
+        }
         probe->stage = SeaderUhfSnmpProbeStageFailed;
         return false;
     }
@@ -193,7 +272,25 @@ bool seader_uhf_snmp_probe_consume_response(
             return false;
         }
         memcpy(probe->ice_value_storage, value.ptr, probe->ice_value_len);
-        probe->stage = SeaderUhfSnmpProbeStageReadTagConfig;
+        probe->stage = SeaderUhfSnmpProbeStageReadStandardEncryptionKey;
+        return true;
+    case SeaderUhfSnmpProbeStageReadStandardEncryptionKey:
+        probe->standard_encryption_key_present =
+            seader_snmp_find_varbind_octet_value(
+                view.varbind_sequence,
+                (SeaderBytesView){oid_standard_encryption_key, sizeof(oid_standard_encryption_key)},
+                &value) &&
+            value.len > 0U;
+        probe->stage = SeaderUhfSnmpProbeStageReadStandardSignatureKey;
+        return true;
+    case SeaderUhfSnmpProbeStageReadStandardSignatureKey:
+        probe->standard_signature_key_present =
+            seader_snmp_find_varbind_octet_value(
+                view.varbind_sequence,
+                (SeaderBytesView){oid_standard_signature_key, sizeof(oid_standard_signature_key)},
+                &value) &&
+            value.len > 0U;
+        seader_uhf_snmp_probe_advance_after_standard_signature(probe);
         return true;
     case SeaderUhfSnmpProbeStageReadTagConfig:
         if(!seader_snmp_find_varbind_octet_value(
@@ -247,8 +344,21 @@ bool seader_uhf_snmp_probe_consume_error(
         return false;
     }
 
-    if(error_code == 0x06U && data_len >= 2U && data[0] == 0x69U && data[1] == 0x82U) {
-        if(probe->stage == SeaderUhfSnmpProbeStageReadMonza4QtKey) {
+    if(probe->stage == SeaderUhfSnmpProbeStageReadTagConfig) {
+        probe->stage = SeaderUhfSnmpProbeStageFailed;
+        return true;
+    }
+
+    if(seader_uhf_snmp_probe_key_present_error(error_code, data, data_len)) {
+        if(probe->stage == SeaderUhfSnmpProbeStageReadStandardEncryptionKey) {
+            probe->standard_encryption_key_present = true;
+            probe->stage = SeaderUhfSnmpProbeStageReadStandardSignatureKey;
+            return true;
+        } else if(probe->stage == SeaderUhfSnmpProbeStageReadStandardSignatureKey) {
+            probe->standard_signature_key_present = true;
+            seader_uhf_snmp_probe_advance_after_standard_signature(probe);
+            return true;
+        } else if(probe->stage == SeaderUhfSnmpProbeStageReadMonza4QtKey) {
             probe->monza4qt_key_present = true;
             seader_uhf_snmp_probe_advance_after_monza(probe);
             return true;
@@ -259,9 +369,10 @@ bool seader_uhf_snmp_probe_consume_error(
         }
     }
 
-    if(error_code == 0x11U && data_len >= 2U &&
-       ((data[0] == 0x2EU && data[1] == 0x00U) || (data[0] == 0x39U && data[1] == 0x00U))) {
-        if(probe->stage == SeaderUhfSnmpProbeStageReadMonza4QtKey) {
+    if(seader_uhf_snmp_probe_key_missing_error(error_code, data, data_len)) {
+        if(seader_uhf_snmp_probe_mark_standard_key_missing(probe)) {
+            return true;
+        } else if(probe->stage == SeaderUhfSnmpProbeStageReadMonza4QtKey) {
             probe->monza4qt_key_present = false;
             seader_uhf_snmp_probe_advance_after_monza(probe);
             return true;
@@ -274,4 +385,9 @@ bool seader_uhf_snmp_probe_consume_error(
 
     probe->stage = SeaderUhfSnmpProbeStageFailed;
     return false;
+}
+
+bool seader_uhf_snmp_probe_standard_pacs_keys_present(const SeaderUhfSnmpProbe* probe) {
+    return probe && probe->standard_encryption_key_present &&
+           probe->standard_signature_key_present;
 }

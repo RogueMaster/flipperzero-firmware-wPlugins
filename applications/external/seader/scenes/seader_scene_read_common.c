@@ -20,7 +20,8 @@ void seader_scene_read_prepare(Seader* seader) {
     if(seader->sam_state == SeaderSamStateIdle) {
         seader->samCommand = SamCommand_PR_NOTHING;
     }
-    memset(seader->read_error, 0, sizeof(seader->read_error));
+    seader_hf_read_prepare_context(
+        &seader->hf_read_failure_reason, seader->read_error, sizeof(seader->read_error));
 }
 
 void seader_scene_read_cleanup(Seader* seader) {

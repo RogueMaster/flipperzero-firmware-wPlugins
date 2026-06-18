@@ -1,6 +1,8 @@
 #include "seader_worker_i.h"
 #include "seader_hf_read_plan.h"
 #include "hf_read_lifecycle.h"
+#include "hf_bridge_policy.h"
+#include "worker_loop_policy.h"
 #include "trace_log.h"
 
 #include <flipper_format/flipper_format.h>
@@ -11,7 +13,7 @@
 #define APDU_HEADER_LEN                   5
 #define ASN1_PREFIX                       6
 #define SEADER_HF_CONVERSATION_TIMEOUT_MS 3000U
-#define SEADER_WORKER_STACK_SIZE          2048U
+#define SEADER_WORKER_STACK_SIZE          4096U
 // #define ASN1_DEBUG      true
 
 #define RFAL_PICOPASS_TXRX_FLAGS                                                    \
@@ -63,12 +65,7 @@ typedef struct {
 static void seader_worker_reset_apdu_slots(SeaderWorker* seader_worker) {
     furi_assert(seader_worker);
     memset(seader_worker->apdu_slot_in_use, 0, sizeof(seader_worker->apdu_slot_in_use));
-    if(seader_worker->apdu_slots) {
-        memset(
-            seader_worker->apdu_slots,
-            0,
-            sizeof(*seader_worker->apdu_slots) * SEADER_WORKER_APDU_SLOT_COUNT);
-    }
+    memset(seader_worker->apdu_slots, 0, sizeof(seader_worker->apdu_slots));
 }
 
 static bool seader_worker_claim_apdu_slot(SeaderWorker* seader_worker, uint8_t* slot_index) {
@@ -91,9 +88,7 @@ static void seader_worker_release_apdu_slot(SeaderWorker* seader_worker, uint8_t
     furi_assert(slot_index < SEADER_WORKER_APDU_SLOT_COUNT);
 
     seader_worker->apdu_slot_in_use[slot_index] = false;
-    if(seader_worker->apdu_slots) {
-        seader_worker->apdu_slots[slot_index].len = 0U;
-    }
+    seader_worker->apdu_slots[slot_index].len = 0U;
 }
 
 static bool
@@ -101,6 +96,23 @@ static bool
     furi_assert(seader_worker);
     furi_assert(slot_index);
     return furi_message_queue_get(seader_worker->messages, slot_index, timeout) == FuriStatusOk;
+}
+
+static void seader_worker_fail_protocol(Seader* seader, const char* detail) {
+    if(!seader || !seader->worker) {
+        return;
+    }
+
+    FURI_LOG_W(TAG, "%s", detail ? detail : "HF protocol failure");
+    seader->hf_read_state = SeaderHfReadStateTerminalFail;
+    seader->hf_read_failure_reason = SeaderHfReadFailureReasonProtocolError;
+    strlcpy(
+        seader->read_error,
+        seader_hf_read_failure_reason_text(SeaderHfReadFailureReasonProtocolError),
+        sizeof(seader->read_error));
+    seader_sam_force_idle_for_recovery(seader);
+    seader->worker->stage = SeaderPollerEventTypeFail;
+    view_dispatcher_send_custom_event(seader->view_dispatcher, SeaderCustomEventWorkerExit);
 }
 
 static void seader_worker_clear_active_card(Seader* seader, const char* reason) {
@@ -209,17 +221,16 @@ SeaderWorker* seader_worker_alloc() {
     // Worker thread attributes
     seader_worker->thread = furi_thread_alloc_ex(
         "SeaderWorker", SEADER_WORKER_STACK_SIZE, seader_worker_task, seader_worker);
-    seader_worker->messages = furi_message_queue_alloc(2, sizeof(uint8_t));
-    seader_worker->apdu_slots = calloc(SEADER_WORKER_APDU_SLOT_COUNT, sizeof(SeaderAPDU));
+    seader_worker->messages =
+        furi_message_queue_alloc(SEADER_WORKER_APDU_SLOT_COUNT, sizeof(uint8_t));
 
-    if(!seader_worker->thread || !seader_worker->messages || !seader_worker->apdu_slots) {
+    if(!seader_worker->thread || !seader_worker->messages) {
         if(seader_worker->thread) {
             furi_thread_free(seader_worker->thread);
         }
         if(seader_worker->messages) {
             furi_message_queue_free(seader_worker->messages);
         }
-        free(seader_worker->apdu_slots);
         free(seader_worker);
         return NULL;
     }
@@ -239,7 +250,6 @@ void seader_worker_free(SeaderWorker* seader_worker) {
 
     furi_thread_free(seader_worker->thread);
     furi_message_queue_free(seader_worker->messages);
-    free(seader_worker->apdu_slots);
 
     furi_record_close(RECORD_STORAGE);
 
@@ -337,10 +347,15 @@ bool seader_process_success_response(Seader* seader, uint8_t* apdu, size_t len) 
     if(seader_process_success_response_i(seader, apdu, len, false, NULL)) {
         // no-op, message was processed
     } else {
-        /* Outside an active conversation, an unhandled SAM message is stale noise from a
-           previous flow. Enqueueing it would let old maintenance/read traffic bleed forward. */
-        if(seader_worker->state != SeaderWorkerStateVirtualCredential &&
-           seader_worker->stage != SeaderPollerEventTypeConversation) {
+        const uint32_t space = furi_message_queue_get_space(seader_worker->messages);
+        const SeaderHfBridgeApduDecision apdu_decision = seader_hf_bridge_apdu_decision(
+            seader_worker->state == SeaderWorkerStateVirtualCredential,
+            seader_worker->stage == SeaderPollerEventTypeConversation,
+            len,
+            SEADER_POLLER_MAX_BUFFER_SIZE,
+            space > 0U);
+
+        if(apdu_decision == SeaderHfBridgeApduDecisionDiscardStale) {
             SEADER_VERBOSE_I(
                 TAG,
                 "Discard stale SAM message outside active conversation, %d bytes, stage=%d, sam=%d",
@@ -366,11 +381,11 @@ bool seader_process_success_response(Seader* seader, uint8_t* apdu, size_t len) 
             seader->samCommand);
         seader_trace(
             TAG, "enqueue len=%d stage=%d sam=%d", len, seader_worker->stage, seader->samCommand);
-        uint32_t space = furi_message_queue_get_space(seader_worker->messages);
-        if(space > 0 && len <= SEADER_POLLER_MAX_BUFFER_SIZE) {
+        if(apdu_decision == SeaderHfBridgeApduDecisionQueue) {
             uint8_t slot_index = 0U;
             if(!seader_worker_claim_apdu_slot(seader_worker, &slot_index)) {
                 FURI_LOG_W(TAG, "No free APDU slot for len=%u", (unsigned)len);
+                seader_worker_fail_protocol(seader, "No free APDU slot");
                 return true;
             }
 
@@ -381,9 +396,14 @@ bool seader_process_success_response(Seader* seader, uint8_t* apdu, size_t len) 
                FuriStatusOk) {
                 FURI_LOG_W(TAG, "Failed to queue APDU slot=%u", slot_index);
                 seader_worker_release_apdu_slot(seader_worker, slot_index);
+                seader_worker_fail_protocol(seader, "Failed to queue SAM APDU");
             }
         } else if(len > SEADER_POLLER_MAX_BUFFER_SIZE) {
-            FURI_LOG_W(TAG, "Drop oversized SAM message len=%u", (unsigned)len);
+            FURI_LOG_W(TAG, "Oversized SAM message len=%u", (unsigned)len);
+            seader_worker_fail_protocol(seader, "Oversized SAM APDU");
+        } else {
+            FURI_LOG_W(TAG, "No SAM APDU queue space for len=%u", (unsigned)len);
+            seader_worker_fail_protocol(seader, "No SAM APDU queue space");
         }
     }
     return true;
@@ -449,6 +469,7 @@ void seader_worker_virtual_credential(Seader* seader) {
         seader, 0, NULL, seader->credential->diversifier, sizeof(PicopassSerialNum), NULL, 0);
 
     bool running = true;
+    bool processing_ok = true;
     // Max times the loop will run with no message to process
     uint8_t dead_loops = 20;
 
@@ -471,17 +492,29 @@ void seader_worker_virtual_credential(Seader* seader) {
                 // no-op
             } else {
                 SEADER_VERBOSE_I(TAG, "Response false");
-                running = false;
+                processing_ok = false;
             }
             seader_worker_release_apdu_slot(seader_worker, slot_index);
         } else {
-            dead_loops--;
-            running = (dead_loops > 0);
+            if(dead_loops > 0U) {
+                dead_loops--;
+            }
+            running = seader_worker_virtual_credential_should_continue(
+                processing_ok,
+                seader_worker->state == SeaderWorkerStateVirtualCredential,
+                seader_worker->stage == SeaderPollerEventTypeComplete,
+                seader_worker->stage == SeaderPollerEventTypeFail,
+                dead_loops);
             SEADER_VERBOSE_D(
                 TAG, "Dead loops: %d -> Running: %s", dead_loops, running ? "true" : "false");
             if(running) furi_delay_ms(10); // Don't tight loop if empty
         }
-        running = (seader_worker->stage != SeaderPollerEventTypeComplete);
+        running = seader_worker_virtual_credential_should_continue(
+            processing_ok,
+            seader_worker->state == SeaderWorkerStateVirtualCredential,
+            seader_worker->stage == SeaderPollerEventTypeComplete,
+            seader_worker->stage == SeaderPollerEventTypeFail,
+            dead_loops);
     }
 
     if(dead_loops > 0 && seader_worker->stage == SeaderPollerEventTypeComplete) {

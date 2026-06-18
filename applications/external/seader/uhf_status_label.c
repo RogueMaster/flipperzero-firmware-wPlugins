@@ -60,6 +60,10 @@ void seader_uhf_status_label_format(
 
     out[0] = '\0';
 
+    if(probe_status == SeaderUhfProbeStatusHidden) {
+        return;
+    }
+
     if(probe_status == SeaderUhfProbeStatusUnknown) {
         snprintf(out, out_size, "UHF: probing...");
         return;

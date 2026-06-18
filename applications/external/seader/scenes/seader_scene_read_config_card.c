@@ -1,4 +1,5 @@
 #include "../seader_i.h"
+#include "../ui_memory_policy.h"
 #include "seader_scene_read_common.h"
 #include <dolphin/dolphin.h>
 
@@ -19,6 +20,9 @@ void seader_scene_read_config_card_on_enter(void* context) {
 
     // Start worker
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewPopup);
+    if(seader_ui_memory_should_release_inactive_lazy_views(SeaderUiMemoryPhaseHfReadActive)) {
+        seader_release_inactive_lazy_views(seader);
+    }
 
     seader_scene_read_prepare(seader);
     seader_credential_clear(seader->credential);

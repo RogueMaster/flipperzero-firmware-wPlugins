@@ -62,10 +62,12 @@
 #include "seader_credential.h"
 #include "apdu_log.h"
 #include "board_power_lifecycle.h"
+#include "board_identity.h"
 #include "sam_startup_ui.h"
 #include "sam_key_label.h"
 #include "uhf_snmp_probe.h"
 #include "uhf_status_label.h"
+#include "hf_buffer_pool.h"
 
 #define WORKER_ALL_RX_EVENTS                                                      \
     (WorkerEvtStop | WorkerEvtRxDone | WorkerEvtCfgChange | WorkerEvtLineCfgSet | \
@@ -142,6 +144,7 @@ struct Seader {
     bool board_power_enabled;
     bool board_power_owned;
     bool expansion_disabled;
+    SeaderBoardClass board_class;
     SeaderBoardStatus board_status;
     SeaderStartupStage startup_stage;
     uint8_t board_retry_remaining;
@@ -197,6 +200,7 @@ struct Seader {
     Nfc* nfc;
     NfcPoller* poller;
     PicopassPoller* picopass_poller;
+    SeaderHfBufferPair picopass_host_buffers;
 
     NfcDevice* nfc_device;
 
@@ -240,6 +244,10 @@ void seader_blink_start(Seader* seader);
 void seader_blink_stop(Seader* seader);
 
 void seader_nfc_loading_callback(void* context, bool show);
+
+Submenu* seader_get_submenu(Seader* seader);
+void seader_release_submenu(Seader* seader);
+void seader_release_inactive_lazy_views(Seader* seader);
 
 TextInput* seader_get_text_input(Seader* seader);
 

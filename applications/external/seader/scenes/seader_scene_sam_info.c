@@ -32,11 +32,15 @@ void seader_scene_sam_info_on_enter(void* context) {
 
     furi_string_cat_printf(fw_str, "FW %d.%d", seader->sam_version[0], seader->sam_version[1]);
     furi_string_set_str(info_str, seader->sam_key_label);
-    furi_string_printf(
-        status_str,
-        "%s\n%s",
-        seader_board_status_label(seader->board_status),
-        seader->uhf_status_label);
+    if(seader->uhf_status_label[0] != '\0') {
+        furi_string_printf(
+            status_str,
+            "%s\n%s",
+            seader_board_status_label(seader->board_status),
+            seader->uhf_status_label);
+    } else {
+        furi_string_set_str(status_str, seader_board_status_label(seader->board_status));
+    }
 
     widget_add_button_element(
         seader->widget, GuiButtonTypeLeft, "Back", seader_scene_sam_info_widget_callback, seader);

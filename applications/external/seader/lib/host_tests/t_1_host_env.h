@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "bit_buffer.h"
+#include "hf_read_lifecycle.h"
 #include "lrc.h"
 #include "t_1_logic.h"
 
@@ -46,6 +47,8 @@ struct SeaderWorker {
 
 struct Seader {
     SeaderWorker* worker;
+    SeaderHfReadFailureReason hf_read_failure_reason;
+    char read_error[97];
 };
 
 typedef struct CCID_Message {
@@ -62,6 +65,10 @@ typedef struct CCID_Message {
 void seader_ccid_XfrBlock(SeaderUartBridge* seader_uart, uint8_t* data, size_t len);
 bool seader_worker_process_sam_message(Seader* seader, uint8_t* apdu, uint32_t len);
 void seader_worker_send_version(Seader* seader);
+void seader_abort_active_read_with_reason(
+    Seader* seader,
+    SeaderHfReadFailureReason reason,
+    const char* detail);
 
 typedef struct {
     /* Captured outbound CCID payload emitted by the T=1 implementation. */
@@ -77,6 +84,7 @@ typedef struct {
     size_t send_version_call_count;
     size_t callback_call_count;
     uint32_t last_callback_event;
+    size_t abort_call_count;
 } T1HostTestState;
 
 extern T1HostTestState g_t1_host_test_state;

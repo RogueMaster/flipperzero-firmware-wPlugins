@@ -56,11 +56,19 @@ void seader_scene_read_card_success_on_enter(void* context) {
         furi_string_cat_printf(credential_str, "0x%llX", credential->credential);
         furi_string_set(type_str, seader_credential_get_type_label(credential));
     } else {
-        furi_string_set(type_str, "Read error");
+        if(seader->hf_read_failure_reason == SeaderHfReadFailureReasonSamKeysMissing &&
+           credential->has_pacs_media_type) {
+            furi_string_set(type_str, seader_credential_get_type_label(credential));
+        } else {
+            furi_string_set(type_str, "Read error");
+        }
         furi_string_set(bitlength_str, seader->read_error[0] ? seader->read_error : "Read failed");
 
-        seader_t_1_reset(seader->uart);
-        seader_ccid_check_for_sam(seader->uart);
+        if(seader->hf_read_failure_reason == SeaderHfReadFailureReasonSamTimeout ||
+           seader->hf_read_failure_reason == SeaderHfReadFailureReasonProtocolError) {
+            seader_t_1_reset(seader->uart);
+            seader_ccid_check_for_sam(seader->uart);
+        }
     }
 
     widget_add_button_element(

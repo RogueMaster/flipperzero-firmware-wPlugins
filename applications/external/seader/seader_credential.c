@@ -517,7 +517,23 @@ bool seader_credential_save_rfid(SeaderCredential* cred, const char* name) {
 
     FURI_LOG_D(TAG, "LFRFID (%d): %016llx", cred->bit_length, target);
     size_t data_size = protocol_dict_get_data_size(dict, protocol);
-    uint8_t* data = malloc(data_size);
+    uint8_t stack_data[32];
+    uint8_t* data = NULL;
+    bool must_free = false;
+    if(data_size <= sizeof(stack_data)) {
+        data = stack_data;
+        memset(data, 0, data_size);
+    } else {
+        data = malloc(data_size);
+        if(!data) {
+            FURI_LOG_E(TAG, "Failed to allocate LFRFID data buffer");
+            protocol_dict_free(dict);
+            furi_string_free(file_path);
+            return false;
+        }
+        must_free = true;
+    }
+
     if(data_size < 8) {
         memcpy(data, (void*)&target, data_size);
     } else {
@@ -525,7 +541,9 @@ bool seader_credential_save_rfid(SeaderCredential* cred, const char* name) {
         memcpy(data + 4, (void*)&target, 8);
     }
     protocol_dict_set_data(dict, protocol, data, data_size);
-    free(data);
+    if(must_free) {
+        free(data);
+    }
 
     result = lfrfid_dict_file_save(dict, protocol, furi_string_get_cstr(file_path));
 

@@ -1,7 +1,11 @@
 #include <string.h>
+#include <stdint.h>
 
 #include "munit.h"
+#include "allocation_policy.h"
 #include "runtime_policy.h"
+#include "seader_hf_read_plan.h"
+#include "worker_loop_policy.h"
 
 static MunitResult test_reset_cached_sam_metadata_clears_all_fields(
     const MunitParameter params[],
@@ -237,6 +241,81 @@ static MunitResult test_reset_hf_mode_clears_selection_and_detected_types(
     return MUNIT_OK;
 }
 
+static MunitResult test_cancel_hf_type_prompt_resets_future_read_to_full_polling(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    bool hf_mode_active = true;
+    SeaderCredentialType selected_read_type = SeaderCredentialTypePicopass;
+    SeaderCredentialType detected_types[3] = {
+        SeaderCredentialType14A,
+        SeaderCredentialTypePicopass,
+        SeaderCredentialTypeNone,
+    };
+    size_t detected_type_count = 2U;
+
+    seader_runtime_cancel_hf_type_prompt(
+        &hf_mode_active,
+        &selected_read_type,
+        detected_types,
+        3U,
+        &detected_type_count);
+
+    munit_assert_false(hf_mode_active);
+    munit_assert_int(selected_read_type, ==, SeaderCredentialTypeNone);
+    munit_assert_size(detected_type_count, ==, 0U);
+    for(size_t i = 0; i < 3U; i++) {
+        munit_assert_int(detected_types[i], ==, SeaderCredentialTypeNone);
+    }
+
+    const SeaderHfReadPlan next_plan =
+        seader_hf_read_plan_build(selected_read_type, detected_types, detected_type_count);
+    munit_assert_int(next_plan.decision, ==, SeaderHfReadDecisionContinuePolling);
+    munit_assert_int(next_plan.type_to_read, ==, SeaderCredentialTypeNone);
+    munit_assert_size(next_plan.detected_type_count, ==, 0U);
+    return MUNIT_OK;
+}
+
+static MunitResult test_virtual_credential_loop_terminal_policy(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    munit_assert_true(
+        seader_worker_virtual_credential_should_continue(true, true, false, false, 1U));
+    munit_assert_false(
+        seader_worker_virtual_credential_should_continue(false, true, false, false, 1U));
+    munit_assert_false(
+        seader_worker_virtual_credential_should_continue(true, false, false, false, 1U));
+    munit_assert_false(
+        seader_worker_virtual_credential_should_continue(true, true, true, false, 1U));
+    munit_assert_false(
+        seader_worker_virtual_credential_should_continue(true, true, false, true, 1U));
+    munit_assert_false(
+        seader_worker_virtual_credential_should_continue(true, true, false, false, 0U));
+    return MUNIT_OK;
+}
+
+static MunitResult test_checked_size_multiply_rejects_overflow(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    size_t total_size = 0U;
+    munit_assert_true(seader_size_multiply_checked(4U, 8U, &total_size));
+    munit_assert_size(total_size, ==, 32U);
+
+    total_size = 123U;
+    munit_assert_false(seader_size_multiply_checked(SIZE_MAX, 2U, &total_size));
+    munit_assert_size(total_size, ==, 123U);
+    munit_assert_false(seader_size_multiply_checked(1U, 1U, NULL));
+    return MUNIT_OK;
+}
+
 static MunitTest test_runtime_policy_cases[] = {
     {(char*)"/reset-sam-metadata", test_reset_cached_sam_metadata_clears_all_fields, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/begin-uhf-probe", test_begin_uhf_probe_sets_runtime_and_initializes_probe, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
@@ -248,6 +327,9 @@ static MunitTest test_runtime_policy_cases[] = {
     {(char*)"/begin-board-auto-recover", test_begin_board_auto_recover_sets_pending_and_target, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/begin-board-auto-recover-invalid", test_begin_board_auto_recover_rejects_invalid_or_duplicate_state, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/reset-hf-mode", test_reset_hf_mode_clears_selection_and_detected_types, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/cancel-hf-type-prompt", test_cancel_hf_type_prompt_resets_future_read_to_full_polling, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/virtual-credential-terminal-policy", test_virtual_credential_loop_terminal_policy, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/checked-size-multiply", test_checked_size_multiply_rejects_overflow, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {NULL, NULL, NULL, NULL, 0, NULL},
 };
 

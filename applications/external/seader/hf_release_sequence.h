@@ -13,6 +13,7 @@ typedef struct {
     SeaderHfReleaseCallback host_picopass_release;
     SeaderHfReleaseCallback plugin_free;
     SeaderHfReleaseCallback plugin_manager_unload;
+    SeaderHfReleaseCallback host_nfc_release;
     SeaderHfReleaseCallback worker_reset;
 } SeaderHfReleaseSequence;
 
