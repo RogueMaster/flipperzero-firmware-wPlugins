@@ -220,11 +220,11 @@ static int32_t dallas_test_worker_thread(void* ctx) {
     uint8_t attempts = 0;
     const bool otg_was_on = furi_hal_power_is_otg_enabled();
     if(!otg_was_on) {
-		while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
-			furi_hal_power_enable_otg();
-			furi_delay_ms(10);
-		}
-		furi_delay_ms(200);
+        while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
+            furi_hal_power_enable_otg();
+            furi_delay_ms(10);
+        }
+        furi_delay_ms(200);
         furi_delay_ms(DALLAS_OTG_SETTLE_MS); // let the boost ramp the rail before measuring
     }
 

@@ -765,6 +765,7 @@ static OracleApp* oracle_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);
     app->dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->dispatcher);
     app->view = view_alloc();
 
     view_allocate_model(app->view, ViewModelTypeLocking, sizeof(OracleModel));

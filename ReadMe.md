@@ -77,6 +77,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Flipcraft v2.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Added: [Dallas Tester v0.1 (By mishamyte)](https://github.com/mishamyte/flipper-dallas-tester)
 - ESP Flasher: [Bump Marauder v1.12.2 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.2)
+- Added: [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
 
 <a name="release"></a>
 
@@ -477,6 +478,7 @@ $ ./fbt dolphin_ext
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)
 - [Anim Previewer v1.0 (By H4W9)](https://github.com/H4W9/AnimationPreviewerFlipperApp)
 - [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
+- [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
 - [APRS TX v1.3.18 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - [ASCII Table v1.0 (By x10102)](https://github.com/x10102/flipper_ascii)
 - [Atari SIO Emulator v0.5 (By cepetr)](https://github.com/cepetr/sio2flip)
