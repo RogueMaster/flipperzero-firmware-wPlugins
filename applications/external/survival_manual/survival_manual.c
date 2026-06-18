@@ -22,9 +22,34 @@
 
 #include "pages.h"
 
-#define ASSETS_DIR "/ext/apps_assets/survival_manual/"
+#define ASSETS_DIR   "/ext/apps_assets/survival_manual/"
 #define MAX_SECTIONS 160
-#define COUNT_OF(x) (sizeof(x) / sizeof((x)[0]))
+// #define COUNT_OF(x)  (sizeof(x) / sizeof((x)[0]))
+
+char* local_strtok_r(char* s, const char* delim, char** save_ptr) {
+    char* end;
+    if(s == NULL) s = *save_ptr;
+    if(*s == '\0') {
+        *save_ptr = s;
+        return NULL;
+    }
+    /* Scan leading delimiters.  */
+    s += strspn(s, delim);
+    if(*s == '\0') {
+        *save_ptr = s;
+        return NULL;
+    }
+    /* Find the end of the token.  */
+    end = s + strcspn(s, delim);
+    if(*end == '\0') {
+        *save_ptr = end;
+        return s;
+    }
+    /* Terminate the token and make *SAVE_PTR point past it.  */
+    *end = '\0';
+    *save_ptr = end + 1;
+    return s;
+}
 
 typedef enum {
     ViewPages,
@@ -82,11 +107,10 @@ static void open_section(App* app, int sidx) {
     app->text_buf = malloc(s->length + 1);
     app->text_buf[0] = '\0';
 
-    furi_string_printf(
-        app->path, "%s%s.txt", ASSETS_DIR, survival_pages[app->current_page].file);
+    furi_string_printf(app->path, "%s%s.txt", ASSETS_DIR, survival_pages[app->current_page].file);
 
     File* f = storage_file_alloc(app->storage);
-    if(storage_file_open(f, furi_string_get_cstr(app->path), FSAM_READ, FSOM_OPENING)) {
+    if(storage_file_open(f, furi_string_get_cstr(app->path), FSAM_READ, FSOM_OPEN_EXISTING)) {
         storage_file_seek(f, s->offset, true);
         uint16_t rd = storage_file_read(f, app->text_buf, (uint16_t)s->length);
         app->text_buf[rd] = '\0';
@@ -118,14 +142,14 @@ static void open_page(App* app, int pidx) {
     furi_string_printf(app->path, "%s%s.idx", ASSETS_DIR, survival_pages[pidx].file);
 
     File* f = storage_file_alloc(app->storage);
-    if(storage_file_open(f, furi_string_get_cstr(app->path), FSAM_READ, FSOM_OPENING)) {
+    if(storage_file_open(f, furi_string_get_cstr(app->path), FSAM_READ, FSOM_OPEN_EXISTING)) {
         uint64_t sz = storage_file_size(f);
         char* buf = malloc((size_t)sz + 1);
         uint16_t got = storage_file_read(f, buf, (uint16_t)sz);
         buf[got] = '\0';
 
         char* save = NULL;
-        char* line = strtok_r(buf, "\n", &save);
+        char* line = local_strtok_r(buf, "\n", &save);
         while(line && app->section_count < MAX_SECTIONS) {
             // line format: offset<TAB>length<TAB>title
             char* t1 = strchr(line, '\t');
@@ -144,7 +168,7 @@ static void open_page(App* app, int pidx) {
                     app->section_count++;
                 }
             }
-            line = strtok_r(NULL, "\n", &save);
+            line = local_strtok_r(NULL, "\n", &save);
         }
         free(buf);
     } else {
@@ -169,6 +193,7 @@ static App* app_alloc(void) {
     app->path = furi_string_alloc();
 
     app->vd = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->vd);
 
     app->pages_menu = submenu_alloc();
     submenu_set_header(app->pages_menu, "Survival Manual");

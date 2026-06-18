@@ -23,7 +23,16 @@ BLOCKSIZE = 16
 RNG_STATE = 0x1234
 
 AIR, GRASS, DIRT, STONE, COBBLE, LOG, LEAVES, PLANK = 0, 1, 2, 3, 4, 5, 6, 7
-COALORE, IRONORE, SAND, GLASS, SAPLING, TABLE, FURNACE, CHEST = 8, 9, 10, 11, 12, 13, 14, 15
+COALORE, IRONORE, SAND, GLASS, SAPLING, TABLE, FURNACE, CHEST = (
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+)
 
 A = AIR
 G = GRASS
@@ -38,14 +47,86 @@ V = LEAVES
 # Stored as [y][z][x] for the current chunk payload. This is the same data that
 # old World::loadInitial() passed through setBlock(x, y, z, init[y][7 - z][x]).
 OLD_WORLD_8 = (
-    ((S, S, S, S, N, N, N, N), (S, S, S, S, S, C, C, S), (S, S, S, S, S, C, C, S), (S, S, S, S, S, C, S, S), (S, S, S, S, S, S, S, S), (S, S, S, S, S, S, S, S), (S, S, S, S, S, S, S, S), (S, S, S, S, S, S, S, S)),
-    ((G, G, G, G, N, N, N, N), (G, G, G, G, G, N, N, N), (G, G, D, G, S, N, C, S), (G, G, G, S, C, C, C, S), (G, S, S, S, S, S, S, S), (S, S, S, S, S, S, S, S), (S, S, I, I, S, S, S, S), (S, S, I, S, S, S, S, S)),
-    ((A, A, A, A, A, A, A, A), (A, A, A, A, A, N, N, N), (A, A, L, A, G, N, N, N), (A, A, A, G, G, S, S, S), (A, G, G, G, S, S, S, I), (G, G, S, S, S, S, I, I), (S, S, S, I, S, S, S, S), (S, S, I, I, S, S, S, S)),
-    ((A, A, A, A, A, A, A, A), (A, A, A, A, A, A, A, A), (A, A, L, A, A, A, N, N), (A, A, A, A, A, G, N, N), (A, A, A, A, G, S, N, I), (A, A, G, G, S, S, I, I), (G, G, S, S, S, S, S, S), (S, S, S, S, S, S, S, S)),
-    ((A, V, V, V, A, A, A, A), (V, V, V, V, V, A, A, A), (V, V, L, V, V, A, A, A), (V, V, V, V, V, A, N, N), (A, V, V, V, A, G, N, N), (A, A, A, A, G, G, S, N), (A, A, G, G, G, S, S, N), (G, G, G, S, S, S, S, S)),
-    ((A, V, V, V, A, A, A, A), (V, V, V, V, V, A, A, A), (V, V, L, V, V, A, A, A), (V, V, V, V, V, A, A, A), (V, V, V, V, A, A, A, N), (A, A, A, A, A, A, G, N), (A, A, A, A, A, G, G, N), (A, A, A, G, G, G, G, G)),
-    ((A, A, A, A, A, A, A, A), (A, A, V, A, A, A, A, A), (A, V, V, A, A, A, A, A), (A, V, V, V, A, A, A, A), (A, A, V, V, A, A, A, A), (A, A, A, A, A, A, A, A), (A, A, A, A, A, A, A, A), (A, A, A, A, A, A, A, A)),
-    ((A, A, A, A, A, A, A, A), (A, A, V, A, A, A, A, A), (A, V, V, V, A, A, A, A), (A, A, V, A, A, A, A, A), (A, A, A, A, A, A, A, A), (A, A, A, A, A, A, A, A), (A, A, A, A, A, A, A, A), (A, A, A, A, A, A, A, A)),
+    (
+        (S, S, S, S, N, N, N, N),
+        (S, S, S, S, S, C, C, S),
+        (S, S, S, S, S, C, C, S),
+        (S, S, S, S, S, C, S, S),
+        (S, S, S, S, S, S, S, S),
+        (S, S, S, S, S, S, S, S),
+        (S, S, S, S, S, S, S, S),
+        (S, S, S, S, S, S, S, S),
+    ),
+    (
+        (G, G, G, G, N, N, N, N),
+        (G, G, G, G, G, N, N, N),
+        (G, G, D, G, S, N, C, S),
+        (G, G, G, S, C, C, C, S),
+        (G, S, S, S, S, S, S, S),
+        (S, S, S, S, S, S, S, S),
+        (S, S, I, I, S, S, S, S),
+        (S, S, I, S, S, S, S, S),
+    ),
+    (
+        (A, A, A, A, A, A, A, A),
+        (A, A, A, A, A, N, N, N),
+        (A, A, L, A, G, N, N, N),
+        (A, A, A, G, G, S, S, S),
+        (A, G, G, G, S, S, S, I),
+        (G, G, S, S, S, S, I, I),
+        (S, S, S, I, S, S, S, S),
+        (S, S, I, I, S, S, S, S),
+    ),
+    (
+        (A, A, A, A, A, A, A, A),
+        (A, A, A, A, A, A, A, A),
+        (A, A, L, A, A, A, N, N),
+        (A, A, A, A, A, G, N, N),
+        (A, A, A, A, G, S, N, I),
+        (A, A, G, G, S, S, I, I),
+        (G, G, S, S, S, S, S, S),
+        (S, S, S, S, S, S, S, S),
+    ),
+    (
+        (A, V, V, V, A, A, A, A),
+        (V, V, V, V, V, A, A, A),
+        (V, V, L, V, V, A, A, A),
+        (V, V, V, V, V, A, N, N),
+        (A, V, V, V, A, G, N, N),
+        (A, A, A, A, G, G, S, N),
+        (A, A, G, G, G, S, S, N),
+        (G, G, G, S, S, S, S, S),
+    ),
+    (
+        (A, V, V, V, A, A, A, A),
+        (V, V, V, V, V, A, A, A),
+        (V, V, L, V, V, A, A, A),
+        (V, V, V, V, V, A, A, A),
+        (V, V, V, V, A, A, A, N),
+        (A, A, A, A, A, A, G, N),
+        (A, A, A, A, A, G, G, N),
+        (A, A, A, G, G, G, G, G),
+    ),
+    (
+        (A, A, A, A, A, A, A, A),
+        (A, A, V, A, A, A, A, A),
+        (A, V, V, A, A, A, A, A),
+        (A, V, V, V, A, A, A, A),
+        (A, A, V, V, A, A, A, A),
+        (A, A, A, A, A, A, A, A),
+        (A, A, A, A, A, A, A, A),
+        (A, A, A, A, A, A, A, A),
+    ),
+    (
+        (A, A, A, A, A, A, A, A),
+        (A, A, V, A, A, A, A, A),
+        (A, V, V, V, A, A, A, A),
+        (A, A, V, A, A, A, A, A),
+        (A, A, A, A, A, A, A, A),
+        (A, A, A, A, A, A, A, A),
+        (A, A, A, A, A, A, A, A),
+        (A, A, A, A, A, A, A, A),
+    ),
 )
 
 
@@ -75,7 +156,9 @@ def build_header():
         1,
         HEADER_SIZE,
     )
-    struct.pack_into("<iii", hdr, 18, spawn_bx * BLOCKSIZE, spawn_y, spawn_bz * BLOCKSIZE)
+    struct.pack_into(
+        "<iii", hdr, 18, spawn_bx * BLOCKSIZE, spawn_y, spawn_bz * BLOCKSIZE
+    )
     hdr[30] = 0x08
     struct.pack_into("<I", hdr, 32, RNG_STATE)
     return hdr
@@ -102,13 +185,17 @@ def write_world(path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate the old 8x8x8 Flipcraft world in current .fcw format")
+    parser = argparse.ArgumentParser(
+        description="Generate the old 8x8x8 Flipcraft world in current .fcw format"
+    )
     parser.add_argument("-o", "--out", default="assets/worlds/mini.fcw")
     args = parser.parse_args()
 
     write_world(args.out)
     total = HEADER_SIZE + CHUNKS_X * CHUNKS_Z * CHUNK_BLOCKS
-    print(f"Wrote {args.out}: old 8x8x8 world in chunk (0,0), height expanded to {HEIGHT}, {total} bytes")
+    print(
+        f"Wrote {args.out}: old 8x8x8 world in chunk (0,0), height expanded to {HEIGHT}, {total} bytes"
+    )
 
 
 if __name__ == "__main__":

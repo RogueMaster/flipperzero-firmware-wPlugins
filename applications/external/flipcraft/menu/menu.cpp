@@ -16,7 +16,7 @@ namespace menu {
 
 namespace {
 
-constexpr const char* DATA_DIR = STORAGE_APP_DATA_PATH_PREFIX;     // "/data"
+constexpr const char* DATA_DIR = STORAGE_APP_DATA_PATH_PREFIX; // "/data"
 constexpr const char* ASSETS_DIR = STORAGE_APP_ASSETS_PATH_PREFIX; // "/assets"
 
 constexpr int MAX_ITEMS = 32;
@@ -33,7 +33,10 @@ enum ViewId : uint32_t {
     VIEW_CONFIRM,
 };
 
-enum PickerMode { PICK_TEMPLATE, PICK_DELETE };
+enum PickerMode {
+    PICK_TEMPLATE,
+    PICK_DELETE
+};
 
 struct MenuApp {
     Gui* gui = nullptr;
@@ -138,8 +141,7 @@ void rebuild_main(MenuApp* app) {
     for(int i = 0; i < app->saves_count; i++)
         submenu_add_item(m, app->saves[i], (uint32_t)i, main_callback, app);
     submenu_add_item(m, "Create", IDX_CREATE, main_callback, app);
-    if(app->saves_count > 0)
-        submenu_add_item(m, "Delete", IDX_DELETE, main_callback, app);
+    if(app->saves_count > 0) submenu_add_item(m, "Delete", IDX_DELETE, main_callback, app);
 }
 
 void open_templates(MenuApp* app) {
@@ -263,6 +265,7 @@ Result run(Gui* gui, Storage* storage) {
     app->storage = storage;
 
     app->vd = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->vd);
     app->main_menu = submenu_alloc();
     app->picker = submenu_alloc();
     app->text_input = text_input_alloc();

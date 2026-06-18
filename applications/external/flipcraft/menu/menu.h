@@ -8,8 +8,8 @@ namespace menu {
 
 // Result of one menu session.
 struct Result {
-    bool launch = false;          // true: open the world at `path`
-    char path[256] = {0};         // full data path to the .fcw save to open
+    bool launch = false; // true: open the world at `path`
+    char path[256] = {0}; // full data path to the .fcw save to open
 };
 
 // Show the world-select menu and block until the user either picks a world to

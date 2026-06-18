@@ -8,6 +8,7 @@
 #include <gui/scene_manager.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
+#include <expansion/expansion.h>
 
 #include <notification/notification_messages.h>
 

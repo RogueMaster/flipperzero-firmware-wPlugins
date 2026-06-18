@@ -21,6 +21,7 @@ static DallasTester* dallas_tester_alloc(void) {
     app->worker = dallas_test_worker_alloc();
 
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&dallas_tester_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
@@ -66,6 +67,9 @@ static void dallas_tester_free(DallasTester* app) {
 
 int32_t dallas_tester_app(void* p) {
     UNUSED(p);
+    // Disable expansion protocol to avoid interference with UART Handle
+    Expansion* expansion = furi_record_open(RECORD_EXPANSION);
+    expansion_disable(expansion);
 
     DallasTester* app = dallas_tester_alloc();
 
@@ -75,5 +79,9 @@ int32_t dallas_tester_app(void* p) {
     view_dispatcher_run(app->view_dispatcher);
 
     dallas_tester_free(app);
+
+    // Return previous state of expansion
+    expansion_enable(expansion);
+    furi_record_close(RECORD_EXPANSION);
     return 0;
 }

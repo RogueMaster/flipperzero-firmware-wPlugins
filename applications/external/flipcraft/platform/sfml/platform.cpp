@@ -167,11 +167,9 @@ static Input buildInput(Game& game, const KeyboardState& keys, const sf::Event* 
         if(keys.s || keyDown(sf::Keyboard::Key::S)) in.forward = -8;
         if(keys.a || keyDown(sf::Keyboard::Key::A)) in.turn = 1;
         if(keys.d || keyDown(sf::Keyboard::Key::D)) in.turn = -1;
-        in.crouch = keys.lshift || keys.rshift ||
-                    keyDown(sf::Keyboard::Key::LShift) ||
+        in.crouch = keys.lshift || keys.rshift || keyDown(sf::Keyboard::Key::LShift) ||
                     keyDown(sf::Keyboard::Key::RShift);
-        in.breakPressed = keys.lcontrol || keys.rcontrol ||
-                          keyDown(sf::Keyboard::Key::LControl) ||
+        in.breakPressed = keys.lcontrol || keys.rcontrol || keyDown(sf::Keyboard::Key::LControl) ||
                           keyDown(sf::Keyboard::Key::RControl);
 
         if(const auto* key = event ? event->getIf<sf::Event::KeyPressed>() : nullptr) {
@@ -240,8 +238,7 @@ int32_t run(Game& game) {
                 setKey(keys, released->code, false);
             }
 
-            if(event->is<sf::Event::Closed>() ||
-               (key && key->code == sf::Keyboard::Key::Escape)) {
+            if(event->is<sf::Event::Closed>() || (key && key->code == sf::Keyboard::Key::Escape)) {
                 window.close();
                 break;
             }

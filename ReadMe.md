@@ -73,6 +73,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Multi Converter v1.2 (By theisolinearchip)](https://github.com/theisolinearchip) [fix: correct Fahrenheit label in multi converter (By SSDWGG)](https://github.com/xMasterX/all-the-plugins/pull/220)
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip) [Port Ventra-UL parser (By hazardousvoltage)](https://github.com/Next-Flip/Momentum-Apps/pull/79) Many UI & Core Fixes (By luu176)
 - Updated: [Access Audit v1.9 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
+- Added: [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
+- Added: [Flipcraft v2.1 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
+- Added: [Dallas Tester v0.1 (By mishamyte)](https://github.com/mishamyte/flipper-dallas-tester)
 
 <a name="release"></a>
 
@@ -349,6 +352,7 @@ $ ./fbt dolphin_ext
 - [Five Nights at Flippers v1.3 (By sillygir1)](https://github.com/sillygir1/flipperzero-fnaf)
 - [Flappy Bird v1.5 (By DroomOne)](https://github.com/DroomOne/flipperzero-firmware/tree/dev/applications/flappy_bird)
 - [Flight Assault v0.4 (By evillero)](https://github.com/evillero/flight_assault)
+- [Flipcraft v2.1 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - [Flipper Hero v1.4 (By mentoster)](https://github.com/mentoster/Flipper-hero)
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)
 - [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
@@ -541,6 +545,7 @@ $ ./fbt dolphin_ext
 - [Crypto Dictionary v0.1 (By armixz)](https://github.com/armixz/Flipper-Zero-Crypto-Dictionary)
 - [Cyborg Detector v1.1 (By RocketGod-Git)](https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector)
 - [Dab Timer v2.0 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
+- [Dallas Tester v0.1 (By mishamyte)](https://github.com/mishamyte/flipper-dallas-tester)
 - [DAP Link v1.3 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1897)
 - [DCF77 Clock Sync v1.3 (By mdaskalov)](https://github.com/mdaskalov/dcf77-clock-sync)
 - [DCF77 Transmitter v1.3 (By arha)](https://github.com/arha/flipper-dcf77)
@@ -904,6 +909,7 @@ $ ./fbt dolphin_ext
 - [Sub-GHz Spectrum v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Sub-Ghz Toolkit 1808 v1.0 (By RocketGod-git)](https://github.com/RocketGod-git/RocketGods-SubGHz-Toolkit)
 - [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound)
+- [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.3 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T5577 Multiwriter v0.2 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer)

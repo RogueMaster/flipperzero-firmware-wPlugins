@@ -47,7 +47,9 @@ def read_header(f):
     hdr = f.read(HEADER_SIZE_MIN)
     if len(hdr) < HEADER_SIZE_MIN:
         sys.exit("file too small")
-    magic, version, cx, cz, sx, sy, sz, bpb, header_size = struct.unpack_from("<IHHHBBBBI", hdr, 0)
+    magic, version, cx, cz, sx, sy, sz, bpb, header_size = struct.unpack_from(
+        "<IHHHBBBBI", hdr, 0
+    )
     if magic != MAGIC:
         sys.exit("bad magic")
     return {
@@ -125,7 +127,9 @@ def draw_digit_text(pg, screen, text, x, y, scale, color):
         for gy, row in enumerate(glyph):
             for gx, bit in enumerate(row):
                 if bit == "1":
-                    pg.draw.rect(screen, color, (gx0 + gx * scale, y + gy * scale, scale, scale))
+                    pg.draw.rect(
+                        screen, color, (gx0 + gx * scale, y + gy * scale, scale, scale)
+                    )
 
 
 def main():
@@ -235,7 +239,15 @@ def main():
                     pg.draw.rect(screen, border, (px, py, tile, tile), 1)
                 if show_heights and tile >= 15:
                     scale = 1 if tile < 28 else 2
-                    draw_digit_text(pg, screen, h if h >= 0 else "-", px + tile // 2, py + (tile - 5 * scale) // 2, scale, text_color(color))
+                    draw_digit_text(
+                        pg,
+                        screen,
+                        h if h >= 0 else "-",
+                        px + tile // 2,
+                        py + (tile - 5 * scale) // 2,
+                        scale,
+                        text_color(color),
+                    )
 
         pg.display.flip()
 

@@ -107,7 +107,15 @@ static void delayMs(uint32_t ms) {
     furi_delay_ms(ms);
 }
 
-enum KeyIndex { B_UP = 0, B_DOWN, B_LEFT, B_RIGHT, B_OK, B_BACK, KEY_COUNT };
+enum KeyIndex {
+    B_UP = 0,
+    B_DOWN,
+    B_LEFT,
+    B_RIGHT,
+    B_OK,
+    B_BACK,
+    KEY_COUNT
+};
 
 static constexpr uint8_t kUp = 1u << B_UP;
 static constexpr uint8_t kDown = 1u << B_DOWN;
@@ -169,13 +177,20 @@ static void drawCb(Canvas* canvas, void* ctx) {
 
 static int keyIndex(InputKey key) {
     switch(key) {
-    case InputKeyUp: return B_UP;
-    case InputKeyDown: return B_DOWN;
-    case InputKeyLeft: return B_LEFT;
-    case InputKeyRight: return B_RIGHT;
-    case InputKeyOk: return B_OK;
-    case InputKeyBack: return B_BACK;
-    default: return -1;
+    case InputKeyUp:
+        return B_UP;
+    case InputKeyDown:
+        return B_DOWN;
+    case InputKeyLeft:
+        return B_LEFT;
+    case InputKeyRight:
+        return B_RIGHT;
+    case InputKeyOk:
+        return B_OK;
+    case InputKeyBack:
+        return B_BACK;
+    default:
+        return -1;
     }
 }
 
@@ -283,7 +298,8 @@ static Input pollInput(AppState* st) {
             if(held & kDown) in.forward = -8;
             if(held & kLeft) in.turn = 1;
             if(held & kRight) in.turn = -1;
-            for(int i = 0; i < 4; ++i) st->dirNextRepeat[i] = 0;
+            for(int i = 0; i < 4; ++i)
+                st->dirNextRepeat[i] = 0;
         }
 
         if(okHeld && !st->okConsumed && !st->okLongFired &&

@@ -47,7 +47,16 @@ FALLEN_TREE_LENGTH = 4
 
 # Block ids (flipcraft.h enum Block)
 AIR, GRASS, DIRT, STONE, COBBLE, LOG, LEAVES, PLANK = 0, 1, 2, 3, 4, 5, 6, 7
-COALORE, IRONORE, SAND, GLASS, SAPLING, TABLE, FURNACE, CHEST = 8, 9, 10, 11, 12, 13, 14, 15
+COALORE, IRONORE, SAND, GLASS, SAPLING, TABLE, FURNACE, CHEST = (
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+)
 
 MASK32 = 0xFFFFFFFF
 WORLD_SEED = 0
@@ -65,7 +74,9 @@ def resolve_output_path(out):
 
 def whash(x, z, salt):
     salt = (salt + WORLD_SEED * 1013904223) & MASK32
-    h = ((x & MASK32) * 374761393 + (z & MASK32) * 668265263 + (salt & MASK32) * 362437) & MASK32
+    h = (
+        (x & MASK32) * 374761393 + (z & MASK32) * 668265263 + (salt & MASK32) * 362437
+    ) & MASK32
     h = ((h ^ (h >> 13)) * 1274126177) & MASK32
     h ^= h >> 16
     return h & MASK32
@@ -148,16 +159,28 @@ def terrain_fields(x, z, wx, wz):
     hill = hill_mask * smoothstep(-0.08, 0.32, continent + detail) * 6.2
 
     valley = ridged(px * 3.0 + 2.5, pz * 3.0 - 1.5, 4, octaves=4)
-    valley_gate = smoothstep(0.04, 0.38, fbm(px * 1.5 + 4.0, pz * 1.5 - 6.0, 5, octaves=3))
+    valley_gate = smoothstep(
+        0.04, 0.38, fbm(px * 1.5 + 4.0, pz * 1.5 - 6.0, 5, octaves=3)
+    )
     ravine_strength = smoothstep(0.72, 0.92, valley) * valley_gate
     ravine_depth = int(round(ravine_strength * 4.0))
 
     moisture = fbm(px * 2.4 - 8.0, pz * 2.4 + 19.0, 6, octaves=5)
-    temperature = fbm(px * 1.8 + 31.0, pz * 1.8 - 17.0, 7, octaves=4) + (nx - 0.5) * 0.35
-    desert_score = temperature * 0.68 - moisture * 0.72 + fbm(px * 5.0, pz * 5.0, 8, octaves=3) * 0.24
+    temperature = (
+        fbm(px * 1.8 + 31.0, pz * 1.8 - 17.0, 7, octaves=4) + (nx - 0.5) * 0.35
+    )
+    desert_score = (
+        temperature * 0.68
+        - moisture * 0.72
+        + fbm(px * 5.0, pz * 5.0, 8, octaves=3) * 0.24
+    )
     desert = desert_score > 0.18 and ravine_depth < 3
 
-    forest_score = moisture * 0.78 - abs(temperature) * 0.22 + fbm(px * 6.0 + 5.0, pz * 6.0, 9, octaves=3) * 0.18
+    forest_score = (
+        moisture * 0.78
+        - abs(temperature) * 0.22
+        + fbm(px * 6.0 + 5.0, pz * 6.0, 9, octaves=3) * 0.18
+    )
     forest = forest_score > 0.02 and not desert and ravine_depth == 0
 
     top = int(round(4.4 + continent * 1.6 + detail + hill - ravine_depth))
@@ -253,7 +276,10 @@ def add_trees(blocks, fields, heights, wx, wz):
             f = fields[z][x]
             if not f["forest"] or local_slope(heights, wx, wz, x, z) > 1:
                 continue
-            score = fbm(x * 0.19 + 4.0, z * 0.19 - 9.0, 62, octaves=3) + (whash(x, z, 63) & 255) / 512.0
+            score = (
+                fbm(x * 0.19 + 4.0, z * 0.19 - 9.0, 62, octaves=3)
+                + (whash(x, z, 63) & 255) / 512.0
+            )
             if score > 0.23:
                 candidates.append((score, x, z))
 
@@ -275,7 +301,9 @@ def add_fallen_trunks(blocks, fields, heights, wx, wz, count=FALLEN_TREE_COUNT):
             f = fields[z][x]
             if f["desert"] or f["ravine"] or local_slope(heights, wx, wz, x, z) > 1:
                 continue
-            score = fbm(x * 0.11, z * 0.11, 70, octaves=3) + (whash(x, z, 71) & 255) / 700.0
+            score = (
+                fbm(x * 0.11, z * 0.11, 70, octaves=3) + (whash(x, z, 71) & 255) / 700.0
+            )
             candidates.append((score, x, z))
 
     placed = []
@@ -283,10 +311,14 @@ def add_fallen_trunks(blocks, fields, heights, wx, wz, count=FALLEN_TREE_COUNT):
         if len(placed) >= count:
             break
         along_x = (whash(x, z, 72) & 1) == 0
-        coords = [(x + i, z) if along_x else (x, z + i) for i in range(FALLEN_TREE_LENGTH)]
+        coords = [
+            (x + i, z) if along_x else (x, z + i) for i in range(FALLEN_TREE_LENGTH)
+        ]
         if any(not (1 <= tx < wx - 1 and 1 <= tz < wz - 1) for tx, tz in coords):
             continue
-        if any(fields[tz][tx]["desert"] or fields[tz][tx]["ravine"] for tx, tz in coords):
+        if any(
+            fields[tz][tx]["desert"] or fields[tz][tx]["ravine"] for tx, tz in coords
+        ):
             continue
         if any((x - px) * (x - px) + (z - pz) * (z - pz) < 225 for px, pz in placed):
             continue
@@ -312,7 +344,13 @@ def add_stone_piles(blocks, fields, heights, wx, wz, count=6):
             break
         if any((x - px) * (x - px) + (z - pz) * (z - pz) < 196 for px, pz in placed):
             continue
-        pattern = ((0, 0, STONE), (1, 0, COBBLE), (-1, 0, COBBLE), (0, 1, COBBLE), (0, -1, STONE))
+        pattern = (
+            (0, 0, STONE),
+            (1, 0, COBBLE),
+            (-1, 0, COBBLE),
+            (0, 1, COBBLE),
+            (0, -1, STONE),
+        )
         for dx, dz, bid in pattern:
             tx, tz = x + dx, z + dz
             set_block(blocks, wx, wz, tx, heights[tz][tx] + 1, tz, bid)
@@ -329,9 +367,14 @@ def add_buildings(blocks, fields, heights, wx, wz, count=3):
             base = heights[z + 2][x + 2]
             if any(abs(heights[tz][tx] - base) > 1 for tx, tz in area):
                 continue
-            if any(fields[tz][tx]["desert"] or fields[tz][tx]["ravine"] for tx, tz in area):
+            if any(
+                fields[tz][tx]["desert"] or fields[tz][tx]["ravine"] for tx, tz in area
+            ):
                 continue
-            score = fbm(x * 0.08 + 19.0, z * 0.08 - 7.0, 90, octaves=3) + (whash(x, z, 91) & 255) / 900.0
+            score = (
+                fbm(x * 0.08 + 19.0, z * 0.08 - 7.0, 90, octaves=3)
+                + (whash(x, z, 91) & 255) / 900.0
+            )
             candidates.append((score, x, z))
 
     placed = []
@@ -372,8 +415,12 @@ def build_world(chunks_x, chunks_z):
         "fallen": len(fallen),
         "piles": len(piles),
         "buildings": len(buildings),
-        "desert": sum(1 for z in range(wz) for x in range(wx) if fields[z][x]["desert"]),
-        "ravine": sum(1 for z in range(wz) for x in range(wx) if fields[z][x]["ravine"]),
+        "desert": sum(
+            1 for z in range(wz) for x in range(wx) if fields[z][x]["desert"]
+        ),
+        "ravine": sum(
+            1 for z in range(wz) for x in range(wx) if fields[z][x]["ravine"]
+        ),
         "hills": sum(1 for z in range(wz) for x in range(wx) if fields[z][x]["hill"]),
         "height_min": min(min(row) for row in heights),
         "height_max": max(max(row) for row in heights),
@@ -399,9 +446,20 @@ def build_header(chunks_x, chunks_z, heights, seed):
     spawn_x = spawn_bx * BLOCKSIZE
     spawn_z = spawn_bz * BLOCKSIZE
     spawn_y = (heights[spawn_bz][spawn_bx] + 1) * BLOCKSIZE
-    struct.pack_into("<IHHHBBBBI", hdr, 0,
-                     MAGIC, VERSION, chunks_x, chunks_z,
-                     CHUNK, HEIGHT, CHUNK, 1, HEADER_SIZE)
+    struct.pack_into(
+        "<IHHHBBBBI",
+        hdr,
+        0,
+        MAGIC,
+        VERSION,
+        chunks_x,
+        chunks_z,
+        CHUNK,
+        HEIGHT,
+        CHUNK,
+        1,
+        HEADER_SIZE,
+    )
     struct.pack_into("<iii", hdr, 18, spawn_x, spawn_y, spawn_z)
     hdr[30] = 0x08
     struct.pack_into("<I", hdr, 32, seed & MASK32)
@@ -411,11 +469,17 @@ def build_header(chunks_x, chunks_z, heights, seed):
 def main():
     global WORLD_SEED
     ap = argparse.ArgumentParser(description="Generate a Flipcraft world asset")
-    ap.add_argument("-o", "--out", default=DEFAULT_WORLD_NAME,
-                    help="output file name in assets/worlds, or an explicit path")
+    ap.add_argument(
+        "-o",
+        "--out",
+        default=DEFAULT_WORLD_NAME,
+        help="output file name in assets/worlds, or an explicit path",
+    )
     ap.add_argument("--chunks-x", type=int, default=16)
     ap.add_argument("--chunks-z", type=int, default=16)
-    ap.add_argument("--seed", type=lambda s: int(s, 0), help="world seed; random if omitted")
+    ap.add_argument(
+        "--seed", type=lambda s: int(s, 0), help="world seed; random if omitted"
+    )
     args = ap.parse_args()
 
     WORLD_SEED = (args.seed if args.seed is not None else secrets.randbits(32)) & MASK32
