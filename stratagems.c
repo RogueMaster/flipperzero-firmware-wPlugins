@@ -758,6 +758,20 @@ Stratagem STRATAGEM_WARP_PACK = {
     .icon = &I_warp_pack,
     .cooldown = 480,
 };
+Stratagem STRATAGEM_SUPPLY_FRV = {
+    .type = StratagemType_Vehicle,
+    .title = "Supply FRV",
+    .code = "LDLLDUR",
+    .icon = &I_supply_frv,
+    .cooldown = 480,
+};
+Stratagem STRATAGEM_INCINERATOR_FRV = {
+    .type = StratagemType_Vehicle,
+    .title = "Incinerator FRV",
+    .code = "LDRLDUU",
+    .icon = &I_incinerator_frv,
+    .cooldown = 480,
+};
 Stratagem STRATAGEM_PATRIOT_EXOSUIT = {
     .type = StratagemType_Vehicle,
     .title = "Patriot Exosuit",
@@ -917,6 +931,8 @@ Stratagem* stratagems[] = {
     &STRATAGEM_DIRECTIONAL_SHIELD,
 
     &STRATAGEM_FAST_RECON_VEHICLE,
+    &STRATAGEM_SUPPLY_FRV,
+    &STRATAGEM_INCINERATOR_FRV,
     &STRATAGEM_PATRIOT_EXOSUIT,
     &STRATAGEM_EMANCIPATOR_EXOSUIT,
     &STRATAGEM_BREAKTHROUGH_EXOSUIT,
