@@ -15,10 +15,7 @@ a long recording full of repeats and noise becomes a single tidy frame.
 > and rewrites files you already have on the SD card.
 
 ## Supported protocols
-Sub-GHz-RAW-Edit allows to display signals of `.sub` files in following protocols:
-- RAW
-- KeeLoq
-- Princeton
+Sub-GHz-RAW-Edit allows you to view RAW signals and any other `.sub` protocols supported by your firmware. For all protocols other than RAW capture, this app uses the device's internal decoder.
 
 As the `Save` option always writes output `.sub` files in `RAW` format,
 its able to transform already recognized signals (protocols) back to `RAW` again.
@@ -28,7 +25,7 @@ its able to transform already recognized signals (protocols) back to `RAW` again
 Zooming from the full activity envelope all the way down to individual pulses,
 then a trimmed single frame decoding cleanly as the original remote:
 
-| Envelope (zoomed out) | Signal within AM650 noise | Signal Zoom |
+| Envelope (zoomed out) | Signal within AM650 noise | Signal zoom |
 |:---:|:---:|:---:|
 | ![Envelope](docs/images/01-envelope.png) | ![Signal within noise](docs/images/02-signal-within-noise.png) | ![Signal zoom](docs/images/03-signal-zoom.png) |
 
@@ -76,8 +73,15 @@ visually, on the device.
   "reboot and try again" message instead of a crash.
 - **Clean output.** The saved frame is aligned to start on a pulse and end on a
   gap, with the original `Frequency` and `Preset` preserved.
+  There is also an option to auto normalize jitter quirks which makes the signal even more clean.
+  
+  Note:
+  Some signal receivers will reject a signal if it's "too clean" due to a built-in security layer.
+  This layer can flag the signal as possibly synthesized.
 
-![GUI diagram](docs/images/07-gui-diagram.png)
+| Main menu | Action menu |
+|:---:|:---:|
+| ![Main menu](docs/images/08-main-menu.png) | ![Action menu](docs/images/09-action-menu.png) |
 
 ## Controls
 
@@ -95,6 +99,8 @@ anything.
 
 The active marker is the one drawn as a solid line with a small box on top, and
 marked with `>` in the bottom bar. The other marker is dotted.
+
+![GUI diagram](docs/images/07-gui-diagram.png)
 
 ## Build
 
@@ -206,3 +212,5 @@ RAW_Data: 257 -926 637 -526 ...
   `AM650` capture at `433.92` MHz in a noisy area hits the limit around a ~105 KB
   25–30 s file. If you want to load longer RAWs just use `AM270` which won't
   make that much noise.
+- To decode any `.sub` protocol other than RAW Capture, this application relies on the device's internal decoder.
+  Therefore, for any recognized rolling protocols, it decodes the next keyframe, rather than the current one.
