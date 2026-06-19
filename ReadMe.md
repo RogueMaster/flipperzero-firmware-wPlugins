@@ -79,6 +79,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - ESP Flasher: [Bump Marauder v1.12.2 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.2)
 - Added: [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
 - Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass) [Fix C1k35s facility code cap to allow full 12-bit range (By Franknozly)](https://github.com/bettse/picopass/pull/6)
+- Updated: [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
 
 <a name="release"></a>
 
