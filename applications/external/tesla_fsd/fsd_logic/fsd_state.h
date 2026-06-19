@@ -102,6 +102,15 @@ typedef struct FSDState {
         // (gate for the 0x399 hands-on fallback on HW4 trims
         //  that never broadcast 0x39B, e.g. Juniper RWD on Bus 6)
 
+    // --- HW4 0x39B byte0 AP-state auto-fallback (#116) ---
+    // Highland (China MIC, fw 2026.20) ships an 8-byte HW4 0x39B but carries
+    // DAS_autopilotState in byte0 low nibble (HW3 position) while byte1[7:4] is
+    // pinned at 1 the whole drive. Detect that signature and latch this car to the
+    // byte0 reading for the session (re-detected each power cycle via memset init).
+    uint8_t das_hw4_byte0_pin_count; // consecutive (byte1[7:4]==1 && byte0>=2) frames
+    bool das_hw4_byte1_moved; // sticky: byte1[7:4] ever seen != 1 (standard HW4)
+    bool das_hw4_use_byte0; // one-way latch: read AP-state from byte0 low nibble
+
     // --- GTW autopilot tier (from 0x7FF mux=2 on mixed bus) ---
     int8_t gtw_autopilot_tier; // -1 = not yet read
 

@@ -455,7 +455,21 @@ void fsd_handle_das_status_hw4(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
     // DAS_autopilotState: bit12|4 → byte1 bits[7:4]
     // 0=UNAVAIL 1=AVAIL 2=ACTIVE_NOMINAL 3=ACTIVE_MIN_DRIVER ...
-    state->das_ap_state = (frame->buffer[1] >> 4) & 0x0F;
+    uint8_t hw4_state = (frame->buffer[1] >> 4) & 0x0F;
+    // HW4 Highland (China MIC, fw 2026.20) carries DAS_autopilotState in byte0 low
+    // nibble (HW3 position: 1=avail 2=ready 3=engaged) while byte1[7:4] is pinned at
+    // 1 the whole drive (#116). Latch to byte0 only on the unique signature — byte0
+    // active (>=2) while byte1[7:4] stays exactly 1 across 3 frames — and never once
+    // byte1[7:4] is seen != 1 (that proves a standard HW4 car, byte0 left untouched).
+    uint8_t b0_state = frame->buffer[0] & 0x0F;
+    if(hw4_state != 1u) {
+        state->das_hw4_byte1_moved = true;
+        state->das_hw4_byte0_pin_count = 0;
+    } else if(!state->das_hw4_use_byte0 && !state->das_hw4_byte1_moved && b0_state >= 2u) {
+        if(state->das_hw4_byte0_pin_count < 3u) state->das_hw4_byte0_pin_count++;
+        if(state->das_hw4_byte0_pin_count >= 3u) state->das_hw4_use_byte0 = true;
+    }
+    state->das_ap_state = state->das_hw4_use_byte0 ? b0_state : hw4_state;
     // DAS_autopilotHandsOnState: bit42|4 → byte5 bits[5:2]
     state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0F;
     // DAS_autoLaneChangeState: bit46|5 → byte5 bits[7:6] + byte6 bits[2:0]

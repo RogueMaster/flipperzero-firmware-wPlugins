@@ -738,6 +738,127 @@ static void test_das_status(void) {
     CHECK(s.das_hands_on_state == 0xFF, "399 fallback ignores short frame");
 }
 
+// #116: HW4 Highland (China MIC, fw 2026.20) ships an 8-byte HW4 0x39B but carries
+// DAS_autopilotState in byte0 low nibble while byte1[7:4] is pinned at 1. The
+// auto-fallback must latch to byte0 once byte0 reaches an active state (>=2) while
+// byte1[7:4] stays 1 across 3 frames, then track byte0; the latch is one-way.
+static void test_das_status_highland_byte0(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CANFRAME f;
+    int i;
+
+    // OFF: real reporter bytes 01 10 DF 80 B0 44 A0 A2. byte1=0x10 (hi nibble 1),
+    // byte0 low nibble 1 (not active) -> nothing counts yet, reads byte1 == 1.
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0x01;
+    f.buffer[1] = 0x10;
+    f.buffer[2] = 0xDF;
+    f.buffer[3] = 0x80;
+    f.buffer[4] = 0xB0;
+    f.buffer[5] = 0x44;
+    f.buffer[6] = 0xA0;
+    f.buffer[7] = 0xA2;
+    fsd_handle_das_status_hw4(&s, &f);
+    CHECK(s.das_ap_state == 1, "highland OFF pre-latch reads byte1=1 got %u", s.das_ap_state);
+    CHECK(!s.das_hw4_use_byte0, "highland OFF must not latch yet");
+
+    // READY x3: 02 10 DF 80 B0 44 50 53. byte0 low nibble 2 (active), byte1 still
+    // 0x10. Three frames cross the N=3 latch threshold.
+    for(i = 0; i < 3; i++) {
+        zero(&f);
+        f.data_lenght = 8;
+        f.buffer[0] = 0x02;
+        f.buffer[1] = 0x10;
+        f.buffer[2] = 0xDF;
+        f.buffer[3] = 0x80;
+        f.buffer[4] = 0xB0;
+        f.buffer[5] = 0x44;
+        f.buffer[6] = 0x50;
+        f.buffer[7] = 0x53;
+        fsd_handle_das_status_hw4(&s, &f);
+    }
+    CHECK(s.das_hw4_use_byte0, "highland latched to byte0 after 3 active frames");
+    CHECK(s.das_ap_state == 2, "highland READY tracks byte0=2 got %u", s.das_ap_state);
+
+    // ENGAGED: 03 10 DF 80 B0 44 50 54.
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0x03;
+    f.buffer[1] = 0x10;
+    f.buffer[2] = 0xDF;
+    f.buffer[3] = 0x80;
+    f.buffer[4] = 0xB0;
+    f.buffer[5] = 0x44;
+    f.buffer[6] = 0x50;
+    f.buffer[7] = 0x54;
+    fsd_handle_das_status_hw4(&s, &f);
+    CHECK(s.das_ap_state == 3, "highland ENGAGED tracks byte0=3 got %u", s.das_ap_state);
+    CHECK(!s.das_hw4_byte1_moved, "highland byte1 never left 1");
+
+    // Back to OFF (byte0=1): one-way latch stays on byte0, reads 1.
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0x01;
+    f.buffer[1] = 0x10;
+    f.buffer[2] = 0xDF;
+    f.buffer[3] = 0x80;
+    f.buffer[4] = 0xB0;
+    f.buffer[5] = 0x44;
+    f.buffer[6] = 0xA0;
+    f.buffer[7] = 0xA2;
+    fsd_handle_das_status_hw4(&s, &f);
+    CHECK(s.das_hw4_use_byte0, "highland latch is one-way (stays on byte0)");
+    CHECK(s.das_ap_state == 1, "highland OFF-after-latch reads byte0=1 got %u", s.das_ap_state);
+}
+
+// #116: a standard HW4 car carries DAS_autopilotState in byte1[7:4]; byte0 low
+// nibble is unrelated. The auto-fallback must NEVER latch there, even when byte1
+// momentarily sits at the idle AVAIL value (0x10) with active-looking byte0 noise.
+static void test_das_status_hw4_no_fallback(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CANFRAME f;
+    int i;
+
+    // READY: byte1 = 0x20 (state 2). byte1 != 1 disqualifies the fallback for good.
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[1] = 0x20;
+    fsd_handle_das_status_hw4(&s, &f);
+    CHECK(s.das_ap_state == 2, "std-hw4 READY reads byte1 got %u", s.das_ap_state);
+    CHECK(s.das_hw4_byte1_moved, "std-hw4 byte1 != 1 disqualifies fallback");
+    CHECK(!s.das_hw4_use_byte0, "std-hw4 must not latch");
+
+    // ENGAGED: byte1 = 0x30 (state 3).
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[1] = 0x30;
+    fsd_handle_das_status_hw4(&s, &f);
+    CHECK(s.das_ap_state == 3, "std-hw4 ENGAGED reads byte1 got %u", s.das_ap_state);
+
+    // Transient: byte1 dips to idle 0x10 with byte0 noise low-nibble 3 for 2 frames.
+    // byte1_moved already latched -> must NOT switch to byte0; reads byte1 == 1.
+    for(i = 0; i < 2; i++) {
+        zero(&f);
+        f.data_lenght = 8;
+        f.buffer[0] = 0x03;
+        f.buffer[1] = 0x10;
+        fsd_handle_das_status_hw4(&s, &f);
+    }
+    CHECK(!s.das_hw4_use_byte0, "std-hw4 transient byte1==1 must not latch");
+    CHECK(s.das_ap_state == 1, "std-hw4 transient reads byte1=1 got %u", s.das_ap_state);
+
+    // Re-engage cleanly from byte1.
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[1] = 0x30;
+    fsd_handle_das_status_hw4(&s, &f);
+    CHECK(s.das_ap_state == 3, "std-hw4 re-engage reads byte1 got %u", s.das_ap_state);
+    CHECK(!s.das_hw4_use_byte0, "std-hw4 never latches");
+}
+
 // ── 0x7FF tier parse + active override ────────────────────────────────────────
 static void test_gtw_tier(void) {
     FSDState s;
@@ -1234,6 +1355,8 @@ int main(void) {
     test_legacy();
     test_esp_status();
     test_das_status();
+    test_das_status_highland_byte0();
+    test_das_status_hw4_no_fallback();
     test_gtw_tier();
     test_driver_assist();
     test_gtw_shield();

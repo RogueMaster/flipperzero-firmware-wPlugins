@@ -142,6 +142,9 @@
 #define SIG_DAS_HW4_AP_STATE_SHIFT          4
 #define SIG_DAS_HW4_AP_STATE_MASK        0x0Fu
 #define SIG_DAS_HW4_AP_ACTIVE_MIN           2u
+#define SIG_DAS_HW4_BYTE0_PIN_LATCH         3u   // #116: consecutive (byte1[7:4]==1 &&
+                                                 // byte0 low nibble >= ACTIVE_MIN) frames
+                                                 // before latching to the byte0 reading
 #define SIG_DAS_SPEED_LIMIT_BYTE_1          1
 #define SIG_DAS_SPEED_LIMIT_BYTE_2          2
 #define SIG_DAS_HANDS_ON_STATE_BYTE         5

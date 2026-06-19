@@ -66,7 +66,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Add Bambu Lab filament spool parser (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1012)
 - Updated: [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
 - Updated: [TV Remote v1.2 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote) [Ability to import saved .ir files from the Flipper's built-in Infrared app (or any standard Flipper IR library file) and map their signals to the TV Remote buttons (By BentheGameWolf)](https://github.com/jmanion0139/flipper_tv_remote/pull/3)
-- Updated: [Tesla Mod v2.16.8 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - REVERT: Sub-GHz: [Sub-GHz app is now external on SD card, like on OFW (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/33671b91a98dd99786894af7dbf1f6c818032942) (This was causing a crash)
 - Updated: [NFC Seader v4.1.1 (By bettse)](https://github.com/bettse/seader)
 - Updated: [Sub-GHz RAW Edit v1.6 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
@@ -80,6 +79,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
 - Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass) [Fix C1k35s facility code cap to allow full 12-bit range (By Franknozly)](https://github.com/bettse/picopass/pull/6)
 - Updated: [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
+- Updated: [Tesla Mod v2.16.8 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

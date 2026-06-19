@@ -72,6 +72,7 @@
 - Organic torque variation — xorshift32 PRNG random walk in 1.00-2.40 Nm with grip pulse excursions to 3.10-3.30 Nm every 5-9 seconds
 - **On-demand grip pulse (v2.15+)** — when `handsOnLevel` rises into a nag-demand state (0 imminent / 3 escalated), an immediate grip pulse fires and the periodic schedule resets. Closes the 2-second yellow-escalation window that could open between scheduled pulses on v2.14 and earlier
 - EPAS counter+1 echo on `0x370` with level 0 (nag imminent) and level 3 (escalated alarm) suppression
+- **Tap Party CAN (X179 pins 2/3) for the nag killer.** `0x370` is on Party CAN — not Vehicle CAN (9/10), and the gateway-forwarded Chassis copy (13/14) trips the 2026.14.x preflight. Confirmed working on HW4 2026.20 by tapping 2/3 ([#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)). A single-CAN board on the wrong pair has nothing to echo — the usual cause of "nag killer does nothing on HW4." Check your car's **Service Mode → CAN Port** page for which pin is Party on your harness; see [HARDWARE.md](HARDWARE.md).
 
 ### AP-First mode (v2.14+, for 2026.14.x firmware)
 - Tesla 2026.14.x added a preflight check that blocks AP/TACC engagement if CAN injection is already active

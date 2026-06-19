@@ -668,11 +668,39 @@ void fsd_handle_das_status_hw3(FSDState *state, const CanFrame *frame) {
 void fsd_handle_das_status_hw4(FSDState *state, const CanFrame *frame) {
     if (frame->dlc != CAN_FRAME_MAX_DATA_LEN) return;
 
-    // HW4 0x39B layout from the original parser: bit12|4 = byte1 bits[7:4].
-    state->das_ap_state =
+    // Standard HW4 0x39B layout: DAS_autopilotState = byte1 bits[7:4].
+    uint8_t hw4_state =
         (frame->data[SIG_DAS_HW4_AP_STATE_BYTE] >> SIG_DAS_HW4_AP_STATE_SHIFT) &
         SIG_DAS_HW4_AP_STATE_MASK;
-    state->ap_active = state->das_ap_state >= SIG_DAS_HW4_AP_ACTIVE_MIN;
+    // HW4 Highland (China MIC, fw 2026.20) instead carries DAS_autopilotState in
+    // byte0 low nibble (HW3 position: 1=available, 2=ready, 3=engaged) while
+    // byte1[7:4] is pinned at 1 the whole drive (#116).
+    uint8_t b0_state =
+        frame->data[SIG_DAS_HW3_AP_STATE_BYTE] & SIG_DAS_HW3_AP_STATE_MASK;
+
+    // Auto-fallback detection (self-healing; re-evaluated each power cycle). The
+    // unique Highland signature is byte0 reporting an active state (>=2) while
+    // byte1[7:4] stays exactly 1: a standard HW4 car can't produce this durably
+    // because its byte1[7:4] moves to >=2 the instant AP engages, which trips the
+    // sticky disqualifier below and pins it to the standard byte1 reading for good.
+    if (hw4_state != 1u) {
+        state->das_hw4_byte1_moved = true;
+        state->das_hw4_byte0_pin_count = 0;
+    } else if (!state->das_hw4_use_byte0 && !state->das_hw4_byte1_moved &&
+               b0_state >= SIG_DAS_HW4_AP_ACTIVE_MIN) {
+        if (state->das_hw4_byte0_pin_count < SIG_DAS_HW4_BYTE0_PIN_LATCH)
+            state->das_hw4_byte0_pin_count++;
+        if (state->das_hw4_byte0_pin_count >= SIG_DAS_HW4_BYTE0_PIN_LATCH)
+            state->das_hw4_use_byte0 = true;
+    }
+
+    if (state->das_hw4_use_byte0) {
+        state->das_ap_state = b0_state;
+        state->ap_active    = b0_state == SIG_DAS_HW3_AP_ACTIVE_STATE; // 3 = engaged
+    } else {
+        state->das_ap_state = hw4_state;
+        state->ap_active    = hw4_state >= SIG_DAS_HW4_AP_ACTIVE_MIN;
+    }
     fsd_handle_das_status_common(state, frame);
     state->das_hw4_status_seen = true;
 }
