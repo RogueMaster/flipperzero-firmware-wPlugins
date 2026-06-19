@@ -1,0 +1,14 @@
+App(
+    appid="led_remote",
+    name="LED Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="led_remote_app",
+    requires=["gui", "infrared"],
+    stack_size=2 * 1024,
+    fap_category="Infrared",
+    fap_description="Universal LED strip remote with IR learning mode",
+    fap_icon="led_remote_icon.png",
+    fap_author="AugustinKrb",
+    fap_weburl="https://github.com/AugustinKrb/flipper-led-remote",
+    fap_version=(1, 0),
+)
