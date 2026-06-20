@@ -1,6 +1,26 @@
 # Scoring
 
-The audit score is a single integer in 0-100 that summarises the risk exposure of a scanned credential. It is built from additive rule contributions minus any mitigations, then clamped to 0-100.
+The score is a single integer in 0-100 that rates the **likelihood that a scanned credential can be compromised** — how easily its technology can be cloned or its secret recovered. It is built from additive rule contributions minus any mitigations, then clamped to 0-100.
+
+## Methodology — OWASP Risk Rating alignment
+
+This score is framed against the [OWASP Risk Rating Methodology](https://owasp.org/www-community/OWASP_Risk_Rating_Methodology), where `Risk = Likelihood × Impact`.
+
+**Reference:** <https://owasp.org/www-community/OWASP_Risk_Rating_Methodology> (also cited in the header of every generated report).
+
+- **The tool rates LIKELIHOOD only.** Every rule below is a likelihood signal — the credential lacks crypto, uses a broken/known cipher, exposes only a static identifier, or was left on default keys. The rules encode OWASP likelihood factors such as **Ease of Exploit** (passive replay vs. active attack vs. infeasible), **Awareness** (publicly documented breaks), and **Detectability** (cloning leaves no trace).
+- **IMPACT is out of scope for the tool** — it depends on what the credential protects (a turnstile vs. a vault), which only the operator knows in engagement context. Final risk for a report should combine this likelihood with the operator's impact judgement.
+
+Reports surface this as a `Likelihood: <HIGH/MODERATE/LOW/MINIMAL>` band plus an `Ease of exploit: <trivial/moderate/hard>` factor per card, and cite OWASP RRM in the header. The likelihood band maps directly from severity: HIGH→HIGH, MEDIUM→MODERATE, LOW→LOW, Info→MINIMAL.
+
+### Ease of exploit factor
+
+| Factor | Meaning | Credentials |
+|---|---|---|
+| **trivial** | no crypto barrier — clone the identifier directly, or default keys/password read | 125 kHz (EM4100/HID/Indala), NTAG/Ultralight, any card read with a default credential |
+| **moderate** | broken or publicly-known crypto — active attack or known-key tooling | MIFARE Classic, Plus SL1, Ultralight C, HID iCLASS Legacy, FeliCa Lite |
+| **hard** | modern cryptography with no public break | DESFire EV1/EV2/EV3/Light, Plus SL2/SL3, FeliCa Standard |
+| **indeterminate** | type not confirmed | unknown / generic ISO14443/15693 |
 
 ---
 

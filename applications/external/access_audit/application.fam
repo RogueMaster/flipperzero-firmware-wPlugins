@@ -9,6 +9,6 @@ App(
     fap_category="Tools",
     fap_author="matthewkayne",
     fap_weburl="https://github.com/matthewkayne/flipper-access-audit",
-    fap_version="1.9",
+    fap_version="1.10",
     fap_description="Audit NFC, RFID, and HID iCLASS access-control cards. Detects DESFire EV1/EV2/EV3, MIFARE Classic/Plus SL1-SL3, NTAG, EM4100, HID iCLASS Legacy, and more. Instant risk score with per-card advice.",
 )

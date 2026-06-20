@@ -14,8 +14,16 @@
 static CardType lfrfid_protocol_to_card_type(LFRFIDProtocol protocol) {
     switch(protocol) {
     case LFRFIDProtocolEM4100:
+/* Unleashed renamed the EM4100 bit-rate variants (EM410032 -> EM4100_32, etc.).
+ * FW_ORIGIN_Unleashed is defined by the Unleashed SDK; Official/Momentum keep
+ * the original names. Guarding here keeps full classification on all firmwares. */
+#ifdef FW_ORIGIN_Unleashed
     case LFRFIDProtocolEM4100_32:
     case LFRFIDProtocolEM4100_16:
+#else
+    case LFRFIDProtocolEM410032:
+    case LFRFIDProtocolEM410016:
+#endif
     case LFRFIDProtocolElectra:
         return CardTypeEm4100Like;
     case LFRFIDProtocolH10301:

@@ -150,19 +150,6 @@ static const char* report_advice(CardType type) {
     }
 }
 
-static const char* report_risk_label(Severity severity) {
-    switch(severity) {
-    case SeverityHigh:
-        return "HIGH RISK";
-    case SeverityMedium:
-        return "MODERATE";
-    case SeverityLow:
-        return "LOW RISK";
-    default:
-        return "SECURE";
-    }
-}
-
 static void write_card_entry(File* f, size_t index, size_t total, const SessionEntry* entry) {
     char buf[64];
 
@@ -216,15 +203,16 @@ static void write_card_entry(File* f, size_t index, size_t total, const SessionE
         fw(f, buf);
     }
 
-    snprintf(buf, sizeof(buf), "  Risk:   %s\n", report_risk_label(entry->score.max_severity));
-    fw(f, buf);
-
     snprintf(
         buf,
         sizeof(buf),
-        "  Score:  %u/100  Confidence: %u%%\n",
+        "  Likelihood: %s  (%u/100, confidence %u%%)\n",
+        likelihood_label(entry->score.max_severity),
         entry->score.score,
         entry->score.confidence);
+    fw(f, buf);
+
+    snprintf(buf, sizeof(buf), "  Ease of exploit: %s\n", ease_of_exploit(&entry->obs));
     fw(f, buf);
 
     /* Rules triggered */
@@ -303,7 +291,7 @@ bool report_save_session(const ScanSession* session) {
     }
 
     if(open_ok) {
-        char buf[64];
+        char buf[96];
         SessionSummary sum = session_summarise(session);
 
         fw(file, "Access Audit Report\n");
@@ -340,7 +328,7 @@ bool report_save_session(const ScanSession* session) {
         snprintf(
             buf,
             sizeof(buf),
-            "High: %u  Medium: %u  Low: %u  Secure: %u\n",
+            "Likelihood  High: %u  Moderate: %u  Low: %u  Minimal: %u\n",
             (unsigned)sum.high,
             (unsigned)sum.medium,
             (unsigned)sum.low,
@@ -351,6 +339,14 @@ bool report_save_session(const ScanSession* session) {
                 buf, sizeof(buf), "Most common: %s\n", card_type_to_string(sum.most_common_type));
             fw(file, buf);
         }
+
+        fw(file, "\n");
+        fw(file, "Methodology: scores are a LIKELIHOOD-of-compromise rating (0-100) -- how\n");
+        fw(file, "easily the card technology can be cloned or its secret recovered. Aligned\n");
+        fw(file, "with the OWASP Risk Rating Methodology (Risk = Likelihood x Impact); this\n");
+        fw(file, "tool rates LIKELIHOOD only. IMPACT -- what the credential protects -- is\n");
+        fw(file, "assessed in engagement context.\n");
+        fw(file, "Ref: OWASP Risk Rating Methodology.\n");
 
         fw(file, "----------------------------------------\n\n");
 
@@ -383,12 +379,14 @@ bool report_save_session(const ScanSession* session) {
                 snprintf(
                     buf,
                     sizeof(buf),
-                    "ACTION REQUIRED: %u high-risk card(s) detected.\n",
+                    "ACTION REQUIRED: %u credential(s) with HIGH likelihood of compromise.\n",
                     (unsigned)sum.high);
                 fw(file, buf);
-                fw(file, "Replace or upgrade legacy credentials immediately.\n");
+                fw(file, "Replace or upgrade the legacy credentials; assess impact (what each\n");
+                fw(file, "credential protects) in engagement context.\n");
             } else {
-                fw(file, "REVIEW RECOMMENDED: moderate-risk card(s) detected.\n");
+                fw(file,
+                   "REVIEW RECOMMENDED: credential(s) with MODERATE likelihood of compromise.\n");
             }
             fw(file, "========================================\n");
         }

@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.10.0]: OWASP Risk Rating Methodology framing
+
+### Changed
+- **Reports now frame the score as a LIKELIHOOD-of-compromise rating aligned with the [OWASP Risk Rating Methodology](https://owasp.org/www-community/OWASP_Risk_Rating_Methodology)**. Each card entry now shows `Likelihood: <HIGH/MODERATE/LOW/MINIMAL> (N/100, confidence N%)` plus an `Ease of exploit: <trivial/moderate/hard>` factor (OWASP's likelihood factor, derived from the credential technology). The report header carries a methodology note and cites OWASP RRM, and states explicitly that this tool rates **likelihood only** — **impact** (what the credential protects) is assessed in engagement context. The numeric scoring engine is unchanged; only the framing/labels are OWASP-aligned
+- Session advisory reworded in likelihood terms ("N credential(s) with HIGH likelihood of compromise") and prompts the operator to assess impact in context
+
+### Added
+- `likelihood_label()` and `ease_of_exploit()` helpers in `scoring.c` mapping severity → OWASP likelihood band and credential → OWASP "Ease of Exploit" factor
+- Documentation (`docs/scoring.md`, `docs/rules.md`, `docs/card-types.md`, README, catalog description) now explains and cites the OWASP RRM alignment
+
 ## [1.9.0]: Expanded MIFARE Classic default key dictionary
 
 ### Changed

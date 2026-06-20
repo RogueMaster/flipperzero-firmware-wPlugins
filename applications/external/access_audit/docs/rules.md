@@ -2,6 +2,8 @@
 
 Each rule maps to a named finding in saved reports. Rules are additive; multiple rules can fire on the same observation. The final score is clamped to 0-100.
 
+These rules are **likelihood signals** under the [OWASP Risk Rating Methodology](https://owasp.org/www-community/OWASP_Risk_Rating_Methodology) (`Risk = Likelihood × Impact`): they rate how readily a credential can be compromised (its OWASP *Ease of Exploit*, *Awareness*, and *Detectability* factors), not the impact of a compromise. Impact — what the credential protects — is assessed by the operator in engagement context. See [scoring.md](scoring.md#methodology--owasp-risk-rating-alignment).
+
 ---
 
 ## High-risk rules

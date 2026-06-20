@@ -112,6 +112,66 @@ const char* severity_to_string(Severity severity) {
     }
 }
 
+const char* likelihood_label(Severity severity) {
+    switch(severity) {
+    case SeverityHigh:
+        return "HIGH";
+    case SeverityMedium:
+        return "MODERATE";
+    case SeverityLow:
+        return "LOW";
+    default:
+        return "MINIMAL";
+    }
+}
+
+const char* ease_of_exploit(const AccessObservation* obs) {
+    if(!obs) return "indeterminate";
+    /* A successful default-credential read means the card can be cloned outright. */
+    if(obs->default_keys_readable) return "trivial";
+    switch(obs->card_type) {
+    /* No cryptographic barrier — clone the identifier directly. */
+    case CardTypeEm4100Like:
+    case CardTypeHidProxLike:
+    case CardTypeHidGeneric:
+    case CardTypeIndala:
+    case CardTypeRfid125:
+    case CardTypeMifareUltralight:
+    case CardTypeNtag203:
+    case CardTypeNtag213:
+    case CardTypeNtag215:
+    case CardTypeNtag216:
+    case CardTypeNtagI2C:
+        return "trivial";
+    /* Broken or publicly-known crypto — active attack or known-key tooling required. */
+    case CardTypeMifareClassic:
+    case CardTypeMifareClassic1K:
+    case CardTypeMifareClassic4K:
+    case CardTypeMifareClassicMini:
+    case CardTypeMifarePlusSL1:
+    case CardTypeMifareUltralightC:
+    case CardTypeHidIclassLegacy:
+    case CardTypeHidIclassLegacy2k:
+    case CardTypeHidIclassLegacy16k:
+    case CardTypeHidIclassLegacy32k:
+    case CardTypeFeliCaLite:
+        return "moderate";
+    /* Modern cryptography with no public break. */
+    case CardTypeMifareDesfire:
+    case CardTypeMifareDesfireEV1:
+    case CardTypeMifareDesfireEV2:
+    case CardTypeMifareDesfireEV3:
+    case CardTypeMifareDesfireLight:
+    case CardTypeMifarePlus:
+    case CardTypeMifarePlusSL2:
+    case CardTypeMifarePlusSL3:
+    case CardTypeFelica:
+        return "hard";
+    default:
+        return "indeterminate";
+    }
+}
+
 const char* card_type_to_string(CardType type) {
     switch(type) {
     case CardTypeEm4100Like:

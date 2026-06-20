@@ -4,6 +4,8 @@ Every `CardType` enum value, its risk rating under the default ruleset, where th
 
 Risk ratings assume `metadata_complete=true` and a UID is present. Incomplete metadata will add LOW RISK findings and reduce confidence.
 
+Ratings here express **likelihood of compromise** (OWASP *Ease of Exploit*), per the [OWASP Risk Rating Methodology](https://owasp.org/www-community/OWASP_Risk_Rating_Methodology) — not the impact of a compromise, which is engagement-context. As a rule of thumb: HIGH RISK ≈ *trivial* to clone (no/broken crypto or static identifier), MODERATE ≈ *moderate* (active attack or known-key tooling), SECURE ≈ *hard* (modern crypto, no public break). See [scoring.md](scoring.md#ease-of-exploit-factor).
+
 ---
 
 ## 125 kHz RFID

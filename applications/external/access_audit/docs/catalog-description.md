@@ -32,12 +32,14 @@ To build from source, install [uFBT](https://github.com/flipperdevices/flipperze
 
 **Reports**: sessions are saved as named .txt files on the SD card. The on-device viewer lets you scroll through past reports and delete them.
 
-## Score labels
+## Likelihood of compromise
 
-- **HIGH RISK** (35-100): legacy credential family (MIFARE Classic, EM4100, HID iCLASS Legacy, MIFARE Plus SL1) or static-replay pattern detected
-- **MODERATE** (20-34): risk indicators present; review recommended
+Scores are a likelihood-of-compromise rating aligned with the OWASP Risk Rating Methodology (Risk = Likelihood x Impact). The app rates likelihood only — how easily the credential can be cloned or its secret recovered. Impact (what the credential protects) is assessed in engagement context. Saved reports cite OWASP RRM: https://owasp.org/www-community/OWASP_Risk_Rating_Methodology
+
+- **HIGH RISK** (35-100): legacy credential family (MIFARE Classic, EM4100, HID iCLASS Legacy, MIFARE Plus SL1) or static-replay pattern — trivial to clone
+- **MODERATE** (20-34): broken or publicly-known crypto; active attack or known-key tooling needed
 - **LOW RISK** (10-19): minor concerns such as incomplete metadata
-- **SECURE** (0-9): modern cryptographic family with no major findings
+- **SECURE** (0-9): modern cryptographic family with no public break
 
 ## Card families detected
 
