@@ -1,0 +1,5 @@
+.DS_Store
+.vscode/compile_commands.json
+dist/
+*.elf
+*.fap

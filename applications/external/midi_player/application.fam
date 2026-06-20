@@ -1,0 +1,14 @@
+App(
+    appid="midi_player",
+    name="MIDI Player",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="midi_player_app",
+    stack_size=4 * 1024,
+    sources=["src/*.c"],
+    fap_icon="assets/midi_player_10px.png",
+    fap_category="Media",
+    fap_description="Play Standard MIDI files as retro buzzer music",
+    fap_author="Aspenini",
+    fap_weburl="https://github.com/Aspenini/flipmidi",
+    fap_version="0.1.0",
+)
