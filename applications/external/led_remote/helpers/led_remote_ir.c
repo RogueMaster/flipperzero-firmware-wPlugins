@@ -30,8 +30,8 @@ void led_remote_ir_set_from_worker(
         sig->raw_timings = malloc(timings_size * sizeof(uint32_t));
         memcpy(sig->raw_timings, timings, timings_size * sizeof(uint32_t));
         sig->raw_timings_size = timings_size;
-        sig->raw_frequency    = INFRARED_COMMON_CARRIER_FREQUENCY;
-        sig->raw_duty_cycle   = INFRARED_COMMON_DUTY_CYCLE;
+        sig->raw_frequency = INFRARED_COMMON_CARRIER_FREQUENCY;
+        sig->raw_duty_cycle = INFRARED_COMMON_DUTY_CYCLE;
         sig->is_raw = true;
     }
 

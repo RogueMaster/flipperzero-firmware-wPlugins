@@ -7,8 +7,8 @@ typedef struct LedRemoteViewRemote LedRemoteViewRemote;
 typedef void (*LedRemoteViewRemoteCallback)(LedButton button, void* context);
 
 LedRemoteViewRemote* led_remote_view_remote_alloc(void);
-void                 led_remote_view_remote_free(LedRemoteViewRemote* view);
-View*                led_remote_view_remote_get_view(LedRemoteViewRemote* view);
+void led_remote_view_remote_free(LedRemoteViewRemote* view);
+View* led_remote_view_remote_get_view(LedRemoteViewRemote* view);
 
 void led_remote_view_remote_set_callback(
     LedRemoteViewRemote* view,

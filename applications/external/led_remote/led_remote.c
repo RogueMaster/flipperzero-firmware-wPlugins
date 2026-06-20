@@ -5,69 +5,85 @@
 
 // ─── 18-keys data (3 columns × 6 rows) ───────────────────────────────────────
 static const char* const BTN_NAMES_18K[18] = {
-    "On",      "Off",    "Timer",
-    "Red",     "Green",  "Blue",
-    "Orange",  "Lime",   "Cyan",
-    "Yellow",  "Multi",  "Purple",
-    "Bright+", "Music",  "Bright-",
-    "Strobe",  "Fade",   "Flash",
+    "On",
+    "Off",
+    "Timer",
+    "Red",
+    "Green",
+    "Blue",
+    "Orange",
+    "Lime",
+    "Cyan",
+    "Yellow",
+    "Multi",
+    "Purple",
+    "Bright+",
+    "Music",
+    "Bright-",
+    "Strobe",
+    "Fade",
+    "Flash",
 };
 static const char* const BTN_LABELS_18K[18] = {
-    "ON", "OF", "5m",
-    "R",  "G",  "B",
-    "O",  "LG", "Cy",
-    "Y",  "Ml", "Pu",
-    "+",  "Mu", "-",
-    "ST", "FD", "FL",
+    "ON",
+    "OF",
+    "5m",
+    "R",
+    "G",
+    "B",
+    "O",
+    "LG",
+    "Cy",
+    "Y",
+    "Ml",
+    "Pu",
+    "+",
+    "Mu",
+    "-",
+    "ST",
+    "FD",
+    "FL",
 };
 
 // ─── 24-keys data (4 columns × 6 rows) ───────────────────────────────────────
 static const char* const BTN_NAMES_24K[24] = {
-    "Bright+",    "Bright-",   "Off",      "On",
-    "Red",        "Green",     "Blue",     "White",
-    "Orange-Red", "Lime",      "Sky Blue", "Flash",
-    "Orange",     "Cyan",      "Purple",   "Strobe",
-    "Amber",      "Teal",      "DkPurple", "Fade",
-    "Yellow",     "Indigo",    "Pink",     "Smooth",
+    "Bright+",    "Bright-", "Off",      "On",    "Red",    "Green",  "Blue",   "White",
+    "Orange-Red", "Lime",    "Sky Blue", "Flash", "Orange", "Cyan",   "Purple", "Strobe",
+    "Amber",      "Teal",    "DkPurple", "Fade",  "Yellow", "Indigo", "Pink",   "Smooth",
 };
 static const char* const BTN_LABELS_24K[24] = {
-    "B+", "B-", "OF", "ON",
-    "R",  "G",  "B",  "W",
-    "R+", "LM", "SB", "FL",
-    "OR", "CY", "PU", "ST",
-    "AM", "TE", "DP", "FD",
-    "YL", "IN", "PK", "SM",
+    "B+", "B-", "OF", "ON", "R",  "G",  "B",  "W",  "R+", "LM", "SB", "FL",
+    "OR", "CY", "PU", "ST", "AM", "TE", "DP", "FD", "YL", "IN", "PK", "SM",
 };
 
 // ─── Type definitions ─────────────────────────────────────────────────────────
 
 const LedRemoteTypeDef LED_REMOTE_TYPE_DEFS[LedRemoteTypeCount] = {
-    [LedRemoteType18Keys] = {
-        .button_count        = 18,
-        .grid_cols           = 3,
-        .type_name           = "18-Keys Remote",
-        .file_prefix         = "18k_",
-        .button_names        = BTN_NAMES_18K,
-        .button_labels_short = BTN_LABELS_18K,
-    },
-    [LedRemoteType24Keys] = {
-        .button_count        = 24,
-        .grid_cols           = 4,
-        .type_name           = "24-Keys Remote",
-        .file_prefix         = "24k_",
-        .button_names        = BTN_NAMES_24K,
-        .button_labels_short = BTN_LABELS_24K,
-    },
+    [LedRemoteType18Keys] =
+        {
+            .button_count = 18,
+            .grid_cols = 3,
+            .type_name = "18-Keys Remote",
+            .file_prefix = "18k_",
+            .button_names = BTN_NAMES_18K,
+            .button_labels_short = BTN_LABELS_18K,
+        },
+    [LedRemoteType24Keys] =
+        {
+            .button_count = 24,
+            .grid_cols = 4,
+            .type_name = "24-Keys Remote",
+            .file_prefix = "24k_",
+            .button_names = BTN_NAMES_24K,
+            .button_labels_short = BTN_LABELS_24K,
+        },
 };
 
 // ─── File path ────────────────────────────────────────────────────────────────
 
 // Builds the .ir path for any (type, profile_name) pair
-static void build_ir_path(
-    LedRemoteType type,
-    const char* profile_name,
-    char* out,
-    size_t out_size) {
+static void
+    build_ir_path(LedRemoteType type, const char* profile_name, char* out, size_t out_size) {
     char safe[32] = {0};
     strncpy(safe, profile_name, sizeof(safe) - 1);
     for(size_t i = 0; safe[i]; i++) {
@@ -85,9 +101,9 @@ void led_remote_build_save_path(LedRemoteApp* app) {
 
 void led_remote_apply_type(LedRemoteApp* app) {
     const LedRemoteTypeDef* td = &LED_REMOTE_TYPE_DEFS[app->remote_type];
-    app->button_count        = td->button_count;
-    app->grid_cols           = td->grid_cols;
-    app->button_names        = td->button_names;
+    app->button_count = td->button_count;
+    app->grid_cols = td->grid_cols;
+    app->button_names = td->button_names;
     app->button_labels_short = td->button_labels_short;
 }
 
@@ -233,6 +249,7 @@ static LedRemoteApp* led_remote_app_alloc(void) {
 
     app->scene_manager = scene_manager_alloc(&led_remote_scene_handlers, app);
     app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, led_remote_custom_event_callback);
@@ -249,9 +266,7 @@ static LedRemoteApp* led_remote_app_alloc(void) {
 
     app->text_input = text_input_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        LedRemoteViewIdTextInput,
-        text_input_get_view(app->text_input));
+        app->view_dispatcher, LedRemoteViewIdTextInput, text_input_get_view(app->text_input));
 
     app->view_remote = led_remote_view_remote_alloc();
     view_dispatcher_add_view(
@@ -259,8 +274,8 @@ static LedRemoteApp* led_remote_app_alloc(void) {
         LedRemoteViewIdRemote,
         led_remote_view_remote_get_view(app->view_remote));
 
-    app->ir_worker     = infrared_worker_alloc();
-    app->storage       = furi_record_open(RECORD_STORAGE);
+    app->ir_worker = infrared_worker_alloc();
+    app->storage = furi_record_open(RECORD_STORAGE);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     app->remote_type = LedRemoteType18Keys;

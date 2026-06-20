@@ -1,6 +1,6 @@
 #include "../led_remote.h"
 
-#define NEW_PROFILE_DEFAULT_NAME "New Profile"
+#define NEW_PROFILE_DEFAULT_NAME    "New Profile"
 #define RENAME_PROFILE_DEFAULT_NAME "Rename Profile"
 
 typedef enum {
@@ -26,7 +26,7 @@ void led_remote_scene_profile_edit_on_enter(void* context) {
         app,
         app->text_input_buf,
         sizeof(app->text_input_buf) - 1,
-        false);  // false = don't clear the default text on first press
+        false); // false = don't clear the default text on first press
 
     view_dispatcher_switch_to_view(app->view_dispatcher, LedRemoteViewIdTextInput);
 }

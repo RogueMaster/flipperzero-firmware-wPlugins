@@ -18,15 +18,12 @@ void led_remote_scene_profiles_on_enter(void* context) {
 
     uint32_t current_idx = 0;
     for(uint8_t i = 0; i < app->profile_count; i++) {
-        bool active = (strncmp(app->profiles[i], app->profile_name, sizeof(app->profiles[0]) - 1) == 0);
-        FuriString* label = furi_string_alloc_printf(
-            "%s%s", active ? "> " : "  ", app->profiles[i]);
+        bool active =
+            (strncmp(app->profiles[i], app->profile_name, sizeof(app->profiles[0]) - 1) == 0);
+        FuriString* label =
+            furi_string_alloc_printf("%s%s", active ? "> " : "  ", app->profiles[i]);
         submenu_add_item(
-            app->submenu,
-            furi_string_get_cstr(label),
-            i,
-            led_remote_scene_profiles_callback,
-            app);
+            app->submenu, furi_string_get_cstr(label), i, led_remote_scene_profiles_callback, app);
         furi_string_free(label);
         if(active) current_idx = i;
     }
@@ -53,7 +50,8 @@ bool led_remote_scene_profiles_on_event(void* context, SceneManagerEvent event) 
         scene_manager_next_scene(app->scene_manager, LedRemoteSceneProfileEdit);
     } else if(event.event < app->profile_count) {
         // Existing profile → options submenu
-        strncpy(app->profile_selected, app->profiles[event.event], sizeof(app->profile_selected) - 1);
+        strncpy(
+            app->profile_selected, app->profiles[event.event], sizeof(app->profile_selected) - 1);
         app->profile_selected[sizeof(app->profile_selected) - 1] = '\0';
         scene_manager_next_scene(app->scene_manager, LedRemoteSceneProfileOptions);
     }

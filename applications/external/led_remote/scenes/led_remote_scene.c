@@ -75,8 +75,8 @@ static const AppSceneOnExitCallback led_remote_on_exit_handlers[] = {
 const SceneManagerHandlers led_remote_scene_handlers = {
     .on_enter_handlers = led_remote_on_enter_handlers,
     .on_event_handlers = led_remote_on_event_handlers,
-    .on_exit_handlers  = led_remote_on_exit_handlers,
-    .scene_num         = LedRemoteSceneNum,
+    .on_exit_handlers = led_remote_on_exit_handlers,
+    .scene_num = LedRemoteSceneNum,
 };
 
 bool led_remote_scene_navigation_event_callback(void* context) {

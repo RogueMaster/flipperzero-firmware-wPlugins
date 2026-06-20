@@ -18,14 +18,23 @@ void led_remote_scene_profile_options_on_enter(void* context) {
     submenu_set_header(app->submenu, app->profile_selected);
 
     submenu_add_item(
-        app->submenu, "Use Profile", ProfileOptionUse,
-        led_remote_scene_profile_options_callback, app);
+        app->submenu,
+        "Use Profile",
+        ProfileOptionUse,
+        led_remote_scene_profile_options_callback,
+        app);
     submenu_add_item(
-        app->submenu, "Rename", ProfileOptionRename,
-        led_remote_scene_profile_options_callback, app);
+        app->submenu,
+        "Rename",
+        ProfileOptionRename,
+        led_remote_scene_profile_options_callback,
+        app);
     submenu_add_item(
-        app->submenu, "Delete", ProfileOptionDelete,
-        led_remote_scene_profile_options_callback, app);
+        app->submenu,
+        "Delete",
+        ProfileOptionDelete,
+        led_remote_scene_profile_options_callback,
+        app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, LedRemoteViewIdSubmenu);
 }
@@ -37,8 +46,7 @@ bool led_remote_scene_profile_options_on_event(void* context, SceneManagerEvent 
     switch(event.event) {
     case ProfileOptionUse:
         led_remote_switch_profile(app, app->profile_selected);
-        scene_manager_search_and_switch_to_another_scene(
-            app->scene_manager, LedRemoteSceneMenu);
+        scene_manager_search_and_switch_to_another_scene(app->scene_manager, LedRemoteSceneMenu);
         return true;
 
     case ProfileOptionRename:

@@ -13,9 +13,9 @@ typedef struct {
     bool is_raw;
     InfraredMessage decoded;
     uint32_t* raw_timings;
-    size_t    raw_timings_size;
-    uint32_t  raw_frequency;
-    float     raw_duty_cycle;
+    size_t raw_timings_size;
+    uint32_t raw_frequency;
+    float raw_duty_cycle;
 } LedRemoteSignal;
 
 void led_remote_ir_send(LedRemoteApp* app, LedButton button);

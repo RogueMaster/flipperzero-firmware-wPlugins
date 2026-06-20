@@ -44,8 +44,7 @@ void led_remote_storage_save(LedRemoteApp* app) {
                 flipper_format_write_string_cstr(ff, "type", IR_TYPE_RAW);
                 flipper_format_write_uint32(ff, "frequency", &sig->raw_frequency, 1);
                 flipper_format_write_float(ff, "duty_cycle", &sig->raw_duty_cycle, 1);
-                flipper_format_write_uint32(
-                    ff, "data", sig->raw_timings, sig->raw_timings_size);
+                flipper_format_write_uint32(ff, "data", sig->raw_timings, sig->raw_timings_size);
             }
         }
     } while(false);
@@ -53,9 +52,9 @@ void led_remote_storage_save(LedRemoteApp* app) {
     flipper_format_free(ff);
 }
 
-#define SETTINGS_PATH     LED_REMOTE_DATA_DIR "/settings.dat"
-#define SETTINGS_HEADER   "LED Remote Settings"
-#define SETTINGS_VERSION  1
+#define SETTINGS_PATH    LED_REMOTE_DATA_DIR "/settings.dat"
+#define SETTINGS_HEADER  "LED Remote Settings"
+#define SETTINGS_VERSION 1
 
 void led_remote_settings_save(LedRemoteApp* app) {
     storage_simply_mkdir(app->storage, LED_REMOTE_DATA_DIR);
@@ -85,9 +84,7 @@ void led_remote_settings_load(LedRemoteApp* app) {
         FuriString* profile = furi_string_alloc();
         if(flipper_format_read_string(ff, "profile", profile)) {
             strncpy(
-                app->profile_name,
-                furi_string_get_cstr(profile),
-                sizeof(app->profile_name) - 1);
+                app->profile_name, furi_string_get_cstr(profile), sizeof(app->profile_name) - 1);
             app->profile_name[sizeof(app->profile_name) - 1] = '\0';
         }
         furi_string_free(profile);
@@ -116,8 +113,8 @@ void led_remote_storage_load(LedRemoteApp* app) {
         }
         furi_string_free(header);
 
-        FuriString* name  = furi_string_alloc();
-        FuriString* type  = furi_string_alloc();
+        FuriString* name = furi_string_alloc();
+        FuriString* type = furi_string_alloc();
         FuriString* proto = furi_string_alloc();
 
         while(flipper_format_read_string(ff, "name", name)) {
@@ -140,16 +137,14 @@ void led_remote_storage_load(LedRemoteApp* app) {
 
                 if(btn >= 0) {
                     LedRemoteSignal* sig = &app->signals[btn];
-                    sig->decoded.protocol = infrared_get_protocol_by_name(
-                        furi_string_get_cstr(proto));
-                    sig->decoded.address =
-                        addr[0] | ((uint32_t)addr[1] << 8) |
-                        ((uint32_t)addr[2] << 16) | ((uint32_t)addr[3] << 24);
-                    sig->decoded.command =
-                        cmd[0] | ((uint32_t)cmd[1] << 8) |
-                        ((uint32_t)cmd[2] << 16) | ((uint32_t)cmd[3] << 24);
+                    sig->decoded.protocol =
+                        infrared_get_protocol_by_name(furi_string_get_cstr(proto));
+                    sig->decoded.address = addr[0] | ((uint32_t)addr[1] << 8) |
+                                           ((uint32_t)addr[2] << 16) | ((uint32_t)addr[3] << 24);
+                    sig->decoded.command = cmd[0] | ((uint32_t)cmd[1] << 8) |
+                                           ((uint32_t)cmd[2] << 16) | ((uint32_t)cmd[3] << 24);
                     sig->decoded.repeat = false;
-                    sig->is_raw   = false;
+                    sig->is_raw = false;
                     sig->is_valid = true;
                     app->learned[btn] = true;
                 }
@@ -172,11 +167,11 @@ void led_remote_storage_load(LedRemoteApp* app) {
                 if(btn >= 0) {
                     LedRemoteSignal* sig = &app->signals[btn];
                     led_remote_ir_signal_clear(sig);
-                    sig->raw_timings      = timings;
+                    sig->raw_timings = timings;
                     sig->raw_timings_size = count;
-                    sig->raw_frequency    = frequency;
-                    sig->raw_duty_cycle   = duty_cycle;
-                    sig->is_raw   = true;
+                    sig->raw_frequency = frequency;
+                    sig->raw_duty_cycle = duty_cycle;
+                    sig->is_raw = true;
                     sig->is_valid = true;
                     app->learned[btn] = true;
                 } else {

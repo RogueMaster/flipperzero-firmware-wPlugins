@@ -17,13 +17,15 @@ static void led_remote_capture_rx_callback(void* context, InfraredWorkerSignal* 
 void led_remote_scene_capture_on_enter(void* context) {
     LedRemoteApp* app = context;
 
-    snprintf(app->capture_label, sizeof(app->capture_label),
-             "Learn: %s", app->button_names[app->learn_target]);
+    snprintf(
+        app->capture_label,
+        sizeof(app->capture_label),
+        "Learn: %s",
+        app->button_names[app->learn_target]);
 
     popup_reset(app->popup);
     popup_set_header(app->popup, app->capture_label, 64, 10, AlignCenter, AlignTop);
-    popup_set_text(
-        app->popup, "Point remote\nand press button", 64, 36, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, "Point remote\nand press button", 64, 36, AlignCenter, AlignCenter);
 
     infrared_worker_rx_enable_blink_on_receiving(app->ir_worker, true);
     infrared_worker_rx_enable_signal_decoding(app->ir_worker, true);
@@ -40,8 +42,7 @@ bool led_remote_scene_capture_on_event(void* context, SceneManagerEvent event) {
 
     if(event.event == LedRemoteCaptureEventSuccess) {
         led_remote_storage_save(app);
-        scene_manager_search_and_switch_to_another_scene(
-            app->scene_manager, LedRemoteSceneLearn);
+        scene_manager_search_and_switch_to_another_scene(app->scene_manager, LedRemoteSceneLearn);
     } else {
         scene_manager_previous_scene(app->scene_manager);
     }

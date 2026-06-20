@@ -18,15 +18,9 @@ void led_remote_scene_style_on_enter(void* context) {
 
     for(size_t i = 0; i < LedRemoteLayoutCount; i++) {
         FuriString* label = furi_string_alloc_printf(
-            "%s%s",
-            (app->layout == (LedRemoteLayout)i) ? "> " : "  ",
-            STYLE_NAMES[i]);
+            "%s%s", (app->layout == (LedRemoteLayout)i) ? "> " : "  ", STYLE_NAMES[i]);
         submenu_add_item(
-            app->submenu,
-            furi_string_get_cstr(label),
-            i,
-            led_remote_scene_style_callback,
-            app);
+            app->submenu, furi_string_get_cstr(label), i, led_remote_scene_style_callback, app);
         furi_string_free(label);
     }
 

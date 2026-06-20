@@ -2,8 +2,8 @@
 #include <gui/elements.h>
 #include <string.h>
 
-#define TITLE_H 8
-#define ROW_H   20
+#define TITLE_H     8
+#define ROW_H       20
 #define GRID_RADIUS 3
 
 struct LedRemoteViewRemote {
@@ -26,7 +26,6 @@ typedef struct {
     void* context;
 } LedRemoteViewRemoteModel;
 
-
 static LedButton button_at(uint8_t col, uint8_t row, uint8_t grid_cols) {
     return (LedButton)(row * grid_cols + col);
 }
@@ -35,7 +34,6 @@ static bool is_color_button(uint8_t row, uint8_t grid_cols) {
     if(grid_cols == 3) return (row >= 1 && row <= 3);
     return (row >= 1);
 }
-
 
 static void draw_circle_btn(
     Canvas* canvas,
@@ -69,8 +67,8 @@ static void draw_circle_btn(
 static void draw_layout_circle(Canvas* canvas, LedRemoteViewRemoteModel* m) {
     canvas_set_font(canvas, FontKeyboard);
 
-    uint8_t cell_w    = 64 / m->grid_cols;
-    uint8_t r_learned   = (m->grid_cols == 3) ? 8 : 6;
+    uint8_t cell_w = 64 / m->grid_cols;
+    uint8_t r_learned = (m->grid_cols == 3) ? 8 : 6;
     uint8_t r_unlearned = (m->grid_cols == 3) ? 6 : 5;
 
     for(uint8_t row = 0; row < m->grid_rows; row++) {
@@ -79,12 +77,11 @@ static void draw_layout_circle(Canvas* canvas, LedRemoteViewRemoteModel* m) {
             LedButton btn = button_at(col, row, m->grid_cols);
             int16_t cx = (int16_t)(col * cell_w + cell_w / 2);
             int16_t cy = (int16_t)(TITLE_H + row * ROW_H + ROW_H / 2);
-            bool sel     = (col == m->selected_col && row == m->selected_row);
+            bool sel = (col == m->selected_col && row == m->selected_row);
             bool learned = m->learned[btn];
 
-            const char* lbl = (m->button_labels && btn < m->button_count)
-                                  ? m->button_labels[btn]
-                                  : "?";
+            const char* lbl = (m->button_labels && btn < m->button_count) ? m->button_labels[btn] :
+                                                                            "?";
             draw_circle_btn(canvas, cx, cy, lbl, color, sel, learned, r_learned, r_unlearned);
         }
     }
@@ -96,7 +93,6 @@ static void draw_layout_circle(Canvas* canvas, LedRemoteViewRemoteModel* m) {
     }
 }
 
-
 static void draw_layout_grid(Canvas* canvas, LedRemoteViewRemoteModel* m) {
     canvas_set_font(canvas, FontKeyboard);
 
@@ -105,12 +101,12 @@ static void draw_layout_grid(Canvas* canvas, LedRemoteViewRemoteModel* m) {
     for(uint8_t row = 0; row < m->grid_rows; row++) {
         for(uint8_t col = 0; col < m->grid_cols; col++) {
             LedButton btn = button_at(col, row, m->grid_cols);
-            int16_t x  = (int16_t)(col * cell_w);
-            int16_t y  = (int16_t)(TITLE_H + row * ROW_H);
-            int16_t w  = (col < m->grid_cols - 1) ? (int16_t)cell_w : (int16_t)(64 - x);
+            int16_t x = (int16_t)(col * cell_w);
+            int16_t y = (int16_t)(TITLE_H + row * ROW_H);
+            int16_t w = (col < m->grid_cols - 1) ? (int16_t)cell_w : (int16_t)(64 - x);
             int16_t cx = (int16_t)(x + w / 2);
             int16_t cy = (int16_t)(y + ROW_H / 2);
-            bool sel     = (col == m->selected_col && row == m->selected_row);
+            bool sel = (col == m->selected_col && row == m->selected_row);
             bool learned = m->learned[btn];
 
             if(sel) {
@@ -118,9 +114,8 @@ static void draw_layout_grid(Canvas* canvas, LedRemoteViewRemoteModel* m) {
                 canvas_set_color(canvas, ColorWhite);
             }
 
-            const char* lbl = (m->button_labels && btn < m->button_count)
-                                  ? m->button_labels[btn]
-                                  : "?";
+            const char* lbl = (m->button_labels && btn < m->button_count) ? m->button_labels[btn] :
+                                                                            "?";
             if(learned) {
                 canvas_draw_str_aligned(canvas, cx, cy, AlignCenter, AlignCenter, lbl);
             } else {
@@ -142,7 +137,6 @@ static void draw_layout_grid(Canvas* canvas, LedRemoteViewRemoteModel* m) {
     }
 }
 
-
 static void led_remote_view_remote_draw(Canvas* canvas, void* model_ptr) {
     LedRemoteViewRemoteModel* m = model_ptr;
 
@@ -161,7 +155,6 @@ static void led_remote_view_remote_draw(Canvas* canvas, void* model_ptr) {
         draw_layout_grid(canvas, m);
     }
 }
-
 
 static bool led_remote_view_remote_input(InputEvent* event, void* context) {
     LedRemoteViewRemote* view = context;
@@ -207,7 +200,6 @@ static bool led_remote_view_remote_input(InputEvent* event, void* context) {
     return consumed;
 }
 
-
 LedRemoteViewRemote* led_remote_view_remote_alloc(void) {
     LedRemoteViewRemote* view = malloc(sizeof(LedRemoteViewRemote));
     view->view = view_alloc();
@@ -221,8 +213,8 @@ LedRemoteViewRemote* led_remote_view_remote_alloc(void) {
         view->view,
         LedRemoteViewRemoteModel * m,
         {
-            m->grid_cols    = 3;
-            m->grid_rows    = 6;
+            m->grid_cols = 3;
+            m->grid_rows = 6;
             m->button_count = 18;
         },
         false);
@@ -248,7 +240,7 @@ void led_remote_view_remote_set_callback(
         LedRemoteViewRemoteModel * m,
         {
             m->callback = callback;
-            m->context  = context;
+            m->context = context;
         },
         false);
 }
@@ -273,11 +265,7 @@ void led_remote_view_remote_set_profile_name(LedRemoteViewRemote* view, const ch
 }
 
 void led_remote_view_remote_set_layout(LedRemoteViewRemote* view, LedRemoteLayout layout) {
-    with_view_model(
-        view->view,
-        LedRemoteViewRemoteModel * m,
-        { m->layout = layout; },
-        true);
+    with_view_model(view->view, LedRemoteViewRemoteModel * m, { m->layout = layout; }, true);
 }
 
 void led_remote_view_remote_set_remote_params(
@@ -289,9 +277,9 @@ void led_remote_view_remote_set_remote_params(
         view->view,
         LedRemoteViewRemoteModel * m,
         {
-            m->button_count  = button_count;
-            m->grid_cols     = grid_cols;
-            m->grid_rows     = (grid_cols > 0) ? (button_count / grid_cols) : 6;
+            m->button_count = button_count;
+            m->grid_cols = grid_cols;
+            m->grid_rows = (grid_cols > 0) ? (button_count / grid_cols) : 6;
             m->button_labels = button_labels_short;
             // Clamp selection within new bounds
             if(m->selected_col >= grid_cols) m->selected_col = (uint8_t)(grid_cols - 1);
