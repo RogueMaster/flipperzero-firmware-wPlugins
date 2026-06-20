@@ -1,0 +1,41 @@
+Filetype: Flipper Animation Manifest
+Version: 1
+
+Name: wrenchathome_F0Pattern_128x64
+Min butthurt: 0
+Max butthurt: 14
+Min level: 2
+Max level: 30
+Weight: 6
+
+Name: MRUWZUM
+Min butthurt: 0
+Max butthurt: 18
+Min level: 1
+Max level: 30
+Weight: 9
+
+Name: L1_POKEMON_WALK_128x64
+Min butthurt: 0
+Max butthurt: 18
+Min level: 1
+Max level: 30
+Weight: 9
+
+Name: L1_SPACEINVADERS_INV_128x64
+Min butthurt: 0
+Max butthurt: 18
+Min level: 1
+Max level: 30
+Weight: 9
+
+Name: Kirby
+Min butthurt: 0
+Max butthurt: 18
+Min level: 1
+Max level: 30
+Weight: 9
+
+
+
+
