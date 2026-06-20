@@ -11,6 +11,9 @@ extern "C" {
 
 #define FELICA_POLLER_POLLING_FWT (200000U)
 
+// FeliCa spec section 4.4.3: 1 ≤ n ≤ 32
+#define FELICA_REQUEST_SERVICE_MAX_NODES (32U)
+
 #define FELICA_POLLER_CMD_POLLING_REQ_CODE  (0x00U)
 #define FELICA_POLLER_CMD_POLLING_RESP_CODE (0x01U)
 
@@ -123,6 +126,12 @@ FelicaError felica_poller_list_service_by_cursor(
 FelicaError felica_poller_list_system_code(
     FelicaPoller* instance,
     FelicaListSystemCodeCommandResponse** response_ptr);
+
+FelicaError felica_poller_request_service(
+    FelicaPoller* instance,
+    const uint16_t* codes,
+    uint8_t code_count,
+    uint16_t* key_versions_out);
 
 #ifdef __cplusplus
 }

@@ -4,6 +4,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="space_travel_calculator_app",
     stack_size=4 * 1024,
+    sources=["space_travel_calculator.c", "calculations.c"],
     fap_icon="space_travel_calculator.png",
     fap_category="Tools",
     fap_author="ejfox",

@@ -669,6 +669,40 @@ MU_TEST(subghz_decoder_roger_test) {
         "Test decoder " SUBGHZ_PROTOCOL_ROGER_NAME " error\r\n");
 }
 
+/* NOTE: subghz_decoder_test only asserts the decoder fires on the capture
+ * (>=1 frame); it does NOT verify the decoded value. For Telcoma Edge that
+ * means it would not catch a polarity-complemented decode (0x00CF603F instead
+ * of the validated 0xFF309FC0). TODO: strengthen to assert the recovered key
+ * value, and add an encoder round-trip test, once the harness supports it. */
+MU_TEST(subghz_decoder_telcoma_edge_test) {
+    mu_assert(
+        subghz_decoder_test(
+            EXT_PATH("unit_tests/subghz/telcoma_edge_raw.sub"), SUBGHZ_PROTOCOL_TELCOMA_EDGE_NAME),
+        "Test decoder " SUBGHZ_PROTOCOL_TELCOMA_EDGE_NAME " error\r\n");
+}
+
+/* Non-gate channel capture (33-bit on-wire frame, one-hot channel marker) —
+ * exercises the channel-aware decode path that the gate (32-bit) test misses. */
+MU_TEST(subghz_decoder_telcoma_edge_ch_test) {
+    mu_assert(
+        subghz_decoder_test(
+            EXT_PATH("unit_tests/subghz/telcoma_edge_ch_raw.sub"),
+            SUBGHZ_PROTOCOL_TELCOMA_EDGE_NAME),
+        "Test decoder " SUBGHZ_PROTOCOL_TELCOMA_EDGE_NAME " (channel) error\r\n");
+}
+
+/* Cardin S508: rolling-code 868MHz 2-FSK Manchester, decode-only. The capture is
+ * a real remote press (off-air noise + preamble + one clean 140-bit codeword);
+ * the decoder must lock the 12-bit sync and emit the 128-bit payload at least
+ * once. Like the others this only asserts the decoder fired, not the recovered
+ * value. TODO: strengthen to assert the 128-bit payload once the harness can. */
+MU_TEST(subghz_decoder_cardin_s508_test) {
+    mu_assert(
+        subghz_decoder_test(
+            EXT_PATH("unit_tests/subghz/cardin_s508_raw.sub"), SUBGHZ_PROTOCOL_CARDIN_S508_NAME),
+        "Test decoder " SUBGHZ_PROTOCOL_CARDIN_S508_NAME " error\r\n");
+}
+
 MU_TEST(subghz_decoder_feron_test) {
     mu_assert(
         subghz_decoder_test(
@@ -966,6 +1000,9 @@ MU_TEST_SUITE(subghz) {
     MU_RUN_TEST(subghz_decoder_mastercode_test);
     MU_RUN_TEST(subghz_decoder_dickert_test);
     MU_RUN_TEST(subghz_decoder_roger_test);
+    MU_RUN_TEST(subghz_decoder_telcoma_edge_test);
+    MU_RUN_TEST(subghz_decoder_telcoma_edge_ch_test);
+    MU_RUN_TEST(subghz_decoder_cardin_s508_test);
     MU_RUN_TEST(subghz_decoder_hollarm_test);
     MU_RUN_TEST(subghz_decoder_reversrb2_test);
     MU_RUN_TEST(subghz_decoder_gangqi_test);

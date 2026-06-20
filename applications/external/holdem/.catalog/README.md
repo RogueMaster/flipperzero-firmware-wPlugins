@@ -1,9 +1,10 @@
-Hold 'em is a native single-player Texas Hold'em game for Flipper Zero.
+Hold 'em is a native single-player Texas Hold'em game built for Flipper Zero.
 
 Features:
-- Play against 1 to 3 CPU opponents
+- Play heads-up or against up to 4 CPU opponents
 - Full hand flow from preflop through showdown
-- Side-pot-aware showdown resolution for multi-way pots
-- Single-slot save/load with full game-state persistence
-- In-game blind editor, bot-count editor, controls help, and new-game reset
-- Compact card rendering tuned for the Flipper screen
+- Side-pot-aware payouts and split-pot handling
+- Four bot difficulty levels: Easy, Medium, Hard, and Extreme
+- Blind editor with optional progressive blinds
+- Save/load for full game state and table settings
+- Compact Flipper-first table, menu, and result screens

@@ -5,6 +5,7 @@
 typedef enum {
     ToolsControlWriteFrames = 0,
     ToolsControlSmartInjection,
+    ToolsControlReplay,
     ToolsControlStopActive,
 } ToolsControlMenuIndex;
 
@@ -68,6 +69,12 @@ void cancommander_scene_tools_control_menu_on_enter(void* context) {
         app);
     submenu_add_item(
         app->submenu,
+        "Replay",
+        ToolsControlReplay,
+        cancommander_scene_tools_control_menu_callback,
+        app);
+    submenu_add_item(
+        app->submenu,
         "Stop Active Tool",
         ToolsControlStopActive,
         cancommander_scene_tools_control_menu_callback,
@@ -103,6 +110,11 @@ bool cancommander_scene_tools_control_menu_on_event(void* context, SceneManagerE
 
     case ToolsControlSmartInjection:
         scene_manager_next_scene(app->scene_manager, cancommander_scene_custom_inject_menu);
+        return true;
+
+    case ToolsControlReplay:
+        cancommander_scene_tools_control_open_tool_args(
+            app, CcToolReplay, "replay", app->args_replay, sizeof(app->args_replay), "Replay Tool");
         return true;
 
     case ToolsControlStopActive:

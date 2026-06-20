@@ -72,7 +72,7 @@ void fas_scene_anim_settings_on_enter(void* context) {
 
     /* Min Butthurt */
     item = variable_item_list_add(
-        vl, "Min Butthurt", MAX_BUTTHURT_MAX - MIN_BUTTHURT_MIN + 1, cb_min_butthurt, app);
+        vl, "Min Butthurt", MIN_BUTTHURT_MAX - MIN_BUTTHURT_MIN + 1, cb_min_butthurt, app);
     variable_item_set_current_value_index(item, anim->min_butthurt - MIN_BUTTHURT_MIN);
     set_text(item, anim->min_butthurt);
 

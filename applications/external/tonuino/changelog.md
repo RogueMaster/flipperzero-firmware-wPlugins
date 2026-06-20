@@ -2,7 +2,7 @@
 
 All notable changes to TonUINO Writer will be documented in this file.
 
-## [2.0.0] - 2025-12-31
+## 2.0.0 - 2025-12-31
 
 **Added**
 - Complete SceneManager refactoring for stable navigation
@@ -40,7 +40,7 @@ All notable changes to TonUINO Writer will be documented in this file.
 - Category: NFC
 - Compatible with: Official and Unleashed firmware
 
-## [1.0.0] - Initial Release
+## 1.0.0 - Initial Release
 
 **Added**
 - Basic TonUINO card writing functionality

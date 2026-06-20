@@ -36,12 +36,30 @@ This project uses a standard `Makefile` for local development on your host machi
    - Clean previous builds.
    - Compile the binary using `fbt`.
 
+## Project Structure
+
+| File | Responsibility |
+| --- | --- |
+| `logic.h` / `logic.c` | Pure domain logic: CRC32, duplicate detection, record removal. No Flipper SDK dependency, testable with plain `gcc`. |
+| `app_state.h` | App state struct, view enums, shared constants (`SCAN_DIR`, `FULL_PATH_LEN`). |
+| `storage_helper.h` / `.c` | File I/O: directory scanning, file hashing, file deletion. |
+| `ui.h` / `ui.c` | UI callbacks, rendering, view setup. |
+| `main.c` | App lifecycle orchestration: alloc, setup, run, free. |
+| `version.h` | App version, auto-updated by release-please. |
+
 ## CI/CD
 
-This project includes a GitHub Actions workflow that automatically runs:
-1. **Linter** (static analysis).
-2. **Format Check** (style enforcement).
-3. **Unit Tests** (logic validation).
+This project includes GitHub Actions workflows:
+
+- **CI** (`ci.yml`): Runs on every push and pull request.
+  1. Linter (static analysis with `cppcheck`).
+  2. Format check (style enforcement with `clang-format`).
+  3. Unit tests (logic validation).
+
+- **Release** (`release.yml`): Runs on push to `main`.
+  1. Runs CI checks.
+  2. [release-please](https://github.com/googleapis/release-please-action) creates a release PR with auto-generated changelog.
+  3. On release, builds the `.fap` binary with `ufbt` and uploads it as a GitHub Release asset.
 
 ## Credits
 Author: Endika

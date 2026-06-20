@@ -1,0 +1,30 @@
+App(
+    appid="lan_tester",
+    name="LAN Tester",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lan_tester_app",
+    stack_size=4 * 1024,
+    fap_icon="assets/icon.png",
+    fap_icon_assets="assets",
+    sources=["*.c*", "!docs"],
+    fap_private_libs=[
+        Lib(
+            name="ioLibrary_Driver",
+            fap_include_paths=[
+                "Ethernet/W5500",
+                "Ethernet",
+                "Internet/DHCP",
+            ],
+            sources=[
+                "Ethernet/W5500/*.c",
+                "Ethernet/*.c",
+                "Internet/DHCP/*.c",
+            ],
+        ),
+    ],
+    fap_category="GPIO",
+    fap_author="Dok2d",
+    fap_weburl="https://github.com/dok2d/fz-W5500-lan-analyse",
+    fap_version="2.8.0",
+    fap_description="Portable LAN tester & security analyzer: ARP, ping, DHCP, LLDP/CDP, port scan, SNMP, NTP sync, IPMI, TFTP, PXE boot/download, 802.1X, VLAN, rogue DHCP/RA detection via W5500",
+)

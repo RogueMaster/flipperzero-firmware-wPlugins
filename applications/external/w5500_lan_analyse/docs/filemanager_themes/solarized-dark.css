@@ -1,0 +1,17 @@
+/* Solarized Dark — Ethan Schoonover's classic palette */
+body{font-family:'Fira Code',monospace;background:#002b36;color:#839496;margin:0;padding:16px}
+h1{color:#b58900;margin:0 0 4px}
+.p{color:#586e75;margin-bottom:12px;word-break:break-all}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:6px 8px;border-bottom:2px solid #b58900;color:#b58900}
+td{padding:5px 8px;border-bottom:1px solid #073642}
+a{color:#268bd2;text-decoration:none}
+.d{color:#b58900;font-weight:bold}
+.s{color:#586e75;text-align:right}
+.a{white-space:nowrap}
+.a a{margin-left:8px;color:#dc322f}
+.b{display:inline-block;padding:6px 14px;background:#b58900;color:#002b36;border:none;font-weight:bold;text-decoration:none;margin:2px}
+.bs{padding:3px 8px}
+.uf{margin:12px 0;padding:10px;background:#073642;border:1px solid #586e75}
+.mf{margin:8px 0}
+.ft{margin-top:16px;color:#586e75}

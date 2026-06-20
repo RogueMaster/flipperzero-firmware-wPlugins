@@ -221,6 +221,15 @@ App(
 # Parser plugins
 
 App(
+    appid="bambu_parser",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="bambu_plugin_ep",
+    targets=["f7"],
+    requires=["nfc"],
+    sources=["plugins/supported_cards/bambu.c"],
+)
+
+App(
     appid="all_in_one_parser",
     apptype=FlipperAppType.PLUGIN,
     entry_point="all_in_one_plugin_ep",
@@ -317,6 +326,33 @@ App(
     targets=["f7"],
     requires=["nfc"],
     sources=["plugins/supported_cards/plantain.c"],
+)
+
+App(
+    appid="szppk_so_parser",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="szppk_so_plugin_ep",
+    targets=["f7"],
+    requires=["nfc"],
+    sources=["plugins/supported_cards/szppk_so.c"],
+)
+
+App(
+    appid="sk_tk_parser",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="sk_tk_plugin_ep",
+    targets=["f7"],
+    requires=["nfc"],
+    sources=["plugins/supported_cards/sk_tk.c"],
+)
+
+App(
+    appid="sev_tk_parser",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="sev_tk_plugin_ep",
+    targets=["f7"],
+    requires=["nfc"],
+    sources=["plugins/supported_cards/sevppk_tk.c"],
 )
 
 App(

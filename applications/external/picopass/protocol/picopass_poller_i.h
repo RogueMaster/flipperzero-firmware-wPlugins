@@ -27,6 +27,7 @@ typedef enum {
     PicopassPollerStateWriteKey,
     PicopassPollerStateParseCredential,
     PicopassPollerStateParseWiegand,
+    PicopassPollerStateClean,
     PicopassPollerStateSuccess,
     PicopassPollerStateFail,
     PicopassPollerStateAuthFail,

@@ -95,8 +95,4 @@ int* get_bitmap_positions(const char* binary_string, int* count);
 
 int is_bit_present(int* positions, int count, int bit);
 
-// Calypso known Card types
-
-const char* get_country_string(int country_num);
-
 #endif // CALYPSO_UTIL_H

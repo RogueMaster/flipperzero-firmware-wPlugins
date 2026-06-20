@@ -1,0 +1,15 @@
+App(
+    appid="openshock_app",
+    name="OpenShock",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="openshock_app",
+    fap_libs=["subghz"],
+    stack_size=8 * 1024,
+    fap_icon="openshock.png",
+    fap_icon_assets="images",
+    fap_category="Sub-GHz",
+    fap_author="OpenShock Team",
+    fap_weburl="https://github.com/OpenShock/FlipperZero",
+    fap_version="0.1",
+    fap_description="Simple app to control shockers from your flipper",
+)

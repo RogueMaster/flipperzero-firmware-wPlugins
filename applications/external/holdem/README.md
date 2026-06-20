@@ -2,11 +2,11 @@
 
 Native single-player Texas Hold'em built specifically for Flipper Zero.
 
-Play a full table of compact, readable Hold 'em against up to three bots with real betting rounds, side-pot-aware showdowns, trustworthy save/load, and a UI tuned for the actual device screen. The current release is focused on feeling polished, fair, and immediately fun to play.
+Play a full table of compact, readable Hold 'em against up to four bots with real betting rounds, side-pot-aware showdowns, save/load, and a UI tuned for the actual device screen.
 
 ## Screenshots
 
-The current release on-device flow at a glance:
+On-device flow at a glance:
 
 <table>
   <tr>
@@ -19,11 +19,27 @@ The current release on-device flow at a glance:
   </tr>
   <tr>
     <td align="center" width="50%"><strong>Controls</strong></td>
-    <td align="center" width="50%"><strong>Game Settings</strong></td>
+    <td align="center" width="50%"><strong>Game Menu</strong></td>
   </tr>
   <tr>
     <td align="center" width="50%"><img src="docs/screenshots/04-menu-1.png" alt="Game menu" width="100%" /></td>
     <td align="center" width="50%"><img src="docs/screenshots/05-menu-2.png" alt="Settings menu" width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><strong>Edit Blinds (1)</strong></td>
+    <td align="center" width="50%"><strong>Edit Blinds (2)</strong></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><img src="docs/screenshots/06-edit-blinds-1.png" alt="Edit Blinds (1)" width="100%" /></td>
+    <td align="center" width="50%"><img src="docs/screenshots/07-edit-blinds-2.png" alt="Edit Blinds (2)" width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><strong>Edit Bots</strong></td>
+    <td align="center" width="50%"><strong>Hand Ranks</strong></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><img src="docs/screenshots/08-edit-bots.png" alt="Edit Bots" width="100%" /></td>
+    <td align="center" width="50%"><img src="docs/screenshots/09-hand-ranks.png" alt="Hand Ranks" width="100%" /></td>
   </tr>
   <tr>
     <td align="center" width="50%"><strong>Big Win</strong></td>
@@ -31,28 +47,26 @@ The current release on-device flow at a glance:
   </tr>
   <tr>
     <td align="center" width="50%"><img src="docs/screenshots/03-big-win.png" alt="Big Win screen" width="100%" /></td>
-    <td align="center" width="50%"><img src="docs/screenshots/06-hand-showdown.png" alt="Showdown screen" width="100%" /></td>
+    <td align="center" width="50%"><img src="docs/screenshots/10-showdown.png" alt="Showdown screen" width="100%" /></td>
   </tr>
   <tr>
     <td align="center" width="50%"><strong>Hand Result</strong></td>
     <td align="center" width="50%"><strong>Game Win</strong></td>
   </tr>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/07-hand-result.png" alt="Hand result screen" width="100%" /></td>
-    <td align="center" width="50%"><img src="docs/screenshots/08-you-won.png" alt="You Won screen" width="100%" /></td>
+    <td align="center" width="50%"><img src="docs/screenshots/11-results.png" alt="Hand result screen" width="100%" /></td>
+    <td align="center" width="50%"><img src="docs/screenshots/12-you-won.png" alt="You Won screen" width="100%" /></td>
   </tr>
 </table>
 
 ## Features
 
-- Full Texas Hold'em hand flow on-device, from preflop through showdown
-- Play heads-up or expand the table up to four total players with 1 to 3 bots
-- Side-pot-aware payouts and showdown resolution for real multi-way hands
-- Fast, readable table UI built for the actual Flipper screen, not just emulator screenshots
-- Compact bitmap suit icons and clear card summaries that stay legible during play
-- Human-friendly bot pacing with visible action text so each betting round is easy to follow
-- In-game blind editing, bot-count configuration, controls help, and one-tap new-game reset
-- Single-slot save/load that preserves the full game state for trustworthy resume behavior
+- Full on-device Texas Hold'em from preflop through showdown
+- Heads-up play or full five-player tables with up to four bots
+- Side-pot-aware payouts and split-pot handling for real multi-way hands
+- Four bot difficulty levels: Easy, Medium, Hard, and Extreme
+- Blind editor with optional progressive blinds
+- Save/load for full game state and table settings
 
 ## Build
 
@@ -82,17 +96,19 @@ Build output:
 - `OK`: Commit the current action (`Check`, `Call`, or `Raise`)
 - `Up/Down`: Increase or decrease the current bet amount
 - `Right`: Reset the current bet amount to the default call/check value
+- `Hold Right`: Set the current bet to all in
+- After folding, `OK` can fast-forward through the remaining autoplayed bot action
 
 ### Global
 - `Back` short:
   - From the game screen: open Controls Help
   - From menu screens: close or cancel the current menu
-- `Back` hold (1.5s): open `Exit Hold 'em`
+- `Back` hold: open `Exit Hold 'em`
 
 ### Exit Menu
 - `OK`: Save and exit
 - `Back` short: Cancel
-- `Back` hold (1.5s): Exit without saving
+- `Back` hold: Exit without saving
 
 ## Save Behavior
 
@@ -101,9 +117,13 @@ Save path:
 
 Startup behavior when a save exists:
 - `OK`: Load save
-- `Back`: Start a new game and delete the previous save
+- `Back`: Start a new game without loading the previous save
 
 There is only one save slot by design.
+A fresh unsaved game does not delete the existing save until a later save overwrites it.
+Gameplay settings such as bot difficulty, fixed blind configuration, and progressive blinds are included in the saved state.
+Saved progressive-blind timing state is also preserved so future increases still trigger on the correct hand after load.
+If progressive blinds are active, the underlying base `SB/BB` used for future fresh games is saved separately from the current in-hand blind level.
 
 ## Fairness and RNG
 
@@ -121,6 +141,17 @@ What this guarantees:
 What remains open for future improvement:
 - Replace modulo reduction with rejection sampling to eliminate modulo bias entirely
 
+## AI
+
+Bot difficulty is exposed as `Easy`, `Medium`, `Hard`, and `Extreme`, with `Medium` as the default table setting.
+
+At the top end, `Extreme` goes beyond the baseline heuristic bot by:
+- reacting more carefully to real betting pressure
+- valuing strong broadway and connector structures more accurately preflop
+- factoring in draw development postflop instead of playing only made hands
+- tightening bluff frequency while pushing harder for value with credible strength
+- avoiding weak stack-off lines more aggressively when pots get large
+
 ## Firmware Notes
 
 Target/API:
@@ -131,27 +162,26 @@ The app is intended for official firmware and compatible forks, including Moment
 
 ## Repository Layout
 
-- `holdem.c`: app orchestration, rendering, and input/state handling
+- `holdem.c`: top-level app bootstrap, lifecycle, and main loop orchestration
 - `holdem_engine.c/.h`: gameplay flow, pot handling, and showdown logic
 - `holdem_ai.c/.h`: bot decision logic
 - `holdem_eval.c/.h`: hand evaluation and card formatting helpers
 - `holdem_storage.c/.h`: save/load management
+- `holdem_app_internal.h`: shared internal interfaces for the split UI/controller modules
+- `holdem_ui_common.c`: shared glyphs, centering helpers, and app-state display helpers
+- `holdem_ui_render.c`: all screen rendering and table-layout code
+- `holdem_ui_flow.c`: menu/input flow, edit-state commits, startup, and back-button handling
+- `holdem_gameplay.c`: result/interstitial flow and betting-round plus hand orchestration
 - `holdem_types.h`: shared types and constants
 - `application.fam`: app metadata
 - `holdem.png`: app icon
 - `docs/architecture.md`: architecture and extension notes
 - `docs/roadmap.md`: release follow-up and deferred work
 - `docs/changelog.md`: release history and pending changes
+- `docs/pre-release-tests.md`: high-risk validation checklist for payout, showdown, and rules edge cases
 - `docs/screenshots/`: padded screenshots for GitHub README presentation
-- `docs/catalog_screenshots/`: unmodified screenshots reserved for catalog submission
-- `.catalog/`: catalog submission description, changelog, and raw screenshot assets
+- `.catalog/`: Flipper catalog submission description, changelog, and raw screenshot assets
 - `CONTRIBUTING.md`: contributor workflow
-
-## Release Notes Discipline
-
-- Source control should not carry release binaries long-term.
-- Build artifacts should be generated locally or by release automation.
-- The `dist/` directory is intentionally ignored before the public release branch is merged.
 
 ## Acknowledgements
 
@@ -160,6 +190,8 @@ The app is intended for official firmware and compatible forks, including Moment
 ## Contributing
 
 Contributions are welcome.
+
+For the smoothest review path and the fewest merge conflicts, contribute from the most recent active feature branch rather than `main`.
 
 Please read:
 - `CONTRIBUTING.md`

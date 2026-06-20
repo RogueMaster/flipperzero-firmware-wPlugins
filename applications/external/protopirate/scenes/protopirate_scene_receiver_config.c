@@ -123,6 +123,10 @@ static void protopirate_scene_receiver_config_set_preset(VariableItem* item) {
         app->txrx->preset->frequency,
         subghz_setting_get_preset_data(app->setting, index),
         subghz_setting_get_preset_data_size(app->setting, index));
+
+    if(!protopirate_refresh_protocol_registry(app, false)) {
+        notification_message(app->notifications, &sequence_error);
+    }
 }
 
 static void protopirate_scene_receiver_config_set_hopping_running(VariableItem* item) {
@@ -193,6 +197,12 @@ void protopirate_scene_receiver_config_on_enter(void* context) {
     ProtoPirateApp* app = context;
     VariableItem* item;
     uint8_t value_index;
+
+    if(!protopirate_ensure_variable_item_list(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
 
     item = variable_item_list_add(
         app->variable_item_list,

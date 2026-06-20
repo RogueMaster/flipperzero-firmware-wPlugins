@@ -6,7 +6,7 @@ This repository contains a Flipper Zero external app for controlling an FM recei
 - App entry: [application.fam](application.fam)
 - Main app/UI logic: [radio.c](radio.c)
 - TEA5767 driver: [TEA5767/](TEA5767/)
-- PT2257 support: [PT2257/](PT2257/)
+- PT audio driver support: [PT/](PT/)
 
 ## Build / run
 This is an external app. Typical workflow:

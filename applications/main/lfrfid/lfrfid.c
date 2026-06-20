@@ -208,8 +208,9 @@ static void lfrfid_free(LfRfid* lfrfid) {
     free(lfrfid);
 }
 
-int32_t lfrfid_app(char* args) {
+int32_t lfrfid_app(void* p) {
     LfRfid* app = lfrfid_alloc();
+    char* args = p;
 
     lfrfid_make_app_folder(app);
 

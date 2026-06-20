@@ -134,10 +134,14 @@ static void calculate_date(uint32_t timestamp, char* date_str, size_t date_str_s
     }
 }
 
-static bool smartrider_parse(FuriString* parsed_data, const MfClassicData* data) {
-    furi_assert(parsed_data);
-    SmartRiderData sr_data = {0};
+static void calculate_time(uint32_t timestamp, char* time_str, size_t time_str_size) {
+    uint32_t seconds_in_day = timestamp % 86400;
+    uint8_t hours = seconds_in_day / 3600;
+    uint8_t minutes = (seconds_in_day % 3600) / 60;
+    snprintf(time_str, time_str_size, "%02u:%02u", hours, minutes);
+}
 
+static bool smartrider_parse_data(SmartRiderData* sr_data, const MfClassicData* data) {
     if(data->type != MfClassicType1k) {
         FURI_LOG_E(TAG, "Invalid card type");
         return false;
@@ -152,17 +156,17 @@ static bool smartrider_parse(FuriString* parsed_data, const MfClassicData* data)
         }
     }
 
-    sr_data.balance = bit_lib_bytes_to_num_le(data->block[14].data + 7, 2);
-    sr_data.issued_days = bit_lib_bytes_to_num_le(data->block[4].data + 16, 2);
-    sr_data.expiry_days = bit_lib_bytes_to_num_le(data->block[4].data + 18, 2);
-    sr_data.auto_load_threshold = bit_lib_bytes_to_num_le(data->block[4].data + 20, 2);
-    sr_data.auto_load_value = bit_lib_bytes_to_num_le(data->block[4].data + 22, 2);
-    sr_data.token = data->block[5].data[8];
-    sr_data.purchase_cost = bit_lib_bytes_to_num_le(data->block[0].data + 14, 2);
+    sr_data->balance = bit_lib_bytes_to_num_le(data->block[14].data + 7, 2);
+    sr_data->issued_days = bit_lib_bytes_to_num_le(data->block[4].data + 16, 2);
+    sr_data->expiry_days = bit_lib_bytes_to_num_le(data->block[4].data + 18, 2);
+    sr_data->auto_load_threshold = bit_lib_bytes_to_num_le(data->block[4].data + 20, 2);
+    sr_data->auto_load_value = bit_lib_bytes_to_num_le(data->block[4].data + 22, 2);
+    sr_data->token = data->block[5].data[8];
+    sr_data->purchase_cost = bit_lib_bytes_to_num_le(data->block[0].data + 14, 2);
 
     snprintf(
-        sr_data.card_serial_number,
-        sizeof(sr_data.card_serial_number),
+        sr_data->card_serial_number,
+        sizeof(sr_data->card_serial_number),
         "%02X%02X%02X%02X%02X",
         data->block[1].data[6],
         data->block[1].data[7],
@@ -170,68 +174,125 @@ static bool smartrider_parse(FuriString* parsed_data, const MfClassicData* data)
         data->block[1].data[9],
         data->block[1].data[10]);
 
-    for(uint8_t block_number = 40; block_number <= 52 && sr_data.trip_count < MAX_TRIPS;
+    for(uint8_t block_number = 40; block_number <= 52 && sr_data->trip_count < MAX_TRIPS;
         block_number++) {
         if((block_number != 43 && block_number != 47 && block_number != 51) &&
            mf_classic_is_block_read(data, block_number) &&
            parse_trip_data(
-               &data->block[block_number], &sr_data.trips[sr_data.trip_count], block_number)) {
-            sr_data.trip_count++;
+               &data->block[block_number], &sr_data->trips[sr_data->trip_count], block_number)) {
+            sr_data->trip_count++;
         }
     }
 
     // Sort trips by timestamp (descending order)
-    for(uint8_t i = 0; i < sr_data.trip_count - 1; i++) {
-        for(uint8_t j = 0; j < sr_data.trip_count - i - 1; j++) {
-            if(sr_data.trips[j].timestamp < sr_data.trips[j + 1].timestamp) {
-                TripData temp = sr_data.trips[j];
-                sr_data.trips[j] = sr_data.trips[j + 1];
-                sr_data.trips[j + 1] = temp;
+    for(uint8_t i = 0; i < sr_data->trip_count - 1; i++) {
+        for(uint8_t j = 0; j < sr_data->trip_count - i - 1; j++) {
+            if(sr_data->trips[j].timestamp < sr_data->trips[j + 1].timestamp) {
+                TripData temp = sr_data->trips[j];
+                sr_data->trips[j] = sr_data->trips[j + 1];
+                sr_data->trips[j + 1] = temp;
             }
         }
     }
 
-    furi_string_printf(
-        parsed_data,
-        "\e#SmartRider\nBalance: $%lu.%02lu\nConcession: %s\nSerial: %s%s\n"
-        "Total Cost: $%u.%02u\nAuto-Load: $%u.%02u/$%u.%02u\n\e#Tag On/Off History\n",
-        sr_data.balance / 100,
-        sr_data.balance % 100,
-        get_concession_type(sr_data.token),
-        memcmp(sr_data.card_serial_number, "00", 2) == 0 ? "SR0" : "",
-        memcmp(sr_data.card_serial_number, "00", 2) == 0 ? sr_data.card_serial_number + 2 :
-                                                           sr_data.card_serial_number,
-        sr_data.purchase_cost / 100,
-        sr_data.purchase_cost % 100,
-        sr_data.auto_load_threshold / 100,
-        sr_data.auto_load_threshold % 100,
-        sr_data.auto_load_value / 100,
-        sr_data.auto_load_value % 100);
+    return true;
+}
 
+/* Parse MIFARE Classic data and populate card view */
+static bool
+    smartrider_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
+    SmartRiderData sr_data = {0};
+
+    if(!smartrider_parse_data(&sr_data, data)) {
+        return false;
+    }
+
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "SmartRider");
+
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+
+    /* Page: Overview */
+    uint8_t p = metroflip_card_view_add_page(view, "Overview");
+
+    snprintf(val, sizeof(val), "$%lu.%02lu", sr_data.balance / 100, sr_data.balance % 100);
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
+
+    const char* concession = get_concession_type(sr_data.token);
+    metroflip_card_view_add_field(
+        view, p, "Concession", concession ? concession : "Unknown", false);
+
+    // Build serial: prefix SR0 if starts with 00
+    char serial_display[METROFLIP_CARD_VIEW_VALUE_LEN];
+    char sn_copy[12];
+    strncpy(sn_copy, sr_data.card_serial_number, sizeof(sn_copy) - 1);
+    sn_copy[sizeof(sn_copy) - 1] = '\0';
+    if(memcmp(sn_copy, "00", 2) == 0) {
+        snprintf(serial_display, sizeof(serial_display), "SR0%s", sn_copy + 2);
+    } else {
+        snprintf(serial_display, sizeof(serial_display), "%s", sn_copy);
+    }
+    metroflip_card_view_add_field(view, p, "Serial", serial_display, false);
+
+    /* Page: Details */
+    p = metroflip_card_view_add_page(view, "Details");
+
+    snprintf(
+        val, sizeof(val), "$%u.%02u", sr_data.purchase_cost / 100, sr_data.purchase_cost % 100);
+    metroflip_card_view_add_field(view, p, "Total Cost", val, false);
+
+    snprintf(
+        val,
+        sizeof(val),
+        "$%u.%02u",
+        sr_data.auto_load_threshold / 100,
+        sr_data.auto_load_threshold % 100);
+    metroflip_card_view_add_field(view, p, "AL Threshold", val, false);
+
+    snprintf(
+        val, sizeof(val), "$%u.%02u", sr_data.auto_load_value / 100, sr_data.auto_load_value % 100);
+    metroflip_card_view_add_field(view, p, "AL Value", val, false);
+
+    /* Trip history pages (max 16 pages total, we used 2 already, so up to 14 trips but MAX_TRIPS=10) */
     for(uint8_t i = 0; i < sr_data.trip_count; i++) {
+        char hdr[METROFLIP_CARD_VIEW_HEADER_LEN];
+        snprintf(
+            hdr,
+            sizeof(hdr),
+            "Trip %d - %s",
+            i + 1,
+            sr_data.trips[i].tap_on ? "Tap On" : "Tap Off");
+
+        p = metroflip_card_view_add_page(view, hdr);
+        if(p == UINT8_MAX) break;
+
         char date_str[9];
         calculate_date(sr_data.trips[i].timestamp, date_str, sizeof(date_str));
+        char time_str[6];
+        calculate_time(sr_data.trips[i].timestamp, time_str, sizeof(time_str));
+        snprintf(val, sizeof(val), "%s %s", date_str, time_str);
+        metroflip_card_view_add_field(view, p, "When", val, false);
+
+        metroflip_card_view_add_field(view, p, "Route", sr_data.trips[i].route, false);
 
         uint32_t cost = sr_data.trips[i].cost;
         if(cost > 0) {
-            furi_string_cat_printf(
-                parsed_data,
-                "%s %c $%lu.%02lu %s\n",
-                date_str,
-                sr_data.trips[i].tap_on ? '+' : '-',
-                cost / 100,
-                cost % 100,
-                sr_data.trips[i].route);
-        } else {
-            furi_string_cat_printf(
-                parsed_data,
-                "%s %c %s\n",
-                date_str,
-                sr_data.trips[i].tap_on ? '+' : '-',
-                sr_data.trips[i].route);
+            snprintf(val, sizeof(val), "$%lu.%02lu", cost / 100, cost % 100);
+            metroflip_card_view_add_field(view, p, "Cost", val, true);
         }
+
+        snprintf(val, sizeof(val), "%u", sr_data.trips[i].journey_number);
+        metroflip_card_view_add_field(view, p, "Journey", val, false);
     }
 
+    /* Button configuration */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
+
+    metroflip_card_view_show(app);
     return true;
 }
 
@@ -245,8 +306,6 @@ static NfcCommand smartrider_poller_callback(NfcGenericEvent event, void* contex
     NfcCommand command = NfcCommandContinue;
     const MfClassicPollerEvent* mfc_event = event.event_data;
     Metroflip* app = context;
-    FuriString* parsed_data = furi_string_alloc();
-    Widget* widget = app->widget;
 
     if(mfc_event->type == MfClassicPollerEventTypeCardDetected) {
         view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventCardDetected);
@@ -273,16 +332,23 @@ static NfcCommand smartrider_poller_callback(NfcGenericEvent event, void* contex
         char card_type[] = "SmartRider";
 
         switch(manage) {
-        case MISSING_KEYFILE:
+        case MISSING_KEYFILE: {
+            // The widget copies the text, so the string can be freed right away
+            FuriString* parsed_data = furi_string_alloc();
             handle_keyfile_case(app, "No keys found", "Missing keyfile", parsed_data, card_type);
+            furi_string_free(parsed_data);
             command = NfcCommandStop;
             break;
+        }
 
-        case INCOMPLETE_KEYFILE:
+        case INCOMPLETE_KEYFILE: {
+            FuriString* parsed_data = furi_string_alloc();
             handle_keyfile_case(
                 app, "Incomplete keyfile", "incomplete keyfile", parsed_data, card_type);
+            furi_string_free(parsed_data);
             command = NfcCommandStop;
             break;
+        }
 
         case SUCCESSFUL:
             mf_classic_key_cache_load(app->mfc_key_cache, uid, uid_len);
@@ -305,24 +371,9 @@ static NfcCommand smartrider_poller_callback(NfcGenericEvent event, void* contex
     } else if(mfc_event->type == MfClassicPollerEventTypeSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
-        const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        dolphin_deed(DolphinDeedNfcReadSuccess);
-        furi_string_reset(app->text_box_store);
-        if(!smartrider_parse(parsed_data, mfc_data)) {
-            FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-        }
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        metroflip_app_blink_stop(app);
-        UNUSED(smartrider_parse);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         FURI_LOG_I(TAG, "fail");
@@ -343,34 +394,36 @@ static void smartrider_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfClassicData* mfc_data = mf_classic_alloc();
             mf_classic_load(mfc_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!smartrider_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!smartrider_display_card_view(mfc_data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
+            mf_classic_free(mfc_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
             widget_add_button_element(
                 widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
             view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
-        // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-        // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfClassic);
         nfc_poller_start(app->poller, smartrider_poller_callback, app);
@@ -383,21 +436,37 @@ static bool smartrider_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            dolphin_deed(DolphinDeedNfcReadSuccess);
+            const MfClassicData* mfc_data =
+                nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
+            if(!smartrider_display_card_view(mfc_data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -410,16 +479,14 @@ static bool smartrider_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void smartrider_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
-
-    // Clear view
-    popup_reset(app->popup);
-
-    metroflip_app_blink_stop(app);
 }
 
 /* Actual implementation of app<>plugin interface */

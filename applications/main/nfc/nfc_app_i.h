@@ -23,6 +23,7 @@
 #include "views/dict_attack.h"
 #include "views/detect_reader.h"
 #include "views/dict_attack.h"
+#include "views/ndef_text_input.h"
 
 #include <nfc/scenes/nfc_scene.h>
 #include "helpers/nfc_detected_protocols.h"
@@ -36,6 +37,7 @@
 #include "helpers/nfc_supported_cards.h"
 #include "helpers/felica_auth.h"
 #include "helpers/slix_unlock.h"
+#include "helpers/mf_ultralight_ndef.h"
 
 #include <flipper_application/plugins/composite_resolver.h>
 #include <loader/loader.h>
@@ -136,6 +138,27 @@ typedef struct {
     NfcMfUltralightCWriteDictState dict_state; /**< Which dict is open for write-phase auth. */
 } NfcMfUltralightCWriteContext;
 
+typedef enum {
+    NdefWriteRecordTypeUri,
+    NdefWriteRecordTypeEmail,
+    NdefWriteRecordTypePhone,
+    NdefWriteRecordTypeText,
+    NdefWriteRecordTypeWifi,
+} NdefWriteRecordType;
+
+typedef enum {
+    NdefWriteInputStepPrimary, // URL / Text / SSID
+    NdefWriteInputStepSecondary, // Wi-Fi password
+} NdefWriteInputStep;
+
+typedef struct {
+    NdefWriteRecordType record_type;
+    NdefWriteInputStep input_step;
+    NdefNtagType ntag_type;
+    FuriString* primary; // URL, Text, or SSID depending on record_type
+    FuriString* secondary; // Wi-Fi password (unused for URI/Text)
+} NdefWriteContext;
+
 struct NfcApp {
     DialogsApp* dialogs;
     Storage* storage;
@@ -159,6 +182,7 @@ struct NfcApp {
     Popup* popup;
     Loading* loading;
     TextInput* text_input;
+    NdefTextInput* ndef_text_input;
     ByteInput* byte_input;
     TextBox* text_box;
     Widget* widget;
@@ -190,6 +214,7 @@ struct NfcApp {
     FuriTimer* timer;
 
     bool fav_timeout;
+    NdefWriteContext ndef_write;
 };
 
 typedef enum {
@@ -203,6 +228,7 @@ typedef enum {
     NfcViewWidget,
     NfcViewDictAttack,
     NfcViewDetectReader,
+    NfcViewNdefTextInput,
 } NfcView;
 
 typedef enum {

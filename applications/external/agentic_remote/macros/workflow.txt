@@ -1,0 +1,10 @@
+/init
+/compact
+/commit
+fix the failing tests
+explain the error above
+what files need updating?
+add a README
+run the tests
+push to remote
+review my changes

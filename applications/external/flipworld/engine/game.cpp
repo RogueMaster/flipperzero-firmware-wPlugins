@@ -1,30 +1,30 @@
 #include "game.hpp"
-#include "engine/entity.hpp"
 
 Game::Game(
     const char* name,
     Vector size,
     Draw* draw,
-    Color fg_color,
-    Color bg_color,
-    CameraPerspective perspective,
-    void (*start)(),
-    void (*stop)())
+    uint16_t fg_color,
+    uint16_t bg_color,
+    Camera* cameraContext,
+    CallbackVoid start,
+    CallbackVoid stop,
+    CallbackVoid update)
     : name(name)
     , levels{nullptr}
     , current_level(nullptr)
     , draw(draw)
     , input(-1)
-    , camera(0, 0)
+    , camera(cameraContext == nullptr ? ENGINE_MEM_NEW Camera() : cameraContext)
     , pos(0, 0)
     , old_pos(0, 0)
     , size(size)
     , is_active(false)
     , bg_color(bg_color)
     , fg_color(fg_color)
-    , camera_perspective(perspective)
     , _start(start)
-    , _stop(stop) {
+    , _stop(stop)
+    , _update(update) {
     for(int i = 0; i < MAX_LEVELS; i++) {
         levels[i] = nullptr;
     }
@@ -35,9 +35,13 @@ Game::Game(
 Game::~Game() {
     for(int i = 0; i < MAX_LEVELS; i++) {
         if(levels[i] != nullptr) {
-            delete levels[i];
+            ENGINE_MEM_DELETE levels[i];
             levels[i] = nullptr;
         }
+    }
+    if(camera != nullptr) {
+        ENGINE_MEM_DELETE camera;
+        camera = nullptr;
     }
 }
 
@@ -59,7 +63,7 @@ void Game::level_remove(Level* level) {
     for(int i = 0; i < MAX_LEVELS; i++) {
         if(this->levels[i] == level) {
             this->levels[i] = nullptr;
-            delete level;
+            ENGINE_MEM_DELETE level;
             return;
         }
     }
@@ -98,7 +102,21 @@ void Game::render() {
     }
 
     // render the level with the configured perspective
-    this->current_level->render(this, camera_perspective);
+    this->current_level->render(this);
+}
+
+void Game::setCamera(const Camera& cameraContext) {
+    this->camera->position.x = cameraContext.position.x;
+    this->camera->position.y = cameraContext.position.y;
+    this->camera->position.z = cameraContext.position.z;
+    this->camera->direction.x = cameraContext.direction.x;
+    this->camera->direction.y = cameraContext.direction.y;
+    this->camera->direction.z = cameraContext.direction.z;
+    this->camera->plane.x = cameraContext.plane.x;
+    this->camera->plane.y = cameraContext.plane.y;
+    this->camera->plane.z = cameraContext.plane.z;
+    this->camera->height = cameraContext.height;
+    this->camera->perspective = cameraContext.perspective;
 }
 
 void Game::start() {
@@ -108,7 +126,7 @@ void Game::start() {
     this->current_level = this->levels[0];
 
     // Call the game’s start callback (if any)
-    if(this->_start != nullptr) {
+    if(this->_start) {
         this->_start();
     }
 
@@ -122,7 +140,7 @@ void Game::start() {
 void Game::stop() {
     if(!this->is_active) return;
 
-    if(this->_stop != nullptr) this->_stop();
+    if(this->_stop) this->_stop();
 
     if(this->current_level != nullptr) this->current_level->stop();
 
@@ -130,26 +148,21 @@ void Game::stop() {
 
     // Clear all levels.
     for(int i = 0; i < MAX_LEVELS; i++) {
-        delete this->levels[i];
+        ENGINE_MEM_DELETE this->levels[i];
         this->levels[i] = nullptr;
     }
 
     // Clear the screen.
-    this->draw->clear(Vector(0, 0), Vector(128, 64), bg_color);
+    this->draw->fillScreen(bg_color);
 }
 
 void Game::update() {
     if(!this->is_active || this->current_level == nullptr) {
         return;
     }
+
+    if(this->_update) this->_update();
+
     // Update the level
     this->current_level->update(this);
-}
-
-void Game::setPerspective(CameraPerspective perspective) {
-    camera_perspective = perspective;
-}
-
-CameraPerspective Game::getPerspective() const {
-    return camera_perspective;
 }

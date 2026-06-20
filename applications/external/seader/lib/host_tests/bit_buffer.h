@@ -7,6 +7,7 @@
 typedef struct BitBuffer BitBuffer;
 
 BitBuffer* bit_buffer_alloc(size_t capacity_bytes);
+void bit_buffer_test_fail_next_alloc(bool fail);
 void bit_buffer_free(BitBuffer* buf);
 void bit_buffer_reset(BitBuffer* buf);
 void bit_buffer_copy_bytes(BitBuffer* buf, const uint8_t* data, size_t size_bytes);

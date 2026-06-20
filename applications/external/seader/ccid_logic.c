@@ -1,5 +1,7 @@
 #include "ccid_logic.h"
 
+#include <string.h>
+
 uint8_t seader_ccid_sequence_advance(uint8_t* sequence) {
     return (*sequence)++;
 }
@@ -31,6 +33,11 @@ SeaderCcidStatus seader_ccid_decode_status(uint8_t status) {
         .command_status = (SeaderCcidDecodedCommandStatus)((status >> 6) & 0x03),
     };
     return decoded;
+}
+
+uint32_t seader_ccid_decode_le32(const uint8_t bytes[4]) {
+    return ((uint32_t)bytes[0]) | ((uint32_t)bytes[1] << 8U) | ((uint32_t)bytes[2] << 16U) |
+           ((uint32_t)bytes[3] << 24U);
 }
 
 bool seader_ccid_response_matches_pending(bool pending, uint8_t expected_seq, uint8_t response_seq) {
@@ -91,4 +98,20 @@ SeaderCcidDataRoute seader_ccid_route_data_block(
     }
 
     return SeaderCcidDataRouteSamT1;
+}
+
+bool seader_ccid_payload_matches_exact(
+    const uint8_t* payload,
+    size_t payload_len,
+    const uint8_t* expected,
+    size_t expected_len) {
+    if(!payload || !expected || payload_len != expected_len) {
+        return false;
+    }
+
+    return memcmp(payload, expected, expected_len) == 0;
+}
+
+size_t seader_ccid_control_frame_size(size_t payload_len) {
+    return 2U + 10U + payload_len;
 }

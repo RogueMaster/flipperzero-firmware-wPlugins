@@ -43,9 +43,9 @@ void nfc_detected_protocols_set(
     uint32_t count) {
     furi_assert(instance);
     furi_assert(types);
-    furi_assert(count < NfcProtocolNum);
+    furi_assert(count <= NfcProtocolNum);
 
-    memcpy(instance->protocols_detected, types, count);
+    memcpy(instance->protocols_detected, types, count * sizeof(NfcProtocol));
     instance->protocols_detected_num = count;
     instance->selected_idx = 0;
 }

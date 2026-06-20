@@ -6,17 +6,20 @@ public:
     float x;
     float y;
     float z;
+    bool integer;
 
     Vector() {
         x = 0;
         y = 0;
         z = 0;
+        integer = false;
     }
 
-    Vector(float x, float y, float z = 0) {
+    Vector(float x, float y, float z = 0, bool integer = false) {
         this->x = x;
         this->y = y;
         this->z = z;
+        this->integer = integer;
     }
 
     Vector addf(Vector a, float b); // Add scalar to each component

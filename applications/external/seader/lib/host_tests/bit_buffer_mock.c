@@ -9,12 +9,23 @@ struct BitBuffer {
     size_t capacity_bytes;
 };
 
+static bool bit_buffer_fail_next_alloc = false;
+
 BitBuffer* bit_buffer_alloc(size_t capacity_bytes) {
+    if(bit_buffer_fail_next_alloc) {
+        bit_buffer_fail_next_alloc = false;
+        return NULL;
+    }
+
     BitBuffer* buf = malloc(sizeof(BitBuffer));
     buf->data = calloc(1, capacity_bytes);
     buf->size_bits = 0;
     buf->capacity_bytes = capacity_bytes;
     return buf;
+}
+
+void bit_buffer_test_fail_next_alloc(bool fail) {
+    bit_buffer_fail_next_alloc = fail;
 }
 
 void bit_buffer_free(BitBuffer* buf) {

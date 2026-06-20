@@ -153,7 +153,6 @@ private:
     float old_xp = 0.0f; // previous xp value for tracking changes
     uint8_t rainFrame = 0; // frame counter for rain effect
     RegistrationStatus registrationStatus = RegistrationNotStarted; // Current registration status
-    float systemMenuDebounceTimer = 0.0f; // debounce timer for system menu input
     UserInfoStatus userInfoStatus = UserInfoNotStarted; // Current user info status
 
     bool areAllEnemiesDead(Game* game); // Check if all enemies in the current level are dead

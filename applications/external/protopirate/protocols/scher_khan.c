@@ -27,13 +27,6 @@ struct SubGhzProtocolDecoderScherKhan {
     const char* protocol_name;
 };
 
-struct SubGhzProtocolEncoderScherKhan {
-    SubGhzProtocolEncoderBase base;
-
-    SubGhzProtocolBlockEncoder encoder;
-    SubGhzBlockGeneric generic;
-};
-
 typedef enum {
     ScherKhanDecoderStepReset = 0,
     ScherKhanDecoderStepCheckPreambula,
@@ -43,12 +36,12 @@ typedef enum {
 
 const SubGhzProtocolDecoder subghz_protocol_scher_khan_decoder = {
     .alloc = subghz_protocol_decoder_scher_khan_alloc,
-    .free = subghz_protocol_decoder_scher_khan_free,
+    .free = pp_decoder_free_default,
 
     .feed = subghz_protocol_decoder_scher_khan_feed,
     .reset = subghz_protocol_decoder_scher_khan_reset,
 
-    .get_hash_data = subghz_protocol_decoder_scher_khan_get_hash_data,
+    .get_hash_data = pp_decoder_hash_blocks,
     .serialize = subghz_protocol_decoder_scher_khan_serialize,
     .deserialize = subghz_protocol_decoder_scher_khan_deserialize,
     .get_string = subghz_protocol_decoder_scher_khan_get_string,
@@ -79,12 +72,6 @@ void* subghz_protocol_decoder_scher_khan_alloc(SubGhzEnvironment* environment) {
     instance->generic.protocol_name = instance->base.protocol->name;
 
     return instance;
-}
-
-void subghz_protocol_decoder_scher_khan_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderScherKhan* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_scher_khan_reset(void* context) {
@@ -263,13 +250,6 @@ static void subghz_protocol_scher_khan_check_remote_controller(
     }
 }
 
-uint8_t subghz_protocol_decoder_scher_khan_get_hash_data(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderScherKhan* instance = context;
-    return subghz_protocol_blocks_get_hash_data(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
-}
-
 SubGhzProtocolStatus subghz_protocol_decoder_scher_khan_serialize(
     void* context,
     FlipperFormat* flipper_format,
@@ -281,46 +261,46 @@ SubGhzProtocolStatus subghz_protocol_decoder_scher_khan_serialize(
     do {
         if(preset != NULL) {
             if(!flipper_format_insert_or_update_uint32(
-                   flipper_format, "Frequency", &preset->frequency, 1)) {
+                   flipper_format, FF_FREQUENCY, &preset->frequency, 1)) {
                 break;
             }
 
             const char* preset_name = furi_string_get_cstr(preset->name);
-            const char* short_preset = protopirate_get_short_preset_name(preset_name);
+            const char* short_preset = pp_get_short_preset_name(preset_name);
             if(!flipper_format_insert_or_update_string_cstr(
-                   flipper_format, "Preset", short_preset)) {
+                   flipper_format, FF_PRESET, short_preset)) {
                 break;
             }
         }
 
         if(!flipper_format_insert_or_update_string_cstr(
-               flipper_format, "Protocol", instance->generic.protocol_name)) {
+               flipper_format, FF_PROTOCOL, instance->generic.protocol_name)) {
             break;
         }
 
         uint32_t bits = instance->generic.data_count_bit;
-        if(!flipper_format_insert_or_update_uint32(flipper_format, "Bit", &bits, 1)) {
+        if(!flipper_format_insert_or_update_uint32(flipper_format, FF_BIT, &bits, 1)) {
             break;
         }
 
         char key_str[20];
         snprintf(key_str, sizeof(key_str), "%016llX", instance->generic.data);
-        if(!flipper_format_insert_or_update_string_cstr(flipper_format, "Key", key_str)) {
+        if(!flipper_format_insert_or_update_string_cstr(flipper_format, FF_KEY, key_str)) {
             break;
         }
 
         if(!flipper_format_insert_or_update_uint32(
-               flipper_format, "Serial", &instance->generic.serial, 1)) {
+               flipper_format, FF_SERIAL, &instance->generic.serial, 1)) {
             break;
         }
 
         uint32_t temp = instance->generic.btn;
-        if(!flipper_format_insert_or_update_uint32(flipper_format, "Btn", &temp, 1)) {
+        if(!flipper_format_insert_or_update_uint32(flipper_format, FF_BTN, &temp, 1)) {
             break;
         }
 
         if(!flipper_format_insert_or_update_uint32(
-               flipper_format, "Cnt", &instance->generic.cnt, 1)) {
+               flipper_format, FF_CNT, &instance->generic.cnt, 1)) {
             break;
         }
 

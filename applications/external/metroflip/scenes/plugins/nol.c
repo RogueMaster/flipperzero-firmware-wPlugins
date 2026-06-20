@@ -15,41 +15,48 @@
 static const MfDesfireApplicationId nol_app_id = {.data = {0xff, 0xff, 0xff}};
 static const MfDesfireFileId nol_file_id = 0x08;
 
-bool nol_parse(const MfDesfireData* data, FuriString* parsed_data) {
-    furi_assert(parsed_data);
+/* Parse nol card data and populate card view. Returns true on success. */
+static bool nol_display_card_view(const MfDesfireData* data, Metroflip* app, bool from_file) {
+    const MfDesfireApplication* mf_app = mf_desfire_get_application(data, &nol_app_id);
+    if(mf_app == NULL) return false;
 
-    bool parsed = false;
+    const MfDesfireFileSettings* file_settings =
+        mf_desfire_get_file_settings(mf_app, &nol_file_id);
 
-    do {
-        const MfDesfireApplication* app = mf_desfire_get_application(data, &nol_app_id);
-        if(app == NULL) break;
-        // don't need to check aid 004078 again
-        // we wouldn't have ended up in this plugin if it wasn't found by desfire manager
+    if(file_settings == NULL || file_settings->type != MfDesfireFileTypeStandard ||
+       file_settings->data.size < NOL_FILE_SIZE)
+        return false;
 
-        const MfDesfireFileSettings* file_settings =
-            mf_desfire_get_file_settings(app, &nol_file_id);
+    const MfDesfireFileData* file_data = mf_desfire_get_file_data(mf_app, &nol_file_id);
+    if(file_data == NULL) return false;
 
-        if(file_settings == NULL || file_settings->type != MfDesfireFileTypeStandard ||
-           file_settings->data.size < NOL_FILE_SIZE)
-            break;
+    uint8_t* nol_file = simple_array_get_data(file_data->data);
+    uint32_t nol_serial_number = bit_lib_get_bits_32(nol_file, 61, 32);
 
-        const MfDesfireFileData* file_data = mf_desfire_get_file_data(app, &nol_file_id);
-        if(file_data == NULL) break;
+    uint32_t first_group = (nol_serial_number / 10000000U) % 1000U;
+    uint32_t middle_group = (nol_serial_number / 10000U) % 1000U;
+    uint32_t last_group = nol_serial_number % 10000U;
 
-        uint8_t* nol_file = simple_array_get_data(file_data->data);
-        uint32_t nol_serial_number = bit_lib_get_bits_32(nol_file, 61, 32);
+    /* Allocate card view */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "nol");
 
-        uint32_t first_group = (nol_serial_number / 10000000U) % 1000U; // top 3 digits
-        uint32_t middle_group = (nol_serial_number / 10000U) % 1000U; // next 3
-        uint32_t last_group = nol_serial_number % 10000U; // last 4
+    /* Page: Card Info */
+    uint8_t p = metroflip_card_view_add_page(view, "Card Info");
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
 
-        furi_string_set(parsed_data, "\e#nol\n\nSerial No.: ");
-        furi_string_cat_printf(
-            parsed_data, "%03ld %03ld %04ld", first_group, middle_group, last_group);
-        parsed = true;
-    } while(false);
+    snprintf(val, sizeof(val), "%03lu %03lu %04lu", first_group, middle_group, last_group);
+    metroflip_card_view_add_field(view, p, "Serial No.", val, true);
 
-    return parsed;
+    /* Button configuration */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
+
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand nol_poller_callback(NfcGenericEvent event, void* context) {
@@ -58,32 +65,16 @@ static NfcCommand nol_poller_callback(NfcGenericEvent event, void* context) {
     Metroflip* app = context;
     NfcCommand command = NfcCommandContinue;
 
-    FuriString* parsed_data = furi_string_alloc();
-    Widget* widget = app->widget;
-    furi_string_reset(app->text_box_store);
     const MfDesfirePollerEvent* mf_desfire_event = event.event_data;
     if(mf_desfire_event->type == MfDesfirePollerEventTypeReadSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfDesfire, nfc_poller_get_data(app->poller));
-        const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
-        if(!nol_parse(data, parsed_data)) {
-            furi_string_reset(app->text_box_store);
-            FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-        }
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mf_desfire_event->type == MfDesfirePollerEventTypeReadFailed) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerFail);
         command = NfcCommandContinue;
     }
 
@@ -99,34 +90,36 @@ static void nol_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfDesfireData* data = mf_desfire_alloc();
             mf_desfire_load(data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!nol_parse(data, parsed_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!nol_display_card_view(data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
+            mf_desfire_free(data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
             widget_add_button_element(
                 widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            mf_desfire_free(data);
-            furi_string_free(parsed_data);
             view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
-        // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-        // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfDesfire);
         nfc_poller_start(app->poller, nol_poller_callback, app);
@@ -139,21 +132,35 @@ static bool nol_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
+            if(!nol_display_card_view(data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -166,10 +173,13 @@ static bool nol_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void nol_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
     metroflip_app_blink_stop(app);
+
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 

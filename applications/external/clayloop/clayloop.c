@@ -85,6 +85,10 @@
 /** Maximum number of .sub files that can be queued */
 #define MAX_FILES 4
 
+/** Upper bound on pre-computed LevelDuration samples per protocol frame.
+ *  Typical keyed protocols use 50-300 samples; 4096 covers all known cases. */
+#define PROTOCOL_MAX_UPLOAD 4096
+
 /* ──────────────────────────────────────────────
  *  Enumerations
  * ────────────────────────────────────────────── */
@@ -185,6 +189,14 @@ typedef struct {
     const SubGhzDevice* radio_device; /**< CC1101 radio device handle */
     bool radio_tx_running; /**< True when async TX is actively feeding the radio */
     FuriTimer* duration_timer; /**< Timer that ends each transmission */
+
+    /* Pre-computed waveform for gapless protocol looping.
+     * After deserialization we drain the transmitter into this buffer so the
+     * DMA callback can loop it infinitely without stopping the radio between
+     * repetitions.  NULL when a RAW file is active. */
+    LevelDuration* protocol_upload; /**< Heap buffer of pre-computed samples */
+    size_t protocol_upload_count; /**< Number of valid samples in the buffer */
+    size_t protocol_upload_index; /**< Current read position (DMA callback only) */
 
     /* Screen management */
     AppScreen current_screen; /**< Which screen is currently displayed */
@@ -957,6 +969,20 @@ static LevelDuration app_radio_tx_feed_raw(void* ctx) {
  */
 static LevelDuration app_radio_tx_feed_protocol(void* ctx) {
     ClayLoopApp* app = ctx;
+
+    /* Normal path: loop the pre-computed waveform seamlessly.
+     * The index wraps at the end so the DMA never sees a reset and never
+     * stops between protocol frames — giving truly continuous TX for the
+     * full duration window. */
+    if(app->protocol_upload && app->protocol_upload_count > 0) {
+        if(app->protocol_upload_index >= app->protocol_upload_count) {
+            app->protocol_upload_index = 0;
+        }
+        return app->protocol_upload[app->protocol_upload_index++];
+    }
+
+    /* Fallback (pre-computation failed): stream from transmitter as before.
+     * This path produces gaps on each loop but is better than crashing. */
     LevelDuration ld = subghz_transmitter_yield(app->transmitter);
     if(level_duration_is_reset(ld)) {
         AppEvent event = {.type = EventTypeTxComplete, .generation = app->tx_generation};
@@ -1049,6 +1075,29 @@ static void app_start_transmit_file(ClayLoopApp* app) {
         flipper_format_file_close(fff);
         flipper_format_free(fff);
         furi_record_close(RECORD_STORAGE);
+
+        /* Pre-compute the full waveform into a heap buffer so the DMA callback
+         * can loop it without stopping the radio between protocol frames. */
+        app->protocol_upload = malloc(PROTOCOL_MAX_UPLOAD * sizeof(LevelDuration));
+        app->protocol_upload_count = 0;
+        app->protocol_upload_index = 0;
+        if(app->protocol_upload) {
+            while(app->protocol_upload_count < PROTOCOL_MAX_UPLOAD) {
+                LevelDuration ld = subghz_transmitter_yield(app->transmitter);
+                if(level_duration_is_reset(ld)) break;
+                app->protocol_upload[app->protocol_upload_count++] = ld;
+            }
+            FURI_LOG_I(
+                TAG,
+                "Pre-computed %u samples for gapless TX",
+                (unsigned)app->protocol_upload_count);
+            /* Transmitter is fully drained — free it now */
+            subghz_transmitter_free(app->transmitter);
+            app->transmitter = NULL;
+        } else {
+            FURI_LOG_W(TAG, "Pre-compute malloc failed — TX will have inter-frame gaps");
+        }
+
         started = true;
     }
 
@@ -1146,6 +1195,13 @@ static void app_stop_transmit(ClayLoopApp* app) {
         app->transmitter = NULL;
     }
 
+    if(app->protocol_upload) {
+        free(app->protocol_upload);
+        app->protocol_upload = NULL;
+        app->protocol_upload_count = 0;
+        app->protocol_upload_index = 0;
+    }
+
     subghz_devices_sleep(app->radio_device);
 
     app_led_off();
@@ -1195,6 +1251,13 @@ static void app_handle_tx_end(ClayLoopApp* app) {
     if(app->transmitter) {
         subghz_transmitter_free(app->transmitter);
         app->transmitter = NULL;
+    }
+
+    if(app->protocol_upload) {
+        free(app->protocol_upload);
+        app->protocol_upload = NULL;
+        app->protocol_upload_count = 0;
+        app->protocol_upload_index = 0;
     }
 
     /* LED off between transmissions */
@@ -1265,6 +1328,12 @@ static void app_restart_current_tx(ClayLoopApp* app) {
         subghz_transmitter_free(app->transmitter);
         app->transmitter = NULL;
     }
+    if(app->protocol_upload) {
+        free(app->protocol_upload);
+        app->protocol_upload = NULL;
+        app->protocol_upload_count = 0;
+        app->protocol_upload_index = 0;
+    }
 
     bool started = false;
 
@@ -1317,6 +1386,21 @@ static void app_restart_current_tx(ClayLoopApp* app) {
         flipper_format_file_close(fff);
         flipper_format_free(fff);
         furi_record_close(RECORD_STORAGE);
+
+        /* Re-pre-compute waveform so the looping feed callback works correctly */
+        app->protocol_upload = malloc(PROTOCOL_MAX_UPLOAD * sizeof(LevelDuration));
+        app->protocol_upload_count = 0;
+        app->protocol_upload_index = 0;
+        if(app->protocol_upload) {
+            while(app->protocol_upload_count < PROTOCOL_MAX_UPLOAD) {
+                LevelDuration ld = subghz_transmitter_yield(app->transmitter);
+                if(level_duration_is_reset(ld)) break;
+                app->protocol_upload[app->protocol_upload_count++] = ld;
+            }
+            subghz_transmitter_free(app->transmitter);
+            app->transmitter = NULL;
+        }
+
         started = true;
     }
     UNUSED(started);
@@ -1970,6 +2054,11 @@ int32_t clayloop_app(void* p) {
     if(app->transmitter) {
         subghz_transmitter_free(app->transmitter);
         app->transmitter = NULL;
+    }
+
+    if(app->protocol_upload) {
+        free(app->protocol_upload);
+        app->protocol_upload = NULL;
     }
 
     /* Shut down and release radio hardware */

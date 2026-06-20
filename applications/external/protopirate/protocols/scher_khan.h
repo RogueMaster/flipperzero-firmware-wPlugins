@@ -15,7 +15,6 @@
 #define SUBGHZ_PROTOCOL_SCHER_KHAN_NAME "Scher-Khan"
 
 typedef struct SubGhzProtocolDecoderScherKhan SubGhzProtocolDecoderScherKhan;
-typedef struct SubGhzProtocolEncoderScherKhan SubGhzProtocolEncoderScherKhan;
 
 extern const SubGhzProtocolDecoder subghz_protocol_scher_khan_decoder;
 extern const SubGhzProtocolEncoder subghz_protocol_scher_khan_encoder;
@@ -47,13 +46,6 @@ void subghz_protocol_decoder_scher_khan_reset(void* context);
  * @param duration Duration of this level in, us
  */
 void subghz_protocol_decoder_scher_khan_feed(void* context, bool level, uint32_t duration);
-
-/**
- * Getting the hash sum of the last randomly received parcel.
- * @param context Pointer to a SubGhzProtocolDecoderScherKhan instance
- * @return hash Hash sum
- */
-uint8_t subghz_protocol_decoder_scher_khan_get_hash_data(void* context);
 
 /**
  * Serialize data SubGhzProtocolDecoderScherKhan.

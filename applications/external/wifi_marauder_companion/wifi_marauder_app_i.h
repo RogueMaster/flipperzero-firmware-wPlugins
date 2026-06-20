@@ -27,7 +27,7 @@
 #include <lib/toolbox/path.h>
 #include <dialogs/dialogs.h>
 
-#define NUM_MENU_ITEMS (32)
+#define NUM_MENU_ITEMS (33)
 
 #define WIFI_MARAUDER_TEXT_BOX_STORE_SIZE   (4096)
 #define WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE (512)
@@ -35,7 +35,7 @@
 #define MARAUDER_APP_FOLDER_USER            "apps_data/marauder"
 #define MARAUDER_APP_FOLDER                 EXT_PATH(MARAUDER_APP_FOLDER_USER)
 #define MARAUDER_APP_FOLDER_EVILPORTAL      EXT_PATH("apps_assets/evil_portal")
-#define MARAUDER_APP_FOLDER_HTML            EXT_PATH("apps_assets/evil_portal/html")
+#define MARAUDER_APP_FOLDER_HTML            MARAUDER_APP_FOLDER "/html"
 #define MARAUDER_APP_FOLDER_PCAPS           MARAUDER_APP_FOLDER "/pcaps"
 #define MARAUDER_APP_FOLDER_DUMPS           MARAUDER_APP_FOLDER "/dumps"
 #define MARAUDER_APP_FOLDER_LOGS            MARAUDER_APP_FOLDER "/logs"

@@ -76,53 +76,30 @@ static const size_t kNumAgencies = COUNT(agency_names);
 // Known station names for various agencies.
 //
 static const IdMapping bart_zones[] = {
-    {.id = 0x0001, .name = "Colma"},
-    {.id = 0x0002, .name = "Daly City"},
-    {.id = 0x0003, .name = "Balboa Park"},
-    {.id = 0x0004, .name = "Glen Park"},
-    {.id = 0x0005, .name = "24th St Mission"},
-    {.id = 0x0006, .name = "16th St Mission"},
-    {.id = 0x0007, .name = "Civic Center/UN Plaza"},
-    {.id = 0x0008, .name = "Powell St"},
-    {.id = 0x0009, .name = "Montgomery St"},
-    {.id = 0x000a, .name = "Embarcadero"},
-    {.id = 0x000b, .name = "West Oakland"},
-    {.id = 0x000c, .name = "12th St/Oakland City Center"},
-    {.id = 0x000d, .name = "19th St/Oakland"},
-    {.id = 0x000e, .name = "MacArthur"},
-    {.id = 0x000f, .name = "Rockridge"},
-    {.id = 0x0010, .name = "Orinda"},
-    {.id = 0x0011, .name = "Lafayette"},
-    {.id = 0x0012, .name = "Walnut Creek"},
-    {.id = 0x0013, .name = "Pleasant Hill/Contra Costa Centre"},
-    {.id = 0x0014, .name = "Concord"},
-    {.id = 0x0015, .name = "North Concord/Martinez"},
-    {.id = 0x0016, .name = "Pittsburg/Bay Point"},
-    {.id = 0x0017, .name = "Ashby"},
-    {.id = 0x0018, .name = "Downtown Berkeley"},
-    {.id = 0x0019, .name = "North Berkeley"},
-    {.id = 0x001a, .name = "El Cerrito Plaza"},
-    {.id = 0x001b, .name = "El Cerrito Del Norte"},
-    {.id = 0x001c, .name = "Richmond"},
-    {.id = 0x001d, .name = "Lake Merrit"},
-    {.id = 0x001e, .name = "Fruitvale"},
-    {.id = 0x001f, .name = "Coliseum"},
-    {.id = 0x0021, .name = "San Leandro"},
-    {.id = 0x0022, .name = "Hayward"},
-    {.id = 0x0023, .name = "South Hayward"},
-    {.id = 0x0024, .name = "Union City"},
-    {.id = 0x0025, .name = "Fremont"},
-    {.id = 0x0026, .name = "Castro Valley"},
-    {.id = 0x0027, .name = "Dublin/Pleasanton"},
-    {.id = 0x0028, .name = "South San Francisco"},
-    {.id = 0x0029, .name = "San Bruno"},
-    {.id = 0x002a, .name = "SFO Airport"},
-    {.id = 0x002b, .name = "Millbrae"},
-    {.id = 0x002c, .name = "West Dublin/Pleasanton"},
-    {.id = 0x002d, .name = "OAK Airport"},
-    {.id = 0x002e, .name = "Warm Springs/South Fremont"},
-    {.id = 0x002f, .name = "Milpitas"},
-    {.id = 0x0030, .name = "Berryessa/North San Jose"},
+    {.id = 0x0001, .name = "Colma"},           {.id = 0x0002, .name = "Daly City"},
+    {.id = 0x0003, .name = "Balboa Park"},     {.id = 0x0004, .name = "Glen Park"},
+    {.id = 0x0005, .name = "24th St Mission"}, {.id = 0x0006, .name = "16th St Mission"},
+    {.id = 0x0007, .name = "Civic Ctr"},       {.id = 0x0008, .name = "Powell St"},
+    {.id = 0x0009, .name = "Montgomery St"},   {.id = 0x000a, .name = "Embarcadero"},
+    {.id = 0x000b, .name = "West Oakland"},    {.id = 0x000c, .name = "12th St Oakland"},
+    {.id = 0x000d, .name = "19th St Oakland"}, {.id = 0x000e, .name = "MacArthur"},
+    {.id = 0x000f, .name = "Rockridge"},       {.id = 0x0010, .name = "Orinda"},
+    {.id = 0x0011, .name = "Lafayette"},       {.id = 0x0012, .name = "Walnut Creek"},
+    {.id = 0x0013, .name = "Pleasant Hill"},   {.id = 0x0014, .name = "Concord"},
+    {.id = 0x0015, .name = "N Concord"},       {.id = 0x0016, .name = "Pittsburg/BP"},
+    {.id = 0x0017, .name = "Ashby"},           {.id = 0x0018, .name = "Downtown Berk"},
+    {.id = 0x0019, .name = "North Berkeley"},  {.id = 0x001a, .name = "El Cerrito Plz"},
+    {.id = 0x001b, .name = "El Cerrito DN"},   {.id = 0x001c, .name = "Richmond"},
+    {.id = 0x001d, .name = "Lake Merrit"},     {.id = 0x001e, .name = "Fruitvale"},
+    {.id = 0x001f, .name = "Coliseum"},        {.id = 0x0021, .name = "San Leandro"},
+    {.id = 0x0022, .name = "Hayward"},         {.id = 0x0023, .name = "South Hayward"},
+    {.id = 0x0024, .name = "Union City"},      {.id = 0x0025, .name = "Fremont"},
+    {.id = 0x0026, .name = "Castro Valley"},   {.id = 0x0027, .name = "Dublin/Plsntn"},
+    {.id = 0x0028, .name = "S San Francisco"}, {.id = 0x0029, .name = "San Bruno"},
+    {.id = 0x002a, .name = "SFO Airport"},     {.id = 0x002b, .name = "Millbrae"},
+    {.id = 0x002c, .name = "W Dublin/Plsn"},   {.id = 0x002d, .name = "OAK Airport"},
+    {.id = 0x002e, .name = "Warm Springs"},    {.id = 0x002f, .name = "Milpitas"},
+    {.id = 0x0030, .name = "Berryessa/NSJ"},
 };
 static const size_t kNumBARTZones = COUNT(bart_zones);
 
@@ -132,10 +109,10 @@ static const IdMapping muni_zones[] = {
     {.id = 0x0006, .name = "Montgomery"},
     {.id = 0x0007, .name = "Powell"},
     {.id = 0x0008, .name = "Civic Center"},
-    {.id = 0x0009, .name = "Van Ness"}, // Guessed
+    {.id = 0x0009, .name = "Van Ness"},
     {.id = 0x000a, .name = "Church"},
     {.id = 0x000b, .name = "Castro"},
-    {.id = 0x000c, .name = "Forest Hill"}, // Guessed
+    {.id = 0x000c, .name = "Forest Hill"},
     {.id = 0x000d, .name = "West Portal"},
 };
 static const size_t kNumMUNIZones = COUNT(muni_zones);
@@ -145,8 +122,6 @@ static const IdMapping actransit_zones[] = {
 };
 static const size_t kNumACTransitZones = COUNT(actransit_zones);
 
-// Instead of persisting individual Station IDs, Caltrain saves Zone numbers.
-// https://www.caltrain.com/stations-zones
 static const IdMapping caltrain_zones[] = {
     {.id = 0x0001, .name = "Zone 1"},
     {.id = 0x0002, .name = "Zone 2"},
@@ -155,12 +130,8 @@ static const IdMapping caltrain_zones[] = {
     {.id = 0x0005, .name = "Zone 5"},
     {.id = 0x0006, .name = "Zone 6"},
 };
-
 static const size_t kNumCaltrainZones = COUNT(caltrain_zones);
 
-//
-// Full agency+zone mapping.
-//
 static const struct {
     uint16_t agency_id;
     const IdMapping* zone_map;
@@ -188,42 +159,15 @@ struct ClipperCardInfo_struct {
 };
 typedef struct ClipperCardInfo_struct ClipperCardInfo;
 
-// Forward declarations for helper functions.
-static void furi_string_cat_timestamp(
-    FuriString* str,
-    const char* date_hdr,
-    const char* time_hdr,
-    uint32_t tmst_1900);
-static bool get_file_contents(
-    const MfDesfireApplication* app,
-    const MfDesfireFileId* id,
-    MfDesfireFileType type,
-    size_t min_size,
-    const uint8_t** out);
-static bool decode_id_file(const uint8_t* ef8_data, ClipperCardInfo* info);
-static bool decode_cash_file(const uint8_t* ef2_data, ClipperCardInfo* info);
-static bool get_map_item(uint16_t id, const IdMapping* map, size_t sz, const char** out);
-static bool get_agency_zone_name(uint16_t agency_id, uint16_t zone_id, const char** out);
-static void
-    decode_usd(int16_t amount_cents, bool* out_is_negative, int16_t* out_usd, uint16_t* out_cents);
-static bool dump_ride_history(
-    const uint8_t* index_file,
-    const uint8_t* history_file,
-    size_t len,
-    FuriString* parsed_data);
-static bool dump_ride_event(const uint8_t* record, FuriString* parsed_data);
-
-// Unmarshal a 32-bit integer, big endian, unsigned
+// Unmarshal helpers
 static inline uint32_t get_u32be(const uint8_t* field) {
     return bit_lib_bytes_to_num_be(field, 4);
 }
 
-// Unmarshal a 16-bit integer, big endian, unsigned
 static uint16_t get_u16be(const uint8_t* field) {
     return bit_lib_bytes_to_num_be(field, 2);
 }
 
-// Unmarshal a 16-bit integer, big endian, signed, two's-complement
 static int16_t get_i16be(const uint8_t* field) {
     uint16_t raw = get_u16be(field);
     if(raw > 0x7fff)
@@ -232,76 +176,36 @@ static int16_t get_i16be(const uint8_t* field) {
         return raw;
 }
 
-bool clipper_parse(const MfDesfireData* data, FuriString* parsed_data) {
-    furi_assert(parsed_data);
-
-    bool parsed = false;
-
-    do {
-        const MfDesfireApplication* app = NULL;
-        const char* device_description = NULL;
-
-        for(size_t i = 0; i < kNumCardTypes; i++) {
-            app = mf_desfire_get_application(data, &clipper_types[i].app);
-            device_description = clipper_types[i].type;
-            if(app != NULL) break;
+static bool get_map_item(uint16_t id, const IdMapping* map, size_t sz, const char** out) {
+    for(size_t i = 0; i < sz; i++) {
+        if(map[i].id == id) {
+            *out = map[i].name;
+            return true;
         }
-        // If no matching application was found, abort this parser.
-        if(app == NULL) break;
-        ClipperCardInfo info;
-        const uint8_t* id_data;
-        if(!get_file_contents(
-               app, &clipper_identity_file_id, MfDesfireFileTypeStandard, 5, &id_data))
-            break;
-        if(!decode_id_file(id_data, &info)) break;
-        const uint8_t* cash_data;
-        if(!get_file_contents(app, &clipper_ecash_file_id, MfDesfireFileTypeBackup, 32, &cash_data))
-            break;
-        if(!decode_cash_file(cash_data, &info)) break;
-        int16_t balance_usd;
-        uint16_t balance_cents;
-        bool _balance_is_negative;
-        decode_usd(info.balance_cents, &_balance_is_negative, &balance_usd, &balance_cents);
-        furi_string_cat_printf(
-            parsed_data,
-            "\e#Clipper\n"
-            "Serial: %" PRIu32 "\n"
-            "Balance: $%d.%02u\n"
-            "Type: %s\n"
-            "\e#Last Update\n",
-            info.serial_number,
-            balance_usd,
-            balance_cents,
-            device_description);
-        if(info.last_updated_tm_1900 != 0)
-            furi_string_cat_timestamp(
-                parsed_data, "Date: ", "\nTime: ", info.last_updated_tm_1900);
-        else
-            furi_string_cat_str(parsed_data, "Never");
-        furi_string_cat_printf(
-            parsed_data,
-            "\nTerminal: 0x%04x\n"
-            "Transaction Id: %u\n"
-            "Counter: %u\n",
-            info.last_terminal_id,
-            info.last_txn_id,
-            info.counter);
+    }
+    return false;
+}
 
-        const uint8_t *history_index, *history;
+static bool get_agency_zone_name(uint16_t agency_id, uint16_t zone_id, const char** out) {
+    for(size_t i = 0; i < kNumAgencyZoneMaps; i++) {
+        if(agency_zone_map[i].agency_id == agency_id) {
+            return get_map_item(
+                zone_id, agency_zone_map[i].zone_map, agency_zone_map[i].zone_count, out);
+        }
+    }
+    return false;
+}
 
-        if(!get_file_contents(
-               app, &clipper_histidx_file_id, MfDesfireFileTypeBackup, 16, &history_index))
-            break;
-        if(!get_file_contents(
-               app, &clipper_history_file_id, MfDesfireFileTypeStandard, 512, &history))
-            break;
-
-        if(!dump_ride_history(history_index, history, 512, parsed_data)) break;
-
-        parsed = true;
-    } while(false);
-
-    return parsed;
+static void
+    decode_usd(int16_t amount_cents, bool* out_is_negative, int16_t* out_usd, uint16_t* out_cents) {
+    *out_usd = amount_cents / 100;
+    if(amount_cents >= 0) {
+        *out_is_negative = false;
+        *out_cents = amount_cents % 100;
+    } else {
+        *out_is_negative = true;
+        *out_cents = (amount_cents * -1) % 100;
+    }
 }
 
 static bool get_file_contents(
@@ -313,72 +217,19 @@ static bool get_file_contents(
     const MfDesfireFileSettings* settings = mf_desfire_get_file_settings(app, id);
     if(settings == NULL) return false;
     if(settings->type != type) return false;
-
     const MfDesfireFileData* file_data = mf_desfire_get_file_data(app, id);
-
     if(file_data == NULL) return false;
-
     if(simple_array_get_count(file_data->data) < min_size) return false;
-
     *out = simple_array_cget_data(file_data->data);
-
     return true;
 }
 
 static bool decode_id_file(const uint8_t* ef8_data, ClipperCardInfo* info) {
-    // Identity file (8)
-    //
-    // Byte view
-    //
-    //       0    1    2    3    4    5    6    7    8
-    //       +----+----.----.----.----+----.----.----+
-    // 0x00  | uk | card_id           | unknown      |
-    //       +----+----.----.----.----+----.----.----+
-    // 0x08  | unknown                               |
-    //       +----.----.----.----.----.----.----.----+
-    // 0x10    ...
-    //
-    //
-    // Field          Datatype   Description
-    // -----          --------   -----------
-    // uk             ?8??       Unknown, 8-bit byte
-    // card_id        U32BE      Card identifier
-    //
     info->serial_number = bit_lib_bytes_to_num_be(&ef8_data[1], 4);
     return true;
 }
 
 static bool decode_cash_file(const uint8_t* ef2_data, ClipperCardInfo* info) {
-    // ECash file (2)
-    //
-    // Byte view
-    //
-    //       0    1    2    3    4    5    6    7    8
-    //       +----.----+----.----+----.----.----.----+
-    // 0x00  |  unk00  | counter | timestamp_1900    |
-    //       +----.----+----.----+----.----.----.----+
-    // 0x08  | term_id |     unk01                   |
-    //       +----.----+----.----+----.----.----.----+
-    // 0x10  | txn_id  | balance |      unknown      |
-    //       +----.----+----.----+----.----.----.----+
-    // 0x18  |               unknown                 |
-    //       +---------------------------------------+
-    //
-    // Field          Datatype Description
-    // -----          -------- -----------
-    // unk00          U8[2]     Unknown bytes
-    // counter        U16BE     Unknown, appears to be a counter
-    // timestamp_1900 U32BE     Timestamp of last transaction, in seconds
-    //                          since 1900-01-01 GMT.
-    // unk01          U8[6]     Unknown bytes
-    // txn_id         U16BE     Id of last transaction.
-    // balance        S16BE     Card cash balance, in cents.
-    //                          Cards can obtain negative balances in this
-    //                          system, so balances are signed integers.
-    //                          Maximum card balance is therefore
-    //                          $327.67.
-    // unk02          U8[12]    Unknown bytes.
-    //
     info->counter = get_u16be(&ef2_data[2]);
     info->last_updated_tm_1900 = get_u32be(&ef2_data[4]);
     info->last_terminal_id = get_u16be(&ef2_data[8]);
@@ -387,180 +238,175 @@ static bool decode_cash_file(const uint8_t* ef2_data, ClipperCardInfo* info) {
     return true;
 }
 
-static bool dump_ride_history(
-    const uint8_t* index_file,
-    const uint8_t* history_file,
-    size_t len,
-    FuriString* parsed_data) {
-    static const size_t kRideRecordSize = 0x20;
-
-    for(size_t i = 0; i < 16; i++) {
-        uint8_t record_num = index_file[i];
-        if(record_num == 0xff) break;
-
-        size_t record_offset = record_num * kRideRecordSize;
-
-        if(record_offset + kRideRecordSize > len) break;
-
-        const uint8_t* record = &history_file[record_offset];
-        if(!dump_ride_event(record, parsed_data)) break;
-    }
-
-    return true;
+/* Format a 1900-epoch timestamp into a short string for card view fields */
+static void format_ts_1900(uint32_t ts, char* out, size_t len) {
+    DateTime tm;
+    ts -= 2208988800;
+    datetime_timestamp_to_datetime(ts, &tm);
+    FuriString* d = furi_string_alloc();
+    locale_format_date(d, &tm, locale_get_date_format(), "-");
+    FuriString* t = furi_string_alloc();
+    locale_format_time(t, &tm, locale_get_time_format(), true);
+    snprintf(out, len, "%s %s (UTC)", furi_string_get_cstr(d), furi_string_get_cstr(t));
+    furi_string_free(d);
+    furi_string_free(t);
 }
 
-static bool dump_ride_event(const uint8_t* record, FuriString* parsed_data) {
-    // Ride record
-    //
-    //       0    1    2    3    4    5    6    7    8
-    //       +----+----+----.----+----.----+----.----+
-    // 0x00  |0x10| ?  | agency  | ?       | fare    |
-    //       +----.----+----.----+----.----.----.----+
-    // 0x08  | ?       | vehicle | time_on           |
-    //       +----.----.----.----+----.----+----.----+
-    // 0x10  | time_off          | zone_on | zone_off|
-    //       +----+----.----.----.----+----+----+----+
-    // 0x18  | ?  | ?                 | ?  | ?  | ?  |
-    //       +----+----.----.----.----+----+----+----+
-    //
-    // Field          Datatype Description
-    // -----          -------- -----------
-    // agency         U16BE    Transportation agency identifier.
-    //                         Known ids:
-    //                         1  == AC Transit
-    //                         4  == BART
-    //                         18 == SF MUNI
-    // fare           I16BE    Fare deducted, in cents.
-    // vehicle        U16BE    Vehicle id (0 == not provided)
-    // time_on        U32BE    Boarding time, in seconds since 1900-01-01 GMT.
-    // time_off       U32BE    Off-boarding time, if present, in seconds
-    //                         since 1900-01-01 GMT. Set to zero if no offboard
-    //                         has been recorded.
-    // zone_on        U16BE    Id of boarding zone or station. Agency-specific.
-    // zone_off       U16BE    Id of offboarding zone or station. Agency-
-    //                         specific.
+/* Add a ride record as a card-view page */
+static bool clipper_add_ride_page(View* view, const uint8_t* record, uint8_t ride_num) {
     if(record[0] != 0x10) return false;
 
     uint16_t agency_id = get_u16be(&record[2]);
-    if(agency_id == 0)
-        // Likely empty record. Skip.
-        return false;
+    if(agency_id == 0) return false;
+
     const char* agency_name;
-    bool ok = get_map_item(agency_id, agency_names, kNumAgencies, &agency_name);
-    if(!ok) agency_name = "Unknown";
+    if(!get_map_item(agency_id, agency_names, kNumAgencies, &agency_name)) agency_name = "Unknown";
 
     uint16_t vehicle_id = get_u16be(&record[0x0a]);
 
-    int16_t fare_raw_cents = get_i16be(&record[6]);
-    bool _fare_is_negative;
+    int16_t fare_raw = get_i16be(&record[6]);
+    bool _neg;
     int16_t fare_usd;
     uint16_t fare_cents;
-    decode_usd(fare_raw_cents, &_fare_is_negative, &fare_usd, &fare_cents);
+    decode_usd(fare_raw, &_neg, &fare_usd, &fare_cents);
 
-    uint32_t time_on_raw = get_u32be(&record[0x0c]);
-    uint32_t time_off_raw = get_u32be(&record[0x10]);
-    uint16_t zone_id_on = get_u16be(&record[0x14]);
-    uint16_t zone_id_off = get_u16be(&record[0x16]);
+    uint32_t time_on = get_u32be(&record[0x0c]);
+    uint32_t time_off = get_u32be(&record[0x10]);
+    uint16_t zone_on_id = get_u16be(&record[0x14]);
+    uint16_t zone_off_id = get_u16be(&record[0x16]);
 
-    const char *zone_on, *zone_off;
-    if(!get_agency_zone_name(agency_id, zone_id_on, &zone_on)) {
-        zone_on = "Unknown";
-    }
-    if(!get_agency_zone_name(agency_id, zone_id_off, &zone_off)) {
-        zone_off = "Unknown";
-    }
+    const char* zone_on;
+    const char* zone_off;
+    if(!get_agency_zone_name(agency_id, zone_on_id, &zone_on)) zone_on = "Unknown";
+    if(!get_agency_zone_name(agency_id, zone_off_id, &zone_off)) zone_off = "Unknown";
 
-    furi_string_cat_str(parsed_data, "\e#Ride Record\n");
-    furi_string_cat_timestamp(parsed_data, "Date: ", "\nTime: ", time_on_raw);
-    furi_string_cat_printf(
-        parsed_data,
-        "\n"
-        "Fare: $%d.%02u\n"
-        "Agency: %s (%04x)\n"
-        "On: %s (%04x)\n",
-        fare_usd,
-        fare_cents,
-        agency_name,
-        agency_id,
-        zone_on,
-        zone_id_on);
+    char hdr[METROFLIP_CARD_VIEW_HEADER_LEN];
+    snprintf(hdr, sizeof(hdr), "Ride %d - %s", ride_num, agency_name);
+
+    uint8_t p = metroflip_card_view_add_page(view, hdr);
+    if(p == UINT8_MAX) return false;
+
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+
+    format_ts_1900(time_on, val, sizeof(val));
+    metroflip_card_view_add_field(view, p, "When", val, false);
+
+    snprintf(val, sizeof(val), "$%d.%02u", fare_usd, fare_cents);
+    metroflip_card_view_add_field(view, p, "Fare", val, true);
+
+    snprintf(val, sizeof(val), "%s (%04x)", agency_name, agency_id);
+    metroflip_card_view_add_field(view, p, "Agency", val, false);
+
+    snprintf(val, sizeof(val), "%s (%04x)", zone_on, zone_on_id);
+    metroflip_card_view_add_field(view, p, "Board", val, false);
+
     if(vehicle_id != 0) {
-        furi_string_cat_printf(parsed_data, "Vehicle id: %d\n", vehicle_id);
+        snprintf(val, sizeof(val), "%u", vehicle_id);
+        metroflip_card_view_add_field(view, p, "Vehicle", val, false);
     }
-    if(time_off_raw != 0) {
-        furi_string_cat_printf(parsed_data, "Off: %s (%04x)\n", zone_off, zone_id_off);
-        furi_string_cat_timestamp(parsed_data, "Date Off: ", "\nTime Off: ", time_off_raw);
-        furi_string_cat_str(parsed_data, "\n");
+
+    if(time_off != 0) {
+        snprintf(val, sizeof(val), "%s (%04x)", zone_off, zone_off_id);
+        metroflip_card_view_add_field(view, p, "Exit", val, false);
+
+        format_ts_1900(time_off, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Exit time", val, false);
     }
 
     return true;
 }
 
-static bool get_map_item(uint16_t id, const IdMapping* map, size_t sz, const char** out) {
-    for(size_t i = 0; i < sz; i++) {
-        if(map[i].id == id) {
-            *out = map[i].name;
-            return true;
-        }
+/* Parse DESFire data and populate card view */
+static bool clipper_display_card_view(const MfDesfireData* data, Metroflip* app, bool from_file) {
+    const MfDesfireApplication* mf_app = NULL;
+    const char* device_desc = NULL;
+
+    for(size_t i = 0; i < kNumCardTypes; i++) {
+        mf_app = mf_desfire_get_application(data, &clipper_types[i].app);
+        device_desc = clipper_types[i].type;
+        if(mf_app != NULL) break;
     }
+    if(mf_app == NULL) return false;
 
-    return false;
-}
+    ClipperCardInfo info;
+    const uint8_t* id_data;
+    if(!get_file_contents(
+           mf_app, &clipper_identity_file_id, MfDesfireFileTypeStandard, 5, &id_data))
+        return false;
+    if(!decode_id_file(id_data, &info)) return false;
 
-static bool get_agency_zone_name(uint16_t agency_id, uint16_t zone_id, const char** out) {
-    for(size_t i = 0; i < kNumAgencyZoneMaps; i++) {
-        if(agency_zone_map[i].agency_id == agency_id) {
-            return get_map_item(
-                zone_id, agency_zone_map[i].zone_map, agency_zone_map[i].zone_count, out);
-        }
-    }
+    const uint8_t* cash_data;
+    if(!get_file_contents(mf_app, &clipper_ecash_file_id, MfDesfireFileTypeBackup, 32, &cash_data))
+        return false;
+    if(!decode_cash_file(cash_data, &info)) return false;
 
-    return false;
-}
+    int16_t bal_usd;
+    uint16_t bal_cents;
+    bool _neg;
+    decode_usd(info.balance_cents, &_neg, &bal_usd, &bal_cents);
 
-// Split a balance/fare amount from raw cents to dollars and cents portion,
-// automatically adjusting the cents portion so that it is always positive,
-// for easier display.
-static void
-    decode_usd(int16_t amount_cents, bool* out_is_negative, int16_t* out_usd, uint16_t* out_cents) {
-    *out_usd = amount_cents / 100;
+    /* Allocate card view */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "Clipper");
 
-    if(amount_cents >= 0) {
-        *out_is_negative = false;
-        *out_cents = amount_cents % 100;
+    /* Page: Overview */
+    uint8_t p = metroflip_card_view_add_page(view, "Overview");
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+
+    snprintf(val, sizeof(val), "%" PRIu32, info.serial_number);
+    metroflip_card_view_add_field(view, p, "Serial", val, false);
+
+    snprintf(val, sizeof(val), "$%d.%02u", bal_usd, bal_cents);
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
+
+    metroflip_card_view_add_field(view, p, "Type", device_desc, false);
+
+    if(info.last_updated_tm_1900 != 0) {
+        format_ts_1900(info.last_updated_tm_1900, val, sizeof(val));
+        metroflip_card_view_add_field(view, p, "Updated", val, false);
     } else {
-        *out_is_negative = true;
-        *out_cents = (amount_cents * -1) % 100;
+        metroflip_card_view_add_field(view, p, "Updated", "Never", false);
     }
-}
 
-// Decode a raw 1900-based timestamp and append a human-readable form to a
-// FuriString.
-static void furi_string_cat_timestamp(
-    FuriString* str,
-    const char* date_hdr,
-    const char* time_hdr,
-    uint32_t tmst_1900) {
-    DateTime tm;
-    tmst_1900 -= 2208988800;
-    datetime_timestamp_to_datetime(tmst_1900, &tm);
+    /* Page: Details */
+    p = metroflip_card_view_add_page(view, "Details");
 
-    FuriString* date_str = furi_string_alloc();
-    locale_format_date(date_str, &tm, locale_get_date_format(), "-");
+    snprintf(val, sizeof(val), "0x%04X", info.last_terminal_id);
+    metroflip_card_view_add_field(view, p, "Terminal", val, false);
 
-    FuriString* time_str = furi_string_alloc();
-    locale_format_time(time_str, &tm, locale_get_time_format(), true);
+    snprintf(val, sizeof(val), "%u", info.last_txn_id);
+    metroflip_card_view_add_field(view, p, "Txn ID", val, false);
 
-    furi_string_cat_printf(
-        str,
-        "%s%s%s%s (UTC)",
-        date_hdr,
-        furi_string_get_cstr(date_str),
-        time_hdr,
-        furi_string_get_cstr(time_str));
+    snprintf(val, sizeof(val), "%u", info.counter);
+    metroflip_card_view_add_field(view, p, "Counter", val, false);
 
-    furi_string_free(date_str);
-    furi_string_free(time_str);
+    /* Ride history pages */
+    const uint8_t *history_index, *history;
+    if(get_file_contents(
+           mf_app, &clipper_histidx_file_id, MfDesfireFileTypeBackup, 16, &history_index) &&
+       get_file_contents(
+           mf_app, &clipper_history_file_id, MfDesfireFileTypeStandard, 512, &history)) {
+        static const size_t kRideSize = 0x20;
+        uint8_t ride_num = 1;
+        for(size_t i = 0; i < 16; i++) {
+            uint8_t rec = history_index[i];
+            if(rec == 0xff) break;
+            size_t off = rec * kRideSize;
+            if(off + kRideSize > 512) break;
+            if(!clipper_add_ride_page(view, &history[off], ride_num)) continue;
+            ride_num++;
+        }
+    }
+
+    /* Button configuration */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
+
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand clipper_poller_callback(NfcGenericEvent event, void* context) {
@@ -569,33 +415,16 @@ static NfcCommand clipper_poller_callback(NfcGenericEvent event, void* context) 
     Metroflip* app = context;
     NfcCommand command = NfcCommandContinue;
 
-    FuriString* parsed_data = furi_string_alloc();
-    Widget* widget = app->widget;
-    furi_string_reset(app->text_box_store);
     const MfDesfirePollerEvent* mf_desfire_event = event.event_data;
     if(mf_desfire_event->type == MfDesfirePollerEventTypeReadSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfDesfire, nfc_poller_get_data(app->poller));
-        const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
-
-        if(!clipper_parse(data, parsed_data)) {
-            furi_string_reset(app->text_box_store);
-            FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-        }
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mf_desfire_event->type == MfDesfirePollerEventTypeReadFailed) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerFail);
         command = NfcCommandContinue;
     }
 
@@ -611,34 +440,36 @@ static void clipper_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfDesfireData* data = mf_desfire_alloc();
             mf_desfire_load(data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!clipper_parse(data, parsed_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!clipper_display_card_view(data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
+            mf_desfire_free(data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
             widget_add_button_element(
                 widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            mf_desfire_free(data);
-            furi_string_free(parsed_data);
             view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
-        // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-        // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfDesfire);
         nfc_poller_start(app->poller, clipper_poller_callback, app);
@@ -651,21 +482,35 @@ static bool clipper_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
+            if(!clipper_display_card_view(data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -678,11 +523,13 @@ static bool clipper_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void clipper_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
     metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 
@@ -692,7 +539,6 @@ static const MetroflipPlugin clipper_plugin = {
     .plugin_on_enter = clipper_on_enter,
     .plugin_on_event = clipper_on_event,
     .plugin_on_exit = clipper_on_exit,
-
 };
 
 /* Plugin descriptor to comply with basic plugin specification */

@@ -20,13 +20,13 @@ extern "C" {
 #endif
 
 #define HTTP_TAG               "FlipperHTTP" // change this to your app name
-#define http_tag               "hello_world" // change this to your app id
+#define http_tag               "flipper_http" // change this to your app id
 #define UART_CH                (cfw_settings.uart_esp_channel) // UART channel
 #define TIMEOUT_DURATION_TICKS (5 * 1000) // 5 seconds
 #define BAUDRATE               (115200) // UART baudrate
-#define RX_BUF_SIZE            2048 // UART RX buffer size
-#define RX_LINE_BUFFER_SIZE    2048 // UART RX line buffer size (increase for large responses)
-#define MAX_FILE_SHOW          2048 // Maximum data from file to show
+#define RX_BUF_SIZE            (1024 * 2) // UART RX buffer size
+#define RX_LINE_BUFFER_SIZE    (1024 * 2) // UART RX line buffer size
+#define MAX_FILE_SHOW          (1024 * 2) // Maximum data from file to show
 #define FILE_BUFFER_SIZE       512 // File buffer size
 
 // Forward declaration for callback
@@ -58,15 +58,20 @@ typedef enum {
 } HTTPMethod;
 
 typedef enum {
-    HTTP_CMD_WIFI_CONNECT,
-    HTTP_CMD_WIFI_DISCONNECT,
-    HTTP_CMD_IP_ADDRESS,
-    HTTP_CMD_IP_WIFI,
-    HTTP_CMD_SCAN,
-    HTTP_CMD_LIST_COMMANDS,
-    HTTP_CMD_LED_ON,
-    HTTP_CMD_LED_OFF,
-    HTTP_CMD_PING
+    HTTP_CMD_WIFI_CONNECT, // [WIFI/CONNECT] - connect to a WiFi network
+    HTTP_CMD_WIFI_DISCONNECT, // [WIFI/DISCONNECT] - disconnect from the current WiFi network
+    HTTP_CMD_IP_ADDRESS, // [IP/ADDRESS] - get the current IP address of the device
+    HTTP_CMD_IP_WIFI, // [WIFI/IP] - get the current IP address of the WiFi interface
+    HTTP_CMD_SCAN, // [WIFI/SCAN] - scan for available WiFi networks
+    HTTP_CMD_LIST_COMMANDS, // [LIST] - list all available commands
+    HTTP_CMD_LED_ON, // [LED/ON] - allow LED blinking when processing
+    HTTP_CMD_LED_OFF, // [LED/OFF] - disable LED blinking when processing
+    HTTP_CMD_PING, // [PING] - respond with [PONG]
+    HTTP_CMD_VERSION, // [VERSION] - get the current version of the firmware
+    HTTP_CMD_STATUS, // [WIFI/STATUS] - check if connected to WiFi
+    HTTP_CMD_REBOOT, // [REBOOT] - reboot the device
+    HTTP_CMD_SSID, // [WIFI/SSID] - get the current connected SSID
+    HTTP_CMD_WIFI_LIST, // [WIFI/LIST] - list saved WiFi networks
 } HTTPCommand; // list of non-input commands
 
 // FlipperHTTP Structure
@@ -94,6 +99,10 @@ typedef struct {
     size_t file_buffer_len; // Length of the file buffer
     size_t content_length; // Length of the content received
     int status_code; // HTTP status code
+    bool file_ready; // Indicates the board is ready for file upload bytes
+    FlipperHTTP_Callback
+        user_rx_line_cb; // Optional per-line callback (called for every received line)
+    void* user_callback_context; // Context passed to user_rx_line_cb
 } FlipperHTTP;
 
 /**
@@ -238,6 +247,23 @@ bool flipper_http_send_command(FlipperHTTP* fhttp, HTTPCommand command);
      * @note       The data will be sent over UART with a newline character appended.
      */
 bool flipper_http_send_data(FlipperHTTP* fhttp, const char* data);
+
+/**
+     * @brief      Upload a file from the SD card to a URL via POST.
+     * @return     true if all bytes were sent successfully, false otherwise.
+     * @param fhttp The FlipperHTTP context
+     * @param url  The URL to upload to.
+     * @param file_path Full path to the file on the SD card.
+     * @param content_type The MIME content type (e.g. "text/plain").
+     * @param headers Optional JSON headers string, or NULL.
+     * @note       After this returns true, poll fhttp->state for IDLE to know the response is complete.
+     */
+bool flipper_http_upload_file(
+    FlipperHTTP* fhttp,
+    const char* url,
+    const char* file_path,
+    const char* content_type,
+    const char* headers);
 
 /**
      * @brief      Send a request to the specified URL to start a WebSocket connection.

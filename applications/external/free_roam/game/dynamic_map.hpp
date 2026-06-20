@@ -29,7 +29,9 @@ public:
     DynamicMap(const char* name, uint8_t w, uint8_t h, bool addBorder = true);
     ~DynamicMap();
 
-    void addBorderWalls(); // Add walls around the entire map border
+    void addBorderWalls(
+        float height = 5.0f,
+        float depth = 0.2f); // Add walls around the entire map border
     void addCorridor(
         uint8_t x1,
         uint8_t y1,

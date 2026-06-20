@@ -1,0 +1,21 @@
+# TagTinker WiFi firmware - partition table aligned to the hardcoded
+# offsets the Flipper "ESP Flasher" app writes to. From its source
+# (esp_flasher_worker.h):
+#
+#   ESP_ADDR_BOOT      = 0x01000   "Bootloader"
+#   ESP_ADDR_PART      = 0x08000   "Partition Table"
+#   ESP_ADDR_NVS       = 0x09000   "NVS"
+#   ESP_ADDR_BOOT_APP0 = 0x0E000   "boot_app0" (== otadata)
+#   ESP_ADDR_APP_A     = 0x10000   "Firmware A" (== ota_0)
+#   ESP_ADDR_APP_B     = 0x150000  "Firmware B" (== ota_1)
+#
+# Because ota_1 must live at 0x150000, we need at least 4 MB of flash;
+# the Flipper Wi-Fi Devboard's ESP32-S2-WROVER carries 4 MB so this fits.
+# Each app slot is 1.25 MB which leaves plenty of headroom over our
+# ~744 KB image.
+#
+# Name,   Type, SubType, Offset,    Size,     Flags
+nvs,      data, nvs,     0x9000,    0x5000,
+otadata,  data, ota,     0xe000,    0x2000,
+ota_0,    app,  ota_0,   0x10000,   0x140000,
+ota_1,    app,  ota_1,   0x150000,  0x140000,

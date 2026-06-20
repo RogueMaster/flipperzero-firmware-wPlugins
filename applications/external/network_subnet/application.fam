@@ -1,0 +1,14 @@
+App(
+    appid="network_subnet",
+    name="Network Subnet Helper",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="network_subnet_app",
+    stack_size=2 * 1024,
+    fap_icon="network_subnet.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="aaumkar",
+    fap_weburl="https://github.com/aaumkar/network_subnet",
+    fap_version="0.1",
+    fap_description="An app to help with IPv4 Subnets",
+)

@@ -259,7 +259,7 @@ void fpwn_wifi_menu_setup(FPwnApp* app);
  * Custom event IDs (sent via view_dispatcher_send_custom_event)
  * Matches FPwnCustomEvent enum in flipperpwn.c — keep in sync.
  * ========================================================================= */
-#define FPWN_CUSTOM_EVENT_EXEC_DONE 1
+#define FPWN_CUSTOM_EVENT_EXEC_DONE      1
 #define FPWN_CUSTOM_EVENT_WIFI_CONNECTED 2
 
 /* =========================================================================

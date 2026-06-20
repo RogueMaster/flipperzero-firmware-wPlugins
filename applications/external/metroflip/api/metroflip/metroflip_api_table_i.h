@@ -1,12 +1,25 @@
 #include "metroflip_api.h"
+#include "metroflip_card_view.h"
 #include "../../metroflip_i.h"
 
-/* 
+/*
  * A list of app's private functions and objects to expose for plugins.
  * It is used to generate a table of symbols for import resolver to use.
  * TBD: automatically generate this table from app's header files
  */
 static constexpr auto metroflip_api_table = sort(create_array_t<sym_entry>(
+    // card view
+    API_METHOD(metroflip_card_view_alloc, View*, (Metroflip*)),
+    API_METHOD(metroflip_card_view_set_title, void, (View*, const char*)),
+    API_METHOD(metroflip_card_view_add_page, uint8_t, (View*, const char*)),
+    API_METHOD(
+        metroflip_card_view_add_field,
+        void,
+        (View*, uint8_t, const char*, const char*, bool)),
+    API_METHOD(metroflip_card_view_set_save, void, (View*, bool)),
+    API_METHOD(metroflip_card_view_set_delete, void, (View*, bool)),
+    API_METHOD(metroflip_card_view_show, void, (Metroflip*)),
+
     // metroflip stuff
     API_METHOD(metroflip_exit_widget_callback, void, (GuiButtonType, InputType, void*)),
     API_METHOD(metroflip_save_widget_callback, void, (GuiButtonType, InputType, void*)),
@@ -38,9 +51,7 @@ static constexpr auto metroflip_api_table = sort(create_array_t<sym_entry>(
     // calypso
     API_METHOD(get_calypso_node_offset, int, (const char*, const char*, CalypsoApp*)),
     API_METHOD(get_network_string, const char*, (CALYPSO_CARD_TYPE)),
-    API_METHOD(metroflip_back_button_widget_callback, void, (GuiButtonType, InputType, void*)),
-    API_METHOD(metroflip_next_button_widget_callback, void, (GuiButtonType, InputType, void*)),
-    API_METHOD(calypso_save_button_widget_callback, void, (GuiButtonType, InputType, void*)),
+    API_METHOD(get_country_string, const char*, (int)),
     API_METHOD(is_calypso_node_present, bool, (const char*, const char*, CalypsoApp*)),
     API_METHOD(get_calypso_node_size, int, (const char*, CalypsoApp*)),
     API_METHOD(free_calypso_structure, void, (CalypsoApp*)),

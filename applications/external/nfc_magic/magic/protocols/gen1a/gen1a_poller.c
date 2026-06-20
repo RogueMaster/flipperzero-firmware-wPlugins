@@ -40,6 +40,7 @@ Gen1aPoller* gen1a_poller_alloc(Nfc* nfc) {
 
     Gen1aPoller* instance = malloc(sizeof(Gen1aPoller));
     instance->nfc = nfc;
+    instance->uid_len = 4;
 
     nfc_config(instance->nfc, NfcModePoller, NfcTechIso14443a);
     nfc_set_guard_time_us(instance->nfc, ISO14443_3A_GUARD_TIME_US);
@@ -65,6 +66,12 @@ void gen1a_poller_free(Gen1aPoller* instance) {
     nfc_device_free(instance->mfc_device);
 
     free(instance);
+}
+
+void gen1a_poller_set_uid_len(Gen1aPoller* instance, uint8_t uid_len) {
+    furi_assert(instance);
+    // Only 4- and 7-byte UIDs are valid; anything else (e.g. undetected) falls back to 4.
+    instance->uid_len = (uid_len == 7) ? 7 : 4;
 }
 
 NfcCommand gen1a_poller_detect_callback(NfcEvent event, void* context) {
@@ -127,7 +134,18 @@ bool gen1a_poller_detect(Nfc* nfc) {
 
 static void gen1a_poller_reset(Gen1aPoller* instance) {
     instance->current_block = 0;
-    nfc_data_generator_fill_data(NfcDataGeneratorTypeMfClassic1k_4b, instance->mfc_device);
+
+    NfcDataGeneratorType type = (instance->uid_len == 7) ? NfcDataGeneratorTypeMfClassic1k_7b :
+                                                           NfcDataGeneratorTypeMfClassic1k_4b;
+    nfc_data_generator_fill_data(type, instance->mfc_device);
+
+    // Wipe to an all-zero UID of the tag's length, keeping the generated SAK/ATQA.
+    // mf_classic_set_uid writes the zeroed UID into block 0 plus the correct BCC for the
+    // 4-byte layout (the 7-byte layout has no block-0 BCC).
+    const uint8_t zero_uid[7] = {0};
+    MfClassicData* mfc_data =
+        (MfClassicData*)nfc_device_get_data(instance->mfc_device, NfcProtocolMfClassic);
+    mf_classic_set_uid(mfc_data, zero_uid, (instance->uid_len == 7) ? 7 : 4);
 }
 
 NfcCommand gen1a_poller_idle_handler(Gen1aPoller* instance) {

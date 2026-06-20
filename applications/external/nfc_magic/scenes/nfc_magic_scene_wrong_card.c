@@ -16,17 +16,36 @@ void nfc_magic_scene_wrong_card_on_enter(void* context) {
 
     notification_message(instance->notifications, &sequence_error);
 
-    widget_add_icon_element(widget, 73, 17, &I_DolphinCommon_56x48);
-    widget_add_string_element(
-        widget, 1, 4, AlignLeft, AlignTop, FontPrimary, "This is wrong card");
-    widget_add_string_multiline_element(
-        widget,
-        1,
-        17,
-        AlignLeft,
-        AlignTop,
-        FontSecondary,
-        "Writing this file is\nnot supported for\nthis magic card.");
+    if(instance->source_uid_mismatch) {
+        size_t source_uid_len = 0;
+        nfc_device_get_uid(instance->source_dev, &source_uid_len);
+
+        FuriString* message = furi_string_alloc();
+        furi_string_printf(
+            message,
+            "Tag UID: %u bytes\nFile UID: %u bytes\nLengths must match.",
+            (unsigned)instance->gen1_uid_len,
+            (unsigned)source_uid_len);
+
+        widget_add_string_element(
+            widget, 1, 4, AlignLeft, AlignTop, FontPrimary, "UID Length Mismatch");
+        widget_add_string_multiline_element(
+            widget, 1, 17, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(message));
+
+        furi_string_free(message);
+    } else {
+        widget_add_icon_element(widget, 73, 17, &I_DolphinCommon_56x48);
+        widget_add_string_element(
+            widget, 1, 4, AlignLeft, AlignTop, FontPrimary, "This is wrong card");
+        widget_add_string_multiline_element(
+            widget,
+            1,
+            17,
+            AlignLeft,
+            AlignTop,
+            FontSecondary,
+            "Writing this file is\nnot supported for\nthis magic card.");
+    }
     widget_add_button_element(
         widget, GuiButtonTypeLeft, "Retry", nfc_magic_scene_wrong_card_widget_callback, instance);
 

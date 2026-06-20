@@ -180,6 +180,20 @@ bool felica_listener_check_block_list_size(
     furi_assert(instance);
     furi_assert(req);
 
+    if(req->header.code == FELICA_CMD_REQUEST_SYSTEM_CODE ||
+       req->header.code == FELICA_CMD_LIST_SERVICE_CODE ||
+       req->header.code == FELICA_CMD_REQUEST_SERVICE ||
+       req->header.code == FELICA_CMD_REQUEST_RESPONSE) {
+        return true;
+    }
+
+    // Standard mode uses multi-service packet format; parsing done in command handlers
+    if(instance->data->workflow_type == FelicaStandard &&
+       (req->header.code == FELICA_CMD_READ_WITHOUT_ENCRYPTION ||
+        req->header.code == FELICA_CMD_WRITE_WITHOUT_ENCRYPTION)) {
+        return true;
+    }
+
     FelicaListenerRequest* request = (FelicaListenerRequest*)req;
     bool valid = true;
 
@@ -213,6 +227,7 @@ void felica_listener_reset(FelicaListener* instance) {
     instance->auth.context.auth_status.external = false;
     instance->data->data.fs.state.data[0] = 0;
     instance->rc_written = false;
+    instance->mode = 0;
     memset(instance->auth.session_key.data, 0, FELICA_DATA_BLOCK_SIZE);
 
     memcpy(instance->data->data.fs.mc.data, instance->mc_shadow.data, FELICA_DATA_BLOCK_SIZE);

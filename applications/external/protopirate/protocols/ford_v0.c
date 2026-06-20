@@ -1,4 +1,5 @@
 #include "ford_v0.h"
+#include "protocols_common.h"
 #include "../protopirate_app_i.h"
 
 #define TAG "FordProtocolV0"
@@ -17,9 +18,13 @@ static const SubGhzBlockConst subghz_protocol_ford_v0_const = {
     .min_count_bit_for_found = 64,
 };
 
-#define FORD_V0_PREAMBLE_PAIRS 4
-#define FORD_V0_GAP_US         3500
-#define FORD_V0_TOTAL_BURSTS   6
+#define FORD_V0_PREAMBLE_PAIRS  4
+#define FORD_V0_GAP_US          3500
+#define FORD_V0_TOTAL_BURSTS    6
+#define FORD_V0_UPLOAD_CAPACITY (((FORD_V0_TOTAL_BURSTS - 1U) * 169U) + 168U)
+_Static_assert(
+    FORD_V0_UPLOAD_CAPACITY <= PP_SHARED_UPLOAD_CAPACITY,
+    "FORD_V0_UPLOAD_CAPACITY exceeds shared upload slab");
 
 // =============================================================================
 // CRC MATRIX
@@ -55,7 +60,6 @@ typedef struct SubGhzProtocolDecoderFordV0 {
     uint32_t serial;
     uint8_t button;
     uint32_t count;
-    uint8_t bs_magic;
 } SubGhzProtocolDecoderFordV0;
 #ifdef ENABLE_EMULATE_FEATURE
 typedef struct SubGhzProtocolEncoderFordV0 {
@@ -68,8 +72,7 @@ typedef struct SubGhzProtocolEncoderFordV0 {
     uint32_t serial;
     uint8_t button;
     uint32_t count;
-    uint8_t bs;
-    uint8_t bs_magic;
+    uint8_t checksum;
 } SubGhzProtocolEncoderFordV0;
 #endif
 typedef enum {
@@ -90,15 +93,14 @@ static void decode_ford_v0(
     uint16_t key2,
     uint32_t* serial,
     uint8_t* button,
-    uint32_t* count,
-    uint8_t* bs_magic);
+    uint32_t* count);
 #ifdef ENABLE_EMULATE_FEATURE
 static void encode_ford_v0(
     uint8_t header_byte,
     uint32_t serial,
     uint8_t button,
     uint32_t count,
-    uint8_t bs,
+    uint8_t checksum,
     uint64_t* key1);
 #endif
 static bool ford_v0_process_data(SubGhzProtocolDecoderFordV0* instance);
@@ -109,10 +111,10 @@ static bool ford_v0_process_data(SubGhzProtocolDecoderFordV0* instance);
 
 const SubGhzProtocolDecoder subghz_protocol_ford_v0_decoder = {
     .alloc = subghz_protocol_decoder_ford_v0_alloc,
-    .free = subghz_protocol_decoder_ford_v0_free,
+    .free = pp_decoder_free_default,
     .feed = subghz_protocol_decoder_ford_v0_feed,
     .reset = subghz_protocol_decoder_ford_v0_reset,
-    .get_hash_data = subghz_protocol_decoder_ford_v0_get_hash_data,
+    .get_hash_data = pp_decoder_hash_blocks,
     .serialize = subghz_protocol_decoder_ford_v0_serialize,
     .deserialize = subghz_protocol_decoder_ford_v0_deserialize,
     .get_string = subghz_protocol_decoder_ford_v0_get_string,
@@ -121,10 +123,10 @@ const SubGhzProtocolDecoder subghz_protocol_ford_v0_decoder = {
 #ifdef ENABLE_EMULATE_FEATURE
 const SubGhzProtocolEncoder subghz_protocol_ford_v0_encoder = {
     .alloc = subghz_protocol_encoder_ford_v0_alloc,
-    .free = subghz_protocol_encoder_ford_v0_free,
+    .free = pp_encoder_free,
     .deserialize = subghz_protocol_encoder_ford_v0_deserialize,
-    .stop = subghz_protocol_encoder_ford_v0_stop,
-    .yield = subghz_protocol_encoder_ford_v0_yield,
+    .stop = pp_encoder_stop,
+    .yield = pp_encoder_yield,
 };
 #else
 const SubGhzProtocolEncoder subghz_protocol_ford_v0_encoder = {
@@ -139,35 +141,27 @@ const SubGhzProtocolEncoder subghz_protocol_ford_v0_encoder = {
 const SubGhzProtocol ford_protocol_v0 = {
     .name = FORD_PROTOCOL_V0_NAME,
     .type = SubGhzProtocolTypeDynamic,
-    .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM | SubGhzProtocolFlag_Decodable |
-            SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Send,
+    .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM |
+            SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save |
+            SubGhzProtocolFlag_Send,
     .decoder = &subghz_protocol_ford_v0_decoder,
     .encoder = &subghz_protocol_ford_v0_encoder,
 };
 
 // =============================================================================
-// BS CALCULATION
-// BS = (counter_low_byte + 0x6F + (button << 4)) & 0xFF
+// CHECKSUM CALCULATION
 // =============================================================================
 #ifdef ENABLE_EMULATE_FEATURE
-static uint8_t ford_v0_calculate_bs(uint32_t count, uint8_t button, uint8_t bs_magic) {
-    //Do the BS calculation, move right the overflow bit if neccesary
-    uint16_t result = ((uint16_t)count & 0xFF) + bs_magic + (button << 4);
-    return (uint8_t)(result - ((result & 0xFF00) ? 0x80 : 0));
+static uint8_t ford_v0_calculate_checksum(uint32_t serial, uint32_t count, uint8_t button) {
+    return (uint8_t)((((count >> 24) & 0xFF) + ((count >> 16) & 0xFF) + ((count >> 8) & 0xFF) +
+                      (count & 0xFF) + ((serial >> 24) & 0xFF) + ((serial >> 16) & 0xFF) +
+                      ((serial >> 8) & 0xFF) + (serial & 0xFF) + (button << 3)) &
+                     0xFF);
 }
 #endif
 // =============================================================================
 // CRC FUNCTIONS
 // =============================================================================
-
-static uint8_t ford_v0_popcount8(uint8_t x) {
-    uint8_t count = 0;
-    while(x) {
-        count += x & 1;
-        x >>= 1;
-    }
-    return count;
-}
 
 static uint8_t ford_v0_calculate_crc(uint8_t* buf) {
     uint8_t crc = 0;
@@ -177,7 +171,7 @@ static uint8_t ford_v0_calculate_crc(uint8_t* buf) {
         for(int col = 0; col < 8; col++) {
             xor_sum ^= (ford_v0_crc_matrix[row * 8 + col] & buf[col + 1]);
         }
-        uint8_t parity = ford_v0_popcount8(xor_sum) & 1;
+        uint8_t parity = subghz_protocol_blocks_parity8(xor_sum);
         if(parity) {
             crc |= (1 << row);
         }
@@ -186,14 +180,14 @@ static uint8_t ford_v0_calculate_crc(uint8_t* buf) {
     return crc;
 }
 #ifdef ENABLE_EMULATE_FEATURE
-static uint8_t ford_v0_calculate_crc_for_tx(uint64_t key1, uint8_t bs) {
+static uint8_t ford_v0_calculate_crc_for_tx(uint64_t key1, uint8_t checksum) {
     uint8_t buf[16] = {0};
 
     for(int i = 0; i < 8; ++i) {
         buf[i] = (uint8_t)(key1 >> (56 - i * 8));
     }
 
-    buf[8] = bs;
+    buf[8] = checksum;
 
     uint8_t crc = ford_v0_calculate_crc(buf);
     return crc ^ 0x80;
@@ -211,7 +205,7 @@ static bool ford_v0_verify_crc(uint64_t key1, uint16_t key2) {
     uint8_t calculated_crc = ford_v0_calculate_crc(buf);
     uint8_t received_crc = (uint8_t)(key2 & 0xFF) ^ 0x80;
 
-    return (calculated_crc == received_crc);
+    return ((calculated_crc & 0x7F) == (received_crc & 0x7F));
 }
 
 // =============================================================================
@@ -223,8 +217,7 @@ static void decode_ford_v0(
     uint16_t key2,
     uint32_t* serial,
     uint8_t* button,
-    uint32_t* count,
-    uint8_t* bs_magic) {
+    uint32_t* count) {
     uint8_t buf[13] = {0};
 
     for(int i = 0; i < 8; ++i) {
@@ -235,7 +228,6 @@ static void decode_ford_v0(
     buf[9] = (uint8_t)(key2 & 0xFF);
 
     uint8_t tmp = buf[8];
-    uint8_t bs = tmp;
     uint8_t parity = 0;
     uint8_t parity_any = (tmp != 0);
     while(tmp) {
@@ -274,12 +266,9 @@ static void decode_ford_v0(
     *serial = ((serial_le & 0xFF) << 24) | (((serial_le >> 8) & 0xFF) << 16) |
               (((serial_le >> 16) & 0xFF) << 8) | ((serial_le >> 24) & 0xFF);
 
-    *button = (buf[5] >> 4) & 0x0F;
+    *button = (buf[5] >> 3) & 0x0F;
 
-    *count = ((buf[5] & 0x0F) << 16) | (buf[6] << 8) | buf[7];
-
-    //Build the BS Magic number for this fob.
-    *bs_magic = bs + ((bs & 0x80) ? 0x80 : 0) - (*button << 4) - (uint8_t)(*count & 0xFF);
+    *count = ((buf[5] & 0x07) << 16) | (buf[6] << 8) | buf[7];
 }
 
 // =============================================================================
@@ -291,7 +280,7 @@ static void encode_ford_v0(
     uint32_t serial,
     uint8_t button,
     uint32_t count,
-    uint8_t bs,
+    uint8_t checksum,
     uint64_t* key1) {
     if(!key1) {
         FURI_LOG_E(TAG, "encode_ford_v0: NULL key1 pointer");
@@ -307,7 +296,7 @@ static void encode_ford_v0(
     buf[3] = (serial >> 8) & 0xFF;
     buf[4] = serial & 0xFF;
 
-    buf[5] = ((button & 0x0F) << 4) | ((count >> 16) & 0x0F);
+    buf[5] = ((button & 0x0F) << 3) | ((count >> 16) & 0x0F);
 
     uint8_t count_mid = (count >> 8) & 0xFF;
     uint8_t count_low = count & 0xFF;
@@ -316,12 +305,12 @@ static void encode_ford_v0(
     uint8_t post_xor_7 = (count_low & 0xAA) | (count_mid & 0x55);
 
     uint8_t parity = 0;
-    uint8_t tmp = bs;
+    uint8_t tmp = checksum;
     while(tmp) {
         parity ^= (tmp & 1);
         tmp >>= 1;
     }
-    bool parity_bit = (bs != 0) ? (parity != 0) : false;
+    bool parity_bit = (checksum != 0) ? (parity != 0) : false;
 
     if(parity_bit) {
         uint8_t xor_byte = post_xor_7;
@@ -350,11 +339,11 @@ static void encode_ford_v0(
 
     FURI_LOG_I(
         TAG,
-        "Encode: Sn=%08lX Btn=%d Cnt=%05lX BS=%02X",
+        "Encode: Sn=%08lX Btn=%d Cnt=%05lX Checksum=%02X",
         (unsigned long)serial,
         button,
         (unsigned long)count,
-        bs);
+        checksum);
     FURI_LOG_I(
         TAG,
         "Encode key1: %08lX%08lX",
@@ -374,8 +363,7 @@ void* subghz_protocol_encoder_ford_v0_alloc(SubGhzEnvironment* environment) {
     instance->generic.protocol_name = instance->base.protocol->name;
 
     instance->encoder.repeat = 10;
-    instance->encoder.size_upload = 1024;
-    instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
+    pp_encoder_buffer_ensure(instance, FORD_V0_UPLOAD_CAPACITY);
     instance->encoder.is_running = false;
     instance->encoder.front = 0;
 
@@ -384,20 +372,10 @@ void* subghz_protocol_encoder_ford_v0_alloc(SubGhzEnvironment* environment) {
     instance->serial = 0;
     instance->button = 0;
     instance->count = 0;
-    instance->bs = 0;
-    instance->bs_magic = 0;
+    instance->checksum = 0;
 
     FURI_LOG_I(TAG, "Encoder allocated");
     return instance;
-}
-
-void subghz_protocol_encoder_ford_v0_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderFordV0* instance = context;
-    if(instance->encoder.upload) {
-        free(instance->encoder.upload);
-    }
-    free(instance);
 }
 
 static void subghz_protocol_encoder_ford_v0_get_upload(SubGhzProtocolEncoderFordV0* instance) {
@@ -417,15 +395,8 @@ static void subghz_protocol_encoder_ford_v0_get_upload(SubGhzProtocolEncoderFord
     uint32_t te_short = subghz_protocol_ford_v0_const.te_short;
     uint32_t te_long = subghz_protocol_ford_v0_const.te_long;
 
-#define ADD_LEVEL(lvl, dur)                                                                       \
-    do {                                                                                          \
-        if(index > 0 && level_duration_get_level(instance->encoder.upload[index - 1]) == (lvl)) { \
-            uint32_t prev = level_duration_get_duration(instance->encoder.upload[index - 1]);     \
-            instance->encoder.upload[index - 1] = level_duration_make((lvl), prev + (dur));       \
-        } else {                                                                                  \
-            instance->encoder.upload[index++] = level_duration_make((lvl), (dur));                \
-        }                                                                                         \
-    } while(0)
+#define ADD_LEVEL(lvl, dur) \
+    index = pp_emit_merge(instance->encoder.upload, index, FORD_V0_UPLOAD_CAPACITY, (lvl), (dur))
 
     for(uint8_t burst = 0; burst < FORD_V0_TOTAL_BURSTS; burst++) {
         ADD_LEVEL(true, te_short);
@@ -504,140 +475,66 @@ SubGhzProtocolStatus
     SubGhzProtocolEncoderFordV0* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 
-    FURI_LOG_I(TAG, "Encoder deserialize started");
-
     instance->encoder.is_running = false;
     instance->encoder.front = 0;
-    instance->encoder.repeat = 10;
 
     do {
-        FuriString* temp_str = furi_string_alloc();
-        if(!temp_str) {
-            FURI_LOG_E(TAG, "Failed to allocate temp string");
+        if(pp_verify_protocol_name(flipper_format, instance->base.protocol->name) !=
+           SubGhzProtocolStatusOk) {
             break;
         }
 
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_string(flipper_format, "Protocol", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Protocol field");
-            furi_string_free(temp_str);
-            break;
-        }
-
-        if(!furi_string_equal(temp_str, instance->base.protocol->name)) {
-            FURI_LOG_E(TAG, "Protocol mismatch: %s", furi_string_get_cstr(temp_str));
-            furi_string_free(temp_str);
-            break;
-        }
-
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_string(flipper_format, "Key", temp_str)) {
-            FURI_LOG_E(TAG, "Missing Key field");
-            furi_string_free(temp_str);
-            break;
-        }
-
-        const char* key_str = furi_string_get_cstr(temp_str);
         uint64_t original_key1 = 0;
-        size_t str_len = strlen(key_str);
-        size_t hex_pos = 0;
-
-        for(size_t i = 0; i < str_len && hex_pos < 16; i++) {
-            char c = key_str[i];
-            if(c == ' ') continue;
-
-            uint8_t nibble;
-            if(c >= '0' && c <= '9')
-                nibble = c - '0';
-            else if(c >= 'A' && c <= 'F')
-                nibble = c - 'A' + 10;
-            else if(c >= 'a' && c <= 'f')
-                nibble = c - 'a' + 10;
-            else
-                break;
-
-            original_key1 = (original_key1 << 4) | nibble;
-            hex_pos++;
+        if(!pp_flipper_read_hex_u64(flipper_format, FF_KEY, &original_key1)) {
+            break;
         }
-        furi_string_free(temp_str);
-
         uint8_t header_byte = (uint8_t)(original_key1 >> 56);
-        FURI_LOG_I(
-            TAG,
-            "Original key1: %08lX%08lX, header=0x%02X",
-            (unsigned long)(original_key1 >> 32),
-            (unsigned long)(original_key1 & 0xFFFFFFFF),
-            header_byte);
 
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(flipper_format, "Serial", &instance->serial, 1)) {
-            FURI_LOG_E(TAG, "Missing Serial field");
-            break;
-        }
+        uint32_t serial = UINT32_MAX;
+        uint32_t btn = UINT32_MAX;
+        uint32_t cnt = UINT32_MAX;
+        pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+        if(serial == UINT32_MAX || btn == UINT32_MAX || cnt == UINT32_MAX) break;
+
+        instance->serial = serial;
+        instance->button = (uint8_t)btn;
+        instance->count = cnt;
         instance->generic.serial = instance->serial;
-        FURI_LOG_I(TAG, "Serial: 0x%08lX", (unsigned long)instance->serial);
-
-        flipper_format_rewind(flipper_format);
-        uint32_t btn_temp = 0;
-        if(!flipper_format_read_uint32(flipper_format, "Btn", &btn_temp, 1)) {
-            FURI_LOG_E(TAG, "Missing Btn field");
-            break;
-        }
-        instance->button = (uint8_t)btn_temp;
         instance->generic.btn = instance->button;
-        FURI_LOG_I(TAG, "Button: 0x%02X", instance->button);
-
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(flipper_format, "Cnt", &instance->count, 1)) {
-            FURI_LOG_E(TAG, "Missing Cnt field");
-            break;
-        }
         instance->generic.cnt = instance->count;
-        FURI_LOG_I(TAG, "Counter: 0x%05lX", (unsigned long)instance->count);
 
-        flipper_format_rewind(flipper_format);
-        uint32_t bs_magic_temp = 0;
-        if(!flipper_format_read_uint32(flipper_format, "BSMagic", &bs_magic_temp, 1))
-            instance->bs_magic = 0x6F; //For Backward compatibility
-        else
-            instance->bs_magic = (uint8_t)bs_magic_temp;
-
-        // Calculate BS from counter and button, as well as the BS Magic Number we pulled on decode.
-        instance->bs = ford_v0_calculate_bs(instance->count, instance->button, instance->bs_magic);
+        // Calculate Checksum from counter and button.
+        instance->checksum =
+            ford_v0_calculate_checksum(instance->serial, instance->count, instance->button);
         FURI_LOG_I(
             TAG,
-            "Calculated BS: 0x%02X (from Cnt=0x%05lX, Btn=0x%02X, BSMagic=0x%02X))",
-            instance->bs,
+            "Calculated Checksum: 0x%02X (from Cnt=0x%05lX, Btn=0x%02X)",
+            instance->checksum,
             (unsigned long)instance->count,
-            instance->button,
-            instance->bs_magic);
+            instance->button);
 
         encode_ford_v0(
             header_byte,
             instance->serial,
             instance->button,
             instance->count,
-            instance->bs,
+            instance->checksum,
             &instance->key1);
 
         instance->generic.data = instance->key1;
         instance->generic.data_count_bit = 64;
 
-        uint8_t calculated_crc = ford_v0_calculate_crc_for_tx(instance->key1, instance->bs);
-        instance->key2 = ((uint16_t)instance->bs << 8) | calculated_crc;
+        uint8_t calculated_crc = ford_v0_calculate_crc_for_tx(instance->key1, instance->checksum);
+        instance->key2 = ((uint16_t)instance->checksum << 8) | calculated_crc;
 
         FURI_LOG_I(
             TAG,
-            "Final key2: 0x%04X (BS=0x%02X, CRC=0x%02X)",
+            "Final key2: 0x%04X (Checksum=0x%02X, CRC=0x%02X)",
             instance->key2,
-            instance->bs,
+            instance->checksum,
             calculated_crc);
 
-        flipper_format_rewind(flipper_format);
-        if(!flipper_format_read_uint32(
-               flipper_format, "Repeat", (uint32_t*)&instance->encoder.repeat, 1)) {
-            instance->encoder.repeat = 10;
-        }
+        instance->encoder.repeat = pp_encoder_read_repeat(flipper_format, 10);
 
         subghz_protocol_encoder_ford_v0_get_upload(instance);
 
@@ -651,8 +548,8 @@ SubGhzProtocolStatus
         flipper_format_rewind(flipper_format);
         uint32_t temp = calculated_crc;
         flipper_format_insert_or_update_uint32(flipper_format, "CRC", &temp, 1);
-        temp = instance->bs;
-        flipper_format_insert_or_update_uint32(flipper_format, "BS", &temp, 1);
+        temp = instance->checksum;
+        flipper_format_insert_or_update_uint32(flipper_format, "Checksum", &temp, 1);
 
         instance->encoder.is_running = true;
 
@@ -669,30 +566,6 @@ SubGhzProtocolStatus
     return ret;
 }
 
-void subghz_protocol_encoder_ford_v0_stop(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderFordV0* instance = context;
-    instance->encoder.is_running = false;
-}
-
-LevelDuration subghz_protocol_encoder_ford_v0_yield(void* context) {
-    furi_check(context);
-    SubGhzProtocolEncoderFordV0* instance = context;
-
-    if(!instance->encoder.is_running || instance->encoder.repeat == 0) {
-        instance->encoder.is_running = false;
-        return level_duration_reset();
-    }
-
-    LevelDuration ret = instance->encoder.upload[instance->encoder.front];
-
-    if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
-        instance->encoder.front = 0;
-    }
-
-    return ret;
-}
 #endif
 // =============================================================================
 // DECODER IMPLEMENTATION
@@ -723,12 +596,7 @@ static bool ford_v0_process_data(SubGhzProtocolDecoderFordV0* instance) {
         uint16_t key2 = ~key2_raw;
 
         decode_ford_v0(
-            instance->key1,
-            key2,
-            &instance->serial,
-            &instance->button,
-            &instance->count,
-            &instance->bs_magic);
+            instance->key1, key2, &instance->serial, &instance->button, &instance->count);
 
         instance->key2 = key2;
         return true;
@@ -743,12 +611,6 @@ void* subghz_protocol_decoder_ford_v0_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &ford_protocol_v0;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
-}
-
-void subghz_protocol_decoder_ford_v0_free(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderFordV0* instance = context;
-    free(instance);
 }
 
 void subghz_protocol_decoder_ford_v0_reset(void* context) {
@@ -767,7 +629,6 @@ void subghz_protocol_decoder_ford_v0_reset(void* context) {
     instance->serial = 0;
     instance->button = 0;
     instance->count = 0;
-    instance->bs_magic = 0;
 }
 
 void subghz_protocol_decoder_ford_v0_feed(void* context, bool level, uint32_t duration) {
@@ -833,13 +694,9 @@ void subghz_protocol_decoder_ford_v0_feed(void* context, bool level, uint32_t du
         break;
 
     case FordV0DecoderStepData: {
-        ManchesterEvent event;
-
-        if(DURATION_DIFF(duration, te_short) < te_delta) {
-            event = level ? ManchesterEventShortLow : ManchesterEventShortHigh;
-        } else if(DURATION_DIFF(duration, te_long) < te_delta) {
-            event = level ? ManchesterEventLongLow : ManchesterEventLongHigh;
-        } else {
+        ManchesterEvent event =
+            pp_manchester_event(duration, level, &subghz_protocol_ford_v0_const);
+        if(event == ManchesterEventReset) {
             instance->decoder.parser_step = FordV0DecoderStepReset;
             break;
         }
@@ -873,13 +730,6 @@ void subghz_protocol_decoder_ford_v0_feed(void* context, bool level, uint32_t du
     }
 }
 
-uint8_t subghz_protocol_decoder_ford_v0_get_hash_data(void* context) {
-    furi_check(context);
-    SubGhzProtocolDecoderFordV0* instance = context;
-    return subghz_protocol_blocks_get_hash_data(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
-}
-
 SubGhzProtocolStatus subghz_protocol_decoder_ford_v0_serialize(
     void* context,
     FlipperFormat* flipper_format,
@@ -892,20 +742,18 @@ SubGhzProtocolStatus subghz_protocol_decoder_ford_v0_serialize(
 
     if(ret == SubGhzProtocolStatusOk) {
         uint32_t temp = (instance->key2 >> 8) & 0xFF;
-        flipper_format_write_uint32(flipper_format, "BS", &temp, 1);
+        flipper_format_write_uint32(flipper_format, "Checksum", &temp, 1);
 
         temp = instance->key2 & 0xFF;
         flipper_format_write_uint32(flipper_format, "CRC", &temp, 1);
 
-        flipper_format_write_uint32(flipper_format, "Serial", &instance->serial, 1);
-
-        temp = instance->button;
-        flipper_format_write_uint32(flipper_format, "Btn", &temp, 1);
-
-        flipper_format_write_uint32(flipper_format, "Cnt", &instance->count, 1);
-
-        temp = (uint32_t)instance->bs_magic;
-        flipper_format_write_uint32(flipper_format, "BSMagic", &temp, 1);
+        pp_serialize_fields(
+            flipper_format,
+            PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT,
+            instance->serial,
+            instance->button,
+            instance->count,
+            0);
     }
 
     return ret;
@@ -924,28 +772,22 @@ SubGhzProtocolStatus
 
         flipper_format_rewind(flipper_format);
 
-        uint32_t bs_temp = 0;
+        uint32_t checksum_temp = 0;
         uint32_t crc_temp = 0;
-        flipper_format_read_uint32(flipper_format, "BS", &bs_temp, 1);
+        flipper_format_read_uint32(flipper_format, "Checksum", &checksum_temp, 1);
         flipper_format_read_uint32(flipper_format, "CRC", &crc_temp, 1);
-        instance->key2 = ((bs_temp & 0xFF) << 8) | (crc_temp & 0xFF);
+        instance->key2 = ((checksum_temp & 0xFF) << 8) | (crc_temp & 0xFF);
 
-        flipper_format_read_uint32(flipper_format, "Serial", &instance->serial, 1);
+        uint32_t serial = instance->serial;
+        uint32_t btn = instance->button;
+        uint32_t cnt = instance->count;
+        pp_encoder_read_fields(flipper_format, &serial, &btn, &cnt, NULL);
+        instance->serial = serial;
+        instance->button = (uint8_t)btn;
+        instance->count = cnt;
         instance->generic.serial = instance->serial;
-
-        uint32_t btn_temp = 0;
-        flipper_format_read_uint32(flipper_format, "Btn", &btn_temp, 1);
-        instance->button = (uint8_t)btn_temp;
         instance->generic.btn = instance->button;
-
-        flipper_format_read_uint32(flipper_format, "Cnt", &instance->count, 1);
         instance->generic.cnt = instance->count;
-
-        uint32_t bs_magic_temp = 0;
-        if(flipper_format_read_uint32(flipper_format, "BSMagic", &bs_magic_temp, 1))
-            instance->bs_magic = bs_magic_temp;
-        else
-            instance->bs_magic = 0x6F; //For backward psf file compatibiility.
     }
 
     return ret;
@@ -962,10 +804,12 @@ void subghz_protocol_decoder_ford_v0_get_string(void* context, FuriString* outpu
 
     const char* button_name = "??";
     if(instance->button == 0x01)
-        button_name = "Lock";
+        button_name = "Panic";
     else if(instance->button == 0x02)
-        button_name = "Unlock";
+        button_name = "Lock";
     else if(instance->button == 0x04)
+        button_name = "Unlock";
+    else if(instance->button == 0x08)
         button_name = "Boot";
 
     furi_string_cat_printf(
@@ -975,9 +819,8 @@ void subghz_protocol_decoder_ford_v0_get_string(void* context, FuriString* outpu
         "Key2: %04X"
         "  Sn: %08lX\r\n"
         "Cnt: %05lX"
-        "  BS: %02X"
+        "  Checksum: %02X"
         "  CRC: %02X\r\n"
-        "BS Magic: %02X"
         "  Btn: %02X - %s\r\n",
         instance->generic.protocol_name,
         instance->generic.data_count_bit,
@@ -990,7 +833,6 @@ void subghz_protocol_decoder_ford_v0_get_string(void* context, FuriString* outpu
         (unsigned long)instance->count,
         (instance->key2 >> 8) & 0xFF,
         instance->key2 & 0xFF,
-        instance->bs_magic,
         instance->button,
         button_name);
 }

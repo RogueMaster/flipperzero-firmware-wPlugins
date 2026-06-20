@@ -164,6 +164,9 @@ SeaderT1Action seader_t1_handle_block(
         t1->recv_pcb = seader_t1_next_pcb(t1->recv_pcb);
         if(t1->rx_buffer == NULL) {
             t1->rx_buffer = bit_buffer_alloc(512);
+            if(t1->rx_buffer == NULL) {
+                return SeaderT1ActionResourceExhausted;
+            }
         }
         bit_buffer_append_bytes(t1->rx_buffer, payload + 3, LEN);
         return SeaderT1ActionSendAck;

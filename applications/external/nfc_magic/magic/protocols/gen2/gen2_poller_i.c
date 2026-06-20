@@ -118,8 +118,13 @@ static Gen2PollerError gen2_poller_get_nt_common(
                 instance->tx_plain_buffer,
                 instance->rx_plain_buffer,
                 GEN2_POLLER_MAX_FWT);
+            // A bare tag nonce carries no CRC, so WrongCrc is the expected
+            // "success" here. Anything else - including a CRC-valid (None) frame,
+            // which is not a nonce - means no nonce was read; report it as an error
+            // so callers never treat an unwritten nt as valid.
             if(error != Iso14443_3aErrorWrongCrc) {
-                ret = mf_classic_process_error(error);
+                ret = (error == Iso14443_3aErrorNone) ? MfClassicErrorProtocol :
+                                                        mf_classic_process_error(error);
                 break;
             }
         }
@@ -338,6 +343,50 @@ Gen2PollerError
             ret = Gen2PollerErrorProtocol;
             break;
         }
+    } while(false);
+
+    return ret;
+}
+
+Gen2PollerError gen2_poller_probe_block0_writable(Gen2Poller* instance, bool* writable) {
+    furi_assert(instance);
+    furi_assert(writable);
+
+    Gen2PollerError ret = Gen2PollerErrorNone;
+    Iso14443_3aError error = Iso14443_3aErrorNone;
+    *writable = false;
+
+    // Non-destructive CUID probe: this sends ONLY the first phase of the two-phase
+    // MIFARE write to block 0. A directly-writable block 0 (Gen2/CUID) ACKs it, while
+    // a normal Classic NAKs its read-only manufacturer block. The 16-byte data phase is
+    // never transmitted, so block 0 is never modified. The caller MUST drop the field
+    // immediately afterwards (do not send any further frame) so nothing can be written.
+    do {
+        uint8_t write_block_cmd[2] = {MF_CLASSIC_CMD_WRITE_BLOCK, 0};
+        bit_buffer_copy_bytes(instance->tx_plain_buffer, write_block_cmd, sizeof(write_block_cmd));
+        iso14443_crc_append(Iso14443CrcTypeA, instance->tx_plain_buffer);
+
+        crypto1_encrypt(
+            instance->crypto, NULL, instance->tx_plain_buffer, instance->tx_encrypted_buffer);
+
+        error = iso14443_3a_poller_txrx_custom_parity(
+            instance->iso3_poller,
+            instance->tx_encrypted_buffer,
+            instance->rx_encrypted_buffer,
+            GEN2_POLLER_MAX_FWT);
+        if(error != Iso14443_3aErrorNone) {
+            ret = gen2_poller_process_iso3_error(error);
+            break;
+        }
+        if(bit_buffer_get_size(instance->rx_encrypted_buffer) != 4) {
+            ret = Gen2PollerErrorProtocol;
+            break;
+        }
+
+        crypto1_decrypt(
+            instance->crypto, instance->rx_encrypted_buffer, instance->rx_plain_buffer);
+
+        *writable = (bit_buffer_get_byte(instance->rx_plain_buffer, 0) == MF_CLASSIC_CMD_ACK);
     } while(false);
 
     return ret;

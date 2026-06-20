@@ -1,0 +1,13 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/YOUR_USERNAME/WikiFlip.git
+    commit_sha: REPLACE_WITH_SOURCE_COMMIT_SHA
+
+short_description: Offline cybersecurity dictionary for Flipper Zero
+description: "@./docs/catalog_description.md"
+changelog: "@./docs/changelog.md"
+screenshots:
+  - screenshots/Screenshot-20260615-104416.png
+  - screenshots/Screenshot-20260615-104441.png
+  - screenshots/Screenshot-20260615-104508.png

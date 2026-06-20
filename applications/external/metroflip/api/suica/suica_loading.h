@@ -5,22 +5,32 @@
 static void suica_model_initialize(SuicaHistoryViewModel* model, size_t initial_capacity) {
     model->travel_history =
         (uint8_t*)malloc(initial_capacity * FELICA_DATA_BLOCK_SIZE); // Each entry is 16 bytes
+    if(!model->travel_history) {
+        model->size = 0;
+        model->capacity = 0;
+        return;
+    }
     model->size = 0;
     model->capacity = initial_capacity;
 }
 
 static void suica_add_entry(SuicaHistoryViewModel* model, const uint8_t* entry) {
-    if(model->size <= 0) {
-        model->travel_history =
-            (uint8_t*)malloc(20 * FELICA_DATA_BLOCK_SIZE); // Each entry is 16 bytes
-        model->size = 0;
-        model->capacity = 20;
+    /* travel_history is the "initialized" sentinel. The old check (size<=0)
+       re-malloced over the buffer load_suica_data had just allocated,
+       leaking it on every file load. */
+    if(!model->travel_history) {
+        suica_model_initialize(model, 20);
+        if(!model->travel_history) return; // OOM - drop the entry
     }
     // Check if resizing is needed
     if(model->size == model->capacity) {
         size_t new_capacity = model->capacity * 2; // Double the capacity
         uint8_t* new_data =
             (uint8_t*)realloc(model->travel_history, new_capacity * FELICA_DATA_BLOCK_SIZE);
+        if(!new_data) {
+            // Keep the existing buffer/entries; drop this entry
+            return;
+        }
         model->travel_history = new_data;
         model->capacity = new_capacity;
     }
@@ -36,6 +46,9 @@ static void suica_add_entry(SuicaHistoryViewModel* model, const uint8_t* entry) 
 static void load_suica_data(void* context, FlipperFormat* format, bool is_metroflip_file) {
     Metroflip* app = (Metroflip*)context;
     app->suica_context = malloc(sizeof(SuicaContext));
+    /* Explicit init - the plugin's on_exit and view callbacks rely on
+       timer/parsed_data/suica_file_data being NULL until set. */
+    memset(app->suica_context, 0, sizeof(SuicaContext));
     app->suica_context->view_history = view_alloc();
     view_set_context(app->suica_context->view_history, app);
     view_allocate_model(

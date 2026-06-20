@@ -51,7 +51,7 @@ static uint32_t picopass_create_max_facility_code(WiegandFormat format) {
     case WiegandFormat_H10301:
         return 0xFF;
     case WiegandFormat_C1k35s:
-        return 0x7FF;
+        return 0xFFF;
     default:
         return 0;
     }

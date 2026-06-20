@@ -3,6 +3,9 @@
 #include <toolbox/path.h>
 #include <flipper_format/flipper_format.h>
 #include <seader_icons.h>
+#include <nfc/nfc_device.h>
+#include <lib/nfc/protocols/iso14443_3a/iso14443_3a.h>
+#include <lib/nfc/protocols/mf_classic/mf_classic.h>
 
 #include <toolbox/protocols/protocol_dict.h>
 #include <lfrfid/protocols/lfrfid_protocols.h>
@@ -179,107 +182,63 @@ static bool seader_credential_load(SeaderCredential* cred, FuriString* path, boo
 bool seader_credential_save_mfc(SeaderCredential* cred, const char* name) {
     furi_assert(cred);
 
-    static const char* nfc_file_header = "Flipper NFC device";
-    static const uint32_t nfc_file_version = 3;
-    static const uint32_t nfc_mifare_classic_data_format_version = 2;
-
-    uint8_t uid[4] = {0xDF, 0xC6, 0x9C, 0x05};
-    uint8_t atqa[2] = {0x00, 0x04};
-    uint8_t sak = 0x08;
+    static const uint8_t uid[4] = {0xDF, 0xC6, 0x9C, 0x05};
+    static const uint8_t atqa[2] = {0x00, 0x04};
+    static const uint8_t sak = 0x08;
     uint8_t pacs_block[16] = {0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     bool saved = false;
-    FlipperFormat* file = flipper_format_file_alloc(cred->storage);
-    FuriString* temp_str;
-    temp_str = furi_string_alloc();
+    FuriString* temp_str = furi_string_alloc();
+    NfcDevice* nfc_device = nfc_device_alloc();
+    MfClassicData* mf_data = mf_classic_alloc();
 
     uint64_t sentinel = 1ULL << cred->bit_length;
     uint64_t swapped = __builtin_bswap64(cred->credential | sentinel);
     memcpy(pacs_block + 8, &swapped, sizeof(swapped));
 
     do {
+        if(!nfc_device || !mf_data) break;
+
+        storage_simply_mkdir(cred->storage, SEADER_APP_MFC_FOLDER);
         furi_string_printf(
             temp_str, "%s/%s%s", SEADER_APP_MFC_FOLDER, name, SEADER_APP_MFC_EXTENSION);
 
         FURI_LOG_D(TAG, "Save as MFC [%s]", furi_string_get_cstr(temp_str));
 
-        // Open file
-        if(!flipper_format_file_open_always(file, furi_string_get_cstr(temp_str))) break;
-        if(!flipper_format_write_header_cstr(file, nfc_file_header, nfc_file_version)) break;
-        // Write nfc device type
-        if(!flipper_format_write_comment_cstr(
-               file, "Nfc device type can be UID, Mifare Ultralight, Mifare Classic or ISO15693"))
-            break;
-        furi_string_set(temp_str, "Mifare Classic");
-        if(!flipper_format_write_string(file, "Device type", temp_str)) break;
-        // Write UID
-        if(!flipper_format_write_comment_cstr(file, "UID is common for all formats")) break;
-        if(!flipper_format_write_hex(file, "UID", uid, 4)) break;
-        // Write ATQA, SAK
-        if(!flipper_format_write_comment_cstr(file, "ISO14443 specific fields")) break;
-        // Save ATQA in MSB order for correct companion apps display
-        if(!flipper_format_write_hex(file, "ATQA", atqa, 2)) break;
-        if(!flipper_format_write_hex(file, "SAK", &sak, 1)) break;
-        if(!flipper_format_write_comment_cstr(file, "Mifare Classic specific data")) break;
-        if(!flipper_format_write_comment_cstr(file, "Made with Seader")) break;
-        if(!flipper_format_write_string_cstr(file, "Mifare Classic type", "1K")) break;
-        uint8_t blocks = 64;
+        mf_classic_reset(mf_data);
+        mf_data->type = MfClassicType1k;
 
-        if(!flipper_format_write_uint32(
-               file, "Data format version", &nfc_mifare_classic_data_format_version, 1))
-            break;
-        if(!flipper_format_write_comment_cstr(
-               file, "Mifare Classic blocks, \'??\' means unknown data"))
-            break;
-        bool block_saved = true;
-        FuriString* block_str;
-        block_str = furi_string_alloc();
-        for(size_t i = 0; i < blocks; i++) {
-            furi_string_printf(temp_str, "Block %d", i);
+        if(!mf_classic_set_uid(mf_data, uid, sizeof(uid))) break;
+
+        Iso14443_3aData* iso14443_3a = mf_classic_get_base_data(mf_data);
+        if(!iso14443_3a) break;
+
+        iso14443_3a_set_atqa(iso14443_3a, atqa);
+        iso14443_3a_set_sak(iso14443_3a, sak);
+
+        const uint16_t total_blocks = mf_classic_get_total_block_num(MfClassicType1k);
+        for(uint16_t i = 0; i < total_blocks; i++) {
             switch(i) {
             case 0:
-                if(!flipper_format_write_hex(
-                       file,
-                       furi_string_get_cstr(temp_str),
-                       seader_manuf_block,
-                       sizeof(seader_manuf_block))) {
-                    block_saved = false;
-                }
-                break;
             case 1:
-                if(!flipper_format_write_hex(
-                       file,
-                       furi_string_get_cstr(temp_str),
-                       seader_mad_block,
-                       sizeof(seader_mad_block))) {
-                    block_saved = false;
-                }
-                break;
-            case 3:
-                if(!flipper_format_write_hex(
-                       file,
-                       furi_string_get_cstr(temp_str),
-                       seader_sector0_trailer,
-                       sizeof(seader_sector0_trailer))) {
-                    block_saved = false;
-                }
-                break;
             case 5:
-                if(!flipper_format_write_hex(
-                       file, furi_string_get_cstr(temp_str), pacs_block, sizeof(pacs_block))) {
-                    block_saved = false;
+            default: {
+                const uint8_t* source = seader_empty_block;
+                if(i == 0) {
+                    source = seader_manuf_block;
+                } else if(i == 1) {
+                    source = seader_mad_block;
+                } else if(i == 5) {
+                    source = pacs_block;
                 }
+
+                MfClassicBlock block = {0};
+                memcpy(block.data, source, sizeof(block.data));
+                mf_classic_set_block_read(mf_data, i, &block);
                 break;
+            }
+            case 3:
             case 7:
-                if(!flipper_format_write_hex(
-                       file,
-                       furi_string_get_cstr(temp_str),
-                       seader_sector1_trailer,
-                       sizeof(seader_sector1_trailer))) {
-                    block_saved = false;
-                }
-                break;
-            // Trailers
             case 11:
             case 15:
             case 19:
@@ -293,37 +252,33 @@ bool seader_credential_save_mfc(SeaderCredential* cred, const char* name) {
             case 51:
             case 55:
             case 59:
-            case 63:
-                if(!flipper_format_write_hex(
-                       file,
-                       furi_string_get_cstr(temp_str),
-                       seader_section_trailer,
-                       sizeof(seader_section_trailer))) {
-                    block_saved = false;
+            case 63: {
+                const uint8_t* source = seader_section_trailer;
+                if(i == 3) {
+                    source = seader_sector0_trailer;
+                } else if(i == 7) {
+                    source = seader_sector1_trailer;
                 }
-                break;
-            default:
-                if(!flipper_format_write_hex(
-                       file,
-                       furi_string_get_cstr(temp_str),
-                       seader_empty_block,
-                       sizeof(seader_empty_block))) {
-                    block_saved = false;
-                }
+
+                MfClassicSectorTrailer trailer = {0};
+                memcpy(&trailer, source, sizeof(trailer));
+                mf_classic_set_sector_trailer_read(mf_data, i, &trailer);
                 break;
             }
+            }
         }
-        furi_string_free(block_str);
-        if(!block_saved) break;
 
+        nfc_device_set_data(nfc_device, NfcProtocolMfClassic, (const NfcDeviceData*)mf_data);
+        if(!nfc_device_save(nfc_device, furi_string_get_cstr(temp_str))) break;
         saved = true;
     } while(false);
 
     if(!saved) {
         dialog_message_show_storage_error(cred->dialogs, "Can not save\nfile");
     }
+    mf_classic_free(mf_data);
+    nfc_device_free(nfc_device);
     furi_string_free(temp_str);
-    flipper_format_free(file);
     return saved;
 }
 
@@ -378,14 +333,20 @@ bool seader_credential_save_agnostic(SeaderCredential* cred, const char* name) {
 }
 
 bool seader_credential_save_picopass(SeaderCredential* cred, const char* name) {
-    uint8_t debit_key[PICOPASS_BLOCK_LEN] = {0xe3, 0xf3, 0x07, 0x84, 0x4a, 0x0b, 0x62, 0x04};
+    uint8_t debit_key[PICOPASS_BLOCK_LEN];
     uint8_t pacs_cfg[PICOPASS_BLOCK_LEN] = {0x03, 0x03, 0x03, 0x03, 0x00, 0x03, 0xe0, 0x14};
 
     bool saved = false;
     bool withSIO = cred->save_format == SeaderCredentialSaveFormatSR;
-    if(withSIO) {
-        loclass_iclass_calc_div_key(cred->diversifier, picopass_iclass_key, debit_key, false);
+
+    // when downgrading from a non-picopass the diversifier is empty, so use a fake csn
+    const uint8_t* csn = cred->diversifier;
+    if(memcmp(cred->diversifier, seader_picopass_zero, PICOPASS_BLOCK_LEN) == 0) {
+        csn = seader_picopass_fake_csn;
     }
+
+    // Kd is diversified from the csn that gets written to block 0
+    loclass_iclass_calc_div_key(csn, picopass_iclass_key, debit_key, false);
 
     FlipperFormat* file = flipper_format_file_alloc(cred->storage);
     FuriString* temp_str = furi_string_alloc();
@@ -408,23 +369,9 @@ bool seader_credential_save_picopass(SeaderCredential* cred, const char* name) {
             furi_string_printf(temp_str, "Block %d", i);
             switch(i) {
             case CSN_INDEX:
-                if(memcmp(cred->diversifier, seader_picopass_zero, PICOPASS_BLOCK_LEN) == 0) {
-                    // when doing a downgrade from a non-picopass, we need to use a fake csn
-                    if(!flipper_format_write_hex(
-                           file,
-                           furi_string_get_cstr(temp_str),
-                           seader_picopass_fake_csn,
-                           sizeof(seader_picopass_fake_csn))) {
-                        block_saved = false;
-                    }
-                } else {
-                    if(!flipper_format_write_hex(
-                           file,
-                           furi_string_get_cstr(temp_str),
-                           cred->diversifier,
-                           PICOPASS_BLOCK_LEN)) {
-                        block_saved = false;
-                    }
+                if(!flipper_format_write_hex(
+                       file, furi_string_get_cstr(temp_str), csn, PICOPASS_BLOCK_LEN)) {
+                    block_saved = false;
                 }
                 break;
             case EPURSE_INDEX:
@@ -570,7 +517,23 @@ bool seader_credential_save_rfid(SeaderCredential* cred, const char* name) {
 
     FURI_LOG_D(TAG, "LFRFID (%d): %016llx", cred->bit_length, target);
     size_t data_size = protocol_dict_get_data_size(dict, protocol);
-    uint8_t* data = malloc(data_size);
+    uint8_t stack_data[32];
+    uint8_t* data = NULL;
+    bool must_free = false;
+    if(data_size <= sizeof(stack_data)) {
+        data = stack_data;
+        memset(data, 0, data_size);
+    } else {
+        data = malloc(data_size);
+        if(!data) {
+            FURI_LOG_E(TAG, "Failed to allocate LFRFID data buffer");
+            protocol_dict_free(dict);
+            furi_string_free(file_path);
+            return false;
+        }
+        must_free = true;
+    }
+
     if(data_size < 8) {
         memcpy(data, (void*)&target, data_size);
     } else {
@@ -578,7 +541,9 @@ bool seader_credential_save_rfid(SeaderCredential* cred, const char* name) {
         memcpy(data + 4, (void*)&target, 8);
     }
     protocol_dict_set_data(dict, protocol, data, data_size);
-    free(data);
+    if(must_free) {
+        free(data);
+    }
 
     result = lfrfid_dict_file_save(dict, protocol, furi_string_get_cstr(file_path));
 

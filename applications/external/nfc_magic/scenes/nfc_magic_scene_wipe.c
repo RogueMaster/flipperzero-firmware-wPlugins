@@ -108,6 +108,7 @@ void nfc_magic_scene_wipe_on_enter(void* context) {
 
     if(instance->protocol == NfcMagicProtocolGen1) {
         instance->gen1a_poller = gen1a_poller_alloc(instance->nfc);
+        gen1a_poller_set_uid_len(instance->gen1a_poller, instance->gen1_uid_len);
         gen1a_poller_start(
             instance->gen1a_poller, nfc_magic_scene_wipe_gen1_poller_callback, instance);
     } else if(instance->protocol == NfcMagicProtocolGen2) {

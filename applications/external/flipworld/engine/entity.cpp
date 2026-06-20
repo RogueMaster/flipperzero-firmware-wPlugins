@@ -1,26 +1,29 @@
-#include "engine/entity.hpp"
-#include "engine/game.hpp"
-#include "engine/sprite3d.hpp"
+#include "entity.hpp"
+#include "game.hpp"
+#include "sprite3d.hpp"
+#include "image.hpp"
 
 Entity::Entity(
     const char* name,
     EntityType type,
     Vector position,
     Vector size,
-    const uint8_t* sprite_data,
-    const uint8_t* sprite_left_data,
-    const uint8_t* sprite_right_data,
-    void (*start)(Entity*, Game*),
-    void (*stop)(Entity*, Game*),
-    void (*update)(Entity*, Game*),
-    void (*render)(Entity*, Draw*, Game*),
-    void (*collision)(Entity*, Entity*, Game*),
-    Sprite3DType sprite_3d_type) {
+    Image* sprite_data,
+    Image* sprite_left_data,
+    Image* sprite_right_data,
+    CallbackEntityGame start,
+    CallbackEntityGame stop,
+    CallbackEntityGame update,
+    CallbackEntityDrawGame render,
+    CallbackEntityEntityGame collision,
+    bool is_8bit_sprite,
+    Sprite3DType sprite_3d_type,
+    uint16_t sprite_3d_color) {
     this->name = name;
     this->type = type;
     this->position = position;
     this->old_position = position;
-    this->direction = Vector(1, 0);
+    this->direction = Vector(1, 0, 0, true);
     this->plane = Vector(0, 0);
     this->size = size;
     this->sprite = sprite_data;
@@ -34,6 +37,7 @@ Entity::Entity(
     this->is_active = false;
     this->is_visible = true;
     this->is_player = false;
+    this->is_8bit = is_8bit_sprite;
 
     // initialize additional properties
     this->state = ENTITY_IDLE;
@@ -61,7 +65,7 @@ Entity::Entity(
 
     // Create 3D sprite if type is specified
     if(sprite_3d_type != SPRITE_3D_NONE) {
-        create3DSprite(sprite_3d_type);
+        create3DSprite(sprite_3d_type, size.y, size.x, 0.0f, sprite_3d_color);
     }
 }
 
@@ -70,81 +74,31 @@ Entity::~Entity() {
     destroy3DSprite();
 
     if(this->sprite != NULL) {
-        delete this->sprite;
+        ENGINE_MEM_DELETE this->sprite;
         this->sprite = NULL;
     }
     if(this->sprite_left != NULL) {
-        delete this->sprite_left;
+        ENGINE_MEM_DELETE this->sprite_left;
         this->sprite_left = NULL;
     }
     if(this->sprite_right != NULL) {
-        delete this->sprite_right;
+        ENGINE_MEM_DELETE this->sprite_right;
         this->sprite_right = NULL;
     }
 }
 
 void Entity::collision(Entity* other, Game* game) {
-    if(this->_collision != NULL) {
+    if(this->_collision) {
         this->_collision(this, other, game);
     }
 }
 
-bool Entity::hasChangedPosition() const {
-    return (this->position.x != this->old_position.x) ||
-           (this->position.y != this->old_position.y);
-}
-
-Vector Entity::position_get() {
-    return this->position;
-}
-
-void Entity::position_set(Vector value) {
-    this->old_position = this->position;
-    this->position = value;
-
-    // Automatically update 3D sprite position if it exists
-    if(sprite_3d != nullptr) {
-        sprite_3d->setPosition(position);
-    }
-}
-
-void Entity::render(Draw* draw, Game* game) {
-    if(this->_render != NULL) {
-        this->_render(this, draw, game);
-    }
-}
-
-void Entity::start(Game* game) {
-    if(!game) {
-        FURI_LOG_E("Entity", "Cannot start entity with NULL game pointer");
-        return;
-    }
-
-    if(this->_start != NULL) {
-        this->_start(this, game);
-    }
-    this->is_active = true;
-}
-
-void Entity::stop(Game* game) {
-    if(this->_stop != NULL) {
-        this->_stop(this, game);
-    }
-    this->is_active = false;
-}
-
-void Entity::update(Game* game) {
-    if(this->_update != NULL) {
-        this->_update(this, game);
-    }
-
-    // Update 3D sprite position if it exists
-    if(has3DSprite()) {
-        update3DSpritePosition();
-    }
-}
-
-void Entity::create3DSprite(Sprite3DType type, float height, float width, float rotation) {
+void Entity::create3DSprite(
+    Sprite3DType type,
+    float height,
+    float width,
+    float rotation,
+    uint16_t color) {
     // Clean up any existing sprite first
     destroy3DSprite();
 
@@ -153,23 +107,23 @@ void Entity::create3DSprite(Sprite3DType type, float height, float width, float 
 
     switch(type) {
     case SPRITE_3D_HUMANOID:
-        sprite_3d = new Sprite3D();
-        sprite_3d->initializeAsHumanoid(position, height, rotation);
+        sprite_3d = ENGINE_MEM_NEW Sprite3D();
+        sprite_3d->initializeAsHumanoid(position, height, rotation, color);
         break;
 
     case SPRITE_3D_TREE:
-        sprite_3d = new Sprite3D();
-        sprite_3d->initializeAsTree(position, height);
+        sprite_3d = ENGINE_MEM_NEW Sprite3D();
+        sprite_3d->initializeAsTree(position, height, color);
         break;
 
     case SPRITE_3D_HOUSE:
-        sprite_3d = new Sprite3D();
-        sprite_3d->initializeAsHouse(position, width, height, rotation);
+        sprite_3d = ENGINE_MEM_NEW Sprite3D();
+        sprite_3d->initializeAsHouse(position, width, height, rotation, color);
         break;
 
     case SPRITE_3D_PILLAR:
-        sprite_3d = new Sprite3D();
-        sprite_3d->initializeAsPillar(position, height, width);
+        sprite_3d = ENGINE_MEM_NEW Sprite3D();
+        sprite_3d->initializeAsPillar(position, height, width, color);
         break;
 
     case SPRITE_3D_CUSTOM:
@@ -182,15 +136,60 @@ void Entity::create3DSprite(Sprite3DType type, float height, float width, float 
 
 void Entity::destroy3DSprite() {
     if(sprite_3d != nullptr) {
-        delete sprite_3d;
+        ENGINE_MEM_DELETE sprite_3d;
         sprite_3d = nullptr;
     }
     sprite_3d_type = SPRITE_3D_NONE;
 }
 
-void Entity::update3DSpritePosition() {
+bool Entity::has3DSprite() const {
+    return sprite_3d != nullptr && sprite_3d_type != SPRITE_3D_NONE;
+}
+
+bool Entity::hasChangedPosition() const {
+    return (this->position.x != this->old_position.x) ||
+           (this->position.y != this->old_position.y);
+}
+
+Vector Entity::position_get() {
+    return this->position;
+}
+
+void Entity::position_set(Vector value) {
+    this->old_position.x = this->position.x;
+    this->old_position.y = this->position.y;
+    this->old_position.z = this->position.z;
+    this->old_position.integer = this->position.integer;
+    this->position.x = value.x;
+    this->position.y = value.y;
+    this->position.z = value.z;
+    this->position.integer = value.integer;
+
+    // Automatically update 3D sprite position if it exists
     if(sprite_3d != nullptr) {
         sprite_3d->setPosition(position);
+    }
+}
+
+void Entity::position_set(float x, float y, float z, bool integer) {
+    this->old_position.x = this->position.x;
+    this->old_position.y = this->position.y;
+    this->old_position.z = this->position.z;
+    this->old_position.integer = this->position.integer;
+    this->position.x = x;
+    this->position.y = y;
+    this->position.z = z;
+    this->position.integer = integer;
+
+    // Automatically update 3D sprite position if it exists
+    if(sprite_3d != nullptr) {
+        sprite_3d->setPosition(position);
+    }
+}
+
+void Entity::render(Draw* draw, Game* game) {
+    if(this->_render) {
+        this->_render(this, draw, game);
     }
 }
 
@@ -208,177 +207,37 @@ void Entity::set3DSpriteScale(float scale) {
     }
 }
 
-bool Entity::has3DSprite() const {
-    return sprite_3d != nullptr && sprite_3d_type != SPRITE_3D_NONE;
+void Entity::start(Game* game) {
+    if(!game) {
+        return;
+    }
+
+    if(this->_start) {
+        this->_start(this, game);
+    }
+    this->is_active = true;
 }
 
-void Entity::render3DSprite(
-    Draw* draw,
-    Vector player_pos,
-    Vector player_dir,
-    Vector player_plane,
-    float view_height) const {
-    if(!has3DSprite()) return;
+void Entity::stop(Game* game) {
+    if(this->_stop) {
+        this->_stop(this, game);
+    }
+    this->is_active = false;
+}
 
-    // Get triangles from the 3D sprite
-    Triangle3D triangles[MAX_TRIANGLES_PER_SPRITE];
-    uint8_t triangle_count;
-    sprite_3d->getTransformedTriangles(triangles, triangle_count, player_pos);
+void Entity::update(Game* game) {
+    if(this->_update) {
+        this->_update(this, game);
+    }
 
-    // Render each triangle
-    for(uint8_t i = 0; i < triangle_count; i++) {
-        // Only render triangles facing the camera
-        if(triangles[i].isFacingCamera(player_pos)) {
-            // Project 3D vertices to 2D screen coordinates
-            Vector screen_points[3];
-            bool all_visible = true;
-
-            for(uint8_t j = 0; j < 3; j++) {
-                Vector screen_point = project3DTo2D(
-                    triangles[i].vertices[j], player_pos, player_dir, player_plane, view_height);
-
-                // Check if point is on screen
-                if(screen_point.x < 0 || screen_point.x >= 128 || screen_point.y < 0 ||
-                   screen_point.y >= 64) {
-                    all_visible = false;
-                    break;
-                }
-
-                screen_points[j] = screen_point;
-            }
-
-            if(all_visible) {
-                // Fill the triangle
-                fillTriangle(draw, screen_points[0], screen_points[1], screen_points[2]);
-            }
-        }
+    // Update 3D sprite position if it exists
+    if(has3DSprite()) {
+        update3DSpritePosition();
     }
 }
 
-Vector Entity::project3DTo2D(
-    const Vertex3D& vertex,
-    Vector player_pos,
-    Vector player_dir,
-    Vector /*player_plane*/,
-    float view_height) const {
-    // Transform world coordinates to camera coordinates
-    float world_dx = vertex.x - player_pos.x;
-    float world_dz =
-        vertex.z - player_pos.y; // player_pos.y is actually the Z coordinate in world space
-    float world_dy = vertex.y - view_height; // Height difference from camera
-
-    // Create camera coordinate system
-    float forward_x = player_dir.x;
-    float forward_z = player_dir.y;
-    float right_x = player_dir.y; // Perpendicular to forward
-    float right_z = -player_dir.x;
-
-    // Transform to camera space
-    float cam_x = world_dx * right_x + world_dz * right_z;
-    float cam_z = world_dx * forward_x + world_dz * forward_z;
-    float cam_y = world_dy; // Height difference
-
-    // Prevent division by zero and reject points behind camera
-    if(cam_z <= 0.1f) {
-        return Vector(-1, -1); // Invalid point (behind camera)
-    }
-
-    // Project to screen coordinates
-    float fov_scale = 64.0f; // Match the scale used in raycasting
-    float screen_x = (cam_x / cam_z) * fov_scale + 64.0f; // Center at 64 (128/2)
-    float screen_y = (-cam_y / cam_z) * fov_scale + 32.0f; // Center at 32 (64/2)
-
-    return Vector(screen_x, screen_y);
-}
-
-void Entity::fillTriangle(Draw* const draw, Vector p1, Vector p2, Vector p3) const {
-    // Sort vertices by Y coordinate (p1.y <= p2.y <= p3.y)
-    if(p1.y > p2.y) {
-        Vector temp = p1;
-        p1 = p2;
-        p2 = temp;
-    }
-    if(p2.y > p3.y) {
-        Vector temp = p2;
-        p2 = p3;
-        p3 = temp;
-    }
-    if(p1.y > p2.y) {
-        Vector temp = p1;
-        p1 = p2;
-        p2 = temp;
-    }
-
-    int y1 = (int)p1.y, y2 = (int)p2.y, y3 = (int)p3.y;
-
-    // Handle degenerate case (all points on same line)
-    if(y1 == y3) return;
-
-    Vector triangleVect = {0, 0};
-    // Fill the triangle using horizontal scanlines
-    for(int y = y1; y <= y3; y++) {
-        if(y < 0 || y >= 64) continue; // Skip lines outside screen bounds
-
-        float x_left = 0, x_right = 0;
-        bool has_left = false, has_right = false;
-
-        // Find left edge intersection
-        if(y3 != y1) {
-            x_left = p1.x + (p3.x - p1.x) * (y - y1) / (y3 - y1);
-            has_left = true;
-        }
-
-        // Find right edge intersection
-        if(y <= y2) {
-            // Upper part of triangle (from p1 to p2)
-            if(y2 != y1) {
-                float x_temp = p1.x + (p2.x - p1.x) * (y - y1) / (y2 - y1);
-                if(!has_right) {
-                    x_right = x_temp;
-                    has_right = true;
-                } else {
-                    // We have both intersections, determine which is left/right
-                    if(x_temp < x_left) {
-                        x_right = x_left;
-                        x_left = x_temp;
-                    } else {
-                        x_right = x_temp;
-                    }
-                }
-            }
-        } else {
-            // Lower part of triangle (from p2 to p3)
-            if(y3 != y2) {
-                float x_temp = p2.x + (p3.x - p2.x) * (y - y2) / (y3 - y2);
-                if(!has_right) {
-                    x_right = x_temp;
-                    has_right = true;
-                } else {
-                    // We have both intersections, determine which is left/right
-                    if(x_temp < x_left) {
-                        x_right = x_left;
-                        x_left = x_temp;
-                    } else {
-                        x_right = x_temp;
-                    }
-                }
-            }
-        }
-
-        // Draw horizontal line from x_left to x_right
-        if(has_left && has_right) {
-            int start_x = (int)fminf(x_left, x_right);
-            int end_x = (int)fmaxf(x_left, x_right);
-
-            // Clamp to screen bounds
-            if(start_x < 0) start_x = 0;
-            if(end_x >= 128) end_x = 127;
-
-            for(int x = start_x; x <= end_x; x++) {
-                triangleVect.x = x;
-                triangleVect.y = y;
-                draw->drawPixel(triangleVect, ColorBlack);
-            }
-        }
+void Entity::update3DSpritePosition() {
+    if(sprite_3d != nullptr) {
+        sprite_3d->setPosition(position);
     }
 }

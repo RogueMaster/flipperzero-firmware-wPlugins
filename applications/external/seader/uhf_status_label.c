@@ -10,21 +10,41 @@ static size_t seader_uhf_append_family(
     bool* wrote_any,
     const char* name,
     bool key_present) {
-    if(*wrote_any) {
-        pos += (size_t)snprintf(out + pos, out_size - pos, "/");
-    } else {
-        pos += (size_t)snprintf(out + pos, out_size - pos, "UHF: ");
-        *wrote_any = true;
+    int written = 0;
+
+    if(pos >= out_size) {
+        return out_size - 1U;
     }
 
-    pos += (size_t)snprintf(out + pos, out_size - pos, "%s", name);
+    if(*wrote_any) {
+        written = snprintf(out + pos, out_size - pos, "/");
+    } else {
+        written = snprintf(out + pos, out_size - pos, "UHF: ");
+        *wrote_any = true;
+    }
+    pos += (size_t)written;
+    if(pos >= out_size) {
+        return out_size - 1U;
+    }
+
+    written = snprintf(out + pos, out_size - pos, "%s", name);
+    pos += (size_t)written;
+    if(pos >= out_size) {
+        return out_size - 1U;
+    }
+
     if(!key_present) {
-        pos += (size_t)snprintf(out + pos, out_size - pos, " [no key]");
+        written = snprintf(out + pos, out_size - pos, " [no key]");
+        pos += (size_t)written;
+        if(pos >= out_size) {
+            return out_size - 1U;
+        }
     }
     return pos;
 }
 
 void seader_uhf_status_label_format(
+    SeaderUhfProbeStatus probe_status,
     bool has_monza4qt,
     bool monza4qt_key_present,
     bool has_higgs3,
@@ -39,6 +59,20 @@ void seader_uhf_status_label_format(
     }
 
     out[0] = '\0';
+
+    if(probe_status == SeaderUhfProbeStatusHidden) {
+        return;
+    }
+
+    if(probe_status == SeaderUhfProbeStatusUnknown) {
+        snprintf(out, out_size, "UHF: probing...");
+        return;
+    }
+
+    if(probe_status == SeaderUhfProbeStatusFailed) {
+        snprintf(out, out_size, "UHF: probe failed");
+        return;
+    }
 
     if(has_monza4qt) {
         pos = seader_uhf_append_family(

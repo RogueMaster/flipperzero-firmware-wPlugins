@@ -41,6 +41,23 @@ inline std::unique_ptr<DynamicMap> mapsSecond() {
     return map;
 }
 
+inline std::unique_ptr<DynamicMap> mapsOnline() {
+    // Multiplayer gathering town: 64x57 open area with border walls.
+    // Houses and trees are Sprite3D entities
+    // not tile walls — players can walk around them.
+    auto map = std::make_unique<DynamicMap>("Online", 64, 57, false);
+
+    // Border walls
+    map->addHorizontalWall(0, 63, 0, WALL_HEIGHT, WALL_DEPTH); // Top
+    map->addHorizontalWall(0, 63, 56, WALL_HEIGHT, WALL_DEPTH); // Bottom
+    map->addVerticalWall(0, 0, 56, WALL_HEIGHT, WALL_DEPTH); // Left
+    map->addVerticalWall(63, 0, 56, WALL_HEIGHT, WALL_DEPTH); // Right
+
+    // No teleport tiles — online world has no level transitions.
+
+    return map;
+}
+
 inline std::unique_ptr<DynamicMap> mapsTutorial(uint8_t width = 20, uint8_t height = 20) {
     auto map = std::make_unique<DynamicMap>("Tutorial", width, height, false);
 

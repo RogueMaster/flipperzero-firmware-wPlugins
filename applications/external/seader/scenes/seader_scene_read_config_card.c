@@ -1,4 +1,5 @@
 #include "../seader_i.h"
+#include "../ui_memory_policy.h"
 #include "seader_scene_read_common.h"
 #include <dolphin/dolphin.h>
 
@@ -10,6 +11,7 @@ void seader_read_config_card_worker_callback(uint32_t event, void* context) {
 
 void seader_scene_read_config_card_on_enter(void* context) {
     Seader* seader = context;
+    seader_worker_acquire(seader);
 
     // Setup view
     Popup* popup = seader->popup;
@@ -18,6 +20,9 @@ void seader_scene_read_config_card_on_enter(void* context) {
 
     // Start worker
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewPopup);
+    if(seader_ui_memory_should_release_inactive_lazy_views(SeaderUiMemoryPhaseHfReadActive)) {
+        seader_release_inactive_lazy_views(seader);
+    }
 
     seader_scene_read_prepare(seader);
     seader_credential_clear(seader->credential);
@@ -41,6 +46,10 @@ bool seader_scene_read_config_card_on_event(void* context, SceneManagerEvent eve
         if(event.event == SeaderCustomEventWorkerExit || event.event == SeaderWorkerEventSuccess) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneReadConfigCardSuccess);
             consumed = true;
+        } else if(event.event == SeaderWorkerEventFail) {
+            scene_manager_search_and_switch_to_previous_scene(
+                seader->scene_manager, SeaderSceneSamPresent);
+            consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         scene_manager_search_and_switch_to_previous_scene(
@@ -53,6 +62,9 @@ bool seader_scene_read_config_card_on_event(void* context, SceneManagerEvent eve
 
 void seader_scene_read_config_card_on_exit(void* context) {
     Seader* seader = context;
-    seader_worker_stop(seader->worker);
+    if(seader->worker) {
+        seader_worker_stop(seader->worker);
+    }
     seader_scene_read_cleanup(seader);
+    seader_worker_release(seader);
 }

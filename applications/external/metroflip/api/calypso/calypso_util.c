@@ -296,6 +296,7 @@ int get_calypso_subnode_offset(
 
 int get_calypso_node_offset(const char* binary_string, const char* key, CalypsoApp* structure) {
     CalypsoElement* element = malloc(sizeof(CalypsoElement));
+    if(!element) return 0;
     element->type = CALYPSO_ELEMENT_TYPE_CONTAINER;
     element->container = structure->container;
     bool found;
@@ -346,6 +347,7 @@ int get_calypso_subnode_size(const char* key, CalypsoElement* element) {
 
 int get_calypso_node_size(const char* key, CalypsoApp* structure) {
     CalypsoElement* element = malloc(sizeof(CalypsoElement));
+    if(!element) return 0;
     element->type = CALYPSO_ELEMENT_TYPE_CONTAINER;
     element->container = structure->container;
     int count = get_calypso_subnode_size(key, element);

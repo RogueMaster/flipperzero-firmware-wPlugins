@@ -1,12 +1,28 @@
 // scenes/protopirate_scene_about.c
 #include "../protopirate_app_i.h"
+#include "../helpers/protopirate_settings.h"
+#include "proto_pirate_icons.h"
 #include <gui/elements.h>
+#include <input/input.h>
+#include <dialogs/dialogs.h>
 #include <stdlib.h>
 
 #define CREDITS_START_Y    28
 #define CREDITS_END_Y      52
 #define CREDIT_LINE_HEIGHT 10
 #define SCROLL_SPEED       1
+
+static const InputKey EMULATE_TOGGLE_COMBO[] = {
+    InputKeyUp,
+    InputKeyUp,
+    InputKeyDown,
+    InputKeyDown,
+    InputKeyLeft,
+    InputKeyRight,
+    InputKeyLeft,
+    InputKeyRight,
+};
+#define EMULATE_TOGGLE_COMBO_LEN (sizeof(EMULATE_TOGGLE_COMBO) / sizeof(EMULATE_TOGGLE_COMBO[0]))
 
 static const char* credits[] = {
     "",
@@ -46,6 +62,7 @@ typedef struct {
     uint8_t frame;
     uint8_t seed;
     int16_t scroll_offset;
+    uint8_t combo_progress;
 } GlitchState;
 
 static GlitchState g_state = {0};
@@ -141,18 +158,67 @@ static void about_draw_callback(Canvas* canvas, void* context) {
 }
 
 static bool about_input_callback(InputEvent* event, void* context) {
-    UNUSED(context);
-    UNUSED(event);
-    return false;
+    furi_check(context);
+    ProtoPirateApp* app = context;
+
+    if(event->type != InputTypePress) {
+        return false;
+    }
+
+    if(event->key == InputKeyBack) {
+        return false;
+    }
+
+    InputKey expected = EMULATE_TOGGLE_COMBO[g_state.combo_progress];
+    if(event->key == expected) {
+        g_state.combo_progress++;
+        if(g_state.combo_progress >= EMULATE_TOGGLE_COMBO_LEN) {
+            g_state.combo_progress = 0;
+            view_dispatcher_send_custom_event(
+                app->view_dispatcher, ProtoPirateCustomEventAboutToggleEmulate);
+        }
+    } else if(event->key == EMULATE_TOGGLE_COMBO[0]) {
+        g_state.combo_progress = 1;
+    } else {
+        g_state.combo_progress = 0;
+    }
+
+    return true;
+}
+
+static void about_show_emulate_toggle_popup(ProtoPirateApp* app) {
+    const bool now_enabled = app->emulate_feature_enabled;
+
+    DialogMessage* message = dialog_message_alloc();
+    dialog_message_set_buttons(message, NULL, "OK", NULL);
+    dialog_message_set_icon(message, &I_WarningDolphin_45x42, 0, 12);
+    dialog_message_set_header(
+        message, now_enabled ? "Emulate Unlocked" : "Emulate Locked", 64, 0, AlignCenter, AlignTop);
+    dialog_message_set_text(
+        message,
+        now_enabled ? "Transmission is\nnow enabled!" : "Transmission is\nnow disabled!",
+        50,
+        14,
+        AlignLeft,
+        AlignTop);
+    dialog_message_show(app->dialogs, message);
+    dialog_message_free(message);
 }
 
 void protopirate_scene_about_on_enter(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
 
+    if(!protopirate_ensure_view_about(app)) {
+        notification_message(app->notifications, &sequence_error);
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
+
     g_state.frame = 0;
     g_state.seed = furi_get_tick() & 0xFF;
     g_state.scroll_offset = 0;
+    g_state.combo_progress = 0;
 
     view_set_draw_callback(app->view_about, about_draw_callback);
     view_set_input_callback(app->view_about, about_input_callback);
@@ -179,6 +245,22 @@ bool protopirate_scene_about_on_event(void* context, SceneManagerEvent event) {
 
         view_commit_model(app->view_about, true);
         consumed = true;
+    } else if(event.type == SceneManagerEventTypeCustom) {
+        if(event.event == ProtoPirateCustomEventAboutToggleEmulate) {
+            app->emulate_feature_enabled = !app->emulate_feature_enabled;
+
+            ProtoPirateSettings settings;
+            protopirate_settings_load(&settings);
+            settings.emulate_feature_enabled = app->emulate_feature_enabled;
+            protopirate_settings_save(&settings);
+
+            notification_message(
+                app->notifications,
+                app->emulate_feature_enabled ? &sequence_success : &sequence_semi_success);
+
+            about_show_emulate_toggle_popup(app);
+            consumed = true;
+        }
     }
 
     return consumed;

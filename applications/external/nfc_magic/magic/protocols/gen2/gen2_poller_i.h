@@ -112,6 +112,16 @@ Gen2PollerError gen2_poller_auth(
 
 Gen2PollerError gen2_poller_halt(Gen2Poller* instance);
 
+Gen2PollerError gen2_poller_get_nt(
+    Gen2Poller* instance,
+    uint8_t block_num,
+    MfClassicKeyType key_type,
+    MfClassicNt* nt);
+
+// Non-destructive probe: sends only the first phase of a write to block 0 and
+// reports whether the card ACKs it (block 0 directly writable => Gen2/CUID).
+Gen2PollerError gen2_poller_probe_block0_writable(Gen2Poller* instance, bool* writable);
+
 Gen2PollerError
     gen2_poller_write_block(Gen2Poller* instance, uint8_t block_num, const MfClassicBlock* data);
 

@@ -17,6 +17,11 @@ void metroflip_scene_load_on_enter(void* context) {
     app->data_loaded = false;
     app->card_type = "unknown"; // Default card type
 
+    // Show "Parsing" popup so main menu doesn't flash during file loading
+    popup_reset(app->popup);
+    popup_set_header(app->popup, "Parsing card\ndata...", 64, 32, AlignCenter, AlignCenter);
+    view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
+
     // Buffers for reading data
     FuriString* card_type_str = furi_string_alloc();
     FuriString* device_type = furi_string_alloc();
@@ -66,6 +71,7 @@ void metroflip_scene_load_on_enter(void* context) {
                     }
 
                     CardType card_type = determine_card_type(app->nfc, mfc_data, true);
+                    mf_classic_free(mfc_data);
                     app->mfc_card_type = card_type;
                     app->data_loaded = true;
                     app->is_desfire = false;
@@ -139,31 +145,18 @@ void metroflip_scene_load_on_enter(void* context) {
                     strcmp(protocol_name, "Mifare Ultralight") == 0 ||
                     strcmp(protocol_name, "NTAG") == 0 ||
                     strcmp(protocol_name, "NTAG/Ultralight") == 0) {
-                    // Try to detect Ventra or other Ultralight-based cards
                     flipper_format_file_close(format);
                     flipper_format_file_open_existing(format, furi_string_get_cstr(file_path));
 
                     MfUltralightData* ul_data = mf_ultralight_alloc();
                     if(mf_ultralight_load(ul_data, format, 2)) {
-                        // Check for Ventra signature in pages 4-6
-                        // Ventra requires at least 7 pages (0-6) to validate
-                        // Signature: page[4].data[0,1,2] == {0x0A, 4, 0}, page[6].data[0,1,2] == 0
-                        if(ul_data->pages_read >= 7 && ul_data->page[4].data[0] == 0x0A &&
-                           ul_data->page[4].data[1] == 4 && ul_data->page[4].data[2] == 0 &&
-                           ul_data->page[6].data[0] == 0 && ul_data->page[6].data[1] == 0 &&
-                           ul_data->page[6].data[2] == 0) {
-                            app->card_type = "ventra";
-                            app->is_desfire = false;
-                            app->data_loaded = true;
-                            FURI_LOG_I(TAG, "Detected: Ventra Ultralight");
-                        } else {
-                            // Load as generic Ultralight even if not Ventra signature
-                            // This allows loading any Ultralight card saved by Metroflip
-                            app->card_type = "ventra";
-                            app->is_desfire = false;
-                            app->data_loaded = true;
-                            FURI_LOG_I(TAG, "Loaded: Ultralight card (generic)");
-                        }
+                        // Route to the same plugin live Ultralight scans use.
+                        // (There is no "ventra" plugin - the old mapping made
+                        // every saved Ultralight file fail to load.)
+                        app->card_type = "trt";
+                        app->is_desfire = false;
+                        app->data_loaded = true;
+                        FURI_LOG_I(TAG, "Loaded: Ultralight card");
                     }
                     mf_ultralight_free(ul_data);
                 }
@@ -219,7 +212,9 @@ void metroflip_scene_load_on_enter(void* context) {
     // Scene transitions
     if(app->data_loaded) {
         FURI_LOG_I(TAG, "Data loaded successfully, transitioning to parse scene");
-        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, MetroflipSceneStart);
+        // Push Parse directly - no need to go through Start first.
+        // Back from Parse uses search_and_switch(Start) which will
+        // pop both Parse and Load cleanly.
         scene_manager_next_scene(app->scene_manager, MetroflipSceneParse);
     } else {
         FURI_LOG_I(TAG, "Data loading failed, returning to start");
@@ -249,5 +244,5 @@ bool metroflip_scene_load_on_event(void* context, SceneManagerEvent event) {
 
 void metroflip_scene_load_on_exit(void* context) {
     Metroflip* app = context;
-    UNUSED(app);
+    popup_reset(app->popup);
 }

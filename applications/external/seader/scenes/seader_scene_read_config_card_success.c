@@ -15,7 +15,11 @@ void seader_scene_read_config_card_success_widget_callback(
 
 void seader_scene_read_config_card_success_on_enter(void* context) {
     Seader* seader = context;
-    Widget* widget = seader->widget;
+    Widget* widget = seader_get_widget(seader);
+    if(!widget) {
+        FURI_LOG_E("SeaderSceneReadConfigCardSuccess", "Widget view unavailable");
+        return;
+    }
 
     FuriString* config_card_str = furi_string_alloc();
 
@@ -56,5 +60,7 @@ void seader_scene_read_config_card_success_on_exit(void* context) {
     Seader* seader = context;
 
     // Clear view
-    widget_reset(seader->widget);
+    if(seader->widget) {
+        widget_reset(seader->widget);
+    }
 }

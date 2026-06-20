@@ -1,0 +1,109 @@
+== BASIC MECHANICAL SKILLS ==
+
+In survival situations, having basic mechanical skills can make the difference between safety and danger. This section covers essential mechanical tasks and repair techniques for vehicles, aircraft, and boats.
+
+== 1. TOOL FAMILIARITY AND USE ==
+
+== TOOL MAINTENANCE ==
+- Cleaning: Regularly clean tools after use.
+- Sharpening: Sharpen blades using a consistent angle (around 20 degrees).
+
+== IMPROVISATION ==
+- Hammer Substitute: A rock can serve as a makeshift hammer.
+- Lever Substitute: A sturdy stick can be used as a lever.
+
+== 2. BASIC VEHICLE REPAIRS ==
+
+== ENGINE TROUBLESHOOTING ==
+
+== STARTING ISSUES ==
+- Battery Check: Ensure connections are tight and free of corrosion.
+- Fuel Supply: Listen for the fuel pump when the key is in the "on" position. If silent, the pump may need attention.
+- Spark Plugs: Inspect for wear or carbon buildup. Clean or replace as necessary.
+
+== TIRE REPAIRS ==
+
+== CHANGING A TIRE ==
+1. Loosen Lug Nuts: Use a lug wrench.
+2. Jack Up Vehicle: Use the jack at the designated point.
+3. Replace Tire: Remove the flat tire, replace it with the spare, and tighten the lug nuts in a crisscross pattern.
+
+== REPAIRING A TIRE ==
+- Patch Kit: Use a rasp tool to roughen the puncture area and insert a plug.
+- Tire Sealant: Inject sealant through the valve stem and reinflate the tire.
+
+== OVERHEATING ==
+
+== COOLANT CHECK ==
+- Cool Down: Wait for the engine to cool before opening the radiator cap.
+- Hose Inspection: Look for leaks or cracks and apply temporary fixes with tape if necessary.
+
+== BRAKE SYSTEM ==
+
+== BRAKE PADS ==
+- Inspect Pads: Listen for squealing or grinding.
+- Replace Pads: Remove the old pads and install new ones.
+
+== BRAKE FLUID ==
+- Check Levels: Top off if braking feels spongy. Bleed the brakes if necessary.
+
+== 3. BASIC AIRCRAFT REPAIRS ==
+
+== ENGINE ISSUES ==
+
+== FUEL SYSTEM ==
+- Fuel Line Check: Inspect for blockages and clear them if found.
+- Fuel Filter: Clean or replace if clogged.
+
+== SPARK PLUGS ==
+- Inspect and Clean: Check for carbon deposits and clean or replace as needed.
+
+== ELECTRICAL SYSTEM ==
+
+== BATTERY AND WIRING ==
+- Battery Check: Ensure the battery is charged and connections are tight.
+- Wiring Inspection: Look for loose or corroded connections.
+
+== ALTERNATOR ==
+- Test Functionality: Check the alternator belt and replace if faulty.
+
+== CONTROL SURFACES ==
+
+== INSPECTING AND REPAIRING ==
+- Ailerons, Rudder, Elevators: Inspect for damage. Replace frayed or broken control cables if possible.
+- Hinges and Bolts: Tighten loose bolts and replace damaged hinges.
+
+== 4. BASIC BOAT REPAIRS ==
+
+== HULL DAMAGE ==
+
+== PATCHING HOLES ==
+- Temporary Patch: Use duct tape, canvas, or clothing to plug holes.
+- Epoxy Repair: Clean the area and apply marine epoxy over the breach.
+
+== LEAK DETECTION ==
+- Check Bilge: Inspect the bilge area for water accumulation and trace it back to its source.
+
+== ENGINE TROUBLESHOOTING ==
+
+== FUEL ISSUES ==
+- Fuel Line and Filter Check: Inspect and clear blockages. Use a water separator if water is in the fuel tank.
+
+== OVERHEATING ==
+- Cooling System: Clear blockages in the intake or outflow. Replace the impeller if damaged.
+
+== STEERING AND PROPULSION ==
+
+== RUDDER REPAIRS ==
+- Inspect for Damage: Secure the rudder temporarily with strong rope or wire.
+- Cable Tension: Replace or tighten steering cables as needed.
+
+== PROPELLER REPAIR ==
+- Check for Debris: Remove any tangled debris.
+- Replace Propeller: Use a propeller puller to replace a broken blade.
+
+== ELECTRICAL SYSTEM ==
+
+== BATTERY AND WIRING ==
+- Battery Maintenance: Ensure the battery is secure and connections are corrosion-free.
+- Bilge Pump: Check wiring and replace or repair the pump if necessary.

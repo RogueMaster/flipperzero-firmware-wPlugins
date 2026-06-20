@@ -75,7 +75,9 @@ bool get_latest_log_file(Storage* storage, const char* dir, const char* prefix, 
             files_capacity *= 2;
             LogFile* new_files = realloc(files, sizeof(LogFile) * files_capacity);
             if(!new_files) {
-                // Handle realloc failure
+                for(size_t j = 0; j < files_count; j++) {
+                    free(files[j].filename);
+                }
                 free(files);
                 free(filename);
                 storage_dir_close(dir_handle);

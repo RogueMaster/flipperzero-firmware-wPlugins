@@ -1,0 +1,73 @@
+<svg width="512" height="256" viewBox="0 0 512 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- LCD background (Flipper green-ish) -->
+  <rect width="512" height="256" fill="#c8d8a8"/>
+  <rect width="512" height="256" fill="none" stroke="#4a5040" stroke-width="3"/>
+
+  <!-- Header bar (inverted) -->
+  <rect x="0" y="0" width="512" height="48" fill="#2a2a1a"/>
+  <text x="12" y="34" fill="#c8d8a8" font-family="'Courier New',Courier,monospace" font-size="20" font-weight="bold">MR60FDA Radar</text>
+  <!-- Live indicator: filled square = live -->
+  <rect x="490" y="14" width="16" height="16" fill="#c8d8a8"/>
+
+  <!-- Vertical divider (x=63 * 4 = 252) -->
+  <line x1="252" y1="48" x2="252" y2="204" stroke="#2a2a1a" stroke-width="2"/>
+
+  <!-- ═══ Left column ═══ -->
+  <!-- HR  y=21*4=84 -->
+  <text x="4" y="84" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14">HR</text>
+  <text x="244" y="84" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14" text-anchor="end">68 bpm</text>
+
+  <!-- Resp  y=30*4=120 -->
+  <text x="4" y="120" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14">Resp</text>
+  <text x="244" y="120" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14" text-anchor="end">19 /min</text>
+
+  <!-- BSign  y=48*4=192 -->
+  <text x="4" y="192" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14">BSign</text>
+  <text x="244" y="192" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14" text-anchor="end">4</text>
+
+  <!-- ═══ Right column ═══ -->
+  <!-- Presence box inverted  y=12..23 → 48..92 -->
+  <rect x="260" y="48" width="252" height="44" fill="#2a2a1a"/>
+  <text x="386" y="80" fill="#c8d8a8" font-family="'Courier New',Courier,monospace" font-size="14" text-anchor="middle">PRESENT</text>
+
+  <!-- Mot  y=30*4=120 -->
+  <text x="264" y="120" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14">Mot</text>
+  <text x="504" y="120" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14" text-anchor="end">active</text>
+
+  <!-- Fall  y=39*4=156 -->
+  <text x="264" y="156" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14">Fall</text>
+  <text x="504" y="156" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14" text-anchor="end">no</text>
+
+  <!-- Time  y=48*4=192 -->
+  <text x="264" y="192" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14">Time</text>
+  <text x="504" y="192" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14" text-anchor="end">42s</text>
+
+  <!-- ═══ Footer divider  y=51*4=204 ═══ -->
+  <line x1="0" y1="204" x2="512" y2="204" stroke="#2a2a1a" stroke-width="2"/>
+
+  <!-- "H:" label -->
+  <text x="4" y="248" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14">H:</text>
+
+  <!-- Height zone bars (4 zones × 50 cm).
+       Bars grow upward from baseline y=252, max height 40px.
+       Zone 0 (0-50cm): small — Zone 1: medium — Zone 2: tall (person standing) — Zone 3: small -->
+  <!-- zone 0: 0-50cm -->
+  <rect x="40"  y="240" width="24" height="12" fill="#2a2a1a"/>
+  <text x="44"  y="255" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="9" text-anchor="middle">0</text>
+  <!-- zone 1: 50-100cm -->
+  <rect x="72"  y="228" width="24" height="24" fill="#2a2a1a"/>
+  <text x="76"  y="255" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="9" text-anchor="middle">50</text>
+  <!-- zone 2: 100-150cm (tallest — person upright) -->
+  <rect x="104" y="212" width="24" height="40" fill="#2a2a1a"/>
+  <text x="108" y="255" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="9" text-anchor="middle">100</text>
+  <!-- zone 3: 150-200cm -->
+  <rect x="136" y="236" width="24" height="16" fill="#2a2a1a"/>
+  <text x="140" y="255" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="9" text-anchor="middle">150</text>
+
+  <!-- Frame counter -->
+  <text x="172" y="248" fill="#2a2a1a" font-family="'Courier New',Courier,monospace" font-size="14">f:127</text>
+
+  <!-- Back button (elements_button_right) -->
+  <rect x="446" y="210" width="62" height="24" fill="#2a2a1a" rx="3"/>
+  <text x="477" y="227" fill="#c8d8a8" font-family="'Courier New',Courier,monospace" font-size="13" text-anchor="middle">Back</text>
+</svg>

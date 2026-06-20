@@ -27,5 +27,6 @@ typedef struct {
 
 uint32_t calculate_crc32(uint32_t crc, const uint8_t* data, size_t size);
 void process_duplicates(HashDatabase* db);
+void db_remove_record(HashDatabase* db, const char* filename);
 
 #endif

@@ -14,12 +14,10 @@ extern const SubGhzProtocolDecoder kia_protocol_v5_decoder;
 extern const SubGhzProtocolEncoder kia_protocol_v5_encoder;
 extern const SubGhzProtocol kia_protocol_v5;
 
-// Decoder functions
 void* kia_protocol_decoder_v5_alloc(SubGhzEnvironment* environment);
 void kia_protocol_decoder_v5_free(void* context);
 void kia_protocol_decoder_v5_reset(void* context);
 void kia_protocol_decoder_v5_feed(void* context, bool level, uint32_t duration);
-uint8_t kia_protocol_decoder_v5_get_hash_data(void* context);
 SubGhzProtocolStatus kia_protocol_decoder_v5_serialize(
     void* context,
     FlipperFormat* flipper_format,
@@ -28,12 +26,6 @@ SubGhzProtocolStatus
     kia_protocol_decoder_v5_deserialize(void* context, FlipperFormat* flipper_format);
 void kia_protocol_decoder_v5_get_string(void* context, FuriString* output);
 
-// Encoder functions
-#ifdef ENABLE_EMULATE_FEATURE
 void* kia_protocol_encoder_v5_alloc(SubGhzEnvironment* environment);
-void kia_protocol_encoder_v5_free(void* context);
 SubGhzProtocolStatus
     kia_protocol_encoder_v5_deserialize(void* context, FlipperFormat* flipper_format);
-void kia_protocol_encoder_v5_stop(void* context);
-LevelDuration kia_protocol_encoder_v5_yield(void* context);
-#endif

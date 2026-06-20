@@ -15,10 +15,11 @@ This project targets Flipper Zero runtime constraints, so correctness and simpli
 ## Development Setup
 
 1. Install `ufbt` and toolchain.
-2. Build from repo root:
+2. Use the most recent active feature branch if you want to run or contribute to upcoming release work. `main` is kept as the stable public release line, and working from the latest feature branch helps minimize conflicts.
+3. Build from repo root:
    - `ufbt update`
    - `ufbt`
-3. Artifact output:
+4. Artifact output:
    - `dist/holdem.fap`
 
 ## Coding Expectations
@@ -28,6 +29,8 @@ This project targets Flipper Zero runtime constraints, so correctness and simpli
 - Add comments where logic is non-obvious.
 - Keep hot paths efficient (UI draw, hand loop, AI decision flow).
 - Avoid speculative abstraction unless it reduces maintenance cost now.
+- Keep modules purpose-specific and contributor-friendly.
+- Prefer extending the split app structure (`holdem_ui_common`, `holdem_ui_render`, `holdem_ui_flow`, `holdem_gameplay`) over pushing everything back into one large file.
 
 ## PR Guidelines
 
@@ -57,8 +60,9 @@ Please include:
 
 ## Release Discipline
 
-Until the current release is finalized:
+For each release cycle:
 
-- Keep changelog as placeholder only
+- Keep `docs/changelog.md` current with concise user-facing notes
+- Keep `.catalog/CHANGELOG.md` aligned with the latest public release notes used for catalog submission
 - Put major future work in `docs/roadmap.md`
 - Keep private deployment/submission notes out of this repo

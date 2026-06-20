@@ -6,11 +6,11 @@ App(
     stack_size=4 * 1024,
     fap_file_assets="resources",
     fap_icon="wifi_10px.png",
-    fap_category="GPIO/ESP32",
     fap_icon_assets="assets",
+    fap_category="GPIO/ESP32",
     fap_icon_assets_symbol="esp32_wifi_marauder",
     fap_author="0xchocolate & tcpassos",
     fap_weburl="https://github.com/0xchocolate/flipperzero-wifi-marauder",
-    fap_version="0.7.8",
+    fap_version="0.7.9",
     fap_description="WiFi Marauder companion app for Flipper Zero. Requires a connected dev board running Marauder FW.",
 )

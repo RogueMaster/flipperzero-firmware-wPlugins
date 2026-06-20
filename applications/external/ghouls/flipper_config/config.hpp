@@ -1,0 +1,73 @@
+#pragma once
+#include <stdint.h>
+#include <string.h>
+#include <string>
+#include <memory>
+#include "ghouls/src/picogameengine/engine_config.hpp"
+
+#include ENGINE_MEM_INCLUDE
+#include ENGINE_STORAGE_INCLUDE
+#ifdef ENGINE_LOG_INCLUDE
+#include ENGINE_LOG_INCLUDE
+#endif
+
+#define ASSETS_FOLDER STORAGE_EXT_PATH_PREFIX "/apps_data/ghouls/data/"
+
+#define PLAYER_SPEED_HORIZONTAL 0.2f
+
+#define TICKS_PER_DAY 3000
+
+#define ENEMY_SPAWN_MAX 3
+
+#define MINIMAP_DEFAULT false
+
+#define WALL_RENDER_ALLOWED   true
+#define SKY_RENDER_ALLOWED    false
+#define GROUND_RENDER_ALLOWED false
+
+#define WIREFRAME_ENABLED false
+
+// time
+#define TIME_INCLUDE "furi.h"
+#define TIME_MILLIS  furi_get_tick() * 10
+
+// buttons
+#define INPUT_KEY_UP     0
+#define INPUT_KEY_DOWN   1
+#define INPUT_KEY_RIGHT  2
+#define INPUT_KEY_LEFT   3
+#define INPUT_KEY_CENTER 4
+#define INPUT_KEY_BACK   5
+
+// http
+#define HTTP_INACTIVE            -1
+#define HTTP_IDLE                0
+#define HTTP_RECEIVING           1
+#define HTTP_SENDING             2
+#define HTTP_ISSUE               3
+#define HTTP_INCLUDE             "flipper_config/http.h"
+#define HTTP_REQUEST_IS_FINISHED http_is_finished // () -> bool
+#define HTTP_SEND_REQUEST \
+    http_send_request // (const char *url, const char *method, const char *headers, const char *payload) -> bool
+#define HTTP_WEBSOCKET_IS_CONNECTED http_websocket_is_connected // () -> bool
+#define HTTP_WEBSOCKET_SEND         http_websocket_send // (const char *message) -> bool
+#define HTTP_WEBSOCKET_START        http_websocket_start // (const char *url, uint16_t port) -> bool
+#define HTTP_WEBSOCKET_STOP         http_websocket_stop // () -> bool
+#define HTTP_GET_RESPONSE           http_get_http_response // (char *buffer, size_t buffer_size) -> bool
+#define HTTP_GET_WEBSOCKET_RESPONSE \
+    http_get_websocket_response // (char *buffer, size_t buffer_size) -> bool
+#define HTTP_FILE_DOWNLOAD \
+    http_file_download // (const char *url, const char *destination_path) -> bool
+
+// json
+#define JSON_INCLUDE "flipper_config/json.hpp"
+#define JSON_GET_VALUE \
+    get_json_value // (const char *key, const char *json_str) -> char* (caller must free)
+#define JSON_GET_ARRAY_VALUE \
+    get_json_array_value // (const char *key, int index, const char *json_str) -> char* (caller must free)
+
+// sound
+// #define SOUND_INCLUDE "../sound.hpp"
+// #define SOUND_PLAY_MONO_FREQUENCY sound_play_mono_frequency     // (int frequency, int duration_ms)
+// #define SOUND_PLAY_STEREO_FREQUENCY sound_play_stereo_frequency // (int left_freq, int right_freq, int duration_ms)
+// #define SOUND_PLAY_PCM sound_play_pcm                           // (const int16_t *samples, int count)

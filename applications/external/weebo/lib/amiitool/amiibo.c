@@ -52,33 +52,39 @@ void nfc3d_amiibo_cipher(const nfc3d_keygen_derivedkeys * keys, const uint8_t * 
 	memcpy(out + 0x1D4, in + 0x1D4, 0x034);
 }
 
-void nfc3d_amiibo_tag_to_internal(const uint8_t * tag, uint8_t * intl) {
+void nfc3d_amiibo_tag_to_internal(const uint8_t * tag, uint8_t * intl, bool tag_v3) {
+	// NTAG I2C Plus 2K ("v3", e.g. Kirby Air Riders) inserts a 64-byte (0x40)
+	// block at tag offset 0x80, shifting the encrypted HMAC and data blocks.
+	size_t shift = tag_v3 ? 0x40 : 0x00;
+
 	memcpy(intl + 0x000, tag + 0x008, 0x008);
-	memcpy(intl + 0x008, tag + 0x080, 0x020);
+	memcpy(intl + 0x008, tag + 0x080 + shift, 0x020);
 	memcpy(intl + 0x028, tag + 0x010, 0x024);
-	memcpy(intl + 0x04C, tag + 0x0A0, 0x168);
+	memcpy(intl + 0x04C, tag + 0x0A0 + shift, 0x168);
 	memcpy(intl + 0x1B4, tag + 0x034, 0x020);
 	memcpy(intl + 0x1D4, tag + 0x000, 0x008);
 	memcpy(intl + 0x1DC, tag + 0x054, 0x02C);
 }
 
-void nfc3d_amiibo_internal_to_tag(const uint8_t * intl, uint8_t * tag) {
+void nfc3d_amiibo_internal_to_tag(const uint8_t * intl, uint8_t * tag, bool tag_v3) {
+	size_t shift = tag_v3 ? 0x40 : 0x00;
+
 	memcpy(tag + 0x008, intl + 0x000, 0x008);
-	memcpy(tag + 0x080, intl + 0x008, 0x020);
+	memcpy(tag + 0x080 + shift, intl + 0x008, 0x020);
 	memcpy(tag + 0x010, intl + 0x028, 0x024);
-	memcpy(tag + 0x0A0, intl + 0x04C, 0x168);
+	memcpy(tag + 0x0A0 + shift, intl + 0x04C, 0x168);
 	memcpy(tag + 0x034, intl + 0x1B4, 0x020);
 	memcpy(tag + 0x000, intl + 0x1D4, 0x008);
 	memcpy(tag + 0x054, intl + 0x1DC, 0x02C);
 }
 
-bool nfc3d_amiibo_unpack(const nfc3d_amiibo_keys * amiiboKeys, const uint8_t * tag, uint8_t * plain) {
+bool nfc3d_amiibo_unpack(const nfc3d_amiibo_keys * amiiboKeys, const uint8_t * tag, uint8_t * plain, bool tag_v3) {
 	uint8_t internal[NFC3D_AMIIBO_SIZE];
 	nfc3d_keygen_derivedkeys dataKeys;
 	nfc3d_keygen_derivedkeys tagKeys;
 
 	// Convert format
-	nfc3d_amiibo_tag_to_internal(tag, internal);
+	nfc3d_amiibo_tag_to_internal(tag, internal, tag_v3);
 
 	// Generate keys
 	nfc3d_amiibo_keygen(&amiiboKeys->data, internal, &dataKeys);
@@ -100,7 +106,7 @@ bool nfc3d_amiibo_unpack(const nfc3d_amiibo_keys * amiiboKeys, const uint8_t * t
 			memcmp(plain + HMAC_POS_TAG, internal + HMAC_POS_TAG, 32) == 0;
 }
 
-void nfc3d_amiibo_pack(const nfc3d_amiibo_keys * amiiboKeys, const uint8_t * plain, uint8_t * tag) {
+void nfc3d_amiibo_pack(const nfc3d_amiibo_keys * amiiboKeys, const uint8_t * plain, uint8_t * tag, bool tag_v3) {
 	uint8_t cipher[NFC3D_AMIIBO_SIZE];
 	nfc3d_keygen_derivedkeys tagKeys;
 	nfc3d_keygen_derivedkeys dataKeys;
@@ -133,7 +139,7 @@ void nfc3d_amiibo_pack(const nfc3d_amiibo_keys * amiiboKeys, const uint8_t * pla
 	nfc3d_amiibo_cipher(&dataKeys, plain, cipher);
 
 	// Convert back to hardware
-	nfc3d_amiibo_internal_to_tag(cipher, tag);
+	nfc3d_amiibo_internal_to_tag(cipher, tag, tag_v3);
 }
 
 bool nfc3d_amiibo_load_keys(nfc3d_amiibo_keys * amiiboKeys, const char * path) {

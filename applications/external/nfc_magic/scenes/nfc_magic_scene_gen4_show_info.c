@@ -27,7 +27,7 @@ void nfc_magic_scene_gen4_show_info_on_enter(void* context) {
 
     FuriString* output = furi_string_alloc();
 
-    furi_string_printf(output, "\e#Gen4\n");
+    furi_string_printf(output, "\e#Gen 4\n");
 
     // Revision
     furi_string_cat_printf(

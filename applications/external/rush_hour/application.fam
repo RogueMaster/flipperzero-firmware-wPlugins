@@ -1,0 +1,21 @@
+App(
+    appid="rush_hour",
+    name="Rush Hour",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="tutu_app_entry",
+    stack_size=3 * 1024,
+    fap_icon="icons/icon.icon",
+    sources=[
+        "main.c",
+        "src/domain/board.c",
+        "src/data/levels.c",
+        "src/persistence/progress.c",
+        "src/platform/storage_port.c",
+        "src/app/tutu_app.c",
+    ],
+    fap_category="Games",
+    fap_author="Endika",
+    fap_weburl="https://github.com/Endika/flipper-tutu",
+    fap_version="0.1.5",
+    fap_description="Sliding car puzzle (Rush Hour) with 100 levels of increasing difficulty.",
+)

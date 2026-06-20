@@ -1,3 +1,7 @@
+## v0.6
+- Added Online mode
+- Added option in the game menu to hide/show the player
+
 ## v0.5
 - Added a mini map with player position and direction indicators
 - Optimized Vector usage in the rendering code to improve performance and reduce memory usage

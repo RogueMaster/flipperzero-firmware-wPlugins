@@ -1,0 +1,23 @@
+App(
+    appid="avocado_zero",
+    name="Avocado Zero",
+    apptype=FlipperAppType.EXTERNAL,
+    sources=[
+        "main.c",
+        "src/domain/avocado_rules.c",
+        "src/app/avocado_session.c",
+        "src/platform/storage_helper.c",
+        "src/platform/feedback_helper.c",
+        "src/ui/welcome_screen.c",
+        "src/ui/play_screen.c",
+    ],
+    entry_point="avocado_zero_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/icon.icon",
+    fap_category="Games",
+    fap_author="Endika",
+    fap_weburl="https://github.com/Endika/flipper-avocado-zero",
+    fap_version="0.1.0",
+    fap_description="Avocado pit care sim: clean water, grow roots, avoid grime.",
+    # cdefines=["AVOCADO_QA_MODE=1"]
+)

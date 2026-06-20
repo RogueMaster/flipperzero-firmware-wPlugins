@@ -24,17 +24,15 @@ bool settings_storage_init() {
 
     // Attempt to create directory without checking if it exists
     if(!storage_simply_mkdir(storage, GHOST_ESP_APP_FOLDER)) {
-        furi_crash("Can't mkdir! Fuck this SD card!");
+        FURI_LOG_E("SettingsStorage", "Failed to create app directory");
+        furi_record_close(RECORD_STORAGE);
+        storage = NULL;
+        return false;
     }
 
     uint32_t duration = furi_get_tick() - start_time;
     FURI_LOG_I(
         "SettingsStorage", "Storage initialization complete (Time taken: %lu ms)", duration);
-
-    if(!storage) {
-        FURI_LOG_E("Storage", "Storage system failure!");
-        furi_crash("Storage fucked");
-    }
 
     return true;
 }
