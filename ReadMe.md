@@ -3,7 +3,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://lh3.googleusercontent.com/d/1iYQlRQXM7nA4IAdcPwvcKRSTCMoi8tug' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://lh3.googleusercontent.com/d/1gjui0-UZNerG13PUblXjmr1YaSAjIf2k' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0604-1502-0.420.0-39055e4.tgz&channel=RM0604-1502-0.420.0-39055e4&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0620-0027-0.420.0-ac13fdd.tgz&channel=RM0620-0027-0.420.0-ac13fdd&version=0.420.0&target=f7)
 
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
@@ -30,59 +30,6 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-06-20 00:08 EST`
 - Last Synced/Checked Unleashed, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-06-20 00:08 EST`
-- Added: [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
-- Added: [Rush Hour v0.1.4 (By Endika)](https://github.com/Endika/flipper-tutu)
-- Added: [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound)
-- Added: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
-- Added: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
-- Sub-GHz: [Small Telcoma Edge Fixes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/pull/1001)
-- Added: [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
-- Updated: [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound) [Sub-GHz icon for files (By xMasterX)](https://github.com/flipperdevices/flipper-application-catalog/pull/1078#issuecomment-4654569251)
-- Updated RFID with [Support of Hitag Micro chips (8265/8210/H5.5) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1002) and [Wipe T5577 (reset to blank, with read-back verification) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1003) instead of [Hitag #2658 (By blackvault88)](https://github.com/flipperdevices/flipperzero-firmware/pull/2658) and the wipe from [3 new T5577 extra actions: Set/clear custom pw; write block; wipe #678 (By plgcoder)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/678) to match UL more
-- Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
-- Updated: [Rush Hour v0.1.5 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
-- Updated: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet) (No Significant Changes)
-- Updated: [NFC Magic v1.15.2 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) [Gen2 CUID/static-nonce detection, Gen1 4b/7b UID, length-aware wipe & write guard (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/219)
-- Added: [MQ-3 Alcometer v1.0 (By serjantlk)](https://github.com/serjantlk/MQ-3-Alcometer) `Req: MQ-3 Breathalyzer` [Sold Here](https://flipperaddons.com/product/mq-3-alkotester)
-- Sub-GHz: [Add Cardin S508 rolling-code decoder (decode-only) (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1004)
-- Updated: [Radiation Sensor v1.0 (By sionyx)](https://github.com/sionyx/flipper_radsens) `Req: RadSens` [Add sensitivity control (By frydaykg)](https://github.com/sionyx/flipper_radsens/pull/1)
-- Updated: [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
-- Updated: [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz) [Support NDEF text records beyond 127 characters (By k0bura)](https://github.com/wakdev/nfctools-fz/pull/8)
-- OFW: PR: [NFC FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
-- OFW: PR: [NFC: Add Write NDEF Tag action for NTAG21x #4372 (By epatel)](https://github.com/flipperdevices/flipperzero-firmware/pull/4372)
-- OFW: PR: [NFC FeliCa: Add card generator for FeliCa Lite-S #4371 (By dogtopus)](https://github.com/flipperdevices/flipperzero-firmware/pull/4371)
-- Updated: [PINGEQUA RF Lab v0.5.4 (By pingequalab)](https://github.com/pingequalab/rf-lab)
-- Added: [FCC ID Lookup v0.1 (By lrehmann)](https://github.com/lrehmann/fcc-id-lookup-flipper)
-- Updated: [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
-- Updated: [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
-- Sub-GHz: [Fix endless TX causing RAW files to be transmitted and crash the system (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/30d939d52fb02ebbbf1aabe743dfb573f45fc6ee)
-- NFC: [Show MIFARE Ultralight/NTAG PWD & PACK in full info view (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1010)
-- NFC: [Show MIFARE Ultralight/NTAG PWD & PACK on read screen too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1011)
-- Added: [San Morse v1.0 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
-- Added: [LED Ring & Matrix Studio v0.1 (By xfwluna)](https://github.com/xfwluna/led_ring_matrix_studio) `Req: WS2812B / SK6812 NeoPixel`
-- OFW: PR: [Fix typo in SLIX-L unlock menu (By jobgaspersic)](https://github.com/flipperdevices/flipperzero-firmware/pull/4385)
-- Added: [WikiFlip v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
-- Added: [Mayan Decoder v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/Mayan_decoder)
-- NFC: [Add Bambu Lab filament spool parser (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1012)
-- Updated: [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
-- Updated: [TV Remote v1.2 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote) [Ability to import saved .ir files from the Flipper's built-in Infrared app (or any standard Flipper IR library file) and map their signals to the TV Remote buttons (By BentheGameWolf)](https://github.com/jmanion0139/flipper_tv_remote/pull/3)
-- REVERT: Sub-GHz: [Sub-GHz app is now external on SD card, like on OFW (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/commit/33671b91a98dd99786894af7dbf1f6c818032942) (This was causing a crash)
-- Updated: [NFC Seader v4.1.1 (By bettse)](https://github.com/bettse/seader)
-- Updated: [Sub-GHz RAW Edit v1.6 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
-- Updated: [Multi Converter v1.2 (By theisolinearchip)](https://github.com/theisolinearchip) [fix: correct Fahrenheit label in multi converter (By SSDWGG)](https://github.com/xMasterX/all-the-plugins/pull/220)
-- Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip) [Port Ventra-UL parser (By hazardousvoltage)](https://github.com/Next-Flip/Momentum-Apps/pull/79) Many UI & Core Fixes (By luu176)
-- Updated: [Access Audit v1.9 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
-- Added: [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
-- Added: [Flipcraft v2.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
-- Added: [Dallas Tester v0.1 (By mishamyte)](https://github.com/mishamyte/flipper-dallas-tester)
-- ESP Flasher: [Bump Marauder v1.12.2 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.2)
-- Added: [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
-- Updated: [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass) [Fix C1k35s facility code cap to allow full 12-bit range (By Franknozly)](https://github.com/bettse/picopass/pull/6)
-- Updated: [Stratagem Hero v1.0 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
-- Updated: [Tesla Mod v2.16.8 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [Access Audit v1.10 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
-- Added: [LED Remote v1.0 (By AugustinKrb)](https://github.com/AugustinKrb/flipper-led-remote)
-- Added: [MIDI Player v0.1 (By Aspenini)](https://github.com/Aspenini/Flipper-Zero-MIDI-Player)
 
 <a name="release"></a>
 
@@ -1003,4 +950,4 @@ $ ./fbt dolphin_ext
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 - `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for wav/mp3 playback ($200 USD in ETH or BTC) (Don't think this is possible)
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0604-1502-0.420.0-39055e4.tgz&channel=RM0604-1502-0.420.0-39055e4&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0620-0027-0.420.0-ac13fdd.tgz&channel=RM0620-0027-0.420.0-ac13fdd&version=0.420.0&target=f7)
