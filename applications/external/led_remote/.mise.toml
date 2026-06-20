@@ -1,0 +1,6 @@
+[tools]
+"pipx:ufbt" = "latest"
+
+[env]
+# ufbt stores SDK & toolchain here
+UFBT_HOME = "{{env.HOME}}/.ufbt"
