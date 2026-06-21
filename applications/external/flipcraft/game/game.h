@@ -24,7 +24,8 @@ enum Mem {
     M_CRAFTINGOUTPUT = 36,
     M_PERMSELSLOT = 37, // legacy not used (old: m(M_PERMSELSLOT)=0xFF on crafting/inventory open)
     M_HEALTH = 41,
-    M_LOGSINWORLD = 44,
+    M_LOGSINWORLD =
+        44, // legacy not used (leaves now decay locally; slot kept for save compatibility)
 };
 
 enum ScreenId {
@@ -78,6 +79,7 @@ public:
     uint32_t rngState = 0x1234;
 
     int playerX = 0, playerY = 0, playerZ = 0;
+    int velYsub = 0, posYsub = 0;
 
     ScreenId screenId = SCR_PLAY;
     std::vector<ItemEnt> items;
@@ -92,7 +94,8 @@ public:
 
     bool setup(const GameConfig& config);
     void shutdown();
-    void frame(const Input& in);
+    void simulate(const Input& in);
+    bool render();
     uint8_t& m(int addr) {
         return ram[addr];
     }
@@ -145,6 +148,10 @@ private:
     int cursor = 0;
     int selSlot = -1;
     bool gameOverPending = false;
+
+    uint32_t visualSignature() const;
+    uint32_t lastSig = 0;
+    bool forceRedraw = true;
 };
 
 }

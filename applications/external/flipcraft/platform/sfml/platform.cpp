@@ -18,7 +18,7 @@ namespace platform {
 static constexpr unsigned SCALE = 4;
 static constexpr unsigned WINDOW_W = SCREEN_WIDTH * SCALE;
 static constexpr unsigned WINDOW_H = SCREEN_HEIGHT * SCALE;
-static constexpr std::chrono::milliseconds GAME_TICK_DELAY{33};
+static constexpr std::chrono::milliseconds GAME_TICK_DELAY{66};
 
 struct SfmlFile {
     std::fstream stream;
@@ -215,7 +215,8 @@ int32_t run(Game& game) {
     };
     GameConfig config = {&files, "platform/sfml/world.fcw"};
     if(!game.setup(config)) return -1;
-    game.frame(Input{});
+    game.simulate(Input{});
+    game.render();
 
     sf::RenderWindow window(sf::VideoMode({WINDOW_W, WINDOW_H}), "Flipcraft");
     window.setVerticalSyncEnabled(false);
@@ -279,7 +280,8 @@ int32_t run(Game& game) {
             in.menuSelect = event_input.menuSelect || in.menuSelect;
         }
 
-        game.frame(in);
+        game.simulate(in);
+        game.render();
 
         drawFramebuffer(image, game.fb);
         texture.update(image);

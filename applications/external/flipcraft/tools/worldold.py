@@ -110,7 +110,7 @@ OLD_WORLD_8 = (
     (
         (A, A, A, A, A, A, A, A),
         (A, A, V, A, A, A, A, A),
-        (A, V, V, A, A, A, A, A),
+        (A, V, L, A, A, A, A, A),
         (A, V, V, V, A, A, A, A),
         (A, A, V, V, A, A, A, A),
         (A, A, A, A, A, A, A, A),

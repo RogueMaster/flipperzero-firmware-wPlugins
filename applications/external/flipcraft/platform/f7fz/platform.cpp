@@ -129,6 +129,8 @@ static constexpr uint32_t LONG_PRESS_MS = 300;
 static constexpr uint32_t REPEAT_DELAY_MS = 260;
 static constexpr uint32_t REPEAT_RATE_MS = 110;
 
+static constexpr uint32_t GAME_TICK_MS = 80;
+
 struct AppState {
     Game* game = nullptr;
     FuriMutex* mutex = nullptr;
@@ -152,14 +154,21 @@ struct AppState {
 };
 
 static void packSsd(const Framebuffer& fb, uint8_t* ssd) {
-    memset(ssd, 0, SSD_SZ);
     for(int page = 0; page < (SCREEN_HEIGHT / 8); ++page) {
+        const uint8_t* r0 = fb.px[page * 8 + 0];
+        const uint8_t* r1 = fb.px[page * 8 + 1];
+        const uint8_t* r2 = fb.px[page * 8 + 2];
+        const uint8_t* r3 = fb.px[page * 8 + 3];
+        const uint8_t* r4 = fb.px[page * 8 + 4];
+        const uint8_t* r5 = fb.px[page * 8 + 5];
+        const uint8_t* r6 = fb.px[page * 8 + 6];
+        const uint8_t* r7 = fb.px[page * 8 + 7];
+        uint8_t* out = ssd + page * DISP_W;
         for(int col = 0; col < SCREEN_WIDTH; ++col) {
-            uint8_t byte = 0;
-            for(int bit = 0; bit < 8; ++bit) {
-                if(fb.px[page * 8 + bit][col]) byte |= static_cast<uint8_t>(1u << bit);
-            }
-            ssd[page * DISP_W + col] = byte;
+            out[col] = static_cast<uint8_t>(
+                (r0[col] != 0) | ((r1[col] != 0) << 1) | ((r2[col] != 0) << 2) |
+                ((r3[col] != 0) << 3) | ((r4[col] != 0) << 4) | ((r5[col] != 0) << 5) |
+                ((r6[col] != 0) << 6) | ((r7[col] != 0) << 7));
         }
     }
 }
@@ -391,20 +400,43 @@ static void runGame(Game& game, Gui* gui, const char* path) {
     gui_add_view_port(gui, st->view_port, GuiLayerFullscreen);
 
     furi_mutex_acquire(st->mutex, FuriWaitForever);
-    game.frame(Input{});
+    game.simulate(Input{});
+    game.render();
     furi_mutex_release(st->mutex);
     view_port_update(st->view_port);
 
+    const uint32_t TICK_MS = GAME_TICK_MS;
+    const uint32_t MAX_ACC = TICK_MS * 5;
+    uint32_t last = furi_get_tick();
+    uint32_t acc = 0;
+
     while(true) {
-        Input in = pollInput(st);
+        uint32_t now = furi_get_tick();
+        acc += now - last;
+        last = now;
+        if(acc > MAX_ACC) acc = MAX_ACC;
+
+        bool stepped = false;
+        while(acc >= TICK_MS) {
+            Input in = pollInput(st);
+            if(st->ev_exit) break;
+            furi_mutex_acquire(st->mutex, FuriWaitForever);
+            game.simulate(in);
+            furi_mutex_release(st->mutex);
+            acc -= TICK_MS;
+            stepped = true;
+        }
         if(st->ev_exit) break;
 
-        furi_mutex_acquire(st->mutex, FuriWaitForever);
-        game.frame(in);
-        furi_mutex_release(st->mutex);
+        if(stepped) {
+            furi_mutex_acquire(st->mutex, FuriWaitForever);
+            bool present = game.render();
+            furi_mutex_release(st->mutex);
+            if(present) view_port_update(st->view_port);
+        }
 
-        view_port_update(st->view_port);
-        delayMs(33);
+        uint32_t ahead = (acc < TICK_MS) ? (TICK_MS - acc) : 1;
+        delayMs(ahead);
     }
 
     furi_mutex_acquire(st->mutex, FuriWaitForever);

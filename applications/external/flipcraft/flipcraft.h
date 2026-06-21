@@ -40,13 +40,9 @@ constexpr int WORLD_SY = 16;
 constexpr int WORLD_SZ = WORLD_CHUNKS_Z * CHUNK_SIZE;
 constexpr int WINDOW_CHUNKS = 3;
 constexpr int CHUNK_BLOCKS = CHUNK_SIZE * WORLD_SY * CHUNK_SIZE;
-
-// Persisted storage region (after the world chunk array). Each chest/furnace
-// owns one fixed-size slot addressed by an explicit index: contents are loaded
-// on demand and written on close. STORAGE_CAPACITY caps the number of storages.
 constexpr int STORAGE_CAPACITY = 256;
-constexpr int STORAGE_SLOT_SIZE = 16; // bytes per storage slot on disk
-constexpr int INVENTORY_REGION_SIZE = 32; // [0]=valid magic, [1..]=payload
+constexpr int STORAGE_SLOT_SIZE = 16;
+constexpr int INVENTORY_REGION_SIZE = 32;
 constexpr int PLAYERWIDTH = 9;
 constexpr int PLAYERHEIGHT = 28;
 constexpr int PLAYERHALFWIDTH = 5;
@@ -59,7 +55,9 @@ constexpr int PLAYERCROUCHCAMHEIGHT = 22;
 constexpr int MIDDLEOFVOID = 0xA0;
 constexpr int BLOCKMIDDLEOFVOID = 0xC;
 constexpr int GRAVITY = 15;
-constexpr int JUMPSTRENGTH = 17;
+constexpr int JUMPSTRENGTH = 22;
+constexpr int VERT_SUBPIXEL = 16;
+constexpr int JUMP_AIRTIME = 2;
 constexpr int SPEEDFACTOR = 0x40;
 constexpr int RAYCASTMAXLENGTH = 0x40;
 constexpr int BREAKTIME = 24;
@@ -72,6 +70,7 @@ constexpr int SMELTTIME = 0xC0;
 constexpr int LEAVES_SAPLING_PROBABILITY = 50;
 constexpr int LEAVES_STICK_PROBABILITY = 70;
 constexpr int LEAVES_APPLE_PROBABILITY = 80;
+constexpr int LEAF_LOG_RADIUS = 3;
 
 static_assert(CHUNK_SIZE == 8, "getBlock fast path assumes 8-block chunks");
 static_assert((1 << CHUNK_SHIFT) == CHUNK_SIZE, "CHUNK_SHIFT must match CHUNK_SIZE");
@@ -269,7 +268,7 @@ inline float FixedPoint(float value, int bits, int precision, bool sgned = false
     int32_t bitmask = (int32_t(1) << bits) - 1;
     int32_t v = ifloor(value * (float)shiftamount) & bitmask;
     if(sgned && v > (int32_t(1) << (bits - 1))) v -= (int32_t(1) << bits);
-    return (float)v / (float)shiftamount;
+    return (float)v * (1.0f / (float)shiftamount);
 }
 
 inline uint8_t u8(int v) {
@@ -293,6 +292,7 @@ struct World {
     bool slotDirty[WINDOW_CHUNKS][WINDOW_CHUNKS];
 
     int centerCX = -2, centerCZ = -2;
+    uint32_t revision = 0;
 
     const FileSystem* fs = nullptr;
     void* file = nullptr;
@@ -326,7 +326,9 @@ struct World {
            (unsigned)z < (unsigned)worldSZ()) {
             int cx = x >> CHUNK_SHIFT, cz = z >> CHUNK_SHIFT, sx = cx % 3, sz = cz % 3;
             if(slotCX[sx][sz] == cx && slotCZ[sx][sz] == cz) {
-                slot[sx][sz][y][z & CHUNK_MASK][x & CHUNK_MASK] = id;
+                uint8_t& cell = slot[sx][sz][y][z & CHUNK_MASK][x & CHUNK_MASK];
+                if(cell != id) revision++;
+                cell = id;
                 if(id != BLOCK_AIR) {
                     if(y > slotMaxY[sx][sz]) slotMaxY[sx][sz] = y;
                 } else if(y == slotMaxY[sx][sz]) {
