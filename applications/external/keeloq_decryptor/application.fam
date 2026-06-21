@@ -1,0 +1,13 @@
+App(
+    appid="keeloq_keystore_decryptor",
+    name="KeeLoq Keystore Decryptor",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="keystore_decrypt_app",
+    stack_size=8 * 1024,
+    fap_category="Sub-GHz",
+    fap_author="Lechnio",
+    fap_weburl="https://github.com/Lechnio/KeeLoq-Keystore-Decryptor",
+    fap_version="1.0",
+    fap_icon="icon.png",
+    fap_description="KeeLoq keystore decryptor for Flipper Zero.",
+)
