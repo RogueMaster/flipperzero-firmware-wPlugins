@@ -76,6 +76,7 @@ enum
     FlipperHamViewBook,
     FlipperHamViewC2,
     FlipperHamViewTextInput,
+    FlipperHamViewCoordInput,
     FlipperHamViewFreq,
     FlipperHamViewFreqEdit,
     FlipperHamViewPosEdit,

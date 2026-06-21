@@ -35,6 +35,7 @@ typedef struct FlipperHamApp
     VariableItemList *freq_edit_menu;
     VariableItemList *pos_edit_menu;
     TextInput *text_input;
+    View *coord_input_view;
     Widget *readme_widget;
     View *splash_view;
     FuriTimer *splash_timer;
@@ -134,6 +135,7 @@ typedef struct FlipperHamApp
     uint16_t ham_tx_sel;
     uint8_t text_mode;
     uint8_t text_view;
+    uint8_t coord_key;
     char b_edit[TXT_LEN];
     char st_edit[TXT_LEN];
     char m_edit[TXT_LEN];

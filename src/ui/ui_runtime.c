@@ -82,6 +82,7 @@ void flipperham_menu_free(FlipperHamApp *app)
         view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewHam);
         view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewHamTx);
         view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewTextInput);
+        view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewCoordInput);
         view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewReadme);
         view_dispatcher_free(app->view_dispatcher);
         app->view_dispatcher = NULL;
@@ -207,6 +208,7 @@ void flipperham_menu_free(FlipperHamApp *app)
         app->text_input = NULL;
     }
 
+    coord_input_free(app);
     splash_view_free(app);
 }
 
@@ -282,6 +284,8 @@ FlipperHamApp *flipperham_app_alloc(void)
     app->freq_edit_menu = variable_item_list_alloc();
     app->pos_edit_menu = variable_item_list_alloc();
     app->text_input = text_input_alloc();
+    app->coord_input_view = NULL;
+    coord_input_alloc(app);
     app->readme_widget = widget_alloc();
     app->splash_view = NULL;
     app->splash_timer = NULL;
@@ -341,6 +345,7 @@ FlipperHamApp *flipperham_app_alloc(void)
     app->splash_next_view = FlipperHamViewMenu;
     app->text_mode = 0;
     app->text_view = FlipperHamViewMenu;
+    app->coord_key = 0;
     app->pkt = NULL;
     app->wave = NULL;
 
@@ -427,6 +432,7 @@ FlipperHamApp *flipperham_app_alloc(void)
     view_set_previous_callback(variable_item_list_get_view(app->ham_tx_menu),
                                flipperham_ham_tx_exit_callback);
     view_set_previous_callback(text_input_get_view(app->text_input), flipperham_text_exit_callback);
+    view_set_previous_callback(app->coord_input_view, flipperham_text_exit_callback);
     view_set_previous_callback(widget_get_view(app->readme_widget),
                                flipperham_readme_exit_callback);
     variable_item_list_set_enter_callback(app->ssid_menu, ssid_enter, app);
@@ -475,6 +481,7 @@ FlipperHamApp *flipperham_app_alloc(void)
                              variable_item_list_get_view(app->ham_tx_menu));
     view_dispatcher_add_view(app->view_dispatcher, FlipperHamViewTextInput,
                              text_input_get_view(app->text_input));
+    view_dispatcher_add_view(app->view_dispatcher, FlipperHamViewCoordInput, app->coord_input_view);
     view_dispatcher_add_view(app->view_dispatcher, FlipperHamViewReadme,
                              widget_get_view(app->readme_widget));
     view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewMenu);

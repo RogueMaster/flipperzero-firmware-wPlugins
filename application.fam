@@ -52,6 +52,7 @@ App(
         "src/ui/ui.c",
         "src/ui/ui_freq.c",
         "src/ui/ui_edit.c",
+        "src/ui/ui_coord.c",
         "src/ui/ui_splash.c",
         "src/ui/ui_runtime.c",
     ],
