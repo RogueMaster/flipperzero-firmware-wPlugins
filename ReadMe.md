@@ -33,6 +33,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Flipcraft v2.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Updated: [Access Audit v1.10.2 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 - Addeed: [KeeLoq Keystore Decryptor v1.0 (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
+- Updated: [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
 
 <a name="release"></a>
 
