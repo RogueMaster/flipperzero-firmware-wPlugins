@@ -157,7 +157,7 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
         canvas_draw_line(canvas, 0, 13, 127, 13);
 
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 20, "v" APP_VERSION);
+        canvas_draw_str(canvas, 2, 22, "v" APP_VERSION);
         canvas_draw_str_aligned(
             canvas,
             126,
@@ -170,17 +170,17 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
         if(app->session.count > 0) {
             char cbuf[16];
             snprintf(cbuf, sizeof(cbuf), "[%u]", (unsigned)app->session.count);
-            canvas_draw_str_aligned(canvas, 126, 24, AlignRight, AlignBottom, cbuf);
+            canvas_draw_str_aligned(canvas, 126, 22, AlignRight, AlignBottom, cbuf);
         }
         canvas_draw_str(
             canvas,
             2,
-            26,
+            32,
             app->scan_mode == ScanModeNfc    ? "Tap card to reader..." :
             app->scan_mode == ScanModeIclass ? "Tap iCLASS card..." :
                                                "Hold card to reader...");
-        canvas_draw_str(canvas, 2, 38, "Scanning...");
-        canvas_draw_str(canvas, 2, 50, "< > NFC/RFID/iCLASS");
+        canvas_draw_str(canvas, 2, 42, "Scanning...");
+        canvas_draw_str(canvas, 2, 52, "< > NFC/RFID/iCLASS");
         canvas_draw_str(canvas, 2, 62, "Up:reports  Back:exit");
         return;
     }

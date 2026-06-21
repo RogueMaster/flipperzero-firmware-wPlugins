@@ -149,6 +149,7 @@ const char* ease_of_exploit(const AccessObservation* obs) {
     case CardTypeMifareClassic4K:
     case CardTypeMifareClassicMini:
     case CardTypeMifarePlusSL1:
+    case CardTypeMifarePlusSL2:
     case CardTypeMifareUltralightC:
     case CardTypeHidIclassLegacy:
     case CardTypeHidIclassLegacy2k:
@@ -163,7 +164,6 @@ const char* ease_of_exploit(const AccessObservation* obs) {
     case CardTypeMifareDesfireEV3:
     case CardTypeMifareDesfireLight:
     case CardTypeMifarePlus:
-    case CardTypeMifarePlusSL2:
     case CardTypeMifarePlusSL3:
     case CardTypeFelica:
         return "hard";

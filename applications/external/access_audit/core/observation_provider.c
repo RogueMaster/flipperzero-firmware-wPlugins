@@ -488,10 +488,12 @@ static NfcCommand mf_plus_poller_cb(NfcGenericEvent event, void* context) {
             p->pending.tech = TechTypeNfc13Mhz;
             p->pending.card_type = mf_plus_sl_to_card_type(plus_data->security_level);
             p->pending.metadata_complete = true;
-            /* SL2/SL3 have AES-protected sectors; SL1 is Classic-compat */
-            p->pending.user_memory_present =
-                (plus_data->security_level == MfPlusSecurityLevel2 ||
-                 plus_data->security_level == MfPlusSecurityLevel3);
+            /* SL3 = full AES + ISO14443-4 with protected application memory.
+             * SL2 is the weak transitional mode (AES auth but Classic frame
+             * structure, downgrade-prone), so it is NOT treated as having
+             * protected memory — it scores MODERATE, not SECURE (see
+             * docs/card-types.md). SL1 is Classic-compatible (no AES in use). */
+            p->pending.user_memory_present = (plus_data->security_level == MfPlusSecurityLevel3);
 
             if(uid && uid_len > 0) {
                 p->pending.uid_present = true;
@@ -744,11 +746,14 @@ static NfcCommand felica_poller_cb(NfcGenericEvent event, void* context) {
         p->pending.tech = TechTypeNfc13Mhz;
         p->pending.metadata_complete = (fc_event->type == FelicaPollerEventTypeReady);
 
-        /* Classify by workflow type */
+        /* Classify by workflow type. Standard FeliCa has proprietary mutual
+         * authentication protecting its blocks (scores SECURE); Lite has no
+         * mutual auth — it is a UID-only credential (scores HIGH RISK). */
         if(fc_data->workflow_type == FelicaLite) {
             p->pending.card_type = CardTypeFeliCaLite;
         } else {
             p->pending.card_type = CardTypeFelica;
+            p->pending.user_memory_present = true;
         }
 
         if(uid && uid_len > 0) {

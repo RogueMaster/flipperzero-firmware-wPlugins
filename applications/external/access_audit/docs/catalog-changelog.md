@@ -1,3 +1,9 @@
+## 1.10.2
+Scan-screen layout fix: the version line and prompts are evenly spaced (no longer squashed under the title divider).
+
+## 1.10.1
+Scoring corrections: MIFARE Plus SL2 now scores MODERATE (it is the weak transitional mode — AES auth but Classic frames), and FeliCa Standard now scores SECURE (it has proprietary mutual authentication). FeliCa Lite remains HIGH RISK.
+
 ## 1.10.0
 Reports now present the score as a **likelihood-of-compromise** rating aligned with the [OWASP Risk Rating Methodology](https://owasp.org/www-community/OWASP_Risk_Rating_Methodology). Each card shows a Likelihood band (HIGH/MODERATE/LOW/MINIMAL) and an Ease-of-exploit factor. The tool rates likelihood only; impact (what the credential protects) is assessed in engagement context.
 
