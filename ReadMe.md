@@ -34,6 +34,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Access Audit v1.10.2 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 - Addeed: [KeeLoq Keystore Decryptor v1.0 (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
 - Updated: [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
+- OFW: PR: [Make view_port_send_to_back public #4320 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4320)
+- NFC: [NFC: ISO 15693-3 emulation READ_MULTI and GET_BLOCK_SECURITY fixes #4334 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4334)
+- NFC: [NFC: Fix sending 32+ byte ISO 15693-3 commands #4333 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4333)
 
 <a name="release"></a>
 
