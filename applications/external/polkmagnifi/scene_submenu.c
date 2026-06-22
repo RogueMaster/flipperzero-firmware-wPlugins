@@ -24,7 +24,7 @@ void scene_submenu_draw_cb(Canvas* canvas, void* model) {
         if(len >= sizeof(word1)) len = sizeof(word1) - 1;
         memcpy(word1, m->title, len);
         word1[len] = '\0';
-        canvas_draw_str_aligned(canvas, SCREEN_W / 2, 7,  AlignCenter, AlignBottom, word1);
+        canvas_draw_str_aligned(canvas, SCREEN_W / 2, 7, AlignCenter, AlignBottom, word1);
         canvas_draw_str_aligned(canvas, SCREEN_W / 2, 15, AlignCenter, AlignBottom, space + 1);
     } else {
         canvas_draw_str_aligned(canvas, SCREEN_W / 2, 12, AlignCenter, AlignBottom, m->title);
@@ -34,7 +34,7 @@ void scene_submenu_draw_cb(Canvas* canvas, void* model) {
     for(uint8_t i = 0; i < m->count; i++) {
         int32_t y = HEADER_H + i * ITEM_H;
         bool selected = (i == m->selected);
-        bool pressed  = selected && m->is_pressed;
+        bool pressed = selected && m->is_pressed;
 
         canvas_set_color(canvas, ColorBlack);
         if(pressed) {
@@ -80,26 +80,29 @@ bool scene_submenu_input_cb(InputEvent* event, void* ctx) {
 
     if(event->key == InputKeyUp) {
         with_view_model(
-            app->submenu_view, SubMenuViewModel * m,
-            { if(m->selected > 0) m->selected--; },
+            app->submenu_view,
+            SubMenuViewModel * m,
+            {
+                if(m->selected > 0) m->selected--;
+            },
             true);
         return true;
     }
 
     if(event->key == InputKeyDown) {
         with_view_model(
-            app->submenu_view, SubMenuViewModel * m,
-            { if(m->selected < m->count - 1) m->selected++; },
+            app->submenu_view,
+            SubMenuViewModel * m,
+            {
+                if(m->selected < m->count - 1) m->selected++;
+            },
             true);
         return true;
     }
 
     if(event->key == InputKeyOk) {
         uint8_t sel = 0;
-        with_view_model(
-            app->submenu_view, SubMenuViewModel * m,
-            { sel = m->selected; },
-            false);
+        with_view_model(app->submenu_view, SubMenuViewModel * m, { sel = m->selected; }, false);
         if(sel < row->sub_count) {
             polk_send(row->sub_cmds[sel]);
         }
@@ -116,12 +119,13 @@ void scene_submenu_on_enter(void* ctx) {
     const RemoteRow* row = &ROWS[app->active_row];
 
     with_view_model(
-        app->submenu_view, SubMenuViewModel * m,
+        app->submenu_view,
+        SubMenuViewModel * m,
         {
             m->selected = 0;
-            m->count    = row->sub_count;
-            m->title    = row->label;
-            m->labels   = row->sub_labels;
+            m->count = row->sub_count;
+            m->title = row->label;
+            m->labels = row->sub_labels;
         },
         true);
 
