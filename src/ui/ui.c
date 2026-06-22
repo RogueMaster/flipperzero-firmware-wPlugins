@@ -15,10 +15,12 @@ static void ham_blank_draw(Canvas *canvas, void *context);
 static void ham_blank_input(InputEvent *event, void *context);
 static void ham_morse_play(FlipperHamApp *app);
 static void c2(void *context, uint32_t index);
+static void radio_change(VariableItem *item);
 static void aprs_path_change(VariableItem *item);
 static void debug_change(VariableItem *item);
 static void aprs_path_custom_save(void *context);
 static const char *aprs_paths[] = {"None", "RFONLY", "NOGATE", "W1-1", "W2-2", "ARISS", "APRSAT", "Custom"};
+static const char *radio_backends[] = {"Internal", "External"};
 FlipperHamApp *gapp;
 static bool call_copy(FlipperHamApp *app);
 
@@ -797,6 +799,12 @@ void settings_menu_build(FlipperHamApp *app)
     variable_item_set_current_value_index(it, 0);
     variable_item_set_current_value_text(it, a);
 
+    it = variable_item_list_add(app->settings_menu, "Radio", 2, radio_change, app);
+    if (app->radio_backend > FlipperHamRadioExternal)
+        app->radio_backend = FlipperHamRadioInternal;
+    variable_item_set_current_value_index(it, app->radio_backend);
+    variable_item_set_current_value_text(it, radio_backends[app->radio_backend]);
+
     it = variable_item_list_add(
         app->settings_menu, "Baud",
         sizeof(flipperham_modem_profiles) / sizeof(flipperham_modem_profiles[0]), baud_change, app);
@@ -1062,6 +1070,18 @@ static void debug_change(VariableItem *item)
 
     app->debug_tx = variable_item_get_current_value_index(item) ? 1 : 0;
     variable_item_set_current_value_text(item, app->debug_tx ? "Yes" : "No");
+    cfgsave(app);
+}
+
+static void radio_change(VariableItem *item)
+{
+    FlipperHamApp *app = variable_item_get_context(item);
+
+    app->radio_backend = variable_item_get_current_value_index(item);
+    if (app->radio_backend > FlipperHamRadioExternal)
+        app->radio_backend = FlipperHamRadioInternal;
+
+    variable_item_set_current_value_text(item, radio_backends[app->radio_backend]);
     cfgsave(app);
 }
 
