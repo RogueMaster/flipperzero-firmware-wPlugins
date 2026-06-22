@@ -1,0 +1,110 @@
+Filetype: IR signals file
+Version: 1
+#
+name: Power On Off
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 00 FF 00 00
+#
+name: Volume Up
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 1E E1 00 00
+#
+name: Volume Down
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 1F E0 00 00
+#
+name: Mute
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 20 DF 00 00
+#
+name: Aux Input
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 0D F2 00 00
+#
+name: Optical Input
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 0E F1 00 00
+#
+name: HdmiARC Input
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 0F F0 00 00
+#
+name: Voice Up
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 6A 95 00 00
+#
+name: Voice Down
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 6B 94 00 00
+#
+name: Bass Up
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 5C A3 00 00
+#
+name: Bass Down
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 5D A2 00 00
+#
+name: Mode Music
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 78 87 00 00
+#
+name: Mode Sports
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 79 86 00 00
+#
+name: Mode Cinema
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 77 88 00 00
+#
+name: Mode Night
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 71 8E 00 00
+# 
+name: Play
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 21 DE 00 00
+# 
+name: Next
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 24 DB 00 00
+# 
+name: Previous
+type: parsed
+protocol: NECext
+address: C8 91 00 00
+command: 26 D9 00 00

@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+._*
+
+# Linux editor backups
+*~
+
+# Build folders
+build/

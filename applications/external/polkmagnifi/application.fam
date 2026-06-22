@@ -1,0 +1,12 @@
+App(
+    appid="polk_magnifimini_remote",
+    name="Polk MagnifiMini Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="polk_remote_app",
+    stack_size=2 * 1024,
+    fap_category="Infrared",
+    fap_version=(1, 0),
+    fap_description="Polk MagnifiMini Soundbar Remote",
+    fap_icon_assets="images",
+    fap_icon="images/remote.png",
+)
