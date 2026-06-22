@@ -5,6 +5,10 @@
 #include <nfc/protocols/nfc_protocol.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
+#include <nfc/protocols/iso14443_4a/iso14443_4a.h>
+#include <nfc/protocols/iso14443_4a/iso14443_4a_poller.h>
+#include <toolbox/bit_buffer.h>
+#include <string.h>
 #include <nfc/protocols/mf_classic/mf_classic.h>
 #include <nfc/protocols/mf_classic/mf_classic_poller.h>
 #include <nfc/protocols/mf_ultralight/mf_ultralight.h>
@@ -164,6 +168,12 @@ static NfcProtocol uid_transport(const NfcProtocol* protos, size_t count) {
             return NfcProtocolMfUltralight;
         }
     }
+    /* Prefer ISO14443-4a for ISO-7816 smart cards (e.g. HID Seos) so we can
+     * send APDUs to identify the applet. Non-Seos 4a cards fall back to the
+     * generic ISO14443-A classification. */
+    for(size_t i = 0; i < count; i++) {
+        if(protos[i] == NfcProtocolIso14443_4a) return NfcProtocolIso14443_4a;
+    }
     for(size_t i = 0; i < count; i++) {
         if(protos[i] == NfcProtocolIso14443_3a ||
            nfc_protocol_has_parent(protos[i], NfcProtocolIso14443_3a)) {
@@ -307,6 +317,102 @@ static void scanner_callback(NfcScannerEvent event, void* context) {
  * while the card is definitely present, then stop.
  * -------------------------------------------------------------------------
  */
+
+/* -------------------------------------------------------------------------
+ * ISO14443-4a poller callback  (runs on NFC worker thread)
+ *
+ * For ISO-7816 smart cards (Seos and other 4-layer cards) we activate the
+ * ISO14443-4a layer and attempt an APDU SELECT of the HID Seos application.
+ * A 0x9000 response confirms HID Seos. This is a passive identify only — it
+ * does NOT read PACS (facility code / card number), which requires a HID SAM
+ * (see issue #53). Non-Seos 4a cards classify as generic ISO14443-A.
+ * -------------------------------------------------------------------------
+ */
+
+/* HID Seos applet AID. */
+static const uint8_t SEOS_AID[] = {0xA0, 0x00, 0x00, 0x04, 0x40, 0x00, 0x01, 0x01, 0x00, 0x01};
+
+static bool iso14443_4a_card_is_seos(Iso14443_4aPoller* poller) {
+    /* ISO-7816 SELECT by name (P1=0x04): 00 A4 04 00 <Lc> <AID> 00 */
+    uint8_t apdu[5 + sizeof(SEOS_AID) + 1];
+    size_t n = 0;
+    apdu[n++] = 0x00; /* CLA */
+    apdu[n++] = 0xA4; /* INS: SELECT */
+    apdu[n++] = 0x04; /* P1: select by name (AID) */
+    apdu[n++] = 0x00; /* P2 */
+    apdu[n++] = (uint8_t)sizeof(SEOS_AID); /* Lc */
+    memcpy(&apdu[n], SEOS_AID, sizeof(SEOS_AID));
+    n += sizeof(SEOS_AID);
+    apdu[n++] = 0x00; /* Le */
+
+    BitBuffer* tx = bit_buffer_alloc(sizeof(apdu));
+    BitBuffer* rx = bit_buffer_alloc(64);
+    bit_buffer_append_bytes(tx, apdu, n);
+
+    bool is_seos = false;
+    if(iso14443_4a_poller_send_block(poller, tx, rx) == Iso14443_4aErrorNone) {
+        size_t len = bit_buffer_get_size_bytes(rx);
+        /* Success = trailing status word 0x9000. */
+        if(len >= 2 && bit_buffer_get_byte(rx, len - 2) == 0x90 &&
+           bit_buffer_get_byte(rx, len - 1) == 0x00) {
+            is_seos = true;
+        }
+    }
+
+    bit_buffer_free(tx);
+    bit_buffer_free(rx);
+    return is_seos;
+}
+
+static NfcCommand iso14443_4a_poller_cb(NfcGenericEvent event, void* context) {
+    ObservationProvider* p = context;
+    const Iso14443_4aPollerEvent* ev = (const Iso14443_4aPollerEvent*)event.event_data;
+
+    if(ev->type != Iso14443_4aPollerEventTypeReady) {
+        furi_mutex_acquire(p->mutex, FuriWaitForever);
+        p->state = ProviderStateReadFailed;
+        furi_mutex_release(p->mutex);
+        return NfcCommandStop;
+    }
+
+    /* APDU exchange runs on the worker thread before we touch shared state. */
+    bool seos = iso14443_4a_card_is_seos((Iso14443_4aPoller*)event.instance);
+
+    furi_mutex_acquire(p->mutex, FuriWaitForever);
+
+    const Iso14443_4aData* data = (const Iso14443_4aData*)nfc_poller_get_data(p->poller);
+    if(data) {
+        size_t uid_len = 0;
+        const uint8_t* uid = iso14443_3a_get_uid(data->iso14443_3a_data, &uid_len);
+
+        p->pending = (AccessObservation){0};
+        p->pending.tech = TechTypeNfc13Mhz;
+        p->pending.metadata_complete = true;
+        if(seos) {
+            p->pending.card_type = CardTypeSeos;
+            /* Seos is an AES secure element — credential is in protected memory. */
+            p->pending.user_memory_present = true;
+        } else {
+            p->pending.card_type = CardTypeIso14443A;
+        }
+
+        if(uid && uid_len > 0) {
+            p->pending.uid_present = true;
+            p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                     sizeof(p->pending.uid);
+            for(size_t i = 0; i < p->pending.uid_len; i++) {
+                p->pending.uid[i] = uid[i];
+            }
+        }
+
+        p->state = ProviderStateDone;
+    } else {
+        p->state = ProviderStateReadFailed;
+    }
+
+    furi_mutex_release(p->mutex);
+    return NfcCommandStop;
+}
 
 static NfcCommand iso14443_3a_poller_cb(NfcGenericEvent event, void* context) {
     ObservationProvider* p = context;
@@ -804,6 +910,8 @@ static NfcGenericCallback callback_for_protocol(NfcProtocol protocol) {
         return mf_classic_poller_cb;
     case NfcProtocolMfUltralight:
         return mf_ultralight_poller_cb;
+    case NfcProtocolIso14443_4a:
+        return iso14443_4a_poller_cb;
     case NfcProtocolIso14443_3a:
         return iso14443_3a_poller_cb;
     case NfcProtocolIso15693_3:

@@ -177,9 +177,11 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
             2,
             32,
             app->scan_mode == ScanModeNfc    ? "Tap card to reader..." :
-            app->scan_mode == ScanModeIclass ? "Tap iCLASS card..." :
+            app->scan_mode == ScanModeIclass ? "Tap iCLASS SE/Legacy..." :
                                                "Hold card to reader...");
-        canvas_draw_str(canvas, 2, 42, "Scanning...");
+        /* iCLASS mode is ISO15693 (Legacy/SE); Seos is ISO14443-4A — NFC mode. */
+        canvas_draw_str(
+            canvas, 2, 42, app->scan_mode == ScanModeIclass ? "Seos? use NFC mode" : "Scanning...");
         canvas_draw_str(canvas, 2, 52, "< > NFC/RFID/iCLASS");
         canvas_draw_str(canvas, 2, 62, "Up:reports  Back:exit");
         return;

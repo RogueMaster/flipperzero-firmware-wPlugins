@@ -1,3 +1,9 @@
+## 1.11.1
+Clarified the iCLASS scan mode: the prompt now reads "Tap iCLASS SE/Legacy..." with a "Seos? use NFC mode" hint. iCLASS Legacy/SE are on ISO 15693; Seos is ISO 14443-4A (NFC mode).
+
+## 1.11.0
+HID Seos detection: Seos cards (ISO14443-4A) are now identified via an AID SELECT and scored SECURE, instead of showing as a generic ISO 14443-4A card. Passive identify only — reading the PACS still needs a HID SAM.
+
 ## 1.10.2
 Scan-screen layout fix: the version line and prompts are evenly spaced (no longer squashed under the title divider).
 

@@ -166,6 +166,7 @@ const char* ease_of_exploit(const AccessObservation* obs) {
     case CardTypeMifarePlus:
     case CardTypeMifarePlusSL3:
     case CardTypeFelica:
+    case CardTypeSeos:
         return "hard";
     default:
         return "indeterminate";
@@ -240,6 +241,8 @@ const char* card_type_to_string(CardType type) {
         return "HID iCLASS 16k (Legacy)";
     case CardTypeHidIclassLegacy32k:
         return "HID iCLASS 32k (Legacy)";
+    case CardTypeSeos:
+        return "HID Seos";
     case CardTypeFelica:
         return "FeliCa";
     case CardTypeFeliCaLite:

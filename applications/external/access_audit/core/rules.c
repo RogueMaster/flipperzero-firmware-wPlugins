@@ -73,6 +73,8 @@ bool rule_modern_crypto(const AccessObservation* obs) {
     case CardTypeMifarePlusSL3:
     /* FeliCa Standard uses proprietary crypto — Lite does not */
     case CardTypeFelica:
+    /* HID Seos — AES secure element on ISO14443-4A */
+    case CardTypeSeos:
         return true;
     default:
         return false;

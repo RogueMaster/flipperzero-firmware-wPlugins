@@ -50,6 +50,7 @@ typedef enum {
     CardTypeHidIclassLegacy2k, /* iCLASS DES/3DES, 2 kilobit memory (most common) */
     CardTypeHidIclassLegacy16k, /* iCLASS DES/3DES, 16 kilobit memory */
     CardTypeHidIclassLegacy32k, /* iCLASS DES/3DES, 32 kilobit memory */
+    CardTypeSeos, /* HID Seos — ISO14443-4A AES secure element; detected via Seos AID SELECT */
     CardTypeFelica, /* generic fallback — workflow type unknown */
     CardTypeFeliCaLite, /* FeliCa Lite — no mutual auth, used in transit/building */
     CardTypeSlix,

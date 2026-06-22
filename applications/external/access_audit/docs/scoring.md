@@ -19,7 +19,7 @@ Reports surface this as a `Likelihood: <HIGH/MODERATE/LOW/MINIMAL>` band plus an
 |---|---|---|
 | **trivial** | no crypto barrier — clone the identifier directly, or default keys/password read | 125 kHz (EM4100/HID/Indala), NTAG/Ultralight, any card read with a default credential |
 | **moderate** | broken or publicly-known crypto — active attack or known-key tooling | MIFARE Classic, Plus SL1, Plus SL2, Ultralight C, HID iCLASS Legacy, FeliCa Lite |
-| **hard** | modern cryptography with no public break | DESFire EV1/EV2/EV3/Light, Plus SL3, FeliCa Standard |
+| **hard** | modern cryptography with no public break | DESFire EV1/EV2/EV3/Light, Plus SL3, FeliCa Standard, HID Seos |
 | **indeterminate** | type not confirmed | unknown / generic ISO14443/15693 |
 
 ---

@@ -141,6 +141,8 @@ static const char* report_advice(CardType type) {
     case CardTypeHidIclassLegacy16k:
     case CardTypeHidIclassLegacy32k:
         return "iCLASS DES/3DES master key is publicly known. Upgrade to iCLASS SE/Seos.";
+    case CardTypeSeos:
+        return "HID Seos (AES secure element). Strong; ensure the reader has legacy/Prox fallback disabled.";
     case CardTypeFelica:
         return "Verify FeliCa application crypto is properly configured.";
     case CardTypeFeliCaLite:

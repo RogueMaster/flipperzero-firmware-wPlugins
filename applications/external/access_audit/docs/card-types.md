@@ -92,7 +92,7 @@ These types appear when the poller cannot determine a more specific sub-type. Tr
 
 ---
 
-## HID iCLASS family
+## HID iCLASS / Seos family
 
 | Card Type | Risk | Crypto | Recommendation |
 |---|---|---|---|
@@ -101,8 +101,11 @@ These types appear when the poller cannot determine a more specific sub-type. Tr
 | `CardTypeHidIclassLegacy2k` | **HIGH RISK** | DES/3DES, 2 kilobit (standard) | Upgrade to iCLASS SE or Seos |
 | `CardTypeHidIclassLegacy16k` | **HIGH RISK** | DES/3DES, 16 kilobit | Upgrade to iCLASS SE or Seos |
 | `CardTypeHidIclassLegacy32k` | **HIGH RISK** | DES/3DES, 32 kilobit | Upgrade to iCLASS SE or Seos |
+| `CardTypeSeos` | SECURE | AES secure element (ISO14443-4A) | Modern; ensure reader has legacy/Prox fallback disabled |
 
 The iCLASS standard DES/3DES master key was publicly disclosed. Attacks against iCLASS Legacy are well-documented and practical. HID's own recommendation is to migrate to iCLASS SE (AES) or Seos.
+
+**Radio note:** iCLASS (Legacy and SE) is read over **ISO 15693** — use the app's **iCLASS scan mode**. **Seos** is an ISO 14443-4A secure element, so it scans in **NFC mode** (not iCLASS mode) and is identified by an AID `SELECT`. A pure-Seos credential will only appear in NFC mode; a dual iCLASS+Seos card appears in both. Reading the actual PACS from Seos/SE requires a HID SAM (see project issue #53).
 
 ---
 

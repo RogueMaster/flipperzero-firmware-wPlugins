@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.11.1]: Clarify iCLASS scan mode
+
+### Changed
+- **iCLASS scan-mode prompt clarified**: the prompt now reads `Tap iCLASS SE/Legacy...` with a `Seos? use NFC mode` hint below it. iCLASS Legacy/SE are on ISO 15693 (iCLASS mode); Seos is ISO 14443-4A (NFC mode) — the shared "iCLASS" branding made the mode ambiguous
+
+## [1.11.0]: HID Seos detection
+
+### Added
+- **HID Seos detection**: ISO14443-4A smart cards are now routed to the `iso14443_4a` poller, which performs an ISO-7816 `SELECT` of the HID Seos applet AID. A `0x9000` response classifies the card as **HID Seos** (previously it fell through to generic `ISO 14443-4A`). Seos is a modern AES secure element, so it scores **SECURE** with advice to disable any legacy/Prox fallback at the reader. Passive identification only — reading the PACS (facility code / card number) still requires a HID SAM (#53). Non-Seos ISO14443-4A cards are unaffected (still classified as `ISO 14443-A`)
+
 ## [1.10.2]: Scan-screen spacing fix
 
 ### Fixed
