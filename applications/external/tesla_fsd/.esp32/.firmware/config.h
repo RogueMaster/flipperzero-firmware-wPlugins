@@ -127,16 +127,18 @@
 #define STATUS_PRINT_MS       5000u   // Periodic status line when Active
 #define WIFI_STA_CONNECT_TIMEOUT_MS 10000u  // Try saved infrastructure WiFi before AP fallback
 #ifndef GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS
-#define GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS 150u  // Immediate 0x229 TX only if latest live counter is fresh
+#define GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS 500u  // Immediate 0x229 TX only if latest live counter is fresh
 #endif
 #ifndef GEAR_SEQUENCE_STEP_MS
 #define GEAR_SEQUENCE_STEP_MS 40u  // Gap between generated 0x229 press/release sequence frames
 #endif
 #ifndef GEAR_SEQUENCE_TIMEOUT_MS
-#define GEAR_SEQUENCE_TIMEOUT_MS 700u  // Give up if a generated 0x229 sequence cannot start/finish
+#define GEAR_SEQUENCE_TIMEOUT_MS 1500u  // Give up if a generated 0x229 sequence cannot start/finish
 #endif
-#define CONT_AP_READY_TIMEOUT_MS         5000u
-#define CONT_AP_ATTEMPT_RESULT_MS        1200u
+#define CONT_AP_READY_WAIT_TIMEOUT_MS    6000u
+#define CONT_AP_REENGAGE_DELAY_MS        1000u
+#define CONT_AP_ATTEMPT_RESULT_MS         700u
+#define CONT_AP_RETRY_DELAY_MS            300u
 #ifndef CONT_AP_STEERING_TORQUE_ABORT_NM
 #define CONT_AP_STEERING_TORQUE_ABORT_NM 2.5f
 #endif

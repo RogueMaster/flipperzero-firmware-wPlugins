@@ -409,11 +409,12 @@ void fsd_handle_epas_steering_mode(FSDState* state, const CANFRAME* frame) {
 // --- ESP_status (0x145) parser ---
 // opendbc: ESP_driverBrakeApply : 29|2@1+ (little-endian)
 // bit 29 = byte3 bit5, 2 bits → byte3 bits [6:5]
+// Values: 0=NotInit_orOff, 1=Not_Applied, 2=Driver_applying_brakes, 3=Faulty_SNA
 
 void fsd_handle_esp_status(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 4) return;
     uint8_t brake = (frame->buffer[3] >> 5) & 0x03;
-    state->driver_brake_applied = (brake != 0);
+    state->driver_brake_applied = (brake >= 2);
 }
 
 // --- GTW_epasControl (0x101) steering tune WRITE ---

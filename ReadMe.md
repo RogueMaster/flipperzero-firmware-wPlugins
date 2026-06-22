@@ -39,6 +39,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [NFC: Fix sending 32+ byte ISO 15693-3 commands #4333 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4333)
 - Added: [Polk MagnifiMini Remote v1.0 (By varunyellina)](https://github.com/varunyellina/flipper-ir-remote-polkmagnifi)
 - Added: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
+- Updated: [Tesla Mod v2.16.8 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

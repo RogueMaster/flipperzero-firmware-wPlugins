@@ -559,7 +559,7 @@ void fsd_handle_esp_status(FSDState *state, const CanFrame *frame) {
     uint8_t brake =
         (frame->data[SIG_ESP_DRIVER_BRAKE_BYTE] >> SIG_ESP_DRIVER_BRAKE_SHIFT) &
         SIG_ESP_DRIVER_BRAKE_MASK;
-    state->driver_brake_applied = brake != 0u;
+    state->driver_brake_applied = brake >= SIG_ESP_DRIVER_BRAKE_APPLYING;
     state->brake_status_seen = true;
 }
 

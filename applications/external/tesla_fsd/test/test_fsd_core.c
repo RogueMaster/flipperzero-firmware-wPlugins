@@ -663,9 +663,12 @@ static void test_esp_status(void) {
     CANFRAME f;
     zero(&f);
     f.data_lenght = 4;
-    f.buffer[3] = 0x20; // bits[6:5] != 0
+    f.buffer[3] = 0x40; // bits[6:5] = 2 -> Driver_applying_brakes
     fsd_handle_esp_status(&s, &f);
     CHECK(s.driver_brake_applied, "esp brake applied");
+    f.buffer[3] = 0x20; // bits[6:5] = 1 -> Not_Applied
+    fsd_handle_esp_status(&s, &f);
+    CHECK(!s.driver_brake_applied, "esp brake not applied value 1");
     f.buffer[3] = 0x00;
     fsd_handle_esp_status(&s, &f);
     CHECK(!s.driver_brake_applied, "esp no brake");

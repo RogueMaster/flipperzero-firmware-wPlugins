@@ -102,6 +102,7 @@
 #define SIG_ESP_DRIVER_BRAKE_BYTE           3
 #define SIG_ESP_DRIVER_BRAKE_SHIFT          5
 #define SIG_ESP_DRIVER_BRAKE_MASK        0x03u
+#define SIG_ESP_DRIVER_BRAKE_APPLYING       2u
 
 // BMS frames
 #define SIG_BMS_VOLTAGE_L_BYTE              0
