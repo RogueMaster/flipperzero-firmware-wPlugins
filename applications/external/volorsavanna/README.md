@@ -2,13 +2,13 @@
 
 #### COMPLETE:
 * C
+* Flipper Zero
 * Python
+* Web
 
 #### TODO:
-* Flipper Zero
 * Go
 * TI 84
-* Web
 
 #### To play:
 * Python (Windows): pip install VolorSavanna && python3 -m VolorSavanna
