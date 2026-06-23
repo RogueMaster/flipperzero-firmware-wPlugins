@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" width="560" height="320" role="img" aria-label="Badge Audit animated demo">
+  <defs>
+    <linearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2f2ee"/>
+      <stop offset="1" stop-color="#dcdcd4"/>
+    </linearGradient>
+    <clipPath id="lcd">
+      <rect x="44" y="40" width="472" height="222" rx="10"/>
+    </clipPath>
+  </defs>
+
+  <!-- device bezel -->
+  <rect x="8" y="8" width="544" height="304" rx="26" fill="url(#bezel)" stroke="#c9c9bf" stroke-width="2"/>
+  <text x="280" y="300" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="800" fill="#ff5e00" letter-spacing="3">FLIPPER</text>
+
+  <!-- orange LCD -->
+  <rect x="44" y="40" width="472" height="222" rx="10" fill="#ff7a00"/>
+
+  <g clip-path="url(#lcd)" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" fill="#241000">
+
+    <!-- ===== Frame 1: SCAN ===== -->
+    <g opacity="1">
+      <animate attributeName="opacity" dur="9s" repeatCount="indefinite"
+               values="1;1;0;0;1" keyTimes="0;0.30;0.34;0.97;1"/>
+      <text x="60" y="80" font-size="26" font-weight="700">Badge Audit</text>
+      <text x="60" y="128" font-size="20">Hold an NFC badge</text>
+      <text x="60" y="156" font-size="20">to the BACK.</text>
+      <!-- RF waves -->
+      <g fill="none" stroke="#241000" stroke-width="5" stroke-linecap="round">
+        <path d="M455,122 A28,28 0 0 0 455,178">
+          <animate attributeName="opacity" values="0.15;1;0.15" dur="1.5s" repeatCount="indefinite" begin="0s"/>
+        </path>
+        <path d="M455,100 A50,50 0 0 0 455,200">
+          <animate attributeName="opacity" values="0.15;1;0.15" dur="1.5s" repeatCount="indefinite" begin="0.4s"/>
+        </path>
+        <path d="M455,78 A72,72 0 0 0 455,222">
+          <animate attributeName="opacity" values="0.15;1;0.15" dur="1.5s" repeatCount="indefinite" begin="0.8s"/>
+        </path>
+      </g>
+      <circle cx="468" cy="150" r="6" fill="#241000"/>
+    </g>
+
+    <!-- ===== Frame 2: ANALYZING ===== -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="9s" repeatCount="indefinite"
+               values="0;0;1;1;0;0" keyTimes="0;0.33;0.36;0.63;0.66;1"/>
+      <text x="60" y="84" font-size="26" font-weight="700">Analyzing...</text>
+      <text x="60" y="120" font-size="18">Testing factory keys</text>
+      <rect x="60" y="140" width="420" height="22" fill="none" stroke="#241000" stroke-width="2"/>
+      <rect x="64" y="144" height="14" fill="#241000" width="0">
+        <animate attributeName="width" dur="9s" repeatCount="indefinite"
+                 values="0;0;412;412;0" keyTimes="0;0.36;0.60;0.66;1"/>
+      </rect>
+      <text x="60" y="196" font-size="18">Sector 14 / 16</text>
+      <text x="60" y="224" font-size="16">Hold card still</text>
+    </g>
+
+    <!-- ===== Frame 3: RESULT ===== -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="9s" repeatCount="indefinite"
+               values="0;0;1;1" keyTimes="0;0.66;0.69;1"/>
+      <text x="60" y="72" font-size="24" font-weight="700">MIFARE Classic 1K</text>
+      <text x="60" y="102" font-size="18">UID: A4 1C 8B 22</text>
+      <text x="60" y="134" font-size="20" font-weight="700">Risk:</text>
+      <text x="135" y="134" font-size="20" font-weight="700">CRITICAL
+        <animate attributeName="opacity" values="1;0.3;1" dur="0.8s" repeatCount="indefinite"/>
+      </text>
+      <text x="290" y="134" font-size="20" font-weight="700">12/100</text>
+      <rect x="60" y="146" width="420" height="18" fill="none" stroke="#241000" stroke-width="2"/>
+      <rect x="63" y="149" width="48" height="12" fill="#241000"/>
+      <text x="60" y="200" font-size="20" font-weight="700">DEFAULT keys: 14/16</text>
+      <text x="60" y="234" font-size="16">OK save  &lt;&gt;rescan  Back</text>
+    </g>
+
+  </g>
+</svg>

@@ -1,0 +1,15 @@
+# ufbt / Flipper build output
+dist/
+*.fap
+*.elf
+
+# Editor / toolchain artifacts
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+
+# OS noise
+.DS_Store

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" width="560" height="320" role="img" aria-label="Badge Audit screen">
+  <defs>
+    <linearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2f2ee"/>
+      <stop offset="1" stop-color="#dcdcd4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- device bezel -->
+  <rect x="8" y="8" width="544" height="304" rx="26" fill="url(#bezel)" stroke="#c9c9bf" stroke-width="2"/>
+  <text x="280" y="300" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="800" fill="#ff5e00" letter-spacing="3">FLIPPER</text>
+
+  <!-- orange LCD -->
+  <rect x="44" y="40" width="472" height="222" rx="10" fill="#ff7a00"/>
+  <rect x="44" y="40" width="472" height="222" rx="10" fill="none" stroke="#c95e00" stroke-width="2"/>
+
+  <g font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" fill="#241000">
+    <text x="60" y="78" font-size="26" font-weight="700">MIFARE Classic 1K</text>
+    <text x="60" y="112" font-size="20">UID: A4 1C 8B 22</text>
+    <text x="60" y="146" font-size="22" font-weight="700">Risk: CRITICAL  12/100</text>
+
+    <!-- risk bar -->
+    <rect x="60" y="158" width="440" height="20" fill="none" stroke="#241000" stroke-width="2"/>
+    <rect x="64" y="162" width="52" height="12" fill="#241000"/>
+
+    <text x="60" y="212" font-size="22" font-weight="700">DEFAULT keys: 14/16</text>
+    <text x="60" y="246" font-size="18">OK save  &lt;&gt;rescan  Back</text>
+  </g>
+</svg>
