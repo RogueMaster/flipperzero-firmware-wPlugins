@@ -26,8 +26,8 @@ If you prefer `ufbt` to work regardless of venv activation, install it globally 
 ## Persistent data on device
 Settings and presets are stored on the SD card:
 
-- `/ext/apps_data/fmradio_controller_pt2257/settings.fff`
-- `/ext/apps_data/fmradio_controller_pt2257/presets.fff`
+- `/ext/apps_data/fred_fm/settings.fff`
+- `/ext/apps_data/fred_fm/presets.fff`
 
 ## Publishing / licensing
 - License: GPLv3 (see [LICENSE](LICENSE)).
