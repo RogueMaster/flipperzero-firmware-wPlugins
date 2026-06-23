@@ -53,55 +53,90 @@ static Posture posture_for(NfcProtocol p) {
     switch(p) {
     case NfcProtocolMfClassic:
         return (Posture){
-            "MIFARE Classic", "WEAK", 25, "Crypto1 cloneable",
+            "MIFARE Classic",
+            "WEAK",
+            25,
+            "Crypto1 cloneable",
             "Crypto1 cipher is broken; keys are recoverable and the card is cloneable."};
     case NfcProtocolMfUltralight:
         return (Posture){
-            "MIFARE Ultralight", "WEAK", 35, "Weak/no auth",
+            "MIFARE Ultralight",
+            "WEAK",
+            35,
+            "Weak/no auth",
             "Typically little or no authentication; easily cloned. Not for access control."};
     case NfcProtocolIso14443_3a:
         return (Posture){
-            "ISO14443-3A (UID)", "WEAK", 30, "UID-only = cloneable",
+            "ISO14443-3A (UID)",
+            "WEAK",
+            30,
+            "UID-only = cloneable",
             "Only the low-level UID layer. If the reader trusts UID alone, trivially cloneable."};
     case NfcProtocolIso14443_3b:
         return (Posture){
-            "ISO14443-3B (UID)", "WEAK", 35, "UID-only = cloneable",
+            "ISO14443-3B (UID)",
+            "WEAK",
+            35,
+            "UID-only = cloneable",
             "Low-level UID layer. Cloneable if the reader trusts the UID."};
     case NfcProtocolIso14443_4a:
         return (Posture){
-            "ISO14443-4A", "MEDIUM", 60, "APDU; depends on app",
+            "ISO14443-4A",
+            "MEDIUM",
+            60,
+            "APDU; depends on app",
             "Supports ISO14443-4 APDUs; security depends on the application layer."};
     case NfcProtocolIso14443_4b:
         return (Posture){
-            "ISO14443-4B", "MEDIUM", 60, "APDU; depends on app",
+            "ISO14443-4B",
+            "MEDIUM",
+            60,
+            "APDU; depends on app",
             "Supports ISO14443-4 APDUs; security depends on the application layer."};
     case NfcProtocolIso15693_3:
         return (Posture){
-            "ISO15693", "WEAK", 40, "Often UID-based",
+            "ISO15693",
+            "WEAK",
+            40,
+            "Often UID-based",
             "Vicinity card; many access deployments authorize on UID, which is cloneable."};
     case NfcProtocolSlix:
         return (Posture){
-            "NXP SLIX", "WEAK", 40, "ISO15693, often UID",
+            "NXP SLIX",
+            "WEAK",
+            40,
+            "ISO15693, often UID",
             "SLIX (ISO15693 family); frequently used in cloneable UID-based access."};
     case NfcProtocolFelica:
         return (Posture){
-            "FeliCa", "MEDIUM", 65, "Has security features",
+            "FeliCa",
+            "MEDIUM",
+            65,
+            "Has security features",
             "FeliCa has built-in security; posture depends on deployment and key management."};
     case NfcProtocolMfPlus:
         return (Posture){
-            "MIFARE Plus", "STRONG", 85, "AES (SL3) = strong",
+            "MIFARE Plus",
+            "STRONG",
+            85,
+            "AES (SL3) = strong",
             "Supports AES; in Security Level 3 it is strong if keys are well managed."};
     case NfcProtocolMfDesfire:
         return (Posture){
-            "MIFARE DESFire", "STRONG", 90, "AES/3DES = strong",
+            "MIFARE DESFire",
+            "STRONG",
+            90,
+            "AES/3DES = strong",
             "DESFire uses AES/3DES mutual auth; strong when keys are properly managed."};
     case NfcProtocolSt25tb:
         return (Posture){
-            "ST25TB", "WEAK", 35, "Memory tag, cloneable",
+            "ST25TB",
+            "WEAK",
+            35,
+            "Memory tag, cloneable",
             "Memory tag; commonly cloneable and weak for access control."};
     default:
-        return (Posture){
-            "Unknown card", "UNKNOWN", 50, "Unrecognized", "Unrecognized protocol."};
+        return (Posture){"Unknown card", "UNKNOWN", 50, "Unrecognized", "Unrecognized protocol."};
     }
 }
 
@@ -199,7 +234,8 @@ static void result_verdict(
         if(r->default_key_sectors > 0) {
             *verdict = "CRITICAL";
             *score = (r->default_key_sectors >= r->total_sectors) ? 5 : 12;
-            snprintf(note, note_sz, "DEFAULT keys: %u/%u", r->default_key_sectors, r->total_sectors);
+            snprintf(
+                note, note_sz, "DEFAULT keys: %u/%u", r->default_key_sectors, r->total_sectors);
         } else {
             *verdict = "WEAK";
             *score = 25;
