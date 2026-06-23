@@ -4,6 +4,7 @@
 #define CAN_ID_STW_ACTN_RQ    0x045u  // 69   - STW_ACTN_RQ:  steering stalk (Legacy follow distance)
 #define CAN_ID_TRIP_PLANNING  0x082u  // 130  - UI_tripPlanning: precondition trigger
 #define CAN_ID_ESP_STATUS     0x145u  // 325  - ESP_status: driver brake pedal state
+#define CAN_ID_STEER_ANGLE    0x129u  // 297  - SCCM_steeringAngleSensor (Soft Engage gate, #108)
 #define CAN_ID_BMS_HV_BUS     0x132u  // 306  - BMS_hvBusStatus: pack voltage / current
 #define CAN_ID_BMS_SOC        0x292u  // 658  - BMS_socStatus:   state of charge
 #define CAN_ID_BMS_THERMAL    0x312u  // 786  - BMS_thermalStatus: battery temp

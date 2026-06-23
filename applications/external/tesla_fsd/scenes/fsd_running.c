@@ -168,6 +168,7 @@ static int32_t fsd_running_worker(void* context) {
     state.gtw_shield_armed = false;
     state.tlssc_restore = app->tlssc_restore;
     state.ap_first = app->ap_first;
+    state.soft_engage = app->soft_engage;
     state.gtw_tier_override = app->gtw_tier_override;
     state.scroll_press_ap = app->scroll_press_ap;
     state.scroll_press_state = 0;
@@ -261,7 +262,10 @@ static int32_t fsd_running_worker(void* context) {
 
         // AP-first stability debounce: stamp the last moment AP was not engaged,
         // so fsd_ap_first_allows() can require AP to hold stable before injecting.
-        if(state.das_ap_state < 2) state.ap_unstable_tick_ms = now;
+        if(state.das_ap_state < 2) {
+            state.ap_unstable_tick_ms = now;
+            state.soft_engage_latched = false; // re-require centred wheel next engage (#108)
+        }
         if((now - last_err_check) >= furi_ms_to_ticks(250)) {
             uint8_t eflg = get_error(mcp);
             // EFLG bits 0/1 = RX0/RX1 overflow, bit 4 = receive error warn,

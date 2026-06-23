@@ -1045,7 +1045,10 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     g_state.rx_count++;
     // AP-First stability debounce: stamp the last time AP was not engaged, so
     // fsd_ap_first_allows() can require AP held stable for AP_FIRST_STABLE_MS (#100/#108).
-    if (g_state.das_ap_state < 2u) g_state.ap_unstable_tick_ms = millis();
+    if (g_state.das_ap_state < 2u) {
+        g_state.ap_unstable_tick_ms = millis();
+        g_state.soft_engage_latched = false;  // re-require centred wheel next engage (#108)
+    }
     if (frame.id == CAN_ID_GTW_CAR_STATE)  g_state.seen_gtw_car_state++;
     if (frame.id == CAN_ID_GTW_CAR_CONFIG) g_state.seen_gtw_car_config++;
     if (frame.id == CAN_ID_AP_CONTROL)     g_state.seen_ap_control++;
@@ -1195,13 +1198,21 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         state_exit();
         return;
     }
+    // Steering angle (0x129) — read-only, feeds the Soft Engage gate (#108).
+    if (frame.id == CAN_ID_STEER_ANGLE) {
+        state_enter();
+        fsd_handle_steering_angle(&g_state, &frame);
+        state_exit();
+        return;
+    }
 
     // ── Beyond here only run when TX is allowed ───────────────────────────────
     state_enter();
     bool tx = fsd_can_transmit(&g_state);
     // AP-First (#100/#108): when enabled, hold AP/FSD/nag injection until AP is
     // engaged and stable. Gates 0x3FD / 0x3EE / 0x370 below; off by default.
-    bool ap_ok = fsd_ap_first_allows(&g_state, millis());
+    bool ap_ok = fsd_ap_first_allows(&g_state, millis()) &&
+                 fsd_soft_engage_allows(&g_state);  // Soft Engage holds until wheel centred (#108)
     state_exit();
 
     // NAG killer — build echo only when TX is currently allowed.

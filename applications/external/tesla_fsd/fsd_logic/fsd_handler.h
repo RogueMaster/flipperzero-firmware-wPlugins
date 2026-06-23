@@ -73,6 +73,16 @@ TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame);
  *  stamped by the caller whenever das_ap_state < 2. */
 bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms);
 
+// Soft Engage: |steering angle| must be within this of centre before the
+// activation-edge injection is allowed to begin (steer-jerk mitigation, #108).
+#define SOFT_ENGAGE_ANGLE_DEG 5.0f
+
+/** Soft-Engage gate. Returns true if injection may proceed: soft_engage off, or
+ *  already latched this engagement, or the wheel is within SOFT_ENGAGE_ANGLE_DEG
+ *  of centre (which latches it on). Mutates soft_engage_latched. Reset the latch
+ *  (soft_engage_latched=false) when AP drops (das_ap_state < 2). */
+bool fsd_soft_engage_allows(FSDState* state);
+
 void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame);
 bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_ms);
 

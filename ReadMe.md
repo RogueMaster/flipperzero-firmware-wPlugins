@@ -39,8 +39,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Polk MagnifiMini Remote v1.0 (By varunyellina)](https://github.com/varunyellina/flipper-ir-remote-polkmagnifi)
 - Added: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
 - ESP Flasher: [Bump Marauder v1.12.3 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.3)
-- Updated: [Tesla Mod v2.16.9 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Access Audit v1.11.1 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
+- Updated: [Tesla Mod v2.16.9 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

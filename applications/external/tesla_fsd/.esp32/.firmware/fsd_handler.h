@@ -43,6 +43,17 @@ bool fsd_can_transmit(const FSDState *state);
  *  now_ms = millis(); ap_unstable_tick_ms is stamped whenever das_ap_state < 2. */
 bool fsd_ap_first_allows(const FSDState *state, uint32_t now_ms);
 
+/** Soft Engage: |steering angle| within this of centre before activation begins. */
+#define SOFT_ENGAGE_ANGLE_DEG 5.0f
+
+/** Soft-Engage gate (steer-jerk mitigation, #108). Returns true if injection may
+ *  proceed: soft_engage off, already latched, or wheel within SOFT_ENGAGE_ANGLE_DEG
+ *  of centre (latches it on). Mutates soft_engage_latched; reset it when AP drops. */
+bool fsd_soft_engage_allows(FSDState *state);
+
+/** Parse SCCM_steeringAngleSensor (0x129) -> steering_angle_deg. */
+void fsd_handle_steering_angle(FSDState *state, const CanFrame *frame);
+
 /** Read GTW_carConfig (0x398) to detect HW version.
  *  Returns TeslaHW_Unknown if frame is not 0x398 or version unrecognised. */
 TeslaHWVersion fsd_detect_hw_version(const CanFrame *frame);

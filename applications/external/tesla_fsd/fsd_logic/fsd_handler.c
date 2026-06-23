@@ -171,6 +171,20 @@ bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms) {
     return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
 }
 
+bool fsd_soft_engage_allows(FSDState* state) {
+    if(!state->soft_engage) return true; // gate off
+    if(state->soft_engage_latched) return true; // already engaged this cycle
+    // Hold until the wheel is near-centred so the DAS's path recompute at
+    // FSD-enable is small (the steer-jerk is worse on curves — #108). If 0x129
+    // isn't on the bus, steering_angle_deg stays 0 and this latches immediately
+    // (degrades to AP-First-only, no worse than before).
+    float a = state->steering_angle_deg;
+    if(a < 0.0f) a = -a;
+    if(a > SOFT_ENGAGE_ANGLE_DEG) return false; // turning — hold activation
+    state->soft_engage_latched = true; // centred — begin and latch
+    return true;
+}
+
 bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
 
@@ -178,6 +192,9 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
     // stable for AP_FIRST_STABLE_MS — injecting on the activation edge is linked
     // to a steer-jerk (ev-open-can-tools#66 / v3.0.2-beta.2).
     if(!fsd_ap_first_allows(state, now_ms)) return false;
+    // Soft Engage: additionally hold the first activation until the wheel is
+    // centred, so FSD-enable's path recompute doesn't yank the steering (#108).
+    if(!fsd_soft_engage_allows(state)) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);

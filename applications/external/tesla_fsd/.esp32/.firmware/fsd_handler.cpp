@@ -554,6 +554,24 @@ void fsd_handle_epas_status(FSDState *state, const CanFrame *frame) {
     state->torsion_bar_torque_seen = true;
 }
 
+// Soft-Engage gate — mirror of the Flipper fsd_soft_engage_allows (#108).
+bool fsd_soft_engage_allows(FSDState *state) {
+    if (!state->soft_engage) return true;
+    if (state->soft_engage_latched) return true;
+    float a = state->steering_angle_deg;
+    if (a < 0.0f) a = -a;
+    if (a > SOFT_ENGAGE_ANGLE_DEG) return false;   // turning — hold activation
+    state->soft_engage_latched = true;             // centred — begin and latch
+    return true;
+}
+
+// SCCM_steeringAngleSensor (0x129): 16-bit signed LE at byte0-1, factor 0.1 deg.
+void fsd_handle_steering_angle(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc < 4) return;
+    int16_t raw = (int16_t)(((uint16_t)frame->data[1] << 8) | frame->data[0]);
+    state->steering_angle_deg = (float)raw * 0.1f;
+}
+
 void fsd_handle_esp_status(FSDState *state, const CanFrame *frame) {
     if (frame->dlc <= SIG_ESP_DRIVER_BRAKE_BYTE) return;
     uint8_t brake =

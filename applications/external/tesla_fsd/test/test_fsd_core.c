@@ -654,6 +654,26 @@ static void test_legacy(void) {
     CHECK(fsd_ap_first_allows(&g, 2000) == true, "ap_first: 1000ms >= debounce -> allow");
     g.das_ap_state = 3;
     CHECK(fsd_ap_first_allows(&g, 5000) == true, "ap_first: active(3) + stable -> allow");
+
+    // fsd_soft_engage_allows() — steer-jerk soft engage (#108)
+    FSDState se;
+    memset(&se, 0, sizeof(se));
+    se.steering_angle_deg = 90.0f; // hard turn
+    CHECK(fsd_soft_engage_allows(&se) == true, "soft_engage off -> always allowed");
+    se.soft_engage = true;
+    CHECK(fsd_soft_engage_allows(&se) == false, "soft_engage on + turning -> hold");
+    CHECK(se.soft_engage_latched == false, "soft_engage: turning does not latch");
+    se.steering_angle_deg = -3.0f; // within +/-5 deg of centre
+    CHECK(fsd_soft_engage_allows(&se) == true, "soft_engage: centred -> allow + latch");
+    CHECK(se.soft_engage_latched == true, "soft_engage: latched once centred");
+    se.steering_angle_deg = 120.0f; // now turning, but already latched
+    CHECK(
+        fsd_soft_engage_allows(&se) == true,
+        "soft_engage: stays allowed once latched (mid-drive turns OK)");
+    se.soft_engage_latched = false; // AP drop resets the latch
+    CHECK(
+        fsd_soft_engage_allows(&se) == false,
+        "soft_engage: re-holds after latch reset while turning");
 }
 
 // ── 0x145 ESP_status brake ────────────────────────────────────────────────────
