@@ -30,8 +30,11 @@ extern const FlipperHamPreset flipperham_presets[18];
 extern const FlipperHamModemProfile flipperham_modem_profiles[3];
 
 void flipperham_radio_start(FlipperHamApp* app);
+void flipperham_radio_start_ext(FlipperHamApp* app);
+bool flipperham_radio_ext_is_complete(void);
 void preset_fix(FlipperHamApp* app);
 uint32_t tx_freq_get(FlipperHamApp* app);
 
 void txstart(FlipperHamApp* app);
 void flipperham_radio_stop(FlipperHamApp* app);
+void flipperham_radio_stop_ext(FlipperHamApp* app);

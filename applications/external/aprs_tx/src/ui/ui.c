@@ -15,11 +15,13 @@ static void ham_blank_draw(Canvas* canvas, void* context);
 static void ham_blank_input(InputEvent* event, void* context);
 static void ham_morse_play(FlipperHamApp* app);
 static void c2(void* context, uint32_t index);
+static void radio_change(VariableItem* item);
 static void aprs_path_change(VariableItem* item);
 static void debug_change(VariableItem* item);
 static void aprs_path_custom_save(void* context);
 static const char* aprs_paths[] =
     {"None", "RFONLY", "NOGATE", "W1-1", "W2-2", "ARISS", "APRSAT", "Custom"};
+static const char* radio_backends[] = {"Internal", "External"};
 FlipperHamApp* gapp;
 static bool call_copy(FlipperHamApp* app);
 
@@ -705,6 +707,11 @@ void settings_menu_build(FlipperHamApp* app) {
     variable_item_set_current_value_index(it, 0);
     variable_item_set_current_value_text(it, a);
 
+    it = variable_item_list_add(app->settings_menu, "Radio", 2, radio_change, app);
+    if(app->radio_backend > FlipperHamRadioExternal) app->radio_backend = FlipperHamRadioInternal;
+    variable_item_set_current_value_index(it, app->radio_backend);
+    variable_item_set_current_value_text(it, radio_backends[app->radio_backend]);
+
     it = variable_item_list_add(
         app->settings_menu,
         "Baud",
@@ -832,17 +839,38 @@ void position_menu_build(FlipperHamApp* app) {
     }
 }
 
+static void pos_show(char* out, uint16_t n, const char* s) {
+    char* p;
+    uint8_t l;
+    uint8_t d;
+
+    snprintf(out, n, "%s", s ? s : "");
+    p = strchr(out, '.');
+    if(!p) return;
+
+    l = strlen(out);
+    d = p - out;
+    while(l > d + 2 && out[l - 1] == '0') {
+        l--;
+        out[l] = 0;
+    }
+}
+
 void pos_edit_menu_build(FlipperHamApp* app) {
     VariableItem* it;
     const char* name_label;
     const char* lat_label;
     const char* lon_label;
+    static char lat_value[POS_LEN];
+    static char lon_value[POS_LEN];
 
     variable_item_list_reset(app->pos_edit_menu);
 
     name_label = "Name";
     lat_label = "Latitude";
     lon_label = "Longitude";
+    pos_show(lat_value, sizeof(lat_value), app->p_lat_edit);
+    pos_show(lon_value, sizeof(lon_value), app->p_lon_edit);
 
     it = variable_item_list_add(app->pos_edit_menu, name_label, 1, NULL, NULL);
     variable_item_set_current_value_index(it, 0);
@@ -850,11 +878,11 @@ void pos_edit_menu_build(FlipperHamApp* app) {
 
     it = variable_item_list_add(app->pos_edit_menu, lat_label, 1, NULL, NULL);
     variable_item_set_current_value_index(it, 0);
-    variable_item_set_current_value_text(it, app->p_lat_edit);
+    variable_item_set_current_value_text(it, lat_value);
 
     it = variable_item_list_add(app->pos_edit_menu, lon_label, 1, NULL, NULL);
     variable_item_set_current_value_index(it, 0);
-    variable_item_set_current_value_text(it, app->p_lon_edit);
+    variable_item_set_current_value_text(it, lon_value);
 
     if(app->pos_n > 1)
         if(app->pos_index < TXT_N)
@@ -935,6 +963,16 @@ static void debug_change(VariableItem* item) {
 
     app->debug_tx = variable_item_get_current_value_index(item) ? 1 : 0;
     variable_item_set_current_value_text(item, app->debug_tx ? "Yes" : "No");
+    cfgsave(app);
+}
+
+static void radio_change(VariableItem* item) {
+    FlipperHamApp* app = variable_item_get_context(item);
+
+    app->radio_backend = variable_item_get_current_value_index(item);
+    if(app->radio_backend > FlipperHamRadioExternal) app->radio_backend = FlipperHamRadioInternal;
+
+    variable_item_set_current_value_text(item, radio_backends[app->radio_backend]);
     cfgsave(app);
 }
 
@@ -1118,32 +1156,18 @@ void pos_edit_enter(void* context, uint32_t index) {
     }
 
     if(index == 1) {
-        const char* title;
-
-        title = "Latitude";
-        if(app->position_sel >= FlipperHamPositionIndexBase) title = "Edit latitude";
         app->text_mode = 7;
         app->text_view = FlipperHamViewPosEdit;
-        text_input_reset(app->text_input);
-        text_input_set_header_text(app->text_input, title);
-        text_input_set_result_callback(
-            app->text_input, position_save, app, app->p_lat_edit, sizeof(app->p_lat_edit), false);
-        view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewTextInput);
+        coord_input_start(app, 0);
+        view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewCoordInput);
         return;
     }
 
     if(index == 2) {
-        const char* title;
-
-        title = "Longitude";
-        if(app->position_sel >= FlipperHamPositionIndexBase) title = "Edit longitude";
         app->text_mode = 8;
         app->text_view = FlipperHamViewPosEdit;
-        text_input_reset(app->text_input);
-        text_input_set_header_text(app->text_input, title);
-        text_input_set_result_callback(
-            app->text_input, position_save, app, app->p_lon_edit, sizeof(app->p_lon_edit), false);
-        view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewTextInput);
+        coord_input_start(app, 1);
+        view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewCoordInput);
         return;
     }
 

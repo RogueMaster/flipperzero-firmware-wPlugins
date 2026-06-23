@@ -17,6 +17,7 @@ App(
         "src/ui/ui.c",
         "src/ui/ui_freq.c",
         "src/ui/ui_edit.c",
+        "src/ui/ui_coord.c",
         "src/ui/ui_splash.c",
         "src/ui/ui_runtime.c",
     ],
@@ -25,7 +26,7 @@ App(
     fap_category="Sub-GHz",
     fap_author="yo3gnd",
     fap_weburl="https://github.com/yo3gnd/flipper-zero-aprs-tx/",
-    fap_version="1.3.18",
+    fap_version="1.3.20",
     fap_description="An APRS transmitter using Flipper Zero's SubGHZ module exclusively",
     #   v1.3.18: [G3RUH (9600 baud) support (By cpacejo)](https://github.com/yo3gnd/flipper-zero-aprs-tx/pull/1)
 )
