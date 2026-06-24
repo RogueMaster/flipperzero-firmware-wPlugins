@@ -205,13 +205,29 @@ static void write_card_entry(File* f, size_t index, size_t total, const SessionE
         fw(f, buf);
     }
 
-    snprintf(
-        buf,
-        sizeof(buf),
-        "  Likelihood: %s  (%u/100, confidence %u%%)\n",
-        likelihood_label(entry->score.max_severity),
-        entry->score.score,
-        entry->score.confidence);
+    /* Show the OWASP likelihood band, plus the result-screen verdict word in
+     * brackets when it differs (e.g. MINIMAL [SECURE], HIGH [HIGH RISK]) so the
+     * report matches what the user saw on the device. */
+    const char* band = likelihood_label(entry->score.max_severity);
+    const char* verdict = verdict_label(entry->score.max_severity);
+    if(strcmp(band, verdict) != 0) {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "  Likelihood: %s [%s]  (%u/100, confidence %u%%)\n",
+            band,
+            verdict,
+            entry->score.score,
+            entry->score.confidence);
+    } else {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "  Likelihood: %s  (%u/100, confidence %u%%)\n",
+            band,
+            entry->score.score,
+            entry->score.confidence);
+    }
     fw(f, buf);
 
     snprintf(buf, sizeof(buf), "  Ease of exploit: %s\n", ease_of_exploit(&entry->obs));

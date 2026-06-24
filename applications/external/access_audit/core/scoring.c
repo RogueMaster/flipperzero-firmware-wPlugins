@@ -125,6 +125,19 @@ const char* likelihood_label(Severity severity) {
     }
 }
 
+const char* verdict_label(Severity severity) {
+    switch(severity) {
+    case SeverityHigh:
+        return "HIGH RISK";
+    case SeverityMedium:
+        return "MODERATE";
+    case SeverityLow:
+        return "LOW RISK";
+    default:
+        return "SECURE";
+    }
+}
+
 const char* ease_of_exploit(const AccessObservation* obs) {
     if(!obs) return "indeterminate";
     /* A successful default-credential read means the card can be cloned outright. */

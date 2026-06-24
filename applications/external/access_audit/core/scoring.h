@@ -29,6 +29,11 @@ const char* card_type_to_string(CardType type);
 /* Likelihood band for a severity: HIGH / MODERATE / LOW / MINIMAL. */
 const char* likelihood_label(Severity severity);
 
+/* On-device verdict word for a severity: HIGH RISK / MODERATE / LOW RISK /
+ * SECURE. Mirrors the result-screen label; shown in the report alongside the
+ * likelihood band so the two never drift. */
+const char* verdict_label(Severity severity);
+
 /* OWASP "Ease of Exploit" likelihood factor for a credential:
  * trivial / moderate / hard / indeterminate. */
 const char* ease_of_exploit(const AccessObservation* obs);

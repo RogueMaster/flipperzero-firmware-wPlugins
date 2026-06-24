@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## [1.11.2]: Report shows the on-screen verdict
+
+### Fixed
+- **Report now matches the result screen**: each card's likelihood line shows the on-device verdict in brackets when it differs from the OWASP band — e.g. `Likelihood: MINIMAL [SECURE]`, `Likelihood: HIGH [HIGH RISK]`. Previously the screen said `SECURE`/`HIGH RISK` while the report only said `MINIMAL`/`HIGH`, so the rating appeared to be missing from the report. The verdict words now have a single source of truth in `core/scoring.c` so the screen and report can no longer drift
+
 ## [1.11.1]: Clarify iCLASS scan mode
 
 ### Changed
