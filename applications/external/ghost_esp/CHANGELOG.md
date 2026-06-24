@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.8.0
+
+- Added NetBIOS Scan, HTTP Banner Scan, SNMP Probe, and WPA3 Compliance Check commands to WiFi Scanning menu
+- Added WiFi Status and WebUI AP commands to WiFi Network menu
+- Added Show Time, Coredump Dump, Erase Coredump, Load Config, Identify Device, and Force Crash commands to WiFi Settings menu
+- Added Scan Advertisers, List Advertisers, and BLE Bridge commands to BLE Scanning menu
+- Added Set GPS Baud, WiGLE Auto Upload, and WiGLE Donate commands to GPS menu
+- Reorganized WiFi Settings menu into 5 sub-category menus: LED & RGB, SD Card, Settings Mgmt, Device & Debug, Misc
+- Reorganized WiFi Network menu into 5 sub-category menus: Evil Portal, WiFi Connection, Network Scan, IoT Control, WebUI
+- Reorganized BLE Scanning menu into 4 sub-category menus: Flipper & Skimmer, AirTag, GATT, Advertisers & Traffic
+- Reorganized GPS menu into 2 sub-category menus: GPS Config, Wardriving
+- Moved network reconnaissance commands (Scan Local Network, Scan Ports, ARP Scan, Scan SSH, NetBIOS Scan, HTTP Banner Scan, SNMP Probe) from WiFi Scanning to WiFi Network > Network Scan sub-category
+- Removed duplicate Chip Info entry that appeared at both index 2 and index 23 in the old WiFi Settings flat menu
+- Added 16 new ViewId enums, Submenu pointers, and navigation logic to support the sub-category menu hierarchy
+
 ## v1.7.0
 
 - Fixed cancel button in confirmation dialogs returning to main menu instead of the correct sub-menu

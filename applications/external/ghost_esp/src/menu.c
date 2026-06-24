@@ -404,6 +404,47 @@ static const MenuCommand wifi_scanning_commands[] = {
                         "Select a station first.\n",
     },
     {
+        .label = "NetBIOS Scan",
+        .command = "netbiosscan subnet",
+        .needs_input = true,
+        .input_text = "Subnet (e.g. 192.168.1.)",
+        .details_header = "NetBIOS Scan",
+        .details_text = "Scan a subnet for NetBIOS\n"
+                        "names/hosts.\n"
+                        "Enter subnet prefix, e.g.\n"
+                        "192.168.1. or 192.168.1.0\n",
+    },
+    {
+        .label = "HTTP Banner Scan",
+        .command = "httpbannerscan subnet",
+        .needs_input = true,
+        .input_text = "Subnet (e.g. 192.168.1.)",
+        .details_header = "HTTP Banner Scan",
+        .details_text = "Grab HTTP banners from hosts\n"
+                        "on a subnet.\n"
+                        "Enter subnet prefix, e.g.\n"
+                        "192.168.1. or 192.168.1.0\n",
+    },
+    {
+        .label = "SNMP Probe",
+        .command = "snmpprobe subnet",
+        .needs_input = true,
+        .input_text = "Subnet (e.g. 192.168.1.)",
+        .details_header = "SNMP Probe",
+        .details_text = "Probe a subnet for SNMP\n"
+                        "enabled devices.\n"
+                        "Enter subnet prefix, e.g.\n"
+                        "192.168.1. or 192.168.1.0\n",
+    },
+    {
+        .label = "WPA3 Compliance Check",
+        .command = "wpa3check\n",
+        .details_header = "WPA3 Compliance",
+        .details_text = "Check selected AP for WPA3\n"
+                        "compliance and SAE support.\n"
+                        "Select an AP first.\n",
+    },
+    {
         .label = "Stop Listen Probes",
         .command = "listenprobes stop\n",
         .details_header = "Stop Listening",
@@ -582,7 +623,8 @@ static const MenuCommand wifi_attack_commands[] = {
     },
 };
 
-static const MenuCommand wifi_network_commands[] = {
+// WiFi Network sub-category: Evil Portal
+static const MenuCommand wifi_network_portal_commands[] = {
     {
         .label = "Evil Portal",
         .command = "startportal",
@@ -619,6 +661,16 @@ static const MenuCommand wifi_network_commands[] = {
                         "landing page on the ESP.",
     },
     {
+        .label = "Stop Evil Portal",
+        .command = "stopportal\n",
+        .details_header = "Stop Evil Portal",
+        .details_text = "Stops the Evil Portal.",
+    },
+};
+
+// WiFi Network sub-category: WiFi Connection
+static const MenuCommand wifi_network_conn_commands[] = {
+    {
         .label = "Connect To WiFi",
         .command = "connect",
         .needs_input = true,
@@ -641,6 +693,100 @@ static const MenuCommand wifi_network_commands[] = {
         .details_text = "Disconnects from the current WiFi network on the ESP.\n"
                         "No input required.\n",
     },
+    {
+        .label = "WiFi Status",
+        .command = "wifistatus\n",
+        .details_header = "WiFi Status",
+        .details_text = "Show current WiFi connection\n"
+                        "status (SSID, IP, RSSI).\n",
+    },
+};
+
+// WiFi Network sub-category: Network Scan
+static const MenuCommand wifi_network_scan_commands[] = {
+    {
+        .label = "Scan Local Network",
+        .command = "scanlocal\n",
+        .needs_confirmation = true,
+        .confirm_header = "Local Network Scan",
+        .confirm_text = "Make sure you've connected\nto WiFi first via "
+                        "the\n'Connect to WiFi' option.\n",
+        .details_header = "Network Scanner",
+        .details_text = "Scans local network for:\n"
+                        "- Printers\n"
+                        "- Smart devices\n"
+                        "- Cast devices\n"
+                        "- Requires WiFi connection\n\n",
+    },
+    {
+        .label = "Scan Ports",
+        .command = "scanports",
+        .needs_input = true,
+        .input_text = "local or IP [options]",
+        .details_header = "Port Scanner",
+        .details_text = "Scan ports on local net\n"
+                        "or specific IP.\n"
+                        "Options: -C, -A, range\n"
+                        "Ex: local -C\n"
+                        "Ex: 192.168.1.1 80-1000",
+    },
+    {
+        .label = "ARP Scan",
+        .command = "scanarp\n",
+        .details_header = "ARP Scan",
+        .details_text = "Initiates an ARP scan on the local network to discover hosts:\n"
+                        "- Sends ARP requests across the subnet\n"
+                        "- Shows responding IP/MAC pairs\n"
+                        "Requires WiFi connection.\n",
+    },
+    {
+        .label = "Scan SSH",
+        .command = "scanssh",
+        .needs_input = true,
+        .input_text = "IP",
+        .details_header = "SSH Scan",
+        .details_text = "Initiate an SSH port/service scan against the target IP:\n"
+                        "- Provide an IP address (e.g., 192.168.1.10)\n"
+                        "- Scans common SSH ports and reports responses\n"
+                        "- Requires network connectivity\n\n",
+    },
+    {
+        .label = "NetBIOS Scan",
+        .command = "netbiosscan subnet",
+        .needs_input = true,
+        .input_text = "Subnet (e.g. 192.168.1.)",
+        .details_header = "NetBIOS Scan",
+        .details_text = "Scan a subnet for NetBIOS\n"
+                        "names/hosts.\n"
+                        "Enter subnet prefix, e.g.\n"
+                        "192.168.1. or 192.168.1.0\n",
+    },
+    {
+        .label = "HTTP Banner Scan",
+        .command = "httpbannerscan subnet",
+        .needs_input = true,
+        .input_text = "Subnet (e.g. 192.168.1.)",
+        .details_header = "HTTP Banner Scan",
+        .details_text = "Grab HTTP banners from hosts\n"
+                        "on a subnet.\n"
+                        "Enter subnet prefix, e.g.\n"
+                        "192.168.1. or 192.168.1.0\n",
+    },
+    {
+        .label = "SNMP Probe",
+        .command = "snmpprobe subnet",
+        .needs_input = true,
+        .input_text = "Subnet (e.g. 192.168.1.)",
+        .details_header = "SNMP Probe",
+        .details_text = "Probe a subnet for SNMP\n"
+                        "enabled devices.\n"
+                        "Enter subnet prefix, e.g.\n"
+                        "192.168.1. or 192.168.1.0\n",
+    },
+};
+
+// WiFi Network sub-category: IoT Control
+static const MenuCommand wifi_network_iot_commands[] = {
     {
         .label = "Cast Random Video",
         .command = "dialconnect\n",
@@ -669,19 +815,18 @@ static const MenuCommand wifi_network_commands[] = {
                         "- Protocol type\n\n",
     },
     {
-        .label = "Scan Local Network",
-        .command = "scanlocal\n",
-        .needs_confirmation = true,
-        .confirm_header = "Local Network Scan",
-        .confirm_text = "Make sure you've connected\nto WiFi first via "
-                        "the\n'Connect to WiFi' option.\n",
-        .details_header = "Network Scanner",
-        .details_text = "Scans local network for:\n"
-                        "- Printers\n"
-                        "- Smart devices\n"
-                        "- Cast devices\n"
-                        "- Requires WiFi connection\n\n",
+        .label = "TP-Link Smart Plug",
+        .command = "tplinktest",
+        .needs_input = true,
+        .input_text = "on | off | loop",
+        .details_header = "TP-Link Control",
+        .details_text = "Control TP-Link smart plugs\n"
+                        "on the local network.",
     },
+};
+
+// WiFi Network sub-category: WebUI
+static const MenuCommand wifi_network_webui_commands[] = {
     {
         .label = "Set WebUI Creds",
         .command = "apcred",
@@ -708,23 +853,20 @@ static const MenuCommand wifi_network_commands[] = {
                         "Requires ESP reboot\n",
     },
     {
-        .label = "Stop Evil Portal",
-        .command = "stopportal\n",
-        .details_header = "Stop Evil Portal",
-        .details_text = "Stops the Evil Portal.",
-    },
-    {
-        .label = "TP-Link Smart Plug",
-        .command = "tplinktest",
+        .label = "WebUI AP",
+        .command = "webuiap",
         .needs_input = true,
-        .input_text = "on | off | loop",
-        .details_header = "TP-Link Control",
-        .details_text = "Control TP-Link smart plugs\n"
-                        "on the local network.",
+        .input_text = "on | off | toggle | status",
+        .details_header = "WebUI Access Point",
+        .details_text = "Control the dedicated WebUI\n"
+                        "access point.\n"
+                        "Options: on, off, toggle,\n"
+                        "status.\n",
     },
 };
 
-static const MenuCommand wifi_settings_commands[] = {
+// WiFi Settings sub-category: LED & RGB
+static const MenuCommand wifi_settings_led_commands[] = {
     {
         .label = "< LED: Rainbow >",
         .command = "rgbmode rainbow\n",
@@ -746,11 +888,46 @@ static const MenuCommand wifi_settings_commands[] = {
                         "pins for single-pin LED.",
     },
     {
-        .label = "Chip Info",
-        .command = "chipinfo\n",
-        .details_header = "Chip Info",
-        .details_text = "Displays chip information from the ESP\n",
+        .label = "Set RGB Profile",
+        .command = "setrgbmode",
+        .needs_input = true,
+        .input_text = "normal|rainbow|stealth",
+        .details_header = "Set RGB Profile",
+        .details_text = "Save the default LED mode\n"
+                        "used after reboot.",
     },
+    {
+        .label = "Set NeoPixel Brightness",
+        .command = "setneopixelbrightness",
+        .needs_input = true,
+        .input_text = "0-100",
+        .details_header = "NeoPixel Brightness",
+        .details_text = "Adjust NeoPixel brightness\n"
+                        "from 0 to 100%.",
+    },
+    {
+        .label = "Get NeoPixel Brightness",
+        .command = "getneopixelbrightness\n",
+        .details_header = "NeoPixel Brightness",
+        .details_text = "Displays the current NeoPixel\n"
+                        "brightness level.",
+    },
+    {
+        .label = "Set RGB LED Count",
+        .command = "setrgbcount",
+        .needs_input = true,
+        .input_text = "1-512",
+        .details_header = "Set RGB LED Count",
+        .details_text = "Set the number of RGB LEDs\n"
+                        "connected (1-512).\n"
+                        "Effects will span the correct\n"
+                        "length. Reinitializes if pins\n"
+                        "are already configured.\n",
+    },
+};
+
+// WiFi Settings sub-category: SD Card
+static const MenuCommand wifi_settings_sd_commands[] = {
     {
         .label = "Show SD Pin Config",
         .command = "sd_config",
@@ -794,70 +971,10 @@ static const MenuCommand wifi_settings_commands[] = {
                         "config (both modes) to\n"
                         "SD card (sd_config.conf).",
     },
-    {
-        .label = "Set Timezone",
-        .command = "timezone",
-        .needs_input = true,
-        .input_text = "TZ String",
-        .details_header = "Set Timezone",
-        .details_text = "Set timezone for the clock.\n"
-                        "e.g. 'EST5EDT,M3.2.0,M11.1.0'",
-    },
-    {
-        .label = "Set Web Auth",
-        .command = "webauth",
-        .needs_input = true,
-        .input_text = "on | off",
-        .details_header = "Set Web Auth",
-        .details_text = "Enable or disable Web\n"
-                        "UI authentication.",
-    },
-    {
-        .label = "Set WiFi Country",
-        .command = "setcountry",
-        .needs_input = true,
-        .input_text = "Country Code (e.g. US)",
-        .details_header = "Set WiFi Country",
-        .details_text = "Set the WiFi country code.\n"
-                        "May require ESP32-C5.",
-    },
-    {
-        .label = "Set RGB Profile",
-        .command = "setrgbmode",
-        .needs_input = true,
-        .input_text = "normal|rainbow|stealth",
-        .details_header = "Set RGB Profile",
-        .details_text = "Save the default LED mode\n"
-                        "used after reboot.",
-    },
-    {
-        .label = "Set NeoPixel Brightness",
-        .command = "setneopixelbrightness",
-        .needs_input = true,
-        .input_text = "0-100",
-        .details_header = "NeoPixel Brightness",
-        .details_text = "Adjust NeoPixel brightness\n"
-                        "from 0 to 100%.",
-    },
-    {
-        .label = "Get NeoPixel Brightness",
-        .command = "getneopixelbrightness\n",
-        .details_header = "NeoPixel Brightness",
-        .details_text = "Displays the current NeoPixel\n"
-                        "brightness level.",
-    },
-    {
-        .label = "Set RGB LED Count",
-        .command = "setrgbcount",
-        .needs_input = true,
-        .input_text = "1-512",
-        .details_header = "Set RGB LED Count",
-        .details_text = "Set the number of RGB LEDs\n"
-                        "connected (1-512).\n"
-                        "Effects will span the correct\n"
-                        "length. Reinitializes if pins\n"
-                        "are already configured.\n",
-    },
+};
+
+// WiFi Settings sub-category: Settings Management
+static const MenuCommand wifi_settings_mgmt_commands[] = {
     {
         .label = "Settings List",
         .command = "settings list\n",
@@ -906,11 +1023,21 @@ static const MenuCommand wifi_settings_commands[] = {
         .details_text = "Restore all configuration\n"
                         "keys to defaults.",
     },
+};
+
+// WiFi Settings sub-category: Device & Debug
+static const MenuCommand wifi_settings_device_commands[] = {
     {
-        .label = "Show Help",
-        .command = "help\n",
-        .details_header = "Help",
-        .details_text = "Show complete command list.",
+        .label = "Chip Info",
+        .command = "chipinfo\n",
+        .details_header = "Chip Info",
+        .details_text = "Show chip and memory info.",
+    },
+    {
+        .label = "Show Time",
+        .command = "time\n",
+        .details_header = "Device Time",
+        .details_text = "Show the current device time.",
     },
     {
         .label = "Reboot Device",
@@ -930,10 +1057,87 @@ static const MenuCommand wifi_settings_commands[] = {
         .details_text = "Enable or disable the Access Point\nacross reboots.",
     },
     {
-        .label = "Show Chip Info",
-        .command = "chipinfo\n",
-        .details_header = "Chip Info",
-        .details_text = "Show chip and memory info.",
+        .label = "Load Config",
+        .command = "loadconfig\n",
+        .details_header = "Load Config",
+        .details_text = "Reload configuration from the\n"
+                        "SD card.",
+    },
+    {
+        .label = "Identify Device",
+        .command = "identify\n",
+        .details_header = "Identify Device",
+        .details_text = "Trigger a visual/audible\n"
+                        "identify signal on the ESP.",
+    },
+    {
+        .label = "Coredump Dump",
+        .command = "coredump dump\n",
+        .details_header = "Coredump Dump",
+        .details_text = "Read out the stored crash\n"
+                        "coredump from the partition.",
+    },
+    {
+        .label = "Erase Coredump",
+        .command = "coredump erase\n",
+        .needs_confirmation = true,
+        .confirm_header = "Erase Coredump",
+        .confirm_text = "Permanently erase the stored\n"
+                        "crash coredump?\n"
+                        "This cannot be undone.",
+        .details_header = "Erase Coredump",
+        .details_text = "Erase the crash coredump\n"
+                        "partition on the ESP.",
+    },
+    {
+        .label = "Force Crash",
+        .command = "crash\n",
+        .needs_confirmation = true,
+        .confirm_header = "Force Crash",
+        .confirm_text = "This intentionally crashes\n"
+                        "the ESP to test coredump.\n"
+                        "Continue?",
+        .details_header = "Force Crash",
+        .details_text = "Intentionally crash the ESP\n"
+                        "to generate a coredump for\n"
+                        "debugging.",
+    },
+};
+
+// WiFi Settings sub-category: Misc
+static const MenuCommand wifi_settings_misc_commands[] = {
+    {
+        .label = "Set Timezone",
+        .command = "timezone",
+        .needs_input = true,
+        .input_text = "TZ String",
+        .details_header = "Set Timezone",
+        .details_text = "Set timezone for the clock.\n"
+                        "e.g. 'EST5EDT,M3.2.0,M11.1.0'",
+    },
+    {
+        .label = "Set Web Auth",
+        .command = "webauth",
+        .needs_input = true,
+        .input_text = "on | off",
+        .details_header = "Set Web Auth",
+        .details_text = "Enable or disable Web\n"
+                        "UI authentication.",
+    },
+    {
+        .label = "Set WiFi Country",
+        .command = "setcountry",
+        .needs_input = true,
+        .input_text = "Country Code (e.g. US)",
+        .details_header = "Set WiFi Country",
+        .details_text = "Set the WiFi country code.\n"
+                        "May require ESP32-C5.",
+    },
+    {
+        .label = "Show Help",
+        .command = "help\n",
+        .details_header = "Help",
+        .details_text = "Show complete command list.",
     },
 };
 
@@ -1017,7 +1221,8 @@ static const MenuCommand status_idle_commands[] = {
 };
 
 // BLE menu command definitions
-static const MenuCommand ble_scanning_commands[] = {
+// BLE Scanning sub-category: Flipper & Skimmer Detection
+static const MenuCommand ble_scan_detect_commands[] = {
     {
         .label = "Skimmer Detection",
         .command = "capture -skimmer\n",
@@ -1042,6 +1247,25 @@ static const MenuCommand ble_scanning_commands[] = {
                         "Range: ~50m\n",
     },
     {
+        .label = "List Flippers",
+        .command = "listflippers\n",
+        .details_header = "List Flippers",
+        .details_text = "List discovered Flipper Devices\n"
+                        "in range.",
+    },
+    {
+        .label = "Select Flipper to Track",
+        .command = "selectflipper",
+        .needs_input = true,
+        .input_text = "Flipper Number",
+        .details_header = "Select Flipper to Track",
+        .details_text = "Select a Flipper by number to track RSSI strength.",
+    },
+};
+
+// BLE Scanning sub-category: AirTag
+static const MenuCommand ble_scan_airtag_commands[] = {
+    {
         .label = "AirTag Scanner",
         .command = "blescan -a\n",
         .details_header = "AirTag Scanner",
@@ -1065,21 +1289,10 @@ static const MenuCommand ble_scanning_commands[] = {
         .details_header = "Select AirTag",
         .details_text = "Target an AirTag by number\nfrom the scan list.",
     },
-    {
-        .label = "List Flippers",
-        .command = "listflippers\n",
-        .details_header = "List Flippers",
-        .details_text = "List discovered Flipper Devices\n"
-                        "in range.",
-    },
-    {
-        .label = "Select Flipper to Track",
-        .command = "selectflipper",
-        .needs_input = true,
-        .input_text = "Flipper Number",
-        .details_header = "Select Flipper to Track",
-        .details_text = "Select a Flipper by number to track RSSI strength.",
-    },
+};
+
+// BLE Scanning sub-category: GATT
+static const MenuCommand ble_scan_gatt_commands[] = {
     {
         .label = "Scan GATT Devices",
         .command = "blescan -g\n",
@@ -1122,11 +1335,41 @@ static const MenuCommand ble_scanning_commands[] = {
                         "using real-time RSSI signal\n"
                         "strength monitoring.\n",
     },
+};
+
+// BLE Scanning sub-category: Advertisers & Traffic
+static const MenuCommand ble_scan_adv_commands[] = {
     {
         .label = "View All BLE Traffic",
         .command = "blescan -r\n",
         .details_header = "BLE Raw Traffic",
         .details_text = "View all Bluetooth Low Energy\ntraffic in range.",
+    },
+    {
+        .label = "Scan Advertisers",
+        .command = "blescan -adv\n",
+        .details_header = "Scan Advertisers",
+        .details_text = "Start a parsed BLE\n"
+                        "advertiser scan.\n"
+                        "Run 'List Advertisers'\n"
+                        "afterwards for results.\n",
+    },
+    {
+        .label = "List Advertisers",
+        .command = "listadv\n",
+        .details_header = "List Advertisers",
+        .details_text = "List discovered BLE\n"
+                        "advertisers in range.\n",
+    },
+    {
+        .label = "BLE Bridge",
+        .command = "blebridge",
+        .needs_input = true,
+        .input_text = "start | stop | status | pair <peer>",
+        .details_header = "BLE GhostLink Bridge",
+        .details_text = "Start/stop/status the BLE\n"
+                        "GhostLink bridge, or pair\n"
+                        "with a peer by name.\n",
     },
     {
         .label = "Stop BLE Scanning",
@@ -1196,8 +1439,8 @@ static const MenuCommand ble_stop_command = {
                     "- Device Detection\n",
 };
 
-// GPS menu command definitions
-static const MenuCommand gps_commands[] = {
+// GPS sub-category: GPS Config
+static const MenuCommand gps_config_commands[] = {
     {
         .label = "GPS Info",
         .command = "gpsinfo\n",
@@ -1226,6 +1469,39 @@ static const MenuCommand gps_commands[] = {
         .details_text = "Shows current GPS RX pin\n"
                         "configuration for external\n"
                         "GPS modules.\n",
+    },
+    {
+        .label = "Set GPS Baud",
+        .command = "gpsbaud",
+        .needs_input = true,
+        .input_text = "Baud Rate (e.g. 9600)",
+        .details_header = "Set GPS Baud Rate",
+        .details_text = "Set the GPS module baud\n"
+                        "rate. Persists to NVS.\n"
+                        "Restart GPS to apply.\n",
+    },
+};
+
+// GPS sub-category: Wardriving
+static const MenuCommand gps_wardrive_commands[] = {
+    {
+        .label = "WiGLE Auto Upload",
+        .command = "wigle auto",
+        .needs_input = true,
+        .input_text = "on | off",
+        .details_header = "WiGLE Auto Upload",
+        .details_text = "Enable or disable automatic\n"
+                        "upload of wardrive data to\n"
+                        "WiGLE.\n",
+    },
+    {
+        .label = "WiGLE Donate",
+        .command = "wigle donate",
+        .needs_input = true,
+        .input_text = "on | off",
+        .details_header = "WiGLE Donate Mode",
+        .details_text = "Toggle WiGLE donate mode for\n"
+                        "uploaded observations.\n",
     },
     {
         .label = "Start Wardriving",
@@ -2085,6 +2361,58 @@ void navigate_to_view(AppState* state, uint8_t view_id) {
     case VIEW_WIFI_SETTINGS:
         show_wifi_settings_menu(state);
         break;
+    // WiFi Settings sub-categories
+    case VIEW_WIFI_SETTINGS_LED:
+        show_wifi_settings_led_menu(state);
+        break;
+    case VIEW_WIFI_SETTINGS_SD:
+        show_wifi_settings_sd_menu(state);
+        break;
+    case VIEW_WIFI_SETTINGS_MGMT:
+        show_wifi_settings_mgmt_menu(state);
+        break;
+    case VIEW_WIFI_SETTINGS_DEVICE:
+        show_wifi_settings_device_menu(state);
+        break;
+    case VIEW_WIFI_SETTINGS_MISC:
+        show_wifi_settings_misc_menu(state);
+        break;
+    // WiFi Network sub-categories
+    case VIEW_WIFI_NETWORK_PORTAL:
+        show_wifi_network_portal_menu(state);
+        break;
+    case VIEW_WIFI_NETWORK_CONN:
+        show_wifi_network_conn_menu(state);
+        break;
+    case VIEW_WIFI_NETWORK_SCAN:
+        show_wifi_network_scan_menu(state);
+        break;
+    case VIEW_WIFI_NETWORK_IOT:
+        show_wifi_network_iot_menu(state);
+        break;
+    case VIEW_WIFI_NETWORK_WEBUI:
+        show_wifi_network_webui_menu(state);
+        break;
+    // BLE Scanning sub-categories
+    case VIEW_BLE_SCAN_DETECT:
+        show_ble_scan_detect_menu(state);
+        break;
+    case VIEW_BLE_SCAN_AIRTAG:
+        show_ble_scan_airtag_menu(state);
+        break;
+    case VIEW_BLE_SCAN_GATT:
+        show_ble_scan_gatt_menu(state);
+        break;
+    case VIEW_BLE_SCAN_ADV:
+        show_ble_scan_adv_menu(state);
+        break;
+    // GPS sub-categories
+    case VIEW_GPS_CONFIG:
+        show_gps_config_menu(state);
+        break;
+    case VIEW_GPS_WARDRIVE:
+        show_gps_wardrive_menu(state);
+        break;
     case VIEW_AERIAL:
         show_aerial_menu(state);
         break;
@@ -2881,8 +3209,8 @@ static void execute_menu_command(AppState* state, const MenuCommand* command) {
         return;
     }
 
-    // Handle variable rgbmode command (new branch for index 17)
-    if(state->current_view == VIEW_WIFI_SETTINGS && state->current_index == 0) {
+    // Handle variable rgbmode command (LED sub-category, index 0)
+    if(state->current_view == VIEW_WIFI_SETTINGS_LED && state->current_index == 0) {
         const CyclingMenuDef* current_rgb = &rgbmode_commands[current_rgb_index];
         // Save view and show terminal log
         state->previous_view = state->current_view;
@@ -3007,6 +3335,58 @@ static void show_menu(
     case VIEW_AERIAL: // Aerial
         last_index = state->last_aerial_category_index;
         break;
+    // WiFi Settings sub-categories
+    case VIEW_WIFI_SETTINGS_LED:
+        last_index = state->last_wifi_settings_led_index;
+        break;
+    case VIEW_WIFI_SETTINGS_SD:
+        last_index = state->last_wifi_settings_sd_index;
+        break;
+    case VIEW_WIFI_SETTINGS_MGMT:
+        last_index = state->last_wifi_settings_mgmt_index;
+        break;
+    case VIEW_WIFI_SETTINGS_DEVICE:
+        last_index = state->last_wifi_settings_device_index;
+        break;
+    case VIEW_WIFI_SETTINGS_MISC:
+        last_index = state->last_wifi_settings_misc_index;
+        break;
+    // WiFi Network sub-categories
+    case VIEW_WIFI_NETWORK_PORTAL:
+        last_index = state->last_wifi_network_portal_index;
+        break;
+    case VIEW_WIFI_NETWORK_CONN:
+        last_index = state->last_wifi_network_conn_index;
+        break;
+    case VIEW_WIFI_NETWORK_SCAN:
+        last_index = state->last_wifi_network_scan_index;
+        break;
+    case VIEW_WIFI_NETWORK_IOT:
+        last_index = state->last_wifi_network_iot_index;
+        break;
+    case VIEW_WIFI_NETWORK_WEBUI:
+        last_index = state->last_wifi_network_webui_index;
+        break;
+    // BLE Scanning sub-categories
+    case VIEW_BLE_SCAN_DETECT:
+        last_index = state->last_ble_scan_detect_index;
+        break;
+    case VIEW_BLE_SCAN_AIRTAG:
+        last_index = state->last_ble_scan_airtag_index;
+        break;
+    case VIEW_BLE_SCAN_GATT:
+        last_index = state->last_ble_scan_gatt_index;
+        break;
+    case VIEW_BLE_SCAN_ADV:
+        last_index = state->last_ble_scan_adv_index;
+        break;
+    // GPS sub-categories
+    case VIEW_GPS_CONFIG:
+        last_index = state->last_gps_config_index;
+        break;
+    case VIEW_GPS_WARDRIVE:
+        last_index = state->last_gps_wardrive_index;
+        break;
     }
     if(last_index < command_count) {
         submenu_set_selected_item(menu, last_index);
@@ -3066,27 +3446,133 @@ void show_wifi_attack_menu(AppState* state) {
 }
 
 void show_wifi_network_menu(AppState* state) {
-    show_menu(
-        state,
-        wifi_network_commands,
-        COUNT_OF(wifi_network_commands),
-        "Portal & Network",
-        state->wifi_network_menu,
-        13);
+    submenu_reset(state->wifi_network_menu);
+    submenu_set_header(state->wifi_network_menu, "Portal & Network");
+    submenu_add_item(state->wifi_network_menu, "Evil Portal >", 0, submenu_callback, state);
+    submenu_add_item(state->wifi_network_menu, "WiFi Connection >", 1, submenu_callback, state);
+    submenu_add_item(state->wifi_network_menu, "Network Scan >", 2, submenu_callback, state);
+    submenu_add_item(state->wifi_network_menu, "IoT Control >", 3, submenu_callback, state);
+    submenu_add_item(state->wifi_network_menu, "WebUI >", 4, submenu_callback, state);
+    submenu_set_selected_item(state->wifi_network_menu, state->last_wifi_network_index);
+    view_dispatcher_switch_to_view(state->view_dispatcher, VIEW_WIFI_NETWORK);
+    state->current_view = VIEW_WIFI_NETWORK;
 }
 
 void show_wifi_settings_menu(AppState* state) {
+    submenu_reset(state->wifi_settings_menu);
+    submenu_set_header(state->wifi_settings_menu, "Settings & Hardware");
+    submenu_add_item(state->wifi_settings_menu, "LED & RGB >", 0, submenu_callback, state);
+    submenu_add_item(state->wifi_settings_menu, "SD Card >", 1, submenu_callback, state);
+    submenu_add_item(state->wifi_settings_menu, "Settings Mgmt >", 2, submenu_callback, state);
+    submenu_add_item(state->wifi_settings_menu, "Device & Debug >", 3, submenu_callback, state);
+    submenu_add_item(state->wifi_settings_menu, "Misc >", 4, submenu_callback, state);
+    submenu_set_selected_item(state->wifi_settings_menu, state->last_wifi_settings_index);
+    view_dispatcher_switch_to_view(state->view_dispatcher, VIEW_WIFI_SETTINGS);
+    state->current_view = VIEW_WIFI_SETTINGS;
+}
+
+// WiFi Settings sub-category show functions
+void show_wifi_settings_led_menu(AppState* state) {
     show_menu(
         state,
-        wifi_settings_commands,
-        COUNT_OF(wifi_settings_commands),
-        "Settings & Hardware",
-        state->wifi_settings_menu,
-        14);
-
-    // Ensure rgbmode cycling label persists
+        wifi_settings_led_commands,
+        COUNT_OF(wifi_settings_led_commands),
+        "LED & RGB",
+        state->wifi_settings_led_menu,
+        VIEW_WIFI_SETTINGS_LED);
     submenu_change_item_label(
-        state->wifi_settings_menu, 0, rgbmode_commands[current_rgb_index].label);
+        state->wifi_settings_led_menu, 0, rgbmode_commands[current_rgb_index].label);
+}
+
+void show_wifi_settings_sd_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_settings_sd_commands,
+        COUNT_OF(wifi_settings_sd_commands),
+        "SD Card",
+        state->wifi_settings_sd_menu,
+        VIEW_WIFI_SETTINGS_SD);
+}
+
+void show_wifi_settings_mgmt_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_settings_mgmt_commands,
+        COUNT_OF(wifi_settings_mgmt_commands),
+        "Settings Mgmt",
+        state->wifi_settings_mgmt_menu,
+        VIEW_WIFI_SETTINGS_MGMT);
+}
+
+void show_wifi_settings_device_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_settings_device_commands,
+        COUNT_OF(wifi_settings_device_commands),
+        "Device & Debug",
+        state->wifi_settings_device_menu,
+        VIEW_WIFI_SETTINGS_DEVICE);
+}
+
+void show_wifi_settings_misc_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_settings_misc_commands,
+        COUNT_OF(wifi_settings_misc_commands),
+        "Misc",
+        state->wifi_settings_misc_menu,
+        VIEW_WIFI_SETTINGS_MISC);
+}
+
+// WiFi Network sub-category show functions
+void show_wifi_network_portal_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_network_portal_commands,
+        COUNT_OF(wifi_network_portal_commands),
+        "Evil Portal",
+        state->wifi_network_portal_menu,
+        VIEW_WIFI_NETWORK_PORTAL);
+}
+
+void show_wifi_network_conn_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_network_conn_commands,
+        COUNT_OF(wifi_network_conn_commands),
+        "WiFi Connection",
+        state->wifi_network_conn_menu,
+        VIEW_WIFI_NETWORK_CONN);
+}
+
+void show_wifi_network_scan_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_network_scan_commands,
+        COUNT_OF(wifi_network_scan_commands),
+        "Network Scan",
+        state->wifi_network_scan_menu,
+        VIEW_WIFI_NETWORK_SCAN);
+}
+
+void show_wifi_network_iot_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_network_iot_commands,
+        COUNT_OF(wifi_network_iot_commands),
+        "IoT Control",
+        state->wifi_network_iot_menu,
+        VIEW_WIFI_NETWORK_IOT);
+}
+
+void show_wifi_network_webui_menu(AppState* state) {
+    show_menu(
+        state,
+        wifi_network_webui_commands,
+        COUNT_OF(wifi_network_webui_commands),
+        "WebUI",
+        state->wifi_network_webui_menu,
+        VIEW_WIFI_NETWORK_WEBUI);
 }
 
 void show_status_idle_menu(AppState* state) {
@@ -3100,13 +3586,57 @@ void show_status_idle_menu(AppState* state) {
 }
 
 void show_ble_scanning_menu(AppState* state) {
+    submenu_reset(state->ble_scanning_menu);
+    submenu_set_header(state->ble_scanning_menu, "Scanning & Detection");
+    submenu_add_item(state->ble_scanning_menu, "Flipper & Skimmer >", 0, submenu_callback, state);
+    submenu_add_item(state->ble_scanning_menu, "AirTag >", 1, submenu_callback, state);
+    submenu_add_item(state->ble_scanning_menu, "GATT >", 2, submenu_callback, state);
+    submenu_add_item(
+        state->ble_scanning_menu, "Advertisers & Traffic >", 3, submenu_callback, state);
+    submenu_set_selected_item(state->ble_scanning_menu, state->last_ble_scanning_index);
+    view_dispatcher_switch_to_view(state->view_dispatcher, VIEW_BLE_SCANNING);
+    state->current_view = VIEW_BLE_SCANNING;
+}
+
+// BLE Scanning sub-category show functions
+void show_ble_scan_detect_menu(AppState* state) {
     show_menu(
         state,
-        ble_scanning_commands,
-        COUNT_OF(ble_scanning_commands),
-        "Scanning & Detection",
-        state->ble_scanning_menu,
-        20);
+        ble_scan_detect_commands,
+        COUNT_OF(ble_scan_detect_commands),
+        "Flipper & Skimmer",
+        state->ble_scan_detect_menu,
+        VIEW_BLE_SCAN_DETECT);
+}
+
+void show_ble_scan_airtag_menu(AppState* state) {
+    show_menu(
+        state,
+        ble_scan_airtag_commands,
+        COUNT_OF(ble_scan_airtag_commands),
+        "AirTag",
+        state->ble_scan_airtag_menu,
+        VIEW_BLE_SCAN_AIRTAG);
+}
+
+void show_ble_scan_gatt_menu(AppState* state) {
+    show_menu(
+        state,
+        ble_scan_gatt_commands,
+        COUNT_OF(ble_scan_gatt_commands),
+        "GATT",
+        state->ble_scan_gatt_menu,
+        VIEW_BLE_SCAN_GATT);
+}
+
+void show_ble_scan_adv_menu(AppState* state) {
+    show_menu(
+        state,
+        ble_scan_adv_commands,
+        COUNT_OF(ble_scan_adv_commands),
+        "Advertisers & Traffic",
+        state->ble_scan_adv_menu,
+        VIEW_BLE_SCAN_ADV);
 }
 
 void show_ble_capture_menu(AppState* state) {
@@ -3175,7 +3705,34 @@ void show_ble_menu(AppState* state) {
 
 void show_gps_menu(AppState* state) {
     state->came_from_settings = false;
-    show_menu(state, gps_commands, COUNT_OF(gps_commands), "GPS Commands:", state->gps_menu, 3);
+    submenu_reset(state->gps_menu);
+    submenu_set_header(state->gps_menu, "GPS Commands");
+    submenu_add_item(state->gps_menu, "GPS Config >", 0, submenu_callback, state);
+    submenu_add_item(state->gps_menu, "Wardriving >", 1, submenu_callback, state);
+    submenu_set_selected_item(state->gps_menu, state->last_gps_index);
+    view_dispatcher_switch_to_view(state->view_dispatcher, VIEW_GPS);
+    state->current_view = VIEW_GPS;
+}
+
+// GPS sub-category show functions
+void show_gps_config_menu(AppState* state) {
+    show_menu(
+        state,
+        gps_config_commands,
+        COUNT_OF(gps_config_commands),
+        "GPS Config",
+        state->gps_config_menu,
+        VIEW_GPS_CONFIG);
+}
+
+void show_gps_wardrive_menu(AppState* state) {
+    show_menu(
+        state,
+        gps_wardrive_commands,
+        COUNT_OF(gps_wardrive_commands),
+        "Wardriving",
+        state->gps_wardrive_menu,
+        VIEW_GPS_WARDRIVE);
 }
 
 void show_ir_menu(AppState* state) {
@@ -3184,7 +3741,6 @@ void show_ir_menu(AppState* state) {
 
 // Menu command handlers
 void handle_wifi_menu(AppState* state, uint32_t index) {
-    // This function is now for sub-category menus
     const MenuCommand* command = NULL;
     switch(state->current_view) {
     case VIEW_WIFI_SCANNING: // Scanning
@@ -3205,16 +3761,66 @@ void handle_wifi_menu(AppState* state, uint32_t index) {
             state->last_wifi_attack_index = index;
         }
         break;
-    case VIEW_WIFI_NETWORK: // Network
-        if(index < COUNT_OF(wifi_network_commands)) {
-            command = &wifi_network_commands[index];
-            state->last_wifi_network_index = index;
+    // WiFi Settings sub-categories
+    case VIEW_WIFI_SETTINGS_LED:
+        if(index < COUNT_OF(wifi_settings_led_commands)) {
+            command = &wifi_settings_led_commands[index];
+            state->last_wifi_settings_led_index = index;
         }
         break;
-    case VIEW_WIFI_SETTINGS: // Settings
-        if(index < COUNT_OF(wifi_settings_commands)) {
-            command = &wifi_settings_commands[index];
-            state->last_wifi_settings_index = index;
+    case VIEW_WIFI_SETTINGS_SD:
+        if(index < COUNT_OF(wifi_settings_sd_commands)) {
+            command = &wifi_settings_sd_commands[index];
+            state->last_wifi_settings_sd_index = index;
+        }
+        break;
+    case VIEW_WIFI_SETTINGS_MGMT:
+        if(index < COUNT_OF(wifi_settings_mgmt_commands)) {
+            command = &wifi_settings_mgmt_commands[index];
+            state->last_wifi_settings_mgmt_index = index;
+        }
+        break;
+    case VIEW_WIFI_SETTINGS_DEVICE:
+        if(index < COUNT_OF(wifi_settings_device_commands)) {
+            command = &wifi_settings_device_commands[index];
+            state->last_wifi_settings_device_index = index;
+        }
+        break;
+    case VIEW_WIFI_SETTINGS_MISC:
+        if(index < COUNT_OF(wifi_settings_misc_commands)) {
+            command = &wifi_settings_misc_commands[index];
+            state->last_wifi_settings_misc_index = index;
+        }
+        break;
+    // WiFi Network sub-categories
+    case VIEW_WIFI_NETWORK_PORTAL:
+        if(index < COUNT_OF(wifi_network_portal_commands)) {
+            command = &wifi_network_portal_commands[index];
+            state->last_wifi_network_portal_index = index;
+        }
+        break;
+    case VIEW_WIFI_NETWORK_CONN:
+        if(index < COUNT_OF(wifi_network_conn_commands)) {
+            command = &wifi_network_conn_commands[index];
+            state->last_wifi_network_conn_index = index;
+        }
+        break;
+    case VIEW_WIFI_NETWORK_SCAN:
+        if(index < COUNT_OF(wifi_network_scan_commands)) {
+            command = &wifi_network_scan_commands[index];
+            state->last_wifi_network_scan_index = index;
+        }
+        break;
+    case VIEW_WIFI_NETWORK_IOT:
+        if(index < COUNT_OF(wifi_network_iot_commands)) {
+            command = &wifi_network_iot_commands[index];
+            state->last_wifi_network_iot_index = index;
+        }
+        break;
+    case VIEW_WIFI_NETWORK_WEBUI:
+        if(index < COUNT_OF(wifi_network_webui_commands)) {
+            command = &wifi_network_webui_commands[index];
+            state->last_wifi_network_webui_index = index;
         }
         break;
     }
@@ -3225,15 +3831,8 @@ void handle_wifi_menu(AppState* state, uint32_t index) {
 }
 
 void handle_ble_menu(AppState* state, uint32_t index) {
-    // This function is now for sub-category menus
     const MenuCommand* command = NULL;
     switch(state->current_view) {
-    case VIEW_BLE_SCANNING: // Scanning
-        if(index < COUNT_OF(ble_scanning_commands)) {
-            command = &ble_scanning_commands[index];
-            state->last_ble_scanning_index = index;
-        }
-        break;
     case VIEW_BLE_CAPTURE: // Capture
         if(index < COUNT_OF(ble_capture_commands)) {
             command = &ble_capture_commands[index];
@@ -3244,6 +3843,31 @@ void handle_ble_menu(AppState* state, uint32_t index) {
         if(index < COUNT_OF(ble_attack_commands)) {
             command = &ble_attack_commands[index];
             state->last_ble_attack_index = index;
+        }
+        break;
+    // BLE Scanning sub-categories
+    case VIEW_BLE_SCAN_DETECT:
+        if(index < COUNT_OF(ble_scan_detect_commands)) {
+            command = &ble_scan_detect_commands[index];
+            state->last_ble_scan_detect_index = index;
+        }
+        break;
+    case VIEW_BLE_SCAN_AIRTAG:
+        if(index < COUNT_OF(ble_scan_airtag_commands)) {
+            command = &ble_scan_airtag_commands[index];
+            state->last_ble_scan_airtag_index = index;
+        }
+        break;
+    case VIEW_BLE_SCAN_GATT:
+        if(index < COUNT_OF(ble_scan_gatt_commands)) {
+            command = &ble_scan_gatt_commands[index];
+            state->last_ble_scan_gatt_index = index;
+        }
+        break;
+    case VIEW_BLE_SCAN_ADV:
+        if(index < COUNT_OF(ble_scan_adv_commands)) {
+            command = &ble_scan_adv_commands[index];
+            state->last_ble_scan_adv_index = index;
         }
         break;
     }
@@ -3261,9 +3885,23 @@ void handle_aerial_menu(AppState* state, uint32_t index) {
 }
 
 void handle_gps_menu(AppState* state, uint32_t index) {
-    if(index < COUNT_OF(gps_commands)) {
-        state->last_gps_index = index; // Save the selection
-        execute_menu_command(state, &gps_commands[index]);
+    const MenuCommand* command = NULL;
+    switch(state->current_view) {
+    case VIEW_GPS_CONFIG:
+        if(index < COUNT_OF(gps_config_commands)) {
+            command = &gps_config_commands[index];
+            state->last_gps_config_index = index;
+        }
+        break;
+    case VIEW_GPS_WARDRIVE:
+        if(index < COUNT_OF(gps_wardrive_commands)) {
+            command = &gps_wardrive_commands[index];
+            state->last_gps_wardrive_index = index;
+        }
+        break;
+    }
+    if(command) {
+        execute_menu_command(state, command);
     }
 }
 
@@ -3362,12 +4000,98 @@ void submenu_callback(void* context, uint32_t index) {
         }
         break;
     case VIEW_GPS:
-        handle_gps_menu(state, index);
+        state->last_gps_index = index;
+        switch(index) {
+        case 0:
+            show_gps_config_menu(state);
+            break;
+        case 1:
+            show_gps_wardrive_menu(state);
+            break;
+        }
+        break;
+    case VIEW_WIFI_NETWORK:
+        state->last_wifi_network_index = index;
+        switch(index) {
+        case 0:
+            show_wifi_network_portal_menu(state);
+            break;
+        case 1:
+            show_wifi_network_conn_menu(state);
+            break;
+        case 2:
+            show_wifi_network_scan_menu(state);
+            break;
+        case 3:
+            show_wifi_network_iot_menu(state);
+            break;
+        case 4:
+            show_wifi_network_webui_menu(state);
+            break;
+        }
+        break;
+    case VIEW_WIFI_SETTINGS:
+        state->last_wifi_settings_index = index;
+        switch(index) {
+        case 0:
+            show_wifi_settings_led_menu(state);
+            break;
+        case 1:
+            show_wifi_settings_sd_menu(state);
+            break;
+        case 2:
+            show_wifi_settings_mgmt_menu(state);
+            break;
+        case 3:
+            show_wifi_settings_device_menu(state);
+            break;
+        case 4:
+            show_wifi_settings_misc_menu(state);
+            break;
+        }
         break;
     case VIEW_BLE_SCANNING:
+        state->last_ble_scanning_index = index;
+        switch(index) {
+        case 0:
+            show_ble_scan_detect_menu(state);
+            break;
+        case 1:
+            show_ble_scan_airtag_menu(state);
+            break;
+        case 2:
+            show_ble_scan_gatt_menu(state);
+            break;
+        case 3:
+            show_ble_scan_adv_menu(state);
+            break;
+        }
+        break;
     case VIEW_BLE_CAPTURE:
     case VIEW_BLE_ATTACK:
         handle_ble_menu(state, index);
+        break;
+    case VIEW_WIFI_SETTINGS_LED:
+    case VIEW_WIFI_SETTINGS_SD:
+    case VIEW_WIFI_SETTINGS_MGMT:
+    case VIEW_WIFI_SETTINGS_DEVICE:
+    case VIEW_WIFI_SETTINGS_MISC:
+    case VIEW_WIFI_NETWORK_PORTAL:
+    case VIEW_WIFI_NETWORK_CONN:
+    case VIEW_WIFI_NETWORK_SCAN:
+    case VIEW_WIFI_NETWORK_IOT:
+    case VIEW_WIFI_NETWORK_WEBUI:
+        handle_wifi_menu(state, index);
+        break;
+    case VIEW_BLE_SCAN_DETECT:
+    case VIEW_BLE_SCAN_AIRTAG:
+    case VIEW_BLE_SCAN_GATT:
+    case VIEW_BLE_SCAN_ADV:
+        handle_ble_menu(state, index);
+        break;
+    case VIEW_GPS_CONFIG:
+    case VIEW_GPS_WARDRIVE:
+        handle_gps_menu(state, index);
         break;
     case VIEW_AERIAL:
         handle_aerial_menu(state, index);
@@ -3532,10 +4256,22 @@ bool back_event_callback(void* context) {
         } else {
             navigate_to_view(state, VIEW_WIFI);
         }
+    } else if(cv >= VIEW_WIFI_SETTINGS_LED && cv <= VIEW_WIFI_SETTINGS_MISC) {
+        if(state->came_from_settings) {
+            navigate_to_view(state, VIEW_SETTINGS_ACTIONS);
+        } else {
+            navigate_to_view(state, VIEW_WIFI_SETTINGS);
+        }
+    } else if(cv >= VIEW_WIFI_NETWORK_PORTAL && cv <= VIEW_WIFI_NETWORK_WEBUI) {
+        navigate_to_view(state, VIEW_WIFI_NETWORK);
     } else if(cv == VIEW_STATUS_IDLE) {
         navigate_to_view(state, VIEW_SETTINGS_ACTIONS);
     } else if(cv >= VIEW_BLE_SCANNING && cv <= VIEW_BLE_ATTACK) {
         navigate_to_view(state, VIEW_BLE);
+    } else if(cv >= VIEW_BLE_SCAN_DETECT && cv <= VIEW_BLE_SCAN_ADV) {
+        navigate_to_view(state, VIEW_BLE_SCANNING);
+    } else if(cv >= VIEW_GPS_CONFIG && cv <= VIEW_GPS_WARDRIVE) {
+        navigate_to_view(state, VIEW_GPS);
     } else if(cv == VIEW_MAIN) {
         view_dispatcher_stop(state->view_dispatcher);
     }
@@ -3630,9 +4366,7 @@ static bool menu_input_handler(InputEvent* event, void* context) {
         return false;
     case VIEW_BLE_SCANNING:
         current_menu = state->ble_scanning_menu;
-        commands = ble_scanning_commands;
-        commands_count = COUNT_OF(ble_scanning_commands);
-        break;
+        return false;
     case VIEW_BLE_CAPTURE:
         current_menu = state->ble_capture_menu;
         commands = ble_capture_commands;
@@ -3645,9 +4379,7 @@ static bool menu_input_handler(InputEvent* event, void* context) {
         break;
     case VIEW_GPS:
         current_menu = state->gps_menu;
-        commands = gps_commands;
-        commands_count = COUNT_OF(gps_commands);
-        break;
+        return false;
     case VIEW_IR:
         current_menu = state->ir_menu;
         commands = ir_commands;
@@ -3670,14 +4402,10 @@ static bool menu_input_handler(InputEvent* event, void* context) {
         break;
     case VIEW_WIFI_NETWORK:
         current_menu = state->wifi_network_menu;
-        commands = wifi_network_commands;
-        commands_count = COUNT_OF(wifi_network_commands);
-        break;
+        return false;
     case VIEW_WIFI_SETTINGS:
         current_menu = state->wifi_settings_menu;
-        commands = wifi_settings_commands;
-        commands_count = COUNT_OF(wifi_settings_commands);
-        break;
+        return false;
     case VIEW_AERIAL:
         current_menu = state->aerial_menu;
         commands = aerial_commands;
@@ -3687,6 +4415,90 @@ static bool menu_input_handler(InputEvent* event, void* context) {
         current_menu = state->status_idle_menu;
         commands = status_idle_commands;
         commands_count = COUNT_OF(status_idle_commands);
+        break;
+    // WiFi Settings sub-categories
+    case VIEW_WIFI_SETTINGS_LED:
+        current_menu = state->wifi_settings_led_menu;
+        commands = wifi_settings_led_commands;
+        commands_count = COUNT_OF(wifi_settings_led_commands);
+        break;
+    case VIEW_WIFI_SETTINGS_SD:
+        current_menu = state->wifi_settings_sd_menu;
+        commands = wifi_settings_sd_commands;
+        commands_count = COUNT_OF(wifi_settings_sd_commands);
+        break;
+    case VIEW_WIFI_SETTINGS_MGMT:
+        current_menu = state->wifi_settings_mgmt_menu;
+        commands = wifi_settings_mgmt_commands;
+        commands_count = COUNT_OF(wifi_settings_mgmt_commands);
+        break;
+    case VIEW_WIFI_SETTINGS_DEVICE:
+        current_menu = state->wifi_settings_device_menu;
+        commands = wifi_settings_device_commands;
+        commands_count = COUNT_OF(wifi_settings_device_commands);
+        break;
+    case VIEW_WIFI_SETTINGS_MISC:
+        current_menu = state->wifi_settings_misc_menu;
+        commands = wifi_settings_misc_commands;
+        commands_count = COUNT_OF(wifi_settings_misc_commands);
+        break;
+    // WiFi Network sub-categories
+    case VIEW_WIFI_NETWORK_PORTAL:
+        current_menu = state->wifi_network_portal_menu;
+        commands = wifi_network_portal_commands;
+        commands_count = COUNT_OF(wifi_network_portal_commands);
+        break;
+    case VIEW_WIFI_NETWORK_CONN:
+        current_menu = state->wifi_network_conn_menu;
+        commands = wifi_network_conn_commands;
+        commands_count = COUNT_OF(wifi_network_conn_commands);
+        break;
+    case VIEW_WIFI_NETWORK_SCAN:
+        current_menu = state->wifi_network_scan_menu;
+        commands = wifi_network_scan_commands;
+        commands_count = COUNT_OF(wifi_network_scan_commands);
+        break;
+    case VIEW_WIFI_NETWORK_IOT:
+        current_menu = state->wifi_network_iot_menu;
+        commands = wifi_network_iot_commands;
+        commands_count = COUNT_OF(wifi_network_iot_commands);
+        break;
+    case VIEW_WIFI_NETWORK_WEBUI:
+        current_menu = state->wifi_network_webui_menu;
+        commands = wifi_network_webui_commands;
+        commands_count = COUNT_OF(wifi_network_webui_commands);
+        break;
+    // BLE Scanning sub-categories
+    case VIEW_BLE_SCAN_DETECT:
+        current_menu = state->ble_scan_detect_menu;
+        commands = ble_scan_detect_commands;
+        commands_count = COUNT_OF(ble_scan_detect_commands);
+        break;
+    case VIEW_BLE_SCAN_AIRTAG:
+        current_menu = state->ble_scan_airtag_menu;
+        commands = ble_scan_airtag_commands;
+        commands_count = COUNT_OF(ble_scan_airtag_commands);
+        break;
+    case VIEW_BLE_SCAN_GATT:
+        current_menu = state->ble_scan_gatt_menu;
+        commands = ble_scan_gatt_commands;
+        commands_count = COUNT_OF(ble_scan_gatt_commands);
+        break;
+    case VIEW_BLE_SCAN_ADV:
+        current_menu = state->ble_scan_adv_menu;
+        commands = ble_scan_adv_commands;
+        commands_count = COUNT_OF(ble_scan_adv_commands);
+        break;
+    // GPS sub-categories
+    case VIEW_GPS_CONFIG:
+        current_menu = state->gps_config_menu;
+        commands = gps_config_commands;
+        commands_count = COUNT_OF(gps_config_commands);
+        break;
+    case VIEW_GPS_WARDRIVE:
+        current_menu = state->gps_wardrive_menu;
+        commands = gps_wardrive_commands;
+        commands_count = COUNT_OF(gps_wardrive_commands);
         break;
     default:
         return false;
@@ -3780,9 +4592,29 @@ static bool menu_input_handler(InputEvent* event, void* context) {
                     navigate_to_view(state, VIEW_WIFI);
                 }
             } else if(
+                state->current_view >= VIEW_WIFI_SETTINGS_LED &&
+                state->current_view <= VIEW_WIFI_SETTINGS_MISC) {
+                if(state->came_from_settings) {
+                    navigate_to_view(state, VIEW_SETTINGS_ACTIONS);
+                } else {
+                    navigate_to_view(state, VIEW_WIFI_SETTINGS);
+                }
+            } else if(
+                state->current_view >= VIEW_WIFI_NETWORK_PORTAL &&
+                state->current_view <= VIEW_WIFI_NETWORK_WEBUI) {
+                navigate_to_view(state, VIEW_WIFI_NETWORK);
+            } else if(
                 state->current_view >= VIEW_BLE_SCANNING &&
                 state->current_view <= VIEW_BLE_ATTACK) {
                 navigate_to_view(state, VIEW_BLE);
+            } else if(
+                state->current_view >= VIEW_BLE_SCAN_DETECT &&
+                state->current_view <= VIEW_BLE_SCAN_ADV) {
+                navigate_to_view(state, VIEW_BLE_SCANNING);
+            } else if(
+                state->current_view >= VIEW_GPS_CONFIG &&
+                state->current_view <= VIEW_GPS_WARDRIVE) {
+                navigate_to_view(state, VIEW_GPS);
             } else if(
                 (state->current_view >= VIEW_WIFI && state->current_view <= VIEW_GPS) ||
                 state->current_view == VIEW_IR) {
@@ -3818,13 +4650,13 @@ static bool menu_input_handler(InputEvent* event, void* context) {
                     current_menu,
                     event);
             }
-            // Handle rgbmode command cycling (new branch for index 17)
-            else if(state->current_view == VIEW_WIFI_SETTINGS && current_index == 0) {
+            // Handle rgbmode command cycling (LED sub-category, index 0)
+            else if(state->current_view == VIEW_WIFI_SETTINGS_LED && current_index == 0) {
                 consumed = cycle_menu_item(
                     (CyclingMenuDef*)rgbmode_commands,
                     COUNT_OF(rgbmode_commands),
                     &current_rgb_index,
-                    (MenuCommand*)wifi_settings_commands,
+                    (MenuCommand*)wifi_settings_led_commands,
                     0,
                     current_menu,
                     event);

@@ -585,7 +585,7 @@ bool settings_custom_event_callback(void* context, uint32_t event_id) {
                                 "Built with <3\n"
                                 "GhostESP-Revival/GhostESP-FlipperCompanion\n\n";
 
-        confirmation_view_set_header(app_state->confirmation_view, "Ghost ESP v1.7.0");
+        confirmation_view_set_header(app_state->confirmation_view, "Ghost ESP v1.8.0");
         confirmation_view_set_text(app_state->confirmation_view, info_text);
 
         // Save current view before switching

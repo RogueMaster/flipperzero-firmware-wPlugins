@@ -121,6 +121,23 @@ int32_t ghost_esp_app(void* p) {
     state->ir_remotes_menu = submenu_alloc();
     state->ir_buttons_menu = submenu_alloc();
     state->ir_universals_menu = submenu_alloc();
+    // Sub-category submenus
+    state->wifi_settings_led_menu = submenu_alloc();
+    state->wifi_settings_sd_menu = submenu_alloc();
+    state->wifi_settings_mgmt_menu = submenu_alloc();
+    state->wifi_settings_device_menu = submenu_alloc();
+    state->wifi_settings_misc_menu = submenu_alloc();
+    state->wifi_network_portal_menu = submenu_alloc();
+    state->wifi_network_conn_menu = submenu_alloc();
+    state->wifi_network_scan_menu = submenu_alloc();
+    state->wifi_network_iot_menu = submenu_alloc();
+    state->wifi_network_webui_menu = submenu_alloc();
+    state->ble_scan_detect_menu = submenu_alloc();
+    state->ble_scan_airtag_menu = submenu_alloc();
+    state->ble_scan_gatt_menu = submenu_alloc();
+    state->ble_scan_adv_menu = submenu_alloc();
+    state->gps_config_menu = submenu_alloc();
+    state->gps_wardrive_menu = submenu_alloc();
     state->text_box = text_box_alloc();
     state->settings_menu = variable_item_list_alloc();
     state->text_input = text_input_alloc();
@@ -272,6 +289,85 @@ int32_t ghost_esp_app(void* p) {
                 state->view_dispatcher,
                 VIEW_IR_UNIVERSALS,
                 submenu_get_view(state->ir_universals_menu));
+        // Sub-category views
+        if(state->wifi_settings_led_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_SETTINGS_LED,
+                submenu_get_view(state->wifi_settings_led_menu));
+        if(state->wifi_settings_sd_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_SETTINGS_SD,
+                submenu_get_view(state->wifi_settings_sd_menu));
+        if(state->wifi_settings_mgmt_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_SETTINGS_MGMT,
+                submenu_get_view(state->wifi_settings_mgmt_menu));
+        if(state->wifi_settings_device_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_SETTINGS_DEVICE,
+                submenu_get_view(state->wifi_settings_device_menu));
+        if(state->wifi_settings_misc_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_SETTINGS_MISC,
+                submenu_get_view(state->wifi_settings_misc_menu));
+        if(state->wifi_network_portal_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_NETWORK_PORTAL,
+                submenu_get_view(state->wifi_network_portal_menu));
+        if(state->wifi_network_conn_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_NETWORK_CONN,
+                submenu_get_view(state->wifi_network_conn_menu));
+        if(state->wifi_network_scan_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_NETWORK_SCAN,
+                submenu_get_view(state->wifi_network_scan_menu));
+        if(state->wifi_network_iot_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_NETWORK_IOT,
+                submenu_get_view(state->wifi_network_iot_menu));
+        if(state->wifi_network_webui_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_WIFI_NETWORK_WEBUI,
+                submenu_get_view(state->wifi_network_webui_menu));
+        if(state->ble_scan_detect_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_BLE_SCAN_DETECT,
+                submenu_get_view(state->ble_scan_detect_menu));
+        if(state->ble_scan_airtag_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_BLE_SCAN_AIRTAG,
+                submenu_get_view(state->ble_scan_airtag_menu));
+        if(state->ble_scan_gatt_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_BLE_SCAN_GATT,
+                submenu_get_view(state->ble_scan_gatt_menu));
+        if(state->ble_scan_adv_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_BLE_SCAN_ADV,
+                submenu_get_view(state->ble_scan_adv_menu));
+        if(state->gps_config_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher, VIEW_GPS_CONFIG, submenu_get_view(state->gps_config_menu));
+        if(state->gps_wardrive_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher,
+                VIEW_GPS_WARDRIVE,
+                submenu_get_view(state->gps_wardrive_menu));
 
         view_dispatcher_set_custom_event_callback(
             state->view_dispatcher, settings_custom_event_callback);
@@ -370,6 +466,39 @@ cleanup:
             view_dispatcher_remove_view(state->view_dispatcher, VIEW_IR_BUTTONS);
         if(state->ir_universals_menu)
             view_dispatcher_remove_view(state->view_dispatcher, VIEW_IR_UNIVERSALS);
+        // Sub-category views
+        if(state->wifi_settings_led_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_SETTINGS_LED);
+        if(state->wifi_settings_sd_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_SETTINGS_SD);
+        if(state->wifi_settings_mgmt_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_SETTINGS_MGMT);
+        if(state->wifi_settings_device_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_SETTINGS_DEVICE);
+        if(state->wifi_settings_misc_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_SETTINGS_MISC);
+        if(state->wifi_network_portal_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_NETWORK_PORTAL);
+        if(state->wifi_network_conn_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_NETWORK_CONN);
+        if(state->wifi_network_scan_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_NETWORK_SCAN);
+        if(state->wifi_network_iot_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_NETWORK_IOT);
+        if(state->wifi_network_webui_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_WIFI_NETWORK_WEBUI);
+        if(state->ble_scan_detect_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_BLE_SCAN_DETECT);
+        if(state->ble_scan_airtag_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_BLE_SCAN_AIRTAG);
+        if(state->ble_scan_gatt_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_BLE_SCAN_GATT);
+        if(state->ble_scan_adv_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_BLE_SCAN_ADV);
+        if(state->gps_config_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_GPS_CONFIG);
+        if(state->gps_wardrive_menu)
+            view_dispatcher_remove_view(state->view_dispatcher, VIEW_GPS_WARDRIVE);
         FURI_LOG_I("Ghost_ESP", "Views removed.");
         view_dispatcher_free(state->view_dispatcher);
         state->view_dispatcher = NULL;
@@ -405,6 +534,23 @@ cleanup:
     if(state && state->ir_remotes_menu) submenu_free(state->ir_remotes_menu);
     if(state && state->ir_buttons_menu) submenu_free(state->ir_buttons_menu);
     if(state && state->ir_universals_menu) submenu_free(state->ir_universals_menu);
+    // Sub-category submenus
+    if(state && state->wifi_settings_led_menu) submenu_free(state->wifi_settings_led_menu);
+    if(state && state->wifi_settings_sd_menu) submenu_free(state->wifi_settings_sd_menu);
+    if(state && state->wifi_settings_mgmt_menu) submenu_free(state->wifi_settings_mgmt_menu);
+    if(state && state->wifi_settings_device_menu) submenu_free(state->wifi_settings_device_menu);
+    if(state && state->wifi_settings_misc_menu) submenu_free(state->wifi_settings_misc_menu);
+    if(state && state->wifi_network_portal_menu) submenu_free(state->wifi_network_portal_menu);
+    if(state && state->wifi_network_conn_menu) submenu_free(state->wifi_network_conn_menu);
+    if(state && state->wifi_network_scan_menu) submenu_free(state->wifi_network_scan_menu);
+    if(state && state->wifi_network_iot_menu) submenu_free(state->wifi_network_iot_menu);
+    if(state && state->wifi_network_webui_menu) submenu_free(state->wifi_network_webui_menu);
+    if(state && state->ble_scan_detect_menu) submenu_free(state->ble_scan_detect_menu);
+    if(state && state->ble_scan_airtag_menu) submenu_free(state->ble_scan_airtag_menu);
+    if(state && state->ble_scan_gatt_menu) submenu_free(state->ble_scan_gatt_menu);
+    if(state && state->ble_scan_adv_menu) submenu_free(state->ble_scan_adv_menu);
+    if(state && state->gps_config_menu) submenu_free(state->gps_config_menu);
+    if(state && state->gps_wardrive_menu) submenu_free(state->gps_wardrive_menu);
     if(state && state->main_menu) main_menu_free(state->main_menu);
     FURI_LOG_I("Ghost_ESP", "UI components freed.");
     // Close GUI record after all GUI-related components are freed
