@@ -1105,7 +1105,12 @@ static bool
     out->buffer[1] = frame->buffer[1];
     out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torque >> 8) & 0x0F);
     out->buffer[3] = (uint8_t)(torque & 0xFF);
-    out->buffer[4] = (frame->buffer[4] & ~0xC0u) | (uint8_t)((level & 0x03u) << 6);
+    // Leave handsOnLevel untouched — real EPAS keeps byte4[7:6] at 0 even when
+    // hands are genuinely on (verified on HW3 14.6 clean-nag 142/142=0 and HW4
+    // Feifan, #122). Deriving it from torque is non-EPAS-like and a likely
+    // 14.x preflight tell. (level is still tracked for the state-1 grace hold.)
+    (void)level;
+    out->buffer[4] = frame->buffer[4];
     out->buffer[5] = frame->buffer[5];
     uint8_t cnt = (frame->buffer[6] & 0x0F);
     cnt = (cnt + 1) & 0x0F;

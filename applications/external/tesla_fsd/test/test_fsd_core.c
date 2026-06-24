@@ -461,8 +461,8 @@ static void test_nag_killer_faithful(void) {
         fsd_handle_nag_killer(&s, &in, &out, t + 1500u) == false,
         "faithful: state2 still in 2s delay");
 
-    // After 2 s: mild torque in +0.5..+2.0 Nm band, handsOnLevel derived, counter+1, checksum.
-    int any = 0, minraw = 99999, maxraw = -1, lvl_ok = 1, cnt_ok = 1, csum_ok = 1;
+    // After 2 s: mild torque in +0.5..+2.0 Nm band, handsOnLevel LEFT AT 0, counter+1, checksum.
+    int any = 0, minraw = 99999, maxraw = -1, hands_set = 0, cnt_ok = 1, csum_ok = 1;
     for(uint32_t dt = 2100; dt < 6000; dt += 50) {
         in.buffer[6] = (in.buffer[6] & 0xF0) | ((5 + dt / 50) & 0x0F);
         zero(&out);
@@ -471,9 +471,9 @@ static void test_nag_killer_faithful(void) {
         int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
         if(raw < minraw) minraw = raw;
         if(raw > maxraw) maxraw = raw;
-        uint8_t lvl = (out.buffer[4] >> 6) & 0x03;
-        uint8_t exp = (RAWABS(raw) >= 200) ? 2 : (RAWABS(raw) >= 100) ? 1 : 0;
-        if(lvl != exp) lvl_ok = 0;
+        // handsOnLevel must stay at the real value (input byte4=0) — real EPAS
+        // never sets it; deriving it is a 14.x preflight tell (#122).
+        if(((out.buffer[4] >> 6) & 0x03) != 0) hands_set++;
         if((out.buffer[6] & 0x0F) != (((5 + dt / 50) + 1) & 0x0F)) cnt_ok = 0;
         uint16_t cs = (CAN_ID_EPAS_STATUS & 0xFF) + (CAN_ID_EPAS_STATUS >> 8);
         for(int b = 0; b < 7; b++)
@@ -486,25 +486,31 @@ static void test_nag_killer_faithful(void) {
         "faithful state2: mild band +0.5..+2.0Nm (%d..%d)",
         minraw,
         maxraw);
-    CHECK(lvl_ok, "faithful: handsOnLevel derived from torque magnitude");
+    CHECK(
+        hands_set == 0,
+        "faithful: handsOnLevel left at 0 (real EPAS never sets it) — %d violations",
+        hands_set);
     CHECK(cnt_ok, "faithful: counter+1 every injected frame");
     CHECK(csum_ok, "faithful: checksum valid every injected frame");
 
-    // State 3 (strong): 1 s pause, then ramp/hold toward 2.1 Nm with handsOnLevel 2.
+    // State 3 (strong): 1 s pause, then ramp/hold toward 2.1 Nm; handsOnLevel still untouched.
     s.das_hands_on_state = 3;
     uint32_t ts = t + 7000u;
     zero(&out);
     CHECK(fsd_handle_nag_killer(&s, &in, &out, ts) == false, "faithful state3: 1 s pause holds");
-    int got_strong = 0, got_level2 = 0;
+    int got_strong = 0, hands_set3 = 0;
     for(uint32_t dt = 1100; dt < 3500; dt += 50) {
         zero(&out);
         if(!fsd_handle_nag_killer(&s, &in, &out, ts + dt)) continue;
         int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
         if(RAWABS(raw) >= 180) got_strong = 1; // reaches near 2.1 Nm
-        if(((out.buffer[4] >> 6) & 0x03) == 2) got_level2 = 1;
+        if(((out.buffer[4] >> 6) & 0x03) != 0) hands_set3++;
     }
     CHECK(got_strong, "faithful state3: ramps to strong ~2.1 Nm");
-    CHECK(got_level2, "faithful state3: handsOnLevel reaches 2");
+    CHECK(
+        hands_set3 == 0,
+        "faithful state3: handsOnLevel still left at 0 (%d violations)",
+        hands_set3);
 }
 #undef RAWABS
 

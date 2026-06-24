@@ -443,9 +443,10 @@ static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
         (frame->data[SIG_EPAS_TORQUE_HIGH_BYTE] & SIG_EPAS_TORQUE_HIGH_KEEP_MASK) |
         (uint8_t)((torque >> SIG_EPAS_TORQUE_HIGH_SHIFT) & SIG_EPAS_TORQUE_HIGH_VALUE_MASK);
     out->data[SIG_EPAS_TORQUE_LOW_BYTE] = (uint8_t)(torque & SIG_EPAS_TORQUE_LOW_MASK);
-    out->data[SIG_EPAS_HANDS_ON_BYTE] =
-        (frame->data[SIG_EPAS_HANDS_ON_BYTE] & (uint8_t)(~SIG_EPAS_HANDS_ON_CLEAR_MASK)) |
-        (uint8_t)((level & SIG_EPAS_HANDS_ON_MASK) << SIG_EPAS_HANDS_ON_SHIFT);
+    // Leave handsOnLevel untouched — real EPAS keeps it 0 even with hands on
+    // (HW3 14.6 + HW4 Feifan, #122); deriving it is a likely 14.x preflight tell.
+    (void)level;
+    out->data[SIG_EPAS_HANDS_ON_BYTE] = frame->data[SIG_EPAS_HANDS_ON_BYTE];
     out->data[5] = frame->data[5];
     uint8_t cnt = (frame->data[SIG_EPAS_COUNTER_BYTE] & SIG_EPAS_COUNTER_MASK);
     cnt = (cnt + 1u) & SIG_EPAS_COUNTER_MASK;

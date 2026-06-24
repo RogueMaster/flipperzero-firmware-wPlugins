@@ -40,10 +40,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
 - ESP Flasher: [Bump Marauder v1.12.3 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.3)
 - Updated: [Access Audit v1.11.1 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
-- Updated: [Tesla Mod v2.16.9 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [APRS TX v1.3.20 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Added: [Badge Audit v1.0 (By ViperDroid)](https://github.com/ViperDroid/flipper-badge-audit)
 - Updated: [Ghost ESP v1.8.0 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
+- Updated: [Tesla Mod v2.16.10 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 
@@ -891,7 +891,7 @@ $ ./fbt dolphin_ext
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.2 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
-- [Tesla Mod v2.16.9 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- [Tesla Mod v2.16.10 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - [Text To SAM v1.4 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)
 - [Text Viewer v1.6 (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ae4fc4a54febccb44b010c4025a99c2edef9a7f0)
 - [The C Prog. Language v0.2 (By armixz)](https://github.com/armixz/Flipper-Zero-The-C-Programming-Language)
