@@ -299,6 +299,8 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
     // (China FW 2026.8.3.6); see ev-open-can-tools#66. das_ap_state comes from
     // 0x399 DAS_status (Legacy/HW3).
     if(!fsd_ap_first_allows(state, now_ms)) return false;
+    // Soft Engage: also hold the legacy activation until the wheel is centred (#108).
+    if(!fsd_soft_engage_allows(state)) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);

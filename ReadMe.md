@@ -42,10 +42,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [APRS TX v1.3.20 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Added: [Badge Audit v1.0 (By ViperDroid)](https://github.com/ViperDroid/flipper-badge-audit)
 - Updated: [Ghost ESP v1.8.0 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
-- Updated: [Tesla Mod v2.16.10 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Added: [NFC QR Presenter v1.0 (By RogerF5-Security)](https://github.com/RogerF5-Security/NFC_QR_Presenter)
 - Updated: [Access Audit v1.12 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
+- Updated: [Tesla Mod v2.16.10 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 
