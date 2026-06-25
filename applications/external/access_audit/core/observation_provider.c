@@ -511,6 +511,37 @@ static NfcCommand mf_ultralight_poller_cb(NfcGenericEvent event, void* context) 
         } else {
             p->state = ProviderStateReadFailed;
         }
+    } else if(
+        ul_event->type == MfUltralightPollerEventTypeReadFailed ||
+        ul_event->type == MfUltralightPollerEventTypeCardLocked) {
+        /* Password-locked / protected Ultralight (e.g. MIFARE UL EV1 hotel keys
+         * such as VingCard). The page read NAKs, but GET_VERSION + anticollision
+         * already gave us the chip type and UID — classify from those instead of
+         * looping forever on a read we don't need for an audit. The protected
+         * pages are not a "secure element"; for scoring this stays a UID-based
+         * credential (cloneable), which is the honest verdict for these cards. */
+        const MfUltralightData* ul_data = (const MfUltralightData*)nfc_poller_get_data(p->poller);
+        size_t uid_len = 0;
+        const uint8_t* uid = ul_data ? mf_ultralight_get_uid(ul_data, &uid_len) : NULL;
+
+        if(uid && uid_len > 0) {
+            p->pending = (AccessObservation){0};
+            p->pending.tech = TechTypeNfc13Mhz;
+            p->pending.card_type = mf_ultralight_type_to_card_type(ul_data->type);
+            p->pending.metadata_complete = true;
+            p->pending.memory_locked = true;
+
+            p->pending.uid_present = true;
+            p->pending.uid_len = uid_len <= sizeof(p->pending.uid) ? uid_len :
+                                                                     sizeof(p->pending.uid);
+            for(size_t i = 0; i < p->pending.uid_len; i++) {
+                p->pending.uid[i] = uid[i];
+            }
+
+            p->state = ProviderStateDone;
+        } else {
+            p->state = ProviderStateReadFailed;
+        }
     } else {
         p->state = ProviderStateReadFailed;
     }

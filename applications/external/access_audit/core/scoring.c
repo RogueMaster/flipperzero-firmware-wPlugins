@@ -268,3 +268,59 @@ const char* card_type_to_string(CardType type) {
         return "Unknown";
     }
 }
+
+const char* card_type_protocol(CardType type) {
+    switch(type) {
+    /* 125 kHz LF — no ISO air-interface number in common use */
+    case CardTypeEm4100Like:
+    case CardTypeHidProxLike:
+    case CardTypeHidGeneric:
+    case CardTypeIndala:
+    case CardTypeRfid125:
+        return "125 kHz";
+    /* ISO 14443-3A (Type A, layer 3 — Classic/Ultralight/NTAG/Plus SL1-2) */
+    case CardTypeMifareClassic:
+    case CardTypeMifareClassic1K:
+    case CardTypeMifareClassic4K:
+    case CardTypeMifareClassicMini:
+    case CardTypeMifareUltralight:
+    case CardTypeMifareUltralightC:
+    case CardTypeNtag203:
+    case CardTypeNtag213:
+    case CardTypeNtag215:
+    case CardTypeNtag216:
+    case CardTypeNtagI2C:
+    case CardTypeMifarePlus:
+    case CardTypeMifarePlusSL1:
+    case CardTypeMifarePlusSL2:
+        return "ISO 14443-3A";
+    /* ISO 14443-4A (Type 4 / ISO 7816 APDUs — DESFire, Plus SL3, Seos) */
+    case CardTypeMifareDesfire:
+    case CardTypeMifareDesfireEV1:
+    case CardTypeMifareDesfireEV2:
+    case CardTypeMifareDesfireEV3:
+    case CardTypeMifareDesfireLight:
+    case CardTypeMifarePlusSL3:
+    case CardTypeSeos:
+        return "ISO 14443-4A";
+    case CardTypeIso14443A:
+        return "ISO 14443-A";
+    case CardTypeIso14443B:
+    case CardTypeSt25tb:
+        return "ISO 14443-B";
+    /* ISO 15693 — also the air interface for HID iCLASS / PicoPass */
+    case CardTypeIso15693:
+    case CardTypeHidIclass:
+    case CardTypeHidIclassLegacy:
+    case CardTypeHidIclassLegacy2k:
+    case CardTypeHidIclassLegacy16k:
+    case CardTypeHidIclassLegacy32k:
+    case CardTypeSlix:
+        return "ISO 15693";
+    case CardTypeFelica:
+    case CardTypeFeliCaLite:
+        return "JIS X 6319-4 (FeliCa)";
+    default:
+        return NULL;
+    }
+}

@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## [1.12.0]: Protected Ultralight/NTAG support + air-interface labels
+
+### Fixed
+- **Password-protected MIFARE Ultralight / NTAG cards no longer hang the scanner**: cards whose user pages are locked (e.g. NTAG213-based hotel keys like VingCard) NAK the page read, which previously left the app looping forever on a read it doesn't need. It now classifies the card from the chip type + UID it already obtained (GET_VERSION + anticollision) and produces a result. Scored as a UID-based (cloneable) credential — HIGH — which is the honest verdict for these cards
+
+### Added
+- **Locked-memory note in reports**: when a card's user memory is password-protected, the report records `user memory is password-protected (pages locked; UID still cloneable)`. Documentation only — it does not change the score (the UID is unprotected and NTAG/UL password auth is sent in cleartext with no mutual auth, so it is not a meaningful access-control control)
+- **Underlying air interface shown alongside the card name**: outputs now include the real protocol next to the friendly name — e.g. `HID Seos (ISO 14443-4A)`, `HID iCLASS (ISO 15693)`, `NTAG213 (ISO 14443-3A)` — in the report always, and on the result screen when it fits
+
 ## [1.11.2]: Report shows the on-screen verdict
 
 ### Fixed

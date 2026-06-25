@@ -1,3 +1,9 @@
+## 1.12.0
+Password-protected MIFARE Ultralight and NTAG cards (such as NTAG213-based hotel keys) no longer hang the scanner — they are now classified from the chip type and UID and scored HIGH (UID-cloneable). Reports note when user memory is password-protected. Outputs now show the underlying air interface next to the card name, e.g. "HID Seos (ISO 14443-4A)", "HID iCLASS (ISO 15693)", "NTAG213 (ISO 14443-3A)".
+
+## 1.11.2
+The report now shows the on-screen verdict word (SECURE, HIGH RISK, etc.) in brackets next to the OWASP likelihood band, so the saved report matches what the device displays.
+
 ## 1.11.1
 Clarified the iCLASS scan mode: the prompt now reads "Tap iCLASS SE/Legacy..." with a "Seos? use NFC mode" hint. iCLASS Legacy/SE are on ISO 15693; Seos is ISO 14443-4A (NFC mode).
 

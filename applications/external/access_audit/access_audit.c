@@ -354,9 +354,19 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
 
     canvas_draw_line(canvas, 0, 13, 127, 13);
 
-    /* Card type */
+    /* Card type, with the underlying air interface (e.g. ISO 14443-4A) shown
+     * right-aligned when both fit on the line. */
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 24, card_type_to_string(app->obs.card_type));
+    const char* type_name = card_type_to_string(app->obs.card_type);
+    canvas_draw_str(canvas, 2, 24, type_name);
+    const char* type_proto = card_type_protocol(app->obs.card_type);
+    if(type_proto) {
+        uint16_t name_w = canvas_string_width(canvas, type_name);
+        uint16_t proto_w = canvas_string_width(canvas, type_proto);
+        if((uint16_t)(2 + name_w + 6 + proto_w) <= 126) {
+            canvas_draw_str_aligned(canvas, 126, 24, AlignRight, AlignBottom, type_proto);
+        }
+    }
 
     /* Risk label — most prominent element */
     canvas_set_font(canvas, FontPrimary);

@@ -162,8 +162,22 @@ static void write_card_entry(File* f, size_t index, size_t total, const SessionE
        entry->obs.tech == TechTypeRfid125 ? "  Radio:  RFID 125kHz\n" :
                                             "  Radio:  NFC 13.56MHz\n");
 
-    snprintf(buf, sizeof(buf), "  Type:   %s\n", card_type_to_string(entry->obs.card_type));
+    const char* proto = card_type_protocol(entry->obs.card_type);
+    if(proto) {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "  Type:   %s (%s)\n",
+            card_type_to_string(entry->obs.card_type),
+            proto);
+    } else {
+        snprintf(buf, sizeof(buf), "  Type:   %s\n", card_type_to_string(entry->obs.card_type));
+    }
     fw(f, buf);
+
+    if(entry->obs.memory_locked) {
+        fw(f, "  Note:   user memory is password-protected (pages locked; UID still cloneable)\n");
+    }
 
     /* UID with byte count */
     if(entry->obs.uid_present && entry->obs.uid_len > 0) {
