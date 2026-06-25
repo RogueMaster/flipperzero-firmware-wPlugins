@@ -481,6 +481,7 @@ static NfcQrApp* nfc_qr_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     app->gui_opened = app->gui != NULL;
     app->dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->dispatcher);
     app->main_menu = submenu_alloc();
     app->payload_menu = submenu_alloc();
     app->text_input = text_input_alloc();

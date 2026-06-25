@@ -2,6 +2,7 @@ App(
     appid="access_audit",
     name="Access Audit",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="access_audit_app",
     sources=["*.c"],
     stack_size=2 * 1024,

@@ -45,6 +45,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.16.10 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Access Audit v1.11.2 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
+- Added: [NFC QR Presenter v1.0 (By RogerF5-Security)](https://github.com/RogerF5-Security/NFC_QR_Presenter)
 
 <a name="release"></a>
 
@@ -763,6 +764,7 @@ $ ./fbt dolphin_ext
 - [NFC Magic v1.15.2 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966)
 - [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
 - [NFC Playlist v3.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Playlist/tree/main)
+- [NFC QR Presenter v1.0 (By RogerF5-Security)](https://github.com/RogerF5-Security/NFC_QR_Presenter)
 - [NFC Relay v0.2 (By leommxj)](https://github.com/leommxj/nfc_relay)
 - [NFC Seader v4.1.1 (By bettse)](https://github.com/bettse/seader)
 - [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
