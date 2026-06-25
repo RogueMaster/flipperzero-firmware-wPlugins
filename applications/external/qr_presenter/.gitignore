@@ -1,0 +1,12 @@
+dist/
+.vscode/
+.ufbt/
+.agents/
+.codex/
+QA/
+.sconsign.dblite
+__pycache__/
+*.pyc
+*.elf
+*.map
+*.list
