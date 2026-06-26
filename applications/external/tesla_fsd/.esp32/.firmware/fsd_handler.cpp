@@ -374,6 +374,33 @@ static bool nag_in_pause(uint32_t now_ms) {
     return (now_ms % cycle) >= NAG_BURST_MS;
 }
 
+// Configurable signal mapping (#122) — mirror of the shared fsd_handler.c.
+void fsd_apply_signal_config(FSDState *state, const CanFrame *frame, uint32_t now_ms) {
+    if (state->cfg_das_id != 0 && frame->id == state->cfg_das_id) {
+        if (state->cfg_apstate_byte < 8 && frame->dlc > state->cfg_apstate_byte)
+            state->das_ap_state = (frame->data[state->cfg_apstate_byte] >>
+                                   state->cfg_apstate_shift) & state->cfg_apstate_mask;
+        if (state->cfg_handson_byte < 8 && frame->dlc > state->cfg_handson_byte)
+            state->das_hands_on_state = (frame->data[state->cfg_handson_byte] >>
+                                         state->cfg_handson_shift) & state->cfg_handson_mask;
+        state->das_ctx_seen_ms = now_ms;
+    }
+    if (state->cfg_steer_id != 0 && frame->id == state->cfg_steer_id) {
+        if (state->cfg_steer_hi < 8 && state->cfg_steer_lo < 8 &&
+            frame->dlc > state->cfg_steer_hi && frame->dlc > state->cfg_steer_lo) {
+            int16_t raw = (int16_t)(((uint16_t)frame->data[state->cfg_steer_hi] << 8) |
+                                    frame->data[state->cfg_steer_lo]);
+            state->steering_angle_deg = (float)raw * 0.1f;
+            state->steer_ctx_seen_ms = now_ms;
+        }
+    }
+}
+
+bool fsd_das_ctx_fresh(const FSDState *state, uint32_t now_ms) {
+    if (state->cfg_das_id == 0) return true;
+    return (now_ms - state->das_ctx_seen_ms) <= NAG_CTX_FRESH_MS;
+}
+
 static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
                                CanFrame *out, uint32_t now_ms) {
     uint8_t das = state->das_hands_on_state;
@@ -476,6 +503,7 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
                            uint32_t now_ms) {
     if (frame->dlc < 8)     return false;
     if (!state->nag_killer) return false;
+    if (!fsd_das_ctx_fresh(state, now_ms)) return false;        // cfg DAS stale -> no-op (#122)
     if (state->nag_burst && nag_in_pause(now_ms)) return false;  // burst/pause rest (#122)
 
     if (state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);
@@ -580,6 +608,21 @@ bool fsd_soft_engage_allows(FSDState *state) {
     if (a > SOFT_ENGAGE_ANGLE_DEG) return false;   // turning — hold activation
     state->soft_engage_latched = true;             // centred — begin and latch
     return true;
+}
+
+// Abort Guard (#108) — mirror of the shared fsd_handler.c.
+void fsd_abort_guard_update(FSDState *state) {
+    if (!state->abort_guard) return;
+    if (state->das_ap_state < 2u) {
+        state->abort_guard_latched = false;          // clean disengage re-arms
+    } else if (state->das_ap_state == DAS_APSTATE_ABORTING ||
+               state->das_ap_state == DAS_APSTATE_ABORTED) {
+        state->abort_guard_latched = true;           // abort seen -> suppress injection
+    }
+}
+
+bool fsd_abort_guard_allows(const FSDState *state) {
+    return !(state->abort_guard && state->abort_guard_latched);
 }
 
 // SCCM_steeringAngleSensor (0x129): 16-bit signed LE at byte0-1, factor 0.1 deg.

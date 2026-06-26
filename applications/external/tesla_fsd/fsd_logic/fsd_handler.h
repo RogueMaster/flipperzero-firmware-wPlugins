@@ -83,6 +83,20 @@ bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms);
  *  (soft_engage_latched=false) when AP drops (das_ap_state < 2). */
 bool fsd_soft_engage_allows(FSDState* state);
 
+// Abort Guard (#108): DAS_autopilotState values that mean the car is aborting an
+// engage — the moment linked to the steer-jerk in dunckencn's logs.
+#define DAS_APSTATE_ABORTING 8u
+#define DAS_APSTATE_ABORTED  9u
+
+/** Abort-Guard latch maintenance. Call once per RX frame (after das_ap_state is
+ *  updated). When abort_guard is on: sets abort_guard_latched on an abort state
+ *  (8/9), clears it on a clean disengage (das_ap_state < 2). No-op when off. */
+void fsd_abort_guard_update(FSDState* state);
+
+/** Abort-Guard gate. Returns false (suppress injection) only when abort_guard is
+ *  on AND an abort was latched this engagement; true otherwise. */
+bool fsd_abort_guard_allows(const FSDState* state);
+
 void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame);
 bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_ms);
 
@@ -101,6 +115,21 @@ bool fsd_handle_isa_speed_chime(CANFRAME* frame);
 // to every nag path (legacy grip pulses + EPAS-faithful ramp).
 #define NAG_TORQUE_RAW_MAX 2230
 #define NAG_TORQUE_RAW_MIN 1870
+
+// Configurable signal-mapping context freshness (#122): when a custom DAS source
+// is set, the nag killer refuses to inject if that frame hasn't been seen within
+// this window — so a wrong/absent mapping fails to a clean no-op, not misbehaviour.
+#define NAG_CTX_FRESH_MS 1000u
+
+/** Apply the configurable signal mapping (#122): if cfg_das_id / cfg_steer_id are
+ *  set and this frame matches, extract das_ap_state / das_hands_on_state /
+ *  steering_angle_deg from the configured positions and stamp the freshness clock.
+ *  No-op when the corresponding id is 0 (auto mode). Call from the RX path. */
+void fsd_apply_signal_config(FSDState* state, const CANFRAME* frame, uint32_t now_ms);
+
+/** True if the DAS context is fresh enough to inject: always true in auto mode
+ *  (cfg_das_id == 0), else requires a cfg-DAS frame within NAG_CTX_FRESH_MS. */
+bool fsd_das_ctx_fresh(const FSDState* state, uint32_t now_ms);
 
 /** Handle CAN ID 0x370 - EPAS nag killer (counter+1 echo).
  *  Builds a new frame in out_frame. Returns true if should be sent.

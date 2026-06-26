@@ -185,6 +185,21 @@ bool fsd_soft_engage_allows(FSDState* state) {
     return true;
 }
 
+void fsd_abort_guard_update(FSDState* state) {
+    if(!state->abort_guard) return;
+    if(state->das_ap_state < 2u) {
+        state->abort_guard_latched = false; // clean disengage re-arms
+    } else if(
+        state->das_ap_state == DAS_APSTATE_ABORTING ||
+        state->das_ap_state == DAS_APSTATE_ABORTED) {
+        state->abort_guard_latched = true; // abort seen -> suppress injection
+    }
+}
+
+bool fsd_abort_guard_allows(const FSDState* state) {
+    return !(state->abort_guard && state->abort_guard_latched);
+}
+
 bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
 
@@ -195,6 +210,9 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
     // Soft Engage: additionally hold the first activation until the wheel is
     // centred, so FSD-enable's path recompute doesn't yank the steering (#108).
     if(!fsd_soft_engage_allows(state)) return false;
+    // Abort Guard: once the car has entered an abort state this engagement, stop
+    // injecting so we don't feed/repeat the abort that snaps the wheel (#108).
+    if(!fsd_abort_guard_allows(state)) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
@@ -301,6 +319,8 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
     if(!fsd_ap_first_allows(state, now_ms)) return false;
     // Soft Engage: also hold the legacy activation until the wheel is centred (#108).
     if(!fsd_soft_engage_allows(state)) return false;
+    // Abort Guard: stop injecting once an abort was seen this engagement (#108).
+    if(!fsd_abort_guard_allows(state)) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
@@ -1131,6 +1151,34 @@ static bool
     return true;
 }
 
+void fsd_apply_signal_config(FSDState* state, const CANFRAME* frame, uint32_t now_ms) {
+    if(state->cfg_das_id != 0 && frame->canId == state->cfg_das_id) {
+        if(state->cfg_apstate_byte < 8 && frame->data_lenght > state->cfg_apstate_byte)
+            state->das_ap_state =
+                (frame->buffer[state->cfg_apstate_byte] >> state->cfg_apstate_shift) &
+                state->cfg_apstate_mask;
+        if(state->cfg_handson_byte < 8 && frame->data_lenght > state->cfg_handson_byte)
+            state->das_hands_on_state =
+                (frame->buffer[state->cfg_handson_byte] >> state->cfg_handson_shift) &
+                state->cfg_handson_mask;
+        state->das_ctx_seen_ms = now_ms;
+    }
+    if(state->cfg_steer_id != 0 && frame->canId == state->cfg_steer_id) {
+        if(state->cfg_steer_hi < 8 && state->cfg_steer_lo < 8 &&
+           frame->data_lenght > state->cfg_steer_hi && frame->data_lenght > state->cfg_steer_lo) {
+            int16_t raw = (int16_t)(((uint16_t)frame->buffer[state->cfg_steer_hi] << 8) |
+                                    frame->buffer[state->cfg_steer_lo]);
+            state->steering_angle_deg = (float)raw * 0.1f;
+            state->steer_ctx_seen_ms = now_ms;
+        }
+    }
+}
+
+bool fsd_das_ctx_fresh(const FSDState* state, uint32_t now_ms) {
+    if(state->cfg_das_id == 0) return true; // auto mode — prior behaviour
+    return (now_ms - state->das_ctx_seen_ms) <= NAG_CTX_FRESH_MS;
+}
+
 // Burst/pause window: true while we should be RESTING (skip the echo). #122.
 static bool nag_in_pause(uint32_t now_ms) {
     uint32_t cycle = NAG_BURST_MS + NAG_PAUSE_MS;
@@ -1140,6 +1188,8 @@ static bool nag_in_pause(uint32_t now_ms) {
 bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
     if(!state->nag_killer) return false;
+    // Freshness: with a custom DAS source configured, no-op if it's stale (#122).
+    if(!fsd_das_ctx_fresh(state, now_ms)) return false;
     // Burst/pause: during the rest window, don't echo at all (gates both paths).
     if(state->nag_burst && nag_in_pause(now_ms)) return false;
 

@@ -267,6 +267,7 @@ static int32_t fsd_running_worker(void* context) {
             state.ap_unstable_tick_ms = now;
             state.soft_engage_latched = false; // re-require centred wheel next engage (#108)
         }
+        fsd_abort_guard_update(&state); // latch off injection if the car aborts (#108)
         if((now - last_err_check) >= furi_ms_to_ticks(250)) {
             uint8_t eflg = get_error(mcp);
             // EFLG bits 0/1 = RX0/RX1 overflow, bit 4 = receive error warn,

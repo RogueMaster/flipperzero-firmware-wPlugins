@@ -512,6 +512,132 @@ static void test_nag_killer_faithful(void) {
 }
 #undef RAWABS
 
+// ── configurable signal mapping + freshness (#122) ───────────────────────────
+static void test_signal_config(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    // Auto mode (cfg_das_id == 0): freshness always true, extractor is a no-op.
+    CHECK(fsd_das_ctx_fresh(&s, 5000) == true, "ctx fresh: auto mode always fresh");
+
+    // Configure ssw0209's variant: 0x39B, AP-state in byte0 hi-nibble (his byte1[7:4]=0),
+    // hands-on in byte5 bits[5:2]. Frame 0x39B# 52 0E DF A0 B0 44 9? ...
+    s.cfg_das_id = 0x39B;
+    s.cfg_apstate_byte = 0;
+    s.cfg_apstate_shift = 4;
+    s.cfg_apstate_mask = 0x0F;
+    s.cfg_handson_byte = 5;
+    s.cfg_handson_shift = 2;
+    s.cfg_handson_mask = 0x0F;
+    CANFRAME f;
+    zero(&f);
+    f.canId = 0x39B;
+    f.data_lenght = 8;
+    f.buffer[0] = 0x52; // hi nibble 5 -> AP active
+    f.buffer[5] = (2u << 2); // hands-on state 2
+    fsd_apply_signal_config(&s, &f, 10000u);
+    CHECK(s.das_ap_state == 5, "cfg: AP-state read from byte0 hi-nibble = %u", s.das_ap_state);
+    CHECK(
+        s.das_hands_on_state == 2,
+        "cfg: hands-on read from byte5[5:2] = %u",
+        s.das_hands_on_state);
+    CHECK(s.das_ctx_seen_ms == 10000u, "cfg: freshness stamped");
+    CHECK(fsd_das_ctx_fresh(&s, 10500u) == true, "ctx fresh: within 1s");
+    CHECK(fsd_das_ctx_fresh(&s, 11500u) == false, "ctx stale: >1s -> not fresh");
+
+    // Non-matching id leaves state untouched.
+    CANFRAME g;
+    zero(&g);
+    g.canId = 0x123;
+    g.data_lenght = 8;
+    g.buffer[0] = 0xFF;
+    fsd_apply_signal_config(&s, &g, 12000u);
+    CHECK(s.das_ap_state == 5, "cfg: non-matching id ignored");
+
+    // Steering config: 0x129, signed LE bytes hi=1 lo=0, *0.1.
+    s.cfg_steer_id = 0x129;
+    s.cfg_steer_hi = 1;
+    s.cfg_steer_lo = 0;
+    CANFRAME h;
+    zero(&h);
+    h.canId = 0x129;
+    h.data_lenght = 4;
+    h.buffer[0] = 0x2C;
+    h.buffer[1] = 0x01; // 0x012C = 300 -> 30.0 deg
+    fsd_apply_signal_config(&s, &h, 12000u);
+    CHECK(
+        s.steering_angle_deg > 29.0f && s.steering_angle_deg < 31.0f,
+        "cfg: steering = %.1f deg (expect ~30)",
+        (double)s.steering_angle_deg);
+
+    // Nag killer no-ops when the configured DAS source goes stale.
+    FSDState n;
+    memset(&n, 0, sizeof(n));
+    n.nag_killer = true;
+    n.cfg_das_id = 0x39B;
+    n.das_ctx_seen_ms = 1000u;
+    n.das_hands_on_state = 0xFF;
+    CANFRAME in, out;
+    zero(&in);
+    in.data_lenght = 8;
+    in.buffer[4] = 0x00;
+    CHECK(fsd_handle_nag_killer(&n, &in, &out, 1500u) != false, "cfg fresh -> nag echoes");
+    CHECK(fsd_handle_nag_killer(&n, &in, &out, 3000u) == false, "cfg stale -> nag no-ops");
+}
+
+// ── Abort Guard (steer-jerk, #108) ───────────────────────────────────────────
+static void test_abort_guard(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+
+    // Off by default: gate always allows, update never latches.
+    s.das_ap_state = DAS_APSTATE_ABORTING;
+    fsd_abort_guard_update(&s);
+    CHECK(s.abort_guard_latched == false, "abort_guard off: no latch");
+    CHECK(fsd_abort_guard_allows(&s) == true, "abort_guard off: always allows");
+
+    // On + AP active (not an abort state): no latch, still allows.
+    s.abort_guard = true;
+    s.das_ap_state = 6; // ACTIVE
+    fsd_abort_guard_update(&s);
+    CHECK(fsd_abort_guard_allows(&s) == true, "active state: injection allowed");
+
+    // Car enters ABORTING -> latch -> suppress.
+    s.das_ap_state = DAS_APSTATE_ABORTING;
+    fsd_abort_guard_update(&s);
+    CHECK(s.abort_guard_latched == true, "abort seen: latched");
+    CHECK(fsd_abort_guard_allows(&s) == false, "abort latched: injection suppressed");
+
+    // Still suppressed once the state moves to ABORTED, and even back to active —
+    // the latch holds for the rest of the engagement.
+    s.das_ap_state = DAS_APSTATE_ABORTED;
+    fsd_abort_guard_update(&s);
+    CHECK(fsd_abort_guard_allows(&s) == false, "aborted: still suppressed");
+    s.das_ap_state = 6;
+    fsd_abort_guard_update(&s);
+    CHECK(fsd_abort_guard_allows(&s) == false, "re-active mid-cycle: stays suppressed");
+
+    // Clean disengage (das_ap_state < 2) clears the latch -> re-armed.
+    s.das_ap_state = 1;
+    fsd_abort_guard_update(&s);
+    CHECK(s.abort_guard_latched == false, "clean disengage: latch cleared");
+    CHECK(fsd_abort_guard_allows(&s) == true, "re-armed: allows again");
+
+    // The legacy autopilot handler honours the gate: latched -> no modification.
+    FSDState h;
+    memset(&h, 0, sizeof(h));
+    h.abort_guard = true;
+    h.abort_guard_latched = true;
+    h.hw_version = TeslaHW_Legacy;
+    h.force_fsd = true;
+    CANFRAME f;
+    zero(&f);
+    f.canId = 0x3EE;
+    f.data_lenght = 8;
+    CHECK(
+        fsd_handle_legacy_autopilot(&h, &f, 5000u) == false,
+        "legacy autopilot suppressed while abort latched");
+}
+
 // ── nag burst/pause + ±1.8 Nm torque cap (#122) ──────────────────────────────
 static void test_nag_burst_cap(void) {
     FSDState s;
@@ -1415,6 +1541,8 @@ int main(void) {
     test_nag_killer();
     test_nag_killer_faithful();
     test_nag_burst_cap();
+    test_signal_config();
+    test_abort_guard();
     test_can_ops();
     test_additive_checksum();
     test_candump_format();
