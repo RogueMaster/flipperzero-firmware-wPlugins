@@ -402,23 +402,21 @@ static void test_nag_killer(void) {
     ein.data_lenght = 8;
     ein.buffer[4] = 0x00; // handsOnLevel frozen at 0, as on the affected trims
 
-    // hold das=2 and drain any in-flight grip pulse until torque is in walk range
-    // (pulse ~2350, walk clamped to <=2290) so the next edge is detectable.
+    // das 2 -> 3 rising edge still re-arms the grip-pulse path despite frozen
+    // handsOnLevel (#100). The pulse torque is now clamped to the ±1.8 Nm cap
+    // (#122) — it no longer exceeds the walk, so we verify the echo + the cap
+    // rather than the old >2290 excursion (which the cap removes by design).
     e.das_hands_on_state = 2;
-    int ntorq = 9999;
-    for(int i = 0; i < 30 && ntorq > 2290; i++) {
-        zero(&eout);
-        fsd_handle_nag_killer(&e, &ein, &eout, 1000u);
-        ntorq = ((eout.buffer[2] & 0x0F) << 8) | eout.buffer[3];
-    }
-    CHECK(ntorq <= 2290, "nag drained to walk range before edge, torq=%d", ntorq);
-
-    // das 2 -> 3 rising edge must fire a fresh grip pulse despite frozen handsOnLevel
+    zero(&eout);
+    fsd_handle_nag_killer(&e, &ein, &eout, 1000u);
     e.das_hands_on_state = 3;
     zero(&eout);
     CHECK(fsd_handle_nag_killer(&e, &ein, &eout, 1000u), "nag echo on das 2->3 edge");
     int ntorq2 = ((eout.buffer[2] & 0x0F) << 8) | eout.buffer[3];
-    CHECK(ntorq2 > 2290, "das 2->3 re-arms grip pulse (#100), torq=%d", ntorq2);
+    CHECK(
+        ntorq2 >= NAG_TORQUE_RAW_MIN && ntorq2 <= NAG_TORQUE_RAW_MAX,
+        "das 2->3 echo within ±1.8 Nm cap (#122), torq=%d",
+        ntorq2);
 }
 
 // ── 0x370 nag killer EPAS-faithful (Mode-C) mode (v2.17, #100): demand-state
@@ -513,6 +511,45 @@ static void test_nag_killer_faithful(void) {
         hands_set3);
 }
 #undef RAWABS
+
+// ── nag burst/pause + ±1.8 Nm torque cap (#122) ──────────────────────────────
+static void test_nag_burst_cap(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    s.nag_killer = true;
+    s.das_hands_on_state = 0xFF; // conservative echo
+    CANFRAME in, out;
+    zero(&in);
+    in.data_lenght = 8;
+    in.buffer[4] = 0x00; // handsOnLevel 0 -> not skipped
+    in.buffer[6] = 0x05;
+
+    // Torque cap: legacy grip pulses normally hit ~3 Nm (raw ~2350); must clamp to ±1.8 (1870..2230).
+    int cap_ok = 1;
+    for(int i = 0; i < 400; i++) {
+        in.buffer[6] = (in.buffer[6] & 0xF0) | ((5 + i) & 0x0F);
+        zero(&out);
+        if(!fsd_handle_nag_killer(&s, &in, &out, 1000u + i)) continue;
+        int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
+        if(raw > NAG_TORQUE_RAW_MAX || raw < NAG_TORQUE_RAW_MIN) cap_ok = 0;
+    }
+    CHECK(cap_ok, "nag torque clamped to +/-1.8 Nm (raw 1870..2230)");
+
+    // Burst/pause: cycle = 1000+1500 = 2500 ms; echo only in the first 1000 ms.
+    s.nag_burst = true;
+    zero(&out);
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, 1200u) == false,
+        "burst: no echo in pause (t%%2500=1200)");
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, 2499u) == false,
+        "burst: no echo in pause (t%%2500=2499)");
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, 2500u) != false, "burst: echo in burst (t%%2500=0)");
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, 3400u) != false,
+        "burst: echo in burst (t%%2500=900)");
+}
 
 // ── shared stateless ops (china_mode path the Flipper wrapper can't reach) ────
 static void test_can_ops(void) {
@@ -1377,6 +1414,7 @@ int main(void) {
     test_sccm_crc();
     test_nag_killer();
     test_nag_killer_faithful();
+    test_nag_burst_cap();
     test_can_ops();
     test_additive_checksum();
     test_candump_format();

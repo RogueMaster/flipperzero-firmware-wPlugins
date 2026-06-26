@@ -90,6 +90,18 @@ void fsd_handle_legacy_stalk(FSDState* state, const CANFRAME* frame);
 bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_ms);
 bool fsd_handle_isa_speed_chime(CANFRAME* frame);
 
+// Nag burst/pause (#122): echo for NAG_BURST_MS then rest for NAG_PAUSE_MS. The
+// rest period is the believed reason a TSL6P-style device evades stricter 14.x
+// detection (continuous injection trips it). Values mirror the in-the-wild device.
+#define NAG_BURST_MS 1000u
+#define NAG_PAUSE_MS 1500u
+
+// Nag torque hard cap: ±1.8 Nm (raw 1870..2230, centre 2050). Going over ±1.8 Nm
+// has been reported to trigger FSD disengagements during turns (#122) — applies
+// to every nag path (legacy grip pulses + EPAS-faithful ramp).
+#define NAG_TORQUE_RAW_MAX 2230
+#define NAG_TORQUE_RAW_MIN 1870
+
 /** Handle CAN ID 0x370 - EPAS nag killer (counter+1 echo).
  *  Builds a new frame in out_frame. Returns true if should be sent.
  *  now_ms is a millisecond clock used by the EPAS-faithful (Mode-C) path's

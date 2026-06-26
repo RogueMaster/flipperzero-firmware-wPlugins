@@ -431,6 +431,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <label class="sw"><input type="checkbox" id="swSoft" onchange="cmd('soft_engage',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
+    <span class="lbl">Nag Burst (14.x, exp.)</span>
+    <label class="sw"><input type="checkbox" id="swNagB" onchange="cmd('nag_burst',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
     <span class="lbl">BMS Display</span>
     <label class="sw"><input type="checkbox" id="swBms" onchange="cmd('bms',this.checked)"><span class="sl2"></span></label>
   </div>
@@ -736,6 +740,7 @@ function upd(d){
   if(document.getElementById('swApFirst')) document.getElementById('swApFirst').checked=d.ap_first;
   if(document.getElementById('swNagF')) document.getElementById('swNagF').checked=d.nag_faithful;
   if(document.getElementById('swSoft')) document.getElementById('swSoft').checked=d.soft_engage;
+  if(document.getElementById('swNagB')) document.getElementById('swNagB').checked=d.nag_burst;
   if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
   if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
   if(document.getElementById('swChina')) document.getElementById('swChina').checked=d.china_mode;
@@ -1251,6 +1256,7 @@ static String build_json() {
     j += "\"ap_first\":";      j += state.ap_first                      ? "true" : "false"; j += ',';
     j += "\"nag_faithful\":";  j += state.nag_epas_faithful             ? "true" : "false"; j += ',';
     j += "\"soft_engage\":";   j += state.soft_engage                  ? "true" : "false"; j += ',';
+    j += "\"nag_burst\":";     j += state.nag_burst                    ? "true" : "false"; j += ',';
     j += "\"bms_output\":";    j += state.bms_output                   ? "true" : "false"; j += ',';
     j += "\"force_fsd\":";     j += state.force_fsd                    ? "true" : "false"; j += ',';
     j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
@@ -1415,6 +1421,18 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] Soft Engage: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"nag_burst\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->nag_burst = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Nag Burst: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     }

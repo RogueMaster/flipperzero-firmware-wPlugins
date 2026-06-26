@@ -149,6 +149,7 @@ static int32_t fsd_running_worker(void* context) {
     state.suppress_speed_chime = app->suppress_speed_chime;
     state.emergency_vehicle_detect = app->emergency_vehicle_detect;
     state.nag_killer = app->nag_killer;
+    state.nag_burst = app->nag_burst;
     state.nag_epas_faithful = app->nag_epas_faithful;
     state.precondition = app->precondition;
     state.op_mode = app->op_mode;

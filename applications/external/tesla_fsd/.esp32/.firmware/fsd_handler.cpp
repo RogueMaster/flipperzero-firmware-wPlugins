@@ -361,6 +361,19 @@ static uint8_t nag_hands_level_from_raw(int16_t raw) {
     return 0;
 }
 
+// ±1.8 Nm torque cap (#122).
+static int16_t nag_clamp_torque(int16_t raw) {
+    if (raw > NAG_TORQUE_RAW_MAX) return NAG_TORQUE_RAW_MAX;
+    if (raw < NAG_TORQUE_RAW_MIN) return NAG_TORQUE_RAW_MIN;
+    return raw;
+}
+
+// Burst/pause: true while resting (skip the echo). #122.
+static bool nag_in_pause(uint32_t now_ms) {
+    uint32_t cycle = NAG_BURST_MS + NAG_PAUSE_MS;
+    return (now_ms % cycle) >= NAG_BURST_MS;
+}
+
 static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
                                CanFrame *out, uint32_t now_ms) {
     uint8_t das = state->das_hands_on_state;
@@ -434,6 +447,7 @@ static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
     }
 
     last_raw = torque; last_level = level;
+    torque = nag_clamp_torque(torque);   // ±1.8 Nm safety cap (#122)
 
     out->id  = CAN_ID_EPAS_STATUS;
     out->dlc = 8;
@@ -462,6 +476,7 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
                            uint32_t now_ms) {
     if (frame->dlc < 8)     return false;
     if (!state->nag_killer) return false;
+    if (state->nag_burst && nag_in_pause(now_ms)) return false;  // burst/pause rest (#122)
 
     if (state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);
 
@@ -516,6 +531,7 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
     out->id  = CAN_ID_EPAS_STATUS;
     out->dlc = 8;
 
+    torq = nag_clamp_torque(torq);   // ±1.8 Nm safety cap (#122)
     out->data[0] = frame->data[0];
     out->data[1] = frame->data[1];
     out->data[SIG_EPAS_TORQUE_HIGH_BYTE] =

@@ -33,6 +33,9 @@ typedef struct FSDState {
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
     bool nag_killer; // CAN 880 counter echo method
+    bool nag_burst; // burst/pause echo (~1s on / ~1.5s off) — the rest
+        // period is what lets a TSL6P-style device evade the
+        // stricter 14.x detector (#122). Off by default.
     bool nag_epas_faithful; // v2.17 experimental: mirror the in-the-wild 0x370
         // scheme (no handsOnLevel flip; torque centred at
         // 0 Nm with live variance) to pass the 2026.14.x

@@ -46,6 +46,15 @@ bool fsd_ap_first_allows(const FSDState *state, uint32_t now_ms);
 /** Soft Engage: |steering angle| within this of centre before activation begins. */
 #define SOFT_ENGAGE_ANGLE_DEG 5.0f
 
+// Nag burst/pause (#122): echo NAG_BURST_MS, rest NAG_PAUSE_MS — the rest period
+// is the believed reason a TSL6P-style device evades stricter 14.x detection.
+#define NAG_BURST_MS 1000u
+#define NAG_PAUSE_MS 1500u
+// Nag torque hard cap ±1.8 Nm (raw 1870..2230) — over ±1.8 Nm has been reported
+// to trigger FSD disengagements during turns (#122).
+#define NAG_TORQUE_RAW_MAX 2230
+#define NAG_TORQUE_RAW_MIN 1870
+
 /** Soft-Engage gate (steer-jerk mitigation, #108). Returns true if injection may
  *  proceed: soft_engage off, already latched, or wheel within SOFT_ENGAGE_ANGLE_DEG
  *  of centre (latches it on). Mutates soft_engage_latched; reset it when AP drops. */

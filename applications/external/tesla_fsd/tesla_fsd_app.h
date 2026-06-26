@@ -80,6 +80,7 @@ typedef struct {
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
     bool nag_killer;
+    bool nag_burst; // burst/pause echo (~1s on / ~1.5s off), #122
     bool precondition; // periodic 0x082 inject for battery preheat
     OpMode op_mode; // Active / ListenOnly / Service
     uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz

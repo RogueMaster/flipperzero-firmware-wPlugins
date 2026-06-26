@@ -996,6 +996,13 @@ static uint8_t nag_hands_level_from_raw(int16_t raw) {
     return 0;
 }
 
+// Clamp a torsionBarTorque raw value to the ±1.8 Nm safety cap (#122).
+static int16_t nag_clamp_torque(int16_t raw) {
+    if(raw > NAG_TORQUE_RAW_MAX) return NAG_TORQUE_RAW_MAX;
+    if(raw < NAG_TORQUE_RAW_MIN) return NAG_TORQUE_RAW_MIN;
+    return raw;
+}
+
 static bool
     nag_faithful_modec(FSDState* state, const CANFRAME* frame, CANFRAME* out, uint32_t now_ms) {
     uint8_t das = state->das_hands_on_state; // DAS hands-on demand state
@@ -1105,6 +1112,7 @@ static bool
     out->req = 0;
     out->buffer[0] = frame->buffer[0];
     out->buffer[1] = frame->buffer[1];
+    torque = nag_clamp_torque(torque); // ±1.8 Nm safety cap (#122)
     out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torque >> 8) & 0x0F);
     out->buffer[3] = (uint8_t)(torque & 0xFF);
     // Leave handsOnLevel untouched — real EPAS keeps byte4[7:6] at 0 even when
@@ -1123,9 +1131,17 @@ static bool
     return true;
 }
 
+// Burst/pause window: true while we should be RESTING (skip the echo). #122.
+static bool nag_in_pause(uint32_t now_ms) {
+    uint32_t cycle = NAG_BURST_MS + NAG_PAUSE_MS;
+    return (now_ms % cycle) >= NAG_BURST_MS;
+}
+
 bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
     if(!state->nag_killer) return false;
+    // Burst/pause: during the rest window, don't echo at all (gates both paths).
+    if(state->nag_burst && nag_in_pause(now_ms)) return false;
 
     // v2.17 EPAS-faithful (Mode-C) path takes over the whole decision.
     if(state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);
@@ -1204,6 +1220,7 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
 
     out->buffer[0] = frame->buffer[0];
     out->buffer[1] = frame->buffer[1];
+    torq = nag_clamp_torque(torq); // ±1.8 Nm safety cap (#122)
     out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torq >> 8) & 0x0F);
     out->buffer[3] = (uint8_t)(torq & 0xFF);
     // Clear existing handsOnLevel bits (7:6) before setting level=1.
