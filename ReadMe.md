@@ -196,6 +196,7 @@ $ ./fbt dolphin_ext
 - NFC: [Parser / KDF for mizip and mykey updated & addition of hi and microel (By zProAle)](https://github.com/zProAle/my_flipper_kdf)
 - NFC: [Parser for Amusement IC (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4259)
 - NFC: [Parser for Banapass MFC 1k (By zinongli)](https://github.com/flipperdevices/flipperzero-firmware/pull/4260)
+- NFC: [Parser for Bambu Lab filament spool (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1012)
 - NFC: [Parser for CSC Service Works Reloadable Cash Card (By zinongli)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fa9b702dc24f3c892798dec86e4f5f25443432c2)
 - NFC: [Parser for CTAS Andalucia (By Alejandro12120 & duhow)](https://github.com/DarkFlippers/unleashed-firmware/pull/808)
 - NFC: [Parser for Disney Infinity (By bettse)](https://github.com/flipperdevices/flipperzero-firmware/pull/4087)
@@ -208,8 +209,10 @@ $ ./fbt dolphin_ext
 - NFC: [Parser for Saflok Updates (By zinongli & xtruan & zacharyweiss & evilmog & Arkwin)](https://github.com/Next-Flip/Momentum-Firmware/pull/196)
 - NFC: [Parser for San Francisco Bay Area "Clipper" transit card. #3344 (By ke6jjj)](https://github.com/flipperdevices/flipperzero-firmware/pull/3344)
 - NFC: [Parser for Santiago, Chile BIP transit card #3456 (By rbasoalto)](https://github.com/flipperdevices/flipperzero-firmware/pull/3456)
+- NFC: [Parser for treA (By grugnoymeme)](https://github.com/Next-Flip/Momentum-Firmware/pull/441)
 - NFC: [Parser for Ventra ULEV1 (By hazardousvoltage)](https://github.com/Next-Flip/Momentum-Firmware/pull/310)
 - NFC: [Parser for Zolotaya Korona Online parser added (By Leptopt1los)](https://github.com/DarkFlippers/unleashed-firmware/commit/9aae348cae2619c4b32373431c9bf802e234ee6a)
+- NFC: [Parser to identify some hotel systems #4323 (By bettse)](https://github.com/flipperdevices/flipperzero-firmware/pull/4323)
 - Plugins: 2048, Arkanoid, Snake, and Tetris show score. Thanks to [whoamins](https://github.com/flipperdevices/flipperzero-firmware/commit/7feda832ede1ba8468eff2ca055fef3ddbdc16ac) and [DevMilanIan](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/188) With position changes by RogueMaster. Also all + Tic Tac Toe updated by [Unleashed/Eng1n33r](https://github.com/DarkFlippers/unleashed-firmware) for stability.
 - Plugins: Icon for Clock [Thanks to Redlink](https://github.com/redlink2/flipperzero-firmware/tree/menuChanges)
 - RFID: [2 new T5577 extra actions: Set/clear custom pw; write block - NO WIPE #678 (By plgcoder)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/678)
