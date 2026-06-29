@@ -11,22 +11,24 @@
 #include <nfc/nfc_device.h>
 #include <nfc/nfc_poller.h>
 
-#include "nfc_comparator_finder_worker.h"
+#include "nfc_comparator_finder_reader_worker.h"
+
 #include "../compare_worker/nfc_comparator_compare_worker.h"
+#include "../finder_searcher_worker/nfc_comparator_finder_searcher_worker.h"
 
 /**
- * @struct NfcComparatorFinderWorker
+ * @struct NfcComparatorFinderReaderWorker
  * @brief Internal structure holding all state for the NFC Comparator Finder Worker.
  */
-typedef struct NfcComparatorFinderWorker {
+typedef struct NfcComparatorFinderReaderWorker {
    Nfc* nfc; /**< Pointer to the NFC context */
    FuriThread* thread; /**< Worker thread */
    NfcProtocol* protocol; /**< Protocol in use */
-   NfcComparatorFinderWorkerState state; /**< Current worker state */
+   NfcComparatorFinderReaderWorkerState state; /**< Current worker state */
    NfcDevice* loaded_nfc_card; /**< NFC card loaded from storage */
    NfcDevice* scanned_nfc_card; /**< NFC card scanned from reader */
    NfcPoller* nfc_poller; /**< NFC poller instance */
-   DirWalk* dir_walk; /**< Directory walker for file search */
    NfcComparatorCompareWorker* compare_worker; /**< Comparison results structure */
-   NfcComparatorFinderWorkerSettings* settings; /**< Worker settings */
-} NfcComparatorFinderWorker;
+   NfcComparatorFinderSearcherWorker* searcher_worker; /**< The searcher for the filesystem */
+   NfcComparatorFinderSearcherWorkerSettings* settings; /**< Worker settings */
+} NfcComparatorFinderReaderWorker;

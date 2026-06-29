@@ -53,7 +53,7 @@ bool nfc_comparator_finder_menu_scene_on_event(void* context, SceneManagerEvent 
             break;
         case NfcComparatorMainMenu_Digital:
             scene_manager_next_scene(
-                nfc_comparator->scene_manager, NfcComparatorScene_DigitalFinderScan);
+                nfc_comparator->scene_manager, NfcComparatorScene_DigitalFinderSelect);
             consumed = true;
             break;
         case NfcComparatorMainMenu_Settings:

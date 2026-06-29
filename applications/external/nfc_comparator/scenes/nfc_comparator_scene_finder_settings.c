@@ -14,9 +14,9 @@ static void nfc_comparator_finder_settings_options_change_callback(VariableItem*
 
     switch(current_option) {
     case NfcComparatorSceneFinderSettingsMenuSelection_Recursive:
-        nfc_comparator->workers.finder.settings.recursive = option_value_index;
+        nfc_comparator->workers.searcher.settings.recursive = option_value_index;
         variable_item_set_current_value_text(
-            item, nfc_comparator->workers.finder.settings.recursive ? "ON" : "OFF");
+            item, nfc_comparator->workers.searcher.settings.recursive ? "ON" : "OFF");
         break;
     default:
         break;
@@ -36,9 +36,10 @@ void nfc_comparator_finder_settings_scene_on_enter(void* context) {
         nfc_comparator_finder_settings_options_change_callback,
         nfc_comparator);
     variable_item_set_current_value_index(
-        recursive_setting_item, nfc_comparator->workers.finder.settings.recursive);
+        recursive_setting_item, nfc_comparator->workers.searcher.settings.recursive);
     variable_item_set_current_value_text(
-        recursive_setting_item, nfc_comparator->workers.finder.settings.recursive ? "ON" : "OFF");
+        recursive_setting_item,
+        nfc_comparator->workers.searcher.settings.recursive ? "ON" : "OFF");
 
     view_dispatcher_switch_to_view(
         nfc_comparator->view_dispatcher, NfcComparatorView_VariableItemList);
