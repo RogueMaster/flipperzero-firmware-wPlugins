@@ -27,7 +27,6 @@ Seos* seos_alloc() {
     furi_hal_power_enable_otg();
 
     seos->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(seos->view_dispatcher);
     seos->scene_manager = scene_manager_alloc(&seos_scene_handlers, seos);
     view_dispatcher_set_event_callback_context(seos->view_dispatcher, seos);
     view_dispatcher_set_custom_event_callback(seos->view_dispatcher, seos_custom_event_callback);

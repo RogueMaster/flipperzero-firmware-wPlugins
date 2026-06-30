@@ -23,8 +23,14 @@
 // Current gauge screen showing the sensor state
 typedef struct CurrentGauge CurrentGauge;
 
+typedef enum {
+    CurrentGaugeButton_Menu,
+    CurrentGaugeButton_DataLog,
+    CurrentGaugeButton_ShuntSwitch,
+} CurrentGaugeButton;
+
 // Callback invoked when the menu button is pressed
-typedef void (*GaugeCallback)(void* context);
+typedef void (*CurrentGaugeButtonCallback)(void* context, CurrentGaugeButton button);
 
 // Allocates gauge screen
 CurrentGauge* current_gauge_alloc(void);
@@ -39,4 +45,7 @@ View* current_gauge_get_view(CurrentGauge* gauge);
 void current_gauge_update(CurrentGauge* gauge, const SensorState* state);
 
 // Sets the callback invoked when the menu button is pressed
-void current_gauge_set_menu_callback(CurrentGauge* gauge, GaugeCallback callback, void* context);
+void current_gauge_set_button_callback(
+    CurrentGauge* gauge,
+    CurrentGaugeButtonCallback callback,
+    void* context);

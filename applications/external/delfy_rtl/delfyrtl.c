@@ -1301,7 +1301,6 @@ static delfyRTL* app_alloc() {
     app->passwordAP = "password123";
     app->scene_manager = scene_manager_alloc(&delfyRTL_scene_manager_handlers, app);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     //strncpy(app->customMac, "00:E0:4C:01:02:03", 18);
     snprintf(app->customMac, sizeof(app->customMac), "00:E0:4C:01:02:03");
     parse_mac(app->customMac, app->byte_input_store);

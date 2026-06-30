@@ -30,8 +30,8 @@ static const TotpCliListFormatter available_formatters[] = {
      .body_item_formatter = &list_output_formatter_print_body_item_tsv,
      .footer_formatter = &list_output_formatter_print_footer_tsv}};
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 

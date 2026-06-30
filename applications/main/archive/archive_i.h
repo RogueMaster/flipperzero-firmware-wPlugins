@@ -43,7 +43,8 @@ struct ArchiveApp {
     char text_store[MAX_NAME_LEN];
     FuriString* file_extension;
 
-    WidgetElement* element;
+    WidgetElement* size_element;
+    WidgetElement* count_element;
     FuriThread* info_thread;
     FuriThread* search_thread;
 };

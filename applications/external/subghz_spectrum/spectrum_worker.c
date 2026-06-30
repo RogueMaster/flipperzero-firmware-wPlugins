@@ -1,3 +1,6 @@
+/* spectrum_worker.c — Background worker for Sub-GHz Spectrum Analyzer.
+ * Sweeps CC1101 across a frequency range and reports per-channel RSSI. */
+
 #include "spectrum_worker.h"
 #include <furi_hal.h>
 
@@ -133,6 +136,7 @@ static int32_t spectrum_worker_thread(void* context) {
 
 SpectrumWorker* spectrum_worker_alloc(void) {
     SpectrumWorker* worker = malloc(sizeof(SpectrumWorker));
+    furi_assert(worker);
     worker->thread = furi_thread_alloc_ex(TAG, 4096, spectrum_worker_thread, worker);
     worker->running = false;
     worker->callback = NULL;
@@ -142,6 +146,7 @@ SpectrumWorker* spectrum_worker_alloc(void) {
 
 void spectrum_worker_free(SpectrumWorker* worker) {
     furi_assert(worker);
+    furi_assert(!worker->running);
     furi_thread_free(worker->thread);
     free(worker);
 }

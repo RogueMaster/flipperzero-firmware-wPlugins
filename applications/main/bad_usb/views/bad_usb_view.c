@@ -2,7 +2,7 @@
 #include "../helpers/ducky_script.h"
 #include <toolbox/path.h>
 #include <gui/elements.h>
-#include <bad_usb_icons.h>
+#include <assets_icons.h>
 #include <bt/bt_service/bt_i.h>
 
 #define MAX_NAME_LEN 64

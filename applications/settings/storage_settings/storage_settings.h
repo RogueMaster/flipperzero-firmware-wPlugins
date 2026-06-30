@@ -13,9 +13,12 @@
 
 #include <storage/storage.h>
 #include <storage/storage_sd_api.h>
-#include <assets_icons.h>
 
 #include "scenes/storage_settings_scene.h"
+
+#include <settings_helpers/submenu_based.h>
+
+#define STORAGE_SETTINGS_MOUNT_INDEX 2
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +40,12 @@ typedef struct {
 
     // text
     FuriString* text_string;
+
+    // helpers
+    SubmenuSettingsHelperDescriptor* helper_descriptor;
+    SubmenuSettingsHelper* settings_helper;
+
+    bool from_favorites;
 } StorageSettings;
 
 typedef enum {

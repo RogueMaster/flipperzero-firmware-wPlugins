@@ -13,7 +13,7 @@ Each signal is recorded using the following algorithm:
 
 The signal names are self-explanatory. Remember to make sure that every recorded signal does what it's supposed to.
 
-If everything checks out, append these signals **to the end** of the [TV universal remote file](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/applications/main/infrared/resources/infrared/assets/tv.ir).
+If everything checks out, append these signals **to the end** of the [TV universal remote file](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/dev/applications/main/infrared/resources/infrared/assets/tv.ir).
 
 ## Audio players
 
@@ -23,13 +23,14 @@ The signal names are self-explanatory.
 On many remotes, the `Play` button doubles as `Pause`. In this case, record it as `Play` omitting the `Pause`.
 Make sure that every signal does what it's supposed to.
 
-If everything checks out, append these signals **to the end** of the [audio player universal remote file](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/applications/main/infrared/resources/infrared/assets/audio.ir).
+If everything checks out, append these signals **to the end** of the [audio player universal remote file](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/dev/applications/main/infrared/resources/infrared/assets/audio.ir).
 
 ## Projectors
 
 Adding your projector to the universal remote is really simple. Up to 4 signals can be recorded: `Power`, `Mute`, `Vol_up`, `Vol_dn`. Any of them can be omitted if not supported by your projector.
 To save time, please make sure every recording has been named accordingly.
 In case of omitting, on most projectors with the 4 following buttons, you should not have a problem.
+
 
 ## Air conditioners
 
@@ -66,7 +67,7 @@ Finally, record the `Off` signal:
 The resulting remote file should now contain 6 signals. You can omit any of them, but you then won't be able to use their functionality.
 Test the file against the actual device. Make sure that every signal does what it's supposed to.
 
-If everything checks out, append these signals **to the end** of the [A/C universal remote file](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/applications/main/infrared/resources/infrared/assets/ac.ir).
+If everything checks out, append these signals **to the end** of the [A/C universal remote file](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/dev/applications/main/infrared/resources/infrared/assets/ac.ir).
 
 ## Final steps
 

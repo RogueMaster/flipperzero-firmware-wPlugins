@@ -898,14 +898,14 @@ void callback_text_updated_add_ssid(void* context) {
     app->uart_text_input_buffer[app->uart_text_input_buffer_size - 1] = '\0';
     save_char("wifi-ssid", app->uart_text_input_buffer);
     view_dispatcher_switch_to_view(app->view_dispatcher, FlipWiFiViewSubmenuMain);
-    uart_text_input_reset(app->uart_text_input);
-    uart_text_input_set_header_text(app->uart_text_input, "Enter Password");
+    text_input_reset(app->uart_text_input);
+    text_input_set_header_text(app->uart_text_input, "Enter Password");
     app->uart_text_input_buffer_size = MAX_SSID_LENGTH;
     free(app->uart_text_input_buffer);
     free(app->uart_text_input_temp_buffer);
     easy_flipper_set_buffer(&app->uart_text_input_buffer, app->uart_text_input_buffer_size);
     easy_flipper_set_buffer(&app->uart_text_input_temp_buffer, app->uart_text_input_buffer_size);
-    uart_text_input_set_result_callback(
+    text_input_set_result_callback(
         app->uart_text_input,
         callback_text_updated_add_password,
         app,

@@ -220,7 +220,6 @@ int32_t trivia_zero_app_run(void) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->vd = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->vd);
     view_dispatcher_attach_to_gui(app->vd, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->vd, app);
     view_dispatcher_set_navigation_event_callback(app->vd, app_nav);

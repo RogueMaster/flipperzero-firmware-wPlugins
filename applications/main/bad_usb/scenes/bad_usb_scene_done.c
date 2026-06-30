@@ -9,8 +9,8 @@ void bad_usb_scene_done_on_enter(void* context) {
     BadUsbApp* bad_usb = context;
     Popup* popup = bad_usb->popup;
 
-    popup_set_icon(popup, 32, 5, &I_DolphinNice_96x59);
-    popup_set_header(popup, "Done", 13, 22, AlignLeft, AlignBottom);
+    popup_set_icon(popup, 48, 4, &I_DolphinDone_80x58);
+    popup_set_header(popup, "Done", 20, 19, AlignLeft, AlignBottom);
     popup_set_callback(popup, bad_usb_scene_done_popup_callback);
     popup_set_context(popup, bad_usb);
     popup_set_timeout(popup, 1500);

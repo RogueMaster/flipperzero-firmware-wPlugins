@@ -5,7 +5,7 @@ enum SubmenuIndex {
     SubmenuIndexEdit,
     SubmenuIndexDelete,
     SubmenuIndexGeo,
-    SubmenuIndexSignalSettings
+    SubmenuIndexSignalSettings,
 };
 
 void subghz_scene_saved_menu_submenu_callback(void* context, uint32_t index) {
@@ -46,14 +46,17 @@ void subghz_scene_saved_menu_on_enter(void* context) {
             subghz);
     }
 
-    if(furi_hal_rtc_is_flag_set(FuriHalRtcFlagDebug)) {
-        submenu_add_item(
-            subghz->submenu,
-            "Signal Settings",
-            SubmenuIndexSignalSettings,
-            subghz_scene_saved_menu_submenu_callback,
-            subghz);
-    }
+    submenu_add_lockable_item(
+        subghz->submenu,
+        "Signal Settings",
+        SubmenuIndexSignalSettings,
+        subghz_scene_saved_menu_submenu_callback,
+        subghz,
+        !furi_hal_rtc_is_flag_set(FuriHalRtcFlagDebug),
+        "Enable\n"
+        "Settings >\n"
+        "System >\n"
+        "Debug");
 
     submenu_set_selected_item(
         subghz->submenu,
@@ -66,30 +69,21 @@ bool subghz_scene_saved_menu_on_event(void* context, SceneManagerEvent event) {
     SubGhz* subghz = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
+        scene_manager_set_scene_state(subghz->scene_manager, SubGhzSceneSavedMenu, event.event);
         if(event.event == SubmenuIndexEmulate) {
-            scene_manager_set_scene_state(
-                subghz->scene_manager, SubGhzSceneSavedMenu, SubmenuIndexEmulate);
             scene_manager_next_scene(subghz->scene_manager, SubGhzSceneTransmitter);
             return true;
         } else if(event.event == SubmenuIndexDelete) {
-            scene_manager_set_scene_state(
-                subghz->scene_manager, SubGhzSceneSavedMenu, SubmenuIndexDelete);
             scene_manager_next_scene(subghz->scene_manager, SubGhzSceneDelete);
             return true;
         } else if(event.event == SubmenuIndexEdit) {
-            scene_manager_set_scene_state(
-                subghz->scene_manager, SubGhzSceneSavedMenu, SubmenuIndexEdit);
             scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSaveName);
             return true;
         } else if(event.event == SubmenuIndexGeo) {
-            scene_manager_set_scene_state(
-                subghz->scene_manager, SubGhzSceneSavedMenu, SubmenuIndexGeo);
             scene_manager_set_scene_state(subghz->scene_manager, SubGhzSceneShowGps, true);
             scene_manager_next_scene(subghz->scene_manager, SubGhzSceneShowGps);
             return true;
         } else if(event.event == SubmenuIndexSignalSettings) {
-            scene_manager_set_scene_state(
-                subghz->scene_manager, SubGhzSceneSavedMenu, SubmenuIndexSignalSettings);
             scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSignalSettings);
             return true;
         }

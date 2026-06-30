@@ -5,14 +5,8 @@
 extern struct imu_t imu_bmi160;
 extern struct imu_t imu_lsm6ds3trc;
 extern struct imu_t imu_lsm6dso;
-extern struct imu_t imu_mpu6050;
 
-struct imu_t* imu_types[] = {
-    &imu_bmi160,
-    &imu_lsm6ds3trc,
-    &imu_lsm6dso,
-    &imu_mpu6050,
-};
+struct imu_t* imu_types[] = {&imu_bmi160, &imu_lsm6ds3trc, &imu_lsm6dso};
 
 static const int imu_count = sizeof(imu_types) / sizeof(struct imu_t*);
 

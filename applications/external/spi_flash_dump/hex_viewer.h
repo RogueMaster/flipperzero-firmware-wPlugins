@@ -5,8 +5,8 @@
 /* ------------------------------------------------------------------ */
 /*  Hex Viewer – custom View that shows a hex+ASCII dump              */
 /*                                                                    */
-/*  Displays 8 bytes per row:                                         */
-/*    0000: 48 65 6C 6C 6F 20 57 6F  Hello Wo                        */
+/*  Displays 4 bytes per row:                                         */
+/*    0000: 48 65 6C 6C  Hell                                         */
 /*                                                                    */
 /*  Scrollable with Up/Down keys.  Loads the first 4 KB of a file.   */
 /* ------------------------------------------------------------------ */

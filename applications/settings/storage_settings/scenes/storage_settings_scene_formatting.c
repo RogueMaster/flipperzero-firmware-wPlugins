@@ -1,4 +1,6 @@
 #include "../storage_settings.h"
+#include <notification/notification.h>
+#include <notification/notification_messages.h>
 #include <power/power_service/power.h>
 
 static const NotificationMessage message_green_165 = {
@@ -50,13 +52,18 @@ void storage_settings_scene_formatting_on_enter(void* context) {
         dialog_ex_set_text(
             dialog_ex, storage_error_get_desc(error), 64, 32, AlignCenter, AlignCenter);
     } else {
-        dialog_ex_set_icon(dialog_ex, 83, 22, &I_WarningDolphinFlip_45x42);
-        dialog_ex_set_header(dialog_ex, "Format\ncomplete!", 14, 15, AlignLeft, AlignTop);
-        NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
-        notification_message(notification, &sequence_single_vibro);
-        notification_message(notification, &sequence_set_green_255);
-        notification_message(notification, &sequence_success);
-        furi_record_close(RECORD_NOTIFICATION);
+        if(scene_manager_get_scene_state(app->scene_manager, StorageSettingsFormatting)) {
+            Power* power = furi_record_open(RECORD_POWER);
+            power_reboot(power, PowerBootModeNormal);
+        } else {
+            dialog_ex_set_icon(dialog_ex, 48, 6, &I_DolphinDone_80x58);
+            dialog_ex_set_header(dialog_ex, "Formatted", 5, 10, AlignLeft, AlignTop);
+            NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
+            notification_message(notification, &sequence_single_vibro);
+            notification_message(notification, &sequence_set_green_255);
+            notification_message(notification, &sequence_success);
+            furi_record_close(RECORD_NOTIFICATION);
+        }
     }
     dialog_ex_set_left_button_text(dialog_ex, "Finish");
 }
@@ -68,8 +75,14 @@ bool storage_settings_scene_formatting_on_event(void* context, SceneManagerEvent
     if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {
         case DialogExResultLeft:
-            consumed = scene_manager_search_and_switch_to_previous_scene(
-                app->scene_manager, StorageSettingsStart);
+            if(app->from_favorites) {
+                scene_manager_stop(app->scene_manager);
+                view_dispatcher_stop(app->view_dispatcher);
+                return true;
+            } else {
+                consumed = scene_manager_search_and_switch_to_previous_scene(
+                    app->scene_manager, StorageSettingsStart);
+            }
             break;
         }
     } else if(event.type == SceneManagerEventTypeBack) {

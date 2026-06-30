@@ -33,11 +33,13 @@
 #include "emu/sio_driver.h"
 #include "emu/fdd_emulator.h"
 #include "emu/xex_loader.h"
+#include "emu/atari850.h"
 #include "views/fdd_screen.h"
 #include "views/xex_screen.h"
 
 #include "app_common.h"
 #include "app_config.h"
+#include "app/usb_vcp.h"
 
 #define ATR_DATA_PATH_PREFIX STORAGE_APP_DATA_PATH_PREFIX "/atr"
 #define XEX_DATA_PATH_PREFIX STORAGE_APP_DATA_PATH_PREFIX "/xex"
@@ -75,10 +77,15 @@ typedef struct {
     SIODriver* sio;
     // FDD emulators
     FddEmulator* fdd[FDD_EMULATOR_COUNT];
-    // XEX file loader
-    XexLoader* xex_loader;
     // Selected FDD emulator
     uint8_t selected_fdd;
+    // XEX file loader
+    XexLoader* xex_loader;
+    // Atari 850 emulator
+    Atari850* atari850;
+    // USB Virtual COM port
+    UsbVcp* usb_vcp;
+
 } App;
 
 // Builds a unique file name for a new ATR image.

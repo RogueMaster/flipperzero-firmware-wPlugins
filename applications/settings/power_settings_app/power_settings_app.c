@@ -1,6 +1,5 @@
 #include "power_settings_app.h"
-#include <flipper_application/flipper_application.h>
-#include <loader/firmware_api/firmware_api.h>
+#include <applications/settings/about/about.h>
 
 static bool power_settings_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -29,13 +28,9 @@ PowerSettingsApp* power_settings_app_alloc(uint32_t first_scene, ViewDispatcherT
     app->gui = furi_record_open(RECORD_GUI);
     app->power = furi_record_open(RECORD_POWER);
 
-    //PubSub
-    app->settings_events = power_get_settings_events_pubsub(app->power);
-
     // View dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&power_settings_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, power_settings_custom_event_callback);
@@ -55,16 +50,19 @@ PowerSettingsApp* power_settings_app_alloc(uint32_t first_scene, ViewDispatcherT
         PowerSettingsAppViewBatteryInfo,
         battery_info_get_view(app->battery_info));
     app->submenu = submenu_alloc();
-    app->variable_item_list = variable_item_list_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, PowerSettingsAppViewSubmenu, submenu_get_view(app->submenu));
-    app->dialog = dialog_ex_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, PowerSettingsAppViewDialog, dialog_ex_get_view(app->dialog));
+    app->variable_item_list = variable_item_list_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher,
         PowerSettingsAppViewVariableItemList,
         variable_item_list_get_view(app->variable_item_list));
+    app->dialog = dialog_ex_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, PowerSettingsAppViewDialog, dialog_ex_get_view(app->dialog));
+
+    // get settings from service to app
+    power_api_get_settings(app->power, &app->settings);
 
     // Set first scene
     scene_manager_next_scene(app->scene_manager, first_scene);
@@ -73,6 +71,9 @@ PowerSettingsApp* power_settings_app_alloc(uint32_t first_scene, ViewDispatcherT
 
 void power_settings_app_free(PowerSettingsApp* app) {
     furi_assert(app);
+
+    // set settings from app to service
+    power_api_set_settings(app->power, &app->settings);
     // Views
     view_dispatcher_remove_view(app->view_dispatcher, PowerSettingsAppViewBatteryInfo);
     battery_info_free(app->battery_info);
@@ -80,11 +81,11 @@ void power_settings_app_free(PowerSettingsApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, PowerSettingsAppViewSubmenu);
     submenu_free(app->submenu);
 
-    view_dispatcher_remove_view(app->view_dispatcher, PowerSettingsAppViewDialog);
-    dialog_ex_free(app->dialog);
-
     view_dispatcher_remove_view(app->view_dispatcher, PowerSettingsAppViewVariableItemList);
     variable_item_list_free(app->variable_item_list);
+
+    view_dispatcher_remove_view(app->view_dispatcher, PowerSettingsAppViewDialog);
+    dialog_ex_free(app->dialog);
 
     // View dispatcher
     view_dispatcher_free(app->view_dispatcher);
@@ -113,26 +114,7 @@ int32_t power_settings_app(void* p) {
         view_dispatcher_run(app->view_dispatcher);
         if(app->battery_info->exit_to_about) {
             app->battery_info->exit_to_about = false;
-
-            bool stay = false;
-            FlipperApplication* fap = flipper_application_alloc(
-                furi_record_open(RECORD_STORAGE), firmware_api_interface);
-            do {
-                FlipperApplicationPreloadStatus preload_res =
-                    flipper_application_preload(fap, EXT_PATH("apps/Settings/about.fap"));
-                if(preload_res != FlipperApplicationPreloadStatusSuccess) break;
-                FlipperApplicationLoadStatus load_status = flipper_application_map_to_memory(fap);
-                if(load_status != FlipperApplicationLoadStatusSuccess) break;
-                FuriThread* thread = flipper_application_alloc_thread(fap, NULL);
-                furi_thread_set_appid(thread, "about");
-                furi_thread_start(thread);
-                furi_thread_join(thread);
-                if(furi_thread_get_return_code(thread) == 1) stay = true;
-            } while(0);
-            flipper_application_free(fap);
-            furi_record_close(RECORD_STORAGE);
-
-            if(stay) {
+            if(about_settings_app("about_battery")) {
                 scene_manager_next_scene(app->scene_manager, first_scene);
                 continue;
             }

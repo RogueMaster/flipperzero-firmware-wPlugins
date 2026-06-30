@@ -1,3 +1,6 @@
+/* nfc_fuzzer_profiles.c — NFC card type profiles and UID mutation strategies.
+ * Defines fuzz parameters (UID length, SAK, ATQA) for each supported card type. */
+
 #include "nfc_fuzzer_profiles.h"
 
 #define PROFILES_TAG "NfcFuzzerProfiles"
@@ -1152,7 +1155,7 @@ static uint32_t mifare_read_profile_total(NfcFuzzerStrategy strategy) {
  * Boundary layout:
  *   FSDI boundary values: 0, 7, 8, 15 (4 values)
  *   CID boundary values:  0, 14, 15   (3 values)
- *   12 RATS combos (4 x 3) + 8 boundary PPS (CID 0,14,15 x PPS0 0x00/0xFF) = 20 cases
+ *   12 RATS combos (4 x 3) + 6 boundary PPS (CID 0,14,15 x PPS0 0x00/0xFF) = 18 cases
  */
 static const uint8_t rats_boundary_fsdi[] = {0, 7, 8, 15};
 static const uint8_t rats_boundary_cid[] = {0, 14, 15};

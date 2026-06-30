@@ -1,3 +1,6 @@
+/* ccid_emulator.c — Main application, UI, and entry point for CCID Emulator.
+ * Emulates a USB CCID smart card reader with selectable card profiles. */
+
 #include "ccid_emulator.h"
 #include "card_parser.h"
 #include "ccid_handler.h"
@@ -32,11 +35,12 @@ extern const uint8_t ccid_usb_preset_count;
  * ========================================================================= */
 
 #define APDU_MON_LINE_HEIGHT 10
-#define APDU_MON_MAX_VISIBLE 6
+#define APDU_MON_MAX_VISIBLE 3
 
 typedef struct {
     CcidEmulatorApp* app;
     uint16_t scroll_offset; /* index of first visible *pair* */
+    bool auto_scroll; /* follow new entries until user scrolls up */
 } ApduMonitorModel;
 
 static void apdu_monitor_draw(Canvas* canvas, void* model_ptr) {
@@ -55,7 +59,7 @@ static void apdu_monitor_draw(Canvas* canvas, void* model_ptr) {
 
     furi_mutex_acquire(app->log_mutex, FuriWaitForever);
 
-    uint16_t total = app->log_count;
+    uint32_t total = app->log_count;
     if(total > CCID_EMU_LOG_MAX_ENTRIES) total = CCID_EMU_LOG_MAX_ENTRIES;
 
     if(total == 0) {
@@ -79,8 +83,8 @@ static void apdu_monitor_draw(Canvas* canvas, void* model_ptr) {
     if(app->log_count > CCID_EMU_LOG_MAX_ENTRIES) {
         /* Ring buffer has wrapped. The oldest stored entry index in the
            ring is (app->log_count % CCID_EMU_LOG_MAX_ENTRIES). */
-        start_entry_idx =
-            (uint16_t)((app->log_count - total + model->scroll_offset) % CCID_EMU_LOG_MAX_ENTRIES);
+        start_entry_idx = (uint16_t)((app->log_count - total + model->scroll_offset) %
+                                     (uint32_t)CCID_EMU_LOG_MAX_ENTRIES);
     } else {
         start_entry_idx = model->scroll_offset;
     }
@@ -131,13 +135,16 @@ static bool apdu_monitor_input(InputEvent* event, void* context) {
                 app->apdu_monitor,
                 ApduMonitorModel * model,
                 {
-                    if(model->scroll_offset > 0) model->scroll_offset--;
+                    if(model->scroll_offset > 0) {
+                        model->scroll_offset--;
+                        model->auto_scroll = false;
+                    }
                 },
                 true);
             return true;
         } else if(event->key == InputKeyDown) {
             furi_mutex_acquire(app->log_mutex, FuriWaitForever);
-            uint16_t total = app->log_count;
+            uint32_t total = app->log_count;
             furi_mutex_release(app->log_mutex);
             if(total > CCID_EMU_LOG_MAX_ENTRIES) total = CCID_EMU_LOG_MAX_ENTRIES;
             with_view_model(
@@ -147,6 +154,7 @@ static bool apdu_monitor_input(InputEvent* event, void* context) {
                     uint16_t max_off =
                         (total > APDU_MON_MAX_VISIBLE) ? total - APDU_MON_MAX_VISIBLE : 0;
                     if(model->scroll_offset < max_off) model->scroll_offset++;
+                    if(model->scroll_offset >= max_off) model->auto_scroll = true;
                 },
                 true);
             return true;
@@ -180,8 +188,9 @@ static bool ccid_emulator_export_log(CcidEmulatorApp* app) {
 
     furi_mutex_acquire(app->log_mutex, FuriWaitForever);
 
-    uint16_t total = app->log_count;
-    uint16_t stored = (total > CCID_EMU_LOG_MAX_ENTRIES) ? CCID_EMU_LOG_MAX_ENTRIES : total;
+    uint32_t total = app->log_count;
+    uint16_t stored = (total > CCID_EMU_LOG_MAX_ENTRIES) ? CCID_EMU_LOG_MAX_ENTRIES :
+                                                           (uint16_t)total;
 
     if(stored == 0) {
         furi_mutex_release(app->log_mutex);
@@ -237,7 +246,7 @@ static bool ccid_emulator_export_log(CcidEmulatorApp* app) {
        ring_start = log_count % LOG_MAX_ENTRIES           (wrapped case)
        ring_start = 0                                     (not yet wrapped)  */
     uint16_t ring_start = (app->log_count > CCID_EMU_LOG_MAX_ENTRIES) ?
-                              (uint16_t)(app->log_count % CCID_EMU_LOG_MAX_ENTRIES) :
+                              (uint16_t)(app->log_count % (uint32_t)CCID_EMU_LOG_MAX_ENTRIES) :
                               0;
 
     /* Write entries using fixed-size prefix + streamed hex strings to avoid
@@ -452,21 +461,14 @@ static void card_info_button_callback(GuiButtonType result, InputType type, void
  * Settings (Variable Item List)
  * ========================================================================= */
 
-static void settings_usb_preset_changed(VariableItem* item) {
-    CcidEmulatorApp* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    if(idx >= ccid_usb_preset_count) idx = 0;
-    app->usb_preset_index = idx;
-    variable_item_set_current_value_text(item, ccid_usb_presets[idx].label);
-}
-
 static void settings_build(CcidEmulatorApp* app) {
     variable_item_list_reset(app->settings);
 
-    VariableItem* item = variable_item_list_add(
-        app->settings, "USB Device", ccid_usb_preset_count, settings_usb_preset_changed, app);
-    variable_item_set_current_value_index(item, app->usb_preset_index);
-    variable_item_set_current_value_text(item, ccid_usb_presets[app->usb_preset_index].label);
+    /* USB VID/PID: SDK usb_ccid interface does not support custom descriptors.
+     * Show a single non-toggleable label so users know it's fixed. */
+    VariableItem* item = variable_item_list_add(app->settings, "USB Device", 1, NULL, app);
+    variable_item_set_current_value_text(item, "Default (SDK fixed)");
+    UNUSED(app->usb_preset_index); /* retained for future SDK support */
 }
 
 /* =========================================================================
@@ -527,7 +529,13 @@ static bool custom_event_handler(void* context, uint32_t event) {
 
             /* Reset scroll */
             with_view_model(
-                app->apdu_monitor, ApduMonitorModel * model, { model->scroll_offset = 0; }, false);
+                app->apdu_monitor,
+                ApduMonitorModel * model,
+                {
+                    model->scroll_offset = 0;
+                    model->auto_scroll = true;
+                },
+                false);
 
             /* Start CCID emulation */
             ccid_handler_start(app);
@@ -607,11 +615,13 @@ static void ccid_apdu_refresh_timer_cb(void* ctx) {
             app->apdu_monitor,
             ApduMonitorModel * model,
             {
-                uint16_t total = app->log_count;
-                if(total > CCID_EMU_LOG_MAX_ENTRIES) total = CCID_EMU_LOG_MAX_ENTRIES;
-                uint16_t max_off = (total > APDU_MON_MAX_VISIBLE) ? total - APDU_MON_MAX_VISIBLE :
-                                                                    0;
-                model->scroll_offset = max_off;
+                if(model->auto_scroll) {
+                    uint32_t total = app->log_count;
+                    if(total > CCID_EMU_LOG_MAX_ENTRIES) total = CCID_EMU_LOG_MAX_ENTRIES;
+                    uint16_t max_off =
+                        (total > APDU_MON_MAX_VISIBLE) ? total - APDU_MON_MAX_VISIBLE : 0;
+                    model->scroll_offset = max_off;
+                }
             },
             true);
     }
@@ -619,6 +629,7 @@ static void ccid_apdu_refresh_timer_cb(void* ctx) {
 
 static CcidEmulatorApp* ccid_emulator_app_alloc(void) {
     CcidEmulatorApp* app = malloc(sizeof(CcidEmulatorApp));
+    furi_assert(app);
     memset(app, 0, sizeof(CcidEmulatorApp));
 
     /* Storage */
@@ -633,7 +644,6 @@ static CcidEmulatorApp* ccid_emulator_app_alloc(void) {
     /* GUI */
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     /* view_dispatcher_enable_queue is deprecated in SDK 1.4+ — no longer needed */
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, custom_event_handler);
@@ -669,6 +679,7 @@ static CcidEmulatorApp* ccid_emulator_app_alloc(void) {
         {
             model->app = app;
             model->scroll_offset = 0;
+            model->auto_scroll = true;
         },
         false);
 
@@ -709,6 +720,14 @@ static void ccid_emulator_app_free(CcidEmulatorApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, CcidEmulatorViewApduMonitor);
     view_dispatcher_remove_view(app->view_dispatcher, CcidEmulatorViewSettings);
 
+    /* Stop the refresh timer FIRST — it accesses apdu_monitor via
+     * with_view_model, so it must be stopped before freeing views. */
+    if(app->apdu_refresh_timer) {
+        furi_timer_stop(app->apdu_refresh_timer);
+        furi_timer_free(app->apdu_refresh_timer);
+        app->apdu_refresh_timer = NULL;
+    }
+
     /* Free modules */
     submenu_free(app->card_browser);
     widget_free(app->card_info);
@@ -731,14 +750,8 @@ static void ccid_emulator_app_free(CcidEmulatorApp* app) {
         free(app->card_paths);
     }
 
-    /* Refresh timer */
-    if(app->apdu_refresh_timer) {
-        furi_timer_stop(app->apdu_refresh_timer);
-        furi_timer_free(app->apdu_refresh_timer);
-        app->apdu_refresh_timer = NULL;
-    }
-
-    /* Mutex */
+    /* Mutex — freed after timer is stopped to avoid timer callback
+     * accessing freed mutex via ccid_xfr_datablock path. */
     furi_mutex_free(app->log_mutex);
 
     /* Close records */

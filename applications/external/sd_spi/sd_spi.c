@@ -20,7 +20,7 @@
 #define SD_IDLE_RETRY_COUNT   100
 
 #define FLAG_SET(x, y) (((x) & (y)) == (y))
-FuriHalSpiBusHandle* furi_hal_sd_spi_handle = NULL;
+const FuriHalSpiBusHandle* furi_hal_sd_spi_handle = NULL;
 
 static bool sd_high_capacity = false;
 SdSpiCmdAnswer cmd_answer = {

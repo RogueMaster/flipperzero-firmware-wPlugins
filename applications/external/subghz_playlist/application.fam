@@ -5,7 +5,7 @@ App(
     targets=["f7"],
     entry_point="playlist_app",
     stack_size=4 * 1024,
-    order=22,
+    order=12,
     icon="A_Sub1ghz_14",
     fap_category="Sub-GHz",
     fap_icon="subplaylist_10px.png",

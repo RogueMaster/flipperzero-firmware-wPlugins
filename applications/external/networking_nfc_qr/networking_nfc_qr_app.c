@@ -415,7 +415,6 @@ int32_t networking_nfc_qr_app_entry(void* p) {
     app->current_view = NfcQrAppViewSubmenu;
 
     // Enable queue before switching view
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcQrAppViewSubmenu);
 
     view_dispatcher_run(app->view_dispatcher);

@@ -117,7 +117,7 @@ FlipWeatherApp* flip_weather_app_alloc() {
            app)) {
         return NULL;
     }
-    uart_text_input_set_allow_empty(app->uart_text_input_location, true);
+    text_input_set_minimum_length(app->uart_text_input_location, 0);
 
     // Variable Item List
     if(!easy_flipper_set_variable_item_list(

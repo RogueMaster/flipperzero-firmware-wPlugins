@@ -1,5 +1,4 @@
 #include "../lfrfid_i.h"
-#include <lfrfid_icons.h>
 #include "tools/t5577.h"
 
 // Proxmark3 "lf t55xx wipe" default config block 0: ASK/Manchester, RF/32, 7 data blocks,
@@ -70,8 +69,8 @@ static void lfrfid_wipe_t5577_show_result(LfRfid* app, bool wiped) {
     popup_reset(popup);
 
     if(wiped) {
-        popup_set_header(popup, "Wiped!", 102, 40, AlignLeft, AlignTop);
-        popup_set_icon(popup, 0, 6, &I_RFIDDolphinSuccess_108x57);
+        popup_set_header(popup, "Wiped!", 75, 40, AlignLeft, AlignTop);
+        popup_set_icon(popup, 0, 9, &I_DolphinSuccess_91x55);
 
         notification_message(app->notifications, &sequence_single_vibro);
     } else {

@@ -5,14 +5,24 @@
 
 #define AUDIO_MODES_COUNT 2
 
+static void tracker_redraw_update_model(void* context) {
+    FlizzerTrackerApp* tracker = context;
+
+    view_commit_model(tracker->tracker_view->view, true);
+}
+
 TrackerView* tracker_view_alloc(FlizzerTrackerApp* tracker) {
     TrackerView* tracker_view = malloc(sizeof(TrackerView));
     tracker_view->view = view_alloc();
     tracker_view->context = tracker;
     view_set_context(tracker_view->view, tracker_view);
-    view_allocate_model(tracker_view->view, ViewModelTypeLocking, sizeof(TrackerViewModel));
+    view_allocate_model(tracker_view->view, ViewModelTypeLockFree, sizeof(TrackerViewModel));
     view_set_draw_callback(tracker_view->view, draw_callback);
     view_set_input_callback(tracker_view->view, input_callback);
+
+    view_dispatcher_set_event_callback_context(tracker->view_dispatcher, tracker);
+    view_dispatcher_set_tick_event_callback(
+        tracker->view_dispatcher, tracker_redraw_update_model, 250);
 
     return tracker_view;
 }
@@ -67,12 +77,12 @@ FlizzerTrackerApp* init_tracker(
 
     tracker->tracker_view = tracker_view_alloc(tracker);
 
+    with_view_model(
+        tracker->tracker_view->view, TrackerViewModel * model, { model->tracker = tracker; }, true);
+
     view_dispatcher_add_view(tracker->view_dispatcher, VIEW_TRACKER, tracker->tracker_view->view);
     view_dispatcher_attach_to_gui(
         tracker->view_dispatcher, tracker->gui, ViewDispatcherTypeFullscreen);
-
-    with_view_model(
-        tracker->tracker_view->view, TrackerViewModel * model, { model->tracker = tracker; }, true);
 
     tracker->storage = furi_record_open(RECORD_STORAGE);
     tracker->stream = file_stream_alloc(tracker->storage);

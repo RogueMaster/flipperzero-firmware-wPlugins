@@ -1,5 +1,4 @@
 #include "config.h"
-#include <datetime/datetime.h>
 #include <stdlib.h>
 #include <string.h>
 #include <flipper_format/flipper_format.h>

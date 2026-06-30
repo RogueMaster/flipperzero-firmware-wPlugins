@@ -147,6 +147,8 @@ void picopass_device_set_name(PicopassDevice* dev, const char* name);
 
 bool picopass_device_save(PicopassDevice* dev, const char* dev_name);
 
+bool picopass_device_load(PicopassDevice* dev, FuriString* path);
+
 bool picopass_file_select(PicopassDevice* dev);
 
 void picopass_device_data_clear(PicopassDeviceData* dev_data);

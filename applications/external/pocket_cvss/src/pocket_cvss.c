@@ -600,7 +600,6 @@ static PocketCvssApp* pocket_cvss_app_alloc(void) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->dispatcher);
     app->main_menu = submenu_alloc();
     app->metric_menu = submenu_alloc();
     app->examples_menu = submenu_alloc();

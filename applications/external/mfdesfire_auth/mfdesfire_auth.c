@@ -144,7 +144,6 @@ MfDesApp* mfdesfire_auth_app_alloc() {
 
     // View dispatcher settings
     instance->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
     view_dispatcher_set_custom_event_callback(
         instance->view_dispatcher, mfdes_app_custom_event_callback);

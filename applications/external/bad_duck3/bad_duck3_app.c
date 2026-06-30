@@ -200,7 +200,6 @@ BadDuck3App* bad_duck3_app_alloc(char* arg) {
     app->dialogs = furi_record_open(RECORD_DIALOGS);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&bad_duck3_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

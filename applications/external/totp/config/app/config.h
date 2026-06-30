@@ -1,7 +1,8 @@
 // List of compatible firmwares
 #define TOTP_FIRMWARE_OFFICIAL_STABLE (1)
 #define TOTP_FIRMWARE_OFFICIAL_DEV    (2)
-#define TOTP_FIRMWARE_CFW             (3)
+#define TOTP_FIRMWARE_UNLEASHED       (3)
+#define TOTP_FIRMWARE_MOMENTUM        (4)
 // End of list
 
 #if __has_include("ufbt_def.h")
@@ -12,9 +13,11 @@
 #if defined(TARGET_FIRMWARE_OFFICIAL) || defined(FW_ORIGIN_Official)
 #define TOTP_TARGET_FIRMWARE TOTP_FIRMWARE_OFFICIAL_STABLE
 #elif defined(TARGET_FIRMWARE_UNLEASHED) || defined(FW_ORIGIN_Unleashed)
-#define TOTP_TARGET_FIRMWARE TOTP_FIRMWARE_CFW
+#define TOTP_TARGET_FIRMWARE TOTP_FIRMWARE_UNLEASHED
+#elif defined(TARGET_FIRMWARE_MOMENTUM) || defined(FW_ORIGIN_Momentum)
+#define TOTP_TARGET_FIRMWARE TOTP_FIRMWARE_MOMENTUM
 #else
-#define TOTP_TARGET_FIRMWARE TOTP_FIRMWARE_CFW
+#define TOTP_TARGET_FIRMWARE TOTP_FIRMWARE_OFFICIAL_STABLE
 #endif
 #endif
 

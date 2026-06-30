@@ -28,7 +28,6 @@ int32_t cuberzeroMain(const void* const unused) {
     instance->view.submenu = submenu_alloc();
     instance->interface = furi_record_open(RECORD_GUI);
     instance->dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(instance->dispatcher);
     static const AppSceneOnEnterCallback handlerEnter[] = {
         SceneHomeEnter, SceneSessionEnter, SceneTimerEnter};
     static const AppSceneOnEventCallback handlerEvent[] = {

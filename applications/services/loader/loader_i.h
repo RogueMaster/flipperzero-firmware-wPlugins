@@ -2,17 +2,26 @@
 #include <furi.h>
 #include <toolbox/api_lock.h>
 #include <flipper_application/flipper_application.h>
+
+#include <gui/gui.h>
+#include <gui/view_holder.h>
+#include <gui/modules/loading.h>
+
 #include <m-array.h>
+
 #include "loader.h"
 #include "loader_menu.h"
-#include "loader_mainmenu.h"
 #include "loader_applications.h"
+#include "loader_queue.h"
 
 typedef struct {
+    FuriString* launch_path;
     char* args;
     FuriThread* thread;
     bool insomniac;
     FlipperApplication* fap;
+
+    bool unloaded_asset_packs;
 } LoaderAppData;
 
 struct Loader {
@@ -21,15 +30,18 @@ struct Loader {
     LoaderMenu* loader_menu;
     LoaderApplications* loader_applications;
     LoaderAppData app;
-    MainMenuList_t mainmenu_apps;
-    GamesMenuList_t gamesmenu_apps;
+
+    LoaderLaunchQueue launch_queue;
+
+    Gui* gui;
+    ViewHolder* view_holder;
+    Loading* loading;
 };
 
 typedef enum {
     LoaderMessageTypeStartByName,
     LoaderMessageTypeAppClosed,
     LoaderMessageTypeShowMenu,
-    LoaderMessageTypeShowGamesMenu,
     LoaderMessageTypeMenuClosed,
     LoaderMessageTypeApplicationsClosed,
     LoaderMessageTypeLock,
@@ -38,6 +50,11 @@ typedef enum {
     LoaderMessageTypeStartByNameDetachedWithGuiError,
     LoaderMessageTypeSignal,
     LoaderMessageTypeGetApplicationName,
+    LoaderMessageTypeGetApplicationLaunchPath,
+    LoaderMessageTypeEnqueueLaunch,
+    LoaderMessageTypeClearLaunchQueue,
+
+    LoaderMessageTypeShowSettings,
 } LoaderMessageType;
 
 typedef struct {
@@ -77,6 +94,7 @@ typedef struct {
 
     union {
         LoaderMessageStartByName start;
+        LoaderDeferredLaunchRecord defer_start;
         LoaderMessageSignal signal;
         FuriString* application_name;
     };

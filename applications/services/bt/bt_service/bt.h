@@ -20,11 +20,6 @@ typedef enum {
     BtStatusConnected,
 } BtStatus;
 
-typedef struct {
-    uint8_t rssi;
-    uint32_t since;
-} BtRssi;
-
 typedef void (*BtStatusChangedCallback)(BtStatus status, void* context);
 
 /** Get BT Status

@@ -298,14 +298,14 @@ static void ndef_text_input_view_draw_callback(Canvas* canvas, void* _model) {
             if(keys[column].text == ENTER_KEY) {
                 canvas_set_color(canvas, ColorBlack);
                 canvas_draw_icon(
-                    canvas, key_x, key_y, selected ? &I_KeySaveSelected_24x11 : &I_KeySave_24x11);
+                    canvas, key_x, key_y, selected ? &I_KeySaveSelected_22x11 : &I_KeySave_22x11);
             } else if(keys[column].text == BACKSPACE_KEY) {
                 canvas_set_color(canvas, ColorBlack);
                 canvas_draw_icon(
                     canvas,
                     key_x,
                     key_y,
-                    selected ? &I_KeyBackspaceSelected_16x9 : &I_KeyBackspace_16x9);
+                    selected ? &I_KeyBackspaceSelected_17x11 : &I_KeyBackspace_17x11);
             } else if(keys[column].text == SHIFT_KEY) {
                 draw_shift_key(canvas, key_x, key_y, selected, model->symbol_mode);
             } else {

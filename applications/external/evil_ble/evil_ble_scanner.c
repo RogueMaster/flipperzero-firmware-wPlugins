@@ -3,22 +3,30 @@
  *
  * Marauder scanbt output format
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Marauder emits BLE scan results in one of two formats depending on firmware:
+ * Marauder emits BLE scan results in this format:
  *
- *   Format A (common):
- *     <idx> <MAC> <RSSI> <Name>
- *     e.g.  0 AA:BB:CC:DD:EE:FF -65 MyDevice
+ *   <RSSI> Device: <name-or-MAC>
+ *   e.g.  -65 Device: MyPhone
+ *         -70 Device: aa:bb:cc:dd:ee:ff
  *
- *   Format B (some builds — name may be absent or "(unknown)"):
- *     <idx> <MAC> <RSSI>
- *
- * We accept both.  Lines that don't begin with a decimal digit are skipped
+ * The " Device: " marker is the stable anchor.  Lines lacking it are skipped
  * (prompts, status messages, etc.).
  *
  * Parsing strategy
  * ~~~~~~~~~~~~~~~~
  * strtok is unavailable in the Flipper SDK libc.  All tokenising uses
- * strchr / pointer arithmetic — same approach as marauder.c in flipperpwn.
+ * strstr / pointer arithmetic — same approach as marauder.c in flipperpwn.
+ *
+ * MAC vs name disambiguation
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * When the text after "Device: " is a MAC address (17 chars, colons at
+ * positions 2/5/8/11/14), we parse it directly.  Otherwise it is treated
+ * as a human-readable name and we derive a deterministic placeholder MAC:
+ *
+ *   DE:AD:xx:xx:xx:xx  where the last four bytes come from djb2(name)
+ *
+ * This ensures deduplication across multiple scan lines for the same device
+ * and gives the extra_beacon clone engine a usable address.
  *
  * Advertisement data reconstruction
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -55,37 +63,34 @@ struct EvilBleScanner {
     EvilBleScannerCallback on_device_found;
     void* callback_ctx;
 
-    bool scanning;
+    volatile bool scanning;
 };
 
 /* --------------------------------------------------------------------------
  * Parser helpers (no strtok available)
  * -------------------------------------------------------------------------- */
 
-/* Copy at most n-1 bytes of the current space-delimited token into dst,
- * null-terminate, then return a pointer past any trailing spaces to the
- * start of the next token.  Returns NULL if no further tokens exist. */
-static const char* copy_token(const char* src, char* dst, size_t n) {
-    size_t i = 0;
-    while(*src && *src != ' ' && i < n - 1) {
-        dst[i++] = *src++;
-    }
-    dst[i] = '\0';
-    while(*src == ' ')
-        src++;
-    return (*src) ? src : NULL;
-}
-
-/* Parse "AA:BB:CC:DD:EE:FF" into a 6-byte array.
+/* Parse a MAC string (upper or lower case) into a 6-byte array and
+ * normalise the string representation to uppercase "AA:BB:CC:DD:EE:FF".
  * Returns true on success. */
-static bool parse_mac(const char* mac_str, uint8_t out[EXTRA_BEACON_MAC_ADDR_SIZE]) {
+static bool parse_mac(const char* mac_str, EvilBleDevice* dev) {
     unsigned int b[EXTRA_BEACON_MAC_ADDR_SIZE];
     int matched =
-        sscanf(mac_str, "%02X:%02X:%02X:%02X:%02X:%02X", &b[0], &b[1], &b[2], &b[3], &b[4], &b[5]);
+        sscanf(mac_str, "%02x:%02x:%02x:%02x:%02x:%02x", &b[0], &b[1], &b[2], &b[3], &b[4], &b[5]);
     if(matched != EXTRA_BEACON_MAC_ADDR_SIZE) return false;
     for(int i = 0; i < EXTRA_BEACON_MAC_ADDR_SIZE; i++) {
-        out[i] = (uint8_t)b[i];
+        dev->mac_bytes[i] = (uint8_t)b[i];
     }
+    snprintf(
+        dev->mac,
+        EVIL_BLE_MAC_LEN,
+        "%02X:%02X:%02X:%02X:%02X:%02X",
+        b[0],
+        b[1],
+        b[2],
+        b[3],
+        b[4],
+        b[5]);
     return true;
 }
 
@@ -113,48 +118,85 @@ static uint8_t build_adv_from_name(const char* name, uint8_t adv[EXTRA_BEACON_MA
 /* --------------------------------------------------------------------------
  * Marauder scanbt line parser
  *
- * Expected format (space-separated):
- *   <idx> <MAC> <RSSI> [<Name> ...]
+ * Actual Marauder format:
+ *   <RSSI> Device: <name-or-MAC>
+ *   e.g. "-65 Device: MyPhone"
+ *        "-70 Device: aa:bb:cc:dd:ee:ff"
+ *
+ * Anchor: the literal " Device: " substring.  Everything before it is the
+ * RSSI; everything after is either a MAC or a human-readable name.
  *
  * Returns true and populates *dev on success.
  * -------------------------------------------------------------------------- */
 static bool parse_scanbt_line(const char* line, EvilBleDevice* dev) {
-    const char* p = line;
+    /* Find the stable " Device: " anchor. */
+    const char* marker = strstr(line, " Device: ");
+    if(!marker) return false;
 
-    /* Field 0: index — must start with a decimal digit. */
-    if(*p < '0' || *p > '9') return false;
+    /* Parse RSSI from the start of the line. */
+    int rssi_val = atoi(line);
+    if(rssi_val > 0 || rssi_val < -120) return false;
+    dev->rssi = (int8_t)rssi_val;
 
-    char idx_buf[8];
-    p = copy_token(p, idx_buf, sizeof(idx_buf));
-    if(!p) return false;
+    /* Text after the 9-character " Device: " marker. */
+    const char* text = marker + 9;
 
-    /* Field 1: MAC address */
-    char mac_buf[EVIL_BLE_MAC_LEN];
-    p = copy_token(p, mac_buf, sizeof(mac_buf));
-    if(!p) return false;
+    /* Trim any trailing CR/LF/spaces from text by working on a local copy. */
+    char text_buf[EVIL_BLE_NAME_LEN];
+    strncpy(text_buf, text, sizeof(text_buf) - 1);
+    text_buf[sizeof(text_buf) - 1] = '\0';
+    size_t tlen = strlen(text_buf);
+    while(tlen > 0 && (text_buf[tlen - 1] == '\r' || text_buf[tlen - 1] == '\n' ||
+                       text_buf[tlen - 1] == ' ')) {
+        text_buf[--tlen] = '\0';
+    }
+    if(tlen == 0) return false;
 
-    /* Validate MAC format before accepting this line. */
-    if(!parse_mac(mac_buf, dev->mac_bytes)) return false;
-    strncpy(dev->mac, mac_buf, EVIL_BLE_MAC_LEN - 1);
-    dev->mac[EVIL_BLE_MAC_LEN - 1] = '\0';
+    /* Disambiguate: MAC address is exactly 17 chars with colons at 2,5,8,11,14. */
+    bool is_mac =
+        (tlen >= 17 && text_buf[2] == ':' && text_buf[5] == ':' && text_buf[8] == ':' &&
+         text_buf[11] == ':' && text_buf[14] == ':');
 
-    /* Field 2: RSSI (signed integer). */
-    char rssi_buf[8];
-    p = copy_token(p, rssi_buf, sizeof(rssi_buf));
-    dev->rssi = (int8_t)atoi(rssi_buf);
-    /* p may be NULL here — name is optional. */
-
-    /* Field 3+: remainder of the line is the device name (may contain spaces). */
-    if(p && *p) {
-        strncpy(dev->name, p, EVIL_BLE_NAME_LEN - 1);
-        dev->name[EVIL_BLE_NAME_LEN - 1] = '\0';
+    if(is_mac) {
+        /* Parse and normalise to uppercase. */
+        if(!parse_mac(text_buf, dev)) return false;
+        dev->name[0] = '\0';
+        /* Build a best-effort name from the MAC so the UI isn't blank. */
+        snprintf(dev->name, EVIL_BLE_NAME_LEN, "(%s)", dev->mac);
     } else {
-        strncpy(dev->name, "(unknown)", EVIL_BLE_NAME_LEN - 1);
+        /* Store the human-readable name. */
+        strncpy(dev->name, text_buf, EVIL_BLE_NAME_LEN - 1);
         dev->name[EVIL_BLE_NAME_LEN - 1] = '\0';
+
+        /* Derive a deterministic placeholder MAC via djb2 hash of the name.
+         * DE:AD prefix makes placeholder MACs easy to spot in logs. */
+        uint32_t hash = 5381;
+        for(const char* c = text_buf; *c; c++)
+            hash = hash * 33 + (uint8_t)*c;
+        snprintf(
+            dev->mac,
+            EVIL_BLE_MAC_LEN,
+            "DE:AD:%02X:%02X:%02X:%02X",
+            (uint8_t)(hash >> 24),
+            (uint8_t)(hash >> 16),
+            (uint8_t)(hash >> 8),
+            (uint8_t)(hash));
+        /* Populate mac_bytes to match the generated string. */
+        dev->mac_bytes[0] = 0xDE;
+        dev->mac_bytes[1] = 0xAD;
+        dev->mac_bytes[2] = (uint8_t)(hash >> 24);
+        dev->mac_bytes[3] = (uint8_t)(hash >> 16);
+        dev->mac_bytes[4] = (uint8_t)(hash >> 8);
+        dev->mac_bytes[5] = (uint8_t)(hash);
+
+        /* adv_data_len = 0 signals the clone engine to use the name fallback. */
+        dev->adv_data_len = 0;
     }
 
-    /* Build synthetic advertisement payload from the parsed name. */
-    dev->adv_data_len = build_adv_from_name(dev->name, dev->adv_data);
+    /* Build synthetic advertisement payload from the name when available. */
+    if(dev->name[0] != '\0' && dev->name[0] != '(') {
+        dev->adv_data_len = build_adv_from_name(dev->name, dev->adv_data);
+    }
 
     return true;
 }
@@ -163,16 +205,15 @@ static bool parse_scanbt_line(const char* line, EvilBleDevice* dev) {
  * UART RX callback — fires on the worker thread per completed line
  * -------------------------------------------------------------------------- */
 static void evil_ble_scanner_rx_cb(const char* line, void* ctx) {
+    if(!ctx) return; /* Guard against teardown race (set_rx_callback clears ctx before cb) */
+
     EvilBleScanner* scanner = (EvilBleScanner*)ctx;
 
     if(!scanner->scanning) return;
 
-    /* Marauder prompt lines start with ">"; skip status messages. */
-    if(line[0] == '>') return;
-    if(strstr(line, "Scan") || strstr(line, "scan")) {
-        /* "Scanning for BLE devices..." etc. — informational, not data. */
-        if(line[0] != '0' && (line[0] < '0' || line[0] > '9')) return;
-    }
+    /* parse_scanbt_line requires the " Device: " anchor — every non-data line
+     * (prompts, status messages, echo) will simply fail that check and return
+     * false.  No pre-filtering needed beyond the scanning gate above. */
 
     EvilBleDevice dev;
     memset(&dev, 0, sizeof(dev));

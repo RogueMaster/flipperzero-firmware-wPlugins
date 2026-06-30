@@ -35,20 +35,23 @@ typedef enum {
     FlipTraderViewTextInputPassword, // The text input screen for the password
     //
     FlipTraderViewAssetsSubmenu, // The submenu for the assets
+    FlipTraderViewWidgetResult, // The text box that displays the random fact
+    FlipTraderViewLoader, // The loader screen retrieves data from the internet
 } FlipTraderView;
 
 // Each screen will have its own view
 typedef struct {
     ViewDispatcher* view_dispatcher; // Switches between our views
-    View* view_main; // The main screen that displays "Hello, World!"
+    View* view_loader; // The screen that loads data from internet
     Submenu* submenu_main; // The submenu
     Submenu* submenu_assets; // The submenu for the assets
-    Widget* widget; // The widget
+    Widget* widget_about; // The widget
+    Widget* widget_result; // The widget that displays the result
     VariableItemList* variable_item_list_wifi; // The variable item list (settngs)
     VariableItem* variable_item_ssid; // The variable item for the SSID
     VariableItem* variable_item_password; // The variable item for the password
-    UART_TextInput* uart_text_input_ssid; // The text input for the SSID
-    UART_TextInput* uart_text_input_password; // The text input for the password
+    TextInput* uart_text_input_ssid; // The text input for the SSID
+    TextInput* uart_text_input_password; // The text input for the password
 
     char* uart_text_input_buffer_ssid; // Buffer for the text input (SSID)
     char* uart_text_input_temp_buffer_ssid; // Temporary buffer for the text input (SSID)
@@ -70,5 +73,5 @@ extern uint32_t asset_index;
 void flip_trader_app_free(FlipTraderApp* app);
 char** asset_names_alloc();
 void asset_names_free(char** names);
-
+extern FlipTraderApp* app_instance;
 #endif // FLIP_TRADE_E_H

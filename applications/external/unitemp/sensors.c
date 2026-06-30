@@ -237,13 +237,8 @@ SensorStatus unitemp_sensor_update(Sensor* sensor, void* context) {
         }
     }
 
-    if(app->settings->otg_auto_on && !furi_hal_power_is_otg_enabled()) {
-        uint8_t attempts = 0;
-        while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
-            furi_hal_power_enable_otg();
-            furi_delay_ms(10);
-        }
-        furi_delay_ms(200);
+    if(app->settings->otg_auto_on && !power_is_otg_enabled(app->power)) {
+        power_enable_otg(app->power, true);
     }
 
     //Если датчик дважды не ответил, то он переводится в неинициализированные (требуется для BME* и SDC30)
@@ -520,13 +515,8 @@ bool unitemp_sensors_init(void* context) {
     for(uint8_t i = 0; i < unitemp_sensors_get_count(); i++) {
         //Turning on 5V if there is none on port 1 FZ
         //May disappear when USB is disconnected
-        if(app->settings->otg_auto_on && !furi_hal_power_is_otg_enabled()) {
-            uint8_t attempts = 0;
-            while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
-                furi_hal_power_enable_otg();
-                furi_delay_ms(10);
-            }
-            furi_delay_ms(200);
+        if(app->settings->otg_auto_on && !power_is_otg_enabled(app->power)) {
+            power_enable_otg(app->power, true);
         }
 
         if(!unitemp_sensor_init(sensors_list[i])) {
@@ -550,9 +540,7 @@ bool unitemp_sensors_deinit(void* context) {
     bool result = true;
 
     //Turning off 5 V if it was not turned on before
-    if(!app->settings->otg_latest_state) {
-        furi_hal_power_disable_otg();
-    }
+    power_enable_otg(app->power, app->settings->otg_latest_state);
 
     //Searching through sensors from the list
     for(uint8_t i = 0; i < unitemp_sensors_get_count(); i++) {

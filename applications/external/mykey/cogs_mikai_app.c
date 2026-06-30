@@ -20,7 +20,6 @@ static COGSMyKaiApp* cogs_mikai_app_alloc() {
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&cogs_mikai_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 

@@ -50,7 +50,6 @@ UI* ui_alloc() {
     UI* ui = malloc(sizeof(UI));
     ui->scene_manager = scene_manager_alloc(&scene_event_handlers, ui);
     ui->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(ui->view_dispatcher);
 
     ui->storage = furi_record_open(RECORD_STORAGE);
     ui->notifications = furi_record_open(RECORD_NOTIFICATION);

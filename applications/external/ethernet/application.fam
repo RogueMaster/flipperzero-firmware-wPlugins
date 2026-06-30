@@ -5,7 +5,6 @@ App(
     entry_point="eth_troubleshooter_app",
     stack_size=6 * 1024,
     fap_icon="images/ethernet_icon_10x10px.png",
-    fap_category="GPIO/Debug",
     fap_icon_assets="images",
     fap_private_libs=[
         Lib(
@@ -48,7 +47,8 @@ App(
             ],
         ),
     ],
-    fap_author="karasevia",
+    fap_category="GPIO/Debug",
+    fap_author="karasevia & arag0re & xMasterX",
     fap_weburl="https://github.com/karasevia/finik_eth",
     fap_version="1.1",
     fap_description="This is a small helper that lets you connect your Flipper via RJ45 to your network. You can then set the interface-mac and test if you can get an IP via DHCP and the ping addresses.",

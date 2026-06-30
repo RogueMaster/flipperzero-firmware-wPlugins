@@ -67,9 +67,9 @@ FlippPomodoroApp* flipp_pomodoro_app_alloc() {
     app->scene_manager = scene_manager_alloc(&flipp_pomodoro_scene_handlers, app);
     app->gui = furi_record_open(RECORD_GUI);
     app->notification_app = furi_record_open(RECORD_NOTIFICATION);
+    app->notification_manager = notification_manager_alloc();
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->statistics = flipp_pomodoro_statistics__new();
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -116,6 +116,7 @@ void flipp_pomodoro_app_free(FlippPomodoroApp* app) {
     flipp_pomodoro_info_view_free(app->info_view);
     flipp_pomodoro_statistics__destroy(app->statistics);
     flipp_pomodoro__destroy(app->state);
+    notification_manager_free(app->notification_manager);
     free(app);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_NOTIFICATION);

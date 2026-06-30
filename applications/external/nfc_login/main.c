@@ -7,7 +7,7 @@
 #include "hid/nfc_login_hid.h"
 #include "scenes/scene_manager.h"
 #include "scenes/settings/passcode_canvas.h"
-// #include "cli/nfc_login_cli.h"
+#include "cli/nfc_login_cli.h"
 
 int32_t nfc_login(void* p) {
     UNUSED(p);
@@ -44,13 +44,13 @@ int32_t nfc_login(void* p) {
         app_switch_to_view(app, ViewPasscodeCanvas);
     }
 
-    // nfc_login_cli_register_commands(app);
-    // nfc_login_cli_set_app_instance(app);
+    nfc_login_cli_register_commands(app);
+    nfc_login_cli_set_app_instance(app);
 
     view_dispatcher_run(app->view_dispatcher);
 
-    // nfc_login_cli_unregister_commands();
-    // nfc_login_cli_clear_app_instance();
+    nfc_login_cli_unregister_commands();
+    nfc_login_cli_clear_app_instance();
     if(app->scanning) {
         app->scanning = false;
         if(app->scan_thread) {

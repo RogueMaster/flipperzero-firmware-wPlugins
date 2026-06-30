@@ -7,9 +7,9 @@
 
 #include <gui/gui.h>
 #include <gui/view.h>
+#include <assets_icons.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
-#include <cli/cli.h>
 #include <notification/notification_messages.h>
 
 #include <gui/modules/submenu.h>
@@ -90,6 +90,8 @@
     (NFC_APP_FOLDER "/assets/mf_ultralight_c_dict_user.nfc")
 #define NFC_APP_MF_ULTRALIGHT_C_DICT_SYSTEM_PATH \
     (NFC_APP_FOLDER "/assets/mf_ultralight_c_dict.nfc")
+
+#define NFC_MFKEY32_APP_PATH (EXT_PATH("apps/NFC/mfkey.fap"))
 
 typedef enum {
     NfcRpcStateIdle,
@@ -275,6 +277,8 @@ bool nfc_save_file(NfcApp* instance, FuriString* path);
 void nfc_make_app_folder(NfcApp* instance);
 
 void nfc_append_filename_string_when_present(NfcApp* instance, FuriString* string);
+
+void nfc_app_run_external(NfcApp* nfc, const char* app_path);
 
 #ifdef __cplusplus
 }

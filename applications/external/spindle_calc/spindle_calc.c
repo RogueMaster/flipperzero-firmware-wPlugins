@@ -626,7 +626,6 @@ int32_t spindle_calc_app(void* p) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->vd = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->vd);
     view_dispatcher_set_event_callback_context(app->vd, app);
     view_dispatcher_set_custom_event_callback(app->vd, custom_cb);
     view_dispatcher_set_navigation_event_callback(app->vd, nav_cb);

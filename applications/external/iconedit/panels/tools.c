@@ -145,7 +145,7 @@ void tools_draw(Canvas* canvas, void* context) {
     }
     // current frame
     char cf[16];
-    snprintf(cf, 10, "f%d/%d", app->icon->current_frame + 1, app->icon->frame_count);
+    snprintf(cf, sizeof(cf), "f%zu/%zu", app->icon->current_frame + 1, app->icon->frame_count);
     ie_draw_str(canvas, 64 - 4, 64 - 10, AlignRight, AlignBottom, Font5x7, cf);
 }
 
@@ -224,7 +224,7 @@ bool tools_input(InputEvent* event, void* context) {
                 break;
             case Tool_PrevFrame:
                 if(app->icon->frame_count > 1) {
-                    app->icon->current_frame -= (int)(app->icon->current_frame - 1) >= 0;
+                    app->icon->current_frame -= app->icon->current_frame > 0;
                 } else {
                     notify_error(app);
                 }

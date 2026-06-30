@@ -30,6 +30,7 @@
 #define KEY_LED_BLINKING "ledBlinking"
 #define KEY_SPEED_MODE   "speedMode"
 #define KEY_SPEED_INDEX  "speedIndex"
+#define KEY_ATARI850     "atari850"
 
 #define SECTION_FDD "fdd."
 
@@ -145,6 +146,7 @@ static FuriString* app_config_build(const AppConfig* config) {
     ini_add_keyval(s, KEY_LED_BLINKING, "%s", config->led_blinking ? "1" : "0");
     ini_add_keyval(s, KEY_SPEED_MODE, "%s", speed_mode_by_value(config->speed_mode)->id);
     ini_add_keyval(s, KEY_SPEED_INDEX, "%s", speed_index_by_value(config->speed_index)->id);
+    ini_add_keyval(s, KEY_ATARI850, "%s", config->atari850 ? "1" : "0");
     ini_add_empty_line(s);
 
     for(size_t i = 0; i < FDD_EMULATOR_COUNT; i++) {
@@ -177,6 +179,8 @@ static bool app_config_set(AppConfig* config, Slice section, Slice key, Slice va
                 config->speed_index = option->value;
                 return true;
             }
+        } else if(key(KEY_ATARI850)) {
+            return slice_to_bool(value, &config->atari850);
         }
     } else if(section_starts_with(SECTION_FDD)) {
         section.start += strlen(SECTION_FDD);

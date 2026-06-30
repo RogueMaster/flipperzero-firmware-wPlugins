@@ -37,8 +37,7 @@ bool subghz_devices_begin(const SubGhzDevice* device) {
             .ver = 1,
             .extended_range = furi_hal_subghz_get_extended_range(),
             .bypass_region = furi_hal_subghz_get_bypass_region(),
-            .power_amp = true,
-            .amp_and_leds = furi_hal_subghz_get_ext_leds_and_amp(),
+            .amp_and_leds = true,
         };
 
         ret = device->interconnect->begin(&conf);

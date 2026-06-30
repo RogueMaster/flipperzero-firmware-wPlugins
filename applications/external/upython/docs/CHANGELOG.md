@@ -1,3 +1,7 @@
+## 1.8
+
+* Update to latest SDK version.
+
 ## 1.7
 
 * Replaced speaker note constants with an attribute delegator function to save space.

@@ -1,5 +1,4 @@
 #include "../lfrfid_i.h"
-#include <lfrfid_icons.h>
 
 void lfrfid_scene_rpc_on_enter(void* context) {
     LfRfid* app = context;

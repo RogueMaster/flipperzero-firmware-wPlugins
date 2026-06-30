@@ -526,12 +526,11 @@ static void draw_load_file_screen(Canvas* canvas, EEPROMApp* app) {
                     112,
                     filename_str,
                     app->scroll_counter / 5, // Slower scroll speed
-                    false,
                     false);
                 canvas_set_color(canvas, ColorBlack);
             } else {
                 // Normal
-                elements_scrollable_text_line(canvas, 2, y + 5, 112, filename_str, 0, true, false);
+                elements_scrollable_text_line(canvas, 2, y + 5, 112, filename_str, 0, true);
             }
 
             furi_string_free(filename_str);

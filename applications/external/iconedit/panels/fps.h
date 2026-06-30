@@ -4,4 +4,3 @@
 #include "../icon.h"
 
 void fps_set_fps(uint8_t new_fps);
-uint8_t fps_get_fps();

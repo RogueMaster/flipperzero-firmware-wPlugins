@@ -2,7 +2,6 @@
 #include <input/input.h>
 
 #include "panels.h"
-#include "../utils/draw.h"
 #include "../iconedit.h"
 
 #define LINE_COUNT 5 // number of lines visible in the panel
@@ -22,8 +21,19 @@ const Line BlankLine = {Normal, ""};
 const Line Separator = {HorizontalRule, ""};
 
 const Line help_text[] = {
+    {Bold, "Draw"},
+    {Normal, "Pen: OK to toggle pixel"},
+    {Normal, "Line/Circle/Rect:"},
+    {Normal, "OK to start, then U/D/L/R"},
+    {Normal, "OK to end. Back to Cancel"},
+    BlankLine,
+    {Bold, "View / Play"},
+    {Normal, "OK: Pause/Resume"},
+    {Normal, "U/D: Zoom In/Out"},
+    {Normal, "L/R: Prev/Next Frame"},
+    BlankLine,
     {Bold, "Open Icon"},
-    {Normal, "Only PNG"},
+    {Normal, "Only PNG and BMX"},
     {Normal, "files are supported"},
     BlankLine,
     {Bold, "Save to"},
@@ -37,20 +47,18 @@ const Line help_text[] = {
     {Normal, ".C will send C source code"},
     {Normal, "to the focused app."},
     BlankLine,
-    {Normal, "PNG require use"},
-    {Normal, "of image_bin_receive.py"},
-    {Normal, "script, found on github."},
-    {Normal, "(see About for url)"},
+    {Normal, "PNG and BMX require use of"},
+    {Normal, "image_receive.py script"},
     BlankLine,
-    {Normal, "When sending, press Right"},
-    {Normal, "to skip sending filename."},
+    {Normal, "More details on github:"},
+    {Normal, "github.com/rdefeo/iconedit"},
 };
 
 const int help_text_num_lines = sizeof(help_text) / sizeof(help_text[0]);
 int top_line = 0;
 
 void help_draw(Canvas* canvas, void* context) {
-    UNUSED(context);
+    IconEdit* app = context;
 
     const int x = 0;
     const int y = 7;
@@ -79,7 +87,7 @@ void help_draw(Canvas* canvas, void* context) {
         }
         canvas_draw_str_aligned(
             canvas,
-            x + pad + line_pad + 1,
+            x + pad + 1,
             y + pad + line_pad + (l - top_line) * (line_h + line_pad * 2),
             AlignLeft,
             AlignTop,
@@ -97,6 +105,9 @@ void help_draw(Canvas* canvas, void* context) {
     float yp = (top_line * 1.0) / (help_text_num_lines - LINE_COUNT);
     int so = (ch - y - sh) * yp;
     canvas_draw_line(canvas, cw - 1, y + so, cw - 1, y + so + sh);
+    if(app->panel == Panel_Help) {
+        canvas_draw_line(canvas, cw - 1 - 1, y + so, cw - 1 - 1, y + so + sh);
+    }
 }
 
 bool help_input(InputEvent* event, void* context) {

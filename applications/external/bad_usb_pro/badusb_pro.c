@@ -1,3 +1,6 @@
+/* badusb_pro.c — Main application, UI, and entry point for BadUSB Pro.
+ * Provides script browser, execution control, and OS detection integration. */
+
 #include "badusb_pro.h"
 #include "ducky_parser.h"
 #include "script_engine.h"
@@ -75,7 +78,6 @@ static void app_alloc(BadUsbProApp* app) {
     app->gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     /* ── File browser (Submenu listing .ds files) ────────── */
@@ -112,11 +114,11 @@ static void app_alloc(BadUsbProApp* app) {
     variable_item_set_current_value_index(speed_item, app->speed_setting);
     variable_item_set_current_value_text(speed_item, speed_labels[app->speed_setting]);
 
-    /* Mode item (USB / BLE) */
+    /* Mode item — USB only (BLE HID is not available to FAP apps in SDK 1.4.3) */
     VariableItem* mode_item =
-        variable_item_list_add(app->settings, "Mode", 2, settings_mode_change_cb, app);
-    variable_item_set_current_value_index(mode_item, (uint8_t)app->injection_mode);
-    variable_item_set_current_value_text(mode_item, mode_labels[app->injection_mode]);
+        variable_item_list_add(app->settings, "Mode", 1, settings_mode_change_cb, app);
+    variable_item_set_current_value_index(mode_item, 0);
+    variable_item_set_current_value_text(mode_item, "USB");
 
     /* Default delay item */
     VariableItem* delay_item =
@@ -301,7 +303,7 @@ static void start_script_execution(BadUsbProApp* app) {
     uint16_t count = 0;
 
     /* Fix #2: Use a reasonably-sized dynamic allocation */
-    uint32_t capacity = BADUSB_PRO_INITIAL_TOKENS;
+    uint32_t capacity = BADUSB_PRO_MAX_TOKENS;
     ScriptToken* temp_tokens = malloc(sizeof(ScriptToken) * capacity);
     if(!temp_tokens) {
         furi_record_close(RECORD_STORAGE);
@@ -386,7 +388,7 @@ static void start_script_execution(BadUsbProApp* app) {
     }
 
     /* Start worker thread */
-    app->worker_thread = furi_thread_alloc_ex("BadUSBWorker", 4096, worker_thread_cb, app);
+    app->worker_thread = furi_thread_alloc_ex("BadUSBWorker", 8192, worker_thread_cb, app);
     app->worker_running = true;
     furi_thread_start(app->worker_thread);
 
@@ -612,6 +614,25 @@ static void execution_draw_cb(Canvas* canvas, void* model) {
 static bool execution_input_cb(InputEvent* event, void* ctx) {
     BadUsbProApp* app = ctx;
 
+    /* Consume ALL Back/Left key event types while the engine is active to
+     * prevent long-press from triggering execution_back_cb and navigating
+     * away while the worker thread is still running. */
+    if(event->key == InputKeyBack || event->key == InputKeyLeft) {
+        if(app->engine.state == ScriptStateRunning || app->engine.state == ScriptStatePaused) {
+            if(event->type == InputTypeShort) {
+                script_engine_stop(&app->engine);
+            }
+            return true; /* consume all Back/Left events while running */
+        }
+        if(event->type == InputTypeShort) {
+            if(app->engine.state == ScriptStateDone || app->engine.state == ScriptStateError) {
+                safe_restore_usb(app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, ViewFileBrowser);
+            }
+        }
+        return true;
+    }
+
     if(event->type != InputTypeShort) return false;
 
     switch(event->key) {
@@ -620,21 +641,6 @@ static bool execution_input_cb(InputEvent* event, void* ctx) {
             script_engine_pause(&app->engine);
         } else if(app->engine.state == ScriptStatePaused) {
             script_engine_resume(&app->engine);
-        }
-        return true;
-
-    case InputKeyLeft:
-    case InputKeyBack:
-        /* Fix #6: If running/paused, just signal stop -- don't join on GUI thread */
-        if(app->engine.state == ScriptStateRunning || app->engine.state == ScriptStatePaused) {
-            script_engine_stop(&app->engine);
-            /* USB will be restored by worker thread via safe_restore_usb (fix #5) */
-        }
-        /* Navigate back only if execution is already finished */
-        if(app->engine.state == ScriptStateDone || app->engine.state == ScriptStateError) {
-            /* Safe to restore USB here too (fix #5: atomic flag guards double-call) */
-            safe_restore_usb(app);
-            view_dispatcher_switch_to_view(app->view_dispatcher, ViewFileBrowser);
         }
         return true;
 
@@ -695,6 +701,7 @@ int32_t badusb_pro_app(void* p) {
     UNUSED(p);
 
     BadUsbProApp* app = malloc(sizeof(BadUsbProApp));
+    if(!app) return 1;
     app_alloc(app);
 
     /* Scan for scripts */

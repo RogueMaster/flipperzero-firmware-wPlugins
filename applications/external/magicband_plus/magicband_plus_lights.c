@@ -709,7 +709,6 @@ int32_t magicband_plus_lights(void* p) {
     state->ctx.notification = furi_record_open(RECORD_NOTIFICATION);
     Gui* gui = furi_record_open(RECORD_GUI);
     state->ctx.view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(state->ctx.view_dispatcher);
 
     view_dispatcher_set_event_callback_context(state->ctx.view_dispatcher, state);
     view_dispatcher_set_custom_event_callback(state->ctx.view_dispatcher, custom_event_callback);

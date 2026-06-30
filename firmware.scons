@@ -30,9 +30,11 @@ env = ENV.Clone(
     LINT_SOURCES=[
         Dir("applications"),
         # Not C code
-        Dir("!applications/system/js_app/examples"),
+        Dir("!applications/system/js_app/packages"),
         Dir("!applications/external/nfc_sniffer"),
         Dir("!applications/external/gs1_rfid_parser"),
+        # Avoid merge conflicts
+        # Dir("!applications/external"),
     ],
     LIBPATH=[
         "${LIB_DIST_DIR}",
@@ -46,19 +48,11 @@ env = ENV.Clone(
     FW_LIB_OPTS={
         "Default": {
             "CCFLAGS": [
-                (
-                    "-Og"
-                    if ENV["LIB_DEBUG"] and fw_build_meta["type"] == "firmware"
-                    else "-Os"
-                ),
+                "-Og" if ENV["LIB_DEBUG"] else "-Os",
             ],
             "CPPDEFINES": [
                 "NDEBUG",
-                (
-                    "FURI_DEBUG"
-                    if ENV["LIB_DEBUG"] and fw_build_meta["type"] == "firmware"
-                    else "FURI_NDEBUG"
-                ),
+                "FURI_DEBUG" if ENV["LIB_DEBUG"] else "FURI_NDEBUG",
             ],
             # You can add other entries named after libraries
             # If they are present, they have precedence over Default
@@ -70,11 +64,7 @@ env = ENV.Clone(
             ],
             "CPPDEFINES": [
                 "NDEBUG",
-                (
-                    "FURI_DEBUG"
-                    if ENV["DEBUG"] and fw_build_meta["type"] == "firmware"
-                    else "FURI_NDEBUG"
-                ),
+                "FURI_DEBUG" if ENV["DEBUG"] else "FURI_NDEBUG",
             ],
         },
         "flipper_application": {
@@ -90,7 +80,9 @@ env = ENV.Clone(
     FW_API_TABLE=None,
     _APP_ICONS=None,
     APPS=_.split(",") if (_ := GetOption("extra_int_apps")) else [],
-    EXTRA_EXT_APPS=_.split(",") if (_ := GetOption("extra_ext_apps")) else [],
+    EXTRA_EXT_APPS=(
+        _.split(",") if (_ := GetOption("extra_ext_apps")) else ENV["EXTRA_EXT_APPS"]
+    ),
 )
 
 env.PreConfigureFwEnvionment()
@@ -109,6 +101,9 @@ else:
         ],
     )
 env.AppendUnique(CPPDEFINES=["FW_CFG_${FIRMWARE_APP_SET}"])
+
+if env.subst("$FIRMWARE_APP_SET").startswith("unit_tests"):
+    env.Replace(SKIP_EXTERNAL=True)
 
 env.ConfigureForTarget(env.subst("${TARGET_HW}"))
 
@@ -173,7 +168,7 @@ if env["IS_BASE_FIRMWARE"]:
     manifest = fwenv.ManifestBuilder(
         "${RESOURCES_ROOT}/Manifest",
         GIT_UNIX_TIMESTAMP=get_git_commit_unix_timestamp(),
-        _EXTRA_DIST=[fwenv["DOLPHIN_EXTERNAL_OUT_DIR"]],
+        _EXTRA_DIST=[fwenv["DOLPHIN_EXTERNAL_OUT_DIR"], fwenv["ASSET_PACKS_OUT_DIR"]],
     )
     fwenv.Replace(FW_RESOURCES_MANIFEST=manifest)
     fwenv.Alias("resources", manifest)

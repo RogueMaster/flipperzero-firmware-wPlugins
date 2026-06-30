@@ -129,7 +129,7 @@ typedef struct {
     InputEvent input;
 } AppEvent;
 
-static void setup_nfc_field(FuriHalSpiBusHandle* handle) {
+static void setup_nfc_field(const FuriHalSpiBusHandle* handle) {
     FURI_LOG_I(TAG, "setup_nfc_field");
     st25r3916_direct_cmd(handle, ST25R3916_CMD_SET_DEFAULT);
     furi_delay_ms(1);
@@ -185,7 +185,7 @@ static void setup_nfc_field(FuriHalSpiBusHandle* handle) {
     FURI_LOG_I(TAG, "RF field enabled");
 }
 
-static void disable_nfc_field(FuriHalSpiBusHandle* handle) {
+static void disable_nfc_field(const FuriHalSpiBusHandle* handle) {
     FURI_LOG_I(TAG, "Disabling NFC field");
     st25r3916_write_reg(handle, ST25R3916_REG_OP_CONTROL, 0x00);
     st25r3916_direct_cmd(handle, ST25R3916_CMD_SET_DEFAULT);
@@ -224,7 +224,7 @@ static void log_rx_data(uint8_t* rx_buffer, size_t rx_bits) {
  * Send WUPA using the ST25R3916 built-in command for short frames.
  * This correctly transmits 0x52 (7 bits) and expects a 2-byte response (44 00).
  */
-static bool send_wupa(FuriHalSpiBusHandle* handle, uint8_t* rx_buffer, size_t* rx_bits) {
+static bool send_wupa(const FuriHalSpiBusHandle* handle, uint8_t* rx_buffer, size_t* rx_bits) {
     // Clear FIFO & interrupts first
     st25r3916_direct_cmd(handle, ST25R3916_CMD_CLEAR_FIFO);
     st25r3916_get_irq(handle);
@@ -264,7 +264,7 @@ static bool send_wupa(FuriHalSpiBusHandle* handle, uint8_t* rx_buffer, size_t* r
  * Typically used for commands that do have parity + CRC in normal ISO14443A (e.g. READ(0x30)).
  */
 static bool send_receive_command_full(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     const uint8_t* tx_data,
     size_t tx_bits,
     uint8_t* rx_buffer,
@@ -305,7 +305,7 @@ static bool send_receive_command_full(
  * Typically used for commands that do have parity + CRC in normal ISO14443A (e.g. READ(0x30)).
  */
 static bool send_receive_command_tear(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     const uint8_t* tx_data,
     size_t tx_bits,
     uint32_t delay_us,
@@ -343,7 +343,8 @@ static bool send_receive_command_tear(
     return true;
 }
 
-static bool collect_auth1_challenge(FuriHalSpiBusHandle* handle, AppContext* app, bool ret_early) {
+static bool
+    collect_auth1_challenge(const FuriHalSpiBusHandle* handle, AppContext* app, bool ret_early) {
     uint8_t rx_buffer[32];
     size_t rx_bits = 0;
 
@@ -474,7 +475,7 @@ static bool collect_auth1_challenge(FuriHalSpiBusHandle* handle, AppContext* app
     return true;
 }
 
-static bool attempt_auth_with_nonce_collision(FuriHalSpiBusHandle* handle, AppContext* app) {
+static bool attempt_auth_with_nonce_collision(const FuriHalSpiBusHandle* handle, AppContext* app) {
     uint8_t rx_buffer[32];
     size_t rx_bits = 0;
 
@@ -554,7 +555,7 @@ static bool attempt_auth_with_nonce_collision(FuriHalSpiBusHandle* handle, AppCo
     return true;
 }
 
-static bool attempt_tear_lockbytes(FuriHalSpiBusHandle* handle, AppContext* app) {
+static bool attempt_tear_lockbytes(const FuriHalSpiBusHandle* handle, AppContext* app) {
     UNUSED(app);
     uint8_t rx_buffer[32];
     size_t rx_bits = 0;
@@ -610,7 +611,7 @@ static bool attempt_tear_lockbytes(FuriHalSpiBusHandle* handle, AppContext* app)
     return false;
 }
 
-static bool overwrite_auth0_config(FuriHalSpiBusHandle* handle, AppContext* app) {
+static bool overwrite_auth0_config(const FuriHalSpiBusHandle* handle, AppContext* app) {
     // Don't ask me why this works, something is messed up with the FIFO after it receives the write command reply. I think it just isn't configured to handle 7 bits or something.
     UNUSED(app);
     // TODO: Shouldn't need two buffers
@@ -643,7 +644,8 @@ static bool overwrite_auth0_config(FuriHalSpiBusHandle* handle, AppContext* app)
 }
 
 // Function to collect single nonce
-static bool collect_single_nonce(FuriHalSpiBusHandle* handle, AppContext* app, uint8_t* nonce) {
+static bool
+    collect_single_nonce(const FuriHalSpiBusHandle* handle, AppContext* app, uint8_t* nonce) {
     // Shutdown NFC field
     disable_nfc_field(handle);
 
@@ -663,7 +665,8 @@ static bool collect_single_nonce(FuriHalSpiBusHandle* handle, AppContext* app, u
 }
 
 // Function to overwrite the key page index with 00000000
-static bool overwrite_key_page(FuriHalSpiBusHandle* handle, AppContext* app, uint8_t key_index) {
+static bool
+    overwrite_key_page(const FuriHalSpiBusHandle* handle, AppContext* app, uint8_t key_index) {
     UNUSED(app);
     uint8_t rx_buffer[32];
     size_t rx_bits = 0;
@@ -710,7 +713,7 @@ static bool overwrite_key_page(FuriHalSpiBusHandle* handle, AppContext* app, uin
 }
 
 // Function to collect nonces
-static bool collect_nonces(FuriHalSpiBusHandle* handle, AppContext* app) {
+static bool collect_nonces(const FuriHalSpiBusHandle* handle, AppContext* app) {
     // Array of nonce pointers
     uint8_t* nonces[] = {app->nonce_100, app->nonce_75, app->nonce_50, app->nonce_25};
 

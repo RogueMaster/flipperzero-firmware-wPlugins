@@ -33,16 +33,19 @@ bool bt_settings_scene_forget_dev_confirm_on_event(void* context, SceneManagerEv
             bt_keys_storage_set_default_path(app->bt);
             bt_forget_bonded_devices(app->bt);
 
-            // Also remove keys of BadBT, Bluetooth Remote, TOTP Authenticator
+            // also remove keys for apps
+            const char* keys_paths[] = {
+                EXT_PATH("apps_data/bad_kb/.bt_hid.keys"),
+                EXT_PATH("apps_data/hid_ble/.bt_hid.keys"),
+                EXT_PATH("apps_data/air_mouse/.bt_hid.keys"),
+                EXT_PATH("apps_data/vgm_air_mouse/.bt_hid.keys"),
+                EXT_PATH("apps_data/pc_monitor/.bt_serial.keys"),
+                EXT_PATH("apps_data/totp/.bt_hid_00.keys"),
+            };
             Storage* storage = furi_record_open(RECORD_STORAGE);
-            // EXTRA CLEANUP LINES HAVE BEEN ADDED HERE THAT CAN PROBABLY BE REMOVED
-            storage_simply_remove(storage, EXT_PATH("apps_data/authenticator/.bt_hid.keys"));
-            storage_simply_remove(storage, EXT_PATH("apps_data/badbt/.badbt.keys"));
-            storage_simply_remove(storage, EXT_PATH("apps_data/badkb/.badkb.keys"));
-            storage_simply_remove(storage, EXT_PATH("apps_data/hid_ble/.bt_hid.keys"));
-            storage_simply_remove(storage, EXT_PATH("authenticator/.bt_hid.keys"));
-            storage_simply_remove(storage, EXT_PATH("badbt/.badbt.keys"));
-            storage_simply_remove(storage, EXT_PATH("badkb/.badkb.keys"));
+            for(size_t i = 0; i < COUNT_OF(keys_paths); i++) {
+                storage_simply_remove(storage, keys_paths[i]);
+            }
             furi_record_close(RECORD_STORAGE);
 
             scene_manager_next_scene(app->scene_manager, BtSettingsAppSceneForgetDevSuccess);

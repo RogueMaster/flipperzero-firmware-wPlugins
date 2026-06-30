@@ -17,7 +17,6 @@
 #include <gui/modules/dialog_ex.h>
 #include <gui/modules/popup.h>
 #include <gui/modules/loading.h>
-#include <text_input/uart_text_input.h>
 #include <stdio.h>
 #include <string.h>
 #include <jsmn/jsmn.h>
@@ -153,15 +152,15 @@ bool easy_flipper_set_text_input(
     void* context);
 
 /**
- * @brief Initialize a UART_TextInput object
- * @param uart_text_input The UART_TextInput object to initialize
+ * @brief Initialize a TextInput object with extra symbols
+ * @param uart_text_input The TextInput object to initialize
  * @param view_id The ID/Index of the view
  * @param previous_callback The previous callback function (can be set to NULL)
  * @param view_dispatcher The ViewDispatcher object
  * @return true if successful, false otherwise
  */
 bool easy_flipper_set_uart_text_input(
-    UART_TextInput** uart_text_input,
+    TextInput** uart_text_input,
     int32_t view_id,
     char* header_text,
     char* uart_text_input_temp_buffer,

@@ -1,5 +1,6 @@
 #include "unitemp.h"
-#include "unitemp_icons.h"
+
+extern const Icon I_DolphinMafia_119x62;
 
 static void unitemp_scene_delete_success_popup_callback(void* context) {
     UnitempApp* app = context;
@@ -10,8 +11,8 @@ void unitemp_scene_delete_success_on_enter(void* context) {
     UnitempApp* app = context;
     Popup* popup = app->popup;
 
-    popup_set_icon(popup, 0, 2, &I_DolphinMafia_115x62);
-    popup_set_header(popup, "Deleted", 83, 19, AlignLeft, AlignBottom);
+    popup_set_icon(popup, 0, 2, &I_DolphinMafia_119x62);
+    popup_set_header(popup, "Deleted", 80, 19, AlignLeft, AlignBottom);
     popup_set_callback(popup, unitemp_scene_delete_success_popup_callback);
     popup_set_context(popup, app);
     popup_set_timeout(popup, 1500);

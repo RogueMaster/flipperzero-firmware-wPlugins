@@ -19,6 +19,8 @@ enum SubGhzSettingIndex {
     SubGhzSettingIndexIgnoreSensors,
     SubGhzSettingIndexIgnorePrinceton,
     SubGhzSettingIndexIgnoreNiceFlorS,
+    // SubGhzSettingIndexIgnoreWeather,
+    // SubGhzSettingIndexIgnoreTPMS,
     SubGhzSettingIndexSound,
     SubGhzSettingIndexResetToDefault,
     SubGhzSettingIndexLock,
@@ -38,6 +40,7 @@ const char* const raw_threshold_rssi_text[RAW_THRESHOLD_RSSI_COUNT] = {
     "-50dBm",
     "-45dBm",
     "-40dBm",
+
 };
 const float raw_threshold_rssi_value[RAW_THRESHOLD_RSSI_COUNT] = {
     NAN,
@@ -90,6 +93,7 @@ const char* const hopping_mode_text[HOPPING_MODE_COUNT] = {
     "-50dBm",
     "-45dBm",
     "-40dBm",
+
 };
 const float hopping_mode_value[HOPPING_MODE_COUNT] = {
     NAN,
@@ -205,6 +209,11 @@ static void subghz_scene_receiver_config_set_frequency(VariableItem* item) {
             frequency / 1000000,
             (frequency % 1000000) / 10000);
         variable_item_set_current_value_text(item, text_buf);
+
+        //Set TX Power
+        subghz_txrx_set_tx_power(preset.data, preset.data_size, subghz->tx_power);
+
+        //Set the preset now.
         subghz_txrx_set_preset(
             subghz->txrx,
             furi_string_get_cstr(preset.name),
@@ -233,14 +242,14 @@ static void subghz_scene_receiver_config_set_preset(VariableItem* item) {
     variable_item_set_current_value_text(item, preset_name);
     //subghz->last_settings->preset = index;
     SubGhzRadioPreset preset = subghz_txrx_get_preset(subghz->txrx);
+    uint8_t* preset_data = subghz_setting_get_preset_data(setting, index);
+    size_t preset_data_size = subghz_setting_get_preset_data_size(setting, index);
+
+    //Edit TX power, if necessary.
+    subghz_txrx_set_tx_power(preset_data, preset_data_size, subghz->tx_power);
+
     subghz_txrx_set_preset(
-        subghz->txrx,
-        preset_name,
-        preset.frequency,
-        NAN,
-        NAN,
-        subghz_setting_get_preset_data(setting, index),
-        subghz_setting_get_preset_data_size(setting, index));
+        subghz->txrx, preset_name, preset.frequency, NAN, NAN, preset_data, preset_data_size);
     subghz->last_settings->preset_index = index;
 }
 
@@ -265,6 +274,9 @@ static void subghz_scene_receiver_config_set_hopping(VariableItem* item) {
             frequency / 1000000,
             (frequency % 1000000) / 10000);
         variable_item_set_current_value_text(frequency_item, text_buf);
+
+        //Edit TX power, if necessary.
+        subghz_txrx_set_tx_power(preset.data, preset.data_size, subghz->tx_power);
 
         // Maybe better add one more function with only with the frequency argument?
         subghz_txrx_set_preset(
@@ -409,9 +421,9 @@ static inline bool subghz_scene_receiver_config_ignore_filter_get_index(
     return READ_BIT(filter, flag) > 0;
 }
 
-// static void subghz_scene_receiver_config_set_cars(VariableItem* item) {
-// subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_Cars);
-// }
+static void subghz_scene_receiver_config_set_reversrb2(VariableItem* item) {
+    subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_ReversRB2);
+}
 
 static void subghz_scene_receiver_config_set_alarms(VariableItem* item) {
     subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_Alarms);
@@ -429,9 +441,13 @@ static void subghz_scene_receiver_config_set_niceflors(VariableItem* item) {
     subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_NiceFlorS);
 }
 
-static void subghz_scene_receiver_config_set_reversrb2(VariableItem* item) {
-    subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_ReversRB2);
-}
+// static void subghz_scene_receiver_config_set_weather(VariableItem* item) {
+//     subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_Weather);
+// }
+
+// static void subghz_scene_receiver_config_set_tpms(VariableItem* item) {
+//     subghz_scene_receiver_config_set_ignore_filter(item, SubGhzProtocolFilter_TPMS);
+// }
 
 static void subghz_scene_receiver_config_var_list_enter_callback(void* context, uint32_t index) {
     furi_assert(context);
@@ -447,7 +463,8 @@ static void subghz_scene_receiver_config_var_list_enter_callback(void* context, 
         subghz_txrx_set_preset_internal(
             subghz->txrx,
             SUBGHZ_LAST_SETTING_DEFAULT_FREQUENCY,
-            SUBGHZ_LAST_SETTING_DEFAULT_PRESET);
+            SUBGHZ_LAST_SETTING_DEFAULT_PRESET,
+            subghz->tx_power);
 
         SubGhzSetting* setting = subghz_txrx_get_setting(subghz->txrx);
         SubGhzRadioPreset preset = subghz_txrx_get_preset(subghz->txrx);
@@ -471,6 +488,7 @@ static void subghz_scene_receiver_config_var_list_enter_callback(void* context, 
         subghz->repeater = SubGhzRepeaterStateOff;
         subghz->last_settings->delete_old_signals = false;
         subghz->last_settings->autosave = false;
+        subghz->last_settings->tx_power = subghz->tx_power = 0;
 
         subghz_txrx_speaker_set_state(subghz->txrx, speaker_value[default_index]);
         subghz->last_settings->enable_sound = false;
@@ -658,6 +676,30 @@ void subghz_scene_receiver_config_on_enter(void* context) {
             subghz->ignore_filter, SubGhzProtocolFilter_NiceFlorS);
         variable_item_set_current_value_index(item, value_index);
         variable_item_set_current_value_text(item, combobox_text[value_index]);
+
+        // item = variable_item_list_add(
+        //     subghz->variable_item_list,
+        //     "Ignore Weather",
+        //     COMBO_BOX_COUNT,
+        //     subghz_scene_receiver_config_set_weather,
+        //     subghz);
+
+        // value_index = subghz_scene_receiver_config_ignore_filter_get_index(
+        //     subghz->ignore_filter, SubGhzProtocolFilter_Weather);
+        // variable_item_set_current_value_index(item, value_index);
+        // variable_item_set_current_value_text(item, combobox_text[value_index]);
+
+        // item = variable_item_list_add(
+        //     subghz->variable_item_list,
+        //     "Ignore TPMS",
+        //     COMBO_BOX_COUNT,
+        //     subghz_scene_receiver_config_set_tpms,
+        //     subghz);
+
+        // value_index = subghz_scene_receiver_config_ignore_filter_get_index(
+        //     subghz->ignore_filter, SubGhzProtocolFilter_TPMS);
+        // variable_item_set_current_value_index(item, value_index);
+        // variable_item_set_current_value_text(item, combobox_text[value_index]);
     }
 
     // Enable speaker, will send all incoming noises and signals to speaker so you can listen how your remote sounds like :)

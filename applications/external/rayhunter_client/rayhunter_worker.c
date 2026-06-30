@@ -80,6 +80,11 @@ static const char* rh_strstr_ci(const char* haystack, const char* needle) {
 static void rh_worker_rx_line(const char* line, void* ctx) {
     RhApp* app = (RhApp*)ctx;
 
+    /* Guard against teardown race: rh_uart_set_rx_callback(NULL, NULL) sets
+     * ctx to NULL before cb, so the UART worker can invoke us with ctx=NULL
+     * during the narrow window between those two pointer stores. */
+    if(!app) return;
+
     if(!line || line[0] == '\0') return;
 
     FURI_LOG_D(TAG, "RX: %s", line);
@@ -196,25 +201,24 @@ void rh_worker_poll(RhApp* app) {
 
     if(!app->uart) return;
 
-    /* Don't poll until the ESP32 has actually responded at least once.
-     * Polling an unconnected board wastes UART bandwidth and can cause
-     * unexpected responses if the ESP32 hasn't finished booting. */
-    if(!rh_uart_is_connected(app->uart)) return;
+    bool connected = rh_uart_is_connected(app->uart);
 
-    /* Before sending a fresh poll, reset the threat level in the model so
-   * stale data from previous responses doesn't linger indefinitely.
-   * We preserve packet_count and warning_count as running totals. */
-    with_view_model(
-        app->main_view,
-        RhMainModel * m,
-        {
-            m->status.threat = RhThreatNone;
-            m->status.last_message[0] = '\0';
-        },
-        false /* no redraw needed for the reset itself */
-    );
+    /* Only reset threat status if ESP32 has responded before — avoids
+     * clearing the "Waiting for ESP32..." placeholder on first boot. */
+    if(connected) {
+        with_view_model(
+            app->main_view,
+            RhMainModel * m,
+            {
+                m->status.threat = RhThreatNone;
+                m->status.last_message[0] = '\0';
+            },
+            false);
+    }
 
-    /* Send the poll command to the ESP32. */
+    /* Always send the poll command — even before the ESP32 has responded.
+     * This breaks the chicken-and-egg deadlock where the ESP32 waits for
+     * a command and we wait for a response. */
     rh_uart_send(app->uart, "rayhunter_poll");
 
     FURI_LOG_D(TAG, "Poll sent");

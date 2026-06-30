@@ -49,7 +49,7 @@ bool scene_start_on_event(void* context, SceneManagerEvent event) {
             furi_string_set(app->file_path, VGM_DEFAULT_FW_FILE);
             scene_manager_next_scene(app->scene_manager, SceneConfirm);
         } else if(event.event == SceneStartIndexInstallRGB) {
-            furi_string_set(app->file_path, APP_ASSETS_PATH("vgm-fw-rgb.uf2"));
+            furi_string_set(app->file_path, APP_ASSETS_PATH("vgm-fw-rgb-0.1.0.uf2"));
             scene_manager_next_scene(app->scene_manager, SceneConfirm);
         } else if(event.event == SceneStartIndexInstallCustom) {
             scene_manager_next_scene(app->scene_manager, SceneFileSelect);

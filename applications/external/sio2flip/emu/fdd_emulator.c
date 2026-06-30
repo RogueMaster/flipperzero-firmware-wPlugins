@@ -44,6 +44,8 @@
 #define SIO_COMMAND_STATUS_HS        0xD3 // Get status
 #define SIO_COMMAND_PUT_HS           0xD0 // Write sector without verification
 #define SIO_COMMAND_FORMAT_HS        0xA1 // Format disk
+#define SIO_COMMAND_READ_PERCOM_HS   0xCE // Read PERCOM configuration
+#define SIO_COMMAND_WRITE_PERCOM_HS  0xCF // Write PERCOM configuration
 
 static SIOStatus fdd_command_callback(void* context, SIORequest* request);
 static SIOStatus fdd_data_callback(void* context, SIORequest* request);
@@ -263,9 +265,21 @@ static SIOStatus fdd_command_callback(void* context, SIORequest* request) {
         }
     }
 
+    case SIO_COMMAND_READ_PERCOM_HS:
+        if(fdd->config->speed_mode != SpeedMode_XF551) {
+            return SIO_NAK;
+        }
+        request->baudrate = XF551_BAUDRATE;
+        // Fall through
     case SIO_COMMAND_READ_PERCOM:
         return SIO_ACK;
 
+    case SIO_COMMAND_WRITE_PERCOM_HS:
+        if(fdd->config->speed_mode != SpeedMode_XF551) {
+            return SIO_NAK;
+        }
+        request->baudrate = XF551_BAUDRATE;
+        // Fall through
     case SIO_COMMAND_WRITE_PERCOM:
         request->rx_size = 12;
         return SIO_ACK;
@@ -363,6 +377,7 @@ static SIOStatus fdd_data_callback(void* context, SIORequest* request) {
         return SIO_COMPLETE;
     }
 
+    case SIO_COMMAND_READ_PERCOM_HS:
     case SIO_COMMAND_READ_PERCOM: {
         DiskGeometry geom = fdd->geometry;
         request->tx_data[0] = geom.tracks;
@@ -381,6 +396,7 @@ static SIOStatus fdd_data_callback(void* context, SIORequest* request) {
         return SIO_COMPLETE;
     }
 
+    case SIO_COMMAND_WRITE_PERCOM_HS:
     case SIO_COMMAND_WRITE_PERCOM: {
         DiskGeometry geom = decode_percom_config(request->rx_data);
         fdd->geometry = geom;

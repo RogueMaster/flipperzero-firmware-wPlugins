@@ -23,10 +23,6 @@ class ApplicationsCGenerator:
         FlipperAppType.SYSTEM: ("FlipperInternalApplication", "FLIPPER_SYSTEM_APPS"),
         FlipperAppType.APP: ("FlipperInternalApplication", "FLIPPER_APPS"),
         FlipperAppType.DEBUG: ("FlipperInternalApplication", "FLIPPER_DEBUG_APPS"),
-        FlipperAppType.SETTINGS: (
-            "FlipperInternalApplication",
-            "FLIPPER_SETTINGS_APPS",
-        ),
         FlipperAppType.STARTUP: (
             "FlipperInternalOnStartHook",
             "FLIPPER_ON_SYSTEM_START",
@@ -38,9 +34,9 @@ class ApplicationsCGenerator:
             "FlipperExternalApplication",
             "FLIPPER_EXTERNAL_APPS",
         ),
-        FlipperAppType.EXTSETTINGS: (
+        FlipperAppType.SETTINGS: (
             "FlipperExternalApplication",
-            "FLIPPER_EXTSETTINGS_APPS",
+            "FLIPPER_SETTINGS_APPS",
         ),
     }
 
@@ -73,8 +69,7 @@ class ApplicationsCGenerator:
     {{
      .name = "{app.name}",
      .icon = {f"&{app.icon}" if app.icon else "NULL"},
-     .path = "{app_path}",
-     .flags = {'|'.join(f"FlipperApplicationFlag{flag}" for flag in app.flags)} }}"""
+     .path = "{app_path}" }}"""
 
     def generate(self):
         contents = [
@@ -146,6 +141,7 @@ def PrepareApplicationsBuild(env):
             applist=env["APPS"],
             ext_applist=env["EXTRA_EXT_APPS"],
             hw_target=env.subst("f${TARGET_HW}"),
+            skip_external=env.get("SKIP_EXTERNAL"),
         )
     except Exception as e:
         raise StopError(e)

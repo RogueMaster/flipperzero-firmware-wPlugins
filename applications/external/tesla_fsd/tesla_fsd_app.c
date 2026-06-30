@@ -29,7 +29,6 @@ TeslaFSDApp* tesla_fsd_app_alloc(void) {
     app->scene_manager = scene_manager_alloc(&tesla_fsd_scene_handlers, app);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, tesla_fsd_custom_event_callback);

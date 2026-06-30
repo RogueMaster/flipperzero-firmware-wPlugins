@@ -1,3 +1,6 @@
+/* nfc_fuzzer_worker.c — Background worker thread for NFC Fuzzer.
+ * Drives the NFC poller to emit fuzzed UIDs and logs results to SD card. */
+
 #include "nfc_fuzzer_worker.h"
 #include "nfc_fuzzer_profiles.h"
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
@@ -34,7 +37,7 @@ struct NfcFuzzerWorker {
 /* ───── NFC listener event callback ───── */
 
 typedef struct {
-    bool response_received;
+    volatile bool response_received;
     BitBuffer* rx_buf;
     uint32_t response_tick;
 } NfcFuzzerListenerCtx;
@@ -57,15 +60,6 @@ static NfcCommand nfc_fuzzer_listener_callback(NfcGenericEvent event, void* cont
                 bit_buffer_get_size_bytes(iso_event->data->buffer));
         }
     }
-    return NfcCommandContinue;
-}
-
-/* No-op poller callback: nfc_poller_start requires a non-NULL callback but
- * our poller mode drives the exchange directly via nfc_poller_trx(), so we
- * just return NfcCommandContinue from the event handler. */
-static NfcCommand nfc_fuzzer_poller_noop(NfcGenericEvent event, void* context) {
-    UNUSED(event);
-    UNUSED(context);
     return NfcCommandContinue;
 }
 
@@ -296,13 +290,102 @@ static void nfc_fuzzer_worker_run_listener(NfcFuzzerWorker* worker) {
     nfc_free(nfc);
 }
 
+/* ───── Poller-mode fuzz context (shared with poller callback) ───── */
+
+typedef struct {
+    NfcFuzzerWorker* worker;
+    BitBuffer* tx_buf;
+    BitBuffer* rx_buf;
+    NfcFuzzerTestCase* test_case;
+    NfcFuzzerResult* result;
+    TimingTracker timing;
+    uint32_t current_index;
+    uint32_t total;
+    uint32_t timeout_fc;
+    uint32_t delay_ms;
+    volatile bool done;
+} PollerFuzzCtx;
+
+/* Poller callback — runs on the NFC poller thread.
+ * nfc_poller_trx() MUST be called from here, not from an external thread.
+ * Calling it from the worker thread triggers furi_check in SDK 1.4.3. */
+static NfcCommand nfc_fuzzer_poller_fuzz_cb(NfcGenericEvent event, void* context) {
+    PollerFuzzCtx* ctx = (PollerFuzzCtx*)context;
+    NfcFuzzerWorker* worker = ctx->worker;
+
+    if(ctx->done || worker->stop_requested || ctx->current_index >= ctx->total) {
+        ctx->done = true;
+        return NfcCommandStop;
+    }
+
+    uint32_t i = ctx->current_index;
+
+    bool has_case = nfc_fuzzer_profile_next(worker->profile, worker->strategy, i, ctx->test_case);
+    if(!has_case) {
+        ctx->done = true;
+        return NfcCommandStop;
+    }
+
+    bit_buffer_reset(ctx->tx_buf);
+    bit_buffer_reset(ctx->rx_buf);
+    bit_buffer_copy_bytes(ctx->tx_buf, ctx->test_case->data, ctx->test_case->data_len);
+
+    uint32_t start_tick = furi_get_tick();
+    NfcError err = nfc_poller_trx(event.instance, ctx->tx_buf, ctx->rx_buf, ctx->timeout_fc);
+    uint32_t elapsed_ms = furi_get_tick() - start_tick;
+
+    NfcFuzzerAnomalyType anomaly = NfcFuzzerAnomalyNone;
+    if(err == NfcErrorTimeout) {
+        anomaly = NfcFuzzerAnomalyTimeout;
+    } else if(err != NfcErrorNone) {
+        anomaly = NfcFuzzerAnomalyUnexpectedResponse;
+    } else if(timing_tracker_check(&ctx->timing, elapsed_ms)) {
+        anomaly = NfcFuzzerAnomalyTimingAnomaly;
+    }
+
+    memset(ctx->result, 0, sizeof(NfcFuzzerResult));
+    ctx->result->test_num = i + 1;
+    memcpy(ctx->result->payload, ctx->test_case->data, ctx->test_case->data_len);
+    ctx->result->payload_len = ctx->test_case->data_len;
+    ctx->result->anomaly = anomaly;
+
+    if(bit_buffer_get_size_bytes(ctx->rx_buf) > 0) {
+        size_t rx_len = bit_buffer_get_size_bytes(ctx->rx_buf);
+        if(rx_len > NFC_FUZZER_MAX_PAYLOAD_LEN) rx_len = NFC_FUZZER_MAX_PAYLOAD_LEN;
+        bit_buffer_write_bytes(ctx->rx_buf, ctx->result->response, rx_len);
+        ctx->result->response_len = (uint8_t)rx_len;
+    }
+
+    if(worker->callback) {
+        worker->callback(
+            (anomaly != NfcFuzzerAnomalyNone) ? ctx->result : NULL,
+            i + 1,
+            ctx->total,
+            ctx->test_case->data,
+            ctx->test_case->data_len,
+            worker->cb_context);
+    }
+
+    ctx->current_index++;
+
+    if(anomaly != NfcFuzzerAnomalyNone && worker->settings.auto_stop) {
+        ctx->done = true;
+        return NfcCommandStop;
+    }
+
+    if(ctx->delay_ms > 0) {
+        furi_delay_ms(ctx->delay_ms);
+    }
+
+    return NfcCommandContinue;
+}
+
 /* ───── Poller-mode fuzz loop (fuzzing tags) ───── */
 
 static void nfc_fuzzer_worker_run_poller(NfcFuzzerWorker* worker) {
     Nfc* nfc = nfc_alloc();
     furi_assert(nfc);
 
-    /* Heap-allocate large buffers to reduce stack usage */
     BitBuffer* tx_buf = bit_buffer_alloc(NFC_FUZZER_MAX_PAYLOAD_LEN);
     BitBuffer* rx_buf = bit_buffer_alloc(NFC_FUZZER_MAX_PAYLOAD_LEN);
     NfcFuzzerTestCase* test_case = malloc(sizeof(NfcFuzzerTestCase));
@@ -323,76 +406,32 @@ static void nfc_fuzzer_worker_run_poller(NfcFuzzerWorker* worker) {
     uint32_t total = nfc_fuzzer_profile_total_cases(worker->profile, worker->strategy);
     if(total > max) total = max;
 
-    uint32_t timeout_fc = nfc_fuzzer_timeout_ms(worker->settings.timeout_index) * 13560;
-    uint32_t delay_ms = nfc_fuzzer_delay_ms(worker->settings.delay_index);
+    PollerFuzzCtx ctx = {
+        .worker = worker,
+        .tx_buf = tx_buf,
+        .rx_buf = rx_buf,
+        .test_case = test_case,
+        .result = result,
+        .current_index = 0,
+        .total = total,
+        .timeout_fc = nfc_fuzzer_timeout_ms(worker->settings.timeout_index) * 13560,
+        .delay_ms = nfc_fuzzer_delay_ms(worker->settings.delay_index),
+        .done = false,
+    };
+    timing_tracker_init(&ctx.timing);
 
-    TimingTracker timing;
-    timing_tracker_init(&timing);
-
-    /* Use the correct poller API: allocate then start.
-     * The NFC SDK requires a non-NULL callback; use the no-op so
-     * nfc_poller_trx() drives the exchange directly. */
+    /* Start poller with the fuzz callback.  nfc_poller_trx() is called
+     * inside the callback on the NFC poller thread — the only safe way
+     * to use the poller TRX API.  Calling it from our worker thread
+     * triggers furi_check in SDK 1.4.3. */
     NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
-    nfc_poller_start(poller, nfc_fuzzer_poller_noop, NULL);
+    nfc_poller_start(poller, nfc_fuzzer_poller_fuzz_cb, &ctx);
 
-    for(uint32_t i = 0; i < total && !worker->stop_requested; i++) {
-        bool has_case = nfc_fuzzer_profile_next(worker->profile, worker->strategy, i, test_case);
-        if(!has_case) break;
-
-        bit_buffer_reset(tx_buf);
-        bit_buffer_reset(rx_buf);
-        bit_buffer_copy_bytes(tx_buf, test_case->data, test_case->data_len);
-
-        uint32_t start_tick = furi_get_tick();
-        NfcError err = nfc_poller_trx(nfc, tx_buf, rx_buf, timeout_fc);
-        uint32_t elapsed_ms = furi_get_tick() - start_tick;
-
-        NfcFuzzerAnomalyType anomaly = NfcFuzzerAnomalyNone;
-
-        if(err == NfcErrorTimeout) {
-            anomaly = NfcFuzzerAnomalyTimeout;
-        } else if(err != NfcErrorNone) {
-            anomaly = NfcFuzzerAnomalyUnexpectedResponse;
-        } else {
-            /* Got a valid response -- check timing */
-            if(timing_tracker_check(&timing, elapsed_ms)) {
-                anomaly = NfcFuzzerAnomalyTimingAnomaly;
-            }
-        }
-
-        memset(result, 0, sizeof(NfcFuzzerResult));
-        result->test_num = i + 1;
-        memcpy(result->payload, test_case->data, test_case->data_len);
-        result->payload_len = test_case->data_len;
-        result->anomaly = anomaly;
-
-        if(bit_buffer_get_size_bytes(rx_buf) > 0) {
-            size_t rx_len = bit_buffer_get_size_bytes(rx_buf);
-            if(rx_len > NFC_FUZZER_MAX_PAYLOAD_LEN) rx_len = NFC_FUZZER_MAX_PAYLOAD_LEN;
-            bit_buffer_write_bytes(rx_buf, result->response, rx_len);
-            result->response_len = (uint8_t)rx_len;
-        }
-
-        if(worker->callback) {
-            worker->callback(
-                (anomaly != NfcFuzzerAnomalyNone) ? result : NULL,
-                i + 1,
-                total,
-                test_case->data,
-                test_case->data_len,
-                worker->cb_context);
-        }
-
-        if(anomaly != NfcFuzzerAnomalyNone && worker->settings.auto_stop) {
-            break;
-        }
-
-        if(delay_ms > 0 && !worker->stop_requested) {
-            furi_delay_ms(delay_ms);
-        }
+    /* Wait for the poller callback to complete or abort */
+    while(!ctx.done && !worker->stop_requested) {
+        furi_delay_ms(100);
     }
 
-    /* Clean up: stop and free poller */
     nfc_poller_stop(poller);
     nfc_poller_free(poller);
     free(result);
@@ -414,11 +453,8 @@ static void nfc_fuzzer_worker_run_listener_nfcb(NfcFuzzerWorker* worker) {
     furi_assert(nfc);
 
     NfcFuzzerTestCase* test_case = malloc(sizeof(NfcFuzzerTestCase));
-    NfcFuzzerResult* result = malloc(sizeof(NfcFuzzerResult));
-    if(!test_case || !result) {
-        FURI_LOG_E(WORKER_TAG, "NFC-B: OOM allocating test buffers");
-        free(test_case);
-        free(result);
+    if(!test_case) {
+        FURI_LOG_E(WORKER_TAG, "NFC-B: OOM allocating test buffer");
         nfc_free(nfc);
         return;
     }
@@ -473,7 +509,6 @@ static void nfc_fuzzer_worker_run_listener_nfcb(NfcFuzzerWorker* worker) {
     nfc_listener_stop(listener);
     nfc_listener_free(listener);
     iso14443_3b_free(nfc_data);
-    free(result);
     free(test_case);
     nfc_free(nfc);
 }
@@ -490,11 +525,8 @@ static void nfc_fuzzer_worker_run_listener_felica(NfcFuzzerWorker* worker) {
     furi_assert(nfc);
 
     NfcFuzzerTestCase* test_case = malloc(sizeof(NfcFuzzerTestCase));
-    NfcFuzzerResult* result = malloc(sizeof(NfcFuzzerResult));
-    if(!test_case || !result) {
-        FURI_LOG_E(WORKER_TAG, "FeliCa: OOM allocating test buffers");
-        free(test_case);
-        free(result);
+    if(!test_case) {
+        FURI_LOG_E(WORKER_TAG, "FeliCa: OOM allocating test buffer");
         nfc_free(nfc);
         return;
     }
@@ -549,7 +581,6 @@ static void nfc_fuzzer_worker_run_listener_felica(NfcFuzzerWorker* worker) {
     nfc_listener_stop(listener);
     nfc_listener_free(listener);
     felica_free(felica_data);
-    free(result);
     free(test_case);
     nfc_free(nfc);
 }
@@ -605,6 +636,7 @@ NfcFuzzerWorker* nfc_fuzzer_worker_alloc(void) {
 void nfc_fuzzer_worker_free(NfcFuzzerWorker* worker) {
     furi_assert(worker);
     furi_assert(!worker->running);
+    furi_thread_join(worker->thread);
     furi_thread_free(worker->thread);
     free(worker);
 }
@@ -634,6 +666,8 @@ void nfc_fuzzer_worker_start(
     const NfcFuzzerSettings* settings) {
     furi_assert(worker);
     furi_assert(!worker->running);
+
+    furi_thread_join(worker->thread);
 
     worker->profile = profile;
     worker->strategy = strategy;

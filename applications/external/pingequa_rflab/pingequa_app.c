@@ -108,7 +108,6 @@ static PqApp* pq_app_alloc(void) {
 
     /* 2. ViewDispatcher / SceneManager. */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&pq_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

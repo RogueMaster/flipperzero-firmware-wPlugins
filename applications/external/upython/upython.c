@@ -10,7 +10,9 @@ volatile Action action = ActionNone;
 FuriString* file_path = NULL;
 volatile FuriThreadStdoutWriteCallback stdout_callback = NULL;
 
-static void write_to_log_output(const char* data, size_t size) {
+static void write_to_log_output(const char* data, size_t size, void* context) {
+    UNUSED(context);
+
     furi_log_tx((const uint8_t*)data, size);
 }
 
@@ -41,7 +43,7 @@ int32_t upython(void* args) {
         case ActionRepl:
             break;
         case ActionExec:
-            furi_thread_set_stdout_callback(stdout_callback);
+            furi_thread_set_stdout_callback(stdout_callback, NULL);
 
             upython_file_execute(file_path);
 
@@ -49,7 +51,7 @@ int32_t upython(void* args) {
 
             action = ActionNone;
 
-            furi_thread_set_stdout_callback(stdout_callback = NULL);
+            furi_thread_set_stdout_callback(stdout_callback = NULL, NULL);
 
             break;
         case ActionExit:

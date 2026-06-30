@@ -3,7 +3,7 @@
  * @Date: 2025-02-28 17:52:49
  * @version: 
  * @LastEditors: SpenserCai
- * @LastEditTime: 2025-03-10 14:51:33
+ * @LastEditTime: 2025-03-16 19:59:42
  * @Description: file content
  */
 #include "nfc_apdu_runner.h"
@@ -461,7 +461,6 @@ static NfcApduRunner* nfc_apdu_runner_alloc() {
     }
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     if(!app->view_dispatcher) {
         nfc_apdu_runner_free(app);
         return NULL;

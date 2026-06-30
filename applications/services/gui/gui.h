@@ -18,11 +18,8 @@ typedef enum {
 
     GuiLayerWindow, /**< Window layer, status bar is shown */
 
-    GuiLayerStatusBarTop, /**< Status bar top side layer */
     GuiLayerStatusBarLeft, /**< Status bar left-side layer, auto-layout */
-    GuiLayerStatusBarLeftSlim, /**< Status bar left-side layer, auto-layout */
     GuiLayerStatusBarRight, /**< Status bar right-side layer, auto-layout */
-    GuiLayerStatusBarRightSlim, /**< Status bar right-side layer, auto-layout */
 
     GuiLayerFullscreen, /**< Fullscreen layer, no status bar */
 
@@ -122,6 +119,23 @@ void gui_set_hide_statusbar(Gui* gui, bool hidden);
  */
 void gui_set_lockdown(Gui* gui, bool lockdown);
 
+/** Inhibit lockdown mode
+ * 
+ * Lockdown mode can be inhibited by calling this function with inhibit set to true.
+ * This is used to show information even when flipper is locked.
+ * 
+ * @param      gui       Gui instance
+ * @param      inhibit   true to inhibit lockdown mode
+ */
+void gui_set_lockdown_inhibit(Gui* gui, bool inhibit);
+
+/** Check if Gui is in lockdown mode
+ * 
+ * @param      gui       Gui instance
+ * @return     bool      true if Gui is in lockdown mode
+ */
+bool gui_is_lockdown(const Gui* gui);
+
 /** Acquire Direct Draw lock and get Canvas instance
  *
  * This method return Canvas instance for use in monopoly mode. Direct draw lock
@@ -143,8 +157,6 @@ Canvas* gui_direct_draw_acquire(Gui* gui);
  * @param      gui   Gui instance
  */
 void gui_direct_draw_release(Gui* gui);
-
-uint8_t gui_get_count_of_enabled_view_port_in_layer(Gui* gui, GuiLayer layer);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,6 @@
 # Atari SIO Peripheral Emulator for Flipper Zero
 
-sio2flip emulates SIO peripherals for Atari 8-bit computers, currently featuring floppy drive emulation and direct XEX executable loading.
+sio2flip emulates SIO peripherals for Atari 8-bit computers, currently featuring floppy drive emulation, direct XEX executable loading and Atari 850 modem emulation.
 
 ## Wiring
 

@@ -42,7 +42,7 @@ struct BleUart {
     BleUartRxCallback rx_callback;
     void* rx_callback_ctx;
     Expansion* expansion;
-    bool connected;
+    volatile bool connected;
     volatile bool running;
 };
 
@@ -156,7 +156,7 @@ BleUart* ble_uart_alloc(void) {
     /* Start the line-assembler worker before enabling async RX so that no
    * bytes are dropped between the two operations. */
     uart->running = true;
-    uart->rx_thread = furi_thread_alloc_ex("BleUartRx", 1024, ble_uart_rx_worker, uart);
+    uart->rx_thread = furi_thread_alloc_ex("BleUartRx", 2048, ble_uart_rx_worker, uart);
     furi_assert(uart->rx_thread);
     furi_thread_start(uart->rx_thread);
 
@@ -214,8 +214,12 @@ void ble_uart_send(BleUart* uart, const char* cmd) {
 
 void ble_uart_set_rx_callback(BleUart* uart, BleUartRxCallback cb, void* ctx) {
     furi_assert(uart);
-    /* Assignment is pointer-sized — atomic on Cortex-M4, no mutex needed. */
+    /* Disable callback first to prevent the worker from invoking the old
+     * callback with the new (possibly NULL) context during deregistration. */
+    uart->rx_callback = NULL;
+    __DMB();
     uart->rx_callback_ctx = ctx;
+    __DMB();
     uart->rx_callback = cb;
 }
 

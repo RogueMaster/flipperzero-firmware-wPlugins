@@ -63,7 +63,7 @@ static char* flip_library_wiki_parse(FactLoaderModel* model) {
     return description;
 }
 static void flip_library_wiki_switch_to_view(FlipLibraryApp* app) {
-    uart_text_input_set_header_text(app->uart_text_input_query, "Search Wikipedia");
+    text_input_set_header_text(app->uart_text_input_query, "Search Wikipedia");
     flip_library_generic_switch_to_view(
         app,
         "Searching..",
@@ -187,7 +187,7 @@ static char* flip_library_dictionary_parse(FactLoaderModel* model) {
     return defn;
 }
 static void flip_library_dictionary_switch_to_view(FlipLibraryApp* app) {
-    uart_text_input_set_header_text(app->uart_text_input_query, "Enter a word");
+    text_input_set_header_text(app->uart_text_input_query, "Enter a word");
     flip_library_generic_switch_to_view(
         app,
         "Defining",
@@ -660,7 +660,7 @@ static char* flip_library_asset_price_parse(FactLoaderModel* model) {
     return asset_price;
 }
 static void flip_library_asset_price_switch_to_view(FlipLibraryApp* app) {
-    uart_text_input_set_header_text(app->uart_text_input_query, "Enter an asset");
+    text_input_set_header_text(app->uart_text_input_query, "Enter an asset");
     flip_library_generic_switch_to_view(
         app,
         "Fetching Asset Price..",
@@ -721,7 +721,7 @@ static char* flip_library_next_holiday_parse(FactLoaderModel* model) {
     return result;
 }
 static void flip_library_next_holiday_switch_to_view(FlipLibraryApp* app) {
-    uart_text_input_set_header_text(app->uart_text_input_query, "Enter a country code");
+    text_input_set_header_text(app->uart_text_input_query, "Enter a country code");
     flip_library_generic_switch_to_view(
         app,
         "Fetching Next Holiday..",
@@ -754,7 +754,7 @@ static char* flip_library_predict_age_parse(FactLoaderModel* model) {
     return age;
 }
 static void flip_library_predict_age_switch_to_view(FlipLibraryApp* app) {
-    uart_text_input_set_header_text(app->uart_text_input_query, "Enter a name");
+    text_input_set_header_text(app->uart_text_input_query, "Enter a name");
     flip_library_generic_switch_to_view(
         app,
         "Predicting Age..",
@@ -787,7 +787,7 @@ static char* flip_library_predict_gender_parse(FactLoaderModel* model) {
     return gender;
 }
 static void flip_library_predict_gender_switch_to_view(FlipLibraryApp* app) {
-    uart_text_input_set_header_text(app->uart_text_input_query, "Enter a name");
+    text_input_set_header_text(app->uart_text_input_query, "Enter a name");
     flip_library_generic_switch_to_view(
         app,
         "Predicing Gender..",
@@ -820,7 +820,7 @@ static char* flip_library_predict_ethnicity_parse(FactLoaderModel* model) {
     return get_json_value("country_id", country, 16);
 }
 static void flip_library_predict_ethnicity_switch_to_view(FlipLibraryApp* app) {
-    uart_text_input_set_header_text(app->uart_text_input_query, "Enter a name");
+    text_input_set_header_text(app->uart_text_input_query, "Enter a name");
     flip_library_generic_switch_to_view(
         app,
         "Predicting Ethnicity..",

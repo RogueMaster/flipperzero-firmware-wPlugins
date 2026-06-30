@@ -69,7 +69,6 @@ PacsFuzzerApp* fuzzer_app_alloc() {
         fuzzer_view_field_editor_get_view(app->field_editor_view));
 
     app->scene_manager = scene_manager_alloc(&fuzzer_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
@@ -135,7 +134,7 @@ int32_t fuzzer_start_ibtn(void* p) {
     PacsFuzzerApp* fuzzer_app = fuzzer_app_alloc();
 
     FuzzerConsts app_const = {
-        .custom_dict_folder = APP_ASSETS_PATH("ibutton/ibtnfuzzer"),
+        .custom_dict_folder = APP_ASSETS_PATH("ibutton"),
         .custom_dict_extension = ".txt",
         .key_extension = ".ibtn",
         .path_key_folder = "/ext/ibutton",
@@ -155,7 +154,7 @@ int32_t fuzzer_start_rfid(void* p) {
     PacsFuzzerApp* fuzzer_app = fuzzer_app_alloc();
 
     FuzzerConsts app_const = {
-        .custom_dict_folder = APP_ASSETS_PATH("lfrfid/rfidfuzzer"),
+        .custom_dict_folder = APP_ASSETS_PATH("lfrfid"),
         .custom_dict_extension = ".txt",
         .key_extension = ".rfid",
         .path_key_folder = "/ext/lfrfid",

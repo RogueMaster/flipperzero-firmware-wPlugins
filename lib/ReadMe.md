@@ -18,9 +18,9 @@
 - `infrared`            - Infrared library, used by Infrared application
 - `lfrfid`              - LF-RFID library, used by LF RFID application
 - `libusb_stm32`        - LibUSB for STM32 series MCU
-- `littlefs`            - LittleFS file system driver, used by internal storage
 - `mbedtls`             - MbedTLS cryptography library
 - `microtar`            - MicroTAR library
+- `mjs`                 - MJs, javascript engine library
 - `mlib`                - M-Lib C containers library
 - `music_worker`        - MusicWorker library for playing midi and RTTTL files
 - `nanopb`              - NanoPB library, protobuf implementation for MCU

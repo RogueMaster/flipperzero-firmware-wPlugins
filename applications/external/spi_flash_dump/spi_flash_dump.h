@@ -24,6 +24,13 @@
 #define CMD_READ_STATUS1    0x05
 #define CMD_READ_STATUS2    0x35
 #define CMD_RELEASE_PWRDOWN 0xAB
+#define CMD_ENTER_4BYTE     0xB7
+#define CMD_EXIT_4BYTE      0xE9
+
+/* ------------------------------------------------------------------ */
+/*  Address mode threshold – chips > 16 MB need 4-byte addressing     */
+/* ------------------------------------------------------------------ */
+#define SPI_3BYTE_ADDR_MAX (16UL * 1024 * 1024)
 
 /* ------------------------------------------------------------------ */
 /*  Read page size                                                    */
@@ -83,7 +90,7 @@ typedef struct {
 } SpiFlashChipInfo;
 
 /* ------------------------------------------------------------------ */
-/*  JEDEC ID database – 30 common SPI NOR flash parts                 */
+/*  JEDEC ID database – 32 common SPI NOR flash parts                 */
 /* ------------------------------------------------------------------ */
 /* Each entry: { mfr_id, {dev_id_hi, dev_id_lo}, mfr_name, part, size } */
 

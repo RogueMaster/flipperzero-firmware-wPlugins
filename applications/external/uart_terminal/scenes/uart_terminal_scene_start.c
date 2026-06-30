@@ -112,6 +112,13 @@ static void uart_terminal_scene_start_var_list_change_callback(VariableItem* ite
 
 void uart_terminal_scene_start_on_enter(void* context) {
     UART_TerminalApp* app = context;
+
+    // Restore terminal mode
+    if(app->atmode_was_set == true) {
+        app->TERMINAL_MODE = app->old_term_mode;
+        app->atmode_was_set = false;
+    }
+
     VariableItemList* var_item_list = app->var_item_list;
 
     for(int i = 0; i < START_MENU_ITEMS; ++i) {
@@ -163,23 +170,23 @@ bool uart_terminal_scene_start_on_event(void* context, SceneManagerEvent event) 
         if(event.event == UART_TerminalEventSetup) {
             scene_manager_set_scene_state(
                 app->scene_manager, UART_TerminalSceneStart, app->selected_menu_index);
-            scene_manager_next_scene(app->scene_manager, UART_TerminalAppViewSetup);
+            scene_manager_next_scene(app->scene_manager, UART_TerminalSceneSetup);
         } else if(event.event == UART_TerminalEventStartKeyboardText) {
             scene_manager_set_scene_state(
                 app->scene_manager, UART_TerminalSceneStart, app->selected_menu_index);
-            scene_manager_next_scene(app->scene_manager, UART_TerminalAppViewTextInput);
+            scene_manager_next_scene(app->scene_manager, UART_TerminalSceneTextInput);
         } else if(event.event == UART_TerminalEventStartKeyboardHex) {
             scene_manager_set_scene_state(
                 app->scene_manager, UART_TerminalSceneStart, app->selected_menu_index);
-            scene_manager_next_scene(app->scene_manager, UART_TerminalAppViewHexInput);
+            scene_manager_next_scene(app->scene_manager, UART_TerminalSceneHexInput);
         } else if(event.event == UART_TerminalEventStartConsole) {
             scene_manager_set_scene_state(
                 app->scene_manager, UART_TerminalSceneStart, app->selected_menu_index);
-            scene_manager_next_scene(app->scene_manager, UART_TerminalAppViewConsoleOutput);
+            scene_manager_next_scene(app->scene_manager, UART_TerminalSceneConsoleOutput);
         } else if(event.event == UART_TerminalEventStartHelp) {
             scene_manager_set_scene_state(
                 app->scene_manager, UART_TerminalSceneStart, app->selected_menu_index);
-            scene_manager_next_scene(app->scene_manager, UART_TerminalAppViewHelp);
+            scene_manager_next_scene(app->scene_manager, UART_TerminalSceneHelp);
         }
         consumed = true;
     } else if(event.type == SceneManagerEventTypeTick) {

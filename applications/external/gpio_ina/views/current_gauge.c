@@ -26,7 +26,7 @@ typedef enum {
 
 struct CurrentGauge {
     View* view;
-    GaugeCallback menu_callback;
+    CurrentGaugeButtonCallback button_callback;
     void* callback_context;
 };
 
@@ -107,8 +107,15 @@ static void current_gauge_draw_callback(Canvas* canvas, void* _model) {
     canvas_set_color(canvas, ColorBlack);
     canvas_set_font(canvas, FontSecondary);
     elements_button_left(canvas, "Config");
+    elements_button_right(canvas, "Log");
 
     furi_string_free(value_text);
+}
+
+static void invoke_button_callback(CurrentGauge* gauge, CurrentGaugeButton button) {
+    if(gauge->button_callback) {
+        gauge->button_callback(gauge->callback_context, button);
+    }
 }
 
 bool current_gauge_input_callback(InputEvent* event, void* context) {
@@ -116,9 +123,13 @@ bool current_gauge_input_callback(InputEvent* event, void* context) {
     furi_check(gauge != NULL);
 
     if(event->type == InputTypeShort && event->key == InputKeyLeft) {
-        if(gauge->menu_callback) {
-            gauge->menu_callback(gauge->callback_context);
-        }
+        invoke_button_callback(gauge, CurrentGaugeButton_Menu);
+        return true;
+    } else if(event->type == InputTypeShort && event->key == InputKeyRight) {
+        invoke_button_callback(gauge, CurrentGaugeButton_DataLog);
+        return true;
+    } else if(event->type == InputTypeLong && event->key == InputKeyDown) {
+        invoke_button_callback(gauge, CurrentGaugeButton_ShuntSwitch);
         return true;
     }
 
@@ -167,9 +178,12 @@ void current_gauge_update(CurrentGauge* gauge, const SensorState* state) {
         true);
 }
 
-void current_gauge_set_menu_callback(CurrentGauge* gauge, GaugeCallback callback, void* context) {
+void current_gauge_set_button_callback(
+    CurrentGauge* gauge,
+    CurrentGaugeButtonCallback callback,
+    void* context) {
     furi_check(gauge != NULL);
 
-    gauge->menu_callback = callback;
+    gauge->button_callback = callback;
     gauge->callback_context = context;
 }

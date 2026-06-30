@@ -26,7 +26,7 @@
 //I2C sensor structure
 typedef struct I2CSensor {
     //Pointer to I2C interface
-    FuriHalI2cBusHandle* i2c_handle;
+    const FuriHalI2cBusHandle* i2c_handle;
     //Minimum device address on the I2C bus
     uint8_t min_i2c_adress;
     //Maximum device address on the I2C bus
@@ -45,7 +45,7 @@ extern const SensorConnectionInterface
  * 
  * @param handle Pointer to bus
  */
-void unitemp_i2c_acquire(FuriHalI2cBusHandle* handle);
+void unitemp_i2c_acquire(const FuriHalI2cBusHandle* handle);
 
 /**
  * @brief Check the presence of a sensor on the tire

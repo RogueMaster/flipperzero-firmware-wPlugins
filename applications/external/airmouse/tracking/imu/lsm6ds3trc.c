@@ -28,7 +28,7 @@ bool lsm6ds3trc_begin() {
     lsm6ds3trc_ctx.write_reg = lsm6ds3trc_write_i2c;
     lsm6ds3trc_ctx.read_reg = lsm6ds3trc_read_i2c;
     lsm6ds3trc_ctx.mdelay = furi_delay_ms;
-    lsm6ds3trc_ctx.handle = &furi_hal_i2c_handle_external;
+    lsm6ds3trc_ctx.handle = (void*)&furi_hal_i2c_handle_external;
 
     uint8_t whoami;
     lsm6ds3tr_c_device_id_get(&lsm6ds3trc_ctx, &whoami);

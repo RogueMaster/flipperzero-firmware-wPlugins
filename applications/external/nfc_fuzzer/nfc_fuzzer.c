@@ -1,3 +1,6 @@
+/* nfc_fuzzer.c — Main application, UI, and entry point for NFC Fuzzer.
+ * Provides card type selection, field control, progress display, and log viewer. */
+
 #include "nfc_fuzzer.h"
 #include "nfc_fuzzer_worker.h"
 #include "nfc_fuzzer_profiles.h"
@@ -102,7 +105,7 @@ static void fuzz_run_view_draw_callback(Canvas* canvas, void* model) {
     uint8_t bar_h = 6;
     canvas_draw_frame(canvas, bar_x, bar_y, bar_width, bar_h);
     if(m->total_tests > 0 && m->total_tests != UINT32_MAX) {
-        uint32_t fill = (m->current_test * (uint32_t)bar_width) / m->total_tests;
+        uint32_t fill = (uint32_t)(((uint64_t)m->current_test * bar_width) / m->total_tests);
         if(fill > bar_width) fill = bar_width;
         canvas_draw_box(canvas, bar_x, bar_y, (uint8_t)fill, bar_h);
     }
@@ -171,30 +174,43 @@ static void nfc_fuzzer_worker_progress_cb(
             File* file = storage_file_alloc(app->storage);
             if(storage_file_open(
                    file, furi_string_get_cstr(app->log_path), FSAM_WRITE, FSOM_OPEN_APPEND)) {
-                char line[256];
-                char payload_hex[NFC_FUZZER_HEX_STR_LEN];
-                char response_hex[NFC_FUZZER_HEX_STR_LEN];
-                nfc_fuzzer_bytes_to_hex(result->payload, result->payload_len, payload_hex);
-                nfc_fuzzer_bytes_to_hex(result->response, result->response_len, response_hex);
-                /* Issue 7: Clamp snprintf return value to buffer size */
-                size_t len = (size_t)snprintf(
-                    line,
-                    sizeof(line),
-                    "%lu,%s,%s,%s\n",
-                    (unsigned long)result->test_num,
-                    nfc_fuzzer_anomaly_name(result->anomaly),
-                    payload_hex,
-                    response_hex);
-                if(len > sizeof(line)) len = sizeof(line);
-                if(len > 0) {
-                    storage_file_write(file, line, (uint16_t)len);
+                /* Heap-allocate hex buffers to avoid 1532 bytes on the
+                 * worker thread stack (same fix as result detail view). */
+                char* payload_hex = malloc(NFC_FUZZER_HEX_STR_LEN);
+                char* response_hex = malloc(NFC_FUZZER_HEX_STR_LEN);
+                if(payload_hex && response_hex) {
+                    nfc_fuzzer_bytes_to_hex(result->payload, result->payload_len, payload_hex);
+                    nfc_fuzzer_bytes_to_hex(result->response, result->response_len, response_hex);
+                    /* Line can be up to ~1555 chars (two 765-char hex strings +
+                     * test number + anomaly name + delimiters). Heap-allocate
+                     * to avoid truncating log data (was a 256-byte stack buf). */
+                    size_t line_size = NFC_FUZZER_HEX_STR_LEN * 2 + 64;
+                    char* line = malloc(line_size);
+                    if(line) {
+                        size_t len = (size_t)snprintf(
+                            line,
+                            line_size,
+                            "%lu,%s,%s,%s\n",
+                            (unsigned long)result->test_num,
+                            nfc_fuzzer_anomaly_name(result->anomaly),
+                            payload_hex,
+                            response_hex);
+                        if(len >= line_size) len = line_size - 1;
+                        if(len > 0) {
+                            storage_file_write(
+                                file, line, (uint16_t)(len > 0xFFFF ? 0xFFFF : len));
+                        }
+                        free(line);
+                    }
                 }
+                free(payload_hex);
+                free(response_hex);
                 storage_file_close(file);
             }
             storage_file_free(file);
         }
 
-        /* Blink LED red on anomaly */
+        /* Blink LED blue on anomaly */
         notification_message(app->notifications, &sequence_blink_blue_100);
     } else {
         /* Blink LED during normal operation */
@@ -389,7 +405,7 @@ static void nfc_fuzzer_app_show_fuzz_run(NfcFuzzerApp* app) {
             "# NFC Fuzzer Log - Profile: %s, Strategy: %s\n# test_num,anomaly,payload,response\n",
             nfc_fuzzer_profile_name(app->selected_profile),
             nfc_fuzzer_strategy_name(app->selected_strategy));
-        if(len > sizeof(header)) len = sizeof(header);
+        if(len >= sizeof(header)) len = sizeof(header) - 1;
         if(len > 0) {
             storage_file_write(file, header, (uint16_t)len);
         }
@@ -402,9 +418,9 @@ static void nfc_fuzzer_app_show_fuzz_run(NfcFuzzerApp* app) {
     /* Start worker */
     nfc_fuzzer_worker_set_callback(app->worker, nfc_fuzzer_worker_progress_cb, app);
     nfc_fuzzer_worker_set_done_callback(app->worker, nfc_fuzzer_worker_done_cb, app);
+    app->worker_running = true;
     nfc_fuzzer_worker_start(
         app->worker, app->selected_profile, app->selected_strategy, &app->settings);
-    app->worker_running = true;
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcFuzzerViewFuzzRun);
 }
@@ -441,19 +457,28 @@ static void nfc_fuzzer_app_show_results_list(NfcFuzzerApp* app) {
          * submenu_add_item() does NOT copy the string, so stack-allocated labels
          * would become dangling pointers. */
         app->result_labels = malloc(app->result_count * sizeof(char*));
-        app->result_labels_count = app->result_count;
+        if(!app->result_labels) {
+            app->result_labels_count = 0;
+            submenu_add_item(app->submenu_results, "(Memory error)", 0, NULL, NULL);
+        } else {
+            app->result_labels_count = app->result_count;
 
-        for(uint32_t i = 0; i < app->result_count; i++) {
-            /* Allocate each label on the heap */
-            app->result_labels[i] = malloc(48);
-            snprintf(
-                app->result_labels[i],
-                48,
-                "#%lu %s",
-                (unsigned long)app->results[i].test_num,
-                nfc_fuzzer_anomaly_name(app->results[i].anomaly));
-            submenu_add_item(
-                app->submenu_results, app->result_labels[i], i, results_list_callback, app);
+            for(uint32_t i = 0; i < app->result_count; i++) {
+                /* Allocate each label on the heap */
+                app->result_labels[i] = malloc(48);
+                if(!app->result_labels[i]) {
+                    app->result_labels_count = i;
+                    break;
+                }
+                snprintf(
+                    app->result_labels[i],
+                    48,
+                    "#%lu %s",
+                    (unsigned long)app->results[i].test_num,
+                    nfc_fuzzer_anomaly_name(app->results[i].anomaly));
+                submenu_add_item(
+                    app->submenu_results, app->result_labels[i], i, results_list_callback, app);
+            }
         }
     }
 
@@ -476,8 +501,15 @@ static void nfc_fuzzer_app_show_result_detail(NfcFuzzerApp* app, uint32_t index)
     if(index >= app->result_count) return;
 
     NfcFuzzerResult* r = &app->results[index];
-    char payload_hex[NFC_FUZZER_HEX_STR_LEN];
-    char response_hex[NFC_FUZZER_HEX_STR_LEN];
+
+    /* Heap-allocate hex buffers to avoid 1532 bytes on the main thread stack. */
+    char* payload_hex = malloc(NFC_FUZZER_HEX_STR_LEN);
+    char* response_hex = malloc(NFC_FUZZER_HEX_STR_LEN);
+    if(!payload_hex || !response_hex) {
+        free(payload_hex);
+        free(response_hex);
+        return;
+    }
     nfc_fuzzer_bytes_to_hex(r->payload, r->payload_len, payload_hex);
     nfc_fuzzer_bytes_to_hex(r->response, r->response_len, response_hex);
 
@@ -494,6 +526,9 @@ static void nfc_fuzzer_app_show_result_detail(NfcFuzzerApp* app, uint32_t index)
         payload_hex,
         r->response_len,
         response_hex);
+
+    free(payload_hex);
+    free(response_hex);
 
     text_box_reset(app->text_box_detail);
     text_box_set_text(app->text_box_detail, app->detail_text);
@@ -517,6 +552,7 @@ static const char* const max_cases_names[] = {"100", "1000", "10000", "Unlimited
 static void settings_timeout_changed(VariableItem* item) {
     NfcFuzzerApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
+    if(index >= NfcFuzzerTimeoutCOUNT) index = 0;
     app->settings.timeout_index = (NfcFuzzerTimeoutIndex)index;
     variable_item_set_current_value_text(item, timeout_names[index]);
 }
@@ -524,6 +560,7 @@ static void settings_timeout_changed(VariableItem* item) {
 static void settings_delay_changed(VariableItem* item) {
     NfcFuzzerApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
+    if(index >= NfcFuzzerDelayCOUNT) index = 0;
     app->settings.delay_index = (NfcFuzzerDelayIndex)index;
     variable_item_set_current_value_text(item, delay_names[index]);
 }
@@ -531,6 +568,7 @@ static void settings_delay_changed(VariableItem* item) {
 static void settings_auto_stop_changed(VariableItem* item) {
     NfcFuzzerApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
+    if(index >= 2) index = 0;
     app->settings.auto_stop = (index == 1);
     variable_item_set_current_value_text(item, auto_stop_names[index]);
 }
@@ -538,6 +576,7 @@ static void settings_auto_stop_changed(VariableItem* item) {
 static void settings_max_cases_changed(VariableItem* item) {
     NfcFuzzerApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
+    if(index >= NfcFuzzerMaxCasesCOUNT) index = 0;
     app->settings.max_cases_index = (NfcFuzzerMaxCasesIndex)index;
     variable_item_set_current_value_text(item, max_cases_names[index]);
 }
@@ -612,6 +651,7 @@ static bool nfc_fuzzer_app_back_event_cb(void* context) {
 
 static NfcFuzzerApp* nfc_fuzzer_app_alloc(void) {
     NfcFuzzerApp* app = malloc(sizeof(NfcFuzzerApp));
+    furi_assert(app);
     memset(app, 0, sizeof(NfcFuzzerApp));
 
     /* Open system records */
@@ -631,11 +671,11 @@ static NfcFuzzerApp* nfc_fuzzer_app_alloc(void) {
     /* Issue 2: Allocate initial dynamic results array */
     app->result_capacity = NFC_FUZZER_INITIAL_RESULT_CAPACITY;
     app->results = malloc(app->result_capacity * sizeof(NfcFuzzerResult));
+    furi_assert(app->results);
     app->result_count = 0;
 
     /* View Dispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, nfc_fuzzer_app_custom_event_cb);
@@ -682,6 +722,7 @@ static NfcFuzzerApp* nfc_fuzzer_app_alloc(void) {
 
     /* Worker */
     app->worker = nfc_fuzzer_worker_alloc();
+    furi_assert(app->worker);
 
     /* Log path */
     app->log_path = NULL;

@@ -160,10 +160,8 @@ AppContext* app_alloc() {
     app_ctx->scene_manager = scene_manager_alloc(&app_scene_handlers, app_ctx);
     app_ctx->notifications = furi_record_open(RECORD_NOTIFICATION); // Used for backlight
     app_ctx->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app_ctx->view_dispatcher);
 
     view_dispatcher_attach_to_gui(app_ctx->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
-    //view_dispatcher_enable_queue(app_ctx->view_dispatcher);
 
     // Initialize MainMenu
     app_ctx->mainmenu = submenu_alloc();

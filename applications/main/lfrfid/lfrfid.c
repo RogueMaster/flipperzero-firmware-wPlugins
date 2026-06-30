@@ -1,5 +1,4 @@
 #include "lfrfid_i.h"
-#include <lfrfid_icons.h>
 #include <dolphin/dolphin.h>
 #include <applications/main/archive/helpers/archive_helpers_ext.h>
 
@@ -79,7 +78,6 @@ static LfRfid* lfrfid_alloc(void) {
 
     lfrfid->view_dispatcher = view_dispatcher_alloc();
     lfrfid->scene_manager = scene_manager_alloc(&lfrfid_scene_handlers, lfrfid);
-    view_dispatcher_enable_queue(lfrfid->view_dispatcher);
     view_dispatcher_set_event_callback_context(lfrfid->view_dispatcher, lfrfid);
     view_dispatcher_set_custom_event_callback(
         lfrfid->view_dispatcher, lfrfid_debug_custom_event_callback);
@@ -208,9 +206,8 @@ static void lfrfid_free(LfRfid* lfrfid) {
     free(lfrfid);
 }
 
-int32_t lfrfid_app(void* p) {
+int32_t lfrfid_app(char* args) {
     LfRfid* app = lfrfid_alloc();
-    char* args = p;
 
     lfrfid_make_app_folder(app);
 

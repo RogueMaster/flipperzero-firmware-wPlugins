@@ -31,7 +31,6 @@ CameraSuite* camera_suite_app_alloc() {
 
     // Scene additions
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     app->scene_manager = scene_manager_alloc(&camera_suite_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

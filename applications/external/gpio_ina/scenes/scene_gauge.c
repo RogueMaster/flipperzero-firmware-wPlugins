@@ -17,16 +17,22 @@
 #include "app.h"
 #include "scenes/scenes.h"
 
-static void scene_gauge_menu_callback(void* context) {
+static void scene_gauge_button_callback(void* context, CurrentGaugeButton button) {
     App* app = (App*)context;
 
-    scene_manager_next_scene(app->scene_manager, SceneSettings);
+    if(button == CurrentGaugeButton_Menu) {
+        scene_manager_next_scene(app->scene_manager, SceneSettings);
+    } else if(button == CurrentGaugeButton_DataLog) {
+        scene_manager_next_scene(app->scene_manager, SceneDatalog);
+    } else if(button == CurrentGaugeButton_ShuntSwitch) {
+        scene_manager_next_scene(app->scene_manager, SceneShuntSwitch);
+    }
 }
 
 void scene_gauge_on_enter(void* context) {
     App* app = (App*)context;
 
-    current_gauge_set_menu_callback(app->current_gauge, scene_gauge_menu_callback, app);
+    current_gauge_set_button_callback(app->current_gauge, scene_gauge_button_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewCurrentGauge);
 }

@@ -379,7 +379,6 @@ static bool
     // a text input.
 
     ViewDispatcher* view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(view_dispatcher);
     view_dispatcher_attach_to_gui(view_dispatcher, app_context->gui, ViewDispatcherTypeFullscreen);
 
     ctx->success = false;

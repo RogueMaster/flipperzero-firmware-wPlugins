@@ -13,6 +13,5 @@ void desktop_main_set_callback(
     void* context);
 
 View* desktop_main_get_view(DesktopMainView* main_view);
-void desktop_main_set_dummy_mode_state(DesktopMainView* main_view, bool dummy_mode);
 DesktopMainView* desktop_main_alloc(void);
 void desktop_main_free(DesktopMainView* main_view);

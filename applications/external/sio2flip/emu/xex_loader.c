@@ -24,6 +24,10 @@
 
 #define ERROR_TITLE "Executable not loaded"
 
+// XEX loader specific SIO commands
+#define SIO_COMMAND_READ_BLOCK_HEADER 0xF0 // Read XEX block header
+#define SIO_COMMAND_READ_BLOCK        0xF1 // Read XEX block
+
 struct XexLoader {
     AppConfig* config;
     SIODriver* sio;

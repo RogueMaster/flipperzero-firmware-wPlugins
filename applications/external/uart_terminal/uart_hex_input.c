@@ -1,6 +1,8 @@
 #include "uart_hex_input.h"
+#include "uart_text_input.h"
 #include <gui/elements.h>
 #include "uart_terminal_icons.h"
+#include <assets_icons.h>
 #include "uart_terminal_app_i.h"
 #include <furi.h>
 

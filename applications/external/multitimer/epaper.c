@@ -64,7 +64,7 @@ typedef struct {
 static const GpioPin* const epaper_pin_dc = &gpio_ext_pc0;
 static const GpioPin* const epaper_pin_rst = &gpio_ext_pc1;
 static const GpioPin* const epaper_pin_busy = &gpio_ext_pc3;
-static FuriHalSpiBusHandle* const epaper_spi = &furi_hal_spi_bus_handle_external;
+static const FuriHalSpiBusHandle* const epaper_spi = &furi_hal_spi_bus_handle_external;
 
 static const EpaperPanelProfile epaper_profiles[EpaperModelCount] = {
     {

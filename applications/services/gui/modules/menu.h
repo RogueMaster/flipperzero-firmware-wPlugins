@@ -18,16 +18,10 @@ typedef struct Menu Menu;
 typedef void (*MenuItemCallback)(void* context, uint32_t index);
 
 /** Menu allocation and initialization
- */
-Menu* menu_alloc(void);
-
-/** Menu allocation and initialization with positioning
  *
  * @return     Menu instance
- * @param      pos  size_t position
- * @param      gamemode bool gamemode on/off
  */
-Menu* menu_pos_alloc(size_t pos, bool gamemode);
+Menu* menu_alloc(void);
 
 /** Free menu
  *
@@ -66,6 +60,14 @@ void menu_add_item(
  * @param      menu  Menu instance
  */
 void menu_reset(Menu* menu);
+
+/** Get current menu item
+ *
+ * @param      menu   Menu instance
+ *
+ * @return     Index of the selected item
+ */
+uint32_t menu_get_selected_item(Menu* menu);
 
 /** Set current menu item
  *

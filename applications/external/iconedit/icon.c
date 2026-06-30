@@ -20,9 +20,9 @@ IEIcon* ie_icon_alloc(bool default_size) {
     icon->frames = NULL;
     icon->tail = NULL;
     if(default_size) {
-        ie_icon_reset(icon, 10, 10);
+        ie_icon_reset(icon, 10, 10, NULL);
     }
-    icon->name = furi_string_alloc_set_str("new_icon");
+    icon->name = furi_string_alloc_set_str(NEW_ICON_DEFAULT_NAME);
     return icon;
 }
 
@@ -33,14 +33,14 @@ void ie_icon_free(IEIcon* icon) {
 }
 
 // (Re)-allocates the image buffer and dimensions, resets name(?)
-void ie_icon_reset(IEIcon* icon, size_t width, size_t height) {
+void ie_icon_reset(IEIcon* icon, size_t width, size_t height, uint8_t* data) {
     icon->width = width;
     icon->height = height;
     icon->frame_count = 1;
     icon->current_frame = 0;
     delete_frames(icon->frames);
     icon->frames = malloc(sizeof(Frame));
-    icon->frames->data = malloc(icon->width * icon->height * sizeof(uint8_t));
+    icon->frames->data = data ? data : malloc(icon->width * icon->height * sizeof(uint8_t));
     icon->frames->next = NULL;
     icon->frames->prev = NULL;
     icon->tail = icon->frames;

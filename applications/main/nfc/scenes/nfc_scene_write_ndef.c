@@ -1,6 +1,5 @@
 #include "../nfc_app_i.h"
 #include "../helpers/ndef_builder.h"
-#include <nfc_icons.h>
 
 #include <nfc/protocols/mf_ultralight/mf_ultralight_poller.h>
 
@@ -64,7 +63,7 @@ static void nfc_scene_write_ndef_setup_view(NfcApp* instance) {
         popup_set_icon(popup, 12, 23, &A_Loading_24);
     } else if(state == NfcSceneWriteNdefStateSuccess) {
         notification_message(instance->notifications, &sequence_success);
-        popup_set_icon(popup, 32, 5, &I_DolphinNice_96x59);
+        popup_set_icon(popup, 32, 5, &I_DolphinSaved_92x58);
         popup_set_header(popup, "Successfully\nwritten", 13, 22, AlignLeft, AlignBottom);
         popup_set_timeout(popup, 1500);
         popup_set_context(popup, instance);

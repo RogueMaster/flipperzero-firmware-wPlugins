@@ -2,6 +2,7 @@ Import("env")
 
 env.Append(
     SDK_HEADERS=[
+        File("../../icons/assets_icons.h"),
         File("cfw.h"),
     ],
     LINT_SOURCES=[

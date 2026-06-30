@@ -51,7 +51,6 @@ static Disn3yToolboxApp* disn3y_toolbox_app_alloc(void) {
 
     app->scene_manager = scene_manager_alloc(&disn3y_toolbox_app_scene_handlers, app);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     // Kyber state init
     app->selection_string = furi_string_alloc();

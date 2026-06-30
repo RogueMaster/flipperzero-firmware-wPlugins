@@ -72,7 +72,6 @@ int32_t zeromesh_serial_app(void* p) {
             gui_remove_view_port(app->gui, app->vp);
 
             app->kb_dispatcher = view_dispatcher_alloc();
-            view_dispatcher_enable_queue(app->kb_dispatcher);
             app->text_input = text_input_alloc();
 
             text_input_set_header_text(app->text_input, "Send Message:");

@@ -923,7 +923,6 @@ static GhostApp* ghost_alloc(void) {
     app->notif = furi_record_open(RECORD_NOTIFICATION);
 
     app->view = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view);
     view_dispatcher_set_event_callback_context(app->view, app);
     view_dispatcher_set_custom_event_callback(app->view, custom_cb);
     view_dispatcher_set_navigation_event_callback(app->view, back_cb);

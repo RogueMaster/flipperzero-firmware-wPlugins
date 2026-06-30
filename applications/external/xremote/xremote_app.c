@@ -358,7 +358,6 @@ XRemoteAppContext* xremote_app_context_alloc(void* arg) {
 
     /* Allocate and setup view dispatcher */
     ctx->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(ctx->view_dispatcher);
     view_dispatcher_attach_to_gui(ctx->view_dispatcher, ctx->gui, ViewDispatcherTypeFullscreen);
 
     return ctx;
@@ -523,7 +522,7 @@ void xremote_app_submenu_alloc(XRemoteApp* app, uint32_t index, ViewNavigationCa
     View* view = submenu_get_view(app->submenu);
     view_set_previous_callback(view, prev_cb);
 
-#if defined(FW_ORIGIN_Unleashed) || defined(FW_ORIGIN_RM)
+#if defined(FW_ORIGIN_Unleashed) || defined(FW_ORIGIN_RM) || defined(FW_ORIGIN_Momentum)
     submenu_set_orientation(app->submenu, settings->orientation);
 #else
     view_set_orientation(view, settings->orientation);

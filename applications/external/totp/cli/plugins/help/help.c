@@ -5,9 +5,9 @@
 #include "../../cli_helpers.h"
 #include "../../cli_plugin_interface.h"
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
     UNUSED(args);
-    UNUSED(cli);
+    UNUSED(pipe);
     UNUSED(plugin_state);
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -19,7 +19,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
         uint8_t buffer[32U];
         size_t bytes_read;
         while((bytes_read = stream_read(stream, &buffer[0], sizeof(buffer))) > 0) {
-            cli_write(cli, &buffer[0], bytes_read);
+            pipe_send(pipe, &buffer[0], bytes_read);
         }
     }
 

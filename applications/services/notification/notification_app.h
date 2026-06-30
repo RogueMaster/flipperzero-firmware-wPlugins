@@ -2,6 +2,7 @@
 #include <furi_hal.h>
 #include "notification.h"
 #include "notification_messages.h"
+#include "notification_settings_filename.h"
 
 #define NOTIFICATION_LED_COUNT      3
 #define NOTIFICATION_EVENT_COMPLETE 0x00000001U
@@ -10,6 +11,7 @@ typedef enum {
     NotificationLayerMessage,
     InternalLayerMessage,
     SaveSettingsMessage,
+    LoadSettingsMessage,
 } NotificationAppMessageType;
 
 typedef struct {
@@ -31,10 +33,8 @@ typedef struct {
     Light light;
 } NotificationLedLayer;
 
-#define NOTIFICATION_SETTINGS_VERSION  0x01
-#define NOTIFICATION_SETTINGS_MAGIC    0x16
-#define NOTIFICATION_SETTINGS_OLD_PATH INT_PATH(".notification.settings")
-#define NOTIFICATION_SETTINGS_PATH     CFG_PATH("notification.settings")
+#define NOTIFICATION_SETTINGS_VERSION 0x02
+#define NOTIFICATION_SETTINGS_MAGIC   0x16
 
 typedef struct {
     uint8_t version;
@@ -56,6 +56,8 @@ struct NotificationApp {
     uint8_t display_led_lock;
 
     NotificationSettings settings;
+
+    FuriPubSub* ascii_record;
 };
 
 #ifdef __cplusplus

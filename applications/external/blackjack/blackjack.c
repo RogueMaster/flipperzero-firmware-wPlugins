@@ -469,6 +469,7 @@ void init(GameState* game_state) {
 static void input_callback(InputEvent* input_event, void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
+
     AppEvent event = {.type = EventTypeKey, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
@@ -476,6 +477,7 @@ static void input_callback(InputEvent* input_event, void* ctx) {
 static void update_timer_callback(void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
+
     AppEvent event = {.type = EventTypeTick};
     furi_message_queue_put(event_queue, &event, 0);
 }
@@ -544,6 +546,7 @@ int32_t blackjack_app(void* p) {
     int32_t return_code = 0;
 
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(AppEvent));
+    dolphin_deed(DolphinDeedPluginGameStart);
     GameState* game_state = malloc(sizeof(GameState));
     game_state->menu = malloc(sizeof(Menu));
     game_state->menu->menu_width = 40;

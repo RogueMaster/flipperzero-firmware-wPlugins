@@ -1,3 +1,6 @@
+/* hex_viewer.c — Custom View that displays a scrollable hex+ASCII dump.
+ * Shows 4 bytes per row on the 128x64 display, loads the first 4 KB of a file. */
+
 #include "hex_viewer.h"
 #include "spi_flash_dump.h"
 
@@ -6,7 +9,7 @@
 /* ------------------------------------------------------------------ */
 /*  Layout constants                                                  */
 /* ------------------------------------------------------------------ */
-#define BYTES_PER_ROW  8
+#define BYTES_PER_ROW  4
 #define CHAR_W         6 /* monospace glyph width  */
 #define CHAR_H         10 /* line height            */
 #define SCREEN_W       128
@@ -62,7 +65,7 @@ static void hex_viewer_draw_cb(Canvas* canvas, void* model_ptr) {
             } else {
                 snprintf(line, sizeof(line), "  ");
             }
-            canvas_draw_str(canvas, hex_x + (int)(col * 3) * CHAR_W / 2 + (int)col, y, line);
+            canvas_draw_str(canvas, hex_x + (int)col * 3 * CHAR_W, y, line);
         }
 
         /* ASCII column */
@@ -135,6 +138,7 @@ static bool hex_viewer_input_cb(InputEvent* event, void* ctx) {
 
 HexViewer* hex_viewer_alloc(void) {
     HexViewer* hv = malloc(sizeof(HexViewer));
+    furi_assert(hv);
     hv->view = view_alloc();
     view_allocate_model(hv->view, ViewModelTypeLocking, sizeof(HexViewerModel));
     view_set_draw_callback(hv->view, hex_viewer_draw_cb);

@@ -58,7 +58,7 @@ extern "C" {
 #define nrf24_TIMEOUT 500
 
 typedef struct {
-    FuriHalSpiBusHandle* spi_handle;
+    const FuriHalSpiBusHandle* spi_handle;
     const GpioPin* ce_pin;
     const GpioPin* cs_pin;
     bool initialized;

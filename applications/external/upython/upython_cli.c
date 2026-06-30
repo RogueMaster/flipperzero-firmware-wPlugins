@@ -1,16 +1,21 @@
 #include <furi.h>
 #include <storage/storage.h>
+#include <toolbox/pipe.h>
 
 #include "upython.h"
 
 static FuriStreamBuffer* stdout_buffer = NULL;
 
-static void write_to_stdout_buffer(const char* data, size_t size) {
+static void write_to_stdout_buffer(const char* data, size_t size, void* context) {
+    UNUSED(context);
+
     furi_stream_buffer_send(stdout_buffer, data, size, 0);
 }
 
-void upython_cli(Cli* cli, FuriString* args, void* ctx) {
+void upython_cli(PipeSide* pipe, FuriString* args, void* ctx) {
     UNUSED(ctx);
+
+    pipe_install_as_stdio(pipe);
 
     if(action != ActionNone) {
         printf("%s is busy!\n", TAG);
@@ -21,7 +26,7 @@ void upython_cli(Cli* cli, FuriString* args, void* ctx) {
     if(furi_string_empty(args)) {
         action = ActionRepl;
 
-        upython_repl_execute(cli);
+        upython_repl_execute();
 
         action = ActionNone;
     } else {
@@ -60,9 +65,9 @@ void upython_cli_register(void* args) {
         action = ActionNone;
     }
 
-    Cli* cli = furi_record_open(RECORD_CLI);
+    CliRegistry* cli = furi_record_open(RECORD_CLI);
 
-    cli_add_command(cli, CLI, CliCommandFlagParallelSafe, upython_cli, NULL);
+    cli_registry_add_command(cli, CLI, CliCommandFlagParallelSafe, upython_cli, NULL);
 
     furi_record_close(RECORD_CLI);
 }
@@ -74,9 +79,9 @@ void upython_cli_unregister(void* args) {
         return;
     }
 
-    Cli* cli = furi_record_open(RECORD_CLI);
+    CliRegistry* cli = furi_record_open(RECORD_CLI);
 
-    cli_delete_command(cli, CLI);
+    cli_registry_delete_command(cli, CLI);
 
     furi_record_close(RECORD_CLI);
 }

@@ -61,7 +61,7 @@ void ibutton_scene_write_on_enter(void* context) {
     }
 
     widget_add_string_multiline_element(
-        widget, 88, 5, AlignCenter, AlignTop, FontPrimary, furi_string_get_cstr(tmp));
+        widget, 88, 10, AlignCenter, AlignTop, FontPrimary, furi_string_get_cstr(tmp));
 
     ibutton_notification_message(ibutton, iButtonNotificationMessageEmulateStart);
     view_dispatcher_switch_to_view(ibutton->view_dispatcher, iButtonViewWidget);

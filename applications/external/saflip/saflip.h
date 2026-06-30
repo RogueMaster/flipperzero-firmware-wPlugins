@@ -13,7 +13,6 @@
 #include <dialogs/dialogs.h>
 
 #include <datetime/datetime.h>
-#include <storage/storage.h>
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
@@ -28,7 +27,7 @@
 #include <gui/modules/number_input.h>
 #include <gui/modules/date_time_input.h>
 #include <gui/modules/variable_item_list.h>
-#include <saflip_icons.h>
+#include <assets_icons.h>
 
 #include "scenes/saflip_scene.h"
 #include "util/saflok/saflok.h"

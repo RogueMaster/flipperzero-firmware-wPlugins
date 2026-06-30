@@ -18,6 +18,7 @@
 #include <toolbox/stream/file_stream.h>
 #include <toolbox/stream/stream.h>
 
+#include <assets_icons.h>
 #include "nfc_playlist_icons.h"
 #include "scenes/nfc_playlist_scene.h"
 #include "lib/led_worker/nfc_playlist_led_worker.h"

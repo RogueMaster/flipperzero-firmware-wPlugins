@@ -35,8 +35,8 @@ Before starting debugging, you need to clone and build Flipper Zero firmware:
 2. Clone the firmware repository:
 
     ```
-    git clone --recursive https://github.com/flipperdevices/flipperzero-firmware.git
-    cd flipperzero-firmware
+    git clone --recursive https://github.com/RogueMaster/flipperzero-firmware-wPlugins.git
+    cd flipperzero-firmware-wPlugins
     ```
 
 3. Run the **Flipper Build Tool (FBT)** to build the firmware:

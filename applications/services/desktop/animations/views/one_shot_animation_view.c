@@ -1,9 +1,12 @@
+
 #include "one_shot_animation_view.h"
 #include <furi.h>
 #include <gui/canvas.h>
 #include <gui/view.h>
 #include <gui/icon_i.h>
 #include <stdint.h>
+
+#include <cfw/asset_packs_i.h>
 
 typedef void (*OneShotInteractCallback)(void*);
 
@@ -64,7 +67,6 @@ static bool one_shot_view_input(InputEvent* event, void* context) {
         if(event->key == InputKeyRight) {
             /* Right button reserved for animation activation, so consume */
             if(event->type == InputTypeShort) {
-                consumed = true;
                 if(view->interact_callback) {
                     consumed = true;
                     view->interact_callback(view->interact_callback_context);
@@ -116,7 +118,7 @@ void one_shot_view_start_animation(OneShotView* view, const Icon* icon) {
 
     OneShotViewModel* model = view_get_model(view->view);
     model->index = 0;
-    model->icon = icon;
+    model->icon = asset_packs_swap_icon(icon);
     model->block_input = true;
     view_commit_model(view->view, true);
     furi_timer_start(view->update_timer, 1000 / model->icon->frame_rate);

@@ -1,5 +1,4 @@
 #include "../nfc_app_i.h"
-#include <nfc_icons.h>
 
 void nfc_scene_mf_classic_update_initial_wrong_card_widget_callback(
     GuiButtonType result,

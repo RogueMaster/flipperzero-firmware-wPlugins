@@ -26,7 +26,6 @@ static Mag* mag_alloc() {
 
     mag->view_dispatcher = view_dispatcher_alloc();
     mag->scene_manager = scene_manager_alloc(&mag_scene_handlers, mag);
-    view_dispatcher_enable_queue(mag->view_dispatcher);
     view_dispatcher_set_event_callback_context(mag->view_dispatcher, mag);
     view_dispatcher_set_custom_event_callback(
         mag->view_dispatcher, mag_debug_custom_event_callback);

@@ -12,9 +12,9 @@ static void nfc_maker_scene_save_name_text_input_callback(void* context) {
 
 void nfc_maker_scene_save_name_on_enter(void* context) {
     NfcMaker* app = context;
-    NFCMaker_TextInput* text_input = app->text_input;
+    TextInput* text_input = app->text_input;
 
-    nfc_maker_text_input_set_header_text(text_input, "Save the NFC tag:");
+    text_input_set_header_text(text_input, "Save the NFC tag:");
 
     FuriString* prefix = furi_string_alloc();
     furi_string_set(prefix, nfc_device_get_name(app->nfc_device, NfcDeviceNameTypeFull));
@@ -29,7 +29,7 @@ void nfc_maker_scene_save_name_on_enter(void* context) {
     name_generator_make_auto(app->save_buf, sizeof(app->save_buf), furi_string_get_cstr(prefix));
     furi_string_free(prefix);
 
-    nfc_maker_text_input_set_result_callback(
+    text_input_set_result_callback(
         text_input,
         nfc_maker_scene_save_name_text_input_callback,
         app,
@@ -39,7 +39,7 @@ void nfc_maker_scene_save_name_on_enter(void* context) {
 
     ValidatorIsFile* validator_is_file =
         validator_is_file_alloc_init(NFC_APP_FOLDER, NFC_APP_EXTENSION, NULL);
-    nfc_maker_text_input_set_validator(text_input, validator_is_file_callback, validator_is_file);
+    text_input_set_validator(text_input, validator_is_file_callback, validator_is_file);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcMakerViewTextInput);
 }
@@ -64,5 +64,5 @@ bool nfc_maker_scene_save_name_on_event(void* context, SceneManagerEvent event) 
 
 void nfc_maker_scene_save_name_on_exit(void* context) {
     NfcMaker* app = context;
-    nfc_maker_text_input_reset(app->text_input);
+    text_input_reset(app->text_input);
 }

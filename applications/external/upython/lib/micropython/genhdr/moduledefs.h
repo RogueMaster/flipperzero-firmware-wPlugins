@@ -41,3 +41,8 @@ extern const struct _mp_obj_module_t flipperzero_module;
     MODULE_DEF_RANDOM \
     MODULE_DEF_TIME \
 // MICROPY_REGISTERED_EXTENSIBLE_MODULES
+
+extern void flipperzero_module_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest);
+#define MICROPY_MODULE_DELEGATIONS \
+    { MP_ROM_PTR(&flipperzero_module), flipperzero_module_attr }, \
+// MICROPY_MODULE_DELEGATIONS

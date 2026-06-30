@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.4 (2025-04-11)
+
+**Fix build with SDK 85**
+
+## v1.3 (2024-08-15)
+
+**Fix new firmwares compatibility**
+
 ## v1.2 (2024-06-05)
 
 **Support multiple IMU models**
