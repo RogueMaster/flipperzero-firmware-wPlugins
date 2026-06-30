@@ -14,6 +14,7 @@
 #include "level.h"
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
+#include <notification/notification_app.h>
 
 #define SOUND
 
@@ -843,9 +844,12 @@ static void doom_state_init(PluginState* const plugin_state) {
 
     plugin_state->music_instance->worker = music_player_worker_alloc();
     //music_player_worker_set_volume(plugin_state->music_instance->worker, 0.75);
+    // Respect the system speaker volume so the theme stays silent when the
+    // Flipper is muted (speaker_volume == 0); see issue #221.
     music_player_worker_set_volume(
         plugin_state->music_instance->worker,
-        MUSIC_PLAYER_VOLUMES[plugin_state->music_instance->model->volume]);
+        MUSIC_PLAYER_VOLUMES[plugin_state->music_instance->model->volume] *
+            plugin_state->notify->settings.speaker_volume);
     plugin_state->intro_sound = true;
     //init_sound(plugin_state->music_instance);
 #endif

@@ -23,7 +23,7 @@ void uart_terminal_scene_text_input_on_enter(void* context) {
     }
 
     // Setup view
-    TextInput* text_input = app->text_input;
+    UART_TextInput* text_input = app->text_input;
     // Add help message to header
     if(0 == strncmp("AT", app->selected_tx_string, strlen("AT"))) {
         if(app->TERMINAL_MODE == 0) {
@@ -31,19 +31,17 @@ void uart_terminal_scene_text_input_on_enter(void* context) {
             app->TERMINAL_MODE = 1;
             app->atmode_was_set = true;
         }
-        text_input_set_header_text(text_input, "Send AT command to UART");
+        uart_text_input_set_header_text(text_input, "Send AT command to UART");
     } else {
-        text_input_set_header_text(text_input, "Send command to UART");
+        uart_text_input_set_header_text(text_input, "Send command to UART");
     }
-    text_input_set_result_callback(
+    uart_text_input_set_result_callback(
         text_input,
         uart_terminal_scene_text_input_callback,
         app,
         app->text_input_store,
         UART_TERMINAL_TEXT_INPUT_STORE_SIZE,
         false);
-
-    text_input_show_illegal_symbols(text_input, true);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, UART_TerminalAppViewTextInput);
 }
@@ -56,7 +54,7 @@ bool uart_terminal_scene_text_input_on_event(void* context, SceneManagerEvent ev
         if(event.event == UART_TerminalEventStartConsole) {
             // Point to custom string to send
             app->selected_tx_string = app->text_input_store;
-            scene_manager_next_scene(app->scene_manager, UART_TerminalSceneConsoleOutput);
+            scene_manager_next_scene(app->scene_manager, UART_TerminalAppViewConsoleOutput);
             consumed = true;
         }
     }
@@ -67,5 +65,5 @@ bool uart_terminal_scene_text_input_on_event(void* context, SceneManagerEvent ev
 void uart_terminal_scene_text_input_on_exit(void* context) {
     UART_TerminalApp* app = context;
 
-    text_input_reset(app->text_input);
+    uart_text_input_reset(app->text_input);
 }

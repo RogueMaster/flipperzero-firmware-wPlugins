@@ -3,8 +3,6 @@
 #include "jep106.h"
 #include "adi.h"
 
-#include <assets_icons.h>
-
 #define SWD_PATH EXT_PATH("apps_data/swd")
 
 static void render_callback(Canvas* const canvas, void* cb_ctx);

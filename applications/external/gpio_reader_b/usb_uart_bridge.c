@@ -4,7 +4,8 @@
 #include "usb_cdc.h"
 #include "cli/cli_vcp.h"
 #include <toolbox/api_lock.h>
-#include "cli/cli.h"
+#include <toolbox/cli/cli_command.h>
+#include <cli/cli_main_commands.h>
 
 #define USB_CDC_PKT_LEN      CDC_DATA_SZ
 #define USB_UART_RX_BUF_SIZE (USB_CDC_PKT_LEN * 5)

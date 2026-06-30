@@ -154,25 +154,25 @@ typedef struct {
 
 static void tracker_send_position_message(Tracker* tracker) {
     if(tracker->callback != NULL) {
-        tracker->callback(
-            (TrackerMessage){
-                .type = TrackerPositionChanged,
-                .data =
-                    {
-                        .position =
-                            {
-                                .order_list_index = tracker->song_state.order_list_index,
-                                .row = tracker->song_state.row_index,
-                            },
-                    },
-            },
-            tracker->context);
+        const TrackerMessage message = {
+            .type = TrackerPositionChanged,
+            .data =
+                {
+                    .position =
+                        {
+                            .order_list_index = tracker->song_state.order_list_index,
+                            .row = tracker->song_state.row_index,
+                        },
+                },
+        };
+        tracker->callback(&message, tracker->context);
     }
 }
 
 static void tracker_send_end_message(Tracker* tracker) {
     if(tracker->callback != NULL) {
-        tracker->callback((TrackerMessage){.type = TrackerEndOfSong}, tracker->context);
+        const TrackerMessage message = {.type = TrackerEndOfSong};
+        tracker->callback(&message, tracker->context);
     }
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gui/view.h>
+#include "uart_validators.h"
 
 #ifdef __cplusplus
 extern "C" {
