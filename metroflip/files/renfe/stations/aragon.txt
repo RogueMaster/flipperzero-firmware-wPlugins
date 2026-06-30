@@ -1,0 +1,152 @@
+# Aragón Region Stations - RENFE, Tranvía, Cercanías
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0x3000,Zaragoza-Delicias
+0x3001,Zaragoza-Portillo
+0x3002,Huesca
+0x3003,Teruel
+0x3004,Calatayud
+0x3005,Jaca
+0x3006,Barbastro
+0x3007,Monzón
+0x3008,Fraga
+0x3009,Caspe
+0x300A,Alcañiz
+
+# Tranvía de Zaragoza
+0x3100,Plaza España
+0x3101,Pio XII
+0x3102,Plaza San Francisco
+0x3103,Plaza del Pilar
+0x3104,Plaza Paraíso
+0x3105,Casablanca
+0x3106,San José
+0x3107,Las Fuentes Norte
+0x3108,Parque Goya
+0x3109,Valdespartera
+0x310A,Aeropuerto
+0x310B,Mago de Oz
+0x310C,Estadio Real Zaragoza
+0x310D,Gran Vía
+0x310E,Seminario
+0x310F,Fernando el Católico
+
+# AVE Zaragoza
+0x3200,Zaragoza-Delicias AVE
+0x3201,Calatayud AVE
+0x3202,Huesca AVE (futuro)
+
+# Cercanías Zaragoza
+0x3300,Zaragoza El Portillo
+0x3301,Casetas
+0x3302,Sobradiel
+0x3303,Alagón
+0x3304,Gallur
+0x3305,Boquiñeni
+0x3306,Luceni
+0x3307,Pedrola
+0x3308,Plasencia de Jalón
+0x3309,Ricla
+0x330A,La Almunia
+0x330B,Épila
+0x330C,Calatayud
+0x330D,Alhama de Aragón
+0x330E,Arcos de Jalón
+
+# Línea Zaragoza - Huesca
+0x3400,Zuera
+0x3401,Villanueva de Gállego
+0x3402,Leciñena
+0x3403,Perdiguera
+0x3404,Farlete
+0x3405,Monegrillo
+0x3406,Peñalba
+0x3407,Alcubierre
+0x3408,Tardienta
+0x3409,Huesca
+
+# Línea Zaragoza - Teruel
+0x3500,Cariñena
+0x3501,Encinacorba
+0x3502,Alhama de Aragón
+0x3503,Ferreruela
+0x3504,Monreal del Campo
+0x3505,Calamocha
+0x3506,Tornos
+0x3507,Villafranca del Campo
+0x3508,Teruel
+
+# Línea Zaragoza - Pamplona
+0x3600,Cortes de Navarra
+0x3601,Ribaforada
+0x3602,Fustiñana
+0x3603,Cabanillas
+0x3604,Villafranca de Navarra
+0x3605,Marcilla
+0x3606,Falces
+0x3607,Peralta
+0x3608,Funes
+0x3609,Milagro
+0x360A,Cadreita
+
+# Línea Zaragoza - Barcelona (Lérida)
+0x3700,Pina de Ebro
+0x3701,Osera de Ebro
+0x3702,Gelsa
+0x3703,Velilla de Ebro
+0x3704,Sástago
+0x3705,Escatrón
+0x3706,Chiprana
+0x3707,Caspe
+0x3708,Maella
+0x3709,Fabara
+0x370A,Nonaspe
+0x370B,Fayón
+
+# Línea Huesca - Canfranc (Frontera Francia)
+0x3800,Ayerbe
+0x3801,Biscarrués
+0x3802,Puente la Reina de Jaca
+0x3803,Santa Cilia
+0x3804,Jaca
+0x3805,Villanúa
+0x3806,Canfranc-Estación
+0x3807,Canfranc-Pueblo
+
+# Estaciones del Pirineo Aragonés
+0x3900,Sabiñánigo
+0x3901,Biescas
+0x3902,Fiscal
+0x3903,Ainsa
+0x3904,Barbastro
+0x3905,Monzón
+0x3906,Binéfar
+0x3907,Tamarite de Litera
+0x3908,Fraga
+
+# Estaciones del sur de Aragón
+0x3A00,Alcañiz
+0x3A01,Caspe
+0x3A02,Hijar
+0x3A03,Albalate del Arzobispo
+0x3A04,Escucha
+0x3A05,Utrillas
+0x3A06,Montalbán
+0x3A07,Martín del Río
+0x3A08,Ojos Negros
+0x3A09,Cella
+0x3A0A,Teruel
+
+# Autobuses interurbanos principales
+0x3B00,Zaragoza Estación Central Autobuses
+0x3B01,Huesca Terminal
+0x3B02,Teruel Terminal
+0x3B03,Calatayud Terminal
+0x3B04,Jaca Terminal
+0x3B05,Barbastro Terminal
+0x3B06,Monzón Terminal
+0x3B07,Fraga Terminal
+0x3B08,Caspe Terminal
+0x3B09,Alcañiz Terminal

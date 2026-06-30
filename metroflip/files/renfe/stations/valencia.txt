@@ -1,0 +1,516 @@
+# Valencia Region Stations - Metro, Tranvia, Cercanias, FGV
+# Format: station_code,station_name
+
+# Estaciones reales encontradas en dumps de tarjetas (PRIORITARIAS)
+0x7069,Valencia-Nord
+0x0080,Xativa
+0x9400,Jesus
+0x6900,Turia
+0x6F00,Pont de Fusta
+0x0100,Alameda
+0xA002,Estacio del Nord
+0x7882,Xativa-Estacio
+0x7002,Cullera
+0x3891,L'Eliana
+0x086E,Valencia Sud
+0x3C91,Benimamet
+0x2894,Sagunto
+0xA46F,Alzira
+0x3811,Valencia-Joaquin Sorolla
+0x1800,Angel Guimera
+0x1900,Bailen
+0x1A00,Colon
+0x6980,Alacant
+0x6A00,Russafa
+0x2000,La Fonteta Sant Lluis
+0x0000,Unknown Station
+0x1B00,Alameda
+0x1C00,Pont de Fusta
+0x1D00,Jesus
+0x1E00,Quatre Carreres
+0x1F00,Montoli
+0x2100,Alfafar-Benetusser
+0x2200,Benetusser
+0x2300,Massanassa
+0x2400,Catarroja
+0x2500,Silla
+0x2600,Almussafes
+0x2700,Benifaio
+0x2800,Alginet
+0x2900,Algemesi
+0x2A00,Alzira
+0x2B00,Carcaixent
+0x2C00,Tavernes de Valldigna
+0x2D00,Gandia
+0x2E00,Oliva
+0x2F00,Denia
+0x1400,Burjassot
+0x1500,Empalme
+0x1600,Campanar
+
+# Metrovalencia - Linea 1 (Betera-Villanueva de Castellon)
+0x001,Betera
+0x002,Massamagrell
+0x003,La Pobla de Farnals
+0x004,Pucol
+0x005,Sagunto
+0x006,Almenara
+0x007,Xilxes
+0x008,La Llosa
+0x009,Chilches
+0x00A,Nules
+0x00B,Burriana
+0x00C,Vila-real
+0x00D,Castello de la Plana
+0x00E,Almassora
+0x00F,Benicassim
+0x010,Oropesa del Mar
+0x011,Torreblanca
+0x012,Alcossebre
+0x013,Peniscola
+0x014,Benicarlo
+0x015,Vinaros
+0x016,Ulldecona
+0x017,La Senia
+0x018,Tortosa
+0x019,L'Aldea
+0x01A,Amposta
+0x01B,L'Ametlla de Mar
+0x01C,L'Hospitalet de l'Infant
+0x01D,Vandellos
+0x01E,Cambrils
+0x01F,Salou
+0x020,Vila-seca
+0x021,Tarragona
+
+# Metrovalencia - Linea 2 (Torrent-Sagunto)
+0x030,Torrent
+0x031,Torrent Avinguda
+0x032,Picanya
+0x033,Paiporta
+0x034,Benetusser
+0x035,Alfafar-Benetusser
+0x036,Massanassa
+0x037,Catarroja
+0x038,Silla
+0x039,Almussafes
+0x03A,Benifaio
+0x03B,Alginet
+0x03C,Algemesi
+0x03D,Alzira
+0x03E,Carcaixent
+0x03F,Manuel
+0x040,Tavernes de Valldigna
+0x041,Simat
+0x042,Barx
+0x043,Gandia
+0x044,Daimus
+0x045,Guardamar de la Safor
+0x046,Bellreguard
+0x047,Miramar
+0x048,Piles
+0x049,Oliva
+0x04A,Denia
+
+# Metrovalencia - Linea 3 (Rafelbunyol-Aeropuerto)
+0x050,Rafelbunyol
+0x051,Tavernes Blanques
+0x052,Alboraya-Palmaret
+0x053,Alboraya-Peris Arago
+0x054,Palmaret
+0x055,Pont de Fusta
+0x056,Machado
+0x057,La Carrasca
+0x058,Facultats
+0x059,Benimamet
+0x05A,Empalme
+0x05B,Burjassot
+0x05C,Godella
+0x05D,Burjassot-Godella
+
+# Metrovalencia - Linea 5 (Maritim-Serreria-Aeropuerto)
+0x060,Maritim-Serreria
+0x061,Neptu
+0x062,Eugenia Vines
+0x063,Les Arenes
+0x064,Betero
+0x065,Grau-Canyamelar
+0x066,Cabanyal-Canyamelar
+0x067,Serreria
+0x068,Ayora
+0x069,L'Amistat
+0x06A,Empalme
+0x06B,Torrefiel
+0x06C,Sant Isidre
+0x06D,Orriols
+0x06E,Rocafort
+0x06F,Godella
+0x070,Burjassot
+
+# Metrovalencia - Linea 7 (Torrent Avinguda-Maritim-Serreria)
+0x071,Torrent Avinguda
+0x072,L'Alter
+0x073,Manual Candela
+0x074,Xirivella-L'Alter
+0x075,Xirivella-Alqueries
+0x076,Sant Isidre
+0x077,La Carrasca
+0x078,Jesus
+0x079,Sant Pau
+0x07A,Patraix
+0x07B,Neptu
+0x07C,Maritim-Serreria
+
+# Metrovalencia - Linea 9 (Alboraya-Orriols-Riba-roja)
+0x080,Alboraya-Orriols
+0x081,Seminari-CEU
+0x082,Machado
+0x083,La Carrasca
+0x084,Turia
+0x085,Angel Guimera
+0x086,Placa Espanya
+0x087,Xativa
+0x088,Sant Isidre
+0x089,Patraix
+0x08A,Jesus
+0x08B,Quatre Carreres
+0x08C,Montoli
+0x08D,La Fonteta de Sant Lluis
+0x08E,Alfred Palau
+0x08F,Amado Granell
+0x090,Picanya
+0x091,Paiporta
+0x092,Benetusser
+0x093,Massanassa
+0x094,Alfafar
+0x095,Sedavi
+0x096,Castellar-L'Oliveral
+0x097,L'Alcudia
+0x098,Carlet
+0x099,Algemesi
+0x09A,Alzira
+0x09B,Antella
+0x09C,Sumacarcer
+0x09D,Tous
+0x09E,Llombai
+0x09F,Catadau
+0x0A0,Llanera de Ranes
+0x0A1,Xativa
+0x0A2,L'Enova
+0x0A3,Manuel
+0x0A4,Alberic
+0x0A5,Massalaves
+0x0A6,Sueca
+0x0A7,Cullera
+
+# Tranvia de Valencia - Linea 4 (Mas del Rosari-Dr. Lluch)
+0x0B0,Mas del Rosari
+0x0B1,Benimamet
+0x0B2,Palmaret
+0x0B3,Machado
+0x0B4,Facultats
+0x0B5,Angel Guimera
+0x0B6,Pont de Fusta
+0x0B7,Turia
+0x0B8,Xativa
+0x0B9,Russafa
+0x0BA,La Cadena
+0x0BB,La Carrasca
+0x0BC,Ayora
+0x0BD,L'Amistat
+0x0BE,Empalme
+0x0BF,Torrefiel
+0x0C0,Sant Isidre
+0x0C1,Orriols
+0x0C2,Rocafort
+0x0C3,Godella
+0x0C4,Burjassot
+0x0C5,Canyamelar
+0x0C6,Eugenia Vines
+0x0C7,Les Arenes
+0x0C8,Dr. Lluch
+
+# Tranvia de Valencia - Linea 6 (Tossal del Rei-Marina Reial Joan Carles I)
+0x0D0,Tossal del Rei
+0x0D1,Florida Universitaria
+0x0D2,Fuente del Jarro
+0x0D3,Torrent Avinguda
+0x0D4,L'Alter
+0x0D5,Manuel Candela
+0x0D6,Xirivella-L'Alter
+0x0D7,Xirivella-Alqueries
+0x0D8,Sant Isidre
+0x0D9,La Carrasca
+0x0DA,Jesus
+0x0DB,Sant Pau
+0x0DC,Patraix
+0x0DD,Quatre Carreres
+0x0DE,Montoli
+0x0DF,La Fonteta de Sant Lluis
+0x0E0,Amistat-Casa de Salud
+0x0E1,Empalme
+0x0E2,Torrefiel
+0x0E3,Sant Isidre
+0x0E4,Orriols
+0x0E5,Rocafort
+0x0E6,Godella
+0x0E7,Burjassot
+0x0E8,Canyamelar
+0x0E9,Cabanyal
+0x0EA,Grau-Canyamelar
+0x0EB,Eugenia Vines
+0x0EC,Les Arenes
+0x0ED,Betero
+0x0EE,Grau
+0x0EF,Marina Reial Joan Carles I
+
+# Tranvia de Valencia - Linea 8 (Maritim-Serreria-Marina Real)
+0x0F0,Maritim-Serreria
+0x0F1,Grau-Canyamelar
+0x0F2,Eugenia Vines
+0x0F3,Les Arenes
+0x0F4,Betero
+0x0F5,Grau
+0x0F6,Marina Reial Joan Carles I
+
+# Tranvia de Valencia - Linea 10 (Nazaret-Marina Real)
+0x100,Nazaret
+0x101,El Grau
+0x102,Marina Reial Joan Carles I
+
+# Cercanias Valencia
+0x200,Valencia-Nord
+0x201,Valencia-Joaquin Sorolla
+0x202,Valencia-Cabanyal
+0x203,Sagunto
+0x204,Xativa
+0x205,Alzira
+0x206,Cullera
+0x207,Gandia
+0x208,Denia
+0x209,Alacant
+0x20A,Castello de la Plana
+0x20B,Benicarlo-Peniscola
+0x20C,Vinaros
+
+# FGV - Ferrocarrils de la Generalitat Valenciana
+# Linea Alicante-Denia
+0x300,Alacant-Terminal
+0x301,Alacant-Luceros
+0x302,Benidorm
+0x303,Altea
+0x304,Calp
+0x305,Teulada-Moraira
+0x306,Gata de Gorgos
+0x307,Denia
+
+# Estaciones principales de la provincia
+0x400,Valencia-Joaquin Sorolla
+0x401,Valencia-Nord
+0x402,Xativa
+0x403,Sagunto
+0x404,Alzira
+0x405,Cullera
+0x406,Gandia
+0x407,Denia
+0x408,Alacant
+0x409,Castello de la Plana
+0x40A,Vila-real
+0x40B,Burriana
+0x40C,Nules
+0x40D,Segorbe
+0x40E,Teruel
+0x40F,Cuenca
+0x410,Requena
+0x411,Utiel
+0x412,Chiva
+0x413,Bunol
+0x414,Carlet
+0x415,Algemesi
+0x416,Carcaixent
+0x417,Tavernes de Valldigna
+0x418,Oliva
+0x419,Pego
+0x41A,Els Poblets
+0x41B,El Verger
+0x41C,Ondara
+0x41D,Pedreguer
+0x41E,Orba
+0x41F,Jalon
+0x420,Lliber
+0x421,Senija
+0x422,Parcent
+0x423,Alcalali
+0x424,Torremanzanas
+0x425,Finestrat
+0x426,La Nucia
+0x427,Polop
+0x428,Callosa d'En Sarria
+0x429,Guadalest
+0x42A,Confrides
+0x42B,Benimantell
+0x42C,Castell de Castells
+0x42D,Famorca
+0x42E,Tollos
+0x42F,Beniarres
+0x430,Millena
+0x431,Lorcha
+0x432,Quatretondeta
+0x433,Balones
+0x434,Alcocer de Planes
+0x435,Benasau
+0x436,Penaguila
+0x437,Cocentaina
+0x438,Muro d'Alcoi
+0x439,Alcoi
+0x43A,Banyeres de Mariola
+0x43B,Bocairent
+0x43C,Ontinyent
+0x43D,Aielo de Malferit
+0x43E,Llutxent
+0x43F,Otos
+0x440,Pinet
+0x441,L'Olleria
+0x442,Xativa
+
+# Estaciones complementarias reales documentadas
+0x1000,Betera
+0x1100,Massarrojos
+0x1200,Godella
+0x1300,Burjassot-Godella
+0x1400,Empalme
+0x1500,Machado
+0x1600,Facultats
+0x1700,Angel Guimera
+0x1800,Angel Guimera
+0x1900,Bailen
+0x1A00,Colon
+0x1B00,Alameda
+0x1C00,Pont de Fusta
+0x1D00,Jesus
+0x1E00,Quatre Carreres
+0x1F00,Montoli
+0x2000,La Fonteta Sant Lluis
+0x2100,Alfafar-Benetusser
+0x2200,Benetusser
+0x2300,Massanassa
+0x2400,Catarroja
+0x2500,Silla
+0x2600,Almussafes
+0x2700,Benifaio
+0x2800,Alginet
+0x2900,Algemesi
+0x2A00,Alzira
+0x2B00,Carcaixent
+0x2C00,Tavernes de Valldigna
+0x2D00,Gandia
+0x2E00,Oliva
+0x2F00,Denia
+0x1400,Burjassot
+0x1500,Empalme
+0x1600,Campanar
+0x1C00,Facultats-Manuel Broseta
+0x1D00,Benimaclet
+0x1E00,Machado
+0x1F00,Alboraia Palmaret
+0x2000,Alboraia Peris Arago
+0x2100,Almassera
+0x2200,Meliana
+0x2300,Foios
+0x2400,Albalat dels Sorells
+0x2500,Museros
+0x2600,Massamagrell
+0x2700,La Pobla de Farnals
+0x2800,Rafelbunyol
+0x2900,Castello
+
+# Metro Line 2
+0x3000,Lliria
+0x3100,Fondo de Benaguasil
+0x3200,Benaguasil
+0x3300,La Pobla de Vallbona
+0x3400,Gallipont-Torre del Virrei
+0x3500,L'Eliana
+0x4000,Benimamet
+0x4100,Cantereria
+0x4200,Beniferri
+0x4300,Pl. Espanya
+0x4500,Patraix
+0x4600,Safranar
+0x4700,Sant Isidre
+0x4800,Valencia Sud
+0x4900,Paiporta
+0x4A00,Picanya
+0x4B00,Torrent
+0x4C00,Torrent Avinguda
+
+# Metro Lines 3/5/7/9
+0x5100,Av. del Cid
+0x5200,Nou d'Octubre
+0x5300,Mislata
+0x5400,Mislata Almassil
+0x5500,Faitanar
+0x5600,Quart de Poblet
+0x5700,Salt de l'Aigua
+0x5800,Manises
+0x5900,Roses
+0x5A00,Aeroport
+0x6000,Maritim
+0x6100,Amistat
+0x6200,Ayora
+0x6300,Arago
+0x7000,Bailen
+
+# Metro Line 9
+0x8100,La Cova
+0x8200,La Presa
+0x8300,Valencia la Vella
+0x8400,Masia de Traver
+0x8500,Riba-roja de Turia
+
+# Tranvia Line 4
+0x9000,Mas del Rosari
+0x9100,Tomas y Valiente
+0x9200,Parc Cientific
+0x9300,Lloma Llarga-Terramelar
+0x9500,Fira Valencia
+0x9B00,Sagunt
+0x9D00,Trinitat
+0x9E00,Vicente Zaragoza
+0x9F00,Universitat Politecnica
+0xA000,La Carrasca
+0xA100,Tarongers-Ernest Lluch
+0xA200,Betero
+0xA300,La Cadena
+0xA400,Platja Malva-rosa
+0xA500,Platja les Arenes
+0xA600,Cabanyal
+0xA700,Dr. Lluch
+
+# Tranvia Lines 6/8
+0xB000,Tossal del Rei
+0xB100,Neptu
+0xB200,Grau-La Marina
+0xB300,Francesc Cubells
+
+# Tranvia Line 10
+0xC000,Alacant
+0xC100,Russafa
+0xC200,Amado Granell-Montolivet
+0xC300,Quatre Carreres
+0xC400,Ciutat Arts i Ciencies-Justicia
+0xC500,Oceanografic
+0xC600,Moreres
+0xC700,Natzaret
+
+# RENFE Cercanias Valencia
+0xD000,Valencia-Estacio del Nord
+0xD100,Valencia-Cabanyal
+0xD200,Valencia-Fuente San Luis
+0xD300,Sagunto (RENFE)
+0xD400,Castellon (RENFE)
+0xD500,Xativa (RENFE)
+0xD600,Alzira
+0xD700,Cullera
+0xD800,Gandia
+0xD900,Denia

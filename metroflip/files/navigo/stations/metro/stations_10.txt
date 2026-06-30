@@ -1,0 +1,12 @@
+0,Invalides
+1,Champs-Elysees - Clemenceau
+2,Concorde
+3,Madeleine
+4,Bir-Hakeim
+7,Ecole Militaire
+8,La Tour-Maubourg
+9,Invalides
+11,Saint-Denis - Universite
+12,Varenne
+13,Assemblee Nationale
+14,Solferino

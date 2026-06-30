@@ -1,0 +1,17 @@
+{
+  "actions" : {
+    "build" : {
+      "enabled" : true,
+      "script" : "ufbt -c && ufbt && rm -rf .vscode"
+    },
+    "clean" : {
+      "enabled" : true,
+      "script" : "ufbt -c"
+    },
+    "run" : {
+      "enabled" : true,
+      "script" : "ufbt launch"
+    }
+  },
+  "openLogOnRun" : "fail"
+}

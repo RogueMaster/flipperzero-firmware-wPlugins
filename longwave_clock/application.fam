@@ -1,0 +1,16 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="longwave_clock",  # Must be unique
+    name="[GPIO] Longwave Clock",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="longwave_clock_app",
+    stack_size=2 * 1024,
+    fap_icon_assets="images",
+    fap_category="GPIO",
+    fap_version="0.1",
+    fap_icon="lcw.png",
+    fap_description="Decode or demonstrate long wave time signals",
+    fap_author="@m7i-org",
+    fap_weburl="https://github.com/flipper_longwave_clock",
+)

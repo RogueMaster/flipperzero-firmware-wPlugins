@@ -1,0 +1,86 @@
+ASN_MODULE_SRCS=	\
+	./lib/asn1/MRZ.c	\
+	./lib/asn1/LDSVersion.c	\
+	./lib/asn1/UnicodeVersion.c	\
+	./lib/asn1/DataGroups.c	\
+	./lib/asn1/DG1.c	\
+	./lib/asn1/COM.c
+
+ASN_MODULE_HDRS=	\
+	./lib/asn1/MRZ.h	\
+	./lib/asn1/LDSVersion.h	\
+	./lib/asn1/UnicodeVersion.h	\
+	./lib/asn1/DataGroups.h	\
+	./lib/asn1/DG1.h	\
+	./lib/asn1/COM.h
+
+ASN_MODULE_HDRS+=./lib/asn1/OPEN_TYPE.h
+ASN_MODULE_SRCS+=./lib/asn1/OPEN_TYPE.c
+ASN_MODULE_HDRS+=./lib/asn1/constr_CHOICE.h
+ASN_MODULE_HDRS+=./lib/asn1/VisibleString.h
+ASN_MODULE_SRCS+=./lib/asn1/VisibleString.c
+ASN_MODULE_HDRS+=./lib/asn1/OCTET_STRING.h
+ASN_MODULE_SRCS+=./lib/asn1/constr_CHOICE.c
+ASN_MODULE_HDRS+=./lib/asn1/constr_SEQUENCE.h
+ASN_MODULE_SRCS+=./lib/asn1/constr_SEQUENCE.c
+ASN_MODULE_HDRS+=./lib/asn1/asn_application.h
+ASN_MODULE_SRCS+=./lib/asn1/asn_application.c
+ASN_MODULE_HDRS+=./lib/asn1/asn_ioc.h
+ASN_MODULE_HDRS+=./lib/asn1/asn_system.h
+ASN_MODULE_HDRS+=./lib/asn1/asn_codecs.h
+ASN_MODULE_HDRS+=./lib/asn1/asn_internal.h
+ASN_MODULE_SRCS+=./lib/asn1/asn_internal.c
+ASN_MODULE_HDRS+=./lib/asn1/asn_random_fill.h
+ASN_MODULE_SRCS+=./lib/asn1/asn_random_fill.c
+ASN_MODULE_HDRS+=./lib/asn1/asn_bit_data.h
+ASN_MODULE_SRCS+=./lib/asn1/asn_bit_data.c
+ASN_MODULE_SRCS+=./lib/asn1/OCTET_STRING.c
+ASN_MODULE_HDRS+=./lib/asn1/BIT_STRING.h
+ASN_MODULE_SRCS+=./lib/asn1/BIT_STRING.c
+ASN_MODULE_SRCS+=./lib/asn1/asn_codecs_prim.c
+ASN_MODULE_HDRS+=./lib/asn1/asn_codecs_prim.h
+ASN_MODULE_HDRS+=./lib/asn1/ber_tlv_length.h
+ASN_MODULE_SRCS+=./lib/asn1/ber_tlv_length.c
+ASN_MODULE_HDRS+=./lib/asn1/ber_tlv_tag.h
+ASN_MODULE_SRCS+=./lib/asn1/ber_tlv_tag.c
+ASN_MODULE_HDRS+=./lib/asn1/ber_decoder.h
+ASN_MODULE_SRCS+=./lib/asn1/ber_decoder.c
+ASN_MODULE_HDRS+=./lib/asn1/der_encoder.h
+ASN_MODULE_SRCS+=./lib/asn1/der_encoder.c
+ASN_MODULE_HDRS+=./lib/asn1/constr_TYPE.h
+ASN_MODULE_SRCS+=./lib/asn1/constr_TYPE.c
+ASN_MODULE_HDRS+=./lib/asn1/constraints.h
+ASN_MODULE_SRCS+=./lib/asn1/constraints.c
+ASN_MODULE_HDRS+=./lib/asn1/xer_support.h
+ASN_MODULE_SRCS+=./lib/asn1/xer_support.c
+ASN_MODULE_HDRS+=./lib/asn1/xer_decoder.h
+ASN_MODULE_SRCS+=./lib/asn1/xer_decoder.c
+ASN_MODULE_HDRS+=./lib/asn1/xer_encoder.h
+ASN_MODULE_SRCS+=./lib/asn1/xer_encoder.c
+ASN_MODULE_HDRS+=./lib/asn1/per_support.h
+ASN_MODULE_SRCS+=./lib/asn1/per_support.c
+ASN_MODULE_HDRS+=./lib/asn1/per_decoder.h
+ASN_MODULE_SRCS+=./lib/asn1/per_decoder.c
+ASN_MODULE_HDRS+=./lib/asn1/per_encoder.h
+ASN_MODULE_SRCS+=./lib/asn1/per_encoder.c
+ASN_MODULE_HDRS+=./lib/asn1/per_opentype.h
+ASN_MODULE_SRCS+=./lib/asn1/per_opentype.c
+ASN_MODULE_HDRS+=./lib/asn1/oer_decoder.h
+ASN_MODULE_HDRS+=./lib/asn1/oer_encoder.h
+ASN_MODULE_HDRS+=./lib/asn1/oer_support.h
+ASN_MODULE_SRCS+=./lib/asn1/oer_decoder.c
+ASN_MODULE_SRCS+=./lib/asn1/oer_encoder.c
+ASN_MODULE_SRCS+=./lib/asn1/oer_support.c
+ASN_MODULE_SRCS+=./lib/asn1/OPEN_TYPE_oer.c
+ASN_MODULE_SRCS+=./lib/asn1/BIT_STRING_oer.c
+ASN_MODULE_SRCS+=./lib/asn1/OCTET_STRING_oer.c
+ASN_MODULE_SRCS+=./lib/asn1/constr_CHOICE_oer.c
+ASN_MODULE_SRCS+=./lib/asn1/constr_SEQUENCE_oer.c
+
+ASN_MODULE_CFLAGS=
+
+lib_LTLIBRARIES+=libasncodec.la
+libasncodec_la_SOURCES=$(ASN_MODULE_SRCS) $(ASN_MODULE_HDRS)
+libasncodec_la_CPPFLAGS=-I$(top_srcdir)/./lib/asn1/
+libasncodec_la_CFLAGS=$(ASN_MODULE_CFLAGS)
+libasncodec_la_LDFLAGS=-lm

@@ -1,0 +1,16 @@
+App(
+    appid="uv_meter_as7331",
+    name="[AS7331] UV Meter",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="uv_meter_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    fap_category="GPIO/Sensors",
+    sources=["*.c*", "!magic_numbers"],
+    fap_version="1.0",
+    fap_icon="uv_meter.png",
+    fap_description="Measure UV radiation using the AS7331 sensor",
+    fap_author="Michael Baisch",
+    fap_weburl="https://github.com/michaelbaisch/uv_meter",
+    fap_icon_assets="assets",
+)

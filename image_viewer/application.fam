@@ -1,0 +1,17 @@
+App(
+    apptype=FlipperAppType.EXTERNAL,
+    appid="image_viewer",
+    name="Image Viewer",
+    fap_description="Image viewer for flipper zero!",
+    fap_author="@polioan",
+    fap_version="0.1",
+    fap_weburl="https://github.com/polioan/flipper-zero-image-viewer",
+    fap_category="Media",
+    fap_icon="icon.png",
+    fap_icon_assets=".",
+    entry_point="image_viewer_main",
+    requires=["storage", "gui", "dialogs"],
+    targets=["all"],
+    stack_size=8 * 1024,
+    resources="",
+)

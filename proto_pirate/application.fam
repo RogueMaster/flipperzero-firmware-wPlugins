@@ -1,0 +1,97 @@
+App(
+    appid="proto_pirate",
+    name="ProtoPirate",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="protopirate_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    sources=["*.c*"],
+    fap_description="Decode car key fob signals from Sub-GHz",
+    fap_version="3.0",
+    fap_icon="images/protopirate_10px.png",
+    fap_category="Sub-GHz",
+    fap_icon_assets="images",
+    fap_file_assets="keystore",
+)
+
+App(
+    appid="protopirate_am_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="protopirate_am_plugin_ep",
+    requires=["proto_pirate"],
+    sources=[
+        "protocols/plugins/protopirate_am_plugin.c",
+        "protocols/protocols_common.c",
+        "protocols/aut64.c",
+        "protocols/chrysler_v0.c",
+        "protocols/fiat_v0.c",
+        "protocols/fiat_v1.c",
+        "protocols/ford_v0.c",
+        "protocols/kia_v1.c",
+        "protocols/porsche_touareg.c",
+        "protocols/psa.c",
+        "protocols/psa_crypto.c",
+        "protocols/subaru.c",
+        "protocols/vag.c",
+        "protocols/star_line.c",
+    ],
+    fal_embedded=True,
+)
+
+App(
+    appid="protopirate_fm_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="protopirate_fm_plugin_ep",
+    requires=["proto_pirate"],
+    sources=[
+        "protocols/plugins/protopirate_fm_plugin.c",
+        "protocols/protocols_common.c",
+        "protocols/keys.c",
+        "protocols/scher_khan.c",
+        "protocols/kia_v0.c",
+        "protocols/kia_v2.c",
+        "protocols/kia_v3_v4.c",
+        "protocols/kia_v5.c",
+        "protocols/kia_v6.c",
+        "protocols/kia_v7.c",
+        "protocols/ford_v1.c",
+        "protocols/ford_v2.c",
+        "protocols/ford_v3.c",
+        "protocols/honda_static.c",
+        "protocols/land_rover_v0.c",
+        "protocols/mazda_v0.c",
+        "protocols/mitsubishi_v0.c",
+        "protocols/psa.c",
+        "protocols/psa_crypto.c",
+    ],
+    fal_embedded=True,
+)
+
+App(
+    appid="protopirate_emulate_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="protopirate_emulate_plugin_ep",
+    requires=["proto_pirate"],
+    sources=[
+        "scenes/plugins/protopirate_emulate_plugin.c",
+    ],
+    fal_embedded=True,
+)
+
+App(
+    appid="protopirate_psa_bf_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="protopirate_psa_bf_plugin_ep",
+    requires=["proto_pirate"],
+    cdefines=["PROTOPIRATE_PSA_BF_PLUGIN_BUILD=1"],
+    sources=[
+        "scenes/plugins/protopirate_psa_bf_plugin.c",
+        "protocols/psa_crypto.c",
+        "protocols/psa_crypto_bf.c",
+        "protocols/psa_bf_core.c",
+        "protocols/protocols_common.c",
+    ],
+    fap_icon_assets="images",
+    fal_embedded=True,
+)

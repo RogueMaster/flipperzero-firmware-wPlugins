@@ -1,0 +1,47 @@
+name: "Flipper Zero: build & release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build with uFBT (release SDK)
+        id: ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          app-dir: .
+          sdk-channel: release
+
+      - name: Create GitHub Release + upload artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          body: |
+            ## Release ${{ github.ref_name }}
+
+            **Release Notes:**
+            - Summary:
+            - Changes:
+            - Known issues:
+            - Installation notes:
+
+            **Build info**
+            - SDK channel: release
+            - Commit: ${{ github.sha }}
+
+          files: ${{ steps.ufbt.outputs.fap-artifacts }}

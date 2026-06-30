@@ -1,0 +1,53 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  ufbt-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: dev channel
+            sdk-channel: dev
+          - name: release channel
+            sdk-channel: release
+
+    name: 'ufbt: Build for ${{ matrix.name }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          # See ufbt action docs for other output variables
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+
+      - name: Get commit message
+        run: echo "COMMIT_MESSAGE=$(git log --format=%B -n 1 ${{ github.event.after }})" >> $GITHUB_ENV
+          
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+            draft: true
+            name: ${{ env.COMMIT_MESSAGE }}
+            token: ${{ secrets.GITHUB_TOKEN }}
+            files: ${{ steps.build-app.outputs.fap-artifacts }}
+            generate_release_notes: true

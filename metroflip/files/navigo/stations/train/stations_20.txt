@@ -1,0 +1,22 @@
+1,1,Gare de l'Est
+1,7,Rosa Parks
+4,1,Pantin
+5,1,Noisy-le-Sec
+6,1,Bondy
+7,1,Le Raincy - Villemomble - Montfermeil
+7,2,Gagny
+9,1,Le Chenay Gagny
+9,2,Le Chenay Gagny
+9,3,Chelles - Gournay
+10,1,Vaires - Torcy
+11,1,Lagny - Thorigny
+13,1,Esbly
+14,1,Meaux
+15,1,Trilport
+15,2,Changis - Saint-Jean
+15,3,Isles - Armentieres - Congis
+15,4,Nanteuil - Saacy
+16,1,Lizy-sur-Ourcq
+16,2,Crouy-sur-Ourcq
+16,3,La Ferte-sous-Jouarre
+16,4,Nanteuil - Saacy

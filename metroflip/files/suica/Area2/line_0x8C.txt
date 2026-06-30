@@ -1,0 +1,10 @@
+0x8C,0x16,Nanko PortTown,Cosmosquare,9,0
+0x8C,0x1A,Nanko PortTown,Trade Center-mae,10,0
+0x8C,0x1C,Nanko PortTown,Nakafuto,11,0
+0x8C,0x1E,Nanko PortTown,Port Town-nishi,12,0
+0x8C,0x20,Nanko PortTown,Port Town-higashi,13,0
+0x8C,0x22,Nanko PortTown,Ferry Terminal,14,0
+0x8C,0x24,Nanko PortTown,Nanko-higashi,15,0
+0x8C,0x26,Nanko PortTown,Nanko-guchi,16,0
+0x8C,0x28,Nanko PortTown,Hirabayashi,17,0
+0x8C,0x2A,Nanko PortTown,Suminoekoen,18,0

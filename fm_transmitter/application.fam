@@ -1,0 +1,11 @@
+App(
+    appid="fmtx_app",
+    name="[KT0803] FM Transmitter",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fmtx_i2c_init_app",
+    requires=["gui"],
+    stack_size=1 * 1024,
+    fap_icon="fmtx_app_10px.png",
+    fap_category="GPIO",
+    fap_icon_assets="images",
+)

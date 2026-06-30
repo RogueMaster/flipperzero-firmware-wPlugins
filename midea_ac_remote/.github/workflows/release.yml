@@ -1,0 +1,60 @@
+name: "FAP: Release for multiple SDK sources"
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+  ufbt-build-action:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: dev channel
+            sdk-channel: dev
+          - name: release channel
+            sdk-channel: release
+          - name: Momentum firmware (release channel)
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+            sdk-channel: release
+    name: 'ufbt: Build for ${{ matrix.name }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url }}
+      - name: Package build
+        run: |
+          zip -r "${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}.zip" "${{ steps.build-app.outputs.fap-artifacts }}"
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}.zip
+  upload-release:
+    runs-on: ubuntu-latest
+    needs: [ufbt-build-action]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download Artifacts
+        id: download-artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build-faps
+          merge-multiple: true
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACTS_PATH: ${{ steps.download-artifacts.outputs.download-path }}
+        run: |
+          ls -R "${ARTIFACTS_PATH}"
+          gh release create "$GITHUB_REF_NAME" \
+              --title="${GITHUB_REPOSITORY#*/} $GITHUB_REF_NAME" \
+              --notes-from-tag \
+              ${ARTIFACTS_PATH}/*.zip

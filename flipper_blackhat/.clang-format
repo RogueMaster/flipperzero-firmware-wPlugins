@@ -1,0 +1,10 @@
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Linux
+ColumnLimit: 80
+AlignAfterOpenBracket: BlockIndent
+BracedInitializerIndentWidth: 4
+BinPackParameters: false
+BinPackArguments: false

@@ -1,0 +1,75 @@
+name: "FAP: Create Release"
+on:
+  workflow_dispatch:
+    inputs:
+      commitish:
+        description: 'Branch name or commit SHA to build and release'
+        required: true
+
+jobs:
+  ufbt-build-release:
+    runs-on: ubuntu-latest
+    name: 'ufbt: Build and release from specified commit'
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.commitish }}
+          submodules: 'true'
+
+      - name: Extract tag from application.fam
+        id: extract_tag
+        run: |
+          set -euo pipefail
+          VER_REGEX='^[[:blank:]]*fap_version="(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"'
+          echo grep -o -E "$VER_REGEX" application.fam
+          grep -c -E "$VER_REGEX" application.fam
+          grep -o -E "$VER_REGEX" application.fam
+          COUNT=$(grep -c -E "$VER_REGEX" application.fam)
+          if [ "$COUNT" -ne 1 ]; then
+              echo "❌ Expected exactly one 'fap_version="[major.minor]"' line; Found $COUNT"
+              exit 1
+          fi
+          echo tag=$(grep -o -E "$VER_REGEX" application.fam | cut -d'"' -f2) >> $GITHUB_OUTPUT
+
+      - name: Verify tag does not already exist
+        run: |
+          set -euo pipefail
+          TAG=${{ steps.extract_tag.outputs.tag }}
+          git fetch --tags || exit
+          if git tag --list | grep -q -E "^($TAG)$"; then
+              echo "❌ Tag already exists: $TAG"
+              exit 1
+          else
+            echo "✅ Tag not found (new): $TAG"
+          fi
+
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.2
+        id: build-app
+        with:
+          sdk-channel: release
+
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+
+      # You can remove this step if you don't want to check source code formatting
+      - name: Lint sources
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.2
+        with:
+          # skip SDK setup, we already did it in previous step
+          skip-setup: true
+          task: lint
+
+      # Generate the release
+      - name: Create Github Release
+        uses: softprops/action-gh-release@v2.3.2
+        with:
+          files: ${{ steps.build-app.outputs.fap-artifacts }}
+          name: Release ${{ steps.extract_tag.outputs.tag }}
+          tag_name: ${{ steps.extract_tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}

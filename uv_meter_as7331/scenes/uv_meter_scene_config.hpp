@@ -1,0 +1,5 @@
+ADD_SCENE(uv_meter, wiring, Wiring)
+ADD_SCENE(uv_meter, data, Data)
+ADD_SCENE(uv_meter, settings, Settings)
+ADD_SCENE(uv_meter, about, About)
+ADD_SCENE(uv_meter, help, Help)

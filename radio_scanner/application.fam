@@ -1,0 +1,15 @@
+App(
+    appid="radio_scanner",
+    name="Radio Scanner",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="radio_scanner_app",
+    requires=["gui", "subghz"],
+    stack_size=2 * 1024,
+    fap_category="Sub-GHz",
+    fap_version="0.2",
+    fap_icon_assets="assets",
+    fap_author="@RocketGod-git",
+    fap_description="Scanner for Flipper",
+    fap_icon="icons/radio_scanner.png",
+    fap_weburl="https://github.com/RocketGod-Git/Flipper-Zero-Radio-Scanner",
+)

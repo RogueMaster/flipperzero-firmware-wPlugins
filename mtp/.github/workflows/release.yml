@@ -1,0 +1,56 @@
+name: Build Release
+on:
+    release:
+        types: [created]
+
+jobs:
+    all:
+        runs-on: ubuntu-latest
+        name: Build Release for ${{ matrix.name }}
+        strategy:
+            matrix:
+                include:
+                  - name: (Official) Release channel
+                    sdk-ident: official_release
+                    sdk-channel: release
+                  - name: (Unleashed) Release channel
+                    sdk-ident: unleashed_release
+                    sdk-index-url: https://up.unleashedflip.com/directory.json
+                    sdk-channel: release
+                  - name: (Official) Dev channel
+                    sdk-ident: official_dev
+                    sdk-channel: dev
+                  - name: (Unleashed) Development channel
+                    sdk-ident: unleashed_dev
+                    sdk-index-url: https://up.unleashedflip.com/directory.json
+                    sdk-channel: dev
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+          - name: Change Version to ${{ github.event.release.tag_name }}
+            run: |
+                chmod +x ./.github/scripts/change_ver.sh
+                ./.github/scripts/change_ver.sh
+            env:
+                TAG_NAME: ${{ github.event.release.tag_name }}
+          - name: Build for ${{ matrix.name }}
+            uses: flipperdevices/flipperzero-ufbt-action@v0.1.3
+            id: build-app
+            with:
+                sdk-channel: ${{ matrix.sdk-channel }}
+                sdk-index-url: ${{ matrix.sdk-index-url }}
+          - name: Rename Built files for ${{ matrix.name }}
+            run: |
+                chmod +x ./.github/scripts/renamer.sh
+                ./.github/scripts/renamer.sh
+            env:
+                FILE_SUFFIX: ${{ matrix.sdk-ident }}-${{ steps.build-app.outputs.suffix }}
+                DIST_FILE: ${{ steps.build-app.outputs.fap-artifacts }}
+          - name: Upload packages to release
+            uses: svenstaro/upload-release-action@v2
+            with:
+                repo_token: ${{ secrets.GITHUB_TOKEN }}
+                file: ./dist/*
+                tag: ${{ github.ref }}
+                overwrite: true
+                file_glob: true

@@ -1,0 +1,145 @@
+# Andalucía Region Stations - Metro, Tranvía, Cercanías
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0x8000,Sevilla-Santa Justa
+0x8001,Córdoba-Central
+0x8002,Málaga-María Zambrano
+0x8003,Granada
+0x8004,Cádiz
+0x8005,Jerez de la Frontera
+0x8006,Algeciras
+0x8007,Almería
+0x8008,Huelva
+0x8009,Jaén
+0x800A,Antequera-Santa Ana
+0x800B,Ronda
+
+# Metro de Sevilla
+0x9100,Ciudad Expo
+0x9101,Cocheras
+0x9102,Olivar de Quintos
+0x9103,Blas Infante
+0x9104,Mairena del Aljarafe
+0x9105,Aljarafe
+0x9106,Palacio de Congresos
+0x9107,Cardenal Bueno Monreal
+0x9108,Parque de los Príncipes
+0x9109,Blas Infante
+0x9110,Universidad Pablo Olavide
+0x9111,Vilamediana
+0x9112,La Plata
+0x9113,Montequinto
+0x9114,Dos Hermanas
+0x9115,Condequinto
+0x9116,San Juan Alto
+0x9117,San Juan Bajo
+0x9118,Montequinto Norte
+0x9119,Dos Hermanas Centro
+
+# Metro de Málaga
+0x9200,La Unión
+0x9201,Carranque
+0x9202,Portada Alta
+0x9203,Andalucía Tech
+0x9204,Universidad
+0x9205,Clínico
+0x9206,El Perchel
+0x9207,Alameda Principal
+0x9208,Centro Alameda
+0x9209,Atarazanas
+0x920A,Guadalmedina
+0x920B,Perchel
+0x920C,Victoria Kent
+0x920D,Barbarela
+0x920E,El Palo
+0x920F,Pedregalejo
+
+# Metro Ligero de Jaén (Futuro)
+0x9300,Jaén Centro
+0x9301,Hospital Neurotraumatológico
+0x9302,Universidad de Jaén
+
+# Cercanías Sevilla
+0x8100,Sevilla San Bernardo
+0x8101,Sevilla Virgen del Rocío
+0x8102,Las Cabezas de San Juan
+0x8103,Lebrija
+0x8104,Los Palacios
+0x8105,Utrera
+0x8106,Dos Hermanas
+0x8107,Bellavista
+0x8108,San Jerónimo
+0x8109,Triana
+0x810A,Coria del Río
+0x810B,Puebla del Río
+0x810C,Aznalcázar
+
+# Cercanías Málaga
+0x8200,Málaga Centro Alameda
+0x8201,Benalmádena-Arroyo de la Miel
+0x8202,Torremolinos
+0x8203,Los Boliches
+0x8204,Fuengirola
+0x8205,Cártama
+0x8206,Álora
+0x8207,Ardales-El Chorro
+0x8208,Ronda
+0x8209,Gaucín
+0x820A,Jimera de Líbar
+0x820B,Cortes de la Frontera
+0x820C,Antequera
+
+# Cercanías Cádiz
+0x8300,Cádiz
+0x8301,San Fernando
+0x8302,Chiclana
+0x8303,Puerto Real
+0x8304,El Puerto de Santa María
+0x8305,Jerez de la Frontera
+0x8306,Lebrija
+0x8307,Las Cabezas de San Juan
+0x8308,Utrera
+
+# AVE Andalucía
+0x8400,Sevilla-Santa Justa AVE
+0x8401,Córdoba AVE
+0x8402,Antequera-Santa Ana AVE
+0x8403,Málaga-María Zambrano AVE
+0x8404,Granada AVE
+0x8405,Puerta de Atocha-Almería
+
+# Estaciones históricas y principales
+0x8500,Sevilla Plaza de Armas
+0x8501,Huelva Término
+0x8502,Almería Estación
+0x8503,Granada Estación
+0x8504,Córdoba Estación Central
+0x8505,Jaén Estación
+0x8506,Linares-Baeza
+0x8507,Ubeda
+0x8508,Baza
+0x8509,Guadix
+0x850A,Loja
+0x850B,Osuna
+0x850C,Marchena
+0x850D,Écija
+0x850E,Puente Genil
+0x850F,Lucena
+
+# Tranvía de la Bahía de Cádiz (Tren-Tram)
+0x8600,Cádiz Estación
+0x8601,Segunda Aguada
+0x8602,Plaza de España
+0x8603,Loreto
+0x8604,Estadio Ramón de Carranza
+0x8605,Río San Pedro
+0x8606,Universidad
+0x8607,Campus del Río San Pedro
+0x8608,San Fernando Estación
+0x8609,San Fernando Centro
+0x860A,Camposoto
+0x860B,Zaporito
+0x860C,Plaza del Rey
+0x860D,Chiclana Centro

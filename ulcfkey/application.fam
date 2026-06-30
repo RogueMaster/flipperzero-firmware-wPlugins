@@ -1,0 +1,16 @@
+App(
+    appid="ulcfkey",
+    name="ULCFKey",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ulcfkey_app",
+    requires=["gui", "subghz"],
+    stack_size=2 * 1024,
+    fap_version=(1, 0),
+    fap_icon="ulcfkey.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="ulcfkey",
+    fap_category="NFC",
+    fap_author="noproto",
+    fap_description="Crack counterfeit ULC cards",
+    fap_weburl="https://github.com/noproto",
+)

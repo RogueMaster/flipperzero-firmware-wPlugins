@@ -1,0 +1,212 @@
+# Castilla y León - RENFE y transporte regional
+# Códigos de estaciones del transporte público en Castilla y León
+# Formato: código=nombre_de_estación
+
+# RENFE Castilla y León - Principales estaciones
+0x8000=Valladolid-Campo Grande
+0x8001=León
+0x8002=Burgos-Rosa de Lima
+0x8003=Salamanca
+0x8004=Palencia
+0x8005=Zamora
+0x8006=Ponferrada
+0x8007=Astorga
+0x8008=Segovia-Guiomar
+0x8009=Ávila
+0x800A=Soria
+
+# AVE Madrid-Valladolid-León
+0x001=Segovia-Guiomar
+0x002=Valladolid-Campo Grande
+0x003=Palencia
+0x004=Sahagún
+0x005=León
+
+# Línea Madrid-Burgos-Irún
+0x010=Aranda de Duero
+0x011=Burgos-Rosa de Lima
+0x012=Miranda de Ebro
+0x013=Vitoria-Gasteiz
+
+# Cercanías de Valladolid
+0x020=Valladolid-Campo Grande
+0x021=Valladolid-Universidad
+0x022=Laguna de Duero
+0x023=Boecillo
+0x024=Aldeamayor de San Martín
+0x025=Mojados
+0x026=Olmedo
+0x027=Medina del Campo
+0x028=Rueda
+0x029=Tordesillas
+0x02A=Simancas
+0x02B=Cigales
+0x02C=Corcos del Valle
+
+# Línea León-A Coruña (Eje Atlántico)
+0x030=León
+0x031=Astorga
+0x032=Bembibre
+0x033=Ponferrada
+0x034=O Barco de Valdeorras
+0x035=A Rúa
+0x036=Monforte de Lemos
+0x037=Sarria
+0x038=Lugo
+0x039=Baamonde
+0x03A=Betanzos-Ciudad
+0x03B=A Coruña
+
+# Línea Zamora-A Coruña (Vía de la Plata)
+0x040=Zamora
+0x041=Puebla de Sanabria
+0x042=Lubián
+0x043=A Gudiña
+0x044=Ourense
+0x045=Silleda
+0x046=Santiago de Compostela
+0x047=A Coruña
+
+# Línea Madrid-Salamanca-Portugal
+0x050=Salamanca
+0x051=Alba de Tormes
+0x052=Peñaranda de Bracamonte
+0x053=Medina del Campo
+0x054=Olmedo
+0x055=Segovia
+0x056=Madrid-Chamartín
+
+# Línea Palencia-Santander
+0x060=Palencia
+0x061=Venta de Baños
+0x062=Osorno
+0x063=Herrera de Pisuerga
+0x064=Alar del Rey
+0x065=Reinosa
+0x066=Mataporquera
+0x067=Los Corrales de Buelna
+0x068=Torrelavega
+0x069=Santander
+
+# Red ferroviaria de Burgos
+0x070=Burgos-Rosa de Lima
+0x071=Villafría
+0x072=Tardajos
+0x073=Olmillos de Sasamón
+0x074=Castrojeriz
+0x075=Frómista
+0x076=Carrión de los Condes
+0x077=Sahagún
+
+# Línea León-Bilbao
+0x080=León
+0x081=La Robla
+0x082=Matallana
+0x083=Cistierna
+0x084=Guardo
+0x085=Cervera de Pisuerga
+0x086=Aguilar de Campoo
+0x087=Reinosa
+
+# Estaciones de Soria
+0x090=Soria
+0x091=Almazán
+0x092=Medinaceli
+0x093=Arcos de Jalón
+0x094=Calatayud
+0x095=Zaragoza
+
+# Ramales históricos y secundarios
+0x0A0=Benavente
+0x0A1=Morales del Vino
+0x0A2=Toro
+0x0A3=Zamora-Empalme
+0x0A4=Carbajales de Alba
+0x0A5=Alcañices
+
+# Estaciones del Duero
+0x0B0=Tordesillas
+0x0B1=Toro
+0x0B2=Zamora
+0x0B3=Carbajales
+0x0B4=Miranda do Douro
+
+# Estaciones mineras de León
+0x0C0=La Robla
+0x0C1=Matallana de Torío
+0x0C2=Cistierna
+0x0C3=Boñar
+0x0C4=Vegamián
+0x0C5=Sabero
+
+# Líneas del norte de Burgos
+0x0D0=Quintanilla de las Viñas
+0x0D1=Briviesca
+0x0D2=Oña
+0x0D3=Pancorbo
+0x0D4=Miranda de Ebro
+
+# Estaciones de Ávila
+0x0E0=Ávila
+0x0E1=El Espinar
+0x0E2=Segovia
+0x0E3=Villalba de Guadarrama
+0x0E4=Los Molinos
+0x0E5=Cercedilla
+
+# Tranvía de León (proyecto)
+0x0F0=León-Centro
+0x0F1=Hospital de León
+0x0F2=Universidad de León
+0x0F3=Campus de Vegazana
+0x053=El Escorial
+0x054=Madrid-Chamartín
+
+# Línea Salamanca - Lisboa
+0x060=Salamanca
+0x061=Fuentes de Oñoro
+0x062=Vilar Formoso
+0x063=Guarda
+0x064=Coimbra
+0x065=Lisboa
+
+# Autobuses urbanos principales
+0x070=Estación Autobuses Valladolid
+0x071=Estación Autobuses León
+0x072=Estación Autobuses Burgos
+0x073=Estación Autobuses Salamanca
+0x074=Estación Autobuses Palencia
+0x075=Estación Autobuses Zamora
+0x076=Estación Autobuses Ávila
+0x077=Estación Autobuses Segovia
+0x078=Estación Autobuses Soria
+
+# Otras estaciones importantes
+0x080=Ponferrada
+0x081=Béjar
+0x082=Plasencia
+0x083=Cáceres
+0x084=Astorga
+0x085=Sahagún
+0x086=Reinosa
+0x087=Aguilar de Campoo
+0x088=Alar del Rey
+0x089=Venta de Baños
+0x08A=Dueñas
+0x08B=Quintanilla de Onésimo
+0x08C=Peñafiel
+0x08D=Aranda de Duero
+0x08E=Lerma
+0x08F=Burgos
+
+# Líneas regionales menores
+0x090=Soria
+0x091=Almazán
+0x092=Medinaceli
+0x093=Sigüenza
+0x094=Guadalajara
+0x095=Madrid
+0x096=El Espinar
+0x097=Segovia
+0x098=Medina de Pomar
+0x099=Villarcayo

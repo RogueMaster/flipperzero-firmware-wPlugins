@@ -1,0 +1,15 @@
+0,Charenton
+2,Croix de Chavaux
+3,Mairie de Montreuil
+4,Maisons-Alfort - Les Juilliottes
+5,Creteil - L'Echat
+6,Creteil - Universite
+7,Creteil - Prefecture
+8,Saint-Mande
+9,Pointe du Lac
+10,Berault
+11,Chateau de Vincennes
+12,Liberte
+13,Charenton - Ecoles
+14,Ecole Veterinaire de Maisons-Alfort
+15,Maisons-Alfort - Stade

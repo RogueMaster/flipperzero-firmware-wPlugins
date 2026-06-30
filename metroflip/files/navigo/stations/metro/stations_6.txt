@@ -1,0 +1,12 @@
+0,Saint-Lazare
+1,Malesherbes
+2,Monceau
+3,Villiers
+4,Quatre Septembre
+5,Opera
+7,Havre-Caumartin
+8,Saint-Lazare
+9,Saint-Lazare
+10,Saint-Augustin
+12,Europe
+13,Liege

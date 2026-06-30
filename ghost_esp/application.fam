@@ -1,0 +1,15 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="ghost_esp",  # Must be unique
+    name="[ESP32] Ghost ESP",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL, # type: ignore
+    entry_point="ghost_esp_app",
+    stack_size=6 * 1024,
+    fap_category="GPIO/ESP",
+    # Optional values
+    icon="A_GhostESP_14",
+    fap_version="1.7.0",
+    fap_icon="ghost_esp.png",  # 10x10 1-bit PNG
+    fap_icon_assets="images",  # Image assets to compile for this application
+)

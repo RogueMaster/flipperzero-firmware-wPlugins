@@ -1,0 +1,17 @@
+name: Lint
+on:
+    - push
+    - pull_request
+
+jobs:
+    all:
+        runs-on: ubuntu-latest
+        name: Lint
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+          - name: Linting
+            uses: flipperdevices/flipperzero-ufbt-action@v0.1.3
+            with:
+                sdk-channel: release
+                task: lint

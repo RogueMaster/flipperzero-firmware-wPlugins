@@ -1,0 +1,25 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="passy",  # Must be unique
+    name="Passport Reader",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="passy_app",
+    stack_size=2 * 1024,
+    fap_category="NFC",
+    # Optional values
+    fap_version="1.5",
+    fap_icon="passy.png",  # 10x10 1-bit PNG
+    fap_description="eMRTD Reader",
+    fap_author="bettse",
+    fap_weburl="https://github.com/bettse/passy",
+    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_libs=["mbedtls"],
+    sources=["*.c*", "!*.css"],
+    fap_private_libs=[
+        Lib(
+            name="asn1",
+            cflags=["-Wno-error", "-DASN_EMIT_DEBUG=0", "-Os", "-DASN_DISABLE_PER_SUPPORT=1"],
+        ),
+    ],
+)

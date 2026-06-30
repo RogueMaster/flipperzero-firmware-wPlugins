@@ -1,0 +1,10 @@
+#pragma once
+#include <stdint.h>
+#include <gui/view.h>
+#include <gui/elements.h>
+typedef enum
+{
+    FONT_SIZE_SMALL = 1,
+} FontSize;
+extern bool canvas_set_font_custom(Canvas *canvas, FontSize font_size);
+extern void canvas_draw_str_multi(Canvas *canvas, uint8_t x, uint8_t y, const char *str);

@@ -1,0 +1,13 @@
+0,Clichy - Saint Ouen
+1,Mairie de Clichy
+2,Gabriel Peri
+3,Les Agnettes
+4,Asnieres - Gennevilliers Les Courtilles
+5,Saint-Ouen
+6,Mairie de Saint-Ouen
+7,Saint-Denis - Pleyel
+10,Garibaldi
+11,Mairie de Saint-Ouen
+13,Carrefour Pleyel
+14,Saint-Denis - Porte de Paris
+15,Basilique de Saint-Denis

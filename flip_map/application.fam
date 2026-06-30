@@ -1,0 +1,14 @@
+App(
+    appid="flip_map",
+    name="FlipMap",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_map_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/FlipperHTTP",
+    fap_icon_assets="assets",
+    fap_description="Find Flipper Zero Users", 
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipMap/",
+    fap_version="0.2.2",
+)

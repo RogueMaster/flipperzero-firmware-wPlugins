@@ -1,0 +1,122 @@
+# Navarra - RENFE y transporte regional
+# Códigos de estaciones del transporte público en Navarra
+# Formato: código=nombre_de_estación
+
+# Línea Madrid - Irún (por Navarra)
+0x001=Alsasua
+0x002=Irurtzun
+0x003=Pamplona
+0x004=Noáin
+0x005=Marcilla
+0x006=Castejón
+0x007=Tudela
+0x008=Corella
+0x009=Cintruénigo
+
+# Cercanías Pamplona
+0x010=Pamplona
+0x011=Villava
+0x012=Burlada
+0x013=Huarte-Uharte
+0x014=Ansoáin
+0x015=Berriozar
+0x016=Noáin-Aeropuerto
+
+# Línea Pamplona - San Sebastián
+0x020=Pamplona
+0x021=Alsasua
+0x022=Beasain
+0x023=Zumarraga
+0x024=San Sebastián-Atotxa
+
+# Línea Castejón - Bilbao
+0x030=Castejón
+0x031=Tudela
+0x032=Tarazona
+0x033=Ágreda
+0x034=Soria
+0x035=Arcos de Jalón
+0x036=Medinaceli
+0x037=Sigüenza
+0x038=Guadalajara
+0x039=Madrid
+
+# Autobuses urbanos de Pamplona
+0x040=Estación Autobuses Pamplona
+0x041=Plaza del Castillo
+0x042=Ayuntamiento
+0x043=Universidad de Navarra
+0x044=Universidad Pública de Navarra
+0x045=Hospital de Navarra
+0x046=Ciudadela
+0x047=Casco Viejo
+0x048=Ensanche
+0x049=Rochapea
+0x04A=San Juan
+0x04B=Iturrama
+0x04C=Mendebaldea
+0x04D=Azpilagaña
+0x04E=Buztintxuri
+0x04F=Mendillorri
+
+# Otras estaciones importantes de Navarra
+0x050=Tafalla
+0x051=Olite
+0x052=Caparroso
+0x053=Cadreita
+0x054=Valtierra
+0x055=Arguedas
+0x056=Milagro
+0x057=Corella
+0x058=Cintruénigo
+0x059=Ablitas
+0x05A=Barillas
+0x05B=Ribaforada
+0x05C=Buñuel
+0x05D=Cortes
+
+# Valle del Roncal y otros valles
+0x060=Sangüesa
+0x061=Yesa
+0x062=Javier
+0x063=Lumbier
+0x064=Aoiz
+0x065=Burguete
+0x066=Roncevaux
+0x067=Isaba
+0x068=Ochagavía
+0x069=Orbaitzeta
+
+# Zona norte - Baztán y alrededores
+0x070=Elizondo
+0x071=Maya
+0x072=Urdax
+0x073=Zugarramurdi
+0x074=Vera de Bidasoa
+0x075=Lesaka
+0x076=Bera
+0x077=Etxalar
+0x078=Arantza
+
+# Zona este - Sangüesa y alrededores
+0x080=Sangüesa
+0x081=Sos del Rey Católico
+0x082=Uncastillo
+0x083=Sádaba
+0x084=Ejea de los Caballeros
+0x085=Tauste
+0x086=Gallur
+0x087=Mallén
+0x088=Borja
+0x089=Magallón
+
+# Líneas a Francia
+0x090=Irún
+0x091=Hendaia
+0x092=San Juan de Luz
+0x093=Bayona
+0x094=Biarritz
+0x095=Pau
+0x096=Lourdes
+0x097=Tarbes
+0x098=Toulouse

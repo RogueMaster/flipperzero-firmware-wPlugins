@@ -1,0 +1,55 @@
+name: "FAP Build"
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    # do a build every day
+    - cron: "1 1 * * *"
+jobs:
+  ufbt-build-action:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: OFW dev channel
+            sdk-channel: dev
+            fap-name: ofw_dev
+          - name: OFW release channel
+            sdk-channel: release
+            fap-name: ofw_release
+          - name: Unleashed dev
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            sdk-channel: dev
+            fap-name: ul_dev
+          - name: Unleashed release
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            sdk-channel: release
+            fap-name: ul_release
+          - name: Momentum dev
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+            sdk-channel: dev
+            fap-name: mntm_dev
+          - name: Momentum release
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+            sdk-channel: release
+            fap-name: mntm_release
+
+    name: 'ufbt: Build for ${{ matrix.name }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.2
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url }}
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: protopirate_${{ matrix.fap-name }}_${{ steps.build-app.outputs.suffix }}.fap
+          path: ${{ steps.build-app.outputs.fap-artifacts }}

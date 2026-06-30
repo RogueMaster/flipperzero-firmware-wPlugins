@@ -1,0 +1,48 @@
+/* Copyright 2020-{current_year} Espressif Systems (Shanghai) CO LTD
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// auto-generated stubs from esp-flasher-stub v{stub_version}
+
+#include "esp_stubs.h"
+
+static bool stub_running = false;
+
+bool esp_stub_get_running(void)
+{{
+    return stub_running;
+}}
+
+void esp_stub_set_running(bool stub_status)
+{{
+    stub_running = stub_status;
+}}
+
+#if (defined SERIAL_FLASHER_INTERFACE_UART) || (defined SERIAL_FLASHER_INTERFACE_USB)
+
+#if __STDC_VERSION__ >= 201112L
+_Static_assert(ESP8266_CHIP == 0, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32_CHIP == 1, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32S2_CHIP == 2, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32C3_CHIP == 3, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32S3_CHIP == 4, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32C2_CHIP == 5, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32C5_CHIP == 6, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32H2_CHIP == 7, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32C6_CHIP == 8, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP32P4_CHIP == 9, "Stub order matches target_chip_t enumeration");
+_Static_assert(ESP_MAX_CHIP == {max_chip_number}, "Stub order matches target_chip_t enumeration");
+#endif
+
+const esp_stub_t esp_stub[ESP_MAX_CHIP] = {{

@@ -1,0 +1,30 @@
+author: 'luu176'
+category: 'NFC'
+changelog: '@./CHANGELOG.md'
+description: '@./app/README.md'
+icon: 'icon.png'
+id: 'metroflip'
+name: 'Metroflip'
+screenshots:
+  - 'screenshots/Menu-Top.png'
+  - 'screenshots/Menu-Middle.png'
+  - 'screenshots/Navigo.png'
+  - 'screenshots/Suica_Balance.png'
+  - 'screenshots/Suica_Vend1.png'
+  - 'screenshots/Suica_Vend2.png'
+  - 'screenshots/Suica_Issue1.png'
+  - 'screenshots/Suica_Store1.png'
+  - 'screenshots/Suica_Train1.png'
+  - 'screenshots/Suica_Train2.png'
+  - 'screenshots/Suica_Issue2.png'
+  - 'screenshots/Suica_Store2.png'
+  
+  
+short_description: 'An implementation of Metrodroid on the Flipper Zero'
+sourcecode:
+  location:
+    commit_sha: 3548f18ae0dfd41fe592561c31e26a6c29154aa2
+    origin: https://github.com/luu176/Metroflip
+    subdir:
+  type: git
+version: 1.1

@@ -1,0 +1,10 @@
+0,Auteuil
+3,Porte de Saint-Cloud
+7,Porte d'Auteuil
+8,Eglise d'Auteuil
+9,Michel-Ange - Auteuil
+10,Michel-Ange - Molitor
+11,Chardon Lagache
+12,Mirabeau
+14,Exelmans
+15,Jasmin

@@ -1,0 +1,3 @@
+Sphinx==8.0.2
+myst-parser==4.0.0
+hatch==1.12.0

@@ -1,0 +1,7 @@
+0,Vanves
+2,Porte de Vanves
+3,Barbara
+4,Bagneux - Lucie Aubrac
+7,Malakoff - Plateau de Vanves
+8,Malakoff - Rue Etienne Dolet
+9,Chatillon-Montrouge

@@ -1,0 +1,22 @@
+Filetype: Flipper Picopass device
+Version: 1
+Credential: 00 00 00 00 00 00 00 00
+# Picopass blocks
+Block 0: 6D C2 5B 15 FE FF 12 E0
+Block 1: 12 FF FF FF 7F 1F FF 3C
+Block 2: FF FF FF FF 05 FE FF FF
+Block 3: B2 45 35 54 FC 7F 41 48
+Block 4: FF FF FF FF FF FF FF FF
+Block 5: FF FF FF FF FF FF FF FF
+Block 6: 00 00 00 00 00 00 00 1C
+Block 7: 00 00 00 00 00 00 00 00
+Block 8: FF FF FF FF FF FF FF FF
+Block 9: FF FF FF FF FF FF FF FF
+Block 10: FF FF FF FF FF FF FF FF
+Block 11: FF FF FF FF FF FF FF FF
+Block 12: FF FF FF FF FF FF FF FF
+Block 13: FF FF FF FF FF FF FF FF
+Block 14: FF FF FF FF FF FF FF FF
+Block 15: FF FF FF FF FF FF FF FF
+Block 16: FF FF FF FF FF FF FF FF
+Block 17: FF FF FF FF FF FF FF FF

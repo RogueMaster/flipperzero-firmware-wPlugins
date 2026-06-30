@@ -1,0 +1,43 @@
+name: "Update Current OFW Version"
+on:
+  push:
+  release:
+    types:
+      - published
+  workflow_dispatch:    # Allows manual trigger
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Get latest release version
+      id: get-release
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const repo = 'flipperdevices/flipperzero-firmware';
+          const response = await github.rest.repos.getLatestRelease({
+            owner: repo.split('/')[0],
+            repo: repo.split('/')[1],
+          });
+          return response.data.tag_name;
+
+    - name: Update README.md
+      run: |
+        RELEASE_VERSION=${{ steps.get-release.outputs.result }}
+        sed -i "s/Current OFW Version: .*/Current OFW Version: ${RELEASE_VERSION}/" README.md
+
+    - name: Commit and push changes
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "Update README with release version ${{ steps.get-release.outputs.result }}"
+        file_pattern: README.md

@@ -1,0 +1,16 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="saflip",  # Must be unique
+    name="SaFlip",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="saflip_app",
+    stack_size=2 * 1024,
+    fap_category="NFC",
+    # Optional values
+    fap_version="0.1",
+    fap_icon="icon.png",
+    fap_author="Aaronjamt",
+    fap_weburl="https://github.com/aaronjamt/saflip",
+    fap_description="SaFlip Hospitality Tool for Flipper Zero"
+)

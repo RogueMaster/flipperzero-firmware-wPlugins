@@ -1,0 +1,17 @@
+App(
+    appid="flip_tdi",
+    name="[FTDI232H] FlipTDI",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_tdi_app",
+    requires=[
+        "gui",
+        "dialogs",
+    ],
+    stack_size=2 * 1024,
+    fap_description="Flipper FTDI232H emulator.",
+    fap_version="1.0",
+    fap_icon="flip_tdi_icon_10px.png",
+    fap_category="GPIO/Debug",
+    fap_icon_assets="images",
+    fap_author="SkorP",
+)

@@ -1,0 +1,13 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/alanfortlink/fzspground.git
+    commit_sha: fd3c2480001828801434c4f2616739daca50fbc2
+short_description: Space Playground for Flipper Zero
+description: |
+  This is a screensaver that simulates a space with planets and asteroids.
+  You can configure the simlation to your liking, including the number of planets, gravity, and speed.
+changelog: "./changelog.md"
+screenshots:
+  - screenshots/ss2.png
+  - screenshots/ss1.png

@@ -1,0 +1,46 @@
+name: Build and Upload FAP to Release
+
+on:
+  workflow_dispatch: 
+
+permissions:
+  contents: write 
+
+jobs:
+  build-and-upload:
+    name: Build and Upload FAP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Extract Version from Manifest
+        id: extract_version
+        run: |
+          VERSION=$(grep '^version:' manifest.yml | awk '{print $2}')
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install UFBT
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ufbt
+
+      - name: Initialize UFBT Environment
+        run: |
+          ufbt update
+          ufbt vscode_dist
+
+      - name: Build FAP Applications
+        run: ufbt faps
+
+      - name: Upload Build Outputs to Release
+        run: |
+          gh release upload v${{ env.VERSION }} /home/runner/.ufbt/build/metroflip.fap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

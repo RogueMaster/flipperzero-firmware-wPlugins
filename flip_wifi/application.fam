@@ -1,0 +1,14 @@
+App(
+    appid="flip_wifi",
+    name="FlipWiFi",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_wifi_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/FlipperHTTP",
+    fap_icon_assets="assets",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipWiFi",
+    fap_version="1.6.3",
+    fap_description="FlipperHTTP companion app.",
+)

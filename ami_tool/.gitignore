@@ -1,0 +1,12 @@
+# ufbt files and IDE settings
+dist/*
+.vscode
+.idea
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+
+# Experimental scripts and data
+/experiment/*

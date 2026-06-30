@@ -1,0 +1,20 @@
+App(
+    appid="ibutton_converter",
+    name="iButton Converter",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="ibutton_converter_app",
+    stack_size=2 * 1024,
+    order=1,
+    requires=[
+        "storage",
+        "gui",
+    ],
+    fap_version="1.1",
+    fap_icon="assets/icon.png",
+    fap_category="iButton",
+    fap_author="@leptopt1los",
+    fap_weburl="https://github.com/Leptopt1los/ibutton_converter",
+    fap_description="Cyfral and Metakom to Dallas converter",
+    fap_icon_assets="assets",
+)

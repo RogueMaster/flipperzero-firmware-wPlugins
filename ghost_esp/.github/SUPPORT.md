@@ -1,0 +1,1 @@
+For support, please open an [issue](https://github.com/jaylikesbunda/ghost_esp_app/issues) on the repository or contact [Jay](https://github.com/jaylikesbunda) (@fuckyoudeki on [Discord](https://discord.gg/5cyNmUMgwh)).

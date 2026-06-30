@@ -1,0 +1,13 @@
+App(
+    appid="fmatrix",
+    name="Fmatrix",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="matrix_app",
+    fap_category="Media",
+    fap_author="misterwaztaken",
+    fap_icon="fmatrix.png",
+    stack_size=2 * 1024,
+    fap_description="Displays a 'matrix rain' screensaver. ",
+    fap_weburl="https://github.com/user/misterwaztaken",
+    fap_icon_assets="images",
+)

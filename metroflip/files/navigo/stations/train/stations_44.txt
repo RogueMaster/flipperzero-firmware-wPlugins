@@ -1,0 +1,20 @@
+12,1,Essonnes Robinson
+12,2,Villabe
+13,1,Le Plessis Chenet
+13,2,Le Coudray-Montceaux
+13,3,Saint-Fargeau
+14,1,Ponthierry - Pringy
+14,2,Boissise-le-Roi
+15,1,Vosves
+16,1,Bois-le-Roi
+16,2,Le Coudray-Montceaux
+17,1,Fontainebleau - Avon
+17,2,Thomery
+17,3,Moret - Veneux-les-Sablons
+17,4,Montigny-sur-Loing
+17,5,Bourron-Marlotte - Grez
+17,6,Nemours-Saint-Pierre
+17,7,Bagneaux-sur-Loing
+17,8,Souppes - Chateau-Landon
+17,9,Saint-Mammes
+17,10,Montereau

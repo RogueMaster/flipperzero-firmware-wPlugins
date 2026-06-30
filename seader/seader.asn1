@@ -1,0 +1,250 @@
+Seader DEFINITIONS IMPLICIT TAGS ::=
+BEGIN
+
+Protocol ::= OCTET STRING  -- UHF module constrains this to SIZE (1..2)
+RfStatus ::= OCTET STRING
+SamResponse ::= OCTET STRING
+-- omnikey_5326_dfr_softwaredeveloperguide 4.2
+PAC ::= BIT STRING
+NoArguments ::= NULL
+
+-- omnikey_5326_dfr_softwaredeveloperguide 3.3
+Payload ::= CHOICE {
+  samCommand [0] SamCommand, --aka SioAPI
+  nfcCommand [1] NFCCommand,
+  i2cCommand [10] I2CCommand,
+  response [29] Response,
+  errorResponse [30] ErrorResponse
+}
+
+I2CCommand ::= SEQUENCE {
+  header [0] OCTET STRING,
+  busAddress [1] INTEGER,
+  uhfModuleCommand [22] UHFModuleCommand
+}
+
+ErrorResponse ::= SEQUENCE {
+  errorCode [0] INTEGER,
+  data [1] OCTET STRING
+}
+
+SamCommand ::= CHOICE {
+  version [2] NULL,
+  cardDetected [13] CardDetected,
+  processSNMPMessage [20] OCTET STRING,
+  serialNumber [22] NoArguments,
+  getItemKCV [43] OCTET STRING,
+  requestPacs2 [30] RequestPacs,
+  processConfigCard [26] NoArguments
+}
+
+CardDetected ::= SEQUENCE {
+  detectedCardDetails [0] CardDetails
+}
+
+Pacs2 ::= SEQUENCE {
+  bits [0] OCTET STRING OPTIONAL,
+  oid [1] OCTET STRING OPTIONAL,
+  type [2] SoMediaEdgeType OPTIONAL
+}
+
+SamResponse2 ::= CHOICE {
+  pacs [0] Pacs2
+}
+
+Response ::= CHOICE {
+  nfcResponse [0] NFCResponse,
+  samResponse [10] SamResponse,
+  uhfModuleResponse [23] UHFModuleResponse,
+  samResponse2 [19] SamResponse2
+}
+
+NFCResponse ::= CHOICE {
+  nfcRx [0] NFCRx,
+  nfcAck [2] NULL
+}
+
+NFCRx ::= SEQUENCE {
+  data [0] OCTET STRING OPTIONAL,
+  rfStatus [1] RfStatus
+}
+
+NFCCommand ::= CHOICE {
+  nfcSend [1] NFCSend,
+  nfcOff [2] NULL
+}
+
+NFCSend ::= SEQUENCE {
+  data [0] OCTET STRING,
+  protocol [1] Protocol,
+  timeOut [2] INTEGER,
+  format [5] OCTET STRING OPTIONAL
+}
+
+-- omnikey_5326_dfr_softwaredeveloperguide 4.2
+RequestPacs ::= SEQUENCE {
+  contentElementTag [0] ContentElementTag,
+  oid [4] OCTET STRING OPTIONAL
+}
+
+-- omnikey_5326_dfr_softwaredeveloperguide 4.2
+-- omnikey_5025_cl_software_developer_guide_mn_en 6.2
+ContentElementTag ::= ENUMERATED {
+  implicitFormatPhysicalAccessBits (4)
+}
+
+FrameProtocol ::= ENUMERATED {
+  none (0),
+  nfc (2),
+  iclass (4)
+}
+
+SoMediaEdgeType ::= ENUMERATED {
+  unknown (0),
+  desfire (1),
+  mifare (2),
+  picoPass (3),
+  mifarePlus (6),
+  seos (7),
+  uhf (10)
+}
+
+SamVerionDetails ::= SEQUENCE {
+  zero [0] OCTET STRING,
+  one [1] OCTET STRING,
+  two [2] OCTET STRING,
+  three [3] OCTET STRING
+}
+
+SamVersion ::= SEQUENCE {
+  version [0] OCTET STRING,
+  firmware [1] OCTET STRING,
+  type [2] OCTET STRING,
+  extra [5] SamVerionDetails OPTIONAL
+}
+
+-- Black Hat Asia 25: Dismantling-the-seos-protocol.
+
+Key ::= SEQUENCE {
+  referenceId [1] OCTET STRING,
+  crypto OCTET STRING
+}
+
+PACS ::= SEQUENCE {
+  payload [5] OCTET STRING
+}
+
+SIO ::= SEQUENCE {
+  rid [1] OCTET STRING,
+  unknown3 [3] OCTET STRING OPTIONAL,
+  unknown5 [5] NULL,
+  key [6] Key,
+  pacs [7] PACS,
+  unknown9 [9] NULL
+}
+
+-- UHF Module reverse engineering from U90
+
+-- Boxed INTEGER constrained to uint32 range; used as RF run-timer ms value
+RunTimerValue ::= INTEGER (0..4294967295)
+
+CardDetails ::= SEQUENCE {
+  protocol       [0] Protocol,
+  csn            [1] OCTET STRING,
+  atsOrAtqbOrAtr [2] OCTET STRING              OPTIONAL,  -- aka atqa/atqb/atr
+  sak            [3] OCTET STRING (SIZE (0..1)) OPTIONAL,
+  cid            [4] OCTET STRING (SIZE (0..1)) OPTIONAL,
+  fwi            [5] OCTET STRING (SIZE (0..1)) OPTIONAL,
+  runTimer       [6] RunTimerValue              OPTIONAL,
+  doTcl          [7] BOOLEAN                   OPTIONAL,
+  fsd            [8] INTEGER                   OPTIONAL
+}
+
+I2CClockSpeed ::= ENUMERATED {
+    i2c100KHz  (100),   -- 0x0064
+    i2c400KHz  (400),   -- 0x0190
+    i2c1000KHz (1000)   -- 0x03E8
+}
+
+UHFModuleTransactionStatus ::= ENUMERATED {
+    unknown              (0),
+    success              (1),
+    failure              (2),
+    antipassBackRejected (3)
+}
+
+-- Commands (host -> UHF module); each alternative identified by context tag [0]..[7]
+
+UHFModuleCommandGetVersion ::= NULL        -- request firmware/hardware version string
+
+UHFModuleCommandGetStatus ::= NULL         -- request current field/inventory status
+
+UHFModuleCommandTransceive ::= SEQUENCE {  -- send raw RF command bits to a tag
+    command  [0] BIT STRING
+}
+
+UHFModuleCommandDeactivateMedia ::= SEQUENCE {  -- mark a specific tag as used/deactivated
+    mediaEPC          [0] OCTET STRING,
+    transactionStatus [1] UHFModuleTransactionStatus
+}
+
+UHFModuleCommandGetProperties ::= NULL     -- query module capability properties
+
+UHFModuleCommandSetConfiguration ::= SEQUENCE {  -- write module configuration (not used?)
+    unknown  [0] OCTET STRING  OPTIONAL
+}
+
+UHFModuleCommandSetAccessPassword ::= OCTET STRING  -- EPC Gen2 access password
+
+UHFModuleCommandGetPrivateData ::= NULL    -- read TID and user-data memory banks
+
+UHFModuleCommand ::= CHOICE {
+    uhfModuleCommandGetVersion        [0] UHFModuleCommandGetVersion,
+    uhfModuleCommandGetStatus         [1] UHFModuleCommandGetStatus,
+    uhfModuleCommandTransceive        [2] UHFModuleCommandTransceive,
+    uhfModuleCommandDeactivateMedia   [3] UHFModuleCommandDeactivateMedia,
+    uhfModuleCommandGetProperties     [4] UHFModuleCommandGetProperties,
+    uhfModuleCommandSetConfiguration  [5] UHFModuleCommandSetConfiguration,
+    uhfModuleCommandSetAccessPassword [6] UHFModuleCommandSetAccessPassword,
+    uhfModuleCommandGetPrivateData    [7] UHFModuleCommandGetPrivateData
+}
+
+-- Responses (UHF module -> host); tag assignments mirror UHFModuleCommand
+
+UHFModuleResponseVersion ::= OCTET STRING  -- version payload (firmware/hardware string)
+
+UHFModuleResponseStatus ::= SEQUENCE {     -- current status; mediaInfo present when tag in field
+    mediaInfo  [0] CardDetails  OPTIONAL
+}
+
+UHFModuleResponseTransceive ::= SEQUENCE { -- raw RF response bits; absent on error
+    response  [0] BIT STRING  OPTIONAL
+}
+
+UHFModuleResponseDeactivateMedia ::= NULL  -- deactivate acknowledged
+
+UHFModuleResponseGetProperties ::= SEQUENCE {
+    i2cMaxClockSpeedInKHz  [0] I2CClockSpeed  OPTIONAL
+}
+
+UHFModuleResponseSetConfiguration ::= NULL -- configuration write acknowledged
+
+UHFModuleResponseSetAccessPassword ::= NULL -- access password write acknowledged
+
+UHFModuleResponseGetPrivateData ::= SEQUENCE { -- TID + user memory read response
+    tid       [0] OCTET STRING,
+    userData  [1] OCTET STRING
+}
+
+UHFModuleResponse ::= CHOICE {
+    uhfModuleResponseVersion           [0] UHFModuleResponseVersion,
+    uhfModuleResponseStatus            [1] UHFModuleResponseStatus,
+    uhfModuleResponseTransceive        [2] UHFModuleResponseTransceive,
+    uhfModuleResponseDeactivateMedia   [3] UHFModuleResponseDeactivateMedia,
+    uhfModuleResponseGetProperties     [4] UHFModuleResponseGetProperties,
+    uhfModuleResponseSetConfiguration  [5] UHFModuleResponseSetConfiguration,
+    uhfModuleResponseSetAccessPassword [6] UHFModuleResponseSetAccessPassword,
+    uhfModuleResponseGetPrivateData    [7] UHFModuleResponseGetPrivateData
+}
+
+END

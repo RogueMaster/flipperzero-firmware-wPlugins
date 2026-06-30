@@ -1,0 +1,44 @@
+Filetype: Flipper Wedge Keyboard Layout
+Version: 1
+Name: French AZERTY
+
+# French AZERTY keyboard layout
+# Numbers require SHIFT on French keyboards
+# Unshifted number row: & é " ' ( - è _ ç à
+# Shifted number row:   1 2 3 4 5 6 7 8 9 0
+#
+# Format: <char>: <hid_keycode_decimal> [SHIFT]
+# HID keycodes: https://usb.org/sites/default/files/hut1_21.pdf (page 83)
+
+# Digits - need SHIFT on French AZERTY
+0: 39 SHIFT
+1: 30 SHIFT
+2: 31 SHIFT
+3: 32 SHIFT
+4: 33 SHIFT
+5: 34 SHIFT
+6: 35 SHIFT
+7: 36 SHIFT
+8: 37 SHIFT
+9: 38 SHIFT
+
+# Hex letters (uppercase) - AZERTY layout with SHIFT
+# Note: A and Q are swapped, Z and W are swapped on AZERTY
+A: 20 SHIFT
+B: 5 SHIFT
+C: 6 SHIFT
+D: 7 SHIFT
+E: 8 SHIFT
+F: 9 SHIFT
+
+# Hex letters (lowercase) - AZERTY layout
+a: 20
+b: 5
+c: 6
+d: 7
+e: 8
+f: 9
+
+# Common delimiters (adjust for your specific layout)
+-: 45
+:: 55 SHIFT

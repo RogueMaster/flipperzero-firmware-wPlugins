@@ -1,0 +1,7 @@
+0xD2,0x02,Den-en-toshi,Shibuya,1,0
+0xD2,0x04,Den-en-toshi,Ikejiri-ohashi,2,0
+0xD2,0x06,Den-en-toshi,Sangen-jaya,3,0
+0xD2,0x08,Den-en-toshi,Komazawa-daigaku,4,0
+0xD2,0x0A,Den-en-toshi,Sakura-shinmachi,5,0
+0xD2,0x0C,Den-en-toshi,Yoga,6,0
+0xD2,0x0E,Den-en-toshi,Futako-tamagawa,7,0

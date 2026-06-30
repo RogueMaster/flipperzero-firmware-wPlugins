@@ -1,0 +1,125 @@
+name: "FAP Build & Release"
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+  #schedule:
+    # do a build every day
+  #  - cron: "1 1 * * *"
+jobs:
+  ufbt-build-action:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: dev channel
+            sdk-channel: dev
+          - name: release channel
+            sdk-channel: release
+          - name: Unleashed dev
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            sdk-channel: dev
+          - name: Unleashed release
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            sdk-channel: release
+    name: 'ufbt: Build for ${{ matrix.name }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.2
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url }}
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+
+  create-draft-release:
+    runs-on: ubuntu-latest
+    needs: ufbt-build-action
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Extract version from application.fam
+        id: get-version
+        run: |
+          echo "=== application.fam contents ==="
+          cat application.fam
+          echo "================================"
+
+          # Handles both formats:
+          # fap_version="1.3"  (string)
+          # fap_version=(1, 3)  (tuple)
+          VERSION=$(python3 -c "
+          import re, sys
+          content = open('application.fam').read()
+          match = re.search(r'fap_version\s*=\s*[\"\']([\d.]+)[\"\']', content) or \
+                  re.search(r'fap_version\s*=\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)', content)
+          if not match:
+              print('Could not find fap_version', file=sys.stderr)
+              sys.exit(1)
+          if match.lastindex == 1:
+              print(match.group(1))
+          else:
+              print(f'{match.group(1)}.{match.group(2)}')
+          ")
+
+          echo "Extracted version: ${VERSION}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Delete existing release and tag if present
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.get-version.outputs.version }}"
+          gh release delete "$TAG" --repo ${{ github.repository }} --yes 2>/dev/null || true
+          git push origin ":refs/tags/$TAG" 2>/dev/null || true
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Rename artifacts to avoid filename conflicts
+        run: |
+          find artifacts/ -name "*.fap" | while read fap; do
+            dir=$(basename $(dirname "$fap"))
+            mv "$fap" "artifacts/${dir}.fap"
+          done
+          find artifacts/ -type d -empty -delete
+          echo "Release assets:"
+          ls artifacts/*.fap
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: "FlipCheckers v${{ steps.get-version.outputs.version }}"
+          tag_name: "v${{ steps.get-version.outputs.version }}"
+          files: artifacts/*.fap
+          fail_on_unmatched_files: false
+          body: |
+            ## FlipCheckers v${{ steps.get-version.outputs.version }}
+
+            Built from commit ${{ github.sha }}.
+
+            ### Firmware builds included:
+            - 🐬 Official firmware — dev channel
+            - 🐬 Official firmware — release channel
+            - 🔓 Unleashed firmware — dev channel
+            - 🔓 Unleashed firmware — release channel
+
+            ### Installation
+            Copy the `.fap` file matching your firmware to `SD Card/apps/Games/` on your Flipper Zero.

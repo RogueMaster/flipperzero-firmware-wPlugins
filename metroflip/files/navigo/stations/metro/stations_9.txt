@@ -1,0 +1,8 @@
+0,Austerlitz
+1,Quai de la Gare
+2,Chevaleret
+4,Saint-Marcel
+7,Gare d'Austerlitz
+8,Gare de Lyon
+10,Quai de la Rapee
+14,Gare de Lyon

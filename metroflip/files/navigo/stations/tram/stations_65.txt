@@ -1,0 +1,45 @@
+2,1,Porte d'Issy
+2,4,Suzanne Lenglen
+2,6,La Courneuve - 8 Mai 1945
+3,10,Henri Farman
+7,1,Bois de Saint-Eutrope
+7,2,Traite de Rome
+7,3,Bois Briard
+7,4,Evry - Courcouronnes
+8,6,Viroflay - Rive Droite
+8,8,Viroflay - Rive Gauche
+11,4,Massy Europe
+11,5,Massy-Palaiseau
+11,14,Porte d'Ivry
+12,3,Longjumeau
+12,4,Champlan
+12,5,Balard
+12,8,Desnouettes
+12,9,Porte de Versailles - Parc des Expositions
+12,10,Georges Brassens
+12,11,Brancion
+12,13,Porte de Vanves
+12,14,Didot
+12,15,Jean Moulin
+13,0,Porte d'Orleans
+13,1,Montsouris
+13,2,Cite Universitaire
+13,3,Stade Charlety - Porte de Gentilly
+13,4,Poterne des Peupliers
+13,5,Porte d'Italie
+13,6,Porte de Choisy
+14,5,Gravigny Balizy
+14,6,Petit Vaux
+15,1,Parc du Chateau
+15,2,Coteaux de l'Orge
+15,3,Amedee Gordini
+15,4,Ferme Neuve
+16,11,Mairie de Villeneuve-la-Garenne
+17,0,Jean Rostand
+17,4,Asnieres - Quatre Routes
+29,7,Vauban
+29,9,Centre de Chatillon
+29,12,Parc Andre Malraux
+29,14,Division Leclerc
+30,0,Soleil Levant
+30,2,Hopital Beclere

@@ -1,0 +1,114 @@
+{
+    "name": "Chamber",
+    "balls": [
+        {
+            "position": [ 390, 400 ]
+        }
+    ],
+    "flippers": [
+        {
+            "position": [ 20, 1160 ],
+            "side": "LEFT",
+            "size": 220
+        },
+        {
+            "position": [ 610, 1160 ],
+            "side": "RIGHT",
+            "size": 220
+        }
+    ],
+    "arcs": [
+        {
+            "position": [ 147, 200 ],
+            "radius": 200,
+            "start_angle": 30,
+            "end_angle": 90,
+            "surface": "INSIDE"
+        },
+        {
+            "position": [ 493, 200 ],
+            "radius": 200,
+            "start_angle": 90,
+            "end_angle": 150,
+            "surface": "INSIDE"
+        },
+        {
+            "position": [ 147, 160 ],
+            "radius": 200,
+            "start_angle": 270,
+            "end_angle": 330,
+            "surface": "INSIDE"
+        },
+        {
+            "position": [ 493, 160 ],
+            "radius": 200,
+            "start_angle": 210,
+            "end_angle": 270,
+            "surface": "INSIDE"
+        }
+    ],
+    "rails": [
+        {
+            "start": [ 0, 0 ],
+            "end": [ 147, 0 ]
+        },
+        {
+            "start": [ 493, 0 ],
+            "end": [ 630, 0 ]
+        },
+        {
+            "start": [ 0, 360 ],
+            "end": [ 147, 360 ]
+        },
+        {
+            "start": [ 493, 360 ],
+            "end": [ 630, 360 ]
+        },
+        {
+            "start": [ 0, 360 ],
+            "end": [ 0, 1160 ]
+        },
+        {
+            "start": [ 630, 1160 ],
+            "end": [ 630, 360 ]
+        },
+        {
+            "start": [ 630, 360 ],
+            "end": [ 0, 360 ]
+        },
+        {
+            "start": [ 0, 60 ],
+            "end": [ 0, 300 ]
+        },
+        {
+            "start": [ 630, 300 ],
+            "end": [ 630, 60 ]
+        }
+    ],
+    "portals": [
+        {
+            "a_start": [ 0, 300 ],
+            "a_end": [ 0, 360 ],
+            "b_start": [ 0, 1000 ],
+            "b_end": [ 120, 1000 ]
+        },
+        {
+            "a_start": [ 630, 360 ],
+            "a_end": [ 630, 300 ],
+            "b_start": [ 260, 500 ],
+            "b_end": [ 160, 500 ]
+        },
+        {
+            "a_start": [ 0, 0 ],
+            "a_end": [ 0, 60 ],
+            "b_start": [ 340, 800 ],
+            "b_end": [ 460, 800 ]
+        },
+        {
+            "a_start": [ 630, 60 ],
+            "a_end": [ 630, 0 ],
+            "b_start": [ 630, 700 ],
+            "b_end": [ 510, 620 ]
+        }
+    ]
+}

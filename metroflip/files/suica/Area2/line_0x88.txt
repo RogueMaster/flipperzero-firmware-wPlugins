@@ -1,0 +1,11 @@
+0x88,0x07,#8 Imazatosuji,Itakano,11,0
+0x88,0x09,#8 Imazatosuji,Zuiko 4-chome,12,0
+0x88,0x0B,#8 Imazatosuji,Daido-Toyosato,13,0
+0x88,0x0D,#8 Imazatosuji,Taishibashi-Imaichi,14,0
+0x88,0x0F,#8 Imazatosuji,Shimizu,15,0
+0x88,0x11,#8 Imazatosuji,Shinmori-Furuichi,16,0
+0x88,0x13,#8 Imazatosuji,Sekime-Seiiku,17,0
+0x88,0x15,#8 Imazatosuji,Gamo 4-chome,18,0
+0x88,0x17,#8 Imazatosuji,Shigino,19,0
+0x88,0x19,#8 Imazatosuji,Midoribashi,20,0
+0x88,0x1B,#8 Imazatosuji,Imazato,21,0

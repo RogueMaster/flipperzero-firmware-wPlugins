@@ -1,0 +1,27 @@
+# Please refer to:
+# https://developer.flipper.net/flipperzero/doxygen/app_manifests.html
+
+App(
+    appid=".f0_mtp",  # Must be unique
+    name="MTP",  # Displayed in UI
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="entrypoint",
+    stack_size=2 * 1024,  # size of memory stack it will allocate
+    # source code settings
+    sources=[  # Due to limitation of the fbt,
+        "src/*.c*",  # you need to specify nested directories
+        "src/*/*.c*",  # manually since it doesn't support
+        "src/*/*/*.c*",  # recurse globbing such as "src/**/*.c*"
+    ],
+    # Dependencies
+    requires=[],
+    # FAP Settings
+    fap_category="USB",
+    fap_description="Use Flipper Zero as a MTP device.",
+    fap_version="1.0",  # (major, minor)
+    fap_icon="icon.png",  # 10x10 1-bit PNG
+    fap_author="Alex4386",
+    fap_weburl="https://github.com/Alex4386/f0-mtp",
+    fap_icon_assets="icons",  # Image assets to compile for this application
+    # available as {appid}_icons.h in the source code
+)

@@ -1,0 +1,46 @@
+on:
+  push:
+    tags:
+      - 'v*'
+name: Create Release
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          lfs: true
+          submodules: true
+      - name: Checkout submodules
+        shell: bash
+        run: |
+          git submodule sync --recursive
+          git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+      - name: Get tag
+        shell: bash
+        id: mod
+        run: |
+          tag="${{ github.ref_name }}"
+          echo "out=flipper-tasks-${tag:1}" >> $GITHUB_OUTPUT
+      - name: Create archive
+        shell: bash
+        run: |
+          rm -rf .git/
+          mkdir "${{ steps.mod.outputs.out }}" || exit
+          mv * ${{ steps.mod.outputs.out }}/ || echo "Errors in move"
+          mv .* "${{ steps.mod.outputs.out }}" || echo "Errors in move"
+
+          tar cfJ ${{ steps.mod.outputs.out }}.tar.xz ${{ steps.mod.outputs.out }} || echo "Might have failed"
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          body: |
+            Check our discord for patch notes: https://discord.gg/4kyWu2Vu
+            More on what is done this month can be found on the latest newsletter entry: https://madladsquad.com/#monthly-newsletter
+          draft: false
+          prerelease: false
+          files: ${{ steps.mod.outputs.out }}.tar.xz
+          generate_release_notes: false

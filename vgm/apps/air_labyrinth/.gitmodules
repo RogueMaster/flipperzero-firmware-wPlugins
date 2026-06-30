@@ -1,3 +1,0 @@
-[submodule "engine"]
-	path = engine
-	url = https://github.com/flipperdevices/flipperzero-game-engine.git

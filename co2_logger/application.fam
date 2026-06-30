@@ -1,0 +1,13 @@
+App(
+    appid="co2_logger",
+    name="[MH-Z19] CO2 Logger",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="co2_logger_app",
+    stack_size=4 * 1024,
+    fap_category="GPIO/Sensors",
+    fap_version="0.4",
+    fap_icon="co2_logger.png",
+    fap_description="CO2 Logger with CSV export",
+    fap_author="Harry O'Brien",
+    fap_weburl="https://github.com/harryob2/co2_logger",
+)

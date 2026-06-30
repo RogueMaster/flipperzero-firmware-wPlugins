@@ -1,0 +1,16 @@
+App(
+    appid="ami_tool",
+    name="AmiTool",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ami_tool_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    fap_category="NFC",
+    fap_icon="ami_tool.png",
+    fap_description="An NTAG215 toolkit for Flipper Zero to work with tags used with gaming consoles.",
+    fap_author="Firefox2100",
+    fap_weburl="https://github.com/Firefox2100/ami-tool",
+    fap_file_assets="files",
+    fap_libs=["mbedtls"],
+    fap_version="0.3.0",
+)

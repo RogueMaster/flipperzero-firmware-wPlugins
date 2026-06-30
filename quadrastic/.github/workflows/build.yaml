@@ -1,0 +1,32 @@
+name: "FAP: Build and lint"
+on:
+    push:
+    pull_request:
+    schedule:
+      # do a build every day
+      - cron: "1 1 * * *"
+
+jobs:
+  ufbt-build-action:
+    runs-on: ubuntu-latest
+    name: 'ufbt: Build for Release branch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+    #   - name: Lint sources
+    #     uses: flipperdevices/flipperzero-ufbt-action@v0.1
+    #     with:
+    #       task: lint
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+        #   skip-setup: true
+          sdk-channel: release
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}

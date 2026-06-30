@@ -1,0 +1,17 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="ina_meter", # Must be unique
+    name="[INA2xx] INA Meter",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="app_startup",
+    stack_size=3 * 1024,
+    fap_category="GPIO/Debug",
+    # Optional values
+    fap_version="0.8",
+    fap_icon="ina_meter.png",  # 10x10 1-bit PNG
+    fap_description="Application for reading TI INAxxx sensors.",
+    fap_author="cepetr",
+    fap_weburl="https://github.com/cepetr/flipper-tina",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)

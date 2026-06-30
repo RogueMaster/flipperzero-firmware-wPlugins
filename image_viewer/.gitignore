@@ -1,0 +1,23 @@
+# Compiled output
+dist
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Editor directories and files
+.vscode
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ufbt generated
+.clang-format
+.clangd
+.editorconfig
+.ufbt

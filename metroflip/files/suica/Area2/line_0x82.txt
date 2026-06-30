@@ -1,0 +1,26 @@
+0x82,0x12,#2 Tanimachi,Dainichi,11,0
+0x82,0x14,#2 Tanimachi,Moriguchi,12,0
+0x82,0x15,#2 Tanimachi,Taishibashi-Imaichi,13,0
+0x82,0x16,#2 Tanimachi,Sembayashi-Omiya,14,0
+0x82,0x17,#2 Tanimachi,Sekime-Takadono,15,0
+0x82,0x18,#2 Tanimachi,Noe-Uchindai,16,0
+0x82,0x19,#2 Tanimachi,Miyakojima,17,0
+0x82,0x1A,#2 Tanimachi,Tenjimbashisuji 6-chome,18,0
+0x82,0x1B,#2 Tanimachi,Nakazakicho,19,0
+0x82,0x1C,#2 Tanimachi,Higashi-Umeda,20,0
+0x82,0x1E,#2 Tanimachi,Minamimorimachi,21,0
+0x82,0x22,#2 Tanimachi,Temmabashi,22,0
+0x82,0x24,#2 Tanimachi,Tanimachi 4-chome,23,0
+0x82,0x26,#2 Tanimachi,Tanimachi 6-chome,24,0
+0x82,0x27,#2 Tanimachi,Tanimachi 9-chome,25,0
+0x82,0x28,#2 Tanimachi,Shitennoji-mae Yuhigaoka,26,0
+0x82,0x2A,#2 Tanimachi,Tennoji,27,0
+0x82,0x2C,#2 Tanimachi,Abeno,28,0
+0x82,0x2E,#2 Tanimachi,Fuminosato,29,0
+0x82,0x2F,#2 Tanimachi,Tanabe,30,0
+0x82,0x30,#2 Tanimachi,Komagawa-Nakano,31,0
+0x82,0x31,#2 Tanimachi,Hirano,32,0
+0x82,0x32,#2 Tanimachi,Kire-Uriwari,33,0
+0x82,0x33,#2 Tanimachi,Deto,34,0
+0x82,0x34,#2 Tanimachi,Nagahara,35,0
+0x82,0x35,#2 Tanimachi,Yao-minami,36,0

@@ -1,0 +1,18 @@
+App(
+    appid="flipboard_keyboard",
+    name="FlipBoard Keyboard",
+    apptype=FlipperAppType.EXTERNAL,
+    sources=[
+        "*.c",
+    ],
+    entry_point="flipboard_keyboard_app",
+    stack_size=4 * 1024,
+    requires=["gui"],
+    fap_libs=["ble_profile"],
+    order=10,
+    fap_version=(3, 9),
+    fap_icon="flipkeyboard.png",
+    fap_category="GPIO/FlipBoard",
+    fap_icon_assets="assets",
+    fap_description="FlipBoard Keyboard turns your FlipBoard into a keyboard.",
+)

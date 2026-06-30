@@ -1,0 +1,23 @@
+App(
+    appid="pokemon",
+    name="[GB] Pokemon Trading",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pokemon_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    fap_version=[2, 3],
+    fap_category="GPIO",
+    fap_icon="pokemon_10px.png",
+    fap_icon_assets="assets",
+    fap_file_assets="files",
+    fap_author="Kris Bahnsen, Esteban Fuentealba, ProteanReverie, Darryn Cull",
+    fap_weburl="https://github.com/kbembedded/Flipper-Zero-Game-Boy-Pokemon-Trading",
+    fap_description="Pokemon exchange from Flipper Zero to Game Boy, supports Generation I & II non-Japanese games",
+    fap_private_libs=[
+        Lib(
+            name="flipper-gblink",
+            fap_include_paths=["gblink/include", "./"],
+            sources=["gblink/*.c"],
+        ),
+    ],
+)

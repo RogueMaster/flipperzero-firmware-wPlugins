@@ -1,0 +1,31 @@
+App(
+    appid="air_mouse",
+    name="[BMI/LSM] Air Mouse",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="air_mouse_app",
+    stack_size=10 * 1024,
+    fap_category="GPIO",
+    fap_icon="mouse_10px.png",
+    fap_version="1.4",
+    fap_libs=["ble_profile"],
+    sources=["*.c", "*.cc"],
+    fap_private_libs=[
+        Lib(
+            name="bmi160-api",
+            cflags=["-Wno-error"],
+            sources=[
+                "bmi160.c",
+                "bmi160.h",
+                "bmi160_defs.h",
+            ],
+        ),
+        Lib(
+            name="lsm6ds3tr-api",
+            cflags=["-Wno-error"],
+        ),
+        Lib(
+            name="lsm6dso-api",
+            cflags=["-Wno-error"],
+        ),
+    ],
+)

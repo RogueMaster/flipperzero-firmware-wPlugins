@@ -1,0 +1,27 @@
+'''
+Author: SpenserCai
+Date: 2025-02-28 17:52:49
+version: 
+LastEditors: SpenserCai
+LastEditTime: 2025-03-13 13:06:31
+Description: file content
+'''
+
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="nfc_apdu_runner",  # Must be unique
+    name="NFC APDU Runner",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nfc_apdu_runner_app",
+    stack_size=2 * 1024,
+    fap_category="NFC",
+    targets=["f7"],
+    # Optional values
+    fap_version="0.3",
+    fap_icon="images/nfc_apdu_runner_10px.png",  # 10x10 1-bit PNG
+    fap_description="Run APDU commands from script files",
+    fap_author="SpenserCai",
+    fap_weburl="https://github.com/SpenserCai/nfc_apdu_runner",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)

@@ -1,0 +1,49 @@
+name: UFBT Build and Test App
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build:
+    name: Build and Test Application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install UFBT
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ufbt
+
+      - name: Initialize UFBT Environment (Dev)
+        if: github.ref == 'refs/heads/dev' || github.base_ref == 'dev'
+        run: |
+          ufbt update --index-url=https://update.flipperzero.one/firmware/directory.json --channel=dev
+          ufbt vscode_dist
+
+      - name: Initialize UFBT Environment (Main)
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: |
+          ufbt update --index-url=https://update.flipperzero.one/firmware/directory.json --channel=release
+          ufbt vscode_dist
+
+      - name: Build FAP Applications
+        run: ufbt faps
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build/

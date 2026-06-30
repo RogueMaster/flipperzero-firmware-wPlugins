@@ -1,0 +1,4 @@
+- 0.4 - Add Auto-Dim functionality, improved layout, and firmware 1.4.x compatibility
+- 0.3 - Add CSV logging functionality
+- 0.2 - Update for use with new serial API
+- 0.1 - Initial version

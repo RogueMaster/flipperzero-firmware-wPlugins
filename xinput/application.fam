@@ -1,0 +1,18 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="xinput_controller",  # Must be unique
+    name="USB Game Controller",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="xinput_app",
+    stack_size=2 * 1024,
+    fap_category="USB",
+    requires=["gui"],
+    # Optional values
+    fap_version="0.1",
+    fap_icon="icon.png",  # 10x10 1-bit PNG
+    fap_description="An app that emulates XInput controllers",
+    fap_author="crapbass",
+    fap_weburl="https://github.com/expected-ingot",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)

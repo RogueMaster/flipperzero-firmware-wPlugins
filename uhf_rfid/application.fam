@@ -1,0 +1,21 @@
+App(
+    appid="uhf_rfid",
+    name="YRM100 UHF RFID",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="uhf_app_main",
+    requires=[
+        "storage",
+        "gui",
+    ],
+    stack_size=10 * 1024,
+    order=30,
+    fap_icon="icons/uhf_10px.png",
+    fap_category="RFID",
+    fap_icon_assets="icons",
+    fap_version="1.0",
+    fap_author="@frux-c",
+    fap_weburl="https://github.com/frux-c/uhf_rfid",
+    fap_description="The app leverages the YRM100 module to enable UHF RFID functionality",
+    fap_icon_assets_symbol="uhf_rfid",
+)

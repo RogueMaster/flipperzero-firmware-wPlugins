@@ -1,0 +1,15 @@
+App(
+    appid="solitaire",
+    name="Solitaire",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="solitaire_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    order=30,
+    fap_icon="solitaire_10px.png",
+    fap_category="Games",
+    fap_author="doofy-dev",
+    fap_weburl="https://github.com/doofy-dev/flipper_solitaire",
+    fap_version="2.0.2",
+    fap_description="Klondike Solitaire card game",
+)

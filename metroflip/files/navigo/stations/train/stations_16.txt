@@ -1,0 +1,11 @@
+1,1,Nation
+2,1,Vincennes
+2,2,Fontenay-sous-Bois
+3,1,Nogent-sur-Marne
+3,2,Joinville-le-Pont
+4,1,Saint-Maur - Creteil
+5,1,Le Parc de Saint-Maur
+6,1,Champigny
+7,1,La Varenne - Chennevieres
+8,1,Sucy - Bonneuil
+8,2,Boissy-Saint-Leger

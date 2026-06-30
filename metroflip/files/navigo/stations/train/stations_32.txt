@@ -1,0 +1,21 @@
+5,1,Les Vallees
+5,2,La Garenne-Colombes
+5,4,Nanterre Universite
+5,11,Nanterre-La-Folie
+7,1,Houilles - Carrieres-sur-Seine
+7,2,Sartrouville
+9,1,Maisons-Laffitte
+10,1,Acheres Grand Cormier
+10,2,Poissy
+11,1,Villennes-sur-Seine
+12,1,Vernouillet - Verneuil
+12,2,Les Clairieres de Verneuil
+13,1,Les Mureaux
+13,2,Aubergenville Elisabethville
+14,1,Epone - Mezieres
+15,1,Mantes Station
+15,2,Mantes-la-Jolie
+16,1,Mantes Station
+16,2,Mantes-la-Jolie
+16,3,Rosny-sur-Seine
+16,4,Bonnieres

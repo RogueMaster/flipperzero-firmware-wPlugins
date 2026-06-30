@@ -1,0 +1,6 @@
+        {
+            "label": "Build, Clear & Launch",
+            "group": "build",
+            "type": "shell",
+            "command": "python scripts/build-and-clear.py"
+        },

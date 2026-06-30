@@ -1,0 +1,11 @@
+0x83,0x1C,#3 Yotsubashi,Nishi-Umeda,11,0
+0x83,0x1E,#3 Yotsubashi,Higobashi,12,0
+0x83,0x21,#3 Yotsubashi,Hommachi,13,0
+0x83,0x22,#3 Yotsubashi,Yotsubashi,14,0
+0x83,0x24,#3 Yotsubashi,Namba,15,0
+0x83,0x25,#3 Yotsubashi,Daikokucho,16,0
+0x83,0x26,#3 Yotsubashi,Hanazonocho,17,0
+0x83,0x27,#3 Yotsubashi,Kishinosato,18,0
+0x83,0x28,#3 Yotsubashi,Tamade,19,0
+0x83,0x29,#3 Yotsubashi,Kitakagaya,20,0
+0x83,0x2A,#3 Yotsubashi,Suminoekoen,21,0

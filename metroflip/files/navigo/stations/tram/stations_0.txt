@@ -1,0 +1,135 @@
+0,1,Bobigny - Pablo Picasso
+0,2,Maryse Bastie
+0,3,Avenue de France
+0,4,Baron Le Roy
+0,5,Porte de Charenton
+0,6,Porte Doree
+0,7,Montempoivre
+0,8,Alexandra David-Neel
+0,9,Place de la Logistique
+0,10,La Croix de Berny
+0,11,La Croix de Berny
+0,12,Robert Schuman (Parc Silic Centre)
+0,13,La Fraternelle
+0,14,Marche de Saint-Denis
+0,15,Basilique de Saint-Denis
+1,0,Caroline Aigle (Orlyfret)
+1,1,Coeur d'Orly
+1,2,Aeroport d'Orly (Terminal 4)
+1,3,La Courneuve - Six Routes
+1,4,LaVallee
+1,5,LaVallee
+1,6,Marie De Miribel
+1,7,Danton
+1,8,Porte de Bagnolet
+1,9,Maurice Lachatre
+1,10,Severine
+1,11,Hopital Avicenne
+1,12,Adrienne Bolland
+1,13,Escadrille Normandie-Niemen
+1,14,La Ferme
+1,15,Liberation
+2,0,Hopital Robert Debre
+2,2,Butte du Chapeau Rouge
+2,4,Porte de Pantin - Parc de la Villette
+2,6,Delphine Seyrig
+2,8,Ella Fitzgerald
+2,9,Theatre La Piscine
+2,10,Porte de la Villette (Cite des Sciences et de l'industrie)
+2,12,Canal Saint-Denis
+2,14,Rosa Parks
+3,0,Porte d'Aubervilliers
+3,2,Colette Besson
+3,3,Les Peintres
+3,4,Porte de la Chapelle
+3,6,Porte de Montreuil
+3,8,Porte de Vincennes
+3,12,Cite-Jardin
+3,13,Cite-Jardin
+4,6,Vallee aux Loups
+4,7,Vallee aux Loups
+5,0,Malabry
+5,1,Malabry
+5,10,Noveos
+5,11,Noveos
+6,0,Les Fauvelles
+6,1,Charlebourg
+6,2,Jacqueline Auriol
+6,3,Victor Basch
+6,4,Parc Pierre Lagravere
+6,5,Parc des Sports
+6,6,Puteaux
+6,8,Suresnes Longchamp
+6,9,Les Coteaux
+6,10,Les Milons
+6,11,Parc de Saint-Cloud
+6,12,Musee de Sevres
+6,13,Brimborion
+6,14,Meudon-sur-Seine
+6,15,Les Moulineaux
+7,0,Jacques-Henri Lartigue
+7,1,Issy - Val de Seine
+7,8,Hopital Beclere
+7,9,Hopital Beclere
+7,11,Faubourg de l'Arche
+7,12,La Defense (Grande Arche)
+8,2,Jardin Parisien
+8,3,Jardin Parisien
+13,0,Porte d'Ivry
+17,0,Gilbert Bonnemaison
+17,1,Cesar
+17,4,Delaunay - Belleville
+17,12,Saint-Denis - Porte de Paris
+18,0,Rose Bertin
+18,3,Epinay-sur-Seine
+18,7,Blumenthal
+19,4,Pierre de Geyter
+20,5,Saint-Denis
+20,7,Auguste Delaune
+20,8,Les Mobiles
+20,10,Pablo Neruda
+20,12,Pont de Bondy
+20,13,Petit Noisy
+20,14,Gare de Noisy-le-Sec
+21,11,Lacepede
+21,12,Jean Vilar
+21,15,Paul Eluard
+22,11,Les Beatus
+25,9,Pave Blanc
+25,11,Georges Pompidou
+25,13,Georges Millandy
+25,15,Meudon-la-Foret
+26,1,Velizy 2
+26,3,Diane Arbus - Porte des Poissonniers
+26,4,Porte de Clignancourt
+26,5,Angelique Compoint - Porte de Montmartre
+26,6,Porte de Saint-Ouen
+26,7,Epinettes - Pouchet
+26,8,Honore De Balzac
+26,9,Porte de Clichy - Tribunal de Paris
+26,11,L'Onde (Maison des Arts)
+26,13,Robert Wagner
+28,10,L'Ile-Saint-Denis
+28,11,Mairie de Villeneuve-la-Garenne
+28,12,La Noue
+28,13,Chemin des Reniers
+28,14,Parc des Chanteraines
+28,15,Gare de Gennevilliers
+29,0,Timbaud
+29,1,Le Village
+29,3,Le Luth
+30,4,Marche de Saint-Denis
+31,1,Baudelaire
+31,2,Roger Semat
+31,3,Guynemer
+31,4,Petit Pierrefitte
+31,5,Joncherolles
+31,6,Suzanne Valadon
+31,7,Mairie de Pierrefitte
+31,8,Alcide d'Orbigny
+31,9,Jacques Prevert
+31,10,Butte Pinson (Parc Regional)
+31,11,Les Cholettes
+31,12,Les Flanades
+31,13,Paul Valery
+31,14,Locheres

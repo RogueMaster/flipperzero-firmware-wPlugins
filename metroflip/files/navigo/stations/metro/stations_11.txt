@@ -1,0 +1,13 @@
+0,Sentier
+1,Tuileries
+2,Palais Royal - Musee du Louvre
+3,Pyramides
+4,Bourse
+6,Grands Boulevards
+7,Richelieu - Drouot
+8,Bonne Nouvelle
+10,Strasbourg - Saint-Denis
+11,Chateau d'Eau
+13,Sentier
+14,Reaumur - Sebastopol
+15,Etienne Marcel

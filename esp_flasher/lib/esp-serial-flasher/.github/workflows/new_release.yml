@@ -1,0 +1,37 @@
+name: Create a new release from a tag
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  create_release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: pip install commitizen czespressif>=1.3.1
+      - name: Generate changelog
+        run: |
+          cz changelog ${{ steps.get_version.outputs.VERSION }} --file-name changelog_body.md
+          cat changelog_body.md
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          body_path: changelog_body.md
+          name: Version ${{ steps.get_version.outputs.VERSION }}
+          draft: true
+          prerelease: false

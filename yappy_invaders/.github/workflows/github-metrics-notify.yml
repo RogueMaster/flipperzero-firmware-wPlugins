@@ -1,0 +1,376 @@
+# .github/workflows/github-metrics-notify.yml
+
+name: GitHub Metrics Notification
+
+# Grants specific permissions to the GITHUB_TOKEN
+permissions:
+  contents: write         # Allows pushing changes to the repository
+  issues: read            # Optional: if you're interacting with issues
+  pull-requests: write    # Optional: if you're interacting with pull requests
+
+# Triggers the workflow on specific GitHub events and schedules it as a backup
+on:
+  # Trigger on repository star events
+  watch:
+    types: [started, deleted] # 'started' for star, 'deleted' for unstar
+
+  # Trigger on repository forks
+  fork:
+
+  # Trigger on issue events
+  issues:
+    types: [opened, closed, reopened, edited]
+
+  # Trigger on pull request events
+  pull_request:
+    types: [opened, closed, reopened, edited]
+
+  # Trigger on release events
+  release:
+    types: [published, edited, prereleased, released]
+
+  # Trigger on push events to the main branch
+  push:
+    branches:
+      - main
+
+  # Scheduled backup trigger every hour for followers/subscribers
+  schedule:
+    - cron: '0 */1 * * *' # Every hour at minute 0
+
+  # Allows manual triggering
+  workflow_dispatch:
+
+jobs:
+  notify_metrics:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true # Enables Git commands to use GITHUB_TOKEN
+          fetch-depth: 0            # Fetch all history for accurate metric tracking
+
+      # Step 2: Set Up Python Environment
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'     # Specify the Python version
+
+      # Step 3: Install Python Dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      # Step 4: Fetch and Compare Metrics
+      - name: Fetch and Compare Metrics
+        id: fetch_metrics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}               # Built-in secret provided by GitHub Actions
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }} # Your Discord webhook URL
+          GITHUB_EVENT_NAME: ${{ github.event_name }}             # To determine if run is manual or triggered by an event
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }} # Dynamic repository owner
+        run: |
+          python3 - <<'EOF' > fetch_metrics.out
+          import os
+          import requests
+          import json
+          from datetime import datetime
+
+          # Configuration
+          REPO_OWNER = os.getenv('GITHUB_REPOSITORY_OWNER')
+          REPO_NAME = os.getenv('GITHUB_REPOSITORY').split('/')[-1]
+          METRICS_FILE = ".github/metrics.json"
+
+          # Ensure .github directory exists
+          os.makedirs(os.path.dirname(METRICS_FILE), exist_ok=True)
+
+          # GitHub API Headers
+          headers = {
+              "Authorization": f"token {os.getenv('GITHUB_TOKEN')}",
+              "Accept": "application/vnd.github.v3+json"
+          }
+
+          # Function to fetch closed issues count using GitHub Search API
+          def fetch_closed_issues(owner, repo, headers):
+              search_api = f"https://api.github.com/search/issues?q=repo:{owner}/{repo}+type:issue+state:closed"
+              try:
+                  response = requests.get(search_api, headers=headers)
+                  response.raise_for_status()
+                  data = response.json()
+                  return data.get('total_count', 0)
+              except requests.exceptions.RequestException as e:
+                  print(f"Error fetching closed issues count: {e}")
+                  return 0
+
+          # Fetch current metrics from GitHub API
+          repo_api = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}"
+
+          try:
+              response = requests.get(repo_api, headers=headers)
+              response.raise_for_status()
+              repo_data = response.json()
+              stars = repo_data.get('stargazers_count', 0)
+              forks = repo_data.get('forks_count', 0)
+              followers = repo_data.get('subscribers_count', 0)
+              open_issues = repo_data.get('open_issues_count', 0)
+              closed_issues = fetch_closed_issues(REPO_OWNER, REPO_NAME, headers)
+          except requests.exceptions.RequestException as e:
+              print(f"Error fetching repository data: {e}")
+              exit(1)
+
+          # Function to load previous metrics with error handling
+          def load_previous_metrics(file_path):
+              try:
+                  with open(file_path, 'r') as file:
+                      return json.load(file)
+              except json.decoder.JSONDecodeError:
+                  print("metrics.json is corrupted or empty. Reinitializing.")
+                  return {
+                      "stars": 0,
+                      "forks": 0,
+                      "followers": 0,
+                      "open_issues": 0,
+                      "closed_issues": 0
+                  }
+              except FileNotFoundError:
+                  return {
+                      "stars": 0,
+                      "forks": 0,
+                      "followers": 0,
+                      "open_issues": 0,
+                      "closed_issues": 0
+                  }
+
+          # Load previous metrics
+          prev_metrics = load_previous_metrics(METRICS_FILE)
+          is_initial_run = not os.path.exists(METRICS_FILE)
+
+          # Determine changes (both increases and decreases)
+          changes = {}
+          metrics = ["stars", "forks", "followers", "open_issues", "closed_issues"]
+          current_metrics = {
+              "stars": stars,
+              "forks": forks,
+              "followers": followers,
+              "open_issues": open_issues,
+              "closed_issues": closed_issues
+          }
+
+          for metric in metrics:
+              current = current_metrics.get(metric, 0)
+              previous = prev_metrics.get(metric, 0)
+              if current != previous:
+                  changes[metric] = current - previous
+
+          # Update metrics file
+          with open(METRICS_FILE, 'w') as file:
+              json.dump(current_metrics, file)
+
+          # Determine if a notification should be sent
+          event_name = os.getenv('GITHUB_EVENT_NAME')
+          send_notification = False
+          no_changes = False
+          initial_setup = False
+
+          if is_initial_run:
+              if event_name == 'workflow_dispatch':
+                  # Manual run: Send notification for initial setup
+                  send_notification = True
+                  initial_setup = True
+              elif event_name == 'watch' and changes.get('stars'):
+                  # Initial run triggered by a star event: Send notification
+                  send_notification = True
+              else:
+                  # Event-triggered runs: Do not send notification on initial setup
+                  send_notification = False
+          else:
+              if event_name == 'workflow_dispatch':
+                  # Manual run: Always send notification
+                  send_notification = True
+                  if not changes:
+                      no_changes = True
+              elif event_name == 'watch':
+                  # Star event: Send notification only if stars changed
+                  if changes.get('stars'):
+                      send_notification = True
+              else:
+                  # Scheduled run or other events: Send notification only if there are changes
+                  if changes:
+                      send_notification = True
+
+          if send_notification:
+              triggering_actor = os.getenv('GITHUB_ACTOR', 'Unknown')
+
+              # Prepare Discord notification payload
+              payload = {
+                  "embeds": [
+                      {
+                          "title": "📈 GitHub Repository Metrics Updated",
+                          "url": f"https://github.com/{REPO_OWNER}/{REPO_NAME}",  # Link back to the repository
+                          "color": 0x7289DA,  # Discord blurple color
+                          "thumbnail": {
+                              "url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"  # GitHub logo
+                          },
+                          "fields": [
+                              {
+                                  "name": "📂 Repository",
+                                  "value": f"[{REPO_OWNER}/{REPO_NAME}](https://github.com/{REPO_OWNER}/{REPO_NAME})",
+                                  "inline": False
+                              },
+                              {
+                                  "name": "⭐ Stars",
+                                  "value": f"{stars}",
+                                  "inline": True
+                              },
+                              {
+                                  "name": "🍴 Forks",
+                                  "value": f"{forks}",
+                                  "inline": True
+                              },
+                              {
+                                  "name": "👥 Followers",
+                                  "value": f"{followers}",
+                                  "inline": True
+                              },
+                              {
+                                  "name": "🐛 Open Issues",
+                                  "value": f"{open_issues}",
+                                  "inline": True
+                              },
+                              {
+                                  "name": "🔒 Closed Issues",
+                                  "value": f"{closed_issues}",
+                                  "inline": True
+                              },
+                              {
+                                  "name": "👤 Triggered By",
+                                  "value": triggering_actor,
+                                  "inline": False
+                              },
+                          ],
+                          "footer": {
+                              "text": "GitHub Metrics Monitor",
+                              "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"  # GitHub logo
+                          },
+                          "timestamp": datetime.utcnow().isoformat()  # Adds a timestamp to the embed
+                      }
+                  ]
+              }
+
+              if initial_setup:
+                  # Add a field indicating initial setup
+                  payload["embeds"][0]["fields"].append({
+                      "name": "⚙️ Initial Setup",
+                      "value": "Metrics tracking has been initialized.",
+                      "inline": False
+                  })
+              elif changes:
+                  # Add fields for each updated metric
+                  for metric, count in changes.items():
+                      emoji = {
+                          "stars": "⭐",
+                          "forks": "🍴",
+                          "followers": "👥",
+                          "open_issues": "🐛",
+                          "closed_issues": "🔒"
+                      }.get(metric, "")
+                      change_symbol = "+" if count > 0 else ""
+                      payload["embeds"][0]["fields"].append({
+                          "name": f"{emoji} {metric.replace('_', ' ').capitalize()} (Change)",
+                          "value": f"{change_symbol}{count}",
+                          "inline": True
+                      })
+              elif no_changes:
+                  # Indicate that there were no changes during a manual run
+                  payload["embeds"][0]["fields"].append({
+                      "name": "✅ No Changes",
+                      "value": "No updates to metrics since the last check.",
+                      "inline": False
+                  })
+
+              # Save payload to a temporary file for the next step
+              with open('payload.json', 'w') as f:
+                  json.dump(payload, f)
+
+              # Output whether to send notification
+              if initial_setup or changes or no_changes:
+                  print("SEND_NOTIFICATION=true")
+              else:
+                  print("SEND_NOTIFICATION=false")
+          else:
+              print("SEND_NOTIFICATION=false")
+          EOF
+
+      # Step 5: Ensure .gitignore Ignores Temporary Files
+      - name: Ensure .gitignore Ignores Temporary Files
+        run: |
+          # Check if .gitignore exists; if not, create it
+          if [ ! -f .gitignore ]; then
+            touch .gitignore
+          fi
+
+          # Add 'fetch_metrics.out' if not present
+          if ! grep -Fxq "fetch_metrics.out" .gitignore; then
+            echo "fetch_metrics.out" >> .gitignore
+            echo "Added 'fetch_metrics.out' to .gitignore"
+          else
+            echo "'fetch_metrics.out' already present in .gitignore"
+          fi
+
+          # Add 'payload.json' if not present
+          if ! grep -Fxq "payload.json" .gitignore; then
+            echo "payload.json" >> .gitignore
+            echo "Added 'payload.json' to .gitignore"
+          else
+            echo "'payload.json' already present in .gitignore"
+          fi
+
+      # Step 6: Decide Whether to Send Notification
+      - name: Check if Notification Should Be Sent
+        id: decide_notification
+        run: |
+            if grep -q "SEND_NOTIFICATION=true" fetch_metrics.out; then
+              echo "send=true" >> $GITHUB_OUTPUT
+            else
+              echo "send=false" >> $GITHUB_OUTPUT
+            fi
+        shell: bash
+
+      # Step 7: Send Discord Notification using curl
+      - name: Send Discord Notification
+        if: steps.decide_notification.outputs.send == 'true'
+        run: |
+          curl -H "Content-Type: application/json" -d @payload.json ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      # Step 8: Commit and Push Updated metrics.json and .gitignore
+      - name: Commit and Push Changes
+        if: steps.decide_notification.outputs.send == 'true'
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # Stage metrics.json
+          git add .github/metrics.json
+          
+          # Stage .gitignore only if it was modified
+          if git diff --name-only | grep -q "^\.gitignore$"; then
+            git add .gitignore
+          else
+            echo ".gitignore not modified"
+          fi
+          
+          # Commit changes if there are any
+          git commit -m "Update metrics.json and ensure temporary files are ignored [skip ci]" || echo "No changes to commit"
+          
+          # Push changes to the main branch
+          git push origin main  # Replace 'main' with your default branch if different
+
+      # Step 9: Clean Up Temporary Files
+      - name: Clean Up Temporary Files
+        if: always()
+        run: |
+          rm -f fetch_metrics.out payload.json

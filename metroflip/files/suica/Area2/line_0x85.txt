@@ -1,0 +1,14 @@
+0x85,0x1B,#5 Sennichimae,Nodahanshin,11,0
+0x85,0x1D,#5 Sennichimae,Tamagawa,12,0
+0x85,0x1F,#5 Sennichimae,Awaza,13,0
+0x85,0x21,#5 Sennichimae,Nishinagahori,14,0
+0x85,0x23,#5 Sennichimae,Sakuragawa,15,0
+0x85,0x24,#5 Sennichimae,Namba,16,0
+0x85,0x25,#5 Sennichimae,Nippombashi,17,0
+0x85,0x27,#5 Sennichimae,Tanimachi 9-chome,18,0
+0x85,0x29,#5 Sennichimae,Tsuruhashi,19,0
+0x85,0x2A,#5 Sennichimae,Imazato,20,0
+0x85,0x2B,#5 Sennichimae,Shin-Fukae,21,0
+0x85,0x2C,#5 Sennichimae,Shoji,22,0
+0x85,0x2D,#5 Sennichimae,Kita-Tatsumi,23,0
+0x85,0x2E,#5 Sennichimae,Minami-Tatsumi,24,0

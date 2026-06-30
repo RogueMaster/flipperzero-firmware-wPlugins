@@ -1,0 +1,202 @@
+name: Build Flipper Application Package (FAP)
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Check for new Flipper Zero firmware releases daily at 12:00 UTC
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    # Allow manual triggering for testing
+
+jobs:
+  check-firmware:
+    runs-on: ubuntu-latest
+    name: Check for New Flipper Zero Firmware
+    outputs:
+      new-release: ${{ steps.check.outputs.new-release }}
+      firmware-version: ${{ steps.check.outputs.firmware-version }}
+      release-tag: ${{ steps.check.outputs.release-tag }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check for new Flipper Zero firmware release
+      id: check
+      run: |
+        # Get the latest Flipper Zero firmware release
+        LATEST_FW=$(curl -s https://api.github.com/repos/flipperdevices/flipperzero-firmware/releases/latest | jq -r '.tag_name')
+        echo "Latest firmware version: $LATEST_FW"
+
+        # Check if we already have a release for this firmware version
+        EXISTING_RELEASE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases | jq -r --arg fw "$LATEST_FW" '.[] | select(.tag_name | contains($fw)) | .tag_name' | head -1)
+
+        if [ -z "$EXISTING_RELEASE" ]; then
+          echo "New firmware version detected: $LATEST_FW"
+          echo "new-release=true" >> $GITHUB_OUTPUT
+          echo "firmware-version=$LATEST_FW" >> $GITHUB_OUTPUT
+          echo "release-tag=asteroids-$LATEST_FW" >> $GITHUB_OUTPUT
+        else
+          echo "Release already exists for firmware $LATEST_FW: $EXISTING_RELEASE"
+          echo "new-release=false" >> $GITHUB_OUTPUT
+        fi
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build Asteroids FAP
+    needs: check-firmware
+    if: always() && (github.event_name != 'schedule' || needs.check-firmware.outputs.new-release == 'true')
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: true
+
+    - name: Build Flipper Application Package
+      uses: flipperdevices/flipperzero-ufbt-action@v0.1.3
+      id: build-fap
+      with:
+        app-dir: .
+
+    - name: Upload FAP artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: asteroids-fap-${{ needs.check-firmware.outputs.firmware-version || 'manual' }}
+        path: |
+          dist/*.fap
+          dist/*.fap.debug
+        retention-days: 30
+
+    - name: Create Release for Manual Tags
+      if: startsWith(github.ref, 'refs/tags/') && github.event_name != 'schedule'
+      id: manual-release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*.fap
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Automatic Release for New Firmware
+      if: needs.check-firmware.outputs.new-release == 'true' && github.event_name == 'schedule'
+      id: auto-release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ needs.check-firmware.outputs.release-tag }}
+        name: "Asteroids for Flipper Zero ${{ needs.check-firmware.outputs.firmware-version }}"
+        body: |
+          🎮 **Asteroids Game for Flipper Zero**
+
+          This release is automatically built and tested for compatibility with **Flipper Zero firmware ${{ needs.check-firmware.outputs.firmware-version }}**.
+
+          ## 📦 Installation
+          1. Download the `asteroids.fap` file from the assets below
+          2. Copy it to your Flipper Zero's `apps/Games/` folder via qFlipper or SD card
+          3. Launch the game from Apps → Games → Asteroids
+
+          ## 🔧 Compatibility
+          - **Firmware Version**: ${{ needs.check-firmware.outputs.firmware-version }}
+          - **Build Date**: ${{ github.run_id }}
+          - **App Version**: Built from commit ${{ github.sha }}
+
+          ## 🎯 Game Features
+          - Classic Asteroids gameplay
+          - Power-ups and special weapons
+          - High score tracking
+          - Optimized for Flipper Zero controls
+
+          ---
+          *This release was automatically generated when Flipper Zero firmware ${{ needs.check-firmware.outputs.firmware-version }} was detected.*
+        files: |
+          dist/*.fap
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update README with Latest Release Info
+      if: steps.manual-release.conclusion == 'success' || steps.auto-release.conclusion == 'success'
+      run: |
+        # Set release information based on which type of release was created
+        if [ "${{ steps.auto-release.conclusion }}" == "success" ]; then
+          RELEASE_TAG="${{ needs.check-firmware.outputs.release-tag }}"
+          RELEASE_NAME="Asteroids for Flipper Zero ${{ needs.check-firmware.outputs.firmware-version }}"
+          FIRMWARE_VERSION="${{ needs.check-firmware.outputs.firmware-version }}"
+        else
+          RELEASE_TAG="${{ github.ref_name }}"
+          RELEASE_NAME="Asteroids ${{ github.ref_name }}"
+          FIRMWARE_VERSION="Latest"
+        fi
+
+        # Get current date
+        CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+
+        # Create the latest release section
+        cat > latest_release_section.md << EOF
+        <!-- LATEST_RELEASE_START -->
+        ## 🚀 Latest Release
+
+        [![Latest Release](https://img.shields.io/github/v/release/SimplyMinimal/FlipperZero-Asteroids?style=for-the-badge&logo=github&color=success)](https://github.com/SimplyMinimal/FlipperZero-Asteroids/releases/latest)
+        [![Download FAP](https://img.shields.io/badge/Download-asteroids.fap-blue?style=for-the-badge&logo=download)](https://github.com/SimplyMinimal/FlipperZero-Asteroids/releases/latest/download/asteroids.fap)
+        [![Firmware Compatibility](https://img.shields.io/badge/Firmware-${FIRMWARE_VERSION}-orange?style=for-the-badge&logo=flipboard)](https://github.com/flipperdevices/flipperzero-firmware)
+
+        **${RELEASE_NAME}** | *Last updated: ${CURRENT_DATE}*
+
+        ### 📥 Quick Install
+        1. **[Download asteroids.fap](https://github.com/SimplyMinimal/FlipperZero-Asteroids/releases/latest/download/asteroids.fap)** ⬅️ *Click here for direct download*
+        2. Copy to your Flipper Zero: `/ext/apps/Games/asteroids.fap`
+        3. Launch from: Apps → Games → Asteroids
+
+        ---
+        <!-- LATEST_RELEASE_END -->
+
+        EOF
+
+        # Check if the latest release section already exists
+        if grep -q "<!-- LATEST_RELEASE_START -->" README.md; then
+          # Replace existing section
+          sed -i '/<!-- LATEST_RELEASE_START -->/,/<!-- LATEST_RELEASE_END -->/c\' README.md
+          sed -i '1r latest_release_section.md' README.md
+        else
+          # Add new section at the top
+          cat latest_release_section.md README.md > temp_readme.md
+          mv temp_readme.md README.md
+        fi
+
+        # Clean up
+        rm latest_release_section.md
+      continue-on-error: true
+
+    - name: Commit README Updates
+      if: steps.manual-release.conclusion == 'success' || steps.auto-release.conclusion == 'success'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        if git diff --quiet README.md; then
+          echo "No changes to README.md"
+        else
+          git add README.md
+          git commit -m "docs: Update README with latest release information
+
+          - Add latest release badges and download links
+          - Update firmware compatibility information
+          - Add quick install instructions
+          - Auto-generated from workflow run ${{ github.run_id }}"
+
+          git push origin main
+        fi
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,89 @@
+# This file contains dependency information for the asn1c compiler's skeletons.
+# Feel free to edit this file.
+# The format is like this:
+# 	<filename>                      # Include this file unconditionally
+# 	<filename> <dependent-file> ... # Include dependencies of <filename>.
+#
+
+ANY.h ANY.c OCTET_STRING.h
+OPEN_TYPE.h OPEN_TYPE.c constr_CHOICE.h
+BMPString.h BMPString.c UTF8String.h OCTET_STRING.h
+BOOLEAN.h BOOLEAN.c
+ENUMERATED.h ENUMERATED.c INTEGER.h NativeEnumerated.h
+GeneralString.h GeneralString.c OCTET_STRING.h
+GeneralizedTime.h GeneralizedTime.c OCTET_STRING.h
+GraphicString.h GraphicString.c OCTET_STRING.h
+IA5String.h IA5String.c OCTET_STRING.h
+INTEGER.h INTEGER.c
+ISO646String.h ISO646String.c OCTET_STRING.h
+NULL.h NULL.c
+NativeEnumerated.h NativeEnumerated.c NativeInteger.h
+NativeInteger.h NativeInteger.c INTEGER.h
+NativeReal.h NativeReal.c REAL.h
+NumericString.h NumericString.c OCTET_STRING.h
+OBJECT_IDENTIFIER.h OBJECT_IDENTIFIER.c INTEGER.h OCTET_STRING.h
+ObjectDescriptor.h ObjectDescriptor.c GraphicString.h
+PrintableString.h PrintableString.c OCTET_STRING.h
+REAL.h REAL.c INTEGER.h OCTET_STRING.h
+RELATIVE-OID.h RELATIVE-OID.c OBJECT_IDENTIFIER.h OCTET_STRING.h
+T61String.h T61String.c OCTET_STRING.h
+TeletexString.h TeletexString.c	 OCTET_STRING.h
+UTCTime.h UTCTime.c GeneralizedTime.h OCTET_STRING.h
+UTF8String.h UTF8String.c OCTET_STRING.h
+UniversalString.h UniversalString.c UTF8String.h OCTET_STRING.h
+VideotexString.h VideotexString.c OCTET_STRING.h
+VisibleString.h VisibleString.c OCTET_STRING.h
+asn_SEQUENCE_OF.h asn_SEQUENCE_OF.c asn_SET_OF.h
+asn_SET_OF.h asn_SET_OF.c
+constr_CHOICE.h constr_CHOICE.c
+constr_SEQUENCE.h constr_SEQUENCE.c OPEN_TYPE.h
+constr_SEQUENCE_OF.h constr_SEQUENCE_OF.c asn_SEQUENCE_OF.h constr_SET_OF.h
+constr_SET.h constr_SET.c
+constr_SET_OF.h constr_SET_OF.c asn_SET_OF.h
+
+COMMON-FILES:			# THIS IS A SPECIAL SECTION
+asn_application.h asn_application.c		# Applications should include this file
+asn_ioc.h			# Information Object Classes, runtime support
+asn_system.h			# Platform-dependent types
+asn_codecs.h			# Return types of encoders and decoders
+asn_internal.h asn_internal.c			# Internal stuff
+asn_random_fill.h asn_random_fill.c		# Initialize with a random value
+asn_bit_data.h asn_bit_data.c         # Bit streaming support
+OCTET_STRING.h OCTET_STRING.c
+BIT_STRING.h BIT_STRING.c OCTET_STRING.h
+asn_codecs_prim.c asn_codecs_prim.h	# enc/decoders for primitive types
+ber_tlv_length.h ber_tlv_length.c	# BER TLV L (length)
+ber_tlv_tag.h ber_tlv_tag.c	# BER TLV T (tag)
+ber_decoder.h ber_decoder.c	# BER decoder support code
+der_encoder.h der_encoder.c	# DER encoder support code
+constr_TYPE.h constr_TYPE.c	# Description of a type
+constraints.h constraints.c	# Subtype constraints support
+xer_support.h xer_support.c	# XML parsing
+xer_decoder.h xer_decoder.c	# XER decoding support
+xer_encoder.h xer_encoder.c	# XER encoding support
+per_support.h per_support.c	# PER parsing
+per_decoder.h per_decoder.c	# PER decoding support
+per_encoder.h per_encoder.c	# PER encoding support
+per_opentype.h per_opentype.c	# PER "open type" handling
+
+CONVERTER:			# THIS IS A SPECIAL SECTION
+converter-example.c		# A default name for the example transcoder
+
+CODEC-OER:			# THIS IS A SPECIAL SECTION
+oer_decoder.h
+oer_encoder.h
+oer_support.h
+oer_decoder.h oer_decoder.c OPEN_TYPE.h
+oer_encoder.h oer_encoder.c
+oer_support.h oer_support.c
+OPEN_TYPE.h OPEN_TYPE_oer.c constr_CHOICE.h
+INTEGER.h INTEGER_oer.c
+BIT_STRING.h BIT_STRING_oer.c OCTET_STRING.h
+OCTET_STRING.h OCTET_STRING_oer.c BIT_STRING.h
+NativeInteger.h NativeInteger_oer.c
+NativeEnumerated.h NativeEnumerated_oer.c
+constr_CHOICE.h constr_CHOICE_oer.c
+constr_SEQUENCE.h constr_SEQUENCE_oer.c
+constr_SET_OF.h constr_SET_OF_oer.c
+
+CODEC-PER:			# THIS IS A SPECIAL SECTION

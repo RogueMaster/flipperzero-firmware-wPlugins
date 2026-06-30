@@ -1,0 +1,197 @@
+# Extremadura - RENFE y transporte regional
+# Códigos de estaciones del transporte público en Extremadura
+# Formato: código=nombre_de_estación
+
+# RENFE Extremadura - Principales estaciones
+0x8000=Badajoz
+0x8001=Cáceres
+0x8002=Mérida
+0x8003=Plasencia
+0x8004=Zafra
+0x8005=Almendralejo
+0x8006=Villanueva de la Serena
+0x8007=Don Benito
+
+# Línea Madrid-Badajoz
+0x001=Talavera de la Reina
+0x002=Oropesa
+0x003=Navalmoral de la Mata
+0x004=Plasencia
+0x005=Cáceres
+0x006=Mérida
+0x007=Badajoz
+
+# Línea Sevilla-Badajoz
+0x010=Zafra
+0x011=Los Santos de Maimona
+0x012=Villafranca de los Barros
+0x013=Almendralejo
+0x014=Mérida
+0x015=Badajoz
+
+# Línea Ciudad Real-Badajoz
+0x020=Puertollano
+0x021=Almadén
+0x022=Chillón
+0x023=Castuera
+0x024=Campanario
+0x025=Villanueva de la Serena
+0x026=Don Benito
+0x027=Mérida
+0x028=Badajoz
+
+# Línea Cáceres-Badajoz
+0x030=Cáceres
+0x031=Arroyo-Malpartida
+0x032=Aliseda
+0x033=San Vicente de Alcántara
+0x034=Badajoz
+
+# Red ferroviaria del norte de Cáceres
+0x040=Plasencia
+0x041=Malpartida de Plasencia
+0x042=Cañaveral
+0x043=Garrovillas
+0x044=Alcántara
+0x045=Membrío
+0x046=Valencia de Alcántara
+
+# Estaciones de la línea Portugal
+0x050=Badajoz
+0x051=Caya
+0x052=Elvas (Portugal)
+0x053=Abrantes (Portugal)
+0x054=Entroncamento (Portugal)
+0x055=Lisboa (Portugal)
+
+# Red de autobuses urbanos de Badajoz
+0x060=Estación Autobuses Badajoz
+0x061=Plaza de España
+0x062=Ayuntamiento
+0x063=Hospital Infanta Cristina
+0x064=Universidad de Extremadura
+0x065=Alcazaba
+0x066=Puente de Palmas
+0x067=Parque de Castelar
+0x068=La Granadilla
+0x069=Cerro de Reyes
+0x06A=Valdebótoa
+0x06B=Gévora
+
+# Red de autobuses urbanos de Cáceres
+0x070=Estación Autobuses Cáceres
+0x071=Plaza Mayor
+0x072=Universidad de Extremadura
+0x073=Hospital San Pedro de Alcántara
+0x074=Ciudad Monumental
+0x075=Ronda de San Francisco
+0x076=Parque del Príncipe
+0x077=Aldea Moret
+0x078=Montesol
+0x079=Mejostilla
+
+# Estaciones de la Vía de la Plata
+0x080=Mérida
+0x081=Aljucén
+0x082=Alcuéscar
+0x083=Cáceres
+0x084=Casar de Cáceres
+0x085=Embalse de Alcántara
+0x086=Garrovillas
+0x087=Plasencia
+
+# Red de Mérida
+0x090=Mérida
+0x091=Guareña
+0x092=Villagonzalo
+0x093=Mengabril
+0x094=Alange
+0x095=Palomas
+0x096=Ribera del Fresno
+
+# Líneas históricas mineras
+0x0A0=Peñarroya-Pueblonuevo
+0x0A1=Belmez
+0x0A2=Villanueva del Rey
+0x0A3=Almorchón
+0x0A4=Cabeza del Buey
+0x0A5=Castuera
+0x0A6=La Serena
+
+# Red de Plasencia
+0x0B0=Plasencia
+0x0B1=Malpartida de Plasencia
+0x0B2=Jarilla
+0x0B3=Torrejón el Rubio
+0x0B4=Jaraíz de la Vera
+0x0B5=Cuacos de Yuste
+
+# Estaciones del Valle del Jerte
+0x0C0=Cabezuela del Valle
+0x0C1=Jerte
+0x0C2=Tornavacas
+0x0C3=Piornal
+0x0C4=Barrado
+0x0C5=Navaconcejo
+
+# Red de Zafra
+0x0D0=Zafra
+0x0D1=Llerena
+0x0D2=Azuaga
+0x0D3=Granja de Torrehermosa
+0x0D4=Berlanga
+0x0D5=Ahillones
+
+# Autobuses urbanos de Mérida
+0x050=Estación Autobuses Mérida
+0x051=Teatro Romano
+0x052=Museo Nacional de Arte Romano
+0x053=Alcazaba
+0x054=Circo Romano
+0x055=Casa del Mitreo
+0x056=Hospital de Mérida
+0x057=UNED Mérida
+
+# Otras estaciones importantes
+0x060=Plasencia
+0x061=Jaraíz de la Vera
+0x062=Navalmoral de la Mata
+0x063=Talayuela
+0x064=Casatejada
+0x065=Almaraz
+0x066=Romangordo
+0x067=Toril
+0x068=Cáceres
+
+# Líneas comarcales
+0x070=Villanueva de la Serena
+0x071=Don Benito
+0x072=Campanario
+0x073=Castuera
+0x074=Zalamea de la Serena
+0x075=Azuaga
+0x076=Granja de Torrehermosa
+0x077=Berlanga
+0x078=Usagre
+0x079=Bienvenida
+
+# Estaciones fronterizas con Portugal
+0x080=Badajoz-Frontera
+0x081=Elvas
+0x082=Valencia de Alcántara
+0x083=Marvão
+0x084=Portalegre
+0x085=Évora
+0x086=Lisboa
+
+# Otras localidades
+0x090=Trujillo
+0x091=Miajadas
+0x092=Herrera del Duque
+0x093=Talarrubias
+0x094=Orellana la Vieja
+0x095=Madrigalejo
+0x096=Jarandilla de la Vera
+0x097=Cuacos de Yuste
+0x098=Hervás
+0x099=Béjar

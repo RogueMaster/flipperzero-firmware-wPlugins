@@ -1,0 +1,14 @@
+Filetype: Flipper T5577 Raw File
+Version: 2
+Modulation: FSK2a
+RF Clock: 64
+Max User Block: 7
+Raw Data: 
+Block 0: 00 14 70 E0
+Block 1: 11 12 13 14
+Block 2: 22 33 44 55
+Block 3: 1A 2B 3C 4D
+Block 4: 56 78 AB CD
+Block 5: 12 34 12 34
+Block 6: AB CD EF AB
+Block 7: 12 34 56 78

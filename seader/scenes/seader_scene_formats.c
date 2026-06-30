@@ -1,0 +1,78 @@
+#include "../seader_i.h"
+#include <dolphin/dolphin.h>
+
+static void seader_scene_formats_alloc_strings(Seader* seader) {
+    furi_check(seader);
+    if(!seader->text_box_store) {
+        seader->text_box_store = furi_string_alloc();
+        furi_check(seader->text_box_store);
+    }
+    furi_check(seader_temp_strings_ensure(seader, 1U));
+}
+
+void seader_scene_formats_on_enter(void* context) {
+    Seader* seader = context;
+    PluginWiegand* plugin = seader_wiegand_plugin_acquire(seader) ? seader->plugin_wiegand : NULL;
+    SeaderCredential* credential = seader->credential;
+    TextBox* text_box = seader_get_text_box(seader);
+    if(!text_box) {
+        FURI_LOG_E("SeaderSceneFormats", "Text box view unavailable");
+        return;
+    }
+
+    seader_scene_formats_alloc_strings(seader);
+    FuriString* str = seader->text_box_store;
+    furi_string_reset(str);
+
+    if(plugin) {
+        // Use reusable string instead of allocating new one
+        FuriString* description = seader->temp_string1;
+        size_t format_count = plugin->count(credential->bit_length, credential->credential);
+        for(size_t i = 0; i < format_count; i++) {
+            furi_string_reset(description);
+            plugin->description(credential->bit_length, credential->credential, i, description);
+            if(furi_string_size(description) > 0U) {
+                furi_string_cat_printf(str, "%s\n", furi_string_get_cstr(description));
+            }
+        }
+        if(format_count == 0) {
+            furi_string_set_str(str, "No known Wiegand formats matched.");
+        }
+        // No need to free description as it's reused from seader struct
+    } else {
+        furi_string_set_str(str, "Wiegand parser unavailable.");
+    }
+
+    text_box_set_font(text_box, TextBoxFontHex);
+    text_box_set_text(text_box, furi_string_get_cstr(seader->text_box_store));
+    view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewTextBox);
+}
+
+bool seader_scene_formats_on_event(void* context, SceneManagerEvent event) {
+    Seader* seader = context;
+    bool consumed = false;
+
+    if(event.type == SceneManagerEventTypeCustom) {
+        if(event.event == GuiButtonTypeLeft) {
+            consumed = scene_manager_previous_scene(seader->scene_manager);
+        }
+    } else if(event.type == SceneManagerEventTypeBack) {
+        consumed = scene_manager_previous_scene(seader->scene_manager);
+    }
+    return consumed;
+}
+
+void seader_scene_formats_on_exit(void* context) {
+    Seader* seader = context;
+
+    // Clear views
+    if(seader->text_box) {
+        text_box_reset(seader->text_box);
+    }
+    if(seader->text_box_store) {
+        furi_string_free(seader->text_box_store);
+        seader->text_box_store = NULL;
+    }
+    seader_temp_strings_release(seader, 1U);
+    seader_wiegand_plugin_release(seader);
+}

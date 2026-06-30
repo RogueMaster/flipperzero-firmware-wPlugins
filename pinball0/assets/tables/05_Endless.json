@@ -1,0 +1,85 @@
+{
+    "name": "Endless",
+    "lives": {
+        "value": 1
+    },
+    "tilt_detect": false,
+    "balls": [
+        {
+            "position": [ 600, 510 ],
+            "velocity": [ 0, -10.0 ]
+        }
+    ],
+    "flippers": [
+        {
+            "position": [ 20, 1160 ],
+            "side": "LEFT",
+            "size": 240
+        },
+        {
+            "position": [ 610, 1160 ],
+            "side": "RIGHT",
+            "size": 240
+        }
+    ],
+    "bumpers": [
+        {
+            "position": [ 200, 260 ],
+            "radius": 80
+        },
+        {
+            "position": [ 450, 200 ],
+            "radius": 60
+        },
+        {
+            "position": [ 300, 750 ],
+            "radius": 50
+        },
+        {
+            "position": [ 460, 500 ],
+            "radius": 60
+        },
+        {
+            "position": [ -30.0, 600 ],
+            "radius": 130
+        }
+    ],
+    "arcs": [
+        {
+            // top right curve
+            "position": [ 430, 200 ],
+            "radius": 200,
+            "start_angle": 0,
+            "end_angle": 90,
+            "surface": "INSIDE"
+        },
+        {
+            // top left curve
+            "position": [ 200, 200 ],
+            "radius": 200,
+            "start_angle": 90,
+            "end_angle": 180,
+            "surface": "INSIDE"
+        }
+    ],
+    "rails": [
+        // left wall
+        {
+            "start": [ 0, 200 ],
+            "end": [ 0, 1270 ]
+        },
+        // right wall
+        {
+            "start": [ 630, 1270 ],
+            "end": [ 630, 200 ]
+        }
+    ],
+    "portals": [
+        {
+            "a_start": [ 0, 1270 ],
+            "a_end": [ 630, 1270 ],
+            "b_start": [ 440, 0 ],
+            "b_end": [ 200, 0 ]
+        }
+    ]
+}

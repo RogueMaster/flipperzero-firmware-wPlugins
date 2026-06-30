@@ -1,0 +1,17 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="fzspground",  # Must be unique
+    name="Space Playground",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fzspground_app",
+    stack_size=2 * 1024,
+    fap_category="Media",  # Category for the app
+    # Optional values
+    fap_version="0.1",
+    fap_icon="fzspground.png",  # 10x10 1-bit PNG
+    fap_description="A simple space simulation playground for Flipper Zero",
+    fap_author="Alan Silva",
+    fap_weburl="https://github.com/alanfortlink/fzspground",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)

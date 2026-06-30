@@ -1,0 +1,16 @@
+CompileFlags:
+    CompilationDatabase: './.vscode'
+    Remove:
+        - '-mword-relocations'
+    BuiltinHeaders: QueryDriver
+
+Diagnostics:
+    ClangTidy:
+        FastCheckFilter: None
+
+---
+
+If:
+    PathMatch: .*\.h
+Diagnostics:
+    UnusedIncludes: None

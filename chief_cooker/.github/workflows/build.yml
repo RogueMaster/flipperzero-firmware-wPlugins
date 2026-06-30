@@ -1,0 +1,40 @@
+name: "FAP: Build for multiple SDK sources"
+# This will build your app for dev and release channels on GitHub. 
+# It will also build your app every day to make sure it's up to date with the latest SDK changes.
+# See https://github.com/marketplace/actions/build-flipper-application-package-fap for more information
+
+on:
+  push:
+    ## put your main branch name under "branches"
+    #branches: 
+    #  - master 
+  pull_request:
+  schedule: 
+    # do a build every day
+    - cron: "1 1 * * *"
+
+jobs:
+  ufbt-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: Momentum firmware
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+            sdk-channel: release
+    name: 'ufbt: Build for ${{ matrix.name }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url }}
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4.6.1
+        with:
+          # See ufbt action docs for other output variables
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}

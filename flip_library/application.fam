@@ -1,0 +1,14 @@
+App(
+    appid="flip_library",
+    name="FlipLibrary",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_library_app",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/FlipperHTTP",
+    fap_icon_assets="assets",
+    fap_description="Utilize WiFi to retrieve data from 20 different APIs",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipLibrary",
+    fap_version = "1.5",
+)

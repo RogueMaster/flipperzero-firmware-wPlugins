@@ -1,0 +1,14 @@
+App(
+    appid="flip_downloader",
+    name="FlipDownloader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="main_flip_downloader",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/FlipperHTTP",
+    fap_icon_assets="assets",
+    fap_description="Download apps and assets via WiFi directly to your Flipper Zero",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipDownloader",
+    fap_version="1.3.5",
+)

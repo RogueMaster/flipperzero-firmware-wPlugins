@@ -1,0 +1,155 @@
+# Cantabria - RENFE, FEVE y transporte regional
+# Códigos de estaciones del transporte público en Cantabria
+# Formato: código=nombre_de_estación
+
+# RENFE Cantabria - Principales estaciones
+0x8000=Santander
+0x8001=Torrelavega
+0x8002=Reinosa
+0x8003=Los Corrales de Buelna
+
+# RENFE Cercanías Cantabria - C1 (Santander-Torrelavega)
+0x001=Santander
+0x002=Peñacastillo
+0x003=Boo
+0x004=Guarnizo
+0x005=Astillero
+0x006=Muriedas
+0x007=Maliaño
+0x008=Orejo
+0x009=Solares
+0x00A=Requejada
+0x00B=Los Corrales de Buelna
+0x00C=Torrelavega
+
+# RENFE Cercanías Cantabria - C2 (Santander-Cabezón)
+0x010=Santander
+0x011=Boo
+0x012=Mogro
+0x013=Miengo
+0x014=Barreda
+0x015=Torrelavega
+0x016=Cartes
+0x017=Cabezón de la Sal
+
+# FEVE Cantabria - Línea Santander-Oviedo (Transcantábrico)
+0x020=Santander-FEVE
+0x021=Boo de Piélagos
+0x022=Mogro
+0x023=Miengo
+0x024=Barreda
+0x025=Torrelavega-FEVE
+0x026=Cartes
+0x027=Cabezón de la Sal-FEVE
+0x028=San Vicente de la Barquera
+0x029=Unquera
+0x02A=Colombres
+0x02B=Llanes
+0x02C=Ribadesella
+0x02D=Arriondas
+0x02E=Infiesto
+0x02F=Oviedo-FEVE
+
+# FEVE Cantabria - Línea Santander-Bilbao
+0x030=Santander-FEVE
+0x031=Solares
+0x032=Gibaja
+0x033=Ramales de la Victoria
+0x034=Espinosa de los Monteros
+0x035=Villasana de Mena
+0x036=Balmaseda
+0x037=Sodupe
+0x038=Bilbao-Atxuri
+
+# RENFE Larga Distancia - Línea Palencia-Santander
+0x040=Santander
+0x041=Torrelavega
+0x042=Los Corrales de Buelna
+0x043=Mataporquera
+0x044=Reinosa
+0x045=Alar del Rey
+0x046=Herrera de Pisuerga
+0x047=Osorno
+0x048=Venta de Baños
+0x049=Palencia
+
+# Autobuses urbanos de Santander (TUS)
+0x050=Estación Autobuses Santander
+0x051=Plaza Porticada
+0x052=Estación RENFE
+0x053=Valdecilla
+0x054=Universidad de Cantabria
+0x055=Cueto
+0x056=Monte
+0x057=Sardinero
+0x058=Magdalena
+0x059=Pereda
+
+# Estaciones costeras
+0x060=Santander-Puerto
+0x061=El Sardinero
+0x062=Somo
+0x063=Pedreña
+0x064=Isla
+0x065=Noja
+0x066=Santoña
+0x067=Laredo
+0x068=Castro Urdiales
+
+# Estaciones del interior
+0x070=Reinosa
+0x071=Espinilla
+0x072=Mataporquera
+0x073=Pozazal
+0x074=Brañosera
+0x075=Aguilar de Campoo
+0x076=Cervera de Pisuerga
+0x077=Guardo
+
+# Red de autobuses interurbanos
+0x080=Santillana del Mar
+0x081=Comillas
+0x082=San Vicente de la Barquera
+0x083=Potes
+0x084=Liébana
+0x085=Camaleño
+0x086=Cabezon de Liebana
+
+# Estaciones históricas
+0x090=Ontaneda
+0x091=Alceda
+0x092=Molledo
+0x093=Barcena de Pie de Concha
+0x094=Los Corrales de Buelna-Histórica
+0x095=Renedo
+0x096=Villaescusa
+0x097=Camargo
+0x032=Ayuntamiento
+0x033=Universidad de Cantabria
+0x034=Hospital Marqués de Valdecilla
+0x035=Playa del Sardinero
+0x036=Palacio de Festivales
+0x037=Puerto de Santander
+0x038=Aeropuerto Seve Ballesteros
+
+# Otras estaciones importantes
+0x040=Castro Urdiales
+0x041=Laredo
+0x042=Santoña
+0x043=Noja
+0x044=Beranga
+0x045=Limpias
+0x046=Ampuero
+0x047=Guriezo
+0x048=San Vicente de la Barquera
+0x049=Comillas
+0x04A=Potes
+0x04B=Reinosa
+0x04C=Aguilar de Campoo
+
+# Líneas de autobús interurbano
+0x050=Reinosa
+0x051=Mataporquera
+0x052=Alar del Rey
+0x053=Palencia
+0x054=Valladolid

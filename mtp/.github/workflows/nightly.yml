@@ -1,0 +1,42 @@
+name: Nightly
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+jobs:
+    all:
+        runs-on: ubuntu-latest
+        name: Nightly Build for ${{ matrix.name }}
+        strategy:
+            matrix:
+                include:
+                  - name: (Official) Release channel
+                    sdk-ident: official_release
+                    sdk-channel: release
+                  - name: (Unleashed) Release channel
+                    sdk-ident: unleashed_release
+                    sdk-index-url: https://up.unleashedflip.com/directory.json
+                    sdk-channel: release
+                  - name: (Official) Dev channel
+                    sdk-ident: official_dev
+                    sdk-channel: dev
+                  - name: (Unleashed) Development channel
+                    sdk-ident: unleashed_dev
+                    sdk-index-url: https://up.unleashedflip.com/directory.json
+                    sdk-channel: dev
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+          - name: Build for ${{ matrix.name }}
+            uses: flipperdevices/flipperzero-ufbt-action@v0.1.3
+            id: build-app
+            with:
+                sdk-channel: ${{ matrix.sdk-channel }}
+                sdk-index-url: ${{ matrix.sdk-index-url }}
+          - name: Upload app artifacts
+            uses: actions/upload-artifact@v4
+            with:
+                name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }} (${{ matrix.sdk-ident }})
+                path: ${{ steps.build-app.outputs.fap-artifacts }}

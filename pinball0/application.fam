@@ -1,0 +1,19 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="pinball0",
+    name="Pinball0",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pinball0_app",
+    stack_size=2 * 1024,  # neede?
+    fap_category="Games",
+    requires=["gui"],
+    # Optional values
+    fap_version="0.5.2",
+    fap_icon="pinball0.png",  # 10x10 1-bit PNG
+    fap_description="Pinball game",
+    fap_author="Roberto De Feo",
+    fap_weburl="https://github.com/rdefeo/pinball0",
+    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_file_assets="assets",
+)

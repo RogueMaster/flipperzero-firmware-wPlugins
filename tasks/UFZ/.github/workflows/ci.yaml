@@ -1,0 +1,19 @@
+name: "FAP: Build and lint"
+on: [push, pull_request]
+jobs:
+  ufbt-build-action:
+    runs-on: ubuntu-latest
+    name: 'ufbt: Build for Dev branch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+          sdk-channel: release
+          task: setup
+      - name: Clone test
+        run: "git clone https://github.com/MadLadSquad/FlipperTasks.git --recursive && cp *.hpp *.cpp FlipperTasks/UFZ"
+      - name: Compile
+        run: "cd FlipperTasks/ && ufbt"

@@ -1,0 +1,19 @@
+Passport DEFINITIONS ::=
+BEGIN
+
+MRZ ::= VisibleString
+LDSVersion ::= VisibleString
+UnicodeVersion ::= VisibleString
+DataGroups ::= OCTET STRING
+
+DG1 ::= [APPLICATION 1] IMPLICIT SEQUENCE {
+  mrz [APPLICATION 31] IMPLICIT MRZ
+}
+
+COM ::= [APPLICATION 0] IMPLICIT SEQUENCE {
+  ldsVersion [APPLICATION 1] IMPLICIT LDSVersion,
+  unicodeVersion [APPLICATION 54] IMPLICIT UnicodeVersion,
+  dataGroups [APPLICATION 28] IMPLICIT DataGroups
+}
+
+END

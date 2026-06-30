@@ -1,0 +1,78 @@
+# Flipper Zero Build Artifacts
+*.fap
+*.elf
+*.map
+build/
+dist/
+.extapps/
+
+# Compiled Object files
+*.o
+*.obj
+*.ko
+*.slo
+*.lo
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.bak
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.Python
+env/
+venv/
+
+# Local configuration
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+Thumbs.db
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Flipper specific
+.fbt_cache/
+toolchain/
+
+# Git merge files
+*.orig
+.claude/mcp.json
+.claude/settings.local.json

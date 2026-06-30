@@ -1,0 +1,12 @@
+[tool.commitizen]
+name = "czespressif"
+version = "1.8.0"
+update_changelog_on_bump = true
+tag_format = "v$version"
+changelog_merge_prerelease = true
+annotated_tag = true
+changelog_start_rev = "v1.0.0"
+bump_message = "change: Update version to $new_version"
+version_files = [
+    "idf_component.yml:version"
+]

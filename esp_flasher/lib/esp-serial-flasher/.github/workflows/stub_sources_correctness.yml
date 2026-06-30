@@ -1,0 +1,26 @@
+name: Stub sources correctness checks
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  pre_commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure the stub example with the stub version argument
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.2.2
+          path: 'examples/esp32_stub_example'
+          command: idf.py reconfigure -DSERIAL_FLASHER_STUB_PULL_VERSION='0.3.0'
+
+      - name: Run git diff to check if the sources in the repo match the generated ones
+        run: git diff --exit-code

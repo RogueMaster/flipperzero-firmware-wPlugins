@@ -1,0 +1,17 @@
+9,1,Savigny-sur-Orge
+9,3,Epinay-sur-Orge
+10,1,Sainte-Genevieve-des-Bois
+11,1,Saint-Michel-sur-Orge
+12,1,Bretigny
+12,3,Marolles-en-Hurepoix
+13,1,Bouray
+13,2,Lardy
+14,1,Gare de Chamarande
+14,2,Etrechy
+15,1,Etampes
+15,2,Saint-Martin d'Etampes
+16,1,Etampes
+16,2,Saint-Martin d'Etampes
+17,1,Guillerval
+17,2,Monnerville
+17,3,Angerville

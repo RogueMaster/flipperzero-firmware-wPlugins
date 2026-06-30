@@ -1,0 +1,74 @@
+Filetype: Flipper Wedge Keyboard Layout
+Version: 1
+Name: Custom Layout Template
+
+# Custom keyboard layout template for Flipper Wedge
+# Copy this file and modify it for your keyboard layout.
+#
+# FORMAT:
+# <character>: <hid_keycode> [SHIFT]
+#
+# - Single character before colon
+# - HID keycode in decimal (or hex with 0x prefix)
+# - Optional SHIFT modifier
+#
+# HID KEYCODE REFERENCE (decimal):
+# Physical number row (US QWERTY):
+#   `=53  1=30  2=31  3=32  4=33  5=34  6=35  7=36  8=37  9=38  0=39  -=45  ==46
+#
+# Letters (same position on most layouts):
+#   A=4  B=5  C=6  D=7  E=8  F=9  G=10  H=11  I=12  J=13  K=14  L=15  M=16
+#   N=17  O=18  P=19  Q=20  R=21  S=22  T=23  U=24  V=25  W=26  X=27  Y=28  Z=29
+#
+# Special keys:
+#   Space=44  Enter=40  Tab=43  Backspace=42
+#   -=45  ==46  [=47  ]=48  \=49  ;=51  '=52  `=53  ,=54  .=55  /=56
+#
+# Full reference: USB HID Usage Tables, Keyboard page (0x07)
+# https://usb.org/sites/default/files/hut1_21.pdf (page 83)
+#
+# EXAMPLES:
+#
+# If your '0' key is in a different position:
+# 0: 53
+#
+# If numbers need SHIFT (like French AZERTY):
+# 1: 30 SHIFT
+#
+# If a letter is in a different position (like AZERTY A<->Q swap):
+# a: 20
+# A: 20 SHIFT
+
+# === DIGITS ===
+# Uncomment and modify as needed for your layout
+# 0: 39
+# 1: 30
+# 2: 31
+# 3: 32
+# 4: 33
+# 5: 34
+# 6: 35
+# 7: 36
+# 8: 37
+# 9: 38
+
+# === HEX LETTERS (uppercase) ===
+# A: 4 SHIFT
+# B: 5 SHIFT
+# C: 6 SHIFT
+# D: 7 SHIFT
+# E: 8 SHIFT
+# F: 9 SHIFT
+
+# === HEX LETTERS (lowercase) ===
+# a: 4
+# b: 5
+# c: 6
+# d: 7
+# e: 8
+# f: 9
+
+# === DELIMITERS ===
+# -: 45
+# :: 51 SHIFT
+# ,: 54

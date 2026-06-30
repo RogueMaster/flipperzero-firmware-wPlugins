@@ -1,0 +1,10 @@
+0x86,0x1A,#6 Sakaisuji,Tenjinbashisuji 6-chome,11,0
+0x86,0x1C,#6 Sakaisuji,Ogimachi,12,0
+0x86,0x1E,#6 Sakaisuji,Minamimorimachi,13,0
+0x86,0x20,#6 Sakaisuji,Kitahama,14,0
+0x86,0x22,#6 Sakaisuji,Sakaisuji-Hommachi,15,0
+0x86,0x24,#6 Sakaisuji,Nagahoribashi,16,0
+0x86,0x25,#6 Sakaisuji,Nippombashi,17,0
+0x86,0x26,#6 Sakaisuji,Ebisucho,18,0
+0x86,0x28,#6 Sakaisuji,Dobutsuen-mae,19,0
+0x86,0x2A,#6 Sakaisuji,Tengachaya,20,0

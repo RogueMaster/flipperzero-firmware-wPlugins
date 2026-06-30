@@ -1,0 +1,58 @@
+name: "Build"
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEFAULT_TARGET: f7
+  FBT_GIT_SUBMODULE_SHALLOW: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [f7]
+    steps:
+      - name: "Checkout firmware"
+        uses: actions/checkout@v4
+        with:
+          repository: Next-Flip/Momentum-Firmware
+          fetch-depth: 1
+          ref: dev
+          submodules: recursive
+
+      - name: "Checkout apps"
+        uses: actions/checkout@v4
+        with:
+          path: applications/external
+          fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: "Get commit details"
+        run: |
+          BUILD_TYPE='DEBUG=0 COMPACT=1'
+          echo "FBT_BUILD_TYPE=$BUILD_TYPE" >> $GITHUB_ENV
+          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET_HW=$(echo "${{ matrix.target }}" | sed 's/f//')" >> $GITHUB_ENV
+
+      - name: "Build the firmware and apps"
+        run: |
+          git add applications/external
+          ./fbt TARGET_HW=$TARGET_HW $FBT_BUILD_TYPE updater_package
+
+      - name: "Check for uncommitted changes"
+        run: |
+          git diff --exit-code
+
+      - name: "Upload artifacts to GitHub"
+        uses: actions/upload-artifact@v4
+        with:
+          path: |
+            dist/${{ env.TARGET }}-*/flipper-z-${{ env.TARGET }}-update-*

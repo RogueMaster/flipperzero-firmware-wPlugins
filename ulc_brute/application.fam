@@ -1,0 +1,16 @@
+App(
+    appid="ulc_brute",
+    name="UL-C Bruteforce",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ulc_brute_app",
+    requires=["gui", "subghz"],
+    stack_size=2 * 1024,
+    fap_version=(1, 0),
+    fap_icon="ulcbrute.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="ulcbrute",
+    fap_category="NFC",
+    fap_author="noproto",
+    fap_description="Bruteforce Ultralight C authentication",
+    fap_weburl="https://github.com/noproto",
+)

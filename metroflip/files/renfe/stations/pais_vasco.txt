@@ -1,0 +1,319 @@
+# País Vasco Region Stations - RENFE, Euskotren, Metro Bilbao
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0xA000,Bilbao-Abando
+0xA001,Donostia-San Sebastián
+0xA002,Vitoria-Gasteiz
+0xA003,Irún
+0xA004,Miranda de Ebro
+0xA005,Alsasua
+0xA006,Hendaya
+
+# Metro Bilbao - Línea 1
+0xA100,Etxebarri
+0xA101,Bolueta
+0xA102,Basauri
+0xA103,Ariz
+0xA104,Urbinaga
+0xA105,Sestao
+0xA106,Portugalete
+0xA107,Abatxolo
+0xA108,Santurtzi
+0xA109,Peñota
+0xA10A,Mamariga
+0xA10B,Areeta
+0xA10C,Gobela
+0xA10D,Neguri
+0xA10E,Aiboa
+0xA10F,Algorta
+0xA110,Bidezabal
+0xA111,Berango
+0xA112,Larrabasterra
+0xA113,Urduliz
+0xA114,Sopela
+0xA115,Urduliz
+0xA116,Plentzia
+
+# Metro Bilbao - Línea 2
+0xA120,Basauri
+0xA121,Ariz
+0xA122,Etxebarri
+0xA123,Igorre
+0xA124,Zugastieta
+0xA125,Abusu
+0xA126,Boroa
+0xA127,Lemoa
+0xA128,Amorebieta
+0xA129,Muxika
+0xA12A,Bermeo
+
+# Euskotren Trena (Cercanías)
+0xA200,Bilbao-Atxuri
+0xA201,Deusto
+0xA202,Sarriko
+0xA203,Bidebieta
+0xA204,Basurto
+0xA205,Lutxana
+0xA206,Erandio
+0xA207,Erandio-Goikoa
+0xA208,Lutxana-Erandio
+0xA209,Galdakao
+0xA20A,Usansolo
+0xA20B,Amorebieta-Etxano
+0xA20C,Lemoa
+0xA20D,Gernika-Lumo
+0xA20E,Bermeo
+
+# Euskotren - Línea Donostia
+0xA300,Donostia-Amara
+0xA301,Anoeta
+0xA302,Lugaritz
+0xA303,Herrera
+0xA304,Intxaurrondo
+0xA305,Pasaia
+0xA306,Lezo
+0xA307,Errenteria
+0xA308,Oiartzun
+0xA309,Irún-Ficoba
+0xA30A,Irún-Colón
+0xA30B,Hendaya
+
+# RENFE Cercanías San Sebastián
+0xA400,Donostia-San Sebastián
+0xA401,Pasaia-San Pedro
+0xA402,Errenteria-Oiartzun
+0xA403,Irún
+0xA404,Hendaya
+0xA405,Beasain
+0xA406,Zumarraga
+0xA407,Ormaiztegi
+0xA408,Alsasua
+0xA409,Vitoria-Gasteiz
+
+# RENFE Cercanías Bilbao
+0xA500,Bilbao-Abando
+0xA501,Deusto
+0xA502,Olabeaga
+0xA503,Lutxana
+0xA504,Erandio
+0xA505,Sondika
+0xA506,Derio
+0xA507,Loiu
+0xA508,Mungia
+0xA509,Larrabetzu
+0xA50A,Lezama
+0xA50B,Amorebieta
+
+# Líneas FEVE (EuskoTren)
+0xA600,Bilbao-Concordia
+0xA601,Bolueta
+0xA602,Etxebarri
+0xA603,Igorre
+0xA604,Durango
+0xA605,Elorrio
+0xA606,Elgeta
+0xA607,Bergara
+0xA608,Antzuola
+0xA609,Elgoibar
+0xA60A,Deba
+0xA60B,Zumaia
+0xA60C,Zarautz
+0xA60D,Orio
+0xA60E,Donostia-Amara
+
+# Tranvía Vitoria-Gasteiz
+0xA700,Angulema
+0xA701,Europa
+0xA702,Mendizorrotza
+0xA703,Lovaina
+0xA704,Abetxuko
+0xA705,Universidad
+0xA706,Ibaiondo
+0xA707,García Escámez
+0xA708,Portal de Foronda
+
+# Estaciones históricas y conexiones
+0xA800,Tolosa
+0xA801,Villabona
+0xA802,Andoain
+0xA803,Hernani
+0xA804,Astigarraga
+0xA805,Renteria
+0xA806,Oyarzun
+0xA807,Lesaka
+0xA808,Vera de Bidasoa
+0xA809,Elizondo
+0xA80A,Santesteban
+
+# Autobuses interurbanos principales
+0xA900,Bilbao Termibus
+0xA901,San Sebastián Terminal
+0xA902,Vitoria Terminal
+0xA903,Irún Terminal
+0xA904,Barakaldo Terminal
+0xA905,Getxo Terminal
+0xA906,Durango Terminal
+0xA907,Eibar Terminal
+0x002=Ariz
+0x003=Bolueta
+0x004=Basauri
+0x005=Ansio
+0x006=Sarriko
+0x007=Deusto
+0x008=San Mamés
+0x009=Abando
+0x00A=Casco Viejo
+0x00B=Uribarri
+0x00C=Santutxu
+0x00D=Peñascal
+0x00E=Sestao
+0x00F=Areeta
+0x010=Portugalete
+0x011=Abatxolo
+0x012=Santurce
+0x013=Kabiezes
+0x014=Las Arenas-Getxo
+0x015=Bidezabal
+0x016=Aiboa
+0x017=Algorta
+0x018=Neguri
+0x019=Berango
+0x01A=Larrabasterra
+0x01B=Urduliz
+0x01C=Plentzia
+
+# Metro Bilbao - Línea 2
+0x020=Basauri
+0x021=Ariz
+0x022=Bolueta
+0x023=Sarriko
+0x024=Santutxu
+0x025=San Ignacio
+0x026=Indautxu
+0x027=Moyua
+0x028=Abando
+0x029=Casco Viejo
+0x02A=Deusto
+0x02B=San Mamés
+
+# Metro Bilbao - Línea 3 (Kadagua)
+0x030=Etxebarri
+0x031=Bolueta
+0x032=Sarriko
+0x033=Santutxu
+0x034=Casco Viejo
+0x035=Zabalburu
+0x036=Otxarkoaga
+0x037=Txurdinaga
+0x038=Abusu
+0x039=Matiko
+0x03A=Kukullaga
+
+# Euskotren - Línea E1 (Bilbao-Plentzia)
+0x040=Bilbao-Atxuri
+0x041=Zorrozaurre
+0x042=Lutxana
+0x043=Erandio
+0x044=Asua
+0x045=Leioa
+0x046=Lamiako
+0x047=Areeta
+0x048=Gobela
+0x049=Neguri
+0x04A=Aiboa
+0x04B=Algorta
+0x04C=Bidezabal
+0x04D=Berango
+0x04E=Larrabasterra
+0x04F=Sopela
+0x050=Urduliz
+0x051=Plentzia
+
+# Euskotren - Línea E2 (Bilbao-Bermeo)
+0x060=Bilbao-Atxuri
+0x061=Bolueta
+0x062=Lezama
+0x063=Lemoa
+0x064=Amorebieta-Etxano
+0x065=Gernika-Lumo
+0x066=Bermeo
+
+# Euskotren - Línea E3 (Bilbao-Eibar)
+0x070=Bilbao-Atxuri
+0x071=Basauri
+0x072=Ariz
+0x073=Etxebarri
+0x074=Igorre
+0x075=Durango
+0x076=Berriz
+0x077=Zaldibar
+0x078=Ermua
+0x079=Eibar
+
+# Euskotren - Línea E4 (Donostia-Hendaia)
+0x080=Donostia-Amara
+0x081=Loiola
+0x082=Pasaia
+0x083=Lezo
+0x084=Renteria
+0x085=Irún
+0x086=Hendaia
+
+# Euskotren Tranvía Bilbao - Línea A
+0x090=Atxuri
+0x091=Ribera
+0x092=Uribarri
+0x093=Guggenheim
+0x094=San Mamés
+0x095=Sabino Arana
+0x096=Abandoibarra
+0x097=Euskalduna
+0x098=Basurto
+
+# Euskotren Tranvía Vitoria - TVV
+0x0A0=Europa
+0x0A1=Ibaiondo
+0x0A2=Angulema
+0x0A3=Lovaina
+0x0A4=Francia
+0x0A5=Intermodal
+
+# RENFE Cercanías País Vasco
+0x0B0=Bilbao-La Concordia
+0x0B1=Santurtzi
+0x0B2=Portugalete
+0x0B3=Barakaldo
+0x0B4=Sestao
+0x0B5=Muskiz
+0x0B6=Zierbena
+0x0B7=Castro Urdiales
+0x0B8=Laredo
+0x0B9=Santoña
+0x0BA=Torrelavega
+0x0BB=Reinosa
+0x0BC=Mataporquera
+0x0BD=Alar del Rey
+0x0BE=Palencia
+0x0BF=Venta de Baños
+0x0C0=Valladolid-Campo Grande
+
+# Euskotren - Estaciones costeras
+0x0D0=Donostia-Amara
+0x0D1=Zarautz
+0x0D2=Getaria
+0x0D3=Zumaia
+0x0D4=Deba
+0x0D5=Mutriku
+0x0D6=Ondarroa
+0x0D7=Lekeitio
+
+# Estaciones adicionales RENFE
+0x0E0=Alsasua
+0x0E1=Tolosa
+0x0E2=Beasain
+0x0E3=Zumarraga
+0x0E4=Bergara
+0x0E5=Mondragón
+0x0E6=Arrasate

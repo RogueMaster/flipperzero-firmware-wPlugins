@@ -1,0 +1,1 @@
+uint64_t XXH64(const void* input, size_t len, uint64_t seed);

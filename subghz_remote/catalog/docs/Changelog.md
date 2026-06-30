@@ -1,0 +1,46 @@
+## v1.8
+- Add default remote and clear slot features by jknlsn
+
+## v1.7
+- Fixes for RAW files sending by WillyJL
+
+## v1.6
+- Support for custom buttons in UL FW by MrLego8-9
+
+## v1.5
+- Fixes for new API
+
+## v1.4
+- Various fixes
+
+## v1.3
+- **New UI design**
+- New remote design by @Svaarich
+- Fix defines for new API
+- Fix typo
+
+## v1.2
+- **Official FirmWare Support**
+- Add warning screen on CustomFW
+    - The .sub file format may differ from the official one and may be broken
+
+## v1.1
+- **Was combined with a configuration plugin**
+    - Editing/Creating map file
+- Support for starting arguments
+
+## v1.0
+
+**Initial implementation:**
+- Transmission
+- GUI
+- All .sub files for which transfer is available are supported
+- Signal types:
+    - Static
+    - Dynamic
+    - RAW
+    - BinRAW
+
+*Custom modulations are not supported yet*
+
+**Map File Format** - FlipperFormat .txt file

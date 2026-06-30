@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passy: Flipper Zero Passport Reader</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style-dark.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+    <header>
+        <h1>Passy: Flipper Zero Passport Reader</h1>
+    </header>
+    <div class="flags-container">
+        <div class="flags-left">
+            <p>🇺🇸</p>
+            <p>🇨🇱</p>
+            <p>🇫🇷</p>
+            <p>🇬🇧</p>
+            <p>🇵🇭</p>
+            <p>🇷🇺</p>
+            <p>🇹🇼</p>
+            <p>🇺🇦</p>
+            <p>🇦🇿</p>
+            <p>🇨🇦</p>
+            <p>🇮🇹</p>
+            <p>🇪🇸</p>
+            <p>🇪🇪</p>
+            <p>🇨🇭</p>
+            <p>🇦🇺</p>
+            <p>🇭🇰</p>
+            <p>🇦🇹</p>
+            <p>🇳🇱</p>
+            <p>🇬🇪</p>
+        </div>
+        <main>
+        <section>
+            <h2>Features</h2>
+            <ul>
+                <li>Reads and decodes ePassport data from a wide range of countries</li>
+                <li>Utilizes MRZ (Machine Readable Zone) information for secure access</li>
+                <li>Extensible for new country support—contribute your flag!</li>
+                <li>Advanced menu for debugging and exploring additional data groups (DGs)</li>
+            </ul>
+        </section>
+        <section>
+            <h2>Tested with the following countries</h2>
+            <p>🇺🇸 🇨🇱 🇫🇷 🇬🇧 🇵🇭 🇷🇺 🇹🇼 🇺🇦 🇦🇿 🇨🇦 🇮🇹 🇪🇸 🇪🇪 🇨🇭 🇦🇺 🇭🇰 🇦🇹 🇳🇱 🇬🇪</p>
+            <p><em>If it works for yours, submit a PR to add your country flag!</em></p>
+        </section>
+        <section>
+            <h2>Usage</h2>
+            <p>eMRTDs are secured to prevent unauthorized reading. The key for accessing the data is derived from:</p>
+            <ul>
+                <li>Passport number</li>
+                <li>Date of birth</li>
+                <li>Date of expiry</li>
+            </ul>
+            <p><strong>Use the Flipper Zero to scan your passport’s NFC chip and enter the required information.</strong></p>
+        </section>
+        <section>
+            <h2>Limitations</h2>
+            <ul>
+                <li>Advanced menu is hidden unless Debug mode is enabled</li>
+                <li>Some data groups (DGs) are not fully parsed under "advanced" menu</li>
+                <li>Country coverage is limited (see above)</li>
+            </ul>
+        </section>
+        <section>
+            <h2>Development</h2>
+            <h3>Prerequisites</h3>
+            <ul>
+                <li>Flipper Zero device (updated firmware recommended)</li>
+                <li><a href="https://github.com/flipperdevices/flipperzero-ufbt">ufbt</a> for building</li>
+                <li><a href="https://github.com/vlm/asn1c">asn1c</a> ASN.1 compiler (for protocol/data parsing)</li>
+            </ul>
+            <h3>Installation</h3>
+            <pre>
+                <code>
+git clone https://github.com/bettse/passy.git
+cd passy
+asn1c -D ./lib/asn1 -no-gen-example -pdu=all eMRTD.asn1
+                </code>
+            </pre>
+        </section>
+        <section>
+            <h2>Roadmap / To Do</h2>
+            <ul>
+                <li>Support PACE protocol</li>
+                <li>Add support for more countries' passports</li>
+                <li>Improve parsing of additional DGs</li>
+            </ul>
+        </section>
+        <section>
+            <h2>Contributing</h2>
+            <p>Contributions are welcome! If Passy works with a new country, feel free to:</p>
+            <ol>
+                <li>Add your country’s flag to the list above</li>
+                <li>Submit a pull request</li>
+            </ol>
+        </section>
+        </main>
+        <div class="flags-right">
+            <p>🇺🇸</p>
+            <p>🇨🇱</p>
+            <p>🇫🇷</p>
+            <p>🇬🇧</p>
+            <p>🇵🇭</p>
+            <p>🇷🇺</p>
+            <p>🇹🇼</p>
+            <p>🇺🇦</p>
+            <p>🇦🇿</p>
+            <p>🇨🇦</p>
+            <p>🇮🇹</p>
+            <p>🇪🇸</p>
+            <p>🇪🇪</p>
+            <p>🇨🇭</p>
+            <p>🇦🇺</p>
+            <p>🇭🇰</p>
+            <p>🇦🇹</p>
+            <p>🇳🇱</p>
+            <p>🇬🇪</p>
+        </div>
+    </div>
+</body>
+</html>

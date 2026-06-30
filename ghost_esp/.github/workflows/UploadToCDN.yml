@@ -1,0 +1,117 @@
+# .github/workflows/upload_to_r2.yml
+name: Upload and Notify
+on:
+  workflow_dispatch:
+jobs:
+  upload-and-notify:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Get latest release info
+      id: get_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        release=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          https://api.github.com/repos/${{ github.repository }}/releases/latest)
+        
+        echo "version=$(echo "$release" | jq -r '.tag_name')" >> $GITHUB_OUTPUT
+        echo "asset_url=$(echo "$release" | jq -r '.assets[] | select(.name | endswith(".fap")) | .browser_download_url')" >> $GITHUB_OUTPUT
+        description=$(echo "$release" | jq -r '.body')
+        echo "description<<EOF" >> $GITHUB_OUTPUT
+        echo "$description" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Download FAP
+      run: |
+        curl -L "${{ steps.get_release.outputs.asset_url }}" -o ghost_esp.fap
+
+    - name: Install rclone
+      run: |
+        curl -O https://downloads.rclone.org/rclone-current-linux-amd64.zip
+        unzip rclone-current-linux-amd64.zip
+        sudo install -o root -g root -m 0755 rclone-*-linux-amd64/rclone /usr/local/bin/rclone
+
+    - name: Configure rclone
+      env:
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      run: |
+        mkdir -p ~/.config/rclone
+        cat > ~/.config/rclone/rclone.conf << EOF
+        [cloudflare]
+        type = s3
+        provider = Cloudflare
+        access_key_id = $R2_ACCESS_KEY_ID
+        secret_access_key = $R2_SECRET_ACCESS_KEY
+        endpoint = https://fb5f7d31bedfe4f3538ddfa6db491962.r2.cloudflarestorage.com
+        EOF
+
+    - name: Upload to R2
+      env:
+        R2_BUCKET: "spooksapi"
+        R2_PATH: "assets/ghost_esp.fap"
+      run: |
+        rclone copyto ghost_esp.fap "cloudflare:${R2_BUCKET}/${R2_PATH}" --s3-no-check-bucket --progress
+    
+    - name: Notify Discord
+      if: success()
+      env:
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      run: |
+        # Create the Discord message payload
+        VERSION="${{ steps.get_release.outputs.version }}"
+        VERSION="${VERSION#v}"  # Remove leading 'v' if present
+        
+        DESCRIPTION="${{ steps.get_release.outputs.description }}"
+        if [ ${#DESCRIPTION} -gt 1024 ]; then
+          DESCRIPTION="${DESCRIPTION:0:1021}..."
+        fi
+        
+        # Write the payload to a file using pure JSON
+        cat > payload.json << 'EOF'
+        {
+          "embeds": [{
+            "title": "Ghost ESP Flipper App Update",
+            "description": "Version VERSION_PLACEHOLDER is now available",
+            "color": 8847615,
+            "fields": [
+              {
+                "name": "Download Latest Version",
+                "value": "[Click here to download](https://cdn.spookytools.com/assets/ghost_esp.fap)",
+                "inline": false
+              },
+              {
+                "name": "Changes in this version",
+                "value": "DESCRIPTION_PLACEHOLDER",
+                "inline": false
+              },
+              {
+                "name": "GitHub",
+                "value": "[Ghost ESP App](https://github.com/Spooks4576/ghost_esp_app)",
+                "inline": false
+              }
+            ],
+            "footer": {
+              "text": "updated with love <3"
+            },
+            "timestamp": "TIMESTAMP_PLACEHOLDER"
+          }]
+        }
+        EOF
+        
+        # Use jq to safely inject our variables
+        jq --arg ver "$VERSION" \
+           --arg desc "$DESCRIPTION" \
+           --arg ts "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" \
+           '.embeds[0].description = "Version " + $ver + " is now available" |
+            .embeds[0].fields[1].value = $desc |
+            .embeds[0].timestamp = $ts' \
+           payload.json > payload_final.json
+        
+        # Send to Discord using the file
+        curl -H "Content-Type: application/json" \
+             -d @payload_final.json \
+             "$DISCORD_WEBHOOK_URL"

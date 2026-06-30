@@ -1,0 +1,1 @@
+The ESP32 AT Firmware binaries have been removed from the project, up to date AT firwmare for Espressif SoC's can be obtained at https://github.com/espressif/esp-at/releases

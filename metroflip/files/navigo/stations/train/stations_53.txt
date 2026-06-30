@@ -1,0 +1,12 @@
+6,1,Deuil - Montmagny
+7,1,Groslay
+8,1,Sarcelles - Saint-Brice
+9,1,Ecouen - Ezanville
+9,2,Domont
+10,1,Bouffemont - Moisselles
+10,2,Montsoult - Maffliers
+11,1,Villaines
+11,2,Belloy - Saint-Martin
+11,3,Viarmes
+11,4,Seugy
+11,5,Luzarches

@@ -1,0 +1,17 @@
+0x87,0x07,#7 Nagahori T-R,Kadoma-minami,27,0
+0x87,0x08,#7 Nagahori T-R,Tsurumi-ryokuchi,26,0
+0x87,0x0A,#7 Nagahori T-R,Yokozutsumi,25,0
+0x87,0x0B,#7 Nagahori T-R,Imafuku-Tsurumi,24,0
+0x87,0x0C,#7 Nagahori T-R,Gamo 4-chome,23,0
+0x87,0x0E,#7 Nagahori T-R,Kyobashi,22,0
+0x87,0x0F,#7 Nagahori T-R,Osaka Business Park,21,0
+0x87,0x11,#7 Nagahori T-R,Morinomiya,20,0
+0x87,0x12,#7 Nagahori T-R,Tamatsukuri,19,0
+0x87,0x14,#7 Nagahori T-R,Tanimachi 6-chome,18,0
+0x87,0x15,#7 Nagahori T-R,Matsuyacho,17,0
+0x87,0x16,#7 Nagahori T-R,Nagahoribashi,16,0
+0x87,0x17,#7 Nagahori T-R,Shinsaibashi,15,0
+0x87,0x19,#7 Nagahori T-R,Nishiohashi,14,0
+0x87,0x1A,#7 Nagahori T-R,Nishinagahori,13,0
+0x87,0x1B,#7 Nagahori T-R,Dome-mae Chiyozaki,12,0
+0x87,0x1C,#7 Nagahori T-R,Taisho,11,0

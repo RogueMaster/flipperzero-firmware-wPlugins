@@ -1,0 +1,18 @@
+App(
+    appid="ldtoypad",
+    name="LEGO Dimensions Toy Pad",  # Displayed in menus
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ldtoypad_app",
+    stack_size=4 * 1024,
+    fap_category="USB",
+    requires=[
+        "gui",
+    ],
+    order=60,
+    fap_version="0.5",
+    fap_icon="ldtoypad.png",  # 10x10 1-bit PNG
+    fap_description="USB Toy Pad emulator for Lego Dimensions",
+    fap_author="Seger",
+    fap_weburl="https://github.com/SegerEnd/Flipper-Zero-LD-Toypad-Emulator",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)

@@ -1,0 +1,7 @@
+dist/*
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+compile_commands.json

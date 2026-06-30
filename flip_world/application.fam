@@ -1,0 +1,21 @@
+App(
+    appid="flip_world",
+    name="FlipWorld",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_world_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/FlipperHTTP",
+    fap_description="The first open-world multiplayer game, best played with the VGM.", 
+    fap_icon_assets="assets",
+    fap_file_assets="file_assets", 
+    fap_extbuild=(
+        ExtFile(
+            path="${FAP_SRC_DIR}/file_assets",
+            command="${PYTHON3} ${FAP_SRC_DIR}/engine/scripts/sprite_builder.py ${FAP_SRC_DIR.abspath}/sprites ${TARGET.abspath}/sprites",
+        ),
+    ),
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipWorld",
+    fap_version="0.8.3",
+)

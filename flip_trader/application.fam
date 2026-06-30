@@ -1,0 +1,14 @@
+App(
+    appid="flip_trader",
+    name="FlipTrader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_trader_app",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/FlipperHTTP",
+    fap_icon_assets="assets",
+    fap_description="Use WiFi to get the price of stocks and currency pairs on your Flipper Zero.",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipTrader",
+    fap_version="1.2",
+)

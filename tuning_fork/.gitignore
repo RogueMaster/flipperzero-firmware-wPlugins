@@ -1,0 +1,11 @@
+dist/*
+.vscode
+.clangd
+.env
+.ufbt
+.cache
+.nova/*
+!.nova/Tasks/
+!.nova/Tasks/Dev.json
+.DS_Store
+compile_commands.json

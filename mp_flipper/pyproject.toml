@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flipperzero"
+version = "1.8.0"
+authors = [
+    { name = "Oliver Fabel" },
+]
+description = "Python support for Flipper Zero."
+readme = "flipperzero/README.md"
+license = "MIT"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: Implementation :: MicroPython",
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Other OS",
+]
+keywords = [
+    "flipperzero",
+    "Flipper Zero",
+    "MicroPython",
+    "f0",
+    "GPIO",
+    "PWM",
+    "ADC",
+    "Infrared"
+]
+
+[project.urls]
+"Documentation" = "https://ofabel.github.io/mp-flipper/"
+"Source code" = "https://github.com/ofabel/mp-flipper"
+"Issue Tracker" = "https://github.com/ofabel/mp-flipper/issues"
+"Changelog" = "https://github.com/ofabel/mp-flipper/blob/master/CHANGELOG.md"
+
+[tool.hatch.build]
+directory = "dist/python"
+include = [
+    "flipperzero/__init__.py"
+]
+ignore-vcs = true
+only-packages = true

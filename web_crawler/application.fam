@@ -1,0 +1,14 @@
+App(
+    appid="web_crawler",
+    name="Web Crawler",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="web_crawler_app",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/FlipperHTTP",
+    fap_icon_assets="assets",
+    fap_description="Browse the web, fetch API data, and more.",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/WebCrawler-FlipperZero",
+    fap_version="1.0.1",
+)
