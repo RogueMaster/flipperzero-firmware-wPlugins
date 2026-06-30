@@ -3,7 +3,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://lh3.googleusercontent.com/d/1iYQlRQXM7nA4IAdcPwvcKRSTCMoi8tug' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://lh3.googleusercontent.com/d/1gjui0-UZNerG13PUblXjmr1YaSAjIf2k' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0620-0027-0.420.0-ac13fdd.tgz&channel=RM0620-0027-0.420.0-ac13fdd&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0630-0154-0.420.0-ed15916.tgz&channel=RM0630-0154-0.420.0-ed15916&version=0.420.0&target=f7)
 
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
@@ -30,24 +30,6 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-06-30 01:25 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-06-30 01:25 EST`
-- Updated: [Flipcraft v2.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
-- Added: [KeeLoq Keystore Decryptor v1.0 (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
-- Updated: [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
-- OFW: PR: [Make view_port_send_to_back public #4320 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4320)
-- NFC: [NFC: ISO 15693-3 emulation READ_MULTI and GET_BLOCK_SECURITY fixes #4334 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4334)
-- NFC: [NFC: Fix sending 32+ byte ISO 15693-3 commands #4333 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4333)
-- Added: [Polk MagnifiMini Remote v1.0 (By varunyellina)](https://github.com/varunyellina/flipper-ir-remote-polkmagnifi)
-- Added: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
-- ESP Flasher: [Bump Marauder v1.12.3 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.12.3)
-- Updated: [APRS TX v1.3.20 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
-- Added: [Badge Audit v1.0 (By ViperDroid)](https://github.com/ViperDroid/flipper-badge-audit)
-- Updated: [Ghost ESP v1.8.0 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
-- Updated: [ProtoPirate v3.0.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
-- Added: [NFC QR Presenter v1.0 (By RogerF5-Security)](https://github.com/RogerF5-Security/NFC_QR_Presenter)
-- Updated: [Access Audit v1.12 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
-- Updated: [Tesla Mod v2.16.11 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [NFC Comparator v2.6 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
-- Updated: [MultiTimer v1.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-multitimer)
 - Re-Fork Coming Soon For New Features and Stability!
 
 <a name="release"></a>
@@ -977,4 +959,4 @@ $ ./fbt dolphin_ext
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 - `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for wav/mp3 playback ($200 USD in ETH or BTC) (Don't think this is possible)
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0620-0027-0.420.0-ac13fdd.tgz&channel=RM0620-0027-0.420.0-ac13fdd&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0630-0154-0.420.0-ed15916.tgz&channel=RM0630-0154-0.420.0-ed15916&version=0.420.0&target=f7)
