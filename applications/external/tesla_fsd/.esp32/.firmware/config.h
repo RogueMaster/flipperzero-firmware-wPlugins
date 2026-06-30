@@ -4,6 +4,7 @@
 #define CAN_ID_STW_ACTN_RQ    0x045u  // 69   - STW_ACTN_RQ:  steering stalk (Legacy follow distance)
 #define CAN_ID_TRIP_PLANNING  0x082u  // 130  - UI_tripPlanning: precondition trigger
 #define CAN_ID_ESP_STATUS     0x145u  // 325  - ESP_status: driver brake pedal state
+#define CAN_ID_STEER_ANGLE    0x129u  // 297  - SCCM_steeringAngleSensor (Soft Engage gate, #108)
 #define CAN_ID_BMS_HV_BUS     0x132u  // 306  - BMS_hvBusStatus: pack voltage / current
 #define CAN_ID_BMS_SOC        0x292u  // 658  - BMS_socStatus:   state of charge
 #define CAN_ID_BMS_THERMAL    0x312u  // 786  - BMS_thermalStatus: battery temp
@@ -127,16 +128,18 @@
 #define STATUS_PRINT_MS       5000u   // Periodic status line when Active
 #define WIFI_STA_CONNECT_TIMEOUT_MS 10000u  // Try saved infrastructure WiFi before AP fallback
 #ifndef GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS
-#define GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS 150u  // Immediate 0x229 TX only if latest live counter is fresh
+#define GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS 500u  // Immediate 0x229 TX only if latest live counter is fresh
 #endif
 #ifndef GEAR_SEQUENCE_STEP_MS
 #define GEAR_SEQUENCE_STEP_MS 40u  // Gap between generated 0x229 press/release sequence frames
 #endif
 #ifndef GEAR_SEQUENCE_TIMEOUT_MS
-#define GEAR_SEQUENCE_TIMEOUT_MS 700u  // Give up if a generated 0x229 sequence cannot start/finish
+#define GEAR_SEQUENCE_TIMEOUT_MS 1500u  // Give up if a generated 0x229 sequence cannot start/finish
 #endif
-#define CONT_AP_READY_TIMEOUT_MS         5000u
-#define CONT_AP_ATTEMPT_RESULT_MS        1200u
+#define CONT_AP_READY_WAIT_TIMEOUT_MS    6000u
+#define CONT_AP_REENGAGE_DELAY_MS        1000u
+#define CONT_AP_ATTEMPT_RESULT_MS         700u
+#define CONT_AP_RETRY_DELAY_MS            300u
 #ifndef CONT_AP_STEERING_TORQUE_ABORT_NM
 #define CONT_AP_STEERING_TORQUE_ABORT_NM 2.5f
 #endif

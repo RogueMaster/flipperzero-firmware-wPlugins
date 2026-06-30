@@ -1,6 +1,6 @@
 ![Project logo](images/logo.png)
 
-# flipperzero-radio-with-volume-control
+# FReD FM
 
 Flipper Zero external app and hardware project for TEA5767 FM reception, PT2257/PT2259-S audio control, PAM8406 output stage, and working RDS decode from the TEA5767 MPXO path. The current PCB v1.1 product name is **FReD FM - Flipper Zero FM + RDS Radio Board**.
 
@@ -35,7 +35,7 @@ Windows (qFlipper):
 
 - Download the `.fap` from the latest GitHub Release.
 - Open `qFlipper` and connect your Flipper Zero.
-- Copy the `.fap` to `/ext/apps/GPIO/`.
+- Copy the `.fap` to `/ext/apps/GPIO/` as `fred_fm.fap`.
 - Run it on Flipper from `Applications -> GPIO`.
 
 ## Project Status
@@ -126,8 +126,8 @@ The offset is stored per preset, so a saved station restores both frequency and 
 
 When `RDS Debug` is enabled, holding `OK` in `Constellation Visualizer` creates a numbered dump pair on the SD card:
 
-- RAW path pattern: `/ext/apps_data/fmradio_controller_pt2257/rds_capture_u16le_0001.raw`
-- Meta path pattern: `/ext/apps_data/fmradio_controller_pt2257/rds_capture_meta_0001.txt`
+- RAW path pattern: `/ext/apps_data/fred_fm/rds_capture_u16le_0001.raw`
+- Meta path pattern: `/ext/apps_data/fred_fm/rds_capture_meta_0001.txt`
 
 Each new dump increments the index instead of overwriting the previous files.
 
@@ -149,7 +149,7 @@ Local build workflows:
 - `fbt`:
   - Clone Flipper firmware repo.
   - Copy or link this app into `applications_user/`.
-  - Run `./fbt fap_fmradio_controller_pt2257`.
+  - Run `./fbt fap_fred_fm`.
 
 Automated releases (GitHub Actions):
 
@@ -279,7 +279,7 @@ These screenshots cover the current listening screen, menu flow, config pages, p
 
 Settings file:
 
-- Path: `/ext/apps_data/fmradio_controller_pt2257/settings.fff`
+- Path: `/ext/apps_data/fred_fm/settings.fff`
 
 Saved keys:
 
@@ -304,7 +304,7 @@ Default behavior when a setting is missing:
 
 Presets file:
 
-- Path: `/ext/apps_data/fmradio_controller_pt2257/presets.fff`
+- Path: `/ext/apps_data/fred_fm/presets.fff`
 - Keys: `Count`, `Freq10kHz`, `Index`
 
 ## TEA5767 Audio Tuning
@@ -328,7 +328,7 @@ Presets file:
 
 - **Upstream origin**: https://github.com/victormico/flipperzero-radio
 - **Upstream FlipC listing**: [![FlipC.org](https://flipc.org/victormico/flipperzero-radio/badge?nowerr=1)](https://flipc.org/victormico/flipperzero-radio?nowerr=1)
-- **This version**: packaged as `[TEA+PT2257] FM Radio` (appid `fmradio_controller_pt2257`) to coexist with TEA5767-only builds.
+- **This version**: **FReD FM** (`appid` `fred_fm`). App data: `/ext/apps_data/fred_fm/`.
 - **Maintained by**: pchmielewski1
 - **License**: GPLv3 (see `LICENSE`)
 

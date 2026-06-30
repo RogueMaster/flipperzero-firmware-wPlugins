@@ -76,6 +76,7 @@ void flipperham_menu_free(FlipperHamApp* app) {
         view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewHam);
         view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewHamTx);
         view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewTextInput);
+        view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewCoordInput);
         view_dispatcher_remove_view(app->view_dispatcher, FlipperHamViewReadme);
         view_dispatcher_free(app->view_dispatcher);
         app->view_dispatcher = NULL;
@@ -181,6 +182,7 @@ void flipperham_menu_free(FlipperHamApp* app) {
         app->text_input = NULL;
     }
 
+    coord_input_free(app);
     splash_view_free(app);
 }
 
@@ -206,7 +208,10 @@ static void status_input(InputEvent* event, void* context) {
 
     app->repeat_cancel = true;
     if(app->tx_started && !app->tx_done) {
-        flipperham_radio_stop(app);
+        if(app->radio_backend == FlipperHamRadioExternal)
+            flipperham_radio_stop_ext(app);
+        else
+            flipperham_radio_stop(app);
         app->tx_started = false;
         app->tx_done = true;
     }
@@ -250,6 +255,8 @@ FlipperHamApp* flipperham_app_alloc(void) {
     app->freq_edit_menu = variable_item_list_alloc();
     app->pos_edit_menu = variable_item_list_alloc();
     app->text_input = text_input_alloc();
+    app->coord_input_view = NULL;
+    coord_input_alloc(app);
     app->readme_widget = widget_alloc();
     app->splash_view = NULL;
     app->splash_timer = NULL;
@@ -304,11 +311,13 @@ FlipperHamApp* flipperham_app_alloc(void) {
     app->aprs_path_index = 0;
     app->aprs_path_edit[0] = 0;
     app->debug_tx = false;
+    app->radio_backend = FlipperHamRadioInternal;
     app->return_view = FlipperHamViewMenu;
     app->splash_mode = 0;
     app->splash_next_view = FlipperHamViewMenu;
     app->text_mode = 0;
     app->text_view = FlipperHamViewMenu;
+    app->coord_key = 0;
     app->pkt = NULL;
     app->wave = NULL;
 
@@ -404,6 +413,7 @@ FlipperHamApp* flipperham_app_alloc(void) {
         variable_item_list_get_view(app->ham_tx_menu), flipperham_ham_tx_exit_callback);
     view_set_previous_callback(
         text_input_get_view(app->text_input), flipperham_text_exit_callback);
+    view_set_previous_callback(app->coord_input_view, flipperham_text_exit_callback);
     view_set_previous_callback(
         widget_get_view(app->readme_widget), flipperham_readme_exit_callback);
     variable_item_list_set_enter_callback(app->ssid_menu, ssid_enter, app);
@@ -458,6 +468,8 @@ FlipperHamApp* flipperham_app_alloc(void) {
         app->view_dispatcher, FlipperHamViewHamTx, variable_item_list_get_view(app->ham_tx_menu));
     view_dispatcher_add_view(
         app->view_dispatcher, FlipperHamViewTextInput, text_input_get_view(app->text_input));
+    view_dispatcher_add_view(
+        app->view_dispatcher, FlipperHamViewCoordInput, app->coord_input_view);
     view_dispatcher_add_view(
         app->view_dispatcher, FlipperHamViewReadme, widget_get_view(app->readme_widget));
     view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewMenu);
@@ -539,19 +551,27 @@ again:
         view_port_update(app->view_port);
         furi_delay_ms(100);
 
-        flipperham_radio_start(app);
+        if(app->radio_backend == FlipperHamRadioExternal)
+            flipperham_radio_start_ext(app);
+        else
+            flipperham_radio_start(app);
 
         while(!app->tx_done) {
             view_port_update(app->view_port);
             furi_delay_ms(50);
         }
 
-        while(app->tx_started && !furi_hal_subghz_is_async_tx_complete()) {
+        while(app->tx_started && !((app->radio_backend == FlipperHamRadioExternal) ?
+                                       flipperham_radio_ext_is_complete() :
+                                       furi_hal_subghz_is_async_tx_complete())) {
             view_port_update(app->view_port);
             furi_delay_ms(20);
         }
 
-        flipperham_radio_stop(app);
+        if(app->radio_backend == FlipperHamRadioExternal)
+            flipperham_radio_stop_ext(app);
+        else
+            flipperham_radio_stop(app);
         furi_hal_light_blink_stop();
         furi_hal_light_set(LightBlue, 0);
         furi_hal_light_set(LightRed, 0);

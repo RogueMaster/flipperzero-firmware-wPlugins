@@ -158,6 +158,13 @@ Passy* passy_alloc() {
     view_dispatcher_add_view(
         passy->view_dispatcher, PassyViewMenu, submenu_get_view(passy->submenu));
 
+    // Variable Item List
+    passy->variable_item_list = variable_item_list_alloc();
+    view_dispatcher_add_view(
+        passy->view_dispatcher,
+        PassyViewVariableItemList,
+        variable_item_list_get_view(passy->variable_item_list));
+
     // Popup
     passy->popup = popup_alloc();
     view_dispatcher_add_view(passy->view_dispatcher, PassyViewPopup, popup_get_view(passy->popup));
@@ -210,6 +217,10 @@ void passy_free(Passy* passy) {
     // Submenu
     view_dispatcher_remove_view(passy->view_dispatcher, PassyViewMenu);
     submenu_free(passy->submenu);
+
+    // Variable Item List
+    view_dispatcher_remove_view(passy->view_dispatcher, PassyViewVariableItemList);
+    variable_item_list_free(passy->variable_item_list);
 
     // Popup
     view_dispatcher_remove_view(passy->view_dispatcher, PassyViewPopup);

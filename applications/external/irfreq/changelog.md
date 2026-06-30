@@ -1,4 +1,4 @@
-# Changelog
+## Changelog
 
 v0.2:
 - Added dual signal modes: high-frequency carrier and low-frequency pulse

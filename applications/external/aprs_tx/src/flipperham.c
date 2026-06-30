@@ -46,6 +46,7 @@ static void cfg_defaults(FlipperHamApp* app) {
     app->aprs_path_index = 0;
     app->aprs_path_edit[0] = 0;
     app->debug_tx = false;
+    app->radio_backend = FlipperHamRadioInternal;
 
     /* Seed one valid entry of each type so a fresh install is immediately testable. */
     snprintf(app->bulletin[0], sizeof(app->bulletin[0]), "flipper bulletin");
@@ -101,6 +102,7 @@ void cfgsave(FlipperHamApp* app) {
     c->preamble_ms = app->preamble_ms;
     c->aprs_path_index = app->aprs_path_index;
     c->debug_tx = app->debug_tx;
+    c->radio_backend = app->radio_backend;
 
     memcpy(c->bulletin, app->bulletin, sizeof(c->bulletin));
     memcpy(c->status, app->status, sizeof(c->status));
@@ -148,6 +150,7 @@ void cfgload(FlipperHamApp* app) {
     uint16_t n;
     uint16_t old_n;
     uint16_t old_n2;
+    uint16_t old_n3;
     uint8_t i;
 
     c = malloc(sizeof(FlipperHamCfg));
@@ -182,7 +185,8 @@ void cfgload(FlipperHamApp* app) {
 
     old_n = offsetof(FlipperHamCfg, aprs_path_index);
     old_n2 = offsetof(FlipperHamCfg, debug_tx);
-    if(n != sizeof(FlipperHamCfg) && n != old_n && n != old_n2) {
+    old_n3 = offsetof(FlipperHamCfg, radio_backend);
+    if(n != sizeof(FlipperHamCfg) && n != old_n && n != old_n2 && n != old_n3) {
         free(c);
         cfg_defaults(app);
         cfgsave(app);
@@ -202,6 +206,7 @@ void cfgload(FlipperHamApp* app) {
     app->preamble_ms = c->preamble_ms;
     app->aprs_path_index = c->aprs_path_index;
     app->debug_tx = c->debug_tx ? true : false;
+    app->radio_backend = c->radio_backend;
 
     memcpy(app->bulletin, c->bulletin, sizeof(app->bulletin));
     memcpy(app->status, c->status, sizeof(app->status));
@@ -231,6 +236,7 @@ void cfgload(FlipperHamApp* app) {
 
     if(app->dst_ssid > 15) app->dst_ssid = 0;
     if(app->aprs_path_index > 7) app->aprs_path_index = 0;
+    if(app->radio_backend > FlipperHamRadioExternal) app->radio_backend = FlipperHamRadioInternal;
     if(!app->repeat_n || app->repeat_n > 5) app->repeat_n = 1;
     if(app->leadin_ms > 1000) app->leadin_ms = 1000;
     if(app->preamble_ms > 1000) app->preamble_ms = 1000;

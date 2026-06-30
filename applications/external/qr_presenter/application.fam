@@ -1,0 +1,22 @@
+App(
+    appid="nfc_qr_presenter",
+    name="NFC QR Presenter",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="nfc_qr_presenter_app",
+    cdefines=[
+        "APP_NFC_QR_PRESENTER",
+        "NDEBUG",
+    ],
+    sources=[
+        "*.c*",
+    ],
+    stack_size=8 * 1024,
+    fap_icon="images/nfc_qr_10px.png",
+    fap_icon_assets="images",
+    fap_category="NFC",
+    fap_author="Roger F5",
+    fap_weburl="https://github.com/RogerF5-Security/NFC_QR_Presenter",
+    fap_version="1.0",
+    fap_description="Digital QR and NFC NDEF business card presenter",
+)

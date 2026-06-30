@@ -145,7 +145,6 @@ void nfc_comparator_compare_worker_compare_cards(
             break;
 
          default:
-            checks->compare_type = NfcCompareWorkerType_Shallow;
             break;
          }
       }

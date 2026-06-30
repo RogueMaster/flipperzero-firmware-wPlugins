@@ -177,6 +177,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0}
 .row+.row{border-top:1px solid rgba(255,255,255,.04)}
 .lbl{color:var(--text2);font-size:.85em}
+details input{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right;width:60px}
+details input.cgn{width:38px;margin-left:4px}
 
 /* ── Pills ── */
 .pill{display:inline-flex;align-items:center;gap:5px;
@@ -427,6 +429,18 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <label class="sw"><input type="checkbox" id="swNagF" onchange="cmd('nag_faithful',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
+    <span class="lbl">Soft Engage (14.x, exp.)</span>
+    <label class="sw"><input type="checkbox" id="swSoft" onchange="cmd('soft_engage',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Nag Burst (14.x, exp.)</span>
+    <label class="sw"><input type="checkbox" id="swNagB" onchange="cmd('nag_burst',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Abort Guard (14.x, exp.)</span>
+    <label class="sw"><input type="checkbox" id="swAbrt" onchange="cmd('abort_guard',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
     <span class="lbl">BMS Display</span>
     <label class="sw"><input type="checkbox" id="swBms" onchange="cmd('bms',this.checked)"><span class="sl2"></span></label>
   </div>
@@ -445,6 +459,20 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <div class="row">
     <span class="lbl">TLSSC Restore</span>
     <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row" style="display:block">
+    <details>
+      <summary class="lbl" style="cursor:pointer">Signal Map (advanced, 14.x)</summary>
+      <div style="font-size:11px;color:var(--muted);margin:6px 0 8px">Override where the nag killer reads AP-state / hands-on / steering. Leave DAS id <b>0</b> for auto-detect. byte 0-7, shift 0-7, mask hex.</div>
+      <div style="display:grid;grid-template-columns:auto auto;gap:6px 10px;align-items:center;font-size:12px">
+        <span>DAS id (0x..)</span><input id="cgDid" placeholder="0">
+        <span>AP-state byte/sh/mask</span><span><input id="cgApB" class="cgn"><input id="cgApS" class="cgn"><input id="cgApM" class="cgn" placeholder="0xF"></span>
+        <span>Hands-on byte/sh/mask</span><span><input id="cgHoB" class="cgn"><input id="cgHoS" class="cgn"><input id="cgHoM" class="cgn" placeholder="0xF"></span>
+        <span>Steer id (0x..)</span><input id="cgSid" placeholder="0">
+        <span>Steer hi/lo byte</span><span><input id="cgSHi" class="cgn"><input id="cgSLo" class="cgn"></span>
+      </div>
+      <button onclick="saveSigCfg()" style="margin-top:8px;background:var(--accent);color:#000;border:0;padding:6px 12px;border-radius:4px;cursor:pointer">Save mapping</button>
+    </details>
   </div>
 )rawliteral"
 #if defined(BOARD_TTGO_DISPLAY)
@@ -731,6 +759,10 @@ function upd(d){
   if(document.getElementById('swContinuousAp')) document.getElementById('swContinuousAp').checked=d.continuous_ap;
   if(document.getElementById('swApFirst')) document.getElementById('swApFirst').checked=d.ap_first;
   if(document.getElementById('swNagF')) document.getElementById('swNagF').checked=d.nag_faithful;
+  if(document.getElementById('swSoft')) document.getElementById('swSoft').checked=d.soft_engage;
+  if(document.getElementById('swNagB')) document.getElementById('swNagB').checked=d.nag_burst;
+  if(document.getElementById('swAbrt')) document.getElementById('swAbrt').checked=d.abort_guard;
+  if(d.cfg_das_id!==undefined) setSig(d);
   if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
   if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
   if(document.getElementById('swChina')) document.getElementById('swChina').checked=d.china_mode;
@@ -961,6 +993,20 @@ function cmd(c,v){
   }
 }
 function toggleMode(){ cmd('mode',null); }
+function gv(id){ var e=document.getElementById(id); return (e&&e.value.trim()!=='')?e.value.trim():'0'; }
+function saveSigCfg(){
+  var csv=[gv('cgDid'),gv('cgApB'),gv('cgApS'),gv('cgApM'),
+           gv('cgHoB'),gv('cgHoS'),gv('cgHoM'),
+           gv('cgSid'),gv('cgSHi'),gv('cgSLo')].join(',');
+  cmd('sig_cfg',csv);
+}
+function sv(id,val){ var e=document.getElementById(id); if(e&&e!==document.activeElement) e.value=val; }
+function hx(n){ return n?('0x'+n.toString(16).toUpperCase()):'0'; }
+function setSig(d){
+  sv('cgDid',hx(d.cfg_das_id)); sv('cgApB',d.cfg_apb); sv('cgApS',d.cfg_aps); sv('cgApM',hx(d.cfg_apm));
+  sv('cgHoB',d.cfg_hob); sv('cgHoS',d.cfg_hos); sv('cgHoM',hx(d.cfg_hom));
+  sv('cgSid',hx(d.cfg_steer_id)); sv('cgSHi',d.cfg_shi); sv('cgSLo',d.cfg_slo);
+}
 
 function logInfo(text,color){
   var e=document.getElementById('httpLogInfo');
@@ -1245,6 +1291,19 @@ static String build_json() {
     j += "\"continuous_ap\":"; j += state.continuous_ap                 ? "true" : "false"; j += ',';
     j += "\"ap_first\":";      j += state.ap_first                      ? "true" : "false"; j += ',';
     j += "\"nag_faithful\":";  j += state.nag_epas_faithful             ? "true" : "false"; j += ',';
+    j += "\"soft_engage\":";   j += state.soft_engage                  ? "true" : "false"; j += ',';
+    j += "\"nag_burst\":";     j += state.nag_burst                    ? "true" : "false"; j += ',';
+    j += "\"abort_guard\":";   j += state.abort_guard                  ? "true" : "false"; j += ',';
+    j += "\"cfg_das_id\":";    j += state.cfg_das_id;       j += ',';
+    j += "\"cfg_apb\":";       j += state.cfg_apstate_byte;  j += ',';
+    j += "\"cfg_aps\":";       j += state.cfg_apstate_shift; j += ',';
+    j += "\"cfg_apm\":";       j += state.cfg_apstate_mask;  j += ',';
+    j += "\"cfg_hob\":";       j += state.cfg_handson_byte;  j += ',';
+    j += "\"cfg_hos\":";       j += state.cfg_handson_shift; j += ',';
+    j += "\"cfg_hom\":";       j += state.cfg_handson_mask;  j += ',';
+    j += "\"cfg_steer_id\":";  j += state.cfg_steer_id;      j += ',';
+    j += "\"cfg_shi\":";       j += state.cfg_steer_hi;      j += ',';
+    j += "\"cfg_slo\":";       j += state.cfg_steer_lo;      j += ',';
     j += "\"bms_output\":";    j += state.bms_output                   ? "true" : "false"; j += ',';
     j += "\"force_fsd\":";     j += state.force_fsd                    ? "true" : "false"; j += ',';
     j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
@@ -1398,6 +1457,76 @@ static void ws_event(uint8_t num, WStype_t type,
             state_exit();
             Serial.printf("[Web] Nag EPAS-faithful: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"soft_engage\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->soft_engage = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Soft Engage: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"nag_burst\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->nag_burst = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Nag Burst: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"abort_guard\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->abort_guard = enabled;
+            if (!enabled) g_state->abort_guard_latched = false;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Abort Guard: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"sig_cfg\"")) {
+        // value is a 10-field CSV: das_id,apB,apS,apM,hoB,hoS,hoM,steer_id,sHi,sLo
+        // ids accept 0x.. ; byte/shift 0-7, mask hex. (#122)
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':' || *vptr == '"') vptr++;
+            char csv[128] = {};
+            size_t ci = 0;
+            for (const char *p = vptr; *p && *p != '"' && *p != '}' && ci < sizeof(csv) - 1; p++)
+                csv[ci++] = *p;
+            long v[10]; int got = 0;
+            char *tok = strtok(csv, ",");
+            while (tok && got < 10) { v[got++] = strtol(tok, NULL, 0); tok = strtok(NULL, ","); }
+            if (got == 10) {
+                FSDState saved;
+                state_enter();
+                g_state->cfg_das_id        = (uint16_t)v[0];
+                g_state->cfg_apstate_byte  = (uint8_t)(v[1] & 7);
+                g_state->cfg_apstate_shift = (uint8_t)(v[2] & 7);
+                g_state->cfg_apstate_mask  = (uint8_t)v[3];
+                g_state->cfg_handson_byte  = (uint8_t)(v[4] & 7);
+                g_state->cfg_handson_shift = (uint8_t)(v[5] & 7);
+                g_state->cfg_handson_mask  = (uint8_t)v[6];
+                g_state->cfg_steer_id      = (uint16_t)v[7];
+                g_state->cfg_steer_hi      = (uint8_t)(v[8] & 7);
+                g_state->cfg_steer_lo      = (uint8_t)(v[9] & 7);
+                saved = *g_state;
+                state_exit();
+                Serial.printf("[Web] Signal map: das=0x%X ap=%ld/%ld/0x%lX ho=%ld/%ld/0x%lX steer=0x%X %ld/%ld\n",
+                              (uint16_t)v[0], v[1], v[2], v[3], v[4], v[5], v[6],
+                              (uint16_t)v[7], v[8], v[9]);
+                prefs_save(&saved);
+            }
         }
     }
 #if defined(BOARD_TTGO_DISPLAY)

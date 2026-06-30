@@ -361,6 +361,46 @@ static uint8_t nag_hands_level_from_raw(int16_t raw) {
     return 0;
 }
 
+// ±1.8 Nm torque cap (#122).
+static int16_t nag_clamp_torque(int16_t raw) {
+    if (raw > NAG_TORQUE_RAW_MAX) return NAG_TORQUE_RAW_MAX;
+    if (raw < NAG_TORQUE_RAW_MIN) return NAG_TORQUE_RAW_MIN;
+    return raw;
+}
+
+// Burst/pause: true while resting (skip the echo). #122.
+static bool nag_in_pause(uint32_t now_ms) {
+    uint32_t cycle = NAG_BURST_MS + NAG_PAUSE_MS;
+    return (now_ms % cycle) >= NAG_BURST_MS;
+}
+
+// Configurable signal mapping (#122) — mirror of the shared fsd_handler.c.
+void fsd_apply_signal_config(FSDState *state, const CanFrame *frame, uint32_t now_ms) {
+    if (state->cfg_das_id != 0 && frame->id == state->cfg_das_id) {
+        if (state->cfg_apstate_byte < 8 && frame->dlc > state->cfg_apstate_byte)
+            state->das_ap_state = (frame->data[state->cfg_apstate_byte] >>
+                                   state->cfg_apstate_shift) & state->cfg_apstate_mask;
+        if (state->cfg_handson_byte < 8 && frame->dlc > state->cfg_handson_byte)
+            state->das_hands_on_state = (frame->data[state->cfg_handson_byte] >>
+                                         state->cfg_handson_shift) & state->cfg_handson_mask;
+        state->das_ctx_seen_ms = now_ms;
+    }
+    if (state->cfg_steer_id != 0 && frame->id == state->cfg_steer_id) {
+        if (state->cfg_steer_hi < 8 && state->cfg_steer_lo < 8 &&
+            frame->dlc > state->cfg_steer_hi && frame->dlc > state->cfg_steer_lo) {
+            int16_t raw = (int16_t)(((uint16_t)frame->data[state->cfg_steer_hi] << 8) |
+                                    frame->data[state->cfg_steer_lo]);
+            state->steering_angle_deg = (float)raw * 0.1f;
+            state->steer_ctx_seen_ms = now_ms;
+        }
+    }
+}
+
+bool fsd_das_ctx_fresh(const FSDState *state, uint32_t now_ms) {
+    if (state->cfg_das_id == 0) return true;
+    return (now_ms - state->das_ctx_seen_ms) <= NAG_CTX_FRESH_MS;
+}
+
 static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
                                CanFrame *out, uint32_t now_ms) {
     uint8_t das = state->das_hands_on_state;
@@ -434,6 +474,7 @@ static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
     }
 
     last_raw = torque; last_level = level;
+    torque = nag_clamp_torque(torque);   // ±1.8 Nm safety cap (#122)
 
     out->id  = CAN_ID_EPAS_STATUS;
     out->dlc = 8;
@@ -443,9 +484,10 @@ static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
         (frame->data[SIG_EPAS_TORQUE_HIGH_BYTE] & SIG_EPAS_TORQUE_HIGH_KEEP_MASK) |
         (uint8_t)((torque >> SIG_EPAS_TORQUE_HIGH_SHIFT) & SIG_EPAS_TORQUE_HIGH_VALUE_MASK);
     out->data[SIG_EPAS_TORQUE_LOW_BYTE] = (uint8_t)(torque & SIG_EPAS_TORQUE_LOW_MASK);
-    out->data[SIG_EPAS_HANDS_ON_BYTE] =
-        (frame->data[SIG_EPAS_HANDS_ON_BYTE] & (uint8_t)(~SIG_EPAS_HANDS_ON_CLEAR_MASK)) |
-        (uint8_t)((level & SIG_EPAS_HANDS_ON_MASK) << SIG_EPAS_HANDS_ON_SHIFT);
+    // Leave handsOnLevel untouched — real EPAS keeps it 0 even with hands on
+    // (HW3 14.6 + HW4 Feifan, #122); deriving it is a likely 14.x preflight tell.
+    (void)level;
+    out->data[SIG_EPAS_HANDS_ON_BYTE] = frame->data[SIG_EPAS_HANDS_ON_BYTE];
     out->data[5] = frame->data[5];
     uint8_t cnt = (frame->data[SIG_EPAS_COUNTER_BYTE] & SIG_EPAS_COUNTER_MASK);
     cnt = (cnt + 1u) & SIG_EPAS_COUNTER_MASK;
@@ -461,6 +503,8 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
                            uint32_t now_ms) {
     if (frame->dlc < 8)     return false;
     if (!state->nag_killer) return false;
+    if (!fsd_das_ctx_fresh(state, now_ms)) return false;        // cfg DAS stale -> no-op (#122)
+    if (state->nag_burst && nag_in_pause(now_ms)) return false;  // burst/pause rest (#122)
 
     if (state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);
 
@@ -515,6 +559,7 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
     out->id  = CAN_ID_EPAS_STATUS;
     out->dlc = 8;
 
+    torq = nag_clamp_torque(torq);   // ±1.8 Nm safety cap (#122)
     out->data[0] = frame->data[0];
     out->data[1] = frame->data[1];
     out->data[SIG_EPAS_TORQUE_HIGH_BYTE] =
@@ -554,12 +599,45 @@ void fsd_handle_epas_status(FSDState *state, const CanFrame *frame) {
     state->torsion_bar_torque_seen = true;
 }
 
+// Soft-Engage gate — mirror of the Flipper fsd_soft_engage_allows (#108).
+bool fsd_soft_engage_allows(FSDState *state) {
+    if (!state->soft_engage) return true;
+    if (state->soft_engage_latched) return true;
+    float a = state->steering_angle_deg;
+    if (a < 0.0f) a = -a;
+    if (a > SOFT_ENGAGE_ANGLE_DEG) return false;   // turning — hold activation
+    state->soft_engage_latched = true;             // centred — begin and latch
+    return true;
+}
+
+// Abort Guard (#108) — mirror of the shared fsd_handler.c.
+void fsd_abort_guard_update(FSDState *state) {
+    if (!state->abort_guard) return;
+    if (state->das_ap_state < 2u) {
+        state->abort_guard_latched = false;          // clean disengage re-arms
+    } else if (state->das_ap_state == DAS_APSTATE_ABORTING ||
+               state->das_ap_state == DAS_APSTATE_ABORTED) {
+        state->abort_guard_latched = true;           // abort seen -> suppress injection
+    }
+}
+
+bool fsd_abort_guard_allows(const FSDState *state) {
+    return !(state->abort_guard && state->abort_guard_latched);
+}
+
+// SCCM_steeringAngleSensor (0x129): 16-bit signed LE at byte0-1, factor 0.1 deg.
+void fsd_handle_steering_angle(FSDState *state, const CanFrame *frame) {
+    if (frame->dlc < 4) return;
+    int16_t raw = (int16_t)(((uint16_t)frame->data[1] << 8) | frame->data[0]);
+    state->steering_angle_deg = (float)raw * 0.1f;
+}
+
 void fsd_handle_esp_status(FSDState *state, const CanFrame *frame) {
     if (frame->dlc <= SIG_ESP_DRIVER_BRAKE_BYTE) return;
     uint8_t brake =
         (frame->data[SIG_ESP_DRIVER_BRAKE_BYTE] >> SIG_ESP_DRIVER_BRAKE_SHIFT) &
         SIG_ESP_DRIVER_BRAKE_MASK;
-    state->driver_brake_applied = brake != 0u;
+    state->driver_brake_applied = brake >= SIG_ESP_DRIVER_BRAKE_APPLYING;
     state->brake_status_seen = true;
 }
 

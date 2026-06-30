@@ -50,6 +50,7 @@ typedef enum {
     CardTypeHidIclassLegacy2k, /* iCLASS DES/3DES, 2 kilobit memory (most common) */
     CardTypeHidIclassLegacy16k, /* iCLASS DES/3DES, 16 kilobit memory */
     CardTypeHidIclassLegacy32k, /* iCLASS DES/3DES, 32 kilobit memory */
+    CardTypeSeos, /* HID Seos — ISO14443-4A AES secure element; detected via Seos AID SELECT */
     CardTypeFelica, /* generic fallback — workflow type unknown */
     CardTypeFeliCaLite, /* FeliCa Lite — no mutual auth, used in transit/building */
     CardTypeSlix,
@@ -64,6 +65,7 @@ typedef struct {
     bool metadata_complete; /* false when classification could not read all expected fields */
     bool sak_atqa_present; /* true when SAK and ATQA were captured (ISO14443-3A only) */
     bool default_keys_readable; /* true when sector 0 auth succeeded with a default key (Classic only) */
+    bool memory_locked; /* true when user memory is password-protected (Ultralight/NTAG read NAK'd) */
     size_t uid_len;
     uint8_t uid[10];
     uint8_t sak; /* ISO14443-3A Select Acknowledge byte */

@@ -141,6 +141,8 @@ static const char* report_advice(CardType type) {
     case CardTypeHidIclassLegacy16k:
     case CardTypeHidIclassLegacy32k:
         return "iCLASS DES/3DES master key is publicly known. Upgrade to iCLASS SE/Seos.";
+    case CardTypeSeos:
+        return "HID Seos (AES secure element). Strong; ensure the reader has legacy/Prox fallback disabled.";
     case CardTypeFelica:
         return "Verify FeliCa application crypto is properly configured.";
     case CardTypeFeliCaLite:
@@ -160,8 +162,22 @@ static void write_card_entry(File* f, size_t index, size_t total, const SessionE
        entry->obs.tech == TechTypeRfid125 ? "  Radio:  RFID 125kHz\n" :
                                             "  Radio:  NFC 13.56MHz\n");
 
-    snprintf(buf, sizeof(buf), "  Type:   %s\n", card_type_to_string(entry->obs.card_type));
+    const char* proto = card_type_protocol(entry->obs.card_type);
+    if(proto) {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "  Type:   %s (%s)\n",
+            card_type_to_string(entry->obs.card_type),
+            proto);
+    } else {
+        snprintf(buf, sizeof(buf), "  Type:   %s\n", card_type_to_string(entry->obs.card_type));
+    }
     fw(f, buf);
+
+    if(entry->obs.memory_locked) {
+        fw(f, "  Note:   user memory is password-protected (pages locked; UID still cloneable)\n");
+    }
 
     /* UID with byte count */
     if(entry->obs.uid_present && entry->obs.uid_len > 0) {
@@ -203,13 +219,29 @@ static void write_card_entry(File* f, size_t index, size_t total, const SessionE
         fw(f, buf);
     }
 
-    snprintf(
-        buf,
-        sizeof(buf),
-        "  Likelihood: %s  (%u/100, confidence %u%%)\n",
-        likelihood_label(entry->score.max_severity),
-        entry->score.score,
-        entry->score.confidence);
+    /* Show the OWASP likelihood band, plus the result-screen verdict word in
+     * brackets when it differs (e.g. MINIMAL [SECURE], HIGH [HIGH RISK]) so the
+     * report matches what the user saw on the device. */
+    const char* band = likelihood_label(entry->score.max_severity);
+    const char* verdict = verdict_label(entry->score.max_severity);
+    if(strcmp(band, verdict) != 0) {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "  Likelihood: %s [%s]  (%u/100, confidence %u%%)\n",
+            band,
+            verdict,
+            entry->score.score,
+            entry->score.confidence);
+    } else {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "  Likelihood: %s  (%u/100, confidence %u%%)\n",
+            band,
+            entry->score.score,
+            entry->score.confidence);
+    }
     fw(f, buf);
 
     snprintf(buf, sizeof(buf), "  Ease of exploit: %s\n", ease_of_exploit(&entry->obs));

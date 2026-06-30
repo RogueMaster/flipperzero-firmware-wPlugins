@@ -78,7 +78,7 @@ bool passy_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(passy->scene_manager, PassySceneMainMenu, event.event);
         if(event.event == SubmenuIndexEnterMRZInfo) {
-            scene_manager_next_scene(passy->scene_manager, PassyScenePassportNumberInput);
+            scene_manager_next_scene(passy->scene_manager, PassySceneAuthMenu);
             consumed = true;
         } else if(event.event == SubmenuIndexDeleteMRZInfo) {
             scene_manager_next_scene(passy->scene_manager, PassySceneDelete);

@@ -2,25 +2,21 @@ App(
     appid="nfc_comparator",
     name="NFC Comparator",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="nfc_comparator_main",
     stack_size=2 * 1024,
-    fap_private_libs=[
-        Lib(
-            name="reader_worker",
-        ),
-        Lib(
-            name="finder_worker",
-        ),
-        Lib(
-            name="led_worker",
-        ),
-        Lib(name="compare_worker"),
-    ],
     fap_icon="assets/Comparator_10px.png",
     fap_icon_assets="assets",
+    fap_private_libs=[
+        Lib(name="led_worker"),
+        Lib(name="compare_worker"),
+        Lib(name="compare_reader_worker"),
+        Lib(name="finder_reader_worker"),
+        Lib(name="finder_searcher_worker"),
+    ],
     fap_category="NFC",
     fap_author="acegoal07",
     fap_weburl="https://github.com/acegoal07/FlipperZero_NFC_Comparator",
-    fap_version="2.5",
+    fap_version="2.6",
     fap_description="A tool to check if a physical NFC card is the same as a saved digital one",
 )

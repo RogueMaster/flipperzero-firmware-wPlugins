@@ -402,23 +402,21 @@ static void test_nag_killer(void) {
     ein.data_lenght = 8;
     ein.buffer[4] = 0x00; // handsOnLevel frozen at 0, as on the affected trims
 
-    // hold das=2 and drain any in-flight grip pulse until torque is in walk range
-    // (pulse ~2350, walk clamped to <=2290) so the next edge is detectable.
+    // das 2 -> 3 rising edge still re-arms the grip-pulse path despite frozen
+    // handsOnLevel (#100). The pulse torque is now clamped to the ±1.8 Nm cap
+    // (#122) — it no longer exceeds the walk, so we verify the echo + the cap
+    // rather than the old >2290 excursion (which the cap removes by design).
     e.das_hands_on_state = 2;
-    int ntorq = 9999;
-    for(int i = 0; i < 30 && ntorq > 2290; i++) {
-        zero(&eout);
-        fsd_handle_nag_killer(&e, &ein, &eout, 1000u);
-        ntorq = ((eout.buffer[2] & 0x0F) << 8) | eout.buffer[3];
-    }
-    CHECK(ntorq <= 2290, "nag drained to walk range before edge, torq=%d", ntorq);
-
-    // das 2 -> 3 rising edge must fire a fresh grip pulse despite frozen handsOnLevel
+    zero(&eout);
+    fsd_handle_nag_killer(&e, &ein, &eout, 1000u);
     e.das_hands_on_state = 3;
     zero(&eout);
     CHECK(fsd_handle_nag_killer(&e, &ein, &eout, 1000u), "nag echo on das 2->3 edge");
     int ntorq2 = ((eout.buffer[2] & 0x0F) << 8) | eout.buffer[3];
-    CHECK(ntorq2 > 2290, "das 2->3 re-arms grip pulse (#100), torq=%d", ntorq2);
+    CHECK(
+        ntorq2 >= NAG_TORQUE_RAW_MIN && ntorq2 <= NAG_TORQUE_RAW_MAX,
+        "das 2->3 echo within ±1.8 Nm cap (#122), torq=%d",
+        ntorq2);
 }
 
 // ── 0x370 nag killer EPAS-faithful (Mode-C) mode (v2.17, #100): demand-state
@@ -461,8 +459,8 @@ static void test_nag_killer_faithful(void) {
         fsd_handle_nag_killer(&s, &in, &out, t + 1500u) == false,
         "faithful: state2 still in 2s delay");
 
-    // After 2 s: mild torque in +0.5..+2.0 Nm band, handsOnLevel derived, counter+1, checksum.
-    int any = 0, minraw = 99999, maxraw = -1, lvl_ok = 1, cnt_ok = 1, csum_ok = 1;
+    // After 2 s: mild torque in +0.5..+2.0 Nm band, handsOnLevel LEFT AT 0, counter+1, checksum.
+    int any = 0, minraw = 99999, maxraw = -1, hands_set = 0, cnt_ok = 1, csum_ok = 1;
     for(uint32_t dt = 2100; dt < 6000; dt += 50) {
         in.buffer[6] = (in.buffer[6] & 0xF0) | ((5 + dt / 50) & 0x0F);
         zero(&out);
@@ -471,9 +469,9 @@ static void test_nag_killer_faithful(void) {
         int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
         if(raw < minraw) minraw = raw;
         if(raw > maxraw) maxraw = raw;
-        uint8_t lvl = (out.buffer[4] >> 6) & 0x03;
-        uint8_t exp = (RAWABS(raw) >= 200) ? 2 : (RAWABS(raw) >= 100) ? 1 : 0;
-        if(lvl != exp) lvl_ok = 0;
+        // handsOnLevel must stay at the real value (input byte4=0) — real EPAS
+        // never sets it; deriving it is a 14.x preflight tell (#122).
+        if(((out.buffer[4] >> 6) & 0x03) != 0) hands_set++;
         if((out.buffer[6] & 0x0F) != (((5 + dt / 50) + 1) & 0x0F)) cnt_ok = 0;
         uint16_t cs = (CAN_ID_EPAS_STATUS & 0xFF) + (CAN_ID_EPAS_STATUS >> 8);
         for(int b = 0; b < 7; b++)
@@ -486,27 +484,198 @@ static void test_nag_killer_faithful(void) {
         "faithful state2: mild band +0.5..+2.0Nm (%d..%d)",
         minraw,
         maxraw);
-    CHECK(lvl_ok, "faithful: handsOnLevel derived from torque magnitude");
+    CHECK(
+        hands_set == 0,
+        "faithful: handsOnLevel left at 0 (real EPAS never sets it) — %d violations",
+        hands_set);
     CHECK(cnt_ok, "faithful: counter+1 every injected frame");
     CHECK(csum_ok, "faithful: checksum valid every injected frame");
 
-    // State 3 (strong): 1 s pause, then ramp/hold toward 2.1 Nm with handsOnLevel 2.
+    // State 3 (strong): 1 s pause, then ramp/hold toward 2.1 Nm; handsOnLevel still untouched.
     s.das_hands_on_state = 3;
     uint32_t ts = t + 7000u;
     zero(&out);
     CHECK(fsd_handle_nag_killer(&s, &in, &out, ts) == false, "faithful state3: 1 s pause holds");
-    int got_strong = 0, got_level2 = 0;
+    int got_strong = 0, hands_set3 = 0;
     for(uint32_t dt = 1100; dt < 3500; dt += 50) {
         zero(&out);
         if(!fsd_handle_nag_killer(&s, &in, &out, ts + dt)) continue;
         int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
         if(RAWABS(raw) >= 180) got_strong = 1; // reaches near 2.1 Nm
-        if(((out.buffer[4] >> 6) & 0x03) == 2) got_level2 = 1;
+        if(((out.buffer[4] >> 6) & 0x03) != 0) hands_set3++;
     }
     CHECK(got_strong, "faithful state3: ramps to strong ~2.1 Nm");
-    CHECK(got_level2, "faithful state3: handsOnLevel reaches 2");
+    CHECK(
+        hands_set3 == 0,
+        "faithful state3: handsOnLevel still left at 0 (%d violations)",
+        hands_set3);
 }
 #undef RAWABS
+
+// ── configurable signal mapping + freshness (#122) ───────────────────────────
+static void test_signal_config(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    // Auto mode (cfg_das_id == 0): freshness always true, extractor is a no-op.
+    CHECK(fsd_das_ctx_fresh(&s, 5000) == true, "ctx fresh: auto mode always fresh");
+
+    // Configure ssw0209's variant: 0x39B, AP-state in byte0 hi-nibble (his byte1[7:4]=0),
+    // hands-on in byte5 bits[5:2]. Frame 0x39B# 52 0E DF A0 B0 44 9? ...
+    s.cfg_das_id = 0x39B;
+    s.cfg_apstate_byte = 0;
+    s.cfg_apstate_shift = 4;
+    s.cfg_apstate_mask = 0x0F;
+    s.cfg_handson_byte = 5;
+    s.cfg_handson_shift = 2;
+    s.cfg_handson_mask = 0x0F;
+    CANFRAME f;
+    zero(&f);
+    f.canId = 0x39B;
+    f.data_lenght = 8;
+    f.buffer[0] = 0x52; // hi nibble 5 -> AP active
+    f.buffer[5] = (2u << 2); // hands-on state 2
+    fsd_apply_signal_config(&s, &f, 10000u);
+    CHECK(s.das_ap_state == 5, "cfg: AP-state read from byte0 hi-nibble = %u", s.das_ap_state);
+    CHECK(
+        s.das_hands_on_state == 2,
+        "cfg: hands-on read from byte5[5:2] = %u",
+        s.das_hands_on_state);
+    CHECK(s.das_ctx_seen_ms == 10000u, "cfg: freshness stamped");
+    CHECK(fsd_das_ctx_fresh(&s, 10500u) == true, "ctx fresh: within 1s");
+    CHECK(fsd_das_ctx_fresh(&s, 11500u) == false, "ctx stale: >1s -> not fresh");
+
+    // Non-matching id leaves state untouched.
+    CANFRAME g;
+    zero(&g);
+    g.canId = 0x123;
+    g.data_lenght = 8;
+    g.buffer[0] = 0xFF;
+    fsd_apply_signal_config(&s, &g, 12000u);
+    CHECK(s.das_ap_state == 5, "cfg: non-matching id ignored");
+
+    // Steering config: 0x129, signed LE bytes hi=1 lo=0, *0.1.
+    s.cfg_steer_id = 0x129;
+    s.cfg_steer_hi = 1;
+    s.cfg_steer_lo = 0;
+    CANFRAME h;
+    zero(&h);
+    h.canId = 0x129;
+    h.data_lenght = 4;
+    h.buffer[0] = 0x2C;
+    h.buffer[1] = 0x01; // 0x012C = 300 -> 30.0 deg
+    fsd_apply_signal_config(&s, &h, 12000u);
+    CHECK(
+        s.steering_angle_deg > 29.0f && s.steering_angle_deg < 31.0f,
+        "cfg: steering = %.1f deg (expect ~30)",
+        (double)s.steering_angle_deg);
+
+    // Nag killer no-ops when the configured DAS source goes stale.
+    FSDState n;
+    memset(&n, 0, sizeof(n));
+    n.nag_killer = true;
+    n.cfg_das_id = 0x39B;
+    n.das_ctx_seen_ms = 1000u;
+    n.das_hands_on_state = 0xFF;
+    CANFRAME in, out;
+    zero(&in);
+    in.data_lenght = 8;
+    in.buffer[4] = 0x00;
+    CHECK(fsd_handle_nag_killer(&n, &in, &out, 1500u) != false, "cfg fresh -> nag echoes");
+    CHECK(fsd_handle_nag_killer(&n, &in, &out, 3000u) == false, "cfg stale -> nag no-ops");
+}
+
+// ── Abort Guard (steer-jerk, #108) ───────────────────────────────────────────
+static void test_abort_guard(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+
+    // Off by default: gate always allows, update never latches.
+    s.das_ap_state = DAS_APSTATE_ABORTING;
+    fsd_abort_guard_update(&s);
+    CHECK(s.abort_guard_latched == false, "abort_guard off: no latch");
+    CHECK(fsd_abort_guard_allows(&s) == true, "abort_guard off: always allows");
+
+    // On + AP active (not an abort state): no latch, still allows.
+    s.abort_guard = true;
+    s.das_ap_state = 6; // ACTIVE
+    fsd_abort_guard_update(&s);
+    CHECK(fsd_abort_guard_allows(&s) == true, "active state: injection allowed");
+
+    // Car enters ABORTING -> latch -> suppress.
+    s.das_ap_state = DAS_APSTATE_ABORTING;
+    fsd_abort_guard_update(&s);
+    CHECK(s.abort_guard_latched == true, "abort seen: latched");
+    CHECK(fsd_abort_guard_allows(&s) == false, "abort latched: injection suppressed");
+
+    // Still suppressed once the state moves to ABORTED, and even back to active —
+    // the latch holds for the rest of the engagement.
+    s.das_ap_state = DAS_APSTATE_ABORTED;
+    fsd_abort_guard_update(&s);
+    CHECK(fsd_abort_guard_allows(&s) == false, "aborted: still suppressed");
+    s.das_ap_state = 6;
+    fsd_abort_guard_update(&s);
+    CHECK(fsd_abort_guard_allows(&s) == false, "re-active mid-cycle: stays suppressed");
+
+    // Clean disengage (das_ap_state < 2) clears the latch -> re-armed.
+    s.das_ap_state = 1;
+    fsd_abort_guard_update(&s);
+    CHECK(s.abort_guard_latched == false, "clean disengage: latch cleared");
+    CHECK(fsd_abort_guard_allows(&s) == true, "re-armed: allows again");
+
+    // The legacy autopilot handler honours the gate: latched -> no modification.
+    FSDState h;
+    memset(&h, 0, sizeof(h));
+    h.abort_guard = true;
+    h.abort_guard_latched = true;
+    h.hw_version = TeslaHW_Legacy;
+    h.force_fsd = true;
+    CANFRAME f;
+    zero(&f);
+    f.canId = 0x3EE;
+    f.data_lenght = 8;
+    CHECK(
+        fsd_handle_legacy_autopilot(&h, &f, 5000u) == false,
+        "legacy autopilot suppressed while abort latched");
+}
+
+// ── nag burst/pause + ±1.8 Nm torque cap (#122) ──────────────────────────────
+static void test_nag_burst_cap(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    s.nag_killer = true;
+    s.das_hands_on_state = 0xFF; // conservative echo
+    CANFRAME in, out;
+    zero(&in);
+    in.data_lenght = 8;
+    in.buffer[4] = 0x00; // handsOnLevel 0 -> not skipped
+    in.buffer[6] = 0x05;
+
+    // Torque cap: legacy grip pulses normally hit ~3 Nm (raw ~2350); must clamp to ±1.8 (1870..2230).
+    int cap_ok = 1;
+    for(int i = 0; i < 400; i++) {
+        in.buffer[6] = (in.buffer[6] & 0xF0) | ((5 + i) & 0x0F);
+        zero(&out);
+        if(!fsd_handle_nag_killer(&s, &in, &out, 1000u + i)) continue;
+        int raw = ((out.buffer[2] & 0x0F) << 8) | out.buffer[3];
+        if(raw > NAG_TORQUE_RAW_MAX || raw < NAG_TORQUE_RAW_MIN) cap_ok = 0;
+    }
+    CHECK(cap_ok, "nag torque clamped to +/-1.8 Nm (raw 1870..2230)");
+
+    // Burst/pause: cycle = 1000+1500 = 2500 ms; echo only in the first 1000 ms.
+    s.nag_burst = true;
+    zero(&out);
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, 1200u) == false,
+        "burst: no echo in pause (t%%2500=1200)");
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, 2499u) == false,
+        "burst: no echo in pause (t%%2500=2499)");
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, 2500u) != false, "burst: echo in burst (t%%2500=0)");
+    CHECK(
+        fsd_handle_nag_killer(&s, &in, &out, 3400u) != false,
+        "burst: echo in burst (t%%2500=900)");
+}
 
 // ── shared stateless ops (china_mode path the Flipper wrapper can't reach) ────
 static void test_can_ops(void) {
@@ -654,6 +823,26 @@ static void test_legacy(void) {
     CHECK(fsd_ap_first_allows(&g, 2000) == true, "ap_first: 1000ms >= debounce -> allow");
     g.das_ap_state = 3;
     CHECK(fsd_ap_first_allows(&g, 5000) == true, "ap_first: active(3) + stable -> allow");
+
+    // fsd_soft_engage_allows() — steer-jerk soft engage (#108)
+    FSDState se;
+    memset(&se, 0, sizeof(se));
+    se.steering_angle_deg = 90.0f; // hard turn
+    CHECK(fsd_soft_engage_allows(&se) == true, "soft_engage off -> always allowed");
+    se.soft_engage = true;
+    CHECK(fsd_soft_engage_allows(&se) == false, "soft_engage on + turning -> hold");
+    CHECK(se.soft_engage_latched == false, "soft_engage: turning does not latch");
+    se.steering_angle_deg = -3.0f; // within +/-5 deg of centre
+    CHECK(fsd_soft_engage_allows(&se) == true, "soft_engage: centred -> allow + latch");
+    CHECK(se.soft_engage_latched == true, "soft_engage: latched once centred");
+    se.steering_angle_deg = 120.0f; // now turning, but already latched
+    CHECK(
+        fsd_soft_engage_allows(&se) == true,
+        "soft_engage: stays allowed once latched (mid-drive turns OK)");
+    se.soft_engage_latched = false; // AP drop resets the latch
+    CHECK(
+        fsd_soft_engage_allows(&se) == false,
+        "soft_engage: re-holds after latch reset while turning");
 }
 
 // ── 0x145 ESP_status brake ────────────────────────────────────────────────────
@@ -663,9 +852,12 @@ static void test_esp_status(void) {
     CANFRAME f;
     zero(&f);
     f.data_lenght = 4;
-    f.buffer[3] = 0x20; // bits[6:5] != 0
+    f.buffer[3] = 0x40; // bits[6:5] = 2 -> Driver_applying_brakes
     fsd_handle_esp_status(&s, &f);
     CHECK(s.driver_brake_applied, "esp brake applied");
+    f.buffer[3] = 0x20; // bits[6:5] = 1 -> Not_Applied
+    fsd_handle_esp_status(&s, &f);
+    CHECK(!s.driver_brake_applied, "esp brake not applied value 1");
     f.buffer[3] = 0x00;
     fsd_handle_esp_status(&s, &f);
     CHECK(!s.driver_brake_applied, "esp no brake");
@@ -1348,6 +1540,9 @@ int main(void) {
     test_sccm_crc();
     test_nag_killer();
     test_nag_killer_faithful();
+    test_nag_burst_cap();
+    test_signal_config();
+    test_abort_guard();
     test_can_ops();
     test_additive_checksum();
     test_candump_format();

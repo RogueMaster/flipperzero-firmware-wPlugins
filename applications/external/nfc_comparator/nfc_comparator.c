@@ -47,7 +47,8 @@ static NfcComparator* nfc_comparator_alloc() {
     nfc_comparator->notification_app = furi_record_open(RECORD_NOTIFICATION);
 
     nfc_comparator->workers.compare = nfc_comparator_compare_worker_alloc();
-    nfc_comparator->workers.finder.settings.recursive = true;
+
+    nfc_comparator->workers.searcher.settings.recursive = true;
 
     view_dispatcher_set_event_callback_context(nfc_comparator->view_dispatcher, nfc_comparator);
     view_dispatcher_set_custom_event_callback(

@@ -124,6 +124,7 @@ Any ESP32 board + CAN transceiver works. Pick the matching build env in `platfor
 |---|---|---|---|---|
 | `m5stack-atom` | M5Stack ATOM Lite + ATOMIC CAN Base | TWAI | 22 / 19 | Default, cheapest |
 | `m5stack-atom-swap-pins` | M5Stack ATOM Lite + ATOMIC CAN Base | TWAI | 19 / 22 | For boards with swapped silkscreen |
+| `m5stack-atom-matrix` | M5Stack ATOM Matrix + ATOMIC CAN Base | TWAI | 22 / 19 | 5×5 LED grid; front button on GPIO 39 |
 | `esp32-mcp2515` | Generic ESP32 + MCP2515 module | MCP2515 SPI | SPI CS=5 | 8 MHz crystal |
 | `esp32-lilygo` | LilyGO T-CAN485 | TWAI | 27 / 26 | Built-in SN65HVD230 + SD slot |
 | `ttgo-tdisplay` | LilyGO/TTGO T-Display + MCP2515 | MCP2515 SPI (HSPI) | CS=26, SCK=33, MISO=32, MOSI=25 | Built-in ST7789 dashboard, MISO needs 5V→3.3V divider |

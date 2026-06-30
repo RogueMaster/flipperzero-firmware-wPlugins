@@ -26,11 +26,12 @@ bool Game::setup(const GameConfig& config) {
     m(M_ROT) = world.hdrRot;
     rngState = world.hdrRng;
     m(M_ONGROUND) = 0xFF;
-    m(M_NEEDRERENDER) = 0xFF;
-    m(M_VELY) = 0xFF;
+    velYsub = 0;
+    posYsub = 0;
     m(M_CROUCHING) = 0xFF;
+    forceRedraw = true;
+    lastSig = 0;
     m(M_HEALTH) = MAXHEALTH;
-    m(M_LOGSINWORLD) = 4;
 
     items.clear();
     loadStorageDirectory(); // rebuild chest/furnace headers from disk
@@ -264,7 +265,6 @@ void Game::loadInventory() {
         m(M_INVENTORY + 3) = 0xFE;
         m(M_INVENTORY + 4) = 0xFF;
         m(M_HEALTH) = MAXHEALTH;
-        m(M_LOGSINWORLD) = 4;
     }
 }
 void Game::saveInventory() {
@@ -339,7 +339,6 @@ void Game::handleBreakAndPlace(const Input& in) {
     int bx = hit.bx, by = hit.by, bz = hit.bz;
     if(in.breakPressed && id != -1) {
         if(id == BLOCK_SAPLING) return;
-        if(id == BLOCK_LOG) m(M_LOGSINWORLD) = (uint8_t)(m(M_LOGSINWORLD) - 1);
         int slot = m(M_INVENTORYSLOT) & 0x0F;
         int held = m(M_INVENTORY + slot);
         int strength = STRENGTH_FIST;
@@ -364,7 +363,6 @@ void Game::handleBreakAndPlace(const Input& in) {
             tiles[be].loaded = false; // destroyed: never flush it back to disk
         }
         world.setBlock(bx, by, bz, BLOCK_AIR);
-        m(M_NEEDRERENDER) = 0xFF;
         if(net >= STRENGTHFORITEM && id != BLOCK_GLASS) {
             if(id == BLOCK_GRASS)
                 createEntity(bx, by, bz, ENTITY_DIRT);
@@ -461,14 +459,12 @@ void Game::handleBreakAndPlace(const Input& in) {
             }
             tiles.push_back(b);
         }
-        if(blockId == BLOCK_LOG) m(M_LOGSINWORLD) = (uint8_t)(m(M_LOGSINWORLD) + 1);
         if(item < 0xF0) {
             int c = item - 1;
             if((c & 0x0F) == 0) c = 0;
             m(M_INVENTORY + slot) = (uint8_t)c;
         } else
             m(M_INVENTORY + slot) = 0;
-        m(M_NEEDRERENDER) = 0xFF;
     }
 }
 
@@ -483,6 +479,23 @@ bool Game::playerCollides(int x, int y, int z) {
 }
 void Game::moveAndCollide(int dx, int dy, int dz) {
     int x = playerX, y = playerY, z = playerZ;
+    if(playerCollides(x, y, z)) {
+        int bx0 = x >> 4, bx1 = (x + PLAYERWIDTH) >> 4, bz0 = z >> 4, bz1 = (z + PLAYERWIDTH) >> 4;
+        int top = -1;
+        for(int by = WORLD_SY - 1; by >= 0 && top < 0; by--)
+            for(int cx = bx0; cx <= bx1 && top < 0; cx++)
+                for(int cz = bz0; cz <= bz1; cz++) {
+                    uint8_t id = world.getBlock(cx, by, cz);
+                    if(id != BLOCK_AIR && id != BLOCK_SAPLING) {
+                        top = by;
+                        break;
+                    }
+                }
+        y = (top + 1) * BLOCKSIZE;
+        velYsub = 0;
+        posYsub = 0;
+        m(M_ONGROUND) = 0xFF;
+    }
 
     const int maxX = world.worldSX() * BLOCKSIZE - PLAYERWIDTH;
     const int maxZ = world.worldSZ() * BLOCKSIZE - PLAYERWIDTH;
@@ -490,7 +503,6 @@ void Game::moveAndCollide(int dx, int dy, int dz) {
     int nx = x + dx;
     nx = std::clamp(nx, 0, maxX);
     if(!playerCollides(nx, y, z)) x = nx;
-
     int nz = z + dz;
     nz = std::clamp(nz, 0, maxZ);
     if(!playerCollides(x, y, nz)) z = nz;
@@ -498,7 +510,7 @@ void Game::moveAndCollide(int dx, int dy, int dz) {
     int ny = y + dy;
     if(playerCollides(x, ny, z)) {
         if(dy < 0) {
-            int speed = -s8(m(M_VELY));
+            int speed = -velYsub * JUMP_AIRTIME / VERT_SUBPIXEL;
             int over = speed - MINFALLDAMAGESPEED;
             if(over > 0) {
                 int dmg = smul446(over, FALLDAMAGESCALING);
@@ -510,7 +522,8 @@ void Game::moveAndCollide(int dx, int dy, int dz) {
             }
             m(M_ONGROUND) = 0xFF;
         }
-        m(M_VELY) = 0;
+        velYsub = 0;
+        posYsub = 0;
 
         int step = (dy < 0) ? 1 : -1;
         while(playerCollides(x, ny, z) && ny >= 0 && ny <= WORLD_SY * BLOCKSIZE)
@@ -521,7 +534,8 @@ void Game::moveAndCollide(int dx, int dy, int dz) {
     if(y < 0) {
         y = 0;
         m(M_ONGROUND) = 0xFF;
-        m(M_VELY) = 0;
+        velYsub = 0;
+        posYsub = 0;
     }
 
     playerX = x;
@@ -532,7 +546,6 @@ void Game::miscInputs(const Input& in) {
     uint8_t cr = in.crouch ? 0xFF : 0;
     if(cr != m(M_CROUCHING)) {
         m(M_CROUCHING) = cr;
-        m(M_NEEDRERENDER) = 0xFF;
     }
     if(in.turn || in.pitch) {
         int rot = m(M_ROT);
@@ -542,7 +555,6 @@ void Game::miscInputs(const Input& in) {
         if(in.pitch > 0 && pitch != 4) pitch = (pitch + 1) & 0x0F;
         if(in.pitch < 0 && pitch != 12) pitch = (pitch - 1) & 0x0F;
         m(M_ROT) = (uint8_t)((pitch << 4) | yaw);
-        m(M_NEEDRERENDER) = 0xFF;
     }
     renderer.setCamRot(m(M_ROT));
     int sinY = (int)renderer.sinYaw(), cosY = (int)renderer.cosYaw();
@@ -550,13 +562,21 @@ void Game::miscInputs(const Input& in) {
 
     int dx = smul446(fwd, sinY);
     int dz = smul446(fwd, cosY);
-    int onG = m(M_ONGROUND);
+    bool grounded = playerCollides(playerX, playerY - 1, playerZ);
     m(M_ONGROUND) = 0;
-    if(onG && in.jump)
-        m(M_VELY) = JUMPSTRENGTH;
-    else
-        m(M_VELY) = u8(s8(m(M_VELY)) - GRAVITY);
-    int dy = s8(m(M_VELY));
+    if(grounded && in.jump) {
+        velYsub = JUMPSTRENGTH * VERT_SUBPIXEL / JUMP_AIRTIME;
+        posYsub = 0;
+    } else if(grounded) {
+        velYsub = 0;
+        posYsub = 0;
+        m(M_ONGROUND) = 0xFF;
+    } else {
+        velYsub -= GRAVITY * VERT_SUBPIXEL / (JUMP_AIRTIME * JUMP_AIRTIME);
+    }
+    posYsub += velYsub;
+    int dy = posYsub / VERT_SUBPIXEL;
+    posYsub -= dy * VERT_SUBPIXEL;
     moveAndCollide(dx, dy, dz);
 
     bool moving = in.forward != 0 && m(M_ONGROUND);
@@ -592,7 +612,6 @@ void Game::updateAllItems() {
             if(e.id == ENTITY_FALLINGSAND) {
                 world.setBlock(bx, e.y / 16, bz, BLOCK_SAND);
                 e.active = false;
-                m(M_NEEDRERENDER) = 0xFF;
                 continue;
             }
         } else
@@ -698,6 +717,17 @@ void Game::doRandomTicks() {
         uint8_t a = world.getBlock(x, y + 1, z);
         return a == BLOCK_AIR || a == BLOCK_LEAVES || a == BLOCK_GLASS || a == BLOCK_SAPLING;
     };
+    auto nearLog = [&](int x, int y, int z) {
+        for(int r = 0; r <= LEAF_LOG_RADIUS; r++)
+            for(int dx = -r; dx <= r; dx++)
+                for(int dz = -r; dz <= r; dz++) {
+                    if(dx > -r && dx < r && dz > -r && dz < r)
+                        continue; // interior covered by smaller r
+                    for(int dy = -1; dy <= 1; dy++)
+                        if(world.getBlock(x + dx, y + dy, z + dz) == BLOCK_LOG) return true;
+                }
+        return false;
+    };
 
     int pbx = (playerX + PLAYERHALFWIDTH) / BLOCKSIZE,
         pbz = (playerZ + PLAYERHALFWIDTH) / BLOCKSIZE;
@@ -715,15 +745,13 @@ void Game::doRandomTicks() {
                         if(world.getBlock(gx, gy, gz) == BLOCK_GRASS) f = true;
             if(f) {
                 world.setBlock(x, y, z, BLOCK_GRASS);
-                m(M_NEEDRERENDER) = 0xFF;
             }
         } else if(b == BLOCK_GRASS) {
             if(!above(x, y, z)) {
                 world.setBlock(x, y, z, BLOCK_DIRT);
-                m(M_NEEDRERENDER) = 0xFF;
             }
         } else if(b == BLOCK_LEAVES) {
-            if(m(M_LOGSINWORLD) == 0) {
+            if(!nearLog(x, y, z)) {
                 world.setBlock(x, y, z, BLOCK_AIR);
                 int r = rng();
                 if(r < LEAVES_SAPLING_PROBABILITY)
@@ -732,7 +760,6 @@ void Game::doRandomTicks() {
                     createEntity(x, y, z, ENTITY_STICK);
                 else if(r < LEAVES_APPLE_PROBABILITY)
                     createEntity(x, y, z, ENTITY_APPLE);
-                m(M_NEEDRERENDER) = 0xFF;
             }
         } else if(b == BLOCK_SAPLING) {
             int extraHeight = rng() & 1;
@@ -748,16 +775,11 @@ void Game::doRandomTicks() {
                     for(int lz = z - 1; lz <= z + 1; lz++)
                         if(world.getBlock(lx, ly, lz) == BLOCK_AIR)
                             world.setBlock(lx, ly, lz, BLOCK_LEAVES);
-            int logs = 0;
             for(int ty = upperTop - 1; ty >= y; ty--) {
                 uint8_t old = world.getBlock(x, ty, z);
-                if(old == BLOCK_AIR || old == BLOCK_LEAVES) {
+                if(old == BLOCK_AIR || old == BLOCK_LEAVES || old == BLOCK_SAPLING)
                     world.setBlock(x, ty, z, BLOCK_LOG);
-                    logs++;
-                }
             }
-            m(M_LOGSINWORLD) = (uint8_t)(m(M_LOGSINWORLD) + logs);
-            m(M_NEEDRERENDER) = 0xFF;
         }
     }
 }
@@ -776,15 +798,16 @@ void Game::respawn() {
     playerX = x;
     playerY = by * BLOCKSIZE;
     playerZ = z;
-    m(M_VELY) = 0;
+    velYsub = 0;
+    posYsub = 0;
     m(M_ONGROUND) = 0;
     m(M_HEALTH) = MAXHEALTH;
-    m(M_NEEDRERENDER) = 0xFF;
     screenId = SCR_PLAY;
     selSlot = -1;
     loadedTile = -1;
     gameOverPending = false;
-    finishRender();
+    world.updateWindow(
+        (playerX + PLAYERHALFWIDTH) / BLOCKSIZE, (playerZ + PLAYERHALFWIDTH) / BLOCKSIZE);
 }
 
 void Game::drawHotbar() {
@@ -831,8 +854,6 @@ void Game::drawHotbar() {
         screen.heart(19 + i * 6, 43, i < (int)m(M_HEALTH));
 }
 void Game::finishRender() {
-    world.updateWindow(
-        (playerX + PLAYERHALFWIDTH) / BLOCKSIZE, (playerZ + PLAYERHALFWIDTH) / BLOCKSIZE);
     renderer.clearBuffer();
     renderer.setCamRot(m(M_ROT));
     float bobV = sinf(bobTimer * 2.0f) * bobAmt;
@@ -874,8 +895,8 @@ void Game::worldFrame(const Input& in) {
         screenId = SCR_GAMEOVER;
         return;
     }
-    finishRender();
-    m(M_NEEDRERENDER) = 0;
+    world.updateWindow(
+        (playerX + PLAYERHALFWIDTH) / BLOCKSIZE, (playerZ + PLAYERHALFWIDTH) / BLOCKSIZE);
 }
 
 std::vector<Game::Slot> Game::buildSlots(ScreenId s) {
@@ -936,7 +957,6 @@ void Game::guiFrame(const Input& in) {
         if(loadedTile >= 0 && (size_t)loadedTile < tiles.size()) flushTileStorage(loadedTile);
         screenId = SCR_PLAY;
         selSlot = -1;
-        m(M_NEEDRERENDER) = 0xFF;
         loadedTile = -1;
         return;
     }
@@ -1015,7 +1035,6 @@ void Game::guiFrame(const Input& in) {
         }
     }
     if(screenId == SCR_FURNACE) updateAllFurnaces();
-    drawGui();
 }
 void Game::drawGui() {
     if(screenId == SCR_GAMEOVER) {
@@ -1102,12 +1121,9 @@ void Game::drawGui() {
     }
 }
 
-void Game::frame(const Input& in) {
+void Game::simulate(const Input& in) {
     if(screenId == SCR_GAMEOVER) {
-        if(in.menuSelect) {
-            respawn();
-        } else
-            drawGui();
+        if(in.menuSelect) respawn();
         return;
     }
     if(screenId == SCR_PLAY) {
@@ -1115,14 +1131,70 @@ void Game::frame(const Input& in) {
             screenId = SCR_INVENTORY;
             cursor = 0;
             selSlot = -1;
-            drawGui();
             return;
         }
         worldFrame(in);
-        if(screenId != SCR_PLAY) drawGui();
     } else {
         guiFrame(in);
     }
+}
+
+uint32_t Game::visualSignature() const {
+    uint32_t h = 2166136261u;
+    auto mix = [&](uint32_t v) {
+        h ^= v;
+        h *= 16777619u;
+    };
+    auto mixf = [&](float f) {
+        uint32_t u;
+        memcpy(&u, &f, 4);
+        mix(u);
+    };
+    mix((uint32_t)screenId);
+    mix((uint32_t)(cursor + 1));
+    mix((uint32_t)(selSlot + 1));
+    mix((uint32_t)(loadedTile + 1));
+    mix((uint32_t)gameOverPending);
+    mix((uint32_t)score);
+    mix((uint32_t)playerX);
+    mix((uint32_t)playerY);
+    mix((uint32_t)playerZ);
+    mixf(bobTimer);
+    mixf(bobAmt);
+    mix(world.revision);
+    for(int i = 0; i < 42; i++)
+        mix(ram[i]);
+    for(const auto& e : items)
+        if(e.active) {
+            mix((uint32_t)e.id);
+            mix((uint32_t)e.x);
+            mix((uint32_t)e.y);
+            mix((uint32_t)e.z);
+        }
+    for(const auto& t : tiles)
+        if(t.active) {
+            mix((uint32_t)((t.bx << 16) | (t.by << 8) | t.bz));
+            mix((uint32_t)((t.dir << 2) | (t.isChest ? 2 : 0) | (t.lit ? 1 : 0)));
+        }
+    if(loadedTile >= 0 && (size_t)loadedTile < tiles.size()) {
+        const BlockEnt& t = tiles[loadedTile];
+        for(int i = 0; i < 10; i++)
+            mix(t.slot[i]);
+        mix((uint32_t)((t.timer << 8) | t.fuelTime));
+    }
+    return h;
+}
+
+bool Game::render() {
+    uint32_t sig = visualSignature();
+    if(!forceRedraw && sig == lastSig) return false;
+    lastSig = sig;
+    forceRedraw = false;
+    if(screenId == SCR_PLAY)
+        finishRender();
+    else
+        drawGui();
+    return true;
 }
 
 }

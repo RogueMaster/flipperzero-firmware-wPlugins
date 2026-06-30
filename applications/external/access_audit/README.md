@@ -15,7 +15,7 @@ Tap a card, get an instant risk score and plain-English advice. Save a named ses
 
 ## Features
 
-- **Deep card classification**: MIFARE Classic 1K/4K/Mini, DESFire EV1/EV2/EV3/Light, MIFARE Plus SL1/SL2/SL3, Ultralight C, NTAG203/213/215/216, NTAG I2C, ISO14443-A/B, ISO15693, FeliCa (Standard/Lite), SLIX, ST25TB; 125 kHz RFID: EM4100, HID H10301, HID Generic, Indala; HID iCLASS (Legacy) 2k/16k/32k
+- **Deep card classification**: MIFARE Classic 1K/4K/Mini, DESFire EV1/EV2/EV3/Light, MIFARE Plus SL1/SL2/SL3, Ultralight C, NTAG203/213/215/216, NTAG I2C, ISO14443-A/B, ISO15693, FeliCa (Standard/Lite), SLIX, ST25TB; 125 kHz RFID: EM4100, HID H10301, HID Generic, Indala; HID iCLASS (Legacy) 2k/16k/32k; **HID Seos** (via AID select)
 - **Instant risk score**: 0-100 score with HIGH RISK / MODERATE / LOW RISK / SECURE label
 - **Per-card advice**: plain-English recommendation written to every report entry
 - **Multi-scan sessions**: scan up to 20 cards per session; live `[N]` counter visible on both scan and result screens
@@ -94,6 +94,7 @@ The score is a **likelihood-of-compromise** rating aligned with the [OWASP Risk 
 | MIFARE Plus | SL1 · SL2 · SL3 (via security level response) |
 | MIFARE Ultralight / NTAG | Ultralight C · NTAG203/213/215/216 · NTAG I2C |
 | HID iCLASS | Legacy 2k · Legacy 16k · Legacy 32k (via ACTALL/IDENTIFY/READ block 1) |
+| HID Seos | Detected on ISO14443-4A via Seos AID `SELECT` (NFC mode) |
 | 125 kHz RFID | EM4100 · HID H10301 · HID Generic · Indala · generic 125 kHz |
 
 ---

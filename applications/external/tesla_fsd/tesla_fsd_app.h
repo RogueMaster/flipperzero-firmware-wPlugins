@@ -80,12 +80,14 @@ typedef struct {
     bool suppress_speed_chime;
     bool emergency_vehicle_detect;
     bool nag_killer;
+    bool nag_burst; // burst/pause echo (~1s on / ~1.5s off), #122
     bool precondition; // periodic 0x082 inject for battery preheat
     OpMode op_mode; // Active / ListenOnly / Service
     uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz
     bool gtw_shield; // 0x7FF GTW Config Replay — replay learned-healthy frames
     bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
     bool ap_first; // 2026.14.x: delay injection until AP is engaged
+    bool soft_engage; // steer-jerk: hold activation until wheel centred (#108)
     bool nag_epas_faithful; // 2026.14.x experimental: mirror the in-the-wild 0x370 scheme (no handsOnLevel flip; torque centred at 0 Nm with live variance)
     bool firmware_14x_warning; // 2026.14.x: show TX-disables-AP warning in running scene (default ON, opt-out for pre-14.x users)
     bool gtw_tier_override; // 0x7FF active tier=SELF_DRIVING override

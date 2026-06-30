@@ -246,27 +246,69 @@ def local_slope(heights, wx, wz, x, z):
     return s
 
 
-def place_tree(blocks, heights, wx, wz, x, z):
+def place_tree_sapling(blocks, heights, wx, wz, x, z):
     top = heights[z][x]
-    if top > HEIGHT - 6:
-        return False
     if get_block(blocks, wx, wz, x, top, z) != GRASS:
         return False
 
-    trunk_h = 3 + (whash(x, z, 61) % 2)
-    for y in range(top + 1, top + trunk_h + 1):
-        set_block(blocks, wx, wz, x, y, z, LOG)
+    y0 = top + 1
+    extra = whash(x, z, 61) & 1
+    lower_top = y0 + 2 + extra
+    upper_top = lower_top + 2
+    if upper_top > HEIGHT - 1:
+        return False
 
+    for ly in (lower_top - 1, lower_top):
+        for dx in range(-2, 3):
+            for dz in range(-2, 3):
+                if get_block(blocks, wx, wz, x + dx, ly, z + dz) == AIR:
+                    set_block(blocks, wx, wz, x + dx, ly, z + dz, LEAVES)
+
+    for ly in (upper_top - 1, upper_top):
+        for dx in range(-1, 2):
+            for dz in range(-1, 2):
+                if get_block(blocks, wx, wz, x + dx, ly, z + dz) == AIR:
+                    set_block(blocks, wx, wz, x + dx, ly, z + dz, LEAVES)
+
+    for ty in range(y0, upper_top):
+        old = get_block(blocks, wx, wz, x, ty, z)
+        if old in (AIR, LEAVES):
+            set_block(blocks, wx, wz, x, ty, z, LOG)
+    return True
+
+
+def place_tree_classic(blocks, heights, wx, wz, x, z):
+    top = heights[z][x]
+    if get_block(blocks, wx, wz, x, top, z) != GRASS:
+        return False
+
+    trunk_h = 3 + (whash(x, z, 61) % 2)  # 3 or 4
     crown_y = top + trunk_h
+    if crown_y + 2 > HEIGHT - 1:
+        return False
+
+    # Diamond crown.
     for dz in range(-2, 3):
         for dx in range(-2, 3):
             d = abs(dx) + abs(dz)
-            if d <= 3:
+            if d <= 3 and get_block(blocks, wx, wz, x + dx, crown_y, z + dz) == AIR:
                 set_block(blocks, wx, wz, x + dx, crown_y, z + dz, LEAVES)
-            if d <= 2:
+            if d <= 2 and get_block(blocks, wx, wz, x + dx, crown_y + 1, z + dz) == AIR:
                 set_block(blocks, wx, wz, x + dx, crown_y + 1, z + dz, LEAVES)
-    set_block(blocks, wx, wz, x, crown_y + 2, z, LEAVES)
+    if get_block(blocks, wx, wz, x, crown_y + 2, z) == AIR:
+        set_block(blocks, wx, wz, x, crown_y + 2, z, LEAVES)
+
+    for ty in range(top + 1, crown_y + 2):
+        old = get_block(blocks, wx, wz, x, ty, z)
+        if old in (AIR, LEAVES):
+            set_block(blocks, wx, wz, x, ty, z, LOG)
     return True
+
+
+def place_tree(blocks, heights, wx, wz, x, z):
+    if whash(x, z, 64) & 1:
+        return place_tree_classic(blocks, heights, wx, wz, x, z)
+    return place_tree_sapling(blocks, heights, wx, wz, x, z)
 
 
 def add_trees(blocks, fields, heights, wx, wz):

@@ -1,0 +1,17 @@
+App(
+    appid="daikin64_ac_remote",
+    name="Daikin64 AC Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="daikin64_ac_remote_app",
+    stack_size=4096,
+    sources=["*.c"],
+    fap_libs=["infrared"],
+    fap_icon="daikin64_ac_remote.png",
+    fap_icon_assets="assets",
+    fap_category="Infrared",
+    fap_author="mrcalifornium",
+    fap_weburl="https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote",
+    fap_version="0.1",
+    fap_description="Daikin64 APGS02-compatible AC remote",
+)

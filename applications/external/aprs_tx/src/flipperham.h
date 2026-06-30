@@ -58,7 +58,13 @@ typedef struct {
     uint8_t aprs_path_index;
     char aprs_path_edit[APRS_PATH_LEN];
     uint8_t debug_tx;
+    uint8_t radio_backend;
 } FlipperHamCfg;
+
+enum {
+    FlipperHamRadioInternal = 0,
+    FlipperHamRadioExternal,
+};
 
 enum {
     FlipperHamViewMenu = 0,
@@ -74,6 +80,7 @@ enum {
     FlipperHamViewBook,
     FlipperHamViewC2,
     FlipperHamViewTextInput,
+    FlipperHamViewCoordInput,
     FlipperHamViewFreq,
     FlipperHamViewFreqEdit,
     FlipperHamViewPosEdit,
@@ -101,6 +108,7 @@ enum {
 
 enum {
     FlipperHamSettingsIndexFreq = 0,
+    FlipperHamSettingsIndexRadio,
     FlipperHamSettingsIndexBaud,
     FlipperHamSettingsIndexAprsPath,
     FlipperHamSettingsIndexProfile,

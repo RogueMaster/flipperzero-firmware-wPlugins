@@ -95,7 +95,14 @@ bool nfc_comparator_finder_results_scene_on_event(void* context, SceneManagerEve
     if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {
         case GuiButtonTypeLeft:
-            scene_manager_previous_scene(nfc_comparator->scene_manager);
+            if(scene_manager_has_previous_scene(
+                   nfc_comparator->scene_manager, NfcComparatorScene_DigitalFinderSearch)) {
+                scene_manager_search_and_switch_to_previous_scene(
+                    nfc_comparator->scene_manager, NfcComparatorScene_DigitalFinderSelect);
+            } else {
+                scene_manager_previous_scene(nfc_comparator->scene_manager);
+            }
+
             consumed = true;
             break;
         case GuiButtonTypeCenter:

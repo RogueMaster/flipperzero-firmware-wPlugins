@@ -6,6 +6,8 @@
 
 #define PSA_BF_PROGRESS_INTERVAL 4096U
 
+#pragma GCC optimize("O3", "unroll-loops")
+
 typedef struct {
     uint32_t s0[TEA_ROUNDS];
     uint32_t s1[TEA_ROUNDS];
@@ -22,23 +24,30 @@ static void psa_bf_tea_build_schedule(const uint32_t* key, PsaTeaSchedule* out) 
 
 static inline void
     psa_bf_tea_encrypt_with_schedule(uint32_t* v0, uint32_t* v1, const PsaTeaSchedule* sched) {
+    uint32_t a = *v0, b = *v1;
+#pragma GCC unroll 32
     for(int i = 0; i < TEA_ROUNDS; i++) {
-        *v0 += (sched->s0[i] ^ (((*v1 >> 5) ^ (*v1 << 4)) + *v1));
-        *v1 += (sched->s1[i] ^ (((*v0 >> 5) ^ (*v0 << 4)) + *v0));
+        a += (sched->s0[i] ^ (((b >> 5) ^ (b << 4)) + b));
+        b += (sched->s1[i] ^ (((a >> 5) ^ (a << 4)) + a));
     }
+    *v0 = a;
+    *v1 = b;
 }
 
 static inline void psa_bf_tea_decrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key) {
+    uint32_t a = *v0, b = *v1;
+    const uint32_t k[4] = {key[0], key[1], key[2], key[3]};
     uint32_t sum = TEA_DELTA * TEA_ROUNDS;
+#pragma GCC unroll 32
     for(int i = 0; i < TEA_ROUNDS; i++) {
-        uint32_t k_idx2 = (sum >> 11) & 3;
-        uint32_t temp = key[k_idx2] + sum;
+        uint32_t temp = k[(sum >> 11) & 3] + sum;
         sum = sum - TEA_DELTA;
-        *v1 = *v1 - (temp ^ (((*v0 >> 5) ^ (*v0 << 4)) + *v0));
-        uint32_t k_idx1 = sum & 3;
-        temp = key[k_idx1] + sum;
-        *v0 = *v0 - (temp ^ (((*v1 >> 5) ^ (*v1 << 4)) + *v1));
+        b = b - (temp ^ (((a >> 5) ^ (a << 4)) + a));
+        temp = k[sum & 3] + sum;
+        a = a - (temp ^ (((b >> 5) ^ (b << 4)) + b));
     }
+    *v0 = a;
+    *v1 = b;
 }
 
 static void psa_bf_fill_state_from_buffer(PsaBfState* state, uint8_t* buffer) {

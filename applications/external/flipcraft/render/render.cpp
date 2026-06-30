@@ -1,5 +1,7 @@
 
 
+#pragma GCC optimize("O3")
+
 #include "render.h"
 #include <algorithm>
 #include <cstring>
@@ -125,7 +127,8 @@ void Renderer::rasterTri(const Vertex& A, const Vertex& B, const Vertex& C) {
     maxX = std::min(maxX, SCREEN_WIDTH - 1);
     if(minX > maxX || minY > maxY) return;
 
-    const uint8_t* tex = textureBitmap(texture);
+    uint8_t tex[64];
+    memcpy(tex, textureBitmap(texture), sizeof(tex));
 
     const float e0dx = B.y - C.y, e0dy = C.x - B.x, e0c = B.x * C.y - B.y * C.x;
     const float e1dx = C.y - A.y, e1dy = A.x - C.x, e1c = C.x * A.y - C.y * A.x;
@@ -160,9 +163,14 @@ void Renderer::rasterTri(const Vertex& A, const Vertex& B, const Vertex& C) {
         int sub = 0; // pixels left in the current affine run
         float fu = 0, fv = 0, dfu = 0, dfv = 0; // 8*u, 8*v and their per-pixel steps
 
-        for(int x = minX; x <= maxX;
-            x++, e0 += e0dx, e1 += e1dx, invZ += dInvZ, S += dS, T += dT, depthAcc += dDepth) {
-            e2 = area - e0 - e1;
+        for(int x = minX; x <= maxX; x++,
+                e0 += e0dx,
+                e1 += e1dx,
+                e2 += de2dx,
+                invZ += dInvZ,
+                S += dS,
+                T += dT,
+                depthAcc += dDepth) {
             if(posArea ? (e0 < 0 || e1 < 0 || e2 < 0) : (e0 > 0 || e1 > 0 || e2 > 0)) {
                 sub = 0;
                 continue;
@@ -338,14 +346,32 @@ void Renderer::renderItem(float x, float y, float z, uint8_t itemId) {
 }
 
 void Renderer::renderScene(const World& w) {
-    int camBX = (int)floorf(camPos[0] / (float)BLOCKSIZE);
-    int camBZ = (int)floorf(camPos[2] / (float)BLOCKSIZE);
+    int camBX = ifloor(camPos[0] * (1.0f / (float)BLOCKSIZE));
+    int camBZ = ifloor(camPos[2] * (1.0f / (float)BLOCKSIZE));
     ActiveWindow win = activeWindowAround(camBX, camBZ, w.worldSX(), w.worldSZ());
     winX0 = win.x0;
     winX1 = win.x1;
     winZ0 = win.z0;
     winZ1 = win.z1;
     int renderYHi = w.activeMaxY(win);
+
+    int cacheCX = -0x7fffffff, cacheCZ = -0x7fffffff;
+    const uint8_t* cacheBase = nullptr;
+    auto fastBlock = [&](int x, int y, int z) -> uint8_t {
+        if((unsigned)x >= (unsigned)w.worldSX() || (unsigned)y >= (unsigned)WORLD_SY ||
+           (unsigned)z >= (unsigned)w.worldSZ())
+            return BLOCK_AIR;
+        int cx = x >> CHUNK_SHIFT, cz = z >> CHUNK_SHIFT;
+        if(cx != cacheCX || cz != cacheCZ) {
+            cacheCX = cx;
+            cacheCZ = cz;
+            int sx = cx % 3, sz = cz % 3;
+            cacheBase = (w.slotCX[sx][sz] == cx && w.slotCZ[sx][sz] == cz) ?
+                            &w.slot[sx][sz][0][0][0] :
+                            nullptr;
+        }
+        return cacheBase ? cacheBase[(y << 6) | ((z & 7) << 3) | (x & 7)] : (uint8_t)BLOCK_AIR;
+    };
 
     for(int axis = 0; axis < 3; axis++) {
         int currentFace, previousFace, currentTexIndex, previousTexIndex;
@@ -408,7 +434,7 @@ void Renderer::renderScene(const World& w) {
                         pos[1] = a3;
                         pos[2] = a1;
                     }
-                    uint8_t current = w.getBlock(pos[0], pos[1], pos[2]);
+                    uint8_t current = fastBlock(pos[0], pos[1], pos[2]);
                     bool currentFull = blockIsFull(current);
                     bool currentTransparent = blockIsTransparent(current);
                     if(axis == 2) {

@@ -39,6 +39,26 @@ typedef enum {
     VIEW_IR_BUTTONS = 32,
     VIEW_IR_UNIVERSALS = 33,
     VIEW_STATUS_IDLE = 40,
+    // WiFi Settings sub-categories
+    VIEW_WIFI_SETTINGS_LED = 50,
+    VIEW_WIFI_SETTINGS_SD = 51,
+    VIEW_WIFI_SETTINGS_MGMT = 52,
+    VIEW_WIFI_SETTINGS_DEVICE = 53,
+    VIEW_WIFI_SETTINGS_MISC = 54,
+    // WiFi Network sub-categories
+    VIEW_WIFI_NETWORK_PORTAL = 55,
+    VIEW_WIFI_NETWORK_CONN = 56,
+    VIEW_WIFI_NETWORK_SCAN = 57,
+    VIEW_WIFI_NETWORK_IOT = 58,
+    VIEW_WIFI_NETWORK_WEBUI = 59,
+    // BLE Scanning sub-categories
+    VIEW_BLE_SCAN_DETECT = 60,
+    VIEW_BLE_SCAN_AIRTAG = 61,
+    VIEW_BLE_SCAN_GATT = 62,
+    VIEW_BLE_SCAN_ADV = 63,
+    // GPS sub-categories
+    VIEW_GPS_CONFIG = 64,
+    VIEW_GPS_WARDRIVE = 65,
 } ViewId;
 
 typedef struct {
@@ -90,6 +110,23 @@ struct AppState {
     Submenu* ir_remotes_menu;
     Submenu* ir_buttons_menu;
     Submenu* ir_universals_menu;
+    // Sub-category submenus
+    Submenu* wifi_settings_led_menu;
+    Submenu* wifi_settings_sd_menu;
+    Submenu* wifi_settings_mgmt_menu;
+    Submenu* wifi_settings_device_menu;
+    Submenu* wifi_settings_misc_menu;
+    Submenu* wifi_network_portal_menu;
+    Submenu* wifi_network_conn_menu;
+    Submenu* wifi_network_scan_menu;
+    Submenu* wifi_network_iot_menu;
+    Submenu* wifi_network_webui_menu;
+    Submenu* ble_scan_detect_menu;
+    Submenu* ble_scan_airtag_menu;
+    Submenu* ble_scan_gatt_menu;
+    Submenu* ble_scan_adv_menu;
+    Submenu* gps_config_menu;
+    Submenu* gps_wardrive_menu;
     VariableItemList* settings_menu;
     TextBox* text_box;
     TextInput* text_input;
@@ -126,6 +163,23 @@ struct AppState {
     uint32_t last_aerial_category_index;
     uint32_t last_gps_index;
     uint32_t last_ir_index;
+    // Sub-category last indices
+    uint32_t last_wifi_settings_led_index;
+    uint32_t last_wifi_settings_sd_index;
+    uint32_t last_wifi_settings_mgmt_index;
+    uint32_t last_wifi_settings_device_index;
+    uint32_t last_wifi_settings_misc_index;
+    uint32_t last_wifi_network_portal_index;
+    uint32_t last_wifi_network_conn_index;
+    uint32_t last_wifi_network_scan_index;
+    uint32_t last_wifi_network_iot_index;
+    uint32_t last_wifi_network_webui_index;
+    uint32_t last_ble_scan_detect_index;
+    uint32_t last_ble_scan_airtag_index;
+    uint32_t last_ble_scan_gatt_index;
+    uint32_t last_ble_scan_adv_index;
+    uint32_t last_gps_config_index;
+    uint32_t last_gps_wardrive_index;
     uint32_t ir_current_remote_index;
     IrRemoteEntry ir_remotes[32];
     size_t ir_remote_count;

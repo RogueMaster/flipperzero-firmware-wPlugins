@@ -116,6 +116,7 @@ Matches:
 - MIFARE Plus SL2, AES crypto active (Classic-format frames)
 - MIFARE Plus SL3, AES crypto + ISO14443-4 protocol
 - FeliCa Standard, proprietary crypto (FeliCa Lite is excluded, no mutual auth)
+- HID Seos, AES secure element on ISO14443-4A (identified by Seos AID `SELECT`)
 
 **Score contribution:** -20
 

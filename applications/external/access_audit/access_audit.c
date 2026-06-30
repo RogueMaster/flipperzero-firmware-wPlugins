@@ -133,16 +133,9 @@ static void
 }
 
 static const char* risk_label(Severity severity) {
-    switch(severity) {
-    case SeverityHigh:
-        return "HIGH RISK";
-    case SeverityMedium:
-        return "MODERATE";
-    case SeverityLow:
-        return "LOW RISK";
-    default:
-        return "SECURE";
-    }
+    /* Single source of truth in core/scoring.c so the screen verdict and the
+     * report's bracketed verdict can never drift. */
+    return verdict_label(severity);
 }
 
 static void access_audit_draw_callback(Canvas* canvas, void* context) {
@@ -157,7 +150,7 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
         canvas_draw_line(canvas, 0, 13, 127, 13);
 
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 20, "v" APP_VERSION);
+        canvas_draw_str(canvas, 2, 22, "v" APP_VERSION);
         canvas_draw_str_aligned(
             canvas,
             126,
@@ -170,17 +163,19 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
         if(app->session.count > 0) {
             char cbuf[16];
             snprintf(cbuf, sizeof(cbuf), "[%u]", (unsigned)app->session.count);
-            canvas_draw_str_aligned(canvas, 126, 24, AlignRight, AlignBottom, cbuf);
+            canvas_draw_str_aligned(canvas, 126, 22, AlignRight, AlignBottom, cbuf);
         }
         canvas_draw_str(
             canvas,
             2,
-            26,
+            32,
             app->scan_mode == ScanModeNfc    ? "Tap card to reader..." :
-            app->scan_mode == ScanModeIclass ? "Tap iCLASS card..." :
+            app->scan_mode == ScanModeIclass ? "Tap iCLASS SE/Legacy..." :
                                                "Hold card to reader...");
-        canvas_draw_str(canvas, 2, 38, "Scanning...");
-        canvas_draw_str(canvas, 2, 50, "< > NFC/RFID/iCLASS");
+        /* iCLASS mode is ISO15693 (Legacy/SE); Seos is ISO14443-4A — NFC mode. */
+        canvas_draw_str(
+            canvas, 2, 42, app->scan_mode == ScanModeIclass ? "Seos? use NFC mode" : "Scanning...");
+        canvas_draw_str(canvas, 2, 52, "< > NFC/RFID/iCLASS");
         canvas_draw_str(canvas, 2, 62, "Up:reports  Back:exit");
         return;
     }
@@ -359,9 +354,19 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
 
     canvas_draw_line(canvas, 0, 13, 127, 13);
 
-    /* Card type */
+    /* Card type, with the underlying air interface (e.g. ISO 14443-4A) shown
+     * right-aligned when both fit on the line. */
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 24, card_type_to_string(app->obs.card_type));
+    const char* type_name = card_type_to_string(app->obs.card_type);
+    canvas_draw_str(canvas, 2, 24, type_name);
+    const char* type_proto = card_type_protocol(app->obs.card_type);
+    if(type_proto) {
+        uint16_t name_w = canvas_string_width(canvas, type_name);
+        uint16_t proto_w = canvas_string_width(canvas, type_proto);
+        if((uint16_t)(2 + name_w + 6 + proto_w) <= 126) {
+            canvas_draw_str_aligned(canvas, 126, 24, AlignRight, AlignBottom, type_proto);
+        }
+    }
 
     /* Risk label — most prominent element */
     canvas_set_font(canvas, FontPrimary);

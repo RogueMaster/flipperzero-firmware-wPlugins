@@ -171,6 +171,35 @@ bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms) {
     return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
 }
 
+bool fsd_soft_engage_allows(FSDState* state) {
+    if(!state->soft_engage) return true; // gate off
+    if(state->soft_engage_latched) return true; // already engaged this cycle
+    // Hold until the wheel is near-centred so the DAS's path recompute at
+    // FSD-enable is small (the steer-jerk is worse on curves — #108). If 0x129
+    // isn't on the bus, steering_angle_deg stays 0 and this latches immediately
+    // (degrades to AP-First-only, no worse than before).
+    float a = state->steering_angle_deg;
+    if(a < 0.0f) a = -a;
+    if(a > SOFT_ENGAGE_ANGLE_DEG) return false; // turning — hold activation
+    state->soft_engage_latched = true; // centred — begin and latch
+    return true;
+}
+
+void fsd_abort_guard_update(FSDState* state) {
+    if(!state->abort_guard) return;
+    if(state->das_ap_state < 2u) {
+        state->abort_guard_latched = false; // clean disengage re-arms
+    } else if(
+        state->das_ap_state == DAS_APSTATE_ABORTING ||
+        state->das_ap_state == DAS_APSTATE_ABORTED) {
+        state->abort_guard_latched = true; // abort seen -> suppress injection
+    }
+}
+
+bool fsd_abort_guard_allows(const FSDState* state) {
+    return !(state->abort_guard && state->abort_guard_latched);
+}
+
 bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
 
@@ -178,6 +207,12 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
     // stable for AP_FIRST_STABLE_MS — injecting on the activation edge is linked
     // to a steer-jerk (ev-open-can-tools#66 / v3.0.2-beta.2).
     if(!fsd_ap_first_allows(state, now_ms)) return false;
+    // Soft Engage: additionally hold the first activation until the wheel is
+    // centred, so FSD-enable's path recompute doesn't yank the steering (#108).
+    if(!fsd_soft_engage_allows(state)) return false;
+    // Abort Guard: once the car has entered an abort state this engagement, stop
+    // injecting so we don't feed/repeat the abort that snaps the wheel (#108).
+    if(!fsd_abort_guard_allows(state)) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
@@ -282,6 +317,10 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
     // (China FW 2026.8.3.6); see ev-open-can-tools#66. das_ap_state comes from
     // 0x399 DAS_status (Legacy/HW3).
     if(!fsd_ap_first_allows(state, now_ms)) return false;
+    // Soft Engage: also hold the legacy activation until the wheel is centred (#108).
+    if(!fsd_soft_engage_allows(state)) return false;
+    // Abort Guard: stop injecting once an abort was seen this engagement (#108).
+    if(!fsd_abort_guard_allows(state)) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
@@ -409,11 +448,12 @@ void fsd_handle_epas_steering_mode(FSDState* state, const CANFRAME* frame) {
 // --- ESP_status (0x145) parser ---
 // opendbc: ESP_driverBrakeApply : 29|2@1+ (little-endian)
 // bit 29 = byte3 bit5, 2 bits → byte3 bits [6:5]
+// Values: 0=NotInit_orOff, 1=Not_Applied, 2=Driver_applying_brakes, 3=Faulty_SNA
 
 void fsd_handle_esp_status(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 4) return;
     uint8_t brake = (frame->buffer[3] >> 5) & 0x03;
-    state->driver_brake_applied = (brake != 0);
+    state->driver_brake_applied = (brake >= 2);
 }
 
 // --- GTW_epasControl (0x101) steering tune WRITE ---
@@ -976,6 +1016,13 @@ static uint8_t nag_hands_level_from_raw(int16_t raw) {
     return 0;
 }
 
+// Clamp a torsionBarTorque raw value to the ±1.8 Nm safety cap (#122).
+static int16_t nag_clamp_torque(int16_t raw) {
+    if(raw > NAG_TORQUE_RAW_MAX) return NAG_TORQUE_RAW_MAX;
+    if(raw < NAG_TORQUE_RAW_MIN) return NAG_TORQUE_RAW_MIN;
+    return raw;
+}
+
 static bool
     nag_faithful_modec(FSDState* state, const CANFRAME* frame, CANFRAME* out, uint32_t now_ms) {
     uint8_t das = state->das_hands_on_state; // DAS hands-on demand state
@@ -1085,9 +1132,15 @@ static bool
     out->req = 0;
     out->buffer[0] = frame->buffer[0];
     out->buffer[1] = frame->buffer[1];
+    torque = nag_clamp_torque(torque); // ±1.8 Nm safety cap (#122)
     out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torque >> 8) & 0x0F);
     out->buffer[3] = (uint8_t)(torque & 0xFF);
-    out->buffer[4] = (frame->buffer[4] & ~0xC0u) | (uint8_t)((level & 0x03u) << 6);
+    // Leave handsOnLevel untouched — real EPAS keeps byte4[7:6] at 0 even when
+    // hands are genuinely on (verified on HW3 14.6 clean-nag 142/142=0 and HW4
+    // Feifan, #122). Deriving it from torque is non-EPAS-like and a likely
+    // 14.x preflight tell. (level is still tracked for the state-1 grace hold.)
+    (void)level;
+    out->buffer[4] = frame->buffer[4];
     out->buffer[5] = frame->buffer[5];
     uint8_t cnt = (frame->buffer[6] & 0x0F);
     cnt = (cnt + 1) & 0x0F;
@@ -1098,9 +1151,47 @@ static bool
     return true;
 }
 
+void fsd_apply_signal_config(FSDState* state, const CANFRAME* frame, uint32_t now_ms) {
+    if(state->cfg_das_id != 0 && frame->canId == state->cfg_das_id) {
+        if(state->cfg_apstate_byte < 8 && frame->data_lenght > state->cfg_apstate_byte)
+            state->das_ap_state =
+                (frame->buffer[state->cfg_apstate_byte] >> state->cfg_apstate_shift) &
+                state->cfg_apstate_mask;
+        if(state->cfg_handson_byte < 8 && frame->data_lenght > state->cfg_handson_byte)
+            state->das_hands_on_state =
+                (frame->buffer[state->cfg_handson_byte] >> state->cfg_handson_shift) &
+                state->cfg_handson_mask;
+        state->das_ctx_seen_ms = now_ms;
+    }
+    if(state->cfg_steer_id != 0 && frame->canId == state->cfg_steer_id) {
+        if(state->cfg_steer_hi < 8 && state->cfg_steer_lo < 8 &&
+           frame->data_lenght > state->cfg_steer_hi && frame->data_lenght > state->cfg_steer_lo) {
+            int16_t raw = (int16_t)(((uint16_t)frame->buffer[state->cfg_steer_hi] << 8) |
+                                    frame->buffer[state->cfg_steer_lo]);
+            state->steering_angle_deg = (float)raw * 0.1f;
+            state->steer_ctx_seen_ms = now_ms;
+        }
+    }
+}
+
+bool fsd_das_ctx_fresh(const FSDState* state, uint32_t now_ms) {
+    if(state->cfg_das_id == 0) return true; // auto mode — prior behaviour
+    return (now_ms - state->das_ctx_seen_ms) <= NAG_CTX_FRESH_MS;
+}
+
+// Burst/pause window: true while we should be RESTING (skip the echo). #122.
+static bool nag_in_pause(uint32_t now_ms) {
+    uint32_t cycle = NAG_BURST_MS + NAG_PAUSE_MS;
+    return (now_ms % cycle) >= NAG_BURST_MS;
+}
+
 bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
     if(!state->nag_killer) return false;
+    // Freshness: with a custom DAS source configured, no-op if it's stale (#122).
+    if(!fsd_das_ctx_fresh(state, now_ms)) return false;
+    // Burst/pause: during the rest window, don't echo at all (gates both paths).
+    if(state->nag_burst && nag_in_pause(now_ms)) return false;
 
     // v2.17 EPAS-faithful (Mode-C) path takes over the whole decision.
     if(state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);
@@ -1179,6 +1270,7 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
 
     out->buffer[0] = frame->buffer[0];
     out->buffer[1] = frame->buffer[1];
+    torq = nag_clamp_torque(torq); // ±1.8 Nm safety cap (#122)
     out->buffer[2] = (frame->buffer[2] & 0xF0) | (uint8_t)((torq >> 8) & 0x0F);
     out->buffer[3] = (uint8_t)(torq & 0xFF);
     // Clear existing handsOnLevel bits (7:6) before setting level=1.

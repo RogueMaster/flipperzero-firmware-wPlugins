@@ -210,6 +210,19 @@ static uint8_t g_gear_sequence_len = 0;
 static uint8_t g_gear_sequence_index = 0;
 static uint32_t g_gear_sequence_progress_ms = 0;
 static uint32_t g_gear_sequence_next_ms = 0;
+static bool g_gear_sequence_counter_valid = false;
+static uint8_t g_gear_sequence_counter = 0;
+static uint32_t g_gear_sequence_send_fail_count = 0;
+
+enum GearSequenceSendResult : uint8_t {
+    GearSeqSend_Sent = 0,
+    GearSeqSend_Inactive,
+    GearSeqSend_WaitStep,
+    GearSeqSend_WaitCounter,
+    GearSeqSend_TxBlocked,
+    GearSeqSend_BuildFailed,
+    GearSeqSend_TxFailed,
+};
 
 static CanBusId preferred_generated_bus(uint32_t frame_id) {
     if (frame_id == CAN_ID_SCCM_RSTALK)
@@ -226,6 +239,9 @@ static void clear_gear_sequence() {
     g_gear_sequence_index = 0;
     g_gear_sequence_progress_ms = 0;
     g_gear_sequence_next_ms = 0;
+    g_gear_sequence_counter_valid = false;
+    g_gear_sequence_counter = 0;
+    g_gear_sequence_send_fail_count = 0;
 }
 
 static bool cached_gear_counter_is_fresh(uint32_t now) {
@@ -234,41 +250,64 @@ static bool cached_gear_counter_is_fresh(uint32_t now) {
            (uint32_t)(now - g_last_gear_counter_ms) <= GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS;
 }
 
-static bool send_gear_position_from_cached_counter(uint8_t gear_pos, const char *name) {
-    uint32_t now = millis();
-    if (!cached_gear_counter_is_fresh(now)) return false;
+static const char *gear_sequence_send_result_name(GearSequenceSendResult result) {
+    switch (result) {
+        case GearSeqSend_Sent:        return "sent";
+        case GearSeqSend_Inactive:    return "inactive";
+        case GearSeqSend_WaitStep:    return "wait_step";
+        case GearSeqSend_WaitCounter: return "wait_counter";
+        case GearSeqSend_TxBlocked:   return "tx_blocked";
+        case GearSeqSend_BuildFailed: return "build_failed";
+        case GearSeqSend_TxFailed:    return "tx_failed";
+        default:                      return "?";
+    }
+}
 
+static GearSequenceSendResult send_gear_position_for_sequence(uint8_t gear_pos,
+                                                              const char *name) {
+    (void)name;
+    uint32_t now = millis();
     FSDState s = state_snapshot();
-    if (!fsd_can_transmit(&s)) return false;
+    if (!fsd_can_transmit(&s)) return GearSeqSend_TxBlocked;
+
+    if (!g_gear_sequence_counter_valid) {
+        if (!cached_gear_counter_is_fresh(now)) return GearSeqSend_WaitCounter;
+        g_gear_sequence_counter = g_last_gear_counter;
+        g_gear_sequence_counter_valid = true;
+    }
 
     CanFrame f;
     uint8_t next_counter =
-        (uint8_t)((g_last_gear_counter + 1u) & SIG_GEAR_LEVER_COUNTER_MASK);
-    if (!fsd_build_gear_lever_frame(&f, gear_pos, next_counter)) return false;
+        (uint8_t)((g_gear_sequence_counter + 1u) & SIG_GEAR_LEVER_COUNTER_MASK);
+    if (!fsd_build_gear_lever_frame(&f, gear_pos, next_counter)) {
+        return GearSeqSend_BuildFailed;
+    }
 
     bool sent = send_generated_frame(preferred_generated_bus(CAN_ID_SCCM_RSTALK), f);
     if (sent) {
-        uint32_t age_ms = now - g_last_gear_counter_ms;
+        g_gear_sequence_counter = next_counter;
         g_last_gear_counter = next_counter;
         g_last_gear_counter_ms = now;
-        Serial.printf("[%s] 0x229 pos=%u immediate TX on %s (cached age=%lu ms)\n",
-                      name,
-                      (unsigned)gear_pos,
-                      can_bus_name(preferred_generated_bus(CAN_ID_SCCM_RSTALK)),
-                      (unsigned long)age_ms);
+        g_last_gear_counter_valid = true;
+        return GearSeqSend_Sent;
     }
-    return sent;
+    return GearSeqSend_TxFailed;
 }
 
-static bool send_next_gear_sequence_from_cached_counter(const char *name) {
-    if (!gear_sequence_active()) return false;
+static GearSequenceSendResult send_next_gear_sequence_frame(const char *name) {
+    if (!gear_sequence_active()) return GearSeqSend_Inactive;
     uint8_t gear_pos = g_gear_sequence[g_gear_sequence_index];
-    if (!send_gear_position_from_cached_counter(gear_pos, name)) return false;
+    GearSequenceSendResult result = send_gear_position_for_sequence(gear_pos, name);
+    if (result != GearSeqSend_Sent) {
+        g_gear_sequence_send_fail_count++;
+        return result;
+    }
     g_gear_sequence_index++;
-    g_gear_sequence_progress_ms = millis();
+    uint32_t now = millis();
+    g_gear_sequence_progress_ms = now;
     if (!gear_sequence_active()) clear_gear_sequence();
-    else g_gear_sequence_next_ms = millis() + GEAR_SEQUENCE_STEP_MS;
-    return true;
+    else g_gear_sequence_next_ms = now + GEAR_SEQUENCE_STEP_MS;
+    return GearSeqSend_Sent;
 }
 
 static bool gear_sequence_timed_out(uint32_t now) {
@@ -277,16 +316,16 @@ static bool gear_sequence_timed_out(uint32_t now) {
            (uint32_t)(now - g_gear_sequence_progress_ms) > GEAR_SEQUENCE_TIMEOUT_MS;
 }
 
-static bool gear_sequence_tick(uint32_t now, const char *name) {
-    if (!gear_sequence_active()) return false;
+static GearSequenceSendResult gear_sequence_tick(uint32_t now, const char *name) {
+    if (!gear_sequence_active()) return GearSeqSend_Inactive;
     if (g_gear_sequence_next_ms != 0u &&
         (int32_t)(now - g_gear_sequence_next_ms) < 0) {
-        return false;
+        return GearSeqSend_WaitStep;
     }
-    return send_next_gear_sequence_from_cached_counter(name);
+    return send_next_gear_sequence_frame(name);
 }
 
-static bool arm_gear_ap_double_press_sequence(uint32_t now) {
+static GearSequenceSendResult arm_gear_ap_double_press_sequence(uint32_t now) {
     g_gear_sequence[0] = SIG_GEAR_LEVER_FULL_DOWN;
     g_gear_sequence[1] = SIG_GEAR_LEVER_CENTER;
     g_gear_sequence[2] = SIG_GEAR_LEVER_FULL_DOWN;
@@ -633,16 +672,25 @@ static bool continuous_ap_stalk_stop_allows(uint32_t now, const FSDState &s) {
     return false;
 }
 
-static void continuous_ap_hw3_legacy_start_attempt(uint32_t now) {
+static bool continuous_ap_hw3_legacy_try_start_attempt(uint32_t now) {
+    if (!cached_gear_counter_is_fresh(now)) {
+        return false;
+    }
+
+    GearSequenceSendResult result = arm_gear_ap_double_press_sequence(now);
+    if (result != GearSeqSend_Sent) {
+        clear_gear_sequence();
+        return false;
+    }
+
     g_cont_ap_attempts++;
     g_cont_ap_attempt_ms = now;
     g_cont_ap_state = ContAp_Attempting;
-    bool sent_now = arm_gear_ap_double_press_sequence(now);
-    Serial.printf("[CONT-AP] attempt %u/%u: 0x229 full-down double press armed on %s%s\n",
+    Serial.printf("[CONT-AP] attempt %u/%u: 0x229 full-down double press started on %s\n",
                   (unsigned)g_cont_ap_attempts,
                   (unsigned)CONT_AP_MAX_RETRIES,
-                  can_bus_name(preferred_generated_bus(CAN_ID_SCCM_RSTALK)),
-                  sent_now ? " (first frame sent immediately)" : " (waiting for fresh live counter)");
+                  can_bus_name(preferred_generated_bus(CAN_ID_SCCM_RSTALK)));
+    return true;
 }
 
 static void continuous_ap_tick_hw3_legacy(uint32_t now,
@@ -700,7 +748,8 @@ static void continuous_ap_tick_hw3_legacy(uint32_t now,
             if (continuous_ap_turn_signal_off(s)) {
                 g_cont_ap_signal_off_ms = now;
                 g_cont_ap_state = ContAp_WaitApReady;
-                Serial.println("[CONT-AP] turn signal off; waiting for AP ready");
+                Serial.printf("[CONT-AP] turn signal off; waiting %lu ms before AP reengage\n",
+                              (unsigned long)CONT_AP_REENGAGE_DELAY_MS);
             }
             return;
 
@@ -709,15 +758,19 @@ static void continuous_ap_tick_hw3_legacy(uint32_t now,
                 continuous_ap_reset("AP already active");
                 return;
             }
-            if ((uint32_t)(now - g_cont_ap_signal_off_ms) > CONT_AP_READY_TIMEOUT_MS) {
-                continuous_ap_reset("AP ready timeout");
+            if (g_cont_ap_attempts == 0u &&
+                (uint32_t)(now - g_cont_ap_signal_off_ms) > CONT_AP_READY_WAIT_TIMEOUT_MS) {
+                continuous_ap_reset("AP ready/counter timeout");
                 return;
             }
             if (!brake_allows) return;
             if (!stalk_stop_allows) return;
             if (!torque_allows) return;
+            if ((uint32_t)(now - g_cont_ap_signal_off_ms) < CONT_AP_REENGAGE_DELAY_MS) {
+                return;
+            }
             if (s.ap_ready) {
-                continuous_ap_hw3_legacy_start_attempt(now);
+                continuous_ap_hw3_legacy_try_start_attempt(now);
             }
             return;
 
@@ -725,34 +778,41 @@ static void continuous_ap_tick_hw3_legacy(uint32_t now,
             if (!brake_allows) return;
             if (!stalk_stop_allows) return;
             if (!torque_allows) return;
-            gear_sequence_tick(now, "CONT-AP");
-            if (gear_sequence_timed_out(now)) {
-                Serial.println("[CONT-AP] 0x229 sequence timeout");
-                clear_gear_sequence();
-            } else if (gear_sequence_active()) {
+            {
+                GearSequenceSendResult result = gear_sequence_tick(now, "CONT-AP");
+                uint32_t sequence_now = millis();
+                if (gear_sequence_timed_out(sequence_now)) {
+                    Serial.printf("[CONT-AP] 0x229 sequence timeout after %u/%u frames (last=%s fails=%lu)\n",
+                                  (unsigned)g_gear_sequence_index,
+                                  (unsigned)g_gear_sequence_len,
+                                  gear_sequence_send_result_name(result),
+                                  (unsigned long)g_gear_sequence_send_fail_count);
+                    clear_gear_sequence();
+                }
+            }
+            if (gear_sequence_active()) {
                 return;
             }
             if (s.ap_active) {
                 continuous_ap_reset("AP active");
                 return;
             }
-            if ((uint32_t)(now - g_cont_ap_attempt_ms) < CONT_AP_ATTEMPT_RESULT_MS) {
+            uint32_t attempt_elapsed = now - g_cont_ap_attempt_ms;
+            if (attempt_elapsed < CONT_AP_ATTEMPT_RESULT_MS) {
                 return;
             }
             if (g_cont_ap_attempts >= CONT_AP_MAX_RETRIES) {
                 continuous_ap_reset("retry limit");
                 return;
             }
-            if (!s.ap_ready) {
-                if ((uint32_t)(now - g_cont_ap_signal_off_ms) > CONT_AP_READY_TIMEOUT_MS) {
-                    continuous_ap_reset("AP ready timeout");
-                } else {
-                    g_cont_ap_state = ContAp_WaitApReady;
-                    Serial.println("[CONT-AP] AP not ready after attempt; waiting again");
-                }
+            if (attempt_elapsed < (CONT_AP_ATTEMPT_RESULT_MS + CONT_AP_RETRY_DELAY_MS)) {
                 return;
             }
-            continuous_ap_hw3_legacy_start_attempt(now);
+            if (!s.ap_ready) {
+                g_cont_ap_state = ContAp_WaitApReady;
+                return;
+            }
+            continuous_ap_hw3_legacy_try_start_attempt(now);
             return;
     }
 }
@@ -983,9 +1043,18 @@ static void update_led() {
 static void process_frame(CanBusId bus, const CanFrame &frame) {
     state_enter();
     g_state.rx_count++;
+    // Configurable signal mapping (#122): when set, read DAS/steering from the
+    // user-configured positions and disable the auto-parsers for those signals.
+    fsd_apply_signal_config(&g_state, &frame, millis());
+    bool das_cfg   = (g_state.cfg_das_id != 0);
+    bool steer_cfg = (g_state.cfg_steer_id != 0);
     // AP-First stability debounce: stamp the last time AP was not engaged, so
     // fsd_ap_first_allows() can require AP held stable for AP_FIRST_STABLE_MS (#100/#108).
-    if (g_state.das_ap_state < 2u) g_state.ap_unstable_tick_ms = millis();
+    if (g_state.das_ap_state < 2u) {
+        g_state.ap_unstable_tick_ms = millis();
+        g_state.soft_engage_latched = false;  // re-require centred wheel next engage (#108)
+    }
+    fsd_abort_guard_update(&g_state);  // latch off injection if the car aborts (#108)
     if (frame.id == CAN_ID_GTW_CAR_STATE)  g_state.seen_gtw_car_state++;
     if (frame.id == CAN_ID_GTW_CAR_CONFIG) g_state.seen_gtw_car_config++;
     if (frame.id == CAN_ID_AP_CONTROL)     g_state.seen_ap_control++;
@@ -1048,14 +1117,15 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (frame.id == CAN_ID_BMS_THERMAL) { state_enter(); fsd_handle_bms_thermal(&g_state, &frame); state_exit(); return; }
 
     // ── DAS status (read-only, always) — gating for NAG killer ───────────────
+    // Skipped when a custom DAS source is configured (#122) — config owns it.
     FSDState das_state = state_snapshot();
-    if (hw_uses_hw3_das_status(das_state.hw_version) && frame.id == CAN_ID_DAS_STATUS_HW3) {
+    if (!das_cfg && hw_uses_hw3_das_status(das_state.hw_version) && frame.id == CAN_ID_DAS_STATUS_HW3) {
         state_enter();
         fsd_handle_das_status_hw3(&g_state, &frame);
         state_exit();
         return;
     }
-    if (hw_uses_hw4_das_status(das_state.hw_version) && frame.id == CAN_ID_DAS_STATUS_HW4) {
+    if (!das_cfg && hw_uses_hw4_das_status(das_state.hw_version) && frame.id == CAN_ID_DAS_STATUS_HW4) {
         state_enter();
         fsd_handle_das_status_hw4(&g_state, &frame);
         state_exit();
@@ -1064,7 +1134,7 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     // HW4 trims that never broadcast 0x39B carry the hands-on field on 0x399
     // (same byte5[5:2]); read it as a fallback so the nag gate isn't starved (#100).
     // Read-only and non-returning — the ISA chime-suppress path still handles 0x399.
-    if (hw_uses_hw4_das_status(das_state.hw_version) &&
+    if (!das_cfg && hw_uses_hw4_das_status(das_state.hw_version) &&
         frame.id == CAN_ID_DAS_STATUS_HW3 && !das_state.das_hw4_status_seen) {
         state_enter();
         fsd_handle_das_handsonly_399(&g_state, &frame);
@@ -1135,13 +1205,22 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         state_exit();
         return;
     }
+    // Steering angle (0x129) — read-only, feeds the Soft Engage gate (#108).
+    if (!steer_cfg && frame.id == CAN_ID_STEER_ANGLE) {
+        state_enter();
+        fsd_handle_steering_angle(&g_state, &frame);
+        state_exit();
+        return;
+    }
 
     // ── Beyond here only run when TX is allowed ───────────────────────────────
     state_enter();
     bool tx = fsd_can_transmit(&g_state);
     // AP-First (#100/#108): when enabled, hold AP/FSD/nag injection until AP is
     // engaged and stable. Gates 0x3FD / 0x3EE / 0x370 below; off by default.
-    bool ap_ok = fsd_ap_first_allows(&g_state, millis());
+    bool ap_ok = fsd_ap_first_allows(&g_state, millis()) &&
+                 fsd_soft_engage_allows(&g_state) &&   // Soft Engage holds until wheel centred (#108)
+                 fsd_abort_guard_allows(&g_state);     // Abort Guard cuts injection on an abort (#108)
     state_exit();
 
     // NAG killer — build echo only when TX is currently allowed.

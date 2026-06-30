@@ -28,6 +28,10 @@ uint32_t book_exit(void* context);
 uint32_t book_action_exit(void* context);
 uint32_t flipperham_text_exit_callback(void* context);
 
+void coord_input_alloc(FlipperHamApp* app);
+void coord_input_free(FlipperHamApp* app);
+void coord_input_start(FlipperHamApp* app, uint8_t lon);
+
 void flipperham_menu_callback(void* context, uint32_t index);
 void flipperham_send_callback(void* context, uint32_t index);
 void readme_back(GuiButtonType result, InputType type, void* context);

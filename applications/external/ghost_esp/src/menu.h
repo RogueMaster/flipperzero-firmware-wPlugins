@@ -43,6 +43,30 @@ void show_aerial_menu(AppState* state);
 void handle_aerial_menu(AppState* state, uint32_t index);
 void show_ir_menu(AppState* state);
 
+// WiFi Settings sub-category show functions
+void show_wifi_settings_led_menu(AppState* state);
+void show_wifi_settings_sd_menu(AppState* state);
+void show_wifi_settings_mgmt_menu(AppState* state);
+void show_wifi_settings_device_menu(AppState* state);
+void show_wifi_settings_misc_menu(AppState* state);
+
+// WiFi Network sub-category show functions
+void show_wifi_network_portal_menu(AppState* state);
+void show_wifi_network_conn_menu(AppState* state);
+void show_wifi_network_scan_menu(AppState* state);
+void show_wifi_network_iot_menu(AppState* state);
+void show_wifi_network_webui_menu(AppState* state);
+
+// BLE Scanning sub-category show functions
+void show_ble_scan_detect_menu(AppState* state);
+void show_ble_scan_airtag_menu(AppState* state);
+void show_ble_scan_gatt_menu(AppState* state);
+void show_ble_scan_adv_menu(AppState* state);
+
+// GPS sub-category show functions
+void show_gps_config_menu(AppState* state);
+void show_gps_wardrive_menu(AppState* state);
+
 bool text_view_input_handler(InputEvent* event, void* context);
 void text_view_attach_input_handler(AppState* state);
 void navigate_to_view(AppState* state, uint8_t view_id);

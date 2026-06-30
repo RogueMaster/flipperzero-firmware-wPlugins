@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented here.
 
+## [1.12.0]: Protected Ultralight/NTAG support + air-interface labels
+
+### Fixed
+- **Password-protected MIFARE Ultralight / NTAG cards no longer hang the scanner**: cards whose user pages are locked (e.g. NTAG213-based hotel keys like VingCard) NAK the page read, which previously left the app looping forever on a read it doesn't need. It now classifies the card from the chip type + UID it already obtained (GET_VERSION + anticollision) and produces a result. Scored as a UID-based (cloneable) credential — HIGH — which is the honest verdict for these cards
+
+### Added
+- **Locked-memory note in reports**: when a card's user memory is password-protected, the report records `user memory is password-protected (pages locked; UID still cloneable)`. Documentation only — it does not change the score (the UID is unprotected and NTAG/UL password auth is sent in cleartext with no mutual auth, so it is not a meaningful access-control control)
+- **Underlying air interface shown alongside the card name**: outputs now include the real protocol next to the friendly name — e.g. `HID Seos (ISO 14443-4A)`, `HID iCLASS (ISO 15693)`, `NTAG213 (ISO 14443-3A)` — in the report always, and on the result screen when it fits
+
+## [1.11.2]: Report shows the on-screen verdict
+
+### Fixed
+- **Report now matches the result screen**: each card's likelihood line shows the on-device verdict in brackets when it differs from the OWASP band — e.g. `Likelihood: MINIMAL [SECURE]`, `Likelihood: HIGH [HIGH RISK]`. Previously the screen said `SECURE`/`HIGH RISK` while the report only said `MINIMAL`/`HIGH`, so the rating appeared to be missing from the report. The verdict words now have a single source of truth in `core/scoring.c` so the screen and report can no longer drift
+
+## [1.11.1]: Clarify iCLASS scan mode
+
+### Changed
+- **iCLASS scan-mode prompt clarified**: the prompt now reads `Tap iCLASS SE/Legacy...` with a `Seos? use NFC mode` hint below it. iCLASS Legacy/SE are on ISO 15693 (iCLASS mode); Seos is ISO 14443-4A (NFC mode) — the shared "iCLASS" branding made the mode ambiguous
+
+## [1.11.0]: HID Seos detection
+
+### Added
+- **HID Seos detection**: ISO14443-4A smart cards are now routed to the `iso14443_4a` poller, which performs an ISO-7816 `SELECT` of the HID Seos applet AID. A `0x9000` response classifies the card as **HID Seos** (previously it fell through to generic `ISO 14443-4A`). Seos is a modern AES secure element, so it scores **SECURE** with advice to disable any legacy/Prox fallback at the reader. Passive identification only — reading the PACS (facility code / card number) still requires a HID SAM (#53). Non-Seos ISO14443-4A cards are unaffected (still classified as `ISO 14443-A`)
+
+## [1.10.2]: Scan-screen spacing fix
+
+### Fixed
+- **Scan-screen lines re-spaced (~10px)** so the version line no longer collides with the title divider above or the "Tap card to reader" prompt below. The version, scan prompt, "Scanning…" status, mode hint, and controls row are now evenly spaced
+
+## [1.10.1]: Scoring fixes — MIFARE Plus SL2 and FeliCa Standard
+
+### Fixed
+- **MIFARE Plus SL2 now scores MODERATE (was SECURE)**: SL2 is the weak transitional mode (AES authentication but Classic frame structure, downgrade-prone), so it is no longer treated as having protected application memory. Only SL3 (full AES + ISO14443-4) is. This matches the documented behaviour in `docs/card-types.md`
+- **FeliCa Standard now scores SECURE (was MODERATE)**: standard FeliCa has proprietary mutual authentication protecting its blocks, so it is treated as having protected memory (like DESFire); FeliCa Lite (no mutual auth) remains HIGH RISK. Matches `docs/card-types.md`
+- `ease_of_exploit` for MIFARE Plus SL2 moved from `hard` to `moderate` to match its MODERATE likelihood (downgrade/UID-replay, not a crypto break)
+- Corrected the `docs/scoring.md` "Unknown card / scan failure" worked example: a failed/incomplete read scores 20/100 but is labelled **LOW RISK** (both findings are LOW severity), not MODERATE — the label follows the highest finding severity, not the score band
+
 ## [1.10.0]: OWASP Risk Rating Methodology framing
 
 ### Changed
