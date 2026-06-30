@@ -83,7 +83,7 @@
 - **Default ON.** Flipper running scene replaces the BMS / flags line with `!14.x: TX may stop AP` whenever the warning toggle is enabled. ESP32 web dashboard shows a dismissible yellow banner at the top.
 - Pessimistic default: most users on 14.x firmware don't know they're affected until autosteer disengages mid-drive. The warning reaches them before they enable any TX feature.
 - Opt-out via the **On 14.x?** Settings toggle (Flipper) or the **Dismiss** button on the banner (ESP32, persisted in NVS). Disable if you are sure you're on pre-14.x firmware.
-- Regional caveat: enforcement intensity varies by market. Some regions (markets without Tesla direct presence) appear to enforce less aggressively. See [#73](https://github.com/hypery11/flipper-tesla-fsd/issues/73) for the running 14.x tracker.
+- Regional caveat: enforcement intensity varies by market. Some regions (markets without Tesla direct presence) appear to enforce less aggressively. See [#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122) for the running 14.x / 2026.20 tracker.
 
 ### Diagnostics (read-only, no FSD required)
 - Live BMS dashboard: pack voltage, current, SoC, temperature range, **energy consumption (Wh/km)**
